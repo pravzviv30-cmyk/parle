@@ -1,18 +1,19 @@
 /**
  * What Speak is allowed to decide, draw and leave out — F405, F573, and the
- * notebook redesign.
+ * direction B rebuild.
  *
- * Rewritten 2026-09-27 (notebook Phase 3, B1). Speak leads with the tutor card
- * (the name and sound line from TUTOR_VOICES, the voice sample's French line as
- * the signature, a play control and a link to change the voice), then the one
- * Start with a quiet "Type instead" under it, then the A0 to A1 level path from
- * the spine with "you are here" on the next scene, then every scene as a ledger
- * row that opens its brief in the chooser. "More ways to practise" appears only
- * after a first finished scene. The Speak/Type segmented pill, the moving
- * circle, the tinted door rows and "Ready when you are" are gone.
+ * 2026-10-20, B2, B-Speak. Rewritten from the notebook Speak (tutor card, one
+ * Start through NextTaskCard, the level path, "More ways to practise"). Speak
+ * now draws, in the artboard's order: the header with its subtitle, the yellow
+ * Recommended card with Speak/Type radios, the two preference chips, Prepare
+ * first and the one Start; the starter scenes; "Same scene, a bit less help";
+ * "Talk about anything"; the tutor card without its voice line; three tiles;
+ * "Revisit a conversation"; and the speaking time as a band in words. Each old
+ * pin below is rewritten to pin what replaced it, never dropped.
  *
  * There is no renderer in this suite (docs/TESTING.md), so this reads the
- * screen. The words are `tutor/speakView.ts`'s and are held in its own suite.
+ * screen. The decisions are `tutor/speakTabView.ts`'s and are held in its own
+ * suite.
  */
 
 import { describe, test } from 'node:test';
@@ -30,7 +31,7 @@ function stripComments(source: string): string {
 
 const SCREEN = stripComments(read('./TutorTab.tsx'));
 const FLAT = SCREEN.replace(/\s+/g, ' ');
-const RENDER = SCREEN.slice(SCREEN.indexOf('<ScrollScreen'));
+const RENDER = SCREEN.slice(SCREEN.indexOf('\n  return (\n'));
 const RENDER_FLAT = RENDER.replace(/\s+/g, ' ');
 
 function between(text: string, open: string, close: string, why: string): string {
@@ -47,15 +48,27 @@ function at(marker: string): number {
   return i;
 }
 
-describe('Speak leads with the tutor, then one Start, then the path', () => {
-  test('the tutor card carries the voice from the catalogue, its sample, and a way to change it', () => {
+describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)', () => {
+  test('the sections stand in the artboard order', () => {
+    const order = ['<TabHeader', '{RECOMMENDED}', '{scenes.heading}', '{LESS_HELP_TITLE}', '{TALK_TITLE}', '<TutorCard', 'tiles.map(', '{REVISIT.title}', '{minutesBand(planView)}'];
+    const positions = order.map((marker) => at(marker));
+    assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'a section moved out of the artboard order');
+  });
+
+  test('the header says Speak and who it is with, on the shared frame with the avatar', () => {
+    assert.match(RENDER_FLAT, /<TabHeader title=\{SPEAK_TITLE\} purpose=\{speakSubtitle\(tutorName\)\} trailing=\{<ProfileButton \/>\} \/>/);
+  });
+
+  // 2026-10-20, B2, B-Speak: replaces "the tutor card carries the voice from the catalogue".
+  // The card keeps its name, sample and Change voice, and loses the sound line on Speak only.
+  test('the tutor card carries its name, its sample and a way to change the voice, and no voice line', () => {
     assert.match(FLAT, /const card = tutorCardFacts\(voiceKey\)/, 'the card reads its words from somewhere other than speakView.ts');
     assert.match(FLAT, /const voiceKey = tutorVoiceOf\(profile\)/, 'the card is not the learner\'s chosen voice');
     const tutorCard = between(RENDER_FLAT, '<TutorCard', '/>', 'Speak draws the tutor card');
-    for (const prop of ['name={card.name}', 'voice={card.voice}', 'signature={card.signature}', 'onHear={hear}', 'playing={playing}', "onChange={() => nav.navigate('Profile', { sheet: 'tutorVoice' })}"]) {
+    for (const prop of ['name={card.name}', 'signature={card.signature}', 'onHear={hear}', 'playing={playing}', 'onChange={() => nav.navigate(CHANGE_VOICE_ROUTE.screen, CHANGE_VOICE_ROUTE.params)}']) {
       assert.ok(tutorCard.includes(prop), `the tutor card does not take ${prop}`);
     }
-    // The sample is the bundled clip, one player, and it stops when the tab is left.
+    assert.ok(!tutorCard.includes('voice={card.voice}'), 'Speak still draws the "A man\'s voice, from France" line');
     assert.match(FLAT, /player\.replace\(voiceSample\(voiceKey\)\)/, 'the sample is not the bundled clip for this voice');
     assert.match(FLAT, /if \(!focused\) \{ player\.pause\(\); setPlaying\(false\); \}/, 'the sample keeps playing behind another tab');
     assert.match(FLAT, /if \(status\.didJustFinish\) setPlaying\(false\)/, 'a finished sample leaves the control saying Stop');
@@ -73,92 +86,133 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
     assert.match(profile, /samplePlayer\.pause\(\); setSamplePlaying\(null\); setSheet\('none'\);/);
   });
 
-  test('one Start, the next conversation, with a quiet "Type instead" under it and no segmented pill', () => {
-    assert.match(RENDER_FLAT, /<NextTaskCard/);
-    const shared = read('../practice/NextTaskCard.tsx');
-    const hero = read('../home/MissionHero.tsx');
-    assert.match(shared, /<MissionHero hero=\{value.hero\}/);
-    assert.match(hero, /secondary=\{<IconAction layout="inline" icon="keyboard" label=\{modes.other.label\}/);
-    assert.match(hero, /open\(modes.other.textMode\)/);
+  // 2026-10-20, B2, B-Speak: replaces "one Start ... with a quiet Type instead and no segmented pill".
+  // The choice is the shared Choice radio over startModes, never a new segmented part.
+  test('one Start on the Recommended card, with Speak and Type as radios defaulting to the standing choice', () => {
     assert.match(FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/);
-    assert.doesNotMatch(SCREEN, /<TabBar\b|Ready when you are/);
-
+    assert.match(FLAT, /const textMode = chosenText \?\? modes\.textMode;/);
+    const card = between(RENDER_FLAT, '<ColourCard ground="sun">', '</ColourCard>', 'Speak draws the yellow Recommended card');
+    assert.match(card, /accessibilityRole="radiogroup"/);
+    assert.match(card, /MODE_CHOICES\.map\(\(choice\) =>/);
+    assert.match(card, /<Choice compact ground="card" role="radio" title=\{choice\.label\} selected=\{textMode === choice\.textMode\} onPress=\{\(\) => setChosenText\(choice\.textMode\)\} \/>/);
+    assert.equal((card.match(/<PillButton label=\{START\}/g) ?? []).length, 1, 'the card carries other than one Start');
+    assert.match(card, /onPress=\{\(\) => open\(textMode, next\.params\)\}/, 'Start does not open the next conversation through the probe');
+    assert.doesNotMatch(SCREEN, /<TabBar\b|<SegmentedControl\b|Ready when you are/);
   });
 
-  test('the level path from the spine, then every scene as a ledger row that opens its brief', () => {
-    assert.match(FLAT, /const path = pathCard\(speakPath\(progress\)\)/);
-    assert.match(RENDER_FLAT, /path.rows.map\(\(row\) =>/);
-    assert.match(RENDER_FLAT, /<SceneMark state=\{row.state\}/);
-    assert.match(RENDER_FLAT, /onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
-    assert.match(RENDER_FLAT, /\{row.french\}/);
-    assert.equal((SCREEN.match(/path.rows.map\(/g) ?? []).length, 1);
+  test('the Recommended card reads the scene, its minutes, the speaking time and the two preference chips', () => {
+    assert.match(FLAT, /const rec = recommended\(next\);/);
+    const card = between(RENDER_FLAT, '<ColourCard ground="sun">', '</ColourCard>', 'Speak draws the yellow Recommended card');
+    assert.match(card, /\{rec\.title\}/);
+    assert.match(card, /\{rec\.sentence\}/);
+    assert.match(card, /rec\.minutes !== null && <Chip variant="meta" label=\{rec\.minutes\} \/>/);
+    assert.match(card, /<Chip variant="meta" label=\{USES_SPEAKING_TIME\} \/>/);
+    assert.match(card, /label=\{correctionsChip\(strictnessLabel\(profile\)\)\} onPress=\{\(\) => nav\.navigate\(PREFERENCES_ROUTE\.screen\)\}/);
+    assert.match(card, /label=\{paceChip\(tutorName, paceOf\(profile\)\)\} onPress=\{\(\) => nav\.navigate\(PREFERENCES_ROUTE\.screen\)\}/);
+    assert.match(card, /rec\.prepare !== null && <PillButton variant="secondary" label=\{PREPARE_FIRST\} onPress=\{\(\) => nav\.navigate\(rec\.prepare!\.screen, rec\.prepare!\.params\)\} \/>/);
+  });
+
+  // 2026-10-20, B2, B-Speak: replaces "the level path from the spine, then every scene as a ledger row".
+  test('the starter scenes come from the path model, each opening its preview, with Every scene to the chooser', () => {
+    assert.match(FLAT, /const scenes = starterScenes\(progress\);/);
+    assert.match(RENDER_FLAT, /scenes\.rows\.map\(\(row\) =>/);
+    assert.match(RENDER_FLAT, /<SceneMark state=\{row\.state\} \/>/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(row\.route\.screen, row\.route\.params\)\}/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(EVERY_SCENE\.route\.screen\)\}/);
+    assert.match(RENDER_FLAT, /row\.next \? <Chip variant="meta" tone="lavender" label=\{NEXT_CHIP\} \/>/);
+    assert.equal((SCREEN.match(/scenes\.rows\.map\(/g) ?? []).length, 1);
     assert.doesNotMatch(SCREEN, /<LevelPath|path.groups.map|<Highlight/);
-    assert.ok(at('<NextTaskCard') < at('path.rows.map('));
+    assert.ok(at('{RECOMMENDED}') < at('scenes.rows.map('));
   });
 
-  test('offline Speak says it is unavailable once', () => {
+  test('the less-help card stands only for a real replay, opens through the probe, and locks only through the seam', () => {
+    assert.match(FLAT, /const replay = lessHelp\(completions\);/);
+    assert.match(RENDER_FLAT, /\{replay !== null && \(/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => open\(textMode, replay\.params\)\}/);
+    assert.match(RENDER_FLAT, /\{replay\.locked && <LockBadge \/>\}/);
+    assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab decides a lock itself instead of reading the view model');
+  });
+
+  test('Talk about anything offers the learner\'s own suggestions and their own topic, each through the probe', () => {
+    assert.match(FLAT, /const talk = talkChips\(learningSuggestions\(practicePreferencesOf\(profile\)\)\);/);
+    const card = between(RENDER_FLAT, '<ColourCard ground="blue">', '</ColourCard>', 'Speak draws the blue Talk about anything card');
+    assert.match(card, /\{TALK_SUB\}/);
+    assert.match(card, /ground=\{chip\.own \? 'violet2' : 'card'\}/);
+    assert.match(card, /onPress=\{\(\) => open\(textMode, chip\.params\)\}/);
+    assert.doesNotMatch(SCREEN, /My trip to Lyon|My weekend|Food I love/, 'Speak invents a personal topic');
+  });
+
+  test('three tiles, the conversations row and the minutes footer go where they say', () => {
+    assert.match(FLAT, /const tiles = speakTiles\(tutorName\);/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(tile\.route\.screen\)\}/);
+    assert.match(RENDER_FLAT, /\{tile\.locked && <LockBadge form="round" \/>\}/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(REVISIT\.route\.screen\)\}/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(SEE_MINUTES\.route\.screen\)\}/);
+  });
+
+  test('the speaking time is a band in words, never a count of seconds or a date', () => {
+    assert.doesNotMatch(SCREEN, /secondsRemaining|allowanceSeconds|periodEnd/);
+    assert.match(FLAT, /setPlanView\(planStatusFor\(status, Date\.now\(\)\)\)/);
+    assert.match(RENDER_FLAT, /\{minutesBand\(planView\)\}/);
+  });
+
+  // 2026-10-20, B2, B-Speak: replaces "offline Speak says it is unavailable once"; the
+  // bundled practice now sits inside the offline card, where NextTaskCard used to draw it.
+  test('offline Speak says it is unavailable once and offers the bundled practice', () => {
     assert.match(FLAT, /const offlineShown = !live \|\| heldBack !== null/);
-    assert.match(RENDER_FLAT, /<NextTaskCard/);
     assert.match(RENDER_FLAT, /\{offlineShown && \(/);
     assert.equal((RENDER.match(/TUTOR_OFFLINE.headline/g) ?? []).length, 1);
+    const offline = between(RENDER_FLAT, '{offlineShown && (', '</Card>', 'the offline block is drawn');
+    assert.match(offline, /\{primary\}/);
+    assert.match(offline, /<LocalPracticeCard \/>/);
     assert.doesNotMatch(RENDER, /state-offline|todayItems/);
-    assert.match(read('../practice/NextTaskCard.tsx'), /<LocalPracticeCard/);
-
   });
 
-  test('"More ways to practise" appears only after a first finished scene', () => {
-    assert.match(RENDER, /moreWaysOpen\(progress\) &&/);
-    assert.match(RENDER, /\{MORE_WAYS_LABEL\}/);
-    assert.match(RENDER_FLAT, /MORE_WAYS.map\(\(way\) =>/);
-    assert.ok(at('path.rows.map(') < at('MORE_WAYS.map('));
-    const handler = between(FLAT, 'const more = (', '};', 'Speak opens a way in');
-    assert.match(handler, /if \(way.screen === null\) \{ open\(modes.textMode\); return; \}/);
-    assert.match(handler, /nav.navigate\(way.screen\)/);
+  // 2026-10-20, B2, B-Speak: replaces '"More ways to practise" appears only after a first
+  // finished scene'. Its three rows became the Talk about anything card (the open
+  // conversation), Explore's Prepare for something real, and the memory tile.
+  test('the old "More ways to practise" list is gone, and its rows have homes', () => {
+    assert.doesNotMatch(SCREEN, /MORE_WAYS|moreWaysOpen/);
+    assert.match(read('./ExploreTab.tsx'), /nav\.navigate\('RealMoment'/);
+    assert.match(stripComments(read('../tutor/speakTabView.ts')), /screen: 'TutorMemory'/);
   });
 
   test('what left Speak stays gone', () => {
     for (const gone of [
       '<TintRow', 'DOORS', 'tutorDoors(', 'DOOR_TINT', '<VoiceOrb', 'settleIn', 'Animated', 'TUTOR_ORB_SIZE', 'Practise pronunciation',
-      'MISSIONS.map(', 'scenarioCountLine', 'studio', 'Beginner', 'Veteran', 'streak',
+      'MISSIONS.map(', 'scenarioCountLine', 'studio', 'Beginner', 'Veteran', 'streak', '<NextTaskCard', '<ContinuityCard', 'tutorHeading(',
     ]) {
       assert.ok(!SCREEN.includes(gone), `Speak still carries ${gone}`);
     }
-    // Every numeral-free, guilt-free literal the tab spells itself.
     for (const literal of RENDER.match(/'[^']*'|"[^"]*"/g) ?? []) {
       if (literal.includes('/')) continue;
       assert.equal(guiltIn(literal), undefined, `Speak spells ${literal}`);
-      assert.doesNotMatch(literal, /—/);
+      assert.doesNotMatch(literal, /—|·/);
     }
-    assert.match(FLAT, /MICROPHONE_NOTICE/);
     assert.match(RENDER, /\{MICROPHONE_NOTICE\}/);
   });
 });
 
-describe('Speak keeps its memory, its plan read and its continuation', () => {
-  test('unread history is a retry state, and paused personal memory is not used for continuity', () => {
+describe('Speak keeps its history read, its plan read and its continuation', () => {
+  test('unread history is a retry state, owned by the account that asked', () => {
     assert.match(FLAT, /setHistoryStatus\('loading'\)/);
     assert.match(FLAT, /setHistoryStatus\('unread'\)/);
     assert.match(FLAT, /setHistoryReadOwner\(scope\); setHistoryReadyOwner\(null\); setHistoryStatus\('loading'\)/);
     assert.match(FLAT, /setHistoryReadyOwner\(scope\); setHistoryStatus\('ready'\)/);
     assert.match(FLAT, /const renderHistoryStatus = ownedReadStatus\(historyStatus, historyReadOwner, historyReadyOwner, currentScope\)/);
     assert.match(FLAT, /if \(renderHistoryStatus !== 'ready'\) return <ScrollScreen/);
-    assert.match(FLAT, /brain: memoryPaused\(profile\.brain\) \? null : profile\.brain/);
     assert.match(FLAT, /Try loading conversations again/);
   });
-  test('what the tutor remembers is drawn from a real record only, and a thread reaches the room it opens', () => {
-    assert.match(RENDER, /\{continuity !== null && \(/);
-    assert.match(RENDER, /<ContinuityCard/);
-    assert.match(FLAT, /continuityFrom\(\{ brain: memoryPaused\(profile\.brain\) \? null : profile\.brain, packs, records: scenes, progress \}\)/);
-    assert.match(FLAT, /headline=\{memoryPaused\(profile\.brain\) \? 'Continue your French' : continuityHeadline\(tutorName\)\}/);
-    assert.doesNotMatch(FLAT, /markPackContinued/);
-    assert.match(FLAT, /nav\.navigate\(route\.screen, \{ \.\.\.route\.params, continuationPackId: route\.markPack, textMode: false \}\)/);
-    assert.match(FLAT, /nav\.navigate\(route\.screen, route\.screen === 'Convo' \? \{ \.\.\.route\.params, textMode: false \} : route\.params\)/);
-    assert.match(FLAT, /capabilitiesFor\(plan\.tier, plan\.lapsed\)\.continueArc/);
 
-    const convo = stripComments(read('../ConvoScreen.tsx')).replace(/\s+/g, ' ');
+  // 2026-10-20, B2, B-Speak: replaces "what the tutor remembers is drawn from a real record
+  // only, and a thread reaches the room it opens". The ContinuityCard left Speak; a thread
+  // is the Recommended card's own conversation, and nextConversation carries its pack.
+  test('a thread to pick up is the Recommended conversation, gated by the plan', () => {
+    assert.match(FLAT, /threadFrom\(\{ records: scenes, progress, packs, marks, topics \}\)/);
+    assert.match(FLAT, /const next = nextConversation\(progress, thread, capabilitiesFor\(plan\.tier, plan\.lapsed\)\.continueArc\);/);
+    assert.match(stripComments(read('../tutor/nextConversation.ts')), /params: \{ seedTopic: thread\.seedTopic, continuationPackId: thread\.packId \}/);
     const navigator = stripComments(read('../nav/RootNavigator.tsx')).replace(/\s+/g, ' ');
     assert.match(navigator, /continuationPackId=\{route\.params\?\.continuationPackId\}/);
-    assert.match(convo, /continuationPackId === undefined \|\| live\.convo === null\) return;/);
   });
 
   test('a probe that threw lets go of the checking flag instead of retiring the tab', () => {
@@ -169,25 +223,24 @@ describe('Speak keeps its memory, its plan read and its continuation', () => {
     assert.doesNotMatch(opener, /\}, \(\) => \{/);
     assert.equal((opener.match(/setChecking\(false\)/g) ?? []).length, 2);
     assert.match(opener, /setHeldBack\(\{ textMode \}\)/);
-    assert.match(RENDER, /\{checking && <Text accessibilityLiveRegion="polite" style=\{st\.checking\}>\{TUTOR_OFFLINE\.checking\}<\/Text>\}/);
+    assert.match(RENDER_FLAT, /\{checking && <Text accessibilityLiveRegion="polite"[^>]*>\{TUTOR_OFFLINE\.checking\}<\/Text>\}/);
   });
 
-  test('a disk that will not answer takes the memory row and nothing else off the tab', () => {
+  test('a disk that will not answer takes nothing off the tab', () => {
     const effect = between(FLAT, 'useFocusEffect(', 'const open = (', 'the tab reads its storage on focus');
     assert.match(effect, /\.catch\(/);
     assert.ok(effect.indexOf('.then(') < effect.indexOf('.catch('));
     const rescue = effect.slice(effect.indexOf('.catch('));
-    assert.ok(!rescue.includes('setContinuity('));
     assert.ok(!rescue.includes('setThread('));
+    assert.ok(!rescue.includes('setCompletions('));
     assert.ok(!rescue.includes('setProgress('), 'a failed read resets the path to day one');
   });
 
-  test('a refused start is forgotten once the tutor is reachable again', () => {
+  test('a refused start is forgotten once the tutor is reachable again, and a retry is the same start', () => {
     assert.match(FLAT, /useEffect\(\(\) => \{ if \(live\) setHeldBack\(null\); \}, \[live\]\);/);
     const offline = between(RENDER, '{offlineShown && (', '</Card>', 'the offline block is drawn');
     assert.ok(!offline.includes('LESSON_MINUTES'));
-    // The circle's state words survive as a line under the Start when it is not
-    // ready, unless the offline card already says the same thing.
+    assert.match(FLAT, /open\(heldBack\?\.textMode \?\? textMode, heldBack \? pendingStart\.current : next\.params\)/);
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/);
     assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
   });

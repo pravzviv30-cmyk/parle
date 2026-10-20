@@ -1296,8 +1296,8 @@ export function TutorCard({
   changeLabel = 'Change tutor',
 }: {
   name: string;
-  /** The voice in words, for instance "Warm, unhurried Parisian". */
-  voice: string;
+  /** The voice in words, for instance "Warm, unhurried Parisian". Speak (B2) leaves it out. */
+  voice?: string;
   /** One line the tutor says, in French. */
   signature: string;
   onHear: () => void;
@@ -1313,7 +1313,7 @@ export function TutorCard({
         </View>
         <View style={ROW_WORDS}>
           <Text style={[type.heading, { color: paper.ink }]}>{name}</Text>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{voice}</Text>
+          {voice !== undefined ? <Text style={[type.small, { color: paper.inkSoft }]}>{voice}</Text> : null}
           <View style={ls.tutorChange}>
             <IconAction layout="inline" icon="edit" label={changeLabel} onPress={onChange}  />
           </View>
@@ -1787,7 +1787,7 @@ export function StatRow({ children }: { children: ReactNode }) {
  * its ground and `leading` an optional mark before the words.
  */
 export function Chip(props:
-  | { variant: 'filter'; label: string; selected: boolean; onPress: () => void; role?: 'tab' | 'button'; accessibilityLabel?: string }
+  | { variant: 'filter'; label: string; selected: boolean; onPress: () => void; role?: 'tab' | 'button'; accessibilityLabel?: string; ground?: 'card' | 'violet2' }
   | { variant: 'meta'; label: string; tone?: 'card' | 'ink' | 'lavender'; leading?: ReactNode }
 ) {
   if (props.variant === 'meta') {
@@ -1801,7 +1801,9 @@ export function Chip(props:
       </View>
     );
   }
-  const { label, selected, onPress, role = 'tab', accessibilityLabel } = props;
+  const { label, selected, onPress, role = 'tab', accessibilityLabel, ground = 'card' } = props;
+  // violet2 is the chip ground on a blue card (DESIGN.md), white words only.
+  const violet = ground === 'violet2' && !selected;
   return (
     <Pressable
       onPress={onPress}
@@ -1809,10 +1811,10 @@ export function Chip(props:
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
       aria-selected={selected}
-      style={[b.filterChip, selected && b.filterChipChosen]}
+      style={[b.filterChip, selected && b.filterChipChosen, violet && { backgroundColor: colour.violet2, borderColor: colour.violet2 }]}
     >
       {selected ? <View {...decorative}><CheckGlyph size={16} color={paper.onInk} /></View> : null}
-      <Text style={[type.button, { color: selected ? paper.onInk : paper.inkSoft }]}>{label}</Text>
+      <Text style={[type.button, { color: selected || violet ? paper.onInk : paper.inkSoft }]}>{label}</Text>
     </Pressable>
   );
 }

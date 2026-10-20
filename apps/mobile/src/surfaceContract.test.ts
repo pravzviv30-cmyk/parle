@@ -18,7 +18,8 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { PAGES } from './onboarding/answers.ts';
 import { FIRST_RUN_SURFACES } from './onboarding/disclosure.ts';
-import { MORE_WAYS, startModes } from './tutor/speakView.ts';
+import { startModes } from './tutor/speakView.ts';
+import { talkChips, OWN_TOPIC } from './tutor/speakTabView.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 const APP = join(SRC, '..');
@@ -977,6 +978,11 @@ describe('a tap that starts with a network probe — F154', () => {
     // both halves are pinned: the drawn link and the mode model behind it.
     const tutor = named('tabs/TutorTab.tsx');
     assert.match(tutor, /const modes = startModes\(prefersTyping\(/, 'Speak no longer reads the learner\'s standing typing choice');
+    // 2026-10-20, B2, B-Speak: on Speak the quiet door is the Type radio on the
+    // Recommended card, and the Start opens in whichever mode is chosen. The
+    // shared MissionHero keeps its own quiet link for Today and Practice.
+    assert.match(tutor, /<Choice compact ground="card" role="radio"[^>]*onPress=\{\(\) => setChosenText\(choice\.textMode\)\}/, 'Speak lost its Type choice');
+    assert.match(tutor, /onPress=\{\(\) => open\(textMode, next\.params\)\}/, 'the Start ignores the chosen mode');
     assert.match(
       named('home/MissionHero.tsx'),
       /<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
@@ -1672,7 +1678,8 @@ describe('the five tabs open the same way — F336', () => {
       );
       if (name === 'tabs/TutorTab.tsx') {
         assert.match(body, /if \(renderHistoryStatus !== 'ready'\) return <ScrollScreen/, 'Speak must have a separate loading and unread branch');
-        assert.match(body, /<TabHeader title=\{tutorHeading\(tutorName\)\}/g, 'Speak must name its tutor in both render branches');
+        // 2026-10-20, B2, B-Speak: the title is "Speak" and the tutor is named in the subtitle, in both branches.
+        assert.equal((body.match(/<TabHeader title=\{SPEAK_TITLE\} purpose=\{speakSubtitle\(tutorName\)\}/g) ?? []).length, 2, 'Speak must name itself and its tutor in both render branches');
       }
       assert.doesNotMatch(
         body,
@@ -1718,6 +1725,13 @@ describe('the five tabs open the same way — F336', () => {
       const body = named(name);
       // 9 October 2026: the founder requested shorter, action-first tabs.
       assert.match(body, /<TabHeader/, `${name} lost its accessible page title`);
+      // 2026-10-20, B2, B-Speak: Speak's subtitle names who the learner talks
+      // with, which the title no longer does, so it is not a repeat. It is the
+      // model's sentence, never a literal.
+      if (name === 'tabs/TutorTab.tsx') {
+        assert.doesNotMatch(body, /purpose="/, 'Speak spells its subtitle itself instead of reading speakTabView.ts');
+        continue;
+      }
       assert.doesNotMatch(body, /purpose=/, `${name} repeats an explanation under its title`);
     }
   });
@@ -1791,27 +1805,31 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     // ledger. Speak leads with the tutor card and the level path, and its other
     // ways in sit under "More ways to practise", drawn one way. The rule is the
     // same: the tutor draws the app's components and hand-rolls nothing.
+    // 2026-10-20, B2, B-Speak: "More ways to practise" left Speak. Its ways in
+    // are now the Talk about anything chips (the learner's own suggestions and
+    // their own topic), drawn one way as the shared Chip, each opening through
+    // the same probe as Start. The rule is the same: the tutor draws the app's
+    // components and hand-rolls nothing.
     const tutor = named('tabs/TutorTab.tsx');
-    const ways = tutor.slice(tutor.indexOf('MORE_WAYS.map('), tutor.indexOf('))}', tutor.indexOf('MORE_WAYS.map(')));
-    assert.ok(ways.length > 0, 'the tutor no longer maps its other ways in');
-    assert.match(ways, /<LedgerRow\b/, 'a way in is not drawn as the shared ledger row');
-    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared row');
-    assert.equal((ways.match(/<LedgerRow\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two rows could drift apart');
-    assert.match(ways, /way\.title/, 'a way in names itself instead of reading its words from the model');
-    assert.match(ways, /way\.gloss/, 'the ways in lost their gloss line');
-
-    // The ways in are the model's, not typed here: gate.ts's doors minus the
-    // everyday door (the level path is that door now), plus what the tutor
-    // remembers. A new way in is a model entry, not a row bolted on here.
+    const ways = tutor.slice(tutor.indexOf('talk.map('), tutor.indexOf('))}', tutor.indexOf('talk.map(')));
+    assert.ok(ways.length > 0, 'the tutor no longer maps its ways in');
+    assert.match(ways, /<Chip\b/, 'a way in is not drawn as the shared chip');
+    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared chip');
+    assert.equal((ways.match(/<Chip\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two could drift apart');
+    assert.match(ways, /chip\.label/, 'a way in names itself instead of reading its words from the model');
+    assert.match(ways, /open\(textMode, chip\.params\)/, 'a way in skips the probe');
+    // The open conversation is a model entry, never a row bolted on here.
     const keys = [...named('tutor/gate.ts').matchAll(/\{ key: '(\w+)', label: '/g)].map((m) => m[1]!);
     assert.deepEqual(keys, ['everyday', 'free', 'rehearse'], 'gate.ts no longer offers exactly the three ways in');
-    assert.deepEqual(MORE_WAYS.map((way) => way.key), ['free', 'rehearse', 'memory'], 'the other ways in on Speak drifted from the model');
+    assert.equal(talkChips({ ideas: [] }).at(-1)!.label, OWN_TOPIC, 'the open conversation drifted from the model');
 
     // The scenes are on this tab on purpose now: the level path is the spine.
     // They come from the path model, never from a hand-typed catalogue list.
     // 2026-09-27, Phase 4 (B1): the path is drawn once, as the scene rows, so
     // Speak reads the model and draws no second LevelPath above them.
-    assert.match(tutor, /speakPath\(progress\)/, 'Speak no longer reads its rows from the path model');
+    // 2026-10-20, B2, B-Speak: the starter scenes read the path model through speakTabView.ts.
+    assert.match(tutor, /starterScenes\(progress\)/, 'Speak no longer reads its rows from the path model');
+    assert.match(named('tutor/speakTabView.ts'), /pathCard\(speakPath\(progress\)\)/, 'the starter scenes left the path model');
     assert.doesNotMatch(tutor, /<LevelPath\b/, 'Speak draws the path twice again, as a LevelPath above the rows');
     assert.doesNotMatch(tutor, /MISSIONS\.map\(/, 'Speak lists the catalogue by hand instead of reading the level path');
     assert.doesNotMatch(tutor, /DOOR_TINT|<TintRow\b/, 'Speak paints a way in with a place tint again');
@@ -1888,7 +1906,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // 2026-10-20, B1, B-Explore: every Explore list is drawn inline in the
     // tab file as ledger rows; it imports no card file of its own.
     'tabs/ExploreTab.tsx': ['tabs/ExploreTab.tsx'],
-    'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
+    // 2026-10-20, B2, B-Speak: the ContinuityCard left Speak; a thread to pick
+    // up is the Recommended card's own conversation.
+    'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx'],
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
       'practice/ReplayMomentCard.tsx',
@@ -1913,7 +1933,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const task = named('practice/NextTaskCard.tsx');
     const local = named('practice/LocalPracticeCard.tsx');
     const hero = named('home/MissionHero.tsx');
-    for (const tab of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'tabs/PracticeTab.tsx']) assert.match(named(tab), /<NextTaskCard/);
+    for (const tab of ['tabs/HomeTab.tsx', 'tabs/PracticeTab.tsx']) assert.match(named(tab), /<NextTaskCard/);
+    // 2026-10-20, B2, B-Speak: Speak's door is its own Recommended card, with
+    // exactly one ink primary, Start; every other pill on it is secondary.
+    const speak = named('tabs/TutorTab.tsx');
+    assert.doesNotMatch(speak, /<NextTaskCard/);
+    assert.equal((speak.match(/<PillButton label=\{START\}/g) ?? []).length, 1, 'Speak carries other than one Start');
+    assert.equal((speak.match(/<PillButton\b/g) ?? []).length, (speak.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Speak carries a second primary pill');
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
     assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 2);
@@ -1956,7 +1982,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // collections, situations, the own-topic seed, next-conversation ideas,
       // take it further, words and phrases, and from your conversations.
       'tabs/ExploreTab.tsx': 7,
-      // The level path's scenes, the other ways in, and the memory row.
+      // 2026-10-20, B2, B-Speak: the starter scenes, and Revisit a conversation.
       'tabs/TutorTab.tsx': 2,
       // The review door on the tab, then replay a moment and make this phrase
       // yours in their own card files.
@@ -2333,7 +2359,9 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // Revamp B (F602): Today draws the white "today" look of the same card.
     assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
-    assert.equal((tutor.match(/<PillButton\b/g) ?? []).length, 0, 'the shared task owns the primary; connection retry is secondary');
+    // 2026-10-20, B2, B-Speak: Speak's one primary is its own Start, on the
+    // Recommended card; connection retry stays a quiet IconAction.
+    assert.equal((tutor.match(/<PillButton label=\{START\}/g) ?? []).length, 1, 'Speak carries other than one Start primary');
     assert.match(tutor, /const primary = <IconAction/);
   });
 

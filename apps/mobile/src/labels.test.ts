@@ -120,6 +120,7 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
   // 2026-09-27, Phase 3: 'Practice together' (tutor/gate.ts ENTRY_MODES_LABEL) left with the Tutor tab's
   // three doors. Speak now leads with the tutor card and the level path, and its other ways in sit under
   // "More ways to practise" (tutor/speakView.ts MORE_WAYS_LABEL), drawn as a heading, not a caps label.
+  // 2026-10-20, B2, B-Speak: that heading left Speak too; its sections are headings from tutor/speakTabView.ts.
   { words: 'Your next practice', from: 'practice/copy.ts', name: 'NEXT_PRACTICE_LABEL' },
   // Reworded by decision in whole-app phase 2 (2026-09-25): the approved My
   // French structure names the group "French you can use". Same constant, same

@@ -360,7 +360,8 @@ describe('the tab title is the working title — F602', () => {
         const ready = body.slice(readyStart);
         for (const [state, branch] of [['loading or unread', unread], ['ready', ready]] as const) {
           assert.equal((branch.match(/<TabHeader\b/g) ?? []).length, 1, `Speak draws other than one header when ${state}`);
-          assert.match(branch, /<TabHeader title=\{tutorHeading\(tutorName\)\}/, `Speak loses its working title when ${state}`);
+          // 2026-10-20, B2, B-Speak: the title is "Speak", with the tutor named in the subtitle.
+          assert.match(branch, /<TabHeader title=\{SPEAK_TITLE\} purpose=\{speakSubtitle\(tutorName\)\}/, `Speak loses its working title when ${state}`);
         }
         assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 2, 'Speak gained a header outside its mutually exclusive render branches');
       } else {

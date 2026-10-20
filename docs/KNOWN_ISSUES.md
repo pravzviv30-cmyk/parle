@@ -6061,7 +6061,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   centred `PillButton` "Open conversation" under it, no "Free improvisation". Footer keeps `open(true)`, the
   intro link with `HelpGlyph`, and `MICROPHONE_NOTICE`. `doors.map(` and `open(true)` stay so chooserView's
   guard holds.
-- verified-by: `the level path from the spine, then every scene as a ledger row that opens its brief`
+- note (2026-10-20, B2, B-Speak): Speak's scenes are the starter scenes from the same path model, each
+  opening its preview, with Every scene to the chooser; the test is renamed for that.
+- verified-by: `the starter scenes come from the path model, each opening its preview, with Every scene to the chooser`
 - note (2026-09-12): the doors grew to six with F547 and the test was rewritten under that title; the tab
   still draws exactly what the door model says.
 - note: revamp A (2026-09): the doors became three tinted rows with the remembers row under them and no
@@ -6900,7 +6902,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   asserted one noun along in tabs/TutorTab.test.ts.
 - verified-by: `a storage read that fails offers local practice and retry without guessing a scene`
 - verified-by: `a learner with no readable standing meets the gentlest tier, not an empty card`
-- verified-by: `a disk that will not answer takes the memory row and nothing else off the tab`
+- note (2026-10-20, B2, B-Speak): the remembers row left Speak; a failed read still resets nothing.
+- verified-by: `a disk that will not answer takes nothing off the tab`
 
 - note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
@@ -8376,7 +8379,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   mission. The other two ways in (the open conversation and rehearsing something specific) are rows
   under "More ways to practise", beside the tutor's memory, drawn only after a first finished scene. The open conversation still goes
   through the tutor probe in the learner's preferred mode.
-- verified-by: `"More ways to practise" appears only after a first finished scene`
+- note (2026-10-20, B2, B-Speak): "More ways to practise" left Speak. The everyday mission is the
+  starter scenes and Every scene, the open conversation is the Talk about anything chips (still through
+  the probe, in the chosen mode), and rehearsing something is Explore's Prepare for something real.
+- verified-by: `the open chat runs the same connection check the circle runs, and the other two need no server at all`
 
 ### F548 — A learner cannot bring a real situation to the tutor
 - severity: P2
@@ -8654,7 +8660,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): Speak is now the tutor card (name, voice, signature line, a
   sample and a way to change voice), one Start, and the level path. The moving orb and the three
   tinted ways in are gone; the remembers row stays.
-- verified-by: `the tutor card carries the voice from the catalogue, its sample, and a way to change it`
+- note (2026-10-20, B2, B-Speak): the card on Speak drops the catalogue's sound line by design.
+- verified-by: `the tutor card carries its name, its sample and a way to change the voice, and no voice line`
 - verified-by: `the pronunciation lesson is a door on the chooser`
 
 ### F574 — Practice is one next practice and three rows, with the archive in Conversations
