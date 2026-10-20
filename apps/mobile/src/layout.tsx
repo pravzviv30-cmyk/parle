@@ -87,6 +87,11 @@ type ScreenProps = {
   /** The gap below the safe-area top inset. */
   topGap?: number;
   /**
+   * The body draws from the very top, under the status bar, and owns the top
+   * inset itself (2026-10-20, sim nits: the scene preview's full-bleed band).
+   */
+  bleedTop?: boolean;
+  /**
    * `tab` for a screen under the tab bar (the bar draws the bottom inset
    * itself), `inset` for a standalone screen, `none` when the body owns it.
    */
@@ -132,6 +137,7 @@ export function Screen({
   ground = paper.ground,
   padded = true,
   topGap = space(4),
+  bleedTop = false,
   bottom = 'inset',
   header,
   footer,
@@ -155,6 +161,8 @@ export function Screen({
         backgroundColor: ground,
         paddingTop: insets.top + topGap,
         paddingBottom: bottomPad,
+        // A full-bleed band pays the top inset itself, through <TopInset />.
+        ...(bleedTop ? { paddingTop: 0 } : null),
       }}
     >
       {bar != null ? <StatusBar style={bar} /> : null}
@@ -193,6 +201,15 @@ export function Screen({
     );
   }
   return root;
+}
+
+/**
+ * The top inset as a spacer, for the band of a `bleedTop` screen
+ * (2026-10-20, sim nits): the frame stays the one reader of the safe area.
+ */
+export function TopInset({ extra = 0 }: { extra?: number }) {
+  const insets = useSafeAreaInsets();
+  return <View style={{ height: insets.top + extra }} />;
 }
 
 type ScrollScreenProps = ScreenProps & {
@@ -234,6 +251,7 @@ export function ScrollScreen({
   ground,
   padded,
   topGap,
+  bleedTop,
   bottom,
   header,
   footer,
@@ -254,6 +272,7 @@ export function ScrollScreen({
       ground={ground}
       padded={padded}
       topGap={topGap}
+      bleedTop={bleedTop}
       bottom={bottom}
       header={header}
       footer={footer}

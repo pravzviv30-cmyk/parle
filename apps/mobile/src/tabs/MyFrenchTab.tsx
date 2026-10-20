@@ -4,6 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { DAILY_SCENARIOS, MISSIONS, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 
 import { Card, CheckGlyph, Chip, ColourCard, IconAction, Ledger, LedgerRow, LOCK_BADGE_LABEL, LockBadge, OutlineButton, PillButton, Sheet, StatRow, StatTile } from '../components.tsx';
+import { Icon } from '../icons/Icon.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
@@ -64,7 +65,6 @@ import {
   THEN_NOW_SUBTITLE,
   USED_HEADING,
   WEEK_HEADING,
-  YOU_ARE_HERE,
   canDoView,
   collectionTiles,
   emptyJourney,
@@ -84,7 +84,7 @@ import {
 /**
  * Journey, built to direction B (B4, 2026-10-20, artboards B-Journey and the
  * Journey panel of B-Empty-States). The stage, the level and its XP, days in a
- * row, minutes practised and phrases kept; where the learner is on the five
+ * row, minutes practised and phrases saved; where the learner is on the five
  * stages; what they can do; then and now; the French they have used in
  * conversation; the help they needed, in words; their sounds; their week in
  * words; postcards and badges; and the doors to their phrases, conversations,
@@ -354,9 +354,14 @@ export function MyFrenchTab() {
                             : <Text style={[type.label, { color: step.state === 'here' ? paper.onInk : paper.inkSoft }]}>{step.number}</Text>}
                         </View>
                         <Text style={[type.small, { color: step.state === 'ahead' ? paper.inkSoft : paper.ink }]}>{step.label}</Text>
-                        {step.state === 'here' && <Text style={[type.eyebrow, { color: colour.blue }]}>{YOU_ARE_HERE}</Text>}
+                        {/* 2026-10-20, sim nits: the current stage carries a flag glyph; its words span the row below. */}
+                        {step.state === 'here' && <View {...decorative}><Icon name="flag" size={16} color={colour.blue} /></View>}
                       </View>
                     ))}
+                  </View>
+                  {/* Said already by the stage's own label, so heard once. */}
+                  <View {...decorative} style={st.hereRow}>
+                    <Chip variant="meta" tone="lavender" leading={<Icon name="flag" size={16} color={colour.blue} />} label={stages.hereLine} />
                   </View>
                   {stages.moveUp !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{stages.moveUp}</Text>}
                 </Card>
@@ -532,6 +537,7 @@ const st = StyleSheet.create({
   stages: { flexDirection: 'row', justifyContent: 'space-between', gap: space(1) },
   stage: { flex: 1, minWidth: 0, alignItems: 'center', gap: space(1.5), minHeight: HIT },
   stageDisc: { width: space(10), height: space(10), borderRadius: space(5), alignItems: 'center', justifyContent: 'center' },
+  hereRow: { flexDirection: 'row', flexWrap: 'wrap' },
   stageAhead: { backgroundColor: paper.card, borderWidth: 2, borderColor: colour.ring },
   canDo: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3), minHeight: HIT },
   mark: { width: space(7), height: space(7), borderRadius: space(3.5), alignItems: 'center', justifyContent: 'center' },

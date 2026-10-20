@@ -152,6 +152,10 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(RENDER_FLAT, /\{tile\.locked && <LockBadge form="round" said \/>\}/);
     assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(REVISIT\.route\.screen\)\}/);
     assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(SEE_MINUTES\.route\.screen\)\}/);
+    // 2026-10-20, sim nits: the tile row's columns come from tileColumns, so no title breaks mid-word.
+    assert.match(FLAT, /const columns = tileColumns\(\{ contentWidth: width - space\(10\), fontScale, titleSize: type\.label\.fontSize,/);
+    assert.match(RENDER_FLAT, /<View style=\{\[st\.tiles, columns === 1 && st\.column\]\}>/);
+    assert.match(RENDER_FLAT, /style=\{columns === 2 \? st\.half : st\.grow\}/);
   });
 
   test('the speaking time is a band in words, never a count of seconds or a date', () => {

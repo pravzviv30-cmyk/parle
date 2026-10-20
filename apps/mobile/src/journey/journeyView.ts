@@ -150,6 +150,11 @@ export interface StagesView {
   /** The eyebrow over the title: "Starter stage". */
   eyebrow: string;
   steps: readonly StageStep[];
+  /**
+   * "You’re here: Starter", drawn once under the ladder across its full width.
+   * 2026-10-20, sim nits: under a fifth-width column it wrapped to two lines.
+   */
+  hereLine: string;
   /** "Earn all 3 Starter abilities to move up to Basics.", or null at Basics. */
   moveUp: string | null;
 }
@@ -170,6 +175,7 @@ export function stagesFrom(progress: readonly MissionProgress[]): StagesView {
   return {
     eyebrow: `${STAGES[here]!} stage`,
     steps,
+    hereLine: `${YOU_ARE_HERE}: ${STAGES[here]!}`,
     moveUp: here === 0 ? `Earn all ${a0} ${STAGES[0]} abilities to move up to ${STAGES[1]}.` : null,
   };
 }
@@ -199,7 +205,7 @@ export interface HeaderStat {
 }
 
 /**
- * Days in a row, minutes practised and phrases kept. The minutes are every
+ * Days in a row, minutes practised and phrases saved (2026-10-20, sim nits: not "kept"). The minutes are every
  * finished sitting's measured minutes (`useMinutesPractised`), not spoken
  * minutes, so they are labelled "min practised". An unread figure is left out
  * rather than drawn as a nought.
@@ -208,7 +214,7 @@ export function headerStats(input: { daysInARow: number | null; minutes: number 
   const stats: HeaderStat[] = [];
   if (input.daysInARow !== null) stats.push({ key: 'days', value: String(input.daysInARow), label: input.daysInARow === 1 ? 'day in a row' : 'days in a row' });
   if (input.minutes !== null) stats.push({ key: 'minutes', value: String(Math.max(0, Math.floor(input.minutes))), label: 'min practised' });
-  stats.push({ key: 'phrases', value: String(input.phrases), label: input.phrases === 1 ? 'phrase kept' : 'phrases kept' });
+  stats.push({ key: 'phrases', value: String(input.phrases), label: input.phrases === 1 ? 'phrase saved' : 'phrases saved' });
   return stats;
 }
 

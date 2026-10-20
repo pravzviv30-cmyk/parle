@@ -241,6 +241,33 @@ export function speakTiles(tutorName: string, access: Access = featureAccess): S
   ];
 }
 
+/**
+ * How many tiles share a row (2026-10-20, sim nits): "Pronunciation help" broke
+ * mid-word at 375pt in three columns. A word never breaks, so the row takes
+ * three columns only when the longest word fits a tile, then two (the third
+ * tile spanning the next row), then one. The width of a word is estimated from
+ * its letters at a generous average glyph width, scaled by the reading size.
+ */
+export const TILE_GLYPH_EM = 0.6;
+
+export function tileColumns(input: {
+  contentWidth: number;
+  fontScale: number;
+  titleSize: number;
+  gap: number;
+  padding: number;
+  titles: readonly string[];
+}): 1 | 2 | 3 {
+  const { contentWidth, fontScale, titleSize, gap, padding, titles } = input;
+  if (contentWidth < 310 || fontScale >= 1.5) return 1;
+  const longest = Math.max(0, ...titles.flatMap((title) => title.split(/\s+/)).map((word) => Array.from(word).length));
+  const word = longest * titleSize * fontScale * TILE_GLYPH_EM;
+  for (const n of [3, 2] as const) {
+    if ((contentWidth - gap * (n - 1)) / n - padding * 2 >= word) return n;
+  }
+  return 1;
+}
+
 export const REVISIT = {
   title: 'Revisit a conversation',
   gloss: 'Read back what you said and pick one up again.',

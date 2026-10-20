@@ -15,8 +15,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { seedTopicOf, DAILY_SCENARIOS } from '@luvani/core';
-import { Card, Chip, ColourCard, IconAction, Ledger, PillButton } from '../components.tsx';
-import { ScreenHeader, ScrollScreen } from '../layout.tsx';
+import { Card, Chip, ColourCard, IconAction, Ledger, PillButton, RoundButton } from '../components.tsx';
+import { ScreenHeader, ScrollScreen, TopInset } from '../layout.tsx';
 import { frenchText, onColour, paper, space, textOn, type, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { tutorNameOf } from '../tutor/tutorName.ts';
@@ -87,9 +87,16 @@ export function ScenePreviewScreen() {
   };
 
   return (
-    <ScrollScreen bottom="inset" header={header}>
+    // 2026-10-20, sim nits: the hero is a full-bleed sun band (B-ScenePreview),
+    // under the status bar with rounded bottom corners, the back button inside it.
+    <ScrollScreen bottom="inset" padded={false} bleedTop>
       <View style={st.page}>
-        <ColourCard ground="sun">
+        <ColourCard ground="sun" style={st.hero}>
+          {/* The status bar's height; the card's own gap follows it. */}
+          <TopInset />
+          <View style={st.heroTop}>
+            <RoundButton kind="back" onPress={back} accessibilityLabel="Back" />
+          </View>
           <Text style={[type.eyebrow, { color: textOn.sun }]}>{model.eyebrow}</Text>
           <Text accessibilityRole="header" style={[type.title, { color: textOn.sun }]}>{model.titleEn}</Text>
           <Text {...frenchText} style={[type.french, { color: textOn.sun }]}>{model.titleFr}</Text>
@@ -100,32 +107,34 @@ export function ScenePreviewScreen() {
           {accessLabel !== null && <Text style={[type.small, { color: onColour.sun }]}>{accessLabel}</Text>}
         </ColourCard>
 
-        <View style={st.stack}>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{PREVIEW_COPY.practiseHeading}</Text>
-          <Text style={[type.heading, { color: paper.ink }]}>{model.practise}</Text>
-        </View>
-
-        {model.opener !== null && <View style={st.stack}>
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{model.opener.heading}</Text>
-          <Card>{lineRow(model.opener.line)}</Card>
-        </View>}
-
-        {model.lines.length > 0 && (
+        <View style={st.body}>
           <View style={st.stack}>
-            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PREVIEW_COPY.linesHeading}</Text>
-            <Text style={[type.small, { color: paper.inkSoft }]}>{PREVIEW_COPY.linesSub}</Text>
-            <Ledger>{model.lines.map(lineRow)}</Ledger>
+            <Text style={[type.small, { color: paper.inkSoft }]}>{PREVIEW_COPY.practiseHeading}</Text>
+            <Text style={[type.heading, { color: paper.ink }]}>{model.practise}</Text>
           </View>
-        )}
 
-        <View style={st.stack}>
-          <PillButton label={startLabel(tutorName)} state={busy ? 'busy' : 'idle'} onPress={start} />
-          {model.practice !== null && (
-            <PillButton variant="secondary" label={model.practice.label} onPress={() => { const target = model.practice!; nav.navigate(target.screen, target.params); }} />
+          {model.opener !== null && <View style={st.stack}>
+            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{model.opener.heading}</Text>
+            <Card>{lineRow(model.opener.line)}</Card>
+          </View>}
+
+          {model.lines.length > 0 && (
+            <View style={st.stack}>
+              <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PREVIEW_COPY.linesHeading}</Text>
+              <Text style={[type.small, { color: paper.inkSoft }]}>{PREVIEW_COPY.linesSub}</Text>
+              <Ledger>{model.lines.map(lineRow)}</Ledger>
+            </View>
           )}
-          <Text style={[type.small, st.centre, { color: paper.inkSoft }]}>{PREVIEW_COPY.footnote}</Text>
-          {access.error !== null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{access.error}</Text>}
-          {conversation.failed && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>Your tutor could not connect. You can practise the lines now, or try again when you are connected.</Text>}
+
+          <View style={st.stack}>
+            <PillButton label={startLabel(tutorName)} state={busy ? 'busy' : 'idle'} onPress={start} />
+            {model.practice !== null && (
+              <PillButton variant="secondary" label={model.practice.label} onPress={() => { const target = model.practice!; nav.navigate(target.screen, target.params); }} />
+            )}
+            <Text style={[type.small, st.centre, { color: paper.inkSoft }]}>{PREVIEW_COPY.footnote}</Text>
+            {access.error !== null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{access.error}</Text>}
+            {conversation.failed && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>Your tutor could not connect. You can practise the lines now, or try again when you are connected.</Text>}
+          </View>
         </View>
       </View>
     </ScrollScreen>
@@ -134,6 +143,11 @@ export function ScenePreviewScreen() {
 
 const st = StyleSheet.create({
   page: { gap: space(6) },
+  // Edge to edge: square at the top, the feature radius at the bottom only.
+  hero: { borderTopLeftRadius: 0, borderTopRightRadius: 0, paddingTop: 0, paddingHorizontal: space(5) },
+  heroTop: { flexDirection: 'row', minHeight: HIT },
+  // The page gutter the frame no longer adds, so the band can reach the edges.
+  body: { gap: space(6), paddingHorizontal: space(5) },
   stack: { gap: space(2.5) },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5) },
   line: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(3) },

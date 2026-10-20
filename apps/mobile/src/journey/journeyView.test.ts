@@ -78,10 +78,13 @@ describe('the header: the stage word, the level and the counts', () => {
     assert.equal(fresh.eyebrow, 'Starter stage');
     assert.deepEqual(fresh.steps.map((s) => s.state), ['here', 'ahead', 'ahead', 'ahead', 'ahead']);
     assert.match(fresh.steps[0]!.accessibilityLabel, new RegExp(`Stage 1, Starter, ${YOU_ARE_HERE}`));
+    // 2026-10-20, sim nits: the words span the row under the ladder, one line.
+    assert.equal(fresh.hereLine, `${YOU_ARE_HERE}: Starter`);
 
     const allA0 = stagesFrom(progressOf(A0.map((id, i) => ({ id, at: NOW - i * DAY, rung: 4 }))));
     assert.equal(allA0.eyebrow, 'Basics stage');
     assert.deepEqual(allA0.steps.map((s) => s.state), ['done', 'here', 'ahead', 'ahead', 'ahead']);
+    assert.equal(allA0.hereLine, `${YOU_ARE_HERE}: Basics`);
     assert.equal(allA0.moveUp, null, 'the future stages make no claim about how to reach them');
     for (const view of [fresh, allA0]) for (const step of view.steps) assert.doesNotMatch(`${step.label} ${step.accessibilityLabel}`, /\bA[012]\b|B[12]|CEFR/);
   });
@@ -102,9 +105,11 @@ describe('the header: the stage word, the level and the counts', () => {
     assert.equal(levelHeader(null), null);
   });
 
-  test('the counts are days in a row, minutes practised (never "spoken") and phrases kept, and an unread one is left out', () => {
-    assert.deepEqual(headerStats({ daysInARow: 3, minutes: 11.7, phrases: 8 }).map((s) => [s.value, s.label]), [['3', 'days in a row'], ['11', 'min practised'], ['8', 'phrases kept']]);
-    assert.deepEqual(headerStats({ daysInARow: 1, minutes: null, phrases: 1 }).map((s) => [s.value, s.label]), [['1', 'day in a row'], ['1', 'phrase kept']]);
+  test('the counts are days in a row, minutes practised (never "spoken") and phrases saved, and an unread one is left out', () => {
+    // 2026-10-20, sim nits: "saved", not "kept", which overstates retention.
+    assert.deepEqual(headerStats({ daysInARow: 3, minutes: 11.7, phrases: 8 }).map((s) => [s.value, s.label]), [['3', 'days in a row'], ['11', 'min practised'], ['8', 'phrases saved']]);
+    assert.deepEqual(headerStats({ daysInARow: 1, minutes: null, phrases: 1 }).map((s) => [s.value, s.label]), [['1', 'day in a row'], ['1', 'phrase saved']]);
+    for (const stat of headerStats({ daysInARow: 2, minutes: 3, phrases: 2 })) assert.doesNotMatch(stat.label, /\bkept\b/);
     for (const stat of headerStats({ daysInARow: 3, minutes: 4, phrases: 2 })) assert.doesNotMatch(stat.label, /spoken/);
   });
 });

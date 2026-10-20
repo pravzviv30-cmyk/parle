@@ -85,7 +85,8 @@ period stay near a purchase action, and large text is never capped to fit.
   topic tiles, situations, a blue "Live with your tutor, picked for you" card
   from the learner's own answers, a little practice, and words and phrases.
   Each situation opens the scene preview.
-- Scene preview: a sun hero with topic and stage, the English and French
+- Scene preview: a full-bleed sun band at the top (under the status bar,
+  rounded bottom corners only, the back button inside it) with topic and stage, the English and French
   titles and minutes; what you'll practise; "The barista might say" only where
   an authored opener ships on the device, otherwise "You could start with" the
   learner's own opening line; the lines with hear buttons; Start with the
@@ -97,7 +98,8 @@ period stay near a purchase action, and large text is never capped to fit.
   chip; "Same scene, a bit less help" only when a replay would really start
   with less help (the twist; authored twists wait for D2); the blue Talk about
   anything card whose chips are the learner's own suggestions and their own
-  topic on `violet2`; three pastel tiles; Revisit a conversation; and the
+  topic on `violet2`; three pastel tiles (three, two or one to a row from
+  `tileColumns`, so a title never breaks inside a word); Revisit a conversation; and the
   minutes band with See your minutes.
 - Practice leads with the learner's conversations (topic chips, Pick up where
   you stopped, each conversation's fixes and three steps, Talk about it again,
@@ -106,7 +108,8 @@ period stay near a purchase action, and large text is never capped to fit.
   compare. No minutes on a step, the mix or a pattern, and never a count beside
   a mistake pattern. "Comes up often" is hidden until Phase C stores the reason
   with each fix (`COMES_UP_OFTEN_ENABLED`). With no conversation, the empty page
-  offers a first one and Sounds of French. Shadowing plays the tutor's bundled
+  offers a first one and Sounds of French, with the round lock when
+  the seam says `sounds` is locked. Shadowing plays the tutor's bundled
   audio, records a temporary local take and offers comparison without judging
   it; finishing records an active date only after a durable write.
 - Your fixes: This conversation or All conversations. Attempt before reveal:
@@ -115,8 +118,9 @@ period stay near a purchase action, and large text is never capped to fit.
   conversation follow, and Practise all fixes is free.
 - Journey ("Your journey"): with no finished scene, one page and the one scene
   to start. Otherwise a blue head with the level, the XP bar and up to three
-  stats (days in a row, min practised, phrases kept; an unread figure is left
-  out), Where you are (five stages), What you can do with no "n of m" count,
+  stats (days in a row, min practised, phrases saved; an unread figure is left
+  out), Where you are (five stages, the current one with a flag and a
+  "You’re here: Starter" chip spanning the row under the ladder), What you can do with no "n of m" count,
   Then and now, French you've used, Help you needed in words, Your sounds only
   with a saved check, Your week in words, and the Postcards and Badges tiles. A
   locked section keeps its heading and badge with one teaser line.
@@ -699,7 +703,9 @@ the new look, listed at the end, and they go with their call sites.
   the round white back button at the touch floor.
 - **Monogram**: the learner's initial drawn one way (SNIPPETS header-tab). A
   white initial in Outfit Bold on an ink disc, hidden from assistive tech, at
-  `HIT` in the header button. Profile's own identity disc is the exception since
+  `HIT` in the header button. Its initial comes from `firstNameOf`, the
+  greeting's own name rule (`profile/avatar.ts`); with no name it draws the
+  neutral `user` glyph in white instead of a letter. Profile's own identity disc is the exception since
   P2: 64pt `colour.sun` with the initial in `paper.ink` at `title`, drawn once,
   because the design gives the learner's page a warmer mark than the header.
 - **Grouped list** (`settings/SettingsGroup.tsx`, P2): what Profile, Learning

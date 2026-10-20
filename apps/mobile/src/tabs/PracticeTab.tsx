@@ -47,6 +47,7 @@ import {
   pickUp,
   revisitedLines,
   savedPhrasesLine,
+  soundsRow,
   thisWeekLine,
   topicChips,
   type PracticeRoute,
@@ -72,6 +73,7 @@ export function PracticeTab() {
   const { user, adapter } = useAuth();
   // The lock seam: re-renders on a standing change, opens the Wall on a locked tap.
   const locks = useFeatureAccess(user?.id);
+  const sounds = soundsRow(locks.access);
   const { profile } = useProfile();
   // The learner's chosen tutor, whose bundled recordings are the only native
   // audio this page plays. Never another voice filling a gap.
@@ -221,7 +223,11 @@ export function PracticeTab() {
               <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{EMPTY.readyNow}</Text>
               <Ledger>
                 <LedgerRow title={EMPTY.cafe.title} gloss={EMPTY.cafe.line} note={EMPTY.cafe.cost} disabled={checking} onPress={openLesson} />
-                <LedgerRow title={EMPTY.sounds.title} gloss={EMPTY.sounds.gloss} onPress={() => go({ screen: 'SoundCheck' })} />
+                {/* 2026-10-20, sim nits: the round lock from the seam, said once in the row's own label. */}
+                <LedgerRow title={sounds.title} gloss={sounds.gloss}
+                  accessibilityLabel={`${sounds.title}, ${sounds.gloss}${sounds.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
+                  trailing={sounds.locked ? <LockBadge form="round" said /> : undefined}
+                  onPress={() => go({ screen: 'SoundCheck' })} />
               </Ledger>
             </View>
             {savedRows}

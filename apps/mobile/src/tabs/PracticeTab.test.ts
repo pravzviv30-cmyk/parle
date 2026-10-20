@@ -273,3 +273,11 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     assert.match(view, /phraseKeyOf\(c\.better\)/, 'a pattern drill is opened on raw French');
   });
 });
+
+// 2026-10-20, sim nits: the empty page's Sounds of French row draws the seam's round lock, said once.
+test('Sounds of French carries the round lock from the seam, heard once', () => {
+  const src = flat(SCREEN);
+  assert.match(src, /const sounds = soundsRow\(locks\.access\);/);
+  assert.match(src, /trailing=\{sounds\.locked \? <LockBadge form="round" said \/> : undefined\}/);
+  assert.match(src, /accessibilityLabel=\{`\$\{sounds\.title\}, \$\{sounds\.gloss\}\$\{sounds\.locked \? `, \$\{LOCK_BADGE_LABEL\}` : ''\}`\}/);
+});

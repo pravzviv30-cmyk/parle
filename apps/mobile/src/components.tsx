@@ -723,7 +723,7 @@ export function Stat({ value, label, columns = 2 }: { value: string; label: stri
  * or the control that holds it names itself, so a screen reader walks past a
  * loose letter.
  */
-export function Monogram({ initial, size = HIT }: { initial: string; size?: number }) {
+export function Monogram({ initial, size = HIT }: { initial: string | null; size?: number }) {
   return (
     <View
       {...decorative}
@@ -736,7 +736,12 @@ export function Monogram({ initial, size = HIT }: { initial: string; size?: numb
         justifyContent: 'center',
       }}
     >
-      <Text style={{ fontFamily: font.bold, fontSize: size * 0.44, color: paper.onInk }}>{initial}</Text>
+      {initial === null ? (
+        // 2026-10-20, sim nits: no name, no letter; a neutral person glyph.
+        <Icon name="user" size={Math.round(size * 0.5)} color={paper.onInk} />
+      ) : (
+        <Text style={{ fontFamily: font.bold, fontSize: size * 0.44, color: paper.onInk }}>{initial}</Text>
+      )}
     </View>
   );
 }

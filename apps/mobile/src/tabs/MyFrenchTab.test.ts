@@ -93,7 +93,11 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
     // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages.
     assert.match(FLAT, /const stages = stagesFrom\(missions\);/);
     assert.match(FLAT, /stages\.steps\.map\(\(step\) => \( <View key=\{step\.label\} style=\{st\.stage\} accessible accessibilityLabel=\{step\.accessibilityLabel\}>/);
-    gated('{YOU_ARE_HERE}', "step.state === 'here' &&", 120);
+    // 2026-10-20, sim nits: the "here" column carries a flag glyph, and the words
+    // span the row under the ladder so they read on one line at 375pt.
+    gated('<Icon name="flag"', "step.state === 'here' &&", 120);
+    assert.match(FLAT, /label=\{stages\.hereLine\}/);
+    assert.ok(at('label={stages.hereLine}') > at('stages.steps.map('), 'the here line is not under the ladder');
     // The done step carries a tick as well as its colour.
     assert.match(FLAT, /step\.state === 'done' \? <CheckGlyph/);
     assert.doesNotMatch(SCREEN, /totalXp\(|levelName|LEVELS\[|'A0'|'A1'/);

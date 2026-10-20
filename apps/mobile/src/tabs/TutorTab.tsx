@@ -64,7 +64,7 @@ import { CHANGE_VOICE, startModes, startNote, tutorCardFacts } from '../tutor/sp
 import {
   CHANGE_VOICE_ROUTE, EVERY_SCENE, LESS_HELP_TITLE, MODE_CHOICES, NEXT_CHIP, PREFERENCES_ROUTE, PREPARE_FIRST, RECOMMENDED, REVISIT,
   SEE_MINUTES, SPEAK_TITLE, START, TALK_SUB, TALK_TITLE, USES_SPEAKING_TIME, correctionsChip, lessHelp, minutesBand, paceChip,
-  recommended, speakSubtitle, speakTiles, starterScenes, talkChips,
+  recommended, speakSubtitle, speakTiles, starterScenes, talkChips, tileColumns,
 } from '../tutor/speakTabView.ts';
 
 type Completion = { id: string; at: number; rung: number };
@@ -236,6 +236,8 @@ export function TutorTab() {
   const replay = lessHelp(completions, locks.access);
   const talk = talkChips(learningSuggestions(practicePreferencesOf(profile)));
   const tiles = speakTiles(tutorName, locks.access);
+  // 2026-10-20, sim nits: never break inside a word; three, two or one per row.
+  const columns = tileColumns({ contentWidth: width - space(10), fontScale, titleSize: type.label.fontSize, gap: space(2), padding: space(3), titles: tiles.map((tile) => tile.title) });
   const currentScope = scopeGeneration();
   const renderHistoryStatus = ownedReadStatus(historyStatus, historyReadOwner, historyReadyOwner, currentScope);
 
@@ -342,9 +344,9 @@ export function TutorTab() {
           changeLabel={CHANGE_VOICE}
         />
 
-        <View style={[st.tiles, stacked && st.column]}>
+        <View style={[st.tiles, columns === 1 && st.column]}>
           {tiles.map((tile) => (
-            <View key={tile.key} style={st.grow}>
+            <View key={tile.key} style={columns === 2 ? st.half : st.grow}>
               <ColourCard ground={tile.ground} onPress={() => nav.navigate(tile.route.screen)} accessibilityLabel={tile.locked ? `${tile.title}, ${LOCK_BADGE_LABEL}` : tile.title} style={st.tile}>
                 <Text style={[type.label, { color: paper.ink }]}>{tile.title}</Text>
                 {tile.locked && <LockBadge form="round" said />}
@@ -375,7 +377,9 @@ const st = StyleSheet.create({
   column: { flexDirection: 'column' },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2) },
   grow: { flex: 1, minWidth: 0 },
-  tiles: { flexDirection: 'row', gap: space(2) },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  // Two to a row; the third grows to span the next.
+  half: { flexBasis: '40%', flexGrow: 1, minWidth: 0 },
   tile: { flex: 1, minWidth: 0, minHeight: HIT, padding: space(3), gap: space(2) },
   footer: { alignItems: 'center', gap: space(2) },
   centred: { textAlign: 'center' },

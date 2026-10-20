@@ -381,15 +381,16 @@ export function mixCard(input: {
 // ─────────────────────────────────────────────────────────────── saved
 
 export const SAVED_PHRASES = 'Saved phrases';
-export const SAVED_FIRST = 'Your first kept phrase lands here.';
+// 2026-10-20, sim nits: "saved", not "kept", which overstates retention.
+export const SAVED_FIRST = 'Your first saved phrase lands here.';
 export const SAVED_TEXT = { title: 'Saved conversation text', gloss: 'The words you chose to keep' } as const;
 
-/** "8 kept, 3 used in conversation", from the deck and each card's own counter. */
+/** "8 saved, 3 used in conversation", from the deck and each card's own counter. */
 export function savedPhrasesLine(deck: readonly ReviewCard[]): string {
   const kept = deck.filter((card) => card.kind !== 'phoneme');
   if (kept.length === 0) return SAVED_FIRST;
   const used = kept.filter((card) => evidenceOf(card).convoUses >= 1).length;
-  return `${kept.length} kept, ${used} used in conversation`;
+  return `${kept.length} saved, ${used} used in conversation`;
 }
 
 // ─────────────────────────────────────────────────────────────── phrase status
@@ -423,6 +424,15 @@ export const EMPTY = {
   },
   sounds: { title: 'Sounds of French', gloss: 'One sound at a time' },
 } as const;
+
+/**
+ * The empty page's Sounds of French row (2026-10-20, sim nits): its tap already
+ * goes through LOCKED_ROUTES (SoundCheck is 'sounds'); only the badge was
+ * missing. The badge and the spoken lock come from the one seam.
+ */
+export function soundsRow(access: (feature: LockedFeature) => FeatureAccess = featureAccess): { title: string; gloss: string; locked: boolean } {
+  return { ...EMPTY.sounds, locked: access('sounds') === 'locked' };
+}
 
 /** A learner with no conversation here at all: nothing on the page, nothing cached, nothing unavailable. */
 export function isNewLearner(data: { page: readonly unknown[]; packs: readonly unknown[]; unavailable: readonly unknown[] }): boolean {

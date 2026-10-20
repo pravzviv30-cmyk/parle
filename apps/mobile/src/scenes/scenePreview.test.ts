@@ -145,4 +145,16 @@ describe('the screen is layout over the model (source probes)', () => {
     assert.doesNotMatch(screen, /fontStyle: 'italic'/);
     assert.match(screen, /<IconAction layout="inline" icon="speaker" label="Hear"/);
   });
+
+  test('the hero is a full-bleed sun band under the status bar with the back button inside it', () => {
+    // 2026-10-20, sim nits: it was a rounded card inside the page margins.
+    assert.match(screen, /<ScrollScreen bottom="inset" padded=\{false\} bleedTop>/);
+    assert.match(screen, /<ColourCard ground="sun" style=\{st\.hero\}>[\s\S]{0,120}<TopInset \/>\s*<View style=\{st\.heroTop\}>\s*<RoundButton kind="back" onPress=\{back\}/);
+    assert.doesNotMatch(screen, /useSafeAreaInsets/, 'the frame stays the one reader of the safe area');
+    assert.match(screen, /hero: \{ borderTopLeftRadius: 0, borderTopRightRadius: 0,/, 'rounded bottom corners only');
+    assert.match(screen, /heroTop: \{[^}]*minHeight: HIT/, 'the back row keeps the touch floor');
+    assert.match(screen, /body: \{[^}]*paddingHorizontal: space\(5\)/, 'the body keeps the page gutter');
+    const layout = read('../layout.tsx');
+    assert.match(layout, /\.\.\.\(bleedTop \? \{ paddingTop: 0 \} : null\)/);
+  });
 });

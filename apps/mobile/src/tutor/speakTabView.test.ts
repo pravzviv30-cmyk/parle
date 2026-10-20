@@ -6,6 +6,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { TUTOR_NAME } from './tutorName.ts';
 import { describe, test } from 'node:test';
 import { FIRST_MISSION, SCENE_SPINE, getMission, missionStates, replayRung, type Rung } from '@luvani/core';
 
@@ -34,6 +35,7 @@ import {
   recommended,
   speakSubtitle,
   speakTiles,
+  tileColumns,
   starterScenes,
   stageWord,
   talkChips,
@@ -193,6 +195,27 @@ describe('the tutor, the tiles and the conversations row', () => {
       ['How your tutor works', 'TutorIntro'],
     ]);
     for (const tile of tiles) assert.doesNotMatch(tile.title, /Practise pronunciation/);
+  });
+
+  test('a tile title never breaks inside a word: three, two or one to a row', () => {
+    // 2026-10-20, sim nits: "Pronunciati / on help" at 375pt in three columns.
+    const at = (width: number, fontScale: number, name = TUTOR_NAME) =>
+      tileColumns({ contentWidth: width - 40, fontScale, titleSize: 16, gap: 8, padding: 12, titles: speakTiles(name).map((t) => t.title) });
+    const wordFits = (width: number, fontScale: number, n: number, word: string) =>
+      (width - 40 - 8 * (n - 1)) / n - 24 >= Array.from(word).length * 16 * fontScale * 0.6;
+    assert.equal(at(375, 1, 'Bartholomew'), 2, 'a longer tutor name still fits two columns');
+    assert.equal(at(375, 1), 2, 'three columns break Pronunciation at 375pt');
+    assert.ok(wordFits(375, 1, 2, 'Pronunciation'));
+    assert.ok(!wordFits(375, 1, 3, 'Pronunciation'));
+    assert.equal(at(1024, 1), 3, 'a wide screen keeps the three tiles in one row');
+    assert.equal(at(375, 1.5), 1, 'large text stacks the tiles');
+    assert.equal(at(320, 1), 1);
+    for (const [width, scale] of [[375, 1], [375, 1.2], [390, 1.35], [430, 1], [768, 1.3]] as const) {
+      const n = at(width, scale);
+      for (const word of ['Pronunciation', TUTOR_NAME, 'Bartholomew', 'remembers', 'tutor', 'works']) {
+        assert.ok(n === 1 || wordFits(width, scale, n, word), `${word} breaks at ${width}pt x${scale} in ${n} columns`);
+      }
+    }
   });
 
   test('tile locks come only from the seam, and only for sounds and memory', () => {

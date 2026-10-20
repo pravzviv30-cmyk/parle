@@ -36,6 +36,7 @@ import {
   pickUp,
   revisitedLines,
   savedPhrasesLine,
+  soundsRow,
   thisWeekLine,
   topicChips,
 } from './practiceTabView.ts';
@@ -217,10 +218,11 @@ describe('the stopped sitting, the mix and saved phrases', () => {
     assert.equal(mixCard({ deck: due, bank, topics: topics.slice(0, 1), now: NOW }), null);
   });
 
-  test('saved phrases say how many are kept and used, or where the first will land', () => {
+  test('saved phrases say how many are saved and used, or where the first will land', () => {
+    // 2026-10-20, sim nits: "saved", not "kept", which overstates retention.
     const used = card('Bonjour', { evidence: { retrievals: 0, convoUses: 2, transfers: 0 } });
-    assert.equal(savedPhrasesLine([used, card('Merci')]), '2 kept, 1 used in conversation');
-    assert.equal(savedPhrasesLine([]), 'Your first kept phrase lands here.');
+    assert.equal(savedPhrasesLine([used, card('Merci')]), '2 saved, 1 used in conversation');
+    assert.equal(savedPhrasesLine([]), 'Your first saved phrase lands here.');
   });
 
   test('phrase status in words: used and recalled times, or not practised yet, never "in n conversations"', () => {
@@ -268,6 +270,14 @@ describe('the empty page — B-Empty-Practice', () => {
     assert.match(EMPTY.cafe.cost, /live minutes/);
     assert.doesNotMatch(JSON.stringify(EMPTY), /\bfree\b|offline/i);
     assert.equal(EMPTY.start, 'Start your first conversation');
+  });
+  test('Sounds of French badges only when the seam says sounds is locked', () => {
+    // 2026-10-20, sim nits: the row had no badge though sounds is a locked feature.
+    const asked: LockedFeature[] = [];
+    const locked = soundsRow((f) => { asked.push(f); return 'locked'; });
+    assert.deepEqual(asked, ['sounds']);
+    assert.deepEqual(locked, { title: 'Sounds of French', gloss: 'One sound at a time', locked: true });
+    assert.equal(soundsRow(() => 'unlocked').locked, false);
   });
 });
 
