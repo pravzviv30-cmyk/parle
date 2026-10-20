@@ -10,24 +10,58 @@
  * page lists only what this table opens, so nothing is marketed that the app
  * does not actually do.
  *
- * An unknown plan reads as the trial. The status read can fail, and a door
- * that opened because nobody could check is a door that lies about the plan.
- * A lapsed plan reads as the trial too, because that is what the server holds
- * for it: an exhausted trial standing where a paid period used to.
+ * An unknown plan reads as the free plan, with one difference: it holds no
+ * streak freeze, because a freeze applied while nobody could check the plan is
+ * a perk the plan may not hold. The status read can fail, and a door that
+ * opened because nobody could check is a door that lies about the plan. A
+ * lapsed plan reads as the free plan too, because that is what the server
+ * holds for it: a weekly taste standing where a paid period used to (D24).
+ *
+ * D24 (2026-10-20, the Headspace model) adds `unlocks`: the features the free
+ * plan shows as locked and a plan or the store's trial opens. They are
+ * presentation locks, read through `featureLocks.ts`; the server still meters
+ * every live minute whatever this table says.
  */
 
 import type { Plan } from '@luvani/core';
+
+/**
+ * The D24 features a free learner sees locked, in the order of direction B's
+ * seam (`access/featureAccess.ts`). Defined here so the table below owns what
+ * each plan opens; `featureLocks.ts` re-exports it for every surface.
+ */
+export const LOCKED_FEATURES = [
+  /** Your fixes. */
+  'fixes',
+  /** Then and now. */
+  'thenAndNow',
+  /** Review and drills of conversation phrases. */
+  'conversationPractice',
+  /** Your sounds. */
+  'sounds',
+  /** Prepare for something real. */
+  'realMoment',
+  /** Continue an arc, and the same-scene replay. */
+  'continueArc',
+  /** The full Journey. */
+  'fullJourney',
+  /** What the tutor remembers. */
+  'tutorMemory',
+] as const;
+
+export type LockedFeature = (typeof LOCKED_FEATURES)[number];
 
 export type PlanTier = Plan | 'unknown';
 
 /**
  * Streak freezes and the one-tap repair (founder decision D4, 2026-10-05).
  *
- * A paid perk on either tier, monthly or yearly, and during the store's free
- * trial too, because the server answers that trial as the plan itself. The
- * free tier and a lapsed plan get none: a missed day resets the run and the
- * lifetime total stays. This says what a plan opens and nothing about a
- * learner's streak; the game layer decides when a freeze is spent.
+ * Two freezes and the repair on either paid tier, monthly or yearly, and during
+ * the store's free trial too, because the server answers that trial as the
+ * plan itself. The free plan and a lapsed plan hold one freeze and no repair
+ * (D23, 2026-10-20). An unknown plan holds none. This says what a plan opens
+ * and nothing about a learner's streak; the game layer decides when a freeze
+ * is spent.
  */
 export interface StreakProtection {
   /** How many freezes the plan holds. */
@@ -45,18 +79,29 @@ export interface Capabilities {
   customRehearsal: boolean;
   continueArc: boolean;
   streakProtection: StreakProtection;
+  /** The D24 features this plan opens. Every key, every plan. */
+  unlocks: Readonly<Record<LockedFeature, boolean>>;
 }
 
 const EARNED = { packs: true, savedPhrases: true, missions: true, memory: true } as const;
 
 /** What an unlapsed paid plan holds. Two freezes is D4's number, not a store's. */
 const PAID_PROTECTION: StreakProtection = { freezes: 2, repair: true };
+/** What the free plan holds (D23): one freeze, no repair. */
+const FREE_PROTECTION: StreakProtection = { freezes: 1, repair: false };
 const NO_PROTECTION: StreakProtection = { freezes: 0, repair: false };
 
+const unlocksWhere = (open: (feature: LockedFeature) => boolean): Readonly<Record<LockedFeature, boolean>> =>
+  Object.fromEntries(LOCKED_FEATURES.map((feature) => [feature, open(feature)])) as Record<LockedFeature, boolean>;
+
+/** Core opens every lock but the two Max doors, which stay Max's as before. */
+const MAX_ONLY: ReadonlySet<LockedFeature> = new Set(['realMoment', 'continueArc']);
+
 export function capabilitiesFor(plan: PlanTier, lapsed = false): Capabilities {
-  if (plan === 'regular' && !lapsed) return { ...EARNED, liveMinutes: 'max', customRehearsal: true, continueArc: true, streakProtection: { ...PAID_PROTECTION } };
-  if (plan === 'starter' && !lapsed) return { ...EARNED, liveMinutes: 'starter', customRehearsal: false, continueArc: false, streakProtection: { ...PAID_PROTECTION } };
-  return { ...EARNED, liveMinutes: 'trial', customRehearsal: false, continueArc: false, streakProtection: { ...NO_PROTECTION } };
+  if (plan === 'regular' && !lapsed) return { ...EARNED, liveMinutes: 'max', customRehearsal: true, continueArc: true, streakProtection: { ...PAID_PROTECTION }, unlocks: unlocksWhere(() => true) };
+  if (plan === 'starter' && !lapsed) return { ...EARNED, liveMinutes: 'starter', customRehearsal: false, continueArc: false, streakProtection: { ...PAID_PROTECTION }, unlocks: unlocksWhere((f) => !MAX_ONLY.has(f)) };
+  const protection = plan === 'unknown' ? NO_PROTECTION : FREE_PROTECTION;
+  return { ...EARNED, liveMinutes: 'trial', customRehearsal: false, continueArc: false, streakProtection: { ...protection }, unlocks: unlocksWhere(() => false) };
 }
 
 /**
@@ -74,12 +119,13 @@ export const INCLUSIONS = {
   maxCompact: 'Rehearse your moments + continue conversations.',
   /**
    * Streak protection, said once on the plans page for every plan on it (F734,
-   * D4). True of both paid tiers, monthly or yearly and during the store's free
-   * trial, because `streakProtection` above opens it for any unlapsed paid
-   * plan; the free minutes never hold it, so this is not a line of
-   * `planInclusions`, which the free minutes share with Starter.
+   * D4, D23). True of both paid tiers, monthly or yearly and during the store's
+   * free trial, because `streakProtection` above opens two freezes and the
+   * repair for any unlapsed paid plan; the free plan holds one freeze and no
+   * repair, so this is not a line of `planInclusions`, which the free plan
+   * shares with Core.
    */
-  streak: 'Every plan includes streak freezes and a one-tap repair.',
+  streak: 'Every plan includes a second streak freeze and a one-tap repair.',
 } as const;
 
 export function planInclusions(plan: Plan): readonly string[] {

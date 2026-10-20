@@ -29,7 +29,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking, AppState } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
 import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -68,10 +68,8 @@ import { loadHapticPreference } from './src/motion/hapticPreference.ts';
 import { loadSoundPreference } from './src/sound/soundPreference.ts';
 import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
 import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
-import { firstRunHomeVisible, flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
-import { fetchBillingStatus } from './src/purchases/client.ts';
-import { purchases } from './src/purchases/adapter.ts';
-import { paywallSurface } from './src/purchases/paywallView.ts';
+import { LaunchWallArrival, useLaunchWall } from './src/wall/useLaunchWall.ts';
+import { useFeatureStanding, useLockedRouteGuard } from './src/purchases/useFeatureLocks.ts';
 import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
@@ -437,60 +435,16 @@ function SignedInRoot({
   }, [user.id, startupRead]);
 
   /**
-   * The first-run offer (come alive, README Part 5.C row 12): set when the
-   * hand-off ends with the guest's practice kept, and taken once by
-   * `openFirstRun` when the navigator is ready, after its own reset. The
-   * existing wall opens at its `path-complete` door only after the server says
-   * this account holds no paid plan and the store has plans to sell
-   * (`onboarding/firstRunWall.ts`). In memory only, so it is never shown again
-   * on its own.
+   * The wall on its own (D24): the free-trial offer on each open of the app,
+   * and the D13 first-run offer after a kept guest practice, one pending flag
+   * between them. Rules in `wall/launchWall.ts`; in memory only. The locked
+   * features' standing and the locked-route guard ride beside it.
    */
-  const pendingWall = useRef(false);
-  const wallFrame = useRef<number | null>(null);
-  const wallRequest = useRef(0);
-  useEffect(() => {
-    const invalidate = () => {
-      wallRequest.current++;
-      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
-      wallFrame.current = null;
-    };
-    const foreground = AppState.addEventListener('change', state => { if (state !== 'active') invalidate(); });
-    return () => { invalidate(); foreground.remove(); };
-  }, [user.id]);
-  const openPendingWall = useCallback(() => {
-    // Invalidate on the departure event, including a quick away-and-back that
-    // resolves before the original billing read. A current Home is not proof
-    // that the original Home remained visible throughout that request.
-    if (!navigationRef.isReady() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) {
-      wallRequest.current++;
-      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
-      wallFrame.current = null;
-      return;
-    }
-    if (!pendingWall.current
-      || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
-    const owner = scopeGeneration();
-    const request = ++wallRequest.current;
-    if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
-    // Two committed frames let Home appear before this separate decision reads.
-    wallFrame.current = requestAnimationFrame(() => {
-      wallFrame.current = requestAnimationFrame(() => {
-      wallFrame.current = null;
-      if (request !== wallRequest.current || owner !== scopeGeneration() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) return;
-      void flushFirstRunWall({
-      take: () => {
-        const due = pendingWall.current;
-        pendingWall.current = false;
-        return due;
-      },
-      status: () => fetchBillingStatus(user.id),
-      storeHasPlans: async () => paywallSurface(await purchases.offering(user.id)) !== null,
-      stillHere: () => request === wallRequest.current && owner === scopeGeneration() && navigationRef.isReady() && firstRunHomeVisible(navigationRef.getCurrentRoute()) && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
-      open: () => navigationRef.navigate('Wall', { entry: 'path-complete' }),
-    });
-      });
-    });
-  }, [navigationRef, user.id]);
+  const launchWall = useLaunchWall(navigationRef, user.id);
+  useFeatureStanding(user.id);
+  const guardLockedRoute = useLockedRouteGuard(navigationRef, user.id);
+  // A launch that just onboarded shows only the first-run offer (D24).
+  useEffect(() => { if (justOnboarded) launchWall.onboarded(); }, [justOnboarded, launchWall]);
 
   /**
    * Linking owns the initial state on web, so a stale URL can resolve somewhere
@@ -514,9 +468,9 @@ function SignedInRoot({
       });
       setJustOnboarded(false);
     }
-    // Then the first-run offer, once, after a kept practice (below).
-    openPendingWall();
-  }, [justOnboarded, navigationRef, openPendingWall]);
+    // Then the pending wall, if it may open (below).
+    launchWall.flush();
+  }, [justOnboarded, navigationRef, launchWall]);
 
   // An unreachable account is not an empty account. Keep existing learning
   // safe and offer retry instead of treating an offline reinstall as first use.
@@ -631,10 +585,11 @@ function SignedInRoot({
         newlyCreated={newlyCreated}
         onWelcomeDone={clearNewAccount}
         onDone={(kept, showFirstRunOffer) => {
-          if (kept && showFirstRunOffer) pendingWall.current = true;
+          if (kept && showFirstRunOffer) launchWall.pendFirstRun();
           onPreAccountDraftConsumed();
         }}
       >
+      <LaunchWallArrival report={launchWall.arrival} />
       {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
       <GameProvider>
       {/* After the hand-off, inside the game layer: plans on mount, on the way
@@ -646,8 +601,8 @@ function SignedInRoot({
         <MainAppearanceProvider>
         <NavigationContainer
           ref={navigationRef}
-          onReady={() => { openFirstRun(); openPendingInvite(); }}
-          onStateChange={() => openPendingWall()}
+          onReady={() => { openFirstRun(); openPendingInvite(); void guardLockedRoute(); }}
+          onStateChange={() => { launchWall.flush(); void guardLockedRoute(); }}
           theme={navTheme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.

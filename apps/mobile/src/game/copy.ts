@@ -101,7 +101,9 @@ export const GAME_COPY = {
       title: 'Streak freezes',
       ready: (held: number): string => `${held} ready`,
       line: 'If a day gets away from you, a freeze covers it by itself. A used freeze comes back a week later.',
-      returns: (date: string): string => `Both freezes are in use. One comes back on ${date}.`,
+      /** `held` is how many the plan holds: one on the free plan, two on a paid one (D23). */
+      returns: (date: string, held = 2): string =>
+        held === 1 ? `Your freeze is in use. It comes back on ${date}.` : `Both freezes are in use. One comes back on ${date}.`,
     },
     repair: {
       title: (runBefore: number): string => `Bring back your ${runBefore}-day streak`,
@@ -151,7 +153,7 @@ export const GAME_COPY = {
       return `${years} years of French.`;
     },
     /** The one calm line a free learner sees after a reset (D4). No countdown, no notification. */
-    repairForSubscribers: 'Subscribers can repair a streak within 2 days.',
+    repairForSubscribers: 'Subscribers get a second freeze and can repair a streak within 2 days.',
   },
 
   level: {

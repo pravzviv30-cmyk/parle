@@ -62,17 +62,17 @@ describe('an unknown plan is never called Free', () => {
     assert.equal(subscriptionView(unknown).kind, 'unknown');
     assert.equal(subscriptionView(null).kind, 'checking');
 
-    const free = planStatusFor(status({ plan: 'trial', periodEnd: null }), NOW);
+    const free = planStatusFor(status({ plan: 'trial', secondsRemaining: 300, periodEnd: null }), NOW);
     assert.equal(planRow(free).label, PLAN_FREE_TITLE);
     assert.equal(subscriptionView(free).kind, 'free');
     const paid = planStatusFor(status({}), NOW);
     assert.equal(planRow(paid).label, PLAN_LABELS.starter);
     assert.equal(subscriptionView(paid).kind, 'paid');
 
-    // No count reaches a plan line (F377): the band and the period are words.
-    for (const view of [free, paid]) {
-      assert.doesNotMatch(JSON.stringify([planRow(view), subscriptionView(view)]), /\d/, 'a plan line counts');
-    }
+    // No count reaches a paid plan line (F377): the band and the period are
+    // words. D24: the free plan's line says its weekly minutes, as the design does.
+    assert.doesNotMatch(JSON.stringify([planRow(paid), subscriptionView(paid)]), /\d/, 'a paid plan line counts');
+    assert.equal(planRow(free).sub, '5 free minutes this week. Free every week.');
   });
 
   test('the Subscription screen draws the unknown notice with Try again, and keeps the store rows', () => {

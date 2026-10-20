@@ -66,10 +66,14 @@ describe('RevenueCat subscriber projection — F247', () => {
     const result = projectSubscriber({ subscriber: { entitlements: {} } }, current, config, now);
     assert.equal(result.kind, 'lapsed');
     if (result.kind !== 'lapsed') return;
+    // The title predates D24 and is kept because the ledger names it. A lapse
+    // now lands on a fresh weekly taste (core's lapsedEntitlement), still
+    // marked lapsed so it never reads as a new learner's welcome.
     assert.deepEqual(result.entitlement, {
       plan: 'trial',
-      secondsUsed: PLANS.trial.secondsPerPeriod,
+      secondsUsed: 0,
       lapsed: true,
+      weeklyTaste: true,
     });
   });
 
@@ -260,8 +264,8 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
   test("a store trial grants a week of the plan's minutes and no more", async (t) => {
     const trialEnd = '2026-09-06T12:00:00.000Z';
     for (const [plan, product, minutes] of [['starter', 'luvani_starter_monthly', 42], ['regular', 'luvani_regular_monthly', 70]] as const) {
-      // A learner still holding some of the free thirty minutes starts the store's free week.
-      const started = projectSubscriber(subscriber(product, trialEnd, 'trial'), { plan: 'trial', secondsUsed: 300 }, config, now);
+      // A learner still holding some of the weekly free taste starts the store's free week.
+      const started = projectSubscriber(subscriber(product, trialEnd, 'trial'), { plan: 'trial', secondsUsed: 120, weeklyTaste: true }, config, now);
       assert.equal(started.kind, 'active');
       assert.equal(started.entitlement.plan, plan);
       assert.equal(

@@ -68,8 +68,9 @@ test('account transfer retries the authoritative pack after storage failure and 
   assert.equal((await h.call('/onboarding/claim',{token,user:null})).status,401);
   h.failSave(true);await assert.rejects(h.call('/onboarding/claim',{token}));assert.ok((await h.guestStore.get(key))!.live!.baseline);
   h.failSave(false);assert.equal((await h.call('/onboarding/claim',{token})).status,200);
-  assert.equal(h.saved.size,1);assert.equal(h.consumed.size,1);assert.equal((h.saved.get(live.sessionId) as {learnerId:string}).learnerId,'account-a');
+  // D24: the first scene is a gift on top of the weekly free taste, never a debit from it.
+  assert.equal(h.saved.size,1);assert.equal(h.consumed.size,0,'the guest first scene was charged to the weekly taste');assert.equal((h.saved.get(live.sessionId) as {learnerId:string}).learnerId,'account-a');
   assert.equal((await h.guestStore.get(key))!.live!.baseline,null);
-  assert.equal((await h.call('/onboarding/claim',{token})).status,200);assert.equal(h.saved.size,1);assert.equal(h.consumed.size,1);
+  assert.equal((await h.call('/onboarding/claim',{token})).status,200);assert.equal(h.saved.size,1);assert.equal(h.consumed.size,0);
   assert.equal((await h.call('/onboarding/claim',{token,user:'account-b'})).status,409);
 });

@@ -30,6 +30,7 @@ export {
 } from './streak.ts';
 export {
   FREEZE_CAP,
+  FREE_FREEZE_CAP,
   FREEZE_RETURN_DAYS,
   freezesHeld,
   nextFreezeReturn,

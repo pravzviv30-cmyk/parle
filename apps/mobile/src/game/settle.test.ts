@@ -37,11 +37,11 @@ import { resetSyncRegistry } from '../sync/registry.ts';
 import { catchUpQuietly, seedExistingLearner } from './catchUp.ts';
 import { GAME_COPY } from './copy.ts';
 import { allQuestsDoneNow } from './delta.ts';
-import { loadGameLocal, setPaidSince } from './gameLocal.ts';
+import { loadGameLocal, setPaidSince, setProtectedSince } from './gameLocal.ts';
 import { settleGuestHandoff } from './guestHandoff.ts';
 import { emptyGame, readGame, type StoredGame } from './model.ts';
 import { beginSettle, configureGameEnvironment, finishSettle, readGameFacts, settleSitting } from './settle.ts';
-import { addClaims, loadGame, setQuestDay } from './store.ts';
+import { addClaims, addCovers, loadGame, setQuestDay } from './store.ts';
 import { NO_OUTSIDE_FACTS, badgeFactsFrom, gameViewFrom, type BillingFacts } from './view.ts';
 
 function installDisk(): Map<string, string> {
@@ -461,39 +461,70 @@ describe('settling a finished sitting — F744', () => {
     assert.ok(live && recording, 'the scan could never have seen a live or recording quest');
   });
 
-  test('a subscriber\'s missed day is covered by a freeze, and a free learner\'s is not', async () => {
+  test('a missed day is covered by a freeze: two for a subscriber, one for a free learner (D23)', async () => {
     let billing: BillingFacts | null = null;
     pin({ billing: () => billing });
     const yesterday = addDays(TODAY, -1);
-    const missedYesterday = async (plan: BillingFacts | null) => {
+    const missed = async (plan: BillingFacts | null, opts: { since?: 'old' | 'none'; gap?: 1 | 2; usedFreeze?: number } = {}) => {
       setActiveUser(nextUid());
       billing = plan;
-      // Four days in a row, then nothing yesterday. A paid plan was first seen ten days ago.
-      for (const n of [5, 4, 3, 2]) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
-      assert.equal(await setPaidSince(addDays(TODAY, -10)), 'durable');
+      const gap = opts.gap ?? 1;
+      // Four days in a row, then `gap` days with nothing. Protection was first seen ten days ago.
+      // With a freeze already used, its day is skipped and the run reaches one day further back.
+      const back = [1, 2, 3, 4].map((n) => n + gap).map((d) => (opts.usedFreeze !== undefined && d >= opts.usedFreeze ? d + 1 : d));
+      for (const d of back) assert.equal(await recordActivity('drill', 10, NOW - d * DAY, { finished: true }), 'durable');
+      if ((opts.since ?? 'old') === 'old') {
+        assert.equal(await setPaidSince(addDays(TODAY, -10)), 'durable');
+        assert.equal(await setProtectedSince(addDays(TODAY, -10)), 'durable');
+      }
+      if (opts.usedFreeze !== undefined) assert.equal(await addCovers([{ day: addDays(TODAY, -opts.usedFreeze), kind: 'freeze', at: NOW - opts.usedFreeze * DAY }]), 'durable');
       assert.ok(await seedExistingLearner());
       const delta = await drill(NOW, 10);
       assert.ok(delta);
-      return { delta, covers: (await loadGame()).covers, paidSince: (await loadGameLocal()).paidSince };
+      const local = await loadGameLocal();
+      return { delta, covers: (await loadGame()).covers.filter((c) => opts.usedFreeze === undefined || c.day !== addDays(TODAY, -opts.usedFreeze)), paidSince: local.paidSince, protectedSince: local.protectedSince };
     };
+    const PAID: BillingFacts = { plan: 'regular', lapsed: false, secondsRemaining: 1200, canStart: true };
+    const FREE: BillingFacts = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };
 
-    const paid = await missedYesterday({ plan: 'regular', lapsed: false, secondsRemaining: 1200, canStart: true });
+    const paid = await missed(PAID);
     assert.deepEqual(paid.covers, [{ day: yesterday, kind: 'freeze', at: NOW }]);
     assert.equal(paid.delta.streak.after.current, 5, 'the freeze did not keep the run');
     assert.equal(paid.delta.streak.restoredBy, 'freeze');
     assert.equal(paid.delta.streak.extendedNow, true);
+    const paidTwo = await missed(PAID, { gap: 2 });
+    assert.equal(paidTwo.covers.length, 2, 'a subscriber\'s two freezes did not cover two days');
 
-    const free = await missedYesterday({ plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false });
-    assert.deepEqual(free.covers, [], 'a free learner was given a paid perk');
-    assert.equal(free.delta.streak.after.current, 1);
+    const free = await missed(FREE);
+    assert.deepEqual(free.covers, [{ day: yesterday, kind: 'freeze', at: NOW }], 'a free learner\'s one freeze did not cover the day');
+    assert.equal(free.delta.streak.after.current, 5);
     assert.equal(free.paidSince, null, 'a plan that is not paid still counts as paid since');
+    assert.equal(free.protectedSince, addDays(TODAY, -10));
+    const freeTwo = await missed(FREE, { gap: 2 });
+    assert.deepEqual(freeTwo.covers, [], 'one freeze was spent on a gap it could not save');
+    // A second miss inside the week: the one freeze is still out.
+    const freeAgain = await missed(FREE, { usedFreeze: 4 });
+    assert.deepEqual(freeAgain.covers, [], 'a free learner was covered twice in one week');
+    // Never retroactively: the first settle that knows the plan starts protection today.
+    const fresh = await missed(FREE, { since: 'none' });
+    assert.deepEqual(fresh.covers, [], 'a freeze covered a day before protection began');
+    assert.equal(fresh.protectedSince, TODAY);
 
-    const lapsed = await missedYesterday({ plan: 'regular', lapsed: true, secondsRemaining: 0, canStart: false });
-    assert.deepEqual(lapsed.covers, [], 'a lapsed plan kept its freezes');
+    // A lapsed plan is the free plan: one freeze, no paid since.
+    const lapsed = await missed({ plan: 'regular', lapsed: true, secondsRemaining: 0, canStart: false });
+    assert.deepEqual(lapsed.covers, [{ day: yesterday, kind: 'freeze', at: NOW }], 'a lapsed plan lost the free freeze');
+    assert.equal(lapsed.paidSince, null);
+    const lapsedTwo = await missed({ plan: 'regular', lapsed: true, secondsRemaining: 0, canStart: false }, { gap: 2 });
+    assert.deepEqual(lapsedTwo.covers, [], 'a lapsed plan kept its second freeze');
 
-    const unknown = await missedYesterday(null);
+    // A plan bought after a two-day gap cannot spend its second freeze on it.
+    const bought = await missed(PAID, { gap: 2, since: 'none' });
+    assert.deepEqual(bought.covers, [], 'a plan bought after the gap covered it');
+
+    const unknown = await missed(null);
     assert.deepEqual(unknown.covers, [], 'a plan nobody could read spent a freeze');
     assert.equal(unknown.paidSince, addDays(TODAY, -10), 'an unread plan forgot when this phone first saw a paid one');
+    assert.equal(unknown.protectedSince, addDays(TODAY, -10));
   });
 
   test('the at-most-once writer records the day of a finished sitting that earned no XP', async () => {

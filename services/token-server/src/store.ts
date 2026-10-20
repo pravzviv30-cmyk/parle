@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { safeError } from '../../shared/safeError.ts';
 
 import { applyBillingSnapshot, type BillingSnapshot, type BillingProjection } from './billing/state.ts';
-import { PLANS, rollPeriod, secondsRemaining, readSessionSettlement, isServiceFailure, type Entitlement, type Plan, type ServiceFailure, type SessionSettlement } from '@luvani/core';
+import { PLANS, rollPeriod, refillTaste, recordUsage, secondsRemaining, readSessionSettlement, isServiceFailure, type Entitlement, type Plan, type ServiceFailure, type SessionSettlement } from '@luvani/core';
 
 export class SessionReconciliationRequired extends Error {
   constructor() { super('Session settlement needs reconciliation'); }
@@ -63,6 +63,12 @@ abstract class LocalBillingSupport {
     return next;
   }
   protected noteEpoch(userId: string, before: Entitlement | undefined, after: Entitlement): void {
+    // A weekly taste's first debit only stamps when its window ends (D24); that is
+    // the same usage period, so a refund in it restores rather than reverses.
+    const tasteOpened = before !== undefined && before.plan === 'trial' && after.plan === 'trial'
+      && !before.periodEnd && after.periodEnd !== undefined
+      && periodKey({ ...after, periodEnd: undefined }) === periodKey(before);
+    if (tasteOpened && this.usageEpochs.has(userId)) return;
     if (!this.usageEpochs.has(userId) || !before || periodKey(before) !== periodKey(after)) this.usageEpochs.set(userId, randomUUID());
   }
   protected async persistSessionLedger(): Promise<void> {}
@@ -93,7 +99,7 @@ abstract class LocalBillingSupport {
       const charged = old && old.epoch !== this.usageEpochs.get(userId) ? 0
         : Math.max(0, Math.min(PLANS[current.plan].secondsPerPeriod, current.secondsUsed + seconds) - current.secondsUsed);
       if (old && sessionId) this.sessionLedger.set(sessionId, { ...old, charged });
-      const next = { ...current, secondsUsed: current.secondsUsed + charged };
+      const next = charged > 0 ? recordUsage(current, charged, Date.now()) : current;
       try { await this.saveSession(userId, next); }
       catch (error) { if (old && sessionId) this.sessionLedger.set(sessionId, old); throw error; }
       return next;
@@ -207,12 +213,15 @@ export class InMemoryEntitlementStore extends LocalBillingSupport implements Ent
     if (existing) {
       // Roll the period lazily on read rather than running a cron. A learner who
       // returns after their month ends gets their allowance back on arrival.
-      const rolled = rollPeriod(existing, new Date());
+      const now = new Date();
+      const rolled = refillTaste(rollPeriod(existing, now), now);
       if (rolled !== existing) await this.save(userId, rolled);
       return rolled;
     }
 
-    const fresh: Entitlement = { plan: this.defaultPlan, secondsUsed: 0 };
+    // A claimed free row is a weekly taste (D24); its window opens at the first debit.
+    const fresh: Entitlement = this.defaultPlan === 'trial'
+      ? { plan: 'trial', secondsUsed: 0, weeklyTaste: true } : { plan: this.defaultPlan, secondsUsed: 0 };
     this.noteEpoch(userId, undefined, fresh);
     this.rows.set(userId, fresh);
     return fresh;
@@ -270,11 +279,14 @@ export class FileEntitlementStore extends LocalBillingSupport implements Entitle
   async get(userId: string): Promise<Entitlement> {
     const existing = this.rows.get(userId);
     if (existing) {
-      const rolled = rollPeriod(existing, new Date());
+      const now = new Date();
+      const rolled = refillTaste(rollPeriod(existing, now), now);
       if (rolled !== existing) await this.save(userId, rolled);
       return rolled;
     }
-    const fresh: Entitlement = { plan: this.defaultPlan, secondsUsed: 0 };
+    // A claimed free row is a weekly taste (D24); its window opens at the first debit.
+    const fresh: Entitlement = this.defaultPlan === 'trial'
+      ? { plan: 'trial', secondsUsed: 0, weeklyTaste: true } : { plan: this.defaultPlan, secondsUsed: 0 };
     await this.save(userId, fresh);
     return fresh;
   }
@@ -319,7 +331,8 @@ export class FileEntitlementStore extends LocalBillingSupport implements Entitle
         || (row.periodEnd !== undefined && (typeof row.periodEnd !== 'string' || !Number.isFinite(Date.parse(row.periodEnd))))
         || (row.windowEnd !== undefined && (typeof row.windowEnd !== 'string' || !Number.isFinite(Date.parse(row.windowEnd))))
         || (row.periodStart !== undefined && (typeof row.periodStart !== 'string' || !Number.isFinite(Date.parse(row.periodStart))))
-        || (row.withheldSeconds !== undefined && (!Number.isInteger(row.withheldSeconds) || Number(row.withheldSeconds) < 0))) {
+        || (row.withheldSeconds !== undefined && (!Number.isInteger(row.withheldSeconds) || Number(row.withheldSeconds) < 0))
+        || (row.weeklyTaste !== undefined && typeof row.weeklyTaste !== 'boolean')) {
         throw new Error('Invalid entitlement ledger balance');
       }
       rows[id] = { ...row, ...(row.periodEnd ? { periodEnd: new Date(row.periodEnd as string) } : {}),
@@ -385,6 +398,8 @@ interface SupabaseEntitlementRow {
   period_start?: string | null;
   withheld_seconds?: number | null;
   lapsed_from_paid?: boolean;
+  /** D24: a claimed (or lapsed) free row whose five minutes refill a rolling week from first use. */
+  weekly_taste?: boolean;
 }
 
 function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
@@ -396,6 +411,7 @@ function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
     ...(row.allowance_window_end ? { windowEnd: new Date(row.allowance_window_end) } : {}),
     ...(typeof row.withheld_seconds === 'number' && row.withheld_seconds > 0 ? { withheldSeconds: row.withheld_seconds } : {}),
     ...(row.lapsed_from_paid === true ? { lapsed: true } : {}),
+    ...(row.weekly_taste === true ? { weeklyTaste: true } : {}),
   };
 }
 
@@ -455,6 +471,7 @@ export class SupabaseEntitlementStore implements EntitlementStore {
         period_end: entitlement.periodEnd?.toISOString() ?? null,
         allowance_window_end: entitlement.windowEnd?.toISOString() ?? null,
         lapsed_from_paid: entitlement.lapsed === true,
+        weekly_taste: entitlement.weeklyTaste === true,
       }),
     });
     if (!response.ok) throw new Error(`entitlement write failed (${response.status})`);

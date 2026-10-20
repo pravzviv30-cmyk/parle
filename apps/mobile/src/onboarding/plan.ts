@@ -238,8 +238,8 @@ export function reminderLine(clock: string): string {
   return `Reminder at ${clock}, not on yet.`;
 }
 
-/** True, and derived: the trial plan grants its minutes once, for nothing. */
-export const TRIAL_LINE = `${PLANS.trial.secondsPerPeriod / 60} free minutes, no card needed`;
+/** True, and derived: the free plan grants its minutes every week, for nothing (D24). */
+export const TRIAL_LINE = `${PLANS.trial.secondsPerPeriod / 60} free minutes every week, no card needed`;
 
 /** Every fixed line the plan and save pages can show, for the copy checks. */
 export const PLAN_COPY: readonly string[] = [

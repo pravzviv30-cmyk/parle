@@ -23,20 +23,32 @@ export interface PlanSpec {
   label: string;
   /** Total seconds granted per period. */
   secondsPerPeriod: number;
-  /** null for the one-off trial — it does not renew. */
+  /**
+   * Days in one allowance period. Every plan renews now: the free plan's weekly
+   * taste refills TASTE_REFILL_DAYS after first use (D24), and a paid plan when a
+   * verified receipt says so. null is kept in the type for a non-renewing grant;
+   * no plan uses it, and nothing keys on it to recognise the free plan.
+   */
   periodDays: number | null;
   priceUsd: number;
 }
 
 /**
- * Free tier is a *finite trial*, not a daily allowance.
+ * The free plan is a *weekly taste* of live time, not a daily allowance (D24,
+ * 2026-10-20, the Headspace model: the app is free, live minutes are paid).
  *
- * A 10-minute daily free tier costs roughly $15/month per freeloader at premium
- * voice — more than the paid plan earns. Thirty minutes once is enough to feel
- * the product work and cannot be farmed.
+ * Five minutes a week, on a rolling window that starts at first use. Fully
+ * burned every week that is about $0.29 a week, $1.25 a month at DEFAULT_COST_MODEL; a
+ * 10-minute *daily* tier would be about $15, more than a paid plan earns. The
+ * id stays `trial` because it is a database value; the learner reads "Free".
+ *
+ * It still cannot be farmed: the taste is claimed once per device (the server's
+ * device claim), and only a claimed entitlement refills. A fresh install on a
+ * claimed device gets nothing new; the claimed taste simply refills weekly.
  */
 /**
- * The second paid tier is stored as `regular` and shown as "Max".
+ * The first paid tier is stored as `starter` and shown as "Core" (2026-10-20),
+ * the second is stored as `regular` and shown as "Max".
  *
  * The id is a value in a database check constraint and in four migrations'
  * allowance tables; the label is a word on a screen. Renaming the id to match
@@ -45,8 +57,8 @@ export interface PlanSpec {
  * `label` is the only thing a learner ever reads.
  */
 export const PLANS: Record<Plan, PlanSpec> = {
-  trial: { id: 'trial', label: 'Trial', secondsPerPeriod: 30 * 60, periodDays: null, priceUsd: 0 },
-  starter: { id: 'starter', label: 'Starter', secondsPerPeriod: 180 * 60, periodDays: 30, priceUsd: 19 },
+  trial: { id: 'trial', label: 'Free', secondsPerPeriod: 5 * 60, periodDays: 7, priceUsd: 0 },
+  starter: { id: 'starter', label: 'Core', secondsPerPeriod: 180 * 60, periodDays: 30, priceUsd: 19 },
   regular: { id: 'regular', label: 'Max', secondsPerPeriod: 300 * 60, periodDays: 30, priceUsd: 29 },
 };
 
@@ -207,8 +219,39 @@ export interface Entitlement {
    * means none. Kept so a fuller answer for the same window can give it back.
    */
   withheldSeconds?: number;
-  /** The exhausted trial represents a former paid period, not a first trial. */
+  /** The free plan here represents a former paid period, not a first claim. */
   lapsed?: boolean;
+  /**
+   * This free entitlement passed the device claim (or fell back from a paid
+   * plan) and so refills weekly (D24). Without it a trial row never refills,
+   * which keeps an unclaimed install from minting a fresh taste. On a weekly
+   * taste, `periodEnd` means "refills at": absent until the first debit, then
+   * that debit plus TASTE_REFILL_DAYS. See `refillTaste`.
+   */
+  weeklyTaste?: boolean;
+}
+
+/** The free taste refills this many days after the first debit of its window (D24). */
+export const TASTE_REFILL_DAYS = 7;
+
+const toMs = (t: Date | number): number => (typeof t === 'number' ? t : t.getTime());
+
+/**
+ * Refill a weekly taste whose window has passed. Pure, and the only path by
+ * which the free plan gets minutes back.
+ *
+ * Returns `e` unchanged unless it is a trial, marked weeklyTaste, with a
+ * periodEnd at or before `now`. Then the window is over: secondsUsed returns to
+ * 0 and periodEnd is cleared, so the next window starts at the next debit, not
+ * now (a rolling window from first use). A clock that runs backwards refills
+ * nothing. Paid plans never pass through here; their renewal is a receipt.
+ */
+export function refillTaste(e: Entitlement, now: Date | number): Entitlement {
+  if (e.plan !== 'trial' || e.weeklyTaste !== true || !e.periodEnd) return e;
+  const n = toMs(now);
+  if (!Number.isFinite(n) || n < e.periodEnd.getTime()) return e;
+  const { periodEnd: _ended, ...rest } = e;
+  return { ...rest, secondsUsed: 0 };
 }
 
 /** Per-minute vendor costs, in USD. Overridable so pricing experiments are cheap. */
@@ -259,20 +302,27 @@ export type StartDecision =
   | { allowed: true; secondsRemaining: number }
   | { allowed: false; reason: StartRefusal; secondsRemaining: number; message: string };
 
-/** Can this learner start a session right now? */
+/**
+ * Can this learner start a session right now?
+ *
+ * A lapsed learner holds a weekly taste like any free learner and may spend it;
+ * 'subscription-lapsed' is the answer only once that taste is spent too. Pass
+ * the entitlement after `refillTaste`, or a passed window reads as spent.
+ */
 export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIABLE_SESSION_SEC): StartDecision {
   const remaining = secondsRemaining(e);
 
   if (remaining <= 0) {
+    const refills = e.plan === 'trial' && e.periodEnd ? ` They refill on ${weekday(e.periodEnd)}.` : '';
     return {
       allowed: false,
       reason: e.lapsed === true ? 'subscription-lapsed' : 'exhausted',
       secondsRemaining: 0,
       message:
         e.lapsed === true
-          ? 'Your subscription has ended.'
+          ? `Your subscription has ended.${refills ? ` Your free minutes for this week are used.${refills}` : ''}`
           : e.plan === 'trial'
-            ? 'Your free trial is finished.'
+            ? `Your free minutes for this week are used.${refills}`
             : 'You have used all your minutes for now.',
     };
   }
@@ -289,11 +339,27 @@ export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIAB
   return { allowed: true, secondsRemaining: remaining };
 }
 
-/** Record a completed session. Never allows usage to exceed the allowance. */
-export function recordUsage(e: Entitlement, seconds: number): Entitlement {
+/** "Monday": the day a refill lands, in the learner's English. */
+function weekday(d: Date): string {
+  return d.toLocaleDateString('en-GB', { weekday: 'long' });
+}
+
+/**
+ * Record a completed session. Never allows usage to exceed the allowance.
+ *
+ * The first debit of a weekly taste starts its window: periodEnd becomes
+ * `now` + TASTE_REFILL_DAYS. Zero seconds is not a debit and starts nothing.
+ * Every other entitlement keeps its periodEnd untouched. `now` defaults to the
+ * wall clock; pass it wherever the caller already holds one.
+ */
+export function recordUsage(e: Entitlement, seconds: number, now: Date | number = Date.now()): Entitlement {
   if (seconds < 0) throw new RangeError('seconds must not be negative');
   const cap = PLANS[e.plan].secondsPerPeriod;
-  return { ...e, secondsUsed: Math.min(cap, e.secondsUsed + seconds) };
+  const next: Entitlement = { ...e, secondsUsed: Math.min(cap, e.secondsUsed + seconds) };
+  if (e.plan === 'trial' && e.weeklyTaste === true && !e.periodEnd && seconds > 0) {
+    next.periodEnd = new Date(toMs(now) + TASTE_REFILL_DAYS * DAY_MS);
+  }
+  return next;
 }
 
 /**
@@ -309,15 +375,16 @@ export function recordUsage(e: Entitlement, seconds: number): Entitlement {
 export const LAPSE_GRACE_SEC = 24 * 60 * 60;
 
 /**
- * Where a paid plan lands when its period ends and nothing renewed it.
+ * Where a paid plan lands when its period ends and nothing renewed it (D24).
  *
- * An *exhausted* trial, not a fresh one. The thirty free minutes are a one-time
- * grant, and letting them back in through the lapse door would make cancelling
- * a way to farm them. A learner here has not done anything wrong; they simply
- * have no minutes, and the paywall is how they get more.
+ * A fresh weekly taste, like any free learner's. Cancelling cannot farm it:
+ * every free learner on a claimed device already gets the same five minutes a
+ * week, so the lapse door opens onto nothing a learner did not already have.
+ * The window starts at the first debit, so it carries no periodEnd. A learner
+ * here has not done anything wrong; they are simply back on the free plan.
  */
 export function lapsedEntitlement(): Entitlement {
-  return { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod, lapsed: true };
+  return { plan: 'trial', secondsUsed: 0, lapsed: true, weeklyTaste: true };
 }
 
 /**
@@ -329,7 +396,8 @@ export function lapsedEntitlement(): Entitlement {
  * does, through save(), on the server. The only thing a lazy read may do is take
  * an expired plan away.
  *
- * So there are exactly three outcomes: the trial is untouched, a paid period
+ * So there are exactly three outcomes: the free plan is untouched (its refill is
+ * `refillTaste`, which only gives back a taste already claimed), a paid period
  * still inside its dates or its slack is untouched, and a paid period past both
  * lapses. A paid row with no period end at all is malformed rather than expired,
  * and is left alone - taking someone's plan away over a missing timestamp is the
@@ -341,8 +409,9 @@ export function lapsedEntitlement(): Entitlement {
  * the next window: short of minutes for a while, never stripped of the plan.
  */
 export function rollPeriod(e: Entitlement, now: Date): Entitlement {
-  const spec = PLANS[e.plan];
-  if (spec.periodDays === null) return e;
+  // A free entitlement's periodEnd is when its taste refills, never a paid
+  // period to lapse from; refillTaste owns it.
+  if (e.plan === 'trial') return e;
   if (!e.periodEnd) return e;
   if (now.getTime() <= e.periodEnd.getTime() + LAPSE_GRACE_SEC * 1000) return e;
   return lapsedEntitlement();

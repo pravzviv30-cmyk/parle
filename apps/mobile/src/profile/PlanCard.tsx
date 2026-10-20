@@ -20,11 +20,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSettingsColors } from '../settings/SettingsAppearance.tsx';
 import { radius, space, type } from '../theme.ts';
 import { TUTOR_TIME_TITLE } from '../settings/profileView.ts';
+import { planSentence } from '../purchases/planStatus.ts';
 
 export function PlanCard({ band, period }: { band: string; period: string }) {
   const colors = useSettingsColors();
   return (
-    <View style={[st.card, { backgroundColor: colors.surface }]} accessible accessibilityLabel={`${TUTOR_TIME_TITLE}. ${band} ${period}`}>
+    <View style={[st.card, { backgroundColor: colors.surface }]} accessible accessibilityLabel={`${TUTOR_TIME_TITLE}. ${planSentence(band, period)}`}>
       <Text style={[type.bodyStrong, { color: colors.text }]}>{TUTOR_TIME_TITLE}</Text>
       <Text style={[type.body, { color: colors.muted }]}>{band}</Text>
       <Text style={[type.small, { color: colors.muted }]}>{period}</Text>

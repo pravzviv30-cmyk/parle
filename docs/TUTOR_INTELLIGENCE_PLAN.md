@@ -219,7 +219,8 @@ and no horizontal overflow at 390px.
   thresholds, not a quote or a claim that billing caps already exist. Check all
   provider bills, currency/tax, alerts and admission controls before deploying;
   close idle rooms and prohibit new sessions when the app's trial budget is spent.
-  Keep the already agreed 30-minute lifetime learner trial; do not introduce
+  Keep the free tier to the weekly taste (5 minutes a week, one claim per device,
+  D24 2026-10-20, which replaced the 30-minute lifetime trial); do not introduce
   unlimited voice. Re-price paid allowances after measuring full-stack cost.
 - **Memory:** keep selected summaries, phrases and corrections rather than raw
   audio by default; make personal facts visible/editable/forgettable. Keep private

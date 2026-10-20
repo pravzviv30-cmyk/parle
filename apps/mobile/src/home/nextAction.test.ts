@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PLANS, type Plan, type StartRefusal } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
-import { PLANS_LEAD, dueLine, homeActionFor } from './nextAction.ts';
+import { PLANS_LEAD, dueLine, homeActionFor, plansLeadBody } from './nextAction.ts';
 import { fallbackHero } from './homeMission.ts';
 // 2026-09-27 (notebook Phase 3): the hero is a spine scene or, once the whole
 // spine is earned, the day's scene. Recall can only stand in for the day's.
@@ -61,6 +61,13 @@ test('the used free minutes lead Home with the plans card, ahead of review and t
     assert.doesNotMatch(line, /%|\bof \d/, `"${line}" reads as a rate`);
     assert.equal(line, line.replace(/[A-Z]{2,}/g, ''), `"${line}" carries a caps label`);
   }
+
+  // D24: on the free plan the card says the weekday this week's minutes refill.
+  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }), `Your free minutes refill on Monday. ${PLANS_LEAD.body}`);
+  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: null }), PLANS_LEAD.body);
+  assert.equal(plansLeadBody({ plan: 'starter', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }), PLANS_LEAD.body, 'a paid period end was said as a free refill');
+  assert.equal(plansLeadBody(null), PLANS_LEAD.body);
+  assert.equal(guiltIn(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' })), undefined);
 
   // The white review row under a plans or scene lead counts phrases and nothing else.
   assert.equal(dueLine(1), 'One phrase ready to recall');

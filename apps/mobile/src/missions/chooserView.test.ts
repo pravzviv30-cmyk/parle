@@ -99,7 +99,8 @@ describe('the first-win chooser — what a learner who has never spoken is shown
   test('a first-ever learner reaches Today on web as well as on native, never the chooser', () => {
     const app = stripComments(read('../../App.tsx'));
     assert.match(app, /useNavigationContainerRef<RootStackParamList>/, 'the web URL can still overrule the first-run route');
-    assert.match(app, /onReady=\{\(\) => \{ openFirstRun\(\); openPendingInvite\(\); \}\}/, 'initial linking must settle before the first-run and explicit invitation navigation');
+    // D24 (2026-10-20): the locked-route guard runs after them on the same ready.
+    assert.match(app, /onReady=\{\(\) => \{ openFirstRun\(\); openPendingInvite\(\); (?:void guardLockedRoute\(\); )?\}\}/, 'initial linking must settle before the first-run and explicit invitation navigation');
     assert.match(app, /navigationRef\.resetRoot\([\s\S]*name:\s*'Tabs'/, 'the ready navigator never replaces a stale URL with Today');
     assert.doesNotMatch(app, /resetRoot\([^)]*'Missions'/, 'a first run is sent to the ten-way chooser again');
 

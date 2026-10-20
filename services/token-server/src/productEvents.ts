@@ -26,6 +26,13 @@ function nonNegativeCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100_000;
 }
 
+/**
+ * Every door the subscription wall can be entered by. 'launch' is the wall
+ * shown on app open and 'locked' a tap on a locked feature (D24, 2026-10-20);
+ * the database trigger accepts exactly this list (20261020140000).
+ */
+const WALL_DOORS = ['path-complete', 'refused', 'settings', 'recap', 'launch', 'locked'] as const;
+
 /** Analytics is an allowlist of product facts, never learner content. */
 export const SERVER_EVENT_NAMES = ['trial_started', 'minutes_refused'] as const;
 
@@ -65,7 +72,7 @@ export function parseProductEvent(value: unknown, source: 'client' | 'server' = 
   } else if (candidate.name === 'wall_shown') {
     if (!exactKeys(properties, ['entry', 'pages'])) return null;
     if (
-      !allowedEnum(properties.entry, ['path-complete', 'refused', 'settings', 'recap']) ||
+      !allowedEnum(properties.entry, WALL_DOORS) ||
       !nonNegativeCount(properties.pages)
     ) return null;
   } else if (candidate.name === 'wall_page_seen') {
@@ -93,7 +100,7 @@ export function parseProductEvent(value: unknown, source: 'client' | 'server' = 
     if (settled && !allowedEnum(properties.outcome, ['done', 'nothing-granted', 'cancelled', 'awaiting-approval', 'store-trouble', 'refresh-trouble'])) return null;
   } else if (candidate.name === 'wall_left') {
     if (!exactKeys(properties, ['entry', 'outcome', 'destination'])) return null;
-    if (!allowedEnum(properties.entry, ['path-complete', 'refused', 'settings', 'recap']) || !allowedEnum(properties.outcome, ['granted', 'unchanged']) || !allowedEnum(properties.destination, ['back', 'speak'])) return null;
+    if (!allowedEnum(properties.entry, WALL_DOORS) || !allowedEnum(properties.outcome, ['granted', 'unchanged']) || !allowedEnum(properties.destination, ['back', 'speak'])) return null;
   } else if (candidate.name === 'trial_started') {
     if (source !== 'server' || !exactKeys(properties, [])) return null;
   } else if (candidate.name === 'minutes_refused') {

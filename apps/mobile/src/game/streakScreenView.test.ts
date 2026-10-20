@@ -178,8 +178,9 @@ describe('the Streak screen — F770', () => {
 
     // A free learner, just after the reset: the one calm line and See plans.
     const free = screenOf(facts({ practiceDays: broken, billing: FREE }));
-    assert.deepEqual(free.repairForSubscribers, { line: 'Subscribers can repair a streak within 2 days.', action: 'See plans' });
-    assert.equal(free.freezes, null, 'a free learner is shown freezes');
+    assert.deepEqual(free.repairForSubscribers, { line: 'Subscribers get a second freeze and can repair a streak within 2 days.', action: 'See plans' });
+    // D23: a free learner holds one freeze, and sees it.
+    assert.deepEqual(free.freezes && [free.freezes.held, free.freezes.max, free.freezes.ready, free.freezes.returns], [1, 1, '1 ready', null]);
     assert.equal(free.repair, null, 'a free learner is offered a repair');
     // Not after the window, not without a run that ended, not on an unknown plan.
     assert.equal(screenOf(facts({ practiceDays: ['2026-09-20', '2026-09-21'], billing: FREE })).repairForSubscribers, null, 'the line is said long after the reset');
@@ -211,8 +212,20 @@ describe('the Streak screen — F770', () => {
     assert.equal(spent.freezes?.ready, '0 ready');
     assert.equal(spent.freezes?.returns, 'Both freezes are in use. One comes back on Saturday 10 October.');
 
+    // A free learner's one freeze in use: said for one, with the day it comes
+    // back, and back again seven days after the day it covered.
+    const freeSpent = screenOf(
+      facts({ practiceDays: ['2026-10-01', '2026-10-02', '2026-10-04', '2026-10-05', '2026-10-06'], covers: [{ day: '2026-10-03', kind: 'freeze', at: at(10, 4, 1) }], billing: FREE }),
+    );
+    assert.deepEqual(freeSpent.freezes && [freeSpent.freezes.held, freeSpent.freezes.max, freeSpent.freezes.ready], [0, 1, '0 ready']);
+    assert.equal(freeSpent.freezes?.returns, 'Your freeze is in use. It comes back on Saturday 10 October.');
+    assert.equal(guiltIn(freeSpent.freezes!.returns!), undefined);
+    const spentFacts = facts({ practiceDays: ['2026-10-01', '2026-10-02', '2026-10-04', '2026-10-05', '2026-10-06'], covers: [{ day: '2026-10-03', kind: 'freeze', at: at(10, 4, 1) }], billing: FREE });
+    assert.equal(gameViewFrom(spentFacts, '2026-10-09').freezes, 0, 'the free freeze came back before its week');
+    assert.equal(gameViewFrom(spentFacts, '2026-10-10').freezes, 1, 'the free freeze did not come back after seven days');
+
     // Calm: no countdown, no plea, no threat, in any line either learner reads.
-    for (const view of [free, paid, spent]) {
+    for (const view of [free, paid, spent, freeSpent]) {
       for (const said of everything(view)) {
         assert.equal(streakGuiltIn(said), undefined, `"${said}" says "${streakGuiltIn(said) ?? ''}"`);
         assert.equal(guiltIn(said), undefined);

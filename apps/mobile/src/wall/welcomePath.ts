@@ -1,29 +1,27 @@
 import { MISSIONS, type Mission, type MissionId } from '@luvani/core';
 
 /**
- * The four situations the free thirty minutes covers.
+ * The four situations the free plan walks through.
  *
- * The free tier is thirty seconds shy of half an hour of live speaking, granted
- * once and never renewed, and until now nothing in the app drew a shape around
- * it. A balance is the wrong shape: a learner watching a number fall is being
- * metered, and `secondsRemaining` lives on the server where the phone cannot see
- * it honestly anyway (F239, F377). A path is the right shape, and the catalogue
- * was already a path — six authored situations, each ending in a checkable fact
- * rather than praise.
+ * The free plan is five minutes of live speaking a week (D24, 2026-10-20),
+ * refilling a week after first use. That is about one short scene a week:
+ * `MIN_VIABLE_SESSION_SEC` is two minutes, so a week holds two starts at most,
+ * and usually one conversation. So this is a path walked over weeks, not in one
+ * sitting, and nothing here pretends the free week holds the whole of it. A
+ * balance is still the wrong shape: a learner watching a number fall is being
+ * metered (F239, F377). A path is the right shape, and the catalogue was
+ * already one: six authored situations, each ending in a checkable fact.
  *
- * Four of the six, not all six, and the reasons are in this order:
+ * Four of the six, not all six:
  *
- * 1. Thirty minutes across six scenes leaves no slack. `MIN_VIABLE_SESSION_SEC`
- *    is two minutes, so the last two of the thirty cannot start anything, and
- *    the real ceiling is nearer twenty-eight. Most learners would meet the wall
- *    mid-path, which is the fuel-gauge feeling this shape exists to avoid.
- * 2. Holding two back gives the wall something specific to offer. A fully lit
- *    map has nothing left to want, and the plans page would have to sell in the
- *    abstract. `journee` and `amis` are authored, named, and already carry their
- *    own `goalEn`, so the wall can say what they are in the catalogue's words.
- * 3. The ladder climbs across these four: A0, A0, A1, A1. The two held back are
- *    the longest and most social, which is the right place for a paid tier to
- *    begin rather than the right place for a free one to end.
+ * 1. Holding two back gives the wall something specific to offer. A fully lit
+ *    map has nothing left to want. `journee` and `amis` are authored, named,
+ *    and carry their own `goalEn`, so the wall can say what they are in the
+ *    catalogue's words.
+ * 2. The ladder climbs across these four: A0, A0, A1, A1. The two held back are
+ *    the longest and most social, the right place for a paid tier to begin.
+ * 3. Four weeks of a free scene each is a month of the product working, which
+ *    is long enough to know whether it is worth paying for.
  *
  * Order is meaning, not display. Cafe is first for the reason `MISSIONS` states
  * about itself: it is the shortest path from "I speak no French" to "I said a

@@ -33,25 +33,24 @@ const status = (over: Partial<BillingStatus> = {}): BillingStatus => ({
 });
 
 describe('the account in hand, in minutes', () => {
-  test('the trial is said in minutes, and in conversations rounded down', () => {
-    const account = wallAccount(status({ secondsRemaining: 1100 }), PLANS, NOW);
+  test('the free plan is said in minutes a week, what is left, and the day it refills', () => {
+    // D24 (2026-10-20): "Free", five minutes every week, refilling a week after first use.
+    const account = wallAccount(status({ secondsRemaining: 230, periodEnd: '2026-10-12T12:00:00.000Z' }), PLANS, NOW);
     assert.ok(account);
-    // 7 October 2026 (come alive, README Part 5.G): the thirty metered minutes
-    // are "free minutes" now, because a free trial is the store's own offer.
-    assert.equal(account.title, 'Free minutes');
-    // 30 free minutes is three ten-minute conversations. 1100 seconds is 18.3
-    // minutes, which is eighteen and one whole conversation, never nineteen or two.
-    assert.deepEqual(account.lines, [
-      'You start with 30 free minutes, about 3 conversations.',
-      '18 minutes left, about 1 conversation.',
-    ]);
+    assert.equal(account.title, 'Free');
+    // 230 seconds is 3.8 minutes: three, never four.
+    assert.deepEqual(account.lines, ['You get 5 free minutes every week.', '3 minutes left.', 'They refill on Monday.']);
+    // Untouched this week: no refill day yet, because the week starts at first use.
+    assert.deepEqual(wallAccount(status({ secondsRemaining: 300, periodEnd: null }), PLANS, NOW)?.lines, ['You get 5 free minutes every week.', '5 minutes left.']);
+    // A lapsed plan is back on the weekly taste, and says so.
+    assert.equal(wallAccount(status({ secondsRemaining: 300, periodEnd: null, lapsed: true }), PLANS, NOW)?.title, 'Free');
   });
 
   test('a paid plan says its minutes left and the day they start fresh', () => {
     const periodEnd = '2026-10-12T12:00:00.000Z';
     const account = wallAccount(status({ plan: 'starter', secondsRemaining: 42 * 60 + 59, periodEnd }), PLANS, NOW);
     assert.ok(account);
-    assert.equal(account.title, 'Starter');
+    assert.equal(account.title, 'Core');
     assert.deepEqual(account.lines, ['42 minutes left, about 4 conversations.', `They start fresh on ${dayAndMonth(periodEnd)}.`]);
     assert.equal(dayAndMonth(periodEnd), '12 October');
   });

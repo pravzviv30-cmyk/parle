@@ -7,7 +7,7 @@ import { paper, type } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { HomeBilling } from '../home/nextAction.ts';
-import { PLANS_LEAD } from '../home/nextAction.ts';
+import { PLANS_LEAD, plansLeadBody } from '../home/nextAction.ts';
 import { nextTaskKind } from './nextTask.ts';
 import { recoverPracticeCompletion } from './completion.ts';
 import { loadPackMarks, withMarks } from '../conversationPacks/marks.ts';
@@ -88,6 +88,6 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
     <Text style={[type.small, { color: paper.onInk }]}>A saved phrase, ready to revisit. Free on this phone.</Text>
     <PillButton tone="white" label="Practise review" onPress={() => navigateOwned('Review')} />
   </ColourCard>;
-  if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{PLANS_LEAD.body}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
+  if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{plansLeadBody(billing)}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
   return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} vivid={vivid} /> : <LocalPracticeCard vivid={vivid} />;
 }

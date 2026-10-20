@@ -1,12 +1,13 @@
 import type { Plan, PlanSpec } from '@luvani/core';
 
 import type { BillingStatus } from '../purchases/billingStatus.ts';
-import { PLAN_LABELS } from '../purchases/planStatus.ts';
+import { PLAN_LABELS, refillDay } from '../purchases/planStatus.ts';
 import {
   ACCOUNT_FRESH_NOW,
   ACCOUNT_NONE_LEFT,
   ACCOUNT_UNDER_A_MINUTE,
   minutesLeft,
+  freeRefill,
   startsFresh,
   trialAllowance,
 } from './wallCopy.ts';
@@ -31,7 +32,7 @@ import { CONVERSATION_MINUTES, wallTrial } from './wallPlans.ts';
  */
 
 export interface WallAccount {
-  /** The plan's name as Settings says it: Free minutes, Starter, Max. */
+  /** The plan's name as Settings says it: Free, Core, Max. */
   title: string;
   lines: readonly string[];
 }
@@ -77,15 +78,20 @@ export function wallAccount(
   catalogue: Record<Plan, PlanSpec> | null,
   now: number,
 ): WallAccount | null {
-  // No answer, or a plan that has ended: there are no minutes to report, and
-  // the page says nothing rather than something it cannot stand behind.
-  if (status === null || status.lapsed) return null;
+  if (status === null) return null;
 
+  // The free plan, a lapsed plan included (D24: it falls back to the weekly
+  // taste): the week's size, what is left, and the day it refills.
   if (status.plan === 'trial') {
     const trial = wallTrial(catalogue);
     const lines = trial === null ? [] : [trialAllowance(trial.minutes, trial.conversations)];
-    return { title: PLAN_LABELS.trial, lines: [...lines, leftLine(status.secondsRemaining)] };
+    const day = status.periodEnd === null ? null : refillDay(status.periodEnd);
+    return { title: PLAN_LABELS.trial, lines: [...lines, leftLine(status.secondsRemaining), ...(day === null ? [] : [freeRefill(day)])] };
   }
+
+  // A paid plan that has ended with no free row behind it: nothing to report,
+  // and the page says nothing rather than something it cannot stand behind.
+  if (status.lapsed) return null;
 
   const lines = [leftLine(status.secondsRemaining)];
   if (status.periodEnd !== null) {

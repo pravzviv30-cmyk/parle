@@ -178,7 +178,8 @@ describe('the words no Luvani surface may say', () => {
       'Practised today. That makes 30 days in a row.',
       '214 practice days so far',
       'Start a new streak today',
-      'Subscribers can repair a streak within 2 days.',
+      'Subscribers get a second freeze and can repair a streak within 2 days.',
+      'Your freeze is in use. It comes back on Saturday 10 October.',
       'Léa has a phrase for you.',
       // Lines the streak screen is specified to say (docs/come-alive/game.md),
       // so a word added to the list cannot quietly ban the planned copy.

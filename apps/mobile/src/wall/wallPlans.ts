@@ -265,17 +265,17 @@ export function preselectedOffer(
   return covering.offers.find((offer) => offer.period === 'year') ?? null;
 }
 
-/** The free trial, in minutes and in whole conversations. */
+/** The free plan's weekly minutes, in minutes and in whole conversations. */
 export interface WallTrial {
   minutes: number;
   conversations: number;
 }
 
 /**
- * The trial's size, from the catalogue, or null when there is none.
+ * The free plan's size, from the catalogue, or null when there is none.
  *
- * The trial does not renew, so it has no week to count in: it is said as
- * minutes, with what those minutes are in conversations beside them.
+ * Its period is a week (D24), refilling from first use, so it is said as
+ * minutes every week, with what those minutes are in conversations beside them.
  */
 export function wallTrial(catalogue: Record<Plan, PlanSpec> | null): WallTrial | null {
   const spec = catalogue === null ? null : catalogue.trial;

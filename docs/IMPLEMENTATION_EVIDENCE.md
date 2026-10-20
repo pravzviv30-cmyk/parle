@@ -32,7 +32,7 @@ of the list.
   Hum's legacy animation remains bounded and now pauses in the background.
 - Combined verification: **4,920 tests, 0 failing**; core 794, brain 468, tutor agent 609,
   token server 425, playground 26, mobile 2598;
-  all six typechecks, eight database proofs replaying 39 migrations, and 77 shared
+  all six typechecks, eight database proofs replaying every migration then on disk (39), and 77 shared
   release/provider checks pass. Floors raised only through `gate:bless`. A clean
   locked install, production web export and the existing dependency-audit policy pass.
   Local-development browser smoke verified launch-to-welcome, plan selection,
@@ -49,7 +49,7 @@ of the list.
 
 - 7 October 2026 Come Alive completion: **4,892 tests, 0 failing**; core 794,
   brain 468, tutor agent 609, token server 425, playground 26, mobile 2570.
-  All six workspaces typecheck. The final local source snapshot ran all 39 migrations
+  All six workspaces typecheck. The final local source snapshot ran every migration then on disk (39)
   through eight disposable SQL proof programs. All 77 shared release/provider checks pass, including the two decoder lease
   proofs. The complete gate is green with the raised workspace floors.
   This is branch evidence, not production deployment. Six Phase 4 branches and the
@@ -736,7 +736,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 39 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 40 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -750,7 +750,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **39 migrations** for a fresh full schema, applied once in order from
+There are **40 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -833,6 +833,7 @@ There are **39 migrations** for a fresh full schema, applied once in order from
 37. `20261005231742_store_trial_yearly_allowance.sql`, F733 (D16): the projection that grants a store free trial a week of the plan's allowance and a yearly product one 30-day window at a time (the window in `allowance_window_end`, the paid year staying in `period_end`, so a missed refill never lapses the year), store answers ordered by when their period started (`period_start`, so an immediate upgrade from a yearly plan to a monthly one is granted at once), the withheld part of a window kept in `withheld_seconds`, the service-only renewal list for the maintenance worker, and projection version 2. Safe to apply twice; proved over pre-existing paid rows in disposable SQL. **Not applied live**; apply before the token server and maintenance worker that call it and before any intro offer or yearly product exists in App Store Connect.
 38. `20261006120000_learner_state_game.sql`, F729: widens the `learner_state` namespace whitelist to accept `game`, the account-synced facts behind the streak, daily goal, quests and badges (zero-XP sittings, streak covers, goal days, quest days and claims, fixed XP, monthly rollups, badge ids and celebration keys; no free text). Without it every push of `game` is refused with a 400 the sync engine retries (F411). **Not applied live**; apply before any build that writes `game` ships. Its rollback is destructive and guarded by `luvani.remove_game`.
 39. `20261007121856_preserve_store_trial_budget_and_year_extension.sql`, F747/F748: trial phrase audio retains the $0.02 lifetime allowance; extending the same paid year preserves charging for an in-flight session. SQL projection proofs pass, including rollback and reapply. Prepared, not applied live. Roll back this migration before the store trial/year migration, using its guarded rollback.
+40. `20261020140000_weekly_free_taste.sql`, D24: the one-off thirty free minutes become a weekly free taste of five minutes. `entitlements.weekly_taste` marks a claimed (or lapsed) free row, the only kind that refills; the first debit sets the refill time a week out in the same usage epoch, a passed window refills lazily (new epoch, deferred while a session is live), every lapse lands on a fresh taste still marked `lapsed_from_paid`, and the trial cap is 300 seconds. Adds the `launch` and `locked` wall doors. Disposable SQL proofs pass in `scripts/verifyTutorSessions.mjs`, including interlocked rollback and reapply. Prepared, not applied live. Roll it back first, using its guarded rollback.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

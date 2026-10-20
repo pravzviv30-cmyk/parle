@@ -15,7 +15,7 @@ import { describe, test } from 'node:test';
 
 import { PLANS } from '@luvani/core';
 
-import { previewCatalogue, previewOffering, wallPreviewEnabled } from './preview.ts';
+import { launchWallAwayMs, previewCatalogue, previewOffering, storePreviewEnabled, wallPreviewEnabled } from './preview.ts';
 
 const ON = {
   EXPO_PUBLIC_LUVANI_WALL_PREVIEW: '1',
@@ -106,5 +106,38 @@ describe('the preview catalogue is the one compiled allowance, and it is fenced'
 
   test('core PLANS is the only thing it can return, so it cannot drift on its own', () => {
     assert.equal(previewCatalogue(ON), PLANS, 'the preview invented a catalogue rather than reusing core');
+  });
+});
+
+describe('the local-development store preview and away override', () => {
+  const STORE = { ...ON, EXPO_PUBLIC_LUVANI_WALL_PREVIEW: 'store' };
+  const THIRTY = 30 * 60 * 1000;
+
+  test("'store' gives an offering and a catalogue but does not open the navigator on the wall", () => {
+    assert.equal(wallPreviewEnabled(STORE), false);
+    assert.equal(storePreviewEnabled(STORE), true);
+    assert.equal(previewOffering(STORE)?.available, true);
+    assert.equal(previewCatalogue(STORE), PLANS);
+    assert.equal(storePreviewEnabled(ON), true, "'1' still supplies the fixture");
+    assert.equal(storePreviewEnabled({ ...ON, EXPO_PUBLIC_LUVANI_WALL_PREVIEW: 'yes' }), false);
+  });
+
+  test('production and non-local builds ignore both switches', () => {
+    const away = { EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC: '20' };
+    for (const env of [{ ...STORE, ...away, NODE_ENV: 'production' }, { ...STORE, ...away, EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: undefined }, { ...STORE, ...away, EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: 'true' }]) {
+      assert.equal(storePreviewEnabled(env), false);
+      assert.equal(wallPreviewEnabled(env), false);
+      assert.equal(previewOffering(env), null);
+      assert.equal(previewCatalogue(env), null);
+      assert.equal(launchWallAwayMs(env), THIRTY);
+    }
+  });
+
+  test('a positive whole number of seconds overrides the return threshold; anything else is 30 minutes', () => {
+    assert.equal(launchWallAwayMs({ ...ON, EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC: '20' }), 20_000);
+    assert.equal(launchWallAwayMs({ ...ON, EXPO_PUBLIC_LUVANI_WALL_PREVIEW: undefined, EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC: '5' }), 5_000);
+    for (const bad of [undefined, '', '0', '-5', '1.5', ' 20', '20s', 'abc', '1e3', '0x10', '9'.repeat(30)]) {
+      assert.equal(launchWallAwayMs({ ...ON, EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC: bad }), THIRTY, `accepted ${String(bad)}`);
+    }
   });
 });

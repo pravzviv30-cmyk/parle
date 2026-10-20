@@ -38,9 +38,17 @@ Speak, Practice and Progress. Profile is a pushed screen reached from the profil
 button; Friends is an optional stack route inside Profile. Revamp B and the
 video UX implementation use this same navigator.
 
+### Free tier and locks (20 October 2026, D23 and D24)
+
+- **Weekly taste:** `PLANS.trial` is 5 minutes on a rolling 7 days from first use (`packages/core/src/metering/meter.ts`, `refillTaste`), refilled lazily by the database only for rows that passed the device claim (`entitlements.weekly_taste`). A lapsed plan falls back to it. `/billing/status` returns the refill time as `periodEnd`.
+- **Locks:** `purchases/capabilities.ts` (`unlocks`) and `purchases/featureLocks.ts` answer the eight locked features; `LOCKED_ROUTES` sends a locked route to `Wall {entry:'locked'}` from `App.tsx`'s navigation listener.
+- **Paywall on open:** `Wall {entry:'launch'}` on each cold launch and on return after 30+ minutes away, for learners with no plan or trial, only on a tab root and never over a sitting, a recap or onboarding. The Wall shows "Not now".
+- **Streak:** one free freeze, two plus repair on a plan.
+- **Names:** the paid plans read Core and Max (ids `starter`, `regular`).
+
 ### Paywall and account surfaces (19 October 2026)
 
-The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, boards `489:1710`/`489:3664`). `wall/WallScreen.tsx` renders it, `wall/trialPaywall.ts` decides what it shows, and `effectiveSelection` defaults to Starter yearly.
+The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, boards `489:1710`/`489:3664`). `wall/WallScreen.tsx` renders it, `wall/trialPaywall.ts` decides what it shows, and `effectiveSelection` defaults to Core (id `starter`) yearly.
 - **Variants:** the trial paywall shows the Today / Before day 7 or Day 5 / Day 7 timeline. Unknown eligibility shows the standard paywall. Loading, offline, purchasing, failed, restore and success states are covered.
 - **Trial-ending reminder:** a real reminder (`reminders/trialReminderSync.ts`), scheduled only after a confirmed trial with notification permission and the setting on.
 - **Store facts:** `purchases/storeTrialFacts.ts` is read only to cancel the reminder; it never grants minutes or a plan.

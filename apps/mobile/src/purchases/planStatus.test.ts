@@ -32,7 +32,8 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
               assert.ok(view.known);
               if (!view.known) return;
               bands.add(view.band);
-              for (const line of [view.planLabel, view.periodLine, view.bandLine]) {
+              // D24: the free plan's band alone says its whole minutes this week.
+              for (const line of plan === 'trial' ? [view.planLabel, view.periodLine] : [view.planLabel, view.periodLine, view.bandLine]) {
                 assert.doesNotMatch(line, /\d/, `a numeral reached the card: "${line}"`);
                 assert.doesNotMatch(line, /%/, `a percentage reached the card: "${line}"`);
                 assert.doesNotMatch(line, /—/, `an em dash reached the card: "${line}"`);
@@ -56,25 +57,41 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
 
   test('the bands say what the seconds mean, and the period is a distance in words', () => {
     const plenty = planStatusFor(status({ plan: 'starter', secondsRemaining: PLANS.starter.secondsPerPeriod }), NOW);
-    assert.ok(plenty.known && plenty.band === 'plenty' && plenty.planLabel === 'Starter');
+    assert.ok(plenty.known && plenty.band === 'plenty' && plenty.planLabel === 'Core');
     const little = planStatusFor(status({ plan: 'regular', secondsRemaining: 60 * 10, periodEnd: new Date(NOW + 2 * DAY).toISOString() }), NOW);
     assert.ok(little.known && little.band === 'a-little' && little.planLabel === 'Max');
     if (little.known) assert.equal(little.periodLine, 'Renews within the week.');
     const later = planStatusFor(status({ plan: 'starter', periodEnd: new Date(NOW + 20 * DAY).toISOString() }), NOW);
     if (later.known) assert.equal(later.periodLine, 'Renews in the coming weeks.');
-    const trial = planStatusFor(status(), NOW);
-    if (trial.known) {
-      // 7 October 2026: the thirty metered minutes are "Free minutes"; a free
-      // trial is the store's own offer now (come alive, README Part 5.G).
-      assert.equal(trial.planLabel, 'Free minutes');
-      assert.equal(trial.periodLine, 'Your free minutes, once.');
+    // D24 (2026-10-20): the free plan is "Free", five minutes a week, and its
+    // band says the minutes left this week and the day they refill.
+    const MONDAY = '2026-09-14T12:00:00.000Z';
+    const untouched = planStatusFor(status({ secondsRemaining: 300 }), NOW);
+    assert.ok(untouched.known);
+    if (untouched.known) {
+      assert.equal(untouched.planLabel, 'Free');
+      assert.equal(untouched.periodLine, 'Free every week.');
+      assert.equal(untouched.bandLine, '5 free minutes this week');
+      assert.equal(untouched.band, 'plenty');
     }
-    const lapsed = planStatusFor(status({ secondsRemaining: 0, lapsed: true, canStart: false, reason: 'subscription-lapsed' }), NOW);
+    const some = planStatusFor(status({ secondsRemaining: 190, periodEnd: MONDAY }), NOW);
+    if (some.known) assert.equal(some.bandLine, '3 free minutes this week, refills Monday');
+    const one = planStatusFor(status({ secondsRemaining: 61, periodEnd: MONDAY, canStart: false, reason: 'insufficient-for-session' }), NOW);
+    if (one.known) { assert.equal(one.bandLine, 'Free minutes refill Monday.'); assert.equal(one.band, 'none'); }
+    const spent = planStatusFor(status({ secondsRemaining: 0, periodEnd: MONDAY, canStart: false, reason: 'exhausted' }), NOW);
+    if (spent.known) assert.equal(spent.bandLine, 'Free minutes refill Monday.');
+    for (const view of [untouched, some, one, spent]) {
+      if (view.known) { assert.doesNotMatch(view.bandLine, /—|–/); assert.equal(guiltIn(view.bandLine), undefined); }
+    }
+    // A lapsed plan is back on the free taste: its band is the free band.
+    const lapsed = planStatusFor(status({ secondsRemaining: 0, lapsed: true, periodEnd: MONDAY, canStart: false, reason: 'subscription-lapsed' }), NOW);
     if (lapsed.known) {
       assert.equal(lapsed.band, 'none');
       assert.equal(lapsed.periodLine, 'Your paid plan has ended.');
-      assert.equal(lapsed.bandLine, 'No speaking time until a plan is chosen.');
+      assert.equal(lapsed.bandLine, 'Free minutes refill Monday.');
     }
+    const lapsedFresh = planStatusFor(status({ secondsRemaining: 300, lapsed: true }), NOW);
+    if (lapsedFresh.known) assert.equal(lapsedFresh.bandLine, '5 free minutes this week');
   });
 
   test('a body the server did not shape reads as nothing rather than as a plan', () => {

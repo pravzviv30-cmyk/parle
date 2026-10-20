@@ -15,6 +15,8 @@ export {
   planMargin,
   recordUsage,
   rollPeriod,
+  refillTaste,
+  TASTE_REFILL_DAYS,
   secondsRemaining,
   storeTrialCostUsd,
   storeTrialSeconds,

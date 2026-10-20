@@ -159,8 +159,12 @@ export interface GameView {
    * days the number above counts.
    */
   days: { practiceDays: readonly DayKey[]; covers: readonly StreakCover[] };
-  /** What the confirmed plan opens for the streak, or null while the plan is unknown. */
-  protection: { freezes: boolean; repair: boolean } | null;
+  /**
+   * What the confirmed plan opens for the streak, or null while the plan is
+   * unknown. `cap` is how many freezes it holds: two on a paid plan, one on the
+   * free plan (D23).
+   */
+  protection: StreakProtectionView | null;
   /** The repair a subscriber is earning now, or null: never for a free learner or an unknown plan (D4). */
   repair: RepairOffer | null;
   /**
@@ -173,15 +177,18 @@ export interface GameView {
 
 type DayOf = (at: number) => DayKey;
 
+export interface StreakProtectionView { freezes: boolean; repair: boolean; cap: number }
+
 /**
- * Whether the server's answer opens streak protection (founder decision D4).
+ * What the server's answer opens for the streak (founder decisions D4, D23):
+ * two freezes and the repair on a paid plan, one freeze on the free plan.
  * Unknown opens nothing. The one place the game layer asks the plan table, and
  * it reads `streakProtection` alone: freezes and repair gate no earned learning.
  */
-export function protectionOf(billing: BillingFacts | null): { freezes: boolean; repair: boolean } | null {
+export function protectionOf(billing: BillingFacts | null): StreakProtectionView | null {
   if (billing === null) return null;
   const protection = capabilitiesFor(billing.plan, billing.lapsed).streakProtection;
-  return { freezes: protection.freezes > 0, repair: protection.repair };
+  return { freezes: protection.freezes > 0, repair: protection.repair, cap: protection.freezes };
 }
 
 /** Every finished sitting: the activity log's and the zero-XP ones the game store keeps. */
@@ -326,7 +333,7 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
   const streakInput = { practiceDays: facts.practiceDays, covers: facts.game.covers, today };
   const streak = streakFrom(streakInput);
   const protection = protectionOf(facts.billing);
-  const freezes = freezesHeld({ ...streakInput, entitled: protection?.freezes === true });
+  const freezes = freezesHeld(protection?.cap ?? 0, streakInput);
   const xpParts = displayXp(facts, dayOf);
   const sittings = finishedSittings(facts);
   const goal = goalProgressFrom({ sittings, target: facts.outside.goalTarget, today, dayKey: dayOf });

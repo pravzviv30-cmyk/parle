@@ -152,6 +152,10 @@ describe('the wall says out loud that it is soft', () => {
     assert.match(code('./WallParts.tsx'), /close: \{ width: HIT, height: HIT/);
     // 7 October 2026, come alive README Part 5.G: the decline reads "Not now".
     assert.equal(WALL_LEAVE, 'Not now');
+    // 20 October 2026, D24: the wall now opens on launch and on a locked feature,
+    // so "Not now" is also drawn in words under the plans, with the same leave().
+    assert.match(page, /\{page === 'plans' && <WallTextLink label=\{WALL_LEAVE\} onPress=\{\(\) => leave\(\)\} \/>\}/, 'the plans page has no "Not now" in words');
+    assert.match(page, /header=\{<WallTopRow onPress=\{\(\) => leave\(\)\} \/>\}/, 'the close mark went when "Not now" arrived');
   });
 
   test('the one trust line says two things that are already true', () => {
@@ -217,8 +221,8 @@ describe('plans read as conversations a week', () => {
     assert.equal(conversationsAWeek(180, 0), null);
   });
 
-  test('the trial is shown in minutes, and is about three conversations', () => {
-    assert.deepEqual(wallTrial(CATALOGUE), { minutes: 30, conversations: 3 });
+  test('the free plan is shown in minutes a week, and is less than one whole conversation', () => {
+    assert.deepEqual(wallTrial(CATALOGUE), { minutes: 5, conversations: 0 });
     assert.equal(wallTrial(null), null, 'with no catalogue the trial was guessed');
   });
 
@@ -340,9 +344,11 @@ describe('the plans page around its plans', () => {
     assert.match(code('./WallScreen.tsx'), /<WallYoursPage canBuy=\{storeHasPlans\} onLeave=\{\(\) => leave\(\)\} \/>/);
   });
 
-  test("the thirty metered minutes are free minutes, and a free trial is only the store's", () => {
-    assert.equal(PLAN_LABELS.trial, 'Free minutes');
-    assert.equal(trialAllowance(30, 3), 'You start with 30 free minutes, about 3 conversations.');
+  test("the free plan's weekly minutes are free minutes, and a free trial is only the store's", () => {
+    // D24 (2026-10-20): the free plan is "Free", five minutes every week.
+    assert.equal(PLAN_LABELS.trial, 'Free');
+    assert.equal(trialAllowance(5, 0), 'You get 5 free minutes every week.');
+    assert.equal(trialAllowance(30, 3), 'You get 30 free minutes every week, about 3 conversations.');
     // Only the store trial's own lines say "free trial".
     const said = WALL_COPY.filter((line) => /free trial/i.test(line));
     assert.equal(TRIAL_TITLE, 'How your trial works');

@@ -25,6 +25,9 @@ import {
   setLastPracticeOffset,
   setNudgesPausedAt,
   setPaidSince,
+  setProtectedSince,
+  readGameLocal,
+  emptyGameLocal,
   updateGameLocal,
 } from './gameLocal.ts';
 
@@ -80,6 +83,22 @@ describe('the device-only game facts — F729', () => {
 
     await clearActiveUserData({ sweepAudio: () => ({ removed: 0, failed: 0 }) });
     assert.equal(disk.has(key()), false, 'a reset left the phone-only game facts behind');
+  });
+
+  test('protectedSince (D23) is stored, and a record written before it reads as null rather than refused', async () => {
+    assert.equal(await setProtectedSince('2026-10-02'), 'durable');
+    assert.equal((await loadGameLocal()).protectedSince, '2026-10-02');
+    const { protectedSince: _absent, ...before } = { ...emptyGameLocal(), paidSince: '2026-10-01' };
+    const read = readGameLocal(before);
+    assert.ok(read, 'a version 1 record from before protectedSince was refused');
+    assert.equal(read.protectedSince, null);
+    assert.equal(read.paidSince, '2026-10-01');
+    disk.set(key(), JSON.stringify(before));
+    assert.equal((await loadGameLocal()).protectedSince, null);
+    assert.equal(await setProtectedSince('2026-10-03'), 'durable', 'an old record could not take the new key');
+    assert.equal((await loadGameLocal()).protectedSince, '2026-10-03');
+    assert.equal(readGameLocal({ ...emptyGameLocal(), protectedSince: 'tomorrow' }), null, 'a malformed day was repaired');
+    assert.equal(readGameLocal({ ...emptyGameLocal(), surprise: 1 }), null, 'an unknown key was accepted');
   });
 
   test('the device-only game facts refuse unknown bytes and stay bounded', async () => {

@@ -214,7 +214,8 @@ function trace(event: string, detail?: Record<string, unknown>): void {
  *
  * The two `StartRefusal` values are `canStartSession`'s own and reach us as
  * `error` on the body. `trial already claimed` is the token server's, from the
- * one-trial-per-device check it makes before it asks about minutes at all.
+ * one-free-allowance-per-device check it makes before it asks about minutes at
+ * all (D24: one free weekly taste per device).
  * `unknown` covers a refusal newer than this build, including a body that will
  * not parse: the status alone is enough to know a session was refused over
  * minutes, and a learner should never meet a blank screen because a field moved.
@@ -272,7 +273,7 @@ const OUT_OF_MINUTES: Record<OutOfMinutesCode, OutOfMinutesCopy> = {
   'trial already claimed': {
     label: 'Free minutes already used',
     message:
-      'The free minutes on this device have already been used. They are a one time welcome rather than something that renews, so there are none waiting here. Nothing is wrong on your side, and practice and review work offline.',
+      'The free weekly minutes on this device are already in use. Each device has one free weekly allowance, so there are none waiting here for this account. Nothing is wrong on your side, and practice and review work offline.',
   },
   unknown: {
     label: 'Out of minutes',

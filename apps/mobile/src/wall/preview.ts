@@ -24,10 +24,44 @@ import type { StoreOffering } from '../purchases/adapter.ts';
 export interface PreviewEnvironment {
   EXPO_PUBLIC_LUVANI_WALL_PREVIEW?: string;
   EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT?: string;
+  EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC?: string;
   NODE_ENV?: string;
 }
 
-export function wallPreviewEnabled(env: PreviewEnvironment = process.env): boolean {
+/**
+ * The bundle's environment, read with literal property accesses.
+ *
+ * Expo inlines `process.env.EXPO_PUBLIC_…` only where it is written out
+ * literally; handing `process.env` around as an object reads nothing on a
+ * device. So every default below comes through here.
+ */
+export function bundledEnvironment(): PreviewEnvironment {
+  return {
+    EXPO_PUBLIC_LUVANI_WALL_PREVIEW: process.env.EXPO_PUBLIC_LUVANI_WALL_PREVIEW,
+    EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: process.env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT,
+    EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC: process.env.EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC,
+    NODE_ENV: process.env.NODE_ENV,
+  };
+}
+
+/** Never a production build, and only on the explicit local-development switch. */
+export function localDevelopmentBuild(env: PreviewEnvironment = bundledEnvironment()): boolean {
+  return env.NODE_ENV !== 'production' && env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT === '1';
+}
+
+/**
+ * Whether the fixture offering stands in for a store that answers nothing.
+ *
+ * True for `1` (the wall-first review) and for `store`, which gives the launch
+ * wall something to sell on a simulator with no RevenueCat keys while leaving
+ * the navigator to open on the tabs, so cold launch and return can be watched.
+ */
+export function storePreviewEnabled(env: PreviewEnvironment = bundledEnvironment()): boolean {
+  if (!localDevelopmentBuild(env)) return false;
+  return env.EXPO_PUBLIC_LUVANI_WALL_PREVIEW === '1' || env.EXPO_PUBLIC_LUVANI_WALL_PREVIEW === 'store';
+}
+
+export function wallPreviewEnabled(env: PreviewEnvironment = bundledEnvironment()): boolean {
   // A production build never opens on this, whatever else is set.
   if (env.NODE_ENV === 'production') return false;
   // And neither does a real build pointed at real infrastructure: the preview
@@ -35,6 +69,21 @@ export function wallPreviewEnabled(env: PreviewEnvironment = process.env): boole
   // needs, so it cannot be reached by a build that talks to anything real.
   if (env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT !== '1') return false;
   return env.EXPO_PUBLIC_LUVANI_WALL_PREVIEW === '1';
+}
+
+/**
+ * How long in the background makes coming back an open of the app (D24).
+ *
+ * `EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC`, a positive whole number of
+ * seconds, shortens the 30 minutes so the return rule can be watched on a
+ * simulator. Same gate as the preview; anything else is the 30 minutes.
+ */
+export function launchWallAwayMs(env: PreviewEnvironment = bundledEnvironment(), fallbackMs = 30 * 60 * 1000): number {
+  if (!localDevelopmentBuild(env)) return fallbackMs;
+  const raw = env.EXPO_PUBLIC_LUVANI_LAUNCH_WALL_AWAY_SEC;
+  if (raw === undefined || !/^[1-9][0-9]*$/.test(raw)) return fallbackMs;
+  const ms = Number(raw) * 1000;
+  return Number.isSafeInteger(ms) ? ms : fallbackMs;
 }
 
 /**
@@ -47,7 +96,7 @@ export function wallPreviewEnabled(env: PreviewEnvironment = process.env): boole
  *
  * So a preview build gets two made-up products. They are made up in the open:
  * the ids say `preview`, and nothing about them can reach a learner, because
- * `wallPreviewEnabled` refuses a production build outright and refuses any build
+ * `storePreviewEnabled` refuses a production build outright and refuses any build
  * that is not on the explicit local-development switch. No purchase can complete
  * either, because `purchases.purchase` on web answers `{ ok: false }` and on a
  * device asks a store that has never heard of these ids.
@@ -55,19 +104,19 @@ export function wallPreviewEnabled(env: PreviewEnvironment = process.env): boole
  * Returns null when preview is off, which is every real build, and null is what
  * the wall already does with a store that answers nothing.
  */
-export function previewOffering(env: PreviewEnvironment = process.env): StoreOffering | null {
-  if (!wallPreviewEnabled(env)) return null;
+export function previewOffering(env: PreviewEnvironment = bundledEnvironment()): StoreOffering | null {
+  if (!storePreviewEnabled(env)) return null;
   return {
     available: true,
     products: [
-      { plan: 'starter', productId: 'luvani_starter_monthly_preview', title: 'Starter', localizedPrice: '£14.99', price: 14.99, currencyCode: 'GBP', period: 'month', intro: PREVIEW_WEEK, introEligible: true },
+      { plan: 'starter', productId: 'luvani_starter_monthly_preview', title: 'Core', localizedPrice: '£14.99', price: 14.99, currencyCode: 'GBP', period: 'month', intro: PREVIEW_WEEK, introEligible: true },
       { plan: 'regular', productId: 'luvani_regular_monthly_preview', title: 'Max', localizedPrice: '£24.99', price: 24.99, currencyCode: 'GBP', period: 'month', intro: PREVIEW_WEEK, introEligible: true },
     ],
     // The yearly products and a week's free trial (D16), so the page's yearly
     // rows and the trial timeline can be looked at too. Made up the same way:
     // the ids say preview, and no store has ever heard of them.
     yearly: [
-      { plan: 'starter', productId: 'luvani_starter_yearly_preview', title: 'Starter', localizedPrice: '£119.99', price: 119.99, currencyCode: 'GBP', period: 'year', localizedPricePerMonth: '£10.00', intro: PREVIEW_WEEK, introEligible: true },
+      { plan: 'starter', productId: 'luvani_starter_yearly_preview', title: 'Core', localizedPrice: '£119.99', price: 119.99, currencyCode: 'GBP', period: 'year', localizedPricePerMonth: '£10.00', intro: PREVIEW_WEEK, introEligible: true },
       { plan: 'regular', productId: 'luvani_regular_yearly_preview', title: 'Max', localizedPrice: '£179.99', price: 179.99, currencyCode: 'GBP', period: 'year', localizedPricePerMonth: '£15.00', intro: PREVIEW_WEEK, introEligible: true },
     ],
   };
@@ -86,12 +135,12 @@ const PREVIEW_WEEK = { priceString: '£0.00', periodUnit: 'WEEK', periodNumberOf
  * most.
  *
  * This closes that, and it is deliberately the shape the rest of the feature
- * refuses. It is tolerable for exactly one reason: `wallPreviewEnabled` cannot be
+ * refuses. It is tolerable for exactly one reason: `storePreviewEnabled` cannot be
  * true in a production build or in a build off the local-development switch, so
  * this line cannot run in any app a learner has. If that gate ever loosens, this
  * is the first thing that has to go, which is why it lives beside the gate rather
  * than next to the page it serves.
  */
-export function previewCatalogue(env: PreviewEnvironment = process.env): Record<Plan, PlanSpec> | null {
-  return wallPreviewEnabled(env) ? PLANS : null;
+export function previewCatalogue(env: PreviewEnvironment = bundledEnvironment()): Record<Plan, PlanSpec> | null {
+  return storePreviewEnabled(env) ? PLANS : null;
 }

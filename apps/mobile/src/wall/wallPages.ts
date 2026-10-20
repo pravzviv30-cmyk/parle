@@ -35,17 +35,24 @@ export type WallPage = 'yours' | 'plans';
 /**
  * How the wall was reached.
  *
- * The same four strings the `wall_shown` analytics event carries, because a
+ * The same strings the `wall_shown` analytics event carries, because a
  * funnel split by a different set of doors than the code has is a funnel nobody
  * can read. `path-complete` is the founder's primary door: the learner has
- * walked the welcome path and reached for the next situation.
+ * walked the welcome path and reached for the next situation. `launch` is the
+ * free-trial offer shown on opening the app (D24, `wall/launchWall.ts`), and
+ * `locked` is a tap on a feature a plan opens (`purchases/featureLocks.ts`).
  */
-export type WallEntry = 'path-complete' | 'refused' | 'settings' | 'recap';
+export type WallEntry = 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked';
 
 /** The value page. The plans page is decided separately, by the store. */
 const VALUE_PAGES: readonly WallPage[] = ['yours'];
 
 export function wallPages(input: { entry: WallEntry; storeHasPlans: boolean }): readonly WallPage[] {
+  if (input.entry === 'launch' || input.entry === 'locked') {
+    // Straight to the price, like Settings: the learner already knows the app.
+    // With no store (the web) the value page alone, which ends on the free promise.
+    return input.storeHasPlans ? ['plans'] : VALUE_PAGES;
+  }
   if (input.entry === 'settings' || input.entry === 'path-complete') {
     // Straight to the price. The Settings group is already drawn only when the
     // store answered with a product, so this list is empty only in a state that

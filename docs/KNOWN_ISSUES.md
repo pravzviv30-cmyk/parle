@@ -4042,7 +4042,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `lapsed` marker feeding a third refusal reason, which F250's paywall can then render as an offer to
   resubscribe rather than as a trial that ended. That marker is an entitlement field and a store
   concern, so it lands with the billing work rather than in the meter.
-- verified-by: `a learner whose paid plan lapsed is not told their free trial ended`
+- verified-by: `a learner whose paid plan lapsed and taste is spent is not told their free trial ended`
+- note: 2026-10-20 D24: a lapse now falls back to the weekly free taste, so the learner is told the plan ended only once that taste is spent too; the test was renamed to say so.
 
 ### F258 — The one command that starts Luvani serves the app on a port its own server refuses
 - severity: P1
@@ -10022,7 +10023,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/purchases/capabilities.ts
 - note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial. capabilitiesFor answers streakProtection (5 October), but the plans page still says nothing: the INCLUSIONS line "Streak freezes and a one-tap repair" waits for F718 to retire "streak" from the shared guilt ban, because CAPABILITY_COPY is swept by guiltIn. Open until that line ships with the second test below, which does not exist yet, so the gate cannot tick this early.
 - note: 2026-10-07 ca/p4-wall: INCLUSIONS.streak "Every plan includes streak freezes and a one-tap repair." is said once on the plans page under every plan's rows, with the freeze mark; capabilities.ts re-pinned once in moneyUntouched.test.ts with a dated reason (copy only, no plan opens anything new).
-- verified-by: `streak protection comes only with an unlapsed paid plan`
+- verified-by: `two freezes and the repair come with a paid plan; the free plan holds one freeze (D23)`
+- note: 2026-10-20 D23: the free plan (and a lapsed one) now holds one freeze and no repair; paid plans keep two freezes and the repair. The test was renamed to the new rule, and INCLUSIONS.streak reads "Every plan includes a second streak freeze and a one-tap repair."
 - verified-by: `the plans page names streak protection on both paid plans`
 
 ### F735 — Production guest speech is off, so the first win is never spoken

@@ -1,6 +1,8 @@
 > Detailed draft spec, written 2026-10-04 and checked against `47fbc2ea`. Where it disagrees with
 > [README.md](README.md) Parts 1, 6 or 7 (decisions, resolutions, gate traps), README wins. Read the
 > matching review in [reviews/](reviews/) before building from it.
+>
+> **Superseded in part (2026-10-20, D23 and D24):** the one-off 30 free minutes are now a 5-minute weekly taste, the wall opens on each launch and on return after 30+ minutes away (`wall/launchWall.ts`, which replaced `onboarding/firstRunWall.ts`), and a free learner holds one streak freeze. See README Part 1.
 
 ## Retention surfaces
 

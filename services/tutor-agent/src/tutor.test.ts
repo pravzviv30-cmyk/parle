@@ -648,7 +648,7 @@ describe('the tutor speaks as the person the learner chose', () => {
     const second = tutor.finish().then(() => { secondSettled = true; });
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(secondSettled, false, 'an in-flight acknowledgement must hold every concurrent close');
-    answer(new Response(JSON.stringify({ kind: 'not-charged', refundedSeconds: 0, secondsRemaining: 1800, plan: 'trial' })));
+    answer(new Response(JSON.stringify({ kind: 'not-charged', refundedSeconds: 0, secondsRemaining: 300, plan: 'trial' })));
     await Promise.all([first, second]);
     assert.equal(requests, 1);
     assert.equal(published.filter(m => m.t === 'settlement').length, 1);

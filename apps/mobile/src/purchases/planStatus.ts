@@ -8,8 +8,13 @@
  * the test holds that no digit can come out of it, whatever goes in.
  *
  * The same rule covers the period. "Renews on the 12th" is a date a learner can
- * read as a deadline, so the period is said as a distance in words, and the
- * trial, which does not renew, is said as what it is: a welcome, once.
+ * read as a deadline, so a paid period is said as a distance in words.
+ *
+ * One exception, by founder decision D24 (2026-10-20): the free plan is a weekly
+ * taste of five minutes, and its band says the whole minutes left this week and
+ * the weekday they refill ("3 free minutes this week, refills Monday"), the
+ * way the design draws it. A few whole minutes and a weekday are a size and a
+ * day, not a ticking number, and a paid plan's card still carries no numeral.
  *
  * Nothing here decides whether a session may start. `canStart` is core's
  * answer, carried through untouched, and the band `none` is drawn from it
@@ -25,7 +30,7 @@ export type PlanBand = 'plenty' | 'a-little' | 'none';
 export type PlanStatusView =
   | {
       known: true;
-      /** The plan's name, in the words a learner reads: Free minutes, Starter, Max. */
+      /** The plan's name, in the words a learner reads: Free, Core, Max. */
       planLabel: string;
       /** The period, as a distance in words. Never a date. */
       periodLine: string;
@@ -41,18 +46,18 @@ const A_LITTLE_SHARE = 0.25;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * The free minutes every account starts with are "Free minutes", never "Free
- * trial" (come alive, README Part 5.G): a free trial is the store's own offer
- * now, and it reads as the plan it is a trial of.
+ * The free plan is "Free" (D24, core's PLANS.trial.label), never "Free trial"
+ * (come alive, README Part 5.G): a free trial is the store's own offer now, and
+ * it reads as the plan it is a trial of.
  */
 export const PLAN_LABELS = {
-  trial: 'Free minutes',
+  trial: PLANS.trial.label,
   starter: PLANS.starter.label,
   regular: PLANS.regular.label,
 } as const;
 
 export const PERIOD_LINES = {
-  trial: 'Your free minutes, once.',
+  trial: 'Free every week.',
   lapsed: 'Your paid plan has ended.',
   renewingNow: 'Renewing about now.',
   renewsThisWeek: 'Renews within the week.',
@@ -69,6 +74,26 @@ export const BAND_LINES = {
 } as const;
 
 export const PLAN_UNKNOWN = 'Luvani could not check your plan just now.';
+
+/** "Monday": the day a weekly taste refills, as core says it. */
+export function refillDay(periodEnd: string): string | null {
+  const at = new Date(periodEnd);
+  return Number.isFinite(at.getTime()) ? at.toLocaleDateString('en-GB', { weekday: 'long' }) : null;
+}
+
+/** The free plan's band (D24): whole minutes left this week, and the day they refill. */
+export function freeBandLine(status: BillingStatus): string {
+  const day = status.periodEnd === null ? null : refillDay(status.periodEnd);
+  const minutes = Math.floor(status.secondsRemaining / 60);
+  if (!status.canStart || minutes <= 0) return day === null ? BAND_LINES.exhausted : `Free minutes refill ${day}.`;
+  const size = `${minutes} free ${minutes === 1 ? 'minute' : 'minutes'} this week`;
+  return day === null ? size : `${size}, refills ${day}`;
+}
+
+/** The band and the period as one sentence, for a row with one subtitle. */
+export function planSentence(bandLine: string, periodLine: string): string {
+  return /[.!?]$/.test(bandLine) ? `${bandLine} ${periodLine}` : `${bandLine}. ${periodLine}`;
+}
 
 /** Every sentence this module can say, for the guilt and em dash sweeps. */
 export const PLAN_STATUS_COPY: readonly string[] = [
@@ -124,6 +149,10 @@ function measureFor(status: BillingStatus, now: number): number {
 }
 
 function bandFor(status: BillingStatus, now: number): { band: PlanBand; line: string } {
+  if (status.plan === 'trial') {
+    const band: PlanBand = !status.canStart ? 'none' : status.secondsRemaining < measureFor(status, now) * A_LITTLE_SHARE ? 'a-little' : 'plenty';
+    return { band, line: freeBandLine(status) };
+  }
   if (!status.canStart) {
     if (status.reason === 'subscription-lapsed') return { band: 'none', line: BAND_LINES.lapsed };
     if (status.reason === 'insufficient-for-session') return { band: 'none', line: BAND_LINES.insufficient };

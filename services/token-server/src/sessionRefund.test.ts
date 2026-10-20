@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PLANS } from '@luvani/core';
+
 import { FileEntitlementStore, InMemoryEntitlementStore } from './store.ts';
 
 const session = '22222222-2222-4222-8222-222222222222';
@@ -12,22 +14,22 @@ async function grant(store: InMemoryEntitlementStore | FileEntitlementStore, id 
 
 test('a failed session returns only its actual charge once and blocks a late debit', async () => {
   const store = new InMemoryEntitlementStore();
-  await store.save('learner', { plan: 'trial', secondsUsed: 1790 });
+  await store.save('learner', { plan: 'trial', secondsUsed: 290 });
   await grant(store);
   await store.consume('learner', 100, session);
   const refunded = await store.refundSession('learner', session, 'tts_error');
   assert.equal(refunded.kind, 'restored-current-period');
   assert.equal(refunded.refundedSeconds, 10, 'requested seconds beyond the cap were not charged');
-  assert.equal((await store.get('learner')).secondsUsed, 1790);
+  assert.equal((await store.get('learner')).secondsUsed, 290);
   assert.deepEqual(await store.refundSession('learner', session, 'llm_error'), refunded);
   await store.consume('learner', 100, session);
-  assert.equal((await store.get('learner')).secondsUsed, 1790, 'replayed normal settlement cannot recharge a refunded session');
+  assert.equal((await store.get('learner')).secondsUsed, 290, 'replayed normal settlement cannot recharge a refunded session');
   await assert.rejects(store.refundSession('other', session, 'tts_error'), /owner|account/);
   const next = '33333333-3333-4333-8333-333333333333';
   await grant(store, next);
   assert.equal((await store.refundSession('learner', next, 'stt_error')).kind, 'not-charged');
   await store.consume('learner', 10, next);
-  assert.equal((await store.get('learner')).secondsUsed, 1790);
+  assert.equal((await store.get('learner')).secondsUsed, 290);
 });
 
 test('a session from an earlier allowance cannot consume or refund a new period', async () => {
@@ -81,5 +83,7 @@ test('an expired paid refund without an intervening entitlement read is historic
   await grant(store);await store.consume('learner', 80, session);
   t.mock.timers.tick(4 * 86400_000);
   const ack = await store.refundSession('learner', session, 'tts_error');
-  assert.equal(ack.kind, 'historical-reversal');assert.equal(ack.plan, 'trial');assert.equal(ack.secondsRemaining, 0);
+  assert.equal(ack.kind, 'historical-reversal');assert.equal(ack.plan, 'trial');
+  // D24: the lapse lands on a fresh weekly taste, and the old period's refund is not paid into it.
+  assert.equal(ack.secondsRemaining, PLANS.trial.secondsPerPeriod);
 });

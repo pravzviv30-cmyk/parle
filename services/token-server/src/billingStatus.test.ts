@@ -51,7 +51,7 @@ describe('billing status — what the learner holds, read and never changed (F54
     assert.equal(fresh.secondsRemaining, PLANS.trial.secondsPerPeriod);
     assert.equal(fresh.canStart, true);
     assert.equal(fresh.reason, null);
-    assert.equal(fresh.periodEnd, null, 'the trial does not renew, so it has no period end');
+    assert.equal(fresh.periodEnd, null, 'an unspent taste has no refill time yet: its window starts at first use');
     assert.equal(fresh.lapsed, false);
 
     const spent = billingStatusFor({ plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod });
@@ -65,12 +65,40 @@ describe('billing status — what the learner holds, read and never changed (F54
   });
 
   test('a lapsed plan reads as lapsed and never as a fresh trial', () => {
+    // D24: a lapse lands on the weekly taste every free learner holds. It still
+    // reads as lapsed, so the app never greets a former subscriber as new.
     const lapsed = billingStatusFor(lapsedEntitlement());
     assert.equal(lapsed.plan, 'trial');
     assert.equal(lapsed.lapsed, true);
-    assert.equal(lapsed.canStart, false);
-    assert.equal(lapsed.reason, 'subscription-lapsed');
-    assert.equal(lapsed.secondsRemaining, 0, 'the lapse door never hands the welcome minutes back');
+    assert.equal(lapsed.canStart, true, 'a lapsed learner cannot spend the weekly taste');
+    assert.equal(lapsed.reason, null);
+    assert.equal(lapsed.secondsRemaining, PLANS.trial.secondsPerPeriod);
+
+    // Only once that taste is spent too is the answer the lapse.
+    const spent = billingStatusFor({ ...lapsedEntitlement(), secondsUsed: PLANS.trial.secondsPerPeriod });
+    assert.equal(spent.canStart, false);
+    assert.equal(spent.reason, 'subscription-lapsed');
+    assert.equal(spent.secondsRemaining, 0);
+  });
+
+  test('a weekly taste reports when it refills, and a passed window reads as refilled', () => {
+    const now = new Date('2026-10-20T09:00:00.000Z');
+    const refillsAt = new Date('2026-10-26T09:00:00.000Z');
+    const spent = { plan: 'trial' as const, secondsUsed: PLANS.trial.secondsPerPeriod, weeklyTaste: true, periodEnd: refillsAt };
+    const before = billingStatusFor(spent, now);
+    assert.equal(before.periodEnd, refillsAt.toISOString(), 'the app could not say when the free minutes come back');
+    assert.equal(before.canStart, false);
+    assert.equal(before.reason, 'exhausted');
+
+    const after = billingStatusFor(spent, refillsAt);
+    assert.equal(after.canStart, true, 'a passed window still read as spent');
+    assert.equal(after.secondsRemaining, PLANS.trial.secondsPerPeriod);
+    assert.equal(after.periodEnd, null, 'the next window starts at the next debit, not at the refill');
+
+    // A free row without the device claim behind it never refills.
+    const unclaimed = billingStatusFor({ ...spent, weeklyTaste: false }, refillsAt);
+    assert.equal(unclaimed.canStart, false);
+    assert.equal(unclaimed.secondsRemaining, 0);
   });
 
   test('the period end travels as an instant, from a date or a string, and junk reads as none', () => {

@@ -4,9 +4,9 @@ import { readSettlementResult, sessionSettlementCopy } from './sessionSettlement
 import { decodeServerMessage, encodeMessage } from './protocol/protocol.ts';
 
 test('settlement rejects invented credit and impossible per-plan balances', () => {
-  const valid = { kind: 'restored-current-period', refundedSeconds: 10, secondsRemaining: 1790, plan: 'trial' };
+  const valid = { kind: 'restored-current-period', refundedSeconds: 10, secondsRemaining: 290, plan: 'trial' };
   assert.deepEqual(readSettlementResult(valid), valid);
-  for (const patch of [{ refundedSeconds: 0 }, { refundedSeconds: 901 }, { refundedSeconds: -1 }, { refundedSeconds: 1.1 }, { secondsRemaining: 1801 }, { plan: 'unknown' }, { kind: 'not-charged' }]) {
+  for (const patch of [{ refundedSeconds: 0 }, { refundedSeconds: 901 }, { refundedSeconds: -1 }, { refundedSeconds: 1.1 }, { secondsRemaining: 301 }, { plan: 'unknown' }, { kind: 'not-charged' }]) {
     assert.equal(readSettlementResult({ ...valid, ...patch }), null);
   }
   assert.equal(readSettlementResult({ ...valid, plan: 'starter', secondsRemaining: 10801 }), null);
@@ -15,7 +15,7 @@ test('settlement rejects invented credit and impossible per-plan balances', () =
 });
 
 test('only a validated settlement and recognized terminal failure cross the wire', () => {
-  const result = { kind: 'not-charged' as const, refundedSeconds: 0, secondsRemaining: 1800, plan: 'trial' as const };
+  const result = { kind: 'not-charged' as const, refundedSeconds: 0, secondsRemaining: 300, plan: 'trial' as const };
   assert.deepEqual(decodeServerMessage(encodeMessage({ t: 'settlement', result })), { t: 'settlement', result });
   assert.equal(decodeServerMessage(new TextEncoder().encode(JSON.stringify({ t: 'settlement', result: { ...result, refundedSeconds: 100 } }))), null);
   const error = (kind: string, recoverable: boolean) => decodeServerMessage(new TextEncoder().encode(JSON.stringify({ t: 'error', message: 'Problem', kind, recoverable, terminal: true })));

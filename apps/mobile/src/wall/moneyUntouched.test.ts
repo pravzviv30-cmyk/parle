@@ -152,10 +152,22 @@ const FILES: Record<string, string> = {
   // planInclusions are unchanged, so no plan opens or gates anything new.
   // 9 October 2026: founder-authorized paywall copy adds INCLUSIONS.maxCompact.
   // Capability predicates and all purchase/grant/meter functions are unchanged.
-  'apps/mobile/src/purchases/capabilities.ts': '739cb93a99580c0c981037b166b266548bc77dfbf4fb127f511d3fc2a1a7f8b6',
-  'packages/core/src/metering/meter.ts': '4da606ef6f77984f40edd05183e795336c59558ec1291de3f4e9d03f131d16d1',
+  // 2026-10-20, D24/D23/Core (one re-pin for the free-tier change set; it covers
+  // capabilities.ts, meter.ts and billingStatus.ts here, and store.ts and the
+  // metering index.ts below). D24, the Headspace model: the one-off 30 free
+  // minutes became a 5-minute weekly taste that refills on a rolling 7 days from
+  // first use, one claim per device, and a lapse falls back to the taste
+  // (meter.ts refillTaste/TASTE_REFILL_DAYS, exported from index.ts);
+  // capabilitiesFor gains `unlocks` for the eight locked features; billing status
+  // sends the taste's refill time as periodEnd; the local stores refill
+  // (store.ts). D23: the free plan holds one streak freeze. Core: PLANS.starter.label
+  // is "Core", id unchanged. Paid prices and allowances are unchanged. Approval:
+  // founder decisions 2026-10-20. Independent review: the Opus orchestrator read
+  // the meter, capabilities, billing status and store diffs before this pin.
+  'apps/mobile/src/purchases/capabilities.ts': '9c160bfe9ccb4ee1534f0c6569d1d34aec25e9bf3e5560f0bf2e36f3573babe5',
+  'packages/core/src/metering/meter.ts': '8a4a9ac0107e6e8abb947ad1104f26a5fd94c9d57192dea1b44ce6f4f2903b3b',
   'services/token-server/src/billing/revenuecat.ts': '33964e5a51bf18aa5cb3f7198c9cc377dc2b815eeb13a26a0ebd2a4a0b9ba8ff',
-  'services/token-server/src/billingStatus.ts': 'e10d98aaf23ddb00e53e5f96d722c4f80faa6044b760ee5e9dbce9187d4cba2c',
+  'services/token-server/src/billingStatus.ts': '416fcc27cc92be9e3c745decf147517c2dd3aa8f33c66ab69a6a1d5657acb025',
   // 3 October 2026: founder-authorized Report 36 confirmed service-failure
   // refunds and Report 32 approved audio spending ceilings. Sol independently
   // reviewed bounded charge/epoch/ownership/disabled-cap repairs; disposable SQL
@@ -174,8 +186,8 @@ const FILES: Record<string, string> = {
   // tests and 38 billing tests. SQL admission supersedes stale snapshots;
   // store changes remove raw error logging only. Prices/allowances remain pinned.
   'services/token-server/src/tokens.ts': '0b83b715a62ed5948631f13f4cfd785f4723ad4bada5eafdb8ac4bf5d020788f',
-  'services/token-server/src/store.ts': '56d3cc9d2798d8aef972d269086c809bb8c13f9436613ef234906e246dcc3674',
-  'packages/core/src/metering/index.ts': '685fb30e1b910abf2c3a2104d93402558a32c660a193001249451688d42f7dc4',
+  'services/token-server/src/store.ts': '2d6d42ea21964bd640ad0f4f2e3b931c0e245364cc39f0d76791165b436fb019',
+  'packages/core/src/metering/index.ts': '430ac2a2da7a53dac3d083dccb7a713e4d85d61c910c122128abef675d1c0efa',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
   'apps/mobile/src/purchases/useContinueArc.ts': '122bbc57861e4bd52bf1207d39f0da89a297357369b865a9bed84ee7e505b3c8',
   'supabase/migrations/202608220001_luvani_learning.sql': '837130edcd96955383936bb34814c38a6cf9357e5031355156dd5398eb1f8c23',

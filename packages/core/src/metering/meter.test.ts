@@ -16,8 +16,11 @@ import {
   estimateSessionCost,
   planMargin,
   recordUsage,
+  refillTaste,
   rollPeriod,
   secondsRemaining,
+  TASTE_REFILL_DAYS,
+  lapsedEntitlement,
   storeTrialCostUsd,
   storeTrialSeconds,
   yearlyPlanMargin,
@@ -27,14 +30,24 @@ import {
 const fresh = (plan: Entitlement['plan'] = 'trial'): Entitlement => ({ plan, secondsUsed: 0 });
 
 describe('entitlements', () => {
-  test('a fresh trial grants thirty minutes', () => {
-    assert.equal(secondsRemaining(fresh()), 30 * 60);
+  test('the free plan is a five-minute weekly taste, shown as Free (D24)', () => {
+    assert.equal(secondsRemaining(fresh()), 5 * 60);
+    assert.equal(PLANS.trial.periodDays, TASTE_REFILL_DAYS);
+    assert.equal(TASTE_REFILL_DAYS, 7);
+    assert.equal(PLANS.trial.label, 'Free');
   });
 
-  test('the free tier is finite and does not renew — it cannot be farmed', () => {
-    assert.equal(PLANS.trial.periodDays, null);
-    const spent: Entitlement = { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod };
-    assert.deepEqual(rollPeriod(spent, new Date('2027-01-01')), spent);
+  test('the first paid tier is shown as Core and the second as Max; the ids stay', () => {
+    assert.equal(PLANS.starter.id, 'starter');
+    assert.equal(PLANS.starter.label, 'Core');
+    assert.equal(PLANS.regular.id, 'regular');
+    assert.equal(PLANS.regular.label, 'Max');
+  });
+
+  test('an unclaimed trial never refills, however long it waits: the taste cannot be farmed', () => {
+    const spent: Entitlement = { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod, periodEnd: new Date('2026-10-01') };
+    assert.equal(refillTaste(spent, new Date('2027-01-01')), spent);
+    assert.equal(rollPeriod(spent, new Date('2027-01-01')), spent);
   });
 
   test('a period that has not ended yet is left alone', () => {
@@ -56,6 +69,63 @@ describe('entitlements', () => {
   });
 });
 
+describe('the weekly taste refills on a rolling window from first use (D24)', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const first = new Date('2026-10-20T08:00:00Z');
+  const claimed = (): Entitlement => ({ plan: 'trial', secondsUsed: 0, weeklyTaste: true });
+
+  test('a claimed taste with nothing spent has no window yet', () => {
+    const e = claimed();
+    assert.equal(e.periodEnd, undefined);
+    assert.equal(refillTaste(e, new Date('2030-01-01')), e);
+  });
+
+  test('the first debit starts the window; later debits do not move it', () => {
+    const one = recordUsage(claimed(), 120, first);
+    assert.equal(one.periodEnd?.getTime(), first.getTime() + TASTE_REFILL_DAYS * DAY_MS);
+    const two = recordUsage(one, 60, new Date(first.getTime() + 2 * DAY_MS));
+    assert.equal(two.periodEnd?.getTime(), one.periodEnd?.getTime());
+    assert.equal(two.secondsUsed, 180);
+    // Zero seconds is not a debit and starts nothing.
+    assert.equal(recordUsage(claimed(), 0, first).periodEnd, undefined);
+    // An unclaimed trial and a paid plan never gain a window from a debit.
+    assert.equal(recordUsage({ plan: 'trial', secondsUsed: 0 }, 60, first).periodEnd, undefined);
+    assert.equal(recordUsage(fresh('starter'), 60, first).periodEnd, undefined);
+  });
+
+  test('it refills only once the window has passed, and the next window waits for the next debit', () => {
+    const spent = recordUsage(claimed(), PLANS.trial.secondsPerPeriod, first);
+    const end = spent.periodEnd!;
+    assert.equal(refillTaste(spent, end.getTime() - 1), spent, 'a moment early refills nothing');
+    const back = refillTaste(spent, end);
+    assert.equal(back.secondsUsed, 0, 'at the refill instant the taste is whole');
+    assert.equal(back.periodEnd, undefined);
+    assert.equal(back.weeklyTaste, true);
+    assert.equal(refillTaste(spent, new Date(end.getTime() + 60 * DAY_MS)).secondsUsed, 0, 'weeks idle refill once, not many times');
+  });
+
+  test('a clock that runs backwards refills nothing', () => {
+    const spent = recordUsage(claimed(), 200, first);
+    assert.equal(refillTaste(spent, new Date('2020-01-01')), spent);
+    assert.equal(refillTaste(spent, Number.NaN), spent);
+  });
+
+  test('only a claimed taste refills, and never a paid plan', () => {
+    const unclaimed: Entitlement = { plan: 'trial', secondsUsed: 300, periodEnd: first };
+    assert.equal(refillTaste(unclaimed, new Date(first.getTime() + DAY_MS)), unclaimed);
+    for (const plan of ['starter', 'regular'] as const) {
+      const paid: Entitlement = { plan, secondsUsed: 600, periodEnd: first, weeklyTaste: true };
+      assert.equal(refillTaste(paid, new Date(first.getTime() + 30 * DAY_MS)), paid, `${plan} refilled through the taste`);
+    }
+  });
+
+  test('a lapse is a fresh taste whose window starts at first use', () => {
+    const e = lapsedEntitlement();
+    assert.equal(canStartSession(e).allowed, true);
+    assert.equal(recordUsage(e, 60, first).periodEnd?.getTime(), first.getTime() + TASTE_REFILL_DAYS * DAY_MS);
+  });
+});
+
 describe('a paid period that ends without renewing', () => {
   const DAY_MS = 24 * 60 * 60 * 1000;
   const ended = new Date('2026-06-01T00:00:00.000Z');
@@ -71,26 +141,35 @@ describe('a paid period that ends without renewing', () => {
         const e: Entitlement = { plan, secondsUsed: 60, periodEnd: ended };
         const after = rollPeriod(e, new Date(ended.getTime() + daysPast * DAY_MS));
         assert.notEqual(after.plan, plan, `${plan} still held its plan ${daysPast} days after the period ended`);
-        assert.equal(secondsRemaining(after), 0, `${plan} was handed minutes nobody paid for, ${daysPast} days on`);
+        // D24: the lapse lands on the free weekly taste, never on paid minutes.
+        assert.equal(secondsRemaining(after), PLANS.trial.secondsPerPeriod, `${plan} was handed minutes nobody paid for, ${daysPast} days on`);
       }
     }
   });
 
-  test('an expired paid period collapses to an exhausted trial, not a fresh month', () => {
+  test('an expired paid period falls back to a fresh weekly taste, not a fresh month (D24)', () => {
     const after = rollPeriod(expiredStarter(), new Date(ended.getTime() + 3 * DAY_MS));
+    assert.deepEqual(after, lapsedEntitlement());
     assert.equal(after.plan, 'trial');
-    assert.equal(after.secondsUsed, PLANS.trial.secondsPerPeriod);
-    assert.equal(after.periodEnd, undefined, 'a lapsed entitlement carries no period end');
+    assert.equal(after.secondsUsed, 0);
+    assert.equal(secondsRemaining(after), PLANS.trial.secondsPerPeriod, 'a lapse grants the taste and nothing more');
+    assert.equal(after.periodEnd, undefined, 'the taste window starts at first use, not at the lapse');
     assert.equal(after.lapsed, true, 'the lapsed state forgot that this learner previously paid');
+    assert.equal(after.weeklyTaste, true);
   });
 
-  test('the lapsed trial is exhausted, so cancelling is not a route back to free minutes', () => {
+  test('a lapsed learner may spend the taste, and is told the plan ended only once it is spent', () => {
     const after = rollPeriod(expiredStarter(), new Date(ended.getTime() + 3 * DAY_MS));
-    const decision = canStartSession(after);
+    assert.equal(canStartSession(after).allowed, true);
+    const at = new Date('2026-10-19T09:00:00Z'); // a Monday
+    const spent = recordUsage(after, PLANS.trial.secondsPerPeriod, at);
+    const decision = canStartSession(spent);
     assert.equal(decision.allowed, false);
-    assert.equal(decision.allowed === false && decision.reason, 'subscription-lapsed');
-    // And the one-time trial does not come back through the lapse door later.
-    assert.deepEqual(rollPeriod(after, new Date(ended.getTime() + 900 * DAY_MS)), after);
+    if (decision.allowed) return;
+    assert.equal(decision.reason, 'subscription-lapsed');
+    assert.equal(decision.message, 'Your subscription has ended. Your free minutes for this week are used. They refill on Monday.');
+    // A trial periodEnd is a refill time, never a paid period to lapse from.
+    assert.equal(rollPeriod(spent, new Date(at.getTime() + 900 * DAY_MS)), spent);
   });
 
   test('a period a few hours past its end is left alone while the webhook catches up', () => {
@@ -131,7 +210,17 @@ describe('starting a session', () => {
     const trial = canStartSession({ plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod });
     assert.equal(trial.allowed, false);
     assert.equal(trial.allowed === false && trial.reason, 'exhausted');
-    assert.match(trial.allowed === false ? trial.message : '', /trial is finished/i);
+    assert.equal(trial.allowed === false ? trial.message : '', 'Your free minutes for this week are used.');
+
+    // With the refill time known, the learner hears the day it comes back.
+    const refillsFriday: Entitlement = {
+      plan: 'trial',
+      secondsUsed: PLANS.trial.secondsPerPeriod,
+      weeklyTaste: true,
+      periodEnd: new Date('2026-10-23T12:00:00Z'),
+    };
+    const weekly = canStartSession(refillsFriday);
+    assert.equal(weekly.allowed === false ? weekly.message : '', 'Your free minutes for this week are used. They refill on Friday.');
 
     // 5 October 2026, F733 review: a paid allowance is now a month, a store
     // trial's week or a yearly window, so "this month" was untrue for two of
@@ -141,7 +230,7 @@ describe('starting a session', () => {
     assert.doesNotMatch(paid.allowed === false ? paid.message : '', /trial|month/i);
   });
 
-  test('a learner whose paid plan lapsed is not told their free trial ended', () => {
+  test('a learner whose paid plan lapsed and taste is spent is not told their free trial ended', () => {
     const decision = canStartSession({
       plan: 'trial',
       secondsUsed: PLANS.trial.secondsPerPeriod,
@@ -249,12 +338,14 @@ describe('margins — the check that keeps us out of Issen’s trap', () => {
     assert.ok(planMargin('regular', 1.0).worstCaseMargin > 0.3);
   });
 
-  test('the free trial is cheap enough to give away', () => {
-    const cost = estimateSessionCost({ wallClockSec: PLANS.trial.secondsPerPeriod, utterancesScored: PLANS.trial.secondsPerPeriod / 20 });
-    // ~$1.75 of vendor spend per trial signup with the Claude brain. That is
-    // acquisition cost, not a leak — but it is no longer pocket change, so
-    // the ceiling is pinned here.
-    assert.ok(cost.total < 2, `a free trial costing $${cost.total.toFixed(2)} is too expensive to hand out`);
+  test('the weekly taste is cheap enough to give away every week (D24)', () => {
+    const week = estimateSessionCost({ wallClockSec: PLANS.trial.secondsPerPeriod, utterancesScored: PLANS.trial.secondsPerPeriod / 20 });
+    // About $0.29 a week fully burned, about $1.25 a month (52/12 weeks). It
+    // refills forever, so this is a standing cost per free learner, not a
+    // one-off acquisition cost; the ceiling is pinned here.
+    const month = (week.total * 52) / 12;
+    assert.ok(week.total < 0.3, `a weekly taste costing $${week.total.toFixed(2)} is too expensive to hand out`);
+    assert.ok(month < 1.3, `a free learner now costs $${month.toFixed(2)} a month at full burn`);
   });
 });
 
@@ -360,7 +451,7 @@ describe('margins after the store takes its cut', () => {
       'changing an allowance means changing this constant, every allowance table in ' +
       'supabase/migrations and supabase/rollback, and a new forward migration replacing ' +
       'consume_entitlement. databaseContract.test.ts fails on any copy left behind.';
-    assert.equal(PLANS.trial.secondsPerPeriod, 30 * 60, note);
+    assert.equal(PLANS.trial.secondsPerPeriod, 5 * 60, note);
     assert.equal(PLANS.starter.secondsPerPeriod, 180 * 60, note);
     assert.equal(PLANS.regular.secondsPerPeriod, 300 * 60, note);
   });
