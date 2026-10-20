@@ -85,7 +85,9 @@ describe('the header and the Recommended card', () => {
 describe('the starter scenes', () => {
   test('a first run: a stage word, never CEFR, the next scene marked Next, every row opening its preview', () => {
     const scenes = starterScenes(missionStates([], [], NOW));
-    assert.equal(scenes.heading, 'Starting out');
+    // 2026-10-20, B4 review, B-Speak: the founder's stage word, "Starter scenes".
+    assert.equal(scenes.heading, 'Starter scenes');
+    assert.equal(stageWord('A0'), 'Starter');
     assert.doesNotMatch(scenes.heading, /A0|A1/);
     assert.equal(scenes.rows[0]!.missionId, SCENE_SPINE[0]);
     assert.equal(scenes.rows.filter((row) => row.next).length, 1);

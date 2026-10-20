@@ -62,7 +62,8 @@ describe('the words My French says — F575', () => {
     // Whole-app phase 2: the three-line headline and the slogan under it were
     // read on every visit. The tab is called what the bar calls it, and one
     // plain line says what is on it.
-    assert.equal(MY_FRENCH_TITLE, 'Progress');
+    // 2026-10-20, B4, B-Journey: the page is "Your journey" under the bar's "Journey".
+    assert.equal(MY_FRENCH_TITLE, 'Your journey');
     assert.equal(MY_FRENCH_PURPOSE, 'The French you have used and kept.');
     assert.ok(MY_FRENCH_PURPOSE.split(' ').length <= 8, 'the purpose line grew back into a slogan');
     assert.doesNotMatch(MY_FRENCH_PURPOSE, /Real conversations|independence/, 'the slogan is back');

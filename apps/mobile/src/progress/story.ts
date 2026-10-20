@@ -320,6 +320,9 @@ function topicTalkedAbout(week: readonly ConversationPack[]): string | null {
  */
 const INDEPENDENCE = 'This week you mostly found the words on your own.';
 
+/** The same sentence, for Journey's help line (B4, 2026-10-20), so the two never drift. */
+export const STORY_INDEPENDENCE = INDEPENDENCE;
+
 /**
  * The floor. A week that produced no words, no sound worth naming and no
  * independence still happened, and this is what it gets. It thanks nobody and

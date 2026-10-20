@@ -68,8 +68,9 @@ describe('the rest of the page', () => {
   });
 
   test('stages are words, never CEFR', () => {
-    // One word for the first stage: A0 and tier 1 are both "Starting out".
-    assert.equal(stageOf({ kind: 'mission', cefr: 'A0' }), 'Starting out');
+    // 2026-10-20, B4 review: a mission names its stage, Starter; a daily
+    // scene's tier 1 keeps Explore's difficulty label, Starting out.
+    assert.equal(stageOf({ kind: 'mission', cefr: 'A0' }), 'Starter');
     assert.equal(stageOf({ kind: 'mission', cefr: 'A1' }), 'Basics');
     assert.equal(stageOf({ kind: 'scenario', tier: 1 }), 'Starting out');
     for (const id of [...DAILY_SCENARIOS.map((s) => s.id), ...MISSIONS.map((m) => m.id)]) {

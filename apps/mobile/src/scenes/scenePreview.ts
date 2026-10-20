@@ -37,7 +37,7 @@ export interface PreviewLine {
 export interface ScenePreviewModel {
   kind: 'mission' | 'scenario';
   id: string;
-  /** "Food and cafés, Starting out": the artboard's middot is a comma (copy/punctuation.test.ts). */
+  /** "Food and cafés, Starter": the artboard's middot is a comma (copy/punctuation.test.ts). */
   eyebrow: string;
   titleEn: string;
   titleFr: string;
@@ -91,8 +91,10 @@ export function hasAuthoredOpener(id: string): boolean {
 
 /** Stage words, never CEFR. A daily tier is a pitch, said as a stage. */
 export function stageOf(source: { kind: 'mission'; cefr: 'A0' | 'A1' } | { kind: 'scenario'; tier: 1 | 2 | 3 }): string {
-  // One word for the first stage everywhere: A0 and tier 1 are both "Starting out".
-  if (source.kind === 'mission') return source.cefr === 'A0' ? 'Starting out' : 'Basics';
+  // 2026-10-20, B4 review: a mission names its stage (Starter, Basics, as on
+  // Journey and Speak). A daily scene's tier 1 keeps Explore's difficulty
+  // label, "Starting out", which is a pitch and not a stage.
+  if (source.kind === 'mission') return source.cefr === 'A0' ? 'Starter' : 'Basics';
   return source.tier === 1 ? 'Starting out' : source.tier === 2 ? 'Everyday' : 'Chatting';
 }
 

@@ -3538,7 +3538,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the tinted situation rows and their green chip left My
   French. A stamp now reads as an earned can-do on the level path, drawn from core's spine over the
   learner's progress, and only a scene handled on the learner's own earns one.
-- verified-by: `the level is the spine's, with the can-dos earned and "here" on the next scene, and no rank anywhere`
+- note (2026-10-20, B4, B-Journey): the CEFR LevelCard became "Where you are", five stages from the spine with "You're here" on the real one and still no rank or CEFR code, so the test is renamed for that.
+- verified-by: `the stage is the spine's, said in words with "You're here" on the real one, and no rank anywhere`
 - verified-by: `only a scene handled with nothing handed over is filled`
 
 ### F219 — Core names a card's first return
@@ -5308,9 +5309,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   once it has something true to show, and a first visit reads one line instead of empty blocks. The
   ban on a `<Stat` count stands. Opening a scene is now Speak’s path row, and the next scene is the
   “here” mark on the level path.
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `the place core suggests is the first one a learner sees under Next places`
-- verified-by: `a first visit reads one line on what will collect here, and nothing empty`
+- note (2026-10-20, B4, B-Journey): the first visit is the B-Empty-States empty journey: one line on what collects here and one start through the tutor gate, never empty blocks, so the test is renamed for that.
+- verified-by: `before the first conversation the page is the empty journey and its one start, through the gate`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `the Profile card is the one importer of the story, and the rhythm rail names no number`
 
@@ -5541,7 +5544,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   product event has always carried, and `<Stat` is banned on the tab outright. The tick points at
   the test that pins that ban, and the module's own rule is still held by the F366 test above it.
 - verified-by: `nothing is drawn at zero, and each fact appears only once it is real — F366`
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `a stat can sit three to a row — F366`
 
 ### F367 — Profile says the learner's level under their name
@@ -7137,7 +7141,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   card still lives. The page still draws no pill and no task.
 - verified-by: `the phrase bank is the newest kept phrases with audio, and one door to all of them`
 - verified-by: `the phrasebook opens on one line right now and closes on the cadence set`
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `an empty deck deals nothing at all`
 - verified-by: `the featured phrase is the phrase Home calls first, by construction`
 - verified-by: `a first return outranks a due phrase the learner already uses`
@@ -7220,7 +7225,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: 2026-09-27 notebook final sweep: the tint palette and role tables are removed;
   the successor forbids their reintroduction anywhere in production source.
 - verified-by: `no source retains a tint token, role table or tinted primitive`
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `every combination says something, and nothing says it is locked`
 - verified-by: `a chip is short enough to sit beside a title`
@@ -8690,7 +8696,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): My French is now the level path with the can-dos earned, the
   phrase bank, the sounds map and the conversations, in that order. The tinted situation rows are
   gone, and the phrase shelf became the phrase bank, still with one door to the Phrasebook.
-- verified-by: `the blocks run level, phrase bank, sounds map, conversations, in that order`
+- note (2026-10-20, B4, B-Journey): Journey now follows the B-Journey order and the CEFR level card became the five stages; the retired phrase bank, sounds map and daily rows are still held absent, so the test is renamed for that.
+- verified-by: `the blocks run in the artboard order: header, stages, abilities, then and now, used, help, sounds, week, tiles, rows`
 - verified-by: `the phrase bank is the newest kept phrases with audio, and one door to all of them`
 
 ### F576 — Profile is the centred name, the tutor card, the rhythm and the learning card

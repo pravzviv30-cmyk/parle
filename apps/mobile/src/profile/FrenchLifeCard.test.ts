@@ -142,7 +142,9 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       .map((path) => path.slice(SRC.length));
     assert.deepEqual(
       readers,
-      ['progress/WeekWrappedScreen.tsx', 'tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx'],
+      // 2026-10-20, B4, B-Journey: Journey's view model reads the story's own
+      // independence sentence for "Help you needed", on the same learner-opened tab.
+      ['journey/journeyView.ts', 'progress/WeekWrappedScreen.tsx', 'tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx'],
       'the story is read only on learner-opened surfaces, never in notifications',
     );
     // Profile is not that file any more, and half a move is worse than either

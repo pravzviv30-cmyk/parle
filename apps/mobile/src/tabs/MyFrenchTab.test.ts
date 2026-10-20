@@ -70,36 +70,44 @@ function gated(marker: string, gate: string, within = 200): void {
   assert.ok(drawn - found < within, `the gate on ${marker} is somewhere else on the screen`);
 }
 
-describe('My French is the level, the phrases, the sounds and the conversations — notebook Phase 3', () => {
+// 2026-10-20, B4, B-Journey: the tab is the direction B Journey. What each
+// block says is `journey/journeyView.ts`'s and is held by journeyView.test.ts;
+// these read the screen for order, gates, reads and doors.
+describe('Journey is the stage, the level, abilities, then and now, used French, help, sounds and the week — B4', () => {
   test('a new account read clears the old evidence before rendering progress', () => {
     assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope; setReadOwner\(scope\); setReadyOwner\(null\); setStatus\('loading'\); setMissions\(\[\]\); setCompletions\(\[\]\);/);
     assert.match(FLAT, /setReadyOwner\(scope\); setStatus\('ready'\)/);
     assert.match(FLAT, /const renderStatus = ownedReadStatus\(status, readOwner, readyOwner, currentScope\)/);
-    assert.match(FLAT, /renderStatus === 'ready' && \( <View style=\{st\.group\}>/);
+    // 2026-10-20, B4, B-Journey: the page is drawn only for a ready read that is not the empty journey.
+    assert.match(FLAT, /renderStatus === 'ready' && !empty && \( <View style=\{st\.block\}>/);
+    assert.match(FLAT, /setStory\(\{ sentences: \[\] \}\); setHeldBack\(false\);/, 'the last account\'s week or refusal survives a new read');
   });
-  test('the blocks run level, phrase bank, sounds map, conversations, in that order', () => {
-    assert.ok(at('<TabHeader') < at('<LevelCard'));
-    assert.ok(at('<LevelCard') < at('rows.map('));
-    for (const retired of ['<PhraseBank', '<SoundsMap', 'title={DAILY_LINE}', 'title={BROWSE_LINE}']) assert.ok(!SCREEN.includes(retired));
-  });
-
-  test('the level is the spine\'s, with the can-dos earned and "here" on the next scene, and no rank anywhere', () => {
-    assert.match(FLAT, /const path = levelPathFrom\(missions\);/);
-    assert.match(FLAT, /<LevelCard path=\{path\} hasFinish=\{hasFinish\} hasEarned=\{hasEarned\} onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
-    gated('<LevelCard', '!firstVisit &&', 1000);
-    const level = read('../myfrench/LevelCard.tsx');
-    assert.match(level, /ground="blue"/);
-    assert.match(level, /<SceneMark state=\{stop.state\}/);
-    assert.match(level, /path.level/);
-    assert.match(level, /next.stops.length/);
-    assert.doesNotMatch(SCREEN, /totalXp\(|levelName|LEVELS\[/);
+  test('the blocks run in the artboard order: header, stages, abilities, then and now, used, help, sounds, week, tiles, rows', () => {
+    // 2026-10-20, B4, B-Journey: replaces level, phrase bank, sounds map, conversations.
+    const order = ['<TabHeader', '<LivingBar', '<StatRow>', '{STAGE_HEADING}', 'sectionTitle(CAN_DO_HEADING', 'sectionTitle(THEN_NOW_HEADING', 'sectionTitle(USED_HEADING', '{HELP_HEADING}', 'sectionTitle(SOUNDS_HEADING', 'sectionTitle(WEEK_HEADING', 'tiles.map(', '{rows.map('];
+    for (let i = 1; i < order.length; i += 1) assert.ok(at(order[i - 1]!) < at(order[i]!), `${order[i - 1]} is not drawn before ${order[i]}`);
+    for (const retired of ['<PhraseBank', '<SoundsMap', 'title={DAILY_LINE}', 'title={BROWSE_LINE}', '<LevelCard', '<LevelXpCard', '<CountsGrid', '<PostcardShelf']) assert.ok(!SCREEN.includes(retired), `${retired} is back on Journey`);
   });
 
-  test('a first visit reads one line on what will collect here, and nothing empty', () => {
+  test('the stage is the spine\'s, said in words with "You\'re here" on the real one, and no rank anywhere', () => {
+    // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages.
+    assert.match(FLAT, /const stages = stagesFrom\(missions\);/);
+    assert.match(FLAT, /stages\.steps\.map\(\(step\) => \( <View key=\{step\.label\} style=\{st\.stage\} accessible accessibilityLabel=\{step\.accessibilityLabel\}>/);
+    gated('{YOU_ARE_HERE}', "step.state === 'here' &&", 120);
+    // The done step carries a tick as well as its colour.
+    assert.match(FLAT, /step\.state === 'done' \? <CheckGlyph/);
+    assert.doesNotMatch(SCREEN, /totalXp\(|levelName|LEVELS\[|'A0'|'A1'/);
+  });
+
+  test('before the first conversation the page is the empty journey and its one start, through the gate', () => {
+    // 2026-10-20, B4, B-Empty-States: replaces the first-visit LocalPracticeCard.
     assert.match(FLAT, /const firstVisit = isFirstVisit\(\{ progress: missions, deck, checks, packs: packs.length \}\);/);
-    gated('<LocalPracticeCard', 'firstVisit &&', 300);
-    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'first visit and earned proof each have one scene door');
-    assert.match(FLAT, /<LocalPracticeCard/);
+    assert.match(FLAT, /const empty = renderStatus === 'ready' && isEmptyJourney\(firstVisit, completions\);/);
+    gated('<PillButton label={start.start}', '{empty && (', 400);
+    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'the empty journey\'s start and Practise your sounds');
+    assert.match(FLAT, /const decision = tutorGate\(answered, false\); if \(!decision\.go\) \{ setHeldBack\(true\); return; \}/);
+    assert.match(FLAT, /nav\.navigate\(decision\.screen, \{ missionId: start\.missionId, \.\.\.decision\.params \}\)/);
+    gated('<LocalPracticeCard', 'heldBack &&', 300);
   });
 
   test('the phrase bank is the newest kept phrases with audio, and one door to all of them', () => {
@@ -119,25 +127,34 @@ describe('My French is the level, the phrases, the sounds and the conversations 
   });
 
   test('the conversations lead with their progress sentence and open their own conversation', () => {
-    assert.match(FLAT, /conversations: allConversations\(\{ packs, events: history \}\).length/);
+    // 2026-10-20, B4, B-Journey: counted once, for the rows and for the week in words.
+    assert.match(FLAT, /const conversations = allConversations\(\{ packs, events: history \}\);/);
+    assert.match(FLAT, /conversations: conversations\.length/);
+    assert.match(FLAT, /reflectionFrom\(\{ story, recent: conversations, checks, progress: missions, now \}\)/);
     assert.match(FLAT, /row.kind === 'conversations'\) nav.navigate\('Conversations'\)/);
     assert.match(FLAT, /setHistory\(\[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\]\); setReadyOwner\(scope\); setStatus\('ready'\)/);
   });
 
-  test('the page is ledger rows and nothing louder: no pill, no tint, no retired row', () => {
-    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'proof and first visit are exclusive scene doors');
-    assert.match(FLAT, /proof !== null && <ColourCard/);
-    assert.equal(tags(SCREEN, 'Ledger').length, 4, 'retry, scene path, saved materials and evidence-based stories');
-    assert.match(SCREEN, /hasWeek \|\| earnedPostcards\(missions\).length > 0/);
-    assert.ok(SCREEN.includes('renderStatus === \'ready\' && rows.length > 0'));
-    for (const retired of ['<TintRow', '<IconRowCard', '<OutlineButton', '<Stat']) assert.ok(!SCREEN.includes(retired));
+  test('the page keeps one primary, its lists as ledger rows, and no retired row', () => {
+    // 2026-10-20, B4, B-Journey: one primary (the empty journey's start), the
+    // rest secondary; the lists are the retry, the week in words and the rows.
+    assert.equal(tags(SCREEN, 'PillButton').filter((tag) => !tag.includes('variant="secondary"')).length, 1);
+    assert.equal(tags(SCREEN, 'Ledger').length, 3, 'retry, week in words, and the saved materials with the week story');
+    assert.match(SCREEN, /earnedPostcards\(missions\)\.length/);
+    assert.ok(SCREEN.includes('(rows.length > 0 || hasWeek) && ('));
+    // 2026-10-20, B4, B-Journey: the header's numbers are the shared StatRow of
+    // StatTiles, and the one outline button is the refused start's retry.
+    for (const retired of ['<TintRow', '<IconRowCard', '<Stat ']) assert.ok(!SCREEN.includes(retired), `${retired} is back`);
+    assert.equal(tags(SCREEN, 'OutlineButton').length, 1);
+    gated('<OutlineButton', 'heldBack && (', 400);
   });
 
   test('every row goes somewhere and names itself', () => {
     const rows = tags(FLAT, 'LedgerRow');
     // 2026-10-07, come alive Phase 4 (F769): the postcards row became the
     // postcard shelf, whose heading row is the one door to Postcards.
-    assert.equal(rows.length, 4, 'retry, scene path, saved materials and week story');
+    // 2026-10-20, B4, B-Journey: retry, week in words, week story, saved materials.
+    assert.equal(rows.length, 4, 'retry, week in words, week story and saved materials');
     for (const row of rows) { assert.match(row, /onPress=\{/); assert.match(row, /accessibilityLabel=(?:\{|")/); }
     assert.match(FLAT, /key=\{row.id\}/);
   });
@@ -166,7 +183,36 @@ describe('My French is the level, the phrases, the sounds and the conversations 
     assert.match(read, /loadPracticeHistory\(\), loadPackMarks\(\)/);
     assert.match(FLAT, /setHistory\(\[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\]\); setReadyOwner\(scope\); setStatus\('ready'\)/);
     assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\('unread'\)/);
-    assert.match(FLAT, /renderStatus === 'ready' && rows\.length > 0/);
+    // 2026-10-20, B4, B-Journey: the rows are drawn inside the ready page.
+    gated('{rows.map(', "renderStatus === 'ready' && !empty &&", 14000);
+  });
+
+  // 2026-10-20, B4, B-Journey: the doors and the locks of the new page.
+  test('every door goes through the account fence to its view model\'s route', () => {
+    assert.match(FLAT, /const go = \(route: JourneyRoute\) => \{ if \(!owned\(\)\) return; nav\.navigate\(route\.screen, 'params' in route \? route\.params : undefined\); \};/);
+    assert.match(FLAT, /onPress=\{\(\) => go\(thenNow\.route\)\}/, 'the then and now card does not open Then and now');
+    assert.match(FLAT, /<IconAction layout="inline" icon="forward" label=\{SEE_ALL\}[^>]*onPress=\{\(\) => go\(thenNow\.route\)\}/);
+    assert.match(FLAT, /onPress=\{\(\) => go\(sounds\.practise\)\}/, 'Practise does not open sound practice');
+    assert.match(FLAT, /onPress=\{\(\) => \('sheet' in tile\.route \? setBadges\(true\) : go\(tile\.route\)\)\}/, 'the tiles do not open Postcards and the badge sheet');
+    assert.match(FLAT, /<Sheet visible=\{badges\} title="Badges"/);
+    assert.match(FLAT, /: \(\) => go\(row\.route!\)/, 'the week\'s next place does not open its scene');
+  });
+
+  test('a lock badge is drawn only where the view model says its seam locked it', () => {
+    for (const gate of ['canDo.locked', 'thenNow.locked', 'used.locked', 'help.locked', 'sounds.locked', 'week.locked']) {
+      assert.ok(SCREEN.includes(gate), `${gate} is not asked`);
+    }
+    assert.match(FLAT, /\{locked && <LockBadge \/>\}/);
+    assert.match(FLAT, /\{help\.locked && <LockBadge ground="card" \/>\}/);
+    assert.doesNotMatch(SCREEN, /featureAccess\(|capabilitiesFor\(|useContinueArc\(/, 'the tab decides a lock itself');
+  });
+
+  test('French is tagged, decoration is hidden and the help is never a number', () => {
+    assert.match(FLAT, /<Chip key=\{fr\} variant="meta" tone="lavender" lang="fr" label=\{fr\} \/>/);
+    assert.match(FLAT, /s\.fr \? <Text key=\{i\} \{\.\.\.frenchText\}>/);
+    assert.match(FLAT, /<View \{\.\.\.decorative\} style=\{\[st\.mark/);
+    assert.match(FLAT, /<Text style=\{\[type\.bodyStrong, \{ color: textOn\.mint \}\]\}>\{help\.line\}<\/Text>/);
+    assert.doesNotMatch(SCREEN, /unassistedRate|rungLabel|%/);
   });
 
   test('every word is a module\'s, and clean', () => {

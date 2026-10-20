@@ -100,9 +100,12 @@ export const EVERY_SCENE = { label: 'Every scene', route: { screen: 'Missions' }
 export const NEXT_CHIP = 'Next';
 export const DONE_WITHOUT_HELP = 'Done without help, speak it again';
 
-/** Stage words, never CEFR. Matches `scenes/scenePreview.ts`. */
+/**
+ * Stage words, never CEFR. Matches `scenes/scenePreview.ts` and Journey's
+ * stages (2026-10-20, B4 review: the founder's stage names, Starter for A0).
+ */
 export function stageWord(level: 'A0' | 'A1'): string {
-  return level === 'A0' ? 'Starting out' : 'Basics';
+  return level === 'A0' ? 'Starter' : 'Basics';
 }
 
 export interface StarterRow {
@@ -120,7 +123,8 @@ export interface StarterRow {
 export function starterScenes(progress: readonly MissionProgress[]): { heading: string; rows: StarterRow[] } {
   const card = pathCard(speakPath(progress));
   return {
-    heading: stageWord(card.level),
+    // 2026-10-20, B4 review, B-Speak: "Starter scenes".
+    heading: `${stageWord(card.level)} scenes`,
     rows: card.rows.map((row) => {
       const mission = getMission(row.missionId)!;
       const mine = progress.find((item) => item.mission.id === row.missionId);

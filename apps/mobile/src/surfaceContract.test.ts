@@ -1923,14 +1923,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'tabs/PracticeTab.tsx',
       'practice/TuneSoundCard.tsx',
     ],
+    // 2026-10-20, B4, B-Journey: the level, the counts and the CEFR card are
+    // drawn inline from journey/journeyView.ts, the postcard shelf became the
+    // Postcards tile, and the badge shelf and streak card sit in the Badges sheet.
     'tabs/MyFrenchTab.tsx': [
       'tabs/MyFrenchTab.tsx',
-      'myfrench/LevelCard.tsx',
-      'game/LevelXpCard.tsx',
       'game/StreakSummaryCard.tsx',
-      'game/CountsGrid.tsx',
       'game/BadgeShelf.tsx',
-      'progress/PostcardShelf.tsx',
     ],
     // P2 (2026-10-19): Profile's stats moved behind Your French, so it draws
     // no list surface of its own.
@@ -1962,8 +1961,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
     assert.match(named('tabs/HomeTab.tsx'), /!unowned && readFailed/);
-    assert.equal((named('tabs/MyFrenchTab.tsx').match(/<PillButton\b/g) ?? []).length, 2);
-    assert.match(named('tabs/MyFrenchTab.tsx'), /firstVisit &&/);
+    // 2026-10-20, B4, B-Journey: Journey's one primary is the empty journey's
+    // first scene, behind the empty gate; Practise your sounds is secondary.
+    const journey = named('tabs/MyFrenchTab.tsx');
+    assert.equal((journey.match(/<PillButton label=\{start\.start\}/g) ?? []).length, 1, 'Journey lost its one primary, the first scene');
+    assert.equal((journey.match(/<PillButton\b/g) ?? []).length, (journey.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Journey carries a second primary pill');
+    assert.match(journey, /const empty = renderStatus === 'ready' && isEmptyJourney\(firstVisit, completions\);/);
+    assert.match(journey, /\{empty && \(/);
 
   });
 
@@ -2006,6 +2010,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // Conversations and their "see all", the phrase shelf, the collection,
       // goals, the daily collection and the door to every situation. Phase 4
       // (2026-10-07): the postcards row became the postcard shelf, 5 to 4.
+      // 2026-10-20, B4, B-Journey: the failed-read retry, the week in words,
+      // Your week in French and the tiled rows (phrases, sounds, conversations,
+      // goals, saved scenes); still 4 tags.
       'tabs/MyFrenchTab.tsx': 4,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,

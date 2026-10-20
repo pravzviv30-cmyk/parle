@@ -7,6 +7,7 @@ export {
   independenceFrom,
   isEarned,
   earnedMissionIds,
+  SUBSUMED_BY,
   replayRung,
   suggestedMission,
 } from './missions.ts';

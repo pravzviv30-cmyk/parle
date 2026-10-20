@@ -54,11 +54,16 @@ test('revamp B retrieval and drills preserve attempted recall, honest scoring an
   for(const file of ['phrases/PhrasebookScreen.tsx','conversationPacks/ConversationPackLibrary.tsx']) has(file,/state-notebook/,/label="Choose a scene"/,/nav.navigate\('Missions'\)/);
 });
 test('revamp B Progress opens evidence-based materials, a weekly story and earned postcards without starting audio',()=>{
-  has('tabs/MyFrenchTab.tsx',/<LevelCard/,/<DayCount weekly/,/hasStory\(storyFrom/,/earnedPostcards\(missions\).length > 0/,/nav.navigate\('Postcards'\)/,/nav.navigate\('WeekWrapped'\)/,/nav.navigate\('Phrasebook'\)/,/nav.navigate\('GoalStep'/);
+  // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages, the
+  // postcard shelf the Postcards tile (its route in journey/journeyView.ts),
+  // and the tab's title is "Your journey".
+  has('tabs/MyFrenchTab.tsx',/stagesFrom\(missions\)/,/<DayCount weekly/,/hasStory\(week\)/,/storyFrom\(/,/earnedPostcards\(missions\)\.length/,/nav.navigate\('WeekWrapped'\)/,/nav.navigate\('Phrasebook'\)/,/nav.navigate\('GoalStep'/,/<TabHeader title=\{JOURNEY_TITLE\}/);
+  has('journey/journeyView.ts',/screen: 'Postcards'/,/JOURNEY_TITLE = MY_FRENCH_TITLE/);
   lacks('tabs/MyFrenchTab.tsx',/tutorVoice.speak|AudioModule|recordActivity\(/);
   has('myfrench/LevelCard.tsx',/ground="blue"/,/<SceneMark/,/next.stops.length/);
   has('goals/GoalStepScreen.tsx',/ground="blue"/,/tone="white"/,/<Ledger/);
-  has('myfrench/copy.ts',/MY_FRENCH_TITLE = 'Progress'/);
+  // 2026-10-20, B4, B-Journey: the page title is "Your journey".
+  has('myfrench/copy.ts',/MY_FRENCH_TITLE = 'Your journey'/);
 });
 test('revamp B Profile choices stay over Profile and keep a lifetime count without a weekly rail',()=>{
   // P2 (2026-10-19): the learner's sun disc and the lifetime count of practice
