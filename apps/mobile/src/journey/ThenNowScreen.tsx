@@ -21,6 +21,7 @@ import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import type { RootStackParamList } from '../nav/types.ts';
 import { scopeGeneration } from '../storage/scope.ts';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
 import { HIT, colour, frenchText, paper, radius, space, type } from '../theme.ts';
 import type { StoredCompletion } from './journeyView.ts';
 import { LEGEND, LEGEND_LABEL, STATUS, THEN_NOW_FOOTER, THEN_NOW_INTRO, THEN_NOW_TITLE, TRY_IT_AGAIN, thenNowView } from './thenNowView.ts';
@@ -29,6 +30,8 @@ export { THEN_NOW_TITLE };
 
 export function ThenNowScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  // The lock seam, so the badge follows a standing change while the screen is open.
+  const locks = useFeatureAccess();
   const [completions, setCompletions] = useState<readonly StoredCompletion[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -46,7 +49,7 @@ export function ThenNowScreen() {
     }, []),
   );
 
-  const view = completions === null ? null : thenNowView({ progress: missionStates(missionCompletionsFrom(completions), [], Date.now()), completions });
+  const view = completions === null ? null : thenNowView({ progress: missionStates(missionCompletionsFrom(completions), [], Date.now()), completions, access: locks.access });
 
   return (
     <ScrollScreen

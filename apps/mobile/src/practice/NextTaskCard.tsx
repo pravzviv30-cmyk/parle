@@ -33,7 +33,7 @@ import { MissionHero } from '../home/MissionHero.tsx';
 import { LocalPracticeCard } from './LocalPracticeCard.tsx';
 import { DEMO_REPLY_ID } from '../onboarding/tutorLines.ts';
 
-/** One account-bound next action across Home, Speak and an empty Practice. */
+/** One account-bound next action, on Home (2026-10-20, lock seam wiring: direction B moved Speak and Practice off it). */
 export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();

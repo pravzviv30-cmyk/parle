@@ -157,9 +157,11 @@ describe('the tab wires those decisions and nothing else (source probes)', () =>
 
   test('Prepare for something real goes to RealMoment with the prefill, and locks only through the seam', () => {
     assert.match(explore, /nav\.navigate\('RealMoment', realMomentParams\(real\)\)/);
-    assert.match(explore, /featureAccess\('realMoment'\) === 'locked' && <LockBadge \/>/);
-    assert.match(explore, /featureAccess\('conversationPractice'\) === 'locked' \? <LockBadge form="round" \/>/);
-    assert.equal((explore.match(/<LockBadge\b/g) ?? []).length, 2, 'a lock badge drawn outside the seam');
+    // 2026-10-20, lock seam wiring: the badge reads the reactive seam. B-Explore badges only Prepare; the
+    // "further" collections open ExploreCollection, which no lock guards, so they carry no badge.
+    assert.match(explore, /const locks = useFeatureAccess\(\);/);
+    assert.match(explore, /locks\.access\('realMoment'\) === 'locked' && <LockBadge \/>/);
+    assert.equal((explore.match(/<LockBadge\b/g) ?? []).length, 1, 'a lock badge drawn outside the seam');
   });
 
   test('the no-match row is the seed row, still started through useConversationStart', () => {

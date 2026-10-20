@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 20 October 2026 direction B with main 48007621 merged in and the lock seam wired, on
+  branch `claude/direction-b` (held, not on main): **5,709 tests, 0 failing**; core 825,
+  brain 481, tutor agent 626, token server 456, playground 26, mobile 3295. All six
+  typechecks, eight database proofs and 94 shared release/provider checks pass. Floors
+  raised only through `gate:bless`.
 - 20 October 2026 direction B, step B4 (Journey and Then and now), on branch
   `claude/direction-b` (held, not on main): **5,611 tests, 0 failing**; core 804,
   brain 481, tutor agent 622, token server 445, playground 26, mobile 3233. All six

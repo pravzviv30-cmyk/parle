@@ -196,10 +196,11 @@ describe('the stopped sitting, the mix and saved phrases', () => {
     const first = built.state.queue[0]!;
     const answered = answerCurrent(built.state, first.kind === 'translate' ? first.fr : '').state;
     const saved = toSessionRecord({ sittingId: 's.1', startedAt: NOW, origin: 'pack', packId: 'p1', exposed: false, micSuppressed: false, targets: built.targets, state: answered });
-    const resume = pickUp({ saved, packs, deck, bank, now: NOW, access: unlocked })!;
+    const resume = pickUp({ saved, packs, deck, bank, now: NOW })!;
     assert.match(resume.line, /^Title p1, phrase two of three$/);
     assert.deepEqual(resume.route, { screen: 'Drill', params: { practice: 'resume' } });
-    assert.equal(resume.locked, false);
+    // 2026-10-20, lock seam wiring: pick up carries no lock at all; a resumed sitting is free on main's guard.
+    assert.equal('locked' in resume, false);
     assert.equal(pickUp({ saved: null, packs, deck, bank, now: NOW }), null);
   });
 
@@ -233,19 +234,25 @@ describe('the stopped sitting, the mix and saved phrases', () => {
 });
 
 describe('lock badges come only through the seam', () => {
-  test('a locked seam locks pick up, the steps, the revisit, the patterns and the mix; an open one locks nothing', () => {
+  // 2026-10-20, lock seam wiring: pick up is free now, a locked revisit is offered with its badge, and each route-less lock names its feature.
+  test('a locked seam locks the steps, the revisit, the patterns and the mix; an open one locks nothing', () => {
     const LINES = ['Sur place', 'Merci'];
     const p = pack('p1', { lines: LINES });
     const args = { pack: p, packs: [p], deck: LINES.map((fr) => card(fr)), bank: LINES.map(exercise), now: NOW, revisitAllowed: true };
     const shut = conversationCard({ ...args, access: lockedAll });
     assert.equal(shut.stepsLocked, true);
     assert.equal(shut.revisit?.locked, true);
+    assert.equal(shut.revisit?.feature, 'continueArc');
+    const unread = conversationCard({ ...args, revisitAllowed: false, access: unlocked });
+    assert.equal(unread.revisit, null, 'an unknown plan offers a revisit it cannot vouch for');
+    const free = conversationCard({ ...args, revisitAllowed: false, access: lockedAll });
+    assert.equal(free.revisit?.locked, true, 'a free learner is not shown the locked revisit');
     const open = conversationCard({ ...args, access: unlocked });
     assert.equal(open.stepsLocked, false);
     assert.equal(open.revisit?.locked, false);
     const patterns = { 'gender-agreement': { count: 2, lastSeen: new Date(NOW).toISOString(), example: 'x' } };
     assert.equal(comesUpOften({ patterns, packs: [], bank: [], access: lockedAll })[0]!.locked, true);
-    // The default is the real seam, which answers unlocked until D5.
+    // 2026-10-20, lock seam wiring: the default is the real seam, open while no plan is read.
     assert.equal(comesUpOften({ patterns, packs: [], bank: [] })[0]!.locked, false);
   });
 });
@@ -261,5 +268,43 @@ describe('the empty page — B-Empty-Practice', () => {
     assert.match(EMPTY.cafe.cost, /live minutes/);
     assert.doesNotMatch(JSON.stringify(EMPTY), /\bfree\b|offline/i);
     assert.equal(EMPTY.start, 'Start your first conversation');
+  });
+});
+
+// 2026-10-20, lock seam wiring: the default seam against a stubbed D24 standing.
+describe('practice locks against the real standing', () => {
+  const FREE = { plan: 'trial' as const, secondsRemaining: 300, periodEnd: null, lapsed: false, canStart: true, reason: null };
+  const LINES = ['Sur place', 'Merci', 'Au revoir'];
+  const due = LINES.map((fr) => card(fr, { due: NOW - DAY, reps: 2 }));
+  const bank = LINES.map(exercise);
+  const p = pack('p1', { lines: LINES });
+  const topics: PracticeTopic[] = [
+    { id: 'topic:a', title: { fr: 'a', en: 'a' }, discussed: [], phraseKeys: [phraseKeyOf(LINES[0]!)] },
+    { id: 'topic:b', title: { fr: 'b', en: 'b' }, discussed: [], phraseKeys: [phraseKeyOf(LINES[1]!), phraseKeyOf(LINES[2]!)] },
+  ];
+
+  test('a free learner sees the steps, the revisit and the mix locked; each tap opens the Wall', async () => {
+    const { setStanding, clearStanding, lockedRouteFeature } = await import('../purchases/featureLocks.ts');
+    try {
+      setStanding('u1', FREE);
+      const c = conversationCard({ pack: p, packs: [p], deck: due, bank, now: NOW, revisitAllowed: false });
+      assert.equal(c.stepsLocked, true);
+      for (const step of c.steps ?? []) assert.notEqual(lockedRouteFeature(step.route.screen, 'params' in step.route ? step.route.params : undefined), null, `${step.key} is badged but its route is free`);
+      assert.equal(c.revisit?.locked, true, 'a free learner is not offered the locked revisit');
+      assert.equal(c.revisit?.feature, 'continueArc');
+      const mix = mixCard({ deck: due, bank, topics, now: NOW })!;
+      assert.equal(mix.locked, true);
+      assert.equal(mix.feature, 'conversationPractice');
+      assert.equal(lockedRouteFeature(mix.route.screen, 'params' in mix.route ? mix.route.params : undefined), null, 'the mix route is guarded now; the tab gate is redundant');
+    } finally {
+      clearStanding();
+    }
+  });
+
+  test('an unknown plan locks nothing and hides the revisit it cannot vouch for', () => {
+    const c = conversationCard({ pack: p, packs: [p], deck: due, bank, now: NOW, revisitAllowed: false });
+    assert.equal(c.stepsLocked, false);
+    assert.equal(c.revisit, null);
+    assert.equal(mixCard({ deck: due, bank, topics, now: NOW })!.locked, false);
   });
 });

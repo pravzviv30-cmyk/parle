@@ -691,8 +691,12 @@ More shared parts:
   disc with the blue lock alone, named "Included with your trial" to a screen
   reader. It is pure presentation and never decides whether something is
   locked: `access/featureAccess.ts` does, and a surface draws the badge only
-  when that seam says locked. The seam answers unlocked for everyone until D5
-  wires it to entitlement and the paywall, so nothing shows a lock before then.
+  when that seam says locked. The seam reads the D24 billing standing
+  (`featureLockedNow`) and fails open, so a plan nobody could read shows no
+  lock. Inside a control whose label already says "Included with your trial",
+  the badge is hidden from screen readers so the words are heard once. A
+  locked Journey section keeps its heading and badge and shows one teaser line
+  that opens the Wall, never its content.
 - **OptionRow**: a one-tap choice, now a thin name for `Choice` as a button
   row: white with a title and a line under it and the field ring when not
   chosen, the brand blue with white words and a white disc holding the blue

@@ -139,7 +139,8 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
     // 2026-10-20, B4, B-Journey: one primary (the empty journey's start), the
     // rest secondary; the lists are the retry, the week in words and the rows.
     assert.equal(tags(SCREEN, 'PillButton').filter((tag) => !tag.includes('variant="secondary"')).length, 1);
-    assert.equal(tags(SCREEN, 'Ledger').length, 3, 'retry, week in words, and the saved materials with the week story');
+    // 2026-10-20, lock seam wiring: plus the one teaser ledger every locked section shares.
+    assert.equal(tags(SCREEN, 'Ledger').length, 4, 'retry, locked teaser, week in words, and the saved materials with the week story');
     assert.match(SCREEN, /earnedPostcards\(missions\)\.length/);
     assert.ok(SCREEN.includes('(rows.length > 0 || hasWeek) && ('));
     // 2026-10-20, B4, B-Journey: the header's numbers are the shared StatRow of
@@ -154,7 +155,8 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
     // 2026-10-07, come alive Phase 4 (F769): the postcards row became the
     // postcard shelf, whose heading row is the one door to Postcards.
     // 2026-10-20, B4, B-Journey: retry, week in words, week story, saved materials.
-    assert.equal(rows.length, 4, 'retry, week in words, week story and saved materials');
+    // 2026-10-20, lock seam wiring: plus a locked section's teaser row, which opens the Wall.
+    assert.equal(rows.length, 5, 'retry, locked teaser, week in words, week story and saved materials');
     for (const row of rows) { assert.match(row, /onPress=\{/); assert.match(row, /accessibilityLabel=(?:\{|")/); }
     assert.match(FLAT, /key=\{row.id\}/);
   });
@@ -203,7 +205,14 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
       assert.ok(SCREEN.includes(gate), `${gate} is not asked`);
     }
     assert.match(FLAT, /\{locked && <LockBadge \/>\}/);
-    assert.match(FLAT, /\{help\.locked && <LockBadge ground="card" \/>\}/);
+    // 2026-10-20, lock seam wiring: the help card says the lock in its own label when locked, so its badge is said once.
+    assert.match(FLAT, /\{help\.locked && <LockBadge ground="card" said \/>\}/);
+    assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
+    for (const section of ['canDo', 'thenNow', 'used', 'sounds', 'week']) {
+      assert.match(FLAT, new RegExp(`\\{${section}\\.teaser !== null \\? teaser\\(${section}\\.teaser, ${section}\\.feature\\) : `), `a locked ${section} section draws its content instead of the teaser`);
+    }
+    assert.match(FLAT, /onPress=\{help\.teaser !== null \? \(\) => \{ if \(owned\(\)\) locks\.open\(help\.feature\); \} : undefined\}/);
+    assert.match(FLAT, /<LedgerRow title=\{line\} accessibilityLabel=\{line\} onPress=\{\(\) => \{ if \(owned\(\)\) locks\.open\(feature\); \}\} \/>/, 'a teaser does not open the Wall');
     assert.doesNotMatch(SCREEN, /featureAccess\(|capabilitiesFor\(|useContinueArc\(/, 'the tab decides a lock itself');
   });
 

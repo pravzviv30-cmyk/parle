@@ -115,7 +115,8 @@ describe('the Then and now screen', () => {
   test('it reads one store, fenced to the account, and decides nothing itself', () => {
     assert.match(flat, /const scope = scopeGeneration\(\);/);
     assert.match(flat, /if \(!cancelled && scopeGeneration\(\) === scope\) setCompletions\(stored\)/);
-    assert.match(flat, /thenNowView\(\{ progress: missionStates\(missionCompletionsFrom\(completions\), \[\], Date\.now\(\)\), completions \}\)/);
+    // 2026-10-20, lock seam wiring: the view gets the reactive seam's access.
+    assert.match(flat, /thenNowView\(\{ progress: missionStates\(missionCompletionsFrom\(completions\), \[\], Date\.now\(\)\), completions, access: locks\.access \}\)/);
   });
 
   test('Try it again opens the scene preview, back leaves, and the lock badge comes through the view', () => {

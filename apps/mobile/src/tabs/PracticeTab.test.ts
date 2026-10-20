@@ -140,17 +140,20 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     const card = between(RENDER, '{resume !== null && (', '</ColourCard>', 'the pick-up card is drawn only when there is a sitting');
     assert.match(card, /onPress=\{\(\) => go\(resume\.route\)\}/);
     assert.match(card, /\{resume\.line\}/);
-    assert.match(card, /\{resume\.locked && <LockBadge ground="card" \/>\}/, 'the lock is decided somewhere other than the seam');
+    // 2026-10-20, lock seam wiring: a resumed sitting is free on main's route guard, so pick up draws no badge.
+    assert.doesNotMatch(card, /LockBadge|LOCK_BADGE_LABEL/, 'pick up shows a lock its tap never opens');
   });
 
   test('every conversation card opens its fixes, three steps and revisit from the view model', () => {
-    assert.match(FLAT, /const card = conversationCard\(\{ pack, packs: data\.packs, deck: data\.deck, bank: data\.bank, now, revisitAllowed \}\);/);
+    // 2026-10-20, lock seam wiring: the card reads the reactive seam; the revisit's tap opens the Wall when locked.
+    assert.match(FLAT, /const card = conversationCard\(\{ pack, packs: data\.packs, deck: data\.deck, bank: data\.bank, now, revisitAllowed, access: locks\.access \}\);/);
     const card = between(RENDER, '{shown.map((pack) => {', '{data.unavailable.length > 0', 'each conversation is drawn from its card model');
     assert.match(flat(card), /\{card\.fixes !== null && <LedgerRow title=\{card\.fixes\.title\} gloss=\{card\.fixes\.gloss\} onPress=\{\(\) => go\(card\.fixes!\.route\)\} \/>\}/);
     assert.match(flat(card), /\{card\.steps\?\.map\(\(step, i\) => \(/);
     assert.match(flat(card), /onPress=\{\(\) => go\(step\.route\)\}/);
-    assert.match(flat(card), /trailing=\{card\.stepsLocked \? <LockBadge form="round" \/> : undefined\}/);
-    assert.match(flat(card), /onPress=\{\(\) => go\(card\.revisit!\.route\)\}/);
+    assert.match(flat(card), /trailing=\{card\.stepsLocked \? <LockBadge form="round" said \/> : undefined\}/);
+    assert.match(flat(card), /onPress=\{\(\) => tapThrough\(locks\.access, card\.revisit!\.feature, locks\.open, \(\) => go\(card\.revisit!\.route\)\)\}/);
+    assert.match(flat(card), /trailing=\{card\.revisit\.locked \? <LockBadge form="round" said \/> : undefined\}/);
     assert.match(flat(card), /\{card\.kept\.map\(\(fr\) => <Chip key=\{fr\} variant="meta" lang="fr" label=\{fr\} \/>\)\}/, 'kept French is not tagged as French');
     assert.match(flat(card), /revisitedLines\(card\.revisited\)/);
     // Paging through the existing cursor.
@@ -194,7 +197,11 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');
     assert.ok(!SCREEN.includes('capabilitiesFor('), 'the tab asks the plan table itself instead of through the helper');
     assert.match(FLAT, /accessibilityLabel=\{`\$\{card\.revisit\.label\}\. \$\{card\.revisit\.uses\}/, 'the tutor door does not say its cost to a screen reader');
-    assert.ok(!SCREEN.includes('featureAccess'), 'the tab asks the access seam itself; the view model does');
+    // 2026-10-20, lock seam wiring: the tab holds the reactive hook, never the seam's own answer.
+    assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab asks the access seam itself; the view model does');
+    assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
+    assert.match(FLAT, /onPress=\{\(\) => tapThrough\(locks\.access, mix\.feature, locks\.open, \(\) => go\(mix\.route\)\)\}/, 'the locked mix starts a drill instead of opening the Wall');
+    assert.match(FLAT, /\{mix\.locked && <LockBadge ground="card" said \/>\}/);
   });
 
   test('the door that touches the network guards its tap and says so — F154', () => {

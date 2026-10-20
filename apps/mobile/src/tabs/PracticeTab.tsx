@@ -56,6 +56,8 @@ import { useContinueArc } from '../purchases/useContinueArc.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
+import { tapThrough } from '../access/featureAccess.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TUTOR_OFFLINE, lessonStart, tutorGate } from '../tutor/gate.ts';
 import { DAILY_ITEMS } from '../daily/catalogue.ts';
@@ -67,7 +69,9 @@ import * as tutorVoice from '../speech/tutorVoice.ts';
 export function PracticeTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
-  const { adapter } = useAuth();
+  const { user, adapter } = useAuth();
+  // The lock seam: re-renders on a standing change, opens the Wall on a locked tap.
+  const locks = useFeatureAccess(user?.id);
   const { profile } = useProfile();
   // The learner's chosen tutor, whose bundled recordings are the only native
   // audio this page plays. Never another voice filling a gap.
@@ -229,7 +233,7 @@ export function PracticeTab() {
           const chosen = chosenTopic(data.page, topic);
           const shown = packsInTopic(data.page, chosen);
           const resume = pickUp({ saved: data.session, packs: data.packs, deck: data.deck, bank: data.bank, now });
-          const mix = mixCard({ deck: data.deck, bank: data.bank, topics: data.topics, now });
+          const mix = mixCard({ deck: data.deck, bank: data.bank, topics: data.topics, now, access: locks.access });
           const week = thisWeekLine(data.page, now);
           return (
             <Columns>
@@ -243,10 +247,9 @@ export function PracticeTab() {
                 )}
 
                 {resume !== null && (
-                  <ColourCard ground="blue" onPress={() => go(resume.route)} accessibilityLabel={`${PICK_UP_TITLE}, ${resume.line}${resume.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}>
+                  <ColourCard ground="blue" onPress={() => go(resume.route)} accessibilityLabel={`${PICK_UP_TITLE}, ${resume.line}`}>
                     <View style={st.titleRow}>
                       <Text style={[type.label, st.grow, { color: textOn.blue }]}>{PICK_UP_TITLE}</Text>
-                      {resume.locked && <LockBadge ground="card" />}
                     </View>
                     <Text style={[type.body, { color: onColour.blue }]}>{resume.line}</Text>
                   </ColourCard>
@@ -261,7 +264,7 @@ export function PracticeTab() {
                   </View>
                   {library.olderPage && <Label>An older page. Topics apply to this page.</Label>}
                   {shown.map((pack) => {
-                    const card = conversationCard({ pack, packs: data.packs, deck: data.deck, bank: data.bank, now, revisitAllowed });
+                    const card = conversationCard({ pack, packs: data.packs, deck: data.deck, bank: data.bank, now, revisitAllowed, access: locks.access });
                     return (
                       <View key={card.id} style={st.stack}>
                         <Card style={st.stack}>
@@ -286,14 +289,14 @@ export function PracticeTab() {
                             {card.steps?.map((step, i) => (
                               <LedgerRow key={step.key} label={i === 0 ? PRACTISE_CONVERSATION : undefined} title={step.title} gloss={step.gloss}
                                 accessibilityLabel={`${PRACTISE_CONVERSATION}, ${step.title}, ${step.gloss}${card.stepsLocked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
-                                trailing={card.stepsLocked ? <LockBadge form="round" /> : undefined}
+                                trailing={card.stepsLocked ? <LockBadge form="round" said /> : undefined}
                                 onPress={() => go(step.route)} />
                             ))}
                             {card.revisit !== null && (
                               <LedgerRow title={card.revisit.label} gloss={card.revisit.uses}
                                 accessibilityLabel={`${card.revisit.label}. ${card.revisit.uses}${card.revisit.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
-                                trailing={card.revisit.locked ? <LockBadge form="round" /> : undefined}
-                                onPress={() => go(card.revisit!.route)} />
+                                trailing={card.revisit.locked ? <LockBadge form="round" said /> : undefined}
+                                onPress={() => tapThrough(locks.access, card.revisit!.feature, locks.open, () => go(card.revisit!.route))} />
                             )}
                           </Ledger>
                         )}
@@ -310,10 +313,10 @@ export function PracticeTab() {
 
               <View style={st.page}>
                 {mix !== null && (
-                  <ColourCard ground="blue" onPress={() => go(mix.route)} accessibilityLabel={`${MIX_TITLE}, ${mix.line}${mix.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}>
+                  <ColourCard ground="blue" onPress={() => tapThrough(locks.access, mix.feature, locks.open, () => go(mix.route))} accessibilityLabel={`${MIX_TITLE}, ${mix.line}${mix.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}>
                     <View style={st.titleRow}>
                       <Text style={[type.label, st.grow, { color: textOn.blue }]}>{MIX_TITLE}</Text>
-                      {mix.locked && <LockBadge ground="card" />}
+                      {mix.locked && <LockBadge ground="card" said />}
                     </View>
                     <Text style={[type.body, { color: onColour.blue }]}>{mix.line}</Text>
                   </ColourCard>

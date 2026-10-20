@@ -1825,20 +1825,24 @@ export function Chip(props:
  * alone, named the same to a screen reader.
  *
  * Pure presentation. Whether a feature is locked is `access/featureAccess.ts`'s
- * answer, and a surface draws this only when that seam says so. Until D5 wires
- * the seam to entitlement it says unlocked for everyone, so nothing shows.
+ * answer (the D24 standing, open when the plan is unknown), and a surface draws
+ * this only when that seam says so.
+ *
+ * Read once (2026-10-20, lock seam wiring): inside a control whose own label
+ * already ends with `LOCK_BADGE_LABEL`, pass `said` and the badge is hidden
+ * from screen readers, so the words are not heard twice.
  */
 export const LOCK_BADGE_LABEL = 'Included with your trial';
-export function LockBadge({ form = 'pill', ground = 'lavender' }: { form?: 'pill' | 'round'; ground?: 'lavender' | 'card' }) {
+export function LockBadge({ form = 'pill', ground = 'lavender', said = false }: { form?: 'pill' | 'round'; ground?: 'lavender' | 'card'; said?: boolean }) {
   if (form === 'round') {
     return (
-      <View style={b.lockRound} accessible accessibilityRole="image" accessibilityLabel={LOCK_BADGE_LABEL}>
+      <View style={b.lockRound} {...(said ? decorative : { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: LOCK_BADGE_LABEL })}>
         <View {...decorative}><Icon name="lock" size={14} color={colour.blue} /></View>
       </View>
     );
   }
   return (
-    <View style={[b.lockPill, { backgroundColor: ground === 'card' ? paper.card : pastel.lavender }]}>
+    <View style={[b.lockPill, { backgroundColor: ground === 'card' ? paper.card : pastel.lavender }]} {...(said ? decorative : {})}>
       <View {...decorative}><Icon name="lock" size={12} color={colour.blue} /></View>
       <Text style={b.lockWords}>{LOCK_BADGE_LABEL}</Text>
     </View>
@@ -2114,8 +2118,9 @@ const b = StyleSheet.create({
     borderRadius: radius.pill,
     flexShrink: 0,
   },
-  lockPill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: space(1.25), minHeight: 26, paddingHorizontal: space(2.5), borderRadius: radius.pill },
-  lockWords: { ...type.badge, color: colour.blue },
+  // 2026-10-20, lock seam wiring: the words wrap inside the pill at 320pt and large text instead of running past the row.
+  lockPill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%', gap: space(1.25), minHeight: 26, paddingHorizontal: space(2.5), borderRadius: radius.pill },
+  lockWords: { ...type.badge, color: colour.blue, flexShrink: 1 },
   lockRound: { width: 28, height: 28, borderRadius: 14, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
   heroRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2.5) },
   sheetOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' },

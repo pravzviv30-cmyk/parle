@@ -160,6 +160,8 @@ export interface LessHelp {
   lastRung: Rung;
   startRung: Rung;
   locked: boolean;
+  /** What a locked tap opens the Wall for: the same-scene replay is `continueArc`. */
+  feature: LockedFeature;
   params: { missionId: string };
 }
 
@@ -188,6 +190,7 @@ export function lessHelp(stored: readonly { id: string; at: number; rung: number
       lastRung: replay.lastRung,
       startRung: replay.startRung,
       locked: access('continueArc') === 'locked',
+      feature: 'continueArc',
       params: { missionId: mission.id },
     };
   }

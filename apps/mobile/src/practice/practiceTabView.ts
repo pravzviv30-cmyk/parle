@@ -130,7 +130,6 @@ export interface PickUp {
   /** "Le premier café, phrase two of five", or the title alone. */
   line: string;
   route: PracticeRoute;
-  locked: boolean;
 }
 
 /**
@@ -143,9 +142,8 @@ export function pickUp(input: {
   deck: readonly ReviewCard[];
   bank: readonly DrillExercise[];
   now: number;
-  access?: Access;
 }): PickUp | null {
-  const { saved, packs, deck, bank, now, access = featureAccess } = input;
+  const { saved, packs, deck, bank, now } = input;
   const rec = recommendation({ resumable: resumableOf(saved, packs, bank), deck, bank, packs, now });
   if (rec.kind !== 'resume' || saved === null) return null;
   const restored = restorePracticeSession(withoutDeletedSources(saved, packs, bank).record, bank, deck, now);
@@ -154,8 +152,10 @@ export function pickUp(input: {
   const place = progress === null ? null : progress.label.charAt(0).toLocaleLowerCase('en') + progress.label.slice(1);
   return {
     line: place === null ? title : `${title}, ${place}`,
+    // 2026-10-20, lock seam wiring: no lock. A resumed sitting is free on main's
+    // guard (`lockedRouteFeature`), and a learner is never stranded mid-sitting,
+    // so a badge here would promise a wall the tap never opens.
     route: { screen: 'Drill', params: practiceRouteParams({ origin: 'resume', packId: null, exposed: false }) },
-    locked: isLocked(access, 'conversationPractice'),
   };
 }
 
@@ -295,7 +295,8 @@ export interface ConversationCard {
   fixes: { title: string; gloss: string; route: PracticeRoute } | null;
   steps: readonly Step[] | null;
   stepsLocked: boolean;
-  revisit: { label: string; uses: string; route: PracticeRoute; locked: boolean } | null;
+  /** Shown when the plan opens it, or locked with the badge when it does not (D24). */
+  revisit: { label: string; uses: string; route: PracticeRoute; locked: boolean; feature: LockedFeature } | null;
   /** On a revisit: the conversation it came from, and the learner's own French this time. */
   revisited: { from: string; win: string | null } | null;
 }
@@ -314,7 +315,10 @@ export function conversationCard(input: {
   const kept = pack.keyPhrases.filter((phrase) => inDeck.has(phraseKeyOf(phrase.fr))).map((phrase) => phrase.fr);
   const ready = pack.state === 'ready';
   const canPractise = ready && packSelection({ packId: pack.id, packs, deck, bank, now }) !== null;
-  const door = practiceDoors({ deck, packs, now, revisitAllowed, revisitPackId: pack.id }).revisit;
+  // 2026-10-20, lock seam wiring: a locked revisit is still offered, with its
+  // badge, so the tap can open the Wall; an unknown plan hides it as before.
+  const revisitLocked = isLocked(access, 'continueArc');
+  const door = practiceDoors({ deck, packs, now, revisitAllowed: revisitAllowed || revisitLocked, revisitPackId: pack.id }).revisit;
   const revision = revisionEvidence(pack, packs, []);
   return {
     id: pack.id,
@@ -332,7 +336,7 @@ export function conversationCard(input: {
         ]
       : null,
     stepsLocked: isLocked(access, 'conversationPractice'),
-    revisit: door === null ? null : { label: TALK_AGAIN, uses: door.uses, route: { screen: 'Convo', params: { continuationPackId: door.packId } }, locked: isLocked(access, 'continueArc') },
+    revisit: door === null ? null : { label: TALK_AGAIN, uses: door.uses, route: { screen: 'Convo', params: { continuationPackId: door.packId } }, locked: revisitLocked, feature: 'continueArc' },
     revisited: revision === null ? null : { from: revision.source.title.en, win: revision.after.wins[0] ?? null },
   };
 }
@@ -355,7 +359,7 @@ export function mixCard(input: {
   topics: readonly PracticeTopic[];
   now: number;
   access?: Access;
-}): { line: string; route: PracticeRoute; locked: boolean } | null {
+}): { line: string; route: PracticeRoute; locked: boolean; feature: LockedFeature } | null {
   const { deck, bank, topics, now, access = featureAccess } = input;
   const banked = new Set(bank.map((exercise) => exercise.phraseKey));
   const drillable = deck.filter((card) => banked.has(card.id));
@@ -368,6 +372,9 @@ export function mixCard(input: {
     line: `${due} ${due === 1 ? 'phrase' : 'phrases'} due from different talks`,
     route: { screen: 'Drill', params: { mix: true } },
     locked: isLocked(access, 'conversationPractice'),
+    // The mix is a drill of conversation phrases, but its route is not one of
+    // App.tsx's locked routes, so the tab gates its tap through the seam.
+    feature: 'conversationPractice',
   };
 }
 

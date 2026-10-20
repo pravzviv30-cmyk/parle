@@ -19,7 +19,7 @@ import { useConversationStart } from '../main/useConversationStart.ts';
 import { EXPLORE_TOPICS, exploreMissions, explorePhrases, exploreScenarios, exploreTopicSeed, isExploreTopic, topicOf, type ExploreTopic } from '../main/exploreCatalogue.ts';
 import { collectionCount, collectionCountLine, exploreCollection, PRACTICAL_COLLECTIONS, searchCollections, SKILL_COLLECTIONS, type ExploreCollection } from '../main/exploreCollections.ts';
 import { collectionAccessNote, EXPLORE_FILTERS, phraseFacts, phraseMatches, realMomentParams, sectionShown, seedRowTitle, situationMeta, situationRoute, situationsFor, toggleFilter, type ExploreFilter } from '../main/exploreView.ts';
-import { featureAccess } from '../access/featureAccess.ts';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
 import { useExploreAccess } from '../purchases/useExploreAccess.ts';
 import { dailyTutorVoice, tutorAudioFor } from '../daily/tutorAudio.ts';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
@@ -40,7 +40,9 @@ const TILE_GROUND = { rose: 'pastel.peach', plum: 'pastel.lavender', teal: 'past
 export function ExploreTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile(); const suggestions = learningSuggestions(practicePreferencesOf(profile)); const conversation = useConversationStart();
-  const access = useExploreAccess(); const voice = dailyTutorVoice(profile.tutorVoice); const tutorName = tutorNameOf(profile);
+  const access = useExploreAccess();
+  // The lock seam: re-renders on a standing change. Prepare's own door is App.tsx's locked RealMoment route.
+  const locks = useFeatureAccess(); const voice = dailyTutorVoice(profile.tutorVoice); const tutorName = tutorNameOf(profile);
   const route = useRoute(); const routeTopic = (route.params as { topic?: unknown } | undefined)?.topic;
   const [topic, setTopic] = useState<ExploreTopic | null>(isExploreTopic(routeTopic) ? routeTopic : null); const [query, setQuery] = useState(''); const [limit, setLimit] = useState(12);
   const [filters, setFilters] = useState<ReadonlySet<ExploreFilter>>(new Set()); const [real, setReal] = useState('');
@@ -93,7 +95,7 @@ export function ExploreTab() {
       <Columns>
         <View style={st.column}>
           {shown('prepare') && <Card style={st.stack}>
-            <View style={st.titleRow}><Text accessibilityRole="header" style={[type.heading, st.grow, { color: paper.ink }]}>Prepare for something real</Text>{featureAccess('realMoment') === 'locked' && <LockBadge />}</View>
+            <View style={st.titleRow}><Text accessibilityRole="header" style={[type.heading, st.grow, { color: paper.ink }]}>Prepare for something real</Text>{locks.access('realMoment') === 'locked' && <LockBadge />}</View>
             <Text style={[type.small, { color: paper.inkSoft }]}>{`Tell ${tutorName} what’s coming up`}</Text>
             <Field label="What’s coming up?" value={real} onChangeText={setReal} placeholder="Dinner with my partner’s parents in Lyon" autoCapitalize="sentences" returnKeyType="done" maxLength={MAX_SEED_TOPIC_CHARS} />
             <PillButton label="Build my practice" onPress={() => nav.navigate('RealMoment', realMomentParams(real))} />
@@ -144,7 +146,7 @@ export function ExploreTab() {
           {shown('further') && <View style={st.stack}>
             <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>Take the conversation further</Text>
             <Ledger>{[...PRACTICAL_COLLECTIONS].sort((a, b) => suggestions.fluent ? Number(b.id === 'tell-it-your-way') - Number(a.id === 'tell-it-your-way') : 0).map(collection => (
-              <LedgerRow key={collection.id} title={collection.title} gloss={collection.outcome} note={furtherNote(collection)} trailing={featureAccess('conversationPractice') === 'locked' ? <LockBadge form="round" /> : undefined} onPress={() => openCollection(collection.id)} />
+              <LedgerRow key={collection.id} title={collection.title} gloss={collection.outcome} note={furtherNote(collection)} onPress={() => openCollection(collection.id)} />
             ))}</Ledger>
           </View>}
 

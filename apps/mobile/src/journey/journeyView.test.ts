@@ -297,7 +297,7 @@ describe('collections, the empty journey and the lock seam', () => {
     assert.equal(soundsView({ checks, now: NOW, hasJourney: false, access: spy })!.locked, true);
     assert.equal(weekView(reflection, spy)!.locked, true);
     assert.deepEqual(asked, ['fullJourney', 'thenAndNow', 'fullJourney', 'fullJourney', 'sounds', 'fullJourney']);
-    // The seam answers unlocked for everyone until D5.
+    // 2026-10-20, lock seam wiring: with no plan read the real seam fails open.
     assert.equal(canDoView({ progress: progressOf(stored), completions: stored, now: NOW }).locked, false);
     assert.equal(thenNowCard(stored)!.locked, false);
     assert.equal(soundsView({ checks, now: NOW, hasJourney: false })!.locked, false);

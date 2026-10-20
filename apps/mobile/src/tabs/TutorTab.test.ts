@@ -126,10 +126,13 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
   });
 
   test('the less-help card stands only for a real replay, opens through the probe, and locks only through the seam', () => {
-    assert.match(FLAT, /const replay = lessHelp\(completions\);/);
+    // 2026-10-20, lock seam wiring: the seam is the reactive hook's, a locked tap opens the Wall, and the badge is said once, in the card's label.
+    assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
+    assert.match(FLAT, /const replay = lessHelp\(completions, locks\.access\);/);
     assert.match(RENDER_FLAT, /\{replay !== null && \(/);
-    assert.match(RENDER_FLAT, /onPress=\{\(\) => open\(textMode, replay\.params\)\}/);
-    assert.match(RENDER_FLAT, /\{replay\.locked && <LockBadge \/>\}/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => tapThrough\(locks\.access, replay\.feature, locks\.open, \(\) => open\(textMode, replay\.params\)\)\}/);
+    assert.match(RENDER_FLAT, /accessibilityLabel=\{`\$\{LESS_HELP_TITLE\}, \$\{replay\.title\}, \$\{replay\.line\}\$\{replay\.locked \? `, \$\{LOCK_BADGE_LABEL\}` : ''\}`\}/);
+    assert.match(RENDER_FLAT, /\{replay\.locked && <LockBadge said \/>\}/);
     assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab decides a lock itself instead of reading the view model');
   });
 
@@ -143,9 +146,10 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
   });
 
   test('three tiles, the conversations row and the minutes footer go where they say', () => {
-    assert.match(FLAT, /const tiles = speakTiles\(tutorName\);/);
+    // 2026-10-20, lock seam wiring: tiles read the reactive seam; their routes are App.tsx's locked routes, so the tap needs no gate.
+    assert.match(FLAT, /const tiles = speakTiles\(tutorName, locks\.access\);/);
     assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(tile\.route\.screen\)\}/);
-    assert.match(RENDER_FLAT, /\{tile\.locked && <LockBadge form="round" \/>\}/);
+    assert.match(RENDER_FLAT, /\{tile\.locked && <LockBadge form="round" said \/>\}/);
     assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(REVISIT\.route\.screen\)\}/);
     assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(SEE_MINUTES\.route\.screen\)\}/);
   });

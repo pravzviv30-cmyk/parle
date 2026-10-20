@@ -31,6 +31,8 @@ import { ownedReadStatus } from './ownedRead.ts';
 import { Card, Chip, Choice, ColourCard, IconAction, Label, Ledger, LedgerRow, LOCK_BADGE_LABEL, LockBadge, OutlineButton, PillButton, Press, SceneMark, TutorCard } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
+import { tapThrough } from '../access/featureAccess.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { planStatusFor, type PlanStatusView } from '../purchases/planStatus.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -105,6 +107,8 @@ export function TutorTab() {
   // null reads as ready, because the server refuses a start it cannot afford.
   const [canStart, setCanStart] = useState<boolean | null>(null);
   const { user } = useAuth();
+  // The lock seam: re-renders on a standing change, opens the Wall on a locked tap.
+  const locks = useFeatureAccess(user?.id);
 
   // The voice sample: one player, the bundled clip for the chosen voice. The
   // same control stops it, a clip that ends lets go of "Stop", and leaving the
@@ -229,9 +233,9 @@ export function TutorTab() {
   const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc);
   const rec = recommended(next);
   const scenes = starterScenes(progress);
-  const replay = lessHelp(completions);
+  const replay = lessHelp(completions, locks.access);
   const talk = talkChips(learningSuggestions(practicePreferencesOf(profile)));
-  const tiles = speakTiles(tutorName);
+  const tiles = speakTiles(tutorName, locks.access);
   const currentScope = scopeGeneration();
   const renderHistoryStatus = ownedReadStatus(historyStatus, historyReadOwner, historyReadyOwner, currentScope);
 
@@ -307,11 +311,11 @@ export function TutorTab() {
         </View>
 
         {replay !== null && (
-          <Press haptic="light" disabled={checking} onPress={() => open(textMode, replay.params)} accessibilityRole="button" accessibilityLabel={`${LESS_HELP_TITLE}, ${replay.title}, ${replay.line}${replay.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}>
+          <Press haptic="light" disabled={checking} onPress={() => tapThrough(locks.access, replay.feature, locks.open, () => open(textMode, replay.params))} accessibilityRole="button" accessibilityLabel={`${LESS_HELP_TITLE}, ${replay.title}, ${replay.line}${replay.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}>
             <Card style={st.stack}>
               <View style={st.titleRow}>
                 <Text style={[type.label, st.grow, { color: colour.blue }]}>{LESS_HELP_TITLE}</Text>
-                {replay.locked && <LockBadge />}
+                {replay.locked && <LockBadge said />}
               </View>
               <Text {...frenchText} style={[type.french, { color: paper.ink }]}>{replay.french}</Text>
               <Text style={[type.small, { color: paper.inkSoft }]}>{replay.line}</Text>
@@ -343,7 +347,7 @@ export function TutorTab() {
             <View key={tile.key} style={st.grow}>
               <ColourCard ground={tile.ground} onPress={() => nav.navigate(tile.route.screen)} accessibilityLabel={tile.locked ? `${tile.title}, ${LOCK_BADGE_LABEL}` : tile.title} style={st.tile}>
                 <Text style={[type.label, { color: paper.ink }]}>{tile.title}</Text>
-                {tile.locked && <LockBadge form="round" />}
+                {tile.locked && <LockBadge form="round" said />}
               </ColourCard>
             </View>
           ))}

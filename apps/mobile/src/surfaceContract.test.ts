@@ -2013,7 +2013,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // 2026-10-20, B4, B-Journey: the failed-read retry, the week in words,
       // Your week in French and the tiled rows (phrases, sounds, conversations,
       // goals, saved scenes); still 4 tags.
-      'tabs/MyFrenchTab.tsx': 4,
+      // 2026-10-20, lock seam wiring: plus a locked section's teaser row, 5.
+      'tabs/MyFrenchTab.tsx': 5,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
     };

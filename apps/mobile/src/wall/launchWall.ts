@@ -34,7 +34,7 @@ import type { BillingStatus } from '../purchases/billingStatus.ts';
 export const LAUNCH_WALL_AWAY_MS = 30 * 60 * 1000;
 
 /** The tabs inside 'Tabs'. The wall opens over one of these and nothing else. */
-export const TAB_ROOTS: readonly string[] = ['Home', 'Tutor', 'Practice', 'MyFrench'];
+export const TAB_ROOTS: readonly string[] = ['Home', 'Explore', 'Tutor', 'Practice', 'MyFrench'];
 
 export type WallDoor = 'launch' | 'path-complete';
 

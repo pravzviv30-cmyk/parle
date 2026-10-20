@@ -26,6 +26,8 @@ import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 import { useAuth } from '../auth/useAuth.tsx';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
+import type { LockedFeature } from '../access/featureAccess.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
 import { myFrenchFrom, type MyFrench } from '../myfrench/model.ts';
@@ -98,6 +100,8 @@ export function MyFrenchTab() {
   useFocusEffect(useCallback(() => () => setBadges(false), []));
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
+  // The lock seam: re-renders on a standing change, opens the Wall on a locked teaser.
+  const locks = useFeatureAccess(user?.id);
   const { recheck } = useLive();
   const { profile } = useProfile();
   const game = useGame();
@@ -221,12 +225,12 @@ export function MyFrenchTab() {
   const stages = stagesFrom(missions);
   const level = levelHeader(xpLevel);
   const stats = headerStats({ daysInARow: run === null ? null : run.current, minutes, phrases: kept.phrases });
-  const canDo = canDoView({ progress: missions, completions, now });
-  const thenNow = thenNowCard(completions);
-  const used = usedView({ deck, tutorName: tutorNameOf(profile), now });
-  const help = helpView({ completions, story, now });
-  const sounds = soundsView({ checks, now, hasJourney: journey !== null });
-  const week = weekView(reflectionFrom({ story, recent: conversations, checks, progress: missions, now }));
+  const canDo = canDoView({ progress: missions, completions, now, access: locks.access });
+  const thenNow = thenNowCard(completions, locks.access);
+  const used = usedView({ deck, tutorName: tutorNameOf(profile), now, access: locks.access });
+  const help = helpView({ completions, story, now, access: locks.access });
+  const sounds = soundsView({ checks, now, hasJourney: journey !== null, access: locks.access });
+  const week = weekView(reflectionFrom({ story, recent: conversations, checks, progress: missions, now }), locks.access);
   const tiles = collectionTiles({ postcards: earnedPostcards(missions).length, badges: game.view?.badges.length ?? 0 });
   const start = emptyJourney(missions);
 
@@ -259,6 +263,13 @@ export function MyFrenchTab() {
       <Text accessibilityRole="header" style={[type.heading, st.grow, { color: paper.ink }]}>{title}</Text>
       {locked && <LockBadge />}
     </View>
+  );
+
+  /** A locked section's one line (B-Journey): the heading keeps its badge, and this opens the Wall. */
+  const teaser = (line: string, feature: LockedFeature) => (
+    <Ledger>
+      <LedgerRow title={line} accessibilityLabel={line} onPress={() => { if (owned()) locks.open(feature); }} />
+    </Ledger>
   );
 
   const words = (segments: readonly Segment[], color: string) => (
@@ -351,10 +362,10 @@ export function MyFrenchTab() {
                 </Card>
               </View>
 
-              {canDo.rows.length > 0 && (
+              {(canDo.rows.length > 0 || canDo.teaser !== null) && (
                 <View style={st.stack}>
                   {sectionTitle(CAN_DO_HEADING, canDo.locked)}
-                  <Card style={st.stack}>
+                  {canDo.teaser !== null ? teaser(canDo.teaser, canDo.feature) : <Card style={st.stack}>
                     {canDo.rows.map((row) => (
                       <View key={row.missionId} style={st.canDo} accessible accessibilityLabel={row.accessibilityLabel}>
                         <View {...decorative} style={[st.mark, row.mark === 'earned' ? { backgroundColor: colour.mint } : row.mark === 'helped' ? { borderWidth: 3, borderColor: colour.sun } : { borderWidth: 3, borderColor: colour.ring }]}>
@@ -366,16 +377,17 @@ export function MyFrenchTab() {
                         </View>
                       </View>
                     ))}
-                  </Card>
+                  </Card>}
                 </View>
               )}
 
               {thenNow !== null && (
                 <View style={st.stack}>
                   {sectionTitle(THEN_NOW_HEADING, thenNow.locked)}
+                  {thenNow.teaser !== null ? teaser(thenNow.teaser, thenNow.feature) : <>
                   <Text style={[type.small, { color: paper.inkSoft }]}>{THEN_NOW_SUBTITLE}</Text>
                   <ColourCard ground="pastel.lavender" onPress={() => go(thenNow.route)}
-                    accessibilityLabel={`${THEN_NOW_HEADING}, ${thenNow.scene}. ${thenNow.first.label}, ${thenNow.first.help}.${thenNow.best === null ? '' : ` ${thenNow.best.label}, ${thenNow.best.help}.`}${thenNow.locked ? ` ${LOCK_BADGE_LABEL}` : ''}`}>
+                    accessibilityLabel={`${THEN_NOW_HEADING}, ${thenNow.scene}. ${thenNow.first.label}, ${thenNow.first.help}.${thenNow.best === null ? '' : ` ${thenNow.best.label}, ${thenNow.best.help}.`}`}>
                     <Text {...frenchText} style={[type.bodyStrong, { color: paper.ink }]}>{thenNow.scene}</Text>
                     <View style={st.cells}>
                       <View style={[st.cell, { backgroundColor: paper.card }]}>
@@ -391,12 +403,14 @@ export function MyFrenchTab() {
                     </View>
                   </ColourCard>
                   <IconAction layout="inline" icon="forward" label={SEE_ALL} accessibilityLabel={`${SEE_ALL}, ${THEN_NOW_HEADING}`} onPress={() => go(thenNow.route)} />
+                  </>}
                 </View>
               )}
 
               {used !== null && (
                 <View style={st.stack}>
                   {sectionTitle(USED_HEADING, used.locked)}
+                  {used.teaser !== null ? teaser(used.teaser, used.feature) : <>
                   <Text style={[type.small, { color: paper.inkSoft }]}>{used.subtitle}</Text>
                   <Card style={st.stack}>
                     <View style={st.chips}>
@@ -404,16 +418,19 @@ export function MyFrenchTab() {
                     </View>
                     {used.transferLine !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{used.transferLine}</Text>}
                   </Card>
+                  </>}
                 </View>
               )}
             </View>
 
             <View style={st.page}>
               {help !== null && (
-                <ColourCard ground="mint">
+                <ColourCard ground="mint"
+                  onPress={help.teaser !== null ? () => { if (owned()) locks.open(help.feature); } : undefined}
+                  accessibilityLabel={help.teaser !== null ? `${HELP_HEADING}, ${LOCK_BADGE_LABEL}. ${help.line}` : undefined}>
                   <View style={st.titleRow}>
                     <Text accessibilityRole="header" style={[type.label, st.grow, { color: textOn.mint }]}>{HELP_HEADING}</Text>
-                    {help.locked && <LockBadge ground="card" />}
+                    {help.locked && <LockBadge ground="card" said />}
                   </View>
                   <Text style={[type.bodyStrong, { color: textOn.mint }]}>{help.line}</Text>
                 </ColourCard>
@@ -422,7 +439,7 @@ export function MyFrenchTab() {
               {sounds !== null && (
                 <View style={st.stack}>
                   {sectionTitle(SOUNDS_HEADING, sounds.locked)}
-                  <Card style={st.stack}>
+                  {sounds.teaser !== null ? teaser(sounds.teaser, sounds.feature) : <Card style={st.stack}>
                     {sounds.rows.map((row) => (
                       <View key={row.key} style={st.canDo}>
                         {row.ipa !== null && <View style={st.sound} {...decorative}><Text style={[type.label, { color: paper.ink }]}>{row.ipa}</Text></View>}
@@ -433,19 +450,19 @@ export function MyFrenchTab() {
                       </View>
                     ))}
                     <PillButton variant="secondary" compact label={PRACTISE} accessibilityLabel={`${PRACTISE} your sounds`} onPress={() => go(sounds.practise)} />
-                  </Card>
+                  </Card>}
                 </View>
               )}
 
               {week !== null && (
                 <View style={st.stack}>
                   {sectionTitle(WEEK_HEADING, week.locked)}
-                  <Ledger>
+                  {week.teaser !== null ? teaser(week.teaser, week.feature) : <Ledger>
                     {week.rows.map((row) => (
                       <LedgerRow key={row.key} label={row.label} title={row.line} accessibilityLabel={`${row.label}. ${row.line}`}
                         onPress={row.route === null ? () => nav.navigate('WeekWrapped') : () => go(row.route!)} />
                     ))}
-                  </Ledger>
+                  </Ledger>}
                 </View>
               )}
 

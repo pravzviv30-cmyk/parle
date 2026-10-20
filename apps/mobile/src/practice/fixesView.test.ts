@@ -128,8 +128,12 @@ describe('the rest of the screen', () => {
     assert.equal(fixesLocked((_f: LockedFeature) => 'locked'), true);
     assert.equal(fixesLocked(), false);
     const screen = readFileSync(fileURLToPath(new URL('./FixesScreen.tsx', import.meta.url)), 'utf8');
-    for (const asked of ['capabilitiesFor(', 'useContinueArc(', 'featureAccess(']) assert.ok(!screen.includes(asked), `Your fixes calls ${asked}`);
-    assert.match(screen, /\{locked && <LockBadge \/>\}/);
+    // 2026-10-20, lock seam wiring: the screen holds the reactive hook and hands its access to the view;
+    // the badge sits under the title, above the conversation line, as B-Fixes draws it.
+    for (const asked of ['capabilitiesFor(', 'useContinueArc(']) assert.ok(!screen.includes(asked), `Your fixes calls ${asked}`);
+    assert.doesNotMatch(screen, /(?<!use)featureAccess\(/, 'Your fixes asks the seam itself');
+    assert.match(screen, /const locked = fixesLocked\(locks\.access\);/);
+    assert.match(screen, /\{locked && <LockBadge \/>\}\s*<Text[^>]*>\{fixesSubtitle\(pack, now\)\}/);
     assert.match(screen, /\{FIX_COPY\.unknownTitle\}/, 'an unknown conversation has no calm fallback');
     assert.match(screen, /<OutlineButton label=\{FIX_COPY\.back\} onPress=\{back\} \/>/, 'the fallback has no way back');
   });

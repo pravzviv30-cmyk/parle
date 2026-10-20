@@ -151,7 +151,7 @@ describe('same scene, a bit less help', () => {
 
   test('the lock comes only from the seam', () => {
     const stored = [{ id: FIRST_MISSION, at: NOW - 1000, rung: 1 }];
-    assert.equal(lessHelp(stored)!.locked, false, 'something shows as locked before gating exists');
+    assert.equal(lessHelp(stored)!.locked, false, 'an unknown plan shows a lock (2026-10-20, lock seam wiring: the seam fails open)');
     assert.equal(lessHelp(stored, unlocked)!.locked, false);
     assert.equal(lessHelp(stored, locked)!.locked, true);
   });
@@ -196,7 +196,7 @@ describe('the tutor, the tiles and the conversations row', () => {
   });
 
   test('tile locks come only from the seam, and only for sounds and memory', () => {
-    assert.deepEqual(speakTiles('A').map((t) => t.locked), [false, false, false], 'something shows as locked before gating exists');
+    assert.deepEqual(speakTiles('A').map((t) => t.locked), [false, false, false], 'an unknown plan shows a lock (2026-10-20, lock seam wiring: the seam fails open)');
     assert.deepEqual(speakTiles('A', locked).map((t) => t.locked), [true, true, false]);
     const asked: string[] = [];
     speakTiles('A', (feature) => { asked.push(feature); return 'unlocked'; });

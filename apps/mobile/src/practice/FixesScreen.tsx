@@ -22,6 +22,7 @@ import { frenchText, paper, radius, space, type } from '../theme.ts';
 import type { RootStackParamList } from '../nav/types.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { useLibraryData } from './useLibraryData.ts';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
 import type { PracticeRoute } from './practiceTabView.ts';
 import {
   FIXES_TITLE,
@@ -41,6 +42,8 @@ import {
 export { FIXES_TITLE };
 
 export function FixesScreen() {
+  // The lock seam, so the badge follows a standing change while the screen is open.
+  const locks = useFeatureAccess();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void; goBack: () => void; canGoBack: () => boolean }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Fixes'>>();
   const packId = typeof route.params?.packId === 'string' ? route.params.packId : '';
@@ -110,14 +113,14 @@ export function FixesScreen() {
   const rows = fixRows(fixes, { active, typed });
   const all = practiseAll(fixes, scope, pack.id);
   const phrases = phraseRows(pack, data.deck);
-  const locked = fixesLocked();
+  const locked = fixesLocked(locks.access);
 
   return (
     <ScrollScreen header={header}>
       <View style={st.page}>
         <View style={st.small}>
-          <Text style={[type.body, { color: paper.inkSoft }]}>{fixesSubtitle(pack, now)}</Text>
           {locked && <LockBadge />}
+          <Text style={[type.body, { color: paper.inkSoft }]}>{fixesSubtitle(pack, now)}</Text>
         </View>
 
         <TabBar tabs={SCOPES} active={scope} accessibilityLabel="Which fixes" onChange={(key) => { setScope(key); setActive(null); setTyping(null); setDraft(''); }} />

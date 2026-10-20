@@ -54,6 +54,25 @@ import { HELP_WORDS } from '../tutor/speakTabView.ts';
 export type Access = (feature: LockedFeature) => FeatureAccess;
 const isLocked = (access: Access, feature: LockedFeature): boolean => access(feature) === 'locked';
 
+/**
+ * What a locked section says instead of its content (2026-10-20, lock seam
+ * wiring). B-Journey draws each section's heading with the badge; the founder
+ * rule keeps the summary (stage, streak, phrases kept) free, so a free learner
+ * reads the heading, the badge and one line of what the trial shows, and a tap
+ * on that line opens the Wall. The content itself is never in a locked view.
+ */
+export const JOURNEY_TEASERS = {
+  canDo: 'See which abilities you’ve earned, and what each one needs',
+  thenNow: 'See your first try next to your best',
+  used: 'See the phrases you’ve used in conversation',
+  help: 'See how much help you needed this week',
+  sounds: 'See which sounds your checks named',
+  week: 'See what went well, and what to try next',
+} as const;
+
+/** The teaser a section shows, or null when it is open. */
+const teaserFor = (locked: boolean, section: keyof typeof JOURNEY_TEASERS): string | null => (locked ? JOURNEY_TEASERS[section] : null);
+
 /** Every door on the page, as a route the tab hands to `navigate`. */
 export type JourneyRoute =
   | { screen: 'ThenNow' }
@@ -207,8 +226,12 @@ export interface CanDoRow {
 }
 
 export interface CanDoView {
+  /** Empty when locked: the teaser stands in. */
   rows: readonly CanDoRow[];
   locked: boolean;
+  /** The line a locked section shows, null when open or when there is nothing to tease. */
+  teaser: string | null;
+  feature: LockedFeature;
 }
 
 /** The missions a stage section lists: this stage's, plus any other already walked. */
@@ -260,7 +283,9 @@ export function canDoView(input: { progress: readonly MissionProgress[]; complet
     }
     return { missionId: mission.id, title: mission.canDoEn, mark, line, accessibilityLabel: `${mission.canDoEn}. ${segmentsText(line)}` };
   });
-  return { rows, locked: isLocked(access, 'fullJourney') };
+  const locked = isLocked(access, 'fullJourney');
+  if (locked) return { rows: [], locked, teaser: rows.length > 0 ? teaserFor(locked, 'canDo') : null, feature: 'fullJourney' };
+  return { rows, locked, teaser: null, feature: 'fullJourney' };
 }
 
 // ───────────────────────────────────────────────────────────── then and now
@@ -316,6 +341,9 @@ export interface ThenNowCard {
   first: { label: string; help: string };
   best: { label: string; help: string } | null;
   locked: boolean;
+  /** When set, the tab draws this line instead of the first-and-best card. */
+  teaser: string | null;
+  feature: LockedFeature;
   route: JourneyRoute;
 }
 
@@ -329,12 +357,15 @@ export function thenNowCard(completions: readonly StoredCompletion[], access: Ac
   const tries = triesOf(completions, mission.id);
   const first = tries[0]!;
   const best = tries.length > 1 ? bestOf(tries)! : null;
+  const locked = isLocked(access, 'thenAndNow');
   return {
     missionId: mission.id,
     scene: mission.title,
     first: { label: firstLabel(tries), help: first.help },
     best: best === null ? null : { label: `Best, ${shortDate(best.at)}`, help: best.help },
-    locked: isLocked(access, 'thenAndNow'),
+    locked,
+    teaser: teaserFor(locked, 'thenNow'),
+    feature: 'thenAndNow',
     route: { screen: 'ThenNow' },
   };
 }
@@ -350,6 +381,8 @@ export interface UsedView {
   /** "In practice, you also used 2 of these in a new situation", or null. */
   transferLine: string | null;
   locked: boolean;
+  teaser: string | null;
+  feature: LockedFeature;
 }
 
 /**
@@ -365,11 +398,14 @@ export function usedView(input: { deck: readonly ReviewCard[]; tutorName: string
   // above and counted only over the phrases shown, so "these" is true.
   const shown = new Set(phrases);
   const moved = input.deck.filter((card) => isRetained(card) && shown.has(card.front) && evidenceOf(card).transfers >= 1).length;
+  const locked = isLocked(input.access ?? featureAccess, 'fullJourney');
   return {
     subtitle: `Phrases you’ve said to ${input.tutorName}`,
-    phrases,
-    transferLine: moved === 0 ? null : `In practice, you also used ${moved} of these in a new situation`,
-    locked: isLocked(input.access ?? featureAccess, 'fullJourney'),
+    phrases: locked ? [] : phrases,
+    transferLine: locked || moved === 0 ? null : `In practice, you also used ${moved} of these in a new situation`,
+    locked,
+    teaser: teaserFor(locked, 'used'),
+    feature: 'fullJourney',
   };
 }
 
@@ -397,8 +433,11 @@ function inLastWeek(at: number, now: number): boolean {
 }
 
 export interface HelpView {
+  /** The teaser itself when locked. */
   line: string;
   locked: boolean;
+  teaser: string | null;
+  feature: LockedFeature;
 }
 
 /**
@@ -409,6 +448,11 @@ export interface HelpView {
  * story's independence (`progress/story.ts`, scripted lessons'
  * `unassistedRate`) when it was earned, said as the lessons'. Never a count.
  */
+const helpOf = (line: string, locked: boolean): HelpView => {
+  const teaser = teaserFor(locked, 'help');
+  return { line: teaser ?? line, locked, teaser, feature: 'fullJourney' };
+};
+
 export function helpView(input: { completions: readonly StoredCompletion[]; story: { sentences: readonly string[] }; now: number; access?: Access }): HelpView | null {
   const locked = isLocked(input.access ?? featureAccess, 'fullJourney');
   const week = input.completions.filter((c) => validRung(c.rung) && getMission(c.id) !== undefined && inLastWeek(c.at, input.now));
@@ -416,11 +460,11 @@ export function helpView(input: { completions: readonly StoredCompletion[]; stor
     const tally = new Map<Rung, number>();
     for (const c of week) tally.set(c.rung as Rung, (tally.get(c.rung as Rung) ?? 0) + 1);
     const top = [...tally.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]![0];
-    return { line: week.length === 1 ? HELP_SENTENCES[top].once : HELP_SENTENCES[top].mostly, locked };
+    return helpOf(week.length === 1 ? HELP_SENTENCES[top].once : HELP_SENTENCES[top].mostly, locked);
   }
   // The story's claim is about scripted lessons (`unassistedRate`), so it is
   // said as theirs, never as the scenes' (B4 learning-science review).
-  if (input.story.sentences.includes(STORY_INDEPENDENCE)) return { line: LESSONS_ON_YOUR_OWN, locked };
+  if (input.story.sentences.includes(STORY_INDEPENDENCE)) return helpOf(LESSONS_ON_YOUR_OWN, locked);
   return null;
 }
 
@@ -443,6 +487,8 @@ export interface SoundsView {
   rows: readonly SoundRow[];
   practise: JourneyRoute;
   locked: boolean;
+  teaser: string | null;
+  feature: LockedFeature;
 }
 
 /**
@@ -470,10 +516,13 @@ export function soundsView(input: { checks: readonly SoundCheckEvidence[]; now: 
     if (line === null) return null;
     rows.push({ key: 'latest', ipa: null, example: null, line });
   }
+  const locked = isLocked(input.access ?? featureAccess, 'sounds');
   return {
-    rows,
+    rows: locked ? [] : rows,
     practise: input.hasJourney ? { screen: 'SoundJourney' } : { screen: 'SoundCheck', params: { missionId: usable[0]!.missionId } },
-    locked: isLocked(input.access ?? featureAccess, 'sounds'),
+    locked,
+    teaser: teaserFor(locked, 'sounds'),
+    feature: 'sounds',
   };
 }
 
@@ -491,6 +540,8 @@ export interface WeekRow {
 export interface WeekView {
   rows: readonly WeekRow[];
   locked: boolean;
+  teaser: string | null;
+  feature: LockedFeature;
 }
 
 /** `reflectionFrom`'s three lines, or null when the week has no evidence. */
@@ -500,7 +551,8 @@ export function weekView(reflection: Reflection, access: Access = featureAccess)
   if (reflection.improvement !== null) rows.push({ key: 'improvement', label: REFLECTION_COPY.improvement, line: reflection.improvement, route: null });
   if (reflection.focus !== null) rows.push({ key: 'focus', label: REFLECTION_COPY.focus, line: reflection.focus, route: null });
   if (reflection.next !== null) rows.push({ key: 'next', label: REFLECTION_COPY.next, line: reflection.next.title, route: { screen: 'ScenePreview', params: { missionId: reflection.next.missionId } } });
-  return { rows, locked: isLocked(access, 'fullJourney') };
+  const locked = isLocked(access, 'fullJourney');
+  return { rows: locked ? [] : rows, locked, teaser: teaserFor(locked, 'week'), feature: 'fullJourney' };
 }
 
 // ───────────────────────────────────────────────────────────── collections
