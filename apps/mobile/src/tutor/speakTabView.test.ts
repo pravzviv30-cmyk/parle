@@ -24,8 +24,10 @@ import {
   MODE_CHOICES,
   OWN_TOPIC,
   PREFERENCES_ROUTE,
+  LESS_HELP_LINE,
+  MAX_MEMORY_TOPICS,
   PREPARE_FIRST,
-  REVISIT,
+  STARTER_TILE,
   SEE_MINUTES,
   SPEAK_TAB_COPY,
   correctionsChip,
@@ -36,9 +38,13 @@ import {
   speakSubtitle,
   speakTiles,
   tileColumns,
+  tileLayout,
+  wordEm,
   starterScenes,
   stageWord,
   talkChips,
+  sampleCaption,
+  sceneIcon,
 } from './speakTabView.ts';
 
 const NOW = new Date(2026, 9, 20, 9, 0, 0).getTime();
@@ -104,6 +110,28 @@ describe('the starter scenes', () => {
     assert.equal(stageWord('A1'), 'Basics');
   });
 
+  // 2026-10-20 UI-008, artboard B-Speak: each row's tile and mark follow its state.
+  test('an earned scene sits on sage with the check, the next on sun with Next, one ahead on lavender with a chevron', () => {
+    assert.deepEqual(STARTER_TILE, {
+      earned: { ground: 'sage', trailing: 'check' },
+      here: { ground: 'sun', trailing: 'next' },
+      ahead: { ground: 'lavender', trailing: 'chevron' },
+    });
+    const scenes = starterScenes(missionStates([{ id: FIRST_MISSION, at: NOW - 1000, rung: 4 }], [], NOW));
+    for (const row of scenes.rows) assert.deepEqual(row.tile, STARTER_TILE[row.state]);
+    assert.equal(scenes.rows[0]!.tile.trailing, 'check');
+    assert.equal(scenes.rows[1]!.tile.trailing, 'next');
+  });
+
+  test('a café scene wears the café cup and the hotel the suitcase, at the artboard sizes', () => {
+    assert.deepEqual(sceneIcon('cafe'), { name: 'icon-cafe', width: 30, height: 28 });
+    assert.deepEqual(sceneIcon('hotel'), { name: 'icon-suitcase', width: 24, height: 28 });
+    assert.equal(sceneIcon('street').name, 'icon-suitcase', 'a place with no canvas icon takes a café cup');
+    for (const row of starterScenes(missionStates([], [], NOW)).rows) {
+      assert.deepEqual(row.icon, sceneIcon(getMission(row.missionId)!.place));
+    }
+  });
+
   test('"Done without help" only when the scene itself was finished on your own', () => {
     const own = starterScenes(missionStates([{ id: FIRST_MISSION, at: NOW - 1000, rung: 4 }], [], NOW));
     assert.equal(own.rows[0]!.line, DONE_WITHOUT_HELP);
@@ -127,7 +155,10 @@ describe('same scene, a bit less help', () => {
     assert.equal(card.lastRung, 1);
     assert.equal(card.startRung, replayRung(1));
     assert.ok(card.startRung > card.lastRung);
-    assert.equal(card.line, `A bit less help this time: ${HELP_WORDS[card.startRung]}`);
+    // 2026-10-20 UI-008, artboard B-Speak: the drawn line is the artboard's; the help word rides the spoken label.
+    assert.equal(card.line, LESS_HELP_LINE);
+    assert.equal(LESS_HELP_LINE, 'A bit less help this time');
+    assert.equal(card.help, HELP_WORDS[card.startRung]);
     assert.deepEqual(card.params, { missionId: FIRST_MISSION });
   });
 
@@ -175,6 +206,41 @@ describe('talk about anything', () => {
     for (const chip of chips) assert.doesNotMatch(chip.label, /Lyon|My trip|My weekend/);
   });
 
+  // 2026-10-20 UI-008, founder decision: personal topics come from what the tutor remembers.
+  const fact = (kind: string, en: string, notedAt: string, fr: string | null = null) => ({ kind, en, fr, notedAt });
+
+  test('remembered interests and life events lead, newest first, at most three, with their own topic last', () => {
+    const suggestions = learningSuggestions({ level: 'zero', confidence: null, focus: null } as never);
+    const facts = [
+      fact('interest', 'Cooking Italian food', '2026-10-01T09:00:00Z', 'La cuisine italienne'),
+      fact('life-event', 'A trip to Lyon', '2026-10-10T09:00:00Z'),
+      fact('goal', 'Order in French', '2026-10-12T09:00:00Z'),
+      fact('preference', 'Short answers', '2026-10-13T09:00:00Z'),
+      fact('interest', 'Running', '2026-10-05T09:00:00Z'),
+      fact('interest', 'Jazz', '2026-09-01T09:00:00Z'),
+      fact('interest', '  ', '2026-10-15T09:00:00Z'),
+    ];
+    const chips = talkChips(suggestions, { facts, paused: false });
+    assert.deepEqual(chips.map((c) => c.label), ['A trip to Lyon', 'Running', 'Cooking Italian food', OWN_TOPIC]);
+    assert.equal(MAX_MEMORY_TOPICS, 3);
+    assert.deepEqual(chips[2]!.params.seedTopic, { fr: 'La cuisine italienne', en: 'Talk with me about this: Cooking Italian food' });
+    assert.equal(chips[0]!.params.seedTopic!.fr, 'A trip to Lyon', 'a fact with no French carries its own words');
+    assert.ok(chips.slice(0, -1).every((c) => !c.own));
+    for (const idea of suggestions.ideas) assert.ok(!chips.some((c) => c.label === idea.title), 'suggestions show beside remembered topics');
+  });
+
+  test('with no remembered topic, or with memory paused, the suggestions stand in', () => {
+    const suggestions = learningSuggestions({ level: 'zero', confidence: null, focus: null } as never);
+    const ideas = suggestions.ideas.map((i) => i.title);
+    const onlyGoals = talkChips(suggestions, { facts: [fact('goal', 'Order in French', '2026-10-12T09:00:00Z')], paused: false });
+    assert.deepEqual(onlyGoals.slice(0, -1).map((c) => c.label), ideas);
+    const paused = talkChips(suggestions, { facts: [fact('interest', 'Jazz', '2026-10-12T09:00:00Z')], paused: true });
+    assert.deepEqual(paused.slice(0, -1).map((c) => c.label), ideas, 'a paused memory still offers what it remembers');
+    assert.equal(paused.at(-1)!.label, OWN_TOPIC);
+    const twice = talkChips(suggestions, { facts: [fact('interest', 'Jazz', '2026-10-12T09:00:00Z'), fact('life-event', 'jazz', '2026-10-11T09:00:00Z')], paused: false });
+    assert.deepEqual(twice.map((c) => c.label), ['Jazz', OWN_TOPIC], 'the same topic is offered twice');
+  });
+
   test('their own topic is an open conversation, carrying their free seed only when one exists', () => {
     assert.deepEqual(talkChips({ ideas: [] }).at(-1)!.params, {});
     const seed = { fr: 'Une conversation libre', en: 'Talk about anything.' };
@@ -218,6 +284,25 @@ describe('the tutor, the tiles and the conversations row', () => {
     }
   });
 
+  // 2026-10-20 UI-008, sim check (402pt): the artboard's three in a row on a phone.
+  test('three tiles to a row on a phone at ordinary sizes, wrapping between words, never inside one', () => {
+    const layout = (width: number, fontScale: number, name = TUTOR_NAME) =>
+      tileLayout({ contentWidth: width - 40, fontScale, titleSize: 14, gap: 8, titles: speakTiles(name).map((t) => t.title) });
+    const fits = (width: number, fontScale: number, padding: number, word: string) => (width - 40 - 16) / 3 - padding * 2 >= wordEm(word) * 14 * fontScale;
+    assert.deepEqual(layout(402, 1), { columns: 3, padding: 12 });
+    assert.equal(layout(390, 1).columns, 3);
+    assert.equal(layout(390, 1).padding, 10, 'the padding tightens before a column is given up');
+    for (const [width, scale] of [[375, 1], [390, 1], [402, 1], [430, 1], [402, 1.15]] as const) {
+      const { columns, padding } = layout(width, scale);
+      if (columns !== 3) continue;
+      for (const word of ['Pronunciation', TUTOR_NAME, 'remembers', 'tutor', 'works']) assert.ok(fits(width, scale, padding, word), `${word} breaks at ${width}pt x${scale}`);
+    }
+    assert.ok(layout(375, 1).columns < 3 || fits(375, 1, layout(375, 1).padding, 'Pronunciation'));
+    assert.notEqual(layout(402, 1.2).columns, 3, 'larger text keeps the old fallback');
+    assert.equal(layout(402, 1.5).columns, 1, 'large text stacks the tiles');
+    assert.ok(wordEm('Pronunciation') > wordEm('help'));
+  });
+
   test('tile locks come only from the seam, and only for sounds and memory', () => {
     assert.deepEqual(speakTiles('A').map((t) => t.locked), [false, false, false], 'an unknown plan shows a lock (2026-10-20, lock seam wiring: the seam fails open)');
     assert.deepEqual(speakTiles('A', locked).map((t) => t.locked), [true, true, false]);
@@ -226,9 +311,27 @@ describe('the tutor, the tiles and the conversations row', () => {
     assert.deepEqual(asked, ['sounds', 'tutorMemory']);
   });
 
-  test('Revisit a conversation opens Conversations', () => {
-    assert.equal(REVISIT.title, 'Revisit a conversation');
-    assert.deepEqual(REVISIT.route, { screen: 'Conversations' });
+  // 2026-10-20 UI-008, artboard B-Speak: replaces "Revisit a conversation opens Conversations".
+  // The artboard draws no revisit row; Conversations is still reached from Journey and Settings.
+  test('the revisit row left Speak, and Conversations keeps its ways in', async () => {
+    const { readFileSync } = await import('node:fs');
+    const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+    assert.doesNotMatch(read('./speakTabView.ts'), /Revisit a conversation|screen: 'Conversations'/);
+    assert.match(read('../tabs/MyFrenchTab.tsx'), /nav\.navigate\('Conversations'\)/);
+    assert.match(read('../settings/SettingsScreen.tsx'), /nav\.navigate\('Conversations'\)/);
+  });
+
+  test('the tutor\'s sample is readable while it is heard, and the row at rest is the artboard\'s', () => {
+    assert.equal(sampleCaption(true, 'Bonjour, je suis là.'), 'Bonjour, je suis là.');
+    assert.equal(sampleCaption(false, 'Bonjour, je suis là.'), null);
+  });
+
+  test('each tile carries its canvas drawing and pastel at the artboard sizes', () => {
+    assert.deepEqual(speakTiles('A').map((t) => [t.ground, t.art]), [
+      ['peach', { name: 'voice-chat', width: 60, height: 55 }],
+      ['sage', { name: 'star-jar', width: 60, height: 55 }],
+      ['butter', { name: 'compass', width: 55, height: 55 }],
+    ]);
   });
 });
 

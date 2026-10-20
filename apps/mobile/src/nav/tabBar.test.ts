@@ -81,7 +81,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     }
   });
 
-  test('the selected cell is violet with a sun Bulk glyph and a bold cream word; the rest are cream on ink — UI-008', () => {
+  test('the selected cell is violet with a sun Linear glyph and a bold cream word; the rest are cream on ink — UI-008', () => {
     // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103 (and Codex's bar).
     // Replaces revamp B's brand blue word on white: the words are cream on the
     // ink capsule or on the violet cell, both well over the text floor.

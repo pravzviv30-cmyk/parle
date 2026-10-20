@@ -22,13 +22,19 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B fidelity rebuild, steps 4 and 5 (Explore, Scene preview and
+  Speak to their artboards in light and dark), on branch `claude/direction-b` (held, not on
+  main):
+  **5,781 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3367. Floors raised only through `gate:bless`. Ledger ticks for
+  F313, F325, F573 and F600 now name the rewritten tab bar and tutor row tests.
 - 21 October 2026 direction B fidelity rebuild, steps 2 and 3 (Codex tab bar, Today to
-  B-Today in light and dark), on branch `claude/direction-b` (held, not on main): gate
-  green with **mobile 3348**, core 825, brain 481, tutor agent 626, token server 456,
-  playground 26; floors raised through `gate:bless`. A learning-science review asked for
-  Coming up to need a stored "when" noted within 14 days; that fix and the attempt-first
-  `momentShown` helper passed 186 focused tests. Side-by-side sheet: the fidelity review
-  page (https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a).
+  B-Today in light and dark), on branch `claude/direction-b` (held, not on main):
+  **5,762 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3348. Floors raised only through `gate:bless`. A learning-science review asked
+  for Coming up to need a stored "when" noted within 14 days; that fix and the
+  attempt-first `momentShown` helper passed 186 focused tests. Side-by-side sheets are on
+  the fidelity review page (https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a).
 - 20 October 2026 direction B fidelity rebuild, step 1 (B tokens, theme hook, dark mode
   behind DARK_READY, canvas art, dev canvas learner), on branch `claude/direction-b` (held,
   not on main): **5,752 tests, 0 failing**; core 825, brain 481, tutor agent 626, token

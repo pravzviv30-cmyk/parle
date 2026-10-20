@@ -22,6 +22,12 @@ export type ThemeMode = 'light' | 'dark';
 export const DARK_READY: ReadonlySet<string> = new Set<string>([
   // 2026-10-20 UI-008, artboard B-Today: Today in light and dark.
   'Home',
+  // 2026-10-20 UI-008, artboard B-Explore: Explore in light and dark.
+  'Explore',
+  // 2026-10-20 UI-008, artboard B-ScenePreview: Scene preview in light and dark.
+  'ScenePreview',
+  // 2026-10-20 UI-008, artboard B-Speak: Speak in light and dark.
+  'Tutor',
 ]);
 
 /** Routes that stay light whatever DARK_READY says. */

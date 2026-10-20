@@ -129,10 +129,15 @@ describe('the screen is layout over the model (source probes)', () => {
   });
 
   test('one primary, the start through useConversationStart; practice is the secondary', () => {
+    // 2026-10-20 UI-008, artboard B-ScenePreview: the 56pt ink Start with the
+    // mic and the 48pt white practice button are B parts (today/TodayParts
+    // BButton). Replaces the PillButton probes.
     assert.match(screen, /const conversation = useConversationStart\(\);/);
-    assert.equal((screen.match(/<PillButton label=\{startLabel\(tutorName\)\}/g) ?? []).length, 1);
-    assert.match(screen, /<PillButton variant="secondary" label=\{model\.practice\.label\}/);
+    assert.equal((screen.match(/<BButton label=\{startLabel\(tutorName\)\} height=\{56\} ground=\{t\.primary\}/g) ?? []).length, 1);
+    assert.match(screen, /<BButton label=\{model\.practice\.label\} height=\{48\} ground=\{t\.card\}/);
+    assert.equal((screen.match(/<BButton\b/g) ?? []).length, 2, 'a third button joined the preview');
     assert.match(screen, /nav\.navigate\(target\.screen, target\.params\)/);
+    assert.match(screen, /disabled=\{busy\} onPress=\{start\}/, 'the start can be pressed twice while it checks');
   });
 
   test('an unknown id gets a way back to Explore', () => {
@@ -141,19 +146,26 @@ describe('the screen is layout over the model (source probes)', () => {
   });
 
   test('French is tagged and upright, and every line has a hear control', () => {
-    assert.match(screen, /<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color: textOn\.sun \}\]\}>\{model\.titleFr\}/);
+    // 2026-10-20 UI-008, artboard B-ScenePreview: the band's French is 16 on
+    // the hero ground's words; the artboard's italic is not taken, French stays upright.
+    assert.match(screen, /<Text \{\.\.\.frenchText\} style=\{\[bType\.line16, st\.bandWords, \{ color: t\.heroText \}\]\}>\{model\.titleFr\}/);
     assert.doesNotMatch(screen, /fontStyle: 'italic'/);
-    assert.match(screen, /<IconAction layout="inline" icon="speaker" label="Hear"/);
+    assert.match(screen, /<Text \{\.\.\.frenchText\} style=\{\[big \? bType\.bold18 : bType\.bold16, \{ color: t\.text \}\]\}>\{line\.fr\}/);
+    assert.match(screen, /<HearButton label=\{`Hear it\. \$\{label\}`\}/);
   });
 
   test('the hero is a full-bleed sun band under the status bar with the back button inside it', () => {
-    // 2026-10-20, sim nits: it was a rounded card inside the page margins.
+    // 2026-10-20 UI-008, artboard B-ScenePreview: the band is heroGround (sun
+    // in light, plum in dark), radius 0 0 36 36, the scene's drawing at right
+    // -6 top 70. Replaces the ColourCard sun band probe.
     assert.match(screen, /<ScrollScreen bottom="inset" padded=\{false\} bleedTop>/);
-    assert.match(screen, /<ColourCard ground="sun" style=\{st\.hero\}>[\s\S]{0,120}<TopInset \/>\s*<View style=\{st\.heroTop\}>\s*<RoundButton kind="back" onPress=\{back\}/);
+    assert.match(screen, /<View style=\{st\.band\}>\s*<TopInset \/>\s*<BArt name=\{model\.art\} width=\{150\} height=\{137\} style=\{st\.bandArt\} \/>\s*<View style=\{st\.bandTop\}>\s*<RoundButton kind="back" onPress=\{back\}/);
     assert.doesNotMatch(screen, /useSafeAreaInsets/, 'the frame stays the one reader of the safe area');
-    assert.match(screen, /hero: \{ borderTopLeftRadius: 0, borderTopRightRadius: 0,/, 'rounded bottom corners only');
-    assert.match(screen, /heroTop: \{[^}]*minHeight: HIT/, 'the back row keeps the touch floor');
-    assert.match(screen, /body: \{[^}]*paddingHorizontal: space\(5\)/, 'the body keeps the page gutter');
+    assert.match(screen, /band: \{ backgroundColor: t\.heroGround, borderBottomLeftRadius: 36, borderBottomRightRadius: 36,/, 'rounded bottom corners only');
+    assert.match(screen, /bandArt: \{ position: 'absolute', right: -6, top: 70 \}/);
+    assert.match(screen, /bandTop: \{[^}]*minHeight: HIT/, 'the back row keeps the touch floor');
+    assert.match(screen, /body: \{[^}]*paddingHorizontal: 22/, 'the body keeps the page gutter');
+    assert.match(screen, /<CheckDisc size=\{36\} fill=\{t\.mint\} tick=\{t\.onMint\} \/>/, 'the goal row lost its tick');
     const layout = read('../layout.tsx');
     assert.match(layout, /\.\.\.\(bleedTop \? \{ paddingTop: 0 \} : null\)/);
   });

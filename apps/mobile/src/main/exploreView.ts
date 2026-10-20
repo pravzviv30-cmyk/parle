@@ -14,6 +14,7 @@ import { estimateMinutes, missionMinutes } from '../home/estimate.ts';
 import { isFreeExploreContent } from '../purchases/exploreAccess.ts';
 import { tutorAudioFor, type TutorAudioPack } from '../daily/tutorAudio.ts';
 import type { DailyItem } from '../daily/catalogue.ts';
+import { missionTopic, scenarioTopic, type ExploreTopic } from './exploreCatalogue.ts';
 
 export type ExploreFilter = 'starting' | 'short' | 'offline' | 'tutor';
 
@@ -47,6 +48,8 @@ export interface SituationFacts {
   offline: false;
   /** Every situation is a conversation with the tutor. */
   tutor: true;
+  /** The catalogue topic, which picks the row's drawing (main/exploreArt.ts); null for a mission with none. */
+  topic: ExploreTopic | null;
 }
 
 function lowerFirst(text: string): string {
@@ -68,6 +71,7 @@ export function scenarioFacts(scenario: DailyScenario, _env?: AudioEnv): Situati
     // the access label.
     offline: false,
     tutor: true,
+    topic: scenarioTopic(scenario)?.key ?? null,
   };
 }
 
@@ -82,6 +86,7 @@ export function missionFacts(mission: Mission): SituationFacts {
     // A mission has no bundled recording anywhere (missions/preview.ts).
     offline: false,
     tutor: true,
+    topic: missionTopic(mission)?.key ?? null,
   };
 }
 

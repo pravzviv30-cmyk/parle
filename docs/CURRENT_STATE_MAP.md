@@ -59,10 +59,15 @@ DECISIONS.md UI-007):
   2026-10-20 (UI-008, artboard B-Today).
 - **Explore** (`tabs/ExploreTab.tsx`, `main/exploreView.ts`): four filter chips,
   Prepare for something real, topic tiles and situations; a situation opens
-  the scene preview.
+  the scene preview. Drawn from `explore/ExploreParts.tsx` with art and badges
+  from `main/exploreArt.ts`; Explore and ScenePreview follow dark mode
+  (`nav/darkReady.ts`, UI-008, 2026-10-20).
 - **Speak** (`tabs/TutorTab.tsx`, `tutor/speakTabView.ts`): Recommended, the
-  stage's starter scenes, "Same scene, a bit less help", Talk about anything,
-  three tiles, Revisit a conversation and the minutes band.
+  stage's starter scenes, "Same scene, a bit less help", Talk about anything
+  (chips from remembered interests and life events, else the learner's
+  suggestions, then "Your own topic"), the tutor row, three tiles and the
+  minutes band. Rebuilt to B-Speak in light and dark (UI-008, 2026-10-20);
+  Revisit a conversation left Speak (Conversations is on Journey and Settings).
 - **Practice** (`tabs/PracticeTab.tsx`, `practice/practiceTabView.ts`,
   `practice/useLibraryData.ts`): the learner's conversations, saved phrases
   and the sound guide; "Comes up often" is hidden until Phase C.

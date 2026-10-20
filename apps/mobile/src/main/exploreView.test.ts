@@ -157,11 +157,18 @@ describe('the tab wires those decisions and nothing else (source probes)', () =>
 
   test('Prepare for something real goes to RealMoment with the prefill, and locks only through the seam', () => {
     assert.match(explore, /nav\.navigate\('RealMoment', realMomentParams\(real\)\)/);
-    // 2026-10-20, lock seam wiring: the badge reads the reactive seam. B-Explore badges only Prepare; the
-    // "further" collections open ExploreCollection, which no lock guards, so they carry no badge.
+    // 2026-10-20 UI-008, artboard B-Explore: Prepare is the B PrepareCard,
+    // its badge still read from the reactive seam and handed in as `locked`.
+    // The "further" rows' Free sample pill or round lock comes from the
+    // Explore access labels through furtherBadge (main/exploreArt.ts).
     assert.match(explore, /const locks = useFeatureAccess\(\);/);
-    assert.match(explore, /locks\.access\('realMoment'\) === 'locked' && <LockBadge \/>/);
-    assert.equal((explore.match(/<LockBadge\b/g) ?? []).length, 1, 'a lock badge drawn outside the seam');
+    assert.match(explore, /locked=\{locks\.access\('realMoment'\) === 'locked'\}/);
+    assert.equal((explore.match(/<LockBadge\b/g) ?? []).length, 0, 'a lock badge drawn in the tab, outside the parts');
+    const parts = read('../explore/ExploreParts.tsx');
+    assert.match(parts, /\{locked \? <LockBadge \/> : null\}/);
+    assert.match(parts, /\{badge\?\.kind === 'lock' \? <LockBadge form="round" said \/> : null\}/);
+    assert.equal((parts.match(/<LockBadge\b/g) ?? []).length, 2, 'a lock badge drawn outside the two seams');
+    assert.match(explore, /badge=\{furtherBadge\(furtherNote\(collection\)\)\}/);
   });
 
   test('the no-match row is the seed row, still started through useConversationStart', () => {
@@ -175,9 +182,32 @@ describe('the tab wires those decisions and nothing else (source probes)', () =>
     assert.doesNotMatch(explore, /your interests/);
   });
 
-  test('the filters are the shared Chip, and words carry a hear control', () => {
-    assert.match(explore, /<Chip key=\{f\.key\} variant="filter"/);
-    assert.match(explore, /<IconAction layout="inline" icon="speaker" label="Hear"/);
-    assert.match(explore, /<LedgerRow lang="fr" title=\{item\.fr\}/);
+  test('the filters are one bleeding row of chips with a tick and a selected state, and words carry a hear control', () => {
+    // 2026-10-20 UI-008, artboard B-Explore: the shared Chip became the B
+    // FilterRow (38 high, 44 with its slop), and the words' IconAction the
+    // 44pt lavender HearButton. Replaces the Chip and IconAction probe.
+    const parts = read('../explore/ExploreParts.tsx');
+    assert.match(explore, /<FilterRow filters=\{EXPLORE_FILTERS\} chosen=\{filters\}/);
+    assert.match(parts, /accessibilityState=\{\{ selected: on \}\} hitSlop=\{\{ top: 3, bottom: 3 \}\}/);
+    assert.match(parts, /\{on \? <TickGlyph size=\{14\} color=\{t\.onBrand\} \/> : null\}/, 'a chosen chip is colour alone');
+    assert.match(parts, /bleed: \{ marginRight: -GUTTER, flexGrow: 0 \}/, 'the chips and the practice row no longer run off the edge');
+    assert.match(explore, /<WordRow key=\{item\.id\} fr=\{item\.fr\} en=\{item\.en\} hear=\{hear\}/);
+    assert.match(parts, /\{hear !== null \? <HearButton label=\{hear\.label\} onPress=\{hear\.onPress\} \/> : null\}/);
+    assert.match(parts, /<Text \{\.\.\.frenchText\} style=\{\[bType\.bold16, \{ color: t\.text \}\]\}>\{fr\}<\/Text>/, 'the French lost its language tag');
+  });
+
+  test('"See all" and "All 10 topics" open every topic, and "Browse all" the phrase library', () => {
+    // 2026-10-20 UI-008, artboard B-Explore: the section links drawn on the board.
+    assert.match(explore, /link=\{\{ label: `All \$\{EXPLORE_TOPICS\.length\} topics`, onPress: \(\) => openCollection\('everyday'\) \}\}/);
+    assert.match(explore, /link=\{!narrowing \? \{ label: 'See all', onPress: \(\) => openCollection\('everyday'\) \} : undefined\}/);
+    assert.match(explore, /link=\{\{ label: 'Browse all', onPress: \(\) => nav\.navigate\('DailyLibrary'\) \}\}/);
+    assert.match(explore, /const openCollection = \(id: string\) => nav\.navigate\('ExploreCollection', \{ id \}\);/);
+  });
+
+  test('A little practice keeps every real door in its row', () => {
+    // Founder, 2026-10-20: Sound practice and all three skill collections.
+    assert.match(explore, /\{ key: 'sound', title: 'Sound practice', \.\.\.PRACTICE_CARDS\.sound!, onPress: \(\) => nav\.navigate\('SoundCheck'\) \}/);
+    assert.match(explore, /\.\.\.SKILL_COLLECTIONS\.map\(collection =>/);
+    assert.match(explore, /<PracticeScroller cards=\{practiceCards\} \/>/);
   });
 });

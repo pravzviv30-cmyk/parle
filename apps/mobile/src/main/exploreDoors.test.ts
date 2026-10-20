@@ -22,20 +22,19 @@ test('Explore is a tab and advertises real conversation ideas instead of opening
 });
 
 test('Explore gives the native Press frame its topic grid width and lets large text stack', () => {
-  // 2026-10-20, B1, B-Explore: the tiles are ColourCards now, drawn by one
-  // `tile` helper for the topics and the practice doors. The outer frame View
-  // still owns the grid width, never the pressable card inside it.
+  // 2026-10-20 UI-008, artboard B-Explore: the tiles are the B part
+  // TopicTileCard (explore/ExploreParts.tsx), each inside a frame View that
+  // owns the grid width, never the pressable card inside it. Replaces the
+  // ColourCard `tile` helper probe.
   const explore = read('../tabs/ExploreTab.tsx');
-  const start = explore.indexOf('const tile = (');
-  assert.notEqual(start, -1, 'Explore no longer draws its tiles through one helper');
-  const tile = explore.slice(start, explore.indexOf('</ColourCard>', start));
-  assert.match(tile, /<View key=\{key\} style=\{\[st\.topicFrame, single && st\.topicFrameSingle\]\}>/,
+  assert.match(explore, /<View key=\{tile\.key\} style=\{\[st\.topicFrame, single && st\.topicFrameSingle\]\}>\s*<TopicTileCard tile=\{tile\.tile\} title=\{tile\.title\} onPress=\{tile\.go\} \/>/,
     'the frame owns parent layout; inner surface width leaves native cards in a half-width column');
-  assert.match(tile, /<ColourCard ground=\{ground\} lift onPress=\{go\}/);
-  assert.doesNotMatch(explore, /tile: \{[^}]*flexBasis/, 'the pressable surface cannot size the tile in its parent grid');
-  assert.match(explore, /EXPLORE_TOPICS\.slice\(0, 4\)\.map\(t => \{[\s\S]*?return tile\(/, 'the topic grid stopped using the framed tile');
+  assert.match(explore, /EXPLORE_TOPICS\.slice\(0, 4\)\.map\(t => \{/, 'the topic grid stopped drawing the first four topics');
   assert.match(explore, /const single = width < 350 \|\| fontScale >= 1\.5/);
   assert.match(explore, /topicFrame: \{ flexBasis: '47%', flexGrow: 1, minWidth: 0 \}/);
   assert.match(explore, /topicFrameSingle: \{ width: '100%', flexBasis: 'auto', flexGrow: 0 \}/,
     'a column needs full width and content height, rather than a percentage height basis');
+  const parts = read('../explore/ExploreParts.tsx');
+  assert.match(parts, /frame=\{s\.fill\} style=\{\[s\.topic,/, 'the tile card fills its frame rather than sizing itself');
+  assert.match(parts, /topic: \{ flex: 1, borderRadius: 26, overflow: 'hidden', \.\.\.liftStyle \}/, 'the tile lost its radius 26 or its lift');
 });

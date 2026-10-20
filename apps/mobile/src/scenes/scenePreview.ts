@@ -23,6 +23,8 @@ import { DEVICE_VOICE, RECORDED_AUDIO, TEXT_ONLY } from '../copy/access.ts';
 import { missionTopic, scenarioTopic } from '../main/exploreCatalogue.ts';
 import { TUTOR_LINES, TUTOR_LINES_VOICE } from '../onboarding/tutorLines.ts';
 import type { AudioEnv } from '../main/exploreView.ts';
+import { sceneArt } from '../main/exploreArt.ts';
+import type { BArtName } from '../art/BArt.tsx';
 
 /** Where a line's sound comes from. `clip` is a bundled daily recording id. */
 export type LineSound = { kind: 'clip'; id: string } | { kind: 'opener'; id: string } | { kind: 'device' };
@@ -42,6 +44,11 @@ export interface ScenePreviewModel {
   titleEn: string;
   titleFr: string;
   minutes: number;
+  /**
+   * The band's canvas drawing (2026-10-20 UI-008, artboard B-ScenePreview):
+   * the scene's topic drawing where the canvas has one, else the café table.
+   */
+  art: BArtName;
   /** What you'll practise. */
   practise: string;
   /** Null when nothing authored can fill it: the section hides rather than invent a line. */
@@ -124,6 +131,7 @@ function scenarioModel(s: DailyScenario, env: AudioEnv): ScenePreviewModel {
     titleEn: s.titleEn,
     titleFr: s.titleFr,
     minutes: estimateMinutes({ kind: 'scenario', lines: s.lines.length }),
+    art: sceneArt(scenarioTopic(s)?.key),
     practise: s.bodyEn,
     opener: { heading: PREVIEW_COPY.youCould, line: { fr: s.openingFr, en: s.openingEn, sound: { kind: 'device' } } },
     lines,
@@ -154,6 +162,7 @@ function missionModel(m: Mission, env: AudioEnv): ScenePreviewModel {
     titleEn: m.titleEn,
     titleFr: m.title,
     minutes: missionMinutes(m),
+    art: sceneArt(missionTopic(m)?.key),
     practise: `Practise how to ${m.canDoEn.length ? m.canDoEn[0]!.toLocaleLowerCase('en') + m.canDoEn.slice(1) : m.goalEn}`,
     opener,
     lines,

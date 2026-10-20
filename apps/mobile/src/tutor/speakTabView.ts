@@ -19,6 +19,7 @@ import { featureAccess, type FeatureAccess, type LockedFeature } from '../access
 import { minutesLine } from '../home/estimate.ts';
 import { missionReplay } from '../missions/chooserView.ts';
 import type { PlanStatusView } from '../purchases/planStatus.ts';
+import type { BArtName } from '../art/BArt.tsx';
 import type { Pace } from './pace.ts';
 import { pathCard, speakPath } from './speakView.ts';
 
@@ -108,6 +109,31 @@ export function stageWord(level: 'A0' | 'A1'): string {
   return level === 'A0' ? 'Starter' : 'Basics';
 }
 
+/**
+ * The row's tile and its mark, by the path's state (2026-10-20 UI-008, artboard
+ * B-Speak): an earned scene on sage with the mint check, the next one on sun
+ * with the brand "Next" pill, one ahead on lavender with a chevron. Each is a
+ * `useB()` token name, so the same row draws the M3 mapping in dark.
+ */
+export const STARTER_TILE: Record<StarterRow['state'], { ground: 'sage' | 'sun' | 'lavender'; trailing: 'check' | 'next' | 'chevron' }> = {
+  earned: { ground: 'sage', trailing: 'check' },
+  here: { ground: 'sun', trailing: 'next' },
+  ahead: { ground: 'lavender', trailing: 'chevron' },
+};
+
+/**
+ * The canvas icon for a scene's place, at the artboard's size: the café cup
+ * (30x28) for cafés and the suitcase (24x28) for the hotel, the house and the
+ * friends for theirs. A place the canvas draws no icon for (the market and the
+ * street) takes the suitcase, the travel mark, rather than a café cup.
+ */
+export function sceneIcon(place: string): { name: BArtName; width: number; height: number } {
+  if (place === 'cafe') return { name: 'icon-cafe', width: 30, height: 28 };
+  if (place === 'home') return { name: 'icon-house', width: 28, height: 28 };
+  if (place === 'friends') return { name: 'icon-friends', width: 30, height: 28 };
+  return { name: 'icon-suitcase', width: 24, height: 28 };
+}
+
 export interface StarterRow {
   missionId: string;
   french: string;
@@ -116,6 +142,8 @@ export interface StarterRow {
   /** The path's own state, for the scene mark. */
   state: 'earned' | 'here' | 'ahead';
   next: boolean;
+  tile: { ground: 'sage' | 'sun' | 'lavender'; trailing: 'check' | 'next' | 'chevron' };
+  icon: { name: BArtName; width: number; height: number };
   accessibilityLabel: string;
   route: { screen: 'ScenePreview'; params: { missionId: string } };
 }
@@ -140,6 +168,8 @@ export function starterScenes(progress: readonly MissionProgress[]): { heading: 
         line,
         state: row.state,
         next,
+        tile: STARTER_TILE[row.state],
+        icon: sceneIcon(mission.place),
         accessibilityLabel: `${row.title}, ${line}${next ? `, ${NEXT_CHIP}` : ''}`,
         route: { screen: 'ScenePreview', params: { missionId: row.missionId } },
       };
@@ -150,13 +180,16 @@ export function starterScenes(progress: readonly MissionProgress[]): { heading: 
 // ─────────────────────────────────────────────────────── same scene, less help
 
 export const LESS_HELP_TITLE = 'Same scene, a bit less help';
+export const LESS_HELP_LINE = 'A bit less help this time';
 
 export interface LessHelp {
   missionId: string;
   french: string;
   title: string;
-  /** "A bit less help this time: Choices". */
+  /** "A bit less help this time", the artboard's line. */
   line: string;
+  /** The help the replay opens with, in words ("Choices"), for the spoken label. */
+  help: string;
   lastRung: Rung;
   startRung: Rung;
   locked: boolean;
@@ -186,7 +219,10 @@ export function lessHelp(stored: readonly { id: string; at: number; rung: number
       missionId: mission.id,
       french: mission.title,
       title: mission.titleEn,
-      line: `A bit less help this time: ${HELP_WORDS[replay.startRung]}`,
+      // 2026-10-20 UI-008, artboard B-Speak: the line is the artboard's; the
+      // help word rides the card's spoken label.
+      line: LESS_HELP_LINE,
+      help: HELP_WORDS[replay.startRung],
       lastRung: replay.lastRung,
       startRung: replay.startRung,
       locked: access('continueArc') === 'locked',
@@ -209,35 +245,87 @@ export interface TalkChip {
   params: { seedTopic?: { fr: string; en: string } };
 }
 
+/** Personal topics shown at most, before "Your own topic" (the artboard's three). */
+export const MAX_MEMORY_TOPICS = 3;
+
+/** A remembered fact, as the brain keeps it (`profile.brain.memory.facts`). */
+export interface TopicFact {
+  kind: string;
+  fr: string | null;
+  en: string;
+  notedAt: string;
+}
+
 /**
- * The learner's own suggestions, then their own topic: an open conversation,
- * carrying the free seed their answers make when there is one. No personal
- * topic is invented.
+ * The chips (founder decision, 2026-10-20 UI-008, artboard B-Speak): the
+ * learner's remembered interests and life events, newest first, up to three;
+ * with none, the suggestions their own answers make. "Your own topic" always
+ * ends the row, an open conversation carrying the free seed when there is one.
+ *
+ * The caller passes the visible facts (forgotten ones already gone) and
+ * whether memory is paused; a paused memory offers no remembered topic. No
+ * personal topic is invented.
  */
-export function talkChips(suggestions: { ideas: readonly { title: string; fr: string; en: string }[]; freeSeed?: { fr: string; en: string } }): TalkChip[] {
+export function talkChips(
+  suggestions: { ideas: readonly { title: string; fr: string; en: string }[]; freeSeed?: { fr: string; en: string } },
+  memory: { facts: readonly TopicFact[]; paused: boolean } = { facts: [], paused: true },
+): TalkChip[] {
+  const remembered = memory.paused ? [] : memoryTopics(memory.facts);
+  const lead = remembered.length > 0
+    ? remembered
+    : suggestions.ideas.map((idea) => ({ label: idea.title, own: false, params: { seedTopic: { fr: idea.fr, en: idea.en } } }));
   return [
-    ...suggestions.ideas.map((idea) => ({ label: idea.title, own: false, params: { seedTopic: { fr: idea.fr, en: idea.en } } })),
+    ...lead,
     { label: OWN_TOPIC, own: true, params: suggestions.freeSeed === undefined ? {} : { seedTopic: suggestions.freeSeed } },
   ];
+}
+
+function memoryTopics(facts: readonly TopicFact[]): TalkChip[] {
+  const seen = new Set<string>();
+  const chips: TalkChip[] = [];
+  const newest = [...facts]
+    .filter((fact) => (fact.kind === 'interest' || fact.kind === 'life-event') && fact.en.trim() !== '')
+    .sort((a, b) => (Date.parse(b.notedAt) || 0) - (Date.parse(a.notedAt) || 0));
+  for (const fact of newest) {
+    const label = fact.en.trim();
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const fr = fact.fr?.trim() ?? '';
+    chips.push({ label, own: false, params: { seedTopic: { fr: fr === '' ? label : fr, en: `Talk with me about this: ${label}` } } });
+    if (chips.length === MAX_MEMORY_TOPICS) break;
+  }
+  return chips;
 }
 
 // ─────────────────────────────────────────────────────────── the tutor and tiles
 
 export const CHANGE_VOICE_ROUTE = { screen: 'Profile', params: { sheet: 'tutorVoice' } } as const;
 
+/**
+ * The tutor's sample, readable while it is heard: the signature line shows
+ * under the name only while the sample plays (everything spoken is also on
+ * screen), and the card at rest is the artboard's.
+ */
+export function sampleCaption(playing: boolean, signature: string): string | null {
+  return playing ? signature : null;
+}
+
 export interface SpeakTile {
   key: 'sounds' | 'memory' | 'intro';
   title: string;
-  ground: 'pastel.peach' | 'pastel.sage' | 'pastel.butter';
+  /** A `useB()` token (2026-10-20 UI-008, artboard B-Speak). */
+  ground: 'peach' | 'sage' | 'butter';
+  art: { name: BArtName; width: number; height: number };
   route: { screen: 'SoundJourney' | 'TutorMemory' | 'TutorIntro' };
   locked: boolean;
 }
 
 export function speakTiles(tutorName: string, access: Access = featureAccess): SpeakTile[] {
   return [
-    { key: 'sounds', title: 'Pronunciation help', ground: 'pastel.peach', route: { screen: 'SoundJourney' }, locked: access('sounds') === 'locked' },
-    { key: 'memory', title: `What ${tutorName} remembers`, ground: 'pastel.sage', route: { screen: 'TutorMemory' }, locked: access('tutorMemory') === 'locked' },
-    { key: 'intro', title: 'How your tutor works', ground: 'pastel.butter', route: { screen: 'TutorIntro' }, locked: false },
+    { key: 'sounds', title: 'Pronunciation help', ground: 'peach', art: { name: 'voice-chat', width: 60, height: 55 }, route: { screen: 'SoundJourney' }, locked: access('sounds') === 'locked' },
+    { key: 'memory', title: `What ${tutorName} remembers`, ground: 'sage', art: { name: 'star-jar', width: 60, height: 55 }, route: { screen: 'TutorMemory' }, locked: access('tutorMemory') === 'locked' },
+    { key: 'intro', title: 'How your tutor works', ground: 'butter', art: { name: 'compass', width: 55, height: 55 }, route: { screen: 'TutorIntro' }, locked: false },
   ];
 }
 
@@ -268,11 +356,56 @@ export function tileColumns(input: {
   return 1;
 }
 
-export const REVISIT = {
-  title: 'Revisit a conversation',
-  gloss: 'Read back what you said and pick one up again.',
-  route: { screen: 'Conversations' },
-} as const;
+/**
+ * Outfit Bold advance widths in em, by letter class (2026-10-20 UI-008, sim
+ * check at 402pt): narrow strokes, wide letters, capitals, and the rest. Used
+ * only for the artboard's three-column row, where the flat 0.6em of
+ * `tileColumns` is too cautious and dropped the row to two at 390pt.
+ */
+export const OUTFIT_BOLD_EM = { narrow: 0.3, wide: 0.86, capital: 0.66, other: 0.58 } as const;
+
+/** A word's drawn width in em, from its letters' classes. */
+export function wordEm(word: string): number {
+  let em = 0;
+  for (const ch of Array.from(word)) {
+    if (/[iljtrf'.,:;!]/.test(ch)) em += OUTFIT_BOLD_EM.narrow;
+    else if (/[mwMW]/.test(ch)) em += OUTFIT_BOLD_EM.wide;
+    else if (/[A-ZÀ-Ý]/.test(ch)) em += OUTFIT_BOLD_EM.capital;
+    else em += OUTFIT_BOLD_EM.other;
+  }
+  return em;
+}
+
+/** The three-column row holds from this content width (a 375pt phone less its gutters) up to this reading size. */
+export const THREE_UP_MIN_CONTENT = 335;
+export const THREE_UP_MAX_SCALE = 1.15;
+/** The tile's own padding, then the tighter one tried before giving up a column. */
+export const TILE_PADDINGS = [12, 10] as const;
+
+/**
+ * The tile row's columns and padding. At a phone's width and ordinary reading
+ * sizes the row is the artboard's three: the label wraps between words only,
+ * so the test is the longest single word against the column, first at the
+ * 12pt padding, then at 10. A word that fits neither falls back to
+ * `tileColumns` (two, then one), as does large text.
+ */
+export function tileLayout(input: {
+  contentWidth: number;
+  fontScale: number;
+  titleSize: number;
+  gap: number;
+  titles: readonly string[];
+}): { columns: 1 | 2 | 3; padding: number } {
+  const { contentWidth, fontScale, titleSize, gap, titles } = input;
+  if (contentWidth >= THREE_UP_MIN_CONTENT && fontScale <= THREE_UP_MAX_SCALE) {
+    const longest = Math.max(0, ...titles.flatMap((title) => title.split(/\s+/)).map(wordEm)) * titleSize * fontScale;
+    for (const padding of TILE_PADDINGS) {
+      if ((contentWidth - gap * 2) / 3 - padding * 2 >= longest) return { columns: 3, padding };
+    }
+  }
+  const padding = TILE_PADDINGS[0];
+  return { columns: tileColumns({ contentWidth, fontScale, titleSize, gap, padding, titles }), padding };
+}
 
 // ─────────────────────────────────────────────────────────── the minutes footer
 
@@ -304,8 +437,7 @@ export const SPEAK_TAB_COPY: readonly string[] = [
   TALK_TITLE,
   TALK_SUB,
   OWN_TOPIC,
-  REVISIT.title,
-  REVISIT.gloss,
+  LESS_HELP_LINE,
   SEE_MINUTES.label,
   MINUTES_CHECKING,
   ...Object.values(HELP_WORDS),

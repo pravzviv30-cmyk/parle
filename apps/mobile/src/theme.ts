@@ -145,6 +145,20 @@ export const bType = {
   bold20: { fontFamily: font.bold, fontSize: 20, lineHeight: 25 },
   /** A 22 bold French phrase. */
   bold22: { fontFamily: font.bold, fontSize: 22, lineHeight: 26 },
+  /** A tab's section head, "French for real life": 21/800 (B-Explore). */
+  section21: { fontFamily: font.extraBold, fontSize: 21, lineHeight: 26 },
+  /** A pushed screen's section head, "Lines you'll likely need": 19/800 (B-ScenePreview). */
+  section19: { fontFamily: font.extraBold, fontSize: 19, lineHeight: 24 },
+  /** The scene band's title: 28/800 at 1.1 (B-ScenePreview). */
+  bandTitle: { fontFamily: font.extraBold, fontSize: 28, lineHeight: 31 },
+  /** A 14 bold selected filter chip (B-Explore). */
+  bold14: { fontFamily: font.bold, fontSize: 14, lineHeight: 18 },
+  /** A 14 semibold filter chip (B-Explore). */
+  semi14: { fontFamily: font.semiBold, fontSize: 14, lineHeight: 18 },
+  /** A 13 semibold field label (B-Explore). */
+  semi13: { fontFamily: font.semiBold, fontSize: 13, lineHeight: 17 },
+  /** A 12 bold small pill, "Free sample" (B-Explore). */
+  bold12: { fontFamily: font.bold, fontSize: 12, lineHeight: 16 },
 } as const;
 
 /**

@@ -92,23 +92,39 @@ period stay near a purchase action, and large text is never capped to fit.
   offline, With your tutor), Prepare for something real with its badge, the
   topic tiles, situations, a blue "Live with your tutor, picked for you" card
   from the learner's own answers, a little practice, and words and phrases.
-  Each situation opens the scene preview.
-- Scene preview: a full-bleed sun band at the top (under the status bar,
-  rounded bottom corners only, the back button inside it) with topic and stage, the English and French
+  Each situation opens the scene preview. Rebuilt to the artboard in light and
+  dark on 2026-10-20 (UI-008) from `explore/ExploreParts.tsx`, with the art,
+  pastels and badges decided in `main/exploreArt.ts`: the chips and A little
+  practice (every real door) run off the right edge; the topic tiles carry
+  their canvas drawing on a circle and floor ellipse with the lift; Take the
+  conversation further shows the lavender "Free sample" pill or the round lock
+  from the Explore access labels. "free, offline" never appears on a live
+  situation.
+- Scene preview: a full-bleed `heroGround` band at the top (sun in light,
+  plum in dark; under the status bar, radius 0 0 36 36, the back button and
+  the scene's topic drawing inside it, the café table where the canvas has
+  none) with topic and stage, the English and French
   titles and minutes; what you'll practise; "The barista might say" only where
   an authored opener ships on the device, otherwise "You could start with" the
-  learner's own opening line; the lines with hear buttons; Start with the
-  tutor; and the free practice of the lines, which uses no speaking time. An
+  learner's own opening line; the lines with hear buttons; the 56pt Start
+  with the tutor; and the 48pt free practice of the lines, which uses no speaking time. An
   unknown id says so and returns to Explore.
-- Speak: the subtitle names the tutor; the sun Recommended card carries the
-  scene's goal, its minutes, the speaking or typing choice and Start, with
-  "Prepare first, free" to the preview; the stage's starter scenes with a Next
-  chip; "Same scene, a bit less help" only when a replay would really start
-  with less help (the twist; authored twists wait for D2); the blue Talk about
-  anything card whose chips are the learner's own suggestions and their own
-  topic on `violet2`; three pastel tiles (three, two or one to a row from
-  `tileColumns`, so a title never breaks inside a word); Revisit a conversation; and the
-  minutes band with See your minutes.
+- Speak (rebuilt to B-Speak in light and dark, UI-008, 2026-10-20): the
+  subtitle names the tutor; the `heroGround` Recommended card carries the
+  café drawing, the scene's goal, its minutes and "Uses speaking time" as
+  `heroChip` pills, the Speak/Type radios on the `butter` track (the chosen
+  cell on `heroChip` with a tick), the two preference chips outlined in
+  `heroText`, "Prepare first, free" to the preview and the 54pt `heroCta`
+  Start; the stage's starter scenes as one card of rows on sage, sun or
+  lavender tiles with the check, the brand Next pill or a chevron; "Same
+  scene, a bit less help" on a card with a dashed `periwinkle` edge only when
+  a replay would really start with less help (the twist; authored twists wait
+  for D2); the `brand` Talk about anything card whose chips are the learner's
+  remembered interests and life events (else their own suggestions) and their
+  own topic on `violet2`; the tutor row (orb, Change voice, lavender speaker;
+  the signature shows while the sample plays); three drawn pastel tiles
+  (three, two or one to a row from `tileColumns`, so a title never breaks
+  inside a word); and the minutes band with See your minutes.
 - Practice leads with the learner's conversations (topic chips, Pick up where
   you stopped, each conversation's fixes and three steps, Talk about it again,
   Mix your conversations), then saved phrases ("Used n times" from each card's
@@ -702,6 +718,13 @@ one; where a value differs it still wins on the onboarding screens.
 | `small` | Outfit Medium 14/20 | Metadata lines, captions, the English under a French line |
 | `tabLabel` | Outfit SemiBold 12/12 | Unused since UI-008: the tab bar sets C2 `small` 13/18 (`boldType.small`) |
 | `notation` | Outfit Medium 14/20, 0.4 | IPA: real notation, not mono-as-costume |
+
+`bType` (UI-008, 2026-10-20) holds the direction B artboards' own sizes where
+the scale above has no exact token. Explore and Scene preview added
+`section21` (ExtraBold 21/26, a tab's section head), `section19` (ExtraBold
+19/24, a pushed screen's section head), `bandTitle` (ExtraBold 28/31, the
+scene band's title), `bold14` and `semi14` (the selected and resting filter
+chip), `semi13` (a field label) and `bold12` (the small "Free sample" pill).
 
 ## Surfaces and controls
 

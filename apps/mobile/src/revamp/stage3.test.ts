@@ -9,7 +9,8 @@ const lacks=(file:string,...patterns:RegExp[])=>{const code=read(file);for(const
 test('revamp B Speak preserves real gates, one primary action and the authored scene path',()=>{
   // 2026-10-20, B2, B-Speak: ContinuityCard and NextTaskCard became the Recommended card, PATH_LABEL the stage heading,
   // and the chooser is reached through EVERY_SCENE, whose route is 'Missions'.
-  has('tabs/TutorTab.tsx',/<TutorCard/,/<ColourCard ground="sun">/,/<PillButton label=\{START\}/,/<SceneMark/,/\{scenes\.heading\}/,/TUTOR_OFFLINE.retry/,/nav.navigate\(EVERY_SCENE\.route\.screen\)/);
+  // 2026-10-20 UI-008, artboard B-Speak: the tutor row, the yellow hero, the BButton Start and the tiled scene list are the artboard's own parts.
+  has('tabs/TutorTab.tsx',/<BArt name="tutor-orb"/,/style=\{st\.hero\}/,/<BButton label=\{START\}/,/row\.tile\.ground/,/\{scenes\.heading\}/,/TUTOR_OFFLINE.retry/,/nav.navigate\(EVERY_SCENE\.route\.screen\)/);
   has('tutor/speakTabView.ts',/EVERY_SCENE = \{ label: 'Every scene', route: \{ screen: 'Missions' \} \}/);
   lacks('tabs/TutorTab.tsx',/<TintRow/,/<OptionCard/,/Start a real conversation/);
   has('missions/MissionsScreen.tsx',/\['A0', 'A1'\]/,/<SceneMark/,/nav.setParams\(\{ focus: card.mission.id/,/ground=\{colour.blue\}/,/type.display/,/minutes/,/tone="white"/);

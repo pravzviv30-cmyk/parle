@@ -981,7 +981,10 @@ describe('a tap that starts with a network probe — F154', () => {
     // 2026-10-20, B2, B-Speak: on Speak the quiet door is the Type radio on the
     // Recommended card, and the Start opens in whichever mode is chosen. The
     // shared MissionHero keeps its own quiet link for Today and Practice.
-    assert.match(tutor, /<Choice compact ground="card" role="radio"[^>]*onPress=\{\(\) => setChosenText\(choice\.textMode\)\}/, 'Speak lost its Type choice');
+    // 2026-10-20 UI-008, artboard B-Speak: the radios are the artboard's Speak/Type
+    // control, each cell a radio with its checked state.
+    assert.match(tutor, /<Segment key=\{choice\.key\}[^>]*onPress=\{\(\) => setChosenText\(choice\.textMode\)\}/, 'Speak lost its Type choice');
+    assert.match(tutor, /accessibilityRole="radio" accessibilityLabel=\{label\} accessibilityState=\{\{ checked: selected, selected \}\}/, 'the Type choice is not a radio');
     assert.match(tutor, /onPress=\{\(\) => open\(textMode, next\.params\)\}/, 'the Start ignores the chosen mode');
     assert.match(
       named('home/MissionHero.tsx'),
@@ -1743,7 +1746,8 @@ describe('Explore opens on the shared frame (2026-10-20, B1, B-Explore)', () => 
     // Replaces B0's "Explore keeps its current shape until B1", which pinned
     // MainScreen and no TabHeader. B1 moved it to the frame, so this pins that.
     const explore = named('tabs/ExploreTab.tsx');
-    assert.match(explore, /<ScrollScreen bottom="tab">/);
+    // 2026-10-20 UI-008, artboard B-Explore: the page opens 8 under the inset, as Today does.
+    assert.match(explore, /<ScrollScreen bottom="tab" topGap=\{8\}>/);
     assert.equal((explore.match(/<TabHeader\b/g) ?? []).length, 1);
     assert.match(explore, /<TabHeader title="Explore" trailing=\{<ProfileButton \/>\} \/>/);
     assert.doesNotMatch(explore, /<MainScreen\b|<ScrollView\b|useSafeAreaInsets/);
@@ -1812,11 +1816,13 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     // the same probe as Start. The rule is the same: the tutor draws the app's
     // components and hand-rolls nothing.
     const tutor = named('tabs/TutorTab.tsx');
+    // 2026-10-20 UI-008, artboard B-Speak: the chips are the artboard's 40pt
+    // white and violet2 pills, each one press through the shared spring.
     const ways = tutor.slice(tutor.indexOf('talk.map('), tutor.indexOf('))}', tutor.indexOf('talk.map(')));
     assert.ok(ways.length > 0, 'the tutor no longer maps its ways in');
-    assert.match(ways, /<Chip\b/, 'a way in is not drawn as the shared chip');
-    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared chip');
-    assert.equal((ways.match(/<Chip\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two could drift apart');
+    assert.match(ways, /<Press\b/, 'a way in is not drawn through the shared press');
+    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared press');
+    assert.equal((ways.match(/<Press\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two could drift apart');
     assert.match(ways, /chip\.label/, 'a way in names itself instead of reading its words from the model');
     assert.match(ways, /open\(textMode, chip\.params\)/, 'a way in skips the probe');
     // The open conversation is a model entry, never a row bolted on here.
@@ -1907,7 +1913,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx', 'today/TodayParts.tsx'],
     // 2026-10-20, B1, B-Explore: every Explore list is drawn inline in the
     // tab file as ledger rows; it imports no card file of its own.
-    'tabs/ExploreTab.tsx': ['tabs/ExploreTab.tsx'],
+    // 2026-10-20 UI-008, artboard B-Explore: plus the B parts it draws from.
+    'tabs/ExploreTab.tsx': ['tabs/ExploreTab.tsx', 'explore/ExploreParts.tsx'],
     // 2026-10-20, B2, B-Speak: the ContinuityCard left Speak; a thread to pick
     // up is the Recommended card's own conversation.
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx'],
@@ -1944,10 +1951,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.equal((practice.match(/<PillButton\b/g) ?? []).length, (practice.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Practice carries a second primary pill');
     // 2026-10-20, B2, B-Speak: Speak's door is its own Recommended card, with
     // exactly one ink primary, Start; every other pill on it is secondary.
+    // 2026-10-20 UI-008, artboard B-Speak: the Start is the 54pt heroCta BButton
+    // (today/TodayParts), and the one other BButton is the white Prepare first.
     const speak = named('tabs/TutorTab.tsx');
-    assert.doesNotMatch(speak, /<NextTaskCard/);
-    assert.equal((speak.match(/<PillButton label=\{START\}/g) ?? []).length, 1, 'Speak carries other than one Start');
-    assert.equal((speak.match(/<PillButton\b/g) ?? []).length, (speak.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Speak carries a second primary pill');
+    assert.doesNotMatch(speak, /<NextTaskCard|<PillButton\b/);
+    assert.equal((speak.match(/<BButton label=\{START\}[^>]*height=\{54\} ground=\{t\.heroCta\}/g) ?? []).length, 1, 'Speak carries other than one Start');
+    assert.equal((speak.match(/<BButton\b/g) ?? []).length, 2, 'Speak carries a second primary pill');
+    assert.match(speak, /<BButton label=\{PREPARE_FIRST\} height=\{48\} ground=\{t\.heroChip\}/, 'Prepare first is not the white secondary');
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
     // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B
@@ -2003,9 +2013,15 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // 2026-10-20, B1, B-Explore: every Explore list is ledger rows: search
       // collections, situations, the own-topic seed, next-conversation ideas,
       // take it further, words and phrases, and from your conversations.
-      'tabs/ExploreTab.tsx': 7,
+      // 2026-10-20 UI-008, artboard B-Explore: the artboard's lists are its
+      // own white list cards (situations, further, words) and the indigo
+      // card's idea rows, each one shape per list; ledger rows remain for the
+      // search's collections, the own-topic seed and From your conversations.
+      'tabs/ExploreTab.tsx': 3,
       // 2026-10-20, B2, B-Speak: the starter scenes, and Revisit a conversation.
-      'tabs/TutorTab.tsx': 2,
+      // 2026-10-20 UI-008, artboard B-Speak: the scenes are the artboard's own
+      // tiled list (drawn once, one map), and the revisit row left: none.
+      'tabs/TutorTab.tsx': 0,
       // 2026-10-20, B3, B-Practice: the empty page's café lesson and sounds,
       // saved phrases and saved text, a conversation's fixes, its practice
       // steps and its revisit, and hear, say and compare.
@@ -2390,7 +2406,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
     // 2026-10-20, B2, B-Speak: Speak's one primary is its own Start, on the
     // Recommended card; connection retry stays a quiet IconAction.
-    assert.equal((tutor.match(/<PillButton label=\{START\}/g) ?? []).length, 1, 'Speak carries other than one Start primary');
+    // 2026-10-20 UI-008, artboard B-Speak: the Start is the one heroCta BButton.
+    assert.equal((tutor.match(/<BButton label=\{START\}/g) ?? []).length, 1, 'Speak carries other than one Start primary');
     assert.match(tutor, /const primary = <IconAction/);
   });
 

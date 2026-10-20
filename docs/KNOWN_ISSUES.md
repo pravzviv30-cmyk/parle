@@ -4872,10 +4872,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp B (2026-09-30, F600): active is the brand blue at Outfit Bold rather than ink at
   Medium, and the bar is white rather than paper; both tests were renamed for it, and the hairline,
   the wrapping labels and the refused shadow are unchanged.
-- verified-by: `the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313`
+- verified-by: `the active tab is told by the violet cell and weight 700, and a screen reader still hears selected — F313`
 - note: notebook redesign (2026-09-27): the bar is flat on the paper with a top hairline, no inset dock
   and no selected wash; it still carries no shadow, so the tick follows the renamed test.
-- verified-by: `the bar is white with a top hairline, and never a floating shadow — F313`
+- verified-by: `the bar is an ink capsule on the route ground, and never a floating shadow — F313, UI-008`
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
@@ -5017,7 +5017,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   never been asserted and is added with the button it belongs to.
 - note: revamp B (2026-09-30, F600): the active tab takes the brand blue, glyph and word, and the rest
   soft ink; the test was renamed for it.
-- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
+- verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
 - verified-by: `pill lettering clears 4.5 on the primary ink, the brand blue and the coral`
 
 ### F326 — The micro-label and the primary are one violet
@@ -8671,7 +8671,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   sample and a way to change voice), one Start, and the level path. The moving orb and the three
   tinted ways in are gone; the remembers row stays.
 - note (2026-10-20, B2, B-Speak): the card on Speak drops the catalogue's sound line by design.
-- verified-by: `the tutor card carries its name, its sample and a way to change the voice, and no voice line`
+- verified-by: `the tutor row carries its name, its sample and a way to change the voice, and no voice line`
 - verified-by: `the pronunciation lesson is a door on the chooser`
 
 ### F574 — Practice is one next practice and three rows, with the archive in Conversations
@@ -8977,11 +8977,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:35
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
-- verified-by: `the bar is white with a top hairline, and never a floating shadow`
-- verified-by: `the active tab is the brand blue at weight 700, the rest soft ink at 600, and a screen reader still hears selected`
+- verified-by: `the bar is an ink capsule, radius 32, on the route ground, and never a floating shadow — UI-008`
+- verified-by: `the selected cell is violet with a sun Linear glyph and a bold cream word; the rest are cream on ink — UI-008`
 - verified-by: `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route` (renamed 2026-10-20 when direction B A3 moved the bar to five tabs; the route names it guards are unchanged)
 - verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
-- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
+- verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
 
 
 ### F601 — The first run is the notebook's paper: no blue or sun pages, ledger answers with a Chosen word, a middot on the account button, and a card around the password form
