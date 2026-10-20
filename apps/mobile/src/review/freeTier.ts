@@ -31,6 +31,29 @@ export function dealForTier(deck: readonly ReviewCard[], now: number, lock: Feat
   };
 }
 
+/**
+ * What Home's review card may offer. Both answers are read with the deck, so
+ * the card can follow the lock when the standing lands without a re-read.
+ */
+export interface ReviewOffer {
+  /** The oldest due card of the whole deck. */
+  open: ReviewCard | null;
+  /** The oldest due card a free learner can review. */
+  free: ReviewCard | null;
+}
+
+export function reviewOffer(deck: readonly ReviewCard[], now: number): ReviewOffer {
+  return {
+    open: dealForTier(deck, now, 'unlocked').due[0] ?? null,
+    free: dealForTier(deck, now, 'locked').due[0] ?? null,
+  };
+}
+
+/** The card Home offers. Null when a locked learner has only conversation phrases due. */
+export function offeredReview(offer: ReviewOffer, lock: FeatureLockState): ReviewCard | null {
+  return lock === 'locked' ? offer.free : offer.open;
+}
+
 /** The one quiet row under a locked sitting. Null when nothing was held back. */
 export function heldBackLine(count: number): string | null {
   if (count <= 0) return null;

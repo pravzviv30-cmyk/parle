@@ -24,9 +24,11 @@ test('legacy authored review stays useful offline and before an exhausted trial 
   assert.equal(nextTaskKind({ kind: 'resume', source: null }, false, null, true), 'practice');
   const source = readFileSync(new URL('./NextTaskCard.tsx', import.meta.url), 'utf8');
   assert.match(source, /value.scope === scopeGeneration\(\)\) nav.navigate/);
-  assert.match(source, /review: dueCards\(deck, now\)\[0\] \?\? null/);
-  assert.match(source, /FrenchBlock french=\{value.review.front\} \/>/);
-  assert.doesNotMatch(source, /english=\{value.review.back\}/, 'the review preview must not expose the hidden meaning before recall');
+  assert.match(source, /offer: reviewOffer\(deck, now\)/);
+  assert.match(source, /const review = offeredReview\(value\.offer, locks\.access\('conversationPractice'\)\)/, 'Home must offer only what Review deals a free learner');
+  assert.match(source, /nextTaskKind\([^)]*review !== null\)/);
+  assert.match(source, /FrenchBlock french=\{review\.front\} \/>/);
+  assert.doesNotMatch(source, /english=\{(?:value\.)?review\.back\}/, 'the review preview must not expose the hidden meaning before recall');
 });
 test('every chosen tutor has the same real bundled coffee line for offline practice', () => {
   const source = readFileSync(new URL('../daily/tutorAudioManifest.ts', import.meta.url), 'utf8');

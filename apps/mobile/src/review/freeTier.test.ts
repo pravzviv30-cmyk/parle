@@ -15,7 +15,7 @@ import { guiltIn } from '../copy/guilt.ts';
 import { setActiveUser, userKey } from '../storage/scope.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
 import { resetSyncRegistry } from '../sync/registry.ts';
-import { HELD_BACK_ACTION, dealForTier, heldBackLine } from './freeTier.ts';
+import { HELD_BACK_ACTION, dealForTier, heldBackLine, offeredReview, reviewOffer } from './freeTier.ts';
 import { addPhrases, loadDeck } from './store.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -48,6 +48,29 @@ describe('dealForTier', () => {
     assert.equal(dealForTier([card('d', ['daily'])], NOW, 'locked').heldBack, 0);
     const later = { ...card('c', ['conversation']), due: NOW + 86_400_000 };
     assert.equal(dealForTier([later], NOW, 'locked').heldBack, 0);
+  });
+});
+
+describe("Home's review offer", () => {
+  const at = (c: ReviewCard, due: number): ReviewCard => ({ ...c, due });
+
+  test('locked with only conversation-only cards due offers nothing', () => {
+    const offer = reviewOffer([card('c1', ['conversation']), card('c2', ['conversation'])], NOW);
+    assert.equal(offeredReview(offer, 'locked'), null);
+  });
+
+  test('locked with a mix offers the free card, not the older conversation one', () => {
+    const deck = [at(card('c', ['conversation']), NOW - 5000), at(card('d', ['daily']), NOW - 1000)];
+    assert.equal(offeredReview(reviewOffer(deck, NOW), 'locked')?.id, 'd');
+  });
+
+  test('an untagged card counts as free', () => {
+    assert.equal(offeredReview(reviewOffer([card('old')], NOW), 'locked')?.id, 'old');
+  });
+
+  test('unlocked and unknown offer the oldest due card', () => {
+    const deck = [at(card('d', ['daily']), NOW - 1000), at(card('c', ['conversation']), NOW - 5000)];
+    for (const lock of ['unlocked', 'unknown'] as const) assert.equal(offeredReview(reviewOffer(deck, NOW), lock)?.id, 'c');
   });
 });
 
