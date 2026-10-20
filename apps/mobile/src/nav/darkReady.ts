@@ -28,6 +28,13 @@ export const DARK_READY: ReadonlySet<string> = new Set<string>([
   'ScenePreview',
   // 2026-10-20 UI-008, artboard B-Speak: Speak in light and dark.
   'Tutor',
+  // 2026-10-20 UI-008, artboards B-Journey, B-ThenNow and the Journey block of
+  // B-Empty-States: Journey and Then and now in light and dark.
+  'MyFrench',
+  'ThenNow',
+  // 2026-10-21 UI-008, artboards B-Practice, B-Empty-Practice and B-Fixes: Practice and Your fixes in light and dark.
+  'Practice',
+  'Fixes',
 ]);
 
 /** Routes that stay light whatever DARK_READY says. */

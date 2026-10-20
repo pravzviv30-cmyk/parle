@@ -30,9 +30,17 @@ import { relativeDay } from './sessionCard.ts';
 
 export const FIXES_TITLE = 'Your fixes';
 
-/** "yesterday", "3 days ago", "on 12 Oct": `relativeDay` set inside a sentence. */
+const WEEKDAY = /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/;
+const DATE = /^\d{1,2} [A-Z][a-z]+$/;
+
+/**
+ * "yesterday", "3 days ago", "on 12 Oct", "on Monday": `relativeDay` set
+ * inside a sentence. "on" goes only before a weekday or a date (2026-10-21,
+ * sim check: "on 2 days ago" was drawn because any leading digit took it).
+ */
 export function inSentence(day: string): string {
-  return /^\d/.test(day) ? `on ${day}` : day.charAt(0).toLocaleLowerCase('en') + day.slice(1);
+  if (WEEKDAY.test(day) || DATE.test(day)) return `on ${day}`;
+  return day.charAt(0).toLocaleLowerCase('en') + day.slice(1);
 }
 
 export type FixesScope = 'this' | 'all';
@@ -194,10 +202,36 @@ export function practiseAll(fixes: readonly Fix[], scope: FixesScope, packId: st
   return keys.length === 0 ? null : { screen: 'Drill', params: { node: { id: `fixes:${scope === 'this' ? packId : 'all'}`, title: FIXES_TITLE, phraseKeys: keys } } };
 }
 
+/** How a phrase's standing is coloured on B-Fixes: used (mint words), recalled (link), not yet (muted). */
+export type PhraseTone = 'used' | 'recalled' | 'new';
+
+export function phraseTone(status: string): PhraseTone {
+  if (status.startsWith('Used')) return 'used';
+  if (status.startsWith('Recalled')) return 'recalled';
+  return 'new';
+}
+
+/**
+ * Practise all fixes, as B-Fixes always ends (2026-10-21, sim check): the
+ * drill over every fix the bank can ask for; else, when no fix has a drill
+ * yet, the first untried fix's try-first card here (attempt before reveal).
+ * Null only when there is nothing to practise: no fix, or every fix tried
+ * with no drill behind any of them.
+ */
+export function practiseAllDoor(fixes: readonly Fix[], scope: FixesScope, packId: string, typed: Readonly<Record<string, string>> = {}): { kind: 'drill'; route: PracticeRoute } | { kind: 'try'; key: string } | null {
+  const route = practiseAll(fixes, scope, packId);
+  if (route !== null) return { kind: 'drill', route };
+  const untried = fixes.find((fix) => !fix.tried && !Object.hasOwn(typed, fix.key));
+  return untried === undefined ? null : { kind: 'try', key: untried.key };
+}
+
 /** The conversation's key phrases with their standing in words. */
-export function phraseRows(pack: ConversationPack, deck: readonly ReviewCard[]): { fr: string; en: string; status: string }[] {
+export function phraseRows(pack: ConversationPack, deck: readonly ReviewCard[]): { fr: string; en: string; status: string; tone: PhraseTone }[] {
   const cards = new Map(deck.map((card) => [card.id, card]));
-  return pack.keyPhrases.map((phrase) => ({ fr: phrase.fr, en: phrase.en, status: phraseStatus(cards.get(phraseKeyOf(phrase.fr))) }));
+  return pack.keyPhrases.map((phrase) => {
+    const status = phraseStatus(cards.get(phraseKeyOf(phrase.fr)));
+    return { fr: phrase.fr, en: phrase.en, status, tone: phraseTone(status) };
+  });
 }
 
 /** "Le premier café, yesterday": the header's second line. */

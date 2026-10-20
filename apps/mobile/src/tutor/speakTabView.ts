@@ -247,6 +247,14 @@ export interface TalkChip {
 
 /** Personal topics shown at most, before "Your own topic" (the artboard's three). */
 export const MAX_MEMORY_TOPICS = 3;
+/** A remembered fact longer than this is not a chip; it is skipped (learning-science review, 2026-10-20). */
+export const MAX_TOPIC_CHARS = 32;
+
+/** A fact as a chip label: trimmed, first letter upper-cased ("has a dog" reads "Has a dog"). */
+export function topicLabel(en: string): string {
+  const text = en.trim();
+  return text.charAt(0).toLocaleUpperCase('en') + text.slice(1);
+}
 
 /** A remembered fact, as the brain keeps it (`profile.brain.memory.facts`). */
 export interface TopicFact {
@@ -287,12 +295,16 @@ function memoryTopics(facts: readonly TopicFact[]): TalkChip[] {
     .filter((fact) => (fact.kind === 'interest' || fact.kind === 'life-event') && fact.en.trim() !== '')
     .sort((a, b) => (Date.parse(b.notedAt) || 0) - (Date.parse(a.notedAt) || 0));
   for (const fact of newest) {
-    const label = fact.en.trim();
+    const label = topicLabel(fact.en);
+    if (label.length > MAX_TOPIC_CHARS) continue;
     const key = label.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
+    // The room keeps a seed only with real French (tutor-agent validSeedTopic),
+    // and English never stands in for it, so a fact with no French is no chip.
     const fr = fact.fr?.trim() ?? '';
-    chips.push({ label, own: false, params: { seedTopic: { fr: fr === '' ? label : fr, en: `Talk with me about this: ${label}` } } });
+    if (fr === '') continue;
+    chips.push({ label, own: false, params: { seedTopic: { fr, en: `Talk with me about this: ${label}` } } });
     if (chips.length === MAX_MEMORY_TOPICS) break;
   }
   return chips;

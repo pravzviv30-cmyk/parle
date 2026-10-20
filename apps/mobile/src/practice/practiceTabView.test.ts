@@ -22,8 +22,14 @@ import type { LockedFeature } from '../access/featureAccess.ts';
 import { packSelection } from './recommendation.ts';
 import { toSessionRecord } from './sessionStore.ts';
 import {
+  COMES_UP_OFTEN_ENABLED,
   EMPTY,
   PATTERN_COPY,
+  PATTERN_FREE,
+  cafeRow,
+  compactArt,
+  packsMatching,
+  patternCard,
   TALK_AGAIN,
   chosenTopic,
   comesUpOften,
@@ -316,5 +322,58 @@ describe('practice locks against the real standing', () => {
     assert.equal(c.stepsLocked, false);
     assert.equal(c.revisit, null);
     assert.equal(mixCard({ deck: due, bank, topics, now: NOW })!.locked, false);
+  });
+});
+
+// 2026-10-21 UI-008, artboards B-Practice, B-Empty-Practice and B-Fixes.
+describe('the B-Practice additions: search, the pattern card, the smaller cards and the café lock', () => {
+  test('search matches every typed word in a title or summary, accents and case aside, on the device', () => {
+    const a = buildConversationPack({ ...pack('a'), title: { fr: 'Le premier café', en: 'Your first café' }, summary: 'You ordered a croissant.' });
+    const b = buildConversationPack({ ...pack('b'), title: { fr: 'Demander le chemin', en: 'Asking the way' }, summary: 'Finding the métro.' });
+    assert.deepEqual(packsMatching([a, b], '').map((p) => p.id), ['a', 'b']);
+    assert.deepEqual(packsMatching([a, b], '  CAFE ').map((p) => p.id), ['a']);
+    assert.deepEqual(packsMatching([a, b], 'metro').map((p) => p.id), ['b'], 'an unaccented search misses an accented summary');
+    assert.deepEqual(packsMatching([a, b], 'chemin').map((p) => p.id), ['b'], 'the French title is not searched');
+    assert.deepEqual(packsMatching([a, b], 'café métro').map((p) => p.id), [], 'a search matches on any word rather than every word');
+  });
+
+  test('the pattern card shows one authored pattern, opens the newest fixes, and never carries a count', () => {
+    assert.equal(COMES_UP_OFTEN_ENABLED, true);
+    const patterns = { 'gender-agreement': { count: 7, lastSeen: new Date(NOW).toISOString(), example: 'le table' }, 'verb-conjugation': { count: 3, lastSeen: new Date(NOW - DAY).toISOString(), example: 'je va' } };
+    const older = pack('o', { daysAgo: 5, corrections: [{ quote: 'le table', better: 'la table', betterEn: 'the table', why: 'a reason' }] });
+    const newer = pack('n', { daysAgo: 1, corrections: [{ quote: 'je va', better: 'je vais', betterEn: 'I go', why: 'a reason' }] });
+    const none = pack('z', { daysAgo: 0 });
+    const shown = patternCard({ patterns, packs: [older, newer, none], bank: [] })!;
+    assert.equal(shown.row.tag, 'gender-agreement', 'more than one pattern, or not the latest seen');
+    assert.deepEqual(shown.fixes, { screen: 'Fixes', params: { packId: 'n' } }, 'the card does not open the newest conversation with fixes');
+    assert.doesNotMatch(JSON.stringify(shown), /\b7\b|count/);
+    assert.equal(patternCard({ patterns, packs: [none], bank: [] })!.fixes, null, 'the card opens a conversation with no fixes');
+    assert.equal(patternCard({ patterns: {}, packs: [older], bank: [] }), null);
+    assert.equal(patternCard({ patterns, packs: [], bank: [], access: lockedAll })!.row.locked, true);
+    assert.doesNotMatch(PATTERN_FREE, /\d/, 'the pattern card claims minutes nothing estimates');
+  });
+
+  test('a smaller card draws friends or the map, and Practise it opens the first step through the seam', () => {
+    assert.deepEqual(compactArt(pack('t', { topics: [TRAIN] }), 0), { name: 'map-route', ground: 'sage' });
+    assert.deepEqual(compactArt(pack('r', { revisedFromPackId: 's' }), 1), { name: 'friends-cheer', ground: 'lavender' });
+    assert.deepEqual(compactArt(pack('x'), 1), { name: 'map-route', ground: 'sage' });
+    const LINES = ['Sur place', 'Merci'];
+    const p = pack('p1', { lines: LINES, corrections: [{ quote: 'a', better: 'Merci', betterEn: 'Thanks', why: 'a reason' }] });
+    const args = { pack: p, packs: [p], deck: LINES.map((fr) => card(fr)), bank: LINES.map(exercise), now: NOW, revisitAllowed: true };
+    const open = conversationCard({ ...args, access: unlocked, index: 1 });
+    assert.deepEqual(open.practiseIt, { route: { screen: 'ConversationPractice', params: { packId: 'p1' } }, locked: false, feature: 'conversationPractice' });
+    assert.equal(open.fixes?.locked, false);
+    const shut = conversationCard({ ...args, access: lockedAll });
+    assert.equal(shut.practiseIt?.locked, true);
+    assert.equal(shut.fixes?.locked, true, 'the fixes row hides the lock its route opens');
+    const empty = conversationCard({ ...args, bank: [], deck: [] });
+    assert.equal(empty.practiseIt, null, 'Practise it opens a sitting that cannot start');
+  });
+
+  test('the café row says what it costs, draws no "free" and takes the sounds lock from the seam', () => {
+    assert.equal(cafeRow(lockedAll).locked, true);
+    assert.equal(cafeRow(unlocked).locked, false);
+    const row = cafeRow(unlocked);
+    assert.doesNotMatch(`${row.line} ${row.cost}`, /\bfree\b/i, 'the café lesson says free while it uses live minutes');
   });
 });

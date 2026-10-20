@@ -157,12 +157,22 @@ export interface StagesView {
   hereLine: string;
   /** "Earn all 3 Starter abilities to move up to Basics.", or null at Basics. */
   moveUp: string | null;
+  /**
+   * How far the brand fill runs along the track, as a fraction of the row
+   * (2026-10-20 UI-008, artboard B-Journey: 7% at Starter, from the first
+   * node's centre at 10%). Each stage reached adds a fifth. Never goes down:
+   * it reads the same spine level as "You're here".
+   */
+  fill: number;
 }
 
 /** The real A0 missions on the spine, counted from the catalogue. */
 export function startingOutMissions(): readonly Mission[] {
   return SCENE_SPINE.map((id) => getMission(id)).filter((m): m is Mission => m !== undefined && m.cefr === 'A0');
 }
+
+/** The artboard's fill at the first stage, as a fraction of the row. */
+export const STAGE_FILL = 0.07;
 
 export function stagesFrom(progress: readonly MissionProgress[]): StagesView {
   const here = spineFrom(progress).level === 'A1' ? 1 : 0;
@@ -177,6 +187,7 @@ export function stagesFrom(progress: readonly MissionProgress[]): StagesView {
     steps,
     hereLine: `${YOU_ARE_HERE}: ${STAGES[here]!}`,
     moveUp: here === 0 ? `Earn all ${a0} ${STAGES[0]} abilities to move up to ${STAGES[1]}.` : null,
+    fill: STAGE_FILL + here / STAGES.length,
   };
 }
 
@@ -346,6 +357,8 @@ export interface ThenNowCard {
   scene: string;
   first: { label: string; help: string };
   best: { label: string; help: string } | null;
+  /** Said in the dashed cell when there is no best yet (B-ThenNow's line, on the tab card too). */
+  hint: string | null;
   locked: boolean;
   /** When set, the tab draws this line instead of the first-and-best card. */
   teaser: string | null;
@@ -369,6 +382,7 @@ export function thenNowCard(completions: readonly StoredCompletion[], access: Ac
     scene: mission.title,
     first: { label: firstLabel(tries), help: first.help },
     best: best === null ? null : { label: `Best, ${shortDate(best.at)}`, help: best.help },
+    hint: best === null ? TRY_AGAIN_FOR_BEST : null,
     locked,
     teaser: teaserFor(locked, 'thenNow'),
     feature: 'thenAndNow',
@@ -487,6 +501,8 @@ export interface SoundRow {
   /** The inventory's first example word, French, or null. */
   example: string | null;
   line: string;
+  /** The letter tile's pastel, alternating peach and lavender down the list (B-Journey). */
+  tile: 'peach' | 'lavender';
 }
 
 export interface SoundsView {
@@ -513,14 +529,14 @@ export function soundsView(input: { checks: readonly SoundCheckEvidence[]; now: 
     const line = soundLine(check);
     if (phoneme === undefined || line === null) continue;
     seen.add(check.phoneme);
-    rows.push({ key: phoneme.ipa, ipa: phoneme.ipa, example: phoneme.examples[0] ?? null, line });
+    rows.push({ key: phoneme.ipa, ipa: phoneme.ipa, example: phoneme.examples[0] ?? null, line, tile: rows.length % 2 === 0 ? 'peach' : 'lavender' });
     if (rows.length === SOUND_ROWS) break;
   }
   if (rows.length === 0) {
     const measured = usable.find(isMeasuredCheck);
     const line = measured === undefined ? null : soundLine(measured);
     if (line === null) return null;
-    rows.push({ key: 'latest', ipa: null, example: null, line });
+    rows.push({ key: 'latest', ipa: null, example: null, line, tile: 'peach' });
   }
   const locked = isLocked(input.access ?? featureAccess, 'sounds');
   return {
@@ -541,6 +557,8 @@ export interface WeekRow {
   label: string;
   line: string;
   route: JourneyRoute | null;
+  /** The row's 10pt dot (B-Journey): mint went well, sun to focus on, brand where next. */
+  dot: 'mint' | 'sun' | 'brand';
 }
 
 export interface WeekView {
@@ -554,9 +572,9 @@ export interface WeekView {
 export function weekView(reflection: Reflection, access: Access = featureAccess): WeekView | null {
   if (!hasReflection(reflection) || (reflection.improvement === null && reflection.focus === null)) return null;
   const rows: WeekRow[] = [];
-  if (reflection.improvement !== null) rows.push({ key: 'improvement', label: REFLECTION_COPY.improvement, line: reflection.improvement, route: null });
-  if (reflection.focus !== null) rows.push({ key: 'focus', label: REFLECTION_COPY.focus, line: reflection.focus, route: null });
-  if (reflection.next !== null) rows.push({ key: 'next', label: REFLECTION_COPY.next, line: reflection.next.title, route: { screen: 'ScenePreview', params: { missionId: reflection.next.missionId } } });
+  if (reflection.improvement !== null) rows.push({ key: 'improvement', label: REFLECTION_COPY.improvement, line: reflection.improvement, route: null, dot: 'mint' });
+  if (reflection.focus !== null) rows.push({ key: 'focus', label: REFLECTION_COPY.focus, line: reflection.focus, route: null, dot: 'sun' });
+  if (reflection.next !== null) rows.push({ key: 'next', label: REFLECTION_COPY.next, line: reflection.next.title, route: { screen: 'ScenePreview', params: { missionId: reflection.next.missionId } }, dot: 'brand' });
   const locked = isLocked(access, 'fullJourney');
   return { rows: locked ? [] : rows, locked, teaser: teaserFor(locked, 'week'), feature: 'fullJourney' };
 }

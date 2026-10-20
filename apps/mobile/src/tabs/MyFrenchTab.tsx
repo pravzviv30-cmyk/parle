@@ -1,14 +1,17 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import { DAILY_SCENARIOS, MISSIONS, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 
-import { Card, CheckGlyph, Chip, ColourCard, IconAction, Ledger, LedgerRow, LOCK_BADGE_LABEL, LockBadge, OutlineButton, PillButton, Sheet, StatRow, StatTile } from '../components.tsx';
-import { Icon } from '../icons/Icon.tsx';
+import { Ledger, LedgerRow, LOCK_BADGE_LABEL, OutlineButton, Press, Sheet } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
-import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
+import { Columns, ScrollScreen, TabHeader, TopInset } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { HIT, colour, decorative, frenchText, paper, space, textOn, type } from '../theme.ts';
+import { bType, frenchText, space } from '../theme.ts';
+import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
+import { BButton } from '../today/TodayParts.tsx';
+import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, SoundRowView, StageTrack, TryCell, TwoUp, UsedChip, WeekRowView } from '../journey/JourneyParts.tsx';
 import { LivingBar } from '../motion/LivingBar.tsx';
 import { storyFrom, hasStory, type WeekStory } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
@@ -65,6 +68,7 @@ import {
   THEN_NOW_SUBTITLE,
   USED_HEADING,
   WEEK_HEADING,
+  YOU_ARE_HERE,
   canDoView,
   collectionTiles,
   emptyJourney,
@@ -78,7 +82,6 @@ import {
   usedView,
   weekView,
   type JourneyRoute,
-  type Segment,
 } from '../journey/journeyView.ts';
 
 /**
@@ -96,7 +99,12 @@ import {
  * access seam, through the view model. This tab starts no audio.
  */
 export function MyFrenchTab() {
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   const [badges, setBadges] = useState(false);
+  // The band is brand blue under the clock in both themes, so the bar is light
+  // while this tab is the one on screen (tabs stay mounted; the route's bar returns on blur).
+  const focused = useIsFocused();
   useFocusEffect(useCallback(() => () => setBadges(false), []));
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
@@ -258,13 +266,6 @@ export function MyFrenchTab() {
     });
   };
 
-  const sectionTitle = (title: string, locked: boolean) => (
-    <View style={st.titleRow}>
-      <Text accessibilityRole="header" style={[type.heading, st.grow, { color: paper.ink }]}>{title}</Text>
-      {locked && <LockBadge />}
-    </View>
-  );
-
   /** A locked section's one line (B-Journey): the heading keeps its badge, and this opens the Wall. */
   const teaser = (line: string, feature: LockedFeature) => (
     <Ledger>
@@ -272,39 +273,34 @@ export function MyFrenchTab() {
     </Ledger>
   );
 
-  const words = (segments: readonly Segment[], color: string) => (
-    <Text style={[type.small, { color }]}>
-      {segments.map((s, i) => s.fr ? <Text key={i} {...frenchText}>{s.text}</Text> : s.text)}
-    </Text>
-  );
-
+  // 2026-10-20 UI-008, artboard B-Journey: the brand band (radius 0 0 36 36,
+  // padding 62 22 22, gap 16) runs full bleed under the status bar.
+  // The light status bar is a sibling of the scroll that draws nothing, so the
+  // ScrollScreen stays the one layout root and keeps its bounded height (2026-10-21).
   return (
-    <ScrollScreen bottom="tab">
-      <ColourCard ground="blue" style={st.head}>
-        <TabHeader title={JOURNEY_TITLE} ink={textOn.blue} trailing={<ProfileButton />}>
-          {renderStatus === 'ready' && !empty && <Text style={[type.eyebrow, { color: colour.sun }]}>{stages.eyebrow}</Text>}
-        </TabHeader>
-        {/* The level is XP from practice, on its own white card so it never
-            reads as progress through the stages below (B4 review). */}
+    <>
+    {focused ? <StatusBar style="light" /> : null}
+    <ScrollScreen bottom="tab" padded={false} bleedTop>
+      <View style={st.band}>
+        <TopInset extra={space(2)} />
+        <TabHeader title={JOURNEY_TITLE} flush ink={t.onBrand} trailing={<ProfileButton inverted />}
+          eyebrow={renderStatus === 'ready' && !empty ? <Text style={[bType.bold14, { color: t.sun }]}>{stages.eyebrow}</Text> : undefined} />
         {level !== null && (
-          <Card style={st.levelRow}>
-            <View style={st.levelChip}><Text style={[type.label, { color: paper.ink }]}>{level.title}</Text></View>
-            <LivingBar from={level.fraction} to={level.fraction} color={colour.blue} track={paper.line} accessibilityLabel={level.barLabel} style={st.grow} />
-            <Text style={[type.small, { color: paper.inkSoft }]} {...decorative}>{level.xp}</Text>
-          </Card>
+          <LevelRow title={level.title} xp={level.xp}
+            bar={<LivingBar from={level.fraction} to={level.fraction} color={t.sun} track={t.violet2} height={space(2)} radius={space(1)} accessibilityLabel={level.barLabel} />} />
         )}
         {renderStatus === 'ready' && (
-          <StatRow>
-            {stats.map((stat) => <StatTile key={stat.key} compact value={stat.value} label={stat.label} />)}
-          </StatRow>
+          <View style={st.stats}>
+            {stats.map((stat) => <BandStat key={stat.key} value={stat.value} label={stat.label} />)}
+          </View>
         )}
-      </ColourCard>
+      </View>
 
-      {renderStatus === 'loading' && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>Finding your French.</Text>}
+      <View style={st.body}>
+        {renderStatus === 'loading' && <Text style={[bType.line16, { color: t.muted }]}>Finding your French.</Text>}
 
-      {/* A failed read is a row like every other door, not a button. */}
-      {renderStatus === 'unread' && (
-        <View style={st.block}>
+        {/* A failed read is a row like every other door, not a button. */}
+        {renderStatus === 'unread' && (
           <Ledger>
             <LedgerRow
               glyph={<IconTile ground="skeleton" name="book" size={ROW_TILE} />}
@@ -317,168 +313,110 @@ export function MyFrenchTab() {
               }}
             />
           </Ledger>
-        </View>
-      )}
+        )}
 
-      {empty && (
-        <Card style={[st.stack, st.block]}>
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{start.title}</Text>
-          <Text style={[type.body, { color: paper.inkSoft }]}>{start.body}</Text>
-          <PillButton label={start.start} disabled={checking} onPress={startFirst} />
-          {heldBack && (
-            <View style={st.stack}>
-              <Text style={[type.small, { color: paper.inkSoft }]}>{TUTOR_OFFLINE.body}</Text>
-              <LocalPracticeCard />
-              <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
-            </View>
-          )}
-        </Card>
-      )}
+        {/* 2026-10-20 UI-008, artboard B-Empty-States: the butter card and its one 46pt start. */}
+        {empty && (
+          <EmptyJourneyCard title={start.title} body={start.body}>
+            <BButton label={start.start} height={46} ground={t.primary} ink={t.onPrimary} text={bType.bold15} hug disabled={checking} onPress={startFirst} />
+            {heldBack && (
+              <View style={st.stack}>
+                <Text style={[bType.meta, { color: t.secondary }]}>{TUTOR_OFFLINE.body}</Text>
+                <LocalPracticeCard />
+                <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
+              </View>
+            )}
+          </EmptyJourneyCard>
+        )}
 
-      {renderStatus === 'ready' && !empty && (
-        <View style={st.block}>
+        {renderStatus === 'ready' && !empty && (
           <Columns>
             <View style={st.page}>
               <View style={st.stack}>
-                <View>
-                  <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{STAGE_HEADING}</Text>
-                  <Text style={[type.small, { color: paper.inkSoft }]}>{STAGE_INTRO}</Text>
-                </View>
-                <Card style={st.stack}>
-                  <View style={st.stages}>
-                    {stages.steps.map((step) => (
-                      <View key={step.label} style={st.stage} accessible accessibilityLabel={step.accessibilityLabel}>
-                        <View style={[st.stageDisc, step.state === 'ahead' ? st.stageAhead : { backgroundColor: colour.blue }]}>
-                          {step.state === 'done'
-                            ? <CheckGlyph size={18} color={paper.onInk} />
-                            : <Text style={[type.label, { color: step.state === 'here' ? paper.onInk : paper.inkSoft }]}>{step.number}</Text>}
-                        </View>
-                        <Text style={[type.small, { color: step.state === 'ahead' ? paper.inkSoft : paper.ink }]}>{step.label}</Text>
-                        {/* 2026-10-20, sim nits: the current stage carries a flag glyph; its words span the row below. */}
-                        {step.state === 'here' && <View {...decorative}><Icon name="flag" size={16} color={colour.blue} /></View>}
-                      </View>
-                    ))}
-                  </View>
-                  {/* Said already by the stage's own label, so heard once. */}
-                  <View {...decorative} style={st.hereRow}>
-                    <Chip variant="meta" tone="lavender" leading={<Icon name="flag" size={16} color={colour.blue} />} label={stages.hereLine} />
-                  </View>
-                  {stages.moveUp !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{stages.moveUp}</Text>}
-                </Card>
+                <JourneyHead title={STAGE_HEADING} locked={false} subtitle={STAGE_INTRO} />
+                <StageTrack steps={stages.steps} fill={stages.fill} moveUp={stages.moveUp} hereWord={YOU_ARE_HERE} />
               </View>
 
               {(canDo.rows.length > 0 || canDo.teaser !== null) && (
                 <View style={st.stack}>
-                  {sectionTitle(CAN_DO_HEADING, canDo.locked)}
-                  {canDo.teaser !== null ? teaser(canDo.teaser, canDo.feature) : <Card style={st.stack}>
-                    {canDo.rows.map((row) => (
-                      <View key={row.missionId} style={st.canDo} accessible accessibilityLabel={row.accessibilityLabel}>
-                        <View {...decorative} style={[st.mark, row.mark === 'earned' ? { backgroundColor: colour.mint } : row.mark === 'helped' ? { borderWidth: 3, borderColor: colour.sun } : { borderWidth: 3, borderColor: colour.ring }]}>
-                          {row.mark === 'earned' ? <CheckGlyph size={16} color={paper.ink} /> : null}
-                        </View>
-                        <View style={st.grow}>
-                          <Text style={[type.bodyStrong, { color: paper.ink }]}>{row.title}</Text>
-                          {words(row.line, row.mark === 'earned' ? colour.mintWords : paper.inkSoft)}
-                        </View>
-                      </View>
+                  <JourneyHead title={CAN_DO_HEADING} locked={canDo.locked} />
+                  {canDo.teaser !== null ? teaser(canDo.teaser, canDo.feature) : <JourneyList>
+                    {canDo.rows.map((row, i) => (
+                      <AbilityRow key={row.missionId} title={row.title} mark={row.mark} line={row.line} accessibilityLabel={row.accessibilityLabel} last={i === canDo.rows.length - 1} />
                     ))}
-                  </Card>}
+                  </JourneyList>}
                 </View>
               )}
 
               {thenNow !== null && (
                 <View style={st.stack}>
-                  {sectionTitle(THEN_NOW_HEADING, thenNow.locked)}
-                  {thenNow.teaser !== null ? teaser(thenNow.teaser, thenNow.feature) : <>
-                  <Text style={[type.small, { color: paper.inkSoft }]}>{THEN_NOW_SUBTITLE}</Text>
-                  <ColourCard ground="pastel.lavender" onPress={() => go(thenNow.route)}
-                    accessibilityLabel={`${THEN_NOW_HEADING}, ${thenNow.scene}. ${thenNow.first.label}, ${thenNow.first.help}.${thenNow.best === null ? '' : ` ${thenNow.best.label}, ${thenNow.best.help}.`}`}>
-                    <Text {...frenchText} style={[type.bodyStrong, { color: paper.ink }]}>{thenNow.scene}</Text>
-                    <View style={st.cells}>
-                      <View style={[st.cell, { backgroundColor: paper.card }]}>
-                        <Text style={[type.small, { color: paper.inkSoft }]}>{thenNow.first.label}</Text>
-                        <Text style={[type.bodyStrong, { color: paper.ink }]}>{thenNow.first.help}</Text>
-                      </View>
-                      {thenNow.best !== null && (
-                        <View style={[st.cell, { backgroundColor: colour.mintWash }]}>
-                          <Text style={[type.small, { color: colour.mintWords }]}>{thenNow.best.label}</Text>
-                          <Text style={[type.bodyStrong, { color: paper.ink }]}>{thenNow.best.help}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </ColourCard>
-                  <IconAction layout="inline" icon="forward" label={SEE_ALL} accessibilityLabel={`${SEE_ALL}, ${THEN_NOW_HEADING}`} onPress={() => go(thenNow.route)} />
-                  </>}
+                  <JourneyHead title={THEN_NOW_HEADING} locked={thenNow.locked} subtitle={thenNow.teaser !== null ? undefined : THEN_NOW_SUBTITLE}
+                    link={thenNow.teaser !== null ? undefined : { label: SEE_ALL, accessibilityLabel: `${SEE_ALL}, ${THEN_NOW_HEADING}`, onPress: () => go(thenNow.route) }} />
+                  {thenNow.teaser !== null ? teaser(thenNow.teaser, thenNow.feature) : (
+                    <Press haptic="light" onPress={() => go(thenNow.route)} style={st.card}
+                      accessibilityLabel={`${THEN_NOW_HEADING}, ${thenNow.scene}. ${thenNow.first.label}, ${thenNow.first.help}.${thenNow.best === null ? '' : ` ${thenNow.best.label}, ${thenNow.best.help}.`}`}>
+                      <Text {...frenchText} style={[bType.bold16, { color: t.text }]}>{thenNow.scene}</Text>
+                      <TwoUp>
+                        <TryCell tone="first" size="card" label={thenNow.first.label} help={thenNow.first.help} />
+                        {thenNow.best !== null
+                          ? <TryCell tone="best" size="card" label={thenNow.best.label} help={thenNow.best.help} />
+                          : thenNow.hint !== null ? <DashedCell line={thenNow.hint} /> : null}
+                      </TwoUp>
+                    </Press>
+                  )}
                 </View>
               )}
 
               {used !== null && (
                 <View style={st.stack}>
-                  {sectionTitle(USED_HEADING, used.locked)}
-                  {used.teaser !== null ? teaser(used.teaser, used.feature) : <>
-                  <Text style={[type.small, { color: paper.inkSoft }]}>{used.subtitle}</Text>
-                  <Card style={st.stack}>
-                    <View style={st.chips}>
-                      {used.phrases.map((fr) => <Chip key={fr} variant="meta" tone="lavender" lang="fr" label={fr} />)}
+                  <JourneyHead title={USED_HEADING} locked={used.locked} subtitle={used.teaser !== null ? undefined : used.subtitle} />
+                  {used.teaser !== null ? teaser(used.teaser, used.feature) : (
+                    <View style={st.card}>
+                      <View style={st.chips}>
+                        {used.phrases.map((fr) => <UsedChip key={fr} fr={fr} />)}
+                      </View>
+                      {used.transferLine !== null && <Text style={[bType.note, st.hairline, { color: t.muted }]}>{used.transferLine}</Text>}
                     </View>
-                    {used.transferLine !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{used.transferLine}</Text>}
-                  </Card>
-                  </>}
+                  )}
                 </View>
               )}
             </View>
 
             <View style={st.page}>
               {help !== null && (
-                <ColourCard ground="mint"
+                <HelpCard heading={HELP_HEADING} line={help.line} locked={help.locked}
                   onPress={help.teaser !== null ? () => { if (owned()) locks.open(help.feature); } : undefined}
-                  accessibilityLabel={help.teaser !== null ? `${HELP_HEADING}, ${LOCK_BADGE_LABEL}. ${help.line}` : undefined}>
-                  <View style={st.titleRow}>
-                    <Text accessibilityRole="header" style={[type.label, st.grow, { color: textOn.mint }]}>{HELP_HEADING}</Text>
-                    {help.locked && <LockBadge ground="card" said />}
-                  </View>
-                  <Text style={[type.bodyStrong, { color: textOn.mint }]}>{help.line}</Text>
-                </ColourCard>
+                  accessibilityLabel={help.teaser !== null ? `${HELP_HEADING}, ${LOCK_BADGE_LABEL}. ${help.line}` : undefined} />
               )}
 
               {sounds !== null && (
                 <View style={st.stack}>
-                  {sectionTitle(SOUNDS_HEADING, sounds.locked)}
-                  {sounds.teaser !== null ? teaser(sounds.teaser, sounds.feature) : <Card style={st.stack}>
-                    {sounds.rows.map((row) => (
-                      <View key={row.key} style={st.canDo}>
-                        {row.ipa !== null && <View style={st.sound} {...decorative}><Text style={[type.label, { color: paper.ink }]}>{row.ipa}</Text></View>}
-                        <View style={st.grow}>
-                          {row.example !== null && <Text style={[type.bodyStrong, { color: paper.ink }]}>As in “<Text {...frenchText}>{row.example}</Text>”</Text>}
-                          <Text style={[type.small, { color: paper.inkSoft }]}>{row.line}</Text>
-                        </View>
-                      </View>
+                  <JourneyHead title={SOUNDS_HEADING} locked={sounds.locked} />
+                  {sounds.teaser !== null ? teaser(sounds.teaser, sounds.feature) : <JourneyList>
+                    {sounds.rows.map((row, i) => (
+                      <SoundRowView key={row.key} ipa={row.ipa} example={row.example} line={row.line} tile={row.tile} last={i === sounds.rows.length - 1}
+                        practise={i === sounds.rows.length - 1 ? { label: PRACTISE, accessibilityLabel: `${PRACTISE} your sounds`, onPress: () => go(sounds.practise) } : null} />
                     ))}
-                    <PillButton variant="secondary" compact label={PRACTISE} accessibilityLabel={`${PRACTISE} your sounds`} onPress={() => go(sounds.practise)} />
-                  </Card>}
+                  </JourneyList>}
                 </View>
               )}
 
               {week !== null && (
                 <View style={st.stack}>
-                  {sectionTitle(WEEK_HEADING, week.locked)}
-                  {week.teaser !== null ? teaser(week.teaser, week.feature) : <Ledger>
-                    {week.rows.map((row) => (
-                      <LedgerRow key={row.key} label={row.label} title={row.line} accessibilityLabel={`${row.label}. ${row.line}`}
+                  <JourneyHead title={WEEK_HEADING} locked={week.locked} />
+                  {week.teaser !== null ? teaser(week.teaser, week.feature) : <JourneyList>
+                    {week.rows.map((row, i) => (
+                      <WeekRowView key={row.key} label={row.label} line={row.line} dot={row.dot} last={i === week.rows.length - 1}
                         onPress={row.route === null ? () => nav.navigate('WeekWrapped') : () => go(row.route!)} />
                     ))}
-                  </Ledger>}
+                  </JourneyList>}
                 </View>
               )}
 
               <View style={st.tiles}>
                 {tiles.map((tile) => (
-                  <ColourCard key={tile.key} ground={tile.key === 'postcards' ? 'pastel.peach' : 'pastel.lavender'} style={st.tile}
-                    accessibilityLabel={`${tile.title}, ${tile.line}`}
-                    onPress={() => ('sheet' in tile.route ? setBadges(true) : go(tile.route))}>
-                    <Text style={[type.bodyStrong, { color: paper.ink }]}>{tile.title}</Text>
-                    <Text style={[type.small, { color: paper.inkSoft }]}>{tile.line}</Text>
-                  </ColourCard>
+                  <CollectionTile key={tile.key} kind={tile.key} title={tile.title} line={tile.line}
+                    onPress={() => ('sheet' in tile.route ? setBadges(true) : go(tile.route))} />
                 ))}
               </View>
 
@@ -505,46 +443,45 @@ export function MyFrenchTab() {
               )}
             </View>
           </Columns>
-        </View>
-      )}
+        )}
 
-      {/* The weekly day line reads its own record, whatever else is drawn. */}
-      {renderStatus !== 'ready' && <DayCount weekly />}
+        {/* The weekly day line reads its own record, whatever else is drawn. */}
+        {renderStatus !== 'ready' && <DayCount weekly />}
+      </View>
 
-      <Sheet visible={badges} title="Badges" onClose={() => setBadges(false)}>
-        <View style={st.stack}>
-          <BadgeShelf />
-          <StreakSummaryCard><DayCount weekly /></StreakSummaryCard>
-        </View>
-      </Sheet>
+      {/* The badge shelf and the streak card are not rebuilt for dark yet, so their sheet stays light. */}
+      <PinLight>
+        <Sheet visible={badges} title="Badges" onClose={() => setBadges(false)}>
+          <View style={st.stack}>
+            <BadgeShelf />
+            <StreakSummaryCard><DayCount weekly /></StreakSummaryCard>
+          </View>
+        </Sheet>
+      </PinLight>
     </ScrollScreen>
+    </>
   );
 }
 
 /** A ledger row's tile: a little under the touch floor, the row itself being the target. */
 const ROW_TILE = space(10);
 
-const st = StyleSheet.create({
-  // The blocks are the scroll's own children (F383): no wrapper that can grow.
-  head: { gap: space(4) },
-  block: { marginTop: space(6) },
-  page: { gap: space(7) },
-  stack: { gap: space(3) },
-  grow: { flex: 1, minWidth: 0 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2), minHeight: HIT },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), paddingVertical: space(3) },
-  levelChip: { backgroundColor: colour.sun, borderRadius: space(3), paddingHorizontal: space(2.5), paddingVertical: space(1.5) },
-  stages: { flexDirection: 'row', justifyContent: 'space-between', gap: space(1) },
-  stage: { flex: 1, minWidth: 0, alignItems: 'center', gap: space(1.5), minHeight: HIT },
-  stageDisc: { width: space(10), height: space(10), borderRadius: space(5), alignItems: 'center', justifyContent: 'center' },
-  hereRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  stageAhead: { backgroundColor: paper.card, borderWidth: 2, borderColor: colour.ring },
-  canDo: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3), minHeight: HIT },
-  mark: { width: space(7), height: space(7), borderRadius: space(3.5), alignItems: 'center', justifyContent: 'center' },
-  sound: { width: HIT, height: HIT, borderRadius: space(3.5), backgroundColor: colour.mintWash, alignItems: 'center', justifyContent: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-  cells: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-  cell: { flex: 1, minWidth: space(30), borderRadius: space(3.5), padding: space(2.5), gap: space(0.5) },
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2.5) },
-  tile: { flex: 1, minWidth: space(36), gap: space(2), padding: space(4) },
-});
+// 2026-10-20 UI-008, artboard B-Journey: the band, the body (padding 24 22,
+// gap 28) and the white cards, from `useB()` so they follow light and dark.
+const makeStyles = (t: B) =>
+  StyleSheet.create({
+    // M3: a blue card keeps the brand blue in both themes (as Today's week card),
+    // its words onBrand, onBrandSoft and sun.
+    // The band's own 22 all round; its top is the status bar's, through TopInset.
+    band: { backgroundColor: t.brand, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, padding: 22, paddingTop: 0, gap: space(4) },
+    stats: { flexDirection: 'row', gap: space(2) },
+    // The blocks are the scroll's own children (F383): no wrapper that can grow.
+    // The air above the tab bar is the frame's (F340).
+    body: { paddingTop: space(6), paddingHorizontal: 22, gap: space(7) },
+    page: { gap: space(7) },
+    stack: { gap: space(3) },
+    card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    hairline: { borderTopWidth: 1, borderTopColor: t.line, paddingTop: 10 },
+    tiles: { flexDirection: 'row', gap: 10 },
+  });

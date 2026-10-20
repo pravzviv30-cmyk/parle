@@ -14,7 +14,7 @@ import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { COMPLETIONS_PER_MISSION } from '../missions/store.ts';
 import { retainCompletions } from '../missions/retain.ts';
 import { shortDate, type StoredCompletion } from './journeyView.ts';
-import { LEGEND, STATUS, THEN_NOW_FOOTER, THEN_NOW_INTRO, THEN_NOW_TITLE, TRY_IT_AGAIN, thenNowView } from './thenNowView.ts';
+import { HELP_BAR, LEGEND, LEGEND_BARS, STATUS, THEN_NOW_FOOTER, THEN_NOW_INTRO, THEN_NOW_TITLE, TRY_IT_AGAIN, thenNowView } from './thenNowView.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date(2026, 9, 20, 12).getTime();
@@ -38,8 +38,10 @@ describe('then and now, per guided scene', () => {
     ];
     const row = view(stored).rows.find((r) => r.missionId === 'mission:premier-cafe')!;
     assert.equal(row.status, STATUS.earned);
-    assert.deepEqual(row.first, { label: 'First, 12 Oct', help: 'Line given' });
-    assert.deepEqual(row.best, { label: 'Best, 17 Oct', help: 'On your own' }, 'a tired replay walked the best backwards');
+    // 2026-10-20 UI-008, artboard B-ThenNow: each cell carries its rung's bar colour too.
+    assert.deepEqual(row.first, { label: 'First, 12 Oct', help: 'Line given', bar: 'lavender' });
+    assert.deepEqual(row.best, { label: 'Best, 17 Oct', help: 'On your own', bar: 'mint' }, 'a tired replay walked the best backwards');
+    assert.equal(row.tile.ground, 'sage', 'an earned scene is not on the sage tile');
     assert.equal(row.hint, null);
     assert.deepEqual(row.route, { screen: 'ScenePreview', params: { missionId: 'mission:premier-cafe' } });
     assert.match(row.accessibilityLabel, /First, 12 Oct, Line given\. Best, 17 Oct, On your own/);
@@ -48,7 +50,10 @@ describe('then and now, per guided scene', () => {
   test('a single try says "Tried once", has no best, and asks for another go', () => {
     const row = view([{ id: 'mission:cafe', at: at(18), rung: 2 }]).rows.find((r) => r.missionId === 'mission:cafe')!;
     assert.equal(row.status, STATUS.once);
-    assert.deepEqual(row.first, { label: 'First, 18 Oct', help: 'Choices' });
+    // 2026-10-20 UI-008, artboard B-ThenNow: Choices draws the periwinkle bar, on the butter tile.
+    assert.deepEqual(row.first, { label: 'First, 18 Oct', help: 'Choices', bar: 'periwinkle' });
+    assert.equal(row.tile.ground, 'butter');
+    assert.deepEqual(row.tile.icon, { name: 'icon-cafe', width: 28, height: 26 });
     assert.equal(row.best, null);
     assert.equal(row.hint, 'Try again to see your best here');
     assert.deepEqual(row.route, { screen: 'ScenePreview', params: { missionId: 'mission:cafe' } });
@@ -61,6 +66,7 @@ describe('then and now, per guided scene', () => {
     assert.equal(row.first, null);
     assert.equal(row.best, null);
     assert.equal(row.route, null);
+    assert.equal(row.tile.ground, 'lavender', 'an untried scene is not on the lavender tile');
   });
 
   test('several tries with help, none on your own, are practised with help', () => {
@@ -97,6 +103,13 @@ describe('then and now, per guided scene', () => {
     assert.ok(!ids.includes('mission:marche'));
   });
 
+  // 2026-10-20 UI-008, artboard B-ThenNow: the legend's bars, most help first.
+  test('the legend pairs each help word with its bar, and the bars are marks, not numbers', () => {
+    assert.deepEqual(LEGEND_BARS.map((b) => b.word), [...LEGEND]);
+    assert.deepEqual(LEGEND_BARS.map((b) => b.bar), ['lavender', 'periwinkle', 'hint', 'mint']);
+    assert.deepEqual(HELP_BAR, { 1: 'lavender', 2: 'periwinkle', 3: 'hint', 4: 'mint' });
+  });
+
   test('help is words only, and the lock is the seam\'s', () => {
     const stored: StoredCompletion[] = [1, 2, 3, 4].map((rung, i) => ({ id: 'mission:cafe', at: at(10 + i), rung }));
     for (const row of view(stored).rows) {
@@ -121,9 +134,14 @@ describe('the Then and now screen', () => {
 
   test('Try it again opens the scene preview, back leaves, and the lock badge comes through the view', () => {
     assert.match(flat, /nav\.navigate\('ScenePreview', \{ missionId: row\.missionId \}\)/);
-    assert.match(flat, /back=\{\{ onPress: \(\) => \(nav\.canGoBack\(\) \? nav\.goBack\(\) : nav\.navigate\('Tabs'\)\) \}\}/);
-    assert.match(flat, /trailing=\{view\?\.locked \? <LockBadge \/> : undefined\}/);
-    assert.match(flat, /<PillButton variant="secondary"/);
+    // 2026-10-20 UI-008, artboard B-ThenNow: the 44pt white back button shares
+    // the title's row; the badge sits beside the 26/800 title; Try it again is
+    // the 44pt ink pill, drawn only while a scene has no best yet. It still
+    // opens the scene preview (not Speak): Speak takes no scene, and the
+    // preview is where a scene is started.
+    assert.match(flat, /<BackButton onPress=\{\(\) => \(nav\.canGoBack\(\) \? nav\.goBack\(\) : nav\.navigate\('Tabs'\)\)\} \/>/);
+    assert.match(flat, /\{view\?\.locked \? <LockBadge \/> : null\}/);
+    assert.match(flat, /\{row\.route !== null && row\.best === null && \( <BButton label=\{TRY_IT_AGAIN\}[^>]*height=\{44\} ground=\{t\.primary\}/);
   });
 
   test('it never reads the plan or the continue arc', () => {
@@ -135,8 +153,12 @@ describe('the Then and now screen', () => {
   });
 
   test('French scene names are tagged, decoration is hidden, and nothing is clipped', () => {
-    assert.match(flat, /<Text \{\.\.\.frenchText\} style=\{\[type\.bodyStrong, st\.grow/);
+    // 2026-10-20 UI-008, artboard B-ThenNow: the scene head is journey/JourneyParts' SceneHead.
+    const parts = read('./JourneyParts.tsx').replace(/\s+/g, ' ');
+    assert.match(parts, /<Text \{\.\.\.frenchText\} style=\{\[bType\.title17/);
     assert.match(flat, /accessible accessibilityLabel=\{row\.accessibilityLabel\}/);
+    assert.match(flat, /<View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>/, 'the cells are said twice');
     assert.doesNotMatch(screen, /numberOfLines|fontSize|—/);
+    assert.doesNotMatch(read('./JourneyParts.tsx'), /numberOfLines|fontSize|—/);
   });
 });

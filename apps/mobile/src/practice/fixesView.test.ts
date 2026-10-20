@@ -11,7 +11,7 @@ import { describe, test } from 'node:test';
 import { buildConversationPack, newCard, phraseKeyOf, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
 
 import type { LockedFeature } from '../access/featureAccess.ts';
-import { fixLabel, fixRows, fixesFor, fixesLocked, fixesPack, fixesSubtitle, inSentence, phraseRows, practiseAll } from './fixesView.ts';
+import { fixLabel, fixRows, fixesFor, fixesLocked, fixesPack, fixesSubtitle, inSentence, phraseRows, phraseTone, practiseAll, practiseAllDoor } from './fixesView.ts';
 
 const DAY = 86_400_000;
 const NOW = 1_800_000_000_000;
@@ -114,12 +114,25 @@ describe('the rest of the screen', () => {
   test('phrase status comes from each card, and never "Used in n conversations"', () => {
     const deck = [card('Je voudrais un croissant', { evidence: { retrievals: 0, convoUses: 2, transfers: 0 } })];
     assert.deepEqual(phraseRows(A, deck).map((r) => r.status), ['Used 2 times', 'Not practised yet']);
+    // 2026-10-21 UI-008, artboard B-Fixes: used is mint, recalled is the link, not yet is muted.
+    assert.deepEqual(phraseRows(A, deck).map((r) => r.tone), ['used', 'new']);
+    assert.equal(phraseTone('Recalled 3 times'), 'recalled');
+    assert.equal(phraseTone('Recalled before'), 'recalled');
+    assert.equal(phraseTone('Used once'), 'used');
     assert.doesNotMatch(readFileSync(fileURLToPath(new URL('./fixesView.ts', import.meta.url)), 'utf8'), /['`]Used in/);
   });
 
   test('the header line names the conversation and its day; an unknown pack has none', () => {
     assert.equal(fixesSubtitle(A, NOW), 'Title a, yesterday');
     assert.equal(inSentence('12 Oct'), 'on 12 Oct');
+    // 2026-10-21, sim check: "on" only before a weekday or a date, never a relative day.
+    assert.equal(inSentence('Monday'), 'on Monday');
+    assert.equal(inSentence('2 days ago'), '2 days ago');
+    assert.equal(inSentence('3 weeks ago'), '3 weeks ago');
+    assert.equal(inSentence('Yesterday'), 'yesterday');
+    assert.equal(inSentence('Today'), 'today');
+    assert.equal(inSentence('Last week'), 'last week');
+    assert.equal(fixesSubtitle(buildConversationPack({ ...A, createdAt: new Date(NOW - 2 * 86_400_000).toISOString() }), NOW), 'Title a, 2 days ago');
     assert.equal(fixesPack('missing', [A]), null);
     assert.equal(fixesPack('a', [A])?.id, 'a');
   });
@@ -133,15 +146,19 @@ describe('the rest of the screen', () => {
     for (const asked of ['capabilitiesFor(', 'useContinueArc(']) assert.ok(!screen.includes(asked), `Your fixes calls ${asked}`);
     assert.doesNotMatch(screen, /(?<!use)featureAccess\(/, 'Your fixes asks the seam itself');
     assert.match(screen, /const locked = fixesLocked\(locks\.access\);/);
-    assert.match(screen, /\{locked && <LockBadge \/>\}\s*<Text[^>]*>\{fixesSubtitle\(pack, now\)\}/);
-    assert.match(screen, /\{FIX_COPY\.unknownTitle\}/, 'an unknown conversation has no calm fallback');
-    assert.match(screen, /<OutlineButton label=\{FIX_COPY\.back\} onPress=\{back\} \/>/, 'the fallback has no way back');
+    // 2026-10-21 UI-008, artboard B-Fixes: the trial pill sits beside the 26/800 title, as drawn, in FixesHeader.
+    assert.match(screen, /<FixesHeader title=\{FIXES_TITLE\} subtitle=\{fixesSubtitle\(pack, now\)\} locked=\{locked\} onBack=\{back\} \/>/);
+    const parts = readFileSync(fileURLToPath(new URL('./FixesParts.tsx', import.meta.url)), 'utf8');
+    assert.match(parts, /\{title\}<\/Text>\s*\{locked && <LockBadge \/>\}/);
+    assert.match(screen, /title=\{FIX_COPY\.unknownTitle\}/, 'an unknown conversation has no calm fallback');
+    assert.match(screen, /<FixesNotice title=\{FIX_COPY\.unknownTitle\} body=\{FIX_COPY\.unknownBody\} action=\{FIX_COPY\.back\} onPress=\{back\} \/>/, 'the fallback has no way back');
   });
 
   test('the Why line is drawn only when the stored reason has words', () => {
     const screen = readFileSync(fileURLToPath(new URL('./FixesScreen.tsx', import.meta.url)), 'utf8');
-    assert.match(screen, /\{row\.why\.trim\(\) !== '' && <Text[^>]*>\{FIX_COPY\.why\} \{row\.why\}<\/Text>\}/, 'an empty reason still draws "Why:" over nothing');
-    assert.equal((screen.match(/\{FIX_COPY\.why\}/g) ?? []).length, 1);
+    // 2026-10-21 UI-008, artboard B-Fixes: the bold "Why:" and its reason are ComparedCard's.
+    assert.match(screen, /why=\{row\.why\.trim\(\) !== '' \? \{ label: FIX_COPY\.why, text: row\.why \} : null\}/, 'an empty reason still draws "Why:" over nothing');
+    assert.equal((screen.match(/FIX_COPY\.why\b/g) ?? []).length, 1);
   });
 
   test('the screen draws the answer only in the compared branch, and the typed attempt is never stored', () => {
@@ -149,6 +166,41 @@ describe('the rest of the screen', () => {
     const attempt = screen.slice(screen.indexOf("if (row.kind === 'attempt')"), screen.indexOf("if (row.kind === 'waiting')"));
     for (const answer of ['row.better', 'row.quote', 'row.why']) assert.ok(!attempt.includes(answer), `the attempt branch draws ${answer}`);
     assert.doesNotMatch(screen, /AsyncStorage|saveDeck|setItem|userKey\(/, 'Your fixes writes something');
-    assert.match(screen, /<TabBar tabs=\{SCOPES\}/, 'the This conversation and All conversations toggle is not the shared segmented control');
+    // 2026-10-21 UI-008, artboard B-Fixes: the toggle is the artboard's white segmented ScopeToggle, its chosen side carrying a tick and selected state.
+    assert.match(screen, /<ScopeToggle scopes=\{SCOPES\} active=\{scope\}/, 'the This conversation and All conversations toggle is not drawn from SCOPES');
+    const parts = readFileSync(fileURLToPath(new URL('./FixesParts.tsx', import.meta.url)), 'utf8');
+    assert.match(parts, /accessibilityState=\{\{ selected: on \}\}/);
+    assert.match(parts, /\{on \? <TickGlyph /);
+    // The try-first card takes no French at all, so no layout can reveal before a try.
+    const attemptPart = parts.slice(parts.indexOf('export function AttemptCard('), parts.indexOf('export function ComparedCard(')).replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(attemptPart, /better|quote|why|frenchText/, 'the try-first card can be handed the answer');
+    // Fix 1 try-first, a later fix only after a try, the rest collapsed with Try it.
+    assert.match(screen, /if \(row\.kind === 'attempt'\) \{\s*return \(\s*<AttemptCard /);
+    assert.match(screen, /if \(row\.kind === 'waiting'\) \{\s*return \(\s*<WaitingRow /);
+    assert.match(screen, /<ComparedCard /);
+  });
+});
+
+// 2026-10-21, sim check: B-Fixes always ends with Practise all fixes, even with one fix.
+describe('Practise all fixes is there whenever there is a fix to practise', () => {
+  const one = buildConversationPack({ ...A, corrections: [A.corrections[0]!] });
+  test('one fix with a drill opens the same drill as that fix', () => {
+    const fixes = fixesFor({ pack: one, packs: [one], deck: [], bank: [exercise(one.corrections[0]!.better)], scope: 'this', now: NOW });
+    assert.equal(fixes.length, 1);
+    const door = practiseAllDoor(fixes, 'this', one.id);
+    assert.equal(door?.kind, 'drill');
+    assert.deepEqual(door?.kind === 'drill' ? door.route : null, practiseAll(fixes, 'this', one.id));
+  });
+  test('one fix with no drill opens its try-first card here, and a typed try or no fix hides it', () => {
+    const fixes = fixesFor({ pack: one, packs: [one], deck: [], bank: [], scope: 'this', now: NOW });
+    assert.deepEqual(practiseAllDoor(fixes, 'this', one.id), { kind: 'try', key: fixes[0]!.key });
+    assert.equal(practiseAllDoor(fixes, 'this', one.id, { [fixes[0]!.key]: 'x' }), null);
+    assert.equal(practiseAllDoor([], 'this', one.id), null);
+  });
+  test('the screen draws the 54pt button from the door, not only from a drill', () => {
+    const screen = readFileSync(fileURLToPath(new URL('./FixesScreen.tsx', import.meta.url)), 'utf8');
+    assert.match(screen, /const all = practiseAllDoor\(fixes, scope, pack\.id, typed\);/);
+    assert.match(screen, /\{all !== null && <BButton label=\{FIX_COPY\.practiseAll\} height=\{54\}/);
+    assert.match(screen, /if \(all\.kind === 'drill'\) go\(all\.route\); else \{ setActive\(all\.key\);/);
   });
 });

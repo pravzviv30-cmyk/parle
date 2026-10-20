@@ -20,7 +20,9 @@
 
 import { createContext, useContext, type ReactElement } from 'react';
 import { View } from 'react-native';
-import { accent, colour, decorative, paper } from '../theme.ts';
+import { decorative } from '../theme.ts';
+import { b } from '../palette.ts';
+import { useB, type B } from '../main/bTheme.tsx';
 import { GoalDial, type GoalQuarters } from './GoalDial.tsx';
 import { Icon } from './Icon.tsx';
 import type { BulkIconName } from './names.ts';
@@ -29,17 +31,24 @@ import type { BulkIconName } from './names.ts';
 export type TileGround = 'blue' | 'coral' | 'sun' | 'mint' | 'ink' | 'skeleton';
 
 /** Each ground and the one mark colour that may sit on it. */
-export const TILE_GROUND: Readonly<Record<TileGround, { readonly fill: string; readonly mark: string }>> = {
-  blue: { fill: colour.blue, mark: paper.onInk },
-  coral: { fill: colour.coral, mark: paper.onInk },
-  sun: { fill: colour.sun, mark: paper.ink },
-  mint: { fill: colour.mint, mark: paper.ink },
-  ink: { fill: paper.ink, mark: paper.onInk },
-  skeleton: { fill: paper.skeleton, mark: paper.ink },
-};
+// 2026-10-21 UI-008: the pairs read the theme (useB), so a tile follows dark on
+// a dark-ready screen; `b.light` is the old paper and colour values exactly.
+export function tileGrounds(t: B | typeof b.light): Readonly<Record<TileGround, { readonly fill: string; readonly mark: string }>> {
+  return {
+    blue: { fill: t.brand, mark: t.onBrand },
+    coral: { fill: t.coral, mark: t.onBrand },
+    sun: { fill: t.sun, mark: t.onMint },
+    mint: { fill: t.mint, mark: t.onMint },
+    ink: { fill: t.primary, mark: t.onPrimary },
+    skeleton: { fill: t.skeleton, mark: t.text },
+  };
+}
 
-/** A tile on a chosen choice: white, with the mark in the brand blue. */
-const CHOSEN = { fill: paper.card, mark: accent.brand } as const;
+/** The light pairs, for callers outside a theme. */
+export const TILE_GROUND = tileGrounds(b.light);
+
+/** A tile on a chosen choice: the card, with the mark in the brand blue (the link in dark). */
+const chosenTile = (t: B | typeof b.light) => ({ fill: t.card, mark: t.link });
 
 /** Whether the tiles inside sit on a chosen choice. Provided by `Choice` alone. */
 export const TileOnChosen = createContext(false);
@@ -68,6 +77,9 @@ export type IconTileProps = {
 
 export function IconTile({ ground, size = 48, name, dial }: IconTileProps): ReactElement {
   const chosen = useContext(TileOnChosen);
+  const t = useB();
+  const CHOSEN = chosenTile(t);
+  const TILE_GROUND = tileGrounds(t);
   const { fill, mark } = chosen ? CHOSEN : TILE_GROUND[ground];
   const inner = Math.round(size * MARK);
   return (

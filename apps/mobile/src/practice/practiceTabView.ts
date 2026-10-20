@@ -122,6 +122,27 @@ export function packsInTopic(packs: readonly ConversationPack[], chosen: Explore
   return orderedConversationPacks(packs).filter((pack) => topic === null || packTopics(pack).includes(topic));
 }
 
+// ─────────────────────────────────────────────────────────────── search
+
+export const SEARCH_PLACEHOLDER = 'Search your conversations';
+export const SEARCH_NONE = 'No conversation on this page matches that.';
+
+const searchable = (text: string): string => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').replace(/\s+/g, ' ').trim();
+
+/**
+ * Search over the conversations on this page, on the device: a pack matches
+ * when every word typed is in its title (English or French) or its summary,
+ * accents and case aside. An empty query matches everything.
+ */
+export function packsMatching(packs: readonly ConversationPack[], query: string): ConversationPack[] {
+  const words = searchable(query).split(' ').filter((word) => word !== '');
+  if (words.length === 0) return [...packs];
+  return packs.filter((pack) => {
+    const text = searchable([pack.title.en, pack.title.fr, pack.summary].join(' '));
+    return words.every((word) => text.includes(word));
+  });
+}
+
 // ─────────────────────────────────────────────────────────────── pick up where you stopped
 
 export const PICK_UP_TITLE = 'Pick up where you stopped';
@@ -162,16 +183,36 @@ export function pickUp(input: {
 // ─────────────────────────────────────────────────────────────── comes up often
 
 /**
- * 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" returns built
- * from a stored correction reason kept with each fix, once
- * docs/PRIVACY_AND_SAFETY.md has a row for it. The logic below stays tested;
- * no screen draws it while this is false.
+ * 2026-10-21 UI-008, artboard B-Practice and B-Fixes, founder: "Comes up
+ * often" shows again, on Practice and on Your fixes, built only from patterns
+ * with authored PATTERN_COPY and never with a count. (It was hidden on
+ * 2026-10-20, B3.1, until Phase C.)
  */
-export const COMES_UP_OFTEN_ENABLED = false;
+export const COMES_UP_OFTEN_ENABLED = true;
 
 export const COMES_UP_TITLE = 'Comes up often in your conversations';
 export const COMES_UP_SHORT = 'Comes up often';
 export const PRACTISE_THIS = 'Practise this';
+/** The pattern card's quiet line: the "2 min" has no estimate behind it, so only "free" (no speaking time) stays. */
+export const PATTERN_FREE = 'Free, no speaking time';
+
+/**
+ * The one pattern Practice and Your fixes draw, with where its card opens:
+ * the newest ready conversation with saved fixes. Null when the flag is off
+ * or no authored pattern is there.
+ */
+export function patternCard(input: {
+  patterns: ErrorPatterns | undefined;
+  packs: readonly ConversationPack[];
+  bank: readonly DrillExercise[];
+  access?: Access;
+}): { row: PatternRow; fixes: PracticeRoute | null } | null {
+  if (!COMES_UP_OFTEN_ENABLED) return null;
+  const row = comesUpOften({ ...input, limit: 1 })[0];
+  if (row === undefined) return null;
+  const source = orderedConversationPacks(input.packs).find((pack) => pack.state === 'ready' && pack.corrections.length > 0);
+  return { row, fixes: source === undefined ? null : { screen: 'Fixes', params: { packId: source.id } } };
+}
 
 /**
  * The learner's words for the brain's error tags. Only a tag written here is
@@ -292,13 +333,25 @@ export interface ConversationCard {
   kept: readonly string[];
   /** "+3 more", or null. */
   more: string | null;
-  fixes: { title: string; gloss: string; route: PracticeRoute } | null;
+  fixes: { title: string; gloss: string; route: PracticeRoute; locked: boolean } | null;
   steps: readonly Step[] | null;
   stepsLocked: boolean;
   /** Shown when the plan opens it, or locked with the badge when it does not (D24). */
   revisit: { label: string; uses: string; route: PracticeRoute; locked: boolean; feature: LockedFeature } | null;
   /** On a revisit: the conversation it came from, and the learner's own French this time. */
   revisited: { from: string; win: string | null } | null;
+  /** A smaller card's drawing and its tile (B-Practice "My weekend", "Asking the way"). */
+  art: { name: 'friends-cheer' | 'map-route'; ground: 'lavender' | 'sage' };
+  /** A smaller card's "Practise it": the first practice step, or null when it cannot start. */
+  practiseIt: { route: PracticeRoute; locked: boolean; feature: LockedFeature } | null;
+}
+
+/** Friends and revisits take the friends drawing; getting around, the map; others alternate by place. */
+export function compactArt(pack: Pick<ConversationPack, 'topics' | 'revisedFromPackId'>, index: number): ConversationCard['art'] {
+  const topics = packTopics(pack);
+  if (topics.includes('travel')) return { name: 'map-route', ground: 'sage' };
+  if (topics.includes('friends') || (pack.revisedFromPackId ?? null) !== null) return { name: 'friends-cheer', ground: 'lavender' };
+  return index % 2 === 0 ? { name: 'friends-cheer', ground: 'lavender' } : { name: 'map-route', ground: 'sage' };
 }
 
 export function conversationCard(input: {
@@ -309,8 +362,10 @@ export function conversationCard(input: {
   now: number;
   revisitAllowed: boolean;
   access?: Access;
+  /** The card's place in the list, for a smaller card's drawing. */
+  index?: number;
 }): ConversationCard {
-  const { pack, packs, deck, bank, now, revisitAllowed, access = featureAccess } = input;
+  const { pack, packs, deck, bank, now, revisitAllowed, access = featureAccess, index = 0 } = input;
   const inDeck = new Set(deck.map((card) => card.id));
   const kept = pack.keyPhrases.filter((phrase) => inDeck.has(phraseKeyOf(phrase.fr))).map((phrase) => phrase.fr);
   const ready = pack.state === 'ready';
@@ -327,7 +382,7 @@ export function conversationCard(input: {
     summary: ready ? pack.summary : conversationStateLine(pack),
     kept: kept.slice(0, 2),
     more: kept.length > 2 ? `+${kept.length - 2} more` : null,
-    fixes: ready && pack.corrections.length > 0 ? { ...FIXES_ROW, route: { screen: 'Fixes', params: { packId: pack.id } } } : null,
+    fixes: ready && pack.corrections.length > 0 ? { ...FIXES_ROW, route: { screen: 'Fixes', params: { packId: pack.id } }, locked: isLocked(access, 'fixes') } : null,
     steps: canPractise
       ? [
           { key: 'understand', ...STEPS.understand, route: { screen: 'ConversationPractice', params: { packId: pack.id } } },
@@ -338,10 +393,15 @@ export function conversationCard(input: {
     stepsLocked: isLocked(access, 'conversationPractice'),
     revisit: door === null ? null : { label: TALK_AGAIN, uses: door.uses, route: { screen: 'Convo', params: { continuationPackId: door.packId } }, locked: revisitLocked, feature: 'continueArc' },
     revisited: revision === null ? null : { from: revision.source.title.en, win: revision.after.wins[0] ?? null },
+    art: compactArt(pack, index),
+    practiseIt: canPractise ? { route: { screen: 'ConversationPractice', params: { packId: pack.id } }, locked: isLocked(access, 'conversationPractice'), feature: 'conversationPractice' } : null,
   };
 }
 
 export const TALK_AGAIN = 'Talk about it again';
+/** A smaller card's two buttons (B-Practice). */
+export const PRACTISE_IT = 'Practise it';
+export const TALK_AGAIN_SHORT = 'Talk again';
 
 /** The learner's own French on a revisit. Nothing about the help it used: nothing records that yet. */
 export function revisitedLines(revisited: NonNullable<ConversationCard['revisited']>): string[] {
@@ -430,6 +490,11 @@ export const EMPTY = {
  * goes through LOCKED_ROUTES (SoundCheck is 'sounds'); only the badge was
  * missing. The badge and the spoken lock come from the one seam.
  */
+/** The café lesson row: the lesson is sound practice, so its lock is the seam's 'sounds'. */
+export function cafeRow(access: (feature: LockedFeature) => FeatureAccess = featureAccess): { title: string; line: string; cost: string; locked: boolean } {
+  return { ...EMPTY.cafe, locked: access('sounds') === 'locked' };
+}
+
 export function soundsRow(access: (feature: LockedFeature) => FeatureAccess = featureAccess): { title: string; gloss: string; locked: boolean } {
   return { ...EMPTY.sounds, locked: access('sounds') === 'locked' };
 }

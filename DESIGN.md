@@ -125,32 +125,49 @@ period stay near a purchase action, and large text is never capped to fit.
   the signature shows while the sample plays); three drawn pastel tiles
   (three, two or one to a row from `tileColumns`, so a title never breaks
   inside a word); and the minutes band with See your minutes.
-- Practice leads with the learner's conversations (topic chips, Pick up where
-  you stopped, each conversation's fixes and three steps, Talk about it again,
-  Mix your conversations), then saved phrases ("Used n times" from each card's
-  own counter, never a count of conversations), then the sound guide and
-  compare. No minutes on a step, the mix or a pattern, and never a count beside
-  a mistake pattern. "Comes up often" is hidden until Phase C stores the reason
-  with each fix (`COMES_UP_OFTEN_ENABLED`). With no conversation, the empty page
-  offers a first one and Sounds of French, with the round lock when
-  the seam says `sounds` is locked. Shadowing plays the tutor's bundled
-  audio, records a temporary local take and offers comparison without judging
-  it; finishing records an active date only after a durable write.
-- Your fixes: This conversation or All conversations. Attempt before reveal:
-  an untried fix shows its English only, and the learner's line, the better
-  French and the reason show after a try, said or typed. Phrases from the
-  conversation follow, and Practise all fixes is free.
-- Journey ("Your journey"): with no finished scene, one page and the one scene
-  to start. Otherwise a blue head with the level, the XP bar and up to three
-  stats (days in a row, min practised, phrases saved; an unread figure is left
-  out), Where you are (five stages, the current one with a flag and a
-  "You’re here: Starter" chip spanning the row under the ladder), What you can do with no "n of m" count,
-  Then and now, French you've used, Help you needed in words, Your sounds only
-  with a saved check, Your week in words, and the Postcards and Badges tiles. A
-  locked section keeps its heading and badge with one teaser line.
-- Then and now: one row per guided scene, the first try we still have next to
-  the best, each in help words with its date, and Try it again. Free
-  conversations do not appear, and the footer says why.
+- Practice leads with the learner's conversations: a search over this page's
+  titles and summaries (on the device), topic tabs, Pick up where you stopped,
+  Comes up often (one authored pattern, never a count; the card opens Your
+  fixes and "Practise this" a drill when one exists), the newest conversation
+  as the large butter-banded card (its fixes, three steps, Talk about it
+  again) and older ones as small cards (Practise it, Talk again), then the
+  Mix, Saved phrases ("Used n times" from each card's own counter, never a
+  count of conversations) and Saved conversation text, then the sound guide
+  and compare. No minutes on a step, the mix or a pattern. With no
+  conversation, the empty page offers a first one, Café basics (its cost
+  line, no "free") and Sounds of French, each with the round lock when the
+  seam says `sounds` is locked, and the dashed saved box. Rebuilt to
+  B-Practice and B-Empty-Practice in light and dark (UI-008, 2026-10-21).
+  Shadowing plays the tutor's bundled audio, records a temporary local take
+  and offers comparison without judging it; finishing records an active date
+  only after a durable write.
+- Your fixes: This conversation or All conversations, then Comes up often.
+  Attempt before reveal: the first untried fix is the try-first card (its
+  English only, Say it or Type it), every other untried fix a collapsed row
+  with Try it, and the learner's line, the better French and the reason show
+  only after a try. Phrases from the conversation follow, and Practise all
+  fixes is free. Rebuilt to B-Fixes in light and dark (UI-008, 2026-10-21).
+- Journey ("Your journey"): with no finished scene, the butter card with the
+  map-route drawing and its one 46pt "Start {scene}". Otherwise a full-bleed
+  brand band (stage eyebrow, title, card-filled avatar, the sun Level pill with
+  its 8pt XP bar, and up to three white stat tiles: days in a row, min
+  practised, phrases saved; an unread figure is left out), Where you are (five
+  38pt nodes on a track, the current one brand with a lavender ring and
+  "You’re here" under its name), What you can do (check, half ring or empty
+  ring, with no "n of m" count), Then and now (first and best cells, dashed
+  until there is a best), French you've used as lavender chips, the mint Help
+  you needed card with the tutor-orb, Your sounds (letter tiles, one Practise
+  link) only with a saved check, Your week in words as three dot rows, and the
+  Postcards and Badges tiles. A locked section keeps its heading and badge with
+  one teaser line. Rebuilt to B-Journey and B-Empty-States in light and dark
+  (UI-008, 2026-10-21); the Badges sheet stays light until its parts are.
+- Then and now: the help legend (four bars: Line given, Choices, Hint, On your
+  own), then one card per guided scene with its icon tile, the first try we
+  still have next to the best (each a help word, a bar and its date), a dashed
+  "Try again to see your best here" and a 44pt Try it again (to the scene
+  preview) while there is no best, and a one-line card for a scene not tried.
+  Free conversations do not appear, and the footer says why. Rebuilt to
+  B-ThenNow in light and dark (UI-008, 2026-10-21).
 - Live rooms keep the real start, pause, type, help, slower, English and leave
   paths. White tutor bubbles and ink learner bubbles tell the speakers apart;
   only the newest recast is highlighted. Waiting shows the stage really reached.
@@ -628,6 +645,11 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.tabSelected` | `#3B2FE0` | The selected tab cell |
 | `b.light.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
 | `b.light.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
+| `b.light.hint` | `#7E8AFF` | The Hint bar of the help legend (B-ThenNow); a mark |
+| `b.light.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
+| `b.light.stageTrack` | `#EFE7F9` | The five-stage track behind the nodes (B-Journey) |
+| `b.light.peachSoft` | `#FCEADF` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.light.lavenderSoft` | `#F5F1FE` | The art panel inside the lavender Badges tile (B-Journey) |
 
 | Token | Value | Role |
 |---|---|---|
@@ -675,6 +697,11 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.tabSelected` | `#3B2FE0` | The selected tab cell |
 | `b.dark.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
 | `b.dark.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
+| `b.dark.hint` | `#7E8AFF` | The Hint bar of the help legend (B-ThenNow); a mark |
+| `b.dark.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
+| `b.dark.stageTrack` | `#302A48` | The five-stage track behind the nodes (B-Journey) |
+| `b.dark.peachSoft` | `#5A3F4C` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.dark.lavenderSoft` | `#3D3560` | The art panel inside the lavender Badges tile (B-Journey) |
 
 The status bar style is a token too: `dark` in light, `light` in dark.
 

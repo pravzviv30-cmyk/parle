@@ -180,9 +180,12 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
       'the title row is not a row with room for a trailing control',
     );
     assert.match(header, /accessibilityRole="header"/, 'the tab title is not rolled as a heading');
+    // 2026-10-20 UI-008, artboard B-Journey: the title sits in a column that
+    // takes the row (so an eyebrow can stand above it), and keeps its ink.
+    assert.match(header, /<View style=\{\{ flex: 1, gap: 2 \}\}>/, 'the title column does not take the row');
     assert.match(
       header,
-      /type\.title,\s*\{ color: ink, flex: 1 \}/, // ink defaults to paper.ink (asserted above)
+      /type\.title,\s*\{ color: ink \}/, // ink defaults to paper.ink (asserted above)
       'the title is not the working title in ink, taking the row',
     );
     assert.match(
@@ -335,7 +338,8 @@ describe('the tab title is the working title — F602', () => {
     const left = outsideTheCentredBranch(header);
     assert.match(
       left,
-      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: ink, flex: 1 \}\]\}>/,
+      // 2026-10-20 UI-008, artboard B-Journey: the row is taken by the title's column (pinned above).
+      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: ink \}\]\}>/,
       'the left title is not the working title in ink, rolled as a heading',
     );
     assert.match(left, /if \(display\) return/, 'the editorial display role must be explicit');

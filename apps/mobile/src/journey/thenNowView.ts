@@ -21,7 +21,8 @@
 import { SCENE_SPINE, earnedMissionIds, getMission, spineFrom, type Mission, type MissionProgress, type Rung } from '@luvani/core';
 
 import { featureAccess } from '../access/featureAccess.ts';
-import { HELP_WORDS } from '../tutor/speakTabView.ts';
+import type { BArtName } from '../art/BArt.tsx';
+import { HELP_WORDS, sceneIcon } from '../tutor/speakTabView.ts';
 import { bestOf, earnedThroughBigger, firstLabel, segmentsText, shortDate, triesOf, TRY_AGAIN_FOR_BEST, type Access, type JourneyRoute, type Segment, type StoredCompletion } from './journeyView.ts';
 
 export const THEN_NOW_TITLE = 'Then and now';
@@ -40,14 +41,35 @@ export const STATUS = {
 /** The four help words, in ladder order: most help first. */
 export const LEGEND: readonly string[] = ([1, 2, 3, 4] as const).map((rung: Rung) => HELP_WORDS[rung]);
 
+/**
+ * Each rung's bar colour, a `useB()` token name (2026-10-20 UI-008, artboard
+ * B-ThenNow): lavender for the line given, periwinkle for choices, the hint
+ * blue, mint on your own. The bar is a mark; the word beside it says the help.
+ */
+export const HELP_BAR: Record<Rung, 'lavender' | 'periwinkle' | 'hint' | 'mint'> = { 1: 'lavender', 2: 'periwinkle', 3: 'hint', 4: 'mint' };
+
+/** The legend's four columns: the word and its bar, most help first. */
+export const LEGEND_BARS: readonly { word: string; bar: (typeof HELP_BAR)[Rung] }[] = ([1, 2, 3, 4] as const).map((rung: Rung) => ({ word: HELP_WORDS[rung], bar: HELP_BAR[rung] }));
+
+/** A scene's tile ground by where it stands: sage earned, butter tried, lavender not yet (B-ThenNow). */
+export const SCENE_TILE: Record<'earned' | 'tried' | 'untried', 'sage' | 'butter' | 'lavender'> = { earned: 'sage', tried: 'butter', untried: 'lavender' };
+
+/** The scene's canvas icon at the artboard's tile size (the café cup at 28x26). */
+export function sceneTileIcon(place: string): { name: BArtName; width: number; height: number } {
+  const icon = sceneIcon(place);
+  return icon.name === 'icon-cafe' ? { name: icon.name, width: 28, height: 26 } : icon;
+}
+
 export interface ThenNowRow {
   missionId: string;
   scene: string;
   status: string;
   /** Under the status, for a scene earned through the bigger one containing it. */
   note: readonly Segment[] | null;
-  first: { label: string; help: string } | null;
-  best: { label: string; help: string } | null;
+  first: { label: string; help: string; bar: (typeof HELP_BAR)[Rung] } | null;
+  best: { label: string; help: string; bar: (typeof HELP_BAR)[Rung] } | null;
+  /** The 48pt tile: its pastel and the scene's icon. */
+  tile: { ground: (typeof SCENE_TILE)[keyof typeof SCENE_TILE]; icon: { name: BArtName; width: number; height: number } };
   /** Said under a single try in place of a best. */
   hint: string | null;
   route: JourneyRoute | null;
@@ -74,17 +96,18 @@ export function thenNowView(input: { progress: readonly MissionProgress[]; compl
   const rows = scenesShown(input.progress, tried).map((mission): ThenNowRow => {
     const tries = triesOf(input.completions, mission.id);
     const note = earnedThroughBigger(mission.id, earnedIds, input.completions);
+    const icon = sceneTileIcon(mission.place);
     if (tries.length === 0) {
       if (note !== null) {
-        return { missionId: mission.id, scene: mission.title, status: STATUS.earned, note, first: null, best: null, hint: null, route: { screen: 'ScenePreview', params: { missionId: mission.id } }, accessibilityLabel: `${mission.title}. ${STATUS.earned}. ${segmentsText(note)}` };
+        return { missionId: mission.id, scene: mission.title, status: STATUS.earned, note, first: null, best: null, tile: { ground: SCENE_TILE.earned, icon }, hint: null, route: { screen: 'ScenePreview', params: { missionId: mission.id } }, accessibilityLabel: `${mission.title}. ${STATUS.earned}. ${segmentsText(note)}` };
       }
-      return { missionId: mission.id, scene: mission.title, status: STATUS.untried, note: null, first: null, best: null, hint: null, route: null, accessibilityLabel: `${mission.title}. ${STATUS.untried}` };
+      return { missionId: mission.id, scene: mission.title, status: STATUS.untried, note: null, first: null, best: null, tile: { ground: SCENE_TILE.untried, icon }, hint: null, route: null, accessibilityLabel: `${mission.title}. ${STATUS.untried}` };
     }
     const first = tries[0]!;
     const best = bestOf(tries)!;
     const status = earnedIds.has(mission.id) ? STATUS.earned : tries.length === 1 ? STATUS.once : STATUS.helped;
-    const firstCell = { label: firstLabel(tries), help: first.help };
-    const bestCell = tries.length > 1 ? { label: `Best, ${shortDate(best.at)}`, help: best.help } : null;
+    const firstCell = { label: firstLabel(tries), help: first.help, bar: HELP_BAR[first.rung] };
+    const bestCell = tries.length > 1 ? { label: `Best, ${shortDate(best.at)}`, help: best.help, bar: HELP_BAR[best.rung] } : null;
     const hint = bestCell === null ? TRY_AGAIN_FOR_BEST : null;
     const said = [mission.title, status, ...(note === null ? [] : [segmentsText(note)]), `${firstCell.label}, ${firstCell.help}`, bestCell === null ? hint : `${bestCell.label}, ${bestCell.help}`].join('. ');
     return {
@@ -94,6 +117,7 @@ export function thenNowView(input: { progress: readonly MissionProgress[]; compl
       note,
       first: firstCell,
       best: bestCell,
+      tile: { ground: status === STATUS.earned ? SCENE_TILE.earned : SCENE_TILE.tried, icon },
       hint,
       route: { screen: 'ScenePreview', params: { missionId: mission.id } },
       accessibilityLabel: said,

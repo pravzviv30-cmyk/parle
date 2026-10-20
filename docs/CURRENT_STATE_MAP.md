@@ -70,10 +70,14 @@ DECISIONS.md UI-007):
   Revisit a conversation left Speak (Conversations is on Journey and Settings).
 - **Practice** (`tabs/PracticeTab.tsx`, `practice/practiceTabView.ts`,
   `practice/useLibraryData.ts`): the learner's conversations, saved phrases
-  and the sound guide; "Comes up often" is hidden until Phase C.
+  and the sound guide, with search and "Comes up often" (authored patterns
+  only, never a count); Your fixes (`practice/FixesScreen.tsx`) also shows it.
+  Both rebuilt to their artboards in light and dark (2026-10-21, UI-008).
 - **Journey** (`tabs/MyFrenchTab.tsx`, `journey/journeyView.ts`): the level
   head, five stages, abilities, Then and now, used French, help in words,
-  sounds, the week and the collection tiles.
+  sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
+  (shared with Then and now); Journey and Then and now are dark-ready since
+  2026-10-21 (UI-008), with the Badges sheet pinned light.
 
 Three stack routes were added in `nav/RootNavigator.tsx` and `nav/types.ts`:
 `ScenePreview` (`scenes/ScenePreviewScreen.tsx`, by mission or daily scene id),

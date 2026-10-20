@@ -1073,7 +1073,9 @@ describe('the icon controls keep their promises', () => {
     // The tile inside turns white with a brand mark, so it never vanishes into the fill.
     assert.match(choice, /<TileOnChosen\.Provider value=\{selected\}>\{head\}<\/TileOnChosen\.Provider>/, 'the tile is not told the choice is chosen');
     const tile = stripComments(readFileSync(join(SRC, 'icons', 'IconTile.tsx'), 'utf8'));
-    assert.match(tile, /const CHOSEN = \{ fill: paper\.card, mark: accent\.brand \} as const;/, 'a tile on a chosen choice is not white with the brand mark');
+    // 2026-10-21 UI-008: the chosen tile is the theme's card with the link mark (white and brand blue in light).
+    assert.match(tile, /const chosenTile = \(t: B \| typeof b\.light\) => \(\{ fill: t\.card, mark: t\.link \}\);/, 'a tile on a chosen choice is not white with the brand mark');
+    assert.match(tile, /const CHOSEN = chosenTile\(t\);/);
     assert.match(tile, /const \{ fill, mark \} = chosen \? CHOSEN : TILE_GROUND\[ground\];/, 'a tile does not turn white on a chosen choice');
 
     // A French title is French to a screen reader; no opacity, no shadow, no capped words.

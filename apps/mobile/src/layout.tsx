@@ -423,6 +423,13 @@ type TabHeaderProps = {
   children?: ReactNode;
   /** Title ink from the selected appearance; paper ink when absent. */
   ink?: string;
+  /**
+   * A line above the title, with the trailing control aligned to the top
+   * (2026-10-20 UI-008, artboard B-Journey: "Starter stage" over "Your journey").
+   */
+  eyebrow?: ReactNode;
+  /** No bottom margin, for a header inside a band that sets its own gap (B-Journey). */
+  flush?: boolean;
   /** Purpose-line ink from the selected appearance; paper's soft ink when absent. */
   mutedInk?: string;
 };
@@ -467,7 +474,7 @@ type TabHeaderProps = {
  * title pulls it off centre; and a header that could do everything is a header
  * with no shape.
  */
-export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false, ink: askedInk, mutedInk: askedMuted }: TabHeaderProps) {
+export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false, ink: askedInk, mutedInk: askedMuted, eyebrow, flush = false }: TabHeaderProps) {
   const t = useB();
   const ink = askedInk ?? t.text;
   const mutedInk = askedMuted ?? t.muted;
@@ -499,11 +506,14 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
     );
   }
   return (
-    <View style={{ marginBottom: space(5) }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        <Text accessibilityRole="header" style={[type.title, { color: ink, flex: 1 }]}>
-          {title}
-        </Text>
+    <View style={[{ marginBottom: space(5) }, flush ? { marginBottom: 0 } : null]}>
+      <View style={[{ flexDirection: 'row', alignItems: 'center', gap: space(3) }, eyebrow != null ? { alignItems: 'flex-start' } : null]}>
+        <View style={{ flex: 1, gap: 2 }}>
+          {eyebrow != null ? eyebrow : null}
+          <Text accessibilityRole="header" style={[type.title, { color: ink }]}>
+            {title}
+          </Text>
+        </View>
         {trailing != null ? trailing : null}
       </View>
       {purpose != null ? (

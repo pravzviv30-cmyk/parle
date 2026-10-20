@@ -72,7 +72,16 @@ describe('the rest of the page', () => {
     // scene's tier 1 keeps Explore's difficulty label, Starting out.
     assert.equal(stageOf({ kind: 'mission', cefr: 'A0' }), 'Starter');
     assert.equal(stageOf({ kind: 'mission', cefr: 'A1' }), 'Basics');
-    assert.equal(stageOf({ kind: 'scenario', tier: 1 }), 'Starting out');
+    // 2026-10-21, learning-science review: tier 1 is the stage word Starter.
+    assert.equal(stageOf({ kind: 'scenario', tier: 1 }), 'Starter');
+    assert.equal(stageOf({ kind: 'scenario', tier: 2 }), 'Everyday');
+    assert.equal(stageOf({ kind: 'scenario', tier: 3 }), 'Chatting');
+  });
+
+  test('"Starting out" never appears in any scene preview (2026-10-21, learning-science review)', () => {
+    for (const id of [...MISSIONS.map(m => m.id), ...DAILY_SCENARIOS.map(s => s.id)]) {
+      assert.doesNotMatch(JSON.stringify(scenePreview(id, EMPTY)), /Starting out/i, id);
+    }
     for (const id of [...DAILY_SCENARIOS.map((s) => s.id), ...MISSIONS.map((m) => m.id)]) {
       assert.doesNotMatch(scenePreview(id, EMPTY)!.eyebrow, CEFR, id);
     }

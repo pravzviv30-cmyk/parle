@@ -26,6 +26,7 @@ import {
   PREFERENCES_ROUTE,
   LESS_HELP_LINE,
   MAX_MEMORY_TOPICS,
+  MAX_TOPIC_CHARS,
   PREPARE_FIRST,
   STARTER_TILE,
   SEE_MINUTES,
@@ -213,20 +214,41 @@ describe('talk about anything', () => {
     const suggestions = learningSuggestions({ level: 'zero', confidence: null, focus: null } as never);
     const facts = [
       fact('interest', 'Cooking Italian food', '2026-10-01T09:00:00Z', 'La cuisine italienne'),
-      fact('life-event', 'A trip to Lyon', '2026-10-10T09:00:00Z'),
-      fact('goal', 'Order in French', '2026-10-12T09:00:00Z'),
-      fact('preference', 'Short answers', '2026-10-13T09:00:00Z'),
-      fact('interest', 'Running', '2026-10-05T09:00:00Z'),
-      fact('interest', 'Jazz', '2026-09-01T09:00:00Z'),
-      fact('interest', '  ', '2026-10-15T09:00:00Z'),
+      fact('life-event', 'A trip to Lyon', '2026-10-10T09:00:00Z', 'Un voyage à Lyon'),
+      fact('goal', 'Order in French', '2026-10-12T09:00:00Z', 'Commander'),
+      fact('preference', 'Short answers', '2026-10-13T09:00:00Z', 'Des réponses courtes'),
+      fact('interest', 'Running', '2026-10-05T09:00:00Z', 'La course'),
+      fact('interest', 'Jazz', '2026-09-01T09:00:00Z', 'Le jazz'),
+      fact('interest', '  ', '2026-10-15T09:00:00Z', 'Rien'),
     ];
     const chips = talkChips(suggestions, { facts, paused: false });
     assert.deepEqual(chips.map((c) => c.label), ['A trip to Lyon', 'Running', 'Cooking Italian food', OWN_TOPIC]);
     assert.equal(MAX_MEMORY_TOPICS, 3);
     assert.deepEqual(chips[2]!.params.seedTopic, { fr: 'La cuisine italienne', en: 'Talk with me about this: Cooking Italian food' });
-    assert.equal(chips[0]!.params.seedTopic!.fr, 'A trip to Lyon', 'a fact with no French carries its own words');
     assert.ok(chips.slice(0, -1).every((c) => !c.own));
     for (const idea of suggestions.ideas) assert.ok(!chips.some((c) => c.label === idea.title), 'suggestions show beside remembered topics');
+  });
+
+  // 2026-10-20, learning-science review: a stored fact reads as a chip, a long one is not a
+  // chip, and a fact with no French is skipped (the room keeps a seed only with real French).
+  test('a lower-case fact is capitalised, a long fact or one without French is skipped', () => {
+    const suggestions = learningSuggestions({ level: 'zero', confidence: null, focus: null } as never);
+    const ideas = suggestions.ideas.map((i) => i.title);
+    const dog = talkChips(suggestions, { facts: [fact('interest', '  has a dog ', '2026-10-12T09:00:00Z', 'un chien')], paused: false });
+    assert.equal(dog[0]!.label, 'Has a dog');
+    assert.deepEqual(dog[0]!.params.seedTopic, { fr: 'un chien', en: 'Talk with me about this: Has a dog' });
+    for (const fr of [null, '', '   ']) {
+      const none = talkChips(suggestions, { facts: [fact('interest', 'has a dog', '2026-10-12T09:00:00Z', fr)], paused: false });
+      assert.deepEqual(none.slice(0, -1).map((c) => c.label), ideas, `a fact with French ${JSON.stringify(fr)} became a chip`);
+    }
+    const long = 'is planning a long walking holiday across Brittany next spring';
+    assert.ok(long.length > MAX_TOPIC_CHARS);
+    const skipped = talkChips(suggestions, { facts: [fact('life-event', long, '2026-10-12T09:00:00Z', 'Des vacances')], paused: false });
+    assert.deepEqual(skipped.slice(0, -1).map((c) => c.label), ideas, 'a long fact did not fall back to the suggestions');
+    const mixed = talkChips(suggestions, { facts: [fact('life-event', long, '2026-10-12T09:00:00Z', 'Des vacances'), fact('interest', 'cats', '2026-10-12T08:00:00Z'), fact('interest', 'jazz', '2026-10-11T09:00:00Z', 'le jazz')], paused: false });
+    assert.deepEqual(mixed.map((c) => c.label), ['Jazz', OWN_TOPIC]);
+    assert.equal(mixed[0]!.params.seedTopic!.fr, 'le jazz');
+    assert.equal(MAX_TOPIC_CHARS, 32);
   });
 
   test('with no remembered topic, or with memory paused, the suggestions stand in', () => {
@@ -234,10 +256,10 @@ describe('talk about anything', () => {
     const ideas = suggestions.ideas.map((i) => i.title);
     const onlyGoals = talkChips(suggestions, { facts: [fact('goal', 'Order in French', '2026-10-12T09:00:00Z')], paused: false });
     assert.deepEqual(onlyGoals.slice(0, -1).map((c) => c.label), ideas);
-    const paused = talkChips(suggestions, { facts: [fact('interest', 'Jazz', '2026-10-12T09:00:00Z')], paused: true });
+    const paused = talkChips(suggestions, { facts: [fact('interest', 'Jazz', '2026-10-12T09:00:00Z', 'Le jazz')], paused: true });
     assert.deepEqual(paused.slice(0, -1).map((c) => c.label), ideas, 'a paused memory still offers what it remembers');
     assert.equal(paused.at(-1)!.label, OWN_TOPIC);
-    const twice = talkChips(suggestions, { facts: [fact('interest', 'Jazz', '2026-10-12T09:00:00Z'), fact('life-event', 'jazz', '2026-10-11T09:00:00Z')], paused: false });
+    const twice = talkChips(suggestions, { facts: [fact('interest', 'Jazz', '2026-10-12T09:00:00Z', 'Le jazz'), fact('life-event', 'jazz', '2026-10-11T09:00:00Z', 'le jazz')], paused: false });
     assert.deepEqual(twice.map((c) => c.label), ['Jazz', OWN_TOPIC], 'the same topic is offered twice');
   });
 

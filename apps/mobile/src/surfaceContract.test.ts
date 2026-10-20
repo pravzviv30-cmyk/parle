@@ -1920,9 +1920,11 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx'],
     // 2026-10-20, B3, B-Practice: the made-from rows left Practice (a fix is
     // tried on Your fixes); the sound card stays as the door to sound practice.
+    // 2026-10-21 UI-008, artboard B-Practice: plus the Practice parts it draws from.
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
       'practice/TuneSoundCard.tsx',
+      'practice/PracticeParts.tsx',
     ],
     // 2026-10-20, B4, B-Journey: the level, the counts and the CEFR card are
     // drawn inline from journey/journeyView.ts, the postcard shelf became the
@@ -1947,8 +1949,16 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.match(named('tabs/HomeTab.tsx'), /<NextTaskCard/);
     const practice = named('tabs/PracticeTab.tsx');
     assert.doesNotMatch(practice, /<NextTaskCard/);
-    assert.equal((practice.match(/<PillButton label=\{EMPTY\.start\}/g) ?? []).length, 1, 'Practice lost its one primary, the first conversation');
-    assert.equal((practice.match(/<PillButton\b/g) ?? []).length, (practice.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Practice carries a second primary pill');
+    // 2026-10-21 UI-008, artboards B-Practice and B-Empty-Practice: the empty
+    // page's one primary is EmptyCard's 54pt Start (practice/PracticeParts),
+    // and the full page draws what the artboard draws: each door's own ink
+    // button (the pattern's Practise this, the newest card's Talk about it
+    // again), never a PillButton.
+    assert.doesNotMatch(practice, /<PillButton\b/, 'Practice draws an old pill instead of its B parts');
+    assert.equal((practice.match(/<EmptyCard title=\{EMPTY\.title\} body=\{EMPTY\.body\} start=\{EMPTY\.start\} disabled=\{checking\} onStart=\{startFirst\}>/g) ?? []).length, 1, 'Practice lost its one primary, the first conversation');
+    const practiceParts = named('practice/PracticeParts.tsx');
+    const emptyCard = practiceParts.slice(practiceParts.indexOf('export function EmptyCard('), practiceParts.indexOf('export function SubHead('));
+    assert.equal((emptyCard.match(/<BButton\b/g) ?? []).length, 1, 'the empty page carries other than one Start');
     // 2026-10-20, B2, B-Speak: Speak's door is its own Recommended card, with
     // exactly one ink primary, Start; every other pill on it is secondary.
     // 2026-10-20 UI-008, artboard B-Speak: the Start is the 54pt heroCta BButton
@@ -1976,9 +1986,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.match(named('tabs/HomeTab.tsx'), /!unowned && readFailed/);
     // 2026-10-20, B4, B-Journey: Journey's one primary is the empty journey's
     // first scene, behind the empty gate; Practise your sounds is secondary.
+    // 2026-10-20 UI-008, artboard B-Journey / B-Empty-States: that primary is
+    // the butter card's 46pt ink BButton; Practise your sounds became the sound
+    // row's text link, so Journey draws no PillButton at all.
     const journey = named('tabs/MyFrenchTab.tsx');
-    assert.equal((journey.match(/<PillButton label=\{start\.start\}/g) ?? []).length, 1, 'Journey lost its one primary, the first scene');
-    assert.equal((journey.match(/<PillButton\b/g) ?? []).length, (journey.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Journey carries a second primary pill');
+    assert.equal((journey.match(/<BButton label=\{start\.start\} height=\{46\} ground=\{t\.primary\}/g) ?? []).length, 1, 'Journey lost its one primary, the first scene');
+    assert.equal((journey.match(/<BButton\b/g) ?? []).length, 1, 'Journey carries a second primary pill');
+    assert.equal((journey.match(/<PillButton\b/g) ?? []).length, 0, 'Journey draws an old pill the artboard does not');
     assert.match(journey, /const empty = renderStatus === 'ready' && isEmptyJourney\(firstVisit, completions\);/);
     assert.match(journey, /\{empty && \(/);
 
@@ -2025,7 +2039,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // 2026-10-20, B3, B-Practice: the empty page's café lesson and sounds,
       // saved phrases and saved text, a conversation's fixes, its practice
       // steps and its revisit, and hear, say and compare.
-      'tabs/PracticeTab.tsx': 8,
+      // 2026-10-21 UI-008, artboard B-Practice: every list is the artboard's
+      // own cards and rows (practice/PracticeParts), one shape per list: none.
+      'tabs/PracticeTab.tsx': 0,
       // Conversations and their "see all", the phrase shelf, the collection,
       // goals, the daily collection and the door to every situation. Phase 4
       // (2026-10-07): the postcards row became the postcard shelf, 5 to 4.
@@ -2033,7 +2049,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // Your week in French and the tiled rows (phrases, sounds, conversations,
       // goals, saved scenes); still 4 tags.
       // 2026-10-20, lock seam wiring: plus a locked section's teaser row, 5.
-      'tabs/MyFrenchTab.tsx': 5,
+      // 2026-10-20 UI-008, artboard B-Journey: the week in words left the
+      // ledger for the artboard's dot rows (one map, one shape), 5 to 4.
+      'tabs/MyFrenchTab.tsx': 4,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
     };
@@ -2377,9 +2395,10 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.doesNotMatch(tab, /archiveFrom/, 'DESIGN.md says the archive is one level down and Practice folds one anyway');
     assert.match(named('conversationPacks/ConversationsScreen.tsx'), /archiveFrom/, 'nothing folds the archive at all now, so it did not move, it went');
     // 2026-10-20, B3, B-Practice: one primary pill, for the learner with no
-    // conversation yet; every other pill on the tab is a secondary one.
+    // conversation yet. 2026-10-21 UI-008, artboard B-Empty-Practice: that
+    // primary is EmptyCard's Start, and the tab draws no PillButton at all.
     assert.equal(
-      (tab.match(/<PillButton\b/g) ?? []).length - (tab.match(/<PillButton variant="secondary"/g) ?? []).length,
+      (tab.match(/start=\{EMPTY\.start\}/g) ?? []).length + (tab.match(/<PillButton\b/g) ?? []).length,
       1,
       'the design doc says Practice keeps one pill, for the learner with no conversation yet, and the tab draws a different number',
     );

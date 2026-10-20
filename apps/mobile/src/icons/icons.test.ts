@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { ICON_CONFIG, ICONSAX_VERSION } from '../../../../scripts/icons/icons.config.mjs';
 import { clean, parseSvg, pascal, toTsx } from '../../../../scripts/icons/svg.mjs';
 import { ICON_NAMES } from './names.ts';
+import { b, colour, paper } from '../palette.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const SRC = join(HERE, '..');
@@ -203,16 +204,22 @@ describe('the icon set — F726', () => {
 
   test('a tile pairs each ground with the one mark colour that may sit on it', () => {
     const tile = stripComments(readFileSync(join(HERE, 'IconTile.tsx'), 'utf8')).replace(/\s+/g, ' ');
+    // 2026-10-21 UI-008: the pairs read the theme's tokens so a tile follows
+    // dark; the light values are the old paper and colour ones (asserted below).
     for (const [ground, fill, mark] of [
-      ['blue', 'colour.blue', 'paper.onInk'],
-      ['coral', 'colour.coral', 'paper.onInk'],
-      ['sun', 'colour.sun', 'paper.ink'],
-      ['mint', 'colour.mint', 'paper.ink'],
-      ['ink', 'paper.ink', 'paper.onInk'],
-      ['skeleton', 'paper.skeleton', 'paper.ink'],
+      ['blue', 't.brand', 't.onBrand'],
+      ['coral', 't.coral', 't.onBrand'],
+      ['sun', 't.sun', 't.onMint'],
+      ['mint', 't.mint', 't.onMint'],
+      ['ink', 't.primary', 't.onPrimary'],
+      ['skeleton', 't.skeleton', 't.text'],
     ] as const) {
       assert.ok(tile.includes(`${ground}: { fill: ${fill}, mark: ${mark} },`), `the ${ground} tile is not ${fill} with ${mark}`);
     }
+    // The tokens the tile reads equal the old pairs in light, so no light tile moved.
+    const L = b.light;
+    assert.deepEqual([L.brand, L.onBrand, L.coral, L.sun, L.mint, L.onMint, L.primary, L.onPrimary, L.skeleton, L.text, L.card, L.link],
+      [colour.blue, paper.onInk, colour.coral, colour.sun, colour.mint, paper.ink, paper.ink, paper.onInk, paper.skeleton, paper.ink, paper.card, colour.blue]);
     assert.doesNotMatch(tile, /textOn|sand/, 'the tile reads textOn or a sand ground palette.ts does not have');
     assert.match(tile, /name: BulkIconName;/, 'a Linear-only icon can stand on a tile');
     assert.match(tile, /\{\.\.\.decorative\}/, 'the tile is announced to a screen reader');

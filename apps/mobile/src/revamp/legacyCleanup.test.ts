@@ -25,7 +25,8 @@ test('retired Home and phrase-lane components stay absent while current evidence
   // 2026-10-20, B4, B-Journey: the CEFR LevelCard became "Where you are", the
   // five stages from the spine, so the tab pins the stages it draws instead.
   assert.match(tab, /const stages = stagesFrom\(missions\);/);
-  assert.match(tab, /stages\.steps\.map\(/);
+  // 2026-10-20 UI-008, artboard B-Journey: the stages are drawn by journey/JourneyParts' StageTrack.
+  assert.match(tab, /<StageTrack steps=\{stages\.steps\}/);
   assert.match(tab, /navigate\('Phrasebook'\)/);
   const nav = readFileSync(join(src, 'nav/RootNavigator.tsx'), 'utf8');
   assert.match(nav, /<Stack\.Screen name="Phrasebook"/);

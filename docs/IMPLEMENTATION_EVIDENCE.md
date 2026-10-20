@@ -22,6 +22,13 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B fidelity rebuild, steps 6 and 7 (Practice, its empty state, Your
+  fixes, Journey, Then and now, in light and dark), on branch `claude/direction-b` (held, not
+  on main):
+  **5,797 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3383. Floors raised only through `gate:bless`. Comes up often is
+  shown from authored error patterns; Speak's remembered-topic chips need French and a
+  short label; Scene preview names stages, never "Starting out".
 - 21 October 2026 direction B fidelity rebuild, steps 4 and 5 (Explore, Scene preview and
   Speak to their artboards in light and dark), on branch `claude/direction-b` (held, not on
   main):

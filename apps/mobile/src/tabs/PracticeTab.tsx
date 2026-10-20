@@ -1,49 +1,81 @@
 /**
- * Practice, built to direction B (B3, 2026-10-20, artboards B-Practice and
- * B-Empty-Practice). The learner goes back to their own conversations: topic
- * chips over the page, the sitting they stopped ("Comes up often" is hidden until Phase C),
- * each conversation with its fixes, three practice steps and a revisit,
- * the mix, saved phrases and saved text, and one honest door to sound practice.
- * A learner with no conversation yet meets the empty page and one pill.
+ * Practice, built to direction B (2026-10-21 UI-008, artboards B-Practice and
+ * B-Empty-Practice), in light and dark. The learner goes back to their own
+ * conversations: a search over this page's conversations, topic tabs, the
+ * sitting they stopped, the pattern that comes up often (authored copy only,
+ * never a count), the newest conversation drawn large with its fixes, three
+ * practice steps and revisit, older ones drawn small, the mix, saved phrases
+ * and saved text, and the honest doors to sound practice. A learner with no
+ * conversation yet meets the empty page and its one start.
  *
- * Every decision is `practice/practiceTabView.ts`'s; this file is layout. The
- * stores are read by `practice/useLibraryData.ts` (ported from ce1fa976),
- * which recovers a half-done completion first and fences every read and tap to
- * the account that made it. Lock badges come only from the access seam.
+ * Every decision is `practice/practiceTabView.ts`'s and every part is
+ * `practice/PracticeParts.tsx`'s; this file is layout. The stores are read by
+ * `practice/useLibraryData.ts`, which recovers a half-done completion first and
+ * fences every read and tap to the account that made it. Lock badges come only
+ * from the access seam.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Card, Chip, ColourCard, Label, Ledger, LedgerRow, LOCK_BADGE_LABEL, LockBadge, OutlineButton, PillButton, Skeleton } from '../components.tsx';
-import { DocumentGlyph } from '../glyphs.tsx';
+import { Skeleton } from '../components.tsx';
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
-import { HIT, onColour, paper, radius, space, textOn, type } from '../theme.ts';
+import { HIT, bType, radius, space } from '../theme.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { UNREAD } from '../practice/archive.ts';
 import { PRACTICE_TITLE } from '../practice/copy.ts';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { TuneSoundCard } from '../practice/TuneSoundCard.tsx';
+import {
+  CompactConversationCard,
+  ConversationsHead,
+  EmptyCard,
+  LargeConversationCard,
+  MixCard,
+  Notice,
+  PageLink,
+  PatternCard,
+  PracticeSearch,
+  QuietRow,
+  ReadyRow,
+  ResumeCard,
+  SavedBox,
+  SavedTiles,
+  SubHead,
+  TopicTabs,
+} from '../practice/PracticeParts.tsx';
 import { useLibraryData } from '../practice/useLibraryData.ts';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
 import { soundLead } from '../practice/soundLead.ts';
 import {
+  COMES_UP_TITLE,
   CONVERSATIONS_TITLE,
   EMPTY,
   EMPTY_SUBTITLE,
   MIX_TITLE,
   NEWEST,
   OLDER,
+  PATTERN_FREE,
   PICK_UP_TITLE,
   PRACTICE_SUBTITLE,
   PRACTISE_CONVERSATION,
+  PRACTISE_IT,
+  PRACTISE_THIS,
+  SAVED_FIRST,
   SAVED_PHRASES,
   SAVED_TEXT,
+  SEARCH_NONE,
+  SEARCH_PLACEHOLDER,
+  TALK_AGAIN_SHORT,
+  cafeRow,
   chosenTopic,
   conversationCard,
   isNewLearner,
   mixCard,
   packsInTopic,
+  packsMatching,
+  patternCard,
   pickUp,
   revisitedLines,
   savedPhrasesLine,
@@ -74,6 +106,9 @@ export function PracticeTab() {
   // The lock seam: re-renders on a standing change, opens the Wall on a locked tap.
   const locks = useFeatureAccess(user?.id);
   const sounds = soundsRow(locks.access);
+  const cafe = cafeRow(locks.access);
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   const { profile } = useProfile();
   // The learner's chosen tutor, whose bundled recordings are the only native
   // audio this page plays. Never another voice filling a gap.
@@ -85,13 +120,15 @@ export function PracticeTab() {
   const library = useLibraryData();
   const { data } = library;
   const [topic, setTopic] = useState<ExploreTopic | null>(null);
+  // The search over this page's conversations, on the device. Never stored.
+  const [query, setQuery] = useState('');
   // A probe is in flight, so a second tap cannot queue a second navigation.
   const [checking, setChecking] = useState(false);
   // The start that did not happen, so the retry is the same start.
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
   // A new account starts on All, with no probe or refusal of the last one's.
   const accountScope = scopeGeneration();
-  useEffect(() => { setTopic(null); setChecking(false); setHeldBack(null); }, [accountScope]);
+  useEffect(() => { setTopic(null); setQuery(''); setChecking(false); setHeldBack(null); }, [accountScope]);
   // Drawn only for the account that made the read (useLibraryData's fence).
   const ownerMatches = data !== null;
   const ownsReadNow = () => library.ownsNow();
@@ -160,50 +197,44 @@ export function PracticeTab() {
   const lead = data === null ? null : soundLead({ checks: data.checks, now, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS });
 
   const refused = heldBack !== null && (
-    <View style={st.stack}>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{TUTOR_OFFLINE.body}</Text>
+    <View style={st.refused}>
+      <Text style={[bType.meta, { color: t.secondary }]}>{TUTOR_OFFLINE.body}</Text>
       <LocalPracticeCard />
-      <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
+      <PageLink label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
     </View>
   );
 
-  const savedRows = data !== null && (
-    <Ledger>
-      <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title={SAVED_PHRASES} gloss={savedPhrasesLine(data.deck)} onPress={() => go({ screen: 'Phrasebook' })} />
-      {adapter.kind === 'supabase' && <LedgerRow title={SAVED_TEXT.title} gloss={SAVED_TEXT.gloss} onPress={() => go({ screen: 'SavedConversationText' })} />}
-    </Ledger>
+  const savedTiles = data !== null && (
+    <SavedTiles tiles={[
+      { key: 'phrases', title: SAVED_PHRASES, line: savedPhrasesLine(data.deck), onPress: () => go({ screen: 'Phrasebook' }) },
+      ...(adapter.kind === 'supabase' ? [{ key: 'text', title: SAVED_TEXT.title, line: SAVED_TEXT.gloss, onPress: () => go({ screen: 'SavedConversationText' }) }] : []),
+    ]} />
   );
 
   return (
     <ScrollScreen
       bottom="tab"
+      topGap={8}
       // The F154 checking receipt, kept in the frame header so a tap that waits
       // on the network stays acknowledged when the title scrolls away.
       header={ownerMatches && checking && (
         <Text
           accessibilityLiveRegion="polite"
-          style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}
+          style={[bType.note, { color: t.muted, marginTop: space(1) }]}
         >
           {TUTOR_OFFLINE.checking}
         </Text>
       )}
     >
-      <View style={st.page}>
+      <View style={newLearner ? st.emptyPage : st.page}>
         <TabHeader title={PRACTICE_TITLE} purpose={newLearner ? EMPTY_SUBTITLE : PRACTICE_SUBTITLE} trailing={<ProfileButton />} />
 
         {/* The read did not finish. Said plainly, with the same work offered again. */}
         {library.failed && (
-          <Card style={st.stack}>
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{UNREAD.title}</Text>
-            <Text style={[type.small, { color: paper.inkSoft }]}>{UNREAD.body}</Text>
-            <OutlineButton label={UNREAD.retry} disabled={library.loading} onPress={library.retry} />
-          </Card>
+          <Notice title={UNREAD.title} body={UNREAD.body} action={UNREAD.retry} disabled={library.loading} onPress={library.retry} />
         )}
         {library.cached && (
-          <View accessibilityLiveRegion="polite" style={st.stack}>
-            <Text style={[type.small, { color: paper.inkSoft }]}>Showing what is saved on this phone. Connect and try again to check for newer conversations.</Text>
-            <OutlineButton label="Try again" disabled={library.loading} onPress={library.retry} />
-          </View>
+          <Notice live title={null} body="Showing what is saved on this phone. Connect and try again to check for newer conversations." action="Try again" disabled={library.loading} onPress={library.retry} />
         )}
         {data === null && !library.failed && (
           <View accessibilityLabel="Loading your practice">
@@ -212,130 +243,98 @@ export function PracticeTab() {
         )}
 
         {data !== null && newLearner && (
-          <View style={st.page}>
-            <Card style={st.stack}>
-              <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{EMPTY.title}</Text>
-              <Text style={[type.body, { color: paper.inkSoft }]}>{EMPTY.body}</Text>
-              <PillButton label={EMPTY.start} disabled={checking} onPress={startFirst} />
+          <View style={st.emptyPage}>
+            <EmptyCard title={EMPTY.title} body={EMPTY.body} start={EMPTY.start} disabled={checking} onStart={startFirst}>
               {refused}
-            </Card>
-            <View style={st.stack}>
-              <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{EMPTY.readyNow}</Text>
-              <Ledger>
-                <LedgerRow title={EMPTY.cafe.title} gloss={EMPTY.cafe.line} note={EMPTY.cafe.cost} disabled={checking} onPress={openLesson} />
-                {/* 2026-10-20, sim nits: the round lock from the seam, said once in the row's own label. */}
-                <LedgerRow title={sounds.title} gloss={sounds.gloss}
-                  accessibilityLabel={`${sounds.title}, ${sounds.gloss}${sounds.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
-                  trailing={sounds.locked ? <LockBadge form="round" said /> : undefined}
-                  onPress={() => go({ screen: 'SoundCheck' })} />
-              </Ledger>
+            </EmptyCard>
+            <View style={st.list}>
+              <SubHead title={EMPTY.readyNow} />
+              {/* "free" is left out: the lesson uses live minutes, said in its own line (founder, 2026-10-21). */}
+              <ReadyRow title={cafe.title} lines={[cafe.line, cafe.cost]} art="phrasebook" ground="butter" locked={cafe.locked} disabled={checking} onPress={openLesson} />
+              <ReadyRow title={sounds.title} lines={[sounds.gloss]} art="voice-chat" ground="peach" locked={sounds.locked} onPress={() => go({ screen: 'SoundCheck' })} />
             </View>
-            {savedRows}
+            <View style={st.list}>
+              <SubHead title={SAVED_PHRASES} />
+              <SavedBox line={data.deck.length === 0 ? SAVED_FIRST : savedPhrasesLine(data.deck)} onPress={() => go({ screen: 'Phrasebook' })} />
+            </View>
           </View>
         )}
 
         {data !== null && !newLearner && (() => {
           const chips = topicChips(data.page);
           const chosen = chosenTopic(data.page, topic);
-          const shown = packsInTopic(data.page, chosen);
+          const shown = packsMatching(packsInTopic(data.page, chosen), query);
           const resume = pickUp({ saved: data.session, packs: data.packs, deck: data.deck, bank: data.bank, now });
+          const pattern = patternCard({ patterns: profile.brain.errorPatterns, packs: data.packs, bank: data.bank, access: locks.access });
           const mix = mixCard({ deck: data.deck, bank: data.bank, topics: data.topics, now, access: locks.access });
           const week = thisWeekLine(data.page, now);
           return (
             <Columns>
               <View style={st.page}>
-                {chips.length > 0 && (
-                  <View accessibilityRole="tablist" accessibilityLabel="Topics" style={st.chips}>
-                    {chips.map((chip) => (
-                      <Chip key={chip.key ?? 'all'} variant="filter" label={chip.label} selected={chip.key === chosen} onPress={() => setTopic(chip.key)} />
-                    ))}
-                  </View>
-                )}
+                <View style={st.searchBlock}>
+                  <PracticeSearch value={query} onChangeText={setQuery} placeholder={SEARCH_PLACEHOLDER} />
+                  {chips.length > 0 && (
+                    <TopicTabs tabs={chips} chosen={chosen} onChoose={setTopic} />
+                  )}
+                </View>
 
                 {resume !== null && (
-                  <ColourCard ground="blue" onPress={() => go(resume.route)} accessibilityLabel={`${PICK_UP_TITLE}, ${resume.line}`}>
-                    <View style={st.titleRow}>
-                      <Text style={[type.label, st.grow, { color: textOn.blue }]}>{PICK_UP_TITLE}</Text>
-                    </View>
-                    <Text style={[type.body, { color: onColour.blue }]}>{resume.line}</Text>
-                  </ColourCard>
+                  <ResumeCard title={PICK_UP_TITLE} line={resume.line} onPress={() => go(resume.route)} />
                 )}
 
-                {/* 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" returns built from a stored correction reason. */}
+                {/* 2026-10-21 UI-008, artboard B-Practice, founder: Comes up often shows, authored copy only, never a count. */}
+                {pattern !== null && (
+                  <PatternCard eyebrow={COMES_UP_TITLE} title={pattern.row.title} hint={pattern.row.hint} note={PATTERN_FREE} practise={PRACTISE_THIS} locked={pattern.row.locked}
+                    onCard={pattern.fixes === null ? null : () => go(pattern.fixes!)}
+                    onPractise={pattern.row.practise === null ? null : () => tapThrough(locks.access, 'fixes', locks.open, () => go(pattern.row.practise!))} />
+                )}
 
-                <View style={st.stack}>
-                  <View style={st.titleRow}>
-                    <Text accessibilityRole="header" style={[type.heading, st.grow, { color: paper.ink }]}>{CONVERSATIONS_TITLE}</Text>
-                    {week !== null && <Chip variant="meta" tone="lavender" label={week} />}
-                  </View>
-                  {library.olderPage && <Label>An older page. Topics apply to this page.</Label>}
-                  {shown.map((pack) => {
-                    const card = conversationCard({ pack, packs: data.packs, deck: data.deck, bank: data.bank, now, revisitAllowed, access: locks.access });
+                <ConversationsHead title={CONVERSATIONS_TITLE} week={week} />
+                {library.olderPage && <Text style={[bType.note, { color: t.muted }]}>An older page. Topics apply to this page.</Text>}
+                {shown.length === 0 && query.trim() !== '' && <Text style={[bType.meta, { color: t.secondary }]}>{SEARCH_NONE}</Text>}
+                {shown.map((pack, index) => {
+                  const card = conversationCard({ pack, packs: data.packs, deck: data.deck, bank: data.bank, now, revisitAllowed, access: locks.access, index });
+                  const revisited = card.revisited === null ? null : revisitedLines(card.revisited);
+                  const talk = card.revisit === null ? null : {
+                    label: card.revisit.label,
+                    uses: card.revisit.uses,
+                    locked: card.revisit.locked,
+                    onPress: () => tapThrough(locks.access, card.revisit!.feature, locks.open, () => go(card.revisit!.route)),
+                  };
+                  if (index === 0) {
                     return (
-                      <View key={card.id} style={st.stack}>
-                        <Card style={st.stack}>
-                          <View style={st.small}>
-                            <Text accessibilityRole="header" style={[type.bodyStrong, { color: paper.ink }]}>{card.title}</Text>
-                            {card.meta !== '' && <Text style={[type.small, { color: paper.inkSoft }]}>{card.meta}</Text>}
-                          </View>
-                          {card.summary !== '' && <Text style={[type.body, { color: paper.ink }]}>{card.summary}</Text>}
-                          {card.revisited !== null && revisitedLines(card.revisited).map((line) => (
-                            <Text key={line} style={[type.small, { color: paper.inkSoft }]}>{line}</Text>
-                          ))}
-                          {card.kept.length > 0 && (
-                            <View style={st.chips}>
-                              {card.kept.map((fr) => <Chip key={fr} variant="meta" lang="fr" label={fr} />)}
-                              {card.more !== null && <Chip variant="meta" label={card.more} />}
-                            </View>
-                          )}
-                        </Card>
-                        {(card.fixes !== null || card.steps !== null || card.revisit !== null) && (
-                          <Ledger accessibilityLabel={card.title}>
-                            {card.fixes !== null && <LedgerRow title={card.fixes.title} gloss={card.fixes.gloss} onPress={() => go(card.fixes!.route)} />}
-                            {card.steps?.map((step, i) => (
-                              <LedgerRow key={step.key} label={i === 0 ? PRACTISE_CONVERSATION : undefined} title={step.title} gloss={step.gloss}
-                                accessibilityLabel={`${PRACTISE_CONVERSATION}, ${step.title}, ${step.gloss}${card.stepsLocked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
-                                trailing={card.stepsLocked ? <LockBadge form="round" said /> : undefined}
-                                onPress={() => go(step.route)} />
-                            ))}
-                            {card.revisit !== null && (
-                              <LedgerRow title={card.revisit.label} gloss={card.revisit.uses}
-                                accessibilityLabel={`${card.revisit.label}. ${card.revisit.uses}${card.revisit.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
-                                trailing={card.revisit.locked ? <LockBadge form="round" said /> : undefined}
-                                onPress={() => tapThrough(locks.access, card.revisit!.feature, locks.open, () => go(card.revisit!.route))} />
-                            )}
-                          </Ledger>
-                        )}
-                      </View>
+                      <LargeConversationCard key={card.id} title={card.title} meta={card.meta} summary={card.summary} kept={card.kept} more={card.more} revisited={revisited}
+                        fixes={card.fixes === null ? null : { title: card.fixes.title, gloss: card.fixes.gloss, locked: card.fixes.locked, onPress: () => go(card.fixes!.route) }}
+                        stepsLabel={PRACTISE_CONVERSATION}
+                        steps={card.steps === null ? null : card.steps.map((step) => ({ key: step.key, title: step.title, gloss: step.gloss, onPress: () => go(step.route) }))}
+                        stepsLocked={card.stepsLocked}
+                        revisit={talk} />
                     );
-                  })}
-                  {data.unavailable.length > 0 && (
-                    <OutlineButton label="Some conversations need a closer look" onPress={() => { if (ownsReadNow()) nav.navigate('Conversations'); }} />
-                  )}
-                  {library.nextCursor !== null && <OutlineButton label={library.loading ? 'Loading…' : OLDER} disabled={library.loading} onPress={library.older} />}
-                  {library.olderPage && <OutlineButton label={NEWEST} disabled={library.loading} onPress={library.newest} />}
-                </View>
+                  }
+                  return (
+                    <CompactConversationCard key={card.id} title={card.title} meta={card.meta} summary={card.summary} art={card.art} revisited={revisited}
+                      practise={card.practiseIt === null ? null : { label: PRACTISE_IT, locked: card.practiseIt.locked, onPress: () => tapThrough(locks.access, card.practiseIt!.feature, locks.open, () => go(card.practiseIt!.route)) }}
+                      talk={talk === null ? null : { ...talk, label: TALK_AGAIN_SHORT }} />
+                  );
+                })}
+                {data.unavailable.length > 0 && (
+                  <PageLink label="Some conversations need a closer look" onPress={() => { if (ownsReadNow()) nav.navigate('Conversations'); }} />
+                )}
+                {library.nextCursor !== null && <PageLink label={library.loading ? 'Loading…' : OLDER} disabled={library.loading} onPress={library.older} />}
+                {library.olderPage && <PageLink label={NEWEST} disabled={library.loading} onPress={library.newest} />}
               </View>
 
               <View style={st.page}>
                 {mix !== null && (
-                  <ColourCard ground="blue" onPress={() => tapThrough(locks.access, mix.feature, locks.open, () => go(mix.route))} accessibilityLabel={`${MIX_TITLE}, ${mix.line}${mix.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}>
-                    <View style={st.titleRow}>
-                      <Text style={[type.label, st.grow, { color: textOn.blue }]}>{MIX_TITLE}</Text>
-                      {mix.locked && <LockBadge ground="card" said />}
-                    </View>
-                    <Text style={[type.body, { color: onColour.blue }]}>{mix.line}</Text>
-                  </ColourCard>
+                  <MixCard title={MIX_TITLE} line={mix.line} locked={mix.locked} onPress={() => tapThrough(locks.access, mix.feature, locks.open, () => go(mix.route))} />
                 )}
 
-                {savedRows}
+                {savedTiles}
 
-                {/* The honest doors to sound practice: the bundled recording to
-                    hear, say and compare, and one sound with its mouth guide. */}
+                {/* The honest doors to sound practice, below what the artboard draws: the
+                    bundled recording to hear, say and compare, and one sound with its mouth guide. */}
                 {shadowPhrase && (
-                  <Ledger>
-                    <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Hear, say and compare" gloss="Free offline practice with your chosen tutor’s recording. Your take is temporary and is not graded." onPress={() => { if (ownsReadNow()) nav.navigate('DailyPractice', { id: shadowPhrase.id, mode: 'shadowing' }); }} />
-                  </Ledger>
+                  <QuietRow title="Hear, say and compare" line="Free offline practice with your chosen tutor’s recording. Your take is temporary and is not graded." onPress={() => { if (ownsReadNow()) nav.navigate('DailyPractice', { id: shadowPhrase.id, mode: 'shadowing' }); }} />
                 )}
                 {ownerMatches && lead !== null && (
                   <TuneSoundCard lead={lead} playing={recorded.playing} onHear={hearRecording} onCheck={(missionId) => { if (ownsReadNow()) nav.navigate('SoundCheck', { missionId }); }} />
@@ -349,11 +348,12 @@ export function PracticeTab() {
   );
 }
 
-const st = StyleSheet.create({
-  page: { gap: space(6) },
-  stack: { gap: space(3) },
-  small: { gap: space(1) },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-  titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2), minHeight: HIT },
-  grow: { flex: 1, minWidth: 0 },
-});
+// Section gaps from the artboards: Practice 20, the empty page 22.
+const makeStyles = (_t: B) =>
+  StyleSheet.create({
+    page: { gap: space(5) },
+    emptyPage: { gap: space(5.5) },
+    searchBlock: { gap: space(2.5) },
+    list: { gap: space(2.5) },
+    refused: { gap: space(2), alignSelf: 'stretch', minHeight: HIT },
+  });

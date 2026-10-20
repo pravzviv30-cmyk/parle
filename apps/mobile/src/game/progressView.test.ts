@@ -154,7 +154,8 @@ describe('Progress from its own records — F769', () => {
     // day line moved to the Badges sheet; the postcard shelf became the
     // Postcards tile; the CEFR card became "Where you are"; the tiled rows stay.
     const tab = read('../tabs/MyFrenchTab.tsx');
-    const order = ['<TabHeader', '<LivingBar', '<StatRow>', 'rows.map(', '<BadgeShelf />', '<StreakSummaryCard><DayCount weekly /></StreakSummaryCard>'];
+    // 2026-10-20 UI-008, artboard B-Journey: the stat row is the band's three white BandStat tiles.
+    const order = ['<TabHeader', '<LivingBar', '<BandStat', 'rows.map(', '<BadgeShelf />', '<StreakSummaryCard><DayCount weekly /></StreakSummaryCard>'];
     for (let i = 1; i < order.length; i += 1) {
       const before = tab.indexOf(order[i - 1]!);
       const after = tab.indexOf(order[i]!);

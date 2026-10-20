@@ -386,6 +386,16 @@ const bLight = {
   tabSelected: colour.blue,
   tabGlyphSelected: colour.sun,
   tabLabel: paper.ground,
+  /** The "Hint" bar of the help legend (B-ThenNow, 2026-10-20). A mark, never words. */
+  hint: cloudOrb.upper,
+  /** The half arc of an ability practised with help (B-Journey). A mark, never words. */
+  sunDeep: '#E0A800',
+  /** The five-stage track behind the nodes (B-Journey). */
+  stageTrack: '#EFE7F9',
+  /** The art panel inside the peach Postcards tile (B-Journey). */
+  peachSoft: '#FCEADF',
+  /** The art panel inside the lavender Badges tile (B-Journey). */
+  lavenderSoft: '#F5F1FE',
   statusBar: 'dark' as 'dark' | 'light',
 };
 
@@ -425,6 +435,11 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     onAvatar: paper.ground,
     scrim: '#000000',
     danger: '#FF9A85',
+    // 2026-10-20 UI-008, B-Journey and B-ThenNow: the stage track sits on the
+    // dark card's inset, and the tiles' art panels one step lighter than their pastel.
+    stageTrack: '#302A48',
+    peachSoft: '#5A3F4C',
+    lavenderSoft: '#3D3560',
     statusBar: 'light',
   },
 };

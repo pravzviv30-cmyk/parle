@@ -773,25 +773,28 @@ export function Stat({ value, label, columns = 2 }: { value: string; label: stri
  * or the control that holds it names itself, so a screen reader walks past a
  * loose letter.
  */
-export function Monogram({ initial, size = HIT }: { initial: string | null; size?: number }) {
+export function Monogram({ initial, size = HIT, inverted = false }: { initial: string | null; size?: number; inverted?: boolean }) {
   const t = useB();
+  // 2026-10-20 UI-008, artboard B-Journey: on the brand band the disc flips to
+  // the card fill with ink letters (`inverted`); everywhere else it is unchanged.
+  const ink = inverted ? t.text : t.onAvatar;
   return (
     <View
       {...decorative}
-      style={{
+      style={[{
         width: size,
         height: size,
         borderRadius: size / 2,
         backgroundColor: t.avatar,
         alignItems: 'center',
         justifyContent: 'center',
-      }}
+      }, inverted ? { backgroundColor: t.card } : null]}
     >
       {initial === null ? (
         // 2026-10-20, sim nits: no name, no letter; a neutral person glyph.
-        <Icon name="user" size={Math.round(size * 0.5)} color={t.onAvatar} />
+        <Icon name="user" size={Math.round(size * 0.5)} color={ink} />
       ) : (
-        <Text style={{ fontFamily: font.bold, fontSize: size * 0.44, color: t.onAvatar }}>{initial}</Text>
+        <Text style={[{ fontFamily: font.bold, fontSize: size * 0.44, color: t.onAvatar }, inverted ? { color: ink } : null]}>{initial}</Text>
       )}
     </View>
   );

@@ -1,29 +1,37 @@
 /**
- * Your fixes (B3, 2026-10-20, artboard B-Fixes), opened as `Fixes {packId}`.
+ * Your fixes (2026-10-21 UI-008, artboard B-Fixes), opened as `Fixes {packId}`,
+ * in light and dark.
  *
  * The corrections a conversation saved, tried before they are shown. The
  * first untried fix asks for the French from its English; the learner says it
  * in a drill sitting or types it here, and only then does the screen show what
- * they said, a more natural way, and why. A fix the deck already holds as
- * tried shows the comparison, with a way to say it once more. Every decision
- * is `practice/fixesView.ts`'s; nothing here writes anything, and the typed
- * attempt lives only as long as the screen.
+ * they said, a more natural way, and why. Every other untried fix waits as a
+ * collapsed row with "Try it". A fix the deck already holds as tried shows the
+ * comparison, with a way to say it once more. The pattern that comes up often
+ * sits above them, from authored copy only and never with a count. Every
+ * decision is `practice/fixesView.ts`'s; nothing here writes anything, and the
+ * typed attempt lives only as long as the screen.
  *
  * It reads through `useLibraryData`, under the same account fence as Practice,
  * and never asks the plan itself: the lock badge comes from the access seam.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { Card, ColourCard, Field, FrenchBlock, LockBadge, OutlineButton, PillButton, Skeleton, TabBar } from '../components.tsx';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { frenchText, paper, radius, space, type } from '../theme.ts';
+import { Field, Skeleton } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
+import { bType, radius, space } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
+import { BButton } from '../today/TodayParts.tsx';
 import type { RootStackParamList } from '../nav/types.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { useLibraryData } from './useLibraryData.ts';
 import { useFeatureAccess } from '../access/useFeatureAccess.ts';
-import type { PracticeRoute } from './practiceTabView.ts';
+import { tapThrough } from '../access/featureAccess.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { COMES_UP_SHORT, PRACTISE_THIS, patternCard, type PracticeRoute } from './practiceTabView.ts';
+import { AttemptCard, ComparedCard, FixesHeader, FixesNotice, FixesPatternCard, PhraseList, ScopeToggle, WaitingRow } from './FixesParts.tsx';
 import {
   FIXES_TITLE,
   FIX_COPY,
@@ -35,7 +43,7 @@ import {
   fixesPack,
   fixesSubtitle,
   phraseRows,
-  practiseAll,
+  practiseAllDoor,
   type FixesScope,
 } from './fixesView.ts';
 
@@ -45,6 +53,7 @@ export function FixesScreen() {
   // The lock seam, so the badge follows a standing change while the screen is open.
   const locks = useFeatureAccess();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void; goBack: () => void; canGoBack: () => boolean }>();
+  const { profile } = useProfile();
   const route = useRoute<RouteProp<RootStackParamList, 'Fixes'>>();
   const packId = typeof route.params?.packId === 'string' ? route.params.packId : '';
   const library = useLibraryData();
@@ -76,22 +85,23 @@ export function FixesScreen() {
   };
 
   const now = Date.now();
+  const t = useB();
   const pack = data === null ? null : fixesPack(packId, data.packs);
-  const header = <ScreenHeader back={{ onPress: back }} title={FIXES_TITLE} />;
+  const locked = fixesLocked(locks.access);
 
   if (data === null) {
     return (
-      <ScrollScreen header={header}>
-        {library.failed ? (
-          <Card style={st.stack}>
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>Your fixes couldn’t be loaded.</Text>
-            <OutlineButton label="Try again" disabled={library.loading} onPress={library.retry} />
-          </Card>
-        ) : (
-          <View accessibilityLabel="Loading your fixes">
-            <Skeleton blocks={[{ height: space(20), radius: radius.card }, { height: space(40), radius: radius.card }]} />
-          </View>
-        )}
+      <ScrollScreen bottom="inset" topGap={8}>
+        <View style={st.page}>
+          <FixesHeader title={FIXES_TITLE} subtitle={null} locked={false} onBack={back} />
+          {library.failed ? (
+            <FixesNotice title="Your fixes couldn’t be loaded." body={null} action="Try again" disabled={library.loading} onPress={library.retry} />
+          ) : (
+            <View accessibilityLabel="Loading your fixes">
+              <Skeleton blocks={[{ height: space(20), radius: radius.card }, { height: space(40), radius: radius.card }]} />
+            </View>
+          )}
+        </View>
       </ScrollScreen>
     );
   }
@@ -99,113 +109,77 @@ export function FixesScreen() {
   // An unknown or unavailable conversation: a calm word and the way back.
   if (pack === null) {
     return (
-      <ScrollScreen header={header}>
-        <Card style={st.stack}>
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{FIX_COPY.unknownTitle}</Text>
-          <Text style={[type.body, { color: paper.inkSoft }]}>{FIX_COPY.unknownBody}</Text>
-          <OutlineButton label={FIX_COPY.back} onPress={back} />
-        </Card>
+      <ScrollScreen bottom="inset" topGap={8}>
+        <View style={st.page}>
+          <FixesHeader title={FIXES_TITLE} subtitle={null} locked={false} onBack={back} />
+          <FixesNotice title={FIX_COPY.unknownTitle} body={FIX_COPY.unknownBody} action={FIX_COPY.back} onPress={back} />
+        </View>
       </ScrollScreen>
     );
   }
 
   const fixes = fixesFor({ pack, packs: data.packs, deck: data.deck, bank: data.bank, scope, now });
   const rows = fixRows(fixes, { active, typed });
-  const all = practiseAll(fixes, scope, pack.id);
+  const all = practiseAllDoor(fixes, scope, pack.id, typed);
   const phrases = phraseRows(pack, data.deck);
-  const locked = fixesLocked(locks.access);
+  // 2026-10-21 UI-008, artboard B-Fixes, founder: Comes up often shows, authored copy only, never a count.
+  const pattern = patternCard({ patterns: profile.brain.errorPatterns, packs: data.packs, bank: data.bank, access: locks.access });
 
   return (
-    <ScrollScreen header={header}>
+    <ScrollScreen bottom="inset" topGap={8}>
       <View style={st.page}>
-        <View style={st.small}>
-          {locked && <LockBadge />}
-          <Text style={[type.body, { color: paper.inkSoft }]}>{fixesSubtitle(pack, now)}</Text>
-        </View>
+        <FixesHeader title={FIXES_TITLE} subtitle={fixesSubtitle(pack, now)} locked={locked} onBack={back} />
 
-        <TabBar tabs={SCOPES} active={scope} accessibilityLabel="Which fixes" onChange={(key) => { setScope(key); setActive(null); setTyping(null); setDraft(''); }} />
+        <ScopeToggle scopes={SCOPES} active={scope} onChange={(key) => { setScope(key); setActive(null); setTyping(null); setDraft(''); }} />
 
-        {/* 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" returns built from a stored correction reason. */}
+        {pattern !== null && (
+          <FixesPatternCard eyebrow={COMES_UP_SHORT} title={pattern.row.title} hint={pattern.row.hint} practise={PRACTISE_THIS} locked={pattern.row.locked}
+            onPractise={pattern.row.practise === null ? null : () => tapThrough(locks.access, 'fixes', locks.open, () => go(pattern.row.practise!))} />
+        )}
 
-        {rows.length === 0 && <Text style={[type.body, { color: paper.inkSoft }]}>{FIX_COPY.none}</Text>}
+        {rows.length === 0 && <FixesNotice title={FIX_COPY.none} body={null} action={FIX_COPY.back} onPress={back} />}
         {rows.map((row) => {
           if (row.kind === 'attempt') {
             return (
-              <Card key={row.key} style={st.stack}>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{fixLabel(row)}</Text>
-                <Text style={[type.label, { color: paper.ink }]}>{FIX_COPY.sayThis}</Text>
-                <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{row.english}</Text>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{FIX_COPY.afterTry}</Text>
-                {typing === row.key ? (
-                  <View style={st.stack}>
+              <AttemptCard key={row.key} label={fixLabel(row)} prompt={FIX_COPY.sayThis} english={row.english} note={FIX_COPY.afterTry}
+                say={row.say === null ? null : { label: FIX_COPY.say, onPress: () => go(row.say!) }}
+                type={{ label: FIX_COPY.type, onPress: () => { setTyping(row.key); setDraft(''); } }}
+                typing={typing === row.key ? (
+                  <View style={st.typing}>
                     <Field label={FIX_COPY.typePlaceholder} value={draft} onChangeText={setDraft} autoCapitalize="sentences" />
-                    <PillButton variant="secondary" label={FIX_COPY.showAfterTyping} disabled={draft.trim() === ''}
+                    <BButton label={FIX_COPY.showAfterTyping} height={48} ground={t.quiet} ink={t.text} text={bType.bold15} disabled={draft.trim() === ''}
                       onPress={() => { if (!library.ownsNow() || draft.trim() === '') return; setTyped((was) => ({ ...was, [row.key]: draft.trim() })); setTyping(null); setDraft(''); }} />
                   </View>
-                ) : (
-                  <View style={st.actions}>
-                    {row.say !== null && <PillButton variant="secondary" compact label={FIX_COPY.say} onPress={() => go(row.say!)} />}
-                    <PillButton variant="secondary" compact label={FIX_COPY.type} onPress={() => { setTyping(row.key); setDraft(''); }} />
-                  </View>
-                )}
-              </Card>
+                ) : null} />
             );
           }
           if (row.kind === 'waiting') {
             return (
-              <Card key={row.key} style={st.stack}>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{fixLabel(row)}</Text>
-                <Text style={[type.bodyStrong, { color: paper.ink }]}>{row.english}</Text>
-                <OutlineButton label={FIX_COPY.tryIt} accessibilityLabel={`${FIX_COPY.tryIt}, ${row.english}`} onPress={() => { setActive(row.key); setTyping(null); setDraft(''); }} />
-              </Card>
+              <WaitingRow key={row.key} label={fixLabel(row)} english={row.english} tryIt={FIX_COPY.tryIt} onTry={() => { setActive(row.key); setTyping(null); setDraft(''); }} />
             );
           }
           return (
-            <Card key={row.key} style={st.stack}>
-              <Text style={[type.small, { color: paper.inkSoft }]}>{fixLabel(row)}</Text>
-              {row.wrote !== null && (
-                <View style={st.small}>
-                  <Text style={[type.small, { color: paper.inkSoft }]}>{FIX_COPY.youWrote}</Text>
-                  <Text {...frenchText} style={[type.frenchSm, { color: paper.ink }]}>{row.wrote}</Text>
-                </View>
-              )}
-              <View style={st.small}>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{row.said}</Text>
-                <Text {...frenchText} style={[type.frenchSm, { color: paper.inkSoft }]}>{row.quote}</Text>
-              </View>
-              <View style={st.small}>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{FIX_COPY.natural}</Text>
-                <FrenchBlock size="md" french={row.better} english={row.english} playing={playing === row.key} onHear={() => hear(row.key, row.better)} />
-              </View>
-              {row.why.trim() !== '' && <Text style={[type.small, { color: paper.ink }]}>{FIX_COPY.why} {row.why}</Text>}
-              {row.again !== null && <PillButton variant="secondary" compact label={FIX_COPY.again} onPress={() => go(row.again!)} />}
-            </Card>
+            <ComparedCard key={row.key} label={fixLabel(row)}
+              wrote={row.wrote === null ? null : { label: FIX_COPY.youWrote, text: row.wrote }}
+              said={row.said} quote={row.quote} natural={FIX_COPY.natural} better={row.better} english={row.english}
+              hear={{ label: 'Hear it', playing: playing === row.key, onPress: () => hear(row.key, row.better) }}
+              why={row.why.trim() !== '' ? { label: FIX_COPY.why, text: row.why } : null}
+              again={row.again === null ? null : { label: FIX_COPY.again, onPress: () => go(row.again!) }} />
           );
         })}
 
         {phrases.length > 0 && (
-          <View style={st.stack}>
-            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{FIX_COPY.phrasesTitle}</Text>
-            <Card style={st.stack}>
-              {phrases.map((phrase) => (
-                <View key={phrase.fr} style={st.small}>
-                  <FrenchBlock size="md" french={phrase.fr} english={phrase.en} playing={playing === phrase.fr} onHear={() => hear(phrase.fr, phrase.fr)} />
-                  <Text style={[type.small, { color: paper.inkSoft }]}>{phrase.status}</Text>
-                </View>
-              ))}
-            </Card>
-          </View>
+          <PhraseList title={FIX_COPY.phrasesTitle} phrases={phrases} hearLabel="Hear it" playing={playing} onHear={(fr) => hear(fr, fr)} />
         )}
 
-        {all !== null && <PillButton label={FIX_COPY.practiseAll} onPress={() => go(all)} />}
+        {all !== null && <BButton label={FIX_COPY.practiseAll} height={54} ground={t.primary} ink={t.onPrimary} text={bType.bold17} onPress={() => { if (all.kind === 'drill') go(all.route); else { setActive(all.key); setTyping(null); setDraft(''); } }} />}
       </View>
     </ScrollScreen>
   );
 }
 
+// The detail page's gap from the artboard: 18.
 const st = StyleSheet.create({
-  page: { gap: space(6) },
-  stack: { gap: space(3) },
-  small: { gap: space(1), alignItems: 'flex-start' },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  page: { gap: space(4.5) },
+  typing: { gap: space(3) },
 });

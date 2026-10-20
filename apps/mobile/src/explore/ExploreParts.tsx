@@ -53,7 +53,7 @@ export function OneWaveSpeaker({ size, color }: { size: number; color: string })
 }
 
 /** The tick a chosen filter carries, so the choice is not colour alone. */
-function TickGlyph({ size, color }: { size: number; color: string }) {
+export function TickGlyph({ size, color }: { size: number; color: string }) {
   return (
     <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
       <Path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />

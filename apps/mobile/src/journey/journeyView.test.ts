@@ -24,6 +24,7 @@ import {
   JOURNEY_COPY,
   JOURNEY_TITLE,
   STAGES,
+  STAGE_FILL,
   YOU_ARE_HERE,
   canDoView,
   collectionTiles,
@@ -203,6 +204,35 @@ describe('then and now, on the tab', () => {
     assert.equal(view.best, null);
     assert.equal(thenNowCard([]), null);
     assert.equal(thenNowCard([{ id: 'not-a-mission', at: NOW, rung: 4 }]), null, 'a free conversation has no guided steps');
+  });
+});
+
+// 2026-10-20 UI-008, artboard B-Journey: the marks the rebuilt page draws are
+// the view model's too: the track's fill, the dashed cell's words, the sound
+// tiles' pastels and the week's dots.
+describe('the marks B-Journey draws', () => {
+  test('the stage fill is the artboard\'s 7% at Starter, a fifth more at Basics, and never goes down', () => {
+    assert.equal(stagesFrom(progressOf([])).fill, STAGE_FILL);
+    assert.equal(STAGE_FILL, 0.07);
+    const all: StoredCompletion[] = A0.map((id, i) => ({ id, at: NOW - (i + 1) * DAY, rung: 4 }));
+    const basics = stagesFrom(progressOf(all));
+    assert.equal(basics.fill, STAGE_FILL + 1 / STAGES.length);
+    // A tired replay at the line given does not walk the stage, or its fill, back.
+    const tired = stagesFrom(progressOf([...all, ...A0.map((id) => ({ id, at: NOW, rung: 1 }))]));
+    assert.ok(tired.fill >= basics.fill, 'the track went backwards');
+  });
+
+  test('the then and now card says the dashed line only while there is no best', () => {
+    assert.equal(thenNowCard([{ id: 'mission:cafe', at: NOW, rung: 2 }])!.hint, 'Try again to see your best here');
+    assert.equal(thenNowCard([{ id: 'mission:cafe', at: NOW - DAY, rung: 2 }, { id: 'mission:cafe', at: NOW, rung: 4 }])!.hint, null);
+  });
+
+  test('sound tiles alternate peach and lavender, and the week\'s dots are mint, sun and brand', () => {
+    const [first, second] = FRENCH_PHONEMES;
+    const sounds = soundsView({ checks: [check({ phoneme: first!.ipa, at: NOW - 2 * DAY }), check({ phoneme: second!.ipa, at: NOW - DAY })], now: NOW, hasJourney: false })!;
+    assert.deepEqual(sounds.rows.map((r) => r.tile), ['peach', 'lavender']);
+    const week = weekView({ improvement: 'You ordered at the café.', focus: 'le or la before a noun.', next: { missionId: 'mission:cafe', title: 'Order at a café', place: 'cafe' } })!;
+    assert.deepEqual(week.rows.map((r) => r.dot), ['mint', 'sun', 'brand']);
   });
 });
 

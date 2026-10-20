@@ -28,6 +28,8 @@ function stripComments(source: string): string {
 }
 
 const SCREEN = stripComments(read('./MyFrenchTab.tsx'));
+/** The B parts the tab is drawn from (2026-10-20 UI-008, artboard B-Journey), flattened. */
+const PARTS_OF = (): string => stripComments(read('../journey/JourneyParts.tsx')).replace(/\s+/g, ' ');
 const FLAT = SCREEN.replace(/\s+/g, ' ');
 const BANK = stripComments(read('../myfrench/PhraseBank.tsx'));
 const MAP = stripComments(read('../myfrench/SoundsMap.tsx'));
@@ -79,27 +81,30 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
     assert.match(FLAT, /setReadyOwner\(scope\); setStatus\('ready'\)/);
     assert.match(FLAT, /const renderStatus = ownedReadStatus\(status, readOwner, readyOwner, currentScope\)/);
     // 2026-10-20, B4, B-Journey: the page is drawn only for a ready read that is not the empty journey.
-    assert.match(FLAT, /renderStatus === 'ready' && !empty && \( <View style=\{st\.block\}>/);
+    // 2026-10-20 UI-008, artboard B-Journey: the ready page opens straight on its two columns inside the body.
+    assert.match(FLAT, /renderStatus === 'ready' && !empty && \( <Columns>/);
     assert.match(FLAT, /setStory\(\{ sentences: \[\] \}\); setHeldBack\(false\);/, 'the last account\'s week or refusal survives a new read');
   });
   test('the blocks run in the artboard order: header, stages, abilities, then and now, used, help, sounds, week, tiles, rows', () => {
     // 2026-10-20, B4, B-Journey: replaces level, phrase bank, sounds map, conversations.
-    const order = ['<TabHeader', '<LivingBar', '<StatRow>', '{STAGE_HEADING}', 'sectionTitle(CAN_DO_HEADING', 'sectionTitle(THEN_NOW_HEADING', 'sectionTitle(USED_HEADING', '{HELP_HEADING}', 'sectionTitle(SOUNDS_HEADING', 'sectionTitle(WEEK_HEADING', 'tiles.map(', '{rows.map('];
+    // 2026-10-20 UI-008, artboard B-Journey: the band's white stat tiles and the B section heads.
+    const order = ['<TabHeader', '<LivingBar', 'stats.map((stat) => <BandStat', 'title={STAGE_HEADING}', 'title={CAN_DO_HEADING}', 'title={THEN_NOW_HEADING}', 'title={USED_HEADING}', 'heading={HELP_HEADING}', 'title={SOUNDS_HEADING}', 'title={WEEK_HEADING}', 'tiles.map(', '{rows.map('];
     for (let i = 1; i < order.length; i += 1) assert.ok(at(order[i - 1]!) < at(order[i]!), `${order[i - 1]} is not drawn before ${order[i]}`);
-    for (const retired of ['<PhraseBank', '<SoundsMap', 'title={DAILY_LINE}', 'title={BROWSE_LINE}', '<LevelCard', '<LevelXpCard', '<CountsGrid', '<PostcardShelf']) assert.ok(!SCREEN.includes(retired), `${retired} is back on Journey`);
+    for (const retired of ['<PhraseBank', '<SoundsMap', 'title={DAILY_LINE}', 'title={BROWSE_LINE}', '<LevelCard', '<LevelXpCard', '<CountsGrid', '<PostcardShelf', '<StatRow', '<ColourCard', '<Chip ', '<IconAction']) assert.ok(!SCREEN.includes(retired), `${retired} is back on Journey`);
   });
 
   test('the stage is the spine\'s, said in words with "You\'re here" on the real one, and no rank anywhere', () => {
     // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages.
     assert.match(FLAT, /const stages = stagesFrom\(missions\);/);
-    assert.match(FLAT, /stages\.steps\.map\(\(step\) => \( <View key=\{step\.label\} style=\{st\.stage\} accessible accessibilityLabel=\{step\.accessibilityLabel\}>/);
-    // 2026-10-20, sim nits: the "here" column carries a flag glyph, and the words
-    // span the row under the ladder so they read on one line at 375pt.
-    gated('<Icon name="flag"', "step.state === 'here' &&", 120);
-    assert.match(FLAT, /label=\{stages\.hereLine\}/);
-    assert.ok(at('label={stages.hereLine}') > at('stages.steps.map('), 'the here line is not under the ladder');
-    // The done step carries a tick as well as its colour.
-    assert.match(FLAT, /step\.state === 'done' \? <CheckGlyph/);
+    // 2026-10-20 UI-008, artboard B-Journey: the five 38pt nodes on their track, the current one brand with
+    // its 4pt lavender ring and "You're here" (11/700) under its name, which
+    // replaces the 2026-10-20 sim-nits flag and here-line chip. The node is
+    // selected (accessibilityState) and the words say so; a done node keeps its tick.
+    assert.match(FLAT, /<StageTrack steps=\{stages\.steps\} fill=\{stages\.fill\} moveUp=\{stages\.moveUp\} hereWord=\{YOU_ARE_HERE\} \/>/);
+    const PARTS = stripComments(read('../journey/JourneyParts.tsx')).replace(/\s+/g, ' ');
+    assert.match(PARTS, /steps\.map\(\(step\) => \{ const here = step\.state === 'here'; return \( <View key=\{step\.label\} style=\{s\.stage\} accessible accessibilityLabel=\{step\.accessibilityLabel\} accessibilityState=\{\{ selected: here \}\}>/);
+    assert.match(PARTS, /\{here \? <Text style=\{\[bType\.bold11, s\.centred, \{ color: t\.link \}\]\}>\{hereWord\}<\/Text> : null\}/);
+    assert.match(PARTS, /step\.state === 'done' \? <NodeTick/);
     assert.doesNotMatch(SCREEN, /totalXp\(|levelName|LEVELS\[|'A0'|'A1'/);
   });
 
@@ -107,8 +112,13 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
     // 2026-10-20, B4, B-Empty-States: replaces the first-visit LocalPracticeCard.
     assert.match(FLAT, /const firstVisit = isFirstVisit\(\{ progress: missions, deck, checks, packs: packs.length \}\);/);
     assert.match(FLAT, /const empty = renderStatus === 'ready' && isEmptyJourney\(firstVisit, completions\);/);
-    gated('<PillButton label={start.start}', '{empty && (', 400);
-    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'the empty journey\'s start and Practise your sounds');
+    // 2026-10-20 UI-008, artboard B-Journey / B-Empty-States: the butter card's 46pt ink start (BButton); Practise
+    // your sounds became the sound row's link, so the tab draws no PillButton.
+    gated('<BButton label={start.start} height={46} ground={t.primary}', '{empty && (', 400);
+    assert.equal(tags(SCREEN, 'PillButton').length, 0);
+    assert.equal(tags(SCREEN, 'BButton').length, 1, 'the empty journey carries other than one start');
+    assert.match(FLAT, /<EmptyJourneyCard title=\{start\.title\} body=\{start\.body\}>/);
+    assert.match(PARTS_OF(), /<BArt name="map-route" width=\{150\} height=\{137\} \/>/);
     assert.match(FLAT, /const decision = tutorGate\(answered, false\); if \(!decision\.go\) \{ setHeldBack\(true\); return; \}/);
     assert.match(FLAT, /nav\.navigate\(decision\.screen, \{ missionId: start\.missionId, \.\.\.decision\.params \}\)/);
     gated('<LocalPracticeCard', 'heldBack &&', 300);
@@ -142,9 +152,11 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
   test('the page keeps one primary, its lists as ledger rows, and no retired row', () => {
     // 2026-10-20, B4, B-Journey: one primary (the empty journey's start), the
     // rest secondary; the lists are the retry, the week in words and the rows.
-    assert.equal(tags(SCREEN, 'PillButton').filter((tag) => !tag.includes('variant="secondary"')).length, 1);
+    // 2026-10-20 UI-008, artboard B-Journey: the one primary is the empty journey's BButton (held above).
+    assert.equal(tags(SCREEN, 'PillButton').length, 0);
     // 2026-10-20, lock seam wiring: plus the one teaser ledger every locked section shares.
-    assert.equal(tags(SCREEN, 'Ledger').length, 4, 'retry, locked teaser, week in words, and the saved materials with the week story');
+    // 2026-10-20 UI-008, artboard B-Journey: the week in words left the ledger for the artboard's dot rows, 4 to 3.
+    assert.equal(tags(SCREEN, 'Ledger').length, 3, 'retry, locked teaser, and the saved materials with the week story');
     assert.match(SCREEN, /earnedPostcards\(missions\)\.length/);
     assert.ok(SCREEN.includes('(rows.length > 0 || hasWeek) && ('));
     // 2026-10-20, B4, B-Journey: the header's numbers are the shared StatRow of
@@ -160,7 +172,9 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
     // postcard shelf, whose heading row is the one door to Postcards.
     // 2026-10-20, B4, B-Journey: retry, week in words, week story, saved materials.
     // 2026-10-20, lock seam wiring: plus a locked section's teaser row, which opens the Wall.
-    assert.equal(rows.length, 5, 'retry, locked teaser, week in words, week story and saved materials');
+    // 2026-10-20 UI-008, artboard B-Journey: the week in words is the artboard's dot rows (WeekRowView), 5 to 4.
+    assert.equal(rows.length, 4, 'retry, locked teaser, week story and saved materials');
+    for (const row of tags(FLAT, 'WeekRowView')) assert.match(row, /onPress=\{/);
     for (const row of rows) { assert.match(row, /onPress=\{/); assert.match(row, /accessibilityLabel=(?:\{|")/); }
     assert.match(FLAT, /key=\{row.id\}/);
   });
@@ -197,8 +211,9 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
   test('every door goes through the account fence to its view model\'s route', () => {
     assert.match(FLAT, /const go = \(route: JourneyRoute\) => \{ if \(!owned\(\)\) return; nav\.navigate\(route\.screen, 'params' in route \? route\.params : undefined\); \};/);
     assert.match(FLAT, /onPress=\{\(\) => go\(thenNow\.route\)\}/, 'the then and now card does not open Then and now');
-    assert.match(FLAT, /<IconAction layout="inline" icon="forward" label=\{SEE_ALL\}[^>]*onPress=\{\(\) => go\(thenNow\.route\)\}/);
-    assert.match(FLAT, /onPress=\{\(\) => go\(sounds\.practise\)\}/, 'Practise does not open sound practice');
+    // 2026-10-20 UI-008, artboard B-Journey: "See all" is the head's 15/700 text link; Practise is the last sound row's link.
+    assert.match(FLAT, /link=\{thenNow\.teaser !== null \? undefined : \{ label: SEE_ALL, accessibilityLabel: `\$\{SEE_ALL\}, \$\{THEN_NOW_HEADING\}`, onPress: \(\) => go\(thenNow\.route\) \}\}/);
+    assert.match(FLAT, /onPress: \(\) => go\(sounds\.practise\)/, 'Practise does not open sound practice');
     assert.match(FLAT, /onPress=\{\(\) => \('sheet' in tile\.route \? setBadges\(true\) : go\(tile\.route\)\)\}/, 'the tiles do not open Postcards and the badge sheet');
     assert.match(FLAT, /<Sheet visible=\{badges\} title="Badges"/);
     assert.match(FLAT, /: \(\) => go\(row\.route!\)/, 'the week\'s next place does not open its scene');
@@ -208,9 +223,13 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
     for (const gate of ['canDo.locked', 'thenNow.locked', 'used.locked', 'help.locked', 'sounds.locked', 'week.locked']) {
       assert.ok(SCREEN.includes(gate), `${gate} is not asked`);
     }
-    assert.match(FLAT, /\{locked && <LockBadge \/>\}/);
+    // 2026-10-20 UI-008, artboard B-Journey: the heads are JourneyHead, which draws the badge only when told the seam locked it.
+    const PARTS = stripComments(read('../journey/JourneyParts.tsx')).replace(/\s+/g, ' ');
+    assert.match(PARTS, /\{locked \? <LockBadge \/> : null\}/);
+    for (const section of ['canDo', 'thenNow', 'used', 'sounds', 'week']) assert.match(FLAT, new RegExp(`locked=\\{${section}\\.locked\\}`), `${section}'s head is not told its lock`);
     // 2026-10-20, lock seam wiring: the help card says the lock in its own label when locked, so its badge is said once.
-    assert.match(FLAT, /\{help\.locked && <LockBadge ground="card" said \/>\}/);
+    assert.match(PARTS, /\{locked \? <LockBadge ground="card" said \/> : null\}/);
+    assert.match(FLAT, /<HelpCard heading=\{HELP_HEADING\} line=\{help\.line\} locked=\{help\.locked\}/);
     assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
     for (const section of ['canDo', 'thenNow', 'used', 'sounds', 'week']) {
       assert.match(FLAT, new RegExp(`\\{${section}\\.teaser !== null \\? teaser\\(${section}\\.teaser, ${section}\\.feature\\) : `), `a locked ${section} section draws its content instead of the teaser`);
@@ -221,10 +240,13 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
   });
 
   test('French is tagged, decoration is hidden and the help is never a number', () => {
-    assert.match(FLAT, /<Chip key=\{fr\} variant="meta" tone="lavender" lang="fr" label=\{fr\} \/>/);
-    assert.match(FLAT, /s\.fr \? <Text key=\{i\} \{\.\.\.frenchText\}>/);
-    assert.match(FLAT, /<View \{\.\.\.decorative\} style=\{\[st\.mark/);
-    assert.match(FLAT, /<Text style=\{\[type\.bodyStrong, \{ color: textOn\.mint \}\]\}>\{help\.line\}<\/Text>/);
+    // 2026-10-20 UI-008, artboard B-Journey: the lavender chips, the ability marks and the help line are journey/JourneyParts'.
+    const PARTS = stripComments(read('../journey/JourneyParts.tsx')).replace(/\s+/g, ' ');
+    assert.match(FLAT, /<UsedChip key=\{fr\} fr=\{fr\} \/>/);
+    assert.match(PARTS, /<View style=\{s\.chip\}><Text \{\.\.\.frenchText\}/);
+    assert.match(PARTS, /s\.fr \? <Text key=\{i\} \{\.\.\.frenchText\}>/);
+    assert.match(PARTS, /<Svg \{\.\.\.decorative\}/);
+    assert.match(PARTS, /<Text style=\{\[bType\.bold17Loose, \{ color: t\.text \}\]\}>\{line\}<\/Text>/);
     assert.doesNotMatch(SCREEN, /unassistedRate|rungLabel|%/);
   });
 
@@ -248,6 +270,24 @@ describe('Journey is the stage, the level, abilities, then and now, used French,
       }
       assert.doesNotMatch(body, /(width|height|maxHeight): \d/, 'My French pins a size in points');
     }
+  });
+});
+
+// 2026-10-21 UI-008, artboard B-Journey (simulator check): the band is the
+// brand token in both themes, and the clock over it is light in both.
+describe('the Journey band is brand blue with a light status bar', () => {
+  test('the band reads t.brand, which is #3B2FE0 in light and dark, and the bar is light while focused', async () => {
+    assert.match(FLAT, /band: \{ backgroundColor: t\.brand, borderBottomLeftRadius: 36, borderBottomRightRadius: 36,/);
+    // 2026-10-21, simulator: the bar is a layout-free sibling before the
+    // ScrollScreen, never a wrapper around it and never inside the scroll.
+    assert.match(FLAT, /return \( <> \{focused \? <StatusBar style="light" \/> : null\} <ScrollScreen bottom="tab" padded=\{false\} bleedTop> <View style=\{st\.band\}>/);
+    assert.match(FLAT, /<\/ScrollScreen> <\/> \); \} const ROW_TILE/, 'something besides the status bar sits beside the scroll');
+    assert.match(FLAT, /const focused = useIsFocused\(\);/);
+    const { b } = await import('../palette.ts');
+    assert.equal(b.light.brand, '#3B2FE0');
+    assert.equal(b.dark.brand, '#3B2FE0', 'the band turns navy in dark');
+    assert.match(FLAT, /ink=\{t\.onBrand\}/);
+    assert.match(FLAT, /color: t\.sun/);
   });
 });
 

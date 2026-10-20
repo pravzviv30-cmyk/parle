@@ -101,8 +101,10 @@ export function stageOf(source: { kind: 'mission'; cefr: 'A0' | 'A1' } | { kind:
   // 2026-10-20, B4 review: a mission names its stage (Starter, Basics, as on
   // Journey and Speak). A daily scene's tier 1 keeps Explore's difficulty
   // label, "Starting out", which is a pitch and not a stage.
+  // 2026-10-21, learning-science review: a daily tier says a stage word too
+  // (Starter, Everyday, Chatting); "Starting out" belongs only to Explore's filter.
   if (source.kind === 'mission') return source.cefr === 'A0' ? 'Starter' : 'Basics';
-  return source.tier === 1 ? 'Starting out' : source.tier === 2 ? 'Everyday' : 'Chatting';
+  return source.tier === 1 ? 'Starter' : source.tier === 2 ? 'Everyday' : 'Chatting';
 }
 
 /** The label a hear control says, as `missions/preview.ts` labels sources. */

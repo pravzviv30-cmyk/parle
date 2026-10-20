@@ -159,6 +159,34 @@ export const bType = {
   semi13: { fontFamily: font.semiBold, fontSize: 13, lineHeight: 17 },
   /** A 12 bold small pill, "Free sample" (B-Explore). */
   bold12: { fontFamily: font.bold, fontSize: 12, lineHeight: 16 },
+  /** A 12 semibold step note (B-Practice). */
+  semi12: { fontFamily: font.semiBold, fontSize: 12, lineHeight: 16 },
+  /** A 12 regular quiet line (B-Practice). */
+  note12: { fontFamily: font.regular, fontSize: 12, lineHeight: 16 },
+  /** A 15 paragraph at 1.45 (B-Practice, B-Empty-Practice). */
+  para15: { fontFamily: font.regular, fontSize: 15, lineHeight: 22 },
+  /** A 17 bold card title (B-Practice). */
+  title17: { fontFamily: font.bold, fontSize: 17, lineHeight: 22 },
+  /** A pushed screen's title, "Your fixes": 26/800 (B-Fixes). */
+  title26: { fontFamily: font.extraBold, fontSize: 26, lineHeight: 31 },
+  /** The empty card's head: 22/800 (B-Empty-Practice). */
+  section22: { fontFamily: font.extraBold, fontSize: 22, lineHeight: 27 },
+  /** A tab's sub-section head: 20/800 (B-Empty-Practice). */
+  section20: { fontFamily: font.extraBold, fontSize: 20, lineHeight: 25 },
+  /** A 13 extrabold pill, "3 this week" (B-Practice). */
+  heavy13: { fontFamily: font.extraBold, fontSize: 13, lineHeight: 17 },
+  /** The current stage's name under its node, "Starter": 12/800 (B-Journey). */
+  heavy12: { fontFamily: font.extraBold, fontSize: 12, lineHeight: 16 },
+  /** "You're here" under the current stage: 11/700 (B-Journey). */
+  bold11: { fontFamily: font.bold, fontSize: 11, lineHeight: 14 },
+  /** The level pill, "Level 2": 14/800 (B-Journey). */
+  heavy14: { fontFamily: font.extraBold, fontSize: 14, lineHeight: 18 },
+  /** A stage node's number: 15/800 (B-Journey). */
+  heavy15: { fontFamily: font.extraBold, fontSize: 15, lineHeight: 19 },
+  /** A sound tile's letters, "on": 16/800 (B-Journey). */
+  heavy16: { fontFamily: font.extraBold, fontSize: 16, lineHeight: 20 },
+  /** The help card's sentence: 17/700 at 1.3 (B-Journey). */
+  bold17Loose: { fontFamily: font.bold, fontSize: 17, lineHeight: 22 },
 } as const;
 
 /**

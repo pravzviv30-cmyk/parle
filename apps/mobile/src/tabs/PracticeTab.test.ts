@@ -30,6 +30,8 @@ import { fileURLToPath } from 'node:url';
 
 import { COMES_UP_OFTEN_ENABLED } from '../practice/practiceTabView.ts';
 
+const PARTS_SOURCE = (): string => stripComments(read('../practice/PracticeParts.tsx'));
+
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
 /** Comments may say anything; only what reaches glass is under test. */
@@ -70,10 +72,10 @@ function at(marker: string): number {
 
 describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3, B-Practice', () => {
   test('the page puts the conversations before the optional sound guide', () => {
-    // 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" left the order.
-    // Artboard order: chips, pick up, comes up often, your conversations, then
-    // the mix, saved phrases and the sound doors.
-    const order = ['<TabHeader', 'chips.map(', '{PICK_UP_TITLE}', '{CONVERSATIONS_TITLE}', '{MIX_TITLE}', '{savedRows}', 'Hear, say and compare', '<TuneSoundCard'];
+    // 2026-10-21 UI-008, artboard B-Practice: "Comes up often" is back in the
+    // order. Artboard order: search, topic tabs, pick up, comes up often, your
+    // conversations, then the mix, saved phrases and the sound doors.
+    const order = ['<TabHeader', '<PracticeSearch', '<TopicTabs', '{PICK_UP_TITLE}', 'eyebrow={COMES_UP_TITLE}', '{CONVERSATIONS_TITLE}', '{MIX_TITLE}', '{savedTiles}', 'Hear, say and compare', '<TuneSoundCard'];
     // savedRows is drawn twice (the empty page draws it too); read the full page.
     const full = RENDER.slice(RENDER.indexOf('!newLearner && (() =>'));
     assert.ok(full.length > 0, 'the full page is not its own branch');
@@ -114,14 +116,18 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
   test('the empty page\'s one pill is the first conversation, and the café lesson and sounds are ready without one — B-Empty-Practice', () => {
     const empty = between(RENDER, '{data !== null && newLearner && (', '{data !== null && !newLearner', 'the empty page is its own branch');
     assert.match(FLAT, /const newLearner = data !== null && isNewLearner\(data\);/, 'the tab decides for itself who is new');
-    assert.match(flat(empty), /\{EMPTY\.title\}/);
-    assert.match(flat(empty), /\{EMPTY\.body\}/);
-    assert.match(flat(empty), /<PillButton label=\{EMPTY\.start\} disabled=\{checking\} onPress=\{startFirst\} \/>/, 'the empty page\'s pill does not go through the probe');
+    assert.match(flat(empty), /title=\{EMPTY\.title\}/);
+    assert.match(flat(empty), /body=\{EMPTY\.body\}/);
+    // 2026-10-21 UI-008, artboard B-Empty-Practice: the start is EmptyCard's 54pt BButton.
+    assert.match(flat(empty), /<EmptyCard title=\{EMPTY\.title\} body=\{EMPTY\.body\} start=\{EMPTY\.start\} disabled=\{checking\} onStart=\{startFirst\}>/, 'the empty page\'s start does not go through the probe');
     assert.match(flat(empty), /\{refused\}/, 'a refused start has no way forward on the empty page');
-    assert.match(flat(empty), /\{EMPTY\.readyNow\}/);
-    assert.match(flat(empty), /<LedgerRow title=\{EMPTY\.cafe\.title\} gloss=\{EMPTY\.cafe\.line\} note=\{EMPTY\.cafe\.cost\} disabled=\{checking\} onPress=\{openLesson\} \/>/, 'the café lesson opens without its probe, or hides what it costs');
+    assert.match(flat(empty), /<SubHead title=\{EMPTY\.readyNow\} \/>/);
+    // 2026-10-21 UI-008, artboard B-Empty-Practice: the café row keeps its cost
+    // line ("free" is left out: it uses live minutes) and the seam's lock.
+    assert.match(flat(empty), /<ReadyRow title=\{cafe\.title\} lines=\{\[cafe\.line, cafe\.cost\]\} art="phrasebook" ground="butter" locked=\{cafe\.locked\} disabled=\{checking\} onPress=\{openLesson\} \/>/, 'the café lesson opens without its probe, or hides what it costs');
+    assert.match(FLAT, /const cafe = cafeRow\(locks\.access\);/);
     assert.match(flat(empty), /go\(\{ screen: 'SoundCheck' \}\)/, 'Sounds of French opens somewhere other than the sound check');
-    assert.match(flat(empty), /\{savedRows\}/, 'the empty page lost its saved phrases line');
+    assert.match(flat(empty), /<SavedBox line=\{data\.deck\.length === 0 \? SAVED_FIRST : savedPhrasesLine\(data\.deck\)\} onPress=\{\(\) => go\(\{ screen: 'Phrasebook' \}\)\} \/>/, 'the empty page lost its saved phrases box, or it opens somewhere other than the phrasebook');
     const lesson = between(SCREEN, 'const openLesson = (', '\n  };\n', 'the lesson opener is a component-level handler');
     assert.match(lesson, /if \(checking \|\| !ownsReadNow\(\)\) return;/);
     assert.ok(lesson.indexOf('setChecking(true)') >= 0 && lesson.indexOf('setChecking(true)') < lesson.indexOf('recheck()'));
@@ -129,47 +135,76 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
   });
 
   test('the tab keeps exactly one primary pill, whichever day it is', () => {
-    const primaries = (SCREEN.match(/<PillButton\b/g) ?? []).length - (SCREEN.match(/<PillButton variant="secondary"/g) ?? []).length;
-    assert.equal(primaries, 1, 'a second primary pill was added somewhere on the tab');
-    assert.match(FLAT, /<PillButton label=\{EMPTY\.start\}/, 'the one primary is not the first conversation');
+    // 2026-10-21 UI-008, artboards B-Practice and B-Empty-Practice: the one
+    // primary of the empty page is EmptyCard's Start; the full page's ink
+    // buttons are each one door's own (pattern, newest conversation's revisit).
+    assert.doesNotMatch(SCREEN, /<PillButton\b|<BButton\b/, 'the tab draws a pill of its own instead of a part');
+    assert.equal((SCREEN.match(/start=\{EMPTY\.start\}/g) ?? []).length, 1, 'the one primary is not the first conversation');
+    const parts = PARTS_SOURCE();
+    const empty = parts.slice(parts.indexOf('export function EmptyCard('), parts.indexOf('export function SubHead('));
+    assert.equal((empty.match(/<BButton\b/g) ?? []).length, 1, 'the empty card carries a second primary');
     assert.doesNotMatch(SCREEN, /<NextTaskCard/, 'the old recommended card is back beside the conversations');
   });
 
   test('the pick-up card names the stopped sitting and resumes it', () => {
     assert.match(FLAT, /const resume = pickUp\(\{ saved: data\.session, packs: data\.packs, deck: data\.deck, bank: data\.bank, now \}\);/, 'the stopped sitting is not the recommendation\'s own resume answer');
-    const card = between(RENDER, '{resume !== null && (', '</ColourCard>', 'the pick-up card is drawn only when there is a sitting');
+    // 2026-10-21 UI-008, artboard B-Practice: the blue ResumeCard. The artboard's trial pill is not drawn: the resumed sitting is free.
+    const card = between(RENDER, '{resume !== null && (', '/>', 'the pick-up card is drawn only when there is a sitting');
     assert.match(card, /onPress=\{\(\) => go\(resume\.route\)\}/);
-    assert.match(card, /\{resume\.line\}/);
+    assert.match(card, /line=\{resume\.line\}/);
     // 2026-10-20, lock seam wiring: a resumed sitting is free on main's route guard, so pick up draws no badge.
     assert.doesNotMatch(card, /LockBadge|LOCK_BADGE_LABEL/, 'pick up shows a lock its tap never opens');
   });
 
   test('every conversation card opens its fixes, three steps and revisit from the view model', () => {
     // 2026-10-20, lock seam wiring: the card reads the reactive seam; the revisit's tap opens the Wall when locked.
-    assert.match(FLAT, /const card = conversationCard\(\{ pack, packs: data\.packs, deck: data\.deck, bank: data\.bank, now, revisitAllowed, access: locks\.access \}\);/);
-    const card = between(RENDER, '{shown.map((pack) => {', '{data.unavailable.length > 0', 'each conversation is drawn from its card model');
-    assert.match(flat(card), /\{card\.fixes !== null && <LedgerRow title=\{card\.fixes\.title\} gloss=\{card\.fixes\.gloss\} onPress=\{\(\) => go\(card\.fixes!\.route\)\} \/>\}/);
-    assert.match(flat(card), /\{card\.steps\?\.map\(\(step, i\) => \(/);
-    assert.match(flat(card), /onPress=\{\(\) => go\(step\.route\)\}/);
-    assert.match(flat(card), /trailing=\{card\.stepsLocked \? <LockBadge form="round" said \/> : undefined\}/);
-    assert.match(flat(card), /onPress=\{\(\) => tapThrough\(locks\.access, card\.revisit!\.feature, locks\.open, \(\) => go\(card\.revisit!\.route\)\)\}/);
-    assert.match(flat(card), /trailing=\{card\.revisit\.locked \? <LockBadge form="round" said \/> : undefined\}/);
-    assert.match(flat(card), /\{card\.kept\.map\(\(fr\) => <Chip key=\{fr\} variant="meta" lang="fr" label=\{fr\} \/>\)\}/, 'kept French is not tagged as French');
-    assert.match(flat(card), /revisitedLines\(card\.revisited\)/);
+    // 2026-10-21 UI-008, artboard B-Practice: the newest conversation is the large card, older ones the small cards.
+    assert.match(FLAT, /const card = conversationCard\(\{ pack, packs: data\.packs, deck: data\.deck, bank: data\.bank, now, revisitAllowed, access: locks\.access, index \}\);/);
+    const card = flat(between(RENDER, '{shown.map((pack, index) => {', '{data.unavailable.length > 0', 'each conversation is drawn from its card model'));
+    assert.match(card, /if \(index === 0\) \{ return \( <LargeConversationCard /);
+    assert.match(card, /<CompactConversationCard /);
+    assert.match(card, /fixes=\{card\.fixes === null \? null : \{ title: card\.fixes\.title, gloss: card\.fixes\.gloss, locked: card\.fixes\.locked, onPress: \(\) => go\(card\.fixes!\.route\) \}\}/);
+    assert.match(card, /card\.steps\.map\(\(step\) => \(\{ key: step\.key, title: step\.title, gloss: step\.gloss, onPress: \(\) => go\(step\.route\) \}\)\)/);
+    assert.match(card, /stepsLocked=\{card\.stepsLocked\}/);
+    assert.match(card, /onPress: \(\) => tapThrough\(locks\.access, card\.revisit!\.feature, locks\.open, \(\) => go\(card\.revisit!\.route\)\)/);
+    assert.match(card, /locked: card\.revisit\.locked/);
+    assert.match(card, /onPress: \(\) => tapThrough\(locks\.access, card\.practiseIt!\.feature, locks\.open, \(\) => go\(card\.practiseIt!\.route\)\)/, 'Practise it opens its step without the seam');
+    assert.match(card, /kept=\{card\.kept\}/);
+    assert.match(card, /revisitedLines\(card\.revisited\)/);
+    const parts = flat(PARTS_SOURCE());
+    assert.match(parts, /\{kept\.map\(\(fr\) => <PhraseChip key=\{fr\} label=\{fr\} french \/>\)\}/, 'kept French is not drawn as French');
+    assert.match(parts, /<Text \{\.\.\.\(french \? frenchText : \{\}\)\}/, 'kept French is not tagged as French');
+    assert.match(parts, /\{stepsLocked \? <LockBadge form="round" said \/> : null\}/);
+    assert.match(parts, /\{fixes\.locked \? <LockBadge form="round" said \/> : null\}/);
     // Paging through the existing cursor.
-    assert.match(FLAT, /\{library\.nextCursor !== null && <OutlineButton label=\{library\.loading \? 'Loading…' : OLDER\}/);
-    assert.match(FLAT, /\{library\.olderPage && <OutlineButton label=\{NEWEST\}/);
+    assert.match(FLAT, /\{library\.nextCursor !== null && <PageLink label=\{library\.loading \? 'Loading…' : OLDER\}/);
+    assert.match(FLAT, /\{library\.olderPage && <PageLink label=\{NEWEST\}/);
   });
 
   // 2026-10-20, B3.1, founder: hide until Phase C.
-  test('"Comes up often" is not drawn on Practice or Your fixes while its flag is off', () => {
-    assert.equal(COMES_UP_OFTEN_ENABLED, false);
+  // 2026-10-21 UI-008, artboards B-Practice and B-Fixes, founder: "Comes up
+  // often" shows on both screens, from patternCard (authored PATTERN_COPY
+  // only, never a count). Rewritten from the hidden pin.
+  test('"Comes up often" is drawn on Practice and Your fixes from the view model, never with a count', () => {
+    assert.equal(COMES_UP_OFTEN_ENABLED, true);
     for (const file of ['./PracticeTab.tsx', '../practice/FixesScreen.tsx']) {
-      const source = stripComments(read(file));
-      for (const drawn of ['comesUpOften(', 'COMES_UP_TITLE', 'COMES_UP_SHORT', 'PRACTISE_THIS']) {
-        assert.ok(!source.includes(drawn), `${file} draws ${drawn} while Comes up often is hidden`);
-      }
+      const source = flat(stripComments(read(file)));
+      assert.match(source, /const pattern = patternCard\(\{ patterns: profile\.brain\.errorPatterns, packs: data\.packs, bank: data\.bank, access: locks\.access \}\);/, `${file} does not take its pattern from patternCard`);
+      assert.match(source, /\{pattern !== null && \(/, `${file} draws the pattern card over nothing`);
+      assert.match(source, /title=\{pattern\.row\.title\} hint=\{pattern\.row\.hint\}/);
+      assert.match(source, /tapThrough\(locks\.access, 'fixes', locks\.open, \(\) => go\(pattern\.row\.practise!\)\)/, `${file} opens the pattern drill without the seam`);
+      assert.doesNotMatch(source, /\.count\b|comesUpOften\(/, `${file} reads the tally or the raw rows`);
     }
+    // On Practice the card itself opens Your fixes for the newest conversation with fixes.
+    assert.match(FLAT, /onCard=\{pattern\.fixes === null \? null : \(\) => go\(pattern\.fixes!\)\}/);
+  });
+
+  // 2026-10-21 UI-008, artboard B-Practice: the search is built, on the device.
+  test('the search filters this page\'s conversations on the device and resets with the account', () => {
+    assert.match(FLAT, /const shown = packsMatching\(packsInTopic\(data\.page, chosen\), query\);/);
+    assert.match(FLAT, /<PracticeSearch value=\{query\} onChangeText=\{setQuery\} placeholder=\{SEARCH_PLACEHOLDER\} \/>/);
+    assert.match(FLAT, /setQuery\(''\);/, 'a search typed on one account survives into the next');
+    assert.match(FLAT, /\{shown\.length === 0 && query\.trim\(\) !== '' && /, 'an empty search result says nothing');
   });
 
   test('a fix is tried on Your fixes, not replayed from the tab', () => {
@@ -196,12 +231,16 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
   test('the tutor revisit is gated by the shared plan helper and says it uses live minutes', () => {
     assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');
     assert.ok(!SCREEN.includes('capabilitiesFor('), 'the tab asks the plan table itself instead of through the helper');
-    assert.match(FLAT, /accessibilityLabel=\{`\$\{card\.revisit\.label\}\. \$\{card\.revisit\.uses\}/, 'the tutor door does not say its cost to a screen reader');
+    // 2026-10-21 UI-008, artboard B-Practice: the label is the large card's Talk about it again.
+    assert.match(flat(PARTS_SOURCE()), /accessibilityLabel=\{`\$\{revisit\.label\}\. \$\{revisit\.uses\}/, 'the tutor door does not say its cost to a screen reader');
+    assert.match(FLAT, /uses: card\.revisit\.uses/);
     // 2026-10-20, lock seam wiring: the tab holds the reactive hook, never the seam's own answer.
     assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab asks the access seam itself; the view model does');
     assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
     assert.match(FLAT, /onPress=\{\(\) => tapThrough\(locks\.access, mix\.feature, locks\.open, \(\) => go\(mix\.route\)\)\}/, 'the locked mix starts a drill instead of opening the Wall');
-    assert.match(FLAT, /\{mix\.locked && <LockBadge ground="card" said \/>\}/);
+    // 2026-10-21 UI-008, artboard B-Practice: the white trial pill is MixCard's.
+    assert.match(FLAT, /<MixCard title=\{MIX_TITLE\} line=\{mix\.line\} locked=\{mix\.locked\}/);
+    assert.match(flat(PARTS_SOURCE()), /\{locked \? <LockBadge ground="card" said \/> : null\}/);
   });
 
   test('the door that touches the network guards its tap and says so — F154', () => {
@@ -235,8 +274,13 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
   test('every block that can be empty is gated, and a failed read says so', () => {
     assert.match(FLAT, /\{library\.failed && \(/, 'a read that never finished leaves the learner on a page that says nothing');
     assert.match(FLAT, /\{library\.cached && \(/, 'a page drawn from the phone does not say so');
-    for (const gate of ['{chips.length > 0 && (', '{resume !== null && (', '{mix !== null && (', '{week !== null && ', '{card.kept.length > 0 && (', '{shadowPhrase && (']) {
+    // 2026-10-21 UI-008, artboard B-Practice: the week pill and kept chips are gated inside their parts.
+    for (const gate of ['{chips.length > 0 && (', '{resume !== null && (', '{pattern !== null && (', '{mix !== null && (', '{shadowPhrase && (']) {
       assert.ok(SCREEN.includes(gate), `\`${gate}\` is gone, so an empty block draws its heading over nothing`);
+    }
+    const parts = PARTS_SOURCE();
+    for (const gate of ['{week !== null ? ', '{kept.length > 0 ? (', '{steps !== null ? (', '{revisit !== null ? (']) {
+      assert.ok(parts.includes(gate), `\`${gate}\` is gone from PracticeParts, so an empty block draws over nothing`);
     }
   });
 
@@ -275,9 +319,23 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
 });
 
 // 2026-10-20, sim nits: the empty page's Sounds of French row draws the seam's round lock, said once.
+// 2026-10-21 UI-008, artboard B-Empty-Practice: the row is ReadyRow, which draws the badge and says it in its label.
 test('Sounds of French carries the round lock from the seam, heard once', () => {
   const src = flat(SCREEN);
   assert.match(src, /const sounds = soundsRow\(locks\.access\);/);
-  assert.match(src, /trailing=\{sounds\.locked \? <LockBadge form="round" said \/> : undefined\}/);
-  assert.match(src, /accessibilityLabel=\{`\$\{sounds\.title\}, \$\{sounds\.gloss\}\$\{sounds\.locked \? `, \$\{LOCK_BADGE_LABEL\}` : ''\}`\}/);
+  assert.match(src, /<ReadyRow title=\{sounds\.title\} lines=\{\[sounds\.gloss\]\} art="voice-chat" ground="peach" locked=\{sounds\.locked\}/);
+  const parts = flat(PARTS_SOURCE());
+  const row = parts.slice(parts.indexOf('export function ReadyRow('), parts.indexOf('export function SavedBox('));
+  assert.match(row, /\{locked \? <LockBadge form="round" said \/> : null\}/);
+  assert.match(row, /accessibilityLabel=\{lockSaid\(\[title, \.\.\.lines\]\.join\(', '\), locked\)\}/);
+  assert.match(parts, /const lockSaid = \(label: string, locked: boolean\): string => \(locked \? `\$\{label\}, \$\{LOCK_BADGE_LABEL\}` : label\);/);
+});
+
+// 2026-10-21 UI-008, artboards B-Practice and B-Empty-Practice: the parts draw only theme tokens and the canvas art named for each slot.
+test('the Practice parts take every colour from the theme and draw the artboard\'s art', () => {
+  const parts = PARTS_SOURCE();
+  assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(parts), 'a Practice part spells a colour by hand');
+  assert.doesNotMatch(parts, /fontSize|numberOfLines|SceneArt/);
+  for (const art of ['"cafe-table"', '"phrasebook"', '"watering-plant"', '"star-jar"']) assert.ok(parts.includes(`name=${art}`), `${art} is not drawn`);
+  assert.match(flat(SCREEN), /art="phrasebook"[\s\S]*art="voice-chat"/, 'the Ready-now rows lost their drawings');
 });
