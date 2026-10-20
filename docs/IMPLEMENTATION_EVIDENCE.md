@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 20 October 2026 direction B, step B3 (Practice, Your fixes and the Codex library
+  port), on branch `claude/direction-b` (held, not on main): **5,576 tests, 0 failing**;
+  core 804, brain 481, tutor agent 622, token server 445, playground 26, mobile 3198.
+  All six typechecks, eight database proofs and 94 shared release/provider checks pass.
+  Floors raised only through `gate:bless`.
 - 20 October 2026 direction B, step B2 (Speak), on branch `claude/direction-b` (held,
   not on main): **5,540 tests, 0 failing**; core 804, brain 481, tutor agent 622,
   token server 445, playground 26, mobile 3162. All six typechecks, eight database

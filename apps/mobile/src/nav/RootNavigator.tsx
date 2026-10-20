@@ -651,7 +651,8 @@ function ConversationPracticeRoute() {
   // user, and only when `sampleAllowed` says this is a local mock build. The
   // loader checks all of it again itself before it writes.
   const canLoadSample = preview && user !== null && sampleAllowed(adapter);
-  return <ConversationPracticeScreen key={route.params.packId} packId={route.params.packId}
+  return <ConversationPracticeScreen key={`${route.params.packId}:${route.params.stage ?? ''}`} packId={route.params.packId}
+    initialStage={route.params.stage === 'listen' ? 'listen' : 'match'}
     previewPack={preview ? PRACTICE_PREVIEW : undefined}
     onLoadSample={canLoadSample ? () => loadSampleConversation(user, adapter).then((result) =>
       result.ok

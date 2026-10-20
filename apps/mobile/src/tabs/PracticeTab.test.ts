@@ -1,6 +1,13 @@
 /**
  * What the Practice tab is allowed to draw, and what it must not decide.
  *
+ * 2026-10-20, B3, B-Practice: rewritten for direction B. The tab goes back to
+ * the learner's conversations (topic chips, the stopped sitting, patterns that
+ * come up often, each conversation with its fixes, three steps and revisit,
+ * the mix, saved phrases and text, and the sound doors), or shows the empty
+ * page with one pill. Every decision is practice/practiceTabView.ts's, and
+ * every read is practice/useLibraryData.ts's. The history below is kept.
+ *
  * The tab was the authored path, then the archive of everything the learner had
  * ever said, then one question and three rows (F574). The notebook redesign
  * (Phase 3, 2026-09-27) makes sound its signature: the page leads with "Your
@@ -59,140 +66,121 @@ function at(marker: string): number {
   return i;
 }
 
-describe('Practice leads with a useful action, then a sound example', () => {
-  test('the page puts the short action before the optional sound guide', () => {
-    assert.ok(at('<TabHeader') < at('<TuneSoundCard'), 'the tab header is not first');
-    assert.ok(at('<Label>{NEXT_STEP.label}</Label>') < at('<TuneSoundCard'), 'the recommendation falls below the sound guide');
-    assert.ok(at('<TuneSoundCard') < at('{rowsCanStart && ('), 'the sound example sits under the practice rows');
-    // The model reads the stores the tab already reads and the bundled audio,
-    // and nothing about which sound, which word or which recording is here.
-    assert.match(
-      FLAT,
-      /setLead\(soundLead\(\{ checks, now, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS \}\)\)/,
-      'the sound is not chosen by practice/soundLead.ts over the stored checks and the bundled recordings',
-    );
-    assert.match(FLAT, /\{ownerMatches && lead !== null && \(/, 'the sound block draws before the model has answered or after its owner changed');
+describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3, B-Practice', () => {
+  test('the page puts the conversations before the optional sound guide', () => {
+    // Artboard order: chips, pick up, comes up often, your conversations, then
+    // the mix, saved phrases and the sound doors.
+    const order = ['<TabHeader', 'chips.map(', '{PICK_UP_TITLE}', '{COMES_UP_TITLE}', '{CONVERSATIONS_TITLE}', '{MIX_TITLE}', '{savedRows}', 'Hear, say and compare', '<TuneSoundCard'];
+    // savedRows is drawn twice (the empty page draws it too); read the full page.
+    const full = RENDER.slice(RENDER.indexOf('!newLearner && (() =>'));
+    assert.ok(full.length > 0, 'the full page is not its own branch');
+    let last = -1;
+    for (const marker of order.slice(1)) {
+      const i = full.indexOf(marker);
+      assert.notEqual(i, -1, `\`${marker}\` is not on the full page`);
+      assert.ok(i > last, `\`${marker}\` is out of the artboard's order`);
+      last = i;
+    }
+    assert.ok(at('<TabHeader') < RENDER.indexOf('!newLearner && (() =>'), 'the tab header is not first');
+    // The sound is chosen by practice/soundLead.ts over the stored checks.
+    assert.match(FLAT, /soundLead\(\{ checks: data\.checks, now, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS \}\)/, 'the sound is not chosen by practice/soundLead.ts over the stored checks and the bundled recordings');
+    assert.match(FLAT, /\{ownerMatches && lead !== null && \(/, 'the sound block draws before the read has answered or after its owner changed');
     for (const decided of ['getPhoneme(', 'FRENCH_PHONEMES', 'isMeasuredCheck(', 'soundFocus(', 'tutorAudioFor(', '.examples[']) {
       assert.ok(!SCREEN.includes(decided), `the tab works out ${decided} itself; that belongs to practice/soundLead.ts`);
     }
   });
 
   test('native audio is a bundled recording played on its own player, and the phone\'s voice never stands in', () => {
-    // The card is handed the tab's recorded player, and only the recording.
     const card = between(RENDER, '<TuneSoundCard', '/>', 'the tab draws the sound card');
     assert.match(card, /onHear=\{hearRecording\}/, 'the sound is heard through something other than the recorded player');
     const hear = between(SCREEN, 'const hearRecording = (', '\n  };\n', 'the recording is played by a component-level handler');
-    assert.match(hear, /recorded\.toggle\(asset\)/, 'the sound is heard through something other than the recorded player');
+    assert.match(hear, /recorded\.toggle\(asset\)/);
     assert.match(hear, /tutorVoice\.stop\(\)/, 'a synthesised line keeps talking over the recording');
-    assert.ok(!/tutorVoice\.speak/.test(hear), 'the phone\'s voice stands in for the recording');
-    assert.match(card, /playing=\{recorded\.playing\}/, 'the card cannot say it is already playing, so a second tap has nothing to stop');
-    assert.match(FLAT, /const recorded = useRecordedLine\(\);/, 'the tab plays recordings through a player of its own making');
-    // A voice started here, recorded or synthesised, stops when the tab goes.
-    assert.match(FLAT, /useEffect\(\(\) => \(\) => tutorVoice\.stop\(\), \[\]\)/, 'a synthesised line follows the learner off the tab');
-    // The tab reads the learner's chosen voice, and never another one.
+    assert.ok(!/tutorVoice\.speak/.test(SCREEN), 'the phone\'s voice stands in for the recording');
+    assert.match(card, /playing=\{recorded\.playing\}/);
+    assert.match(FLAT, /const recorded = useRecordedLine\(\);/);
+    assert.match(FLAT, /useEffect\(\(\) => \(\) => tutorVoice\.stop\(\), \[\]\)/, 'a voice follows the learner off the tab');
     assert.match(FLAT, /const voice = dailyTutorVoice\(profile\.tutorVoice\);/, 'the recordings are not the learner\'s chosen tutor');
-    // The app keeps no recording of the learner (speech/discardRecording.ts),
-    // so no player on this tab can play one.
     for (const own of ['recorder.uri', 'useAudioRecorder', 'RecordingPresets', 'consumeRecording', 'lead.own']) {
       assert.ok(!SCREEN.includes(own), `the tab reaches for ${own}; the app keeps no recording of the learner to play`);
     }
+    // Hear, say and compare stays a door to the free local practice.
+    assert.match(FLAT, /nav\.navigate\('DailyPractice', \{ id: shadowPhrase\.id, mode: 'shadowing' \}\)/);
   });
 
-  test('day one\'s one pill is the bonjour sound lesson, with its live-minutes line, in the recommendation', () => {
-    // Day one is the model's answer, not the tab's: the card's action is the lesson.
-    assert.match(FLAT, /const dayOne = ownerMatches && step !== null && step\.card\.action\.kind === 'lesson';/, 'the tab decides for itself what day one is, or shows the previous account’s lesson');
-    const card = between(RENDER, '<Label>{NEXT_STEP.label}</Label>', '</Card>', 'the recommended action');
-    assert.match(RENDER, /\{primary\}/, 'the day-one action is not next to the preview');
-    // The primary is built once and drawn in exactly one of two places.
-    const primary = between(SCREEN, 'const primary = ', '\n  );\n', 'the one primary action is built once');
-    assert.match(flat(primary), /<PillButton label=\{step\.card\.action\.label\} disabled=\{checking\} onPress=\{startRecommended\} \/>/, 'the pill spells its own label or opens something of its own');
-    assert.match(flat(primary), /\{step\.card\.liveMinutes !== null && <Text style=\{st\.costLine\}>\{step\.card\.liveMinutes\}<\/Text>\}/, 'the lesson does not say it uses live minutes');
-    assert.match(flat(primary), /\{step\.card\.noMinutes !== null && <Text style=\{st\.costLine\}>\{step\.card\.noMinutes\}<\/Text>\}/, 'a module sitting does not say it uses no live minutes');
-    // The lesson is probed like the chooser's door, and goes either way: it
-    // runs live while a tutor is connected and on this phone when not.
-    const handler = between(SCREEN, 'const startRecommended = () => {', '\n  };\n', 'the recommended action is a component-level handler');
-    assert.match(handler, /if \(action\.kind === 'lesson'\) return openLesson\(\);/, 'the day-one action does not open the lesson');
+  test('the empty page\'s one pill is the first conversation, and the café lesson and sounds are ready without one — B-Empty-Practice', () => {
+    const empty = between(RENDER, '{data !== null && newLearner && (', '{data !== null && !newLearner', 'the empty page is its own branch');
+    assert.match(FLAT, /const newLearner = data !== null && isNewLearner\(data\);/, 'the tab decides for itself who is new');
+    assert.match(flat(empty), /\{EMPTY\.title\}/);
+    assert.match(flat(empty), /\{EMPTY\.body\}/);
+    assert.match(flat(empty), /<PillButton label=\{EMPTY\.start\} disabled=\{checking\} onPress=\{startFirst\} \/>/, 'the empty page\'s pill does not go through the probe');
+    assert.match(flat(empty), /\{refused\}/, 'a refused start has no way forward on the empty page');
+    assert.match(flat(empty), /\{EMPTY\.readyNow\}/);
+    assert.match(flat(empty), /<LedgerRow title=\{EMPTY\.cafe\.title\} gloss=\{EMPTY\.cafe\.line\} note=\{EMPTY\.cafe\.cost\} disabled=\{checking\} onPress=\{openLesson\} \/>/, 'the café lesson opens without its probe, or hides what it costs');
+    assert.match(flat(empty), /go\(\{ screen: 'SoundCheck' \}\)/, 'Sounds of French opens somewhere other than the sound check');
+    assert.match(flat(empty), /\{savedRows\}/, 'the empty page lost its saved phrases line');
     const lesson = between(SCREEN, 'const openLesson = (', '\n  };\n', 'the lesson opener is a component-level handler');
-    assert.match(lesson, /if \(checking \|\| !ownsReadNow\(\)\) return;/, 'a second tap or an old account’s action opens a lesson');
-    assert.ok(lesson.indexOf('setChecking(true)') >= 0 && lesson.indexOf('setChecking(true)') < lesson.indexOf('recheck()'), 'the tap is acknowledged after the network is touched');
-    assert.match(flat(lesson), /const start = lessonStart\(false\); nav\.navigate\(start\.screen, start\.params\);/, 'the lesson opens somewhere other than where gate.ts says');
-    assert.match(flat(lesson), /void recheck\(\)\.then\(answered => \{ if \(answered\) go\(\); else/, 'a failed probe leaves the lesson unopened, and it runs offline too');
-    // The one sentence about what the page becomes is day one's, and only day one's.
-    assert.match(FLAT, /\{dayOne && <Text style=\{st\.starterLine\}>\{STARTER\.line\}<\/Text>\}/, 'the day-one sentence is drawn for a learner who has had a conversation');
+    assert.match(lesson, /if \(checking \|\| !ownsReadNow\(\)\) return;/);
+    assert.ok(lesson.indexOf('setChecking(true)') >= 0 && lesson.indexOf('setChecking(true)') < lesson.indexOf('recheck()'));
+    assert.match(flat(lesson), /const start = lessonStart\(false\); nav\.navigate\(start\.screen, start\.params\);/);
   });
 
   test('the tab keeps exactly one primary pill, whichever day it is', () => {
-    assert.equal((SCREEN.match(/<PillButton/g) ?? []).length, 1, 'a second primary pill was added somewhere on the tab');
-    // The same recommendation card serves both a starter and returning learner.
-    assert.match(FLAT, /\{ownerMatches && step !== null && \( <View style=\{st\.block\}> \{dayOne \? <NextTaskCard \/> : <Card/, 'the one card does not serve both starter and returning learners, or survives an account switch');
-    const card = RENDER.slice(at('<Label>{NEXT_STEP.label}</Label>'), at('<Ledger'));
-    assert.match(RENDER, /\{primary\}/, 'the card\'s control is something other than the one primary');
-    for (const loud of ['<OutlineButton', '<PillButton']) {
-      assert.ok(!between(RENDER, '<TuneSoundCard', '/>', 'the sound card').includes(loud), `the sound card draws its own ${loud}`);
+    const primaries = (SCREEN.match(/<PillButton\b/g) ?? []).length - (SCREEN.match(/<PillButton variant="secondary"/g) ?? []).length;
+    assert.equal(primaries, 1, 'a second primary pill was added somewhere on the tab');
+    assert.match(FLAT, /<PillButton label=\{EMPTY\.start\}/, 'the one primary is not the first conversation');
+    assert.doesNotMatch(SCREEN, /<NextTaskCard/, 'the old recommended card is back beside the conversations');
+  });
+
+  test('the pick-up card names the stopped sitting and resumes it', () => {
+    assert.match(FLAT, /const resume = pickUp\(\{ saved: data\.session, packs: data\.packs, deck: data\.deck, bank: data\.bank, now \}\);/, 'the stopped sitting is not the recommendation\'s own resume answer');
+    const card = between(RENDER, '{resume !== null && (', '</ColourCard>', 'the pick-up card is drawn only when there is a sitting');
+    assert.match(card, /onPress=\{\(\) => go\(resume\.route\)\}/);
+    assert.match(card, /\{resume\.line\}/);
+    assert.match(card, /\{resume\.locked && <LockBadge ground="card" \/>\}/, 'the lock is decided somewhere other than the seam');
+  });
+
+  test('every conversation card opens its fixes, three steps and revisit from the view model', () => {
+    assert.match(FLAT, /const card = conversationCard\(\{ pack, packs: data\.packs, deck: data\.deck, bank: data\.bank, now, revisitAllowed \}\);/);
+    const card = between(RENDER, '{shown.map((pack) => {', '{data.unavailable.length > 0', 'each conversation is drawn from its card model');
+    assert.match(flat(card), /\{card\.fixes !== null && <LedgerRow title=\{card\.fixes\.title\} gloss=\{card\.fixes\.gloss\} onPress=\{\(\) => go\(card\.fixes!\.route\)\} \/>\}/);
+    assert.match(flat(card), /\{card\.steps\?\.map\(\(step, i\) => \(/);
+    assert.match(flat(card), /onPress=\{\(\) => go\(step\.route\)\}/);
+    assert.match(flat(card), /trailing=\{card\.stepsLocked \? <LockBadge form="round" \/> : undefined\}/);
+    assert.match(flat(card), /onPress=\{\(\) => go\(card\.revisit!\.route\)\}/);
+    assert.match(flat(card), /\{card\.kept\.map\(\(fr\) => <Chip key=\{fr\} variant="meta" lang="fr" label=\{fr\} \/>\)\}/, 'kept French is not tagged as French');
+    assert.match(flat(card), /revisitedLines\(card\.revisited\)/);
+    // Paging through the existing cursor.
+    assert.match(FLAT, /\{library\.nextCursor !== null && <OutlineButton label=\{library\.loading \? 'Loading…' : OLDER\}/);
+    assert.match(FLAT, /\{library\.olderPage && <OutlineButton label=\{NEWEST\}/);
+  });
+
+  test('a fix is tried on Your fixes, not replayed from the tab', () => {
+    for (const gone of ['ReplayMomentCard', 'MakePhraseCard', 'madeFromConversations', 'moment:']) {
+      assert.ok(!SCREEN.includes(gone), `${gone} is back on Practice; a fix is tried first on Your fixes`);
     }
   });
 
-  test('the recommended card previews one French line the sitting will not ask for', () => {
-    const card = RENDER.slice(at('<Label>{NEXT_STEP.label}</Label>'), at('<Ledger'));
-    assert.match(card, /<Label>\{NEXT_STEP\.label\}<\/Label>/, 'the card spells its own label instead of reading it from nextStep.ts');
-    assert.match(card, /french=\{step\.card\.phrase\.fr\}/, 'the card draws something other than the model\'s own French line');
-    assert.match(card, /english=\{step\.card\.phrase\.en\}/, 'the line is shown with no meaning beside it');
-    assert.match(card, /playing=\{playing\}/);
-    assert.match(card, /onHear=\{\(\) => hearNext\(step\.card\.phrase\.fr\)\}/, 'the card hears something other than the line it shows');
-    // The preview-leak rule lives in practiceCard.ts; the tab hands it the
-    // saved sitting's own phrases so a resume never previews its own answer.
-    assert.match(FLAT, /const card = practiceCard\(\{ rec, deck, packs, now, resuming: saved\?\.targets\.map\(\(t\) => t\.phraseKey\) \?\? \[\] \}\)/, 'the card can preview a line the resumed sitting asks for');
-    assert.match(FLAT, /const rec = recommendation\(\{ resumable: resumableOf\(saved, packs, bank\), deck, bank, packs, now \}\)/, 'the card is not chosen by the balanced selector over real bank material and the saved sitting');
-    const primary = between(SCREEN, 'const primary = ', '\n  );\n', 'the one primary action is built once');
-    assert.ok(flat(primary).indexOf('{step.card.source !== null && ') < flat(primary).indexOf('<PillButton'), 'the source is not said above the action it belongs to');
-    assert.match(flat(primary), /\{heldBack !== null && \(/, 'a start that was refused has no way forward on the page');
-  });
-
-  test('the ways to practise are ledger rows, each drawn only when it can start', () => {
-    const ledger = between(RENDER, '{rowsCanStart && (', '</Ledger>', 'the rows sit in one ledger');
-    // The replay row opens only a sitting that would hold something (the
-    // sayable rule), and the phrase row only when there is a phrase.
-    assert.match(flat(ledger), /\{made\?\.value\?\.replay != null && made\.value\.replay\.sayable && \(/, 'the replay row draws when its sitting would be empty');
-    assert.match(flat(ledger), /\{made\?\.value\?\.phrase != null && \(/, 'the phrase row draws with no phrase behind it');
-    assert.match(flat(ledger), /\{!dayOne && step !== null && step\.doors\.review !== null && \( <LedgerRow/, 'due review is not a ledger row gated on the deck');
-    assert.ok(ledger.indexOf('<ReplayMomentCard') < ledger.indexOf('<MakePhraseCard'), 'the phrase sits above the moment');
-    assert.ok(ledger.indexOf('<MakePhraseCard') < ledger.indexOf('step.doors.review'), 'review sits above the made-from rows');
-    assert.match(flat(ledger), /onPress=\{\(\) => \{ if \(ownsReadNow\(\)\) nav\.navigate\('Review'\); \}\}/, 'the review row does not open the review deck, or opens it after the account changes');
-    // The whole ledger is drawn only when one row in it can start.
-    assert.match(FLAT, /\{rowsCanStart && \( <View style=\{st\.block\}>/, 'an empty ledger draws its heading over nothing');
-    assert.match(FLAT, /<Label>\{ALTERNATIVES\.label\}<\/Label>/, 'the rows lost their one quiet heading');
-    assert.match(SCREEN, /madeFromConversations\(\{ packs, marks, deck, checks, bank, now \}\)/, 'the made-from rows are judged without the bank');
-  });
-
-  test('the replay opens the drill on the better line with the moment along', () => {
-    assert.match(FLAT, /id: `replay:\$\{made\.value!\.replay!\.packId\}`/);
-    assert.match(FLAT, /phraseKeys: \[made\.value!\.replay!\.key\]/);
-    assert.match(FLAT, /moment: \{ quote: made\.value!\.replay!\.quote, better: made\.value!\.replay!\.better, why: made\.value!\.replay!\.why \}/);
-  });
-
   test('a half-done completion lands first, a waiting sitting is resumed, and every read is bound to the account', () => {
-    const load = between(SCREEN, 'const load = useCallback(', '\n  );\n', 'the tab reads its stores in one callback');
-    assert.ok(load.indexOf('recoverPracticeCompletion()') >= 0, 'a completion a previous launch left half-done is never finished');
-    assert.ok(load.indexOf('recoverPracticeCompletion()') < load.indexOf('loadPracticeSession()'), 'the saved sitting is read before a pending completion lands');
-    assert.match(load, /loadSoundChecks\(\{ strict: true \}\)/, 'unreadable sound evidence is treated as an empty check history');
-    assert.match(flat(load), /const scope = scopeGeneration\(\); const userId = user\?\.id \?\? null; const capturedOwner = \{ scope, userId \}; const stale = \(\): boolean => cancelled\(\) \|\| !ownsPracticeRead\(capturedOwner, scopeGeneration\(\), userId, activeUserId\(\)\);/);
-    assert.equal((load.match(/if \(stale\(\)\)/g) ?? []).length + (load.match(/if \(!stale\(\)\)/g) ?? []).length + (load.match(/if \(stale\(\) \|\|/g) ?? []).length, 4, 'a read or failed read can be drawn for an account that has changed');
-    assert.match(flat(load), /\.catch\(\(\) => \{ if \(!stale\(\)\) \{ setFailureOwner\(\{ scope, userId \}\); setFailed\(true\); \} \}\)/, 'a stale rejection shows the new account a read failure');
-    const start = between(SCREEN, 'const startRecommended = () => {', '\n  };\n', 'the recommended action is a component-level handler');
-    assert.match(start, /nav\.navigate\('Drill', practiceRouteParams\(\{ origin: 'resume', packId: null, exposed: false \}\)\)/, 'Resume opens something other than the saved sitting');
-    assert.match(start, /nav\.navigate\('Drill', action\.params\)/, 'a short practice opens something other than a practice sitting');
-    assert.match(start, /if \(action\.kind === 'talk'\) return startFirst\(\);/, 'a live conversation no longer goes through its probe');
-    assert.ok(!/navigate\('Convo'/.test(start), 'the recommended action opens a live room, which is not what the card promised');
+    assert.match(FLAT, /const library = useLibraryData\(\);/, 'the tab reads its stores somewhere other than the one reader');
+    const hook = read('../practice/useLibraryData.ts');
+    assert.ok(hook.indexOf('recoverPracticeCompletion()') >= 0, 'a completion a previous launch left half-done is never finished');
+    assert.match(hook, /void recoverPracticeCompletion\(\)\.catch\(\(\) => null\)\.then\(read\)/, 'the saved sitting is read before a pending completion lands');
+    for (const store of ['loadDeck()', 'loadDrillBank()', 'loadPackMarks()', 'loadTopics()', 'loadSoundChecks({ strict: true })']) {
+      assert.ok(hook.includes(store), `the reader no longer reads ${store}`);
+    }
+    assert.match(hook, /ownsPracticeRead\(owner, scopeGeneration\(\), owner\.userId, activeUserId\(\)\)/, 'a read can be drawn for an account that has changed');
+    assert.match(hook, /ownsNow: \(\) => stored !== null && current\(stored\.owner\)/);
+    assert.match(FLAT, /const ownsReadNow = \(\) => library\.ownsNow\(\);/);
+    const go = between(SCREEN, 'const go = (route: PracticeRoute) => {', '\n  };\n', 'every door goes through one handler');
+    assert.match(go, /if \(!ownsReadNow\(\)\) return;/, 'a door opens the previous account\'s material');
   });
 
-  test('the quiet doors stay quiet, gated on the model, and the tutor door says it uses live minutes', () => {
-    assert.match(FLAT, /\{step\.doors\.choose !== null && <IconAction layout="tile" icon="chat" label=\{step\.doors\.choose\}[^>]*onPress=\{\(\) => \{ if \(ownsReadNow\(\)\) nav\.navigate\('Conversations'\); \}\}/, 'choosing a conversation is not a quiet door to the list or opens stale material');
-    assert.match(FLAT, /accessibilityLabel=\{`\$\{step\.doors\.revisit\.label\}\. \$\{step\.doors\.revisit\.uses\}`\}/, 'the tutor door does not say its cost to a screen reader');
-    assert.match(FLAT, /\{step\.doors\.revisit !== null && \(/, 'the tutor door is drawn without asking the model');
+  test('the tutor revisit is gated by the shared plan helper and says it uses live minutes', () => {
     assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');
     assert.ok(!SCREEN.includes('capabilitiesFor('), 'the tab asks the plan table itself instead of through the helper');
-    assert.equal((SCREEN.match(/nav\.navigate\('Conversations'\)/g) ?? []).length, 2, 'the archive has more than one door on Practice, or none');
-    assert.ok(at('<Ledger') < at('<View style={st.doors}>'), 'the quiet doors sit above the ways to practise');
+    assert.match(FLAT, /accessibilityLabel=\{`\$\{card\.revisit\.label\}\. \$\{card\.revisit\.uses\}/, 'the tutor door does not say its cost to a screen reader');
+    assert.ok(!SCREEN.includes('featureAccess'), 'the tab asks the access seam itself; the view model does');
   });
 
   test('the door that touches the network guards its tap and says so — F154', () => {
@@ -206,11 +194,11 @@ describe('Practice leads with a useful action, then a sound example', () => {
   });
 
   test('nothing on the page counts, tints or highlights', () => {
-    for (const forbidden of ['Math.', 'toFixed', 'dueCards', 'buildPath', 'percent', '%']) {
+    for (const forbidden of ['Math.', 'toFixed', 'dueCards', 'buildPath', 'percent', '%', 'evidenceOf', '.length} ']) {
       assert.ok(!SCREEN.includes(forbidden), `the tab uses ${forbidden}; counting belongs to core and to practice/`);
     }
     for (const gone of ['TintRow', 'MADE_FROM_TINT', 'tint=', 'accent.feature', 'highlight', '<Highlight', 'starterMomentRow', 'PathNodeRow', 'SessionFilters', 'VaultCard', 'archiveFrom']) {
-      assert.ok(!SCREEN.includes(gone), `${gone} is on Practice; the notebook page has no tints and no highlighter`);
+      assert.ok(!SCREEN.includes(gone), `${gone} is on Practice; the page has no tints and no highlighter`);
     }
   });
 
@@ -219,22 +207,30 @@ describe('Practice leads with a useful action, then a sound example', () => {
   // mixOffered) cannot come back beside the sound-led page either. F442 points here.
   test('the path, the archive and the suggestion card stay gone from the sound-led page — F442', () => {
     for (const gone of ['PathNodeRow', 'mixOffered', 'PathUnit', 'units', 'statusLine', 'seedTopicFor', 'ScenarioCard', 'SessionFilters', 'SessionRow', 'VaultCard', 'archiveFrom', 'CLOSING', 'talkAbout']) {
-      assert.ok(!SCREEN.includes(gone), `${gone} is back on Practice; the page leads with one sound and its doors`);
+      assert.ok(!SCREEN.includes(gone), `${gone} is back on Practice; the page leads with the learner's conversations`);
     }
   });
 
   test('every block that can be empty is gated, and a failed read says so', () => {
-    assert.match(FLAT, /\{showFailed && \(/, 'a read that never finished leaves the learner on a page that says nothing');
-    assert.match(FLAT, /\{ownerMatches && step !== null && \( <View style=\{st\.doors\}>/, 'the doors draw before the card has answered, or after the account changes');
+    assert.match(FLAT, /\{library\.failed && \(/, 'a read that never finished leaves the learner on a page that says nothing');
+    assert.match(FLAT, /\{library\.cached && \(/, 'a page drawn from the phone does not say so');
+    for (const gate of ['{chips.length > 0 && (', '{resume !== null && (', '{patterns.length > 0 && (', '{mix !== null && (', '{week !== null && ', '{card.kept.length > 0 && (', '{shadowPhrase && (']) {
+      assert.ok(SCREEN.includes(gate), `\`${gate}\` is gone, so an empty block draws its heading over nothing`);
+    }
   });
 
   test('the header says where the page came from, and none of those words live here', () => {
     const header = between(RENDER, '<TabHeader', '/>', 'Practice opens on a TabHeader');
-    assert.match(header, /title="Make it feel natural\."/);
-    assert.doesNotMatch(header, /purpose=/, 'Practice leads with its useful action, without a repeated subtitle');
+    assert.match(header, /title=\{PRACTICE_TITLE\}/);
+    assert.match(header, /purpose=\{newLearner \? EMPTY_SUBTITLE : PRACTICE_SUBTITLE\}/, 'the subtitle is spelled here, or the empty page shares the full one');
     assert.match(SCREEN, /trailing=\{<ProfileButton \/>\}/, 'Practice must retain the shared profile entry point');
-    for (const spelled of ['Your sound to tune', 'bonjour', 'Made from your conversations', 'Your next practice', 'Scheduled review', 'Recorded tutor audio']) {
-      assert.ok(!SCREEN.includes(spelled), `the tab spells "${spelled}" itself; that word belongs to practice/`);
+    // The ported library opens on the shared frame, never MainUI's or its colour shims.
+    for (const file of ['./PracticeTab.tsx', '../practice/useLibraryData.ts', '../practice/FixesScreen.tsx', '../conversationPacks/ConversationPackLibrary.tsx']) {
+      assert.doesNotMatch(read(file), /main\/MainUI|useMainAppearance/, `${file} imports MainUI or its appearance shims`);
+    }
+    assert.match(SCREEN, /<ScrollScreen\b/);
+    for (const spelled of ['Go back to your conversations', 'Pick up where you stopped', 'Comes up often', 'Your conversations', 'Mix your conversations', 'Your practice grows from here', 'Practise this conversation']) {
+      assert.ok(!SCREEN.includes(spelled), `the tab spells "${spelled}" itself; that word belongs to practiceTabView.ts`);
     }
   });
 
@@ -245,11 +241,14 @@ describe('Practice leads with a useful action, then a sound example', () => {
     assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(SCREEN), 'the tab spells a colour by hand instead of taking one from the palette');
     assert.ok(!/(width|height): \d/.test(SCREEN), 'the tab pins a size in points instead of taking one from the grid');
     assert.ok(!/paddingBottom/.test(SCREEN), 'the tab pads its own bottom over the frame that already pays for the tab bar');
+    assert.match(SCREEN, /minHeight: HIT/, 'a title row with a badge falls under the touch floor');
   });
 
   test('a drill is opened with deck keys, never with the French lines themselves', () => {
     assert.ok(!/phraseKeys: [^}]*\.map\(\(phrase\) => phrase\.fr\)/.test(FLAT), 'a drill is opened with raw French instead of the deck keys it is indexed by');
     const card = readFileSync(new URL('../practice/recommendation.ts', import.meta.url), 'utf8');
     assert.match(card, /pack\.keyPhrases\.map\(\(p\) => phraseKeyOf\(p\.fr\)\)/, 'practice targets must use review-card identities');
+    const view = read('../practice/practiceTabView.ts');
+    assert.match(view, /phraseKeyOf\(c\.better\)/, 'a pattern drill is opened on raw French');
   });
 });

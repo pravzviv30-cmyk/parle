@@ -8,7 +8,7 @@ import type { ConversationPack } from '@luvani/core';
 import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { paper, signal, space, type } from '../theme.ts';
+import { frenchText, paper, signal, space, type } from '../theme.ts';
 import { CONVERSATION_PAGE_SIZE } from './store.ts';
 import { PRACTICE_ALTERNATIVES, RECOMMENDED } from '../practice/copy.ts';
 import { loadPracticeHistory } from '../practice/historyStore.ts';
@@ -116,6 +116,13 @@ export function ConversationPackLibrary({
   const leaveDetail = () => {
     setConfirming(null);
     setMessage(null);
+    // Ported from ce1fa976 (B3, 2026-10-20): a conversation opened straight
+    // from a link or from Practice goes back where it came from, not to a list
+    // the learner never saw.
+    if (initialPackId !== undefined && selected?.id === initialPackId) {
+      onBack();
+      return;
+    }
     setSelected(null);
   };
   useHardwareBack(selected !== null, selected === null ? onBack : leaveDetail);
@@ -131,7 +138,7 @@ export function ConversationPackLibrary({
       } else {
         setMessage(result.message);
       }
-    }).finally(() => setBusy(false));
+    }).catch(() => setMessage('This conversation could not be changed. Check your connection and try again.')).finally(() => setBusy(false));
   };
 
   const removeAll = () => {
@@ -141,12 +148,21 @@ export function ConversationPackLibrary({
     void onDeleteAll().then((result) => {
       if (result.ok) setConfirming(null);
       else setMessage(result.message);
-    }).finally(() => setBusy(false));
+    }).catch(() => setMessage('Your conversations could not be changed. Check your connection and try again.')).finally(() => setBusy(false));
   };
 
   if (selected !== null) {
+    // The practice action sits at the safe-area footer (ported from ce1fa976,
+    // B3, 2026-10-20), only when the conversation saved something to practise.
+    const hasPractice = selected.state === 'ready' && (selected.keyPhrases.length > 0 || selected.corrections.length > 0);
     return (
-      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: leaveDetail }} />}>
+      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: leaveDetail }} />}
+        footer={hasPractice ? (
+          <View style={st.footer}>
+            <PillButton label="Practise this conversation" disabled={busy} onPress={() => onReview(selected)} />
+            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{RECOMMENDED.noMinutes}</Text>
+          </View>
+        ) : undefined}>
         <Label>Practice from conversation</Label>
         <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>{selected.title.en}</Text>
         <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(1) }]}>{selected.title.fr}</Text>
@@ -154,12 +170,12 @@ export function ConversationPackLibrary({
 
         {selected.keyPhrases.length > 0 && (
           <View style={st.section}>
-            <Label>You practised</Label>
+            <Label>Useful phrases</Label>
             <View style={st.phrases}>
               {selected.keyPhrases.map((phrase) => (
                 <Card key={`${phrase.fr}\u0000${phrase.en}`}>
-                  <Text style={[type.bodyStrong, { color: paper.ink }]}>{phrase.fr}</Text>
-                  {phrase.frWritten !== null && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.frWritten}</Text>}
+                  <Text {...frenchText} style={[type.bodyStrong, { color: paper.ink }]}>{phrase.fr}</Text>
+                  {phrase.frWritten !== null && <Text {...frenchText} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.frWritten}</Text>}
                   <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.en}</Text>
                 </Card>
               ))}
@@ -171,7 +187,7 @@ export function ConversationPackLibrary({
           <View style={st.section}>
             <Label>One useful focus</Label>
             <Card style={{ marginTop: space(2.5) }}>
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>{selected.corrections[0].better}</Text>
+              <Text {...frenchText} style={[type.bodyStrong, { color: paper.ink }]}>{selected.corrections[0].better}</Text>
               <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{selected.corrections[0].betterEn}</Text>
               <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{selected.corrections[0].why}</Text>
             </Card>
@@ -212,13 +228,13 @@ export function ConversationPackLibrary({
         {selected.state === 'ready' ? (
           <View style={st.actions}>
             {/* Two routes, each saying what it costs. Practice is module work
-                and uses no live minutes; the tutor revisit is live, is drawn
-                only when the plan opens it, and says it uses minutes. */}
-            <PillButton label="Review phrases" onPress={() => onReview(selected)} />
-            <Text style={[type.small, { color: paper.inkSoft }]}>{RECOMMENDED.noMinutes}</Text>
+                and uses no live minutes, said under the footer pill; the tutor
+                revisit is live, is drawn only when the plan opens it, and says
+                it uses minutes. */}
+            {!hasPractice && <Text style={[type.small, { color: paper.inkSoft }]}>There are no practice phrases in this conversation yet.</Text>}
             {onContinue !== undefined && (
               <>
-                <OutlineButton label="Continue talking" onPress={() => onContinue(selected)} />
+                <OutlineButton label="Talk about this again" disabled={busy} onPress={() => onContinue(selected)} />
                 <Text style={[type.small, { color: paper.inkSoft }]}>{PRACTICE_ALTERNATIVES.revisitUses}</Text>
               </>
             )}
@@ -318,6 +334,7 @@ export function ConversationPackLibrary({
 
 const st = StyleSheet.create({
   section: { marginTop: space(7) },
+  footer: { gap: space(2) },
   phrases: { gap: space(2.5), marginTop: space(3) },
   actions: { marginTop: space(7), gap: space(3) },
   delete: { marginTop: space(7), gap: space(3) },

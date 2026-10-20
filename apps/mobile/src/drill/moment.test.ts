@@ -36,10 +36,17 @@ describe('the moment a replay drill replays (F556)', () => {
     assert.match(card, /tutorVoice\.speak\(moment\.better\)/, 'the better way cannot be heard');
     assert.match(card, /accessibilityLabel=\{`Hear \$\{moment\.better\}`\}/, 'the speaker does not say what it will play');
     assert.match(card, /<SpeakerGlyph\b/, 'the speaker is not drawn with the one speaker mark');
-    // And the replay card opens the drill on the better line's key with the moment along.
-    const tab = read('../tabs/PracticeTab.tsx').replace(/\s+/g, ' ');
-    assert.match(tab, /id: `replay:\$\{made\.value!\.replay!\.packId\}`/, 'the replay opens a node the marks cannot name');
-    assert.match(tab, /phraseKeys: \[made\.value!\.replay!\.key\]/, 'the replay opens on something other than the better line');
-    assert.match(tab, /moment: \{ quote: made\.value!\.replay!\.quote, better: made\.value!\.replay!\.better, why: made\.value!\.replay!\.why \}/, 'the replay drill opens without the moment');
+    // 2026-10-20, B3, B-Practice: the replay left Practice for Your fixes.
+    // There a fix's first try opens the drill on the better line's key with
+    // NO moment, because the moment card shows the better line above the
+    // exercise; only "Say it once more", after the comparison is on screen,
+    // carries the moment along.
+    const fixes = read('../practice/fixesView.ts').replace(/\s+/g, ' ');
+    const attempt = fixes.slice(fixes.indexOf('function attemptRoute('), fixes.indexOf('/** After a try'));
+    const again = fixes.slice(fixes.indexOf('function againRoute('), fixes.indexOf('export function fixRows('));
+    assert.match(attempt, /id: `fix:\$\{fix\.packId\}:\$\{fix\.key\}`/, 'a fix opens a node the marks cannot name');
+    assert.match(attempt, /phraseKeys: \[fix\.key\]/, 'a fix opens on something other than the better line');
+    assert.doesNotMatch(attempt, /moment/, 'a fix\'s first try shows the better line before the attempt');
+    assert.match(again, /moment: \{ quote, better, why \}/, 'saying a tried fix once more drops the moment');
   });
 });

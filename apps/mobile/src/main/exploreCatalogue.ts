@@ -95,3 +95,11 @@ export function exploreTopicSeed(query: string, topic: ExploreTopic | null): { f
   };
   return topics[topic];
 }
+
+/**
+ * The topics a piece of text names, from the same words the phrase filter
+ * reads (B3, 2026-10-20), so Practice's chips and Explore's topics are one map.
+ */
+export function topicsOfText(text: string): ExploreTopic[] {
+  return EXPLORE_TOPICS.filter(t => WORDS[t.key].test(text)).map(t => t.key);
+}

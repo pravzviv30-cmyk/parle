@@ -1788,7 +1788,7 @@ export function StatRow({ children }: { children: ReactNode }) {
  */
 export function Chip(props:
   | { variant: 'filter'; label: string; selected: boolean; onPress: () => void; role?: 'tab' | 'button'; accessibilityLabel?: string; ground?: 'card' | 'violet2' }
-  | { variant: 'meta'; label: string; tone?: 'card' | 'ink' | 'lavender'; leading?: ReactNode }
+  | { variant: 'meta'; label: string; tone?: 'card' | 'ink' | 'lavender'; leading?: ReactNode; /** The label is French (B3, 2026-10-20): set and read as French. */ lang?: 'fr' }
 ) {
   if (props.variant === 'meta') {
     const tone = props.tone ?? 'card';
@@ -1797,7 +1797,7 @@ export function Chip(props:
     return (
       <View style={[b.metaChip, { backgroundColor: ground }]}>
         {props.leading}
-        <Text style={[type.small, { color: words }]}>{props.label}</Text>
+        <Text {...(props.lang === 'fr' ? frenchText : {})} style={[type.small, { color: words }]}>{props.label}</Text>
       </View>
     );
   }

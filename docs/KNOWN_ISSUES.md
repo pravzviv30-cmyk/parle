@@ -5270,7 +5270,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   pill and the ban on anything that counts are unchanged.
 - verified-by: `nothing on the page counts, tints or highlights`
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
-- verified-by: `the page puts the short action before the optional sound guide`
+- note (2026-10-20, B3, B-Practice): Practice now leads with the learner's conversations (B-Practice); the sound guide and local compare stay below them as the doors to sound practice, so the test is renamed for that.
+- verified-by: `the page puts the conversations before the optional sound guide`
 
 - note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
@@ -5521,7 +5522,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   drawn in one of two places. On day one it is the bonjour sound lesson inside the sound block, and
   the card is not drawn; on every other day it is the card's control. The count of one is untouched.
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
-- verified-by: `day one's one pill is the bonjour sound lesson, with its live-minutes line, in the recommendation`
+- note (2026-10-20, B3, B-Empty-Practice): the empty page's one pill is the first conversation, through its probe; the café lesson keeps its probe and says it uses live minutes while the tutor is connected. The test is renamed for that.
+- verified-by: `the empty page's one pill is the first conversation, and the café lesson and sounds are ready without one — B-Empty-Practice`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 - note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
@@ -8674,7 +8676,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: conversation practice (2026-09): the per-branch controls became one recommended action chosen by
   practice/practiceCard.ts over the balanced selector. The card is still one French line, its meaning,
   a speaker and one action; the renamed test pins the line, gloss, speaker and the single action.
-- verified-by: `the recommended card previews one French line the sitting will not ask for`
+- note (2026-10-20, B3, B-Practice): the recommended card left Practice; the stopped sitting is the recommendation's own resume answer, named with its place in words, so the test is renamed for that.
+- verified-by: `the pick-up card names the stopped sitting and resumes it`
 - verified-by: `the conversations screen carries the feed, the filters and the delete flow`
 
 ### F575 — My French is the tinted situation rows and the phrase shelf
@@ -9038,7 +9041,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 3 of revamp B, the Practice area, 23 boards. Pass 0 finishes the shared parts every area draws. `Ledger` and `LedgerRow` become SNIPPETS' white list, `SpeakCircle` becomes the mint orb, `ScreenHeader` takes a left title, a trailing line and no rule, and `TabBar` gains the underline look. Practice then leads with the sun card, one white recommended card and one list. Review loses its stripe, gains Show me, and gets three equal grades. The drill names its exercise in the header, marks a verdict with a mint tick, and offers the existing typed twin as the primary when there is no microphone. The sound check, phrasebook, library, light day and conversations screens move to the B parts with their own words. The empty states draw `state-notebook` and `state-microphone`. `surface/PhraseCard.tsx` retires. Fix your line, spoken own words, Shadowing and the light day's "counts as a day" are slots, not builds.
 
 - continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
-- verified-by: `revamp B Practice leads with the short action, then an optional evidence-bounded sound guide and local compare`
+- note (2026-10-20, B3, B-Practice): Practice leads with the learner's conversations; the sound guide and hear, say and compare stay on the page, so the test is renamed for that.
+- verified-by: `revamp B Practice keeps an evidence-bounded sound guide and local compare after the conversations`
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
 - verified-by: `a measured fact appears only when a check measured it`
 - verified-by: `a due production item requires retrieval before its answer is revealed`
@@ -9626,7 +9630,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
 
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
-- verified-by: `the page puts the short action before the optional sound guide`
+- note (2026-10-20, B3, B-Practice): Practice now leads with the learner's conversations (B-Practice); the sound guide and local compare stay below them as the doors to sound practice, so the test is renamed for that.
+- verified-by: `the page puts the conversations before the optional sound guide`
 
 ### F699 — Home and Progress must recommend usable work and name their evidence
 - severity: P1
@@ -10987,3 +10992,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-19 by the presubmission review (P3 #7). Only TypeSafe was named; the carrier, transcriber, voice, scorer, language model, purchase processor, database, counter store and host were described by role alone, because the model vendor was a runtime choice. Founder decision 2026-10-19: OpenAI is production's model (boot enforces it, F853) and Railway hosts the server.
 - fixed: 2026-10-19. "Who else sees it" names LiveKit, Deepgram, ElevenLabs, Speechace, OpenAI, TypeSafe, RevenueCat (beside Apple or Google taking the payment), Supabase, Upstash and Railway inside their existing role sentences, and the guest paragraph names OpenAI. No retention claim was added; the unverified-retention sentences stay. The two "no vendor named" guards in `policy.test.ts` were replaced by an allow-list. `privacy.html` regenerated; the hosted copy must be re-uploaded (docs/LEGAL_HOSTING.md). The ElevenLabs sentence holds because production refuses `LUVANI_TTS_VENDOR=fish` (token-server `config.ts`, `deployment/validateEnvironment.mjs`).
 - verified-by: `the notice names every company that receives learner data, by role`
+
+### F855 — Conversation practice needs the network on Supabase builds
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/store.ts:186
+- note: Found 2026-10-20 in B3 (B-Practice). The artboard's "Works offline once unlocked" was checked against the code: `loadConversationPackForLearner` reads the server on a Supabase build and never falls back to the device's cached pack, so ConversationPractice says "This conversation isn't available here." offline even though Practice drew the conversation from the cache. The line is not drawn on Practice until this is true. Fix: fall back to the owned cached pack when the server cannot be reached (not on a 404, which means deleted).
+- verified-by: `conversation practice opens from the device cache when the server cannot be reached on Supabase builds`

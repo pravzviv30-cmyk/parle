@@ -34,11 +34,15 @@ test('revamp B shared choices, controls and sheets carry state and keep secondar
   has('components.tsx',/minHeight: 56/,/accessibilityState=\{\{ selected \}\}/,/aria-selected=\{selected\}/,/aria-pressed=\{selected\}/,/playing \? 'Stop' : 'Hear'/,/maxHeight: '94%'/,/accessibilityViewIsModal/,/keyboardShouldPersistTaps="handled"/,/outputRange: \[0, 0\.4\]/);
   has('layout.tsx',/trailing\?: ReactNode/,/props.divider === true \? HAIRLINE : 0/,/alignItems: 'flex-start'/);
 });
-test('revamp B Practice leads with the short action, then an optional evidence-bounded sound guide and local compare',()=>{
+// 2026-10-20, B3, B-Practice: Practice leads with the learner's conversations;
+// the sound guide and the local compare stay on the page as its doors to sound
+// practice, after the conversations and saved phrases, and the empty page
+// keeps "Sounds of French".
+test('revamp B Practice keeps an evidence-bounded sound guide and local compare after the conversations',()=>{
   has('practice/TuneSoundCard.tsx',/measured === null \? SOUND_LEAD.starterLabel : SOUND_LEAD.measuredLabel/,/lead.cue/,/measured !== null/,/native !== null/,/details && <View/,/<MouthGuide ipa=\{lead.ipa\}/);
   const practice = read('tabs/PracticeTab.tsx');
-  assert.ok(practice.indexOf('<Label>{NEXT_STEP.label}</Label>') < practice.indexOf('<TuneSoundCard'), 'the sound guide buries the recommended action');
-  has('tabs/PracticeTab.tsx',/step !== null && \(/,/<FrenchBlock/,/<TuneSoundCard/,/shadowingPhrase/,/mode:'shadowing'/,/Hear, say and compare/);
+  assert.ok(practice.indexOf('{CONVERSATIONS_TITLE}') < practice.indexOf('<TuneSoundCard'), 'the sound guide buries the conversations');
+  has('tabs/PracticeTab.tsx',/<TuneSoundCard/,/shadowingPhrase/,/mode: 'shadowing'/,/Hear, say and compare/,/go\(\{ screen: 'SoundCheck' \}\)/);
   has('daily/DailyPracticeScreen.tsx',/state-headphones/,/Nothing is graded/,/Record my take/,/Hear my take/,/Try again/,/recordActiveDay\(\)/,/ack === 'durable'/,/setDaySaved\(true\)/,/discardRecording/,/enterVoicePlayback\(\)/);
   lacks('daily/DailyPracticeScreen.tsx',/fetch\(|Speech.speak|pronunciationScore/);
 });

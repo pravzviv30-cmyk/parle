@@ -428,7 +428,10 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.match(shared, /recommendation\(\{ resumable: resumableOf\(saved, packs, bank\), deck, bank, packs, now \}\)/);
     assert.match(shared, /navigateOwned\('Drill'/);
     assert.match(shared, /navigateOwned\('Review'\)/);
-    assert.match(read('./PracticeTab.tsx'), /loadDeck\(\)/);
+    // 2026-10-20, B3, B-Practice: Practice reads the same deck through its
+    // one reader, practice/useLibraryData.ts.
+    assert.match(read('./PracticeTab.tsx'), /useLibraryData\(\)/);
+    assert.match(read('../practice/useLibraryData.ts'), /loadDeck\(\)/);
     assert.match(shared, /resuming: saved\?\.targets.map/);
 
   });

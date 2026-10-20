@@ -1732,6 +1732,14 @@ describe('the five tabs open the same way — F336', () => {
         assert.doesNotMatch(body, /purpose="/, 'Speak spells its subtitle itself instead of reading speakTabView.ts');
         continue;
       }
+      // 2026-10-20, B3, B-Practice: Practice's subtitle says where the page
+      // takes the learner, and changes for a learner with no conversation yet
+      // (B-Empty-Practice). It is the view model's sentence, never a literal.
+      if (name === 'tabs/PracticeTab.tsx') {
+        assert.doesNotMatch(body, /purpose="/, 'Practice spells its subtitle itself instead of reading practiceTabView.ts');
+        assert.match(body, /purpose=\{newLearner \? EMPTY_SUBTITLE : PRACTICE_SUBTITLE\}/, 'Practice lost its subtitle, or the empty page shares the full one');
+        continue;
+      }
       assert.doesNotMatch(body, /purpose=/, `${name} repeats an explanation under its title`);
     }
   });
@@ -1909,10 +1917,10 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // 2026-10-20, B2, B-Speak: the ContinuityCard left Speak; a thread to pick
     // up is the Recommended card's own conversation.
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx'],
+    // 2026-10-20, B3, B-Practice: the made-from rows left Practice (a fix is
+    // tried on Your fixes); the sound card stays as the door to sound practice.
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
-      'practice/ReplayMomentCard.tsx',
-      'practice/MakePhraseCard.tsx',
       'practice/TuneSoundCard.tsx',
     ],
     'tabs/MyFrenchTab.tsx': [
@@ -1933,7 +1941,14 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const task = named('practice/NextTaskCard.tsx');
     const local = named('practice/LocalPracticeCard.tsx');
     const hero = named('home/MissionHero.tsx');
-    for (const tab of ['tabs/HomeTab.tsx', 'tabs/PracticeTab.tsx']) assert.match(named(tab), /<NextTaskCard/);
+    // 2026-10-20, B3, B-Practice: Practice no longer draws NextTaskCard; its
+    // one primary pill is the empty page's first conversation, and every
+    // other action on it is a secondary pill, a colour card or a ledger row.
+    assert.match(named('tabs/HomeTab.tsx'), /<NextTaskCard/);
+    const practice = named('tabs/PracticeTab.tsx');
+    assert.doesNotMatch(practice, /<NextTaskCard/);
+    assert.equal((practice.match(/<PillButton label=\{EMPTY\.start\}/g) ?? []).length, 1, 'Practice lost its one primary, the first conversation');
+    assert.equal((practice.match(/<PillButton\b/g) ?? []).length, (practice.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Practice carries a second primary pill');
     // 2026-10-20, B2, B-Speak: Speak's door is its own Recommended card, with
     // exactly one ink primary, Start; every other pill on it is secondary.
     const speak = named('tabs/TutorTab.tsx');
@@ -1984,9 +1999,10 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'tabs/ExploreTab.tsx': 7,
       // 2026-10-20, B2, B-Speak: the starter scenes, and Revisit a conversation.
       'tabs/TutorTab.tsx': 2,
-      // The review door on the tab, then replay a moment and make this phrase
-      // yours in their own card files.
-      'tabs/PracticeTab.tsx': 4,
+      // 2026-10-20, B3, B-Practice: the empty page's café lesson and sounds,
+      // saved phrases and saved text, a conversation's fixes, its practice
+      // steps and its revisit, and hear, say and compare.
+      'tabs/PracticeTab.tsx': 8,
       // Conversations and their "see all", the phrase shelf, the collection,
       // goals, the daily collection and the door to every situation. Phase 4
       // (2026-10-07): the postcards row became the postcard shelf, 5 to 4.
@@ -2333,8 +2349,10 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.ok(!tab.includes('buildPath'), 'DESIGN.md says the path is gone and the tab still builds one');
     assert.doesNotMatch(tab, /archiveFrom/, 'DESIGN.md says the archive is one level down and Practice folds one anyway');
     assert.match(named('conversationPacks/ConversationsScreen.tsx'), /archiveFrom/, 'nothing folds the archive at all now, so it did not move, it went');
+    // 2026-10-20, B3, B-Practice: one primary pill, for the learner with no
+    // conversation yet; every other pill on the tab is a secondary one.
     assert.equal(
-      (tab.match(/<PillButton\b/g) ?? []).length,
+      (tab.match(/<PillButton\b/g) ?? []).length - (tab.match(/<PillButton variant="secondary"/g) ?? []).length,
       1,
       'the design doc says Practice keeps one pill, for the learner with no conversation yet, and the tab draws a different number',
     );

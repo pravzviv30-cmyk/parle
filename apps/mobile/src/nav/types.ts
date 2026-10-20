@@ -253,5 +253,9 @@ export type RootStackParamList = {
    */
   Conversations: { packId?: string } | undefined;
   SavedConversationText: undefined;
-  ConversationPractice: { packId: string };
+  /**
+   * `stage` opens the warm-up on listening (B3, 2026-10-20). Anything else,
+   * a web address included, opens on matching.
+   */
+  ConversationPractice: { packId: string; stage?: 'listen' };
 };
