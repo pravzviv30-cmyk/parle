@@ -23,5 +23,7 @@ test('failed read has a visible retry while local audio and text practice remain
   const today = card.slice(card.indexOf("if (variant === 'today')"), card.indexOf('return embedded ?'));
   assert.doesNotMatch(today, /save\(\)|bookmark/, "Today's phrase offers a save it cannot recover from");
   assert.match(card, /onHear=\{asset != null \? toggle : undefined\}/);
-  assert.match(card, /<PillButton tone="white" label="Say it yourself" accessibilityLabel="Say today's phrase yourself" onPress=\{sayIt\} \/>/);
+  // 2026-10-20 UI-008, artboard B-Today: the lavender card is today/TodayParts
+  // PhraseCard; the one practice and the play toggle are still this card's.
+  assert.match(card, /sayLabel="Say it yourself"\s+sayAccessibilityLabel="Say today's phrase yourself"\s+onSay=\{sayIt\}/);
 });

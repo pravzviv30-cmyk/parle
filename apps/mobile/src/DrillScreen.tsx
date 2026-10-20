@@ -83,6 +83,7 @@ import { Illustration } from './art/flat/Illustration.tsx';
 import { CheckGlyph } from './components.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { MomentCard, type DrillMoment } from './drill/MomentCard.tsx';
+import { momentShown } from './drill/momentShown.ts';
 import { loadTopics } from './topics/store.ts';
 import { drillTitle } from './drill/title.ts';
 import { DRILL_UNREAD, sittingTitle, topicGroups } from './practice/mix.ts';
@@ -917,6 +918,11 @@ export function DrillScreen({
     title: string;
     phraseKeys: readonly string[];
     moment?: DrillMoment;
+    /**
+     * Draw the moment only once the learner has answered (2026-10-20 UI-008,
+     * B-Today's fix card): attempt first, then the comparison.
+     */
+    afterTry?: boolean;
     /**
      * Ask for the phrase in the learner's own words instead of dealing the
      * bank. Authored here rather than generated: this kind has no right
@@ -1837,7 +1843,7 @@ export function DrillScreen({
         </View>
       }
     >
-      {node?.moment !== undefined && <MomentCard moment={node.moment} />}
+      {node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) && <MomentCard moment={node.moment} />}
       {exercise.kind === 'fill-blank' && (
         <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
       )}

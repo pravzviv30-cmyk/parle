@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
+import { momentShown } from './momentShown.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -21,7 +22,11 @@ describe('the moment a replay drill replays (F556)', () => {
     assert.ok(nodeProp.length > 0, 'the drill screen no longer declares a node prop; this test is reading the wrong thing');
     assert.match(nodeProp, /id: string; title: string; phraseKeys: readonly string\[\];/, 'the drill screen does not accept a node');
     assert.match(nodeProp, /moment\?: DrillMoment;/, 'the drill screen does not accept the moment');
-    const drawn = screen.indexOf("{node?.moment !== undefined && <MomentCard moment={node.moment} />}");
+    // 2026-10-20 UI-008, artboard B-Today: a node may ask for the moment only
+    // after the first answer (`afterTry`), so Today's fix stays attempt first.
+    const drawn = screen.indexOf("{node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) && <MomentCard moment={node.moment} />}");
+    assert.match(nodeProp, /afterTry\?: boolean;/, 'the drill screen cannot hold the moment back until a try');
+    assert.match(routes, /afterTry\?: boolean \}/, 'the drill route cannot ask for the moment after a try');
     const exercise = screen.indexOf("{exercise.kind === 'fill-blank' && (");
     assert.ok(drawn > 0, 'the drill screen never draws the moment');
     assert.ok(drawn < exercise, 'the moment is drawn somewhere other than above the exercise');
@@ -49,4 +54,12 @@ describe('the moment a replay drill replays (F556)', () => {
     assert.doesNotMatch(attempt, /moment/, 'a fix\'s first try shows the better line before the attempt');
     assert.match(again, /moment: \{ quote, better, why \}/, 'saying a tried fix once more drops the moment');
   });
+});
+
+// 2026-10-20 UI-008, artboard B-Today (learning-science review): attempt first.
+test('an afterTry moment stays hidden before the first answer and shows after it', () => {
+  assert.equal(momentShown({ afterTry: true, answering: false, answered: 0 }), false, 'the comparison is shown before the try');
+  assert.equal(momentShown({ afterTry: true, answering: true, answered: 0 }), true);
+  assert.equal(momentShown({ afterTry: true, answering: false, answered: 1 }), true);
+  assert.equal(momentShown({ answering: false, answered: 0 }), true, 'a replay that asked for the moment up front lost it');
 });

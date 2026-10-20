@@ -1396,27 +1396,27 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
     }
   });
 
-  test('the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313', () => {
+  test('the active tab is told by the violet cell and weight 700, and a screen reader still hears selected — F313', () => {
     assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
-    // 2026-09-30, revamp B (F600): the heavier weight is Outfit Bold, 700,
-    // beside the brand blue, over the tab label token's SemiBold.
-    assert.match(tabbar, /fontFamily: font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
+    // 2026-10-20 UI-008: the heavier weight is Outfit Bold, 700, in the violet
+    // cell, over the unselected words' Medium.
+    assert.match(tabbar, /focused \? font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
-  test('the bar is white with a top hairline, and never a floating shadow — F313', () => {
-    // 2026-09-27, notebook Phase 1: the inset dock becomes a flat bar, per the
-    // design contract. The floating rules are kept whole and the dock's own
-    // corner, margin and ink outline are refused alongside them. 2026-09-30,
-    // revamp B (F600): the bar is SNIPPETS' white, over the one hairline.
+  test('the bar is an ink capsule on the route ground, and never a floating shadow — F313, UI-008', () => {
+    // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103: the white bar and
+    // its hairline become an ink capsule, radius 32, on the focused route's
+    // ground. It stays in layout and never floats on a shadow.
     const from = tabbar.indexOf('bar: {');
     assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
     const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
-    assert.match(barStyle, /backgroundColor: paper\.card/, 'the bar is not the opaque white surface of its own');
-    assert.match(barStyle, /borderTopWidth: HAIRLINE/, 'the bar has no rule separating it from the page');
-    assert.match(barStyle, /borderTopColor: paper\.line/, 'the rule is not the paper hairline');
-    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'", 'borderRadius', 'marginHorizontal', 'borderColor: paper.ink']) {
-      assert.ok(!barStyle.includes(floating), `the bar carries ${floating}, so it is a dock or it competes with the content`);
+    assert.match(barStyle, /backgroundColor: t\.ground/, 'the strip is not the route ground');
+    const capsule = tabbar.slice(tabbar.indexOf('capsule: {'), tabbar.indexOf('},', tabbar.indexOf('capsule: {')) + 1);
+    assert.match(capsule, /backgroundColor: t\.tabCapsule/, 'the capsule is not the capsule token');
+    assert.match(capsule, /borderRadius: 32/, 'the capsule is not radius 32');
+    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
+      assert.ok(!tabbar.includes(floating), `the bar carries ${floating}, so it floats over the content`);
     }
   });
 
@@ -1426,27 +1426,15 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
   });
 });
 
-describe('the active tab wears the brand blue — F325', () => {
+describe('the active tab wears the violet cell — F325, UI-008', () => {
   const tabbar = named('nav/LuvaniTabBar.tsx');
 
-  test('the active tab is set in the brand blue, and the rest in soft ink', () => {
-    // 2026-09-30, revamp B (F600). The identity colour on the bar was the ink
-    // for a whole redesign; SNIPPETS gives the selected tab the brand blue,
-    // glyph and word together, at Outfit Bold. The rest are soft ink, glyph and
-    // word alike, because a word is held to the text floor (6.6 on white) and
-    // faint ink is now only an alias of it. The same three pins as
-    // nav/tabBar.test.ts, read here with the rest of the surface.
-    assert.match(
-      tabbar,
-      /color=\{focused \? accent\.brand : paper\.inkSoft\}/,
-      'the active tab glyph is not the brand blue, or the inactive one is not soft ink',
-    );
-    assert.match(
-      tabbar,
-      /focused \? \{ color: accent\.brand, fontFamily: font\.bold \}/,
-      'the active tab label is not the brand blue at the heavier weight, Outfit Bold',
-    );
-    assert.match(tabbar, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
+  test('the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008', () => {
+    // 2026-10-20 UI-008, Figma 292:1103. Replaces revamp B's brand blue word on
+    // white. The same pins as nav/tabBar.test.ts, read here with the surface.
+    assert.match(tabbar, /color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\}/, 'the selected glyph is not sun, or the others are not cream');
+    assert.match(tabbar, /faceSelected: \{ backgroundColor: t\.tabSelected \}/, 'the selected cell is not violet');
+    assert.match(tabbar, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold over the others\' Medium');
   });
 });
 
@@ -1915,7 +1903,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   // 2026-10-07, come alive Phase 4: the game cards each tab now draws, every one
   // with no pill of its own and no ledger row (README Part 7, Surfaces).
   const SURFACES: Record<string, readonly string[]> = {
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx'],
+    // 2026-10-20 UI-008, artboard B-Today: plus the Today parts it draws from.
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx', 'today/TodayParts.tsx'],
     // 2026-10-20, B1, B-Explore: every Explore list is drawn inline in the
     // tab file as ledger rows; it imports no card file of its own.
     'tabs/ExploreTab.tsx': ['tabs/ExploreTab.tsx'],
@@ -1961,8 +1950,17 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.equal((speak.match(/<PillButton\b/g) ?? []).length, (speak.match(/<PillButton variant="secondary"/g) ?? []).length + 1, 'Speak carries a second primary pill');
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
-    assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 2);
-    assert.match(task, /if \(value.card !== null\)/);
+    // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B
+    // part's one 54pt BButton (today/TodayParts SceneLead); the blue brief
+    // keeps its one pill. Today then draws what the artboard draws: the
+    // lead's Start, the fix's primary and Coming up's Rehearse now, each the
+    // one primary of its own door.
+    assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 1);
+    const parts = named('today/TodayParts.tsx');
+    const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('export function PhraseCard('));
+    assert.equal((lead.match(/<BButton\b/g) ?? []).length, 1, 'the yellow lead carries other than one Start');
+    assert.equal((named('tabs/HomeTab.tsx').match(/<BButton\b/g) ?? []).length, 1, 'the fix card carries other than one primary');
+    assert.match(task, /if \(value.card !== null && !vivid\)/);
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
     assert.match(named('tabs/HomeTab.tsx'), /!unowned && readFailed/);

@@ -16,6 +16,8 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { b } from '../palette.ts';
+import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -43,12 +45,11 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
       /const wrapped = labelsWrapUnderGlyph\(PixelRatio\.getFontScale\(\)\)/,
       'the reading size is read but nothing is decided from it',
     );
-    assert.match(
-      FLAT,
-      /function labelsWrapUnderGlyph\(fontScale: number\): boolean \{ return fontScale >= WRAPS_UNDER_GLYPH; \}/,
-      'the threshold is decided inline rather than by one named rule, so the bar and this test can drift apart',
-    );
-    assert.match(FLAT, /const WRAPS_UNDER_GLYPH = 1\.3;/, 'the wrapping threshold moved off 1.3 without a word about why');
+    // 2026-10-20 UI-008, Figma 292:1103: the rule moved to tabBarModel.ts.
+    assert.equal(WRAPS_UNDER_GLYPH, 1.3, 'the wrapping threshold moved off 1.3 without a word about why');
+    assert.equal(labelsWrapUnderGlyph(1.29), false, 'the words wrap below the threshold');
+    assert.equal(labelsWrapUnderGlyph(1.3), true, 'the words do not wrap at the threshold');
+    assert.match(BAR, /labelsWrapUnderGlyph,? .*from '\.\/tabBarModel\.ts'/, 'the bar decides wrapping by its own rule instead of the model');
 
     // And the large branch is a width per cell, not a cap on the word.
     assert.match(
@@ -65,7 +66,10 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
 
     // The floor under every cell is still a floor: a two-line word makes the
     // cell taller, and nothing here is allowed to make it shorter.
-    assert.match(FLAT, /minHeight: HIT \+ space\(4\)/, 'the cell no longer keeps a height floor at the touch target');
+    // 2026-10-20 UI-008, Figma 292:1103: the floor is the 62pt cell.
+    assert.match(FLAT, /const CELL_HEIGHT = 62;/, 'the cell is no longer the 62pt cell the Figma nav draws');
+    assert.match(FLAT, /minHeight: CELL_HEIGHT/, 'the cell keeps no height floor, so a wrapped word could be clipped');
+    assert.doesNotMatch(FLAT, /\bheight: CELL_HEIGHT/, 'the cell is a fixed height, so a wrapped word is clipped');
 
     // The whole of F313's rule, restated because this is the change most likely
     // to reach for one of them: no word is shortened, scaled or clipped to fit.
@@ -77,62 +81,87 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     }
   });
 
-  test('the active tab is the brand blue at weight 700, the rest soft ink at 600, and a screen reader still hears selected', () => {
-    // The layout change is the only change: every signal F313 and F325 put on
-    // this bar is read back here, because a cell restyled without them is a bar
-    // a screen reader cannot use.
+  test('the selected cell is violet with a sun Bulk glyph and a bold cream word; the rest are cream on ink — UI-008', () => {
+    // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103 (and Codex's bar).
+    // Replaces revamp B's brand blue word on white: the words are cream on the
+    // ink capsule or on the violet cell, both well over the text floor.
     assert.match(FLAT, /accessibilityState=\{\{ selected: focused \}\}/, 'a screen reader is not told which tab is selected');
     assert.match(
       FLAT,
       /if \(!focused && !event\.defaultPrevented\) \{ tapSettled\(\); navigation\.navigate\(route\.name as never\); announceTab\(route\.name\); \}/,
       'a tap on the tab you are already on announces a move that did not happen',
     );
-    // 2026-09-30, revamp B (F600): SNIPPETS' bar. Selected is the glyph and the
-    // word in the brand blue at Outfit Bold (7.9 on white); the rest are the
-    // glyph and the word in soft ink at SemiBold (6.6 on white), so every word
-    // on the bar clears the text floor, selected or not.
-    assert.match(
-      FLAT,
-      /color=\{focused \? accent\.brand : paper\.inkSoft\}/,
-      'the active tab glyph is not the brand blue, or the inactive one is not soft ink',
-    );
-    assert.match(
-      FLAT,
-      /focused \? \{ color: accent\.brand, fontFamily: font\.bold \}/,
-      'the active tab label is not the brand blue at Outfit Bold',
-    );
-    assert.match(FLAT, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
-    // The 600 is the tab label token's own weight, so the unselected word takes
-    // it by not naming a face, and the token is read to prove it is SemiBold.
-    assert.match(FLAT, /label: \{ \.\.\.type\.tabLabel, textAlign: 'center' \}/, 'the tab word is not set in the tab label token');
-    assert.match(read('../theme.ts'), /tabLabel: \{ fontFamily: font\.semiBold,/, 'the tab label token is no longer Outfit SemiBold, so the unselected word is not at 600');
+    assert.match(FLAT, /color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\}/, 'the selected glyph is not sun, or the others are not cream');
+    // 2026-10-20 UI-008, Figma M3 292:1103: the selected glyph is the gold Linear
+    // drawing. Bulk draws its body at 0.4 and reads as a muddy shape on violet.
+    assert.match(FLAT, /variant="linear"/, 'the selected glyph is not the gold Linear drawing');
+    assert.doesNotMatch(FLAT, /variant=\{bulk \? 'bulk'/, 'the selected glyph went back to the Bulk drawing');
+    assert.match(FLAT, /style=\{\[st\.face, focused && st\.faceSelected\]\}/, 'the selected cell is not filled');
+    assert.match(FLAT, /faceSelected: \{ backgroundColor: t\.tabSelected \}/, 'the selected cell is not the violet tab token');
+    assert.match(FLAT, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold and the rest Medium');
+    assert.match(FLAT, /label: \{ \.\.\.boldType\.small, color: t\.tabLabel, textAlign: 'center' \}/, 'the word is not C2 small (13/18) in the cream label token');
+    assert.match(FLAT, /size=\{22\}/, 'the glyph is not 22pt');
     assert.ok(!/\bst\.dot\b/.test(BAR), 'the bar marks the active cell with a dot again');
   });
 
-  test('the bar is white with a top hairline, and never a floating shadow', () => {
-    // 2026-09-30, revamp B (F600). Replaces "the bar is flat on paper with a top
-    // hairline". The wash, its outline, its lift and every animation stay
-    // refused; the one accent the bar may name is the brand blue, and the
-    // identity ink, the caps-label colour and the chartreuse stay off it.
+  test('the cell is the 62pt Figma cell: radius 20, padding 4, gap 4 — UI-008', () => {
+    // 2026-10-20 UI-008, Figma 292:1103.
+    const from = BAR.indexOf('face: {');
+    assert.notEqual(from, -1, 'the face style is gone; this test is reading the wrong thing');
+    const face = BAR.slice(from, BAR.indexOf('},', from) + 1);
+    assert.match(face, /borderRadius: 20/, 'the cell is not radius 20');
+    assert.match(face, /padding: space\(1\)/, 'the cell is not padded 4');
+    assert.match(face, /gap: space\(1\)/, 'the glyph and word are not 4 apart');
+  });
+
+  test('the bar is an ink capsule, radius 32, on the route ground, and never a floating shadow — UI-008', () => {
+    // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103. Replaces "the bar
+    // is white with a top hairline". The strip is the focused route's ground and
+    // stays in layout; the capsule inside it is the ink in both themes.
     for (const gone of ['Animated', 'useReduceMotion', 'interpolate', 'activeSurface', 'ACTIVE_TAB_SURFACE', 'ACTIVE_TAB_OUTLINE', 'highlight']) {
       assert.ok(!BAR.includes(gone), `the tab bar still carries ${gone}`);
     }
-    assert.match(BAR, /\baccent\.brand\b/, 'the bar no longer names the brand blue for the selected tab');
-    for (const other of ['accent.primary', 'accent.label']) {
-      assert.ok(!BAR.includes(other), `the tab bar names ${other}; the selected tab is the brand blue and nothing else`);
+    for (const other of ['accent.primary', 'accent.label', 'accent.brand', 'paper.', 'colour.']) {
+      assert.ok(!BAR.includes(other), `the tab bar names ${other}; its colours come only from the b tokens`);
     }
-    const from = BAR.indexOf('bar: {');
-    assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
-    const bar = BAR.slice(from, BAR.indexOf('},', from) + 1);
-    assert.match(bar, /backgroundColor: paper\.card/, 'the bar is not white');
-    assert.match(bar, /borderTopWidth: HAIRLINE/, 'the bar has no top hairline');
-    assert.match(bar, /borderTopColor: paper\.line/, 'the top rule is not the paper hairline');
-    for (const dock of ['borderRadius', 'marginHorizontal', 'borderColor: paper.ink', 'shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
-      assert.ok(!bar.includes(dock), `the bar still carries ${dock}, so it is a dock rather than a flat bar`);
+    assert.doesNotMatch(BAR, /#[0-9A-Fa-f]{3,8}\b/, 'the tab bar carries a hex of its own');
+    const bar = BAR.slice(BAR.indexOf('bar: {'), BAR.indexOf('},', BAR.indexOf('bar: {')) + 1);
+    assert.match(bar, /backgroundColor: t\.ground/, 'the strip is not the route ground');
+    assert.match(bar, /paddingTop: space\(2\)/, 'the strip has no 8pt above the capsule');
+    assert.match(FLAT, /paddingBottom: Math\.max\(insets\.bottom, space\(2\)\)/, 'the safe area is not paid under the capsule');
+    const capsule = BAR.slice(BAR.indexOf('capsule: {'), BAR.indexOf('},', BAR.indexOf('capsule: {')) + 1);
+    assert.match(capsule, /backgroundColor: t\.tabCapsule/, 'the capsule is not the capsule token');
+    assert.match(capsule, /borderRadius: 32/, 'the capsule is not radius 32');
+    assert.match(capsule, /paddingHorizontal: space\(2\)/, 'the capsule is not padded 8 across');
+    assert.match(capsule, /paddingVertical: space\(1\.5\)/, 'the capsule is not padded 6 down');
+    assert.match(FLAT, /width: tabCapsuleWidth\(width, insets\.left, insets\.right\)/, 'the capsule is not inset 12 from the edges inside the safe areas');
+    for (const dock of ['shadowOpacity', 'shadowRadius', 'shadowColor', 'elevation', "position: 'absolute'", 'borderTopWidth']) {
+      assert.ok(!BAR.includes(dock), `the bar carries ${dock}; it sits in the page, flat`);
     }
-    // Pressing a tab shrinks it on the spring; it never fades the icon and word away.
     assert.doesNotMatch(BAR, /opacity/, 'pressing a tab fades the whole icon and word away');
     assert.match(FLAT, /tapSettled\(\); navigation\.navigate/, 'a successful tab change gives no tactile answer');
+  });
+
+  test('the capsule tokens are the ink, violet, sun and cream in both themes — UI-008', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      assert.equal(b[mode].tabCapsule, '#16123A', `the ${mode} capsule is not the ink`);
+      assert.equal(b[mode].tabSelected, '#3B2FE0', `the ${mode} selected cell is not violet`);
+      assert.equal(b[mode].tabGlyphSelected, '#FFC93C', `the ${mode} selected glyph is not sun`);
+      assert.equal(b[mode].tabLabel, '#FFF6E9', `the ${mode} words are not cream`);
+    }
+    assert.equal(b.light.ground, '#FFF6E9');
+    assert.equal(b.dark.ground, '#151127');
+  });
+
+  test('the capsule is 12pt in from each edge inside the safe areas, capped at 640 — UI-008', () => {
+    assert.equal(CAPSULE_INSET, 12);
+    assert.equal(tabCapsuleWidth(390, 0, 0), 366, 'the Figma frame: 366 wide on a 390 phone');
+    assert.equal(tabCapsuleWidth(320, 0, 0), 296);
+    assert.equal(tabCapsuleWidth(600, 47, 47), 482, 'the side safe areas are not paid before the 12pt inset');
+    assert.equal(tabCapsuleWidth(1024, 0, 0), 640, 'a tablet capsule is not capped at 640');
+    assert.equal(tabCapsuleWidth(10, 0, 0), 0, 'a tiny window gives a negative width');
+    // Five wrapped fifths of the narrowest capsule, inside its 8pt padding, stay over the floor.
+    assert.ok((tabCapsuleWidth(320, 0, 0) - 16) / 5 >= 44, 'a fifth of the 320pt capsule is under the touch floor');
   });
 
   test('a tab cell presses through Press with no haptic of its own, and the bar still moves nothing', () => {
@@ -155,20 +184,29 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press may move a cell');
   });
 
-  test('the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route', () => {
-    // 2026-10-20, direction B (UI-004..UI-006). Replaces revamp B's four words.
-    // Explore is a new route; the other route names, which deep links and every
-    // navigate() call spell, do not move.
-    assert.match(
-      FLAT,
-      /const LABELS: Record<string, string> = \{ Home: 'Today', Explore: 'Explore', Tutor: 'Speak', Practice: 'Practice', MyFrench: 'Journey', \};/,
-      'the five words under the glyphs are not Today, Explore, Speak, Practice and Journey',
-    );
-    assert.match(
-      FLAT,
-      /const ICONS: Record<string, \(p: TabIconProps\) => React\.ReactElement> = \{ Home: HomeIcon, Explore: ExploreIcon, Tutor: TutorIcon, Practice: PracticeIcon, MyFrench: MyFrenchIcon, \};/,
-      'a route name changed; only the word under the glyph was meant to',
-    );
+  test('the five words are Today, Explore, Speak, Practice and Journey over Codex\'s Iconsax drawings — UI-008', () => {
+    // 2026-10-20 UI-008, Figma 292:1103. Route names, which deep links and every
+    // navigate() call spell, do not move; only the words and drawings did.
+    assert.deepEqual([...MAIN_TABS], ['Home', 'Explore', 'Tutor', 'Practice', 'MyFrench']);
+    assert.deepEqual(MAIN_TABS.map((r) => TAB_LABELS[r]), ['Today', 'Explore', 'Speak', 'Practice', 'Journey']);
+    assert.deepEqual(MAIN_TABS.map((r) => TAB_ICONS[r]), ['home', 'exploring', 'microphone', 'cards', 'progress']);
+    assert.match(FLAT, /<Icon name=\{icon\}/, 'the bar does not draw the model\'s Iconsax names');
+    assert.match(FLAT, /const icon = TAB_ICONS\[route\.name\];/);
+    assert.match(FLAT, /const label = TAB_LABELS\[route\.name\] \?\? route\.name;/);
+    const names = read('../icons/names.ts');
+    for (const name of Object.values(TAB_ICONS)) assert.match(names, new RegExp(`'${name}'`), `${name} is not in the generated set`);
+  });
+
+  test('the Practice dot waits for the deck and is heard as practice ready — UI-008', () => {
+    assert.equal(tabDot('Practice', null), null, 'the dot shows before the deck is read');
+    assert.equal(tabDot('Practice', 0), false);
+    assert.equal(tabDot('Practice', 3), true);
+    assert.equal(tabDot('Home', 3), false, 'a tab other than Practice carries the dot');
+    assert.equal(tabAccessibilityLabel('Practice', true), 'Practice, practice ready');
+    assert.equal(tabAccessibilityLabel('Practice', null), 'Practice');
+    assert.equal(tabAccessibilityLabel('MyFrench', false), 'Journey');
+    const glyph = read('./TabGlyph.tsx');
+    assert.match(glyph, /style=\{\[st\.badge, \{ backgroundColor: t\.sun \}, mark\]\}/, 'the dot is not sun, so it vanishes into the ink capsule');
   });
 
   test('five cells fit a 320pt phone above the touch floor', () => {
@@ -187,10 +225,10 @@ describe('the selected tab icon pops once — F737', () => {
     assert.match(BAR, /^import \{ TabGlyph \} from '\.\/TabGlyph\.tsx';$/m, 'the bar does not hand its icons to TabGlyph');
     assert.match(
       FLAT,
-      /<TabGlyph focused=\{focused\} badged=\{dot\}> \{\(bulk\) => <Icon size=\{24\} color=\{focused \? accent\.brand : paper\.inkSoft\} focused=\{bulk\} \/>\} <\/TabGlyph>/,
+      /<TabGlyph focused=\{focused\} badged=\{dot\}> \{\(\) => <Icon name=\{icon\} variant="linear" size=\{22\} color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\} \/>\} <\/TabGlyph>/,
       'the cell does not wrap its icon in TabGlyph, Linear and Bulk drawn by the same icon',
     );
-    assert.match(FLAT, /const dot = route\.name === 'Practice' \? \(due === null \? null : due > 0\) : false;/, 'the Practice dot does not wait for the first read of the deck');
+    assert.match(FLAT, /const dot = tabDot\(route\.name, due\);/, 'the Practice dot does not come from the model rule that waits for the deck');
 
     const glyph = stripComments(read('./TabGlyph.tsx'));
     const flat = glyph.replace(/\s+/g, ' ');

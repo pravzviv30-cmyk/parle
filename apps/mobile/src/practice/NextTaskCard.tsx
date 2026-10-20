@@ -75,7 +75,11 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   };
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   if (value === null || value.scope !== scopeGeneration()) return <Text style={type.small}>Finding your next task…</Text>;
-  if (value.card !== null) {
+  // 2026-10-20 UI-008, artboard B-Today: Today (vivid) leads with the scene
+  // and never the blue "Your next practice" or "Ready for review" cards. A
+  // sitting to finish is Practice's "Pick up where you stopped"; due review
+  // is reached from Practice and the phrase bank.
+  if (value.card !== null && !vivid) {
     const card = value.card;
     return <ColourCard ground="blue">
       <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>Your next practice</Text>
@@ -88,7 +92,7 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   // Home offers only what Review will deal: a free learner's conversation
   // phrases wait for the trial, so the card falls through to the next free step.
   const review = offeredReview(value.offer, locks.access('conversationPractice'));
-  const kind = nextTaskKind({ kind: 'none', fallback: 'first' }, live, billing, review !== null);
+  const kind = nextTaskKind({ kind: 'none', fallback: 'first' }, live, billing, !vivid && review !== null);
   if (kind === 'review' && review !== null) return <ColourCard ground="blue">
     <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>Ready for review</Text>
     <Card><FrenchBlock french={review.front} /></Card>

@@ -20,9 +20,10 @@
  * the takeovers. A number that rose since Home last drew it counts up from
  * where the learner last saw it (`home/homeSeen.ts`). One that fell, and a
  * day's number on a new day, is drawn again where it stands, keyed on its
- * mount, so nothing ever counts down or replays. The flame lights only when
- * the run rose, and flickers a few times while the tab is in view and today
- * counts. Every primitive lands on its final frame under Reduce Motion,
+ * mount, so nothing ever counts down or replays. The flame is the canvas
+ * drawing (2026-10-20 UI-008, artboard B-Today), still, and dimmed while
+ * today has not counted yet; its ignite and flicker left with the old Flame
+ * part. Every primitive lands on its final frame under Reduce Motion,
  * watched live. No sound and no haptic of its own: the celebration that owns
  * the moment played them.
  *
@@ -37,15 +38,17 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 
 import { Press, Skeleton, StatRow, StatTile } from '../components.tsx';
+import { BArt } from '../art/BArt.tsx';
 import { CountUp } from '../motion/CountUp.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { ProgressRing } from '../motion/ProgressRing.tsx';
-import { RING_STEPS, heroCounts, risen } from '../home/homeDraw.ts';
+import { useB } from '../main/bTheme.tsx';
+import { StarMark } from '../today/TodayParts.tsx';
+import { RING_STEPS, heroCounts } from '../home/homeDraw.ts';
 import { DAY_CHECK_MS, dayTurned } from '../home/homeRefresh.ts';
 import { homeNudge } from '../home/nudge.ts';
 import { useHomeDraw, type HomeDrawn } from '../home/useHomeDraw.ts';
-import { HIT, accent, colour, paper, pastel, radius, space, type } from '../theme.ts';
-import { Flame } from './art/Flame.tsx';
+import { HIT, radius, space, type } from '../theme.ts';
 import { GAME_COPY } from './copy.ts';
 import { useGame, useGoal, useLevel, useStreak, useXp } from './GameProvider.tsx';
 import { statTiles, streakDays, todayHeroView, type TodayHeroView } from './todayHeroView.ts';
@@ -88,7 +91,7 @@ export function TodayHero() {
     return failed ? null : <Skeleton blocks={[{ height: HIT + space(8), radius: radius.card }]} />;
   }
   if (drawn === null) return <Skeleton blocks={[{ height: HIT + space(8), radius: radius.card }]} />;
-  return <DrawnHero drawn={drawn} focused={focused} xpTotal={xp?.total ?? 0} />;
+  return <DrawnHero drawn={drawn} xpTotal={xp?.total ?? 0} />;
 }
 
 /**
@@ -99,16 +102,17 @@ export function TodayHero() {
  * is also the ring's label: the disc marks themselves are decoration. With no
  * goal chosen there is no ring, only today's minutes beside a clock.
  */
-function DrawnHero({ drawn, focused, xpTotal }: { drawn: HomeDrawn<HeroModel>; focused: boolean; xpTotal: number }) {
+function DrawnHero({ drawn, xpTotal }: { drawn: HomeDrawn<HeroModel>; xpTotal: number }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { hero, nudge } = drawn.model;
-  const { day, counters } = drawn.draw;
+  const { counters } = drawn.draw;
   const run = counters.streak;
   const ring = counters.ring;
   const chip = counters.level;
   const count = hero.flame.count;
+  const t = useB();
   const tiles = statTiles(hero, xpTotal);
-  const number = [type.statSm, st.centred, { color: paper.ink }];
+  const number = [type.statSm, st.centred, { color: t.text }];
 
   return (
     <View style={st.block}>
@@ -120,8 +124,9 @@ function DrawnHero({ drawn, focused, xpTotal }: { drawn: HomeDrawn<HeroModel>; f
             valueNode={count !== null && run !== undefined ? <CountUp key={`run-${run.mount}`} from={run.from} to={run.to} format={streakDays} textStyle={number} /> : undefined}
             label={tiles.streak.label}
             mark={
-              <View style={[st.disc, { backgroundColor: colour.sun }]}>
-                <Flame size={MARK - space(2)} state={hero.flame.lit ? 'lit' : 'unlit'} ignite={hero.flame.lit && risen(run) ? `streak:${day}` : undefined} flicker={focused && hero.flame.lit} />
+              <View style={[st.disc, { backgroundColor: t.sun }]}>
+                {/* 2026-10-20 UI-008, artboard B-Today: the canvas flame, 28 by 35, dimmed while today is still open. */}
+                <BArt name="flame" width={28} height={35} style={hero.flame.lit ? undefined : st.unlit} />
               </View>
             }
           />
@@ -132,11 +137,11 @@ function DrawnHero({ drawn, focused, xpTotal }: { drawn: HomeDrawn<HeroModel>; f
             value={tiles.goal.value}
             label={tiles.goal.label}
             mark={
-              <View style={[st.disc, { backgroundColor: pastel.lavender }]}>
+              <View style={[st.disc, { backgroundColor: t.lavender }]}>
                 {hero.goal.fraction !== null && ring !== undefined ? (
-                  <ProgressRing key={`ring-${ring.mount}`} from={ring.from / RING_STEPS} to={ring.to / RING_STEPS} size={MARK - space(1.5)} stroke={RING_STROKE} color={colour.blue} track={paper.card} />
+                  <ProgressRing key={`ring-${ring.mount}`} from={ring.from / RING_STEPS} to={ring.to / RING_STEPS} size={MARK - space(1.5)} stroke={RING_STROKE} color={t.brand} track={t.card} />
                 ) : (
-                  <Icon name="clock" variant="bulk" size={MARK - space(4)} color={accent.brand} />
+                  <Icon name="clock" variant="bulk" size={MARK - space(4)} color={t.brand} />
                 )}
               </View>
             }
@@ -149,20 +154,22 @@ function DrawnHero({ drawn, focused, xpTotal }: { drawn: HomeDrawn<HeroModel>; f
             valueNode={chip !== undefined ? <CountUp key={`level-${chip.mount}`} from={chip.from} to={chip.to} format={GAME_COPY.level.title} textStyle={number} /> : undefined}
             label={tiles.level.label}
             mark={
-              <View style={[st.disc, { backgroundColor: colour.mint }]}>
-                <Icon name="star" variant="bulk" size={MARK - space(4)} color={paper.ink} />
+              <View style={[st.disc, { backgroundColor: t.mint }]}>
+                <StarMark size={28} fill={t.onBrand} stroke={t.onMint} />
               </View>
             }
           />
         </Press>
       </StatRow>
-      {nudge !== null ? <Text style={[type.body, { color: paper.ink }]}>{nudge}</Text> : null}
+      {nudge !== null ? <Text style={[type.body, { color: t.text }]}>{nudge}</Text> : null}
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  block: { marginTop: space(2), marginBottom: space(4), gap: space(3) },
+  // 2026-10-20 UI-008, artboard B-Today: the page's 22 gap spaces the row.
+  block: { gap: space(3) },
+  unlit: { opacity: 0.45 },
   frame: { flexGrow: 1, maxWidth: '100%' },
   centred: { textAlign: 'center' },
   part: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },

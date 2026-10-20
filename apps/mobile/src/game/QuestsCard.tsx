@@ -22,20 +22,20 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, CheckGlyph, Chip } from '../components.tsx';
 import { CountUp } from '../motion/CountUp.tsx';
-import { ProgressRing } from '../motion/ProgressRing.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { questCounts } from '../home/homeDraw.ts';
 import { useHomeDraw } from '../home/useHomeDraw.ts';
 import { TODAY_COPY, questTrailing, threeDone } from '../home/todayView.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { HIT, colour, decorative, paper, pastel, space, type } from '../theme.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
+import { CheckDisc, QuestRing, SmallPill } from '../today/TodayParts.tsx';
+import { HAIRLINE, bType, decorative, space, type } from '../theme.ts';
 import { useGame, useGoal, useQuests } from './GameProvider.tsx';
 import { questsCardView } from './questsCardView.ts';
 
-/** A row's mark, a little under the touch floor: the row is not a target. */
-const MARK = HIT - space(5);
+/** A row's mark, 26 as drawn: the row is not a target. */
+const MARK = 26;
 
 /**
  * 2026-10-20, B5, B-Today: "Today's three" on the page, not in a sheet. A
@@ -44,8 +44,16 @@ const MARK = HIT - space(5);
  * ring. Each row says its title and where it stands as one phrase, which is
  * the ring's label too. On the right, the quest's XP while it waits and once
  * it is done, or its count while it moves.
+ *
+ * 2026-10-20 UI-008, artboard B-Today: the heading and the count sit above a
+ * white list card (radius 22, padding 4 16) of 52pt rows split by hairlines;
+ * a done row's words are muted and struck through; every right-hand pill is
+ * the small 13/700 pill, sage once done and butter otherwise. Theme tokens
+ * throughout, so the card draws in dark too.
  */
 export function QuestsCard() {
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   const { profile } = useProfile();
   const { view } = useGame();
   const quests = useQuests();
@@ -57,46 +65,47 @@ export function QuestsCard() {
   const done = drawn.draw.counters.questsDone;
 
   return (
-    <Card style={st.card}>
+    <View style={st.block}>
       <View style={st.head}>
-        <Text accessibilityRole="header" style={[type.heading, st.title, { color: paper.ink }]}>
+        <Text accessibilityRole="header" style={[type.heading, st.title, { color: t.text }]}>
           {TODAY_COPY.three}
         </Text>
         <View accessibilityLiveRegion="polite">
           {done !== undefined ? (
-            <CountUp key={`done-${done.mount}`} from={done.from} to={done.to} format={threeDone} textStyle={[type.small, { color: paper.inkSoft }]} />
+            <CountUp key={`done-${done.mount}`} from={done.from} to={done.to} format={threeDone} textStyle={[bType.meta, { color: t.muted }]} />
           ) : null}
         </View>
       </View>
-      {card.rows.map((row) => {
-        const trailing = questTrailing(row);
-        return (
-          <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={st.row}>
-            <View {...decorative}>
-              {row.complete ? (
-                <View style={[st.done, { backgroundColor: colour.mint }]}><CheckGlyph size={MARK - space(2)} color={paper.ink} /></View>
-              ) : (
-                <ProgressRing from={row.fraction} to={row.fraction} size={MARK} stroke={space(0.75)} color={colour.blue} track={pastel.lavender} />
-              )}
+      <View style={st.card}>
+        {card.rows.map((row, index) => {
+          const trailing = questTrailing(row);
+          return (
+            <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={[st.row, index < card.rows.length - 1 && st.ruled]}>
+              <View {...decorative}>
+                {row.complete ? (
+                  <CheckDisc size={MARK} fill={t.mint} tick={t.onMint} />
+                ) : (
+                  <QuestRing size={MARK} fraction={row.fraction} track={t.lavender} color={t.brand} />
+                )}
+              </View>
+              <Text style={[bType.line16, st.words, row.complete ? st.doneWords : { color: t.text }]}>{row.title}</Text>
+              <SmallPill label={trailing.label} ground={trailing.kind === 'xp' && trailing.earned ? t.sage : t.butter} />
             </View>
-            <Text style={[type.label, st.words, { color: paper.ink }]}>{row.title}</Text>
-            {trailing.kind === 'xp' ? (
-              <Chip variant="meta" tone={trailing.earned ? 'sage' : 'butter'} label={trailing.label} />
-            ) : (
-              <Text style={[type.small, { color: paper.inkSoft }]}>{trailing.label}</Text>
-            )}
-          </View>
-        );
-      })}
-    </Card>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
-const st = StyleSheet.create({
-  card: { gap: space(2) },
-  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: space(3) },
-  title: { flexShrink: 1, minWidth: 0 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(1) },
-  words: { flex: 1, minWidth: 0 },
-  done: { width: MARK, height: MARK, borderRadius: MARK / 2, alignItems: 'center', justifyContent: 'center' },
-});
+const makeStyles = (t: B) =>
+  StyleSheet.create({
+    block: { gap: 10 },
+    head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: space(3) },
+    title: { flexShrink: 1, minWidth: 0 },
+    card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: space(1), paddingHorizontal: space(4) },
+    row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: 52, paddingVertical: space(1) },
+    ruled: { borderBottomWidth: HAIRLINE, borderBottomColor: t.line },
+    words: { flex: 1, minWidth: 0 },
+    doneWords: { color: t.muted, textDecorationLine: 'line-through' },
+  });

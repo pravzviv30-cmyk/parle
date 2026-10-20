@@ -16,12 +16,14 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { IconButton, Card, ColourCard, FrenchBlock, IconAction, Label, PillButton } from '../components.tsx';
+import { IconButton, Card, IconAction, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { TUTOR_DAILY_AUDIO } from './tutorAudioManifest.ts';
 import { dailyTutorVoice, tutorAudioFor } from './tutorAudio.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { tutorNameOf } from '../tutor/tutorName.ts';
+import { PhraseCard } from '../today/TodayParts.tsx';
 import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import { audioLine } from './libraryView.ts';
@@ -36,6 +38,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const focused = useIsFocused();
   const { profile } = useProfile();
   const tutorVoice = dailyTutorVoice(profile.tutorVoice);
+  const tutorName = tutorNameOf(profile);
   const asset = tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice);
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
@@ -138,12 +141,20 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   // stops the clip and opens the practice. Save and the collection stay on the
   // library card.
   if (variant === 'today') {
-    return <ColourCard ground="pastel.lavender" style={{ gap: space(3) }}>
-      <Text style={[type.eyebrow, { color: paper.inkOnPastel }]}>Today's phrase</Text>
-      <FrenchBlock french={item.fr} english={item.en} size="lg" onHear={asset != null ? toggle : undefined} playing={status.playing} />
-      <PillButton tone="white" label="Say it yourself" accessibilityLabel="Say today's phrase yourself" onPress={sayIt} />
-      {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkOnPastel }]}>{note}</Text>}
-    </ColourCard>;
+    // 2026-10-20 UI-008, artboard B-Today: the B lavender card, drawn by
+    // today/TodayParts in both themes; the audio stays this card's.
+    return <PhraseCard
+      eyebrow="Today's phrase"
+      fr={item.fr}
+      en={item.en}
+      hearLabel={`Hear ${tutorName} say it`}
+      onHear={asset != null ? toggle : undefined}
+      playing={status.playing}
+      sayLabel="Say it yourself"
+      sayAccessibilityLabel="Say today's phrase yourself"
+      onSay={sayIt}
+      note={note}
+    />;
   }
   return embedded ? contents : <Card style={{ marginTop: space(3) }}>{contents}</Card>;
 }

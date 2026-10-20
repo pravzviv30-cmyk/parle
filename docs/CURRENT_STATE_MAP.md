@@ -53,7 +53,10 @@ DECISIONS.md UI-007):
 - **Today** (`tabs/HomeTab.tsx`, `home/todayView.ts`): "Bonjour, Name.", the
   stats row (`game/TodayHero.tsx`), the next scene (`home/MissionHero.tsx`),
   today's three quests (`game/QuestsCard.tsx`), one fix to try (`oneFix`),
-  today's phrase and the week in French. No Coming up card until Phase C.
+  today's phrase, Coming up (`comingUp`, the latest remembered life event;
+  no countdown or checklist until Phase C; Not now lasts the app session) and
+  the week in French. Parts in `today/TodayParts.tsx`; dark-ready since
+  2026-10-20 (UI-008, artboard B-Today).
 - **Explore** (`tabs/ExploreTab.tsx`, `main/exploreView.ts`): four filter chips,
   Prepare for something real, topic tiles and situations; a situation opens
   the scene preview.

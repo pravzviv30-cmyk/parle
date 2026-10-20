@@ -8,7 +8,8 @@ test('Explore is a tab and advertises real conversation ideas instead of opening
   const home = read('../tabs/HomeTab.tsx');
   const explore = read('../tabs/ExploreTab.tsx');
   const navigator = read('../nav/RootNavigator.tsx');
-  const bar = read('../nav/LuvaniTabBar.tsx');
+  // 2026-10-20 UI-008: the words moved from the bar into nav/tabBarModel.ts.
+  const bar = read('../nav/tabBarModel.ts');
   assert.doesNotMatch(home + explore, /Explore the collection/,
     'a named collection must not resolve to a generic friends keyword filter');
   assert.match(navigator, /<Tab\.Screen name="Home" component=\{HomeTab\} \/>\s*<Tab\.Screen name="Explore" component=\{ExploreTab\} \/>/,

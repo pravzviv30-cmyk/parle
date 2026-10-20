@@ -44,8 +44,9 @@ import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
-import { Chip, ColourCard, IconAction, BookmarkGlyph, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
-import { HIT, frenchText, onColour, paper, space, textOn, type } from '../theme.ts';
+import { IconAction, BookmarkGlyph, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
+import { SceneLead } from '../today/TodayParts.tsx';
+import { HIT, onColour, paper, space, textOn, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { launchLabel } from '../tutor/orbState.ts';
 import { startModes } from '../tutor/speakView.ts';
@@ -160,42 +161,25 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
 
   // 2026-10-20, B5, B-Today: Today's lead is the yellow card. The eyebrow is
   // the scene's place in its stage, the line under the title its French name,
-  // minutes and tutor, and the "Builds on" chip shows only when the newest
+  // minutes and tutor, and the "Uses" chip shows only when the newest
   // conversation's key phrase is one of this scene's lines. The Start is the
-  // same gated start as the blue brief's, in ink on the sun.
+  // same gated start as the blue brief's.
+  // 2026-10-20 UI-008, artboard B-Today: drawn by today/TodayParts `SceneLead`
+  // from the theme, so it turns plum with the gold Start in dark.
   if (vivid) {
     const line = sceneLine(hero, tutorName);
     return (
-      <ColourCard ground="sun" style={st.vivid}>
-        {hero.kind === 'scene' ? <SceneArt mission={hero.mission.id} /> : null}
-        <Text style={[type.eyebrow, { color: paper.ink }]}>{sceneEyebrow(hero)}</Text>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{hero.title}</Text>
-        <Text style={[type.body, { color: paper.ink }]}>
-          {line.french !== null ? <Text {...frenchText}>{line.french}</Text> : null}
-          {line.rest}
-        </Text>
-        {buildsOn != null ? (
-          <Chip
-            variant="meta"
-            label={<>{buildsOnLine(buildsOn).before}<Text {...frenchText}>{buildsOnLine(buildsOn).french}</Text>{buildsOnLine(buildsOn).after}</>}
-          />
-        ) : null}
-        <PillButton
-          label={label}
-          accessibilityLabel={`${label}: ${hero.title}`}
-          icon={<MicGlyph size={20} color={paper.onInk} />}
-          disabled={checking}
-          onPress={() => open(modes.textMode)}
-        />
-        <IconAction layout="inline" ground="sun" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
-        {checking && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{TUTOR_OFFLINE.checking}</Text>}
-        {heldBack !== null && (
-          <View style={st.offline}>
-            <Text style={[type.body, { color: paper.ink }]}>{TUTOR_OFFLINE.body}</Text>
-            <IconAction layout="inline" ground="sun" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} />
-          </View>
-        )}
-      </ColourCard>
+      <SceneLead
+        eyebrow={sceneEyebrow(hero)}
+        title={hero.title}
+        french={line.french}
+        rest={line.rest}
+        uses={buildsOn != null ? buildsOnLine(buildsOn) : null}
+        start={{ label, accessibilityLabel: `${label}: ${hero.title}`, disabled: checking, onPress: () => open(modes.textMode) }}
+        other={{ label: modes.other.label, disabled: checking, onPress: () => open(modes.other.textMode) }}
+        checking={checking ? TUTOR_OFFLINE.checking : null}
+        heldBack={heldBack === null ? null : { body: TUTOR_OFFLINE.body, retry: TUTOR_OFFLINE.retry, disabled: checking, onRetry: () => open(heldBack.textMode) }}
+      />
     );
   }
   return (
@@ -269,7 +253,5 @@ const st = StyleSheet.create({
   // sentence the learner has to read to know what happened.
   checking: { ...type.small, color: onColour.blue, textAlign: 'center' },
   offline: { gap: space(3) },
-  // The yellow lead's own rhythm: the colour card's padding, a tighter gap.
-  vivid: { gap: space(2) },
   offlineBody: { ...type.body, color: paper.onInk },
 });

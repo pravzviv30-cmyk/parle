@@ -107,6 +107,47 @@ export const type = {
 } as const;
 
 /**
+ * The direction B artboards' own sizes (DECISIONS.md UI-008, 2026-10-20,
+ * first used by B-Today). Each is a size the canvas draws that the scale above
+ * has no exact token for; a rebuilt screen reads these rather than a raw size.
+ * Outfit 400/600/700/800 are regular/semiBold/bold/extraBold.
+ */
+export const bType = {
+  /** The tab greeting, "Bonjour, Yasmin.": 34/800, -0.5. */
+  greeting: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 36, letterSpacing: -0.5 },
+  /** The yellow lead's title: 27/800, -0.3. */
+  leadTitle: { fontFamily: font.extraBold, fontSize: 27, lineHeight: 30, letterSpacing: -0.3 },
+  /** A 13/700 eyebrow with the artboards' 0.3 tracking. */
+  eyebrow: { fontFamily: font.bold, fontSize: 13, lineHeight: 18, letterSpacing: 0.3 },
+  /** A 13/700 chip or pill. */
+  chip: { fontFamily: font.bold, fontSize: 13, lineHeight: 17 },
+  /** A 13 regular note or prompt. */
+  note: { fontFamily: font.regular, fontSize: 13, lineHeight: 18 },
+  /** A 14 regular count or link line. */
+  meta: { fontFamily: font.regular, fontSize: 14, lineHeight: 19 },
+  /** A 15 regular line: the English under a French phrase, a checklist row. */
+  line15: { fontFamily: font.regular, fontSize: 15, lineHeight: 20 },
+  /** A 16 regular line: a row's words, the lead's line. */
+  line16: { fontFamily: font.regular, fontSize: 16, lineHeight: 21 },
+  /** A 16 bold title or button. */
+  bold16: { fontFamily: font.bold, fontSize: 16, lineHeight: 20 },
+  /** A 15 bold button. */
+  bold15: { fontFamily: font.bold, fontSize: 15, lineHeight: 19 },
+  /** A 15 semibold quiet button. */
+  semi15: { fontFamily: font.semiBold, fontSize: 15, lineHeight: 19 },
+  /** A 17 bold button. */
+  bold17: { fontFamily: font.bold, fontSize: 17, lineHeight: 21 },
+  /** An 18 bold lead button. */
+  bold18: { fontFamily: font.bold, fontSize: 18, lineHeight: 22 },
+  /** A 19 bold card sentence. */
+  bold19: { fontFamily: font.bold, fontSize: 19, lineHeight: 24 },
+  /** A 20 bold line: the English to say in French. */
+  bold20: { fontFamily: font.bold, fontSize: 20, lineHeight: 25 },
+  /** A 22 bold French phrase. */
+  bold22: { fontFamily: font.bold, fontSize: 22, lineHeight: 26 },
+} as const;
+
+/**
  * The French hero's fit steps for a long line, after `type.frenchHero` at 34.
  * Each step is still larger than every head a card carries.
  */

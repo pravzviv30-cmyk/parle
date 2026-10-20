@@ -845,6 +845,8 @@ describe('B tokens, light and dark — UI-008', () => {
       const marks: [string, string, string][] = [
         ['field on card', t.field, t.card],
         ['field on ground', t.field, t.ground],
+        // 2026-10-20 UI-008, artboard B-Today: the tick and the star stroke on mint.
+        ['onMint on mint', t.onMint, t.mint],
         ['the selected glyph on its cell', t.tabGlyphSelected, t.tabSelected],
         ['an unselected glyph on the capsule', t.tabLabel, t.tabCapsule],
       ];

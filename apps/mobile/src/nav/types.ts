@@ -115,7 +115,7 @@ export type RootStackParamList = {
    */
   Drill:
     | {
-        node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string } };
+        node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string }; afterTry?: boolean };
         mix?: boolean;
         /**
          * One phrase to say again in the learner's own French, and the

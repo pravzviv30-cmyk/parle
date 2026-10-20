@@ -19,7 +19,10 @@
 export type ThemeMode = 'light' | 'dark';
 
 /** Routes rebuilt for dark. Starts empty; each rebuild step adds its route. */
-export const DARK_READY: ReadonlySet<string> = new Set<string>([]);
+export const DARK_READY: ReadonlySet<string> = new Set<string>([
+  // 2026-10-20 UI-008, artboard B-Today: Today in light and dark.
+  'Home',
+]);
 
 /** Routes that stay light whatever DARK_READY says. */
 export const ALWAYS_LIGHT: ReadonlySet<string> = new Set<string>(['FirstScene', 'Wall']);

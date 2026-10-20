@@ -67,8 +67,13 @@ import { buildConversationPack, phraseKeyOf as keyOf, type ConversationPack, typ
 import { homeGreeting } from './greeting.ts';
 import { fallbackHero, heroStart, homeMissionFrom, type HomeMission } from './homeMission.ts';
 import {
+  COMING_UP_COPY,
+  COMING_UP_FRESH_MS,
   TODAY_CARDS,
   TODAY_COPY,
+  comingUp,
+  dismissComingUp,
+  resetComingUpSession,
   TODAY_ROUTES,
   buildsOn,
   hidesAnswer,
@@ -205,19 +210,111 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.equal(weekInFrench({ packs: [b5Pack({ id: 'x', at: B5_NOW, durationSec: 59 })], deck: [], now: B5_NOW }), null, 'under a minute is drawn as a minute');
   });
 
-  test('no Coming up card, every door named, and no raw seconds', () => {
-    assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'nextScene', 'three', 'fix', 'phrase', 'week']);
-    assert.ok(!(TODAY_CARDS as readonly string[]).includes('comingUp'));
-    assert.deepEqual({ ...TODAY_ROUTES }, { profile: 'Profile', fix: 'Drill', phrase: 'DailyPractice', week: 'WeekWrapped', start: 'Convo' });
+  // 2026-10-20 UI-008, artboard B-Today: rewritten. The founder shows Coming
+  // up now (plan.md "Data slots" 2), so the page has eight blocks and the
+  // Rehearse door; the countdown and the checklist are not drawn (no data).
+  test('Coming up is in the page order, every door named, and no raw seconds', () => {
+    assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'nextScene', 'three', 'fix', 'phrase', 'comingUp', 'week']);
+    assert.deepEqual({ ...TODAY_ROUTES }, { profile: 'Profile', fix: 'Drill', phrase: 'DailyPractice', week: 'WeekWrapped', rehearse: 'RealMoment', start: 'Convo' });
     assert.match(readFileSync(new URL('../profile/ProfileButton.tsx', import.meta.url), 'utf8'), /nav\.navigate\('Profile'\)/);
     assert.match(readFileSync(new URL('../daily/DailyCard.tsx', import.meta.url), 'utf8'), /nav\.navigate\('DailyPractice', \{ id: item\.id \}\)/);
     assert.match(readFileSync(new URL('../tutor/gate.ts', import.meta.url), 'utf8'), /'Convo'/);
     assert.deepEqual(heroStart(fallbackHero()).params, { missionId: SCENE_SPINE[0] });
     const source = readFileSync(new URL('./todayView.ts', import.meta.url), 'utf8');
-    assert.doesNotMatch(source, /secondsRemaining|allowanceSeconds|periodEnd/);
-    for (const line of Object.values(TODAY_COPY)) {
-      assert.doesNotMatch(line, /[·—]|Coming up/);
+    assert.doesNotMatch(source, /secondsRemaining|allowanceSeconds|periodEnd|days away/);
+    for (const line of [...Object.values(TODAY_COPY), ...Object.values(COMING_UP_COPY)]) {
+      assert.doesNotMatch(line, /[·—]/);
       assert.equal(guiltIn(line), undefined);
     }
+  });
+});
+
+describe('Coming up, 2026-10-20 UI-008, artboard B-Today', () => {
+  const open = () => 'unlocked' as const;
+  const CU_NOW = Date.parse('2026-10-20T12:00:00.000Z');
+  const fact = (en: string, notedAt: string, happensAround: string | null = null, kind = 'life-event') => ({ kind, en, happensAround, notedAt });
+
+  test('shown: the latest life event, its loose when, and the tutor remembers, behind the tutorMemory lock', () => {
+    resetComingUpSession();
+    const facts = [
+      fact('dinner in Lyon', '2026-10-18T10:00:00.000Z', 'Friday'),
+      fact('a job interview', '2026-10-10T10:00:00.000Z', 'Tuesday'),
+      fact('cooking', '2026-10-19T10:00:00.000Z', null, 'interest'),
+    ];
+    const card = comingUp({ facts, paused: false, tutorName: 'Tutor', access: open, now: CU_NOW });
+    assert.ok(card !== null);
+    assert.equal(card.title, 'Coming up: dinner in Lyon');
+    assert.equal(card.when, 'Friday, Tutor remembers');
+    assert.doesNotMatch(card.when, /\baway\b|\bdays?\b|·/, 'a countdown is drawn with no date to count from');
+    assert.equal(card.locked, false);
+    assert.equal(comingUp({ facts, paused: false, tutorName: 'Tutor', now: CU_NOW, access: (f) => (f === 'tutorMemory' ? 'locked' : 'unlocked') })!.locked, true);
+
+  });
+
+  test('Rehearse now opens the real-moment builder prefilled with the event, through the realMoment lock', () => {
+    resetComingUpSession();
+    const card = comingUp({ facts: [fact('  dinner in Lyon ', '2026-10-18T10:00:00.000Z', 'Friday')], paused: false, tutorName: 'Tutor', access: open, now: CU_NOW })!;
+    assert.deepEqual(card.route, { screen: TODAY_ROUTES.rehearse, params: { detail: 'dinner in Lyon' } });
+    assert.equal(card.feature, 'realMoment');
+    const screen = readFileSync(new URL('../tabs/HomeTab.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    assert.match(screen, /onRehearse=\{\(\) => tapThrough\(locks\.access, event\.feature, locks\.open, \(\) => nav\.navigate\(event\.route\.screen, event\.route\.params\)\)\}/, 'Rehearse now does not go through the lock seam to RealMoment');
+  });
+
+  test('hidden: no life-event fact, a blank one, or memory paused', () => {
+    resetComingUpSession();
+    assert.equal(comingUp({ facts: [], paused: false, tutorName: 'A', access: open, now: CU_NOW }), null);
+    assert.equal(comingUp({ facts: [fact('cooking', '2026-10-18T10:00:00.000Z', null, 'interest')], paused: false, tutorName: 'A', access: open, now: CU_NOW }), null);
+    assert.equal(comingUp({ facts: [fact('   ', '2026-10-18T10:00:00.000Z')], paused: false, tutorName: 'A', access: open, now: CU_NOW }), null);
+    assert.equal(comingUp({ facts: [fact('dinner', '2026-10-18T10:00:00.000Z', 'Friday')], paused: true, tutorName: 'A', access: open, now: CU_NOW }), null);
+  });
+
+  // Learning-science review, 2026-10-20: a when is loose text relative to
+  // notedAt, so only a dated, fresh event is "coming up".
+  test('a past or undated event hides the card, a fact older than 14 days hides it, a fresh one shows it', () => {
+    resetComingUpSession();
+    const ask = (f: ReturnType<typeof fact>, now = CU_NOW) => comingUp({ facts: [f], paused: false, tutorName: 'A', access: open, now });
+    assert.equal(ask(fact('a wedding', '2026-10-18T10:00:00.000Z')), null, 'an event with no when, maybe past, is called coming up');
+    assert.equal(ask(fact('a wedding', '2026-10-18T10:00:00.000Z', '  ')), null);
+    assert.equal(ask(fact('a wedding', '2026-10-05T11:00:00.000Z', 'Friday')), null, 'a when noted over 14 days ago is still drawn');
+    assert.equal(ask(fact('a wedding', 'not a date', 'Friday')), null);
+    const fresh = ask(fact('a wedding', '2026-10-07T13:00:00.000Z', 'Friday'));
+    assert.ok(fresh !== null, 'a fresh dated event is hidden');
+    assert.equal(fresh.when, 'Friday, A remembers');
+    assert.equal(COMING_UP_FRESH_MS, 14 * 24 * 60 * 60 * 1000);
+  });
+
+  test('Not now hides that event for this app session only, in memory, and a newer event still shows', () => {
+    resetComingUpSession();
+    const first = [fact('dinner in Lyon', '2026-10-18T10:00:00.000Z', 'Friday')];
+    const card = comingUp({ facts: first, paused: false, tutorName: 'A', access: open, now: CU_NOW })!;
+    dismissComingUp(card.key);
+    assert.equal(comingUp({ facts: first, paused: false, tutorName: 'A', access: open, now: CU_NOW }), null, 'Not now did not hide the card');
+    const newer = [...first, fact('a trip to Nice', '2026-10-19T10:00:00.000Z', 'next week')];
+    assert.equal(comingUp({ facts: newer, paused: false, tutorName: 'A', access: open, now: CU_NOW })!.title, 'Coming up: a trip to Nice');
+    // A new app session (a fresh module state) shows it again: nothing is stored.
+    resetComingUpSession();
+    assert.ok(comingUp({ facts: first, paused: false, tutorName: 'A', access: open, now: CU_NOW }) !== null);
+    const source = readFileSync(new URL('./todayView.ts', import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /AsyncStorage|SecureStore|saveJson|writeJson/, 'Not now is stored, which waits for Phase C');
+  });
+});
+
+describe('One fix to try names the day, 2026-10-20 UI-008, artboard B-Today', () => {
+  test('with the conversation\'s day: "Your line from {day}", and the drill carries the moment behind afterTry', () => {
+    const better = 'Je peux payer par carte ?';
+    const key = keyOf(better);
+    const replay = { packId: 'p1', from: 'At the café', quote: 'je veux payer', better, betterEn: 'Can I pay by card?', why: 'Softer.', key, sayable: true };
+    const bank: DrillExercise[] = [{ id: 't', phraseKey: key, difficulty: 'production', kind: 'translate', fr: better, en: 'Can I pay by card?', direction: 'en-fr', accepted: [better] }];
+    const base = { replay, deck: [] as ReviewCard[], bank, tutorName: 'Tutor', access: () => 'unlocked' as const, now: B5_NOW };
+    const yesterday = oneFix({ ...base, packs: [b5Pack({ id: 'p1', at: B5_NOW - 24 * 3_600_000 })] })!;
+    assert.equal(yesterday.after, "Your line from yesterday and Tutor's version show after you try");
+    assert.deepEqual(yesterday.route.params.node.moment, { quote: 'je veux payer', better, why: 'Softer.' });
+    assert.equal(yesterday.route.params.node.afterTry, true, 'the moment would be drawn before the try');
+    assert.equal(oneFix({ ...base, packs: [b5Pack({ id: 'p1', at: B5_NOW - 1000 })] })!.after, "Your line from today and Tutor's version show after you try");
+    // No pack for the replay: Phase B's wording, and no moment.
+    const unknown = oneFix({ ...base, packs: [b5Pack({ id: 'other', at: B5_NOW })] })!;
+    assert.equal(unknown.after, "Tutor's version shows after you try");
+    assert.ok(!('moment' in unknown.route.params.node));
+    assert.doesNotMatch(yesterday.english, /je veux|Je peux/, 'the card shows the French before the try');
   });
 });

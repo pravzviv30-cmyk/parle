@@ -22,6 +22,13 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B fidelity rebuild, steps 2 and 3 (Codex tab bar, Today to
+  B-Today in light and dark), on branch `claude/direction-b` (held, not on main): gate
+  green with **mobile 3348**, core 825, brain 481, tutor agent 626, token server 456,
+  playground 26; floors raised through `gate:bless`. A learning-science review asked for
+  Coming up to need a stored "when" noted within 14 days; that fix and the attempt-first
+  `momentShown` helper passed 186 focused tests. Side-by-side sheet: the fidelity review
+  page (https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a).
 - 20 October 2026 direction B fidelity rebuild, step 1 (B tokens, theme hook, dark mode
   behind DARK_READY, canvas art, dev canvas learner), on branch `claude/direction-b` (held,
   not on main): **5,752 tests, 0 failing**; core 825, brain 481, tutor agent 626, token

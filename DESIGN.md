@@ -76,11 +76,18 @@ period stay near a purchase action, and large text is never capped to fit.
   ("Next scene, 2 of 3") and a "Uses" chip only when the last conversation's
   phrase is one of the scene's lines, today's three quests ("n of 3 done", XP
   chips in butter and sage), one fix to try (English only before the try, and
-  only when the drill would open on an exercise that hides the French), today's
-  phrase, and the blue week card ("n minutes practised, n phrases saved" over
-  seven local days, absent with no evidence). There is no Coming up card until
-  Phase C stores the event it would describe. Loading never claims the learner
-  has no history.
+  only when the drill would open on an exercise that hides the French; "Your
+  line from {day}" when the conversation's day is known, and the drill then
+  shows the moment after the first answer), today's phrase on lavender, Coming
+  up (the latest life event the tutor remembers, "{when}, {tutor} remembers",
+  the trial pill from the tutorMemory lock, Rehearse now to RealMoment and Not
+  now for this app session; no countdown or checklist until Phase C; hidden
+  with no event or with memory paused), and the blue week card ("n minutes
+  practised, n phrases saved" over seven local days, with "See your week" in
+  the Monday line's slot and the cloud-heart drawing; absent with no evidence).
+  Rebuilt to the artboard in light and dark on 2026-10-20 (UI-008); the blue
+  practice and review leads, "Where you're starting" and the friends card left
+  Today. Loading never claims the learner has no history.
 - Explore: search, then four filter chips (Starting out, Under 5 min, Free,
   offline, With your tutor), Prepare for something real with its badge, the
   topic tiles, situations, a blue "Live with your tutor, picked for you" card
@@ -582,6 +589,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.mint` | `#2FD18B` | Done ticks |
 | `b.light.mintWash` | `#D4F5E5` | The success panel |
 | `b.light.mintWords` | `#1F7A52` | Success words |
+| `b.light.onMint` | `#16123A` | The tick and the star stroke on a mint disc (B-Today, 2026-10-20) |
 | `b.light.coral` | `#D63A22` | The tutor speaking. A mark |
 | `b.light.butter` | `#FFE8AB` | Butter tile |
 | `b.light.lavender` | `#E9E3FA` | Lavender tile, the lock pill |
@@ -628,6 +636,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.mint` | `#2FD18B` | Done ticks |
 | `b.dark.mintWash` | `#233F41` | The success panel |
 | `b.dark.mintWords` | `#2FD18B` | Success words |
+| `b.dark.onMint` | `#16123A` | The tick and the star stroke on a mint disc (B-Today, 2026-10-20) |
 | `b.dark.coral` | `#D63A22` | The tutor speaking. A mark |
 | `b.dark.butter` | `#493C2E` | Butter tile |
 | `b.dark.lavender` | `#322B50` | Lavender tile, the lock pill |
@@ -691,7 +700,7 @@ one; where a value differs it still wins on the onboarding screens.
 | `label` | Outfit SemiBold 16/20 | Buttons and row titles, sentence case, no tracking |
 | `button` | Outfit SemiBold 16/20 | Pill and outline lettering, the same style as `label` |
 | `small` | Outfit Medium 14/20 | Metadata lines, captions, the English under a French line |
-| `tabLabel` | Outfit SemiBold 12/12 | Tab bar labels only |
+| `tabLabel` | Outfit SemiBold 12/12 | Unused since UI-008: the tab bar sets C2 `small` 13/18 (`boldType.small`) |
 | `notation` | Outfit Medium 14/20, 0.4 | IPA: real notation, not mono-as-costume |
 
 ## Surfaces and controls
@@ -763,19 +772,27 @@ the new look, listed at the end, and they go with their call sites.
   in the ground's words colour and the rest in `segmentPending`, read once as
   "Step 2 of 6".
 - **Label**: the meta line a card may carry: small, soft ink, sentence case.
-- **Tab bar**: white with a top hairline, five labelled icons and no dock,
-  shadow or chartreuse wash. Selected is the Bulk icon and the word in brand
-  blue, Outfit Bold; unselected is the Linear icon and the word in soft ink,
-  Outfit SemiBold. The bar itself moves nothing: when a tab becomes the
-  selected one its icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15,
-  home on the pop spring, the Bulk drawing fading in over the Linear), never on
-  launch or on a tap of the open tab, and under Reduce Motion it simply swaps.
-  The Practice dot pops in once when practice becomes due while the bar is
-  open. Cells keep a 60pt floor and labels wrap at large text: from a 1.3
-  reading size each cell takes a fixed fifth (64pt on a 320pt phone). The words
-  are Today, Explore, Speak, Practice and Journey (routes `Home`, `Explore`,
-  `Tutor`, `Practice`, `MyFrench`); Explore's icon is the map, the set having
-  no compass. Friends is an optional Profile route.
+- **Tab bar** (UI-008, 2026-10-20, Figma C2/Main2/Navigation 292:1103): an
+  ink capsule (`b.tabCapsule`, the same in both themes) 12pt in from each edge
+  inside the safe areas and at most 640 wide, radius 32, padded 8 across and 6
+  down, on a strip of the focused route's `ground` (8pt above, the safe area or
+  8pt below). The bar stays in layout, so nothing scrolls under it, and it has
+  no shadow, hairline or chartreuse wash. Five equal 62pt cells, radius 20,
+  padding 4, gap 4: a 22pt Iconsax glyph over its word in C2 small (13/18).
+  Selected is the `tabSelected` violet cell with the Bulk glyph in
+  `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
+  unselected is the Linear glyph and the word in cream at Outfit Medium on the
+  ink. The bar itself moves nothing: when a tab becomes the selected one its
+  icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15, home on the pop
+  spring, the Bulk drawing fading in over the Linear), never on launch or on a
+  tap of the open tab, and under Reduce Motion it simply swaps. The Practice
+  dot is 6pt sun, so it reads on the ink, and pops in once when practice
+  becomes due while the bar is open. Cells keep the 62pt floor and labels wrap
+  at large text: from a 1.3 reading size each cell takes a fixed fifth. The
+  words are Today, Explore, Speak, Practice and Journey (routes `Home`,
+  `Explore`, `Tutor`, `Practice`, `MyFrench`) over `home`, `exploring`,
+  `microphone`, `cards` and `progress`; the decisions live in
+  `nav/tabBarModel.ts`. Friends is an optional Profile route.
 - **Highlight**: the highlighter (SNIPPETS highlight): a still band in
   `highlight` behind one French line, at most once per screen and only on white
   or paper. The band is decorative; the line on it is what is read, marked as
@@ -1152,8 +1169,9 @@ Home card pushes it, and the Tutor tab's first two doors lead to it. That is wha
 leaving a live session an explicit act rather than a tab switch — a room that
 survives a tab switch is a room the meter is still counting.
 
-Each tab is a glyph and a word. The selected tab uses brand blue and the others
-soft ink, with selected state announced to assistive technology. Its shared
+Each tab is a glyph and a word in the ink capsule. The selected tab is the
+violet cell with a sun glyph and the others cream on ink, with selected state
+announced to assistive technology. Its shared
 press supplies interaction feedback; the tab itself has no moving wash.
 
 On web the app is still a **460pt centred column**, and the navigator mounts

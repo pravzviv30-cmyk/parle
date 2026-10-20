@@ -60,6 +60,7 @@ describe("Home's nudge line — F767", () => {
     // The hero draws it under itself, and only when there is one.
     const hero = readFileSync(new URL('../game/TodayHero.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
     assert.match(hero, /const nudge = homeNudge\(run\);/);
-    assert.match(hero, /\{nudge !== null \? <Text style=\{\[type\.body, \{ color: paper\.ink \}\]\}>\{nudge\}<\/Text> : null\}/);
+    // 2026-10-20 UI-008, artboard B-Today: in the theme's text colour, so it reads in dark too.
+    assert.match(hero, /\{nudge !== null \? <Text style=\{\[type\.body, \{ color: t\.text \}\]\}>\{nudge\}<\/Text> : null\}/);
   });
 });

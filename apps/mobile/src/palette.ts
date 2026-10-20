@@ -359,6 +359,8 @@ const bLight = {
   mint: colour.mint,
   mintWash: colour.mintWash,
   mintWords: colour.mintWords,
+  /** The ink tick and star stroke on a mint disc, in both modes (B-Today, 2026-10-20). */
+  onMint: paper.ink,
   coral: colour.coral,
   butter: pastel.butter,
   lavender: pastel.lavender,

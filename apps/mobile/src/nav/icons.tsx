@@ -1,14 +1,14 @@
 /**
  * The bottom-nav icons, from the generated set (come alive, founder decision
  * D11): each one is `<Icon name=... />`, Linear when its tab is not selected
- * and Bulk when it is (`focused`). The bar colours them, brand blue selected
- * and soft ink not, with no chartreuse and no wash, and there is no dot under
- * the selected tab: the drawing and the word carry it. `TabGlyph.tsx` pops the
- * selected one once.
+ * and Bulk when it is (`focused`). The bar (UI-008, Figma 292:1103) draws the
+ * same names from `tabBarModel.ts`: sun Bulk on the violet cell when selected,
+ * cream Linear on the ink capsule when not, with no chartreuse and no wash, and
+ * there is no dot under the selected tab. `TabGlyph.tsx` pops the selected one once.
  *
  * The names survive from revamp B so no caller moved; each is now a delegate
- * to the one icon that means the same thing: home, practice (the dumbbell),
- * progress (a route from a start dot), user and users. ProfileIcon and FriendsIcon have
+ * to the one icon that means the same thing: home, cards (Practice),
+ * exploring (Explore), progress (a route from a start dot), user and users. ProfileIcon and FriendsIcon have
  * no tab today and are kept for the screens that may ask for them.
  *
  * Speak is not drawn here. The tab and the control are the same microphone on
@@ -35,12 +35,12 @@ export function HomeIcon({ size = 24, color = paper.ink, focused = false }: TabI
 }
 
 export function PracticeIcon({ size = 24, color = paper.ink, focused = false }: TabIconProps) {
-  return <Icon name="practice" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
+  return <Icon name="cards" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
 }
 
-/** Explore: the map, the closest drawing in the set to a compass. */
+/** Explore: Codex's Iconsax compass. */
 export function ExploreIcon({ size = 24, color = paper.ink, focused = false }: TabIconProps) {
-  return <Icon name="map" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
+  return <Icon name="exploring" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
 }
 
 /** The Journey tab, which is still the MyFrench route. */

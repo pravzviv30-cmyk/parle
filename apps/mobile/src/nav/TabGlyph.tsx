@@ -13,7 +13,8 @@
  * and hands the icon here (F600). Transform and opacity only, through
  * motion/drive.ts. Under Reduce Motion, watched live, the Bulk drawing is
  * simply there and nothing scales. The app leaving the foreground, or the bar
- * unmounting, lands everything on its final frame. Decorative: the cell around
+ * unmounting, lands everything on its final frame. The dot is sun, so it reads
+ * on the ink capsule (UI-008, 2026-10-20). Decorative: the cell around
  * it is the tab a screen reader hears, selected or not.
  */
 
@@ -25,7 +26,8 @@ import { useReduceMotion } from '../motion.ts';
 import { cancel, sequence, spring, timing } from '../motion/drive.ts';
 import { useLandOnLeave } from '../motion/landing.ts';
 import { DUR, EASE, SELECT_POP_MS, SPRING } from '../motion/tokens.ts';
-import { decorative, paper, HIT } from '../theme.ts';
+import { decorative, HIT } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 
 export function TabGlyph({
   focused,
@@ -40,6 +42,7 @@ export function TabGlyph({
   children: (bulk: boolean) => ReactElement;
 }) {
   const reduced = useReduceMotion();
+  const t = useB();
   /** 0 at rest, 1 at the top of the pop. */
   const pop = useSharedValue(0);
   /** How much of the Bulk drawing shows over the Linear one. */
@@ -112,7 +115,7 @@ export function TabGlyph({
         <Reanimated.View style={[st.layer, linear]}>{children(false)}</Reanimated.View>
         {focused ? <Reanimated.View style={[st.layer, bulk]}>{children(true)}</Reanimated.View> : null}
       </Reanimated.View>
-      {badged === true ? <Reanimated.View {...decorative} style={[st.badge, mark]} /> : null}
+      {badged === true ? <Reanimated.View {...decorative} style={[st.badge, { backgroundColor: t.sun }, mark]} /> : null}
     </View>
   );
 }
@@ -128,7 +131,7 @@ const st = StyleSheet.create({
     right: -2,
     width: 6,
     height: 6,
+    // Sun, so it reads on the ink capsule and on the violet selected cell (UI-008).
     borderRadius: 3,
-    backgroundColor: paper.ink,
   },
 });

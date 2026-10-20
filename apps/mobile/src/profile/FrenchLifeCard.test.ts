@@ -88,7 +88,8 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     assert.doesNotMatch(STORY_HOME, /from '[^']*progress\/story\.ts'|storyFrom\(/, 'Today reads the week story again');
     assert.doesNotMatch(STORY_LINES, /from '[^']*story\.ts'/, 'todayView.ts imports the story module');
     assert.match(STORY_FLAT, /setWeek\(weekInFrench\(\{ packs, deck, now \}\)\)/, "Today's week is not the two sums from the saved conversations and the deck");
-    assert.match(STORY_FLAT, /\{week !== null && \( <ColourCard ground="blue"/, 'the week card is drawn on a week with no evidence');
+    // 2026-10-20 UI-008, artboard B-Today: the blue card is the B WeekCard part.
+    assert.match(STORY_FLAT, /\{week !== null && \( <WeekCard /, 'the week card is drawn on a week with no evidence');
     assert.doesNotMatch(STORY_FLAT, /week !== null \? /, 'a quiet week draws something else in the week slot');
     assert.ok(!STORY_HOME.includes('story.sentences'), 'Today reaches into the story sentences');
 

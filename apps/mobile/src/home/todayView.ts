@@ -28,6 +28,7 @@ import {
 
 import type { FeatureAccess, LockedFeature } from '../access/featureAccess.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
+import { dayWord } from '../journey/journeyView.ts';
 import type { Replay } from '../practice/madeFrom.ts';
 import type { Reflection } from '../progress/reflection.ts';
 import type { HomeMission } from './homeMission.ts';
@@ -97,14 +98,15 @@ export function weekLines(input: { story: Pick<WeekStory, 'sentences'>; reflecti
  *
  * Today reads, top to bottom: the greeting, the stats row, the yellow next
  * scene, today's three quests, one fix to try, today's phrase and the week in
- * French. Every block below is drawn only when it has something true to say,
- * and "Coming up" is not drawn at all until Phase C stores the event it would
- * describe (founder, 2026-10-20). Nothing here reads a clock of its own, stores
+ * French. Every block below is drawn only when it has something true to say.
+ * 2026-10-20 UI-008, artboard B-Today: "Coming up" is drawn now (founder), from
+ * the latest life-event the tutor remembers; its countdown and checklist have
+ * no data and wait for Phase C. Nothing here reads a clock of its own, stores
  * anything or reads the allowance: minutes left belong to the wall.
  * =========================================================================== */
 
-/** The page's blocks, in the artboard's order. "Coming up" is not one of them. */
-export const TODAY_CARDS = ['greeting', 'stats', 'nextScene', 'three', 'fix', 'phrase', 'week'] as const;
+/** The page's blocks, in the artboard's order. */
+export const TODAY_CARDS = ['greeting', 'stats', 'nextScene', 'three', 'fix', 'phrase', 'comingUp', 'week'] as const;
 export type TodayCard = (typeof TODAY_CARDS)[number];
 
 export const TODAY_COPY = {
@@ -125,6 +127,8 @@ export const TODAY_ROUTES = {
   fix: 'Drill',
   phrase: 'DailyPractice',
   week: 'WeekWrapped',
+  /** Rehearse now: the real-moment builder, prefilled with the event. */
+  rehearse: 'RealMoment',
   /** The Start opens the room through the gate, `tutor/gate.ts`. */
   start: 'Convo',
 } as const;
@@ -189,10 +193,17 @@ export function questTrailing(row: { complete: boolean; done: number; target: nu
 export interface OneFix {
   /** The English of the better line: all the card shows before a try. */
   english: string;
-  /** "Alexandre's version shows after you try": the drill opens without the moment, so the learner's own line is never promised. */
+  /**
+   * "Your line from Friday and Alexandre's version show after you try" when the
+   * conversation's day is known, and the drill carries the moment to draw once
+   * the learner has tried; else "Alexandre's version shows after you try".
+   */
   after: string;
-  /** Opens the drill on the better line alone, without the moment, so nothing is revealed first. */
-  route: { screen: 'Drill'; params: { node: { id: string; title: string; phraseKeys: readonly string[] } } };
+  /**
+   * Opens the drill on the better line, attempt first. With a day the moment
+   * rides along behind `afterTry`, so it is drawn only after the first answer.
+   */
+  route: { screen: 'Drill'; params: { node: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string }; afterTry?: true } } };
   feature: LockedFeature;
   locked: boolean;
 }
@@ -233,6 +244,8 @@ export function oneFix(input: {
   tutorName: string;
   access: (feature: LockedFeature) => FeatureAccess;
   now: number;
+  /** The saved conversations, to name the day the learner's line was said. */
+  packs?: readonly ConversationPack[];
 }): OneFix | null {
   const { replay } = input;
   if (replay === null || !replay.sayable) return null;
@@ -240,10 +253,17 @@ export function oneFix(input: {
   // the card's promise holds: the French must stay hidden until the try.
   const first = buildDrillSession(input.deck, input.bank, input.now, { only: [replay.key] }).queue[0];
   if (first === undefined || first.phraseKey !== replay.key || !hidesAnswer(first)) return null;
+  // 2026-10-20 UI-008, artboard B-Today: "your line from {day}" is back where
+  // the conversation's day is known, and the drill then shows the learner's
+  // line beside the better one, after the try (DrillScreen `afterTry`).
+  const pack = input.packs?.find((p) => p.id === replay.packId);
+  const said = pack === undefined ? Number.NaN : Date.parse(pack.createdAt);
+  const day = Number.isFinite(said) && said <= input.now ? dayWord(said, input.now) : null;
+  const node = { id: `fix:${replay.packId}:${replay.key}`, title: TODAY_COPY.fix, phraseKeys: [replay.key] };
   return {
     english: replay.betterEn,
-    after: `${input.tutorName}'s version shows after you try`,
-    route: { screen: 'Drill', params: { node: { id: `fix:${replay.packId}:${replay.key}`, title: TODAY_COPY.fix, phraseKeys: [replay.key] } } },
+    after: day === null ? `${input.tutorName}'s version shows after you try` : `Your line from ${day} and ${input.tutorName}'s version show after you try`,
+    route: { screen: 'Drill', params: { node: day === null ? node : { ...node, moment: { quote: replay.quote, better: replay.better, why: replay.why }, afterTry: true } } },
     feature: 'fixes',
     locked: input.access('fixes') === 'locked',
   };
@@ -280,4 +300,91 @@ export function weekInFrench(input: { packs: readonly ConversationPack[]; deck: 
   if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'} practised`);
   if (kept > 0) parts.push(`${kept} ${kept === 1 ? 'phrase' : 'phrases'} saved`);
   return parts.join(', ');
+}
+
+/* ===========================================================================
+ * Coming up (2026-10-20 UI-008, artboard B-Today; founder decision: shown now).
+ *
+ * The latest life event the tutor remembers, from the brain's memory facts:
+ * its words, its loose when ("Friday", "next month") when there is one, and
+ * "{tutor} remembers". No countdown and no checklist: nothing stores a date or
+ * the steps (Phase C). Hidden with no life-event fact, while memory is paused,
+ * and after Not now, which holds for this app session only, in memory: a
+ * stored dismissal waits for Phase C.
+ * =========================================================================== */
+
+export const COMING_UP_COPY = {
+  rehearse: 'Rehearse now',
+  notNow: 'Not now',
+} as const;
+
+export interface RememberedEvent {
+  kind: string;
+  en: string;
+  happensAround: string | null;
+  notedAt: string;
+}
+
+export interface ComingUp {
+  /** Which fact this is, so Not now hides this event and not the next. */
+  key: string;
+  title: string;
+  when: string;
+  locked: boolean;
+  feature: LockedFeature;
+  /** Rehearse now: the real-moment builder with the event typed in. */
+  route: { screen: 'RealMoment'; params: { detail: string } };
+}
+
+/** Events hidden with Not now, for as long as the app stays open. */
+const notNowThisSession = new Set<string>();
+
+export function dismissComingUp(key: string): void {
+  notNowThisSession.add(key);
+}
+
+/**
+ * How long a remembered when stays believable (learning-science review,
+ * 2026-10-20): `happensAround` is loose text relative to `notedAt`, so
+ * "Friday" goes stale. Until Phase C stores real dates, a fact older than
+ * this is not drawn.
+ */
+export const COMING_UP_FRESH_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** For tests: a new app session. */
+export function resetComingUpSession(): void {
+  notNowThisSession.clear();
+}
+
+export function comingUp(input: {
+  facts: readonly RememberedEvent[];
+  paused: boolean;
+  tutorName: string;
+  access: (feature: LockedFeature) => FeatureAccess;
+  now: number;
+}): ComingUp | null {
+  if (input.paused) return null;
+  let latest: RememberedEvent | null = null;
+  for (const fact of input.facts) {
+    if (fact.kind !== 'life-event' || fact.en.trim() === '') continue;
+    if (latest === null || Date.parse(fact.notedAt) >= Date.parse(latest.notedAt)) latest = fact;
+  }
+  if (latest === null) return null;
+  // Only an event with a when is "coming up"; one with none may be past.
+  const around = latest.happensAround?.trim() ?? '';
+  if (around === '') return null;
+  const noted = Date.parse(latest.notedAt);
+  if (!Number.isFinite(noted) || input.now - noted > COMING_UP_FRESH_MS) return null;
+  const en = latest.en.trim();
+  const key = `${latest.notedAt}:${en}`;
+  if (notNowThisSession.has(key)) return null;
+  const remembers = `${input.tutorName} remembers`;
+  return {
+    key,
+    title: `Coming up: ${en}`,
+    when: `${around}, ${remembers}`,
+    locked: input.access('tutorMemory') === 'locked',
+    feature: 'realMoment',
+    route: { screen: 'RealMoment', params: { detail: en } },
+  };
 }
