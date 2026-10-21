@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { ALWAYS_LIGHT, DARK_READY, pinnedLight, routeMode } from './darkReady.ts';
 import { b } from '../palette.ts';
 import { themedStyles } from '../main/themedStyles.ts';
@@ -166,5 +167,19 @@ describe('the screens with no artboard follow the device — UI-008 step 12b', (
   test('a fixed mint panel keeps ink words in both themes', () => {
     assert.match(strip(read('../drill/FixLineSheet.tsx')), /backgroundColor: t\.mint[^}]*\}\}><Text[^>]*style=\{\[type\.bodyStrong, \{ color: t\.onMint \}\]\}/);
     assert.equal(b.dark.onMint, b.light.onMint, 'the mint words changed with the mode');
+  });
+});
+
+describe('the back disc follows the theme — F846', () => {
+  // 2026-10-21 UI-008: RoundButton's default disc is the theme's card and its
+  // mark the theme's text, so every pushed screen's back button reads on the
+  // dark ground without opting in to `backAppearance`.
+  test("every pushed screen's back button follows the appearance in dark mode", () => {
+    const parts = readFileSync(fileURLToPath(new URL('../components.tsx', import.meta.url)), 'utf8');
+    const body = parts.slice(parts.indexOf('export function RoundButton'), parts.indexOf('export function', parts.indexOf('export function RoundButton') + 10));
+    assert.match(body, /ground === 'white' \? t\.card/, 'the white back disc is not the theme card');
+    assert.match(body, /ground === 'white' \? t\.text/, 'the back chevron is not the theme text');
+    const layout = readFileSync(fileURLToPath(new URL('../layout.tsx', import.meta.url)), 'utf8');
+    assert.match(layout, /<RoundButton kind="back"/, 'ScreenHeader no longer draws its back button through RoundButton');
   });
 });

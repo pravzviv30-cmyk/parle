@@ -22,6 +22,10 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B, ready to land (founder approved the side-by-sides; F846 and
+  F847 closed with the back-disc test), on branch `claude/direction-b`:
+  **5,859 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3445. Floors raised only through `gate:bless`.
 - 21 October 2026 direction B review decisions (UI-009: the live mic is green, Review's
   "I said it" has no microphone glyph; the other five answers keep the code as it is), on
   branch `claude/direction-b` (held, not on main):
