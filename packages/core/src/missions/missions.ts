@@ -188,7 +188,7 @@ export function isEarned(progress: Pick<MissionProgress, 'independence'>): boole
  * lines would be the product forgetting what they did. One direction only; the
  * opener says nothing about the rest of the café.
  */
-const SUBSUMED_BY: Partial<Record<MissionId, MissionId>> = {
+export const SUBSUMED_BY: Readonly<Partial<Record<MissionId, MissionId>>> = {
   'mission:premier-cafe': 'mission:cafe',
 };
 

@@ -6,38 +6,41 @@
  * library. Decorative daily drawings and their selector are retired.
  *
  * Two looks, one owner of the audio. `full` is the library card. `today` is
- * Home's white card (F602): the French with a play disc that stops what it
- * started, the English, and one row of three icon actions (Phase 4): "Practise
- * it", which is the library's "Say it"; Save, the same save the library card
- * makes, filled once the save is read back; and "More phrases", the way into
- * the daily collection. It has no label and no example, and it never states
- * the audio line, so a phrase with no recording still reads and still opens
- * its practice.
+ * Today's lavender card (2026-10-20, B5, B-Today): "Today's phrase", the
+ * French with a play disc that stops what it started, the English, and one
+ * white "Say it yourself", which is the library's "Say it". It has no example
+ * and never states the audio line, so a phrase with no recording still reads
+ * and still opens its practice.
  */
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { IconButton, Card, FrenchBlock, GhostButton, IconAction, IconActionRow, Label } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { IconButton, Card, IconAction, Label } from '../components.tsx';
+import { space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { TUTOR_DAILY_AUDIO } from './tutorAudioManifest.ts';
 import { dailyTutorVoice, tutorAudioFor } from './tutorAudio.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { tutorNameOf } from '../tutor/tutorName.ts';
+import { PhraseCard } from '../today/TodayParts.tsx';
 import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import { audioLine } from './libraryView.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { useB } from '../main/bTheme.tsx';
 
 export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, variant = 'full' }: {
   item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; variant?: 'full' | 'today';
 }) {
+  const t = useB();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const focused = useIsFocused();
   const { profile } = useProfile();
   const tutorVoice = dailyTutorVoice(profile.tutorVoice);
+  const tutorName = tutorNameOf(profile);
   const asset = tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice);
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
@@ -104,7 +107,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   };
   const retrySaveRead = () => setReadAttempt(value => value + 1);
   const saveFailure = saveUnread && <View style={{ gap: space(1) }}>
-    <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>Save status unavailable. You can still hear and practise this phrase.</Text>
+    <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted }]}>Save status unavailable. You can still hear and practise this phrase.</Text>
     <IconAction layout="inline" icon="refresh" label="Retry save status" onPress={retrySaveRead} />
   </View>;
   // Stop this card's recording before the practice screen opens, so the
@@ -115,15 +118,15 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const toggle = () => { if (status.playing) { playTicket.current++; releaseDailyPlayback(player); } else void play(); };
   const contents = <View style={{ gap: space(2) }}>
     <Label>{item.label}</Label>
-    {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><IconAction layout="inline" icon="eye" label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
+    {!shown ? <><Text style={[type.body, { color: t.text }]}>{item.en}</Text><IconAction layout="inline" icon="eye" label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
       {/* The library states audio availability before the first listen. */}
-      {!embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
+      {!embedded && <Text style={[type.small, { color: t.muted }]}>{audioLine(asset != null)}</Text>}
       {asset != null && <IconAction layout="inline" icon="speaker" label="Hear"  onPress={() => void play()} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
-        <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{item.en}</Text></View>
+        <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: t.text }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: t.muted, marginTop: space(1) }]}>{item.en}</Text></View>
       </View>
-      {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
-      {item.exampleFr ? <><Text selectable={!embedded} style={[type.frenchSm, { color: paper.ink }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.exampleEn}</Text>}</> : null}
+      {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: t.muted }]}>{item.note}</Text>}
+      {item.exampleFr ? <><Text selectable={!embedded} style={[type.frenchSm, { color: t.text }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: t.muted }]}>{item.exampleEn}</Text>}</> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
         <IconButton icon="bookmark" label={busy ? 'Saving…' : saved === null ? saveUnread ? 'Save unavailable' : 'Checking save…' : saved ? 'Saved ✓' : 'Save'} disabled={saved === null || busy} onPress={() => void save()} />
         {compact && <IconAction layout="inline" icon="chevron-down" label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
@@ -132,19 +135,28 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
       </View>
     </>}
     {saveFailure}
-    {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
+    {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted }]}>{note}</Text>}
   </View>;
+  // 2026-10-20, B5, B-Today: today's phrase on the lavender card. The caps
+  // line, the French with its play disc (the tutor's bundled clip, which says
+  // Stop while it sounds), the English, and one white "Say it yourself" that
+  // stops the clip and opens the practice. Save and the collection stay on the
+  // library card.
   if (variant === 'today') {
-    return <Card style={{ marginTop: space(3), gap: space(3) }}>
-      <FrenchBlock french={item.fr} english={item.en} size="lg" onHear={asset != null ? toggle : undefined} playing={status.playing} />
-      <IconActionRow>
-        <IconAction icon="microphone" label="Practise it" onPress={sayIt} accessibilityLabel="Practise today's phrase" />
-        <IconAction icon="bookmark" label={saved === true ? 'Saved' : 'Save'} accessibilityLabel={saved === true ? "Today's phrase is saved" : "Save today's phrase"} selected={saved === true} animate="bookmark-fill" busy={busy} disabled={saved === null} onPress={() => void save()} />
-        <IconAction icon="book" label="More phrases" accessibilityLabel="More phrases. Explore my daily collection" onPress={() => nav.navigate('DailyLibrary')} />
-      </IconActionRow>
-      {saveFailure}
-      {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
-    </Card>;
+    // 2026-10-20 UI-008, artboard B-Today: the B lavender card, drawn by
+    // today/TodayParts in both themes; the audio stays this card's.
+    return <PhraseCard
+      eyebrow="Today's phrase"
+      fr={item.fr}
+      en={item.en}
+      hearLabel={`Hear ${tutorName} say it`}
+      onHear={asset != null ? toggle : undefined}
+      playing={status.playing}
+      sayLabel="Say it yourself"
+      sayAccessibilityLabel="Say today's phrase yourself"
+      onSay={sayIt}
+      note={note}
+    />;
   }
   return embedded ? contents : <Card style={{ marginTop: space(3) }}>{contents}</Card>;
 }

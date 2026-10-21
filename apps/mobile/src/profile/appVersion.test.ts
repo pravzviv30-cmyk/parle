@@ -87,8 +87,9 @@ describe('which build this is — F369', () => {
     const at = settings.indexOf('{versionLine}');
     assert.ok(at !== -1, 'the version line is not in the screen at all');
     const line = settings.slice(settings.lastIndexOf('<Text', at), at);
-    assert.match(line, /type\.small/, 'the version line is not set at the secondary size the footer uses');
-    assert.match(line, /colors\.muted/, 'the version line must use the selected theme’s readable secondary ink');
+    // 2026-10-20 UI-008, artboard B-Settings: the B footer and row lines are 13 (bType.note).
+    assert.match(line, /type\.small|bType\.note/, 'the version line is not set at the secondary size the footer uses');
+    assert.match(line, /colors\.muted|t\.muted/, 'the version line must use the selected theme’s readable secondary ink');
     assert.match(settings, /useMainAppearance\(\)/, 'the footer does not resolve the selected light or dark palette');
     assert.ok(!line.includes('inkFaint'), 'the version line is set in the faint ink F330 took off learner-facing text');
 

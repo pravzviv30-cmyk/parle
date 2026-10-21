@@ -73,6 +73,7 @@ test('mode and keyboard changes hide support without changing the learner’s ex
 });
 
 test('practice support retains its explicit toggle, accessible state and current session tools', () => {
-  assert.match(room, /accessibilityLabel=\{helpOpen \? 'Hide practice support' : 'Show practice support'\} accessibilityState=\{\{ expanded: helpOpen \}\}/);
-  assert.match(room, /helpOpen && controlsVisible && <ScrollView[^>]*>\{support\}\{tools\}<\/ScrollView>/);
+  // 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: support is the Help control and its sheet.
+  assert.match(room, /accessibilityLabel=\{helpOpen \? 'Close help' : 'Get help'\} expanded=\{helpOpen\}/);
+  assert.match(room, /helpOpen && controlsVisible && helpAvailable[\s\S]*?<ScrollView[^>]*>[\s\S]*?\{support\}[\s\S]*?\{tools\}\s*<\/ScrollView>/);
 });

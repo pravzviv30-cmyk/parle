@@ -21,10 +21,11 @@
  */
 
 import { View, Text } from 'react-native';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
 import { Card, Label } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
+import { useB } from '../main/bTheme.tsx';
 
 interface Notice {
   name: string;
@@ -75,25 +76,26 @@ const NOTICES: readonly Notice[] = [
 ];
 
 export function Acknowledgements({ onBack }: { onBack: () => void }) {
+  const t = useB();
   // Opened in place, so Android's hardware back closes it rather than popping
   // whatever pushed Profile.
   useHardwareBack(true, onBack);
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
+      <Text accessibilityRole="header" style={[type.display, { color: t.text }]}>Acknowledgements</Text>
+      <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>
         Luvani is built on other people's work. Each one is named here with who made it and the licence it is used under.
       </Text>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
+      <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>
         Daily tutor recordings are synthetic speech generated with ElevenLabs Flash v2.5. The included recordings match your selected tutor and play from the app without a speech API call.
       </Text>
       <View style={{ marginTop: space(6), gap: space(3), paddingBottom: space(6) }}>
         {NOTICES.map((n) => (
           <Card key={n.name}>
             <Label>{n.licence}</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{n.name}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{n.by}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{n.note}</Text>
+            <Text style={[type.bodyStrong, { color: t.text, marginTop: space(2) }]}>{n.name}</Text>
+            <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{n.by}</Text>
+            <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{n.note}</Text>
           </Card>
         ))}
       </View>

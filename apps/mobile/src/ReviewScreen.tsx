@@ -19,6 +19,13 @@
  *
  * There is no microphone on this screen and there is not going to be one. The
  * deck works on a plane, costs nothing, and never scores a learner's mouth.
+ *
+ * 2026-10-21 UI-008, artboards B-Review, B-ReviewReveal and the Review block of
+ * B-Empty-States: the sitting is drawn on the butter ground (M3 ochre in dark)
+ * with the close disc, the card at radius 28 with the cafe-table drawing, the
+ * mint answer panel and three filled grade tiles. The artboard's "3 of 5" bar
+ * and the grade intervals are held back by the founder: the header's centre
+ * stays empty and the tiles carry no interval line.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -31,12 +38,18 @@ import {
   AccessibilityInfo,
   TextInput,
 } from 'react-native';
-import { reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
-import { HAIRLINE, HIT, accent, font, paper, radius, space, type, frenchText } from './theme.ts';
-import { Card, GhostButton, Label, OutlineButton, PillButton, fitDisplay } from './components.tsx';
-import { SpeakerGlyph } from './glyphs.tsx';
+import { reviewXp, type DrillExercise, type ReviewCard, type ReviewGrade } from '@luvani/core';
+import { HIT, bType, font, frenchText, space } from './theme.ts';
+import { GhostButton, PillButton } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
-import { conversationContext } from './review/context.ts';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { BArt } from './art/BArt.tsx';
+import { BSpeaker } from './today/TodayParts.tsx';
+import { KeyboardGlyph } from './review/ReviewParts.tsx';
+import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
+import { conversationContext, fromLine } from './review/context.ts';
+import { alsoFine } from './review/alsoFine.ts';
+import { loadDrillBank } from './drill/store.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
 import { HELD_BACK_ACTION, dealForTier, heldBackLine } from './review/freeTier.ts';
@@ -44,6 +57,7 @@ import { useAuth } from './auth/useAuth.tsx';
 import { useFeatureLocks } from './purchases/useFeatureLocks.ts';
 import {
   CARD_START,
+  REVIEW_COPY,
   SAID_IT,
   TYPE_IT,
   cardView,
@@ -59,8 +73,8 @@ import { EndCard } from './celebrate/EndCard.tsx';
 import { REVIEW_END, reviewPage } from './review/sittingEnd.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
-/** The speaker disc on the card. Wider than a hit target because it is the one control on it. */
-const SPEAKER = 64;
+/** The speaker disc in the answer panel (B-ReviewReveal): 48, above the touch floor. */
+const SPEAKER = 48;
 
 export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // The sitting: dealt once on mount. Null while the deck is still loading.
@@ -68,6 +82,15 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const [fragments, setFragments] = useState<Record<string, ReturnType<typeof conversationContext>>>({});
   const [index, setIndex] = useState(0);
   const [turn, setTurn] = useState<ReviewTurn>(CARD_START);
+  // The field opens on the first "Type it", so the card stays the artboard's
+  // until the learner chooses to type. Presentation only: the attempt itself
+  // is still `turn.attempt`, set by the same handler.
+  const [typing, setTyping] = useState(false);
+  // The drill bank, read once for "Also fine:" (review/alsoFine.ts). Empty
+  // until it answers, and empty is simply no line.
+  const [bank, setBank] = useState<readonly DrillExercise[]>([]);
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   /**
    * The line that opens the sitting, or null when there is nothing to open it
    * with. Held here rather than recomputed per card because it is a fact about
@@ -139,6 +162,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
+    void loadDrillBank().then((exercises) => { if (!cancelled) setBank(exercises); }, () => {});
     void Promise.all([loadDeck(), loadConversationPacks()]).then(([deck, packs]) => {
       if (cancelled) return;
       const now = Date.now();
@@ -200,6 +224,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // its ten-minute retry — the learner meets it again while it is warm.
       if (grade === 'again') setQueue((q) => (q ? [...q, card] : q));
       setTurn(CARD_START);
+      setTyping(false);
       setIndex((i) => i + 1);
     },
     [card, view, clock],
@@ -209,20 +234,18 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     return (
       <Screen>
         <View style={st.loading}>
-          <ActivityIndicator color={paper.inkSoft} />
+          <ActivityIndicator color={t.muted} />
         </View>
       </Screen>
     );
   }
 
-  const remaining = queue.length - index;
-
   // One quiet row, only on the two terminal pages, only when cards were held back.
   const heldLine = heldBackLine(heldBack);
   const heldRow = heldLine === null ? null : (
     <View style={st.held}>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{heldLine}</Text>
-      <GhostButton small label={HELD_BACK_ACTION} color={paper.inkSoft} onPress={() => locks.open('conversationPractice')} />
+      <Text style={[bType.meta, { color: t.muted }]}>{heldLine}</Text>
+      <GhostButton small label={HELD_BACK_ACTION} color={t.muted} onPress={() => locks.open('conversationPractice')} />
     </View>
   );
 
@@ -243,13 +266,13 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       return (
         <ScrollScreen footer={primary}>
           <View style={st.ending}>
-            <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{REVIEW_END.finished}</Text>
+            <Text accessibilityRole="header" style={[type19, { color: t.text }]}>{REVIEW_END.finished}</Text>
             {end.state === 'settled' ? (
               <EndCard delta={end.delta} count={recalled.current} release={release} />
             ) : end.state === 'unsettled' ? (
-              <Text style={[type.body, { color: paper.inkSoft }]}>{REVIEW_END.finishedBody}</Text>
+              <Text style={[bType.para15, { color: t.secondary }]}>{REVIEW_END.finishedBody}</Text>
             ) : (
-              <ActivityIndicator color={paper.inkSoft} />
+              <ActivityIndicator color={t.muted} />
             )}
             {heldRow}
           </View>
@@ -257,16 +280,20 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       );
     }
     // Nothing was dealt: the calm card, and nothing plays, counts or settles.
+    // 2026-10-21 UI-008, B-Empty-States "Review, all done": the cloud-cheer
+    // card with its one ink button. Phase B's words and its Done stay: the
+    // artboard's "Back to Practice" is not where every way in came from.
     return (
-      <ScrollScreen footer={primary}>
-        {/* An empty deck is the good outcome, not a dead end, so it gets the
-            cleared table rather than a sentence sitting on its own. The size is
-            the art registry's, never a width written here. */}
-        <Card>
-          <Text style={[type.title, { color: paper.ink }]}>Nothing waiting.</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Your next session adds more.</Text>
-        </Card>
-        {heldRow}
+      <ScrollScreen>
+        <View style={st.ending}>
+          <EmptyStateCard
+            art={{ name: 'cloud-cheer', width: 150, height: 114 }}
+            title="Nothing waiting."
+            body="Your next session adds more."
+            action={{ label: 'Done', onPress: onDone }}
+          />
+          {heldRow}
+        </View>
       </ScrollScreen>
     );
   }
@@ -274,71 +301,79 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // Pulled out of the view because a property narrowed at the JSX is not
   // narrowed inside the press handler that reads it a line later.
   const hear = view.hear;
+  const from = fromLine(fragment);
+  const other = view.answer === null ? null : alsoFine(card.id, view.answer.text, bank);
 
-  const face = (
-    <Card style={st.card}>
-      <Label>{view.tag}</Label>
-
-      {view.answer === null ? (
-        <View style={{ alignSelf: 'stretch', marginTop: space(4) }}>
-          <Text style={[fitDisplay(view.prompt), { color: paper.ink, textAlign: 'center' }]}>{view.prompt}</Text>
-          {view.ask !== null && (
-            <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>
-              {view.ask}
-            </Text>
-          )}
-        </View>
-      ) : (
-        <View style={{ alignSelf: 'stretch', marginTop: space(4) }}>
-          <Text style={[fitDisplay(view.answer.text), { color: paper.ink, textAlign: 'center' }]}>
-            {view.answer.text}
-          </Text>
-          {fragment ? <View style={{ marginTop: space(3), gap: space(2) }}>
-            <Text style={[type.small, { color: paper.inkSoft }]}>{fragment.label}</Text>
-            <Text {...frenchText} style={[type.french, { color: paper.ink }]}>{fragment.quote}</Text>
-          </View> : view.answer.context !== '' && (
-            <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
-              {view.answer.context}
-            </Text>
-          )}
-          {view.answer.ipa !== '' && (
-            <Text style={[type.notation, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
-              /{view.answer.ipa}/
-            </Text>
-          )}
-          {/* What they typed, given back with nothing attached to it. No tick,
-              no cross, no colour: the app does not mark French, and a learner
-              comparing two lines themselves is the whole point of typing. */}
-          {view.echo !== null && (
-            <View style={{ marginTop: space(3.5), alignItems: 'center' }}>
-              <Label>You typed</Label>
-              <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1) }]}>
-                {view.echo}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* One speaker, not a word and an icon. A card with two lines of French
-          on it does not need a third line telling the learner what a speaker
-          is, and the disc is a 64pt target where the text row was a 44pt one. */}
-      {hear !== null && (
-        <Pressable
-          onPress={(e) => {
-            e.stopPropagation();
-            clock.touch();
-            tutorVoice.speak(hear);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Hear it in French"
-          style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
-        >
-          <SpeakerGlyph size={28} color={accent.primary} />
-        </Pressable>
-      )}
-    </Card>
+  const speaker = hear === null ? null : (
+    <Pressable
+      onPress={(e) => {
+        e.stopPropagation();
+        clock.touch();
+        tutorVoice.speak(hear);
+      }}
+      accessibilityRole="button"
+      accessibilityLabel="Hear it in French"
+      style={({ pressed }) => [st.hear, view.answer === null && st.hearOnCard, pressed && { opacity: 0.6 }]}
+    >
+      <BSpeaker size={22} color={t.text} />
+    </Pressable>
   );
+
+  // The card's top row: what it is, and where it came from when that is known.
+  const top = (
+    <View style={st.topRow}>
+      <View style={st.tag}><Text style={[bType.chip, { color: t.link }]}>{view.tag}</Text></View>
+      {from !== null && <Text numberOfLines={1} style={[bType.note, st.from, { color: t.muted }]}>{from}</Text>}
+    </View>
+  );
+
+  const face = view.answer === null ? (
+    // B-Review: the prompt, struck large, and nothing that gives it away.
+    <View style={[st.card, st.cardFront]}>
+      <BArt name="cafe-table" width={130} height={119} style={st.art} />
+      {top}
+      {view.question !== null && <Text style={[bType.line15, { color: t.muted }]}>{view.question}</Text>}
+      <Text style={[bType.prompt27, { color: t.text }]}>{view.prompt}</Text>
+      {speaker}
+      {view.ask !== null && <Text style={[bType.meta, st.ask, { color: t.secondary }]}>{view.ask}</Text>}
+    </View>
+  ) : (
+    // B-ReviewReveal: the prompt quiet, the French in the mint panel.
+    <View style={st.card}>
+      {top}
+      <Text style={[bType.line15, { color: t.muted }]}>{view.prompt}</Text>
+      <View style={st.panel}>
+        <View style={st.panelWords}>
+          <Text style={[bType.bold12, { color: t.mintWords }]}>{REVIEW_COPY.inFrench}</Text>
+          <Text {...frenchText} style={[bType.answer24, { color: t.text }]}>{view.answer.text}</Text>
+          {view.answer.ipa !== '' && <Text style={[bType.note, { color: t.secondary }]}>/{view.answer.ipa}/</Text>}
+        </View>
+        {speaker}
+      </View>
+      {other !== null && (
+        <View style={st.alsoRow}>
+          <Text style={[bType.note, { color: t.muted }]}>{REVIEW_COPY.alsoFine}</Text>
+          <Text {...frenchText} style={[bType.semi15, st.grow, { color: t.text }]}>{other}</Text>
+        </View>
+      )}
+      {view.answer.context !== '' && <Text style={[bType.note, { color: t.muted }]}>{view.answer.context}</Text>}
+    </View>
+  );
+
+  // What the learner did before the answer, given back with nothing attached
+  // to it. No tick, no cross, no colour: the app does not mark French, and a
+  // learner comparing two lines themselves is the whole point of an attempt.
+  const yours = view.echo !== null ? (
+    <View style={st.yours}>
+      <Text style={[bType.chip, { color: t.muted }]}>{REVIEW_COPY.typedTitle}</Text>
+      <Text {...frenchText} style={[bType.line15, { color: t.secondary }]}>{view.echo}</Text>
+    </View>
+  ) : view.revealed && turn.attempt === 'said' ? (
+    <View style={st.yours}>
+      <Text style={[bType.chip, { color: t.muted }]}>{REVIEW_COPY.saidTitle}</Text>
+      <Text style={[bType.line15, { color: t.secondary }]}>{REVIEW_COPY.saidBody}</Text>
+    </View>
+  ) : null;
 
   const typedReady = typedAttemptReady(turn.typed);
   const attempt = (kind: 'typed' | 'said') => {
@@ -348,79 +383,89 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   // The bottom of the sitting: grade this card, take the retrieval attempt, or a
   // hint to turn it over. It rides in the frame's footer so a keyboard opened on
-  // the attempt lifts it clear. The taller of the two states sets the height so
-  // the card does not jump the moment the learner is reading the answer.
+  // the attempt lifts it clear.
   const foot = (
-    <View style={view.mode === 'retrieval' ? st.retrievalFoot : undefined}>
+    <View style={st.foot}>
       {view.grades ? (
-        // Three outlines, evenly. They were hand-rolled plates with a button
-        // face on them, which is the shared OutlineButton with a different
-        // pressed state; the app has one outline and these are it now.
-        <View style={st.grades}>
-          {(
-            [
-              { grade: 'again', label: 'Again' },
-              { grade: 'good', label: 'Got it' },
-              { grade: 'easy', label: 'Easy' },
-            ] as const
-          ).map(({ grade, label }) => (
-            <View key={grade} style={st.gradeCell}>
-              <OutlineButton label={label} onPress={() => handleGrade(grade)} />
-            </View>
-          ))}
-        </View>
+        <>
+          <Text style={[bType.bold15, st.centred, { color: t.text }]}>{REVIEW_COPY.gradeAsk}</Text>
+          {/* Three filled tiles, evenly (B-ReviewReveal). The intervals under
+              each word are held back by the founder: no clock on this screen. */}
+          <View style={st.grades}>
+            {(
+              [
+                { grade: 'again', label: 'Again' },
+                { grade: 'good', label: 'Got it' },
+                { grade: 'easy', label: 'Easy' },
+              ] as const
+            ).map(({ grade, label }) => (
+              <Pressable
+                key={grade}
+                onPress={() => handleGrade(grade)}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                style={({ pressed }) => [st.grade, st[grade], pressed && { opacity: 0.8 }]}
+              >
+                <Text style={[bType.bold17, { color: grade === 'again' ? t.text : t.onMint }]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
       ) : view.asksForAttempt ? (
-        <View style={st.attempt}>
+        <>
           {/* Both ways are on screen at once, and neither is the right one.
               Typing suits a quiet carriage, saying it suits a kitchen, and
               "said" is taken on trust because the alternative is a
               microphone this screen is never going to grow. */}
-          <TextInput
-            value={turn.typed}
-            onChangeText={(typed) => {
-              clock.touch();
-              setTurn((t) => ({ ...t, typed }));
+          {typing && (
+            <TextInput
+              value={turn.typed}
+              onChangeText={(typed) => {
+                clock.touch();
+                setTurn((t) => ({ ...t, typed }));
+              }}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (typedReady) attempt('typed');
+              }}
+              placeholder="Your answer"
+              placeholderTextColor={t.muted}
+              accessibilityLabel="Your answer in French"
+              style={st.input}
+            />
+          )}
+          <Pressable
+            onPress={() => attempt('said')}
+            accessibilityRole="button"
+            accessibilityLabel={SAID_IT}
+            style={({ pressed }) => [st.said, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={[bType.bold18, { color: t.onPrimary }]}>{SAID_IT}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (!typing) {
+                clock.touch();
+                setTyping(true);
+              } else if (typedReady) attempt('typed');
             }}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            returnKeyType="done"
-            onSubmitEditing={() => {
-              if (typedReady) attempt('typed');
-            }}
-            placeholder="Your answer"
-            placeholderTextColor={paper.inkFaint}
-            accessibilityLabel="Your answer in French"
-            style={st.input}
-          />
-          <View style={st.attemptRow}>
-            <Pressable
-              onPress={() => attempt('typed')}
-              disabled={!typedReady}
-              accessibilityRole="button"
-              accessibilityLabel={TYPE_IT}
-              style={({ pressed }) => [
-                st.grade,
-                !typedReady && st.attemptOff,
-                pressed && typedReady && st.gradePressed,
-              ]}
-            >
-              <Text style={[type.button, { color: paper.ink }]}>{TYPE_IT}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => attempt('said')}
-              accessibilityRole="button"
-              accessibilityLabel={SAID_IT}
-              style={({ pressed }) => [st.grade, pressed && st.gradePressed]}
-            >
-              <Text style={[type.button, { color: paper.ink }]}>{SAID_IT}</Text>
-            </Pressable>
-          </View>
-        </View>
+            disabled={typing && !typedReady}
+            accessibilityRole="button"
+            accessibilityLabel={TYPE_IT}
+            accessibilityState={{ disabled: typing && !typedReady }}
+            style={({ pressed }) => [st.typeIt, typing && !typedReady && st.off, pressed && { opacity: 0.85 }]}
+          >
+            <KeyboardGlyph size={20} color={t.text} />
+            <Text style={[bType.bold16, { color: t.text }]}>{TYPE_IT}</Text>
+          </Pressable>
+          <Text style={[bType.note, st.centred, { color: t.muted }]}>{REVIEW_COPY.attemptFirst}</Text>
+        </>
       ) : (
-        <View style={st.flipHint}>
-          {primary}
-        </View>
+        primary
       )}
     </View>
   );
@@ -429,90 +474,88 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     <ScrollScreen
       avoidKeyboard
       bottom="inset"
+      ground={t.butter}
       // A sitting is an offer, not an obligation — the learner can put the deck
-      // down mid-card and nothing is lost or counted against them.
+      // down mid-card and nothing is lost or counted against them. The centre
+      // of the header stays empty: no count of the sitting (founder, held).
       header={
         <ScreenHeader
-          leave={{ onPress: onDone, label: 'Leave', accessibilityLabel: 'Leave the review' }}
-          title={<Label color={paper.inkSoft}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>}
+          leave={{ onPress: onDone, label: 'Leave', accessibilityLabel: 'Leave the review', close: true }}
+          title="Review"
         />
       }
       footer={foot}
     >
-      {/* One quiet line, at the head of the sitting and nowhere else. It names
-          why the front of the queue looks repetitive; it is not a verdict on
-          anything, because nothing has been answered yet. */}
-      {opener !== null && index === 0 && (
-        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginBottom: space(3) }]}>{opener}</Text>
-      )}
+      <View style={st.body}>
+        {/* One quiet line, at the head of the sitting and nowhere else. It names
+            why the front of the queue looks repetitive; it is not a verdict on
+            anything, because nothing has been answered yet. */}
+        {opener !== null && index === 0 && (
+          <Text style={[bType.meta, st.centred, { color: t.muted }]}>{opener}</Text>
+        )}
 
-      {face}
+        {face}
+        {yours}
+      </View>
     </ScrollScreen>
   );
 }
 
-const st = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // A finished sitting: its heading, then its end card.
-  ending: { gap: space(4) },
-  // The free tier's held-back row: small, soft, under the card, never a banner.
-  held: { marginTop: space(4), gap: space(1), alignItems: 'flex-start' },
-  // The card itself: the SessionView main-card anatomy, content centred.
-  card: { alignItems: 'center', minHeight: 240, justifyContent: 'center' },
-  // The speaker disc: white, on the card, under a paper hairline. No shadow:
-  // the whisper retired with notebook Phase 4 (2026-09-27).
-  hear: {
-    marginTop: space(4),
-    width: SPEAKER,
-    height: SPEAKER,
-    borderRadius: SPEAKER / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-  },
-  grades: { flexDirection: 'row', gap: space(2.5) },
-  gradeCell: { flex: 1 },
-  grade: {
-    flex: 1,
-    minHeight: HIT + 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.card,
-    paddingVertical: space(2.5),
-  },
-  gradePressed: { backgroundColor: paper.groundDeep, borderColor: paper.ink },
-  // The attempt row, built out of the same plate as the grade row so the two
-  // states of the bottom of this screen are the same object doing two jobs.
-  attempt: { gap: space(2.5) },
-  // The attempt block and the grade row swap in place on a retrieval, so the
-  // taller of the two sets the height and the card does not jump at the exact
-  // moment the learner is reading the answer. Same reasoning as flipHint, one
-  // state further along, and derived from the two things it holds rather than
-  // measured off a screenshot.
-  retrievalFoot: { minHeight: (HIT + 8) * 2 + space(2.5), justifyContent: 'flex-end' },
-  attemptRow: { flexDirection: 'row', gap: space(2.5) },
-  attemptOff: { opacity: 0.45 },
-  // The paper text field, in the Field anatomy the drills already use. Type
-  // styles from the theme, minus lineHeight, which clips a single-line
-  // TextInput on iOS.
-  input: {
-    minHeight: HIT + 8,
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.input,
-    paddingHorizontal: space(4),
-    paddingVertical: space(3),
-    color: paper.ink,
-    fontFamily: font.regular,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  // Same height as the grade row, so the card does not jump on the flip.
-  flipHint: { minHeight: HIT + 8, justifyContent: 'center' },
-});
+/** The finished sitting's heading: the artboards' 19 bold card title. */
+const type19 = bType.bold19;
+
+function makeStyles(t: B) {
+  return StyleSheet.create({
+    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    // A finished sitting: its heading, then its end card.
+    ending: { gap: space(4) },
+    // The free tier's held-back row: small, soft, under the card, never a banner.
+    held: { marginTop: space(4), gap: space(1), alignItems: 'flex-start' },
+    body: { gap: 18 },
+    centred: { textAlign: 'center' },
+    grow: { flex: 1, minWidth: 0 },
+    // The card (B-Review): white, radius 28, padding 22/20, the drawing tucked
+    // into its lower right corner.
+    card: { backgroundColor: t.card, borderRadius: 28, paddingVertical: 22, paddingHorizontal: 20, gap: 12, overflow: 'hidden' },
+    cardFront: { gap: 14, minHeight: 300 },
+    art: { position: 'absolute', right: -14, bottom: -12, opacity: 0.9 },
+    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space(2) },
+    tag: { backgroundColor: t.lavender, borderRadius: 12, paddingVertical: 4, paddingHorizontal: 10 },
+    from: { flexShrink: 1, textAlign: 'right' },
+    ask: { marginTop: 'auto', width: 190 },
+    // The answer panel (B-ReviewReveal): mint, radius 20, padding 14.
+    panel: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: t.mintWash },
+    panelWords: { flex: 1, minWidth: 0, gap: space(0.5) },
+    // The speaker: a 48 disc, white on the mint panel, lavender on the white card.
+    hear: { width: SPEAKER, height: SPEAKER, borderRadius: SPEAKER / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: t.card },
+    hearOnCard: { backgroundColor: t.lavender },
+    alsoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space(0.5) },
+    // "You said it": the white note under the card, radius 20, padding 12/16.
+    yours: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, gap: space(0.5) },
+    foot: { gap: 8 },
+    grades: { flexDirection: 'row', gap: 8, marginTop: space(0.5) },
+    grade: { flex: 1, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    again: { backgroundColor: t.quiet },
+    good: { backgroundColor: t.sun },
+    easy: { backgroundColor: t.mint },
+    // "I said it": the 56 primary, words only. 2026-10-21 UI-008, founder: no mic
+    // glyph, because nothing records and a learner should never think it does.
+    // "Type it": the 50 white button.
+    said: { height: 56, borderRadius: 28, backgroundColor: t.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    typeIt: { height: 50, borderRadius: 25, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    off: { opacity: 0.45 },
+    // The text field, opened by the first "Type it". Type styles minus
+    // lineHeight, which clips a single-line TextInput on iOS.
+    input: {
+      minHeight: HIT + 8,
+      backgroundColor: t.card,
+      borderRadius: 16,
+      paddingHorizontal: space(4),
+      paddingVertical: space(3),
+      color: t.text,
+      fontFamily: font.regular,
+      fontSize: 16,
+      textAlign: 'center',
+    },
+  });
+}

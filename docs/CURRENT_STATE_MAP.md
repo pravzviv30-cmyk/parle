@@ -33,10 +33,92 @@
 ## Current presentation and preview
 
 `index.ts` registers `App.tsx`; `nav/RootNavigator.tsx` is the only app navigator.
-The four tab routes are Home, Tutor, Practice and MyFrench, displayed as Home,
-Speak, Practice and Progress. Profile is a pushed screen reached from the profile
+The five tab routes are Home, Explore, Tutor, Practice and MyFrench, displayed as
+Today, Explore, Speak, Practice and Journey (direction B, A3, 20 October 2026).
+Explore (`tabs/ExploreTab.tsx`) is the catalogue front door ported from Codex
+commit ce1fa976: topic tiles, conversation ideas from learning preferences,
+skill and practical collections, search over scenarios, missions and phrases,
+and rows to the word library and to Journey. Each collection or scenario opens
+the `ExploreCollection` stack screen (`main/ExploreCollectionScreen.tsx`,
+address `explore/:id`). Its avatar opens Profile; the Codex Display sheet was
+not ported. Profile is a pushed screen reached from the profile
 button; Friends is an optional stack route inside Profile. Revamp B and the
 video UX implementation use this same navigator.
+
+### Direction B tabs (Phase B, 20 October 2026)
+
+Each tab is layout over a plain view model (DESIGN.md composition rules,
+DECISIONS.md UI-007):
+
+- **Today** (`tabs/HomeTab.tsx`, `home/todayView.ts`): "Bonjour, Name.", the
+  stats row (`game/TodayHero.tsx`), the next scene (`home/MissionHero.tsx`),
+  today's three quests (`game/QuestsCard.tsx`), one fix to try (`oneFix`),
+  today's phrase, Coming up (`comingUp`, the latest remembered life event;
+  no countdown or checklist until Phase C; Not now lasts the app session) and
+  the week in French. Parts in `today/TodayParts.tsx`; dark-ready since
+  2026-10-20 (UI-008, artboard B-Today).
+- **Explore** (`tabs/ExploreTab.tsx`, `main/exploreView.ts`): four filter chips,
+  Prepare for something real, topic tiles and situations; a situation opens
+  the scene preview. Drawn from `explore/ExploreParts.tsx` with art and badges
+  from `main/exploreArt.ts`; Explore and ScenePreview follow dark mode
+  (`nav/darkReady.ts`, UI-008, 2026-10-20).
+- **Speak** (`tabs/TutorTab.tsx`, `tutor/speakTabView.ts`): Recommended, the
+  stage's starter scenes, "Same scene, a bit less help", Talk about anything
+  (chips from remembered interests and life events, else the learner's
+  suggestions, then "Your own topic"), the tutor row, three tiles and the
+  minutes band. Rebuilt to B-Speak in light and dark (UI-008, 2026-10-20);
+  Revisit a conversation left Speak (Conversations is on Journey and Settings).
+- **Practice** (`tabs/PracticeTab.tsx`, `practice/practiceTabView.ts`,
+  `practice/useLibraryData.ts`): the learner's conversations, saved phrases
+  and the sound guide, with search and "Comes up often" (authored patterns
+  only, never a count); Your fixes (`practice/FixesScreen.tsx`) also shows it.
+  Both rebuilt to their artboards in light and dark (2026-10-21, UI-008).
+- **Journey** (`tabs/MyFrenchTab.tsx`, `journey/journeyView.ts`): the level
+  head, five stages, abilities, Then and now, used French, help in words,
+  sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
+  (shared with Then and now); Journey and Then and now are dark-ready since
+  2026-10-21 (UI-008), with the Badges sheet pinned light.
+- **Review and Drill** (`ReviewScreen.tsx`, `DrillScreen.tsx`): rebuilt to
+  B-Review, B-ReviewReveal and B-Drill in light and dark (2026-10-21, UI-008).
+  Review names the source conversation (`review/context.ts`) and shows "Also
+  fine:" from the drill bank's accepted French (`review/alsoFine.ts`); its
+  count and grade intervals stay held. Empty states share
+  `empty/EmptyStateCard.tsx`; Speak draws the away and out-of-time cards
+  (`empty/emptyStates.ts`).
+- **Live room and the end of a conversation** (`live/C2LiveRoom.tsx`,
+  `RecapScreen.tsx`): rebuilt to B-Live, B-LiveHelp, B-AfterSession,
+  B-Celebrate and B-Recap (2026-10-21, UI-008). The room shows the scene's own
+  pace, the goals strip from `visibleMissionTasks` and the help ladder over the
+  live rung (`live/liveRoomView.ts`); the recap pages run After a session, the
+  Celebration, the Recap, then sound and next (`recap/pages.ts`,
+  `recap/afterSessionView.ts`). The goals reach the Recap passed through from
+  the room, with no new storage. The Convo and Lesson routes follow the device
+  since 2026-10-21 (UI-008 step 12b): their waiting, error, safety, recap and
+  lesson screens read the tokens, and the room keeps its blue in both themes.
+- **Streak, Profile and Settings** (`game/StreakScreen.tsx`,
+  `tabs/ProfileTab.tsx`, `settings/SettingsScreen.tsx`): rebuilt to B-Streak,
+  B-Profile and B-Settings in light and dark (2026-10-21, UI-008). Streak shows
+  the freeze card ("Free with every account" on the free plan, the trial pill
+  for a second freeze and repair), the next milestone with "n of 7 days" (no
+  reward line), the month, and the Evening nudge: the daily reminder's switch
+  (`settings/useEveningNudge.ts`, `settings/streakNudge.ts`). Profile has the
+  stats card, the plan card (what Free includes, See plans to the Wall), the
+  Learning, Your French and More groups, and the tab bar with no tab selected
+  (`DetachedTabBar` in `nav/LuvaniTabBar.tsx`). Settings follows the artboard's
+  groups, adds Practice (speaking target, correction style, the simpler-speech
+  and Prefer typing switches over Learning preferences' stores), the free band
+  row, and the Appearance row opening the Display choice. The shared grouped
+  rows draw the B row only under `<SettingsAppearance b>`; Learning
+  preferences and Subscription keep the P2 row and follow the device since
+  2026-10-21 (UI-008 step 12b), with every other signed-in route except the
+  first scene.
+
+Three stack routes were added in `nav/RootNavigator.tsx` and `nav/types.ts`:
+`ScenePreview` (`scenes/ScenePreviewScreen.tsx`, by mission or daily scene id),
+`Fixes` (`practice/FixesScreen.tsx`, attempt before reveal) and `ThenNow`
+(`journey/ThenNowScreen.tsx`). Lock badges read `access/featureAccess.ts`,
+which mirrors `purchases/featureLocks.ts`; `access/useFeatureAccess.ts` is the
+reactive hook that opens the Wall.
 
 ### Free tier and locks (20 October 2026, D23 and D24)
 

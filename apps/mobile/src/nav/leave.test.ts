@@ -153,7 +153,9 @@ describe('leaving a pushed screen closes it — F775', () => {
 
     // Every way out of a sitting is this one.
     const navigator = flat('./RootNavigator.tsx');
-    assert.match(navigator, /import \{ backOrTabs, type LeavingNav \} from '\.\/leave\.ts';/, 'the navigator does not leave through leave.ts');
+    // 2026-10-21 UI-008, artboard B-Celebrate: "See your journey" leaves through tabsAlone too.
+    assert.match(navigator, /import \{ backOrTabs, tabsAlone, type LeavingNav \} from '\.\/leave\.ts';/, 'the navigator does not leave through leave.ts');
+    assert.match(navigator, /onJourney=\{\(\) => nav\.reset\(tabsAlone\('MyFrench'\)\)\}/, 'See your journey does not open the Journey tab');
     assert.doesNotMatch(navigator, /function backOrTabs\(/, 'the navigator keeps an exit of its own');
     assert.match(navigator, /onDone=\{\(\) => backOrTabs\(nav, practice !== undefined \? 'Practice' : undefined\)\}/, 'the drill leaves some other way');
     for (const [from, to] of [

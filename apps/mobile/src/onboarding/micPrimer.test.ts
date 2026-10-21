@@ -106,9 +106,10 @@ describe('the first scene opens with a microphone primer', () => {
     assert.doesNotMatch(screen, /SceneBrief/, 'the first scene is still a card on paper');
     assert.match(screen, /\{PRIMER_META\(persona\.name\)\}/, 'the brief does not say whose scene it is');
     assert.match(screen, /const persona = tutorPersonaOf\(useProfile\(\)\.profile\)/, 'the brief names a tutor the learner did not choose');
-    assert.match(screen, /accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, textAlign: 'center' \}\]\}>\{mission\.titleEn\}<\/Text>/, 'the English outcome is not a centred accessible headline');
+    // 2026-10-21 UI-008, artboard B-OB-FirstScene: the headline and French title sit left on the sun band (st.bandTitle, st.bandFrench).
+    assert.match(screen, /accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, textAlign: 'center' \}, st\.bandTitle\]\}>\{mission\.titleEn\}<\/Text>/, 'the English outcome is not an accessible headline');
     assert.match(screen, /<Text \{\.\.\.frenchText\}[^\n]*>\{mission\.title\}<\/Text>/, 'the French scene title is missing');
-    assert.match(screen, /style=\{\[type\.heading, \{ color: paper\.ink, textAlign: 'center' \}\]\}>\{mission\.title\}/, 'the French title must remain legible and centred');
+    assert.match(screen, /style=\{\[type\.heading, \{ color: paper\.ink, textAlign: 'center' \}, st\.bandFrench\]\}>\{mission\.title\}/, 'the French title must remain legible');
     assert.match(screen, /\{canDoSentence\(mission\.canDoEn\)\}/, 'the can-do is not one sentence');
     assert.match(screen, /mission\.referencePhrases\.slice\(0, 3\)/, 'the brief shows other than the first three lines');
     assert.match(screen, /<Label>One line to try<\/Label>/, 'the brief lacks a first usable line');

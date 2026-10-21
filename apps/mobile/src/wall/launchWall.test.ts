@@ -59,7 +59,8 @@ function rig(opts: { status?: BillingStatus | null | Error; plans?: boolean; awa
 
 describe('the launch wall rules', () => {
   test('only a tab root inside Tabs is somewhere the wall may open over', () => {
-    assert.deepEqual([...TAB_ROOTS], ['Home', 'Tutor', 'Practice', 'MyFrench']);
+    // 2026-10-20, lock seam wiring: direction B's Explore tab is a root the wall opens over.
+    assert.deepEqual([...TAB_ROOTS], ['Home', 'Explore', 'Tutor', 'Practice', 'MyFrench']);
     for (const name of TAB_ROOTS) assert.equal(tabRootVisible({ name }), true);
     for (const name of [...BLOCKED, 'Tabs', 'Settings', '']) assert.equal(tabRootVisible({ name }), false, `${name || 'unnamed'} counted as a tab root`);
     assert.equal(tabRootVisible(undefined), false);

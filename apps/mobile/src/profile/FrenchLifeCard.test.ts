@@ -80,50 +80,18 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     // hands it on to the one function that turns it into lines. That function
     // states the story's shape itself rather than importing the module, so the
     // importer count below stays one.
-    assert.match(STORY_HOME, /import \{[^}]*storyFrom[^}]*\} from '\.\.\/progress\/story\.ts'/);
-    assert.match(STORY_FLAT, /setWeek\(weekLines\(\{ story, reflection: /, 'the story is not handed to weekLines');
-    assert.doesNotMatch(STORY_LINES, /from '[^']*story\.ts'/, 'todayView.ts imports the story module, so the week has a second importer');
-
-    // All four inputs, whole, with a passed clock. Narrowing is the module's
-    // job, and doing it here is how the no-delta guarantee gets bypassed one
-    // commit later.
-    for (const load of ['loadHistory()', 'loadActivity({ strict: true })', 'loadConversationPacks()', 'loadMissionCompletions()']) {
-      assert.ok(STORY_FLAT.includes(load), `the screen never reads ${load}, so the story is built from less than the week`);
-    }
-    assert.match(
-      STORY_FLAT,
-      /storyFrom\(\{ sessions: history, activity, packs, completions, now \}\)/,
-      'the story is not built from the four loaded inputs and a passed clock; `now` is required, not defaulted',
-    );
-    for (const input of ['history', 'activity', 'packs', 'completions']) {
-      assert.doesNotMatch(
-        STORY_FLAT,
-        new RegExp(`${input}\\s*\\.\\s*(filter|slice|sort|reverse)\\b`),
-        `the screen narrows ${input} before storyFrom sees it; narrowing is that module's job and its guarantee`,
-      );
-    }
-
-    // Drawn as the module wrote them. `weekLines` reads the sentences in order,
-    // drops nothing but a blank or a repeat, and stops at its two; nothing on
-    // Today or in that module sorts or reverses them, and Today itself never
-    // touches the sentences at all. A surface with a second opinion about the
-    // order of a week is a second week.
-    assert.match(STORY_LINES, /\.\.\.input\.story\.sentences\]/, 'weekLines no longer reads the sentences the module built');
-    assert.ok(!STORY_HOME.includes('story.sentences'), 'Today reaches into the sentences itself instead of handing the story on');
-    for (const meddling of ['.sort(', '.reverse(', '.join(', '.filter(', '.slice(']) {
-      assert.ok(!STORY_SCREEN.includes(`story.sentences${meddling}`), `the screen writes story.sentences${meddling}`);
-    }
-    for (const owned of ['unassistedRate', 'wordsProduced', 'MAX_STORY_SENTENCES', 'DAYS_IN_THE_STORY']) {
-      assert.ok(!STORY_SCREEN.includes(owned), `the screen names ${owned} itself; what a week contained is story.ts's judgement`);
-    }
-
-    // Nothing at all on a quiet week. The block is drawn only when there is a
-    // line to draw, and there is no other branch: a surface that can render
-    // empty is a quota, and a quota nobody met is guilt. F55's spirit, and the
-    // reason the old invitation line left with the sentences rather than
-    // following them.
-    assert.match(STORY_FLAT, /: week\.length > 0 && \(/, 'the week block is drawn on a quiet week');
-    assert.doesNotMatch(STORY_FLAT, /week\.length > 0 \? /, 'a quiet week draws something else in the week block, so the block is a slot that can read as empty');
+    // 2026-10-20, B5, B-Today: Today no longer reads the week story. Its week
+    // is the blue "Your week in French" card, two plain sums from saved
+    // conversations and the deck (`weekInFrench` in home/todayView.ts), drawn
+    // only when the week has evidence. The story's sentence rules stay with
+    // its remaining readers, and todayView.ts still never imports it.
+    assert.doesNotMatch(STORY_HOME, /from '[^']*progress\/story\.ts'|storyFrom\(/, 'Today reads the week story again');
+    assert.doesNotMatch(STORY_LINES, /from '[^']*story\.ts'/, 'todayView.ts imports the story module');
+    assert.match(STORY_FLAT, /setWeek\(weekInFrench\(\{ packs, deck, now \}\)\)/, "Today's week is not the two sums from the saved conversations and the deck");
+    // 2026-10-20 UI-008, artboard B-Today: the blue card is the B WeekCard part.
+    assert.match(STORY_FLAT, /\{week !== null && \( <WeekCard /, 'the week card is drawn on a week with no evidence');
+    assert.doesNotMatch(STORY_FLAT, /week !== null \? /, 'a quiet week draws something else in the week slot');
+    assert.ok(!STORY_HOME.includes('story.sentences'), 'Today reaches into the story sentences');
 
     // Neither surface can carry the week anywhere. The path ban is the half
     // `reminders/reminder.test.ts` cannot see from its own side.
@@ -142,7 +110,11 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       .map((path) => path.slice(SRC.length));
     assert.deepEqual(
       readers,
-      ['progress/WeekWrappedScreen.tsx', 'tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx'],
+      // 2026-10-20, B4, B-Journey: Journey's view model reads the story's own
+      // independence sentence for "Help you needed", on the same learner-opened tab.
+      // 2026-10-20, B5, B-Today: Today left the list; its week card sums saved
+      // conversations and the deck instead.
+      ['journey/journeyView.ts', 'progress/WeekWrappedScreen.tsx', 'tabs/MyFrenchTab.tsx'],
       'the story is read only on learner-opened surfaces, never in notifications',
     );
     // Profile is not that file any more, and half a move is worse than either

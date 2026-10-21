@@ -40,7 +40,8 @@ function at(marker: string): number {
 
 describe('the recap is a keepsake', () => {
   test('it reads your lines, one phrase kept, one sound, then "Next time", then the reminder offer', () => {
-    assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.lines}'), 'the kept phrase comes before the learner\'s own lines');
+    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the Recap reads your lines, then the phrase kept.
+    assert.ok(at('{KEEPSAKE_COPY.lines}') < at('<KeptPhraseCard'), 'the learner\'s own lines no longer lead the Recap');
     assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
     assert.ok(at('{KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
     // The offer is the one shared ask now (Come alive Phase 4); its own pins
@@ -51,12 +52,14 @@ describe('the recap is a keepsake', () => {
     assert.ok(at('footer={') < at('expanded: more'), 'Finish stays pinned outside the More content');
 
     // Each piece is the model's, not the screen's.
-    assert.match(code, /lines\.map\(\(line\) =>/, 'the learner\'s lines are not drawn from the lines they said');
+    assert.match(code, /lines\.map\(\(line, index\) =>/, 'the learner\'s lines are not drawn from the lines they said');
     assert.match(convo, /lines=\{keepsakeLines\(live\.turns\)\}/, 'the conversation does not hand the recap the lines the learner said');
     assert.match(code, /const nextTime = context === null \? null : nextTimeLine\(context\.progress\);/, '"Next time" is not the spine\'s next scene');
     assert.match(code, /const keptPhrase = closureFromRecap\(recap, null\)\.phrases\[0\] \?\? null/, 'the kept phrase can change under a save already started');
-    // The kept phrase is the screen's one highlighter mark.
-    assert.equal((readFileSync(new URL('./recap/KeptPhraseCard.tsx', import.meta.url), 'utf8').match(/<Highlight\b/g) ?? []).length, 1, 'the recap draws more or less than one highlighter');
+    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the kept phrase is the Recap's one sun card (the hero ground), not a highlighter.
+    const kept = readFileSync(new URL('./recap/KeptPhraseCard.tsx', import.meta.url), 'utf8');
+    assert.equal((kept.match(/backgroundColor: t\.heroGround/g) ?? []).length, 1, 'the kept phrase is not the one sun card');
+    assert.equal((code.match(/heroGround/g) ?? []).length, 0, 'the recap draws a second sun card of its own');
     // Every block appears only once it has something true to show.
     assert.match(render, /\{lines\.length > 0 && \(/, 'an empty "Your lines" block is drawn');
     assert.match(render, /\{nextTime !== null && /, '"Next time" is drawn with nothing to name');
@@ -106,10 +109,16 @@ describe('the conversation closes with something useful', () => {
   });
 
   test('practice is the recommended next action and finishing stays available', () => {
-    assert.match(screen, /<IconAction layout="inline" icon="microphone"\s+label="Practise this phrase"/);
-    assert.match(code, /nextPage === null && canPractise\s*\? <PillButton[\s\S]*?: <PillButton/, 'the two exclusive primary states are not one practice-or-next choice');
-    assert.match(screen, /nextPage === null \? 'Finish conversation' : 'Next'/);
-    assert.match(screen, /accessibilityLabel="Finish conversation" onPress=\{onDone\}/);
+    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the B buttons: Continue on the blue pages, Next, then Finish.
+    assert.match(screen, /<BButton label="Practise this phrase" accessibilityLabel=\{`Practise \$\{keptPhrase\.fr\}`\}/);
+    assert.match(code, /nextPage === null && canPractise\s*\? <BButton[\s\S]*?: <BButton/, 'the two exclusive primary states are not one practice-or-next choice');
+    assert.match(screen, /const finishLabel = nextPage === null \? 'Finish' : blue \? 'Continue' : 'Next';/);
+    assert.match(screen, /accessibilityLabel=\{nextPage === null \? 'Finish conversation' : finishLabel\}/);
+    assert.match(screen, /label="Finish conversation" onPress=\{onDone\}/);
+    // "See your journey" leaves the room for the Journey tab; "Practise these lines, free" opens the drill.
+    assert.match(screen, /accessibilityLabel="See your journey" onPress=\{onSeeJourney\}/);
+    assert.match(convo, /onSeeJourney=\{onJourney === undefined \? undefined : \(\) => leaveTo\(onJourney\)\}/);
+    assert.match(screen, /accessibilityLabel="Practise these lines, free" onPress=\{\(\) => onPractice\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\)\}/);
     assert.match(screen, /currentPage === 'lines' &&/);
     assert.match(screen, /nextPage === null \? onDone\(\) : setPage/);
     assert.match(convo, /leaveTo\(\(\) => onPractice\(phrase\)\)/);
@@ -190,9 +199,10 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     assert.match(convo, /setIndependentFinish\(earnedFinish\(step\.record\)\);/, 'the conversation never says whether this finish was on the learner\'s own');
     assert.match(convo, /independentFinish=\{win\.seen && independentFinish\}/, 'a finish from another session reaches the recap');
     assert.match(code, /const stamp = postcardStamp\(\{ independent: independentFinish, firstEarned \}\);/);
+    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the postcard tile (cafe-table on peach) is what the stamp lands on.
     assert.match(
       render,
-      /\{stamp !== null\s*\? <PostcardStamp art=\{postcardIllustration\(mission\.id\)\} kind=\{stamp\} momentKey=\{momentKey\} \/>\s*: <Illustration name=\{postcardIllustration\(mission\.id\)\} \/>\}/,
+      /tile=\{stamp !== null\s*\? <PostcardStamp art=\{postcardIllustration\(mission\.id\)\} kind=\{stamp\} momentKey=\{momentKey\}><PostcardTile \/><\/PostcardStamp>\s*: <PostcardTile \/>\}/,
       'the stamp plays without an independent finish, or an assisted finish lost its postcard',
     );
     assert.match(render, /\{postcardLine\(stamp\)\}/);
@@ -215,11 +225,15 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     assert.match(code, /const moment = useRecapMoment\(\{ key: momentKey, plays: scene\.plays \}\);/);
     assert.match(render, /<ResultArt moment=\{moment\} burst=\{scene\.burst\}/, 'the result page has no moment around its drawing');
     assert.match(code, /const strip = progressStripView\(delta\);/, 'the strip is not drawn from the settled delta');
-    assert.match(render, /\{strip !== null && moment\.reached\('strip'\) \? <ProgressStrip view=\{strip\} final=\{moment\.final\} \/> : null\}/);
+    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the strip is the three stat tiles, still on the moment's beat.
+    assert.match(render, /\{strip !== null && moment\.reached\('strip'\) \? <StatTiles tiles=\{stats\} \/> : strip === null \? <StatTiles tiles=\{stats\} \/> : null\}/);
+    assert.match(code, /afterSessionStats\(\{ activeSec, phrases: recap\.phrases\.length, xp: strip\?\.xp\?\.value \?\? null \}\)/);
     assert.match(convo, /\}\)\.then\(setConvoDelta\);/, 'the conversation drops what the settle read back');
     assert.match(convo, /delta=\{convoDelta\}/);
     // The lines count up to the number said, once, and are read out once at that number.
-    assert.match(render, /<CountUp from=\{linesShown\.current \? lines\.length : 0\} to=\{lines\.length\} label=\{`\$\{lines\.length\} \$\{linesUnit\}`\}/);
+    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the Recap lists the lines with the tutor's voice for each, and no count-up.
+    assert.match(render, /<LineRow key=\{line\} line=\{line\} last=\{index === lines\.length - 1\} onHear=\{\(\) => hear\(line\)\} \/>/);
+    assert.doesNotMatch(render, /<CountUp\b/);
     // XP is never worked out on this screen.
     assert.doesNotMatch(code, /conversationXp\(|xpCreditedFor\(|totalXp\(/, 'the recap computes XP itself');
   });

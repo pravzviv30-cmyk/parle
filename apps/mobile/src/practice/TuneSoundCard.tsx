@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { IconAction, IconButton, Card, GhostButton, Label } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
+import { useThemedStyles, type B } from '../main/bTheme.tsx';
 import { MouthGuide } from './MouthGuide.tsx';
 import { SOUND_LEAD, type SoundLead } from './soundLead.ts';
 
@@ -26,6 +27,7 @@ export function TuneSoundCard({
 }) {
   const { measured, native } = lead;
   const [details, setDetails] = useState(false);
+  const st = useThemedStyles(makeStyles);
   return (
     <Card style={st.card}>
       <Label>{measured === null ? SOUND_LEAD.starterLabel : SOUND_LEAD.measuredLabel}</Label>
@@ -61,12 +63,13 @@ export function TuneSoundCard({
   );
 }
 
-const st = StyleSheet.create({
+// 2026-10-21 UI-008: theme tokens, so the card reads in dark; b.light equals the old paper values.
+const makeStyles = (t: B) => StyleSheet.create({
   card: { gap: space(3) },
-  cue: { ...type.body, color: paper.ink },
-  quiet: { ...type.small, color: paper.inkSoft },
-  word: { ...type.frenchLg, color: paper.ink },
-  fact: { ...type.small, color: paper.ink },
-  line: { ...type.frenchSm, color: paper.ink },
+  cue: { ...type.body, color: t.text },
+  quiet: { ...type.small, color: t.muted },
+  word: { ...type.frenchLg, color: t.text },
+  fact: { ...type.small, color: t.text },
+  line: { ...type.frenchSm, color: t.text },
   group: { gap: space(1) },
 });

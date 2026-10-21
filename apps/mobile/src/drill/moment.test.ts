@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
+import { momentShown } from './momentShown.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -21,7 +22,11 @@ describe('the moment a replay drill replays (F556)', () => {
     assert.ok(nodeProp.length > 0, 'the drill screen no longer declares a node prop; this test is reading the wrong thing');
     assert.match(nodeProp, /id: string; title: string; phraseKeys: readonly string\[\];/, 'the drill screen does not accept a node');
     assert.match(nodeProp, /moment\?: DrillMoment;/, 'the drill screen does not accept the moment');
-    const drawn = screen.indexOf("{node?.moment !== undefined && <MomentCard moment={node.moment} />}");
+    // 2026-10-20 UI-008, artboard B-Today: a node may ask for the moment only
+    // after the first answer (`afterTry`), so Today's fix stays attempt first.
+    const drawn = screen.indexOf("{node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) && <MomentCard moment={node.moment} />}");
+    assert.match(nodeProp, /afterTry\?: boolean;/, 'the drill screen cannot hold the moment back until a try');
+    assert.match(routes, /afterTry\?: boolean \}/, 'the drill route cannot ask for the moment after a try');
     const exercise = screen.indexOf("{exercise.kind === 'fill-blank' && (");
     assert.ok(drawn > 0, 'the drill screen never draws the moment');
     assert.ok(drawn < exercise, 'the moment is drawn somewhere other than above the exercise');
@@ -36,10 +41,25 @@ describe('the moment a replay drill replays (F556)', () => {
     assert.match(card, /tutorVoice\.speak\(moment\.better\)/, 'the better way cannot be heard');
     assert.match(card, /accessibilityLabel=\{`Hear \$\{moment\.better\}`\}/, 'the speaker does not say what it will play');
     assert.match(card, /<SpeakerGlyph\b/, 'the speaker is not drawn with the one speaker mark');
-    // And the replay card opens the drill on the better line's key with the moment along.
-    const tab = read('../tabs/PracticeTab.tsx').replace(/\s+/g, ' ');
-    assert.match(tab, /id: `replay:\$\{made\.value!\.replay!\.packId\}`/, 'the replay opens a node the marks cannot name');
-    assert.match(tab, /phraseKeys: \[made\.value!\.replay!\.key\]/, 'the replay opens on something other than the better line');
-    assert.match(tab, /moment: \{ quote: made\.value!\.replay!\.quote, better: made\.value!\.replay!\.better, why: made\.value!\.replay!\.why \}/, 'the replay drill opens without the moment');
+    // 2026-10-20, B3, B-Practice: the replay left Practice for Your fixes.
+    // There a fix's first try opens the drill on the better line's key with
+    // NO moment, because the moment card shows the better line above the
+    // exercise; only "Say it once more", after the comparison is on screen,
+    // carries the moment along.
+    const fixes = read('../practice/fixesView.ts').replace(/\s+/g, ' ');
+    const attempt = fixes.slice(fixes.indexOf('function attemptRoute('), fixes.indexOf('/** After a try'));
+    const again = fixes.slice(fixes.indexOf('function againRoute('), fixes.indexOf('export function fixRows('));
+    assert.match(attempt, /id: `fix:\$\{fix\.packId\}:\$\{fix\.key\}`/, 'a fix opens a node the marks cannot name');
+    assert.match(attempt, /phraseKeys: \[fix\.key\]/, 'a fix opens on something other than the better line');
+    assert.doesNotMatch(attempt, /moment/, 'a fix\'s first try shows the better line before the attempt');
+    assert.match(again, /moment: \{ quote, better, why \}/, 'saying a tried fix once more drops the moment');
   });
+});
+
+// 2026-10-20 UI-008, artboard B-Today (learning-science review): attempt first.
+test('an afterTry moment stays hidden before the first answer and shows after it', () => {
+  assert.equal(momentShown({ afterTry: true, answering: false, answered: 0 }), false, 'the comparison is shown before the try');
+  assert.equal(momentShown({ afterTry: true, answering: true, answered: 0 }), true);
+  assert.equal(momentShown({ afterTry: true, answering: false, answered: 1 }), true);
+  assert.equal(momentShown({ answering: false, answered: 0 }), true, 'a replay that asked for the moment up front lost it');
 });

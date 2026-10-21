@@ -73,6 +73,19 @@ export function seedFor(kind: RealMomentKind, detail: string): { fr: string; en:
   return { fr: kind.fr, en: fitted.length === 0 ? kind.en : `${kind.en}${JOIN}${fitted}` };
 }
 
+/**
+ * What the screen opens on when Explore hands it words (B1, 2026-10-20). The
+ * typed line lands in "Something else", because Explore asked what is coming
+ * up rather than which kind it is, cut to what fits beside that kind. No
+ * words, no choice: the screen opens empty as before. Nothing is stored.
+ */
+export function prefillFor(detail: unknown): { key: RealMomentKey | null; detail: string } {
+  const text = typeof detail === 'string' ? detail.trim() : '';
+  if (text.length === 0) return { key: null, detail: '' };
+  const other = kindOf('other')!;
+  return { key: 'other', detail: fitDetail(other, text) };
+}
+
 export const REAL_MOMENT_TITLE = 'Prepare for a real moment';
 export const REAL_MOMENT_SUB = 'Something coming up? Rehearse it in French with your tutor, at your own pace.';
 export const DETAIL_LABEL = 'What do you need to say? (optional)';

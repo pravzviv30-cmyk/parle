@@ -9,10 +9,12 @@ export function recapPages(content: {
   ability: boolean;
   next: boolean;
 }): readonly RecapPage[] {
+  // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate, B-Recap: the
+  // canvas order. After a session, then the ability earned, then the Recap.
   const pages: RecapPage[] = ['result'];
+  if (content.ability) pages.push('ability');
   if (content.lines || content.phrase || content.repair) pages.push('lines');
   if (content.sound) pages.push('sound');
-  if (content.ability) pages.push('ability');
   if (content.next) pages.push('next');
   return pages;
 }

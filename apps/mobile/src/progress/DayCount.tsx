@@ -3,7 +3,8 @@ import { Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../auth/useAuth.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 import { loadActiveDays } from './activity.ts';
 import { IconAction } from '../components.tsx';
 import { lifetimeDayLine, weeklyDayLine } from './dayCount.ts';
@@ -15,6 +16,8 @@ import { lifetimeDayLine, weeklyDayLine } from './dayCount.ts';
  */
 export function DayCount({ weekly = false }: { weekly?: boolean }) {
   const { user } = useAuth();
+  // 2026-10-21 UI-008: the line's ink is the theme's (b.light.text is paper.ink).
+  const t = useB();
   const [value, setValue] = useState<{ owner: number; line: string | null } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -30,7 +33,7 @@ export function DayCount({ weekly = false }: { weekly?: boolean }) {
     }).catch(() => { if (!cancelled && owner === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
   }, [user?.id, weekly, attempt]));
-  if (failed) return <View style={{ marginTop: space(4) }}><Text style={[type.small, { color: paper.ink }]}>Practice days could not be read just now.</Text><IconAction layout="inline" icon="refresh" label="Try loading practice days" onPress={() => setAttempt((n) => n + 1)} /></View>;
+  if (failed) return <View style={{ marginTop: space(4) }}><Text style={[type.small, { color: t.text }]}>Practice days could not be read just now.</Text><IconAction layout="inline" icon="refresh" label="Try loading practice days" onPress={() => setAttempt((n) => n + 1)} /></View>;
   if (value === null || value.owner !== scopeGeneration() || value.line === null) return null;
-  return <Text style={[type.small, { color: paper.ink, marginTop: space(4) }]}>{value.line}</Text>;
+  return <Text style={[type.small, { color: t.text, marginTop: space(4) }]}>{value.line}</Text>;
 }

@@ -175,17 +175,23 @@ describe('the two new routes are registered and addressable', () => {
 
 describe('the back button follows the appearance on the three P2 screens, opt-in only', () => {
   test('Settings, Learning preferences and Subscription opt in; the shared default is unchanged', () => {
-    for (const file of ['./SettingsScreen.tsx', './LearningPreferencesScreen.tsx', './SubscriptionScreen.tsx']) {
+    for (const file of ['./LearningPreferencesScreen.tsx', './SubscriptionScreen.tsx']) {
       const body = stripComments(read(file));
       assert.equal((body.match(/<ScreenHeader\b/g) ?? []).length, 1, `${file} has more than one way back`);
       assert.match(body, /backAppearance=\{\{ disc: colors\.surface, mark: colors\.text \}\}/, `${file} does not opt in`);
     }
+    // 2026-10-20 UI-008, artboard B-Settings: Settings draws the B back disc
+    // beside its title, which reads the theme itself, and still only one way back.
+    const settings = stripComments(read('./SettingsScreen.tsx'));
+    assert.equal((settings.match(/<ScreenHeader\b/g) ?? []).length, 0, 'Settings draws the old header as well as the B back disc');
+    assert.equal((settings.match(/<BackButton\b/g) ?? []).length, 1, 'Settings has no way back, or more than one');
     const layout = stripComments(read('../layout.tsx'));
     assert.match(layout, /accessibilityLabel=\{back\.label \?\? 'Back'\} disabled=\{back\.disabled\} appearance=\{props\.backAppearance\}/);
     const components = stripComments(read('../components.tsx'));
     // Absent, the tone decides exactly as before: white disc, ink mark, 44pt.
-    assert.match(components, /const fill = appearance\?\.disc \?\? \(ground === 'white' \? paper\.card : ground === 'sun' \? colour\.sun : paper\.ink\);/);
-    assert.match(components, /const markColour = appearance\?\.mark \?\? \(ground === 'ink' \? paper\.onInk : paper\.ink\);/);
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(components, /const fill = appearance\?\.disc \?\? \(ground === 'white' \? t\.card : ground === 'sun' \? colour\.sun : paper\.ink\);/);
+    assert.match(components, /const markColour = appearance\?\.mark \?\? \(ground === 'ink' \? paper\.onInk : ground === 'white' \? t\.text : paper\.ink\);/);
     assert.match(components, /const disc = next \? HIT \+ space\(5\) : HIT;/);
     // Nobody else opts in yet (F846 tracks adopting it app-wide).
     const users = ['../tabs/ProfileTab.tsx', '../profile/TutorMemoryScreen.tsx'].filter((f) => read(f).includes('backAppearance'));

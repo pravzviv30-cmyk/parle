@@ -38,7 +38,7 @@ import { type ConversationPack, type ReviewCard } from '@luvani/core';
 import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, OutlineButton } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { accent, paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { loadDeck } from '../review/store.ts';
@@ -67,6 +67,7 @@ import { loadPackMarks, withMarks, type PackMark } from './marks.ts';
 import { useContinueArc } from '../purchases/useContinueArc.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { MY_FRENCH_RETRY } from '../myfrench/copy.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /** The archive could not be read. Said as itself, never as an empty archive. */
 export const CONVERSATIONS_UNREAD = 'Your conversations could not be loaded just now. They are all still saved.';
@@ -79,6 +80,8 @@ export function ConversationsScreen({
   /** Open straight onto this saved conversation, when it is here. */
   openPackId?: string;
 }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
 
@@ -276,13 +279,13 @@ export function ConversationsScreen({
 
       {(visibleArchive === null || remotePending && visiblePacks.length === 0) && !visibleUnread && (
         <View style={st.block}>
-          <ActivityIndicator color={paper.inkSoft} accessibilityLabel="Loading your conversations" />
+          <ActivityIndicator color={t.muted} accessibilityLabel="Loading your conversations" />
         </View>
       )}
 
       {visibleUnread && visiblePacks.length === 0 && (
         <Card style={st.block}>
-          <Text style={[type.body, { color: paper.ink }]}>{CONVERSATIONS_UNREAD}</Text>
+          <Text style={[type.body, { color: t.text }]}>{CONVERSATIONS_UNREAD}</Text>
           <View style={{ marginTop: space(3) }}>
             <OutlineButton
               label={MY_FRENCH_RETRY}
@@ -317,7 +320,7 @@ export function ConversationsScreen({
         <View style={st.block}>
           <View style={st.feedHead}>
             <View style={st.feedWords}>
-              <Label color={paper.ink}>{FEED.label}</Label>
+              <Label color={t.text}>{FEED.label}</Label>
             </View>
             {visibleArchive?.order != null && <Text style={st.order}>{visibleArchive.order}</Text>}
           </View>
@@ -347,7 +350,7 @@ export function ConversationsScreen({
         <View style={st.block}>
           <Ledger>
             <LedgerRow
-              glyph={<ChatGlyph color={accent.primary} />}
+              glyph={<ChatGlyph color={t.text} />}
               label={LIBRARY_LABEL}
               title={LIBRARY_LINE}
               accessibilityLabel={libraryDoorLabel()}
@@ -360,14 +363,16 @@ export function ConversationsScreen({
   );
 }
 
-const st = StyleSheet.create({
-  title: { ...type.display, color: paper.ink, marginTop: space(2) },
-  purpose: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
+function makeSt(t: B) {
+  return StyleSheet.create({
+  title: { ...type.display, color: t.text, marginTop: space(2) },
+  purpose: { ...type.body, color: t.muted, marginTop: space(2) },
   block: { marginTop: space(6) },
   feedHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   feedWords: { flex: 1, minWidth: 0 },
-  order: { ...type.small, color: paper.inkSoft },
+  order: { ...type.small, color: t.muted },
   feed: { marginTop: space(3), gap: space(3) },
-  openingTitle: { ...type.title, color: paper.ink },
-  openingBody: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
+  openingTitle: { ...type.title, color: t.text },
+  openingBody: { ...type.body, color: t.muted, marginTop: space(2) },
 });
+}

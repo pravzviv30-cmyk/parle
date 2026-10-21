@@ -30,10 +30,11 @@ import { practiceCard, type PracticeCard } from './practiceCard.ts';
 import { practiceRouteParams } from './practiceRoute.ts';
 import { homeMissionFrom, type HomeMission } from '../home/homeMission.ts';
 import { MissionHero } from '../home/MissionHero.tsx';
+import { buildsOn } from '../home/todayView.ts';
 import { LocalPracticeCard } from './LocalPracticeCard.tsx';
 import { DEMO_REPLY_ID } from '../onboarding/tutorLines.ts';
 
-/** One account-bound next action across Home, Speak and an empty Practice. */
+/** One account-bound next action, on Home (2026-10-20, lock seam wiring: direction B moved Speak and Practice off it). */
 export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
@@ -43,7 +44,7 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   const owner = scopeGeneration();
   const startingMissionId = profile.brain.cefr.estimate === 'A1' && profile.brain.cefr.confidence === 'low' && profile.brain.cefr.evidence.length === 0 ? 'mission:cafe' : undefined;
   const [billing, setBilling] = useState<HomeBilling | null>(null);
-  const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; offer: ReviewOffer; hero: HomeMission | null } | null>(null);
+  const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useFocusEffect(useCallback(() => {
@@ -65,7 +66,7 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
         const rec = recommendation({ resumable: resumableOf(saved, packs, bank), deck, bank, packs, now });
         const card = rec.kind === 'none' ? null : practiceCard({ rec, deck, packs, now, resuming: saved?.targets.map(t => t.phraseKey) ?? [] });
         const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex: levelFor(totalXp(activity)).index, startingMissionId, now });
-        setValue({ scope, card, offer: reviewOffer(deck, now), hero });
+        setValue({ scope, card, offer: reviewOffer(deck, now), hero, buildsOn: buildsOn(packs, hero) });
       }).catch(() => { if (!cancelled && scope === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
   }, [attempt, owner, startingMissionId]));
@@ -74,7 +75,11 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   };
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   if (value === null || value.scope !== scopeGeneration()) return <Text style={type.small}>Finding your next task…</Text>;
-  if (value.card !== null) {
+  // 2026-10-20 UI-008, artboard B-Today: Today (vivid) leads with the scene
+  // and never the blue "Your next practice" or "Ready for review" cards. A
+  // sitting to finish is Practice's "Pick up where you stopped"; due review
+  // is reached from Practice and the phrase bank.
+  if (value.card !== null && !vivid) {
     const card = value.card;
     return <ColourCard ground="blue">
       <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>Your next practice</Text>
@@ -87,7 +92,7 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   // Home offers only what Review will deal: a free learner's conversation
   // phrases wait for the trial, so the card falls through to the next free step.
   const review = offeredReview(value.offer, locks.access('conversationPractice'));
-  const kind = nextTaskKind({ kind: 'none', fallback: 'first' }, live, billing, review !== null);
+  const kind = nextTaskKind({ kind: 'none', fallback: 'first' }, live, billing, !vivid && review !== null);
   if (kind === 'review' && review !== null) return <ColourCard ground="blue">
     <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>Ready for review</Text>
     <Card><FrenchBlock french={review.front} /></Card>
@@ -95,5 +100,5 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
     <PillButton tone="white" label="Practise review" onPress={() => navigateOwned('Review')} />
   </ColourCard>;
   if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{plansLeadBody(billing)}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
-  return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} vivid={vivid} /> : <LocalPracticeCard vivid={vivid} />;
+  return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} vivid={vivid} buildsOn={vivid ? value.buildsOn : null} /> : <LocalPracticeCard vivid={vivid} />;
 }

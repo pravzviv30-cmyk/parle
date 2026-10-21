@@ -37,7 +37,8 @@ const TAB = stripComments(read('./ProfileTab.tsx'));
  * Asked of the whole file, "the tutor is above the week" would be answered by
  * two import lines and would pass on a tab that drew them the other way round.
  */
-const BODY = TAB.slice(TAB.lastIndexOf('  return ('));
+// 2026-10-20 UI-008: from the screen's own return (a hook below it also returns).
+const BODY = TAB.slice(TAB.indexOf('<SettingsAppearance b>'));
 const CARD = stripComments(read('../profile/TutorMemoryCard.tsx'));
 const SETTINGS = stripComments(read('../settings/SettingsScreen.tsx'));
 
@@ -71,52 +72,55 @@ const LEARNING = stripComments(read('../settings/LearningPreferencesScreen.tsx')
 
 describe('the tab that is a person — P2, 2026-10-19', () => {
   test('profile opens on the learner and draws its tutor as the orb, never a face', () => {
-    // ───────────────────────────────────── the title and the one way to Settings
-    assert.match(TAB, /<Text accessibilityRole="header" style=\{\[type\.title, st\.title, \{ color: colors\.text \}\]\}>\{PROFILE_TITLE\}<\/Text>/, 'the large title is not the module word at the title size');
-    assert.match(TAB, /onPress=\{\(\) => nav\.navigate\('Settings'\)\} accessibilityRole="button" accessibilityLabel=\{SETTINGS_ROW\}/, 'the gear does not lead to Settings, or is unnamed');
-    assert.match(TAB, /gear: \{ width: HIT, height: HIT/, 'the gear sits under the touch floor');
-    assert.ok(writtenBefore(BODY, '{PROFILE_TITLE}', '<SettingsGroup title={LEARNING_GROUP}>'), 'the title is not first');
+    // 2026-10-20 UI-008, artboard B-Profile. The page has no "Profile" title:
+    // the learner's name is its heading. Back and the gear lead the page, then
+    // the identity row, the stats card, the plan card and three groups.
+    const PARTS = stripComments(read('../settings/ProfileParts.tsx'));
+    assert.match(TAB, /<IconDisc onPress=\{\(\) => nav\.navigate\('Settings'\)\} label=\{SETTINGS_ROW\}/, 'the gear does not lead to Settings, or is unnamed');
+    assert.match(PARTS, /disc: \{ width: HIT, height: HIT/, 'the gear sits under the touch floor');
+    assert.match(PARTS, /<Text accessibilityRole="header" style=\{\[s\.name/, 'the learner name is not the page heading');
+    assert.ok(writtenBefore(BODY, '<IconDisc', '<Identity'), 'the gear is not first');
 
     // ───────────────────────────────────── the learner, by their own initial
-    //
-    // The disc is the learner's, drawn once (F337): sun with the initial in
-    // ink. The tutor beside it is the orb on the tutor row, never a face.
-    assert.equal((TAB.match(/\{initialOf\(profile\.name\)\}/g) ?? []).length, 1, 'the learner initial is drawn more than once, or not at all');
-    assert.match(TAB, /backgroundColor: colour\.sun/, 'the avatar is not the sun disc');
-    assert.match(TAB, /\{profile\.name \?\? NAME_UNSET\}/, 'the header says something other than the learner, or spells the fallback itself');
-    assert.match(TAB, /since !== null \? <Text/, 'the since line is drawn when the date is unknown');
+    assert.equal((TAB.match(/initialOf\(profile\.name\)/g) ?? []).length, 1, 'the learner initial is drawn more than once, or not at all');
+    assert.match(PARTS, /avatar: \{ width: 76, height: 76, borderRadius: 38, backgroundColor: t\.sun/, 'the avatar is not the 76pt sun disc');
+    assert.match(TAB, /name=\{profile\.name \?\? NAME_UNSET\}/, 'the header says something other than the learner, or spells the fallback itself');
+    assert.match(PARTS, /since !== null \? <Text/, 'the since line is drawn when the date is unknown');
     assert.ok(!TAB.includes('levelName'), 'the level line is back under the name, ranking somebody who came to change a setting');
     assert.doesNotMatch(TAB, /<HeaderArt/, 'art must not overlap the profile identity panel');
     assert.match(TAB, /setDraftName\(profile\.name \?\? ''\); setSheet\('name'\);/, 'Edit does not open the name sheet on the stored name');
-    assert.match(TAB, /edit: \{ minWidth: HIT, minHeight: HIT/, 'Edit sits under the touch floor');
+    assert.match(PARTS, /edit: \{ minHeight: HIT, minWidth: HIT/, 'Edit sits under the touch floor');
 
     // ─────────────────────────────── the tutor is the orb, never a face
-    assert.match(TAB, /<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>/, 'the tutor rows cannot open the voice sheet');
-    assert.match(CARD, /<TutorMark \/>/, 'the tutor is drawn as something other than the orb');
-    assert.ok(!CARD.includes('<Monogram'), 'the tutor is drawn as an initial, which is the learner mark saying the tutor is the learner');
-    for (const face of ['avatar', 'photo', 'Image', 'face']) {
-      assert.ok(!CARD.includes(face), `the tutor card draws a ${face}; the founder settled that there are no faces here`);
-    }
-    assert.equal((CARD.match(/<TutorRow\b/g) ?? []).length, 2, 'the tutor rows are not the two the founder drew');
-    assert.match(CARD, /accessibilityLabel=\{`\$\{title\}, \$\{gloss\}`\}/, 'a row reaches a screen reader as two unrelated lines');
-    assert.match(CARD, /accessibilityRole="button"/, 'a row that opens something does not say it is a button');
-    assert.match(CARD, /minHeight: HIT/, 'a row on the tutor card sits under the touch floor');
-    assert.match(CARD, /title=\{memoryLabel\(name\)\}/, 'the memory row spells the tutor name itself');
-    assert.match(CARD, /nav\.navigate\('TutorMemory'\)/, 'the memory row leads nowhere');
+    assert.match(TAB, /label=\{YOUR_TUTOR_ROW\} sub=\{tutor\} lead=\{<RowArt round size=\{40\}><BArt name="tutor-orb"/, 'the tutor is drawn as something other than the orb');
+    assert.match(TAB, /onPress=\{\(\) => setSheet\('tutorVoice'\)\}/, 'the tutor row cannot open the voice sheet');
+    assert.match(TAB, /label=\{memoryRowTitle\(tutor\)\}/, 'the memory row spells the tutor name itself');
+    assert.match(TAB, /tapThrough\(locks\.access, 'tutorMemory', locks\.open, \(\) => nav\.navigate\('TutorMemory'\)\)/, 'the memory row skips the lock seam, or leads nowhere');
+    assert.match(TAB, /badge=\{memoryLocked \? <LockBadge form="round" \/> : null\}/, 'the memory lock is not the seam\'s');
+    assert.match(TAB, /const memoryLocked = locks\.access\('tutorMemory'\) === 'locked';/);
+    assert.match(TAB, /const soundsLocked = locks\.access\('sounds'\) === 'locked';/);
 
-    // ─────────────────────────────────────── three groups, in the design's order
+    // ───────────────────────────── stats, plan, three groups, the tab bar
     for (const [first, second] of [
-      ['<SettingsGroup title={LEARNING_GROUP}>', '<SettingsGroup title={YOUR_FRENCH_GROUP}>'],
-      ['<SettingsGroup title={YOUR_FRENCH_GROUP}>', '<SettingsGroup title={PLAN_GROUP_TITLE}>'],
-      ['label={LEARNING_PREFERENCES_ROW}', '<TutorMemoryCard'],
+      ['<Identity', '<StatsCard'],
+      ['<StatsCard', '<PlanBanner'],
+      ['<PlanBanner', '<SettingsGroup first title={LEARNING_GROUP}>'],
+      ['<SettingsGroup first title={LEARNING_GROUP}>', '<SettingsGroup first title={YOUR_FRENCH_GROUP}>'],
+      ['<SettingsGroup first title={YOUR_FRENCH_GROUP}>', '<SettingsGroup first title={MORE_GROUP}>'],
+      ['</ScrollScreen>', '<DetachedTabBar onTab={openTab} />'],
     ] as const) {
       assert.ok(writtenBefore(BODY, first, second), `${first} is not drawn before ${second}`);
     }
+    assert.match(TAB, /stat\.route === 'Streak' \? nav\.navigate\('Streak'\) : openMyFrench\(\)/, 'the stats cells do not open Streak and Journey');
+    assert.match(TAB, /planView\.target === 'Wall' \? nav\.navigate\('Wall', \{ entry: 'settings' \}\) : nav\.navigate\('Subscription'\)/, 'See plans does not open the plans');
     assert.match(TAB, /label=\{LEARNING_PREFERENCES_ROW\} sub=\{preferences\} onPress=\{\(\) => nav\.navigate\('LearningPreferences'\)\}/);
-    assert.match(TAB, /label=\{PROGRESS_ROW\} sub=\{progress \?\? undefined\} onPress=\{\(\) => nav\.navigate\('Streak'\)\}/);
-    assert.match(TAB, /label=\{MY_FRENCH_ROW\} onPress=\{\(\) => openMyFrench\(\)\}/);
+    assert.match(TAB, /label=\{JOURNEY_ROW\} sub=\{JOURNEY_SUB\} onPress=\{\(\) => openMyFrench\(\)\}/);
+    assert.match(TAB, /label=\{SAVED_PHRASES_ROW\} sub=\{savedCount\(evidence\.saved\) \?\? undefined\} onPress=\{\(\) => nav\.navigate\('Phrasebook'\)\}/);
+    assert.match(TAB, /sub=\{soundsLine\(evidence\.soundJourney\) \?\? undefined\}/, 'the sounds line is not the journey\'s');
     assert.match(TAB, /label=\{FRIENDS_ROW\} sub=\{FRIENDS_SUB\} onPress=\{\(\) => nav\.navigate\('Friends'\)\}/, 'Friends was dropped from Profile');
-    assert.match(TAB, /label=\{planLine\.label\} sub=\{planLine\.sub\} onPress=\{\(\) => nav\.navigate\('Subscription'\)\}/, 'the plan row is not the module answer, or leads nowhere');
+    assert.match(TAB, /label=\{PRIVACY_ROW\} sub=\{PRIVACY_SUB\} onPress=\{\(\) => nav\.navigate\('Policy'\)\}/);
+    assert.match(TAB, /\{contact !== null && <SettingsRow label=\{HELP_FEEDBACK_ROW\}/, 'Help and feedback is drawn with no address behind it');
+    assert.match(stripComments(read('../nav/LuvaniTabBar.tsx')), /focused: false,/, 'the detached bar selects a tab');
     for (const spelled of ['Your tutor', 'Learning preferences', 'Your French', '>Plan<', '>Edit<']) {
       assert.ok(!TAB.includes(spelled), `Profile writes "${spelled}" in JSX, so the copy sweeps cannot read it`);
     }

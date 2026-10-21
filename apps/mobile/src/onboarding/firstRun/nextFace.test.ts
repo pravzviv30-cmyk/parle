@@ -67,10 +67,10 @@ describe('a disabled control says it is off — F758', () => {
     // through the motion door rather than its own clock.
     const next = evidence('apps/mobile/src/onboarding/NextButton.tsx');
     assert.match(next, /from '\.\/firstRun\/nextFace\.ts'/);
-    assert.match(next, /style=\{\[st\.surface, \{ minHeight: bold \? 52 : 56, borderRadius: bold \? 20 : radius\.control, backgroundColor: NEXT_OFF\.fill \}\]\}/, 'the Continue is not drawn on its off face');
+    assert.match(next, /style=\{\[st\.surface, \{ minHeight: PILL_HEIGHT, borderRadius: radius\.pill, backgroundColor: NEXT_OFF\.fill \}\]\}/, 'the Continue is not drawn on its off face');
     assert.match(next, /: face\(NEXT_OFF\.words\)\}/);
     assert.match(next, /face\(NEXT_OFF\.words, showDisabledHint \? disabledHint : label\)/, 'guidance must retain the disabled face colours');
-    assert.match(next, /<LiveFace live=\{!disabled\} style=\{\[st\.row,[^\n]*backgroundColor: bold \? c\.violet : NEXT_ON\.fill/, 'the live face no longer waits for an answer');
+    assert.match(next, /<LiveFace live=\{!disabled\} style=\{\[st\.row,[^\n]*backgroundColor: NEXT_ON\.fill/, 'the live face no longer waits for an answer');
     assert.match(next, /accessibilityState=\{\{ disabled \}\}/);
     assert.match(next, /accessibilityHint=\{disabled \? NEXT_OFF_HINT : undefined\}/);
     assert.match(next, /<Glint when=\{!disabled\}/, 'turning on no longer glints');
@@ -83,8 +83,9 @@ describe('a disabled control says it is off — F758', () => {
     const components = evidence('apps/mobile/src/components.tsx');
     const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('export function OutlineButton('));
     assert.match(pill, /disabled && \(tone === 'white' \? s\.pillDisabledOnColour : s\.pillDisabled\)/, 'an off white pill takes the ink pill\'s sand on blue or coral');
-    assert.match(pill, /color: disabled \? paper\.inkSoft :/, 'an off pill keeps live words');
-    assert.match(components, /pillDisabled: \{ backgroundColor: paper\.skeleton \}/);
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(pill, /color: disabled \? \(tone === 'white' \? paper\.inkSoft : t\.muted\) :/, 'an off pill keeps live words');
+    assert.match(components, /pillDisabled: \{ backgroundColor: t\.skeleton \}/);
     assert.match(components, /pillDisabledOnColour: \{ backgroundColor: onColour\.blue \}/);
   });
 

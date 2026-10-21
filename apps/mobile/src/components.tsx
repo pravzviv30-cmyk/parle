@@ -53,8 +53,10 @@ import {
   onColour,
   orb,
   paper,
+  pastel,
   radius,
   segmentPending,
+  liftStyle,
   signal,
   space,
   textOn,
@@ -64,6 +66,7 @@ import {
   rungColor,
   rungLabel,
 } from './theme.ts';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import Reanimated, { useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { pressed, tapSettled } from './motion/haptics.ts';
 import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
@@ -81,12 +84,16 @@ import type { Rung } from '@luvani/core';
 // they are Apple's and Google's, filled in the one colour they are given.
 
 /** Next: an arrow. */
-export function ArrowRight({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+export function ArrowRight({ size = 18, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="forward" size={size} color={color} />;
 }
 
 /** Back: a chevron pointing left. */
-export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
+export function ChevronLeft({ size = 22, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="back" size={size} color={color} />;
 }
 
@@ -95,7 +102,9 @@ export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; c
  * It is a mark beside words that already say where the row goes, never a word
  * itself.
  */
-export function ChevronRight({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
+export function ChevronRight({ size = 22, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="chevron-right" size={size} color={color} />;
 }
 
@@ -104,17 +113,23 @@ export function ChevronRight({ size = 22, color = paper.ink }: { size?: number; 
  * same microphone on purpose, so `nav/icons.tsx` re-exports this one, and the
  * tab bar passes `focused` to draw it Bulk when Speak is the selected tab.
  */
-export function MicGlyph({ size = 30, color = paper.ink, focused = false }: { size?: number; color?: string; focused?: boolean }) {
+export function MicGlyph({ size = 30, color: asked, focused = false }: { size?: number; color?: string; focused?: boolean }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="microphone" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
 }
 
 /** The speaker: sound arriving, not being captured. */
-export function EarGlyph({ size = 26, color = paper.ink }: { size?: number; color?: string }) {
+export function EarGlyph({ size = 26, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="speaker" size={size} color={color} />;
 }
 
 /** Help: a question in a speech bubble. */
-export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number; color?: string }) {
+export function HelpGlyph({ size = 16, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.muted;
   return <Icon name="help" size={size} color={color} />;
 }
 
@@ -123,22 +138,30 @@ export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number;
  * the days that have happened, in the one stroke weight. No caller today; the
  * streak's own flame is `game/art`'s and moves through `AnimatedIcon`.
  */
-export function FlameGlyph({ size = 18, color = signal.correspondance }: { size?: number; color?: string }) {
+export function FlameGlyph({ size = 18, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="flame" size={size} color={color} />;
 }
 
 /** A seedling: Luvani's own drawing in the set, kept until its callers retire (F602, F605). */
-export function SproutGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+export function SproutGlyph({ size = 18, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="sprout" size={size} color={color} />;
 }
 
 /** An outline bookmark, drawn on the control that saves a situation, not on a saved one. */
-export function BookmarkGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+export function BookmarkGlyph({ size = 18, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="bookmark" size={size} color={color} />;
 }
 
 /** The mark beside a goal for today, so the number beside it reads as aimed at rather than scored. */
-export function TargetGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+export function TargetGlyph({ size = 18, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="flag" size={size} color={color} />;
 }
 
@@ -147,12 +170,16 @@ export function TargetGlyph({ size = 18, color = paper.ink }: { size?: number; c
  * not a medal, because the figure under it is what a learner remembered rather
  * than a prize somebody handed them.
  */
-export function BadgeGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+export function BadgeGlyph({ size = 18, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="tick-circle" size={size} color={color} />;
 }
 
 /** ICONS.md `google`: the brand mark, filled in the one colour it is given. */
-export function GoogleMark({ size = 20, color = paper.ink }: { size?: number; color?: string }) {
+export function GoogleMark({ size = 20, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <Path
@@ -164,7 +191,9 @@ export function GoogleMark({ size = 20, color = paper.ink }: { size?: number; co
 }
 
 /** ICONS.md `apple`: the brand mark, filled in the one colour it is given. */
-export function AppleMark({ size = 20, color = paper.ink }: { size?: number; color?: string }) {
+export function AppleMark({ size = 20, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <Path
@@ -184,20 +213,26 @@ export function AppleMark({ size = 20, color = paper.ink }: { size?: number; col
  *
  * `tone="feature"` is deprecated and draws white like every other card.
  * `journal` keeps the ground colour for the one card that sits a French line on
- * the page itself.
+ * the page itself. `lift` is the one soft lift (UI-006), for an illustrated
+ * Explore tile only; every other card stays flat.
  */
 export function Card({
   children,
   style,
   padded = true,
   tone = 'paper',
+  lift = false,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
   tone?: 'paper' | 'feature' | 'journal';
+  /** The one soft lift (UI-006), for an illustrated Explore tile only. */
+  lift?: boolean;
 }) {
-  return <View style={[s.card, tone === 'journal' && { backgroundColor: paper.ground }, padded && s.cardPadded, style]}>{children}</View>;
+  const t = useB();
+  const s = useThemedStyles(makeS);
+  return <View style={[s.card, tone === 'journal' && { backgroundColor: t.ground }, lift && liftStyle, padded && s.cardPadded, style]}>{children}</View>;
 }
 
 /**
@@ -205,15 +240,18 @@ export function Card({
  * sentence case, never a pill. STYLE's `label` weight is for buttons and row
  * titles; a line that annotates a card is quieter than the heading under it.
  */
-export function Label({ children, color = paper.inkSoft }: { children: React.ReactNode; color?: string }) {
+export function Label({ children, color: asked }: { children: React.ReactNode; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.muted;
   return <Text style={[type.small, { color }]}>{children}</Text>;
 }
 
 // ────────────────────────────────────────────────────────────────── controls
 
 /**
- * The one primary action on a screen (SNIPPETS button-primary): a 56pt pill,
- * fully rounded. Ink with white lettering on paper, sun, mint or white; white
+ * The one button (UI-004/UI-005). The primary action on a screen is a 54pt
+ * ink pill, fully rounded, with white `button` words and an optional leading
+ * icon; `variant="secondary"` is a 46pt white or pastel pill with ink words. Ink with white lettering on paper, sun, mint or white; white
  * with ink lettering on blue or coral. Disabled is soft ink lettering on the
  * sand skeleton for an ink pill, and on the blue ground's pale secondary for a
  * white one (come alive, icons section 3.4; F758): a soft ink pill with white
@@ -233,7 +271,8 @@ export function PillButton({
   decoration,
   ref,
   state = 'idle',
-  design,
+  variant = 'primary',
+  pastel,
 }: {
   label: string;
   onPress: () => void;
@@ -263,15 +302,32 @@ export function PillButton({
    * Reduce Motion.
    */
   state?: 'idle' | 'busy' | 'done';
+  /**
+   * Deprecated no-op (UI-004/UI-005): the bold-rhythm look is folded into the
+   * one pill, so every primary action draws the same. Still accepted so the
+   * onboarding alias and older call sites type-check.
+   */
   design?: 'bold-rhythm';
+  /**
+   * `primary` is the 54pt ink pill. `secondary` is the 46pt white pill with
+   * ink words, or a pastel one when `pastel` names the ground (UI-005).
+   */
+  variant?: 'primary' | 'secondary';
+  /** The pastel fill of a secondary pill on a white card. */
+  pastel?: keyof typeof pastelFill;
 }) {
   const { fontScale } = useWindowDimensions();
+  const t = useB();
+  const s = useThemedStyles(makeS);
   const waiting = state !== 'idle';
-  const foreground = tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
+  const secondary = variant === 'secondary';
+  // White and sun pills sit on a colour ground and keep their ink in both
+  // modes; the ink pill is the theme's primary, and a secondary pill is themed.
+  const foreground = secondary ? t.text : tone === 'white' || tone === 'sun' ? paper.ink : t.onPrimary;
   return (
-    <Press haptic="light" depth={design === 'bold-rhythm' ? 'raised' : 'control'} style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, design === 'bold-rhythm' && { borderRadius: 20, minHeight: 52, backgroundColor: tone === 'sun' ? colour.sun : tone === 'white' ? paper.card : colour.blue }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+    <Press haptic="light" depth="control" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: t[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
-      <Text style={[type.button, { color: disabled ? paper.inkSoft : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
+      <Text style={[type.button, { color: disabled ? (tone === 'white' ? paper.inkSoft : t.muted) : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
       {decoration}
     </Press>
@@ -283,6 +339,7 @@ export function PillButton({
  * when the result lands, with the turning refresh over it until then.
  */
 function PillWait({ done, color }: { done: boolean; color: string }) {
+  const s = useThemedStyles(makeS);
   return (
     <View {...decorative} style={s.pillWait}>
       <AnimatedIcon kind="check-draw" size={PILL_MARK} color={color} state={done ? 'on' : 'off'} />
@@ -296,6 +353,12 @@ function PillWait({ done, color }: { done: boolean; color: string }) {
 }
 
 const PILL_MARK = 24;
+/** UI-005 control heights: the primary pill and the secondary pill. */
+export const PILL_HEIGHT = 54;
+export const SECONDARY_HEIGHT = 46;
+/** The pastel names a secondary pill may take; their fills come from the theme. */
+const pastelFill = pastel;
+
 
 /**
  * A secondary action: a quiet text link at the touch floor, ink words with no
@@ -324,6 +387,8 @@ export function OutlineButton({
    */
   accessibilityLabel?: string;
 }) {
+  const t = useB();
+  const s = useThemedStyles(makeS);
   return (
     <Pressable
       onPress={() => {
@@ -337,9 +402,9 @@ export function OutlineButton({
     >
       <View style={s.outlineRow}>
         {icon}
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>{label}</Text>
+        <Text style={[type.bodyStrong, { color: t.text }]}>{label}</Text>
       </View>
-      {sub != null && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{sub}</Text>}
+      {sub != null && <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{sub}</Text>}
     </Pressable>
   );
 }
@@ -363,7 +428,7 @@ export function GhostButton({
   label,
   onPress,
   disabled = false,
-  color = paper.ink,
+  color: asked,
   small = false,
   accessibilityLabel,
 }: {
@@ -377,9 +442,12 @@ export function GhostButton({
   accessibilityLabel?: string;
 }) {
   const { fontScale } = useWindowDimensions();
+  const t = useB();
+  const s = useThemedStyles(makeS);
+  const color = asked ?? t.text;
   return (
     <Press haptic="light" style={s.ghost} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label}>
-      <Text style={[small ? type.small : type.label, { color: disabled ? paper.inkSoft : color, textDecorationLine: 'underline' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
+      <Text style={[small ? type.small : type.label, { color: disabled ? t.muted : color, textDecorationLine: 'underline' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
     </Press>
   );
 }
@@ -415,6 +483,8 @@ export function OptionCard({
   // button nested inside a button is invalid HTML on web. Pressed feedback is
   // lifted to the container so the whole card still flashes as one object.
   const [pressed, setPressed] = useState(false);
+  const t = useB();
+  const s = useThemedStyles(makeS);
   return (
     <View style={[s.option, selected && s.optionSelected, pressed && s.optionPressed]}>
       <Pressable
@@ -431,9 +501,9 @@ export function OptionCard({
         style={s.optionMain}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[type.french, { color: paper.ink }]}>{text}</Text>
+          <Text style={[type.french, { color: t.text }]}>{text}</Text>
           {gloss != null && (
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
+            <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{gloss}</Text>
           )}
         </View>
       </Pressable>
@@ -448,14 +518,14 @@ export function OptionCard({
           accessibilityLabel={playing ? `Stop ${text}` : `Hear ${text}`}
           style={({ pressed: hearPressed }) => [
             { padding: space(2) },
-            playing && { backgroundColor: paper.groundDeep, borderRadius: radius.pill },
+            playing && { backgroundColor: t.skeleton, borderRadius: radius.pill },
             hearPressed && { opacity: 0.6 },
           ]}
         >
-          <EarGlyph size={18} color={playing ? accent.primary : paper.inkSoft} />
+          <EarGlyph size={18} color={playing ? t.text : t.muted} />
         </Pressable>
       )}
-      <ArrowRight size={18} color={paper.inkFaint} />
+      <ArrowRight size={18} color={t.muted} />
     </View>
   );
 }
@@ -518,6 +588,8 @@ export function Field({
   multiline?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
+  const t = useB();
+  const s = useThemedStyles(makeS);
   // A password shown while it is typed. Off by default, and only a secure
   // field ever draws the control that turns it on (F373).
   const [revealed, setRevealed] = useState(false);
@@ -542,7 +614,7 @@ export function Field({
     <View style={{ gap: space(1.5) }}>
       {/* Not <Label>: it takes no id, and Android finds the label by id. */}
       {label != null && (
-        <Text id={labelId} style={[type.small, { fontFamily: font.semiBold, color: paper.ink }]}>
+        <Text id={labelId} style={[type.small, { fontFamily: font.semiBold, color: t.text }]}>
           {label}
         </Text>
       )}
@@ -554,7 +626,7 @@ export function Field({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder ?? 'Type here'}
-          placeholderTextColor={paper.inkFaint}
+          placeholderTextColor={t.muted}
           secureTextEntry={secure && !revealed}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -572,7 +644,7 @@ export function Field({
             multiline && { minHeight: 100, textAlignVertical: 'top' },
             secure && { paddingRight: space(16) },
             center && { textAlign: 'center' },
-            focused && { borderColor: paper.ink },
+            focused && { borderColor: t.text },
           ]}
         />
         {secure && (
@@ -592,7 +664,7 @@ export function Field({
               justifyContent: 'center',
             }}
           >
-            <Text style={[type.small, { fontFamily: font.medium, color: paper.inkSoft }]}>{revealed ? 'Hide' : 'Show'}</Text>
+            <Text style={[type.small, { fontFamily: font.medium, color: t.muted }]}>{revealed ? 'Hide' : 'Show'}</Text>
           </Pressable>
         )}
       </View>
@@ -602,13 +674,13 @@ export function Field({
         // mark is decorative, so what is announced is still the one line.
         <View style={s.fieldError}>
           <View style={s.fieldErrorMark}>
-            <AlertGlyph size={16} color={paper.ink} />
+            <AlertGlyph size={16} color={t.text} />
           </View>
           <Text
             id={errorId}
             role="alert"
             accessibilityLiveRegion="polite"
-            style={[type.small, ROW_WORDS, { color: paper.ink }]}
+            style={[type.small, ROW_WORDS, { color: t.text }]}
           >
             {error}
           </Text>
@@ -641,7 +713,7 @@ export function TabBar<K extends string>({
   tabs,
   active,
   onChange,
-  track = paper.skeleton,
+  track: askedTrack,
   appearance = 'segments',
   accessibilityLabel,
 }: {
@@ -653,6 +725,9 @@ export function TabBar<K extends string>({
   appearance?: 'segments' | 'underline';
   accessibilityLabel?: string;
 }) {
+  const t = useB();
+  const s = useThemedStyles(makeS);
+  const track = askedTrack ?? t.skeleton;
   return (
     <View style={[s.tabTrack, { backgroundColor: appearance === 'underline' ? 'transparent' : track, borderRadius: appearance === 'underline' ? 0 : radius.control }]} accessibilityRole="tablist" accessibilityLabel={accessibilityLabel}>
       {tabs.map((tab) => {
@@ -666,7 +741,7 @@ export function TabBar<K extends string>({
             accessibilityState={{ selected: isActive }}
             aria-selected={isActive}
           >
-            <Text style={[type.label, { color: isActive ? paper.ink : paper.inkSoft, fontFamily: isActive ? font.bold : font.semiBold }]}>{tab.label}</Text>
+            <Text style={[type.label, { color: isActive ? t.text : t.muted, fontFamily: isActive ? font.bold : font.semiBold }]}>{tab.label}</Text>
           </Press>
         );
       })}
@@ -679,12 +754,13 @@ export function TabBar<K extends string>({
  * Two to a row by default; three when a screen has three facts and one line.
  */
 export function Stat({ value, label, columns = 2 }: { value: string; label: string; columns?: 2 | 3 }) {
+  const t = useB();
   return (
     <View style={{ flexBasis: columns === 3 ? '30%' : '46%', flexGrow: 1 }}>
-      <Text style={[type.title, { color: paper.ink }]}>{value}</Text>
+      <Text style={[type.title, { color: t.text }]}>{value}</Text>
       {/* The caption is words under a number, so it is soft ink, not the faint
           ink that was only ever cleared as a mark (F330). */}
-      <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>{label}</Text>
+      <Text style={[type.label, { color: t.muted, marginTop: space(1) }]}>{label}</Text>
     </View>
   );
 }
@@ -697,20 +773,29 @@ export function Stat({ value, label, columns = 2 }: { value: string; label: stri
  * or the control that holds it names itself, so a screen reader walks past a
  * loose letter.
  */
-export function Monogram({ initial, size = HIT }: { initial: string; size?: number }) {
+export function Monogram({ initial, size = HIT, inverted = false }: { initial: string | null; size?: number; inverted?: boolean }) {
+  const t = useB();
+  // 2026-10-20 UI-008, artboard B-Journey: on the brand band the disc flips to
+  // the card fill with ink letters (`inverted`); everywhere else it is unchanged.
+  const ink = inverted ? t.text : t.onAvatar;
   return (
     <View
       {...decorative}
-      style={{
+      style={[{
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: paper.ink,
+        backgroundColor: t.avatar,
         alignItems: 'center',
         justifyContent: 'center',
-      }}
+      }, inverted ? { backgroundColor: t.card } : null]}
     >
-      <Text style={{ fontFamily: font.bold, fontSize: size * 0.44, color: paper.onInk }}>{initial}</Text>
+      {initial === null ? (
+        // 2026-10-20, sim nits: no name, no letter; a neutral person glyph.
+        <Icon name="user" size={Math.round(size * 0.5)} color={ink} />
+      ) : (
+        <Text style={[{ fontFamily: font.bold, fontSize: size * 0.44, color: t.onAvatar }, inverted ? { color: ink } : null]}>{initial}</Text>
+      )}
     </View>
   );
 }
@@ -725,11 +810,13 @@ export function Monogram({ initial, size = HIT }: { initial: string; size?: numb
  * share nothing.
  */
 export function ProgressDots({ total, index, ground = 'paper' }: { total: number; index: number; ground?: Ground | 'paper' }) {
-  const done = ground === 'blue' || ground === 'coral' ? paper.onInk : paper.ink;
+  const t = useB();
+  const s = useThemedStyles(makeS);
+  const done = ground === 'blue' || ground === 'coral' ? paper.onInk : ground === 'paper' ? t.text : paper.ink;
   return (
     <View style={s.segments} accessible accessibilityLabel={`Step ${index + 1} of ${total}`}>
       {Array.from({ length: total }, (_, i) => (
-        <View key={i} style={[s.segment, { backgroundColor: i <= index ? done : segmentPending[ground] }]} />
+        <View key={i} style={[s.segment, { backgroundColor: i <= index ? done : ground === 'paper' ? t.line : segmentPending[ground] }]} />
       ))}
     </View>
   );
@@ -759,7 +846,10 @@ export function SpeakCircle({
   size?: number;
   accessibilityLabel: string;
 }) {
-  const iconColor = muted ? paper.inkFaint : paper.ink;
+  const t = useB();
+  const s = useThemedStyles(makeS);
+  // The live and idle circle is mint in both modes, so its mic stays ink.
+  const iconColor = muted ? t.muted : paper.ink;
   return (
     <Pressable
       onPress={
@@ -780,7 +870,7 @@ export function SpeakCircle({
         s.speak,
         { width: size, height: size, borderRadius: size / 2 },
         active ? s.speakLive : muted ? s.speakMuted : s.speakIdle,
-        pressed && !active && { backgroundColor: paper.groundDeep },
+        pressed && !active && { backgroundColor: t.skeleton },
       ]}
     >
       <MicGlyph size={size * 0.34} color={iconColor} />
@@ -790,7 +880,8 @@ export function SpeakCircle({
 
 /** A rung bullet. Support colour when active, quiet outline when not. */
 export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: boolean; size?: number }) {
-  const color = rungColor[rung];
+  const t = useB();
+  const color = rung === 4 ? t.text : t.skeleton;
   return (
     <View
       style={{
@@ -799,7 +890,7 @@ export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: bo
         borderRadius: radius.pill,
         backgroundColor: active ? color : 'transparent',
         borderWidth: active ? 0 : HAIRLINE + 0.5,
-        borderColor: active ? color : paper.line,
+        borderColor: active ? color : t.line,
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -809,7 +900,7 @@ export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: bo
           fontFamily: type.button.fontFamily,
           fontSize: size * 0.44,
           // Rung 4 is ink-filled; its numeral must go light or it vanishes.
-          color: active ? (rung === 4 ? paper.onInk : paper.ink) : paper.inkFaint,
+          color: active ? (rung === 4 ? (t.mode === 'light' ? paper.onInk : t.ground) : t.text) : t.muted,
         }}
       >
         {rung}
@@ -834,6 +925,8 @@ export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: bo
  * is what to say next, and that is the card above, read aloud, in words.
  */
 export function StationLine({ total, index }: { total: number; index: number }) {
+  const t = useB();
+  const s = useThemedStyles(makeS);
   return (
     <View style={s.stationRow} {...decorative}>
       {Array.from({ length: total }, (_, i) => {
@@ -841,12 +934,12 @@ export function StationLine({ total, index }: { total: number; index: number }) 
         const here = i === index;
         return (
           <View key={i} style={s.stationCell}>
-            {i > 0 && <View style={[s.stationRail, { backgroundColor: done || here ? paper.ink : paper.line }]} />}
+            {i > 0 && <View style={[s.stationRail, { backgroundColor: done || here ? t.text : t.line }]} />}
             <View
               style={[
                 s.stationDot,
                 here && s.stationDotHere,
-                { backgroundColor: done || here ? paper.ink : paper.line },
+                { backgroundColor: done || here ? t.text : t.line },
               ]}
             />
           </View>
@@ -906,6 +999,8 @@ export function AbilityRow({
   /** Rows after the first carry a divider above them. */
   first?: boolean;
 }) {
+  const t = useB();
+  const s = useThemedStyles(makeS);
   return (
     <Pressable
       accessibilityRole="button"
@@ -915,7 +1010,7 @@ export function AbilityRow({
     >
       {leading}
       <View style={s.abilityWords}>
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>{title}</Text>
+        <Text style={[type.bodyStrong, { color: t.text }]}>{title}</Text>
       </View>
       <ArrowRight />
     </Pressable>
@@ -926,28 +1021,31 @@ export function AbilityRow({
 // notebook final sweep, 2026-09-27. The week is a sentence on Today and on
 // Profile now, and the rail's last live caller was the retired French wall page.
 
-const s = StyleSheet.create({
+/** The parts' shared sheet, built once per mode (UI-008, 2026-10-20). */
+const makeS = (t: B) => StyleSheet.create({
   abilityRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
-  abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: t.line },
   abilityWords: ROW_WORDS,
   abilityPressed: { opacity: 0.72 },
-  card: { backgroundColor: paper.card, borderRadius: radius.card },
+  card: { backgroundColor: t.card, borderRadius: radius.card },
   cardPadded: { paddingVertical: space(4), paddingHorizontal: space(4) },
   pill: {
-    minHeight: HIT + 12,
+    minHeight: PILL_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: space(2),
-    backgroundColor: accent.primary,
-    borderRadius: radius.control,
+    backgroundColor: t.primary,
+    borderRadius: radius.pill,
     paddingHorizontal: space(6),
     paddingVertical: space(3),
   },
   pillWhite: { backgroundColor: paper.card },
-  pillOutlined: { borderWidth: STROKE, borderColor: paper.ink },
+  // UI-005: the secondary pill, 46pt (inside 44 to 48), white with ink words.
+  pillSecondary: { minHeight: SECONDARY_HEIGHT, backgroundColor: t.card, paddingVertical: space(2) },
+  pillOutlined: { borderWidth: STROKE, borderColor: t.text },
   pillWait: { width: PILL_MARK, height: PILL_MARK },
-  pillDisabled: { backgroundColor: paper.skeleton },
+  pillDisabled: { backgroundColor: t.skeleton },
   // A white pill sits on blue or coral, where the sand reads as one more live
   // fill; off there is the blue ground's pale secondary (F758).
   pillDisabledOnColour: { backgroundColor: onColour.blue },
@@ -966,42 +1064,33 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space(3),
   },
-  chip: {
-    minHeight: HIT,
-    justifyContent: 'center',
-    backgroundColor: paper.groundDeep,
-    borderRadius: radius.chip,
-    paddingVertical: space(2),
-    paddingHorizontal: space(3.5),
-  },
-  chipSelected: { backgroundColor: accent.primary },
   option: {
     minHeight: HIT + 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(3),
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: t.line,
     borderRadius: radius.card,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
   },
-  optionSelected: { borderColor: paper.ink, borderWidth: 1.5 },
-  optionPressed: { backgroundColor: paper.groundDeep },
+  optionSelected: { borderColor: t.text, borderWidth: 1.5 },
+  optionPressed: { backgroundColor: t.skeleton },
   optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
   field: {
     minHeight: HIT + 12,
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
     borderWidth: 1.5,
-    borderColor: paper.field,
+    borderColor: t.field,
     borderRadius: radius.input,
     paddingHorizontal: space(4),
     paddingVertical: space(3),
     ...type.body,
-    color: paper.ink,
+    color: t.text,
   },
-  tabTrack: { flexDirection: 'row', backgroundColor: paper.skeleton, borderRadius: radius.field, padding: 3 },
+  tabTrack: { flexDirection: 'row', backgroundColor: t.skeleton, borderRadius: radius.field, padding: 3 },
   tab: {
     // theme.ts calls HIT the floor "enforced on every control", and SNIPPETS'
     // 38 would be the one control built under it.
@@ -1010,18 +1099,18 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.field - 3,
   },
-  tabActive: { backgroundColor: paper.card },
+  tabActive: { backgroundColor: t.card },
   segmentFrame: { flex: 1 },
   segments: { flexDirection: 'row', alignSelf: 'stretch', gap: space(1.5) },
   segment: { flex: 1, height: 4, borderRadius: 2 },
   speak: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
   },
   speakIdle: { backgroundColor: colour.mint },
   speakLive: { backgroundColor: colour.mint },
-  speakMuted: { borderWidth: 2, borderColor: paper.line },
+  speakMuted: { borderWidth: 2, borderColor: t.line },
   stationRow: { flexDirection: 'row', alignItems: 'center' },
   stationCell: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   stationRail: { height: 2, flex: 1 },
@@ -1030,7 +1119,7 @@ const s = StyleSheet.create({
     width: 13,
     height: 13,
     borderWidth: 3,
-    borderColor: paper.ground,
+    borderColor: t.ground,
   },
   fieldError: { flexDirection: 'row', alignItems: 'flex-start', gap: space(1.5) },
   // Centres the 16 mark on the small line's first 20pt row.
@@ -1061,6 +1150,7 @@ export function Ledger({
   style?: StyleProp<ViewStyle>;
 }) {
   const rows = Children.toArray(children);
+  const ls = useThemedStyles(makeLs);
   return (
     <View accessibilityRole="list" accessibilityLabel={accessibilityLabel} style={[ls.ledger, style]}>
       {rows.flatMap((row, index) => (index === 0 ? [row] : [<View key={`rule-${index}`} {...decorative} style={ls.rule} />, row]))}
@@ -1114,7 +1204,9 @@ export function LedgerRow({
   /** The title is a French line: set as French, and read in a French voice. */
   lang?: 'fr';
 }) {
-  const color = disabled ? paper.inkSoft : paper.ink;
+  const t = useB();
+  const ls = useThemedStyles(makeLs);
+  const color = disabled ? t.muted : t.text;
   return (
     <Press haptic="light" style={ls.row} disabled={disabled} onPress={onPress}
       accessibilityRole="button"
@@ -1133,12 +1225,12 @@ export function LedgerRow({
         ) : (
           <Text style={[type.label, { color }]}>{title}</Text>
         )}
-        {gloss != null && gloss !== '' ? <Text style={[type.small, { color: paper.inkSoft }]}>{gloss}</Text> : null}
-        {note != null && note !== '' ? <Text style={[type.small, { color: paper.inkSoft }]}>{note}</Text> : null}
+        {gloss != null && gloss !== '' ? <Text style={[type.small, { color: t.muted }]}>{gloss}</Text> : null}
+        {note != null && note !== '' ? <Text style={[type.small, { color: t.muted }]}>{note}</Text> : null}
       </View>
-      {meta != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{meta}</Text> : null}
+      {meta != null ? <Text style={[type.small, { color: t.muted }]}>{meta}</Text> : null}
       {trailing != null ? trailing : null}
-      <ChevronRight size={20} color={paper.inkSoft} />
+      <ChevronRight size={20} color={t.muted} />
     </Press>
   );
 }
@@ -1164,6 +1256,8 @@ export function Highlight({
   style?: StyleProp<TextStyle>;
   accessibilityLabel?: string;
 }) {
+  const ls = useThemedStyles(makeLs);
+  // The highlighter is the same pen in both modes, so its words stay ink.
   return (
     <View style={ls.bandHost}>
       <View {...decorative} style={[ls.band, { backgroundColor: highlight, pointerEvents: 'none' }]} />
@@ -1180,10 +1274,12 @@ export function Highlight({
  * word are heard as one sound rather than two loose words.
  */
 export function SoundTag({ ipa, example }: { ipa: string; example: string }) {
+  const t = useB();
+  const ls = useThemedStyles(makeLs);
   return (
     <View accessible accessibilityLabel={`Sound ${ipa}, as in ${example}`} style={ls.soundTag}>
-      <Text style={[type.notation, { color: paper.ink }]}>{ipa}</Text>
-      <Text {...frenchText} style={[type.frenchSm, { color: paper.ink }]}>{example}</Text>
+      <Text style={[type.notation, { color: t.text }]}>{ipa}</Text>
+      <Text {...frenchText} style={[type.frenchSm, { color: t.text }]}>{example}</Text>
     </View>
   );
 }
@@ -1194,14 +1290,18 @@ export function SoundTag({ ipa, example }: { ipa: string; example: string }) {
  * decorative; the sentence from `rungLabel` is what is read.
  */
 export function LadderMark({ rung, tutorName }: { rung: Rung; tutorName: string }) {
+  const t = useB();
+  const ls = useThemedStyles(makeLs);
+  // rungColor in light; the same roles (skeleton, then ink) in dark.
+  const fill = (r: Rung) => (t.mode === 'light' ? rungColor[r] : r === 4 ? t.text : t.skeleton);
   return (
     <View style={ls.ladder}>
       <View style={ls.rungs} {...decorative}>
         {([1, 2, 3, 4] as const).map((r) => (
-          <View key={r} style={[ls.rung, { backgroundColor: rungColor[r] }, r === rung && ls.rungHere]} />
+          <View key={r} style={[ls.rung, { backgroundColor: fill(r) }, r === rung && ls.rungHere]} />
         ))}
       </View>
-      <Text style={[type.small, ROW_WORDS, { color: paper.ink }]}>{rungLabel(rung, tutorName)}</Text>
+      <Text style={[type.small, ROW_WORDS, { color: t.text }]}>{rungLabel(rung, tutorName)}</Text>
     </View>
   );
 }
@@ -1226,11 +1326,13 @@ function stopLabel(level: string, stop: LevelStop): string {
  * reads without colour. Every stop is one sentence to a screen reader.
  */
 export function LevelPath({ levels }: { levels: readonly PathLevel[] }) {
+  const t = useB();
+  const ls = useThemedStyles(makeLs);
   return (
     <View style={ls.path}>
       {levels.map((level) => (
         <View key={level.level} style={ls.pathLevel}>
-          <Text accessibilityRole="header" style={[type.label, { color: paper.inkSoft }]}>
+          <Text accessibilityRole="header" style={[type.label, { color: t.muted }]}>
             {level.level}
           </Text>
           {level.stops.map((stop, index) => (
@@ -1244,8 +1346,8 @@ export function LevelPath({ levels }: { levels: readonly PathLevel[] }) {
                 ]}
               />
               <View style={ROW_WORDS}>
-                <Text style={[type.body, { color: stop.state === 'ahead' ? paper.inkSoft : paper.ink }]}>{stop.canDo}</Text>
-                {stop.state === 'here' ? <Text style={[type.small, { color: paper.ink }]}>{YOU_ARE_HERE}</Text> : null}
+                <Text style={[type.body, { color: stop.state === 'ahead' ? t.muted : t.text }]}>{stop.canDo}</Text>
+                {stop.state === 'here' ? <Text style={[type.small, { color: t.text }]}>{YOU_ARE_HERE}</Text> : null}
               </View>
             </View>
           ))}
@@ -1277,8 +1379,8 @@ export function TutorCard({
   changeLabel = 'Change tutor',
 }: {
   name: string;
-  /** The voice in words, for instance "Warm, unhurried Parisian". */
-  voice: string;
+  /** The voice in words, for instance "Warm, unhurried Parisian". Speak (B2) leaves it out. */
+  voice?: string;
   /** One line the tutor says, in French. */
   signature: string;
   onHear: () => void;
@@ -1286,6 +1388,8 @@ export function TutorCard({
   onChange: () => void;
   changeLabel?: string;
 }) {
+  const t = useB();
+  const ls = useThemedStyles(makeLs);
   return (
     <Card style={ls.tutor}>
       <View style={ls.tutorHead}>
@@ -1293,8 +1397,8 @@ export function TutorCard({
           <OrbSurface color={orb.ready} size={HIT + space(3)} />
         </View>
         <View style={ROW_WORDS}>
-          <Text style={[type.heading, { color: paper.ink }]}>{name}</Text>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{voice}</Text>
+          <Text style={[type.heading, { color: t.text }]}>{name}</Text>
+          {voice !== undefined ? <Text style={[type.small, { color: t.muted }]}>{voice}</Text> : null}
           <View style={ls.tutorChange}>
             <IconAction layout="inline" icon="edit" label={changeLabel} onPress={onChange}  />
           </View>
@@ -1306,7 +1410,7 @@ export function TutorCard({
           <AnimatedIcon kind="speaker-waves" size={22} active={playing} color={paper.onInk} />
         </Press>
       </View>
-      <Text {...frenchText} style={[type.french, { color: paper.ink }]}>
+      <Text {...frenchText} style={[type.french, { color: t.text }]}>
         {signature}
       </Text>
     </Card>
@@ -1368,6 +1472,7 @@ export function SceneBrief({
   /** The scene's place drawing above the meta line (Phase 4): decorative, never pressable. */
   art?: ReactNode;
 }) {
+  const ls = useThemedStyles(makeLs);
   return (
     <ColourCard ground="blue" style={ls.brief}>
       {art != null ? art : null}
@@ -1414,10 +1519,10 @@ export function fitHero(text: string): TextStyle {
   return heroFit.longest;
 }
 
-const ls = StyleSheet.create({
+const makeLs = (t: B) => StyleSheet.create({
   // SNIPPETS list: a white card, 4 above and below the rows and 20 at the sides.
-  ledger: { backgroundColor: paper.card, borderRadius: radius.card, paddingVertical: space(1), paddingHorizontal: space(5) },
-  rule: { height: HAIRLINE, backgroundColor: paper.line },
+  ledger: { backgroundColor: t.card, borderRadius: radius.card, paddingVertical: space(1), paddingHorizontal: space(5) },
+  rule: { height: HAIRLINE, backgroundColor: t.line },
   row: {
     minHeight: HIT + space(4),
     flexDirection: 'row',
@@ -1449,9 +1554,9 @@ const ls = StyleSheet.create({
     marginTop: space(1),
     borderRadius: radius.pill,
     borderWidth: HAIRLINE + 0.5,
-    borderColor: paper.line,
+    borderColor: t.line,
   },
-  stopEarned: { backgroundColor: paper.ink, borderColor: paper.ink },
+  stopEarned: { backgroundColor: t.text, borderColor: t.text },
   tutor: { gap: space(3) },
   tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   // The link's own side pad is pulled back so its word lines up under the
@@ -1461,7 +1566,7 @@ const ls = StyleSheet.create({
     width: HIT,
     height: HIT,
     borderRadius: HIT / 2,
-    backgroundColor: paper.ink,
+    backgroundColor: t.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1605,12 +1710,16 @@ function SelectRing({ selected, scale, glowRadius, reduced }: { selected: boolea
 }
 
 /** Close: the way out of a sheet or a story. A delegate to the icon set (D11). */
-export function CloseGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
+export function CloseGlyph({ size = 24, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="close" size={size} color={color} />;
 }
 
 /** The chosen option's tick: Luvani's own drawing in the icon set. */
-export function CheckGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
+export function CheckGlyph({ size = 24, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="check" size={size} color={color} />;
 }
 
@@ -1660,9 +1769,13 @@ export function RoundButton({
   const next = kind === 'next';
   const disc = next ? HIT + space(5) : HIT;
   const ground = tone ?? (next ? 'sun' : 'white');
-  const fill = appearance?.disc ?? (ground === 'white' ? paper.card : ground === 'sun' ? colour.sun : paper.ink);
-  const markColour = appearance?.mark ?? (ground === 'ink' ? paper.onInk : paper.ink);
-  const words = ground === 'sun' ? textOn.blue : paper.ink;
+  const t = useB();
+  const b = useThemedStyles(makeB);
+  // The white disc is the theme's card (white in light, the M3 surface in
+  // dark); sun and ink are colour controls and keep their values in both.
+  const fill = appearance?.disc ?? (ground === 'white' ? t.card : ground === 'sun' ? colour.sun : paper.ink);
+  const markColour = appearance?.mark ?? (ground === 'ink' ? paper.onInk : ground === 'white' ? t.text : paper.ink);
+  const words = ground === 'sun' ? textOn.blue : ground === 'ink' ? paper.ink : t.text;
   const name = accessibilityLabel ?? label ?? (kind === 'back' ? 'Back' : next ? 'Next' : 'Close');
   return (
     <Press haptic="light" onPress={onPress} disabled={disabled} accessibilityState={{ disabled }} accessibilityLabel={name} accessibilityHint={accessibilityHint} frame={b.roundFrame} style={[b.roundRow, disabled && { opacity: 0.5 }]}>
@@ -1691,15 +1804,23 @@ export function ColourCard({
   onPress,
   accessibilityLabel,
   style,
+  lift = false,
 }: {
-  ground: Ground;
+  ground: Ground | `pastel.${keyof typeof pastel}`;
   children: ReactNode;
   onPress?: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  /** The one soft lift (UI-006), for an illustrated Explore tile only. */
+  lift?: boolean;
 }) {
+  const t = useB();
+  // A pastel is a themed tint (the M3 plum, ochre, rose and teal in dark); the
+  // four colours are the same in both modes.
+  const fill = ground.startsWith('pastel.') ? t[ground.slice(7) as keyof typeof pastel] : colour[ground as Ground];
   const surface = [
-    { backgroundColor: colour[ground], borderRadius: radius.feature, padding: space(6), gap: space(4), overflow: 'hidden' as const },
+    lift && liftStyle,
+    { backgroundColor: fill, borderRadius: radius.feature, padding: space(6), gap: space(4), overflow: 'hidden' as const },
     style,
   ];
   if (onPress != null) {
@@ -1716,11 +1837,136 @@ export function ColourCard({
  * A number and one plain line (SNIPPETS stat-tile), on a colour ground or on
  * paper. One phrase to a screen reader: "1 min 12, longest stretch in French".
  */
-export function StatTile({ value, label }: { value: string; label: string }) {
+export function StatTile({ value, label, mark, compact = false, valueNode }: {
+  value: string;
+  label: string;
+  /**
+   * What is drawn in the number's place when it moves (B5, 2026-10-20: Today's
+   * count-ups). `value` is still what a screen reader hears.
+   */
+  valueNode?: ReactNode;
+  /**
+   * A decorative disc above the number, as on Today's stats row (B0,
+   * 2026-10-20). Hidden from a screen reader: the value and label say it. A
+   * ring or bar that means something must be labelled by its caller instead.
+   */
+  mark?: ReactNode;
+  /** The smaller, centred cut that sits three to a `StatRow` card. */
+  compact?: boolean;
+}) {
+  const t = useB();
+  const b = useThemedStyles(makeB);
   return (
-    <View style={b.statTile} accessible accessibilityLabel={`${value}, ${label}`}>
-      <Text style={[type.stat, { color: paper.ink }]}>{value}</Text>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{label}</Text>
+    <View style={compact ? b.statCompact : b.statTile} accessible accessibilityLabel={`${value}, ${label}`}>
+      {mark ? <View {...decorative}>{mark}</View> : null}
+      {valueNode ?? <Text style={[compact ? b.statCompactValue : type.stat, { color: t.text }]}>{value}</Text>}
+      <Text style={[compact ? b.statCompactLabel : type.small, { color: t.muted }]}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * Three stats in one white card, three equal columns (B-Today's stats row, B0
+ * 2026-10-20). It lays out `StatTile compact` children and draws nothing of
+ * its own; a column's words wrap rather than shrink at a large reading size.
+ */
+export function StatRow({ children }: { children: ReactNode }) {
+  const b = useThemedStyles(makeB);
+  return (
+    <View style={b.statRow}>
+      {Children.toArray(children).map((child, i) => (
+        <View key={i} style={b.statColumn}>{child}</View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A small pill (B0, 2026-10-20), lifted from the archive's filter row so every
+ * chip is one part.
+ *
+ * `filter` is a choice in a row of them: the touch floor is its height, the
+ * chosen one fills with ink and carries a tick so the state is never colour
+ * alone, and it says selected on a device and on the web (F522). `meta` is a
+ * still fact, "About 6 min" or a scene's state, never pressable; `tone` picks
+ * its ground and `leading` an optional mark before the words.
+ */
+export function Chip(props:
+  | { variant: 'filter'; label: string; selected: boolean; onPress: () => void; role?: 'tab' | 'button'; accessibilityLabel?: string; ground?: 'card' | 'violet2' }
+  | {
+      variant: 'meta';
+      /**
+       * Words, or words with a French span nested in them (B5, 2026-10-20:
+       * Today's "Builds on" chip sets its quoted phrase as French).
+       */
+      label: ReactNode;
+      /** butter and sage are Today's quest XP chips (B5, 2026-10-20), ink words on both. */
+      tone?: 'card' | 'ink' | 'lavender' | 'butter' | 'sage';
+      leading?: ReactNode;
+      /** The label is French (B3, 2026-10-20): set and read as French. */ lang?: 'fr' }
+) {
+  const t = useB();
+  const b = useThemedStyles(makeB);
+  if (props.variant === 'meta') {
+    const tone = props.tone ?? 'card';
+    // The ink chip is the theme's primary (ink in light, violet in dark).
+    const ground = tone === 'ink' ? (t.mode === 'light' ? signal.good : t.primary) : tone === 'lavender' ? t.lavender : tone === 'butter' ? t.butter : tone === 'sage' ? t.sage : t.card;
+    const words = tone === 'ink' ? t.onPrimary : t.text;
+    return (
+      <View style={[b.metaChip, { backgroundColor: ground }]}>
+        {props.leading}
+        <Text {...(props.lang === 'fr' ? frenchText : {})} style={[type.small, { color: words }]}>{props.label}</Text>
+      </View>
+    );
+  }
+  const { label, selected, onPress, role = 'tab', accessibilityLabel, ground = 'card' } = props;
+  // violet2 is the chip ground on a blue card (DESIGN.md), white words only.
+  const violet = ground === 'violet2' && !selected;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={role}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected }}
+      aria-selected={selected}
+      style={[b.filterChip, selected && b.filterChipChosen, violet && { backgroundColor: colour.violet2, borderColor: colour.violet2 }]}
+    >
+      {selected ? <View {...decorative}><CheckGlyph size={16} color={paper.onInk} /></View> : null}
+      <Text style={[type.button, { color: selected || violet ? paper.onInk : t.muted }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/**
+ * The trial's lock, drawn two ways from the v82 artboards (B0, 2026-10-20): a
+ * pill reading "Included with your trial", and a 28pt white disc with the lock
+ * alone, named the same to a screen reader.
+ *
+ * Pure presentation. Whether a feature is locked is `access/featureAccess.ts`'s
+ * answer (the D24 standing, open when the plan is unknown), and a surface draws
+ * this only when that seam says so.
+ *
+ * Read once (2026-10-20, lock seam wiring): inside a control whose own label
+ * already ends with `LOCK_BADGE_LABEL`, pass `said` and the badge is hidden
+ * from screen readers, so the words are not heard twice.
+ */
+export const LOCK_BADGE_LABEL = 'Included with your trial';
+export function LockBadge({ form = 'pill', ground = 'lavender', said = false }: { form?: 'pill' | 'round'; ground?: 'lavender' | 'card'; said?: boolean }) {
+  const t = useB();
+  const b = useThemedStyles(makeB);
+  // The lock's blue is the theme's link: the brand blue in light, the M3
+  // periwinkle link in dark, where the blue would vanish on the plum tint.
+  if (form === 'round') {
+    return (
+      <View style={b.lockRound} {...(said ? decorative : { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: LOCK_BADGE_LABEL })}>
+        <View {...decorative}><Icon name="lock" size={14} color={t.link} /></View>
+      </View>
+    );
+  }
+  return (
+    <View style={[b.lockPill, { backgroundColor: ground === 'card' ? t.card : t.lavender }]} {...(said ? decorative : {})}>
+      <View {...decorative}><Icon name="lock" size={12} color={t.link} /></View>
+      <Text style={b.lockWords}>{LOCK_BADGE_LABEL}</Text>
     </View>
   );
 }
@@ -1731,6 +1977,7 @@ export function StatTile({ value, label }: { value: string; label: string }) {
  * screen reader. Still: the count-up is F611's.
  */
 export function HeroNumber({ value, unit, ground }: { value: string; unit: string; ground: Ground }) {
+  const b = useThemedStyles(makeB);
   const color = textOn[ground];
   return (
     <View style={b.heroRow} accessible accessibilityLabel={`${value} ${unit}`}>
@@ -1775,6 +2022,8 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
  */
 export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false, surface, ink }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean; /** Panel colour from the selected appearance; paper when absent. */ surface?: string; /** Title ink from the selected appearance; paper ink when absent. */ ink?: string }) {
   const insets = useSafeAreaInsets();
+  const t = useB();
+  const b = useThemedStyles(makeB);
   // F755: while the content runs under the footer, a hairline sits over the
   // footer and the scroll indicator flashes once per opening (`sheetRunsUnder`).
   const scroller = useRef<ScrollView>(null);
@@ -1852,7 +2101,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
     <Modal visible={present} transparent animationType="none" onShow={focusHeading} onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={b.sheetOverlay}>
-          <Animated.View style={[StyleSheet.absoluteFill, { opacity: arrival.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }), backgroundColor: paper.ink }]}>
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: arrival.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }), backgroundColor: t.scrim }]}>
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
           </Animated.View>
           <Animated.View accessibilityViewIsModal {...(Platform.OS === 'web' ? { role: 'dialog', 'aria-modal': true } as object : {})} onAccessibilityEscape={onClose}
@@ -1860,7 +2109,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-              <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: ink ?? paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
+              <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: ink ?? t.text, flex: 1 }]}>{snapshot.current.title}</Text>
               <IconButton icon="close" label="Close" onPress={onClose} />
             </View>
             <ScrollView
@@ -1874,7 +2123,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
               onScroll={(event) => { measures.current.offset = event.nativeEvent.contentOffset.y; measureCue(); }}
             >{snapshot.current.children}</ScrollView>
             {snapshot.current.footer != null ? (
-              <View style={cue ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null}>{snapshot.current.footer}</View>
+              <View style={cue ? { borderTopWidth: HAIRLINE, borderTopColor: t.line } : null}>{snapshot.current.footer}</View>
             ) : null}
           </Animated.View>
         </View>
@@ -1889,12 +2138,14 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
  * orb, the recap count-up and the confetti.
  */
 export function Skeleton({ blocks }: { blocks: readonly { height: number; width?: number | `${number}%`; radius: number }[] }) {
+  const t = useB();
+  const b = useThemedStyles(makeB);
   return (
     <View style={b.skeleton} accessible accessibilityLabel="Loading">
       {blocks.map((block, index) => (
         <View
           key={index}
-          style={{ height: block.height, width: block.width, borderRadius: block.radius, backgroundColor: paper.skeleton }}
+          style={{ height: block.height, width: block.width, borderRadius: block.radius, backgroundColor: t.skeleton }}
         />
       ))}
     </View>
@@ -1903,7 +2154,8 @@ export function Skeleton({ blocks }: { blocks: readonly { height: number; width?
 
 /** A small reassurance, centred (SNIPPETS quiet-line). */
 export function QuietLine({ children }: { children: string }) {
-  return <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{children}</Text>;
+  const t = useB();
+  return <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>{children}</Text>;
 }
 
 /**
@@ -1932,9 +2184,13 @@ export function FrenchBlock({
   playing?: boolean;
   ground?: 'white' | 'blue' | 'sun';
 }) {
+  const t = useB();
+  const b = useThemedStyles(makeB);
   const onBlue = ground === 'blue';
-  const color = onBlue ? paper.onInk : paper.ink;
-  const secondary = onBlue ? onColour.blue : ground === 'sun' ? onColour.sun : paper.inkSoft;
+  const sun = ground === 'sun';
+  // Blue and sun are colour grounds and keep their words; white is the card.
+  const color = onBlue ? paper.onInk : sun ? paper.ink : t.text;
+  const secondary = onBlue ? onColour.blue : sun ? onColour.sun : t.muted;
   return (
     <View style={b.frenchRow}>
       <View style={b.frenchWords}>
@@ -1949,7 +2205,7 @@ export function FrenchBlock({
           accessibilityRole="button"
           accessibilityLabel={playing ? 'Stop' : 'Hear this line'}
           onPress={onHear}
-          style={[b.hearDisc, { backgroundColor: onBlue ? paper.card : paper.ink }]}
+          style={[b.hearDisc, { backgroundColor: onBlue ? paper.card : sun ? paper.ink : t.primary }]}
         >
           <AnimatedIcon kind="speaker-waves" size={22} active={playing} color={onBlue ? paper.ink : paper.onInk} />
         </Press>
@@ -1958,23 +2214,58 @@ export function FrenchBlock({
   );
 }
 
-const b = StyleSheet.create({
+const makeB = (t: B) => StyleSheet.create({
   roundFrame: { alignSelf: 'flex-start' },
   roundRow: { flexDirection: 'row', alignItems: 'center', gap: space(3.5) },
   roundDisc: { alignItems: 'center', justifyContent: 'center' },
-  statTile: { backgroundColor: paper.card, borderRadius: radius.tile, padding: space(4), gap: space(1.5) },
+  statTile: { backgroundColor: t.card, borderRadius: radius.tile, padding: space(4), gap: space(1.5) },
+  statCompact: { alignItems: 'center', gap: space(1.5) },
+  statCompactValue: { ...type.statSm, textAlign: 'center' },
+  statCompactLabel: { ...type.caption, textAlign: 'center' },
+  statRow: { flexDirection: 'row', gap: space(1.5), backgroundColor: t.card, borderRadius: radius.card, paddingVertical: space(3.5), paddingHorizontal: space(3) },
+  statColumn: { flex: 1, minWidth: 0 },
+  // The touch floor is the height, not the padding, so a chip stays reachable
+  // whatever the reading size does to the word inside it.
+  filterChip: {
+    minHeight: HIT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(1.5),
+    flexShrink: 1,
+    minWidth: 0,
+    paddingHorizontal: space(4),
+    borderRadius: radius.pill,
+    backgroundColor: t.card,
+    borderWidth: HAIRLINE,
+    borderColor: t.line,
+  },
+  filterChipChosen: { backgroundColor: t.primary, borderColor: t.primary },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(1),
+    paddingVertical: space(1),
+    paddingHorizontal: space(2.5),
+    borderRadius: radius.pill,
+    flexShrink: 0,
+  },
+  // 2026-10-20, lock seam wiring: the words wrap inside the pill at 320pt and large text instead of running past the row.
+  lockPill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%', gap: space(1.25), minHeight: 26, paddingHorizontal: space(2.5), borderRadius: radius.pill },
+  lockWords: { ...type.badge, color: t.link, flexShrink: 1 },
+  lockRound: { width: 28, height: 28, borderRadius: 14, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
   heroRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2.5) },
   sheetOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' },
   // On an iPad the first run's sheets keep its reading column (come alive, icons section 3.6).
   sheetReading: { alignSelf: 'center', width: '100%', maxWidth: READING },
   sheetPanel: {
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
     paddingTop: space(3),
     paddingHorizontal: space(5),
     paddingBottom: space(10),
     gap: space(4),
   },
-  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: paper.line },
+  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: t.line },
   skeleton: { gap: space(3) },
   frenchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },
   frenchWords: { ...ROW_WORDS, gap: space(1.5) },
@@ -1992,6 +2283,7 @@ const b = StyleSheet.create({
  * the fill and the ring are three shapes as well as three colours.
  */
 export function SceneMark({ state }: { state: 'earned' | 'here' | 'ahead' }) {
+  const t = useB();
   return (
     <View
       accessible
@@ -2000,7 +2292,7 @@ export function SceneMark({ state }: { state: 'earned' | 'here' | 'ahead' }) {
         sp.sceneMark,
         state === 'earned' && { backgroundColor: colour.mint },
         state === 'here' && { backgroundColor: colour.sun },
-        state === 'ahead' && { borderWidth: 2, borderColor: paper.field },
+        state === 'ahead' && { borderWidth: 2, borderColor: t.field },
       ]}
     >
       {state === 'earned' ? <CheckGlyph size={16} color={paper.ink} /> : null}
@@ -2027,7 +2319,9 @@ export function canDoSentence(canDo: string): string {
  * `glyphs.tsx` already imports from this file, so the reverse edge would be a
  * cycle. `glyphs.tsx` re-exports it, the way it re-exports the speaker.
  */
-export function AlertGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
+export function AlertGlyph({ size = 24, color: asked }: { size?: number; color?: string }) {
+  const t = useB();
+  const color = asked ?? t.text;
   return <Icon name="alert" size={size} color={color} />;
 }
 
@@ -2046,11 +2340,12 @@ const sp = StyleSheet.create({
 export function ControlTile({ label, glyph, onPress, disabled = false, accessibilityLabel }: {
   label: string; glyph: ReactNode; onPress: () => void; disabled?: boolean; accessibilityLabel?: string;
 }) {
+  const t = useB();
   return (
     <Press haptic="light" disabled={disabled} accessibilityState={{ disabled }} accessibilityLabel={accessibilityLabel ?? label}
-      onPress={onPress} frame={{ flex: 1, minWidth: 0 }} style={{ minHeight: 56, minWidth: HIT, alignItems: 'center', justifyContent: 'center', gap: space(2), padding: space(3), borderRadius: radius.field, backgroundColor: disabled ? paper.skeleton : paper.card }}>
+      onPress={onPress} frame={{ flex: 1, minWidth: 0 }} style={{ minHeight: 56, minWidth: HIT, alignItems: 'center', justifyContent: 'center', gap: space(2), padding: space(3), borderRadius: radius.field, backgroundColor: disabled ? t.skeleton : t.card }}>
       {glyph}
-      <Text style={[type.small, { color: disabled ? paper.inkSoft : paper.ink }]}>{label}</Text>
+      <Text style={[type.small, { color: disabled ? t.muted : t.text }]}>{label}</Text>
     </Press>
   );
 }
@@ -2079,14 +2374,15 @@ export type ControlGround = 'paper' | Ground;
  * off there. Soft ink is for paper and white only: on a colour the off colour
  * is that ground's own secondary (icons review 14), and never an opacity.
  */
-function groundInk(ground: ControlGround, disabled: boolean): string {
-  if (ground === 'paper') return disabled ? paper.inkSoft : paper.ink;
+function groundInk(ground: ControlGround, disabled: boolean, t: B): string {
+  if (ground === 'paper') return disabled ? t.muted : t.text;
   return disabled ? onColour[ground] : textOn[ground];
 }
 
 /** A toggle that is on draws in the brand blue where its mark would be ink, and keeps the white on a white mark. */
-function chosenInk(base: string): string {
-  return base === paper.ink ? accent.brand : base;
+function chosenInk(base: string, t: B): string {
+  // In dark the theme's ink is cream, and its brand mark is the M3 link.
+  return base === t.text ? (t.mode === 'light' ? accent.brand : t.link) : base;
 }
 
 /**
@@ -2148,9 +2444,10 @@ export function IconButton({
   const hit = size === 'lg' ? HIT + space(3) : HIT;
   const markSize = size === 'lg' ? 28 : 24;
   const on = selected === true;
-  const fill = tone === 'plain' ? undefined : disabled ? paper.skeleton : tone === 'ink' ? paper.ink : paper.card;
-  const base = tone === 'plain' ? groundInk(ground, disabled) : disabled ? paper.inkSoft : tone === 'ink' ? paper.onInk : paper.ink;
-  const mark = on && !disabled ? chosenInk(base) : base;
+  const t = useB();
+  const fill = tone === 'plain' ? undefined : disabled ? t.skeleton : tone === 'ink' ? t.primary : t.card;
+  const base = tone === 'plain' ? groundInk(ground, disabled, t) : disabled ? t.muted : tone === 'ink' ? t.onPrimary : t.text;
+  const mark = on && !disabled ? chosenInk(base, t) : base;
   return (
     <Press
       haptic={haptic ?? (selected === undefined ? 'light' : 'selection')}
@@ -2229,11 +2526,13 @@ export function IconAction({
   const on = selected === true && !disabled;
   const warm = ground === 'blue' || ground === 'coral';
   const iconSize = tile ? 24 : 20;
-  const words = tile ? (disabled ? paper.inkSoft : paper.ink) : groundInk(ground, disabled);
-  const mark = !on ? words : tile && warm ? paper.ink : chosenInk(words);
+  const t = useB();
+  // A chosen warm tile is sun in both modes, so its words stay ink there.
+  const words = tile ? (disabled ? t.muted : on && warm ? paper.ink : t.text) : groundInk(ground, disabled, t);
+  const mark = !on ? words : tile && warm ? paper.ink : chosenInk(words, t);
   const surface = tile
     ? {
-        backgroundColor: disabled ? paper.skeleton : on ? (warm ? colour.sun : onColour.blue) : paper.card,
+        backgroundColor: disabled ? t.skeleton : on ? (warm ? colour.sun : t.mode === 'light' ? onColour.blue : t.lavender) : t.card,
         borderColor: on ? (warm ? colour.sun : accent.brand) : 'transparent',
       }
     : null;
@@ -2374,14 +2673,20 @@ export function Choice({
   /** Say something other than the title and detail. Falls back to both, joined. */
   accessibilityLabel?: string;
 }) {
+  const t = useB();
   const on: ChoiceGround = ground === paper.ground ? 'card' : ground;
   const sunny = on === 'blue';
   const radio = role === 'radio';
   const head = tile ?? glyph;
   const isTile = layout === 'tile';
-  const fill = selected && !outlined ? (sunny ? colour.sun : accent.brand) : on === 'card' ? paper.ground : paper.card;
-  const words = selected && !sunny && !outlined ? paper.onInk : paper.ink;
-  const quiet = selected && !outlined ? (sunny ? onColour.sun : onColour.blue) : paper.inkSoft;
+  // On blue or sun the unchosen choice is a white plate in both modes; on the
+  // paper or a card it is themed (UI-008, 2026-10-20).
+  const onColourGround = on === 'blue' || on === 'sun';
+  const filled = selected && !outlined;
+  const fill = filled ? (sunny ? colour.sun : accent.brand) : on === 'card' ? t.ground : onColourGround ? paper.card : t.card;
+  const words = filled ? (sunny ? paper.ink : paper.onInk) : onColourGround ? paper.ink : t.text;
+  const quiet = filled ? (sunny ? onColour.sun : onColour.blue) : onColourGround ? paper.inkSoft : t.muted;
+  const rest = onColourGround ? paper.card : t.card;
   const titleStyle = lang === 'fr' ? type.french : outlined ? type.heading : compact ? type.label : type.bodyStrong;
   const disc = (
     <Feedback kind="selection" active={selected}>
@@ -2390,7 +2695,7 @@ export function Choice({
           <CheckGlyph size={18} color={accent.brand} />
         </View>
       ) : (
-        <View {...decorative} style={[ch.disc, { borderWidth: 2, borderColor: paper.field }]} />
+        <View {...decorative} style={[ch.disc, { borderWidth: 2, borderColor: t.field }]} />
       )}
     </Feedback>
   );
@@ -2408,7 +2713,7 @@ export function Choice({
       accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
       onPress={onPress}
       frame={onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share}
-      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : paper.card) : selected ? fill : paper.line }]}
+      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : rest) : selected ? fill : onColourGround ? paper.line : t.line }]}
     >
       {head != null ? <TileOnChosen.Provider value={selected}>{head}</TileOnChosen.Provider> : null}
       <View style={isTile ? ch.tileWords : ch.words}>

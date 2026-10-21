@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="112" height="112" viewBox="0 0 112 112" fill="none"><g transform="translate(0 0) rotate(0) scale(1 1)"><svg width="112" height="112" viewBox="0 0 112 112" overflow="visible" preserveAspectRatio="none">
+<g id="orb1120_C2/Motion/Orb core / event driven / 61:773">
+<g id="orb1120_Artwork">
+<circle cx="56" cy="56" r="56" fill="url(#orb1120_paint0_linear_0_22)"></circle>
+<circle cx="56" cy="56" r="56" fill="url(#orb1120_paint1_radial_0_22)"></circle>
+<circle cx="56" cy="56" r="56" fill="url(#orb1120_paint2_radial_0_22)"></circle>
+<circle cx="56" cy="56" r="56" fill="url(#orb1120_paint3_radial_0_22)"></circle>
+<circle cx="56" cy="56" r="55.8353" stroke="#A1ADDE" stroke-opacity="0.3" stroke-width="0.329412"></circle>
+</g>
+</g>
+<defs>
+<linearGradient id="orb1120_paint0_linear_0_22" x1="56" y1="0" x2="56" y2="112" gradientUnits="userSpaceOnUse">
+<stop stop-color="#626BFF"></stop>
+<stop offset="0.4" stop-color="#8795FA"></stop>
+<stop offset="0.72" stop-color="#C3CEF8"></stop>
+<stop offset="1" stop-color="#B9C7F5"></stop>
+</linearGradient>
+<radialGradient id="orb1120_paint1_radial_0_22" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(67.2 33.6) scale(40.32 41.44)">
+<stop stop-color="#6876FA" stop-opacity="0.57"></stop>
+<stop offset="0.5" stop-color="#6876FA" stop-opacity="0.3135"></stop>
+<stop offset="1" stop-color="#6876FA" stop-opacity="0"></stop>
+</radialGradient>
+<radialGradient id="orb1120_paint2_radial_0_22" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(103.04 59.36) scale(44.8 28)">
+<stop stop-color="#E6ECFF" stop-opacity="0.74"></stop>
+<stop offset="0.5" stop-color="#E6ECFF" stop-opacity="0.407"></stop>
+<stop offset="1" stop-color="#E6ECFF" stop-opacity="0"></stop>
+</radialGradient>
+<radialGradient id="orb1120_paint3_radial_0_22" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(13.44 67.2) scale(64.96 26.88)">
+<stop stop-color="#E9EDFF" stop-opacity="0.78"></stop>
+<stop offset="0.5" stop-color="#E9EDFF" stop-opacity="0.429"></stop>
+<stop offset="1" stop-color="#E9EDFF" stop-opacity="0"></stop>
+</radialGradient>
+</defs>
+</svg></g></svg>

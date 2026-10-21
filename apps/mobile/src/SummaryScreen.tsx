@@ -19,7 +19,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
-import { HAIRLINE, HIT, paper, signal, space, type } from './theme.ts';
+import { HAIRLINE, HIT, paper, space, type } from './theme.ts';
 import { SOUND_DETAIL, heldSoundsLine, soundExampleWord, soundInWord } from './tutor/soundExample.ts';
 import { IconAction, Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -28,6 +28,7 @@ import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
 import { saveTextFile } from './progress/saveFile.ts';
 import { EndCard } from './celebrate/EndCard.tsx';
 import type { GameDelta } from './game/delta.ts';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 
 export function SummaryScreen({
   lesson,
@@ -63,6 +64,8 @@ export function SummaryScreen({
   /** The chevron out of the end card. The navigator hands back whichever tab launched the lesson. */
   onDone: () => void;
 }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const focus = summary.pronunciation.focus;
   const [drilling, setDrilling] = useState(false);
   const [more, setMore] = useState(false);
@@ -98,10 +101,10 @@ export function SummaryScreen({
               feature panel retired). Digits are welcome from here down: the
               no-numbers rule holds mid-session, and a card that cannot say how
               long it took would be coy. */}
-          <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>
+          <Text accessibilityRole="header" style={[type.display, { color: t.text }]}>
             {lesson.title}
           </Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
+          <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>
             {summary.turnsCompleted} turns practised · {mins > 0 ? `${mins} min ` : ''}
             {secs}s
           </Text>
@@ -112,7 +115,7 @@ export function SummaryScreen({
             the Stat below, so it passes no count of its own. */}
         {delta !== null && <EndCard delta={delta} release={release} />}
 
-        {historySaveFailed && <Text accessibilityRole="alert" style={[type.body, { color: paper.inkSoft }]}>Your lesson history could not be confirmed as saved. This practice card is available until you leave; totals from your saved history are not shown.</Text>}
+        {historySaveFailed && <Text accessibilityRole="alert" style={[type.body, { color: t.muted }]}>Your lesson history could not be confirmed as saved. This practice card is available until you leave; totals from your saved history are not shown.</Text>}
 
         {/* ── what went well ────────────────────────────────────────── */}
         <View>
@@ -125,8 +128,8 @@ export function SummaryScreen({
 
         {heldWords.length > 0 && (
           <View style={st.wins}>
-            <Label color={signal.good}>What held up</Label>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1.5) }]}>{heldSoundsLine(heldWords)}</Text>
+            <Label color={t.text}>What held up</Label>
+            <Text style={[type.body, { color: t.muted, marginTop: space(1.5) }]}>{heldSoundsLine(heldWords)}</Text>
           </View>
         )}
 
@@ -138,10 +141,10 @@ export function SummaryScreen({
               {/* A word first, because a beginner can hear a word in their
                   head and cannot hear a symbol. The notation and the scorer's
                   reason are there for anyone who opens them. */}
-              <Text style={[type.frenchLg, { color: paper.ink, marginTop: space(2.5) }]}>{soundInWord(focusWord)}</Text>
-              <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{focus.phoneme.cue}</Text>
+              <Text style={[type.frenchLg, { color: t.text, marginTop: space(2.5) }]}>{soundInWord(focusWord)}</Text>
+              <Text style={[type.bodyStrong, { color: t.text, marginTop: space(2) }]}>{focus.phoneme.cue}</Text>
               {focus.phoneme.trick ? (
-                <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{focus.phoneme.trick}</Text>
+                <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{focus.phoneme.trick}</Text>
               ) : null}
               <View style={st.divider} />
               <Pressable
@@ -150,41 +153,41 @@ export function SummaryScreen({
                 accessibilityState={{ expanded: soundDetail }}
                 style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
               >
-                <Text style={[type.small, { color: paper.ink }]}>{soundDetail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
+                <Text style={[type.small, { color: t.text }]}>{soundDetail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
               </Pressable>
-              {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>/{focus.phoneme.ipa}/</Text>}
-              {soundDetail && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{focus.reason}</Text>}
+              {soundDetail && <Text style={[type.notation, { color: t.muted }]}>/{focus.phoneme.ipa}/</Text>}
+              {soundDetail && <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{focus.reason}</Text>}
             </Card>
 
             {/* the drill */}
             <Card>
               <View style={st.drillHead}>
-                <Text style={[type.heading, { color: paper.ink, flex: 1 }]}>{focus.drill.title}</Text>
-                <Text style={[type.label, { color: paper.inkSoft }]}>{focus.drill.durationSec}s</Text>
+                <Text style={[type.heading, { color: t.text, flex: 1 }]}>{focus.drill.title}</Text>
+                <Text style={[type.label, { color: t.muted }]}>{focus.drill.durationSec}s</Text>
               </View>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5) }]}>{focus.drill.why}</Text>
+              <Text style={[type.small, { color: t.muted, marginTop: space(1.5) }]}>{focus.drill.why}</Text>
 
               <View style={{ marginTop: space(3.5), gap: space(2) }}>
                 {focus.drill.pairs?.map((p) => (
                   <View key={p.a.word + p.b.word} style={st.pair}>
                     <View style={st.pairSide}>
-                      <Text style={[type.french, { color: paper.ink }]}>{p.a.word}</Text>
-                      <Text style={[type.small, { color: paper.inkSoft }]}>{p.a.gloss}</Text>
+                      <Text style={[type.french, { color: t.text }]}>{p.a.word}</Text>
+                      <Text style={[type.small, { color: t.muted }]}>{p.a.gloss}</Text>
                     </View>
-                    <Text style={[type.notation, { color: signal.correspondance }]}>≠</Text>
+                    <Text style={[type.notation, { color: t.text }]}>≠</Text>
                     <View style={[st.pairSide, { alignItems: 'flex-end' }]}>
-                      <Text style={[type.french, { color: paper.ink }]}>{p.b.word}</Text>
-                      <Text style={[type.small, { color: paper.inkSoft }]}>{p.b.gloss}</Text>
+                      <Text style={[type.french, { color: t.text }]}>{p.b.word}</Text>
+                      <Text style={[type.small, { color: t.muted }]}>{p.b.gloss}</Text>
                     </View>
                   </View>
                 ))}
                 {focus.drill.items?.map((i) => (
                   <View key={i.word} style={st.pair}>
                     <View style={st.pairSide}>
-                      <Text style={[type.french, { color: paper.ink }]}>{i.word}</Text>
-                      <Text style={[type.small, { color: paper.inkSoft }]}>{i.gloss}</Text>
+                      <Text style={[type.french, { color: t.text }]}>{i.word}</Text>
+                      <Text style={[type.small, { color: t.muted }]}>{i.gloss}</Text>
                     </View>
-                    {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>/{i.ipa}/</Text>}
+                    {soundDetail && <Text style={[type.notation, { color: t.muted }]}>/{i.ipa}/</Text>}
                   </View>
                 ))}
               </View>
@@ -209,15 +212,15 @@ export function SummaryScreen({
              held up" — to a learner whose audio never reached the scorer at all.
              Quiet, unalarming, and true: no red, no apology, no fault. */
           <Card>
-            <Text style={[type.title, { color: paper.ink }]}>Your pronunciation was not assessed.</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+            <Text style={[type.title, { color: t.text }]}>Your pronunciation was not assessed.</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>
               There was no pronunciation result for this lesson. The French you practised is under More.
             </Text>
           </Card>
         ) : (
           <Card>
-            <Text style={[type.title, { color: paper.ink }]}>Keep building on this.</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+            <Text style={[type.title, { color: t.text }]}>Keep building on this.</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>
               No focus sound was selected this time. Your words and another go at the conversation are under More.
             </Text>
           </Card>
@@ -235,7 +238,7 @@ export function SummaryScreen({
             accessibilityState={{ expanded: more }}
             style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
           >
-            <Text style={[type.small, { color: paper.ink }]}>{more ? 'Show less' : 'More'}</Text>
+            <Text style={[type.small, { color: t.text }]}>{more ? 'Show less' : 'More'}</Text>
           </Pressable>
           {more && (
             <View style={st.more}>
@@ -243,15 +246,15 @@ export function SummaryScreen({
                   history, and never more than three sentences. */}
               {report && report.sessionCount >= 2 && report.headlines.length > 0 && (
                 <Card>
-                  <Label color={signal.good}>Since you started</Label>
+                  <Label color={t.text}>Since you started</Label>
                   <View style={{ marginTop: space(2.5), gap: space(2) }}>
                     {report.headlines.map((h) => (
-                      <Text key={h} style={[type.bodyStrong, { color: paper.ink }]}>
+                      <Text key={h} style={[type.bodyStrong, { color: t.text }]}>
                         {h}
                       </Text>
                     ))}
                   </View>
-                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2.5) }]}>
+                  <Text style={[type.small, { color: t.muted, marginTop: space(2.5) }]}>
                     {report.sessionCount} sessions so far
                   </Text>
                 </Card>
@@ -265,7 +268,7 @@ export function SummaryScreen({
                   <Card style={st.words}>
                     {summary.wordsProduced.map((w, index) => (
                       <View key={w} style={[st.word, index > 0 && st.worded]}>
-                        <Text style={[type.frenchSm, { color: paper.ink }]}>{w}</Text>
+                        <Text style={[type.frenchSm, { color: t.text }]}>{w}</Text>
                       </View>
                     ))}
                   </Card>
@@ -277,7 +280,7 @@ export function SummaryScreen({
                   <View style={{ marginTop: space(1.5) }}>
                     <IconAction layout="inline" icon="download" label="Export to Anki" onPress={exportCards} />
                   </View>
-                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5), textAlign: 'center' }]}>
+                  <Text style={[type.small, { color: t.muted, marginTop: space(1.5), textAlign: 'center' }]}>
                     Downloads your words as flashcards you can import into Anki or any deck app.
                   </Text>
                 </View>
@@ -292,12 +295,13 @@ export function SummaryScreen({
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   scroll: { paddingTop: space(3), paddingBottom: space(8), gap: space(7) },
   head: { alignItems: 'stretch' },
   divider: {
     height: HAIRLINE,
-    backgroundColor: paper.lineOnCard,
+    backgroundColor: t.line,
     marginVertical: space(3),
   },
   drillHead: { flexDirection: 'row', alignItems: 'baseline', gap: space(2) },
@@ -307,13 +311,13 @@ const st = StyleSheet.create({
     gap: space(3),
     paddingVertical: space(2),
     borderBottomWidth: HAIRLINE,
-    borderBottomColor: paper.lineOnCard,
+    borderBottomColor: t.line,
   },
   pairSide: { flex: 1, gap: 2 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(3) },
   wins: {
     borderLeftWidth: HAIRLINE + 1,
-    borderLeftColor: signal.good,
+    borderLeftColor: t.text,
     paddingLeft: space(3.5),
   },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
@@ -321,5 +325,6 @@ const st = StyleSheet.create({
   more: { gap: space(7), marginTop: space(3) },
   words: { marginTop: space(3) },
   word: { paddingVertical: space(2) },
-  worded: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  worded: { borderTopWidth: HAIRLINE, borderTopColor: t.line },
 });
+}

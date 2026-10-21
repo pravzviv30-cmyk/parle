@@ -70,11 +70,14 @@ describe('the plan card and the daily goal', () => {
 
   test('C names real minutes and interests without implying learning completion', () => {
     assert.deepEqual(GOAL_TIERS.map(t => t.minutes), [5, 10, 15, 20]);
-    const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
+    // 2026-10-21 UI-008, artboard B-OB-Plan: the answers moved onto the sun band as chips
+    // (planChips.ts), drawn over the canvas map-route drawing.
+    const plan = evidence('apps/mobile/src/onboarding/planChips.ts');
     assert.match(plan, /const minutes = minutesOf\(draft\)/);
-    assert.match(plan, /minutes === 'none' \? 'Choose each time' : `\$\{minutes\} minutes`/);
-    assert.match(plan, /draft\.interests\.map/);
-    assert.match(plan, /<BoldScene kind="plan"/);
+    assert.match(plan, /minutes === 'none' \? 'Choose each time' : `\$\{minutes\} min a day`/);
+    assert.match(plan, /\(draft\.interests \?\? \[\]\)\.map/);
+    assert.match(evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'), /<BArt name="map-route"/);
+    assert.match(evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'), /planChips\(draft\)\.map/);
     assert.match(evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'), /accessibilityLabel="Adjust my plan" onPress=\{\(\) => open\('plan'\)\}/);
     assert.doesNotMatch(plan, /<ProgressRing|mastery|fluency|numberOfLines/);
     const motion = evidence('apps/mobile/assets/bold-rhythm/source/plan/scene.rml');
@@ -101,7 +104,8 @@ describe('the plan card and the daily goal', () => {
     assert.match(plan, /const plan = planFor\(draft\);/);
     assert.match(plan, /firstPracticeScenario\(briefFromDraft\(draft\)\)/);
     assert.match(plan, /\{plan\.method\}/);
-    assert.match(plan, /BOLD_GOALS\.find\(g => g\.key === draft\.reason\)/);
+    // 2026-10-21 UI-008, artboard B-OB-Plan: the goal is the band's first chip.
+    assert.match(evidence('apps/mobile/src/onboarding/planChips.ts'), /BOLD_GOALS\.find\(g => g\.key === draft\.reason\)/);
     assert.match(plan, /startingSupport\(draft\)/);
     assert.doesNotMatch(plan, /taskIndex|attempts|\btask\.(prompt|translation|title)\b/);
   });

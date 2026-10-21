@@ -12,11 +12,14 @@ import { useNavigation } from '@react-navigation/native';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { Monogram } from '../components.tsx';
 import { HIT } from '../theme.ts';
+import { avatarInitial } from './avatar.ts';
 
-export function ProfileButton() {
+/** `inverted` is the card-filled disc the Journey band draws (B-Journey). */
+export function ProfileButton({ inverted = false }: { inverted?: boolean } = {}) {
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { profile } = useProfile();
-  const initial = Array.from(profile.name?.trim() || 'You')[0]!.toLocaleUpperCase();
+  // 2026-10-20, sim nits: the greeting's name source; null draws the person glyph.
+  const initial = avatarInitial(profile.name);
   return (
     <Pressable
       accessibilityRole="button"
@@ -24,7 +27,7 @@ export function ProfileButton() {
       onPress={() => nav.navigate('Profile')}
       style={({ pressed }) => [s.hit, pressed && s.pressed]}
     >
-      <Monogram initial={initial} size={HIT} />
+      <Monogram initial={initial} size={HIT} inverted={inverted} />
     </Pressable>
   );
 }

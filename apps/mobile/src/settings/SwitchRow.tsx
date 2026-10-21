@@ -21,9 +21,9 @@
  */
 
 import { View, Text, Switch, StyleSheet } from 'react-native';
-import { accent, paper, space, type } from '../theme.ts';
+import { accent, bType, paper, space, type } from '../theme.ts';
 import { tapSettled } from '../motion/haptics.ts';
-import { useSettingsColors } from './SettingsAppearance.tsx';
+import { useBRows, useSettingsColors } from './SettingsAppearance.tsx';
 import { RowDivider, useInGroup, useRowFrame } from './SettingsGroup.tsx';
 
 export function SwitchRow({
@@ -36,7 +36,11 @@ export function SwitchRow({
   disabled = false,
 }: {
   title: string;
-  /** One plain sentence about what turning this on does. */
+  /**
+   * One plain sentence about what turning this on does. Empty only on a B row
+   * whose title already says it (2026-10-20 UI-008, artboard B-Settings: "Alexandre
+   * speaks more simply" carries no second line); it is still the hint.
+   */
   sub: string;
   value: boolean;
   onChange: (next: boolean) => void;
@@ -47,15 +51,18 @@ export function SwitchRow({
 }) {
   const colors = useSettingsColors();
   const frame = useRowFrame();
-  // P2: in a grouped list the off track is the border ink (light #DCD2C4,
-  // dark #514967) under a white knob; on a card it keeps the field grey.
-  const offTrack = useInGroup() ? colors.border : paper.field;
+  const bRows = useBRows();
+  const grouped = useInGroup();
+  const b = bRows && grouped;
+  // UI-005: the off track is the field grey everywhere, the 3:1 non-text
+  // floor on white. The hairline it used in grouped lists read ~1.24:1.
+  const offTrack = paper.field;
   return (
     <View style={[st.row, frame]}>
       {first ? null : <RowDivider />}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[type.body, { color: colors.text }]}>{title}</Text>
-        <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{sub}</Text>
+        <Text style={[b ? type.label : type.body, { color: colors.text }]}>{title}</Text>
+        {sub.length > 0 ? <Text style={[b ? bType.note : type.small, { color: colors.muted, marginTop: b ? 2 : space(0.5) }]}>{sub}</Text> : null}
       </View>
       <Switch
         value={value}

@@ -18,7 +18,8 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { PAGES } from './onboarding/answers.ts';
 import { FIRST_RUN_SURFACES } from './onboarding/disclosure.ts';
-import { MORE_WAYS, startModes } from './tutor/speakView.ts';
+import { startModes } from './tutor/speakView.ts';
+import { talkChips, OWN_TOPIC } from './tutor/speakTabView.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 const APP = join(SRC, '..');
@@ -211,6 +212,8 @@ describe('reviewed live microphone and tutor card shadows — F569', () => {
         if (shadowProperty.test(line)) {
           if (rel(path) === 'onboarding/TutorSelection.tsx' && line.includes('boxShadow: `0px 3px 12px ${paper.ink}06`')) continue;
           if (welcomeShadows.get(rel(path))?.includes(line.trim())) continue;
+          // UI-006: the one soft lift, for illustrated Explore tiles only.
+          if (rel(path) === 'theme.ts' && line.trim() === 'export const liftStyle = { boxShadow: shadow.lift.css } as const;') continue;
           offenders.push(`${rel(path)}  ${line.trim()}`);
         }
       }
@@ -381,8 +384,10 @@ describe('nothing ships that nothing renders — J14', () => {
   // And `Art`, the watercolour renderer, which revamp B (F599) retired with
   // the PNGs it drew: the flat drawings reach a screen through `Illustration`,
   // and a second renderer beside it is the same coin toss again.
+  // B0 (2026-10-20): 'Chip' left this list. It is the shared filter and meta
+  // chip in components.tsx now, and the test after this one pins its callers.
   const RETIRED = [
-    'Chip', 'Bloom', 'OffTheHook', 'TodayRow', 'PhrasebookCard',
+    'Bloom', 'OffTheHook', 'TodayRow', 'PhrasebookCard',
     'RecapPostcard', 'OnboardCake', 'NothingDue', 'Phrasebook',
     'MissionDisc', 'MissionArt',
     'HeroCafe', 'StreetCorner', 'MarketStall', 'FrontDesk', 'EveningIn',
@@ -393,6 +398,13 @@ describe('nothing ships that nothing renders — J14', () => {
     for (const name of RETIRED) {
       const definers = SOURCES.filter(({ body }) => new RegExp(`export function ${name}\\b`).test(body));
       assert.deepEqual(definers.map((d) => d.path), [], `${name} is exported again and still has no caller`);
+    }
+  });
+
+  test('the shared Chip has callers, so it is not the retired one come back (B0, 2026-10-20)', () => {
+    const callers = SOURCES.filter(({ body }) => /<Chip\b/.test(body)).map(({ path }) => rel(path));
+    for (const file of ['SessionFilters.tsx', 'SituationsCard.tsx']) {
+      assert.ok(callers.some((c) => c.endsWith(file)), `${file} no longer draws the shared Chip`);
     }
   });
 
@@ -674,7 +686,8 @@ describe('a form says out loud what it shows — F109', () => {
  */
 const FIRST_RUN: readonly { where: string; headings: number; part?: boolean }[] = [
   // A shared page title and the policy section template. The streak has its own full screen.
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 3 },
+  // 2026-10-21 UI-008, artboards B-OB-Plan and B-OB-Tutor: the plan and tutor titles moved into their bands, so each is its own heading Text.
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 5 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 2 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
@@ -966,6 +979,14 @@ describe('a tap that starts with a network probe — F154', () => {
     // both halves are pinned: the drawn link and the mode model behind it.
     const tutor = named('tabs/TutorTab.tsx');
     assert.match(tutor, /const modes = startModes\(prefersTyping\(/, 'Speak no longer reads the learner\'s standing typing choice');
+    // 2026-10-20, B2, B-Speak: on Speak the quiet door is the Type radio on the
+    // Recommended card, and the Start opens in whichever mode is chosen. The
+    // shared MissionHero keeps its own quiet link for Today and Practice.
+    // 2026-10-20 UI-008, artboard B-Speak: the radios are the artboard's Speak/Type
+    // control, each cell a radio with its checked state.
+    assert.match(tutor, /<Segment key=\{choice\.key\}[^>]*onPress=\{\(\) => setChosenText\(choice\.textMode\)\}/, 'Speak lost its Type choice');
+    assert.match(tutor, /accessibilityRole="radio" accessibilityLabel=\{label\} accessibilityState=\{\{ checked: selected, selected \}\}/, 'the Type choice is not a radio');
+    assert.match(tutor, /onPress=\{\(\) => open\(textMode, next\.params\)\}/, 'the Start ignores the chosen mode');
     assert.match(
       named('home/MissionHero.tsx'),
       /<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
@@ -1034,7 +1055,8 @@ describe('a ghost control can be busy — F152 hand-off', () => {
     // spring. The disabled flag reaches that one Press, and a disabled Pressable
     // never fires onPressIn, so a disabled ghost neither shrinks nor flashes.
     assert.match(ghost, /<Press haptic="light"[^>]*disabled=\{disabled\}/, 'a disabled GhostButton still springs when pressed');
-    assert.match(ghost, /disabled \? paper\.inkSoft : color/, 'a disabled GhostButton looks live');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(ghost, /disabled \? t\.muted : color/, 'a disabled GhostButton looks live');
   });
 });
 
@@ -1054,6 +1076,8 @@ const ROOT = join(SRC, '..', '..', '..');
 /** Every tab and pushed screen rebuilt on the shared frame in this phase. */
 const ADOPTERS = [
   'tabs/HomeTab.tsx',
+  // 2026-10-20, B1, B-Explore: Explore left MainUI's MainScreen for the frame.
+  'tabs/ExploreTab.tsx',
   'tabs/TutorTab.tsx',
   'tabs/PracticeTab.tsx',
   'tabs/MyFrenchTab.tsx',
@@ -1122,6 +1146,8 @@ const SAFE_AREA_ALLOW = [
   'drill/FocusDrillPlayer.tsx',
   'auth/SetNewPasswordScreen.tsx',
   'friends/AddFriendsScreen.tsx',
+  // 2026-10-20 UI-008, artboard B-Profile: the tab bar drawn under Profile, outside the tab navigator, pays the bottom inset as the navigator's bar does.
+  'nav/LuvaniTabBar.tsx',
 ];
 
 /**
@@ -1376,27 +1402,27 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
     }
   });
 
-  test('the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313', () => {
+  test('the active tab is told by the violet cell and weight 700, and a screen reader still hears selected — F313', () => {
     assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
-    // 2026-09-30, revamp B (F600): the heavier weight is Outfit Bold, 700,
-    // beside the brand blue, over the tab label token's SemiBold.
-    assert.match(tabbar, /fontFamily: font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
+    // 2026-10-20 UI-008: the heavier weight is Outfit Bold, 700, in the violet
+    // cell, over the unselected words' Medium.
+    assert.match(tabbar, /focused \? font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
-  test('the bar is white with a top hairline, and never a floating shadow — F313', () => {
-    // 2026-09-27, notebook Phase 1: the inset dock becomes a flat bar, per the
-    // design contract. The floating rules are kept whole and the dock's own
-    // corner, margin and ink outline are refused alongside them. 2026-09-30,
-    // revamp B (F600): the bar is SNIPPETS' white, over the one hairline.
+  test('the bar is an ink capsule on the route ground, and never a floating shadow — F313, UI-008', () => {
+    // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103: the white bar and
+    // its hairline become an ink capsule, radius 32, on the focused route's
+    // ground. It stays in layout and never floats on a shadow.
     const from = tabbar.indexOf('bar: {');
     assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
     const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
-    assert.match(barStyle, /backgroundColor: paper\.card/, 'the bar is not the opaque white surface of its own');
-    assert.match(barStyle, /borderTopWidth: HAIRLINE/, 'the bar has no rule separating it from the page');
-    assert.match(barStyle, /borderTopColor: paper\.line/, 'the rule is not the paper hairline');
-    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'", 'borderRadius', 'marginHorizontal', 'borderColor: paper.ink']) {
-      assert.ok(!barStyle.includes(floating), `the bar carries ${floating}, so it is a dock or it competes with the content`);
+    assert.match(barStyle, /backgroundColor: t\.ground/, 'the strip is not the route ground');
+    const capsule = tabbar.slice(tabbar.indexOf('capsule: {'), tabbar.indexOf('},', tabbar.indexOf('capsule: {')) + 1);
+    assert.match(capsule, /backgroundColor: t\.tabCapsule/, 'the capsule is not the capsule token');
+    assert.match(capsule, /borderRadius: 32/, 'the capsule is not radius 32');
+    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
+      assert.ok(!tabbar.includes(floating), `the bar carries ${floating}, so it floats over the content`);
     }
   });
 
@@ -1406,27 +1432,15 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
   });
 });
 
-describe('the active tab wears the brand blue — F325', () => {
+describe('the active tab wears the violet cell — F325, UI-008', () => {
   const tabbar = named('nav/LuvaniTabBar.tsx');
 
-  test('the active tab is set in the brand blue, and the rest in soft ink', () => {
-    // 2026-09-30, revamp B (F600). The identity colour on the bar was the ink
-    // for a whole redesign; SNIPPETS gives the selected tab the brand blue,
-    // glyph and word together, at Outfit Bold. The rest are soft ink, glyph and
-    // word alike, because a word is held to the text floor (6.6 on white) and
-    // faint ink is now only an alias of it. The same three pins as
-    // nav/tabBar.test.ts, read here with the rest of the surface.
-    assert.match(
-      tabbar,
-      /color=\{focused \? accent\.brand : paper\.inkSoft\}/,
-      'the active tab glyph is not the brand blue, or the inactive one is not soft ink',
-    );
-    assert.match(
-      tabbar,
-      /focused \? \{ color: accent\.brand, fontFamily: font\.bold \}/,
-      'the active tab label is not the brand blue at the heavier weight, Outfit Bold',
-    );
-    assert.match(tabbar, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
+  test('the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008', () => {
+    // 2026-10-20 UI-008, Figma 292:1103. Replaces revamp B's brand blue word on
+    // white. The same pins as nav/tabBar.test.ts, read here with the surface.
+    assert.match(tabbar, /color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\}/, 'the selected glyph is not sun, or the others are not cream');
+    assert.match(tabbar, /faceSelected: \{ backgroundColor: t\.tabSelected \}/, 'the selected cell is not violet');
+    assert.match(tabbar, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold over the others\' Medium');
   });
 });
 
@@ -1556,6 +1570,9 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
 /** The five tabs, which all open the same way now. */
 const TABS = [
   'tabs/HomeTab.tsx',
+  // 2026-10-20, B1, B-Explore: Explore keeps every cross-tab rule, the two
+  // header rules included, now that it opens on TabHeader.
+  'tabs/ExploreTab.tsx',
   'tabs/TutorTab.tsx',
   'tabs/PracticeTab.tsx',
   'tabs/MyFrenchTab.tsx',
@@ -1644,7 +1661,10 @@ describe('the five tabs open the same way — F336', () => {
     // large title over its own identity row, not a TabHeader. It still names
     // itself once, as a heading.
     const profile = named('tabs/ProfileTab.tsx');
-    assert.equal((profile.match(/accessibilityRole="header"[^>]*>\{PROFILE_TITLE\}/g) ?? []).length, 1, 'Profile lost its one accessible page title');
+    // 2026-10-20 UI-008, artboard B-Profile: no "Profile" title is drawn; the
+    // learner's name is the page's one heading, in the Identity part.
+    assert.match(profile, /<Identity\b/, 'Profile lost its identity heading');
+    assert.equal((named('settings/ProfileParts.tsx').match(/accessibilityRole="header"/g) ?? []).length, 1, 'Profile lost its one accessible page title, or has two');
     assert.doesNotMatch(profile, /<TabHeader\b/, 'Profile draws a second header shape');
     for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx')) {
       const body = named(name);
@@ -1656,7 +1676,8 @@ describe('the five tabs open the same way — F336', () => {
       );
       if (name === 'tabs/TutorTab.tsx') {
         assert.match(body, /if \(renderHistoryStatus !== 'ready'\) return <ScrollScreen/, 'Speak must have a separate loading and unread branch');
-        assert.match(body, /<TabHeader title=\{tutorHeading\(tutorName\)\}/g, 'Speak must name its tutor in both render branches');
+        // 2026-10-20, B2, B-Speak: the title is "Speak" and the tutor is named in the subtitle, in both branches.
+        assert.equal((body.match(/<TabHeader title=\{SPEAK_TITLE\} purpose=\{speakSubtitle\(tutorName\)\}/g) ?? []).length, 2, 'Speak must name itself and its tutor in both render branches');
       }
       assert.doesNotMatch(
         body,
@@ -1688,6 +1709,10 @@ describe('the five tabs open the same way — F336', () => {
    * and no test would see it stop.
    */
   test("Home keeps its contextual greeting; other tabs omit repeated subtitles", () => {
+    // 2026-10-20, B5, B-Today: Home's greeting is "Bonjour, Name." all day
+    // (founder decision) with no line under it at all, so it carries no
+    // purpose, literal or otherwise.
+    assert.doesNotMatch(named('tabs/HomeTab.tsx'), /purpose=/, 'Home draws a line under its greeting again');
     assert.match(
       named('tabs/HomeTab.tsx'),
       /\{greeting\.title\}/,
@@ -1702,8 +1727,36 @@ describe('the five tabs open the same way — F336', () => {
       const body = named(name);
       // 9 October 2026: the founder requested shorter, action-first tabs.
       assert.match(body, /<TabHeader/, `${name} lost its accessible page title`);
+      // 2026-10-20, B2, B-Speak: Speak's subtitle names who the learner talks
+      // with, which the title no longer does, so it is not a repeat. It is the
+      // model's sentence, never a literal.
+      if (name === 'tabs/TutorTab.tsx') {
+        assert.doesNotMatch(body, /purpose="/, 'Speak spells its subtitle itself instead of reading speakTabView.ts');
+        continue;
+      }
+      // 2026-10-20, B3, B-Practice: Practice's subtitle says where the page
+      // takes the learner, and changes for a learner with no conversation yet
+      // (B-Empty-Practice). It is the view model's sentence, never a literal.
+      if (name === 'tabs/PracticeTab.tsx') {
+        assert.doesNotMatch(body, /purpose="/, 'Practice spells its subtitle itself instead of reading practiceTabView.ts');
+        assert.match(body, /purpose=\{newLearner \? EMPTY_SUBTITLE : PRACTICE_SUBTITLE\}/, 'Practice lost its subtitle, or the empty page shares the full one');
+        continue;
+      }
       assert.doesNotMatch(body, /purpose=/, `${name} repeats an explanation under its title`);
     }
+  });
+});
+
+describe('Explore opens on the shared frame (2026-10-20, B1, B-Explore)', () => {
+  test('Explore opens on ScrollScreen and one TabHeader with the avatar, never on MainScreen or a ScrollView of its own', () => {
+    // Replaces B0's "Explore keeps its current shape until B1", which pinned
+    // MainScreen and no TabHeader. B1 moved it to the frame, so this pins that.
+    const explore = named('tabs/ExploreTab.tsx');
+    // 2026-10-20 UI-008, artboard B-Explore: the page opens 8 under the inset, as Today does.
+    assert.match(explore, /<ScrollScreen bottom="tab" topGap=\{8\}>/);
+    assert.equal((explore.match(/<TabHeader\b/g) ?? []).length, 1);
+    assert.match(explore, /<TabHeader title="Explore" trailing=\{<ProfileButton \/>\} \/>/);
+    assert.doesNotMatch(explore, /<MainScreen\b|<ScrollView\b|useSafeAreaInsets/);
   });
 });
 
@@ -1763,27 +1816,33 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     // ledger. Speak leads with the tutor card and the level path, and its other
     // ways in sit under "More ways to practise", drawn one way. The rule is the
     // same: the tutor draws the app's components and hand-rolls nothing.
+    // 2026-10-20, B2, B-Speak: "More ways to practise" left Speak. Its ways in
+    // are now the Talk about anything chips (the learner's own suggestions and
+    // their own topic), drawn one way as the shared Chip, each opening through
+    // the same probe as Start. The rule is the same: the tutor draws the app's
+    // components and hand-rolls nothing.
     const tutor = named('tabs/TutorTab.tsx');
-    const ways = tutor.slice(tutor.indexOf('MORE_WAYS.map('), tutor.indexOf('))}', tutor.indexOf('MORE_WAYS.map(')));
-    assert.ok(ways.length > 0, 'the tutor no longer maps its other ways in');
-    assert.match(ways, /<LedgerRow\b/, 'a way in is not drawn as the shared ledger row');
-    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared row');
-    assert.equal((ways.match(/<LedgerRow\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two rows could drift apart');
-    assert.match(ways, /way\.title/, 'a way in names itself instead of reading its words from the model');
-    assert.match(ways, /way\.gloss/, 'the ways in lost their gloss line');
-
-    // The ways in are the model's, not typed here: gate.ts's doors minus the
-    // everyday door (the level path is that door now), plus what the tutor
-    // remembers. A new way in is a model entry, not a row bolted on here.
+    // 2026-10-20 UI-008, artboard B-Speak: the chips are the artboard's 40pt
+    // white and violet2 pills, each one press through the shared spring.
+    const ways = tutor.slice(tutor.indexOf('talk.map('), tutor.indexOf('))}', tutor.indexOf('talk.map(')));
+    assert.ok(ways.length > 0, 'the tutor no longer maps its ways in');
+    assert.match(ways, /<Press\b/, 'a way in is not drawn through the shared press');
+    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared press');
+    assert.equal((ways.match(/<Press\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two could drift apart');
+    assert.match(ways, /chip\.label/, 'a way in names itself instead of reading its words from the model');
+    assert.match(ways, /open\(textMode, chip\.params\)/, 'a way in skips the probe');
+    // The open conversation is a model entry, never a row bolted on here.
     const keys = [...named('tutor/gate.ts').matchAll(/\{ key: '(\w+)', label: '/g)].map((m) => m[1]!);
     assert.deepEqual(keys, ['everyday', 'free', 'rehearse'], 'gate.ts no longer offers exactly the three ways in');
-    assert.deepEqual(MORE_WAYS.map((way) => way.key), ['free', 'rehearse', 'memory'], 'the other ways in on Speak drifted from the model');
+    assert.equal(talkChips({ ideas: [] }).at(-1)!.label, OWN_TOPIC, 'the open conversation drifted from the model');
 
     // The scenes are on this tab on purpose now: the level path is the spine.
     // They come from the path model, never from a hand-typed catalogue list.
     // 2026-09-27, Phase 4 (B1): the path is drawn once, as the scene rows, so
     // Speak reads the model and draws no second LevelPath above them.
-    assert.match(tutor, /speakPath\(progress\)/, 'Speak no longer reads its rows from the path model');
+    // 2026-10-20, B2, B-Speak: the starter scenes read the path model through speakTabView.ts.
+    assert.match(tutor, /starterScenes\(progress\)/, 'Speak no longer reads its rows from the path model');
+    assert.match(named('tutor/speakTabView.ts'), /pathCard\(speakPath\(progress\)\)/, 'the starter scenes left the path model');
     assert.doesNotMatch(tutor, /<LevelPath\b/, 'Speak draws the path twice again, as a LevelPath above the rows');
     assert.doesNotMatch(tutor, /MISSIONS\.map\(/, 'Speak lists the catalogue by hand instead of reading the level path');
     assert.doesNotMatch(tutor, /DOOR_TINT|<TintRow\b/, 'Speak paints a way in with a place tint again');
@@ -1856,22 +1915,30 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   // 2026-10-07, come alive Phase 4: the game cards each tab now draws, every one
   // with no pill of its own and no ledger row (README Part 7, Surfaces).
   const SURFACES: Record<string, readonly string[]> = {
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx'],
-    'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
+    // 2026-10-20 UI-008, artboard B-Today: plus the Today parts it draws from.
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx', 'today/TodayParts.tsx'],
+    // 2026-10-20, B1, B-Explore: every Explore list is drawn inline in the
+    // tab file as ledger rows; it imports no card file of its own.
+    // 2026-10-20 UI-008, artboard B-Explore: plus the B parts it draws from.
+    'tabs/ExploreTab.tsx': ['tabs/ExploreTab.tsx', 'explore/ExploreParts.tsx'],
+    // 2026-10-20, B2, B-Speak: the ContinuityCard left Speak; a thread to pick
+    // up is the Recommended card's own conversation.
+    'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx'],
+    // 2026-10-20, B3, B-Practice: the made-from rows left Practice (a fix is
+    // tried on Your fixes); the sound card stays as the door to sound practice.
+    // 2026-10-21 UI-008, artboard B-Practice: plus the Practice parts it draws from.
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
-      'practice/ReplayMomentCard.tsx',
-      'practice/MakePhraseCard.tsx',
       'practice/TuneSoundCard.tsx',
+      'practice/PracticeParts.tsx',
     ],
+    // 2026-10-20, B4, B-Journey: the level, the counts and the CEFR card are
+    // drawn inline from journey/journeyView.ts, the postcard shelf became the
+    // Postcards tile, and the badge shelf and streak card sit in the Badges sheet.
     'tabs/MyFrenchTab.tsx': [
       'tabs/MyFrenchTab.tsx',
-      'myfrench/LevelCard.tsx',
-      'game/LevelXpCard.tsx',
       'game/StreakSummaryCard.tsx',
-      'game/CountsGrid.tsx',
       'game/BadgeShelf.tsx',
-      'progress/PostcardShelf.tsx',
     ],
     // P2 (2026-10-19): Profile's stats moved behind Your French, so it draws
     // no list surface of its own.
@@ -1882,16 +1949,60 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const task = named('practice/NextTaskCard.tsx');
     const local = named('practice/LocalPracticeCard.tsx');
     const hero = named('home/MissionHero.tsx');
-    for (const tab of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'tabs/PracticeTab.tsx']) assert.match(named(tab), /<NextTaskCard/);
+    // 2026-10-20, B3, B-Practice: Practice no longer draws NextTaskCard; its
+    // one primary pill is the empty page's first conversation, and every
+    // other action on it is a secondary pill, a colour card or a ledger row.
+    assert.match(named('tabs/HomeTab.tsx'), /<NextTaskCard/);
+    const practice = named('tabs/PracticeTab.tsx');
+    assert.doesNotMatch(practice, /<NextTaskCard/);
+    // 2026-10-21 UI-008, artboards B-Practice and B-Empty-Practice: the empty
+    // page's one primary is EmptyCard's 54pt Start (practice/PracticeParts),
+    // and the full page draws what the artboard draws: each door's own ink
+    // button (the pattern's Practise this, the newest card's Talk about it
+    // again), never a PillButton.
+    assert.doesNotMatch(practice, /<PillButton\b/, 'Practice draws an old pill instead of its B parts');
+    assert.equal((practice.match(/<EmptyCard title=\{EMPTY\.title\} body=\{EMPTY\.body\} start=\{EMPTY\.start\} disabled=\{checking\} onStart=\{startFirst\}>/g) ?? []).length, 1, 'Practice lost its one primary, the first conversation');
+    const practiceParts = named('practice/PracticeParts.tsx');
+    const emptyCard = practiceParts.slice(practiceParts.indexOf('export function EmptyCard('), practiceParts.indexOf('export function SubHead('));
+    assert.equal((emptyCard.match(/<BButton\b/g) ?? []).length, 1, 'the empty page carries other than one Start');
+    // 2026-10-20, B2, B-Speak: Speak's door is its own Recommended card, with
+    // exactly one ink primary, Start; every other pill on it is secondary.
+    // 2026-10-20 UI-008, artboard B-Speak: the Start is the 54pt heroCta BButton
+    // (today/TodayParts), and the one other BButton is the white Prepare first.
+    const speak = named('tabs/TutorTab.tsx');
+    assert.doesNotMatch(speak, /<NextTaskCard|<PillButton\b/);
+    assert.equal((speak.match(/<BButton label=\{START\}[^>]*height=\{54\} ground=\{t\.heroCta\}/g) ?? []).length, 1, 'Speak carries other than one Start');
+    // 2026-10-21 UI-008, B-Empty-States: the third is the away card's own
+    // 46pt retry, drawn only while the tutor cannot be reached.
+    assert.equal((speak.match(/<BButton\b/g) ?? []).length, 3, 'Speak carries a second primary pill');
+    assert.match(speak, /<BButton label=\{PREPARE_FIRST\} height=\{48\} ground=\{t\.heroChip\}/, 'Prepare first is not the white secondary');
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
-    assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 2);
-    assert.match(task, /if \(value.card !== null\)/);
+    // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B
+    // part's one 54pt BButton (today/TodayParts SceneLead); the blue brief
+    // keeps its one pill. Today then draws what the artboard draws: the
+    // lead's Start, the fix's primary and Coming up's Rehearse now, each the
+    // one primary of its own door.
+    assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 1);
+    const parts = named('today/TodayParts.tsx');
+    const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('export function PhraseCard('));
+    assert.equal((lead.match(/<BButton\b/g) ?? []).length, 1, 'the yellow lead carries other than one Start');
+    assert.equal((named('tabs/HomeTab.tsx').match(/<BButton\b/g) ?? []).length, 1, 'the fix card carries other than one primary');
+    assert.match(task, /if \(value.card !== null && !vivid\)/);
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
     assert.match(named('tabs/HomeTab.tsx'), /!unowned && readFailed/);
-    assert.equal((named('tabs/MyFrenchTab.tsx').match(/<PillButton\b/g) ?? []).length, 2);
-    assert.match(named('tabs/MyFrenchTab.tsx'), /firstVisit &&/);
+    // 2026-10-20, B4, B-Journey: Journey's one primary is the empty journey's
+    // first scene, behind the empty gate; Practise your sounds is secondary.
+    // 2026-10-20 UI-008, artboard B-Journey / B-Empty-States: that primary is
+    // the butter card's 46pt ink BButton; Practise your sounds became the sound
+    // row's text link, so Journey draws no PillButton at all.
+    const journey = named('tabs/MyFrenchTab.tsx');
+    assert.equal((journey.match(/<BButton label=\{start\.start\} height=\{46\} ground=\{t\.primary\}/g) ?? []).length, 1, 'Journey lost its one primary, the first scene');
+    assert.equal((journey.match(/<BButton\b/g) ?? []).length, 1, 'Journey carries a second primary pill');
+    assert.equal((journey.match(/<PillButton\b/g) ?? []).length, 0, 'Journey draws an old pill the artboard does not');
+    assert.match(journey, /const empty = renderStatus === 'ready' && isEmptyJourney\(firstVisit, completions\);/);
+    assert.match(journey, /\{empty && \(/);
 
   });
 
@@ -1911,6 +2022,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     }
     const tinted: Record<string, number> = {
       'tabs/HomeTab.tsx': 0,
+      'tabs/ExploreTab.tsx': 0,
       'tabs/TutorTab.tsx': 0,
       'tabs/PracticeTab.tsx': 0,
       'tabs/MyFrenchTab.tsx': 0,
@@ -1920,14 +2032,33 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // Revamp B (F602): the one review row, under a scene or plans lead when
       // phrases are due. Everything else on Today is a card or a sentence.
       'tabs/HomeTab.tsx': 0,
-      // The level path's scenes, the other ways in, and the memory row.
-      'tabs/TutorTab.tsx': 2,
-      // The review door on the tab, then replay a moment and make this phrase
-      // yours in their own card files.
-      'tabs/PracticeTab.tsx': 4,
+      // 2026-10-20, B1, B-Explore: every Explore list is ledger rows: search
+      // collections, situations, the own-topic seed, next-conversation ideas,
+      // take it further, words and phrases, and from your conversations.
+      // 2026-10-20 UI-008, artboard B-Explore: the artboard's lists are its
+      // own white list cards (situations, further, words) and the indigo
+      // card's idea rows, each one shape per list; ledger rows remain for the
+      // search's collections, the own-topic seed and From your conversations.
+      'tabs/ExploreTab.tsx': 3,
+      // 2026-10-20, B2, B-Speak: the starter scenes, and Revisit a conversation.
+      // 2026-10-20 UI-008, artboard B-Speak: the scenes are the artboard's own
+      // tiled list (drawn once, one map), and the revisit row left: none.
+      'tabs/TutorTab.tsx': 0,
+      // 2026-10-20, B3, B-Practice: the empty page's café lesson and sounds,
+      // saved phrases and saved text, a conversation's fixes, its practice
+      // steps and its revisit, and hear, say and compare.
+      // 2026-10-21 UI-008, artboard B-Practice: every list is the artboard's
+      // own cards and rows (practice/PracticeParts), one shape per list: none.
+      'tabs/PracticeTab.tsx': 0,
       // Conversations and their "see all", the phrase shelf, the collection,
       // goals, the daily collection and the door to every situation. Phase 4
       // (2026-10-07): the postcards row became the postcard shelf, 5 to 4.
+      // 2026-10-20, B4, B-Journey: the failed-read retry, the week in words,
+      // Your week in French and the tiled rows (phrases, sounds, conversations,
+      // goals, saved scenes); still 4 tags.
+      // 2026-10-20, lock seam wiring: plus a locked section's teaser row, 5.
+      // 2026-10-20 UI-008, artboard B-Journey: the week in words left the
+      // ledger for the artboard's dot rows (one map, one shape), 5 to 4.
       'tabs/MyFrenchTab.tsx': 4,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
@@ -2271,8 +2402,11 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.ok(!tab.includes('buildPath'), 'DESIGN.md says the path is gone and the tab still builds one');
     assert.doesNotMatch(tab, /archiveFrom/, 'DESIGN.md says the archive is one level down and Practice folds one anyway');
     assert.match(named('conversationPacks/ConversationsScreen.tsx'), /archiveFrom/, 'nothing folds the archive at all now, so it did not move, it went');
+    // 2026-10-20, B3, B-Practice: one primary pill, for the learner with no
+    // conversation yet. 2026-10-21 UI-008, artboard B-Empty-Practice: that
+    // primary is EmptyCard's Start, and the tab draws no PillButton at all.
     assert.equal(
-      (tab.match(/<PillButton\b/g) ?? []).length,
+      (tab.match(/start=\{EMPTY\.start\}/g) ?? []).length + (tab.match(/<PillButton\b/g) ?? []).length,
       1,
       'the design doc says Practice keeps one pill, for the learner with no conversation yet, and the tab draws a different number',
     );
@@ -2297,8 +2431,13 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // Revamp B (F602): Today draws the white "today" look of the same card.
     assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
-    assert.equal((tutor.match(/<PillButton\b/g) ?? []).length, 0, 'the shared task owns the primary; connection retry is secondary');
-    assert.match(tutor, /const primary = <IconAction/);
+    // 2026-10-20, B2, B-Speak: Speak's one primary is its own Start, on the
+    // Recommended card; connection retry stays a quiet IconAction.
+    // 2026-10-20 UI-008, artboard B-Speak: the Start is the one heroCta BButton.
+    assert.equal((tutor.match(/<BButton label=\{START\}/g) ?? []).length, 1, 'Speak carries other than one Start primary');
+    // 2026-10-21 UI-008, B-Empty-States: the retry is the away card's 46 ink
+    // button; Start above stays the one heroCta primary.
+    assert.match(tutor, /const primary = <BButton hug label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\} height=\{46\}/);
   });
 
   /**

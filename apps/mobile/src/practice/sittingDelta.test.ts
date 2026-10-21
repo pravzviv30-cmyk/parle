@@ -287,7 +287,7 @@ describe('a finish shown in words stays in words — F775', () => {
     assert.match(end, /return \( <ScrollScreen footer=\{doneFooter\}>/);
     assert.match(
       end,
-      /\{end\.state === 'settled' \? \( <EndCard delta=\{end\.delta\} count=\{s\.resolved\} release=\{release\} \/> \) : end\.state === 'waiting' \? \( <ActivityIndicator color=\{paper\.inkSoft\} \/> \) : \( <Card> <FinishFelt \/>/,
+      /\{end\.state === 'settled' \? \( <EndCard delta=\{end\.delta\} count=\{s\.resolved\} release=\{release\} \/> \) : end\.state === 'waiting' \? \( <ActivityIndicator color=\{bt\.muted\} \/> \) : \( <Card> <FinishFelt \/>/,
       'the drill end draws something other than the card, the wait or the words',
     );
     // The practice set's wait is inside its screen with Done too.

@@ -30,8 +30,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
+import { CloseGlyph, GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
 import { colour, paper, space, type, HAIRLINE, HIT, RHYTHM } from './theme.ts';
+import { useB, type B } from './main/bTheme.tsx';
 import { footerOverflow } from './footerOverflow.ts';
 import { compactPhone, screenGeometry, screenInsets, READING, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
 
@@ -80,12 +81,17 @@ export type ScreenBottom = 'tab' | 'inset' | 'none';
 
 type ScreenProps = {
   children: ReactNode;
-  /** The page's own light. Defaults to the house paper. */
+  /** The page's own light. Defaults to the theme's ground (`useB().ground`). */
   ground?: string;
   /** Horizontal padding of space(5) on the content, header and footer. */
   padded?: boolean;
   /** The gap below the safe-area top inset. */
   topGap?: number;
+  /**
+   * The body draws from the very top, under the status bar, and owns the top
+   * inset itself (2026-10-20, sim nits: the scene preview's full-bleed band).
+   */
+  bleedTop?: boolean;
   /**
    * `tab` for a screen under the tab bar (the bar draws the bottom inset
    * itself), `inset` for a standalone screen, `none` when the body owns it.
@@ -107,13 +113,16 @@ type ScreenProps = {
 const LIGHT_BAR_GROUNDS: readonly string[] = [colour.blue, colour.coral, paper.ink];
 
 /**
- * The status bar a ground asks for, or null for the paper, where the app's one
- * dark bar in App.tsx already governs. The OS stacks status bar styles, so a
- * colour page's style lifts again when the page unmounts.
+ * The status bar a ground asks for, or null for the theme's ground, where the
+ * route's bar (main/MainNavigationTheme.tsx) already governs. The OS stacks
+ * status bar styles, so a colour page's style lifts again when the page
+ * unmounts. In dark mode every themed surface is dark, so only sun and mint,
+ * the two grounds that take ink, keep a dark bar (UI-008, 2026-10-20).
  */
-function barStyleFor(ground: string): 'light' | 'dark' | null {
-  if (ground === paper.ground) return null;
-  return LIGHT_BAR_GROUNDS.includes(ground) ? 'light' : 'dark';
+export function barStyleFor(ground: string, t: Pick<B, 'ground' | 'mode'> = { ground: paper.ground, mode: 'light' }): 'light' | 'dark' | null {
+  if (ground === t.ground) return null;
+  if (LIGHT_BAR_GROUNDS.includes(ground)) return 'light';
+  return t.mode === 'dark' && ground !== colour.sun && ground !== colour.mint ? 'light' : 'dark';
 }
 
 /**
@@ -129,23 +138,28 @@ function barStyleFor(ground: string): 'light' | 'dark' | null {
  */
 export function Screen({
   children,
-  ground = paper.ground,
+  ground: asked,
   padded = true,
   topGap = space(4),
+  bleedTop = false,
   bottom = 'inset',
   header,
   footer,
   avoidKeyboard,
   overflowing = false,
 }: ScreenProps) {
+  const t = useB();
+  // The house paper means the theme's ground: identical under PinLight, and
+  // the M3 ground once a route is dark-ready (UI-008, 2026-10-20).
+  const ground = asked === undefined || asked === paper.ground ? t.ground : asked;
   const insets = useSafeAreaInsets();
   const { width, height, fontScale } = useWindowDimensions();
   const geometry = screenGeometry(width, height, insets, fontScale);
   const horizontal = screenInsets(width, insets.left, insets.right, padded);
   const bottomPad =
     bottom === 'tab' ? space(3) : bottom === 'inset' ? insets.bottom + space(4) : 0;
-  const onPaper = ground === paper.ground;
-  const bar = barStyleFor(ground);
+  const onPaper = ground === t.ground;
+  const bar = barStyleFor(ground, t);
 
   const root = (
     <View
@@ -155,6 +169,8 @@ export function Screen({
         backgroundColor: ground,
         paddingTop: insets.top + topGap,
         paddingBottom: bottomPad,
+        // A full-bleed band pays the top inset itself, through <TopInset />.
+        ...(bleedTop ? { paddingTop: 0 } : null),
       }}
     >
       {bar != null ? <StatusBar style={bar} /> : null}
@@ -165,7 +181,7 @@ export function Screen({
           style={{
             ...horizontal,
             paddingTop: space(3),
-            ...(onPaper && overflowing ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null),
+            ...(onPaper && overflowing ? { borderTopWidth: HAIRLINE, borderTopColor: t.line } : null),
             backgroundColor: ground,
           }}
         >
@@ -193,6 +209,15 @@ export function Screen({
     );
   }
   return root;
+}
+
+/**
+ * The top inset as a spacer, for the band of a `bleedTop` screen
+ * (2026-10-20, sim nits): the frame stays the one reader of the safe area.
+ */
+export function TopInset({ extra = 0 }: { extra?: number }) {
+  const insets = useSafeAreaInsets();
+  return <View style={{ height: insets.top + extra }} />;
 }
 
 type ScrollScreenProps = ScreenProps & {
@@ -234,6 +259,7 @@ export function ScrollScreen({
   ground,
   padded,
   topGap,
+  bleedTop,
   bottom,
   header,
   footer,
@@ -254,6 +280,7 @@ export function ScrollScreen({
       ground={ground}
       padded={padded}
       topGap={topGap}
+      bleedTop={bleedTop}
       bottom={bottom}
       header={header}
       footer={footer}
@@ -311,7 +338,7 @@ export function ScrollScreen({
  */
 type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ink?: string; muted?: string; ground?: 'blue' | 'coral' | 'paper'; /** Opt-in (P2): the back disc and chevron from the selected appearance. Absent, the white disc as before. */ backAppearance?: { disc: string; mark: string } } & (
   | { back?: { onPress: () => void; label?: string; disabled?: boolean }; leave?: never }
-  | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
+  | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string; close?: boolean }; back?: never; /** A close header's centre: the sitting bar, or nothing. */ centre?: ReactNode }
 );
 
 /**
@@ -324,12 +351,40 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   const { title } = props;
   const back = props.back;
   const leave = props.leave;
+  const t = useB();
+  // 2026-10-21 UI-008, artboards B-Review and B-Drill: a full-screen sitting's
+  // way out is the 44 card disc with the 18 close mark on the left, then the
+  // centre (the sitting bar, or an empty slot) and the trailing words. The
+  // title is not drawn there; it names the centre for a screen reader.
+  if (leave != null && leave.close === true) {
+    return (
+      <View style={{ minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+        <Pressable
+          onPress={leave.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={leave.accessibilityLabel ?? leave.label}
+          style={({ pressed }) => ({ width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: t.card, opacity: pressed ? 0.7 : 1 })}
+        >
+          <CloseGlyph size={18} color={t.text} />
+        </Pressable>
+        <View
+          accessible={typeof title === 'string'}
+          accessibilityRole={typeof title === 'string' ? 'header' : undefined}
+          accessibilityLabel={typeof title === 'string' ? title : undefined}
+          style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+        >
+          {'centre' in props ? props.centre : null}
+        </View>
+        {props.trailing}
+      </View>
+    );
+  }
   // Three slots always, so the centre is the centre. The left holds the round
   // back button or an empty box its width; the right holds the leave word or an empty box its
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
-    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
+    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: t.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
         <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} disabled={back.disabled} appearance={props.backAppearance} />
       ) : (
@@ -340,7 +395,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           // A bare string under a View is a raw text node — Fabric drops it and
           // logs. A caller that wants a status line passes its own <Text> (with
           // a live region); this only keeps a plain string title from vanishing.
-          <Text accessibilityRole="header" style={[type.heading, { color: props.ink ?? paper.ink }]}>{title}</Text>
+          <Text accessibilityRole="header" style={[type.heading, { color: props.ink ?? t.text }]}>{title}</Text>
         ) : (
           title ?? null
         )}
@@ -353,7 +408,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           accessibilityLabel={leave.accessibilityLabel ?? leave.label}
           style={{ minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' }}
         >
-          <Text style={[type.bodyStrong, { color: props.muted ?? paper.inkSoft }]}>{leave.label}</Text>
+          <Text style={[type.bodyStrong, { color: props.muted ?? t.muted }]}>{leave.label}</Text>
         </Pressable>
       ) : (
         <View style={{ minWidth: HIT }} />
@@ -395,6 +450,13 @@ type TabHeaderProps = {
   children?: ReactNode;
   /** Title ink from the selected appearance; paper ink when absent. */
   ink?: string;
+  /**
+   * A line above the title, with the trailing control aligned to the top
+   * (2026-10-20 UI-008, artboard B-Journey: "Starter stage" over "Your journey").
+   */
+  eyebrow?: ReactNode;
+  /** No bottom margin, for a header inside a band that sets its own gap (B-Journey). */
+  flush?: boolean;
   /** Purpose-line ink from the selected appearance; paper's soft ink when absent. */
   mutedInk?: string;
 };
@@ -439,7 +501,10 @@ type TabHeaderProps = {
  * title pulls it off centre; and a header that could do everything is a header
  * with no shape.
  */
-export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false, ink = paper.ink, mutedInk = paper.inkSoft }: TabHeaderProps) {
+export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false, ink: askedInk, mutedInk: askedMuted, eyebrow, flush = false }: TabHeaderProps) {
+  const t = useB();
+  const ink = askedInk ?? t.text;
+  const mutedInk = askedMuted ?? t.muted;
   if (display) return <View style={{ gap: space(3), marginBottom: space(4) }}>
     {(leading != null || trailing != null) && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: space(11) }}>{leading ?? <View />}{trailing}</View>}
     <Text accessibilityRole="header" style={[type.display, { color: ink }]}>{title}</Text>
@@ -468,11 +533,14 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
     );
   }
   return (
-    <View style={{ marginBottom: space(5) }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        <Text accessibilityRole="header" style={[type.title, { color: ink, flex: 1 }]}>
-          {title}
-        </Text>
+    <View style={[{ marginBottom: space(5) }, flush ? { marginBottom: 0 } : null]}>
+      <View style={[{ flexDirection: 'row', alignItems: 'center', gap: space(3) }, eyebrow != null ? { alignItems: 'flex-start' } : null]}>
+        <View style={{ flex: 1, gap: 2 }}>
+          {eyebrow != null ? eyebrow : null}
+          <Text accessibilityRole="header" style={[type.title, { color: ink }]}>
+            {title}
+          </Text>
+        </View>
         {trailing != null ? trailing : null}
       </View>
       {purpose != null ? (
@@ -537,9 +605,10 @@ export function ConfirmSheet({
   onConfirm,
   onCancel,
 }: ConfirmSheetProps) {
+  const t = useB();
   return (
     <Sheet visible={visible} title={title} onClose={onCancel}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>{body}</Text>
+      <Text style={[type.body, { color: t.muted }]}>{body}</Text>
       <PillButton label={cancelLabel} onPress={onCancel} />
       <GhostButton label={confirmLabel} onPress={onConfirm} />
     </Sheet>

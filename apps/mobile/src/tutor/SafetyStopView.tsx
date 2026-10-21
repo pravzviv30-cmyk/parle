@@ -19,7 +19,8 @@
 
 import { useEffect } from 'react';
 import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 import { ScrollScreen } from '../layout.tsx';
 import { Card, GhostButton, PillButton } from '../components.tsx';
 import { suppressCelebrations } from '../celebrate/queue.ts';
@@ -70,6 +71,7 @@ export function SafetyStopView({
   // clears its queue, stops the moment playing and refuses new ones, and every
   // sound effect is silent; leaving the screen releases it.
   useEffect(() => suppressCelebrations(), []);
+  const t = useB();
 
   // The scrolling frame, because this is the one screen in the app whose words a
   // learner must be able to read at any reading size, and the message is the
@@ -86,8 +88,8 @@ export function SafetyStopView({
           accessibilityLiveRegion={surface.politeness}
           accessibilityLabel={surface.announce}
         >
-          <Text style={[type.title, { color: paper.ink, textAlign: 'left' }]}>{surface.message}</Text>
-          <Text style={[type.body, { color: paper.inkSoft, textAlign: 'left', marginTop: space(4) }]}>
+          <Text style={[type.title, { color: t.text, textAlign: 'left' }]}>{surface.message}</Text>
+          <Text style={[type.body, { color: t.muted, textAlign: 'left', marginTop: space(4) }]}>
             {surface.ended}
           </Text>
         </View>
@@ -118,6 +120,7 @@ export function SafetyBanner({
   onDismiss: () => void;
 }) {
   useAnnounced(surface.announce, surface.politeness);
+  const t = useB();
 
   return (
     <Card style={st.banner}>
@@ -129,10 +132,10 @@ export function SafetyBanner({
         accessibilityLiveRegion={surface.politeness}
         accessibilityLabel={surface.announce}
       >
-        <Text style={[type.body, { color: paper.ink }]}>{surface.message}</Text>
+        <Text style={[type.body, { color: t.text }]}>{surface.message}</Text>
       </View>
       <View style={st.bannerAction}>
-        <GhostButton label={surface.buttonLabel} onPress={onDismiss} color={paper.ink} />
+        <GhostButton label={surface.buttonLabel} onPress={onDismiss} color={t.text} />
       </View>
     </Card>
   );

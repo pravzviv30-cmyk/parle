@@ -59,7 +59,9 @@ import {
   type TranslationExercise,
   drillXp,
 } from '@luvani/core';
-import { HAIRLINE, HIT, colour, font, onColour, paper, radius, space, type } from './theme.ts';
+import { HAIRLINE, HIT, bType, colour, font, frenchText, onColour, radius, space, type } from './theme.ts';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
 import { settleSitting } from './game/settle.ts';
@@ -83,6 +85,7 @@ import { Illustration } from './art/flat/Illustration.tsx';
 import { CheckGlyph } from './components.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { MomentCard, type DrillMoment } from './drill/MomentCard.tsx';
+import { momentShown } from './drill/momentShown.ts';
 import { loadTopics } from './topics/store.ts';
 import { drillTitle } from './drill/title.ts';
 import { DRILL_UNREAD, sittingTitle, topicGroups } from './practice/mix.ts';
@@ -193,6 +196,8 @@ const OUTCOME_GROUND: Readonly<Record<SheetTone, { fill: string; soft: string } 
  * hairline, with no tint, and the press is an opacity step.
  */
 function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   return (
     <Pressable
       onPress={onPress}
@@ -202,7 +207,7 @@ function WordChoice({ word, onPress, locked }: { word: string; onPress: () => vo
       style={({ pressed }) => pressed && ds.chipPressed}
     >
       <View style={ds.choice}>
-        <Text style={[type.french, { color: paper.ink }]}>{word}</Text>
+        <Text style={[type.french, { color: bt.text }]}>{word}</Text>
       </View>
     </Pressable>
   );
@@ -217,6 +222,8 @@ const DrillClock = createContext<{ touch: () => void }>({ touch: () => undefined
 
 /** The hear-it affordance ReviewScreen uses, for hearing a French line again. */
 function HearRow({ text }: { text: string }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   const clock = useContext(DrillClock);
   return (
     <Pressable
@@ -228,8 +235,8 @@ function HearRow({ text }: { text: string }) {
       accessibilityLabel="Hear it in French"
       style={({ pressed }) => [ds.hear, pressed && { opacity: 0.6 }]}
     >
-      <EarGlyph size={15} color={paper.inkSoft} />
-      <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
+      <EarGlyph size={15} color={bt.muted} />
+      <Text style={[type.small, { color: bt.muted }]}>Hear it</Text>
     </Pressable>
   );
 }
@@ -250,6 +257,8 @@ function TypedAnswer({
   placeholder: string;
   accessibilityLabel?: string;
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   const canSubmit = typed.trim() !== '' && !locked;
   const clock = useContext(DrillClock);
   return (
@@ -269,7 +278,7 @@ function TypedAnswer({
           if (canSubmit) onSubmit();
         }}
         placeholder={placeholder}
-        placeholderTextColor={paper.inkFaint}
+        placeholderTextColor={bt.muted}
         accessibilityLabel={accessibilityLabel}
         style={ds.input}
       />
@@ -293,14 +302,16 @@ function FillBlankView({
   onAnswer: (a: string) => void;
   locked: boolean;
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
         <Label>{kindTag(exercise)}</Label>
-        <Text style={[fitDisplay(exercise.sentence), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
+        <Text style={[fitDisplay(exercise.sentence), { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
           {exercise.sentence}
         </Text>
-        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>{exercise.en}</Text>
+        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>{exercise.en}</Text>
       </Card>
       {exercise.options ? (
         <View style={ds.tokenPool}>
@@ -330,11 +341,12 @@ function BestSentenceView({
   onAnswer: (i: number) => void;
   locked: boolean;
 }) {
+  const bt = useB();
   return (
     <View style={{ gap: space(4) }}>
       <Card>
         <Label>{kindTag(exercise)}</Label>
-        <Text style={[type.heading, { color: paper.ink, marginTop: space(3) }]}>{exercise.prompt}</Text>
+        <Text style={[type.heading, { color: bt.text, marginTop: space(3) }]}>{exercise.prompt}</Text>
       </Card>
       <View style={{ gap: space(2.5) }}>
         {exercise.candidates.map((candidate, i) => (
@@ -360,13 +372,14 @@ function AppropriateReplyView({
   onAnswer: (i: number) => void;
   locked: boolean;
 }) {
+  const bt = useB();
   return (
     <View style={{ gap: space(4) }}>
       <Card>
         <Label>{kindTag(exercise)}</Label>
         <View style={{ marginTop: space(3) }}>
-          <Label color={paper.ink}>{exercise.line.speaker}</Label>
-          <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{exercise.line.fr}</Text>
+          <Label color={bt.text}>{exercise.line.speaker}</Label>
+          <Text style={[type.french, { color: bt.text, marginTop: space(1.5) }]}>{exercise.line.fr}</Text>
         </View>
         <HearRow text={exercise.line.fr} />
       </Card>
@@ -399,37 +412,35 @@ function TapTranslateView({
   onAnswer: (a: string) => void;
   locked: boolean;
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   const answerText = assembled.map((i) => exercise.tokens[i]).join(' ');
   const canCheck = assembled.length > 0 && !locked;
   return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[type.heading, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>{exercise.en}</Text>
-      </Card>
+    <View style={ds.build}>
+      {/* 2026-10-21 UI-008, artboard B-Drill: the eyebrow, the English as the
+          screen's title, and the one instruction. */}
+      <DrillHead eyebrow={kindTag(exercise)} title={exercise.en} line={TAP_LINE} />
 
-      {/* The answer line being assembled. Tap a word to put it back. */}
-      <View style={ds.answerLine} accessibilityLabel="Your sentence so far">
-        {assembled.length === 0 ? (
-          <Text style={[type.small, { color: paper.inkSoft }]}>Tap the words in order</Text>
-        ) : (
-          assembled.map((tokenIndex, position) => (
-            <Pressable
-              key={tokenIndex}
-              onPress={() => onAssembled(assembled.filter((_, p) => p !== position))}
-              disabled={locked}
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${exercise.tokens[tokenIndex]}`}
-              style={({ pressed }) => [ds.assembledWord, pressed && { opacity: 0.6 }]}
-            >
-              <Text style={[type.french, { color: paper.ink }]}>{exercise.tokens[tokenIndex]}</Text>
-            </Pressable>
-          ))
-        )}
+      {/* The answer box: the words placed so far, in brand tiles. Tap a word to put it back. */}
+      <View style={ds.answerBox} accessibilityLabel="Your sentence so far">
+        {assembled.map((tokenIndex, position) => (
+          <Pressable
+            key={tokenIndex}
+            onPress={() => onAssembled(assembled.filter((_, p) => p !== position))}
+            disabled={locked}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${exercise.tokens[tokenIndex]}`}
+            style={({ pressed }) => [ds.placed, pressed && { opacity: 0.7 }]}
+          >
+            <Text {...frenchText} style={[bType.bold17, { color: bt.onBrand }]}>{exercise.tokens[tokenIndex]}</Text>
+          </Pressable>
+        ))}
       </View>
 
-      {/* The pool. Used tiles stay in place and fade out, so nothing jumps. */}
-      <View style={ds.tokenPool}>
+      {/* The bank. A placed word leaves a dashed slot its own size, so nothing
+          jumps; the distractors stay white tiles until they are placed too. */}
+      <View style={ds.bank}>
         {exercise.tokens.map((token, i) => {
           const used = assembled.includes(i);
           return (
@@ -438,13 +449,21 @@ function TapTranslateView({
               onPress={() => onAssembled([...assembled, i])}
               disabled={used || locked}
               accessibilityRole="button"
-              accessibilityLabel={`Add ${token}`}
+              accessibilityLabel={used ? `${token}, placed` : `Add ${token}`}
               accessibilityState={{ disabled: used }}
               style={({ pressed }) => pressed && !used && ds.chipPressed}
             >
-              <View style={[ds.token, used && ds.tokenUsed]}>
-                <Text style={[type.french, { color: used ? paper.inkSoft : paper.ink }]}>{token}</Text>
-              </View>
+              {used ? (
+                <View style={ds.slot}>
+                  <Text style={[bType.semi17, { color: 'transparent' }]}>{token}</Text>
+                </View>
+              ) : (
+                <View style={ds.tileLip}>
+                  <View style={ds.tile}>
+                    <Text {...frenchText} style={[bType.semi17, { color: bt.text }]}>{token}</Text>
+                  </View>
+                </View>
+              )}
             </Pressable>
           );
         })}
@@ -456,6 +475,24 @@ function TapTranslateView({
         accessibilityLabel="Check your sentence"
         onPress={() => onAnswer(answerText)}
       />
+    </View>
+  );
+}
+
+/** The build's one instruction (B-Drill). */
+const TAP_LINE = 'Tap the words in order.';
+
+/**
+ * The head of a built exercise (B-Drill): the 13/700 brand eyebrow, the 26/800
+ * title and a 15 muted line, gap 6.
+ */
+function DrillHead({ eyebrow, title, line }: { eyebrow: string; title: string; line: string }) {
+  const bt = useB();
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={[bType.chip, { color: bt.link }]}>{eyebrow}</Text>
+      <Text accessibilityRole="header" style={[bType.title26, { color: bt.text }]}>{title}</Text>
+      <Text style={[bType.line15, { color: bt.muted }]}>{line}</Text>
     </View>
   );
 }
@@ -473,6 +510,8 @@ function ListenTypeView({
   onAnswer: (a: string) => void;
   locked: boolean;
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
@@ -482,12 +521,12 @@ function ListenTypeView({
           onPress={() => tutorVoice.speak(exercise.fr)}
           accessibilityRole="button"
           accessibilityLabel="Play the French line"
-          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: paper.groundDeep }]}
+          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: bt.skeleton }]}
         >
-          <EarGlyph size={22} color={paper.ink} />
-          <Text style={[type.button, { color: paper.ink }]}>Hear it</Text>
+          <EarGlyph size={22} color={bt.text} />
+          <Text style={[type.button, { color: bt.text }]}>Hear it</Text>
         </Pressable>
-        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
+        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>
           Listen, then type what you hear.
         </Text>
       </Card>
@@ -522,6 +561,8 @@ function TranslationView({
    */
   help?: { shown: boolean; onShow: () => void };
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   const isFrenchPrompt = exercise.direction === 'fr-en';
   const prompt = isFrenchPrompt ? exercise.fr : exercise.en;
   // Only an English-to-French ask hides the French, so only it has anything to
@@ -531,15 +572,15 @@ function TranslationView({
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
         <Label>{kindTag(exercise)}</Label>
-        <Text style={[isFrenchPrompt ? type.french : type.heading, { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
+        <Text style={[isFrenchPrompt ? type.french : type.heading, { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
           {prompt}
         </Text>
         {isFrenchPrompt && <HearRow text={exercise.fr} />}
         {canHelp && help.shown && (
           <Feedback kind="help" active appear>
-            <Text style={[type.french, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>{exercise.fr}</Text>
+            <Text style={[type.french, { color: bt.muted, textAlign: 'center', marginTop: space(3) }]}>{exercise.fr}</Text>
             <HearRow text={exercise.fr} />
-            <Text style={[type.small, { color: paper.inkSoft }]}>With help</Text>
+            <Text style={[type.small, { color: bt.muted }]}>With help</Text>
           </Feedback>
         )}
         {canHelp && !help.shown && (
@@ -574,6 +615,8 @@ function RepeatThisView({
   onNoMic: () => void;
   locked: boolean;
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   const recorder = useAudioRecorder(METERED_TAKE);
   // 'armed': the circle records on tap. 'live': the microphone is on. 'silent':
   // the platform said no — recorder missing, permission refused, or a start
@@ -658,14 +701,14 @@ function RepeatThisView({
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
         <Label>{kindTag(exercise)}</Label>
-        <Text style={[fitDisplay(exercise.reference), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
+        <Text style={[fitDisplay(exercise.reference), { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
           {exercise.reference}
         </Text>
-        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
+        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>
           {exercise.referenceEn}
         </Text>
         {exercise.ipa !== null && (
-          <Text style={[type.notation, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
+          <Text style={[type.notation, { color: bt.muted, textAlign: 'center', marginTop: space(2) }]}>
             /{exercise.ipa}/
           </Text>
         )}
@@ -679,7 +722,7 @@ function RepeatThisView({
                 the red fill must keep meaning "the microphone is on". */}
             <View style={ds.speakBlock}>
               <Illustration name="state-microphone" fit="small" />
-              <Text style={[type.label, { color: paper.ink }]}>Speak</Text>
+              <Text style={[type.label, { color: bt.text }]}>Speak</Text>
             </View>
 
             {/* Without a microphone the learner's word is the grade. Saying so
@@ -710,7 +753,7 @@ function RepeatThisView({
                 accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
               />
             </View>
-            <Text style={[type.label, { color: paper.ink }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
+            <Text style={[type.label, { color: bt.text }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
           </View>
         )}
 
@@ -721,7 +764,7 @@ function RepeatThisView({
           accessibilityLabel="I can't speak right now"
           style={({ pressed }) => [ds.noMic, pressed && { opacity: 0.6 }]}
         >
-          <Text style={[type.small, { color: paper.inkSoft }]}>Unable to speak right now?</Text>
+          <Text style={[type.small, { color: bt.muted }]}>Unable to speak right now?</Text>
         </Pressable>
       </View>
     </View>
@@ -798,18 +841,22 @@ function OwnWordsView({
   /** The last keep was refused; it can be tried again. */
   keepFailed: boolean;
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   const [typing, setTyping] = useState(!CAN_RECORD || quiet);
   const typeInstead = useCallback(() => setTyping(true), []);
   const look = ownWordsLook(outcome?.decided ?? null);
   const ground = look.tone === null ? null : OUTCOME_GROUND[look.tone];
-  const soft = ground === null ? paper.inkSoft : ground.soft;
+  const soft = ground === null ? bt.muted : ground.soft;
+  // Words on a mint or sun outcome are ink in both modes; on the plain card they follow the theme.
+  const ink = ground === null ? bt.text : bt.onMint;
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.promptCard}>
         <Label>{kindTag(exercise)}</Label>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{exercise.situation}</Text>
-        <Text style={[type.title, { color: paper.ink, marginTop: space(5), marginBottom: space(5) }]}>{exercise.en}</Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{OWN_WORDS_HINT}</Text>
+        <Text style={[type.small, { color: bt.muted, marginTop: space(2) }]}>{exercise.situation}</Text>
+        <Text style={[type.title, { color: bt.text, marginTop: space(5), marginBottom: space(5) }]}>{exercise.en}</Text>
+        <Text style={[type.small, { color: bt.muted, marginTop: space(3) }]}>{OWN_WORDS_HINT}</Text>
       </Card>
       {!typing && typed === '' && outcome === null && <SpokenAttempt onTake={onTake} onTyping={typeInstead} busy={busy} />}
       {(typing || typed !== '' || outcome !== null) && <TypedAnswer
@@ -820,29 +867,29 @@ function OwnWordsView({
         placeholder={OWN_WORDS_PROMPT}
         accessibilityLabel={OWN_WORDS_FIELD_LABEL}
       />}
-      {busy && <ActivityIndicator color={paper.inkSoft} />}
+      {busy && <ActivityIndicator color={bt.muted} />}
       {outcome !== null && (
         <Card style={[ds.outcome, ground !== null && { backgroundColor: ground.fill }]}>
           {outcome.attempt !== null && <View style={{ gap: space(1) }}>
             <Label color={soft}>Your words</Label>
-            <Text style={[type.body, { color: paper.ink }]}>{outcome.attempt}</Text>
+            <Text style={[type.body, { color: ink }]}>{outcome.attempt}</Text>
           </View>}
           <View style={ds.outcomeRow} accessibilityLiveRegion="polite">
             {/* Same rule as the answer sheet: no mark on a miss, and a retry
                 is not a pass. A drawing scolds louder than a word, and this
                 card is read for longer. */}
             {look.mark && (
-              <View style={ds.verdictMark}><CheckGlyph size={18} color={paper.ink} /></View>
+              <View style={ds.verdictMark}><CheckGlyph size={18} color={bt.text} /></View>
             )}
-            <Text style={[type.bodyStrong, { color: paper.ink, flex: 1 }]}>
+            <Text style={[type.bodyStrong, { color: ink, flex: 1 }]}>
               {outcome.message}
             </Text>
           </View>
-          {outcome.note !== null && <Text style={[type.body, { color: paper.ink }]}>{outcome.note}</Text>}
+          {outcome.note !== null && <Text style={[type.body, { color: ink }]}>{outcome.note}</Text>}
           {outcome.another !== null && (
-            <Text style={[type.body, { color: paper.ink }]}>{OWN_WORDS_ANOTHER(outcome.another)}</Text>
+            <Text style={[type.body, { color: ink }]}>{OWN_WORDS_ANOTHER(outcome.another)}</Text>
           )}
-          {outcome.reveal !== null && <Text style={[type.french, { color: paper.ink }]}>{outcome.reveal}</Text>}
+          {outcome.reveal !== null && <Text style={[type.french, { color: ink }]}>{outcome.reveal}</Text>}
           {/* Kept means the phrasebook's write came back durable, and only
               then does the bookmark fill and the label say so (F762). A
               refused write says it plainly and leaves the way to try again. */}
@@ -918,6 +965,11 @@ export function DrillScreen({
     phraseKeys: readonly string[];
     moment?: DrillMoment;
     /**
+     * Draw the moment only once the learner has answered (2026-10-20 UI-008,
+     * B-Today's fix card): attempt first, then the comparison.
+     */
+    afterTry?: boolean;
+    /**
      * Ask for the phrase in the learner's own words instead of dealing the
      * bank. Authored here rather than generated: this kind has no right
      * string, so there is nothing for the generator to have written down.
@@ -931,6 +983,8 @@ export function DrillScreen({
    */
   mix?: boolean;
 }) {
+  const bt = useB();
+  const ds = useThemedStyles(makeDs);
   // The sitting. Null while the deck and bank load.
   const [session, setSession] = useState<DrillSessionState | null>(null);
   // The line on the floor. While one shows, inputs are locked and the next
@@ -1599,12 +1653,17 @@ export function DrillScreen({
   // with the answer rather than after it.
   const placed = pendingRef.current ?? session;
   const fill = practice !== undefined && practiceRef.current !== null ? sittingFill(placed, practiceRef.current.targets) : queueFill(placed);
+  // 2026-10-21 UI-008, artboard B-Drill: the close disc, the 8pt bar where
+  // Phase B already draws it, and the words beside it only in a practice
+  // sitting ("Phrase four of eight"). The title names the row for a screen
+  // reader; the exercise's own eyebrow says what it is on glass.
   const header = (
     <ScreenHeader
-      leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }}
+      leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills', close: true }}
       title={session?.queue[0]?.kind ? drillTitle(session.queue[0].kind) : heading}
+      centre={fill !== null && session !== null && !session.finished ? <SittingBar fill={fill} glow={comboGlows(combo)} /> : null}
       trailing={progress !== null ? (
-        <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{progress.label}</Text>
+        <Text accessibilityLiveRegion="polite" style={[bType.semi14, { color: bt.text }]}>{progress.label}</Text>
       ) : undefined}
     />
   );
@@ -1632,8 +1691,8 @@ export function DrillScreen({
     return (
       <ScrollScreen footer={doneFooter}>
         <Card>
-          <Text style={[type.title, { color: paper.ink }]}>{copy.title}</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{copy.body}</Text>
+          <Text style={[type.title, { color: bt.text }]}>{copy.title}</Text>
+          <Text style={[type.body, { color: bt.muted, marginTop: space(2) }]}>{copy.body}</Text>
         </Card>
       </ScrollScreen>
     );
@@ -1645,8 +1704,8 @@ export function DrillScreen({
     return (
       <ScrollScreen footer={doneFooter}>
         <Card>
-          <Text style={[type.title, { color: paper.ink }]}>{PRACTICE_END.unreadable}</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{PRACTICE_END.unreadableBody}</Text>
+          <Text style={[type.title, { color: bt.text }]}>{PRACTICE_END.unreadable}</Text>
+          <Text style={[type.body, { color: bt.muted, marginTop: space(2) }]}>{PRACTICE_END.unreadableBody}</Text>
         </Card>
       </ScrollScreen>
     );
@@ -1655,8 +1714,8 @@ export function DrillScreen({
   if (unread) {
     return (
       <ScrollScreen footer={doneFooter}>
-        <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
-        <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>
+        <Text style={[type.title, { color: bt.text, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
+        <Text style={[type.body, { color: bt.muted, textAlign: 'center', marginTop: space(3) }]}>
           {DRILL_UNREAD.body}
         </Text>
       </ScrollScreen>
@@ -1667,7 +1726,7 @@ export function DrillScreen({
     return (
       <Screen>
         <View style={ds.loading}>
-          <ActivityIndicator color={paper.inkSoft} />
+          <ActivityIndicator color={bt.muted} />
         </View>
       </Screen>
     );
@@ -1676,7 +1735,7 @@ export function DrillScreen({
   if (holding !== null) {
     return (
       <DrillClock.Provider value={clock}>
-      <ScrollScreen avoidKeyboard header={header}>
+      <ScrollScreen avoidKeyboard ground={bt.lavender} header={header}>
         <OwnWordsView
           key={holding.exercise.id}
           exercise={holding.exercise}
@@ -1703,8 +1762,8 @@ export function DrillScreen({
     return (
       <ScrollScreen footer={doneFooter}>
         <Card>
-          <Text style={[type.title, { color: paper.ink }]}>{PRACTICE_END.empty}</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{PRACTICE_END.emptyBody}</Text>
+          <Text style={[type.title, { color: bt.text }]}>{PRACTICE_END.empty}</Text>
+          <Text style={[type.body, { color: bt.muted, marginTop: space(2) }]}>{PRACTICE_END.emptyBody}</Text>
         </Card>
       </ScrollScreen>
     );
@@ -1722,7 +1781,7 @@ export function DrillScreen({
       return (
         <ScrollScreen footer={doneFooter}>
           <View style={ds.ending}>
-            <ActivityIndicator color={paper.inkSoft} />
+            <ActivityIndicator color={bt.muted} />
           </View>
         </ScrollScreen>
       );
@@ -1741,8 +1800,8 @@ export function DrillScreen({
               shows none: its statement below says what is true. */}
           {end.state === 'settled' ? <EndCard delta={end.delta} release={release} /> : !card.retry && <FinishFelt />}
           <Card>
-            <Text style={[type.title, { color: paper.ink }]}>{card.title}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{card.body}</Text>
+            <Text style={[type.title, { color: bt.text }]}>{card.title}</Text>
+            <Text style={[type.small, { color: bt.muted, marginTop: space(3) }]}>{card.body}</Text>
             {/* Nothing is safe yet, so the one thing to offer is the same save
                 again. The store replays the frozen plan, so it awards nothing twice. */}
             {card.retry && (
@@ -1765,17 +1824,17 @@ export function DrillScreen({
   // terminal card, so Done is its one door and it carries no back header.
   if (session.finished && session.answered.length === 0) {
     return (
-      <ScrollScreen footer={doneFooter}>
-        {/* An empty bank is the good outcome, not a dead end, so it gets the
-            cleared table — the same scene and spacing the review deck uses,
-            because these two screens say the same thing. The size is the art
-            registry's, never a width written here. */}
-        <Card>
-          <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-            Your next session adds more.
-          </Text>
-        </Card>
+      <ScrollScreen>
+        {/* An empty bank is the good outcome, not a dead end. 2026-10-21
+            UI-008, B-Empty-States "Review, all done": the same cloud-cheer card
+            the review deck draws, because these two screens say the same
+            thing, with Done as its one door. */}
+        <EmptyStateCard
+          art={{ name: 'cloud-cheer', width: 150, height: 114 }}
+          title="Nothing to review."
+          body="Your next session adds more."
+          action={{ label: 'Done', onPress: finishAndLeave }}
+        />
       </ScrollScreen>
     );
   }
@@ -1795,14 +1854,14 @@ export function DrillScreen({
           {end.state === 'settled' ? (
             <EndCard delta={end.delta} count={s.resolved} release={release} />
           ) : end.state === 'waiting' ? (
-            <ActivityIndicator color={paper.inkSoft} />
+            <ActivityIndicator color={bt.muted} />
           ) : (
             <Card>
               <FinishFelt />
-              <Text style={[type.title, { color: paper.ink }]}>{DRILL_END.finished}</Text>
+              <Text style={[type.title, { color: bt.text }]}>{DRILL_END.finished}</Text>
             </Card>
           )}
-          <Text style={[type.small, { color: paper.inkSoft }]}>
+          <Text style={[type.small, { color: bt.muted }]}>
             {s.unresolved > 0 ? DRILL_END.comingBack : DRILL_END.deck}
           </Text>
         </View>
@@ -1818,14 +1877,8 @@ export function DrillScreen({
     <DrillClock.Provider value={clock}>
     <ScrollScreen
       avoidKeyboard
-      header={
-        fill === null ? header : (
-          <View>
-            {header}
-            <SittingBar fill={fill} glow={comboGlows(combo)} />
-          </View>
-        )
-      }
+      ground={bt.lavender}
+      header={header}
       footer={
         // Reserved height, so the card never jumps when a sheet arrives. The
         // sheet draws no mark on a miss, and that is the rule rather than an
@@ -1837,7 +1890,7 @@ export function DrillScreen({
         </View>
       }
     >
-      {node?.moment !== undefined && <MomentCard moment={node.moment} />}
+      {node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) && <MomentCard moment={node.moment} />}
       {exercise.kind === 'fill-blank' && (
         <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
       )}
@@ -1892,17 +1945,20 @@ export function DrillScreen({
   );
 }
 
-const ds = StyleSheet.create({
+function makeDs(bt: B) {
+  return StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   feedbackArea: { minHeight: HIT + 8, justifyContent: 'flex-end' },
   // The own-words outcome's check: a white disc, so it reads on the mint card
   // as well as on paper.
-  verdictMark: { width: 28, height: 28, borderRadius: 14, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
+  verdictMark: { width: 28, height: 28, borderRadius: 14, backgroundColor: bt.card, alignItems: 'center', justifyContent: 'center' },
   // A finished sitting's end card and the words under it.
   ending: { gap: space(4) },
 
   // The exercise card: the SessionView main-card anatomy, content centred.
-  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center', borderTopWidth: 5 },
+  // 2026-10-21 UI-008, sim check: no top border. The old 5pt accent edge drew
+  // as an ink strip across the card's top on the lavender ground.
+  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center' },
   promptCard: { minHeight: 260, justifyContent: 'space-between' },
 
   // The chip anatomy, for choices that are bare words: white paper under a
@@ -1911,9 +1967,9 @@ const ds = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.card,
+    backgroundColor: bt.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: bt.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3.5),
@@ -1930,49 +1986,47 @@ const ds = StyleSheet.create({
   // minus lineHeight, which clips single-line TextInputs on iOS.
   input: {
     minHeight: HIT + 8,
-    backgroundColor: paper.card,
+    backgroundColor: bt.card,
     borderWidth: 1.5,
-    borderColor: paper.line,
+    borderColor: bt.line,
     borderRadius: radius.input,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
-    color: paper.ink,
+    color: bt.text,
     fontFamily: font.regular,
     fontSize: 16,
   },
 
-  answerLine: {
-    minHeight: HIT + 12,
+  // B-Drill: the build, gap 18; the answer box (white, radius 22, padding 14,
+  // min-height 120, 2pt periwinkle) and its brand tiles (46, radius 14, padding 0 14).
+  build: { gap: 18 },
+  answerBox: {
+    minHeight: 120,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: space(2),
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.card,
-    paddingVertical: space(2),
-    paddingHorizontal: space(3),
+    alignContent: 'flex-start',
+    gap: 8,
+    backgroundColor: bt.card,
+    borderWidth: 2,
+    borderColor: bt.periwinkle,
+    borderRadius: 22,
+    padding: 14,
   },
-  assembledWord: {
-    // A Pressable with a button role that removes the word you tap. It is a
-    // control, so it gets the floor every control gets.
-    minHeight: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: paper.groundDeep,
-    borderRadius: radius.chip,
-    paddingVertical: space(1.5),
-    paddingHorizontal: space(2.5),
-  },
+  placed: { minHeight: 46, borderRadius: 14, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: bt.brand },
+  // The bank: centred, wrapping, gap 8. A placed word leaves a 2pt dashed slot;
+  // a free word is a white tile on a 3pt ring-coloured lip.
+  bank: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  slot: { height: 46, borderRadius: 14, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt.ring, justifyContent: 'center' },
+  tileLip: { borderRadius: 14, backgroundColor: bt.ring, paddingBottom: 3 },
+  tile: { height: 46, borderRadius: 14, paddingHorizontal: 14, justifyContent: 'center', backgroundColor: bt.card },
   tokenPool: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   token: {
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.card,
+    backgroundColor: bt.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: bt.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3),
@@ -1986,11 +2040,11 @@ const ds = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space(2.5),
-    backgroundColor: paper.card,
+    backgroundColor: bt.card,
     // A paper hairline, not an ink outline (notebook Phase 4, 2026-09-27):
     // the ink is kept for the one primary pill.
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: bt.line,
     borderRadius: radius.pill,
     paddingHorizontal: space(5),
   },
@@ -2009,3 +2063,4 @@ const ds = StyleSheet.create({
   saidIt: { alignSelf: 'stretch' },
   noMic: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(4) },
 });
+}

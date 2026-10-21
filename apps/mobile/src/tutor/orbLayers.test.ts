@@ -115,7 +115,8 @@ describe('the living orb — F764, the orb half', () => {
     assert.match(orb, /paused=\{layers\.loopsRest\}/, 'today\'s loops do not rest while a live layer moves in their place');
     assert.match(orb, /layers\.ring && audio !== null \? <OrbLevelRing level=\{audio\.input\} size=\{size\} color=\{look\.colour\} \/>/, 'the ring is not the learner\'s level in the state colour');
     assert.match(orb, /layers\.bars === 'live' && audio !== null && <View/);
-    assert.match(orb, /<LiveBars bands=\{audio\.bands\} heights=\{BAR_HEIGHTS\} size=\{meterSize\} width=\{barWidth\} gap=\{barGap\} color=\{paper\.ink\} \/>/);
+    // 2026-10-21 UI-008: the bars take the theme's text token, ink in light as before.
+    assert.match(orb, /<LiveBars bands=\{audio\.bands\} heights=\{BAR_HEIGHTS\} size=\{meterSize\} width=\{barWidth\} gap=\{barGap\} color=\{t\.text\} \/>/);
     assert.match(orb, /<OrbPulse level=\{audio === null \? null : audio\.output\} on=\{layers\.pulse\}>/);
     assert.match(orb, /<OrbThinkingArc size=\{size\} color=\{look\.colour\} active=\{layers\.arc === 'turning'\} \/>/);
     assert.match(orb, /<OrbRipple cue=\{cue\} size=\{size\} color=\{look\.colour\} allowed=\{layers\.ripple\} \/>/);
@@ -124,7 +125,8 @@ describe('the living orb — F764, the orb half', () => {
 
     // "Hearing you" is a word drawn under the orb, never what a screen reader
     // is told: the name stays the state's own, and nothing announces it.
-    assert.match(orb, /<Text style=\{st\.caption\} accessibilityLabel=\{look\.caption\}>/, 'the caption tells a screen reader "Hearing you" every time the learner pauses for breath');
+    // 2026-10-21 UI-008: the caption's colour rides beside its style (t.text), the label is unchanged.
+    assert.match(orb, /<Text style=\{\[st\.caption, \{ color: t\.text \}\]\} accessibilityLabel=\{look\.caption\}>/, 'the caption tells a screen reader "Hearing you" every time the learner pauses for breath');
     assert.match(orb, /accessibilityLabel: `Tutor: \$\{look\.caption\}`/, 'the orb\'s name follows the hearing word');
     assert.doesNotMatch(orb, /accessibilityLiveRegion|announceForAccessibility/, 'the orb announces its own changes');
     assert.equal(HEARING_YOU, 'Hearing you');

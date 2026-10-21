@@ -81,7 +81,9 @@ describe('first run introduces the voices and lets the learner choose one — F2
     assert.match(CARDS, /TUTOR_VOICE_OPTIONS\.map\(/);
     assert.match(CARDS, /\{voice\.label\}/);
     assert.doesNotMatch(CARDS, /\{voice\.gloss\}/);
-    assert.match(CARDS, /C2TutorPortrait voice=\{voice\.value\}/);
+    // 2026-10-21 UI-008, artboard B-OB-Tutor: every voice wears the canvas orb, never a face.
+    assert.match(CARDS, /<BArt name="tutor-orb"/);
+    assert.doesNotMatch(CARDS, /C2TutorPortrait|Portrait/);
     assert.match(CARDS, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
     assert.match(CARDS, /preview\.toggle\(voice\.value\)/);
     assert.match(FLOW, /useTutorPreview\(\{ active: loaded && page === 'voice' \}\)/);
@@ -250,12 +252,13 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     const COMPONENTS = stripComments(read('components.tsx'));
     assert.match(
       COMPONENTS,
-      /playing \? accent\.primary : paper\.inkSoft/,
+      // 2026-10-20, UI-008: themed; the playing ear is the theme's ink.
+      /playing \? t\.text : t\.muted/,
       'the sounding ear is not tinted in the accent',
     );
     assert.match(
       COMPONENTS,
-      /playing && \{ backgroundColor: paper\.groundDeep, borderRadius: radius\.pill \}/,
+      /playing && \{ backgroundColor: t\.skeleton, borderRadius: radius\.pill \}/,
       'the sounding ear sits on no lit disc',
     );
     assert.match(

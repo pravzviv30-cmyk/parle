@@ -1,76 +1,95 @@
 /**
- * The tab bar, SNIPPETS' bar: four labelled SVG icons, 24pt marks and 60pt
- * minimum cells, white with one top hairline. No inset dock, no outline, no
- * shadow, no chartreuse and no wash: selected is the glyph and the word in the
- * brand blue at Outfit Bold, unselected is the glyph and the word in soft ink
- * at SemiBold, and there is no dot beneath a tab. Each cell presses through the
- * one spring with no haptic of its own, because the tap that changes tab is the
- * one that ticks. The safe-area inset is paid inside the bar. Large reading
- * sizes wrap the labels and grow the bar; nothing truncates or caps font
- * scaling. Changes are announced to assistive technology, and the practice
- * badge comes from the real due deck.
+ * The tab bar, Figma C2/Main2/Navigation (292:1103; UI-008, 2026-10-20): an ink
+ * capsule 12pt in from each edge, radius 32, holding five equal cells of an
+ * Iconsax glyph over its word. Selected is the violet cell with the Bulk glyph
+ * in sun and the word in cream at Outfit Bold; unselected is the Linear glyph
+ * and the word in cream at Outfit Medium on the ink. There is no dot beneath a
+ * tab, no shadow, no chartreuse and no wash; the only dot is the Practice one,
+ * which is the real due deck. The capsule is the same ink in both themes; the
+ * strip around it is the focused route's ground, so the bar sits in the page
+ * rather than floating over it, and it stays in layout so nothing is covered.
  *
- * Come alive (F737): the selected icon is the Bulk drawing and pops once when
- * its tab becomes the selected one. That movement lives in `TabGlyph.tsx`,
- * which this bar hands each icon to; the bar itself still moves nothing (F600).
+ * Each cell presses through the one spring with no haptic of its own, because
+ * the tap that changes tab is the one that ticks. Large reading sizes wrap the
+ * labels and grow the capsule; nothing truncates or caps font scaling. Changes
+ * are announced to assistive technology. The decisions (words, drawings, width,
+ * wrapping, the dot) live in `tabBarModel.ts`; the one movement, the selected
+ * glyph's pop, lives in `TabGlyph.tsx` (F737) and the bar itself moves nothing.
  */
 
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, AccessibilityInfo, PixelRatio, useWindowDimensions } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { accent, font, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { boldType, font, space } from '../theme.ts';
 import { Press } from '../components.tsx';
+import { Icon } from '../icons/Icon.tsx';
 import { dueCount } from '../review/store.ts';
 import { tapSettled } from '../motion/haptics.ts';
-import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, type TabIconProps } from './icons.tsx';
 import { TabGlyph } from './TabGlyph.tsx';
-import { navigationWidth } from '../responsiveLayout.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
+import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
-const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
-  Home: HomeIcon,
-  Tutor: TutorIcon,
-  Practice: PracticeIcon,
-  MyFrench: MyFrenchIcon,
-};
-
-/**
- * The word under each glyph, and what a screen reader announces for the tab.
- * The route names are unchanged; only the words the learner reads moved.
- */
-const LABELS: Record<string, string> = {
-  Home: 'Home',
-  Tutor: 'Speak',
-  Practice: 'Practice',
-  MyFrench: 'Progress',
-};
-
-/**
- * The reading size at which a word stops fitting beside its neighbours.
- *
- * Below it the cells share the bar by flex, which lets a long word borrow room
- * from a short one and keeps the four glyphs evenly spread. At and above it the
- * words are wide enough that borrowing pushes them into each other, so every
- * cell takes exactly a quarter and the long ones wrap.
- */
-const WRAPS_UNDER_GLYPH = 1.6;
-
-/** Whether the words have to wrap under their glyphs at this reading size. */
-function labelsWrapUnderGlyph(fontScale: number): boolean {
-  return fontScale >= WRAPS_UNDER_GLYPH;
-}
+/** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
+const CELL_HEIGHT = 62;
 
 export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
-  // learner moves between tabs — finishing a sitting must be able to clear it.
-  // Null until the first read, so a deck already due at launch is not mistaken
-  // for one that just became due.
-  const [due, setDue] = useState<number | null>(null);
-  // The window is watched so the bar re-renders when the learner changes the OS
-  // text size while the app is open; PixelRatio is what the text is actually
-  // drawn at, and on the web the window reports 1 whatever the browser does.
-  const { width } = useWindowDimensions();
-  const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
+  // learner moves between tabs; finishing a sitting must be able to clear it.
+  const due = useDueCount(state.index);
 
+  return (
+    <TabStrip
+      insets={insets}
+      due={due}
+      routes={state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const onPress = () => {
+          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          if (!focused && !event.defaultPrevented) {
+            tapSettled();
+            navigation.navigate(route.name as never);
+            // A tab tap replaces the whole screen; VoiceOver gives no signal of
+            // that on its own, so the destination is announced.
+            announceTab(route.name);
+          }
+        };
+        return { key: route.key, name: route.name, focused, onPress };
+      })}
+    />
+  );
+}
+
+/**
+ * The bar outside the tab navigator, with no tab selected (2026-10-20 UI-008,
+ * artboard B-Profile: "Tab bar present with no active tab"). Profile is a
+ * pushed screen, so it draws the same capsule itself, and a tap goes to that
+ * tab inside `Tabs`.
+ */
+export function DetachedTabBar({ onTab }: { onTab: (route: string) => void }) {
+  const insets = useSafeAreaInsets();
+  const due = useDueCount(0);
+  return (
+    <TabStrip
+      insets={insets}
+      due={due}
+      routes={MAIN_TABS.map((name) => ({
+        key: name,
+        name,
+        focused: false,
+        onPress: () => {
+          tapSettled();
+          onTab(name);
+          announceTab(name);
+        },
+      }))}
+    />
+  );
+}
+
+/** The review deck's due count, read again whenever `key` changes; null until read. */
+function useDueCount(key: number): number | null {
+  const [due, setDue] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
     void dueCount().then((n) => {
@@ -79,62 +98,48 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
     return () => {
       cancelled = true;
     };
-  }, [state.index]);
+  }, [key]);
+  return due;
+}
+
+/** The strip and its capsule: the one drawing both bars share. */
+function TabStrip({ routes, insets, due }: {
+  routes: readonly { key: string; name: string; focused: boolean; onPress: () => void }[];
+  insets: { bottom: number; left: number; right: number };
+  due: number | null;
+}) {
+  // Watched so the bar re-renders when the OS text size changes while open.
+  const { width } = useWindowDimensions();
+  const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
 
   return (
-    // The rule and the white run the full width; the four cells keep the
-    // responsive column so they do not drift apart on a wide window.
     <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
-      <View style={[st.cells, { width: navigationWidth(width, insets.left, insets.right) }]}>
-      {state.routes.map((route, index) => {
-        const focused = state.index === index;
-        const Icon = ICONS[route.name];
-        const label = LABELS[route.name] ?? route.name;
-        // The Practice dot: null until the deck has been read.
-        const dot = route.name === 'Practice' ? (due === null ? null : due > 0) : false;
-        const badged = dot === true;
-        if (!Icon) return null;
-
-        const onPress = () => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!focused && !event.defaultPrevented) {
-            tapSettled();
-            navigation.navigate(route.name as never);
-            // A tab tap replaces the whole screen. VoiceOver gives no signal of
-            // that on its own, so the destination is announced. The function was
-            // written for exactly this and then never called.
-            announceTab(route.name);
-          }
-        };
+      <View style={[st.capsule, { width: tabCapsuleWidth(width, insets.left, insets.right) }]}>
+      {routes.map((route) => {
+        const focused = route.focused;
+        const icon = TAB_ICONS[route.name];
+        const label = TAB_LABELS[route.name] ?? route.name;
+        const dot = tabDot(route.name, due);
+        if (!icon) return null;
 
         return (
-          // The cell is the frame the bar lays out; the face inside it is what
-          // the spring shrinks. No haptic here: `onPress` ticks only when the
-          // tab really changes, so a tap on the current tab stays silent.
           <Press
             haptic="none"
             frame={[st.cell, wrapped && st.cellWrapped]}
-            style={st.face}
+            style={[st.face, focused && st.faceSelected]}
             key={route.key}
-            onPress={onPress}
+            onPress={route.onPress}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             aria-selected={focused}
-            // Counting out loud would be a number in the chrome; "ready" is the
-            // fact the learner needs and matches the forward framing elsewhere.
-            accessibilityLabel={badged ? `${label}, practice ready` : label}
+            accessibilityLabel={tabAccessibilityLabel(route.name, dot)}
           >
             <TabGlyph focused={focused} badged={dot}>
-              {(bulk) => <Icon size={24} color={focused ? accent.brand : paper.inkSoft} focused={bulk} />}
+              {() => <Icon name={icon} variant="linear" size={22} color={focused ? t.tabGlyphSelected : t.tabLabel} />}
             </TabGlyph>
-            <Text
-              style={[
-                st.label,
-                focused ? { color: accent.brand, fontFamily: font.bold } : { color: paper.inkSoft },
-              ]}
-            >
-              {label}
-            </Text>
+            <Text style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>
           </Press>
         );
       })}
@@ -148,39 +153,49 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
  * the whole screen replaced itself.
  */
 export function announceTab(name: string): void {
-  AccessibilityInfo.announceForAccessibility(`${LABELS[name] ?? name} tab`);
+  AccessibilityInfo.announceForAccessibility(`${TAB_LABELS[name] ?? name} tab`);
 }
 
-const st = StyleSheet.create({
-  bar: {
-    backgroundColor: paper.card,
-    borderTopWidth: HAIRLINE,
-    borderTopColor: paper.line,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-  },
-  cells: { flexDirection: 'row' },
-  cell: {
-    flex: 1,
-    // A floor, not a height: a wrapped two-line label at large text grows the
-    // cell rather than clipping, and the row grows with the tallest cell.
-    minHeight: HIT + space(4),
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: space(2),
-    paddingBottom: space(2),
-    minWidth: 0,
-  },
-  /** What the spring shrinks: the glyph over its word, centred across the cell. */
-  face: { alignSelf: 'stretch', alignItems: 'center', gap: space(1) },
-  cellWrapped: {
-    // One quarter of the bar each, taken rather than shared: flexBasis fixes the
-    // width, and neither growing nor shrinking can then borrow it back. A word
-    // that no longer fits wraps inside its own quarter and the cell gets taller.
-    flexBasis: '25%',
-    flexGrow: 0,
-    flexShrink: 0,
-    paddingHorizontal: space(0.5),
-  },
-  label: { ...type.tabLabel, textAlign: 'center' },
-});
+function makeStyles(t: B) {
+  return StyleSheet.create({
+    bar: {
+      backgroundColor: t.ground,
+      alignSelf: 'stretch',
+      alignItems: 'center',
+      paddingTop: space(2),
+    },
+    capsule: {
+      flexDirection: 'row',
+      backgroundColor: t.tabCapsule,
+      borderRadius: 32,
+      paddingHorizontal: space(2),
+      paddingVertical: space(1.5),
+    },
+    cell: {
+      flex: 1,
+      // A floor, not a height: a wrapped two-line word grows the cell, and the
+      // capsule grows with the tallest one.
+      minHeight: CELL_HEIGHT,
+      minWidth: 0,
+    },
+    cellWrapped: {
+      // One fifth of the capsule each, taken rather than shared, so a long word
+      // wraps inside its own fifth. At 320pt a fifth is about 55pt, over 44.
+      flexBasis: '20%',
+      flexGrow: 0,
+      flexShrink: 0,
+    },
+    /** What the spring shrinks, and what turns violet when selected. */
+    face: {
+      flex: 1,
+      alignSelf: 'stretch',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space(1),
+      padding: space(1),
+      borderRadius: 20,
+    },
+    faceSelected: { backgroundColor: t.tabSelected },
+    label: { ...boldType.small, color: t.tabLabel, textAlign: 'center' },
+  });
+}

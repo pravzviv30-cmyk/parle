@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp } from './palette.ts';
+import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -170,7 +170,11 @@ describe('one ground, pinned — F321', () => {
     assert.equal(paper.ink, '#16123A');
     assert.equal(paper.inkSoft, '#5C5A74');
     assert.equal(paper.inkFaint, paper.inkSoft, 'inkFaint is a third ink; B has two');
-    assert.equal(paper.line, '#EADFCB');
+    // Direction B consolidation (DECISIONS.md, 2026-10-19): #EADFCB and the C2
+    // border #DCD2C4 fold into one hairline, and the C2 sand becomes the inset.
+    assert.equal(paper.line, '#F0E6D6');
+    assert.equal(paper.inset, '#F5EEE2');
+    assert.equal(paper.inkOnPastel, '#4A4766');
     assert.equal(paper.lineOnCard, paper.line, 'lineOnCard is a second hairline; B has one');
     assert.equal(paper.onInk, '#FFFFFF');
     // Revamp B stage 2: the input border and the unchosen ring. A mark, so it
@@ -185,7 +189,11 @@ describe('one ground, pinned — F321', () => {
     // instead: the card lifts off the ground, each hairline separates from what
     // it rules, and groundDeep sits between the two.
     assert.ok(deltaE(GROUND, paper.groundDeep) >= 5, `groundDeep is only ${deltaE(GROUND, paper.groundDeep).toFixed(1)} off the ground`);
-    assert.ok(deltaE(GROUND, paper.line) >= 8, `the ground hairline is only ${deltaE(GROUND, paper.line).toFixed(1)} off the ground`);
+    // DECISIONS.md, 2026-10-19: the founder chose a softer hairline (#F0E6D6,
+    // 5.8 off the ground). A hairline is decorative and never the only edge of
+    // a control, so its floor on the ground drops from 8 to 5; on the card it
+    // still clears 6.
+    assert.ok(deltaE(GROUND, paper.line) >= 5, `the ground hairline is only ${deltaE(GROUND, paper.line).toFixed(1)} off the ground`);
     assert.ok(deltaE(CARD, GROUND) >= 4, `the card is only ${deltaE(CARD, GROUND).toFixed(1)} off the ground`);
     assert.ok(deltaE(CARD, paper.lineOnCard) >= 6, `the card hairline is only ${deltaE(CARD, paper.lineOnCard).toFixed(1)} off the card`);
   });
@@ -228,6 +236,71 @@ describe('one ground, pinned — F321', () => {
     // clearing the ground alone and leave the words on a card under the floor.
     assert.ok(contrast(paper.inkSoft, GROUND) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, GROUND).toFixed(2)} on the ground`);
     assert.ok(contrast(paper.inkSoft, CARD) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, CARD).toFixed(2)} on a card`);
+  });
+});
+
+describe('direction B: one token set, old names alias it — DECISIONS.md 2026-10-19', () => {
+  test('the new tokens are pinned', () => {
+    assert.equal(colour.bluePressed, '#2A20B0');
+    assert.equal(colour.mintWash, '#D4F5E5');
+    assert.equal(colour.mintWords, '#1F7A52');
+    // B0 (2026-10-20): the ring and the second violet from the v82 artboards.
+    assert.equal(colour.ring, '#D9CFE9');
+    assert.equal(colour.violet2, '#5A50EA');
+    assert.deepEqual({ ...pastel }, { butter: '#FFE8AB', lavender: '#E9E3FA', peach: '#F7D8C7', sage: '#D4E2D7' });
+    assert.equal(liftInk, 'rgba(22, 18, 58, 0.45)');
+  });
+
+  test('the C2 and Luvani-theme names are aliases of the one value', () => {
+    assert.equal(boldRhythm.muted, paper.inkSoft);
+    assert.equal(boldRhythm.line, paper.line);
+    assert.equal(boldRhythm.sand, paper.inset);
+    assert.equal(mainApp.light.muted, paper.inkSoft);
+    assert.equal(mainApp.light.border, paper.line);
+    for (const name of ['butter', 'lavender', 'peach', 'sage'] as const) assert.equal(boldRhythm[name], pastel[name]);
+  });
+
+  test('the new text pairs clear the text floor', () => {
+    const pairs: [string, string, string][] = [
+      ['inkOnPastel on lavender', paper.inkOnPastel, pastel.lavender],
+      ['inkOnPastel on butter', paper.inkOnPastel, pastel.butter],
+      ['inkOnPastel on peach', paper.inkOnPastel, pastel.peach],
+      ['inkOnPastel on sage', paper.inkOnPastel, pastel.sage],
+      ['mintWords on a card', colour.mintWords, CARD],
+      ['mintWords on the mint wash', colour.mintWords, colour.mintWash],
+      ['ink on the mint wash', INK, colour.mintWash],
+      ['inkSoft on the inset', paper.inkSoft, paper.inset],
+      ['white on pressed blue', paper.onInk, colour.bluePressed],
+      // B0 (2026-10-20): white words on the violet2 chip, and the lock badge's
+      // blue words on its lavender pill and its white disc.
+      ['white on violet2', paper.onInk, colour.violet2],
+      ['blue on lavender (lock pill)', colour.blue, pastel.lavender],
+      ['blue on a card (lock badge)', colour.blue, CARD],
+    ];
+    for (const [name, fg, bg] of pairs) {
+      assert.ok(contrast(fg, bg) >= TEXT, `${name} is ${contrast(fg, bg).toFixed(2)}, under the ${TEXT} floor`);
+    }
+  });
+});
+
+describe('B0 tokens keep to their roles (2026-10-20)', () => {
+  test('the ring is decoration only: under the mark floor on a card, so it never edges a control', () => {
+    const r = contrast(colour.ring, CARD);
+    assert.ok(r < MARK, `the ring is ${r.toFixed(2)} on a card; if it clears ${MARK} the decorative-only rule needs a rethink`);
+    assert.ok(r > 1.2 && r < 1.6, `the ring is ${r.toFixed(2)} on a card, not the documented ~1.4`);
+  });
+
+  test('violet2 never sits behind the blue ground\'s soft words', () => {
+    // onColour.blue on violet2 is under the text floor, which is why DESIGN.md
+    // says white words only on a violet2 chip.
+    assert.ok(contrast(onColour.blue, colour.violet2) < TEXT, 'onColour.blue now clears the floor on violet2; revisit the rule');
+    assert.ok(contrast(paper.onInk, colour.violet2) >= TEXT);
+  });
+
+  test('#E4E0FF is folded into onColour.blue: no near-duplicate is written in palette.ts', () => {
+    const src = readFileSync(join(SRC, 'palette.ts'), 'utf8');
+    assert.doesNotMatch(src, /#E4E0FF/i);
+    assert.equal(onColour.blue, '#E4E1FF');
   });
 });
 
@@ -420,7 +493,10 @@ describe('the STYLE colours the parts draw — F597', () => {
       if (/\.test\.tsx?$/.test(file)) continue;
       const rel = file.slice(SRC.length);
       if (!/\blilac\b/.test(strip(readFileSync(file, 'utf8')))) continue;
-      if (rel === 'palette.ts' || rel === 'theme.ts' || rel.startsWith('art/flat/')) continue;
+      // The founder-approved Explore illustration geometry (ported from
+      // ce1fa976) uses the palette-owned lilac; MainIllustrationArt.test.ts
+      // compares every shape and colour to the exact source SVGs.
+      if (rel === 'palette.ts' || rel === 'theme.ts' || rel.startsWith('art/flat/') || rel === 'illustrations/MainIllustrationArt.ts') continue;
       drawers.push(rel);
     }
     assert.deepEqual(drawers, [], `lilac is drawn outside the flat illustrations: ${drawers.join(', ')}`);
@@ -591,6 +667,8 @@ describe('the recorded palette matches the code — F327, F328', () => {
   tokens.highlight = highlight;
   // Revamp B: the four colours and the orb's glyph pairing, recorded like the rest.
   for (const [k, v] of Object.entries(colour)) tokens[`colour.${k}`] = v;
+  // Direction B (DECISIONS.md UI-005): the four pastels are recorded like the rest.
+  for (const [k, v] of Object.entries(pastel)) tokens[`pastel.${k}`] = v;
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const [k, v] of Object.entries(onOrb)) tokens[`onOrb.${k}`] = v;
@@ -603,6 +681,11 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(segmentPending)) tokens[`segmentPending.${k}`] = v;
   // The scoped streak palette participates in the same complete documentation contract.
   for (const [k, v] of Object.entries(streakCelebration)) tokens[`streakCelebration.${k}`] = v;
+  // UI-008 (2026-10-20): both B token sets are recorded like the rest; the
+  // status bar style is a word, not a colour, so it has no row.
+  for (const mode of ['light', 'dark'] as const) {
+    for (const [k, v] of Object.entries(b[mode])) if (k !== 'statusBar') tokens[`b.${mode}.${k}`] = v;
+  }
 
   test('DESIGN.md records the palette the app ships', () => {
     // DESIGN.md is recorded from the built artifact, so its token table has to be
@@ -679,6 +762,105 @@ describe('the recorded palette matches the code — F327, F328', () => {
   });
 });
 
+/**
+ * Direction B's semantic tokens in both modes (DECISIONS.md UI-008,
+ * 2026-10-20). Light is the artboards and must equal what the parts drew
+ * before they read the theme, so a pinned-light screen cannot change by a
+ * pixel. Dark is the Figma M3 page and is held to the same floors.
+ */
+describe('B tokens, light and dark — UI-008', () => {
+  test('b.light is exactly the shipped light values, so a pinned screen draws as it did', () => {
+    const t = b.light;
+    const same: [keyof typeof t, string][] = [
+      ['ground', paper.ground], ['card', paper.card], ['inset', paper.inset], ['line', paper.line],
+      ['text', paper.ink], ['muted', paper.inkSoft], ['secondary', paper.inkOnPastel], ['field', paper.field],
+      ['skeleton', paper.skeleton], ['brand', colour.blue], ['brandPressed', colour.bluePressed], ['onBrand', paper.onInk],
+      ['onBrandSoft', onColour.blue], ['violet2', colour.violet2], ['periwinkle', lilac], ['ring', colour.ring],
+      ['sun', colour.sun], ['mint', colour.mint], ['mintWash', colour.mintWash], ['mintWords', colour.mintWords],
+      ['coral', colour.coral], ['butter', pastel.butter], ['lavender', pastel.lavender], ['peach', pastel.peach],
+      ['sage', pastel.sage], ['heroGround', colour.sun], ['heroText', paper.ink], ['heroCta', paper.ink],
+      ['heroCtaText', paper.onInk], ['heroChip', paper.card], ['primary', accent.primary], ['onPrimary', paper.onInk],
+      ['quiet', paper.inset], ['link', colour.blue], ['avatar', paper.ink], ['onAvatar', paper.onInk], ['scrim', paper.ink],
+      ['danger', mainApp.light.danger], ['tabCapsule', paper.ink], ['tabSelected', colour.blue], ['tabGlyphSelected', colour.sun],
+      ['tabLabel', paper.ground],
+    ];
+    for (const [key, value] of same) assert.equal(t[key], value, `b.light.${key} drifted from the value the parts drew before UI-008`);
+    assert.equal(t.violetDeep, '#2E24B8', 'the deep violet is not the artboards\' Live and Welcome value');
+    assert.equal(t.statusBar, 'dark');
+    assert.deepEqual(Object.keys(b.dark).sort(), Object.keys(b.light).sort(), 'the two modes do not name the same tokens');
+  });
+
+  test('b.dark follows the Figma M3 page: the main app dark values, violet kept, the hero turned', () => {
+    const t = b.dark;
+    const m3: [keyof typeof t, string][] = [
+      ['ground', mainApp.dark.background], ['card', mainApp.dark.surface], ['inset', mainApp.dark.inset], ['line', mainApp.dark.border],
+      ['text', mainApp.dark.text], ['muted', mainApp.dark.muted], ['butter', mainApp.dark.ochre], ['lavender', mainApp.dark.plum],
+      ['peach', mainApp.dark.rose], ['sage', mainApp.dark.teal], ['mintWash', mainApp.dark.teal], ['heroGround', mainApp.dark.hero],
+      ['link', mainApp.dark.link], ['ring', mainApp.dark.border], ['quiet', mainApp.dark.inset], ['danger', mainApp.dark.danger],
+    ];
+    for (const [key, value] of m3) assert.equal(t[key], value, `b.dark.${key} is not the M3 value`);
+    // M3 keeps the violet as the accent, turns the ink pill violet, and gives
+    // the hero a gold button with ink words and cream text.
+    assert.equal(t.brand, colour.blue);
+    assert.equal(t.primary, colour.blue);
+    assert.equal(t.heroCta, colour.sun);
+    assert.equal(t.heroCtaText, paper.ink);
+    assert.equal(t.heroText, paper.ground);
+    assert.equal(t.tabCapsule, paper.ink, 'the tab capsule is ink in both modes (Figma 292:1103)');
+    assert.equal(t.statusBar, 'light');
+  });
+
+  for (const mode of ['light', 'dark'] as const) {
+    test(`${mode}: every text pair clears ${TEXT}, and every mark clears ${MARK}`, () => {
+      const t = b[mode];
+      const pairs: [string, string, string][] = [];
+      for (const fg of ['text', 'muted', 'secondary'] as const) {
+        for (const bg of ['ground', 'card', 'inset', 'quiet', 'butter', 'lavender', 'peach', 'sage', 'mintWash'] as const) {
+          pairs.push([`${fg} on ${bg}`, t[fg], t[bg]]);
+        }
+      }
+      pairs.push(
+        ['onBrand on brand', t.onBrand, t.brand],
+        ['onBrandSoft on brand', t.onBrandSoft, t.brand],
+        ['onBrand on brandPressed', t.onBrand, t.brandPressed],
+        ['heroText on heroGround', t.heroText, t.heroGround],
+        ['heroText on heroChip', t.heroText, t.heroChip],
+        ['heroCtaText on heroCta', t.heroCtaText, t.heroCta],
+        ['link on ground', t.link, t.ground],
+        ['link on card', t.link, t.card],
+        ['link on lavender (the lock badge)', t.link, t.lavender],
+        ['mintWords on mintWash', t.mintWords, t.mintWash],
+        ['mintWords on card', t.mintWords, t.card],
+        ['onPrimary on primary', t.onPrimary, t.primary],
+        ['onAvatar on avatar', t.onAvatar, t.avatar],
+        ['tabLabel on tabCapsule', t.tabLabel, t.tabCapsule],
+        ['tabLabel on tabSelected', t.tabLabel, t.tabSelected],
+        ['danger on ground', t.danger, t.ground],
+        ['danger on card', t.danger, t.card],
+        // 2026-10-21 UI-008, artboard B-ReviewReveal: the grade words on the sun and mint tiles.
+        ['onMint on sun (Got it)', t.onMint, t.sun],
+        ['onMint on mint (Easy)', t.onMint, t.mint],
+      );
+      for (const [name, fg, bg] of pairs) {
+        const r = contrast(fg, bg);
+        assert.ok(r >= TEXT, `${mode} ${name} is ${r.toFixed(2)}, under the ${TEXT} floor for words`);
+      }
+      const marks: [string, string, string][] = [
+        ['field on card', t.field, t.card],
+        ['field on ground', t.field, t.ground],
+        // 2026-10-20 UI-008, artboard B-Today: the tick and the star stroke on mint.
+        ['onMint on mint', t.onMint, t.mint],
+        ['the selected glyph on its cell', t.tabGlyphSelected, t.tabSelected],
+        ['an unselected glyph on the capsule', t.tabLabel, t.tabCapsule],
+      ];
+      for (const [name, fg, bg] of marks) {
+        const r = contrast(fg, bg);
+        assert.ok(r >= MARK, `${mode} ${name} is ${r.toFixed(2)}, under the ${MARK} floor for a mark`);
+      }
+    });
+  }
+});
+
 describe('main appearance premium roles', () => {
   for (const mode of ['light', 'dark'] as const) {
     const c = mainApp[mode];
@@ -691,6 +873,55 @@ describe('main appearance premium roles', () => {
       }
       const r = contrast(c.text, c.selected);
       assert.ok(r >= 4.5, `${mode} text is ${r.toFixed(2)} on selected`);
+    });
+  }
+});
+
+// 2026-10-21 UI-008: the paywall (wall/*) follows the device. Every pair it
+// draws, in both modes, from mainApp (its text and grounds) and b (its marks,
+// the CTA and the trial timeline).
+describe('the paywall reads in both modes — UI-008, 2026-10-21', () => {
+  test('light keeps the colours the wall drew before it was themed', () => {
+    assert.equal(b.light.mark, colour.blue);
+    assert.equal(b.light.onMark, paper.onInk);
+    assert.equal(b.light.onSun, paper.ink);
+    assert.equal(b.light.brand, colour.blue);
+    assert.equal(b.light.onBrand, paper.onInk);
+    assert.equal(b.light.sun, colour.sun);
+    assert.equal(b.dark.mark, '#A79AFF');
+    assert.equal(b.dark.mark, mainApp.dark.link, 'the dark mark is not the M3 link lilac');
+    assert.equal(b.dark.onSun, paper.ink, 'the timeline glyph is not ink on sun in dark');
+  });
+  for (const mode of ['light', 'dark'] as const) {
+    const c = mainApp[mode]; const t = b[mode];
+    test(`${mode}: words, prices and the plan cards`, () => {
+      for (const [ink, name] of [[c.text, 'text'], [c.muted, 'muted'], [c.link, 'link']] as const) {
+        for (const [ground, where] of [[c.background, 'ground'], [c.surface, 'card']] as const) {
+          const r = contrast(ink, ground);
+          assert.ok(r >= 4.5, `${mode} ${name} is ${r.toFixed(2)} on the ${where}`);
+        }
+      }
+      // The notice, the period switch and the secondary pill sit on inset.
+      for (const [ink, name] of [[c.text, 'text'], [c.muted, 'muted']] as const) {
+        const r = contrast(ink, c.inset);
+        assert.ok(r >= 4.5, `${mode} ${name} is ${r.toFixed(2)} on inset`);
+      }
+      // The failed-notice title: dark clears 4.5. Light is unchanged from before
+      // the wall was themed (#C2341F on lavender, 4.42), held here so it cannot slip further.
+      assert.ok(contrast(c.danger, c.inset) >= (mode === 'dark' ? 4.5 : 4.4), `${mode} danger is ${contrast(c.danger, c.inset).toFixed(2)} on inset`);
+      assert.ok(contrast(c.text, c.teal) >= 4.5, `${mode} text is unreadable on the free card`);
+      // The chosen plan's border, radio and benefit tick are marks (3.0).
+      for (const [ground, where] of [[c.background, 'ground'], [c.surface, 'card']] as const) {
+        const r = contrast(t.mark, ground);
+        assert.ok(r >= 3, `${mode} the selected mark is ${r.toFixed(2)} on the ${where}`);
+      }
+      assert.ok(contrast(t.onMark, t.mark) >= 3, `${mode} the radio dot is lost on its fill`);
+    });
+    test(`${mode}: the CTA and the trial timeline`, () => {
+      assert.ok(contrast(t.onBrand, t.brand) >= 4.5, `${mode} CTA words are ${contrast(t.onBrand, t.brand).toFixed(2)}`);
+      assert.ok(contrast(t.onSun, t.sun) >= 4.5, `${mode} the timeline glyph is lost on its disc`);
+      // The disc's edge is decorative (the ink glyph and the words carry it); in dark the sun stands out further.
+      if (mode === 'dark') assert.ok(contrast(t.sun, c.background) >= 3, 'dark: the timeline disc is lost on the ground');
     });
   }
 });

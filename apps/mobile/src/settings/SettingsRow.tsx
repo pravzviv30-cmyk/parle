@@ -7,10 +7,12 @@
  * the inset separator. Long answers belong in `sub`, short ones in `value`.
  */
 
+import type { ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { space, type } from '../theme.ts';
+import { bType, decorative, space, type } from '../theme.ts';
 import { ArrowRight, ChevronRight, Press } from '../components.tsx';
-import { useSettingsColors } from './SettingsAppearance.tsx';
+import { ChevronGlyph } from '../explore/ExploreParts.tsx';
+import { useBRows, useSettingsColors } from './SettingsAppearance.tsx';
 import { RowDivider, useInGroup, useRowFrame } from './SettingsGroup.tsx';
 
 export function SettingsRow({
@@ -21,6 +23,8 @@ export function SettingsRow({
   destructive = false,
   action = false,
   first = false,
+  lead,
+  badge,
 }: {
   label: string;
   /** A second line under the label, for answers too long to sit at the edge. */
@@ -33,12 +37,32 @@ export function SettingsRow({
   action?: boolean;
   /** Rows after the first carry the inset separator above them. */
   first?: boolean;
+  /** B rows only: a drawing at the leading edge (the tutor orb, the star jar). Decoration. */
+  lead?: ReactNode;
+  /** B rows only: a mark before the chevron, the round lock badge. */
+  badge?: ReactNode;
 }) {
   const colors = useSettingsColors();
   const frame = useRowFrame();
   const grouped = useInGroup();
+  const b = useBRows() && grouped;
   const colour = destructive ? colors.danger : colors.text;
-  const body = (
+  // 2026-10-20 UI-008, artboard B-Settings: 16/600 label, the answer stacked
+  // under it at 15 and a longer sub at 13, both in muted ink, then the 18pt
+  // chevron. Nothing at the trailing edge but marks.
+  const body = b ? (
+    <View style={[st.row, frame]}>
+      {first ? null : <RowDivider />}
+      {lead != null ? <View {...decorative}>{lead}</View> : null}
+      <View style={[st.words, st.stack]}>
+        <Text style={[type.label, { color: colour }]}>{label}</Text>
+        {value ? <Text style={[bType.line15, { color: colors.muted }]}>{value}</Text> : null}
+        {sub ? <Text style={[bType.note, { color: colors.muted }]}>{sub}</Text> : null}
+      </View>
+      {badge ?? null}
+      {onPress && !action ? <View {...decorative}><ChevronGlyph size={18} color={colors.muted} /></View> : null}
+    </View>
+  ) : (
     <View style={[st.row, frame]}>
       {first ? null : <RowDivider />}
       <View style={st.words}>
@@ -71,6 +95,7 @@ export function SettingsRow({
 const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   words: { flex: 1, minWidth: 0 },
+  stack: { gap: 2 },
   // Short answers only; a long one wraps rather than pushing the label away.
   value: { flexShrink: 1, maxWidth: '50%', textAlign: 'right' },
   // Keep every word fully legible while a tap lands: no opacity on press.

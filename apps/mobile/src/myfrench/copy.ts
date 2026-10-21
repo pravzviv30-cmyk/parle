@@ -27,8 +27,11 @@
  * Whole-app phase 2 retired "The French that has become yours." and the
  * three-claim slogan under it from routine visits: three lines of heading a
  * learner read every time before anything of their own.
+ *
+ * 2026-10-20, B4, B-Journey: the page is titled "Your journey" under the tab
+ * bar's "Journey"; `journey/journeyView.ts` draws it as JOURNEY_TITLE.
  */
-export const MY_FRENCH_TITLE = 'Progress';
+export const MY_FRENCH_TITLE = 'Your journey';
 
 /** The line under it: one plain sentence about what is on the page. */
 export const MY_FRENCH_PURPOSE = 'The French you have used and kept.';

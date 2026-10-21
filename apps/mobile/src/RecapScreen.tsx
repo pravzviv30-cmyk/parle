@@ -1,13 +1,11 @@
 import { KeptPhraseCard } from './recap/KeptPhraseCard.tsx';
 import { PrivatePractice } from './recap/PrivatePractice.tsx';
 import { PostcardStamp } from './celebrate/PostcardStamp.tsx';
-import { CountUp } from './motion/CountUp.tsx';
 import { Illustration } from './art/flat/Illustration.tsx';
 import { sceneIllustration } from './art/flat/scenes.ts';
 import { postcardLine, postcardStamp, recapCanDo } from './recap/evidence.ts';
 import { postcardIllustration } from './recap/postcardArt.ts';
 import { ResultArt } from './recap/ResultArt.tsx';
-import { ProgressStrip } from './recap/ProgressStrip.tsx';
 import { progressStripView } from './recap/progressStrip.ts';
 import { recapMoment } from './recap/moment.ts';
 import { useRecapMoment } from './recap/useRecapMoment.ts';
@@ -56,9 +54,21 @@ import { recapPages, adjacentRecapPage, type RecapPage } from './recap/pages.ts'
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
-import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour, decorative } from './theme.ts';
-import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton, ProgressDots, RoundButton } from './components.tsx';
-import { ScrollScreen } from './layout.tsx';
+import { HAIRLINE, HIT, space, type, frenchText } from './theme.ts';
+import { IconAction, Card, Label, LockBadge, OutlineButton, Press } from './components.tsx';
+import { ScrollScreen, TopInset } from './layout.tsx';
+import { BArt } from './art/BArt.tsx';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { BButton } from './today/TodayParts.tsx';
+import { bType } from './theme.ts';
+import * as tutorVoice from './speech/tutorVoice.ts';
+import { useFeatureAccess } from './access/useFeatureAccess.ts';
+import { fixesLocked } from './practice/fixesView.ts';
+import { loadActivity } from './progress/activity.ts';
+import { calendarWeekFrom, type WeekDay } from './progress/momentum.ts';
+import { afterSessionStats, celebrateView, recapEyebrow, smallFixes, streakLine, weekBars } from './recap/afterSessionView.ts';
+import { BandGoal, CelebrateConfetti, CloseDisc, FixCard, LineRow, NextPill, PostcardCard, PostcardTile, SaidWellCard, StatTiles, StreakRow } from './recap/RecapParts.tsx';
+import type { ClosureRepair } from './conversationPacks/closure.ts';
 import { arrived } from './motion/haptics.ts';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { FeedbackLedger } from './motion/feedbackPolicy.ts';
@@ -78,6 +88,7 @@ import { useProfile } from './app/ProfileContext.tsx';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import {
   KEEPSAKE_COPY,
+  nextCanDo,
   nextTimeLine,
   reminderAnswerLine,
   reminderOffer,
@@ -106,6 +117,9 @@ export function RecapScreen({
   delta = null,
   momentKey = null,
   onResultShown,
+  activeSec = null,
+  goals = [],
+  onSeeJourney,
 }: {
   recap: RecapPayload;
   settlementMessage?: string | null;
@@ -122,6 +136,12 @@ export function RecapScreen({
   momentKey?: string | null;
   /** Said once the result page is up: the conversation's settle hold can go (F766). */
   onResultShown?: () => void;
+  /** Leaves for the Journey tab, from the Celebration's "See your journey". */
+  onSeeJourney?: () => void;
+  /** The room's own active clock for this sitting, in seconds, or null when unmeasured. */
+  activeSec?: number | null;
+  /** The scene's goals, passed through from the live room's `visibleMissionTasks` (no new storage). */
+  goals?: readonly { id: string; goalEn: string; achieved: boolean }[];
   /** The learner's own lines from this conversation, from `keepsakeLines`. */
   lines: readonly string[];
   onDone: () => void;
@@ -151,7 +171,20 @@ export function RecapScreen({
   // Null until the reads answer: the keepsake draws at once from the recap,
   // and the sound and "Next time" arrive a beat later.
   const [page, setPage] = useState<RecapPage>('result');
-  const [fixingLine, setFixingLine] = useState(false);
+  const [fixing, setFixing] = useState<ClosureRepair | null>(null);
+  const t = useB();
+  const s = useThemedStyles(makeStyles);
+  const locks = useFeatureAccess(user?.id);
+  // This week, Monday to Sunday, for the seven bars (progress/momentum.ts). A failed read draws no bars.
+  const [week, setWeek] = useState<readonly WeekDay[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void loadActivity().then((activity) => { if (!cancelled) setWeek(calendarWeekFrom(activity, Date.now())); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  // The tutor's voice saying a line: the device voice, never the learner's recording.
+  const hear = (line: string) => { tutorVoice.speak(line); };
+  useEffect(() => () => tutorVoice.stop(), []);
   const [context, setContext] = useState<ClosureContext | null>(null);
   const [contextRead, setContextRead] = useState(0);
   const [contextFailed, setContextFailed] = useState(false);
@@ -273,156 +306,164 @@ export function RecapScreen({
   const previousPage = adjacentRecapPage(pages, currentPage, -1);
   const canPractise = keptPhrase !== null && saveState === 'saved' && onPractice !== undefined;
   const ground = currentPage === 'result' ? 'coral' : currentPage === 'sound' ? 'sun' : currentPage === 'ability' ? 'mint' : undefined;
-  // The lines count up the first time their page shows, and are simply there after.
-  const linesShown = useRef(false);
-  useEffect(() => {
-    if (currentPage === 'lines') linesShown.current = true;
-  }, [currentPage]);
-  const linesUnit = lines.length === 1 ? 'line you said' : 'lines you said';
+  const stats = afterSessionStats({ activeSec, phrases: recap.phrases.length, xp: strip?.xp?.value ?? null });
+  const streakWords = streakLine(strip?.streak?.value ?? null, week);
+  const fixes = smallFixes(recap.fixes);
+  const celebrate = canDo !== null && mission ? celebrateView({ mission, independent: independentFinish, stamp, next: context === null ? null : nextCanDo(context.progress) }) : null;
+  const blue = currentPage === 'result' || currentPage === 'ability';
+  const finishLabel = nextPage === null ? 'Finish' : blue ? 'Continue' : 'Next';
   return (<>
-    <ScrollScreen bottom="inset" ground={ground ? colour[ground] : paper.ground}
-      header={<View style={{ flexDirection: 'row', gap: space(4), alignItems: 'center' }}>
-        <RoundButton kind="close" accessibilityLabel="Finish conversation" onPress={onDone} tone="white" />
-        <ProgressDots total={pages.length} index={pageIndex} ground={ground ?? 'paper'} />
-      </View>}
-      footer={<View style={{ gap: space(2) }}>
+    <ScrollScreen bottom="inset" padded={false} bleedTop ground={blue ? t.brand : t.ground}
+      footer={<View style={s.footer}>
         {nextPage === null && canPractise
-          ? <PillButton label="Practise this phrase" onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />
-          : <PillButton tone={currentPage === 'result' ? 'white' : 'ink'} label={nextPage === null ? 'Finish conversation' : 'Next'}
+          ? <BButton label="Practise this phrase" height={56} ground={t.primary} ink={t.onPrimary} text={bType.bold18} onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />
+          : <BButton label={finishLabel} accessibilityLabel={nextPage === null ? 'Finish conversation' : finishLabel} height={56}
+              ground={blue ? t.onBrand : t.primary} ink={blue ? t.onMint : t.onPrimary} text={bType.bold18}
               onPress={() => nextPage === null ? onDone() : setPage(nextPage)} />}
-        {previousPage !== null && <IconAction layout="inline" icon="back" label="Previous"  onPress={() => setPage(previousPage)} />}
+        {currentPage === 'ability' && onSeeJourney ? <Press haptic="light" accessibilityLabel="See your journey" onPress={onSeeJourney} style={s.link}>
+          <Text style={[bType.bold16, { color: t.onBrand }]}>See your journey</Text>
+        </Press> : null}
+        {currentPage === 'lines' && canPractise ? <Press haptic="light" accessibilityLabel="Practise these lines, free" onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} style={s.link}>
+          <Text style={[bType.semi15, { color: t.link }]}>Practise these lines, free</Text>
+        </Press> : null}
       </View>}>
-      <View style={st.stack}>
-        {contextFailed && <Card>
-          <Text accessibilityLiveRegion="polite" style={type.body}>Saved progress could not be read. You can still read this conversation's recap and keep its phrase.</Text>
-          <IconAction layout="inline" icon="refresh" label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
-        </Card>}
-        {currentPage === 'result' && <View style={st.head}>
-          {keptPhrase !== null ? <><KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} />
-            {saveState === 'failed' && <OutlineButton label="Retry save" onPress={retrySave} />}
-            {canPractise && <IconAction layout="inline" icon="microphone" label="Practise this phrase" ground="blue" onPress={() => onPractice!({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />}
-          </> : lines.length > 0 ? <Card><Label>Your French</Label><Text {...frenchText} style={type.french}>{lines[lines.length - 1]}</Text></Card> : null}
-          <ResultArt moment={moment} burst={scene.burst} seed={`recap:${momentKey ?? recap.headline}`}>
-            {mission ? <Illustration name={sceneIllustration(mission.id)} fit="small" /> : lines.length > 0 ? <Illustration name="celebrate-first-line" fit="small" /> : <Illustration name="state-waiting" fit="small" />}
-          </ResultArt>
-          <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>
-            {recap.headline}
-          </Text>
-          {keptPhrase !== null ? <Text style={[type.body, { color: onColour.coral }]}>{situation}</Text> : null}
-          {/* How it went, in a sentence. See tutor/recapLine.ts for why the
-              old score-like arithmetic is gone. */}
-          <Text style={[type.body, { color: onColour.coral }]}>{recapLine(recap.stats)}</Text>
-          {settlementMessage !== '' && settlementMessage != null && <Text accessibilityLiveRegion="polite" style={[type.body, { color: onColour.coral }]}>{settlementMessage}</Text>}
-          {/* What the conversation changed, from the settle, on its beat. */}
-          {strip !== null && moment.reached('strip') ? <ProgressStrip view={strip} final={moment.final} /> : null}
-        </View>}
+      {contextFailed && <View style={s.pad}><Card>
+        <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>Saved progress could not be read. You can still read this conversation's recap and keep its phrase.</Text>
+        <IconAction layout="inline" icon="refresh" label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
+      </Card></View>}
 
-        {currentPage === 'lines' && <View style={{ gap: space(5) }}>
+      {/* After a session (B-AfterSession): the cheer, Bien joué, the stats, the line said well, the week. */}
+      {currentPage === 'result' && <View style={s.blueBody}>
+        <TopInset />
+        <View style={s.closeRow}><CloseDisc on="blue" label="Finish conversation" onPress={onDone} /></View>
+        <View style={s.art}>
+          <ResultArt moment={moment} burst={scene.burst} seed={`recap:${momentKey ?? recap.headline}`}>
+            {mission ? <BArt name="cloud-cheer" width={250} height={190} /> : lines.length > 0 ? <Illustration name="celebrate-first-line" fit="small" /> : <Illustration name="state-waiting" fit="small" />}
+          </ResultArt>
+        </View>
+        <View style={s.words}>
+          <Text accessibilityRole="header" style={[bType.display40, s.center, { color: t.sun }]}>Bien joué.</Text>
+          <Text style={[bType.para17, s.center, { color: t.onBrandSoft }]}>{recap.headline}</Text>
+          {settlementMessage !== '' && settlementMessage != null && <Text accessibilityLiveRegion="polite" style={[bType.meta, s.center, { color: t.onBrandSoft }]}>{settlementMessage}</Text>}
+        </View>
+        {/* What the conversation changed, from the settle, on its beat. */}
+        {strip !== null && moment.reached('strip') ? <StatTiles tiles={stats} /> : strip === null ? <StatTiles tiles={stats} /> : null}
+        {evidenceQuote ? <SaidWellCard line={evidenceQuote} onHear={() => hear(evidenceQuote)} /> : null}
+        {streakWords !== null ? <StreakRow line={streakWords} bars={weekBars(week)} /> : null}
+      </View>}
+
+      {/* The Celebration (B-Celebrate): you can now, the ability, the postcard, what is next. */}
+      {currentPage === 'ability' && celebrate !== null && mission && <View style={s.blueBody}>
+        <CelebrateConfetti />
+        <TopInset />
+        <View style={s.closeRow}><CloseDisc on="blue" label="Finish conversation" onPress={onDone} /></View>
+        <View style={s.art}><BArt name="cloud-cheer" width={260} height={198} /></View>
+        <View style={s.words}>
+          <Text style={[bType.bold15, s.center, { color: t.sun }]}>{celebrate.eyebrow}</Text>
+          <Text accessibilityRole="header" style={[bType.ability34, s.center, { color: t.onBrand }]}>{celebrate.ability}</Text>
+          {celebrate.line !== null ? <Text style={[bType.para17, s.center, { color: t.onBrandSoft }]}>{celebrate.line}</Text> : null}
+        </View>
+        <PostcardCard eyebrow={celebrate.postcardEyebrow} title={mission.title} line={postcardLine(stamp)}
+          tile={stamp !== null
+            ? <PostcardStamp art={postcardIllustration(mission.id)} kind={stamp} momentKey={momentKey}><PostcardTile /></PostcardStamp>
+            : <PostcardTile />} />
+        {celebrate.next !== null ? <NextPill line={celebrate.next} /> : null}
+      </View>}
+
+      {/* The Recap (B-Recap): the band with its goals, your lines, one phrase kept, small fixes. */}
+      {currentPage === 'lines' && <View>
+        <View style={s.band}>
+          <TopInset />
+          <BArt name="cloud-heart" width={160} height={122} style={s.bandArt} />
+          <View style={s.bandClose}><CloseDisc on="band" label="Finish conversation" onPress={onDone} /></View>
+          <Text style={[bType.chip, { color: t.link }]}>{recapEyebrow(situation, activeSec)}</Text>
+          <Text accessibilityRole="header" style={[bType.title30, s.bandWords, { color: t.text }]}>{recap.headline}</Text>
+          {/* How it went, in a sentence. See tutor/recapLine.ts. */}
+          <Text style={[bType.line16, s.bandWords, { color: t.secondary }]}>{recapLine(recap.stats)}</Text>
+          {goals.length > 0 ? <View style={s.goalCard}>{goals.map((goal) => <BandGoal key={goal.id} label={goal.goalEn} achieved={goal.achieved} />)}</View> : null}
+        </View>
+        <View style={s.recapBody}>
         {/* Your lines: what the learner actually said, in their own French. */}
         {lines.length > 0 && (
-          <View>
-            <Label>{KEEPSAKE_COPY.lines}</Label>
-            <View style={st.lines}>
-              {lines.map((line) => (
-                <Text {...frenchText} key={line} style={[type.french, st.line, { color: paper.ink }]}>
-                  {line}
-                </Text>
-              ))}
+          <View style={s.section}>
+            <View>
+              <Text accessibilityRole="header" style={[bType.section20, { color: t.text }]}>{KEEPSAKE_COPY.lines}</Text>
+              <Text style={[bType.meta, { color: t.muted }]}>French you said yourself</Text>
+            </View>
+            <View style={s.listCard}>
+              {lines.map((line, index) => <LineRow key={line} line={line} last={index === lines.length - 1} onHear={() => hear(line)} />)}
             </View>
           </View>
         )}
 
-        {closure.repair !== null && <Card style={st.kept}>
-          <Label>One change to try</Label>
-          <Text style={type.small}>Your words</Text>
-          <Text {...frenchText} style={type.frenchSm}>{closure.repair.quote}</Text>
-          <Text style={type.small}>A natural alternative</Text>
-          <Text {...frenchText} style={type.french}>{closure.repair.better}</Text>
-          <Text style={type.body}>{closure.repair.betterEn}</Text>
-          <Text style={type.small}>{closure.repair.why}</Text>
-          <IconAction layout="inline" icon="microphone" label="Try this version" onPress={() => setFixingLine(true)} />
-        </Card>}
-
-        {/* One phrase kept, on the screen's one highlighter. */}
+        {/* One phrase kept. */}
         {keptPhrase !== null ? (
-          <View style={st.keptStack}>
-            <KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} />
+          <KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} onHear={() => hear(keptPhrase.fr)}>
             {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
             {onPractice !== undefined ? (
-              <IconAction layout="inline" icon="microphone"
-                label="Practise this phrase"
-                disabled={saveState !== 'saved'}
-                onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })}
-                accessibilityLabel={`Practise ${keptPhrase.fr}`}
-              />
+              <BButton label="Practise this phrase" accessibilityLabel={`Practise ${keptPhrase.fr}`} height={46} ground={t.card} ink={t.text} text={bType.bold16}
+                disabled={saveState !== 'saved'} onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />
             ) : null}
-          </View>
+          </KeptPhraseCard>
         ) : null}
 
-        {lines.length > 0 && (
-          <View style={st.count} accessible accessibilityLabel={`${lines.length} ${linesUnit}`}>
-            <CountUp from={linesShown.current ? lines.length : 0} to={lines.length} label={`${lines.length} ${linesUnit}`} textStyle={[type.hero, { color: paper.ink }]} />
-            <Text {...decorative} style={[type.title, { color: paper.ink, paddingBottom: space(1.5) }]}>{linesUnit}</Text>
+        {fixes.length > 0 && <View style={s.section}>
+          <View>
+            <View style={s.fixHead}>
+              <Text accessibilityRole="header" style={[bType.section20, { color: t.text }]}>Small fixes</Text>
+              {fixesLocked(locks.access) ? <LockBadge /> : null}
+            </View>
+            <Text style={[bType.meta, { color: t.muted }]}>A more natural way to say it</Text>
           </View>
-        )}
+          {fixes.map((fix) => <FixCard key={`${fix.quote}:${fix.better}`} quote={fix.quote} better={fix.better} betterEn={fix.betterEn} why={fix.why}
+            onPress={() => setFixing({ quote: fix.quote, better: fix.better, betterEn: fix.betterEn, why: fix.why })} />)}
         </View>}
+        </View>
+      </View>}
 
-        {currentPage === 'sound' && <View>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>From a saved sound check</Text>
-        {sound && <Text style={[type.small, { color: paper.ink }]}>This check concerns its recorded reference line, not your pronunciation overall. {getMission(sound.missionId)?.titleEn ?? 'A previous scene'}.</Text>}
+        {currentPage === 'sound' && <View style={s.pad}>
+        <TopInset />
+        <Text accessibilityRole="header" style={[type.title, { color: t.text }]}>From a saved sound check</Text>
+        {sound && <Text style={[type.small, { color: t.text }]}>This check concerns its recorded reference line, not your pronunciation overall. {getMission(sound.missionId)?.titleEn ?? 'A previous scene'}.</Text>}
 
         {/* One sound, met as a word; the notation is a detail the learner opens. */}
         {sound !== null && (
           <View>
             <Label>{KEEPSAKE_COPY.sound}</Label>
             <MouthGuide ipa={sound.ipa} />
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{exampleFirstHeading(sound.acoustic, sound.example)}</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>{sound.acoustic.cue}</Text>
+            <Text style={[type.bodyStrong, { color: t.text, marginTop: space(2) }]}>{exampleFirstHeading(sound.acoustic, sound.example)}</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(1) }]}>{sound.acoustic.cue}</Text>
             <Pressable
               onPress={() => setSoundDetail((open) => !open)}
               accessibilityRole="button"
               accessibilityState={{ expanded: soundDetail }}
               style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
             >
-              <Text style={[type.small, { color: paper.ink }]}>{soundDetail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
+              <Text style={[type.small, { color: t.text }]}>{soundDetail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
             </Pressable>
-            {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>{sound.acoustic.heading}</Text>}
+            {soundDetail && <Text style={[type.notation, { color: t.muted }]}>{sound.acoustic.heading}</Text>}
             {sound.example !== null && <PrivatePractice key={sound.example} french={sound.example} />}
           </View>
         )}
 
         </View>}
 
-        {currentPage === 'ability' && <View style={{ gap: space(4) }}>
-          <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{canDo}</Text>
-          {canDo !== null && mission && <>
-            {stamp !== null
-              ? <PostcardStamp art={postcardIllustration(mission.id)} kind={stamp} momentKey={momentKey} />
-              : <Illustration name={postcardIllustration(mission.id)} />}
-            <Text style={[type.body, { color: paper.ink }]}>{postcardLine(stamp)}</Text>
-            {evidenceQuote ? <View style={{ gap: space(2) }}>
-              <Text style={[type.body, { color: paper.inkSoft }]}>Your line</Text>
-              <Text accessibilityLanguage="fr" style={[type.title, { color: paper.ink }]}>{evidenceQuote}</Text>
-            </View> : null}
-          </>}
-        </View>}
-
-        {currentPage === 'next' && <View style={{ gap: space(4) }}>
+        {currentPage === 'next' && <View style={[s.pad, { gap: space(4) }]}>
+        <TopInset />
         {keptPhrase !== null && <View style={{ gap: space(2) }}>
-          <Text style={type.heading}>Your next practice</Text>
-          <Text style={type.body}>Try the line you kept from {situation}. You can also finish and return later.</Text>
-          <Text {...frenchText} style={type.french}>{keptPhrase.fr}</Text>
-          <Text style={type.small}>{saveLine}</Text>
+          <Text style={[type.heading, { color: t.text }]}>Your next practice</Text>
+          <Text style={[type.body, { color: t.text }]}>Try the line you kept from {situation}. You can also finish and return later.</Text>
+          <Text {...frenchText} style={[type.french, { color: t.text }]}>{keptPhrase.fr}</Text>
+          <Text style={[type.small, { color: t.muted }]}>{saveLine}</Text>
           {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
         </View>}
         {conversationText && <SaveTextChoice {...conversationText} />}
         {/* Next time: the spine's next scene, the reason to come back. */}
-        {nextTime !== null && <Text style={[type.heading, { color: paper.ink }]}>{nextTime}</Text>}
-
+        {nextTime !== null && <Text style={[type.heading, { color: t.text }]}>{nextTime}</Text>}
         {/* Only now, the one reminder ask. Its Remind me is the one thing on
             this card that may raise the phone's dialog. */}
         {offer !== null && reminder !== 'declined' && (
-          <View style={st.offer}>
+          <View style={[st.offer, { borderTopColor: t.line }]}>
             {reminder === 'offered' ? (
               <ReminderAsk
                 time={offer.choice}
@@ -434,7 +475,7 @@ export function RecapScreen({
                 }}
               />
             ) : (
-              <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>
+              <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>
                 {reminderAnswerLine('on', { choice: reminder.on, time: reminderTime(reminder.on) })}
               </Text>
             )}
@@ -455,7 +496,7 @@ export function RecapScreen({
               accessibilityState={{ expanded: more }}
               style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
             >
-              <Text style={[type.small, { color: paper.ink }]}>{more ? 'Show less' : 'More'}</Text>
+              <Text style={[type.small, { color: t.text }]}>{more ? 'Show less' : 'More'}</Text>
             </Pressable>
             {more && (
               <View style={st.more}>
@@ -465,7 +506,7 @@ export function RecapScreen({
                     <Card style={st.section}>
                       <View style={{ gap: space(2.5) }}>
                         {closure.didWell.map((win) => (
-                          <Text key={win} style={[type.french, { color: paper.ink }]}>« {win} »</Text>
+                          <Text key={win} style={[type.french, { color: t.text }]}>« {win} »</Text>
                         ))}
                       </View>
                     </Card>
@@ -477,9 +518,9 @@ export function RecapScreen({
                     <Card style={st.section}>
                       <View style={{ gap: space(3) }}>
                         {otherPhrases.map((phrase, index) => (
-                          <View key={phrase.key} style={index > 0 ? st.divider : undefined}>
-                            <Text style={[type.french, { color: paper.ink }]}>{phrase.fr}</Text>
-                            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{phrase.en}</Text>
+                          <View key={phrase.key} style={index > 0 ? [st.divider, { borderTopColor: t.line }] : undefined}>
+                            <Text style={[type.french, { color: t.text }]}>{phrase.fr}</Text>
+                            <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{phrase.en}</Text>
                           </View>
                         ))}
                       </View>
@@ -491,12 +532,12 @@ export function RecapScreen({
                     <Label>One thing to tune</Label>
                     <Card style={st.section}>
                       {otherFocus.kind === 'clarity' ? (
-                        <Text style={[type.bodyStrong, { color: paper.ink }]}>{otherFocus.line}</Text>
+                        <Text style={[type.bodyStrong, { color: t.text }]}>{otherFocus.line}</Text>
                       ) : (
                         <>
-                          <Text style={[type.french, { color: paper.ink }]}>{otherFocus.fr}</Text>
-                          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{otherFocus.en}</Text>
-                          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{otherFocus.note}</Text>
+                          <Text style={[type.french, { color: t.text }]}>{otherFocus.fr}</Text>
+                          <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{otherFocus.en}</Text>
+                          <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{otherFocus.note}</Text>
                         </>
                       )}
                     </Card>
@@ -507,11 +548,32 @@ export function RecapScreen({
           </View>
         )}
         </View>}
-      </View>
     </ScrollScreen>
-    {fixingLine && closure.repair !== null && <FixLineSheet repair={closure.repair} onClose={() => setFixingLine(false)} />}
+    {fixing !== null && <FixLineSheet repair={fixing} onClose={() => setFixing(null)} />}
     </>
   );
+}
+
+function makeStyles(t: B) {
+  return StyleSheet.create({
+    footer: { gap: 4, paddingHorizontal: 22, paddingTop: 8 },
+    link: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+    pad: { paddingHorizontal: 22, gap: space(4), paddingBottom: space(8) },
+    blueBody: { paddingHorizontal: 22, paddingBottom: 26, gap: 16 },
+    closeRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+    art: { alignItems: 'center', marginTop: -10 },
+    words: { gap: 14, alignItems: 'center' },
+    center: { textAlign: 'center' },
+    band: { backgroundColor: t.lavender, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, paddingHorizontal: 22, paddingBottom: 22, gap: 6, overflow: 'hidden' },
+    bandArt: { position: 'absolute', right: -10, top: 92 },
+    bandClose: { flexDirection: 'row', justifyContent: 'flex-end' },
+    bandWords: { maxWidth: 210 },
+    goalCard: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 14, gap: 8, marginTop: 10 },
+    recapBody: { paddingTop: 22, paddingHorizontal: 22, paddingBottom: 40, gap: 24 },
+    section: { gap: 10 },
+    listCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 4, paddingHorizontal: 16 },
+    fixHead: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  });
 }
 
 const st = StyleSheet.create({
@@ -519,15 +581,13 @@ const st = StyleSheet.create({
   head: { gap: space(2) },
   // The number said and its words, set on one baseline as the hero number is.
   count: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2) },
-  lines: { marginTop: space(2), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
-  line: { paddingVertical: space(2.5), borderBottomWidth: HAIRLINE, borderBottomColor: paper.line },
   keptStack: { gap: space(3) },
   kept: { gap: space(2) },
   savedLine: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  offer: { gap: space(2), paddingTop: space(4), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
+  offer: { gap: space(2), paddingTop: space(4), borderTopWidth: HAIRLINE },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.6 },
   more: { gap: space(7), marginTop: space(3) },
   section: { marginTop: space(2) },
-  divider: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, paddingTop: space(3) },
+  divider: { borderTopWidth: HAIRLINE, paddingTop: space(3) },
 });

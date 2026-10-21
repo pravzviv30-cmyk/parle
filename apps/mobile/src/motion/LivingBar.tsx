@@ -17,7 +17,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useReduceMotion } from '../motion.ts';
-import { colour, decorative, paper } from '../theme.ts';
+import { decorative } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 import { cancel, sequence, spring, timing } from './drive.ts';
 import { useAnswered, useLandOnLeave } from './landing.ts';
 import { fraction } from './ring.ts';
@@ -26,8 +27,8 @@ import { DUR, EASE, LIVING_BAR, SPRING } from './tokens.ts';
 export function LivingBar({
   from = 0,
   to,
-  color = colour.blue,
-  track = paper.line,
+  color: askedColor,
+  track: askedTrack,
   height = 10,
   radius = 5,
   celebrateAtFull = false,
@@ -57,6 +58,12 @@ export function LivingBar({
   const goal = fraction(to);
   const fill = useSharedValue(fraction(from));
   const spark = useSharedValue(0);
+  // 2026-10-21 UI-008: the defaults, shine and spark read the theme; in light
+  // they are the old colour.blue, paper.line and white exactly. The shine stays
+  // a white highlight in dark (onBrand), never the dark card.
+  const t = useB();
+  const color = askedColor ?? t.brand;
+  const track = askedTrack ?? t.line;
   const stretch = useSharedValue(1);
   const [width, setWidth] = useState(0);
   const target = useRef<number | null>(null);
@@ -156,11 +163,11 @@ export function LivingBar({
       style={[st.track, { height, borderRadius: radius, backgroundColor: track }, style, bar]}
     >
       <Reanimated.View pointerEvents="none" style={[StyleSheet.absoluteFill, st.fill, { backgroundColor: color }, grown]}>
-        <View style={[st.shine, { height: height * LIVING_BAR.shine }]} />
+        <View style={[st.shine, { height: height * LIVING_BAR.shine, backgroundColor: t.onBrand }]} />
       </Reanimated.View>
       <Reanimated.View
         pointerEvents="none"
-        style={[st.spark, { width: height, height, borderRadius: height / 2 }, edge]}
+        style={[st.spark, { width: height, height, borderRadius: height / 2, backgroundColor: t.onBrand }, edge]}
       />
     </Reanimated.View>
   );
@@ -169,6 +176,6 @@ export function LivingBar({
 const st = StyleSheet.create({
   track: { overflow: 'hidden', justifyContent: 'center' },
   fill: { transformOrigin: 'left' },
-  shine: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: paper.card, opacity: LIVING_BAR.shineOpacity },
-  spark: { position: 'absolute', left: 0, backgroundColor: paper.card },
+  shine: { position: 'absolute', top: 0, left: 0, right: 0, opacity: LIVING_BAR.shineOpacity },
+  spark: { position: 'absolute', left: 0 },
 });

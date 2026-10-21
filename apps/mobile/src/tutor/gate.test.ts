@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import { guiltIn } from '../copy/guilt.ts';
 import {
   ENTRY_MODES_LABEL,
-  entryStart,
   isEntryMode,
   lessonStart,
   minutesRemainingLine,
@@ -190,28 +189,14 @@ describe('the three ways into a conversation — what a learner meets instead of
   });
 
   test('the open chat runs the same connection check the circle runs, and the other two need no server at all', () => {
-    // The difference is not a detail. The open chat opens the same metered room
-    // the circle opens, so it is probed; the chooser and the real moment cost
-    // nothing and must not be refused because a health endpoint is asleep.
-    assert.deepEqual(entryStart('free'), { probe: true }, 'the open chat walks into a live room without checking there is one');
-    assert.deepEqual(
-      entryStart('everyday'),
-      { probe: false, screen: 'Missions' },
-      'the everyday mission does not open the chooser, where a choice is made before a session spends anything',
-    );
-    assert.deepEqual(
-      entryStart('rehearse'),
-      { probe: false, screen: 'RealMoment' },
-      'rehearsing something does not open the screen that asks what the real moment is',
-    );
-    // And Speak reads the answer rather than keeping a second copy of it.
-    // 2026-09-27 (notebook Phase 3): the rows are "More ways to practise",
-    // built in speakView.ts from this door model; the open conversation probes
-    // spoken, like the one Start, and the other rows push their screen.
-    const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
-    assert.match(view, /entryStart\(key\)/, 'Speak decides where a row goes instead of reading it from gate.ts');
-    assert.match(tab, /if \(way\.screen === null\) \{ open\(modes\.textMode\); return; \}/, 'the open conversation does not probe in the preferred mode');
-    assert.match(tab, /nav\.navigate\(way\.screen\)/, 'a secondary way in does not open its own screen');
+    // 2026-10-20, B6: the entryStart model was removed as dead code; Speak itself is pinned.
+    // 2026-10-20, B2, B-Speak: "More ways to practise" left Speak. The open
+    // chat is the Talk about anything chips, which probe through `open` like
+    // the one Start; the chooser is Every scene, pushed with no probe; and a
+    // real moment is Explore's, pushed with no probe.
+    assert.match(tab, /onPress=\{\(\) => open\(textMode, chip\.params\)\}/, 'the open conversation does not probe in the chosen mode');
+    assert.match(tab, /nav\.navigate\(EVERY_SCENE\.route\.screen\)/, 'the chooser is not pushed as its own screen');
+    assert.match(readFileSync(fileURLToPath(new URL('../tabs/ExploreTab.tsx', import.meta.url)), 'utf8'), /nav\.navigate\('RealMoment'/, 'a real moment is not pushed as its own screen');
   });
 
   test('the tab opens its rows with nothing standing in front of them', () => {
@@ -221,8 +206,9 @@ describe('the three ways into a conversation — what a learner meets instead of
     assert.ok(!tab.includes('hasSeenTutorIntro'), 'the tab still reads the intro flag to decide what to show');
     assert.doesNotMatch(tab, /if\s*\(\s*!seenIntro\s*\)/, 'the intro is still the first thing on the tab');
     assert.ok(!tab.includes('<TutorIntro'), 'the explainer is back in front of the tab');
-    const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
-    assert.ok(view.includes('tutorDoors()') && tab.includes('MORE_WAYS.map('), 'the tab decides its own rows again');
+    // 2026-10-20, B2, B-Speak: the rows are the view model's, not the tab's.
+    const view = readFileSync(fileURLToPath(new URL('./speakTabView.ts', import.meta.url)), 'utf8');
+    assert.ok(view.includes('export function talkChips(') && tab.includes('talkChips(') && tab.includes('starterScenes('), 'the tab decides its own rows again');
   });
 
   test('the explainer is still reachable, and still teaches the circle', () => {

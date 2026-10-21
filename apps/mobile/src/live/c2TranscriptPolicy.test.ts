@@ -37,8 +37,9 @@ test('a cold text grant cannot enable Speaking without a server speech pipeline'
 });
 test('the compact mode switch exposes its selected state and retains the rounded web input focus ring', () => {
   const room = readFileSync(new URL('./C2LiveRoom.tsx', import.meta.url), 'utf8');
-  assert.match(room, /accessibilityState=\{\{ selected, disabled \}\} aria-selected=\{selected\}/);
-  assert.match(room, /disabled=\{disabled\} onPress=\{\(\) => \{ if \(!selected\) onModeChange\(label === 'Typing'\); \}\}/);
+  // 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the mode switch is the Type (or Speak) side control.
+  assert.match(room, /accessibilityLabel="Speak instead"[\s\S]*?disabled=\{speakDisabled\} onPress=\{\(\) => onModeChange\(false\)\}/);
+  assert.match(room, /accessibilityLabel="Type instead"[\s\S]*?disabled=\{!ready \|\| modePending\} onPress=\{\(\) => onModeChange\(true\)\}/);
   assert.match(room, /outlineStyle: 'solid' as const, outlineWidth: 0/);
   assert.match(room, /focused && <View \{\.\.\.decorative\} pointerEvents="none" style=\{\[StyleSheet\.absoluteFill, st\.composerFocus\]\}/);
 });

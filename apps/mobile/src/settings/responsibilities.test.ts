@@ -74,6 +74,9 @@ describe('one stored value, one way of saying it — Stage 3', () => {
       .filter((file) => /\bwithDailyGoal\(/.test(stripComments(readFileSync(file, 'utf8'))))
       .map((file) => relative(SRC, file))
       .filter((file) => file !== join('profile', 'store.ts'))
+      // 2026-10-20 UI-008: the development-only canvas learner seeds the mock
+      // account's goal once for screenshots; it is a fixture, not an editor.
+      .filter((file) => file !== join('dev', 'canvasLearner.ts'))
       .sort();
     assert.deepEqual(writers, [join('settings', 'LearningPreferencesScreen.tsx')], 'a second screen edits the speaking target');
     // 2026-10-07, come alive Phase 4 (F769): the goal is five choices under the
@@ -115,8 +118,10 @@ describe('Delete account stands apart from routine rows — Stage 3', () => {
 
 describe('Profile says where its way to Settings is — P2', () => {
   test('the gear is drawn first, beside the title, and the comments say it is the one way there', () => {
-    const body = PROFILE.slice(PROFILE.lastIndexOf('  return ('));
-    const gear = body.indexOf('accessibilityLabel={SETTINGS_ROW}');
+    // 2026-10-20 UI-008, artboard B-Profile: the screen's own return, not a hook's cleanup below it.
+    const body = PROFILE.slice(PROFILE.indexOf('<SettingsAppearance b>'));
+    // 2026-10-20 UI-008, artboard B-Profile: the gear is the IconDisc labelled with the row's word.
+    const gear = body.indexOf('label={SETTINGS_ROW}');
     assert.ok(gear !== -1 && gear < body.indexOf('{initialOf(profile.name)}'), 'the gear is no longer drawn above the learner');
     assert.doesNotMatch(PROFILE_RAW, /last on the screen/i, 'a comment still says the Settings row is last');
     assert.doesNotMatch(PROFILE_RAW, /the row at the foot/i, 'a comment still says the Settings row is at the foot');

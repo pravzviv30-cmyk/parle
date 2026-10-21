@@ -15,6 +15,8 @@
  * Notebook Phase 4 (2026-09-27): one white `Card`, no tint and no shadow. The
  * speaker is a white disc under a paper hairline, which is what tells it from
  * the card now that the whisper has retired.
+ *
+ * 2026-10-21 UI-008: drawn from the theme, so the card follows dark on the Drill.
  */
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -23,7 +25,8 @@ import { Card, Label } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { MADE_FROM } from '../practice/madeFrom.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { DISC, HAIRLINE, accent, paper, space, type } from '../theme.ts';
+import { DISC, HAIRLINE, space, type } from '../theme.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 export interface DrillMoment {
   quote: string;
@@ -32,6 +35,8 @@ export interface DrillMoment {
 }
 
 export function MomentCard({ moment }: { moment: DrillMoment }) {
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   return (
     <Card style={st.card}>
       <Label>{MADE_FROM.replay.said}</Label>
@@ -45,7 +50,7 @@ export function MomentCard({ moment }: { moment: DrillMoment }) {
           accessibilityLabel={`Hear ${moment.better}`}
           style={({ pressed }) => [st.disc, pressed && { opacity: 0.6 }]}
         >
-          <SpeakerGlyph size={24} color={accent.primary} />
+          <SpeakerGlyph size={24} color={t.text} />
         </Pressable>
       </View>
       <Text style={st.why}>{moment.why}</Text>
@@ -53,20 +58,22 @@ export function MomentCard({ moment }: { moment: DrillMoment }) {
   );
 }
 
-const st = StyleSheet.create({
+function makeStyles(t: B) {
+  return StyleSheet.create({
   card: { marginBottom: space(4) },
-  quote: { ...type.body, color: paper.inkSoft, marginTop: space(1), marginBottom: space(3) },
+  quote: { ...type.body, color: t.muted, marginTop: space(1), marginBottom: space(3) },
   betterRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(1) },
-  better: { ...type.french, color: paper.ink, flex: 1 },
+  better: { ...type.french, color: t.text, flex: 1 },
   disc: {
     width: DISC,
     height: DISC,
     borderRadius: DISC / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: t.line,
   },
-  why: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
+  why: { ...type.small, color: t.muted, marginTop: space(2) },
 });
+}

@@ -44,7 +44,7 @@ const SEQUENCE: readonly CoachMarkId[] = ['help', 'moment', 'english'];
  * follow.
  */
 export const COACH_MARK_TEXT: Record<CoachMarkId, string> = {
-  help: 'Help me out gives you the line, any time you want it.',
+  help: 'Help gives you the line, any time you want it.',
   moment: 'Give me a moment holds the conversation for you.',
   english: 'In English says the last line again, in English.',
 };
@@ -71,7 +71,7 @@ export function coachMarksAt(seen: readonly string[]): CoachMarkState {
  * the learner has spoken they have spoken.
  */
 export interface CoachSignals {
-  /** The first scene view has rendered. There is a Help me out to point at. */
+  /** The first scene view has rendered. There is a Help control to point at. */
   sceneOpen: boolean;
   /** The learner has finished a turn of their own. */
   learnerSpoke: boolean;

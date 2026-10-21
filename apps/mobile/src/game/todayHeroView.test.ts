@@ -118,3 +118,21 @@ describe("Home's today hero — F767", () => {
     assert.match(screen, /if \(hero === null\) \{[^}]*return failed \? null : <Skeleton/, 'an unread hero draws something other than nothing');
   });
 });
+
+// 2026-10-20, B5 learning-science review: with no run the stats tile says
+// "Practice" over "not yet today", with no streak word until a run exists.
+import { statTiles as b5Tiles } from './todayHeroView.ts';
+import { test as b5Test } from 'node:test';
+import assertB5 from 'node:assert/strict';
+b5Test('the streak tile names no streak before a run exists', () => {
+  const hero = {
+    flame: { lit: false, count: null, words: '', label: '' },
+    goal: { minutes: 6, target: 10, fraction: 0.6, met: false, words: '', label: '' },
+    level: { level: 2, words: '', label: '' },
+  };
+  assertB5.deepEqual(b5Tiles(hero, 140).streak, { value: 'Practice', label: 'not yet today' });
+  assertB5.doesNotMatch(JSON.stringify(b5Tiles(hero, 140).streak), /streak/i);
+  assertB5.deepEqual(b5Tiles({ ...hero, flame: { ...hero.flame, count: 3 } }, 140).streak, { value: '3 days', label: 'streak' });
+  assertB5.deepEqual(b5Tiles(hero, 140).goal, { value: '6 of 10', label: 'min today' });
+  assertB5.deepEqual(b5Tiles({ ...hero, goal: { ...hero.goal, target: null, fraction: null } }, 140).goal, { value: '6 min', label: 'today' });
+});

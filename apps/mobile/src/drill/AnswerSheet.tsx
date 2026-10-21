@@ -22,6 +22,12 @@
  * which land on the final frame under reduced motion, watched live. It plays
  * nothing itself: the drill fires the sheet's sound and haptic once, through
  * `sheetEffects.ts`, at the moment the answer settles.
+ *
+ * 2026-10-21 UI-008, artboard B-Drill: the sheet is the feedback panel (radius
+ * 20, padding 12/16) with the 28 mint check disc, the 17 bold headline and 14
+ * lines, and a waiting sheet's Continue sits under the panel rather than in
+ * it. Pass is the mint wash with green words, nearly the butter, a miss the
+ * card under a hairline; all from the theme, so the panel follows dark.
  */
 
 import { useEffect, useRef } from 'react';
@@ -30,7 +36,8 @@ import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, findNod
 import { CheckGlyph, PillButton } from '../components.tsx';
 import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
-import { HAIRLINE, HIT, colour, decorative, frenchText, onColour, paper, radius, space, textOn, type } from '../theme.ts';
+import { HAIRLINE, HIT, bType, decorative, frenchText, space } from '../theme.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { SHEET_COPY, continueName, sheetArrival, type AnswerSheetModel, type SheetTone } from './answerSheet.ts';
 
 /** How far the sheet rises as it arrives. */
@@ -38,11 +45,12 @@ const RISE = space(6);
 /** The check disc. */
 const MARK = 28;
 
-const GROUND: Readonly<Record<SheetTone, { fill: string; ink: string; soft: string }>> = {
-  good: { fill: colour.mint, ink: textOn.mint, soft: onColour.mint },
-  nearly: { fill: colour.sun, ink: textOn.sun, soft: onColour.sun },
-  calm: { fill: paper.card, ink: paper.ink, soft: paper.inkSoft },
-};
+/** The panel's ground and words, by tone, in the mode the sheet draws in. */
+function groundFor(tone: SheetTone, t: B): { fill: string; head: string; ink: string } {
+  if (tone === 'good') return { fill: t.mintWash, head: t.mintWords, ink: t.secondary };
+  if (tone === 'nearly') return { fill: t.butter, head: t.text, ink: t.secondary };
+  return { fill: t.card, head: t.text, ink: t.secondary };
+}
 
 /** Everything the sheet says, in reading order, as one sentence for a screen reader. */
 export function spokenSheet(sheet: AnswerSheetModel, note: string | null): string {
@@ -59,7 +67,9 @@ export function AnswerSheet({
   note?: string | null;
   onContinue: () => void;
 }) {
-  const ground = GROUND[sheet.tone];
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
+  const ground = groundFor(sheet.tone, t);
   const waits = sheet.autoAdvanceMs === null;
   const spoken = spokenSheet(sheet, note);
   const named = continueName(spoken);
@@ -88,34 +98,31 @@ export function AnswerSheet({
   }, [spoken, arrival]);
 
   const body = (
-    <View style={st.row}>
+    <View style={[st.panel, { backgroundColor: ground.fill }, sheet.tone === 'calm' && st.calm]}>
       {sheet.mark && (
         <Enter from="none" scaleFrom={0.6} delay={DUR.micro} duration={DUR.fast}>
           <View {...decorative} style={st.mark}>
-            <CheckGlyph size={18} color={paper.ink} />
+            <CheckGlyph size={18} color={t.onMint} />
           </View>
         </Enter>
       )}
       <View style={st.words}>
-        <Text style={[type.bodyStrong, { color: ground.ink }]}>{sheet.headline}</Text>
-        {sheet.detail !== null && <Text style={[type.body, { color: ground.ink }]}>{sheet.detail}</Text>}
+        <Text style={[bType.bold17, { color: ground.head }]}>{sheet.headline}</Text>
+        {sheet.detail !== null && <Text style={[bType.meta, { color: ground.ink }]}>{sheet.detail}</Text>}
         {sheet.french !== null && (
-          <Text {...frenchText} style={[type.french, { color: ground.ink }]}>
+          <Text {...frenchText} style={[bType.meta, { color: ground.ink }]}>
             «{sheet.french}»
           </Text>
         )}
-        {sheet.after !== null && <Text style={[type.small, { color: ground.soft }]}>{sheet.after}</Text>}
-        {note !== null && note !== '' && <Text style={[type.small, { color: ground.soft }]}>{note}</Text>}
+        {sheet.after !== null && <Text style={[bType.meta, { color: ground.ink }]}>{sheet.after}</Text>}
+        {note !== null && note !== '' && <Text style={[bType.meta, { color: ground.ink }]}>{note}</Text>}
       </View>
     </View>
   );
 
   return (
     <Enter from="down" distance={RISE} duration={DUR.fast}>
-      <View
-        accessibilityLiveRegion="polite"
-        style={[st.sheet, { backgroundColor: ground.fill }, sheet.tone === 'calm' && st.calm]}
-      >
+      <View accessibilityLiveRegion="polite" style={st.sheet}>
         {waits ? (
           <>
             {body}
@@ -131,11 +138,13 @@ export function AnswerSheet({
   );
 }
 
-const st = StyleSheet.create({
-  sheet: { borderRadius: radius.card, padding: space(4), gap: space(3) },
-  calm: { borderWidth: HAIRLINE, borderColor: paper.line },
-  tap: { minHeight: HIT, justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },
-  words: { flex: 1, minWidth: 0, gap: space(1) },
-  mark: { width: MARK, height: MARK, borderRadius: MARK / 2, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
-});
+function makeStyles(t: B) {
+  return StyleSheet.create({
+    sheet: { gap: 10 },
+    panel: { borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    calm: { borderWidth: HAIRLINE, borderColor: t.line },
+    tap: { minHeight: HIT, justifyContent: 'center' },
+    words: { flex: 1, minWidth: 0, gap: space(0.5) },
+    mark: { width: MARK, height: MARK, borderRadius: MARK / 2, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
+  });
+}

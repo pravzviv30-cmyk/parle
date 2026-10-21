@@ -9,8 +9,10 @@
  * and offers the phone's settings second where there are any. The decisions
  * live in `micPrimer.ts`, where a test can ask them.
  *
- * The centred cream onboarding frame carries the chosen tutor's name, the
- * scene's title and one usable line, with more examples available on demand.
+ * Drawn to the B-OB-FirstScene artboard (DECISIONS.md UI-008, 2026-10-21,
+ * pinned light): a sun band with the café drawing carries the chosen tutor's
+ * name, the scene's title in English and French and its stage; below it the
+ * goal, one usable line with more examples on demand, and the microphone note.
  * A refusal shows the microphone illustration and leads with typing. Platform
  * back uses the existing navigation callback; there is no visible back control.
  * This primer follows completed onboarding, so its shared progress is complete.
@@ -29,6 +31,10 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { tutorPersonaOf } from '../tutor/tutorName.ts';
 import { PHONE_SETTINGS_AVAILABLE, openPhoneSettings } from '../settings/phoneSettings.ts';
 import { OnboardingLayout } from './OnboardingLayout.tsx';
+import { BArt } from '../art/BArt.tsx';
+import { BBand, BBandPill, BCard, BMicThin } from './BOnboardingParts.tsx';
+import { useB } from '../main/bTheme.tsx';
+import { bType } from '../theme.ts';
 import { onboardingProgress } from './onboardingProgress.ts';
 
 import {
@@ -74,6 +80,7 @@ export function FirstSceneScreen({
     });
     return () => navigation.remove();
   }, []);
+  const t = useB();
   const persona = tutorPersonaOf(useProfile().profile);
   const mission = getMission(missionId);
   const view = primerView(phase, PHONE_SETTINGS_AVAILABLE);
@@ -136,9 +143,17 @@ export function FirstSceneScreen({
 
   return (
     <OnboardingLayout page="account-welcome" progress={onboardingProgress({ page: 'account-welcome', signedIn: true, complete: true })}
+      bleedTop={!refused} statusBar="dark"
+      hero={refused ? undefined : (
+        <BBand tone="sun" style={{ minHeight: 0 }} art={<BArt name="cafe-table" width={160} height={146} style={{ position: 'absolute', right: 21, top: 92 }} />}>
+          <Text style={[bType.eyebrow, { color: t.text }]}>{PRIMER_META(persona.name)}</Text>
+          <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }, st.bandTitle]}>{mission.titleEn}</Text>
+          <Text {...frenchText} style={[type.heading, { color: paper.ink, textAlign: 'center' }, st.bandFrench]}>{mission.title}</Text>
+          <View style={st.pills}><BBandPill label={mission.cefr === 'A0' ? 'Starter' : 'Basics'} /></View>
+        </BBand>
+      )}
       footer={
         <View style={st.actions}>
-          {!refused && <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Start asks for microphone access. Live speaking and typing use live minutes.</Text>}
           <PillButton
             tone="ink"
             label={view.primary.label}
@@ -168,10 +183,11 @@ export function FirstSceneScreen({
         </View>
       ) : (
         <View style={st.brief}>
-          <Text style={st.meta}>{PRIMER_META(persona.name)}</Text>
-          <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{mission.titleEn}</Text>
-          <Text {...frenchText} style={[type.heading, { color: paper.ink, textAlign: 'center' }]}>{mission.title}</Text>
-          <Text style={st.canDo}>{canDoSentence(mission.canDoEn)}</Text>
+          {/* 2026-10-21 UI-008, artboard B-OB-FirstScene: the goal card. */}
+          <BCard style={{ gap: 4 }}>
+            <Text style={[bType.eyebrow, { color: t.muted }]}>What you'll practise</Text>
+            <Text style={[bType.bold18, { color: t.text }]}>{canDoSentence(mission.canDoEn)}</Text>
+          </BCard>
           {lines.length > 0 && (
             <Card style={st.lines}>
               <Label>One line to try</Label>
@@ -182,6 +198,11 @@ export function FirstSceneScreen({
               {showMore && lines.slice(1).map((line) => <Text key={line} {...frenchText} style={st.line}>{line}</Text>)}
             </Card>
           )}
+          {/* The artboard's microphone note, with the pinned live-minutes line. */}
+          <View style={[st.micNote, { backgroundColor: t.lavender }]}>
+            <View style={[st.micDisc, { backgroundColor: t.card }]}><BMicThin size={20} color={t.text} /></View>
+            <Text style={[bType.meta, { color: t.text, flex: 1 }]}>Start asks for microphone access. Live speaking and typing use live minutes.</Text>
+          </View>
         </View>
       )}
     </OnboardingLayout>
@@ -189,11 +210,14 @@ export function FirstSceneScreen({
 }
 
 const st = StyleSheet.create({
-  brief: { gap: space(2), paddingBottom: space(6) },
-  meta: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
-  canDo: { ...type.body, color: paper.ink, marginTop: space(1), textAlign: 'center' },
-  lines: { gap: space(3), marginTop: space(3), marginBottom: space(2) },
-  line: { ...type.french, color: paper.ink, textAlign: 'center' },
+  brief: { gap: 16, paddingTop: 22, paddingBottom: space(6) },
+  bandTitle: { ...bType.title30, textAlign: 'left', maxWidth: '58%' },
+  bandFrench: { ...bType.para17, fontStyle: 'italic', textAlign: 'left', maxWidth: '58%' },
+  pills: { flexDirection: 'row', gap: 6, marginTop: 6 },
+  lines: { gap: space(3) },
+  line: { ...type.french, color: paper.ink },
+  micNote: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16 },
+  micDisc: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   lineRuled: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },
   refused: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: space(3), paddingBottom: space(6) },
   refusedTitle: { ...type.title, color: paper.ink, textAlign: 'center', marginTop: space(2) },

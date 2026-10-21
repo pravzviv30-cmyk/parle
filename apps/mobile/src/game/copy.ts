@@ -115,6 +115,26 @@ export const GAME_COPY = {
     reachedOn: (date: string): string => `Reached ${date}`,
     reached: 'Reached',
     nextMilestone: (days: number): string => `Your next milestone is ${days} days.`,
+    // 2026-10-20 UI-008, artboard B-Streak.
+    inARow: 'of French, and counting',
+    nextHead: 'Next milestone',
+    milestoneTitle: (days: number): string => {
+      const words: Record<number, string> = { 7: 'a whole week of French', 30: 'a month of French', 100: 'a hundred days of French', 365: 'a whole year of French' };
+      return words[days] === undefined ? `${days} days of French` : `${days} days: ${words[days]}`;
+    },
+    milestoneProgress: (run: number, days: number): string => `${run} of ${days} days`,
+    howTitle: 'How a day counts',
+    howLine: 'Any finished practice counts. Your longest streak is always kept.',
+    card: {
+      ready: (held: number): string => `${held} streak ${held === 1 ? 'freeze' : 'freezes'} ready`,
+      inUse: (max: number): string => (max <= 1 ? 'Your streak freeze is in use' : 'Both streak freezes are in use'),
+      /** The free plan holds one freeze (D23). */
+      free: 'Free with every account',
+      plan: 'Two come with your plan',
+      line: (max: number): string =>
+        `If a day gets away from you, ${max <= 1 ? 'your freeze' : 'a freeze'} covers it by itself. There's nothing to switch on. A used freeze comes back a week later.`,
+      upsell: 'A second freeze and streak repair',
+    },
   },
 
   /** Progress (Phase 4): the level card, the counts and the badge shelf. */

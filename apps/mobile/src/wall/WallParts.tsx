@@ -7,7 +7,7 @@ import { Press } from '../components.tsx';
 import { AnimatedIcon } from '../icons/AnimatedIcon.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
-import { HIT, colour, decorative, font, paper, space, type } from '../theme.ts';
+import { HIT, decorative, font, space, type } from '../theme.ts';
 import { PLANS_PRIVACY, PLANS_TERMS, PAYWALL_RESTORE } from './wallCopy.ts';
 import type { PaywallNotice } from './trialPaywall.ts';
 
@@ -51,18 +51,19 @@ export function WallCta({ label, onPress, disabled = false, dim = 1, state = 'id
   dim?: number;
   state?: 'idle' | 'busy' | 'done';
 }) {
+  const { b } = useMainAppearance();
   const waiting = state !== 'idle';
   return (
     <Press haptic="light" onPress={onPress} disabled={disabled || waiting} accessibilityRole="button" accessibilityLabel={label}
       accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : { disabled }}
-      style={[st.cta, { opacity: dim }]}>
+      style={[st.cta, { backgroundColor: b.brand, opacity: dim }]}>
       {waiting ? (
         <View {...decorative} style={st.mark}>
-          <AnimatedIcon kind="check-draw" size={22} color={paper.onInk} state={state === 'done' ? 'on' : 'off'} />
-          {state === 'done' ? null : <View style={StyleSheet.absoluteFill}><AnimatedIcon kind="refresh-spin" size={22} color={paper.onInk} active /></View>}
+          <AnimatedIcon kind="check-draw" size={22} color={b.onBrand} state={state === 'done' ? 'on' : 'off'} />
+          {state === 'done' ? null : <View style={StyleSheet.absoluteFill}><AnimatedIcon kind="refresh-spin" size={22} color={b.onBrand} active /></View>}
         </View>
       ) : null}
-      <Text accessibilityLiveRegion="polite" style={st.ctaLabel}>{label}</Text>
+      <Text accessibilityLiveRegion="polite" style={[st.ctaLabel, { color: b.onBrand }]}>{label}</Text>
     </Press>
   );
 }
@@ -123,10 +124,10 @@ export function WallSkeleton({ width, height, round = 8 }: { width: number | `${
 
 /** The check beside a standard paywall benefit. */
 export function BenefitRow({ line }: { line: string }) {
-  const { colors } = useMainAppearance();
+  const { colors, b } = useMainAppearance();
   return (
     <View style={st.benefit}>
-      <View {...decorative} style={st.benefitMark}><Icon name="check" size={18} color={colour.blue} /></View>
+      <View {...decorative} style={st.benefitMark}><Icon name="check" size={18} color={b.mark} /></View>
       <Text style={[st.body, { color: colors.text, flex: 1, minWidth: 0 }]}>{line}</Text>
     </View>
   );
@@ -147,8 +148,8 @@ export const wallType = StyleSheet.create({
 const st = StyleSheet.create({
   top: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: space(2) },
   close: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
-  cta: { minHeight: 56, borderRadius: 28, backgroundColor: colour.blue, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2), paddingHorizontal: space(6), paddingVertical: space(3), alignSelf: 'stretch' },
-  ctaLabel: { ...type.button, color: paper.onInk, textAlign: 'center', flexShrink: 1 },
+  cta: { minHeight: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2), paddingHorizontal: space(6), paddingVertical: space(3), alignSelf: 'stretch' },
+  ctaLabel: { ...type.button, textAlign: 'center', flexShrink: 1 },
   mark: { width: 22, height: 22 },
   notice: { borderRadius: 20, padding: space(4), gap: space(1) },
   noticeTitle: { ...type.bodyStrong },

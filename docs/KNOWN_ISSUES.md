@@ -3538,7 +3538,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the tinted situation rows and their green chip left My
   French. A stamp now reads as an earned can-do on the level path, drawn from core's spine over the
   learner's progress, and only a scene handled on the learner's own earns one.
-- verified-by: `the level is the spine's, with the can-dos earned and "here" on the next scene, and no rank anywhere`
+- note (2026-10-20, B4, B-Journey): the CEFR LevelCard became "Where you are", five stages from the spine with "You're here" on the real one and still no rank or CEFR code, so the test is renamed for that.
+- verified-by: `the stage is the spine's, said in words with "You're here" on the real one, and no rank anywhere`
 - verified-by: `only a scene handled with nothing handed over is filled`
 
 ### F219 — Core names a card's first return
@@ -4871,10 +4872,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp B (2026-09-30, F600): active is the brand blue at Outfit Bold rather than ink at
   Medium, and the bar is white rather than paper; both tests were renamed for it, and the hairline,
   the wrapping labels and the refused shadow are unchanged.
-- verified-by: `the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313`
+- verified-by: `the active tab is told by the violet cell and weight 700, and a screen reader still hears selected — F313`
 - note: notebook redesign (2026-09-27): the bar is flat on the paper with a top hairline, no inset dock
   and no selected wash; it still carries no shadow, so the tick follows the renamed test.
-- verified-by: `the bar is white with a top hairline, and never a floating shadow — F313`
+- verified-by: `the bar is an ink capsule on the route ground, and never a floating shadow — F313, UI-008`
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
@@ -5016,7 +5017,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   never been asserted and is added with the button it belongs to.
 - note: revamp B (2026-09-30, F600): the active tab takes the brand blue, glyph and word, and the rest
   soft ink; the test was renamed for it.
-- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
+- verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
 - verified-by: `pill lettering clears 4.5 on the primary ink, the brand blue and the coral`
 
 ### F326 — The micro-label and the primary are one violet
@@ -5271,7 +5272,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   pill and the ban on anything that counts are unchanged.
 - verified-by: `nothing on the page counts, tints or highlights`
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
-- verified-by: `the page puts the short action before the optional sound guide`
+- note (2026-10-20, B3, B-Practice): Practice now leads with the learner's conversations (B-Practice); the sound guide and local compare stay below them as the doors to sound practice, so the test is renamed for that.
+- verified-by: `the page puts the conversations before the optional sound guide`
 
 - note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
@@ -5308,9 +5310,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   once it has something true to show, and a first visit reads one line instead of empty blocks. The
   ban on a `<Stat` count stands. Opening a scene is now Speak’s path row, and the next scene is the
   “here” mark on the level path.
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `the place core suggests is the first one a learner sees under Next places`
-- verified-by: `a first visit reads one line on what will collect here, and nothing empty`
+- note (2026-10-20, B4, B-Journey): the first visit is the B-Empty-States empty journey: one line on what collects here and one start through the tutor gate, never empty blocks, so the test is renamed for that.
+- verified-by: `before the first conversation the page is the empty journey and its one start, through the gate`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `the Profile card is the one importer of the story, and the rhythm rail names no number`
 
@@ -5522,7 +5526,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   drawn in one of two places. On day one it is the bonjour sound lesson inside the sound block, and
   the card is not drawn; on every other day it is the card's control. The count of one is untouched.
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
-- verified-by: `day one's one pill is the bonjour sound lesson, with its live-minutes line, in the recommendation`
+- note (2026-10-20, B3, B-Empty-Practice): the empty page's one pill is the first conversation, through its probe; the café lesson keeps its probe and says it uses live minutes while the tutor is connected. The test is renamed for that.
+- verified-by: `the empty page's one pill is the first conversation, and the café lesson and sounds are ready without one — B-Empty-Practice`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 - note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
@@ -5540,7 +5545,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   product event has always carried, and `<Stat` is banned on the tab outright. The tick points at
   the test that pins that ban, and the module's own rule is still held by the F366 test above it.
 - verified-by: `nothing is drawn at zero, and each fact appears only once it is real — F366`
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `a stat can sit three to a row — F366`
 
 ### F367 — Profile says the learner's level under their name
@@ -6049,7 +6055,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `each row says what it is and what is behind it, in a line short enough to read while walking`
 - verified-by: `the two formatters are still the only place a numeral becomes words`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
-- verified-by: `the tutor heading names the tutor and the subline is the screenshot's — F404`
+- verified-by: `the tutor tab's lines are the screenshot's, with no hourly greeting — F404`
+- note (2026-10-20, B6): the test was renamed from `the tutor heading names the tutor and the subline is the screenshot's — F404` when `tutorHeading` was removed as dead code (docs/DELETION_LEDGER.md); it still holds the tab's lines.
 
 ### F405 — The tutor tab is the screenshot, drawn from the door model
 - severity: P1
@@ -6062,7 +6069,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   centred `PillButton` "Open conversation" under it, no "Free improvisation". Footer keeps `open(true)`, the
   intro link with `HelpGlyph`, and `MICROPHONE_NOTICE`. `doors.map(` and `open(true)` stay so chooserView's
   guard holds.
-- verified-by: `the level path from the spine, then every scene as a ledger row that opens its brief`
+- note (2026-10-20, B2, B-Speak): Speak's scenes are the starter scenes from the same path model, each
+  opening its preview, with Every scene to the chooser; the test is renamed for that.
+- verified-by: `the starter scenes come from the path model, each opening its preview, with Every scene to the chooser`
 - note (2026-09-12): the doors grew to six with F547 and the test was rewritten under that title; the tab
   still draws exactly what the door model says.
 - note: revamp A (2026-09): the doors became three tinted rows with the remembers row under them and no
@@ -6901,7 +6910,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   asserted one noun along in tabs/TutorTab.test.ts.
 - verified-by: `a storage read that fails offers local practice and retry without guessing a scene`
 - verified-by: `a learner with no readable standing meets the gentlest tier, not an empty card`
-- verified-by: `a disk that will not answer takes the memory row and nothing else off the tab`
+- note (2026-10-20, B2, B-Speak): the remembers row left Speak; a failed read still resets nothing.
+- verified-by: `a disk that will not answer takes nothing off the tab`
 
 - note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
@@ -7133,7 +7143,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   card still lives. The page still draws no pill and no task.
 - verified-by: `the phrase bank is the newest kept phrases with audio, and one door to all of them`
 - verified-by: `the phrasebook opens on one line right now and closes on the cadence set`
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `an empty deck deals nothing at all`
 - verified-by: `the featured phrase is the phrase Home calls first, by construction`
 - verified-by: `a first return outranks a due phrase the learner already uses`
@@ -7216,7 +7227,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: 2026-09-27 notebook final sweep: the tint palette and role tables are removed;
   the successor forbids their reintroduction anywhere in production source.
 - verified-by: `no source retains a tint token, role table or tinted primitive`
-- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
+- note (2026-10-20, B4, B-Journey): Journey carries one primary pill (the empty journey's start) with every other action secondary, its lists stay ledger rows and the retired rows stay absent, so the test is renamed for that.
+- verified-by: `the page keeps one primary, its lists as ledger rows, and no retired row`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `every combination says something, and nothing says it is locked`
 - verified-by: `a chip is short enough to sit beside a title`
@@ -8377,7 +8389,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   mission. The other two ways in (the open conversation and rehearsing something specific) are rows
   under "More ways to practise", beside the tutor's memory, drawn only after a first finished scene. The open conversation still goes
   through the tutor probe in the learner's preferred mode.
-- verified-by: `"More ways to practise" appears only after a first finished scene`
+- note (2026-10-20, B2, B-Speak): "More ways to practise" left Speak. The everyday mission is the
+  starter scenes and Every scene, the open conversation is the Talk about anything chips (still through
+  the probe, in the chosen mode), and rehearsing something is Explore's Prepare for something real.
+- verified-by: `the open chat runs the same connection check the circle runs, and the other two need no server at all`
 
 ### F548 — A learner cannot bring a real situation to the tutor
 - severity: P2
@@ -8655,7 +8670,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): Speak is now the tutor card (name, voice, signature line, a
   sample and a way to change voice), one Start, and the level path. The moving orb and the three
   tinted ways in are gone; the remembers row stays.
-- verified-by: `the tutor card carries the voice from the catalogue, its sample, and a way to change it`
+- note (2026-10-20, B2, B-Speak): the card on Speak drops the catalogue's sound line by design.
+- verified-by: `the tutor row carries its name, its sample and a way to change the voice, and no voice line`
 - verified-by: `the pronunciation lesson is a door on the chooser`
 
 ### F574 — Practice is one next practice and three rows, with the archive in Conversations
@@ -8668,7 +8684,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: conversation practice (2026-09): the per-branch controls became one recommended action chosen by
   practice/practiceCard.ts over the balanced selector. The card is still one French line, its meaning,
   a speaker and one action; the renamed test pins the line, gloss, speaker and the single action.
-- verified-by: `the recommended card previews one French line the sitting will not ask for`
+- note (2026-10-20, B3, B-Practice): the recommended card left Practice; the stopped sitting is the recommendation's own resume answer, named with its place in words, so the test is renamed for that.
+- verified-by: `the pick-up card names the stopped sitting and resumes it`
 - verified-by: `the conversations screen carries the feed, the filters and the delete flow`
 
 ### F575 — My French is the tinted situation rows and the phrase shelf
@@ -8681,7 +8698,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): My French is now the level path with the can-dos earned, the
   phrase bank, the sounds map and the conversations, in that order. The tinted situation rows are
   gone, and the phrase shelf became the phrase bank, still with one door to the Phrasebook.
-- verified-by: `the blocks run level, phrase bank, sounds map, conversations, in that order`
+- note (2026-10-20, B4, B-Journey): Journey now follows the B-Journey order and the CEFR level card became the five stages; the retired phrase bank, sounds map and daily rows are still held absent, so the test is renamed for that.
+- verified-by: `the blocks run in the artboard order: header, stages, abilities, then and now, used, help, sounds, week, tiles, rows`
 - verified-by: `the phrase bank is the newest kept phrases with audio, and one door to all of them`
 
 ### F576 — Profile is the centred name, the tutor card, the rhythm and the learning card
@@ -8959,11 +8977,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:35
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
-- verified-by: `the bar is white with a top hairline, and never a floating shadow`
-- verified-by: `the active tab is the brand blue at weight 700, the rest soft ink at 600, and a screen reader still hears selected`
-- verified-by: `the four words are Home, Speak, Practice and Progress; Friends remains a stack route`
+- verified-by: `the bar is an ink capsule, radius 32, on the route ground, and never a floating shadow — UI-008`
+- verified-by: `the selected cell is violet with a sun Linear glyph and a bold cream word; the rest are cream on ink — UI-008`
+- verified-by: `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route` (renamed 2026-10-20 when direction B A3 moved the bar to five tabs; the route names it guards are unchanged)
 - verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
-- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
+- verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
 
 
 ### F601 — The first run is the notebook's paper: no blue or sun pages, ledger answers with a Chosen word, a middot on the account button, and a card around the password form
@@ -9005,9 +9023,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
 - verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 - verified-by: `Today leads with one colour card: the next scene, the recall card, or the plans card when the free minutes are used`
-- verified-by: `day one lists where the learner starts with a sun dot on the first scene; afterwards the week sentences with no label and a slot for the lifetime count`
+- verified-by: `day one lists where the learner starts with a sun dot on the first scene, and the page reads in the artboard order` (renamed 2026-10-20 when direction B B5 redrew Today to B-Today: the week sentences and the lifetime count left Today for the week card and the streak tile)
 - verified-by: `a Home that has not read its storage yet draws still sand blocks shaped like the page`
-- verified-by: `today's phrase is a white card: the French with a play disc, the English, and Practise it`
+- verified-by: `today's phrase is the lavender card: the French with a play disc, the English, and Say it yourself` (renamed 2026-10-20 when direction B B5 redrew today's phrase as B-Today's lavender card)
 - verified-by: `Home names no weekday, counts no days this week, shows no rate and draws no tag`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
 
@@ -9032,7 +9050,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 3 of revamp B, the Practice area, 23 boards. Pass 0 finishes the shared parts every area draws. `Ledger` and `LedgerRow` become SNIPPETS' white list, `SpeakCircle` becomes the mint orb, `ScreenHeader` takes a left title, a trailing line and no rule, and `TabBar` gains the underline look. Practice then leads with the sun card, one white recommended card and one list. Review loses its stripe, gains Show me, and gets three equal grades. The drill names its exercise in the header, marks a verdict with a mint tick, and offers the existing typed twin as the primary when there is no microphone. The sound check, phrasebook, library, light day and conversations screens move to the B parts with their own words. The empty states draw `state-notebook` and `state-microphone`. `surface/PhraseCard.tsx` retires. Fix your line, spoken own words, Shadowing and the light day's "counts as a day" are slots, not builds.
 
 - continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
-- verified-by: `revamp B Practice leads with the short action, then an optional evidence-bounded sound guide and local compare`
+- note (2026-10-20, B3, B-Practice): Practice leads with the learner's conversations; the sound guide and hear, say and compare stay on the page, so the test is renamed for that.
+- verified-by: `revamp B Practice keeps an evidence-bounded sound guide and local compare after the conversations`
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
 - verified-by: `a measured fact appears only when a check measured it`
 - verified-by: `a due production item requires retrieval before its answer is revealed`
@@ -9175,6 +9194,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/settings/sections.ts:114
 - note: found by the Stage 2 pass B judge. F600 renamed the tab to Progress and F605 retitles the screen, but RecapScreen.tsx:178,181, settings/sections.ts:114, conversationPacks/ConversationPackLibrary.tsx:204, daily/DailyCard.tsx:59, profile/tutorMemory.ts:54 and tutor/TutorIntro.tsx:115 still tell the learner their phrases are saved in or managed in My French. After F605, no tab or title says My French, so a learner who looks for it finds nothing. Reword each one to Progress, or to the phrasebook where that is the real destination, in the same change as F605.
 - verified-by: `no learner-facing string names My French once the tab and its title say Progress`
+- note (2026-10-20, B6): still open. The tab is now titled Your journey (direction B), and two learner-facing strings still say My French: `MY_FRENCH_ROW = 'My French'` (apps/mobile/src/settings/profileView.ts:43, drawn as a Profile row in tabs/ProfileTab.tsx:291) and `SAVED_SUB = 'Manage in My French'` (apps/mobile/src/settings/sections.ts:119). The other sites this entry listed no longer name it.
 
 ### F633 — The under-13 refusal is said to last the session, but leaving through "I have an account" and back starts it fresh
 - severity: P1
@@ -9620,7 +9640,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
 
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
-- verified-by: `the page puts the short action before the optional sound guide`
+- note (2026-10-20, B3, B-Practice): Practice now leads with the learner's conversations (B-Practice); the sound guide and local compare stay below them as the doors to sound practice, so the test is renamed for that.
+- verified-by: `the page puts the conversations before the optional sound guide`
 
 ### F699 — Home and Progress must recommend usable work and name their evidence
 - severity: P1
@@ -10957,20 +10978,27 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `practice preferences with every sub-answer unanswered merge to never asked`
 - verified-by: `unknown keys inside practice preferences do not survive a merge`
 
-### F846 — Most pushed screens still draw a white back disc in dark mode
+### F846 — Pushed screens drew a white back disc in dark mode
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/layout.tsx:1
-- note: 2026-10-19, P2 follow-up: `ScreenHeader` gained an opt-in `backAppearance` (disc `colors.surface`, chevron `colors.text`) used only by Settings, Learning preferences and Subscription; the other ~24 screens that pass `back` still draw the white disc on the night background until they adopt it app-wide. (Filed as F811 on the paywall branch; renumbered on the C2 base.) Moot until dark mode is on: the app is pinned to light (F847), so no screen draws the night background today.
+- note: 2026-10-19, P2 follow-up: `ScreenHeader` gained an opt-in `backAppearance` (disc `colors.surface`, chevron `colors.text`) used only by Settings, Learning preferences and Subscription; the other ~24 screens that pass `back` still draw the white disc on the night background until they adopt it app-wide. (Filed as F811 on the paywall branch; renumbered on the C2 base.) Still moot after UI-008 turned dark mode on: every route is pinned light until it joins `DARK_READY` (F847), so no screen draws the night background yet.
+- fixed: 2026-10-21, UI-008. `RoundButton`'s default disc is the theme's card and its chevron the theme's text, so every pushed screen's back button reads on the dark ground with no opt-in; `backAppearance` stays for screens that want other colours.
 - verified-by: `every pushed screen's back button follows the appearance in dark mode`
 
-### F847 — App-wide dark mode is off: the appearance model is pinned to light until the C2 screens get dark styles
+### F847 — Dark mode was on with every screen pinned light until rebuilt
 - severity: P3
-- status: [ ]
-- where: apps/mobile/src/main/appearanceModel.ts:1
+- status: [x]
+- where: apps/mobile/src/nav/darkReady.ts:1
 - note: 2026-10-19, user decision while replaying the paywall onto main's C2 redesign. `DARK_MODE_ENABLED = false` makes `mainMode` resolve to light for every stored choice and device scheme, and Settings hides the Appearance row and display sheet. The stored preference code (`MainAppearance`, `appearanceSession`) is kept but unexposed. The paywall, Profile, Settings, Learning preferences and Subscription screens already have dark palettes (`mainApp.dark` in palette.ts), unused until the rest of the C2 screens get dark styles and the flag is lifted.
-- verified-by: `the app resolves to light for every stored choice and device scheme while dark mode is off`
-- verified-by: `the app is light only: Settings shows no Appearance row or display sheet while dark mode is off`
+- note: 2026-10-20, UI-008 (direction B fidelity, step 1): `DARK_MODE_ENABLED` is true, so the stored choice and the device resolve again and Settings draws the Appearance row. Screens follow it only once rebuilt: both navigators wrap every route in `<PinLight>` unless it is in `DARK_READY` (`nav/darkReady.ts`, empty at this step), and the tab bar, scene ground, container theme and status bar follow the focused route. The first scene and the paywall are light by rule (`ALWAYS_LIGHT`), and onboarding, sign up and the launch are under `<PinLight>` in App.tsx. Closes when the last rebuilt main-app route joins `DARK_READY` and the paywall's dark variant lands. 2026-10-21, UI-008 step 12: the paywall's dark variant landed; `Wall` left `ALWAYS_LIGHT` for `DARK_READY` (the launch wall opens the same route), so only the first scene stays light by rule. 2026-10-21, UI-008 step 12b: the screens with no artboard were converted to the B tokens (layout and copy unchanged) and every signed-in route joined `DARK_READY`; only `FirstScene` (and onboarding, sign up and the launch, which are not routes) stays light. Left open for the founder's side-by-side review of the swept screens in dark.
+- fixed: 2026-10-21. Every signed-in route is in `DARK_READY`, the paywall has its dark variant, and the founder approved the side-by-side review (https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a). Only `FirstScene`, onboarding, sign up and the launch stay light, by rule.
+- verified-by: `every signed-in route follows the device, and only the first scene stays light`
+- verified-by: `the swept screens set no word or ground in the fixed light ink, paper or hairline`
+- verified-by: `the app resolves every stored choice and device scheme to the preferred mode now dark mode is on`
+- verified-by: `dark mode is on: Settings draws the Appearance row and display sheet only through the DARK_MODE_ENABLED seam`
+- verified-by: `with the device dark and nothing ready, every route draws the light tokens`
+- verified-by: `onboarding, sign up and the launch are pinned light by rule, whatever DARK_READY says`
 
 ### F853 — A short RevenueCat webhook secret, or a non-OpenAI brain, could boot production
 - severity: P3
@@ -10988,3 +11016,59 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-19 by the presubmission review (P3 #7). Only TypeSafe was named; the carrier, transcriber, voice, scorer, language model, purchase processor, database, counter store and host were described by role alone, because the model vendor was a runtime choice. Founder decision 2026-10-19: OpenAI is production's model (boot enforces it, F853) and Railway hosts the server.
 - fixed: 2026-10-19. "Who else sees it" names LiveKit, Deepgram, ElevenLabs, Speechace, OpenAI, TypeSafe, RevenueCat (beside Apple or Google taking the payment), Supabase, Upstash and Railway inside their existing role sentences, and the guest paragraph names OpenAI. No retention claim was added; the unverified-retention sentences stay. The two "no vendor named" guards in `policy.test.ts` were replaced by an allow-list. `privacy.html` regenerated; the hosted copy must be re-uploaded (docs/LEGAL_HOSTING.md). The ElevenLabs sentence holds because production refuses `LUVANI_TTS_VENDOR=fish` (token-server `config.ts`, `deployment/validateEnvironment.mjs`).
 - verified-by: `the notice names every company that receives learner data, by role`
+
+### F855 — Conversation practice needs the network on Supabase builds
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/store.ts:186
+- note: Found 2026-10-20 in B3 (B-Practice). The artboard's "Works offline once unlocked" was checked against the code: `loadConversationPackForLearner` reads the server on a Supabase build and never falls back to the device's cached pack, so ConversationPractice says "This conversation isn't available here." offline even though Practice drew the conversation from the cache. The line is not drawn on Practice until this is true. Fix: fall back to the owned cached pack when the server cannot be reached (not on a 404, which means deleted).
+- verified-by: `conversation practice opens from the device cache when the server cannot be reached on Supabase builds`
+
+### F856 — Speak calls the next scene on the path "Recommended" when nothing recommended it
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tutor/speakTabView.ts:38
+- note: Found 2026-10-20 in B6. `RECOMMENDED` heads Speak's sun card, but when no unfinished conversation or thread leads, the pick is only the next scene in spine order. "Recommended" implies a judgement about the learner that was not made. Say "Next" when the pick is the path order and keep "Recommended" only for a pick with a reason behind it, decided in speakTabView.ts.
+- verified-by: `Speak heads a path-order pick "Next" and keeps "Recommended" for a pick with a reason`
+
+### F857 — "Uses speaking time" shows on Speak while the learner has chosen typing
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tutor/speakTabView.ts:39
+- note: Found 2026-10-20 in B6. The meta chip on the Recommended card (tabs/TutorTab.tsx:279) reads "Uses speaking time" whichever mode is chosen. A typed session is metered too, so the claim is true, but "speaking" reads wrong next to Typing. The wording of the allowance belongs to D5; until it lands, the chip should name the allowance in a word true of both modes.
+- verified-by: `the time chip on Speak is worded true of both speaking and typing`
+
+### F858 — Today's level tile reads like a French ability level
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game/todayHeroView.ts:113
+- note: Found 2026-10-20 in B6. The third stats tile on Today says "Level n" over the XP total. Beside a stage system (Starter, Basics) and CEFR elsewhere, "Level 2" reads as a claim about the learner's French rather than XP earned. Name it as the game's level (for example "XP level") or show XP alone, decided in todayHeroView.ts, and keep Journey's head consistent.
+- verified-by: `Today's level tile names the XP level, never a French level`
+
+### F859 — Quest titles make XP the goal
+- severity: P3
+- status: [ ]
+- where: packages/core/src/quests/catalogue.ts:76
+- note: Found 2026-10-20 in B6. The stretch quest's title is "Earn {n} XP", drawn on Today's three. XP is the reward for practice, not the practice; a quest that names XP as the goal invites grinding the cheapest source. Reword as practice (a scene, a fix, minutes) with XP as the chip only. The catalogue is core's, so the change is core's.
+- verified-by: `no quest title names XP as its goal`
+
+### F860 — Saved conversation text opens without the conversation it came from
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/SavedTextScreen.tsx:13
+- note: Found 2026-10-20 in B6. The Codex library port (B3) opens `SavedConversationText` as a list. Codex linked a library row to one conversation's saved text by `sessionId`; that param and link were not ported, so a learner who opens a conversation's text from Practice lands on the whole list. Add the optional `sessionId` route param and scroll or filter to it.
+- verified-by: `a conversation's saved text opens on that conversation`
+
+### F861 — Today's fix card copies the drill's exercise-picking rule
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/home/todayView.ts:197
+- note: Found 2026-10-20 in B6. `oneFix` calls `buildDrillSession(..., { only: [key] })` and checks `hidesAnswer` on the first exercise, so the card's promise ("the French stays hidden until you try") holds only while DrillScreen opens the same node the same way. If DrillScreen changes how it builds the sitting for a fix node, the card can promise a hidden answer the drill shows. Share one function for "the exercise a fix node opens on" between DrillScreen and todayView, or pin the two together with a test.
+- verified-by: `Today's fix card and the drill agree on the exercise a fix opens on`
+
+### F862 — Unused code is kept alive only by its own tests
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tutor/ContinuityCard.tsx:1
+- note: Found 2026-10-20 in B6. Direction B left code that no screen reads but that still has tests: `tutor/ContinuityCard.tsx`, `greetingSubline` and `GREETING_SUBLINES` (with `greetingWord` and `greetingLine`) in `home/greeting.ts`, `weekLines` and `WEEK_LINES_MAX` in `home/todayView.ts`, `tutorDoors` in `tutor/gate.ts`, `continuityRow` and its copy in `tutor/dashboard.ts`, and `WEEK_LABEL` in `home/todayView.ts`. B6 tried removing the first four and lost six tests, which the floors forbid (docs/TESTING.md). Removing them needs replacement tests for the live surfaces in the same change, so the mobile count does not drop.
+- verified-by: `no production module is reachable only from its own tests`

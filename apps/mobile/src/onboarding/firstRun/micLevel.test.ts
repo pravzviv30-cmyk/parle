@@ -30,7 +30,11 @@ describe('the microphone meter', () => {
     const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
     assert.match(recording, /<RoomLevels micTrack=\{live\.audioTracks\.mic\} tutorTrack=\{live\.audioTracks\.tutor\}/);
     assert.match(recording, /<C2LiveRoom[\s\S]{0,600}state=\{state\}/);
-    assert.match(evidence('apps/mobile/src/live/C2LiveRoom.tsx'), /<BoldVoiceOrb state=\{state\}/);
+    // 2026-10-21 UI-008, artboard B-Live: the room draws the tutor-orb art (LiveOrb), pulsing with the same room levels.
+    assert.match(evidence('apps/mobile/src/live/C2LiveRoom.tsx'), /<LiveOrb state=\{state\}/);
+    const liveOrb = evidence('apps/mobile/src/live/LiveParts.tsx');
+    assert.match(liveOrb, /useOrbAudio\(\)/);
+    assert.match(liveOrb, /<OrbPulse level=\{input \? audio\.input : output \? audio\.output : null\}/);
     const orb = evidence('apps/mobile/src/onboarding/BoldVoiceOrb.tsx');
     assert.match(orb, /useOrbAudio\(\)/);
     assert.match(orb, /<OrbPulse level=\{input \? audio\.input : output \? audio\.output : null\}/,

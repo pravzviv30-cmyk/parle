@@ -1,16 +1,16 @@
 /**
- * Luvani, bright (revamp B).
- * Warm paper, white cards with no hairline and no shadow, one deep ink, four
- * saturated colours, and Outfit for every word on the screen, French and
+ * Bright Luvani (direction B), the one design system (DECISIONS.md, 2026-10-19).
+ * Warm paper, white cards with no hairline, one soft lift reserved for
+ * illustrated Explore cards, one deep ink, four saturated colours, four pastels, and Outfit for every word on the screen, French and
  * English alike. The chartreuse is a highlighter pen, never a surface. Voice
  * signals, touch floors, reading-size scaling and reduced motion keep their
  * behaviour. Raw colours live in palette.ts.
  */
 
 import { Platform } from 'react-native';
-import { paper } from './palette.ts';
+import { paper, liftInk } from './palette.ts';
 
-export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, passwordMeter, streakCelebration } from './palette.ts';
+export { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, passwordMeter, streakCelebration } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.
@@ -56,7 +56,9 @@ export const type = {
   /** A headline on colour: stories and onboarding, and the tab header for now. */
   display: { fontFamily: font.extraBold, fontSize: 44, lineHeight: 44, letterSpacing: -1.3 },
   /** The title of a working screen. */
-  title: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 33, letterSpacing: -0.6 },
+  title: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 38, letterSpacing: -0.6 },
+  /** A short label above a card title: "Next scene · 2 of 3". Sentence case. */
+  eyebrow: { fontFamily: font.bold, fontSize: 13, lineHeight: 18 },
   /**
    * The number on a stat tile (SNIPPETS stat-tile, 36/800). STYLE section 3 has
    * no 36; the approved tile does, and a raw size in a component is the thing
@@ -64,9 +66,9 @@ export const type = {
    */
   stat: { fontFamily: font.extraBold, fontSize: 36, lineHeight: 36, letterSpacing: -0.7 },
   /** Card titles and section heads. */
-  heading: { fontFamily: font.bold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
+  heading: { fontFamily: font.extraBold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
   /** The title of a card. The same style as heading. */
-  cardTitle: { fontFamily: font.bold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
+  cardTitle: { fontFamily: font.extraBold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
   /**
    * The French line that leads a screen. Always larger than any heading on the
    * screen it leads; `fitHero()` steps it 34, 30, 26 by length (`heroFit`).
@@ -92,10 +94,131 @@ export const type = {
   button: { fontFamily: font.semiBold, fontSize: 16, lineHeight: 20 },
   /** Metadata lines, captions, and the English under a French line. */
   small: { fontFamily: font.medium, fontSize: 14, lineHeight: 20 },
+  /** The number in a compact stat, three to a `StatRow` (B-Today, B0 2026-10-20). */
+  statSm: { fontFamily: font.bold, fontSize: 17, lineHeight: 20 },
+  /** The line under a compact stat (B-Today, B0 2026-10-20). */
+  caption: { fontFamily: font.medium, fontSize: 12, lineHeight: 16 },
+  /** The words of a lock badge (v82 artboards, B0 2026-10-20). */
+  badge: { fontFamily: font.bold, fontSize: 12, lineHeight: 16 },
   /** The word under a bottom-tab glyph, and nowhere else. */
   tabLabel: { fontFamily: font.semiBold, fontSize: 12, lineHeight: 12 },
   /** IPA and notation. Never monospace-as-costume; this really is notation. */
   notation: { fontFamily: font.medium, fontSize: 14, lineHeight: 20, letterSpacing: 0.4 },
+} as const;
+
+/**
+ * The direction B artboards' own sizes (DECISIONS.md UI-008, 2026-10-20,
+ * first used by B-Today). Each is a size the canvas draws that the scale above
+ * has no exact token for; a rebuilt screen reads these rather than a raw size.
+ * Outfit 400/600/700/800 are regular/semiBold/bold/extraBold.
+ */
+export const bType = {
+  /** The tab greeting, "Bonjour, Yasmin.": 34/800, -0.5. */
+  greeting: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 36, letterSpacing: -0.5 },
+  /** The yellow lead's title: 27/800, -0.3. */
+  leadTitle: { fontFamily: font.extraBold, fontSize: 27, lineHeight: 30, letterSpacing: -0.3 },
+  /** A 13/700 eyebrow with the artboards' 0.3 tracking. */
+  eyebrow: { fontFamily: font.bold, fontSize: 13, lineHeight: 18, letterSpacing: 0.3 },
+  /** A 13/700 chip or pill. */
+  chip: { fontFamily: font.bold, fontSize: 13, lineHeight: 17 },
+  /** A 13 regular note or prompt. */
+  note: { fontFamily: font.regular, fontSize: 13, lineHeight: 18 },
+  /** A 14 regular count or link line. */
+  meta: { fontFamily: font.regular, fontSize: 14, lineHeight: 19 },
+  /** A 15 regular line: the English under a French phrase, a checklist row. */
+  line15: { fontFamily: font.regular, fontSize: 15, lineHeight: 20 },
+  /** A 16 regular line: a row's words, the lead's line. */
+  line16: { fontFamily: font.regular, fontSize: 16, lineHeight: 21 },
+  /** A 16 bold title or button. */
+  bold16: { fontFamily: font.bold, fontSize: 16, lineHeight: 20 },
+  /** A 15 bold button. */
+  bold15: { fontFamily: font.bold, fontSize: 15, lineHeight: 19 },
+  /** A 15 semibold quiet button. */
+  semi15: { fontFamily: font.semiBold, fontSize: 15, lineHeight: 19 },
+  /** A 17 bold button. */
+  bold17: { fontFamily: font.bold, fontSize: 17, lineHeight: 21 },
+  /** An 18 bold lead button. */
+  bold18: { fontFamily: font.bold, fontSize: 18, lineHeight: 22 },
+  /** A 19 bold card sentence. */
+  bold19: { fontFamily: font.bold, fontSize: 19, lineHeight: 24 },
+  /** A 20 bold line: the English to say in French. */
+  bold20: { fontFamily: font.bold, fontSize: 20, lineHeight: 25 },
+  /** A 22 bold French phrase. */
+  bold22: { fontFamily: font.bold, fontSize: 22, lineHeight: 26 },
+  /** A tab's section head, "French for real life": 21/800 (B-Explore). */
+  section21: { fontFamily: font.extraBold, fontSize: 21, lineHeight: 26 },
+  /** A pushed screen's section head, "Lines you'll likely need": 19/800 (B-ScenePreview). */
+  section19: { fontFamily: font.extraBold, fontSize: 19, lineHeight: 24 },
+  /** The scene band's title: 28/800 at 1.1 (B-ScenePreview). */
+  bandTitle: { fontFamily: font.extraBold, fontSize: 28, lineHeight: 31 },
+  /** A 14 bold selected filter chip (B-Explore). */
+  bold14: { fontFamily: font.bold, fontSize: 14, lineHeight: 18 },
+  /** A 14 semibold filter chip (B-Explore). */
+  semi14: { fontFamily: font.semiBold, fontSize: 14, lineHeight: 18 },
+  /** A 13 semibold field label (B-Explore). */
+  semi13: { fontFamily: font.semiBold, fontSize: 13, lineHeight: 17 },
+  /** A 12 bold small pill, "Free sample" (B-Explore). */
+  bold12: { fontFamily: font.bold, fontSize: 12, lineHeight: 16 },
+  /** A 12 semibold step note (B-Practice). */
+  semi12: { fontFamily: font.semiBold, fontSize: 12, lineHeight: 16 },
+  /** A 12 regular quiet line (B-Practice). */
+  note12: { fontFamily: font.regular, fontSize: 12, lineHeight: 16 },
+  /** A 15 paragraph at 1.45 (B-Practice, B-Empty-Practice). */
+  para15: { fontFamily: font.regular, fontSize: 15, lineHeight: 22 },
+  /** A 17 bold card title (B-Practice). */
+  title17: { fontFamily: font.bold, fontSize: 17, lineHeight: 22 },
+  /** A pushed screen's title, "Your fixes": 26/800 (B-Fixes). */
+  title26: { fontFamily: font.extraBold, fontSize: 26, lineHeight: 31 },
+  /** The empty card's head: 22/800 (B-Empty-Practice). */
+  section22: { fontFamily: font.extraBold, fontSize: 22, lineHeight: 27 },
+  /** A tab's sub-section head: 20/800 (B-Empty-Practice). */
+  section20: { fontFamily: font.extraBold, fontSize: 20, lineHeight: 25 },
+  /** A 13 extrabold pill, "3 this week" (B-Practice). */
+  heavy13: { fontFamily: font.extraBold, fontSize: 13, lineHeight: 17 },
+  /** The current stage's name under its node, "Starter": 12/800 (B-Journey). */
+  heavy12: { fontFamily: font.extraBold, fontSize: 12, lineHeight: 16 },
+  /** "You're here" under the current stage: 11/700 (B-Journey). */
+  bold11: { fontFamily: font.bold, fontSize: 11, lineHeight: 14 },
+  /** The level pill, "Level 2": 14/800 (B-Journey). */
+  heavy14: { fontFamily: font.extraBold, fontSize: 14, lineHeight: 18 },
+  /** A stage node's number: 15/800 (B-Journey). */
+  heavy15: { fontFamily: font.extraBold, fontSize: 15, lineHeight: 19 },
+  /** A sound tile's letters, "on": 16/800 (B-Journey). */
+  heavy16: { fontFamily: font.extraBold, fontSize: 16, lineHeight: 20 },
+  /** The help card's sentence: 17/700 at 1.3 (B-Journey). */
+  bold17Loose: { fontFamily: font.bold, fontSize: 17, lineHeight: 22 },
+  /** "Bien joué.": 40/800 (B-AfterSession, 2026-10-21). */
+  display40: { fontFamily: font.extraBold, fontSize: 40, lineHeight: 44, letterSpacing: -0.5 },
+  /** The ability earned: 34/800, -0.4, at 1.1 (B-Celebrate, 2026-10-21). */
+  ability34: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 37, letterSpacing: -0.4 },
+  /** The Recap band's title: 30/800 (B-Recap, 2026-10-21). */
+  title30: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 33, letterSpacing: -0.5 },
+  /** A 17 regular sentence on a blue page (B-AfterSession, B-Celebrate, 2026-10-21). */
+  para17: { fontFamily: font.regular, fontSize: 17, lineHeight: 24 },
+  /** A word bank tile, 17/600 (B-Drill). */
+  semi17: { fontFamily: font.semiBold, fontSize: 17, lineHeight: 21 },
+  /** The revealed French on a review card, 24/700 at 1.2 (B-ReviewReveal). */
+  answer24: { fontFamily: font.bold, fontSize: 24, lineHeight: 29 },
+  /** The review prompt, 27/700 at 1.2, -0.2 (B-Review). */
+  prompt27: { fontFamily: font.bold, fontSize: 27, lineHeight: 32, letterSpacing: -0.2 },
+  /** The Profile avatar's initial: 34/800 (B-Profile, 2026-10-21). */
+  initial34: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 40 },
+  /** The Profile name: 30/800 at -0.3 (B-Profile, 2026-10-21). */
+  name30: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 34, letterSpacing: -0.3 },
+  /** The streak's run, "3 days": 52/800 at -1 (B-Streak, 2026-10-21). */
+  run52: { fontFamily: font.extraBold, fontSize: 52, lineHeight: 56, letterSpacing: -1 },
+  /** The welcome's display, "A little French.": 40/800 at -1, 1.04 (B-OB-Welcome, 2026-10-21). */
+  welcome40: { fontFamily: font.extraBold, fontSize: 40, lineHeight: 42, letterSpacing: -1 },
+  /** An onboarding band's title, "Meet your tutor": 32/800 at -0.5 (B-OB-Tutor, 2026-10-21). */
+  band32: { fontFamily: font.extraBold, fontSize: 32, lineHeight: 35, letterSpacing: -0.5 },
+  /** The welcome's sun button: 19/800 (B-OB-Welcome, 2026-10-21). */
+  heavy19: { fontFamily: font.extraBold, fontSize: 19, lineHeight: 24 },
+  /** The welcome's speech bubbles: 17/800 (B-OB-Welcome, 2026-10-21). */
+  heavy17: { fontFamily: font.extraBold, fontSize: 17, lineHeight: 21 },
+  /** A 16 paragraph at 1.4 (the onboarding subtitles, 2026-10-21). */
+  para16: { fontFamily: font.regular, fontSize: 16, lineHeight: 22 },
+  /** A 14 paragraph at 1.45 (B-OB-Ready's info rows, 2026-10-21). */
+  para14: { fontFamily: font.regular, fontSize: 14, lineHeight: 20 },
 } as const;
 
 /**
@@ -129,6 +252,18 @@ export const radius = {
   input: 16, // alias of field
   control: 16, // alias of field
 } as const;
+
+/**
+ * The one shadow (DECISIONS.md, 2026-10-19): a soft lift under an illustrated
+ * Explore card, and nowhere else. Neutral field names so a caller maps it onto
+ * the platform's own style keys; `css` is the same lift for the web.
+ */
+export const shadow = {
+  lift: { offsetX: 0, offsetY: 12, blur: 24, spread: -16, color: liftInk, css: `0px 12px 24px -16px ${liftInk}` },
+} as const;
+
+/** UI-006: the lift as a style, for an illustrated Explore tile only (Card / ColourCard `lift`). */
+export const liftStyle = { boxShadow: shadow.lift.css } as const;
 
 /** The white disc that holds a glyph inside a tinted row. */
 export const DISC = 44;

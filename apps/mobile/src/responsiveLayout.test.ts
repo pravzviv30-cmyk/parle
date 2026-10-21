@@ -66,9 +66,14 @@ test('regular columns follow usable width and return to a stack in split view', 
 
 
 test('on a regular-width screen the tabs use two columns and sheets keep the reading width', () => {
-  for (const file of ['tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx', 'tabs/PracticeTab.tsx']) {
+  // 2026-10-20, B1, B-Explore: Explore splits its sections into two columns too.
+  for (const file of ['tabs/HomeTab.tsx', 'tabs/ExploreTab.tsx', 'tabs/MyFrenchTab.tsx', 'tabs/PracticeTab.tsx']) {
     assert.match(readFileSync(new URL(file, import.meta.url), 'utf8'), /<Columns>/, file);
   }
+  // 2026-10-20, B1, B-Explore: inside a column the topic and practice tiles
+  // still drop to one under 350pt or at 1.5x text.
+  const explore = readFileSync(new URL('tabs/ExploreTab.tsx', import.meta.url), 'utf8');
+  assert.match(explore, /width < 350 \|\| fontScale >= 1\.5/, 'Explore lost its one-column fallback');
   const layout = readFileSync(new URL('layout.tsx', import.meta.url), 'utf8');
   assert.match(layout, /fontScale >= 1\.6/);
   assert.match(layout, /flexDirection: regular \? 'row' : 'column'/);

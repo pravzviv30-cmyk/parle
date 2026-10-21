@@ -69,6 +69,11 @@ import { TutorTab } from '../tabs/TutorTab.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { PracticeTab } from '../tabs/PracticeTab.tsx';
 import { MyFrenchTab } from '../tabs/MyFrenchTab.tsx';
+import { ExploreTab } from '../tabs/ExploreTab.tsx';
+import { ExploreCollectionScreen } from '../main/ExploreCollectionScreen.tsx';
+import { ScenePreviewScreen } from '../scenes/ScenePreviewScreen.tsx';
+import { FixesScreen } from '../practice/FixesScreen.tsx';
+import { ThenNowScreen } from '../journey/ThenNowScreen.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
 import { FriendsTab } from '../tabs/FriendsTab.tsx';
 import { InviteFriendsScreen } from '../friends/InviteFriendsScreen.tsx';
@@ -85,7 +90,9 @@ import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
 import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
-import { backOrTabs, type LeavingNav } from './leave.ts';
+import { RouteTheme, useRouteGround } from './RouteTheme.tsx';
+import { useB } from '../main/bTheme.tsx';
+import { backOrTabs, tabsAlone, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
 
@@ -111,9 +118,10 @@ function asRung(value: unknown): Rung | null {
 }
 
 function Loading() {
+  const t = useB();
   return (
-    <View style={st.center}>
-      <ActivityIndicator color={paper.inkFaint} />
+    <View style={[st.center, { backgroundColor: t.ground }]}>
+      <ActivityIndicator color={t.muted} />
     </View>
   );
 }
@@ -156,6 +164,7 @@ function LessonRoute() {
   }>();
   const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
+  const t = useB();
   const textMode = route.params?.textMode ?? false;
   const { user } = useAuth();
   const { live, recheck } = useLive();
@@ -280,8 +289,8 @@ function LessonRoute() {
   if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><IconAction layout="inline" icon="refresh" busy={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
 
   if (historyFailed) return (
-    <View style={[st.center, { gap: space(3), padding: space(6) }]}>
-      <Text style={[type.body, { color: paper.ink }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
+    <View style={[st.center, { backgroundColor: t.ground, gap: space(3), padding: space(6) }]}>
+      <Text style={[type.body, { color: t.text }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
       <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} />
       <IconAction layout="inline" icon="home" label="Back to Home" onPress={leave} />
     </View>
@@ -334,6 +343,7 @@ function ConvoRoute() {
   }>();
   const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
+  const t = useB();
   const { user } = useAuth();
   const { profile, updateBrain } = useProfile();
   const { live, recheck } = useLive();
@@ -421,11 +431,11 @@ function ConvoRoute() {
   if (!live) {
     return (
       <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
-        <Label color={paper.inkSoft}>{TUTOR_OFFLINE.label}</Label>
-        <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
+        <Label color={t.muted}>{TUTOR_OFFLINE.label}</Label>
+        <Text style={[type.bodyStrong, { color: t.text, marginTop: space(3), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.headline}
         </Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+        <Text style={[type.body, { color: t.muted, marginTop: space(2), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.body}
         </Text>
         <LocalPracticeCard />
@@ -462,6 +472,8 @@ function ConvoRoute() {
         onRecap={onRecap}
         onExit={leave}
         onPractice={(phrase) => nav.replace('Drill', { ownWords: phrase })}
+        // 2026-10-21 UI-008, artboard B-Celebrate: "See your journey" opens the Journey tab.
+        onJourney={() => nav.reset(tabsAlone('MyFrench'))}
         walkMode={walkMode}
         startInTextMode={walkMode ? false : route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}
@@ -600,6 +612,7 @@ function RealMomentRoute() {
   return (
     <RealMomentScreen
       initialTextMode={route.params?.textMode ?? false}
+      initialDetail={route.params?.detail}
       onBack={leave}
       onStart={(seedTopic, textMode) => nav.navigate('Convo', { seedTopic, textMode })}
       onSeePlans={() => nav.navigate('Wall', { entry: 'settings' })}
@@ -645,7 +658,8 @@ function ConversationPracticeRoute() {
   // user, and only when `sampleAllowed` says this is a local mock build. The
   // loader checks all of it again itself before it writes.
   const canLoadSample = preview && user !== null && sampleAllowed(adapter);
-  return <ConversationPracticeScreen key={route.params.packId} packId={route.params.packId}
+  return <ConversationPracticeScreen key={`${route.params.packId}:${route.params.stage ?? ''}`} packId={route.params.packId}
+    initialStage={route.params.stage === 'listen' ? 'listen' : 'match'}
     previewPack={preview ? PRACTICE_PREVIEW : undefined}
     onLoadSample={canLoadSample ? () => loadSampleConversation(user, adapter).then((result) =>
       result.ok
@@ -689,12 +703,17 @@ function SoundCheckRoute() {
  * render of the parent, and the parent here is the whole root stack.
  */
 function Tabs() {
+  // UI-008 (2026-10-20): each tab renders under PinLight unless its route is
+  // in DARK_READY, and the scene ground and the bar follow the focused route.
+  const groundFor = useRouteGround();
   return (
     <Tab.Navigator
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: paper.ground } }}
-      tabBar={(props) => <LuvaniTabBar {...props} />}
+      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: groundFor(route.name) } })}
+      screenLayout={({ route, children }) => <RouteTheme route={route.name}>{children}</RouteTheme>}
+      tabBar={(props) => <RouteTheme route={props.state.routes[props.state.index]?.name ?? 'Home'}><LuvaniTabBar {...props} /></RouteTheme>}
     >
       <Tab.Screen name="Home" component={HomeTab} />
+      <Tab.Screen name="Explore" component={ExploreTab} />
       <Tab.Screen name="Tutor" component={TutorTab} />
       <Tab.Screen name="Practice" component={PracticeTab} />
       <Tab.Screen name="MyFrench" component={MyFrenchTab} />
@@ -709,16 +728,21 @@ export function RootNavigator({
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
+  const groundFor = useRouteGround();
   return (
     <Stack.Navigator
       initialRouteName={wallPreviewEnabled() ? 'Wall' : 'Tabs'}
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
-        contentStyle: { backgroundColor: paper.ground },
+        contentStyle: { backgroundColor: groundFor(route.name) },
         // The app has one authored motion vocabulary and a native slide is not
         // in it. Screens replace; the orb and the splash carry the movement.
         animation: 'fade',
-      }}
+      })}
+      // UI-008 (2026-10-20): every pushed screen renders under PinLight unless
+      // its route is in DARK_READY (nav/darkReady.ts). Tabs is the tab
+      // navigator, which applies the same rule per tab, so it is not wrapped.
+      screenLayout={({ route, children }) => route.name === 'Tabs' ? children : <RouteTheme route={route.name}>{children}</RouteTheme>}
     >
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Profile" component={ProfileTab} />
@@ -727,6 +751,11 @@ export function RootNavigator({
       <Stack.Screen name="SocialSettings" component={SocialSettingsScreen} />
       <Stack.Screen name="DailyPractice" component={DailyPracticeScreen} />
       <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
+      <Stack.Screen name="ExploreCollection" component={ExploreCollectionScreen} />
+      {/* Phase B detail screens, stubs until their steps fill them (B0, 2026-10-20). */}
+      <Stack.Screen name="ScenePreview" component={ScenePreviewScreen} />
+      <Stack.Screen name="Fixes" component={FixesScreen} />
+      <Stack.Screen name="ThenNow" component={ThenNowScreen} />
       <Stack.Screen name="Postcards" component={PostcardsScreen} />
       <Stack.Screen name="WeekWrapped" component={WeekWrappedScreen} />
       <Stack.Screen name="Streak" component={StreakScreen} />
@@ -780,7 +809,7 @@ export function RootNavigator({
 }
 
 const st = StyleSheet.create({
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   gate: {
     flex: 1,
     backgroundColor: paper.ground,

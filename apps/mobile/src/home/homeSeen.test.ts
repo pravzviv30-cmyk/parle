@@ -140,7 +140,10 @@ describe("Home's increments — F767", () => {
     assert.match(hero, /<CountUp key=\{`run-\$\{run\.mount\}`\} from=\{run\.from\} to=\{run\.to\}/, 'the run does not count from what was last shown');
     assert.match(hero, /<ProgressRing key=\{`ring-\$\{ring\.mount\}`\} from=\{ring\.from \/ RING_STEPS\} to=\{ring\.to \/ RING_STEPS\}/, 'the ring does not draw from what was last shown');
     assert.match(hero, /<CountUp key=\{`level-\$\{chip\.mount\}`\} from=\{chip\.from\} to=\{chip\.to\}/, 'the level does not count from what was last shown');
-    assert.match(hero, /ignite=\{hero\.flame\.lit && risen\(run\)/, 'the flame lights without the run having risen');
+    // 2026-10-20 UI-008, artboard B-Today: the flame is the still canvas
+    // drawing now, so nothing lights or flickers; an open day draws it dimmed.
+    assert.match(hero, /<BArt name="flame" width=\{28\} height=\{35\} style=\{hero\.flame\.lit \? undefined : st\.unlit\} \/>/, 'the flame does not say whether today has counted');
+    assert.doesNotMatch(hero, /ignite=|flicker=/, 'the flame still animates outside the artboard');
     const quests = stripComments(readFileSync(new URL('../game/QuestsCard.tsx', import.meta.url), 'utf8'));
     assert.match(quests, /useHomeDraw\(view\?\.today \?\? null, fresh, questCounts\)/);
     assert.match(quests, /<CountUp key=\{`done-\$\{done\.mount\}`\} from=\{done\.from\} to=\{done\.to\}/, 'the quests count from somewhere other than what was last shown');

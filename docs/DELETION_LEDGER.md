@@ -21,6 +21,9 @@ replacement tests, focused tests, and the full gate have been checked.
 | Non-idempotent two-argument debit RPC | Superseded by migration | UUID session ledger RPC | Drop happens in ordered migration |
 | Placeholder/fake payment UI | Do not build | Verified store purchase lifecycle first | No entitlement may originate on client |
 | Placeholder legal text presented as policy | Blocked replacement | Reviewed Privacy and Terms | Current UI must continue saying policies are not written |
+| `myfrench/LevelCard.tsx` | Done (2026-10-20, B6) | Journey's five stages (B4, `stagesFrom`) replaced it. `revamp/stage3.test.ts` now pins its absence instead of its contents. | UI module only. |
+| `tutor/dashboard.ts` `tutorHeading` | Done (2026-10-20, B6) | Speak's subtitle (`speakSubtitle`) replaced "Talk with <name>". `tutor/dashboard.test.ts` pins its absence; no test removed. | Pure copy function. |
+| `tutor/gate.ts` `entryStart`, `EntryStart` | Done (2026-10-20, B6) | Speak opens its rows itself (B2, `tutor/speakTabView.ts`). No test removed: the one test that called it keeps its Speak checks. | Pure model; `tutorDoors`, `EntryModeKey` and `isEntryMode` stay. |
 
 **Done** here means the audit was re-run against the tree, not that it was run once
 when the row was written. Every Done row names the evidence and the test that keeps it

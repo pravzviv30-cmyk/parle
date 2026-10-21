@@ -31,6 +31,7 @@ import { withName } from '../profile/store.ts';
 import {
   ACCOUNT_GROUP,
   APPEARANCE_GROUP,
+  PRACTICE_GROUP,
   ACKNOWLEDGEMENTS_ROW,
   DELETE_ROW,
   DOWNLOAD_ROW,
@@ -136,11 +137,13 @@ describe('Profile keeps who you are and how you learn — F473, P2', () => {
     );
 
     // The gear, named by the screen it opens and saying what is behind it.
-    assert.match(PROFILE, /accessibilityLabel=\{SETTINGS_ROW\} accessibilityHint=\{SETTINGS_ROW_SUB\}/, 'the gear does not say what is behind it');
+    // 2026-10-20 UI-008, artboard B-Profile: the gear is the IconDisc, which speaks label and hint.
+    assert.match(PROFILE, /label=\{SETTINGS_ROW\} hint=\{SETTINGS_ROW_SUB\}/, 'the gear does not say what is behind it');
+    assert.match(read('./ProfileParts.tsx'), /accessibilityLabel=\{label\} accessibilityHint=\{hint\}/, 'the disc does not speak its label and hint');
     assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the gear leads nowhere');
-    assert.equal((PROFILE.match(/<SettingsGroup title=/g) ?? []).length, 3, 'Profile is not the three groups of the design');
+    assert.equal((PROFILE.match(/<SettingsGroup (?:first )?title=/g) ?? []).length, 3, 'Profile is not the three groups of the design');
     assert.doesNotMatch(PROFILE, /<FrenchLifeCard|RHYTHM_LABEL/, 'Profile must leave weekly days to the later evidence stage');
-    writtenBefore(PROFILE, 'accessibilityLabel={SETTINGS_ROW}', '<SettingsGroup title={LEARNING_GROUP}>', 'Settings should be immediately reachable above the profile details');
+    writtenBefore(PROFILE, 'label={SETTINGS_ROW}', '<SettingsGroup first title={LEARNING_GROUP}>', 'Settings should be immediately reachable above the profile details');
   });
 
   test('the name is written through one named door', () => {
@@ -231,8 +234,10 @@ describe('the Settings screen is one push away — F473', () => {
       // Six since P2 (2026-10-19): the plan is a row in Subscription, Phone
       // became Reminders, Appearance & sound is its own group, and Help and
       // About are one.
-      [ACCOUNT_GROUP, SUBSCRIPTION_GROUP, REMINDERS_GROUP, APPEARANCE_GROUP, PRIVACY_GROUP, HELP_GROUP],
-      'the six groups are no longer in the order the screen draws them',
+      // Seven again since 2026-10-20 UI-008, artboard B-Settings: Practice joins after
+      // Plan, and the groups take the artboard's names.
+      [ACCOUNT_GROUP, SUBSCRIPTION_GROUP, PRACTICE_GROUP, REMINDERS_GROUP, APPEARANCE_GROUP, PRIVACY_GROUP, HELP_GROUP],
+      'the seven groups are no longer in the order the screen draws them',
     );
     assert.equal(SETTINGS_ROW, SETTINGS_TITLE, 'the row and the screen it opens are called two different things');
     // The row's second line is a promise about where a tap lands, so it names
@@ -266,7 +271,10 @@ describe('the Settings screen is one push away — F473', () => {
     // memory, Saved conversations, Download and How your data is used; Help &
     // about the intro, local practice, Contact, three documents and Version;
     // and Delete account alone.
-    assert.equal(rows.length, 21, `Settings draws ${rows.length} rows, which is not the shape the six groups have`);
+    // 2026-10-20 UI-008, artboard B-Settings: twenty-four. Plan gains the
+    // free band row (Free speaking time), and Practice draws Speaking target
+    // and the correction style as rows into Learning preferences.
+    assert.equal(rows.length, 24, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
     for (const row of rows) {
       assert.doesNotMatch(row, /label="/, `a Settings row spells its label in JSX: ${row.split('\n')[0]}`);
       assert.match(row, /label=\{/, `a Settings row has no label at all: ${row.split('\n')[0]}`);
@@ -418,7 +426,8 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // Seven since Stage 3: one per group that holds a card, plus Delete account
     // in a card of its own at the foot, apart from the routine account rows.
     // Still exact: a card added or lost is a change to what this screen is.
-    assert.equal(CARDS.length, 7, `Settings draws ${CARDS.length} groups; it should draw one per group and one for Delete account`);
+    // Eight since 2026-10-20 UI-008, artboard B-Settings: Practice is a group of its own.
+    assert.equal(CARDS.length, 8, `Settings draws ${CARDS.length} groups; it should draw one per group and one for Delete account`);
 
     // The phone refusal is drawn inside the row the module answered for,
     // beside whichever permission was tapped: since P2 the microphone and the
@@ -624,7 +633,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // Words, held to the text floor rather than a mark's. F330.
     assert.match(LINE, /color: colors\.trouble/, 'the refusal must use the scoped readable error ink');
     const appearance = stripComments(read('./SettingsAppearance.tsx'));
-    assert.match(appearance, /trouble: mode === 'dark' \? colors\.text : signal\.correspondance/, 'paper keeps its existing error ink, while dark surfaces use their readable foreground');
+    assert.match(appearance, /trouble: t\.mode === 'dark' \? t\.text : signal\.correspondance/, 'paper keeps its existing error ink, while dark surfaces use their readable foreground');
     assert.ok(!LINE.includes('inkFaint'), 'a sentence a learner has to act on is set in the faint ink');
     for (const cap of ['numberOfLines', 'maxWidth', 'allowFontScaling', 'maxFontSizeMultiplier']) {
       assert.ok(!LINE.includes(cap), `the refusal caps its own text with ${cap}, so it clips at a large reading size`);

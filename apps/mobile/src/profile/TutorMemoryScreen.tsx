@@ -13,7 +13,8 @@
  */
 
 import { useNavigation } from '@react-navigation/native';
-import { Illustration } from '../art/flat/Illustration.tsx';
+import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
+import { NOTEBOOK_ART } from '../empty/emptyStates.ts';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { SettingsAppearance, SettingsCard as Card, SettingsField as Field, SettingsFormAction as OutlineButton } from '../settings/SettingsAppearance.tsx';
 import { useState, useRef, useEffect } from 'react';
@@ -22,7 +23,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { IconAction, GhostButton, Label } from '../components.tsx';
 import { ConfirmSheet, ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { paper, space, type, HIT } from '../theme.ts';
+import { space, type, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { memoryPaused } from '@luvani/brain/profile';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
@@ -113,15 +114,14 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
         </View>}
       </Card>
       {saving || memoryError ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: colors.text, marginTop: space(3) }]}>{memoryError ?? 'Saving your memory change.'}</Text> : null}
+      {/* 2026-10-21 UI-008: an empty memory is the B empty-state card (B-Empty-States anatomy). */}
+      {facts.length === 0 ? (
+        <View style={st.card}>
+          <EmptyStateCard art={NOTEBOOK_ART} title={memoryEmptyLine(profile)} body={null} action={{ label: 'Choose a scene', onPress: () => nav.navigate('Missions') }} />
+        </View>
+      ) : (
       <Card tone="journal" style={st.card}>
-        {facts.length === 0 ? (
-          <View style={{ gap: space(3) }}>
-            <Illustration name="state-notebook" fit="small" />
-            <Text style={[type.body, { color: colors.text }]}>{memoryEmptyLine(profile)}</Text>
-            <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="chat" label="Choose a scene" onPress={() => nav.navigate('Missions')} />
-          </View>
-        ) : (
-          facts.map((fact, index) => (
+        {facts.map((fact, index) => (
             <View key={`${fact.notedAt}:${fact.en}`} style={[st.fact, index > 0 && st.divided, { borderTopColor: colors.border }]}>
               <View style={st.factWords}>
                 <Text style={[type.bodyStrong, { color: colors.text }]}>{fact.en}</Text>
@@ -138,9 +138,9 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
                 onPress={() => { void commitMemory((current) => withFactForgotten(current, fact.en)); }}
               />
             </View>
-          ))
-        )}
+          ))}
       </Card>
+      )}
       {facts.length > 0 && (
         <View style={st.all}>
           <GhostButton color={colors.text} label={FORGET_ALL} onPress={() => setClearing(true)} />
@@ -223,7 +223,7 @@ const st = StyleSheet.create({
   card: { marginTop: space(4) },
   section: { marginTop: space(6) },
   fact: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2), minHeight: HIT, paddingVertical: space(2) },
-  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: paper.lineOnCard },
+  divided: { borderTopWidth: StyleSheet.hairlineWidth },
   factWords: { flexGrow: 1, flexBasis: 180, minWidth: 0 },
   all: { marginTop: space(4) },
   add: { marginTop: space(3), gap: space(3) },

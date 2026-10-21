@@ -15,9 +15,12 @@
  */
 
 import type { PracticeRouteOrigin } from '../practice/practiceRoute.ts';
+import type { ExploreTopic } from '../main/exploreCatalogue.ts';
 
 export type TabParamList = {
   Home: undefined;
+  /** Explore: the catalogue's front door, optionally opened on one topic. */
+  Explore: { topic?: ExploreTopic } | undefined;
   Tutor: undefined;
   Practice: undefined;
   MyFrench: undefined;
@@ -30,6 +33,15 @@ export type RootStackParamList = {
   SocialSettings: undefined;
   DailyPractice: { id: string; mode?: 'shadowing' };
   DailyLibrary: undefined;
+  /** One Explore collection or scenario, by id. */
+  ExploreCollection: { id: string };
+  /**
+   * Phase B detail screens (B0 route stubs, 2026-10-20): a scene before it
+   * starts, one pack's fixes, and then-and-now. Later steps fill them.
+   */
+  ScenePreview: { missionId: string };
+  Fixes: { packId: string };
+  ThenNow: undefined;
   Postcards: undefined;
   WeekWrapped: undefined;
   /**
@@ -103,7 +115,7 @@ export type RootStackParamList = {
    */
   Drill:
     | {
-        node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string } };
+        node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string }; afterTry?: boolean };
         mix?: boolean;
         /**
          * One phrase to say again in the learner's own French, and the
@@ -196,7 +208,12 @@ export type RootStackParamList = {
    * conversation with a seed of its own. No params: everything it needs is
    * chosen or typed on the screen, and the seed rides to `Convo` from there.
    */
-  RealMoment: { textMode?: boolean } | undefined;
+  /**
+   * B1 (2026-10-20): `detail` is the line typed on Explore's "Prepare for
+   * something real", pre-filled into the field. A plain string, so it can sit
+   * in a web address; the screen trims and cuts it, and stores nothing.
+   */
+  RealMoment: { textMode?: boolean; detail?: string } | undefined;
   TutorIntro: undefined;
   /**
    * What the tutor remembers (F562): a pushed screen above the tabs, reached
@@ -236,5 +253,9 @@ export type RootStackParamList = {
    */
   Conversations: { packId?: string } | undefined;
   SavedConversationText: undefined;
-  ConversationPractice: { packId: string };
+  /**
+   * `stage` opens the warm-up on listening (B3, 2026-10-20). Anything else,
+   * a web address included, opens on matching.
+   */
+  ConversationPractice: { packId: string; stage?: 'listen' };
 };

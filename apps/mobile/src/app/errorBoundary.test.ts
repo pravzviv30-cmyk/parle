@@ -227,7 +227,10 @@ describe('error boundary — a throw shows a way back', () => {
     // Press animates its press with them. TroubleLine reads two settings
     // contexts that each carry a default, so with no provider above them they
     // give paper colours and an ungrouped line; the defaults are pinned below.
-    const PROVIDER_FREE = new Set(['useState', 'useEffect', 'useLayoutEffect', 'useRef', 'useCallback', 'useMemo', 'useId', 'useSafeAreaInsets', 'useWindowDimensions', 'useReduceMotion', 'useSharedValue', 'useAnimatedStyle', 'useSettingsColors', 'useInGroup']);
+    // 2026-10-20, UI-008: useB and useThemedStyles read the appearance context,
+    // whose default is light (pinned below), so they need no provider either.
+    const PROVIDER_FREE = new Set(['useState', 'useEffect', 'useLayoutEffect', 'useRef', 'useCallback', 'useMemo', 'useId', 'useSafeAreaInsets', 'useWindowDimensions', 'useReduceMotion', 'useSharedValue', 'useAnimatedStyle', 'useSettingsColors', 'useInGroup', 'useB', 'useThemedStyles']);
+    assert.match(strip(read('../main/bTheme.tsx')), /export const Appearance = createContext<AppearanceValue>\(\s*appearanceFor\('light'/, 'the appearance context lost its light default, so the way back would need a provider');
     assert.match(strip(read('../settings/SettingsAppearance.tsx')), /const SettingsColors = createContext\(paperColors\);/, 'the settings colours lost their default, so the way back would need a provider');
     assert.match(strip(read('../settings/SettingsGroup.tsx')), /const InGroup = createContext\(false\);/, 'the settings group lost its default, so the way back would need a provider');
     const parts = [

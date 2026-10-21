@@ -52,13 +52,14 @@ describe('the drawn vocabulary keeps its promises — F332, F333', () => {
     // brand blue is not the learner), is still a circle sized from the disc,
     // and is still decorative so a screen reader walks past a loose letter.
     const mono = region(componentsSource(), 'export function Monogram(', 'export function ProgressDots(');
-    assert.match(mono, /backgroundColor: paper\.ink/, 'the disc is not ink');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(mono, /backgroundColor: t\.avatar/, 'the disc is not the avatar ink');
     assert.doesNotMatch(mono, /accent\./, 'the monogram still wears an accent');
     assert.match(mono, /borderRadius: size \/ 2/, 'the disc is not a circle at its own size');
     assert.match(mono, /\{\.\.\.decorative\}/, 'the disc is not hidden from assistive tech');
     assert.match(mono, /fontFamily: font\.bold/, 'the initial is not Outfit Bold');
     assert.match(mono, /fontSize: size \* 0\.44/, 'the initial is not sized to the disc');
-    assert.match(mono, /color: paper\.onInk/, 'the initial is not white on the ink');
+    assert.match(mono, /color: t\.onAvatar/, 'the initial is not white on the ink');
   });
 
   test('a pill, an outline and a ghost can be given a name for assistive tech, and forward it', () => {
@@ -152,7 +153,8 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
     // 3 floor on white rather than the decorative hairline, and the input is
     // 56 tall like the one pill.
     const style = region(componentsSource(), '  field: {', '  tabTrack:');
-    assert.match(style, /borderColor: paper\.field/, 'the input border is not the field grey, so an empty field does not read as a field');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(style, /borderColor: t\.field/, 'the input border is not the field grey, so an empty field does not read as a field');
     assert.match(style, /minHeight: HIT \+ 12/, 'the input is under the 56pt the field is drawn at');
   });
 
@@ -176,7 +178,8 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
     const source = componentsSource();
     const bar = region(source, 'export function TabBar<', 'export function Stat(');
     assert.match(bar, /active: K \| null/, 'the tab bar cannot stand with nothing chosen');
-    assert.match(bar, /track = paper\.skeleton/, 'the segmented control no longer runs on the sand track');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(bar, /const track = askedTrack \?\? t\.skeleton;/, 'the segmented control no longer runs on the sand track');
     assert.match(bar, /accessibilityLabel\?: string/, 'the tab bar cannot name its group');
     assert.match(bar, /accessibilityRole="tablist" accessibilityLabel=\{accessibilityLabel\}/, 'the name is not on the group');
     assert.match(bar, /accessibilityState=\{\{ selected: isActive \}\}/, 'a segment no longer says it is selected');
@@ -188,7 +191,7 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
     assert.match(tab, /minHeight: HIT/, 'a segment is under the touch floor');
     assert.match(tab, /borderRadius: radius\.field - 3/, 'a segment\'s corner is not concentric with the track\'s');
     const active = region(source, '  tabActive: {', '  segmentFrame:');
-    assert.equal(active.trim(), 'tabActive: { backgroundColor: paper.card },', 'the chosen segment is more than white: a border, a fill or an ink capsule');
+    assert.equal(active.trim(), 'tabActive: { backgroundColor: t.card },', 'the chosen segment is more than white: a border, a fill or an ink capsule');
     // The ink chip styles may sit dead until Stage 6, but no part draws them.
     assert.doesNotMatch(source, /style=\{\[?s\.chip/, 'a part draws the ink chip again, which is the ink capsule SNIPPETS refuses');
   });
@@ -223,7 +226,8 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
       'the row does not name itself from its own title and gloss, so a screen reader reads two loose lines',
     );
     assert.match(row, /accessibilityState=\{\{ disabled \}\}/, 'the row never says it is unavailable');
-    assert.match(row, /<ChevronRight size=\{20\} color=\{paper\.inkSoft\} \/>/, 'the row draws no soft 20 chevron, so nothing marks it as a way in');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(row, /<ChevronRight size=\{20\} color=\{t\.muted\} \/>/, 'the row draws no soft 20 chevron, so nothing marks it as a way in');
     assert.match(row, /\{trailing != null \? trailing : null\}/, 'the row cannot carry a state before its chevron');
     assert.match(row, /meta\?: string/, 'the row cannot carry trailing meta');
     assert.match(row, /<Press haptic="light" style=\{ls\.row\} disabled=\{disabled\}/, 'the row has no pressed state, or presses while it is disabled');
@@ -234,7 +238,7 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     const style = region(componentsSource(), '  row: {', '  glyph: {');
     assert.match(style, /minHeight: HIT \+ space\(4\)/, 'the ledger row is under its 60 floor');
     assert.doesNotMatch(style, /borderBottomWidth|borderTopWidth|borderWidth/, 'the row rules itself, so a list draws a rule under its last row or two between a pair');
-    assert.doesNotMatch(style, /borderRadius|backgroundColor|borderColor: paper\.ink/, 'the ledger row is a box, not a line in a ledger');
+    assert.doesNotMatch(style, /borderRadius|backgroundColor|borderColor: (paper\.ink|t\.text)/, 'the ledger row is a box, not a line in a ledger');
     const glyph = region(componentsSource(), '  glyph: {', '  words:');
     assert.match(glyph, /minWidth: 24/, 'the glyph slot is not the 24pt ink glyph');
     assert.doesNotMatch(glyph, /backgroundColor|borderRadius/, 'the glyph sits on a disc again');
@@ -247,7 +251,8 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     // too; white on the warm paper is the whole edge.
     const card = region(componentsSource(), '  card: {', '  cardPadded:');
     assert.doesNotMatch(card, /shadow/, 'the card still lifts on a shadow');
-    assert.match(card, /backgroundColor: paper\.card/, 'the card is not white');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(card, /backgroundColor: t\.card/, 'the card is not white');
     assert.match(card, /borderRadius: radius\.card/, 'the card no longer turns the card corner from the token');
     assert.doesNotMatch(card, /borderWidth|borderColor/, 'the card is outlined again; B draws it white with no hairline');
     const source = componentsSource();
@@ -271,19 +276,25 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     // small soft ink, quieter than the heading under it.
     const source = componentsSource();
     const pill = region(source, '  pill: {', '  pillWhite:');
-    assert.match(pill, /minHeight: HIT \+ 12/, 'the pill is under 56pt');
-    assert.match(pill, /backgroundColor: accent\.primary/, 'the pill is not ink');
-    assert.match(pill, /borderRadius: radius\.control/, 'the primary action should use the clean control radius');
+    // UI-004/UI-005: the one pill is 54pt and fully rounded; the secondary
+    // pill is 46pt white with ink words.
+    assert.match(pill, /minHeight: PILL_HEIGHT/, 'the pill is not drawn at its height token');
+    assert.match(source, /export const PILL_HEIGHT = 54;/, 'the primary pill is not 54pt');
+    assert.match(source, /export const SECONDARY_HEIGHT = 46;/, 'the secondary pill is outside 44 to 48pt');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(pill, /backgroundColor: t\.primary/, 'the pill is not the primary ink');
+    assert.match(pill, /borderRadius: radius\.pill/, 'the primary action is not fully rounded');
+    assert.doesNotMatch(source, /design === 'bold-rhythm'/, 'the bold-rhythm pill draws a second look again');
     assert.match(source, /pillWhite: \{ backgroundColor: paper\.card \}/, 'the white pill for blue and coral grounds is not white');
     const outline = region(source, '  outline: {', '  outlinePressed:');
     assert.match(outline, /minHeight: HIT/, 'the quiet link is under the touch floor');
     assert.doesNotMatch(outline, /borderWidth|backgroundColor/, 'the secondary action is a boxed button, not a quiet link');
-    const ghost = region(source, '  ghost: {', '  chip:');
+    const ghost = region(source, '  ghost: {', '  option:'); // UI-005: the dead ink chip styles are gone
     assert.match(ghost, /minHeight: HIT/, 'the underlined link is under the touch floor');
     assert.doesNotMatch(ghost, /borderWidth|backgroundColor/, 'the underlined link is drawn as a box');
     const label = region(source, 'export function Label(', 'export function PillButton(');
     assert.match(label, /type\.small/, 'the label is not the small meta line');
-    assert.match(label, /color = paper\.inkSoft/, 'the meta line is not soft ink');
+    assert.match(label, /const color = asked \?\? t\.muted;/, 'the meta line is not soft ink');
     const option = region(source, '  optionSelected: {', '  optionPressed:');
     assert.doesNotMatch(option, /backgroundColor/, 'a chosen option is still a filled panel');
   });
@@ -314,10 +325,11 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     // segment with ink lettering at Bold, the rest soft ink at SemiBold, so it
     // never competes with the one ink pill. The selected state is still said
     // twice, as above, and a third time in weight.
-    assert.match(bar, /color: isActive \? paper\.ink : paper\.inkSoft/, 'the chosen segment is not ink lettering');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(bar, /color: isActive \? t\.text : t\.muted/, 'the chosen segment is not ink lettering');
     assert.match(bar, /fontFamily: isActive \? font\.bold : font\.semiBold/, 'the chosen segment is not told by weight as well as colour');
     const track = region(source, '  tabActive: {', '  segmentFrame:');
-    assert.match(track, /backgroundColor: paper\.card/, 'the chosen segment is not white');
+    assert.match(track, /backgroundColor: t\.card/, 'the chosen segment is not white');
     assert.doesNotMatch(track, /accent\./, 'the chosen segment still wears the ink fill of the primary pill');
   });
 
@@ -382,7 +394,8 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
 
   test('every new mark is appended after the stylesheet, so no sliced region moved', () => {
     const source = componentsSource();
-    const sheet = source.indexOf('const s = StyleSheet.create(');
+    // 2026-10-20, UI-008: the main sheet is built per mode, so it is a maker now.
+    const sheet = source.indexOf('const makeS = (t: B) => StyleSheet.create(');
     assert.notEqual(sheet, -1, 'the main stylesheet is gone; this ordering check reads nothing');
     for (const name of NEW_MARKS) {
       const at = source.indexOf(`export function ${name}(`);
@@ -425,7 +438,8 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     );
     assert.doesNotMatch(ledger, /borderTopWidth|borderBottomWidth/, 'the ledger rules above or below its rows, around them rather than between');
     const rule = region(componentsSource(), '  rule: {', '  row: {');
-    assert.match(rule, /height: HAIRLINE, backgroundColor: paper\.line/, 'the rule between rows is not the paper hairline');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(rule, /height: HAIRLINE, backgroundColor: t\.line/, 'the rule between rows is not the paper hairline');
   });
 
   test('the highlighter is a still band behind one French line, marked as French, and moves nothing', () => {
@@ -492,13 +506,15 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     assert.match(card, /<AnimatedIcon kind="speaker-waves" size=\{22\} active=\{playing\} color=\{paper\.onInk\} \/>/, 'the speaker on the ink disc is not white');
     const disc = region(componentsSource(), '  hear: {', '  brief: {');
     assert.match(disc, /width: HIT,\s*height: HIT,\s*borderRadius: HIT \/ 2/, 'the play disc is not a circle at the touch floor');
-    assert.match(disc, /backgroundColor: paper\.ink/, 'the play disc is not ink');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(disc, /backgroundColor: t\.primary/, 'the play disc is not the primary ink');
     assert.doesNotMatch(disc, /borderWidth|borderColor/, 'the play disc is still a hairline ring');
     // A white card, the name as a heading, the voice as the soft small line,
     // and the change link under them in the same column, before the disc.
     assert.match(card, /<Card style=\{ls\.tutor\}>/, 'the tutor is not drawn on the one white card');
-    assert.match(card, /type\.heading, \{ color: paper\.ink \}\]\}>\{name\}/, 'the name is not the heading');
-    assert.match(card, /type\.small, \{ color: paper\.inkSoft \}\]\}>\{voice\}/, 'the voice is not the soft small line');
+    assert.match(card, /type\.heading, \{ color: t\.text \}\]\}>\{name\}/, 'the name is not the heading');
+    // 2026-10-20, UI-008: themed through useB; identical values in light.
+    assert.match(card, /type\.small, \{ color: t\.muted \}\]\}>\{voice\}/, 'the voice is not the soft small line');
     const at = (needle: string): number => {
       const i = card.indexOf(needle);
       assert.notEqual(i, -1, `${needle} is missing from the tutor card`);
@@ -509,7 +525,7 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     assert.ok(at('<IconAction') < at('<Press haptic="light"'), 'the play disc does not end the row');
     assert.ok(at('<Press haptic="light"') < at('{signature}'), 'the signature is not under the row');
     // The signature is French, and said in a French voice.
-    assert.match(card, /<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color: paper\.ink \}\]\}>/, 'the signature is not marked as French');
+    assert.match(card, /<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color: t\.text \}\]\}>/, 'the signature is not marked as French');
     // The props do not change: Speak and the plan pass the same six.
     assert.match(card, /onHear: \(\) => void;\s*playing: boolean;\s*onChange: \(\) => void;\s*changeLabel\?: string;/, 'the tutor card\'s props changed');
   });
@@ -589,10 +605,11 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     assert.match(ledger, /style=\{\[ls\.ledger, style\]\}/, 'the ledger is not drawn from its own card style');
     assert.match(
       source,
-      /ledger: \{ backgroundColor: paper\.card, borderRadius: radius\.card, paddingVertical: space\(1\), paddingHorizontal: space\(5\) \}/,
+      /ledger: \{ backgroundColor: t\.card, borderRadius: radius\.card, paddingVertical: space\(1\), paddingHorizontal: space\(5\) \}/,
       'the ledger is not SNIPPETS\' white list card',
     );
-    assert.match(source, /rule: \{ height: HAIRLINE, backgroundColor: paper\.line \}/, 'the rule between rows is not the paper hairline');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(source, /rule: \{ height: HAIRLINE, backgroundColor: t\.line \}/, 'the rule between rows is not the paper hairline');
 
     // Each row: 60 tall, 10 above and below its words, no rule of its own.
     const style = region(source, '  row: {', '  glyph: {');
@@ -612,13 +629,13 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
       /lang === 'fr' \? \(\s*<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color \}\]\}>\{title\}<\/Text>/,
       'a French title is not set as French and read in a French voice',
     );
-    assert.match(row, /const color = disabled \? paper\.inkSoft : paper\.ink;/, 'the title is not ink, or soft ink when the row is off');
+    assert.match(row, /const color = disabled \? t\.muted : t\.text;/, 'the title is not ink, or soft ink when the row is off');
     assert.equal(
-      (row.match(/<Text style=\{\[type\.small, \{ color: paper\.inkSoft \}\]\}>\{(gloss|note|meta)\}<\/Text>/g) ?? []).length,
+      (row.match(/<Text style=\{\[type\.small, \{ color: t\.muted \}\]\}>\{(gloss|note|meta)\}<\/Text>/g) ?? []).length,
       3,
       'the detail, the note and the meta are not each the soft small line',
     );
-    assert.match(row, /<ChevronRight size=\{20\} color=\{paper\.inkSoft\} \/>/, 'the chevron is not the soft 20');
+    assert.match(row, /<ChevronRight size=\{20\} color=\{t\.muted\} \/>/, 'the chevron is not the soft 20');
     assert.match(row, /\{label != null \? <Label>\{label\}<\/Label> : null\}/, 'the row lost its meta line');
     assert.doesNotMatch(row, /type\.heading/, 'the title is still the 20 heading');
 
@@ -749,7 +766,8 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(round, /<Press haptic="light"/, 'the round button does not press through the one spring');
     assert.match(round, /disabled\?: boolean/, 'the round button cannot be disabled during a pending request');
     assert.match(round, /<Press[^>]*disabled=\{disabled\} accessibilityState=\{\{ disabled \}\}/, 'the disabled state does not reach the round button’s press target');
-    assert.match(round, /ground === 'white' \? paper\.card : ground === 'sun' \? colour\.sun : paper\.ink/, 'the disc is not white, sun or ink');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(round, /ground === 'white' \? t\.card : ground === 'sun' \? colour\.sun : paper\.ink/, 'the disc is not white (the theme card), sun or ink');
     assert.doesNotMatch(round, /\b(44|64)\b/, 'the round button writes a raw size instead of the touch floor');
     // Come alive (D11): close and check are delegates to the generated set.
     assert.ok(part('CloseGlyph').includes('<Icon name="close" size={size} color={color} />'), 'CloseGlyph is not the generated close');
@@ -759,7 +777,9 @@ describe('the B parts keep their promises — F597', () => {
   test('a colour card is one ground with its words in the palette\'s colours for it, and a stat tile and a hero number each read as one phrase', () => {
     const card = part('ColourCard');
     assert.match(card, /ground: Ground/, 'a colour card is not one of the four grounds');
-    assert.match(card, /backgroundColor: colour\[ground\]/, 'the card is not its ground\'s colour');
+    // UI-005: the feature card also takes a pastel ground.
+    assert.match(card, /: colour\[ground as Ground\]/, 'the card is not its ground\'s colour');
+    assert.match(card, /backgroundColor: fill/, 'the card is not its ground\'s colour');
     assert.match(card, /borderRadius: radius\.feature/, 'the card is not at the feature radius');
     assert.doesNotMatch(card, /<PillButton/, 'the colour card builds its own pill, so a screen\'s pill count moves into a shared file');
     // The whole card is a target only when it is given somewhere to go; a card
@@ -790,9 +810,10 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(choice, /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, 'the option row does not tell a device it is selected');
     assert.match(choice, /aria-selected=\{navigation \|\| radio \? undefined : selected\}/, 'the option row says nothing to the browser, so on the web the choice is silent');
     assert.match(choice, /haptic="selection"/, 'a choice does not tick like a choice');
-    assert.match(choice, /selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/, 'the chosen row is not the brand blue');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(choice, /const filled = selected && !outlined;[\s\S]*filled \? \(sunny \? colour\.sun : accent\.brand\)/, 'the chosen row is not the brand blue');
     assert.match(choice, /<View \{\.\.\.decorative\} style=\{\[ch\.disc, \{ backgroundColor: paper\.card \}\]\}>\s*<CheckGlyph size=\{18\} color=\{accent\.brand\} \/>/, 'the chosen mark is not the blue check on a white disc');
-    assert.match(choice, /borderColor: paper\.field/, 'the unchosen mark is not the field ring');
+    assert.match(choice, /borderColor: t\.field/, 'the unchosen mark is not the field ring');
     assert.match(choice, /accessibilityLabel=\{accessibilityLabel \?\? \(detail \? `\$\{title\}, \$\{detail\}` : title\)\}/, 'the option row does not name itself once from its title and detail');
   });
 
@@ -801,7 +822,8 @@ describe('the B parts keep their promises — F597', () => {
   test('a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line', () => {
     const skeleton = part('Skeleton');
     assert.match(skeleton, /accessible accessibilityLabel="Loading"/, 'the skeleton does not say Loading once');
-    assert.match(skeleton, /backgroundColor: paper\.skeleton/, 'the blocks are not sand');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(skeleton, /backgroundColor: t\.skeleton/, 'the blocks are not sand');
     assert.doesNotMatch(skeleton, /Animated/, 'the skeleton shimmers; STYLE\'s motion budget has no room for it');
     const quiet = part('QuietLine');
     assert.match(quiet, /type\.small/, 'the quiet line is not small');
@@ -851,9 +873,10 @@ describe('the Start parts keep their promises — F601', () => {
     assert.notEqual(opens, -1, 'the field no longer draws its error only when there is one');
     const error = field.slice(opens);
     assert.match(error, /<View style=\{s\.fieldError\}>/, 'the error line is not a row');
-    assert.match(error, /<AlertGlyph size=\{16\} color=\{paper\.ink\} \/>/, 'the error line has no 16 ink alert mark');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(error, /<AlertGlyph size=\{16\} color=\{t\.text\} \/>/, 'the error line has no 16 ink alert mark');
     assert.ok(error.indexOf('<AlertGlyph') < error.indexOf('{error}'), 'the alert mark does not lead the words');
-    assert.match(error, /style=\{\[type\.small, ROW_WORDS, \{ color: paper\.ink \}\]\}/, 'the message is not the small line in ink, able to wrap beside the mark');
+    assert.match(error, /style=\{\[type\.small, ROW_WORDS, \{ color: t\.text \}\]\}/, 'the message is not the small line in ink, able to wrap beside the mark');
     assert.doesNotMatch(field, /signal\.correspondance/, 'the error still names the fix colour rather than the ink the board draws');
     const row = region(source, '  fieldError: {', '  fieldErrorMark:');
     assert.match(row, /flexDirection: 'row', alignItems: 'flex-start'/, 'the mark does not sit at the top of a wrapping message');
@@ -892,7 +915,8 @@ describe('the Start parts keep their promises — F601', () => {
     assert.match(mark, /\{state === 'earned' \? <CheckGlyph size=\{16\} color=\{paper\.ink\} \/> : null\}/, 'a done mark has no 16 ink tick, or another state draws one');
     assert.equal((mark.match(/<CheckGlyph\b/g) ?? []).length, 1, 'the tick is drawn more than once');
     assert.match(mark, /state === 'here' && \{ backgroundColor: colour\.sun \}/, 'the next mark is not a sun dot');
-    assert.match(mark, /state === 'ahead' && \{ borderWidth: 2, borderColor: paper\.field \}/, 'a mark ahead is not the field ring');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(mark, /state === 'ahead' && \{ borderWidth: 2, borderColor: t\.field \}/, 'a mark ahead is not the field ring');
     // Mint and sun take ink, never white (palette.ts).
     assert.doesNotMatch(mark, /paper\.onInk/, 'the mark sets white on mint or sun');
     // One element, and it says its state in a word, so colour is never the
@@ -1006,12 +1030,14 @@ describe('the icon controls keep their promises', () => {
     // Off is a colour, chosen by the ground: soft ink only on paper and white,
     // the ground's own secondary on a colour (icons review 14), sand under a disc.
     const ink = region(source, 'function groundInk(', 'function chosenInk(');
-    assert.match(ink, /if \(ground === 'paper'\) return disabled \? paper\.inkSoft : paper\.ink;/, 'an off control on paper is not soft ink');
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(ink, /if \(ground === 'paper'\) return disabled \? t\.muted : t\.text;/, 'an off control on paper is not soft ink');
     assert.match(ink, /return disabled \? onColour\[ground\] : textOn\[ground\];/, 'an off control on a colour is soft ink, a forbidden pair, or not the ground\'s secondary');
-    assert.match(button, /groundInk\(ground, disabled\)/, 'a plain icon button does not take its ground\'s ink');
-    assert.match(action, /groundInk\(ground, disabled\)/, 'an inline action does not take its ground\'s words colour');
-    assert.match(button, /disabled \? paper\.skeleton/, 'an off disc is not the sand');
-    assert.match(action, /disabled \? paper\.skeleton/, 'an off action tile is not the sand');
+    // 2026-10-20, UI-008: groundInk and chosenInk take the theme tokens.
+    assert.match(button, /groundInk\(ground, disabled, t\)/, 'a plain icon button does not take its ground\'s ink');
+    assert.match(action, /groundInk\(ground, disabled, t\)/, 'an inline action does not take its ground\'s words colour');
+    assert.match(button, /disabled \? t\.skeleton/, 'an off disc is not the sand');
+    assert.match(action, /disabled \? t\.skeleton/, 'an off action tile is not the sand');
 
     // Two to four tiles share a row and wrap two to a line at the tab bar's
     // large-text threshold, watched while the app is open.
@@ -1047,7 +1073,9 @@ describe('the icon controls keep their promises', () => {
     // The tile inside turns white with a brand mark, so it never vanishes into the fill.
     assert.match(choice, /<TileOnChosen\.Provider value=\{selected\}>\{head\}<\/TileOnChosen\.Provider>/, 'the tile is not told the choice is chosen');
     const tile = stripComments(readFileSync(join(SRC, 'icons', 'IconTile.tsx'), 'utf8'));
-    assert.match(tile, /const CHOSEN = \{ fill: paper\.card, mark: accent\.brand \} as const;/, 'a tile on a chosen choice is not white with the brand mark');
+    // 2026-10-21 UI-008: the chosen tile is the theme's card with the link mark (white and brand blue in light).
+    assert.match(tile, /const chosenTile = \(t: B \| typeof b\.light\) => \(\{ fill: t\.card, mark: t\.link \}\);/, 'a tile on a chosen choice is not white with the brand mark');
+    assert.match(tile, /const CHOSEN = chosenTile\(t\);/);
     assert.match(tile, /const \{ fill, mark \} = chosen \? CHOSEN : TILE_GROUND\[ground\];/, 'a tile does not turn white on a chosen choice');
 
     // A French title is French to a screen reader; no opacity, no shadow, no capped words.
@@ -1067,7 +1095,8 @@ describe('the icon controls keep their promises', () => {
   test('a selected choice on a blue question fills with contrasting sun and preserves the readable title', () => {
     const choice = part('Choice');
     assert.match(choice, /const sunny = on === 'blue';/);
-    assert.match(choice, /const fill = selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/);
+    // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
+    assert.match(choice, /const fill = filled \? \(sunny \? colour\.sun : accent\.brand\)/);
     const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
     const boldChoice = readFileSync(join(SRC, 'onboarding', 'BoldChoice.tsx'), 'utf8');
     assert.match(boldChoice, /const fill = tone \? \(selected \? c\.violet : c\[tone\]\) : selected \? c\.lavender : c\.paper/);

@@ -33,7 +33,7 @@ import { IconAction, Card, Field, GhostButton, Label, OutlineButton, PillButton,
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
-import { paper, radius, space, type, HIT } from '../theme.ts';
+import { radius, space, type, HIT } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from './gate.ts';
 import { loadMoments, saveMoment, type RealMoment } from './momentsStore.ts';
 import {
@@ -51,9 +51,11 @@ import {
   SEE_PLANS,
   detailCap,
   kindOf,
+  prefillFor,
   seedFor,
   type RealMomentKey,
 } from './realMoments.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /**
  * One moment the learner could bring, as a white cell on the page.
@@ -84,17 +86,23 @@ export function RealMomentScreen({
   onStart,
   onSeePlans,
   initialTextMode = false,
+  initialDetail,
 }: {
   onBack: () => void;
   /** The seed the conversation opens on. The navigator carries it to the route. */
   onStart: (seedTopic: { fr: string; en: string }, textMode: boolean) => void;
   onSeePlans: () => void;
   initialTextMode?: boolean;
+  /** Words typed on Explore's "Prepare for something real" (B1), shown in the field. */
+  initialDetail?: string;
 }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const { recheck } = useLive();
   const { user } = useAuth();
-  const [key, setKey] = useState<RealMomentKey | null>(null);
-  const [detail, setDetail] = useState('');
+  const [prefill] = useState(() => prefillFor(initialDetail));
+  const [key, setKey] = useState<RealMomentKey | null>(prefill.key);
+  const [detail, setDetail] = useState(prefill.detail);
   const [mode, setMode] = useState<'speak' | 'type'>(initialTextMode ? 'type' : 'speak');
   const starting = useRef(false);
   const [planError, setPlanError] = useState(false);
@@ -179,8 +187,8 @@ export function RealMomentScreen({
 
   return (
     <ScrollScreen avoidKeyboard header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{REAL_MOMENT_TITLE}</Text>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REAL_MOMENT_SUB}</Text>
+      <Text accessibilityRole="header" style={[type.title, { color: t.text }]}>{REAL_MOMENT_TITLE}</Text>
+      <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{REAL_MOMENT_SUB}</Text>
 
       {/* The plan, said before anything is filled in (Stage 3A). One notice,
           four answers: checking, could not check (a retry, the draft kept),
@@ -188,7 +196,7 @@ export function RealMomentScreen({
           never offered an upgrade. */}
       <Card tone="journal" style={st.detail}>
         <Label>Included with Max</Label>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Choose your situation and practise with your tutor before it happens.</Text>
+        <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>Choose your situation and practise with your tutor before it happens.</Text>
         {allowed === null && <Text accessibilityLiveRegion="polite" style={st.planLine}>{planError ? PLAN_READ_FAILED : PLAN_CHECKING}</Text>}
         {planError && <IconAction layout="inline" icon="refresh" label="Check my plan again" onPress={() => setPlanAttempt((attempt) => attempt + 1)} />}
         {allowed === false && (
@@ -230,7 +238,7 @@ export function RealMomentScreen({
             returnKeyType="done"
             multiline
           />
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{detail.length}/{detailCap(kind)} characters. Include who you will speak to and what you need to say.</Text>
+          <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{detail.length}/{detailCap(kind)} characters. Include who you will speak to and what you need to say.</Text>
         </View>
       )}
 
@@ -298,11 +306,12 @@ export function RealMomentScreen({
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   kinds: { marginTop: space(4), gap: space(2) },
   cell: { flexGrow: 1, flexBasis: 150, minHeight: HIT },
   moment: {
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
     borderRadius: radius.row,
     padding: space(4),
     minHeight: HIT,
@@ -311,14 +320,15 @@ const st = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  chosen: { borderColor: paper.ink },
+  chosen: { borderColor: t.text },
   detail: { marginTop: space(5) },
   action: { marginTop: space(6), gap: space(3) },
   gate: { marginTop: space(3), gap: space(3) },
-  gateLine: { ...type.body, color: paper.ink },
-  planLine: { ...type.small, color: paper.ink, marginTop: space(2) },
-  checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
+  gateLine: { ...type.body, color: t.text },
+  planLine: { ...type.small, color: t.text, marginTop: space(2) },
+  checking: { ...type.small, color: t.muted, textAlign: 'center', marginTop: space(2) },
   offline: { marginTop: space(3), gap: space(3) },
-  offlineBody: { ...type.body, color: paper.ink },
+  offlineBody: { ...type.body, color: t.text },
   again: { marginTop: space(7) },
 });
+}

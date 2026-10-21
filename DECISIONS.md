@@ -154,3 +154,148 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   production voice acceptance. Conservative unmatched speech is left unchanged.
 - Sources: [live voice](docs/LIVE_VOICE.md), [brain](docs/TUTOR_BRAIN.md),
   [verification plan](docs/changes/bold-rhythm.md).
+
+## UI-004 — One design system: Bright Luvani (direction B)
+
+- Date: 2026-10-19
+- Status: accepted
+- Decision: Luvani has one design system, direction B ("Bright Luvani"). It
+  replaces the C2 "bold rhythm" look, the Luvani theme on the paywall and account
+  screens, and the earlier revamp B composition. DESIGN.md is rewritten as that
+  one system. Old token names (`boldRhythm`, `mainApp.light`, `boldType`,
+  `paper.lineOnCard`) stay as aliases until their screens move (A2 parts, A3 nav).
+- Reason: three systems running at once let the same role drift into several
+  values, and the founder approved direction B as the single target.
+- Consequence: screens are not restyled by this entry. Outfit stays the only
+  face, the contrast floors stay, and dark mode stays off (`DARK_MODE_ENABLED`
+  false, `mainApp.dark` kept). Superseded on dark mode by UI-008 (2026-10-20),
+  which turns it on behind per-route pins. Learner-facing stages are Starter, Basics,
+  Everyday, Chatting and Confident; CEFR stays internal.
+- Sources: [DESIGN.md](DESIGN.md#one-system-bright-luvani), founder approval
+  2026-10-19.
+
+## UI-005 — Consolidate the tokens and allow one soft lift
+
+- Date: 2026-10-19
+- Status: accepted
+- Decision: fold duplicate values into one each. Muted text #655F77 becomes
+  `paper.inkSoft` #5C5A74. Hairlines #EADFCB and #DCD2C4 become one `paper.line`
+  #F0E6D6. The C2 sand #EFE6D9 becomes `paper.inset` #F5EEE2. Add
+  `paper.inkOnPastel` #4A4766, `colour.mintWash` #D4F5E5, `colour.mintWords`
+  #1F7A52, `colour.bluePressed` #2A20B0 and the `pastel` table (butter, lavender,
+  peach, sage). Add one shadow token, `shadow.lift` (y 12, blur 24, spread -16,
+  ink at 0.45 via `liftInk`), for illustrated Explore cards only, reversing the
+  no-shadow rule for that card. Type: `title` 34/38 ExtraBold, `heading` and
+  `cardTitle` ExtraBold, new `eyebrow` 13/18 Bold. Radii unchanged.
+- Reason: one value per role, and the B screens need a pastel secondary ink, a
+  green that can letter words, a pressed blue and a lift for the Explore art.
+- Consequence: every new text pair clears 4.5 (inkOnPastel 6.5 to 7.3 on the
+  pastels, mintWords 5.3 on white and 4.5 on mintWash, inkSoft 5.8 on inset).
+  The softer hairline sits a Delta-E of 5.8 off the ground, so the hairline's
+  separation floor on the ground drops from 8 to 5; it is decorative and never a
+  control's only edge. The French hero (34) may now equal the screen title
+  rather than exceed it. `palette.test.ts`, `theme.test.ts` and `layout.test.ts`
+  pin the new values.
+- Sources: [DESIGN.md colour](DESIGN.md#colour), `apps/mobile/src/palette.ts`,
+  `apps/mobile/src/theme.ts`.
+
+## UI-006 — Five tabs: Today, Explore, Speak, Practice, Journey
+
+- Date: 2026-10-19
+- Status: accepted (lands in A3)
+- Decision: the signed-in app moves from four tabs to five, labelled Today,
+  Explore, Speak, Practice and Journey. Route names stay `Home`, `Explore`,
+  `Tutor`, `Practice` and `MyFrench` so links and tests keep working.
+- Reason: direction B gives exploring scenes its own home and names progress as
+  a journey rather than a score.
+- Consequence: the tab bar, its tests and the DESIGN.md tab table change in A3,
+  not before. Profile still opens from the avatar and Friends stays a Profile
+  route.
+- Sources: [DESIGN.md composition rules](DESIGN.md#composition-rules).
+
+## UI-007 — Phase B content honesty and the lock seam
+
+- Date: 2026-10-20
+- Status: accepted (Phase B, B0 to B6)
+- Decision: a direction B artboard line with no data behind it is dropped or
+  reworded, never filled. Today has no Coming up card until Phase C stores the
+  event, its checklist and Not now. Speak's twist reads "Same scene, a bit less
+  help" and is offered only when `replayRung` would really start with less help;
+  authored twists wait for D2. "Comes up often" is hidden on Practice and Your
+  fixes until Phase C stores a correction reason with each fix
+  (`COMES_UP_OFTEN_ENABLED`). Explore's interest card says "picked for you",
+  because interests are not stored. The scene preview says "might say" only
+  over an authored opener bundled on the device, and "You could start with"
+  everywhere else. Today's week says "minutes practised" (typed conversations
+  have a length too) and "phrases saved" (a card added this week is not yet
+  retained). A phrase says "Used n times" from its own counter, because nothing
+  counts distinct conversations.
+- Decision: lock badges come only from `access/featureAccess.ts`, which mirrors
+  `purchases/featureLocks.ts` (`featureLockedNow`, failing open). No surface
+  decides a lock inline; a route-less lock opens the Wall through `tapThrough`.
+- Decision: stage words replace CEFR on learner surfaces. Starter (A0) and
+  Basics (A1) name the stage on Journey, Speak and guided mission previews.
+  "Starting out" stays only as Explore's tier filter and a daily scene's tier.
+- Reason: Luvani never claims what it has not measured or stored, and a lock a
+  learner meets must agree with the billing standing that decides it.
+- Consequence: each Phase C store (events, correction reasons, interests) must
+  bring its line back with a test, and a new lockable surface reads the seam.
+- Sources: [DESIGN.md composition rules](DESIGN.md#composition-rules),
+  `apps/mobile/src/access/featureAccess.ts`.
+
+## UI-008 — Canvas fidelity, dark mode from M3, and the Codex tab bar
+
+- Date: 2026-10-20
+- Status: accepted (fidelity rebuild, steps 0 to 13 on `claude/direction-b`)
+- Decision: every direction B screen is rebuilt to its canvas artboard
+  (https://claude.ai/artifact/KtAoFKnzU7SWjWq6fatA7A, version 1792530488-069b):
+  layout, slots, type sizes, colours, radii, spacing and the canvas art. The
+  artboard wins over DESIGN.md on layout; a slot with no data keeps its place
+  and drops only the missing number. Phase B's reviewed wording stays
+  ("saved", "practised", "Uses", relative days, commas for middots).
+- Decision: dark mode returns for the main app (`DARK_MODE_ENABLED` true). The
+  dark values are the Figma "M3 · Reviewed main app · Dark" page (file
+  sjAwoGinWQKvhGrWbgMO18, node 307:364), already held in `mainApp.dark`: pastel
+  tiles become M3's tints, the yellow hero becomes the M3 hero with a gold
+  button, the ink primary becomes violet. Appearance follows the device, with a
+  Settings row (Follow device, Light, Dark). Onboarding stays pinned light. The
+  paywall keeps its current design and structure and only gains a dark variant.
+- Decision: the tab bar is Codex's floating capsule (Figma `C2/Main2/Navigation`,
+  node 292:1103): an ink capsule in both themes, a violet selected cell with a
+  gold bulk glyph and a cream label, Codex's Iconsax icons, B's labels.
+- Decision: three held cards show now with the data that exists. "Comes up
+  often" uses error patterns with authored copy and never a count. Today's
+  "Coming up" uses the latest remembered life event, with no countdown and no
+  checklist; Not now hides it for the app session. Speak's topic chips use
+  remembered interests and events, falling back to suggestions. Review keeps no
+  count and no intervals. The live room's pill gives the scene's own length,
+  never the allowance. A speaker on the learner's own line plays the tutor's
+  voice, labelled "Hear it said". "Works offline once unlocked", "You asked for
+  less help this time", "free" on Café basics and "free, offline" on live
+  situations stay hidden until their data exists.
+- Reason: the founder rejected Phase B because it did not look like the canvas,
+  and asked for M3's dark mode and Codex's tab bar.
+- Consequence: colours reach screens through `useB()` rather than static
+  imports as each screen is rebuilt; every hex stays in `palette.ts`; contrast
+  tests cover both themes; each step is proven by light and dark simulator
+  screenshots beside its artboard before it is committed.
+- Sources: founder answers 2026-10-20 (this session), canvas artboards, Figma M3.
+
+## UI-009 — Direction B review decisions
+
+- Date: 2026-10-21
+- Status: accepted (founder answers to the fidelity review)
+- Decision: Journey's "What you can do" shows no "n of 3 earned" count; abilities
+  carry no count, as before. The live mic is green (mint, with ink on it), not
+  the artboard's sun. Onboarding keeps no visible back button (F352); the
+  phone's back gesture still works. The age check stays after sign-up and the
+  AI-partner consent stays where it is; moving either before the first scene is
+  an age-policy change for another round. Profile's plan card may name the free
+  plan's "5 free minutes of speaking each week", the plan's fixed allowance.
+  Review's "I said it" shows words only, with no microphone glyph, because
+  nothing records. The onboarding line "Speak when you choose" is approved.
+- Reason: each artboard detail was weighed against an existing rule; the
+  founder kept the rule except where the plan's fixed allowance is honest.
+- Consequence: the review page lists these as decided; `live/liveRoomView.test.ts`
+  pins the green mic and `review/cardView.test.ts` pins the said-it button.
+- Sources: founder answers 2026-10-21, https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a.

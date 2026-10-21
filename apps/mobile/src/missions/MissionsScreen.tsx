@@ -43,8 +43,11 @@ import { trackProductEvent } from '../analytics/track.ts';
 import { asSentences } from '../copy/spoken.ts';
 import { ListeningPreview } from './ListeningPreview.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 export function MissionsScreen() {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const nav = useNavigation<{
     setParams: (params: object) => void;
     goBack: () => void;
@@ -139,10 +142,10 @@ export function MissionsScreen() {
           <Text style={[type.body, { color: paper.onInk }]}>{first.mission.canDoEn}</Text>
           {first.status !== 'New' && <Text style={[type.small, { color: paper.onInk }]}>{first.status}</Text>}
           <Card style={{ gap: space(3) }}>
-            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>One line to try</Text>
-            {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
+            <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>One line to try</Text>
+            {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: t.text }]}>{line}</Text>)}
             {first.mission.referencePhrases.length > 1 && <IconAction layout="inline" icon="chevron-down" label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
-            {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
+            {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: t.text }]}>{line}</Text>)}
             <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
           </Card>
           <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={{ alignSelf: 'center' }} />
@@ -158,7 +161,7 @@ export function MissionsScreen() {
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
         <Text style={st.access}>{view.access}</Text>
         {(['A0', 'A1'] as const).map((level) => <View key={level} style={st.rows}>
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{level}</Text>
+          <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{level}</Text>
           <Ledger accessibilityLabel={`${level} scenes`}>
             {view.cards.filter((card) => card.mission.cefr === level).map((card) => <LedgerRow
               key={card.id} glyph={<SceneMark state={earnedMissionIds(progress ?? []).has(card.mission.id) ? 'earned' : card.primary ? 'here' : 'ahead'} />}
@@ -174,7 +177,7 @@ export function MissionsScreen() {
           <IconAction layout="tile" icon="keyboard" label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
           <IconAction layout="tile" icon="chat" label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
           </IconActionRow>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
+          <Text style={[type.small, { color: t.muted }]}>{LESSON_DOOR.minutes}</Text>
           {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
         </View>
       </View>
@@ -182,17 +185,19 @@ export function MissionsScreen() {
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   warmup: { marginTop: space(4), gap: space(3) },
   scroll: { paddingTop: space(2), paddingBottom: space(6) },
-  headline: { ...type.display, color: paper.ink },
-  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  promise: { ...type.small, color: paper.ink, marginTop: space(2) },
-  microphoneNotice: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  access: { ...type.small, color: paper.ink, marginTop: space(2) },
+  headline: { ...type.display, color: t.text },
+  sub: { ...type.body, color: t.muted, marginTop: space(2) },
+  promise: { ...type.small, color: t.text, marginTop: space(2) },
+  microphoneNotice: { ...type.small, color: t.muted, marginTop: space(2) },
+  access: { ...type.small, color: t.text, marginTop: space(2) },
   hero: { marginTop: space(5), gap: space(3) },
   heroArt: { alignSelf: 'center' },
   rows: { marginTop: space(5), gap: space(2) },
-  checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
+  checking: { ...type.small, color: t.muted, textAlign: 'center', marginTop: space(3) },
   footer: { marginTop: space(5), gap: space(1) },
 });
+}

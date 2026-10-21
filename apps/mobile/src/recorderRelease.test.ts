@@ -167,6 +167,8 @@ function mount(path: string, exported: string, platform: Platform) {
     },
     '../components.tsx': { IconAction: 'IconAction', GhostButton: 'GhostButton', MicGlyph: 'MicGlyph', Press: 'Press', SpeakCircle: 'SpeakCircle' },
     '../theme.ts': { colour: {}, paper: {}, type: {}, space: (n: number) => n * 4 },
+    // 2026-10-21 UI-008: the drill's spoken attempt reads its words colour from the theme.
+    '../main/bTheme.tsx': { useB: () => ({ muted: 'muted', text: 'text' }) },
     // A live microphone silences every haptic in the app until its mute is lifted.
     '../motion/hapticPreference.ts': {
       silenceRecordingHaptics: () => {

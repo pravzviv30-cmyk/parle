@@ -1,266 +1,335 @@
 # Design
 
-## 14 October 2026 · C2 Bold rhythm
+<!-- Recorded from the built artifact, not from intentions. Every value below is
+     read out of apps/mobile/src/palette.ts and theme.ts, and palette.test.ts
+     fails if this document and the code disagree on a colour. -->
 
-The current C2 presentation follows the approved
-[Figma flow](https://www.figma.com/design/sjAwoGinWQKvhGrWbgMO18?node-id=58-364).
-It supersedes the C and Revamp B composition, illustration and onboarding
-timings recorded below. Shared product rules, earned evidence, account ownership
-and server admission remain in their existing owners. Verification and remaining
-release holds belong to the [change plan](docs/changes/bold-rhythm.md).
+## One system: Bright Luvani
 
-`boldRhythm` in [palette.ts](apps/mobile/src/palette.ts) supplies violet, sun,
-warm paper, navy ink and white, with lavender, peach, sage and butter surfaces.
-Violet pages use white words and gold primary actions; paper pages use navy words
-and violet primary actions. Muted words belong on light surfaces. C2 cards turn
-24 points, the composer turns 22, and primary buttons are at least 52 points high
-with 20-point corners. Shared `Press` owns responsive press feedback; quiet
-secondary actions and mode controls retain a 44-point touch target.
+Luvani has one design system, direction B, "Bright Luvani" (DECISIONS.md,
+19 October 2026). It replaces the three that ran side by side: the C2 "bold
+rhythm" onboarding look, the Luvani theme on the paywall and account screens,
+and the earlier revamp B composition. The tokens are already one set. Screens
+move onto the shared parts in two later steps: A2 rebuilds the buttons and
+cards in `components.tsx`, and A3 changed the tab bar to five tabs. The old
+token names (`boldRhythm`, `mainApp.light`, `boldType`, `paper.lineOnCard`)
+stay exported as aliases, so nothing breaks and nothing drifts.
 
-`boldType` in [theme.ts](apps/mobile/src/theme.ts) uses bundled Outfit:
-display 44/48 ExtraBold, title 30/34 Bold, heading 22/27 SemiBold, body 17/23
-Regular, small 13/18 Regular and label 16/21 Medium. The returning-user title
-is 32/36, Well done is 46/52 and the achievements heading is 36/39.
-Type scales with the OS; compact layouts reduce decoration and scroll content
-rather than truncate words. The C2 frame has 24-point gutters and a reading
-column at most 560 points wide.
+The world is warm paper, white cards, one deep ink and Outfit. Four saturated
+colours lead a screen or report the tutor's state, and four soft pastels
+(butter, lavender, peach, sage) carry illustrated Explore cards. Chartreuse is
+a highlighter pen, never a surface. One soft lift sits under an illustrated
+Explore card and nowhere else. There are no gradients, no uppercase metadata,
+no italic French and no nested white cards.
 
-Purpose, interests, French level, confidence, practice focus and daily time
-share the tutor page's richer sage, peach, lavender and butter answer cards.
-Their plan-edit choices use the same palette order. Answer titles use 18/24
-Outfit SemiBold; selected cards turn violet with fully opaque white words and
-a fixed gold check. Question cards are at least 72 points high with 24-point
-corners. Selection changes paint without changing the card's footprint, and
-the rounded outer target retains visible keyboard focus. The shared raised
-press spring and one selection glint own feedback. Next keeps its deliberate
-action, disabled face and readiness fade, adding a gold arrow on the live
-violet face; the label can wrap at larger text sizes. Separate privacy opt-ins
-retain their quiet neutral presentation.
+The game layer is real and earned: the streak (`StreakScreen`), the level and
+its XP (`game/LevelXpCard`), today's quests (`game/QuestsCard`) and badges.
+Every number comes from saved records, never from a guess, and a missed day is
+never a punishment. There are no visible Friends ranks and no rank names.
 
-Each question now leads with a topic-colour illustration band above the title,
-with soft static rings and a curved paper edge inspired by the founder's
-attached onboarding examples. The shared frame lets only this decoration bleed
-beyond its gutters; the question, answer cards and bottom action retain their
-aligned reading column. The band is 168 points high, reducing to 118 in the
-shared compact/large-text mode. The founder's later request supersedes the
-first recomposition of existing exports with six genuinely redrafted local SVG
-drawings in [c2QuestionDrawings.ts](apps/mobile/src/onboarding/c2QuestionDrawings.ts).
-The cloud family guides their friendly organic style, without requiring a cloud
-on every page: a folded-map explorer, an inviting book, a growing plant,
-a welcoming speech character, two conversation partners, and a relaxed gold
-clock holding a violet mug. Each uses a dominant expressive character, cohesive
-props, rounded navy strokes and flat layered depth; supporting marks are sparse.
-The local drawings use the C2 palette and a fixed 280 × 180 source canvas. The
-shared renderer passes its existing closed 4.8-second phase to stable semantic
-vector groups: the map offers its compass, the book opens its hands, the plant
-sways its leaves and tips its can, confidence opens its arms with a 1.2% sound
-badge pulse, the partners lean toward each other, and the clock raises its mug
-with gently drifting steam. Joint rotations are 1–3 degrees; held props share
-their arm's pivot and motion across rear/front paint planes. Faces stay rigid
-with their bodies, and the clasp and feet remain grounded. Memoized, namespaced
-XML never changes per frame. The whole-scene float remains 1.8 rendered points
-normally and about 1.1 in compact layouts. Conservative painted-geometry
-envelopes cover every gesture angle, scale and lift plus the float. Gestures
-return to the authored pose at both loop ends with continuous velocity; live
-Reduce Motion shows that still pose. Selection never resets the clock; sheets,
-screen activity and foreground retain the shared pause/resume guards. The curve,
-title, cards and action remain still while artwork loops.
+Learners see five stages: Starter, Basics, Everyday, Chatting and Confident.
+CEFR levels (A0, A1 and up) stay internal, in code and in these docs.
 
-Meet your tutor uses the C2 sage, peach, lavender and butter card grounds,
-larger navy names and a violet selected card with white words and a gold check.
-Listen is integrated into each card as a violet pill, turning gold on the
-selected tutor. Its shared press spring, real playback progress and active
-speaker/loading icon supply feedback; loading, pausing and resuming do not
-change the control's width. At large text the identity and Listen control stack.
-Listening stays separate from the tutor selection and the next-page action.
-All six tutor portraits gently lift 1.1–1.4 points and sway by 0.8 degrees in
-the same closed 4.8-second C2 cycle. Only the exported portrait layer moves;
-its card, name, selection check and controls stay fixed. The module-level scene
-definitions keep their clocks through selection and playback changes, with the
-same activity, foreground and live Reduce Motion handling as other C2 art.
+Dark mode is on for the main app (DECISIONS.md UI-008). Every signed-in route
+is in `DARK_READY` since 21 October 2026 (step 12b converted the screens with no
+artboard to the tokens); onboarding and the first scene stay light by rule. See
+[Dark mode and the B tokens](#dark-mode-and-the-b-tokens-ui-008).
 
-The original illustration family contains 127 local SVG layers exported from Figma,
-with asset provenance, dimensions and hashes in
-[manifest.json](apps/mobile/assets/c2/manifest.json). The shared
-[C2Scene.tsx](apps/mobile/src/onboarding/motion/C2Scene.tsx) composes those
-layers and the locally redrafted question vectors using Reanimated through the
-existing `motion/drive.ts`. The new drawings are repo-authored SVGs, not additional
-Figma exports; the original 127 assets and hashes remain unchanged. Closed 4.8-second
-loops ease between Rest and Float in 2.4 seconds each, ending at the same pose
-and velocity. Screen activity, `SceneActivity`, AppState and live Reduce Motion
-control the clock. Inactive/background scenes pause at their current pose;
-reduced or unknown motion preference shows still art. Ordinary form changes
-do not remount the clock or reset answers, progress or transcript history.
-Plan artwork also pauses while its edit sheet is open, retaining the mounted
-scene and phase for resumption. Unanswered-question guidance occupies the
-existing Next button face so the footer and scrolling viewport do not jump.
+### Layout
 
-Page changes use the shared interruptible 300 ms fade/translation, with one
-synchronous advancement lock. Progress fills four route-derived stages and
-does not restart when artwork loops; Sign in, account welcome and Home have no
-onboarding strip. Welcome to Luvani is a static page with an explicit Continue.
-Only its logo ring moves: it starts after 800 ms and rotates continuously over
-8.8 seconds. The page never dismisses itself.
+Layout follows viewport size, safe areas, font scale and rotation, never phone
+model names. Compress decorative art first, keep every target at least 44
+points, and let reading and action regions scroll at large text or in
+landscape. Frames have 24-point gutters and a reading column at most 560 points
+wide; on the web the app is a 460pt centred column. The full billed amount and
+period stay near a purchase action, and large text is never capped to fit.
 
-All live tutor surfaces use the shared C2 room: a soft blue/lavender orb above
-left tutor and right learner chat bubbles, a transcript visibility control,
-a bottom composer in typing mode, and a compact Speaking/Typing control beside
-End session. Focus or a visible keyboard hides the mode/end controls. Tapping
-the composer reveals the latest sent learner bubble, falling back to the
-latest tutor bubble only before the learner has sent a message. That selected
-bubble remains above the composer through repeated keyboard layout changes;
-oversized text starts at its beginning. A manual scroll takes control, and
-repeated keyboard signals cannot pull the reader back down. New lines follow
-while the reader is near the end; reading older lines preserves that position
-and offers Jump to latest. Practice support starts collapsed and opens only
-through the learner's explicit toggle; replies and mode changes never expand
-it. Keyboard editing hides it temporarily while retaining that choice.
-A text-only grant cannot turn on speech; a voiced session can pause and resume
-within its existing room. A tutor's departure from an otherwise connected room closes
-capture and shows the existing connection failure; it preserves an earned
-recap, and a temporary reconnect does not trigger this failure. See
+### Composition rules
+
+- Five tabs: Today, Explore, Speak, Practice and Journey (route names `Home`,
+  `Explore`, `Tutor`, `Practice`, `MyFrench`). Profile opens from the
+  labelled avatar; Settings is its first row and optional Friends follows it.
+  Route identifiers and the Friends URL stay stable.
+- Every view model below lives in a plain module (`home/todayView.ts`,
+  `main/exploreView.ts`, `tutor/speakTabView.ts`,
+  `practice/practiceTabView.ts`, `journey/journeyView.ts`,
+  `scenes/scenePreview.ts`, `practice/fixesView.ts`,
+  `journey/thenNowView.ts`); the screens are layout. A design line with no
+  data behind it is not drawn, and a section with nothing true to say is
+  hidden rather than filled.
+- Lock badges come from one seam. A surface draws `LockBadge` only when
+  `access/featureAccess.ts` answers locked, and that seam mirrors
+  `purchases/featureLocks.ts` (`featureLockedNow`, failing open). A locked
+  item that has no route of its own opens the Wall through `tapThrough`.
+- Stage words, never CEFR: Starter (A0) and Basics (A1) on Journey, Speak and
+  the scene preview of a guided mission, then Everyday, Chatting and Confident
+  as Journey's future stages that claim nothing. "Starting out" survives only
+  as Explore's tier filter chip, and a daily scene's tier.
+- Help is said in words only, the ladder's four: Line given, Choices, Hint and
+  On your own (`HELP_WORDS`). No number, percentage or dot stands for help.
+- Live speaking time is a band in words (plenty, a little, none) from
+  `purchases/planStatus.ts`, never a count of minutes or a date. A scene's
+  length is an estimate said as "about n min".
+- Today, top to bottom: "Bonjour, Name." (one word all day, no question under
+  it), a white stats row of three tiles (streak, today's goal ring, numbered
+  level) with decorative discs, the sun next scene card with its stage place
+  ("Next scene, 2 of 3") and a "Uses" chip only when the last conversation's
+  phrase is one of the scene's lines, today's three quests ("n of 3 done", XP
+  chips in butter and sage), one fix to try (English only before the try, and
+  only when the drill would open on an exercise that hides the French; "Your
+  line from {day}" when the conversation's day is known, and the drill then
+  shows the moment after the first answer), today's phrase on lavender, Coming
+  up (the latest life event the tutor remembers, "{when}, {tutor} remembers",
+  the trial pill from the tutorMemory lock, Rehearse now to RealMoment and Not
+  now for this app session; no countdown or checklist until Phase C; hidden
+  with no event or with memory paused), and the blue week card ("n minutes
+  practised, n phrases saved" over seven local days, with "See your week" in
+  the Monday line's slot and the cloud-heart drawing; absent with no evidence).
+  Rebuilt to the artboard in light and dark on 2026-10-20 (UI-008); the blue
+  practice and review leads, "Where you're starting" and the friends card left
+  Today. Loading never claims the learner has no history.
+- Explore: search, then four filter chips (Starting out, Under 5 min, Free,
+  offline, With your tutor), Prepare for something real with its badge, the
+  topic tiles, situations, a blue "Live with your tutor, picked for you" card
+  from the learner's own answers, a little practice, and words and phrases.
+  Each situation opens the scene preview. Rebuilt to the artboard in light and
+  dark on 2026-10-20 (UI-008) from `explore/ExploreParts.tsx`, with the art,
+  pastels and badges decided in `main/exploreArt.ts`: the chips and A little
+  practice (every real door) run off the right edge; the topic tiles carry
+  their canvas drawing on a circle and floor ellipse with the lift; Take the
+  conversation further shows the lavender "Free sample" pill or the round lock
+  from the Explore access labels. "free, offline" never appears on a live
+  situation.
+- Scene preview: a full-bleed `heroGround` band at the top (sun in light,
+  plum in dark; under the status bar, radius 0 0 36 36, the back button and
+  the scene's topic drawing inside it, the café table where the canvas has
+  none) with topic and stage, the English and French
+  titles and minutes; what you'll practise; "The barista might say" only where
+  an authored opener ships on the device, otherwise "You could start with" the
+  learner's own opening line; the lines with hear buttons; the 56pt Start
+  with the tutor; and the 48pt free practice of the lines, which uses no speaking time. An
+  unknown id says so and returns to Explore.
+- Speak (rebuilt to B-Speak in light and dark, UI-008, 2026-10-20): the
+  subtitle names the tutor; the `heroGround` Recommended card carries the
+  café drawing, the scene's goal, its minutes and "Uses speaking time" as
+  `heroChip` pills, the Speak/Type radios on the `butter` track (the chosen
+  cell on `heroChip` with a tick), the two preference chips outlined in
+  `heroText`, "Prepare first, free" to the preview and the 54pt `heroCta`
+  Start; the stage's starter scenes as one card of rows on sage, sun or
+  lavender tiles with the check, the brand Next pill or a chevron; "Same
+  scene, a bit less help" on a card with a dashed `periwinkle` edge only when
+  a replay would really start with less help (the twist; authored twists wait
+  for D2); the `brand` Talk about anything card whose chips are the learner's
+  remembered interests and life events (else their own suggestions) and their
+  own topic on `violet2`; the tutor row (orb, Change voice, lavender speaker;
+  the signature shows while the sample plays); three drawn pastel tiles
+  (three, two or one to a row from `tileColumns`, so a title never breaks
+  inside a word); and the minutes band with See your minutes.
+- Practice leads with the learner's conversations: a search over this page's
+  titles and summaries (on the device), topic tabs, Pick up where you stopped,
+  Comes up often (one authored pattern, never a count; the card opens Your
+  fixes and "Practise this" a drill when one exists), the newest conversation
+  as the large butter-banded card (its fixes, three steps, Talk about it
+  again) and older ones as small cards (Practise it, Talk again), then the
+  Mix, Saved phrases ("Used n times" from each card's own counter, never a
+  count of conversations) and Saved conversation text, then the sound guide
+  and compare. No minutes on a step, the mix or a pattern. With no
+  conversation, the empty page offers a first one, Café basics (its cost
+  line, no "free") and Sounds of French, each with the round lock when the
+  seam says `sounds` is locked, and the dashed saved box. Rebuilt to
+  B-Practice and B-Empty-Practice in light and dark (UI-008, 2026-10-21).
+  Shadowing plays the tutor's bundled audio, records a temporary local take
+  and offers comparison without judging it; finishing records an active date
+  only after a durable write.
+- Your fixes: This conversation or All conversations, then Comes up often.
+  Attempt before reveal: the first untried fix is the try-first card (its
+  English only, Say it or Type it), every other untried fix a collapsed row
+  with Try it, and the learner's line, the better French and the reason show
+  only after a try. Phrases from the conversation follow, and Practise all
+  fixes is free. Rebuilt to B-Fixes in light and dark (UI-008, 2026-10-21).
+- Journey ("Your journey"): with no finished scene, the butter card with the
+  map-route drawing and its one 46pt "Start {scene}". Otherwise a full-bleed
+  brand band (stage eyebrow, title, card-filled avatar, the sun Level pill with
+  its 8pt XP bar, and up to three white stat tiles: days in a row, min
+  practised, phrases saved; an unread figure is left out), Where you are (five
+  38pt nodes on a track, the current one brand with a lavender ring and
+  "You’re here" under its name), What you can do (check, half ring or empty
+  ring, with no "n of m" count), Then and now (first and best cells, dashed
+  until there is a best), French you've used as lavender chips, the mint Help
+  you needed card with the tutor-orb, Your sounds (letter tiles, one Practise
+  link) only with a saved check, Your week in words as three dot rows, and the
+  Postcards and Badges tiles. A locked section keeps its heading and badge with
+  one teaser line. Rebuilt to B-Journey and B-Empty-States in light and dark
+  (UI-008, 2026-10-21); the Badges sheet stays light until its parts are.
+- Then and now: the help legend (four bars: Line given, Choices, Hint, On your
+  own), then one card per guided scene with its icon tile, the first try we
+  still have next to the best (each a help word, a bar and its date), a dashed
+  "Try again to see your best here" and a 44pt Try it again (to the scene
+  preview) while there is no best, and a one-line card for a scene not tried.
+  Free conversations do not appear, and the footer says why. Rebuilt to
+  B-ThenNow in light and dark (UI-008, 2026-10-21).
+- Review (B-Review, B-ReviewReveal, UI-008, 2026-10-21, light and dark): the
+  butter ground (M3 ochre in dark) and the 44pt close disc, with the header's
+  centre left empty because the founder holds the "3 of 5" count back. The
+  white card (radius 28) carries the tag pill, "From {conversation}" when the
+  phrase came from a pack's correction, "How would you say this in French?",
+  the prompt at 27 bold and the cafe-table drawing in its corner; I said it
+  (56, mic glyph only, nothing records) and Type it (50, which opens the field)
+  sit under it with "Have a go first. The answer shows after." Turned over, the
+  French sits in the mint panel with a 48pt speaker, "Also fine:" shows the
+  drill bank's other accepted French when there is one, "You said it" or "You
+  typed" follows, and the grades are three filled 64pt tiles (Again, Got it,
+  Easy) with no interval line, held by the founder.
+- Drill (B-Drill, UI-008, 2026-10-21, light and dark): the lavender ground
+  (plum in dark), the close disc, the sitting bar where Phase B drew it and
+  "Phrase four of eight" only in a practice sitting. The build exercise is the
+  brand eyebrow, the English at 26/800, "Tap the words in order.", the answer
+  box (2pt periwinkle) with brand word tiles, and the bank, where a placed word
+  leaves a dashed slot and a free word is a white tile on a ring lip. Other
+  exercise kinds keep their cards, drawn from the theme.
+- Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
+  padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
+  button. Review and the drill bank with nothing due use cloud-cheer with Done;
+  Speak's away card is lavender with coffee-break, the retry and the bundled
+  offline line; Speak's out-of-time card (clock-calendar) shows only on the
+  free plan with nothing left, says the refill in the plan band's own words
+  and opens the plans. The phrase, conversation and memory pages use the
+  phrasebook drawing with Choose a scene; those three routes follow the device
+  since 2026-10-21 (UI-008 step 12b).
+- Live rooms keep the real start, pause, type, help, slower, English and leave
+  paths. Since 2026-10-21 (UI-008, B-Live and B-LiveHelp) the room keeps its
+  blue ground in both themes: the leave disc, the scene and its pace ("About N
+  min", the scene's own pace, never the allowance), the goals strip (done,
+  current, to do), the tutor-orb art pulsing with the real room levels, the
+  tutor's last line in a card bubble and the learner's words in sun, then
+  Type, the sun mic and Help. Help opens the cream sheet (the M3 ground in
+  dark): what the tutor asked, the ladder Hint, Choices, Line given over the
+  live rung, the rung's content, "More help: show the line", "Say your choice"
+  and the footnote; Simpler, Give me a moment and In English sit under it.
+  The full transcript stays one tap away. Parts in `live/LiveParts.tsx`, rules
+  in `live/liveRoomView.ts`.
+- The end of a conversation reads After a session (blue: the cheer, "Bien
+  joué.", minutes, new phrases and XP, the line said well with "Hear it said",
+  the day and this week's bars), then the Celebration only for a core-earned
+  can-do (blue: "You can now", the ability, the postcard, "Next:"), then the
+  Recap (lavender band with the goals, your lines with "Hear it said", one
+  phrase kept on the sun card, small fixes), a sound page only for a saved
+  check and a next page only when there is a useful next action. "Hear it
+  said" is the tutor's device voice, never a recording of the learner.
+  Closing is always there. Parts in `recap/RecapParts.tsx`, rules in
+  `recap/afterSessionView.ts`.
+- Voice, name and reminder choices open on a modal sheet over their page.
+  Choosing updates the choice; Done closes it. Hear is separate from choosing.
+- Paid amounts come from the catalogue and prices from the store. A room that
+  runs out of minutes opens the central plans wall. Purchase success needs a
+  freshly confirmed entitlement.
+- French carries its language and sits larger than its English gloss. One
+  primary pill per door, followed by quiet secondary actions.
+
+### Onboarding and first arrival
+
+The onboarding flow follows the approved
+[Figma flow](https://www.figma.com/design/sjAwoGinWQKvhGrWbgMO18?node-id=58-364);
+release holds live in the [change plan](docs/changes/bold-rhythm.md). Its
+colours are the B pastels and colours above, reached through the
+`boldRhythm` alias table, and its type is `boldType`, which A2 folds into the
+one scale.
+
+**Direction B rebuild (2026-10-21, UI-008, artboards B-OB-Welcome, B-Question,
+B-OB-Q2 to Q6, B-OB-Plan, B-OB-Tutor, B-OB-Ready, B-OB-FirstScene,
+B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
+[BOnboardingParts.tsx](apps/mobile/src/onboarding/BOnboardingParts.tsx) read
+`useB()`, which resolves to `b.light` outside the main appearance provider.
+
+- **Welcome:** the brand page with the canvas friends drawing on a sun disc,
+  confetti and three French speech bubbles; "A little French." with "A bigger
+  world." in sun (40/800), three deep-blue promise chips and the 60 sun button
+  with its pressed edge.
+- **Questions:** each page bleeds a band under the clock (bottom corners 48):
+  the 6-point progress bar and "n of 6", then a 156 halo and its canvas
+  drawing. Reason is sun with voice-chat, interests brand with phrasebook,
+  level mint with watering-plant, confidence sun with coffee-break, time brand
+  with clock-calendar, focus mint with star-jar. Answer rows are white, radius
+  18, min-height 64 (58 on the reason page, which carries the small icon
+  drawings and no sublines); a chosen row fills brand with a sun tick disc, or
+  a rounded sun square for interests, which are checkboxes.
+- **Plan:** a sun band with map-route and the learner's answers as white chips;
+  then the five stages with the learner at Starter, the first three scenes and
+  the blue How it works card.
+- **Tutor:** a brand band with the canvas orb (never a face); six white voice
+  rows, the chosen one brand, each with a 44 speaker. Hearing never chooses.
+- **Before we start:** a brand band with the orb; an info card with three
+  tinted-disc rows (AI, microphone, what is kept), then the optional choices as
+  50 by 30 switches, off by default.
+- **First scene and Save your plan:** a sun band with the café table and a
+  brand band with the star jar.
+
+The artboards' back discs keep their 44 place empty: onboarding has no visible
+previous control (F352); platform back still goes back. Bands read the top
+inset from the onboarding frame (`useOnboardingTopInset`), and the status bar is
+light on blue bands and dark on sun and mint.
+
+The original illustration family is 127 local SVG layers exported from Figma,
+with provenance and hashes in
+[manifest.json](apps/mobile/assets/c2/manifest.json), composed by
+[C2Scene.tsx](apps/mobile/src/onboarding/motion/C2Scene.tsx) through
+`motion/drive.ts`. Screen activity, `SceneActivity`, AppState and live Reduce
+Motion control the clock; unknown motion preference shows still art. Plan art
+pauses while its edit sheet is open.
+
+Page changes use the shared interruptible 300 ms fade and slide with one
+advancement lock. Progress fills four route-derived stages. Sign in, the account
+welcome and Today have no onboarding strip. Welcome to Luvani is a still page
+with an explicit Continue; only its logo ring turns, after 800 ms, over 8.8
+seconds, and the page never dismisses itself.
+
+Every live tutor surface uses the shared room: a soft blue and lavender orb
+above tutor and learner bubbles, a transcript control, a composer in typing
+mode, and a compact Speaking/Typing control beside End session. Focus or a
+visible keyboard hides the mode and end controls. Tapping the composer reveals
+the latest sent learner bubble and keeps it above the composer through keyboard
+changes; a manual scroll takes control, and reading older lines offers Jump to
+latest. Practice support starts closed and opens only on the learner's tap. A
+text-only grant cannot turn on speech. A tutor leaving an otherwise connected
+room shows the existing connection failure and keeps an earned recap. See
 [live voice](docs/LIVE_VOICE.md#c2-room-presentation).
 
-Earned first-session completion uses a violet Well done page, a celebrating
-cloud and one entry confetti burst. Its achievements page uses the proud cloud
-with a gentle float/heart pulse; day one and Home share the flame family.
-Counts, phrases and completion claims come from actual saved records. A partial
-or interrupted session stays calm, and opening a streak page awards nothing.
-Linked Terms and Privacy notices precede deliberate Start practice, Create
-account/provider actions and repair Continue. The 13+ declaration replaces an
-age-question control; it is not age verification. Known underage refusal,
-processing disclosures and separate optional opt-ins remain enforced.
-Before we start keeps the AI notice and retention summary on the main page;
-provider processing details live in Privacy details and the full policy. The
-practice agreement text and its Terms/Privacy buttons are centred. Create
-account centres the same notice and policy links directly above its bottom
-primary action; the whole footer hides while the software keyboard is open.
-
-When anonymous live admission is disabled, that disclosure keeps the same C2
-layout and offers a deliberate Create account to start action, an existing
-account link and retry. The answered plan and selected tutor survive account
-and Back detours; the current plan takes precedence over a cached signup plan,
-with entered email retained separately. Unsupported speaking has its own
-truthful unavailable state, without an account-upgrade promise. Accepted Terms
-do not create a completed session. After account setup, a pending practice uses
-the existing first-scene primer; actual guest completion retains its earned
-handoff. The shared Home/Speak start rejects duplicate and stale visit taps.
-These controls retain their existing server and account ownership; see the
+An earned first session ends on a blue Well done page with a celebrating cloud
+and one confetti burst, then an achievements page. Counts, phrases and
+completion claims come from saved records; a partial session stays calm, and
+opening a streak page awards nothing. Terms and Privacy notices come before
+Start practice, Create account and repair Continue. The 13+ declaration is not
+age verification. Before we start keeps the AI notice and retention summary on
+the main page. When anonymous live admission is off, the same layout offers
+Create account to start, an existing-account link and retry; the answered plan
+and chosen tutor survive account and Back detours. See the
 [onboarding contract](docs/ONBOARDING.md#account-handoff-when-guest-live-is-unavailable).
 
-### Premium paywall and account (Luvani theme), 19 October 2026
+### Paywall and account
 
-Paywalls, their states, Profile, Settings, Learning preferences and
-Subscription use the main appearance and Outfit. The app currently always
-resolves that appearance to light (cream); the dark palettes stay defined but
-unused until the C2 screens get dark styles, and Settings does not offer a
-display choice (KNOWN_ISSUES F847). The single action is the indigo pill: 56pt
-tall, radius 28. The Yearly/Monthly switch is lavender on `inset`, with the
-chosen segment on `selected`. The trial timeline uses 28pt sunflower markers
-with ink glyphs on a 3pt sun rail at 45% opacity. Cards take radius 20 to 22;
-there is no hero art. The billed amount is the most prominent price. The Day 5
-reminder line appears only when a reminder is actually scheduled. Text links use
-`link`; destructive labels and the purchase-failed title use `danger`.
+Paywalls and their states, Profile, Settings, Learning preferences and
+Subscription use the B tokens through the `mainApp.light` aliases and Outfit.
+The single action is the primary pill. The Yearly/Monthly switch sits on a
+lavender track with the chosen segment white. The trial timeline uses sun
+markers with ink glyphs on a sun rail. There is no hero art. The billed amount
+is the most prominent price, and a reminder line appears only when a reminder
+is really scheduled. Text links use the brand blue; destructive labels and the
+purchase-failed title use `danger`.
 
 - Subscription timelines use real store trial eligibility, duration and local
-  prices. The amount and renewal period stay beside the purchase action.
-  A reminder is promised only when the app actually schedules it. Restore,
-  terms, privacy and an unambiguous exit stay visible.
-- Profile, Settings, tutor memory and their sheets share the main appearance's
-  surfaces and text colours. Account/security actions keep their existing
+  prices. Restore, terms, privacy and a clear exit stay visible.
+- Profile, Settings, tutor memory and their sheets keep their existing
   confirmations, validation and operation owners.
 
-## 9 October 2026 · vibrant UI revision
-
-The founder requested a fuller colour treatment, joyful editable illustrations,
-shorter copy and responsive iPhone structure. This direction supersedes the
-older limits of one colour card per working page and a purpose line on every
-tab. Keep Outfit, the existing high-contrast palette, clear French and useful
-actions. Use colour to establish a screen and distinguish meaningful content;
-remove repeated subtitles when the title and action already explain the page.
-
-The complete design and handoff are in
-[Figma](https://www.figma.com/design/cJ79urCrmiQEm7MgQnoG3D?node-id=44-1481)
-and `artifacts/paywall-mockups-2026-10-09/REVIEW.md`. They cover 74 app screens
-and 56 paywall/billing states. The Figma revision is a design deliverable;
-the shared responsive primitives and copy reductions are implemented in this
-checkout. Store/server truth, permissions, privacy choices and real audio
-continue to govern actual behaviour.
-
-Layout follows viewport size, safe areas, font scale and rotation, rather than
-phone model names. Compress decorative artwork first, keep touch targets at
-least 44 points, and allow reading/action regions to scroll at large text or
-in landscape. Preserve the full billed amount and billing period near the
-purchase action. Default compact paywall mockups fit the full decision above
-the fold; large text must remain readable rather than being capped to fit.
-
-The remaining sections describe the earlier shipped composition and its
-components, except where this revision supersedes their copy/colour limits.
-
-<!-- Recorded from the built artifact, not from intentions. Every value below is
-     read out of apps/mobile/src/palette.ts and the screens as shipped. The
-     previous design system (enamel wayfinding, dark Métro-plaque green) lives
-     in full at the repo's baseline commit. -->
-
-## The world
-
-Revamp B uses warm paper, dark ink, Outfit, and four purposeful colours.
-Blue carries a scene or a weekly story, coral the recap cover, sun a sound or
-plan, and mint a can-do. A working page uses paper and at most one colour card.
-White cards carry lists. Chartreuse marks one French line on white or paper.
-There are no gradients, shadows, uppercase metadata, italic French, nested
-white cards, decorative badges, streaks, XP or visible Friends ranks. A white
-reading surface inside a colour task card keeps French legible.
-
-### Earlier Revamp B composition rules
-
-- Four tabs: Home, Speak, Practice and Progress. Profile opens from the labelled
-  avatar; Settings is its first row and optional Friends follows it. Route
-  identifiers and the Friends URL remain stable.
-- Home offers one useful next action, a lifetime day count, starting scenes or
-  evidence-based week sentences, and today's voiced French. It shows no weekly
-  day quota. Loading does not claim that the learner has no history.
-- Speak shows the chosen tutor and the same next task as Home: unfinished
-  personal practice, usable practice, then the next scene. Offline, the bundled
-  coffee line replaces a service retry as the useful primary.
-  The current-level scene path uses earned evidence from core. All scenes are
-  available through the grouped A0/A1 list and blue scene briefs.
-- Live rooms retain the real start, pause, type, help, slower, English and leave
-  paths. White tutor bubbles and ink learner bubbles distinguish speakers; only
-  the newest recast is highlighted. Waiting shows the actual observed stage.
-- Practice puts one concrete next action and its French line in the first
-  viewport. The sound example follows, with its full guide on request; it is
-  labelled as authored or tied to an actual saved check. Other doors open real
-  saved work. Shadowing plays the selected tutor's bundled audio,
-  records a temporary local take and offers comparison without assessing it.
-  Finishing that practice records an active date only after a durable write.
-- Empty Progress offers a real first task. With history, independently earned
-  can-dos lead, followed by a quiet scene-path row, saved material, a story when the week
-  has evidence, and earned place postcards. Its day count is weekly; Profile's is
-  lifetime. Neither becomes a streak, deadline or target.
-- A recap starts with actual French on a white surface within its coral result.
-  It adds the learner's actual lines,
-  correction or durably saved phrase, a sound page only for a saved check, an
-  ability page only for a core-earned can-do, and a next page only when there is
-  a useful next action or reminder. It does not draw empty story steps or infer
-  pronunciation from the conversation. Closing remains available on every page.
-- Profile voice/name choices and reminder choices stay over their parent page
-  on a modal sheet. Choosing updates the choice; Done closes it. A hear control
-  is separate from selecting a voice. Recording and playback stop on leaving.
-- Paid amounts come from the catalogue and prices from the store. Max remains
-  300 minutes at the agreed price. A room that runs out of minutes opens the
-  central plans wall. Purchase success requires a freshly confirmed entitlement.
-- Friends retains requests, privacy, moderation and shared challenges. People
-  appear by name, including friends with private activity, without points or ranks.
-- French content carries its language and sits larger than its English gloss.
-  One primary pill is followed by quiet secondary links. Touch targets and
-  wrapping accommodate the operating system's reading size.
 
 ## Colour
 
-Luvani, bright (revamp B, 29 September): one warm paper ground, white cards,
-one deep ink, and four saturated colours that each lead a screen or report the
-tutor's state. Every raw value lives in `apps/mobile/src/palette.ts`, which
+Bright Luvani: one warm paper ground, white cards, one deep ink, four
+saturated colours that each lead a screen or report the tutor's state, and four
+soft pastels for illustrated cards. The 19 October 2026 consolidation folded the
+C2 and Luvani-theme duplicates into these values: their muted text is `inkSoft`,
+their borders and the old hairline are the one `line`, and the C2 sand is
+`inset`. Every raw value lives in `apps/mobile/src/palette.ts`, which
 imports nothing so that `palette.test.ts` can hold it to a contract. `theme.ts`
 composes its tokens from there and carries no raw hex of its own, and no other
 source file writes one either. The tables below are that palette, read back out
@@ -276,7 +345,8 @@ Delta-E of 30 apart, so neither reads as the other.
 One ground, one white, one ink, one soft ink and one hairline. B has no pressed
 wash, no third ink and no second hairline, so the old names that asked for one
 (`groundDeep`, `inkFaint`, `lineOnCard`) are aliases of the one B value until
-Stage 6 retires them. `skeleton` is new: loading blocks, and the one fill the
+their screens move. `inset` is the recessed well inside a white card (a track,
+a quiet field), and `inkOnPastel` is the secondary line on a pastel. `skeleton` is new: loading blocks, and the one fill the
 first three rungs share. `field` arrived with Stage 2: the border of an input
 and the ring of an unchosen option, a mark and never words.
 
@@ -289,15 +359,18 @@ and the ring of an unchosen option, a mark and never words.
 | `paper.ink` | `#16123A` | Primary text, the primary button, the dark live ground |
 | `paper.inkSoft` | `#5C5A74` | Secondary text on paper or white, never on a colour |
 | `paper.inkFaint` | `#5C5A74` | Alias of `inkSoft`: counts and placeholders are words |
-| `paper.line` | `#EADFCB` | The one hairline, for decorative dividers only |
-| `paper.lineOnCard` | `#EADFCB` | Alias of `line` |
+| `paper.line` | `#F0E6D6` | The one hairline, for decorative dividers only |
+| `paper.lineOnCard` | `#F0E6D6` | Alias of `line` |
+| `paper.inset` | `#F5EEE2` | A recessed well inside a white card, never on the ground |
+| `paper.inkOnPastel` | `#4A4766` | The secondary line on a pastel (6.5 or more on each) |
 | `paper.onInk` | `#FFFFFF` | Text and icons on a filled ink, blue or coral control |
 | `paper.field` | `#8A8499` | The 1.5pt input border and the unchosen option ring. A mark, never words |
 
 Ink clears 16.6 on the ground, 17.8 on a card and 14.4 on the skeleton. Soft
 ink clears 6.2 on the ground and 6.6 on a card. The card lifts off the ground by
-a Delta-E of 7.9, the hairline sits 8.9 off the ground and 15.5 off a card, and
-the skeleton 5.9 off the ground. The field border clears 3.6 on a card, the
+a Delta-E of 7.9, the hairline sits 5.8 off the ground and 12.3 off a card, and
+the skeleton 5.9 off the ground. The hairline is decorative and never the only
+edge of a control. Soft ink clears 5.8 on the inset. The field border clears 3.6 on a card, the
 floor for a mark.
 
 ### Four colours
@@ -312,11 +385,28 @@ sun or mint, no ink on blue or coral, and no soft ink on any colour.
 | `colour.coral` | `#D63A22` | White only (4.7), never below 14pt. The tutor speaking, the recap cover |
 | `colour.sun` | `#FFC93C` | Ink (11.6). Thinking, the plan, the focus sound |
 | `colour.mint` | `#2FD18B` | Ink (9.0). Your turn, a can-do earned, a done tick |
+| `colour.bluePressed` | `#2A20B0` | White (10.9). A blue control under a finger |
+| `colour.mintWash` | `#D4F5E5` | Ink or `mintWords`. A pale wash behind a done or earned state |
+| `colour.mintWords` | `#1F7A52` | Green words: 5.3 on white, 4.5 on `mintWash`. The only green that letters text |
+| `colour.ring` | `#D9CFE9` | No words. A decorative ring or track, 1.5 on white, so never the only edge of a control or a mark that means something |
+| `colour.violet2` | `#5A50EA` | White only (5.6). A chip ground on a blue card. `onColour.blue` is 4.4 on it, so it never sits behind that text |
 
-Stage 1 added these four and nothing else, because an unused value is a value
-somebody builds to. Stage 2 is the stage that first draws the rest of STYLE
-section 4: the field border above, what sits on each ground below, and the
-illustrations' lilac.
+Where the artboards write a near twin of `onColour.blue` for the soft line on
+blue, the app uses `onColour.blue` itself, so there is one value, not two.
+
+### Pastels
+
+Four soft grounds for illustrated Explore cards and gentle section cards. They
+never carry a primary action. Words on them are ink; a secondary line is
+`inkOnPastel` (7.1 on lavender, 7.3 on butter, 6.5 on peach and on sage). The
+onboarding answer cards use the same four through `boldRhythm`.
+
+| Token | Value | Role |
+|---|---|---|
+| `pastel.butter` | `#FFE8AB` | Butter card |
+| `pastel.lavender` | `#E9E3FA` | Lavender card, and the paywall's switch track |
+| `pastel.peach` | `#F7D8C7` | Peach card |
+| `pastel.sage` | `#D4E2D7` | Sage card |
 
 ### Streak celebration
 
@@ -368,7 +458,7 @@ its own: the segments are one element to a screen reader, "Step 2 of 6".
 | `segmentPending.coral` | `#E47F6F` | Coral |
 | `segmentPending.sun` | `#D0A43C` | Sun |
 | `segmentPending.mint` | `#2AAB7B` | Mint |
-| `segmentPending.paper` | `#EADFCB` | Paper: the one hairline (aliases `paper.line`) |
+| `segmentPending.paper` | `#F0E6D6` | Paper: the one hairline (aliases `paper.line`) |
 
 `lilac` belongs to the flat illustrations and to nothing else, as
 ILLUSTRATIONS.md allows it. `palette.test.ts` walks the source: the token is
@@ -503,25 +593,190 @@ tutor's mark, the three orb lights and the highlighter.
 | `rungColor[3]` | `#EFE6D6` | Prompted, say it in your own words (aliases `paper.skeleton`) |
 | `rungColor[4]` | `#16123A` | Free, plain ink, no line left to follow (aliases `paper.ink`) |
 
-### Tints are retired
+### The six old tints stay retired
 
-There are no tint tokens, role tables or tinted primitives. Places are named by
-words and ink glyphs, not pastel surfaces. `palette.test.ts` rejects the retired
-palette, and `surfaceContract.test.ts` rejects every tint token, role table and
-wrapper in production source. There are no transitional allowances.
+The pastels above are the only soft grounds. The six place tints of the
+notebook era, their role tables and the tinted primitives stay deleted, and
+`surfaceContract.test.ts` rejects them in production source.
+
 ### Shadow
 
-No interface shadow. White cards separate content from warm paper; the live
-orb carries its state through the core, rings, glyph and caption. The selected
-glow is a ring layer, not a shadow: a translucent blue view drawn under a
-chosen tile (see Motion, The press). The live microphone glow remains the only
-shadow.
+One shadow: the soft lift, `shadow.lift` in `theme.ts`, under an illustrated
+Explore card and nowhere else. It is offset 12 down, blurred 24, spread -16,
+in ink at 0.45 (`liftInk` in `palette.ts`). `css` carries the same lift for the
+web. This reverses the old no-shadow rule for that one card (DECISIONS.md,
+19 October 2026). Every other card is flat white on paper; the live microphone
+glow and the reviewed sign-in glow stay the only other shadows, and
+`surfaceContract.test.ts` still refuses a shadow style anywhere else. The
+selected glow is a ring layer, not a shadow. `theme.test.ts` holds the theme to
+exactly one shadow token. Cards are never nested.
 
-**The whisper is deleted.** The theme exports no shadow token. `theme.test.ts`
-refuses the retired alias, and `surfaceContract.test.ts` refuses shadow styles
-anywhere outside the live microphone glow. There are no pending callers or
-theme exceptions. Cards are never nested, and each screen file may host at
-most one `Highlight` or `LevelPath` highlighter.
+### Dark mode and the B tokens (UI-008)
+
+Dark mode is on for the main app (DECISIONS.md UI-008, 20 October 2026).
+Screens read colour through `useB()` (`main/bTheme.tsx`, re-exported by
+`main/MainAppearance.tsx`), which returns `b.light` or `b.dark` with the mode,
+and build their sheets with `useThemedStyles(make)`, which builds each sheet
+once per mode. `b.light` is read off the canvas artboards and equals the paper,
+colour and pastel values above, so nothing pinned light moved by a pixel. `b.dark`
+is the Figma page "M3 Reviewed main app, Dark" (file sjAwoGinWQKvhGrWbgMO18,
+node 307:364): the M3 ground, surface and inset; pastel tiles become its tints
+(butter to ochre, lavender to plum, peach to rose, sage and the mint wash to
+teal); the yellow hero becomes the M3 hero with a gold button, ink words on the
+button and cream words on the card; the ink primary becomes violet; links become
+the M3 periwinkle. Violet cards, the sun, the mint and the art stay as they are.
+The tab capsule is ink in both modes (Figma `C2/Main2/Navigation`, 292:1103).
+`palette.test.ts` holds every text pair in both modes to 4.5 and every mark to 3.
+
+**Pinned light until rebuilt.** A screen follows the device only once it is
+rebuilt to its artboard in both themes. `nav/darkReady.ts` exports `DARK_READY`,
+empty to start; each rebuild step adds its route. Both navigators wrap every
+screen through `screenLayout` in `RouteTheme`, which renders `<PinLight>` for a
+route not in the set; the tab bar, the scene ground, the container theme and
+the status bar follow the focused route the same way. `ALWAYS_LIGHT` holds the
+first scene, which stays light whatever `DARK_READY` says (the paywall left it
+for `DARK_READY` with its dark variant).
+Since 2026-10-21 (step 12b) every other signed-in route is in `DARK_READY`. The
+screens with no artboard (the live room's waiting, error and recap pages, the
+lesson, Learning preferences, Subscription, Tutor memory, Friends, the phrase,
+conversation and practice libraries, Week wrapped, Postcards, Real moment,
+Scenes, the sound pages, the daily pages, the goal step, the tutor intro and
+the legal pages) were converted to the tokens with layout and copy unchanged.
+What keeps a fixed value on purpose: the live room and Walk mode grounds, the
+blue and mint pages with their white words, the transcript bubbles (lavender and
+violet, drawn the same on the blue room), the invitation QR code (ink on white
+so a camera reads it), the mint panels' ink words and the voice circle's fills.
+Onboarding, sign up and the launch are mounted under `<PinLight>` in `App.tsx`
+and sit outside the one `MainAppearanceProvider`. The shared parts in
+`components.tsx` and `layout.tsx` read the theme; parts on a colour ground
+(blue, coral, sun, mint, the white pill on blue) keep their values in both modes.
+
+**Canvas art.** The 22 drawings the artboards use are in
+`apps/mobile/assets/b-art/` (`svg/<name>.svg`, `manifest.json` with each root size,
+sha256 and canvas blob, and `svg.json` inlined), drawn by
+`<BArt name width height? />` (`src/art/BArt.tsx`) through `SvgXml`, with each
+copy's definition IDs namespaced and the drawing hidden from screen readers. Art
+is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
+
+| Token | Value | Role |
+|---|---|---|
+| `b.light.ground` | `#FFF6E9` | The page |
+| `b.light.card` | `#FFFFFF` | Cards, sheets, the white disc |
+| `b.light.inset` | `#F5EEE2` | A recessed well inside a card |
+| `b.light.line` | `#F0E6D6` | The one hairline |
+| `b.light.text` | `#16123A` | Words and marks on the ground and cards |
+| `b.light.muted` | `#5C5A74` | Secondary words |
+| `b.light.secondary` | `#4A4766` | Secondary words on a tint |
+| `b.light.field` | `#8A8499` | Radio ring, input border, switch-off track. A mark |
+| `b.light.skeleton` | `#EFE6D6` | Loading blocks, pressed wash, disabled fill |
+| `b.light.brand` | `#3B2FE0` | Blue cards, selected states, the select ring |
+| `b.light.brandPressed` | `#2A20B0` | A pressed blue control |
+| `b.light.onBrand` | `#FFFFFF` | Words on blue |
+| `b.light.onBrandSoft` | `#E4E1FF` | Soft words on blue |
+| `b.light.violet2` | `#5A50EA` | Chip ground and decor on a blue card |
+| `b.light.violetDeep` | `#2E24B8` | Live controls, Welcome chips |
+| `b.light.periwinkle` | `#B9A7FF` | Dashed accent borders, confetti |
+| `b.light.ring` | `#D9CFE9` | Empty rings, dashed borders. Decoration only |
+| `b.light.sun` | `#FFC93C` | Sunshine accents |
+| `b.light.mint` | `#2FD18B` | Done ticks |
+| `b.light.mintWash` | `#D4F5E5` | The success panel |
+| `b.light.mintWords` | `#1F7A52` | Success words |
+| `b.light.onMint` | `#16123A` | The tick and the star stroke on a mint disc (B-Today, 2026-10-20) |
+| `b.light.coral` | `#D63A22` | The tutor speaking. A mark |
+| `b.light.butter` | `#FFE8AB` | Butter tile |
+| `b.light.lavender` | `#E9E3FA` | Lavender tile, the lock pill |
+| `b.light.peach` | `#F7D8C7` | Peach tile |
+| `b.light.sage` | `#D4E2D7` | Sage tile |
+| `b.light.heroGround` | `#FFC93C` | The hero card |
+| `b.light.heroText` | `#16123A` | Words on the hero |
+| `b.light.heroCta` | `#16123A` | The hero button |
+| `b.light.heroCtaText` | `#FFFFFF` | Words on the hero button |
+| `b.light.heroChip` | `#FFFFFF` | A chip on the hero |
+| `b.light.primary` | `#16123A` | The one primary pill |
+| `b.light.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.light.quiet` | `#F5EEE2` | The quiet secondary button and chip |
+| `b.light.link` | `#3B2FE0` | Links and the lock mark |
+| `b.light.avatar` | `#16123A` | The avatar disc |
+| `b.light.onAvatar` | `#FFFFFF` | The avatar initial |
+| `b.light.scrim` | `#16123A` | The sheet scrim, at 0.4 |
+| `b.light.danger` | `#C2341F` | A destructive action |
+| `b.light.tabCapsule` | `#16123A` | The tab bar capsule |
+| `b.light.tabSelected` | `#3B2FE0` | The selected tab cell |
+| `b.light.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
+| `b.light.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
+| `b.light.hint` | `#7E8AFF` | The Hint bar of the help legend (B-ThenNow); a mark |
+| `b.light.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
+| `b.light.stageTrack` | `#EFE7F9` | The five-stage track behind the nodes (B-Journey) |
+| `b.light.peachSoft` | `#FCEADF` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.light.lavenderSoft` | `#F5F1FE` | The art panel inside the lavender Badges tile (B-Journey) |
+| `b.light.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
+| `b.light.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |
+| `b.light.haloMint` | `#8BEBC0` | The halo behind a question's drawing on a mint band (B-OB-Q3); a mark |
+| `b.light.sunShadow` | `#C99400` | The pressed-edge shadow under the welcome's sun button (B-OB-Welcome); a mark |
+| `b.light.mark` | `#3B2FE0` | A selected mark on the paywall: chosen-plan border, radio, benefit tick; never words (2026-10-21 UI-008) |
+| `b.light.onMark` | `#FFFFFF` | The dot inside a filled mark radio |
+| `b.light.onSun` | `#16123A` | The ink glyph on a sun disc (the paywall's trial timeline) |
+
+| Token | Value | Role |
+|---|---|---|
+| `b.dark.ground` | `#151127` | The page |
+| `b.dark.card` | `#25203D` | Cards, sheets, the white disc |
+| `b.dark.inset` | `#302A48` | A recessed well inside a card |
+| `b.dark.line` | `#514967` | The one hairline |
+| `b.dark.text` | `#FFF6E9` | Words and marks on the ground and cards |
+| `b.dark.muted` | `#C6BED8` | Secondary words |
+| `b.dark.secondary` | `#C6BED8` | Secondary words on a tint |
+| `b.dark.field` | `#8A8499` | Radio ring, input border, switch-off track. A mark |
+| `b.dark.skeleton` | `#302A48` | Loading blocks, pressed wash, disabled fill |
+| `b.dark.brand` | `#3B2FE0` | Blue cards, selected states, the select ring |
+| `b.dark.brandPressed` | `#2A20B0` | A pressed blue control |
+| `b.dark.onBrand` | `#FFFFFF` | Words on blue |
+| `b.dark.onBrandSoft` | `#E4E1FF` | Soft words on blue |
+| `b.dark.violet2` | `#5A50EA` | Chip ground and decor on a blue card |
+| `b.dark.violetDeep` | `#2E24B8` | Live controls, Welcome chips |
+| `b.dark.periwinkle` | `#B9A7FF` | Dashed accent borders, confetti |
+| `b.dark.ring` | `#514967` | Empty rings, dashed borders. Decoration only |
+| `b.dark.sun` | `#FFC93C` | Sunshine accents |
+| `b.dark.mint` | `#2FD18B` | Done ticks |
+| `b.dark.mintWash` | `#233F41` | The success panel |
+| `b.dark.mintWords` | `#2FD18B` | Success words |
+| `b.dark.onMint` | `#16123A` | The tick and the star stroke on a mint disc (B-Today, 2026-10-20) |
+| `b.dark.coral` | `#D63A22` | The tutor speaking. A mark |
+| `b.dark.butter` | `#493C2E` | Butter tile |
+| `b.dark.lavender` | `#322B50` | Lavender tile, the lock pill |
+| `b.dark.peach` | `#49333F` | Peach tile |
+| `b.dark.sage` | `#233F41` | Sage tile |
+| `b.dark.heroGround` | `#363064` | The hero card |
+| `b.dark.heroText` | `#FFF6E9` | Words on the hero |
+| `b.dark.heroCta` | `#FFC93C` | The hero button |
+| `b.dark.heroCtaText` | `#16123A` | Words on the hero button |
+| `b.dark.heroChip` | `#4A4170` | A chip on the hero |
+| `b.dark.primary` | `#3B2FE0` | The one primary pill |
+| `b.dark.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.dark.quiet` | `#302A48` | The quiet secondary button and chip |
+| `b.dark.link` | `#A79AFF` | Links and the lock mark |
+| `b.dark.avatar` | `#302A48` | The avatar disc |
+| `b.dark.onAvatar` | `#FFF6E9` | The avatar initial |
+| `b.dark.scrim` | `#000000` | The sheet scrim, at 0.4 |
+| `b.dark.danger` | `#FF9A85` | A destructive action |
+| `b.dark.tabCapsule` | `#16123A` | The tab bar capsule |
+| `b.dark.tabSelected` | `#3B2FE0` | The selected tab cell |
+| `b.dark.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
+| `b.dark.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
+| `b.dark.hint` | `#7E8AFF` | The Hint bar of the help legend (B-ThenNow); a mark |
+| `b.dark.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
+| `b.dark.stageTrack` | `#302A48` | The five-stage track behind the nodes (B-Journey) |
+| `b.dark.peachSoft` | `#5A3F4C` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.dark.lavenderSoft` | `#3D3560` | The art panel inside the lavender Badges tile (B-Journey) |
+| `b.dark.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
+| `b.dark.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |
+| `b.dark.haloMint` | `#8BEBC0` | The halo behind a question's drawing on a mint band (B-OB-Q3); a mark |
+| `b.dark.sunShadow` | `#C99400` | The pressed-edge shadow under the welcome's sun button (B-OB-Welcome); a mark |
+| `b.dark.mark` | `#A79AFF` | A selected mark on the paywall; violet is 2.4 on the dark ground, under the 3.0 mark floor |
+| `b.dark.onMark` | `#151127` | The dot inside a filled mark radio |
+| `b.dark.onSun` | `#16123A` | The ink glyph on a sun disc (the paywall's trial timeline) |
+
+The status bar style is a token too: `dark` in light, `light` in dark.
 
 ## Type
 
@@ -537,16 +792,21 @@ Sizes are points and scale with the OS reading size. Line heights are STYLE's
 ratios rounded to whole points, and tracking is STYLE's em value at the size.
 `theme.test.ts` pins every row below. It fails if the theme names a face
 `App.tsx` does not load or the fonts folder carries one nothing loads, if the
-French hero is not larger than the screen title, and if `frenchLg` is not larger
-than a heading.
+French hero is smaller than the screen title, and if `frenchLg` is not larger
+than a heading. Since 19 October 2026 the screen title is 34 at ExtraBold, the
+same size as the French hero, and section heads are ExtraBold.
+
+`boldType` is the onboarding's scale, kept as it is until A2 folds it into this
+one; where a value differs it still wins on the onboarding screens.
 
 | Style | Face / size | Use |
 |---|---|---|
 | `hero` | Outfit ExtraBold 112/95, -4.5 | The one giant number on a story or colour card, at most one per screen |
 | `display` | Outfit ExtraBold 44/44, -1.3 | A headline on colour, or the centred Profile identity |
-| `title` | Outfit ExtraBold 30/33, -0.6 | The title of a working screen |
-| `heading` | Outfit Bold 20/25, -0.2 | Card titles and section heads |
-| `cardTitle` | Outfit Bold 20/25, -0.2 | The title of a card, the same style as `heading` |
+| `title` | Outfit ExtraBold 34/38, -0.6 | The title of a working screen |
+| `eyebrow` | Outfit Bold 13/18 | A short label above a card title, such as "Next scene · 2 of 3". Sentence case |
+| `heading` | Outfit ExtraBold 20/25, -0.2 | Card titles and section heads |
+| `cardTitle` | Outfit ExtraBold 20/25, -0.2 | The title of a card, the same style as `heading` |
 | `frenchHero` | Outfit SemiBold 34/42, -0.3 | The French line that leads a screen (`fitHero()` steps 34, 30, 26 by length, from `heroFit`) |
 | `frenchLg` | Outfit SemiBold 28/34, -0.3 | The French line that leads a card or scene (`fitDisplay()` steps 28, 24, 20 by length) |
 | `french` | Outfit SemiBold 20/26 | French in lists, rows and thread bubbles |
@@ -556,44 +816,81 @@ than a heading.
 | `label` | Outfit SemiBold 16/20 | Buttons and row titles, sentence case, no tracking |
 | `button` | Outfit SemiBold 16/20 | Pill and outline lettering, the same style as `label` |
 | `small` | Outfit Medium 14/20 | Metadata lines, captions, the English under a French line |
-| `tabLabel` | Outfit SemiBold 12/12 | Tab bar labels only |
+| `tabLabel` | Outfit SemiBold 12/12 | Unused since UI-008: the tab bar sets C2 `small` 13/18 (`boldType.small`) |
 | `notation` | Outfit Medium 14/20, 0.4 | IPA: real notation, not mono-as-costume |
+
+`bType` (UI-008, 2026-10-20) holds the direction B artboards' own sizes where
+the scale above has no exact token. Explore and Scene preview added
+`section21` (ExtraBold 21/26, a tab's section head), `section19` (ExtraBold
+19/24, a pushed screen's section head), `bandTitle` (ExtraBold 28/31, the
+scene band's title), `bold14` and `semi14` (the selected and resting filter
+chip), `semi13` (a field label) and `bold12` (the small "Free sample" pill).
+The live room, Recap, After a session and the Celebration (2026-10-21) added
+`display40` (ExtraBold 40/44, "Bien joué."), `ability34` (ExtraBold 34/37,
+-0.4, the ability earned), `title30` (ExtraBold 30/33, the Recap band's title)
+and `para17` (Regular 17/24, a sentence on a blue page).
+Streak, Profile and Settings (2026-10-21) added `initial34` (ExtraBold 34/40,
+the Profile avatar's initial), `name30` (ExtraBold 30/34, -0.3, the Profile
+name) and `run52` (ExtraBold 52/56, -1, the streak's run on its band).
 
 ## Surfaces and controls
 
-The notebook system, redesign Phase 1 (27 September), restyled in place by
-revamp B Stage 2 to the SNIPPETS.md parts, with the B parts appended after it.
-Every screen picks it up through these primitives; no screen was edited to get
-it. The old primitives that screens still call are deprecated wrappers drawing
+### Buttons
+
+Built in A2 (UI-004, UI-005), all through `PillButton` in `components.tsx`.
+
+- **Primary**: the ink pill, `PILL_HEIGHT` 54pt, `radius.pill`, white `button`
+  label and an optional leading icon. One per door. `onboarding/BoldButton` is
+  a thin alias that adds only its come-alive glint; `onboarding/NextButton`
+  keeps its own off face and hint but draws the same 54pt ink pill. The old
+  `design="bold-rhythm"` prop is still accepted and does nothing.
+- **Secondary**: `variant="secondary"`, a `SECONDARY_HEIGHT` 46pt white pill
+  with ink words, or a pastel one with `pastel="butter|lavender|peach|sage"`.
+- **Chip**: 36pt visible, with a 1.5pt ink outline; its touch target still
+  reaches 44pt. Not a shared part yet: the chips in use are local to the drill
+  and conversation screens and move with their screens.
+- The quiet text links (`OutlineButton`, `GhostButton`) are tertiary, not the
+  secondary pill, and are unchanged.
+- The wall's own CTA (`wall/WallParts`) still draws its own pill until the
+  wall is recomposed.
+- A pressed blue control darkens to `colour.bluePressed`. Radii stay card 24,
+  feature 28, tile 20, field 16, pill 999.
+
+### Parts
+
+The shared parts in `components.tsx`, drawn to the SNIPPETS.md parts. Every
+screen picks the system up through them. A2 rebuilds the buttons and cards to
+the targets above. The old primitives that screens still call are deprecated wrappers drawing
 the new look, listed at the end, and they go with their call sites.
 
-- **Press** — the one press: every tappable part below shrinks to 0.97 on the
+- **Press**: every tappable part below shrinks to 0.97 on the
   press spring while the finger is down, springs back on lift, and answers
   with a light impact or, for a choice, a selection tick (see Motion).
-- **Card** — the one card (SNIPPETS card-white): white at the card radius, no
+- **Card**: the one card (SNIPPETS card-white): white at the card radius, no
   hairline, no shadow, no outline, never nested inside another card.
   `tone="feature"` is deprecated and draws white; `journal` keeps the ground
-  for the phrase card.
-- **Ledger / LedgerRow** — how a list is drawn. The ledger rules a hairline
+  for the phrase card. `lift` adds the one soft lift (`liftStyle`), for an
+  illustrated Explore tile only.
+- **Ledger / LedgerRow**: how a list is drawn. The ledger rules a hairline
   above its first row and is a list to assistive tech; each row rules the
   hairline under itself. A row is one `Press` at 56pt with an optional 24pt
   ink glyph and no disc, an optional caps label, a title in `heading`, a gloss, an optional note on its
   own line, trailing meta, an earned state, and the faint chevron that says it
   opens. It names itself once, says disabled in soft ink rather than opacity,
   and grows rather than clips at the largest reading size.
-- **PillButton** — the one primary action per screen: the ink pill
-  (`accent.primary`) with white lettering, 56pt, fully rounded; `tone="white"`
+- **PillButton**: the one button (see Buttons): the ink pill
+  (`accent.primary`) with white lettering, 54pt, fully rounded; `tone="white"`
   is the white pill with ink lettering on a blue or coral ground. The returning
   sign-in form uses `tone="brand"` for its purple primary action; compact
   provider pills retain the touch floor and wrap their labels.
-- **OutlineButton / GhostButton** — the second action. `GhostButton` is
+- **OutlineButton / GhostButton**: the second action. `GhostButton` is
   SNIPPETS' link-text, an underlined ink word at the touch floor (white on blue
   and coral, which the caller passes), never a box, so nothing competes with the
   one pill. `OutlineButton` is the older quiet link until Stage 6.
-- **OptionCard** — a legacy tappable choice: French in Outfit, English gloss under,
+- **OptionCard**: a legacy tappable choice: French in Outfit, English gloss under,
   quiet arrow, optional replay ear. Selection is a heavier ink rule on white; a
   replay ear that is sounding is drawn in ink on a `paper.groundDeep` disc.
-- **Field, TabBar, ProgressDots** — inputs are white, 56 tall, with a 1.5
+- **Field, TabBar, ProgressDots**: inputs are white, 56 tall, with a 1.5
   `paper.field` rule that turns ink on focus, and a secure field carries a 44pt
   **Show / Hide** at its trailing edge so a password is not typed blind; the
   label above is small ink at SemiBold. `TabBar` is SNIPPETS' segmented: a sand
@@ -604,49 +901,60 @@ the new look, listed at the end, and they go with their call sites.
   device. `ProgressDots` is SNIPPETS' story segments: equal bars, the done ones
   in the ground's words colour and the rest in `segmentPending`, read once as
   "Step 2 of 6".
-- **Label** — the meta line a card may carry: small, soft ink, sentence case.
-- **Tab bar** — white with a top hairline, four labelled icons and no dock,
-  shadow or chartreuse wash. Selected is the Bulk icon and the word in brand
-  blue, Outfit Bold; unselected is the Linear icon and the word in soft ink,
-  Outfit SemiBold. The bar itself moves nothing: when a tab becomes the
-  selected one its icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15,
-  home on the pop spring, the Bulk drawing fading in over the Linear), never on
-  launch or on a tap of the open tab, and under Reduce Motion it simply swaps.
-  The Practice dot pops in once when practice becomes due while the bar is
-  open. Cells keep a 60pt floor and labels wrap at large text. The words are
-  Home, Speak, Practice and Progress; Friends is an optional Profile route.
-- **Highlight** — the highlighter (SNIPPETS highlight): a still band in
+- **Label**: the meta line a card may carry: small, soft ink, sentence case.
+- **Tab bar** (UI-008, 2026-10-20, Figma C2/Main2/Navigation 292:1103): an
+  ink capsule (`b.tabCapsule`, the same in both themes) 12pt in from each edge
+  inside the safe areas and at most 640 wide, radius 32, padded 8 across and 6
+  down, on a strip of the focused route's `ground` (8pt above, the safe area or
+  8pt below). The bar stays in layout, so nothing scrolls under it, and it has
+  no shadow, hairline or chartreuse wash. Five equal 62pt cells, radius 20,
+  padding 4, gap 4: a 22pt Iconsax glyph over its word in C2 small (13/18).
+  Selected is the `tabSelected` violet cell with the Bulk glyph in
+  `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
+  unselected is the Linear glyph and the word in cream at Outfit Medium on the
+  ink. The bar itself moves nothing: when a tab becomes the selected one its
+  icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15, home on the pop
+  spring, the Bulk drawing fading in over the Linear), never on launch or on a
+  tap of the open tab, and under Reduce Motion it simply swaps. The Practice
+  dot is 6pt sun, so it reads on the ink, and pops in once when practice
+  becomes due while the bar is open. Cells keep the 62pt floor and labels wrap
+  at large text: from a 1.3 reading size each cell takes a fixed fifth. The
+  words are Today, Explore, Speak, Practice and Journey (routes `Home`,
+  `Explore`, `Tutor`, `Practice`, `MyFrench`) over `home`, `exploring`,
+  `microphone`, `cards` and `progress`; the decisions live in
+  `nav/tabBarModel.ts`. Friends is an optional Profile route.
+- **Highlight**: the highlighter (SNIPPETS highlight): a still band in
   `highlight` behind one French line, at most once per screen and only on white
   or paper. The band is decorative; the line on it is what is read, marked as
   French (`frenchText`) so a screen reader reads it in a French voice.
-- **SoundTag** — a sound, named: its IPA as notation beside one French example
+- **SoundTag**: a sound, named: its IPA as notation beside one French example
   word, such as /ʁ/ rouge, read as one element.
-- **LadderMark** — the four rungs in `rungColor`, the current one drawn taller,
+- **LadderMark**: the four rungs in `rungColor`, the current one drawn taller,
   beside the rung's sentence from `rungLabel`. The rungs are decorative.
-- **LevelPath** — each level (A0, A1), its can-dos in order, and one "You are
+- **LevelPath**: each level (A0, A1), its can-dos in order, and one "You are
   here" stop in the highlighter. A done stop is an ink dot, a stop ahead a
   hairline ring, and each stop is one sentence to a screen reader.
-- **TutorCard** — the orb, the tutor's name, the voice in words, the signature
+- **TutorCard**: the orb, the tutor's name, the voice in words, the signature
   line in French, a 44pt sample that says Stop while it sounds, and a quiet
   "Change tutor" link. No face and no initial.
-- **SceneBrief** — the brief for one scene: an optional level and label as the
+- **SceneBrief**: the brief for one scene: an optional level and label as the
   one caps line, the French title as the fitted French hero, the title, "You'll
   be able to" and the can-do, two or three lines to say, minutes, support and
   tutor, the reason, then the caller's one Start and quiet "Type instead". The
   Start and the corner (the 44pt bookmark slot, in flow) arrive as nodes the
   caller built, so the one-primary-action rule stays countable from the
   screen's own file.
-- **PhraseCard** — one French line, large, sized by `fitDisplay` rather than
+- **PhraseCard**: one French line, large, sized by `fitDisplay` rather than
   clipped, with a round white 44pt speaker beside it on a paper hairline and
   the ink speaker mark. It says "Hear" before it sounds and "Stop" while it does.
-- **TutorMark** — the tutor, drawn as the orb at 36 in a 44pt box with no disc,
+- **TutorMark**: the tutor, drawn as the orb at 36 in a 44pt box with no disc,
   and hidden from assistive tech. There is no face anywhere in this app and no
   initial either: the monogram is the learner's mark, never the tutor's.
-- **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
+- **SpeakCircle**: THE microphone: one 108pt circle used by every speaking
   surface. Green-ringed when waiting, green-filled (with the live glow, the
   only shadow in the app) when live — green means "you speak", matching the
   voice circle — hairline-muted when the tutor holds the floor.
-- **Icons** — Iconsax-sourced, generated, Linear for controls, Bulk for tiles
+- **Icons**: Iconsax-sourced, generated, Linear for controls, Bulk for tiles
   and states. One family: Iconsax free icons (held by the founder under the
   Iconsax free licence) plus a few of Luvani's own drawings, generated by
   `npm run icons` from `scripts/icons/icons.config.mjs` into `src/icons/`, every
@@ -661,7 +969,7 @@ the new look, listed at the end, and they go with their call sites.
   committed loose; each generated file carries the licence notice, and
   `docs/design-assets/ICON_SET.md` lists every icon. The Apple and Google marks
   stay drawn by hand, filled in the one colour they are given.
-- **Art** — the single raster renderer, using registry sizes or its compact
+- **Art**: the single raster renderer, using registry sizes or its compact
   variant. Illustrations sit within content panels, never behind headings.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
   purpose line beneath it in soft ink, and an optional trailing `Monogram` on the
@@ -673,7 +981,9 @@ the new look, listed at the end, and they go with their call sites.
   the round white back button at the touch floor.
 - **Monogram**: the learner's initial drawn one way (SNIPPETS header-tab). A
   white initial in Outfit Bold on an ink disc, hidden from assistive tech, at
-  `HIT` in the header button. Profile's own identity disc is the exception since
+  `HIT` in the header button. Its initial comes from `firstNameOf`, the
+  greeting's own name rule (`profile/avatar.ts`); with no name it draws the
+  neutral `user` glyph in white instead of a letter. Profile's own identity disc is the exception since
   P2: 64pt `colour.sun` with the initial in `paper.ink` at `title`, drawn once,
   because the design gives the learner's page a warmer mark than the header.
 - **Grouped list** (`settings/SettingsGroup.tsx`, P2): what Profile, Learning
@@ -686,36 +996,72 @@ the new look, listed at the end, and they go with their call sites.
   somewhere, and a destructive label is `danger`. Separators sit inset 16 from
   the left in `border` at 70%. Outside a group the same rows keep their older
   card shape, so the memory screen, social settings and onboarding are
-  unchanged. Switches stay on `accent.brand` with the off track said twice.
+  unchanged. Switches stay on `accent.brand`; the off track is `paper.field`
+  everywhere (3:1 on white), no longer the grouped list's hairline.
 
-The B parts, appended in revamp B Stage 2 for Stage 3 to paste:
+More shared parts:
 
-- **RoundButton** — back and close are a white disc at the touch floor with the
+- **RoundButton**: back and close are a white disc at the touch floor with the
   set's back or close icon; next is a 64 disc (sun on blue or coral, ink on
   sun) with its word beside it.
-- **ColourCard** — the one colour card on a paper screen: one ground at the
-  feature radius, words in `textOn`, the secondary in `onColour`. The whole card
+- **ColourCard**: the feature card: one colour ground, or a pastel one
+  (`ground="pastel.sage"` and so on), at the feature radius 28 with no hairline
+  or shadow, words in `textOn`, the secondary in `onColour`. `lift` is for an
+  illustrated Explore tile only. The whole card
   is a target only when it holds no pill of its own.
-- **StatTile / HeroNumber** — a number and one plain line on white, and the one
+- **StatTile / HeroNumber**: a number and one plain line on white, and the one
   giant number with its unit on a colour board. Each is one phrase to a screen
   reader.
-- **OptionRow** — a one-tap choice, now a thin name for `Choice` as a button
+- **StatRow**: three stats in one white card, three equal columns, as on
+  Today. It lays out `StatTile compact` children (the number in `statSm`, the
+  line under it in `caption`, centred) and draws nothing of its own. A tile may
+  carry a decorative `mark` disc above its number, hidden from a screen reader;
+  a ring or bar that means something is labelled by its caller. `valueNode`
+  draws in the number's place when it moves (Today's count-ups) while `value`
+  is still what a screen reader hears; `compact` is the smaller centred cut
+  the row lays out. Words wrap
+  rather than shrink at a large reading size.
+- **Chip**: the one small pill, two variants. `filter` is a choice in a row of
+  them: 44pt tall (`minHeight: HIT`, so the floor holds at any reading size),
+  white with a hairline, and when chosen filled with ink, with white words and
+  a tick, so the state is never colour alone. It says selected on a device
+  (`accessibilityState`) and on the web (`aria-selected`, F522), as a tab by
+  default or a button. `meta` is a still fact such as "About 6 min" or a
+  scene's state: never pressable, on white, ink or lavender, with an optional
+  mark before the words. Today's quest XP chips use the `butter` and `sage`
+  meta tones, ink words on both pastels. On a blue card a filter chip may take
+  `ground="violet2"` (Speak's own topic chip): white words only, never
+  `onColour.blue`, and it falls back to the chosen ink fill when selected. The
+  archive's filters and My French's situation state both draw it.
+- **LockBadge**: the trial's lock, two forms. The pill reads "Included with
+  your trial" in blue `badge` words beside a blue lock, 26 tall, on lavender
+  (or white when it sits on a lavender card). The round form is a 28pt white
+  disc with the blue lock alone, named "Included with your trial" to a screen
+  reader. It is pure presentation and never decides whether something is
+  locked: `access/featureAccess.ts` does, and a surface draws the badge only
+  when that seam says locked. The seam reads the D24 billing standing
+  (`featureLockedNow`) and fails open, so a plan nobody could read shows no
+  lock. Inside a control whose label already says "Included with your trial",
+  the badge is hidden from screen readers so the words are heard once. A
+  locked Journey section keeps its heading and badge and shows one teaser line
+  that opens the Wall, never its content.
+- **OptionRow**: a one-tap choice, now a thin name for `Choice` as a button
   row: white with a title and a line under it and the field ring when not
   chosen, the brand blue with white words and a white disc holding the blue
   check when chosen. A Hear is its own speaker button beside it. The choice is
   said on a device and on the web.
-- **Sheet** — a bottom sheet under an ink scrim at 0.45 that closes it, modal to
+- **Sheet**: a bottom sheet under an ink scrim at 0.45 that closes it, modal to
   VoiceOver, with a grabber and a title. No drag to dismiss.
-- **Skeleton / QuietLine** — still sand blocks that say Loading once, and a
+- **Skeleton / QuietLine**: still sand blocks that say Loading once, and a
   small centred reassurance.
-- **FrenchBlock** — a French line, large and marked as French, the English
+- **FrenchBlock**: a French line, large and marked as French, the English
   under it, and a 44pt hear disc that says Stop while the line sounds.
 
 The icon controls, appended in come alive (D2, F727). Each presses through
 `Press`, casts no shadow, says off in colour rather than opacity, and plays no
 sound of its own:
 
-- **IconButton** — a button with no visible label carries a spoken label. It
+- **IconButton**: a button with no visible label carries a spoken label. It
   draws one of six marks every phone reads the same way (back, close, hear,
   keep, replay and remind), and anything else is an `IconAction` with its word
   on screen. The label is required and is what a screen reader says; the mark
@@ -727,7 +1073,7 @@ sound of its own:
   through `AnimatedIcon`, on a real event. Off is soft ink on paper or white, a
   sand disc, or the ground's own secondary on a colour. It presses as deep as a
   tile.
-- **IconAction / IconActionRow** — an icon with its short word, for every
+- **IconAction / IconActionRow**: an icon with its short word, for every
   other action. A tile is the icon over the word in a white tile, 72pt tall,
   two to four sharing a row and wrapping two to a line at the largest reading
   sizes; inline is the icon beside the word at the touch floor, in the ground's
@@ -735,7 +1081,7 @@ sound of its own:
   brand border and a Bulk brand icon, pops once and lights the ring layer; on a
   blue or coral ground it takes the sun with ink. Busy turns the icon into the
   turning refresh and says busy. Off is the sand tile with soft ink.
-- **Choice** — the one choice, for every option, plan, voice, level, goal and
+- **Choice**: the one choice, for every option, plan, voice, level, goal and
   time: a 72pt row with the tile at its head, the title, a line under it and a
   28pt disc, or a tile for a grid of two. Not chosen, it is white with a 2pt
   hairline (the paper on a white sheet), so it never matches its ground.
@@ -873,16 +1219,19 @@ text measurements without capping the system size. Shorter viewports tighten
 spacing; tall windows centre the reading column.
 Keyboard and accessibility overflow remains scrollable to keep fields reachable.
 
-The signed-in app has four tabs, each opening Profile from the labelled
-avatar. Friends is a Profile route and retains shared challenges and moderation.
+The signed-in app has five tabs (Today, Explore, Speak, Practice, Journey),
+each opening Profile from the labelled avatar. Explore's content is the
+catalogue ported from the Codex branch; the other four still show their
+revamp B content until Phase B rebuilds them. Friends is a Profile route and retains shared challenges and moderation.
 
 | Tab | What it is |
 |---|---|
-| Home | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. |
+| Today | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. |
+| Explore | Topic tiles with their drawings, conversation ideas shaped by learning preferences, skill and practical collections, and search over scenarios, missions and phrases. A collection or scenario opens `ExploreCollection`; the last rows open the word library and Journey. |
 | Speak | The chosen tutor or real continuity, the same next task as Home, then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
-| Progress | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
-| Profile (avatar) | A large `title` with the settings gear (44) at its trailing edge, then the learner's sun disc, name, "Learning French since" when the onboarding date is known, and an Edit link to the name sheet. Then three grouped lists: Learning (Learning preferences with a one-line summary, the tutor as the orb opening the voice sheet, and Tutor memory), Your French (Progress, saying level, a confident level estimate and practice days, which opens Streak; My French; Friends), and Plan (one row opening Subscription). An unread or unknown plan names no plan and is never called Free. The voice and name choices open sheets over the page. |
+| Journey | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
+| Profile (avatar) | B-Profile (2026-10-21): the back disc and the 44pt gear, the 76pt sun disc with the initial, the 30/800 name (the page's heading), "Learning French since" when known, and an Edit pill. A white stats card (stage, level over XP, the run) opening Journey and Streak; the blue plan card ("Your plan" in sun, the plan's name, what Free includes, See plans to the Wall; an unread or unknown plan names no plan and is never called Free). Then Learning (preferences, the tutor as the orb opening the voice sheet, what the tutor remembers with the round lock), Your French (Your journey, Saved phrases with the saved count, Your sounds with "One sound is ready to revisit" only while the sound journey holds one, and the round lock) and More (Friends, Help and feedback only with a contact address, Privacy). The tab bar sits under it with no tab selected. |
 
 Two routes hold the standing choices and the plan (P2, 19 October 2026). Both
 are pushed with the shared header's chevron and an inline title, and both are
@@ -893,13 +1242,19 @@ grouped lists.
 | Learning preferences | Opened from Profile. An intro line saying these never change the level earned, then Routine (the daily goal as its five choices, the one editor it has), How your tutor helps (correction style, the same row word for word as the memory screen's, then Tutor speaks more simply and Prefer typing), and Conversation starting point: one row whose subtitle is the chosen sentence, opening the four options, saved through `withStatedLevel` with the footer saying the earned level stays. |
 | Subscription | Opened from the plan row on Profile and Settings. The plan's name at `title`, its period in words, and a tutor-time card saying the speaking-time band in words. No minute count, no date and no filled track (F377, F541), and no price row, because nothing on the phone says which product the account holds. Manage in Apple Subscriptions, Compare plans (See plans for a free learner) and Restore. Restore says what the store found: a granted restore says it is on this account and re-reads the plan, and nothing found says so. When the plan cannot be checked, an `inset` notice and a 56pt Try again, with Manage and Restore still there. |
 
-Settings (P2) is six groups in this order: Account, Subscription, Reminders,
-Appearance & sound, Privacy & data, Help & about, then Delete account alone in a
-group with no heading at the foot, standing apart from every routine row. The
-trial-ending reminder switch appears in Reminders only on a build that can
-schedule it and while a store trial is on record. While notifications are
-denied for Luvani the switch reads off, its line says the reminder can't be sent,
-and an Open Settings row sits under it. Summaries that join several
+Settings (B-Settings, 2026-10-21) is seven groups in this order: Account,
+Plan, Practice, Phone, Appearance and sound, Data and privacy, Help and about,
+then Delete account alone in a card with no heading at the foot, standing apart
+from every routine row. Rows are the B row: 16/600 label, the answer stacked
+under it at 15, a longer line at 13, the 18pt chevron, in a white list at radius
+22. Plan adds Free speaking time (the D24 band in words) on the free plan.
+Practice has Speaking target and the correction style (into Learning
+preferences) and the two switches over the same stores. Phone holds the daily
+reminder, its time, the trial-ending reminder, and a refused notification or
+microphone permission, with the footnote that at most one reminder comes a day.
+Appearance and sound opens the Display choice (Follow device, Light, Dark).
+While notifications are denied for Luvani the switch reads off, its line says
+the reminder can't be sent, and an Open Settings row sits under it. Summaries that join several
 facts join them with commas: middots are out of learner copy.
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
@@ -950,8 +1305,9 @@ Home card pushes it, and the Tutor tab's first two doors lead to it. That is wha
 leaving a live session an explicit act rather than a tab switch — a room that
 survives a tab switch is a room the meter is still counting.
 
-Each tab is a glyph and a word. The selected tab uses brand blue and the others
-soft ink, with selected state announced to assistive technology. Its shared
+Each tab is a glyph and a word in the ink capsule. The selected tab is the
+violet cell with a sun glyph and the others cream on ink, with selected state
+announced to assistive technology. Its shared
 press supplies interaction feedback; the tab itself has no moving wash.
 
 On web the app is still a **460pt centred column**, and the navigator mounts
@@ -1048,15 +1404,18 @@ a level or a badge plays only after the learner leaves. A review with
 nothing due still says "Nothing waiting." and plays nothing, and a safety stop
 has no end card.
 
-**The answer sheet** rises from the foot of a drill after each answer. A pass is
-mint with a check and a short warm line, `correct` and a light arrival haptic,
-and moves on by itself after 1.4 seconds. A typo the drill accepted is sun,
-"Nearly." and the real spelling, `nearly` and a soft haptic. A miss is calm
-white paper with no mark, no sound and no haptic: the first hands nothing over
-("This one comes round again."), and the second shows the French and waits for
-Continue. With a screen reader on, no sheet moves on by itself. The living bar
-under the header fills as phrases settle, carries no digit, glows sun after
-three real passes in a row, and never moves back.
+**The answer sheet** rises from the foot of a drill after each answer, as the
+B-Drill feedback panel (radius 20, the 28pt mint check disc, a 17 bold
+headline). A pass is the mint wash with green words and a short warm line,
+`correct` and a light arrival haptic, and moves on by itself after 1.4
+seconds. A typo the drill accepted is butter, "Nearly." and the real spelling,
+`nearly` and a soft haptic. A miss is the plain card under a hairline with no
+mark, no sound and no haptic: the first hands nothing over ("This one comes
+round again."), and the second shows the French and waits for Continue, drawn
+under the panel. With a screen reader on, no sheet moves on by itself. The
+living bar sits in the header row between the close disc and the words (8pt,
+brand on the card track), fills as phrases settle, carries no digit, glows sun
+after three real passes in a row, and never moves back.
 
 **Lines arrive.** A line said while the thread is on screen rises into place
 (`BubbleIn`): the learner's a little further, from the orb's side, the tutor's
@@ -1382,7 +1741,7 @@ holds the primitives' shared promises, and `countTicks.test.ts`,
 `particles.test.ts` and `flights.test.ts` hold the ticks, the confetti and the
 tokens in the air.
 
-No interface surface casts a shadow.
+No interface surface casts a shadow except the one soft lift (see Shadow).
 ## Evidence and remaining work
 
 Core owns earned independence. Bounded completion history preserves its strongest
@@ -1468,7 +1827,8 @@ At that review the press spring and the controlled VoiceOrb were the only
 spring and continuous movement; the Motion section now governs both. No fake
 progress, punitive mascot or artificial processing delay is added.
 
-Four primary tabs: Home, Speak, Practice, Progress. Friends is an optional stack
+At that review there were four primary tabs: Home, Speak, Practice, Progress
+(five arrive in A3, see Composition rules). Friends is an optional stack
 screen reached from Profile, preserving its URL, invitations and privacy controls.
 Home and Speak use `NextTaskCard`: unfinished personal practice, usable personal
 practice, then the next authored scene; unavailable live service offers the same
@@ -1477,9 +1837,9 @@ card. Colour belongs to meaning: blue next task, sun local café practice, coral
 recap with a white French reading surface, mint independently earned can-do.
 The first recap view leads with actual French, never a count or illustration.
 
-## Earlier onboarding interaction update — October 2026
+## Earlier onboarding interaction update, October 2026
 
-This pre-C2 composition used existing vibrant vector brand illustrations with no mascot. It omitted decorative eyebrow labels, pills, repeated account pitches and a tall syllabus. Questions led with one readable heading, illustrated full-width options and a deliberate Continue; the shared primary control used radius.control. C2's current composition is defined at the top of this document.
+This pre-C2 composition used existing vibrant vector brand illustrations with no mascot. It omitted decorative eyebrow labels, pills, repeated account pitches and a tall syllabus. Questions led with one readable heading, illustrated full-width options and a deliberate Continue; the shared primary control used radius.control. The current onboarding composition is under Onboarding and first arrival.
 
 Come alive (README Part 5.C, first run). The promise, where, level and daily goal build a visible "Your French plan" card on the sun: one slot per answer, empty until the learner answers, each answer flying into its slot from where it was chosen (TokenFlight, launched by the card). Answers are icon tiles (Iconsax Bulk on a coloured ground), nothing is preselected, and "Suggested" marks only the daily goal the learner's own answers point at. A disabled Continue or pill is the sand skeleton with soft ink words (a white pill on blue or coral takes blue's pale secondary); turning on fades the ink in and glints once. The plan reveal draws the real daily minutes as a ring with a count-up (Choose each time sets no target, so its ring is the empty track with "No fixed goal") and three real tiles, with one select sound and one settled tap, because setup is not learning. The start sheet keeps the legal order and plays nothing. The first win sets the learner's line beside the natural line; only an accepted reply the learner gave turns the page coral with a held bloom, the drawing rising and one burst of confetti, the correct sound and the celebrate haptic, and anything else stays calm on paper with the nearly sound and one soft haptic. Nothing sounds or buzzes while the microphone is open. Under Reduce Motion every part lands on its final frame and the microphone meter becomes words.
 

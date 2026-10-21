@@ -33,30 +33,37 @@ test('Settings and the avatar share one appearance editor and show the stored ch
   assert.match(read('./SettingsScreen.tsx'), /<DisplayPreferences \/>/);
 });
 
-test('the app is light only: Settings shows no Appearance row or display sheet while dark mode is off', () => {
-  assert.equal(DARK_MODE_ENABLED, false, 'dark mode was switched on; lift this test with the C2 dark styles');
+// 2026-10-20, UI-008: dark mode is on. Screens not yet rebuilt stay light
+// through PinLight and DARK_READY (nav/darkReady.ts), so the Appearance row and
+// its sheet draw, still behind the one seam.
+test('dark mode is on: Settings draws the Appearance row and display sheet only through the DARK_MODE_ENABLED seam', () => {
+  assert.equal(DARK_MODE_ENABLED, true, 'dark mode was switched off again; UI-008 turned it on');
   const settings = read('./SettingsScreen.tsx');
   assert.match(settings, /\{DARK_MODE_ENABLED && <SettingsRow first label=\{DISPLAY_ROW\}/, 'the Appearance row must only draw when dark mode is on');
   assert.match(settings, /\{DARK_MODE_ENABLED && <BottomSheet visible=\{sheet === 'display'\}/, 'the display sheet must only draw when dark mode is on');
   assert.equal((settings.match(/label=\{DISPLAY_ROW\}/g) ?? []).length, 1, 'a second, unguarded Appearance row');
   assert.equal((settings.match(/<DisplayPreferences \/>/g) ?? []).length, 1, 'a second, unguarded display editor');
   assert.match(read('../main/MainAppearance.tsx'), /const mode = mainMode\(preference, system\);/, 'the provider must resolve through the pinned seam');
-  assert.equal(mainMode('dark', 'dark'), 'light');
+  assert.equal(mainMode('dark', 'dark'), 'dark');
+  assert.equal(mainMode('light', 'dark'), 'light');
 });
 
 test('the profile theme scope protects unrelated paper controls and keeps text readable in both modes', () => {
   const appearance = read('./SettingsAppearance.tsx');
   assert.match(appearance, /text: paper\.ink as string/);
   assert.match(appearance, /createContext\(paperColors\)/);
-  assert.match(appearance, /trouble: mode === 'dark' \? colors\.text : signal\.correspondance/);
+  // 2026-10-20 UI-008, artboard B-Settings: the scope reads the B tokens of its mode.
+  assert.match(appearance, /trouble: t\.mode === 'dark' \? t\.text : signal\.correspondance/);
   for (const [mode, colors] of Object.entries(mainApp)) {
     for (const background of [colors.background, colors.surface, colors.inset]) {
       for (const ink of [colors.text, colors.muted]) assert.ok(contrast(background, ink) >= 4.5, `${mode} text ${ink} on ${background} must remain readable`);
     }
   }
   assert.ok(contrast(paper.card, paper.ink) >= 4.5);
-  for (const path of ['../tabs/ProfileTab.tsx', './SettingsScreen.tsx', '../profile/TutorMemoryScreen.tsx']) assert.match(read(path), /<SettingsAppearance>/);
+  // 2026-10-20 UI-008, artboard B-Settings: Profile and Settings opt into the B rows (`<SettingsAppearance b>`).
+  for (const path of ['../tabs/ProfileTab.tsx', './SettingsScreen.tsx', '../profile/TutorMemoryScreen.tsx']) assert.match(read(path), /<SettingsAppearance( b)?>/);
   for (const path of ['./SettingsRow.tsx', './ChoiceRow.tsx', './SwitchRow.tsx', './TroubleLine.tsx']) assert.match(read(path), /useSettingsColors\(\)/);
-  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'name'\}[^>]*surface=\{colors\.surface\} ink=\{colors\.text\}/);
-  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'tutorVoice'\}[^>]*surface=\{colors\.surface\} ink=\{colors\.text\}/);
+  // 2026-10-20 UI-008, artboard B-Profile: the sheets read the B tokens.
+  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'name'\}[^>]*surface=\{t\.card\} ink=\{t\.text\}/);
+  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'tutorVoice'\}[^>]*surface=\{t\.card\} ink=\{t\.text\}/);
 });

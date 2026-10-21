@@ -34,7 +34,7 @@
 
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { paper, space, type, HAIRLINE } from '../theme.ts';
+import { space, type, HAIRLINE } from '../theme.ts';
 import { ProgressDots, PillButton, Card, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
@@ -42,6 +42,7 @@ import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
 import { tutorPersonaOf, type TutorPersona } from './tutorName.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { PERSONA_BODY, PERSONA_TITLE, pronouns } from '../onboarding/disclosure.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /**
  * The final page's lesson: the circle speaks traffic lights. Three live mini
@@ -50,6 +51,8 @@ import { PERSONA_BODY, PERSONA_TITLE, pronouns } from '../onboarding/disclosure.
  * real thing.
  */
 function OrbWalkthrough({ persona }: { persona: TutorPersona }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const rows: { state: OrbState; title: string; sub: string }[] = [
     { state: 'ready', title: 'Tap to talk', sub: 'The circle waits for you.' },
     { state: 'speaking', title: `${persona.name} is talking`, sub: 'Just listen.' },
@@ -71,8 +74,8 @@ function OrbWalkthrough({ persona }: { persona: TutorPersona }) {
         <View key={row.state} style={[st.stateRow, index > 0 && st.stateDivided]}>
           <VoiceOrb state={row.state} size={56} withCaption={false} announce={false} />
           <View style={st.stateWords}>
-            <Text style={[type.heading, { color: paper.ink }]}>{row.title}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{row.sub}</Text>
+            <Text style={[type.heading, { color: t.text }]}>{row.title}</Text>
+            <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{row.sub}</Text>
           </View>
         </View>
       ))}
@@ -107,7 +110,7 @@ function pagesFor(persona: TutorPersona) {
     key: 'stuck',
     title: 'Getting stuck is planned for',
     body: 'You always get the first attempt. If you get stuck, a small English hint appears without interrupting the scene. The answer stays hidden unless you ask again.',
-    note: `Help me out reveals a hint. Simpler keeps ${persona.name}'s sentences short. In English tells you what ${p.subject} just said.`,
+    note: `Help reveals a hint, then choices, then the line. Simpler keeps ${persona.name}'s sentences short. In English tells you what ${p.subject} just said.`,
   },
   {
     key: 'after',
@@ -125,6 +128,8 @@ function pagesFor(persona: TutorPersona) {
 }
 
 export function TutorIntro({ onDone }: { onDone: () => void }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const [index, setIndex] = useState(0);
   // The person this learner chose, so the walkthrough introduces the voice they
   // will actually hear rather than the one that happens to be the default.
@@ -149,7 +154,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
         {page.key === 'orb' ? <OrbWalkthrough persona={persona} /> : null}
         {page.note ? (
           <Card style={{ marginTop: space(5) }}>
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{page.note}</Text>
+            <Text style={[type.bodyStrong, { color: t.text }]}>{page.note}</Text>
           </Card>
         ) : null}
       </View>
@@ -157,12 +162,14 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   page: { paddingTop: space(3), marginBottom: space(4) },
   states: { alignSelf: 'stretch', marginTop: space(5) },
   stateRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), paddingVertical: space(2) },
-  stateDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, marginTop: space(2) },
+  stateDivided: { borderTopWidth: HAIRLINE, borderTopColor: t.line, marginTop: space(2) },
   stateWords: ROW_WORDS,
-  title: { ...type.title, color: paper.ink },
-  body: { ...type.body, color: paper.inkSoft, marginTop: space(3) },
+  title: { ...type.title, color: t.text },
+  body: { ...type.body, color: t.muted, marginTop: space(3) },
 });
+}

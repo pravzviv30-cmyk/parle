@@ -154,15 +154,17 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
     assert.match(props, /ink\?: string;/);
     assert.match(props, /mutedInk\?: string;/);
-    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/);
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(header, /const ink = askedInk \?\? t\.text;\n  const mutedInk = askedMuted \?\? t\.muted;/);
     assert.equal((header.match(/color: ink\b/g) ?? []).length, 3, 'display, centred identity and ordinary titles must all accept the selected ink');
     assert.equal((header.match(/color: mutedInk\b/g) ?? []).length, 2, 'centred and ordinary purpose lines must both accept selected secondary ink');
     const profile = stripComments(readFileSync(join(SRC, 'tabs/ProfileTab.tsx'), 'utf8'));
     // P2 (2026-10-19): Profile draws its own large title and identity row
     // rather than the centred TabHeader, and both take the selected theme.
-    assert.match(profile, /\{PROFILE_TITLE\}/, 'Profile lost its title');
-    assert.match(profile, /<ScreenHeader back=\{\{ onPress: goBack \}\} ink=\{colors\.text\} muted=\{colors\.muted\} \/>/, 'Profile identity must pass the selected main theme instead of relying on paper defaults');
-    assert.match(profile, /\{profile\.name \?\? NAME_UNSET\}<\/Text>/, 'the learner name is not drawn');
+    // 2026-10-20 UI-008, artboard B-Profile: the learner's name is the heading, in the B tokens.
+    assert.match(profile, /<Identity\b/, 'Profile lost its title');
+    assert.match(profile, /<BackButton onPress=\{goBack\} \/>/, 'Profile has no B back disc');
+    assert.match(profile, /name=\{profile\.name \?\? NAME_UNSET\}/, 'the learner name is not drawn');
   });
 
   test('the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped', () => {
@@ -179,9 +181,12 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
       'the title row is not a row with room for a trailing control',
     );
     assert.match(header, /accessibilityRole="header"/, 'the tab title is not rolled as a heading');
+    // 2026-10-20 UI-008, artboard B-Journey: the title sits in a column that
+    // takes the row (so an eyebrow can stand above it), and keeps its ink.
+    assert.match(header, /<View style=\{\{ flex: 1, gap: 2 \}\}>/, 'the title column does not take the row');
     assert.match(
       header,
-      /type\.title,\s*\{ color: ink, flex: 1 \}/, // ink defaults to paper.ink (asserted above)
+      /type\.title,\s*\{ color: ink \}/, // ink defaults to paper.ink (asserted above)
       'the title is not the working title in ink, taking the row',
     );
     assert.match(
@@ -239,7 +244,8 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.notEqual(at, -1, 'components.tsx has no RoundButton for the header to use');
     const button = round.slice(at, round.indexOf('\nexport ', at + 1));
     assert.match(button, /const disc = next \? HIT \+ space\(5\) : HIT;/, 'the back disc is not at the touch floor');
-    assert.match(button, /ground === 'white' \? paper\.card/, 'the back disc is not white');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(button, /ground === 'white' \? t\.card/, 'the back disc is not white');
   });
 
   test('a scroll screen under the tab bar pads its own bottom, and one that is not does not', () => {
@@ -278,10 +284,12 @@ describe('a colour ground is a whole page — F601', () => {
     const screen = region(source, 'export function Screen(', 'export function ScrollScreen(');
 
     // The rule is conditional on the paper ground, never unconditional.
-    assert.match(screen, /const onPaper = ground === paper\.ground;/, 'the frame does not ask whether it is on paper');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(screen, /const ground = asked === undefined \|\| asked === paper\.ground \? t\.ground : asked;/, 'the house paper is not the theme ground');
+    assert.match(screen, /const onPaper = ground === t\.ground;/, 'the frame does not ask whether it is on paper');
     assert.match(
       screen,
-      /\.\.\.\(onPaper && overflowing \? \{ borderTopWidth: HAIRLINE, borderTopColor: paper\.line \} : null\)/,
+      /\.\.\.\(onPaper && overflowing \? \{ borderTopWidth: HAIRLINE, borderTopColor: t\.line \} : null\)/,
       'the footer\'s hairline is not drawn only on paper',
     );
     assert.doesNotMatch(
@@ -303,10 +311,12 @@ describe('a colour ground is a whole page — F601', () => {
       /LIGHT_BAR_GROUNDS: readonly string\[\] = \[colour\.blue, colour\.coral, paper\.ink\];/,
       'the light-bar grounds are not blue, coral and ink',
     );
-    assert.match(grounds, /if \(ground === paper\.ground\) return null;/, 'the paper mounts a bar of its own over App.tsx\'s');
+    // 2026-10-20, UI-008: the themed ground mounts nothing; the route's bar
+    // (main/MainNavigationTheme.tsx) governs it, and in dark only sun and mint stay dark.
+    assert.match(grounds, /if \(ground === t\.ground\) return null;/, 'the paper mounts a bar of its own over the route\'s');
     assert.match(
       grounds,
-      /LIGHT_BAR_GROUNDS\.includes\(ground\) \? 'light' : 'dark'/,
+      /if \(LIGHT_BAR_GROUNDS\.includes\(ground\)\) return 'light';\n  return t\.mode === 'dark' && ground !== colour\.sun && ground !== colour\.mint \? 'light' : 'dark';/,
       'a light ground does not get a light bar, or sun and mint do not get a dark one',
     );
   });
@@ -322,29 +332,34 @@ describe('a colour ground is a whole page — F601', () => {
  * The centred branch (Profile) is F606's to decide and is not read here.
  */
 describe('the tab title is the working title — F602', () => {
+  // The name keeps "at 30" because KNOWN_ISSUES F602 cites this test by name;
+  // the title is 34 since DECISIONS.md UI-005 and the assertion below pins 34.
   test('every tab title is the working title at 30, and the greeting is one of them', () => {
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
     const left = outsideTheCentredBranch(header);
     assert.match(
       left,
-      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: ink, flex: 1 \}\]\}>/,
+      // 2026-10-20 UI-008, artboard B-Journey: the row is taken by the title's column (pinned above).
+      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: ink \}\]\}>/,
       'the left title is not the working title in ink, rolled as a heading',
     );
     assert.match(left, /if \(display\) return/, 'the editorial display role must be explicit');
-    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/, 'the title ink must still default to paper ink');
+    // 2026-10-20, UI-008: the default is the theme's ink, which is paper ink in light.
+    assert.match(header, /const ink = askedInk \?\? t\.text;/, 'the title ink must still default to the theme ink');
 
-    // The working title is 30 at ExtraBold, and nothing else in the theme
-    // decides it: a screen cannot nudge it.
+    // The working title is 34 at ExtraBold (DECISIONS.md, 2026-10-19; was 30),
+    // and nothing else in the theme decides it: a screen cannot nudge it.
     const theme = stripComments(readFileSync(join(SRC, 'theme.ts'), 'utf8'));
     assert.match(
       theme,
-      /\btitle: \{ fontFamily: font\.extraBold, fontSize: 30,/,
-      'the working title is not 30 at ExtraBold',
+      /\btitle: \{ fontFamily: font\.extraBold, fontSize: 34,/,
+      'the working title is not 34 at ExtraBold',
     );
 
     // Every tab that names a subject takes the left branch: it opens on the
     // one header and does not ask to be centred.
-    for (const tab of ['HomeTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
+    // 2026-10-20, B1, B-Explore: Explore opens on the one header like the rest.
+    for (const tab of ['HomeTab.tsx', 'ExploreTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
       const body = stripComments(readFileSync(join(SRC, 'tabs', tab), 'utf8'));
       if (tab === 'TutorTab.tsx') {
         const unreadStart = body.indexOf("if (renderHistoryStatus !== 'ready') return <ScrollScreen");
@@ -357,7 +372,8 @@ describe('the tab title is the working title — F602', () => {
         const ready = body.slice(readyStart);
         for (const [state, branch] of [['loading or unread', unread], ['ready', ready]] as const) {
           assert.equal((branch.match(/<TabHeader\b/g) ?? []).length, 1, `Speak draws other than one header when ${state}`);
-          assert.match(branch, /<TabHeader title=\{tutorHeading\(tutorName\)\}/, `Speak loses its working title when ${state}`);
+          // 2026-10-20, B2, B-Speak: the title is "Speak", with the tutor named in the subtitle.
+          assert.match(branch, /<TabHeader title=\{SPEAK_TITLE\} purpose=\{speakSubtitle\(tutorName\)\}/, `Speak loses its working title when ${state}`);
         }
         assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 2, 'Speak gained a header outside its mutually exclusive render branches');
       } else {
@@ -369,7 +385,16 @@ describe('the tab title is the working title — F602', () => {
     // And the greeting is one of them: Home hands its greeting to the header
     // as the title, so it is set at the same 30 as every other tab name.
     const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
-    assert.match(home, /<TabHeader title=\{greeting\.title\} purpose=\{greeting\.subline\}/, 'Home does not hand its real contextual greeting to the working header');
+    // 2026-10-20, B5, B-Today: the greeting is "Bonjour, Name." alone, with
+    // the avatar beside it and no question under it.
+    assert.match(home, /<TabHeader title=\{greeting\.title\} trailing=\{<ProfileButton \/>\} \/>/, 'Home does not hand its greeting to the working header');
+    assert.doesNotMatch(home, /purpose=/, 'Home draws a line under its greeting again');
+
+    // 2026-10-20, B1, B-Explore: Explore left MainScreen for the loop above,
+    // and its title is the plain "Explore" handed to the header.
+    const explore = stripComments(readFileSync(join(SRC, 'tabs', 'ExploreTab.tsx'), 'utf8'));
+    assert.match(explore, /<TabHeader title="Explore"/, 'Explore lost its one page title');
+    assert.doesNotMatch(explore, /<MainScreen\b/, 'Explore draws the retired MainScreen frame again');
   });
 });
 

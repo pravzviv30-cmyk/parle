@@ -3,7 +3,8 @@ import { AppState, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import { IconAction, GhostButton, SpeakCircle } from '../components.tsx';
-import { colour, paper, space, type } from '../theme.ts';
+import { colour, space, type } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 import { finishLocalTake } from '../daily/finishLocalTake.ts';
 import { recorderUri } from '../daily/recorderUri.ts';
 import { LevelRing } from '../motion/LevelRing.tsx';
@@ -29,6 +30,7 @@ const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true
 export function SpokenAttempt({ onTake, onTyping, busy }: {
   onTake: (uri: string | null) => void; onTyping: () => void; busy: boolean;
 }) {
+  const t = useB();
   const recorder = useAudioRecorder(METERED_TAKE);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const focused = useIsFocused();
@@ -106,7 +108,7 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
       {recording && voice.metered && <View style={st.ring}><LevelRing level={voice.level} size={SPEAK} color={colour.mint} /></View>}
       <SpeakCircle active={recording} disabled={busy} size={SPEAK} onPress={() => { void toggle(); }} accessibilityLabel={recording ? 'Stop recording' : 'Record your French'} />
     </View>
-    <Text style={[type.small, { color: paper.inkSoft }]}>{recording ? RECORDING_LIVE : RECORDING_READY}</Text>
+    <Text style={[type.small, { color: t.muted }]}>{recording ? RECORDING_LIVE : RECORDING_READY}</Text>
     <IconAction layout="inline" icon="keyboard" label={RECORDING_TYPE} disabled={busy} onPress={() => { void stop(false).then(onTyping); }} />
   </View>;
 }

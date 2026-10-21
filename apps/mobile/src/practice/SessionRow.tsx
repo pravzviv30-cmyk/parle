@@ -14,13 +14,16 @@
 
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { ArrowRight, Card } from '../components.tsx';
-import { HIT, paper, radius, signal, space, type } from '../theme.ts';
+import { HIT, radius, signal, space, type } from '../theme.ts';
 import type { SessionCard } from './sessionCard.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /** The standing dot. Small, because it marks rather than announces. */
 const DOT = 8;
 
 export function SessionRow({ session, onRevisit }: { session: SessionCard; onRevisit: () => void }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   return (
     <Card style={st.card}>
       <View style={st.meta}>
@@ -59,7 +62,7 @@ export function SessionRow({ session, onRevisit }: { session: SessionCard; onRev
           </View>
           <Pressable onPress={onRevisit} accessibilityRole="button" style={st.door}>
             <Text style={st.doorWord}>{session.revisit}</Text>
-            <ArrowRight size={18} color={paper.ink} />
+            <ArrowRight size={18} color={t.text} />
           </Pressable>
         </View>
       )}
@@ -67,18 +70,19 @@ export function SessionRow({ session, onRevisit }: { session: SessionCard; onRev
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   card: { padding: space(4) },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2) },
   when: {
     flexShrink: 1,
     minWidth: 0,
-    backgroundColor: paper.groundDeep,
+    backgroundColor: t.skeleton,
     borderRadius: radius.pill,
     paddingVertical: space(1),
     paddingHorizontal: space(2.5),
   },
-  whenWord: { ...type.small, color: paper.inkSoft },
+  whenWord: { ...type.small, color: t.muted },
   // The chip's ground is the page rather than the deeper fill: soft ink
   // measures 4.5 on one and under it on the other, and these are words.
   standing: {
@@ -87,30 +91,31 @@ const st = StyleSheet.create({
     gap: space(1.5),
     flexShrink: 1,
     minWidth: 0,
-    backgroundColor: paper.ground,
+    backgroundColor: t.ground,
     borderRadius: radius.pill,
     paddingVertical: space(1),
     paddingHorizontal: space(2.5),
   },
-  dot: { width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: signal.good },
-  standingWord: { ...type.small, color: paper.ink },
+  dot: { width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: t.text },
+  standingWord: { ...type.small, color: t.text },
   titles: { marginTop: space(3) },
-  titleEn: { ...type.bodyStrong, color: paper.ink },
+  titleEn: { ...type.bodyStrong, color: t.text },
   // The French is the serif, because every French line the learner reads is.
-  titleFr: { ...type.french, color: paper.inkSoft, marginTop: space(1) },
+  titleFr: { ...type.french, color: t.muted, marginTop: space(1) },
   topics: {
     marginTop: space(3),
-    backgroundColor: paper.ground,
+    backgroundColor: t.ground,
     borderRadius: radius.input,
     padding: space(3),
   },
-  topicsLabel: { ...type.label, color: paper.ink },
-  topicsBody: { ...type.small, color: paper.inkSoft, marginTop: space(1.5) },
+  topicsLabel: { ...type.label, color: t.text },
+  topicsBody: { ...type.small, color: t.muted, marginTop: space(1.5) },
   foot: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(3) },
   footWords: { flex: 1, minWidth: 0 },
-  phrases: { ...type.small, color: paper.inkSoft },
+  phrases: { ...type.small, color: t.muted },
   // A quiet door, at the touch floor, with its own words rather than a shared
   // control: a card's second action is not the screen's action.
   door: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), minHeight: HIT, paddingHorizontal: space(1) },
-  doorWord: { ...type.button, color: paper.ink },
+  doorWord: { ...type.button, color: t.text },
 });
+}

@@ -34,7 +34,7 @@ import { ProgressRing } from '../motion/ProgressRing.tsx';
 import { StaggerIn } from '../motion/StaggerIn.tsx';
 import { DUR, STAGGER } from '../motion/tokens.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { colour, onColour, paper, radius, space, textOn, type } from '../theme.ts';
+import { bType, colour, onColour, paper, radius, space, textOn, type } from '../theme.ts';
 import { Confetti } from './Confetti.tsx';
 import { countTick, fireBeat, fireStill } from './effects.ts';
 import { endCardView, timeText, xpText, type EndTile } from './endCardModel.ts';
@@ -117,7 +117,7 @@ export function EndCard({
         tick={tile.id === 'xp' && first ? 'both' : 'none'}
         onSoundTick={countTick}
         label={tileText(tile, tile.value)}
-        textStyle={[type.stat, { color: paper.ink }]}
+        textStyle={[bType.section22, { color: paper.ink }]}
       />
       <Text style={[type.small, { color: paper.inkSoft }]}>{tile.label}</Text>
     </View>
@@ -219,7 +219,9 @@ const st = StyleSheet.create({
   band: { position: 'absolute', left: 0, right: 0, top: 0, height: CONFETTI_BAND, pointerEvents: 'none' },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
   tileSlot: { flexGrow: 1, flexBasis: 0, minWidth: space(24) },
-  tile: { backgroundColor: paper.card, borderRadius: radius.tile, paddingVertical: space(3), paddingHorizontal: space(4), gap: space(1) },
+  // 2026-10-21 UI-008, sim check: 22/800 figures and 12pt sides, so "0:30" stays
+  // on one line in a third of the row without capping the line (wiring.test).
+  tile: { backgroundColor: paper.card, borderRadius: radius.tile, paddingVertical: space(3), paddingHorizontal: space(3), gap: space(1) },
   goal: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   grow: { flex: 1, minWidth: 0 },
   rows: { gap: space(1.5) },

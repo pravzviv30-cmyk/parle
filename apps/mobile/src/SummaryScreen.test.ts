@@ -92,7 +92,8 @@ describe('the end card reads in the order a learner needs it', () => {
     assert.equal((card.match(/accessibilityState=\{\{ expanded: more \}\}/g) ?? []).length, 1, 'there is not exactly one More disclosure');
     const more = render.slice(render.indexOf('{more && ('));
     assert.ok(render.includes('{more && ('), 'nothing is behind More');
-    for (const secondary of ['label="Review"', 'label="Export to Anki"', 'label="Practise the conversation again"', '<Label>Your notebook</Label>', '<Label color={signal.good}>Since you started</Label>']) {
+    // 2026-10-21 UI-008: the label's colour is the theme's text token now (t.text), so the end card reads in dark.
+    for (const secondary of ['label="Review"', 'label="Export to Anki"', 'label="Practise the conversation again"', '<Label>Your notebook</Label>', '<Label color={t.text}>Since you started</Label>']) {
       assert.ok(more.includes(secondary), `${secondary} is not behind More`);
       assert.equal(render.indexOf(secondary), render.lastIndexOf(secondary), `${secondary} is drawn outside More as well`);
     }

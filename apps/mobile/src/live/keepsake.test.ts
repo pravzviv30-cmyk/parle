@@ -24,6 +24,7 @@ import {
   acceptReminderOffer,
   keepsakeLines,
   nextTimeLine,
+  nextCanDo,
   reminderAnswerLine,
   reminderOffer,
   type ReminderOffer,
@@ -59,6 +60,13 @@ describe('next time', () => {
     assert.equal(nextTimeLine(missionStates([], [], NOW)), `Next time: ${getMission(FIRST_MISSION)!.titleEn}`);
     const all = missionStates(SCENE_SPINE.map((id, i) => ({ id, at: NOW - 1000 - i, rung: 4 as const })), [], NOW);
     assert.equal(nextTimeLine(all), null, 'a finished path still promises a next scene');
+  });
+  // 2026-10-21 UI-008, artboard B-Celebrate: the "Next:" pill names the same scene, as a can-do.
+  test('the next can-do is the same spine scene as next time', () => {
+    const first = missionStates([{ id: FIRST_MISSION, at: NOW - 1000, rung: 4 }], [], NOW);
+    assert.deepEqual(nextCanDo(first), { canDoEn: getMission(SCENE_SPINE[1]!)!.canDoEn });
+    const all = missionStates(SCENE_SPINE.map((id, i) => ({ id, at: NOW - 1000 - i, rung: 4 as const })), [], NOW);
+    assert.equal(nextCanDo(all), null);
   });
 });
 

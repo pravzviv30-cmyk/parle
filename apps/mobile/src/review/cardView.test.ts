@@ -29,6 +29,7 @@ import { guiltIn } from '../copy/guilt.ts';
 import {
   CARD_START,
   RETRIEVAL_ASK,
+  REVIEW_COPY,
   SAID_IT,
   SITTING_OPENER,
   TYPE_IT,
@@ -395,15 +396,20 @@ describe('the review sitting on screen', () => {
     // own label. So the count is split rather than lowered: four hand-rolled
     // Pressables that must name themselves — the speaker, the flip and the two
     // attempt buttons — and three grades that are the app's one outline.
+    // 2026-10-21 UI-008, artboard B-ReviewReveal: the three grades are filled
+    // tiles, one Pressable mapped, so the count is four: the speaker, the grade
+    // tile, and the two attempt buttons.
     const controls = tags(screen, 'Pressable');
-    assert.ok(controls.length === 3, `only ${controls.length} controls found; this test is reading the wrong thing`);
+    assert.ok(controls.length === 4, `only ${controls.length} controls found; this test is reading the wrong thing`);
     for (const tag of controls) {
       assert.match(tag, /accessibilityRole=/, `a control on the review screen has no role: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
       assert.match(tag, /accessibilityLabel=/, `a control on the review screen has no name: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
     }
-    const outlines = tags(screen, 'OutlineButton');
-    assert.equal(outlines.length, 1, `the deck draws ${outlines.length} outline shapes; the grades are one outline, mapped`);
-    assert.match(outlines[0]!, /label=\{label\}/, 'the grade control carries no word, so it announces nothing');
+    const grades = controls.filter((tag) => tag.includes('handleGrade(grade)'));
+    assert.equal(grades.length, 1, `the deck draws ${grades.length} grade controls; the grades are one tile, mapped`);
+    assert.match(grades[0]!, /accessibilityLabel=\{label\}/, 'the grade control carries no word, so it announces nothing');
+    // No interval under a grade: the founder holds the clock off this screen.
+    for (const interval of ['In 10 min', 'Tomorrow', 'In a few days']) assert.ok(!screen.includes(interval), `the deck shows the interval "${interval}"`);
     for (const word of ['Again', 'Got it', 'Easy']) {
       assert.ok(screen.includes(`label: '${word}'`), `the deck no longer offers "${word}"`);
     }
@@ -623,5 +629,27 @@ describe('the delayed test, said out loud — F220', () => {
     const body = screen.slice(screen.indexOf('export function ReviewScreen'));
     assert.equal((body.match(/Date\.now\(\)/g) ?? []).length, 3, 'the opener brought a clock read with it');
     assert.match(screen, /\{opener\}/, 'nothing on the screen prints the line');
+  });
+});
+
+// 2026-10-21 UI-008, artboard B-Review: the question sits over a retrieval
+// prompt only while it is unanswered, and never over an introduction.
+test('the question over a retrieval prompt goes once the answer is out', () => {
+  const screen = readFileSync(fileURLToPath(new URL('../ReviewScreen.tsx', import.meta.url)), 'utf8');
+  assert.match(screen, /view\.question !== null &&/);
+  assert.equal(REVIEW_COPY.question, 'How would you say this in French?');
+  assert.ok(!REVIEW_COPY.question.includes('—'));
+});
+
+describe('"I said it" never looks like a recorder', () => {
+  // 2026-10-21 UI-008, founder decision: nothing records on Review, so the
+  // button carries words only and no microphone glyph.
+  test('the said-it button draws no microphone', () => {
+    const screen = readFileSync(fileURLToPath(new URL('../ReviewScreen.tsx', import.meta.url)), 'utf8');
+    const start = screen.indexOf('accessibilityLabel={SAID_IT}');
+    assert.ok(start > 0, 'Review no longer draws the said-it button');
+    const button = screen.slice(start, screen.indexOf('</Pressable>', start));
+    assert.doesNotMatch(button, /Mic/, 'the said-it button draws a microphone again');
+    assert.doesNotMatch(screen, /\bBMic\b/, 'Review imports the microphone glyph again');
   });
 });

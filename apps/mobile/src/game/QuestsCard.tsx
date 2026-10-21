@@ -1,10 +1,11 @@
 /**
- * Home's daily quests (F767; README Part 5.F, D22): "Daily quests", the day so
- * far in one line, and today's three as rows, each with its own progress.
+ * Home's daily quests (F767; README Part 5.F, D22; B-Today 2026-10-20): "Today's
+ * three", the day so far as "1 of 3 done", and today's three as rows, each with
+ * its own progress.
  *
  * What it says is `questsCardView.ts`'s, from the game layer's `useQuests()`:
- * the three dealt and frozen for today, never a fourth, and when all three are
- * done the one quiet line "All three quests done today.". There is no chest,
+ * the three dealt and frozen for today, never a fourth, counted as "n of 3
+ * done" beside the heading (B5, 2026-10-20). There is no chest,
  * no reward and no countdown. Nothing is drawn when the quests could not be
  * read or are not dealt yet.
  *
@@ -21,24 +22,38 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card } from '../components.tsx';
-import { IconTile } from '../icons/IconTile.tsx';
 import { CountUp } from '../motion/CountUp.tsx';
-import { LivingBar } from '../motion/LivingBar.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { questCounts } from '../home/homeDraw.ts';
 import { useHomeDraw } from '../home/useHomeDraw.ts';
+import { TODAY_COPY, questTrailing, threeDone } from '../home/todayView.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { HIT, accent, paper, space, type } from '../theme.ts';
-import { GAME_COPY } from './copy.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
+import { CheckDisc, QuestRing, SmallPill } from '../today/TodayParts.tsx';
+import { HAIRLINE, bType, decorative, space, type } from '../theme.ts';
 import { useGame, useGoal, useQuests } from './GameProvider.tsx';
 import { questsCardView } from './questsCardView.ts';
 
-/** A row's tile, a little under the touch floor: the row is not a target. */
-const TILE = HIT - space(2);
-const BAR = space(1.5);
+/** A row's mark, 26 as drawn: the row is not a target. */
+const MARK = 26;
 
+/**
+ * 2026-10-20, B5, B-Today: "Today's three" on the page, not in a sheet. A
+ * done quest is a mint disc with a tick, so done is never colour alone; one
+ * still moving is a ring drawn to its fraction; one not started is the empty
+ * ring. Each row says its title and where it stands as one phrase, which is
+ * the ring's label too. On the right, the quest's XP while it waits and once
+ * it is done, or its count while it moves.
+ *
+ * 2026-10-20 UI-008, artboard B-Today: the heading and the count sit above a
+ * white list card (radius 22, padding 4 16) of 52pt rows split by hairlines;
+ * a done row's words are muted and struck through; every right-hand pill is
+ * the small 13/700 pill, sage once done and butter otherwise. Theme tokens
+ * throughout, so the card draws in dark too.
+ */
 export function QuestsCard() {
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   const { profile } = useProfile();
   const { view } = useGame();
   const quests = useQuests();
@@ -50,37 +65,47 @@ export function QuestsCard() {
   const done = drawn.draw.counters.questsDone;
 
   return (
-    <Card style={st.card}>
-      <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>
-        {card.title}
-      </Text>
-      <View accessibilityLiveRegion="polite">
-        {done !== undefined ? (
-          <CountUp
-            key={`done-${done.mount}`}
-            from={done.from}
-            to={done.to}
-            format={GAME_COPY.quests.progress}
-            textStyle={[card.allDone ? type.bodyStrong : type.small, { color: card.allDone ? paper.ink : paper.inkSoft }]}
-          />
-        ) : null}
-      </View>
-      {card.rows.map((row) => (
-        <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={st.row}>
-          <IconTile ground={row.complete ? 'mint' : 'skeleton'} name={row.complete ? 'tick-circle' : row.icon} size={TILE} />
-          <View style={st.words}>
-            <Text style={[type.label, { color: paper.ink }]}>{row.title}</Text>
-            <LivingBar from={row.fraction} to={row.fraction} height={BAR} radius={BAR / 2} color={accent.brand} />
-          </View>
-          <Text style={[type.small, { color: row.complete ? paper.ink : paper.inkSoft }]}>{row.count}</Text>
+    <View style={st.block}>
+      <View style={st.head}>
+        <Text accessibilityRole="header" style={[type.heading, st.title, { color: t.text }]}>
+          {TODAY_COPY.three}
+        </Text>
+        <View accessibilityLiveRegion="polite">
+          {done !== undefined ? (
+            <CountUp key={`done-${done.mount}`} from={done.from} to={done.to} format={threeDone} textStyle={[bType.meta, { color: t.muted }]} />
+          ) : null}
         </View>
-      ))}
-    </Card>
+      </View>
+      <View style={st.card}>
+        {card.rows.map((row, index) => {
+          const trailing = questTrailing(row);
+          return (
+            <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={[st.row, index < card.rows.length - 1 && st.ruled]}>
+              <View {...decorative}>
+                {row.complete ? (
+                  <CheckDisc size={MARK} fill={t.mint} tick={t.onMint} />
+                ) : (
+                  <QuestRing size={MARK} fraction={row.fraction} track={t.lavender} color={t.brand} />
+                )}
+              </View>
+              <Text style={[bType.line16, st.words, row.complete ? st.doneWords : { color: t.text }]}>{row.title}</Text>
+              <SmallPill label={trailing.label} ground={trailing.kind === 'xp' && trailing.earned ? t.sage : t.butter} />
+            </View>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
-const st = StyleSheet.create({
-  card: { marginTop: space(5), gap: space(3) },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(1) },
-  words: { flex: 1, minWidth: 0, gap: space(1.5) },
-});
+const makeStyles = (t: B) =>
+  StyleSheet.create({
+    block: { gap: 10 },
+    head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: space(3) },
+    title: { flexShrink: 1, minWidth: 0 },
+    card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: space(1), paddingHorizontal: space(4) },
+    row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: 52, paddingVertical: space(1) },
+    ruled: { borderBottomWidth: HAIRLINE, borderBottomColor: t.line },
+    words: { flex: 1, minWidth: 0 },
+    doneWords: { color: t.muted, textDecorationLine: 'line-through' },
+  });

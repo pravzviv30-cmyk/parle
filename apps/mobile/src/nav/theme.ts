@@ -8,28 +8,43 @@
 
 import type { LinkingOptions, Theme } from '@react-navigation/native';
 import { DefaultTheme } from '@react-navigation/native';
-import { paper, font } from '../theme.ts';
+import { font } from '../theme.ts';
+import { b } from '../palette.ts';
 import type { RootStackParamList } from './types.ts';
 
-export const navTheme: Theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: paper.ground,
-    card: paper.card,
-    text: paper.ink,
-    border: paper.line,
-    primary: paper.ink,
-    notification: paper.ink,
-  },
-  fonts: {
-    ...DefaultTheme.fonts,
-    regular: { fontFamily: font.regular, fontWeight: '400' },
-    medium: { fontFamily: font.medium, fontWeight: '500' },
-    bold: { fontFamily: font.bold, fontWeight: '700' },
-    heavy: { fontFamily: font.bold, fontWeight: '700' },
-  },
-};
+/**
+ * The navigation theme for one mode (UI-008, 2026-10-20). Light is the paper
+ * theme exactly as before; dark paints the M3 ground and surfaces, so a
+ * transition edge never flashes the other mode.
+ */
+export function navThemeFor(mode: 'light' | 'dark'): Theme {
+  const t = b[mode];
+  return {
+    ...DefaultTheme,
+    dark: mode === 'dark',
+    colors: {
+      ...DefaultTheme.colors,
+      background: t.ground,
+      card: t.card,
+      text: t.text,
+      border: t.line,
+      primary: t.text,
+      notification: t.text,
+    },
+    fonts: {
+      ...DefaultTheme.fonts,
+      regular: { fontFamily: font.regular, fontWeight: '400' },
+      medium: { fontFamily: font.medium, fontWeight: '500' },
+      bold: { fontFamily: font.bold, fontWeight: '700' },
+      heavy: { fontFamily: font.bold, fontWeight: '700' },
+    },
+  };
+}
+
+export const navTheme: Theme = navThemeFor('light');
+
+/** Both themes, built once, so the container is handed a stable object. */
+export const navThemes = { light: navTheme, dark: navThemeFor('dark') } as const;
 
 /**
  * Web only, and an explicit screen map rather than a catch-all.
@@ -55,11 +70,16 @@ export const linking: LinkingOptions<RootStackParamList> = {
         path: '',
         screens: {
           Home: 'home',
+          Explore: 'explore',
           Tutor: 'tutor',
           Practice: 'practice',
           MyFrench: 'my-french',
         },
       },
+      ExploreCollection: 'explore/:id',
+      ScenePreview: 'scene-preview/:missionId',
+      Fixes: 'fixes/:packId',
+      ThenNow: 'then-and-now',
       Lesson: 'lesson',
       Convo: 'conversation',
       Drill: 'drill',

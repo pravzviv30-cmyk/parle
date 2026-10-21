@@ -21,7 +21,7 @@
  * Decorative and untouchable: the words under it say what was earned.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
@@ -54,6 +54,7 @@ export function PostcardStamp({
   art,
   kind: given,
   momentKey,
+  children,
 }: {
   /** The scene's postcard. */
   art: IllustrationName;
@@ -61,6 +62,8 @@ export function PostcardStamp({
   kind: PostcardStampKind;
   /** The recap this stamp belongs to, so it plays once; null plays once per mount. */
   momentKey: string | null;
+  /** The postcard as drawn instead of `art` (2026-10-21 UI-008, B-Celebrate's tile). */
+  children?: ReactNode;
 }) {
   // A finish whose history could not be read may be the first, so it stamps
   // with the first earn's weight; the line under it claims no earlier finish
@@ -128,7 +131,7 @@ export function PostcardStamp({
   return (
     <View {...decorative} style={st.stage} onLayout={measure}>
       <Reanimated.View style={card}>
-        <Illustration name={art} />
+        {children ?? <Illustration name={art} />}
         <Reanimated.View style={[st.stamp, { width: stampSize, height: stampSize, top: -stampSize / 4, right: -stampSize / 6 }, stamp]}>
           <Svg width={stampSize} height={stampSize} viewBox={`0 0 ${STAMP_BOX} ${STAMP_BOX}`} {...decorative}>
             <Circle cx={STAMP_BOX / 2} cy={STAMP_BOX / 2} r={46} fill="none" stroke={paper.ink} strokeWidth={STROKE * 2} />

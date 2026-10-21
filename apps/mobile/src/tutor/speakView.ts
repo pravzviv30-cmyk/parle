@@ -29,7 +29,6 @@ import {
 
 import type { LevelStop } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
-import { entryStart, tutorDoors } from './gate.ts';
 
 /** The quiet second way into a conversation, under the one Start. */
 export const TYPE_INSTEAD = 'Type instead';
@@ -55,8 +54,6 @@ export function startModes(prefersTyping: boolean): StartModes {
     : { mode: 'speak', textMode: false, other: { label: TYPE_INSTEAD, textMode: true } };
 }
 
-export const PATH_LABEL = 'Your path';
-export const MORE_WAYS_LABEL = 'More ways to practise';
 export const CHANGE_VOICE = 'Change voice';
 
 /** Who is teaching, as the scene brief's tutor line. */
@@ -69,8 +66,6 @@ export function withTutor(name: string): string {
 export interface TutorCardFacts {
   /** The persona's name, from TUTOR_VOICES. */
   name: string;
-  /** The catalogue's own sound line, unchanged. */
-  voice: string;
   /** The French half of the voice sample, which is what the clip says first. */
   signature: string;
 }
@@ -86,7 +81,6 @@ export function tutorCardFacts(key: TutorVoiceKey): TutorCardFacts {
   const stop = sample.indexOf('. ');
   return {
     name: voice.persona.name,
-    voice: voice.sound,
     signature: stop === -1 ? sample : sample.slice(0, stop + 1),
   };
 }
@@ -226,45 +220,11 @@ export function startNote(orb: { state: string; subline: string }, offlineShown:
   return orb.subline;
 }
 
-// ─────────────────────────────────────────────────────── more ways to practise
-
-export interface MoreWay {
-  key: 'free' | 'rehearse' | 'memory';
-  title: string;
-  gloss: string;
-  /** Null for the open conversation, which probes the tutor like the Start. */
-  screen: 'Missions' | 'RealMoment' | 'TutorMemory' | null;
-}
-
-/**
- * The three other ways in. The open conversation and the real moment are the
- * door model's own rows, worded and routed by `gate.ts` (`tutorDoors()` and
- * `entryStart(key)`), so Speak keeps no second copy of either answer. The
- * chooser's door is not one of them: every scene row on the path opens it.
- */
-export const MORE_WAYS: readonly MoreWay[] = [
-  ...tutorDoors()
-    .filter((door): door is typeof door & { key: 'free' | 'rehearse' } => door.key !== 'everyday')
-    .map(({ key, label, gloss }): MoreWay => {
-      const start = entryStart(key);
-      return { key, title: label, gloss, screen: start.probe ? null : start.screen };
-    }),
-  { key: 'memory', title: 'What your tutor remembers', gloss: 'Your goals, remembered details and correction style.', screen: 'TutorMemory' },
-];
-
-/** Only after a first finished scene, earned or not. */
-export function moreWaysOpen(progress: readonly MissionProgress[]): boolean {
-  return progress.some((p) => p.timesFinished > 0);
-}
-
 /** Every line this module can put on Speak, for the copy sweeps. */
 export const SPEAK_COPY: readonly string[] = [
   TYPE_INSTEAD,
   SPEAK_INSTEAD,
-  PATH_LABEL,
-  MORE_WAYS_LABEL,
   CHANGE_VOICE,
   YOU_ARE_HERE,
   withTutor(tutorVoice(DEFAULT_TUTOR_VOICE).persona.name),
-  ...MORE_WAYS.flatMap((way) => [way.title, way.gloss]),
 ];

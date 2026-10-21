@@ -1,17 +1,22 @@
 /**
- * Profile: who you are, and the doors to how you learn (P2 · Luvani, 2026-10-19).
+ * Profile: who you are, and the doors to how you learn (P2 · Luvani,
+ * 2026-10-19; rebuilt 2026-10-20 UI-008, artboard B-Profile).
  *
- * A large title with the settings gear at its trailing edge, the learner's own
- * avatar and name, then three grouped lists: Learning (preferences, the tutor
- * and the tutor's memory), Your French (progress, My French, Friends) and Plan.
- * The gear is the one way to Settings: the account, the subscription, the
- * reminders, the documents and the phone's own permissions.
+ * The back disc and the settings gear, the learner's own 76pt sun disc with
+ * their initial, name, "Learning French since" and Edit, then a white stats
+ * card (stage, level over XP, the run) whose cells open Journey and Streak, the
+ * blue plan card (what Free includes, See plans to the wall), and three grouped
+ * lists: Learning (preferences, the tutor as the orb opening the voice sheet,
+ * and what the tutor remembers), Your French (Journey, saved phrases, sounds)
+ * and More (Friends, Help and feedback, Privacy). The tab bar sits under it
+ * with no tab selected, as drawn. The gear is the one way to Settings.
  *
  * ## The controls that were inline moved, none was lost
  *
  * The daily goal, the correction style, Prefer typing and Simpler French are on
  * Learning preferences now (`settings/LearningPreferencesScreen.tsx`), one row
- * away, with the conversation starting point beside them. The name is still
+ * away, with the conversation starting point beside them (and the two
+ * switches on Settings' Practice group too, since UI-008). The name is still
  * edited here, from the Edit link beside it, and also from Settings' Account
  * group. The voice sheet stays here because Home and the Tutor tab open it
  * with `Profile` and `sheet: 'tutorVoice'`.
@@ -27,47 +32,59 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { missionStates } from '@luvani/core';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { startVoiceLine } from '../sound/voiceLine.ts';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
-import { colour, paper, space, type, HIT } from '../theme.ts';
-import { OptionRow, PillButton, Press, Sheet as BottomSheet } from '../components.tsx';
-import { Icon } from '../icons/Icon.tsx';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { space, type } from '../theme.ts';
+import { LockBadge, OptionRow, PillButton, Sheet as BottomSheet } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
+import { DetachedTabBar } from '../nav/LuvaniTabBar.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { SettingsGroup } from '../settings/SettingsGroup.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { usePlanStatus } from '../settings/usePlanStatus.ts';
+import { GearGlyph, IconDisc, Identity, PlanBanner, RowArt, StatsCard } from '../settings/ProfileParts.tsx';
 import {
   EDIT_NAME_LINK,
   FRIENDS_ROW,
   FRIENDS_SUB,
+  HELP_FEEDBACK_ROW,
+  JOURNEY_ROW,
+  JOURNEY_SUB,
   LEARNING_GROUP,
   LEARNING_PREFERENCES_ROW,
-  MY_FRENCH_ROW,
+  MEMORY_PROFILE_SUB,
+  MORE_GROUP,
   NAME_UNSET,
-  PLAN_GROUP_TITLE,
-  PROFILE_TITLE,
-  PROGRESS_ROW,
+  PLAN_EYEBROW,
+  PRIVACY_ROW,
+  PRIVACY_SUB,
+  SAVED_PHRASES_ROW,
+  SOUNDS_ROW,
   YOUR_FRENCH_GROUP,
+  YOUR_TUTOR_ROW,
   initialOf,
   learningPreferencesSummary,
   learningSince,
-  planRow,
-  progressSummary,
+  memoryRowTitle,
+  planCard,
+  profileStats,
+  savedCount,
+  soundsLine,
+  stageWordOf,
 } from '../settings/profileView.ts';
-import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { withName, withTutorVoice } from '../profile/store.ts';
 import { dailyGoalOf } from '../profile/dailyGoal.ts';
-import { useLevel } from '../game/GameProvider.tsx';
-import { usePracticeDays } from '../settings/usePracticeDays.ts';
+import { useGame, useLevel, useStreak, useXp } from '../game/GameProvider.tsx';
 import { paceOf } from '../tutor/pace.ts';
 import { strictnessOf } from '../tutor/strictness.ts';
+import { tutorNameOf } from '../tutor/tutorName.ts';
 import {
   TUTOR_VOICE_OPTIONS,
   TUTOR_VOICE_SUB,
@@ -78,8 +95,21 @@ import {
 } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
 import { useBackToHome } from '../nav/useBackToHome.ts';
-import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { SettingsAppearance, SettingsField as Field } from '../settings/SettingsAppearance.tsx';
+import { BArt } from '../art/BArt.tsx';
+import { BackButton } from '../journey/JourneyParts.tsx';
+import { stagesFrom } from '../journey/journeyView.ts';
+import { tapThrough } from '../access/featureAccess.ts';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
+import { contactRow } from '../legal/company.ts';
+import { openMail } from '../settings/links.ts';
+import { loadDeck } from '../review/store.ts';
+import { loadMissionCompletions } from '../missions/store.ts';
+import { missionCompletionsFrom } from '../missions/chooserView.ts';
+import { loadSoundChecks } from '../soundcheck/store.ts';
+import { soundJourney } from '../soundcheck/journey.ts';
+import { scopeGeneration } from '../storage/scope.ts';
 
 /**
  * The sheets that are left.
@@ -105,7 +135,8 @@ type Sheet = 'none' | 'name' | 'tutorVoice';
 
 export function ProfileTab() {
   const goBack = useBackToHome();
-  const { colors } = useMainAppearance();
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Profile'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Profile'>>();
   const { profile, update } = useProfile();
@@ -238,76 +269,102 @@ export function ProfileTab() {
    */
 
   // The tab lives inside the Tabs navigator, so it is named as a child of it.
-  const openMyFrench = () => (nav as unknown as { navigate: (screen: string, params?: object) => void }).navigate('Tabs', { screen: 'MyFrench' });
+  const openTab = (screen: string) => (nav as unknown as { navigate: (screen: string, params?: object) => void }).navigate('Tabs', { screen });
+  const openMyFrench = () => openTab('MyFrench');
   const since = learningSince(profile.onboardedAt);
   const level = useLevel();
-  const days = usePracticeDays();
+  const xp = useXp();
+  const streak = useStreak();
+  const game = useGame();
   const plan = usePlanStatus();
-  const planLine = planRow(plan.view);
+  const locks = useFeatureAccess();
+  const evidence = useProfileEvidence();
+  const tutor = tutorNameOf(profile);
+  const contact = contactRow();
   const preferences = learningPreferencesSummary({ dailyGoalMin: dailyGoalOf(profile), strictness: strictnessOf(profile), slow: paceOf(profile) === 'slow' });
-  const progress = progressSummary({
-    level: level?.level ?? null,
-    cefr: profile.brain?.cefr?.estimate ?? null,
-    confidence: profile.brain?.cefr?.confidence ?? null,
-    days,
-  });
+  const stats = profileStats({ stage: evidence.stage, level: level?.level ?? null, xpTotal: xp?.total ?? null, streak: streak?.current ?? null });
+  const planView = planCard(plan.view, game.view?.protection?.cap ?? null);
+  const memoryLocked = locks.access('tutorMemory') === 'locked';
+  const soundsLocked = locks.access('sounds') === 'locked';
 
   return (
-    <SettingsAppearance>
-    <ScrollScreen ground={colors.background} bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} ink={colors.text} muted={colors.muted} />}>
-      <View style={st.titleRow}>
-        <Text accessibilityRole="header" style={[type.title, st.title, { color: colors.text }]}>{PROFILE_TITLE}</Text>
+    <SettingsAppearance b>
+    <View style={st.screen}>
+    {/* 2026-10-20 UI-008, artboard B-Profile: back and the gear, the learner,
+        the stats card, the blue plan card, then Learning, Your French and
+        More, over the tab bar with no tab selected. */}
+    <ScrollScreen ground={t.ground} padded={false} topGap={space(3)}>
+      <View style={st.page}>
+      <View style={st.top}>
+        <BackButton onPress={goBack} />
         {/* The one way to Settings: the account, the plan, the reminders and
             about Luvani, a stack sibling above the tabs. */}
-        <Press haptic="selection" onPress={() => nav.navigate('Settings')} accessibilityRole="button" accessibilityLabel={SETTINGS_ROW} accessibilityHint={SETTINGS_ROW_SUB} style={st.gear}>
-          <Icon name="settings" size={24} color={colors.text} />
-        </Press>
+        <IconDisc onPress={() => nav.navigate('Settings')} label={SETTINGS_ROW} hint={SETTINGS_ROW_SUB}>
+          <GearGlyph size={22} color={t.text} />
+        </IconDisc>
       </View>
 
       {/* The learner, by their own initial and name. Edit opens the name
           sheet, the same door Settings' Name row uses. */}
-      <View style={st.identity}>
-        <View style={st.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Text style={st.initial}>{initialOf(profile.name)}</Text>
-        </View>
-        <View style={st.who}>
-          <Text style={[type.title, { color: colors.text }]}>{profile.name ?? NAME_UNSET}</Text>
-          {since !== null ? <Text style={[type.small, { color: colors.muted }]}>{since}</Text> : null}
-        </View>
-        <Press haptic="selection" onPress={() => { setDraftName(profile.name ?? ''); setSheet('name'); }} accessibilityRole="button" accessibilityLabel="Edit your name" style={st.edit}>
-          <Text style={[type.label, { color: colors.link }]}>{EDIT_NAME_LINK}</Text>
-        </Press>
-      </View>
+      <Identity
+        initial={initialOf(profile.name)}
+        name={profile.name ?? NAME_UNSET}
+        since={since}
+        edit={EDIT_NAME_LINK}
+        onEdit={() => { setDraftName(profile.name ?? ''); setSheet('name'); }}
+      />
 
-      <SettingsGroup title={LEARNING_GROUP}>
+      <StatsCard stats={stats} onOpen={(stat) => (stat.route === 'Streak' ? nav.navigate('Streak') : openMyFrench())} />
+
+      {/* The plan. An unanswered or unknown plan names no plan and is never
+          called Free (`planCard`); Free opens the plans. */}
+      <PlanBanner eyebrow={PLAN_EYEBROW} view={planView} onPress={() => (planView.target === 'Wall' ? nav.navigate('Wall', { entry: 'settings' }) : nav.navigate('Subscription'))} />
+
+      <SettingsGroup first title={LEARNING_GROUP}>
         <SettingsRow first label={LEARNING_PREFERENCES_ROW} sub={preferences} onPress={() => nav.navigate('LearningPreferences')} />
-        {/* The tutor and what the tutor holds. The voice sheet opens from the
-            first row; the second pushes the editing screen (F562). */}
-        <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
+        {/* The tutor is the orb, never a face, and opens the voice sheet. */}
+        <SettingsRow label={YOUR_TUTOR_ROW} sub={tutor} lead={<RowArt round size={40}><BArt name="tutor-orb" width={40} height={40} /></RowArt>} onPress={() => setSheet('tutorVoice')} />
+        <SettingsRow
+          label={memoryRowTitle(tutor)}
+          sub={MEMORY_PROFILE_SUB}
+          lead={<BArt name="star-jar" width={42} height={38} />}
+          badge={memoryLocked ? <LockBadge form="round" /> : null}
+          onPress={() => tapThrough(locks.access, 'tutorMemory', locks.open, () => nav.navigate('TutorMemory'))}
+        />
       </SettingsGroup>
 
-      <SettingsGroup title={YOUR_FRENCH_GROUP}>
-        <SettingsRow first label={PROGRESS_ROW} sub={progress ?? undefined} onPress={() => nav.navigate('Streak')} />
-        <SettingsRow label={MY_FRENCH_ROW} onPress={() => openMyFrench()} />
-        <SettingsRow label={FRIENDS_ROW} sub={FRIENDS_SUB} onPress={() => nav.navigate('Friends')} />
+      <SettingsGroup first title={YOUR_FRENCH_GROUP}>
+        <SettingsRow first label={JOURNEY_ROW} sub={JOURNEY_SUB} onPress={() => openMyFrench()} />
+        <SettingsRow label={SAVED_PHRASES_ROW} sub={savedCount(evidence.saved) ?? undefined} onPress={() => nav.navigate('Phrasebook')} />
+        <SettingsRow
+          label={SOUNDS_ROW}
+          sub={soundsLine(evidence.soundJourney) ?? undefined}
+          badge={soundsLocked ? <LockBadge form="round" /> : null}
+          onPress={() => tapThrough(locks.access, 'sounds', locks.open, () => (evidence.soundJourney ? nav.navigate('SoundJourney') : openMyFrench()))}
+        />
       </SettingsGroup>
 
-      {/* The plan, as one row. An unanswered or unknown plan names no plan and
-          is never called Free (`planRow`). */}
-      <SettingsGroup title={PLAN_GROUP_TITLE}>
-        <SettingsRow first label={planLine.label} sub={planLine.sub} onPress={() => nav.navigate('Subscription')} />
+      <SettingsGroup first title={MORE_GROUP}>
+        <SettingsRow first label={FRIENDS_ROW} sub={FRIENDS_SUB} onPress={() => nav.navigate('Friends')} />
+        {/* Help and feedback writes to the one address, and is absent while
+            none is supplied: a row with nothing behind it would lie. */}
+        {contact !== null && <SettingsRow label={HELP_FEEDBACK_ROW} onPress={() => void openMail(contact.address)} />}
+        <SettingsRow label={PRIVACY_ROW} sub={PRIVACY_SUB} onPress={() => nav.navigate('Policy')} />
       </SettingsGroup>
+      </View>
     </ScrollScreen>
-    <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" onPress={closeVoiceSheet} tone="brand" />}>
-      <Text style={[type.body, { color: colors.muted }]}>{TUTOR_VOICE_SUB}</Text>
+    <DetachedTabBar onTab={openTab} />
+    </View>
+    <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} surface={t.card} ink={t.text} footer={<PillButton label="Done" onPress={closeVoiceSheet} tone="brand" />}>
+      <Text style={[type.body, { color: t.muted }]}>{TUTOR_VOICE_SUB}</Text>
       {TUTOR_VOICE_OPTIONS.map((option) => (
         <OptionRow key={option.value} title={option.label} detail={option.gloss}
           selected={tutorVoiceOf(profile) === option.value} playing={samplePlaying === option.value}
           onPress={() => update(withTutorVoice(profile, option.value))} onHear={() => hearVoice(option.value)} />
       ))}
     </BottomSheet>
-    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={closeCurrentSheet} surface={colors.surface} ink={colors.text}>
-      <Text style={[type.body, { color: colors.muted }]}>What your tutor calls you at the start of a session.</Text>
+    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={closeCurrentSheet} surface={t.card} ink={t.text}>
+      <Text style={[type.body, { color: t.muted }]}>What your tutor calls you at the start of a session.</Text>
       <Field label="Your name" value={draftName} onChangeText={setDraftName} placeholder="e.g. James" />
       <PillButton label="Save" tone="brand" disabled={draftName.trim().length === 0} onPress={() => {
         const next = draftName.trim();
@@ -319,15 +376,45 @@ export function ProfileTab() {
   );
 }
 
-const AVATAR = space(16);
+/**
+ * What the Profile rows count, read on every visit from the stores that own
+ * it: the stage from the missions, the saved phrases from the deck as
+ * Practice counts them, and whether the sound journey holds a sound to
+ * revisit. Bound to the account that asked; nothing is drawn until read.
+ */
+function useProfileEvidence(): { stage: string | null; saved: number; soundJourney: boolean } {
+  const focused = useIsFocused();
+  const [read, setRead] = useState<{ stage: string | null; saved: number; soundJourney: boolean }>({ stage: null, saved: 0, soundJourney: false });
+  useEffect(() => {
+    if (!focused) return;
+    let cancelled = false;
+    const scope = scopeGeneration();
+    void Promise.all([loadMissionCompletions(), loadDeck(), loadSoundChecks()]).then(
+      ([completions, deck, checks]) => {
+        if (cancelled || scope !== scopeGeneration()) return;
+        const now = Date.now();
+        const missions = missionStates(missionCompletionsFrom(completions), deck, now);
+        setRead({
+          stage: stageWordOf(stagesFrom(missions)),
+          saved: deck.filter((card) => card.kind !== 'phoneme').length,
+          soundJourney: soundJourney(checks, now) !== null,
+        });
+      },
+      () => {
+        // An unread store leaves the counts out: the rows keep their place.
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [focused]);
+  return read;
+}
 
-const st = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
-  title: { flex: 1, minWidth: 0 },
-  gear: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: space(4), marginTop: space(5) },
-  avatar: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, backgroundColor: colour.sun, alignItems: 'center', justifyContent: 'center' },
-  initial: { ...type.title, color: paper.ink },
-  who: { flex: 1, minWidth: 0, gap: space(1) },
-  edit: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-});
+const makeStyles = (_t: B) =>
+  StyleSheet.create({
+    screen: { flex: 1 },
+    // Padding 58 22, gap 22; the bar sits below the scroll rather than over it.
+    page: { paddingHorizontal: 22, gap: 22 },
+    top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  });

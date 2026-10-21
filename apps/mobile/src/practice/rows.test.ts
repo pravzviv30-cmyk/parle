@@ -46,6 +46,10 @@ const ROWS = {
   sound: stripComments(read('./TuneSoundCard.tsx')),
 } as const;
 const MODEL = stripComments(read('./madeFrom.ts'));
+// 2026-10-20, B3, B-Practice: the made-from rows are no longer drawn on
+// Practice (a fix is tried on Your fixes, Today keeps the replay in B5); the
+// rows' own rules below still hold for the files, and the tab still stops any
+// voice it started when it goes.
 const TAB = stripComments(read('../tabs/PracticeTab.tsx'));
 
 describe('practice is three rows made from what the learner said — F574, F582', () => {

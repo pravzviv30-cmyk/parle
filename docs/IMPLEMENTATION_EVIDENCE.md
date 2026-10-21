@@ -22,6 +22,101 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B, ready to land (founder approved the side-by-sides; F846 and
+  F847 closed with the back-disc test), on branch `claude/direction-b`:
+  **5,859 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3445. Floors raised only through `gate:bless`.
+- 21 October 2026 direction B review decisions (UI-009: the live mic is green, Review's
+  "I said it" has no microphone glyph; the other five answers keep the code as it is), on
+  branch `claude/direction-b` (held, not on main):
+  **5,858 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3444. Floors raised only through `gate:bless`.
+- 21 October 2026 direction B fidelity rebuild, simulator fixes (Drill card top border and end
+  card figures, onboarding welcome drawing bleed, plan scene rows from one scene each), on
+  branch `claude/direction-b` (held, not on main):
+  **5,856 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3442. Floors raised only through `gate:bless`.
+- 21 October 2026 direction B fidelity rebuild, step 12b (every signed-in route except the
+  first scene follows the device theme; live flow, settings sub-routes and library screens
+  converted), on branch `claude/direction-b` (held, not on main):
+  **5,850 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3436. Floors raised only through `gate:bless`.
+- 21 October 2026 direction B fidelity rebuild, steps 11 and 12 (onboarding to the B-OB
+  artboards, pinned light; the paywall's dark variant with its design unchanged; the Streak
+  calendar fixed to seven columns), on branch `claude/direction-b` (held, not on main):
+  **5,845 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3431. Floors raised only through `gate:bless`.
+- 21 October 2026 direction B fidelity rebuild, steps 8 to 10 (live room and help, After a
+  session, Celebration, Recap, Review, Drill, empty states, Streak, Profile, Settings with
+  Appearance), on branch `claude/direction-b` (held, not on main):
+  **5,833 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3419. A Settings dark-mode fix after that run adds one test (3,420). Floors raised only through `gate:bless`. Review keeps no count
+  and no intervals; the live pill is the scene's own length; the learner's lines are heard in
+  the tutor's voice; Settings' long pages open as full light pages from dark mode.
+- 21 October 2026 direction B fidelity rebuild, steps 6 and 7 (Practice, its empty state, Your
+  fixes, Journey, Then and now, in light and dark), on branch `claude/direction-b` (held, not
+  on main):
+  **5,797 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3383. Floors raised only through `gate:bless`. Comes up often is
+  shown from authored error patterns; Speak's remembered-topic chips need French and a
+  short label; Scene preview names stages, never "Starting out".
+- 21 October 2026 direction B fidelity rebuild, steps 4 and 5 (Explore, Scene preview and
+  Speak to their artboards in light and dark), on branch `claude/direction-b` (held, not on
+  main):
+  **5,781 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3367. Floors raised only through `gate:bless`. Ledger ticks for
+  F313, F325, F573 and F600 now name the rewritten tab bar and tutor row tests.
+- 21 October 2026 direction B fidelity rebuild, steps 2 and 3 (Codex tab bar, Today to
+  B-Today in light and dark), on branch `claude/direction-b` (held, not on main):
+  **5,762 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3348. Floors raised only through `gate:bless`. A learning-science review asked
+  for Coming up to need a stored "when" noted within 14 days; that fix and the
+  attempt-first `momentShown` helper passed 186 focused tests. Side-by-side sheets are on
+  the fidelity review page (https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a).
+- 20 October 2026 direction B fidelity rebuild, step 1 (B tokens, theme hook, dark mode
+  behind DARK_READY, canvas art, dev canvas learner), on branch `claude/direction-b` (held,
+  not on main): **5,752 tests, 0 failing**; core 825, brain 481, tutor agent 626, token
+  server 456, playground 26, mobile 3338. All six typechecks, 94 shared release/provider
+  checks and eight database proofs pass. Floors raised only through `gate:bless`.
+  Simulator A8293A24 in dark mode shows every route still light (DARK_READY empty).
+- 20 October 2026 direction B, step B5 (Today), on branch `claude/direction-b` (held,
+  not on main): **5,722 tests, 0 failing**; core 825, brain 481, tutor agent 626,
+  token server 456, playground 26, mobile 3308. All six typechecks, eight database
+  proofs and 94 shared release/provider checks pass. Floors raised only through
+  `gate:bless`.
+- 20 October 2026 direction B with main 48007621 merged in and the lock seam wired, on
+  branch `claude/direction-b` (held, not on main): **5,709 tests, 0 failing**; core 825,
+  brain 481, tutor agent 626, token server 456, playground 26, mobile 3295. All six
+  typechecks, eight database proofs and 94 shared release/provider checks pass. Floors
+  raised only through `gate:bless`.
+- 20 October 2026 direction B, step B4 (Journey and Then and now), on branch
+  `claude/direction-b` (held, not on main): **5,611 tests, 0 failing**; core 804,
+  brain 481, tutor agent 622, token server 445, playground 26, mobile 3233. All six
+  typechecks, eight database proofs and 94 shared release/provider checks pass. Floors
+  raised only through `gate:bless`.
+- 20 October 2026 direction B, step B3 (Practice, Your fixes and the Codex library
+  port), on branch `claude/direction-b` (held, not on main): **5,576 tests, 0 failing**;
+  core 804, brain 481, tutor agent 622, token server 445, playground 26, mobile 3198.
+  All six typechecks, eight database proofs and 94 shared release/provider checks pass.
+  Floors raised only through `gate:bless`.
+- 20 October 2026 direction B, step B2 (Speak), on branch `claude/direction-b` (held,
+  not on main): **5,540 tests, 0 failing**; core 804, brain 481, tutor agent 622,
+  token server 445, playground 26, mobile 3162. All six typechecks, eight database
+  proofs and 94 shared release/provider checks pass. Floors raised only through
+  `gate:bless`.
+- 20 October 2026 direction B, step B1 (Explore and Scene preview) with its
+  learning-science fixes, on branch `claude/direction-b` (held, not on main):
+  **5,509 tests, 0 failing**; core 804, brain 481, tutor agent 622, token server 445,
+  playground 26, mobile 3131. All six typechecks, eight database proofs and 94 shared
+  release/provider checks pass. Floors raised only through `gate:bless`.
+- 20 October 2026 direction B, step B1 before its learning-science fixes, on branch
+  `claude/direction-b` (held, not on main): **5,506 tests, 0 failing**; core 804, brain 481,
+  tutor agent 622, token server 445, playground 26, mobile 3128. Floors raised only
+  through `gate:bless`.
+- 20 October 2026 direction B, step B0, on branch `claude/direction-b` (held, not on
+  main): **5,474 tests, 0 failing**; core 804, brain 481, tutor agent 622, token server 445,
+  playground 26, mobile 3096. All six typechecks, eight database proofs and 94 shared
+  release/provider checks pass. Floors raised only through `gate:bless`.
 - 7 October 2026 main integration: compared remote `7d399b79` with Come Alive
   `8f639d3f` from common base `47fbc2ea`. Retained all 13 main-only commits:
   Hum artwork/launch and loading holds, Expo 57.0.27 alignment, web render fixes,

@@ -16,7 +16,9 @@ test('late recap evidence cannot turn the current page into a different numeric 
   const before = recapPages({ ...empty, phrase: true, next: true });
   const after = recapPages({ ...empty, phrase: true, sound: true, ability: true, next: true });
   assert.equal(adjacentRecapPage(before, 'lines', 1), 'next');
-  assert.equal(adjacentRecapPage(after, 'next', -1), 'ability');
+  // 2026-10-21 UI-008: the ability page follows the result now (B-Celebrate after B-AfterSession).
+  assert.equal(adjacentRecapPage(after, 'next', -1), 'sound');
+  assert.deepEqual(after, ['result', 'ability', 'lines', 'sound', 'next']);
   assert.equal(adjacentRecapPage(after, 'next', 1), null);
   assert.equal(adjacentRecapPage(after, 'result', -1), null);
 });
@@ -24,12 +26,13 @@ test('late recap evidence cannot turn the current page into a different numeric 
 test('recap page navigation leaves saving independent and retries the exact kept phrase only after durable save', () => {
   const source = readFileSync(new URL('../RecapScreen.tsx', import.meta.url), 'utf8');
   assert.match(source, /useState<RecapPage>\('result'\)/);
-  assert.match(source, /ProgressDots total=\{pages\.length\}/);
+  // 2026-10-21 UI-008: the artboards carry no step dots; Continue, Next and Finish carry the way on.
+  assert.doesNotMatch(source, /ProgressDots/);
   assert.match(source, /saveState === 'saved' && onPractice !== undefined/);
   assert.match(source, /onPractice\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\)/);
   const save = source.slice(source.indexOf('useEffect(() => {\n    if (keptPhrase'), source.indexOf('const acceptReminder'));
   assert.doesNotMatch(save, /page ===|page,/);
-  assert.match(source, /RoundButton kind="close" accessibilityLabel="Finish conversation"[^>]+onPress=\{onDone\}/);
+  assert.match(source, /<CloseDisc on="(?:blue|band)" label="Finish conversation" onPress=\{onDone\} \/>/);
 });
 
 

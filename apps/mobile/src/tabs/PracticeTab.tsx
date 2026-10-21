@@ -1,178 +1,148 @@
 /**
- * Practice leads with one recommended action. Its preview stays outside the
- * sitting's target set. A free local hear/say/compare door follows when the
- * selected tutor has an exact bundled line. The authored or checked sound is a
- * compact example below those actions; its full mouth guide is optional.
- * Conversation-made rows and due review still appear only when usable.
+ * Practice, built to direction B (2026-10-21 UI-008, artboards B-Practice and
+ * B-Empty-Practice), in light and dark. The learner goes back to their own
+ * conversations: a search over this page's conversations, topic tabs, the
+ * sitting they stopped, the pattern that comes up often (authored copy only,
+ * never a count), the newest conversation drawn large with its fixes, three
+ * practice steps and revisit, older ones drawn small, the mix, saved phrases
+ * and saved text, and the honest doors to sound practice. A learner with no
+ * conversation yet meets the empty page and its one start.
+ *
+ * Every decision is `practice/practiceTabView.ts`'s and every part is
+ * `practice/PracticeParts.tsx`'s; this file is layout. The stores are read by
+ * `practice/useLibraryData.ts`, which recovers a half-done completion first and
+ * fences every read and tap to the account that made it. Lock badges come only
+ * from the access seam.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
-import { colour, decorative, paper, space, type } from '../theme.ts';
-import { IconActionRow, IconAction, Choice, Sheet, Card, FrenchBlock, GhostButton, Label, Ledger, LedgerRow, OutlineButton, PillButton } from '../components.tsx';
-import { Illustration } from '../art/flat/Illustration.tsx';
-import { DocumentGlyph } from '../glyphs.tsx';
+import { Skeleton } from '../components.tsx';
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
+import { HIT, bType, radius, space } from '../theme.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { UNREAD } from '../practice/archive.ts';
-import { ALTERNATIVES, PRACTICE_TITLE } from '../practice/copy.ts';
-import { NextTaskCard } from '../practice/NextTaskCard.tsx';
+import { PRACTICE_TITLE } from '../practice/copy.ts';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
-import { NEXT_STEP } from '../practice/nextStep.ts';
-import { recommendation } from '../practice/recommendation.ts';
-import { practiceCard, practiceDoors, type PracticeCard, type PracticeDoors } from '../practice/practiceCard.ts';
-import { loadDrillBank } from '../drill/store.ts';
-import { latestReadyPack } from '../conversationPacks/model.ts';
-import { useContinueArc } from '../purchases/useContinueArc.ts';
-import { recoverPracticeCompletion } from '../practice/completion.ts';
-import { loadPracticeSession, type PracticeSessionRecord } from '../practice/sessionStore.ts';
-import { resumableOf } from '../practice/opening.ts';
-import { practiceRouteParams } from '../practice/practiceRoute.ts';
-import { activeUserId, scopeGeneration } from '../storage/scope.ts';
-import { MADE_FROM, madeFromConversations, type MadeFrom } from '../practice/madeFrom.ts';
-import { STARTER } from '../practice/starter.ts';
-import { soundLead, type SoundLead } from '../practice/soundLead.ts';
-import { ownsPracticeRead, type PracticeReadOwner } from '../practice/readOwner.ts';
-import { useRecordedLine } from '../practice/recordedPlayer.ts';
-import { ReplayMomentCard } from '../practice/ReplayMomentCard.tsx';
-import { MakePhraseCard } from '../practice/MakePhraseCard.tsx';
 import { TuneSoundCard } from '../practice/TuneSoundCard.tsx';
-import { loadDeck } from '../review/store.ts';
-import { loadSoundChecks } from '../soundcheck/store.ts';
+import {
+  CompactConversationCard,
+  ConversationsHead,
+  EmptyCard,
+  LargeConversationCard,
+  MixCard,
+  Notice,
+  PageLink,
+  PatternCard,
+  PracticeSearch,
+  QuietRow,
+  ReadyRow,
+  ResumeCard,
+  SavedBox,
+  SavedTiles,
+  SubHead,
+  TopicTabs,
+} from '../practice/PracticeParts.tsx';
+import { useLibraryData } from '../practice/useLibraryData.ts';
+import { useRecordedLine } from '../practice/recordedPlayer.ts';
+import { soundLead } from '../practice/soundLead.ts';
+import {
+  COMES_UP_TITLE,
+  CONVERSATIONS_TITLE,
+  EMPTY,
+  EMPTY_SUBTITLE,
+  MIX_TITLE,
+  NEWEST,
+  OLDER,
+  PATTERN_FREE,
+  PICK_UP_TITLE,
+  PRACTICE_SUBTITLE,
+  PRACTISE_CONVERSATION,
+  PRACTISE_IT,
+  PRACTISE_THIS,
+  SAVED_FIRST,
+  SAVED_PHRASES,
+  SAVED_TEXT,
+  SEARCH_NONE,
+  SEARCH_PLACEHOLDER,
+  TALK_AGAIN_SHORT,
+  cafeRow,
+  chosenTopic,
+  conversationCard,
+  isNewLearner,
+  mixCard,
+  packsInTopic,
+  packsMatching,
+  patternCard,
+  pickUp,
+  revisitedLines,
+  savedPhrasesLine,
+  soundsRow,
+  thisWeekLine,
+  topicChips,
+  type PracticeRoute,
+} from '../practice/practiceTabView.ts';
+import type { ExploreTopic } from '../main/exploreCatalogue.ts';
+import { useContinueArc } from '../purchases/useContinueArc.ts';
+import { scopeGeneration } from '../storage/scope.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
+import { useFeatureAccess } from '../access/useFeatureAccess.ts';
+import { tapThrough } from '../access/featureAccess.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
-import { loadPackMarks, withMarks, type PackMark } from '../conversationPacks/marks.ts';
 import { TUTOR_OFFLINE, lessonStart, tutorGate } from '../tutor/gate.ts';
 import { DAILY_ITEMS } from '../daily/catalogue.ts';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { shadowingPhrase } from '../daily/shadowing.ts';
 import { dailyTutorVoice } from '../daily/tutorAudio.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 
 export function PracticeTab() {
-  const [details, setDetails] = useState(false);
-  useFocusEffect(useCallback(() => () => setDetails(false), []));
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
   const { user, adapter } = useAuth();
+  // The lock seam: re-renders on a standing change, opens the Wall on a locked tap.
+  const locks = useFeatureAccess(user?.id);
+  const sounds = soundsRow(locks.access);
+  const cafe = cafeRow(locks.access);
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   const { profile } = useProfile();
   // The learner's chosen tutor, whose bundled recordings are the only native
   // audio this page plays. Never another voice filling a gap.
   const voice = dailyTutorVoice(profile.tutorVoice);
   const recorded = useRecordedLine();
-  const shadowPhrase = shadowingPhrase(DAILY_ITEMS,TUTOR_DAILY_AUDIO,voice);
-
-  // The one recommended action and the quiet doors under it, answered whole by
-  // practice/practiceCard.ts over core's balanced selector. Null while storage
-  // has not answered, which is not the same as a learner with nothing to do.
-  const [step, setStep] = useState<{ card: PracticeCard; doors: PracticeDoors } | null>(null);
+  const shadowPhrase = shadowingPhrase(DAILY_ITEMS, TUTOR_DAILY_AUDIO, voice);
   // Whether this plan opens the tutor revisit, through the one shared helper.
   const revisitAllowed = useContinueArc() === true;
-  // The rows made from the newest conversation. Null while storage has not
-  // answered; `{ value: null }` is a learner with no conversation yet.
-  const [made, setMade] = useState<{ value: MadeFrom | null } | null>(null);
-  // The sound the page leads with. Null while the checks are read.
-  const [lead, setLead] = useState<SoundLead | null>(null);
+  const library = useLibraryData();
+  const { data } = library;
+  const [topic, setTopic] = useState<ExploreTopic | null>(null);
+  // The search over this page's conversations, on the device. Never stored.
+  const [query, setQuery] = useState('');
   // A probe is in flight, so a second tap cannot queue a second navigation.
   const [checking, setChecking] = useState(false);
   // The start that did not happen, so the retry is the same start.
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
-  // The preview line is being said aloud, so the card offers Stop.
-  const [playing, setPlaying] = useState(false);
-  // The read did not finish, and the learner is told so (F449).
-  const [failed, setFailed] = useState(false);
-  const [readOwner, setReadOwner] = useState<PracticeReadOwner | null>(null);
-  const [failureOwner, setFailureOwner] = useState<PracticeReadOwner | null>(null);
-  const currentScope = scopeGeneration();
-  const ownerMatches = ownsPracticeRead(readOwner, currentScope, user?.id ?? null, activeUserId());
-  const showFailed = failed && ownsPracticeRead(failureOwner, currentScope, user?.id ?? null, activeUserId());
-  const ownsReadNow = () => ownerMatches && ownsPracticeRead(readOwner, scopeGeneration(), user?.id ?? null, activeUserId());
+  // A new account starts on All, with no probe or refusal of the last one's.
+  const accountScope = scopeGeneration();
+  useEffect(() => { setTopic(null); setQuery(''); setChecking(false); setHeldBack(null); }, [accountScope]);
+  // Drawn only for the account that made the read (useLibraryData's fence).
+  const ownerMatches = data !== null;
+  const ownsReadNow = () => library.ownsNow();
 
   // A voice started here stops when the tab goes.
   useEffect(() => () => tutorVoice.stop(), []);
+  useFocusEffect(useCallback(() => () => recorded.stop(), [recorded.stop]));
 
-  /**
-   * Read everything the tab draws, and say so if it cannot. `.catch` at the end
-   * of the chain, so a throw inside a fulfilment handler lands there too.
-   */
-  const load = useCallback(
-    (cancelled: () => boolean) => {
-      const now = Date.now();
-      setFailed(false);
-      setChecking(false);
-      setHeldBack(null);
-      setPlaying(false);
-      tutorVoice.stop();
-      recorded.stop();
-      // Bound to the account before any read.
-      const scope = scopeGeneration();
-      const userId = user?.id ?? null;
-      const capturedOwner = { scope, userId };
-      const stale = (): boolean => cancelled() || !ownsPracticeRead(capturedOwner, scopeGeneration(), userId, activeUserId());
-
-      const draw = (
-        fetched: readonly ConversationPack[],
-        deck: readonly ReviewCard[],
-        bank: readonly DrillExercise[],
-        marks: readonly PackMark[],
-        checks: readonly SoundCheckEvidence[],
-        saved: PracticeSessionRecord | null,
-      ) => {
-        const packs = withMarks(fetched, marks);
-        const rec = recommendation({ resumable: resumableOf(saved, packs, bank), deck, bank, packs, now });
-        // The saved sitting's own phrases, so the card never previews a line a
-        // resume is about to ask for.
-        const card = practiceCard({ rec, deck, packs, now, resuming: saved?.targets.map((t) => t.phraseKey) ?? [] });
-        const revisitPackId = (rec.kind !== 'none' ? rec.source?.id : undefined) ?? latestReadyPack(packs)?.id ?? null;
-        setStep({ card, doors: practiceDoors({ deck, packs, now, revisitAllowed, revisitPackId }) });
-        setMade({ value: madeFromConversations({ packs, marks, deck, checks, bank, now }) });
-        setLead(soundLead({ checks, now, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS }));
-        setReadOwner({ scope, userId });
-      };
-
-      // A completion a previous launch left half-done lands first, then the
-      // cache is drawn, then the server-owned truth quietly replaces it.
-      void recoverPracticeCompletion()
-        .catch(() => null)
-        .then(() =>
-          Promise.all([loadConversationPacks(), loadDeck(), loadDrillBank(), loadPackMarks(), loadSoundChecks({ strict: true }), loadPracticeSession()]),
-        )
-        .then(([packs, deck, bank, marks, checks, saved]) => {
-          if (stale()) return undefined;
-          draw(packs, deck, bank, marks, checks, saved);
-
-          if (user === null) return undefined;
-          return refreshConversationPacks(user, adapter).then((result) => {
-            if (stale() || !result.ok) return undefined;
-            // The refresh banks the packs' exercises, so the bank is read again.
-            return loadDrillBank().then((fresh) => {
-              if (!stale()) draw(result.packs, deck, fresh, marks, checks, saved);
-            });
-          });
-        })
-        .catch(() => {
-          if (!stale()) { setFailureOwner({ scope, userId }); setFailed(true); }
-        });
-    },
-    [user, adapter, revisitAllowed, voice, recorded.stop],
-  );
-
-  // Rebuilt on every return, so a conversation that just finished is here.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      load(() => cancelled);
-      return () => {
-        cancelled = true;
-        recorded.stop();
-      };
-    }, [load, recorded.stop]),
-  );
+  /** Every door on the page, through the account fence. */
+  const go = (route: PracticeRoute) => {
+    if (!ownsReadNow()) return;
+    recorded.stop();
+    nav.navigate(route.screen, 'params' in route ? route.params : undefined);
+  };
 
   /**
    * A live conversation, probed the way the hero's start is (F555). A refusal
@@ -199,9 +169,9 @@ export function PracticeTab() {
   };
 
   /**
-   * The guided sound lesson, opened the way the chooser opens it. The probe
-   * refreshes whether a real tutor is reachable. An unavailable lesson stays
-   * here with genuine local practice rather than simulated speech.
+   * The café lesson, opened the way the chooser opens it. The probe refreshes
+   * whether a real tutor is reachable. An unavailable lesson stays here with
+   * genuine local practice rather than simulated speech.
    */
   const openLesson = () => {
     if (checking || !ownsReadNow()) return;
@@ -215,212 +185,175 @@ export function PracticeTab() {
     void recheck().then(answered => { if (answered) go(); else { if (!ownsReadNow()) return; setChecking(false); setHeldBack({ textMode: false }); } }, () => { if (!ownsReadNow()) return; setChecking(false); setHeldBack({ textMode: false }); });
   };
 
-  /** The one recommended action. A module sitting is local, so nothing is probed. */
-  const startRecommended = () => {
-    if (step === null || !ownsReadNow()) return;
-    recorded.stop();
-    const action = step.card.action;
-    if (action.kind === 'lesson') return openLesson();
-    if (action.kind === 'talk') return startFirst();
-    if (action.kind === 'practice') return nav.navigate('Drill', action.params);
-    // The one saved sitting: the Drill screen reads its queue from the store.
-    return nav.navigate('Drill', practiceRouteParams({ origin: 'resume', packId: null, exposed: false }));
-  };
-
-  /** The tutor revisit, routed the way every continuation is. */
-  const revisitWithTutor = (packId: string) => {
-    if (!ownsReadNow()) return;
-    nav.navigate('Convo', { continuationPackId: packId });
-  };
-
-  /** Say the preview line, or stop saying it. */
-  const hearNext = (french: string) => {
-    if (!ownsReadNow()) return;
-    if (playing) {
-      tutorVoice.stop();
-      setPlaying(false);
-      return;
-    }
-    recorded.stop();
-    setPlaying(true);
-    tutorVoice.speak(french, { onDone: () => setPlaying(false) });
-  };
-
   /** Play the sound's recording, or stop it. Never the synthesiser. */
   const hearRecording = (asset: number) => {
     if (!ownsReadNow()) return;
     tutorVoice.stop();
-    setPlaying(false);
     recorded.toggle(asset);
   };
 
-  // Day one is the model's answer: the card's action is the sound lesson.
-  const dayOne = ownerMatches && step !== null && step.card.action.kind === 'lesson';
-  // The ledger is drawn only when one of its rows can start.
-  const rowsCanStart =
-    ownerMatches && ((made?.value?.replay != null && made.value.replay.sayable) ||
-    made?.value?.phrase != null ||
-    (!dayOne && step !== null && step.doors.review !== null));
+  const now = Date.now();
+  const newLearner = data !== null && isNewLearner(data);
+  const lead = data === null ? null : soundLead({ checks: data.checks, now, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS });
 
-  // The page's one primary action, built once. It sits in the sound block on
-  // day one and in the recommended card on every other day, never both.
-  const primary = !ownerMatches || step === null ? null : (
-    <View style={st.firstStart}>
-      {step.card.source !== null && <Text style={st.sourceLine}>{step.card.source}</Text>}
-      <View style={st.action}>
-        <PillButton label={step.card.action.label} disabled={checking} onPress={startRecommended} />
-        {step.card.liveMinutes !== null && <Text style={st.costLine}>{step.card.liveMinutes}</Text>}
-        {step.card.noMinutes !== null && <Text style={st.costLine}>{step.card.noMinutes}</Text>}
-      </View>
-      {heldBack !== null && (
-        <View style={st.offline}>
-          <Text style={st.openingBody}>{TUTOR_OFFLINE.body}</Text><LocalPracticeCard />
-          <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
-        </View>
-      )}
+  const refused = heldBack !== null && (
+    <View style={st.refused}>
+      <Text style={[bType.meta, { color: t.secondary }]}>{TUTOR_OFFLINE.body}</Text>
+      <LocalPracticeCard />
+      <PageLink label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
     </View>
+  );
+
+  const savedTiles = data !== null && (
+    <SavedTiles tiles={[
+      { key: 'phrases', title: SAVED_PHRASES, line: savedPhrasesLine(data.deck), onPress: () => go({ screen: 'Phrasebook' }) },
+      ...(adapter.kind === 'supabase' ? [{ key: 'text', title: SAVED_TEXT.title, line: SAVED_TEXT.gloss, onPress: () => go({ screen: 'SavedConversationText' }) }] : []),
+    ]} />
   );
 
   return (
     <ScrollScreen
       bottom="tab"
-      ground={colour.mint}
+      topGap={8}
       // The F154 checking receipt, kept in the frame header so a tap that waits
       // on the network stays acknowledged when the title scrolls away.
       header={ownerMatches && checking && (
         <Text
           accessibilityLiveRegion="polite"
-          style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}
+          style={[bType.note, { color: t.muted, marginTop: space(1) }]}
         >
           {TUTOR_OFFLINE.checking}
         </Text>
       )}
     >
-      <View>
-        <TabHeader display title="Make it feel natural." trailing={<ProfileButton />} />
+      <View style={newLearner ? st.emptyPage : st.page}>
+        <TabHeader title={PRACTICE_TITLE} purpose={newLearner ? EMPTY_SUBTITLE : PRACTICE_SUBTITLE} trailing={<ProfileButton />} />
 
         {/* The read did not finish. Said plainly, with the same work offered again. */}
-        {showFailed && (
-          <View style={st.block}>
-            <Card>
-              <Text style={st.openingTitle}>{UNREAD.title}</Text>
-              <Text style={st.openingBody}>{UNREAD.body}</Text>
-              <View style={st.blockBody}>
-                <OutlineButton label={UNREAD.retry} onPress={() => { if (ownsPracticeRead(failureOwner, scopeGeneration(), user?.id ?? null, activeUserId())) load(() => false); }} />
-              </View>
-            </Card>
+        {library.failed && (
+          <Notice title={UNREAD.title} body={UNREAD.body} action={UNREAD.retry} disabled={library.loading} onPress={library.retry} />
+        )}
+        {library.cached && (
+          <Notice live title={null} body="Showing what is saved on this phone. Connect and try again to check for newer conversations." action="Try again" disabled={library.loading} onPress={library.retry} />
+        )}
+        {data === null && !library.failed && (
+          <View accessibilityLabel="Loading your practice">
+            <Skeleton blocks={[{ height: space(30), radius: radius.feature }, { height: space(40), radius: radius.feature }]} />
           </View>
         )}
 
-        <View {...decorative} style={{ alignItems: 'center', marginVertical: space(3) }}><Illustration name="state-notebook" style={{ width: space(28.75), height: space(28.75) }} /></View>
-        <View style={{ gap: space(3) }}>
-          <Choice role="button" navigation outlined compact title="Saved phrases" detail="Make your French feel familiar" selected={false} onPress={() => nav.navigate('Phrasebook')} />
-          <Choice role="button" navigation outlined compact title="Sound practice" detail="One sound at a time" selected={false} onPress={() => nav.navigate('SoundCheck')} />
-          <Choice role="button" navigation outlined compact title="Conversations" detail="Pick up where you left off" selected={false} onPress={() => nav.navigate('Conversations')} />
-        </View>
-        {ownerMatches && step !== null && <View style={st.block}>{primary}</View>}
-        <IconAction layout="inline" icon="forward" label="Explore practice" onPress={() => setDetails(true)} />
-        <Sheet visible={details} title="Practice" onClose={() => { setDetails(false); recorded.stop(); tutorVoice.stop(); setPlaying(false); }}>
-        <Columns>
-        <View>
-        {/* The exact next action stays in the first viewport, including on day one. */}
-        {ownerMatches && step !== null && (
-          <View style={st.block}>
-            {dayOne ? <NextTaskCard /> : <Card style={{ gap: space(4) }}>
-              <Label>{NEXT_STEP.label}</Label>
-              <FrenchBlock french={step.card.phrase.fr} english={step.card.phrase.en} playing={playing} onHear={() => hearNext(step.card.phrase.fr)} />
-
-            </Card>}
-          </View>
-        )}
-
-        </View>
-        <View>
-        {/* One sentence, on day one only: what this page becomes. */}
-        {dayOne && <Text style={st.starterLine}>{STARTER.line}</Text>}
-
-        {!dayOne && shadowPhrase && <View style={st.block}><Ledger><LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Hear, say and compare" gloss="Free offline practice with your chosen tutor’s recording. Your take is temporary and is not graded." onPress={()=>nav.navigate('DailyPractice',{id:shadowPhrase.id,mode:'shadowing'})} /></Ledger></View>}
-
-        {/* The sound example follows the short action; its full guide is optional. */}
-        {ownerMatches && lead !== null && (
-          <View style={st.block}>
-            <TuneSoundCard lead={lead} playing={recorded.playing} onHear={hearRecording} onCheck={(missionId) => { if (ownsReadNow()) nav.navigate('SoundCheck', { missionId }); }} />
-          </View>
-        )}
-
-        {/* The ways to practise, each drawn only when it can start. */}
-        {rowsCanStart && (
-          <View style={st.block}>
-            <View style={st.rowsHead}>
-              <Label>{ALTERNATIVES.label}</Label>
+        {data !== null && newLearner && (
+          <View style={st.emptyPage}>
+            <EmptyCard title={EMPTY.title} body={EMPTY.body} start={EMPTY.start} disabled={checking} onStart={startFirst}>
+              {refused}
+            </EmptyCard>
+            <View style={st.list}>
+              <SubHead title={EMPTY.readyNow} />
+              {/* "free" is left out: the lesson uses live minutes, said in its own line (founder, 2026-10-21). */}
+              <ReadyRow title={cafe.title} lines={[cafe.line, cafe.cost]} art="phrasebook" ground="butter" locked={cafe.locked} disabled={checking} onPress={openLesson} />
+              <ReadyRow title={sounds.title} lines={[sounds.gloss]} art="voice-chat" ground="peach" locked={sounds.locked} onPress={() => go({ screen: 'SoundCheck' })} />
             </View>
-            <Ledger>
-              {made?.value?.replay != null && made.value.replay.sayable && (
-                <ReplayMomentCard
-                  replay={made.value.replay}
-                  onTry={() => {
-                    if (!ownsReadNow()) return;
-                    nav.navigate('Drill', {
-                      node: {
-                        id: `replay:${made.value!.replay!.packId}`,
-                        title: MADE_FROM.replay.label,
-                        phraseKeys: [made.value!.replay!.key],
-                        moment: { quote: made.value!.replay!.quote, better: made.value!.replay!.better, why: made.value!.replay!.why },
-                      },
-                    });
-                  }}
-                />
-              )}
-              {made?.value?.phrase != null && (
-                /* The own-words node the row builds, passed straight on (F581). */
-                <MakePhraseCard phrase={made.value.phrase} onSay={(node) => { if (ownsReadNow()) nav.navigate('Drill', { node }); }} />
-              )}
-              {!dayOne && step !== null && step.doors.review !== null && (
-                <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title={step.doors.review} onPress={() => { if (ownsReadNow()) nav.navigate('Review'); }} />
-              )}
-            </Ledger>
+            <View style={st.list}>
+              <SubHead title={SAVED_PHRASES} />
+              <SavedBox line={data.deck.length === 0 ? SAVED_FIRST : savedPhrasesLine(data.deck)} onPress={() => go({ screen: 'Phrasebook' })} />
+            </View>
           </View>
         )}
 
-        </View>
-        </Columns>
-        {/* The quieter doors at the foot, each only when it has something behind it. */}
-        {ownerMatches && step !== null && (
-          <View style={st.doors}>
-          <IconActionRow>
-            {step.doors.choose !== null && <IconAction layout="tile" icon="chat" label={step.doors.choose}  onPress={() => { if (ownsReadNow()) nav.navigate('Conversations'); }} />}
-            {step.doors.revisit !== null && (
-              <View>
-                <IconAction layout="tile" icon="replay"
-                  label={step.doors.revisit.label}
+        {data !== null && !newLearner && (() => {
+          const chips = topicChips(data.page);
+          const chosen = chosenTopic(data.page, topic);
+          const shown = packsMatching(packsInTopic(data.page, chosen), query);
+          const resume = pickUp({ saved: data.session, packs: data.packs, deck: data.deck, bank: data.bank, now });
+          const pattern = patternCard({ patterns: profile.brain.errorPatterns, packs: data.packs, bank: data.bank, access: locks.access });
+          const mix = mixCard({ deck: data.deck, bank: data.bank, topics: data.topics, now, access: locks.access });
+          const week = thisWeekLine(data.page, now);
+          return (
+            <Columns>
+              <View style={st.page}>
+                <View style={st.searchBlock}>
+                  <PracticeSearch value={query} onChangeText={setQuery} placeholder={SEARCH_PLACEHOLDER} />
+                  {chips.length > 0 && (
+                    <TopicTabs tabs={chips} chosen={chosen} onChoose={setTopic} />
+                  )}
+                </View>
 
-                  accessibilityLabel={`${step.doors.revisit.label}. ${step.doors.revisit.uses}`}
-                  onPress={() => revisitWithTutor(step.doors.revisit!.packId)}
-                />
-                <Text style={st.doorNote}>{step.doors.revisit.uses}</Text>
+                {resume !== null && (
+                  <ResumeCard title={PICK_UP_TITLE} line={resume.line} onPress={() => go(resume.route)} />
+                )}
+
+                {/* 2026-10-21 UI-008, artboard B-Practice, founder: Comes up often shows, authored copy only, never a count. */}
+                {pattern !== null && (
+                  <PatternCard eyebrow={COMES_UP_TITLE} title={pattern.row.title} hint={pattern.row.hint} note={PATTERN_FREE} practise={PRACTISE_THIS} locked={pattern.row.locked}
+                    onCard={pattern.fixes === null ? null : () => go(pattern.fixes!)}
+                    onPractise={pattern.row.practise === null ? null : () => tapThrough(locks.access, 'fixes', locks.open, () => go(pattern.row.practise!))} />
+                )}
+
+                <ConversationsHead title={CONVERSATIONS_TITLE} week={week} />
+                {library.olderPage && <Text style={[bType.note, { color: t.muted }]}>An older page. Topics apply to this page.</Text>}
+                {shown.length === 0 && query.trim() !== '' && <Text style={[bType.meta, { color: t.secondary }]}>{SEARCH_NONE}</Text>}
+                {shown.map((pack, index) => {
+                  const card = conversationCard({ pack, packs: data.packs, deck: data.deck, bank: data.bank, now, revisitAllowed, access: locks.access, index });
+                  const revisited = card.revisited === null ? null : revisitedLines(card.revisited);
+                  const talk = card.revisit === null ? null : {
+                    label: card.revisit.label,
+                    uses: card.revisit.uses,
+                    locked: card.revisit.locked,
+                    onPress: () => tapThrough(locks.access, card.revisit!.feature, locks.open, () => go(card.revisit!.route)),
+                  };
+                  if (index === 0) {
+                    return (
+                      <LargeConversationCard key={card.id} title={card.title} meta={card.meta} summary={card.summary} kept={card.kept} more={card.more} revisited={revisited}
+                        fixes={card.fixes === null ? null : { title: card.fixes.title, gloss: card.fixes.gloss, locked: card.fixes.locked, onPress: () => go(card.fixes!.route) }}
+                        stepsLabel={PRACTISE_CONVERSATION}
+                        steps={card.steps === null ? null : card.steps.map((step) => ({ key: step.key, title: step.title, gloss: step.gloss, onPress: () => go(step.route) }))}
+                        stepsLocked={card.stepsLocked}
+                        revisit={talk} />
+                    );
+                  }
+                  return (
+                    <CompactConversationCard key={card.id} title={card.title} meta={card.meta} summary={card.summary} art={card.art} revisited={revisited}
+                      practise={card.practiseIt === null ? null : { label: PRACTISE_IT, locked: card.practiseIt.locked, onPress: () => tapThrough(locks.access, card.practiseIt!.feature, locks.open, () => go(card.practiseIt!.route)) }}
+                      talk={talk === null ? null : { ...talk, label: TALK_AGAIN_SHORT }} />
+                  );
+                })}
+                {data.unavailable.length > 0 && (
+                  <PageLink label="Some conversations need a closer look" onPress={() => { if (ownsReadNow()) nav.navigate('Conversations'); }} />
+                )}
+                {library.nextCursor !== null && <PageLink label={library.loading ? 'Loading…' : OLDER} disabled={library.loading} onPress={library.older} />}
+                {library.olderPage && <PageLink label={NEWEST} disabled={library.loading} onPress={library.newest} />}
               </View>
-            )}
-          </IconActionRow>
-          </View>
-        )}
-        </Sheet>
+
+              <View style={st.page}>
+                {mix !== null && (
+                  <MixCard title={MIX_TITLE} line={mix.line} locked={mix.locked} onPress={() => tapThrough(locks.access, mix.feature, locks.open, () => go(mix.route))} />
+                )}
+
+                {savedTiles}
+
+                {/* The honest doors to sound practice, below what the artboard draws: the
+                    bundled recording to hear, say and compare, and one sound with its mouth guide. */}
+                {shadowPhrase && (
+                  <QuietRow title="Hear, say and compare" line="Free offline practice with your chosen tutor’s recording. Your take is temporary and is not graded." onPress={() => { if (ownsReadNow()) nav.navigate('DailyPractice', { id: shadowPhrase.id, mode: 'shadowing' }); }} />
+                )}
+                {ownerMatches && lead !== null && (
+                  <TuneSoundCard lead={lead} playing={recorded.playing} onHear={hearRecording} onCheck={(missionId) => { if (ownsReadNow()) nav.navigate('SoundCheck', { missionId }); }} />
+                )}
+              </View>
+            </Columns>
+          );
+        })()}
       </View>
     </ScrollScreen>
   );
 }
 
-const st = StyleSheet.create({
-  block: { marginTop: space(3) },
-  blockBody: { marginTop: space(3) },
-  firstStart: { gap: space(3) },
-  offline: { gap: space(3) },
-  openingTitle: { ...type.bodyStrong, color: paper.ink },
-  openingBody: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  starterLine: { ...type.small, color: paper.inkSoft, marginTop: space(3) },
-  rowsHead: { marginBottom: space(2) },
-  sourceLine: { ...type.small, color: paper.ink },
-  action: { gap: space(1.5) },
-  costLine: { ...type.small, color: paper.ink },
-  doors: { marginTop: space(4), alignItems: 'flex-start', gap: space(1) },
-  doorNote: { ...type.small, color: paper.inkSoft, marginTop: -space(1) },
-});
+// Section gaps from the artboards: Practice 20, the empty page 22.
+const makeStyles = (_t: B) =>
+  StyleSheet.create({
+    page: { gap: space(5) },
+    emptyPage: { gap: space(5.5) },
+    searchBlock: { gap: space(2.5) },
+    list: { gap: space(2.5) },
+    refused: { gap: space(2), alignSelf: 'stretch', minHeight: HIT },
+  });

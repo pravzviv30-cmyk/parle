@@ -86,6 +86,22 @@ export const CARD_START: ReviewTurn = Object.freeze({ flipped: false, attempt: n
  */
 export const RETRIEVAL_ASK = 'Say it in French. Out loud or in your head.';
 
+/**
+ * The words of the B-Review and B-ReviewReveal artboards (2026-10-21 UI-008).
+ * `QUESTION` sits over a retrieval prompt for a line or a word; the rest
+ * belong to the turned-over card and the foot of the sitting.
+ */
+export const REVIEW_COPY = {
+  question: 'How would you say this in French?',
+  attemptFirst: 'Have a go first. The answer shows after.',
+  inFrench: 'In French',
+  alsoFine: 'Also fine:',
+  saidTitle: 'You said it',
+  saidBody: 'Compare it in your head. Close is fine. Pick the one that matches how it went.',
+  typedTitle: 'You typed',
+  gradeAsk: 'How did that feel?',
+} as const;
+
 /** The two ways to say an attempt happened. */
 export const TYPE_IT = 'Type it';
 export const SAID_IT = 'I said it';
@@ -148,6 +164,8 @@ export interface CardView {
   prompt: string;
   /** The ask under a retrieval prompt. Null on an introduction. */
   ask: string | null;
+  /** The question over a retrieval prompt for a line or a word, while it is unanswered. Null otherwise. */
+  question: string | null;
   /** Whether the answer face is on screen. */
   revealed: boolean;
   /** The answer face, or null while it is still owed an attempt. */
@@ -239,6 +257,7 @@ export function cardView(card: ReviewCard, now: number, turn: ReviewTurn = CARD_
     tag: (mode === 'introduction' ? INTRODUCTION_TAG : RETRIEVAL_TAG)[card.kind],
     prompt,
     ask: mode === 'retrieval' ? RETRIEVAL_ASK : null,
+    question: mode === 'retrieval' && !revealed && card.kind !== 'phoneme' ? REVIEW_COPY.question : null,
     revealed,
     answer: revealed ? { text: answer, context: contextUnder(card, prompt, answer), ipa: card.ipa } : null,
     hear: hearable(french, mode, revealed),

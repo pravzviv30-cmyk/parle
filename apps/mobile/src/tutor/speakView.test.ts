@@ -16,19 +16,17 @@ import { guiltIn } from '../copy/guilt.ts';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import {
   HERE_MARK,
-  MORE_WAYS,
-  MORE_WAYS_LABEL,
   SPEAK_COPY,
   SPEAK_INSTEAD,
   TYPE_INSTEAD,
   YOU_ARE_HERE,
-  moreWaysOpen,
   pathCard,
   speakPath,
   startModes,
   startNote,
   tutorCardFacts,
 } from './speakView.ts';
+import { SPEAK_TAB_COPY } from './speakTabView.ts';
 
 const NOW = new Date(2026, 8, 12, 21, 0, 0).getTime();
 
@@ -37,7 +35,11 @@ describe('the tutor card', () => {
     for (const key of Object.keys(TUTOR_VOICES) as TutorVoiceKey[]) {
       const facts = tutorCardFacts(key);
       assert.equal(facts.name, TUTOR_VOICES[key].persona.name);
-      assert.equal(facts.voice, TUTOR_VOICES[key].sound);
+      // 2026-10-20, B2, B-Speak: the card on Speak no longer carries the
+      // catalogue's sound line ("A man's voice, from France"), so the facts
+      // hold the name and the signature only. Other screens read
+      // TUTOR_VOICES.sound themselves.
+      assert.deepEqual(Object.keys(facts).sort(), ['name', 'signature'], 'the Speak card carries the voice line again');
       assert.ok(tutorSampleLine(key).startsWith(facts.signature), 'the signature is not what the sample clip says first');
       assert.match(facts.signature, /^Bonjour, je m’appelle .+\.$/, 'the signature is not the French line of the sample');
       assert.doesNotMatch(facts.signature, /Hi, my name/, 'the English half leaked into a French line');
@@ -165,13 +167,16 @@ describe('offline Speak', () => {
   });
 });
 
-describe('more ways to practise', () => {
-  test('appear only after a first finished scene', () => {
-    assert.equal(moreWaysOpen(missionStates([], [], NOW)), false, 'a first run is offered more ways before it has had one');
-    assert.equal(moreWaysOpen(missionStates([{ id: FIRST_MISSION, at: NOW - 1000, rung: 1 }], [], NOW)), true);
-    assert.equal(MORE_WAYS_LABEL, 'More ways to practise');
-    assert.deepEqual(MORE_WAYS.map((way) => way.key), ['free', 'rehearse', 'memory']);
-    assert.deepEqual(MORE_WAYS.map((way) => way.screen), [null, 'RealMoment', 'TutorMemory']);
+describe('the start modes and the copy', () => {
+  // 2026-10-20, B2, B-Speak: "More ways to practise" left Speak with the
+  // notebook layout. Its rows have homes: the open conversation is the Talk
+  // about anything card, a real moment is Explore's, and memory is a tile
+  // (tutor/speakTabView.test.ts holds every one of those routes).
+  test('the old list is gone from the model', async () => {
+    const view = await import('./speakView.ts');
+    for (const gone of ['MORE_WAYS', 'MORE_WAYS_LABEL', 'moreWaysOpen', 'PATH_LABEL']) {
+      assert.ok(!(gone in view), `speakView still exports ${gone}`);
+    }
   });
 
   // 2026-09-27 (notebook Phase 3, follow-up): the learner's standing "Prefer
@@ -186,8 +191,10 @@ describe('more ways to practise', () => {
 
   test('every word Speak spells is plain, counts nothing, and never says "Ready when you are"', () => {
     assert.equal(TYPE_INSTEAD, 'Type instead');
-    assert.ok(SPEAK_COPY.length >= 6);
-    for (const line of SPEAK_COPY) {
+    // 2026-10-20, B2, B-Speak: the tab's own lines live in speakTabView.ts
+    // now, so both lists are swept together.
+    assert.ok(SPEAK_COPY.length + SPEAK_TAB_COPY.length >= 20);
+    for (const line of [...SPEAK_COPY, ...SPEAK_TAB_COPY]) {
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /—|\d|%/, `"${line}" carries an em dash or a number`);
       assert.doesNotMatch(line, /Ready when you are|Beginner|Veteran/, `"${line}" is a line the redesign retired`);

@@ -92,7 +92,8 @@ describe('the contextual coach marks', () => {
     }
     // Every mark names the control it is about, so none of them is a general
     // encouragement wearing a hint's clothes.
-    assert.match(COACH_MARK_TEXT.help, /Help me out/);
+    // 2026-10-21 UI-008, artboard B-Live: the room's Help control opens the help sheet.
+    assert.match(COACH_MARK_TEXT.help, /^Help gives you the line/);
     assert.match(COACH_MARK_TEXT.moment, /Give me a moment/);
     assert.match(COACH_MARK_TEXT.english, /In English/);
   });

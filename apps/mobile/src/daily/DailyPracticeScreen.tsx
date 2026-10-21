@@ -13,7 +13,7 @@ import { AudioModule, RecordingPresets, useAudioPlayer, useAudioPlayerStatus, us
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
 import { IconActionRow, IconAction, Card, GhostButton, PillButton } from '../components.tsx';
-import { paper, type, space, frenchText } from '../theme.ts';
+import { type, space, frenchText } from '../theme.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { addPhrases } from '../review/store.ts';
 import { dailyItem } from './catalogue.ts';
@@ -30,6 +30,7 @@ import { useSittingEnd } from '../practice/useSittingEnd.ts';
 import { EndCard } from '../celebrate/EndCard.tsx';
 import { useRecorderLevel } from '../speech/useRecorderLevel.ts';
 import { RecordingLevel } from './RecordingLevel.tsx';
+import { useB } from '../main/bTheme.tsx';
 
 /**
  * The daily take's recorder: the usual preset, metered, so the ring beside the
@@ -39,6 +40,7 @@ const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true
 
 /** Local listen/record/compare. Recordings are never uploaded or graded. */
 export function DailyPracticeScreen() {
+  const t = useB();
   const goBack = useBackToHome();
   const nav = useNavigation<{ goBack: () => void; navigate: (screen: string) => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'DailyPractice'>>();
@@ -213,9 +215,9 @@ export function DailyPracticeScreen() {
   };
   return <ScrollScreen bottom="inset" header={<ScreenHeader title={shadowing ? 'Hear, say and compare' : 'A little French'} back={{ onPress: goBack }} />}>
     {item ? <View style={{gap:space(4)}}>
-      <Card><Text {...frenchText} style={[type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{item.en}</Text>
+      <Card><Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>{item.fr}</Text><Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>{item.en}</Text>
       <View style={{ gap: space(3), marginTop: space(4) }}>
-        <Text style={[type.body, { color: paper.inkSoft }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
+        <Text style={[type.body, { color: t.muted }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
         {recording && voice.metered && <RecordingLevel level={voice.level} />}
         {(!completedTake || recording) && !daySaved && <PillButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
         <IconActionRow>
@@ -223,8 +225,8 @@ export function DailyPracticeScreen() {
         {uri !== '' && uri != null && !recording && <IconAction layout="tile" icon="speaker" label="Hear my take" onPress={() => void play(true)} />}
         {completedTake && uri !== null && !recording && !daySaved && <IconAction layout="tile" icon="refresh" busy={busy} label="Try again" onPress={() => void record()} disabled={busy} />}
         </IconActionRow>
-        {modelAsset == null && <Text style={[type.small, { color: paper.inkSoft }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
-        <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
+        {modelAsset == null && <Text style={[type.small, { color: t.muted }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
+        <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
         {completedTake && !recording && !daySaved && <PillButton label="Finish practice" disabled={busy} onPress={() => void completePractice()} />}
         {daySaved && <PillButton label="Done" onPress={goBack} />}
         <IconAction layout="inline" icon="cards" label="Add to review and practise recall" onPress={() => void review()} />
@@ -234,6 +236,6 @@ export function DailyPracticeScreen() {
           it back: only the delta's numbers. While it is still being read, or if
           it never is, the line above already says the practice counted. */}
       {daySaved && end.state === 'settled' && <EndCard delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />}
-      {shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
+      {shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={[type.body, { color: t.text }]}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
   </ScrollScreen>;
 }

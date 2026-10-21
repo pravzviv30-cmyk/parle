@@ -138,23 +138,6 @@ export function tutorDoors(): TutorDoor[] {
   ];
 }
 
-/**
- * What a row does when it is pressed.
- *
- * Three rows, three different kinds of answer, and the difference matters: the
- * open chat runs the same health probe the circle above it runs, because it
- * opens the same metered room, while the other two push a screen that costs
- * nothing and needs no server. The tab used to hold this as three `if`s inside
- * a handler, which is three branches nothing in this workspace could ask a
- * question of.
- */
-export type EntryStart = { probe: true } | { probe: false; screen: 'Missions' | 'RealMoment' };
-
-export function entryStart(key: EntryModeKey): EntryStart {
-  if (key === 'free') return { probe: true };
-  return { probe: false, screen: key === 'everyday' ? 'Missions' : 'RealMoment' };
-}
-
 /** The quiet way back to the explainer, worded the same everywhere it appears. */
 export const TUTOR_INTRO_LINK = 'How the voice circle works';
 

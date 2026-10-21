@@ -2,20 +2,33 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Press } from '../components.tsx';
-import { boldType as type, decorative } from '../theme.ts';
-import { boldRhythm as c } from '../palette.ts';
-import { BoldVoiceOrb } from '../onboarding/BoldVoiceOrb.tsx';
+import { bType, decorative } from '../theme.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import { Transcript } from '../tutor/Transcript.tsx';
 import { enterSubmits, keyPressFrom } from '../tutor/enterSubmit.ts';
+import { BMic } from '../today/TodayParts.tsx';
 import type { TurnLine } from './turns.ts';
 import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy.ts';
+import { AskedCard, BulbGlyph, CloseGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
+import { HELP_COPY, askedLabel, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
 
-/** Presentation only. Every action is supplied by the existing session owner. */
+/**
+ * Presentation only. Every action is supplied by the existing session owner.
+ *
+ * 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the room on its blue
+ * ground in both themes. The top bar (leave, the scene, its pace), the goals
+ * strip, the tutor's orb with the state in words, the tutor's last line and
+ * the learner's words, then Type, the mic and Help. Help opens the cream sheet
+ * (the M3 ground in dark): what the tutor asked, the ladder Hint, Choices,
+ * Line given over the live rung, the rung's own content, "More help: show the
+ * line", "Say your choice" and the footnote. Every rule is in liveRoomView.ts.
+ */
 export function C2LiveRoom({ tutorName, description, state, caption, turns, tutorSpeaking, partialTranscript,
   typing, startedWithSpeech = true, ready = true, modePending = false, active = true, embedded = false,
   transcriptVisible, onTranscriptVisibility, draft, onDraft, onSend, onModeChange, onMic, micOpen,
   onEnd, onReplayTutor, canSend = true, top, support, tools, footer, notice,
+  title, pace = null, goals = [], helpKind = 'none', moreHelp,
 }: {
   tutorName: string; description: string; state: OrbState; caption: string;
   turns: readonly TurnLine[]; tutorSpeaking: boolean; partialTranscript?: string | null;
@@ -25,8 +38,20 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   onModeChange: (typing: boolean) => void; onMic: () => void; micOpen: boolean;
   onEnd: () => void; onReplayTutor?: () => void; canSend?: boolean;
   top?: ReactNode; support?: ReactNode; tools?: ReactNode; footer?: ReactNode; notice?: string | null;
+  /** The scene's name over its line; the tutor when there is no scene. */
+  title?: string;
+  /** "About N min", the scene's own pace (`paceLabel`), or null. */
+  pace?: string | null;
+  /** The scene's goals, from `visibleMissionTasks`. */
+  goals?: readonly { id: string; goalEn: string; achieved: boolean }[];
+  /** The live rung's content kind, for the help ladder. */
+  helpKind?: SupportKind;
+  /** Steps the rung on: the session's own help request. */
+  moreHelp?: { onPress: () => void; disabled: boolean };
 }) {
   const insets = useSafeAreaInsets();
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   const input = useRef<TextInput>(null);
   const sendLock = useRef(false);
   const mounted = useRef(true);
@@ -56,98 +81,116 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
     if (!enterSubmits(Platform.OS, keyPressFrom(event), draft)) return;
     event.preventDefault(); void submit();
   };
+  const chips = goalStrip(goals);
+  const bubbles = liveBubbles(turns, partialTranscript);
+  const asked = lastTutorLine(turns);
+  const ladder = helpLadder(helpKind);
+  const helpAvailable = Boolean(support || tools || moreHelp);
+  const speakDisabled = !canResumeSpeaking(startedWithSpeech, ready, modePending);
+  const sayChoice = () => {
+    setHelpOpen(false);
+    if (typing) { input.current?.focus(); return; }
+    if (!micOpen && ready && !modePending) onMic();
+  };
   return <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
     <View style={[st.column, { paddingTop: embedded ? 12 : insets.top + 20, paddingBottom: keyboardOpen ? 10 : Math.max(insets.bottom, 10) + 10 }]}>
       <View style={st.head} onTouchEnd={dismiss}>
-        <Text accessibilityRole="header" style={[type.heading, st.center]}>{`${tutorName}, your tutor`}</Text>
-        <Text style={[type.small, st.secondary, st.center]}>{description}</Text>
-        <BoldVoiceOrb state={state} size={focused || keyboardOpen ? 64 : typing ? 88 : 112} active={active} />
-        <Text accessibilityLiveRegion="polite" style={[type.small, st.secondary, st.center]}>{caption}</Text>
+        <LiveTopBar title={title ?? `${tutorName}, your tutor`} line={description} pace={pace}
+          leave={<Press haptic="none" onPress={onEnd} accessibilityLabel="End session" style={st.leave}><CloseGlyph size={18} color={t.onBrand} /></Press>} />
+        <GoalsStrip chips={chips} />
       </View>
       {top ? <ScrollView style={st.top} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">{top}</ScrollView> : null}
       <Press haptic="none" accessibilityLabel={transcriptVisible ? 'Hide live transcript' : 'Show live transcript'}
         accessibilityState={{ expanded: transcriptVisible }} aria-expanded={transcriptVisible} onPress={() => { dismiss(); onTranscriptVisibility(!transcriptVisible); }} style={st.transcriptToggle}>
-        <Text style={[type.label, st.violet]}>{transcriptVisible ? 'Hide transcript' : 'Show transcript'}</Text>
+        <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{transcriptVisible ? 'Hide transcript' : 'Show transcript'}</Text>
       </Press>
       {/* Keep the thread mounted while hidden so its history and scroll survive. */}
-      <View style={[st.thread, !transcriptVisible && st.hidden]} accessibilityElementsHidden={!transcriptVisible} aria-hidden={!transcriptVisible} importantForAccessibility={transcriptVisible ? 'auto' : 'no-hide-descendants'}>
+      <View style={[st.thread, st.threadCard, !transcriptVisible && st.hidden]} accessibilityElementsHidden={!transcriptVisible} aria-hidden={!transcriptVisible} importantForAccessibility={transcriptVisible ? 'auto' : 'no-hide-descendants'}>
         <Transcript turns={turns} tutorName={tutorName} tutorSpeaking={tutorSpeaking} announceReply={typing}
           onReplayTutor={onReplayTutor} partialTranscript={partialTranscript} focusRevision={focusRevision} focusActive={focused || keyboardOpen} onDismissKeyboard={dismiss} />
       </View>
-      {!transcriptVisible && <View style={st.thread} onTouchEnd={dismiss} />}
-      {notice ? <Text accessibilityLiveRegion="polite" style={[type.small, st.secondary, st.notice]}>{notice}</Text> : null}
-      {support || tools ? <>
-        {controlsVisible && <Press haptic="none" onPress={() => setHelpOpen(value => !value)} style={st.helpToggle}
-          accessibilityLabel={helpOpen ? 'Hide practice support' : 'Show practice support'} accessibilityState={{ expanded: helpOpen }}>
-          <Text style={[type.small, st.violet]}>{helpOpen ? 'Hide practice support' : 'Practice support'}</Text>
-        </Press>}
-        {helpOpen && controlsVisible && <ScrollView style={st.support} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8 }}>{support}{tools}</ScrollView>}
-      </> : null}
+      {!transcriptVisible && <View style={st.thread} onTouchEnd={dismiss}>
+        <LiveOrb state={state} active={active} caption={caption} size={focused || keyboardOpen || typing ? 'small' : 'full'} />
+        <View style={st.bubbles}>
+          {bubbles.tutor ? <TutorBubble name={tutorName} fr={bubbles.tutor.fr} en={bubbles.tutor.en} onHear={onReplayTutor} /> : null}
+          {bubbles.you ? <YouBubble text={bubbles.you} /> : null}
+        </View>
+      </View>}
+      {transcriptVisible ? <Text accessibilityLiveRegion="polite" style={[bType.bold16, st.center, { color: t.onBrand }]}>{caption}</Text> : null}
+      {notice ? <Text accessibilityLiveRegion="polite" style={[bType.meta, st.notice]}>{notice}</Text> : null}
       <View style={st.footer}>
-        {footer ?? <>
+        {footer ? <View style={st.footerPanel}>{footer}</View> : <>
           {typing ? <View style={st.composer}>
-            {controlsVisible && <Text style={[type.small, st.secondary, { paddingHorizontal: 16 }]}>Your message</Text>}
+            {controlsVisible && <Text style={[bType.semi13, { color: t.muted, paddingHorizontal: 16 }]}>Your message</Text>}
             <View style={st.composerRow}>
               <TextInput ref={input} accessibilityLabel="Your message to your tutor" value={draft} onChangeText={onDraft}
-                placeholder="Write your reply…" placeholderTextColor={c.muted} maxLength={600} multiline scrollEnabled underlineColorAndroid="transparent"
+                placeholder="Write your reply…" placeholderTextColor={t.muted} maxLength={600} multiline scrollEnabled underlineColorAndroid="transparent"
                 autoCapitalize="sentences" returnKeyType="send" submitBehavior="blurAndSubmit" onSubmitEditing={() => void submit()}
                 onKeyPress={keyDraft} onFocus={() => { setFocused(true); setFocusRevision(value => value + 1); }}
-                onBlur={() => setFocused(false)} editable={ready && !sending} style={[type.body, st.input]} />
+                onBlur={() => setFocused(false)} editable={ready && !sending} style={[bType.line16, st.input]} />
               <Press haptic="none" accessibilityLabel={sending ? 'Sending your message' : 'Send message'}
                 disabled={!canSend || !ready || !draft.trim() || sending} accessibilityState={{ disabled: !canSend || !ready || !draft.trim() || sending, busy: sending }}
                 onPress={() => void submit()} style={[st.send, (!canSend || !ready || !draft.trim() || sending) && st.disabled]}>
-                <Text style={[type.heading, { color: c.white }]}>↑</Text>
+                <Text style={[bType.bold20, { color: t.onBrand }]}>↑</Text>
               </Press>
             </View>
             {focused && <View {...decorative} pointerEvents="none" style={[StyleSheet.absoluteFill, st.composerFocus]} />}
-          </View> : ready && <Press haptic="none" accessibilityLabel={micOpen ? 'Pause microphone' : 'Open microphone'}
-            disabled={modePending} onPress={onMic} style={[st.mic, modePending && st.disabled]}>
-            <Text style={[type.label, { color: c.ink }]}>{micOpen ? 'Pause microphone' : 'Resume microphone'}</Text>
-          </Press>}
+          </View> : null}
           {controlsVisible && <View style={st.controlRow}>
-            <View style={st.mode} accessibilityRole="tablist" accessibilityLabel="How you reply">
-              {(['Speaking', 'Typing'] as const).map(label => {
-                const selected = label === (typing ? 'Typing' : 'Speaking');
-                const disabled = label === 'Speaking' ? !canResumeSpeaking(startedWithSpeech, ready, modePending) : !ready || modePending;
-                return <Press key={label} haptic="none" accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected, disabled }} aria-selected={selected}
-                  disabled={disabled} onPress={() => { if (!selected) onModeChange(label === 'Typing'); }}
-                  frame={{ flex: 1 }} style={[st.segment, selected && st.segmentSelected, disabled && !selected && st.disabled]}>
-                  <Text style={[type.small, selected ? st.violet : st.secondary]}>{label}</Text>
-                </Press>;
-              })}
-            </View>
-            <Press haptic="none" onPress={onEnd} accessibilityLabel="End session" frame={{ flex: 1 }} style={st.end}>
-              <Text style={[type.small, st.violet]}>End session</Text>
-            </Press>
+            {typing
+              ? <SideControl label="Speak" accessibilityLabel="Speak instead" icon={<BMic size={24} color={t.onBrand} />}
+                  disabled={speakDisabled} onPress={() => onModeChange(false)} />
+              : <SideControl label="Type" accessibilityLabel="Type instead" icon={<KeyboardMark size={24} color={t.onBrand} />}
+                  disabled={!ready || modePending} onPress={() => onModeChange(true)} />}
+            {!typing && ready ? <MicControl label={micOpen ? 'Listening' : 'Paused'} accessibilityLabel={micOpen ? 'Pause microphone' : 'Open microphone'}
+              disabled={modePending} onPress={onMic} /> : <View {...decorative} style={st.micSpace} />}
+            {helpAvailable ? <SideControl label="Help" accessibilityLabel={helpOpen ? 'Close help' : 'Get help'} expanded={helpOpen}
+              icon={<BulbGlyph size={24} color={t.onBrand} />} onPress={() => setHelpOpen(value => !value)} /> : <View {...decorative} style={st.sideSpace} />}
           </View>}
-          {typing && !startedWithSpeech && controlsVisible && <Text style={[type.small, st.secondary, st.center]}>This session started in typing mode.</Text>}
+          {typing && !startedWithSpeech && controlsVisible && <Text style={[bType.note, st.center, { color: t.onBrandSoft }]}>This session started in typing mode.</Text>}
         </>}
       </View>
     </View>
+    {helpOpen && controlsVisible && helpAvailable && !footer ? <View style={[st.sheetLayer, { paddingBottom: Math.max(insets.bottom, 10) + 20 }]}>
+      <HelpSheet title={HELP_COPY.title} closeLabel={HELP_COPY.close} onClose={() => setHelpOpen(false)}>
+        <ScrollView style={st.support} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 14, paddingBottom: 4 }}>
+          {asked ? <AskedCard label={askedLabel(tutorName)} fr={asked.fr} en={asked.en} /> : null}
+          <HelpLadder steps={ladder} spoken={ladderSpoken(ladder)} />
+          {support}
+          {moreHelp && moreHelpOffered(helpKind) ? <SheetSecondary label={HELP_COPY.more} disabled={moreHelp.disabled} onPress={moreHelp.onPress} /> : null}
+          <SheetPrimary label={typing ? 'Type your choice' : HELP_COPY.say} disabled={!ready} onPress={sayChoice} />
+          <Text style={[bType.note, st.center, { color: t.muted }]}>{HELP_COPY.foot}</Text>
+          {tools}
+        </ScrollView>
+      </HelpSheet>
+    </View> : null}
   </KeyboardAvoidingView>;
 }
 
-const st = StyleSheet.create({
-  shell: { flex: 1, minHeight: 0, backgroundColor: c.paper },
-  column: { flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 24 },
-  head: { alignItems: 'center', gap: 8, flexShrink: 1 },
-  center: { textAlign: 'center', color: c.ink }, secondary: { color: c.muted }, violet: { color: c.violet },
-  top: { flexGrow: 0, maxHeight: '20%', paddingTop: 8 },
-  transcriptToggle: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginVertical: 4 },
-  thread: { flex: 1, minHeight: 0 }, hidden: { flex: 0, height: 0, opacity: 0, overflow: 'hidden' },
-  notice: { paddingVertical: 6, textAlign: 'center' },
-  helpToggle: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  support: { flexGrow: 0, maxHeight: '25%', marginBottom: 8 },
-  footer: { gap: 10, paddingTop: 8 },
-  composer: { backgroundColor: c.white, borderColor: c.violet, borderWidth: 1.5, borderRadius: 22, paddingTop: 8, paddingBottom: 8 },
-  composerFocus: { borderRadius: 22, borderColor: c.violet, borderWidth: 2 },
-  composerRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10, gap: 8 },
-  input: { color: c.ink, flex: 1, minHeight: 36, maxHeight: 104, padding: 0, paddingVertical: 4, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
-  send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: c.violet },
-  mic: { minHeight: 52, borderRadius: 20, backgroundColor: c.lavender, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  controlRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  mode: { flex: 1.85, minHeight: 44, backgroundColor: c.lavender, borderRadius: 22, padding: 4, flexDirection: 'row' },
-  segment: { minHeight: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' }, segmentSelected: { backgroundColor: c.white },
-  end: { minHeight: 44, paddingHorizontal: 10, borderWidth: 1.5, borderColor: c.violet, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
-  disabled: { opacity: 0.55 },
-});
+function makeStyles(t: B) {
+  return StyleSheet.create({
+    shell: { flex: 1, minHeight: 0, backgroundColor: t.brand },
+    column: { flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 22 },
+    head: { flexShrink: 0 },
+    leave: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
+    center: { textAlign: 'center' },
+    top: { flexGrow: 0, maxHeight: '20%', paddingTop: 8 },
+    transcriptToggle: { minHeight: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', paddingHorizontal: 12 },
+    thread: { flex: 1, minHeight: 0 }, hidden: { flex: 0, height: 0, opacity: 0, overflow: 'hidden' },
+    threadCard: { backgroundColor: t.card, borderRadius: 22, paddingHorizontal: 12 },
+    bubbles: { paddingTop: 20, gap: 10 },
+    notice: { paddingVertical: 6, textAlign: 'center', color: t.onBrandSoft },
+    support: { flexGrow: 0, flexShrink: 1 },
+    sheetLayer: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '80%', backgroundColor: t.ground, borderTopLeftRadius: 32, borderTopRightRadius: 32 },
+    footer: { gap: 10, paddingTop: 8 },
+    footerPanel: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 10 },
+    composer: { backgroundColor: t.card, borderColor: t.sun, borderWidth: 1.5, borderRadius: 22, paddingTop: 8, paddingBottom: 8 },
+    composerFocus: { borderRadius: 22, borderColor: t.sun, borderWidth: 2 },
+    composerRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10, gap: 8 },
+    input: { color: t.text, flex: 1, minHeight: 36, maxHeight: 104, padding: 0, paddingVertical: 4, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
+    send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: t.brand },
+    controlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    micSpace: { width: 84 }, sideSpace: { width: 72 },
+    disabled: { opacity: 0.55 },
+  });
+}

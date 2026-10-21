@@ -25,16 +25,6 @@ export function firstNameOf(name: string | null | undefined): string | null {
   return first && first.length > 0 ? first : null;
 }
 
-/**
- * The tab's header: the page's subject and who it is.
- *
- * The tutor's name is the tutor's, not the learner's. `tutorNameOf` has
- * already resolved whichever voice the learner chose, so this only sets it.
- */
-export function tutorHeading(tutorName: string): string {
-  return `Talk with ${tutorName}`;
-}
-
 /** The continuity promise directly under "Talk with <name>" in UI 4. */
 export const TUTOR_PURPOSE = 'Your tutor remembers where you left off.';
 
@@ -63,7 +53,6 @@ export const TUTOR_ORB_SUBLINE = TUTOR_PURPOSE;
  * this file does: apps/mobile has no renderer, so a branch inside a `.tsx` is a
  * branch nothing can ask a question of, and this one has four arms.
  */
-
 
 /** A scene walked out of part way is picked back up where it was left. */
 export const PICK_IT_UP = 'Pick it up';

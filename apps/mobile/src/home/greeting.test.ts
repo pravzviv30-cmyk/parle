@@ -48,10 +48,13 @@ describe('the greeting on Today', () => {
     assert.equal(greetingLine('Praveen', at(21)), 'Bonsoir, Praveen.');
     assert.equal(greetingLine('Camille', at(9)), 'Bonjour, Camille.');
 
-    // The header's two halves come from one call with one clock, so the word
-    // and the question under it cannot describe two different parts of a day.
-    assert.deepEqual(homeGreeting('Praveen', at(21)), { title: 'Bonsoir, Praveen.', subline: greetingSubline(at(21)) });
-    assert.deepEqual(homeGreeting(null, at(9)), { title: 'Bonjour.', subline: greetingSubline(at(9)) });
+    // 2026-10-20, B5, B-Today: Today's header is always "Bonjour" (founder
+    // decision), with the first name or the word alone, and no question under
+    // it. The hour's word above stays a rule; Today no longer reads it.
+    assert.deepEqual(homeGreeting('Praveen'), { title: 'Bonjour, Praveen.' });
+    assert.deepEqual(homeGreeting('  Camille Dubois  '), { title: 'Bonjour, Camille.' });
+    assert.deepEqual(homeGreeting(null), { title: 'Bonjour.' });
+    assert.deepEqual(homeGreeting('   '), { title: 'Bonjour.' });
 
     // The rotation is gone: no pool, no cycle, no timer numbers, and no hook.
     for (const retired of ['GREETINGS', 'GREETING_CYCLE_MS', 'GREETING_HOLD_MS', 'GREETING_SWIPE_MS', 'greetingIndex', 'greetingLead', 'greetingPool', 'greetingRest']) {

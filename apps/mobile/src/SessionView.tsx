@@ -9,7 +9,7 @@
 import { useState, type ReactNode } from 'react';
 import { View, Text, Pressable, PixelRatio, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
-import { accent, paper, radius, rungLabel, space, type, HAIRLINE, HIT, frenchText } from './theme.ts';
+import { paper, radius, rungLabel, space, type, HAIRLINE, HIT, frenchText } from './theme.ts';
 import { Card, GhostButton, Label, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay, Press, ChevronRight, ControlTile } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { KeyboardGlyph } from './glyphs.tsx';
@@ -19,6 +19,10 @@ import { useProfile } from './app/ProfileContext.tsx';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
 import { useOrbAudio } from './live/OrbAudio.tsx';
 import { LevelRing } from './motion/LevelRing.tsx';
+import { bType } from './theme.ts';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { BSpeaker } from './today/TodayParts.tsx';
+import { ChoiceRow } from './live/LiveParts.tsx';
 
 /** The Speak circle's own size (`SpeakCircle` in components.tsx draws it at 108 unless told otherwise). */
 const SPEAK_CIRCLE = 108;
@@ -36,9 +40,13 @@ export type SupportContent =
   | { kind: 'none' };
 
 /**
- * The scaffolding, rendered. One visual grammar for every mode: a white card
- * with the whole line when the tutor hands it over, option cards when the
- * learner chooses, a quiet notice when they are nudged, nothing when free.
+ * The scaffolding, rendered. One visual grammar for every mode: a card with
+ * the whole line when the tutor hands it over, choice rows when the learner
+ * chooses, a quiet card when they are nudged, nothing when free.
+ *
+ * 2026-10-21 UI-008, artboard B-LiveHelp: drawn in the help sheet's parts
+ * (`live/LiveParts.tsx`), in light and dark. Presentation only: what each rung
+ * holds and when it moves are the session's, unchanged.
  */
 export function SupportBlock({
   support,
@@ -54,31 +62,31 @@ export function SupportBlock({
   /** Replay the line on the card. Every cued turn should be hearable on demand. */
   onHearLine?: () => void;
 }) {
+  const st = useThemedStyles(makeSt);
+  const t = useB();
+  const s = useThemedStyles(makeSupportStyles);
   const [soundGuide, setSoundGuide] = useState(false);
   if (support.kind === 'full-line') {
     return (
-      <Card>
-        <Label>Your turn</Label>
-        {/* Left, not centred, since revamp A: the mockup sets the line to say
-            as a block you read from its left edge, and a long sentence centred
-            on a phone leaves both ends ragged. Nothing is clipped; fitDisplay
-            steps the serif down by length rather than cutting it. */}
-        <Text {...frenchText} style={[fitDisplay(support.line), { color: paper.ink, marginTop: space(2) }]}>
+      <View style={s.card}>
+        <Text style={[bType.bold12, { color: t.link }]}>Your turn</Text>
+        {/* Left, not centred: the line to say is a block read from its left edge. */}
+        <Text {...frenchText} style={[bType.bold22, { color: t.text }]}>
           {support.line}
         </Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
+        <Text style={[bType.meta, { color: t.muted }]}>
           {support.gloss}
         </Text>
         {support.ipa ? (
           <View>
             <Pressable onPress={() => setSoundGuide((value) => !value)} accessibilityRole="button" accessibilityState={{ expanded: soundGuide }} style={st.hear}>
-              <Text style={[type.small, { color: paper.ink }]}>{soundGuide ? 'Hide sound guide' : 'Show sound guide'}</Text>
+              <Text style={[bType.semi14, { color: t.text }]}>{soundGuide ? 'Hide sound guide' : 'Show sound guide'}</Text>
             </Pressable>
-            {soundGuide && <Text style={[type.notation, { color: paper.inkSoft }]}>/{support.ipa}/</Text>}
+            {soundGuide && <Text style={[type.notation, { color: t.muted }]}>/{support.ipa}/</Text>}
           </View>
         ) : null}
         {support.written && support.written !== support.line ? (
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5) }]}>
+          <Text style={[bType.meta, { color: t.muted }]}>
             {support.written}
           </Text>
         ) : null}
@@ -89,11 +97,11 @@ export function SupportBlock({
             accessibilityLabel="Hear the line again"
             style={st.hear}
           >
-            <EarGlyph size={15} color={paper.inkSoft} />
-            <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
+            <BSpeaker size={18} color={t.text} />
+            <Text style={[bType.semi14, { color: t.text }]}>Hear it</Text>
           </Pressable>
         )}
-      </Card>
+      </View>
     );
   }
 
@@ -101,12 +109,12 @@ export function SupportBlock({
     return (
       <View style={st.options}>
         {support.options.map((o) => (
-          <OptionCard
+          <ChoiceRow
             key={o.text}
-            text={o.text}
-            gloss={o.en}
-            onPress={() => onOptionPress?.(o.text)}
-            onHear={onOptionHear ? () => onOptionHear?.(o.text) : undefined}
+            fr={o.text}
+            en={o.en}
+            onPress={onOptionPress ? () => onOptionPress(o.text) : undefined}
+            onHear={onOptionHear ? () => onOptionHear(o.text) : undefined}
           />
         ))}
       </View>
@@ -115,14 +123,20 @@ export function SupportBlock({
 
   if (support.kind === 'hint') {
     return (
-      <Card>
-        <Label>Tell them this, in French</Label>
-        <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{support.hint}</Text>
-      </Card>
+      <View style={s.card}>
+        <Text style={[bType.bold12, { color: t.link }]}>Tell them this, in French</Text>
+        <Text style={[bType.line16, { color: t.text }]}>{support.hint}</Text>
+      </View>
     );
   }
 
   return null;
+}
+
+function makeSupportStyles(t: B) {
+  return StyleSheet.create({
+    card: { backgroundColor: t.card, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, gap: 6 },
+  });
 }
 
 export interface SessionViewProps {
@@ -198,6 +212,8 @@ export interface SessionViewProps {
 }
 
 export function SessionView(props: SessionViewProps) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   // Read here rather than taken as a prop so both drivers name the same person
   // without either of them having to remember to pass it. It is the same kind
   // of ambient fact as the safe-area inset above: whose voice this session is
@@ -238,7 +254,7 @@ export function SessionView(props: SessionViewProps) {
     <>
       {notePlace === 'footer' && (
         <View style={st.soundNote}>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{prompt.turn.note}</Text>
+          <Text style={[type.small, { color: t.muted }]}>{prompt.turn.note}</Text>
         </View>
       )}
       <View style={st.rungRow}>
@@ -246,13 +262,13 @@ export function SessionView(props: SessionViewProps) {
             in colour. A bare colour dot beside both was a third telling that
             read ~1.4 against the ground for rung one (F329). */}
         <View style={{ flex: 1 }}>
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>{rungLabel(rung, tutorName)}</Text>
+          <Text style={[type.bodyStrong, { color: t.text }]}>{rungLabel(rung, tutorName)}</Text>
         </View>
       </View>
 
       <View style={st.controls}>
         {flash ? (
-          <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center', marginBottom: space(2) }]}>{flash}</Text>
+          <Text style={[type.bodyStrong, { color: t.text, textAlign: 'center', marginBottom: space(2) }]}>{flash}</Text>
         ) : (
           <View style={{ height: space(2) + 23, marginBottom: space(2) }} />
         )}
@@ -268,7 +284,7 @@ export function SessionView(props: SessionViewProps) {
               returnKeyType="send"
               submitBehavior="submit"
               placeholder="Type your answer"
-              placeholderTextColor={paper.inkFaint}
+              placeholderTextColor={t.muted}
               autoCapitalize="none"
               autoCorrect={false}
               accessibilityLabel="Type your answer in French"
@@ -282,7 +298,7 @@ export function SessionView(props: SessionViewProps) {
               accessibilityState={{ disabled: draft.trim().length === 0 || !listening }}
               style={st.send}
             >
-              <ChevronRight size={22} color={paper.onInk} />
+              <ChevronRight size={22} color={t.onPrimary} />
             </Press>
           </View>
         ) : (
@@ -308,7 +324,7 @@ export function SessionView(props: SessionViewProps) {
             {/* The caption under the voice circle reports which of us has the
                 floor. It is words, so it clears the text floor in soft ink when
                 the tutor holds it, not the faint ink a mark gets (F330). */}
-            <Text style={[type.label, { color: listening ? paper.ink : paper.inkSoft, marginTop: space(2) }]}>
+            <Text style={[type.label, { color: listening ? t.text : t.muted, marginTop: space(2) }]}>
               {listening ? 'Speak' : 'Listen'}
             </Text>
           </>
@@ -328,7 +344,7 @@ export function SessionView(props: SessionViewProps) {
             accessibilityState={{ expanded: false }}
             style={st.more}
           >
-            <Text style={[type.small, { color: paper.ink }]}>{MORE_LABEL}</Text>
+            <Text style={[type.small, { color: t.text }]}>{MORE_LABEL}</Text>
           </Pressable>
         )}
       </View>
@@ -354,7 +370,7 @@ export function SessionView(props: SessionViewProps) {
               props.headerLine ? (
                 <Text
                   accessibilityLiveRegion="polite"
-                  style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
+                  style={[type.small, { color: t.muted, textAlign: 'center' }]}
                 >
                   {props.headerLine}
                 </Text>
@@ -372,7 +388,7 @@ export function SessionView(props: SessionViewProps) {
         {/* Wrapping, never clipped. `theme.ts` states it outright: nothing in
             this app is cut to fit, and a lesson title truncated at the largest
             reading size is the learner losing the name of what they are in. */}
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, marginTop: space(1) }]}>
+        <Text accessibilityRole="header" style={[type.title, { color: t.text, marginTop: space(1) }]}>
           {props.lessonTitle}
         </Text>
       </View>
@@ -385,11 +401,11 @@ export function SessionView(props: SessionViewProps) {
             conversation uses. */}
         <Card tone="journal">
           <View style={st.tutorHead}>
-            <Label color={listening ? paper.inkSoft : paper.ink}>The waiter</Label>
-            <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
+            <Label color={listening ? t.muted : t.text}>The waiter</Label>
+            <EarGlyph size={19} color={listening ? t.muted : t.text} />
           </View>
-          <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
+          <Text style={[type.french, { color: t.text, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
+          <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
         </Card>
 
         <SupportBlock
@@ -402,13 +418,13 @@ export function SessionView(props: SessionViewProps) {
         {props.transcript ? (
           <View style={st.heard}>
             <Label>{`What ${tutorName} heard`}</Label>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>« {props.transcript} »</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(1) }]}>« {props.transcript} »</Text>
           </View>
         ) : null}
 
         {notePlace === 'body' && (
           <View style={st.note}>
-            <Text style={[type.small, { color: paper.inkSoft }]}>{prompt.turn.note}</Text>
+            <Text style={[type.small, { color: t.muted }]}>{prompt.turn.note}</Text>
           </View>
         )}
       </View>
@@ -416,20 +432,21 @@ export function SessionView(props: SessionViewProps) {
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   // The circle and, behind it, the ring its live level draws, centred on it.
   speak: { alignItems: 'center', justifyContent: 'center' },
   speakRing: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
   typeRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), alignSelf: 'stretch' },
   input: {
     flex: 1,
-    color: paper.ink,
+    color: t.text,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: t.line,
     borderRadius: radius.input,
     paddingHorizontal: space(3),
     paddingVertical: space(2.5),
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
   },
   // The violet pill the conversation's box already wears, so a typed lesson and
   // a typed conversation offer the same control. An empty draft is said the way
@@ -442,9 +459,10 @@ const st = StyleSheet.create({
     height: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.ink,
+    backgroundColor: t.primary,
     borderRadius: HIT / 2,
   },
+  // The faint ink in both modes: the white chevron clears 3 on it, and on the dark ground it still reads as off.
   sendEmpty: { backgroundColor: paper.inkFaint },
   // The chip the action row folds into at the accessibility reading sizes.
   more: {
@@ -455,7 +473,7 @@ const st = StyleSheet.create({
     height: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.groundDeep,
+    backgroundColor: t.skeleton,
     borderRadius: radius.pill,
   },
   actions: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', flexWrap: 'wrap' },
@@ -475,7 +493,7 @@ const st = StyleSheet.create({
   // and lets a tall one scroll.
   body: { flexGrow: 1, paddingTop: space(3), paddingBottom: space(5), gap: space(5) },
   tutorHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space(2) },
-  options: { gap: space(2.5) },
+  options: { gap: space(2) },
   hear: {
     marginTop: space(3),
     minHeight: HIT,
@@ -484,8 +502,8 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     gap: space(2),
   },
-  heard: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },
-  note: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },
+  heard: { borderTopWidth: HAIRLINE, borderTopColor: t.line, paddingTop: space(3) },
+  note: { borderTopWidth: HAIRLINE, borderTopColor: t.line, paddingTop: space(3) },
   // Above the rung row, on the page: a note, not a card, and no rule of its own
   // because the rung row under it already draws one.
   soundNote: { paddingTop: space(2), paddingBottom: space(1) },
@@ -495,9 +513,10 @@ const st = StyleSheet.create({
     gap: space(3.5),
     paddingVertical: space(3),
     borderTopWidth: HAIRLINE,
-    borderTopColor: paper.line,
+    borderTopColor: t.line,
   },
   bullets: { flexDirection: 'row', gap: space(1.5) },
   controls: { alignItems: 'center', paddingTop: space(1) },
   help: { marginTop: space(2), minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4) },
 });
+}

@@ -72,23 +72,59 @@ export const ACCOUNT_GROUP = 'Account';
  * microphone row joined Appearance & sound. Help and About are one group.
  * Delete account is drawn after all six, alone, with no heading.
  */
-export const SUBSCRIPTION_GROUP = 'Subscription';
-export const REMINDERS_GROUP = 'Reminders';
-export const APPEARANCE_GROUP = 'Appearance & sound';
-export const PRIVACY_GROUP = 'Privacy & data';
-export const HELP_GROUP = 'Help & about';
+export const SUBSCRIPTION_GROUP = 'Plan';
+/**
+ * 2026-10-20 UI-008, artboard B-Settings: the groups take the artboard's
+ * names and order. Practice is new: the speaking target and the correction
+ * style as rows into Learning preferences, and the two switches the artboard
+ * draws, over the same stores Learning preferences writes. Reminders became
+ * Phone again and holds the microphone, as drawn. Appearance and sound is not
+ * on the artboard; it holds the Appearance row (the Figma M3 display row),
+ * haptics and sound effects, after Phone.
+ */
+export const PRACTICE_GROUP = 'Practice';
+export const REMINDERS_GROUP = 'Phone';
+export const APPEARANCE_GROUP = 'Appearance and sound';
+export const PRIVACY_GROUP = 'Data and privacy';
+export const HELP_GROUP = 'Help and about';
 export const DISPLAY_ROW = 'Appearance';
 export const DISPLAY_SUB = 'Follow your device, or choose Light or Dark';
 
-/** The six, in the order the screen draws them. A test reads this list. */
+/** The seven, in the order the screen draws them. A test reads this list. */
 export const SETTINGS_GROUPS: readonly string[] = [
   ACCOUNT_GROUP,
   SUBSCRIPTION_GROUP,
+  PRACTICE_GROUP,
   REMINDERS_GROUP,
   APPEARANCE_GROUP,
   PRIVACY_GROUP,
   HELP_GROUP,
 ];
+
+// ──────────────────────────────────────────────────────────────────── practice
+
+/** The goal tier's own word ("Regular") is the answer under it. */
+export const SPEAKING_TARGET_ROW = 'Speaking target';
+/** The correction style row, named with the learner's tutor (B-Settings). */
+export function correctsRow(tutorName: string): string {
+  return `How ${tutorName} corrects you`;
+}
+/** The pace switch, named with the learner's tutor (B-Settings). */
+export function simplerRow(tutorName: string): string {
+  return `${tutorName} speaks more simply`;
+}
+/** Prefer typing's line on Settings, as drawn. Learning preferences keeps its longer one. */
+export const PREFER_TYPING_SETTINGS_SUB = 'Conversations open with the keyboard';
+
+// ──────────────────────────────────────────────────────────────────────── phone
+
+/** Under the Phone group, as drawn: true of the daily reminder (`reminders/reminder.ts`). */
+export const PHONE_FOOTER = 'At most one reminder a day. Days you have already practised are skipped.';
+
+// ───────────────────────────────────────────────────────────────────────── plan
+
+/** The free plan's band row (D24): the band in words, never a meter. */
+export const FREE_TIME_ROW = 'Free speaking time';
 
 // ───────────────────────────────────────────────────────────────────── account
 
@@ -116,7 +152,6 @@ export const DELETE_ROW = 'Delete account';
 // ────────────────────────────────────────────────────────── data and privacy
 
 export const SAVED_ROW = 'Saved conversations';
-export const SAVED_SUB = 'Manage in My French';
 
 export const DOWNLOAD_ROW = 'Download my data';
 export const DOWNLOAD_SUB = 'A copy of your learning history';
@@ -124,14 +159,18 @@ export const DOWNLOAD_SUB = 'A copy of your learning history';
 /** While the export is being built. A wait, not a percentage. */
 export const DOWNLOAD_BUSY = 'Preparing…';
 export const DATA_USE_ROW = 'How your data is used';
-export const DATA_USE_SUB = 'Providers, saved learning and retention';
-export const CONNECTION_HELP_ROW = 'Connection and practice help';
+export const DATA_USE_SUB = 'Providers, what we keep and why';
+export const CONNECTION_HELP_ROW = 'How the voice circle works';
 export const CONNECTION_HELP_SUB = 'Pause, typing and audio controls';
 export const LOCAL_PRACTICE_ROW = 'Free local practice';
 export const LOCAL_PRACTICE_SUB = 'Hear, say and compare without a live room';
-export const PLAN_ROW = 'Plan';
+export const PLAN_ROW = 'Your plan';
 export const VERSION_ROW = 'Version';
 export const TUTOR_MEMORY_SETTINGS_ROW = 'Tutor memory';
+/** Under it, as drawn (B-Settings): the memory screen can show, pause and forget. */
+export function tutorMemorySettingsSub(tutorName: string): string {
+  return `See, pause or forget what ${tutorName} remembers`;
+}
 export const PRIVACY_INTRO = 'Control what is saved, export your data or delete your account. Live tasks send spoken or typed words to speech and language services.';
 
 // ─────────────────────────────────────────────────────────────────────── about
@@ -210,7 +249,14 @@ export const SETTINGS_COPY: readonly string[] = [
   SIGN_OUT_ROW,
   DELETE_ROW,
   SAVED_ROW,
-  SAVED_SUB,
+  SPEAKING_TARGET_ROW,
+  PREFER_TYPING_SETTINGS_SUB,
+  PHONE_FOOTER,
+  FREE_TIME_ROW,
+  // Rendered with a stand-in: the screen names the learner's chosen tutor.
+  correctsRow('your tutor'),
+  simplerRow('Your tutor'),
+  tutorMemorySettingsSub('your tutor'),
   DOWNLOAD_ROW,
   DOWNLOAD_SUB,
   DOWNLOAD_BUSY,

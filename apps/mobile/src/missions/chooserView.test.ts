@@ -214,15 +214,17 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.ok(!doors.includes('Pronunciation lesson'), 'the scripted lesson is a way into the tutor tab again');
 
     const tab = stripComments(read('../tabs/TutorTab.tsx'));
-    // 2026-09-27 (notebook Phase 3): Speak's "More ways to practise" are
-    // worded and ordered by speakView.ts, which reads tutorDoors(); the
-    // everyday door left because every path row opens this chooser.
-    assert.match(tab, /MORE_WAYS\.map\(/, 'the tab draws its own order instead of the one that was decided');
-    // The Start opens in the learner's standing mode and a quiet link offers
-    // the other one, both on the same recommendation (2026-09-27 follow-up).
-    assert.match(tab, /heldBack\?\.textMode \?\? modes\.textMode/, 'a fresh start loses the standing mode');
+    // 2026-10-20, B2, B-Speak: Speak's ways in are the view model's: the
+    // starter scenes and Every scene to this chooser, and the open
+    // conversation as the Talk about anything chips.
+    assert.match(tab, /talk\.map\(/, 'the tab draws its own order instead of the one that was decided');
+    assert.match(tab, /nav\.navigate\(EVERY_SCENE\.route\.screen\)/, 'Speak no longer reaches this chooser');
+    // The Start opens in the chosen mode, defaulting to the standing one, and a
+    // retry is the same start.
+    assert.match(tab, /const textMode = chosenText \?\? modes\.textMode;/, 'a fresh start loses the standing mode');
+    assert.match(tab, /heldBack\?\.textMode \?\? textMode/, 'a retry loses the chosen mode');
     assert.match(tab, /heldBack \? pendingStart\.current : next\.params/, 'a retry loses the original scene');
-    assert.match(tab, /<NextTaskCard/);
+    assert.match(stripComments(read('../tabs/HomeTab.tsx')), /<NextTaskCard/);
     const shared = stripComments(read('../practice/NextTaskCard.tsx'));
     assert.match(shared, /<MissionHero hero=\{value.hero\}/);
     assert.match(stripComments(read('../home/MissionHero.tsx')), /open\(modes.other.textMode\)/, 'the shared recommendation loses its other mode');

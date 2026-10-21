@@ -137,7 +137,8 @@ describe('the screen actually wires it — F274', () => {
     assert.match(source, /micOpen: live\.micOpen/, 'sceneControls cannot decide without being told');
     const room = readFileSync(new URL('../live/C2LiveRoom.tsx', import.meta.url), 'utf8');
     assert.match(room, /typing \? <View style=\{st\.composer\}>/, 'typing must draw a composer instead of the microphone control');
-    assert.match(room, /: ready && <Press/, 'a room that is not ready must not offer a microphone');
+    // 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the mic is the sun MicControl.
+    assert.match(room, /!typing && ready \? <MicControl/, 'a room that is not ready must not offer a microphone');
     assert.match(room, /canResumeSpeaking\(startedWithSpeech, ready, modePending\)/, 'the speaking segment must respect the server speech capability');
   });
 

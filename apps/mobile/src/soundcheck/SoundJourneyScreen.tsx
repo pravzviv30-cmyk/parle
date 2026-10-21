@@ -22,12 +22,13 @@ import { MouthGuide } from '../practice/MouthGuide.tsx';
 import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
 import { WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { accent, HIT, paper, space, type } from '../theme.ts';
+import { HIT, space, type } from '../theme.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { SOUND_DETAIL, soundInWord } from '../tutor/soundExample.ts';
 import type { SoundCheckEvidence } from './model.ts';
 import { loadSoundChecks } from './store.ts';
 import { JOURNEY_COPY, againLabel, calledOutLine, soundJourney } from './journey.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /** The situation's name in the learner's language, or nothing for an id this build does not know. */
 function situationName(id: string | undefined): string {
@@ -35,6 +36,8 @@ function situationName(id: string | undefined): string {
 }
 
 export function SoundJourneyScreen() {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
@@ -87,7 +90,7 @@ export function SoundJourneyScreen() {
 
       {shownStatus === 'unread' && (
         <Card style={st.block}>
-          <Text style={[type.body, { color: paper.ink }]}>{JOURNEY_COPY.unread}</Text>
+          <Text style={[type.body, { color: t.text }]}>{JOURNEY_COPY.unread}</Text>
           <IconAction layout="inline" icon="refresh" label={JOURNEY_COPY.retry}  onPress={() => { if (!ownerMatches) return; setStatus('loading'); setAttempt((n) => n + 1); }} />
         </Card>
       )}
@@ -116,22 +119,22 @@ export function SoundJourneyScreen() {
             accessibilityState={{ expanded: detail }}
             style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
           >
-            <Text style={[type.small, { color: paper.ink }]}>{detail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
+            <Text style={[type.small, { color: t.text }]}>{detail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
           </Pressable>
-          {detail && <Text style={[type.notation, { color: paper.inkSoft }]}>/{journey.phoneme}/</Text>}
+          {detail && <Text style={[type.notation, { color: t.muted }]}>/{journey.phoneme}/</Text>}
 
           <View style={st.lines}>
             <Label>{JOURNEY_COPY.linesLabel}</Label>
             {journey.lines.map((line) => (
               <View key={`${line.missionId}\u0000${line.reference}`} style={st.line}>
                 <Card>
-                  <Text style={[type.french, { color: paper.ink }]}>{line.reference}</Text>
-                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{situationName(line.missionId)}</Text>
-                  {line.clearAt !== null && <Text style={[type.small, { color: paper.ink, marginTop: space(2) }]}>{JOURNEY_COPY.lineClear}</Text>}
+                  <Text style={[type.french, { color: t.text }]}>{line.reference}</Text>
+                  <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{situationName(line.missionId)}</Text>
+                  {line.clearAt !== null && <Text style={[type.small, { color: t.text, marginTop: space(2) }]}>{JOURNEY_COPY.lineClear}</Text>}
                 </Card>
                 <Ledger>
                   <LedgerRow
-                    glyph={<WaveformGlyph color={accent.primary} />}
+                    glyph={<WaveformGlyph color={t.text} />}
                     title={againLabel(line, checks)}
                     gloss={situationName(line.missionId)}
                     onPress={() => nav.navigate('SoundCheck', { missionId: line.missionId })}
@@ -148,13 +151,15 @@ export function SoundJourneyScreen() {
   );
 }
 
-const st = StyleSheet.create({
-  heading: { ...type.frenchLg, color: paper.ink, marginTop: space(2) },
-  soft: { ...type.body, color: paper.inkSoft, marginTop: space(3) },
-  count: { ...type.bodyStrong, color: paper.ink, marginTop: space(3) },
+function makeSt(t: B) {
+  return StyleSheet.create({
+  heading: { ...type.frenchLg, color: t.text, marginTop: space(2) },
+  soft: { ...type.body, color: t.muted, marginTop: space(3) },
+  count: { ...type.bodyStrong, color: t.text, marginTop: space(3) },
   block: { marginTop: space(4), gap: space(2) },
   disclosure: { minHeight: HIT, justifyContent: 'center', marginTop: space(2) },
   pressed: { opacity: 0.6 },
   lines: { marginTop: space(5), gap: space(4) },
   line: { gap: space(2) },
 });
+}
