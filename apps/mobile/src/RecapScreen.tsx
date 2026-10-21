@@ -54,7 +54,7 @@ import { recapPages, adjacentRecapPage, type RecapPage } from './recap/pages.ts'
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
-import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour, decorative } from './theme.ts';
+import { HAIRLINE, HIT, space, type, frenchText } from './theme.ts';
 import { IconAction, Card, Label, LockBadge, OutlineButton, Press } from './components.tsx';
 import { ScrollScreen, TopInset } from './layout.tsx';
 import { BArt } from './art/BArt.tsx';
@@ -328,7 +328,7 @@ export function RecapScreen({
         </Press> : null}
       </View>}>
       {contextFailed && <View style={s.pad}><Card>
-        <Text accessibilityLiveRegion="polite" style={type.body}>Saved progress could not be read. You can still read this conversation's recap and keep its phrase.</Text>
+        <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>Saved progress could not be read. You can still read this conversation's recap and keep its phrase.</Text>
         <IconAction layout="inline" icon="refresh" label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
       </Card></View>}
 
@@ -463,7 +463,7 @@ export function RecapScreen({
         {/* Only now, the one reminder ask. Its Remind me is the one thing on
             this card that may raise the phone's dialog. */}
         {offer !== null && reminder !== 'declined' && (
-          <View style={st.offer}>
+          <View style={[st.offer, { borderTopColor: t.line }]}>
             {reminder === 'offered' ? (
               <ReminderAsk
                 time={offer.choice}
@@ -475,7 +475,7 @@ export function RecapScreen({
                 }}
               />
             ) : (
-              <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>
+              <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>
                 {reminderAnswerLine('on', { choice: reminder.on, time: reminderTime(reminder.on) })}
               </Text>
             )}
@@ -496,7 +496,7 @@ export function RecapScreen({
               accessibilityState={{ expanded: more }}
               style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
             >
-              <Text style={[type.small, { color: paper.ink }]}>{more ? 'Show less' : 'More'}</Text>
+              <Text style={[type.small, { color: t.text }]}>{more ? 'Show less' : 'More'}</Text>
             </Pressable>
             {more && (
               <View style={st.more}>
@@ -506,7 +506,7 @@ export function RecapScreen({
                     <Card style={st.section}>
                       <View style={{ gap: space(2.5) }}>
                         {closure.didWell.map((win) => (
-                          <Text key={win} style={[type.french, { color: paper.ink }]}>« {win} »</Text>
+                          <Text key={win} style={[type.french, { color: t.text }]}>« {win} »</Text>
                         ))}
                       </View>
                     </Card>
@@ -518,9 +518,9 @@ export function RecapScreen({
                     <Card style={st.section}>
                       <View style={{ gap: space(3) }}>
                         {otherPhrases.map((phrase, index) => (
-                          <View key={phrase.key} style={index > 0 ? st.divider : undefined}>
-                            <Text style={[type.french, { color: paper.ink }]}>{phrase.fr}</Text>
-                            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{phrase.en}</Text>
+                          <View key={phrase.key} style={index > 0 ? [st.divider, { borderTopColor: t.line }] : undefined}>
+                            <Text style={[type.french, { color: t.text }]}>{phrase.fr}</Text>
+                            <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{phrase.en}</Text>
                           </View>
                         ))}
                       </View>
@@ -532,12 +532,12 @@ export function RecapScreen({
                     <Label>One thing to tune</Label>
                     <Card style={st.section}>
                       {otherFocus.kind === 'clarity' ? (
-                        <Text style={[type.bodyStrong, { color: paper.ink }]}>{otherFocus.line}</Text>
+                        <Text style={[type.bodyStrong, { color: t.text }]}>{otherFocus.line}</Text>
                       ) : (
                         <>
-                          <Text style={[type.french, { color: paper.ink }]}>{otherFocus.fr}</Text>
-                          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{otherFocus.en}</Text>
-                          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{otherFocus.note}</Text>
+                          <Text style={[type.french, { color: t.text }]}>{otherFocus.fr}</Text>
+                          <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{otherFocus.en}</Text>
+                          <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{otherFocus.note}</Text>
                         </>
                       )}
                     </Card>
@@ -581,15 +581,13 @@ const st = StyleSheet.create({
   head: { gap: space(2) },
   // The number said and its words, set on one baseline as the hero number is.
   count: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2) },
-  lines: { marginTop: space(2), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
-  line: { paddingVertical: space(2.5), borderBottomWidth: HAIRLINE, borderBottomColor: paper.line },
   keptStack: { gap: space(3) },
   kept: { gap: space(2) },
   savedLine: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  offer: { gap: space(2), paddingTop: space(4), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
+  offer: { gap: space(2), paddingTop: space(4), borderTopWidth: HAIRLINE },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.6 },
   more: { gap: space(7), marginTop: space(3) },
   section: { marginTop: space(2) },
-  divider: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, paddingTop: space(3) },
+  divider: { borderTopWidth: HAIRLINE, paddingTop: space(3) },
 });

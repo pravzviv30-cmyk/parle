@@ -105,3 +105,66 @@ describe('themed styles are built once per mode — UI-008', () => {
     assert.equal(calls, 2, `the maker ran ${calls} times for two modes`);
   });
 });
+
+// 2026-10-21 UI-008, step 12b: the screens with no artboard joined DARK_READY.
+describe('the screens with no artboard follow the device — UI-008 step 12b', () => {
+  /** The files those routes draw, read off the source. Each reads the theme's tokens for its words and grounds. */
+  const SWEPT = [
+    '../live/RoomWait.tsx', '../live/LiveErrorView.tsx', '../live/OutOfMinutesView.tsx', '../live/LiveRoomHeader.tsx',
+    '../tutor/SafetyStopView.tsx', '../RecapScreen.tsx', '../recap/PrivatePractice.tsx', '../conversationPacks/SaveTextChoice.tsx',
+    '../drill/FixLineSheet.tsx', '../tutor/MissionWin.tsx', '../reminders/ReminderAsk.tsx', '../LiveSessionScreen.tsx',
+    '../SummaryScreen.tsx', '../drill/FocusDrillPlayer.tsx', '../tabs/FriendsTab.tsx', '../friends/SocialSettingsScreen.tsx',
+    '../phrases/PhrasebookScreen.tsx', '../conversationPacks/ConversationsScreen.tsx', '../conversationPacks/SavedTextScreen.tsx',
+    '../myfrench/CadenceCard.tsx', '../myfrench/OneLineCard.tsx', '../practice/SessionRow.tsx', '../practice/VaultCard.tsx',
+    '../conversationPacks/ConversationPackLibrary.tsx', '../conversationPacks/ConversationPracticeScreen.tsx',
+    '../progress/WeekWrappedScreen.tsx', '../progress/PostcardsScreen.tsx', '../missions/MissionsScreen.tsx',
+    '../missions/ListeningPreview.tsx', '../tutor/RealMomentScreen.tsx', '../soundcheck/SoundJourneyScreen.tsx',
+    '../soundcheck/SoundCheckScreen.tsx', '../myfrench/AcousticCard.tsx', '../daily/DailyPracticeScreen.tsx',
+    '../daily/DailyLibraryScreen.tsx', '../daily/DailyCard.tsx', '../goals/GoalStepScreen.tsx', '../tutor/TutorIntro.tsx',
+    '../legal/PolicyScreen.tsx', '../legal/TermsScreen.tsx', '../legal/Acknowledgements.tsx',
+  ];
+
+  test('every signed-in route follows the device, and only the first scene stays light', () => {
+    for (const route of ROUTES) {
+      if (route === 'Tabs') continue;
+      if (route === 'FirstScene') {
+        assert.equal(routeMode(route, 'dark'), 'light', 'the first scene follows a dark device');
+        continue;
+      }
+      assert.equal(routeMode(route, 'dark'), 'dark', `${route} is still pinned light`);
+    }
+    for (const route of ['Convo', 'Lesson', 'LearningPreferences', 'Subscription', 'TutorMemory', 'Friends', 'Phrasebook', 'Conversations', 'ConversationPractice', 'WeekWrapped', 'RealMoment', 'Missions', 'SoundJourney', 'ExploreCollection']) {
+      assert.ok(DARK_READY.has(route), `${route} is not in DARK_READY`);
+    }
+  });
+
+  test('the swept screens set no word or ground in the fixed light ink, paper or hairline', () => {
+    for (const file of SWEPT) {
+      const source = strip(read(file));
+      const fixed = source.match(/\bpaper\.(ink|inkSoft|inkFaint|ground|card|line|lineOnCard|inset|groundDeep|skeleton)\b/g) ?? [];
+      assert.deepEqual(fixed, [], `${file} still reads ${fixed.join(', ')}`);
+      assert.match(source, /useB\(\)|useThemedStyles\(/, `${file} does not read the theme`);
+    }
+  });
+
+  test('the live room\'s waiting and error screens letter their words from the theme', () => {
+    for (const file of ['../live/RoomWait.tsx', '../live/LiveErrorView.tsx']) {
+      const source = strip(read(file));
+      assert.match(source, /color: t\.text/, `${file} does not set its words in the theme's text`);
+      assert.match(source, /color: t\.muted/, `${file} does not set its quiet line in the theme's muted`);
+    }
+    assert.match(strip(read('../live/LiveErrorView.tsx')), /color: t\.link \}\]\}>\{transcriptVisible \? 'Hide transcript' : 'Show transcript'\}/, 'the transcript toggle is not the theme link');
+  });
+
+  test('the invitation QR code stays ink on white in both themes, so a camera can read it', () => {
+    const source = strip(read('../friends/InviteFriendsScreen.tsx'));
+    assert.match(source, /<Rect width=\{size \+ 8\} height=\{size \+ 8\} fill=\{paper\.card\} \/>/);
+    assert.match(source, /height=\{1\} fill=\{paper\.ink\} \/>/);
+    assert.match(source, /const t = useB\(\);/, 'the rest of the invitation does not read the theme');
+  });
+
+  test('a fixed mint panel keeps ink words in both themes', () => {
+    assert.match(strip(read('../drill/FixLineSheet.tsx')), /backgroundColor: t\.mint[^}]*\}\}><Text[^>]*style=\{\[type\.bodyStrong, \{ color: t\.onMint \}\]\}/);
+    assert.equal(b.dark.onMint, b.light.onMint, 'the mint words changed with the mode');
+  });
+});

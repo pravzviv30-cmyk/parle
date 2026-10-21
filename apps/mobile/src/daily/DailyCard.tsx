@@ -17,7 +17,7 @@ import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { IconButton, Card, IconAction, Label } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { TUTOR_DAILY_AUDIO } from './tutorAudioManifest.ts';
 import { dailyTutorVoice, tutorAudioFor } from './tutorAudio.ts';
@@ -30,10 +30,12 @@ import { audioLine } from './libraryView.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { useB } from '../main/bTheme.tsx';
 
 export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, variant = 'full' }: {
   item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; variant?: 'full' | 'today';
 }) {
+  const t = useB();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const focused = useIsFocused();
   const { profile } = useProfile();
@@ -105,7 +107,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   };
   const retrySaveRead = () => setReadAttempt(value => value + 1);
   const saveFailure = saveUnread && <View style={{ gap: space(1) }}>
-    <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>Save status unavailable. You can still hear and practise this phrase.</Text>
+    <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted }]}>Save status unavailable. You can still hear and practise this phrase.</Text>
     <IconAction layout="inline" icon="refresh" label="Retry save status" onPress={retrySaveRead} />
   </View>;
   // Stop this card's recording before the practice screen opens, so the
@@ -116,15 +118,15 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const toggle = () => { if (status.playing) { playTicket.current++; releaseDailyPlayback(player); } else void play(); };
   const contents = <View style={{ gap: space(2) }}>
     <Label>{item.label}</Label>
-    {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><IconAction layout="inline" icon="eye" label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
+    {!shown ? <><Text style={[type.body, { color: t.text }]}>{item.en}</Text><IconAction layout="inline" icon="eye" label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
       {/* The library states audio availability before the first listen. */}
-      {!embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
+      {!embedded && <Text style={[type.small, { color: t.muted }]}>{audioLine(asset != null)}</Text>}
       {asset != null && <IconAction layout="inline" icon="speaker" label="Hear"  onPress={() => void play()} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
-        <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{item.en}</Text></View>
+        <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: t.text }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: t.muted, marginTop: space(1) }]}>{item.en}</Text></View>
       </View>
-      {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
-      {item.exampleFr ? <><Text selectable={!embedded} style={[type.frenchSm, { color: paper.ink }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.exampleEn}</Text>}</> : null}
+      {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: t.muted }]}>{item.note}</Text>}
+      {item.exampleFr ? <><Text selectable={!embedded} style={[type.frenchSm, { color: t.text }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: t.muted }]}>{item.exampleEn}</Text>}</> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
         <IconButton icon="bookmark" label={busy ? 'Saving…' : saved === null ? saveUnread ? 'Save unavailable' : 'Checking save…' : saved ? 'Saved ✓' : 'Save'} disabled={saved === null || busy} onPress={() => void save()} />
         {compact && <IconAction layout="inline" icon="chevron-down" label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
@@ -133,7 +135,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
       </View>
     </>}
     {saveFailure}
-    {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
+    {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted }]}>{note}</Text>}
   </View>;
   // 2026-10-20, B5, B-Today: today's phrase on the lavender card. The caps
   // line, the French with its play disc (the tutor's bundled clip, which says

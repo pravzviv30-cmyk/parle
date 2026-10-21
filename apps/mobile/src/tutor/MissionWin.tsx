@@ -38,8 +38,9 @@ import { useAnswered } from '../motion/landing.ts';
 import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { colour, paper, radius, space, type } from '../theme.ts';
+import { colour, radius, space, type } from '../theme.ts';
 import { SCENE_WON_BEATS, SCENE_WON_BURST, type WinCard } from './missionWin.ts';
+import { useB } from '../main/bTheme.tsx';
 
 /** The drawing's height on the card. Small: the card shares the room with the thread. */
 const ART_HEIGHT = 110;
@@ -62,6 +63,7 @@ export function MissionWin({
   onKeep: () => void;
   onFinish: () => void;
 }) {
+  const t = useB();
   const answered = useAnswered(useReduceMotion(true));
   const reduced = answered === true;
   const [first] = useState(() => claimInPlace(`${scopeGeneration()}:scene-won:${momentKey}`));
@@ -85,7 +87,7 @@ export function MissionWin({
       <Enter from="down" distance={24} play={play}>
         <Card>
           <Enter delay={SCENE_WON_BEATS.kicker} play={play}>
-            <Text style={[type.label, { color: paper.ink }]}>{card.kicker}</Text>
+            <Text style={[type.label, { color: t.text }]}>{card.kicker}</Text>
           </Enter>
           {showArt ? (
             // The scene's place on its own blue, as the scene is drawn
@@ -94,7 +96,7 @@ export function MissionWin({
             <View style={st.place}>
               {play ? (
                 <View style={st.glow}>
-                  <DiscBloom color={colour.mint} radius={ART_HEIGHT * 0.75} />
+                  <DiscBloom color={t.mint} radius={ART_HEIGHT * 0.75} />
                 </View>
               ) : null}
               <Enter delay={SCENE_WON_BEATS.art} distance={20} scaleFrom={0.9} duration={DUR.slow} play={play}>
@@ -103,14 +105,14 @@ export function MissionWin({
             </View>
           ) : null}
           <Enter delay={SCENE_WON_BEATS.line} play={play}>
-            <Text accessibilityLiveRegion="polite" style={[fitDisplay(card.line), { color: paper.ink, textAlign: 'left', marginTop: space(2) }]}>
+            <Text accessibilityLiveRegion="polite" style={[fitDisplay(card.line), { color: t.text, textAlign: 'left', marginTop: space(2) }]}>
               {card.line}
             </Text>
           </Enter>
           <View style={st.winPrimary}>
             <PillButton label={card.keepLabel} onPress={onKeep} />
           </View>
-          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'left', marginTop: space(2) }]}>{card.keepSub}</Text>
+          <Text style={[type.small, { color: t.muted, textAlign: 'left', marginTop: space(2) }]}>{card.keepSub}</Text>
           <View style={st.winSecondary}>
             <GhostButton label={card.finishLabel} onPress={onFinish} />
           </View>

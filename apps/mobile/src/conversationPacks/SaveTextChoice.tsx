@@ -3,11 +3,13 @@ import { Text, View } from 'react-native';
 import type { ConversationText } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
 import { IconAction, GhostButton } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { saveText } from './textClient.ts';
+import { useB } from '../main/bTheme.tsx';
 
 export function SaveTextChoice({ ownerId, conversation }: { ownerId: string; conversation: ConversationText | null }) {
+  const t = useB();
   const { user, adapter } = useAuth();
   const [state, setState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [message, setMessage] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export function SaveTextChoice({ ownerId, conversation }: { ownerId: string; con
   const scope = useRef(scopeGeneration()).current;
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   if (user?.id !== ownerId || adapter.kind !== 'supabase' || scope !== scopeGeneration()) return null;
-  if (!conversation?.lines.length) return <Text style={[type.small, { color: paper.inkSoft }]}>The complete conversation text is not available to save. Your curated practice stays available.</Text>;
+  if (!conversation?.lines.length) return <Text style={[type.small, { color: t.muted }]}>The complete conversation text is not available to save. Your curated practice stays available.</Text>;
   const save = () => {
     if (busy.current || state === 'saved') return;
     busy.current = true;
@@ -29,9 +31,9 @@ export function SaveTextChoice({ ownerId, conversation }: { ownerId: string; con
     }).finally(() => { busy.current = false; });
   };
   return <View style={{ gap: space(2) }}>
-    <Text style={[type.bodyStrong, { color: paper.ink }]}>Keep the conversation text?</Text>
-    <Text style={[type.small, { color: paper.inkSoft }]}>Save the conversation and tutor coaching to your account. Speech recognition can differ from what you said. No recording is saved. You can delete this text separately from your practice.</Text>
+    <Text style={[type.bodyStrong, { color: t.text }]}>Keep the conversation text?</Text>
+    <Text style={[type.small, { color: t.muted }]}>Save the conversation and tutor coaching to your account. Speech recognition can differ from what you said. No recording is saved. You can delete this text separately from your practice.</Text>
     {state !== 'saved' && <IconAction layout="inline" icon="download" label={state === 'saving' ? 'Saving conversation text…' : 'Save conversation text'} disabled={state === 'saving'} onPress={save} />}
-    {message !== '' && message != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{message}</Text>}
+    {message !== '' && message != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted }]}>{message}</Text>}
   </View>;
 }

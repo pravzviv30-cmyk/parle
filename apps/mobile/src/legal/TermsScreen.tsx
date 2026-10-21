@@ -36,21 +36,23 @@ import { openLink } from '../settings/links.ts';
 import { LINK_TROUBLE } from '../settings/sections.ts';
 import { APPLE_EULA_URL, TERMS_BODY, TERMS_LINK_LABEL, TERMS_TITLE } from './terms.ts';
 import { c, boldType } from '../onboarding/boldRhythm.ts';
+import { useB } from '../main/bTheme.tsx';
 
 export function TermsScreen({ onBack }: { onBack: () => void }) {
+  const t = useB();
   const [trouble, setTrouble] = useState<string | null>(null);
   useHardwareBack(true, onBack);
   return (
     <ScrollScreen ground={c.paper} header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[boldType.title, { color: c.ink }]}>
+      <Text accessibilityRole="header" style={[boldType.title, { color: t.text }]}>
         {TERMS_TITLE}
       </Text>
       <View style={{ marginTop: space(6), paddingBottom: space(6) }}>
-        <Card style={{ backgroundColor: c.lavender, borderRadius: 24 }}>
+        <Card style={{ backgroundColor: t.lavender, borderRadius: 24 }}>
           {TERMS_BODY.map((paragraph, index) => (
             <Text
               key={`terms:${index}`}
-              style={[boldType.body, { color: c.ink, marginTop: index === 0 ? 0 : space(3) }]}
+              style={[boldType.body, { color: t.text, marginTop: index === 0 ? 0 : space(3) }]}
             >
               {paragraph}
             </Text>
@@ -59,7 +61,7 @@ export function TermsScreen({ onBack }: { onBack: () => void }) {
         {trouble === null ? null : (
           <Text
             accessibilityLiveRegion="polite"
-            style={[type.small, { color: paper.ink, marginTop: space(4) }]}
+            style={[type.small, { color: t.text, marginTop: space(4) }]}
           >
             {trouble}
           </Text>

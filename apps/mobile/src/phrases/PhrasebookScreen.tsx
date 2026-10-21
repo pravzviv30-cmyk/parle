@@ -54,7 +54,7 @@ import { dailyTutorVoice, tutorAudioForFrench } from '../daily/tutorAudio.ts';
 import { tutorVoice, type ConversationPack } from '@luvani/core';
 import { sourceForKeptFrench } from './phraseAudioSource.ts';
 import { useKeptPhraseAudio } from './useKeptPhraseAudio.ts';
-import { accent, paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { CadenceCard } from '../myfrench/CadenceCard.tsx';
@@ -65,10 +65,13 @@ import { oneLineFrom, type OneLine } from '../myfrench/oneLine.ts';
 import { buildPhrasebook, hasPhrases, hasSaved, SAVED_NOTE, SAVED_TITLE, type Phrasebook, type SavedPhrase } from './phrasebook.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { CADENCE_NOTE, PHRASEBOOK_TITLE, cadenceToggleLabel, hasCadence, speakerLabel } from './phrasebookView.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 let nextVisit = 0;
 
 export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const [book, setBook] = useState<Phrasebook | null>(null);
   const [bookScope, setBookScope] = useState<number | null>(null);
@@ -162,9 +165,9 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
       </View>
 
       {visibleBook !== null && needsPhraseSearch(visibleBook) && <Field label="Find a phrase" value={query} onChangeText={setQuery} placeholder="French or English" maxLength={120} />}
-      {visibleBook !== null && query.trim() !== '' && displayBook !== null && !hasPhrases(displayBook) && !hasSaved(displayBook) && <Text accessibilityLiveRegion="polite" style={type.small}>No matching phrases.</Text>}
+      {visibleBook !== null && query.trim() !== '' && displayBook !== null && !hasPhrases(displayBook) && !hasSaved(displayBook) && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.text }]}>No matching phrases.</Text>}
 
-      {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><IconAction layout="inline" icon="refresh" label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
+      {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><IconAction layout="inline" icon="refresh" label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
 
       {visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '' && <EmptyStateCard art={NOTEBOOK_ART} title="Your first kept phrase lands here." body={null} action={{ label: 'Choose a scene', onPress: () => nav.navigate('Missions') }} />}
 
@@ -178,7 +181,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
           <View style={st.groups}>
             {displayBook.groups.map((group) => (
               <Card key={group.id}>
-                <Label color={paper.inkSoft}>{group.title}</Label>
+                <Label color={t.muted}>{group.title}</Label>
                 <View style={st.rows}>
                   {group.phrases.map((phrase, index) => (
                     <PhraseRow
@@ -232,7 +235,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
             accessibilityState={{ expanded: cadenceOpen }}
             style={({ pressed }) => [st.disclosure, pressed && st.speakerPressed]}
           >
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{cadenceToggleLabel(cadenceOpen)}</Text>
+            <Text style={[type.bodyStrong, { color: t.text }]}>{cadenceToggleLabel(cadenceOpen)}</Text>
             {!cadenceOpen && <Text style={st.savedNote}>{CADENCE_NOTE}</Text>}
           </Pressable>
           {cadenceOpen && <CadenceCard cadence={cadence} />}
@@ -268,13 +271,15 @@ function PhraseRow({
   source: string | null;
   onHear?: () => void;
 }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   return (
     <View style={[st.row, !first && st.ruled]}>
       <View style={st.words}>
-        <Text style={[type.french, { color: paper.ink }]}>{phrase.front}</Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.back}</Text>
-        {source !== null && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>From {source}</Text>}
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{audioLabel}</Text>
+        <Text style={[type.french, { color: t.text }]}>{phrase.front}</Text>
+        <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{phrase.back}</Text>
+        {source !== null && <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>From {source}</Text>}
+        <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{audioLabel}</Text>
       </View>
       {onHear !== undefined && <Pressable
         onPress={onHear}
@@ -282,25 +287,26 @@ function PhraseRow({
         accessibilityLabel={speakerLabel(phrase.front, playing)}
         style={({ pressed }) => [st.speaker, pressed && st.speakerPressed]}
       >
-        <SpeakerGlyph color={accent.primary} />
+        <SpeakerGlyph color={t.text} />
       </Pressable>}
     </View>
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   // The title and the scene share a row, both sitting on the same baseline, so
   // the drawing reads as part of the heading rather than as a banner over it.
   // On the page itself (notebook Phase 4, 2026-09-27): no feature paper and no
   // ink outline, so the heading is a heading rather than a panel.
   head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3), marginTop: space(2) },
-  title: { ...type.display, color: paper.ink, flexGrow: 1, flexBasis: 160, minWidth: 0 },
+  title: { ...type.display, color: t.text, flexGrow: 1, flexBasis: 160, minWidth: 0 },
   // Placement only. The size is the registry's, never a number written here.
   art: { flexShrink: 0 },
   block: { marginTop: space(7) },
   groups: { marginTop: space(3), gap: space(3) },
   rows: { marginTop: space(2) },
-  savedNote: { ...type.small, color: paper.inkSoft, marginTop: space(1) },
+  savedNote: { ...type.small, color: t.muted, marginTop: space(1) },
   savedCard: { marginTop: space(3) },
   // The collection's row: a full-width target at the touch floor, no card of
   // its own, so it reads as a quiet door rather than another block of content.
@@ -308,7 +314,7 @@ const st = StyleSheet.create({
   // The words take the room and the button keeps its floor, so a long line
   // wraps rather than squeezing the control under the touch minimum.
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
-  ruled: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  ruled: { borderTopWidth: HAIRLINE, borderTopColor: t.line },
   words: { flex: 1, minWidth: 0 },
   // The ink speaker on a white disc under a paper hairline, which is what makes
   // it read as a button on a white card now the whisper has retired. It is the
@@ -317,11 +323,12 @@ const st = StyleSheet.create({
     width: HIT,
     height: HIT,
     borderRadius: HIT / 2,
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: t.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  speakerPressed: { backgroundColor: paper.groundDeep },
+  speakerPressed: { backgroundColor: t.skeleton },
 });
+}

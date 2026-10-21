@@ -18,9 +18,10 @@ import {
   starterItems,
   type LibraryFilter,
 } from './libraryView.ts';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { libraryPlace, pageItems, rememberLibraryPlace } from './libraryPlace.ts';
+import { useB } from '../main/bTheme.tsx';
 
 /**
  * The daily collection. The learner's saved items lead; an empty Saved tab
@@ -28,6 +29,7 @@ import { libraryPlace, pageItems, rememberLibraryPlace } from './libraryPlace.ts
  * two browsing tabs. Every rule is `libraryView.ts`'s.
  */
 export function DailyLibraryScreen() {
+  const t = useB();
   const goBack = useBackToHome();
   const scope = scopeGeneration();
   const place = libraryPlace(scope);
@@ -54,18 +56,18 @@ export function DailyLibraryScreen() {
   const lead = saved === null ? 'none' : libraryLead(filter, saved.size, query);
   const items = saved === null ? [] : libraryItems(filter, saved, query);
   return <ScrollScreen bottom="inset" header={<ScreenHeader title="Daily collection" back={{ onPress: goBack }} />}>
-    {placeScope !== scope ? <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>Loading your collection…</Text> : <>
+    {placeScope !== scope ? <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>Loading your collection…</Text> : <>
     <TabBar appearance="underline" tabs={[{ key: 'saved', label: 'Saved' }, { key: 'words', label: 'Words' }, { key: 'phrases', label: 'Phrases' }]} active={filter} onChange={key => change({ filter: key, limit: 12 })} />
     <Field placeholder={SEARCH_PLACEHOLDER} value={query} onChangeText={text => change({ query: text, limit: 12 })} />
-    {unread && <><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3) }]}>Your saved items could not be loaded. Try again to see them.</Text><IconAction layout="inline" icon="refresh" label="Retry saved items" onPress={() => setAttempt(value => value + 1)} /></>}
-    {!unread && saved === null && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>Loading your collection…</Text>}
-    {lead === 'inventory' && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{inventoryLine(VOICED_WORD_IDS.length, VOICED_PHRASE_IDS.length)}</Text>}
+    {unread && <><Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text, marginTop: space(3) }]}>Your saved items could not be loaded. Try again to see them.</Text><IconAction layout="inline" icon="refresh" label="Retry saved items" onPress={() => setAttempt(value => value + 1)} /></>}
+    {!unread && saved === null && <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>Loading your collection…</Text>}
+    {lead === 'inventory' && <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{inventoryLine(VOICED_WORD_IDS.length, VOICED_PHRASE_IDS.length)}</Text>}
     {!unread && lead === 'starter' && <>
       <Label>{STARTER_TITLE}</Label>
-      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{STARTER_NOTE}</Text>
+      <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{STARTER_NOTE}</Text>
       {starterItems().map(item => <DailyCard key={item.id} item={item} onSaved={onSaved} />)}
     </>}
-    {!unread && saved !== null && lead !== 'starter' && items.length === 0 && <><Text style={[type.body, { color: paper.ink, marginTop: space(3) }]}>{NO_MATCH}</Text>{query.trim() !== '' && <IconButton icon="close" label="Clear search" onPress={() => change({ query: '', limit: 12 })} />}</>}
+    {!unread && saved !== null && lead !== 'starter' && items.length === 0 && <><Text style={[type.body, { color: t.text, marginTop: space(3) }]}>{NO_MATCH}</Text>{query.trim() !== '' && <IconButton icon="close" label="Clear search" onPress={() => change({ query: '', limit: 12 })} />}</>}
     {!unread && saved !== null && pageItems(items, limit).map(item => <DailyCard key={item.id} item={item} onSaved={onSaved} />)}
     {!unread && saved !== null && limit > 12 && <IconAction layout="inline" icon="back" label="Previous page" onPress={() => change({ limit: Math.max(12, limit - 12) })} />}
     {!unread && saved !== null && items.length > limit && <IconAction layout="inline" icon="forward" label="Next page" onPress={() => change({ limit: limit + 12 })} />}

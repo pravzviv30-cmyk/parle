@@ -28,6 +28,7 @@ import * as tutorVoice from '../speech/tutorVoice.ts';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { PREVIEW_COPY, previewFor, type PreviewSelection } from './preview.ts';
+import { useB } from '../main/bTheme.tsx';
 
 /**
  * `showContext` draws the selection's own description above the lines. Off by
@@ -35,8 +36,9 @@ import { PREVIEW_COPY, previewFor, type PreviewSelection } from './preview.ts';
  * it is the goal line drawn just above this control.
  */
 export function ListeningPreview({ selection, showContext = false, ground = 'white' }: { selection: PreviewSelection; showContext?: boolean; ground?: 'white' | 'blue' }) {
-  const ink = ground === 'blue' ? paper.onInk : paper.ink;
-  const quiet = ground === 'blue' ? onColour.blue : paper.inkSoft;
+  const t = useB();
+  const ink = ground === 'blue' ? paper.onInk : t.text;
+  const quiet = ground === 'blue' ? onColour.blue : t.muted;
   const { profile } = useProfile();
   const voice = dailyTutorVoice(profile.tutorVoice);
   const player = useAudioPlayer();

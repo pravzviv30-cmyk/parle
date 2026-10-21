@@ -7,7 +7,7 @@ import { IconAction, Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle
 import { AcousticCard } from '../myfrench/AcousticCard.tsx';
 import { acousticFor, type Acoustic } from '../myfrench/acoustic.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { HIT, paper, space, type } from '../theme.ts';
+import { HIT, space, type } from '../theme.ts';
 import { scoreRecordedAttempt } from '../speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from '../speech/discardRecording.ts';
 import { recorderUri } from '../daily/recorderUri.ts';
@@ -21,6 +21,7 @@ import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { abandonSoundCheckRecording } from './abandonRecording.ts';
 import { holdMic } from '../sound/audioFocus.ts';
 import { enterRecording, leaveRecording } from '../sound/audioSession.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 const CAN_RECORD =
   Platform.OS !== 'web' ||
@@ -43,6 +44,8 @@ export function SoundCheckScreen({
   /** Opens the situations list, offered when there is no situation to check. */
   onChooseSituation?: () => void;
 }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const cleanupRef = useRef<Promise<void> | null>(null);
@@ -221,8 +224,8 @@ export function SoundCheckScreen({
     >
       {noCheck && missionId === null ? (
         <Card>
-          <Text style={[type.title, { color: paper.ink }]}>Choose a situation first.</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+          <Text style={[type.title, { color: t.text }]}>Choose a situation first.</Text>
+          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>
             A sound check uses the known lines from one situation, so it needs to know which one.
           </Text>
           {onChooseSituation !== undefined && (
@@ -233,14 +236,14 @@ export function SoundCheckScreen({
         </Card>
       ) : noCheck ? (
         <Card>
-          <Text style={[type.title, { color: paper.ink }]}>No sound check for this situation yet.</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
+          <Text style={[type.title, { color: t.text }]}>No sound check for this situation yet.</Text>
+          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
         </Card>
       ) : (
         <>
           <Label>Sound check</Label>
-          <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>One useful line, once.</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>
+          <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>One useful line, once.</Text>
+          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>
 
           {/* How the sound is made, above the line that uses it. It came off My
               French in revamp A: instructions two taps from the doing are a
@@ -253,30 +256,30 @@ export function SoundCheckScreen({
 
           {shownReference ? (
             <Card tone="journal" style={{ marginTop: space(6), alignItems: 'center', paddingVertical: space(6) }}>
-              <Text style={[fitDisplay(shownReference), { color: paper.ink, textAlign: 'center' }]}>{shownReference}</Text>
+              <Text style={[fitDisplay(shownReference), { color: t.text, textAlign: 'center' }]}>{shownReference}</Text>
               <Pressable
                 onPress={() => { if (ownsReadNow()) tutorVoice.speak(shownReference); }}
                 accessibilityRole="button"
                 accessibilityLabel="Hear the reference line"
                 style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
               >
-                <EarGlyph size={16} color={paper.inkSoft} />
-                <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
+                <EarGlyph size={16} color={t.muted} />
+                <Text style={[type.small, { color: t.muted }]}>Hear it</Text>
               </Pressable>
             </Card>
           ) : null}
 
           {shownPhase === 'unread' ? (
             <Card style={{ marginTop: space(5), gap: space(3) }}>
-              <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{shownReference ? 'Your earlier sound checks could not be read. You can still hear and say this known line; it will not be assessed until the read succeeds.' : 'Your earlier sound checks could not be read. Try again before checking a sound.'}</Text>
+              <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{shownReference ? 'Your earlier sound checks could not be read. You can still hear and say this known line; it will not be assessed until the read succeeds.' : 'Your earlier sound checks could not be read. Try again before checking a sound.'}</Text>
               <IconAction layout="inline" icon="refresh" label="Retry sound checks" onPress={() => { if (ownsReadNow()) setAttempt((n) => n + 1); }} />
             </Card>
           ) : shownPhase === 'loading' ? (
-            <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.inkSoft, marginTop: space(5) }]}>Reading your sound checks…</Text>
+            <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.muted, marginTop: space(5) }]}>Reading your sound checks…</Text>
           ) : shownPhase === 'result' && shownResult ? (
             <Card style={{ marginTop: space(5) }}>
-              <Text style={[type.title, { color: paper.ink }]}>{shownResult.headline}</Text>
-              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{shownResult.detail}</Text>
+              <Text style={[type.title, { color: t.text }]}>{shownResult.headline}</Text>
+              <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{shownResult.detail}</Text>
               {shownResult === MIC_DENIED && PHONE_SETTINGS_AVAILABLE && (
                 <View style={{ marginTop: space(3) }}>
                   <IconAction layout="inline" icon="settings" label="Open settings" onPress={() => void openPhoneSettings()} />
@@ -292,10 +295,10 @@ export function SoundCheckScreen({
                 disabled={shownPhase === 'scoring'}
                 accessibilityLabel={shownPhase === 'recording' ? 'Finish recording' : 'Start recording'}
               />
-              <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center' }]}>
+              <Text style={[type.bodyStrong, { color: t.text, textAlign: 'center' }]}>
                 {shownPhase === 'recording' ? 'Tap when you are done' : shownPhase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
               </Text>
-              {!CAN_RECORD && <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
+              {!CAN_RECORD && <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
               <IconAction layout="inline" icon="tick-circle" label="I said it without assessment" disabled={shownPhase === 'scoring'} onPress={() => selfGuided()} />
             </View>
           )}
@@ -305,8 +308,10 @@ export function SoundCheckScreen({
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   hear: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(3) },
   micBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(3), marginTop: space(7) },
   acoustic: { marginTop: space(6) },
 });
+}

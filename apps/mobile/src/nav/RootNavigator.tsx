@@ -91,6 +91,7 @@ import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
 import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
 import { RouteTheme, useRouteGround } from './RouteTheme.tsx';
+import { useB } from '../main/bTheme.tsx';
 import { backOrTabs, tabsAlone, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
@@ -117,9 +118,10 @@ function asRung(value: unknown): Rung | null {
 }
 
 function Loading() {
+  const t = useB();
   return (
-    <View style={st.center}>
-      <ActivityIndicator color={paper.inkFaint} />
+    <View style={[st.center, { backgroundColor: t.ground }]}>
+      <ActivityIndicator color={t.muted} />
     </View>
   );
 }
@@ -162,6 +164,7 @@ function LessonRoute() {
   }>();
   const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
+  const t = useB();
   const textMode = route.params?.textMode ?? false;
   const { user } = useAuth();
   const { live, recheck } = useLive();
@@ -286,8 +289,8 @@ function LessonRoute() {
   if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><IconAction layout="inline" icon="refresh" busy={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
 
   if (historyFailed) return (
-    <View style={[st.center, { gap: space(3), padding: space(6) }]}>
-      <Text style={[type.body, { color: paper.ink }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
+    <View style={[st.center, { backgroundColor: t.ground, gap: space(3), padding: space(6) }]}>
+      <Text style={[type.body, { color: t.text }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
       <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} />
       <IconAction layout="inline" icon="home" label="Back to Home" onPress={leave} />
     </View>
@@ -340,6 +343,7 @@ function ConvoRoute() {
   }>();
   const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
+  const t = useB();
   const { user } = useAuth();
   const { profile, updateBrain } = useProfile();
   const { live, recheck } = useLive();
@@ -427,11 +431,11 @@ function ConvoRoute() {
   if (!live) {
     return (
       <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
-        <Label color={paper.inkSoft}>{TUTOR_OFFLINE.label}</Label>
-        <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
+        <Label color={t.muted}>{TUTOR_OFFLINE.label}</Label>
+        <Text style={[type.bodyStrong, { color: t.text, marginTop: space(3), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.headline}
         </Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+        <Text style={[type.body, { color: t.muted, marginTop: space(2), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.body}
         </Text>
         <LocalPracticeCard />
@@ -805,7 +809,7 @@ export function RootNavigator({
 }
 
 const st = StyleSheet.create({
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   gate: {
     flex: 1,
     backgroundColor: paper.ground,

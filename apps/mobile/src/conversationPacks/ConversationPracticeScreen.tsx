@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { phraseKeyOf, type ConversationPack } from '@luvani/core';
 import { IconAction, Card, GhostButton, Label, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { paper, radius, space, type, HIT, frenchText } from '../theme.ts';
+import { radius, space, type, HIT, frenchText } from '../theme.ts';
 import * as voice from '../speech/tutorVoice.ts';
 import { loadConversationPackForLearner } from './store.ts';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -12,6 +12,7 @@ import { choicesFor, matchPair, pairsFor, matchingOrder, checkRecognition, NEW_A
 import { ownsPracticeRead, type PracticeReadOwner } from '../practice/readOwner.ts';
 import { mintPracticeId } from '../practice/history.ts';
 import { recordWarmupCompleted } from '../practice/historyStore.ts';
+import { useB } from '../main/bTheme.tsx';
 
 /** Recognition is preparation, not proof of unaided recall; that follows in Drill. */
 export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPack, onLoadSample, initialStage = 'match' }: {
@@ -38,6 +39,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
   /** Story fixture only. The navigator supplies this exclusively in development. */
   previewPack?: ConversationPack;
 }) {
+  const t = useB();
   const { user, adapter } = useAuth();
   const currentScope = scopeGeneration();
   const [readOwner, setReadOwner] = useState<PracticeReadOwner | null>(null);
@@ -118,14 +120,14 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
         } else setNotice('Not this pair. Keep the French phrase selected and try another meaning.');
       }}
       style={{ minHeight: HIT * 1.5, justifyContent: 'center', padding: space(3), borderRadius: radius.card,
-        borderWidth: chosen ? 2 : 1, borderColor: chosen ? paper.ink : paper.line,
-        backgroundColor: done ? paper.groundDeep : paper.card, opacity: 1 }}>
-      <Text {...(side === 'fr' ? frenchText : {})} style={[side === 'fr' ? type.frenchSm : type.small, { color: paper.ink }]}>{done && !assisted ? '✓ ' : ''}{label}</Text>
+        borderWidth: chosen ? 2 : 1, borderColor: chosen ? t.text : t.line,
+        backgroundColor: done ? t.skeleton : t.card, opacity: 1 }}>
+      <Text {...(side === 'fr' ? frenchText : {})} style={[side === 'fr' ? type.frenchSm : type.small, { color: t.text }]}>{done && !assisted ? '✓ ' : ''}{label}</Text>
     </Pressable>;
   };
   return <ScrollScreen header={<ScreenHeader title="Practise" back={{ onPress: onBack }} />}>
     {visiblePack === undefined ? <ActivityIndicator accessibilityLabel="Loading conversation practice" /> : !pack || !ownerMatches ?
-      <Card><Text style={[type.heading, { color: paper.ink }]}>This conversation isn’t available here.</Text><Text style={[type.body, { color: paper.ink }]}>Return to your conversations and refresh before trying again.</Text><IconAction layout="inline" icon="back" label="Back to practice" onPress={onBack} /></Card> :
+      <Card><Text style={[type.heading, { color: t.text }]}>This conversation isn’t available here.</Text><Text style={[type.body, { color: t.text }]}>Return to your conversations and refresh before trying again.</Text><IconAction layout="inline" icon="back" label="Back to practice" onPress={onBack} /></Card> :
       <View style={{ gap: space(5), paddingBottom: space(6) }}>
         <View style={{ gap: space(2) }}>
           {previewPack && <Label>Design preview, sample conversation</Label>}
@@ -141,25 +143,25 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
                   void onLoadSample().then(setSampleNote).finally(() => setLoadingSample(false));
                 }}
               />
-              <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>
+              <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.text }]}>
                 {sampleNote ?? 'Development only. Adds a labelled sample to this local account so Practice can be tried.'}
               </Text>
             </View>
           )}
           <Label>{pack.title.en}</Label>
-          <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }} style={{ height: 5, backgroundColor: paper.line, borderRadius: 3 }}>
-            <View style={{ height: 5, width: `${progress * 100}%`, backgroundColor: paper.ink, borderRadius: 3 }} />
+          <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }} style={{ height: 5, backgroundColor: t.line, borderRadius: 3 }}>
+            <View style={{ height: 5, width: `${progress * 100}%`, backgroundColor: t.text, borderRadius: 3 }} />
           </View>
-          <Text style={[type.small, { color: paper.ink }]}>Built from the phrases saved from this conversation. No live minutes used.</Text>
+          <Text style={[type.small, { color: t.text }]}>Built from the phrases saved from this conversation. No live minutes used.</Text>
         </View>
         {pack.keyPhrases.length === 0 && pack.corrections.length === 0 ? <Card>
-          <Text style={[type.heading, { color: paper.ink }]}>No practice phrases were saved this time.</Text>
-          <Text style={[type.body, { color: paper.ink }]}>Your conversation summary is still available. Try another conversation when you’re ready.</Text>
+          <Text style={[type.heading, { color: t.text }]}>No practice phrases were saved this time.</Text>
+          <Text style={[type.body, { color: t.text }]}>Your conversation summary is still available. Try another conversation when you’re ready.</Text>
           <IconAction layout="inline" icon="back" label="Back to conversations" onPress={onBack} />
         </Card> : readyForRecall ? <Card>
           <Label>Now, make it yours</Label>
-          <Text style={[type.heading, { color: paper.ink, marginVertical: space(3) }]}>Try it without the choices.</Text>
-          <Text style={[type.body, { color: paper.ink }]}>Matching and listening help you recognise the phrases. Your next attempts feed the same review schedule used across Luvani.</Text>
+          <Text style={[type.heading, { color: t.text, marginVertical: space(3) }]}>Try it without the choices.</Text>
+          <Text style={[type.body, { color: t.text }]}>Matching and listening help you recognise the phrases. Your next attempts feed the same review schedule used across Luvani.</Text>
           <View style={{ marginTop: space(4) }}><PillButton label={previewPack ? 'Finish preview' : 'Practise from memory'} onPress={() => {
         if (!ownsNow()) return;
             voice.stop();
@@ -168,32 +170,32 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
             ])] }, true);
           }} /></View>
         </Card> : stage === 'match' ? <>
-          <Text style={[type.display, { color: paper.ink }]}>Find the pairs.</Text>
-          <Text style={[type.body, { color: paper.ink }]}>Tap a French phrase, then its English meaning.</Text>
+          <Text style={[type.display, { color: t.text }]}>Find the pairs.</Text>
+          <Text style={[type.body, { color: t.text }]}>Tap a French phrase, then its English meaning.</Text>
           <View style={{ flexDirection: 'row', gap: space(3), alignItems: 'flex-start' }}>
             <View style={{ flex: 1, gap: space(3) }}>{pairs.map((p) => tile(p.fr, p.key, 'fr'))}</View>
             <View style={{ flex: 1, gap: space(3) }}>{right.map((p) => tile(p.en, p.key, 'en'))}</View>
           </View>
-          <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{notice || 'These are phrases from your saved conversation.'}</Text>
+          <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.text }]}>{notice || 'These are phrases from your saved conversation.'}</Text>
           <PillButton label="Continue to listening" disabled={matched.length !== pairs.length} onPress={() => {
         if (!ownsNow()) return; setStage('listen'); setNotice(''); }} />
         </> : current ? <>
-          <Text style={[type.display, { color: paper.ink }]}>{reading ? 'Read and choose.' : 'Listen and choose.'}</Text>
+          <Text style={[type.display, { color: t.text }]}>{reading ? 'Read and choose.' : 'Listen and choose.'}</Text>
           <Card>
-            {reading ? <Text style={[type.french, { color: paper.ink }]}>{current.phrase.fr}</Text> : <>
+            {reading ? <Text style={[type.french, { color: t.text }]}>{current.phrase.fr}</Text> : <>
               <PillButton label={played ? 'Listen again' : 'Play the phrase'} disabled={audioReady === null} onPress={() => {
         if (!ownsNow()) return; voice.speak(current.phrase.fr); setPlayed(true); }} />
               <IconAction layout="inline" icon="speaker-slow" label="Play slowly" disabled={audioReady === null} onPress={() => {
         if (!ownsNow()) return; voice.speak(current.phrase.fr, { rate: 0.65 }); setPlayed(true); }} />
             </>}
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{reading ? 'The same meaning, without audio.' : 'Which meaning did you hear? Audio uses your device’s French voice.'}</Text>
+            <Text style={[type.small, { color: t.muted, marginTop: space(3) }]}>{reading ? 'The same meaning, without audio.' : 'Which meaning did you hear? Audio uses your device’s French voice.'}</Text>
           </Card>
           {current.options.map((option, i) => <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected: choice === i, disabled: revealed || (!played && !reading) }}
             disabled={revealed || (!played && !reading)} onPress={() => setChoice(i)}
-            style={{ minHeight: HIT, padding: space(4), borderRadius: radius.card, borderWidth: choice === i ? 2 : 1, borderColor: choice === i ? paper.ink : paper.line, backgroundColor: paper.card }}>
-            <Text style={[type.body, { color: paper.ink }]}>{option}</Text>
+            style={{ minHeight: HIT, padding: space(4), borderRadius: radius.card, borderWidth: choice === i ? 2 : 1, borderColor: choice === i ? t.text : t.line, backgroundColor: t.card }}>
+            <Text style={[type.body, { color: t.text }]}>{option}</Text>
           </Pressable>)}
-          {attempt.outcome !== 'waiting' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{attempt.outcome === 'correct' ? 'That’s the meaning.' : attempt.outcome === 'revealed' ? `The meaning is: ${current.phrase.en}` : 'Not quite. Try once more before seeing the meaning.'}</Text>}
+          {attempt.outcome !== 'waiting' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{attempt.outcome === 'correct' ? 'That’s the meaning.' : attempt.outcome === 'revealed' ? `The meaning is: ${current.phrase.en}` : 'Not quite. Try once more before seeing the meaning.'}</Text>}
           <PillButton label={revealed ? 'Continue' : 'Check meaning'} disabled={choice === null} onPress={() => {
         if (!ownsNow()) return;
             if (!revealed) {

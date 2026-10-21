@@ -9,13 +9,14 @@ import type { ConversationPack } from '@luvani/core';
 import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { frenchText, paper, signal, space, type } from '../theme.ts';
+import { frenchText, space, type } from '../theme.ts';
 import { CONVERSATION_PAGE_SIZE } from './store.ts';
 import { PRACTICE_ALTERNATIVES, RECOMMENDED } from '../practice/copy.ts';
 import { loadPracticeHistory } from '../practice/historyStore.ts';
 import type { PracticeHistoryItem } from '../practice/history.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { PRACTICE_BEFORE, REVISION_COPY, correctionLine, revisionEvidence } from './revision.ts';
+import { useB } from '../main/bTheme.tsx';
 
 type DeleteResult = { ok: true } | { ok: false; message: string };
 
@@ -77,6 +78,7 @@ export function ConversationPackLibrary({
   onDeleteOne: (pack: ConversationPack) => Promise<DeleteResult>;
   onDeleteAll: () => Promise<DeleteResult>;
 }) {
+  const t = useB();
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const [selected, setSelected] = useState<ConversationPack | null>(null);
   const [confirming, setConfirming] = useState<string | 'all' | null>(null);
@@ -161,13 +163,13 @@ export function ConversationPackLibrary({
         footer={hasPractice ? (
           <View style={st.footer}>
             <PillButton label="Practise this conversation" disabled={busy} onPress={() => onReview(selected)} />
-            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{RECOMMENDED.noMinutes}</Text>
+            <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>{RECOMMENDED.noMinutes}</Text>
           </View>
         ) : undefined}>
         <Label>Practice from conversation</Label>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>{selected.title.en}</Text>
-        <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(1) }]}>{selected.title.fr}</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{selected.summary}</Text>
+        <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>{selected.title.en}</Text>
+        <Text style={[type.bodyStrong, { color: t.text, marginTop: space(1) }]}>{selected.title.fr}</Text>
+        <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>{selected.summary}</Text>
 
         {selected.keyPhrases.length > 0 && (
           <View style={st.section}>
@@ -175,9 +177,9 @@ export function ConversationPackLibrary({
             <View style={st.phrases}>
               {selected.keyPhrases.map((phrase) => (
                 <Card key={`${phrase.fr}\u0000${phrase.en}`}>
-                  <Text {...frenchText} style={[type.bodyStrong, { color: paper.ink }]}>{phrase.fr}</Text>
-                  {phrase.frWritten !== null && <Text {...frenchText} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.frWritten}</Text>}
-                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.en}</Text>
+                  <Text {...frenchText} style={[type.bodyStrong, { color: t.text }]}>{phrase.fr}</Text>
+                  {phrase.frWritten !== null && <Text {...frenchText} style={[type.small, { color: t.muted, marginTop: space(1) }]}>{phrase.frWritten}</Text>}
+                  <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{phrase.en}</Text>
                 </Card>
               ))}
             </View>
@@ -188,9 +190,9 @@ export function ConversationPackLibrary({
           <View style={st.section}>
             <Label>One useful focus</Label>
             <Card style={{ marginTop: space(2.5) }}>
-              <Text {...frenchText} style={[type.bodyStrong, { color: paper.ink }]}>{selected.corrections[0].better}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{selected.corrections[0].betterEn}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{selected.corrections[0].why}</Text>
+              <Text {...frenchText} style={[type.bodyStrong, { color: t.text }]}>{selected.corrections[0].better}</Text>
+              <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{selected.corrections[0].betterEn}</Text>
+              <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{selected.corrections[0].why}</Text>
             </Card>
           </View>
         )}
@@ -202,19 +204,19 @@ export function ConversationPackLibrary({
         {revision !== null && (
           <View style={st.section}>
             <Label>{REVISION_COPY.label}</Label>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REVISION_COPY.process}</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{REVISION_COPY.process}</Text>
             {revision.before.correction !== null && (
               <Card style={{ marginTop: space(2.5) }}>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{REVISION_COPY.earlier}</Text>
-                <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>« {revision.before.correction.quote} »</Text>
-                <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(1) }]}>{revision.before.correction.better}</Text>
+                <Text style={[type.small, { color: t.muted }]}>{REVISION_COPY.earlier}</Text>
+                <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>« {revision.before.correction.quote} »</Text>
+                <Text style={[type.bodyStrong, { color: t.text, marginTop: space(1) }]}>{revision.before.correction.better}</Text>
               </Card>
             )}
             {revision.before.practice !== null && (
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{PRACTICE_BEFORE[revision.before.practice]}</Text>
+              <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{PRACTICE_BEFORE[revision.before.practice]}</Text>
             )}
             {correctionLine(revision) !== null && (
-              <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{correctionLine(revision)}</Text>
+              <Text style={[type.body, { color: t.text, marginTop: space(2) }]}>{correctionLine(revision)}</Text>
             )}
           </View>
         )}
@@ -222,7 +224,7 @@ export function ConversationPackLibrary({
         {selected.pronunciationFocus !== null && (
           <View style={st.section}>
             <Label>Pronunciation, if helpful</Label>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{selected.pronunciationFocus}</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{selected.pronunciationFocus}</Text>
           </View>
         )}
 
@@ -232,31 +234,31 @@ export function ConversationPackLibrary({
                 and uses no live minutes, said under the footer pill; the tutor
                 revisit is live, is drawn only when the plan opens it, and says
                 it uses minutes. */}
-            {!hasPractice && <Text style={[type.small, { color: paper.inkSoft }]}>There are no practice phrases in this conversation yet.</Text>}
+            {!hasPractice && <Text style={[type.small, { color: t.muted }]}>There are no practice phrases in this conversation yet.</Text>}
             {onContinue !== undefined && (
               <>
                 <OutlineButton label="Talk about this again" disabled={busy} onPress={() => onContinue(selected)} />
-                <Text style={[type.small, { color: paper.inkSoft }]}>{PRACTICE_ALTERNATIVES.revisitUses}</Text>
+                <Text style={[type.small, { color: t.muted }]}>{PRACTICE_ALTERNATIVES.revisitUses}</Text>
               </>
             )}
           </View>
         ) : (
           <Card style={st.section}>
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{selected.state === 'generating' ? 'Your conversation is becoming practice.' : 'This conversation needs a little more time.'}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Your saved phrases remain available in Progress.</Text>
+            <Text style={[type.bodyStrong, { color: t.text }]}>{selected.state === 'generating' ? 'Your conversation is becoming practice.' : 'This conversation needs a little more time.'}</Text>
+            <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>Your saved phrases remain available in Progress.</Text>
           </Card>
         )}
 
-        {message !== null && <Text style={[type.small, { color: signal.correspondance, marginTop: space(4) }]}>{message}</Text>}
+        {message !== null && <Text style={[type.small, { color: t.text, marginTop: space(4) }]}>{message}</Text>}
         <View style={st.delete}>
           {confirming === selected.id ? (
             <>
-              <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Delete this curated conversation and its details? Your earned phrases and reviews stay.</Text>
+              <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete this curated conversation and its details? Your earned phrases and reviews stay.</Text>
               <OutlineButton label={busy ? 'Deleting…' : 'Delete conversation'} disabled={busy} onPress={() => removeOne(selected)} />
-              <GhostButton label="Keep conversation" color={paper.ink} disabled={busy} onPress={() => setConfirming(null)} />
+              <GhostButton label="Keep conversation" color={t.text} disabled={busy} onPress={() => setConfirming(null)} />
             </>
           ) : (
-            <GhostButton label="Delete this conversation" color={signal.correspondance} onPress={() => setConfirming(selected.id)} />
+            <GhostButton label="Delete this conversation" color={t.text} onPress={() => setConfirming(selected.id)} />
           )}
         </View>
       </ScrollScreen>
@@ -266,10 +268,10 @@ export function ConversationPackLibrary({
   return (
     <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: onBack }} />}>
       <Label>Progress</Label>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>Practice from conversations</Text>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Curated phrases and corrections from situations you spoke through. Full conversation text is saved only if you choose it separately after a recap.</Text>
-      {pageNote !== undefined && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{pageNote}</Text>}
-      {linkMessage != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{linkMessage}</Text>}
+      <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>Practice from conversations</Text>
+      <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>Curated phrases and corrections from situations you spoke through. Full conversation text is saved only if you choose it separately after a recap.</Text>
+      {pageNote !== undefined && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted, marginTop: space(2) }]}>{pageNote}</Text>}
+      {linkMessage != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted, marginTop: space(2) }]}>{linkMessage}</Text>}
 
       {ordered.length === 0 && unavailableRows.length===0 ? (
         <EmptyStateCard art={NOTEBOOK_ART} title="No conversations on this page" body="Finish a Tutor conversation and its curated practice can appear here."
@@ -278,10 +280,10 @@ export function ConversationPackLibrary({
         <View style={st.packs}>
           {ordered.map((pack) => (
             <Card key={pack.id}>
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>{pack.title.en}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{pack.title.fr}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{pack.summary}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{packStatus(pack)}{dateLine(pack.createdAt) ? `, ${dateLine(pack.createdAt)}` : ''}</Text>
+              <Text style={[type.bodyStrong, { color: t.text }]}>{pack.title.en}</Text>
+              <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{pack.title.fr}</Text>
+              <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{pack.summary}</Text>
+              <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{packStatus(pack)}{dateLine(pack.createdAt) ? `, ${dateLine(pack.createdAt)}` : ''}</Text>
               <View style={st.cardActions}>
                 <OutlineButton label="Open conversation" onPress={() => setSelected(pack)} />
                 {pack.state === 'ready' && onContinue !== undefined && (
@@ -295,11 +297,11 @@ export function ConversationPackLibrary({
 
       {unavailableRows.map(row=>(
         <Card key={row.id} style={st.empty}>
-          <Text style={[type.bodyStrong,{color:paper.ink}]}>This saved conversation is too large for this page.</Text>
-          <Text style={[type.small,{color:paper.inkSoft,marginTop:space(1)}]}>{dateLine(row.createdAt)}. Its saved content has not been removed.</Text>
+          <Text style={[type.bodyStrong,{color:t.text}]}>This saved conversation is too large for this page.</Text>
+          <Text style={[type.small,{color:t.muted,marginTop:space(1)}]}>{dateLine(row.createdAt)}. Its saved content has not been removed.</Text>
           {onOpenUnavailable!==undefined && <OutlineButton label={busy?'Opening…':'Open conversation'} disabled={busy} onPress={()=>{setBusy(true);void onOpenUnavailable(row.id).then(result=>{if(result.ok)setSelected(result.pack);else setMessage(result.message);}).catch(()=>setMessage('This conversation could not be opened.')).finally(()=>setBusy(false));}} />}
           {onDeleteUnavailable!==undefined && (confirming===row.id ? <>
-            <Text style={[type.small,{color:paper.inkSoft}]}>Delete this saved conversation? Your earned phrases and reviews stay.</Text>
+            <Text style={[type.small,{color:t.muted}]}>Delete this saved conversation? Your earned phrases and reviews stay.</Text>
             <OutlineButton label={busy?'Deleting…':'Delete conversation'} disabled={busy} onPress={()=>{setBusy(true);void onDeleteUnavailable(row.id).then(result=>{if(!result.ok)setMessage(result.message);else setConfirming(null);}).catch(()=>setMessage('This conversation was not changed.')).finally(()=>setBusy(false));}} />
             <GhostButton label="Keep conversation" disabled={busy} onPress={()=>setConfirming(null)} />
           </> : <GhostButton label="Delete this unavailable conversation" disabled={busy} onPress={()=>setConfirming(row.id)} />)}
@@ -316,14 +318,14 @@ export function ConversationPackLibrary({
         <View style={st.deleteAll}>
           {confirming === 'all' ? (
             <>
-              <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Delete all curated Tutor conversations? Your earned phrases and reviews stay.</Text>
+              <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete all curated Tutor conversations? Your earned phrases and reviews stay.</Text>
               <OutlineButton label={busy ? 'Deleting…' : 'Delete all conversations'} disabled={busy} onPress={removeAll} />
-              <GhostButton label="Keep conversations" color={paper.ink} disabled={busy} onPress={() => setConfirming(null)} />
+              <GhostButton label="Keep conversations" color={t.text} disabled={busy} onPress={() => setConfirming(null)} />
             </>
           ) : (
-            <GhostButton label="Delete all saved conversations" color={signal.correspondance} onPress={() => setConfirming('all')} />
+            <GhostButton label="Delete all saved conversations" color={t.text} onPress={() => setConfirming('all')} />
           )}
-          {message !== null && <Text style={[type.small, { color: signal.correspondance, textAlign: 'center' }]}>{message}</Text>}
+          {message !== null && <Text style={[type.small, { color: t.text, textAlign: 'center' }]}>{message}</Text>}
         </View>
       )}
     </ScrollScreen>

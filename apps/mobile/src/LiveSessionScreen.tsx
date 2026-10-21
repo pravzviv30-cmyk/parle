@@ -20,7 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useIsFocused, usePreventRemove } from '@react-navigation/native';
 import type { Lesson, Rung, SessionSummary } from '@luvani/core';
-import { paper, space, type, HIT } from './theme.ts';
+import { space, type, HIT } from './theme.ts';
 import { Card, GhostButton } from './components.tsx';
 import { ConfirmSheet, Screen } from './layout.tsx';
 import { SupportBlock } from './SessionView.tsx';
@@ -46,6 +46,7 @@ import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
 import { RoomLevels } from './live/RoomLevels.tsx';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 
 export function LiveSessionScreen({
   lesson,
@@ -74,6 +75,8 @@ export function LiveSessionScreen({
    */
   onRetryAsText: () => void;
 }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const { profile, update } = useProfile();
   // Who this learner chose. The waiting line is the one place this screen names
   // the tutor, and naming the wrong person there is the first thing a learner
@@ -296,11 +299,11 @@ export function LiveSessionScreen({
         onEnd={() => setConfirming(true)} notice={live.feedback?.message}
         top={<>{live.audioBlocked ? <IconAction icon="speaker" label={`Listen to ${tutorName}`} onPress={live.resumeAudio} /> : null}
           {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
-          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{rungLabel(prompt.directive.rung, tutorName)}, {prompt.position} of {prompt.total}</Text></>}
+          <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>{rungLabel(prompt.directive.rung, tutorName)}, {prompt.position} of {prompt.total}</Text></>}
         support={prompt.support.kind !== 'none' ? <SupportBlock support={prompt.support} onOptionPress={live.sendChoice}
           onHearLine={!live.tutorSpeaking && !typing ? () => live.sendHear() : undefined} /> : undefined}
         tools={<><IconAction icon="hint" label="Help me out" disabled={live.tutorSpeaking || live.thinking} onPress={live.sendHelp} />
-          {prompt.turn.note ? <Text style={type.small}>{prompt.turn.note}</Text> : null}</>}
+          {prompt.turn.note ? <Text style={[type.small, { color: t.text }]}>{prompt.turn.note}</Text> : null}</>}
       />
       <ConfirmSheet visible={confirming} title={leaveCopy.title} body={leaveCopy.body} confirmLabel={leaveCopy.leave} cancelLabel={leaveCopy.stay}
         onConfirm={() => { setConfirming(false); setLeaving(true); }} onCancel={() => setConfirming(false)} />
@@ -308,8 +311,9 @@ export function LiveSessionScreen({
   </RoomLevels>;
 }
 
-const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground },
+function makeSt(t: B) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.ground },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   // Both are drawn in the frame's header slot, which pays the horizontal pad,
   // so neither repeats it. See `aboveTheScene`.
@@ -322,3 +326,4 @@ const st = StyleSheet.create({
   // unreadable, and this one is the whole reason the branch draws anything.
   waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
 });
+}

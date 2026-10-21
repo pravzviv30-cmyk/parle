@@ -11,6 +11,7 @@ import { decorative, orb, paper, space, type } from '../theme.ts';
 import { NATIVE_DRIVER, useReduceMotion } from '../motion.ts';
 import { useAppActive, useOrbAudio, type OrbAudio } from '../live/OrbAudio.tsx';
 import { orbRests } from './orbRest.ts';
+import { useB } from '../main/bTheme.tsx';
 import { OrbSurface } from './OrbSurface.tsx';
 import { HEARING_YOU, orbLayers, type OrbLayers } from './orbLayers.ts';
 import { OrbLevelRing } from './OrbLevelRing.tsx';
@@ -139,6 +140,7 @@ function OrbFace({
   cue: string | null;
 }) {
   const look = LOOKS[state];
+  const t = useB();
   const drivers = [useRef(new Animated.Value(0)).current];
   const dim = useRef(new Animated.Value(1)).current;
   const reduced = useReduceMotion();
@@ -251,9 +253,9 @@ function OrbFace({
       {(withCaption || embeddedLabel !== undefined) && (
         <View style={st.status}>
           {layers.bars === 'live' && audio !== null && <View {...decorative}>
-            <LiveBars bands={audio.bands} heights={BAR_HEIGHTS} size={meterSize} width={barWidth} gap={barGap} color={paper.ink} />
+            <LiveBars bands={audio.bands} heights={BAR_HEIGHTS} size={meterSize} width={barWidth} gap={barGap} color={t.text} />
           </View>}
-          <Text style={st.caption} accessibilityLabel={look.caption}>
+          <Text style={[st.caption, { color: t.text }]} accessibilityLabel={look.caption}>
             {embeddedLabel ?? (layers.caption === 'hearing' ? HEARING_YOU : look.caption)}
           </Text>
         </View>
@@ -266,5 +268,5 @@ const st = StyleSheet.create({
   root: { alignItems: 'center' },
   face: { alignItems: 'center', justifyContent: 'center' },
   status: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space(2), minHeight: 44 },
-  caption: { ...type.label, color: paper.ink, textAlign: 'center' },
+  caption: { ...type.label, textAlign: 'center' },
 });

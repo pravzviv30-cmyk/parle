@@ -46,6 +46,34 @@ export const DARK_READY: ReadonlySet<string> = new Set<string>([
   // 2026-10-21 UI-008: the paywall keeps its C2 design and gains a dark variant
   // (the founder's decision). The launch wall opens this same route.
   'Wall',
+  // 2026-10-21 UI-008, step 12b: the screens with no artboard, converted to the
+  // theme's tokens with layout and copy unchanged. The live room keeps its blue
+  // ground in both themes; its waiting, error, recap and lesson screens follow.
+  'Convo',
+  'Lesson',
+  'LearningPreferences',
+  'Subscription',
+  'TutorMemory',
+  'Friends',
+  'AddFriends',
+  'SocialSettings',
+  'Phrasebook',
+  'Conversations',
+  'SavedConversationText',
+  'ConversationPractice',
+  'WeekWrapped',
+  'Postcards',
+  'RealMoment',
+  'Missions',
+  'SoundCheck',
+  'SoundJourney',
+  'ExploreCollection',
+  'DailyPractice',
+  'DailyLibrary',
+  'GoalStep',
+  'TutorIntro',
+  'Policy',
+  'Terms',
 ]);
 
 /** Routes that stay light whatever DARK_READY says. */

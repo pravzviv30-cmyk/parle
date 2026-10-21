@@ -43,10 +43,11 @@ import { Choice, GhostButton, IconAction, PillButton, ROW_WORDS } from '../compo
 import { IconTile } from '../icons/IconTile.tsx';
 import { arrived } from '../motion/haptics.ts';
 import { play as playSfx } from '../sound/sfx.ts';
-import { paper, radius, space, type } from '../theme.ts';
+import { radius, space, type } from '../theme.ts';
 import { REMINDER_REFUSED, REMINDER_SMART_LABEL, REMINDER_TIMES, SMART_FALLBACK, clockGloss, reminderTime, smartGloss, type ClockTime, type ReminderMode, type ReminderTimeId } from './reminder.ts';
 import { smartReminderTime, turnOnReminder } from './ReminderPlanner.tsx';
 import { REMINDERS_AVAILABLE, askReminderPermission, reminderPermission } from './schedule.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /**
  * What the learner decided. `enabled` only once the OS has taken the plan. A
@@ -87,6 +88,8 @@ export function ReminderAsk<T extends ReminderMode>({
   /** Called once, with what the learner decided. */
   onDone: (answer: ReminderAnswer<T | ReminderTimeId>) => void;
 }): ReactElement | null {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const [chosen, setChosen] = useState<T | ReminderTimeId>(time);
   // The smart time to show, read once; the evening until the rhythm shows.
   const [smart, setSmart] = useState<ClockTime | null>(null);
@@ -238,12 +241,14 @@ export function ReminderAsk<T extends ReminderMode>({
   );
 }
 
-const st = StyleSheet.create({
-  card: { backgroundColor: paper.card, borderRadius: radius.card, padding: space(5), gap: space(3) },
+function makeSt(t: B) {
+  return StyleSheet.create({
+  card: { backgroundColor: t.card, borderRadius: radius.card, padding: space(5), gap: space(3) },
   head: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
-  words: { ...ROW_WORDS, color: paper.ink },
-  ink: { color: paper.ink },
-  soft: { color: paper.inkSoft },
+  words: { ...ROW_WORDS, color: t.text },
+  ink: { color: t.text },
+  soft: { color: t.muted },
   times: { gap: space(2) },
   actions: { gap: space(1), paddingTop: space(1) },
 });
+}

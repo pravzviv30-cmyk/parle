@@ -30,9 +30,9 @@ never a punishment. There are no visible Friends ranks and no rank names.
 Learners see five stages: Starter, Basics, Everyday, Chatting and Confident.
 CEFR levels (A0, A1 and up) stay internal, in code and in these docs.
 
-Dark mode is on for the main app (DECISIONS.md UI-008). Every screen stays
-light until it is rebuilt to its artboard in both themes and its route joins
-`DARK_READY`; onboarding stays light by rule. See
+Dark mode is on for the main app (DECISIONS.md UI-008). Every signed-in route
+is in `DARK_READY` since 21 October 2026 (step 12b converted the screens with no
+artboard to the tokens); onboarding and the first scene stay light by rule. See
 [Dark mode and the B tokens](#dark-mode-and-the-b-tokens-ui-008).
 
 ### Layout
@@ -194,7 +194,8 @@ period stay near a purchase action, and large text is never capped to fit.
   offline line; Speak's out-of-time card (clock-calendar) shows only on the
   free plan with nothing left, says the refill in the plan band's own words
   and opens the plans. The phrase, conversation and memory pages use the
-  phrasebook drawing with Choose a scene; those three routes stay pinned light.
+  phrasebook drawing with Choose a scene; those three routes follow the device
+  since 2026-10-21 (UI-008 step 12b).
 - Live rooms keep the real start, pause, type, help, slower, English and leave
   paths. Since 2026-10-21 (UI-008, B-Live and B-LiveHelp) the room keeps its
   blue ground in both themes: the leave disc, the scene and its pace ("About N
@@ -633,7 +634,18 @@ empty to start; each rebuild step adds its route. Both navigators wrap every
 screen through `screenLayout` in `RouteTheme`, which renders `<PinLight>` for a
 route not in the set; the tab bar, the scene ground, the container theme and
 the status bar follow the focused route the same way. `ALWAYS_LIGHT` holds the
-first scene and the paywall, which stay light whatever `DARK_READY` says.
+first scene, which stays light whatever `DARK_READY` says (the paywall left it
+for `DARK_READY` with its dark variant).
+Since 2026-10-21 (step 12b) every other signed-in route is in `DARK_READY`. The
+screens with no artboard (the live room's waiting, error and recap pages, the
+lesson, Learning preferences, Subscription, Tutor memory, Friends, the phrase,
+conversation and practice libraries, Week wrapped, Postcards, Real moment,
+Scenes, the sound pages, the daily pages, the goal step, the tutor intro and
+the legal pages) were converted to the tokens with layout and copy unchanged.
+What keeps a fixed value on purpose: the live room and Walk mode grounds, the
+blue and mint pages with their white words, the transcript bubbles (lavender and
+violet, drawn the same on the blue room), the invitation QR code (ink on white
+so a camera reads it), the mint panels' ink words and the voice circle's fills.
 Onboarding, sign up and the launch are mounted under `<PinLight>` in `App.tsx`
 and sit outside the one `MainAppearanceProvider`. The shared parts in
 `components.tsx` and `layout.tsx` read the theme; parts on a colour ground

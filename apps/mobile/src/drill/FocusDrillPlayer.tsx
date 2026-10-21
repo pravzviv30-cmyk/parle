@@ -31,9 +31,12 @@ import { focusDrillSteps, type Drill } from '@luvani/core';
 
 import { Card, Label, PillButton, GhostButton, EarGlyph, ProgressDots } from '../components.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { HAIRLINE, paper, radius, signal, space, type } from '../theme.ts';
+import { HAIRLINE, radius, space, type } from '../theme.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () => void }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const insets = useSafeAreaInsets();
   const steps = focusDrillSteps(drill);
   const [index, setIndex] = useState(0);
@@ -62,8 +65,8 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
         <Card>
-          <Label color={paper.inkSoft}>Nothing to practise</Label>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+          <Label color={t.muted}>Nothing to practise</Label>
+          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>
             This sound has no drill written for it yet.
           </Text>
         </Card>
@@ -79,21 +82,21 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4), paddingBottom: insets.bottom + space(6) }]}>
       <View style={st.head}>
-        <Label color={signal.correspondance}>{drill.title}</Label>
+        <Label color={t.text}>{drill.title}</Label>
         <ProgressDots total={steps.length} index={index} />
       </View>
 
       <View style={st.stage}>
-        <Text style={[type.frenchLg, { color: paper.ink, textAlign: 'center' }]}>{step.word}</Text>
-        <Text style={[type.notation, { color: paper.inkSoft, marginTop: space(1.5) }]}>/{step.ipa}/</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{step.gloss}</Text>
+        <Text style={[type.frenchLg, { color: t.text, textAlign: 'center' }]}>{step.word}</Text>
+        <Text style={[type.notation, { color: t.muted, marginTop: space(1.5) }]}>/{step.ipa}/</Text>
+        <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{step.gloss}</Text>
 
         {step.contrast && (
           <View style={st.contrast}>
-            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Not to be confused with</Text>
+            <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Not to be confused with</Text>
             <View style={st.contrastRow}>
-              <Text style={[type.french, { color: paper.inkSoft }]}>{step.contrast.word}</Text>
-              <Text style={[type.small, { color: paper.inkSoft }]}>{step.contrast.gloss}</Text>
+              <Text style={[type.french, { color: t.muted }]}>{step.contrast.word}</Text>
+              <Text style={[type.small, { color: t.muted }]}>{step.contrast.gloss}</Text>
             </View>
           </View>
         )}
@@ -104,13 +107,13 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
           accessibilityLabel="Hear it again"
           style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
         >
-          <EarGlyph size={15} color={paper.inkSoft} />
-          <Text style={[type.small, { color: paper.inkSoft }]}>Hear it again</Text>
+          <EarGlyph size={15} color={t.muted} />
+          <Text style={[type.small, { color: t.muted }]}>Hear it again</Text>
         </Pressable>
       </View>
 
       <View style={{ gap: space(2) }}>
-        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
+        <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>
           Say it out loud if you can. Nothing is listening.
         </Text>
         <PillButton label={last ? 'Done' : 'Next'} onPress={next} />
@@ -120,8 +123,9 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
   );
 }
 
-const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5), gap: space(4) },
+function makeSt(t: B) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.ground, paddingHorizontal: space(5), gap: space(4) },
   head: { gap: space(3) },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(0) },
   contrast: {
@@ -129,7 +133,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
     gap: space(1),
     borderTopWidth: HAIRLINE,
-    borderTopColor: paper.line,
+    borderTopColor: t.line,
     paddingTop: space(4),
     alignSelf: 'stretch',
   },
@@ -143,6 +147,7 @@ const st = StyleSheet.create({
     paddingHorizontal: space(3.5),
     borderRadius: radius.pill,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: t.line,
   },
 });
+}

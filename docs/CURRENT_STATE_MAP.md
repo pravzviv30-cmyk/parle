@@ -92,8 +92,9 @@ DECISIONS.md UI-007):
   live rung (`live/liveRoomView.ts`); the recap pages run After a session, the
   Celebration, the Recap, then sound and next (`recap/pages.ts`,
   `recap/afterSessionView.ts`). The goals reach the Recap passed through from
-  the room, with no new storage. The Convo and Lesson routes stay pinned light
-  until their waiting, error and choosing screens are rebuilt.
+  the room, with no new storage. The Convo and Lesson routes follow the device
+  since 2026-10-21 (UI-008 step 12b): their waiting, error, safety, recap and
+  lesson screens read the tokens, and the room keeps its blue in both themes.
 - **Streak, Profile and Settings** (`game/StreakScreen.tsx`,
   `tabs/ProfileTab.tsx`, `settings/SettingsScreen.tsx`): rebuilt to B-Streak,
   B-Profile and B-Settings in light and dark (2026-10-21, UI-008). Streak shows
@@ -108,7 +109,9 @@ DECISIONS.md UI-007):
   and Prefer typing switches over Learning preferences' stores), the free band
   row, and the Appearance row opening the Display choice. The shared grouped
   rows draw the B row only under `<SettingsAppearance b>`; Learning
-  preferences and Subscription keep the P2 row and stay pinned light.
+  preferences and Subscription keep the P2 row and follow the device since
+  2026-10-21 (UI-008 step 12b), with every other signed-in route except the
+  first scene.
 
 Three stack routes were added in `nav/RootNavigator.tsx` and `nav/types.ts`:
 `ScenePreview` (`scenes/ScenePreviewScreen.tsx`, by mission or daily scene id),

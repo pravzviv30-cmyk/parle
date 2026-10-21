@@ -3,8 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, EarGlyph, Label } from '../components.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { accent, paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { radius, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { ACOUSTIC, type Acoustic, type AcousticWord } from './acoustic.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /**
  * One sound, said two ways.
@@ -44,21 +45,23 @@ import { ACOUSTIC, type Acoustic, type AcousticWord } from './acoustic.ts';
  * screen is F304. The cleanup below is the fix `FocusDrillPlayer` carries too.
  */
 export function AcousticCard({ acoustic }: { acoustic: Acoustic }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   useEffect(() => () => tutorVoice.stop(), []);
 
   return (
     <Card style={st.card}>
       <Label>{ACOUSTIC.label}</Label>
-      <Text style={[type.title, { color: paper.ink }]}>{acoustic.heading}</Text>
+      <Text style={[type.title, { color: t.text }]}>{acoustic.heading}</Text>
 
       {/* The cue and the trick are two plain sentences, not a tinted aside.
           They are the instruction, which is the whole point of the panel, and
           an instruction set apart on a colour reads as a footnote. */}
-      <Text style={[type.body, { color: paper.inkSoft }]}>
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>{ACOUSTIC.cueLabel}: </Text>
+      <Text style={[type.body, { color: t.muted }]}>
+        <Text style={[type.bodyStrong, { color: t.text }]}>{ACOUSTIC.cueLabel}: </Text>
         {acoustic.cue}
       </Text>
-      {acoustic.trick !== null && <Text style={[type.body, { color: paper.inkSoft }]}>{acoustic.trick}</Text>}
+      {acoustic.trick !== null && <Text style={[type.body, { color: t.muted }]}>{acoustic.trick}</Text>}
 
       {acoustic.pair !== null && (
         <View style={st.pair}>
@@ -67,13 +70,15 @@ export function AcousticCard({ acoustic }: { acoustic: Acoustic }) {
         </View>
       )}
 
-      {acoustic.why !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{acoustic.why}</Text>}
+      {acoustic.why !== null && <Text style={[type.small, { color: t.muted }]}>{acoustic.why}</Text>}
     </Card>
   );
 }
 
 /** One side of the pair: press it and hear the word, with its sound and meaning under it. */
 function Word({ word }: { word: AcousticWord }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   return (
     <Pressable
       onPress={() => tutorVoice.speak(word.word)}
@@ -82,16 +87,17 @@ function Word({ word }: { word: AcousticWord }) {
       style={({ pressed }) => [st.word, pressed && st.wordPressed]}
     >
       <View style={st.wordHead}>
-        <EarGlyph size={18} color={accent.primary} />
-        <Text style={[type.french, { color: paper.ink }]}>{word.word}</Text>
+        <EarGlyph size={18} color={t.text} />
+        <Text style={[type.french, { color: t.text }]}>{word.word}</Text>
       </View>
-      <Text style={[type.notation, { color: paper.inkSoft }]}>[{word.ipa}]</Text>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{word.gloss}</Text>
+      <Text style={[type.notation, { color: t.muted }]}>[{word.ipa}]</Text>
+      <Text style={[type.small, { color: t.muted }]}>{word.gloss}</Text>
     </Pressable>
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   card: { gap: space(2.5) },
   // Two words side by side, because a minimal pair is a comparison and a stack
   // is a list. They wrap rather than shrink at the largest reading size.
@@ -104,10 +110,11 @@ const st = StyleSheet.create({
     paddingVertical: space(2.5),
     paddingHorizontal: space(3.5),
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: t.line,
     borderRadius: radius.row,
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
   },
-  wordPressed: { backgroundColor: paper.groundDeep },
+  wordPressed: { backgroundColor: t.skeleton },
   wordHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
 });
+}

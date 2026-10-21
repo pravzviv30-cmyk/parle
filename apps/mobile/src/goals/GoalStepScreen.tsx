@@ -27,7 +27,7 @@ import { MISSIONS, type ConversationPack } from '@luvani/core';
 import { IconAction, ColourCard, GhostButton, Label, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { accent, onColour, paper, space, type } from '../theme.ts';
+import { onColour, paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { NEEDS_CONNECTION_AND_MINUTES } from '../copy/access.ts';
@@ -60,8 +60,11 @@ import {
   USED_OUTSIDE_SAID,
   rehearsedOn,
 } from './copy.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 export function GoalStepScreen() {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
@@ -214,7 +217,7 @@ export function GoalStepScreen() {
                     <View key={row.stepId} style={st.row}>
                       <Ledger>
                         <LedgerRow
-                          glyph={<DocumentGlyph color={accent.primary} />}
+                          glyph={<DocumentGlyph color={t.text} />}
                           title={row.pack.title.en}
                           gloss={rehearsedOn(row.at)}
                           note={practice}
@@ -245,14 +248,16 @@ export function GoalStepScreen() {
   );
 }
 
-const st = StyleSheet.create({
-  goal: { ...type.cardTitle, color: paper.ink, marginTop: space(2) },
+function makeSt(t: B) {
+  return StyleSheet.create({
+  goal: { ...type.cardTitle, color: t.text, marginTop: space(2) },
   next: { ...type.bodyStrong, color: paper.onInk },
-  soft: { ...type.body, color: paper.inkSoft },
-  said: { ...type.small, color: paper.ink },
+  soft: { ...type.body, color: t.muted },
+  said: { ...type.small, color: t.text },
   cost: { ...type.small, color: onColour.blue, textAlign: 'center' },
   block: { marginTop: space(5), gap: space(3) },
   primary: { marginTop: space(2) },
   rows: { gap: space(4) },
   row: { gap: space(2) },
 });
+}

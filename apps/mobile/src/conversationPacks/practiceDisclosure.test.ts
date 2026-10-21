@@ -19,9 +19,10 @@ test('recognition feedback uses the two-miss policy and resets it for each liste
 
 test('conversation warm-up helper and recall handoff remain readable on a dark card', () => {
   const screen = read('./ConversationPracticeScreen.tsx');
-  assert.match(screen, /style=\{\[type\.heading, \{ color: paper\.ink, marginVertical: space\(3\) \}\]\}>Try it without the choices\./,
+  // 2026-10-21 UI-008: the foreground is the theme's text and muted tokens now, ink and soft ink in light as before.
+  assert.match(screen, /style=\{\[type\.heading, \{ color: t\.text, marginVertical: space\(3\) \}\]\}>Try it without the choices\./,
     'the recall handoff must use the selected foreground, not React Native black');
-  assert.match(screen, /style=\{\[type\.small, \{ color: paper\.inkSoft, marginTop: space\(3\) \}\]\}>\{reading \? 'The same meaning, without audio\.'/,
+  assert.match(screen, /style=\{\[type\.small, \{ color: t\.muted, marginTop: space\(3\) \}\]\}>\{reading \? 'The same meaning, without audio\.'/,
     'audio and quiet-reading helper text share the dark-card foreground');
 });
 

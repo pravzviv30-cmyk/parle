@@ -7,6 +7,7 @@ import { CARD_START, SAID_IT, cardView, typedAttemptReady, type ReviewTurn } fro
 import { gradeCard } from '../review/store.ts';
 import { CHECK, CLOSING_LINE, GRADE_LABELS, ONE_LINE_LABEL, TYPE_LABEL, TYPE_PROMPT, type OneLine } from './oneLine.ts';
 import { LEDGER } from './ledger.ts';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /**
  * One line, asked for and then let go of.
@@ -37,6 +38,8 @@ import { LEDGER } from './ledger.ts';
  * here records, listens or scores.
  */
 export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () => void }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
   const dealtAt = useRef(Date.now());
   const [turn, setTurn] = useState<ReviewTurn>(CARD_START);
   const [done, setDone] = useState(false);
@@ -51,24 +54,24 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
   return (
     <Card style={{ marginTop: space(6) }}>
       <Label>{ONE_LINE_LABEL}</Label>
-      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{line.reason}</Text>
+      <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{line.reason}</Text>
 
-      <Text style={[type.title, { color: paper.ink, marginTop: space(3) }]}>{view.prompt}</Text>
+      <Text style={[type.title, { color: t.text, marginTop: space(3) }]}>{view.prompt}</Text>
       {view.ask !== null && !view.revealed && line.askable && (
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{view.ask}</Text>
+        <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{view.ask}</Text>
       )}
 
       {/* The French, once it has been earned or when it was never withheld. */}
       {(view.answer !== null || !line.askable) && (
         <View style={st.answer}>
-          <Text style={[type.french, { color: paper.ink }]}>
+          <Text style={[type.french, { color: t.text }]}>
             {view.answer?.text ?? line.card.front}
           </Text>
           {(view.answer?.ipa ?? '') !== '' && (
-            <Text style={[type.notation, { color: paper.inkSoft }]}>{view.answer?.ipa}</Text>
+            <Text style={[type.notation, { color: t.muted }]}>{view.answer?.ipa}</Text>
           )}
           {(view.answer?.context ?? '') !== '' && (
-            <Text style={[type.small, { color: paper.inkSoft }]}>
+            <Text style={[type.small, { color: t.muted }]}>
               {LEDGER.noteLabel} {view.answer?.context}
             </Text>
           )}
@@ -88,7 +91,7 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
               if (typedAttemptReady(turn.typed)) setTurn((t) => ({ ...t, attempt: 'typed' }));
             }}
             placeholder={TYPE_PROMPT}
-            placeholderTextColor={paper.inkFaint}
+            placeholderTextColor={t.muted}
             accessibilityLabel={TYPE_LABEL}
             style={[st.input, { fontFamily: font.regular, fontSize: type.body.fontSize }]}
           />
@@ -123,12 +126,13 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
         </View>
       )}
 
-      {done && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(4) }]}>{CLOSING_LINE}</Text>}
+      {done && <Text style={[type.small, { color: t.muted, marginTop: space(4) }]}>{CLOSING_LINE}</Text>}
     </Card>
   );
 }
 
-const st = StyleSheet.create({
+function makeSt(t: B) {
+  return StyleSheet.create({
   answer: { marginTop: space(3), gap: space(1) },
   // The two ways to answer, stacked: the field and its outline, then the word.
   attempt: { marginTop: space(4), gap: space(2.5) },
@@ -137,16 +141,17 @@ const st = StyleSheet.create({
   // TextInput on iOS.
   input: {
     minHeight: HIT + 8,
-    backgroundColor: paper.card,
+    backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: t.line,
     borderRadius: radius.input,
     paddingHorizontal: space(4),
     paddingVertical: space(3),
-    color: paper.ink,
+    color: t.text,
   },
   // The two grade controls, stacked rather than in a row: "That was it" is a
   // sentence and a row of two sentences wraps into nonsense at the largest
   // reading size, which is the defect F383 already found on this tab.
   grades: { marginTop: space(4), gap: space(1) },
 });
+}

@@ -50,7 +50,7 @@ import {
   type RecapPayload,
   type Rung,
 } from '@luvani/core';
-import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
+import { paper, space, type, radius, HIT } from './theme.ts';
 import { IconAction,
   Card,
   Label,
@@ -108,6 +108,7 @@ import { sceneIllustration } from './art/flat/scenes.ts';
 import { recapWait } from './tutor/recapWait.ts';
 import { KeyboardGlyph, SpeakerSlowGlyph } from './glyphs.tsx';
 import { RoomWait } from './live/RoomWait.tsx';
+import { useB } from './main/bTheme.tsx';
 import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
 import { waitingNote } from './tutor/waitingView.ts';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
@@ -163,6 +164,7 @@ const RECAP_WAIT_MS = 15_000;
  * because it is a control and DESIGN.md puts buttons in sentence case.
  */
 function ListenPlaque({ onPress, tutorName }: { onPress: () => void; tutorName: string }) {
+  const t = useB();
   return (
     <Pressable
       onPress={onPress}
@@ -171,7 +173,7 @@ function ListenPlaque({ onPress, tutorName }: { onPress: () => void; tutorName: 
       style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
     >
       <Card style={{ alignItems: 'center' }}>
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>Tap to listen</Text>
+        <Text style={[type.bodyStrong, { color: t.text }]}>Tap to listen</Text>
       </Card>
     </Pressable>
   );

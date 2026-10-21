@@ -23,7 +23,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { IconAction, GhostButton, Label } from '../components.tsx';
 import { ConfirmSheet, ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { paper, space, type, HIT } from '../theme.ts';
+import { space, type, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { memoryPaused } from '@luvani/brain/profile';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
@@ -223,7 +223,7 @@ const st = StyleSheet.create({
   card: { marginTop: space(4) },
   section: { marginTop: space(6) },
   fact: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2), minHeight: HIT, paddingVertical: space(2) },
-  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: paper.lineOnCard },
+  divided: { borderTopWidth: StyleSheet.hairlineWidth },
   factWords: { flexGrow: 1, flexBasis: 180, minWidth: 0 },
   all: { marginTop: space(4) },
   add: { marginTop: space(3), gap: space(3) },

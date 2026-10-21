@@ -123,7 +123,8 @@ describe('the scene won card in the room — come alive, core loop 2.8', () => {
     assert.match(win, /<PillButton label=\{card\.keepLabel\} onPress=\{onKeep\} \/>/);
     assert.match(win, /<GhostButton label=\{card\.finishLabel\} onPress=\{onFinish\} \/>/);
     // The glow, the drawing and the confetti, from the shared primitives, once, and none of it with movement reduced.
-    assert.match(win, /<DiscBloom color=\{colour\.mint\}/, 'no mint glow opens behind the card');
+    // 2026-10-21 UI-008: the glow reads the mint token (the same mint in both modes).
+    assert.match(win, /<DiscBloom color=\{t\.mint\}/, 'no mint glow opens behind the card');
     assert.match(win, /<Burst seed=\{momentKey\} origin=\{\{ x: width \/ 2, y: 0 \}\} count=\{SCENE_WON_BURST\} \/>/, 'no confetti leaves the card\'s top edge');
     assert.equal(SCENE_WON_BURST, 24);
     assert.match(win, /const final = useLatch\(reduced \|\| !first\);/, 'the card replays on a remount, or moves with movement reduced');

@@ -38,22 +38,24 @@
  */
 
 import { View, Text } from 'react-native';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
 import { Card } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { POLICY_INTRO, POLICY_SECTIONS, POLICY_TITLE } from './policy.ts';
+import { useB } from '../main/bTheme.tsx';
 
 export function PolicyScreen({ onBack }: { onBack: () => void }) {
+  const t = useB();
   // Opened in place, so Android's hardware back closes it rather than popping
   // whatever pushed Settings.
   useHardwareBack(true, onBack);
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>
+      <Text accessibilityRole="header" style={[type.display, { color: t.text }]}>
         {POLICY_TITLE}
       </Text>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{POLICY_INTRO}</Text>
+      <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>{POLICY_INTRO}</Text>
       {/* One white body card under a serif title, which is the shape revamp A
           gives a document. A card per section turned a notice into a stack of
           fourteen objects; it is one thing to read, so it is one surface, and
@@ -62,7 +64,7 @@ export function PolicyScreen({ onBack }: { onBack: () => void }) {
         <Card>
           {POLICY_SECTIONS.map((section, at) => (
             <View key={section.heading} style={{ marginTop: at === 0 ? 0 : space(6) }}>
-              <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>
+              <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>
                 {section.heading}
               </Text>
               {/* Keyed by position within its section rather than by its own
@@ -71,7 +73,7 @@ export function PolicyScreen({ onBack }: { onBack: () => void }) {
               {section.body.map((paragraph, index) => (
                 <Text
                   key={`${section.heading}:${index}`}
-                  style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}
+                  style={[type.body, { color: t.muted, marginTop: space(3) }]}
                 >
                   {paragraph}
                 </Text>

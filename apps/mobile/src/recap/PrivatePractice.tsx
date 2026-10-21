@@ -15,11 +15,13 @@ import { onUserScopeReset } from '../storage/scope.ts';
 import { holdMic } from '../sound/audioFocus.ts';
 import { enterRecording, enterVoicePlayback, leaveRecording } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
-import { paper, type, space, frenchText } from '../theme.ts';
+import { type, space, frenchText } from '../theme.ts';
 import { PrivateClip } from './privateClip.ts';
+import { useB } from '../main/bTheme.tsx';
 
 /** Fresh practice only: never the learner's actual live attempt or an assessment. */
 export function PrivatePractice({ french }: { french: string }) {
+  const t = useB();
   const { profile } = useProfile();
   const voice = dailyTutorVoice(profile.tutorVoice);
   const asset = tutorAudioForFrench(TUTOR_DAILY_AUDIO, DAILY_ITEMS, french, voice);
@@ -125,12 +127,12 @@ export function PrivatePractice({ french }: { french: string }) {
     } catch { if (active.current && clip.current(ticket)) setNote('Audio could not play. Please try again.'); }
   };
   return <View style={{ gap: space(3), marginTop: space(4) }}>
-    <Text style={[type.heading, { color: paper.ink }]}>A fresh practice take</Text>
-    <Text {...frenchText} style={[type.frenchLg, { color: paper.ink }]}>{french}</Text>
-    <Text style={[type.small, { color: paper.inkSoft }]}>This is new practice, separate from your conversation. Nothing is judged or uploaded. Your clip is deleted when you leave this page.</Text>
-    {asset != null ? <IconAction layout="inline" icon="speaker" label="Hear my tutor" disabled={busy || recording} onPress={() => void play(false)} /> : <Text style={[type.small, { color: paper.inkSoft }]}>This word has no recording from your chosen tutor yet. You can still record and hear your own take.</Text>}
+    <Text style={[type.heading, { color: t.text }]}>A fresh practice take</Text>
+    <Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>{french}</Text>
+    <Text style={[type.small, { color: t.muted }]}>This is new practice, separate from your conversation. Nothing is judged or uploaded. Your clip is deleted when you leave this page.</Text>
+    {asset != null ? <IconAction layout="inline" icon="speaker" label="Hear my tutor" disabled={busy || recording} onPress={() => void play(false)} /> : <Text style={[type.small, { color: t.muted }]}>This word has no recording from your chosen tutor yet. You can still record and hear your own take.</Text>}
     <OutlineButton label={busy ? 'One moment…' : recording ? 'Finish recording' : uri ? 'Record another take' : 'Record my practice take'} disabled={busy} onPress={() => void record()} />
     {uri !== '' && uri != null && !recording && <IconAction layout="inline" icon="speaker" label="Hear my practice take" disabled={busy} onPress={() => void play(true)} />}
-    {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{note}</Text>}
+    {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.text }]}>{note}</Text>}
   </View>;
 }
