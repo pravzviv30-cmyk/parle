@@ -156,6 +156,8 @@ The keys go into `services/tutor-agent/.env`:
 | `SPEECHACE_API_KEY` | speechace.com (optional) | The alternative scorer for the same `/drill/score`, used with `LUVANI_SCORING_VENDOR=speechace` or when it is the only scoring key set. Absent, drills fall back to honest self-report. |
 | `TYPESAFE_API_KEY` | typesafe.ai (optional, token server) | Jev reads own-words drill attempts before the brain on `/drill/judge`. A clean pass is settled by Jev alone and skips the model call; everything else goes to the brain as before. See `packages/brain/src/llm/jevJudge.ts`. |
 
+`npm run jev` reuses this key for dev-time checks (copy, doc drift, reports). It never sends `.env` contents or learner data.
+
 **Warm the voice cache first** (one-off, costs about 10% of one month's free
 ElevenLabs credits, ever): every scripted lesson line is synthesized once and
 saved to `services/tutor-agent/.tts-cache/`. After this, lesson audio replays

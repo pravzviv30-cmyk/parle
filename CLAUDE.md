@@ -82,6 +82,10 @@ memory, drills and extensions.
   which is how to see what Jev settled.
 - Sending learner text to Jev makes TypeSafe a recipient of it, so
   `apps/mobile/src/legal/policy.ts` has to name it before production.
+- Dev-time checks: `npm run jev` asks Jev a typed question about repo text (copy,
+  doc drift, agent reports). It is advisory and never sends `.env` contents, keys,
+  learner or account data. Rules are in `../CLAUDE.md`, "Jev in the session
+  workflow".
 
 ## Mercury development model routing
 
