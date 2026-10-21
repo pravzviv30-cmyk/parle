@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B fidelity rebuild, steps 11 and 12 (onboarding to the B-OB
+  artboards, pinned light; the paywall's dark variant with its design unchanged; the Streak
+  calendar fixed to seven columns), on branch `claude/direction-b` (held, not on main):
+  **5,845 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3431. Floors raised only through `gate:bless`.
 - 21 October 2026 direction B fidelity rebuild, steps 8 to 10 (live room and help, After a
   session, Celebration, Recap, Review, Drill, empty states, Streak, Profile, Settings with
   Appearance), on branch `claude/direction-b` (held, not on main):

@@ -8,7 +8,7 @@ import { StaggerIn } from '../motion/StaggerIn.tsx';
 import { STAGGER } from '../motion/tokens.ts';
 import { INCLUSIONS } from '../purchases/capabilities.ts';
 import type { Plan, PlanSpec } from '@luvani/core';
-import { HIT, colour, decorative, paper, space, type } from '../theme.ts';
+import { HIT, decorative, space, type } from '../theme.ts';
 import { ACCOUNT_LABEL, COMPARE_INTRO, PLANS_COMPARE, compareNote } from './wallCopy.ts';
 import { WallPeriodSwitch } from './WallPeriodSwitch.tsx';
 import { BenefitRow, WallCta, WallLinks, WallSkeleton, wallType } from './WallParts.tsx';
@@ -115,7 +115,7 @@ function ComparePlans({ comparing, rows, current, catalogue, account, onClose, o
   onClose: () => void;
   onChoose: (offer: WallPlanOffer) => void;
 }) {
-  const { colors } = useMainAppearance();
+  const { colors, b } = useMainAppearance();
   const cards = compareCards(rows, current, catalogue);
   const [pick, setPick] = useState<string | null>(null);
   const picked = cards.find(card => card.plan === pick) ?? cards.find(card => card.offer.productId === current?.productId) ?? cards[0];
@@ -131,10 +131,10 @@ function ComparePlans({ comparing, rows, current, catalogue, account, onClose, o
             <Press key={card.plan} haptic="selection" accessibilityRole="radio" accessibilityState={{ checked }} aria-checked={checked}
               accessibilityLabel={[card.name, card.price, card.allowance, card.trial].filter(Boolean).join(', ')}
               onPress={() => setPick(card.plan)}
-              style={[st.card, checked ? { borderWidth: 1.5, borderColor: colour.blue, backgroundColor: colors.background } : { borderWidth: 1, borderColor: colors.border }]}>
+              style={[st.card, checked ? { borderWidth: 1.5, borderColor: b.mark, backgroundColor: colors.background } : { borderWidth: 1, borderColor: colors.border }]}>
               <View style={st.cardHead}>
-                <View {...decorative} style={[st.radio, checked ? { backgroundColor: colour.blue } : { borderWidth: 1.5, borderColor: colors.border }]}>
-                  {checked && <View style={[st.radioDot, { backgroundColor: paper.onInk }]} />}
+                <View {...decorative} style={[st.radio, checked ? { backgroundColor: b.mark } : { borderWidth: 1.5, borderColor: colors.border }]}>
+                  {checked && <View style={[st.radioDot, { backgroundColor: b.onMark }]} />}
                 </View>
                 <Text style={[wallType.medium, { color: colors.text, flex: 1, minWidth: 0 }]}>{card.name}</Text>
                 <Text style={[wallType.medium, { color: colors.text }]}>{card.price}</Text>
@@ -167,17 +167,17 @@ function ComparePlans({ comparing, rows, current, catalogue, account, onClose, o
  * set no larger than the billed amount it leads to.
  */
 function TrialTimeline({ view }: { view: TrialTimelineView }) {
-  const { colors } = useMainAppearance();
+  const { colors, b } = useMainAppearance();
   const rows = timelineRows(view);
   return (
     <StaggerIn step={STAGGER.base}>
       {rows.map((node, index) => (
         <View key={node.key} style={st.node}>
           <View style={st.rail} {...decorative}>
-            <View style={st.disc}>
-              <Icon name={TIMELINE_GLYPHS[node.key]} size={18} color={paper.ink} />
+            <View style={[st.disc, { backgroundColor: b.sun }]}>
+              <Icon name={TIMELINE_GLYPHS[node.key]} size={18} color={b.onSun} />
             </View>
-            {index < rows.length - 1 && <View style={st.connector} />}
+            {index < rows.length - 1 && <View style={[st.connector, { backgroundColor: b.sun }]} />}
           </View>
           <View style={[st.nodeWords, index < rows.length - 1 && st.nodeGap]}>
             {node.title !== null && <Text style={[st.nodeTitle, { color: colors.text }]}>{node.title}</Text>}
@@ -228,8 +228,8 @@ const st = StyleSheet.create({
   compareLink: { minHeight: HIT, justifyContent: 'center' },
   node: { flexDirection: 'row', gap: 14 },
   rail: { alignItems: 'center', width: DISC },
-  disc: { width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: colour.sun, alignItems: 'center', justifyContent: 'center' },
-  connector: { flex: 1, width: 3, backgroundColor: colour.sun, opacity: 0.45 },
+  disc: { width: DISC, height: DISC, borderRadius: DISC / 2, alignItems: 'center', justifyContent: 'center' },
+  connector: { flex: 1, width: 3, opacity: 0.45 },
   nodeWords: { flex: 1, minWidth: 0, paddingTop: 3, gap: 2 },
   nodeGap: { paddingBottom: space(4) },
   nodeTitle: { ...type.bodyStrong },

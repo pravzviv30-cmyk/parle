@@ -20,10 +20,8 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { tapSettled } from '../motion/haptics.ts';
 import { HIT, accent, bType, decorative, paper, type } from '../theme.ts';
 import { RepairMark } from './art/RepairMark.tsx';
-import type { DayCellView, MonthView } from './streakScreenView.ts';
+import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView.ts';
 
-/** One seventh of a row: seven columns on any width. */
-const COLUMN = `${100 / 7}%` as const;
 const CIRCLE = 36;
 
 /** The artboard's snowflake (stroke 2). */
@@ -139,17 +137,21 @@ export function MonthGrid({ month, weekdays }: { month: MonthView; weekdays: rea
   const s = useThemedStyles(makeStyles);
   return (
     <View style={s.monthCard}>
-      <View style={s.grid} {...decorative}>
-        {weekdays.map((letter, i) => <Text key={i} style={[bType.bold12, s.weekday, { color: t.muted }]}>{letter}</Text>)}
+      {/* 2026-10-21 (simulator, 402pt): no wrapping and no percentages. The
+          header and every week are their own row of seven equal flex cells
+          (`monthWeeks`), so a seventh cell can never be pushed to the next line. */}
+      <View style={s.week} {...decorative}>
+        {weekdays.map((letter, i) => <View key={i} style={s.dateCol}><Text numberOfLines={1} style={[bType.bold12, s.weekday, { color: t.muted }]}>{letter}</Text></View>)}
       </View>
-      <View style={s.grid}>
-        {Array.from({ length: month.leading }, (_, i) => <View key={`lead-${i}`} style={s.dateCol} />)}
-        {month.cells.map((cell) => (
-          <View key={cell.day} style={s.dateCol} accessible accessibilityLabel={cell.label}>
-            <DateCell cell={cell} />
-          </View>
-        ))}
-      </View>
+      {monthWeeks(month.leading, month.cells).map((week, w) => (
+        <View key={w} style={s.week}>
+          {week.map((cell, i) => cell === null ? <View key={`blank-${w}-${i}`} style={s.dateCol} /> : (
+            <View key={cell.day} style={s.dateCol} accessible accessibilityLabel={cell.label}>
+              <DateCell cell={cell} />
+            </View>
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
@@ -223,7 +225,7 @@ const makeStyles = (t: B) =>
     head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     // The week strip.
     weekCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 12, flexDirection: 'row', marginTop: 6 },
-    weekCol: { flexBasis: COLUMN, maxWidth: COLUMN, alignItems: 'center', gap: 6 },
+    weekCol: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
     circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, alignItems: 'center', justifyContent: 'center' },
     todayRing: { borderWidth: 2.5, borderStyle: 'dashed', borderColor: t.link },
     // The freeze card.
@@ -240,10 +242,10 @@ const makeStyles = (t: B) =>
     // The month.
     arrow: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
     off: { opacity: 0.5 },
-    monthCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 12, gap: 8 },
-    grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 4 },
-    weekday: { flexBasis: COLUMN, maxWidth: COLUMN, textAlign: 'center' },
-    dateCol: { flexBasis: COLUMN, maxWidth: COLUMN, paddingHorizontal: 2 },
+    monthCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 12, gap: 4 },
+    weekday: { textAlign: 'center' },
+    week: { flexDirection: 'row' },
+    dateCol: { flex: 1, minWidth: 0, paddingHorizontal: 2 },
     date: { minHeight: CIRCLE, borderRadius: CIRCLE / 2, alignItems: 'center', justifyContent: 'center' },
     dateToday: { borderWidth: 2, borderColor: t.link },
     // How a day counts.

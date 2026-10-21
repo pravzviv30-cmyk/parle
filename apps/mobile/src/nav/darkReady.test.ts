@@ -44,9 +44,13 @@ describe('dark mode is on, and unrebuilt screens stay light — UI-008, 2026-10-
     assert.equal(routeMode('Explore', 'dark', ready), 'light', 'readying one route unpinned another');
   });
 
-  test('the first scene and the paywall stay light even when DARK_READY names them', () => {
+  // 2026-10-21 UI-008: the paywall left ALWAYS_LIGHT for DARK_READY, so only the first scene stays light by rule.
+  test('the first scene stays light even when DARK_READY names it, and the paywall follows the device', () => {
     const everything = new Set(ROUTES);
-    for (const route of ['FirstScene', 'Wall']) {
+    assert.equal(ALWAYS_LIGHT.has('Wall'), false, 'the paywall is still light by rule');
+    assert.equal(routeMode('Wall', 'dark'), 'dark', 'the paywall does not follow a dark device');
+    assert.equal(routeMode('Wall', 'light'), 'light', 'the paywall does not follow a light device');
+    for (const route of ['FirstScene']) {
       assert.ok(ALWAYS_LIGHT.has(route), `${route} is not light by rule`);
       assert.equal(routeMode(route, 'dark', everything), 'light', `${route} followed a dark device because DARK_READY named it`);
     }

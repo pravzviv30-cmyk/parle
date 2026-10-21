@@ -207,6 +207,18 @@ export const bType = {
   name30: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 34, letterSpacing: -0.3 },
   /** The streak's run, "3 days": 52/800 at -1 (B-Streak, 2026-10-21). */
   run52: { fontFamily: font.extraBold, fontSize: 52, lineHeight: 56, letterSpacing: -1 },
+  /** The welcome's display, "A little French.": 40/800 at -1, 1.04 (B-OB-Welcome, 2026-10-21). */
+  welcome40: { fontFamily: font.extraBold, fontSize: 40, lineHeight: 42, letterSpacing: -1 },
+  /** An onboarding band's title, "Meet your tutor": 32/800 at -0.5 (B-OB-Tutor, 2026-10-21). */
+  band32: { fontFamily: font.extraBold, fontSize: 32, lineHeight: 35, letterSpacing: -0.5 },
+  /** The welcome's sun button: 19/800 (B-OB-Welcome, 2026-10-21). */
+  heavy19: { fontFamily: font.extraBold, fontSize: 19, lineHeight: 24 },
+  /** The welcome's speech bubbles: 17/800 (B-OB-Welcome, 2026-10-21). */
+  heavy17: { fontFamily: font.extraBold, fontSize: 17, lineHeight: 21 },
+  /** A 16 paragraph at 1.4 (the onboarding subtitles, 2026-10-21). */
+  para16: { fontFamily: font.regular, fontSize: 16, lineHeight: 22 },
+  /** A 14 paragraph at 1.45 (B-OB-Ready's info rows, 2026-10-21). */
+  para14: { fontFamily: font.regular, fontSize: 14, lineHeight: 20 },
 } as const;
 
 /**

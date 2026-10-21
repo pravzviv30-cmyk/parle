@@ -686,7 +686,8 @@ describe('a form says out loud what it shows — F109', () => {
  */
 const FIRST_RUN: readonly { where: string; headings: number; part?: boolean }[] = [
   // A shared page title and the policy section template. The streak has its own full screen.
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 3 },
+  // 2026-10-21 UI-008, artboards B-OB-Plan and B-OB-Tutor: the plan and tutor titles moved into their bands, so each is its own heading Text.
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 5 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 2 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },

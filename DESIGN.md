@@ -234,34 +234,39 @@ colours are the B pastels and colours above, reached through the
 `boldRhythm` alias table, and its type is `boldType`, which A2 folds into the
 one scale.
 
-Purpose, interests, French level, confidence, practice focus and daily time
-share sage, peach, lavender and butter answer cards, and the plan-edit choices
-use the same order. Answer titles are 18/24 Outfit SemiBold; a chosen card turns
-blue with white words and a fixed sun check. Question cards are at least 72
-points high with 24-point corners. Choosing paints without moving the card, and
-the rounded target keeps visible keyboard focus. The shared press spring and one
-selection glint carry feedback. Next keeps its deliberate action, disabled face
-and readiness fade, and its label wraps at large text sizes. Privacy opt-ins
-stay quiet and neutral.
+**Direction B rebuild (2026-10-21, UI-008, artboards B-OB-Welcome, B-Question,
+B-OB-Q2 to Q6, B-OB-Plan, B-OB-Tutor, B-OB-Ready, B-OB-FirstScene,
+B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
+[BOnboardingParts.tsx](apps/mobile/src/onboarding/BOnboardingParts.tsx) read
+`useB()`, which resolves to `b.light` outside the main appearance provider.
 
-Each question leads with a topic-colour illustration band, 168 points high and
-118 in compact or large-text mode, with soft still rings and a curved paper
-edge. Only this band bleeds past the gutters. The six drawings in
-[c2QuestionDrawings.ts](apps/mobile/src/onboarding/c2QuestionDrawings.ts) are
-repo-authored SVG: a folded-map explorer, an open book, a growing plant, a
-welcoming speech character, two conversation partners, and a sun clock holding
-a blue mug. They loop on the shared closed 4.8-second cycle with 1 to 3 degree
-joint turns, return to their authored pose at both loop ends, and float at most
-1.8 points (about 1.1 compact). Reduce Motion shows the still pose. Choosing
-never resets the clock, and sheets, screen activity and the app's foreground
-pause and resume it.
+- **Welcome:** the brand page with the canvas friends drawing on a sun disc,
+  confetti and three French speech bubbles; "A little French." with "A bigger
+  world." in sun (40/800), three deep-blue promise chips and the 60 sun button
+  with its pressed edge.
+- **Questions:** each page bleeds a band under the clock (bottom corners 48):
+  the 6-point progress bar and "n of 6", then a 156 halo and its canvas
+  drawing. Reason is sun with voice-chat, interests brand with phrasebook,
+  level mint with watering-plant, confidence sun with coffee-break, time brand
+  with clock-calendar, focus mint with star-jar. Answer rows are white, radius
+  18, min-height 64 (58 on the reason page, which carries the small icon
+  drawings and no sublines); a chosen row fills brand with a sun tick disc, or
+  a rounded sun square for interests, which are checkboxes.
+- **Plan:** a sun band with map-route and the learner's answers as white chips;
+  then the five stages with the learner at Starter, the first three scenes and
+  the blue How it works card.
+- **Tutor:** a brand band with the canvas orb (never a face); six white voice
+  rows, the chosen one brand, each with a 44 speaker. Hearing never chooses.
+- **Before we start:** a brand band with the orb; an info card with three
+  tinted-disc rows (AI, microphone, what is kept), then the optional choices as
+  50 by 30 switches, off by default.
+- **First scene and Save your plan:** a sun band with the café table and a
+  brand band with the star jar.
 
-Meet your tutor uses the same pastel cards, larger ink names and a blue chosen
-card with white words and a sun check. Listen sits inside each card as a blue
-pill, turning sun on the chosen tutor; its width never changes while it loads,
-pauses or resumes, and at large text the identity and Listen stack. Hearing
-never chooses. The six portraits lift 1.1 to 1.4 points and sway 0.8 degrees on
-the same 4.8-second cycle; only the portrait layer moves.
+The artboards' back discs keep their 44 place empty: onboarding has no visible
+previous control (F352); platform back still goes back. Bands read the top
+inset from the onboarding frame (`useOnboardingTopInset`), and the status bar is
+light on blue bands and dark on sun and mint.
 
 The original illustration family is 127 local SVG layers exported from Figma,
 with provenance and hashes in
@@ -693,6 +698,12 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.peachSoft` | `#FCEADF` | The art panel inside the peach Postcards tile (B-Journey) |
 | `b.light.lavenderSoft` | `#F5F1FE` | The art panel inside the lavender Badges tile (B-Journey) |
 | `b.light.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
+| `b.light.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |
+| `b.light.haloMint` | `#8BEBC0` | The halo behind a question's drawing on a mint band (B-OB-Q3); a mark |
+| `b.light.sunShadow` | `#C99400` | The pressed-edge shadow under the welcome's sun button (B-OB-Welcome); a mark |
+| `b.light.mark` | `#3B2FE0` | A selected mark on the paywall: chosen-plan border, radio, benefit tick; never words (2026-10-21 UI-008) |
+| `b.light.onMark` | `#FFFFFF` | The dot inside a filled mark radio |
+| `b.light.onSun` | `#16123A` | The ink glyph on a sun disc (the paywall's trial timeline) |
 
 | Token | Value | Role |
 |---|---|---|
@@ -746,6 +757,12 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.peachSoft` | `#5A3F4C` | The art panel inside the peach Postcards tile (B-Journey) |
 | `b.dark.lavenderSoft` | `#3D3560` | The art panel inside the lavender Badges tile (B-Journey) |
 | `b.dark.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
+| `b.dark.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |
+| `b.dark.haloMint` | `#8BEBC0` | The halo behind a question's drawing on a mint band (B-OB-Q3); a mark |
+| `b.dark.sunShadow` | `#C99400` | The pressed-edge shadow under the welcome's sun button (B-OB-Welcome); a mark |
+| `b.dark.mark` | `#A79AFF` | A selected mark on the paywall; violet is 2.4 on the dark ground, under the 3.0 mark floor |
+| `b.dark.onMark` | `#151127` | The dot inside a filled mark radio |
+| `b.dark.onSun` | `#16123A` | The ink glyph on a sun disc (the paywall's trial timeline) |
 
 The status bar style is a token too: `dark` in light, `light` in dark.
 

@@ -9,9 +9,17 @@ import { c } from './boldRhythm.ts';
 import { sheetRunsUnder } from '../components.tsx';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
 
-export type OnboardingFramePresentation = { hideProgress?: boolean; ground?: string };
+/** `statusBar` lets a page whose band sits under the clock pick light or dark (2026-10-21 UI-008, B-OB bands). */
+export type OnboardingFramePresentation = { hideProgress?: boolean; ground?: string; statusBar?: 'light' | 'dark' };
 type FrameReporter = (progress: OnboardingProgressValue, presentation?: OnboardingFramePresentation) => void;
 const FrameContext = createContext<FrameReporter | null>(null);
+/**
+ * The top safe-area inset a page's own band pads for when it bleeds under the
+ * clock (`bleedTop`, 2026-10-21 UI-008). The frame owns the inset; a band reads
+ * it here rather than measuring the safe area itself (surfaceContract F307).
+ */
+const TopInset = createContext(0);
+export function useOnboardingTopInset(): number { return useContext(TopInset); }
 
 /** A dedicated surface can report its route while presenting its own chrome. */
 export function useOnboardingFramePresentation(value: OnboardingProgressValue, presentation: OnboardingFramePresentation, active = true) {
@@ -19,7 +27,7 @@ export function useOnboardingFramePresentation(value: OnboardingProgressValue, p
   // Apply the dedicated surface chrome before its first visible frame.
   useLayoutEffect(() => {
     if (active) report?.(value, presentation);
-  }, [report, active, value.fraction, value.stageFraction, value.step, value.total, value.complete, presentation.hideProgress, presentation.ground]);
+  }, [report, active, value.fraction, value.stageFraction, value.step, value.total, value.complete, presentation.hideProgress, presentation.ground, presentation.statusBar]);
 }
 
 export function OnboardingProgress({ value, violet = false }: { value: OnboardingProgressValue; violet?: boolean }) {
@@ -54,15 +62,15 @@ function ProgressHeader({ value, violet = false }: { value: OnboardingProgressVa
 
 /** Put this above AuthFlow's page switch so signup shares the same live fill. */
 export function OnboardingFrame({ initialProgress, children }: { initialProgress: OnboardingProgressValue; children: ReactNode }) {
-  const [frame, setFrame] = useState<{ value: OnboardingProgressValue; hideProgress: boolean; ground: string }>(() => ({
+  const [frame, setFrame] = useState<{ value: OnboardingProgressValue; hideProgress: boolean; ground: string; statusBar?: 'light' | 'dark' }>(() => ({
     value: initialProgress, hideProgress: false, ground: paper.ground,
   }));
   const report = useCallback<FrameReporter>((value, presentation) => {
-    setFrame({ value, hideProgress: presentation?.hideProgress ?? false, ground: presentation?.ground ?? paper.ground });
+    setFrame({ value, hideProgress: presentation?.hideProgress ?? false, ground: presentation?.ground ?? paper.ground, statusBar: presentation?.statusBar });
   }, []);
   return <FrameContext.Provider value={report}>
     <View style={{ flex: 1, minHeight: 0, backgroundColor: frame.ground }}>
-      <StatusBar style={frame.ground === c.violet ? "light" : "dark"} />
+      <StatusBar style={frame.statusBar ?? (frame.ground === c.violet ? "light" : "dark")} />
       <View {...(frame.hideProgress ? decorative : {})} pointerEvents={frame.hideProgress ? 'none' : 'auto'}
         style={{ height: frame.hideProgress ? 0 : undefined, opacity: frame.hideProgress ? 0 : 1, overflow: 'hidden' }}>
         <ProgressHeader value={frame.value} violet={frame.ground === c.violet} />
@@ -96,9 +104,16 @@ type Props = {
   automaticallyAdjustKeyboardInsets?: boolean;
   keyboardDismissMode?: ScrollViewProps['keyboardDismissMode'];
   onViewportLayout?: ScrollViewProps['onLayout'];
+  /**
+   * The page draws its own band under the clock (B-OB artboards, 2026-10-21):
+   * no progress header and no top spacer; the band pads for the safe area.
+   */
+  bleedTop?: boolean;
+  /** The status bar over that band: light on blue, dark on sun and mint. */
+  statusBar?: 'light' | 'dark';
 };
 
-export function OnboardingLayout({ page, progress, children, hero, footer, avoidKeyboard = false, actionInScroll = false, embedded = false, active = true, hideProgress = false, dismissKeyboardOnBackground = false, showScrollCue = false, center = false, ground = c.paper, scrollRef, onScroll, scrollEventThrottle = 100, automaticallyAdjustKeyboardInsets, keyboardDismissMode, onViewportLayout }: Props) {
+export function OnboardingLayout({ page, progress, children, hero, footer, avoidKeyboard = false, actionInScroll = false, embedded = false, active = true, hideProgress = false, dismissKeyboardOnBackground = false, showScrollCue = false, center = false, ground = c.paper, scrollRef, onScroll, scrollEventThrottle = 100, automaticallyAdjustKeyboardInsets, keyboardDismissMode, onViewportLayout, bleedTop = false, statusBar }: Props) {
   const report = useContext(FrameContext);
   const value = progress ?? onboardingProgress({ page });
   const insets = useSafeAreaInsets();
@@ -121,8 +136,8 @@ export function OnboardingLayout({ page, progress, children, hero, footer, avoid
   };
   useLayoutEffect(() => { flashed.current = false; setCue(false); measurements.current = { content: 0, viewport: measurements.current.viewport, offset: 0 }; }, [page]);
   useLayoutEffect(() => {
-    if (!embedded && active) report?.(value, { ground, hideProgress });
-  }, [report, ground, hideProgress, embedded, active, value.fraction, value.stageFraction, value.step, value.total, value.complete]);
+    if (!embedded && active) report?.(value, { ground, hideProgress: hideProgress || bleedTop, statusBar });
+  }, [report, ground, hideProgress, bleedTop, statusBar, embedded, active, value.fraction, value.stageFraction, value.step, value.total, value.complete]);
   if (embedded) return <View style={{ gap: space(4) }}>{hero}{children}{footer}</View>;
   const column = { width: '100%', maxWidth: 560, alignSelf: 'center' } as const;
   // RN web treats every scroll as a drag. Form focus anchors must keep editing.
@@ -130,7 +145,7 @@ export function OnboardingLayout({ page, progress, children, hero, footer, avoid
   const webDragDismisses = Platform.OS === 'web' && (keyboardDismissMode ?? 'on-drag') === 'on-drag';
   const content = <>
     <ScrollView ref={captureScroll} style={{ flex: 1, minHeight: 0 }}
-      contentContainerStyle={{ flexGrow: 1, ...horizontal, paddingTop: hero != null ? 0 : 20, paddingBottom: space(4), ...(center ? { justifyContent: 'center' as const } : null) }}
+      contentContainerStyle={{ flexGrow: 1, ...horizontal, paddingTop: hero != null || bleedTop ? 0 : 20, paddingBottom: space(4), ...(center ? { justifyContent: 'center' as const } : null) }}
       onScroll={event => { measurements.current.offset = event.nativeEvent.contentOffset.y; updateCue(); onScroll?.(event); }} scrollEventThrottle={scrollEventThrottle}
       onLayout={event => { measurements.current.viewport = event.nativeEvent.layout.height; updateCue(); onViewportLayout?.(event); }}
       onContentSizeChange={(_width, contentHeight) => { measurements.current.content = contentHeight; updateCue(); }}
@@ -151,11 +166,12 @@ export function OnboardingLayout({ page, progress, children, hero, footer, avoid
     </View>}
   </>;
   const frame = <View style={{ flex: 1, minHeight: 0, backgroundColor: ground }}>
-    {report && hideProgress && <View style={{ height: insets.top + 32 }} />}
-    {!report && <><StatusBar style={ground === c.violet ? "light" : "dark"} />{hideProgress ? <View style={{ height: insets.top + 32 }} /> : <ProgressHeader value={value} violet={ground === c.violet} />}</>}
+    {report && hideProgress && !bleedTop && <View style={{ height: insets.top + 32 }} />}
+    {!report && <><StatusBar style={statusBar ?? (ground === c.violet ? "light" : "dark")} />{bleedTop ? null : hideProgress ? <View style={{ height: insets.top + 32 }} /> : <ProgressHeader value={value} violet={ground === c.violet} />}</>}
     {avoidKeyboard ? <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, minHeight: 0 }}>{content}</KeyboardAvoidingView> : content}
   </View>;
-  return dismissKeyboardOnBackground && Platform.OS !== 'web' ? <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>{frame}</TouchableWithoutFeedback> : frame;
+  const framed = <TopInset.Provider value={bleedTop ? insets.top : 0}>{frame}</TopInset.Provider>;
+  return dismissKeyboardOnBackground && Platform.OS !== 'web' ? <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>{framed}</TouchableWithoutFeedback> : framed;
 }
 
 /** One interruptible two-phase transition, with a synchronous advancement lock. */

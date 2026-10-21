@@ -116,6 +116,19 @@ export interface StreakScreenView {
   nextMilestone: string;
 }
 
+/**
+ * The month as weeks of exactly seven, Monday first: `leading` blanks, the
+ * dates, then blanks to fill the last week. Each week is drawn as its own row,
+ * so the grid can never wrap into six columns (2026-10-21, simulator at 402pt).
+ */
+export function monthWeeks<T>(leading: number, cells: readonly T[]): (T | null)[][] {
+  const flat: (T | null)[] = [...Array.from({ length: Math.max(0, leading) }, () => null), ...cells];
+  while (flat.length % 7 !== 0) flat.push(null);
+  const weeks: (T | null)[][] = [];
+  for (let i = 0; i < flat.length; i += 7) weeks.push(flat.slice(i, i + 7));
+  return weeks;
+}
+
 /** The month's header row, Monday first (B-Streak). */
 export const WEEKDAY_LETTERS: readonly string[] = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 

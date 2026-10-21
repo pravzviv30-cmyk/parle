@@ -8,8 +8,7 @@
  * A rebuild step adds its route here, and nothing else changes.
  *
  * Some routes are light by rule, not by schedule: the first scene belongs to
- * onboarding, which stays light (the founder's decision), and the paywall is
- * unpinned only in its own later step. Those are in `ALWAYS_LIGHT`, which wins
+ * onboarding, which stays light (the founder's decision). It is in `ALWAYS_LIGHT`, which wins
  * over `DARK_READY`. Onboarding, sign up and the launch screen are not routes;
  * App.tsx mounts them under `<PinLight>` directly.
  *
@@ -44,10 +43,13 @@ export const DARK_READY: ReadonlySet<string> = new Set<string>([
   'Streak',
   'Profile',
   'Settings',
+  // 2026-10-21 UI-008: the paywall keeps its C2 design and gains a dark variant
+  // (the founder's decision). The launch wall opens this same route.
+  'Wall',
 ]);
 
 /** Routes that stay light whatever DARK_READY says. */
-export const ALWAYS_LIGHT: ReadonlySet<string> = new Set<string>(['FirstScene', 'Wall']);
+export const ALWAYS_LIGHT: ReadonlySet<string> = new Set<string>(['FirstScene']);
 
 /** Whether a route is pinned light, given the ready set (injectable for tests). */
 export function pinnedLight(route: string, ready: ReadonlySet<string> = DARK_READY): boolean {

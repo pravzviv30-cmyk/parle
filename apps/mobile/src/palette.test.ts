@@ -876,3 +876,52 @@ describe('main appearance premium roles', () => {
     });
   }
 });
+
+// 2026-10-21 UI-008: the paywall (wall/*) follows the device. Every pair it
+// draws, in both modes, from mainApp (its text and grounds) and b (its marks,
+// the CTA and the trial timeline).
+describe('the paywall reads in both modes — UI-008, 2026-10-21', () => {
+  test('light keeps the colours the wall drew before it was themed', () => {
+    assert.equal(b.light.mark, colour.blue);
+    assert.equal(b.light.onMark, paper.onInk);
+    assert.equal(b.light.onSun, paper.ink);
+    assert.equal(b.light.brand, colour.blue);
+    assert.equal(b.light.onBrand, paper.onInk);
+    assert.equal(b.light.sun, colour.sun);
+    assert.equal(b.dark.mark, '#A79AFF');
+    assert.equal(b.dark.mark, mainApp.dark.link, 'the dark mark is not the M3 link lilac');
+    assert.equal(b.dark.onSun, paper.ink, 'the timeline glyph is not ink on sun in dark');
+  });
+  for (const mode of ['light', 'dark'] as const) {
+    const c = mainApp[mode]; const t = b[mode];
+    test(`${mode}: words, prices and the plan cards`, () => {
+      for (const [ink, name] of [[c.text, 'text'], [c.muted, 'muted'], [c.link, 'link']] as const) {
+        for (const [ground, where] of [[c.background, 'ground'], [c.surface, 'card']] as const) {
+          const r = contrast(ink, ground);
+          assert.ok(r >= 4.5, `${mode} ${name} is ${r.toFixed(2)} on the ${where}`);
+        }
+      }
+      // The notice, the period switch and the secondary pill sit on inset.
+      for (const [ink, name] of [[c.text, 'text'], [c.muted, 'muted']] as const) {
+        const r = contrast(ink, c.inset);
+        assert.ok(r >= 4.5, `${mode} ${name} is ${r.toFixed(2)} on inset`);
+      }
+      // The failed-notice title: dark clears 4.5. Light is unchanged from before
+      // the wall was themed (#C2341F on lavender, 4.42), held here so it cannot slip further.
+      assert.ok(contrast(c.danger, c.inset) >= (mode === 'dark' ? 4.5 : 4.4), `${mode} danger is ${contrast(c.danger, c.inset).toFixed(2)} on inset`);
+      assert.ok(contrast(c.text, c.teal) >= 4.5, `${mode} text is unreadable on the free card`);
+      // The chosen plan's border, radio and benefit tick are marks (3.0).
+      for (const [ground, where] of [[c.background, 'ground'], [c.surface, 'card']] as const) {
+        const r = contrast(t.mark, ground);
+        assert.ok(r >= 3, `${mode} the selected mark is ${r.toFixed(2)} on the ${where}`);
+      }
+      assert.ok(contrast(t.onMark, t.mark) >= 3, `${mode} the radio dot is lost on its fill`);
+    });
+    test(`${mode}: the CTA and the trial timeline`, () => {
+      assert.ok(contrast(t.onBrand, t.brand) >= 4.5, `${mode} CTA words are ${contrast(t.onBrand, t.brand).toFixed(2)}`);
+      assert.ok(contrast(t.onSun, t.sun) >= 4.5, `${mode} the timeline glyph is lost on its disc`);
+      // The disc's edge is decorative (the ink glyph and the words carry it); in dark the sun stands out further.
+      if (mode === 'dark') assert.ok(contrast(t.sun, c.background) >= 3, 'dark: the timeline disc is lost on the ground');
+    });
+  }
+});

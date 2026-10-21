@@ -6,8 +6,6 @@ import { dayKeyOf, tutorSampleLine } from '@luvani/core';
 import { STARTER_AI, STARTER_LOCAL } from './disclosure.ts';
 import { TermsAcceptance } from '../legal/TermsAcceptance.tsx';
 import { TermsScreen } from '../legal/TermsScreen.tsx';
-import { C2GoalArt } from './C2Visuals.tsx';
-import { C2QuestionHero } from './C2QuestionHero.tsx';
 import type { C2QuestionPage } from './c2QuestionScenes.ts';
 /** Personal answers lead into one live session; recorded results drive the summary and account handoff. */
 import { useEffect, useRef, useState } from 'react';
@@ -30,7 +28,6 @@ import { boldType as type, c } from './boldRhythm.ts';
 import { BoldButton } from './BoldButton.tsx';
 import { BoldChoice } from './BoldChoice.tsx';
 import { BOLD_QUESTIONS, BOLD_GOALS, INTERESTS, boldChoiceTone } from './boldChoices.ts';
-import { BoldScene } from './motion/BoldScene.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
@@ -73,6 +70,11 @@ import { GlowAction, OnboardingScene, RevealItem } from './motion/OnboardingScen
 
 import { GoalTile } from './firstRun/GoalTile.tsx';
 import { ConsentFacts } from './firstRun/ConsentFacts.tsx';
+import { useB } from '../main/bTheme.tsx';
+import { bType } from '../theme.ts';
+import { BArt } from '../art/BArt.tsx';
+import { BBand, BBandDisc, BBandOrb, BCard, BInfoRow, BMicThin, BOption, BQuestionBand, BShield, BSunButton, BSwitchCard, BTextLink, BTopSpace, BTutorOrb, BVoiceOff, BWelcomeArt, BWelcomeChip, BPlanChip, QUESTION_BANDS, REASON_ICONS, bandColours } from './BOnboardingParts.tsx';
+import { planChips } from './planChips.ts';
 
 type Surface =
   | 'plan'
@@ -122,6 +124,8 @@ export function PreAccountOnboarding({
   previewOnly?: boolean;
 }) {
   const reduced = useReduceMotion();
+  // 2026-10-21 UI-008, artboards B-OB-*: onboarding is pinned light, so these are b.light.
+  const t = useB();
   const compact = useCompactPhone();
   const regular = useLayoutClass() === 'regular';
   const [choiceNudge, setChoiceNudge] = useState({ page: '', event: 0 });
@@ -485,8 +489,13 @@ export function PreAccountOnboarding({
   const suggested = suggestedMinutes(draft);
   const drinksWrap = useFontScale() >= TILES_WRAP_AT;
   const blue = page === 'hear-it';
-  const ground = refused ? c.paper : page === 'plan' ? c.violet : blue ? c.peach : c.paper;
-  const ink = page === 'plan' && !refused ? c.white : c.ink;
+  // 2026-10-21 UI-008, artboard B-OB-Welcome: the welcome is the brand page; the plan is cream under its sun band (B-OB-Plan).
+  const ground = refused ? c.paper : blue ? t.brand : c.paper;
+  const ink = blue && !refused ? t.onBrand : c.ink;
+  const questionPages = questionOrder.filter(p => p !== 'hear-it' && p !== 'plan');
+  const questionStep = (questionPages as readonly PreAccountPage[]).indexOf(page) + 1;
+  const band = question && !refused ? bandColours(t, QUESTION_BANDS[page as C2QuestionPage].tone) : null;
+  const statusBar = refused ? 'dark' : blue ? 'light' : band ? band.statusBar : page === 'choose-tutor' ? 'light' : 'dark';
   const progress = onboardingProgress({ page, completed: draft.onboardingCompletedSteps, five, signedIn, skipped: [...(draft.onboardingSkippedSteps ?? []), ...(draft.quickStart ? ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] : [])] });
   const reasonGrid = !drinksWrap;
   const goalGrid = !drinksWrap;
@@ -515,8 +524,8 @@ export function PreAccountOnboarding({
     ) : null
   ) : blue ? (
     <View style={[readingColumn, { gap: space(2) }]}>
-      <BoldButton label="Start your personal plan" onPress={() => go('reason')} />
-      {!signedIn && <Press accessibilityLabel="I already have an account" onPress={() => onSignIn(draftRef.current)} style={{ minHeight: 48, justifyContent: 'center' }}><Text style={[type.label, { color: c.violet, textAlign: 'center' }]}>I already have an account</Text></Press>}
+      <BSunButton label="Start your personal plan" onPress={() => go('reason')} />
+      {!signedIn && <Press accessibilityLabel="I already have an account" onPress={() => onSignIn(draftRef.current)} style={{ minHeight: 48, justifyContent: 'center' }}><Text style={[bType.bold15, { color: t.onBrand, textAlign: 'center' }]}>I already have an account</Text></Press>}
     </View>
   ) : question ? (
     <View style={readingColumn}>
@@ -526,10 +535,10 @@ export function PreAccountOnboarding({
     </View>
   ) : page === 'plan' ? (
     <View style={readingColumn}>
-      <BoldButton tone="sun" label="Choose your tutor" onPress={() => go('choose-tutor')} /><Press accessibilityLabel="Adjust my plan" onPress={() => open('plan')} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[type.label, { color: c.white, textAlign: 'center' }]}>Adjust my plan</Text></Press>
+      <BoldButton label="Choose your tutor" onPress={() => go('choose-tutor')} /><Press accessibilityLabel="Adjust my plan" onPress={() => open('plan')} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[bType.bold15, { color: t.link, textAlign: 'center' }]}>Adjust my plan</Text></Press>
     </View>
   ) : page === 'choose-tutor' ? (
-    <View style={readingColumn}><BoldButton label={draft.tutorChosen ? `Practise with ${tutorName}` : 'Choose a tutor'} disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
+    <View style={[readingColumn, { gap: 10 }]}><Text style={[bType.note, { color: t.muted, textAlign: 'center' }]}>You can change voice any time in Settings.</Text><BoldButton label={draft.tutorChosen ? `Continue with ${tutorName}` : 'Choose a tutor'} disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
   ) : page === 'keep' ? (
     <PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} />
   ) : null;
@@ -564,13 +573,17 @@ export function PreAccountOnboarding({
   const consentVisible = !refused && ['start', 'privacy', 'policy', 'terms'].includes(surface ?? '');
   const consentBody = (
           <>
-            <View style={{ backgroundColor: c.lavender, borderRadius: 20, padding: 18, gap: 8 }}><Text style={[type.heading, { color: c.ink }]}>{STARTER_AI.replace(/\.$/, '')}</Text><Text style={[type.body, { color: c.ink }]}>It can help you practise, and it can make mistakes.</Text></View>
-            <Text style={[type.small, { color: c.muted }]}>{STARTER_LOCAL}</Text>
-            <IconAction icon="privacy" layout="inline" label="Privacy details" onPress={() => setSurface('privacy')} />
-            <Text style={[type.label, { color: c.muted }]}>Optional, off by default</Text>
-            <BoldChoice multiple title="Share usage analytics" detail="Help improve Luvani. Your words and audio are excluded." selected={draft.analyticsConsent}
+            {/* 2026-10-21 UI-008, artboard B-OB-Ready: the info card. The pinned disclosure copy stays (STARTER_AI, STARTER_LOCAL). */}
+            <BCard>
+              <BInfoRow ground={t.lavender} icon={<BShield size={20} color={t.text} />} title={STARTER_AI.replace(/\.$/, '')} body="It can help you practise, and it can make mistakes." />
+              <BInfoRow ground={t.butter} icon={<BMicThin size={20} color={t.text} />} title="Speak when you choose" body="We ask for the microphone only when you start. You can type instead." />
+              <BInfoRow ground={t.sage} icon={<BVoiceOff size={20} color={t.text} />} title="What is kept" body={STARTER_LOCAL} />
+              <BTextLink label="Privacy details" onPress={() => setSurface('privacy')} />
+            </BCard>
+            <Text style={[bType.eyebrow, { color: t.muted, paddingHorizontal: 4 }]}>Optional, off by default</Text>
+            <BSwitchCard title="Share usage analytics" detail="Help improve Luvani. Your words and audio are excluded." selected={draft.analyticsConsent}
               onPress={() => choose({ analyticsConsent: !draft.analyticsConsent })} />
-            <BoldChoice multiple title="Remember my learning" detail="Use learning memory for future practice" selected={draft.rememberLearning === true}
+            <BSwitchCard title="Remember my learning" detail="Use learning memory for future practice" selected={draft.rememberLearning === true}
               onPress={toggleRemember} />
             {issue !== '' ? (
               <>
@@ -586,11 +599,16 @@ export function PreAccountOnboarding({
   return (
     <>
       <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
-      {consentVisible ? <OnboardingLayout page="before-practice" showScrollCue active={active} progress={{ ...progress, stageFraction: (1 + 2 / 3) / 4 }} footer={<View style={{ gap: 8 }}>
+      {consentVisible ? <OnboardingLayout page="before-practice" showScrollCue active={active} bleedTop statusBar="light" progress={{ ...progress, stageFraction: (1 + 2 / 3) / 4 }}
+        hero={<BBand tone="brand" art={<><BBandDisc size={150} right={-36} top={-14} color={t.violet2} /><BBandOrb size={70} right={18} top={22} /></>}>
+          <Text ref={heading} accessibilityRole="header" style={[bType.band32, { color: t.onBrand, marginTop: 12, maxWidth: '75%' }]}>Before we start.</Text>
+          <Text style={[bType.para16, { color: t.onBrandSoft, maxWidth: '64%' }]}>A few things to know about your practice.</Text>
+        </BBand>}
+        footer={<View style={{ gap: 8 }}>
         <TermsAcceptance context="practice" onTerms={() => { if (!busy) setSurface('terms'); }} onPrivacy={() => { if (!busy) setSurface('policy'); }} />
         <BoldButton label={needsAccount ? 'Create account to start' : 'Start live practice'} state={busy ? 'busy' : 'idle'} disabled={busy || previewOnly} onPress={() => void (needsAccount ? continueWithAccount() : start())} />
         {previewOnly && <Text style={[type.small, { color: c.muted }]}>Practice is unavailable in this screen preview.</Text>}
-      </View>}><View style={{ gap: 18 }}><Text ref={heading} accessibilityRole="header" style={[type.title, { color: c.ink, textAlign: 'center' }]}>Before we start.</Text><Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>A few things to know about your practice.</Text>{consentBody}</View></OnboardingLayout>
+      </View>}><View style={{ gap: 14, paddingTop: 20 }}>{consentBody}</View></OnboardingLayout>
       : !refused && page === 'practice' && guest?.live ? <FirstLivePractice guest={guest} progress={progress} active={active && surface === null}
         onSafetyExit={() => showPage('plan')} onFinished={next => { setGuest(next); showPage(next.live?.outcome === 'completed' ? 'recap' : 'keep'); }} />
       : page === 'recap' && guest?.live ? <FirstSessionCelebration record={guest.live} progress={progress} onDone={() => showPage('keep')} />
@@ -604,21 +622,40 @@ export function PreAccountOnboarding({
         avoidKeyboard
         scrollRef={scroll}
         onScroll={(e) => { offsets.current[page] = e.nativeEvent.contentOffset.y; }}
-        hero={question && !refused ? <C2QuestionHero page={page as C2QuestionPage} active={active && surface === null} /> : undefined}
+        // 2026-10-21 UI-008, artboards B-Question, B-OB-Q2 to Q6, B-OB-Plan, B-OB-Tutor: each page draws its own band under the clock.
+        bleedTop={!refused}
+        statusBar={statusBar}
+        hero={refused ? undefined
+          : question ? <BQuestionBand page={page as C2QuestionPage} step={questionStep} total={questionPages.length} />
+          : page === 'plan' ? <BBand tone="sun" art={<BArt name="map-route" width={176} height={161} style={{ position: 'absolute', right: -14, top: 20 }} />}>
+              <Text style={[bType.eyebrow, { color: t.text, marginTop: 8 }]}>Your plan</Text>
+              <Text ref={heading} accessibilityRole="header" nativeID="onboarding-plan-heading" style={[bType.band32, { color: t.text, maxWidth: '50%' }]}>{title.replace('\n', ' ')}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, maxWidth: '62%' }}>{planChips(draft).map(chip => <BPlanChip key={chip} label={chip} />)}</View>
+            </BBand>
+          : page === 'choose-tutor' ? <BBand tone="brand" style={{ paddingBottom: 24, gap: 10 }}>
+              <View style={{ alignItems: 'center', gap: 10 }}>
+                <BTutorOrb />
+                <Text ref={heading} accessibilityRole="header" nativeID="onboarding-choose-tutor-heading" style={[bType.band32, { color: t.onBrand, textAlign: 'center' }]}>{title}</Text>
+                <Text style={[bType.para16, { color: t.onBrandSoft, textAlign: 'center' }]}>Listen, then choose a voice. Your tutor is AI, with a character we wrote.</Text>
+              </View>
+            </BBand>
+          : blue ? <BTopSpace extra={26} /> : undefined}
         footer={footer}
       >
-        <View style={[readingColumn, { paddingBottom: question && !refused ? 0 : 16, ...(question && !refused ? { paddingTop: 8 } : null) }]}>
-          <View style={{ gap: compact ? 12 : 16 }}>
+        <View style={[readingColumn, { paddingBottom: question && !refused ? 0 : 16, ...(question && !refused ? { paddingTop: 18 } : null), ...(page === 'plan' || page === 'choose-tutor' ? { paddingTop: 20 } : null) }]}>
+          <View style={{ gap: question ? 6 : compact ? 12 : 16 }}>
+            {blue && !refused && <BWelcomeArt />}
 
-            {<Text
+            {/* 2026-10-21 UI-008: the welcome's display (B-OB-Welcome, second line in sun) and the 30/800 question title (B-Question). The plan and tutor titles sit in their bands. */}
+            {page !== 'plan' && page !== 'choose-tutor' || refused ? <Text
               ref={heading}
               {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
               accessibilityRole="header"
-              style={[blue || page === 'plan' ? type.display : type.title, { color: ink, textAlign: 'center' }]}
+              style={[blue && !refused ? bType.welcome40 : refused ? type.display : bType.title30, { color: ink, textAlign: 'center' }]}
               nativeID={`onboarding-${page}-heading`}
             >
-              {title}
-            </Text>}
+              {blue && !refused ? <>{title.split('\n')[0]}{'\n'}<Text style={{ color: t.sun }}>{title.split('\n')[1]}</Text></> : question ? title.replace('\n', ' ') : title}
+            </Text> : null}
             {refused ? (
               <View style={{ gap: 16 }}>
                 <Illustration name="state-postcard-frame" fit="small" />
@@ -627,25 +664,24 @@ export function PreAccountOnboarding({
             ) : (
               <>
                 {blue && <>
-                  <Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>Real conversations, from your very first try.</Text>
-                  <BoldScene kind="welcome" width={315} active={active} />
-                  <View style={{ backgroundColor: c.paper, borderRadius: 20, padding: 18, gap: 8 }}>
-                    <Text style={[type.heading, { color: c.ink }]}>Un café, s’il vous plaît.</Text>
-                    <Text style={[type.body, { color: c.ink }]}>A few words can take you somewhere.</Text>
+                  <Text style={[bType.para17, { color: t.onBrandSoft, textAlign: 'center' }]}>Real conversations with your own tutor, from your very first try.</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+                    {['Speak or type', 'Help when you stall', 'A few minutes a day'].map(chip => <BWelcomeChip key={chip} label={chip} />)}
                   </View>
                 </>}
                 {question && <>
-                  <Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>{BOLD_QUESTIONS[page]?.detail}</Text>
-                  <View accessibilityRole={page === 'interests' ? undefined : 'radiogroup'} style={{ gap: 8 }}>
-                    {page === 'reason' && BOLD_GOALS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.detail} art={<C2GoalArt goal={v.key} size={48} />} selected={draft.reason === v.key} onPress={() => choose({ reason: v.key })} />)}
-                    {page === 'interests' && INTERESTS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.detail} multiple selected={draft.interests?.includes(v.key) ?? false}
+                  <Text style={[bType.para16, { color: t.muted, textAlign: 'center' }]}>{BOLD_QUESTIONS[page]?.detail}</Text>
+                  {/* 2026-10-21 UI-008, artboards B-Question and B-OB-Q2 to Q6: the B answer rows. Q1 has drawings and no sublines. */}
+                  <View accessibilityRole={page === 'interests' ? undefined : 'radiogroup'} style={{ gap: 8, paddingTop: 10 }}>
+                    {page === 'reason' && BOLD_GOALS.map((v) => <BOption key={v.key} title={v.title} icon={REASON_ICONS[v.key]} selected={draft.reason === v.key} onPress={() => choose({ reason: v.key })} />)}
+                    {page === 'interests' && INTERESTS.map((v) => <BOption key={v.key} title={v.title} detail={v.detail} multiple selected={draft.interests?.includes(v.key) ?? false}
                       onPress={() => choose({ interests: draft.interests?.includes(v.key) ? draft.interests.filter(i => i !== v.key) : [...(draft.interests ?? []), v.key] })} />)}
-                    {page === 'start-level' && START_LEVELS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={draft.startLevel === v.key} onPress={() => choose({ startLevel: v.key })} />)}
-                    {page === 'confidence' && CONFIDENCE_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={draft.speakingConfidence === v.key} onPress={() => choose({ speakingConfidence: v.key })} />)}
-                    {page === 'focus' && FOCUS_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={draft.practiceFocus === v.key} onPress={() => choose({ practiceFocus: v.key })} />)}
-                    {page === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BoldChoice key={minutes} tone={boldChoiceTone(index)}
-                      title={minutes === 'none' ? 'Choose each time' : `${minutes} minutes`}
-                      detail={['A small start', 'Room for a conversation', 'A little more depth', 'Make a daily ritual', 'No fixed daily goal'][index]}
+                    {page === 'start-level' && START_LEVELS.map((v) => <BOption key={v.key} title={v.title} detail={v.gloss} selected={draft.startLevel === v.key} onPress={() => choose({ startLevel: v.key })} />)}
+                    {page === 'confidence' && CONFIDENCE_OPTIONS.map((v) => <BOption key={v.key} title={v.title} detail={v.gloss} selected={draft.speakingConfidence === v.key} onPress={() => choose({ speakingConfidence: v.key })} />)}
+                    {page === 'focus' && FOCUS_OPTIONS.map((v) => <BOption key={v.key} title={v.title} detail={v.gloss} selected={draft.practiceFocus === v.key} onPress={() => choose({ practiceFocus: v.key })} />)}
+                    {page === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BOption key={minutes}
+                      title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes`}
+                      detail={['A small start', 'Room for a conversation', 'A little more depth', 'Make it a daily ritual', 'No fixed daily goal'][index]}
                       selected={draft.minutes === minutes} onPress={() => choose({ minutes })} />)}
                   </View>
                 </>}

@@ -398,6 +398,18 @@ const bLight = {
   lavenderSoft: '#F5F1FE',
   /** The live room's outer orb ring and the mic's rim on blue, in both modes (B-Live, 2026-10-21). A mark, never words. */
   orbRing: '#4A3FE6',
+  /** The halo behind a question's drawing on a sun band (B-Question, 2026-10-21, onboarding pinned light). A mark, never words. */
+  haloSun: '#FFE08A',
+  /** The halo behind a question's drawing on a mint band (B-OB-Q3). A mark, never words. */
+  haloMint: '#8BEBC0',
+  /** The pressed-edge shadow under the welcome's sun button (B-OB-Welcome). A mark, never words. */
+  sunShadow: '#C99400',
+  /** A selected mark on a card or ground: the paywall's chosen-plan border, radio and benefit tick (2026-10-21 UI-008). Never words. */
+  mark: colour.blue,
+  /** The dot inside a filled `mark` radio. */
+  onMark: paper.onInk,
+  /** The ink glyph on a sun disc, in both modes (the paywall's trial timeline). */
+  onSun: paper.ink,
   statusBar: 'dark' as 'dark' | 'light',
 };
 
@@ -442,6 +454,11 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     stageTrack: '#302A48',
     peachSoft: '#5A3F4C',
     lavenderSoft: '#3D3560',
+    // 2026-10-21 UI-008, the paywall: violet is 2.4 on the dark ground, under
+    // the 3.0 mark floor, so a selected mark takes the M3 link lilac and its
+    // radio dot the dark ground.
+    mark: '#A79AFF',
+    onMark: '#151127',
     statusBar: 'light',
   },
 };

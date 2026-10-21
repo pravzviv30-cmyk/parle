@@ -27,9 +27,15 @@ import { friendly } from './friendly.ts';
 import { appleSignInOffered } from './apple.ts';
 import { focusedFieldScroll } from './focusedFieldScroll.ts';
 import { useReduceMotion } from '../motion.ts';
+import { BArt } from '../art/BArt.tsx';
+import { BBand, BBandDisc } from '../onboarding/BOnboardingParts.tsx';
+import { useB } from '../main/bTheme.tsx';
+import { bType } from '../theme.ts';
 
 export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange, embedded = false, accountFirst = false, formDraft, onFormDraftChange, onTermsAccepted }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null; onEmailChange?: (email: string) => void; embedded?: boolean; accountFirst?: boolean; formDraft?: SignUpFormDraft; onFormDraftChange?: (draft: SignUpFormDraft) => void; onTermsAccepted?: (email: string) => boolean | void }) {
   const { adapter } = useAuth();
+  // 2026-10-21 UI-008: onboarding is pinned light, so these are b.light.
+  const b = useB();
   const [legal, setLegal] = useState<'terms' | 'privacy' | null>(null);
   const [email, setEmail] = useState(planDraft?.accountEmail ?? formDraft?.email ?? '');
   const [password, setPassword] = useState(formDraft?.password ?? '');
@@ -243,6 +249,20 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
       page="account"
       progress={onboardingProgress({ page: accountFirst ? 'hear-it' : 'account', five: planDraft?.onboardingVariant === 'five', skipped: planDraft?.onboardingSkippedSteps, completed: planDraft?.onboardingCompletedSteps })}
       center={false}
+      // 2026-10-21 UI-008, artboard B-OB-Consent ("Save your plan"): a blue band under the clock with the star jar.
+      bleedTop={!embedded}
+      statusBar="light"
+      hero={embedded ? undefined : (
+        <BBand tone="brand" art={<>
+          <BBandDisc size={200} right={-11} top={-6} color={b.violet2} />
+          <BArt name="star-jar" width={160} height={136} style={st.bandArt} />
+        </>}>
+          {/* Refresh typography measurements on a live reading-size change;
+              the fields themselves retain their native identity and caret. */}
+          <Text key={fontScale} ref={headingRef} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[bType.band32, st.bandWords, { color: b.onBrand }]}>{planDraft ? 'Save your plan' : 'A home for your French.'}</Text>
+          <Text style={[bType.para16, st.bandWords, { color: b.onBrandSoft }]}>{planDraft ? 'Create an account to keep your plan and pick up where you left off.' : 'Create an account to keep your practice.'}</Text>
+        </BBand>
+      )}
       footer={!keyboardVisible ? <>
       <View style={{ gap: 8 }}>
         <TermsAcceptance context="account" onTerms={() => setLegal('terms')} onPrivacy={() => setLegal('privacy')} />
@@ -277,12 +297,6 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
     >
       {/* The saved plan remains in the handoff; this form needs only its task. */}
       <View style={[readingColumn, st.page]}>
-      {!embedded && <View style={st.head}>
-        {/* Refresh typography measurements on a live reading-size change;
-            the fields themselves retain their native identity and caret. */}
-        <Text key={fontScale} ref={headingRef} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[boldType.title, { color: paper.ink, textAlign: 'center' }]}>A home for{'\n'}your French.</Text>
-      </View>}
-      <Text style={[boldType.body, { color: c.muted, textAlign: 'center', marginBottom: 12 }]}>Your practice stays with you</Text>
       <View style={st.fields}>
         <View ref={emailGroup} collapsable={false} onLayout={keepFocusedVisible}>
         <Field
@@ -413,7 +427,9 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
 }
 
 const st = StyleSheet.create({
-  page: { paddingBottom: space(2) },
+  page: { paddingTop: 20, paddingBottom: space(2) },
+  bandArt: { position: 'absolute', right: 8, top: 27 },
+  bandWords: { maxWidth: '52%' },
   head: { marginBottom: 12, alignItems: 'center' },
   fields: { gap: 10 },
   passwordGroup: { gap: space(1.5) },

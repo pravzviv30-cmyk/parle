@@ -5,7 +5,7 @@ import { Illustration } from '../art/flat/Illustration.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useCompactPhone } from '../layout.tsx';
-import { colour, decorative, paper, radius, space, type } from '../theme.ts';
+import { decorative, radius, space, type } from '../theme.ts';
 import {
   ADDS_ROWS, ADDS_TITLE, YOURS_DECLINE, YOURS_FREE_TITLE,
   YOURS_ONLY, YOURS_ROWS, YOURS_TITLE,
@@ -41,11 +41,11 @@ export function WallYoursPage({ canBuy, onLeave }: { canBuy: boolean; onLeave: (
 }
 const st = StyleSheet.create({
   content: { gap: space(3) },
-  title: { ...type.display, color: paper.ink },
+  title: { ...type.display },
   art: { alignItems: 'center' },
-  heading: { ...type.heading, color: paper.ink },
+  heading: { ...type.heading },
   card: { padding: space(4), borderRadius: radius.tile, gap: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  line: { ...type.body, color: paper.ink, flex: 1, minWidth: 0 },
-  only: { ...type.body, color: paper.ink, textAlign: 'center' },
+  line: { ...type.body, flex: 1, minWidth: 0 },
+  only: { ...type.body, textAlign: 'center' },
 });

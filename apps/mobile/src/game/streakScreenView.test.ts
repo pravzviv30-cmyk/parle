@@ -16,7 +16,7 @@ import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
 import type { ActivityEntry } from '../progress/activity.ts';
 import { GAME_COPY } from './copy.ts';
 import { emptyGame, type BadgeAward } from './model.ts';
-import { clampMonth, milestoneRow, monthOf, shiftMonth, streakScreenView, type StreakScreenView } from './streakScreenView.ts';
+import { WEEKDAY_LETTERS, clampMonth, milestoneRow, monthWeeks, monthOf, shiftMonth, streakScreenView, type StreakScreenView } from './streakScreenView.ts';
 import { NUDGE_LINES, nudgeRow, nudgeWrite } from '../settings/streakNudge.ts';
 import { NO_OUTSIDE_FACTS, gameViewFrom, type BillingFacts, type GameFacts } from './view.ts';
 import type { StreakCover } from '@luvani/core';
@@ -160,8 +160,8 @@ describe('the Streak screen — F770', () => {
     assert.match(screenFile, /<MonthArrow label=\{copy\.nextMonth\} back=\{false\} disabled=\{!month\.canGoForward\}/);
     assert.equal(GAME_COPY.streakScreen.previousMonth, 'Previous month');
     assert.equal(GAME_COPY.streakScreen.nextMonth, 'Next month');
-    // 2026-10-20 UI-008, artboard B-Streak: the columns live in StreakParts.tsx.
-    assert.match(read('./StreakParts.tsx'), /const COLUMN = `\$\{100 \/ 7\}%` as const;/, 'the calendar is not seven columns');
+    // 2026-10-21 UI-008 (simulator, 402pt): seven equal flex cells per row, no percentages.
+    assert.match(read('./StreakParts.tsx'), /weekCol: \{ flex: 1, minWidth: 0,/, 'the week strip is not seven equal columns');
     assert.equal((read('./StreakParts.tsx').match(/accessible accessibilityLabel=\{cell\.label\}/g) ?? []).length, 2, 'a week or month cell is not named to a screen reader');
     assert.doesNotMatch(screenFile, /\b(?:streakFrom|weekStripFrom|monthFrom|capabilitiesFor)\(/, 'the screen works out a day itself');
     // The run is drawn where it stands on every visit (a count from nought
@@ -288,5 +288,29 @@ describe('the B-Streak card rules', () => {
     const screenFile = read('./StreakScreen.tsx');
     assert.match(screenFile, /\{nudge !== null \? \(\s*<NudgeRow/, 'the nudge is drawn when the reminder cannot be scheduled or read');
     assert.match(read('../settings/useEveningNudge.ts'), /if \(!REMINDERS_AVAILABLE \|\| read === null/);
+  });
+});
+
+// 2026-10-21 UI-008, simulator check at 402pt: the header and the day grid wrapped to six columns.
+describe('the month is seven columns, header and days alike', () => {
+  test('October 2026 lays out as weeks of seven, Monday first', () => {
+    const october = screenOf(facts({ practiceDays: ['2026-10-06'] })).month;
+    const weeks = monthWeeks(october.leading, october.cells).map((week) => week.map((cell) => (cell === null ? '' : cell.mark)));
+    assert.ok(weeks.every((week) => week.length === 7), 'a week is not seven cells');
+    assert.equal(WEEKDAY_LETTERS.length, 7);
+    assert.deepEqual(weeks[0], ['', '', '', '1', '2', '3', '4'], 'the 1st is not on Thursday');
+    assert.deepEqual(weeks[3], ['19', '20', '21', '22', '23', '24', '25'], 'the fourth week is not Monday 19 to Sunday 25');
+    assert.deepEqual(weeks[4], ['26', '27', '28', '29', '30', '31', '']);
+    assert.equal(weeks.length, 5);
+  });
+
+  test('the header and each week are rows of equal flex cells that never wrap', () => {
+    const parts = read('./StreakParts.tsx');
+    assert.match(parts, /weekdays\.map\(\(letter, i\) => <View key=\{i\} style=\{s\.dateCol\}>/, 'the header letters are not date columns');
+    assert.match(parts, /monthWeeks\(month\.leading, month\.cells\)\.map\(\(week, w\) => \(\s*<View key=\{w\} style=\{s\.week\}>/, 'the days are not drawn week by week');
+    assert.match(parts, /week: \{ flexDirection: 'row' \},/);
+    assert.match(parts, /dateCol: \{ flex: 1, minWidth: 0,/, 'the columns are not equal flex cells');
+    assert.doesNotMatch(parts, /flexWrap: 'wrap'[^\n]*\n[^\n]*dateCol/, 'the month grid wraps again');
+    assert.doesNotMatch(parts, /weekday: \{[^}]*(flexBasis|width)/, 'the header letters carry a width rule of their own');
   });
 });

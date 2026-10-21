@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useMainAppearance } from '../main/MainAppearance.tsx';
-import { paper, space, type } from '../theme.ts';
+import { space, type } from '../theme.ts';
 
 import { useAuth } from '../auth/useAuth.tsx';
 import { beginPendingPurchase, clearPendingPurchase, confirmsPendingPurchase, loadPendingPurchase, markPendingDeferred, resolvePendingCheckout, type PendingPurchase } from '../purchases/pendingPurchase.ts';
@@ -492,13 +492,13 @@ export function WallScreen({
 
   if (!ownsWall) return (
     <ScrollScreen header={<ScreenHeader title="Speaking plans" />}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>The account changed. Open plans again from your profile.</Text>
+      <Text style={[type.body, { color: colors.muted }]}>The account changed. Open plans again from your profile.</Text>
       <PillButton label="Back to practice" onPress={onLeave} />
     </ScrollScreen>
   );
   if (pendingRead !== 'ready') return (
     <ScrollScreen header={<ScreenHeader title="Checking purchase status" />}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>{pendingRead === 'loading' ? 'Checking whether a purchase is already in progress on this phone.' : 'Your purchase status on this phone could not be read. Try again before opening another store purchase.'}</Text>
+      <Text style={[type.body, { color: colors.muted }]}>{pendingRead === 'loading' ? 'Checking whether a purchase is already in progress on this phone.' : 'Your purchase status on this phone could not be read. Try again before opening another store purchase.'}</Text>
       {pendingRead === 'unread' && <IconAction layout="inline" icon="refresh" label="Check purchase status again" onPress={() => setPendingAttempt(value => value + 1)} />}
       <PillButton label="Back to practice" onPress={() => leave('back', onOpenPractice)} />
     </ScrollScreen>

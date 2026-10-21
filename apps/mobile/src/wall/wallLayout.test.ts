@@ -34,9 +34,10 @@ test('the paywall presents three connected trial moments without dropping the ve
     assert.deepEqual(timeline, before, 'presentation changed the authoritative timeline view');
   }
   assert.match(page, /const rows = timelineRows\(view\);/);
-  assert.match(page, /index < rows.length - 1 && <View style=\{st.connector\} \/>/);
+  // 2026-10-21 UI-008: the sun now comes from b (useMainAppearance) so the wall follows dark; b.light.sun is colour.sun (palette.test.ts).
+  assert.match(page, /index < rows.length - 1 && <View style=\{\[st.connector, \{ backgroundColor: b.sun \}\]\} \/>/);
   assert.match(page, /const DISC = 28;/);
-  assert.match(page, /connector: \{ flex: 1, width: 3, backgroundColor: colour.sun, opacity: 0.45 \}/);
+  assert.match(page, /connector: \{ flex: 1, width: 3, opacity: 0.45 \}/);
 });
 
 test('the period switch keeps actual offers, checked state and forty-four point targets across large text layouts', () => {
@@ -65,8 +66,11 @@ test('the paywall reading order is headline, billed amount, period selection, ti
 test('the paywall sets type at the approved sizes and never clips it', () => {
   // Every size is a theme token (the surface contract refuses raw sizes).
   assert.match(parts, /headline: \{ \.\.\.type.title, textAlign: 'center' \}/);
-  assert.match(parts, /cta: \{ minHeight: 56, borderRadius: 28, backgroundColor: colour.blue/);
-  assert.match(parts, /ctaLabel: \{ \.\.\.type.button, color: paper.onInk/);
+  // 2026-10-21 UI-008: the CTA's blue and white come from b.brand / b.onBrand, equal to colour.blue / paper.onInk in light (palette.test.ts).
+  assert.match(parts, /cta: \{ minHeight: 56, borderRadius: 28, flexDirection/);
+  assert.match(parts, /style=\{\[st.cta, \{ backgroundColor: b.brand, opacity: dim \}\]\}/);
+  assert.match(parts, /ctaLabel: \{ \.\.\.type.button, textAlign/);
+  assert.match(parts, /style=\{\[st.ctaLabel, \{ color: b.onBrand \}\]\}/);
   assert.doesNotMatch(page + parts + periods, /fontSize:/);
   assert.doesNotMatch(page + parts + periods, /numberOfLines|adjustsFontSizeToFit/);
 });

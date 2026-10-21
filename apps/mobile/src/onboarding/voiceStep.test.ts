@@ -81,7 +81,9 @@ describe('first run introduces the voices and lets the learner choose one — F2
     assert.match(CARDS, /TUTOR_VOICE_OPTIONS\.map\(/);
     assert.match(CARDS, /\{voice\.label\}/);
     assert.doesNotMatch(CARDS, /\{voice\.gloss\}/);
-    assert.match(CARDS, /C2TutorPortrait voice=\{voice\.value\}/);
+    // 2026-10-21 UI-008, artboard B-OB-Tutor: every voice wears the canvas orb, never a face.
+    assert.match(CARDS, /<BArt name="tutor-orb"/);
+    assert.doesNotMatch(CARDS, /C2TutorPortrait|Portrait/);
     assert.match(CARDS, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
     assert.match(CARDS, /preview\.toggle\(voice\.value\)/);
     assert.match(FLOW, /useTutorPreview\(\{ active: loaded && page === 'voice' \}\)/);
