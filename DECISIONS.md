@@ -299,3 +299,22 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: the review page lists these as decided; `live/liveRoomView.test.ts`
   pins the green mic and `review/cardView.test.ts` pins the said-it button.
 - Sources: founder answers 2026-10-21, https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a.
+
+## VOICE-002 — Speak the expected paths without a model round trip
+
+- Date: 2026-10-22
+- Status: accepted
+- Decision: a scripted lesson speaks its opening line, good and partial answers,
+  rescues and skips straight from the lesson through `scriptedSpeech.ts`, and
+  calls the pipeline LLM only for a missed answer. A free conversation's first
+  rescue on an exchange renders the hint quietly with no model call; a second
+  rescue still asks the brain. The app records reply latency on the device.
+- Reason: the market review (October 2026) found reply speed and being talked
+  over while thinking are among the most common complaints about AI tutors. A
+  model round trip of three to five seconds sat in front of every scripted line
+  and every rescue, and could only paraphrase lines the script already held.
+- Consequence: scripted speech is exact and cache-warm, so it is near-instant
+  and costs no LLM tokens. Free-conversation reply latency is unchanged by this
+  decision; streaming the brain turn is the next step and is not claimed here.
+  Phone-audible latency still needs a device run to measure.
+- Sources: [pedagogy](docs/PEDAGOGY.md#the-rescue), [live voice](docs/LIVE_VOICE.md).

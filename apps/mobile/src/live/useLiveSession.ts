@@ -69,6 +69,7 @@ import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
 import { shouldPingTyping } from '../tutor/typingPing.ts';
 import type { ReplayLine } from '../tutor/sceneControls.ts';
 import { onUserScopeReset } from '../storage/scope.ts';
+import { createReplyLatencyClock, medianMs } from './replyLatency.ts';
 
 
 /**
@@ -166,6 +167,8 @@ export interface LiveDiagnostics {
   /** The tutor sent something the screen could actually render. */
   sessionOpened: boolean;
   lastFailure: LiveFailure | null;
+  /** Recent waits from a confirmed learner turn to the tutor's voice. See replyLatency.ts. */
+  replyLatencyMs: number[];
 }
 
 function emptyDiagnostics(): LiveDiagnostics {
@@ -183,6 +186,7 @@ function emptyDiagnostics(): LiveDiagnostics {
     firstServerMessage: false,
     sessionOpened: false,
     lastFailure: null,
+    replyLatencyMs: [],
   };
 }
 
@@ -649,6 +653,7 @@ export function useLiveSession(
   const roomRef = useRef<Room | null>(null);
   const leaseRef = useRef<UnjoinedLease | null>(null);
   const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
+  const replyClock = useRef(createReplyLatencyClock());
   // Which attempt at starting owns the session. Bumped by leaving, by unmount
   // and by every new start, so an attempt still waiting on a token can find out
   // that it has been abandoned and give back what it built instead of handing a
@@ -869,6 +874,7 @@ export function useLiveSession(
     // A new start is a new session: the old grant's id must not survive into it.
     setSessionId(null);
     diagRef.current = emptyDiagnostics();
+    replyClock.current = createReplyLatencyClock();
     heardAgentRef.current = false;
     sessionOpenedRef.current = false;
     typingPingAt.current = null;
@@ -1167,15 +1173,23 @@ export function useLiveSession(
           case 'feedback':
             setFeedback(msg.feedback);
             break;
-          case 'speaking':
+          case 'speaking': {
             setTutorSpeaking(msg.speaking);
+            const waited = msg.speaking ? replyClock.current.tutorStartedSpeaking(Date.now()) : null;
+            if (waited !== null) {
+              diagRef.current.replyLatencyMs = [...replyClock.current.samples];
+              trace('reply-latency', { ms: waited, medianMs: medianMs(replyClock.current.samples), turns: replyClock.current.samples.length });
+            }
             break;
+          }
           case 'transcript':
             if (msg.final) {
               setPartialTranscript(null);
               const confirmedId = msg.turnId ?? `legacy-${turnSeq.current + 1}`;
               if (confirmedIds.current.has(confirmedId)) break;
               confirmedIds.current.add(confirmedId);
+              // After the dedupe: a re-sent final is not a new wait.
+              replyClock.current.learnerTurnConfirmed(Date.now());
               contributionCallback.current?.({ id: confirmedId, text: msg.text, input: msg.input === 'typed' || msg.input === 'spoken' ? msg.input : 'unknown' });
               setLastTranscript(msg.text);
               addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null });

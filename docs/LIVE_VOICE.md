@@ -193,7 +193,17 @@ topic).
 Choosing `convo-text` never starts an AI suggestion timer on this screen. The
 box stays blank until the learner supplies their own topic. Inside a scene,
 ordinary turns likewise carry no suggested reply. One genuine rescue reveals
-an English hint card; repeated help may reveal a French line.
+an English hint card, silently and without a model call; repeated help may
+reveal a French line, and that rescue asks the brain for the tutor's step-in.
+
+A scripted lesson speaks its expected paths from the script itself: the opening
+line, every good or partial answer, every rescue and every skip go straight to
+`session.say` through `scriptedSpeech.ts`, whose sentences are all in the TTS
+warm list. Only a missed answer, which can be anything, goes to the pipeline LLM.
+The app measures the learner's wait on the device: from the confirmed final
+transcript to the worker's `speaking` frame, logged as
+`[luvani:live] reply-latency` and kept in `LiveDiagnostics.replyLatencyMs`
+(`apps/mobile/src/live/replyLatency.ts`).
 
 A conversation started from a practice topic card skips the question. The join
 token carries a `seedTopic`, the opening names the topic instead of asking for

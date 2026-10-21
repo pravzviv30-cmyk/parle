@@ -29,6 +29,7 @@ import { unjoinedLease } from './unjoinedLease.ts';
  */
 
 import assert from 'node:assert/strict';
+import { createReplyLatencyClock, medianMs } from './replyLatency.ts';
 import { describe, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
@@ -387,6 +388,9 @@ function switchWorld(
   const safetyRef = { current: decided };
   const noop = (): void => {};
   const world: Record<string, unknown> = {
+    // The reply-latency clock the switch feeds (replyLatency.ts), imported rather than restated.
+    replyClock: { current: createReplyLatencyClock() },
+    medianMs,
     msg: null,
     setPrompt: noop,
     setFeedback: noop,
@@ -1818,4 +1822,30 @@ test('republished authored prompts after a learner reply do not duplicate live h
     turn: { ...prompt.turn, tutor: 'Essayons ensemble. Un café ?' } } });
   assert.equal(turns.at(-1)?.fr, 'Essayons ensemble. Un café ?');
   assert.equal(turns.length, 4);
+});
+
+test('the wait from a confirmed learner turn to the tutor\'s voice is recorded, and nothing else is', () => {
+  const { world } = switchWorld();
+  const diagRef = { current: { replyLatencyMs: [] as number[] } };
+  const traced: unknown[] = [];
+  world.diagRef = diagRef;
+  world.trace = (event: string, detail: unknown) => traced.push([event, detail]);
+  world.addTurn = () => {};
+  world.contributionCallback = { current: () => {} };
+  world.confirmedIds = { current: new Set<string>() };
+  world.setPartialTranscript = () => {};
+  world.setTutorSpeaking = () => {};
+
+  deliver(world, { t: 'speaking', speaking: true });
+  assert.deepEqual(diagRef.current.replyLatencyMs, [], 'the opening line answers nobody, so it measures nothing');
+
+  deliver(world, { t: 'transcript', final: true, text: 'Bonjour.', turnId: 'learner-1' });
+  deliver(world, { t: 'speaking', speaking: true });
+  assert.equal(diagRef.current.replyLatencyMs.length, 1, 'one learner turn, one wait');
+  assert.ok(diagRef.current.replyLatencyMs[0]! >= 0);
+  assert.equal((traced.at(-1) as [string])[0], 'reply-latency');
+
+  deliver(world, { t: 'speaking', speaking: false });
+  deliver(world, { t: 'speaking', speaking: true });
+  assert.equal(diagRef.current.replyLatencyMs.length, 1, 'the tutor speaking again without a learner turn is not another wait');
 });

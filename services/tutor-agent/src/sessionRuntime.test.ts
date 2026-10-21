@@ -41,9 +41,9 @@ test('lesson state and generation wait for a durable ACK; SDK exit joins one com
   t.after(() => tutor.clearRescue());
   const input = tutor.handleClientMessage(stub.session, encodeMessage({ t: 'say', text: 'Bonjour.' }));
   await ticks(); assert.equal(fake.checkpoints.length, 1);
-  assert.equal(published.some(m => m.t === 'feedback' || m.t === 'prompt'), false); assert.equal(stub.generated.length, 0);
+  assert.equal(published.some(m => m.t === 'feedback' || m.t === 'prompt'), false); assert.equal(stub.generated.length + stub.spoken.length, 0);
   gate.resolve(); await input;
-  assert.ok(published.some(m => m.t === 'prompt')); assert.equal(stub.generated.length, 1);
+  assert.ok(published.some(m => m.t === 'prompt')); assert.equal(stub.generated.length + stub.spoken.length, 1);
   await Promise.all([tutor.onExit(), tutor.finish()]); assert.equal(fake.completions.length, 1);
   assert.ok(published.some(m => m.t === 'settlement'));
 });

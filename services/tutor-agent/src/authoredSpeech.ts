@@ -1,7 +1,8 @@
 /** Authored nonpersonal speech shared by runtime caching and the warm-cache script. */
 import { tokenize } from '@livekit/agents';
-import { LESSONS } from '@luvani/core';
+import { LESSONS, directiveFor, type Rung } from '@luvani/core';
 import { APERO_FRAME, CAFE_FRAME } from '@luvani/brain';
+import { scriptedSpeech } from './scriptedSpeech.ts';
 
 export const CONVO_LINES = {
   opener: { fr: "Alors, de quoi on parle aujourd'hui ?", en: 'So, what do you want to talk about today?' },
@@ -42,6 +43,9 @@ const lines = new Set<string>();
 const add = (text: string) => { for (const sentence of splitter.tokenize(text)) lines.add(sentence.replace(/\s+/g, ' ').trim()); };
 for (const lesson of LESSONS) for (const turn of lesson.turns) {
   add(turn.tutor); add(turn.target); for (const option of turn.options) add(option.text);
+  // Every way the script itself says this turn, so a scripted reply is a
+  // cache hit on every rung and on the rescue (see scriptedSpeech.ts).
+  for (const rung of [1, 2, 3, 4] as Rung[]) for (const rescued of [false, true]) for (const newTurn of [false, true]) add(scriptedSpeech(turn, directiveFor(rung, rescued), { newTurn }));
 }
 add(CONVO_LINES.opener.en); add(CONVO_LINES.suggest.en); add(CONVO_LINES.bridge.spoken);
 add(CONVO_LINES.carryOn.fr); add(CONVO_LINES.carryOn.en);

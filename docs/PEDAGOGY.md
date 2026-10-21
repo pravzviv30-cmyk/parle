@@ -48,11 +48,14 @@ is returned unchanged.
 Four seconds of silence (`STUCK_SILENCE_MS`) or an explicit "aide-moi" are the
 same event: the rung drops, `rescues` increments, and `rescued` is set.
 
-In a scripted lesson, a rescue can still render the known target line. In free
-conversation, the first rescue renders only the English intent hint. A second
-help request on the same exchange may reveal the French line. The tutor itself
-rephrases its own side of the scene and never speaks the learner's answer over
-the card.
+In a scripted lesson, a rescue can still render the known target line, and the
+tutor says that line for the learner to repeat straight from the script (see
+`services/tutor-agent/src/scriptedSpeech.ts`), with no model call in between. In
+free conversation, the first rescue renders only the English intent hint and is
+quiet: nothing is spoken over a learner who may still be composing, and no model
+call is made. A second rescue on the same exchange may reveal the French line,
+and that one asks the tutor to step in. The tutor itself rephrases its own side
+of the scene and never speaks the learner's answer over the card.
 
 A rescue never advances past the thing the learner could not say. Scripted lessons
 re-attempt the same turn; conversation refuses to complete the beat on the model's

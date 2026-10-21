@@ -549,8 +549,8 @@ export default defineAgent({
       // expected to start a conversation in a language they do not speak. In a
       // typed lesson there is nothing to speak with: the published turn already
       // carries the tutor's line, the target and the support, and the model has
-      // nothing to add to a script.
-      if (!voiceless) session.generateReply(tutor.replyOptions());
+      // nothing to add to a script. Spoken from the script for the same reason.
+      if (!voiceless) tutor.speakCurrentTurn(session);
     }
     } catch (error) {
       stopPaidWork();

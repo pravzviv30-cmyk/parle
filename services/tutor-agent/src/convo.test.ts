@@ -1267,8 +1267,8 @@ describe('a conversation rescue and a learner answering at the same moment', () 
     await convo.settled();
 
     assert.equal(convo.conversationState.ladder.rescues, 1, 'one moment of being stuck, counted once');
-    assert.equal(client.turnRequests.length, 1, 'and the tutor stepped in once');
-    assert.equal(convo.conversationState.turnCount, 1, 'one turn of the scene spent on it, not two');
+    assert.equal(client.turnRequests.length, 0, 'the first help is the hint card, with no model call');
+    assert.equal(convo.conversationState.turnCount, 0, 'and no turn of the scene is spent on it');
   });
 
   test('a conversation rescue in flight is dropped the moment the learner takes the floor', async (t) => {
@@ -1292,8 +1292,38 @@ describe('a conversation rescue and a learner answering at the same moment', () 
     await convo.settled();
 
     assert.equal(convo.conversationState.ladder.rescues, 1, 'four silent seconds is being stuck, not thinking');
-    assert.equal(client.turnRequests.length, 1, 'and the tutor steps in, in character');
-    assert.ok(views(published).length >= 2, 'the support renders before the model is back');
+    assert.equal(client.turnRequests.length, 0, 'and the help arrives without waiting on the model');
+    assert.ok(views(published).length >= 2, 'the support renders at once');
+  });
+
+  test('the first rescue is quiet: the hint renders and nothing is said over the learner', async (t) => {
+    const { convo, session, client, published, said } = await inScene(t);
+    const before = said.length;
+
+    const first = convo.armRescue(session);
+    await convo.runRescue(first);
+    await convo.settled();
+    assert.equal(views(published).at(-1)!.view.supportView.kind, 'hint', 'the first rescue hands over the intent, not the answer');
+    assert.deepEqual(said.slice(before), [], 'and nothing is read back over somebody who may still be composing');
+    assert.equal(client.turnRequests.length, 0, 'with no model call to wait for');
+  });
+
+  test('a learner still stuck after the hint gets the tutor\'s step-in, with no tap needed', async (t) => {
+    const { convo, session, client } = await inScene(t);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+
+    convo.armRescue(session); // the tutor finished speaking
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1);
+    assert.equal(client.turnRequests.length, 0, 'the first rescue is the hint alone');
+
+    // Nothing was spoken, so no agent-state change re-arms the clock from
+    // outside. The quiet rescue has to arm it itself, or this learner waits for ever.
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 2, 'staying quiet after the hint is still being stuck');
+    assert.equal(client.turnRequests.length, 1, 'and the second rescue asks the brain, which can rephrase and move the scene on');
   });
 
   test('a slow brain turn is not mistaken for a stuck learner', async (t) => {
@@ -3810,8 +3840,9 @@ describe('switching to text without leaving the scene', () => {
     assert.equal(spokenAgain.convo.conversationState.ladder.rescues, 1, 'the clock stayed on the reader pace after the voice came back');
 
     // 6. The scripted lesson takes the same switch, because the two tutors have
-    //    to be one person. There the pipeline speaks rather than `say`, so what
-    //    stops is `generateReply`, and the published turn becomes the handover.
+    //    to be one person. There the script speaks through `say` and the
+    //    pipeline through `generateReply`, so what stops is both, and the
+    //    published turn becomes the handover.
     forgetReportedSessions();
     const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED);
     const lesson = stubSwitchableSession();
@@ -3825,7 +3856,8 @@ describe('switching to text without leaving the scene', () => {
     tutor.sendCurrentPrompt(lesson.session);
     await tutor.handleClientMessage(lesson.session, tapped({ t: 'say', text: 'Bonjour' }));
     await tutor.settled();
-    const generated = lesson.generated.length;
+    const lessonSpoke = () => lesson.generated.length + lesson.said.length;
+    const generated = lessonSpoke();
     const prompts = lessonPublished.filter((m) => m.t === 'prompt').length;
     assert.ok(generated > 0, 'a lesson that never spoke is not the control this needs');
 
@@ -3834,8 +3866,7 @@ describe('switching to text without leaving the scene', () => {
 
     await tutor.handleClientMessage(lesson.session, tapped({ t: 'say', text: 'Un café' }));
     await tutor.settled();
-    assert.equal(lesson.generated.length, generated, 'the pipeline was asked to speak into a muted room');
-    assert.equal(lesson.said.length, 0, 'and the lesson said a line of its own anyway');
+    assert.equal(lessonSpoke(), generated, 'the lesson spoke into a muted room');
     assert.equal(
       lessonPublished.filter((m) => m.t === 'prompt').length,
       prompts + 1,
@@ -3843,12 +3874,12 @@ describe('switching to text without leaving the scene', () => {
     );
 
     await tutor.handleClientMessage(lesson.session, tapped({ t: 'hear' }));
-    assert.equal(lesson.said.length, 0, 'a replay was played in a session with nothing to play it');
+    assert.equal(lessonSpoke(), generated, 'a replay was played in a session with nothing to play it');
 
     await tutor.handleClientMessage(lesson.session, tapped({ t: 'mode', voiceless: false }));
     await tutor.handleClientMessage(lesson.session, tapped({ t: 'say', text: 'Merci' }));
     await tutor.settled();
-    assert.equal(lesson.generated.length, generated + 1, 'the microphone came back to a lesson that stayed silent');
+    assert.equal(lessonSpoke(), generated + 1, 'the microphone came back to a lesson that stayed silent');
 
     // And the lesson's clock moves with the switch, for the reason the
     // conversation's does: a learner who switched in order to start typing must

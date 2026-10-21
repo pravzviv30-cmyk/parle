@@ -26,6 +26,7 @@ import { tokenFailureCode, TokenServerError, classifyFailure } from './failure.t
  */
 
 import assert from 'node:assert/strict';
+import { createReplyLatencyClock } from './replyLatency.ts';
 import { describe, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
@@ -267,6 +268,9 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     noTypedRecovery: false,
     watchdogRef,
     diagRef,
+    // The reply-latency clock `start` resets (replyLatency.ts), imported rather than restated.
+    replyClock: { current: createReplyLatencyClock() },
+    createReplyLatencyClock,
     noticeTimer,
     audioElsRef: { current: [] },
     heardAgentRef: { current: false },

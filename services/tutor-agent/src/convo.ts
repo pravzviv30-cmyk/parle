@@ -2304,43 +2304,66 @@ export class LuvaniConversation extends voice.Agent {
 
   /**
    * Silence or aide-moi. The ladder moves and the support renders NOW, from
-   * material the last turn already carried; the model's warm in-character
-   * step-in follows when the network gets around to it.
+   * material the last turn already carried. Returns the support it rendered,
+   * so the spoken half of the rescue can say the same thing.
    */
   private async applyRescue(
     input: Extract<LearnerTurnInput, { type: 'silence' | 'help' }>,
     rearm: boolean = true,
-  ): Promise<void> {
-    if (this.ended) return;
+  ): Promise<TurnView['supportView'] | null> {
+    if (this.ended) return null;
 
     const { state, view } = applyNonSpokenInput(this.state, input);
     this.state = state;
     await this.checkpoint();
-    if (this.ended) return;
-    if (this.lastView) {
-      // Merge: the scene has not moved, so the last reply stands; only the
-      // support, the rung and the (now silent) coach change. Stale narration
-      // clears too — a rescue is not a scene shift.
-      this.publishView(
-        {
-          ...this.lastView,
-          coachLine: null,
-          coachNow: [],
-          narration: null,
-          supportView: view.supportView,
-          rung: view.rung,
-        },
-        { rearm },
-      );
-    }
+    if (this.ended || !this.lastView) return null;
+    // Merge: the scene has not moved, so the last reply stands; only the
+    // support, the rung and the (now silent) coach change. Stale narration
+    // clears too — a rescue is not a scene shift.
+    this.publishView(
+      {
+        ...this.lastView,
+        coachLine: null,
+        coachNow: [],
+        narration: null,
+        supportView: view.supportView,
+        rung: view.rung,
+      },
+      { rearm },
+    );
+    return view.supportView;
   }
 
+  /**
+   * The first rescue on an exchange is quiet; a learner still stuck gets the
+   * tutor's step-in.
+   *
+   * The first rescue hands over the English intent hint, which renders the
+   * instant the clock runs out from material the last turn already carried.
+   * Nothing is said over it: someone who has gone quiet is very often still
+   * composing, and a voice arriving four to five seconds later (the model's
+   * round trip) lands on top of the sentence they were about to start. It also
+   * keeps PEDAGOGY.md's rule that the tutor never reads the card back.
+   *
+   * A second rescue on the same exchange is the learner telling us the hint
+   * was not enough. That one still asks the brain, because only the brain can
+   * rephrase its own side of the scene more simply, and only its turn carries
+   * the attempt budget that moves a scene on, so nobody is left in place.
+   */
   private async rescue(input: Extract<LearnerTurnInput, { type: 'silence' | 'help' }>): Promise<void> {
     if (this.ended) return;
 
-    await this.applyRescue(input);
+    const firstOnThisExchange = this.state.assistanceDepth === 0;
+    const support = await this.applyRescue(input);
     if (this.ended) return;
-
+    const shownSomething = support !== null && (support.kind === 'hint' ? support.hint.trim().length > 0 : support.kind !== 'none');
+    if (firstOnThisExchange && shownSomething) {
+      // Nothing was spoken, so the agent never leaves `listening` and agent.ts
+      // never re-arms the clock for us. Arm it here, or a learner who stays
+      // quiet after the hint would never be offered more.
+      if (!this.voiceless) this.armRescue(this.session);
+      return;
+    }
     await this.runBrainTurn(input);
   }
 

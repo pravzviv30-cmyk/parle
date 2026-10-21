@@ -34,8 +34,9 @@ import {
 // the learner would feel the difference as two different tutors. The import
 // goes both ways between these files (convo.ts already takes the replay ledger
 // from here) and neither module reads the other while it is being evaluated.
-import { TEXT_SILENCE_MS } from './convo.ts';
+import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
+import { scriptedSpeech } from './scriptedSpeech.ts';
 import { scoreUtterance } from '../../shared/pronunciation.ts';
 import { decodeAudio } from '../../shared/audioDecode.ts';
 import { reportUsage } from './usage.ts';
@@ -412,16 +413,22 @@ export class LuvaniTutor extends voice.Agent {
     if (!this.commands.allow(msg.t) || (['say', 'choice', 'help', 'skip'].includes(msg.t) && this.queue.full)) { this.rejectInput(INPUT_BUSY_MESSAGE); return; }
     if (msg.t === 'ready') return this.sendCurrentPrompt();
 
-    if (msg.t === 'typing' || msg.t === 'moment') {
-      // Presence, not silence. Someone typing an answer, or saying they need a
-      // second, is a learner with the floor, and stepping in over them is a
-      // remark on hesitating that this tutor never makes.
+    if (msg.t === 'typing') {
+      // Presence, not silence. Someone typing an answer is a learner with the
+      // floor, and stepping in over them is a remark on hesitating that this
+      // tutor never makes.
       //
       // Only ever a restart: if no clock is running, none is started. armRescue
       // owns when the tutor may wait on a learner at all, and a keystroke must
       // not be a second opinion about that. This is the answer LuvaniConversation
       // already settled on.
       if (this.silenceTimer) this.armRescue(session);
+      return;
+    }
+    if (msg.t === 'moment') {
+      // "Give me a moment" asks for time, so it gets time: the same bounded
+      // grace the conversation gives, not one more four-second window.
+      this.deferForAMoment(session);
       return;
     }
 
@@ -491,6 +498,20 @@ export class LuvaniTutor extends voice.Agent {
   }
 
   /**
+   * Say the current turn straight from the script.
+   *
+   * Used for the opening line and for every expected answer, so the learner
+   * hears the tutor as soon as their turn is applied instead of after a model
+   * round trip. Text mode says nothing: the published prompt is the turn.
+   */
+  speakCurrentTurn(session: voice.AgentSession, options: { newTurn?: boolean } = {}): void {
+    if (this.ended || this.voiceless || this.refused) return;
+    const prompt = currentPrompt(this.lesson, this.state);
+    const line = scriptedSpeech(prompt.turn, prompt.directive, options);
+    if (line.length > 0) session.say(line, this.replyOptions());
+  }
+
+  /**
    * Arm the rescue.
    *
    * Called once the tutor has finished speaking. If nothing has arrived by the
@@ -498,13 +519,21 @@ export class LuvaniTutor extends voice.Agent {
    * a rung so the next prompt carries more support.
    */
   armRescue(session: voice.AgentSession): number {
+    // A grace already on the clock is not re-decided by the agent going back
+    // to `listening`, which for a thinking learner is a stray sound.
+    if (this.momentHeld && this.silenceTimer) return this.queue.generation;
     this.clearRescue();
     // Captured now, checked when the timer fires. Returned so the caller — and
     // a test — can name the moment this particular wait began.
     const generation = this.queue.generation;
     if (this.ended) return generation;
 
-    this.silenceTimer = setTimeout(() => { void this.runRescue(session, generation).catch(() => {}); }, this.silenceWindow());
+    this.silenceTimer = setTimeout(() => {
+      // A fired timer is not a running clock; leaving the handle set would make
+      // a stale grace check in armRescue refuse every later wait.
+      this.silenceTimer = undefined;
+      void this.runRescue(session, generation).catch(() => {});
+    }, this.silenceWindow());
     return generation;
   }
 
@@ -547,7 +576,29 @@ export class LuvaniTutor extends voice.Agent {
    */
   setLearnerSpeaking(speaking: boolean): void {
     this.learnerSpeaking = speaking;
-    if (speaking) this.clearRescue();
+    // Taking the floor stands the ordinary clock down; a grace keeps running,
+    // because runRescue already stands down while they hold the floor.
+    if (speaking && !this.momentHeld) this.clearRescue();
+  }
+
+  /** True while the learner's asked-for time is running. */
+  private momentHeld = false;
+
+  /**
+   * One bounded grace window, then the ordinary policy again. The same handle
+   * as the silence clock, so everything that stands that clock down stands
+   * this one down too, and the same length as LuvaniConversation's, so the two
+   * tutors give the same answer to the same request.
+   */
+  private deferForAMoment(session: voice.AgentSession): void {
+    if (this.ended) return;
+    this.clearRescue();
+    this.momentHeld = true;
+    this.silenceTimer = setTimeout(() => {
+      this.silenceTimer = undefined;
+      this.momentHeld = false;
+      this.armRescue(session);
+    }, MOMENT_GRACE_MS);
   }
 
   /** Settle once every queued turn has been applied. For tests. */
@@ -558,6 +609,10 @@ export class LuvaniTutor extends voice.Agent {
   clearRescue(): void {
     if (this.silenceTimer) clearTimeout(this.silenceTimer);
     this.silenceTimer = undefined;
+    // The grace lives on this one handle, so whatever stands the clock down
+    // ends the grace too. A flag left behind would keep disabling the ordinary
+    // rules (taking the floor, typing, a mode switch) with no clock to show for it.
+    this.momentHeld = false;
   }
 
   /**
@@ -645,7 +700,7 @@ export class LuvaniTutor extends voice.Agent {
     // `silence` is the rescue, which the agent applies on the learner's behalf.
     // Everything else arrived from their mouth, their keyboard or their thumb,
     // and that difference is exactly what billing keys off in `finish()`.
-    if (input.type !== 'silence') this.learnerTurns += 1;
+    if (input.type !== 'silence') { this.learnerTurns += 1; this.momentHeld = false; }
     const { state, feedback } = submitTurn(this.lesson, this.state, input);
     this.state = state;
 
@@ -675,8 +730,17 @@ export class LuvaniTutor extends voice.Agent {
     // The tutor answers every applied input — a spoken turn, a rescue, a skip —
     // and always through replyOptions(), so a modelled line on a scripted rung
     // can never be cut off by the mic hearing the tutor's own voice.
+    //
+    // The script answers every path it expected, at once and from the TTS
+    // cache. Only an answer the script did not expect (a miss, which can be
+    // anything from a near-miss to a question in English) goes to the model,
+    // because that is the one turn where a written reply adds something.
     if (session && !this.voiceless) {
-      session.generateReply(this.replyOptions());
+      // A transcript that normalised to nothing is graded as a rescue, not a
+      // miss, and gets the scripted rescue like any other.
+      const unexpected = input.type === 'spoke' && feedback.quality === 'poor' && !feedback.rescued;
+      if (unexpected) session.generateReply(this.replyOptions());
+      else this.speakCurrentTurn(session, { newTurn: feedback.advanced });
     } else if (session) {
       // Nothing is going to speak, so nothing will hand the floor back. The
       // published turn is the handover, and the clock starts with it.

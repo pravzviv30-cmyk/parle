@@ -15,9 +15,10 @@ import {
   type ServerMessage,
   type TutorPersona,
 } from '@luvani/core';
-import { TEXT_SILENCE_MS } from './convo.ts';
+import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
 import { LuvaniTutor, forgetReportedSessions } from './tutor.ts';
+import { scriptedSpeech } from './scriptedSpeech.ts';
 
 /**
  * A stand-in for the LiveKit session.
@@ -119,7 +120,8 @@ describe('a turn that came back with no words', () => {
     await tutor.settled();
 
     assert.equal(tutor.sessionState.ladder.rescues, 1, 'the learner still gets rescued');
-    assert.equal(calls.generateReply.length, 1);
+    assert.equal(calls.said.length, 1, 'and is handed the line from the script');
+    assert.equal(calls.generateReply.length, 0, 'with no model call in the way');
   });
 });
 
@@ -142,7 +144,7 @@ describe('a rescue and a learner talking at the same moment', () => {
 
     assert.equal(tutor.sessionState.ladder.rescues, 0, 'somebody who spoke was not stuck');
     assert.equal(tutor.sessionState.turnIndex, 1, 'exactly one turn was applied');
-    assert.equal(calls.generateReply.length, 1, 'and the tutor answered once');
+    assert.equal(calls.said.length + calls.generateReply.length, 1, 'and the tutor answered once');
   });
 
   test('a rescue in flight is dropped the moment the learner takes the floor', async () => {
@@ -154,7 +156,7 @@ describe('a rescue and a learner talking at the same moment', () => {
     await tutor.settled();
 
     assert.equal(tutor.sessionState.ladder.rescues, 0);
-    assert.equal(calls.generateReply.length, 0, 'nothing was said over them');
+    assert.equal(calls.generateReply.length + calls.said.length, 0, 'nothing was said over them');
   });
 
   test('a rescue still fires when the learner really does say nothing', async (t) => {
@@ -181,7 +183,7 @@ describe('a rescue and a learner talking at the same moment', () => {
     await tutor.settled();
 
     assert.equal(tutor.sessionState.turnIndex, 2, 'both turns landed, neither was lost');
-    assert.equal(calls.generateReply.length, 2, 'and each got exactly one reply');
+    assert.equal(calls.said.length + calls.generateReply.length, 2, 'and each got exactly one reply');
   });
 });
 
@@ -199,7 +201,7 @@ describe('a lesson for someone who cannot speak aloud', () => {
     assert.equal(tutor.sessionState.turnIndex, 1, 'the answer counts');
     assert.equal(tutor.sessionState.utterancesScored, 0, 'but nobody heard it, and the end card must not pretend otherwise');
     assert.equal(tutor.sessionState.learnerSpeakingSec, 0, 'a tap is not speaking time');
-    assert.equal(calls.generateReply.length, 1, 'the tutor still answers');
+    assert.equal(calls.said.length, 1, 'the tutor still answers, from the script');
   });
 
   test('a wrong tap is graded like a wrong answer, not waved through', async () => {
@@ -548,7 +550,7 @@ describe('a tapped option passes the safety boundary', () => {
       .then(() => {
         assert.deepEqual(published.filter((m) => m.t === 'safety'), [], 'an ordinary tap was answered as a crisis');
         assert.equal(tutor.sessionState.turnIndex, 1, 'the ordinary tap stopped counting');
-        assert.equal(calls.generateReply.length, 1);
+        assert.equal(calls.said.length, 1);
       })
       .finally(() => tutor.clearRescue());
   });
@@ -655,3 +657,118 @@ describe('the tutor speaks as the person the learner chose', () => {
     assert.equal(tutor.terminalFailureFor('tts_error', false, true), null, 'finished sessions cannot gain a new failure cause');
   } finally { answer(new Response('{}')); globalThis.fetch = real; forgetReportedSessions(); }
  });
+
+describe('a scripted lesson speaks from the script, not the model', () => {
+  test('the opening line is said straight from the script', (t) => {
+    const { tutor, session, calls } = build(RUNGS.ECHO);
+    t.after(() => tutor.clearRescue());
+    tutor.speakCurrentTurn(session);
+    const prompt = currentPrompt(CAFE_LESSON, tutor.sessionState);
+    assert.deepEqual(calls.said, [scriptedSpeech(prompt.turn, prompt.directive)]);
+    assert.equal(calls.generateReply.length, 0, 'a script needs no model to be read out');
+  });
+
+  test('an expected answer is answered at once, from the script', async (t) => {
+    const { tutor, calls } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    const next = currentPrompt(CAFE_LESSON, tutor.sessionState);
+    assert.equal(tutor.sessionState.turnIndex, 1);
+    assert.deepEqual(calls.said, [scriptedSpeech(next.turn, next.directive)], 'the next turn, word for word');
+    assert.equal(calls.generateReply.length, 0, 'no model round trip between the learner and the tutor');
+  });
+
+  test('an answer the script did not expect still gets the model', async (t) => {
+    const { tutor, calls } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    await tutor.onUserTurnCompleted({} as never, heard('What does that mean?')).catch(() => {});
+    await tutor.settled();
+    assert.equal(calls.generateReply.length, 1, 'a miss can be anything, and only the model can answer anything');
+    assert.equal(calls.said.length, 0);
+  });
+
+  test('a rescue says the target line for the learner to repeat', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session, calls } = build(RUNGS.PROMPTED);
+    tutor.armRescue(session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await tutor.settled();
+    tutor.clearRescue();
+    const target = currentPrompt(CAFE_LESSON, tutor.sessionState).turn.target;
+    assert.equal(calls.said.length, 1);
+    assert.ok(calls.said[0]!.startsWith(target), 'the line they froze on, said for them');
+    assert.equal(calls.generateReply.length, 0);
+  });
+
+  test('a typed lesson says nothing at all', (t) => {
+    const { tutor, session, calls } = build(RUNGS.ECHO, { voiceless: true });
+    t.after(() => tutor.clearRescue());
+    tutor.speakCurrentTurn(session);
+    assert.deepEqual(calls.said, []);
+  });
+});
+
+describe('give me a moment, in a spoken lesson', () => {
+  test('asking for time gets the same bounded grace the conversation gives', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+
+    tutor.armRescue(session); // the tutor finished speaking; the clock is running
+    await tutor.handleClientMessage(session, tapped({ t: 'moment' }));
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 0, 'a learner who asked for time is not stuck four seconds later');
+
+    tutor.armRescue(session); // the agent going back to listening must not cut the grace short
+    t.mock.timers.tick(MOMENT_GRACE_MS - STUCK_SILENCE_MS);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 0, 'the grace runs its full length');
+
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 1, 'and then the ordinary rescue, so nobody is stranded');
+  });
+});
+
+describe('review fixes: rescues that move the lesson on, punctuation, and a stale grace', () => {
+  test('a rescue that moves the lesson on says the new question before its answer', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session, calls } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    for (let i = 0; i < 2; i += 1) {
+      tutor.armRescue(session);
+      t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+      await tutor.settled();
+    }
+    assert.equal(tutor.sessionState.turnIndex, 1, 'two strikes moved the lesson on');
+    const next = CAFE_LESSON.turns[1]!;
+    const last = calls.said.at(-1)!;
+    assert.ok(last.startsWith(next.tutor.trim()), 'the waiter asks the new question first');
+    assert.ok(last.includes(next.target), 'then the line to answer it with');
+  });
+
+  test('a transcript that is only punctuation gets the scripted rescue, not the model', async (t) => {
+    const { tutor, calls } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    await tutor.onUserTurnCompleted({} as never, heard('...')).catch(() => {});
+    await tutor.settled();
+    assert.equal(calls.generateReply.length, 0);
+    assert.equal(calls.said.length, 1);
+  });
+
+  test('a grace cut short never leaves the lesson without a clock', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    await tutor.handleClientMessage(session, tapped({ t: 'moment' }));
+    tutor.clearRescue(); // the tutor starts speaking (a replay) during the grace
+    for (let i = 1; i <= 2; i += 1) {
+      tutor.armRescue(session);
+      t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+      await tutor.settled();
+      assert.equal(tutor.sessionState.ladder.rescues, i, `rescue ${i} still fires after the grace was cut short`);
+    }
+  });
+});
