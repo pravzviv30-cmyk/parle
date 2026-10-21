@@ -193,7 +193,10 @@ export function SideControl({ label, accessibilityLabel, icon, onPress, disabled
   );
 }
 
-/** The 84pt sun mic with its rim, and the mic's state in words under it. */
+/**
+ * The 84pt live mic with its rim, and the mic's state in words under it. Mint,
+ * not the artboard's sun: the live mic is green (founder, 2026-10-21 UI-008).
+ */
 export function MicControl({ label, accessibilityLabel, onPress, disabled = false }: { label: string; accessibilityLabel: string; onPress: () => void; disabled?: boolean }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
@@ -347,7 +350,7 @@ function makeStyles(t: B) {
     side: { width: 72, alignItems: 'center', gap: 4 },
     sideDisc: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
     micColumn: { alignItems: 'center', gap: 4 },
-    mic: { width: 84, height: 84, borderRadius: 42, borderWidth: 6, borderColor: t.orbRing, backgroundColor: t.sun, alignItems: 'center', justifyContent: 'center' },
+    mic: { width: 84, height: 84, borderRadius: 42, borderWidth: 6, borderColor: t.orbRing, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
     disabled: { opacity: 0.55 },
     ladder: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', rowGap: 6 },
     ladderStep: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 6 },

@@ -280,3 +280,22 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   tests cover both themes; each step is proven by light and dark simulator
   screenshots beside its artboard before it is committed.
 - Sources: founder answers 2026-10-20 (this session), canvas artboards, Figma M3.
+
+## UI-009 — Direction B review decisions
+
+- Date: 2026-10-21
+- Status: accepted (founder answers to the fidelity review)
+- Decision: Journey's "What you can do" shows no "n of 3 earned" count; abilities
+  carry no count, as before. The live mic is green (mint, with ink on it), not
+  the artboard's sun. Onboarding keeps no visible back button (F352); the
+  phone's back gesture still works. The age check stays after sign-up and the
+  AI-partner consent stays where it is; moving either before the first scene is
+  an age-policy change for another round. Profile's plan card may name the free
+  plan's "5 free minutes of speaking each week", the plan's fixed allowance.
+  Review's "I said it" shows words only, with no microphone glyph, because
+  nothing records. The onboarding line "Speak when you choose" is approved.
+- Reason: each artboard detail was weighed against an existing rule; the
+  founder kept the rule except where the plan's fixed allowance is honest.
+- Consequence: the review page lists these as decided; `live/liveRoomView.test.ts`
+  pins the green mic and `review/cardView.test.ts` pins the said-it button.
+- Sources: founder answers 2026-10-21, https://claude.ai/artifact/LBjptRAoaNZRy9ESMb229a.

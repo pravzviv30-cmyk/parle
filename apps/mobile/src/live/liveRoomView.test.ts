@@ -1,6 +1,8 @@
 // 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the live room's rules as plain functions.
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { goalStrip, helpLadder, ladderSpoken, liveBubbles, moreHelpOffered, paceLabel, askedLabel, HELP_COPY } from './liveRoomView.ts';
 import type { TurnLine } from './turns.ts';
 
@@ -65,5 +67,16 @@ describe('the bubbles', () => {
     assert.deepEqual(liveBubbles(turns, 'Oui, c’est quoi le'), { tutor: turns[2], you: 'Oui, c’est quoi le' });
     assert.deepEqual(liveBubbles([...turns, turn('4', 'learner', 'Un café')], '  '), { tutor: turns[2], you: 'Un café' });
     assert.deepEqual(liveBubbles([], null), { tutor: null, you: null });
+  });
+});
+
+describe('the live mic is green', () => {
+  // 2026-10-21 UI-008, founder decision: the live mic keeps the green signal
+  // rule rather than the artboard's sun, with ink on it in both themes.
+  test('the mic fills mint and draws its glyph in ink', () => {
+    const parts = readFileSync(fileURLToPath(new URL('./LiveParts.tsx', import.meta.url)), 'utf8');
+    assert.match(parts, /mic: \{[^}]*backgroundColor: t\.mint/, 'the live mic is not mint');
+    assert.doesNotMatch(parts, /mic: \{[^}]*backgroundColor: t\.sun/, 'the live mic went back to sun');
+    assert.match(parts, /<BMicHeavy color=\{t\.onMint\} \/>/, 'the mic glyph is not ink on mint');
   });
 });

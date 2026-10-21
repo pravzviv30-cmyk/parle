@@ -640,3 +640,16 @@ test('the question over a retrieval prompt goes once the answer is out', () => {
   assert.equal(REVIEW_COPY.question, 'How would you say this in French?');
   assert.ok(!REVIEW_COPY.question.includes('—'));
 });
+
+describe('"I said it" never looks like a recorder', () => {
+  // 2026-10-21 UI-008, founder decision: nothing records on Review, so the
+  // button carries words only and no microphone glyph.
+  test('the said-it button draws no microphone', () => {
+    const screen = readFileSync(fileURLToPath(new URL('../ReviewScreen.tsx', import.meta.url)), 'utf8');
+    const start = screen.indexOf('accessibilityLabel={SAID_IT}');
+    assert.ok(start > 0, 'Review no longer draws the said-it button');
+    const button = screen.slice(start, screen.indexOf('</Pressable>', start));
+    assert.doesNotMatch(button, /Mic/, 'the said-it button draws a microphone again');
+    assert.doesNotMatch(screen, /\bBMic\b/, 'Review imports the microphone glyph again');
+  });
+});

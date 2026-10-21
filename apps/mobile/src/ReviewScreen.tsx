@@ -44,7 +44,7 @@ import { GhostButton, PillButton } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import { BArt } from './art/BArt.tsx';
-import { BMic, BSpeaker } from './today/TodayParts.tsx';
+import { BSpeaker } from './today/TodayParts.tsx';
 import { KeyboardGlyph } from './review/ReviewParts.tsx';
 import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
 import { conversationContext, fromLine } from './review/context.ts';
@@ -444,7 +444,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
             accessibilityLabel={SAID_IT}
             style={({ pressed }) => [st.said, pressed && { opacity: 0.85 }]}
           >
-            <BMic size={20} color={t.onPrimary} />
             <Text style={[bType.bold18, { color: t.onPrimary }]}>{SAID_IT}</Text>
           </Pressable>
           <Pressable
@@ -539,7 +538,9 @@ function makeStyles(t: B) {
     again: { backgroundColor: t.quiet },
     good: { backgroundColor: t.sun },
     easy: { backgroundColor: t.mint },
-    // "I said it": the 56 primary with the mic; "Type it": the 50 white button.
+    // "I said it": the 56 primary, words only. 2026-10-21 UI-008, founder: no mic
+    // glyph, because nothing records and a learner should never think it does.
+    // "Type it": the 50 white button.
     said: { height: 56, borderRadius: 28, backgroundColor: t.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
     typeIt: { height: 50, borderRadius: 25, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     off: { opacity: 0.45 },

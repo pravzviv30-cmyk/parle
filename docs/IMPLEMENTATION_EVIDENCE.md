@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B review decisions (UI-009: the live mic is green, Review's
+  "I said it" has no microphone glyph; the other five answers keep the code as it is), on
+  branch `claude/direction-b` (held, not on main):
+  **5,858 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3444. Floors raised only through `gate:bless`.
 - 21 October 2026 direction B fidelity rebuild, simulator fixes (Drill card top border and end
   card figures, onboarding welcome drawing bleed, plan scene rows from one scene each), on
   branch `claude/direction-b` (held, not on main):
