@@ -5,9 +5,9 @@
  * report checks, where the whole answer is a judgment. It reuses the brain's
  * TypeSafe client, so there is no HTTP code here.
  *
- *   npm run jev -- --ask "Is this copy warm and plain?" --state copy.txt
- *   git diff | npm run jev -- --ask "Does this diff make the README section wrong?"
- *   npm run jev -- --questions q.json --state report.md
+ *   npm run -s jev -- --ask "Is this copy warm and plain?" --state copy.txt
+ *   git diff | npm run -s jev -- --ask "Does this diff make the README section wrong?"
+ *   npm run -s jev -- --questions q.json --state report.md
  *
  * Exit codes: 0 ok (or --pass met), 1 error, 2 --pass not met.
  *
@@ -27,7 +27,7 @@ export const MAX_STATE_BYTES = 200 * 1024;
 /** Where the key lives when the shell does not export it, in lookup order. */
 export const KEY_FILES = ['services/token-server/.env', 'services/tutor-agent/.env'];
 
-const USAGE = `Usage: npm run jev -- (--ask "<yes/no instruction>" | --questions <file.json>) [--state <file|->] [--pass <0..1>]
+const USAGE = `Usage: npm run -s jev -- (--ask "<yes/no instruction>" | --questions <file.json>) [--state <file|->] [--pass <0..1>]
 
   --ask         One yes/no question, answered as a noul under the id "answer".
   --questions   JSON file: { "<id>": { "type": "noul"|"choice"|"score", ... } }.
