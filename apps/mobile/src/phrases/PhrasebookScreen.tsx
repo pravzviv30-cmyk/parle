@@ -1,6 +1,7 @@
 import { needsPhraseSearch, searchPhrases } from './search.ts';
 import { Feedback } from '../motion/Feedback.tsx';
-import { Illustration } from '../art/flat/Illustration.tsx';
+import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
+import { NOTEBOOK_ART } from '../empty/emptyStates.ts';
 /**
  * Your phrases — every line that has become the learner's, as a route (F575).
  *
@@ -41,7 +42,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { IconAction, Card, Field, GhostButton, Label, PillButton } from '../components.tsx';
+import { IconAction, Card, Field, GhostButton, Label } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
@@ -165,7 +166,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
 
       {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><IconAction layout="inline" icon="refresh" label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
 
-      {visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '' && <Card><Illustration name="state-notebook" fit="small" /><Text style={[type.body, { color: paper.ink }]}>Your first kept phrase lands here.</Text><PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>}
+      {visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '' && <EmptyStateCard art={NOTEBOOK_ART} title="Your first kept phrase lands here." body={null} action={{ label: 'Choose a scene', onPress: () => nav.navigate('Missions') }} />}
 
       {/* The one card this visit deals, at the top, so the thing worth doing is
           never below a list of things already done. */}

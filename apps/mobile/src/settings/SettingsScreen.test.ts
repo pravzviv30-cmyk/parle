@@ -88,7 +88,8 @@ const TAB = stripComments(read('./SettingsScreen.tsx'));
  * both the tests that need it.
  */
 const REMINDER_CARD = (() => {
-  const start = TAB.indexOf('<SettingsGroup title={REMINDERS_GROUP} footer={REMINDERS_FOOTER}>');
+  // 2026-10-20 UI-008, artboard B-Settings: the group is Phone again and its footer is the artboard's.
+  const start = TAB.indexOf('<SettingsGroup title={REMINDERS_GROUP} footer={PHONE_FOOTER}>');
   const end = TAB.indexOf('</SettingsGroup>', start);
   assert.ok(start !== -1 && end > start, 'the reminder group is not a card on this screen');
   return TAB.slice(start, end);
@@ -185,7 +186,8 @@ describe('the daily reminder on Settings', () => {
     assert.match(TAB, /const reminderUnread = unreadReminderOwner\?\.scope === currentReminderScope && unreadReminderOwner\.userId === currentReminderUser && unreadReminderOwner\.userId === activeUserId\(\)/);
     assert.match(TAB, /const row = notifications === null \|\| !reminderOwned \? null : reminderRow\(stored, notifications\)/, 'the switch can show Off before the owned read succeeds');
     assert.match(REMINDER_CARD, /reminderUnknown && <View[\s\S]*?Reminder status could not be read\. Try again before changing it\./, 'an unread choice has no visible explanation');
-    assert.match(REMINDER_CARD, /reminderUnread && <IconAction ground=\{mode === 'dark' \? 'blue' : 'paper'\} layout="inline" icon="refresh" label="Retry reminder status" onPress=\{\(\) => setReminderAttempt\(value => value \+ 1\)\}/, 'an unread choice has no retry');
+    // 2026-10-20 UI-008, artboard B-Settings: the mode is the B tokens' own.
+    assert.match(REMINDER_CARD, /reminderUnread && <IconAction ground=\{t\.mode === 'dark' \? 'blue' : 'paper'\} layout="inline" icon="refresh" label="Retry reminder status" onPress=\{\(\) => setReminderAttempt\(value => value \+ 1\)\}/, 'an unread choice has no retry');
     assert.match(TAB, /\}, \[user, reminderAttempt\]\)/, 'Retry cannot reread the owned value');
     for (const name of HANDLERS) {
       const body = bodyOf(TAB, name);

@@ -189,7 +189,7 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     assert.equal(COMES_UP_OFTEN_ENABLED, true);
     for (const file of ['./PracticeTab.tsx', '../practice/FixesScreen.tsx']) {
       const source = flat(stripComments(read(file)));
-      assert.match(source, /const pattern = patternCard\(\{ patterns: profile\.brain\.errorPatterns, packs: data\.packs, bank: data\.bank, access: locks\.access \}\);/, `${file} does not take its pattern from patternCard`);
+      assert.match(source, /const pattern = patternCard\(\{ patterns: profile\.brain\.errorPatterns, packs: data\.packs, bank: data\.bank, access: locks\.access(, within: [^}]+)? \}\);/, `${file} does not take its pattern from patternCard`);
       assert.match(source, /\{pattern !== null && \(/, `${file} draws the pattern card over nothing`);
       assert.match(source, /title=\{pattern\.row\.title\} hint=\{pattern\.row\.hint\}/);
       assert.match(source, /tapThrough\(locks\.access, 'fixes', locks\.open, \(\) => go\(pattern\.row\.practise!\)\)/, `${file} opens the pattern drill without the seam`);

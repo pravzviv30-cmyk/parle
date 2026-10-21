@@ -35,6 +35,15 @@ export const DARK_READY: ReadonlySet<string> = new Set<string>([
   // 2026-10-21 UI-008, artboards B-Practice, B-Empty-Practice and B-Fixes: Practice and Your fixes in light and dark.
   'Practice',
   'Fixes',
+  // 2026-10-21 UI-008, artboards B-Review, B-ReviewReveal, B-Drill and the
+  // Review block of B-Empty-States: Review and the Drill in light and dark.
+  'Review',
+  'Drill',
+  // 2026-10-21 UI-008, artboards B-Streak, B-Profile and B-Settings: Streak,
+  // Profile and Settings (with its Appearance row) in light and dark.
+  'Streak',
+  'Profile',
+  'Settings',
 ]);
 
 /** Routes that stay light whatever DARK_READY says. */

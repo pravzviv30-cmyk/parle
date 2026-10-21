@@ -221,9 +221,11 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(FLAT, /const offlineShown = !live \|\| heldBack !== null/);
     assert.match(RENDER_FLAT, /\{offlineShown && \(/);
     assert.equal((RENDER.match(/TUTOR_OFFLINE.headline/g) ?? []).length, 1);
-    const offline = between(RENDER_FLAT, '{offlineShown && (', '</Card>', 'the offline block is drawn');
+    // 2026-10-21 UI-008, B-Empty-States "Tutor away or offline": the block is the lavender away card.
+    const offline = between(RENDER_FLAT, '{offlineShown && (', '</EmptyStateCard>', 'the offline block is drawn');
     assert.match(offline, /\{primary\}/);
     assert.match(offline, /<LocalPracticeCard \/>/);
+    assert.match(offline, /title=\{TUTOR_OFFLINE\.headline\} body=\{TUTOR_OFFLINE\.body\}/);
     assert.doesNotMatch(RENDER, /state-offline|todayItems/);
   });
 
@@ -300,7 +302,7 @@ describe('Speak keeps its history read, its plan read and its continuation', () 
 
   test('a refused start is forgotten once the tutor is reachable again, and a retry is the same start', () => {
     assert.match(FLAT, /useEffect\(\(\) => \{ if \(live\) setHeldBack\(null\); \}, \[live\]\);/);
-    const offline = between(RENDER, '{offlineShown && (', '</Card>', 'the offline block is drawn');
+    const offline = between(RENDER, '{offlineShown && (', '</EmptyStateCard>', 'the offline block is drawn');
     assert.ok(!offline.includes('LESSON_MINUTES'));
     assert.match(FLAT, /open\(heldBack\?\.textMode \?\? textMode, heldBack \? pendingStart\.current : next\.params\)/);
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/);

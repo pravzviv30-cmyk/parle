@@ -166,5 +166,6 @@ describe('your phrases, as a route of its own — F575', () => {
 
 // A saved-but-unrecalled collection is populated, not an empty notebook.
 test('saved phrases and search results never draw the first-phrase empty prompt', () => {
-  assert.match(FLAT, /!hasPhrases\(visibleBook\) && !hasSaved\(visibleBook\) && query.trim\(\) === '' && <Card>/);
+  // 2026-10-21 UI-008: the empty prompt is the B empty-state card.
+  assert.match(FLAT, /!hasPhrases\(visibleBook\) && !hasSaved\(visibleBook\) && query.trim\(\) === '' && <EmptyStateCard art=\{NOTEBOOK_ART\}/);
 });

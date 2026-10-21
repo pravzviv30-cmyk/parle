@@ -91,7 +91,7 @@ import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
 import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
 import { RouteTheme, useRouteGround } from './RouteTheme.tsx';
-import { backOrTabs, type LeavingNav } from './leave.ts';
+import { backOrTabs, tabsAlone, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
 
@@ -468,6 +468,8 @@ function ConvoRoute() {
         onRecap={onRecap}
         onExit={leave}
         onPractice={(phrase) => nav.replace('Drill', { ownWords: phrase })}
+        // 2026-10-21 UI-008, artboard B-Celebrate: "See your journey" opens the Journey tab.
+        onJourney={() => nav.reset(tabsAlone('MyFrench'))}
         walkMode={walkMode}
         startInTextMode={walkMode ? false : route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}

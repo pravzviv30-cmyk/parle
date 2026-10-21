@@ -1,4 +1,5 @@
-import { Illustration } from '../art/flat/Illustration.tsx';
+import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
+import { NOTEBOOK_ART } from '../empty/emptyStates.ts';
 /** A quiet library of the learner's own, curated Tutor conversations. */
 
 import { useNavigation } from '@react-navigation/native';
@@ -271,11 +272,8 @@ export function ConversationPackLibrary({
       {linkMessage != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{linkMessage}</Text>}
 
       {ordered.length === 0 && unavailableRows.length===0 ? (
-        <Card style={st.empty}>
-          <Illustration name="state-notebook" fit="small" />
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>No conversations on this page</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Finish a Tutor conversation and its curated practice can appear here.</Text>
-        <PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>
+        <EmptyStateCard art={NOTEBOOK_ART} title="No conversations on this page" body="Finish a Tutor conversation and its curated practice can appear here."
+          action={{ label: 'Choose a scene', onPress: () => nav.navigate('Missions') }} />
       ) : (
         <View style={st.packs}>
           {ordered.map((pack) => (

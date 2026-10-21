@@ -204,3 +204,9 @@ describe('Practise all fixes is there whenever there is a fix to practise', () =
     assert.match(screen, /if \(all\.kind === 'drill'\) go\(all\.route\); else \{ setActive\(all\.key\);/);
   });
 });
+
+// 2026-10-21, learning-science review: the Fixes card is scoped to the fixes on screen.
+test('Your fixes asks patternCard only within the conversations in its scope', () => {
+  const screen = readFileSync(fileURLToPath(new URL('./FixesScreen.tsx', import.meta.url)), 'utf8');
+  assert.match(screen, /within: scope === 'this' \? \[pack\] : data\.packs \}\);/);
+});

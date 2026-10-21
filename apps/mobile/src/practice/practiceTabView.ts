@@ -190,7 +190,11 @@ export function pickUp(input: {
  */
 export const COMES_UP_OFTEN_ENABLED = true;
 
-export const COMES_UP_TITLE = 'Comes up often in your conversations';
+// 2026-10-21, learning-science review: not "in your conversations". The
+// stored tally can reach two inside one conversation (even one turn, as the
+// brain does not dedupe a tag within a turn), so the title claims no more
+// than "often".
+export const COMES_UP_TITLE = 'Comes up often';
 export const COMES_UP_SHORT = 'Comes up often';
 export const PRACTISE_THIS = 'Practise this';
 /** The pattern card's quiet line: the "2 min" has no estimate behind it, so only "free" (no speaking time) stays. */
@@ -206,9 +210,19 @@ export function patternCard(input: {
   packs: readonly ConversationPack[];
   bank: readonly DrillExercise[];
   access?: Access;
+  /**
+   * The conversations whose fixes are on screen (Your fixes' scope). When
+   * given, a pattern is shown only if one of their corrections shows its
+   * example, so the card never names a pattern no fix on screen shows.
+   */
+  within?: readonly ConversationPack[];
 }): { row: PatternRow; fixes: PracticeRoute | null } | null {
   if (!COMES_UP_OFTEN_ENABLED) return null;
-  const row = comesUpOften({ ...input, limit: 1 })[0];
+  const { within, patterns } = input;
+  const rows = comesUpOften({ ...input, limit: Number.POSITIVE_INFINITY });
+  const row = within === undefined
+    ? rows[0]
+    : rows.find((candidate) => correctionsShowing(patterns?.[candidate.tag]?.example ?? '', within).length > 0);
   if (row === undefined) return null;
   const source = orderedConversationPacks(input.packs).find((pack) => pack.state === 'ready' && pack.corrections.length > 0);
   return { row, fixes: source === undefined ? null : { screen: 'Fixes', params: { packId: source.id } } };

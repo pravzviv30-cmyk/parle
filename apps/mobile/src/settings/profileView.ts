@@ -22,7 +22,10 @@
  * mechanic, and a date reads as a deadline.
  */
 
+import { PLANS } from '@luvani/core';
+
 import { GAME_COPY } from '../game/copy.ts';
+import { streakDays } from '../game/todayHeroView.ts';
 import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
 import { PLAN_LABELS, planSentence, type PlanStatusView } from '../purchases/planStatus.ts';
 import { STATED_LEVEL_OPTIONS, type StatedLevel } from '../profile/practicePreferences.ts';
@@ -44,6 +47,98 @@ export const MY_FRENCH_ROW = 'My French';
 export const FRIENDS_ROW = 'Friends';
 export const FRIENDS_SUB = 'Optional shared practice';
 export const NAME_UNSET = 'You';
+
+// ─────────────────────────────────── the B profile (2026-10-20 UI-008, artboard B-Profile)
+
+export const MORE_GROUP = 'More';
+export const YOUR_TUTOR_ROW = 'Your tutor';
+export const MEMORY_PROFILE_SUB = 'See it, change it, or forget any of it';
+export const JOURNEY_ROW = 'Your journey';
+export const JOURNEY_SUB = 'Stages, abilities and then and now';
+export const SAVED_PHRASES_ROW = 'Saved phrases';
+export const SOUNDS_ROW = 'Your sounds';
+export const SOUND_READY = 'One sound is ready to revisit';
+export const HELP_FEEDBACK_ROW = 'Help and feedback';
+export const PRIVACY_ROW = 'Privacy';
+export const PRIVACY_SUB = 'What we keep and why';
+export const PLAN_EYEBROW = 'Your plan';
+
+/** "What Alexandre remembers", the memory row's title on Profile. */
+export function memoryRowTitle(tutorName: string): string {
+  return `What ${tutorName} remembers`;
+}
+
+/** The stage the learner is at, "Starter", from Journey's own five stages. Null with no step marked here. */
+export function stageWordOf(view: { steps: readonly { label: string; state: 'done' | 'here' | 'ahead' }[] }): string | null {
+  return view.steps.find((step) => step.state === 'here')?.label ?? null;
+}
+
+/** "8 saved": the deck's saved phrases, as Practice counts them. Null with none, and the row carries no second line. */
+export function savedCount(saved: number): string | null {
+  return Number.isFinite(saved) && saved > 0 ? `${Math.floor(saved)} saved` : null;
+}
+
+/** The sounds row's line: only while the sound journey holds a sound to revisit. */
+export function soundsLine(hasJourney: boolean): string | null {
+  return hasJourney ? SOUND_READY : null;
+}
+
+export interface ProfileStat {
+  key: 'stage' | 'level' | 'streak';
+  /** Null while unread: the cell keeps its place and draws no number. */
+  value: string | null;
+  label: string;
+  route: 'MyFrench' | 'Streak';
+}
+
+/**
+ * The three cells of the stats card: the stage, the level over its XP, the
+ * run over "streak". With no run the cell says how one starts, as Today's
+ * tile does ("Practice", "not yet today"), never a nought.
+ */
+export function profileStats(input: { stage: string | null; level: number | null; xpTotal: number | null; streak: number | null }): ProfileStat[] {
+  const level = input.level !== null && Number.isFinite(input.level) ? GAME_COPY.level.title(Math.max(0, Math.floor(input.level))) : null;
+  const xp = input.xpTotal !== null && Number.isFinite(input.xpTotal) ? `${Math.max(0, Math.floor(input.xpTotal))} XP` : 'XP';
+  const run = input.streak === null ? null : Math.max(0, Math.floor(input.streak));
+  return [
+    { key: 'stage', value: input.stage, label: 'stage', route: 'MyFrench' },
+    { key: 'level', value: level, label: xp, route: 'MyFrench' },
+    run === null
+      ? { key: 'streak', value: null, label: 'streak', route: 'Streak' }
+      : run === 0
+        ? { key: 'streak', value: 'Practice', label: 'not yet today', route: 'Streak' }
+        : { key: 'streak', value: streakDays(run), label: 'streak', route: 'Streak' },
+  ];
+}
+
+/**
+ * What the free plan includes, from the plan facts: practice and review, the
+ * free plan's weekly speaking allowance (core's PLANS, the number the wall and
+ * onboarding say), and the freezes it holds (D23), as the game view read
+ * them from the plan; without that read the freeze clause is left out.
+ */
+export function freeIncludes(freezes: number | null): string {
+  const minutes = Math.round(PLANS.trial.secondsPerPeriod / 60);
+  const speaking = `${minutes} free minutes of speaking each week`;
+  if (freezes === null || !Number.isFinite(freezes) || freezes < 1) return `Practice and review, and ${speaking}`;
+  return `Practice and review, ${speaking}, and ${freezes} streak ${freezes === 1 ? 'freeze' : 'freezes'}`;
+}
+
+export interface PlanCardView {
+  title: string | null;
+  line: string;
+  action: string;
+  /** Free goes to the plans; anything else to the Subscription screen. */
+  target: 'Wall' | 'Subscription';
+}
+
+/** The blue plan card. Unread and unknown name no plan and are never called Free. */
+export function planCard(view: PlanStatusView | null, freezes: number | null = null): PlanCardView {
+  if (view === null) return { title: null, line: PLAN_CHECKING, action: COMPARE_PLANS_ROW, target: 'Subscription' };
+  if (!view.known) return { title: null, line: PLAN_UNKNOWN_TITLE, action: COMPARE_PLANS_ROW, target: 'Subscription' };
+  if (isFree(view)) return { title: PLAN_FREE_TITLE, line: freeIncludes(freezes), action: SEE_PLANS_ROW, target: 'Wall' };
+  return { title: view.planLabel, line: planSentence(view.bandLine, view.periodLine), action: COMPARE_PLANS_ROW, target: 'Subscription' };
+}
 
 // ─────────────────────────────────────────────────── learning preferences
 
@@ -74,6 +169,8 @@ export const REMINDERS_FOOTER = 'Reminders need notifications turned on for Luva
 
 /** Every line above, for the em dash and guilt sweeps. */
 export const PROFILE_VIEW_COPY: readonly string[] = [
+  MORE_GROUP, YOUR_TUTOR_ROW, MEMORY_PROFILE_SUB, JOURNEY_ROW, JOURNEY_SUB, SAVED_PHRASES_ROW, SOUNDS_ROW,
+  SOUND_READY, HELP_FEEDBACK_ROW, PRIVACY_ROW, PRIVACY_SUB, PLAN_EYEBROW,
   PROFILE_TITLE, EDIT_NAME_LINK, LEARNING_GROUP, YOUR_FRENCH_GROUP, PLAN_GROUP_TITLE,
   LEARNING_PREFERENCES_ROW, TUTOR_VOICE_ROW, TUTOR_MEMORY_ROW, TUTOR_MEMORY_SUB,
   PROGRESS_ROW, MY_FRENCH_ROW, FRIENDS_ROW, FRIENDS_SUB, NAME_UNSET,
@@ -155,6 +252,16 @@ export function planRow(view: PlanStatusView | null): { label: string; sub: stri
   if (view === null) return { label: PLAN_GROUP_TITLE, sub: PLAN_CHECKING };
   if (!view.known) return { label: PLAN_GROUP_TITLE, sub: PLAN_UNKNOWN_TITLE };
   return { label: isFree(view) ? PLAN_FREE_TITLE : view.planLabel, sub: planSentence(view.bandLine, view.periodLine) };
+}
+
+/**
+ * The Free speaking time row on Settings (2026-10-20 UI-008, artboard
+ * B-Settings): the free plan's band in D24's words ("3 free minutes this week,
+ * refills Monday"), never a meter. Null for a paid, unread or unknown plan.
+ */
+export function freeTimeLine(view: PlanStatusView | null): string | null {
+  if (view === null || !view.known || !isFree(view)) return null;
+  return view.bandLine;
 }
 
 export type SubscriptionView =

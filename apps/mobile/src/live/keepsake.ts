@@ -88,6 +88,18 @@ export function nextTimeLine(progress: readonly MissionProgress[]): string | nul
   return mission === undefined ? null : `Next time: ${mission.titleEn}`;
 }
 
+/**
+ * The spine's next scene as a can-do, for the Celebration's "Next:" pill
+ * (2026-10-21 UI-008, artboard B-Celebrate). The same `spineFrom(progress).next`
+ * as `nextTimeLine`, so the two can never name different scenes.
+ */
+export function nextCanDo(progress: readonly MissionProgress[]): { canDoEn: string } | null {
+  const next = spineFrom(progress).next;
+  if (next === null) return null;
+  const mission = getMission(next.id);
+  return mission === undefined ? null : { canDoEn: mission.canDoEn };
+}
+
 export interface ReminderOffer {
   /** The learner's chosen time, or their own rhythm (`smart`) when they never chose one. */
   choice: ReminderMode;

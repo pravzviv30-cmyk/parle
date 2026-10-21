@@ -1,26 +1,34 @@
 /**
- * The Streak screen (F770; README Part 5.D): the run, the lifetime total and
- * the longest run; this week; the month; the freezes and the repair a plan
- * holds; the milestones.
+ * The Streak screen (F770; README Part 5.D), rebuilt 2026-10-20 UI-008 to the
+ * B-Streak artboard, in light and dark.
+ *
+ * Top to bottom: the butter band (back, "Your streak", the run at 52/800 with
+ * the dancing flame, the longest run and the lifetime line, the week strip and
+ * today's line), the freeze card, the next milestone, the month, how a day
+ * counts, and the Evening nudge.
  *
  * Every word and every day's state is `streakScreenView.ts`'s, from the game
- * view, which read the same practice days and covers the number counts: this
- * file is layout. There is no "missed" anywhere: a day without practice is "no
- * practice", a covered day says what covered it.
+ * view, which read the same practice days and covers the number counts; the
+ * nudge is `streakNudge.ts`'s over the daily reminder. This file is layout.
+ * There is no "missed" anywhere: a day without practice is "no practice", a
+ * covered day says what covered it.
  *
- * - The hero flame is lit only when today counts. The run is drawn where it
- *   stands on every visit, never counted up from nought again, and with no
- *   run going there is no number, only the words for how one starts. The
- *   lifetime line always sits beside it (D2).
+ * - The run is drawn where it stands on every visit, never counted up from
+ *   nought again, and with no run going there is no number, only the words for
+ *   how one starts. The lifetime line always sits beside it (D2).
  * - Seven columns, Monday first, on a phone and on an iPad alike. Every cell
  *   says its full weekday or date to a screen reader; only the letter or the
  *   number is drawn.
- * - The month arrows are labelled icon buttons ("Previous month", "Next
- *   month") at the touch floor, off where the months run out.
- * - A subscriber sees the freezes card, and the repair card while a repair is
- *   being earned. A free learner sees one calm line and See plans, and only
- *   just after a reset that a plan could still repair (D4). No notification,
- *   no countdown, and nothing at all while the plan is unknown.
+ * - The month arrows are labelled buttons ("Previous month", "Next month") at
+ *   the touch floor, off where the months run out.
+ * - The freeze card shows what the plan holds once the plan is known: the free
+ *   plan's one freeze "Free with every account" (D23) and the trial pill for a
+ *   second freeze and repair; a subscriber's two. A subscriber earning a repair
+ *   sees the repair card; a free learner just after a reset sees one calm line
+ *   and See plans (D4). No notification, no countdown.
+ * - The milestone row has no reward line: no milestone carries one yet.
+ * - The Evening nudge is the daily reminder's switch, absent on a build that
+ *   cannot schedule one and until it has been read.
  *
  * It reads the game layer on its own: sand while the facts load, and a plain
  * line with a way to try again when they could not be read.
@@ -28,194 +36,146 @@
 
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { C2Flame } from '../onboarding/C2Visuals.tsx';
-import { c } from '../onboarding/boldRhythm.ts';
+import { useNavigation } from '@react-navigation/native';
 
-import { Card, IconAction, IconButton, Skeleton } from '../components.tsx';
-import { Icon } from '../icons/Icon.tsx';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { CountUp } from '../motion/CountUp.tsx';
+import { BArt } from '../art/BArt.tsx';
+import { IconAction, Skeleton } from '../components.tsx';
+import { BackButton } from '../journey/JourneyParts.tsx';
+import { ScrollScreen, TopInset } from '../layout.tsx';
 import { LivingBar } from '../motion/LivingBar.tsx';
+import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
-import { HIT, HAIRLINE, accent, colour, paper, radius, space, type } from '../theme.ts';
-import { Flame } from './art/Flame.tsx';
-import { FreezeMark } from './art/FreezeMark.tsx';
-import { Medal } from './art/Medal.tsx';
-import { RepairMark } from './art/RepairMark.tsx';
+import { BButton } from '../today/TodayParts.tsx';
+import { bType, radius, space } from '../theme.ts';
 import { GAME_COPY } from './copy.ts';
 import { useGame } from './GameProvider.tsx';
-import { monthOf, shiftMonth, streakScreenView, type CalendarMonth, type DayCellView } from './streakScreenView.ts';
-
-const HERO_FLAME = space(30);
-const MARK = space(7);
-const MEDAL = space(12);
-/** One seventh of the row: seven columns on any width. */
-const COLUMN = `${100 / 7}%` as const;
+import { FreezeCard, HowCard, MilestoneRow, MonthArrow, MonthGrid, NudgeRow, StreakHead, WeekStrip } from './StreakParts.tsx';
+import { NUDGE_COPY } from '../settings/streakNudge.ts';
+import { streakDays } from './todayHeroView.ts';
+import { WEEKDAY_LETTERS, monthOf, shiftMonth, streakScreenView, type CalendarMonth } from './streakScreenView.ts';
+import { useEveningNudge } from '../settings/useEveningNudge.ts';
 
 export function StreakScreen() {
-  const focused = useIsFocused();
   const back = useBackToHome();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { view, failed, refresh } = useGame();
   const [wanted, setWanted] = useState<CalendarMonth | null>(null);
-  const header = <ScreenHeader title={GAME_COPY.streakScreen.title} back={{ onPress: back }} />;
+  const nudge = useEveningNudge();
+  const t = useB();
+  const s = useThemedStyles(makeStyles);
+  const copy = GAME_COPY.streakScreen;
 
   if (view === null) {
     return (
-      <ScrollScreen bottom="inset" header={header}>
-        {failed ? (
-          <View style={st.group}>
-            <Text style={[type.body, { color: paper.ink }]}>{GAME_COPY.streakScreen.unread}</Text>
-            <IconAction layout="inline" icon="refresh" label={GAME_COPY.streakScreen.retry} onPress={refresh} />
+      <ScrollScreen bottom="inset" padded={false} topGap={space(3)}>
+        <View style={s.page}>
+          <View style={s.headRow}>
+            <BackButton onPress={back} />
+            <Text accessibilityRole="header" style={[bType.section22, { color: t.text }]}>{copy.title}</Text>
           </View>
-        ) : (
-          <Skeleton blocks={[{ height: HERO_FLAME + space(16), radius: radius.feature }, { height: space(20), radius: radius.card }, { height: space(80), radius: radius.card }]} />
-        )}
+          {failed ? (
+            <View style={s.group}>
+              <Text style={[bType.line16, { color: t.text }]}>{copy.unread}</Text>
+              <IconAction layout="inline" icon="refresh" label={copy.retry} onPress={refresh} />
+            </View>
+          ) : (
+            <Skeleton blocks={[{ height: space(60), radius: radius.feature }, { height: space(20), radius: radius.card }, { height: space(80), radius: radius.card }]} />
+          )}
+        </View>
       </ScrollScreen>
     );
   }
 
   const screen = streakScreenView(view, wanted ?? monthOf(view.today));
   const { hero, month } = screen;
+  const openPlans = () => nav.navigate('Wall', { entry: 'settings' });
 
   return (
-    <ScrollScreen bottom="inset" header={header}>
-      <View style={[st.hero, { backgroundColor: c.lavender, borderRadius: 24, padding: 20 }]} accessible accessibilityLabel={hero.label}>
-        <View style={{ opacity: hero.lit ? 1 : 0.65 }}><C2Flame size={HERO_FLAME} active={focused && hero.lit} /></View>
-        <View style={st.heroCount}>
-          {/* Drawn where it stands on every visit: Home is where a rise counts
-              up. A rise that lands while this screen is open counts on, and a
-              new day draws it again, so it never runs down. */}
-          {hero.running ? <CountUp key={view.today} from={hero.count} to={hero.count} textStyle={[type.display, { color: paper.ink }]} /> : null}
-          <Text style={[type.heading, { color: paper.ink }]}>{hero.words}</Text>
+    <ScrollScreen bottom="inset" padded={false} bleedTop>
+      {/* The band: butter, rounded 0 0 40 40, padding 58 22 22 (the safe area plus 12), gap 6. */}
+      <View style={s.band}>
+        <TopInset extra={12} />
+        <View style={s.headRow}>
+          <BackButton onPress={back} />
+          <Text accessibilityRole="header" style={[bType.section22, { color: t.text }]}>{copy.title}</Text>
         </View>
-        <Text style={[type.bodyStrong, st.centred, { color: paper.ink }]}>{hero.lifetime}</Text>
-        {hero.longest !== null ? <Text style={[type.small, st.centred, { color: paper.inkSoft }]}>{hero.longest}</Text> : null}
-        <Text style={[type.body, st.centred, { color: paper.ink }]}>{hero.today}</Text>
+        <View style={s.heroRow} accessible accessibilityLabel={hero.label}>
+          <View style={s.heroWords}>
+            {/* Drawn where it stands on every visit; with no run, the words for how one starts. */}
+            <Text style={[bType.run52, { color: t.text }]}>{hero.running ? streakDays(hero.count) : hero.words}</Text>
+            {hero.running ? <Text style={[bType.line16, { color: t.text }]}>{copy.inARow}</Text> : null}
+            {hero.longest !== null ? <Text style={[bType.chip, s.longest, { color: t.text }]}>{hero.longest}</Text> : null}
+            <Text style={[bType.note, { color: t.text }]}>{hero.lifetime}</Text>
+          </View>
+          <BArt name="flame-dance" width={170} height={156} style={s.dance} />
+        </View>
+        <WeekStrip week={screen.week} />
+        <Text style={[bType.line15, s.centred, s.today, { color: t.text }]}>{hero.today}</Text>
       </View>
 
-      <Card style={st.card}>
-        <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{GAME_COPY.streakScreen.week}</Text>
-        <View style={st.grid}>
-          {screen.week.map((cell) => (
-            <View key={cell.day} style={st.column} accessible accessibilityLabel={cell.label}>
-              <DayMark cell={cell} />
-              <Text style={[type.small, { color: cell.state === 'today-open' ? paper.ink : paper.inkSoft }]}>{cell.mark}</Text>
-            </View>
-          ))}
-        </View>
-      </Card>
+      <View style={s.body}>
+        {screen.freezeCard !== null ? (
+          <FreezeCard {...screen.freezeCard} onUpsell={openPlans} />
+        ) : null}
 
-      <Card style={st.card}>
-        <View style={st.monthHead}>
-          <IconButton icon="back" label={GAME_COPY.streakScreen.previousMonth} disabled={!month.canGoBack} onPress={() => setWanted(shiftMonth(month, -1))} />
-          <Text accessibilityRole="header" style={[type.heading, st.monthTitle, { color: paper.ink }]}>{month.title}</Text>
-          {/* The back chevron, turned to face forward: the set's six marks have no forward one. */}
-          <View style={st.mirrored}>
-            <IconButton icon="back" label={GAME_COPY.streakScreen.nextMonth} disabled={!month.canGoForward} onPress={() => setWanted(shiftMonth(month, 1))} />
+        {screen.repair !== null ? (
+          <View style={s.card}>
+            <Text accessibilityRole="header" style={[bType.bold18, { color: t.text }]}>{screen.repair.title}</Text>
+            <Text style={[bType.para15, { color: t.secondary }]}>{screen.repair.line}</Text>
+            <LivingBar to={screen.repair.done / screen.repair.needed} accessibilityLabel={screen.repair.progress} />
+            <Text style={[bType.note, { color: t.muted }]}>{screen.repair.progress}</Text>
           </View>
-        </View>
-        <View style={st.grid}>
-          {Array.from({ length: month.leading }, (_, i) => <View key={`lead-${i}`} style={st.column} />)}
-          {month.cells.map((cell) => (
-            <View key={cell.day} style={st.column} accessible accessibilityLabel={cell.label}>
-              <DateMark cell={cell} />
-            </View>
-          ))}
-        </View>
-      </Card>
+        ) : null}
 
-      {screen.freezes !== null ? (
-        <Card style={st.card}>
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{screen.freezes.title}</Text>
-          <View style={st.inline} accessible accessibilityLabel={`${screen.freezes.title}: ${screen.freezes.ready}`}>
-            {Array.from({ length: screen.freezes.max }, (_, i) => (
-              <FreezeMark key={i} size={MARK} state={i < screen.freezes!.held ? 'ready' : 'used'} />
-            ))}
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{screen.freezes.ready}</Text>
+        {screen.repairForSubscribers !== null ? (
+          <View style={s.card}>
+            <Text style={[bType.para15, { color: t.secondary }]}>{screen.repairForSubscribers.line}</Text>
+            <BButton label={screen.repairForSubscribers.action} height={44} ground={t.primary} ink={t.onPrimary} text={bType.bold15} hug onPress={openPlans} />
           </View>
-          <Text style={[type.body, { color: paper.ink }]}>{screen.freezes.line}</Text>
-          {screen.freezes.returns !== null ? <Text style={[type.small, { color: paper.inkSoft }]}>{screen.freezes.returns}</Text> : null}
-        </Card>
-      ) : null}
+        ) : null}
 
-      {screen.repair !== null ? (
-        <Card style={st.card}>
-          <View style={st.inline}>
-            <RepairMark size={MARK} />
-            <Text accessibilityRole="header" style={[type.heading, st.grow, { color: paper.ink }]}>{screen.repair.title}</Text>
-          </View>
-          <Text style={[type.body, { color: paper.ink }]}>{screen.repair.line}</Text>
-          <LivingBar to={screen.repair.done / screen.repair.needed} accessibilityLabel={screen.repair.progress} />
-          <Text style={[type.small, { color: paper.inkSoft }]}>{screen.repair.progress}</Text>
-        </Card>
-      ) : null}
-
-      {screen.repairForSubscribers !== null ? (
-        <View style={st.group}>
-          <Text style={[type.body, { color: paper.ink }]}>{screen.repairForSubscribers.line}</Text>
-          <IconAction layout="inline" icon="crown" label={screen.repairForSubscribers.action} onPress={() => nav.navigate('Wall', { entry: 'settings' })} />
+        <View style={s.section}>
+          <StreakHead title={copy.nextHead} />
+          <MilestoneRow title={screen.milestone.title} progress={screen.milestone.progress} fraction={screen.milestone.fraction} />
         </View>
-      ) : null}
 
-      <Card style={st.card}>
-        <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{GAME_COPY.streakScreen.milestones}</Text>
-        <View style={st.medals}>
-          {screen.milestones.map((milestone) => (
-            <View key={milestone.days} style={st.medal} accessible accessibilityLabel={milestone.label}>
-              <Medal size={MEDAL} state={milestone.medal} />
-              <Text style={[type.label, st.centred, { color: paper.ink }]}>{milestone.words}</Text>
-              {milestone.when !== null ? <Text style={[type.small, st.centred, { color: paper.inkSoft }]}>{milestone.when}</Text> : null}
-            </View>
-          ))}
+        <View style={s.section}>
+          <StreakHead
+            title={month.title}
+            right={
+              <View style={s.arrows}>
+                <MonthArrow label={copy.previousMonth} back disabled={!month.canGoBack} onPress={() => setWanted(shiftMonth(month, -1))} />
+                <MonthArrow label={copy.nextMonth} back={false} disabled={!month.canGoForward} onPress={() => setWanted(shiftMonth(month, 1))} />
+              </View>
+            }
+          />
+          <MonthGrid month={month} weekdays={WEEKDAY_LETTERS} />
         </View>
-        <Text style={[type.body, { color: paper.ink }]}>{screen.nextMilestone}</Text>
-      </Card>
+
+        <HowCard title={copy.howTitle} line={copy.howLine} />
+
+        {nudge !== null ? (
+          <NudgeRow title={NUDGE_COPY.title} line={NUDGE_COPY.line} note={nudge.note} trouble={nudge.trouble} on={nudge.on} busy={nudge.busy} onChange={nudge.toggle} />
+        ) : null}
+      </View>
     </ScrollScreen>
   );
 }
 
-/** One day of the week strip: the flame for a practised day, the cover's mark, a ring for today, a quiet ring otherwise. */
-function DayMark({ cell }: { cell: DayCellView }) {
-  if (cell.state === 'practised') return <Flame size={MARK} state="lit" />;
-  if (cell.state === 'covered') {
-    return cell.cover === 'repair' ? <RepairMark size={MARK} /> : cell.cover === 'travel' ? <View style={st.dayMark}><Icon name="trip" variant="bulk" size={MARK - space(2)} color={accent.brand} /></View> : <FreezeMark size={MARK} />;
-  }
-  return <View style={[st.dayMark, st.ring, cell.state === 'today-open' && st.today, cell.state === 'ahead' && st.ahead]} />;
-}
-
-/** One date of the month: practised days are filled, a covered day ringed in the brand blue, today ringed in ink. */
-function DateMark({ cell }: { cell: DayCellView }) {
-  const practised = cell.state === 'practised';
-  return (
-    <View style={[st.date, practised && st.datePractised, cell.state === 'covered' && st.dateCovered, cell.state === 'today-open' && st.today]}>
-      <Text style={[type.small, { color: cell.state === 'ahead' || cell.state === 'open' ? paper.inkSoft : paper.ink }]}>{cell.mark}</Text>
-    </View>
-  );
-}
-
-const st = StyleSheet.create({
-  hero: { alignItems: 'center', gap: space(2), marginBottom: space(4) },
-  heroCount: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', justifyContent: 'center', columnGap: space(2) },
-  centred: { textAlign: 'center' },
-  card: { marginTop: space(4), gap: space(3) },
-  group: { marginTop: space(4), gap: space(2) },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: space(2) },
-  column: { flexBasis: COLUMN, maxWidth: COLUMN, alignItems: 'center', gap: space(1) },
-  monthHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  monthTitle: { flex: 1, minWidth: 0, textAlign: 'center' },
-  mirrored: { transform: [{ scaleX: -1 }] },
-  inline: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2) },
-  grow: { flex: 1, minWidth: 0 },
-  medals: { flexDirection: 'row', flexWrap: 'wrap', rowGap: space(3) },
-  // Four to a row on a phone; at a large reading size they wrap rather than squeeze.
-  medal: { flexBasis: '25%', minWidth: HIT + space(4), flexGrow: 1, alignItems: 'center', gap: space(1) },
-  dayMark: { width: MARK, height: MARK, borderRadius: MARK / 2, alignItems: 'center', justifyContent: 'center' },
-  ring: { borderWidth: 2, borderColor: paper.field },
-  today: { borderWidth: 2, borderColor: paper.ink },
-  ahead: { borderWidth: HAIRLINE, borderColor: paper.line },
-  date: { minWidth: MARK, minHeight: MARK, borderRadius: MARK / 2, alignItems: 'center', justifyContent: 'center' },
-  datePractised: { backgroundColor: colour.sun },
-  dateCovered: { borderWidth: 2, borderColor: accent.brand },
-});
+const makeStyles = (t: B) =>
+  StyleSheet.create({
+    page: { paddingHorizontal: 22, gap: 22 },
+    band: { backgroundColor: t.butter, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, paddingHorizontal: 22, paddingBottom: 22, gap: 6 },
+    headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    heroRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+    heroWords: { flex: 1, minWidth: 0, gap: 2 },
+    longest: { marginTop: 4 },
+    dance: { marginRight: -12, flexShrink: 0 },
+    centred: { textAlign: 'center' },
+    today: { marginTop: 4 },
+    body: { paddingTop: 22, paddingHorizontal: 22, paddingBottom: 40, gap: 22 },
+    card: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 12 },
+    group: { gap: space(2) },
+    section: { gap: 10 },
+    arrows: { flexDirection: 'row', gap: 6 },
+  });

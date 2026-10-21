@@ -168,13 +168,55 @@ period stay near a purchase action, and large text is never capped to fit.
   preview) while there is no best, and a one-line card for a scene not tried.
   Free conversations do not appear, and the footer says why. Rebuilt to
   B-ThenNow in light and dark (UI-008, 2026-10-21).
+- Review (B-Review, B-ReviewReveal, UI-008, 2026-10-21, light and dark): the
+  butter ground (M3 ochre in dark) and the 44pt close disc, with the header's
+  centre left empty because the founder holds the "3 of 5" count back. The
+  white card (radius 28) carries the tag pill, "From {conversation}" when the
+  phrase came from a pack's correction, "How would you say this in French?",
+  the prompt at 27 bold and the cafe-table drawing in its corner; I said it
+  (56, mic glyph only, nothing records) and Type it (50, which opens the field)
+  sit under it with "Have a go first. The answer shows after." Turned over, the
+  French sits in the mint panel with a 48pt speaker, "Also fine:" shows the
+  drill bank's other accepted French when there is one, "You said it" or "You
+  typed" follows, and the grades are three filled 64pt tiles (Again, Got it,
+  Easy) with no interval line, held by the founder.
+- Drill (B-Drill, UI-008, 2026-10-21, light and dark): the lavender ground
+  (plum in dark), the close disc, the sitting bar where Phase B drew it and
+  "Phrase four of eight" only in a practice sitting. The build exercise is the
+  brand eyebrow, the English at 26/800, "Tap the words in order.", the answer
+  box (2pt periwinkle) with brand word tiles, and the bank, where a placed word
+  leaves a dashed slot and a free word is a white tile on a ring lip. Other
+  exercise kinds keep their cards, drawn from the theme.
+- Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
+  padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
+  button. Review and the drill bank with nothing due use cloud-cheer with Done;
+  Speak's away card is lavender with coffee-break, the retry and the bundled
+  offline line; Speak's out-of-time card (clock-calendar) shows only on the
+  free plan with nothing left, says the refill in the plan band's own words
+  and opens the plans. The phrase, conversation and memory pages use the
+  phrasebook drawing with Choose a scene; those three routes stay pinned light.
 - Live rooms keep the real start, pause, type, help, slower, English and leave
-  paths. White tutor bubbles and ink learner bubbles tell the speakers apart;
-  only the newest recast is highlighted. Waiting shows the stage really reached.
-- A recap starts with real French on a white surface inside its coral result.
-  It adds the learner's own lines, a correction or saved phrase, a sound page
-  only for a saved check, an ability page only for a core-earned can-do, and a
-  next page only when there is a useful next action. Closing is always there.
+  paths. Since 2026-10-21 (UI-008, B-Live and B-LiveHelp) the room keeps its
+  blue ground in both themes: the leave disc, the scene and its pace ("About N
+  min", the scene's own pace, never the allowance), the goals strip (done,
+  current, to do), the tutor-orb art pulsing with the real room levels, the
+  tutor's last line in a card bubble and the learner's words in sun, then
+  Type, the sun mic and Help. Help opens the cream sheet (the M3 ground in
+  dark): what the tutor asked, the ladder Hint, Choices, Line given over the
+  live rung, the rung's content, "More help: show the line", "Say your choice"
+  and the footnote; Simpler, Give me a moment and In English sit under it.
+  The full transcript stays one tap away. Parts in `live/LiveParts.tsx`, rules
+  in `live/liveRoomView.ts`.
+- The end of a conversation reads After a session (blue: the cheer, "Bien
+  joué.", minutes, new phrases and XP, the line said well with "Hear it said",
+  the day and this week's bars), then the Celebration only for a core-earned
+  can-do (blue: "You can now", the ability, the postcard, "Next:"), then the
+  Recap (lavender band with the goals, your lines with "Hear it said", one
+  phrase kept on the sun card, small fixes), a sound page only for a saved
+  check and a next page only when there is a useful next action. "Hear it
+  said" is the tutor's device voice, never a recording of the learner.
+  Closing is always there. Parts in `recap/RecapParts.tsx`, rules in
+  `recap/afterSessionView.ts`.
 - Voice, name and reminder choices open on a modal sheet over their page.
   Choosing updates the choice; Done closes it. Hear is separate from choosing.
 - Paid amounts come from the catalogue and prices from the store. A room that
@@ -650,6 +692,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.stageTrack` | `#EFE7F9` | The five-stage track behind the nodes (B-Journey) |
 | `b.light.peachSoft` | `#FCEADF` | The art panel inside the peach Postcards tile (B-Journey) |
 | `b.light.lavenderSoft` | `#F5F1FE` | The art panel inside the lavender Badges tile (B-Journey) |
+| `b.light.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
 
 | Token | Value | Role |
 |---|---|---|
@@ -702,6 +745,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.stageTrack` | `#302A48` | The five-stage track behind the nodes (B-Journey) |
 | `b.dark.peachSoft` | `#5A3F4C` | The art panel inside the peach Postcards tile (B-Journey) |
 | `b.dark.lavenderSoft` | `#3D3560` | The art panel inside the lavender Badges tile (B-Journey) |
+| `b.dark.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
 
 The status bar style is a token too: `dark` in light, `light` in dark.
 
@@ -752,6 +796,13 @@ the scale above has no exact token. Explore and Scene preview added
 19/24, a pushed screen's section head), `bandTitle` (ExtraBold 28/31, the
 scene band's title), `bold14` and `semi14` (the selected and resting filter
 chip), `semi13` (a field label) and `bold12` (the small "Free sample" pill).
+The live room, Recap, After a session and the Celebration (2026-10-21) added
+`display40` (ExtraBold 40/44, "Bien joué."), `ability34` (ExtraBold 34/37,
+-0.4, the ability earned), `title30` (ExtraBold 30/33, the Recap band's title)
+and `para17` (Regular 17/24, a sentence on a blue page).
+Streak, Profile and Settings (2026-10-21) added `initial34` (ExtraBold 34/40,
+the Profile avatar's initial), `name30` (ExtraBold 30/34, -0.3, the Profile
+name) and `run52` (ExtraBold 52/56, -1, the streak's run on its band).
 
 ## Surfaces and controls
 
@@ -1151,7 +1202,7 @@ revamp B content until Phase B rebuilds them. Friends is a Profile route and ret
 | Speak | The chosen tutor or real continuity, the same next task as Home, then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
 | Journey | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
-| Profile (avatar) | A large `title` with the settings gear (44) at its trailing edge, then the learner's sun disc, name, "Learning French since" when the onboarding date is known, and an Edit link to the name sheet. Then three grouped lists: Learning (Learning preferences with a one-line summary, the tutor as the orb opening the voice sheet, and Tutor memory), Your French (Progress, saying level, a confident level estimate and practice days, which opens Streak; My French; Friends), and Plan (one row opening Subscription). An unread or unknown plan names no plan and is never called Free. The voice and name choices open sheets over the page. |
+| Profile (avatar) | B-Profile (2026-10-21): the back disc and the 44pt gear, the 76pt sun disc with the initial, the 30/800 name (the page's heading), "Learning French since" when known, and an Edit pill. A white stats card (stage, level over XP, the run) opening Journey and Streak; the blue plan card ("Your plan" in sun, the plan's name, what Free includes, See plans to the Wall; an unread or unknown plan names no plan and is never called Free). Then Learning (preferences, the tutor as the orb opening the voice sheet, what the tutor remembers with the round lock), Your French (Your journey, Saved phrases with the saved count, Your sounds with "One sound is ready to revisit" only while the sound journey holds one, and the round lock) and More (Friends, Help and feedback only with a contact address, Privacy). The tab bar sits under it with no tab selected. |
 
 Two routes hold the standing choices and the plan (P2, 19 October 2026). Both
 are pushed with the shared header's chevron and an inline title, and both are
@@ -1162,13 +1213,19 @@ grouped lists.
 | Learning preferences | Opened from Profile. An intro line saying these never change the level earned, then Routine (the daily goal as its five choices, the one editor it has), How your tutor helps (correction style, the same row word for word as the memory screen's, then Tutor speaks more simply and Prefer typing), and Conversation starting point: one row whose subtitle is the chosen sentence, opening the four options, saved through `withStatedLevel` with the footer saying the earned level stays. |
 | Subscription | Opened from the plan row on Profile and Settings. The plan's name at `title`, its period in words, and a tutor-time card saying the speaking-time band in words. No minute count, no date and no filled track (F377, F541), and no price row, because nothing on the phone says which product the account holds. Manage in Apple Subscriptions, Compare plans (See plans for a free learner) and Restore. Restore says what the store found: a granted restore says it is on this account and re-reads the plan, and nothing found says so. When the plan cannot be checked, an `inset` notice and a 56pt Try again, with Manage and Restore still there. |
 
-Settings (P2) is six groups in this order: Account, Subscription, Reminders,
-Appearance & sound, Privacy & data, Help & about, then Delete account alone in a
-group with no heading at the foot, standing apart from every routine row. The
-trial-ending reminder switch appears in Reminders only on a build that can
-schedule it and while a store trial is on record. While notifications are
-denied for Luvani the switch reads off, its line says the reminder can't be sent,
-and an Open Settings row sits under it. Summaries that join several
+Settings (B-Settings, 2026-10-21) is seven groups in this order: Account,
+Plan, Practice, Phone, Appearance and sound, Data and privacy, Help and about,
+then Delete account alone in a card with no heading at the foot, standing apart
+from every routine row. Rows are the B row: 16/600 label, the answer stacked
+under it at 15, a longer line at 13, the 18pt chevron, in a white list at radius
+22. Plan adds Free speaking time (the D24 band in words) on the free plan.
+Practice has Speaking target and the correction style (into Learning
+preferences) and the two switches over the same stores. Phone holds the daily
+reminder, its time, the trial-ending reminder, and a refused notification or
+microphone permission, with the footnote that at most one reminder comes a day.
+Appearance and sound opens the Display choice (Follow device, Light, Dark).
+While notifications are denied for Luvani the switch reads off, its line says
+the reminder can't be sent, and an Open Settings row sits under it. Summaries that join several
 facts join them with commas: middots are out of learner copy.
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
@@ -1318,15 +1375,18 @@ a level or a badge plays only after the learner leaves. A review with
 nothing due still says "Nothing waiting." and plays nothing, and a safety stop
 has no end card.
 
-**The answer sheet** rises from the foot of a drill after each answer. A pass is
-mint with a check and a short warm line, `correct` and a light arrival haptic,
-and moves on by itself after 1.4 seconds. A typo the drill accepted is sun,
-"Nearly." and the real spelling, `nearly` and a soft haptic. A miss is calm
-white paper with no mark, no sound and no haptic: the first hands nothing over
-("This one comes round again."), and the second shows the French and waits for
-Continue. With a screen reader on, no sheet moves on by itself. The living bar
-under the header fills as phrases settle, carries no digit, glows sun after
-three real passes in a row, and never moves back.
+**The answer sheet** rises from the foot of a drill after each answer, as the
+B-Drill feedback panel (radius 20, the 28pt mint check disc, a 17 bold
+headline). A pass is the mint wash with green words and a short warm line,
+`correct` and a light arrival haptic, and moves on by itself after 1.4
+seconds. A typo the drill accepted is butter, "Nearly." and the real spelling,
+`nearly` and a soft haptic. A miss is the plain card under a hairline with no
+mark, no sound and no haptic: the first hands nothing over ("This one comes
+round again."), and the second shows the French and waits for Continue, drawn
+under the panel. With a screen reader on, no sheet moves on by itself. The
+living bar sits in the header row between the close disc and the words (8pt,
+brand on the card track), fills as phrases settle, carries no digit, glows sun
+after three real passes in a row, and never moves back.
 
 **Lines arrive.** A line said while the thread is on screen rises into place
 (`BubbleIn`): the learner's a little further, from the orb's side, the tutor's

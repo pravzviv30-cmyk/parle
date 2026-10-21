@@ -107,7 +107,7 @@ function pagesFor(persona: TutorPersona) {
     key: 'stuck',
     title: 'Getting stuck is planned for',
     body: 'You always get the first attempt. If you get stuck, a small English hint appears without interrupting the scene. The answer stays hidden unless you ask again.',
-    note: `Help me out reveals a hint. Simpler keeps ${persona.name}'s sentences short. In English tells you what ${p.subject} just said.`,
+    note: `Help reveals a hint, then choices, then the line. Simpler keeps ${persona.name}'s sentences short. In English tells you what ${p.subject} just said.`,
   },
   {
     key: 'after',

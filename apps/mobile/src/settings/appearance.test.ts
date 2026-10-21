@@ -52,15 +52,18 @@ test('the profile theme scope protects unrelated paper controls and keeps text r
   const appearance = read('./SettingsAppearance.tsx');
   assert.match(appearance, /text: paper\.ink as string/);
   assert.match(appearance, /createContext\(paperColors\)/);
-  assert.match(appearance, /trouble: mode === 'dark' \? colors\.text : signal\.correspondance/);
+  // 2026-10-20 UI-008, artboard B-Settings: the scope reads the B tokens of its mode.
+  assert.match(appearance, /trouble: t\.mode === 'dark' \? t\.text : signal\.correspondance/);
   for (const [mode, colors] of Object.entries(mainApp)) {
     for (const background of [colors.background, colors.surface, colors.inset]) {
       for (const ink of [colors.text, colors.muted]) assert.ok(contrast(background, ink) >= 4.5, `${mode} text ${ink} on ${background} must remain readable`);
     }
   }
   assert.ok(contrast(paper.card, paper.ink) >= 4.5);
-  for (const path of ['../tabs/ProfileTab.tsx', './SettingsScreen.tsx', '../profile/TutorMemoryScreen.tsx']) assert.match(read(path), /<SettingsAppearance>/);
+  // 2026-10-20 UI-008, artboard B-Settings: Profile and Settings opt into the B rows (`<SettingsAppearance b>`).
+  for (const path of ['../tabs/ProfileTab.tsx', './SettingsScreen.tsx', '../profile/TutorMemoryScreen.tsx']) assert.match(read(path), /<SettingsAppearance( b)?>/);
   for (const path of ['./SettingsRow.tsx', './ChoiceRow.tsx', './SwitchRow.tsx', './TroubleLine.tsx']) assert.match(read(path), /useSettingsColors\(\)/);
-  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'name'\}[^>]*surface=\{colors\.surface\} ink=\{colors\.text\}/);
-  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'tutorVoice'\}[^>]*surface=\{colors\.surface\} ink=\{colors\.text\}/);
+  // 2026-10-20 UI-008, artboard B-Profile: the sheets read the B tokens.
+  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'name'\}[^>]*surface=\{t\.card\} ink=\{t\.text\}/);
+  assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'tutorVoice'\}[^>]*surface=\{t\.card\} ink=\{t\.text\}/);
 });

@@ -211,7 +211,9 @@ describe('Progress from its own records — F769', () => {
     // Progress row, and the goal's five choices are on Learning preferences.
     const tab = read('../tabs/ProfileTab.tsx');
     assert.match(tab, /level: level\?\.level \?\? null/, 'the Progress row does not read the level from the game view');
-    assert.match(tab, /label=\{PROGRESS_ROW\}/, 'Profile has no Progress row');
+    // 2026-10-20 UI-008, artboard B-Profile: the stats card replaces the Progress row, and its streak cell opens Streak.
+    assert.match(tab, /profileStats\(\{ stage: evidence\.stage/, 'Profile has no stats card');
+    assert.match(tab, /stat\.route === 'Streak' \? nav\.navigate\('Streak'\)/, 'the streak cell does not open Streak');
     const prefs = read('../settings/LearningPreferencesScreen.tsx');
     assert.match(prefs, /GOAL_CHOICES\.map\(\(choice\) => \(\s*<Choice/, 'the goal is not drawn as the five choices');
     assert.match(prefs, /selected=\{goalChoiceOf\(dailyGoalOf\(profile\)\) === choice\.key\}/);

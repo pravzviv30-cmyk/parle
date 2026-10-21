@@ -16,8 +16,9 @@ test('revamp B Speak preserves real gates, one primary action and the authored s
   has('missions/MissionsScreen.tsx',/\['A0', 'A1'\]/,/<SceneMark/,/nav.setParams\(\{ focus: card.mission.id/,/ground=\{colour.blue\}/,/type.display/,/minutes/,/tone="white"/);
 });
 test('revamp B room controls keep typing, help and leave alongside the real waiting and error states',()=>{
-  has('ConvoScreen.tsx',/label="Help me out"/,/label="Simpler"/,/onModeChange=/,/label="Give me a moment"/,/label="In English"/,/keyboardShouldPersistTaps="handled"/,/<RoomWait/);
-  has('live/C2LiveRoom.tsx',/\['Speaking', 'Typing'\]/,/maxHeight: 104/,/keyboardShouldPersistTaps="handled"/,/onPress=\{onEnd\}/);
+  // 2026-10-21 UI-008, artboard B-LiveHelp: Help me out became the help sheet's "More help: show the line" (moreHelp).
+  has('ConvoScreen.tsx',/moreHelp=\{\{ disabled: !listening, onPress: \(\) => \{ closeMark\(\); live\.sendHelp\(\); \} \}\}/,/label="Simpler"/,/onModeChange=/,/label="Give me a moment"/,/label="In English"/,/keyboardShouldPersistTaps="handled"/,/<RoomWait/);
+  has('live/C2LiveRoom.tsx',/label="Type"/,/maxHeight: 104/,/keyboardShouldPersistTaps="handled"/,/onPress=\{onEnd\}/);
   has('live/RoomWait.tsx',/state = 'thinking'/,/size=\{112\}/,/accessibilityLiveRegion="polite"/,/\{stage\}/,/label=\{leaveLabel\}/);
   lacks('live/RoomWait.tsx',/ProgressDots|CheckGlyph|percent|ProgressBar/);
   has('live/LiveErrorView.tsx',/<BoldVoiceOrb state="error"/,/<Transcript/,/<PillButton/,/<IconAction/);
@@ -52,7 +53,8 @@ test('revamp B retrieval and drills preserve attempted recall, honest scoring an
   lacks('ReviewScreen.tsx',/borderLeftWidth|<VoiceOrb|score/);
   has('DrillScreen.tsx',/drillTitle/,/CheckGlyph/,/colour.mint/,/state-microphone/,/label="I said it"/);
   has('daily/DailyLibraryScreen.tsx',/appearance="underline"/,/label="Clear search"/,/change\(\{ query: '', limit: 12 \}\)/,/Retry saved items/);
-  for(const file of ['phrases/PhrasebookScreen.tsx','conversationPacks/ConversationPackLibrary.tsx']) has(file,/state-notebook/,/label="Choose a scene"/,/nav.navigate\('Missions'\)/);
+  // 2026-10-21 UI-008, B-Empty-States: the notebook drawing and its pill became the B empty-state card.
+  for(const file of ['phrases/PhrasebookScreen.tsx','conversationPacks/ConversationPackLibrary.tsx']) has(file,/<EmptyStateCard art=\{NOTEBOOK_ART\}/,/label: 'Choose a scene'/,/nav.navigate\('Missions'\)/);
 });
 test('revamp B Progress opens evidence-based materials, a weekly story and earned postcards without starting audio',()=>{
   // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages, the
@@ -70,7 +72,9 @@ test('revamp B Progress opens evidence-based materials, a weekly story and earne
 test('revamp B Profile choices stay over Profile and keep a lifetime count without a weekly rail',()=>{
   // P2 (2026-10-19): the learner's sun disc and the lifetime count of practice
   // days, now said on the Progress row rather than as a line of its own.
-  has('tabs/ProfileTab.tsx',/\{initialOf\(profile\.name\)\}/,/usePracticeDays\(\)/,/<BottomSheet visible=\{sheet === 'tutorVoice'\}/,/title="Your name"/,/label="Done"/,/<OptionRow/,/onHear=/);
+  // 2026-10-20 UI-008, artboard B-Profile: the run is the stats card's
+  // streak cell; the lifetime count stays on the Streak screen it opens.
+  has('tabs/ProfileTab.tsx',/initialOf\(profile\.name\)/,/streak: streak\?\.current \?\? null/,/<BottomSheet visible=\{sheet === 'tutorVoice'\}/,/title="Your name"/,/label="Done"/,/<OptionRow/,/onHear=/);
   lacks('tabs/ProfileTab.tsx',/<WeekRhythm|<DayCount weekly|onHear=[^\n]*setSheet\('none'\)/);
   has('settings/SettingsRow.tsx',/<Press/,/haptic="selection"/,/useRowFrame\(\)/);
   has('settings/SettingsGroup.tsx',/minHeight: 52/);
@@ -108,7 +112,8 @@ test('revamp B out-of-minutes surfaces open the central wall without selling in 
   has('LiveSessionScreen.tsx',/<OutOfMinutesView/);
 });
 test('recap stories, earned postcards and week wrapped use saved evidence and provide a way out',()=>{
-  has('RecapScreen.tsx',/total=\{pages.length\}/,/recapCanDo/,/nextPage === null \? 'Finish conversation' : 'Next'/,/firstEarned/,/<PostcardStamp/,/<CountUp/);
+  // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate, B-Recap: no step dots or count-up; Continue, Next, Finish.
+  has('RecapScreen.tsx',/pages\.indexOf\(page\)/,/recapCanDo/,/nextPage === null \? 'Finish' : blue \? 'Continue' : 'Next'/,/firstEarned/,/<PostcardStamp/,/<StatTiles/);
   has('progress/PostcardsScreen.tsx',/earnedPostcards\(missionStates/,/scopeGeneration/,/postcardIllustration/,/Choose a scene/);
   lacks('progress/PostcardsScreen.tsx',/locked|remaining|percent|collect all/);
   has('progress/WeekWrappedScreen.tsx',/storyFrom\(\{sessions,activity,packs,completions,now\}\)/,/hasStory/,/total=\{2\}/,/celebrate-wrapped/,/label=\{page===1\?'Done':'Next'\}/,/Choose a scene/,/Try loading your week again/,/readOwner===scopeGeneration\(\)/);

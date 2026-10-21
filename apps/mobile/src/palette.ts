@@ -396,6 +396,8 @@ const bLight = {
   peachSoft: '#FCEADF',
   /** The art panel inside the lavender Badges tile (B-Journey). */
   lavenderSoft: '#F5F1FE',
+  /** The live room's outer orb ring and the mic's rim on blue, in both modes (B-Live, 2026-10-21). A mark, never words. */
+  orbRing: '#4A3FE6',
   statusBar: 'dark' as 'dark' | 'light',
 };
 

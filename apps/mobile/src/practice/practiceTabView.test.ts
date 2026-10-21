@@ -23,6 +23,7 @@ import { packSelection } from './recommendation.ts';
 import { toSessionRecord } from './sessionStore.ts';
 import {
   COMES_UP_OFTEN_ENABLED,
+  COMES_UP_TITLE,
   EMPTY,
   PATTERN_COPY,
   PATTERN_FREE,
@@ -375,5 +376,28 @@ describe('the B-Practice additions: search, the pattern card, the smaller cards 
     assert.equal(cafeRow(unlocked).locked, false);
     const row = cafeRow(unlocked);
     assert.doesNotMatch(`${row.line} ${row.cost}`, /\bfree\b/i, 'the café lesson says free while it uses live minutes');
+  });
+});
+
+// 2026-10-21, learning-science review of 20f102af.
+describe('Comes up often claims only what the tally can say, and Your fixes names only a pattern on screen', () => {
+  test('the title claims "often", not "in your conversations", and the threshold is a stored tally of two', () => {
+    assert.equal(COMES_UP_TITLE, 'Comes up often');
+    // The brain adds one per tag entry per turn (packages/brain profile.ts),
+    // without deduping inside a turn, so two can come from one conversation.
+    // The mobile threshold stays the tally of two; the title promises no more.
+    const at = (count: number) => ({ 'gender-agreement': { count, lastSeen: new Date(NOW).toISOString(), example: 'le table' } });
+    assert.equal(comesUpOften({ patterns: at(1), packs: [], bank: [] }).length, 0);
+    assert.equal(comesUpOften({ patterns: at(2), packs: [], bank: [] }).length, 1);
+  });
+
+  test('with a scope, a pack whose corrections do not show the pattern draws no card', () => {
+    const patterns = { 'gender-agreement': { count: 4, lastSeen: new Date(NOW).toISOString(), example: 'le table' } };
+    const shows = pack('s', { corrections: [{ quote: 'le table', better: 'la table', betterEn: 'the table', why: 'a reason' }] });
+    const other = pack('o', { corrections: [{ quote: 'je va', better: 'je vais', betterEn: 'I go', why: 'a reason' }] });
+    assert.equal(patternCard({ patterns, packs: [shows, other], bank: [], within: [other] }), null, 'Your fixes names a pattern no fix on screen shows');
+    assert.equal(patternCard({ patterns, packs: [shows, other], bank: [], within: [shows] })?.row.tag, 'gender-agreement');
+    assert.equal(patternCard({ patterns, packs: [shows, other], bank: [], within: [shows, other] })?.row.tag, 'gender-agreement');
+    assert.notEqual(patternCard({ patterns, packs: [other], bank: [] }), null, 'Practice (no scope) still shows the profile pattern');
   });
 });

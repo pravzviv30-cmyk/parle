@@ -61,6 +61,8 @@ export interface DayCellView {
   mark: string;
   /** What a screen reader says: the full weekday or date, then what the day was. */
   label: string;
+  /** Whether this cell is today (B-Streak: its letter is drawn 800 ink). */
+  today: boolean;
 }
 
 export interface MonthView extends CalendarMonth {
@@ -98,12 +100,24 @@ export interface StreakScreenView {
   week: readonly DayCellView[];
   month: MonthView;
   freezes: { held: number; max: number; title: string; ready: string; line: string; returns: string | null } | null;
+  /**
+   * The B-Streak freeze card (2026-10-20 UI-008): "1 streak freeze ready",
+   * "Free with every account" on the free plan (D23), the paragraph, and the
+   * trial pill's line only while the plan holds no repair. Null while the plan
+   * is unknown, as `freezes` is.
+   */
+  freezeCard: { title: string; sub: string; line: string; returns: string | null; upsell: string | null } | null;
+  /** The B-Streak milestone row: "7 days: a whole week of French", its bar and "3 of 7 days". No reward line: none is stored. */
+  milestone: { days: number; title: string; progress: string; fraction: number };
   repair: { title: string; line: string; progress: string; done: number; needed: number } | null;
   /** The free learner's one calm line just after a reset (D4), or null. */
   repairForSubscribers: { line: string; action: string } | null;
   milestones: readonly MilestoneView[];
   nextMilestone: string;
 }
+
+/** The month's header row, Monday first (B-Streak). */
+export const WEEKDAY_LETTERS: readonly string[] = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 const MILESTONE_MEDALS: readonly MedalState[] = ['sun', 'mint', 'blue'];
 
@@ -165,6 +179,18 @@ export function clampMonth(wanted: CalendarMonth, practiceDays: readonly DayKey[
   return { year: Math.floor(index / 12), month: (index % 12) + 1 };
 }
 
+/** "7 days: a whole week of French", the bar's fraction and "3 of 7 days", for the run as it stands. */
+export function milestoneRow(current: number): StreakScreenView['milestone'] {
+  const run = Math.max(0, Math.floor(current));
+  const days = nextStreakMilestone(run);
+  return {
+    days,
+    title: GAME_COPY.streakScreen.milestoneTitle(days),
+    progress: GAME_COPY.streakScreen.milestoneProgress(run, days),
+    fraction: Math.min(1, run / days),
+  };
+}
+
 type StreakFacts = Pick<GameView, 'today' | 'streak' | 'freezes' | 'days' | 'protection' | 'repair' | 'badges'>;
 
 export function streakScreenView(view: StreakFacts, shown: CalendarMonth): StreakScreenView {
@@ -180,6 +206,7 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
       cover: cell.cover,
       mark: cell.label,
       label: `${cell.name}, ${dayWords(cell.state, cell.cover)}`,
+      today: cell.day === today,
     }),
   );
 
@@ -191,12 +218,14 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
       cover: cell.cover,
       mark: `${cell.date}`,
       label: `${dateWords(cell.day, false)}, ${dayWords(cell.state, cell.cover)}`,
+      today: cell.day === today,
     }),
   );
   const first = firstPractisedMonth(view.days.practiceDays, today) ?? monthOf(today);
   const month: MonthView = {
     ...at,
-    title: `${MONTH_NAMES[at.month - 1]!} ${at.year}`,
+    // 2026-10-20 UI-008, artboard B-Streak: "October"; the year only for a year gone by.
+    title: at.year === monthOf(today).year ? MONTH_NAMES[at.month - 1]! : `${MONTH_NAMES[at.month - 1]!} ${at.year}`,
     leading: cells.length > 0 ? weekdayIndex(cells[0]!.day) : 0,
     cells,
     canGoBack: monthIndex(at) > monthIndex(first),
@@ -218,6 +247,17 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
           };
         })()
       : null;
+
+  const freezeCard =
+    freezes === null
+      ? null
+      : {
+          title: freezes.held > 0 ? copy.card.ready(freezes.held) : copy.card.inUse(freezes.max),
+          sub: freezes.max <= 1 ? copy.card.free : copy.card.plan,
+          line: copy.card.line(freezes.max),
+          returns: freezes.returns,
+          upsell: view.protection?.repair === false ? copy.card.upsell : null,
+        };
 
   const offer = view.protection?.repair === true ? view.repair : null;
   const repair =
@@ -277,5 +317,7 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
     repairForSubscribers,
     milestones,
     nextMilestone: copy.nextMilestone(nextStreakMilestone(streak.current)),
+    freezeCard,
+    milestone: milestoneRow(streak.current),
   };
 }

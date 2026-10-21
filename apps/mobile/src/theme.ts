@@ -187,6 +187,26 @@ export const bType = {
   heavy16: { fontFamily: font.extraBold, fontSize: 16, lineHeight: 20 },
   /** The help card's sentence: 17/700 at 1.3 (B-Journey). */
   bold17Loose: { fontFamily: font.bold, fontSize: 17, lineHeight: 22 },
+  /** "Bien joué.": 40/800 (B-AfterSession, 2026-10-21). */
+  display40: { fontFamily: font.extraBold, fontSize: 40, lineHeight: 44, letterSpacing: -0.5 },
+  /** The ability earned: 34/800, -0.4, at 1.1 (B-Celebrate, 2026-10-21). */
+  ability34: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 37, letterSpacing: -0.4 },
+  /** The Recap band's title: 30/800 (B-Recap, 2026-10-21). */
+  title30: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 33, letterSpacing: -0.5 },
+  /** A 17 regular sentence on a blue page (B-AfterSession, B-Celebrate, 2026-10-21). */
+  para17: { fontFamily: font.regular, fontSize: 17, lineHeight: 24 },
+  /** A word bank tile, 17/600 (B-Drill). */
+  semi17: { fontFamily: font.semiBold, fontSize: 17, lineHeight: 21 },
+  /** The revealed French on a review card, 24/700 at 1.2 (B-ReviewReveal). */
+  answer24: { fontFamily: font.bold, fontSize: 24, lineHeight: 29 },
+  /** The review prompt, 27/700 at 1.2, -0.2 (B-Review). */
+  prompt27: { fontFamily: font.bold, fontSize: 27, lineHeight: 32, letterSpacing: -0.2 },
+  /** The Profile avatar's initial: 34/800 (B-Profile, 2026-10-21). */
+  initial34: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 40 },
+  /** The Profile name: 30/800 at -0.3 (B-Profile, 2026-10-21). */
+  name30: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 34, letterSpacing: -0.3 },
+  /** The streak's run, "3 days": 52/800 at -1 (B-Streak, 2026-10-21). */
+  run52: { fontFamily: font.extraBold, fontSize: 52, lineHeight: 56, letterSpacing: -1 },
 } as const;
 
 /**

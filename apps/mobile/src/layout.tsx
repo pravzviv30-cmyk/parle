@@ -30,7 +30,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
+import { CloseGlyph, GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
 import { colour, paper, space, type, HAIRLINE, HIT, RHYTHM } from './theme.ts';
 import { useB, type B } from './main/bTheme.tsx';
 import { footerOverflow } from './footerOverflow.ts';
@@ -338,7 +338,7 @@ export function ScrollScreen({
  */
 type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ink?: string; muted?: string; ground?: 'blue' | 'coral' | 'paper'; /** Opt-in (P2): the back disc and chevron from the selected appearance. Absent, the white disc as before. */ backAppearance?: { disc: string; mark: string } } & (
   | { back?: { onPress: () => void; label?: string; disabled?: boolean }; leave?: never }
-  | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
+  | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string; close?: boolean }; back?: never; /** A close header's centre: the sitting bar, or nothing. */ centre?: ReactNode }
 );
 
 /**
@@ -352,6 +352,33 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   const back = props.back;
   const leave = props.leave;
   const t = useB();
+  // 2026-10-21 UI-008, artboards B-Review and B-Drill: a full-screen sitting's
+  // way out is the 44 card disc with the 18 close mark on the left, then the
+  // centre (the sitting bar, or an empty slot) and the trailing words. The
+  // title is not drawn there; it names the centre for a screen reader.
+  if (leave != null && leave.close === true) {
+    return (
+      <View style={{ minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+        <Pressable
+          onPress={leave.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={leave.accessibilityLabel ?? leave.label}
+          style={({ pressed }) => ({ width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: t.card, opacity: pressed ? 0.7 : 1 })}
+        >
+          <CloseGlyph size={18} color={t.text} />
+        </Pressable>
+        <View
+          accessible={typeof title === 'string'}
+          accessibilityRole={typeof title === 'string' ? 'header' : undefined}
+          accessibilityLabel={typeof title === 'string' ? title : undefined}
+          style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+        >
+          {'centre' in props ? props.centre : null}
+        </View>
+        {props.trailing}
+      </View>
+    );
+  }
   // Three slots always, so the centre is the centre. The left holds the round
   // back button or an empty box its width; the right holds the leave word or an empty box its
   // width; the title sits in the flex centre between two equal touch floors, not

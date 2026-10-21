@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, AccessibilityInfo, PixelRatio, useWindowDimensions } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { boldType, font, space } from '../theme.ts';
 import { Press } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
@@ -27,7 +28,7 @@ import { dueCount } from '../review/store.ts';
 import { tapSettled } from '../motion/haptics.ts';
 import { TabGlyph } from './TabGlyph.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 /** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
 const CELL_HEIGHT = 62;
@@ -35,33 +36,14 @@ const CELL_HEIGHT = 62;
 export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
   // learner moves between tabs; finishing a sitting must be able to clear it.
-  const [due, setDue] = useState<number | null>(null);
-  // Watched so the bar re-renders when the OS text size changes while open.
-  const { width } = useWindowDimensions();
-  const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
-  const t = useB();
-  const st = useThemedStyles(makeStyles);
-
-  useEffect(() => {
-    let cancelled = false;
-    void dueCount().then((n) => {
-      if (!cancelled) setDue(n);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [state.index]);
+  const due = useDueCount(state.index);
 
   return (
-    <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
-      <View style={[st.capsule, { width: tabCapsuleWidth(width, insets.left, insets.right) }]}>
-      {state.routes.map((route, index) => {
+    <TabStrip
+      insets={insets}
+      due={due}
+      routes={state.routes.map((route, index) => {
         const focused = state.index === index;
-        const icon = TAB_ICONS[route.name];
-        const label = TAB_LABELS[route.name] ?? route.name;
-        const dot = tabDot(route.name, due);
-        if (!icon) return null;
-
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) {
@@ -72,6 +54,75 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             announceTab(route.name);
           }
         };
+        return { key: route.key, name: route.name, focused, onPress };
+      })}
+    />
+  );
+}
+
+/**
+ * The bar outside the tab navigator, with no tab selected (2026-10-20 UI-008,
+ * artboard B-Profile: "Tab bar present with no active tab"). Profile is a
+ * pushed screen, so it draws the same capsule itself, and a tap goes to that
+ * tab inside `Tabs`.
+ */
+export function DetachedTabBar({ onTab }: { onTab: (route: string) => void }) {
+  const insets = useSafeAreaInsets();
+  const due = useDueCount(0);
+  return (
+    <TabStrip
+      insets={insets}
+      due={due}
+      routes={MAIN_TABS.map((name) => ({
+        key: name,
+        name,
+        focused: false,
+        onPress: () => {
+          tapSettled();
+          onTab(name);
+          announceTab(name);
+        },
+      }))}
+    />
+  );
+}
+
+/** The review deck's due count, read again whenever `key` changes; null until read. */
+function useDueCount(key: number): number | null {
+  const [due, setDue] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void dueCount().then((n) => {
+      if (!cancelled) setDue(n);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+  return due;
+}
+
+/** The strip and its capsule: the one drawing both bars share. */
+function TabStrip({ routes, insets, due }: {
+  routes: readonly { key: string; name: string; focused: boolean; onPress: () => void }[];
+  insets: { bottom: number; left: number; right: number };
+  due: number | null;
+}) {
+  // Watched so the bar re-renders when the OS text size changes while open.
+  const { width } = useWindowDimensions();
+  const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
+
+  return (
+    <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
+      <View style={[st.capsule, { width: tabCapsuleWidth(width, insets.left, insets.right) }]}>
+      {routes.map((route) => {
+        const focused = route.focused;
+        const icon = TAB_ICONS[route.name];
+        const label = TAB_LABELS[route.name] ?? route.name;
+        const dot = tabDot(route.name, due);
+        if (!icon) return null;
 
         return (
           <Press
@@ -79,7 +130,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             frame={[st.cell, wrapped && st.cellWrapped]}
             style={[st.face, focused && st.faceSelected]}
             key={route.key}
-            onPress={onPress}
+            onPress={route.onPress}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             aria-selected={focused}

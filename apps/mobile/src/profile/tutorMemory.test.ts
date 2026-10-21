@@ -142,7 +142,8 @@ describe('what the tutor remembers, drawn', () => {
     assert.ok(!SCREEN.includes('forgottenFacts') && !SCREEN.includes('memory.facts'), 'the screen reaches past memory.ts into the stored shape');
     assert.match(SCREEN, /const facts = visibleFacts\(profile\);/, 'the screen lists facts the learner forgot');
     assert.match(FLAT, /accessibilityLabel=\{`\$\{FORGET_ONE\}: \$\{fact\.en\}`\}/, 'a forget button does not say which fact it forgets');
-    assert.match(FLAT, /\{facts\.length === 0 \? \( <View[^>]*> <Illustration name="state-notebook" fit="small" \/> <Text[^>]*>\{memoryEmptyLine\(profile\)\}<\/Text> <IconAction ground=\{mode === 'dark' \? 'blue' : 'paper'\} layout="inline" icon="chat" label="Choose a scene" onPress=\{\(\) => nav.navigate\(\x27Missions\x27\)\} \/> <\/View> \)/, 'an empty memory draws an empty list rather than a sentence');
+    // 2026-10-21 UI-008: an empty memory is the B empty-state card, the sentence its title.
+    assert.match(FLAT, /\{facts\.length === 0 \? \( <View style=\{st\.card\}> <EmptyStateCard art=\{NOTEBOOK_ART\} title=\{memoryEmptyLine\(profile\)\} body=\{null\} action=\{\{ label: 'Choose a scene', onPress: \(\) => nav\.navigate\('Missions'\) \}\} \/> <\/View> \)/, 'an empty memory draws an empty list rather than a sentence');
     assert.match(FLAT, /\{facts\.length > 0 && \( <View style=\{st\.all\}> <GhostButton color=\{colors\.text\} label=\{FORGET_ALL\}/, 'clear is offered with nothing to clear');
     assert.match(FLAT, /<ConfirmSheet visible=\{clearing\}/, 'clearing details requires an explicit confirmation');
     assert.match(SCREEN, /maxLength=\{MAX_GOAL_CHARS\}/, 'a goal can outgrow the wire');
@@ -165,14 +166,15 @@ describe('what the tutor remembers, drawn', () => {
       profile,
       // P2 (2026-10-19): the tutor rows sit in Profile's Learning group, under
       // the Learning preferences row, rather than under a heading of their own.
-      /<SettingsGroup title=\{LEARNING_GROUP\}>[\s\S]*?<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>\s*<\/SettingsGroup>/,
+      // 2026-10-20 UI-008, artboard B-Profile: the two rows are drawn as B rows
+      // in the Learning group, the orb opening the voice sheet and the memory
+      // row going through the lock seam to TutorMemory.
+      /<SettingsGroup first title=\{LEARNING_GROUP\}>[\s\S]*?label=\{YOUR_TUTOR_ROW\}[\s\S]*?onPress=\{\(\) => setSheet\('tutorVoice'\)\}[\s\S]*?nav\.navigate\('TutorMemory'\)[\s\S]*?<\/SettingsGroup>/,
       'the tutor rows are not in the Learning group, or they cannot open the voice sheet',
     );
-    assert.equal(
-      (profile.match(/<TutorMemoryCard\b/g) ?? []).length,
-      1,
-      'the tutor card is drawn more than once on Profile, so the tutor is introduced twice',
-    );
+    // 2026-10-20 UI-008, artboard B-Profile: the rows replace the card, once each.
+    assert.equal((profile.match(/label=\{YOUR_TUTOR_ROW\}/g) ?? []).length, 1, 'the tutor is introduced twice on Profile');
+    assert.equal((profile.match(/label=\{memoryRowTitle\(tutor\)\}/g) ?? []).length, 1, 'the memory row is drawn twice on Profile');
 
     // ─────────────────────────────────────────────────────────── the checks bite
     assert.equal(writtenBefore('b a', 'a', 'b'), false, 'the ordering check passes on the order it exists to catch');

@@ -161,9 +161,10 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     const profile = stripComments(readFileSync(join(SRC, 'tabs/ProfileTab.tsx'), 'utf8'));
     // P2 (2026-10-19): Profile draws its own large title and identity row
     // rather than the centred TabHeader, and both take the selected theme.
-    assert.match(profile, /\{PROFILE_TITLE\}/, 'Profile lost its title');
-    assert.match(profile, /<ScreenHeader back=\{\{ onPress: goBack \}\} ink=\{colors\.text\} muted=\{colors\.muted\} \/>/, 'Profile identity must pass the selected main theme instead of relying on paper defaults');
-    assert.match(profile, /\{profile\.name \?\? NAME_UNSET\}<\/Text>/, 'the learner name is not drawn');
+    // 2026-10-20 UI-008, artboard B-Profile: the learner's name is the heading, in the B tokens.
+    assert.match(profile, /<Identity\b/, 'Profile lost its title');
+    assert.match(profile, /<BackButton onPress=\{goBack\} \/>/, 'Profile has no B back disc');
+    assert.match(profile, /name=\{profile\.name \?\? NAME_UNSET\}/, 'the learner name is not drawn');
   });
 
   test('the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped', () => {

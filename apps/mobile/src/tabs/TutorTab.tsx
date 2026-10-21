@@ -36,6 +36,8 @@ import { ownedReadStatus } from './ownedRead.ts';
 
 import { Card, IconAction, Label, LOCK_BADGE_LABEL, LockBadge, Press } from '../components.tsx';
 import { BArt } from '../art/BArt.tsx';
+import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
+import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
 import { visibleFacts } from '../profile/memory.ts';
@@ -258,9 +260,13 @@ export function TutorTab() {
   const currentScope = scopeGeneration();
   const renderHistoryStatus = ownedReadStatus(historyStatus, historyReadOwner, historyReadyOwner, currentScope);
 
-  const primary = <IconAction layout="inline" icon="refresh" busy={checking}
-    label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
+  // 2026-10-21 UI-008, B-Empty-States "Tutor away or offline": the retry is
+  // the away card's 46 ink button, hugging its words.
+  const primary = <BButton hug label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} height={46} ground={t.primary} ink={t.onPrimary} text={bType.bold15}
     disabled={checking} onPress={() => open(heldBack?.textMode ?? textMode, heldBack ? pendingStart.current : next.params)} />;
+  // B-Empty-States "Out of speaking time": only on the free plan with nothing
+  // left this week, and never on top of the away card.
+  const outOfTime = offlineShown ? null : outOfTimeCard(planView);
 
   if (renderHistoryStatus !== 'ready') return <ScrollScreen bottom="tab">
     <TabHeader title={SPEAK_TITLE} purpose={speakSubtitle(tutorName)} trailing={<ProfileButton />} />
@@ -279,13 +285,15 @@ export function TutorTab() {
         </View>
 
         {offlineShown && (
-          <Card style={st.stack}>
-            <Label>{TUTOR_OFFLINE.label}</Label>
-            <Text style={[type.bodyStrong, { color: t.text }]}>{TUTOR_OFFLINE.headline}</Text>
-            <Text style={[type.body, { color: t.muted }]}>{TUTOR_OFFLINE.body}</Text>
+          <EmptyStateCard ground="lavender" art={AWAY_ART} title={TUTOR_OFFLINE.headline} body={TUTOR_OFFLINE.body} action={null} live>
             {primary}
-            <LocalPracticeCard />
-          </Card>
+            <View style={st.offlineLine}><LocalPracticeCard /></View>
+          </EmptyStateCard>
+        )}
+
+        {outOfTime !== null && (
+          <EmptyStateCard art={OUT_OF_TIME_ART} title={outOfTime.title} body={outOfTime.body}
+            action={{ label: outOfTime.action, onPress: () => nav.navigate('Wall', { entry: 'refused' }) }} />
         )}
 
         {/* The one recommendation: the next scene, or the thread to pick up. */}
@@ -486,9 +494,9 @@ const makeStyles = (t: B) =>
     // so it is pulled back to the same 22 (as Today does).
     head: { marginBottom: -space(5) },
     page: { gap: 22 },
-    stack: { gap: space(3) },
     tight: { gap: 2 },
     offline: { marginTop: space(4), gap: space(3) },
+    offlineLine: { alignSelf: 'stretch', marginTop: space(2) },
     column: { flexDirection: 'column' },
     grow: { flex: 1, minWidth: 0 },
     words: { flex: 1, minWidth: 0, gap: 2 },

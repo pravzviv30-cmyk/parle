@@ -1145,6 +1145,8 @@ const SAFE_AREA_ALLOW = [
   'drill/FocusDrillPlayer.tsx',
   'auth/SetNewPasswordScreen.tsx',
   'friends/AddFriendsScreen.tsx',
+  // 2026-10-20 UI-008, artboard B-Profile: the tab bar drawn under Profile, outside the tab navigator, pays the bottom inset as the navigator's bar does.
+  'nav/LuvaniTabBar.tsx',
 ];
 
 /**
@@ -1658,7 +1660,10 @@ describe('the five tabs open the same way — F336', () => {
     // large title over its own identity row, not a TabHeader. It still names
     // itself once, as a heading.
     const profile = named('tabs/ProfileTab.tsx');
-    assert.equal((profile.match(/accessibilityRole="header"[^>]*>\{PROFILE_TITLE\}/g) ?? []).length, 1, 'Profile lost its one accessible page title');
+    // 2026-10-20 UI-008, artboard B-Profile: no "Profile" title is drawn; the
+    // learner's name is the page's one heading, in the Identity part.
+    assert.match(profile, /<Identity\b/, 'Profile lost its identity heading');
+    assert.equal((named('settings/ProfileParts.tsx').match(/accessibilityRole="header"/g) ?? []).length, 1, 'Profile lost its one accessible page title, or has two');
     assert.doesNotMatch(profile, /<TabHeader\b/, 'Profile draws a second header shape');
     for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx')) {
       const body = named(name);
@@ -1966,7 +1971,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const speak = named('tabs/TutorTab.tsx');
     assert.doesNotMatch(speak, /<NextTaskCard|<PillButton\b/);
     assert.equal((speak.match(/<BButton label=\{START\}[^>]*height=\{54\} ground=\{t\.heroCta\}/g) ?? []).length, 1, 'Speak carries other than one Start');
-    assert.equal((speak.match(/<BButton\b/g) ?? []).length, 2, 'Speak carries a second primary pill');
+    // 2026-10-21 UI-008, B-Empty-States: the third is the away card's own
+    // 46pt retry, drawn only while the tutor cannot be reached.
+    assert.equal((speak.match(/<BButton\b/g) ?? []).length, 3, 'Speak carries a second primary pill');
     assert.match(speak, /<BButton label=\{PREPARE_FIRST\} height=\{48\} ground=\{t\.heroChip\}/, 'Prepare first is not the white secondary');
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
@@ -2427,7 +2434,9 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // Recommended card; connection retry stays a quiet IconAction.
     // 2026-10-20 UI-008, artboard B-Speak: the Start is the one heroCta BButton.
     assert.equal((tutor.match(/<BButton label=\{START\}/g) ?? []).length, 1, 'Speak carries other than one Start primary');
-    assert.match(tutor, /const primary = <IconAction/);
+    // 2026-10-21 UI-008, B-Empty-States: the retry is the away card's 46 ink
+    // button; Start above stays the one heroCta primary.
+    assert.match(tutor, /const primary = <BButton hug label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\} height=\{46\}/);
   });
 
   /**

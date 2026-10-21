@@ -79,7 +79,7 @@ export function streakSummaryView(view: Pick<GameView, 'today' | 'streak' | 'day
   if (view === null) return null;
   const { streak } = view;
   const week = weekStripFrom({ practiceDays: view.days.practiceDays, covers: view.days.covers as readonly StreakCover[], today: view.today }).map(
-    (cell): DayCellView => ({ day: cell.day, state: cell.state, cover: cell.cover, mark: cell.label, label: `${cell.name}, ${dayWords(cell.state, cell.cover)}` }),
+    (cell): DayCellView => ({ day: cell.day, state: cell.state, cover: cell.cover, mark: cell.label, label: `${cell.name}, ${dayWords(cell.state, cell.cover)}`, today: cell.day === view.today }),
   );
   const words = GAME_COPY.streakScreen.count(streak.current);
   const longest = streak.longest > 0 ? GAME_COPY.streakScreen.longest(streak.longest) : null;

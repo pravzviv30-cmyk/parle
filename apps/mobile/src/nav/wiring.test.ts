@@ -500,7 +500,8 @@ describe('every pushed learning screen has a way out when opened cold — whole-
     // so a sitting opened cold is closed on the way out (F775).
     const helper = strip(read('./leave.ts')).replace(/\s+/g, ' ');
     assert.match(helper, /export function backOrTabs\(nav: LeavingNav, tab\?: keyof TabParamList\): void \{ if \(nav\.canGoBack\(\)\) nav\.goBack\(\); else nav\.reset\(tabsAlone\(tab\)\); \}/);
-    assert.match(navigator, /import \{ backOrTabs, type LeavingNav \} from '\.\/leave\.ts';/, 'the navigator keeps a fallback of its own');
+    // 2026-10-21 UI-008, artboard B-Celebrate: tabsAlone joins it for "See your journey".
+    assert.match(navigator, /import \{ backOrTabs, tabsAlone, type LeavingNav \} from '\.\/leave\.ts';/, 'the navigator keeps a fallback of its own');
     assert.doesNotMatch(navigator, /function backOrTabs\(/, 'the navigator keeps a fallback of its own');
   });
 

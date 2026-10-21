@@ -22,6 +22,13 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B fidelity rebuild, steps 8 to 10 (live room and help, After a
+  session, Celebration, Recap, Review, Drill, empty states, Streak, Profile, Settings with
+  Appearance), on branch `claude/direction-b` (held, not on main):
+  **5,833 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3419. A Settings dark-mode fix after that run adds one test (3,420). Floors raised only through `gate:bless`. Review keeps no count
+  and no intervals; the live pill is the scene's own length; the learner's lines are heard in
+  the tutor's voice; Settings' long pages open as full light pages from dark mode.
 - 21 October 2026 direction B fidelity rebuild, steps 6 and 7 (Practice, its empty state, Your
   fixes, Journey, Then and now, in light and dark), on branch `claude/direction-b` (held, not
   on main):

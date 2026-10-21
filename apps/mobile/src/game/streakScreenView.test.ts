@@ -16,7 +16,8 @@ import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
 import type { ActivityEntry } from '../progress/activity.ts';
 import { GAME_COPY } from './copy.ts';
 import { emptyGame, type BadgeAward } from './model.ts';
-import { clampMonth, monthOf, shiftMonth, streakScreenView, type StreakScreenView } from './streakScreenView.ts';
+import { clampMonth, milestoneRow, monthOf, shiftMonth, streakScreenView, type StreakScreenView } from './streakScreenView.ts';
+import { NUDGE_LINES, nudgeRow, nudgeWrite } from '../settings/streakNudge.ts';
 import { NO_OUTSIDE_FACTS, gameViewFrom, type BillingFacts, type GameFacts } from './view.ts';
 import type { StreakCover } from '@luvani/core';
 
@@ -93,7 +94,8 @@ describe('the Streak screen — F770', () => {
 
     // The month: October 2026 starts on a Thursday, so three empty cells lead.
     const month = screen.month;
-    assert.equal(month.title, 'October 2026');
+    // 2026-10-20 UI-008, artboard B-Streak: this year's months are named alone.
+    assert.equal(month.title, 'October');
     assert.equal(month.leading, 3);
     assert.equal(month.cells.length, 31);
     assert.equal(month.cells[0]!.label, '1 October, practised');
@@ -105,7 +107,7 @@ describe('the Streak screen — F770', () => {
     assert.equal(month.canGoBack, true);
     assert.equal(month.canGoForward, false);
     const september = screenOf(f, shiftMonth(monthOf(TODAY), -1)).month;
-    assert.equal(september.title, 'September 2026');
+    assert.equal(september.title, 'September');
     assert.equal(september.canGoBack, false);
     assert.equal(september.canGoForward, true);
     assert.equal(september.cells[24]!.label, '25 September, practised');
@@ -153,19 +155,24 @@ describe('the Streak screen — F770', () => {
     // The screen: its own route with a web path, seven columns, labelled month
     // arrows at the touch floor, and every cell named in full.
     const screenFile = read('./StreakScreen.tsx');
-    assert.match(screenFile, /<IconButton icon="back" label=\{GAME_COPY\.streakScreen\.previousMonth\} disabled=\{!month\.canGoBack\}/);
-    assert.match(screenFile, /<IconButton icon="back" label=\{GAME_COPY\.streakScreen\.nextMonth\} disabled=\{!month\.canGoForward\}/);
+    // 2026-10-20 UI-008, artboard B-Streak: the arrows are the 44pt white MonthArrow.
+    assert.match(screenFile, /<MonthArrow label=\{copy\.previousMonth\} back disabled=\{!month\.canGoBack\}/);
+    assert.match(screenFile, /<MonthArrow label=\{copy\.nextMonth\} back=\{false\} disabled=\{!month\.canGoForward\}/);
     assert.equal(GAME_COPY.streakScreen.previousMonth, 'Previous month');
     assert.equal(GAME_COPY.streakScreen.nextMonth, 'Next month');
-    assert.match(screenFile, /const COLUMN = `\$\{100 \/ 7\}%` as const;/, 'the calendar is not seven columns');
-    assert.equal((screenFile.match(/accessible accessibilityLabel=\{cell\.label\}/g) ?? []).length, 2, 'a week or month cell is not named to a screen reader');
+    // 2026-10-20 UI-008, artboard B-Streak: the columns live in StreakParts.tsx.
+    assert.match(read('./StreakParts.tsx'), /const COLUMN = `\$\{100 \/ 7\}%` as const;/, 'the calendar is not seven columns');
+    assert.equal((read('./StreakParts.tsx').match(/accessible accessibilityLabel=\{cell\.label\}/g) ?? []).length, 2, 'a week or month cell is not named to a screen reader');
     assert.doesNotMatch(screenFile, /\b(?:streakFrom|weekStripFrom|monthFrom|capabilitiesFor)\(/, 'the screen works out a day itself');
     // The run is drawn where it stands on every visit (a count from nought
     // each time would claim a rise that did not happen), only while a run is
     // going, and drawn again on a new day so it never runs down.
-    assert.match(screenFile, /\{hero\.running \? <CountUp key=\{view\.today\} from=\{hero\.count\} to=\{hero\.count\}/, 'the run counts up from nought on every visit');
-    assert.match(screenFile, /<View style=\{\[st\.hero,[\s\S]*?accessible accessibilityLabel=\{hero\.label\}>/);
-    assert.match(screenFile, /<C2Flame size=\{HERO_FLAME\} active=\{focused && hero\.lit\}/);
+    // 2026-10-20 UI-008, artboard B-Streak: the run is the 52/800 words, drawn
+    // as it stands with no count-up at all, beside the dancing flame.
+    assert.match(screenFile, /hero\.running \? streakDays\(hero\.count\) : hero\.words/, 'the run is not drawn as it stands');
+    assert.doesNotMatch(screenFile, /<CountUp/, 'the run counts up on the Streak screen');
+    assert.match(screenFile, /<View style=\{s\.heroRow\} accessible accessibilityLabel=\{hero\.label\}>/);
+    assert.match(screenFile, /<BArt name="flame-dance" width=\{170\} height=\{156\}/);
     assert.match(read('../nav/types.ts'), /Streak: undefined;/);
     assert.match(read('../nav/theme.ts'), /Streak: 'streak',/);
     assert.match(read('../nav/RootNavigator.tsx'), /<Stack\.Screen name="Streak" component=\{StreakScreen\} \/>/);
@@ -236,9 +243,50 @@ describe('the Streak screen — F770', () => {
     // The screen sends See plans to the plans page and schedules nothing.
     const screenFile = read('./StreakScreen.tsx');
     assert.match(screenFile, /screen\.repairForSubscribers !== null \?/);
-    assert.match(screenFile, /label=\{screen\.repairForSubscribers\.action\} onPress=\{\(\) => nav\.navigate\('Wall', \{ entry: 'settings' \}\)\}/);
+    // 2026-10-20 UI-008, artboard B-Streak: See plans and the freeze card's trial pill share one door to the plans.
+    assert.match(screenFile, /const openPlans = \(\) => nav\.navigate\('Wall', \{ entry: 'settings' \}\);/);
+    assert.match(screenFile, /label=\{screen\.repairForSubscribers\.action\}[^>]*onPress=\{openPlans\}/);
     assert.doesNotMatch(screenFile, /Notifications|scheduleNotification|reminders\//, 'the Streak screen schedules a notification');
-    assert.match(screenFile, /\{screen\.freezes !== null \?/);
+    assert.match(screenFile, /\{screen\.freezeCard !== null \?/);
     assert.match(screenFile, /\{screen\.repair !== null \?/);
+  });
+});
+
+// 2026-10-20 UI-008, artboard B-Streak: the freeze card, the milestone row and the Evening nudge.
+describe('the B-Streak card rules', () => {
+  test('the freeze card says what the plan holds, and the trial pill only without a repair', () => {
+    const free = screenOf(facts({ practiceDays: ['2026-10-06'], billing: FREE }));
+    assert.deepEqual(free.freezeCard && [free.freezeCard.title, free.freezeCard.sub, free.freezeCard.upsell], ['1 streak freeze ready', 'Free with every account', 'A second freeze and streak repair']);
+    assert.match(free.freezeCard!.line, /your freeze covers it by itself/);
+    const paid = screenOf(facts({ practiceDays: ['2026-10-06'], billing: PAID }));
+    assert.deepEqual(paid.freezeCard && [paid.freezeCard.title, paid.freezeCard.sub, paid.freezeCard.upsell], ['2 streak freezes ready', 'Two come with your plan', null]);
+    assert.equal(screenOf(facts({ practiceDays: ['2026-10-06'], billing: null })).freezeCard, null, 'an unknown plan is shown freezes');
+  });
+
+  test('the milestone row: the next milestone, its bar and "n of 7 days", no reward', () => {
+    assert.deepEqual(milestoneRow(3), { days: 7, title: '7 days: a whole week of French', progress: '3 of 7 days', fraction: 3 / 7 });
+    assert.equal(milestoneRow(0).progress, '0 of 7 days');
+    assert.equal(milestoneRow(12).title, '30 days: a month of French');
+    assert.equal(milestoneRow(400).title, '730 days of French');
+    for (const days of [7, 30, 100, 365, 730]) assert.doesNotMatch(milestoneRow(days - 1).title, /postcard|unlock/i, 'a reward is promised that nothing stores');
+  });
+
+  test('the Evening nudge writes the daily reminder honestly and keeps the chosen time', () => {
+    const stored = { enabled: false, time: 'evening' as const };
+    const before = nudgeRow(stored, 'granted');
+    assert.equal(before.on, false);
+    const on = nudgeWrite(stored, before, true, 'granted');
+    assert.deepEqual(on.wanted, { enabled: true, time: 'evening', paused: false });
+    assert.deepEqual(on.reverted, { enabled: false, time: 'evening' });
+    // A refusal turns what the learner asked for into an honest off.
+    assert.equal(nudgeWrite(stored, before, true, 'denied').wanted.enabled, false);
+    assert.equal(nudgeRow({ enabled: true, time: 'smart' }, 'denied').on, false);
+    for (const line of NUDGE_LINES) {
+      assert.equal(guiltIn(line), undefined, line);
+      assert.equal(streakGuiltIn(line), undefined, line);
+    }
+    const screenFile = read('./StreakScreen.tsx');
+    assert.match(screenFile, /\{nudge !== null \? \(\s*<NudgeRow/, 'the nudge is drawn when the reminder cannot be scheduled or read');
+    assert.match(read('../settings/useEveningNudge.ts'), /if \(!REMINDERS_AVAILABLE \|\| read === null/);
   });
 });

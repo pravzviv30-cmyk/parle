@@ -110,8 +110,9 @@ describe('a spoken take the tutor did not hear — F776', () => {
     assert.match(live, /Try connecting again/);
     assert.match(live, /onModeChange=\{next => void changeInput\(next\)\}/);
     const room = evidence('apps/mobile/src/live/C2LiveRoom.tsx');
-    assert.match(room, /\['Speaking', 'Typing'\]/);
-    assert.match(room, /onModeChange\(label === 'Typing'\)/, 'the compact typing control must reach the existing room recovery');
+    // 2026-10-21 UI-008, artboard B-Live: the mode switch is the Type (or Speak) side control.
+    assert.match(room, /accessibilityLabel="Type instead"/);
+    assert.match(room, /onModeChange\(true\)/, 'the compact typing control must reach the existing room recovery');
     assert.match(live, /await live\.pauseMic\(\)/);
 
     assert.match(live, /await live\.openMic\(\)/);

@@ -14,8 +14,8 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { HAIRLINE, HIT, radius, space, type } from '../theme.ts';
-import { useSettingsColors } from './SettingsAppearance.tsx';
+import { HAIRLINE, HIT, bType, radius, space, type } from '../theme.ts';
+import { useBRows, useSettingsColors } from './SettingsAppearance.tsx';
 
 /**
  * Whether a row is drawn inside a group. Rows outside one (the memory screen,
@@ -42,14 +42,18 @@ export function SettingsGroup({
   children: ReactNode;
 }) {
   const colors = useSettingsColors();
+  // 2026-10-20 UI-008, artboards B-Settings and B-Profile: the 13/700 label
+  // at 0.3 tracking, 8 above the white list at radius 22 and 4 16, and 22
+  // between groups. The screens that opt in say so through SettingsAppearance.
+  const b = useBRows();
   return (
-    <View style={[!first && st.spaced, style]}>
+    <View style={[!first && (b ? st.spacedB : st.spaced), style]}>
       {title !== undefined ? (
-        <Text accessibilityRole="header" style={[type.small, st.header, { color: colors.muted }]}>{title}</Text>
+        <Text accessibilityRole="header" style={b ? [bType.eyebrow, st.headerB, { color: colors.muted }] : [type.small, st.header, { color: colors.muted }]}>{title}</Text>
       ) : null}
-      <View style={[st.list, { backgroundColor: colors.surface }]}><InGroup.Provider value>{children}</InGroup.Provider></View>
+      <View style={[b ? st.listB : st.list, { backgroundColor: colors.surface }]}><InGroup.Provider value>{children}</InGroup.Provider></View>
       {footer !== undefined && footer !== null ? (
-        typeof footer === 'string' ? <Text style={[type.small, st.footer, { color: colors.muted }]}>{footer}</Text> : <View style={st.footer}>{footer}</View>
+        typeof footer === 'string' ? <Text style={b ? [bType.note, st.footerB, { color: colors.muted }] : [type.small, st.footer, { color: colors.muted }]}>{footer}</Text> : <View style={b ? st.footerB : st.footer}>{footer}</View>
       ) : null}
     </View>
   );
@@ -59,7 +63,8 @@ export function SettingsGroup({
 export function RowDivider() {
   const colors = useSettingsColors();
   const grouped = useContext(InGroup);
-  return <View style={[st.divider, grouped ? st.dividerInset : st.dividerCard, { backgroundColor: colors.border }]} />;
+  const b = useBRows();
+  return <View style={[st.divider, b && grouped ? st.dividerB : grouped ? st.dividerInset : st.dividerCard, { backgroundColor: colors.border }]} />;
 }
 
 /** Whether this is drawn inside a group's list. */
@@ -70,11 +75,14 @@ export function useInGroup() {
 /** The padding and floor a row takes: the grouped list's, or the older card's. */
 export function useRowFrame() {
   const grouped = useContext(InGroup);
-  return grouped ? ROW_GROUPED : ROW_CARD;
+  const b = useBRows();
+  return grouped ? (b ? ROW_B : ROW_GROUPED) : ROW_CARD;
 }
 
 const ROW_GROUPED = { paddingHorizontal: space(4), paddingVertical: space(3.25), minHeight: 52 } as const;
 const ROW_CARD = { paddingVertical: space(2.5), minHeight: HIT } as const;
+/** The B row (B-Settings): padding 12 0 inside the list's own 16, the 28 floor plus its padding, never under the touch floor. */
+const ROW_B = { paddingVertical: 12, minHeight: 52 } as const;
 
 const st = StyleSheet.create({
   spaced: { marginTop: space(7) },
@@ -84,4 +92,10 @@ const st = StyleSheet.create({
   divider: { position: 'absolute', top: 0, right: 0, height: HAIRLINE },
   dividerInset: { left: space(4), opacity: 0.7 },
   dividerCard: { left: 0 },
+  spacedB: { marginTop: 22 },
+  headerB: { paddingHorizontal: 4, marginBottom: 8 },
+  listB: { borderRadius: 22, paddingVertical: 4, paddingHorizontal: 16 },
+  footerB: { paddingHorizontal: 4, marginTop: 8 },
+  // The B list rules a full hairline between rows, inside the list's padding.
+  dividerB: { left: 0, height: 1 },
 });

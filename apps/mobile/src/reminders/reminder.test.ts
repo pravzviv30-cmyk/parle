@@ -321,7 +321,11 @@ describe('what a reminder is not allowed to know', () => {
     // out (founder decision D2: Paused is its own state, which Settings shows
     // and turns back on), and, when the OS refused a yes, exactly the choice
     // that was there before it, so the ask never turns a reminder off.
-    assert.deepEqual(callers('saveReminder'), ['App.tsx', 'src/reminders/ReminderPlanner.tsx', 'src/settings/SettingsScreen.tsx']);
+    // 2026-10-20 UI-008, artboard B-Streak: the Evening nudge on the Streak
+    // screen is the same reminder's switch, written through the same doors
+    // and turned off only by the learner's own flip (settings/streakNudge.ts),
+    // kept in settings/ so no practice surface reaches the reminder.
+    assert.deepEqual(callers('saveReminder'), ['App.tsx', 'src/reminders/ReminderPlanner.tsx', 'src/settings/SettingsScreen.tsx', 'src/settings/useEveningNudge.ts']);
     const app = withoutComments(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
     // Inspect the balanced call, so checking its durable acknowledgement does
     // not get mistaken for an additional reminder value.

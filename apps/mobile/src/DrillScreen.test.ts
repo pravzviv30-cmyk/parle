@@ -54,11 +54,12 @@ function stripComments(source: string): string {
 describe('a used word stays readable in the sentence bank — F593', () => {
   test('a word already placed stays readable on the ground it is left on', () => {
     const screen = stripComments(read('./DrillScreen.tsx')).replace(/\s+/g, ' ');
-    assert.match(
-      screen,
-      /color: used \? paper\.inkSoft : paper\.ink/,
-      'a placed word drops to the mark-only faint ink on the porcelain ground',
-    );
+    // 2026-10-21 UI-008, artboard B-Drill: a placed word now reads in its brand
+    // tile in the answer box, and leaves a dashed slot its own size in the bank,
+    // so the bank never jumps and the word is never faint ink on a ground.
+    assert.match(screen, /style=\{\[bType\.bold17, \{ color: bt\.onBrand \}\]\}>\{exercise\.tokens\[tokenIndex\]\}/, 'a placed word is not a readable brand tile');
+    assert.match(screen, /\{used \? \( <View style=\{ds\.slot\}>/, 'a placed word leaves no slot in the bank');
+    assert.match(screen, /slot: \{ height: 46, borderRadius: 14, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt\.ring/);
   });
 });
 
@@ -224,10 +225,14 @@ describe('the empty drill bank draws the scene the art registry promises it — 
 
   test('the empty drill bank keeps its explanation and next action without retired art', () => {
     assert.doesNotMatch(emptyBranch, /<Art\b|SCREEN_ART|NothingDue/);
-    assert.match(emptyBranch, /<Card>/);
+    // 2026-10-21 UI-008, B-Empty-States "Review, all done": the cloud-cheer
+    // card with Done as its one door, inside the card rather than the footer.
+    assert.match(emptyBranch, /<EmptyStateCard/);
+    assert.match(emptyBranch, /name: 'cloud-cheer', width: 150, height: 114/);
     assert.ok(emptyBranch.includes('Nothing to review.'));
     assert.ok(emptyBranch.includes('Your next session adds more.'));
-    assert.match(emptyBranch, /footer=\{doneFooter\}/);
+    assert.match(emptyBranch, /action=\{\{ label: 'Done', onPress: finishAndLeave \}\}/);
+    assert.doesNotMatch(emptyBranch, /footer=/, 'the empty bank shows two ways out');
   });
 
   test('review and drill no longer import or draw retired empty-table art', () => {
@@ -593,7 +598,9 @@ describe('a practice sitting says where the learner is, and nothing about how it
     );
     // In the header's centre slot, which scrolls with nothing and never
     // pushes the exercise down, spoken politely as it changes.
-    assert.match(flatScreen, /<ScreenHeader leave=\{\{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' \}\} title=\{session\?.queue\[0\]\?.kind \? drillTitle\(session.queue\[0\].kind\) : heading\} trailing=\{progress !== null \? \( <Text accessibilityLiveRegion="polite" style=\{\[type\.small, \{ color: paper\.inkSoft, textAlign: 'center' \}\]\}>\{progress\.label\}<\/Text> \) : undefined\} \/>/, 'the strip is not the header\'s own quiet line');
+    // 2026-10-21 UI-008, artboard B-Drill: the close header, the 8pt bar in
+    // its centre, and the words at 14/600 on its right.
+    assert.match(flatScreen, /<ScreenHeader leave=\{\{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills', close: true \}\} title=\{session\?.queue\[0\]\?.kind \? drillTitle\(session.queue\[0\].kind\) : heading\} centre=\{fill !== null && session !== null && !session\.finished \? <SittingBar fill=\{fill\} glow=\{comboGlows\(combo\)\} \/> : null\} trailing=\{progress !== null \? \( <Text accessibilityLiveRegion="polite" style=\{\[bType\.semi14, \{ color: bt\.text \}\]\}>\{progress\.label\}<\/Text> \) : undefined\} \/>/, 'the strip is not the header\'s own quiet line');
     // Words only: no digit, no fraction, no bar, no percentage anywhere in it.
     assert.doesNotMatch(flatScreen, /\{progress\.step\}|\{progress\.total\}|progress\.step \/|percent|<ProgressBar|<Bar\b/, 'the strip draws a number, a fraction or a bar');
     // And it added no control: the pill count is exactly what it was.

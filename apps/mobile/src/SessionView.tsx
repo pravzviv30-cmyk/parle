@@ -19,6 +19,10 @@ import { useProfile } from './app/ProfileContext.tsx';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
 import { useOrbAudio } from './live/OrbAudio.tsx';
 import { LevelRing } from './motion/LevelRing.tsx';
+import { bType } from './theme.ts';
+import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { BSpeaker } from './today/TodayParts.tsx';
+import { ChoiceRow } from './live/LiveParts.tsx';
 
 /** The Speak circle's own size (`SpeakCircle` in components.tsx draws it at 108 unless told otherwise). */
 const SPEAK_CIRCLE = 108;
@@ -36,9 +40,13 @@ export type SupportContent =
   | { kind: 'none' };
 
 /**
- * The scaffolding, rendered. One visual grammar for every mode: a white card
- * with the whole line when the tutor hands it over, option cards when the
- * learner chooses, a quiet notice when they are nudged, nothing when free.
+ * The scaffolding, rendered. One visual grammar for every mode: a card with
+ * the whole line when the tutor hands it over, choice rows when the learner
+ * chooses, a quiet card when they are nudged, nothing when free.
+ *
+ * 2026-10-21 UI-008, artboard B-LiveHelp: drawn in the help sheet's parts
+ * (`live/LiveParts.tsx`), in light and dark. Presentation only: what each rung
+ * holds and when it moves are the session's, unchanged.
  */
 export function SupportBlock({
   support,
@@ -54,31 +62,30 @@ export function SupportBlock({
   /** Replay the line on the card. Every cued turn should be hearable on demand. */
   onHearLine?: () => void;
 }) {
+  const t = useB();
+  const s = useThemedStyles(makeSupportStyles);
   const [soundGuide, setSoundGuide] = useState(false);
   if (support.kind === 'full-line') {
     return (
-      <Card>
-        <Label>Your turn</Label>
-        {/* Left, not centred, since revamp A: the mockup sets the line to say
-            as a block you read from its left edge, and a long sentence centred
-            on a phone leaves both ends ragged. Nothing is clipped; fitDisplay
-            steps the serif down by length rather than cutting it. */}
-        <Text {...frenchText} style={[fitDisplay(support.line), { color: paper.ink, marginTop: space(2) }]}>
+      <View style={s.card}>
+        <Text style={[bType.bold12, { color: t.link }]}>Your turn</Text>
+        {/* Left, not centred: the line to say is a block read from its left edge. */}
+        <Text {...frenchText} style={[bType.bold22, { color: t.text }]}>
           {support.line}
         </Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
+        <Text style={[bType.meta, { color: t.muted }]}>
           {support.gloss}
         </Text>
         {support.ipa ? (
           <View>
             <Pressable onPress={() => setSoundGuide((value) => !value)} accessibilityRole="button" accessibilityState={{ expanded: soundGuide }} style={st.hear}>
-              <Text style={[type.small, { color: paper.ink }]}>{soundGuide ? 'Hide sound guide' : 'Show sound guide'}</Text>
+              <Text style={[bType.semi14, { color: t.text }]}>{soundGuide ? 'Hide sound guide' : 'Show sound guide'}</Text>
             </Pressable>
-            {soundGuide && <Text style={[type.notation, { color: paper.inkSoft }]}>/{support.ipa}/</Text>}
+            {soundGuide && <Text style={[type.notation, { color: t.muted }]}>/{support.ipa}/</Text>}
           </View>
         ) : null}
         {support.written && support.written !== support.line ? (
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5) }]}>
+          <Text style={[bType.meta, { color: t.muted }]}>
             {support.written}
           </Text>
         ) : null}
@@ -89,11 +96,11 @@ export function SupportBlock({
             accessibilityLabel="Hear the line again"
             style={st.hear}
           >
-            <EarGlyph size={15} color={paper.inkSoft} />
-            <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
+            <BSpeaker size={18} color={t.text} />
+            <Text style={[bType.semi14, { color: t.text }]}>Hear it</Text>
           </Pressable>
         )}
-      </Card>
+      </View>
     );
   }
 
@@ -101,12 +108,12 @@ export function SupportBlock({
     return (
       <View style={st.options}>
         {support.options.map((o) => (
-          <OptionCard
+          <ChoiceRow
             key={o.text}
-            text={o.text}
-            gloss={o.en}
-            onPress={() => onOptionPress?.(o.text)}
-            onHear={onOptionHear ? () => onOptionHear?.(o.text) : undefined}
+            fr={o.text}
+            en={o.en}
+            onPress={onOptionPress ? () => onOptionPress(o.text) : undefined}
+            onHear={onOptionHear ? () => onOptionHear(o.text) : undefined}
           />
         ))}
       </View>
@@ -115,14 +122,20 @@ export function SupportBlock({
 
   if (support.kind === 'hint') {
     return (
-      <Card>
-        <Label>Tell them this, in French</Label>
-        <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{support.hint}</Text>
-      </Card>
+      <View style={s.card}>
+        <Text style={[bType.bold12, { color: t.link }]}>Tell them this, in French</Text>
+        <Text style={[bType.line16, { color: t.text }]}>{support.hint}</Text>
+      </View>
     );
   }
 
   return null;
+}
+
+function makeSupportStyles(t: B) {
+  return StyleSheet.create({
+    card: { backgroundColor: t.card, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, gap: 6 },
+  });
 }
 
 export interface SessionViewProps {
@@ -475,7 +488,7 @@ const st = StyleSheet.create({
   // and lets a tall one scroll.
   body: { flexGrow: 1, paddingTop: space(3), paddingBottom: space(5), gap: space(5) },
   tutorHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space(2) },
-  options: { gap: space(2.5) },
+  options: { gap: space(2) },
   hear: {
     marginTop: space(3),
     minHeight: HIT,

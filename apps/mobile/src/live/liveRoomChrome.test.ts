@@ -76,7 +76,8 @@ describe('quiet live-room chrome', () => {
     }
     assert.match(room, /accessibilityLiveRegion="polite"[\s\S]{0,100}\{caption\}/, 'shared live status is no longer announced');
     assert.match(room, /<Transcript\b/, 'the shared live thread disappeared');
-    assert.match(room, /onModeChange\(label === 'Typing'\)/, 'the mode toggle does not reach the room owner');
+    // 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the Type control switches the mode.
+    assert.match(room, /onModeChange\(true\)/, 'the mode toggle does not reach the room owner');
   });
 });
 

@@ -837,6 +837,9 @@ describe('B tokens, light and dark — UI-008', () => {
         ['tabLabel on tabSelected', t.tabLabel, t.tabSelected],
         ['danger on ground', t.danger, t.ground],
         ['danger on card', t.danger, t.card],
+        // 2026-10-21 UI-008, artboard B-ReviewReveal: the grade words on the sun and mint tiles.
+        ['onMint on sun (Got it)', t.onMint, t.sun],
+        ['onMint on mint (Easy)', t.onMint, t.mint],
       );
       for (const [name, fg, bg] of pairs) {
         const r = contrast(fg, bg);

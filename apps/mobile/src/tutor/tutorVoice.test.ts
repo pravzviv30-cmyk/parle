@@ -163,9 +163,10 @@ describe('the voice on the Profile tab', () => {
       /<TutorRow first mark=\{<TutorMark \/>\} title=\{name\} gloss=\{PARTNER_LINE\} onPress=\{onVoice\} \/>/,
       'the voice row is not the first row of the tutor card, or it no longer opens the sheet it is handed',
     );
+    // 2026-10-20 UI-008, artboard B-Profile: the tutor row on Profile opens the sheet.
     assert.match(
       TAB,
-      /<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>/,
+      /label=\{YOUR_TUTOR_ROW\}[^\n]*onPress=\{\(\) => setSheet\('tutorVoice'\)\}/,
       'the tutor card is handed no way to open the sheet, so the catalogue is unreachable from Profile',
     );
     // And only one way in. The old settings row must not have stayed behind:

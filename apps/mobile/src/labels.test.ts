@@ -83,8 +83,9 @@ const RETIRED = [
  * is all `labelsInSource` can see: it reads literals.
  */
 const KEPT = [
-  'Your turn',
-  'Tell them this, in French',
+  // 2026-10-21 UI-008, artboard B-LiveHelp: 'Your turn' and 'Tell them this,
+  // in French' are now the help sheet's 12/700 eyebrows (SessionView.tsx), so
+  // they are checked as drawn words below rather than as <Label>s.
   'The waiter',
   // 'Your level' and 'What you have' left with F399: the level card and the
   // four-stat rail are My French's alone now, and Home opens on what there is
@@ -205,7 +206,8 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
       'ConvoScreen no longer routes its compact end control through the shared live room',
     );
     const room = readFileSync(join(SRC, 'live/C2LiveRoom.tsx'), 'utf8');
-    assert.match(room, /controlRow: \{ flexDirection: 'row', gap: 12, alignItems: 'center' \}/);
+    // 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the Type, mic and Help row spreads across the room; the leave disc is in the top bar.
+    assert.match(room, /controlRow: \{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' \}/);
     assert.match(room, /onPress=\{onEnd\} accessibilityLabel="End session"/, 'the end action must remain in the shared row after the mode toggle');
   });
 
@@ -225,6 +227,11 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     const texts = new Set(labelsInSource().map((l) => l.text));
     for (const kept of KEPT) {
       assert.ok(texts.has(kept), `"${kept}" is a label that carries information, and the sweep was not for those`);
+    }
+    // 2026-10-21 UI-008, artboard B-LiveHelp: the two support eyebrows are still drawn.
+    const support = readFileSync(join(SRC, 'SessionView.tsx'), 'utf8');
+    for (const eyebrow of ['Your turn', 'Tell them this, in French']) {
+      assert.ok(support.includes(`>${eyebrow}</Text>`), `"${eyebrow}" carries information and is no longer drawn`);
     }
   });
 

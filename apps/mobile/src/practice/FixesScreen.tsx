@@ -123,7 +123,8 @@ export function FixesScreen() {
   const all = practiseAllDoor(fixes, scope, pack.id, typed);
   const phrases = phraseRows(pack, data.deck);
   // 2026-10-21 UI-008, artboard B-Fixes, founder: Comes up often shows, authored copy only, never a count.
-  const pattern = patternCard({ patterns: profile.brain.errorPatterns, packs: data.packs, bank: data.bank, access: locks.access });
+  // 2026-10-21, learning-science review: only a pattern a fix in this scope shows.
+  const pattern = patternCard({ patterns: profile.brain.errorPatterns, packs: data.packs, bank: data.bank, access: locks.access, within: scope === 'this' ? [pack] : data.packs });
 
   return (
     <ScrollScreen bottom="inset" topGap={8}>

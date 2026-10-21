@@ -280,10 +280,11 @@ describe('a refused permission is the only one worth a row — F476', () => {
     // render the reminder as Off until the owned read succeeds, even with no
     // permission row beside it. Since P2 (2026-10-19) the refused-notifications
     // row lives here and the microphone row beside sound, each placed from the
-    // one `phone.map` below.
+    // one `phone.map` below. 2026-10-20 UI-008, artboard B-Settings: the
+    // group is Phone again and holds the microphone row too, as drawn.
     assert.match(
       SETTINGS,
-      /\{\(reminders \|\| reminderUnknown \|\| trialShown \|\| phoneDrawn\.notifications !== undefined\) && \(/,
+      /\{\(reminders \|\| reminderUnknown \|\| trialShown \|\| phoneDrawn\.notifications !== undefined \|\| phoneDrawn\.microphone !== undefined\) && \(/,
       'the Reminders group hides an unread reminder instead of offering Retry',
     );
     assert.match(SETTINGS, /\{phoneDrawn\.notifications\}/, 'a refused notification permission draws no row in Reminders');

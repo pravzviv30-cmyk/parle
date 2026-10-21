@@ -78,6 +78,37 @@ DECISIONS.md UI-007):
   sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
   (shared with Then and now); Journey and Then and now are dark-ready since
   2026-10-21 (UI-008), with the Badges sheet pinned light.
+- **Review and Drill** (`ReviewScreen.tsx`, `DrillScreen.tsx`): rebuilt to
+  B-Review, B-ReviewReveal and B-Drill in light and dark (2026-10-21, UI-008).
+  Review names the source conversation (`review/context.ts`) and shows "Also
+  fine:" from the drill bank's accepted French (`review/alsoFine.ts`); its
+  count and grade intervals stay held. Empty states share
+  `empty/EmptyStateCard.tsx`; Speak draws the away and out-of-time cards
+  (`empty/emptyStates.ts`).
+- **Live room and the end of a conversation** (`live/C2LiveRoom.tsx`,
+  `RecapScreen.tsx`): rebuilt to B-Live, B-LiveHelp, B-AfterSession,
+  B-Celebrate and B-Recap (2026-10-21, UI-008). The room shows the scene's own
+  pace, the goals strip from `visibleMissionTasks` and the help ladder over the
+  live rung (`live/liveRoomView.ts`); the recap pages run After a session, the
+  Celebration, the Recap, then sound and next (`recap/pages.ts`,
+  `recap/afterSessionView.ts`). The goals reach the Recap passed through from
+  the room, with no new storage. The Convo and Lesson routes stay pinned light
+  until their waiting, error and choosing screens are rebuilt.
+- **Streak, Profile and Settings** (`game/StreakScreen.tsx`,
+  `tabs/ProfileTab.tsx`, `settings/SettingsScreen.tsx`): rebuilt to B-Streak,
+  B-Profile and B-Settings in light and dark (2026-10-21, UI-008). Streak shows
+  the freeze card ("Free with every account" on the free plan, the trial pill
+  for a second freeze and repair), the next milestone with "n of 7 days" (no
+  reward line), the month, and the Evening nudge: the daily reminder's switch
+  (`settings/useEveningNudge.ts`, `settings/streakNudge.ts`). Profile has the
+  stats card, the plan card (what Free includes, See plans to the Wall), the
+  Learning, Your French and More groups, and the tab bar with no tab selected
+  (`DetachedTabBar` in `nav/LuvaniTabBar.tsx`). Settings follows the artboard's
+  groups, adds Practice (speaking target, correction style, the simpler-speech
+  and Prefer typing switches over Learning preferences' stores), the free band
+  row, and the Appearance row opening the Display choice. The shared grouped
+  rows draw the B row only under `<SettingsAppearance b>`; Learning
+  preferences and Subscription keep the P2 row and stay pinned light.
 
 Three stack routes were added in `nav/RootNavigator.tsx` and `nav/types.ts`:
 `ScenePreview` (`scenes/ScenePreviewScreen.tsx`, by mission or daily scene id),

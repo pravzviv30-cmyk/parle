@@ -90,6 +90,8 @@ import { prefersTyping } from './profile/typing.ts';
 import { withAgeStop } from './profile/store.ts';
 import type { OrbState } from './tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
+import { paceLabel } from './live/liveRoomView.ts';
+import { missionMinutes } from './home/estimate.ts';
 import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
@@ -100,7 +102,6 @@ import { OPEN_MIC_LABEL, sceneControls, simplerLabel, typedTurn } from './tutor/
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
 import { MissionWin } from './tutor/MissionWin.tsx';
 import { visibleMissionTasks } from './tutor/missionTasks.ts';
-import { MissionTaskList } from './tutor/MissionTaskList.tsx';
 import { useTaskTicks } from './tutor/useTaskTicks.ts';
 import { OrbCue } from './tutor/OrbRipple.tsx';
 import { sceneIllustration } from './art/flat/scenes.ts';
@@ -185,6 +186,7 @@ export function ConvoScreen({
   onRecap,
   onExit,
   onPractice,
+  onJourney,
   startInTextMode = false,
   walkMode = false,
   seedTopic,
@@ -201,6 +203,8 @@ export function ConvoScreen({
   onExit: () => void;
   /** Leave the finished room and open a short own-words drill for its kept phrase. */
   onPractice?: (phrase: RecapPracticePhrase) => void;
+  /** Leave the finished room for the Journey tab, from the Celebration's "See your journey". */
+  onJourney?: () => void;
   /** "Can't speak right now": the same tutor, typed. */
   startInTextMode?: boolean;
   walkMode?: boolean;
@@ -518,6 +522,8 @@ export function ConvoScreen({
    * number nobody stored.
    */
   const [convoDelta, setConvoDelta] = useState<GameDelta | null>(null);
+  // The room's own active clock for this sitting, for After a session's minutes (2026-10-21 UI-008).
+  const [recapActiveSec, setRecapActiveSec] = useState<number | null>(null);
   /**
    * F766: the celebration queue waits from before the conversation settles
    * until the recap's result page is up, so a streak or a level published by
@@ -555,6 +561,7 @@ export function ConvoScreen({
       const endedAt = Date.now();
       const xp = conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate });
       const activeMs = clock.read();
+      setRecapActiveSec(Number.isFinite(activeMs) && activeMs > 0 ? Math.round(activeMs / 1000) : null);
       // A conversation that ran to its recap is a finished sitting, and it
       // settles here, inside the stop guard: a safety stop settles nothing (F137, F744).
       // The queue is held first (F766), and the recap draws what the settle read back.
@@ -872,6 +879,9 @@ export function ConvoScreen({
         lines={keepsakeLines(live.turns)}
         onDone={leaveNow}
         onPractice={onPractice === undefined ? undefined : practiseAfterRecap}
+        onSeeJourney={onJourney === undefined ? undefined : () => leaveTo(onJourney)}
+        activeSec={recapActiveSec}
+        goals={missionItems}
         onSave={saveRecapKeepsake}
         conversationText={{ ownerId: userId, conversation: live.sessionId && live.conversationText ? { sessionId: live.sessionId, title: live.recap.recap.topics[0]?.en ?? 'Your conversation', lines: live.conversationText } : null }}
       />
@@ -990,6 +1000,9 @@ export function ConvoScreen({
   }
 
   const listening = !live.tutorSpeaking;
+  // The scene's own pace, never the allowance and never a countdown (2026-10-21 UI-008, B-Live).
+  const paceMission = missionId ? getMission(missionId) : undefined;
+  const scenePace = paceMission ? paceLabel(missionMinutes(paceMission)) : null;
   const controls = sceneControls({
     supportView: view.supportView,
     textMode: typing,
@@ -1025,6 +1038,8 @@ export function ConvoScreen({
     <OrbCue value={ticks.cue}>
     <View style={{ flex: 1, minHeight: 0 }}>
       <C2LiveRoom tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
+        title={missionId ? getMission(missionId)?.title : undefined} pace={scenePace} goals={missionItems} helpKind={view.supportView.kind}
+        moreHelp={{ disabled: !listening, onPress: () => { closeMark(); live.sendHelp(); } }}
         state={live.reconnecting ? 'connecting' : orbState}
         caption={headerLine ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused')}
         turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
@@ -1034,14 +1049,12 @@ export function ConvoScreen({
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
         onEnd={() => setConfirming(true)} onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}
         top={<>{live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
-          <MissionTaskList items={missionItems} />
-          {replayLine ? <Text accessibilityLiveRegion="polite" style={type.small}>{replayLine}</Text> : null}
+          {replayLine ? <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.onInk }]}>{replayLine}</Text> : null}
           {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}</>}
         support={view.supportView.kind !== 'none' ? <SupportBlock support={view.supportView} onHearLine={controls.showHearIt ? () => live.sendHear() : undefined} /> : undefined}
         notice={momentTaps > 0 ? momentAnswer(tutorName) : view.coachLine}
         tools={<>
           {marks.showing ? <Press onPress={closeMark} haptic="none" accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`} style={st.mark}><Text style={[type.small, { color: paper.onInk }]}>{COACH_MARK_TEXT[marks.showing]}</Text></Press> : null}
-          <IconAction layout="inline" icon="hint" label="Help me out" disabled={!listening} onPress={() => { closeMark(); live.sendHelp(); }} />
           {!typing && <IconAction layout="inline" icon="chat" label="Simpler" accessibilityLabel={simplerLabel(tutorName)} disabled={!listening} onPress={() => { closeMark(); live.sendSlower(); }} />}
           <IconAction layout="inline" icon="moment" label="Give me a moment" onPress={askForAMoment} />
           {!typing && <IconAction layout="inline" icon="translate" label="In English" disabled={!listening} onPress={() => { closeMark(); live.sendEnglish(); }} />}
