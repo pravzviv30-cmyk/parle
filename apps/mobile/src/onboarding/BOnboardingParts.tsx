@@ -234,6 +234,9 @@ export const REASON_ICONS: Readonly<Record<string, { name: BArtName; width: numb
 
 // ─────────────────────────────────────────────────────────────── welcome
 
+/** friends-cheer's cloud sits 19.5 units left of its frame; show 24 so it is never cut (2026-10-21 simulator check). */
+export const WELCOME_BLEED = 24;
+
 /** The welcome's art area: halo, sun disc, shadow, the friends drawing, confetti and three speech bubbles. */
 export function BWelcomeArt() {
   const t = useB();
@@ -255,7 +258,7 @@ export function BWelcomeArt() {
         <View style={[s.disc, { left: 55, top: 20, width: 280, height: 280, borderRadius: 140, backgroundColor: t.violet2 }]} />
         <View style={[s.disc, { left: 79, top: 44, width: 232, height: 232, borderRadius: 116, backgroundColor: t.sun }]} />
         <View style={[s.disc, { left: 122, top: 268, width: 146, height: 16, borderRadius: 8, backgroundColor: t.sunDeep }]} />
-        <BArt name="friends-cheer" width={256} height={234} style={{ position: 'absolute', left: 67, top: 40 }} />
+        <BArt name="friends-cheer" width={256} height={234} bleed={WELCOME_BLEED} style={{ position: 'absolute', left: 67, top: 40, overflow: 'visible' }} />
         {confetti.map((bit, at) => (
           <View key={at} style={[s.disc, { left: bit.left, top: bit.top, width: bit.size, height: bit.size, borderRadius: 3, backgroundColor: bit.color, transform: [{ rotate: bit.rotate }] }]} />
         ))}
@@ -333,14 +336,14 @@ export function BStageCard({ current }: { current: number }) {
 }
 
 /** One of "Your first three scenes": a 52 tile, the scene, its can-do and the "First" pill. */
-export function BSceneRow({ index, title, line, first, last, art }: { index: number; title: string; line: string; first: boolean; last: boolean; art?: BArtName }) {
+export function BSceneRow({ index, title, line, first, last, art }: { index: number; title: string; line: string; first: boolean; last: boolean; art: BArtName }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const grounds = [t.sage, t.butter, t.lavender];
   return (
     <View style={[s.sceneRow, !last && { borderBottomWidth: 1, borderBottomColor: t.line }]}>
       <View {...decorative} style={[s.sceneTile, { backgroundColor: grounds[index % 3] }]}>
-        {art ? <BArt name={art} width={30} height={28} /> : null}
+        <BArt name={art} width={30} height={28} />
       </View>
       <View style={s.sceneWords}>
         <Text {...frenchText} style={[bType.bold16, { color: t.text }]}>{`${index + 1}. ${title}`}</Text>
@@ -469,8 +472,8 @@ const makeStyles = (_t: B) => StyleSheet.create({
   optionIcon: { width: 32, alignItems: 'center' },
   optionWords: { flex: 1, minWidth: 0, gap: 2 },
   optionMark: { width: 26, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  welcomeArt: { height: 320, alignItems: 'center', overflow: 'visible' },
-  welcomeStage: { width: 390, height: 320 },
+  welcomeArt: { height: 320, alignItems: 'center', overflow: 'visible', marginHorizontal: -24 },
+  welcomeStage: { width: 390, height: 320, overflow: 'visible' },
   disc: { position: 'absolute' },
   bubbleAt: { position: 'absolute' },
   bubble: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18 },

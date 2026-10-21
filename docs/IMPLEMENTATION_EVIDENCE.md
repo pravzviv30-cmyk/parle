@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 21 October 2026 direction B fidelity rebuild, simulator fixes (Drill card top border and end
+  card figures, onboarding welcome drawing bleed, plan scene rows from one scene each), on
+  branch `claude/direction-b` (held, not on main):
+  **5,856 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
+  playground 26, mobile 3442. Floors raised only through `gate:bless`.
 - 21 October 2026 direction B fidelity rebuild, step 12b (every signed-in route except the
   first scene follows the device theme; live flow, settings sub-routes and library screens
   converted), on branch `claude/direction-b` (held, not on main):

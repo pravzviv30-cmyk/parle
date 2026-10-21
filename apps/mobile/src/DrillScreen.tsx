@@ -1956,7 +1956,9 @@ function makeDs(bt: B) {
   ending: { gap: space(4) },
 
   // The exercise card: the SessionView main-card anatomy, content centred.
-  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center', borderTopWidth: 5 },
+  // 2026-10-21 UI-008, sim check: no top border. The old 5pt accent edge drew
+  // as an ink strip across the card's top on the lavender ground.
+  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center' },
   promptCard: { minHeight: 260, justifyContent: 'space-between' },
 
   // The chip anatomy, for choices that are bare words: white paper under a

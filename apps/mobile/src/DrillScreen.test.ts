@@ -634,3 +634,21 @@ describe('help in a practice sitting: the known phrase, recorded so it is never 
     assert.match(end, /exposed: held\.exposed, assisted \}/, 'the end card can call a helped answer recall');
   });
 });
+
+// 2026-10-21 UI-008, simulator check of the Drill in light and dark.
+describe('the drill draws no stray strip and keeps its end figures on one line', () => {
+  test('no exercise card carries a top border, which drew as an ink strip across its top', () => {
+    const screen = stripComments(read('./DrillScreen.tsx'));
+    const card = /exCard: \{([^}]*)\}/.exec(screen);
+    assert.ok(card, 'the exercise card style moved; this test is stale');
+    assert.doesNotMatch(card[1]!, /borderTop/, 'the exercise card draws a top edge again');
+    assert.doesNotMatch(screen, /borderTopWidth/, 'something on the drill draws a top edge');
+  });
+
+  test('an end card tile sets its figure at 22/800 with 12pt sides, so "0:30" fits a third of the row', () => {
+    const end = stripComments(read('./celebrate/EndCard.tsx'));
+    assert.match(end, /textStyle=\{\[bType\.section22, \{ color: paper\.ink \}\]\}/, 'the tile figure is set larger than a third of the row holds');
+    assert.match(end, /tile: \{ backgroundColor: paper\.card, borderRadius: radius\.tile, paddingVertical: space\(3\), paddingHorizontal: space\(3\)/);
+    assert.doesNotMatch(end, /type\.stat\b/, 'the 36pt stat size is back in a tile');
+  });
+});

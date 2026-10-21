@@ -25,19 +25,37 @@ export function bArtHeight(name: BArtName, width: number): number {
   return (width * size.height) / size.width;
 }
 
-export function BArt({ name, width, height, style }: {
+/**
+ * Widens a drawing's root viewBox to the left by `bleed` units, for a drawing
+ * whose composed layers sit left of its own frame (friends-cheer's cloud is
+ * translated -19.5), so nothing is cut at the frame's edge. Pure string work
+ * on the bundled XML; the asset itself is unchanged.
+ */
+export function bleedLeft(xml: string, frameWidth: number, frameHeight: number, bleed: number): string {
+  return xml.replace(`viewBox="0 0 ${frameWidth} ${frameHeight}"`, `viewBox="${-bleed} 0 ${frameWidth + bleed} ${frameHeight}"`)
+    .replace(`width="${frameWidth}" height="${frameHeight}"`, `width="${frameWidth + bleed}" height="${frameHeight}"`);
+}
+
+export function BArt({ name, width, height, style, bleed = 0 }: {
   name: BArtName;
   width: number;
+  /** Viewbox units to show left of the drawing's frame; the frame keeps its place. */
+  bleed?: number;
   /** Defaults to the drawing's own aspect ratio at `width`. */
   height?: number;
   style?: StyleProp<ViewStyle>;
 }) {
   const instance = useId();
-  const xml = useMemo(() => c2SvgForInstance(svg[name], `b-${name}-${instance}`), [name, instance]);
+  const size = manifest[name];
+  const xml = useMemo(() => {
+    const own = c2SvgForInstance(svg[name], `b-${name}-${instance}`);
+    return bleed > 0 ? bleedLeft(own, size.width, size.height, bleed) : own;
+  }, [name, instance, bleed, size.width, size.height]);
   const drawn = height ?? bArtHeight(name, width);
+  const extra = bleed > 0 ? (width * bleed) / size.width : 0;
   return (
     <View {...decorative} style={[{ width, height: drawn }, style]}>
-      <SvgXml {...decorative} xml={xml} width={width} height={drawn} />
+      <SvgXml {...decorative} xml={xml} width={width + extra} height={drawn} style={extra > 0 ? { marginLeft: -extra } : undefined} />
     </View>
   );
 }
