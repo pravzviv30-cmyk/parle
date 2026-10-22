@@ -777,7 +777,8 @@ describe('the privacy and safety policy is held against the code', () => {
     assert.match(record, /analytics event|product event/i, 'the record section does not say the refused analytics shape');
     assert.match(record, /counter/i, 'the record section does not say the refused counter');
     assert.match(recordFlat, /Nothing watches this line/, 'the record section lets a reader infer that somebody is reading it');
-    assert.match(recordFlat, /no escalation route and no reporting route/i, 'the record section does not reaffirm that neither route exists');
+    assert.match(recordFlat, /still no escalation route/i, 'the record section does not reaffirm that no escalation route exists');
+    assert.match(recordFlat, /only reporting route is the learner's own email/i, 'the record section does not say the beta report route is the learner\'s own email and nothing else');
     // Who can read it, and for how long. Both are the honest answers.
     assert.equal(
       retentionRow('worker stdout'),

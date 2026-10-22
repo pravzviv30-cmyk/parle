@@ -86,6 +86,8 @@ import { reminderTime, type ReminderMode, type ReminderPermission, type StoredRe
 import { ReminderAsk } from './reminders/ReminderAsk.tsx';
 import { useProfile } from './app/ProfileContext.tsx';
 import { tutorNameOf } from './tutor/tutorName.ts';
+import { ReportSheet } from './live/ReportSheet.tsx';
+import { REPORT_COPY, reportAddress } from './settings/reportMail.ts';
 import {
   KEEPSAKE_COPY,
   nextCanDo,
@@ -172,6 +174,8 @@ export function RecapScreen({
   // and the sound and "Next time" arrive a beat later.
   const [page, setPage] = useState<RecapPage>('result');
   const [fixing, setFixing] = useState<ClosureRepair | null>(null);
+  // Closed beta: "Something felt off? Tell us" opens the report sheet for this session.
+  const [reporting, setReporting] = useState(false);
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const locks = useFeatureAccess(user?.id);
@@ -325,6 +329,9 @@ export function RecapScreen({
         </Press> : null}
         {currentPage === 'lines' && canPractise ? <Press haptic="light" accessibilityLabel="Practise these lines, free" onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} style={s.link}>
           <Text style={[bType.semi15, { color: t.link }]}>Practise these lines, free</Text>
+        </Press> : null}
+        {reportAddress() !== null ? <Press haptic="none" accessibilityLabel={REPORT_COPY.endLink} onPress={() => setReporting(true)} style={s.link}>
+          <Text style={[bType.semi13, { color: blue ? t.onBrand : t.link }]}>{REPORT_COPY.endLink}</Text>
         </Press> : null}
       </View>}>
       {contextFailed && <View style={s.pad}><Card>
@@ -550,6 +557,7 @@ export function RecapScreen({
         </View>}
     </ScrollScreen>
     {fixing !== null && <FixLineSheet repair={fixing} onClose={() => setFixing(null)} />}
+    {reporting && <ReportSheet place="card" tutorName={tutorNameOf(profile)} sessionId={momentKey} onClose={() => setReporting(false)} />}
     </>
   );
 }

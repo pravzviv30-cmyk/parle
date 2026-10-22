@@ -55,6 +55,7 @@ export function LiveSessionScreen({
   userId,
   startRung,
   onFinish,
+  onSessionId,
   onExit,
   textMode = false,
   onRetryAsText,
@@ -64,6 +65,12 @@ export function LiveSessionScreen({
   /** Where the ladder opens. The agent stays authoritative; this is a request. */
   startRung?: Rung;
   onFinish: (s: SessionSummary) => void;
+  /**
+   * The live session's id as the server gives it, so the end card's report
+   * link can name the session it closes. Kept apart from `onFinish` so the
+   * summary's stop guard stays exactly what it was.
+   */
+  onSessionId?: (sessionId: string | null) => void;
   onExit: () => void;
   /** Open with the voice pipeline dark: the lesson is read and typed, never spoken. */
   textMode?: boolean;
@@ -192,6 +199,8 @@ export function LiveSessionScreen({
     if (live.summary && !stopped && live.settlement === null) onFinish(live.summary);
   }, [live.summary, live.settlement, onFinish, stopped]);
 
+  useEffect(() => { onSessionId?.(live.sessionId); }, [live.sessionId, onSessionId]);
+
   // One content-free beta event per finished lesson (analytics/sessionFinished.ts).
   // A safety stop is not a finished lesson and reports nothing.
   const reportedRef = useRef(false);
@@ -303,7 +312,7 @@ export function LiveSessionScreen({
     ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused');
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <View style={st.root}>
-      <C2LiveRoom tutorName={tutorName} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
+      <C2LiveRoom report={{ sessionId: live.sessionId }} tutorName={tutorName} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
         caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing} startedWithSpeech={!textMode} ready={!live.reconnecting} modePending={modePending} active={roomFocused}
         transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} draft={draft}

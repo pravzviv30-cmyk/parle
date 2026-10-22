@@ -171,6 +171,8 @@ function LessonRoute() {
   const [checking, setChecking] = useState(false);
   const [startRung, setStartRung] = useState<Rung | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
+  // The live session the summary closes, for the end card's report link only.
+  const [summarySession, setSummarySession] = useState<string | null>(null);
   // The finished lesson's delta, as the settle read it back, for its end card.
   const [delta, setDelta] = useState<GameDelta | null>(null);
   // While the lesson is up the celebration queue is held, so no takeover
@@ -279,6 +281,7 @@ function LessonRoute() {
     finishes.current += 1;
     endHold.release();
     setSummary(null);
+    setSummarySession(null);
     setDelta(null);
     setReport(null);
     setStartRung(null);
@@ -301,6 +304,7 @@ function LessonRoute() {
       <SummaryScreen
         lesson={CAFE_LESSON}
         summary={summary}
+        sessionId={summarySession}
         delta={delta}
         release={endHold.release}
         report={report}
@@ -321,6 +325,7 @@ function LessonRoute() {
         textMode={textMode}
         onRetryAsText={() => nav.setParams({ textMode: true })}
         onFinish={finish}
+        onSessionId={setSummarySession}
         onExit={leave}
       />
     </Suspense>
