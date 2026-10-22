@@ -131,7 +131,7 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     const lesson = between(SCREEN, 'const openLesson = (', '\n  };\n', 'the lesson opener is a component-level handler');
     assert.match(lesson, /if \(checking \|\| !ownsReadNow\(\)\) return;/);
     assert.ok(lesson.indexOf('setChecking(true)') >= 0 && lesson.indexOf('setChecking(true)') < lesson.indexOf('recheck()'));
-    assert.match(flat(lesson), /const start = lessonStart\(false\); nav\.navigate\(start\.screen, start\.params\);/);
+    assert.match(flat(lesson), /const start = lessonStart\('speak'\); nav\.navigate\(start\.screen, start\.params\);/);
   });
 
   test('the tab keeps exactly one primary pill, whichever day it is', () => {

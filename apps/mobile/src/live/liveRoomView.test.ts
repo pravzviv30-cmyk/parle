@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { goalStrip, helpLadder, ladderSpoken, liveBubbles, moreHelpOffered, paceLabel, askedLabel, HELP_COPY } from './liveRoomView.ts';
+import { goalStrip, helpLadder, ladderSpoken, liveBubbles, moreHelpOffered, paceLabel, askedLabel, typingNote, HELP_COPY } from './liveRoomView.ts';
 import type { TurnLine } from './turns.ts';
 
 describe('the pace pill', () => {
@@ -78,5 +78,28 @@ describe('the live mic is green', () => {
     assert.match(parts, /mic: \{[^}]*backgroundColor: t\.mint/, 'the live mic is not mint');
     assert.doesNotMatch(parts, /mic: \{[^}]*backgroundColor: t\.sun/, 'the live mic went back to sun');
     assert.match(parts, /<BMicHeavy color=\{t\.onMint\} \/>/, 'the mic glyph is not ink on mint');
+  });
+});
+
+describe('the note under the controls while typing', () => {
+  test('nothing while the learner is speaking', () => {
+    assert.equal(typingNote(false, true, 'Celine'), null);
+    assert.equal(typingNote(false, false, 'Celine'), null);
+  });
+
+  test('a typed session says it started typed', () => {
+    assert.equal(typingNote(true, false, 'Celine'), 'This session started in typing mode.');
+  });
+
+  test('a voiced session with the mic off says the tutor still speaks, by name', () => {
+    const note = typingNote(true, true, 'Celine');
+    assert.equal(note, 'Your mic is off. Celine still speaks out loud.');
+    assert.doesNotMatch(note ?? '', /\u2014|\u00b7/);
+  });
+
+  test('the room draws the note from this rule and nowhere else', () => {
+    const room = readFileSync(fileURLToPath(new URL('./C2LiveRoom.tsx', import.meta.url)), 'utf8');
+    assert.match(room, /typingNote\(typing, startedWithSpeech, tutorName\)/);
+    assert.doesNotMatch(room, /started in typing mode/);
   });
 });

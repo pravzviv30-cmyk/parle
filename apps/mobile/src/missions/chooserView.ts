@@ -89,6 +89,8 @@ export const CHOOSER_OTHER = 'Other situations';
 export const LESSON_DOOR = {
   title: 'Pronunciation lesson: Au café',
   quiet: 'Read and type this one instead',
+  /** The spoken lesson with the mic kept closed: the tutor talks, the learner taps or types. */
+  listen: 'Listen only',
   /**
    * What the lesson costs, said on both of its doors (Stage 4, 2026-09-25).
    * With a tutor connected the navigator opens the metered live lesson; offline

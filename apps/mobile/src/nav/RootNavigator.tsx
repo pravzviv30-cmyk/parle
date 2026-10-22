@@ -166,6 +166,8 @@ function LessonRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
   const t = useB();
   const textMode = route.params?.textMode ?? false;
+  // Typed wins: a session with no voice has no microphone to keep closed.
+  const listenOnly = !textMode && (route.params?.listenOnly ?? false);
   const { user } = useAuth();
   const { live, recheck } = useLive();
   const [checking, setChecking] = useState(false);
@@ -318,11 +320,12 @@ function LessonRoute() {
   return (
     <Suspense fallback={<Loading />}>
       <LazyLiveSessionScreen
-        key={textMode ? 'live-text' : 'live'}
+        key={textMode ? 'live-text' : listenOnly ? 'live-listen' : 'live'}
         lesson={CAFE_LESSON}
         userId={user.id}
         startRung={startRung}
         textMode={textMode}
+        listenOnly={listenOnly}
         onRetryAsText={() => nav.setParams({ textMode: true })}
         onFinish={finish}
         onSessionId={setSummarySession}
@@ -481,6 +484,9 @@ function ConvoRoute() {
         onJourney={() => nav.reset(tabsAlone('MyFrench'))}
         walkMode={walkMode}
         startInTextMode={walkMode ? false : route.params?.textMode ?? false}
+        // Listen only: the voice stays, the microphone does not open. A walk is
+        // hands-free by definition and typed wins over it.
+        listenOnly={!walkMode && !(route.params?.textMode ?? false) && (route.params?.listenOnly ?? false)}
         seedTopic={route.params?.seedTopic}
         continuationPackId={route.params?.continuationPackId}
         // The mission the learner chose, carried through to the join token so

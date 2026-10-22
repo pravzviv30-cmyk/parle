@@ -11,6 +11,7 @@ import {
   choosingView,
   micOpensAtConnect,
   modeCarriesAudio,
+  publishesMicAtConnect,
   type ChoosingState,
   type LiveMode,
 } from './choosingView.ts';
@@ -162,7 +163,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
     const convo = stripComments(read('../ConvoScreen.tsx'));
     assert.match(
       convo,
-      /useState\(prefersTyping\(profile\)\)/,
+      /useState\(listenOnly \|\| prefersTyping\(profile\)\)/,
       'the conversation opens with the box closed however the learner set it, so the setting does nothing',
     );
     const call = convo.slice(convo.indexOf('choosingView({'));
@@ -280,5 +281,38 @@ describe('what each session mode may do with a microphone — F139', () => {
   test('a session that names no mode is the lesson path, unchanged', () => {
     assert.equal(micOpensAtConnect(undefined), true, 'the lesson surface lost its hot microphone');
     assert.equal(modeCarriesAudio(undefined), true, 'the lesson surface lost its voice');
+  });
+});
+
+describe('Listen only: the voiced grant with the microphone kept closed', () => {
+  const MODES: LiveMode[] = ['lesson', 'convo', 'convo-text', 'lesson-text'];
+
+  test('listen only never publishes a microphone at connect, in any mode', () => {
+    for (const mode of [...MODES, undefined]) {
+      assert.equal(publishesMicAtConnect(mode, true), false, `${String(mode)}: listen only opened the microphone`);
+    }
+  });
+
+  test('without listen only the connect-time answer is the mode table, unchanged', () => {
+    for (const mode of [...MODES, undefined]) {
+      assert.equal(publishesMicAtConnect(mode, false), micOpensAtConnect(mode), `${String(mode)}: the ordinary path moved`);
+    }
+    assert.equal(publishesMicAtConnect('lesson', false), true, 'the lesson lost its hot microphone');
+  });
+
+  test('listen only is not a mode: the table still has four rows and the same caps', () => {
+    assert.deepEqual(MODE_CAPS, {
+      lesson: { carriesAudio: true, micAtConnect: true },
+      convo: { carriesAudio: true, micAtConnect: false },
+      'convo-text': { carriesAudio: false, micAtConnect: false },
+      'lesson-text': { carriesAudio: false, micAtConnect: false },
+    });
+  });
+
+  test('the hook asks this helper, with the listen-only flag, at the connect-time publish', () => {
+    const hook = stripComments(read('../live/useLiveSession.ts'));
+    assert.match(hook, /if \(publishesMicAtConnect\(mode, listenOnly\)\) \{\s*await room\.localParticipant\.setMicrophoneEnabled\(true\)/);
+    assert.match(hook, /const listenOnly = opts\?\.listenOnly \?\? false;/);
+    assert.doesNotMatch(hook, /micOpensAtConnect\(/, 'a second, unfiltered call would reopen the microphone');
   });
 });

@@ -221,9 +221,9 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.match(tab, /nav\.navigate\(EVERY_SCENE\.route\.screen\)/, 'Speak no longer reaches this chooser');
     // The Start opens in the chosen mode, defaulting to the standing one, and a
     // retry is the same start.
-    assert.match(tab, /const textMode = chosenText \?\? modes\.textMode;/, 'a fresh start loses the standing mode');
+    assert.match(tab, /const answer = modeChoice\(chosenMode \?\? modes\.mode\);/, 'a fresh start loses the standing mode');
     assert.match(tab, /heldBack\?\.textMode \?\? textMode/, 'a retry loses the chosen mode');
-    assert.match(tab, /heldBack \? pendingStart\.current : next\.params/, 'a retry loses the original scene');
+    assert.match(tab, /heldBack \? pendingStart\.current : answered\(next\.params\)/, 'a retry loses the original scene');
     assert.match(stripComments(read('../tabs/HomeTab.tsx')), /<NextTaskCard/);
     const shared = stripComments(read('../practice/NextTaskCard.tsx'));
     assert.match(shared, /<MissionHero hero=\{value.hero\}/);
@@ -253,7 +253,7 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
   test('the pronunciation lesson is a door on the chooser', () => {
     // Reachable at all. Everything else on this door is decoration next to it.
     assert.match(SCREEN, /nav\.navigate\(start\.screen, start\.params\)/, 'the chooser has no way to the Lesson route');
-    assert.match(SCREEN, /lessonStart\(textMode\)/, 'the chooser decides where the lesson opens instead of reading it from gate.ts');
+    assert.match(SCREEN, /lessonStart\(how\)/, 'the chooser decides where the lesson opens instead of reading it from gate.ts');
 
     // Its words are the model's, and the model is this file's now.
     assert.equal(LESSON_DOOR.title, 'Pronunciation lesson: Au cafe'.replace('Au cafe', 'Au caf\u00e9'));
@@ -309,8 +309,8 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
     );
     // Both controls go through it, the spoken one and the quiet one.
     // 2026-09-27: the Speak/Type pill left; the arrival mode is the mode.
-    assert.match(SCREEN, /openLesson\(typed\)/, 'the lesson button honours the mode the learner arrived in');
-    assert.match(SCREEN, /openLesson\(true\)/, 'the quiet control on the lesson door skips the probe');
+    assert.match(SCREEN, /openLesson\(typed \? 'type' : 'speak'\)/, 'the lesson button honours the mode the learner arrived in');
+    assert.match(SCREEN, /openLesson\('type'\)/, 'the quiet control on the lesson door skips the probe');
   });
 
   test('nothing the lesson door says is a count, a scold or a second question', () => {

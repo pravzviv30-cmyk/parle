@@ -107,11 +107,15 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
   // the butter track, two radio cells over startModes, the chosen one with a tick.
   test('one Start on the Recommended card, with Speak and Type as radios defaulting to the standing choice', () => {
     assert.match(FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/);
-    assert.match(FLAT, /const textMode = chosenText \?\? modes\.textMode;/);
+    // Beta: a third radio, Listen only. The default is still the standing
+    // choice, Speak or Type, never Listen.
+    assert.match(FLAT, /const answer = modeChoice\(chosenMode \?\? modes\.mode\);/);
+    assert.match(FLAT, /const textMode = answer\.textMode;/);
     const card = between(RENDER_FLAT, '<View style={st.hero}>', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
-    assert.match(card, /accessibilityRole="radiogroup"/);
+    assert.match(card, /accessibilityRole="radiogroup" accessibilityLabel="How you answer"/);
+    assert.match(card, /\{answer\.helper\(tutorName\)\}/, 'the chosen mode says what it means under the radios');
     assert.match(card, /MODE_CHOICES\.map\(\(choice\) =>/);
-    assert.match(card, /<Segment key=\{choice\.key\} label=\{choice\.label\} selected=\{textMode === choice\.textMode\} onPress=\{\(\) => setChosenText\(choice\.textMode\)\} \/>/);
+    assert.match(card, /<Segment key=\{choice\.key\} label=\{choice\.label\} selected=\{answer\.key === choice\.key\} onPress=\{\(\) => setChosenMode\(choice\.key\)\} \/>/);
     const segment = between(FLAT, 'function Segment(', 'function OutlineChip(', 'the Speak/Type cell is drawn here');
     assert.match(segment, /accessibilityRole="radio" accessibilityLabel=\{label\} accessibilityState=\{\{ checked: selected, selected \}\}/);
     assert.match(segment, /\{selected && <Tick color=\{t\.heroText\} \/>\}/, 'the chosen cell is told by its fill alone');
@@ -119,7 +123,10 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.equal((card.match(/<BButton label=\{START\}/g) ?? []).length, 1, 'the card carries other than one Start');
     assert.match(card, /height=\{54\} ground=\{t\.heroCta\} ink=\{t\.heroCtaText\}/);
     assert.match(card, /<BMic size=\{20\} color=\{t\.heroCtaText\} \/>/);
-    assert.match(card, /onPress=\{\(\) => open\(textMode, next\.params\)\}/, 'Start does not open the next conversation through the probe');
+    assert.match(card, /onPress=\{\(\) => open\(textMode, answered\(next\.params\)\)\}/, 'Start does not open the next conversation through the probe, in the chosen mode');
+    assert.match(FLAT, /const answered = \(params: object\): object => withAnswerMode\(answer\.key, params\);/);
+    // The held-back retry keeps the params it was refused with, Listen only included.
+    assert.match(FLAT, /heldBack \? pendingStart\.current : answered\(next\.params\)/);
     assert.doesNotMatch(SCREEN, /<TabBar\b|<SegmentedControl\b|Ready when you are/);
   });
 
@@ -166,7 +173,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
     assert.match(FLAT, /const replay = lessHelp\(completions, locks\.access\);/);
     assert.match(RENDER_FLAT, /\{replay !== null && \(/);
-    assert.match(RENDER_FLAT, /onPress=\{\(\) => tapThrough\(locks\.access, replay\.feature, locks\.open, \(\) => open\(textMode, replay\.params\)\)\}/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => tapThrough\(locks\.access, replay\.feature, locks\.open, \(\) => open\(textMode, answered\(replay\.params\)\)\)\}/);
     // 2026-10-20 UI-008, artboard B-Speak: the drawn line is the artboard's; the help word is said in the label.
     assert.match(RENDER_FLAT, /accessibilityLabel=\{`\$\{LESS_HELP_TITLE\}, \$\{replay\.title\}, \$\{replay\.line\}, \$\{replay\.help\}\$\{replay\.locked \? `, \$\{LOCK_BADGE_LABEL\}` : ''\}`\}/);
     assert.match(RENDER_FLAT, /<BArt name="cafe-table" width=\{70\} height=\{64\} style=\{st\.twistArt\} \/>/);
@@ -182,7 +189,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(card, /\{TALK_SUB\}/);
     assert.match(card, /backgroundColor: chip\.own \? t\.violet2 : t\.card/);
     assert.match(card, /hitSlop=\{CHIP_SLOP\}/, 'a 40pt chip has no way to the touch floor');
-    assert.match(card, /onPress=\{\(\) => open\(textMode, chip\.params\)\}/);
+    assert.match(card, /onPress=\{\(\) => open\(textMode, answered\(chip\.params\)\)\}/);
     assert.doesNotMatch(SCREEN, /My trip to Lyon|My weekend|Food I love/, 'Speak invents a personal topic');
   });
 
@@ -304,7 +311,7 @@ describe('Speak keeps its history read, its plan read and its continuation', () 
     assert.match(FLAT, /useEffect\(\(\) => \{ if \(live\) setHeldBack\(null\); \}, \[live\]\);/);
     const offline = between(RENDER, '{offlineShown && (', '</EmptyStateCard>', 'the offline block is drawn');
     assert.ok(!offline.includes('LESSON_MINUTES'));
-    assert.match(FLAT, /open\(heldBack\?\.textMode \?\? textMode, heldBack \? pendingStart\.current : next\.params\)/);
+    assert.match(FLAT, /open\(heldBack\?\.textMode \?\? textMode, heldBack \? pendingStart\.current : answered\(next\.params\)\)/);
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/);
     assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
   });

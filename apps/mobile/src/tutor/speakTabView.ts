@@ -74,11 +74,50 @@ export function recommended(next: NextFacts): Recommended {
   };
 }
 
-/** The Speak/Type choice, as the two radios over `startModes`. */
-export const MODE_CHOICES: readonly { key: 'speak' | 'type'; label: string; textMode: boolean }[] = [
-  { key: 'speak', label: 'Speak', textMode: false },
-  { key: 'type', label: 'Type', textMode: true },
+/** How the learner answers in the room this Start opens. */
+export type AnswerMode = 'speak' | 'listen' | 'type';
+
+export interface ModeChoice {
+  key: AnswerMode;
+  label: string;
+  /** Typed: no voice either way. */
+  textMode: boolean;
+  /** Listen only: the tutor's voice, and a microphone that never opens. */
+  listenOnly: boolean;
+  /** The one line under the choice, saying what it means. */
+  helper: (tutorName: string) => string;
+}
+
+/**
+ * Speak, Listen, Type, as the three radios over `startModes`. Listen sits in
+ * the middle because it is the middle: the tutor still talks, and nobody on
+ * the train hears the learner (PRODUCT.md, never require speaking in public).
+ */
+export const MODE_CHOICES: readonly ModeChoice[] = [
+  { key: 'speak', label: 'Speak', textMode: false, listenOnly: false, helper: (name) => `You talk, ${name} answers out loud.` },
+  {
+    key: 'listen',
+    label: 'Listen',
+    textMode: false,
+    listenOnly: true,
+    helper: (name) => `${name} speaks. You answer by typing or tapping. Your mic stays off.`,
+  },
+  { key: 'type', label: 'Type', textMode: true, listenOnly: false, helper: () => 'Everything is written. Nobody speaks.' },
 ];
+
+/** The choice for a key, falling back to Speak so an unknown key never strands the Start. */
+export function modeChoice(key: AnswerMode): ModeChoice {
+  return MODE_CHOICES.find((m) => m.key === key) ?? MODE_CHOICES[0]!;
+}
+
+/**
+ * A start's route params with the answer mode on them. Typed travels as the
+ * gate's `textMode`; Listen only rides the params so a held-back start, which
+ * keeps its params for the retry, keeps the learner's mode with them.
+ */
+export function withAnswerMode(key: AnswerMode, params: object): object {
+  return modeChoice(key).listenOnly ? { ...params, listenOnly: true } : params;
+}
 
 export function correctionsChip(strictness: string): string {
   return `Corrections: ${strictness}`;
@@ -442,6 +481,8 @@ export const SPEAK_TAB_COPY: readonly string[] = [
   PREPARE_FIRST,
   START,
   ...MODE_CHOICES.map((m) => m.label),
+  // A stand-in name: the helpers are swept for their words, not for whom.
+  ...MODE_CHOICES.map((m) => m.helper('Tutor')),
   EVERY_SCENE.label,
   NEXT_CHIP,
   DONE_WITHOUT_HELP,

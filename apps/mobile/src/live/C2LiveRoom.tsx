@@ -13,7 +13,7 @@ import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy
 import { ReportSheet } from './ReportSheet.tsx';
 import { reportAddress, REPORT_COPY } from '../settings/reportMail.ts';
 import { AskedCard, BulbGlyph, CloseGlyph, FlagGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
-import { HELP_COPY, askedLabel, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
+import { HELP_COPY, askedLabel, typingNote, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
 
 /**
  * Presentation only. Every action is supplied by the existing session owner.
@@ -99,6 +99,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   const asked = lastTutorLine(turns);
   const ladder = helpLadder(helpKind);
   const helpAvailable = Boolean(support || tools || moreHelp);
+  const note = typingNote(typing, startedWithSpeech, tutorName);
   const speakDisabled = !canResumeSpeaking(startedWithSpeech, ready, modePending);
   const sayChoice = () => {
     setHelpOpen(false);
@@ -161,7 +162,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
             {helpAvailable ? <SideControl label="Help" accessibilityLabel={helpOpen ? 'Close help' : 'Get help'} expanded={helpOpen}
               icon={<BulbGlyph size={24} color={t.onBrand} />} onPress={() => setHelpOpen(value => !value)} /> : <View {...decorative} style={st.sideSpace} />}
           </View>}
-          {typing && !startedWithSpeech && controlsVisible && <Text style={[bType.note, st.center, { color: t.onBrandSoft }]}>This session started in typing mode.</Text>}
+          {note !== null && controlsVisible && <Text style={[bType.note, st.center, { color: t.onBrandSoft }]}>{note}</Text>}
         </>}
       </View>
     </View>

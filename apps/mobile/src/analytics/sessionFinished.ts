@@ -13,6 +13,7 @@ import type { ProductEvent } from './track.ts';
 
 export interface FinishedSession {
   kind: 'lesson' | 'convo';
+  /** Listen only reports true: the tutor spoke, even though the learner's mic stayed closed. */
   voice: boolean;
   turns: number;
   rescues: number;

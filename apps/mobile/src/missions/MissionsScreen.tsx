@@ -104,12 +104,12 @@ export function MissionsScreen() {
   };
 
   /** The live lesson route owns the gate and offers genuine local practice offline. */
-  const openLesson = (textMode: boolean) => {
+  const openLesson = (how: 'speak' | 'listen' | 'type') => {
     if (checking) return;
     setChecking(true);
     const go = () => {
       setChecking(false);
-      const start = lessonStart(textMode);
+      const start = lessonStart(how);
       nav.navigate(start.screen, start.params);
     };
     void recheck().then(go, go);
@@ -173,8 +173,9 @@ export function MissionsScreen() {
         </View>)}
         <View style={st.footer}>
           <IconActionRow>
-          <IconAction layout="tile" icon="book" label={LESSON_DOOR.title} disabled={checking} onPress={() => openLesson(typed)} />
-          <IconAction layout="tile" icon="keyboard" label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
+          <IconAction layout="tile" icon="book" label={LESSON_DOOR.title} disabled={checking} onPress={() => openLesson(typed ? 'type' : 'speak')} />
+          <IconAction layout="tile" icon="keyboard" label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson('type')} />
+          <IconAction layout="tile" icon="headphones" label={LESSON_DOOR.listen} accessibilityLabel={`${LESSON_DOOR.listen}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson('listen')} />
           <IconAction layout="tile" icon="chat" label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
           </IconActionRow>
           <Text style={[type.small, { color: t.muted }]}>{LESSON_DOOR.minutes}</Text>

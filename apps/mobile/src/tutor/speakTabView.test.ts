@@ -22,6 +22,8 @@ import {
   HELP_WORDS,
   MINUTES_CHECKING,
   MODE_CHOICES,
+  modeChoice,
+  withAnswerMode,
   OWN_TOPIC,
   PREFERENCES_ROUTE,
   LESS_HELP_LINE,
@@ -78,8 +80,30 @@ describe('the header and the Recommended card', () => {
     assert.doesNotMatch(PREPARE_FIRST, /\d|·/);
   });
 
-  test('Speak and Type are the two start modes', () => {
-    assert.deepEqual(MODE_CHOICES.map((m) => [m.label, m.textMode]), [['Speak', false], ['Type', true]]);
+  test('Speak, Listen and Type are the three start modes', () => {
+    assert.deepEqual(
+      MODE_CHOICES.map((m) => [m.key, m.label, m.textMode, m.listenOnly]),
+      [
+        ['speak', 'Speak', false, false],
+        ['listen', 'Listen', false, true],
+        ['type', 'Type', true, false],
+      ],
+    );
+    // No choice is both typed and listen only: typed has no voice to listen to.
+    for (const m of MODE_CHOICES) assert.ok(!(m.textMode && m.listenOnly), m.key);
+  });
+
+  test('only Listen adds listenOnly to a start, and keeps the rest of the params', () => {
+    assert.deepEqual(withAnswerMode('listen', { missionId: 'm1' }), { missionId: 'm1', listenOnly: true });
+    assert.deepEqual(withAnswerMode('speak', { missionId: 'm1' }), { missionId: 'm1' });
+    assert.deepEqual(withAnswerMode('type', { missionId: 'm1' }), { missionId: 'm1' });
+  });
+
+  test('each mode says what it means in one line, naming the chosen tutor', () => {
+    assert.equal(modeChoice('listen').helper('Celine'), 'Celine speaks. You answer by typing or tapping. Your mic stays off.');
+    assert.equal(modeChoice('speak').helper('Celine'), 'You talk, Celine answers out loud.');
+    assert.equal(modeChoice('type').helper('Celine'), 'Everything is written. Nobody speaks.');
+    for (const m of MODE_CHOICES) assert.doesNotMatch(m.helper('Celine'), /—|·/, m.key);
   });
 
   test('the preference chips say the setting and open the preferences screen', () => {

@@ -58,6 +58,7 @@ export function LiveSessionScreen({
   onSessionId,
   onExit,
   textMode = false,
+  listenOnly = false,
   onRetryAsText,
 }: {
   lesson: Lesson;
@@ -74,6 +75,11 @@ export function LiveSessionScreen({
   onExit: () => void;
   /** Open with the voice pipeline dark: the lesson is read and typed, never spoken. */
   textMode?: boolean;
+  /**
+   * Listen only: the tutor speaks, the microphone never opens at connect, and
+   * the typing box is already open. Speaking stays one tap away.
+   */
+  listenOnly?: boolean;
   /**
    * Reopen this lesson typed, from cold.
    *
@@ -96,6 +102,7 @@ export function LiveSessionScreen({
   // "unchosen". See live/useLiveSession.ts for why it is not a conditional.
   const live = useLiveSession(userId, lesson.id, startRung, {
     ...(textMode ? { mode: 'lesson-text' as const } : {}),
+    listenOnly,
     tutorVoice: tutorVoiceOf(profile),
   });
 
@@ -103,7 +110,7 @@ export function LiveSessionScreen({
   // learner commits, which drops the guard and lets the exit run from an effect
   // rather than inline, where the guard would prevent its own pop.
   const [confirming, setConfirming] = useState(false);
-  const [typingOpen, setTypingOpen] = useState(false);
+  const [typingOpen, setTypingOpen] = useState(listenOnly);
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [draft, setDraft] = useState('');
   const [modePending, setModePending] = useState(false);

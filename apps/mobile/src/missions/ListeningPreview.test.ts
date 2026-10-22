@@ -161,6 +161,9 @@ describe('both lesson doors that can open a live lesson say so', () => {
     assert.match(footer, /label=\{LESSON_DOOR\.title\}/);
     assert.match(footer, /\{LESSON_DOOR\.minutes\}/, 'the spoken lesson door hides its minutes');
     assert.match(footer, /accessibilityLabel=\{`\$\{LESSON_DOOR\.quiet\}\. \$\{LESSON_DOOR\.minutes\}`\}/, 'the typed lesson door hides that it can use live minutes');
+    assert.match(footer, /icon="headphones" label=\{LESSON_DOOR\.listen\} accessibilityLabel=\{`\$\{LESSON_DOOR\.listen\}\. \$\{LESSON_DOOR\.minutes\}`\}/, 'the listen-only lesson door is missing or hides its minutes');
+    assert.match(footer, /onPress=\{\(\) => openLesson\('listen'\)\}/, 'the listen-only door opens some other lesson');
+    assert.equal(LESSON_DOOR.listen, 'Listen only');
     assert.ok(FLAT_SCREEN.includes('{LESSON_DOOR.minutes}'));
   });
 

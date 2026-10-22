@@ -191,6 +191,7 @@ export function ConvoScreen({
   onPractice,
   onJourney,
   startInTextMode = false,
+  listenOnly = false,
   walkMode = false,
   seedTopic,
   continuationPackId,
@@ -210,6 +211,8 @@ export function ConvoScreen({
   onJourney?: () => void;
   /** "Can't speak right now": the same tutor, typed. */
   startInTextMode?: boolean;
+  /** Listen only: the tutor speaks out loud, the mic stays closed, the box is open. */
+  listenOnly?: boolean;
   walkMode?: boolean;
   /**
    * What the learner asked to talk about again, from a topic card. It rides the
@@ -278,10 +281,12 @@ export function ConvoScreen({
   // Seeded from the stored choice, which is what "Prefer typing" means: the box
   // is already open when the room is. Still not the quiet door, and the seed
   // does not change that — the tutor speaks, and the circle is one tap away.
-  const [typingOpen, setTypingOpen] = useState(prefersTyping(profile));
+  // Listen only seeds it too: the same open box, chosen for this one session.
+  const [typingOpen, setTypingOpen] = useState(listenOnly || prefersTyping(profile));
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
     noTypedRecovery: walkMode,
     mode: openedTyped ? 'convo-text' : 'convo',
+    listenOnly,
     snapshot,
     seedTopic,
     continuationPackId,
@@ -1057,7 +1062,11 @@ export function ConvoScreen({
         top={<>{live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
           {replayLine ? <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.onInk }]}>{replayLine}</Text> : null}
           {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}</>}
-        support={view.supportView.kind !== 'none' ? <SupportBlock support={view.supportView} onHearLine={controls.showHearIt ? () => live.sendHear() : undefined} /> : undefined}
+        support={view.supportView.kind !== 'none' ? <SupportBlock support={view.supportView} onHearLine={controls.showHearIt ? () => live.sendHear() : undefined}
+          // A tapped option lands in the box, not on the wire: the learner
+          // still decides to send it, and can change a word first. Only while
+          // the box is open, so a tap never fills a draft nobody can see.
+          onOptionPress={typing || typingOpen ? changeDraft : undefined} /> : undefined}
         notice={momentTaps > 0 ? momentAnswer(tutorName) : view.coachLine}
         tools={<>
           {marks.showing ? <Press onPress={closeMark} haptic="none" accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`} style={st.mark}><Text style={[type.small, { color: paper.onInk }]}>{COACH_MARK_TEXT[marks.showing]}</Text></Press> : null}
