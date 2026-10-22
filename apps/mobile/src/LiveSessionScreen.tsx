@@ -47,6 +47,7 @@ import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
 import { RoomLevels } from './live/RoomLevels.tsx';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { ReportSheet } from './live/ReportSheet.tsx';
 import { sessionFinishedEvent } from './analytics/sessionFinished.ts';
 import { trackProductEvent } from './analytics/track.ts';
 
@@ -115,6 +116,8 @@ export function LiveSessionScreen({
   const [confirming, setConfirming] = useState(false);
   // A report the learner saved in the room for the end card (live/ReportSheet.tsx).
   const [reportPending, setReportPending] = useState(false);
+  // Set once the room has closed on a leave with a saved report (see the leave effect).
+  const [leftWithReport, setLeftWithReport] = useState<{ sessionId: string | null } | null>(null);
   const [typingOpen, setTypingOpen] = useState(listenOnly);
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [draft, setDraft] = useState('');
@@ -247,8 +250,15 @@ export function LiveSessionScreen({
   // The exit runs from the effect, not from the sheet's confirm: with the guard
   // still up an inline pop would be prevented. Raising `leaving` lowers the
   // guard first, and this then runs the real teardown.
+  // A report saved in the room, and a leave with no end card after it: the
+  // room is closed first (so the mailto navigation cannot drop anything on
+  // web), then the card ReportSheet opens, and the exit runs when it closes,
+  // whether or not mail opened. Never after a safety stop: the stop keeps its
+  // one way out, and it is checked first below.
+  const reportHeld = reportPending && !stopped;
+  const leaveToReport = () => { const sessionId = live.sessionId; void live.leave().finally(() => setLeftWithReport({ sessionId })); };
   useEffect(() => {
-    if (leaving) leaveNow();
+    if (leaving) { if (!reportHeld) leaveNow(); else leaveToReport(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaving]);
 
@@ -258,6 +268,12 @@ export function LiveSessionScreen({
   // arrived.
   if (safety.kind === 'stop') {
     return <SafetyStopView surface={safety} onClose={leaveNow} />;
+  }
+
+  if (leftWithReport !== null) {
+    return <View style={{ flex: 1, backgroundColor: t.ground }}>
+      <ReportSheet tutorName={tutorName} sessionId={leftWithReport.sessionId} onClose={onExit} />
+    </View>;
   }
 
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {

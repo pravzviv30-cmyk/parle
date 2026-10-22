@@ -110,6 +110,7 @@ import { recapWait } from './tutor/recapWait.ts';
 import { KeyboardGlyph, SpeakerSlowGlyph } from './glyphs.tsx';
 import { RoomWait } from './live/RoomWait.tsx';
 import { useB } from './main/bTheme.tsx';
+import { ReportSheet } from './live/ReportSheet.tsx';
 import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
 import { waitingNote } from './tutor/waitingView.ts';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
@@ -272,6 +273,9 @@ export function ConvoScreen({
   const [confirming, setConfirming] = useState(false);
   // A report the learner saved in the room for the end card (live/ReportSheet.tsx).
   const [reportPending, setReportPending] = useState(false);
+  // Set once the room has closed on a leave with a saved report (see the leave effect).
+  const [leftWithReport, setLeftWithReport] = useState<{ sessionId: string | null } | null>(null);
+  const paperGround = useB().ground;
   const [leaving, setLeaving] = useState(false);
   const leaveCopy = leaveConfirmCopy('conversation');
   // Which text input holds the caret, for the ink focus border. Visual only.
@@ -864,8 +868,15 @@ export function ConvoScreen({
 
   // The exit runs from the effect, not from the sheet's confirm: with the guard
   // still up an inline pop would be prevented. Raising `leaving` lowers it first.
+  // A report saved in the room, and a leave with no end card after it: the
+  // room is closed first (so the mailto navigation cannot drop anything on
+  // web), then the card ReportSheet opens, and the exit runs when it closes,
+  // whether or not mail opened. Never after a safety stop: the stop keeps its
+  // one way out, and it is checked first below.
+  const reportHeld = reportPending && !stopped;
+  const leaveToReport = () => { const sessionId = live.sessionId; leaveTo(() => setLeftWithReport({ sessionId })); };
   useEffect(() => {
-    if (leaving) leaveNow();
+    if (leaving) { if (!reportHeld) leaveNow(); else leaveToReport(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaving]);
 
@@ -875,6 +886,12 @@ export function ConvoScreen({
   // off the screen a moment after it arrived.
   if (safety.kind === 'stop') {
     return <SafetyStopView surface={safety} onClose={leaveNow} />;
+  }
+
+  if (leftWithReport !== null) {
+    return <View style={{ flex: 1, backgroundColor: paperGround }}>
+      <ReportSheet tutorName={tutorName} sessionId={leftWithReport.sessionId} onClose={onExit} />
+    </View>;
   }
 
   if (live.recap) {

@@ -66,7 +66,17 @@ describe('the owners pass report only to the live room', () => {
     test(`${file} draws no report on the safety stop or the waiting room`, () => {
       assert.doesNotMatch(screen, /<SafetyStopView[^>]*report/);
       assert.doesNotMatch(screen, /<RoomWait[^>]*report/);
-      assert.doesNotMatch(screen, /ReportSheet/);
+      assert.equal((screen.match(/<ReportSheet /g) ?? []).length, 1, 'the leave sheet is the only one this screen draws');
+      assert.doesNotMatch(screen, /RoomReportSheet|openMail/);
+    });
+
+    test(`${file} closes the room, then shows ReportSheet, then exits, when a saved report has no end card`, () => {
+      assert.match(screen, /const reportHeld = reportPending && !stopped;/);
+      assert.match(screen, /const leaveToReport = \(\) => \{ const sessionId = live\.sessionId; (leaveTo|void live\.leave\(\)\.finally)\(\(\) => setLeftWithReport\(\{ sessionId \}\)\); \};/);
+      assert.match(screen, /if \(leaving\) \{ if \(!reportHeld\) leaveNow\(\); else leaveToReport\(\); \}/);
+      assert.match(screen, /if \(leftWithReport !== null\) \{[\s\S]*?<ReportSheet tutorName=\{tutorName\} sessionId=\{leftWithReport\.sessionId\} onClose=\{onExit\} \/>/);
+      const stop = screen.indexOf("if (safety.kind === 'stop') {");
+      assert.ok(stop > 0 && stop < screen.indexOf('if (leftWithReport !== null) {'), 'the leave sheet can be drawn over a safety stop');
     });
   }
 
