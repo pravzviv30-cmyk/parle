@@ -49,6 +49,18 @@ import { PostcardMarket } from './postcard-market.tsx';
 import { PostcardDirections } from './postcard-directions.tsx';
 import { PostcardDay } from './postcard-day.tsx';
 import { PostcardApero } from './postcard-apero.tsx';
+import { PostcardRestaurant } from './postcard-restaurant.tsx';
+import { PostcardPharmacy } from './postcard-pharmacy.tsx';
+import { PostcardStation } from './postcard-station.tsx';
+import { PostcardParcel } from './postcard-parcel.tsx';
+import { PostcardNeighbour } from './postcard-neighbour.tsx';
+import { PostcardWeekend } from './postcard-weekend.tsx';
+import { PostcardWorkplace } from './postcard-workplace.tsx';
+import { PostcardPhone } from './postcard-phone.tsx';
+import { PostcardDoctor } from './postcard-doctor.tsx';
+import { PostcardShopReturn } from './postcard-shop-return.tsx';
+import { PostcardFlat } from './postcard-flat.tsx';
+import { PostcardFamilyDinner } from './postcard-family-dinner.tsx';
 
 /** One drawing: the component, its viewBox, and the sizes the catalogue displays it at. */
 export type IllustrationEntry = {
@@ -100,6 +112,18 @@ export const ILLUSTRATIONS = {
   'postcard-directions': { draw: PostcardDirections, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-day': { draw: PostcardDay, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-apero': { draw: PostcardApero, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-restaurant': { draw: PostcardRestaurant, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-pharmacy': { draw: PostcardPharmacy, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-station': { draw: PostcardStation, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-parcel': { draw: PostcardParcel, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-neighbour': { draw: PostcardNeighbour, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-weekend': { draw: PostcardWeekend, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-workplace': { draw: PostcardWorkplace, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-phone': { draw: PostcardPhone, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-doctor': { draw: PostcardDoctor, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-shop-return': { draw: PostcardShopReturn, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-flat': { draw: PostcardFlat, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-family-dinner': { draw: PostcardFamilyDinner, box: [300, 190], large: [300, 190], small: [165, 105] },
 } as const satisfies Record<string, IllustrationEntry>;
 
 export type IllustrationName = keyof typeof ILLUSTRATIONS;

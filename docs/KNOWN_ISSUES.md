@@ -8632,7 +8632,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp B (2026-09-30, F599): the watercolours retired and the promise moved to the flat
   drawings. The registry test now holds each one decorative, at its catalogue size, and registered in
   both directions, and J14 holds that every one reaches a screen; both lines were renamed for it.
-- verified-by: `the flat registry names all 41 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 53 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
@@ -8967,7 +8967,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/art/registry.ts:38
 - note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
-- verified-by: `the flat registry names all 41 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 53 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `the watercolours are gone: no PNG under assets/art, no Art, no registry, no maps, and nothing imports Image`
 - verified-by: `every scene has a flat drawing of its own, and no two scenes share one`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
@@ -11094,7 +11094,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F865 — Twelve scenes show a borrowed postcard on the recap
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/recap/postcardArt.ts:1
 - note: Found 2026-10-22 in the mission spine A2 change. Each new mission has its own place drawing, but `POSTCARD` lends it the postcard of an older scene at the same place (street to directions, home to day, market to market, cafe to terrace, friends to apéro), so two situations hand back the same keepsake. Draw twelve `postcard-*` drawings in `docs/design-assets/ILLUSTRATIONS.md` and give `POSTCARD` one per mission, then hold uniqueness with a test like `scenes.test.ts`.
+- fixed: 2026-10-22. Twelve postcard drawings are authored in `docs/design-assets/ILLUSTRATIONS.md` (the same white border and round postmark as the seven older postcards, the place simplified on a palette panel, the confetti dropped and clashing fills swapped), and `POSTCARD` in `apps/mobile/src/recap/postcardArt.ts` now gives each of the nineteen missions its own. `postcardArt.test.ts` fails if two missions share a postcard or a shipped postcard has no owner; it failed on the placeholder map before the fix and passes now.
 - verified-by: `every scene hands back a postcard of its own`

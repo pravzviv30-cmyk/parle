@@ -22,6 +22,10 @@ of the list.
 
 ## Current landing snapshot
 
+- 22 October 2026 F865 postcards (a postcard of its own for each of the twelve new scenes), on
+  branch `claude/mission-postcards`, on top of `claude/mission-spine-a2` (neither on main):
+  **6,018 tests, 0 failing**; core 927, brain 488, tutor agent 659, token server 457,
+  playground 26, mobile 3461. Floors raised only through `gate:bless`.
 - 21 October 2026 direction B, ready to land (founder approved the side-by-sides; F846 and
   F847 closed with the back-disc test), on branch `claude/direction-b`:
   **5,859 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,
