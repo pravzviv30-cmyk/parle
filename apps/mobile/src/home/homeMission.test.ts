@@ -144,3 +144,51 @@ describe('the scene Today leads with', () => {
     }
   });
 });
+
+// 2026-10-22: the next scene leans towards the learner's onboarding goal (core `nextScene`).
+import { nextScene as coreNextScene } from '@luvani/core';
+import { sceneEyebrow } from './todayView.ts';
+
+describe('the onboarding goal orders the hero', () => {
+  test('a brand-new learner starts on the opener whatever the goal', () => {
+    const hero = homeMissionFrom({ progress: progressWith(), records: [], levelIndex: 0, goal: 'moving', now: EVENING });
+    assert.ok(hero !== null && hero.kind === 'scene');
+    assert.equal(hero.mission.id, 'mission:premier-cafe');
+    assert.equal(hero.picked, 'spine');
+  });
+
+  test('after the opener, a learner moving to France meets the neighbour, picked for the move', () => {
+    const opened = progressWith([{ id: 'mission:premier-cafe', at: EVENING - 86_400_000, rung: 4 }]);
+    const hero = homeMissionFrom({ progress: opened, records: [], levelIndex: 0, goal: 'moving', now: EVENING });
+    assert.ok(hero !== null && hero.kind === 'scene');
+    assert.equal(hero.mission.id, 'mission:voisin');
+    assert.equal(hero.picked, 'goal');
+    assert.equal(sceneEyebrow(hero), 'Picked for your move');
+  });
+
+  test('no goal, or "because", is the spine, counted as before', () => {
+    for (const goal of [null, 'because'] as const) {
+      const hero = homeMissionFrom({ progress: progressWith(), records: [], levelIndex: 0, goal, now: EVENING });
+      assert.ok(hero !== null && hero.kind === 'scene');
+      assert.equal(hero.mission.id, spineFrom(progressWith()).next!.id);
+      assert.equal(hero.picked, 'spine');
+      assert.match(sceneEyebrow(hero), /^Next scene, 1 of \d+$/);
+    }
+  });
+
+  test('a scene left part way still wins over the goal', () => {
+    const record: ScenarioRecord = { missionId: 'mission:cafe', at: EVENING - 60_000, elapsedMs: 120_000, beatsDone: 2 };
+    const hero = homeMissionFrom({ progress: progressWith(), records: [record], levelIndex: 0, goal: 'moving', now: EVENING });
+    assert.ok(hero !== null && hero.kind === 'scene');
+    assert.equal(hero.mission.id, 'mission:cafe');
+    assert.equal(sceneEyebrow(hero), HERO_LABELS.resume);
+  });
+
+  test('the hero is the scene core picks for the goal', () => {
+    for (const goal of ['food', 'trip', 'family', 'moving', 'work'] as const) {
+      const hero = homeMissionFrom({ progress: progressWith(), records: [], levelIndex: 0, goal, now: EVENING });
+      assert.ok(hero !== null && hero.kind === 'scene');
+      assert.equal(hero.mission.id, coreNextScene(progressWith(), goal)!.mission.id);
+    }
+  });
+});

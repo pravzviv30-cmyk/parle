@@ -1,8 +1,9 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { MISSIONS, FIRST_MISSION, isEarned, missionStates, type MissionCompletion, type MissionId } from './missions.ts';
-import { SCENE_SPINE, spineFrom } from './spine.ts';
+import { MISSIONS, FIRST_MISSION, getMission, isEarned, missionStates, type MissionCompletion, type MissionId } from './missions.ts';
+import type { LearnerGoal } from '../firstPractice.ts';
+import { GOAL_SCENES, SCENE_SPINE, nextScene, spineFrom } from './spine.ts';
 import type { Rung } from '../ladder/ladder.ts';
 
 const NOW = new Date(2026, 8, 27, 12).getTime();
@@ -160,5 +161,73 @@ describe('the spine — the order scenes are offered in, and what has been earne
     // scene earned is now A2 by definition.
     assert.equal(view.level, 'A2');
     assert.deepEqual(view.earned.map((m) => m.id), [...SCENE_SPINE]);
+  });
+});
+
+describe('nextScene — the goal orders the suggestion, never the level', () => {
+  const earnedAll = (ids: readonly MissionId[]) => missionStates(ids.map((id) => done(id, 4)), [], NOW);
+  const empty = missionStates([], [], NOW);
+
+  test('every goal scene is a real mission and every goal has scenes', () => {
+    const ids = new Set(MISSIONS.map((m) => m.id));
+    for (const [goal, scenes] of Object.entries(GOAL_SCENES)) {
+      assert.ok(scenes.length > 0, `${goal} has no scenes`);
+      for (const id of scenes) assert.ok(ids.has(id), `${goal}: ${id} is not a mission`);
+    }
+  });
+
+  test('a brand-new learner starts on the opener whatever the goal', () => {
+    for (const goal of Object.keys(GOAL_SCENES)) {
+      const next = nextScene(empty, goal as LearnerGoal);
+      assert.equal(next?.mission.id, spineFrom(empty).next?.id, goal);
+      assert.equal(next?.mission.id, FIRST_MISSION, goal);
+      assert.equal(next?.picked, 'spine', goal);
+    }
+  });
+
+  test('after the opener, an A0 learner gets the first goal scene within one band', () => {
+    const opened = earnedAll(['mission:premier-cafe']);
+    const expected = { moving: 'mission:voisin', trip: 'mission:gare', food: 'mission:cafe', family: 'mission:amis', work: 'mission:journee' } as const;
+    for (const [goal, id] of Object.entries(expected)) {
+      const next = nextScene(opened, goal as LearnerGoal);
+      assert.equal(next?.mission.id, id, goal);
+      assert.equal(next?.picked, 'goal', goal);
+    }
+  });
+
+  test('at A1 the reach is A2, so moving opens on the flat', () => {
+    const progress = earnedAll([...A0_IDS, ...A1_IDS]);
+    assert.equal(spineFrom(progress).level, 'A2');
+    const a1 = earnedAll([...A0_IDS, 'mission:marche']);
+    assert.equal(spineFrom(a1).level, 'A1');
+    assert.deepEqual(nextScene(a1, 'moving'), { mission: getMission('mission:appartement'), picked: 'goal' });
+  });
+
+  test('earned goal scenes are skipped', () => {
+    const next = nextScene(earnedAll(['mission:gare', 'mission:restaurant']), 'trip');
+    assert.equal(next?.mission.id, 'mission:chemin');
+    assert.equal(next?.picked, 'goal');
+  });
+
+  test('with every goal scene in reach earned it falls back to the spine', () => {
+    const progress = earnedAll(['mission:cafe', 'mission:restaurant', 'mission:marche']);
+    const next = nextScene(progress, 'food');
+    assert.equal(next?.picked, 'spine');
+    assert.equal(next?.mission.id, spineFrom(progress).next?.id);
+  });
+
+  test("'because', no goal or an unknown goal walk the spine", () => {
+    for (const goal of ['because', null, undefined, 'skydiving'] as const) {
+      const next = nextScene(empty, goal as LearnerGoal | null | undefined);
+      assert.equal(next?.mission.id, FIRST_MISSION);
+      assert.equal(next?.picked, 'spine');
+    }
+  });
+
+  test('nextScene never moves the level', () => {
+    const progress = earnedAll(A0_IDS);
+    const before = spineFrom(progress).level;
+    nextScene(progress, 'moving');
+    assert.equal(spineFrom(progress).level, before);
   });
 });

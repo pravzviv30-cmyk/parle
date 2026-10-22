@@ -33,7 +33,7 @@
  * the language model is sent, and says the facts can be removed here.
  */
 
-import { normalise, parsePreviousCorrection, reviewFocusFromDeck, type ReviewCard, type TutorReviewFocus, type TutorPreviousCorrection } from '@luvani/core';
+import { isLearnerGoal, normalise, parsePreviousCorrection, reviewFocusFromDeck, type ReviewCard, type TutorReviewFocus, type TutorPreviousCorrection } from '@luvani/core';
 import { MAX_MEMORY_FACTS, withLearnerName, memoryPaused, withoutForgottenMemory, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
 
 import type { StoredProfile } from './store.ts';
@@ -165,7 +165,11 @@ export function goalFact(goal: string): RememberedFact {
  * from the end so the goals survive it.
  */
 export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] = [], now = Date.now(), previousCorrection?: TutorPreviousCorrection): LearnerProfile & { reviewFocus?: TutorReviewFocus[]; previousCorrection?: TutorPreviousCorrection } {
-  const named = withLearnerName(withoutForgotten(profile.brain, profile.forgottenFacts), profile.name);
+  const withName = withLearnerName(withoutForgotten(profile.brain, profile.forgottenFacts), profile.name);
+  // The onboarding goal is an answer, like the name, not a remembered fact: it
+  // rides every path, the paused one included.
+  const goal = isLearnerGoal(profile.onboardingGoal) ? profile.onboardingGoal : null;
+  const named: LearnerProfile = { ...withName, memory: { ...withName.memory, goal } };
   const focus = reviewFocusFromDeck(deck, now);
   const correction = parsePreviousCorrection(previousCorrection);
   const extras = { ...(focus.length ? { reviewFocus: focus } : {}), ...(correction ? { previousCorrection: correction } : {}) };

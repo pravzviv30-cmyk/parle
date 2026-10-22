@@ -163,9 +163,9 @@ describe('Today opens on a still greeting — F420, notebook Phase 3', () => {
 describe('Today leads with the next scene, as a brief', () => {
   test("the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides", () => {
     // The rule reads the spine; the screen hands it the facts and decides nothing.
-    assert.match(flat(RULE), /spineFrom\(input\.progress\)/, 'the hero is not chosen from the CEFR spine');
+    assert.match(flat(RULE), /nextScene\(input\.progress, input\.goal \?\? null\)/, 'the hero is not chosen from the CEFR spine, leaning towards the goal');
     assert.match(FLAT, /const progress = missionStates\(missionCompletionsFrom\(completions\), deck, now\)/);
-    assert.match(FLAT, /setHero\(homeMissionFrom\(\{ progress, records, levelIndex: standing\.index, now \}\)\)/, 'the hero is not the one homeMission.ts decides');
+    assert.match(FLAT, /setHero\(homeMissionFrom\(\{ progress, records, levelIndex: standing\.index, goal: goalOf\(profile\), now \}\)\)/, 'the hero is not the one homeMission.ts decides');
     // Revamp B (F602): the lead waits on the storage having answered and on
     // nothing else, and which lead it is belongs to the rule.
     assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\);/, 'the lead must respond to live availability and account ownership');

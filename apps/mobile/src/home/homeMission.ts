@@ -9,7 +9,10 @@
  * ## The next scene on the spine
  *
  * Rewritten 2026-09-27. The hero is `spineFrom(progress).next`: the first scene
- * on the CEFR spine the learner has not earned on their own. That is the opener
+ * on the CEFR spine the learner has not earned on their own. Since 2026-10-22
+ * it is core's `nextScene(progress, goal)`: the same, unless the learner's
+ * onboarding goal names an unearned scene within reach, which then leads and
+ * says "Picked for ..." (`onboarding/goalLine.ts`). That is the opener
  * on a first run, the café once the opener is earned, and so on up to A1. The
  * brief says what is true of that scene and nothing else: its level, its French
  * title, what the learner will be able to do, two or three lines they will say,
@@ -34,8 +37,9 @@ import {
   getMission,
   scenariosForLevel,
   seedTopicOf,
-  spineFrom,
+  nextScene,
   type DailyScenario,
+  type LearnerGoal,
   type Mission,
   type MissionId,
   type MissionProgress,
@@ -66,7 +70,18 @@ export interface HeroFacts {
 }
 
 export type HomeMission =
-  | (HeroFacts & { kind: 'scene'; mission: Mission })
+  | (HeroFacts & {
+      kind: 'scene';
+      mission: Mission;
+      /**
+       * Why this scene leads: 'goal' when the learner's onboarding goal chose it
+       * (core `nextScene`), 'spine' when it is the spine's next. Absent for a
+       * resume or a setup suggestion, which have their own reasons.
+       */
+      picked?: 'goal' | 'spine';
+      /** The goal that chose it, only when `picked` is 'goal'. */
+      pickedFor?: LearnerGoal;
+    })
   | (HeroFacts & { kind: 'today'; scenario: DailyScenario });
 
 export const HERO_LABELS = {
@@ -114,6 +129,8 @@ export function homeMissionFrom(input: {
   levelIndex: number;
   /** An unassessed setup suggestion; never awards or skips earned evidence. */
   startingMissionId?: MissionId;
+  /** The learner's onboarding goal; the next scene leans towards it (core `nextScene`). */
+  goal?: LearnerGoal | null;
   now: number;
 }): HomeMission | null {
   if (input.progress.length === 0) return null;
@@ -133,9 +150,12 @@ export function homeMissionFrom(input: {
 
   const untouched = input.progress.every(item => item.lastFinishedAt === null);
   const suggested = untouched && input.startingMissionId !== undefined ? getMission(input.startingMissionId) : null;
-  const next = suggested ?? spineFrom(input.progress).next;
+  if (suggested) return sceneHero(suggested, missionMinutes(suggested), null);
+  const next = nextScene(input.progress, input.goal ?? null);
   if (next !== null) {
-    return sceneHero(next, missionMinutes(next), null);
+    const hero = sceneHero(next.mission, missionMinutes(next.mission), null);
+    if (hero.kind !== 'scene') return hero;
+    return next.picked === 'goal' && input.goal ? { ...hero, picked: 'goal', pickedFor: input.goal } : { ...hero, picked: 'spine' };
   }
 
   // Every scene on the spine earned: today's scene, from the learner's own tier.

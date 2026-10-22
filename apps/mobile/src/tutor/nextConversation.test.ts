@@ -85,3 +85,23 @@ test('the next conversation carries its French title and minutes, and joins noth
     }
   }
 });
+
+// 2026-10-22: Speak's Start leans towards the onboarding goal, and says so.
+test('the goal chooses the next conversation and the card says why', () => {
+  const fresh = nextConversation(missionStates([], [], 0), null, false, 'trip');
+  assert.equal(fresh.params.missionId, FIRST_MISSION, 'a brand-new learner starts on the opener');
+  assert.equal(fresh.picked, null);
+  const opened = missionStates([{ id: 'mission:premier-cafe', at: 1, rung: 4 }], [], 2);
+  const next = nextConversation(opened, null, false, 'trip');
+  assert.equal(next.params.missionId, 'mission:gare');
+  assert.equal(next.picked, 'Picked for your trip');
+  const plain = nextConversation(missionStates([], [], 0), null, false, 'because');
+  assert.equal(plain.params.missionId, FIRST_MISSION);
+  assert.equal(plain.picked, null);
+});
+
+test('a scene to pick up is never labelled as picked for the goal', () => {
+  const next = nextConversation(missionStates([], [], 0), { kind: 'scene', missionId: 'mission:hotel', line: 'Continue this scene.' }, false, 'trip');
+  assert.equal(next.params.missionId, 'mission:hotel');
+  assert.equal(next.picked, null);
+});

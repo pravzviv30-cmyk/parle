@@ -50,10 +50,14 @@ export interface NextFacts {
   title: string;
   body: string;
   minutes: number | null;
+  /** "Picked for your trip" when the learner's goal chose the scene (`nextConversation`). */
+  picked?: string | null;
   params: { missionId?: string; seedTopic?: unknown; continuationPackId?: string };
 }
 
 export interface Recommended {
+  /** The card's eyebrow: the goal line when the goal chose the scene, else "Recommended". */
+  eyebrow: string;
   title: string;
   /** The scene's authored goal, led by a verb, or the thread's own line. */
   sentence: string;
@@ -66,8 +70,10 @@ export interface Recommended {
 export function recommended(next: NextFacts): Recommended {
   const id = next.params.missionId;
   const mission: Mission | undefined = id === undefined ? undefined : getMission(id);
-  if (mission === undefined) return { title: next.title, sentence: next.body, minutes: null, prepare: null };
+  const eyebrow = next.picked ?? RECOMMENDED;
+  if (mission === undefined) return { eyebrow, title: next.title, sentence: next.body, minutes: null, prepare: null };
   return {
+    eyebrow,
     title: mission.titleEn,
     sentence: mission.goalEn,
     minutes: next.minutes === null ? null : minutesLine(next.minutes),

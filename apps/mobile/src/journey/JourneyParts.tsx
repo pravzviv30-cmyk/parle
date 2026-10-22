@@ -15,7 +15,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BArt, type BArtName } from '../art/BArt.tsx';
-import { LockBadge, Press } from '../components.tsx';
+import { Highlight, LockBadge, Press } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { CheckDisc } from '../today/TodayParts.tsx';
 import { ChevronGlyph } from '../explore/ExploreParts.tsx';
@@ -200,10 +200,58 @@ export function TwoUp({ children }: { children: ReactNode }) {
 }
 
 /** A lavender chip of French used in conversation: 14/600, padding 6 10, radius 12. */
-export function UsedChip({ fr }: { fr: string }) {
+export function UsedChip({ fr, tag }: { fr: string; tag?: string }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
-  return <View style={s.chip}><Text {...frenchText} style={[bType.semi14, { color: t.text }]}>{fr}</Text></View>;
+  return (
+    <View style={s.chip}>
+      <Text {...frenchText} style={[bType.semi14, { color: t.text }]}>{fr}</Text>
+      {tag !== undefined ? <Text style={[bType.note12, { color: t.muted }]}>{tag}</Text> : null}
+    </View>
+  );
+}
+
+/**
+ * "Your French" (2026-10-22): the card the learner's own French sits on, first
+ * under the band. It takes the theme's card in both modes; the highlighter is
+ * the same pen on white and on the dark card (DESIGN.md, Highlight).
+ */
+export function YourFrenchCard({ children }: { children: ReactNode }) {
+  const s = useThemedStyles(makeStyles);
+  return <View style={s.list}>{children}</View>;
+}
+
+/** One part of Your French: its line or lines, opening its door. */
+export function YourFrenchRow({ accessibilityLabel, onPress, last, children }: { accessibilityLabel: string; onPress: () => void; last: boolean; children: ReactNode }) {
+  const s = useThemedStyles(makeStyles);
+  return (
+    <Press haptic="light" accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={[s.yourRow, !last && s.divider]}>
+      {children}
+    </Press>
+  );
+}
+
+/** A Your French line: 15 regular, ink, French runs tagged. */
+export function YourFrenchLine({ segments, soft = false }: { segments: readonly Segment[]; soft?: boolean }) {
+  const t = useB();
+  return <Text style={[soft ? bType.meta : bType.line15, { color: soft ? t.muted : t.text }]}><Words segments={segments} /></Text>;
+}
+
+/** The one highlighted phrase, and its words-only note when it held in a new situation. */
+export function YourFeatured({ fr, tag }: { fr: string; tag: string | null }) {
+  const t = useB();
+  return (
+    <View>
+      <Highlight text={fr} />
+      {tag !== null ? <Text style={[bType.note12, { color: t.muted }]}>{tag}</Text> : null}
+    </View>
+  );
+}
+
+/** The chips under the featured phrase. */
+export function YourChips({ children }: { children: ReactNode }) {
+  const s = useThemedStyles(makeStyles);
+  return <View style={s.chips}>{children}</View>;
 }
 
 /** The mint "Help you needed" card with the tutor-orb. */
@@ -293,12 +341,13 @@ export function CollectionTile({ kind, title, line, onPress }: { kind: 'postcard
 }
 
 /** The empty journey: the butter card, the map-route drawing, its words and one start (B-Empty-States). */
-export function EmptyJourneyCard({ title, body, children }: { title: string; body: string; children: ReactNode }) {
+export function EmptyJourneyCard({ eyebrow, title, body, children }: { eyebrow?: string | null; title: string; body: string; children: ReactNode }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
     <View style={s.empty}>
       <BArt name="map-route" width={150} height={137} />
+      {eyebrow ? <Text style={[bType.eyebrow, s.centred, { color: t.secondary }]}>{eyebrow}</Text> : null}
       <Text accessibilityRole="header" style={[bType.bold19, s.centred, { color: t.text }]}>{title}</Text>
       <Text style={[bType.para15, s.centred, { color: t.secondary }]}>{body}</Text>
       {children}
@@ -367,6 +416,9 @@ const makeStyles = (t: B) =>
     centred: { textAlign: 'center' },
     tabular: { fontVariant: ['tabular-nums'] },
     divider: { borderBottomWidth: 1, borderBottomColor: t.line },
+    // paddingVertical 14 deliberately matches the ability row's artboard value, so the two lists share a rhythm.
+    yourRow: { gap: space(2), paddingVertical: 14, minHeight: HIT },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
     hairline: { borderTopWidth: 1, borderTopColor: t.line, paddingTop: 10 },
     link: { minHeight: HIT, justifyContent: 'center', flexShrink: 0 },
     // The band.

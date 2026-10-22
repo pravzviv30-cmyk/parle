@@ -14,7 +14,7 @@
  * an account exists (`disclosure.test.ts` walks the imports to prove it).
  */
 
-import { starterTasks, type StarterTask, PLANS, SCENE_SPINE, getMission, type MissionId, type MissionPlace } from '@luvani/core';
+import { starterTasks, type StarterTask, PLANS, SCENE_SPINE, getMission, GOAL_SCENES, type MissionId, type MissionPlace } from '@luvani/core';
 
 import { DEFAULT_REMINDER_TIME, reminderTime, type ReminderTimeId } from '../reminders/reminder.ts';
 import type { PlanMinutes, PracticeFocus, PreAccountOnboardingDraft, Reason, SpeakingConfidence, StartLevel } from './preAccountDraft.ts';
@@ -66,11 +66,11 @@ export const REASONS: readonly AnswerOption<Reason>[] = [
  * snapshot on the first join, which is after the save page.
  */
 export const SEEDED_GOAL: Readonly<Record<Reason, string>> = {
-  food: 'Order food and drinks in French.',
-  trip: 'Get by in French on my next trip.',
-  family: 'Talk with family or a partner in French.',
-  moving: 'Handle everyday life in French after a move.',
-  work: 'Use French with confidence at work.',
+  food: 'Order food and drinks in French at a café or a restaurant.',
+  trip: 'Get by in French on my next trip: train tickets, directions, the hotel.',
+  family: 'Talk with my partner, family and friends in French.',
+  moving: 'Handle everyday life in French after a move: renting a flat, the doctor, the neighbours.',
+  work: 'Use French with confidence at work, with colleagues and on the phone.',
   because: 'Enjoy speaking French, just because.',
 };
 
@@ -79,13 +79,23 @@ export function sceneOrder(level: StartLevel): readonly MissionId[] {
   return level === 'getby' || level === 'confident' ? SCENE_SPINE.filter((id) => id !== 'mission:premier-cafe') : SCENE_SPINE;
 }
 
-/** The scene the first run opens on after the account is made. */
+/**
+ * The scene the first run opens on after the account is made. Brand new and a
+ * few words open on the spine's opener, the same scene core's `nextScene`
+ * offers before anything is earned. A learner who can get by starts on the
+ * first A0 or A1 scene of their goal; with no goal, 'because', or no such
+ * scene, it is the level's first scene on the spine.
+ */
 export function firstSceneFor(level: StartLevel | null, reason?: Reason | null): MissionId {
-  if (reason === 'trip') return 'mission:chemin';
-  if (reason === 'family') return 'mission:amis';
-  if (reason === 'moving') return 'mission:marche';
-  if (reason === 'work') return 'mission:amis';
-  return sceneOrder(level ?? DEFAULT_START_LEVEL)[0]!;
+  const start = level ?? DEFAULT_START_LEVEL;
+  if ((start === 'getby' || start === 'confident') && reason && reason !== 'because') {
+    const fit = GOAL_SCENES[reason].find((id) => {
+      const cefr = getMission(id)?.cefr;
+      return cefr === 'A0' || cefr === 'A1';
+    });
+    if (fit) return fit;
+  }
+  return sceneOrder(start)[0]!;
 }
 
 /** Minutes a day to suggest: work and a move ask for more; otherwise the level decides. */

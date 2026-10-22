@@ -13,6 +13,7 @@ import { recoverPracticeCompletion } from './completion.ts';
 import { loadPackMarks, withMarks } from '../conversationPacks/marks.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { goalOf } from '../onboarding/goalLine.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { loadDeck } from '../review/store.ts';
 import { offeredReview, reviewOffer, type ReviewOffer } from '../review/freeTier.ts';
@@ -65,7 +66,7 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
         const packs = withMarks(fetched, marks);
         const rec = recommendation({ resumable: resumableOf(saved, packs, bank), deck, bank, packs, now });
         const card = rec.kind === 'none' ? null : practiceCard({ rec, deck, packs, now, resuming: saved?.targets.map(t => t.phraseKey) ?? [] });
-        const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex: levelFor(totalXp(activity)).index, startingMissionId, now });
+        const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex: levelFor(totalXp(activity)).index, startingMissionId, goal: goalOf(profile), now });
         setValue({ scope, card, offer: reviewOffer(deck, now), hero, buildsOn: buildsOn(packs, hero) });
       }).catch(() => { if (!cancelled && scope === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };

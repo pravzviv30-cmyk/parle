@@ -72,7 +72,7 @@ describe('the header and the Recommended card', () => {
 
   test('a thread with no scene behind it claims no minutes and offers no preview', () => {
     const rec = recommended({ title: 'Ma journée', body: 'You were telling me about your day.', minutes: null, params: { seedTopic: {}, continuationPackId: 'p1' } });
-    assert.deepEqual(rec, { title: 'Ma journée', sentence: 'You were telling me about your day.', minutes: null, prepare: null });
+    assert.deepEqual(rec, { eyebrow: 'Recommended', title: 'Ma journée', sentence: 'You were telling me about your day.', minutes: null, prepare: null });
   });
 
   test('Prepare first says free and claims no duration nothing estimates', () => {

@@ -15,6 +15,8 @@ import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { nextTimeLine } from '../live/keepsake.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { goalOf } from '../onboarding/goalLine.ts';
 import { useBackToHome } from '../nav/useBackToHome.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { paper, space, type } from '../theme.ts';
@@ -27,6 +29,7 @@ export function WeekWrappedScreen() {
   const nav = useNavigation<{navigate:(screen:string)=>void}>();
   const [model,setModel] = useState<{story:WeekStory;next:string|null}|null>(null);
   const [page,setPage] = useState(0);
+  const goal = goalOf(useProfile().profile);
   const [failed,setFailed] = useState(false);
   const [readAttempt,setReadAttempt] = useState(0);
   const [readOwner,setReadOwner] = useState(() => scopeGeneration());
@@ -37,10 +40,10 @@ export function WeekWrappedScreen() {
     void Promise.all([loadHistory(),loadActivity({ strict: true }),loadConversationPacks(),loadMissionCompletions(),loadDeck()]).then(([sessions,activity,packs,completions,deck])=>{
       if (!live || owner !== scopeGeneration()) return;
       const now=Date.now();
-      setModel({story:storyFrom({sessions,activity,packs,completions,now}),next:nextTimeLine(missionStates(missionCompletionsFrom(completions),deck,now))});
+      setModel({story:storyFrom({sessions,activity,packs,completions,now}),next:nextTimeLine(missionStates(missionCompletionsFrom(completions),deck,now),goal)});
     }).catch(()=>{if(live && owner===scopeGeneration()) setFailed(true);});
     return ()=>{live=false;};
-  },[user?.id,readAttempt]));
+  },[user?.id,readAttempt,goal]));
   const current=readOwner===scopeGeneration();
   const populated=current && model!==null && hasStory(model.story);
   return <ScrollScreen ground={populated ? t.brand : t.ground} bottom="inset" header={<ScreenHeader title={populated ? <Text style={[type.heading,{color:paper.onInk}]}>Your week in French</Text> : "Your week in French"} back={{onPress:back}} />} footer={populated ? <View style={{gap:space(2)}}>

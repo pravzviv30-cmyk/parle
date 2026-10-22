@@ -60,7 +60,7 @@ function at(marker: string): number {
 describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)', () => {
   test('the sections stand in the artboard order', () => {
     // 2026-10-20 UI-008, artboard B-Speak: the tutor row is the orb row, and the revisit row left.
-    const order = ['<TabHeader', '{RECOMMENDED}', '{scenes.heading}', '{LESS_HELP_TITLE}', '{TALK_TITLE}', '<BArt name="tutor-orb"', 'tiles.map(', '{minutesBand(planView)}'];
+    const order = ['<TabHeader', '{rec.eyebrow}', '{scenes.heading}', '{LESS_HELP_TITLE}', '{TALK_TITLE}', '<BArt name="tutor-orb"', 'tiles.map(', '{minutesBand(planView)}'];
     const positions = order.map((marker) => at(marker));
     assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'a section moved out of the artboard order');
   });
@@ -171,7 +171,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(RENDER_FLAT, /row\.tile\.trailing === 'next' \? <View style=\{st\.nextPill\}><Text style=\{\[type\.badge, \{ color: t\.onBrand \}\]\}>\{NEXT_CHIP\}<\/Text><\/View>/);
     assert.equal((SCREEN.match(/scenes\.rows\.map\(/g) ?? []).length, 1);
     assert.doesNotMatch(SCREEN, /<LevelPath|path.groups.map|<Highlight|<SceneMark|<LedgerRow/);
-    assert.ok(at('{RECOMMENDED}') < at('scenes.rows.map('));
+    assert.ok(at('{rec.eyebrow}') < at('scenes.rows.map('));
   });
 
   test('the less-help card stands only for a real replay, opens through the probe, and locks only through the seam', () => {
@@ -286,7 +286,7 @@ describe('Speak keeps its history read, its plan read and its continuation', () 
   // is the Recommended card's own conversation, and nextConversation carries its pack.
   test('a thread to pick up is the Recommended conversation, gated by the plan', () => {
     assert.match(FLAT, /threadFrom\(\{ records: scenes, progress, packs, marks, topics \}\)/);
-    assert.match(FLAT, /const next = nextConversation\(progress, thread, capabilitiesFor\(plan\.tier, plan\.lapsed\)\.continueArc\);/);
+    assert.match(FLAT, /const next = nextConversation\(progress, thread, capabilitiesFor\(plan\.tier, plan\.lapsed\)\.continueArc, goalOf\(profile\)\);/);
     assert.match(stripComments(read('../tutor/nextConversation.ts')), /params: \{ seedTopic: thread\.seedTopic, continuationPackId: thread\.packId \}/);
     const navigator = stripComments(read('../nav/RootNavigator.tsx')).replace(/\s+/g, ' ');
     assert.match(navigator, /continuationPackId=\{route\.params\?\.continuationPackId\}/);

@@ -1,9 +1,17 @@
 import { isTutorVoiceKey, type TutorVoiceKey } from './protocol/voices.ts';
 
+/** The six onboarding goals a learner can pick. */
+export const LEARNER_GOALS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
+export type LearnerGoal = typeof LEARNER_GOALS[number];
+
+export function isLearnerGoal(value: unknown): value is LearnerGoal {
+  return (LEARNER_GOALS as readonly unknown[]).includes(value);
+}
+
 /** Closed, explicitly selected answers. Missing answers remain null, never guessed. */
 export interface FirstPracticeBrief {
   version: 1;
-  goals: ('food' | 'trip' | 'family' | 'moving' | 'work' | 'because')[];
+  goals: LearnerGoal[];
   /** Optional for briefs saved before interests were collected. */
   interests?: ('food' | 'travel' | 'music' | 'everyday')[];
   level: 'zero' | 'few' | 'getby' | 'confident' | null;
@@ -12,7 +20,7 @@ export interface FirstPracticeBrief {
   minutes: 5 | 10 | 15 | 20 | null;
   tutorVoice: TutorVoiceKey;
 }
-const GOALS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
+const GOALS = LEARNER_GOALS;
 const member = (value: unknown, values: readonly unknown[]) => value === null || values.includes(value);
 export function parseFirstPracticeBrief(value: unknown): FirstPracticeBrief | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return;

@@ -203,3 +203,18 @@ describe('the keepsake\'s words', () => {
     );
   });
 });
+
+// 2026-10-22: the end card names the scene Speak's Start will open.
+import { nextConversation } from '../tutor/nextConversation.ts';
+
+test('the end card and Speak name the same next scene for the same goal', () => {
+  const NOW = 1_800_000_000_000;
+  const states = [missionStates([], [], NOW), missionStates([{ id: FIRST_MISSION, at: NOW - 1000, rung: 4 }], [], NOW)];
+  for (const progress of states) {
+    for (const goal of ['food', 'trip', 'family', 'moving', 'work', 'because', null] as const) {
+      const start = getMission(nextConversation(progress, null, false, goal).params.missionId!)!;
+      assert.equal(nextTimeLine(progress, goal), `Next time: ${start.titleEn}`);
+      assert.deepEqual(nextCanDo(progress, goal), { canDoEn: start.canDoEn });
+    }
+  }
+});

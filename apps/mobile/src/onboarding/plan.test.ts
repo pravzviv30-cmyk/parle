@@ -53,6 +53,23 @@ describe('answers to a plan', () => {
     assert.equal(firstSceneFor('getby'), 'mission:cafe');
     assert.equal(firstSceneFor('confident'), 'mission:cafe');
     assert.equal(firstSceneFor(null), 'mission:premier-cafe', 'an unanswered level starts at the start');
+    // 2026-10-22 (review fix): a brand-new learner opens on the opener whatever
+    // the goal, the same scene nextScene offers before anything is earned.
+    for (const r of ['trip', 'moving', 'family', 'work', 'food', 'because'] as const) {
+      assert.equal(firstSceneFor('zero', r), 'mission:premier-cafe', r);
+      assert.equal(firstSceneFor('few', r), 'mission:premier-cafe', r);
+      assert.equal(firstSceneFor(null, r), 'mission:premier-cafe', r);
+    }
+    // A learner who can get by starts on the first A0 or A1 scene of the goal.
+    for (const l of ['getby', 'confident'] as const) {
+      assert.equal(firstSceneFor(l, 'trip'), 'mission:gare');
+      assert.equal(firstSceneFor(l, 'moving'), 'mission:voisin');
+      assert.equal(firstSceneFor(l, 'family'), 'mission:amis');
+      assert.equal(firstSceneFor(l, 'work'), 'mission:journee');
+      assert.equal(firstSceneFor(l, 'food'), 'mission:cafe');
+      assert.equal(firstSceneFor(l, 'because'), 'mission:cafe');
+    }
+    assert.equal(firstSceneFor('getby', null), 'mission:cafe');
   });
 
   test('preset minutes follow the level, and work or a move asks for fifteen', () => {

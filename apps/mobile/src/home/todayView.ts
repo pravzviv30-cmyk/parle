@@ -28,6 +28,7 @@ import {
 
 import type { FeatureAccess, LockedFeature } from '../access/featureAccess.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
+import { goalPickLine } from '../onboarding/goalLine.ts';
 import { dayWord } from '../journey/journeyView.ts';
 import type { Replay } from '../practice/madeFrom.ts';
 import type { Reflection } from '../progress/reflection.ts';
@@ -137,11 +138,15 @@ export const TODAY_ROUTES = {
  * The hero's eyebrow: "Next scene, 2 of 3", the scene's place among the spine
  * scenes of its own stage (A0 is Starter, A1 is Basics). A scene the learner
  * walked out of keeps its own label, and the day's scene after the spine says
- * so plainly, because it has no place to count.
+ * so plainly, because it has no place to count. A scene the learner's goal
+ * chose says so instead ("Picked for your move"): it may sit outside the
+ * stage's count, so a number would mislead.
  */
 export function sceneEyebrow(hero: HomeMission): string {
   if (hero.kind === 'today') return TODAY_COPY.todayScene;
   if (hero.label !== null) return hero.label;
+  const goalLine = hero.picked === 'goal' ? goalPickLine(hero.pickedFor) : null;
+  if (goalLine !== null) return goalLine;
   const stage = SCENE_SPINE.map((id) => getMission(id)).filter((m): m is Mission => m !== undefined && m.cefr === hero.mission.cefr);
   const at = stage.findIndex((m) => m.id === hero.mission.id);
   return at === -1 ? 'Next scene' : `Next scene, ${at + 1} of ${stage.length}`;

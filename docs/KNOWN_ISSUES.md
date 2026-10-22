@@ -8702,7 +8702,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   phrase bank, the sounds map and the conversations, in that order. The tinted situation rows are
   gone, and the phrase shelf became the phrase bank, still with one door to the Phrasebook.
 - note (2026-10-20, B4, B-Journey): Journey now follows the B-Journey order and the CEFR level card became the five stages; the retired phrase bank, sounds map and daily rows are still held absent, so the test is renamed for that.
-- verified-by: `the blocks run in the artboard order: header, stages, abilities, then and now, used, help, sounds, week, tiles, rows`
+- note (2026-10-22, Your French): the learner's own French leads the page, and the used-in-conversation block folds into it, so the test is renamed for that.
+- verified-by: `the blocks run in order: header, Your French, stages, abilities, then and now, help, sounds, week, tiles, rows`
 - verified-by: `the phrase bank is the newest kept phrases with audio, and one door to all of them`
 
 ### F576 — Profile is the centred name, the tutor card, the rhythm and the learning card

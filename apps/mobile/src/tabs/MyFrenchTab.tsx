@@ -11,7 +11,7 @@ import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { bType, frenchText, space } from '../theme.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton } from '../today/TodayParts.tsx';
-import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, SoundRowView, StageTrack, TryCell, TwoUp, UsedChip, WeekRowView } from '../journey/JourneyParts.tsx';
+import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, SoundRowView, StageTrack, TryCell, TwoUp, UsedChip, WeekRowView, YourChips, YourFeatured, YourFrenchCard, YourFrenchLine, YourFrenchRow } from '../journey/JourneyParts.tsx';
 import { LivingBar } from '../motion/LivingBar.tsx';
 import { storyFrom, hasStory, type WeekStory } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
@@ -47,13 +47,13 @@ import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { soundJourney } from '../soundcheck/journey.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { goalOf } from '../onboarding/goalLine.ts';
 import { goalRouteKey, goalRows } from '../goals/rows.ts';
 import { ownedReadStatus } from './ownedRead.ts';
 import { StreakSummaryCard } from '../game/StreakSummaryCard.tsx';
 import { BadgeShelf } from '../game/BadgeShelf.tsx';
 import { useGame, useLevel, useMinutesPractised, useStreak } from '../game/GameProvider.tsx';
 import { rowTile } from '../game/progressView.ts';
-import { tutorNameOf } from '../tutor/tutorName.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import {
   CAN_DO_HEADING,
@@ -66,7 +66,7 @@ import {
   STAGE_INTRO,
   THEN_NOW_HEADING,
   THEN_NOW_SUBTITLE,
-  USED_HEADING,
+  HELD_TAG,
   WEEK_HEADING,
   YOU_ARE_HERE,
   canDoView,
@@ -79,7 +79,7 @@ import {
   soundsView,
   stagesFrom,
   thenNowCard,
-  usedView,
+  yourFrenchView,
   weekView,
   type JourneyRoute,
 } from '../journey/journeyView.ts';
@@ -235,12 +235,17 @@ export function MyFrenchTab() {
   const stats = headerStats({ daysInARow: run === null ? null : run.current, minutes, phrases: kept.phrases });
   const canDo = canDoView({ progress: missions, completions, now, access: locks.access });
   const thenNow = thenNowCard(completions, locks.access);
-  const used = usedView({ deck, tutorName: tutorNameOf(profile), now, access: locks.access });
+  const yourFrench = yourFrenchView({ deck, checks, progress: missions, completions, now, access: locks.access });
+  // The open parts, each drawn once in the view's order (never in a .map, so the one highlighter stays one).
+  const yourPhrases = yourFrench.open.includes('phrases') ? yourFrench.phrases : null;
+  const yourSounds = yourFrench.open.includes('sounds') ? yourFrench.sounds : null;
+  const yourScenes = yourFrench.open.includes('scenes') ? yourFrench.scenes : null;
+  const lastYourPart = yourFrench.open[yourFrench.open.length - 1];
   const help = helpView({ completions, story, now, access: locks.access });
   const sounds = soundsView({ checks, now, hasJourney: journey !== null, access: locks.access });
   const week = weekView(reflectionFrom({ story, recent: conversations, checks, progress: missions, now }), locks.access);
   const tiles = collectionTiles({ postcards: earnedPostcards(missions).length, badges: game.view?.badges.length ?? 0 });
-  const start = emptyJourney(missions);
+  const start = emptyJourney(missions, goalOf(profile));
 
   /** Every door on the page, through the account fence. */
   const go = (route: JourneyRoute) => {
@@ -317,7 +322,7 @@ export function MyFrenchTab() {
 
         {/* 2026-10-20 UI-008, artboard B-Empty-States: the butter card and its one 46pt start. */}
         {empty && (
-          <EmptyJourneyCard title={start.title} body={start.body}>
+          <EmptyJourneyCard eyebrow={start.picked} title={start.title} body={start.body}>
             <BButton label={start.start} height={46} ground={t.primary} ink={t.onPrimary} text={bType.bold15} hug disabled={checking} onPress={startFirst} />
             {heldBack && (
               <View style={st.stack}>
@@ -332,6 +337,38 @@ export function MyFrenchTab() {
         {renderStatus === 'ready' && !empty && (
           <Columns>
             <View style={st.page}>
+              {/* 2026-10-22: the learner's own French, first. Each part only with a saved record behind it. */}
+              <View style={st.stack}>
+                <JourneyHead title={yourFrench.heading} locked={false} />
+                {(yourFrench.forward !== null || yourFrench.open.length > 0) && (
+                  <YourFrenchCard>
+                    {yourFrench.forward !== null && <Text style={[bType.line15, st.forward, { color: t.text }]}>{yourFrench.forward}</Text>}
+                    {yourPhrases !== null && (
+                      <YourFrenchRow last={lastYourPart === 'phrases'} onPress={() => go(yourPhrases.route)} accessibilityLabel={yourPhrases.accessibilityLabel}>
+                        <YourFrenchLine segments={[{ text: yourPhrases.usedLine! }]} />
+                        {yourPhrases.heldLine !== null && <YourFrenchLine soft segments={[{ text: yourPhrases.heldLine }]} />}
+                        {yourPhrases.featured !== null && <YourFeatured fr={yourPhrases.featured.front} tag={yourPhrases.featured.held ? HELD_TAG : null} />}
+                        {yourPhrases.chips.length > 0 && <YourChips>{yourPhrases.chips.map((c) => <UsedChip key={c.front} fr={c.front} tag={c.held ? HELD_TAG : undefined} />)}</YourChips>}
+                        {yourPhrases.moreLine !== null && <YourFrenchLine soft segments={[{ text: yourPhrases.moreLine }]} />}
+                      </YourFrenchRow>
+                    )}
+                    {yourSounds !== null && (
+                      <YourFrenchRow last={lastYourPart === 'sounds'} onPress={() => go(yourSounds.route)} accessibilityLabel={yourSounds.accessibilityLabel}>
+                        <YourFrenchLine segments={yourSounds.line!} />
+                      </YourFrenchRow>
+                    )}
+                    {yourScenes !== null && (
+                      <YourFrenchRow last={lastYourPart === 'scenes'} onPress={() => go(yourScenes.route)} accessibilityLabel={yourScenes.accessibilityLabel}>
+                        <YourFrenchLine segments={[{ text: yourScenes.line }]} />
+                        <YourFrenchLine soft segments={yourScenes.titles.flatMap((title, k) => (k === 0 ? [{ text: title, fr: true as const }] : [{ text: ', ' }, { text: title, fr: true as const }]))} />
+                      </YourFrenchRow>
+                    )}
+                  </YourFrenchCard>
+                )}
+                {yourFrench.phrases?.teaser != null && teaser(yourFrench.phrases.teaser, yourFrench.phrases.feature)}
+                {yourFrench.sounds?.teaser != null && teaser(yourFrench.sounds.teaser, yourFrench.sounds.feature)}
+              </View>
+
               <View style={st.stack}>
                 <JourneyHead title={STAGE_HEADING} locked={false} subtitle={STAGE_INTRO} />
                 <StageTrack steps={stages.steps} fill={stages.fill} moveUp={stages.moveUp} hereWord={YOU_ARE_HERE} />
@@ -367,19 +404,6 @@ export function MyFrenchTab() {
                 </View>
               )}
 
-              {used !== null && (
-                <View style={st.stack}>
-                  <JourneyHead title={USED_HEADING} locked={used.locked} subtitle={used.teaser !== null ? undefined : used.subtitle} />
-                  {used.teaser !== null ? teaser(used.teaser, used.feature) : (
-                    <View style={st.card}>
-                      <View style={st.chips}>
-                        {used.phrases.map((fr) => <UsedChip key={fr} fr={fr} />)}
-                      </View>
-                      {used.transferLine !== null && <Text style={[bType.note, st.hairline, { color: t.muted }]}>{used.transferLine}</Text>}
-                    </View>
-                  )}
-                </View>
-              )}
             </View>
 
             <View style={st.page}>
@@ -481,7 +505,7 @@ const makeStyles = (t: B) =>
     page: { gap: space(7) },
     stack: { gap: space(3) },
     card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
-    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    hairline: { borderTopWidth: 1, borderTopColor: t.line, paddingTop: 10 },
+    // 14 deliberately matches the Your French row it stands in for (JourneyParts yourRow).
+    forward: { paddingVertical: 14 },
     tiles: { flexDirection: 'row', gap: 10 },
   });
