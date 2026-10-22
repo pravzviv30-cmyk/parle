@@ -28,6 +28,18 @@ export const SCENE_ILLUSTRATION: Record<MissionId, IllustrationName> = {
   'mission:chemin': 'place-directions',
   'mission:journee': 'place-day',
   'mission:amis': 'place-apero',
+  'mission:restaurant': 'place-restaurant',
+  'mission:pharmacie': 'place-pharmacy',
+  'mission:gare': 'place-station',
+  'mission:colis': 'place-parcel',
+  'mission:voisin': 'place-neighbour',
+  'mission:week-end': 'place-weekend',
+  'mission:collegues': 'place-workplace',
+  'mission:telephone': 'place-phone',
+  'mission:medecin': 'place-doctor',
+  'mission:retour': 'place-shop-return',
+  'mission:appartement': 'place-flat',
+  'mission:belle-famille': 'place-family-dinner',
 };
 
 /** The drawing for one scene. Total, because the parameter is the closed union. */

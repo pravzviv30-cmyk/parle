@@ -1137,7 +1137,7 @@ The six mouth guides (`mouth-y`, `mouth-u`, `mouth-r`, `mouth-nasal-an`,
 `mouth-nasal-on`, `mouth-zh`) are recovered from the original local design kit,
 converted at 200 by 160. Practice's sound card and the measured sound journey
 map the exact IPA symbol to the corresponding guide, with an authored cue in
-words. Unknown sounds draw no substitute. The seven place drawings, state drawings,
+words. Unknown sounds draw no substitute. The nineteen place drawings, state drawings,
 recaps, earned postcards and the weekly story reach their relevant screens.
 
 ### Raster scenes, retired

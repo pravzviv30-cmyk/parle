@@ -466,7 +466,7 @@ describe('nothing ships that nothing renders — J14', () => {
     // the map is only a way in if somebody reads it.
     const flat = (path: string) => rel(path).startsWith('art/flat/');
     const names = [...named('art/flat/index.ts').matchAll(/^ {2}'([a-z][a-z0-9-]*)': \{ draw: /gm)].map((m) => m[1]!);
-    assert.equal(names.length, 29, 'the flat registry no longer names the 23 Round 1 drawings, so this test is reading the wrong thing');
+    assert.equal(names.length, 41, 'the flat registry no longer names the 41 catalogue drawings, so this test is reading the wrong thing');
 
     const sceneMapRead = SOURCES.some(({ path, body }) => !flat(path) && /\bsceneIllustration\(/.test(body));
     const byScene = new Set([...named('art/flat/scenes.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map((m) => m[1]!));
@@ -495,7 +495,7 @@ describe('nothing ships that nothing renders — J14', () => {
       [...UNDRAWN_YET].sort(),
       'the drawings no screen reaches are not exactly the not-yet-drawn list: strike a name once a screen draws it, and never add one',
     );
-    // The seven place drawings reach a screen today, so none of them may ever
+    // The nineteen place drawings reach a screen today, so none of them may ever
     // go back on the list: a screen that drops one has lost its picture.
     assert.deepEqual(UNDRAWN_YET.filter((name) => name.startsWith('place-')), [], 'a place drawing went back on the not-yet-drawn list');
   });
@@ -2423,7 +2423,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(design, /daily library and today's phrase\s+show no pictures/);
     // Revamp B (F599): the places are flat drawings now, and the doc must not
     // go on saying the retired watercolours ship.
-    assert.match(design, /seven place drawings/);
+    assert.match(design, /nineteen place drawings/);
     assert.doesNotMatch(design, /watercolours ship|Raster scenes, retiring/);
     assert.doesNotMatch(home, /titleSwap|useGreetingRotation|<DailyCarousel|<WordOfDayCard/);
     assert.match(home, /\{greeting\.title\}/);

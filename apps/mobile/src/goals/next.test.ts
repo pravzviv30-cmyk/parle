@@ -172,8 +172,12 @@ describe('the next task for a goal — Stage 4', () => {
     assert.deepEqual(once, again);
     assert.equal(once?.task.id, 'mission:cafe');
     // The same tie with the catalogue reversed goes the other way, which is
-    // what "catalogue order decides" means.
-    assert.equal(nextTaskForGoal('Coffee with friends', { missions: [...MISSIONS].reverse() })?.task.id, 'mission:amis');
+    // what "catalogue order decides" means. Run on just the two tied missions:
+    // later missions share these places, so the full reversed catalogue would
+    // put a newer café or friends scene first.
+    const pair = MISSIONS.filter((m) => m.id === 'mission:cafe' || m.id === 'mission:amis');
+    assert.equal(nextTaskForGoal('Coffee with friends', { missions: pair })?.task.id, 'mission:cafe');
+    assert.equal(nextTaskForGoal('Coffee with friends', { missions: [...pair].reverse() })?.task.id, 'mission:amis');
   });
 
   test('the task string is the mission id, and reads back to the mission', () => {

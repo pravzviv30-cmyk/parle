@@ -37,6 +37,7 @@ import {
   type ReviewCard,
   type Rung,
   type XpLevel,
+  type CefrLevel,
 } from '@luvani/core';
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
@@ -50,6 +51,7 @@ import { REFLECTION_COPY, hasReflection, type Reflection } from '../progress/ref
 import { STORY_INDEPENDENCE } from '../progress/story.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { HELP_WORDS } from '../tutor/speakTabView.ts';
+import { MISSION_LEVELS } from '../scenes/scenePreview.ts';
 
 export type Access = (feature: LockedFeature) => FeatureAccess;
 const isLocked = (access: Access, feature: LockedFeature): boolean => access(feature) === 'locked';
@@ -174,8 +176,16 @@ export function startingOutMissions(): readonly Mission[] {
 /** The artboard's fill at the first stage, as a fraction of the row. */
 export const STAGE_FILL = 0.07;
 
+/**
+ * The stage a spine level stands at: A0 Starter, A1 Basics, A2 Everyday. Read
+ * only from `spineFrom`'s level, so nothing past the earned level is reached.
+ */
+export function stageIndexOf(level: CefrLevel): number {
+  return Math.max(0, MISSION_LEVELS.indexOf(level));
+}
+
 export function stagesFrom(progress: readonly MissionProgress[]): StagesView {
-  const here = spineFrom(progress).level === 'A1' ? 1 : 0;
+  const here = stageIndexOf(spineFrom(progress).level);
   const steps = STAGES.map((label, i): StageStep => {
     const state = i < here ? 'done' : i === here ? 'here' : 'ahead';
     const where = state === 'here' ? YOU_ARE_HERE : state === 'done' ? 'done' : 'ahead';

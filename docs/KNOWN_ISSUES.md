@@ -1381,7 +1381,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the catalogue record (id, titles, place, cefr, roles, goal, win line, beat ids, phrase keys, reference phrases, path unit) plus `missionStates` projecting display state from completion records, the review deck and the drill bank — the `lessonDone` precedent, never a second phrase store. Independence is decided by code from the rung the win was earned at. Four new path units (`journee`, `chemin`, `marche`, `hotel`) with drill fixtures so no node opens onto nothing.
 - note: notebook redesign (2026-09-27): a seventh mission joined, the three-line opener
   `mission:premier-cafe` (A0, café unit, now `FIRST_MISSION`), so the count test was renamed with it.
-- verified-by: `seven missions exist and each names the path unit that practises it`
+- note: mission spine A2 (2026-10-22): twelve more missions joined, five at A1 and seven at A2
+  ([docs/changes/mission-spine-a2.md](changes/mission-spine-a2.md)). Missions now share the six
+  drawn places and each has its own place drawing, so the count test was renamed again.
+- verified-by: `nineteen missions exist and each names the path unit that practises it`
 - verified-by: `a completed mission whose phrases fall due reads needs-review, never complete`
 - verified-by: `independence comes from the rung the win was earned at, not from the model`
 - verified-by: `every authored path phrase can be drilled the day it appears`
@@ -8629,7 +8632,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp B (2026-09-30, F599): the watercolours retired and the promise moved to the flat
   drawings. The registry test now holds each one decorative, at its catalogue size, and registered in
   both directions, and J14 holds that every one reaches a screen; both lines were renamed for it.
-- verified-by: `the flat registry names all 29 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 41 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
@@ -8964,7 +8967,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/art/registry.ts:38
 - note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
-- verified-by: `the flat registry names all 29 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 41 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `the watercolours are gone: no PNG under assets/art, no Art, no registry, no maps, and nothing imports Image`
 - verified-by: `every scene has a flat drawing of its own, and no two scenes share one`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
@@ -11081,3 +11084,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-22 in the VOICE-004 review. With `LUVANI_AUDIO_SCORING=1` in production, the worker scores through `paid.transport`, whose gate admits a call only for a component the session's reservation carries. The lesson quote requires `llm`, `stt` and `tts` and no reviewed binding adds a `scoring`/`speechace` component, so every live score is refused as `quote-mismatch`, logged by the Speechace adapter and returned as no score: every end card reads "not assessed". Development scoring (TonePerfect, no paid gate) is unaffected and was verified against the real vendor on 2026-10-22. Before the flag goes on for anyone: add a reviewed `scoring` component to the lesson quote (about one effect per learner turn, 30 s of audio each), make preflight refuse the flag when the bound lesson quote lacks it, and confirm a Speechace 200 and a `scored` card in one hosted lesson.
 - fixed: 2026-10-22. `services/shared/lessonScoringQuote.ts` defines the reviewed lesson scoring component (Speechace `text-v9`, fr-fr, 48 effects, 900 s of audio, 96,000 microUSD from the cost model, not a vendor quote). A binding in `LUVANI_PAID_QUOTE_BINDINGS` may declare its quote's component `kinds`; the admission helper refuses a reservation whose kinds differ, and `validatePaidBudget.mjs` checks the kinds and the reviewed scoring identity and envelope. Production tutor preflight and `validateEnvironment.mjs tutor` refuse `LUVANI_AUDIO_SCORING=1` unless the lesson binding declares `scoring`. The Speechace descriptor no longer counts the WAV as input bytes (audio milliseconds bound it), which had capped a lesson at two clips. `scripts/verifyPaidAdmission.mjs` proves a 30 s score dispatches on the component and is refused as `quote-mismatch` without it. The activation order is in `deployment/PAID_ADMISSION.md`. Still external: a Speechace 200 and a `scored` card in one hosted lesson (docs/LIVE_VOICE.md).
 - verified-by: `the bound lesson quote carries a scoring component whenever live scoring is on`
+
+### F864 — A learner's goal can only ever match the first mission at a place
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/goals/next.ts:66
+- note: Found 2026-10-22 in the mission spine A2 change. `PLACE_WORDS` matches goal text to a `MissionPlace`, and ties go to catalogue order. The twelve new missions share the six drawn places, so a goal such as "book a restaurant" or "talk to my neighbour" always lands on the older café or day scene, and goals about doctors, pharmacies, trains, parcels, renting or work match nothing and fall back to the starter. Fix by matching words per mission rather than per place, keeping the precision-over-recall rule and the negation handling.
+- verified-by: `a goal names the mission it is about, not the first one at that place`
+
+### F865 — Twelve scenes show a borrowed postcard on the recap
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/recap/postcardArt.ts:1
+- note: Found 2026-10-22 in the mission spine A2 change. Each new mission has its own place drawing, but `POSTCARD` lends it the postcard of an older scene at the same place (street to directions, home to day, market to market, cafe to terrace, friends to apéro), so two situations hand back the same keepsake. Draw twelve `postcard-*` drawings in `docs/design-assets/ILLUSTRATIONS.md` and give `POSTCARD` one per mission, then hold uniqueness with a test like `scenes.test.ts`.
+- verified-by: `every scene hands back a postcard of its own`

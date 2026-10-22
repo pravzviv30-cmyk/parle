@@ -25,10 +25,12 @@ import {
   type Mission,
   type MissionProgress,
   type TutorVoiceKey,
+  type CefrLevel,
 } from '@luvani/core';
 
 import type { LevelStop } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
+import { MISSION_LEVELS } from '../scenes/scenePreview.ts';
 
 /** The quiet second way into a conversation, under the one Start. */
 export const TYPE_INSTEAD = 'Type instead';
@@ -131,11 +133,10 @@ export interface SpeakRow {
  * there is nothing here a second list could be drawn from.
  */
 export interface SpeakPath {
-  /** A0 then A1, each only when a scene carries it. */
-  groups: { level: 'A0' | 'A1'; rows: SpeakRow[] }[];
+  /** A0, A1 then A2, each only when a scene carries it. */
+  groups: { level: CefrLevel; rows: SpeakRow[] }[];
 }
 
-const LEVELS = ['A0', 'A1'] as const;
 
 const WHERE: Record<SceneState, string> = { earned: 'done', here: 'you are here', ahead: 'not yet' };
 
@@ -147,7 +148,7 @@ export function speakPath(progress: readonly MissionProgress[]): SpeakPath {
   const stateOf = (mission: Mission): SceneState =>
     earned.has(mission.id) ? 'earned' : next !== null && mission.id === next.id ? 'here' : 'ahead';
 
-  const groups = LEVELS.map((level) => ({
+  const groups = MISSION_LEVELS.map((level) => ({
     level,
     rows: spine
       .filter((mission) => mission.cefr === level)
@@ -178,7 +179,7 @@ export function speakPath(progress: readonly MissionProgress[]): SpeakPath {
 
 /** What Speak's one path card holds: the level the learner is in, and a line for the next. */
 export interface PathCard {
-  level: 'A0' | 'A1';
+  level: CefrLevel;
   /** Every scene of that level, in spine order, each with its mark and French name. */
   rows: SpeakRow[];
   /** "Then A1, 4 more scenes", or null when nothing comes after this level. */

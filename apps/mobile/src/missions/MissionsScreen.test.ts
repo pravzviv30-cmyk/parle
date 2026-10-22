@@ -51,7 +51,9 @@ describe('the chooser is one card and five rows — F573', () => {
     const brief = SCREEN.slice(SCREEN.indexOf('if (focus && first)'));
     assert.ok(brief.indexOf('{first.mission.title}') < brief.indexOf('<Illustration'), 'decoration precedes the actual task');
     assert.match(SCREEN, /ground=\{focus && progress !== null && first \? 'blue' : 'paper'\}/, 'the brand has no contrast on its ground');
-    assert.match(SCREEN, /\['A0', 'A1'\]/, 'the list loses its level grouping');
+    assert.match(SCREEN, /\{MISSION_LEVELS\.filter\(/, 'the list loses its level grouping');
+    assert.match(SCREEN, /accessibilityRole="header" style=\{\[type\.heading, \{ color: t\.text \}\]\}>\{stageOf\(\{ kind: 'mission', cefr: level \}\)\}/, 'a level heading shows CEFR or a hard-coded stage instead of its stage word');
+    assert.match(SCREEN, /\{stageOf\(\{ kind: 'mission', cefr: first\.mission\.cefr \}\)\} scene/, 'the brief names a CEFR code, not the stage word');
     assert.match(SCREEN, /view\.cards\.filter\(\(card\) => card\.mission\.cefr === level\)\.map/, 'the list loses scenes from the view model');
     assert.match(SCREEN, /<LedgerRow\b/);
     assert.match(SCREEN, /glyph=\{<SceneMark state=\{earnedMissionIds/, 'the list invents earning instead of asking core');

@@ -30,6 +30,7 @@
  */
 
 import type { Rung } from '../ladder/ladder.ts';
+import type { CefrLevel } from '../lessons/types.ts';
 import { isDue } from '../review/evidence.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 
@@ -40,12 +41,27 @@ export type MissionId =
   | 'mission:journee'
   | 'mission:chemin'
   | 'mission:marche'
-  | 'mission:hotel';
+  | 'mission:hotel'
+  | 'mission:restaurant'
+  | 'mission:pharmacie'
+  | 'mission:gare'
+  | 'mission:colis'
+  | 'mission:voisin'
+  | 'mission:week-end'
+  | 'mission:collegues'
+  | 'mission:telephone'
+  | 'mission:medecin'
+  | 'mission:retour'
+  | 'mission:appartement'
+  | 'mission:belle-famille';
 
 /**
- * Where the mission happens. This is a place, not a category: it is what the
- * learner pictures, and what gives the mission its card. Kept as a small closed
- * union so a new place is a deliberate decision rather than a typo.
+ * Where the mission happens: one of the six places the daily pool already
+ * draws as a disc. Kept as a small closed union so a new place is a deliberate
+ * decision rather than a typo. Missions may share a place (the pharmacy and the
+ * station are both `street`); what tells them apart on screen is that every
+ * mission has its own drawing, keyed by mission id in
+ * `apps/mobile/src/art/flat/scenes.ts`.
  */
 export type MissionPlace = 'cafe' | 'friends' | 'home' | 'street' | 'market' | 'hotel';
 
@@ -55,8 +71,12 @@ export interface Mission {
   title: string;
   titleEn: string;
   place: MissionPlace;
-  /** Missions are the beginner's front door. Nothing here is above A1. */
-  cefr: 'A0' | 'A1';
+  /**
+   * The level the scene is pitched at. Missions run from the beginner's front
+   * door at A0 up into everyday A2 situations; the spine reads this to say
+   * where a learner stands (`spine.ts`).
+   */
+  cefr: CefrLevel;
   /** Who the learner is in the scene. Plain English, one clause. */
   learnerRole: string;
   /** Who the tutor plays. Plain English, one clause. */
@@ -337,9 +357,9 @@ export function missionPhraseKeys(): string[] {
 /**
  * The catalogue.
  *
- * Six situations an adult actually walks into, one place each so no two missions
- * hand back the same postcard, opened by a three-line first scene in the same
- * café, which is the one mission allowed to share a place. Café first because it
+ * Situations an adult actually walks into, opened by a three-line first scene in
+ * the café. Places are the six drawn discs and missions may share one; each
+ * mission has its own drawing, so no two hand back the same picture. Café first because it
  * is the shortest path from "I speak no French" to "I said a French sentence to
  * a French person and it worked", and that is the whole promise. Catalogue order
  * is also `SCENE_SPINE` order in `spine.ts`; the spine test holds both.
@@ -563,5 +583,314 @@ export const MISSIONS: readonly Mission[] = [
     ],
     referencePhrases: ['Salut ! Ça va ?', 'On fait quoi samedi ?'],
     pathUnitId: 'amis',
+  },
+  {
+    // A1 from here on, the everyday errands. The restaurant shares the café's
+    // place disc and has its own drawing.
+    id: 'mission:restaurant',
+    title: 'Une table pour ce soir',
+    titleEn: 'Book a table',
+    place: 'cafe',
+    cefr: 'A1',
+    learnerRole: 'Someone stopping at a bistro door in the afternoon to book a table for tonight.',
+    tutorRole: 'Hélène, the bistro owner, setting up the terrace before evening service.',
+    goalEn: 'Book a table for two tonight: the time, the name, and where you sit.',
+    winEn: 'A table for two is waiting tonight, and the booking is in your name.',
+    canDoEn: 'Book a table for tonight',
+    earnedEn: 'You can book a table',
+    beatIds: ['ask-for-table', 'say-the-time', 'give-the-name', 'confirm-and-go'],
+    phraseKeys: [
+      'phrase:bonjour, vous avez une table pour deux ce soir ?',
+      "phrase:vers vingt heures, c'est possible ?",
+      "phrase:en terrasse, si c'est possible",
+      'phrase:à ce soir, alors',
+    ],
+    referencePhrases: [
+      'Bonjour, vous avez une table pour deux ce soir ?',
+      "En terrasse, si c'est possible",
+      'À ce soir, alors',
+    ],
+    pathUnitId: 'restaurant',
+  },
+  {
+    id: 'mission:pharmacie',
+    title: 'À la pharmacie',
+    titleEn: 'Get help at a pharmacy',
+    place: 'street',
+    cefr: 'A1',
+    learnerRole: 'Someone with a sore throat asking a pharmacist for something to take.',
+    tutorRole: 'Thomas, the pharmacist, who asks a question before he hands anything over.',
+    goalEn: 'Say what hurts and since when, find out how to take what you are given, and pay.',
+    winEn: 'Thomas knows what hurts, you know how to take it, and the box is in your pocket.',
+    canDoEn: 'Ask a pharmacist for help',
+    earnedEn: 'You can get help at a pharmacy',
+    beatIds: ['say-what-hurts', 'say-since-when', 'ask-how-to-take-it', 'pay-and-thank'],
+    phraseKeys: [
+      "phrase:bonjour, j'ai mal à la gorge",
+      'phrase:depuis hier soir',
+      'phrase:je le prends combien de fois par jour ?',
+      'phrase:faut une ordonnance ?',
+    ],
+    referencePhrases: [
+      "Bonjour, j'ai mal à la gorge",
+      'Depuis hier soir',
+      'Je le prends combien de fois par jour ?',
+    ],
+    pathUnitId: 'pharmacie',
+  },
+  {
+    // Picks up where mission:chemin leaves the learner, outside the station.
+    id: 'mission:gare',
+    title: 'Au guichet de la gare',
+    titleEn: 'Buy a train ticket',
+    place: 'street',
+    cefr: 'A1',
+    learnerRole: 'A traveller buying a return ticket to Lyon at the station desk.',
+    tutorRole: 'Julien, the agent at the ticket desk.',
+    goalEn: 'Buy a return ticket, pick a train, and find out which platform it leaves from.',
+    winEn: 'Ticket bought, train chosen, platform found. Off you go.',
+    canDoEn: 'Buy a ticket and find your train',
+    earnedEn: 'You can buy a train ticket',
+    beatIds: ['ask-for-a-ticket', 'choose-a-train', 'ask-the-platform', 'pay'],
+    phraseKeys: [
+      "phrase:un aller-retour pour lyon, s'il vous plaît",
+      'phrase:le prochain train part à quelle heure ?',
+      "phrase:c'est quelle voie ?",
+      "phrase:c'est un train direct ?",
+    ],
+    referencePhrases: ['Le prochain train part à quelle heure ?', "C'est un train direct ?"],
+    pathUnitId: 'gare',
+  },
+  {
+    id: 'mission:colis',
+    title: 'Au point relais',
+    titleEn: 'Pick up a parcel',
+    place: 'market',
+    cefr: 'A1',
+    learnerRole: 'A customer collecting a parcel from the pickup point in a corner shop.',
+    tutorRole: 'Sandrine, who runs the tabac-presse and its parcel shelf.',
+    goalEn: 'Say you are here for a parcel, give the name and code, show ID, and check it is yours.',
+    winEn: 'The parcel came out from the back room, and it left the shop with you.',
+    canDoEn: 'Collect a parcel at the counter',
+    earnedEn: 'You can pick up a parcel',
+    beatIds: ['say-why-you-came', 'give-name-and-code', 'show-id', 'check-and-go'],
+    phraseKeys: [
+      'phrase:bonjour, je viens chercher un colis',
+      "phrase:j'ai reçu un code par sms",
+      "phrase:voilà ma pièce d'identité",
+      "phrase:oui, c'est bien ça, merci",
+    ],
+    referencePhrases: [
+      'Bonjour, je viens chercher un colis',
+      "Voilà ma pièce d'identité",
+      "Oui, c'est bien ça, merci",
+    ],
+    pathUnitId: 'colis',
+  },
+  {
+    id: 'mission:voisin',
+    title: 'Sur le palier',
+    titleEn: 'Meet your neighbour',
+    place: 'home',
+    cefr: 'A1',
+    learnerRole: 'Someone who has just moved into the building, carrying the last boxes upstairs.',
+    tutorRole: 'Monique, the retired neighbour across the landing, who knows everyone.',
+    goalEn: 'Introduce yourself to a neighbour, chat about the area, and get one good tip.',
+    winEn: 'Monique knows who lives on the third floor now, and you know where the good bread is.',
+    canDoEn: 'Introduce yourself to a neighbour',
+    earnedEn: 'You can chat with a neighbour',
+    beatIds: ['say-you-moved-in', 'say-where-from', 'chat-about-the-area', 'ask-for-a-tip', 'say-goodbye'],
+    phraseKeys: [
+      "phrase:bonjour, je viens d'emménager au troisième",
+      'phrase:vous habitez ici depuis longtemps ?',
+      'phrase:y a une bonne boulangerie dans le coin ?',
+      'phrase:bonne soirée, à bientôt',
+    ],
+    referencePhrases: [
+      'Vous habitez ici depuis longtemps ?',
+      'Bonne soirée, à bientôt',
+    ],
+    pathUnitId: 'voisin',
+  },
+  {
+    // A2 from here on, everyday life: telling what happened, holding a
+    // position politely, and the first scene where tu is offered.
+    id: 'mission:week-end',
+    title: 'Alors, ce week-end ?',
+    titleEn: 'Tell a colleague about your weekend',
+    place: 'friends',
+    cefr: 'A2',
+    learnerRole: 'Someone who works in the office, getting a coffee before the first meeting on a Monday.',
+    tutorRole: 'Lucas, a colleague from the next desk, chatty at the coffee machine.',
+    goalEn: 'Say what you did at the weekend, add a detail, then ask about his and react.',
+    winEn: 'Lucas heard about your Saturday, and you heard all about his.',
+    canDoEn: 'Say what you did at the weekend',
+    earnedEn: 'You can talk about your weekend',
+    beatIds: ['say-what-you-did', 'add-a-detail', 'ask-about-theirs', 'react', 'back-to-work'],
+    phraseKeys: [
+      "phrase:samedi, j'ai vu des amis",
+      "phrase:on a mangé au resto, c'était top",
+      "phrase:et toi, t'as fait quoi ?",
+      "phrase:bon, j'y retourne",
+    ],
+    referencePhrases: ["On a mangé au resto, c'était top", "Bon, j'y retourne"],
+    pathUnitId: 'week-end',
+  },
+  {
+    id: 'mission:collegues',
+    title: 'Le premier jour',
+    titleEn: 'Introduce yourself at work',
+    place: 'home',
+    cefr: 'A2',
+    learnerRole: 'Someone starting a new job today, meeting the team manager for the first time.',
+    tutorRole: 'Isabelle, the team manager, who starts with vous and offers tu.',
+    goalEn: 'Say who you are and what you did before, accept tu, and ask one practical thing.',
+    winEn: 'Isabelle switched to tu, and you know where the team eats at lunchtime.',
+    canDoEn: 'Introduce yourself at work',
+    earnedEn: 'You can introduce yourself at work',
+    beatIds: ['say-who-and-role', 'say-what-before', 'accept-tu', 'ask-a-practical-thing', 'thank-her'],
+    phraseKeys: [
+      "phrase:bonjour, je commence aujourd'hui dans l'équipe",
+      'phrase:avant, je travaillais dans une banque',
+      "phrase:d'accord, on se tutoie",
+      'phrase:tu peux me montrer la cantine ?',
+    ],
+    referencePhrases: [
+      "Bonjour, je commence aujourd'hui dans l'équipe",
+      'Avant, je travaillais dans une banque',
+      'Tu peux me montrer la cantine ?',
+    ],
+    pathUnitId: 'collegues',
+  },
+  {
+    // Books the appointment mission:medecin then keeps.
+    id: 'mission:telephone',
+    title: 'Prendre rendez-vous',
+    titleEn: 'Book an appointment by phone',
+    place: 'home',
+    cefr: 'A2',
+    learnerRole: 'Someone phoning a GP practice to book an appointment for a cough.',
+    tutorRole: 'Nathalie, the practice secretary, who spells and repeats on request.',
+    goalEn: 'Say why you are calling, settle on a slot, spell your name, and repeat the time back.',
+    winEn: 'The appointment is booked, and the name on it is spelled right.',
+    canDoEn: 'Book an appointment by phone',
+    earnedEn: 'You can book an appointment by phone',
+    beatIds: ['say-why-calling', 'take-or-turn-down-slot', 'spell-your-name', 'repeat-back'],
+    phraseKeys: [
+      'phrase:bonjour, je voudrais prendre rendez-vous',
+      "phrase:pardon, j'ai pas bien entendu",
+      'phrase:vous auriez quelque chose plus tôt ?',
+      "phrase:je vous l'épelle",
+    ],
+    referencePhrases: [
+      'Bonjour, je voudrais prendre rendez-vous',
+      'Vous auriez quelque chose plus tôt ?',
+      "Je vous l'épelle",
+    ],
+    pathUnitId: 'telephone',
+  },
+  {
+    id: 'mission:medecin',
+    title: 'Chez le médecin',
+    titleEn: 'See a doctor',
+    place: 'street',
+    cefr: 'A2',
+    learnerRole: 'A patient with a cough that has lasted a week, keeping the appointment booked by phone.',
+    tutorRole: 'Dr Benali, the GP, who listens first and asks one question at a time.',
+    goalEn: 'Say what the trouble is and since when, answer her questions, and ask how long to take the treatment.',
+    winEn: 'Dr Benali knows what the trouble is, and you know how long to take the treatment.',
+    canDoEn: 'Explain your symptoms to a doctor',
+    earnedEn: 'You can explain your symptoms to a doctor',
+    beatIds: ['say-what-is-wrong', 'say-since-when', 'answer-her-questions', 'ask-about-treatment', 'thank-her'],
+    phraseKeys: [
+      'phrase:je tousse beaucoup, surtout la nuit',
+      'phrase:depuis la semaine dernière',
+      "phrase:non, j'ai pas de fièvre",
+      'phrase:je dois le prendre pendant combien de temps ?',
+    ],
+    referencePhrases: [
+      'Je tousse beaucoup, surtout la nuit',
+      'Depuis la semaine dernière',
+      'Je dois le prendre pendant combien de temps ?',
+    ],
+    pathUnitId: 'medecin',
+  },
+  {
+    id: 'mission:retour',
+    title: 'Rapporter un article',
+    titleEn: 'Take something back to a shop',
+    place: 'market',
+    cefr: 'A2',
+    learnerRole: 'A customer bringing back a kettle that stopped working after two days.',
+    tutorRole: 'Mehdi, the sales assistant at the returns counter, who offers a credit note first.',
+    goalEn: 'Explain the problem, show the receipt, ask for a refund, and insist politely if you need to.',
+    winEn: 'The kettle went back on the shelf, and the money went back on your card.',
+    canDoEn: 'Return something that does not work',
+    earnedEn: 'You can return something to a shop',
+    beatIds: ['explain-it-does-not-work', 'show-the-receipt', 'ask-exchange-or-refund', 'insist-politely', 'leave'],
+    phraseKeys: [
+      "phrase:bonjour, j'ai un problème avec cette bouilloire",
+      "phrase:j'ai gardé le ticket de caisse",
+      'phrase:je préfère un remboursement',
+      "phrase:c'est possible de voir avec un responsable ?",
+    ],
+    referencePhrases: [
+      "J'ai gardé le ticket de caisse",
+      'Je préfère un remboursement',
+      "C'est possible de voir avec un responsable ?",
+    ],
+    pathUnitId: 'retour',
+  },
+  {
+    id: 'mission:appartement',
+    title: 'Visiter un appartement',
+    titleEn: 'View a flat to rent',
+    place: 'home',
+    cefr: 'A2',
+    learnerRole: 'Someone looking for a flat to rent, at a viewing with the letting agent.',
+    tutorRole: 'Céline, the letting agent, brisk and friendly, with a busy morning of viewings.',
+    goalEn: 'Ask about the rent and the flat, when it is free, and what the application needs.',
+    winEn: 'Céline has answered every question, and you know what goes in the file.',
+    canDoEn: 'Ask the right questions about a flat',
+    earnedEn: 'You can ask about a flat to rent',
+    beatIds: ['ask-about-rent', 'ask-about-the-flat', 'ask-when-free', 'ask-about-the-file', 'say-you-are-interested'],
+    phraseKeys: [
+      "phrase:le loyer, c'est charges comprises ?",
+      'phrase:il est libre à partir de quand ?',
+      "phrase:qu'est-ce qu'il faut pour le dossier ?",
+      'phrase:faut un garant ?',
+    ],
+    referencePhrases: [
+      "Le loyer, c'est charges comprises ?",
+      'Il est libre à partir de quand ?',
+      "Qu'est-ce qu'il faut pour le dossier ?",
+    ],
+    pathUnitId: 'appartement',
+  },
+  {
+    id: 'mission:belle-famille',
+    title: 'Dîner chez ses parents',
+    titleEn: "Dinner with your partner's parents",
+    place: 'friends',
+    cefr: 'A2',
+    learnerRole: "Someone meeting their partner's parents for dinner for the first time.",
+    tutorRole: "Françoise and Bernard, your partner's parents, both on vous.",
+    goalEn: 'Arrive with a gift, answer their questions, compliment the food, talk about plans, and thank them.',
+    winEn: 'Françoise wrapped up some cake for later, and Bernard walked you both to the door.',
+    canDoEn: "Have dinner with your partner's family",
+    earnedEn: "You can have dinner with your partner's family",
+    beatIds: ['arrive-with-a-gift', 'answer-about-yourself', 'compliment-the-food', 'talk-about-plans', 'thank-and-leave'],
+    phraseKeys: [
+      "phrase:bonsoir ! tenez, c'est pour vous",
+      "phrase:c'est délicieux, c'est vous qui l'avez fait ?",
+      "phrase:on va passer l'été dans le sud",
+      'phrase:merci beaucoup pour cette soirée',
+    ],
+    referencePhrases: [
+      "Bonsoir ! Tenez, c'est pour vous",
+      "C'est délicieux, c'est vous qui l'avez fait ?",
+      'Merci beaucoup pour cette soirée',
+    ],
+    pathUnitId: 'belle-famille',
   },
 ];

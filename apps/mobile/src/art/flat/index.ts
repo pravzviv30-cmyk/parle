@@ -15,6 +15,18 @@ import { PlaceMarket } from './place-market.tsx';
 import { PlaceDirections } from './place-directions.tsx';
 import { PlaceDay } from './place-day.tsx';
 import { PlaceApero } from './place-apero.tsx';
+import { PlaceRestaurant } from './place-restaurant.tsx';
+import { PlacePharmacy } from './place-pharmacy.tsx';
+import { PlaceStation } from './place-station.tsx';
+import { PlaceParcel } from './place-parcel.tsx';
+import { PlaceNeighbour } from './place-neighbour.tsx';
+import { PlaceWeekend } from './place-weekend.tsx';
+import { PlaceWorkplace } from './place-workplace.tsx';
+import { PlacePhone } from './place-phone.tsx';
+import { PlaceDoctor } from './place-doctor.tsx';
+import { PlaceShopReturn } from './place-shop-return.tsx';
+import { PlaceFlat } from './place-flat.tsx';
+import { PlaceFamilyDinner } from './place-family-dinner.tsx';
 import { StateNotebook } from './state-notebook.tsx';
 import { StateWaiting } from './state-waiting.tsx';
 import { StateOffline } from './state-offline.tsx';
@@ -54,6 +66,18 @@ export const ILLUSTRATIONS = {
   'place-directions': { draw: PlaceDirections, box: [350, 220], large: [350, 220], small: [262, 165] },
   'place-day': { draw: PlaceDay, box: [350, 220], large: [350, 220], small: [262, 165] },
   'place-apero': { draw: PlaceApero, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-restaurant': { draw: PlaceRestaurant, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-pharmacy': { draw: PlacePharmacy, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-station': { draw: PlaceStation, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-parcel': { draw: PlaceParcel, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-neighbour': { draw: PlaceNeighbour, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-weekend': { draw: PlaceWeekend, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-workplace': { draw: PlaceWorkplace, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-phone': { draw: PlacePhone, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-doctor': { draw: PlaceDoctor, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-shop-return': { draw: PlaceShopReturn, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-flat': { draw: PlaceFlat, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-family-dinner': { draw: PlaceFamilyDinner, box: [350, 220], large: [350, 220], small: [262, 165] },
   'state-notebook': { draw: StateNotebook, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-waiting': { draw: StateWaiting, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-offline': { draw: StateOffline, box: [160, 160], large: [160, 160], small: [120, 120] },

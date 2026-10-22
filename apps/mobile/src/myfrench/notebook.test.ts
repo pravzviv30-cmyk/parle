@@ -12,6 +12,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { MISSION_LEVELS } from '../scenes/scenePreview.ts';
 import {
   FRENCH_PHONEMES,
   MISSIONS,
@@ -54,7 +55,9 @@ describe('the level and the can-dos earned — notebook Phase 3', () => {
   test('a learner with nothing earned is at A0, "here" on the first scene, every other stop ahead', () => {
     const path = levelPathFrom(BASE);
     assert.equal(path.level, 'A0');
-    assert.deepEqual(path.levels.map((l) => l.level), ['A0', 'A1'], 'a level with no scene was drawn, or one with scenes was not');
+    const carried = MISSION_LEVELS.filter((level) => SCENE_SPINE.some((id) => getMission(id)!.cefr === level));
+    assert.ok(carried.includes('A0') && carried.includes('A1'));
+    assert.deepEqual(path.levels.map((l) => l.level), carried, 'a level with no scene was drawn, or one with scenes was not');
     const stops = path.levels.flatMap((l) => l.stops);
     assert.equal(stops.length, SCENE_SPINE.length, 'a scene on the spine has no stop');
     assert.equal(stops.filter((s) => s.state === 'here').length, 1, 'the path has more or fewer than one "you are here"');
@@ -165,7 +168,7 @@ describe('the first visit, and the words', () => {
     for (const line of NOTEBOOK_COPY) {
       assert.equal(guiltIn(line), undefined, `"${line}" carries a banned word`);
       // The level's own name (A0, A1) is a level, not a count, and is the one digit allowed.
-      assert.doesNotMatch(line.replace(/\bA[01]\b/g, ''), /—|\d|%/, `"${line}" carries an em dash, a digit or a percentage`);
+      assert.doesNotMatch(line.replace(/\bA[012]\b/g, ''), /—|\d|%/, `"${line}" carries an em dash, a digit or a percentage`);
       assert.doesNotMatch(line, /\b(beginner|novice|intermediate|advanced|veteran|expert|points?|xp|rank)\b/i, `"${line}" names a rank or points`);
     }
   });

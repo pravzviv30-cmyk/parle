@@ -36,6 +36,7 @@ import { BBand, BBandPill, BCard, BMicThin } from './BOnboardingParts.tsx';
 import { useB } from '../main/bTheme.tsx';
 import { bType } from '../theme.ts';
 import { onboardingProgress } from './onboardingProgress.ts';
+import { stageOf } from '../scenes/scenePreview.ts';
 
 import {
   PRIMER_META,
@@ -149,7 +150,7 @@ export function FirstSceneScreen({
           <Text style={[bType.eyebrow, { color: t.text }]}>{PRIMER_META(persona.name)}</Text>
           <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }, st.bandTitle]}>{mission.titleEn}</Text>
           <Text {...frenchText} style={[type.heading, { color: paper.ink, textAlign: 'center' }, st.bandFrench]}>{mission.title}</Text>
-          <View style={st.pills}><BBandPill label={mission.cefr === 'A0' ? 'Starter' : 'Basics'} /></View>
+          <View style={st.pills}><BBandPill label={stageOf({ kind: 'mission', cefr: mission.cefr })} /></View>
         </BBand>
       )}
       footer={

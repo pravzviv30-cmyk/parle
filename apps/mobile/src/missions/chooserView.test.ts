@@ -189,7 +189,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.equal(guiltIn(CHOOSER_ACCESS), undefined);
     const screen = stripComments(read('./MissionsScreen.tsx'));
     assert.match(screen, /\{view\.access\}/, 'the chooser never draws the access line');
-    assert.ok(screen.indexOf('{view.access}') < screen.indexOf("{(['A0', 'A1']"), 'the chooser must explain live minutes before the list');
+    assert.ok(screen.indexOf('{view.access}') < screen.indexOf('{MISSION_LEVELS'), 'the chooser must explain live minutes before the list');
     assert.ok(screen.indexOf('Speaking and typing use live minutes') < screen.indexOf("label={typed ? 'Start typing'"), 'the brief must explain live minutes next to Start');
   });
 

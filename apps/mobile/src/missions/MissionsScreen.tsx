@@ -29,6 +29,7 @@ import { colour, frenchText, paper, space, type } from '../theme.ts';
 import { IconActionRow, IconAction, Card, GhostButton, Ledger, LedgerRow, PillButton, SceneMark } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import { TYPE_INSTEAD } from '../tutor/speakView.ts';
+import { MISSION_LEVELS, stageOf } from '../scenes/scenePreview.ts';
 
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { sceneIllustration } from '../art/flat/scenes.ts';
@@ -149,7 +150,7 @@ export function MissionsScreen() {
             <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
           </Card>
           <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={{ alignSelf: 'center' }} />
-          <Text style={[type.small, { color: paper.onInk }]}>{first.mission.cefr} scene</Text>
+          <Text style={[type.small, { color: paper.onInk }]}>{stageOf({ kind: 'mission', cefr: first.mission.cefr })} scene</Text>
         </View>
       </ScrollScreen>
     );
@@ -160,9 +161,9 @@ export function MissionsScreen() {
         <Text style={st.sub}>{view.sub}</Text>
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
         <Text style={st.access}>{view.access}</Text>
-        {(['A0', 'A1'] as const).map((level) => <View key={level} style={st.rows}>
-          <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{level}</Text>
-          <Ledger accessibilityLabel={`${level} scenes`}>
+        {MISSION_LEVELS.filter((level) => view.cards.some((card) => card.mission.cefr === level)).map((level) => <View key={level} style={st.rows}>
+          <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{stageOf({ kind: 'mission', cefr: level })}</Text>
+          <Ledger accessibilityLabel={`${stageOf({ kind: 'mission', cefr: level })} scenes`}>
             {view.cards.filter((card) => card.mission.cefr === level).map((card) => <LedgerRow
               key={card.id} glyph={<SceneMark state={earnedMissionIds(progress ?? []).has(card.mission.id) ? 'earned' : card.primary ? 'here' : 'ahead'} />}
               title={card.mission.titleEn} gloss={`${card.mission.title}. ${card.status}`} meta={minutesLine(missionMinutes(card.mission))}

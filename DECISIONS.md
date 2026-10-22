@@ -240,6 +240,9 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   learner meets must agree with the billing standing that decides it.
 - Consequence: each Phase C store (events, correction reasons, interests) must
   bring its line back with a test, and a new lockable surface reads the seam.
+  On 2026-10-22, Everyday (A2) joins Starter (A0) and Basics (A1) on Journey,
+  Speak and guided mission previews, all read from `MISSION_LEVELS` and `stageOf`
+  in `apps/mobile/src/scenes/scenePreview.ts`.
 - Sources: [DESIGN.md composition rules](DESIGN.md#composition-rules),
   `apps/mobile/src/access/featureAccess.ts`.
 

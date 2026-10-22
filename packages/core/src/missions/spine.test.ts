@@ -11,6 +11,8 @@ const DAY = 86_400_000;
 const done = (id: MissionId, rung: Rung, at = NOW - DAY): MissionCompletion => ({ id, at, rung });
 
 const A0_IDS = MISSIONS.filter((m) => m.cefr === 'A0').map((m) => m.id);
+const A1_IDS = MISSIONS.filter((m) => m.cefr === 'A1').map((m) => m.id);
+const A2_IDS = MISSIONS.filter((m) => m.cefr === 'A2').map((m) => m.id);
 
 describe('the spine — the order scenes are offered in, and what has been earned', () => {
   test('the spine names every mission once, opening on the first scene', () => {
@@ -24,6 +26,18 @@ describe('the spine — the order scenes are offered in, and what has been earne
         'mission:chemin',
         'mission:journee',
         'mission:amis',
+        'mission:restaurant',
+        'mission:pharmacie',
+        'mission:gare',
+        'mission:colis',
+        'mission:voisin',
+        'mission:week-end',
+        'mission:collegues',
+        'mission:telephone',
+        'mission:medecin',
+        'mission:retour',
+        'mission:appartement',
+        'mission:belle-famille',
       ],
     );
     assert.equal(SCENE_SPINE[0], FIRST_MISSION);
@@ -97,10 +111,54 @@ describe('the spine — the order scenes are offered in, and what has been earne
     assert.deepEqual(view.earned, []);
   });
 
+  test('the level is A2 only once every A0 and every A1 scene is earned', () => {
+    assert.ok(A1_IDS.length >= 2, 'the fixture needs at least two A1 scenes to prove anything');
+    const allA0 = A0_IDS.map((id) => done(id, 4));
+
+    const a1AllButOne = A1_IDS.slice(0, -1).map((id) => done(id, 4));
+    assert.equal(spineFrom(missionStates([...allA0, ...a1AllButOne], [], NOW)).level, 'A1', 'one A1 scene is still unearned');
+
+    const a1OneHelped = [...a1AllButOne, done(A1_IDS[A1_IDS.length - 1]!, 3)];
+    assert.equal(
+      spineFrom(missionStates([...allA0, ...a1OneHelped], [], NOW)).level,
+      'A1',
+      'a helped A1 finish is not an earned one, so the level stays at A1',
+    );
+
+    const allA1 = A1_IDS.map((id) => done(id, 4));
+    assert.equal(spineFrom(missionStates([...allA0, ...allA1], [], NOW)).level, 'A2');
+  });
+
+  test('every A1 scene earned with an A0 scene still open is A0, not A2', () => {
+    const allA1 = A1_IDS.map((id) => done(id, 4));
+    const a0AllButOne = A0_IDS.slice(0, -1).map((id) => done(id, 4));
+    assert.equal(spineFrom(missionStates([...a0AllButOne, ...allA1], [], NOW)).level, 'A0', 'A2 needs every A0 scene too');
+  });
+
+  test('the A2 scenes come last on the spine, and earning them never moves the level early', () => {
+    assert.equal(A2_IDS.length, 7, 'the seven A2 scenes from docs/changes/mission-spine-a2.md');
+    assert.deepEqual([...SCENE_SPINE].slice(-A2_IDS.length), A2_IDS, 'A2 follows every A0 and A1 scene');
+
+    const allA0 = A0_IDS.map((id) => done(id, 4));
+    const allA2 = A2_IDS.map((id) => done(id, 4));
+    const a1AllButOne = A1_IDS.slice(0, -1).map((id) => done(id, 4));
+    assert.equal(
+      spineFrom(missionStates([...allA0, ...a1AllButOne, ...allA2], [], NOW)).level,
+      'A1',
+      'every A2 scene earned with an A1 scene still open is still A1',
+    );
+
+    const view = spineFrom(missionStates([...allA0, ...A1_IDS.map((id) => done(id, 4))], [], NOW));
+    assert.equal(view.level, 'A2');
+    assert.equal(view.next?.id, A2_IDS[0], 'with A0 and A1 earned, the next scene is the first A2 one');
+  });
+
   test('with every scene earned there is nothing next', () => {
     const view = spineFrom(missionStates(SCENE_SPINE.map((id) => done(id, 4)), [], NOW));
     assert.equal(view.next, null);
-    assert.equal(view.level, 'A1');
+    // 2026-10-22: was 'A1' while the spine stopped at A1. Every A0 and A1
+    // scene earned is now A2 by definition.
+    assert.equal(view.level, 'A2');
     assert.deepEqual(view.earned.map((m) => m.id), [...SCENE_SPINE]);
   });
 });

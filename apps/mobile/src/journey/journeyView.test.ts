@@ -8,6 +8,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { MISSION_LEVELS } from '../scenes/scenePreview.ts';
 import { describe, test } from 'node:test';
 import { FRENCH_PHONEMES, MISSIONS, missionStates, type ReviewCard, type XpLevel } from '@luvani/core';
 
@@ -24,6 +25,7 @@ import {
   JOURNEY_COPY,
   JOURNEY_TITLE,
   STAGES,
+  stageIndexOf,
   STAGE_FILL,
   YOU_ARE_HERE,
   canDoView,
@@ -74,6 +76,7 @@ describe('the header: the stage word, the level and the counts', () => {
     // One word for the first stage across the app: the scene preview's.
     assert.equal(stageOf({ kind: 'mission', cefr: 'A0' }), STAGES[0]);
     assert.equal(stageOf({ kind: 'mission', cefr: 'A1' }), STAGES[1]);
+    assert.equal(stageOf({ kind: 'mission', cefr: 'A2' }), STAGES[2], 'an A2 mission is not shown as Everyday');
 
     const fresh = stagesFrom(progressOf([]));
     assert.equal(fresh.eyebrow, 'Starter stage');
@@ -88,6 +91,12 @@ describe('the header: the stage word, the level and the counts', () => {
     assert.equal(allA0.hereLine, `${YOU_ARE_HERE}: Basics`);
     assert.equal(allA0.moveUp, null, 'the future stages make no claim about how to reach them');
     for (const view of [fresh, allA0]) for (const step of view.steps) assert.doesNotMatch(`${step.label} ${step.accessibilityLabel}`, /\bA[012]\b|B[12]|CEFR/);
+  });
+
+  test('every mission level has its own stage, and A2 stands at Everyday', () => {
+    assert.deepEqual([...MISSION_LEVELS], ['A0', 'A1', 'A2']);
+    assert.deepEqual(MISSION_LEVELS.map(stageIndexOf), [0, 1, 2]);
+    assert.equal(STAGES[stageIndexOf('A2')], 'Everyday', 'an A2 learner was drawn at Basics');
   });
 
   test('"Earn all n" counts the real A0 missions on the spine', () => {

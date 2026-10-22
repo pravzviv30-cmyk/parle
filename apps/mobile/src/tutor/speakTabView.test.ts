@@ -109,6 +109,7 @@ describe('the starter scenes', () => {
     }
     assert.deepEqual(EVERY_SCENE, { label: 'Every scene', route: { screen: 'Missions' } });
     assert.equal(stageWord('A1'), 'Basics');
+    assert.equal(stageWord('A2'), 'Everyday', 'an A2 scene was headed Basics');
   });
 
   // 2026-10-20 UI-008, artboard B-Speak: each row's tile and mark follow its state.

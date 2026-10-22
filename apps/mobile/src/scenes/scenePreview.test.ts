@@ -14,7 +14,7 @@ import { DAILY_SCENARIOS, MISSIONS, TUTOR_VOICES, phraseKeyOf, type TutorVoiceKe
 import { DEVICE_VOICE, RECORDED_AUDIO, TEXT_ONLY } from '../copy/access.ts';
 import type { TutorAudioPack } from '../daily/tutorAudio.ts';
 import { TUTOR_LINES, TUTOR_LINES_VOICE } from '../onboarding/tutorLines.ts';
-import { PREVIEW_COPY, hasAuthoredOpener, scenePreview, soundLabel, stageOf, startLabel } from './scenePreview.ts';
+import { MISSION_LEVELS, PREVIEW_COPY, hasAuthoredOpener, scenePreview, soundLabel, stageOf, startLabel } from './scenePreview.ts';
 
 const VOICE = TUTOR_LINES_VOICE as TutorVoiceKey;
 const OTHER = (Object.keys(TUTOR_VOICES) as TutorVoiceKey[]).find((v) => v !== VOICE)!;
@@ -72,6 +72,9 @@ describe('the rest of the page', () => {
     // scene's tier 1 keeps Explore's difficulty label, Starting out.
     assert.equal(stageOf({ kind: 'mission', cefr: 'A0' }), 'Starter');
     assert.equal(stageOf({ kind: 'mission', cefr: 'A1' }), 'Basics');
+    // 2026-10-22, mission spine A2: an A2 mission is Everyday, never Basics.
+    assert.equal(stageOf({ kind: 'mission', cefr: 'A2' }), 'Everyday');
+    assert.deepEqual(MISSION_LEVELS.map((cefr) => stageOf({ kind: 'mission', cefr })), ['Starter', 'Basics', 'Everyday']);
     // 2026-10-21, learning-science review: tier 1 is the stage word Starter.
     assert.equal(stageOf({ kind: 'scenario', tier: 1 }), 'Starter');
     assert.equal(stageOf({ kind: 'scenario', tier: 2 }), 'Everyday');
