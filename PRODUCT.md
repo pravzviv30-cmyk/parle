@@ -30,8 +30,11 @@ practise alone, usually on a phone, in short sessions: a commute, a lunch break,
 minutes before bed. They are adults with no French vocabulary, not children.
 
 The defining trait: they cannot yet compose a French sentence unaided. Asked an
-open question in French, they freeze. Every existing AI tutor treats that freeze as
-"still thinking" and waits.
+open question in French, they freeze. Most AI tutors leave that freeze to the model's
+prompt, and many simply wait. Some now aim at it too: Duolingo's guided Falstaff calls
+(January 2026) and Babbel Speak (September 2025). Luvani's answer is that the rescue is
+enforced in code: silence or a call for help always gets support, and support is
+withdrawn only once the learner shows they can manage.
 
 ## Product Purpose
 
@@ -44,7 +47,11 @@ asking a human for help, and coming back because they can feel and see progress.
 
 ## Positioning
 
-Two things competitors structurally cannot copy without changing shape:
+Two things Luvani is built around. They are a wedge, not yet a moat: each can be
+copied by a well-funded competitor. What makes them hard to copy is what they produce
+with use, a growing set of consented, human-rated beginner French recordings that
+calibrates scoring and recognition, plus independent evidence that learners improve.
+Market review of 2026-10-22: https://claude.ai/artifact/1TLMTEHTGdToCv8WDCqVAe
 
 1. **Pronunciation feedback that is actually trustworthy.** Accuracy scoring
    requires a known reference text. Beginners practise scripted and cued turns,
