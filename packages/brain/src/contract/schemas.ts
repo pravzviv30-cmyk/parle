@@ -105,13 +105,21 @@ export const SpeakerLineZ = z.object({
   en: z.string(),
 });
 
+/**
+ * Field ORDER is part of this contract. Strict structured output writes the
+ * properties in schema order, and the live tutor starts speaking as soon as
+ * every field the spoken line depends on has streamed in (see
+ * `EarlySpokenTurnSchema` and LIVE_VOICE.md). So everything that decides what
+ * is said (the assessment, the coaching that may be recast, the coach line,
+ * the narration and the reply itself) comes first, and everything that is only
+ * shown or remembered comes after. Moving a field above `sceneReply` delays the
+ * tutor's voice by the time it takes to write that field.
+ */
 export const TurnSchema = z.object({
   assessment: AssessmentZ,
   coach: z.array(CoachItemZ),
   /** One sayable coach sentence when something needs saying now, else null. */
   coachLine: z.string().nullable(),
-  /** The in-character line that moves the scene. Clean speech, TTS-ready. */
-  sceneReply: SpeakerLineZ,
   /**
    * Narrator scene-setting spoken over the top of the scene, addressed to the
    * learner directly ("The man turns to leave, but stops…"). Null on almost
@@ -119,6 +127,8 @@ export const TurnSchema = z.object({
    * new picture before the next line lands. speaker is always "narration".
    */
   narration: SpeakerLineZ.nullable(),
+  /** The in-character line that moves the scene. Clean speech, TTS-ready. */
+  sceneReply: SpeakerLineZ,
   support: SupportZ,
   newPhrases: z.array(NewPhraseZ),
   profileSignals: z.object({
@@ -142,6 +152,22 @@ export const TurnSchema = z.object({
     goalMet: z.boolean().nullable(),
     sceneDone: z.boolean(),
   }),
+});
+
+/**
+ * The leading fields of a turn: everything the spoken line depends on.
+ *
+ * A streaming provider hands these over the moment `sceneReply` closes, so
+ * the tutor can start speaking while the rest of the turn (support, phrases,
+ * profile signals, scene progress) is still being written. They are validated
+ * here exactly as the full turn is; nothing partial is ever spoken.
+ */
+export const EarlySpokenTurnSchema = TurnSchema.pick({
+  assessment: true,
+  coach: true,
+  coachLine: true,
+  narration: true,
+  sceneReply: true,
 });
 
 /** Compatibility at adapter parse seams only; never repair an invalid judgment. */

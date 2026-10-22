@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
 import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
-import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
+import type { EarlySpokenTurn, MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import { OwnWordsVerdictSchema } from './judge.ts';
@@ -33,6 +33,7 @@ import {
 } from './client.ts';
 import { realSleep, retryAfterMs, type FetchLike, type SleepLike } from './http.ts';
 import { isAnalystActivity, openAiEffortFor, resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting } from './routing.ts';
+import { SpokenFieldsWatcher } from './spokenFields.ts';
 
 /**
  * What `complete` needs from any request: the bytes its cache key is cut from,
@@ -40,7 +41,7 @@ import { isAnalystActivity, openAiEffortFor, resolveRouting, type BrainActivity,
  * is the grader's brief — so this is a string rather than the blocks, and the
  * callers that do have blocks join them before handing them over.
  */
-type PromptRequest = { cacheSeed: string; signal?: AbortSignal };
+type PromptRequest = { cacheSeed: string; signal?: AbortSignal; onSpokenFields?: (early: EarlySpokenTurn) => void };
 
 type ContractSchema =
   | typeof TurnSchema
@@ -231,7 +232,10 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
-    const result = await this.complete('turn', promptRequest(request), instructionsFor(request, true), request.messages, TurnSchema);
+    const result = await this.complete('turn', {
+      ...promptRequest(request),
+      ...(request.onSpokenFields === undefined ? {} : { onSpokenFields: request.onSpokenFields }),
+    }, instructionsFor(request, true), request.messages, TurnSchema);
     return { turn: result.value as TutorTurn, usage: result.usage };
   }
 
@@ -315,6 +319,10 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     schema: ContractSchema,
   ): Promise<{ value: unknown; usage: LlmUsage }> {
     const route = this.routeFor(activity);
+    // Only a live turn whose caller can use its spoken fields early streams.
+    // Every other call, and a turn nobody is waiting to speak, stays one
+    // request and one JSON body, exactly as before.
+    const watcher = activity === 'turn' && request.onSpokenFields ? new SpokenFieldsWatcher() : null;
     const body = JSON.stringify({
       model: route.model,
       instructions,
@@ -325,6 +333,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       ...(route.effort === undefined ? {} : { reasoning: { effort: route.effort } }),
       max_output_tokens: route.maxTokens,
       store: false,
+      ...(watcher ? { stream: true } : {}),
       // Cache addressing only. Nothing here changes what the model is asked to
       // do, which is the whole reason it is safe on the realtime path.
       prompt_cache_key: cacheKeyFor(activity, request.cacheSeed),
@@ -344,7 +353,14 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       },
     });
 
-    const payload = await this.post(body, request.signal);
+    const payload = watcher
+      ? await this.postStreaming(body, request.signal, (delta) => {
+        const early = watcher.feed(delta);
+        if (early === null) return;
+        // The caller's business. A throw there must not cost the learner the turn.
+        try { request.onSpokenFields?.(early); } catch { /* the full turn still lands */ }
+      })
+      : await this.post(body, request.signal);
 
     const content = (payload.output ?? []).flatMap((item) => item.content ?? []);
     const refusal = content.find((part) => part.type === 'refusal')?.refusal;
@@ -383,6 +399,25 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     return unwrap(await this.send(body, signal));
   }
 
+  /**
+   * The streaming twin of `post`: the same single rate-limit retry, then the
+   * server-sent events read as they arrive. Text deltas go to `onText`, and
+   * the terminal event's response object is returned in the same shape `post`
+   * returns, so everything after it (refusal, parse, usage) is shared.
+   *
+   * A response with no readable body, which is how every non-streaming fake
+   * and any proxy that buffers looks, is read as a plain JSON body instead.
+   */
+  private async postStreaming(body: string, signal: AbortSignal | undefined, onText: (delta: string) => void): Promise<ResponsesPayload> {
+    let response = await this.send(body, signal);
+    if (response.status === 429) {
+      await this.sleep(retryAfterMs(response.headers?.get('retry-after')));
+      response = await this.send(body, signal);
+    }
+    if (!response.ok || !response.body) return unwrap(response);
+    return readResponseEvents(response.body, onText);
+  }
+
   private send(body: string, signal: AbortSignal | undefined): Promise<FetchResponse> {
     return this.fetchFn(`${this.config.baseUrl}/responses`, {
       method: 'POST',
@@ -396,6 +431,60 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       ...(signal === undefined ? {} : { signal }),
     });
   }
+}
+
+interface StreamEvent {
+  type?: string;
+  delta?: string;
+  response?: ResponsesPayload;
+  message?: string;
+  error?: { message?: string } | null;
+}
+
+/**
+ * Read a Responses API event stream to its terminal event.
+ *
+ * Only three kinds of event matter: a text delta, the terminal response
+ * (completed, incomplete or failed, each carrying the whole response object),
+ * and an error. Everything else (reasoning, refusal deltas, bookkeeping) is
+ * ignored, because the terminal response carries the final word on all of it.
+ */
+export async function readResponseEvents(stream: ReadableStream<Uint8Array>, onText: (delta: string) => void): Promise<ResponsesPayload> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let final: ResponsesPayload | null = null;
+  const handle = (block: string): void => {
+    const data = block.split('\n').filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trimStart()).join('\n');
+    if (data.length === 0 || data === '[DONE]') return;
+    let event: StreamEvent;
+    try { event = JSON.parse(data) as StreamEvent; } catch { return; }
+    if (event.type === 'response.output_text.delta' && typeof event.delta === 'string') onText(event.delta);
+    else if ((event.type === 'response.completed' || event.type === 'response.incomplete') && event.response) final = event.response;
+    else if (event.type === 'response.failed') throw new Error(event.response?.error?.message ?? 'OpenAI response failed');
+    else if (event.type === 'error') throw new Error(event.message ?? event.error?.message ?? 'OpenAI stream failed');
+  };
+  let finished = false;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) { finished = true; break; }
+      buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+      for (let split = buffer.indexOf('\n\n'); split !== -1; split = buffer.indexOf('\n\n')) {
+        handle(buffer.slice(0, split));
+        buffer = buffer.slice(split + 2);
+      }
+    }
+    buffer += decoder.decode();
+    if (buffer.trim().length > 0) handle(buffer);
+  } finally {
+    // A failed or error event ends the read early: close the connection rather
+    // than leave the rest of the response streaming into nothing.
+    if (!finished) await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+  if (final === null) throw new Error('OpenAI stream ended without a response');
+  return final;
 }
 
 /**

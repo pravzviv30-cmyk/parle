@@ -87,6 +87,8 @@ import {
   type Pace,
   type Strictness,
   type TurnView,
+  type TutorTurn,
+  type EarlySpokenTurn,
   missionFrame,
 } from '@luvani/brain';
 import {
@@ -551,6 +553,37 @@ export function spokenTurn(view: TurnView): string {
  */
 export function turnIsUninterruptible(view: TurnView): boolean {
   return view.narration !== null || view.rung <= 2;
+}
+
+/** A reply spoken before its turn had fully arrived. See `speakEarly`. */
+interface EarlySpeech {
+  /** The view the spoken words came from: what the screen must show. */
+  view: TurnView;
+  recastUsed: boolean;
+  /** The turn as far as it had arrived, kept in case the rest never does. */
+  provisional: TutorTurn;
+}
+
+/**
+ * Streamed turns, on unless `LUVANI_STREAM_TURN=0`.
+ *
+ * The runtime revert for VOICE-003. With it off the brain is never offered the
+ * early hand-over, so every turn is one request and one JSON body again.
+ */
+export function streamedTurnsEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.LUVANI_STREAM_TURN?.trim() !== '0';
+}
+
+/**
+ * Would every spoken surface pass the output guard as it stands?
+ *
+ * Checked without recording anything: a surface that would fail is left to the
+ * full-turn path, which guards, records and replaces it once, as it always has.
+ */
+export function surfacesPassGuard(view: TurnView): boolean {
+  return outputGuard(`${view.sceneReply.fr} ${view.sceneReply.en}`) === null
+    && (view.coachLine === null || outputGuard(view.coachLine) === null)
+    && (view.narration === null || outputGuard(`${view.narration.fr} ${view.narration.en}`) === null);
 }
 
 /** The title as it read on the card, with any full stop of its own removed. */
@@ -1428,8 +1461,12 @@ export class LuvaniConversation extends voice.Agent {
 
   /** Drives the microphone control: live while the learner has the floor. */
   sendSpeaking(speaking: boolean): void {
+    this.agentSpeaking = speaking;
     this.publish({ t: 'speaking', speaking });
   }
+
+  /** Whether the tutor's voice is playing right now, as the session last said. */
+  private agentSpeaking = false;
 
   /** Tell the learner something went wrong, in plain unscolding words. */
   publishError(message: string): void {
@@ -2405,6 +2442,19 @@ export class LuvaniConversation extends voice.Agent {
         ...(this.memoryBrief ? [{ role: 'system' as const, text: this.memoryBrief }] : [])],
     };
     let turn;
+    // Filled at most once, from inside the model call, if the reply was spoken
+    // before the whole turn arrived. A holder rather than a `let` so the
+    // compiler sees the write the callback makes.
+    const spokenEarly: { value: EarlySpeech | null } = { value: null };
+    const onSpokenFields = this.voiceless || !streamedTurnsEnabled() ? undefined
+      : (fields: EarlySpokenTurn) => {
+        try { spokenEarly.value = this.speakEarly(input, fields, timing, inputTiming); }
+        catch (error) {
+          // The full turn still lands and is spoken the ordinary way, so this
+          // costs only the head start. Said out loud, so it cannot hide.
+          console.warn('[luvani] early speech failed; the full turn will speak instead:', safeError(error));
+        }
+      };
     try {
       this.markTiming('brainSent');
       timing?.mark('brainSent');
@@ -2416,7 +2466,7 @@ export class LuvaniConversation extends voice.Agent {
       // A timeout lands in the catch below and is treated as what it is: a turn
       // that failed, indistinguishable downstream from a thrown one.
       const result = await withDeadline(
-        (signal) => this.client.turn({ ...request, signal }),
+        (signal) => this.client.turn({ ...request, signal, ...(onSpokenFields ? { onSpokenFields } : {}) }),
         this.turnTimeoutMs,
         'turn',
         () => this.noteAbandoned('turn', this.turnTimeoutMs),
@@ -2433,17 +2483,25 @@ export class LuvaniConversation extends voice.Agent {
       // is the same either way.
       this.recordFailedCall('turn', error);
       if (this.ended) return; // a failed turn against a finished session is just noise
-      if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
+      const heard = spokenEarly.value;
+      if (heard !== null) {
+        // The learner has already heard a validated, guarded reply. Failing
+        // the turn now would leave the scene's history without the one line
+        // they actually heard, so the turn they heard is the turn kept.
+        console.warn('[luvani] DEGRADED_TURN the turn failed after its reply was spoken; keeping the spoken reply:', safeError(error));
+        turn = heard.provisional;
+      } else if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
         await this.checkpoint();
         this.recover();
         return;
+      } else {
+        // Anything else (network, provider outage) gets the same gentle exit:
+        // an unhandled throw here would strand the learner in silence.
+        console.error('[luvani] convo brain turn failed:', safeError(error));
+        if (this.lifecycle) { await this.failInfrastructure(); return; }
+        this.recover();
+        return;
       }
-      // Anything else (network, provider outage) gets the same gentle exit:
-      // an unhandled throw here would strand the learner in silence.
-      console.error('[luvani] convo brain turn failed:', safeError(error));
-      if (this.lifecycle) { await this.failInfrastructure(); return; }
-      this.recover();
-      return;
     }
 
     // The session may have ended while the model call was in flight (the
@@ -2464,12 +2522,22 @@ export class LuvaniConversation extends voice.Agent {
     // moment agreement matters.
     const recast = !this.voiceless && input.type === 'spoke'
       ? inCharacterRecast(view, input.text, this.spokenRecastUsed) : { view, used: false };
-    const guarded = this.guardView(recast.view);
+    let guarded = this.guardView(recast.view);
     if (guarded !== recast.view) {
       // Rejected output cannot grant a new goal, on screen or on a later turn.
       this.state = { ...this.state, evidencedBeatIds: previousGoalEvidence };
       if (Object.hasOwn(guarded, 'missionTasks')) guarded.missionTasks = missionTasksFor(this.state);
     }
+    const early = spokenEarly.value;
+    if (early !== null && spokenTurn(guarded) !== spokenTurn(early.view)) {
+      // Should not happen: everything the spoken line depends on streamed in
+      // before it. If it ever does, the words already said are the words
+      // shown, because the screen and the speaker must never disagree. The
+      // early words passed the same guards before they were spoken.
+      console.warn('[luvani] early speech and the final turn disagreed; showing what was spoken');
+      guarded = { ...guarded, sceneReply: early.view.sceneReply, coachLine: early.view.coachLine, narration: early.view.narration };
+    }
+    if (early?.recastUsed) this.spokenRecastUsed = true;
     if (recast.used && guarded.sceneReply.fr === recast.view.sceneReply.fr) this.spokenRecastUsed = true;
     this.state = { ...this.state, history: [...this.state.history.slice(0, -1),
       { role: 'assistant', text: historyForPublishedTurn(turn, guarded) }] };
@@ -2481,8 +2549,17 @@ export class LuvaniConversation extends voice.Agent {
     if (this.ended) return;
     const finalView = this.publishView(publishedView);
     inputTiming?.mark('viewDispatched');
-    this.speak(guarded, timing);
-    if (!this.voiceless) inputTiming?.mark('sayCalled');
+    if (early === null) {
+      this.speak(guarded, timing);
+      if (!this.voiceless) inputTiming?.mark('sayCalled');
+    } else if (!this.voiceless && !this.agentSpeaking && !this.learnerSpeaking) {
+      // The reply was spoken while this turn was still in the queue, so the
+      // agent may already have gone back to `listening`, and the clock it
+      // armed then stood down because the queue was busy. Nothing else will be
+      // said to re-arm it, so arm it here. Still speaking: the end of that
+      // speech arms it the ordinary way.
+      this.armRescue(this.session);
+    }
     inputTiming?.finish('dispatched', !this.voiceless);
     if (input.type === 'spoke' && correctionGeneration === this.correctionReasonGeneration
       && turn.assessment.language === 'french' && !view.reachedForEnglish && guarded === recast.view) {
@@ -2490,6 +2567,45 @@ export class LuvaniConversation extends voice.Agent {
     }
 
     if (view.recapDue) await this.finish();
+  }
+
+  /**
+   * Speak the reply the moment its spoken fields have streamed in.
+   *
+   * The rest of the turn (support, phrases, profile signals, scene progress) is
+   * still being written, and nothing the learner hears depends on it: the coach
+   * line, the rung, the English-reach flag and the in-character recast are all
+   * decided from the assessment and coaching that streamed in first. So the
+   * fields in hand are folded into a provisional turn, run through the same
+   * integration, recast and guards the full turn will get, and spoken.
+   *
+   * Nothing is written here. The state, the profile, the checkpoint and the
+   * published view all wait for the full turn, which shows the same words.
+   * Any surface the output guard would touch means no early speech at all: the
+   * full-turn path then guards, records and replaces it exactly as before.
+   */
+  private speakEarly(input: LearnerTurnInput, fields: EarlySpokenTurn, timing?: SceneReplyTimingRecord, inputTiming?: InputReplyTimingRecord): EarlySpeech | null {
+    if (this.ended || this.voiceless || this.liveWork.signal.aborted) return null;
+    const provisional: TutorTurn = {
+      ...fields,
+      // Only used if the rest of the turn never arrives. The last turn's
+      // support is the best material in hand then: it keeps the quiet first
+      // rescue and the recogniser's phrase hints working.
+      support: this.state.lastSupport,
+      newPhrases: [],
+      profileSignals: { errorPatterns: [], usedWell: [] },
+      topicShift: null,
+      scene: { beat: this.state.currentBeat, beatDone: false, goalMet: null, sceneDone: false },
+    };
+    const { view } = integrateTurn(this.state, input, provisional);
+    const recast = input.type === 'spoke' ? inCharacterRecast(view, input.text, this.spokenRecastUsed) : { view, used: false };
+    if (!surfacesPassGuard(recast.view) || spokenTurn(recast.view).trim().length === 0) return null;
+    this.markTiming('brainParsed');
+    timing?.mark('brainParsed');
+    inputTiming?.mark('brainParsed');
+    this.speak(recast.view, timing);
+    inputTiming?.mark('sayCalled');
+    return { view: recast.view, recastUsed: recast.used, provisional };
   }
 
   /**

@@ -73,9 +73,15 @@ export function createInputReplyTiming(clock: () => number, onRecord?: (line: st
           finished = true; active.delete(record);
           if (outcome !== 'dispatched') { report[outcome]++; emit(input, outcome); return; }
           report.dispatched++;
-          const ordered = [received, ...inputStages.map(stage => marks[stage]), ...(speechDispatched ? [marks.sayCalled] : [])];
+          const ordered = [received, ...inputStages.map(stage => marks[stage])];
+          // Speech may start before the view is published: a streamed turn
+          // speaks as soon as its spoken fields are in (VOICE-003). So a say is
+          // held only to come after the spoken fields were parsed.
+          const said = marks.sayCalled;
+          const sayInOrder = !speechDispatched || (said !== undefined && Number.isFinite(said) && said >= marks.brainParsed!);
           if (!ordered.every((value, index) => value !== undefined && Number.isFinite(value) && value >= 0 &&
-            (index === 0 || value >= ordered[index - 1]!)) || ordered.at(-1)! - received > 15 * 60_000) {
+            (index === 0 || value >= ordered[index - 1]!)) || !sayInOrder
+            || Math.max(ordered.at(-1)!, speechDispatched ? said! : 0) - received > 15 * 60_000) {
             report.missing++; emit(input, 'missing'); return;
           }
           const durations: Partial<Record<typeof intervals[number], number>> = {
@@ -83,7 +89,11 @@ export function createInputReplyTiming(clock: () => number, onRecord?: (line: st
             brain: marks.brainParsed! - marks.brainSent!, integrate: marks.checkpointStarted! - marks.brainParsed!,
             checkpoint: marks.checkpointAcknowledged! - marks.checkpointStarted!, dispatch: marks.viewDispatched! - marks.checkpointAcknowledged!,
             inputToView: marks.viewDispatched! - received,
-            ...(speechDispatched ? { viewToSay: marks.sayCalled! - marks.viewDispatched!, inputToSay: marks.sayCalled! - received } : {}),
+            ...(speechDispatched ? {
+              inputToSay: said! - received,
+              // Only meaningful when the say followed the view; an early say has none.
+              ...(said! >= marks.viewDispatched! ? { viewToSay: said! - marks.viewDispatched! } : {}),
+            } : {}),
           };
           report.samples.push(durations); if (report.samples.length > WINDOW) report.samples.shift();
           emit(input, outcome, durations);

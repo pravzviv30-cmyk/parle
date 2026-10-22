@@ -318,3 +318,24 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   decision; streaming the brain turn is the next step and is not claimed here.
   Phone-audible latency still needs a device run to measure.
 - Sources: [pedagogy](docs/PEDAGOGY.md#the-rescue), [live voice](docs/LIVE_VOICE.md).
+
+## VOICE-003 — Stream the conversation turn and speak its reply early
+
+- Date: 2026-10-22
+- Status: accepted
+- Decision: on OpenAI, a live conversation turn streams. `TurnSchema` orders
+  every field the spoken line depends on before `sceneReply`; once that field
+  closes, the validated leading fields reach the worker, which runs the usual
+  integration, recast and output guard on them and speaks. The full turn still
+  drives state, profile, checkpoint and the published view, with the same words.
+- Reason: free-conversation replies (every mission, so every new learner) waited
+  for the whole structured turn, about 5 to 6 seconds, before any sound. The
+  spoken fields are a fraction of the turn, and the rest is only shown or stored.
+- Consequence: speech now begins before the durable checkpoint ACK, which
+  reverses the "checkpoint before delivery" acceptance recorded in
+  docs/changes/bold-rhythm.md. Safety validation of everything spoken still
+  happens before delivery. A turn that fails after its reply was heard keeps the
+  heard reply. Field order in `TurnSchema` is now part of the contract. Measured
+  phone-audible latency still needs a device run.
+- Sources: [live voice](docs/LIVE_VOICE.md), `packages/brain/src/llm/spokenFields.ts`,
+  `services/tutor-agent/src/convo.ts` (`speakEarly`).

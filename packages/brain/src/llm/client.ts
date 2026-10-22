@@ -7,7 +7,7 @@
  * stays a config change, exactly like the tutor-agent's TUTOR_LLM switch.
  */
 
-import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
+import type { EarlySpokenTurn, MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import type { Curation } from '../curate/curate.ts';
 import type { DrillBatch } from '../drill/generate.ts';
 import type { SystemBlocks } from '../prompt/system.ts';
@@ -40,6 +40,14 @@ export interface BrainTurnRequest extends Abortable {
   system: SystemBlocks;
   /** Scene plan first, then the transcript, learner turn, trailing app context. */
   messages: ChatMessage[];
+  /**
+   * Called at most once, as soon as the turn's spoken fields have streamed in
+   * and validated (see `EarlySpokenTurnSchema`), so the caller can start
+   * speaking before the rest of the turn arrives. The promise still resolves
+   * with the whole validated turn. A provider that cannot stream never calls
+   * it, and a throw from it never fails the turn.
+   */
+  onSpokenFields?: (early: EarlySpokenTurn) => void;
 }
 
 export interface BrainFrameRequest extends Abortable {

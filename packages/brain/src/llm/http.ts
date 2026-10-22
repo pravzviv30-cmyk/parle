@@ -44,6 +44,11 @@ export type FetchLike = (
   /** Absent on older fakes; only Retry-After is ever read. */
   headers?: { get(name: string): string | null };
   json(): Promise<unknown>;
+  /**
+   * The streamed body, read only by a request that asked to stream. Absent on
+   * fakes and non-streaming responses, which fall back to `json()`.
+   */
+  body?: ReadableStream<Uint8Array> | null;
 }>;
 
 /** Injectable so the rate-limit path can be tested without anyone waiting. */

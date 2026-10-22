@@ -39,13 +39,13 @@ export const DEFAULT_ROUTING: BrainRouting = {
   // The talker. Low effort keeps thinking short and first audio close; the
   // turn object itself is well under 1k tokens.
   //
-  // Deliberately NOT streamed, and the question will come up: streaming the
-  // turn to start TTS on a partial sceneReply would bypass the code-decides
-  // gates — sanitizeTurn, copyViolations and the speak order (narration →
-  // coach → sceneReply) all need the complete object, and the parts that
-  // stream first are spoken last. Revisit only if measured turn latency
-  // (see tutor-agent's [luvani:latency] lines) holds a p50 above ~1.5s after
-  // the TTS streaming work.
+  // Streamed on OpenAI when the caller can speak early (VOICE-003). A partial
+  // sceneReply is never spoken: the schema puts every field the spoken line
+  // depends on first, and only once `sceneReply` has CLOSED are those fields
+  // validated and handed over (llm/spokenFields.ts). The tutor agent then runs
+  // the same code-decides gates on them (sanitizeTurn, the coach-line policy,
+  // the recast and the output guard) before a word is said, and shows the same
+  // words once the full turn lands. Anthropic is not streamed.
   turn: { model: 'claude-sonnet-5', effort: 'low', maxTokens: 3_000, midConversationSystem: false },
   // The learner waits for this object before the scene can open. The contract
   // and strict schema carry the structure, so low effort is the right latency

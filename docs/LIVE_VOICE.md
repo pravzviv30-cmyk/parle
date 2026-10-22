@@ -581,11 +581,24 @@ first-frame callback carrying the returned speech handle ID. The summary therefo
 states `first-audio=unmeasured phone-audible=unmeasured`. Actual correlated first
 frames and phone audible p50/p95 require live/native proof.
 
-The brain still returns a complete structured turn. Integration, safety, coaching,
-recast and text/speech agreement all run before the guarded line is spoken. No
-partial JSON field is released as speech. An SSE transport experiment that still
-waits for final validation would not establish earlier sound; it is not enabled
-or claimed as the report's streaming improvement.
+On OpenAI a live conversation turn streams (VOICE-003). `TurnSchema` writes
+every field the spoken line depends on first (assessment, coaching, coach line,
+narration, then `sceneReply`). The moment the top-level `sceneReply` closes,
+`llm/spokenFields.ts` validates those fields against `EarlySpokenTurnSchema` and
+hands them to the worker. `speakEarly` in `convo.ts` folds them into a
+provisional turn and runs the same integration, coach-line policy, recast and
+output guard the full turn gets, then speaks. No partial field is ever spoken,
+and any surface the guard would touch means no early speech: the full-turn path
+then guards and replaces it as before. State, profile, the durable checkpoint
+and the published view still wait for the whole turn, which shows the same
+words; if it ever disagreed, the spoken words win the screen. If the turn fails
+after its reply was heard, the heard reply is kept as the turn instead of a
+recovery line. Speech therefore now starts before the checkpoint ACK, which is
+a deliberate change of order: the ACK is the learning and billing proof, and a
+failed checkpoint still ends the session as before. Typed rooms and the
+Anthropic brain do not stream. In `[luvani:reply-stages]`, `brain` on a
+streamed turn is the time to its spoken fields, and `viewToSay` is omitted when
+speech started before the view.
 
 Set `LUVANI_REPLY_STAGE_TIMING=1` on the worker to investigate ordinary confirmed
 typed and spoken scene inputs separately. The optional `[luvani:reply-stages]`

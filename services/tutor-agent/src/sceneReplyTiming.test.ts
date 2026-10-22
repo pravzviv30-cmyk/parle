@@ -184,3 +184,25 @@ test('worker first-frame quantiles require guarded ordered clocks and ignore lat
   assert.match(timing.audioFormat(), /boundary=framework-eou-to-worker-tts-frame/);
   assert.match(timing.audioFormat(), /phone-audible=unmeasured/);
 });
+
+test('a reply spoken before its view was published still counts, and has no view-to-say', () => {
+  let now = 100;
+  const timing = createInputReplyTiming(() => now);
+  const record = timing.begin('spoken');
+  now = 110; record.mark('queueStarted'); now = 115; record.mark('brainSent');
+  now = 900; record.mark('brainParsed'); now = 905; record.mark('sayCalled');
+  now = 2_400; record.mark('checkpointStarted'); now = 2_420; record.mark('checkpointAcknowledged');
+  now = 2_425; record.mark('viewDispatched');
+  record.finish('dispatched', true);
+  const report = timing.snapshot('spoken');
+  assert.equal(report.n, 1, 'an early say is a real sample, not a missing one');
+  assert.deepEqual(report.stages.inputToSay, { n: 1, p50Ms: 805, p95Ms: 805 });
+  assert.equal(report.stages.viewToSay.n, 0);
+
+  const before = timing.begin('spoken');
+  now = 3_000; before.mark('queueStarted'); before.mark('brainSent');
+  now = 3_100; before.mark('sayCalled'); now = 3_200; before.mark('brainParsed');
+  before.mark('checkpointStarted'); before.mark('checkpointAcknowledged'); before.mark('viewDispatched');
+  before.finish('dispatched', true);
+  assert.equal(timing.snapshot('spoken').missing, 1, 'speech before the spoken fields were parsed is not believable');
+});

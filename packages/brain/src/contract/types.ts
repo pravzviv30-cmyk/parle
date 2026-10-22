@@ -8,6 +8,7 @@
 import type { z } from 'zod/v4';
 import type {
   CoachItemZ,
+  EarlySpokenTurnSchema,
   MemoryExtractionSchema,
   MemoryFactZ,
   NewPhraseZ,
@@ -18,6 +19,8 @@ import type {
 import type { CefrBand } from '../types.ts';
 
 export type TutorTurn = z.infer<typeof TurnSchema>;
+/** The leading, spoken fields of a turn; see EarlySpokenTurnSchema. */
+export type EarlySpokenTurn = z.infer<typeof EarlySpokenTurnSchema>;
 export type ScenarioFrame = z.infer<typeof ScenarioFrameSchema>;
 export type CoachItem = z.infer<typeof CoachItemZ>;
 export type CoachKind = CoachItem['kind'];
