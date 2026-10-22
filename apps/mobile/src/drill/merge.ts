@@ -23,8 +23,36 @@
 
 import { DRILL_FIXTURES, type DrillExercise } from '@luvani/core';
 
-/** A generous offline bank, bounded so parsing and rendering never grow forever. */
-export const MAX_DRILL_EXERCISES = 160;
+/**
+ * A generous offline bank, bounded so parsing and rendering never grow forever.
+ *
+ * The shipped fixtures are the floor above the cap, so the cap must sit well
+ * above `DRILL_FIXTURES.length` or tutor-written drills get no room at all. At
+ * about 195 fixtures (two per mission phrase after mission-spine A2), 256 keeps
+ * roughly 60 slots for generated drills. fixturesMissing.test.ts fails when fixtures plus
+ * `MIN_GENERATED_HEADROOM` pass this cap: raise it with the content, not after.
+ */
+export const MAX_DRILL_EXERCISES = 256;
+
+/** The fewest generated drills the bank must hold room for beside every fixture. */
+export const MIN_GENERATED_HEADROOM = 48;
+
+/**
+ * Fixtures an already-stored bank should gain on read. Stored choices win:
+ * a phrase the learner already holds any exercise for gains nothing, except
+ * the authored own-words rung when that phrase has no own-words yet. A phrase
+ * with no exercise at all (a newly shipped mission) gains all its fixtures.
+ */
+export function fixturesMissingFrom(
+  bank: readonly DrillExercise[],
+  fixtures: readonly DrillExercise[] = DRILL_FIXTURES,
+): DrillExercise[] {
+  const heldPhrases = new Set(bank.map(saved => saved.phraseKey));
+  return fixtures.filter(fixture =>
+    !heldPhrases.has(fixture.phraseKey) ||
+    (fixture.kind === 'own-words' && !bank.some(saved =>
+      saved.phraseKey === fixture.phraseKey && saved.kind === fixture.kind)));
+}
 
 /**
  * A translation in each direction is two different retrieval tasks. Keep the

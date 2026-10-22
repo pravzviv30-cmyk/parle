@@ -257,6 +257,246 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
     ],
   },
   {
+    id: 'restaurant',
+    title: 'Une table pour ce soir',
+    nodes: [
+      {
+        id: 'restaurant:booking',
+        title: 'Asking for a table',
+        sub: 'Two people, tonight, and what time',
+        kind: 'phrases',
+        phraseKeys: ['phrase:bonjour, vous avez une table pour deux ce soir ?', "phrase:vers vingt heures, c'est possible ?"],
+      },
+      {
+        id: 'restaurant:settling',
+        title: 'Where you sit, and goodbye',
+        sub: 'Outside if you can, and see you tonight',
+        kind: 'phrases',
+        phraseKeys: ["phrase:en terrasse, si c'est possible", 'phrase:à ce soir, alors'],
+      },
+    ],
+  },
+  {
+    id: 'pharmacie',
+    title: 'À la pharmacie',
+    nodes: [
+      {
+        id: 'pharmacie:telling',
+        title: 'Saying what is wrong',
+        sub: 'What hurts, and since when',
+        kind: 'phrases',
+        phraseKeys: ["phrase:bonjour, j'ai mal à la gorge", 'phrase:depuis hier soir'],
+      },
+      {
+        id: 'pharmacie:asking',
+        title: 'Asking about the medicine',
+        sub: 'How often, and whether you need a prescription',
+        kind: 'phrases',
+        phraseKeys: ['phrase:je le prends combien de fois par jour ?', 'phrase:faut une ordonnance ?'],
+      },
+    ],
+  },
+  {
+    id: 'gare',
+    title: 'Au guichet de la gare',
+    nodes: [
+      {
+        id: 'gare:ticket',
+        title: 'Buying the ticket',
+        sub: 'A return, and the next train',
+        kind: 'phrases',
+        phraseKeys: ["phrase:un aller-retour pour lyon, s'il vous plaît", 'phrase:le prochain train part à quelle heure ?'],
+      },
+      {
+        id: 'gare:finding',
+        title: 'Finding your train',
+        sub: 'Which platform, and whether you change',
+        kind: 'phrases',
+        phraseKeys: ["phrase:c'est quelle voie ?", "phrase:c'est un train direct ?"],
+      },
+    ],
+  },
+  {
+    id: 'colis',
+    title: 'Au point relais',
+    nodes: [
+      {
+        id: 'colis:asking',
+        title: 'Asking for your parcel',
+        sub: 'What you came for, and the code',
+        kind: 'phrases',
+        phraseKeys: ['phrase:bonjour, je viens chercher un colis', "phrase:j'ai reçu un code par sms"],
+      },
+      {
+        id: 'colis:collecting',
+        title: 'Taking it home',
+        sub: 'Your ID, and checking it is yours',
+        kind: 'phrases',
+        phraseKeys: ["phrase:voilà ma pièce d'identité", "phrase:oui, c'est bien ça, merci"],
+      },
+    ],
+  },
+  {
+    id: 'voisin',
+    title: 'Sur le palier',
+    nodes: [
+      {
+        id: 'voisin:meeting',
+        title: 'Saying hello',
+        sub: 'Who you are, and how long they have lived here',
+        kind: 'phrases',
+        phraseKeys: ["phrase:bonjour, je viens d'emménager au troisième", 'phrase:vous habitez ici depuis longtemps ?'],
+      },
+      {
+        id: 'voisin:asking',
+        title: 'A good tip, and goodbye',
+        sub: 'Where the good bread is',
+        kind: 'phrases',
+        phraseKeys: ['phrase:y a une bonne boulangerie dans le coin ?', 'phrase:bonne soirée, à bientôt'],
+      },
+    ],
+  },
+  {
+    id: 'week-end',
+    title: 'Alors, ce week-end ?',
+    nodes: [
+      {
+        id: 'week-end:telling',
+        title: 'Telling your weekend',
+        sub: 'What you did, and one detail',
+        kind: 'phrases',
+        phraseKeys: ["phrase:samedi, j'ai vu des amis", "phrase:on a mangé au resto, c'était top"],
+      },
+      {
+        id: 'week-end:asking',
+        title: 'Their turn, then back to work',
+        sub: 'What they did, and heading back',
+        kind: 'phrases',
+        phraseKeys: ["phrase:et toi, t'as fait quoi ?", "phrase:bon, j'y retourne"],
+      },
+    ],
+  },
+  {
+    id: 'collegues',
+    title: 'Le premier jour',
+    nodes: [
+      {
+        id: 'collegues:introducing',
+        title: 'Who you are',
+        sub: 'Starting today, and your last job',
+        kind: 'phrases',
+        phraseKeys: ["phrase:bonjour, je commence aujourd'hui dans l'équipe", 'phrase:avant, je travaillais dans une banque'],
+      },
+      {
+        id: 'collegues:settling',
+        title: 'Saying tu, and finding your way',
+        sub: 'Accepting tu, then using it',
+        kind: 'phrases',
+        phraseKeys: ["phrase:d'accord, on se tutoie", 'phrase:tu peux me montrer la cantine ?'],
+      },
+    ],
+  },
+  {
+    id: 'telephone',
+    title: 'Prendre rendez-vous',
+    nodes: [
+      {
+        id: 'telephone:asking',
+        title: 'Asking for a slot',
+        sub: 'Why you are calling, and something sooner',
+        kind: 'phrases',
+        phraseKeys: ['phrase:bonjour, je voudrais prendre rendez-vous', 'phrase:vous auriez quelque chose plus tôt ?'],
+      },
+      {
+        id: 'telephone:checking',
+        title: 'Hearing it right',
+        sub: 'Asking again, and spelling your name',
+        kind: 'phrases',
+        phraseKeys: ["phrase:pardon, j'ai pas bien entendu", "phrase:je vous l'épelle"],
+      },
+    ],
+  },
+  {
+    id: 'medecin',
+    title: 'Chez le médecin',
+    nodes: [
+      {
+        id: 'medecin:telling',
+        title: 'Saying what the trouble is',
+        sub: 'The cough, and since when',
+        kind: 'phrases',
+        phraseKeys: ['phrase:je tousse beaucoup, surtout la nuit', 'phrase:depuis la semaine dernière'],
+      },
+      {
+        id: 'medecin:answering',
+        title: 'Questions both ways',
+        sub: 'No fever, and how long to take it',
+        kind: 'phrases',
+        phraseKeys: ["phrase:non, j'ai pas de fièvre", 'phrase:je dois le prendre pendant combien de temps ?'],
+      },
+    ],
+  },
+  {
+    id: 'retour',
+    title: 'Rapporter un article',
+    nodes: [
+      {
+        id: 'retour:explaining',
+        title: 'Saying what the problem is',
+        sub: 'The problem, and the receipt',
+        kind: 'phrases',
+        phraseKeys: ["phrase:bonjour, j'ai un problème avec cette bouilloire", "phrase:j'ai gardé le ticket de caisse"],
+      },
+      {
+        id: 'retour:insisting',
+        title: 'Asking for your money back',
+        sub: 'A refund, and a manager if needed',
+        kind: 'phrases',
+        phraseKeys: ['phrase:je préfère un remboursement', "phrase:c'est possible de voir avec un responsable ?"],
+      },
+    ],
+  },
+  {
+    id: 'appartement',
+    title: 'Visiter un appartement',
+    nodes: [
+      {
+        id: 'appartement:rent',
+        title: 'The rent and the date',
+        sub: 'What is included, and when it is free',
+        kind: 'phrases',
+        phraseKeys: ["phrase:le loyer, c'est charges comprises ?", 'phrase:il est libre à partir de quand ?'],
+      },
+      {
+        id: 'appartement:file',
+        title: 'The application',
+        sub: 'What to send, and whether you need a guarantor',
+        kind: 'phrases',
+        phraseKeys: ["phrase:qu'est-ce qu'il faut pour le dossier ?", 'phrase:faut un garant ?'],
+      },
+    ],
+  },
+  {
+    id: 'belle-famille',
+    title: 'Dîner chez ses parents',
+    nodes: [
+      {
+        id: 'belle-famille:arriving',
+        title: 'At the door and at the table',
+        sub: 'The flowers, and the food',
+        kind: 'phrases',
+        phraseKeys: ["phrase:bonsoir ! tenez, c'est pour vous", "phrase:c'est délicieux, c'est vous qui l'avez fait ?"],
+      },
+      {
+        id: 'belle-famille:leaving',
+        title: 'Plans, and goodbye',
+        sub: 'The summer, and thanks for the evening',
+        kind: 'phrases',
+        phraseKeys: ["phrase:on va passer l'été dans le sud", 'phrase:merci beaucoup pour cette soirée'],
+      },
+    ],
+  },
+  {
     id: 'mine',
     title: 'From your conversations',
     nodes: [

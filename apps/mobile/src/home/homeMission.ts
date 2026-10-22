@@ -47,8 +47,8 @@ import { estimateMinutes, missionMinutes } from './estimate.ts';
 
 /** Everything the brief draws, whichever kind it turned out to be. */
 export interface HeroFacts {
-  /** A0 or A1 for a spine scene; null for a daily scene, which carries no level. */
-  level: 'A0' | 'A1' | null;
+  /** The spine scene's level (A0, A1 or A2); null for a daily scene, which carries no level. */
+  level: Mission['cefr'] | null;
   /** The one caps label, only when there is something true to say with it. */
   label: string | null;
   /** The scene's name in French, the brief's serif hero. */

@@ -57,7 +57,7 @@ export async function readOutsideFacts(today: DayKey, now: number, dayOf: (at: n
     scenesOnOwn: progress.filter(isEarned).length,
     // A finish on the top rung is a scene done with nothing handed over.
     scenesOnOwnToday: missions.filter((done) => done.rung === 4 && dayOf(done.at) === today).length,
-    allA0ScenesEarned: spineFrom(progress).level === 'A1',
+    allA0ScenesEarned: spineFrom(progress).level !== 'A0',
     soundChecks: checks.length,
     soundChecksToday: checks.filter((check) => dayOf(check.at) === today).length,
   };

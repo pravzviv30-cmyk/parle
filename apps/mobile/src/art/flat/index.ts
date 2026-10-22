@@ -15,6 +15,18 @@ import { PlaceMarket } from './place-market.tsx';
 import { PlaceDirections } from './place-directions.tsx';
 import { PlaceDay } from './place-day.tsx';
 import { PlaceApero } from './place-apero.tsx';
+import { PlaceRestaurant } from './place-restaurant.tsx';
+import { PlacePharmacy } from './place-pharmacy.tsx';
+import { PlaceStation } from './place-station.tsx';
+import { PlaceParcel } from './place-parcel.tsx';
+import { PlaceNeighbour } from './place-neighbour.tsx';
+import { PlaceWeekend } from './place-weekend.tsx';
+import { PlaceWorkplace } from './place-workplace.tsx';
+import { PlacePhone } from './place-phone.tsx';
+import { PlaceDoctor } from './place-doctor.tsx';
+import { PlaceShopReturn } from './place-shop-return.tsx';
+import { PlaceFlat } from './place-flat.tsx';
+import { PlaceFamilyDinner } from './place-family-dinner.tsx';
 import { StateNotebook } from './state-notebook.tsx';
 import { StateWaiting } from './state-waiting.tsx';
 import { StateOffline } from './state-offline.tsx';
@@ -37,6 +49,18 @@ import { PostcardMarket } from './postcard-market.tsx';
 import { PostcardDirections } from './postcard-directions.tsx';
 import { PostcardDay } from './postcard-day.tsx';
 import { PostcardApero } from './postcard-apero.tsx';
+import { PostcardRestaurant } from './postcard-restaurant.tsx';
+import { PostcardPharmacy } from './postcard-pharmacy.tsx';
+import { PostcardStation } from './postcard-station.tsx';
+import { PostcardParcel } from './postcard-parcel.tsx';
+import { PostcardNeighbour } from './postcard-neighbour.tsx';
+import { PostcardWeekend } from './postcard-weekend.tsx';
+import { PostcardWorkplace } from './postcard-workplace.tsx';
+import { PostcardPhone } from './postcard-phone.tsx';
+import { PostcardDoctor } from './postcard-doctor.tsx';
+import { PostcardShopReturn } from './postcard-shop-return.tsx';
+import { PostcardFlat } from './postcard-flat.tsx';
+import { PostcardFamilyDinner } from './postcard-family-dinner.tsx';
 
 /** One drawing: the component, its viewBox, and the sizes the catalogue displays it at. */
 export type IllustrationEntry = {
@@ -54,6 +78,18 @@ export const ILLUSTRATIONS = {
   'place-directions': { draw: PlaceDirections, box: [350, 220], large: [350, 220], small: [262, 165] },
   'place-day': { draw: PlaceDay, box: [350, 220], large: [350, 220], small: [262, 165] },
   'place-apero': { draw: PlaceApero, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-restaurant': { draw: PlaceRestaurant, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-pharmacy': { draw: PlacePharmacy, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-station': { draw: PlaceStation, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-parcel': { draw: PlaceParcel, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-neighbour': { draw: PlaceNeighbour, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-weekend': { draw: PlaceWeekend, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-workplace': { draw: PlaceWorkplace, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-phone': { draw: PlacePhone, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-doctor': { draw: PlaceDoctor, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-shop-return': { draw: PlaceShopReturn, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-flat': { draw: PlaceFlat, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-family-dinner': { draw: PlaceFamilyDinner, box: [350, 220], large: [350, 220], small: [262, 165] },
   'state-notebook': { draw: StateNotebook, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-waiting': { draw: StateWaiting, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-offline': { draw: StateOffline, box: [160, 160], large: [160, 160], small: [120, 120] },
@@ -76,6 +112,18 @@ export const ILLUSTRATIONS = {
   'postcard-directions': { draw: PostcardDirections, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-day': { draw: PostcardDay, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-apero': { draw: PostcardApero, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-restaurant': { draw: PostcardRestaurant, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-pharmacy': { draw: PostcardPharmacy, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-station': { draw: PostcardStation, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-parcel': { draw: PostcardParcel, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-neighbour': { draw: PostcardNeighbour, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-weekend': { draw: PostcardWeekend, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-workplace': { draw: PostcardWorkplace, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-phone': { draw: PostcardPhone, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-doctor': { draw: PostcardDoctor, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-shop-return': { draw: PostcardShopReturn, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-flat': { draw: PostcardFlat, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-family-dinner': { draw: PostcardFamilyDinner, box: [300, 190], large: [300, 190], small: [165, 105] },
 } as const satisfies Record<string, IllustrationEntry>;
 
 export type IllustrationName = keyof typeof ILLUSTRATIONS;

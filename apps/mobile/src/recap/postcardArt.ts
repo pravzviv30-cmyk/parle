@@ -1,6 +1,6 @@
 import type { MissionId } from '@luvani/core';
 import type { IllustrationName } from '../art/flat/index.ts';
-const POSTCARD: Record<MissionId, IllustrationName> = {
+export const POSTCARD: Record<MissionId, IllustrationName> = {
   'mission:premier-cafe': 'postcard-cafe-counter',
   'mission:cafe': 'postcard-cafe-terrace',
   'mission:hotel': 'postcard-hotel',
@@ -8,5 +8,17 @@ const POSTCARD: Record<MissionId, IllustrationName> = {
   'mission:chemin': 'postcard-directions',
   'mission:journee': 'postcard-day',
   'mission:amis': 'postcard-apero',
+  'mission:restaurant': 'postcard-restaurant',
+  'mission:pharmacie': 'postcard-pharmacy',
+  'mission:gare': 'postcard-station',
+  'mission:colis': 'postcard-parcel',
+  'mission:voisin': 'postcard-neighbour',
+  'mission:week-end': 'postcard-weekend',
+  'mission:collegues': 'postcard-workplace',
+  'mission:telephone': 'postcard-phone',
+  'mission:medecin': 'postcard-doctor',
+  'mission:retour': 'postcard-shop-return',
+  'mission:appartement': 'postcard-flat',
+  'mission:belle-famille': 'postcard-family-dinner',
 };
 export function postcardIllustration(id: MissionId): IllustrationName { return POSTCARD[id]; }

@@ -3,9 +3,9 @@
  *
  * Missions only: a daily situation would reuse the Max-only seed path and a
  * Real Moment task needs moment identity the screen does not carry, so both
- * are descoped. A keyword table over each mission's place and goal decides a
- * match; nothing matching is a starting point, worded as one, and never
- * "matches your goal".
+ * are descoped. A keyword table authored per mission (F864, 2026-10-22: not
+ * per place, since missions share places) decides a match; nothing matching
+ * is a starting point, worded as one, and never "matches your goal".
  */
 
 import { describe, test } from 'node:test';
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { FIRST_MISSION, MISSIONS, getMission } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { GOAL_FIT_COPY, goalTaskOf, missionOfTask, nextLine, nextTaskForGoal } from './next.ts';
+import { GOAL_FIT_COPY, MISSION_WORDS, goalTaskOf, missionOfTask, nextLine, nextTaskForGoal } from './next.ts';
 
 describe('the next task for a goal — Stage 4', () => {
   test('a goal that names a place gets that place, fit matched', () => {
@@ -84,13 +84,13 @@ describe('the next task for a goal — Stage 4', () => {
     // Fable review (2026-09-25) found "(matches your goal)" over goals the
     // mission does not serve: shared verbs ("buy", "drink"), words that name
     // more than one place ("station", "stranger", "tea"), and negated goals.
-    // Each of these is a starting point now, never a match.
+    // Each of these is a starting point now, never a match. (F864, 2026-10-22:
+    // the train ticket, colleagues and table-for-dinner goals moved to the
+    // per-mission test, because the A2 spine added scenes that serve them.)
     for (const goal of [
       'Buy a house',
-      'Buy a train ticket at the station',
       'price negotiation for a car',
       'Tea with my grandmother',
-      'Talk to my colleagues at work',
       'have a drink with a stranger',
       'I do not want to eat at restaurants, I want to read novels',
       'Never stay in hotels again',
@@ -101,7 +101,6 @@ describe('the next task for a goal — Stage 4', () => {
       'Plan my weekend',
       'Understand the way people speak',
       'Go shopping for clothes',
-      'Book a table for dinner',
     ]) {
       const next = nextTaskForGoal(goal, { missions: MISSIONS });
       assert.ok(next);
@@ -158,6 +157,58 @@ describe('the next task for a goal — Stage 4', () => {
     }
   });
 
+  test('a goal names the mission it is about, not the first one at that place', () => {
+    // F864 (2026-10-22): twelve missions share the six drawn places. Keyed by
+    // place, every one of them tied and the oldest scene won.
+    const matched: [string, string][] = [
+      ['Book a restaurant for Friday', 'mission:restaurant'],
+      ['Book a table for dinner', 'mission:restaurant'],
+      ['Fill a prescription at the pharmacy', 'mission:pharmacie'],
+      ['Buy a train ticket at the station', 'mission:gare'],
+      ['Pick up a parcel', 'mission:colis'],
+      ['Talk to my neighbour', 'mission:voisin'],
+      ['Tell people about my weekend', 'mission:week-end'],
+      ['My first day at work', 'mission:collegues'],
+      ['Talk to my colleagues at work', 'mission:collegues'],
+      ['Make an appointment over the phone', 'mission:telephone'],
+      ['See a doctor about my cough', 'mission:medecin'],
+      ['Get a refund on a broken kettle', 'mission:retour'],
+      ['Find a flat to rent in Lyon', 'mission:appartement'],
+      ["Dinner with my partner's parents", 'mission:belle-famille'],
+    ];
+    for (const [goal, expected] of matched) {
+      assert.deepEqual(nextTaskForGoal(goal, { missions: MISSIONS }), { task: { kind: 'mission', id: expected }, fit: 'matched' }, `"${goal}" went to the wrong mission`);
+    }
+    // Second meanings of the new scenes' words stay starting points.
+    for (const goal of [
+      'Book a return flight',
+      'Do my tax return',
+      'Rent a car in Nice',
+      'Order a flat white',
+      'Watch Doctor Who in French',
+      'Negotiate my salary package',
+      'Train my ear',
+      'Plan my weekend',
+      'My French sounds flat',
+    ]) {
+      const next = nextTaskForGoal(goal, { missions: MISSIONS });
+      assert.ok(next);
+      assert.equal(next.fit, 'starter', `"${goal}" was called a match for ${next.task.id}`);
+    }
+  });
+
+  test('every full scene has its own words, and every word can match', () => {
+    const table: Readonly<Record<string, readonly string[]>> = MISSION_WORDS;
+    for (const mission of MISSIONS) {
+      if (mission.id === FIRST_MISSION) continue;
+      const words = table[mission.id];
+      assert.ok(words && words.length > 0, `${mission.id} has no goal words`);
+      for (const key of words) {
+        assert.match(key, /^[a-z0-9]+( [a-z0-9]+)*$/, `"${key}" on ${mission.id} is not normalised and could never match`);
+      }
+    }
+  });
+
   test('a match never reaches outside the catalogue it was given', () => {
     const only = MISSIONS.filter((m) => m.id === 'mission:hotel');
     const next = nextTaskForGoal('Order a coffee', { missions: only });
@@ -172,8 +223,12 @@ describe('the next task for a goal — Stage 4', () => {
     assert.deepEqual(once, again);
     assert.equal(once?.task.id, 'mission:cafe');
     // The same tie with the catalogue reversed goes the other way, which is
-    // what "catalogue order decides" means.
-    assert.equal(nextTaskForGoal('Coffee with friends', { missions: [...MISSIONS].reverse() })?.task.id, 'mission:amis');
+    // what "catalogue order decides" means. Run on just the two tied missions:
+    // later missions share these places, so the full reversed catalogue would
+    // put a newer café or friends scene first.
+    const pair = MISSIONS.filter((m) => m.id === 'mission:cafe' || m.id === 'mission:amis');
+    assert.equal(nextTaskForGoal('Coffee with friends', { missions: pair })?.task.id, 'mission:cafe');
+    assert.equal(nextTaskForGoal('Coffee with friends', { missions: [...pair].reverse() })?.task.id, 'mission:amis');
   });
 
   test('the task string is the mission id, and reads back to the mission', () => {

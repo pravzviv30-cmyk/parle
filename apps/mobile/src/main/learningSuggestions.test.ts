@@ -32,7 +32,7 @@ test('tier ordering keeps complete search results and leaves the authored catalo
   }
   assert.equal(explorePhrases('cafe', null, 3).length, explorePhrases('café', null).length);
   assert.deepEqual(explorePhrases('', null), original);
-  assert.ok(exploreMissions('', null).every(m => m.cefr === 'A0' || m.cefr === 'A1'));
+  assert.ok(exploreMissions('', null).every(m => m.cefr === 'A0' || m.cefr === 'A1' || m.cefr === 'A2'));
 });
 
 test('every complete preference combination fits the existing signed topic protocol', () => {

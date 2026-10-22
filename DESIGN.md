@@ -1120,24 +1120,26 @@ phone the box narrows to its column and the drawing is contained in it, centred.
 Every drawing is decorative, since the words beside it say what it shows, and
 at most one sits on a board (STYLE section 9). `src/art/flat/scenes.ts` maps
 each scene to its place drawing, `sceneIllustration(id)`, by mission rather
-than by place because the café has two scenes and two drawings.
+than by place because the café has two scenes and two drawings. The recap's
+`postcardIllustration(id)` in `src/recap/postcardArt.ts` does the same for the
+nineteen postcards, one per scene.
 
-The registry ships 29 original drawings:
+The registry ships 53 original drawings:
 
 | Drawings | Sits on | Large | Small |
 |---|---|---|---|
-| `place-cafe-counter`, `place-cafe-terrace`, `place-hotel`, `place-market`, `place-directions`, `place-day`, `place-apero` | A blue or coral card | 350 by 220 | 262 by 165, a hero spot |
+| `place-cafe-counter`, `place-cafe-terrace`, `place-hotel`, `place-market`, `place-directions`, `place-day`, `place-apero`, `place-restaurant`, `place-pharmacy`, `place-station`, `place-parcel`, `place-neighbour`, `place-weekend`, `place-workplace`, `place-phone`, `place-doctor`, `place-shop-return`, `place-flat`, `place-family-dinner` | A blue or coral card | 350 by 220 | 262 by 165, a hero spot |
 | `state-notebook`, `state-waiting`, `state-offline`, `state-microphone`, `state-headphones`, `state-postcard-frame` | Paper, where their ink lines carry the shapes | 160 by 160 | 120 by 120, under a headline |
 | `celebrate-confetti` | Blue or coral, laid over the whole card | 390 by 260 | |
 | `celebrate-wrapped` | Blue | 350 by 260 | |
 | `celebrate-first-line` | Blue | 350 by 220 | |
-| `postcard-cafe-counter`, `postcard-cafe-terrace`, `postcard-hotel`, `postcard-market`, `postcard-directions`, `postcard-day`, `postcard-apero` | Mint or paper, in their own white border | 300 by 190 | 165 by 105, in a row |
+| `postcard-cafe-counter`, `postcard-cafe-terrace`, `postcard-hotel`, `postcard-market`, `postcard-directions`, `postcard-day`, `postcard-apero`, `postcard-restaurant`, `postcard-pharmacy`, `postcard-station`, `postcard-parcel`, `postcard-neighbour`, `postcard-weekend`, `postcard-workplace`, `postcard-phone`, `postcard-doctor`, `postcard-shop-return`, `postcard-flat`, `postcard-family-dinner` | Mint or paper, in their own white border | 300 by 190 | 165 by 105, in a row |
 
 The six mouth guides (`mouth-y`, `mouth-u`, `mouth-r`, `mouth-nasal-an`,
 `mouth-nasal-on`, `mouth-zh`) are recovered from the original local design kit,
 converted at 200 by 160. Practice's sound card and the measured sound journey
 map the exact IPA symbol to the corresponding guide, with an authored cue in
-words. Unknown sounds draw no substitute. The seven place drawings, state drawings,
+words. Unknown sounds draw no substitute. The nineteen place drawings, state drawings,
 recaps, earned postcards and the weekly story reach their relevant screens.
 
 ### Raster scenes, retired

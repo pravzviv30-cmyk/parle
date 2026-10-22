@@ -31,6 +31,7 @@ import {
   type MissionProgress,
   type ReviewCard,
   type TutorVoiceKey,
+  type CefrLevel,
 } from '@luvani/core';
 
 import type { LevelStop, PathLevel } from '../components.tsx';
@@ -38,6 +39,7 @@ import { DEVICE_VOICE, RECORDED_AUDIO } from '../copy/access.ts';
 import { tutorAudioForFrench, type TutorAudioPack } from '../daily/tutorAudio.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { isMeasuredCheck } from './sounds.ts';
+import { MISSION_LEVELS } from '../scenes/scenePreview.ts';
 
 export const NOTEBOOK = {
   /** The caps label over the level path. */
@@ -56,7 +58,7 @@ export const NOTEBOOK = {
 } as const;
 
 /** "You are working in A0." The level is the spine's, never a rank. */
-export function levelLine(level: 'A0' | 'A1'): string {
+export function levelLine(level: CefrLevel): string {
   return `You are working in ${level}.`;
 }
 
@@ -70,12 +72,12 @@ export function phraseControlLabel(fr: string, voice: string, playing: boolean):
 }
 
 /** Every line this module can say, for the copy sweeps. */
-export const NOTEBOOK_COPY: readonly string[] = [...Object.values(NOTEBOOK), levelLine('A0'), levelLine('A1')];
+export const NOTEBOOK_COPY: readonly string[] = [...Object.values(NOTEBOOK), ...MISSION_LEVELS.map(levelLine)];
 
 // ────────────────────────────────────────────────────────────── the level
 
 export interface LevelPathView {
-  level: 'A0' | 'A1';
+  level: CefrLevel;
   /** The levels that carry a scene, in order, each with its stops. */
   levels: readonly PathLevel[];
 }
@@ -92,7 +94,7 @@ export function levelPathFrom(progress: readonly MissionProgress[]): LevelPathVi
   };
 
   const levels: PathLevel[] = [];
-  for (const cefr of ['A0', 'A1'] as const) {
+  for (const cefr of MISSION_LEVELS) {
     const stops = missions.filter((mission) => mission.cefr === cefr).map(stopOf);
     if (stops.length > 0) levels.push({ level: cefr, stops });
   }

@@ -18,6 +18,7 @@ import { phraseKeyOf } from '../topics/topics.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 import { openingRung, RUNGS } from '../ladder/ladder.ts';
 import { SCENES_CAFE_AND_FOOD } from '../daily/scenes/cafeAndFood.ts';
+import { DAILY_SCENARIOS } from '../daily/scenarios.ts';
 
 const NOW = new Date(2026, 0, 15, 12).getTime();
 const DAY = 86_400_000;
@@ -43,11 +44,16 @@ function finished(id: MissionCompletion['id'], rung: MissionCompletion['rung'], 
   return { id, at, rung };
 }
 
-describe('the catalogue — seven front doors, each with somewhere to practise', () => {
-  test('seven missions exist and each names the path unit that practises it', () => {
+describe('the catalogue — nineteen front doors, each with somewhere to practise', () => {
+  test('nineteen missions exist and each names the path unit that practises it', () => {
     // 2026-09-27: six became seven when the three-line first scene,
     // mission:premier-cafe, joined the catalogue ahead of the full café.
-    assert.equal(MISSIONS.length, 7, 'the product promises seven practical situations; anything fewer is a shorter promise');
+    // 2026-10-22: seven became twelve with the five A1 errands (restaurant,
+    // pharmacy, station, parcel pickup, neighbour), docs/changes/mission-spine-a2.md.
+    // 2026-10-22: twelve became nineteen with the seven A2 scenes (weekend,
+    // first day at work, phone booking, doctor, shop return, flat viewing,
+    // dinner with a partner's parents), same change doc.
+    assert.equal(MISSIONS.length, 19, 'the product promises nineteen practical situations; anything fewer is a shorter promise');
 
     const unitIds = new Set(AUTHORED_PATH.map((unit) => unit.id));
     for (const mission of MISSIONS) {
@@ -82,13 +88,17 @@ describe('the catalogue — seven front doors, each with somewhere to practise',
     }
   });
 
-  test('no two missions hand back the same place, except the opener sharing the café', () => {
-    // The postcard metaphor only works if a place means one situation. The one
-    // deliberate exception (2026-09-27): the three-line first scene is a short
-    // walk through the same café, so it shares the full café's place and art
-    // rather than inventing a new one.
-    const places = MISSIONS.filter((mission) => mission.id !== FIRST_MISSION).map((mission) => mission.place);
-    assert.equal(new Set(places).size, places.length, `two missions share a place: ${places.join(', ')}`);
+  test('every mission happens in one of the six places the daily pool draws, and the opener shares the café', () => {
+    // 2026-10-22: missions may now share a place. A place is one of the six
+    // drawn discs the daily scenarios already use; what tells two missions in
+    // the same place apart is that each has its own drawing, which
+    // apps/mobile's scenes.test.ts holds. A seventh place would be a seventh
+    // disc nobody drew.
+    const drawn = new Set(DAILY_SCENARIOS.map((scenario) => scenario.place));
+    assert.equal(drawn.size, 6, `the daily pool should draw exactly six places: ${[...drawn].join(', ')}`);
+    for (const mission of MISSIONS) {
+      assert.ok(drawn.has(mission.place), `${mission.id} happens at "${mission.place}", which no daily scene draws`);
+    }
 
     assert.equal(FIRST_MISSION, 'mission:premier-cafe', 'a brand-new learner opens on the three-line first scene');
     assert.equal(
@@ -149,6 +159,20 @@ describe('the catalogue — seven front doors, each with somewhere to practise',
       'mission:chemin': ['Ask the way and follow the answer', 'You can ask for directions'],
       'mission:journee': ['Say how your day went, ask about theirs', 'You can talk about your day'],
       'mission:amis': ['Make a plan with friends', 'You can make plans with friends'],
+      'mission:restaurant': ['Book a table for tonight', 'You can book a table'],
+      'mission:pharmacie': ['Ask a pharmacist for help', 'You can get help at a pharmacy'],
+      'mission:gare': ['Buy a ticket and find your train', 'You can buy a train ticket'],
+      'mission:colis': ['Collect a parcel at the counter', 'You can pick up a parcel'],
+      'mission:voisin': ['Introduce yourself to a neighbour', 'You can chat with a neighbour'],
+      'mission:week-end': ['Say what you did at the weekend', 'You can talk about your weekend'],
+      'mission:collegues': ['Introduce yourself at work', 'You can introduce yourself at work'],
+      'mission:telephone': ['Book an appointment by phone', 'You can book an appointment by phone'],
+      // The table's canDoEn was "Explain what is wrong to a doctor"; wrong is a
+      // scold word under copyViolations, so it reads as the earned line does.
+      'mission:medecin': ['Explain your symptoms to a doctor', 'You can explain your symptoms to a doctor'],
+      'mission:retour': ['Return something that does not work', 'You can return something to a shop'],
+      'mission:appartement': ['Ask the right questions about a flat', 'You can ask about a flat to rent'],
+      'mission:belle-famille': ["Have dinner with your partner's family", "You can have dinner with your partner's family"],
     };
     assert.deepEqual(MISSIONS.map((m) => m.id).sort(), Object.keys(approved).sort());
     for (const mission of MISSIONS) {

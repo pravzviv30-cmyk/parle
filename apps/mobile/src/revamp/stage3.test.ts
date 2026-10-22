@@ -13,7 +13,7 @@ test('revamp B Speak preserves real gates, one primary action and the authored s
   has('tabs/TutorTab.tsx',/<BArt name="tutor-orb"/,/style=\{st\.hero\}/,/<BButton label=\{START\}/,/row\.tile\.ground/,/\{scenes\.heading\}/,/TUTOR_OFFLINE.retry/,/nav.navigate\(EVERY_SCENE\.route\.screen\)/);
   has('tutor/speakTabView.ts',/EVERY_SCENE = \{ label: 'Every scene', route: \{ screen: 'Missions' \} \}/);
   lacks('tabs/TutorTab.tsx',/<TintRow/,/<OptionCard/,/Start a real conversation/);
-  has('missions/MissionsScreen.tsx',/\['A0', 'A1'\]/,/<SceneMark/,/nav.setParams\(\{ focus: card.mission.id/,/ground=\{colour.blue\}/,/type.display/,/minutes/,/tone="white"/);
+  has('missions/MissionsScreen.tsx',/MISSION_LEVELS/,/<SceneMark/,/nav.setParams\(\{ focus: card.mission.id/,/ground=\{colour.blue\}/,/type.display/,/minutes/,/tone="white"/);
 });
 test('revamp B room controls keep typing, help and leave alongside the real waiting and error states',()=>{
   // 2026-10-21 UI-008, artboard B-LiveHelp: Help me out became the help sheet's "More help: show the line" (moreHelp).

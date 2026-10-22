@@ -23,7 +23,7 @@ import type { PersistAck } from '../storage/ack.ts';
 import { readOwnedCache } from '../storage/ownedRead.ts';
 import { onUserScopeReset, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
-import { mergeExerciseBank } from './merge.ts';
+import { fixturesMissingFrom, mergeExerciseBank } from './merge.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('drills');
@@ -97,10 +97,9 @@ async function readStore(key: string): Promise<DrillStore> {
   if (parsed === null) return defaultStore();
   return {
     version: 1,
-    // Add the new authored fifth rung for an existing bank. Stored choices win.
-    exercises: mergeExerciseBank(parsed.exercises, DRILL_FIXTURES.filter(fixture =>
-      fixture.kind === 'own-words' && !parsed.exercises.some(saved =>
-        saved.phraseKey === fixture.phraseKey && saved.kind === fixture.kind))),
+    // New missions' phrases and the authored fifth rung reach an existing bank.
+    // Stored choices win: see fixturesMissingFrom.
+    exercises: mergeExerciseBank(parsed.exercises, fixturesMissingFrom(parsed.exercises)),
     micSuppressedUntil: typeof parsed.micSuppressedUntil === 'string' ? parsed.micSuppressedUntil : null,
   };
 }

@@ -22,6 +22,20 @@ of the list.
 
 ## Current landing snapshot
 
+- 22 October 2026 mission spine A2 with F864 (goal words per mission) and F865 (postcards)
+  merged in, on branch `claude/mission-spine-a2` at the merge cb3c2895 (held, not on main):
+  **6,020 tests, 0 failing**; core 927, brain 488, tutor agent 659, token server 457,
+  playground 26, mobile 3463. Floors raised only through `gate:bless`.
+- 22 October 2026 mission spine A2 (twelve new missions, Everyday stage, twelve place
+  drawings), on branch `claude/mission-spine-a2` at ba573bfd (held, not on main). The floors
+  were blessed to this run in that commit, which did not record it here (added 22 October
+  on `claude/goal-words-per-mission`):
+  **6,017 tests, 0 failing**; core 927, brain 488, tutor agent 659, token server 457,
+  playground 26, mobile 3460. Floors raised only through `gate:bless`.
+- 22 October 2026 F865 postcards (a postcard of its own for each of the twelve new scenes), on
+  branch `claude/mission-postcards`, on top of `claude/mission-spine-a2` (neither on main):
+  **6,018 tests, 0 failing**; core 927, brain 488, tutor agent 659, token server 457,
+  playground 26, mobile 3461. Floors raised only through `gate:bless`.
 - 21 October 2026 direction B, ready to land (founder approved the side-by-sides; F846 and
   F847 closed with the back-disc test), on branch `claude/direction-b`:
   **5,859 tests, 0 failing**; core 825, brain 481, tutor agent 626, token server 456,

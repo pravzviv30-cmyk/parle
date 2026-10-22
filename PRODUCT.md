@@ -135,7 +135,7 @@ Two hard behavioural commitments, both derived from confirmed research:
   in `apps/mobile/src/progress/momentum.ts` and its suite.
 
 - **XP, levels, quests and badges are shown, and stay honest.** The level path
-  still displays evidence: a CEFR level (A0, then A1) and one can-do line per
+  still displays evidence: a CEFR level (A0, then A1, then A2) and one can-do line per
   scene. Before a scene is earned the line says what they will be able to do
   ("Order a coffee at the counter"). Once it is earned the line says what they
   can do ("You can order a coffee"). A scene is earned only on independence
@@ -189,7 +189,7 @@ tests across all six workspaces, including 507 in core:
   `apps/mobile/src/onboarding/`
 - Mission, review and generated-drill practice paths — `packages/core/src/missions/`,
   `packages/core/src/review/`, `apps/mobile/src/missions/`, `apps/mobile/src/DrillScreen.tsx`
-- The scene spine: seven scenes in order from A0 to A1, each earned only on
+- The scene spine: nineteen scenes in order from A0 to A2, each earned only on
   independence evidence, with the learner's level read off what is earned, in
   `packages/core/src/missions/spine.ts`
 

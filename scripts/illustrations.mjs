@@ -4,8 +4,8 @@
  *
  * ILLUSTRATIONS.md is the illustrator's catalogue: one `### id` per drawing, a
  * line that says where it sits and the size it is displayed at, and the whole
- * `<svg>` to paste. The revamp ships the 23 place, state, celebrate
- * and postcard drawings and the six original mouth guides.
+ * `<svg>` to paste. The revamp ships the 47 place, state, celebrate
+ * and postcard drawings (nineteen of them places and nineteen postcards) and the six original mouth guides.
  *
  * Each drawing becomes `apps/mobile/src/art/flat/<id>.tsx`, a component that
  * takes a width and a height and returns one decorative `<Svg>`, and

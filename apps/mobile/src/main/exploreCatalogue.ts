@@ -31,6 +31,10 @@ const WORDS: Record<ExploreTopic, RegExp> = {
 const MISSION_TOPICS: Record<string, ExploreTopic> = {
   'mission:premier-cafe': 'food', 'mission:cafe': 'food', 'mission:hotel': 'admin',
   'mission:marche': 'shops', 'mission:chemin': 'travel', 'mission:journee': 'home', 'mission:amis': 'friends',
+  'mission:restaurant': 'out', 'mission:pharmacie': 'health', 'mission:gare': 'travel',
+  'mission:colis': 'shops', 'mission:voisin': 'home',
+  'mission:week-end': 'friends', 'mission:collegues': 'work', 'mission:telephone': 'admin',
+  'mission:medecin': 'health', 'mission:retour': 'shops', 'mission:appartement': 'home', 'mission:belle-famille': 'friends',
 };
 export const searchKey = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
 export function isExploreTopic(value: unknown): value is ExploreTopic { return EXPLORE_TOPICS.some(t => t.key === value); }
