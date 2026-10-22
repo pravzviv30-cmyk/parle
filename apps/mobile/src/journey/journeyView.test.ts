@@ -13,6 +13,7 @@ import { describe, test } from 'node:test';
 import { FRENCH_PHONEMES, MISSIONS, missionStates, type ReviewCard, type XpLevel } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
+import { ledgerFrom } from '../myfrench/ledger.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { COMPLETIONS_PER_MISSION } from '../missions/store.ts';
 import { STATUS, thenNowView } from './thenNowView.ts';
@@ -23,6 +24,7 @@ import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { stageOf } from '../scenes/scenePreview.ts';
 import {
   JOURNEY_COPY,
+  JOURNEY_TEASERS,
   JOURNEY_TITLE,
   STAGES,
   stageIndexOf,
@@ -44,7 +46,13 @@ import {
   stagesFrom,
   startingOutMissions,
   thenNowCard,
-  usedView,
+  yourFrenchView,
+  YOUR_FRENCH_FORWARD,
+  YOUR_FRENCH_FORWARD_NO_SOUNDS,
+  YOUR_FRENCH_CHIPS,
+  phrasesMoreLine,
+  phrasesHeldLine,
+  HELD_TAG,
   weekView,
   type StoredCompletion,
 } from './journeyView.ts';
@@ -246,20 +254,6 @@ describe('the marks B-Journey draws', () => {
 });
 
 describe('french used, help needed, sounds and the week', () => {
-  test('used French is the convoUses lane, with the transfers said as a count of phrases', () => {
-    const deck = [
-      card({ id: 'a', front: 'je voudrais un croissant', evidence: { retrievals: 1, convoUses: 2, transfers: 1 } }),
-      card({ id: 'b', front: 'l’addition, s’il vous plaît', evidence: { retrievals: 1, convoUses: 1, transfers: 0 } }),
-      card({ id: 'c', front: 'jamais dit', evidence: { retrievals: 4, convoUses: 0, transfers: 0 } }),
-    ];
-    const view = usedView({ deck, tutorName: 'Sam', now: NOW })!;
-    assert.equal(view.subtitle, 'Phrases you’ve said to Sam');
-    assert.deepEqual([...view.phrases].sort(), ['je voudrais un croissant', 'l’addition, s’il vous plaît'].sort());
-    // 2026-10-20, B4 review: practice evidence said as practice, over the phrases shown.
-    assert.equal(view.transferLine, 'In practice, you also used 1 of these in a new situation');
-    assert.equal(usedView({ deck: [deck[2]!], tutorName: 'Sam', now: NOW }), null, 'a deck never used in conversation draws the section');
-  });
-
   test('help is said in words only, from this week\'s guided scenes first, then the story, else nothing', () => {
     const week = (rungs: number[]): StoredCompletion[] => rungs.map((rung, i) => ({ id: 'mission:cafe', at: NOW - i * 3600_000, rung }));
     assert.equal(helpView({ completions: week([4, 4, 3]), story: { sentences: [] }, now: NOW })!.line, STORY_INDEPENDENCE);
@@ -336,7 +330,7 @@ describe('collections, the empty journey and the lock seam', () => {
     const spy = (feature: string) => { asked.push(feature); return 'locked' as const; };
     assert.equal(canDoView({ progress: progressOf(stored), completions: stored, now: NOW, access: spy }).locked, true);
     assert.equal(thenNowCard(stored, spy)!.locked, true);
-    assert.equal(usedView({ deck, tutorName: 'Sam', now: NOW, access: spy })!.locked, true);
+    assert.equal(yourFrenchView({ deck, checks: [], progress: [], now: NOW, access: spy }).phrases!.locked, true);
     assert.equal(helpView({ completions: stored, story: { sentences: [] }, now: NOW, access: spy })!.locked, true);
     assert.equal(soundsView({ checks, now: NOW, hasJourney: false, access: spy })!.locked, true);
     assert.equal(weekView(reflection, spy)!.locked, true);
@@ -354,5 +348,136 @@ describe('collections, the empty journey and the lock seam', () => {
       assert.equal(guiltIn(line), undefined, line);
       assert.doesNotMatch(line, /\bA[012]\b|CEFR/, line);
     }
+  });
+});
+
+// 2026-10-22: the empty Journey's one start is the scene the goal picks.
+test('the empty journey starts on the goal scene and says it was picked for it', () => {
+  const fresh = emptyJourney(missionStates([], [], 0), 'family');
+  assert.equal(fresh.missionId, 'mission:premier-cafe', 'a brand-new learner starts on the opener');
+  assert.equal(fresh.picked, null);
+  const opened = missionStates([{ id: 'mission:premier-cafe', at: 1, rung: 4 }], [], 2);
+  const start = emptyJourney(opened, 'family');
+  assert.equal(start.missionId, 'mission:amis');
+  assert.equal(start.picked, 'Picked for talking with family');
+  assert.doesNotMatch(start.body, /^Picked for/, 'the goal line is the eyebrow, not the body');
+  const plain = emptyJourney(opened, null);
+  assert.equal(plain.picked, null);
+});
+
+// 2026-10-22: Your French, the learner's own French first on Journey.
+describe('your french: each part only with saved evidence behind it', () => {
+  const IPA = FRENCH_PHONEMES[0]!.ipa;
+  const focus = (at: number, reference = 'Bonjour', missionId = 'mission:cafe'): SoundCheckEvidence => check({ at, reference, missionId, kind: 'assessed-focus', phoneme: IPA, focus: null });
+  const clear = (at: number, reference = 'Bonjour', missionId = 'mission:cafe'): SoundCheckEvidence => check({ at, reference, missionId, kind: 'assessed-clear' });
+  const base = { checks: [] as SoundCheckEvidence[], progress: progressOf([]), now: NOW };
+  const lines = (v: ReturnType<typeof yourFrenchView>): string[] => [
+    v.heading, v.forward, v.phrases?.usedLine, v.phrases?.heldLine, v.phrases?.moreLine, v.phrases?.accessibilityLabel,
+    v.sounds?.line ? segmentsText(v.sounds.line) : null, v.sounds?.accessibilityLabel, v.scenes?.line, v.scenes?.accessibilityLabel,
+  ].filter((x): x is string => typeof x === 'string');
+
+  test('phrases come only from conversation use, and held counts only among them', () => {
+    const none = yourFrenchView({ ...base, deck: [card({ evidence: { retrievals: 4, convoUses: 0, transfers: 3 } })] });
+    assert.equal(none.phrases, null, 'a transfer without conversation use is not a used phrase');
+    const deck = [
+      card({ id: 'a', front: 'je voudrais un café', addedAt: NOW - 3 * DAY, evidence: { retrievals: 1, convoUses: 2, transfers: 1 } }),
+      card({ id: 'b', front: 'merci beaucoup', addedAt: NOW - 1 * DAY, evidence: { retrievals: 1, convoUses: 5, transfers: 0 } }),
+      card({ id: 'c', front: 'jamais dit', evidence: { retrievals: 4, convoUses: 0, transfers: 2 } }),
+    ];
+    const p = yourFrenchView({ ...base, deck }).phrases!;
+    assert.equal(p.usedLine, '2 phrases used in conversation');
+    assert.equal(p.heldLine, '1 held up when the situation changed');
+    const ledger = ledgerFrom({ deck, now: NOW });
+    assert.deepEqual(p.featured, { front: ledger.featured!.front, held: ledger.featured!.id === 'a' }, 'the featured phrase is the ledger\'s, the one Phrasebook and Home feature');
+    assert.deepEqual(p.chips, ledger.rows.slice(0, YOUR_FRENCH_CHIPS).map((r) => ({ front: r.front, held: r.id === 'a' })), 'chips are the ledger rows in ledger order');
+    assert.equal(p.moreLine, null, 'everything is drawn, so no more line');
+    assert.deepEqual(p.route, { screen: 'Phrasebook' });
+    assert.equal(p.accessibilityLabel, '2 phrases used in conversation. 1 held up when the situation changed. Opens your phrasebook', 'English only, no French list');
+    const one = yourFrenchView({ ...base, deck: [deck[1]!] }).phrases!;
+    assert.equal(one.usedLine, '1 phrase used in conversation');
+    assert.equal(one.heldLine, null, 'no held line at zero');
+    assert.deepEqual(one.featured, { front: 'merci beaucoup', held: false });
+    assert.equal(one.accessibilityLabel, '1 phrase used in conversation. Opens your phrasebook');
+  });
+
+  test('the count matches what is drawn: the rest are "n more in your phrasebook"', () => {
+    const many = Array.from({ length: 9 }, (_, i) => card({ id: `p${i}`, front: `phrase ${i}`, addedAt: NOW - (i + 1) * DAY, evidence: { retrievals: 1, convoUses: 1, transfers: 0 } }));
+    const p = yourFrenchView({ ...base, deck: many }).phrases!;
+    assert.equal(p.chips.length, YOUR_FRENCH_CHIPS);
+    assert.equal(p.moreLine, 'and 3 more in your phrasebook');
+    assert.equal(p.accessibilityLabel, '9 phrases used in conversation. and 3 more in your phrasebook. Opens your phrasebook');
+    const seven = yourFrenchView({ ...base, deck: many.slice(0, 7) }).phrases!;
+    assert.equal(seven.moreLine, 'and 1 more in your phrasebook');
+    assert.equal(phrasesMoreLine(1), 'and 1 more in your phrasebook');
+    assert.doesNotMatch(phrasesHeldLine(2), /\bthese\b/i, 'the held line never says "these"');
+  });
+
+  test('sounds come only from a called-out line that later came back clear', () => {
+    assert.equal(yourFrenchView({ ...base, deck: [], checks: [clear(NOW - 3 * DAY), clear(NOW - DAY)] }).sounds, null, 'clear checks alone are not a sound coming back');
+    assert.equal(yourFrenchView({ ...base, deck: [], checks: [focus(NOW - 3 * DAY), focus(NOW - DAY)] }).sounds, null);
+    const s = yourFrenchView({ ...base, deck: [], checks: [focus(NOW - 3 * DAY), clear(NOW - DAY)] }).sounds!;
+    assert.equal(segmentsText(s.line!), 'A line from Au café du coin that was called out came back clear.');
+    assert.ok(s.line!.some((seg) => seg.fr === true && seg.text === 'Au café du coin'), 'the scene title is tagged French');
+    assert.deepEqual(s.route, { screen: 'SoundJourney' });
+    const again = yourFrenchView({ ...base, deck: [], checks: [focus(NOW - 3 * DAY), clear(NOW - 2 * DAY), focus(NOW - DAY)] });
+    assert.equal(again.sounds, null, 'a later call-out takes the clear line back');
+    const two = yourFrenchView({ ...base, deck: [], checks: [focus(NOW - 4 * DAY), clear(NOW - 3 * DAY), focus(NOW - 3 * DAY, 'Merci'), clear(NOW - DAY, 'Merci')] }).sounds!;
+    assert.equal(segmentsText(two.line!), '2 lines that were called out came back clear, most recently in Au café du coin.');
+  });
+
+  test('scenes are the earned ones only, newest first; a helped finish does not count', () => {
+    const helped: StoredCompletion[] = [{ id: 'mission:cafe', at: NOW - DAY, rung: 2 }];
+    assert.equal(yourFrenchView({ ...base, deck: [], progress: progressOf(helped), completions: helped }).scenes, null);
+    const own: StoredCompletion[] = [{ id: A0[0]!, at: NOW - 3 * DAY, rung: 4 }, { id: A0[1]!, at: NOW - DAY, rung: 4 }];
+    const sc = yourFrenchView({ ...base, deck: [], progress: progressOf(own), completions: own }).scenes!;
+    assert.match(sc.line, /^\d+ scenes? earned on your own$/);
+    assert.equal(sc.titles[0], MISSIONS.find((m) => m.id === A0[1])!.title, 'the newest earned scene leads');
+    assert.ok(sc.titles.length <= 3);
+    assert.deepEqual(sc.route, { screen: 'Postcards' });
+  });
+
+  test('a practised learner with no evidence yet reads the forward line, with no numeral', () => {
+    const v = yourFrenchView({ ...base, deck: [card({ evidence: { retrievals: 1, convoUses: 0, transfers: 0 } })] });
+    assert.equal(v.forward, YOUR_FRENCH_FORWARD);
+    assert.deepEqual(v.open, []);
+    assert.doesNotMatch(v.forward!, /\d/);
+    assert.equal(yourFrenchView({ ...base, deck: [card()] }).forward, null);
+    const soundsLocked = yourFrenchView({ ...base, deck: [card({ evidence: { retrievals: 1, convoUses: 0, transfers: 0 } })], access: (f: string) => (f === 'sounds' ? 'locked' as const : 'unlocked' as const) });
+    assert.equal(soundsLocked.forward, YOUR_FRENCH_FORWARD_NO_SOUNDS, 'a locked sounds part drops the sounds clause');
+    assert.doesNotMatch(YOUR_FRENCH_FORWARD_NO_SOUNDS, /sound/);
+  });
+
+  test('locks stay as they were: phrases and their counts behind fullJourney, sounds behind sounds, scenes free', () => {
+    const deck = [card({ evidence: { retrievals: 1, convoUses: 1, transfers: 1 } })];
+    const checks = [focus(NOW - 3 * DAY), clear(NOW - DAY)];
+    const own: StoredCompletion[] = [{ id: A0[0]!, at: NOW - DAY, rung: 4 }];
+    const all = (feature: string) => (feature === 'fullJourney' || feature === 'sounds' ? 'locked' as const : 'unlocked' as const);
+    const v = yourFrenchView({ deck, checks, progress: progressOf(own), completions: own, now: NOW, access: all });
+    assert.equal(v.phrases!.usedLine, null);
+    assert.equal(v.phrases!.heldLine, null);
+    assert.equal(v.phrases!.featured, null);
+    assert.deepEqual(v.phrases!.chips, []);
+    assert.equal(v.phrases!.teaser, JOURNEY_TEASERS.used);
+    assert.doesNotMatch(v.phrases!.accessibilityLabel, /croissant|\d/);
+    assert.equal(v.sounds!.line, null);
+    assert.equal(v.sounds!.teaser, JOURNEY_TEASERS.sounds);
+    assert.notEqual(v.scenes, null);
+    assert.deepEqual(v.open, ['scenes']);
+  });
+
+  test('every line is a count of records in plain words: no guilt, em dash, percent, score or ladder word', () => {
+    const deck = [card({ evidence: { retrievals: 1, convoUses: 1, transfers: 1 } }), card({ id: 'b', front: 'merci', evidence: { retrievals: 1, convoUses: 3, transfers: 0 } })];
+    const own: StoredCompletion[] = [{ id: A0[0]!, at: NOW - DAY, rung: 4 }];
+    const views = [
+      yourFrenchView({ deck, checks: [focus(NOW - 3 * DAY), clear(NOW - DAY)], progress: progressOf(own), completions: own, now: NOW }),
+      yourFrenchView({ deck: [card({ evidence: { retrievals: 1, convoUses: 0, transfers: 0 } })], checks: [], progress: progressOf([]), now: NOW }),
+    ];
+    const said = [...views.flatMap(lines), HELD_TAG, YOUR_FRENCH_FORWARD, YOUR_FRENCH_FORWARD_NO_SOUNDS, phrasesMoreLine(1), phrasesMoreLine(4)];
+    for (const line of said) {
+      assert.doesNotMatch(line, /—/, line);
+      assert.equal(guiltIn(line), undefined, line);
+      assert.doesNotMatch(line, /%|mastered|fluent|score|of \d|line given|choices|hint/i, line);
+    }
+    for (const line of [YOUR_FRENCH_FORWARD, YOUR_FRENCH_FORWARD_NO_SOUNDS, HELD_TAG, phrasesMoreLine(1)]) assert.ok(JOURNEY_COPY.includes(line), line);
   });
 });

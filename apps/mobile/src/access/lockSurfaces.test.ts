@@ -15,7 +15,7 @@ import { clearStanding, lockedRouteFeature, setStanding } from '../purchases/fea
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
-import { JOURNEY_TEASERS, canDoView, helpView, soundsView, thenNowCard, usedView, weekView, type StoredCompletion } from '../journey/journeyView.ts';
+import { JOURNEY_TEASERS, canDoView, helpView, soundsView, thenNowCard, weekView, yourFrenchView, type StoredCompletion } from '../journey/journeyView.ts';
 import { thenNowView } from '../journey/thenNowView.ts';
 import { lessHelp, speakTiles } from '../tutor/speakTabView.ts';
 import { fixesLocked } from '../practice/fixesView.ts';
@@ -38,7 +38,7 @@ function surfaces() {
   return {
     canDo: canDoView({ progress, completions: stored, now: NOW }),
     thenNow: thenNowCard(stored)!,
-    used: usedView({ deck, tutorName: 'Sam', now: NOW })!,
+    used: yourFrenchView({ deck, checks, progress, now: NOW }).phrases!,
     help: helpView({ completions: stored, story: { sentences: [] }, now: NOW })!,
     sounds: soundsView({ checks, now: NOW, hasJourney: false })!,
     week: weekView(reflection)!,
@@ -75,8 +75,10 @@ describe('lock badges against the D24 standing', () => {
     assert.deepEqual(s.canDo.rows, [], 'a locked ability list reveals the abilities');
     assert.equal(s.canDo.teaser, JOURNEY_TEASERS.canDo);
     assert.equal(s.thenNow.teaser, JOURNEY_TEASERS.thenNow);
-    assert.deepEqual(s.used.phrases, []);
-    assert.equal(s.used.transferLine, null);
+    assert.deepEqual(s.used.chips, []);
+    assert.equal(s.used.usedLine, null, 'a locked phrases part says no count');
+    assert.equal(s.used.heldLine, null);
+    assert.equal(s.used.featured, null);
     assert.equal(s.used.teaser, JOURNEY_TEASERS.used);
     assert.equal(s.help.line, JOURNEY_TEASERS.help, 'the locked help card says the week\'s help');
     assert.deepEqual(s.sounds.rows, []);

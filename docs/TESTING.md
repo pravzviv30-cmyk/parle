@@ -40,6 +40,17 @@ few due cards, and tutor memory. It refuses in production, without either flag,
 or on any adapter but the mock one, writes only through the stores' own
 functions, and never overwrites a record the account already holds.
 
+### The Your French preview
+
+To screenshot the Journey's Your French section, run the app with
+`EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW=1` and open
+`?preview=your-french-<full|sounds|scenes|forward|free>&theme=<light|dark>&controls=0`.
+It draws the real section on the Journey ground, with no account and no
+storage. Without `theme`, it follows the device, so the simulator's appearance
+picks the mode on native. The fixed learners are in
+`apps/mobile/src/journey/yourFrenchFixtures.ts`. Keep the screenshots in
+`artifacts/your-french-2026-10-22/`.
+
 ## Writing
 
 Node's built-in runner. No Jest, no Vitest, no test dependencies anywhere.

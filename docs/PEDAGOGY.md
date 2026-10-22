@@ -190,6 +190,14 @@ the learner finished. Once there is a `lastRung` it decides alone and the CEFR
 band steps aside: what someone actually did last session is better evidence than
 what they told an onboarding screen.
 
+Which scene is suggested next is `nextScene` in `missions/spine.ts`: the
+learner's goal orders the suggestion, never gates a scene and never changes the
+level, which still comes only from earned scenes (`spineFrom`). Until the
+learner has earned a scene it is the spine's opener whatever the goal.
+
+Journey's Your French counts only rise with evidence; the one way one goes down
+is the learner deleting a phrase themselves.
+
 ## The invariants
 
 A change that breaks one of these is a bug, however green the tests are.

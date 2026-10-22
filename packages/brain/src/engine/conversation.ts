@@ -39,6 +39,7 @@ import type {
   SupportView,
   TutorTurn,
 } from '../contract/types.ts';
+import type { LearnerGoal } from '@luvani/core';
 import type { CefrBand, Pace, Strictness } from '../types.ts';
 import {
   NOTHING_WAS_WRONG,
@@ -88,6 +89,8 @@ export interface LearnerSnapshot {
   sessions: number;
   /** What they asked to be called, or null. Validated before it gets here. */
   name: string | null;
+  /** Their onboarding goal, or null. Validated before it gets here. */
+  goal?: LearnerGoal | null;
 }
 
 export interface ConversationState {
@@ -570,6 +573,7 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
       confidence: state.learner.confidence,
       watchFor: state.learner.watchFor,
       name: state.learner.name,
+      goal: state.learner.goal ?? null,
     },
     inputKind: inputKindOf(input),
     missionDone: state.missionDone,

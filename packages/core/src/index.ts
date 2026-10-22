@@ -39,4 +39,4 @@ export * from './quests/index.ts';
 export * from './badges/index.ts';
 export { recognitionPhrases, repairRecognizedFrench } from './speech/recognitionRepair.ts';
 
-export { parseFirstPracticeBrief, firstPracticeScenario, firstPracticePrompt, firstPracticeNext, type FirstPracticeBrief } from './firstPractice.ts';
+export { LEARNER_GOALS, isLearnerGoal, type LearnerGoal, parseFirstPracticeBrief, firstPracticeScenario, firstPracticePrompt, firstPracticeNext, type FirstPracticeBrief } from './firstPractice.ts';

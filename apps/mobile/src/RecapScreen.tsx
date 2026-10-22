@@ -85,6 +85,7 @@ import { REMINDERS_AVAILABLE, reminderPermission } from './reminders/schedule.ts
 import { reminderTime, type ReminderMode, type ReminderPermission, type StoredReminder } from './reminders/reminder.ts';
 import { ReminderAsk } from './reminders/ReminderAsk.tsx';
 import { useProfile } from './app/ProfileContext.tsx';
+import { goalOf } from './onboarding/goalLine.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { ReportSheet } from './live/ReportSheet.tsx';
 import { REPORT_COPY, reportAddress } from './settings/reportMail.ts';
@@ -247,7 +248,7 @@ export function RecapScreen({
   // sound (the tutor's own line, a cadence) waits under More.
   const sound = closure.focus !== null && closure.focus.kind === 'sound' ? closure.focus : null;
   const otherFocus = closure.focus !== null && closure.focus.kind !== 'sound' ? closure.focus : null;
-  const nextTime = context === null ? null : nextTimeLine(context.progress);
+  const nextTime = context === null ? null : nextTimeLine(context.progress, goalOf(profile));
   // The first-win gate: a recap with nothing in it offers nothing.
   const won = lines.length > 0 || keptPhrase !== null;
   const offer = reminderOffer({ available: REMINDERS_AVAILABLE, won, stored, permission });
@@ -316,7 +317,7 @@ export function RecapScreen({
   const stats = afterSessionStats({ activeSec, phrases: recap.phrases.length, xp: strip?.xp?.value ?? null });
   const streakWords = streakLine(strip?.streak?.value ?? null, week);
   const fixes = smallFixes(recap.fixes);
-  const celebrate = canDo !== null && mission ? celebrateView({ mission, independent: independentFinish, stamp, next: context === null ? null : nextCanDo(context.progress) }) : null;
+  const celebrate = canDo !== null && mission ? celebrateView({ mission, independent: independentFinish, stamp, next: context === null ? null : nextCanDo(context.progress, goalOf(profile)) }) : null;
   const blue = currentPage === 'result' || currentPage === 'ability';
   const finishLabel = nextPage === null ? 'Finish' : blue ? 'Continue' : 'Next';
   return (<>

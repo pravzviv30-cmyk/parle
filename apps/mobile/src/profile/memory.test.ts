@@ -27,6 +27,7 @@ import {
   withFactForgotten,
   withLearnerGoal,
   withMemoryCleared,
+  withMemoryPaused,
   withoutForgotten,
   withoutLearnerGoal,
 } from './memory.ts';
@@ -44,6 +45,16 @@ function learner(facts: readonly RememberedFact[] = [], over: Partial<StoredProf
 }
 
 describe('the tutor’s memory, edited by the learner', () => {
+  test('the onboarding goal rides the snapshot, paused memory included', () => {
+    assert.equal(snapshotFor(learner([], { onboardingGoal: 'work' })).memory.goal, 'work');
+    assert.equal(snapshotFor(learner([], { onboardingGoal: undefined })).memory.goal, null);
+    assert.equal(snapshotFor(learner([], { onboardingGoal: 'nonsense' })).memory.goal, null);
+    const paused = withMemoryPaused(learner([fact('Likes jazz')], { onboardingGoal: 'trip' }), true, NOW);
+    const snap = snapshotFor(paused);
+    assert.deepEqual(snap.memory.facts, []);
+    assert.equal(snap.memory.goal, 'trip', 'a paused memory dropped the onboarding answer');
+  });
+
   test('a previous correction is bounded ephemeral learning context, including while personal memory is paused', () => {
     const correction = parsePreviousCorrection({ packId: 'one', title: 'At a café', quote: 'je veux', better: 'Je voudrais', betterEn: 'I would like', why: 'A polite request.' })!;
     const profile = learner([fact('Likes jazz')]);

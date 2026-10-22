@@ -13,6 +13,9 @@
  *
  * Read as source with comments stripped, because a comment may name the thing
  * it replaced.
+ *
+ * The Journey's Your French section joined on 2026-10-22: the tab, the parts
+ * file that draws the section, and the dev preview that screenshots it.
  */
 
 import { describe, test } from 'node:test';
@@ -43,6 +46,10 @@ const SINGLE = [
   'daily/DailyCard.tsx',
   'daily/DailyLibraryScreen.tsx',
   'daily/DailyPracticeScreen.tsx',
+  // 2026-10-22: the Journey's Your French section, where it is drawn and previewed.
+  'journey/JourneyParts.tsx',
+  'tabs/MyFrenchTab.tsx',
+  'dev/YourFrenchPreview.tsx',
 ];
 const FILES: string[] = [
   ...SINGLE,
@@ -102,6 +109,22 @@ describe('the practice and evidence screens wear the notebook — Phase 4 B2', (
     }
     assert.deepEqual(nested, [], `A card inside a card:\n${nested.join('\n')}`);
     assert.deepEqual(loud, [], `More than one highlighter on a screen:\n${loud.join('\n')}`);
+  });
+
+  test('Journey draws Your French only through the one section, and its one highlighter is the featured phrase', () => {
+    const tab = read('tabs/MyFrenchTab.tsx');
+    const parts = read('journey/JourneyParts.tsx');
+    assert.equal((tab.match(/<YourFrenchSection\b/g) ?? []).length, 1, 'the tab draws Your French other than once, through YourFrenchSection');
+    for (const part of ['YourFrenchCard', 'YourFeatured', 'YourFrenchRow', 'YourChips', 'YourFrenchLine']) {
+      assert.doesNotMatch(tab, new RegExp(`<${part}\\b`), `the tab draws ${part} itself, so the preview no longer shows what the tab draws`);
+    }
+    assert.equal((tab.match(/<Highlight\b/g) ?? []).length, 0, 'the tab draws a highlighter of its own');
+    assert.equal((parts.match(/<Highlight\b/g) ?? []).length, 1, 'the Journey parts draw other than one highlighter');
+    const featured = parts.slice(parts.indexOf('export function YourFeatured('), parts.indexOf('export function YourChips('));
+    assert.match(featured, /<Highlight\b/, 'the one highlighter is not the featured phrase');
+    const section = parts.slice(parts.indexOf('export function YourFrenchSection('), parts.indexOf('export function HelpCard('));
+    assert.equal((section.match(/<YourFeatured\b/g) ?? []).length, 1, 'the section draws the featured phrase other than once');
+    assert.match(read('dev/YourFrenchPreview.tsx'), /<YourFrenchSection view=\{view\}/, 'the preview draws something other than the real section');
   });
 
   test('the drill verdict mark is still, and the word chips are plain paper', () => {

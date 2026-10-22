@@ -541,4 +541,14 @@ describe('the learner name — G1', () => {
   test('an unnamed learner reaches the engine with a null name, not a hole', () => {
     assert.equal(learnerSnapshotFrom(createProfile()).name, null);
   });
+
+  test('the onboarding goal survives repair only as a known tag, and reaches the snapshot', () => {
+    const base = createProfile();
+    const kept = repairProfile({ ...base, memory: { ...base.memory, goal: 'moving' } });
+    assert.equal(kept.memory.goal, 'moving');
+    assert.equal(learnerSnapshotFrom(kept).goal, 'moving');
+    const dropped = repairProfile({ ...base, memory: { ...base.memory, goal: 'conquest' } });
+    assert.equal('goal' in dropped.memory, false);
+    assert.equal(learnerSnapshotFrom(createProfile()).goal, null, 'an old profile has no goal, not a hole');
+  });
 });

@@ -11,8 +11,8 @@ export {
   replayRung,
   suggestedMission,
 } from './missions.ts';
-export { SCENE_SPINE, spineFrom } from './spine.ts';
-export type { SpineView } from './spine.ts';
+export { SCENE_SPINE, spineFrom, GOAL_SCENES, nextScene } from './spine.ts';
+export type { SpineView, NextScene } from './spine.ts';
 export type {
   Mission,
   MissionId,

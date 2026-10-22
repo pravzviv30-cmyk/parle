@@ -8,7 +8,7 @@
  * can forge it. The Groq adapter folds it into the user turn instead.
  */
 
-import type { LadderDirective } from '@luvani/core';
+import type { LadderDirective, LearnerGoal } from '@luvani/core';
 import type { CefrBand, Strictness } from '../types.ts';
 
 export type TurnInputKind = 'spoke' | 'silence' | 'help';
@@ -32,6 +32,8 @@ export interface TurnContextInput {
     watchFor: string[];
     /** What the learner asked to be called, or null when they have no name here. */
     name?: string | null;
+    /** Their onboarding goal, or null. Colours only the tutor's own free choices. */
+    goal?: LearnerGoal | null;
   };
   inputKind: TurnInputKind;
   /** What the UI has earned permission to reveal for this exchange. */
@@ -81,6 +83,18 @@ const INPUT_NOTES: Record<TurnInputKind, string | null> = {
   silence:
     'Their turn arrived empty. Treat the marker as silence, not as speech. Never mention the pause. Rephrase or shorten your last line in character without speaking their answer.',
   help: 'They asked for help. This is healthy and never a failure. The card supplies the help; stay in character and do not announce the answer.',
+};
+
+/**
+ * How the learner's onboarding goal colours the tutor's own free choices.
+ * 'because' has no framing: learning for its own sake needs no steer.
+ */
+export const GOAL_FRAMING: Record<Exclude<LearnerGoal, 'because'>, string> = {
+  moving: 'everyday life after a move. When an example or a small-talk turn is yours to choose, take it from that life: renting, the doctor, neighbours. Never steer a scene away from its own goal.',
+  trip: 'a trip in France. When an example or a small-talk turn is yours to choose, take it from that life: stations, tickets, restaurants, directions. Never steer a scene away from its own goal.',
+  food: 'food and eating out. When an example or a small-talk turn is yours to choose, take it from that life: ordering, markets, cafés. Never steer a scene away from its own goal.',
+  family: 'talking with family and friends. When an example or a small-talk turn is yours to choose, take it from that life: a partner\'s family, friends, the news of the day. Never steer a scene away from its own goal.',
+  work: 'French at work. When an example or a small-talk turn is yours to choose, take it from that life: colleagues, meetings, appointments. Never steer a scene away from its own goal.',
 };
 
 export function buildTurnContext(input: TurnContextInput): string {
@@ -141,6 +155,11 @@ export function buildTurnContext(input: TurnContextInput): string {
     lines.push(
       `LEARNER NAME: ${learner.name}. Use it the way a person would: the greeting, and a moment that deserves warmth. Not every line, and never twice in one reply.`,
     );
+  }
+
+  if (learner.goal != null && learner.goal !== 'because') {
+    // Fixed text per goal, so the same state gives the same bytes every turn.
+    lines.push(`LEARNER GOAL: ${GOAL_FRAMING[learner.goal]}`);
   }
 
   if (input.pace === 'slow') {

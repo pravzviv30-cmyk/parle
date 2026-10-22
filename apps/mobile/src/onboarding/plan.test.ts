@@ -27,6 +27,7 @@ import {
   COVERAGE_NOTE,
   TRIAL_LINE,
   firstSceneFor,
+  goalReachScenes,
   planFor,
   presetMinutes,
   reminderLine,
@@ -53,6 +54,23 @@ describe('answers to a plan', () => {
     assert.equal(firstSceneFor('getby'), 'mission:cafe');
     assert.equal(firstSceneFor('confident'), 'mission:cafe');
     assert.equal(firstSceneFor(null), 'mission:premier-cafe', 'an unanswered level starts at the start');
+    // 2026-10-22 (review fix): a brand-new learner opens on the opener whatever
+    // the goal, the same scene nextScene offers before anything is earned.
+    for (const r of ['trip', 'moving', 'family', 'work', 'food', 'because'] as const) {
+      assert.equal(firstSceneFor('zero', r), 'mission:premier-cafe', r);
+      assert.equal(firstSceneFor('few', r), 'mission:premier-cafe', r);
+      assert.equal(firstSceneFor(null, r), 'mission:premier-cafe', r);
+    }
+    // A learner who can get by starts on the first A0 or A1 scene of the goal.
+    for (const l of ['getby', 'confident'] as const) {
+      assert.equal(firstSceneFor(l, 'trip'), 'mission:gare');
+      assert.equal(firstSceneFor(l, 'moving'), 'mission:voisin');
+      assert.equal(firstSceneFor(l, 'family'), 'mission:amis');
+      assert.equal(firstSceneFor(l, 'work'), 'mission:journee');
+      assert.equal(firstSceneFor(l, 'food'), 'mission:cafe');
+      assert.equal(firstSceneFor(l, 'because'), 'mission:cafe');
+    }
+    assert.equal(firstSceneFor('getby', null), 'mission:cafe');
   });
 
   test('preset minutes follow the level, and work or a move asks for fifteen', () => {
@@ -107,7 +125,12 @@ describe('answers to a plan', () => {
     assert.equal(MINUTES_UNIT, 'minutes a day');
 
     const chosen = planFor(draft({ startLevel: 'getby', reason: 'work', minutes: 5, reminderTime: 'morning' }));
-    assert.deepEqual(chosen.scenes.map((s) => s.id), [firstSceneFor('getby', 'work'), ...sceneOrder('getby').filter(id => id !== firstSceneFor('getby', 'work'))].slice(0, 3));
+    assert.deepEqual(chosen.scenes.map((s) => s.id), [...new Set([firstSceneFor('getby', 'work'), ...goalReachScenes('work'), ...sceneOrder('getby')])].slice(0, 3));
+    const ids = (d: Parameters<typeof draft>[0]) => planFor(draft(d)).scenes.map((s) => s.id);
+    assert.deepEqual(ids({ startLevel: 'zero', reason: 'moving' }), ['mission:premier-cafe', 'mission:voisin', 'mission:colis'], 'a new mover is not shown their goal after the opener');
+    assert.deepEqual(ids({ startLevel: 'zero', reason: 'trip' }), ['mission:premier-cafe', 'mission:gare', 'mission:restaurant']);
+    assert.deepEqual(ids({ startLevel: 'getby', reason: 'moving' }), ['mission:voisin', 'mission:colis', 'mission:pharmacie']);
+    assert.deepEqual(ids({ startLevel: 'zero', reason: 'because' }), SCENE_SPINE.slice(0, 3), "'because' keeps the spine");
     assert.equal(chosen.starter.id, 'colleague');
     assert.equal(chosen.minutes, 5, 'a minutes answer the learner changed was overridden by the preset');
     assert.equal(chosen.goal, SEEDED_GOAL.work);

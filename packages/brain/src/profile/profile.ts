@@ -12,7 +12,7 @@
  * have its own store). This module is pure.
  */
 
-import { isMastered, normalise, type Rung } from '@luvani/core';
+import { isLearnerGoal, isMastered, normalise, type LearnerGoal, type Rung } from '@luvani/core';
 
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
 import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness } from '../types.ts';
@@ -82,6 +82,12 @@ export interface LearnerProfile {
      * endpoint shape, and no third place to keep the same fact.
      */
     name: string | null;
+    /**
+     * Why they are learning, from onboarding, or absent. Like `name`, an
+     * onboarding answer and not a remembered fact, so it rides even when
+     * memory is paused. Optional so profiles stored before it stay valid.
+     */
+    goal?: LearnerGoal | null;
   };
   /**
    * `pace` is optional because it arrived after the shape shipped: a profile
@@ -169,7 +175,7 @@ export function repairProfile(stored: unknown): LearnerProfile {
   const migrated = migrateProfile(stored as unknown as LearnerProfile);
   const memory = migrated.memory;
   if (isRecord(memory) && Array.isArray(memory.facts)) {
-    const { control: rawControl, ...memoryFields } = memory;
+    const { control: rawControl, goal: rawGoal, ...memoryFields } = memory;
     const control = validMemoryControl(rawControl);
     // `opener` and `name` both arrived after version 2 shipped, so neither can
     // be assumed present. Filling them in beats bumping the version: the
@@ -185,6 +191,8 @@ export function repairProfile(stored: unknown): LearnerProfile {
         facts: validRememberedFacts(memory.facts),
         opener: validOpener(memory.opener),
         name: validLearnerName(memory.name),
+        // Kept only as a known tag; anything else is dropped, key and all.
+        ...(isLearnerGoal(rawGoal) ? { goal: rawGoal } : {}),
         ...(control ? { control } : {}),
       },
     } as LearnerProfile;
@@ -371,6 +379,7 @@ export function learnerSnapshotFrom(profile: LearnerProfile): LearnerSnapshot {
     lastRung: profile.stats.lastRung,
     sessions: profile.stats.sessions,
     name: validLearnerName(profile.memory.name),
+    goal: isLearnerGoal(profile.memory.goal) ? profile.memory.goal : null,
   };
 }
 

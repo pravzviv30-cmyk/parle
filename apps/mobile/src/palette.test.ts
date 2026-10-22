@@ -608,6 +608,22 @@ describe('one highlighter — notebook Phase 1', () => {
     }
   });
 
+  // 2026-10-22 (founder decision): Your French draws the band on the dark card,
+  // so the same pen must still stand apart from the dark grounds and carry ink.
+  test('the highlighter stands apart on the dark card and ground, and ink still reads on it', () => {
+    for (const [name, hex] of Object.entries({ 'b.dark.card': b.dark.card, 'b.dark.ground': b.dark.ground })) {
+      const d = deltaE(highlight, hex);
+      assert.ok(d >= APART, `the highlighter is only ${d.toFixed(0)} from ${name}`);
+    }
+    assert.ok(contrast(INK, highlight) >= TEXT, `ink is ${contrast(INK, highlight).toFixed(2)} on the highlighter`);
+  });
+
+  test('the held tag reads on the dark used-phrase chip', () => {
+    // UsedChip draws its tag in muted on lavender (journey/JourneyParts.tsx).
+    const c = contrast(b.dark.muted, b.dark.lavender);
+    assert.ok(c >= TEXT, `the held tag is ${c.toFixed(2)} on the dark chip`);
+  });
+
   test('the highlighter is spelled in three files, and inside components.tsx only by its two hosts', () => {
     const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx']);

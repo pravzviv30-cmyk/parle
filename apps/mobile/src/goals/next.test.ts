@@ -259,3 +259,15 @@ describe('the next task for a goal — Stage 4', () => {
     }
   });
 });
+
+// 2026-10-22: each onboarding goal's seeded sentence lands on one of the scenes that goal leans towards.
+import { GOAL_SCENES } from '@luvani/core';
+import { SEEDED_GOAL } from '../onboarding/plan.ts';
+
+test('every seeded onboarding goal matches a scene its goal leans towards', () => {
+  for (const reason of ['food', 'trip', 'family', 'moving', 'work'] as const) {
+    const next = nextTaskForGoal(SEEDED_GOAL[reason], { missions: MISSIONS });
+    assert.equal(next?.fit, 'matched', `${reason}: the seeded goal matches nothing`);
+    assert.ok(GOAL_SCENES[reason].includes(missionOfTask(goalTaskOf(next!.task))!.id), `${reason}: lands on ${next!.task.id}`);
+  }
+});

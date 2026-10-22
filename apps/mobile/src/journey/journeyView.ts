@@ -31,6 +31,8 @@ import {
   evidenceOf,
   getMission,
   spineFrom,
+  nextScene,
+  type LearnerGoal,
   type Mission,
   type MissionId,
   type MissionProgress,
@@ -42,10 +44,12 @@ import {
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
 import { SO_FAR_WITH_HELP } from '../home/abilities.ts';
+import { goalPickLine } from '../onboarding/goalLine.ts';
 import { MY_FRENCH_TITLE } from '../myfrench/copy.ts';
 import { COMPLETIONS_PER_MISSION } from '../missions/store.ts';
 import { ledgerFrom } from '../myfrench/ledger.ts';
 import { isMeasuredCheck, soundLine } from '../myfrench/sounds.ts';
+import { soundJourney } from '../soundcheck/journey.ts';
 import { isRetained } from '../progress/momentum.ts';
 import { REFLECTION_COPY, hasReflection, type Reflection } from '../progress/reflection.ts';
 import { STORY_INDEPENDENCE } from '../progress/story.ts';
@@ -81,6 +85,7 @@ export type JourneyRoute =
   | { screen: 'ScenePreview'; params: { missionId: string } }
   | { screen: 'SoundCheck'; params: { missionId?: string } }
   | { screen: 'SoundJourney' }
+  | { screen: 'Phrasebook' }
   | { screen: 'Postcards' };
 
 /** A stored completion as the missions store keeps it. */
@@ -400,43 +405,188 @@ export function thenNowCard(completions: readonly StoredCompletion[], access: Ac
   };
 }
 
-// ───────────────────────────────────────────────────────────── french used
+// ───────────────────────────────────────────────────────────── your french
 
-export const USED_HEADING = 'French you’ve used in conversation';
-export const USED_SHOWN = 6;
+/**
+ * "Your French" (2026-10-22): the learner's own French, first on the page.
+ * Three parts, each drawn only when a saved record backs it, and every number
+ * a count of those records: never a percent, a score, an "of n" or a ladder
+ * word. Phrases are `ledgerFrom`'s lane (`isRetained`, so `convoUses` at least
+ * one) and how many of those also held when the situation changed
+ * (`transfers`); sounds are only `soundJourney`'s per-line `laterClear`, never
+ * per sound; scenes are `earnedMissionIds`, best-ever, so the count never goes
+ * down. It replaces "French you've used in conversation", so phrases are drawn
+ * once.
+ */
+export const YOUR_FRENCH_HEADING = 'Your French';
+export const YOUR_FRENCH_FORWARD = 'Phrases you use in conversation, sounds that come back clear and scenes you earn collect here.';
+/** The forward line when the sounds part is locked: it promises nothing the plan does not show. */
+export const YOUR_FRENCH_FORWARD_NO_SOUNDS = 'Phrases you use in conversation and scenes you earn collect here.';
+export const HELD_TAG = 'new situation';
+export const YOUR_FRENCH_CHIPS = 5;
+/** Where each part's row opens, said after its line. */
+export const OPENS = { phrases: 'Opens your phrasebook', sounds: 'Opens your focus sound', scenes: 'Opens your postcards' } as const;
+export const YOUR_FRENCH_SCENES = 3;
 
-export interface UsedView {
-  subtitle: string;
-  phrases: readonly string[];
-  /** "In practice, you also used 2 of these in a new situation", or null. */
-  transferLine: string | null;
+export const phrasesUsedLine = (n: number): string => `${n} ${n === 1 ? 'phrase' : 'phrases'} used in conversation`;
+export const phrasesHeldLine = (n: number): string => `${n} held up when the situation changed`;
+/** The phrases the row does not draw, so the count matches what is shown. */
+export const phrasesMoreLine = (n: number): string => `and ${n} more in your phrasebook`;
+export const scenesEarnedLine = (n: number): string => `${n} ${n === 1 ? 'scene' : 'scenes'} earned on your own`;
+
+/** One line that came back clear, or how many and the newest's scene. */
+export function clearLine(count: number, scene: string): Segment[] {
+  return count === 1
+    ? [{ text: 'A line from ' }, { text: scene, fr: true }, { text: ' that was called out came back clear.' }]
+    : [{ text: `${count} lines that were called out came back clear, most recently in ` }, { text: scene, fr: true }, { text: '.' }];
+}
+
+export interface YourPhrase {
+  front: string;
+  /** It also held when the situation changed (`transfers` at least one). Said in words, never a colour. */
+  held: boolean;
+}
+
+export interface YourPhrasesPart {
+  /** Null when locked: the count is part of what the trial shows. */
+  usedLine: string | null;
+  /** Present only when at least one used phrase also held. */
+  heldLine: string | null;
+  /** The one highlighted phrase: the ledger's featured, the same one Phrasebook and Home feature. */
+  featured: YourPhrase | null;
+  /** The ledger's rows in ledger order, up to {@link YOUR_FRENCH_CHIPS}. */
+  chips: readonly YourPhrase[];
+  /** "and n more in your phrasebook" when the lane holds more than is drawn, else null. */
+  moreLine: string | null;
+  route: JourneyRoute;
+  /** The row's whole sentence for a screen reader, and where it opens. */
+  accessibilityLabel: string;
   locked: boolean;
   teaser: string | null;
   feature: LockedFeature;
 }
 
-/**
- * Phrases that came out of the learner's mouth in conversation (`convoUses`
- * at least one, `ledgerFrom`'s lane), and how many held when the situation
- * changed (`transfers`). Null draws none of it.
- */
-export function usedView(input: { deck: readonly ReviewCard[]; tutorName: string; now: number; access?: Access }): UsedView | null {
-  const ledger = ledgerFrom({ deck: input.deck, now: input.now });
-  if (ledger.featured === null) return null;
-  const phrases = [ledger.featured.front, ...ledger.rows.map((row) => row.front)].slice(0, USED_SHOWN);
-  // Practice evidence (`transfers`), kept apart from the conversation claim
-  // above and counted only over the phrases shown, so "these" is true.
-  const shown = new Set(phrases);
-  const moved = input.deck.filter((card) => isRetained(card) && shown.has(card.front) && evidenceOf(card).transfers >= 1).length;
-  const locked = isLocked(input.access ?? featureAccess, 'fullJourney');
+export interface YourSoundsPart {
+  /** Null when locked. */
+  line: readonly Segment[] | null;
+  route: JourneyRoute;
+  accessibilityLabel: string;
+  locked: boolean;
+  teaser: string | null;
+  feature: LockedFeature;
+}
+
+export interface YourScenesPart {
+  line: string;
+  /** French titles, newest earned first. */
+  titles: readonly string[];
+  route: JourneyRoute;
+  accessibilityLabel: string;
+}
+
+export interface YourFrenchView {
+  heading: string;
+  phrases: YourPhrasesPart | null;
+  sounds: YourSoundsPart | null;
+  scenes: YourScenesPart | null;
+  /** The parts drawn in the card, in order: present and not locked. A locked part draws its teaser instead. */
+  open: readonly ('phrases' | 'sounds' | 'scenes')[];
+  /** The no-numeral line when no part has evidence yet, else null. */
+  forward: string | null;
+}
+
+function phrasesPart(deck: readonly ReviewCard[], now: number, access: Access): YourPhrasesPart | null {
+  const lane = deck.filter(isRetained);
+  const ledger = ledgerFrom({ deck, now });
+  if (lane.length === 0 || ledger.featured === null) return null;
+  const heldIds = new Set(lane.filter((card) => evidenceOf(card).transfers >= 1).map((card) => card.id));
+  const head = { front: ledger.featured.front, held: heldIds.has(ledger.featured.id) };
+  const chips = ledger.rows.slice(0, YOUR_FRENCH_CHIPS).map((row) => ({ front: row.front, held: heldIds.has(row.id) }));
+  const hidden = lane.length - 1 - chips.length;
+  const locked = isLocked(access, 'fullJourney');
+  const usedLine = phrasesUsedLine(lane.length);
+  const heldLine = heldIds.size === 0 ? null : phrasesHeldLine(heldIds.size);
+  const moreLine = hidden > 0 ? phrasesMoreLine(hidden) : null;
+  const said = [usedLine, heldLine, moreLine, OPENS.phrases].filter((x): x is string => x !== null).join('. ');
   return {
-    subtitle: `Phrases you’ve said to ${input.tutorName}`,
-    phrases: locked ? [] : phrases,
-    transferLine: locked || moved === 0 ? null : `In practice, you also used ${moved} of these in a new situation`,
+    accessibilityLabel: locked ? JOURNEY_TEASERS.used : said,
+    usedLine: locked ? null : usedLine,
+    heldLine: locked ? null : heldLine,
+    featured: locked ? null : head,
+    chips: locked ? [] : chips,
+    moreLine: locked ? null : moreLine,
+    route: { screen: 'Phrasebook' },
     locked,
     teaser: teaserFor(locked, 'used'),
     feature: 'fullJourney',
   };
+}
+
+function soundsPart(checks: readonly SoundCheckEvidence[], now: number, access: Access): YourSoundsPart | null {
+  const clear = soundJourney(checks, now)?.laterClear ?? [];
+  const newest = [...clear].sort((a, b) => b.at - a.at)[0];
+  const mission = newest === undefined ? undefined : getMission(newest.missionId);
+  if (mission === undefined) return null;
+  const locked = isLocked(access, 'sounds');
+  const line = clearLine(clear.length, mission.title);
+  return { line: locked ? null : line, accessibilityLabel: locked ? JOURNEY_TEASERS.sounds : `${segmentsText(line)} ${OPENS.sounds}`, route: { screen: 'SoundJourney' }, locked, teaser: teaserFor(locked, 'sounds'), feature: 'sounds' };
+}
+
+function scenesPart(progress: readonly MissionProgress[], completions: readonly StoredCompletion[]): YourScenesPart | null {
+  const earned = earnedMissionIds(progress);
+  if (earned.size === 0) return null;
+  const ownAt = (id: string): number | null => {
+    const times = completions.filter((c) => c.id === id && c.rung === 4 && Number.isFinite(c.at)).map((c) => c.at);
+    return times.length === 0 ? null : Math.max(...times);
+  };
+  const earnedAt = (id: MissionId): number | null => {
+    const bigger = SUBSUMED_BY[id];
+    return ownAt(id) ?? (bigger !== undefined ? ownAt(bigger) : null);
+  };
+  const spineIndex = (id: MissionId): number => {
+    const i = SCENE_SPINE.indexOf(id);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const ids = [...earned].sort((a, b) => {
+    const ta = earnedAt(a);
+    const tb = earnedAt(b);
+    if (ta !== null && tb !== null && ta !== tb) return tb - ta;
+    if (ta !== null && tb === null) return -1;
+    if (ta === null && tb !== null) return 1;
+    return spineIndex(a) - spineIndex(b);
+  });
+  const titles = ids.flatMap((id) => {
+    const mission = getMission(id);
+    return mission === undefined ? [] : [mission.title];
+  });
+  const shown = titles.slice(0, YOUR_FRENCH_SCENES);
+  const line = scenesEarnedLine(earned.size);
+  return { line, titles: shown, route: { screen: 'Postcards' }, accessibilityLabel: `${line}. ${shown.join(', ')}. ${OPENS.scenes}` };
+}
+
+/**
+ * The learner's own French, from saved evidence only. The tab draws it on a
+ * practised journey; the empty journey card covers the rest.
+ */
+export function yourFrenchView(input: {
+  deck: readonly ReviewCard[];
+  checks: readonly SoundCheckEvidence[];
+  progress: readonly MissionProgress[];
+  completions?: readonly StoredCompletion[];
+  now: number;
+  access?: Access;
+}): YourFrenchView {
+  const access = input.access ?? featureAccess;
+  const phrases = phrasesPart(input.deck, input.now, access);
+  const sounds = soundsPart(input.checks, input.now, access);
+  const scenes = scenesPart(input.progress, input.completions ?? []);
+  const none = phrases === null && sounds === null && scenes === null;
+  const open = (['phrases', 'sounds', 'scenes'] as const).filter((key) => {
+    const part = { phrases, sounds, scenes }[key];
+    return part !== null && !('locked' in part && part.locked);
+  });
+  const forward = !none ? null : isLocked(access, 'sounds') ? YOUR_FRENCH_FORWARD_NO_SOUNDS : YOUR_FRENCH_FORWARD;
+  return { heading: YOUR_FRENCH_HEADING, phrases, sounds, scenes, open, forward };
 }
 
 // ───────────────────────────────────────────────────────────── help you needed
@@ -613,12 +763,19 @@ export interface EmptyJourney {
   body: string;
   start: string;
   missionId: MissionId;
+  /** "Picked for your move" when the learner's goal chose the scene, else null. */
+  picked: string | null;
 }
 
-/** Before the first conversation: the page and the one scene to start. */
-export function emptyJourney(progress: readonly MissionProgress[]): EmptyJourney {
-  const next = spineFrom(progress).next ?? getMission(SCENE_SPINE[0]!) ?? MISSIONS[0]!;
+/**
+ * Before the first conversation: the page and the one scene to start, from
+ * core's `nextScene`, the same scene Today and Speak offer.
+ */
+export function emptyJourney(progress: readonly MissionProgress[], goal: LearnerGoal | null = null): EmptyJourney {
+  const ahead = nextScene(progress, goal);
+  const next = ahead?.mission ?? getMission(SCENE_SPINE[0]!) ?? MISSIONS[0]!;
   return {
+    picked: ahead?.picked === 'goal' ? goalPickLine(goal) : null,
     title: 'Your journey starts with one conversation',
     body: 'Abilities, then and now, and your phrases collect here as you talk.',
     start: `Start ${next.title}`,
@@ -646,7 +803,13 @@ export const JOURNEY_COPY: readonly string[] = [
   THEN_NOW_SUBTITLE,
   SEE_ALL,
   TRY_AGAIN_FOR_BEST,
-  USED_HEADING,
+  YOUR_FRENCH_HEADING,
+  YOUR_FRENCH_FORWARD,
+  YOUR_FRENCH_FORWARD_NO_SOUNDS,
+  phrasesMoreLine(1),
+  phrasesMoreLine(2),
+  HELD_TAG,
+  ...Object.values(OPENS),
   HELP_HEADING,
   SOUNDS_HEADING,
   PRACTISE,

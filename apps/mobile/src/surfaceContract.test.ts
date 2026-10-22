@@ -2003,6 +2003,46 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.equal((journey.match(/<BButton\b/g) ?? []).length, 1, 'Journey carries a second primary pill');
     assert.equal((journey.match(/<PillButton\b/g) ?? []).length, 0, 'Journey draws an old pill the artboard does not');
     assert.match(journey, /const empty = renderStatus === 'ready' && isEmptyJourney\(firstVisit, completions\);/);
+    // 2026-10-22: Your French's featured phrase is the one highlighter Journey draws, tab and parts together.
+    const marks = (journey.match(/<Highlight\b/g) ?? []).length + (named('journey/JourneyParts.tsx').match(/<Highlight\b/g) ?? []).length;
+    assert.equal(marks, 1, 'Journey draws other than one highlighter');
+    // 2026-10-22: Your French is drawn whole by JourneyParts' YourFrenchSection, once, so its featured phrase is drawn there.
+    assert.equal((journey.match(/<YourFrenchSection\b/g) ?? []).length, 1, 'Journey draws Your French other than once');
+    assert.equal((named('journey/JourneyParts.tsx').match(/<YourFeatured\b/g) ?? []).length, 1, 'Journey draws the featured phrase more than once');
+    // 2026-10-22 review: the one highlighter is never inside a .map( (a list would
+    // draw it per item), and no file the tab imports draws a second one.
+    const insideMap = (src: string, at: number): boolean => {
+      let from = src.lastIndexOf('.map(', at);
+      while (from !== -1) {
+        // Where this .map( closes: inside it when that is past the mark.
+        let depth = 0;
+        let close = -1;
+        for (let i = from + 4; i < src.length; i += 1) {
+          if (src[i] === '(') depth += 1;
+          else if (src[i] === ')') depth -= 1;
+          if (depth === 0) { close = i; break; }
+        }
+        if (close === -1 || close > at) return true;
+        from = src.lastIndexOf('.map(', from - 1);
+      }
+      return false;
+    };
+    const journeyParts = named('journey/JourneyParts.tsx');
+    assert.ok(journey.indexOf('<YourFrenchSection') !== -1 && !insideMap(journey, journey.indexOf('<YourFrenchSection')), 'Journey draws YourFrenchSection inside a .map(');
+    assert.ok(journeyParts.indexOf('<YourFeatured') !== -1 && !insideMap(journeyParts, journeyParts.indexOf('<YourFeatured')), 'JourneyParts draws YourFeatured inside a .map(');
+    assert.ok(journeyParts.indexOf('<Highlight') !== -1 && !insideMap(journeyParts, journeyParts.indexOf('<Highlight')), 'JourneyParts draws Highlight inside a .map(');
+    const tabDir = join(SRC, 'tabs');
+    const imported = [...journey.matchAll(/from '(\.{1,2}\/[^']+)'/g)].map((m) => join(tabDir, m[1]!));
+    let drawn = 0;
+    for (const path of imported) {
+      const file = SOURCES.find((f) => f.path === path);
+      if (file === undefined) continue;
+      const count = (file.body.match(/<Highlight\b/g) ?? []).length;
+      if (path.endsWith('journey/JourneyParts.tsx')) assert.equal(count, 1, 'JourneyParts draws other than its one Highlight');
+      else assert.equal(count, 0, `${path.slice(SRC.length)}, imported by Journey, draws a Highlight`);
+      drawn += count;
+    }
+    assert.equal(drawn, 1, 'Journey and what it imports draw other than one highlighter');
     assert.match(journey, /\{empty && \(/);
 
   });

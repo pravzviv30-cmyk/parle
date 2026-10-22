@@ -50,6 +50,7 @@ import { tapThrough } from '../access/featureAccess.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { planStatusFor, type PlanStatusView } from '../purchases/planStatus.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { goalOf } from '../onboarding/goalLine.ts';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
@@ -76,7 +77,7 @@ import { strictnessLabel } from '../tutor/strictness.ts';
 import { paceOf } from '../tutor/pace.ts';
 import { CHANGE_VOICE, startModes, startNote, tutorCardFacts } from '../tutor/speakView.ts';
 import {
-  CHANGE_VOICE_ROUTE, EVERY_SCENE, LESS_HELP_TITLE, MODE_CHOICES, modeChoice, withAnswerMode, type AnswerMode, type ModeChoice, NEXT_CHIP, PREFERENCES_ROUTE, PREPARE_FIRST, RECOMMENDED,
+  CHANGE_VOICE_ROUTE, EVERY_SCENE, LESS_HELP_TITLE, MODE_CHOICES, modeChoice, withAnswerMode, type AnswerMode, type ModeChoice, NEXT_CHIP, PREFERENCES_ROUTE, PREPARE_FIRST,
   SEE_MINUTES, SPEAK_TITLE, START, TALK_SUB, TALK_TITLE, USES_SPEAKING_TIME, correctionsChip, lessHelp, minutesBand, paceChip,
   recommended, sampleCaption, speakSubtitle, speakTiles, starterScenes, talkChips, tileLayout,
 } from '../tutor/speakTabView.ts';
@@ -250,7 +251,7 @@ export function TutorTab() {
   const orb = tutorOrbState({ live, checking, canStart });
   const offlineShown = !live || heldBack !== null;
   const note = startNote(orb, offlineShown);
-  const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc);
+  const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc, goalOf(profile));
   const rec = recommended(next);
   const scenes = starterScenes(progress);
   const replay = lessHelp(completions, locks.access);
@@ -305,7 +306,7 @@ export function TutorTab() {
         {/* The one recommendation: the next scene, or the thread to pick up. */}
         <View style={st.hero}>
           <BArt name="cafe-table" width={150} height={137} style={st.heroArt} />
-          <Text style={[bType.eyebrow, { color: t.heroText }]}>{RECOMMENDED}</Text>
+          <Text style={[bType.eyebrow, { color: t.heroText }]}>{rec.eyebrow}</Text>
           <Text accessibilityRole="header" style={[bType.leadTitle, st.heroTitle, { color: t.heroText }]}>{rec.title}</Text>
           <Text style={[bType.line16, st.heroLine, { color: t.heroText }]}>{rec.sentence}</Text>
           <View style={[st.chips, st.after4]}>
@@ -335,7 +336,7 @@ export function TutorTab() {
           {note !== null && <Text style={[bType.meta, st.centred, { color: t.heroText }]}>{note}</Text>}
         </View>
 
-        {WALK_AVAILABLE && <IconAction layout="inline" icon="headphones" label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
+        {WALK_AVAILABLE && <IconAction layout="inline" icon="headphones" label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false, goalOf(profile)).params, walkMode: true })} />}
 
         <View style={st.scenes}>
           <View style={st.titleRow}>

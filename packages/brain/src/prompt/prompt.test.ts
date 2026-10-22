@@ -373,6 +373,22 @@ describe('the per-turn context', () => {
     const text = buildTurnContext(contextInput({ learner: { cefr: 'A2', confidence: 'low', watchFor: [], name: null } }));
     assert.doesNotMatch(text, /LEARNER NAME/i);
   });
+
+  test('each onboarding goal adds one fixed goal line; because and null add none', () => {
+    const base = { cefr: 'A2' as const, confidence: 'low' as const, watchFor: [], name: null };
+    for (const goal of ['food', 'trip', 'family', 'moving', 'work'] as const) {
+      const text = buildTurnContext(contextInput({ learner: { ...base, goal } }));
+      const lines = text.split('\n').filter((l) => l.startsWith('LEARNER GOAL:'));
+      assert.equal(lines.length, 1, goal);
+      assert.match(lines[0]!, /never steer a scene away/i);
+      assert.doesNotMatch(lines[0]!, /\u2014/, 'no em dashes');
+      assert.equal(text, buildTurnContext(contextInput({ learner: { ...base, goal } })), 'byte-stable');
+    }
+    assert.match(buildTurnContext(contextInput({ learner: { ...base, goal: 'moving' } })), /renting, the doctor, neighbours/);
+    for (const goal of ['because', null, undefined] as const) {
+      assert.doesNotMatch(buildTurnContext(contextInput({ learner: { ...base, goal } })), /LEARNER GOAL/);
+    }
+  });
 });
 
 describe('the history view', () => {

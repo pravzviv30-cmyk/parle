@@ -198,6 +198,13 @@ describe('session shape in token metadata', () => {
     assert.deepEqual(meta.snapshot, snapshot);
   });
 
+  test('the onboarding goal in memory survives the token, locked or not', async () => {
+    const snapshot = { cefr: 'A1', memory: { facts: [], opener: null, name: 'Sam', goal: 'moving' } };
+    assert.deepEqual((await metadataFor({ snapshot })).snapshot, snapshot);
+    const locked = await metadataFor({ snapshot, entitlement: { plan: 'trial', secondsUsed: 0 }, memoryLocked: true });
+    assert.deepEqual(locked.snapshot, snapshot);
+  });
+
   test('free, lapsed and guest sessions sign memoryLocked; paid sessions carry no key at all', async () => {
     const snapshot = { cefr: 'A1', sessions: 4 };
     const free = await metadataFor({ snapshot, entitlement: { plan: 'trial', secondsUsed: 0 }, memoryLocked: true });

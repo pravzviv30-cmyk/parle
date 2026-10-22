@@ -454,3 +454,25 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   spoke.
 - Sources: [risk register](docs/RISK_REGISTER.md),
   [live voice](docs/LIVE_VOICE.md), founder answers of 22 October 2026.
+
+## VOICE-006 — The onboarding goal colours the tutor's free choices only
+
+- Date: 2026-10-22
+- Status: accepted
+- Decision: the learner's onboarding goal (`LearnerGoal`: food, trip, family,
+  moving, work, because) rides `LearnerProfile.memory.goal`, beside `name` and
+  outside the remembered facts. `snapshotFor` sets it on every path, so it is
+  sent when memory is paused and on the free tier. The brain turns it into one
+  fixed `LEARNER GOAL:` line in the turn context (none for `because`), which
+  tells the tutor to take examples and small talk that are its own choice from
+  that part of life, and never to steer a scene away from its own goal. Core's
+  `nextScene` orders the suggested next scene by goal; it never gates a scene
+  or changes the level.
+- Reason: it is an onboarding answer, like the name, not something the tutor
+  learned in a session, and the first-practice brief already sends it to every
+  learner. Reusing the name's seam costs no new token field.
+- Consequence: `repairProfile` keeps only a known goal tag. The line is the
+  same bytes for the same state, so it does not disturb the frozen prefix.
+  The token server passes the snapshot through unchanged.
+- Sources: `packages/brain/src/prompt/turnContext.ts` (`GOAL_FRAMING`),
+  `apps/mobile/src/profile/memory.ts` (`snapshotFor`).
