@@ -901,8 +901,14 @@ describe('database security contract — SQL cannot drift quietly', () => {
     const refresh = latestIn('public.begin_billing_refresh');
     for (const name of ['luvani_private.tutor_cap_v1', 'luvani_private.tutor_entitlement_v1', 'public.consume_entitlement',
       'public.refund_failed_session', 'public.reserve_tutor_session_v1', 'public.claim_trial', 'public.claim_trial_with_evidence',
-      'public.apply_billing_projection', 'public.apply_billing_projection_v2', 'public.validate_product_event',
+      'public.apply_billing_projection', 'public.apply_billing_projection_v2',
       'public.advance_usage_epoch', 'public.mark_paid_lapse']) latestIn(name);
+    // The event trigger moved on once since D24 (20261022120000 added
+    // live_session_finished). Whatever defines it last must still carry D24's doors.
+    const events = stripComments(effectiveBody(FUNCTION_HEADERS.validate_product_event));
+    for (const door of ['launch', 'locked']) {
+      assert.match(events, new RegExp(`to_jsonb\\('${door}'::text\\)`), `the latest event trigger lost D24's ${door} door`);
+    }
     assert.match(refresh, /values\(p_user_id, 'trial', 300, false\) on conflict\(user_id\) do nothing;/);
     assert.equal(PLANS.trial.secondsPerPeriod, 300, 'the billing refresh row is no longer exactly one spent taste');
 

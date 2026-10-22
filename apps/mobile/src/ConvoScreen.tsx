@@ -13,6 +13,7 @@ import { recordRevisitStarted } from './practice/historyStore.ts';
 import { recordGoalStepStarted } from './goals/store.ts';
 import { replayNote, missionCompletionsFrom, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
+import { sessionFinishedEvent } from './analytics/sessionFinished.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
 import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
 import { prepareWalk } from './walk/lifecycle.ts';
@@ -575,6 +576,9 @@ export function ConvoScreen({
         activeMs,
         write: () => recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: activeMs, finished: true } : { durationMs: endedAt - openedAt, activeMs: activeMs, finished: true }),
       }).then(setConvoDelta);
+      // One content-free beta event per finished conversation (analytics/sessionFinished.ts).
+      void trackProductEvent(sessionFinishedEvent({ kind: 'convo', voice: !live.voiceless, turns: stats.turns, rescues: stats.rescues,
+        unassistedRate: stats.unassistedRate, replyLatencyMs: live.replyLatencyMs() }));
     }
     // `clock` is the same controller for the screen's whole life, so it stays
     // out of the list the F386 test pins.

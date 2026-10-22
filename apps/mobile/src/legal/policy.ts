@@ -196,7 +196,7 @@ export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySe
     {
       heading: 'Usage data, and your choice',
       body: [
-        'Luvani can record fifteen plain events, such as a situation being finished or a subscription page being opened. They carry no free text and nothing you said, and two separate checks refuse anything that is not on that short list.',
+        'Luvani can record sixteen plain events, such as a situation being finished or a subscription page being opened. They carry no free text and nothing you said, and two separate checks refuse anything that is not on that short list.',
         'They include a trial being claimed, minutes being refused, a restore being started or settled, and returning from the plans page. They are off unless you turn them on. The switch is in Settings, you can change it whenever you like, and nothing in the app works differently either way.',
         'Turning the switch off stops new events from this device. An event or session start already sent can finish being recorded. It does not reach backwards: deleting your account is what removes what was recorded before.',
       ],

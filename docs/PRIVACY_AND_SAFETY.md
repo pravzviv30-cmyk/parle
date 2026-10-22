@@ -488,7 +488,7 @@ at Settings for the rest, which is what `MEET_MORE` says.
 
 ## Analytics: consent, opt-out and retention
 
-Luvani records fifteen events: thirteen device events and two authoritative server facts. They exist so product decisions are made on evidence
+Luvani records sixteen events: fourteen device events and two authoritative server facts. They exist so product decisions are made on evidence
 rather than on the loudest opinion in the room, and they are content-free by
 construction, not by good intentions.
 
@@ -506,6 +506,7 @@ construction, not by good intentions.
 | `restore_started` | Closed `entry` | Store account or a guessed paid plan |
 | `restore_settled` | Closed `entry`, closed `outcome` | Receipt or store account |
 | `wall_left` | Closed `entry`, `outcome`, `destination` | Learner content |
+| `live_session_finished` | Closed `kind`, boolean `voice`, counts `turns`, `rescues`, `unassistedPct`, nullable count `replyLatencyMs` | Anything said or shown, why they are learning, the lesson or scene |
 | `trial_started` | No properties, service-only | Antifraud markers or learner content |
 | `minutes_refused` | Closed `plan`, `reason`, service-only | Utterances or exact balance |
 

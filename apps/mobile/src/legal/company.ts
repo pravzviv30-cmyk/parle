@@ -105,7 +105,7 @@ export function companyFrom(raw: Partial<CompanyFacts>): CompanyFacts {
 export const COMPANY: CompanyFacts = companyFrom({
   registeredName: 'Vision Strategies Ltd',
   companyNumber: null,
-  supportEmail: null,
+  supportEmail: 'hello@luvani.app',
 });
 
 /** The contact, or nothing at all. A row with no address is a row that lies. */

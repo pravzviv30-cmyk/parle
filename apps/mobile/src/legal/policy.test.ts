@@ -65,7 +65,11 @@ describe('the privacy notice — F479', () => {
     // The paragraphs that name an address are absent until there is one, and
     // present once there is. Both halves, because a branch nobody drives is a
     // branch nobody has seen.
-    assert.doesNotMatch(WHOLE, /write to us/i, 'the notice offers an address that is not set');
+    // Set 2026-10-22 for the beta: the shipped notice names it, and a notice
+    // built with no address still names none.
+    assert.match(WHOLE, /You can write to us at hello@luvani\.app\./, 'the shipped notice does not name the address that is set');
+    assert.doesNotMatch(policyCopy(companyFrom({ registeredName: 'Vision Strategies Ltd', companyNumber: null, supportEmail: null })).join('\n'),
+      /write to us/i, 'the notice offers an address that is not set');
     const supplied = policyCopy(SUPPLIED).join('\n');
     assert.match(supplied, /You can write to us at hello@example\.com\./, 'a supplied address is never drawn');
     assert.match(supplied, /Company number 01234567\./, 'a supplied company number is never drawn');
@@ -78,10 +82,10 @@ describe('the privacy notice — F479', () => {
     // the subscription wall took the count from five to ten.
     const union = readFileSync(`${HERE}../analytics/track.ts`, 'utf8');
     const serverEvents = readFileSync(`${HERE}../../../../services/token-server/src/productEvents.ts`, 'utf8');
-    assert.equal((union.match(/\| \{ name: '/g) ?? []).length, 13, 'ProductEvent no longer declares thirteen device events');
+    assert.equal((union.match(/\| \{ name: '/g) ?? []).length, 14, 'ProductEvent no longer declares fourteen device events');
     assert.match(serverEvents, /SERVER_EVENT_NAMES = \['trial_started', 'minutes_refused'\]/, 'the two server facts must stay explicit');
-    assert.match(WHOLE, /record fifteen plain events/, 'the notice stopped naming how many events there are');
-    assert.match(DOC, /Luvani records fifteen events/, 'the document no longer says ten, so the notice is guessing');
+    assert.match(WHOLE, /record sixteen plain events/, 'the notice stopped naming how many events there are');
+    assert.match(DOC, /Luvani records sixteen events/, 'the document no longer agrees with the notice, so the notice is guessing');
 
     // Speech. The strongest sentence in the notice, and the one most worth
     // holding to the document word for word.

@@ -101,7 +101,7 @@ describe('the hosted legal pages — F480', () => {
   });
 
   test('the support page is generated but names no address until one is set', () => {
-    const unset = supportHtml();
+    const unset = supportHtml(companyFrom({ registeredName: 'Vision Strategies Ltd', companyNumber: null, supportEmail: null }));
     assert.ok(unset.includes(SUPPORT_NO_ADDRESS), 'the support page invented a way to be reached');
     assert.doesNotMatch(unset, /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/, 'the support page spells an address');
 

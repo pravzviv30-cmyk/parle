@@ -33,6 +33,10 @@ function nonNegativeCount(value: unknown): value is number {
  */
 const WALL_DOORS = ['path-complete', 'refused', 'settings', 'recap', 'launch', 'locked'] as const;
 
+function boundedCount(value: unknown, max: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= max;
+}
+
 /** Analytics is an allowlist of product facts, never learner content. */
 export const SERVER_EVENT_NAMES = ['trial_started', 'minutes_refused'] as const;
 
@@ -101,6 +105,17 @@ export function parseProductEvent(value: unknown, source: 'client' | 'server' = 
   } else if (candidate.name === 'wall_left') {
     if (!exactKeys(properties, ['entry', 'outcome', 'destination'])) return null;
     if (!allowedEnum(properties.entry, WALL_DOORS) || !allowedEnum(properties.outcome, ['granted', 'unchanged']) || !allowedEnum(properties.destination, ['back', 'speak'])) return null;
+  } else if (candidate.name === 'live_session_finished') {
+    // Counts and closed choices only; see apps/mobile/src/analytics/sessionFinished.ts.
+    if (!exactKeys(properties, ['kind', 'voice', 'turns', 'rescues', 'unassistedPct', 'replyLatencyMs'])) return null;
+    if (
+      !allowedEnum(properties.kind, ['lesson', 'convo']) ||
+      typeof properties.voice !== 'boolean' ||
+      !boundedCount(properties.turns, 1_000) ||
+      !boundedCount(properties.rescues, 1_000) ||
+      !boundedCount(properties.unassistedPct, 100) ||
+      !(properties.replyLatencyMs === null || boundedCount(properties.replyLatencyMs, 30_000))
+    ) return null;
   } else if (candidate.name === 'trial_started') {
     if (source !== 'server' || !exactKeys(properties, [])) return null;
   } else if (candidate.name === 'minutes_refused') {

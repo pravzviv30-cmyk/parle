@@ -1,0 +1,204 @@
+-- live_session_finished: one content-free product event per finished live
+-- session, for the 100-learner beta (Step 3 of the 2026-10-22 plan).
+--
+-- It carries the session kind (lesson or conversation), whether it was spoken,
+-- the turn and rescue counts, the share of turns the learner composed unaided
+-- (0 to 100), and the median wait from a confirmed learner turn to the tutor's
+-- voice measured on the phone (null when nothing was measured). It deliberately
+-- does not carry why the learner is learning: PRIVACY_AND_SAFETY.md promises no
+-- event does, so cohorts are joined from the synced profile instead. Like every
+-- product event it is opt-in, consent-gated on the device, and holds no learner
+-- content.
+--
+-- Three places must agree, and this is the third: ProductEvent in
+-- apps/mobile/src/analytics/track.ts, parseProductEvent in
+-- services/token-server/src/productEvents.ts, and this trigger. Every other
+-- branch is carried over unchanged from 20261020140000_weekly_free_taste.sql.
+--
+-- Prepared and proved in disposable SQL; not applied live.
+begin;
+
+create or replace function public.validate_product_event()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  property_count integer;
+begin
+  if new.properties is null or pg_catalog.jsonb_typeof(new.properties) <> 'object' then
+    raise exception 'unsupported product event';
+  end if;
+
+  select count(*) into property_count
+  from pg_catalog.jsonb_object_keys(new.properties);
+
+  if new.name in ('trial_started', 'minutes_refused') and current_user not in ('postgres', 'service_role') then
+    raise exception 'server-only product event';
+  end if;
+
+  if new.name = 'onboarding_completed' then
+    -- One property, and `?&` on a single-element array rather than a bare `?` so this
+    -- branch reads like the four below and so no tool that treats `?` as a bind
+    -- placeholder can mangle it on the way to the SQL editor.
+    if property_count <> 1
+      or not (new.properties ?& array['personalisedGreeting'])
+      or jsonb_typeof(new.properties->'personalisedGreeting') <> 'boolean' then
+      raise exception 'invalid onboarding_completed event';
+    end if;
+  elsif new.name = 'mission_started' then
+    if property_count <> 2
+      or not (new.properties ?& array['missionId', 'entry'])
+      or jsonb_typeof(new.properties->'missionId') <> 'string'
+      or not ((new.properties->>'missionId') ~ '^[a-zA-Z0-9:._-]{1,64}$')
+      or new.properties->'entry' not in (to_jsonb('chooser'::text), to_jsonb('home'::text), to_jsonb('my-french'::text)) then
+      raise exception 'invalid mission_started event';
+    end if;
+  elsif new.name = 'mission_completed' then
+    if property_count <> 2
+      or not (new.properties ?& array['missionId', 'rung'])
+      or jsonb_typeof(new.properties->'missionId') <> 'string'
+      or not ((new.properties->>'missionId') ~ '^[a-zA-Z0-9:._-]{1,64}$')
+      or new.properties->'rung' not in ('1'::jsonb, '2'::jsonb, '3'::jsonb, '4'::jsonb) then
+      raise exception 'invalid mission_completed event';
+    end if;
+  elsif new.name = 'sound_check_completed' then
+    if property_count <> 2
+      or not (new.properties ?& array['missionId', 'kind'])
+      or jsonb_typeof(new.properties->'missionId') <> 'string'
+      or not ((new.properties->>'missionId') ~ '^[a-zA-Z0-9:._-]{1,64}$')
+      or new.properties->'kind' not in (
+        to_jsonb('assessed-clear'::text),
+        to_jsonb('assessed-focus'::text),
+        to_jsonb('self-guided'::text),
+        to_jsonb('unavailable'::text)
+      ) then
+      raise exception 'invalid sound_check_completed event';
+    end if;
+  elsif new.name = 'my_french_opened' then
+    if property_count <> 2
+      or not (new.properties ?& array['situationsDone', 'linesKept'])
+      or jsonb_typeof(new.properties->'situationsDone') <> 'number'
+      or jsonb_typeof(new.properties->'linesKept') <> 'number'
+      or (new.properties->>'situationsDone')::numeric not between 0 and 100000
+      or (new.properties->>'linesKept')::numeric not between 0 and 100000
+      or mod((new.properties->>'situationsDone')::numeric, 1) <> 0
+      or mod((new.properties->>'linesKept')::numeric, 1) <> 0 then
+      raise exception 'invalid my_french_opened event';
+    end if;
+  elsif new.name = 'wall_shown' then
+    if property_count <> 2
+      or not (new.properties ?& array['entry', 'pages'])
+      or new.properties->'entry' not in (
+        to_jsonb('path-complete'::text),
+        to_jsonb('refused'::text),
+        to_jsonb('settings'::text),
+        to_jsonb('recap'::text),
+        to_jsonb('launch'::text),
+        to_jsonb('locked'::text)
+      )
+      or jsonb_typeof(new.properties->'pages') <> 'number'
+      or (new.properties->>'pages')::numeric not between 0 and 100000
+      or mod((new.properties->>'pages')::numeric, 1) <> 0 then
+      raise exception 'invalid wall_shown event';
+    end if;
+  elsif new.name = 'wall_page_seen' then
+    if property_count <> 2
+      or not (new.properties ?& array['page', 'index'])
+      or new.properties->'page' not in (
+        to_jsonb('map'::text),
+        to_jsonb('french'::text),
+        to_jsonb('yours'::text),
+        to_jsonb('plans'::text)
+      )
+      or jsonb_typeof(new.properties->'index') <> 'number'
+      or (new.properties->>'index')::numeric not between 0 and 100000
+      or mod((new.properties->>'index')::numeric, 1) <> 0 then
+      raise exception 'invalid wall_page_seen event';
+    end if;
+  elsif new.name = 'plan_selected' then
+    if property_count <> 1
+      or not (new.properties ?& array['plan'])
+      or new.properties->'plan' not in (to_jsonb('starter'::text), to_jsonb('regular'::text)) then
+      raise exception 'invalid plan_selected event';
+    end if;
+  elsif new.name = 'purchase_started' then
+    if property_count <> 1
+      or not (new.properties ?& array['plan'])
+      or new.properties->'plan' not in (to_jsonb('starter'::text), to_jsonb('regular'::text)) then
+      raise exception 'invalid purchase_started event';
+    end if;
+  elsif new.name = 'purchase_settled' then
+    if property_count <> 2
+      or not (new.properties ?& array['plan', 'outcome'])
+      or new.properties->'plan' not in (to_jsonb('starter'::text), to_jsonb('regular'::text))
+      or new.properties->'outcome' not in (
+        to_jsonb('done'::text),
+        to_jsonb('nothing-granted'::text),
+        to_jsonb('cancelled'::text),
+        to_jsonb('store-trouble'::text),
+        to_jsonb('refresh-trouble'::text)
+      ) then
+      raise exception 'invalid purchase_settled event';
+    end if;
+  elsif new.name = 'restore_started' or new.name = 'restore_settled' then
+    if not (new.properties ?& array['entry'])
+      or new.properties->'entry' not in (to_jsonb('settings'::text), to_jsonb('wall'::text), to_jsonb('inline'::text)) then
+      raise exception 'invalid restore event';
+    end if;
+    if new.name = 'restore_started' and property_count <> 1 then
+      raise exception 'invalid restore_started event';
+    end if;
+    if new.name = 'restore_settled' and (property_count <> 2
+      or not (new.properties ?& array['outcome'])
+      or new.properties->'outcome' not in (to_jsonb('done'::text), to_jsonb('nothing-granted'::text), to_jsonb('cancelled'::text), to_jsonb('store-trouble'::text), to_jsonb('refresh-trouble'::text))) then
+      raise exception 'invalid restore_settled event';
+    end if;
+  elsif new.name = 'wall_left' then
+    if property_count <> 3 or not (new.properties ?& array['entry', 'outcome', 'destination'])
+      or new.properties->'entry' not in (to_jsonb('path-complete'::text), to_jsonb('refused'::text), to_jsonb('settings'::text), to_jsonb('recap'::text), to_jsonb('launch'::text), to_jsonb('locked'::text))
+      or new.properties->'outcome' not in (to_jsonb('granted'::text), to_jsonb('unchanged'::text))
+      or new.properties->'destination' not in (to_jsonb('back'::text), to_jsonb('speak'::text)) then
+      raise exception 'invalid wall_left event';
+    end if;
+  elsif new.name = 'trial_started' then
+    if property_count <> 0 then raise exception 'invalid trial_started event'; end if;
+  elsif new.name = 'minutes_refused' then
+    if property_count <> 2 or not (new.properties ?& array['plan', 'reason'])
+      or new.properties->'plan' not in (to_jsonb('trial'::text), to_jsonb('starter'::text), to_jsonb('regular'::text))
+      or new.properties->'reason' not in (to_jsonb('exhausted'::text), to_jsonb('insufficient-for-session'::text)) then
+      raise exception 'invalid minutes_refused event';
+    end if;
+  elsif new.name = 'live_session_finished' then
+    -- Counts and closed choices only. Nothing a learner said, typed or was
+    -- shown can be carried by this event; see apps/mobile/src/analytics/sessionFinished.ts.
+    if property_count <> 6
+      or not (new.properties ?& array['kind', 'voice', 'turns', 'rescues', 'unassistedPct', 'replyLatencyMs'])
+      or new.properties->'kind' not in (to_jsonb('lesson'::text), to_jsonb('convo'::text))
+      or jsonb_typeof(new.properties->'voice') <> 'boolean'
+      or jsonb_typeof(new.properties->'turns') <> 'number'
+      or (new.properties->>'turns')::numeric not between 0 and 1000
+      or mod((new.properties->>'turns')::numeric, 1) <> 0
+      or jsonb_typeof(new.properties->'rescues') <> 'number'
+      or (new.properties->>'rescues')::numeric not between 0 and 1000
+      or mod((new.properties->>'rescues')::numeric, 1) <> 0
+      or jsonb_typeof(new.properties->'unassistedPct') <> 'number'
+      or (new.properties->>'unassistedPct')::numeric not between 0 and 100
+      or mod((new.properties->>'unassistedPct')::numeric, 1) <> 0
+      or jsonb_typeof(new.properties->'replyLatencyMs') not in ('number', 'null')
+      or (jsonb_typeof(new.properties->'replyLatencyMs') = 'number' and (
+        (new.properties->>'replyLatencyMs')::numeric not between 0 and 30000
+        or mod((new.properties->>'replyLatencyMs')::numeric, 1) <> 0)) then
+      raise exception 'invalid live_session_finished event';
+    end if;
+  else
+    raise exception 'unsupported product event';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.validate_product_event() from public, anon, authenticated;
+
+commit;

@@ -6,7 +6,7 @@ import { analyticsAllowed } from './consent.ts';
 import { loadConsent } from './consentStore.ts';
 
 /**
- * The thirteen device events, and every property any of them may carry.
+ * The fourteen device events, and every property any of them may carry.
  *
  * This union is the allowlist. There is no free-text property and no `unknown`
  * escape hatch, so learner content cannot reach analytics by accident: it would
@@ -38,7 +38,12 @@ export type ProductEvent =
   | { name: 'purchase_settled'; properties: { plan: 'starter' | 'regular'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'refresh-trouble' } }
   | { name: 'restore_started'; properties: { entry: 'settings' | 'wall' | 'inline' } }
   | { name: 'restore_settled'; properties: { entry: 'settings' | 'wall' | 'inline'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'refresh-trouble' } }
-  | { name: 'wall_left'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; outcome: 'granted' | 'unchanged'; destination: 'back' | 'speak' } };
+  | { name: 'wall_left'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; outcome: 'granted' | 'unchanged'; destination: 'back' | 'speak' } }
+  // One per finished live session (sessionFinished.ts). Counts and closed
+  // choices only: what kind of session, spoken or not, how many turns and
+  // rescues, how much was unaided, and how long replies took on the phone.
+  // Never why the learner is learning (PRIVACY_AND_SAFETY.md).
+  | { name: 'live_session_finished'; properties: { kind: 'lesson' | 'convo'; voice: boolean; turns: number; rescues: number; unassistedPct: number; replyLatencyMs: number | null } };
 
 /**
  * Fire-and-forget product evidence. No content fields exist in the type.

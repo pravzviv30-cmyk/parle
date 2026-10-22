@@ -82,6 +82,22 @@ describe('product event privacy boundary', () => {
     assert.equal(parseProductEvent({ name: 'wall_left', properties: { entry: 'banner', outcome: 'unchanged', destination: 'back' } }), null);
   });
 
+  test('live_session_finished carries counts and closed choices, and nothing else', () => {
+    const ok = { kind: 'convo', voice: true, turns: 9, rescues: 2, unassistedPct: 44, replyLatencyMs: 2311 };
+    assert.deepEqual(parseProductEvent({ name: 'live_session_finished', properties: ok }), { name: 'live_session_finished', properties: ok });
+    assert.notEqual(parseProductEvent({ name: 'live_session_finished', properties: { ...ok, replyLatencyMs: null } }), null, 'an unmeasured wait is allowed');
+    for (const bad of [
+      { ...ok, kind: 'scene' },
+      { ...ok, voice: 'yes' },
+      { ...ok, turns: 2.5 },
+      { ...ok, rescues: -1 },
+      { ...ok, unassistedPct: 101 },
+      { ...ok, replyLatencyMs: 45_000 },
+      { ...ok, goal: 'moving' },
+      { ...ok, transcript: 'Un café' },
+    ]) assert.equal(parseProductEvent({ name: 'live_session_finished', properties: bad }), null, JSON.stringify(bad));
+  });
+
   test('rejects arbitrary event names', () => {
     assert.equal(parseProductEvent({ name: 'anything_we_felt_like', properties: {} }), null);
   });

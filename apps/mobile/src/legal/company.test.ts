@@ -41,11 +41,13 @@ function facts(over: Partial<CompanyFacts> = {}): CompanyFacts {
 
 describe('the company facts — F474', () => {
   test('an unset fact renders nothing, never a dead row', () => {
-    // Today's shipped state: a name, and two facts nobody has supplied.
+    // Today's shipped state: a name and a support address (set 2026-10-22 by
+    // the founder for the beta); the company number is still to come.
     assert.equal(COMPANY.registeredName, 'Vision Strategies Ltd');
     assert.equal(COMPANY.companyNumber, null, 'the Companies House number is set, so the ledger entry can be closed');
-    assert.equal(COMPANY.supportEmail, null, 'the support address is set, so the Contact row can be drawn');
-    assert.equal(contactRow(COMPANY), null, 'a Contact row was offered with no address behind it');
+    assert.equal(COMPANY.supportEmail, 'hello@luvani.app', 'the support address changed');
+    assert.deepEqual(contactRow(COMPANY), { label: CONTACT_ROW, address: 'hello@luvani.app' }, 'the Contact row is not drawn for the address that is set');
+    assert.equal(contactRow(facts({ supportEmail: null })), null, 'a Contact row was offered with no address behind it');
 
     // Everything that is not an address is not an address. A note to self, a
     // phone number and a placeholder all reach here the same way: somebody

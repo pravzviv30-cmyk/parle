@@ -831,7 +831,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 40 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 41 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -845,7 +845,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **40 migrations** for a fresh full schema, applied once in order from
+There are **41 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -929,6 +929,7 @@ There are **40 migrations** for a fresh full schema, applied once in order from
 38. `20261006120000_learner_state_game.sql`, F729: widens the `learner_state` namespace whitelist to accept `game`, the account-synced facts behind the streak, daily goal, quests and badges (zero-XP sittings, streak covers, goal days, quest days and claims, fixed XP, monthly rollups, badge ids and celebration keys; no free text). Without it every push of `game` is refused with a 400 the sync engine retries (F411). **Not applied live**; apply before any build that writes `game` ships. Its rollback is destructive and guarded by `luvani.remove_game`.
 39. `20261007121856_preserve_store_trial_budget_and_year_extension.sql`, F747/F748: trial phrase audio retains the $0.02 lifetime allowance; extending the same paid year preserves charging for an in-flight session. SQL projection proofs pass, including rollback and reapply. Prepared, not applied live. Roll back this migration before the store trial/year migration, using its guarded rollback.
 40. `20261020140000_weekly_free_taste.sql`, D24: the one-off thirty free minutes become a weekly free taste of five minutes. `entitlements.weekly_taste` marks a claimed (or lapsed) free row, the only kind that refills; the first debit sets the refill time a week out in the same usage epoch, a passed window refills lazily (new epoch, deferred while a session is live), every lapse lands on a fresh taste still marked `lapsed_from_paid`, and the trial cap is 300 seconds. Adds the `launch` and `locked` wall doors. Disposable SQL proofs pass in `scripts/verifyTutorSessions.mjs`, including interlocked rollback and reapply. Prepared, not applied live. Roll it back first, using its guarded rollback.
+41. `20261022120000_live_session_finished_event.sql`, beta instrumentation: `validate_product_event` accepts `live_session_finished` (closed `kind`, boolean `voice`, counts `turns`, `rescues`, `unassistedPct`, nullable `replyLatencyMs`), matching the client union and `parseProductEvent`; every other branch is carried over from 40. Disposable SQL proofs replay it with the other migrations. Prepared, not applied live. Roll it back first, before 40.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

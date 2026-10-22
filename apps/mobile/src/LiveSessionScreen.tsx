@@ -47,6 +47,8 @@ import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
 import { RoomLevels } from './live/RoomLevels.tsx';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { sessionFinishedEvent } from './analytics/sessionFinished.ts';
+import { trackProductEvent } from './analytics/track.ts';
 
 export function LiveSessionScreen({
   lesson,
@@ -189,6 +191,17 @@ export function LiveSessionScreen({
     // what keeps a card counting up what went well away from a stop.
     if (live.summary && !stopped && live.settlement === null) onFinish(live.summary);
   }, [live.summary, live.settlement, onFinish, stopped]);
+
+  // One content-free beta event per finished lesson (analytics/sessionFinished.ts).
+  // A safety stop is not a finished lesson and reports nothing.
+  const reportedRef = useRef(false);
+  useEffect(() => {
+    if (!live.summary || stopped || reportedRef.current) return;
+    reportedRef.current = true;
+    void trackProductEvent(sessionFinishedEvent({ kind: 'lesson', voice: !(textMode || live.voiceless), turns: live.summary.turnsCompleted,
+      rescues: live.summary.rescues, unassistedRate: live.summary.unassistedRate, replyLatencyMs: live.replyLatencyMs() }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live.summary, stopped]);
 
   const leaveNow = () => {
     void live.leave().finally(onExit);

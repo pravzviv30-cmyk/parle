@@ -520,6 +520,8 @@ export interface LiveSession {
   sendEnglish: () => void;
   /** Text-mode conversation: send a typed learner turn. */
   sendSay: (text: string) => Promise<boolean>;
+  /** Median phone-measured reply wait this session, or null before any was measured. */
+  replyLatencyMs: () => number | null;
   /**
    * "Still here." Presence, not content, and throttled inside the hook so a
    * caller can hand it every keystroke without thinking about it.
@@ -1741,6 +1743,7 @@ export function useLiveSession(
     sendChoice: useCallback((text: string) => send({ t: 'choice', text }), [send]),
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
+    replyLatencyMs: useCallback(() => medianMs(replyClock.current.samples), []),
     sendSay: useCallback(
       async (text: string) => {
         const room = roomRef.current;
