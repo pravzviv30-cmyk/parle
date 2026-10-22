@@ -64,7 +64,7 @@ import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership
 import { thinkingAfter } from './thinking.ts';
 import { opensSession } from './sessionOpened.ts';
 import { afterDismiss } from './safetyState.ts';
-import { micOpensAtConnect, modeCarriesAudio } from '../tutor/choosingView.ts';
+import { modeCarriesAudio, publishesMicAtConnect } from '../tutor/choosingView.ts';
 import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
 import { shouldPingTyping } from '../tutor/typingPing.ts';
 import type { ReplayLine } from '../tutor/sceneControls.ts';
@@ -559,6 +559,12 @@ export function useLiveSession(
     onConfirmedContribution?: (turn: FirstContribution) => void;
     mode?: 'lesson' | 'convo' | 'convo-text' | 'lesson-text';
     noTypedRecovery?: boolean;
+    /**
+     * Listen only: a voiced mode whose microphone stays closed at connect. The
+     * tutor speaks as usual and the learner answers by typing or tapping. Not
+     * sent anywhere; the server and the agent see an ordinary voiced session.
+     */
+    listenOnly?: boolean;
     snapshot?: unknown;
     /**
      * What the learner asked to talk about, when a topic card started this.
@@ -647,6 +653,7 @@ export function useLiveSession(
   const captureQueue = useRef<Promise<unknown>>(Promise.resolve());
   const mode = opts?.mode;
   const noTypedRecovery = opts?.noTypedRecovery ?? false;
+  const listenOnly = opts?.listenOnly ?? false;
   const snapshot = opts?.snapshot;
   const seedTopic = opts?.seedTopic;
   const continuationPackId = opts?.continuationPackId;
@@ -1444,8 +1451,9 @@ export function useLiveSession(
         // Publishing and playing back are two different permissions and now two
         // different moments. A free conversation waits for the circle to be
         // tapped before it opens a microphone; hearing the tutor cannot wait,
-        // because the tutor is about to ask its question out loud.
-        if (micOpensAtConnect(mode)) {
+        // because the tutor is about to ask its question out loud. Listen only
+        // withdraws the publish and keeps the playback.
+        if (publishesMicAtConnect(mode, listenOnly)) {
           await room.localParticipant.setMicrophoneEnabled(true);
           diagRef.current.micPublished = true;
           setMicOpen(true);
@@ -1528,6 +1536,7 @@ export function useLiveSession(
     startRung,
     mode,
     noTypedRecovery,
+    listenOnly,
     snapshot,
     seedTopic,
     continuationPackId,

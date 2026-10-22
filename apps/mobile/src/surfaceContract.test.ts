@@ -984,9 +984,9 @@ describe('a tap that starts with a network probe — F154', () => {
     // shared MissionHero keeps its own quiet link for Today and Practice.
     // 2026-10-20 UI-008, artboard B-Speak: the radios are the artboard's Speak/Type
     // control, each cell a radio with its checked state.
-    assert.match(tutor, /<Segment key=\{choice\.key\}[^>]*onPress=\{\(\) => setChosenText\(choice\.textMode\)\}/, 'Speak lost its Type choice');
+    assert.match(tutor, /<Segment key=\{choice\.key\}[^>]*onPress=\{\(\) => setChosenMode\(choice\.key\)\}/, 'Speak lost its Type choice');
     assert.match(tutor, /accessibilityRole="radio" accessibilityLabel=\{label\} accessibilityState=\{\{ checked: selected, selected \}\}/, 'the Type choice is not a radio');
-    assert.match(tutor, /onPress=\{\(\) => open\(textMode, next\.params\)\}/, 'the Start ignores the chosen mode');
+    assert.match(tutor, /onPress=\{\(\) => open\(textMode, answered\(next\.params\)\)\}/, 'the Start ignores the chosen mode');
     assert.match(
       named('home/MissionHero.tsx'),
       /<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
@@ -1830,7 +1830,8 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared press');
     assert.equal((ways.match(/<Press\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two could drift apart');
     assert.match(ways, /chip\.label/, 'a way in names itself instead of reading its words from the model');
-    assert.match(ways, /open\(textMode, chip\.params\)/, 'a way in skips the probe');
+    // The slice ends at the first `))}`, which is now the close of `answered(...)`.
+    assert.match(ways, /open\(textMode, answered\(chip\.params/, 'a way in skips the probe');
     // The open conversation is a model entry, never a row bolted on here.
     const keys = [...named('tutor/gate.ts').matchAll(/\{ key: '(\w+)', label: '/g)].map((m) => m[1]!);
     assert.deepEqual(keys, ['everyday', 'free', 'rehearse'], 'gate.ts no longer offers exactly the three ways in');

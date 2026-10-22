@@ -29,6 +29,10 @@ import { saveTextFile } from './progress/saveFile.ts';
 import { EndCard } from './celebrate/EndCard.tsx';
 import type { GameDelta } from './game/delta.ts';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { useProfile } from './app/ProfileContext.tsx';
+import { tutorNameOf } from './tutor/tutorName.ts';
+import { ReportSheet } from './live/ReportSheet.tsx';
+import { REPORT_COPY, reportAddress } from './settings/reportMail.ts';
 
 export function SummaryScreen({
   lesson,
@@ -40,6 +44,8 @@ export function SummaryScreen({
   onAgain,
   onReview,
   onDone,
+  sessionId = null,
+  openReport = false,
 }: {
   lesson: Lesson;
   summary: SessionSummary;
@@ -63,6 +69,10 @@ export function SummaryScreen({
   onReview?: () => void;
   /** The chevron out of the end card. The navigator hands back whichever tab launched the lesson. */
   onDone: () => void;
+  /** The live session this card closes, for the closed beta's report link. Null: the link still opens, without a session reference. */
+  sessionId?: string | null;
+  /** A report the learner saved in the live room: the sheet opens by itself, once, on arrival. */
+  openReport?: boolean;
 }) {
   const t = useB();
   const st = useThemedStyles(makeSt);
@@ -70,6 +80,8 @@ export function SummaryScreen({
   const [drilling, setDrilling] = useState(false);
   const [more, setMore] = useState(false);
   const [soundDetail, setSoundDetail] = useState(false);
+  const [reporting, setReporting] = useState(openReport);
+  const { profile } = useProfile();
   // A word first: the one this learner said worst in this lesson, else the
   // inventory's own beginner example. The symbol is behind the toggle.
   const focusWord = focus ? soundExampleWord(focus.phoneme.ipa, focus.stat.worstWord) ?? focus.phoneme.ipa : '';
@@ -290,7 +302,15 @@ export function SummaryScreen({
             </View>
           )}
         </View>
+
+        {/* Closed beta: the quiet way to say a reply felt wrong. After More,
+            so it never sits between the learner and the way out. */}
+        {reportAddress() !== null ? <Pressable onPress={() => setReporting(true)} accessibilityRole="button" accessibilityLabel={REPORT_COPY.endLink}
+          style={({ pressed }) => [st.disclosure, pressed && st.pressed]}>
+          <Text style={[type.small, { color: t.link }]}>{REPORT_COPY.endLink}</Text>
+        </Pressable> : null}
       </View>
+      {reporting ? <ReportSheet tutorName={tutorNameOf(profile)} sessionId={sessionId} onClose={() => setReporting(false)} /> : null}
     </ScrollScreen>
   );
 }

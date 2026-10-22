@@ -57,10 +57,22 @@ export function BulbGlyph({ size, color }: { size: number; color: string }) {
   );
 }
 
+/** A small flag on its pole, stroke 1.8: the beta's "Report this reply". */
+export function FlagGlyph({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M6 21V4M6 4h10l-2 4 2 4H6" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────── top
 
-/** The leave disc (drawn by the room, which owns its name), the scene's title and line, and the pace pill. */
-export function LiveTopBar({ leave, title, line, pace }: { leave: ReactNode; title: string; line: string | null; pace: string | null }) {
+/**
+ * The leave disc (drawn by the room, which owns its name), the scene's title
+ * and line, the pace pill, and, in the closed beta, the report disc after it.
+ */
+export function LiveTopBar({ leave, title, line, pace, report }: { leave: ReactNode; title: string; line: string | null; pace: string | null; report?: ReactNode }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
@@ -71,6 +83,7 @@ export function LiveTopBar({ leave, title, line, pace }: { leave: ReactNode; tit
         {line ? <Text style={[bType.note, { color: t.onBrandSoft }]}>{line}</Text> : null}
       </View>
       {pace ? <View style={s.pace}><Text style={[bType.chip, { color: t.onBrand }]}>{pace}</Text></View> : null}
+      {report ?? null}
     </View>
   );
 }
@@ -316,13 +329,17 @@ export function SheetSecondary({ label, onPress, disabled = false }: { label: st
   );
 }
 
-/** The 54pt primary with the mic: "Say your choice". */
-export function SheetPrimary({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+/**
+ * The 54pt primary, with the mic by default: "Say your choice". A primary
+ * that does not open the mic ("Write to us") passes `icon={null}`, so the
+ * green-means-you-speak mark never sits on something that is not speaking.
+ */
+export function SheetPrimary({ label, onPress, disabled = false, icon }: { label: string; onPress: () => void; disabled?: boolean; icon?: ReactNode }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
     <Press haptic="light" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[s.primary, disabled && s.disabled]}>
-      <BMic size={20} color={t.onPrimary} />
+      {icon === undefined ? <BMic size={20} color={t.onPrimary} /> : icon}
       <Text style={[bType.bold17, { color: t.onPrimary }]}>{label}</Text>
     </Press>
   );

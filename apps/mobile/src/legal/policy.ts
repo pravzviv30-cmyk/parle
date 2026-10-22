@@ -104,9 +104,9 @@
  *
  * ## Why it takes the facts
  *
- * The support address is not supplied yet, so every sentence that would name it
- * is absent rather than written with a blank in it. That is `company.ts`'s rule
- * reaching the longest piece of copy in the app.
+ * Every sentence that names the support address reads it from the facts, and
+ * is absent rather than written with a blank in it while there is none. That is
+ * `company.ts`'s rule reaching the longest piece of copy in the app.
  */
 
 import { COMPANY, LEGAL_REVIEW_PENDING, companyLine, contactRow, type CompanyFacts } from './company.ts';

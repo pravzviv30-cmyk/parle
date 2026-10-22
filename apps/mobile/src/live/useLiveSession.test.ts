@@ -48,7 +48,7 @@ import { recoveryPlan } from './journalRules.ts';
 import { classifyPipelineError, failureCopy, type LiveFailure } from './failure.ts';
 import { afterDismiss } from './safetyState.ts';
 import { opensSession } from './sessionOpened.ts';
-import { micOpensAtConnect, modeCarriesAudio, type LiveMode } from '../tutor/choosingView.ts';
+import { modeCarriesAudio, publishesMicAtConnect, type LiveMode } from '../tutor/choosingView.ts';
 import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
 import { holdLive, liveRoom } from '../sound/audioFocus.ts';
 import { recapMayTakeTheAudio } from './recapAudio.ts';
@@ -666,8 +666,10 @@ describe("the hook's audio path, per mode — F140", () => {
       'lesson-text': { audio: false, mic: false },
     };
 
-    for (const mode of MODES) {
-      const want = table[mode];
+    for (const mode of MODES) for (const listenOnly of [false, true]) {
+      // Listen only withdraws the publish and nothing else: the audio session
+      // and the playback are the mode's, because the tutor still speaks.
+      const want = { ...table[mode], mic: table[mode].mic && !listenOnly };
 
       // The guard that runs before anything else, on a device with no
       // microphone API at all. This is the learner the quiet modes exist for.
@@ -686,8 +688,9 @@ describe("the hook's audio path, per mode — F140", () => {
 
       await runAsync(AUDIO_BLOCKS.join('\n'), {
         mode,
+        listenOnly,
         modeCarriesAudio,
-        micOpensAtConnect,
+        publishesMicAtConnect,
         ensureAudioSession: () => {
           sessions.push(1);
           return Promise.resolve();

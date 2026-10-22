@@ -40,6 +40,8 @@ import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
+import { KeyboardMark } from '../live/LiveParts.tsx';
+import { Icon } from '../icons/Icon.tsx';
 import { visibleFacts } from '../profile/memory.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -74,7 +76,7 @@ import { strictnessLabel } from '../tutor/strictness.ts';
 import { paceOf } from '../tutor/pace.ts';
 import { CHANGE_VOICE, startModes, startNote, tutorCardFacts } from '../tutor/speakView.ts';
 import {
-  CHANGE_VOICE_ROUTE, EVERY_SCENE, LESS_HELP_TITLE, MODE_CHOICES, NEXT_CHIP, PREFERENCES_ROUTE, PREPARE_FIRST, RECOMMENDED,
+  CHANGE_VOICE_ROUTE, EVERY_SCENE, LESS_HELP_TITLE, MODE_CHOICES, modeChoice, withAnswerMode, type AnswerMode, type ModeChoice, NEXT_CHIP, PREFERENCES_ROUTE, PREPARE_FIRST, RECOMMENDED,
   SEE_MINUTES, SPEAK_TITLE, START, TALK_SUB, TALK_TITLE, USES_SPEAKING_TIME, correctionsChip, lessHelp, minutesBand, paceChip,
   recommended, sampleCaption, speakSubtitle, speakTiles, starterScenes, talkChips, tileLayout,
 } from '../tutor/speakTabView.ts';
@@ -94,8 +96,12 @@ export function TutorTab() {
   // Profile's standing "Prefer typing" is the default; the radios on the card
   // change only this start.
   const modes = startModes(prefersTyping(profile));
-  const [chosenText, setChosenText] = useState<boolean | null>(null);
-  const textMode = chosenText ?? modes.textMode;
+  // Speak or Type by default, never Listen: Listen is chosen per start.
+  const [chosenMode, setChosenMode] = useState<AnswerMode | null>(null);
+  const answer = modeChoice(chosenMode ?? modes.mode);
+  const textMode = answer.textMode;
+  /** A start's params, carrying Listen only when that is the choice. */
+  const answered = (params: object): object => withAnswerMode(answer.key, params);
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 350 || fontScale >= 1.5;
 
@@ -263,7 +269,7 @@ export function TutorTab() {
   // 2026-10-21 UI-008, B-Empty-States "Tutor away or offline": the retry is
   // the away card's 46 ink button, hugging its words.
   const primary = <BButton hug label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} height={46} ground={t.primary} ink={t.onPrimary} text={bType.bold15}
-    disabled={checking} onPress={() => open(heldBack?.textMode ?? textMode, heldBack ? pendingStart.current : next.params)} />;
+    disabled={checking} onPress={() => open(heldBack?.textMode ?? textMode, heldBack ? pendingStart.current : answered(next.params))} />;
   // B-Empty-States "Out of speaking time": only on the free plan with nothing
   // left this week, and never on top of the away card.
   const outOfTime = offlineShown ? null : outOfTimeCard(planView);
@@ -306,11 +312,12 @@ export function TutorTab() {
             {rec.minutes !== null && <HeroPill label={rec.minutes} />}
             <HeroPill label={USES_SPEAKING_TIME} />
           </View>
-          <View accessibilityRole="radiogroup" accessibilityLabel="Speak or type" style={[st.segment, stacked && st.column]}>
+          <View accessibilityRole="radiogroup" accessibilityLabel="How you answer" style={[st.segment, stacked && st.column]}>
             {MODE_CHOICES.map((choice) => (
-              <Segment key={choice.key} label={choice.label} selected={textMode === choice.textMode} onPress={() => setChosenText(choice.textMode)} />
+              <Segment key={choice.key} label={choice.label} selected={answer.key === choice.key} onPress={() => setChosenMode(choice.key)} />
             ))}
           </View>
+          <Text style={[bType.meta, st.after4, { color: t.heroText }]}>{answer.helper(tutorName)}</Text>
           <View style={[st.chips, st.after4]}>
             <OutlineChip label={correctionsChip(strictnessLabel(profile))} onPress={() => nav.navigate(PREFERENCES_ROUTE.screen)} />
             <OutlineChip label={paceChip(tutorName, paceOf(profile))} onPress={() => nav.navigate(PREFERENCES_ROUTE.screen)} />
@@ -322,7 +329,7 @@ export function TutorTab() {
           )}
           <View style={st.after2}>
             <BButton label={START} accessibilityLabel={`${START}, ${rec.title}`} height={54} ground={t.heroCta} ink={t.heroCtaText} text={bType.bold18}
-              icon={<BMic size={20} color={t.heroCtaText} />} disabled={checking} onPress={() => open(textMode, next.params)} />
+              icon={<StartGlyph icon={answer.icon} color={t.heroCtaText} />} disabled={checking} onPress={() => open(textMode, answered(next.params))} />
           </View>
           {checking && <Text accessibilityLiveRegion="polite" style={[bType.meta, st.centred, { color: t.heroText }]}>{TUTOR_OFFLINE.checking}</Text>}
           {note !== null && <Text style={[bType.meta, st.centred, { color: t.heroText }]}>{note}</Text>}
@@ -353,7 +360,7 @@ export function TutorTab() {
         </View>
 
         {replay !== null && (
-          <Press haptic="light" disabled={checking} onPress={() => tapThrough(locks.access, replay.feature, locks.open, () => open(textMode, replay.params))} accessibilityRole="button" accessibilityLabel={`${LESS_HELP_TITLE}, ${replay.title}, ${replay.line}, ${replay.help}${replay.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
+          <Press haptic="light" disabled={checking} onPress={() => tapThrough(locks.access, replay.feature, locks.open, () => open(textMode, answered(replay.params)))} accessibilityRole="button" accessibilityLabel={`${LESS_HELP_TITLE}, ${replay.title}, ${replay.line}, ${replay.help}${replay.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
             style={st.twist}>
             <View {...decorative} style={st.twistTile}>
               <BArt name="cafe-table" width={70} height={64} style={st.twistArt} />
@@ -377,7 +384,7 @@ export function TutorTab() {
           </View>
           <View style={st.chips8}>
             {talk.map((chip) => (
-              <Press key={chip.label} haptic="light" disabled={checking} accessibilityLabel={chip.label} hitSlop={CHIP_SLOP} onPress={() => open(textMode, chip.params)}
+              <Press key={chip.label} haptic="light" disabled={checking} accessibilityLabel={chip.label} hitSlop={CHIP_SLOP} onPress={() => open(textMode, answered(chip.params))}
                 style={[st.talkChip, { backgroundColor: chip.own ? t.violet2 : t.card }]}>
                 <Text style={[bType.semi15, { color: chip.own ? t.onBrand : t.text }]}>{chip.label}</Text>
               </Press>
@@ -446,11 +453,18 @@ function HeroPill({ label }: { label: string }) {
 }
 
 /** One cell of the Speak/Type control: 40 high, radius 20, a radio. */
+/** The Start's glyph for the chosen mode: the same art the Scenes tiles and the room use. */
+function StartGlyph({ icon, color }: { icon: ModeChoice['icon']; color: string }) {
+  if (icon === 'keyboard') return <KeyboardMark size={20} color={color} />;
+  if (icon === 'headphones') return <Icon name="headphones" size={20} color={color} />;
+  return <BMic size={20} color={color} />;
+}
+
 function Segment({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const t = useB();
   const st = useThemedStyles(makeStyles);
   return (
-    <Press haptic="selection" accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected, selected }} hitSlop={CHIP_SLOP}
+    <Press haptic="selection" accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected, selected }} aria-checked={selected} hitSlop={CHIP_SLOP}
       onPress={onPress} frame={st.grow} style={[st.cell, selected && { backgroundColor: t.heroChip }]}>
       {selected && <Tick color={t.heroText} />}
       <Text style={[selected ? bType.bold15 : bType.semi15, { color: t.heroText }]}>{label}</Text>

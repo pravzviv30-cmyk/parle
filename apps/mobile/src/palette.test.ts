@@ -19,6 +19,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b } from './palette.ts';
 
@@ -924,4 +925,21 @@ describe('the paywall reads in both modes — UI-008, 2026-10-21', () => {
       if (mode === 'dark') assert.ok(contrast(t.sun, c.background) >= 3, 'dark: the timeline disc is lost on the ground');
     });
   }
+});
+
+describe('the saved-report flag disc in the live room', () => {
+  // A mark that reports state clears 3 against its paper. The room's paper is
+  // `brand`; the pending disc is `onBrand` with a `brand` flag inside it.
+  for (const mode of ['light', 'dark'] as const) {
+    test(`${mode}: the filled disc reads against the room, and its flag against the disc`, () => {
+      const t = b[mode];
+      assert.ok(contrast(t.onBrand, t.brand) >= 3, `${mode}: the pending disc is ${contrast(t.onBrand, t.brand).toFixed(2)}:1 on the room`);
+      assert.ok(contrast(t.brand, t.onBrand) >= 3, `${mode}: the flag is lost inside its disc`);
+    });
+  }
+  test('the room draws it from those tokens', () => {
+    const room = readFileSync(fileURLToPath(new URL('./live/C2LiveRoom.tsx', import.meta.url)), 'utf8');
+    assert.match(room, /reportPending: \{ backgroundColor: t\.onBrand, borderColor: t\.onBrand \}/);
+    assert.match(room, /<FlagGlyph size=\{18\} color=\{report\.pending \? t\.brand : t\.onBrandSoft\} \/>/);
+  });
 });

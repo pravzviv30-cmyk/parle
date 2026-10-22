@@ -818,8 +818,9 @@ Both the conversation agent and scripted lesson agent now inspect their own outp
 
 **Luvani is not an emergency service.** It is not a crisis line, not a counselling
 service, not a safeguarding service, and not monitored. Nobody is watching a
-session. Nobody is on call. No message a learner sends reaches a human, at any hour,
-by any route.
+session. Nobody is on call. Nothing a learner says or types in a session reaches a
+human, at any hour. The one way to a person is an email the learner chooses to
+write (the beta report route below), and it is read in working hours, not watched.
 
 Saying that clearly is the policy, because the alternative — implying that
 something is watching — is the failure that gets somebody hurt. The tutor's own
@@ -877,10 +878,41 @@ Luvani has nothing to escalate *with*. We accept that trade knowingly: a languag
 app that quietly builds a file on what its learners said in distress is a worse
 product than one that admits it cannot help and gets out of the way.
 
-**If a reporting route is ever built**, three rules bind it before any code is
-written. It carries no transcript by default. It says on the screen that it is not
-an emergency route and how long a reply takes. And it exists only once a named
-human is accountable for reading it.
+**The beta reporting route (22 October 2026).** Three rules were set before any
+code was written: it carries no transcript by default, it says on the screen that
+it is not an emergency route and how long a reply takes, and it exists only once a
+named human is accountable for reading it. What was built meets them like this:
+
+- "Report this reply" sits on the live room (a small flag beside the scene title)
+  and on both end cards ("Something felt off? Tell us"). It is never on the
+  safety-stop surface, which keeps its one way out.
+- The in-room flag never leaves the app. Its sheet says "Tell us when this session
+  ends, so you keep your place", and "Report at the end" saves the report for the
+  end card (the flag then shows as filled, "Report saved for the end of this
+  session"; tapping it again offers "Cancel the report"). The reason is that
+  opening Mail mid session drops the room: on web the `mailto:` link replaces the
+  page and LiveKit disconnects on unload, and on iOS the app has no background-audio
+  mode. When the session ends, the recap or lesson summary opens the mail sheet
+  ("Tell us what felt off") by itself; the room's own sheet keeps the title
+  "Report this reply".
+- On the end cards the sheet opens the learner's own mail app to the support
+  address in `apps/mobile/src/legal/company.ts`. Luvani sends nothing itself.
+- The subject is a reference and nothing else: the session id and the app version
+  (`apps/mobile/src/settings/reportMail.ts`). There is no body. Nothing the learner
+  said is attached, because nothing is kept to attach. This is the one exception to
+  `openMail`'s no-prefilled-text rule, and the reason is in its doc comment: without
+  the session id a report cannot be matched to the usage ledger or the worker's log
+  lines.
+- The sheet says the founder's promise, "We read every report and reply within two
+  working days", and "This is not an emergency line. If you are in danger, call
+  your local emergency number."
+- The accountable reader is the founder, who reads the support mailbox (decided by
+  the founder on 22 October 2026). Anything a report raises that is on the list
+  below goes to the founder or legal, not into code.
+
+A staffed in-app workflow (one that sends without a mail app, or carries an
+optional excerpt the learner chooses) is still owed before public launch, and it
+would have to meet the same three rules.
 
 **Escalate, do not decide in code:** anything involving a minor, any health or
 safety report, any law-enforcement or legal request, any new vendor that would
@@ -916,8 +948,8 @@ for a question `grep` already answers.
 **Nothing watches this line.** It is read after the fact, by whoever can read the
 worker's logs, to answer how often the boundary fires and on which rule. Nobody
 is alerted, nobody is on call, and no session is looked at because of it. It
-changes nothing above: there is still no escalation route and no reporting
-route, and a log line is not the start of one.
+changes nothing above: there is still no escalation route, the only reporting
+route is the learner's own email, and a log line is not the start of either.
 
 How long it is kept is the log host's answer and not ours. Nothing in this repo
 sets a retention for worker logs, and that is in [Not true yet](#not-true-yet)

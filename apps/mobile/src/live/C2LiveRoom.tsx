@@ -10,8 +10,10 @@ import { enterSubmits, keyPressFrom } from '../tutor/enterSubmit.ts';
 import { BMic } from '../today/TodayParts.tsx';
 import type { TurnLine } from './turns.ts';
 import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy.ts';
-import { AskedCard, BulbGlyph, CloseGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
-import { HELP_COPY, askedLabel, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
+import { RoomReportSheet } from './ReportSheet.tsx';
+import { reportAddress, REPORT_COPY } from '../settings/reportMail.ts';
+import { AskedCard, BulbGlyph, CloseGlyph, FlagGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
+import { HELP_COPY, askedLabel, typingNote, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
 
 /**
  * Presentation only. Every action is supplied by the existing session owner.
@@ -23,12 +25,20 @@ import { HELP_COPY, askedLabel, goalStrip, helpLadder, ladderSpoken, liveBubbles
  * (the M3 ground in dark): what the tutor asked, the ladder Hint, Choices,
  * Line given over the live rung, the rung's own content, "More help: show the
  * line", "Say your choice" and the footnote. Every rule is in liveRoomView.ts.
+ *
+ * Closed beta: when the owner passes `report`, a quiet flag disc sits after
+ * the pace pill and opens "Report this reply" in the same sheet layer as Help.
+ * The room never opens Mail, because leaving the app drops the room: the
+ * sheet saves the report (`report.pending`, owned by the screen) and the end
+ * card opens the mail sheet by itself. A saved report fills the disc.
+ * The owner passes it only for the live room itself, never for the waiting,
+ * error or safety surfaces.
  */
 export function C2LiveRoom({ tutorName, description, state, caption, turns, tutorSpeaking, partialTranscript,
   typing, startedWithSpeech = true, ready = true, modePending = false, active = true, embedded = false,
   transcriptVisible, onTranscriptVisibility, draft, onDraft, onSend, onModeChange, onMic, micOpen,
   onEnd, onReplayTutor, canSend = true, top, support, tools, footer, notice,
-  title, pace = null, goals = [], helpKind = 'none', moreHelp,
+  title, pace = null, goals = [], helpKind = 'none', moreHelp, report,
 }: {
   tutorName: string; description: string; state: OrbState; caption: string;
   turns: readonly TurnLine[]; tutorSpeaking: boolean; partialTranscript?: string | null;
@@ -48,6 +58,8 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   helpKind?: SupportKind;
   /** Steps the rung on: the session's own help request. */
   moreHelp?: { onPress: () => void; disabled: boolean };
+  /** The closed beta's report control: whether a report is saved for the end card. Absent: no control. */
+  report?: { pending: boolean; onPending: (pending: boolean) => void };
 }) {
   const insets = useSafeAreaInsets();
   const t = useB();
@@ -81,11 +93,16 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
     if (!enterSubmits(Platform.OS, keyPressFrom(event), draft)) return;
     event.preventDefault(); void submit();
   };
+  // The report sheet shares Help's layer, so opening Help closes it.
+  const [reportOpen, setReportOpen] = useState(false);
+  const reportable = report !== undefined && reportAddress() !== null;
+  useEffect(() => { if (helpOpen) setReportOpen(false); }, [helpOpen]);
   const chips = goalStrip(goals);
   const bubbles = liveBubbles(turns, partialTranscript);
   const asked = lastTutorLine(turns);
   const ladder = helpLadder(helpKind);
   const helpAvailable = Boolean(support || tools || moreHelp);
+  const note = typingNote(typing, startedWithSpeech, tutorName);
   const speakDisabled = !canResumeSpeaking(startedWithSpeech, ready, modePending);
   const sayChoice = () => {
     setHelpOpen(false);
@@ -96,6 +113,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
     <View style={[st.column, { paddingTop: embedded ? 12 : insets.top + 20, paddingBottom: keyboardOpen ? 10 : Math.max(insets.bottom, 10) + 10 }]}>
       <View style={st.head} onTouchEnd={dismiss}>
         <LiveTopBar title={title ?? `${tutorName}, your tutor`} line={description} pace={pace}
+          report={reportable ? <Press haptic="none" accessibilityLabel={report.pending ? REPORT_COPY.pendingControl : REPORT_COPY.control} accessibilityState={report.pending ? { selected: true } : { expanded: reportOpen }} onPress={() => { dismiss(); setHelpOpen(false); setReportOpen(value => !value); }} style={[st.report, report.pending && st.reportPending]}><FlagGlyph size={18} color={report.pending ? t.brand : t.onBrandSoft} /></Press> : null}
           leave={<Press haptic="none" onPress={onEnd} accessibilityLabel="End session" style={st.leave}><CloseGlyph size={18} color={t.onBrand} /></Press>} />
         <GoalsStrip chips={chips} />
       </View>
@@ -147,10 +165,13 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
             {helpAvailable ? <SideControl label="Help" accessibilityLabel={helpOpen ? 'Close help' : 'Get help'} expanded={helpOpen}
               icon={<BulbGlyph size={24} color={t.onBrand} />} onPress={() => setHelpOpen(value => !value)} /> : <View {...decorative} style={st.sideSpace} />}
           </View>}
-          {typing && !startedWithSpeech && controlsVisible && <Text style={[bType.note, st.center, { color: t.onBrandSoft }]}>This session started in typing mode.</Text>}
+          {note !== null && controlsVisible && <Text style={[bType.note, st.center, { color: t.onBrandSoft }]}>{note}</Text>}
         </>}
       </View>
     </View>
+    {reportOpen && reportable && report && !helpOpen ? <View style={[st.sheetLayer, { paddingBottom: Math.max(insets.bottom, 10) + 20 }]}>
+      <RoomReportSheet tutorName={tutorName} pending={report.pending} onPending={report.onPending} onClose={() => setReportOpen(false)} />
+    </View> : null}
     {helpOpen && controlsVisible && helpAvailable && !footer ? <View style={[st.sheetLayer, { paddingBottom: Math.max(insets.bottom, 10) + 20 }]}>
       <HelpSheet title={HELP_COPY.title} closeLabel={HELP_COPY.close} onClose={() => setHelpOpen(false)}>
         <ScrollView style={st.support} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 14, paddingBottom: 4 }}>
@@ -158,7 +179,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
           <HelpLadder steps={ladder} spoken={ladderSpoken(ladder)} />
           {support}
           {moreHelp && moreHelpOffered(helpKind) ? <SheetSecondary label={HELP_COPY.more} disabled={moreHelp.disabled} onPress={moreHelp.onPress} /> : null}
-          <SheetPrimary label={typing ? 'Type your choice' : HELP_COPY.say} disabled={!ready} onPress={sayChoice} />
+          <SheetPrimary label={typing ? 'Type your choice' : HELP_COPY.say} icon={typing ? <KeyboardMark size={20} color={t.onPrimary} /> : undefined} disabled={!ready} onPress={sayChoice} />
           <Text style={[bType.note, st.center, { color: t.muted }]}>{HELP_COPY.foot}</Text>
           {tools}
         </ScrollView>
@@ -173,6 +194,13 @@ function makeStyles(t: B) {
     column: { flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 22 },
     head: { flexShrink: 0 },
     leave: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
+    // The report disc: the leave disc's size and place in the bar, but quieter, an
+    // outline on the room rather than a filled disc, so leaving stays the louder exit.
+    report: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
+    // Filled like the leave disc once a report is saved for the end card.
+    // Filled in the room's words colour, not violetDeep: violetDeep on the brand
+    // ground is 1.3:1, so the saved state could not be told from the empty one.
+    reportPending: { backgroundColor: t.onBrand, borderColor: t.onBrand },
     center: { textAlign: 'center' },
     top: { flexGrow: 0, maxHeight: '20%', paddingTop: 8 },
     transcriptToggle: { minHeight: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', paddingHorizontal: 12 },

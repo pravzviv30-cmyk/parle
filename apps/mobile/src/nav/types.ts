@@ -54,9 +54,10 @@ export type RootStackParamList = {
   /**
    * The guided café lesson, and the summary it ends on. `textMode` opens it
    * with the voice pipeline dark, for a learner who cannot speak aloud right
-   * now — the same door the conversation has always had.
+   * now — the same door the conversation has always had. `listenOnly` keeps
+   * the tutor's voice and the microphone closed; `textMode` wins if both are set.
    */
-  Lesson: { textMode?: boolean } | undefined;
+  Lesson: { textMode?: boolean; listenOnly?: boolean } | undefined;
   /**
    * Free conversation. `textMode` opens it with the voice pipeline dark.
    * `seedTopic` is what the learner asked to talk about again, in both
@@ -85,6 +86,8 @@ export type RootStackParamList = {
   Convo: {
     walkMode?: boolean;
     textMode?: boolean;
+    /** Listen only: the tutor speaks, the learner types or taps, the mic stays closed. */
+    listenOnly?: boolean;
     seedTopic?: { fr: string; en: string };
     missionId?: string;
     continuationPackId?: string;

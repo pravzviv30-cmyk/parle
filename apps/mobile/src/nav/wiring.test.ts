@@ -529,3 +529,37 @@ describe('every pushed learning screen has a way out when opened cold — whole-
     assert.match(screen, /Choose a situation first\./);
   });
 });
+
+describe('Listen only is delivered, not just declared', () => {
+  // Same lesson as the mission id above: a param on the route type that no hop
+  // forwards is a choice the learner made and the room never heard. Each hop
+  // is held here, from the route to the hook.
+  const flat = (s: string): string => s.replace(/\s+/g, ' ');
+  const nav = flat(read('./RootNavigator.tsx'));
+
+  test('both routes declare it', () => {
+    const types = flat(read('./types.ts'));
+    assert.match(types, /Lesson: \{ textMode\?: boolean; listenOnly\?: boolean \} \| undefined;/);
+    assert.match(types, /Convo: \{ walkMode\?: boolean; textMode\?: boolean; (\/\*\*.*?\*\/ )?listenOnly\?: boolean;/);
+  });
+
+  test('the routes forward it, typed winning over listen', () => {
+    assert.match(nav, /const listenOnly = !textMode && \(route\.params\?\.listenOnly \?\? false\);/);
+    assert.match(nav, /key=\{textMode \? 'live-text' : listenOnly \? 'live-listen' : 'live'\}/, 'switching lesson mode must rebuild the room');
+    assert.match(nav, /listenOnly=\{listenOnly\}/);
+    assert.match(nav, /listenOnly=\{!walkMode && !\(route\.params\?\.textMode \?\? false\) && \(route\.params\?\.listenOnly \?\? false\)\}/);
+  });
+
+  test('both screens hand it to the hook and open the typing box with it', () => {
+    const convo = flat(read('../ConvoScreen.tsx'));
+    assert.match(convo, /useState\(listenOnly \|\| prefersTyping\(profile\)\)/);
+    const convoOpts = convo.slice(convo.indexOf('useLiveSession('), convo.indexOf('useLiveSession(') + 300);
+    assert.match(convoOpts, /listenOnly,/);
+    assert.match(convo, /onOptionPress=\{typing \|\| typingOpen \? changeDraft : undefined\}/, 'a tapped option has nowhere to go in the conversation');
+
+    const lesson = flat(read('../LiveSessionScreen.tsx'));
+    assert.match(lesson, /const \[typingOpen, setTypingOpen\] = useState\(listenOnly\);/);
+    const lessonOpts = lesson.slice(lesson.indexOf('useLiveSession('), lesson.indexOf('useLiveSession(') + 300);
+    assert.match(lessonOpts, /listenOnly,/);
+  });
+});

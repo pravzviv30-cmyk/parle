@@ -179,7 +179,7 @@ export function PracticeTab() {
     const go = () => {
       if (!ownsReadNow()) return;
       setChecking(false);
-      const start = lessonStart(false);
+      const start = lessonStart('speak');
       nav.navigate(start.screen, start.params);
     };
     void recheck().then(answered => { if (answered) go(); else { if (!ownsReadNow()) return; setChecking(false); setHeldBack({ textMode: false }); } }, () => { if (!ownsReadNow()) return; setChecking(false); setHeldBack({ textMode: false }); });

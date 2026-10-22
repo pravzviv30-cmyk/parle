@@ -156,10 +156,17 @@ export const TUTOR_INTRO_LINK = 'How the voice circle works';
  * server that came up after launch, and what stops a tap looking dead for a
  * second and a half. It simply is not allowed to be a refusal.
  */
-export type LessonStart = { screen: 'Lesson'; params: { textMode: true } | undefined };
+export type LessonStart = { screen: 'Lesson'; params: { textMode: true } | { listenOnly: true } | undefined };
 
-export function lessonStart(textMode: boolean): LessonStart {
-  return { screen: 'Lesson', params: textMode ? { textMode: true } : undefined };
+/**
+ * `how` is the learner's answer mode. Listen only is the spoken lesson with the
+ * microphone kept closed, so it rides as its own flag rather than as a typed
+ * lesson: the tutor still speaks.
+ */
+export function lessonStart(how: 'speak' | 'listen' | 'type'): LessonStart {
+  if (how === 'type') return { screen: 'Lesson', params: { textMode: true } };
+  if (how === 'listen') return { screen: 'Lesson', params: { listenOnly: true } };
+  return { screen: 'Lesson', params: undefined };
 }
 
 /**

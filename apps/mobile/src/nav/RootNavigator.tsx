@@ -166,11 +166,17 @@ function LessonRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
   const t = useB();
   const textMode = route.params?.textMode ?? false;
+  // Typed wins: a session with no voice has no microphone to keep closed.
+  const listenOnly = !textMode && (route.params?.listenOnly ?? false);
   const { user } = useAuth();
   const { live, recheck } = useLive();
   const [checking, setChecking] = useState(false);
   const [startRung, setStartRung] = useState<Rung | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
+  // The live session the summary closes, for the end card's report link only.
+  const [summarySession, setSummarySession] = useState<string | null>(null);
+  // A report saved in the live room, which the summary opens by itself.
+  const [summaryReport, setSummaryReport] = useState(false);
   // The finished lesson's delta, as the settle read it back, for its end card.
   const [delta, setDelta] = useState<GameDelta | null>(null);
   // While the lesson is up the celebration queue is held, so no takeover
@@ -279,6 +285,8 @@ function LessonRoute() {
     finishes.current += 1;
     endHold.release();
     setSummary(null);
+    setSummarySession(null);
+    setSummaryReport(false);
     setDelta(null);
     setReport(null);
     setStartRung(null);
@@ -301,6 +309,8 @@ function LessonRoute() {
       <SummaryScreen
         lesson={CAFE_LESSON}
         summary={summary}
+        sessionId={summarySession}
+        openReport={summaryReport}
         delta={delta}
         release={endHold.release}
         report={report}
@@ -314,13 +324,16 @@ function LessonRoute() {
   return (
     <Suspense fallback={<Loading />}>
       <LazyLiveSessionScreen
-        key={textMode ? 'live-text' : 'live'}
+        key={textMode ? 'live-text' : listenOnly ? 'live-listen' : 'live'}
         lesson={CAFE_LESSON}
         userId={user.id}
         startRung={startRung}
         textMode={textMode}
+        listenOnly={listenOnly}
         onRetryAsText={() => nav.setParams({ textMode: true })}
         onFinish={finish}
+        onSessionId={setSummarySession}
+        onReportPending={setSummaryReport}
         onExit={leave}
       />
     </Suspense>
@@ -476,6 +489,9 @@ function ConvoRoute() {
         onJourney={() => nav.reset(tabsAlone('MyFrench'))}
         walkMode={walkMode}
         startInTextMode={walkMode ? false : route.params?.textMode ?? false}
+        // Listen only: the voice stays, the microphone does not open. A walk is
+        // hands-free by definition and typed wins over it.
+        listenOnly={!walkMode && !(route.params?.textMode ?? false) && (route.params?.listenOnly ?? false)}
         seedTopic={route.params?.seedTopic}
         continuationPackId={route.params?.continuationPackId}
         // The mission the learner chose, carried through to the join token so

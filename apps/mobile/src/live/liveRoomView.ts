@@ -93,6 +93,21 @@ export const HELP_COPY = {
   close: 'Close help',
 } as const;
 
+/**
+ * The quiet line under the room's controls while the typing box is open.
+ *
+ * Two different facts, so two different lines. A session that started typed
+ * has no voice at all, and says so. A spoken session with the box open (the
+ * Type control, or Listen only from the start) still has the tutor's voice and
+ * a closed microphone, and the learner on a train needs to know both: nobody
+ * hears them, and the phone will still talk.
+ */
+export function typingNote(typing: boolean, startedWithSpeech: boolean, tutorName: string): string | null {
+  if (!typing) return null;
+  if (!startedWithSpeech) return 'This session started in typing mode.';
+  return `Your mic is off. ${tutorName} still speaks out loud.`;
+}
+
 /** "{tutor} asked", over the tutor's last line in the help sheet. */
 export function askedLabel(tutorName: string): string {
   return `${tutorName} asked`;

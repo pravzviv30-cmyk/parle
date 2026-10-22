@@ -156,6 +156,19 @@ export function micOpensAtConnect(mode: LiveMode | undefined): boolean {
 }
 
 /**
+ * The connect-time decision the hook actually makes: the mode's answer, unless
+ * the learner chose Listen only.
+ *
+ * Listen only is the voiced grant with the microphone kept closed, not a mode
+ * of its own, so it cannot live in `MODE_CAPS`: the tutor still speaks and the
+ * room still plays back. It only withdraws the publish, which for a lesson is
+ * the hot microphone the learner on a train asked not to have.
+ */
+export function publishesMicAtConnect(mode: LiveMode | undefined, listenOnly: boolean): boolean {
+  return !listenOnly && micOpensAtConnect(mode);
+}
+
+/**
  * Is there any audio in this session, in either direction?
  *
  * The question the hook has to ask three times over: whether to look for a

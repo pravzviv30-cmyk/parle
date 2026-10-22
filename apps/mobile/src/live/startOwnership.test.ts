@@ -35,7 +35,7 @@ import { RoomEvent, Track } from 'livekit-client';
 import { ConversationTextRecorder, DEFAULT_TUTOR_VOICE, TOPIC_SERVER } from '@luvani/core';
 
 import { NO_START, nextStart, standDown, startStillOwns } from './startOwnership.ts';
-import { micOpensAtConnect, modeCarriesAudio } from '../tutor/choosingView.ts';
+import { modeCarriesAudio, publishesMicAtConnect } from '../tutor/choosingView.ts';
 
 /* ------------------------------------------------------------------------- *
  * The rules themselves.
@@ -303,7 +303,8 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     RoomEvent,
     Track,
     modeCarriesAudio,
-    micOpensAtConnect,
+    publishesMicAtConnect,
+    listenOnly: false,
     // The real one asks navigator, which node has and browsers on http do not.
     // Its own rule is held by useLiveSession.test.ts, per mode.
     micApiUnavailable: () => false,

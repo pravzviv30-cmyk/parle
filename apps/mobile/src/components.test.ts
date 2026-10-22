@@ -1042,9 +1042,9 @@ describe('the icon controls keep their promises', () => {
     // Two to four tiles share a row and wrap two to a line at the tab bar's
     // large-text threshold, watched while the app is open.
     const row = part('IconActionRow');
-    assert.match(source, /const ACTION_ROW_WRAPS = 1\.6;/, 'the action row does not wrap at the tab bar\'s threshold');
-    assert.match(row, /PixelRatio\.getFontScale\(\) >= ACTION_ROW_WRAPS/, 'the action row does not read the size the words are drawn at');
-    assert.match(row, /useWindowDimensions\(\);/, 'the action row does not re-render when the reading size changes');
+    // The rule itself lives in responsiveLayout.ts with its own tests.
+    assert.match(row, /actionRowWraps\(tiles\.length, width, PixelRatio\.getFontScale\(\)\)/, 'the action row does not read the size the words are drawn at, or its width and count');
+    assert.match(row, /const \{ width \} = useWindowDimensions\(\);/, 'the action row does not re-render when the reading size or width changes');
     assert.match(styles, /cell: \{ flex: 1, minWidth: 0 \}/, 'an action tile cannot shrink to share the row');
     assert.match(styles, /cellWrapped: \{ flexBasis: '47%', flexGrow: 1, minWidth: 0 \}/, 'action tiles do not wrap two to a line at large text');
 

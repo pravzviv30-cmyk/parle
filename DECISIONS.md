@@ -412,3 +412,33 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   (`[luvani:live] reply-latency`).
 - Sources: [live voice](docs/LIVE_VOICE.md), `packages/brain/src/llm/spokenFields.ts`,
   `packages/brain/src/llm/openaiResponses.ts`, `scripts/measureLiveTurn.mjs`.
+
+## UI-010 — Beta report route by mail, and listen only on the voiced grant
+
+- Date: 2026-10-22
+- Status: accepted
+- Decision: "Report this reply" on both end cards opens the learner's own mail
+  app to the support address. The flag in the live room never leaves the app: it
+  saves the report, and the recap or lesson summary opens the mail sheet by itself
+  when the session ends, because opening Mail mid session drops the room (web
+  unloads the page and LiveKit disconnects; iOS has no background-audio mode). The subject carries only the
+  session id and app version (`settings/reportMail.ts`), and there is never a
+  body. Listen only is the voiced `convo` or `lesson` grant with the microphone
+  kept closed (`listenOnly` on the route and on `useLiveSession`), offered as a
+  third choice on the Tutor tab and a third lesson tile on the Scenes screen. It
+  is not a new `LiveMode`.
+- Reason: the closed beta needs a way to flag a bad tutor reply, and Luvani
+  keeps no transcript, so a report is only useful with a reference that matches
+  it to the usage ledger and worker logs. That reference is the one exception to
+  `openMail`'s no-prefilled-text rule. Learners in public cannot speak aloud
+  (PRODUCT.md: never require it), and the typed grants also silence the tutor,
+  while the room's Type control already keeps the voice on with the mic off.
+- Consequence: the three rules for a reporting route in
+  [PRIVACY_AND_SAFETY.md](docs/PRIVACY_AND_SAFETY.md) are met for the beta: no
+  transcript, an on-screen "not an emergency line" and a two-working-day reply
+  promise, and the founder as the accountable reader. A staffed in-app workflow
+  is still owed before public launch. Listen only sends nothing new to the token
+  server or agent; `live_session_finished.voice` stays true because the tutor
+  spoke.
+- Sources: [risk register](docs/RISK_REGISTER.md),
+  [live voice](docs/LIVE_VOICE.md), founder answers of 22 October 2026.

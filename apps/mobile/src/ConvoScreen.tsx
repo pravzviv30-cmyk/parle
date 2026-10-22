@@ -110,6 +110,7 @@ import { recapWait } from './tutor/recapWait.ts';
 import { KeyboardGlyph, SpeakerSlowGlyph } from './glyphs.tsx';
 import { RoomWait } from './live/RoomWait.tsx';
 import { useB } from './main/bTheme.tsx';
+import { ReportSheet } from './live/ReportSheet.tsx';
 import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
 import { waitingNote } from './tutor/waitingView.ts';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
@@ -191,6 +192,7 @@ export function ConvoScreen({
   onPractice,
   onJourney,
   startInTextMode = false,
+  listenOnly = false,
   walkMode = false,
   seedTopic,
   continuationPackId,
@@ -210,6 +212,8 @@ export function ConvoScreen({
   onJourney?: () => void;
   /** "Can't speak right now": the same tutor, typed. */
   startInTextMode?: boolean;
+  /** Listen only: the tutor speaks out loud, the mic stays closed, the box is open. */
+  listenOnly?: boolean;
   walkMode?: boolean;
   /**
    * What the learner asked to talk about again, from a topic card. It rides the
@@ -267,6 +271,11 @@ export function ConvoScreen({
   // The leave gate. `confirming` shows the sheet; `leaving` is raised on commit,
   // which drops the guard so the exit can run from an effect rather than inline.
   const [confirming, setConfirming] = useState(false);
+  // A report the learner saved in the room for the end card (live/ReportSheet.tsx).
+  const [reportPending, setReportPending] = useState(false);
+  // Set once the room has closed on a leave with a saved report (see the leave effect).
+  const [leftWithReport, setLeftWithReport] = useState<{ sessionId: string | null } | null>(null);
+  const paperGround = useB().ground;
   const [leaving, setLeaving] = useState(false);
   const leaveCopy = leaveConfirmCopy('conversation');
   // Which text input holds the caret, for the ink focus border. Visual only.
@@ -278,10 +287,12 @@ export function ConvoScreen({
   // Seeded from the stored choice, which is what "Prefer typing" means: the box
   // is already open when the room is. Still not the quiet door, and the seed
   // does not change that — the tutor speaks, and the circle is one tap away.
-  const [typingOpen, setTypingOpen] = useState(prefersTyping(profile));
+  // Listen only seeds it too: the same open box, chosen for this one session.
+  const [typingOpen, setTypingOpen] = useState(listenOnly || prefersTyping(profile));
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
     noTypedRecovery: walkMode,
     mode: openedTyped ? 'convo-text' : 'convo',
+    listenOnly,
     snapshot,
     seedTopic,
     continuationPackId,
@@ -857,8 +868,15 @@ export function ConvoScreen({
 
   // The exit runs from the effect, not from the sheet's confirm: with the guard
   // still up an inline pop would be prevented. Raising `leaving` lowers it first.
+  // A report saved in the room, and a leave with no end card after it: the
+  // room is closed first (so the mailto navigation cannot drop anything on
+  // web), then the card ReportSheet opens, and the exit runs when it closes,
+  // whether or not mail opened. Never after a safety stop: the stop keeps its
+  // one way out, and it is checked first below.
+  const reportHeld = reportPending && !stopped;
+  const leaveToReport = () => { const sessionId = live.sessionId; leaveTo(() => setLeftWithReport({ sessionId })); };
   useEffect(() => {
-    if (leaving) leaveNow();
+    if (leaving) { if (!reportHeld) leaveNow(); else leaveToReport(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaving]);
 
@@ -868,6 +886,12 @@ export function ConvoScreen({
   // off the screen a moment after it arrived.
   if (safety.kind === 'stop') {
     return <SafetyStopView surface={safety} onClose={leaveNow} />;
+  }
+
+  if (leftWithReport !== null) {
+    return <View style={{ flex: 1, backgroundColor: paperGround }}>
+      <ReportSheet tutorName={tutorName} sessionId={leftWithReport.sessionId} onClose={onExit} />
+    </View>;
   }
 
   if (live.recap) {
@@ -880,6 +904,7 @@ export function ConvoScreen({
         independentFinish={win.seen && independentFinish}
         delta={convoDelta}
         momentKey={live.sessionId}
+        openReport={reportPending}
         onResultShown={resultShown}
         evidenceQuote={currentCanDoQuote(live.canDoEvidence, currentFinish, live.turns)}
         lines={keepsakeLines(live.turns)}
@@ -962,7 +987,7 @@ export function ConvoScreen({
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
       <View style={{ flex: 1, minHeight: 0 }}>
-        <C2LiveRoom tutorName={tutorName} description="Your French conversation" state={choosing.orb}
+        <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description="Your French conversation" state={choosing.orb}
           caption={line.text ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Ready when you are')}
           turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
           typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !live.waitingForTutor}
@@ -1043,7 +1068,7 @@ export function ConvoScreen({
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <OrbCue value={ticks.cue}>
     <View style={{ flex: 1, minHeight: 0 }}>
-      <C2LiveRoom tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
+      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
         title={missionId ? getMission(missionId)?.title : undefined} pace={scenePace} goals={missionItems} helpKind={view.supportView.kind}
         moreHelp={{ disabled: !listening, onPress: () => { closeMark(); live.sendHelp(); } }}
         state={live.reconnecting ? 'connecting' : orbState}
@@ -1057,7 +1082,11 @@ export function ConvoScreen({
         top={<>{live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
           {replayLine ? <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.onInk }]}>{replayLine}</Text> : null}
           {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}</>}
-        support={view.supportView.kind !== 'none' ? <SupportBlock support={view.supportView} onHearLine={controls.showHearIt ? () => live.sendHear() : undefined} /> : undefined}
+        support={view.supportView.kind !== 'none' ? <SupportBlock support={view.supportView} onHearLine={controls.showHearIt ? () => live.sendHear() : undefined}
+          // A tapped option lands in the box, not on the wire: the learner
+          // still decides to send it, and can change a word first. Only while
+          // the box is open, so a tap never fills a draft nobody can see.
+          onOptionPress={typing || typingOpen ? changeDraft : undefined} /> : undefined}
         notice={momentTaps > 0 ? momentAnswer(tutorName) : view.coachLine}
         tools={<>
           {marks.showing ? <Press onPress={closeMark} haptic="none" accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`} style={st.mark}><Text style={[type.small, { color: paper.onInk }]}>{COACH_MARK_TEXT[marks.showing]}</Text></Press> : null}

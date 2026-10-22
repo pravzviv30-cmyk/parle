@@ -194,7 +194,7 @@ describe('the three ways into a conversation — what a learner meets instead of
     // chat is the Talk about anything chips, which probe through `open` like
     // the one Start; the chooser is Every scene, pushed with no probe; and a
     // real moment is Explore's, pushed with no probe.
-    assert.match(tab, /onPress=\{\(\) => open\(textMode, chip\.params\)\}/, 'the open conversation does not probe in the chosen mode');
+    assert.match(tab, /onPress=\{\(\) => open\(textMode, answered\(chip\.params\)\)\}/, 'the open conversation does not probe in the chosen mode');
     assert.match(tab, /nav\.navigate\(EVERY_SCENE\.route\.screen\)/, 'the chooser is not pushed as its own screen');
     assert.match(readFileSync(fileURLToPath(new URL('../tabs/ExploreTab.tsx', import.meta.url)), 'utf8'), /nav\.navigate\('RealMoment'/, 'a real moment is not pushed as its own screen');
   });
@@ -265,8 +265,9 @@ describe('the three ways into a conversation — what a learner meets instead of
  */
 describe('the scripted lesson opens whichever way the learner can take it', () => {
   test('a learner with no servers still reaches the lesson, and a learner who cannot speak still reaches it typed', () => {
-    assert.deepEqual(lessonStart(false), { screen: 'Lesson', params: undefined }, 'the spoken lesson asks for text mode');
-    assert.deepEqual(lessonStart(true), { screen: 'Lesson', params: { textMode: true } }, 'the quiet lesson opens spoken');
+    assert.deepEqual(lessonStart('speak'), { screen: 'Lesson', params: undefined }, 'the spoken lesson asks for text mode');
+    assert.deepEqual(lessonStart('type'), { screen: 'Lesson', params: { textMode: true } }, 'the quiet lesson opens spoken');
+    assert.deepEqual(lessonStart('listen'), { screen: 'Lesson', params: { listenOnly: true } }, 'listen only lost its closed microphone, or went typed');
 
     // This is the whole reason the lesson is not held back the way the
     // conversation is. With no token server the navigator mounts the mock

@@ -7,7 +7,7 @@
  * and every one of them should be countable. So there are two functions here and
  * a test that says which files may reach a browser at all.
  *
- * **`openMail`** is the Contact us row, and it is drawn only when
+ * **`openMail`** is the Contact us row and the beta's report control, drawn only when
  * `legal/company.ts` has an address to write to. The address is passed in rather
  * than read here, because that module owns whether there is one.
  *
@@ -41,13 +41,21 @@ export type LinkOutcome = 'done' | 'failed';
 /**
  * Open the learner's own mail app with the address filled in.
  *
- * No subject and no body. A prefilled subject is a small piece of theatre that
- * decides what somebody is writing about before they have said, and a prefilled
- * body would be the app putting words in their mouth.
+ * Never a body. A prefilled body would be the app putting words in their
+ * mouth, and the Contact us row passes no subject either: a prefilled subject
+ * there is a small piece of theatre that decides what somebody is writing about
+ * before they have said.
+ *
+ * The one subject this takes is a reference, not words. "Report this reply"
+ * (`settings/reportMail.ts`) passes the session id and the app version and
+ * nothing else, because Luvani keeps no transcript: a report without the
+ * session id cannot be matched to anything, and the learner would be writing
+ * into a void. Nothing they or the tutor said is ever part of it.
  */
-export async function openMail(address: string): Promise<LinkOutcome> {
+export async function openMail(address: string, subject?: string): Promise<LinkOutcome> {
+  const url = subject === undefined ? `mailto:${address}` : `mailto:${address}?subject=${encodeURIComponent(subject)}`;
   try {
-    await Linking.openURL(`mailto:${address}`);
+    await Linking.openURL(url);
     return 'done';
   } catch {
     return 'failed';

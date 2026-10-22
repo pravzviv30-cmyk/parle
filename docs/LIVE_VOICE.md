@@ -169,7 +169,19 @@ room and retains its history. A session started with a voiced `lesson` or
 `convo-text` grant has no speech pipeline: Speaking remains unavailable and
 the room explains that it started in typing mode. Opening a mic cannot upgrade
 that grant. Server admission, service recovery, safety-stop behavior, replay
-eligibility, settlement and audio-focus rules remain unchanged. C2's orb uses
+eligibility, settlement and audio-focus rules remain unchanged.
+
+**Listen only** is the voiced grant with the microphone kept closed, not a fifth
+mode. The Tutor tab's Speak / Listen / Type choice and the Scenes screen's
+"Listen only" lesson tile open a `convo` or `lesson` room with `listenOnly`:
+`useLiveSession` skips the connect-time microphone publish (a lesson otherwise
+connects hot), still calls `startAudio()`, and the screen opens the typing box.
+Nothing new goes to the token server or the agent, so the tutor speaks as usual
+and the learner answers by typing or tapping a choice. Speaking stays one tap
+away; the in-room Type control already does the same thing mid-session
+(`pauseMic`). The typed grants stay fully silent, as above.
+
+C2's orb uses
 measured room audio where available and the activity/reduced-motion-aware
 decorative fallback otherwise; it adds no pronunciation claim.
 
