@@ -79,6 +79,15 @@ export function sceneOrder(level: StartLevel): readonly MissionId[] {
   return level === 'getby' || level === 'confident' ? SCENE_SPINE.filter((id) => id !== 'mission:premier-cafe') : SCENE_SPINE;
 }
 
+/** The goal's scenes within reach from A0 (mission cefr A0 or A1); none for 'because' or no goal. */
+export function goalReachScenes(reason: Reason | null | undefined): readonly MissionId[] {
+  if (!reason || reason === 'because') return [];
+  return GOAL_SCENES[reason].filter((id) => {
+    const cefr = getMission(id)?.cefr;
+    return cefr === 'A0' || cefr === 'A1';
+  });
+}
+
 /**
  * The scene the first run opens on after the account is made. Brand new and a
  * few words open on the spine's opener, the same scene core's `nextScene`
@@ -89,10 +98,7 @@ export function sceneOrder(level: StartLevel): readonly MissionId[] {
 export function firstSceneFor(level: StartLevel | null, reason?: Reason | null): MissionId {
   const start = level ?? DEFAULT_START_LEVEL;
   if ((start === 'getby' || start === 'confident') && reason && reason !== 'because') {
-    const fit = GOAL_SCENES[reason].find((id) => {
-      const cefr = getMission(id)?.cefr;
-      return cefr === 'A0' || cefr === 'A1';
-    });
+    const fit = goalReachScenes(reason)[0];
     if (fit) return fit;
   }
   return sceneOrder(start)[0]!;
@@ -274,7 +280,8 @@ export const PLAN_COPY: readonly string[] = [
 /** The whole plan, from the draft as it stands. */
 export function planFor(draft: PreAccountOnboardingDraft): PlanView {
   const first = firstSceneFor(draft.startLevel, draft.reason);
-  const scenes = [first, ...sceneOrder(levelOf(draft)).filter(id => id !== first)]
+  // Mirrors core's nextScene: after the opener, the goal's A0/A1 scenes lead.
+  const scenes = [...new Set([first, ...goalReachScenes(draft.reason), ...sceneOrder(levelOf(draft))])]
     .slice(0, 3)
     .flatMap((id): PlanScene[] => {
       const mission = getMission(id);
