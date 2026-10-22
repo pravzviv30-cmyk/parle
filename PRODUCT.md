@@ -51,7 +51,9 @@ Two things competitors structurally cannot copy without changing shape:
    which give a scorer a known line to assess. Show pronunciation feedback only
    when an assessment returned evidence; an unavailable assessment stays
    unscored. Open conversation is practice, with no promise of reference-based
-   scoring on a line that has no reference.
+   scoring on a line that has no reference. The one exception is a line the
+   tutor handed over: when the learner says that line, it is a known reference
+   and is scored like a lesson turn.
 
 2. **French only, in depth.** A hand-built French phoneme inventory weighted for
    English-L1 error patterns, mapped to minimal-pair drills. The inventory and

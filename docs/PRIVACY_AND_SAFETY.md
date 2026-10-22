@@ -138,14 +138,16 @@ the new-vendor escalation in [Escalation and what Luvani is
 not](#escalation-and-what-luvani-is-not); the legal half waits on the same review as
 the rest of this file.
 
-**The scorer hears drills and sound checks, not conversations.** The app uploads one
+**The scorer hears drills, sound checks, and, only with a flag on, single live lines.** The app uploads one
 attempt to `/drill/score` on the token server (`scoreRecordedAttempt` in
 `apps/mobile/src/speech/scoreAttempt.ts`, called by the drill and sound-check
-screens), and the server, not the phone, calls the vendor. The scripted lesson agent
-can hand a live turn's audio to the same router from `services/tutor-agent/src/tutor.ts`,
-but only when `LUVANI_AUDIO_SCORING=1`, and by the founder's decision of the same day
-it stays off until scoring runs off the reply path (ledger F623). With the flag off
-the agent passes the line alone, and an attempt with no audio is never sent anywhere.
+screens), and the server, not the phone, calls the vendor. The live agents can hand
+one turn's audio to the same router, but only when `LUVANI_AUDIO_SCORING=1`, which is
+off by default (VOICE-004). A scripted lesson sends a turn only when the learner said
+the lesson's reference line (`services/tutor-agent/src/tutor.ts`). A mission sends a
+turn only when the learner said the full line the tutor had just handed them on the
+help card (`services/tutor-agent/src/convo.ts`, F866); the rest of a conversation is
+never sent to the scorer. With the flag off the agents send no live audio to it at all.
 
 **What TonePerfect is sent** is one multipart request to
 `https://api.toneperfect.app/v1/assess`, made by `services/shared/toneperfect.ts`,

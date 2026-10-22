@@ -95,13 +95,15 @@ A `PaidReservation` exposes immutable operationId, quoteId, activity, requestDig
 
 API STT/scoring duration must be decoded or conservatively proven before admission; compressed file bytes do not establish billed audio duration. Session voice quotes must include LLM, STT and TTS, and the STT envelope must cover the authoritative reserved session duration. Practice admission uses its actual current job lease. Phrase audio participates in the same global exposure. Pre-account guest speech does not: it is an anonymous Redis budget of seconds with its own service-wide daily ceiling (`LUVANI_GUEST_SPEECH_DAILY_SECONDS`, default 3,600), off unless `LUVANI_GUEST_SPEECH=1`, and each take is decoded and cut to the reserved twenty seconds before dispatch. Its ceiling must be priced and added to the launch exposure separately (see `docs/BACKEND_RELEASE_RUNBOOK.md`, Guest speech). Standalone warm-cache, voice-samples and native-evaluation tools refuse production execution; their development-only calls have no whole-product admission guarantee. Operator warming/evaluation in production needs a separately implemented admitted adapter and reviewed quote. OpenAI prompt_cache_key is validated as finite activity cache addressing and excluded from configuration identity; its bytes still count as input, and every quote must conservatively price all input as uncached. Model, output limits, reasoning, storage, schemas and service tier remain bound.
 
-### Lesson scoring and binding kinds
+### Lesson and convo scoring and binding kinds
 
 A binding in `LUVANI_PAID_QUOTE_BINDINGS` may carry `kinds`, a sorted list of the component kinds in the bound quote, for example `{"lesson":{"quoteId":"...","configurationSha256":"...","kinds":["llm","scoring","stt","tts"]}}`. When it is present, the helper refuses any reservation whose component kinds differ (`quote-mismatch`), and `validatePaidBudget.mjs` refuses a binding whose kinds differ from its quote. Startup can then check the quote shape without a database read.
 
-Live lesson scoring (`LUVANI_AUDIO_SCORING=1`) goes through the paid transport. The gate admits a Speechace call only if the lesson quote has a matching scoring component. Production startup (tutor preflight and `validateEnvironment.mjs tutor`) refuses live scoring unless the lesson binding declares `scoring` in its kinds (F863).
+Live scoring (`LUVANI_AUDIO_SCORING=1`) goes through the paid transport in lessons and in free-conversation missions (activity `convo`). The gate admits a Speechace call only if the bound quote for that activity has a matching scoring component. One flag covers both, so production startup (tutor preflight and `validateEnvironment.mjs tutor`) refuses live scoring unless BOTH the lesson and the convo binding declare `scoring` in their kinds, and names each binding that lacks it (F863).
 
 The reviewed lesson scoring component is `LESSON_SCORING_COMPONENT` in `services/shared/lessonScoringQuote.ts`: key `scoring`, provider `speechace`, model `text-v9`, dialect `fr-fr`, one attempt, 48 effects, 900,000 audio milliseconds, 12,288 text bytes, 208,896 input bytes and 96,000 microUSD. The price comes from the cost model, not a verified vendor quote. `validatePaidBudget.mjs` requires any scoring component in a lesson quote to have exactly that identity and envelope. Only the price may be higher, so the price per score cannot fall.
+
+The reviewed convo scoring component is `CONVO_SCORING_COMPONENT` in the same file. It has the same identity and configuration hash (one Speechace call shape) with its own envelope: 24 effects, 450,000 audio milliseconds, 6,144 text bytes, 104,448 input bytes and 48,000 microUSD, the lesson's per-score figures times 24. A mission scores only a line the learner said off the full-line help card, far fewer than a lesson's reference turns. 24 is a cost-model figure, not a vendor quote. `validatePaidBudget.mjs` holds a convo quote's scoring component to that envelope the same way.
 
 SQL checks each component limit per effect. `reservationGate` also enforces the sum per session. So the database envelope for lesson scoring is 48 effects of up to 30 seconds each, and the 900-second total is enforced by the gate. Cost is still bounded by 48 × 2,000 microUSD, because pricing is per utterance.
 
@@ -109,13 +111,13 @@ The Speechace descriptor counts input bytes as text bytes plus 4,096 bytes of mu
 
 Activation order for live scoring:
 
-1. Enable the `speechace` vendor row with budgets sized for 96,000 microUSD and 48 calls per lesson. The vendor daily budget must cover the per-lesson envelope times the expected daily lessons. Otherwise lessons are refused as `vendor-budget` before learners run out of allowance.
-2. Seed a NEW lesson quote with the scoring component. Quotes are immutable.
-3. Resize the global and account daily budgets for the larger lesson envelope.
-4. Update `LUVANI_PAID_QUOTE_BINDINGS` on BOTH the token server and the tutor at the same time, with the new `quoteId` and `"kinds":["llm","scoring","stt","tts"]`.
+1. Enable the `speechace` vendor row with budgets sized for 96,000 microUSD and 48 calls per lesson, plus 48,000 microUSD and 24 calls per mission. The vendor daily budget must cover each envelope times the expected daily sessions. Otherwise sessions are refused as `vendor-budget` before learners run out of allowance.
+2. Seed a NEW lesson quote with `LESSON_SCORING_COMPONENT` and a NEW convo quote with `CONVO_SCORING_COMPONENT`. Quotes are immutable.
+3. Resize the global and account daily budgets for the larger lesson and convo envelopes.
+4. Update `LUVANI_PAID_QUOTE_BINDINGS` on BOTH the token server and the tutor at the same time: the `lesson` and `convo` bindings each get their new `quoteId` and `"kinds":["llm","scoring","stt","tts"]`.
 5. Set `LUVANI_AUDIO_SCORING=1`.
 
-A wrong `kinds` in the environment fails closed for the whole lesson. Preflight trusts the environment; the database comparison happens at resume, which then refuses the lesson as `quote-mismatch`. Unused envelope is never returned, by design.
+A wrong `kinds` in the environment fails closed for the whole lesson or mission. Preflight trusts the environment; the database comparison happens at resume, which then refuses the session as `quote-mismatch`. Unused envelope is never returned, by design.
 
 ## Tutor allowance, privacy and storage
 

@@ -42,8 +42,8 @@ describe('the recap is a keepsake', () => {
   test('it reads your lines, one phrase kept, one sound, then "Next time", then the reminder offer', () => {
     // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the Recap reads your lines, then the phrase kept.
     assert.ok(at('{KEEPSAKE_COPY.lines}') < at('<KeptPhraseCard'), 'the learner\'s own lines no longer lead the Recap');
-    assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
-    assert.ok(at('{KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
+    assert.ok(at('<KeptPhraseCard') < at('KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
+    assert.ok(at('KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
     // The offer is the one shared ask now (Come alive Phase 4); its own pins
     // live in reminders/ReminderAsk.test.ts.
     assert.ok(at('{nextTime}') < at('<ReminderAsk'), 'the reminder is offered before the keepsake is over');
@@ -81,6 +81,9 @@ describe('the recap is a keepsake', () => {
   test('a focus sound is said with a word first, and its symbol is an optional detail', () => {
     assert.match(code, /exampleFirstHeading\(sound\.acoustic, sound\.example\)/, 'the recap leads the sound with notation');
     assert.match(code, /const \[soundDetail, setSoundDetail\] = useState\(false\);/, 'the sound symbol is shown before anyone asks');
+    assert.match(code, /\{sound\?\.source === 'live' \? <>\s*<Text accessibilityRole="header"[^>]*>From this conversation<\/Text>\s*<Text[^>]*>Heard when you said the line you were given\.<\/Text>/, 'a live sound is presented as a saved check');
+    assert.match(code, /<Label>\{sound\.source === 'live' \? SOUND_FOCUS_LABEL : KEEPSAKE_COPY\.sound\}<\/Label>/, 'a live sound does not share the lesson end card label');
+    assert.match(code, /From a saved sound check<\/Text>\s*\{sound && <Text[^>]*>This check concerns its recorded reference line/, 'the saved check lost its own copy');
     assert.match(code, /soundDetail && <Text[^>]*>\{sound\.acoustic\.heading\}<\/Text>/, 'the original notation is not reachable at all');
     assert.match(code, /SOUND_DETAIL\.show/, 'the toggle spells its own words');
   });

@@ -86,6 +86,9 @@ import {
 } from './convo.ts';
 import { LuvaniTutor, forgetReportedSessions, noteSessionReported } from './tutor.ts';
 import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
+import { SCORE_SETTLE_MS, nearHardLimit, saidTheLine } from './liveScoring.ts';
+import type { scoreUtterance } from '../../shared/pronunciation.ts';
+import { pcmAudioMillis } from '../../shared/paidExecution.ts';
 
 /** A fresh flow-mode café conversation, exactly as LuvaniConversation builds one. */
 function freshState() {
@@ -551,6 +554,8 @@ function buildConvo(
     /** The voice the learner chose, made into someone to be. */
     persona?: TutorPersona;
     memoryLocked?: boolean;
+    scorer?: typeof scoreUtterance;
+    scoringRequest?: typeof fetch;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -570,6 +575,8 @@ function buildConvo(
     persona: opts.persona,
     setSttLanguage: (language) => sttLanguages.push(language),
     setSttPhrases: (phrases) => sttPhrases.push(phrases),
+    ...(opts.scorer ? { scorer: opts.scorer } : {}),
+    ...(opts.scoringRequest ? { scoringRequest: opts.scoringRequest } : {}),
   });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
@@ -4463,5 +4470,251 @@ describe('streamed turns: the kill switch and the rescue clock', () => {
     await answered;
     await convo.settled();
     assert.deepEqual(convo.conversationState.lastSupport, before);
+  });
+});
+
+describe('pronunciation is scored beside a mission turn, never in front of it', () => {
+  /** Live scoring switched on for one test, as LUVANI_AUDIO_SCORING=1 does. */
+  function scoringOn(t: TestContext): void {
+    const saved = process.env.LUVANI_AUDIO_SCORING;
+    process.env.LUVANI_AUDIO_SCORING = '1';
+    t.after(() => { if (saved === undefined) delete process.env.LUVANI_AUDIO_SCORING; else process.env.LUVANI_AUDIO_SCORING = saved; });
+  }
+  /** Hand the conversation a captured utterance, as the tap would after real speech. */
+  function heardAudio(convo: LuvaniConversation, wav: Buffer = Buffer.from('RIFF-test-audio')): void {
+    (convo as unknown as { tap: { take: () => unknown } }).tap = { take: () => ({ wav, durationSec: 1.2 }) };
+  }
+  /** A real 48 kHz stereo capture, the shape the tap hands over in a room. */
+  function roomCapture(): Buffer {
+    const frames = 48_000, channels = 2, bytes = frames * channels * 2;
+    const buf = Buffer.alloc(44 + bytes);
+    buf.write('RIFF', 0, 'ascii'); buf.writeUInt32LE(36 + bytes, 4); buf.write('WAVE', 8, 'ascii');
+    buf.write('fmt ', 12, 'ascii'); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(channels, 22);
+    buf.writeUInt32LE(48_000, 24); buf.writeUInt32LE(48_000 * channels * 2, 28); buf.writeUInt16LE(channels * 2, 32); buf.writeUInt16LE(16, 34);
+    buf.write('data', 36, 'ascii'); buf.writeUInt32LE(bytes, 40);
+    return buf;
+  }
+  const lowR = (word: string) => [1, 2, 3].map(() => ({ ipa: 'ʁ', score: 30, word }));
+  /** The line the mock brain hands over at the second rescue. */
+  const LINE = "Un café, s'il vous plaît";
+
+  /** A scene with the learner rescued `depth` times, so at 2 the full line is on screen. */
+  async function rescued(t: TestContext, depth: number, opts: Parameters<typeof buildConvo>[1] = {}) {
+    const built = buildConvo(t, opts);
+    built.convo.open(built.session);
+    await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
+    for (let i = 0; i < depth; i++) {
+      await built.convo.handleClientMessage(built.session, tapped({ t: 'help' }));
+      await built.convo.settled();
+    }
+    return built;
+  }
+  async function speak(convo: LuvaniConversation, text: string): Promise<void> {
+    await convo.onUserTurnCompleted({} as never, heard(text)).catch(() => {});
+    await convo.settled();
+  }
+  function recapOf(published: readonly ServerMessage[]) {
+    const recap = published.find((m) => m.t === 'recap');
+    assert.ok(recap && recap.t === 'recap');
+    return recap.recap;
+  }
+
+  test('the second rescue puts the full line on screen', async (t) => {
+    const { convo } = await rescued(t, 2);
+    assert.equal(convo.conversationState.assistanceDepth, 2);
+    assert.equal(convo.conversationState.lastSupport.fullLine.fr, LINE);
+  });
+
+  test("a spoken turn's reply never waits for the pronunciation score", async (t) => {
+    scoringOn(t);
+    let asked = 0;
+    const { convo, client, said, published } = await rescued(t, 2, { scorer: () => { asked += 1; return new Promise(() => {}); } });
+    const turnsBefore = client.turnRequests.length, viewsBefore = views(published).length, saidBefore = said.length;
+    heardAudio(convo);
+    await speak(convo, LINE);
+    assert.equal(asked, 1, 'the score was asked for');
+    assert.equal(client.turnRequests.length, turnsBefore + 1, 'and the brain turn ran without it');
+    assert.ok(views(published).length > viewsBefore, 'was published without it');
+    assert.ok(said.length > saidBefore, 'and was spoken without it');
+  });
+
+  test('a score that lands later reaches the recap as the one sound heard', async (t) => {
+    scoringOn(t);
+    const debits = captureDebits();
+    t.after(debits.restore);
+    let release: () => void = () => {};
+    const landed = new Promise<void>((resolve) => { release = resolve; });
+    const { convo, session, published } = await rescued(t, 2, { sessionId: '5c0aed01-0000-4000-8000-000000000001', scorer: async () => { await landed; return lowR('croissant'); } });
+    heardAudio(convo);
+    await speak(convo, LINE);
+    release();
+    await convo.finish();
+    assert.deepEqual(recapOf(published).focusSound, { ipa: 'ʁ', word: 'croissant' });
+    const recaps = published.filter((m) => m.t === 'recap').length;
+    await convo.handleClientMessage(session, tapped({ t: 'ready' }));
+    const replayed = published.filter((m) => m.t === 'recap');
+    assert.equal(replayed.length, recaps + 1, 'a reconnecting app gets the recap again');
+    const last = replayed.at(-1);
+    assert.ok(last && last.t === 'recap');
+    assert.deepEqual(last.recap.focusSound, { ipa: 'ʁ', word: 'croissant' }, 'and the replay carries the sound');
+    const debit = debits.debits[0] as unknown as { utterancesScored?: number } | undefined;
+    assert.equal(debit?.utterancesScored, 1, 'the scored count reaches the usage report');
+  });
+
+  test('a score still pending at the end is dropped after the settle window', async (t) => {
+    scoringOn(t);
+    const debits = captureDebits();
+    t.after(debits.restore);
+    const { convo, published } = await rescued(t, 2, { sessionId: '5c0aed01-0000-4000-8000-000000000002', scorer: () => new Promise(() => {}) });
+    heardAudio(convo);
+    await speak(convo, LINE);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const done = convo.finish();
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(published.some((m) => m.t === 'recap'), false, 'the recap gives the score its short chance');
+    t.mock.timers.tick(SCORE_SETTLE_MS + 1);
+    await done;
+    assert.equal(Object.hasOwn(recapOf(published), 'focusSound'), false, 'not heard is the honest answer');
+    assert.equal((debits.debits[0] as unknown as { utterancesScored?: number }).utterancesScored, 0);
+  });
+
+  test('a vendor that returns nothing names no sound', async (t) => {
+    scoringOn(t);
+    const debits = captureDebits();
+    t.after(debits.restore);
+    const { convo, published } = await rescued(t, 2, { scorer: async () => [] });
+    heardAudio(convo);
+    await speak(convo, LINE);
+    await convo.finish();
+    assert.equal(Object.hasOwn(recapOf(published), 'focusSound'), false);
+  });
+
+  test('only the full line on screen is scored, and only when that is what they said', async (t) => {
+    scoringOn(t);
+    const cases: [depth: number, said: string, scored: number][] = [
+      [0, LINE, 0],
+      [1, LINE, 0],
+      [2, 'Je voudrais un thé', 0],
+      [2, "Un café et un croissant, s'il vous plaît", 0],
+      [2, "euh un cafe s'il vous plait", 1],
+    ];
+    for (const [depth, line, scored] of cases) {
+      let asked = 0;
+      const { convo } = await rescued(t, depth, { scorer: async () => { asked += 1; return []; } });
+      heardAudio(convo);
+      await speak(convo, line);
+      assert.equal(asked, scored, `depth ${depth}, "${line}"`);
+    }
+    assert.equal(saidTheLine(LINE, "euh un cafe s'il vous plait"), true, 'fillers and a missing accent still count');
+    assert.equal(saidTheLine(LINE, "un café et un croissant s'il vous plaît"), false, 'extra words would be scored against sounds never said');
+    assert.equal(saidTheLine(LINE, 'un thé'), false);
+  });
+
+  test('a line no longer on screen is not scored, whatever the state says', async (t) => {
+    scoringOn(t);
+    let asked = 0;
+    const { convo } = await rescued(t, 2, { scorer: async () => { asked += 1; return []; } });
+    // As after an English reply at depth 2: the state still holds the line, the
+    // published card is gone. The mock brain cannot produce that view itself.
+    const shown = convo as unknown as { lastView: { supportView: unknown } };
+    shown.lastView = { ...shown.lastView, supportView: { kind: 'none' } };
+    assert.equal(convo.conversationState.assistanceDepth, 2);
+    heardAudio(convo);
+    await speak(convo, LINE);
+    assert.equal(asked, 0, 'only what the learner was shown is scored');
+  });
+
+  test('a terminal service failure never waits on a score', async (t) => {
+    scoringOn(t);
+    const debits = captureDebits();
+    t.after(debits.restore);
+    const { convo, published } = await rescued(t, 2, { scorer: () => new Promise(() => {}) });
+    heardAudio(convo);
+    await speak(convo, LINE);
+    assert.ok(convo.terminalFailureFor('stt_error', false, true));
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    void convo.finish();
+    for (let i = 0; i < 30; i += 1) await Promise.resolve();
+    assert.ok(published.some((m) => m.t === 'recap'), 'the recap is written without waiting');
+  });
+
+  test('every recogniser stream gets its own tap', async (t) => {
+    scoringOn(t);
+    t.mock.method(voice.Agent.default, 'sttNode', async () => null);
+    const { convo } = buildConvo(t);
+    const tapOf = () => (convo as unknown as { tap: unknown }).tap;
+    const none = (async function* () {})();
+    await convo.sttNode(none, {} as never);
+    const first = tapOf();
+    await convo.sttNode(none, {} as never);
+    assert.ok(first && tapOf() && tapOf() !== first, 'a swapped recogniser restarts its clock, so a fresh tap');
+  });
+
+  test('typed answers are never scored', async (t) => {
+    scoringOn(t);
+    let asked = 0;
+    const { convo, session } = await rescued(t, 2, { scorer: async () => { asked += 1; return []; } });
+    heardAudio(convo);
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: LINE }));
+    await convo.settled();
+    assert.equal(asked, 0);
+  });
+
+  test('with the flag off no score is asked for', async (t) => {
+    let asked = 0;
+    const { convo } = await rescued(t, 2, { scorer: async () => { asked += 1; return []; } });
+    heardAudio(convo);
+    await speak(convo, LINE);
+    assert.equal(asked, 0);
+  });
+
+  test('through the paid transport the scorer gets audio the paid gate accepts', async (t) => {
+    scoringOn(t);
+    const sent: Uint8Array[] = [];
+    const { convo } = await rescued(t, 2, {
+      scoringRequest: (async () => { throw new Error('never called by the stub scorer'); }) as never,
+      scorer: async ({ audio }) => { if (audio) sent.push(audio); return []; },
+    });
+    heardAudio(convo, roomCapture());
+    await speak(convo, LINE);
+    await Promise.resolve();
+    assert.equal(sent.length, 1);
+    assert.equal(pcmAudioMillis(sent[0]!), 1000, '16 kHz mono with the exact header, one second long');
+  });
+
+  test('a safety stop never waits on a score', async (t) => {
+    scoringOn(t);
+    const debits = captureDebits();
+    t.after(debits.restore);
+    const { convo, session, published } = await rescued(t, 2, { scorer: () => new Promise(() => {}) });
+    heardAudio(convo);
+    await speak(convo, LINE);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    for (let i = 0; i < 30; i += 1) await Promise.resolve();
+    assert.ok(published.some((m) => m.t === 'recap'), 'the recap is written without waiting for the score');
+  });
+
+  test('near the hard limit nothing waits on a score', async (t) => {
+    scoringOn(t);
+    for (const [elapsed, waits] of [[8, true], [118, false]] as const) {
+      const built = await rescued(t, 2, { scorer: () => new Promise(() => {}) });
+      built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => elapsed,
+        assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
+        complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
+      });
+      heardAudio(built.convo);
+      await speak(built.convo, LINE);
+      t.mock.timers.enable({ apis: ['setTimeout'] });
+      const done = built.convo.finish();
+      for (let i = 0; i < 30; i += 1) await Promise.resolve();
+      assert.equal(built.published.some((m) => m.t === 'recap'), !waits, `${elapsed}s in`);
+      t.mock.timers.tick(SCORE_SETTLE_MS + 1);
+      await done;
+      t.mock.timers.reset();
+    }
+    assert.equal(nearHardLimit({ maxSeconds: 120, elapsedSeconds: () => 116 }), true);
+    assert.equal(nearHardLimit({ maxSeconds: 120, elapsedSeconds: () => 100 }), false);
+    assert.equal(nearHardLimit(undefined), false);
   });
 });

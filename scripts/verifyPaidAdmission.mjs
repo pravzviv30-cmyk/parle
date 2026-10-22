@@ -9,7 +9,7 @@ import { readFile,readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { LESSON_SCORING_COMPONENT } from '../services/shared/lessonScoringQuote.ts';
+import { CONVO_SCORING_COMPONENT, LESSON_SCORING_COMPONENT } from '../services/shared/lessonScoringQuote.ts';
 import { describePaidHttp } from '../services/shared/paidExecution.ts';
 import { toSpeechaceWav } from '../services/shared/liveScoringAudio.ts';
 const root=fileURLToPath(new URL('../',import.meta.url)),db=new PGlite(),groups=[];
@@ -260,12 +260,12 @@ try {
  const scoringForm=new FormData();scoringForm.append('text','Bonjour');scoringForm.append('user_audio_file',new Blob([toSpeechaceWav(capture)]),'utterance.wav');scoringForm.append('dialect','fr-fr');
  const scored=await describePaidHttp(new URL('https://api.speechace.co/api/scoring/text/v9/json?key=synthetic&dialect=fr-fr'),{method:'POST',body:scoringForm});
  assert.equal(scored.quantities.audioMillis,30000);
- const scoringSession=async(n,q,components)=>{
+ const scoringSession=async(n,q,components,mode='lesson')=>{
   await db.query('insert into auth.users(id)values($1)',[id(n)]);await db.query('insert into auth.sessions(id,user_id)values($1,$2)',[auth(n),id(n)]);await db.query("insert into entitlements(user_id,plan,period_end)values($1,'regular',clock_timestamp()+interval '30 days')",[id(n)]);
-  await seedQuote(q,quote('lesson',components));
-  assert.equal((await rpc('reserve_tutor_session_v1',[id(n),sid(q),`scoring-proof-${q}`,'lesson',hash(`scoring-proof-${q}`),auth(n)])).reservedSeconds,900);
+  await seedQuote(q,quote(mode,components));
+  assert.equal((await rpc('reserve_tutor_session_v1',[id(n),sid(q),`scoring-proof-${q}`,mode,hash(`scoring-proof-${q}`),auth(n)])).reservedSeconds,900);
   const ctx={kind:'tutor',sessionId:sid(q)};assert.equal((await reserve(n,q,q,ctx)).kind,'reserved');
-  await rpc('claim_tutor_session_v1',[id(n),sid(q),`scoring-proof-${q}`,'lesson',id(6000+q)]);
+  await rpc('claim_tutor_session_v1',[id(n),sid(q),`scoring-proof-${q}`,mode,id(6000+q)]);
   assert.equal((await rpc('resume_paid_tutor_v1',[id(n),sid(q),id(6000+q)])).operationId,opid(q));
   return effect(n,q,q,{...ctx,claimNonce:id(6000+q)},scored.quantities,'scoring',LESSON_SCORING_COMPONENT.configurationSha256,1);
  };
@@ -280,6 +280,16 @@ try {
  assert.equal((await scoreEffect(7148,small)).reason,'effect-limit','a 49th lesson score is refused');
  assert.equal((await scoringSession(8,71,[comp('brain'),lessonStt,tts])).reason,'quote-mismatch','F863: a lesson quote without scoring refuses every live score');
  groups.push('F863 live lesson scoring: a 30 s Speechace score dispatches on the reviewed lesson scoring component and is charged its envelope once; per-effect quantity-limit; 49th score effect-limit; a lesson quote without it refuses as quote-mismatch');
+// Convo twin: a mission scores a line said off the full-line help card through the
+// reviewed convo scoring component (same Speechace identity, 24-score envelope).
+const convoScore=await scoringSession(77,72,[comp('brain'),lessonStt,tts,{...CONVO_SCORING_COMPONENT}],'convo');
+assert.equal(convoScore.dispatch,true);assert.equal(convoScore.executionMicroUsdCharged,48000);
+const convoCtx={kind:'tutor',sessionId:sid(72),claimNonce:id(6072)};
+const convoEffect=(e,qty)=>effect(77,72,e,convoCtx,qty,'scoring',CONVO_SCORING_COMPONENT.configurationSha256,1);
+for(let e=7201;e<7224;e++)assert.equal((await convoEffect(e,small)).dispatch,true);
+assert.equal((await convoEffect(7224,small)).reason,'effect-limit','a 25th convo score is refused');
+assert.equal((await scoringSession(78,73,[comp('brain'),lessonStt,tts],'convo')).reason,'quote-mismatch','a convo quote without scoring refuses every live score');
+groups.push('live convo scoring: a 30 s Speechace score dispatches on the reviewed convo scoring component and is charged its envelope once; 25th score effect-limit; a convo quote without it refuses as quote-mismatch');
 
  // Source/catalog verifier for lock order and production clock authority. Actual
  // independent PostgreSQL deadlock contention remains a release acceptance gate.

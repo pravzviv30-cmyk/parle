@@ -17,6 +17,12 @@
  * frames from the pipeline rather than copy them. `_subscribeAudioStream` would
  * do this too, but the underscore is not decorative.
  *
+ * A recogniser may finish one spoken turn in several final segments (Deepgram
+ * sends one per is_final result). Finals that arrive before the turn's capture
+ * is taken extend that capture, so the clip is the whole turn and not only its
+ * last segment. A final that arrives after its turn was taken is dropped
+ * rather than carried into the next turn.
+ *
  * The window is bounded because this holds raw PCM in memory. Thirty seconds is
  * far longer than any scripted turn and small enough not to matter.
  */
@@ -63,6 +69,10 @@ export class UtteranceTap {
   #sampleRate = 0;
   #speechStartSample: number | null = null;
   #pending: CapturedUtterance | null = null;
+  /** Where the pending capture sits in this window, so a later final of the same turn can extend it. */
+  #pendingSpan: { startSample: number; endSample: number } | null = null;
+  /** Where the stream was when the last turn was taken. Speech starting by then belongs to that turn. */
+  #takenAtSample = 0;
 
   /** Where the stream has got to, in seconds of audio seen. */
   get elapsedSec(): number {
@@ -99,21 +109,35 @@ export class UtteranceTap {
     if (this.#sampleRate === 0) return null;
     const toSamples = (sec: number) => Math.round(sec * this.#sampleRate);
 
-    let slice = this.#framesBetween(toSamples(startSec), toSamples(endSec));
-    let durationSec = endSec - startSec;
+    let from = toSamples(startSec);
+    let to = toSamples(endSec);
+    let slice = this.#framesBetween(from, to);
 
     if (slice.length === 0) {
-      const from = this.#speechStartSample ?? 0;
-      slice = this.#framesBetween(from, this.#elapsedSamples);
-      durationSec = (this.#elapsedSamples - from) / this.#sampleRate;
+      from = this.#speechStartSample ?? this.#pendingSpan?.startSample ?? this.#takenAtSample;
+      to = this.#elapsedSamples;
+      slice = this.#framesBetween(from, to);
     }
     this.#speechStartSample = null;
     if (slice.length === 0) return null;
+    // A late final for a turn already taken (the SDK can deliver one after the
+    // turn commits). Kept, it would become the next turn's start and drag the
+    // tutor's reply into that clip, so it is dropped.
+    if (this.#takenAtSample > 0 && from <= this.#takenAtSample) return null;
+
+    // Another final of a turn whose capture has not been taken yet: one clip
+    // from the first segment's start to this one's end.
+    if (this.#pending && this.#pendingSpan) {
+      from = Math.min(from, this.#pendingSpan.startSample);
+      to = Math.max(to, this.#pendingSpan.endSample);
+      slice = this.#framesBetween(from, to);
+    }
 
     const merged = mergeFrames(slice);
+    this.#pendingSpan = { startSample: from, endSample: to };
     this.#pending = {
       wav: encodeWav({ sampleRate: merged.sampleRate, channels: merged.channels, samples: merged.data }),
-      durationSec: Math.max(0, durationSec),
+      durationSec: Math.max(0, (to - from) / this.#sampleRate),
     };
     return this.#pending;
   }
@@ -122,6 +146,8 @@ export class UtteranceTap {
   take(): CapturedUtterance | null {
     const captured = this.#pending;
     this.#pending = null;
+    this.#pendingSpan = null;
+    this.#takenAtSample = this.#elapsedSamples;
     return captured;
   }
 

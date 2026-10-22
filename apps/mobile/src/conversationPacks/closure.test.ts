@@ -53,7 +53,8 @@ describe('the closure a conversation earns (F552)', () => {
     // A measured sound outranks the clarity line.
     const heard = closureFromPack(pack(), { progress, deck: [], checks: [CHECK] });
     assert.equal(heard.focus!.kind, 'sound');
-    if (heard.focus!.kind === 'sound') {
+    assert.equal(heard.focus!.kind === 'sound' && heard.focus!.source, 'check');
+    if (heard.focus!.kind === 'sound' && heard.focus!.source === 'check') {
       assert.equal(heard.focus!.missionId, 'mission:hotel');
       assert.equal(heard.focus!.ipa, CHECK.phoneme);
     }
@@ -86,5 +87,39 @@ describe('the closure a conversation earns (F552)', () => {
     assert.equal(fromRecap.repair!.quote, 'je veux');
     assert.deepEqual(fromRecap.focus, { kind: 'clarity', line: 'Keep “je voudrais” for asking.' });
     assert.equal(fromRecap.phrases.length, 1);
+  });
+
+  test('a sound heard live in this conversation is the focus, ahead of a saved check, and an unknown one falls back (VOICE-004)', () => {
+    const progress = missionStates([], [], NOW);
+    const recap: RecapPayload = {
+      headline: 'You carried the whole exchange.',
+      wins: [],
+      fixes: [],
+      phrases: [],
+      nextFocus: 'Keep “je voudrais” for asking.',
+      topics: [{ fr: 'Au café', en: 'At the café' }],
+      cefr: { estimate: 'A1', confidence: 'low' },
+      stats: { turns: 6, rescues: 2, unassistedRate: 0.5 },
+    };
+    const live = closureFromRecap({ ...recap, focusSound: { ipa: 'ʁ', word: 'voudrais' } }, { progress, deck: [], checks: [CHECK] });
+    assert.equal(live.focus!.kind, 'sound');
+    if (live.focus!.kind === 'sound') {
+      assert.equal(live.focus!.source, 'live', 'a saved check outranked this conversation\'s own evidence');
+      assert.equal(live.focus!.ipa, 'ʁ');
+      assert.equal(live.focus!.example, 'voudrais', 'the heard word is not the example');
+    }
+    // Live evidence needs no saved context at all.
+    const early = closureFromRecap({ ...recap, focusSound: { ipa: 'ʁ', word: 'voudrais' } }, null);
+    assert.equal(early.focus!.kind === 'sound' && early.focus!.source, 'live');
+
+    // A sound this build cannot describe falls back to today's order.
+    const unknown = closureFromRecap({ ...recap, focusSound: { ipa: 'q', word: 'x' } }, { progress, deck: [], checks: [CHECK] });
+    assert.equal(unknown.focus!.kind === 'sound' && unknown.focus!.source, 'check');
+    assert.deepEqual(closureFromRecap({ ...recap, focusSound: { ipa: 'q', word: 'x' } }, null).focus, { kind: 'clarity', line: 'Keep “je voudrais” for asking.' });
+
+    // Without the field, nothing changes.
+    const saved = closureFromRecap(recap, { progress, deck: [], checks: [CHECK] });
+    assert.equal(saved.focus!.kind === 'sound' && saved.focus!.source, 'check');
+    assert.deepEqual(closureFromRecap(recap, null).focus, { kind: 'clarity', line: 'Keep “je voudrais” for asking.' });
   });
 });
