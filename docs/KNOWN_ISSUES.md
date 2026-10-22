@@ -11087,9 +11087,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F864 — A learner's goal can only ever match the first mission at a place
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/goals/next.ts:66
 - note: Found 2026-10-22 in the mission spine A2 change. `PLACE_WORDS` matches goal text to a `MissionPlace`, and ties go to catalogue order. The twelve new missions share the six drawn places, so a goal such as "book a restaurant" or "talk to my neighbour" always lands on the older café or day scene, and goals about doctors, pharmacies, trains, parcels, renting or work match nothing and fall back to the starter. Fix by matching words per mission rather than per place, keeping the precision-over-recall rule and the negation handling.
+- fixed: 2026-10-22. `apps/mobile/src/goals/next.ts` scores a goal against `MISSION_WORDS`, one hand-authored list per mission keyed by `MissionId` (the opener excluded), so a mission without words fails typecheck. Shared places no longer share words; the neighbour words moved from the day scene to the neighbour scene, and phrases stand in where a bare word has an everyday second meaning (no bare "return", "rent", "flat", "train", "station", "package", "weekend", "job" or "reservation"). A word on two missions is deliberate and the older scene wins the tie. `OTHER_MEANINGS` gains "doctor who", "spin doctor", "part and parcel" and "parcel of land". Negation, scoring, tie order and the starter are unchanged. A guard test holds a non-empty, normalised list for every full scene. Fixed on `claude/goal-words-per-mission`.
 - verified-by: `a goal names the mission it is about, not the first one at that place`
 
 ### F865 — Twelve scenes show a borrowed postcard on the recap

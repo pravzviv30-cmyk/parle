@@ -2,9 +2,9 @@
  * One task for one goal, decided in code (Stage 4, item 1).
  *
  * The learner wrote a goal in their own words. This picks one authored mission
- * that practises it, by a keyword table over each mission's place and its
- * goal line. No model is asked: the model observes, code decides, and a table
- * is a rule a test can read.
+ * that practises it, by a keyword table authored per mission (not per place:
+ * several missions share a drawn place, F864). No model is asked: the model
+ * observes, code decides, and a table is a rule a test can read.
  *
  * Missions only, by the lead's decision. A daily situation would open through
  * the seed-topic path, which is a Max-only door, so offering one here could
@@ -21,7 +21,7 @@
  * is remade from the table every time it is drawn.
  */
 
-import { FIRST_MISSION, getMission, normalise, type Mission, type MissionPlace } from '@luvani/core';
+import { FIRST_MISSION, getMission, normalise, type Mission, type MissionId } from '@luvani/core';
 
 export type GoalTask = { kind: 'mission'; id: string };
 
@@ -33,11 +33,11 @@ export interface NextGoalTask {
 }
 
 /**
- * Words that mean a place, in the learner's English (and the French they are
- * likely to type), after core's `normalise`: lowercase, no accents, no
- * apostrophes. Whole words only, so "roomba" is not a room.
+ * Words that mean a mission's place or what is done there, one list per
+ * mission, in the learner's English (and the French they are likely to type),
+ * after core's `normalise`: lowercase, no accents, no apostrophes. Whole words only, so "roomba" is not a room.
  *
- * Authored by hand from each mission's place and its `goalEn`, never harvested
+ * Authored by hand from each mission's scene and its `goalEn`, never harvested
  * from them automatically. A harvested goal line brings its verbs with it:
  * "understand the answer" made "Understand French films" a match for asking
  * directions, and "(matches your goal)" printed over that would be false. So a
@@ -62,14 +62,73 @@ export interface NextGoalTask {
  * political party", "a study routine"). Precision over recall: a word stays
  * only when it almost always means the place, and a phrase stands in where the
  * single word is ambiguous ("find my way to", "daily routine", "about my day").
+ *
+ * Mission spine A2 review (2026-10-22, F864): twelve new missions share the six
+ * drawn places, and a table keyed by place gave every mission at a place the
+ * same score, so the tie sent "book a restaurant" to the café and "talk to my
+ * neighbour" to the day scene. The table is keyed by mission now, and shared
+ * places no longer share words. A word on two missions is deliberate and the
+ * older scene wins the tie: bare "restaurant" sits on the café and the
+ * restaurant, so "Order in a restaurant" stays the café while "Book a
+ * restaurant" scores 2 for the new scene; "small talk with colleagues" goes to
+ * the weekend scene before the colleagues one. The same precision rule holds,
+ * and these second meanings are out on purpose: bare "return" (a return
+ * flight, a tax return), "rent" (rent a car), "flat" (a flat white, a flat
+ * tyre, French that sounds flat), "train" (my ear), "station" (the train
+ * station is the way-finding scene), "package" (a salary package), "weekend"
+ * (plan my weekend), "job" and "new job" (get a job), "reservation" (I have
+ * reservations), "complaint" and "faulty". Where a bare word stays, its second
+ * meanings go in OTHER_MEANINGS ("doctor who", "spin doctor", "part and
+ * parcel", "parcel of land").
  */
-const PLACE_WORDS: Record<MissionPlace, readonly string[]> = {
-  cafe: ['cafe', 'coffee', 'croissant', 'bakery', 'boulangerie', 'barista', 'restaurant', 'restaurants', 'menu', 'waiter', 'bistro'],
-  hotel: ['hotel', 'hotels', 'reception', 'accommodation', 'hostel', 'airbnb'],
-  market: ['market', 'markets', 'marche', 'groceries', 'grocery', 'supermarket', 'stall'],
-  street: ['directions', 'ask the way', 'ask for the way', 'find my way to', 'find the way to'],
-  home: ['partner', 'husband', 'wife', 'neighbour', 'neighbours', 'neighbor', 'neighbors', 'daily routine', 'about my day'],
-  friends: ['friend', 'friends', 'apero', 'aperitif'],
+export const MISSION_WORDS: Readonly<Record<Exclude<MissionId, 'mission:premier-cafe'>, readonly string[]>> = {
+  'mission:cafe': ['cafe', 'coffee', 'croissant', 'bakery', 'boulangerie', 'barista', 'restaurant', 'restaurants', 'menu', 'waiter', 'bistro'],
+  'mission:hotel': ['hotel', 'hotels', 'reception', 'accommodation', 'hostel', 'airbnb'],
+  'mission:marche': ['market', 'markets', 'marche', 'groceries', 'grocery', 'supermarket', 'stall'],
+  'mission:chemin': ['directions', 'ask the way', 'ask for the way', 'find my way to', 'find the way to'],
+  'mission:journee': ['partner', 'husband', 'wife', 'daily routine', 'about my day'],
+  'mission:amis': ['friend', 'friends', 'apero', 'aperitif'],
+  'mission:restaurant': [
+    'restaurant', 'restaurants', 'book a restaurant', 'book a table', 'booking a table', 'reserve a table',
+    'table for two', 'restaurant reservation', 'dinner reservation',
+  ],
+  'mission:pharmacie': [
+    'pharmacy', 'pharmacies', 'pharmacist', 'pharmacie', 'painkillers', 'fill a prescription',
+    'fill my prescription', 'pick up a prescription', 'pick up my prescription',
+  ],
+  'mission:gare': [
+    'train ticket', 'train tickets', 'return ticket', 'return tickets', 'ticket office', 'railway station',
+    'sncf', 'tgv', 'gare', 'by train', 'take the train', 'catch a train', 'catch the train',
+  ],
+  'mission:colis': [
+    'parcel', 'parcels', 'colis', 'pick up a package', 'pick up my package', 'collect a package',
+    'collect my package', 'point relais',
+  ],
+  'mission:voisin': ['neighbour', 'neighbours', 'neighbor', 'neighbors', 'voisin', 'voisins', 'voisine'],
+  'mission:week-end': [
+    'about my weekend', 'about the weekend', 'about your weekend', 'last weekend', 'what i did at the weekend',
+    'small talk at work', 'small talk with colleagues',
+  ],
+  'mission:collegues': [
+    'colleague', 'colleagues', 'coworker', 'coworkers', 'co worker', 'co workers', 'first day at work',
+    'first day at my new job', 'start a new job', 'starting a new job', 'my new job', 'introduce myself at work',
+  ],
+  'mission:telephone': ['appointment', 'appointments', 'phone call', 'phone calls', 'on the phone', 'over the phone', 'by phone'],
+  'mission:medecin': ['doctor', 'doctors', 'gp', 'medecin', 'see a doctor'],
+  'mission:retour': [
+    'refund', 'refunds', 'return something', 'return an item', 'return a purchase', 'return it to the shop',
+    'return to the shop', 'take something back', 'take it back to the shop', 'complain in a shop',
+  ],
+  'mission:appartement': [
+    'apartment', 'apartments', 'appartement', 'landlord', 'landlady', 'flatshare', 'flatmate', 'rent a flat',
+    'renting a flat', 'find a flat', 'view a flat', 'flat to rent', 'apartment to rent', 'flat viewing',
+    'flat hunting', 'the rent', 'pay the rent', 'pay rent', 'my rent',
+  ],
+  'mission:belle-famille': [
+    'partners parents', 'in laws', 'inlaws', 'mother in law', 'father in law', 'parents in law', 'belle famille',
+    'boyfriends parents', 'girlfriends parents', 'husbands parents', 'wifes parents', 'meet his parents',
+    'meet her parents', 'meet their parents',
+  ],
 };
 
 /**
@@ -79,6 +138,7 @@ const PLACE_WORDS: Record<MissionPlace, readonly string[]> = {
 const OTHER_MEANINGS: readonly string[] = [
   'job market', 'stock market', 'housing market', 'property market', 'labour market', 'labor market',
   'black market', 'market research', 'market share',
+  'doctor who', 'spin doctor', 'part and parcel', 'parcel of land',
 ];
 
 /**
@@ -101,12 +161,13 @@ function wordsOf(text: string): string[] {
   return normalise(text).split(/[^a-z0-9]+/).filter((word) => word.length > 0);
 }
 
-/** How many of a mission's place words or phrases the goal uses, whole words only. */
+/** How many of a mission's words or phrases the goal uses, whole words only. */
 function hits(words: readonly string[], mission: Mission): number {
   let said = ` ${words.join(' ')} `;
   for (const other of OTHER_MEANINGS) said = said.split(` ${other} `).join(' ');
   let count = 0;
-  for (const key of PLACE_WORDS[mission.place]) if (said.includes(` ${key} `)) count += 1;
+  const keys = mission.id === 'mission:premier-cafe' ? [] : MISSION_WORDS[mission.id];
+  for (const key of keys) if (said.includes(` ${key} `)) count += 1;
   return count;
 }
 

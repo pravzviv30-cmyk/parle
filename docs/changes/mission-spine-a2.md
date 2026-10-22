@@ -120,4 +120,4 @@ Acceptance for every task:
 - Documentation and decisions: PRODUCT.md (nineteen scenes, A0 to A2), DECISIONS.md UI-007 (Everyday), DESIGN.md (nineteen place drawings), KNOWN_ISSUES.md F44, F570, F599, new F864 (goal matching per place) and F865 (placeholder postcards).
 - Deploy order: ship the tutor agent before the app, or a new mission id opens as the ordinary topic question.
 - Landing disposition: HOLD for founder review of the French and the drawings, then /land.
-- Next task: founder review; F865 postcards; F864 per-mission goal words; a dev-build look at Speak and Missions with an A2 learner.
+- Next task: founder review; F865 postcards (F864, per-mission goal words, closed on `claude/goal-words-per-mission`); a dev-build look at Speak and Missions with an A2 learner.
