@@ -1,0 +1,719 @@
+{
+  "startedAt": "2026-10-22T15:47:34.649Z",
+  "label": "gpt-5.6-luna",
+  "settings": {
+    "model": "gpt-5.6-luna",
+    "reasoning": {
+      "effort": "none"
+    },
+    "verbosity": "low",
+    "service_tier": null,
+    "prompt_cache_key": "luvani-turn-3b5fa87d",
+    "instructionsChars": 21904
+  },
+  "syntheticOnly": true,
+  "stopped": null,
+  "spendUsdEstimate": 0.0104,
+  "costNote": "Standard-tier list price from pricing.ts; unknown models are not priced.",
+  "calls": [
+    {
+      "id": "cafe-clean-order",
+      "rep": 1,
+      "fullMs": 3971,
+      "spokenFieldsMs": 1892,
+      "ttftMs": 941,
+      "headersMs": 605,
+      "ms": {
+        "coachEnd": 1644,
+        "coachLineEnd": 1677,
+        "narrationEnd": 1708,
+        "sceneReplyStart": 1737,
+        "frFirstSentenceEnd": 1850,
+        "frEnd": 1889,
+        "sceneReplyEnd": 2077,
+        "streamEnd": 3813
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 107,
+        "beforeFrEnd": 125,
+        "beforeSceneReplyEnd": 141,
+        "total": 365
+      },
+      "outputTokens": 376,
+      "reasoningTokens": 0,
+      "inputTokens": 6721,
+      "cachedTokens": 0,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 121,
+      "frChars": 36,
+      "costUsd": 0.002117,
+      "coach": [
+        {
+          "kind": "textbook-phrasing",
+          "quote": "je voudrais un café",
+          "better": "Je vais prendre un café",
+          "betterWritten": null,
+          "betterEn": "I’ll have a coffee.",
+          "why": "Je vais prendre sounds more natural when ordering at a café.",
+          "weight": "minor"
+        }
+      ],
+      "coachLine": null,
+      "fr": "Ça marche. Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-gender-error",
+      "rep": 1,
+      "fullMs": 4373,
+      "spokenFieldsMs": 2391,
+      "ttftMs": 944,
+      "headersMs": 642,
+      "ms": {
+        "coachEnd": 1986,
+        "coachLineEnd": 2186,
+        "narrationEnd": 2190,
+        "sceneReplyStart": 2220,
+        "frFirstSentenceEnd": 2312,
+        "frEnd": 2390,
+        "sceneReplyEnd": 2558,
+        "streamEnd": 4195
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 158,
+        "beforeFrEnd": 176,
+        "beforeSceneReplyEnd": 193,
+        "total": 418
+      },
+      "outputTokens": 429,
+      "reasoningTokens": 0,
+      "inputTokens": 6721,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 2,
+      "coachChars": 147,
+      "frChars": 36,
+      "costUsd": 0.000815,
+      "coach": [
+        {
+          "kind": "grammar-slip",
+          "quote": "une café",
+          "better": "un café",
+          "betterWritten": null,
+          "betterEn": "a coffee",
+          "why": "Café is masculine.",
+          "weight": "matters-now"
+        },
+        {
+          "kind": "textbook-phrasing",
+          "quote": "je voudrais",
+          "better": "Je vais prendre un café",
+          "betterWritten": null,
+          "betterEn": "I’ll have a coffee",
+          "why": "Je vais prendre sounds more natural at a café counter.",
+          "weight": "minor"
+        }
+      ],
+      "coachLine": "Pas tout à fait. On dit « un café » : café est masculin.",
+      "fr": "Ça marche. Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-conjugation-error",
+      "rep": 1,
+      "fullMs": 5217,
+      "spokenFieldsMs": 3041,
+      "ttftMs": 1192,
+      "headersMs": 843,
+      "ms": {
+        "coachEnd": 2489,
+        "coachLineEnd": 2771,
+        "narrationEnd": 2847,
+        "sceneReplyStart": 2868,
+        "frFirstSentenceEnd": 2963,
+        "frEnd": 3041,
+        "sceneReplyEnd": 3175,
+        "streamEnd": 5077
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 196,
+        "beforeFrEnd": 214,
+        "beforeSceneReplyEnd": 231,
+        "total": 484
+      },
+      "outputTokens": 495,
+      "reasoningTokens": 0,
+      "inputTokens": 6722,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 2,
+      "coachChars": 262,
+      "frChars": 35,
+      "costUsd": 0.000895,
+      "coach": [
+        {
+          "kind": "grammar-slip",
+          "quote": "nous voudrait",
+          "better": "on voudrait",
+          "betterWritten": "Nous voudrions",
+          "betterEn": "we would like",
+          "why": "In everyday speech, use on with voudrait; nous voudrions is the formal written form.",
+          "weight": "matters-now"
+        },
+        {
+          "kind": "textbook-phrasing",
+          "quote": "deux cafés, s’il vous plaît",
+          "better": "deux cafés, s'il vous plaît",
+          "betterWritten": null,
+          "betterEn": "two coffees, please",
+          "why": "This is already natural service French; the spoken form is the same.",
+          "weight": "minor"
+        }
+      ],
+      "coachLine": "Presque. À l'oral, on dit « on voudrait » pour « we would like ».",
+      "fr": "Bien sûr. Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-english-reach",
+      "rep": 1,
+      "fullMs": 4567,
+      "spokenFieldsMs": 2285,
+      "ttftMs": 946,
+      "headersMs": 646,
+      "ms": {
+        "coachEnd": 1869,
+        "coachLineEnd": 2038,
+        "narrationEnd": 2052,
+        "sceneReplyStart": 2073,
+        "frFirstSentenceEnd": 2156,
+        "frEnd": 2284,
+        "sceneReplyEnd": 2439,
+        "streamEnd": 4487
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 136,
+        "beforeFrEnd": 157,
+        "beforeSceneReplyEnd": 176,
+        "total": 394
+      },
+      "outputTokens": 405,
+      "reasoningTokens": 0,
+      "inputTokens": 6718,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 136,
+      "frChars": 50,
+      "costUsd": 0.000786,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "can I have a croissant?",
+          "better": "Je vais prendre un croissant",
+          "betterWritten": null,
+          "betterEn": "I’ll have a croissant.",
+          "why": "At a café counter, je vais prendre is the natural way to order.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You were ordering a croissant. En français, dites : « Je vais prendre un croissant. »",
+      "fr": "Bien sûr. Vous le prenez sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-franglais",
+      "rep": 1,
+      "fullMs": 3685,
+      "spokenFieldsMs": 2004,
+      "ttftMs": 783,
+      "headersMs": 510,
+      "ms": {
+        "coachEnd": 1586,
+        "coachLineEnd": 1847,
+        "narrationEnd": 1864,
+        "sceneReplyStart": 1888,
+        "frFirstSentenceEnd": 1951,
+        "frEnd": 2004,
+        "sceneReplyEnd": 2118,
+        "streamEnd": 3587
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 137,
+        "beforeFrEnd": 155,
+        "beforeSceneReplyEnd": 171,
+        "total": 378
+      },
+      "outputTokens": 389,
+      "reasoningTokens": 0,
+      "inputTokens": 6721,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 137,
+      "frChars": 36,
+      "costUsd": 0.000767,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "coffee avec du milk, please",
+          "better": "un café au lait, s'il vous plaît",
+          "betterWritten": null,
+          "betterEn": "a coffee with milk, please",
+          "why": "In French, say un café au lait for coffee with milk.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You were asking for a coffee with milk. En français : un café au lait, s'il vous plaît.",
+      "fr": "Ça marche. Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-help",
+      "rep": 1,
+      "fullMs": 4160,
+      "spokenFieldsMs": 1436,
+      "ttftMs": 903,
+      "headersMs": 582,
+      "ms": {
+        "coachEnd": 1194,
+        "coachLineEnd": 1215,
+        "narrationEnd": 1250,
+        "sceneReplyStart": 1302,
+        "frFirstSentenceEnd": 1436,
+        "frEnd": 1436,
+        "sceneReplyEnd": 1596,
+        "streamEnd": 3581
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 48,
+        "beforeFrEnd": 66,
+        "beforeSceneReplyEnd": 83,
+        "total": 214
+      },
+      "outputTokens": 225,
+      "reasoningTokens": 0,
+      "inputTokens": 6754,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 0,
+      "coachChars": 0,
+      "frChars": 40,
+      "costUsd": 0.000577,
+      "coach": [],
+      "coachLine": null,
+      "fr": "Vous le prenez sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-long-clauses",
+      "rep": 1,
+      "fullMs": 3371,
+      "spokenFieldsMs": 1416,
+      "ttftMs": 872,
+      "headersMs": 471,
+      "ms": {
+        "coachEnd": 1259,
+        "coachLineEnd": 1287,
+        "narrationEnd": 1333,
+        "sceneReplyStart": 1355,
+        "frFirstSentenceEnd": 1416,
+        "frEnd": 1416,
+        "sceneReplyEnd": 1532,
+        "streamEnd": 3335
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 51,
+        "beforeFrEnd": 70,
+        "beforeSceneReplyEnd": 88,
+        "total": 302
+      },
+      "outputTokens": 313,
+      "reasoningTokens": 0,
+      "inputTokens": 6754,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 0,
+      "coachChars": 0,
+      "frChars": 56,
+      "costUsd": 0.000684,
+      "coach": [],
+      "coachLine": null,
+      "fr": "Bien sûr, vous pouvez vous installer près de la fenêtre."
+    },
+    {
+      "id": "cafe-short-oui",
+      "rep": 1,
+      "fullMs": 3162,
+      "spokenFieldsMs": 1899,
+      "ttftMs": 910,
+      "headersMs": 585,
+      "ms": {
+        "coachEnd": 1647,
+        "coachLineEnd": 1742,
+        "narrationEnd": 1772,
+        "sceneReplyStart": 1796,
+        "frFirstSentenceEnd": 1899,
+        "frEnd": 1899,
+        "sceneReplyEnd": 1994,
+        "streamEnd": 3022
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 113,
+        "beforeFrEnd": 128,
+        "beforeSceneReplyEnd": 142,
+        "total": 286
+      },
+      "outputTokens": 297,
+      "reasoningTokens": 0,
+      "inputTokens": 6723,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 90,
+      "frChars": 25,
+      "costUsd": 0.000657,
+      "coach": [
+        {
+          "kind": "blocking-error",
+          "quote": "Oui",
+          "better": "Sur place, s'il vous plaît",
+          "betterWritten": null,
+          "betterEn": "Here, please",
+          "why": "The question asks where you will have the coffee.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "Vous répondez oui, mais il faut préciser le lieu.",
+      "fr": "Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-paying-mid-beat",
+      "rep": 1,
+      "fullMs": 4160,
+      "spokenFieldsMs": 2145,
+      "ttftMs": 929,
+      "headersMs": 598,
+      "ms": {
+        "coachEnd": 1615,
+        "coachLineEnd": 1861,
+        "narrationEnd": 1903,
+        "sceneReplyStart": 1929,
+        "frFirstSentenceEnd": 2034,
+        "frEnd": 2145,
+        "sceneReplyEnd": 2246,
+        "streamEnd": 3888
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 129,
+        "beforeFrEnd": 146,
+        "beforeSceneReplyEnd": 163,
+        "total": 366
+      },
+      "outputTokens": 377,
+      "reasoningTokens": 0,
+      "inputTokens": 6726,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 111,
+      "frChars": 44,
+      "costUsd": 0.000754,
+      "coach": [
+        {
+          "kind": "textbook-phrasing",
+          "quote": "C’est combien ?",
+          "better": "Je vous dois combien ?",
+          "betterWritten": null,
+          "betterEn": "How much do I owe you?",
+          "why": "This is the natural polite phrase at a café counter.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "Voilà, c’est clair. Au comptoir, on dit souvent « Je vous dois combien ? »",
+      "fr": "Deux euros. Vous pouvez insérer votre carte."
+    },
+    {
+      "id": "cafe-ask-character",
+      "rep": 1,
+      "fullMs": 3751,
+      "spokenFieldsMs": 1510,
+      "ttftMs": 927,
+      "headersMs": 608,
+      "ms": {
+        "coachEnd": 1212,
+        "coachLineEnd": 1223,
+        "narrationEnd": 1261,
+        "sceneReplyStart": 1337,
+        "frFirstSentenceEnd": 1432,
+        "frEnd": 1510,
+        "sceneReplyEnd": 1726,
+        "streamEnd": 3623
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 51,
+        "beforeFrEnd": 76,
+        "beforeSceneReplyEnd": 100,
+        "total": 326
+      },
+      "outputTokens": 337,
+      "reasoningTokens": 0,
+      "inputTokens": 6726,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 0,
+      "coachChars": 0,
+      "frChars": 67,
+      "costUsd": 0.000706,
+      "coach": [],
+      "coachLine": null,
+      "fr": "Oui, depuis cinq ans. Ça fait deux euros. Par carte ou en espèces ?"
+    },
+    {
+      "id": "hotel-checkin-error",
+      "rep": 1,
+      "fullMs": 4192,
+      "spokenFieldsMs": 2112,
+      "ttftMs": 1050,
+      "headersMs": 465,
+      "ms": {
+        "coachEnd": 1672,
+        "coachLineEnd": 1827,
+        "narrationEnd": 1855,
+        "sceneReplyStart": 1888,
+        "frFirstSentenceEnd": 2092,
+        "frEnd": 2112,
+        "sceneReplyEnd": 2382,
+        "streamEnd": 4006
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 103,
+        "beforeFrEnd": 128,
+        "beforeSceneReplyEnd": 153,
+        "total": 365
+      },
+      "outputTokens": 376,
+      "reasoningTokens": 0,
+      "inputTokens": 6891,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 66,
+      "frChars": 67,
+      "costUsd": 0.000794,
+      "coach": [
+        {
+          "kind": "grammar-slip",
+          "quote": "un réservation",
+          "better": "une réservation",
+          "betterWritten": null,
+          "betterEn": "a reservation",
+          "why": "Réservation is feminine.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "On dit « une réservation » : le mot est féminin.",
+      "fr": "Très bien, c’est au nom de Martin. Vous avez une pièce d’identité ?"
+    },
+    {
+      "id": "hotel-english-question",
+      "rep": 1,
+      "fullMs": 4198,
+      "spokenFieldsMs": 2208,
+      "ttftMs": 1086,
+      "headersMs": 539,
+      "ms": {
+        "coachEnd": 1714,
+        "coachLineEnd": 1917,
+        "narrationEnd": 1952,
+        "sceneReplyStart": 1987,
+        "frFirstSentenceEnd": 2094,
+        "frEnd": 2208,
+        "sceneReplyEnd": 2463,
+        "streamEnd": 4032
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 125,
+        "beforeFrEnd": 150,
+        "beforeSceneReplyEnd": 188,
+        "total": 404
+      },
+      "outputTokens": 415,
+      "reasoningTokens": 0,
+      "inputTokens": 6894,
+      "cachedTokens": 5938,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 120,
+      "frChars": 77,
+      "costUsd": 0.000842,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "Is breakfast included?",
+          "better": "Le petit déjeuner est compris ?",
+          "betterWritten": "Le petit déjeuner est compris ?",
+          "betterEn": "Is breakfast included?",
+          "why": "This is a natural polite question at a hotel.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You were asking whether breakfast is included: « Le petit déjeuner est compris ? »",
+      "fr": "Oui, le petit déjeuner est compris. Il est servi de sept heures à dix heures."
+    }
+  ],
+  "summary": {
+    "ttftMs": {
+      "n": 12,
+      "p50": 929,
+      "p95": 1192,
+      "min": 783,
+      "max": 1192
+    },
+    "headersMs": {
+      "n": 12,
+      "p50": 585,
+      "p95": 843,
+      "min": 465,
+      "max": 843
+    },
+    "coachEnd": {
+      "n": 12,
+      "p50": 1644,
+      "p95": 2489,
+      "min": 1194,
+      "max": 2489
+    },
+    "coachLineEnd": {
+      "n": 12,
+      "p50": 1827,
+      "p95": 2771,
+      "min": 1215,
+      "max": 2771
+    },
+    "narrationEnd": {
+      "n": 12,
+      "p50": 1855,
+      "p95": 2847,
+      "min": 1250,
+      "max": 2847
+    },
+    "sceneReplyStart": {
+      "n": 12,
+      "p50": 1888,
+      "p95": 2868,
+      "min": 1302,
+      "max": 2868
+    },
+    "frFirstSentenceEnd": {
+      "n": 12,
+      "p50": 1951,
+      "p95": 2963,
+      "min": 1416,
+      "max": 2963
+    },
+    "frEnd": {
+      "n": 12,
+      "p50": 2004,
+      "p95": 3041,
+      "min": 1416,
+      "max": 3041
+    },
+    "sceneReplyEnd": {
+      "n": 12,
+      "p50": 2118,
+      "p95": 3175,
+      "min": 1532,
+      "max": 3175
+    },
+    "streamEnd": {
+      "n": 12,
+      "p50": 3813,
+      "p95": 5077,
+      "min": 3022,
+      "max": 5077
+    },
+    "spokenFieldsMs": {
+      "n": 12,
+      "p50": 2004,
+      "p95": 3041,
+      "min": 1416,
+      "max": 3041
+    },
+    "fullMs": {
+      "n": 12,
+      "p50": 4160,
+      "p95": 5217,
+      "min": 3162,
+      "max": 5217
+    },
+    "deltasBeforeSceneReplyStart": {
+      "n": 12,
+      "p50": 113,
+      "p95": 196,
+      "min": 48,
+      "max": 196
+    },
+    "deltasBeforeFrEnd": {
+      "n": 12,
+      "p50": 128,
+      "p95": 214,
+      "min": 66,
+      "max": 214
+    },
+    "deltasBeforeSceneReplyEnd": {
+      "n": 12,
+      "p50": 153,
+      "p95": 231,
+      "min": 83,
+      "max": 231
+    },
+    "outputTokens": {
+      "n": 12,
+      "p50": 376,
+      "p95": 495,
+      "min": 225,
+      "max": 495
+    },
+    "reasoningTokens": {
+      "n": 12,
+      "p50": 0,
+      "p95": 0,
+      "min": 0,
+      "max": 0
+    },
+    "coachItems": {
+      "n": 12,
+      "p50": 1,
+      "p95": 2,
+      "min": 0,
+      "max": 2
+    },
+    "coachChars": {
+      "n": 12,
+      "p50": 111,
+      "p95": 262,
+      "min": 0,
+      "max": 262
+    },
+    "frChars": {
+      "n": 12,
+      "p50": 40,
+      "p95": 77,
+      "min": 25,
+      "max": 77
+    }
+  },
+  "gains": {
+    "frEndVsSceneReplyEnd": {
+      "n": 12,
+      "p50": 155,
+      "p95": 270,
+      "min": 95,
+      "max": 270
+    },
+    "firstSentenceVsFrEnd": {
+      "n": 12,
+      "p50": 53,
+      "p95": 128,
+      "min": 0,
+      "max": 128
+    }
+  },
+  "cacheHitRate": 0.806
+}

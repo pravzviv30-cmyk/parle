@@ -12,6 +12,7 @@ import {
   DEFAULT_OPENAI_LIVE_MODEL,
   DEFAULT_OPENAI_TURN_MODEL,
   OpenAiResponsesBrainClient,
+  openAiLiveServiceTier,
   type OpenAiResponsesConfig,
 } from './openaiResponses.ts';
 import { DEFAULT_ROUTING, isAnalystActivity, resolveRouting, type BrainActivity } from './routing.ts';
@@ -421,5 +422,44 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
       },
     });
     assert.equal(typeof key, 'string');
+  });
+});
+
+describe('OpenAI Responses brain: the live service tier', () => {
+  const saved = process.env.OPENAI_LIVE_SERVICE_TIER;
+  const restore = () => { if (saved === undefined) delete process.env.OPENAI_LIVE_SERVICE_TIER; else process.env.OPENAI_LIVE_SERVICE_TIER = saved; };
+
+  test('no service_tier is sent by default', async (t) => {
+    delete process.env.OPENAI_LIVE_SERVICE_TIER;
+    t.after(restore);
+    for (const activity of ['turn', 'frame', 'extract'] as const) {
+      assert.ok(!('service_tier' in await bodyFor(activity)), `${activity} stays on the standard tier`);
+    }
+  });
+
+  test('when set, it is sent for the live turn and frame, trimmed and lower-cased', async (t) => {
+    delete process.env.OPENAI_LIVE_SERVICE_TIER;
+    t.after(restore);
+    assert.equal((await bodyFor('turn', { liveServiceTier: ' Priority ' })).service_tier, 'priority');
+    assert.equal((await bodyFor('frame', { liveServiceTier: 'flex' })).service_tier, 'flex');
+    process.env.OPENAI_LIVE_SERVICE_TIER = 'priority';
+    assert.equal((await bodyFor('turn')).service_tier, 'priority', 'read from the env when config is silent');
+  });
+
+  test('it is never sent for analyst or other non-live work', async (t) => {
+    delete process.env.OPENAI_LIVE_SERVICE_TIER;
+    t.after(restore);
+    for (const activity of ['extract', 'drills', 'curate', 'judge'] as const) {
+      assert.ok(!('service_tier' in await bodyFor(activity, { liveServiceTier: 'priority' })), `${activity} is not a live call`);
+    }
+  });
+
+  test('an unrecognised value is omitted', async (t) => {
+    delete process.env.OPENAI_LIVE_SERVICE_TIER;
+    t.after(restore);
+    t.mock.method(console, 'warn', () => {});
+    assert.ok(!('service_tier' in await bodyFor('turn', { liveServiceTier: 'fast' })));
+    assert.equal(openAiLiveServiceTier({ OPENAI_LIVE_SERVICE_TIER: 'turbo' }), null);
+    assert.equal(openAiLiveServiceTier({ OPENAI_LIVE_SERVICE_TIER: '  ' }), null);
   });
 });

@@ -11,6 +11,9 @@
  * pricing.test.ts asserts those two ratios over the whole table rather than
  * spot-checking rows: a mistyped row is caught by the shape, not by memory.
  *
+ * These are standard-tier list prices. A call sent with
+ * `OPENAI_LIVE_SERVICE_TIER=priority` costs more than the estimate here.
+ *
  * Reasoning tokens are not a column here on purpose. Both vendors bill thinking
  * inside `output_tokens`, so `usage.reasoningTokens` is a subset of a number
  * already charged. See the invariant in client.ts.

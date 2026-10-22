@@ -364,3 +364,51 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   quote prices no scoring). Free conversation (missions) is still unscored.
 - Sources: [pedagogy](docs/PEDAGOGY.md), F623 and F805 in
   [known issues](docs/KNOWN_ISSUES.md).
+
+## VOICE-005 — Speak once the reply's French has streamed; priority tier is opt-in
+
+- Date: 2026-10-22
+- Status: accepted
+- Decision: the streamed live turn hands over to speech when `sceneReply.fr`
+  closes instead of the whole `sceneReply`. Its `frWritten` and `en` are display
+  only and arrive with the full turn, which guards them before anything is shown.
+  The early output guard now checks exactly what is spoken (the reply's French,
+  the coach line and the narration). `OPENAI_LIVE_SERVICE_TIER` sends OpenAI's
+  `service_tier` on the live turn and frame only, off by default.
+  `scripts/measureLiveTurn.mjs` measures time to each spoken milestone.
+- Reason: after VOICE-003 about 2 s still passed before the spoken fields
+  arrived. Measured on gpt-6-luna over 24 synthetic mission turns per run
+  (`docs/live-latency-evidence/`):
+  - First token is about half the wait (p50 about 0.9 to 1.0 s).
+  - Coaching costs 0.4 to 0.7 s on turns with an error.
+  - The reply's unspoken English costs p50 97 to 116 ms per turn, now removed.
+  - With the default tier, the spoken fields arrived at p50 2035 ms before the
+    change and 1573 ms after. Most of that difference is a faster API window:
+    measured within each run, the code change saves about 0.1 s.
+  - `service_tier: priority` brought the spoken fields to p50 1247 to 1249 ms
+    (p95 1583 to 2162) and the full turn to about 2.1 s, by decoding about twice
+    as fast.
+- Declined, with numbers:
+  - Reasoning effort `low`: first token 4.6 s. Effort stays `none`.
+  - Leaving verbosity unset: speech at 2.3 s, more output. It stays `low`.
+  - `gpt-5.6-luna`: no faster and twice the price.
+  - A tighter coach contract (at most two findings, shorter why): more coach
+    output, not less.
+  - Starting TTS on the reply's first sentence: p50 0 to 49 ms over the
+    `fr` hand-over, for a recast and guard redesign.
+  - Prompt trimming: the cache hit rate is 0.92 to 0.96.
+  - `assessment` and `coach` stay before `sceneReply`: the coach line's
+    speaking and the recast depend on them.
+- Quality: the brain-playground eval was run before and after (16 cases,
+  gpt-6-luna) and again with priority. All three runs had 0 hard failures. The
+  priority run's one expectation miss is a typographic apostrophe in
+  "T’as faim ?" against a straight-quote regex. The prompt did not change, and
+  coach items per turn, coach lines and reply length were unchanged across runs.
+- Consequence: if the full turn's guard rejects the English after the French
+  was heard, or the turn fails after early speech, the heard French is shown
+  with no translation. Priority tier is billed at OpenAI's higher rate, so the
+  founder decides whether to set it. These are model-side timings only.
+  Recogniser, TTS first audio and phone playout still need a device run
+  (`[luvani:live] reply-latency`).
+- Sources: [live voice](docs/LIVE_VOICE.md), `packages/brain/src/llm/spokenFields.ts`,
+  `packages/brain/src/llm/openaiResponses.ts`, `scripts/measureLiveTurn.mjs`.

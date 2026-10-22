@@ -32,7 +32,9 @@ export function inCharacterRecast(view: TurnView, learnerText: string, alreadyUs
       // A recast changes the spoken display form, so any separate spelling
       // supplied for the old reply no longer describes the entire utterance.
       frWritten: null,
-      en: 'Ah, ' + closed(finding.betterEn) + ' ' + view.sceneReply.en,
+      // No English yet (an early, provisional reply) stays no English: half
+      // a translation would describe only the echo, not what was said.
+      en: view.sceneReply.en.trim() === '' ? '' : 'Ah, ' + closed(finding.betterEn) + ' ' + view.sceneReply.en,
     } },
   };
 }

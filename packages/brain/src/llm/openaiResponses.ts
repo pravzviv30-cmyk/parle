@@ -61,6 +61,12 @@ export interface OpenAiResponsesConfig {
   liveModel?: string;
   /** Stronger model used for the calls that run once the room has closed. */
   analystModel?: string;
+  /**
+   * OpenAI `service_tier` for the live calls only (turn and frame). Opt-in,
+   * default off: `priority` is billed at a higher rate. Falls back to
+   * `OPENAI_LIVE_SERVICE_TIER`; anything unrecognised means the field is omitted.
+   */
+  liveServiceTier?: string;
   /** Per-activity effort and size. Defaults to the shared table, env applied. */
   routing?: BrainRouting;
 }
@@ -74,6 +80,26 @@ const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 export const DEFAULT_OPENAI_TURN_MODEL = 'gpt-5.6-luna';
 export const DEFAULT_OPENAI_LIVE_MODEL = 'gpt-6-luna';
 export const DEFAULT_OPENAI_ANALYST_MODEL = 'gpt-5.6-terra';
+
+const SERVICE_TIERS = ['priority', 'default', 'auto', 'flex'] as const;
+export type OpenAiServiceTier = (typeof SERVICE_TIERS)[number];
+let warnedServiceTier = false;
+
+/**
+ * The live calls' service tier, from config then `OPENAI_LIVE_SERVICE_TIER`.
+ * Unset or unrecognised means null: the request carries no `service_tier`.
+ */
+export function openAiLiveServiceTier(env: Record<string, string | undefined> = process.env,
+  config: Pick<OpenAiResponsesConfig, 'liveServiceTier'> = {}): OpenAiServiceTier | null {
+  const raw = (config.liveServiceTier?.trim() || env.OPENAI_LIVE_SERVICE_TIER?.trim() || '').toLowerCase();
+  if (raw === '') return null;
+  if ((SERVICE_TIERS as readonly string[]).includes(raw)) return raw as OpenAiServiceTier;
+  if (!warnedServiceTier) {
+    warnedServiceTier = true;
+    console.warn(`[luvani] OPENAI_LIVE_SERVICE_TIER is not one of ${SERVICE_TIERS.join(', ')}; using the standard tier.`);
+  }
+  return null;
+}
 
 /** One resolver for the brain, scripted SDK and startup probe; legacy overrides remain valid. */
 export function openAiLiveModel(env: Record<string, string | undefined> = process.env,
@@ -212,6 +238,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   private readonly config: Wiring;
   private readonly routing: BrainRouting;
   private readonly explicitEffort: boolean;
+  private readonly liveServiceTier: OpenAiServiceTier | null;
 
   constructor(
     config: OpenAiResponsesConfig = {},
@@ -228,6 +255,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       analystModel: config.analystModel?.trim() || process.env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
     };
     this.routing = config.routing ?? resolveRouting();
+    this.liveServiceTier = openAiLiveServiceTier(process.env, config);
     this.explicitEffort = config.routing !== undefined || ['low', 'medium', 'high'].includes(process.env.BRAIN_EFFORT ?? '');
   }
 
@@ -323,8 +351,12 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     // Every other call, and a turn nobody is waiting to speak, stays one
     // request and one JSON body, exactly as before.
     const watcher = activity === 'turn' && request.onSpokenFields ? new SpokenFieldsWatcher() : null;
+    // Priority processing is for the calls a learner waits through, never for
+    // analyst work after the room has closed.
+    const live = (activity === 'turn' || activity === 'frame') && !isAnalystActivity(activity, this.routing);
     const body = JSON.stringify({
       model: route.model,
+      ...(live && this.liveServiceTier !== null ? { service_tier: this.liveServiceTier } : {}),
       instructions,
       input: inputMessages(messages),
       // An undefined effort means "leave the vendor's own default in place"
