@@ -1,12 +1,17 @@
 /** All prices/evidence here are SYNTHETIC integer test units, not vendor quotes.
  * Real sequential PostgreSQL/WASM proof; no hosted/provider calls or user data.
  * Independent PostgreSQL concurrency, invoice economics and SDK envelopes external.
+ * Exception: the lesson scoring group seeds the reviewed LESSON_SCORING_COMPONENT
+ * (cost-model price, not a vendor quote); every other price stays synthetic.
  */
 import assert from 'node:assert/strict';
 import { readFile,readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
+import { LESSON_SCORING_COMPONENT } from '../services/shared/lessonScoringQuote.ts';
+import { describePaidHttp } from '../services/shared/paidExecution.ts';
+import { toSpeechaceWav } from '../services/shared/liveScoringAudio.ts';
 const root=fileURLToPath(new URL('../',import.meta.url)),db=new PGlite(),groups=[];
 const migration='20261004010327_whole_product_paid_admission.sql';
 const id=n=>`20000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -245,6 +250,36 @@ try {
   assert.equal((await baselineDb.query('select sum(issued_seconds)::int as n from public.tutor_session_budget_days')).rows[0].n,900);
  }finally{await baselineDb.close();}
  groups.push('legacy owner issued-count/seconds backfill lossless for every prior grant/usage/global field; tutor-only exposure rollback remains refused after owner erasure');
+
+ // F863: a live lesson score claims the reviewed scoring component of the bound
+ // lesson quote. Fresh users/sessions; budgets raised only for this last group.
+ await enable();await db.exec('update luvani_private.paid_admission_config set global_daily_micro_usd=1000000,account_daily_micro_usd=1000000');
+ await db.exec('update luvani_private.paid_admission_vendors set enabled=true,daily_micro_usd=1000000,daily_operations=100,daily_calls=1000');
+ await db.exec('update tutor_session_admission_config set enabled=true,max_active_sessions=10,max_daily_issued_seconds=100000,max_account_daily_sessions=1,max_account_daily_seconds=900');
+ const capture=(()=>{const bytes=48000*30*4,b=Buffer.alloc(44+bytes);b.write('RIFF',0,'ascii');b.writeUInt32LE(36+bytes,4);b.write('WAVE',8,'ascii');b.write('fmt ',12,'ascii');b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(2,22);b.writeUInt32LE(48000,24);b.writeUInt32LE(192000,28);b.writeUInt16LE(4,32);b.writeUInt16LE(16,34);b.write('data',36,'ascii');b.writeUInt32LE(bytes,40);return b;})();
+ const scoringForm=new FormData();scoringForm.append('text','Bonjour');scoringForm.append('user_audio_file',new Blob([toSpeechaceWav(capture)]),'utterance.wav');scoringForm.append('dialect','fr-fr');
+ const scored=await describePaidHttp(new URL('https://api.speechace.co/api/scoring/text/v9/json?key=synthetic&dialect=fr-fr'),{method:'POST',body:scoringForm});
+ assert.equal(scored.quantities.audioMillis,30000);
+ const scoringSession=async(n,q,components)=>{
+  await db.query('insert into auth.users(id)values($1)',[id(n)]);await db.query('insert into auth.sessions(id,user_id)values($1,$2)',[auth(n),id(n)]);await db.query("insert into entitlements(user_id,plan,period_end)values($1,'regular',clock_timestamp()+interval '30 days')",[id(n)]);
+  await seedQuote(q,quote('lesson',components));
+  assert.equal((await rpc('reserve_tutor_session_v1',[id(n),sid(q),`scoring-proof-${q}`,'lesson',hash(`scoring-proof-${q}`),auth(n)])).reservedSeconds,900);
+  const ctx={kind:'tutor',sessionId:sid(q)};assert.equal((await reserve(n,q,q,ctx)).kind,'reserved');
+  await rpc('claim_tutor_session_v1',[id(n),sid(q),`scoring-proof-${q}`,'lesson',id(6000+q)]);
+  assert.equal((await rpc('resume_paid_tutor_v1',[id(n),sid(q),id(6000+q)])).operationId,opid(q));
+  return effect(n,q,q,{...ctx,claimNonce:id(6000+q)},scored.quantities,'scoring',LESSON_SCORING_COMPONENT.configurationSha256,1);
+ };
+ const lessonStt={...stt,maxAudioMillis:900000};
+ const firstScore=await scoringSession(7,70,[comp('brain'),lessonStt,tts,{...LESSON_SCORING_COMPONENT}]);
+ assert.equal(firstScore.dispatch,true);assert.equal(firstScore.executionMicroUsdCharged,96000);
+ // SQL bounds each effect against the component limits; the 900 s session sum is the gate's (reservationGate).
+ const scoreCtx={kind:'tutor',sessionId:sid(70),claimNonce:id(6070)},small={inputBytes:4103,outputTokens:0,audioMillis:1000,textBytes:7};
+ const scoreEffect=(e,qty)=>effect(7,70,e,scoreCtx,qty,'scoring',LESSON_SCORING_COMPONENT.configurationSha256,1);
+ assert.equal((await scoreEffect(7100,{...small,textBytes:LESSON_SCORING_COMPONENT.maxTextBytes+1})).reason,'quantity-limit');
+ for(let e=7101;e<7148;e++)assert.equal((await scoreEffect(e,small)).dispatch,true);
+ assert.equal((await scoreEffect(7148,small)).reason,'effect-limit','a 49th lesson score is refused');
+ assert.equal((await scoringSession(8,71,[comp('brain'),lessonStt,tts])).reason,'quote-mismatch','F863: a lesson quote without scoring refuses every live score');
+ groups.push('F863 live lesson scoring: a 30 s Speechace score dispatches on the reviewed lesson scoring component and is charged its envelope once; per-effect quantity-limit; 49th score effect-limit; a lesson quote without it refuses as quote-mismatch');
 
  // Source/catalog verifier for lock order and production clock authority. Actual
  // independent PostgreSQL deadlock contention remains a release acceptance gate.

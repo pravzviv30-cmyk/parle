@@ -27,6 +27,7 @@
     "API compressed audio bytes do not bound billed duration; decoded/container duration validation must precede admission.",
     "SQL owner applies configuration. App and service credentials cannot edit these private budgets or quotes. No configuration is applied by this validator.",
     "Global/provider aggregates survive Auth erasure; owner daily counters and operation/effect receipts cascade. Quote revisions carry no learner content.",
-    "Maximum 4096 retained quote revisions, 16 components and 1024 reserved provider attempts per operation; explicit positive per-account tutor caps required. New revisions require lifecycle/retention review before that permanent ceiling is reached."
+    "Maximum 4096 retained quote revisions, 16 components and 1024 reserved provider attempts per operation; explicit positive per-account tutor caps required. New revisions require lifecycle/retention review before that permanent ceiling is reached.",
+    "A lesson quote may carry the reviewed scoring component (services/shared/lessonScoringQuote.ts); its price is from the cost model and unverified. Live scoring needs the lesson binding to declare kinds including scoring."
   ]
 }

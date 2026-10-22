@@ -2,7 +2,8 @@
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {decodePaidComponent,PAID_ACTIVITIES,PAID_PROVIDERS} from '../services/shared/paidAdmission.ts';
+import {decodePaidComponent,PAID_ACTIVITIES,PAID_PROVIDERS,validBindingKinds} from '../services/shared/paidAdmission.ts';
+import {LESSON_SCORING_COMPONENT} from '../services/shared/lessonScoringQuote.ts';
 const HASH=/^[0-9a-f]{64}$/,UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const integer=(v,min,max)=>Number.isSafeInteger(v)&&v>=min&&v<=max;
 const exact=(v,keys)=>{if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).length!==keys.length||!keys.every(k=>Object.hasOwn(v,k)))throw new Error('invalid paid owner contract shape');};
@@ -33,10 +34,13 @@ export function validatePaidBudgetContract(p,{now=Date.now()}={}){
   if(q.enabled&&components.some(c=>!p.vendors.some(v=>v.provider===c.provider&&v.enabled)))throw new Error('quote names disabled/missing vendor');
   const allowed={'lesson-text':['llm'],'convo-text':['llm'],practice:['llm'],'api-judge':['llm'],'api-fix-judge':['llm'],'api-transcribe':['stt'],'api-score':['scoring'],'api-fix-observer':['observer'],'phrase-audio':['tts']}[d.activity];
   if((allowed&&components.some(c=>!allowed.includes(c.kind)))||(['lesson','convo'].includes(d.activity)&&['llm','stt','tts'].some(k=>!components.some(c=>c.kind===k))))throw new Error('paid activity component mismatch');
+  // F863: live lesson scoring is admitted only through the reviewed Speechace component: exact identity and envelope, price may only rise.
+  if(d.activity==='lesson'&&components.some(c=>c.kind==='scoring'&&(['provider','model','voice','configurationSha256','maxProviderAttempts','maxEffects','maxAudioMillis','maxTextBytes','maxInputBytes','maxOutputTokens'].some(k=>c[k]!==LESSON_SCORING_COMPONENT[k])||c.microUsd<LESSON_SCORING_COMPONENT.microUsd)))throw new Error('lesson scoring component must match the reviewed Speechace envelope');
   if(q.enabled&&['lesson','lesson-text','convo','convo-text'].includes(d.activity)&&(!p.tutor.accountDailySessions||!p.tutor.accountDailySeconds))throw new Error('enabled tutor quote requires owner session caps');
  }
  if(!p.bindings||typeof p.bindings!=='object'||Array.isArray(p.bindings)||Object.keys(p.bindings).length>PAID_ACTIVITIES.length)throw new Error('invalid quote binding map');
- for(const [activity,b]of Object.entries(p.bindings)){exact(b,['quoteId','configurationSha256']);if(!PAID_ACTIVITIES.includes(activity)||typeof b.quoteId!=='string'||!UUID.test(b.quoteId)||typeof b.configurationSha256!=='string'||!HASH.test(b.configurationSha256)||!p.quotes.some(q=>q.enabled&&q.id===b.quoteId&&q.definition.activity===activity&&q.definition.configurationSha256===b.configurationSha256))throw new Error('exact reviewed quote binding required');}
+ for(const [activity,b]of Object.entries(p.bindings)){exact(b,Object.hasOwn(b??{},'kinds')?['quoteId','configurationSha256','kinds']:['quoteId','configurationSha256']);if((Object.hasOwn(b,'kinds')&&!validBindingKinds(b.kinds))||!PAID_ACTIVITIES.includes(activity)||typeof b.quoteId!=='string'||!UUID.test(b.quoteId)||typeof b.configurationSha256!=='string'||!HASH.test(b.configurationSha256)||!p.quotes.some(q=>q.enabled&&q.id===b.quoteId&&q.definition.activity===activity&&q.definition.configurationSha256===b.configurationSha256))throw new Error('exact reviewed quote binding required');
+  if(Object.hasOwn(b,'kinds')&&JSON.stringify(b.kinds)!==JSON.stringify([...new Set(p.quotes.find(q=>q.id===b.quoteId).definition.components.map(c=>c.kind))].sort()))throw new Error('binding kinds must equal the bound quote component kinds');}
  if(p.enabled&&Object.keys(p.bindings).length===0)throw new Error('enabled paid contract requires explicit activity bindings');
  return {version:1,enabled:p.enabled,activityCount:Object.keys(p.bindings).length,quoteCount:p.quotes.length,applied:false,pricesVerified:false,runtimeEnvelopeVerified:false};
 }

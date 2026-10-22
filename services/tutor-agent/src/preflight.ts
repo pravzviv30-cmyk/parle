@@ -16,6 +16,7 @@ import { ELEVEN_VOICES, MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synth
 import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
 import { spawnSync } from 'node:child_process';
 import { typedOnly } from '../../shared/sessionCapabilities.ts';
+import { paidBindings } from '../../shared/paidBindings.ts';
 
 export type Brain = 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'claude-cli-all';
 
@@ -686,6 +687,16 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
       || env.LUVANI_AUDIO_SCORING === '1' && (env.LUVANI_SCORING_VENDOR !== 'speechace' || !env.SPEECHACE_API_KEY?.trim())) {
       console.error('[luvani:agent] Production requires an HTTPS token API, a strong agent secret and TUTOR_LLM=openai.');
       exit(1); return;
+    }
+    if (env.LUVANI_AUDIO_SCORING === '1') {
+      // F863: live scoring is admitted only through a scoring component of the
+      // bound lesson quote. Without one every score is refused as quote-mismatch.
+      let scoringQuoted = false;
+      try { scoringQuoted = paidBindings(env).lesson?.kinds?.includes('scoring') === true; } catch { /* unreadable bindings refuse */ }
+      if (!scoringQuoted) {
+        console.error('[luvani:agent] F863: live scoring needs the lesson quote binding to declare a scoring component (LUVANI_PAID_QUOTE_BINDINGS lesson.kinds).');
+        exit(1); return;
+      }
     }
   }
   for (const line of warnings(env)) console.warn(`[luvani:agent] ${line}`);

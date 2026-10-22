@@ -205,6 +205,14 @@ reply, never in front of it (VOICE-004): only an answer that matches the
 reference line is sent, the paid route gets 16 kHz mono WAV converted in process
 (`services/shared/liveScoringAudio.ts`), and a finishing lesson waits at most
 `SCORE_SETTLE_MS` for scores in flight before writing the end card.
+In production the score goes through the paid gate, so the bound lesson quote
+must carry the reviewed scoring component (`services/shared/lessonScoringQuote.ts`)
+and its binding must declare `kinds` including `scoring`; startup refuses the flag
+otherwise (F863). Activation acceptance before the flag goes on for anyone: one
+hosted lesson shows a Speechace 200 and a `scored` end card. Also confirm
+Speechace's billing unit and rate: if it bills per second, recompute `microUsd`
+as max(per-call × 48, per-second × 900) before the flag goes on. Follow the
+activation order in `deployment/PAID_ADMISSION.md`.
 The app measures the learner's wait on the device: from the confirmed final
 transcript to the worker's `speaking` frame, logged as
 `[luvani:live] reply-latency` and kept in `LiveDiagnostics.replyLatencyMs`
@@ -299,11 +307,11 @@ failure available here, so the machinery is deliberately explicit:
   to `0`, which is why speaking share and longest turn read as nothing on every
   live session ever run.
 - **Live scoring is built, and switched off.** Sending a live utterance to the
-  scorer is behind `LUVANI_AUDIO_SCORING=1`, and by the founder's decision of
-  2026-09-29 that stays unset until scoring runs off the reply path (F623 in
-  `docs/KNOWN_ISSUES.md`). The score is awaited before the brain replies, and the
-  one TonePerfect call took 3.4 s for a 1.7 s clip, on top of a 4.5 to 5.4 s
-  brain. Until F623 lands, a live end card reads `unavailable`. Drills and sound
+  scorer is behind `LUVANI_AUDIO_SCORING=1`, which stays unset until the
+  activation checks above pass. Scoring runs beside the reply, never in front of
+  it (VOICE-004, which closed F623): the brain answers without waiting, and a
+  finishing lesson waits at most `SCORE_SETTLE_MS` for scores in flight. With the
+  flag off, a live end card reads `unavailable`. Drills and sound
   checks are scored today, by the token server's `/drill/score`, which does not
   read the flag. Their recordings are .m4a on a phone and WebM on the web, so
   each upload is labelled from its own first bytes rather than assumed to be WAV.

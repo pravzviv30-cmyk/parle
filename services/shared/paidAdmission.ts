@@ -10,7 +10,10 @@ export interface PaidComponent {
  key:string;kind:PaidKind;provider:PaidProvider;model:string;voice:string;configurationSha256:string;
  maxEffects:number;maxProviderAttempts:number;maxInputBytes:number;maxOutputTokens:number;maxAudioMillis:number;maxTextBytes:number;microUsd:number;
 }
-export interface PaidQuoteBinding {quoteId:string;configurationSha256:string}
+export interface PaidQuoteBinding {quoteId:string;configurationSha256:string;kinds?:readonly PaidKind[]}
+export const PAID_KINDS:readonly PaidKind[]=['llm','observer','scoring','stt','tts'];
+/** Optional binding kinds: non-empty, sorted, unique known kinds. Lets startup see the quote shape (F863). */
+export const validBindingKinds=(kinds:unknown):kinds is readonly PaidKind[]=>Array.isArray(kinds) && kinds.length>0 && kinds.every((k,i)=>typeof k==='string' && PAID_KINDS.includes(k as PaidKind) && (i===0 || kinds[i-1]<k));
 export type PaidContext={kind:'api';authSessionId:string;operationId:string}|{kind:'tutor';sessionId:string;claimNonce?:string}|{kind:'practice';packId:string;leaseToken:string};
 export type PaidRpc=(name:'reserve_paid_operation_v1'|'claim_paid_effect_v1'|'resume_paid_tutor_v1'|'paid_admission_schema_v1',args:Record<string,unknown>,signal?:AbortSignal)=>Promise<unknown>;
 export class PaidAdmissionError extends Error {
@@ -81,12 +84,15 @@ export function paidAdmission(options:{rpc:PaidRpc;bindings:Partial<Record<PaidA
    || typeof answer.day!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(answer.day))throw new PaidAdmissionError('invalid-reservation');
   const operationId=answer.operationId,activity=answer.activity as PaidActivity,requestDigest=answer.requestDigest,binding=bindings[activity];
   if(!binding || typeof binding.quoteId!=='string' || typeof binding.configurationSha256!=='string' || !UUID.test(binding.quoteId) || !HASH.test(binding.configurationSha256)
+   || (binding.kinds!==undefined && !validBindingKinds(binding.kinds))
    || answer.quoteId!==binding.quoteId || answer.configurationSha256!==binding.configurationSha256
    || (request.operationId!==undefined && request.operationId!==operationId) || (request.activity!==undefined && request.activity!==activity)
    || (request.requestDigest!==undefined && request.requestDigest!==requestDigest))throw new PaidAdmissionError('quote-mismatch');
   const original=context(request.context,false,operationId),components=Object.freeze(answer.components.map(decodePaidComponent));
   if(new Set(components.map(c=>c.key)).size!==components.length || components.reduce((n,c)=>n+c.microUsd,0)!==answer.microUsd
    || components.reduce((n,c)=>n+c.maxEffects*c.maxProviderAttempts,0)!==answer.providerCalls)throw new PaidAdmissionError('invalid-reservation');
+  const reservedKinds=[...new Set(components.map(c=>c.kind))].sort();
+  if(binding.kinds && JSON.stringify(reservedKinds)!==JSON.stringify(binding.kinds)){console.warn('[paid] binding kinds differ from the reserved quote',{activity,declared:binding.kinds.join(','),reserved:reservedKinds.join(',')});throw new PaidAdmissionError('quote-mismatch');}
   const allowedKinds:Partial<Record<PaidActivity,readonly PaidKind[]>>={'lesson-text':['llm'],'convo-text':['llm'],practice:['llm'],'api-judge':['llm'],'api-fix-judge':['llm'],'api-transcribe':['stt'],'api-score':['scoring'],'api-fix-observer':['observer'],'phrase-audio':['tts']};
   if(allowedKinds[activity] && components.some(c=>!allowedKinds[activity]!.includes(c.kind)))throw new PaidAdmissionError('invalid-reservation');
   if(['lesson','convo'].includes(activity) && ['llm','stt','tts'].some(kind=>!components.some(c=>c.kind===kind)))throw new PaidAdmissionError('invalid-reservation');
@@ -118,7 +124,7 @@ export function paidAdmission(options:{rpc:PaidRpc;bindings:Partial<Record<PaidA
   async reserve(request:ReservePaidRequest):Promise<PaidReservation> {
    if(typeof request.userId!=='string' || !UUID.test(request.userId) || typeof request.operationId!=='string' || !UUID.test(request.operationId)
     || typeof request.requestDigest!=='string' || !HASH.test(request.requestDigest) || !PAID_ACTIVITIES.includes(request.activity))throw new PaidAdmissionError('invalid-request');
-   const binding=bindings[request.activity];if(!binding || typeof binding.quoteId!=='string' || typeof binding.configurationSha256!=='string' || !UUID.test(binding.quoteId) || !HASH.test(binding.configurationSha256))throw new PaidAdmissionError('quote-mismatch');
+   const binding=bindings[request.activity];if(!binding || typeof binding.quoteId!=='string' || typeof binding.configurationSha256!=='string' || !UUID.test(binding.quoteId) || !HASH.test(binding.configurationSha256) || (binding.kinds!==undefined && !validBindingKinds(binding.kinds)))throw new PaidAdmissionError('quote-mismatch');
    const original=context(request.context,false,request.operationId);
    const answer=await invoke('reserve_paid_operation_v1',{p_user_id:request.userId,p_operation_id:request.operationId,p_quote_id:binding.quoteId,p_configuration_sha256:binding.configurationSha256,p_context:original,p_request_digest:request.requestDigest},request.signal);
    return decode(answer,request);

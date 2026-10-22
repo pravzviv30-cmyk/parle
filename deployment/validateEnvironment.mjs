@@ -38,6 +38,7 @@ if(['api','tutor'].includes(role) && (env.LUVANI_SCORING_VENDOR && env.LUVANI_SC
 if(role==='tutor' && (env.LUVANI_CONVO_ASR_EXPERIMENT==='1' || env.LUVANI_TTS_VENDOR==='fish' || env.LUVANI_TTS_MISS_TRANSPORT==='ws' || env.LUVANI_AUDIO_SCORING==='1' && (env.LUVANI_SCORING_VENDOR!=='speechace' || !env.SPEECHACE_API_KEY)))problems.push('unreviewed paid voice adapter');
 if(['api','tutor','practice'].includes(role)) {
  try { const bindings=paidBindings(env);if(!Object.keys(bindings).length)throw new Error(); } catch { problems.push('reviewed LUVANI_PAID_QUOTE_BINDINGS required'); }
+ if(role==='tutor' && env.LUVANI_AUDIO_SCORING==='1') { let quoted=false;try{quoted=paidBindings(env).lesson?.kinds?.includes('scoring')===true;}catch{/* reported above */} if(!quoted)problems.push('live scoring requires a lesson quote binding with a scoring component'); }
 }
 if(role==='observability') {
  try { const path=env.LUVANI_OBSERVABILITY_CONFIG;if(path!=='/run/config/observability.json')throw new Error();const info=await stat(path);if(!info.isFile() || info.size>16384)throw new Error();const config=validateObservabilityConfig(JSON.parse(await readFile(path,'utf8')));if(!config.enabled || config.listenHost!=='127.0.0.1' || config.listenPort!==9464)throw new Error(); } catch {problems.push('enabled private observability configuration required');}
