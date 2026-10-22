@@ -16,14 +16,14 @@ Today the spine has seven missions and stops at A1: premier-café, café and hot
   - No change to the ladder, grading, `isEarned` or the session engine.
   - No change to the order or content of the seven existing missions.
   - No new `MissionPlace`, icon or daily scenario.
-  - No final postcard art.
+  - No final postcard art. (F865 later drew it, on `claude/mission-postcards`.)
 - Risks:
   - **Deploy order.** The tutor agent must ship before the app, because an agent that does not know a mission id falls back to the ordinary topic question (`services/tutor-agent/src/convo.ts` `validMissionId`).
   - **Drill bank size.** About 96 new fixtures would overflow the 160-exercise device bank, so the cap rises (T4).
   - **Existing installs.** A device that already has a drill bank would never get the new missions' drills, so the store gains a merge for them (T4).
 - Decisions (founder, 2026-10-22):
   1. **A2 is added properly.** `Mission.cefr` widens to `CefrLevel`, and `SpineView.level` gains `'A2'` once every A0 and A1 mission is earned. Learner surfaces name A2 "Everyday", the third stage word UI-004 already lists.
-  2. **Each new scene gets its own flat place drawing**, authored in `docs/design-assets/ILLUSTRATIONS.md`. Postcards reuse existing drawings as placeholders until real postcards are drawn.
+  2. **Each new scene gets its own flat place drawing**, authored in `docs/design-assets/ILLUSTRATIONS.md`. Postcards reused existing drawings as placeholders at first; F865 replaced them with a postcard per mission on `claude/mission-postcards`.
   3. **The six existing places are reused**, following the daily-scenario pool: health and transport are `street`, shops are `market`, home and work are `home`. The "one place per mission" test becomes "one drawing per mission", which `scenes.test.ts` already enforces. Postcards are now keyed by mission, so a place no longer has to mean one situation.
 - Defects: F44 (its verifying test changes from "seven front doors" to the new count).
 
@@ -75,7 +75,7 @@ English copy:
 - **Speak, Missions, Notebook, Journey, Then and now:** an A2 group named "Everyday" follows Starter and Basics.
 - **Scene preview and first-scene stage word:** an A2 mission reads Everyday, never Basics.
 - **Home and Explore:** new missions appear through the existing projections, with their own drawing and topic.
-- **Recap:** new missions show a placeholder postcard (the nearest existing place's).
+- **Recap:** new missions first showed a placeholder postcard (the nearest existing place's). F865 gave every mission a postcard of its own on `claude/mission-postcards`.
 - No new loading, empty, error or offline states. Every surface already handles a mission it has not seen through `getMission`.
 
 ## Tasks in dependency order
@@ -87,7 +87,7 @@ English copy:
 | T2 | Twelve new place drawings generated into the registry | design-system-engineer | none | `docs/design-assets/ILLUSTRATIONS.md`, `apps/mobile/src/art/flat/place-*.tsx`, `apps/mobile/src/art/flat/index.ts`, `apps/mobile/src/art/registry.test.ts`, the place-drawing count lines in `apps/mobile/src/surfaceContract.test.ts`, `DESIGN.md` | done |
 | T3 | A2 shown as Everyday on every learner surface | frontend-engineer | none (codes against `CefrLevel`) | listed mobile level surfaces and their tests, `DECISIONS.md` UI-007 | done |
 | T4 | Drill bank room for the new fixtures, new fixtures reach existing installs | practice-ux-engineer | none | `apps/mobile/src/drill/merge.ts`, `apps/mobile/src/drill/store.ts`, their tests | done |
-| T5 | Each new scene draws its own place, placeholder postcards | frontend-engineer | T1B, T2 | `apps/mobile/src/art/flat/scenes.ts`, `scenes.test.ts`, `apps/mobile/src/recap/postcardArt.ts` | done |
+| T5 | Each new scene draws its own place, placeholder postcards (replaced by F865) | frontend-engineer | T1B, T2 | `apps/mobile/src/art/flat/scenes.ts`, `scenes.test.ts`, `apps/mobile/src/recap/postcardArt.ts` | done |
 | T6 | French reviewed and fixes applied | tutor-behaviour-engineer (read-only), then implementer-opus-low | T1B | frames and core catalogue only | done |
 | T7 | Copy check, docs, gate, commit, handoff | orchestrator | all | `PRODUCT.md`, `docs/KNOWN_ISSUES.md`, this file, `scripts/gate.floors.json` | done |
 
@@ -111,13 +111,14 @@ Acceptance for every task:
 | 2026-10-22 / T5 | `SCENE_ILLUSTRATION` and placeholder `POSTCARD` entries; scenes.test counts 19; goals tie test narrowed to café and apéro; Speak path test made stricter for A2 | mobile 3460/3460, all-workspace typecheck clean | T6 fixes |
 | 2026-10-22 / T6 | tutor-behaviour-engineer read-only review: 3 must-fix, 10 nice-to-have, 11 of 12 author doubts confirmed natural. Applied: Sud not Bretagne, j'emménage, carte Vitale note, receipt note, lift narration, tu-only accepted answer, la docteure, voie not quai, "Tenez, c'est pour vous", neutral opener for Monique, ordinal dropped from voisin references. Kept: "D'accord, on se tutoie", "C'est un train direct ?" | core 927/927, brain 488/488 | T7 |
 | 2026-10-22 / T7 | Jev copy check on the twelve missions' English (advisory): tone 3.12 of 4, praise-free 0.95, plain 0.74; no em dashes. PRODUCT.md, F44, F570/F599 test titles, new F864 and F865 | first gate red only on F570/F599 naming the old registry test title; fixed; `npm run gate` green, 6017 tests | commit, handoff |
+| 2026-10-22 / F865 | Twelve postcard drawings authored and generated; `POSTCARD` gives each of the nineteen missions its own; `postcardArt.test.ts` added (failed on the placeholder map first) | postcardArt.test passes; registry count 53 in registry.test and surfaceContract.test; mobile 3461/3461, all-workspace typecheck clean | none |
 
 ## Integrated verification and handoff
 
 - Focused checks: core 927/927, brain 488/488 (agreement.test over all 19 missions: schema, 15 openings each, copy rules, engine walk-through to `missionDone`), mobile 3460/3460, all-workspace typecheck clean.
 - Full gate: `npm run gate` green on 2026-10-22, 6017 tests (core 927, brain 488, tutor-agent 659, token-server 457, playground 26, mobile 3460); floors raised with `npm run gate:bless`.
 - UI / device checks: the twelve drawings were rendered headless and checked by eye. No dev-build screenshot of the Everyday group yet.
-- Documentation and decisions: PRODUCT.md (nineteen scenes, A0 to A2), DECISIONS.md UI-007 (Everyday), DESIGN.md (nineteen place drawings), KNOWN_ISSUES.md F44, F570, F599, new F864 (goal matching per place) and F865 (placeholder postcards).
+- Documentation and decisions: PRODUCT.md (nineteen scenes, A0 to A2), DECISIONS.md UI-007 (Everyday), DESIGN.md (nineteen place drawings), KNOWN_ISSUES.md F44, F570, F599, new F864 (goal matching per place) and F865 (placeholder postcards, since fixed).
 - Deploy order: ship the tutor agent before the app, or a new mission id opens as the ordinary topic question.
 - Landing disposition: HOLD for founder review of the French and the drawings, then /land.
-- Next task: founder review; F865 postcards (F864, per-mission goal words, closed on `claude/goal-words-per-mission`); a dev-build look at Speak and Missions with an A2 learner.
+- Next task: founder review of the French and the drawings; then /land. F864 (per-mission goal words, `claude/goal-words-per-mission`) and F865 (postcards, `claude/mission-postcards`) are closed and merged into this branch. A dev-build look at Speak and Missions with an A2 learner is still open.
