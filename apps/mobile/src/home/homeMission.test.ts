@@ -26,6 +26,8 @@ import {
 } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
+import { goalOf } from '../onboarding/goalLine.ts';
+import { createStoredProfile, withOnboardingGoal, type StoredProfile } from '../profile/store.ts';
 import type { ScenarioRecord } from '../missions/progressStore.ts';
 import { estimateMinutes, missionMinutes } from './estimate.ts';
 import { HERO_COPY, HERO_LABELS, START, fallbackHero, heroBookmark, heroStart, homeMissionFrom } from './homeMission.ts';
@@ -182,6 +184,28 @@ describe('the onboarding goal orders the hero', () => {
     assert.ok(hero !== null && hero.kind === 'scene');
     assert.equal(hero.mission.id, 'mission:cafe');
     assert.equal(sceneEyebrow(hero), HERO_LABELS.resume);
+  });
+
+  test('a goal changed or cleared in Learning preferences reorders the hero from the stored profile', () => {
+    const opened = progressWith([{ id: 'mission:premier-cafe', at: EVENING - 86_400_000, rung: 4 }]);
+    const profile: StoredProfile = { ...createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: null }, EVENING), onboardingGoal: 'moving' };
+    const heroFor = (p: StoredProfile) => homeMissionFrom({ progress: opened, records: [], levelIndex: 0, goal: goalOf(p), now: EVENING });
+
+    const moving = heroFor(profile);
+    assert.ok(moving !== null && moving.kind === 'scene');
+    assert.equal(moving.mission.id, 'mission:voisin');
+    assert.equal(sceneEyebrow(moving), 'Picked for your move');
+
+    const food = heroFor(withOnboardingGoal(profile, 'food'));
+    assert.ok(food !== null && food.kind === 'scene');
+    assert.equal(food.mission.id, coreNextScene(opened, 'food')!.mission.id);
+    assert.equal(sceneEyebrow(food), 'Picked for ordering food and drinks');
+
+    const cleared = heroFor(withOnboardingGoal(profile, null));
+    assert.ok(cleared !== null && cleared.kind === 'scene');
+    assert.equal(cleared.mission.id, spineFrom(opened).next!.id);
+    assert.equal(cleared.picked, 'spine');
+    assert.match(sceneEyebrow(cleared), /^Next scene/);
   });
 
   test('the hero is the scene core picks for the goal', () => {

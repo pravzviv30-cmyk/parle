@@ -29,6 +29,8 @@ import { streakDays } from '../game/todayHeroView.ts';
 import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
 import { PLAN_LABELS, planSentence, type PlanStatusView } from '../purchases/planStatus.ts';
 import { STATED_LEVEL_OPTIONS, type StatedLevel } from '../profile/practicePreferences.ts';
+import { REASONS } from '../onboarding/plan.ts';
+import { isLearnerGoal, type LearnerGoal } from '@luvani/core';
 import { STRICTNESS_OPTIONS, type Strictness } from '../tutor/strictness.ts';
 
 // ───────────────────────────────────────────────────────────────── profile
@@ -146,6 +148,20 @@ export const LEARNING_PREFERENCES_TITLE = 'Learning preferences';
 export const LEARNING_PREFERENCES_INTRO = 'These shape how your tutor talks with you. They never change the level you’ve earned.';
 export const ROUTINE_GROUP = 'Routine';
 export const TUTOR_HELPS_GROUP = 'How your tutor helps';
+// The onboarding goal, changed or cleared after onboarding. It reorders
+// suggested scenes and never moves the level earned.
+export const GOAL_GROUP = 'Your goal';
+export const GOAL_ROW = 'What you’re learning for';
+export const GOAL_UNSET = 'Not chosen yet';
+export const GOAL_SHEET_TITLE = 'Your goal';
+export const GOAL_FOOTER = 'Your goal puts its scenes first in what we suggest. Changing it never changes the level you’ve earned.';
+export const GOAL_CLEAR = 'No goal for now';
+/** The six onboarding reasons, worded as onboarding words them, then the clear. */
+export const GOAL_OPTIONS: readonly { key: LearnerGoal | null; title: string }[] = [
+  ...REASONS.map((reason) => ({ key: reason.key as LearnerGoal, title: reason.title })),
+  { key: null, title: GOAL_CLEAR },
+];
+
 export const STARTING_POINT_GROUP = 'Conversation starting point';
 export const STARTING_POINT_ROW = 'Where conversations start';
 export const STARTING_POINT_UNSET = 'Not chosen yet';
@@ -175,6 +191,7 @@ export const PROFILE_VIEW_COPY: readonly string[] = [
   LEARNING_PREFERENCES_ROW, TUTOR_VOICE_ROW, TUTOR_MEMORY_ROW, TUTOR_MEMORY_SUB,
   PROGRESS_ROW, MY_FRENCH_ROW, FRIENDS_ROW, FRIENDS_SUB, NAME_UNSET,
   LEARNING_PREFERENCES_TITLE, LEARNING_PREFERENCES_INTRO, ROUTINE_GROUP, TUTOR_HELPS_GROUP,
+  GOAL_GROUP, GOAL_ROW, GOAL_UNSET, GOAL_SHEET_TITLE, GOAL_FOOTER, GOAL_CLEAR,
   STARTING_POINT_GROUP, STARTING_POINT_ROW, STARTING_POINT_UNSET, STARTING_POINT_SHEET_TITLE,
   SUBSCRIPTION_TITLE, PLAN_CHECKING, PLAN_UNKNOWN_TITLE, PLAN_UNKNOWN_BODY, PLAN_RETRY,
   PLAN_FREE_TITLE, TUTOR_TIME_TITLE, MANAGE_APPLE_ROW, COMPARE_PLANS_ROW, SEE_PLANS_ROW,
@@ -235,6 +252,12 @@ export function progressSummary(input: { level: number | null; cefr: string | nu
 /** The current starting point's sentence, or the unset line. */
 export function statedLevelTitle(level: StatedLevel | null | undefined): string {
   return STATED_LEVEL_OPTIONS.find((option) => option.key === level)?.title ?? STARTING_POINT_UNSET;
+}
+
+/** The current goal's onboarding wording, or the unset line for none or an unknown value. */
+export function onboardingGoalTitle(goal: unknown): string {
+  if (!isLearnerGoal(goal)) return GOAL_UNSET;
+  return REASONS.find((reason) => reason.key === goal)?.title ?? GOAL_UNSET;
 }
 
 /** Whether a stored plan view is the free plan (D24: five minutes every week). */

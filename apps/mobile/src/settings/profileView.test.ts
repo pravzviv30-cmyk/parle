@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { guiltIn } from '../copy/guilt.ts';
 import { PLAN_LABELS, PLAN_UNKNOWN, planStatusFor } from '../purchases/planStatus.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
+import { REASONS } from '../onboarding/plan.ts';
 import { STATED_LEVEL_FOOTER, STATED_LEVEL_OPTIONS } from '../profile/practicePreferences.ts';
 import { TRIAL_REMINDER_ROW, TRIAL_REMINDER_ROW_SUB } from '../reminders/trialReminder.ts';
 import {
@@ -23,6 +24,11 @@ import {
   PLAN_UNKNOWN_TITLE,
   PROFILE_VIEW_COPY,
   STARTING_POINT_UNSET,
+  GOAL_CLEAR,
+  GOAL_FOOTER,
+  GOAL_OPTIONS,
+  GOAL_UNSET,
+  onboardingGoalTitle,
   initialOf,
   learningPreferencesSummary,
   learningSince,
@@ -132,6 +138,30 @@ describe('the conversation starting point', () => {
     for (const option of STATED_LEVEL_OPTIONS) assert.equal(statedLevelTitle(option.key), option.title);
     assert.equal(statedLevelTitle(null), STARTING_POINT_UNSET);
     assert.equal(statedLevelTitle('nonsense' as never), STARTING_POINT_UNSET);
+  });
+});
+
+describe('the goal in Learning preferences', () => {
+  test('titles each goal in onboarding words, and an unset or unknown goal as not chosen', () => {
+    for (const reason of REASONS) assert.equal(onboardingGoalTitle(reason.key), reason.title);
+    assert.equal(onboardingGoalTitle(null), GOAL_UNSET);
+    assert.equal(onboardingGoalTitle(undefined), GOAL_UNSET);
+    assert.equal(onboardingGoalTitle('nonsense'), GOAL_UNSET);
+  });
+
+  test('offers the six onboarding goals in order, then no goal for now', () => {
+    assert.deepEqual(GOAL_OPTIONS.map((option) => option.key), [...REASONS.map((reason) => reason.key), null]);
+    assert.deepEqual(GOAL_OPTIONS.map((option) => option.title), [...REASONS.map((reason) => reason.title), GOAL_CLEAR]);
+  });
+
+  test('the footer says the earned level stays, and the screen writes only through the store door', () => {
+    assert.match(GOAL_FOOTER, /level you’ve earned/);
+    assert.doesNotMatch(GOAL_FOOTER, /\u2014/);
+    const screen = stripComments(read('./LearningPreferencesScreen.tsx'));
+    assert.match(screen, /<SettingsGroup title=\{GOAL_GROUP\} footer=\{GOAL_FOOTER\}/, 'the goal group does not say the earned level stays');
+    assert.match(screen, /onPress=\{\(\) => update\(withOnboardingGoal\(profile, option\.key\)\)\}/, 'the goal is written some other way than the store door');
+    assert.match(screen, /GOAL_OPTIONS\.map\(\(option\) => \(/, 'the goal chooser offers something other than the seven options');
+    assert.ok(screen.indexOf('title={GOAL_GROUP}') < screen.indexOf('title={STARTING_POINT_GROUP}'), 'the goal group no longer sits before the starting point');
   });
 });
 

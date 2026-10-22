@@ -1,7 +1,7 @@
 /** Causal clocks for user settings only; never evidence, age gates or authorization. */
-import { isTutorVoiceKey } from '@luvani/core';
+import { isLearnerGoal, isTutorVoiceKey } from '@luvani/core';
 
-export const PREFERENCE_FIELDS = ['dailyGoalMin', 'tutorVoice', 'preferTyping', 'name', 'username', 'strictness', 'pace', 'statedLevel'] as const;
+export const PREFERENCE_FIELDS = ['dailyGoalMin', 'tutorVoice', 'preferTyping', 'name', 'username', 'strictness', 'pace', 'statedLevel', 'onboardingGoal'] as const;
 export type PreferenceField = typeof PREFERENCE_FIELDS[number];
 export type PreferenceValue = string | number | boolean | null;
 export interface PreferenceClock { counter: number; mutationId: string; value: PreferenceValue }
@@ -32,6 +32,8 @@ function validValue(field: PreferenceField, value: unknown): value is Preference
     case 'strictness': return value === 'flow' || value === 'balanced' || value === 'strict';
     case 'pace': return value === null || value === 'normal' || value === 'slow';
     case 'statedLevel': return value === 'zero' || value === 'few' || value === 'getby' || value === 'confident';
+    // Null is "no goal for now", a choice in its own right, so a clocked clear beats an older goal.
+    case 'onboardingGoal': return value === null || isLearnerGoal(value);
   }
 }
 
