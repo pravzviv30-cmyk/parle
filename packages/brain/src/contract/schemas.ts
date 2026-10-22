@@ -111,9 +111,11 @@ export const SpeakerLineZ = z.object({
  * every field the spoken line depends on has streamed in (see
  * `EarlySpokenTurnSchema` and LIVE_VOICE.md). So everything that decides what
  * is said (the assessment, the coaching that may be recast, the coach line,
- * the narration and the reply itself) comes first, and everything that is only
- * shown or remembered comes after. Moving a field above `sceneReply` delays the
- * tutor's voice by the time it takes to write that field.
+ * the narration and the reply's spoken French) comes first, and everything that
+ * is only shown or remembered comes after. Speech starts once `sceneReply.fr`
+ * has streamed; the reply's `frWritten` and `en` follow it and are display
+ * only. Moving a field above `sceneReply` (or above `fr` inside `SpeakerLineZ`)
+ * delays the tutor's voice by the time it takes to write that field.
  */
 export const TurnSchema = z.object({
   assessment: AssessmentZ,
@@ -157,17 +159,20 @@ export const TurnSchema = z.object({
 /**
  * The leading fields of a turn: everything the spoken line depends on.
  *
- * A streaming provider hands these over the moment `sceneReply` closes, so
- * the tutor can start speaking while the rest of the turn (support, phrases,
- * profile signals, scene progress) is still being written. They are validated
- * here exactly as the full turn is; nothing partial is ever spoken.
+ * A streaming provider hands these over the moment `sceneReply.fr` closes, so
+ * the tutor can start speaking while the rest of the turn (the reply's
+ * `frWritten` and `en`, support, phrases, profile signals, scene progress) is
+ * still being written. The reply here is only `{speaker, fr}`: `fr` is the one
+ * part of it that is spoken. They are validated here exactly as the full turn
+ * is; nothing partial is ever spoken.
  */
 export const EarlySpokenTurnSchema = TurnSchema.pick({
   assessment: true,
   coach: true,
   coachLine: true,
   narration: true,
-  sceneReply: true,
+}).extend({
+  sceneReply: SpeakerLineZ.pick({ speaker: true, fr: true }),
 });
 
 /** Compatibility at adapter parse seams only; never repair an invalid judgment. */

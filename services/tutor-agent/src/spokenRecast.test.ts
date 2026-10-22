@@ -54,3 +54,11 @@ test('a beginner recast fits a short combined voice budget and preserves French 
   const apostrophe = { ...view, coachNow: [{ ...view.coachNow[0]!, quote: 'je possède', better: 'J’ai' }], sceneReply: { ...view.sceneReply, fr: 'jai' } };
   assert.equal(inCharacterRecast(apostrophe, 'je possède', false).view.sceneReply.fr, 'Ah, J’ai. jai');
 });
+
+test('a reply whose English has not arrived yet keeps no English after a recast', () => {
+  const view = example();
+  const recast = inCharacterRecast({ ...view, sceneReply: { ...view.sceneReply, en: '' } }, 'Je veux un café.', false);
+  assert.equal(recast.used, true);
+  assert.equal(recast.view.sceneReply.fr, 'Ah, Je voudrais un café. Avec du sucre ?');
+  assert.equal(recast.view.sceneReply.en, '');
+});

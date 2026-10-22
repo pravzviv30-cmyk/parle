@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sampleTurn } from '../contract/samples.ts';
+import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
 import { TurnSchema } from '../contract/schemas.ts';
 import type { TutorTurn } from '../contract/types.ts';
 import { SpokenFieldsWatcher, earlySpokenFrom } from './spokenFields.ts';
@@ -32,10 +32,14 @@ test('the schema puts every spoken field before anything that is only shown or r
   }
 });
 
-test('the spoken fields are handed over once, the moment sceneReply closes, at any chunking', () => {
+test('the reply streams speaker and fr before its display-only frWritten and en', () => {
+  assert.deepEqual(Object.keys(TurnSchema.shape.sceneReply.shape), ['speaker', 'fr', 'frWritten', 'en']);
+});
+
+test('the spoken fields are handed over once, the moment sceneReply.fr closes, at any chunking', () => {
   const turn = sampleTurn({ coachLine: 'Dites « un café », tout simplement.', sceneReply: { speaker: 'Karim', fr: 'Très bien, {un} "café" \\ tout de suite !', frWritten: null, en: 'Right away!' } });
   const text = inSchemaOrder(turn);
-  const replyEnds = text.indexOf('"support"') - 1; // the comma after sceneReply
+  const frEnds = text.indexOf(',"frWritten"', text.indexOf('"sceneReply"')); // just after fr's closing quote
   for (const size of [1, 3, 17, 64, text.length]) {
     const watcher = new SpokenFieldsWatcher();
     let seen = 0, at = -1, early = null;
@@ -46,9 +50,10 @@ test('the spoken fields are handed over once, the moment sceneReply closes, at a
     }
     assert.ok(early, `chunk size ${size}: nothing handed over`);
     assert.deepEqual(early, {
-      assessment: turn.assessment, coach: turn.coach, coachLine: turn.coachLine, narration: turn.narration, sceneReply: turn.sceneReply,
+      assessment: turn.assessment, coach: turn.coach, coachLine: turn.coachLine, narration: turn.narration,
+      sceneReply: { speaker: turn.sceneReply.speaker, fr: turn.sceneReply.fr },
     });
-    assert.ok(at <= replyEnds + size, `chunk size ${size}: handed over late, after the reply had closed`);
+    assert.ok(at <= frEnds + size, `chunk size ${size}: handed over late, after fr had closed`);
     assert.ok(at < text.length || size === text.length, 'before the end of the turn whenever the chunking allows');
   }
 });
@@ -65,8 +70,46 @@ test('anything unexpected means no early hand-over, never a wrong one', () => {
   // A key named sceneReply inside a nested value is not the top-level reply.
   const nested = inSchemaOrder({ ...turn, coachLine: '"sceneReply": {}' });
   const watcher = new SpokenFieldsWatcher();
-  assert.deepEqual(watcher.feed(nested)?.sceneReply, turn.sceneReply);
+  assert.deepEqual(watcher.feed(nested)?.sceneReply, { speaker: turn.sceneReply.speaker, fr: turn.sceneReply.fr });
   assert.equal(watcher.feed('more'), null, 'and only once');
+  // A reply whose fr is not a string never hands over.
+  const noFr = inSchemaOrder({ ...turn, sceneReply: { speaker: 'Karim', fr: null, frWritten: null, en: 'x' } as never });
+  assert.equal(new SpokenFieldsWatcher().feed(noFr), null);
+});
+
+test('it hands over at fr close, before frWritten and en have arrived', () => {
+  const turn = sampleTurn({ sceneReply: { speaker: 'Karim', fr: 'Bonjour !', frWritten: 'Bonjour!', en: 'Hello!' } });
+  const text = inSchemaOrder(turn);
+  const cut = text.indexOf('"Bonjour !"') + '"Bonjour !"'.length;
+  const watcher = new SpokenFieldsWatcher();
+  const early = watcher.feed(text.slice(0, cut));
+  assert.deepEqual(early?.sceneReply, { speaker: 'Karim', fr: 'Bonjour !' });
+  assert.equal(watcher.feed(text.slice(cut)), null, 'the rest of the turn does not fire it again');
+});
+
+test('a fr key in the narration or a coach item does not trigger it', () => {
+  const turn = sampleTurn({
+    coach: [{ ...sampleCoachItem({ quote: '"fr": "leurre"' }), fr: 'leurre' } as never],
+    narration: { speaker: 'narration', fr: 'Le serveur revient.', frWritten: null, en: 'The waiter comes back.' },
+    sceneReply: { speaker: 'Karim', fr: 'Voilà.', frWritten: null, en: 'Here you go.' },
+  });
+  const text = inSchemaOrder(turn);
+  const replyAt = text.indexOf('"sceneReply"');
+  const watcher = new SpokenFieldsWatcher();
+  assert.equal(watcher.feed(text.slice(0, replyAt)), null, 'nothing before the reply hands over');
+  assert.equal(watcher.feed(text.slice(replyAt))?.sceneReply.fr, 'Voilà.');
+});
+
+test('escaped quotes and backslashes in fr do not end it early', () => {
+  const fr = 'Il a dit \u00ab "oui" \u00bb \\ "non" }} ,"en":';
+  const turn = sampleTurn({ sceneReply: { speaker: 'Karim', fr, frWritten: null, en: 'He said yes.' } });
+  const text = inSchemaOrder(turn);
+  for (const size of [1, 2, 5]) {
+    const watcher = new SpokenFieldsWatcher();
+    let early = null;
+    for (const piece of pieces(text, size)) early ??= watcher.feed(piece);
+    assert.equal(early?.sceneReply.fr, fr, `chunk size ${size}`);
+  }
 });
 
 /** A Responses API event stream carrying the turn as text deltas. */
@@ -110,7 +153,7 @@ test('a streamed live turn hands over its spoken fields early and still returns 
   });
   assert.equal(bodies[0]!.stream, true, 'the turn asked to stream');
   assert.equal(early.length, 1);
-  assert.deepEqual((early[0] as TutorTurn).sceneReply, turn.sceneReply);
+  assert.deepEqual((early[0] as TutorTurn).sceneReply, { speaker: turn.sceneReply.speaker, fr: turn.sceneReply.fr });
   assert.deepEqual(result.turn.sceneReply, turn.sceneReply);
   assert.deepEqual(result.turn.support, turn.support, 'the rest of the turn arrived intact');
   assert.equal(result.usage.inputTokens, 75);

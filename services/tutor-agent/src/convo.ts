@@ -579,9 +579,13 @@ export function streamedTurnsEnabled(env: Record<string, string | undefined> = p
  *
  * Checked without recording anything: a surface that would fail is left to the
  * full-turn path, which guards, records and replaces it once, as it always has.
+ * Used on the early, provisional view only, where the reply's English has not
+ * streamed yet, so the reply is checked on exactly what will be spoken: its
+ * French. The full turn is still guarded on French and English together before
+ * anything is shown or stored.
  */
 export function surfacesPassGuard(view: TurnView): boolean {
-  return outputGuard(`${view.sceneReply.fr} ${view.sceneReply.en}`) === null
+  return outputGuard(view.sceneReply.fr) === null
     && (view.coachLine === null || outputGuard(view.coachLine) === null)
     && (view.narration === null || outputGuard(`${view.narration.fr} ${view.narration.en}`) === null);
 }
@@ -2488,6 +2492,10 @@ export class LuvaniConversation extends voice.Agent {
         // The learner has already heard a validated, guarded reply. Failing
         // the turn now would leave the scene's history without the one line
         // they actually heard, so the turn they heard is the turn kept.
+        // The reply's English and written form never arrived, so the kept
+        // reply carries `en: ''` and `frWritten: null`: the screen shows the
+        // French that was heard with no translation rather than an English
+        // line nobody guarded or a made up one.
         console.warn('[luvani] DEGRADED_TURN the turn failed after its reply was spoken; keeping the spoken reply:', safeError(error));
         turn = heard.provisional;
       } else if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
@@ -2534,8 +2542,24 @@ export class LuvaniConversation extends voice.Agent {
       // before it. If it ever does, the words already said are the words
       // shown, because the screen and the speaker must never disagree. The
       // early words passed the same guards before they were spoken.
+      // The early view's reply has only a provisional English (`''`, or the
+      // recast's prefix), so the English and written form shown come from the
+      // guarded full turn, unless the full turn's reply is the guard's
+      // replacement: its English belongs to the carry-on line, not to the
+      // words heard, and the original English failed the guard, so the
+      // translation is left empty rather than show either.
       console.warn('[luvani] early speech and the final turn disagreed; showing what was spoken');
-      guarded = { ...guarded, sceneReply: early.view.sceneReply, coachLine: early.view.coachLine, narration: early.view.narration };
+      const replyGuarded = guarded.sceneReply !== recast.view.sceneReply; // guardView keeps the object when it passes
+      guarded = {
+        ...guarded,
+        sceneReply: {
+          ...early.view.sceneReply,
+          frWritten: replyGuarded ? null : guarded.sceneReply.frWritten,
+          en: replyGuarded ? '' : guarded.sceneReply.en,
+        },
+        coachLine: early.view.coachLine,
+        narration: early.view.narration,
+      };
     }
     if (early?.recastUsed) this.spokenRecastUsed = true;
     if (recast.used && guarded.sceneReply.fr === recast.view.sceneReply.fr) this.spokenRecastUsed = true;
@@ -2588,6 +2612,10 @@ export class LuvaniConversation extends voice.Agent {
     if (this.ended || this.voiceless || this.liveWork.signal.aborted) return null;
     const provisional: TutorTurn = {
       ...fields,
+      // Only the reply's French has streamed. Its written form and English
+      // follow and are display only; the full turn supplies them, guarded,
+      // before anything is shown.
+      sceneReply: { ...fields.sceneReply, frWritten: null, en: '' },
       // Only used if the rest of the turn never arrives. The last turn's
       // support is the best material in hand then: it keeps the quiet first
       // rescue and the recogniser's phrase hints working.

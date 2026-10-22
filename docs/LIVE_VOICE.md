@@ -596,22 +596,52 @@ frames and phone audible p50/p95 require live/native proof.
 
 On OpenAI a live conversation turn streams (VOICE-003). `TurnSchema` writes
 every field the spoken line depends on first (assessment, coaching, coach line,
-narration, then `sceneReply`). The moment the top-level `sceneReply` closes,
-`llm/spokenFields.ts` validates those fields against `EarlySpokenTurnSchema` and
-hands them to the worker. `speakEarly` in `convo.ts` folds them into a
-provisional turn and runs the same integration, coach-line policy, recast and
-output guard the full turn gets, then speaks. No partial field is ever spoken,
+narration, then `sceneReply`, whose `speaker` and `fr` stream before its
+display-only `frWritten` and `en`). The moment the string value of
+`sceneReply.fr` closes, `llm/spokenFields.ts` closes the partial JSON,
+validates it against `EarlySpokenTurnSchema` (whose reply is `{speaker, fr}`)
+and hands it to the worker. A `fr` key anywhere else, such as the narration's,
+never triggers it. `speakEarly` in `convo.ts` folds the fields into a
+provisional turn (reply `frWritten: null`, `en: ''`) and runs the same
+integration, coach-line policy and recast the full turn gets, plus the output
+guard on exactly what is spoken (the reply's French, the coach line and the
+narration), then speaks. The reply's English and written form are guarded with
+the full turn, on French and English together, before anything is displayed or
+stored; if that guard rejects the English after the French was heard, the
+heard French is shown with an empty translation. No partial field is ever spoken,
 and any surface the guard would touch means no early speech: the full-turn path
 then guards and replaces it as before. State, profile, the durable checkpoint
 and the published view still wait for the whole turn, which shows the same
-words; if it ever disagreed, the spoken words win the screen. If the turn fails
-after its reply was heard, the heard reply is kept as the turn instead of a
-recovery line. Speech therefore now starts before the checkpoint ACK, which is
+words; if it ever disagreed, the spoken words win the screen, with the full
+turn's guarded English. If the turn fails after its reply was heard, the heard
+reply is kept as the turn instead of a recovery line, shown with no
+translation because its English never arrived. Speech therefore now starts before the checkpoint ACK, which is
 a deliberate change of order: the ACK is the learning and billing proof, and a
 failed checkpoint still ends the session as before. Typed rooms and the
 Anthropic brain do not stream. In `[luvani:reply-stages]`, `brain` on a
 streamed turn is the time to its spoken fields, and `viewToSay` is omitted when
 speech started before the view.
+
+`OPENAI_LIVE_SERVICE_TIER` (opt-in, default off) sends OpenAI's `service_tier`
+on the live turn and frame only, never on analyst work. Accepted values are
+`priority`, `default`, `auto` and `flex`; anything else is ignored. Measured on
+2026-10-22 on gpt-6-luna over 24 calls each, `priority` cut the time to the
+spoken fields from p50 2035 / p95 2589 ms to p50 1249 / p95 1583 ms, and the
+full turn from 3583 to 2111 ms p50. The API echoes `service_tier: "fast"` on
+those responses. It is billed at OpenAI's higher priority rate, so the founder
+decides whether to turn it on.
+
+To measure the model side of this wait, run
+`node --experimental-strip-types scripts/measureLiveTurn.mjs <env-file> <report.json> --reps 2`
+from the repo root. It sends 12 synthetic café and hotel mission turns, built the
+way the worker builds them, through the real client with `onSpokenFields`, and
+reports p50/p95 for first token, coach closed, `sceneReply.fr` closed, spoken
+fields and full turn, plus output tokens before `sceneReply` and the prompt cache
+hit rate. Flags rewrite the request for A/B runs (`--model`, `--effort`,
+`--verbosity`, `--service-tier`, `--instructions-patch`), and `--max-usd` caps
+spend (a 24-call run costs under a cent on gpt-6-luna). The 2026-10-22 runs
+behind VOICE-005 are in `docs/live-latency-evidence/`. It times the model only:
+recogniser, TTS first audio and phone playout are not in it.
 
 Set `LUVANI_REPLY_STAGE_TIMING=1` on the worker to investigate ordinary confirmed
 typed and spoken scene inputs separately. The optional `[luvani:reply-stages]`

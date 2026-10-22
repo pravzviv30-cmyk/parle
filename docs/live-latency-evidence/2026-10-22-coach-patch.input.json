@@ -1,0 +1,6 @@
+[
+  {"find": "coach. Zero or more findings about their last turn. The kinds:",
+   "replace": "coach. Zero, one or at most two findings about their last turn, the one that matters most first. The kinds:"},
+  {"find": "For each finding: quote them verbatim, give the spoken better form (betterWritten when the spelling bends), a natural betterEn, and a why of one short plain sentence. weight is matters-now or minor.",
+   "replace": "For each finding: quote only the words that need changing, verbatim, give the spoken better form for those words (betterWritten when the spelling bends), a natural betterEn, and a why of at most ten plain words. weight is matters-now or minor."}
+]

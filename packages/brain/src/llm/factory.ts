@@ -85,6 +85,7 @@ function vendorBrainFromEnv(env: Record<string, string | undefined>, transport?:
       apiKey: env.OPENAI_API_KEY,
       turnModel: env.OPENAI_TURN_MODEL,
       liveModel: env.OPENAI_LIVE_MODEL,
+      liveServiceTier: env.OPENAI_LIVE_SERVICE_TIER,
       analystModel: env.OPENAI_ANALYST_MODEL,
     },transport);
   }
