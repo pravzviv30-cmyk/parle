@@ -22,6 +22,10 @@ of the list.
 
 ## Current landing snapshot
 
+- 22 October 2026 mission pronunciation (F866: missions scored live on the handed-over line,
+  recap focus sound, convo scoring quote) on branch `claude/mission-scoring` with main 717655fb
+  merged in (held, not on main): **6,147 tests, 0 failing**; core 936, brain 498, tutor agent
+  682, token server 458, playground 26, mobile 3547. Floors raised only through `gate:bless`.
 - 22 October 2026 main after landing Your French (`claude/your-french`, `claude/your-french-evidence`)
   on top of Steps 1–3, VOICE-005, the beta controls and the mission spine, at cb8c7a7e:
   **6,124 tests, 0 failing**; core 935, brain 498, tutor agent 661, token server 458,
