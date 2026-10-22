@@ -15,12 +15,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BArt, type BArtName } from '../art/BArt.tsx';
-import { Highlight, LockBadge, Press } from '../components.tsx';
+import { Highlight, Ledger, LedgerRow, LockBadge, Press } from '../components.tsx';
+import type { LockedFeature } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { CheckDisc } from '../today/TodayParts.tsx';
 import { ChevronGlyph } from '../explore/ExploreParts.tsx';
 import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
-import type { Segment, StageStep } from './journeyView.ts';
+import { HELD_TAG, type JourneyRoute, type Segment, type StageStep, type YourFrenchView } from './journeyView.ts';
 
 /** Words where the French runs are tagged as French. */
 export function Words({ segments }: { segments: readonly Segment[] }) {
@@ -254,6 +255,59 @@ export function YourChips({ children }: { children: ReactNode }) {
   return <View style={s.chips}>{children}</View>;
 }
 
+/**
+ * Your French, whole (2026-10-22): its head, the card with the forward line or
+ * the open parts, and a locked part's teaser under the card. The tab and the
+ * dev preview draw it the same way. The open parts are drawn once each, in the
+ * view's order, never in a .map, so the one highlighter stays one.
+ */
+export function YourFrenchSection({ view, onOpen, onTeaser }: { view: YourFrenchView; onOpen: (route: JourneyRoute) => void; onTeaser: (feature: LockedFeature) => void }) {
+  const t = useB();
+  const s = useThemedStyles(makeStyles);
+  const yourPhrases = view.open.includes('phrases') ? view.phrases : null;
+  const yourSounds = view.open.includes('sounds') ? view.sounds : null;
+  const yourScenes = view.open.includes('scenes') ? view.scenes : null;
+  const lastYourPart = view.open[view.open.length - 1];
+  /** A locked part's one line (B-Journey): it opens the Wall, through the caller. */
+  const teaser = (line: string, feature: LockedFeature) => (
+    <Ledger>
+      <LedgerRow title={line} accessibilityLabel={line} onPress={() => onTeaser(feature)} />
+    </Ledger>
+  );
+  return (
+    <View style={s.yourStack}>
+      <JourneyHead title={view.heading} locked={false} />
+      {(view.forward !== null || view.open.length > 0) && (
+        <YourFrenchCard>
+          {view.forward !== null && <Text style={[bType.line15, s.forward, { color: t.text }]}>{view.forward}</Text>}
+          {yourPhrases !== null && (
+            <YourFrenchRow last={lastYourPart === 'phrases'} onPress={() => onOpen(yourPhrases.route)} accessibilityLabel={yourPhrases.accessibilityLabel}>
+              <YourFrenchLine segments={[{ text: yourPhrases.usedLine! }]} />
+              {yourPhrases.heldLine !== null && <YourFrenchLine soft segments={[{ text: yourPhrases.heldLine }]} />}
+              {yourPhrases.featured !== null && <YourFeatured fr={yourPhrases.featured.front} tag={yourPhrases.featured.held ? HELD_TAG : null} />}
+              {yourPhrases.chips.length > 0 && <YourChips>{yourPhrases.chips.map((c) => <UsedChip key={c.front} fr={c.front} tag={c.held ? HELD_TAG : undefined} />)}</YourChips>}
+              {yourPhrases.moreLine !== null && <YourFrenchLine soft segments={[{ text: yourPhrases.moreLine }]} />}
+            </YourFrenchRow>
+          )}
+          {yourSounds !== null && (
+            <YourFrenchRow last={lastYourPart === 'sounds'} onPress={() => onOpen(yourSounds.route)} accessibilityLabel={yourSounds.accessibilityLabel}>
+              <YourFrenchLine segments={yourSounds.line!} />
+            </YourFrenchRow>
+          )}
+          {yourScenes !== null && (
+            <YourFrenchRow last={lastYourPart === 'scenes'} onPress={() => onOpen(yourScenes.route)} accessibilityLabel={yourScenes.accessibilityLabel}>
+              <YourFrenchLine segments={[{ text: yourScenes.line }]} />
+              <YourFrenchLine soft segments={yourScenes.titles.flatMap((title, k) => (k === 0 ? [{ text: title, fr: true as const }] : [{ text: ', ' }, { text: title, fr: true as const }]))} />
+            </YourFrenchRow>
+          )}
+        </YourFrenchCard>
+      )}
+      {view.phrases?.teaser != null && teaser(view.phrases.teaser, view.phrases.feature)}
+      {view.sounds?.teaser != null && teaser(view.sounds.teaser, view.sounds.feature)}
+    </View>
+  );
+}
+
 /** The mint "Help you needed" card with the tutor-orb. */
 export function HelpCard({ heading, line, locked, onPress, accessibilityLabel }: { heading: string; line: string; locked: boolean; onPress?: () => void; accessibilityLabel?: string }) {
   const t = useB();
@@ -419,6 +473,10 @@ const makeStyles = (t: B) =>
     // paddingVertical 14 deliberately matches the ability row's artboard value, so the two lists share a rhythm.
     yourRow: { gap: space(2), paddingVertical: 14, minHeight: HIT },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+    // The section's own stack, the tab's stack gap (MyFrenchTab st.stack).
+    yourStack: { gap: space(3) },
+    // 14 deliberately matches the Your French row it stands in for (yourRow).
+    forward: { paddingVertical: 14 },
     hairline: { borderTopWidth: 1, borderTopColor: t.line, paddingTop: 10 },
     link: { minHeight: HIT, justifyContent: 'center', flexShrink: 0 },
     // The band.

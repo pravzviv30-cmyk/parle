@@ -11,7 +11,7 @@ import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { bType, frenchText, space } from '../theme.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton } from '../today/TodayParts.tsx';
-import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, SoundRowView, StageTrack, TryCell, TwoUp, UsedChip, WeekRowView, YourChips, YourFeatured, YourFrenchCard, YourFrenchLine, YourFrenchRow } from '../journey/JourneyParts.tsx';
+import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, SoundRowView, StageTrack, TryCell, TwoUp, WeekRowView, YourFrenchSection } from '../journey/JourneyParts.tsx';
 import { LivingBar } from '../motion/LivingBar.tsx';
 import { storyFrom, hasStory, type WeekStory } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
@@ -66,7 +66,6 @@ import {
   STAGE_INTRO,
   THEN_NOW_HEADING,
   THEN_NOW_SUBTITLE,
-  HELD_TAG,
   WEEK_HEADING,
   YOU_ARE_HERE,
   canDoView,
@@ -236,11 +235,6 @@ export function MyFrenchTab() {
   const canDo = canDoView({ progress: missions, completions, now, access: locks.access });
   const thenNow = thenNowCard(completions, locks.access);
   const yourFrench = yourFrenchView({ deck, checks, progress: missions, completions, now, access: locks.access });
-  // The open parts, each drawn once in the view's order (never in a .map, so the one highlighter stays one).
-  const yourPhrases = yourFrench.open.includes('phrases') ? yourFrench.phrases : null;
-  const yourSounds = yourFrench.open.includes('sounds') ? yourFrench.sounds : null;
-  const yourScenes = yourFrench.open.includes('scenes') ? yourFrench.scenes : null;
-  const lastYourPart = yourFrench.open[yourFrench.open.length - 1];
   const help = helpView({ completions, story, now, access: locks.access });
   const sounds = soundsView({ checks, now, hasJourney: journey !== null, access: locks.access });
   const week = weekView(reflectionFrom({ story, recent: conversations, checks, progress: missions, now }), locks.access);
@@ -337,37 +331,10 @@ export function MyFrenchTab() {
         {renderStatus === 'ready' && !empty && (
           <Columns>
             <View style={st.page}>
-              {/* 2026-10-22: the learner's own French, first. Each part only with a saved record behind it. */}
-              <View style={st.stack}>
-                <JourneyHead title={yourFrench.heading} locked={false} />
-                {(yourFrench.forward !== null || yourFrench.open.length > 0) && (
-                  <YourFrenchCard>
-                    {yourFrench.forward !== null && <Text style={[bType.line15, st.forward, { color: t.text }]}>{yourFrench.forward}</Text>}
-                    {yourPhrases !== null && (
-                      <YourFrenchRow last={lastYourPart === 'phrases'} onPress={() => go(yourPhrases.route)} accessibilityLabel={yourPhrases.accessibilityLabel}>
-                        <YourFrenchLine segments={[{ text: yourPhrases.usedLine! }]} />
-                        {yourPhrases.heldLine !== null && <YourFrenchLine soft segments={[{ text: yourPhrases.heldLine }]} />}
-                        {yourPhrases.featured !== null && <YourFeatured fr={yourPhrases.featured.front} tag={yourPhrases.featured.held ? HELD_TAG : null} />}
-                        {yourPhrases.chips.length > 0 && <YourChips>{yourPhrases.chips.map((c) => <UsedChip key={c.front} fr={c.front} tag={c.held ? HELD_TAG : undefined} />)}</YourChips>}
-                        {yourPhrases.moreLine !== null && <YourFrenchLine soft segments={[{ text: yourPhrases.moreLine }]} />}
-                      </YourFrenchRow>
-                    )}
-                    {yourSounds !== null && (
-                      <YourFrenchRow last={lastYourPart === 'sounds'} onPress={() => go(yourSounds.route)} accessibilityLabel={yourSounds.accessibilityLabel}>
-                        <YourFrenchLine segments={yourSounds.line!} />
-                      </YourFrenchRow>
-                    )}
-                    {yourScenes !== null && (
-                      <YourFrenchRow last={lastYourPart === 'scenes'} onPress={() => go(yourScenes.route)} accessibilityLabel={yourScenes.accessibilityLabel}>
-                        <YourFrenchLine segments={[{ text: yourScenes.line }]} />
-                        <YourFrenchLine soft segments={yourScenes.titles.flatMap((title, k) => (k === 0 ? [{ text: title, fr: true as const }] : [{ text: ', ' }, { text: title, fr: true as const }]))} />
-                      </YourFrenchRow>
-                    )}
-                  </YourFrenchCard>
-                )}
-                {yourFrench.phrases?.teaser != null && teaser(yourFrench.phrases.teaser, yourFrench.phrases.feature)}
-                {yourFrench.sounds?.teaser != null && teaser(yourFrench.sounds.teaser, yourFrench.sounds.feature)}
-              </View>
+              {/* 2026-10-22: the learner's own French, first. Each part only with a saved record behind it.
+                  Drawn by journey/JourneyParts' YourFrenchSection, where the open parts are drawn once
+                  each (never in a .map, so the one highlighter stays one). */}
+              <YourFrenchSection view={yourFrench} onOpen={go} onTeaser={(f) => { if (owned()) locks.open(f); }} />
 
               <View style={st.stack}>
                 <JourneyHead title={STAGE_HEADING} locked={false} subtitle={STAGE_INTRO} />
@@ -505,7 +472,5 @@ const makeStyles = (t: B) =>
     page: { gap: space(7) },
     stack: { gap: space(3) },
     card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
-    // 14 deliberately matches the Your French row it stands in for (JourneyParts yourRow).
-    forward: { paddingVertical: 14 },
     tiles: { flexDirection: 'row', gap: 10 },
   });

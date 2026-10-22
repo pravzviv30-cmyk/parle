@@ -88,15 +88,17 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
   test('the blocks run in order: header, Your French, stages, abilities, then and now, help, sounds, week, tiles, rows', () => {
     // 2026-10-20, B4, B-Journey: replaces level, phrase bank, sounds map, conversations.
     // 2026-10-20 UI-008, artboard B-Journey: the band's white stat tiles and the B section heads.
-    const order = ['<TabHeader', '<LivingBar', 'stats.map((stat) => <BandStat', 'title={yourFrench.heading}', 'title={STAGE_HEADING}', 'title={CAN_DO_HEADING}', 'title={THEN_NOW_HEADING}', 'heading={HELP_HEADING}', 'title={SOUNDS_HEADING}', 'title={WEEK_HEADING}', 'tiles.map(', '{rows.map('];
+    const order = ['<TabHeader', '<LivingBar', 'stats.map((stat) => <BandStat', '<YourFrenchSection view={yourFrench}', 'title={STAGE_HEADING}', 'title={CAN_DO_HEADING}', 'title={THEN_NOW_HEADING}', 'heading={HELP_HEADING}', 'title={SOUNDS_HEADING}', 'title={WEEK_HEADING}', 'tiles.map(', '{rows.map('];
     for (let i = 1; i < order.length; i += 1) assert.ok(at(order[i - 1]!) < at(order[i]!), `${order[i - 1]} is not drawn before ${order[i]}`);
     // 2026-10-22: Your French draws the phrases once; the old used section is gone.
     for (const gone of ['USED_HEADING', 'usedView', 'used.phrases']) assert.ok(!SCREEN.includes(gone), `${gone} is back on Journey`);
     assert.match(FLAT, /const yourFrench = yourFrenchView\(\{ deck, checks, progress: missions, completions, now, access: locks\.access \}\);/);
     // The one highlighter on Journey is Your French's featured phrase, drawn through YourFeatured.
+    // 2026-10-22: Your French is drawn whole by JourneyParts' YourFrenchSection, so the featured phrase lives there.
     const PARTS_SRC = read('../journey/JourneyParts.tsx');
+    assert.match(PARTS_OF(), /<JourneyHead title=\{view\.heading\} locked=\{false\} \/>/, 'Your French lost its own head');
     assert.equal((SCREEN.match(/<Highlight\b/g) ?? []).length, 0, 'the tab draws a highlighter of its own');
-    assert.equal((SCREEN.match(/<YourFeatured\b/g) ?? []).length, 1, 'Journey draws more than one featured phrase');
+    assert.equal((stripComments(PARTS_SRC).match(/<YourFeatured\b/g) ?? []).length, 1, 'Journey draws more than one featured phrase');
     assert.equal((PARTS_SRC.match(/<Highlight\b/g) ?? []).length, 1, 'the Journey parts draw more than one highlighter');
     for (const retired of ['<PhraseBank', '<SoundsMap', 'title={DAILY_LINE}', 'title={BROWSE_LINE}', '<LevelCard', '<LevelXpCard', '<CountsGrid', '<PostcardShelf', '<StatRow', '<ColourCard', '<Chip ', '<IconAction']) assert.ok(!SCREEN.includes(retired), `${retired} is back on Journey`);
   });
@@ -241,10 +243,13 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
     assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
     // 2026-10-22: Your French's locked parts leave the card (the view's `open`) and draw their teaser under it.
     // Drawn part by part from `open` (2026-10-22 review: never a .map, so the one highlighter stays one).
-    for (const part of ['phrases', 'sounds', 'scenes']) assert.match(FLAT, new RegExp(`yourFrench\\.open\\.includes\\('${part}'\\)`), `${part} is not drawn from open`);
+    // 2026-10-22: drawn by JourneyParts' YourFrenchSection from the view it is handed; its teaser opens the Wall through the tab's fence.
+    for (const part of ['phrases', 'sounds', 'scenes']) assert.match(PARTS, new RegExp(`view\\.open\\.includes\\('${part}'\\)`), `${part} is not drawn from open`);
     for (const part of ['phrases', 'sounds']) {
-      assert.match(FLAT, new RegExp(`\\{yourFrench\\.${part}\\?\\.teaser != null && teaser\\(yourFrench\\.${part}\\.teaser, yourFrench\\.${part}\\.feature\\)\\}`), `a locked ${part} part draws no teaser`);
+      assert.match(PARTS, new RegExp(`\\{view\\.${part}\\?\\.teaser != null && teaser\\(view\\.${part}\\.teaser, view\\.${part}\\.feature\\)\\}`), `a locked ${part} part draws no teaser`);
     }
+    assert.match(PARTS, /<LedgerRow title=\{line\} accessibilityLabel=\{line\} onPress=\{\(\) => onTeaser\(feature\)\} \/>/, 'a Your French teaser does not hand its feature back');
+    assert.match(FLAT, /onTeaser=\{\(f\) => \{ if \(owned\(\)\) locks\.open\(f\); \}\}/, 'a Your French teaser opens the Wall outside the account fence');
     for (const section of ['canDo', 'thenNow', 'sounds', 'week']) {
       assert.match(FLAT, new RegExp(`\\{${section}\\.teaser !== null \\? teaser\\(${section}\\.teaser, ${section}\\.feature\\) : `), `a locked ${section} section draws its content instead of the teaser`);
     }
@@ -256,7 +261,7 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
   test('French is tagged, decoration is hidden and the help is never a number', () => {
     // 2026-10-20 UI-008, artboard B-Journey: the lavender chips, the ability marks and the help line are journey/JourneyParts'.
     const PARTS = stripComments(read('../journey/JourneyParts.tsx')).replace(/\s+/g, ' ');
-    assert.match(FLAT, /<UsedChip key=\{c\.front\} fr=\{c\.front\} tag=\{c\.held \? HELD_TAG : undefined\} \/>/);
+    assert.match(PARTS, /<UsedChip key=\{c\.front\} fr=\{c\.front\} tag=\{c\.held \? HELD_TAG : undefined\} \/>/);
     assert.match(PARTS, /<View style=\{s\.chip\}> ?<Text \{\.\.\.frenchText\}/);
     assert.match(PARTS, /s\.fr \? <Text key=\{i\} \{\.\.\.frenchText\}>/);
     assert.match(PARTS, /<Svg \{\.\.\.decorative\}/);
