@@ -369,8 +369,11 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 
 - Date: 2026-10-22
 - Status: accepted
-- Decision: "Report this reply" on the live room and both end cards opens the
-  learner's own mail app to the support address. The subject carries only the
+- Decision: "Report this reply" on both end cards opens the learner's own mail
+  app to the support address. The flag in the live room never leaves the app: it
+  saves the report, and the recap or lesson summary opens the mail sheet by itself
+  when the session ends, because opening Mail mid session drops the room (web
+  unloads the page and LiveKit disconnects; iOS has no background-audio mode). The subject carries only the
   session id and app version (`settings/reportMail.ts`), and there is never a
   body. Listen only is the voiced `convo` or `lesson` grant with the microphone
   kept closed (`listenOnly` on the route and on `useLiveSession`), offered as a

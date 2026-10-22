@@ -886,7 +886,15 @@ named human is accountable for reading it. What was built meets them like this:
 - "Report this reply" sits on the live room (a small flag beside the scene title)
   and on both end cards ("Something felt off? Tell us"). It is never on the
   safety-stop surface, which keeps its one way out.
-- It opens a sheet, and the sheet opens the learner's own mail app to the support
+- The in-room flag never leaves the app. Its sheet says "Tell us when this session
+  ends, so you keep your place", and "Report at the end" saves the report for the
+  end card (the flag then shows as filled, "Report saved for the end of this
+  session"; tapping it again offers "Cancel the report"). The reason is that
+  opening Mail mid session drops the room: on web the `mailto:` link replaces the
+  page and LiveKit disconnects on unload, and on iOS the app has no background-audio
+  mode. When the session ends, the recap or lesson summary opens the mail sheet by
+  itself.
+- On the end cards the sheet opens the learner's own mail app to the support
   address in `apps/mobile/src/legal/company.ts`. Luvani sends nothing itself.
 - The subject is a reference and nothing else: the session id and the app version
   (`apps/mobile/src/settings/reportMail.ts`). There is no body. Nothing the learner

@@ -48,9 +48,9 @@ describe('reportAddress', () => {
 
 describe('REPORT_COPY', () => {
   const all = [
-    REPORT_COPY.title, REPORT_COPY.body('Camille'), REPORT_COPY.body('Camille', 'session'), REPORT_COPY.reply,
+    REPORT_COPY.title, REPORT_COPY.body('Camille'), REPORT_COPY.roomBody('Camille'), REPORT_COPY.reply,
     REPORT_COPY.safety, REPORT_COPY.write, REPORT_COPY.notNow, REPORT_COPY.close, REPORT_COPY.failed('a@b.c'),
-    REPORT_COPY.endLink, REPORT_COPY.control,
+    REPORT_COPY.endLink, REPORT_COPY.control, REPORT_COPY.later, REPORT_COPY.cancel, REPORT_COPY.pendingControl,
   ];
 
   test('has no em dash and no middot', () => {
@@ -71,6 +71,16 @@ describe('REPORT_COPY', () => {
 
   test('promises nothing the learner said is attached', () => {
     assert.match(REPORT_COPY.body('Camille'), /Nothing you said is attached\./);
+  });
+
+  test('the room body says the report waits for the end, and keeps their place', () => {
+    const room = REPORT_COPY.roomBody('Camille');
+    assert.match(room, /when this session ends/);
+    assert.match(room, /keep your place/);
+    assert.match(room, /Nothing you said is attached\./);
+    assert.equal(REPORT_COPY.later, 'Report at the end');
+    assert.equal(REPORT_COPY.cancel, 'Cancel the report');
+    assert.equal(REPORT_COPY.pendingControl, 'Report saved for the end of this session');
   });
 
   test('the failure keeps the address in words', () => {

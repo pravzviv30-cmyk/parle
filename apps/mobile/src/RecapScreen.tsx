@@ -118,6 +118,7 @@ export function RecapScreen({
   independentFinish = false,
   delta = null,
   momentKey = null,
+  openReport = false,
   onResultShown,
   activeSec = null,
   goals = [],
@@ -136,6 +137,8 @@ export function RecapScreen({
   delta?: GameDelta | null;
   /** The session this recap closes, so its moments play once. */
   momentKey?: string | null;
+  /** A report the learner saved in the live room: the sheet opens by itself, once, on arrival. */
+  openReport?: boolean;
   /** Said once the result page is up: the conversation's settle hold can go (F766). */
   onResultShown?: () => void;
   /** Leaves for the Journey tab, from the Celebration's "See your journey". */
@@ -175,7 +178,7 @@ export function RecapScreen({
   const [page, setPage] = useState<RecapPage>('result');
   const [fixing, setFixing] = useState<ClosureRepair | null>(null);
   // Closed beta: "Something felt off? Tell us" opens the report sheet for this session.
-  const [reporting, setReporting] = useState(false);
+  const [reporting, setReporting] = useState(openReport);
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const locks = useFeatureAccess(user?.id);
@@ -557,7 +560,7 @@ export function RecapScreen({
         </View>}
     </ScrollScreen>
     {fixing !== null && <FixLineSheet repair={fixing} onClose={() => setFixing(null)} />}
-    {reporting && <ReportSheet place="card" tutorName={tutorNameOf(profile)} sessionId={momentKey} onClose={() => setReporting(false)} />}
+    {reporting && <ReportSheet tutorName={tutorNameOf(profile)} sessionId={momentKey} onClose={() => setReporting(false)} />}
     </>
   );
 }

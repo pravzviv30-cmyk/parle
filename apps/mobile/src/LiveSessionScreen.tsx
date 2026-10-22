@@ -56,6 +56,7 @@ export function LiveSessionScreen({
   startRung,
   onFinish,
   onSessionId,
+  onReportPending,
   onExit,
   textMode = false,
   listenOnly = false,
@@ -72,6 +73,8 @@ export function LiveSessionScreen({
    * summary's stop guard stays exactly what it was.
    */
   onSessionId?: (sessionId: string | null) => void;
+  /** Whether a report is saved for the end card, handed up the same way. */
+  onReportPending?: (pending: boolean) => void;
   onExit: () => void;
   /** Open with the voice pipeline dark: the lesson is read and typed, never spoken. */
   textMode?: boolean;
@@ -110,6 +113,8 @@ export function LiveSessionScreen({
   // learner commits, which drops the guard and lets the exit run from an effect
   // rather than inline, where the guard would prevent its own pop.
   const [confirming, setConfirming] = useState(false);
+  // A report the learner saved in the room for the end card (live/ReportSheet.tsx).
+  const [reportPending, setReportPending] = useState(false);
   const [typingOpen, setTypingOpen] = useState(listenOnly);
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [draft, setDraft] = useState('');
@@ -207,6 +212,7 @@ export function LiveSessionScreen({
   }, [live.summary, live.settlement, onFinish, stopped]);
 
   useEffect(() => { onSessionId?.(live.sessionId); }, [live.sessionId, onSessionId]);
+  useEffect(() => { onReportPending?.(reportPending); }, [reportPending, onReportPending]);
 
   // One content-free beta event per finished lesson (analytics/sessionFinished.ts).
   // A safety stop is not a finished lesson and reports nothing.
@@ -319,7 +325,7 @@ export function LiveSessionScreen({
     ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused');
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <View style={st.root}>
-      <C2LiveRoom report={{ sessionId: live.sessionId }} tutorName={tutorName} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
+      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
         caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing} startedWithSpeech={!textMode} ready={!live.reconnecting} modePending={modePending} active={roomFocused}
         transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} draft={draft}

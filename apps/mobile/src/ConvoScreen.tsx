@@ -270,6 +270,8 @@ export function ConvoScreen({
   // The leave gate. `confirming` shows the sheet; `leaving` is raised on commit,
   // which drops the guard so the exit can run from an effect rather than inline.
   const [confirming, setConfirming] = useState(false);
+  // A report the learner saved in the room for the end card (live/ReportSheet.tsx).
+  const [reportPending, setReportPending] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const leaveCopy = leaveConfirmCopy('conversation');
   // Which text input holds the caret, for the ink focus border. Visual only.
@@ -885,6 +887,7 @@ export function ConvoScreen({
         independentFinish={win.seen && independentFinish}
         delta={convoDelta}
         momentKey={live.sessionId}
+        openReport={reportPending}
         onResultShown={resultShown}
         evidenceQuote={currentCanDoQuote(live.canDoEvidence, currentFinish, live.turns)}
         lines={keepsakeLines(live.turns)}
@@ -967,7 +970,7 @@ export function ConvoScreen({
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
       <View style={{ flex: 1, minHeight: 0 }}>
-        <C2LiveRoom report={{ sessionId: live.sessionId }} tutorName={tutorName} description="Your French conversation" state={choosing.orb}
+        <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description="Your French conversation" state={choosing.orb}
           caption={line.text ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Ready when you are')}
           turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
           typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !live.waitingForTutor}
@@ -1048,7 +1051,7 @@ export function ConvoScreen({
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <OrbCue value={ticks.cue}>
     <View style={{ flex: 1, minHeight: 0 }}>
-      <C2LiveRoom report={{ sessionId: live.sessionId }} tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
+      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
         title={missionId ? getMission(missionId)?.title : undefined} pace={scenePace} goals={missionItems} helpKind={view.supportView.kind}
         moreHelp={{ disabled: !listening, onPress: () => { closeMark(); live.sendHelp(); } }}
         state={live.reconnecting ? 'connecting' : orbState}

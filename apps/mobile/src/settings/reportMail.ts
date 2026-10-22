@@ -51,9 +51,19 @@ export function reportAddress(facts: CompanyFacts = COMPANY): string | null {
 /** Every word the report sheet and its links say. */
 export const REPORT_COPY = {
   title: 'Report this reply',
-  /** `what` is "said" in the room and "said in this session" on the end cards. */
-  body: (tutorName: string, what: 'reply' | 'session' = 'reply') =>
-    `Did something ${tutorName} said${what === 'session' ? ' in this session' : ''} seem wrong or odd? Tell us by email. Your mail app opens with a reference number for this session. Nothing you said is attached.`,
+  /** The end cards' body, where the mail app opens. */
+  body: (tutorName: string) =>
+    `Did something ${tutorName} said in this session seem wrong or odd? Tell us by email. Your mail app opens with a reference number for this session. Nothing you said is attached.`,
+  /**
+   * The live room's body. The room never opens Mail: leaving the app mid
+   * session drops the room (web unloads the page, iOS has no background
+   * audio), so the report is saved for the end card instead.
+   */
+  roomBody: (tutorName: string) =>
+    `Did something ${tutorName} said seem wrong or odd? Tell us when this session ends, so you keep your place. Your mail app opens then, with a reference number. Nothing you said is attached.`,
+  later: 'Report at the end',
+  cancel: 'Cancel the report',
+  pendingControl: 'Report saved for the end of this session',
   reply: 'We read every report and reply within two working days.',
   safety: 'This is not an emergency line. If you are in danger, call your local emergency number.',
   write: 'Write to us',

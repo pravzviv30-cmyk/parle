@@ -45,6 +45,7 @@ export function SummaryScreen({
   onReview,
   onDone,
   sessionId = null,
+  openReport = false,
 }: {
   lesson: Lesson;
   summary: SessionSummary;
@@ -70,6 +71,8 @@ export function SummaryScreen({
   onDone: () => void;
   /** The live session this card closes, for the closed beta's report link. Null: the link still opens, without a session reference. */
   sessionId?: string | null;
+  /** A report the learner saved in the live room: the sheet opens by itself, once, on arrival. */
+  openReport?: boolean;
 }) {
   const t = useB();
   const st = useThemedStyles(makeSt);
@@ -77,7 +80,7 @@ export function SummaryScreen({
   const [drilling, setDrilling] = useState(false);
   const [more, setMore] = useState(false);
   const [soundDetail, setSoundDetail] = useState(false);
-  const [reporting, setReporting] = useState(false);
+  const [reporting, setReporting] = useState(openReport);
   const { profile } = useProfile();
   // A word first: the one this learner said worst in this lesson, else the
   // inventory's own beginner example. The symbol is behind the toggle.
@@ -307,7 +310,7 @@ export function SummaryScreen({
           <Text style={[type.small, { color: t.link }]}>{REPORT_COPY.endLink}</Text>
         </Pressable> : null}
       </View>
-      {reporting ? <ReportSheet place="card" tutorName={tutorNameOf(profile)} sessionId={sessionId} onClose={() => setReporting(false)} /> : null}
+      {reporting ? <ReportSheet tutorName={tutorNameOf(profile)} sessionId={sessionId} onClose={() => setReporting(false)} /> : null}
     </ScrollScreen>
   );
 }
