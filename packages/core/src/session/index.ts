@@ -3,6 +3,7 @@ export {
   currentPrompt,
   submitTurn,
   summarise,
+  addPronunciation,
   grade,
   MAX_ATTEMPTS_PER_TURN,
   INTELLIGIBLE,

@@ -20,8 +20,11 @@ describe('safety is a code boundary, not prompt advice', () => {
   test('scripted typed and spoken answers are guarded before grading', () => {
     assert.match(tutor, /\(msg\.t === 'say' \|\| msg\.t === 'choice'\) && this\.handleSafety\(msg\.text, session\)/);
     const spokenGuard = tutor.indexOf('this.handleSafety(transcript, this.session)');
-    const grading = tutor.indexOf('scoreUtterance({', spokenGuard);
-    assert.ok(spokenGuard > 0 && grading > spokenGuard);
+    // Both the background score and the grade come after the guard: unsafe
+    // speech is neither sent to the scoring vendor nor graded.
+    const scoring = tutor.indexOf('this.scoreInBackground(', spokenGuard);
+    const grading = tutor.indexOf("await this.enqueue(this.session, {", spokenGuard);
+    assert.ok(spokenGuard > 0 && scoring > spokenGuard && grading > spokenGuard);
   });
 
   test('stop decisions end the session so crisis handling is never metered as more roleplay', () => {

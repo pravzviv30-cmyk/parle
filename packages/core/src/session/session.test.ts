@@ -7,6 +7,7 @@ import {
   grade,
   submitTurn,
   summarise,
+  addPronunciation,
   MAX_ATTEMPTS_PER_TURN,
   INTELLIGIBLE,
   CORRECTION_COOLDOWN_TURNS,
@@ -643,5 +644,36 @@ describe('what the end card is allowed to claim', () => {
 
     assert.equal(summary.pronunciationStatus, 'scored');
     assert.equal(summary.pronunciation.focus?.phoneme.ipa, 'ʁ');
+  });
+});
+
+describe('sound evidence added beside the turn (addPronunciation)', () => {
+  const low = (word: string): PhonemeObservation => ({ ipa: 'ʁ', score: 30, word });
+
+  test('it adds evidence and nothing else', () => {
+    const answered = submitTurn(lesson, createSession(lesson, RUNGS.PROMPTED), { type: 'spoke', transcript: 'Bonjour', phonemes: [], durationSec: 1 }).state;
+    const frozen = structuredClone(answered);
+    const scored = addPronunciation(answered, [low('Bonjour')]);
+    assert.deepEqual(answered, frozen, 'pure: the state it was given is untouched');
+    assert.deepEqual(scored.ladder, answered.ladder, 'the ladder does not move on a score');
+    assert.equal(scored.turnIndex, answered.turnIndex);
+    assert.deepEqual(scored.transcript, answered.transcript);
+    assert.equal(scored.utterancesScored, answered.utterancesScored + 1);
+    assert.equal(scored.observations.length, answered.observations.length + 1);
+  });
+
+  test('no evidence leaves the state exactly as it was', () => {
+    const state = createSession(lesson);
+    assert.equal(addPronunciation(state, []), state);
+    assert.equal(summarise(state).pronunciationStatus, 'unavailable');
+  });
+
+  test('evidence added this way reaches the end card like any other', () => {
+    let state = createSession(lesson);
+    for (const word of ['bonjour', 'merci', 'croissant']) state = addPronunciation(state, [low(word)]);
+    const summary = summarise(state);
+    assert.equal(summary.pronunciationStatus, 'scored');
+    assert.equal(summary.pronunciation.focus?.phoneme.ipa, 'ʁ');
+    assert.equal(summary.utterancesScored, 3);
   });
 });

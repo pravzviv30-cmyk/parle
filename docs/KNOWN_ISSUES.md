@@ -9126,9 +9126,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F623 — Live pronunciation scoring sits on the reply path and would add three to four seconds a turn
 - severity: P2
-- status: [ ]
-- where: services/tutor-agent/src/tutor.ts:482
+- status: [x]
+- where: services/tutor-agent/src/tutor.ts (`onUserTurnCompleted`, `scoreInBackground`, `settleScores`)
 - note: `scoreUtterance` is awaited in `onUserTurnCompleted` before the brain replies, and `grade()` reads the turn's mean at `packages/core/src/session/session.ts:286`, so a live scene would wait for the scorer (3.4 s for a 1.7 s clip in the one TonePerfect call) on top of the brain (4.5 to 5.4 s). By the founder's decision of 2026-09-29, live-session scoring stays off (`LUVANI_AUDIO_SCORING` unset) while drills and sound checks score through the token server. The fix runs scoring alongside the reply and lets the grade read the score when it lands; it touches core session code, which has no specialist by design, so it needs its own contract in Round 2.
+- fixed 2026-10-22 (VOICE-004): the turn is submitted with no phonemes and replied to at once; the score runs beside it and lands as evidence through core's pure `addPronunciation`, which never touches the ladder or the grade. Only a learner who said the reference line is scored against it (`saidTheReferenceLine`). A finishing lesson waits at most `SCORE_SETTLE_MS` (2.5 s) for scores in flight, then reports anything missing as not assessed. Through the paid transport the audio is converted in process by `services/shared/liveScoringAudio.ts`, so the live path no longer needs the external decoder (F805). The flag stays off by default; production still requires Speechace (preflight).
 - verified-by: `a live turn's reply never waits for the pronunciation score`
 
 ### F624 — Drill and sound-check audio went to TonePerfect labelled as WAV whatever it was
@@ -10576,7 +10577,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [ ]
 - where: deployment/verifyAudioDecoder.mjs, services/shared/audioDecode.ts
-- note: Actual OCI build 38271932614 passed the source contract but refused the independently hashed static-ffmpeg 9.0.2-1 binary (144,081,824 bytes); the maintained 8.1.2 candidate also exceeds the existing 128 MiB bound (140,059,552 bytes). The rejection is correct. A compatible reviewed immutable decoder artifact must pass the unchanged size/hash/compressed-audio and final nonroot offline Linux checks before portable image acceptance. No artifact was published or hosted workload deployed.
+- note: Actual OCI build 38271932614 passed the source contract but refused the independently hashed static-ffmpeg 9.0.2-1 binary (144,081,824 bytes); the maintained 8.1.2 candidate also exceeds the existing 128 MiB bound (140,059,552 bytes). The rejection is correct. A compatible reviewed immutable decoder artifact must pass the unchanged size/hash/compressed-audio and final nonroot offline Linux checks before portable image acceptance. No artifact was published or hosted workload deployed. Since 2026-10-22 (F623) live lesson scoring no longer needs the decoder: the worker converts its own PCM capture in process. Drill and sound-check uploads, which arrive compressed, still do.
 - verified-by: `immutable decoder rejects an executable above 128 MiB before execution`
 
 ### F806 — Raised choices interrupt their own release spring
@@ -11072,3 +11073,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/tutor/ContinuityCard.tsx:1
 - note: Found 2026-10-20 in B6. Direction B left code that no screen reads but that still has tests: `tutor/ContinuityCard.tsx`, `greetingSubline` and `GREETING_SUBLINES` (with `greetingWord` and `greetingLine`) in `home/greeting.ts`, `weekLines` and `WEEK_LINES_MAX` in `home/todayView.ts`, `tutorDoors` in `tutor/gate.ts`, `continuityRow` and its copy in `tutor/dashboard.ts`, and `WEEK_LABEL` in `home/todayView.ts`. B6 tried removing the first four and lost six tests, which the floors forbid (docs/TESTING.md). Removing them needs replacement tests for the live surfaces in the same change, so the mobile count does not drop.
 - verified-by: `no production module is reachable only from its own tests`
+
+### F863 — The paid lesson quote prices no scoring, so production live scoring would be refused on every call
+- severity: P2
+- status: [ ]
+- where: services/shared/paidAdmission.ts (lesson components), supabase lesson quote
+- note: Found 2026-10-22 in the VOICE-004 review. With `LUVANI_AUDIO_SCORING=1` in production, the worker scores through `paid.transport`, whose gate admits a call only for a component the session's reservation carries. The lesson quote requires `llm`, `stt` and `tts` and no reviewed binding adds a `scoring`/`speechace` component, so every live score is refused as `quote-mismatch`, logged by the Speechace adapter and returned as no score: every end card reads "not assessed". Development scoring (TonePerfect, no paid gate) is unaffected and was verified against the real vendor on 2026-10-22. Before the flag goes on for anyone: add a reviewed `scoring` component to the lesson quote (about one effect per learner turn, 30 s of audio each), make preflight refuse the flag when the bound lesson quote lacks it, and confirm a Speechace 200 and a `scored` card in one hosted lesson.
+- verified-by: `the bound lesson quote carries a scoring component whenever live scoring is on`

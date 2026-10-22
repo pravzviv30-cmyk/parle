@@ -17,8 +17,10 @@ import {
 } from '@luvani/core';
 import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
-import { LuvaniTutor, forgetReportedSessions } from './tutor.ts';
+import { LuvaniTutor, SCORE_SETTLE_MS, forgetReportedSessions, saidTheReferenceLine } from './tutor.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
+import type { scoreUtterance } from '../../shared/pronunciation.ts';
+import { pcmAudioMillis } from '../../shared/paidExecution.ts';
 
 /**
  * A stand-in for the LiveKit session.
@@ -43,7 +45,7 @@ function stubSession() {
 
 function build(
   startRung: Rung = RUNGS.PROMPTED,
-  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona } = {},
+  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance } = {},
 ) {
   const tutor = new LuvaniTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
@@ -770,5 +772,163 @@ describe('review fixes: rescues that move the lesson on, punctuation, and a stal
       await tutor.settled();
       assert.equal(tutor.sessionState.ladder.rescues, i, `rescue ${i} still fires after the grace was cut short`);
     }
+  });
+});
+
+describe('pronunciation is scored beside the turn, never in front of it (F623)', () => {
+  /** Live scoring switched on for one test, as LUVANI_AUDIO_SCORING=1 does. */
+  function scoringOn(t: { after: (fn: () => void) => void }): void {
+    const saved = process.env.LUVANI_AUDIO_SCORING;
+    process.env.LUVANI_AUDIO_SCORING = '1';
+    t.after(() => { if (saved === undefined) delete process.env.LUVANI_AUDIO_SCORING; else process.env.LUVANI_AUDIO_SCORING = saved; });
+  }
+  /** Hand the tutor a captured utterance, as the tap would after real speech. */
+  function heardAudio(tutor: LuvaniTutor): void {
+    (tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('RIFF-test-audio'), durationSec: 1.2 });
+  }
+  const lowR = (word: string) => [{ ipa: 'ʁ', score: 30, word }];
+
+  test("a live turn's reply never waits for the pronunciation score", async (t) => {
+    scoringOn(t);
+    let asked = 0;
+    const { tutor, calls } = build(RUNGS.PROMPTED, { scorer: () => { asked += 1; return new Promise(() => {}); } });
+    t.after(() => tutor.clearRescue());
+    heardAudio(tutor);
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    assert.equal(asked, 1, 'the score was asked for');
+    assert.equal(tutor.sessionState.turnIndex, 1, 'and the turn was applied without it');
+    assert.equal(calls.said.length, 1, 'and the tutor answered without it');
+  });
+
+  test('a score that lands later reaches the end card as the one sound to practise', async (t) => {
+    scoringOn(t);
+    let release: () => void = () => {};
+    const landed = new Promise<void>((resolve) => { release = resolve; });
+    const { tutor, published } = build(RUNGS.PROMPTED, { scorer: async ({ reference }) => { await landed; return lowR(reference); } });
+    t.after(() => tutor.clearRescue());
+    for (const line of ['Bonjour', "Un café, s'il vous plaît", "Sur place, s'il vous plaît"]) {
+      heardAudio(tutor);
+      await tutor.onUserTurnCompleted({} as never, heard(line)).catch(() => {});
+      await tutor.settled();
+    }
+    release();
+    await tutor.finish();
+    const summary = published.find((m) => m.t === 'summary');
+    assert.ok(summary && summary.t === 'summary');
+    assert.equal(summary.summary.pronunciationStatus, 'scored');
+    assert.equal(summary.summary.pronunciation.focus?.phoneme.ipa, 'ʁ');
+    assert.equal(summary.summary.utterancesScored, 3);
+    assert.equal(tutor.sessionState.ladder.rung, RUNGS.FREE, 'three right answers promoted them, whatever the sounds scored');
+  });
+
+  test('a score still pending when the lesson ends is dropped, and never holds up the end card', async (t) => {
+    scoringOn(t);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, published } = build(RUNGS.PROMPTED, { scorer: () => new Promise(() => {}) });
+    heardAudio(tutor);
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    tutor.clearRescue();
+    const done = tutor.finish();
+    t.mock.timers.tick(SCORE_SETTLE_MS + 1);
+    await done;
+    const summary = published.find((m) => m.t === 'summary');
+    assert.ok(summary && summary.t === 'summary');
+    assert.equal(summary.summary.pronunciationStatus, 'unavailable', 'not assessed is the honest answer');
+  });
+
+  test('a vendor that returns nothing leaves the lesson unassessed', async (t) => {
+    scoringOn(t);
+    const { tutor, published } = build(RUNGS.PROMPTED, { scorer: async () => [] });
+    t.after(() => tutor.clearRescue());
+    heardAudio(tutor);
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    await tutor.finish();
+    const summary = published.find((m) => m.t === 'summary');
+    assert.ok(summary && summary.t === 'summary');
+    assert.equal(summary.summary.pronunciationStatus, 'unavailable');
+  });
+
+  test('only a learner who said the reference line is scored against it', async (t) => {
+    scoringOn(t);
+    let asked = 0;
+    const { tutor } = build(RUNGS.PROMPTED, { scorer: async () => { asked += 1; return []; } });
+    t.after(() => tutor.clearRescue());
+    heardAudio(tutor);
+    await tutor.onUserTurnCompleted({} as never, heard('un éléphant')).catch(() => {});
+    await tutor.settled();
+    assert.equal(asked, 0, 'audio is never scored against a line the learner did not say');
+    const turn = CAFE_LESSON.turns[1]!;
+    assert.equal(saidTheReferenceLine(turn, "euh un café s'il vous plait"), true, 'fillers and a missing accent still count');
+    assert.equal(saidTheReferenceLine(turn, 'un éléphant'), false);
+  });
+
+  test('typed and tapped answers are never scored', async (t) => {
+    scoringOn(t);
+    let asked = 0;
+    const { tutor, session } = build(RUNGS.CUED, { scorer: async () => { asked += 1; return []; } });
+    t.after(() => tutor.clearRescue());
+    heardAudio(tutor);
+    await tutor.handleClientMessage(session, tapped({ t: 'choice', text: 'Bonjour' }));
+    await tutor.handleClientMessage(session, tapped({ t: 'say', text: "Un café, s'il vous plaît" }));
+    await tutor.settled();
+    assert.equal(asked, 0);
+  });
+});
+
+describe('review fixes for live scoring', () => {
+  function scoringOn(t: { after: (fn: () => void) => void }): void {
+    const saved = process.env.LUVANI_AUDIO_SCORING;
+    process.env.LUVANI_AUDIO_SCORING = '1';
+    t.after(() => { if (saved === undefined) delete process.env.LUVANI_AUDIO_SCORING; else process.env.LUVANI_AUDIO_SCORING = saved; });
+  }
+  /** A real 48 kHz stereo capture, the shape the tap hands over in a room. */
+  function roomCapture(): Buffer {
+    const frames = 48_000, channels = 2, bytes = frames * channels * 2;
+    const buf = Buffer.alloc(44 + bytes);
+    buf.write('RIFF', 0, 'ascii'); buf.writeUInt32LE(36 + bytes, 4); buf.write('WAVE', 8, 'ascii');
+    buf.write('fmt ', 12, 'ascii'); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(channels, 22);
+    buf.writeUInt32LE(48_000, 24); buf.writeUInt32LE(48_000 * channels * 2, 28); buf.writeUInt16LE(channels * 2, 32); buf.writeUInt16LE(16, 34);
+    buf.write('data', 36, 'ascii'); buf.writeUInt32LE(bytes, 40);
+    return buf;
+  }
+
+  test('through the paid transport the scorer gets audio the paid gate accepts', async (t) => {
+    scoringOn(t);
+    const sent: Uint8Array[] = [];
+    const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED, {
+      scoringRequest: (async () => { throw new Error('never called by the stub scorer'); }) as never,
+      scorer: async ({ audio }) => { if (audio) sent.push(audio); return []; },
+    });
+    Object.defineProperty(tutor, 'session', { value: { generateReply() {}, say() {} }, configurable: true });
+    tutor.attach(() => {});
+    t.after(() => tutor.clearRescue());
+    (tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: roomCapture(), durationSec: 1 });
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    await tutor.finish();
+    assert.equal(sent.length, 1);
+    assert.equal(pcmAudioMillis(sent[0]!), 1000, '16 kHz mono with the exact header, one second long');
+  });
+
+  test('a line with extra words is graded but never scored against the reference', () => {
+    const turn = CAFE_LESSON.turns[1]!;
+    assert.equal(saidTheReferenceLine(turn, "un café et un croissant s'il vous plaît"), false);
+    assert.equal(saidTheReferenceLine(turn, "un cafe s'il vous plait"), true, 'a missing accent is still the line');
+  });
+
+  test('a safety stop never waits on a score', async (t) => {
+    scoringOn(t);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session, published } = build(RUNGS.PROMPTED, { scorer: () => new Promise(() => {}) });
+    (tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('x'), durationSec: 1 });
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    await tutor.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    for (let i = 0; i < 30; i += 1) await Promise.resolve();
+    tutor.clearRescue();
+    assert.ok(published.some((m) => m.t === 'summary'), 'the end card is written without waiting for the score');
   });
 });

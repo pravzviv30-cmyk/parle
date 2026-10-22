@@ -339,3 +339,28 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   phone-audible latency still needs a device run.
 - Sources: [live voice](docs/LIVE_VOICE.md), `packages/brain/src/llm/spokenFields.ts`,
   `services/tutor-agent/src/convo.ts` (`speakEarly`).
+
+## VOICE-004 — Score pronunciation beside the turn, never in front of it
+
+- Date: 2026-10-22
+- Status: accepted
+- Decision: a scripted lesson grades and answers a spoken turn on its words
+  alone. Pronunciation is scored in the background, only when the learner said
+  the lesson's reference line, and the result is added to the session's evidence
+  with core's pure `addPronunciation`, read by the end card. A finishing lesson
+  waits at most 2.5 s for scores in flight. Live audio for the paid Speechace
+  route is converted in process (`services/shared/liveScoringAudio.ts`).
+- Reason: trustworthy pronunciation feedback is the product's headline
+  difference, and it was switched off because awaiting the score added up to
+  ten seconds of silence per turn (F623) and the decoder it needed could not be
+  deployed (F805). Words-right and sounds-right are separate questions
+  (PRODUCT.md), so a score should never change a grade after the learner has
+  been answered.
+- Consequence: a low live score no longer holds the rung by turning a right
+  answer into a partial one; it shows up as the end card's one focus sound
+  instead. Scores that arrive late are reported as not assessed rather than
+  awaited. `LUVANI_AUDIO_SCORING` stays off by default until a real-learner run
+  is reviewed, and production activation is blocked on F863 (the paid lesson
+  quote prices no scoring). Free conversation (missions) is still unscored.
+- Sources: [pedagogy](docs/PEDAGOGY.md), F623 and F805 in
+  [known issues](docs/KNOWN_ISSUES.md).

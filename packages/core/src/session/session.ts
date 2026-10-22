@@ -530,6 +530,29 @@ export interface SessionSummary {
   nextStartRung: Rung;
 }
 
+/**
+ * Sound evidence for one utterance, added beside the turn rather than inside it.
+ *
+ * A live lesson grades the words the moment they are heard and moves on; the
+ * score of how they sounded arrives later, from a vendor, if at all. Waiting for
+ * it held every reply up by seconds (F623), and letting it change the grade
+ * after the fact would rewrite a turn the learner has already been answered on.
+ * Words-right and sounds-right are separate questions (PRODUCT.md), so this
+ * adds the observations to the session's evidence and touches nothing else:
+ * not the ladder, not the turn, not the grade. The end card reads it through
+ * `summarise` exactly as it reads observations `submitTurn` stored.
+ *
+ * Pure. An empty list is no evidence, and leaves the state as it was.
+ */
+export function addPronunciation(state: SessionState, observations: readonly PhonemeObservation[]): SessionState {
+  if (observations.length === 0) return state;
+  return {
+    ...state,
+    observations: [...state.observations, ...observations],
+    utterancesScored: state.utterancesScored + 1,
+  };
+}
+
 export function summarise(state: SessionState, now = Date.now()): SessionSummary {
   const durationSec = Math.max(0, ((state.endedAt ?? now) - state.startedAt) / 1000);
   const pronunciation = buildReport(state.observations);

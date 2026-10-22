@@ -17,13 +17,17 @@ import { voice, llm, type stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream } from 'node:stream/web';
 import {
+  addPronunciation,
   createSession,
   currentPrompt,
+  matchAcceptable,
   submitTurn,
   summarise,
   toLearnerInput,
   STUCK_SILENCE_MS,
   type Lesson,
+  type LessonTurn,
+  type PhonemeObservation,
   type Rung,
   type ServerMessage,
   type SessionState,
@@ -38,7 +42,7 @@ import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
 import { scoreUtterance } from '../../shared/pronunciation.ts';
-import { decodeAudio } from '../../shared/audioDecode.ts';
+import { toSpeechaceWav } from '../../shared/liveScoringAudio.ts';
 import { reportUsage } from './usage.ts';
 import { terminalServiceFailure } from './serviceFailure.ts';
 import type { ServiceFailure } from '@luvani/core';
@@ -177,6 +181,46 @@ export function forgetReportedSessions(): void {
   reportedSessions.clear();
 }
 
+/**
+ * How long a finishing lesson waits for scores still in flight before it
+ * writes the end card without them. Short, because the learner is looking at
+ * a spinner: a score that has not landed by now is reported as not assessed,
+ * which is honest, rather than awaited.
+ */
+export const SCORE_SETTLE_MS = 2_500;
+
+/** Under this many seconds left before the hard limit, a finishing lesson does not wait for scores. */
+export const SETTLE_DEADLINE_MARGIN_SEC = 5;
+
+let conversionWarned = false;
+/** Once per process: a capture the paid scorer cannot take is a fleet-wide fact, not a per-turn one. */
+function warnConversionOnce(error: unknown): void {
+  if (conversionWarned) return;
+  conversionWarned = true;
+  console.warn('[luvani] live audio could not be converted for scoring; these utterances stay unscored:', safeError(error));
+}
+
+/** How long one background score may take: the most `scoreUtterance` allows. */
+export const LIVE_SCORE_TIMEOUT_MS = 10_000;
+
+/**
+ * Did the learner say the line the scorer will compare them against?
+ *
+ * Accuracy scoring force-aligns the reference text to the whole clip, so it
+ * means something only when the clip is that line and nothing else. The line
+ * itself, the line with hesitation fillers, or the line with one recognition
+ * slip all count, which keeps an accented learner whose transcript came back a
+ * little off in scope. Grading's looser content match does not: "un café et un
+ * croissant s'il vous plaît" carries every content word of the reference, but
+ * the extra words would be scored against reference sounds and name a focus
+ * the learner never got wrong. An accepted alternative or a different option
+ * is never scored either.
+ */
+export function saidTheReferenceLine(turn: LessonTurn, transcript: string): boolean {
+  const match = matchAcceptable({ ...turn, target: turn.reference, accepts: [], options: [] }, transcript);
+  return match.via === 'exact' || match.via === 'filler' || match.via === 'typo';
+}
+
 export class LuvaniTutor extends voice.Agent {
   private state: SessionState;
   private silenceTimer?: ReturnType<typeof setTimeout>;
@@ -214,6 +258,17 @@ export class LuvaniTutor extends voice.Agent {
   /** Keeps a copy of each utterance on its way to the recogniser. */
   private readonly tap = new UtteranceTap();
   private readonly scoringRequest: typeof fetch | undefined;
+  private readonly scorer: typeof scoreUtterance;
+  /**
+   * Sound evidence gathered beside the turns, one entry per scored utterance.
+   * Kept out of the queued lesson state on purpose: a score lands whenever the
+   * vendor answers, and the ladder and the checkpoints never wait for it.
+   */
+  private readonly scoredUtterances: PhonemeObservation[][] = [];
+  private readonly pendingScores = new Set<Promise<void>>();
+  private scoresClosed = false;
+  /** A safety stop is closing this room; nothing waits on a score now. */
+  private stopping = false;
 
   /**
    * Voiceless: the lesson runs with no microphone and no speech at all.
@@ -242,7 +297,7 @@ export class LuvaniTutor extends voice.Agent {
    */
   private readonly persona: TutorPersona | undefined;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch } = {}) {
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
@@ -252,6 +307,7 @@ export class LuvaniTutor extends voice.Agent {
     this.voiceless = options.voiceless ?? false;
     this.persona = options.persona;
     this.scoringRequest = options.scoringRequest;
+    this.scorer = options.scorer ?? scoreUtterance;
   }
 
   get sessionState(): SessionState {
@@ -373,6 +429,7 @@ export class LuvaniTutor extends voice.Agent {
    * is, and disconnecting before it flushes would take the message with it.
    */
   private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
+    this.stopping = true;
     void this.finish();
     try {
       await delivered;
@@ -656,21 +713,19 @@ export class LuvaniTutor extends voice.Agent {
 
     const prompt = currentPrompt(this.lesson, this.state);
     const utterance = this.tap.take();
-    // Reference text is what makes accuracy scoring meaningful at all — see the
-    // note in packages/core/src/lessons/types.ts.
-    let scoringAudio: Uint8Array | undefined = audioScoringEnabled() ? utterance?.wav : undefined;
-    if (scoringAudio && this.scoringRequest) {
-      try { scoringAudio = (await decodeAudio(scoringAudio, { signal: this.lifecycle?.signal })).wav; } catch { scoringAudio = undefined; }
+    // Scored beside the turn, never in front of it (F623). The reply below is
+    // decided on the words alone and is said at once; the score joins the end
+    // card's evidence whenever it lands. Reference text is what makes accuracy
+    // scoring meaningful at all, so only a learner who said the reference line
+    // is scored against it (see the note in packages/core/src/lessons/types.ts).
+    if (audioScoringEnabled() && utterance && saidTheReferenceLine(prompt.turn, transcript)) {
+      this.scoreInBackground(utterance.wav, prompt.turn.reference);
     }
-    const phonemes = await scoreUtterance({
-      reference: prompt.turn.reference,
-      ...(scoringAudio ? { audio: scoringAudio } : {}),
-    }, { ...(this.scoringRequest ? { fetchFn: this.scoringRequest } : {}), ...(this.lifecycle ? { signal: this.lifecycle.signal } : {}) });
 
     await this.enqueue(this.session, {
       type: 'spoke',
       transcript,
-      phonemes,
+      phonemes: [],
       // Measured by the recogniser, not guessed. Zero here is what made
       // speaking share and longest turn read as nothing on every live session.
       durationSec: utterance?.durationSec ?? 0,
@@ -681,6 +736,60 @@ export class LuvaniTutor extends voice.Agent {
     // would speak a second time, and with interruptions allowed, which is how
     // a speakerphone mic gets to cut the modelled line off mid-sentence.
     throw new voice.StopResponse();
+  }
+
+  /**
+   * Score one utterance without anybody waiting for it.
+   *
+   * Through the paid transport the audio must be the gate's exact 16 kHz mono
+   * WAV, made here from the PCM the tap already holds rather than by the
+   * external decoder (F805). Anything that cannot be made into it, a vendor
+   * that times out or returns nothing, and a score landing after the end card
+   * was written all leave no evidence, which the card reports as not assessed.
+   */
+  private scoreInBackground(wav: Uint8Array, reference: string): void {
+    let audio: Uint8Array;
+    try { audio = this.scoringRequest ? toSpeechaceWav(wav) : wav; } catch (error) {
+      warnConversionOnce(error);
+      return;
+    }
+    const work: Promise<void> = Promise.resolve().then(() => this.scorer({ reference, audio }, {
+      // Nobody waits on this, so it gets the vendor's full budget: a cold
+      // TonePerfect call measured past five seconds on 2026-10-22, then 1 to 2.5.
+      timeoutMs: LIVE_SCORE_TIMEOUT_MS,
+      ...(this.scoringRequest ? { fetchFn: this.scoringRequest } : {}),
+      ...(this.lifecycle ? { signal: this.lifecycle.signal } : {}),
+    })).then((observations) => {
+      if (!this.scoresClosed && observations.length > 0) this.scoredUtterances.push(observations);
+    }).catch(() => {}).finally(() => { this.pendingScores.delete(work); });
+    this.pendingScores.add(work);
+  }
+
+  /**
+   * Give scores still in flight a short, bounded chance to land, then close.
+   *
+   * Called before the lifecycle completes, because completing aborts the
+   * signal every score is running on. Nothing after this adds evidence.
+   */
+  private async settleScores(): Promise<void> {
+    const nearDeadline = this.lifecycle ? this.lifecycle.maxSeconds - this.lifecycle.elapsedSeconds() < SETTLE_DEADLINE_MARGIN_SEC : false;
+    // A safety stop closes the room as soon as its words are delivered, and a
+    // lesson ending at its hard limit needs every second for settlement. Neither
+    // waits on a score.
+    if (this.pendingScores.size > 0 && !this.stopping && !nearDeadline) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        Promise.allSettled([...this.pendingScores]),
+        new Promise<void>((resolve) => { timer = setTimeout(resolve, SCORE_SETTLE_MS); }),
+      ]);
+      if (timer) clearTimeout(timer);
+    }
+    this.scoresClosed = true;
+  }
+
+  /** The lesson state with the sound evidence gathered beside it. */
+  private withPronunciation(state: SessionState): SessionState {
+    return this.scoredUtterances.reduce(addPronunciation, state);
   }
 
   /**
@@ -764,23 +873,28 @@ export class LuvaniTutor extends voice.Agent {
 
   private async complete(): Promise<void> {
     this.lifecycle?.freezeBillingCutoff?.();
+    // The legacy path bills wall-clock seconds; they stop here, not after the
+    // wait for scores below.
+    const endedAt = Date.now();
     this.ended = true;
     this.cancelLiveReplies();
+    await this.settleScores();
 
     if (this.lifecycle) {
       const settlement = await this.lifecycle.complete({ learnerTurns: this.learnerTurns,
         ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) });
-      this.state = this.acknowledgedState;
+      this.state = this.withPronunciation(this.acknowledgedState);
       const summary = summarise(this.state);
       noteSessionReported(this.sessionId);
       await this.publish({ t: 'summary', summary });
       await this.publish({ t: 'settlement', result: settlement });
       return;
     }
+    this.state = this.withPronunciation(this.state);
     const summary = summarise(this.state);
     this.publish({ t: 'summary', summary });
 
-    const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
+    const wallClockSec = Math.round((endedAt - this.startedAt) / 1000);
     console.log(
       `[luvani] session complete — ${summary.turnsCompleted} turns (${this.learnerTurns} from the learner), ` +
         `${summary.wordsProduced.length} words, ${wallClockSec}s, ` +

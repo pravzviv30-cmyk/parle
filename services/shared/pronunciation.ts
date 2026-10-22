@@ -86,9 +86,10 @@ export type ScoringVendor = 'toneperfect' | 'speechace';
 /**
  * How long a live turn waits for a score before going on without one.
  *
- * The one real TonePerfect call took 3.4 s for a 1.7 s clip, and a live score
- * is awaited before the brain replies. Five seconds caps the silence; hitting
- * it costs that turn's score and nothing else. The token server passes its own
+ * The one real TonePerfect call took 3.4 s for a 1.7 s clip. A live lesson
+ * scores beside the reply rather than before it (F623), so this caps how long a
+ * score may take, not a silence; hitting it costs that turn's score and nothing
+ * else. The token server passes its own
  * budget, because a drill learner is waiting for a verdict, not a reply.
  */
 export const SCORING_TIMEOUT_MS = 5000;

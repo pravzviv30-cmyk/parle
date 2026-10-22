@@ -100,6 +100,13 @@ on accent would trap every learner with a strong English accent at Echo forever.
 
 A null pronunciation score never invents a penalty.
 
+In a live lesson the two axes are now also separate in time (VOICE-004). The
+turn is graded and answered on its words alone, at once. Pronunciation is scored
+in the background, only when the learner said the lesson's reference line, and
+lands as evidence for the end card through `addPronunciation`, which never moves
+the ladder. `grade`'s pronunciation rule still applies to callers that hand
+`submitTurn` phonemes directly.
+
 ## One focus, one drill
 
 `buildReport` in `packages/core/src/phonemes/scoring.ts` names **one** sound,

@@ -200,6 +200,11 @@ A scripted lesson speaks its expected paths from the script itself: the opening
 line, every good or partial answer, every rescue and every skip go straight to
 `session.say` through `scriptedSpeech.ts`, whose sentences are all in the TTS
 warm list. Only a missed answer, which can be anything, goes to the pipeline LLM.
+When `LUVANI_AUDIO_SCORING=1`, a spoken lesson answer is scored beside the
+reply, never in front of it (VOICE-004): only an answer that matches the
+reference line is sent, the paid route gets 16 kHz mono WAV converted in process
+(`services/shared/liveScoringAudio.ts`), and a finishing lesson waits at most
+`SCORE_SETTLE_MS` for scores in flight before writing the end card.
 The app measures the learner's wait on the device: from the confirmed final
 transcript to the worker's `speaking` frame, logged as
 `[luvani:live] reply-latency` and kept in `LiveDiagnostics.replyLatencyMs`
