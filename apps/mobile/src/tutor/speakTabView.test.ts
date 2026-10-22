@@ -102,7 +102,8 @@ describe('the header and the Recommended card', () => {
   test('each mode says what it means in one line, naming the chosen tutor', () => {
     assert.equal(modeChoice('listen').helper('Celine'), 'Celine speaks. You answer by typing or tapping. Your mic stays off.');
     assert.equal(modeChoice('speak').helper('Celine'), 'You talk, Celine answers out loud.');
-    assert.equal(modeChoice('type').helper('Celine'), 'Everything is written. Nobody speaks.');
+    assert.equal(modeChoice('type').helper('Celine'), 'You type, Celine writes back.');
+    assert.deepEqual(MODE_CHOICES.map((m) => m.icon), ['microphone', 'headphones', 'keyboard'], 'the Start shows a mic for a room that never opens one');
     for (const m of MODE_CHOICES) assert.doesNotMatch(m.helper('Celine'), /—|·/, m.key);
   });
 

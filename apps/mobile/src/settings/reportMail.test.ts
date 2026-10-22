@@ -48,7 +48,7 @@ describe('reportAddress', () => {
 
 describe('REPORT_COPY', () => {
   const all = [
-    REPORT_COPY.title, REPORT_COPY.body('Camille'), REPORT_COPY.roomBody('Camille'), REPORT_COPY.reply,
+    REPORT_COPY.title, REPORT_COPY.roomTitle, REPORT_COPY.body('Camille'), REPORT_COPY.roomBody('Camille'), REPORT_COPY.reply,
     REPORT_COPY.safety, REPORT_COPY.write, REPORT_COPY.notNow, REPORT_COPY.close, REPORT_COPY.failed('a@b.c'),
     REPORT_COPY.endLink, REPORT_COPY.control, REPORT_COPY.later, REPORT_COPY.cancel, REPORT_COPY.pendingControl,
   ];

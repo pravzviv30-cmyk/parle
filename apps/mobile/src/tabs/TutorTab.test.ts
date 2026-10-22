@@ -118,11 +118,17 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(card, /<Segment key=\{choice\.key\} label=\{choice\.label\} selected=\{answer\.key === choice\.key\} onPress=\{\(\) => setChosenMode\(choice\.key\)\} \/>/);
     const segment = between(FLAT, 'function Segment(', 'function OutlineChip(', 'the Speak/Type cell is drawn here');
     assert.match(segment, /accessibilityRole="radio" accessibilityLabel=\{label\} accessibilityState=\{\{ checked: selected, selected \}\}/);
+    assert.match(segment, /aria-checked=\{selected\}/, 'the web reads no checked state off the Speak, Listen or Type radio');
     assert.match(segment, /\{selected && <Tick color=\{t\.heroText\} \/>\}/, 'the chosen cell is told by its fill alone');
     assert.match(segment, /selected && \{ backgroundColor: t\.heroChip \}/);
     assert.equal((card.match(/<BButton label=\{START\}/g) ?? []).length, 1, 'the card carries other than one Start');
     assert.match(card, /height=\{54\} ground=\{t\.heroCta\} ink=\{t\.heroCtaText\}/);
-    assert.match(card, /<BMic size=\{20\} color=\{t\.heroCtaText\} \/>/);
+    // The Start's glyph follows the chosen mode: mic, headphones or keyboard.
+    assert.match(card, /<StartGlyph icon=\{answer\.icon\} color=\{t\.heroCtaText\} \/>/);
+    const glyph = between(FLAT, 'function StartGlyph(', 'function Segment(', 'the Start glyph is drawn here');
+    assert.match(glyph, /<KeyboardMark size=\{20\}/);
+    assert.match(glyph, /<Icon name="headphones" size=\{20\}/);
+    assert.match(glyph, /<BMic size=\{20\}/);
     assert.match(card, /onPress=\{\(\) => open\(textMode, answered\(next\.params\)\)\}/, 'Start does not open the next conversation through the probe, in the chosen mode');
     assert.match(FLAT, /const answered = \(params: object\): object => withAnswerMode\(answer\.key, params\);/);
     // The held-back retry keeps the params it was refused with, Listen only included.

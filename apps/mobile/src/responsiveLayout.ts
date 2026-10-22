@@ -43,3 +43,22 @@ export function layoutClass(width: number, left: number, right: number): 'compac
   return width - left - right >= 700 ? 'regular' : 'compact';
 }
 export const FOOTER_MAX = 480;
+
+/**
+ * The reading size at which a row of action tiles stops fitting side by side:
+ * the tab bar's threshold (`nav/LuvaniTabBar.tsx`), where words wrap under
+ * their icons, so the two rows agree about what large text means.
+ */
+export const ACTION_ROW_WRAPS = 1.6;
+
+/**
+ * Below this a row of four or more tiles wraps two to a line at any reading
+ * size: four tiles on a 375pt phone left a long label like "Pronunciation
+ * lesson: Au café" clipped at its edge. Two and three keep sharing one line.
+ */
+export const ACTION_ROW_NARROW = 420;
+
+/** Does a row of `count` action tiles wrap two to a line? */
+export function actionRowWraps(count: number, width: number, fontScale: number): boolean {
+  return fontScale >= ACTION_ROW_WRAPS || (count >= 4 && width < ACTION_ROW_NARROW);
+}

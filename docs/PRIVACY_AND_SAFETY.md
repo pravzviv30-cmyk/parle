@@ -892,8 +892,9 @@ named human is accountable for reading it. What was built meets them like this:
   session"; tapping it again offers "Cancel the report"). The reason is that
   opening Mail mid session drops the room: on web the `mailto:` link replaces the
   page and LiveKit disconnects on unload, and on iOS the app has no background-audio
-  mode. When the session ends, the recap or lesson summary opens the mail sheet by
-  itself.
+  mode. When the session ends, the recap or lesson summary opens the mail sheet
+  ("Tell us what felt off") by itself; the room's own sheet keeps the title
+  "Report this reply".
 - On the end cards the sheet opens the learner's own mail app to the support
   address in `apps/mobile/src/legal/company.ts`. Luvani sends nothing itself.
 - The subject is a reference and nothing else: the session id and the app version

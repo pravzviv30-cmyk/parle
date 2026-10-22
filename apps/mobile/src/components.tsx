@@ -73,7 +73,7 @@ import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, se
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
 import { OrbSurface } from './tutor/OrbSurface.tsx';
 import { holdCelebrations } from './celebrate/queue.ts';
-import { READING } from './responsiveLayout.ts';
+import { READING, actionRowWraps } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -2569,26 +2569,23 @@ export function IconAction({
 }
 
 /**
- * The reading size at which a row of action tiles stops fitting side by side:
- * the tab bar's threshold (`nav/LuvaniTabBar.tsx`), where words wrap under
- * their icons, so the two rows agree about what large text means.
- */
-const ACTION_ROW_WRAPS = 1.6;
-
-/**
  * Two to four action tiles sharing a row equally, each allowed to shrink
  * (`flex: 1, minWidth: 0`). At the largest reading sizes they wrap two to a
  * line rather than squeeze, re-measured when the reading size changes while
- * the app is open. More than four is a list, not a row.
+ * the app is open, and so do four on a narrow phone (`actionRowWraps`). More
+ * than four is a list, not a row.
  */
 export function IconActionRow({ children }: { children: ReactNode }) {
   // Watched so the row re-renders when the OS text size changes; PixelRatio is
   // what the words are actually drawn at.
-  useWindowDimensions();
-  const wraps = PixelRatio.getFontScale() >= ACTION_ROW_WRAPS;
+  const { width } = useWindowDimensions();
+  // `toArray`, not `Children.count`: count includes the `false` a conditional
+  // tile leaves behind, which would wrap a row of three drawn tiles.
+  const tiles = Children.toArray(children);
+  const wraps = actionRowWraps(tiles.length, width, PixelRatio.getFontScale());
   return (
     <View style={[ic.row, wraps && ic.rowWrapped]}>
-      {Children.toArray(children).map((child, index) => (
+      {tiles.map((child, index) => (
         <View key={isValidElement(child) && child.key != null ? child.key : index} style={wraps ? ic.cellWrapped : ic.cell}>
           {child}
         </View>

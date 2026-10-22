@@ -40,6 +40,8 @@ import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
+import { KeyboardMark } from '../live/LiveParts.tsx';
+import { Icon } from '../icons/Icon.tsx';
 import { visibleFacts } from '../profile/memory.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -74,7 +76,7 @@ import { strictnessLabel } from '../tutor/strictness.ts';
 import { paceOf } from '../tutor/pace.ts';
 import { CHANGE_VOICE, startModes, startNote, tutorCardFacts } from '../tutor/speakView.ts';
 import {
-  CHANGE_VOICE_ROUTE, EVERY_SCENE, LESS_HELP_TITLE, MODE_CHOICES, modeChoice, withAnswerMode, type AnswerMode, NEXT_CHIP, PREFERENCES_ROUTE, PREPARE_FIRST, RECOMMENDED,
+  CHANGE_VOICE_ROUTE, EVERY_SCENE, LESS_HELP_TITLE, MODE_CHOICES, modeChoice, withAnswerMode, type AnswerMode, type ModeChoice, NEXT_CHIP, PREFERENCES_ROUTE, PREPARE_FIRST, RECOMMENDED,
   SEE_MINUTES, SPEAK_TITLE, START, TALK_SUB, TALK_TITLE, USES_SPEAKING_TIME, correctionsChip, lessHelp, minutesBand, paceChip,
   recommended, sampleCaption, speakSubtitle, speakTiles, starterScenes, talkChips, tileLayout,
 } from '../tutor/speakTabView.ts';
@@ -327,7 +329,7 @@ export function TutorTab() {
           )}
           <View style={st.after2}>
             <BButton label={START} accessibilityLabel={`${START}, ${rec.title}`} height={54} ground={t.heroCta} ink={t.heroCtaText} text={bType.bold18}
-              icon={<BMic size={20} color={t.heroCtaText} />} disabled={checking} onPress={() => open(textMode, answered(next.params))} />
+              icon={<StartGlyph icon={answer.icon} color={t.heroCtaText} />} disabled={checking} onPress={() => open(textMode, answered(next.params))} />
           </View>
           {checking && <Text accessibilityLiveRegion="polite" style={[bType.meta, st.centred, { color: t.heroText }]}>{TUTOR_OFFLINE.checking}</Text>}
           {note !== null && <Text style={[bType.meta, st.centred, { color: t.heroText }]}>{note}</Text>}
@@ -451,11 +453,18 @@ function HeroPill({ label }: { label: string }) {
 }
 
 /** One cell of the Speak/Type control: 40 high, radius 20, a radio. */
+/** The Start's glyph for the chosen mode: the same art the Scenes tiles and the room use. */
+function StartGlyph({ icon, color }: { icon: ModeChoice['icon']; color: string }) {
+  if (icon === 'keyboard') return <KeyboardMark size={20} color={color} />;
+  if (icon === 'headphones') return <Icon name="headphones" size={20} color={color} />;
+  return <BMic size={20} color={color} />;
+}
+
 function Segment({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const t = useB();
   const st = useThemedStyles(makeStyles);
   return (
-    <Press haptic="selection" accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected, selected }} hitSlop={CHIP_SLOP}
+    <Press haptic="selection" accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected, selected }} aria-checked={selected} hitSlop={CHIP_SLOP}
       onPress={onPress} frame={st.grow} style={[st.cell, selected && { backgroundColor: t.heroChip }]}>
       {selected && <Tick color={t.heroText} />}
       <Text style={[selected ? bType.bold15 : bType.semi15, { color: t.heroText }]}>{label}</Text>

@@ -11,6 +11,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { REPORT_COPY } from '../settings/reportMail.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 function stripComments(source: string): string {
@@ -152,5 +153,15 @@ describe('the sheet', () => {
   test('a failed open keeps the sheet and says so politely', () => {
     assert.match(sheet, /if \(outcome === 'done'\) onClose\(\); else setFailed\(true\);/);
     assert.match(sheet, /accessibilityLiveRegion="polite"[^>]*>\{REPORT_COPY\.failed\(address\)\}/);
+  });
+});
+
+describe('the two report sheets carry their own titles', () => {
+  test('the room says this reply; the card says the session', () => {
+    assert.equal(REPORT_COPY.roomTitle, 'Report this reply');
+    assert.equal(REPORT_COPY.title, 'Tell us what felt off');
+    const sheet = read('./ReportSheet.tsx');
+    assert.match(sheet, /<Sheet visible title=\{REPORT_COPY\.title\}/, 'the card sheet lost its session title');
+    assert.match(sheet, /<HelpSheet title=\{REPORT_COPY\.roomTitle\}/, 'the room sheet lost "Report this reply"');
   });
 });

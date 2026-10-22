@@ -113,7 +113,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
     <View style={[st.column, { paddingTop: embedded ? 12 : insets.top + 20, paddingBottom: keyboardOpen ? 10 : Math.max(insets.bottom, 10) + 10 }]}>
       <View style={st.head} onTouchEnd={dismiss}>
         <LiveTopBar title={title ?? `${tutorName}, your tutor`} line={description} pace={pace}
-          report={reportable ? <Press haptic="none" accessibilityLabel={report.pending ? REPORT_COPY.pendingControl : REPORT_COPY.control} accessibilityState={report.pending ? { selected: true } : { expanded: reportOpen }} onPress={() => { dismiss(); setHelpOpen(false); setReportOpen(value => !value); }} style={[st.report, report.pending && st.reportPending]}><FlagGlyph size={18} color={report.pending ? t.onBrand : t.onBrandSoft} /></Press> : null}
+          report={reportable ? <Press haptic="none" accessibilityLabel={report.pending ? REPORT_COPY.pendingControl : REPORT_COPY.control} accessibilityState={report.pending ? { selected: true } : { expanded: reportOpen }} onPress={() => { dismiss(); setHelpOpen(false); setReportOpen(value => !value); }} style={[st.report, report.pending && st.reportPending]}><FlagGlyph size={18} color={report.pending ? t.brand : t.onBrandSoft} /></Press> : null}
           leave={<Press haptic="none" onPress={onEnd} accessibilityLabel="End session" style={st.leave}><CloseGlyph size={18} color={t.onBrand} /></Press>} />
         <GoalsStrip chips={chips} />
       </View>
@@ -179,7 +179,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
           <HelpLadder steps={ladder} spoken={ladderSpoken(ladder)} />
           {support}
           {moreHelp && moreHelpOffered(helpKind) ? <SheetSecondary label={HELP_COPY.more} disabled={moreHelp.disabled} onPress={moreHelp.onPress} /> : null}
-          <SheetPrimary label={typing ? 'Type your choice' : HELP_COPY.say} disabled={!ready} onPress={sayChoice} />
+          <SheetPrimary label={typing ? 'Type your choice' : HELP_COPY.say} icon={typing ? <KeyboardMark size={20} color={t.onPrimary} /> : undefined} disabled={!ready} onPress={sayChoice} />
           <Text style={[bType.note, st.center, { color: t.muted }]}>{HELP_COPY.foot}</Text>
           {tools}
         </ScrollView>
@@ -198,7 +198,9 @@ function makeStyles(t: B) {
     // outline on the room rather than a filled disc, so leaving stays the louder exit.
     report: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
     // Filled like the leave disc once a report is saved for the end card.
-    reportPending: { backgroundColor: t.violetDeep },
+    // Filled in the room's words colour, not violetDeep: violetDeep on the brand
+    // ground is 1.3:1, so the saved state could not be told from the empty one.
+    reportPending: { backgroundColor: t.onBrand, borderColor: t.onBrand },
     center: { textAlign: 'center' },
     top: { flexGrow: 0, maxHeight: '20%', paddingTop: 8 },
     transcriptToggle: { minHeight: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', paddingHorizontal: 12 },

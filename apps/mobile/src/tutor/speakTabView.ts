@@ -86,6 +86,8 @@ export interface ModeChoice {
   listenOnly: boolean;
   /** The one line under the choice, saying what it means. */
   helper: (tutorName: string) => string;
+  /** The Start's glyph: the Start says how the room will open. */
+  icon: 'microphone' | 'headphones' | 'keyboard';
 }
 
 /**
@@ -94,15 +96,16 @@ export interface ModeChoice {
  * the train hears the learner (PRODUCT.md, never require speaking in public).
  */
 export const MODE_CHOICES: readonly ModeChoice[] = [
-  { key: 'speak', label: 'Speak', textMode: false, listenOnly: false, helper: (name) => `You talk, ${name} answers out loud.` },
+  { key: 'speak', label: 'Speak', textMode: false, listenOnly: false, helper: (name) => `You talk, ${name} answers out loud.`, icon: 'microphone' },
   {
     key: 'listen',
     label: 'Listen',
     textMode: false,
     listenOnly: true,
     helper: (name) => `${name} speaks. You answer by typing or tapping. Your mic stays off.`,
+    icon: 'headphones',
   },
-  { key: 'type', label: 'Type', textMode: true, listenOnly: false, helper: () => 'Everything is written. Nobody speaks.' },
+  { key: 'type', label: 'Type', textMode: true, listenOnly: false, helper: (name) => `You type, ${name} writes back.`, icon: 'keyboard' },
 ];
 
 /** The choice for a key, falling back to Speak so an unknown key never strands the Start. */

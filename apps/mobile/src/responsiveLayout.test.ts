@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { navigationWidth, screenInsets, screenGeometry, compactPhone, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
+import { navigationWidth, screenInsets, screenGeometry, compactPhone, layoutClass, FOOTER_MAX, actionRowWraps, ACTION_ROW_WRAPS } from './responsiveLayout.ts';
 
 test('phone content respects left and right safe areas', () => {
   assert.deepEqual(screenInsets(390, 0, 0), { paddingLeft: 20, paddingRight: 20 });
@@ -79,4 +79,18 @@ test('on a regular-width screen the tabs use two columns and sheets keep the rea
   assert.match(layout, /flexDirection: regular \? 'row' : 'column'/);
   const components = readFileSync(new URL('components.tsx', import.meta.url), 'utf8');
   assert.match(components, /maxWidth: READING/);
+});
+
+test('action tiles wrap two to a line at large text, and four on a narrow phone', () => {
+  assert.equal(ACTION_ROW_WRAPS, 1.6, 'the action row left the tab bar\'s large-text threshold');
+  // Four on a 375pt phone clipped the lesson door's label.
+  assert.equal(actionRowWraps(4, 375, 1), true);
+  assert.equal(actionRowWraps(4, 419, 1), true);
+  assert.equal(actionRowWraps(4, 420, 1), false);
+  // Two and three keep one line on the same phone.
+  assert.equal(actionRowWraps(3, 375, 1), false);
+  assert.equal(actionRowWraps(2, 320, 1), false);
+  // Large text wraps any row, at any width.
+  assert.equal(actionRowWraps(2, 1024, 1.6), true);
+  assert.equal(actionRowWraps(3, 1024, 1.59), false);
 });

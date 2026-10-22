@@ -50,7 +50,10 @@ export function reportAddress(facts: CompanyFacts = COMPANY): string | null {
 
 /** Every word the report sheet and its links say. */
 export const REPORT_COPY = {
-  title: 'Report this reply',
+  /** The room's sheet: it is about the reply just heard. */
+  roomTitle: 'Report this reply',
+  /** The end cards' and the Leave path's sheet: the whole session, not one reply. */
+  title: 'Tell us what felt off',
   /** The end cards' body, where the mail app opens. */
   body: (tutorName: string) =>
     `Did something ${tutorName} said in this session seem wrong or odd? Tell us by email. Your mail app opens with a reference number for this session. Nothing you said is attached.`,

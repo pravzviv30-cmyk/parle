@@ -70,7 +70,7 @@ export function RoomReportSheet({ tutorName, pending, onPending, onClose }: {
 }) {
   const t = useB();
   if (reportAddress() === null) return null;
-  return <HelpSheet title={REPORT_COPY.title} closeLabel={REPORT_COPY.close} onClose={onClose}>
+  return <HelpSheet title={REPORT_COPY.roomTitle} closeLabel={REPORT_COPY.close} onClose={onClose}>
     <View style={{ gap: 10 }}>
       <Text style={[bType.line16, { color: t.text }]}>{REPORT_COPY.roomBody(tutorName)}</Text>
       <Text style={[bType.note, { color: t.muted }]}>{REPORT_COPY.reply}</Text>
