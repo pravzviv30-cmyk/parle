@@ -599,3 +599,62 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   `analyst-samples.md`), `scripts/measureSessionLlm.mjs`,
   `scripts/ttsBlindCheck.mjs`, `services/tutor-agent/src/ttsCache.ts`,
   `packages/core/src/metering/meter.ts`. Founder answer of 23 October 2026.
+
+## VOICE-009 — Give beginners time to finish a sentence before their turn ends
+
+- Date: 2026-10-23
+- Status: accepted
+- Decision:
+  - **Rung-based pause floor.** Rungs 1-2 (A0-A1) get an endpointing
+    `minDelay` of 1,200 ms; rungs 3-4 keep 400 ms. A session with no signed
+    `startRung` is a beginner. `maxDelay` is pinned at 2,500 ms.
+  - **The floor rises after a cut-off.** A cut-off is the learner starting to
+    speak within 1,500 ms of a committed turn, before the tutor began its reply.
+    Each one adds 400 ms for the rest of the session, capped at 2,000 ms.
+  - **"Give me a moment" also holds the end of the turn** at 2,500 ms until the
+    learner's turn completes or the grace ends. No new UI or protocol tag.
+  - **The hold is capped.** Taps on one exchange can defer the rescue for at
+    most `MOMENT_HOLD_CAP_MS` (60 s) from the first tap. A tap past the cap only
+    restarts the ordinary window, like a keystroke. "Aide-moi" during a hold
+    still rescues at once, and the first conversation rescue stays quiet.
+  - **A sound that never became a turn re-arms the rescue** when it ends,
+    instead of switching the clock off for good.
+  - Policy lives in `services/tutor-agent/src/thinkingTime.ts`. `agent.ts`
+    applies changes with `session.updateOptions({ turnHandling: { endpointing } })`
+    only when the value changes.
+- Reason:
+  - Being cut off mid-thought is a top complaint about AI tutors.
+  - The 400 ms floor did nothing: Silero's 550 ms end-of-speech silence
+    shadows it, so turns ended about 470 ms after the audio stopped.
+  - SDK 1.9 builds a local audio turn detector by default. On six French
+    clips with a 1 s mid-sentence pause it held 3 of 6. Without its native
+    binding or a job executor it holds none. Its scores sat near the 0.285
+    threshold, so the floor has to work without it.
+- Measured (`docs/live-latency-evidence/2026-10-23-pause-endpointing.md`):
+  - 1.0 s pauses: cut off today in 3 of 6 (model) or 6 of 6 (no model);
+    at 1,200 ms, 0 of 6 either way.
+  - 1.5 s pauses survive only from the 2,000 ms floor, and 2.0 s pauses only
+    under a moment hold.
+- Latency cost, last voiced audio to commit (p50 on the same clips):
+  - Rungs 1-2: +624 ms (466 to 1,090 ms) when the turn really has ended.
+  - +1,024 ms after one cut-off; +1,424 ms at the 2,000 ms cap.
+  - 2,390 ms during a moment hold, which the learner asked for.
+  - Unchanged at 2,500 ms when the audio model holds the turn.
+  - Rungs 3-4: unchanged.
+  - A lesson may run preemptive generation once more per held pause; the
+    framework caps that at three a turn.
+- Deferred:
+  - Tap-to-send (manual turn mode with an auto-send cap).
+  - Merging a fragment that was already cut off with its continuation.
+  - Field calibration with real beginners in the beta. The clips are one
+    sentence in synthetic voices.
+- Consequence:
+  - Tests: `thinkingTime.test.ts`, `pauseEndpointingSdk.test.ts` (a real
+    `AgentSession`: one turn at rung 1, two at 400 ms), the VOICE-009 blocks in
+    `convo.test.ts` and `tutor.test.ts`, and `agentWiring.test.ts`.
+  - Founder steps: deploy the tutor agent (no app change, no migration), and
+    grep the Railway worker logs for `local-inference native binding` to learn
+    whether the audio detector is live.
+- Sources: `scripts/measurePauseEndpointing.mjs`, `docs/LIVE_VOICE.md` "When the
+  learner's turn ends", `docs/PEDAGOGY.md` "The rescue". Founder answers of
+  23 October 2026.

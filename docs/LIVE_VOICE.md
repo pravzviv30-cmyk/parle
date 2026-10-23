@@ -568,6 +568,56 @@ leaves. Device check outstanding: expo-audio setting the sound-effect mode while
 LiveKit's audio unit is still running on iOS. If that reroutes or ducks audio on
 the founder's phone, recap sounds wait for `leave()` instead (core loop risk 2).
 
+## When the learner's turn ends (VOICE-009)
+
+The session is VAD-driven. Silero (plugin defaults) reports the end of speech
+550 ms after the last voiced frame, and in VAD mode the endpointing `minDelay`
+acts as `max(VAD silence, minDelay)`. SDK 1.9 also builds its own audio turn
+detector when `turnDetection` is unset: the local `turn-detector-v1-mini`
+through `@livekit/local-inference` (French threshold 0.285). When it scores a
+pause below the threshold, the wait becomes `maxDelay`. When the worker has no
+native binding or no job inference executor, it scores every pause 1.0 and the
+floor alone decides. Railway's logs say which (`local-inference native binding`).
+
+The floor follows the learner (`services/tutor-agent/src/thinkingTime.ts`):
+
+| Situation | `minDelay` | `maxDelay` |
+|---|---|---|
+| Rungs 1-2 (A0-A1), or no signed rung | 1,200 ms | 2,500 ms |
+| Rungs 3-4 | 400 ms | 2,500 ms |
+| Each cut-off this session | +400 ms, capped at 2,000 ms | 2,500 ms |
+| "Give me a moment" held | 2,500 ms | 2,500 ms |
+
+A cut-off is the learner starting to speak within 1,500 ms of a committed turn,
+before the tutor began its reply. The session is built on the starting rung, and
+`agent.ts` calls `session.updateOptions({ turnHandling: { endpointing } })` only
+when the value changes. The tutors report rung changes, the hold and each
+committed turn through the injected `thinkingTime` sink.
+
+Measured on 23 October 2026 (`scripts/measurePauseEndpointing.mjs`,
+`docs/live-latency-evidence/2026-10-23-pause-endpointing.md`). Six voices say one
+French sentence, with a pause spliced in the middle, through the real Silero
+VAD and the real local model. These are synthetic voices, not learners.
+
+| Pause | Cut off today, model / no model | Cut off at 1,200 ms, model / no model |
+|---|---|---|
+| 0.5 s | 0 / 0 of 6 | 0 / 0 of 6 |
+| 1.0 s | 3 / 6 of 6 | 0 / 0 of 6 |
+| 1.5 s | 2 / 6 of 6 | 2 / 6 of 6 |
+| 2.0 s | 3 / 6 of 6 | 3 / 6 of 6 |
+
+A 2,000 ms floor (two cut-offs) protects 1.5 s pauses. Only a moment hold
+protects 2.0 s pauses. The model's scores sat close to the threshold (0.15 to
+0.39 mid-sentence, 0.29 to 0.60 at the real end), so the fallback column is the
+one that has to hold.
+
+What it costs, from the last voiced audio to the turn committing (p50, same
+clips): today 466 ms. Rungs 1-2 now take 1,090 ms (+624 ms), 1,490 ms after one
+cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
+2,390 ms. Rungs 3-4 are unchanged. When the audio model holds a turn, the wait is
+2,500 ms either way. A lesson may run preemptive generation once more per held
+pause; the framework caps that at three a turn.
+
 ## Serialisation
 
 Two events can arrive at once — the rescue timer at four seconds, and the learner

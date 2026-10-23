@@ -65,6 +65,23 @@ English. Both are bounded by an attempt cap, so nothing can loop.
 Asking for help is never scored against the learner. Neither is hesitating, and
 the tutor is instructed at every rung never to mention it.
 
+**Time to think (VOICE-009).** A pause mid-sentence is not the end of a turn.
+At rungs 1-2 the session waits 1,200 ms of silence before it decides the learner
+has finished, against 400 ms at rungs 3-4. Each time a learner is cut off (they
+carry on within 1,500 ms, before the tutor has answered) the wait grows by
+400 ms, up to 2,000 ms. Details and measured costs are in `LIVE_VOICE.md`.
+
+**"Give me a moment"** is presence, not failure. It holds the rescue for
+`MOMENT_GRACE_MS` (20 s), and while it is held the end of the turn waits 2,500 ms.
+A stray sound does not spend the grace. Taps can push the rescue back by at most
+`MOMENT_HOLD_CAP_MS` (60 s) per exchange, counted from the first tap. After that
+a tap only restarts the ordinary four seconds, like a keystroke, so nobody is
+stranded by a button. "Aide-moi" during a hold rescues at once, and the first
+conversation rescue after a hold is still the quiet on-screen hint.
+
+A sound that never becomes a turn (a cough, a word started and dropped) does not
+switch the rescue off. The four seconds restart when the learner's sound ends.
+
 ## What counts as a right answer
 
 `matchAcceptable` in `packages/core/src/lessons/types.ts`. Four routes, each
