@@ -318,7 +318,7 @@ describe('the first-audio hook', () => {
     await pcmOf(synth(cached, 'Bonjour !'));
     await pcmOf(synth(cached, 'Bonjour !'));
     // One entry per synthesis, not per frame: the first frame is the moment.
-    assert.deepEqual(seen, [{ hit: false }, { hit: true }]);
+    assert.deepEqual(seen, [{ hit: false, tier: 'main' }, { hit: true, tier: 'main' }]);
   });
 
   test('fires once on the first streamed frame too', async () => {
@@ -330,7 +330,7 @@ describe('the first-audio hook', () => {
       onFirstAudio: (info) => seen.push(info),
     });
     await pcmOf(synth(cached, 'Bonjour !'));
-    assert.deepEqual(seen, [{ hit: false }]);
+    assert.deepEqual(seen, [{ hit: false, tier: 'main' }]);
   });
 
   test('a throwing hook never costs the learner audio', async () => {
@@ -695,3 +695,83 @@ describe('the warm run warms exactly the authored list', () => {
     }
   });
 });
+
+describe('the free-conversation model tier', () => {
+  const AUTHORED = AUTHORED_SPEECH_LINES[0]!;
+  let flash: FakeTTS;
+  let tiered: CachedTTS;
+  const tieredCache = (missTransport: 'http' | 'ws', onFirstAudio?: CachedTTSOptionsHook) => new CachedTTS(fake, {
+    dir, voiceKey: 'eleven:v:eleven_multilingual_v2:s', missTransport, ...(onFirstAudio ? { onFirstAudio } : {}),
+    conversation: { inner: flash, voiceKey: 'eleven:v:eleven_flash_v2_5:s' },
+  });
+  beforeEach(() => { flash = new FakeTTS(); });
+
+  test('off: one inner serves every line and the cost line has no conversation field', async () => {
+    await pcmOf(synth(cached, REPLY));
+    await pcmOf(synth(cached, AUTHORED));
+    assert.equal(fake.calls, 2);
+    assert.equal(cached.charsBilledConversation, undefined);
+    assert.ok(!formatCostLine({ tts: cached }).includes('ttsCharsBilledConversation'));
+  });
+
+  for (const transport of ['http', 'ws'] as const) {
+    test(`on (${transport}): authored lines use the main model and the disk, free lines use the conversation model`, async () => {
+      tiered = tieredCache(transport);
+      const calls = (t: FakeTTS) => transport === 'ws' ? t.streamCalls : t.calls;
+      await pcmOf(synth(tiered, AUTHORED));
+      assert.equal(calls(fake), 1);
+      assert.equal(calls(flash), 0);
+      assert.ok(tiered.readLine(AUTHORED), 'the authored line is on disk under the main model');
+      await pcmOf(synth(tiered, AUTHORED));
+      assert.equal(tiered.hits, 1);
+
+      const first = await framesOf(synth(tiered, REPLY));
+      assert.equal(calls(flash), 1);
+      assert.equal(calls(fake), 1, 'the main model never hears a free line');
+      assert.deepEqual(await framesOf(synth(tiered, REPLY)), first, 'the memo replays the conversation audio');
+      assert.equal(calls(flash), 1);
+      assert.equal(tiered.memoHits, 1);
+      assert.equal(tiered.memo.get(tiered.fingerprint(REPLY)), null, 'never keyed under the main model');
+      assert.ok(tiered.memo.get(tiered.fingerprint(REPLY, 'eleven:v:eleven_flash_v2_5:s')));
+      assert.equal(readdirSync(tiered.cacheDirectory).length, 1, 'free lines never reach disk');
+
+      assert.equal(tiered.charsBilled, AUTHORED.length + REPLY.length);
+      assert.equal(tiered.charsBilledConversation, REPLY.length);
+      assert.match(formatCostLine({ tts: tiered }), new RegExp(`ttsCharsBilled=${AUTHORED.length + REPLY.length} .* ttsCharsBilledConversation=${REPLY.length}$`));
+      await tiered.close();
+    });
+  }
+
+  test('a long line that bypasses every cache follows the same rule', async () => {
+    tiered = tieredCache('http');
+    const long = 'Je '.repeat(100).trim();
+    await pcmOf(synth(tiered, long));
+    await pcmOf(synth(tiered, long));
+    assert.deepEqual([fake.calls, flash.calls, tiered.memoHits], [0, 2, 0]);
+    await tiered.close();
+  });
+
+  test('the first-audio hook names the tier that served the line', async () => {
+    const seen: { hit: boolean; tier: string }[] = [];
+    tiered = tieredCache('http', info => seen.push(info));
+    await pcmOf(synth(tiered, AUTHORED));
+    await pcmOf(synth(tiered, REPLY));
+    await pcmOf(synth(tiered, REPLY));
+    assert.deepEqual(seen, [{ hit: false, tier: 'main' }, { hit: false, tier: 'conversation' }, { hit: true, tier: 'conversation' }]);
+    await tiered.close();
+  });
+
+  test('closing the cache closes both voices', async () => {
+    tiered = tieredCache('ws');
+    let closed = 0;
+    for (const t of [fake, flash]) { const close = t.close.bind(t); t.close = async () => { closed += 1; await close(); }; }
+    await tiered.close();
+    assert.equal(closed, 2);
+  });
+
+  test('a conversation voice that differs in format or shares the main key is refused', () => {
+    assert.throws(() => new CachedTTS(fake, { dir, voiceKey: 'k', conversation: { inner: flash, voiceKey: 'k' } }), RangeError);
+  });
+});
+
+type CachedTTSOptionsHook = (info: { hit: boolean; tier: 'main' | 'conversation' }) => void;

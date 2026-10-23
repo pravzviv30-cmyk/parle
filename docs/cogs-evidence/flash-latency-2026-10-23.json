@@ -1,0 +1,281 @@
+{
+  "at": "2026-10-23T15:06:04.149Z",
+  "voice": "alexandre",
+  "settings": {
+    "stability": 0.4,
+    "similarity_boost": 0.8,
+    "style": 0.3,
+    "use_speaker_boost": true
+  },
+  "endpoint": "stream pcm_22050 optimize_streaming_latency=3",
+  "summary": {
+    "eleven_multilingual_v2": {
+      "n": 18,
+      "firstP50": 350,
+      "firstP90": 401,
+      "totalP50": 370,
+      "credits": 348
+    },
+    "eleven_flash_v2_5": {
+      "n": 18,
+      "firstP50": 126,
+      "firstP90": 131,
+      "totalP50": 188,
+      "credits": 174
+    }
+  },
+  "rows": [
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 38,
+      "firstMs": 2484,
+      "totalMs": 2503,
+      "credits": 15
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 38,
+      "firstMs": 1779,
+      "totalMs": 1838,
+      "credits": 8
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 50,
+      "firstMs": 377,
+      "totalMs": 395,
+      "credits": 20
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 50,
+      "firstMs": 124,
+      "totalMs": 182,
+      "credits": 10
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 55,
+      "firstMs": 346,
+      "totalMs": 361,
+      "credits": 22
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 55,
+      "firstMs": 125,
+      "totalMs": 188,
+      "credits": 11
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 52,
+      "firstMs": 343,
+      "totalMs": 363,
+      "credits": 21
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 52,
+      "firstMs": 128,
+      "totalMs": 188,
+      "credits": 10
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 35,
+      "firstMs": 312,
+      "totalMs": 323,
+      "credits": 14
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 35,
+      "firstMs": 122,
+      "totalMs": 175,
+      "credits": 7
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 61,
+      "firstMs": 401,
+      "totalMs": 419,
+      "credits": 24
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 61,
+      "firstMs": 131,
+      "totalMs": 272,
+      "credits": 12
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 38,
+      "firstMs": 121,
+      "totalMs": 180,
+      "credits": 8
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 38,
+      "firstMs": 336,
+      "totalMs": 346,
+      "credits": 15
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 50,
+      "firstMs": 129,
+      "totalMs": 181,
+      "credits": 10
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 50,
+      "firstMs": 343,
+      "totalMs": 370,
+      "credits": 20
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 55,
+      "firstMs": 125,
+      "totalMs": 183,
+      "credits": 11
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 55,
+      "firstMs": 364,
+      "totalMs": 383,
+      "credits": 22
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 52,
+      "firstMs": 126,
+      "totalMs": 186,
+      "credits": 10
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 52,
+      "firstMs": 353,
+      "totalMs": 373,
+      "credits": 21
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 35,
+      "firstMs": 121,
+      "totalMs": 174,
+      "credits": 7
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 35,
+      "firstMs": 309,
+      "totalMs": 321,
+      "credits": 14
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 61,
+      "firstMs": 126,
+      "totalMs": 189,
+      "credits": 12
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 61,
+      "firstMs": 364,
+      "totalMs": 385,
+      "credits": 24
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 38,
+      "firstMs": 387,
+      "totalMs": 388,
+      "credits": 15
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 38,
+      "firstMs": 127,
+      "totalMs": 183,
+      "credits": 8
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 50,
+      "firstMs": 342,
+      "totalMs": 356,
+      "credits": 20
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 50,
+      "firstMs": 121,
+      "totalMs": 199,
+      "credits": 10
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 55,
+      "firstMs": 348,
+      "totalMs": 362,
+      "credits": 22
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 55,
+      "firstMs": 131,
+      "totalMs": 194,
+      "credits": 11
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 52,
+      "firstMs": 350,
+      "totalMs": 365,
+      "credits": 21
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 52,
+      "firstMs": 127,
+      "totalMs": 202,
+      "credits": 10
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 35,
+      "firstMs": 310,
+      "totalMs": 323,
+      "credits": 14
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 35,
+      "firstMs": 125,
+      "totalMs": 190,
+      "credits": 7
+    },
+    {
+      "model": "eleven_multilingual_v2",
+      "chars": 61,
+      "firstMs": 387,
+      "totalMs": 397,
+      "credits": 24
+    },
+    {
+      "model": "eleven_flash_v2_5",
+      "chars": 61,
+      "firstMs": 127,
+      "totalMs": 183,
+      "credits": 12
+    }
+  ]
+}

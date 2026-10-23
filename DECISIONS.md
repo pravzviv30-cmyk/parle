@@ -599,3 +599,41 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   `analyst-samples.md`), `scripts/measureSessionLlm.mjs`,
   `scripts/ttsBlindCheck.mjs`, `services/tutor-agent/src/ttsCache.ts`,
   `packages/core/src/metering/meter.ts`. Founder answer of 23 October 2026.
+
+## VOICE-009 — Flash for conversation lines is a switch, off until the founder has listened
+
+- Date: 2026-10-23
+- Status: accepted (the switch). Turning it on is still open.
+- Decision: `LUVANI_CONVERSATION_TTS_MODEL=eleven_flash_v2_5` sends
+  free-conversation tutor lines to ElevenLabs Flash v2.5. These are the lines
+  the brain writes, which are not authored. Every authored or scripted line
+  stays on `eleven_multilingual_v2` and its disk cache whatever the setting.
+  Flash uses the same voice, settings, format and streaming latency. Unset
+  means off, which is today's behaviour. Any other value refuses to start.
+  The fish vendor ignores the setting.
+- Reason: the conversation reply is the only TTS a mission pays for on every
+  turn. Measured on 23 October 2026 on alexandre, Flash costs half as much
+  and starts sooner:
+  - First audio, 18 requests each, streaming at latency setting 3: Flash p50
+    126 ms (p90 131) against v2 p50 350 ms (p90 401).
+  - Credits: 174 for Flash against 348 for v2
+    (`docs/cogs-evidence/flash-latency-2026-10-23.json`).
+  - At the VOICE-008 rates, a mission minute falls from $0.048 to about
+    $0.034.
+  - What a beginner hears is the founder's call, so the switch ships off.
+- Consequence:
+  - **Before turning it on:** the founder runs the blind check at
+    `~/Developer/StartUps/listening/tts-blind-check-2026-10-22/` (key in
+    `docs/cogs-evidence/tts-blind-check/`).
+  - **Paid quote:** the paid TTS quote needs an `eleven_flash_v2_5` component,
+    or conversation lines are refused as quote-mismatch
+    (`deployment/PAID_ADMISSION.md`).
+  - **Cost model:** `ttsPerMin` in `meter.ts` gets re-priced through the
+    money process.
+  - **Two models in one session:** scripted and conversation lines then come
+    from two models of the same voice.
+  - **Tracking:** with the switch on, `[luvani:cost]` adds
+    `ttsCharsBilledConversation`, so the beta can price each tier.
+- Sources: `services/tutor-agent/src/ttsCache.ts` (`route`),
+  `services/tutor-agent/src/voice.ts` (`buildTTS`),
+  `services/tutor-agent/src/voiceConfiguration.ts`, VOICE-008.
