@@ -815,7 +815,11 @@ disagreement by picking a winner: the only winner a permission may have is the
 most recent thing the learner actually said, so a fold that could carry an older
 yes over a newer no would turn a withdrawal into a setting that comes back by
 itself. The price is that a consent is per account per device, and someone who
-says yes on a phone finds the switch off on a tablet.
+says yes on a phone finds the switch off on a tablet. `speechDataset` is the same
+kind of consent, for sharing lesson-line recordings with the speech dataset, and
+it is excluded for the same reason. It is inert today: its Settings switch is
+hidden and nothing reads it outside Settings. Activation moves the authoritative
+record to the server ([speech dataset](changes/speech-dataset.md)).
 
 Three rules hold the whole thing up:
 
