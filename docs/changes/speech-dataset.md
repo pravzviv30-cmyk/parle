@@ -45,7 +45,10 @@ Only a spoken turn in a scripted or cued lesson where the learner said the lesso
 reference line. This is exactly VOICE-004's gate: `saidTheReferenceLine` accepts an
 exact, filler or typo match of `turn.reference` and nothing looser. It excludes:
 
-- free conversation and missions (no reference line; `convo.ts` has no seam);
+- free conversation and missions. F866 (on `claude/mission-scoring`, not yet on
+  main) scores a mission's handed-over full line, which is a cued reference line,
+  but `convo.ts` has no clip seam. Adding one is a later, separate step, made by
+  whoever owns `convo.ts`;
 - typed and tapped answers;
 - answers with extra words (they are graded, but not scored or kept);
 - turns where the scorer returned nothing.
