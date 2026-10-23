@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 `claude/goal-edit` (change or clear the onboarding goal from Learning
+  preferences, clocked as the `onboardingGoal` preference field; VOICE-006 amendment) with
+  main 6326f51b merged in (held, not on main): **6,179 tests, 0 failing**; core 936, brain 499,
+  tutor agent 693, token server 458, playground 26, mobile 3567; all 42 migrations replayed.
+  Floors raised only through `gate:bless`.
 - 23 October 2026 main with `claude/speech-dataset` (VOICE-007, inert) merged onto the
   mission scoring landing (F866). The lesson's dataset clip now rides LiveScoring's `onScored`
   callback instead of the old inline scorer: **6,169 tests, 0 failing**; core 936, brain 498,
