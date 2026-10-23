@@ -9,11 +9,11 @@ import { SUCCESS_MONTH, SUCCESS_TRIAL, heldUntil, trialMinutes } from './wallCop
 import { chosenOffer, wallPlanRows } from './wallPlans.ts';
 import { purchasePill, successLine, wallSuccess } from './wallSuccess.ts';
 
-const granted: BillingStatus = { plan: 'regular', secondsRemaining: 18000, periodEnd: '2027-01-01T00:00:00Z', lapsed: false, canStart: true, reason: null };
+const granted: BillingStatus = { plan: 'regular', secondsRemaining: 36000, periodEnd: '2027-01-01T00:00:00Z', lapsed: false, canStart: true, reason: null };
 
 test('a finished purchase names only the refreshed server plan and its catalogue allowance', () => {
-  assert.deepEqual(wallSuccess(granted, PLANS), { name: PLANS.regular.label, minutes: 300, perWeek: 7 });
-  assert.equal(wallSuccess({ ...granted, plan: 'starter' }, PLANS)?.minutes, 180);
+  assert.deepEqual(wallSuccess(granted, PLANS), { name: PLANS.regular.label, minutes: 600, perWeek: 14 });
+  assert.equal(wallSuccess({ ...granted, plan: 'starter' }, PLANS)?.minutes, 300);
   const changed = { ...PLANS, regular: { ...PLANS.regular, secondsPerPeriod: 240 * 60 } };
   assert.equal(wallSuccess(granted, changed)?.minutes, 240);
 });
@@ -40,10 +40,10 @@ test('a store trial is described as a week of minutes, never a month', () => {
   };
 
   // The success page after a trial bought on the wall: the server's own week.
-  assert.deepEqual(wallSuccess(trial, PLANS, true, NOW), { name: 'Core', minutes: 42, perWeek: null, trial: true });
-  assert.equal(wallSuccess({ ...trial, plan: 'regular', secondsRemaining: storeTrialSeconds('regular') }, PLANS, true, NOW)?.minutes, 70);
+  assert.deepEqual(wallSuccess(trial, PLANS, true, NOW), { name: 'Core', minutes: 70, perWeek: null, trial: true });
+  assert.equal(wallSuccess({ ...trial, plan: 'regular', secondsRemaining: storeTrialSeconds('regular') }, PLANS, true, NOW)?.minutes, 140);
   // A trial the store did not apply in the end is a paid month on the server, and is said as one.
-  assert.deepEqual(wallSuccess({ ...trial, secondsRemaining: PLANS.starter.secondsPerPeriod }, PLANS, true, NOW), { name: 'Core', minutes: 180, perWeek: 4 });
+  assert.deepEqual(wallSuccess({ ...trial, secondsRemaining: PLANS.starter.secondsPerPeriod }, PLANS, true, NOW), { name: 'Core', minutes: 300, perWeek: 7 });
   // The words under the number: a month only for a month.
   assert.doesNotMatch(SUCCESS_TRIAL, /month/i, 'the trial is described as a month');
   assert.match(SUCCESS_MONTH, /each month/);
@@ -72,7 +72,7 @@ test('a store trial is described as a week of minutes, never a month', () => {
   // week. Never the catalogue month: the minutes held, and the day they run to.
   const end = dayAndMonth(trial.periodEnd!);
   assert.ok(end);
-  assert.deepEqual(wallSuccess(trial, PLANS, false, NOW), { name: 'Core', minutes: 42, perWeek: null, until: end }, 'a restore during a trial was said as a month');
+  assert.deepEqual(wallSuccess(trial, PLANS, false, NOW), { name: 'Core', minutes: 70, perWeek: null, until: end }, 'a restore during a trial was said as a month');
   const reopened = { ...trial, secondsRemaining: 30 * 60, periodEnd: new Date(NOW + 5 * DAY).toISOString() };
   assert.deepEqual(wallSuccess(reopened, PLANS, false, NOW), { name: 'Core', minutes: 30, perWeek: null, until: dayAndMonth(reopened.periodEnd) }, 'a trial confirmed after the app reopened was said as a month');
   const restored = successLine(wallSuccess(trial, PLANS, false, NOW)!);
@@ -82,7 +82,7 @@ test('a store trial is described as a week of minutes, never a month', () => {
   const slow = { ...trial, periodEnd: new Date(NOW + 7 * DAY + 60_000).toISOString() };
   assert.equal(wallSuccess(slow, PLANS, false, NOW)?.until, dayAndMonth(slow.periodEnd));
   // A month with weeks to run is still the plan's month, however little is left.
-  assert.deepEqual(wallSuccess({ ...trial, secondsRemaining: 20 * 60, periodEnd: new Date(NOW + 20 * DAY).toISOString() }, PLANS, false, NOW), { name: 'Core', minutes: 180, perWeek: 4 });
+  assert.deepEqual(wallSuccess({ ...trial, secondsRemaining: 20 * 60, periodEnd: new Date(NOW + 20 * DAY).toISOString() }, PLANS, false, NOW), { name: 'Core', minutes: 300, perWeek: 7 });
   // And the timeline's line about the minutes never says a month.
   assert.doesNotMatch(trialMinutes(42), /month/);
 

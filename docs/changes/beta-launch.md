@@ -24,16 +24,33 @@ code side is prepared on `main`. The support address is `hello@luvani.app`.
 | Support address and Contact row | `apps/mobile/src/legal/company.ts` | done, same branch |
 | Beta metrics queries | [deployment/beta-metrics.sql](../../deployment/beta-metrics.sql) | done, same branch |
 | Guest first scene: one scripted café exchange before sign-up, no model, 180 s, daily ceiling | UI-011, [guest-first-scene.md](guest-first-scene.md) | done, on branch `claude/guest-first-scene`; off until `LUVANI_GUEST_SCENE=1` |
+| Free plan: one ten-minute conversation every other day (600 s, refilled 44 h after first use); Core 300 and Max 600 minutes; prices in the margin model | REV-001, migration 43 `20261023220000_daily_free_allowance.sql` | done, on branch `claude/daily-allowance`; needs migration 43 and the matching token server together (step 1) |
 
 ## Founder steps, in order
 
 Each step names its proof. Stop at the first step whose proof fails.
 
 1. **Database (Supabase "Parle").** Confirm a usable recovery point. Then apply,
-   in order, `supabase/migrations/20261020140000_weekly_free_taste.sql` (40) and
-   `20261022120000_live_session_finished_event.sql` (41) in the SQL editor. Proof:
+   in order, `supabase/migrations/20261020140000_weekly_free_taste.sql` (40),
+   `20261022120000_live_session_finished_event.sql` (41) and
+   `20261023220000_daily_free_allowance.sql` (43, REV-001) in the SQL editor.
+   Never apply 42 (`speech_dataset_clips`); it is held. Proof:
    `npm run verify:supabase` against the project passes, and
-   `supabase/staging-verification.json` is updated to 41.
+   `supabase/staging-verification.json` is updated to match.
+
+   Apply 40, 41 and 43 together, while tutor admission is still closed:
+   - `select enabled from public.tutor_session_admission_config` returns
+     false.
+   - Before applying, record
+     `select count(*) from public.entitlements where plan='trial' and weekly_taste and period_end > now()+interval '44 hours'`.
+     A non-zero count means 40 was already live, and 43 will briefly block
+     writes to `entitlements` while it runs.
+
+   Then deploy the token server and app from step 3 before admission opens in
+   step 5. The two halves must change together: a server on the old figures
+   refuses the new 600-second answers, and the old database refuses the new
+   server's paid grants. Proof, after the deploy: one session on a fresh free
+   account reserves 600 seconds, and `/billing/status` shows 600.
 2. **Turn on leaked-password protection** in Supabase Auth (an open release item).
 3. **Railway.** Install the CLI (`npm i -g @railway/cli`), then `railway login`,
    then `railway link` to Luvani Staging. Create the `api`, `tutor` and
@@ -95,7 +112,10 @@ Each step names its proof. Stop at the first step whose proof fails.
    | account daily seconds | 1,200 (20 min) | the beta's generous ceiling |
 
    At 100 testers averaging 10 minutes a day, a month costs about $1,450 at full
-   use, and about $580 at a realistic 40%.
+   use, and about $580 at a realistic 40%. On the free plan alone (REV-001, one
+   10-minute conversation every other day) 100 testers cost about $724 to $789
+   a month at full use and about $290 at 40%. The 1,200-second account daily
+   cap still covers Max's 20 minutes a day.
 
    **Drills model (2026-10-23, VOICE-008).** Post-session drills now go to
    `gpt-6-luna` (`OPENAI_DRILLS_MODEL`), not `gpt-5.6-terra`; memory extraction
@@ -107,9 +127,27 @@ Each step names its proof. Stop at the first step whose proof fails.
    `quote-mismatch`. If you set `OPENAI_DRILLS_MODEL`, bind that model instead.
    Proof: `node deployment/validatePaidBudget.mjs` passes and one practice job
    completes on staging.
-6. **Beta minutes.** The free tier is 5 minutes a week, which is too little to
-   learn from. Decide how testers get more (for example a beta grant of the Core
-   plan). Product decision; no code assumes one.
+6. **Beta minutes and prices (REV-001).** The free plan is now 10 minutes
+   (one full conversation), refilled 44 hours after the first use of each
+   window. Testers who need more still need a grant, for example the Core plan.
+   That is a product decision, and no code assumes one.
+
+   When the store accounts exist, set these prices in App Store Connect, Play
+   and RevenueCat. The code holds them only for its margin model (`meter.ts`).
+
+   | Product | Price | Allowance |
+   |---|---|---|
+   | Core monthly (`starter`) | $14.99 | 300 min per 30 days |
+   | Core yearly | $99 | 300 min per 30-day window |
+   | Max monthly (`regular`) | $24.99 | 600 min per 30 days |
+   | Max yearly | $169 | 600 min per 30-day window |
+
+   The introductory free trial stays 7 days, and the server grants a week of
+   the plan's allowance (Core 70 min, Max 140 min). Update the App Review notes
+   in [REVENUECAT_SETUP.md](../REVENUECAT_SETUP.md) when you submit. Store
+   listings say "about 10 minutes a day" and "up to 20 minutes a day", never
+   "unlimited". Proof: a sandbox purchase of each product shows its minutes on
+   the Profile plan card.
 7. **App.** Set `EXPO_PUBLIC_TOKEN_SERVER_URL` to the API's HTTPS URL in the EAS
    `preview` environment. Publish with `.github/workflows/mobile-preview.yml`, or
    build the Android staging APK.
@@ -171,7 +209,6 @@ These are rules of thumb from consumer apps, not benchmarks for this category.
 
 - A guest conversation before sign-up (only the scripted guest first scene
   is built; see step 8).
-- Moving the free tier to a daily allowance (decide from beta minutes data).
 - Live pronunciation scoring for learners (`LUVANI_AUDIO_SCORING`), which needs
   one hosted lesson proving a Speechace 200 and a `scored` card, and one hosted
   mission showing a recap focus sound.
@@ -184,3 +221,4 @@ These are rules of thumb from consumer apps, not benchmarks for this category.
 |---|---|---|
 | 2026-10-22 | Code preparation (event, migration 41, support address, metrics queries) | Gate green, 5,939 tests, all 41 migrations replayed locally |
 | 2026-10-22 | `beta-metrics.sql` against all 41 migrations replayed in PGlite with synthetic rows | All five statements run; D1/D7/D30, minutes and event aggregates match hand-computed values; the trigger refuses a `live_session_finished` carrying `goal` |
+| 2026-10-23 | REV-001 daily free allowance and repackaging (branch `claude/daily-allowance`) | All 43 migrations replayed in PGlite, including 43 without the held 42; read-only database review applied (rollout order, rollback refusal); web check on a local token server: Profile shows the new free line, a spent free row shows "Your next free conversation is ready on Sunday at 12:58 am" in the phone's time zone ([screenshots](../daily-allowance-evidence/)) |

@@ -7,13 +7,13 @@
  * rewriting all four.
  *
  * The numbers below come from measured vendor rates (2026-10-23, VOICE-008,
- * docs/cogs-evidence/rates.md). An uncached mission minute costs about $0.048,
- * which means a learner talking thirty minutes a day costs about $43/month to
- * serve. Issen sells "unlimited" at $29. That is the trap this module exists to
+ * docs/cogs-evidence/rates.md). An uncached mission minute costs $0.04825,
+ * which means a learner talking thirty minutes a day costs about $43.43/month
+ * (900 minutes) to serve. Issen sells "unlimited" at $29. That is the trap this module exists to
  * keep us out of.
  *
  * The business works the way a gym works: on unused allowance. Sell 180 minutes,
- * expect 40–60% utilisation, and the margin lives in the gap. That is fine and
+ * expect 40-60% utilisation, and the margin lives in the gap. That is fine and
  * normal — but only if the allowance is finite and measured from day one.
  */
 
@@ -25,9 +25,10 @@ export interface PlanSpec {
   /** Total seconds granted per period. */
   secondsPerPeriod: number;
   /**
-   * Days in one allowance period. Every plan renews now: the free plan's weekly
-   * taste refills TASTE_REFILL_DAYS after first use (D24), and a paid plan when a
-   * verified receipt says so. null is kept in the type for a non-renewing grant;
+   * Days in one allowance period, for display only on the free plan: its real
+   * rule is TASTE_REFILL_HOURS (44 h) after the first debit of a window
+   * (REV-001), which `recordUsage` and `refillTaste` apply. A paid plan renews
+   * when a verified receipt says so. null is kept in the type for a non-renewing grant;
    * no plan uses it, and nothing keys on it to recognise the free plan.
    */
   periodDays: number | null;
@@ -35,18 +36,21 @@ export interface PlanSpec {
 }
 
 /**
- * The free plan is a *weekly taste* of live time, not a daily allowance (D24,
- * 2026-10-20, the Headspace model: the app is free, live minutes are paid).
+ * The free plan is one free conversation every other day (REV-001, 2026-10-23,
+ * superseding D24's five minutes a week).
  *
- * Five minutes a week, on a rolling window that starts at first use. Fully
- * burned every week that is about $0.24 a week, $1.05 a month at DEFAULT_COST_MODEL
- * (2026-10-23 rates); a 10-minute *daily* tier would be about $14.50, more than
- * the $13.30 a Core plan nets after a 30% store fee. The
- * id stays `trial` because it is a database value; the learner reads "Free".
+ * 600 seconds, one full mission (missions run 9-11 minutes), on a rolling
+ * window that starts at the first debit and refills TASTE_REFILL_HOURS (44 h)
+ * after it: 44 rather than 48 so a learner who comes back at the same time
+ * every other day is not blocked by a few minutes of drift. Fully burned in
+ * every window that is $0.4825 a window and at most 30 days / 44 h = 16.36
+ * windows, $7.90 a month, at DEFAULT_COST_MODEL (2026-10-23 rates). The id
+ * stays `trial` because it is a database value; the learner reads "Free".
  *
- * It still cannot be farmed: the taste is claimed once per device (the server's
- * device claim), and only a claimed entitlement refills. A fresh install on a
- * claimed device gets nothing new; the claimed taste simply refills weekly.
+ * It still cannot be farmed: the allowance is claimed once per device (the
+ * server's device claim), and only a claimed entitlement refills. A fresh
+ * install on a claimed device gets nothing new; the claimed allowance simply
+ * refills.
  */
 /**
  * The first paid tier is stored as `starter` and shown as "Core" (2026-10-20),
@@ -57,11 +61,21 @@ export interface PlanSpec {
  * the label would buy nothing and cost a constraint migration on the payment
  * path, so the two are allowed to differ and this is the note that says so.
  * `label` is the only thing a learner ever reads.
+ *
+ * Prices and allowances are REV-001 (2026-10-23, superseding D16's $19/$29):
+ * Core $14.99 for 300 minutes ("about 10 minutes a day"), Max $24.99 for 600
+ * ("up to 20 minutes a day", never "unlimited").
+ *
+ * Both have a NEGATIVE full-utilisation margin, accepted by the founder on the
+ * gym model: at $0.04825 a minute Core's 300 minutes cost $14.48 against
+ * $12.74 received at the 15% store rate (-13.6%; -37.9% at 30%), and Max's
+ * 600 cost $28.95 against $21.24 (-36.3%; -65.5% at 30%). At 40% utilisation
+ * they leave 54.6% and 45.5% at 15%. meter.test.ts pins all of these as bands.
  */
 export const PLANS: Record<Plan, PlanSpec> = {
-  trial: { id: 'trial', label: 'Free', secondsPerPeriod: 5 * 60, periodDays: 7, priceUsd: 0 },
-  starter: { id: 'starter', label: 'Core', secondsPerPeriod: 180 * 60, periodDays: 30, priceUsd: 19 },
-  regular: { id: 'regular', label: 'Max', secondsPerPeriod: 300 * 60, periodDays: 30, priceUsd: 29 },
+  trial: { id: 'trial', label: 'Free', secondsPerPeriod: 600, periodDays: 2, priceUsd: 0 },
+  starter: { id: 'starter', label: 'Core', secondsPerPeriod: 300 * 60, periodDays: 30, priceUsd: 14.99 },
+  regular: { id: 'regular', label: 'Max', secondsPerPeriod: 600 * 60, periodDays: 30, priceUsd: 24.99 },
 };
 
 /**
@@ -113,14 +127,14 @@ export const STORE_TRIAL_DAYS = 7;
 
 /**
  * What a store free trial grants: a week of the chosen plan's monthly
- * allowance, allowance x 7/30. Starter 42 minutes, Max 70.
+ * allowance, allowance x 7/30. Core 70 minutes, Max 140.
  *
  * Computed and enforced on the server, at the projection that writes the
  * entitlement. Without it an introductory offer would hand a learner the full
- * 180 or 300 minutes before anything was paid, which is the freeloader cost the
+ * 300 or 600 minutes before anything was paid, which is the freeloader cost the
  * free tier above is sized to avoid. A store configured with a longer trial
  * still grants this week, so the cost of a trial is bounded here and not in a
- * console setting. Full burn costs about $2.03 on Starter and $3.38 on Max at
+ * console setting. Full burn costs about $3.38 on Core and $6.76 on Max at
  * DEFAULT_COST_MODEL; meter.test.ts holds the ceiling.
  */
 export function storeTrialSeconds(plan: PaidTier): number {
@@ -137,16 +151,18 @@ export interface YearlySpec {
 }
 
 /**
- * The yearly products (D16): Starter $149 a year, Max $229 a year.
+ * The yearly products (REV-001, superseding D16's $149/$229): Core $99 a
+ * year, Max $169 a year.
  *
  * Each grants the tier's monthly allowance once per allowance window, twelve
- * windows in a paid year. The founder accepted that yearly Max loses money on a
- * learner who uses every minute of every window; meter.test.ts pins how much,
- * so the day a vendor price moves that number is visible rather than inferred.
+ * windows in a paid year. The founder accepted that both lose money on a
+ * learner who uses every minute of every window; meter.test.ts pins the
+ * expected margin at 40% utilisation, so the day a vendor price moves that
+ * number is visible rather than inferred.
  */
 export const YEARLY_PLANS: Record<PaidTier, YearlySpec> = {
-  starter: { plan: 'starter', priceUsd: 149 },
-  regular: { plan: 'regular', priceUsd: 229 },
+  starter: { plan: 'starter', priceUsd: 99 },
+  regular: { plan: 'regular', priceUsd: 169 },
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -225,21 +241,29 @@ export interface Entitlement {
   lapsed?: boolean;
   /**
    * This free entitlement passed the device claim (or fell back from a paid
-   * plan) and so refills weekly (D24). Without it a trial row never refills,
-   * which keeps an unclaimed install from minting a fresh taste. On a weekly
-   * taste, `periodEnd` means "refills at": absent until the first debit, then
-   * that debit plus TASTE_REFILL_DAYS. See `refillTaste`.
+   * plan) and so refills (REV-001). Without it a trial row never refills,
+   * which keeps an unclaimed install from minting a fresh allowance. This is
+   * the refilling free allowance; named in D24, the column is weekly_taste,
+   * and it no longer refills weekly. Here `periodEnd` means "refills at":
+   * absent until the first debit, then that debit plus TASTE_REFILL_HOURS.
+   * See `refillTaste`.
    */
   weeklyTaste?: boolean;
 }
 
-/** The free taste refills this many days after the first debit of its window (D24). */
-export const TASTE_REFILL_DAYS = 7;
+/**
+ * The free allowance refills this many hours after the first debit of its
+ * window (REV-001): "one free conversation every other day", 44 h not 48 so a
+ * same-time-every-other-day learner is not blocked by drift.
+ */
+export const TASTE_REFILL_HOURS = 44;
+
+const HOUR_MS = 60 * 60 * 1000;
 
 const toMs = (t: Date | number): number => (typeof t === 'number' ? t : t.getTime());
 
 /**
- * Refill a weekly taste whose window has passed. Pure, and the only path by
+ * Refill a free allowance whose window has passed. Pure, and the only path by
  * which the free plan gets minutes back.
  *
  * Returns `e` unchanged unless it is a trial, marked weeklyTaste, with a
@@ -310,12 +334,24 @@ export type StartRefusal = 'exhausted' | 'insufficient-for-session' | 'subscript
 
 export type StartDecision =
   | { allowed: true; secondsRemaining: number }
-  | { allowed: false; reason: StartRefusal; secondsRemaining: number; message: string };
+  | {
+      allowed: false;
+      reason: StartRefusal;
+      secondsRemaining: number;
+      /**
+       * A server-built fallback. Its weekday and time are in the server's
+       * clock zone, which is not the learner's: the app should format
+       * `refillsAt` on the device and use this only when it cannot.
+       */
+      message: string;
+      /** When a spent free allowance comes back, if its window has started. */
+      refillsAt?: Date;
+    };
 
 /**
  * Can this learner start a session right now?
  *
- * A lapsed learner holds a weekly taste like any free learner and may spend it;
+ * A lapsed learner holds the free allowance like any free learner and may spend it;
  * 'subscription-lapsed' is the answer only once that taste is spent too. Pass
  * the entitlement after `refillTaste`, or a passed window reads as spent.
  */
@@ -323,17 +359,19 @@ export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIAB
   const remaining = secondsRemaining(e);
 
   if (remaining <= 0) {
-    const refills = e.plan === 'trial' && e.periodEnd ? ` They refill on ${weekday(e.periodEnd)}.` : '';
+    const refillsAt = e.plan === 'trial' && e.periodEnd ? new Date(e.periodEnd.getTime()) : undefined;
+    const used = refillsAt ? `Your next free conversation is ready ${refillWhen(refillsAt)}.` : 'Your free conversation is used.';
     return {
       allowed: false,
       reason: e.lapsed === true ? 'subscription-lapsed' : 'exhausted',
       secondsRemaining: 0,
       message:
         e.lapsed === true
-          ? `Your subscription has ended.${refills ? ` Your free minutes for this week are used.${refills}` : ''}`
+          ? `Your subscription has ended.${refillsAt ? ` ${used}` : ''}`
           : e.plan === 'trial'
-            ? `Your free minutes for this week are used.${refills}`
+            ? used
             : 'You have used all your minutes for now.',
+      ...(refillsAt ? { refillsAt } : {}),
     };
   }
 
@@ -349,16 +387,26 @@ export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIAB
   return { allowed: true, secondsRemaining: remaining };
 }
 
-/** "Monday": the day a refill lands, in the learner's English. */
-function weekday(d: Date): string {
-  return d.toLocaleDateString('en-GB', { weekday: 'long' });
+/**
+ * "on Thursday at 4:10 pm": when a refill lands. Formatted in the clock zone
+ * of whoever runs this, so on the server it is a fallback only (see
+ * StartDecision.refillsAt).
+ */
+export function refillWhen(d: Date, timeZone?: string): string {
+  const day = d.toLocaleDateString('en-GB', { weekday: 'long', timeZone });
+  const time = d
+    .toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone })
+    .replace(/\u202f|\s/g, ' ')
+    .replace('AM', 'am')
+    .replace('PM', 'pm');
+  return `on ${day} at ${time}`;
 }
 
 /**
  * Record a completed session. Never allows usage to exceed the allowance.
  *
- * The first debit of a weekly taste starts its window: periodEnd becomes
- * `now` + TASTE_REFILL_DAYS. Zero seconds is not a debit and starts nothing.
+ * The first debit of a free allowance starts its window: periodEnd becomes
+ * `now` + TASTE_REFILL_HOURS. Zero seconds is not a debit and starts nothing.
  * Every other entitlement keeps its periodEnd untouched. `now` defaults to the
  * wall clock; pass it wherever the caller already holds one.
  */
@@ -367,7 +415,7 @@ export function recordUsage(e: Entitlement, seconds: number, now: Date | number 
   const cap = PLANS[e.plan].secondsPerPeriod;
   const next: Entitlement = { ...e, secondsUsed: Math.min(cap, e.secondsUsed + seconds) };
   if (e.plan === 'trial' && e.weeklyTaste === true && !e.periodEnd && seconds > 0) {
-    next.periodEnd = new Date(toMs(now) + TASTE_REFILL_DAYS * DAY_MS);
+    next.periodEnd = new Date(toMs(now) + TASTE_REFILL_HOURS * HOUR_MS);
   }
   return next;
 }
@@ -387,9 +435,9 @@ export const LAPSE_GRACE_SEC = 24 * 60 * 60;
 /**
  * Where a paid plan lands when its period ends and nothing renewed it (D24).
  *
- * A fresh weekly taste, like any free learner's. Cancelling cannot farm it:
- * every free learner on a claimed device already gets the same five minutes a
- * week, so the lapse door opens onto nothing a learner did not already have.
+ * A fresh free allowance, like any free learner's. Cancelling cannot farm it:
+ * every free learner on a claimed device already gets the same conversation
+ * every other day, so the lapse door opens onto nothing a learner did not already have.
  * The window starts at the first debit, so it carries no periodEnd. A learner
  * here has not done anything wrong; they are simply back on the free plan.
  */
@@ -419,7 +467,7 @@ export function lapsedEntitlement(): Entitlement {
  * the next window: short of minutes for a while, never stripped of the plan.
  */
 export function rollPeriod(e: Entitlement, now: Date): Entitlement {
-  // A free entitlement's periodEnd is when its taste refills, never a paid
+  // A free entitlement's periodEnd is when its allowance refills, never a paid
   // period to lapse from; refillTaste owns it.
   if (e.plan === 'trial') return e;
   if (!e.periodEnd) return e;
@@ -481,8 +529,8 @@ export interface Margin {
  * has not taken its share of yet.
  *
  * The fee is taken off revenue rather than added to cost, because that is what
- * it is, and it therefore divides as well as subtracts: at 15% it costs starter
- * about ten points of margin, and at 30% it costs regular about twenty-nine.
+ * it is, and it therefore divides as well as subtracts: at full use a 15% fee
+ * takes Core from 3.4% to -13.6%, and 30% takes Max from -15.8% to -65.5%.
  *
  * Currency: a margin is a ratio, so this holds in any single currency provided
  * the price and the cost model are quoted in the same one. Both are USD today.
@@ -502,11 +550,12 @@ export function planMargin(
  * against the one yearly price, after the store's cut.
  *
  * The same arithmetic as `planMargin`, with the year's windows as the
- * allowance. D16 (2026-10-05) accepted a negative worst case on yearly Max at
- * the old cost model. At the 2026-10-23 measured rates (VOICE-008) a learner
- * who burns all 300 minutes in every window costs about $173.70 against
- * $194.65 received at the Small Business rate, an 11% margin; at the standard
- * 30% rate it is still about $13 under water. meter.test.ts holds both sizes.
+ * allowance. REV-001 (2026-10-23) prices the year for expected use, not the
+ * heaviest learner: at $0.04825 a minute twelve full windows cost $173.70 on
+ * Core against $84.15 received at the 15% rate (-106%) and $347.40 on Max
+ * against $143.65 (-142%). At 40% utilisation Core leaves 17.4% and Max 3.3%
+ * at 15%; at the 30% rate both go under (-0.3% and -17.5%), so Small Business
+ * enrolment is load-bearing. meter.test.ts holds the expected floors.
  */
 export function yearlyPlanMargin(
   plan: PaidTier,

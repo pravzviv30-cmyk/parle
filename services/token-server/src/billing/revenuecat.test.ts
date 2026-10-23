@@ -167,11 +167,11 @@ describe('a plan change inside a paid period is not a new allowance', () => {
   const periodEnd = new Date('2026-09-30T12:00:00.000Z');
 
   test('crossgrading with the period untouched carries the seconds over rather than clearing them', () => {
-    // 250 minutes of a 300-minute Max month already spent, then a move to Starter
+    // 500 minutes of a 600-minute Max month already spent, then a move to Starter
     // that leaves the expiry where it was. This read `current.plan === plan`, so any
     // change of tier reset the counter: on a store whose proration keeps the expiry,
     // switching tiers was a fresh allowance, as often as a learner cared to switch.
-    const current: Entitlement = { plan: 'regular', secondsUsed: 15_000, periodEnd };
+    const current: Entitlement = { plan: 'regular', secondsUsed: 30_000, periodEnd };
     const result = projectSubscriber(subscriber('luvani_starter_monthly'), current, config, now);
 
     assert.equal(result.kind, 'active');
@@ -186,7 +186,7 @@ describe('a plan change inside a paid period is not a new allowance', () => {
   });
 
   test('the same move at a new expiry does grant the new allowance, because that period was paid for', () => {
-    const current: Entitlement = { plan: 'regular', secondsUsed: 15_000, periodEnd };
+    const current: Entitlement = { plan: 'regular', secondsUsed: 30_000, periodEnd };
     const result = projectSubscriber(
       subscriber('luvani_starter_monthly', '2026-10-30T12:00:00.000Z'),
       current,
@@ -263,7 +263,7 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
 
   test("a store trial grants a week of the plan's minutes and no more", async (t) => {
     const trialEnd = '2026-09-06T12:00:00.000Z';
-    for (const [plan, product, minutes] of [['starter', 'luvani_starter_monthly', 42], ['regular', 'luvani_regular_monthly', 70]] as const) {
+    for (const [plan, product, minutes] of [['starter', 'luvani_starter_monthly', 70], ['regular', 'luvani_regular_monthly', 140]] as const) {
       // A learner still holding some of the weekly free taste starts the store's free week.
       const started = projectSubscriber(subscriber(product, trialEnd, 'trial'), { plan: 'trial', secondsUsed: 120, weeklyTaste: true }, config, now);
       assert.equal(started.kind, 'active');
@@ -286,7 +286,7 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
     const store = new InMemoryEntitlementStore('trial');
     const trial = async () => new Response(JSON.stringify(subscriber('luvani_starter_monthly', trialEnd, 'trial')));
     assert.equal((await refreshSubscriber(userId, store, config, { now, request: trial })).kind, 'active');
-    await store.consume(userId, 40 * 60);
+    await store.consume(userId, 68 * 60);
     assert.equal(canStartSession(await store.get(userId)).allowed, true, 'two minutes left is still one short session');
     await store.consume(userId, 15 * 60);
     const spent = await store.get(userId);
@@ -537,7 +537,7 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
     assert.equal(paid.kind, 'active');
     assert.equal(secondsRemaining(paid.entitlement), PLANS.regular.secondsPerPeriod - 1000, 'the payer stayed short by the trial\'s withheld minutes');
     const lag = projectSubscriber(subscriber('luvani_regular_monthly', end, 'trial', start), paid.entitlement, config, now);
-    assert.equal(secondsRemaining(lag.entitlement), 70 * 60 - 1000, 'a lagging trial read handed back more than the week');
+    assert.equal(secondsRemaining(lag.entitlement), 140 * 60 - 1000, 'a lagging trial read handed back more than the week');
   });
 
   test('a worker whose entitlement id matches nothing the store holds waits, and never lapses a payer', async (t) => {
@@ -578,7 +578,7 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
     const logger = { error: (...args: unknown[]) => errors.push(args) };
     const store = new InMemoryEntitlementStore();
     const trialEnd = new Date(now.getTime() - 60 * 60 * 1000);
-    const trialRow: Entitlement = { plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod, periodEnd: trialEnd, withheldSeconds: PLANS.starter.secondsPerPeriod - 42 * 60 };
+    const trialRow: Entitlement = { plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod, periodEnd: trialEnd, withheldSeconds: PLANS.starter.secondsPerPeriod - 70 * 60 };
     await store.save('grace', trialRow);
     const graceEnd = new Date(now.getTime() + 16 * DAY).toISOString();
     for (const periodType of ['normal', 'trial']) {

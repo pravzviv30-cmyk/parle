@@ -195,13 +195,13 @@ describe('the wall says out loud that it is soft', () => {
  * always rounded down: the page may undersell a plan and may never oversell one.
  */
 describe('plans read as conversations a week', () => {
-  test('180 minutes a month is about four ten-minute conversations a week, and Max about seven', () => {
+  test('300 minutes a month is about seven ten-minute conversations a week, and Max about fourteen', () => {
     assert.equal(CONVERSATION_MINUTES, 10, 'the stated conversation length moved, so every count on the page moved with it');
     const rows = wallPlanRows(offering(product('starter', '£14.99'), product('regular', '£24.99')), CATALOGUE);
     assert.ok(rows);
-    // Starter: 180 min over 30 days is 180 * 7 / (30 * 10) = 4.2 a week, so four.
-    // Max: 300 min over 30 days is 300 * 7 / (30 * 10) = 7.0 a week, so seven.
-    assert.deepEqual(rows.map((row) => row.perWeek), [4, 7]);
+    // Core: 300 min over 30 days is 300 * 7 / (30 * 10) = 7.0 a week, so seven.
+    // Max: 600 min over 30 days is 600 * 7 / (30 * 10) = 14.0 a week, so fourteen.
+    assert.deepEqual(rows.map((row) => row.perWeek), [7, 14]);
   });
 
   test('the count is rounded down, so it never promises more than the minutes buy', () => {
@@ -221,8 +221,8 @@ describe('plans read as conversations a week', () => {
     assert.equal(conversationsAWeek(180, 0), null);
   });
 
-  test('the free plan is shown in minutes a week, and is less than one whole conversation', () => {
-    assert.deepEqual(wallTrial(CATALOGUE), { minutes: 5, conversations: 0 });
+  test('the free plan is one whole ten-minute conversation (REV-001)', () => {
+    assert.deepEqual(wallTrial(CATALOGUE), { minutes: 10, conversations: 1 });
     assert.equal(wallTrial(null), null, 'with no catalogue the trial was guessed');
   });
 
@@ -344,11 +344,12 @@ describe('the plans page around its plans', () => {
     assert.match(code('./WallScreen.tsx'), /<WallYoursPage canBuy=\{storeHasPlans\} onLeave=\{\(\) => leave\(\)\} \/>/);
   });
 
-  test("the free plan's weekly minutes are free minutes, and a free trial is only the store's", () => {
-    // D24 (2026-10-20): the free plan is "Free", five minutes every week.
+  test("the free plan's minutes are free minutes, and a free trial is only the store's", () => {
+    // REV-001 (2026-10-23): the free plan is "Free", one conversation every other day.
     assert.equal(PLAN_LABELS.trial, 'Free');
-    assert.equal(trialAllowance(5, 0), 'You get 5 free minutes every week.');
-    assert.equal(trialAllowance(30, 3), 'You get 30 free minutes every week, about 3 conversations.');
+    assert.equal(trialAllowance(10, 1), 'You get one free conversation every other day, up to 10 minutes.');
+    assert.equal(trialAllowance(5, 0), 'You get 5 free minutes every other day.');
+    assert.equal(trialAllowance(30, 3), 'You get 30 free minutes every other day, about 3 conversations.');
     // Only the store trial's own lines say "free trial".
     const said = WALL_COPY.filter((line) => /free trial/i.test(line));
     assert.equal(TRIAL_TITLE, 'How your trial works');

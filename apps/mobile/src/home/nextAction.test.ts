@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { PLANS, type Plan, type StartRefusal } from '@luvani/core';
+import { PLANS, refillWhen, type Plan, type StartRefusal } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
 import { PLANS_LEAD, dueLine, homeActionFor, plansLeadBody } from './nextAction.ts';
 import { fallbackHero } from './homeMission.ts';
@@ -62,8 +62,9 @@ test('the used free minutes lead Home with the plans card, ahead of review and t
     assert.equal(line, line.replace(/[A-Z]{2,}/g, ''), `"${line}" carries a caps label`);
   }
 
-  // D24: on the free plan the card says the weekday this week's minutes refill.
-  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }), `Your free minutes refill on Monday. ${PLANS_LEAD.body}`);
+  // REV-001: on the free plan the card says when the free conversation comes back, on this phone's clock.
+  const back = refillWhen(new Date('2026-10-26T12:00:00.000Z'));
+  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }), `Your next free conversation is ready ${back}. ${PLANS_LEAD.body}`);
   assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: null }), PLANS_LEAD.body);
   assert.equal(plansLeadBody({ plan: 'starter', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }), PLANS_LEAD.body, 'a paid period end was said as a free refill');
   assert.equal(plansLeadBody(null), PLANS_LEAD.body);

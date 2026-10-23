@@ -752,3 +752,69 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   [onboarding](docs/ONBOARDING.md),
   [runbook](docs/BACKEND_RELEASE_RUNBOOK.md#guest-first-scene-ui-011-23-october), founder approval
   of 23 October 2026.
+
+## REV-001 — A free conversation every other day; Core and Max repriced
+
+- Date: 2026-10-23
+- Status: accepted (supersedes D24's weekly window and D16's prices; D24 is in
+  [docs/come-alive/README.md](docs/come-alive/README.md))
+- Decision: the founder chose, after seeing the costs below:
+
+  | Plan | Was | Now |
+  |---|---|---|
+  | Free (`trial`) | 300 s, refilled 7 days after first use | 600 s, refilled 44 hours after the window's first debit. Shown as "one free conversation every other day". |
+  | Core (`starter`) | $19/mo, $149/yr, 180 min per 30 days | $14.99/mo, $99/yr, 300 min per 30 days ("about 10 minutes a day") |
+  | Max (`regular`) | $29/mo, $229/yr, 300 min per 30 days | $24.99/mo, $169/yr, 600 min per 30 days ("up to 20 minutes a day", never "unlimited") |
+
+  The shape is the smallest that does this. The free plan keeps D24's rolling
+  window and device claim, and paid plans stay monthly pools. Only these change:
+  - the free cap;
+  - the free window;
+  - two paid caps;
+  - the prices in the margin model.
+
+  The `weekly_taste` column keeps its name. Store trials follow the allowance
+  (Core 70 min, Max 140 min). Migration 43
+  (`20261023220000_daily_free_allowance.sql`) carries the SQL side. It requires
+  40 and 41, and never 42.
+- Reason: the market report (section 7) says five minutes a week is too little
+  to build a habit, and recommends a more frequent free allowance and a cheaper
+  Core and Max. These are per free user per month, at full use and at 40%, at
+  the measured mission rate ($0.048 a minute, VOICE-008):
+  - 3 min a day: $4.34 / $1.74.
+  - 5 min a day: $7.24 / $2.90. It cuts every free mission in half, because
+    missions run 9 to 11 minutes.
+  - 10 min every 2 days: $7.24 / $2.90, chosen. The worst case at 44 hours is
+    16.4 windows a month, about $7.89.
+  - 10 min a day: $14.47 / $5.79. That is as many minutes as the new Core.
+
+  Two options were ruled out:
+  - A lesson-only allowance, because only one lesson is authored.
+  - A separate mission counter, because it saves nothing.
+
+  With Flash (VOICE-009) the chosen tier costs $5.10 / $2.04.
+- Consequence:
+  - Margins after the 15% store fee, at 40% use and at full use:
+    - Core monthly: 55% / -14%.
+    - Core yearly: 17% at 40%.
+    - Max monthly: 45% / -36%.
+    - Max yearly: about 3% at 40%.
+
+    Full-use paid learners lose money until the cost of a minute falls. That is
+    the same bet D16 accepted for yearly Max. `meter.test.ts` pins every figure.
+  - At the standard 30% store fee, the figures are:
+    - Core monthly: 44.8% at 40% use, -37.9% at full use.
+    - Max monthly: 33.8% at 40% use, -65.5% at full use.
+    - Core yearly: -0.3% at 40% use.
+    - Max yearly: -17.5% at 40% use.
+
+    Small Business enrolment with Apple and Google is therefore load-bearing.
+    It is not a nicety.
+  - A beta of 100 free testers costs about $724 to $789 a month at full use and
+    $290 at 40%.
+  - Prices live in App Store Connect, Play and RevenueCat. The founder sets
+    them; the code holds them only for the margin model.
+  - The 45-minute weekly Core product is unchanged, and is a follow-up.
+- Sources: [market report](https://claude.ai/artifact/1TLMTEHTGdToCv8WDCqVAe)
+  section 7, [beta launch](docs/changes/beta-launch.md), founder answers of 23
+  October 2026.

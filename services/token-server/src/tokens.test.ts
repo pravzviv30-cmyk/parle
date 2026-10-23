@@ -49,6 +49,30 @@ describe('the entitlement gate', () => {
     }
   });
 
+  test('a spent free conversation carries refillsAt as the ISO of the period end, so the app words it locally', async () => {
+    const periodEnd = new Date('2026-10-22T05:00:00.000Z');
+    const spent: Entitlement = { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod, periodEnd };
+    const result = await grantSession({ userId: 'u1', lessonId: 'cafe-01', entitlement: spent, config });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.status, 402);
+      assert.equal(result.refillsAt, periodEnd.toISOString());
+      assert.match(result.message, /^Your next free conversation is ready /);
+    }
+  });
+
+  test('a refusal with no known refill omits refillsAt rather than sending an empty one', async () => {
+    for (const entitlement of [
+      { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod },
+      { plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod, periodEnd: new Date('2026-11-01T00:00:00.000Z') },
+      { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod - 30, periodEnd: new Date('2026-10-22T05:00:00.000Z') },
+    ] as Entitlement[]) {
+      const result = await grantSession({ userId: 'u1', lessonId: 'cafe-01', entitlement, config });
+      assert.equal(result.ok, false);
+      if (!result.ok) assert.ok(!('refillsAt' in result), `${entitlement.plan} refusal leaked a refillsAt`);
+    }
+  });
+
   test('a learner with too little left to finish is refused before starting', async () => {
     const nearlyOut: Entitlement = { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod - 30 };
     const result = await grantSession({ userId: 'u1', lessonId: 'cafe-01', entitlement: nearlyOut, config });

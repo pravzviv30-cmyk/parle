@@ -44,13 +44,13 @@ test('the agent-authenticated settlement route distinguishes reconciliation from
 
 test('the settlement route acknowledges actual refund once and keeps normal exits charged', async () => {
   const store = new InMemoryEntitlementStore();
-  await store.save('learner', { plan: 'trial', secondsUsed: 290 });
+  await store.save('learner', { plan: 'trial', secondsUsed: 590 });
   await store.recordSessionGrant('learner', id, await store.get('learner'));
   const { serviceFailure: _failure, ...normal } = body;
   assert.equal((await request(store, normal)).status, 200);
-  assert.equal((await store.get('learner')).secondsUsed, 300);
+  assert.equal((await store.get('learner')).secondsUsed, 600);
   const ack = await request(store);
   assert.deepEqual(ack.body, { kind: 'restored-current-period', refundedSeconds: 10, secondsRemaining: 10, plan: 'trial' });
   assert.deepEqual((await request(store)).body, ack.body);
-  assert.equal((await store.get('learner')).secondsUsed, 290);
+  assert.equal((await store.get('learner')).secondsUsed, 590);
 });

@@ -3962,7 +3962,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: planMargin ignores store fees. At 15% both paid plans hold above 20% worst-case; at 30%
   regular is roughly 4.7%, one repricing from underwater. Pinned at the 15% rate with the 30% figure
   named in the failure message, which is why Small Business enrolment is on the founder checklist.
-- verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
+- note: 2026-10-23, REV-001 (DECISIONS.md): the founder repriced Core and Max ($14.99, 300 min; $24.99, 600 min; yearly $99 and $169), knowing full use now loses money (Core -14%, Max -36% at 15%). The twenty-percent floor no longer holds by decision, not by drift. These tests replace it and pin the new figures.
+- verified-by: `both paid plans lose money on a learner who burns every minute, and the size is pinned (REV-001)`
+- verified-by: `at 40% utilisation and the Small Business rate Core clears 50% and Max 40%`
 
 ### F253 — The risk register's payment row gets a real control and a true number
 - severity: P1
@@ -8027,9 +8029,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a price change is a three-part change: this constant, these floors, and the store tier`
 - verified-by: `an allowance change is a nine-file change, and this is the only line that says so`
 - verified-by: `the atomic debit uses the same plan limits as core`
-- verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
-- verified-by: `monthly plans clear twenty percent even at the standard store rate`
-- verified-by: `yearly Max pays at full use on Small Business, and loses no more than D16 accepted at the standard rate`
+- note: 2026-10-23, REV-001 (DECISIONS.md): the founder repriced Core and Max ($14.99, 300 min; $24.99, 600 min; yearly $99 and $169), knowing full use now loses money (Core -14%, Max -36% at 15%). The twenty-percent floor no longer holds by decision, not by drift. These tests replace it and pin the new figures.
+- verified-by: `both paid plans lose money on a learner who burns every minute, and the size is pinned (REV-001)`
+- verified-by: `at 40% utilisation and the Small Business rate Core clears 50% and Max 40%`
+- verified-by: `a paid year is twelve monthly allowances, and its full-use loss is pinned (REV-001)`
+- verified-by: `at 40% utilisation and the Small Business rate yearly Core clears 15% and yearly Max breaks even`
 - note: 2026-10-23, VOICE-008 re-priced the cost model from measured rates ($0.048 a minute). Monthly plans now clear 20% even at the standard 30% fee. Small Business enrolment still matters for the yearly plans: yearly Max loses about $1.12 a month at full use on the standard rate, and yearly Core breaks even.
 - verified-by: `every migration ships a rollback that names each object it created`
 - verified-by: `the supabase runbook applies every migration in order and pairs each with its rollback`
@@ -9115,7 +9119,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the cards use the selected state this app already uses, not a radio`
 - verified-by: `a finished purchase names only the refreshed server plan and its catalogue allowance`
 - verified-by: `revamp B out-of-minutes surfaces open the central wall without selling in the room`
-- verified-by: `180 minutes a month is about four ten-minute conversations a week, and Max about seven`
+- note: 2026-10-23, REV-001: Core 300 and Max 600 minutes a month; the conversation estimate moved with them.
+- verified-by: `300 minutes a month is about seven ten-minute conversations a week, and Max about fourteen`
 
 ### F616 — Live pronunciation scoring is off, and the only scorer wired is a vendor nobody chose
 - severity: P1
@@ -9269,7 +9274,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: packages/core/src/metering/meter.ts:50
 - note: founder decision, 2026-09-30. The approved canvas sells Max as "450 minutes a month, about 10 conversations a week". `PLANS.regular` grants `300 * 60`, which the wall rounds down to about 7. Store prices, Starter (180 minutes) and the free trial (30 minutes) do not change. Filed and not built, because at $29 the 450 minutes are the allowance 202609100001 removed for losing money. Measured from DEFAULT_COST_MODEL at full use, 450 minutes cost $26.01 to serve against $24.65 net after the 15% Small Business fee, a worst-case margin of -5.5% (-28.1% at the standard 30% rate, +10.3% before any store fee). 300 minutes leave 29.7%. Setting the constant to 450 at $29 fails four margin floors in meter.test.ts. Those floors stay unless the founder signs off on the negative number. Two more things block it. Nine files under supabase/ (five migrations, four rollbacks) hold 18000, and a new forward migration has to replace consume_entitlement (data-engineer's work). And PLANS at 450 against a database that clamps seconds_used at 18000 would leave every Max learner with 150 minutes forever, which is unlimited Max. The founder needs to pick one of three: 450 at $39, the plan before 10 September (21.5% worst case after the Small Business fee, every floor passes, and the App Store tier moves too); 300 at $29, with the canvas saying about 7; or 450 at $29, with -5.5% written into the contract. The wall's minutes and conversation count come from the catalogue, so no copy changes. Only the wall test's pin moves from 7 to 10. Answered by the founder on 2026-09-30, once the loss was shown: 300 minutes at $29 stays, so nothing in code or data changes, and the Plans screens (F607) show 300 minutes and about 7 conversations a week. The two tests below keep the plan and its margin where the founder left them. Note, 2026-10-23: the dollar figures here are from the cost model of the time. VOICE-008 corrected DEFAULT_COST_MODEL to measured rates ($0.04825 a minute); 300 minutes now cost $14.48, a 41.3% worst-case margin after the 15% fee, and 450 at $29 would cost $21.71 (+11.9% after 15%).
-- verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
+- note: 2026-10-23, REV-001 (DECISIONS.md): the founder repriced Core and Max ($14.99, 300 min; $24.99, 600 min; yearly $99 and $169), knowing full use now loses money (Core -14%, Max -36% at 15%). The twenty-percent floor no longer holds by decision, not by drift. These tests replace it and pin the new figures.
+- verified-by: `both paid plans lose money on a learner who burns every minute, and the size is pinned (REV-001)`
+- verified-by: `at 40% utilisation and the Small Business rate Core clears 50% and Max 40%`
 - verified-by: `the atomic debit uses the same plan limits as core`
 
 ### F641 — A sign-in and sign-out in the same launch ends the under-13 refusal, offers the pill again and saves the first-run draft again

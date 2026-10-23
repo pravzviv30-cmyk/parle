@@ -14,22 +14,22 @@ async function grant(store: InMemoryEntitlementStore | FileEntitlementStore, id 
 
 test('a failed session returns only its actual charge once and blocks a late debit', async () => {
   const store = new InMemoryEntitlementStore();
-  await store.save('learner', { plan: 'trial', secondsUsed: 290 });
+  await store.save('learner', { plan: 'trial', secondsUsed: 590 });
   await grant(store);
   await store.consume('learner', 100, session);
   const refunded = await store.refundSession('learner', session, 'tts_error');
   assert.equal(refunded.kind, 'restored-current-period');
   assert.equal(refunded.refundedSeconds, 10, 'requested seconds beyond the cap were not charged');
-  assert.equal((await store.get('learner')).secondsUsed, 290);
+  assert.equal((await store.get('learner')).secondsUsed, 590);
   assert.deepEqual(await store.refundSession('learner', session, 'llm_error'), refunded);
   await store.consume('learner', 100, session);
-  assert.equal((await store.get('learner')).secondsUsed, 290, 'replayed normal settlement cannot recharge a refunded session');
+  assert.equal((await store.get('learner')).secondsUsed, 590, 'replayed normal settlement cannot recharge a refunded session');
   await assert.rejects(store.refundSession('other', session, 'tts_error'), /owner|account/);
   const next = '33333333-3333-4333-8333-333333333333';
   await grant(store, next);
   assert.equal((await store.refundSession('learner', next, 'stt_error')).kind, 'not-charged');
   await store.consume('learner', 10, next);
-  assert.equal((await store.get('learner')).secondsUsed, 290);
+  assert.equal((await store.get('learner')).secondsUsed, 590);
 });
 
 test('a session from an earlier allowance cannot consume or refund a new period', async () => {

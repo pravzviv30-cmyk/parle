@@ -65,28 +65,28 @@ describe('billing status — what the learner holds, read and never changed (F54
   });
 
   test('a lapsed plan reads as lapsed and never as a fresh trial', () => {
-    // D24: a lapse lands on the weekly taste every free learner holds. It still
+    // D24: a lapse lands on the free conversation every free learner holds. It still
     // reads as lapsed, so the app never greets a former subscriber as new.
     const lapsed = billingStatusFor(lapsedEntitlement());
     assert.equal(lapsed.plan, 'trial');
     assert.equal(lapsed.lapsed, true);
-    assert.equal(lapsed.canStart, true, 'a lapsed learner cannot spend the weekly taste');
+    assert.equal(lapsed.canStart, true, 'a lapsed learner cannot spend the free conversation');
     assert.equal(lapsed.reason, null);
     assert.equal(lapsed.secondsRemaining, PLANS.trial.secondsPerPeriod);
 
-    // Only once that taste is spent too is the answer the lapse.
+    // Only once that conversation is spent too is the answer the lapse.
     const spent = billingStatusFor({ ...lapsedEntitlement(), secondsUsed: PLANS.trial.secondsPerPeriod });
     assert.equal(spent.canStart, false);
     assert.equal(spent.reason, 'subscription-lapsed');
     assert.equal(spent.secondsRemaining, 0);
   });
 
-  test('a weekly taste reports when it refills, and a passed window reads as refilled', () => {
+  test('a free conversation reports when it refills, and a passed window reads as refilled', () => {
     const now = new Date('2026-10-20T09:00:00.000Z');
-    const refillsAt = new Date('2026-10-26T09:00:00.000Z');
+    const refillsAt = new Date('2026-10-22T05:00:00.000Z'); // 44 hours after the first debit (REV-001)
     const spent = { plan: 'trial' as const, secondsUsed: PLANS.trial.secondsPerPeriod, weeklyTaste: true, periodEnd: refillsAt };
     const before = billingStatusFor(spent, now);
-    assert.equal(before.periodEnd, refillsAt.toISOString(), 'the app could not say when the free minutes come back');
+    assert.equal(before.periodEnd, refillsAt.toISOString(), 'the app could not say when the free conversation comes back');
     assert.equal(before.canStart, false);
     assert.equal(before.reason, 'exhausted');
 

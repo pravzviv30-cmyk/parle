@@ -13,7 +13,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
 
-import { PLANS } from '@luvani/core';
+import { PLANS, refillWhen } from '@luvani/core';
+
+const FREE_LINE = 'You get one free conversation every other day, up to 10 minutes.';
 
 import { guiltIn } from '../copy/guilt.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
@@ -33,16 +35,16 @@ const status = (over: Partial<BillingStatus> = {}): BillingStatus => ({
 });
 
 describe('the account in hand, in minutes', () => {
-  test('the free plan is said in minutes a week, what is left, and the day it refills', () => {
-    // D24 (2026-10-20): "Free", five minutes every week, refilling a week after first use.
+  test('the free plan is said as one conversation every other day, what is left, and when it comes back', () => {
+    // REV-001 (2026-10-23): "Free", one ten-minute conversation, back 44 hours after first use.
     const account = wallAccount(status({ secondsRemaining: 230, periodEnd: '2026-10-12T12:00:00.000Z' }), PLANS, NOW);
     assert.ok(account);
     assert.equal(account.title, 'Free');
     // 230 seconds is 3.8 minutes: three, never four.
-    assert.deepEqual(account.lines, ['You get 5 free minutes every week.', '3 minutes left.', 'They refill on Monday.']);
-    // Untouched this week: no refill day yet, because the week starts at first use.
-    assert.deepEqual(wallAccount(status({ secondsRemaining: 300, periodEnd: null }), PLANS, NOW)?.lines, ['You get 5 free minutes every week.', '5 minutes left.']);
-    // A lapsed plan is back on the weekly taste, and says so.
+    assert.deepEqual(account.lines, [FREE_LINE, '3 minutes left.', `The next one is ready ${refillWhen(new Date('2026-10-12T12:00:00.000Z'))}.`]);
+    // Untouched: no refill time yet, because the window starts at first use.
+    assert.deepEqual(wallAccount(status({ secondsRemaining: 600, periodEnd: null }), PLANS, NOW)?.lines, [FREE_LINE, '10 minutes left, about 1 conversation.']);
+    // A lapsed plan is back on the free conversation, and says so.
     assert.equal(wallAccount(status({ secondsRemaining: 300, periodEnd: null, lapsed: true }), PLANS, NOW)?.title, 'Free');
   });
 

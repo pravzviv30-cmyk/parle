@@ -8,7 +8,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { MISSIONS, PLANS, SCENE_SPINE, getMission } from '@luvani/core';
+import { MISSIONS, PLANS, SCENE_SPINE, TASTE_REFILL_HOURS, getMission } from '@luvani/core';
 import { DEFAULT_REMINDER_TIME, reminderTime } from '../reminders/reminder.ts';
 import { guiltIn } from '../copy/guilt.ts';
 import { MAX_GOAL_CHARS } from '../profile/memory.ts';
@@ -165,9 +165,9 @@ describe('answers to a plan', () => {
     assert.equal(NO_STREAKS, 'A day off takes nothing away.');
     assert.doesNotMatch(NO_STREAKS, /\b(miss|missed|break|breaks|broken|streaks?)\b/i, 'the no-streak line names what it is meant to spare the learner');
     assert.equal(METHOD_STEPS.length, 3, 'the method is three short steps');
-    assert.equal(TRIAL_LINE, '5 free minutes every week, no card needed');
-    assert.equal(PLANS.trial.secondsPerPeriod / 60, 5, 'the free plan no longer grants five minutes, so the save page line is untrue');
-    assert.equal(PLANS.trial.periodDays, 7, 'the free minutes no longer come every week, so the save page line is untrue');
+    assert.equal(TRIAL_LINE, 'One free conversation every other day, no card needed');
+    assert.equal(PLANS.trial.secondsPerPeriod / 60, 10, 'the free plan no longer grants one ten-minute conversation, so the save page line is untrue');
+    assert.equal(TASTE_REFILL_HOURS, 44, 'the free conversation no longer comes back every other day, so the save page line is untrue');
     assert.equal(PLANS.trial.priceUsd, 0, 'the trial costs money, so "no card needed" is untrue');
     for (const line of [...PLAN_COPY, reminderLine('6:00 pm'), ...START_LEVELS.flatMap((l) => [l.title, l.gloss]), ...REASONS.map((r) => r.title)]) {
       assert.doesNotMatch(line, /[—–·]/, `a dash or a middot in "${line}"`);

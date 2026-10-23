@@ -169,13 +169,15 @@ Not yet verified: a sandbox trial, conversion and yearly purchase end to end; th
 
 ## Weekly free taste (founder decision D24, 20 October)
 
-The one-off thirty free minutes are now a weekly free taste of five minutes (`PLANS.trial`, 300 seconds), migration `20261020140000_weekly_free_taste.sql`.
+The one-off thirty free minutes became a weekly free taste of five minutes, migration `20261020140000_weekly_free_taste.sql`. Since REV-001 (23 October) the same mechanism grants ten minutes (`PLANS.trial`, 600 seconds) and refills 44 hours after a window's first debit, and Core and Max hold 300 and 600 minutes: migration `20261023220000_daily_free_allowance.sql`, applied after 40 and 41 and never with 42.
 
 - Only a trial row with `weekly_taste` true refills: one the device claim created, or one a paid plan lapsed into. A row `begin_billing_refresh` creates without a claim is a spent taste that never refills.
-- On a trial row `period_end` is when the taste refills, and `/billing/status` returns it as `periodEnd`. It is null until the first debit of a window, which sets it seven days out without starting a new usage epoch. A passed window refills on the next read or reservation (a new usage epoch); the refill waits while a claimed session is live, so that session is charged to its own window and is never stopped by the refill.
+- On a trial row `period_end` is when the taste refills, and `/billing/status` returns it as `periodEnd`. It is null until the first debit of a window, which sets it 44 hours out (seven days before REV-001) without starting a new usage epoch. A passed window refills on the next read or reservation (a new usage epoch); the refill waits while a claimed session is live, so that session is charged to its own window and is never stopped by the refill.
 - A lapse lands on a fresh taste with `lapsed_from_paid` kept. `subscription-lapsed` is the refusal only once that taste is spent.
 - The guest first scene is no longer debited from the taste at `/onboarding/claim`; its cost stays bounded by the guest speech budget.
-- Deploy order: the migration, then the token server, then the app. Rollback is `supabase/rollback/20261020140000_down.sql` behind `luvani.reopen_one_off_trial`; roll back the server and app first.
+- Rollout order (a D24 token server refuses 600/18000 answers, and 40's `apply_billing_projection_v2` refuses a REV-001 server's grants): check `select enabled from public.tutor_session_admission_config` is false; apply 40, 41 and 43 in one sitting with admission still off; deploy the REV-001 token server, then the app; accept when one reserve on a fresh free row returns `reservedSeconds` 600 and `/billing/status` shows 600; only then enable admission.
+- Write block: 43's window backfill disables `entitlement_usage_epoch`, which takes SHARE ROW EXCLUSIVE on `entitlements` and blocks writers until commit. Before applying, run `select count(*) from public.entitlements where plan='trial' and weekly_taste and period_end > now()+interval '44 hours'`; if it is non-zero, 40 has been live, so announce a brief write block.
+- REV-001's rollback is `supabase/rollback/20261023220000_down.sql`, back to five minutes a week, refused while any paid row has `withheld_seconds` > 0; D24's rollback is `supabase/rollback/20261020140000_down.sql` behind `luvani.reopen_one_off_trial`; roll back the server and app first.
 
 ## Guest speech (founder decision D13, 5 October)
 

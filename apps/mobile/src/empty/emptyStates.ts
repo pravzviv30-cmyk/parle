@@ -4,8 +4,9 @@
  * folder holds them.
  *
  * "Out of speaking time" is drawn on Speak only when the server said the free
- * plan cannot start a session this week. Its refill is the plan band's own
- * line ("Free minutes refill Monday.", D24), never a day this file works out,
+ * plan cannot start a session now. Its refill is the plan band's own line
+ * ("Your next free conversation is ready on Thursday at 4:10 pm.", REV-001),
+ * never a time this file works out,
  * and its door is the plans, in Phase B's words: a store free trial is the
  * store's offer and is not promised here.
  */
@@ -21,7 +22,7 @@ export const NOTEBOOK_ART = { name: 'phrasebook', width: 150 } as const;
 export const ALL_DONE_ART = { name: 'cloud-cheer', width: 150, height: 114 } as const;
 
 export const OUT_OF_TIME = {
-  title: "You've used this week's free speaking time",
+  title: "You've used your free conversation",
   still: 'Practice, review and your phrases are all still here.',
   action: PLANS_LEAD.action,
 } as const;

@@ -29,7 +29,7 @@ export interface SessionGrant {
   secondsRemaining: number;
 }
 
-export type GrantResult = { ok: true; grant: SessionGrant } | { ok: false; status: number; reason: string; message: string };
+export type GrantResult = { ok: true; grant: SessionGrant } | { ok: false; status: number; reason: string; message: string; refillsAt?: string };
 
 /**
  * The room a grant configures, and what each number actually costs.
@@ -252,7 +252,10 @@ export async function grantSession(
   if (!decision.allowed) {
     // 402 rather than 403: this is not "you may not", it is "you have run out".
     // The app renders a different screen for each, so the distinction matters.
-    return { ok: false, status: 402, reason: decision.reason, message: decision.message };
+    // `refillsAt` (ISO) only when core knows the refill, so the app can word it
+    // in the learner's own time zone; `message` is the server-zone fallback.
+    return { ok: false, status: 402, reason: decision.reason, message: decision.message,
+      ...(decision.refillsAt ? { refillsAt: decision.refillsAt.toISOString() } : {}) };
   }
 
   const scene = opts.guest?.scene === GUEST_SCENE;

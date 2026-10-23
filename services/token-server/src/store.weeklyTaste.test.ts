@@ -3,11 +3,12 @@ import { test } from 'node:test';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { TASTE_REFILL_DAYS } from '@luvani/core';
+import { TASTE_REFILL_HOURS } from '@luvani/core';
 
 import { FileEntitlementStore, InMemoryEntitlementStore } from './store.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
 const s1 = '33333333-3333-4333-8333-333333333331';
 const s2 = '33333333-3333-4333-8333-333333333332';
 
@@ -17,7 +18,7 @@ test('a claimed free row is a weekly taste with no window yet (D24)', async () =
   }
 });
 
-test('the first debit opens the window a week out and keeps the epoch, so a refund restores', async () => {
+test('the first debit opens the window 44 hours out and keeps the epoch, so a refund restores', async () => {
   const store = new InMemoryEntitlementStore();
   await store.get('learner');
   assert.equal(await store.recordSessionGrant('learner', s1, await store.get('learner')), true);
@@ -25,7 +26,7 @@ test('the first debit opens the window a week out and keeps the epoch, so a refu
   const after = await store.consume('learner', 60, s1);
   assert.equal(after.secondsUsed, 60);
   const end = after.periodEnd!.getTime();
-  assert.ok(end >= before + TASTE_REFILL_DAYS * DAY && end <= Date.now() + TASTE_REFILL_DAYS * DAY);
+  assert.ok(end >= before + TASTE_REFILL_HOURS * HOUR && end <= Date.now() + TASTE_REFILL_HOURS * HOUR);
   const refund = await store.refundSession('learner', s1, 'tts_error');
   assert.equal(refund.kind, 'restored-current-period');
   assert.equal(refund.refundedSeconds, 60);

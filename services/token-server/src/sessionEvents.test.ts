@@ -16,14 +16,14 @@ test('the first trial claim and every refusal over minutes are recorded as produ
   assert.equal(calls.at(-1)?.body.p_user_id,'owner');
  }
  calls.length=0;
- for (const reason of ['exhausted','insufficient-for-session']) await recordMinutesRefusal(sink,'owner',true,{plan:'trial',secondsUsed:300},reason,request);
+ for (const reason of ['exhausted','insufficient-for-session']) await recordMinutesRefusal(sink,'owner',true,{plan:'trial',secondsUsed:600},reason,request);
  assert.equal(calls.length,2);
  assert.deepEqual(calls[0]?.body,{user_id:'owner',name:'minutes_refused',properties:{plan:'trial',reason:'exhausted'}});
  calls.length=0;
- for (const allowed of [false,'true',null,undefined]) await recordMinutesRefusal(sink,'owner',allowed,{plan:'trial',secondsUsed:300},'exhausted',request);
+ for (const allowed of [false,'true',null,undefined]) await recordMinutesRefusal(sink,'owner',allowed,{plan:'trial',secondsUsed:600},'exhausted',request);
  for (const reason of ['subscription-lapsed','trial already claimed','unknown']) await recordMinutesRefusal(sink,'owner',true,{plan:'starter',secondsUsed:0},reason,request);
  assert.equal(calls.length,0);
- await recordMinutesRefusal(sink,'owner',true,{plan:'trial',secondsUsed:300},'exhausted',async()=>{throw new Error('sink unavailable');});
+ await recordMinutesRefusal(sink,'owner',true,{plan:'trial',secondsUsed:600},'exhausted',async()=>{throw new Error('sink unavailable');});
  const server=readFileSync(new URL('server.ts',import.meta.url),'utf8');
  assert.match(server,/claimTrialWithEvidence\([\s\S]*?store instanceof SupabaseEntitlementStore \? eventSink : null[\s\S]*?body.analyticsAllowed/);
  assert.match(server,/if \(!result.ok\) \{\s*void recordMinutesRefusal\(eventSink, userId, body.analyticsAllowed, entitlement, result.reason\);/);

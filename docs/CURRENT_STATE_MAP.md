@@ -123,9 +123,9 @@ Three stack routes were added in `nav/RootNavigator.tsx` and `nav/types.ts`:
 which mirrors `purchases/featureLocks.ts`; `access/useFeatureAccess.ts` is the
 reactive hook that opens the Wall.
 
-### Free tier and locks (20 October 2026, D23 and D24)
+### Free tier and locks (20 October 2026, D23 and D24; allowance REV-001, 23 October)
 
-- **Weekly taste:** `PLANS.trial` is 5 minutes on a rolling 7 days from first use (`packages/core/src/metering/meter.ts`, `refillTaste`), refilled lazily by the database only for rows that passed the device claim (`entitlements.weekly_taste`). A lapsed plan falls back to it. `/billing/status` returns the refill time as `periodEnd`.
+- **Free allowance:** `PLANS.trial` is 10 minutes (one conversation) refilled 44 hours after the first debit of each window (`TASTE_REFILL_HOURS`, REV-001; was 5 minutes a week) (`packages/core/src/metering/meter.ts`, `refillTaste`), refilled lazily by the database only for rows that passed the device claim (`entitlements.weekly_taste`). A lapsed plan falls back to it. `/billing/status` returns the refill time as `periodEnd`.
 - **Locks:** `purchases/capabilities.ts` (`unlocks`) and `purchases/featureLocks.ts` answer the eight locked features; `LOCKED_ROUTES` sends a locked route to `Wall {entry:'locked'}` from `App.tsx`'s navigation listener.
 - **Paywall on open:** `Wall {entry:'launch'}` on each cold launch and on return after 30+ minutes away, for learners with no plan or trial, only on a tab root and never over a sitting, a recap or onboarding. The Wall shows "Not now".
 - **Lock gaps closed (20 October 2026):** `Lesson` (the café pronunciation lesson) is locked as `sounds`; Review deals `reviewableFree` cards to a free learner and shows how many conversation phrases wait (`review/freeTier.ts`, `ReviewCard.sources` in `packages/core/src/review/sources.ts`); the token server signs `memoryLocked: true` for free, lapsed and guest sessions and the tutor then sends no saved memory, uses no remembered opener and extracts nothing.

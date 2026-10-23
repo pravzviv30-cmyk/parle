@@ -398,7 +398,7 @@ interface SupabaseEntitlementRow {
   period_start?: string | null;
   withheld_seconds?: number | null;
   lapsed_from_paid?: boolean;
-  /** D24: a claimed (or lapsed) free row whose five minutes refill a rolling week from first use. */
+  /** D24: a claimed (or lapsed) free row whose ten minutes refill 44 hours after first use (REV-001; the field name keeps D24's "weekly"). */
   weekly_taste?: boolean;
 }
 

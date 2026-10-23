@@ -49,6 +49,7 @@ import {
   compareTrialLine,
   offerLead,
   planAllowanceLine,
+  dailyAllowance,
   standardDisclosure,
   successHeldBody,
   successPaidBody,
@@ -152,11 +153,23 @@ export function windowDays(catalogue: Record<Plan, PlanSpec> | null, plan: Plan,
   return typeof days === 'number' && days > 0 ? days : ALLOWANCE_WINDOW_DAYS;
 }
 
-/** "<Tier>, <minutes> min every 30 days", or just the tier with no catalogue. */
+/**
+ * A paid plan's month or year as a day's worth (REV-001): "about 10 minutes a
+ * day" for Core, "up to 20 minutes a day" for Max. Undefined for the weekly
+ * product and for a window too small to say per day, which keep the minutes.
+ */
+export function paidDaily(plan: Plan, minutes: number, days: number, period: WallPlanOffer['period']): string | undefined {
+  if (period === 'week' || plan === 'trial' || days <= 0) return undefined;
+  const perDay = Math.floor(minutes / days);
+  return perDay >= 1 ? dailyAllowance(plan, perDay) : undefined;
+}
+
+/** "<Tier>, about <n> minutes a day", or the minutes over the window, or just the tier with no catalogue. */
 export function planLine(row: WallPlanRow, offer: WallPlanOffer | null, catalogue: Record<Plan, PlanSpec> | null): string {
   const minutes = offerMinutes(row, offer);
   if (minutes === null) return row.name;
-  return planAllowanceLine(row.name, minutes, windowDays(catalogue, row.plan, offer?.period ?? 'month'));
+  const days = windowDays(catalogue, row.plan, offer?.period ?? 'month');
+  return planAllowanceLine(row.name, minutes, days, paidDaily(row.plan, minutes, days, offer?.period ?? 'month'));
 }
 
 export interface CompareCard {
@@ -182,7 +195,7 @@ export function compareCards(rows: readonly WallPlanRow[], current: WallPlanOffe
       name: row.name,
       offer,
       price: billedPrice(offer.price, offer.period),
-      allowance: minutes === null ? null : compareAllowance(minutes, windowDays(catalogue, row.plan, offer.period)),
+      allowance: minutes === null ? null : compareAllowance(minutes, windowDays(catalogue, row.plan, offer.period), paidDaily(row.plan, minutes, windowDays(catalogue, row.plan, offer.period), offer.period)),
       trial: offer.trialDays === null || trialMinutes === null ? null : compareTrialLine(trialMinutes, offer.trialDays),
     }];
   });

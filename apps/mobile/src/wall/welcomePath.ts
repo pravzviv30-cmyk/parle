@@ -3,11 +3,12 @@ import { MISSIONS, type Mission, type MissionId } from '@luvani/core';
 /**
  * The four situations the free plan walks through.
  *
- * The free plan is five minutes of live speaking a week (D24, 2026-10-20),
- * refilling a week after first use. That is about one short scene a week:
- * `MIN_VIABLE_SESSION_SEC` is two minutes, so a week holds two starts at most,
- * and usually one conversation. So this is a path walked over weeks, not in one
- * sitting, and nothing here pretends the free week holds the whole of it. A
+ * The free plan is one ten-minute conversation (REV-001, 2026-10-23),
+ * coming back 44 hours after the window's first use. That is one scene every
+ * other day: `MIN_VIABLE_SESSION_SEC` is two minutes, so a window holds a few
+ * short starts at most, and usually one conversation. So this is a path walked
+ * over days, not in one sitting, and nothing here pretends one free window
+ * holds the whole of it. A
  * balance is still the wrong shape: a learner watching a number fall is being
  * metered (F239, F377). A path is the right shape, and the catalogue was
  * already one: six authored situations, each ending in a checkable fact.

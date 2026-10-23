@@ -151,7 +151,7 @@ test('billing projection uses one RPC carrying vendor state but never a stale us
     return new Response(JSON.stringify({ kind: 'active', entitlement: { user_id:'owner',plan:'regular',seconds_used:600,period_end:'2027-01-01T00:00:00Z' } }));
   };
   const store = new SupabaseEntitlementStore('https://db.test', 'secret', request as typeof fetch);
-  const result = await store.applyBilling('owner', 2, { kind:'active',plan:'regular',periodEnd:new Date('2027-01-01'),grantSeconds:18000 }, 'event-1');
+  const result = await store.applyBilling('owner', 2, { kind:'active',plan:'regular',periodEnd:new Date('2027-01-01'),grantSeconds:36000 }, 'event-1');
   assert.equal(result.entitlement.secondsUsed,600);
   assert.equal(calls.length,1);
   // F733 (2026-10-05): the projection that grants store trials and yearly windows
@@ -159,7 +159,7 @@ test('billing projection uses one RPC carrying vendor state but never a stale us
   assert.match(calls[0]!.url,/rpc\/apply_billing_projection_v2$/);
   // F733 review (2026-10-05): a monthly period carries no allowance window.
   // F733 second review (2026-10-06): a snapshot with no purchase date sends no start, and the database orders it by end.
-  assert.deepEqual(calls[0]!.body,{p_user_id:'owner',p_ticket:2,p_kind:'active',p_plan:'regular',p_period_end:'2027-01-01T00:00:00.000Z',p_event_id:'event-1',p_grant_seconds:18000,p_window_end:null,p_period_start:null});
+  assert.deepEqual(calls[0]!.body,{p_user_id:'owner',p_ticket:2,p_kind:'active',p_plan:'regular',p_period_end:'2027-01-01T00:00:00.000Z',p_event_id:'event-1',p_grant_seconds:36000,p_window_end:null,p_period_start:null});
   assert.equal('seconds_used' in calls[0]!.body,false);
 });
 
@@ -193,7 +193,7 @@ test('a yearly projection sends the paid year as the period and the window besid
   };
   const store = new SupabaseEntitlementStore('https://db.test', 'secret', request as typeof fetch);
   const result = await store.applyBilling('owner', 3, { kind: 'active', plan: 'regular', periodEnd: new Date('2027-10-05T09:00:00Z'),
-    windowEnd: new Date('2026-11-04T09:00:00Z'), grantSeconds: 18000 });
+    windowEnd: new Date('2026-11-04T09:00:00Z'), grantSeconds: 36000 });
   assert.equal(calls[0]!.p_period_end, '2027-10-05T09:00:00.000Z', 'the window was sent as the period, which a read would lapse');
   assert.equal(calls[0]!.p_window_end, '2026-11-04T09:00:00.000Z');
   assert.equal(result.entitlement.periodEnd?.toISOString(), '2027-10-05T09:00:00.000Z');

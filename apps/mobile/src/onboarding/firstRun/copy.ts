@@ -128,7 +128,7 @@ export function tutorTimeLine(seconds: number, free: boolean | null): string | n
   if (!Number.isFinite(seconds) || seconds <= 0) return null;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 1) return 'You have less than a minute with your AI tutor.';
-  if (free === true) return `You have ${counted(minutes, 'free minute', 'free minutes')} with your AI tutor this week.`;
+  if (free === true) return `You have ${counted(minutes, 'free minute', 'free minutes')} with your AI tutor.`;
   if (free === false) return `You have ${counted(minutes, 'minute', 'minutes')} with your AI tutor on your plan.`;
   return `You have ${counted(minutes, 'minute', 'minutes')} with your AI tutor.`;
 }

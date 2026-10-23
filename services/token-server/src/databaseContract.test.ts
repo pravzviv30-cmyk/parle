@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, test } from 'node:test';
 import { isDeepStrictEqual } from 'node:util';
 
-import { PLANS, TASTE_REFILL_DAYS, canStartSession, lapsedEntitlement } from '@luvani/core';
+import { PLANS, TASTE_REFILL_HOURS, canStartSession, lapsedEntitlement } from '@luvani/core';
 
 import { SUPABASE_PROOFS } from './verify/supabaseLive.ts';
 
@@ -601,6 +601,15 @@ const FROZEN_CAPS: Record<string, number> = { trial: 1800, starter: 10800, regul
 /** The migration that moved the trial to the weekly taste (D24). */
 const WEEKLY_TASTE = '20261020140000_weekly_free_taste.sql';
 
+/** The allowance D24 shipped with (trial 300, Core 10800, Max 18000). Frozen history since REV-001. */
+const D24_CAPS: Record<string, number> = { trial: 300, starter: 10800, regular: 18000 };
+
+/** The migration that moved the free allowance to 600 s every 44 hours and the paid caps up (REV-001). */
+const DAILY_ALLOWANCE = '20261023220000_daily_free_allowance.sql';
+
+/** What REV-001 re-defines on top of D24; everything else D24 defined stays D24's. */
+const REDEFINED_BY_DAILY = new Set(['luvani_private.tutor_cap_v1', 'luvani_private.taste_window_v1', 'public.begin_billing_refresh', 'public.apply_billing_projection']);
+
 const FUNCTION_DEFINITION = /create (?:or replace )?function ((?:public|luvani_private)\.\w+)\s*\(/gi;
 
 /** Each allowance table in one file, with the function whose body holds it. */
@@ -739,7 +748,7 @@ describe('database security contract — SQL cannot drift quietly', () => {
         if (current) effective += 1;
         assert.deepEqual(
           caps,
-          current ? CORE_CAPS : FROZEN_CAPS,
+          current ? CORE_CAPS : name === WEEKLY_TASTE ? D24_CAPS : FROZEN_CAPS,
           current
             ? `migrations/${name} defines the current ${owner} with an allowance table that disagrees with PLANS`
             : `migrations/${name} carries a superseded allowance table that is no longer the one it shipped with`,
@@ -751,14 +760,16 @@ describe('database security contract — SQL cannot drift quietly', () => {
       for (const { caps } of planCapTables(readFileSync(path.join(ROLLBACKS, name), 'utf8'))) {
         copies += 1;
         assert.ok(
-          isDeepStrictEqual(caps, CORE_CAPS) || isDeepStrictEqual(caps, FROZEN_CAPS),
+          isDeepStrictEqual(caps, CORE_CAPS) || isDeepStrictEqual(caps, FROZEN_CAPS) || isDeepStrictEqual(caps, D24_CAPS),
           `rollback/${name} restores an allowance table that was never effective`,
         );
       }
     }
     assert.ok(copies >= 4, `only ${copies} allowance tables were read, so this is checking less than it looks`);
     assert.equal(effective, 1, 'exactly one effective allowance table should exist: the shared tutor_cap_v1 helper');
-    assert.equal(latest.get('luvani_private.tutor_cap_v1')?.file, WEEKLY_TASTE, 'the effective tutor_cap_v1 is not the D24 one');
+    assert.equal(latest.get('luvani_private.tutor_cap_v1')?.file, DAILY_ALLOWANCE, 'the effective tutor_cap_v1 is not the REV-001 one');
+    // The REV-001 rollback restores exactly D24's table, nothing newer or older.
+    assert.deepEqual(planCapCases(readFileSync(path.join(ROLLBACKS, '20261023220000_down.sql'), 'utf8')), [D24_CAPS]);
 
     // Follow the current debit to the single SQL helper rather than requiring
     // another duplicated allowance table. Every historic copy is still checked.
@@ -883,7 +894,8 @@ describe('database security contract — SQL cannot drift quietly', () => {
     const d24 = sqlOf(WEEKLY_TASTE);
     const code = stripComments(d24);
     const latestIn = (name: string): string => {
-      assert.equal(latestFunctionDefinitions().get(name)?.file, WEEKLY_TASTE, `${name} is not defined last by the D24 migration`);
+      const owner = REDEFINED_BY_DAILY.has(name) ? DAILY_ALLOWANCE : WEEKLY_TASTE;
+      assert.equal(latestFunctionDefinitions().get(name)?.file, owner, `${name} is not defined last by ${owner}`);
       return stripComments(effectiveBody(new RegExp(`create or replace function ${name.replace('.', '\\.')}\\b`, 'i')));
     };
 
@@ -909,8 +921,9 @@ describe('database security contract — SQL cannot drift quietly', () => {
     for (const door of ['launch', 'locked']) {
       assert.match(events, new RegExp(`to_jsonb\\('${door}'::text\\)`), `the latest event trigger lost D24's ${door} door`);
     }
-    assert.match(refresh, /values\(p_user_id, 'trial', 300, false\) on conflict\(user_id\) do nothing;/);
-    assert.equal(PLANS.trial.secondsPerPeriod, 300, 'the billing refresh row is no longer exactly one spent taste');
+    // REV-001: the row is spent at whatever the cap is, so it can never hold real minutes.
+    assert.match(refresh, /values\(p_user_id, 'trial', luvani_private\.tutor_cap_v1\('trial'\), false\) on conflict\(user_id\) do nothing;/);
+    assert.doesNotMatch(refresh, /'trial', \d+, false/, 'the billing refresh row is spent at a literal again');
 
     // Refill: a trial, marked weekly, whose refill time has passed, and no live session.
     const refill = stripComments(effectiveBody(/create or replace function luvani_private\.refill_taste_v1\b/i));
@@ -919,9 +932,16 @@ describe('database security contract — SQL cannot drift quietly', () => {
     assert.doesNotMatch(refill, /plan\s*=/, 'the refill writes a plan');
 
     // The first debit starts the window, a week out, and keeps the usage epoch.
-    const window = stripComments(effectiveBody(/create or replace function luvani_private\.taste_window_v1\b/i));
-    assert.match(window, /new\.period_end is null and old\.period_end is null and new\.seconds_used>old\.seconds_used then\s+new\.period_end:=pg_catalog\.clock_timestamp\(\)\+interval '(\d+) days';/);
-    assert.equal(Number(window.match(/interval '(\d+) days'/)![1]), TASTE_REFILL_DAYS);
+    const window = latestIn('luvani_private.taste_window_v1');
+    assert.match(window, /new\.period_end is null and old\.period_end is null and new\.seconds_used>old\.seconds_used then\s+new\.period_end:=pg_catalog\.clock_timestamp\(\)\+interval '(\d+) hours';/);
+    assert.equal(Number(window.match(/interval '(\d+) hours'/)![1]), TASTE_REFILL_HOURS);
+    // The REV-001 backfill cuts a longer running window to the same figure.
+    const daily = stripComments(sqlOf(DAILY_ALLOWANCE));
+    const backfill = [...daily.matchAll(/interval '(\d+) hours'/g)].map((m) => Number(m[1]));
+    assert.ok(backfill.length >= 3 && backfill.every((h) => h === TASTE_REFILL_HOURS), 'a copy of the refill interval disagrees with core');
+    assert.match(daily, /create trigger entitlement_taste_window before update on public\.entitlements/);
+    // The six-argument projection clamps with the shared cap, not an inline table.
+    assert.match(latestIn('public.apply_billing_projection'), /else least\(seconds_used, luvani_private\.tutor_cap_v1\(p_plan\)\)/);
     assert.ok('entitlement_taste_window' < 'entitlement_usage_epoch', 'the window must be set before the epoch rule reads it');
     assert.match(code, /create trigger entitlement_taste_window before update on public\.entitlements/);
     const epoch = stripComments(effectiveBody(/create or replace function public\.advance_usage_epoch\b/i));
@@ -948,9 +968,9 @@ describe('database security contract — SQL cannot drift quietly', () => {
     // Lapsed is the answer only once the taste is spent, as in core's canStartSession.
     const reserve = stripComments(effectiveBody(/create or replace function public\.reserve_tutor_session_v1\b/i));
     assert.match(reserve, /when v_available=0 and e\.lapsed_from_paid then 'subscription-lapsed' when v_available=0 then 'exhausted' else 'insufficient-for-session'/);
-    assert.equal(canStartSession({ ...lapsed, secondsUsed: 200 }).allowed, false);
-    assert.equal((canStartSession({ ...lapsed, secondsUsed: 200 }) as { reason: string }).reason, 'insufficient-for-session');
-    assert.equal((canStartSession({ ...lapsed, secondsUsed: 300 }) as { reason: string }).reason, 'subscription-lapsed');
+    assert.equal(canStartSession({ ...lapsed, secondsUsed: 500 }).allowed, false);
+    assert.equal((canStartSession({ ...lapsed, secondsUsed: 500 }) as { reason: string }).reason, 'insufficient-for-session');
+    assert.equal((canStartSession({ ...lapsed, secondsUsed: 600 }) as { reason: string }).reason, 'subscription-lapsed');
   });
 
   test('the session debit bills a replayed session id once rather than falling through on a null', () => {
@@ -1110,7 +1130,7 @@ describe('database security contract — SQL cannot drift quietly', () => {
     // had ended — on every debit and, since get() is a zero-second debit, on every read.
     // Nothing sells yet, so nothing has lapsed yet; the day a subscription is cancelled,
     // this is our own database forging paid status for a learner who stopped paying.
-    // D24 (2026-10-20): the lapse lands on a fresh weekly taste, the same five minutes
+    // D24 (2026-10-20): the lapse lands on a fresh weekly taste, the same ten minutes (REV-001)
     // every free learner on a claimed device holds. The title is the ledger's and stays.
     assert.deepEqual(
       applyDebit(body, expired, 60, now),
@@ -1156,7 +1176,7 @@ describe('database security contract — SQL cannot drift quietly', () => {
       { plan: 'regular', seconds_used: 660, period_end: hours(240) },
     );
     assert.deepEqual(
-      applyDebit(body, { plan: 'trial', seconds_used: 250, period_end: null }, 200, now),
+      applyDebit(body, { plan: 'trial', seconds_used: 500, period_end: null }, 200, now),
       { plan: 'trial', seconds_used: PLANS.trial.secondsPerPeriod, period_end: null },
     );
 

@@ -4,7 +4,7 @@
  * Home leads with exactly one card, and the screen does not choose it: this
  * does. Three answers, in this order.
  *
- * 1. `plans`, when the free plan's minutes for this week are used (D24). Revamp B draws this as
+ * 1. `plans`, when the free plan's conversation is used (REV-001). Revamp B draws this as
  *    the sun card on Home (HomeOutOfMinutes), read through the same billing
  *    call Speak makes. A trial without enough time to start leads with it: a paid
  *    plan out of minutes, or a lapsed subscription, is F607's with revenue. An
@@ -19,7 +19,7 @@
 
 import { PLANS, type Plan, type StartRefusal } from '@luvani/core';
 
-import { refillDay } from '../purchases/planStatus.ts';
+import { freeBackLine, refillTime } from '../purchases/planStatus.ts';
 import type { HomeMission } from './homeMission.ts';
 
 /** The one lead Home draws. */
@@ -29,7 +29,7 @@ export type HomeAction = 'plans' | 'review' | 'conversation' | 'local';
 export interface HomeBilling {
   plan: Plan;
   reason: StartRefusal | null;
-  /** On the free plan, when this week's minutes refill (D24); null before first use. */
+  /** On the free plan, when the free conversation comes back (REV-001); null before first use. */
   periodEnd?: string | null;
 }
 
@@ -55,13 +55,13 @@ export const PLANS_LEAD = {
 } as const;
 
 /**
- * The sun card's body for this learner: on the free plan with a refill day,
- * it says when this week's minutes come back first (D24). A weekday, never a
- * countdown.
+ * The sun card's body for this learner: on the free plan with a refill time,
+ * it says when the free conversation comes back first (REV-001). A day and a
+ * time, never a countdown.
  */
 export function plansLeadBody(billing: HomeBilling | null): string {
-  const day = billing?.plan === 'trial' && billing.periodEnd ? refillDay(billing.periodEnd) : null;
-  return day === null ? PLANS_LEAD.body : `Your free minutes refill on ${day}. ${PLANS_LEAD.body}`;
+  const when = billing?.plan === 'trial' && billing.periodEnd ? refillTime(billing.periodEnd) : null;
+  return when === null ? PLANS_LEAD.body : `${freeBackLine(when)} ${PLANS_LEAD.body}`;
 }
 
 /** The white review row's title: how many phrases are ready, in words that count nothing else. */

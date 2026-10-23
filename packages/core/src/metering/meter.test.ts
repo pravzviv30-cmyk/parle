@@ -19,7 +19,8 @@ import {
   refillTaste,
   rollPeriod,
   secondsRemaining,
-  TASTE_REFILL_DAYS,
+  TASTE_REFILL_HOURS,
+  refillWhen,
   lapsedEntitlement,
   storeTrialCostUsd,
   storeTrialSeconds,
@@ -30,10 +31,10 @@ import {
 const fresh = (plan: Entitlement['plan'] = 'trial'): Entitlement => ({ plan, secondsUsed: 0 });
 
 describe('entitlements', () => {
-  test('the free plan is a five-minute weekly taste, shown as Free (D24)', () => {
-    assert.equal(secondsRemaining(fresh()), 5 * 60);
-    assert.equal(PLANS.trial.periodDays, TASTE_REFILL_DAYS);
-    assert.equal(TASTE_REFILL_DAYS, 7);
+  test('the free plan is one ten-minute conversation every other day, shown as Free (REV-001)', () => {
+    assert.equal(secondsRemaining(fresh()), 600);
+    assert.equal(PLANS.trial.periodDays, 2, 'display only; the rule is TASTE_REFILL_HOURS');
+    assert.equal(TASTE_REFILL_HOURS, 44);
     assert.equal(PLANS.trial.label, 'Free');
   });
 
@@ -69,8 +70,9 @@ describe('entitlements', () => {
   });
 });
 
-describe('the weekly taste refills on a rolling window from first use (D24)', () => {
+describe('the free allowance refills 44 hours after first use (REV-001)', () => {
   const DAY_MS = 24 * 60 * 60 * 1000;
+  const HOUR_MS = 60 * 60 * 1000;
   const first = new Date('2026-10-20T08:00:00Z');
   const claimed = (): Entitlement => ({ plan: 'trial', secondsUsed: 0, weeklyTaste: true });
 
@@ -82,8 +84,8 @@ describe('the weekly taste refills on a rolling window from first use (D24)', ()
 
   test('the first debit starts the window; later debits do not move it', () => {
     const one = recordUsage(claimed(), 120, first);
-    assert.equal(one.periodEnd?.getTime(), first.getTime() + TASTE_REFILL_DAYS * DAY_MS);
-    const two = recordUsage(one, 60, new Date(first.getTime() + 2 * DAY_MS));
+    assert.equal(one.periodEnd?.getTime(), first.getTime() + TASTE_REFILL_HOURS * HOUR_MS);
+    const two = recordUsage(one, 60, new Date(first.getTime() + DAY_MS));
     assert.equal(two.periodEnd?.getTime(), one.periodEnd?.getTime());
     assert.equal(two.secondsUsed, 180);
     // Zero seconds is not a debit and starts nothing.
@@ -110,6 +112,13 @@ describe('the weekly taste refills on a rolling window from first use (D24)', ()
     assert.equal(refillTaste(spent, Number.NaN), spent);
   });
 
+  test('the refill lands exactly at +44 h, not at +43h59m and not at +48 h', () => {
+    const spent = recordUsage(claimed(), PLANS.trial.secondsPerPeriod, first);
+    assert.equal(spent.periodEnd?.getTime(), first.getTime() + 44 * HOUR_MS);
+    assert.equal(refillTaste(spent, first.getTime() + 43 * HOUR_MS + 59 * 60 * 1000), spent, 'refilled a minute early');
+    assert.equal(refillTaste(spent, first.getTime() + 44 * HOUR_MS).secondsUsed, 0, 'not refilled at +44 h');
+  });
+
   test('only a claimed taste refills, and never a paid plan', () => {
     const unclaimed: Entitlement = { plan: 'trial', secondsUsed: 300, periodEnd: first };
     assert.equal(refillTaste(unclaimed, new Date(first.getTime() + DAY_MS)), unclaimed);
@@ -122,7 +131,7 @@ describe('the weekly taste refills on a rolling window from first use (D24)', ()
   test('a lapse is a fresh taste whose window starts at first use', () => {
     const e = lapsedEntitlement();
     assert.equal(canStartSession(e).allowed, true);
-    assert.equal(recordUsage(e, 60, first).periodEnd?.getTime(), first.getTime() + TASTE_REFILL_DAYS * DAY_MS);
+    assert.equal(recordUsage(e, 60, first).periodEnd?.getTime(), first.getTime() + TASTE_REFILL_HOURS * HOUR_MS);
   });
 });
 
@@ -141,13 +150,13 @@ describe('a paid period that ends without renewing', () => {
         const e: Entitlement = { plan, secondsUsed: 60, periodEnd: ended };
         const after = rollPeriod(e, new Date(ended.getTime() + daysPast * DAY_MS));
         assert.notEqual(after.plan, plan, `${plan} still held its plan ${daysPast} days after the period ended`);
-        // D24: the lapse lands on the free weekly taste, never on paid minutes.
+        // D24: the lapse lands on the free allowance, never on paid minutes.
         assert.equal(secondsRemaining(after), PLANS.trial.secondsPerPeriod, `${plan} was handed minutes nobody paid for, ${daysPast} days on`);
       }
     }
   });
 
-  test('an expired paid period falls back to a fresh weekly taste, not a fresh month (D24)', () => {
+  test('an expired paid period falls back to a fresh free allowance, not a fresh month (D24)', () => {
     const after = rollPeriod(expiredStarter(), new Date(ended.getTime() + 3 * DAY_MS));
     assert.deepEqual(after, lapsedEntitlement());
     assert.equal(after.plan, 'trial');
@@ -167,7 +176,8 @@ describe('a paid period that ends without renewing', () => {
     assert.equal(decision.allowed, false);
     if (decision.allowed) return;
     assert.equal(decision.reason, 'subscription-lapsed');
-    assert.equal(decision.message, 'Your subscription has ended. Your free minutes for this week are used. They refill on Monday.');
+    assert.equal(decision.message, `Your subscription has ended. Your next free conversation is ready ${refillWhen(spent.periodEnd!)}.`);
+    assert.equal(decision.refillsAt?.getTime(), spent.periodEnd?.getTime(), 'the app needs the instant to format it in the learner\'s zone');
     // A trial periodEnd is a refill time, never a paid period to lapse from.
     assert.equal(rollPeriod(spent, new Date(at.getTime() + 900 * DAY_MS)), spent);
   });
@@ -210,17 +220,22 @@ describe('starting a session', () => {
     const trial = canStartSession({ plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod });
     assert.equal(trial.allowed, false);
     assert.equal(trial.allowed === false && trial.reason, 'exhausted');
-    assert.equal(trial.allowed === false ? trial.message : '', 'Your free minutes for this week are used.');
+    assert.equal(trial.allowed === false ? trial.message : '', 'Your free conversation is used.');
+    assert.equal(trial.allowed === false ? trial.refillsAt : 'x', undefined);
 
     // With the refill time known, the learner hears the day it comes back.
-    const refillsFriday: Entitlement = {
+    const refillsAt = new Date('2026-10-22T16:10:00Z'); // a Thursday
+    const refilling: Entitlement = {
       plan: 'trial',
       secondsUsed: PLANS.trial.secondsPerPeriod,
       weeklyTaste: true,
-      periodEnd: new Date('2026-10-23T12:00:00Z'),
+      periodEnd: refillsAt,
     };
-    const weekly = canStartSession(refillsFriday);
-    assert.equal(weekly.allowed === false ? weekly.message : '', 'Your free minutes for this week are used. They refill on Friday.');
+    const spent = canStartSession(refilling);
+    assert.equal(spent.allowed === false ? spent.message : '', `Your next free conversation is ready ${refillWhen(refillsAt)}.`);
+    assert.equal(spent.allowed === false ? spent.refillsAt?.getTime() : 0, refillsAt.getTime());
+    assert.equal(refillWhen(refillsAt, 'UTC'), 'on Thursday at 4:10 pm');
+    assert.equal(refillWhen(new Date('2026-10-22T00:05:00Z'), 'UTC'), 'on Thursday at 12:05 am');
 
     // 5 October 2026, F733 review: a paid allowance is now a month, a store
     // trial's week or a yearly window, so "this month" was untrue for two of
@@ -293,18 +308,12 @@ describe('cost model', () => {
 });
 
 describe('margins — the check that keeps us out of Issen’s trap', () => {
-  test('the starter plan survives a learner who burns every single minute', () => {
-    const m = planMargin('starter', 1.0);
-    assert.ok(m.worstCaseMargin > 0, `starter loses money on heavy users: $${m.worstCaseCostUsd.toFixed(2)} cost vs $${m.priceUsd}`);
-  });
-
-  test('the regular plan also survives full utilisation', () => {
-    assert.ok(planMargin('regular', 1.0).worstCaseMargin > 0);
-  });
-
-  test('at realistic utilisation the starter plan clears a healthy margin', () => {
-    const m = planMargin('starter', 0.5);
-    assert.ok(m.expectedMargin > 0.6, `expected >60% margin at half utilisation, got ${(m.expectedMargin * 100).toFixed(0)}%`);
+  test('both paid plans lose money on a learner who burns every minute, and the size is pinned (REV-001)', () => {
+    // Before the store fee: Core $14.48 against $14.99 (+3.4%), Max $28.95 against $24.99 (-15.8%).
+    const core = planMargin('starter', 1.0);
+    const max = planMargin('regular', 1.0);
+    assert.ok(core.worstCaseMargin > 0.03 && core.worstCaseMargin < 0.04, `Core at full use before the fee: $${core.worstCaseCostUsd.toFixed(2)} vs $${core.priceUsd}`);
+    assert.ok(max.worstCaseMargin > -0.17 && max.worstCaseMargin < -0.15, `Max at full use before the fee: $${max.worstCaseCostUsd.toFixed(2)} vs $${max.priceUsd}`);
   });
 
   // The trap is subtler than "unlimited loses money". At Issen's $29 with a
@@ -332,36 +341,31 @@ describe('margins — the check that keeps us out of Issen’s trap', () => {
     assert.ok(cost > unlimitedPriceUsd, `30 min/day costs $${cost.toFixed(2)} against $${unlimitedPriceUsd}`);
   });
 
-  test('metering inverts that — margin holds no matter how committed the learner is', () => {
-    assert.ok(planMargin('starter', 1.0).worstCaseMargin > 0.4);
-    // 2026-10-23 (VOICE-008, measured rates): a maxed-out Max learner leaves
-    // 50.1% before the store fee, Core 54.3%. Floor tightened from 30% to 45%;
-    // if it drops below, the $29 price point wants revisiting before the
-    // vendor bills do it.
-    assert.ok(planMargin('regular', 1.0).worstCaseMargin > 0.45);
+  test('metering bounds that: the heaviest learner costs a known, finite amount', () => {
+    // An unlimited plan's worst case has no ceiling. Max's is 600 minutes: $28.95.
+    assert.ok(planMargin('regular', 1.0).worstCaseCostUsd < 29, 'Max at full use now costs more than $28.95');
   });
 
-  test('the weekly taste is cheap enough to give away every week (D24)', () => {
-    const week = estimateSessionCost({ wallClockSec: PLANS.trial.secondsPerPeriod, utterancesScored: PLANS.trial.secondsPerPeriod / 20 });
-    // About $0.24 a week fully burned, about $1.05 a month (52/12 weeks), at the
-    // 2026-10-23 rates (ceilings tightened from $0.30 and $1.30). It
-    // refills forever, so this is a standing cost per free learner, not a
-    // one-off acquisition cost; the ceiling is pinned here.
-    const month = (week.total * 52) / 12;
-    assert.ok(week.total < 0.25, `a weekly taste costing $${week.total.toFixed(2)} is too expensive to hand out`);
-    assert.ok(month < 1.1, `a free learner now costs $${month.toFixed(2)} a month at full burn`);
+  test('the free allowance costs under $7.90 a month at full burn (REV-001)', () => {
+    // 600 s at $0.04825 a minute is $0.4825 a window; a month holds 30 days / 44 h
+    // = 16.36 windows, so $7.895. It refills forever, so this is a standing cost
+    // per free learner, not a one-off acquisition cost.
+    const window = estimateSessionCost({ wallClockSec: PLANS.trial.secondsPerPeriod, utterancesScored: PLANS.trial.secondsPerPeriod / 20 });
+    const month = (window.total * 30 * 24) / TASTE_REFILL_HOURS;
+    assert.ok(window.total < 0.49, `a free conversation now costs $${window.total.toFixed(4)} (was $0.4825)`);
+    assert.ok(month < 7.9, `a free learner now costs $${month.toFixed(2)} a month at full burn (was $7.90)`);
   });
 });
 
 describe('margins after the store takes its cut', () => {
   // Measured from DEFAULT_COST_MODEL, not quoted from anyone: at full burn a
-  // minute costs $0.04825 (2026-10-23, VOICE-008), so starter's 180 minutes
-  // cost $8.69 against $19 and regular's 300 cost $14.48 against $29.
+  // minute costs $0.04825 (2026-10-23, VOICE-008), so Core's 300 minutes
+  // cost $14.48 against $14.99 and Max's 600 cost $28.95 against $24.99.
   //
   // Margin here is measured against what actually reaches us. The store's
   // percentage is a deduction from revenue, not a cost of goods, so it divides
-  // as well as subtracts: at 15% starter leaves 46.2% and regular 41.3%; at 30%
-  // starter leaves 34.7% and regular 28.7%.
+  // as well as subtracts: at 15% Core leaves -13.6% and Max -36.3%; at 30%
+  // Core leaves -37.9% and Max -65.5% (REV-001 accepts these on the gym model).
   //
   // Currency: a margin is a ratio, so it holds in any single currency provided
   // price and cost are quoted in the same one. Both are USD here. The store's
@@ -370,36 +374,32 @@ describe('margins after the store takes its cut', () => {
   // rather than mixing the two, and re-run these floors, because FX moves them.
   const worstCase = (plan: 'starter' | 'regular', fee: number) => planMargin(plan, 1.0, DEFAULT_COST_MODEL, fee);
 
-  test('both paid plans clear twenty percent worst-case margin after the small business store fee', () => {
-    // Floor tightened from 20% to 40% on 2026-10-23 (VOICE-008 measured rates).
-    for (const plan of ['starter', 'regular'] as const) {
-      const small = worstCase(plan, STORE_FEE_RATES.smallBusiness);
-      const standard = worstCase(plan, STORE_FEE_RATES.standard);
-      assert.ok(
-        small.worstCaseMargin > 0.4,
-        `${plan} leaves ${(small.worstCaseMargin * 100).toFixed(1)}% at the ` +
-          `${(STORE_FEE_RATES.smallBusiness * 100).toFixed(0)}% Small Business rate ` +
-          `($${small.worstCaseCostUsd.toFixed(2)} of vendor cost against $${small.netRevenueUsd.toFixed(2)} received). ` +
-          `At the standard ${(STORE_FEE_RATES.standard * 100).toFixed(0)}% rate the same plan leaves ` +
-          `${(standard.worstCaseMargin * 100).toFixed(1)}%. Revisit the price point before a vendor does it for us.`,
-      );
-    }
-  });
+  // Bands, not floors: a vendor price move either way shows up here.
+  const bands = {
+    starter: { smallBusiness: [-0.15, -0.12, '-13.6%, $14.48 vs $12.74'], standard: [-0.39, -0.37, '-37.9%, $14.48 vs $10.49'] },
+    regular: { smallBusiness: [-0.37, -0.35, '-36.3%, $28.95 vs $21.24'], standard: [-0.66, -0.645, '-65.5%, $28.95 vs $17.49'] },
+  } as const;
 
-  test('monthly plans clear twenty percent even at the standard store rate', () => {
-    // Re-baselined 2026-10-23 (VOICE-008, measured rates). This used to assert
-    // regular stayed below 20% at the standard rate, which held only while the
-    // cost model was high; regular now leaves 28.7% and starter 34.7%. Small
-    // Business enrolment is no longer load-bearing for a monthly plan. It still
-    // is for yearly Max, which loses at the standard rate (held below).
-    for (const plan of ['starter', 'regular'] as const) {
-      const m = worstCase(plan, STORE_FEE_RATES.standard);
-      assert.ok(
-        m.worstCaseMargin > 0.2,
-        `${plan} leaves ${(m.worstCaseMargin * 100).toFixed(1)}% at the standard rate: ` +
-          `$${m.worstCaseCostUsd.toFixed(2)} of cost against $${m.netRevenueUsd.toFixed(2)} received.`,
-      );
+  for (const plan of ['starter', 'regular'] as const) {
+    for (const rate of ['smallBusiness', 'standard'] as const) {
+      test(`${plan} worst-case margin at the ${rate} rate stays in its pinned band`, () => {
+        const [lo, hi, was] = bands[plan][rate];
+        const m = worstCase(plan, STORE_FEE_RATES[rate]);
+        assert.ok(
+          m.worstCaseMargin > lo && m.worstCaseMargin < hi,
+          `${plan} at full use, ${rate}: ${(m.worstCaseMargin * 100).toFixed(1)}% ` +
+            `($${m.worstCaseCostUsd.toFixed(2)} of cost against $${m.netRevenueUsd.toFixed(2)} received); pinned ${was}.`,
+        );
+      });
     }
+  }
+
+  test('at 40% utilisation and the Small Business rate Core clears 50% and Max 40%', () => {
+    // Core $5.79 against $12.74 (54.6%); Max $11.58 against $21.24 (45.5%).
+    const core = planMargin('starter', 0.4, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
+    const max = planMargin('regular', 0.4, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
+    assert.ok(core.expectedMargin > 0.5, `Core leaves ${(core.expectedMargin * 100).toFixed(1)}% ($${core.expectedCostUsd.toFixed(2)} vs $${core.netRevenueUsd.toFixed(2)}; was 54.6%)`);
+    assert.ok(max.expectedMargin > 0.4, `Max leaves ${(max.expectedMargin * 100).toFixed(1)}% ($${max.expectedCostUsd.toFixed(2)} vs $${max.netRevenueUsd.toFixed(2)}; was 45.5%)`);
   });
 
   test('the modelled store rates are the ones the platforms actually charge', () => {
@@ -424,8 +424,8 @@ describe('margins after the store takes its cut', () => {
     assert.equal(implicit.storeFeeRate, 0);
     assert.equal(implicit.storeFeeUsd, 0);
     assert.equal(implicit.netRevenueUsd, PLANS.regular.priceUsd);
-    // The pre-store floors elsewhere in this file still mean what they meant.
-    assert.ok(implicit.worstCaseMargin > 0.3);
+    // The pre-store band elsewhere in this file still means what it meant.
+    assert.ok(implicit.worstCaseMargin < 0);
   });
 
   test('the free trial has no price for a store to take a cut of', () => {
@@ -440,8 +440,8 @@ describe('margins after the store takes its cut', () => {
     const note =
       'changing a price means changing three things together: PLANS.priceUsd, the margin floors in ' +
       'this file, and the tier in App Store Connect. Change one and the other two quietly lie.';
-    assert.equal(PLANS.starter.priceUsd, 19, note);
-    assert.equal(PLANS.regular.priceUsd, 29, note);
+    assert.equal(PLANS.starter.priceUsd, 14.99, note);
+    assert.equal(PLANS.regular.priceUsd, 24.99, note);
     assert.equal(PLANS.trial.priceUsd, 0, note);
   });
 
@@ -457,18 +457,18 @@ describe('margins after the store takes its cut', () => {
       'changing an allowance means changing this constant, every allowance table in ' +
       'supabase/migrations and supabase/rollback, and a new forward migration replacing ' +
       'consume_entitlement. databaseContract.test.ts fails on any copy left behind.';
-    assert.equal(PLANS.trial.secondsPerPeriod, 5 * 60, note);
-    assert.equal(PLANS.starter.secondsPerPeriod, 180 * 60, note);
-    assert.equal(PLANS.regular.secondsPerPeriod, 300 * 60, note);
+    assert.equal(PLANS.trial.secondsPerPeriod, 600, note);
+    assert.equal(PLANS.starter.secondsPerPeriod, 300 * 60, note);
+    assert.equal(PLANS.regular.secondsPerPeriod, 600 * 60, note);
   });
 });
 
 describe('a store free trial is a week of the plan, not a month of it (D16)', () => {
-  test('a store trial is a week of the monthly allowance: Starter 42 minutes, Max 70', () => {
+  test('a store trial is a week of the monthly allowance: Core 70 minutes, Max 140', () => {
     assert.equal(STORE_TRIAL_DAYS, 7);
     assert.equal(ALLOWANCE_WINDOW_DAYS, 30);
-    assert.equal(storeTrialSeconds('starter'), 42 * 60);
-    assert.equal(storeTrialSeconds('regular'), 70 * 60);
+    assert.equal(storeTrialSeconds('starter'), 70 * 60);
+    assert.equal(storeTrialSeconds('regular'), 140 * 60);
     for (const plan of ['starter', 'regular'] as const) {
       assert.ok(storeTrialSeconds(plan) < PLANS[plan].secondsPerPeriod, `${plan}'s trial grants the whole month`);
       assert.ok(storeTrialSeconds(plan) >= MIN_VIABLE_SESSION_SEC, `${plan}'s trial is too small to hold one session`);
@@ -478,13 +478,13 @@ describe('a store free trial is a week of the plan, not a month of it (D16)', ()
 
   test('a store trial used to the last second costs a few dollars, and the ceiling is pinned', () => {
     // Measured from DEFAULT_COST_MODEL at $0.04825 a minute (2026-10-23,
-    // VOICE-008): about $2.03 for Starter's 42 minutes and $3.38 for Max's 70
-    // (ceilings tightened from $2.50 and $4.25). That is acquisition cost for a
-    // learner who never pays, on top of the free thirty minutes they already had.
+    // VOICE-008): $3.38 for Core's 70 minutes and $6.76 for Max's 140
+    // (REV-001). That is acquisition cost for a learner who never pays, on top
+    // of the free allowance they already had.
     const starter = storeTrialCostUsd('starter');
     const max = storeTrialCostUsd('regular');
-    assert.ok(starter < 2.1, `a Starter trial now costs $${starter.toFixed(2)} to give away`);
-    assert.ok(max < 3.5, `a Max trial now costs $${max.toFixed(2)} to give away`);
+    assert.ok(starter < 3.4, `a Core trial now costs $${starter.toFixed(2)} to give away (was $3.38)`);
+    assert.ok(max < 6.8, `a Max trial now costs $${max.toFixed(2)} to give away (was $6.76)`);
     assert.ok(max > starter);
   });
 });
@@ -546,45 +546,33 @@ describe('a yearly plan refills by the window, inside the paid year (D16)', () =
     const note =
       'changing a yearly price means changing YEARLY_PLANS.priceUsd, the yearly margin floors in this file, ' +
       'and the yearly product in App Store Connect together. The learner only ever sees the store string.';
-    assert.equal(YEARLY_PLANS.starter.priceUsd, 149, note);
-    assert.equal(YEARLY_PLANS.regular.priceUsd, 229, note);
+    assert.equal(YEARLY_PLANS.starter.priceUsd, 99, note);
+    assert.equal(YEARLY_PLANS.regular.priceUsd, 169, note);
     assert.equal(YEARLY_PLANS.starter.plan, 'starter');
     assert.equal(YEARLY_PLANS.regular.plan, 'regular');
   });
 
-  test('yearly Max pays at full use on Small Business, and loses no more than D16 accepted at the standard rate', () => {
-    // Re-baselined 2026-10-23 (VOICE-008, measured rates). D16 accepted a loss
-    // of about $1.12 a month at the Small Business rate, when twelve windows of
-    // 300 minutes cost $208.08. At $0.04825 a minute they cost $173.70 against
-    // $194.65 received: +10.8%, so that loss no longer exists and the floor
-    // here is now protective. At the standard 30% rate the same learner still
-    // costs about $1.12 a month more than arrives ($160.30), which is why
-    // enrolment stays a requirement. If either fails, say so in D16.
+  test('a paid year is twelve monthly allowances, and its full-use loss is pinned (REV-001)', () => {
+    // Twelve full windows: Core $173.70 against $84.15 received (-106%), Max
+    // $347.40 against $143.65 (-142%), at the Small Business rate. REV-001
+    // prices the year for expected use; these bands make a vendor move visible.
+    const core = yearlyPlanMargin('starter', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
     const max = yearlyPlanMargin('regular', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
-    const standard = yearlyPlanMargin('regular', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.standard);
-    const lossPerMonth = (standard.worstCaseCostUsd - standard.netRevenueUsd) / 12;
-    assert.equal(max.priceUsd, 229);
     assert.ok(
       Math.abs(max.worstCaseCostUsd - 12 * planMargin('regular', 1.0).worstCaseCostUsd) < 1e-9,
       'a paid year is twelve monthly allowances',
     );
-    assert.ok(max.worstCaseMargin > 0.1, `yearly Max leaves ${(max.worstCaseMargin * 100).toFixed(1)}% at full use on Small Business`);
-    assert.ok(lossPerMonth < 1.25, `yearly Max now loses $${lossPerMonth.toFixed(2)} a month at full use at the standard rate, past the dollar D16 accepted`);
+    assert.ok(core.worstCaseMargin > -1.1 && core.worstCaseMargin < -1.03, `yearly Core at full use: ${(core.worstCaseMargin * 100).toFixed(1)}% (was -106.4%, $173.70 vs $84.15)`);
+    assert.ok(max.worstCaseMargin > -1.45 && max.worstCaseMargin < -1.39, `yearly Max at full use: ${(max.worstCaseMargin * 100).toFixed(1)}% (was -141.8%, $347.40 vs $143.65)`);
   });
 
-  test('yearly Starter still pays for its heaviest learner at the Small Business rate', () => {
-    // 2026-10-23 (VOICE-008): $104.22 of cost against $126.65 received, +17.7%
-    // (floor tightened from 0% to 15%). At the standard rate it breaks even
-    // (+0.08%).
-    const starter = yearlyPlanMargin('starter', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
-    assert.ok(starter.worstCaseMargin > 0.15, `yearly Starter loses ${(starter.worstCaseMargin * 100).toFixed(1)}% at full use`);
-  });
-
-  test('at realistic utilisation both yearly plans clear a healthy margin after the store fee', () => {
-    for (const plan of ['starter', 'regular'] as const) {
-      const m = yearlyPlanMargin(plan, 0.5, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
-      assert.ok(m.expectedMargin > 0.4, `yearly ${plan} leaves ${(m.expectedMargin * 100).toFixed(0)}% at half utilisation`);
-    }
+  test('at 40% utilisation and the Small Business rate yearly Core clears 15% and yearly Max breaks even', () => {
+    // Core $69.48 against $84.15 (17.4%); Max $138.96 against $143.65 (3.3%).
+    // At the standard 30% rate both go under (-0.3%, -17.5%): enrolment is load-bearing.
+    const core = yearlyPlanMargin('starter', 0.4, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
+    const max = yearlyPlanMargin('regular', 0.4, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
+    assert.ok(core.expectedMargin > 0.15, `yearly Core leaves ${(core.expectedMargin * 100).toFixed(1)}% ($${core.expectedCostUsd.toFixed(2)} vs $${core.netRevenueUsd.toFixed(2)}; was 17.4%)`);
+    assert.ok(max.expectedMargin > 0, `yearly Max leaves ${(max.expectedMargin * 100).toFixed(1)}% ($${max.expectedCostUsd.toFixed(2)} vs $${max.netRevenueUsd.toFixed(2)}; was 3.3%)`);
   });
 });
 
