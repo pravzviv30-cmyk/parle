@@ -11131,3 +11131,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/installation.ts:11, services/token-server/src/guestSceneAdmission.ts
 - note: Found 2026-10-23 in the guest first scene review (UI-011). The 30-day scene marker is keyed on `x-luvani-installation`, a random UUID in AsyncStorage. A reinstall or cleared app data resets it, and any HTTP client can send a fresh one. The money limit is the daily ceiling, so this is a fairness gap, not a cost hole. Once the Apple Developer membership and Play Console exist, bind the scene claim to DeviceCheck bits on iOS (one per device, survives reinstall) and a Play Integrity verdict on Android. Then update the privacy labels for any new device signal.
 - verified-by: `a second guest scene from the same attested device is refused after a reinstall`
+
+### F869 — A signed-out guest live start fails before its token request
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts (`readConsent`)
+- note: Found 2026-10-23 in the guest first scene web check. `useLiveSession` read consent with `loadConsent().catch(() => null)`, but with no signed-in user `loadConsent` throws synchronously from `userKey` ("stores live behind the auth gate"), before it returns a promise. The `.catch` never ran, so every pre-account guest connect failed as `unknown` before `/onboarding/live`. This was also on main, where guest live is closed in production, so no learner saw it.
+- fixed: 2026-10-23 on `claude/guest-first-scene`. A guest start reads no consent, since the guest body never sends it. Signed-in reads go through `Promise.resolve().then(loadConsent)`, so a synchronous throw becomes null.
+- verified-by: `a consent store behind the auth gate never stops a guest start before /onboarding/live`

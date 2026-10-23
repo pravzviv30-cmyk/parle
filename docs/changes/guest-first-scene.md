@@ -1,6 +1,6 @@
 # Guest first scene
 
-- Status: in-progress
+- Status: done on the branch, held for landing
 - Updated: 2026-10-23
 - Checkout / starting revision: `Luvani-worktrees/guest-first-scene`, branch
   `claude/guest-first-scene` from `main` at 3acc25b5
@@ -83,13 +83,13 @@ Names come from `@luvani/core` (`packages/core/src/lessons/guestCafe.ts`):
 
 | ID | Outcome | Owner | Depends on | Allowed files | Status |
 |---|---|---|---|---|---|
-| T1 | Scene and shared names in core | implementer | none | `packages/core/src/lessons/guestCafe*.ts`, `lessons/index.ts` | in-progress |
-| T2 | Server: start, grant, claim, ceiling, record shrink | auth-engineer | T1 | `services/token-server/src/{onboardingGuest,guestLive,server,tokens,guestSceneAdmission}*.ts` and their tests | todo |
-| T3 | Worker: scene tutor with no model, guest scene gate | voice-platform-engineer | T1 | `services/tutor-agent/src/{agent,tutor,paidVoiceProxy,guestSceneGate,sessionLifecycle}*.ts` and their tests | todo |
-| T4 | App: scene practice, recap, adoption, refusals | onboarding-ux-engineer | T1 | `apps/mobile/src/onboarding/**`, `apps/mobile/src/live/useLiveSession.ts` | todo |
-| T5 | Privacy copy and data tables | privacy-safety-engineer | T2, T3 | `apps/mobile/src/legal/policy.ts`, `docs/PRIVACY_AND_SAFETY.md`, `docs/STATE_AND_STORAGE.md` | todo |
-| T6 | Decision, runbook, env contract, beta-launch steps | orchestrator | T2–T4 | docs, `deployment/environment-contract.json` | todo |
-| T7 | Gate, floors, evidence, web check, handoff | orchestrator | all | `docs/IMPLEMENTATION_EVIDENCE.md`, `scripts/gate.floors.json` | todo |
+| T1 | Scene and shared names in core | implementer | none | `packages/core/src/lessons/guestCafe*.ts`, `lessons/index.ts` | done |
+| T2 | Server: start, grant, claim, ceiling, record shrink | auth-engineer | T1 | `services/token-server/src/{onboardingGuest,guestLive,server,tokens,guestSceneAdmission}*.ts` and their tests | done |
+| T3 | Worker: scene tutor with no model, guest scene gate | voice-platform-engineer | T1 | `services/tutor-agent/src/{agent,tutor,paidVoiceProxy,guestSceneGate,sessionLifecycle}*.ts` and their tests | done |
+| T4 | App: scene practice, recap, adoption, refusals | onboarding-ux-engineer | T1 | `apps/mobile/src/onboarding/**`, `apps/mobile/src/live/useLiveSession.ts` | done |
+| T5 | Privacy copy and data tables | privacy-safety-engineer | T2, T3 | `apps/mobile/src/legal/policy.ts`, `docs/PRIVACY_AND_SAFETY.md`, `docs/STATE_AND_STORAGE.md` | done |
+| T6 | Decision, runbook, env contract, beta-launch steps | orchestrator | T2–T4 | docs, `deployment/environment-contract.json` | done |
+| T7 | Gate, floors, evidence, web check, handoff | orchestrator | all | `docs/IMPLEMENTATION_EVIDENCE.md`, `scripts/gate.floors.json` | done |
 
 ## Worst-case cost
 
@@ -111,3 +111,6 @@ day, which had counted each line only once.
 | Date | Step | Result |
 |---|---|---|
 | 2026-10-23 | Plan approved by the founder (reverses UI-003); read-only reviews by security-engineer and database-security-architect folded in | worktree created, `npm ci` clean |
+| 2026-10-23 | T1 to T6 built by implementer, auth-engineer, voice-platform-engineer, onboarding-ux-engineer and privacy-safety-engineer (Sonnet and Opus at low effort); revenue-engineer read-only review | re-pinned `tokens.ts` in `moneyUntouched.test.ts`; corrected the worst case to about $0.50 a scene, $12 a day at 24 |
+| 2026-10-23 | Web check on a local token server and worker against LiveKit Cloud | seven defects found and fixed: (1) `loadConsent` threw synchronously before sign-up, so every guest connect failed before its token (also on main); (2) a claimed guest room showed the signed-in "session already open" copy; (3) a refused microphone left the scene stuck; (4) a per-address 429 said "The tutor can't connect" and every final refusal offered Try again; (5) the 30-day install marker was booked at start, so a lost start response spent the phone's scene, now booked at the first claim; (6) two 12 s silence rescues advanced a typed turn, so answers were graded against the wrong turns and `sceneTurns` stayed empty, now silence never advances a scene and completion needs every turn answered; (7) a completed scene result was rejected as "not available", and the position line was unreadable on violet |
+| 2026-10-23 | Final typed run, then `npm run gate:bless` and `npm run gate` | five turns, recap and achievements name all five lines, `ttsCharsBilled=0`; 6,400 tests, 0 failing; floors raised |
