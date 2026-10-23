@@ -146,6 +146,33 @@ try {
   assert.deepEqual(await gameOwnerRows(),['game','history']);
   pass('game rollback refuses by default and deletes nothing; authorised it deletes only game rows and restores the sixteen-name check; the migration re-applies cleanly');
 
+  // Speech dataset groundwork (inert): metadata only, service-only, bounded, and gone with the account.
+  {
+    const owner=id(31), clipId='20000000-0000-4000-8000-000000000001';
+    await db.query('insert into auth.users values($1)',[owner]);
+    const clip=(o={})=>{const r={user_id:owner,consent_version:1,object_path:`${owner}/${clipId}.wav`,lesson_id:'cafe-01',turn_id:'t1-greet',reference_line:'Bonjour, un café, s\'il vous plaît.',cefr_band:'A1',vendor:'speechace',duration_ms:2400,sample_rate_hz:16000,captured:'2026-10-22T00:00:00Z',expires:'2027-10-22T00:00:00Z',...o};
+      return db.query('insert into public.speech_dataset_clips(user_id,consent_version,object_path,lesson_id,turn_id,reference_line,expected_phonemes,vendor,vendor_scores,cefr_band,duration_ms,sample_rate_hz,captured_at,expires_at) values($1,$2,$3,$4,$5,$6,\'["b","ɔ̃"]\'::jsonb,$7,\'[{"p":"b","s":90}]\'::jsonb,$8,$9,$10,$11::timestamptz,$12::timestamptz)',
+        [r.user_id,r.consent_version,r.object_path,r.lesson_id,r.turn_id,r.reference_line,r.vendor,r.cefr_band,r.duration_ms,r.sample_rate_hz,r.captured,r.expires]);};
+    for(const client of ['anon','authenticated']){
+      await role(client,owner);
+      try {
+        await assert.rejects(db.query('select * from public.speech_dataset_clips'),/permission denied/);
+        await assert.rejects(clip(),/permission denied/);
+      } finally { await admin(); }
+    }
+    await role('service_role');
+    try {
+      await clip();
+      for(const [bad,why] of [[{reference_line:'x'.repeat(201)},'201-char line'],[{cefr_band:'B1'},'B1'],[{expires:'2028-11-22T00:00:00Z'},'25 months'],[{object_path:`${id(30)}/${clipId}.wav`},'foreign path'],[{sample_rate_hz:24000},'24 kHz']]) {
+        await assert.rejects(clip({object_path:`${owner}/20000000-0000-4000-8000-000000000002.wav`,...bad}),/check constraint/,why);
+      }
+      assert.equal((await db.query('select count(*)::integer as n from public.speech_dataset_clips where user_id=$1',[owner])).rows[0].n,1);
+    } finally { await admin(); }
+    await role('auth_deleter');await db.query('delete from auth.users where id=$1',[owner]);await admin();
+    assert.equal((await db.query('select count(*)::integer as n from public.speech_dataset_clips')).rows[0].n,0,'speech clip outlived its account');
+    pass('speech_dataset_clips: anon and authenticated cannot read or write; service_role inserts a valid row; long line, B1, 25-month expiry, foreign path and 24 kHz are refused; account deletion cascades');
+  }
+
   await role('authenticated',a);
   const nearLimit=envelope({text:'quoted : space, comma, and café 👋',pad:''});
   nearLimit.data.pad='x'.repeat(MAX_ENVELOPE_BYTES-Buffer.byteLength(JSON.stringify(nearLimit)));

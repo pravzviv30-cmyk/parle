@@ -467,3 +467,36 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   The token server passes the snapshot through unchanged.
 - Sources: `packages/brain/src/prompt/turnContext.ts` (`GOAL_FRAMING`),
   `apps/mobile/src/profile/memory.ts` (`snapshotFor`).
+
+## VOICE-007 — Lay a consented speech dataset's groundwork, inert until legal review
+
+- Date: 2026-10-22
+- Status: accepted (groundwork only; collection is not decided)
+- Decision: build, switched off, the parts of a consented, teacher-rated dataset
+  of English speakers saying known French lines. A clip qualifies only where
+  VOICE-004 already scores: a spoken lesson turn where the learner said the
+  reference line. It is offered where the score settles, so vendor scores travel
+  with it. The tutor agent offers a clip to a `ClipSink` only when
+  `LUVANI_SPEECH_DATASET=1` and `LuvaniTutor.datasetConsent` are both true. The
+  default sink does nothing, and nothing sets the consent bit: the token server
+  does not sign it and `agent.ts` does not parse it. The app's consent is
+  separate from usage data, versioned, literal-true only, device-local for now,
+  and its Settings switch is hidden behind `SPEECH_DATASET_ENABLED = false`.
+  Migration 42 (`speech_dataset_clips`, metadata only, service role only, no
+  transcript column, expiry at most 24 months) is prepared and not applied. A
+  local, offline tool (`npm run rate:speech`) lets teachers rate clips and
+  reports agreement (weighted kappa) and calibration (Spearman against the
+  vendor).
+- Reason: the market review of 2026-10-22 named this dataset as the most credible
+  moat, and Microsoft says Azure struggles with French nasal vowels and liaison.
+  The privacy doc promises that live audio is never stored and treats any kept
+  recording as an escalation before a branch. So the design and the safe parts
+  are built now, and the promise stays true until a legal review changes it.
+- Consequence: activation needs, in order: legal review and a DPIA; the policy
+  and privacy-doc changes with their pinned tests; rater DPAs; a server consent
+  record; the signed consent bit; an uploader that converts to 16 kHz; a private
+  bucket; withdrawal, expiry and erasure sweeps; export; the migration applied
+  live; then both flags on. Withdrawal will delete clips, and the disclosure must
+  say that aggregate calibration already made is not unpicked.
+- Sources: [speech dataset change](docs/changes/speech-dataset.md),
+  [privacy and safety](docs/PRIVACY_AND_SAFETY.md), VOICE-004 above.

@@ -850,7 +850,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 41 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 42 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -864,7 +864,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **41 migrations** for a fresh full schema, applied once in order from
+There are **42 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -949,6 +949,7 @@ There are **41 migrations** for a fresh full schema, applied once in order from
 39. `20261007121856_preserve_store_trial_budget_and_year_extension.sql`, F747/F748: trial phrase audio retains the $0.02 lifetime allowance; extending the same paid year preserves charging for an in-flight session. SQL projection proofs pass, including rollback and reapply. Prepared, not applied live. Roll back this migration before the store trial/year migration, using its guarded rollback.
 40. `20261020140000_weekly_free_taste.sql`, D24: the one-off thirty free minutes become a weekly free taste of five minutes. `entitlements.weekly_taste` marks a claimed (or lapsed) free row, the only kind that refills; the first debit sets the refill time a week out in the same usage epoch, a passed window refills lazily (new epoch, deferred while a session is live), every lapse lands on a fresh taste still marked `lapsed_from_paid`, and the trial cap is 300 seconds. Adds the `launch` and `locked` wall doors. Disposable SQL proofs pass in `scripts/verifyTutorSessions.mjs`, including interlocked rollback and reapply. Prepared, not applied live. Roll it back first, using its guarded rollback.
 41. `20261022120000_live_session_finished_event.sql`, beta instrumentation: `validate_product_event` accepts `live_session_finished` (closed `kind`, boolean `voice`, counts `turns`, `rescues`, `unassistedPct`, nullable `replyLatencyMs`), matching the client union and `parseProductEvent`; every other branch is carried over from 40. Disposable SQL proofs replay it with the other migrations. Prepared, not applied live. Roll it back first, before 40.
+42. `20261022200000_speech_dataset_clips.sql`, inert speech-dataset groundwork: the service-only `speech_dataset_clips` table, metadata only (no audio, no transcript, no free text), RLS on with every client role revoked, a path that must sit under the row's own user id, an expiry at most 24 months after capture, and an account-deletion cascade. Disposable SQL proofs in `scripts/verifyDataBoundaries.mjs` refuse client reads and writes and every out-of-range row. Prepared, not applied live, and nothing writes to it until the legal review in docs/changes/speech-dataset.md. Roll it back first, before 41, using its guarded destructive rollback.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,
