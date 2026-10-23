@@ -627,11 +627,11 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - The 400 ms floor did nothing: Silero's 550 ms end-of-speech silence
     shadows it, so turns ended about 470 ms after the audio stopped.
   - SDK 1.9 builds a local audio turn detector by default. On six French
-    clips with a 1 s mid-sentence pause it held 3 of 6. Without its native
+    clips with a 1 s mid-sentence pause it held 4 of 6. Without its native
     binding or a job executor it holds none. Its scores sat near the 0.285
     threshold, so the floor has to work without it.
 - Measured (`docs/live-latency-evidence/2026-10-23-pause-endpointing.md`):
-  - 1.0 s pauses: cut off today in 3 of 6 (model) or 6 of 6 (no model);
+  - 1.0 s pauses: cut off today in 2 of 6 (model) or 6 of 6 (no model);
     at 1,200 ms, 0 of 6 either way.
   - 1.5 s pauses survive only from the 2,000 ms floor, and 2.0 s pauses only
     under a moment hold.

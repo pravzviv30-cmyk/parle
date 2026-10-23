@@ -5,7 +5,7 @@
  * Measured with the real Silero VAD and the local turn detector
  * (docs/live-latency-evidence/2026-10-23-pause-endpointing.md): with the
  * framework settings alone, every pause of a second ends the turn unless the
- * audio model happens to call it unfinished, and it called half of them
+ * audio model happens to call it unfinished, and it called a third of them
  * finished. A beginner who stops to find "un café" got a reply to
  * "Je voudrais".
  *

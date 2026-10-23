@@ -602,9 +602,9 @@ VAD and the real local model. These are synthetic voices, not learners.
 | Pause | Cut off today, model / no model | Cut off at 1,200 ms, model / no model |
 |---|---|---|
 | 0.5 s | 0 / 0 of 6 | 0 / 0 of 6 |
-| 1.0 s | 3 / 6 of 6 | 0 / 0 of 6 |
+| 1.0 s | 2 / 6 of 6 | 0 / 0 of 6 |
 | 1.5 s | 2 / 6 of 6 | 2 / 6 of 6 |
-| 2.0 s | 3 / 6 of 6 | 3 / 6 of 6 |
+| 2.0 s | 2 / 6 of 6 | 2 / 6 of 6 |
 
 A 2,000 ms floor (two cut-offs) protects 1.5 s pauses. Only a moment hold
 protects 2.0 s pauses. The model's scores sat close to the threshold (0.15 to
