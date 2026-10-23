@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "id": "bakery-a0",
+  "source": "synthetic",
+  "scene": "bakery",
+  "cefr": "A0",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour, une baguette."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonjour, une baguette tradition ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1000,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "spoke",
+        "text": "Oui, une tradition s'il vous plaît."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Voilà, autre chose ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1150,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Deux croissant."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Deux croissants, très bien.",
+        "coachLine": "That was wrong. It is croissants.",
+        "narration": null
+      },
+      "replyWaitMs": 1700,
+      "expect": {
+        "gentle": "fail",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "Combien ça coûte ?"
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Ça fait quatre euros dix.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1050,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Merci, bonne journée !"
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Merci, à vous aussi !",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 900,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    }
+  ]
+}

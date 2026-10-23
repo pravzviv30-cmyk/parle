@@ -457,6 +457,15 @@ The rule for anyone extending this: a feature that needs to keep a recording is 
 new consent, a new retention period and a new disclosure, and it is an escalation
 before it is a branch.
 
+**Session eval (2026-10-23, synthetic and dev text only).** The playground's session eval
+(`services/brain-playground/src/eval/sessionEval.ts`) scores tutor conduct turn by turn. Its
+record format accepts only `synthetic` records (hand-written fixtures) and `dev` records (the
+founder's own playground chats, kept in a gitignored folder). The tutor agent records nothing for
+it. Scoring real beta transcripts would mean keeping learner text for staff review, which no
+current consent covers. The escalation and the shape it would take are in
+[changes/session-eval.md](changes/session-eval.md). `eval:beta-numbers` reads only a local export
+of the six content-free `live_session_finished` fields.
+
 **Speech dataset groundwork (2026-10-22, inert).** The escalation for a consented,
 teacher-rated set of lesson recordings is
 [docs/changes/speech-dataset.md](changes/speech-dataset.md) (VOICE-007). Its

@@ -40,8 +40,7 @@ import { STUCK_SILENCE_MS } from '@luvani/core';
 import { EVAL_CASES, type EvalCase } from './cases.ts';
 import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
-
-const HESITATION_COMMENTARY = /take your time|don'?t worry|are you still there|no rush|no hurry|it'?s (ok|okay|fine) to/i;
+import { HESITATION_COMMENTARY } from './sessionChecks.ts';
 
 interface CaseResult {
   id: string;

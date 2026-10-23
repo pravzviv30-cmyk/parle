@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "id": "cafe-tea-a0",
+  "source": "synthetic",
+  "scene": "cafe-order",
+  "cefr": "A0",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonsoir."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonsoir, vous désirez ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 950,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "silence",
+        "durationMs": 4500
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Je voudrais un thé, s'il vous plaît.",
+        "en": "Ask for a tea",
+        "kind": "full-line"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "fail",
+        "no-read-back": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "help"
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Je voudrais un thé vert",
+        "en": "Ask for a green tea",
+        "kind": "options"
+      },
+      "rescued": true,
+      "rescueIndex": 2,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "Vous pouvez dire : je voudrais un thé vert.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1400,
+      "expect": {
+        "rescue": "pass",
+        "no-read-back": "fail",
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "Je voudrais un thé vert."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Un thé vert, c'est noté.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1100,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Merci !"
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Je vous en prie.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 850,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    }
+  ]
+}

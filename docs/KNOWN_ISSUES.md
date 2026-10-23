@@ -3269,11 +3269,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F193 — Curation gets an eval
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/brain-playground/package.json:9
 - note: Phase 4 proved the batch survives the disk and nothing proves it is worth surviving;
   eval:curation follows the drillEval template and scores keeps against drops so the exit
   criterion has a measurement to regress against.
+- fixed: the eval was already on main (`src/eval/curationEval.ts`); the first live run on
+  2026-10-23 kept 5 of 5 worth reaching for on both fixtures, recorded in
+  docs/IMPLEMENTATION_EVIDENCE.md under "Measurements that are not assertions".
 - verified-by: `the curation eval scores keeps against drops and runs from the playground`
 
 ### F194 — The storage doc describes the publish that exists
@@ -11145,3 +11148,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-23 in the guest first scene web check. `useLiveSession` read consent with `loadConsent().catch(() => null)`, but with no signed-in user `loadConsent` throws synchronously from `userKey` ("stores live behind the auth gate"), before it returns a promise. The `.catch` never ran, so every pre-account guest connect failed as `unknown` before `/onboarding/live`. This was also on main, where guest live is closed in production, so no learner saw it.
 - fixed: 2026-10-23 on `claude/guest-first-scene`. A guest start reads no consent, since the guest body never sends it. Signed-in reads go through `Promise.resolve().then(loadConsent)`, so a synchronous throw becomes null.
 - verified-by: `a consent store behind the auth gate never stops a guest start before /onboarding/live`
+
+### F870 — Session eval scores tutor conduct
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/sessionEval.ts
+- note: Opened 2026-10-23 from the market report's "an eval of real sessions". Nothing scored how the tutor behaved in a session, only whether it ran. `eval:sessions` scores each turn of a recorded session against the written rules: rescue (a first rescue is the quiet hint), no read-back of the card, gentle recasts, level fit by rung, and safety, plus reply-wait p50 and p95 as a measurement. Records are `synthetic` or `dev` only, because no consent covers scoring learner transcripts (docs/changes/session-eval.md).
+- fixed: 2026-10-23 on `claude/session-eval`. Eight hand-labelled synthetic sessions (40 turns, one deliberate failure per check, labels reviewed by tutor-behaviour-engineer); `eval:replay` and `eval:beta-numbers` alongside.
+- verified-by: `the session eval agrees with every hand label in the synthetic set`

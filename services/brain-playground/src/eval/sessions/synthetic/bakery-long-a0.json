@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "id": "bakery-long-a0",
+  "source": "synthetic",
+  "scene": "bakery",
+  "cefr": "A0",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour, un croissant."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonjour ! Alors, nous avons des croissants au beurre, des pains au chocolat et aussi des chaussons aux pommes, qu'est-ce qui vous ferait plaisir aujourd'hui ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 2600,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "fail"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "help"
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Un croissant au beurre, s'il vous plaît.",
+        "en": "Ask for a butter croissant",
+        "kind": "hint"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "pass",
+        "no-read-back": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Un croissant au beurre, s'il vous plaît."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Très bien, un croissant au beurre.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1200,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "C'est combien ?"
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Un euro vingt.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 900,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Voilà, merci."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Merci, bonne journée !",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 800,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    }
+  ]
+}

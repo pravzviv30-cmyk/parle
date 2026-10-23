@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "cafe-order-a0",
+  "source": "synthetic",
+  "scene": "cafe-order",
+  "cefr": "A0",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour !"
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonjour, qu'est-ce que je vous sers ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 900,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "silence",
+        "durationMs": 4200
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Un café, s'il vous plaît.",
+        "en": "Ask for a coffee",
+        "kind": "hint"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "pass",
+        "no-read-back": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Un café, s'il vous plaît."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Très bien, un café.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1100,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "Merci beaucoup."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Avec plaisir, ça fait deux euros.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1300,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Je peux payer par carte ?"
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Oui, bien sûr, voilà le terminal.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 950,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    }
+  ]
+}

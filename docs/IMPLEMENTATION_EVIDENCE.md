@@ -22,6 +22,14 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 session eval and F193 on branch `claude/session-eval` from main 461bf409
+  (held, not on main): `eval:sessions` scores tutor conduct turn by turn over eight hand-labelled
+  synthetic sessions (rescue, no read-back, gentle, level fit, safety, reply wait), plus dev
+  recording, `eval:replay` (cost per accepted brain turn) and `eval:beta-numbers`; F193 measured
+  live and ticked, F870 ticked: **6,489 tests, 0 failing**; core 1050, brain 502, tutor agent 785,
+  token server 482, playground 78, mobile 3592; all 42 migrations replayed, no migration added.
+  Floors raised only through `gate:bless`. One `--jev` pass on the synthetic set agreed with
+  every deterministic failure and listed one line for a human look.
 - 23 October 2026 main with `claude/guest-first-scene` (UI-011, guest café scene before sign-up,
   off until `LUVANI_GUEST_SCENE=1`) merged onto the thinking-time landing (VOICE-010); the tutor
   keeps both, and the scene keeps the session's beginner pause: **6,440 tests, 0 failing**; core 1050,
@@ -529,6 +537,13 @@ wish, rather than asserting a wish. Three results are worth carrying forward:
   worker is `departureTimeout=20`, measured at 20.6s after the learner left, which is the
   real concurrency ceiling: one session per slot per 20 seconds of turnover, whatever the
   sessions themselves cost.
+- **Curation keeps what the learner reached for (F193), first live run 23 October 2026.**
+  `npm run eval:curation -w @luvani/brain-playground` on OpenAI (curate routes to
+  gpt-5.6-luna, the `openAiModelFor('curate')` default): both fixtures kept five phrases, all
+  five worth reaching for, and dropped every pleasantry; separation 1.29 kept against 1.29
+  proposed; 2 extensions per card set, none failing the gate; about $0.002. This is the
+  baseline the curation prompt regresses against; the named test proves the scorer and the
+  command, not the model.
 
 ## Feature matrix
 

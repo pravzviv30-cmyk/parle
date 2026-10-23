@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "cafe-terrace-a1",
+  "source": "synthetic",
+  "scene": "cafe-terrace",
+  "cefr": "A1",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour, une table pour deux ?"
+      },
+      "rung": 3,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bien sûr. Installez-vous en terrasse.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1250,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "silence",
+        "durationMs": 5000
+      },
+      "rung": 3,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "fail"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Je voudrais la carte."
+      },
+      "rung": 3,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Voilà la carte. Je reviens tout de suite.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1500,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "Un jus d'orange, s'il vous plaît."
+      },
+      "rung": 3,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Non, c'est faux. On dit un jus d'orange pressé.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1800,
+      "expect": {
+        "gentle": "fail",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Merci."
+      },
+      "rung": 3,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Avec plaisir.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 800,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    }
+  ]
+}

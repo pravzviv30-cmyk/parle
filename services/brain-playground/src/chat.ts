@@ -28,6 +28,7 @@ import { COMMAND_HELP, parseCommand } from './commands.ts';
 import { loadProfile, resetProfile, saveProfile } from './profileStore.ts';
 import { formatSessionUsage, formatTurnUsage } from './usage.ts';
 import { meta, renderProfile, renderRecap, title, warm } from './render.ts';
+import { parseRecordFlag, recordPathFor, timestampSlug, toSessionRecord, writeDevRecord } from './eval/devRecord.ts';
 import { beginSession, buildScenario, endSession, runInput, silenceInput, type Session } from './sessionLoop.ts';
 
 function pickClient(): { client: LlmClient; label: string; turnCostModel: string; analystCostModel: string } {
@@ -93,13 +94,21 @@ async function main(): Promise<void> {
   const { client, label, turnCostModel, analystCostModel } = pickClient();
   let frame: ScenarioFrame = CAFE_FRAME;
 
-  let { session, lines } = beginSession(loadProfile(), frame);
+  // --record [file]: write each session as a dev SessionRecord when it ends.
+  const recordTo = parseRecordFlag(process.argv.slice(2));
+  const recording = recordTo !== undefined;
+  const startedAt = new Date();
+  let recordsWritten = 0;
+  const recordOption = (): { record?: { id: string } } => (recording ? { record: { id: `dev-${timestampSlug(new Date())}` } } : {});
+
+  let { session, lines } = beginSession(loadProfile(), frame, recordOption());
   let current: Session = session;
 
   console.log('');
   console.log(title('Luvani · tutor brain playground'));
   console.log(meta(`brain: ${label}`));
   console.log(meta('Speak French (or English) and press enter. /help lists the commands.'));
+  if (recording) console.log(meta('Recording this session. A dev record is written when it ends.'));
   lines.forEach((l) => console.log(l));
 
   const rl = createInterface({ input: stdin, output: stdout });
@@ -113,11 +122,19 @@ async function main(): Promise<void> {
       saveProfile(current.profile);
     }
     if (current.calls > 0) console.log(meta(formatSessionUsage(current.totals, current.calls, turnCostModel)));
+    if (current.recorder !== null && current.recorder.turns.length > 0) {
+      recordsWritten += 1;
+      const file = recordPathFor(recordTo ?? null, startedAt, recordsWritten);
+      writeDevRecord(file, toSessionRecord(current.recorder));
+      console.log(meta(`Session recorded to ${file}`));
+      // The next scene is a new session with its own record.
+      current.recorder = null;
+    }
   };
 
   const restart = (nextFrame: ScenarioFrame): void => {
     frame = nextFrame;
-    const begun = beginSession(current.profile, frame);
+    const begun = beginSession(current.profile, frame, recordOption());
     current = begun.session;
     begun.lines.forEach((l) => console.log(l));
   };

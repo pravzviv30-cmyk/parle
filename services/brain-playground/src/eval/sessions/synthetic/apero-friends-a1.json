@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "id": "apero-friends-a1",
+  "source": "synthetic",
+  "scene": "apero-friends",
+  "cefr": "A1",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Salut ! Ça va ?"
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Ça va bien, et toi ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1200,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "spoke",
+        "text": "Ça va, merci. Tu veux boire quoi ?"
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Un verre de rosé, je crois.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1400,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Moi aussi, un rosé."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Super, on trinque ?",
+        "coachLine": "Nice — that works perfectly here.",
+        "narration": null
+      },
+      "replyWaitMs": 1600,
+      "expect": {
+        "gentle": "fail",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "help"
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Santé !",
+        "en": "Say cheers",
+        "kind": "hint"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "pass",
+        "no-read-back": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Santé !"
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Santé, à nous !",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1000,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    }
+  ]
+}

@@ -29,6 +29,7 @@
 | Active session | Upstash lease keyed by deployment-salted user signal |
 | Local learner scope | `apps/mobile/src/storage/scope.ts` |
 | Learner sync | `apps/mobile/src/sync/engine.ts` and `policy.ts`; enabled when Supabase is configured |
+| Tutor conduct in a session (eval, synthetic and dev records only) | `services/brain-playground/src/eval/sessionChecks.ts`; real transcripts wait on consent, see `docs/changes/session-eval.md` |
 
 ## Current presentation and preview
 

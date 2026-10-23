@@ -118,3 +118,20 @@ which by eye.
 
 The evals in `services/brain-playground` (`npm run eval`) measure AI quality and
 need real keys, so they are not part of the gate.
+
+Three playground evals need no key:
+
+- `npm run eval:sessions -w @luvani/brain-playground` scores recorded sessions turn by turn
+  (rescue, no read-back, gentle, level fit, safety, reply wait). The synthetic set is
+  hand-labelled with one deliberate failure per check, so a clean run exits 1 and lists them.
+  The test `the session eval agrees with every hand label in the synthetic set` holds the
+  checks to those labels in the gate. `--jev` adds Jev's advisory opinion on synthetic and dev
+  records only.
+- `npm run chat -w @luvani/brain-playground -- --record` saves a dev session for it, in the
+  gitignored `services/brain-playground/sessions/`.
+- `npm run eval:beta-numbers -w @luvani/brain-playground -- <export.json>` summarises an
+  export of `live_session_finished` rows and refuses any field beyond the six it allows.
+
+`eval:replay --provider <name>` replays recorded sessions on a model and reports the cost per
+accepted turn. It spends money on any provider but `mock`; see
+[changes/vendor-comparison.md](changes/vendor-comparison.md).

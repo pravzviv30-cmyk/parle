@@ -1,2 +1,6 @@
 # Local learner profile and session data
 .data/
+
+# Dev session records from `npm run chat -- --record`: a developer's own practice
+# transcripts, kept on the machine that made them.
+/sessions/
