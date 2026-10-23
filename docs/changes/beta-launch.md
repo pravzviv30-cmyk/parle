@@ -19,7 +19,7 @@ code side is prepared on `main`. The support address is `hello@luvani.app`.
 |---|---|---|
 | Fast live turns, quiet first rescue, streaming replies | VOICE-002, VOICE-003 | done, on `main` |
 | Pronunciation beside the turn; paid lesson quote prices scoring | VOICE-004, F863 | done, on `main`; flag `LUVANI_AUDIO_SCORING` off |
-| Missions scored on the handed-over line; convo quote prices scoring; recap focus sound | VOICE-004, F866 | on `claude/mission-scoring`, not merged; flag off |
+| Missions scored on the handed-over line; convo quote prices scoring; recap focus sound | VOICE-004, F866 | done, on `main`; flag off |
 | `live_session_finished` event (counts only) | migration 41, `apps/mobile/src/analytics/sessionFinished.ts` | done, on branch `claude/beta-instrumentation` |
 | Support address and Contact row | `apps/mobile/src/legal/company.ts` | done, same branch |
 | Beta metrics queries | [deployment/beta-metrics.sql](../../deployment/beta-metrics.sql) | done, same branch |
