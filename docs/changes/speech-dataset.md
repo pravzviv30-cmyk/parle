@@ -154,42 +154,81 @@ Nothing below is done. Each item needs the founder, and the legal ones need coun
 1. **Legal review.** Confirm the lawful basis:
    - explicit, separate consent under UK and EU GDPR Article 6(1)(a);
    - whether voice recordings used to calibrate a scorer touch Article 9 or US
-     biometric laws (for example Illinois BIPA, Texas CUBI). The design never derives
-     a voiceprint or identifies speakers, but counsel must say so;
-   - a DPIA (Article 35), which is likely required for a new audio dataset;
-   - record keeping for consent (Article 7(1));
+     biometric and voice laws: Illinois BIPA (including its written retention and
+     destruction schedule), Texas CUBI, Washington's biometric law and My Health My
+     Data Act, and the Colorado and California rules on voice recordings. The design
+     never derives a voiceprint or identifies speakers, but counsel must say so;
+   - the EU AI Act, if calibration feeds an automated assessment of learners;
+   - a DPIA (Article 35), treated as required;
+   - consent records kept with the exact wording shown, not only its version
+     (Article 7(1));
    - withdrawal as easy as giving (Article 7(3));
-   - the stance on aggregate calibration after withdrawal.
+   - the stance on aggregate calibration after withdrawal;
+   - whether rater copies may leave the UK or EU, and the transfer mechanism if so;
+   - the right of access (Article 15): the export probably has to carry the audio
+     itself, not only clip metadata.
 2. **`apps/mobile/src/legal/policy.ts`:**
    - "Your speech" changes from "Live conversation audio is not stored by Luvani" to
      an accurate sentence: not stored unless you turn on sharing lesson recordings,
      then what, why, who rates, how long, and how to stop;
    - "Who else sees it" adds contracted French teachers and Supabase Storage;
-   - "How long we keep things" adds the 24-month limit;
-   - "Your rights" says the export covers clip metadata.
+   - "How long we keep things" adds the 24-month limit and the backup window;
+   - "Your rights" changes "No learner audio is stored or included" (the export
+     sentence) to say what the export carries;
+   - the scorer is named correctly. Today the notice names Speechace, while
+     PRIVACY_AND_SAFETY.md says TonePerfect is the default scorer. That gap exists on
+     main already and needs the founder's decision whether or not this lands. A
+     dataset clip is exactly the audio that vendor heard.
 3. **`docs/PRIVACY_AND_SAFETY.md`:**
    - the "Learner utterance audio" row (line 52);
    - "Raw live speech is never stored" (lines 86 to 91), and the speech sentences
-     `policy.test.ts` pins against it, change in the same commit as `policy.ts`;
-   - a new retention row;
+     `policy.test.ts` pins against it (including "Live conversation audio is not
+     stored by Luvani."), change in the same commit as `policy.ts`;
+   - a new retention row, with the backup window;
    - the analytics section stays untouched.
 4. **Disclosure copy reviewed by counsel.** The Settings row and its explainer in
    `apps/mobile/src/speechDataset/consent.ts` get a new `SPEECH_CONSENT_VERSION`
-   whenever the wording changes.
-5. **Contracts:** a DPA with each rater, and confirmed retention with the scoring
-   vendor that hears the clip.
-6. **Code to switch it on**, in order:
-   1. server consent record and endpoints;
-   2. token server signs `speechDataset`;
-   3. `agent.ts` parses it into `datasetConsent`;
-   4. a real `ClipSink` that converts to 16 kHz and uploads through the token server
+   whenever the wording changes. Today's explainer says "your recordings are
+   removed" when you turn it off. Before it is shown it must say exactly what
+   happens:
+   - removed from Luvani's servers, and how quickly;
+   - copies given to teachers removed by a stated time;
+   - results already computed from them are kept;
+   - which vendor scored the clip, the 24-month limit, that teachers are contracted
+     third parties, and where the audio is kept.
+5. **Age.** Confirm that no account that skipped the age stop (a guest, or one not
+   yet age-checked) can reach the consent row or the signed consent bit. The age stop
+   is UK and EU centred, so the consent should not rely on it alone.
+6. **Contracts and handling:**
+   - a DPA with each rater;
+   - a written procedure for rater copies: how many exist, how the laptop is wiped,
+     and how destruction is confirmed;
+   - confirmed retention with both scoring vendors, Speechace and TonePerfect.
+7. **Code to switch it on**, in order:
+   1. server consent record (user, version, wording shown, granted at, withdrawn at)
+      and its endpoints;
+   2. clip insert through a `security definer` function in `luvani_private` that
+      refuses unless a live consent at the current version exists, so a token-server
+      bug cannot write a clip for someone who said no, plus a per-learner volume cap
+      on the `data_write_quotas` pattern;
+   3. token server signs `speechDataset`;
+   4. `agent.ts` passes it as the `datasetConsent` option;
+   5. a real `ClipSink` that converts to 16 kHz and uploads through the token server
       (the agent holds no database credential);
-   5. the bucket;
-   6. expiry, withdrawal and erasure sweeps;
-   7. export;
-   8. migration 42 applied live with the runbook;
-   9. `SPEECH_DATASET_ENABLED` set to true;
-   10. `LUVANI_SPEECH_DATASET=1` on the tutor agent.
+   6. the bucket;
+   7. sweeps, each deleting the object before the row:
+      - expiry, in `run_data_retention_v1`;
+      - withdrawal;
+      - erasure, a new stage in `advance_account_erasure_v1` that runs before
+        `deleteSupabaseUser` and retries on failure;
+   8. a rater-export record (clip id, rater pseudonym, exported at, destroyed at), so
+      a withdrawal can be shown to have reached rater copies;
+   9. export: a schema migration adding the clips to `prepare_account_export_v2`,
+      with a `verifyAccountExport.mjs` case;
+   10. migration 42 applied live with the runbook. Until then it is held: apply 40
+       and 41 only;
+   11. `SPEECH_DATASET_ENABLED` set to true;
+   12. `LUVANI_SPEECH_DATASET=1` on the tutor agent.
 
 ## Screens and states
 
@@ -212,7 +251,7 @@ The row needs a device check when the constant is first flipped.
 | T3 | Inert capture seam in the lesson path | backend-engineer | none | `services/tutor-agent/src/speechClips.ts`, `tutor.ts`, tests, `.env.example`, `docs/LIVE_VOICE.md` | done |
 | T4 | Consent model, copy, hidden Settings row | implementer | none | `apps/mobile/src/speechDataset/`, `settings/`, `storage/scope.ts`, `sync/policy.ts` | done |
 | T5 | Local teacher rating tool | implementer | none | `scripts/speechRatings.mjs`, `scripts/rateSpeechClips.mjs`, test, `scripts/gate.mjs`, `package.json` | done |
-| T6 | Activation (item 6 above) | founder, after legal review | T1 to T5, legal sign-off | not yet scoped | blocked |
+| T6 | Activation (item 7 above) | founder, after legal review | T1 to T5, legal sign-off | not yet scoped | blocked |
 
 Acceptance for T2 to T5: with the flag off, or with consent off, nothing is
 captured, offered or sent. The tests are `speechClips.test.ts`, the "speech dataset

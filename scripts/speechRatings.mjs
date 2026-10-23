@@ -12,29 +12,35 @@ export const MIN_PHONEME_PAIRS = 5;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RATER = /^[a-z0-9_-]{2,32}$/;
 const BANDS = new Set(['A0', 'A1', 'A2']);
-const FORBIDDEN_KEYS = ['transcript', 'text', 'userId', 'email'];
+// Allow-lists, not block-lists: a key we did not plan for (user_id, deviceId, name, ...) is refused.
+const MANIFEST_KEYS = new Set(['version', 'clips']);
+const CLIP_KEYS = new Set(['id', 'file', 'reference', 'cefrBand', 'focusPhonemes', 'vendor', 'vendorScores']);
+const VENDOR_SCORE_KEYS = new Set(['ipa', 'score', 'word', 'substituted']);
+const RATING_KEYS = new Set(['clipId', 'rater', 'overall', 'phonemes', 'ratedAt']);
 const PHONEME_VALUES = new Set(['fine', 'off']);
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
-function refuseForbidden(obj, where) {
-  for (const key of FORBIDDEN_KEYS) {
-    if (Object.hasOwn(obj, key)) throw new Error(`${where}: key "${key}" is not allowed (the manifest holds no learner identity or transcript)`);
+function allowOnly(obj, allowed, where, subject = 'the manifest') {
+  for (const key of Object.keys(obj)) {
+    if (!allowed.has(key)) {
+      throw new Error(`${where ? `${where}: ` : ''}key "${key}" is not allowed (${subject} carries no identity or free text; allowed keys: ${[...allowed].join(', ')})`);
+    }
   }
 }
 
 /** Validate a parsed manifest.json object. Returns the clips or throws a clear Error. */
 export function parseManifest(json) {
   if (!isObject(json)) throw new Error('manifest: must be an object');
-  refuseForbidden(json, 'manifest');
+  allowOnly(json, MANIFEST_KEYS, 'manifest');
   if (json.version !== 1) throw new Error(`manifest: version must be 1, got ${JSON.stringify(json.version)}`);
   if (!Array.isArray(json.clips)) throw new Error('manifest: clips must be an array');
   const seen = new Set();
   return json.clips.map((clip, i) => {
     const where = `manifest clip ${i + 1}`;
     if (!isObject(clip)) throw new Error(`${where}: must be an object`);
-    refuseForbidden(clip, where);
+    allowOnly(clip, CLIP_KEYS, where);
     if (typeof clip.id !== 'string' || !UUID.test(clip.id)) throw new Error(`${where}: id must be a uuid`);
     if (seen.has(clip.id)) throw new Error(`${where}: duplicate id ${clip.id}`);
     seen.add(clip.id);
@@ -48,7 +54,7 @@ export function parseManifest(json) {
     if (!Array.isArray(clip.vendorScores)) throw new Error(`${where}: vendorScores must be an array`);
     clip.vendorScores.forEach((s, j) => {
       if (!isObject(s)) throw new Error(`${where}: vendorScores[${j}] must be an object`);
-      refuseForbidden(s, `${where} vendorScores[${j}]`);
+      allowOnly(s, VENDOR_SCORE_KEYS, `${where} vendorScores[${j}]`);
       if (typeof s.ipa !== 'string' || s.ipa === '') throw new Error(`${where}: vendorScores[${j}].ipa must be a string`);
       if (typeof s.score !== 'number' || !Number.isFinite(s.score) || s.score < 0 || s.score > 100) {
         throw new Error(`${where}: vendorScores[${j}].score must be a number from 0 to 100`);
@@ -61,6 +67,7 @@ export function parseManifest(json) {
 /** Validate one rating object. Throws a plain Error without the line prefix. */
 function checkRating(r) {
   if (!isObject(r)) throw new Error('rating must be a JSON object');
+  allowOnly(r, RATING_KEYS, '', 'a rating line');
   if (typeof r.clipId !== 'string' || !UUID.test(r.clipId)) throw new Error('clipId must be a uuid');
   if (typeof r.rater !== 'string' || !RATER.test(r.rater)) throw new Error('rater must be a pseudonym matching ^[a-z0-9_-]{2,32}$');
   if (!Number.isInteger(r.overall) || r.overall < 1 || r.overall > 5) throw new Error('overall must be an integer from 1 to 5');

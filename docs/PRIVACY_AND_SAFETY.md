@@ -449,7 +449,8 @@ teacher-rated set of lesson recordings is
 [docs/changes/speech-dataset.md](changes/speech-dataset.md) (VOICE-007). Its
 groundwork is in the repo and collects nothing:
 - the tutor agent's clip seam offers nothing unless `LUVANI_SPEECH_DATASET=1` and
-  the learner's consent bit are both on, and nothing sets that bit;
+  the learner's consent bit are both on, and no production code sets that bit
+  (a source-scan test fails if any does);
 - the Settings switch is hidden behind `SPEECH_DATASET_ENABLED`, which is false;
 - the metadata table (migration 42) is prepared and not applied;
 - no storage bucket exists.

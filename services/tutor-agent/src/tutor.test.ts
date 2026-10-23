@@ -46,7 +46,7 @@ function stubSession() {
 
 function build(
   startRung: Rung = RUNGS.PROMPTED,
-  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance; clipSink?: ClipSink } = {},
+  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean } = {},
 ) {
   const tutor = new LuvaniTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
@@ -958,8 +958,8 @@ describe('speech dataset capture stays inert unless the flag and consent are bot
     const built = build(opts.rung ?? RUNGS.PROMPTED, {
       scorer: opts.scorer ?? (async ({ reference }) => lowR(reference)),
       clipSink: { offer: (clip) => { offered.push(clip); } },
+      datasetConsent: opts.consent,
     });
-    built.tutor.datasetConsent = opts.consent;
     t.after(() => built.tutor.clearRescue());
     (built.tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('RIFF-test-audio'), durationSec: 1.2 });
     return { ...built, offered, net };
@@ -985,7 +985,7 @@ describe('speech dataset capture stays inert unless the flag and consent are bot
     const offered: ClipCandidate[] = [];
     const { tutor } = build(RUNGS.PROMPTED, { scorer: async ({ reference }) => lowR(reference), clipSink: { offer: (c) => { offered.push(c); } } });
     t.after(() => tutor.clearRescue());
-    assert.equal(tutor.datasetConsent, false, 'nothing sets consent today');
+    assert.equal((tutor as unknown as { datasetConsent: boolean }).datasetConsent, false, 'consent defaults to false');
     (tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('RIFF-test-audio'), durationSec: 1.2 });
     await say(tutor, 'Bonjour');
     await tutor.finish();
@@ -1041,8 +1041,7 @@ describe('speech dataset capture stays inert unless the flag and consent are bot
   test('a sink that throws never breaks the lesson', async (t) => {
     setEnv(t, 'LUVANI_AUDIO_SCORING', '1');
     setEnv(t, 'LUVANI_SPEECH_DATASET', '1');
-    const { tutor } = build(RUNGS.PROMPTED, { scorer: async ({ reference }) => lowR(reference), clipSink: { offer: () => { throw new Error('sink down'); } } });
-    tutor.datasetConsent = true;
+    const { tutor } = build(RUNGS.PROMPTED, { scorer: async ({ reference }) => lowR(reference), clipSink: { offer: () => { throw new Error('sink down'); } }, datasetConsent: true });
     t.after(() => tutor.clearRescue());
     (tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('RIFF-test-audio'), durationSec: 1.2 });
     await say(tutor, 'Bonjour');

@@ -304,14 +304,15 @@ export class LuvaniTutor extends voice.Agent {
   /**
    * The learner's consent to give reference-line clips to the speech dataset.
    *
-   * Nothing sets it today, so it is always false and nothing is captured.
-   * Activation has the token server sign a consent bit, read from a server
-   * consent record, into join metadata (as `memoryLocked` is), parsed in
-   * agent.ts. See docs/changes/speech-dataset.md.
+   * A constructor option, read once and never reassigned. Nothing in
+   * production code passes it today, so it is always false and nothing is
+   * captured. Activation passes it from agent.ts after the token server signs
+   * a consent bit, read from a server consent record, into join metadata (as
+   * `memoryLocked` is). See docs/changes/speech-dataset.md.
    */
-  datasetConsent = false;
+  private readonly datasetConsent: boolean;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink } = {}) {
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
@@ -323,6 +324,7 @@ export class LuvaniTutor extends voice.Agent {
     this.scoringRequest = options.scoringRequest;
     this.scorer = options.scorer ?? scoreUtterance;
     this.clipSink = options.clipSink ?? NO_CLIP_SINK;
+    this.datasetConsent = options.datasetConsent === true;
   }
 
   get sessionState(): SessionState {
@@ -789,7 +791,7 @@ export class LuvaniTutor extends voice.Agent {
    * Qualification is exactly VOICE-004's scoring gate: the learner said the
    * reference line, and typed or tapped answers never reach here. Capture
    * therefore also needs LUVANI_AUDIO_SCORING=1, on top of
-   * LUVANI_SPEECH_DATASET=1 and the learner's consent, which nothing sets today.
+   * the speech dataset flag and the learner's consent, which nothing passes today.
    *
    * The clip is the audio the scorer was handed. Through the paid transport
    * that is the converted 16 kHz mono WAV; the dev path sends the raw tap WAV,

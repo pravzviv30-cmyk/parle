@@ -3,6 +3,8 @@
  * node scripts/rateSpeechClips.mjs <clipDir> --report              agreement and calibration report
  * Clips are personal data once they exist: keep the folder on an encrypted disk, never
  * email or upload it. See docs/changes/speech-dataset.md.
+ * Last step: when rating is finished, delete the folder and tell the founder, so the
+ * copy can be recorded as destroyed (docs/changes/speech-dataset.md).
  */
 import { existsSync, readdirSync, readFileSync, appendFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';

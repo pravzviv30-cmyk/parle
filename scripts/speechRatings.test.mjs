@@ -34,12 +34,27 @@ test('parseManifest refuses each bad shape with a clear message', () => {
   assert.throws(() => parseManifest(manifest([clip(1), clip(1)])), /duplicate id/);
 });
 
-test('parseManifest refuses learner identity and transcript keys', () => {
-  for (const key of ['transcript', 'text', 'userId', 'email']) {
+test('parseManifest refuses any key outside the allow-list, at every level', () => {
+  const unknown = ['user_id', 'deviceId', 'name', 'transcript'];
+  for (const key of unknown) {
+    const message = new RegExp(`"${key}" is not allowed.*no identity or free text`);
+    assert.throws(() => parseManifest(manifest([clip(1)], { [key]: 'x' })), message, `top level ${key}`);
+    assert.throws(() => parseManifest(manifest([clip(1, { [key]: 'x' })])), message, `clip ${key}`);
+    assert.throws(
+      () => parseManifest(manifest([clip(1, { vendorScores: [{ ipa: 'ʁ', score: 5, [key]: 'x' }] })])),
+      message,
+      `vendorScores ${key}`,
+    );
+  }
+  // The old block-list names stay refused too.
+  for (const key of ['text', 'userId', 'email']) {
     assert.throws(() => parseManifest(manifest([clip(1, { [key]: 'x' })])), new RegExp(`"${key}" is not allowed`));
   }
-  assert.throws(() => parseManifest(manifest([clip(1)], { email: 'a@b.c' })), /"email" is not allowed/);
-  assert.throws(() => parseManifest(manifest([clip(1, { vendorScores: [{ ipa: 'ʁ', score: 5, transcript: 'x' }] })])), /"transcript" is not allowed/);
+});
+
+test('parseManifest still accepts every allowed key', () => {
+  const full = clip(1, { vendorScores: [{ ipa: 'ʁ', score: 60, word: 'voudrais', substituted: 'w' }] });
+  assert.equal(parseManifest(manifest([full])).length, 1);
 });
 
 test('parseRatings reads JSONL, skips blank lines and reports the line number on errors', () => {
@@ -54,6 +69,13 @@ test('parseRatings reads JSONL, skips blank lines and reports the line number on
   assert.throws(() => parseRatings(bad(rating(1, 'teacher-a', 3, { 'ʁ': 'maybe' }))), /line 3: phonemes/);
   assert.throws(() => parseRatings(bad({ ...rating(1, 'teacher-a', 3), ratedAt: 'yesterday' })), /line 3: ratedAt/);
   assert.throws(() => parseRatings(bad({ ...rating(1, 'teacher-a', 3), clipId: 'x' })), /line 3: clipId/);
+});
+
+test('parseRatings refuses any key outside the allow-list', () => {
+  for (const key of ['user_id', 'deviceId', 'name', 'transcript']) {
+    const line = JSON.stringify({ ...rating(1, 'teacher-a', 4), [key]: 'x' });
+    assert.throws(() => parseRatings(line), new RegExp(`line 1: key "${key}" is not allowed.*no identity or free text`));
+  }
 });
 
 test('quadraticWeightedKappa: perfect agreement is 1', () => {

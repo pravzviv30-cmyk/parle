@@ -478,8 +478,9 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   reference line. It is offered where the score settles, so vendor scores travel
   with it. The tutor agent offers a clip to a `ClipSink` only when
   `LUVANI_SPEECH_DATASET=1` and `LuvaniTutor.datasetConsent` are both true. The
-  default sink does nothing, and nothing sets the consent bit: the token server
-  does not sign it and `agent.ts` does not parse it. The app's consent is
+  default sink does nothing, and no production code sets the consent bit, a
+  readonly constructor option: the token server does not sign it, `agent.ts`
+  does not pass it, and a source-scan test fails if anything does. The app's consent is
   separate from usage data, versioned, literal-true only, device-local for now,
   and its Settings switch is hidden behind `SPEECH_DATASET_ENABLED = false`.
   Migration 42 (`speech_dataset_clips`, metadata only, service role only, no
@@ -493,10 +494,13 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   recording as an escalation before a branch. So the design and the safe parts
   are built now, and the promise stays true until a legal review changes it.
 - Consequence: activation needs, in order: legal review and a DPIA; the policy
-  and privacy-doc changes with their pinned tests; rater DPAs; a server consent
-  record; the signed consent bit; an uploader that converts to 16 kHz; a private
-  bucket; withdrawal, expiry and erasure sweeps; export; the migration applied
-  live; then both flags on. Withdrawal will delete clips, and the disclosure must
+  and privacy-doc changes with their pinned tests (and naming the scorer the
+  notice already gets wrong, Speechace against the TonePerfect default); rater
+  DPAs; a server consent record; clip inserts the database itself refuses
+  without a live consent; the signed consent bit; an uploader that converts to
+  16 kHz; a private bucket; withdrawal, expiry and erasure sweeps that delete
+  the object before the row; a rater-export record; export; the migration
+  applied live; then both flags on. The full list is in the change doc. Withdrawal will delete clips, and the disclosure must
   say that aggregate calibration already made is not unpicked.
 - Sources: [speech dataset change](docs/changes/speech-dataset.md),
   [privacy and safety](docs/PRIVACY_AND_SAFETY.md), VOICE-004 above.
