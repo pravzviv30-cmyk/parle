@@ -195,7 +195,12 @@ const FILES: Record<string, string> = {
   // guest sessions so the tutor neither reads nor writes memory. No allowance, debit or
   // price logic changed. Approval: founder 2026-10-20. Review: the Opus orchestrator reads
   // the tokens.ts diff before landing.
-  'services/token-server/src/tokens.ts': '1ddfbe4ed477bd29fb65fbeb2d3497de63eea3df42c83f64efe13e36ba80138f',
+  // 2026-10-23, UI-011: grantSession signs guest first scene rooms (`scene`, lesson
+  // `cafe-guest`, `memoryLocked: true`, at most 180 s, no brief, seed topic or mission).
+  // No allowance, debit, price or trial logic changed. Approval: founder 2026-10-23 (the
+  // guest first scene plan named this tokens.ts change). Review: revenue-engineer read-only
+  // and the Opus orchestrator read the diff.
+  'services/token-server/src/tokens.ts': '1f5ede4809154d4817a00e570768fe0a62eb1dd37d6a749f51cab4b429a5e620',
   'services/token-server/src/store.ts': '2d6d42ea21964bd640ad0f4f2e3b931c0e245364cc39f0d76791165b436fb019',
   'packages/core/src/metering/index.ts': '430ac2a2da7a53dac3d083dccb7a713e4d85d61c910c122128abef675d1c0efa',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',

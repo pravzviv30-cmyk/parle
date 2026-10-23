@@ -111,10 +111,11 @@ Each step names its proof. Stop at the first step whose proof fails.
    with Apple and push, then ship internal, then external.
 8. **Guest first scene (optional, after steps 3 to 5).** This lets people try one
    short scripted café exchange before they make an account (UI-011). It stays
-   off until you switch it on. Worst case is about $0.065 a scene minute, so the
-   default ceiling of 24 scenes a day costs at most $4.68 a day ($140 a month).
-   With a warm voice cache it is about a sixth of that. The full numbers are in
-   the runbook's "Guest first scene" section.
+   off until you switch it on. Worst case is about $0.50 a scene, so the default
+   ceiling of 24 scenes a day costs at most about $12 a day (about $360 a
+   month). With the voice cache warm, a scene costs about $0.03, or about $0.80
+   a day at 24. The full numbers are in the runbook's "Guest first scene"
+   section.
    - Read the scene's lines (`packages/core/src/lessons/guestCafe.ts`). They
      are five of the café lesson's reviewed turns plus a new English premise.
      Say yes or ask for changes.

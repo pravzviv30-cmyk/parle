@@ -642,10 +642,13 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - The installation claim is a courtesy limit. A reinstall, cleared app data
     or a script gets past it. DeviceCheck or Play Integrity waits for the store
     accounts.
-  - Worst case is about $0.065 a scene minute with a cold voice cache, so the
-    default ceiling costs at most $4.68 a day. It sits outside SQL paid
-    admission, like guest speech (D13), and must be added to the launch
-    exposure.
+  - Worst case is about $0.50 a scene (a cold voice cache on all 48 allowed
+    TTS calls in a voice that bills twice), so the default ceiling costs at
+    most about $12 a day. With the voice cache warm, a scene costs about $0.03.
+    It sits outside SQL paid admission, like guest speech (D13), and must be
+    added to the launch exposure.
+  - The `tokens.ts` money pin was re-pinned on 2026-10-23 for the scene
+    signing. No allowance, debit, price or trial logic changed.
   - No Supabase migration.
   - The privacy notice names the pre-account processing.
 - Sources: [change plan](docs/changes/guest-first-scene.md),

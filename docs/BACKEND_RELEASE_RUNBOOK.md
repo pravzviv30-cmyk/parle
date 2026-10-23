@@ -197,23 +197,26 @@ The guest first scene is one five-turn scripted café exchange before sign-up, w
 - **Hard limits.** Each room lasts 180 s at most, enforced by the worker lifecycle. The guest scene gate on the paid voice proxy admits only Deepgram STT (180 s of audio in total) and ElevenLabs TTS of the scene's exact scripted lines in the signed voice. Every other effect is refused.
 - **Retention.** Guest records last 30 days. A claimed record shrinks to its owner binding with a 48-hour TTL.
 
-**Cost.** The scene sits outside SQL paid admission, like guest speech: it has no quote and is not part of the reviewed global exposure. Add its ceiling to the launch economics. The worst case per scene minute is about $0.065:
+**Cost.** The scene sits outside SQL paid admission, like guest speech: it has no quote and is not part of the reviewed global exposure. Add its ceiling to the launch economics.
 
-| Item | Cost per minute |
+The worst case is a scene with a cold voice cache on every call, up to the gate's cap of 48 TTS calls (about 2,900 characters), in one of the voices that bill twice (`emilie`, `sarah`):
+
+| Item | Per scene |
 |---|---|
-| STT, Nova-3 with keyterm prompting | $0.009 |
-| TTS, every line cold | $0.054 |
+| TTS, ElevenLabs v2 at $0.08 per 1k characters | $0.232, or $0.464 in a 2x voice |
+| STT, Nova-3 with keyterm prompting, 180 s | $0.027 |
 | Model | $0 |
 | Scoring | $0 |
-| LiveKit connection minutes (estimate; confirm against the LiveKit plan) | about $0.002 |
+| LiveKit connection minutes (estimate; confirm against the LiveKit plan) | about $0.006 |
+| **Total** | **about $0.27, or $0.50 in a 2x voice (about $0.166 a minute)** |
 
 | `LUVANI_GUEST_SCENE_DAILY` | Worst day | Worst 30 days |
 |---|---|---|
-| 24 | $4.68 | $140 |
-| 100 | $19.50 | $585 |
-| 200 | $39.00 | $1,170 |
+| 24 | about $12 | about $360 |
+| 100 | about $50 | about $1,500 |
+| 200 | about $100 | about $3,000 |
 
-With the `TTS_CACHE_DIR` volume warm, a scene minute costs about $0.011.
+With the `TTS_CACHE_DIR` volume warm, every scene line replays free, and a scene costs about $0.03 (STT and LiveKit only), or about $0.80 a day at 24. To lower the worst case, the gate could hold scenes to single-rate voices, which brings the default ceiling's worst day to about $6.30. That would mean the learner hears a different voice from the tutor they chose.
 
 **Before switching it on:**
 - Confirm the Railway ingress overwrites `X-Forwarded-For` before relying on `LUVANI_TRUST_PROXY`, because the per-address limit depends on it.
@@ -225,5 +228,6 @@ With the `TTS_CACHE_DIR` volume warm, a scene minute costs about $0.011.
   4. Show that a second scene from the same installation is refused.
   5. Show that the counters carry a TTL.
   6. Show that a saved scene's lines appear in the new account's phrasebook.
+  7. Prove the three Lua scripts on the real Redis. They have only run offline against a fake transport. The installation marker must be SET NX with a 30-day TTL, the claim booking must happen once per worker fence, and a claimed record must shrink and carry a TTL of 48 hours or less.
 
 **Switching it off** needs no migration or drain. Unset `LUVANI_GUEST_SCENE` on the API and redeploy. The counters and records expire by themselves.

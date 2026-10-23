@@ -24,8 +24,8 @@ account, the lines they said go into their phrasebook.
   [BACKEND_RELEASE_RUNBOOK.md](../BACKEND_RELEASE_RUNBOOK.md) (the D13 precedent).
 - Non-goals: a free LLM conversation for guests; DeviceCheck, App Attest or Play
   Integrity; any Supabase migration; any hosted action.
-- Risks: the installation id is a forgeable courtesy limit; the money limit is
-  `LUVANI_GUEST_SCENE_DAILY` × 180 s.
+- Risks: the installation id is a forgeable courtesy limit. The money limit is
+  `LUVANI_GUEST_SCENE_DAILY` scenes, each capped at 180 s of audio and 48 TTS calls.
 
 ## Wire contract (shared by the server, the worker and the app)
 
@@ -91,10 +91,18 @@ Names come from `@luvani/core` (`packages/core/src/lessons/guestCafe.ts`):
 
 ## Worst-case cost
 
-Each scene minute costs at most about $0.065: STT $0.009, cold TTS $0.054, no model,
-no scoring, and LiveKit about $0.002 (an estimate). A three-minute scene is at most
-$0.195. At the default ceiling of 24 scenes a day, the worst day is $4.68 and the
-worst 30 days $140. At 100 scenes a day those are $19.50 and $585.
+The worst case is a scene with a cold voice cache on all 48 TTS calls the gate allows,
+about 2,900 characters, in a voice that bills twice:
+
+- TTS: $0.464, or $0.232 in a single-rate voice.
+- STT: $0.027 for 180 s.
+- LiveKit: about $0.006, an estimate.
+- No model and no scoring.
+
+That is about $0.50 a scene. At the default ceiling of 24 a day, the worst day costs
+about $12 and the worst 30 days about $360. With the voice cache warm, a scene costs
+about $0.03. The revenue review of 2026-10-23 corrected an earlier figure of $4.68 a
+day, which had counted each line only once.
 
 ## Execution log
 
