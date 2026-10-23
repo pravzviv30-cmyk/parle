@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 cost per live minute (VOICE-008: measured `DEFAULT_COST_MODEL`, drills on
+  gpt-6-luna, replay memo, durable authored voice cache, `[luvani:cost]` line) on branch
+  `claude/cut-cogs` with main 6326f51b merged in (held, not on main): **6,194 tests, 0 failing**;
+  core 936, brain 501, tutor agent 712, token server 458, playground 29, mobile 3558; all 42
+  migrations replayed. Floors raised only through `gate:bless`.
 - 23 October 2026 main with `claude/speech-dataset` (VOICE-007, inert) merged onto the
   mission scoring landing (F866). The lesson's dataset clip now rides LiveScoring's `onScored`
   callback instead of the old inline scorer: **6,169 tests, 0 failing**; core 936, brain 498,
