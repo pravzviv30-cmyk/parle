@@ -127,13 +127,19 @@ stops being an accident:
 
 Audio does leave the device to four vendors. While a session is live, LiveKit
 carries it, Deepgram transcribes it and ElevenLabs speaks the tutor's side. The
-fourth scores a pronunciation attempt, and it is TonePerfect: `selectScoringVendor`
-in `services/shared/pronunciation.ts` picks it whenever `TONEPERFECT_API_KEY` is set
-and nothing says otherwise. Speechace scores instead only when
+fourth scores a pronunciation attempt. In production that is Speechace, which is the
+scorer the in-app notice names: the token server refuses to start with a
+`TONEPERFECT_API_KEY` or any scoring vendor but Speechace (`services/token-server/src/config.ts`),
+and the tutor refuses live scoring unless `LUVANI_SCORING_VENDOR=speechace` has its key
+(`services/tutor-agent/src/preflight.ts`). Locally, TonePerfect is the default:
+`selectScoringVendor` in `services/shared/pronunciation.ts` picks it whenever
+`TONEPERFECT_API_KEY` is set and nothing says otherwise. Speechace scores instead only when
 `LUVANI_SCORING_VENDOR=speechace` names it, or when its key is the only scoring key
 the server holds. A vendor named without its key scores nothing, so an attempt is
 never sent to a scorer nobody chose. Moving from Speechace to TonePerfect was the
-founder's decision on 29 September 2026 (ledger F616). That is the founder's half of
+founder's decision on 29 September 2026 (ledger F616), but production has not followed it:
+TonePerfect is not a supported production adapter, so hosted scoring stays on Speechace
+until that changes and this file and the notice change with it. That decision is the founder's half of
 the new-vendor escalation in [Escalation and what Luvani is
 not](#escalation-and-what-luvani-is-not); the legal half waits on the same review as
 the rest of this file.
