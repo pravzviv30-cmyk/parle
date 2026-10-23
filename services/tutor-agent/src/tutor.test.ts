@@ -19,6 +19,7 @@ import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
 import { LuvaniTutor, SCORE_SETTLE_MS, forgetReportedSessions, saidTheReferenceLine } from './tutor.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
+import type { ClipCandidate, ClipSink } from './speechClips.ts';
 import type { scoreUtterance } from '../../shared/pronunciation.ts';
 import { pcmAudioMillis } from '../../shared/paidExecution.ts';
 
@@ -45,7 +46,7 @@ function stubSession() {
 
 function build(
   startRung: Rung = RUNGS.PROMPTED,
-  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance } = {},
+  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean } = {},
 ) {
   const tutor = new LuvaniTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
@@ -930,5 +931,121 @@ describe('review fixes for live scoring', () => {
     for (let i = 0; i < 30; i += 1) await Promise.resolve();
     tutor.clearRescue();
     assert.ok(published.some((m) => m.t === 'summary'), 'the end card is written without waiting for the score');
+  });
+});
+
+describe('speech dataset capture stays inert unless the flag and consent are both on', () => {
+  type T = { after: (fn: () => void) => void };
+  function setEnv(t: T, name: string, value: string | undefined): void {
+    const saved = process.env[name];
+    if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    t.after(() => { if (saved === undefined) delete process.env[name]; else process.env[name] = saved; });
+  }
+  /** Records every fetch; the scorer is a stub, so the count must stay zero. */
+  function fetchTripwire(t: T): { calls: number } {
+    const real = globalThis.fetch;
+    const seen = { calls: 0 };
+    globalThis.fetch = (async () => { seen.calls += 1; throw new Error('no network'); }) as typeof fetch;
+    t.after(() => { globalThis.fetch = real; });
+    return seen;
+  }
+  const lowR = (word: string) => [{ ipa: 'ʁ', score: 30, word }];
+  function setup(t: T, opts: { flag: boolean; consent: boolean; scorer?: typeof scoreUtterance; rung?: Rung }) {
+    setEnv(t, 'LUVANI_AUDIO_SCORING', '1');
+    setEnv(t, 'LUVANI_SPEECH_DATASET', opts.flag ? '1' : undefined);
+    const net = fetchTripwire(t);
+    const offered: ClipCandidate[] = [];
+    const built = build(opts.rung ?? RUNGS.PROMPTED, {
+      scorer: opts.scorer ?? (async ({ reference }) => lowR(reference)),
+      clipSink: { offer: (clip) => { offered.push(clip); } },
+      datasetConsent: opts.consent,
+    });
+    t.after(() => built.tutor.clearRescue());
+    (built.tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('RIFF-test-audio'), durationSec: 1.2 });
+    return { ...built, offered, net };
+  }
+  async function say(tutor: LuvaniTutor, line: string): Promise<void> {
+    await tutor.onUserTurnCompleted({} as never, heard(line)).catch(() => {});
+    await tutor.settled();
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+  }
+
+  test('scoring on, dataset flag off, consent on: nothing is offered', async (t) => {
+    const { tutor, offered, net } = setup(t, { flag: false, consent: true });
+    await say(tutor, 'Bonjour');
+    await tutor.finish();
+    assert.equal(offered.length, 0);
+    assert.equal(net.calls, 0);
+  });
+
+  test('flag on, consent at its default: nothing is offered', async (t) => {
+    setEnv(t, 'LUVANI_AUDIO_SCORING', '1');
+    setEnv(t, 'LUVANI_SPEECH_DATASET', '1');
+    const net = fetchTripwire(t);
+    const offered: ClipCandidate[] = [];
+    const { tutor } = build(RUNGS.PROMPTED, { scorer: async ({ reference }) => lowR(reference), clipSink: { offer: (c) => { offered.push(c); } } });
+    t.after(() => tutor.clearRescue());
+    assert.equal((tutor as unknown as { datasetConsent: boolean }).datasetConsent, false, 'consent defaults to false');
+    (tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('RIFF-test-audio'), durationSec: 1.2 });
+    await say(tutor, 'Bonjour');
+    await tutor.finish();
+    assert.equal(offered.length, 0);
+    assert.equal(net.calls, 0);
+  });
+
+  test('flag and consent on, reference line said: offered once, with no transcript', async (t) => {
+    const { tutor, offered, net } = setup(t, { flag: true, consent: true });
+    await say(tutor, 'Bonjour');
+    await tutor.finish();
+    assert.equal(offered.length, 1);
+    const clip = offered[0]!;
+    assert.equal(clip.reference, CAFE_LESSON.turns[0]!.reference);
+    assert.equal(clip.lessonId, CAFE_LESSON.id);
+    assert.equal(clip.turnId, CAFE_LESSON.turns[0]!.id);
+    assert.equal(clip.durationSec, 1.2);
+    assert.ok(clip.wav.length > 0);
+    assert.deepEqual(clip.observations, lowR(clip.reference));
+    const keys = Object.keys(clip);
+    assert.ok(!keys.includes('transcript') && !keys.includes('text'), `no transcript travels with audio: ${keys}`);
+    assert.equal(net.calls, 0);
+  });
+
+  test('flag and consent on, extra words beyond the reference: never offered', async (t) => {
+    const { tutor, offered, net } = setup(t, { flag: true, consent: true });
+    await say(tutor, 'Bonjour');
+    offered.length = 0;
+    await say(tutor, "un café et un croissant s'il vous plaît");
+    await tutor.finish();
+    assert.equal(offered.length, 0);
+    assert.equal(net.calls, 0);
+  });
+
+  test('flag and consent on, typed and tapped answers: never offered', async (t) => {
+    const { tutor, session, offered, net } = setup(t, { flag: true, consent: true, rung: RUNGS.CUED });
+    await tutor.handleClientMessage(session, tapped({ t: 'choice', text: 'Bonjour' }));
+    await tutor.handleClientMessage(session, tapped({ t: 'say', text: "Un café, s'il vous plaît" }));
+    await tutor.settled();
+    await tutor.finish();
+    assert.equal(offered.length, 0);
+    assert.equal(net.calls, 0);
+  });
+
+  test('flag and consent on, scorer returns nothing: not offered', async (t) => {
+    const { tutor, offered, net } = setup(t, { flag: true, consent: true, scorer: async () => [] });
+    await say(tutor, 'Bonjour');
+    await tutor.finish();
+    assert.equal(offered.length, 0);
+    assert.equal(net.calls, 0);
+  });
+
+  test('a sink that throws never breaks the lesson', async (t) => {
+    setEnv(t, 'LUVANI_AUDIO_SCORING', '1');
+    setEnv(t, 'LUVANI_SPEECH_DATASET', '1');
+    const { tutor } = build(RUNGS.PROMPTED, { scorer: async ({ reference }) => lowR(reference), clipSink: { offer: () => { throw new Error('sink down'); } }, datasetConsent: true });
+    t.after(() => tutor.clearRescue());
+    (tutor as unknown as { tap: { take: () => unknown } }).tap.take = () => ({ wav: Buffer.from('RIFF-test-audio'), durationSec: 1.2 });
+    await say(tutor, 'Bonjour');
+    assert.equal(tutor.sessionState.turnIndex, 1);
+    await tutor.finish();
   });
 });

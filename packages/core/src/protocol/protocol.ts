@@ -139,6 +139,11 @@ export interface RecapPayload {
   topics: { fr: string; en: string }[];
   cefr: { estimate: string; confidence: 'low' | 'medium' | 'high' };
   stats: { turns: number; rescues: number; unassistedRate: number };
+  /**
+   * One sound heard in this conversation, scored only on the line the learner
+   * was handed. Absent when nothing was scored or nothing needs work.
+   */
+  focusSound?: { ipa: string; word: string };
 }
 
 // ────────────────────────────────────────────────────────── safety decisions

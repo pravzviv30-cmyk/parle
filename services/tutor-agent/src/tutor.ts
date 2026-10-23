@@ -20,14 +20,12 @@ import {
   addPronunciation,
   createSession,
   currentPrompt,
-  matchAcceptable,
   submitTurn,
   summarise,
   toLearnerInput,
   STUCK_SILENCE_MS,
   type Lesson,
   type LessonTurn,
-  type PhonemeObservation,
   type Rung,
   type ServerMessage,
   type SessionState,
@@ -42,7 +40,8 @@ import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
 import { scoreUtterance } from '../../shared/pronunciation.ts';
-import { toSpeechaceWav } from '../../shared/liveScoringAudio.ts';
+import { LESSON_SCORING_EFFECTS } from '../../shared/lessonScoringQuote.ts';
+import { LIVE_SCORE_TIMEOUT_MS, LiveScoring, SCORE_SETTLE_MS, SETTLE_DEADLINE_MARGIN_SEC, nearHardLimit, saidTheLine } from './liveScoring.ts';
 import { reportUsage } from './usage.ts';
 import { terminalServiceFailure } from './serviceFailure.ts';
 import type { ServiceFailure } from '@luvani/core';
@@ -50,6 +49,7 @@ import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 import { safeError } from './safeError.ts';
 import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
+import { NO_CLIP_SINK, mayCapture, speechDatasetEnabled, type ClipCandidate, type ClipSink } from './speechClips.ts';
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
 import { isAcceptedLearnerText, outputGuard, recordSafetyDecision, safetyDecision } from './safety.ts';
 import type { RuntimeLifecycle } from './sessionLifecycle.ts';
@@ -181,44 +181,16 @@ export function forgetReportedSessions(): void {
   reportedSessions.clear();
 }
 
-/**
- * How long a finishing lesson waits for scores still in flight before it
- * writes the end card without them. Short, because the learner is looking at
- * a spinner: a score that has not landed by now is reported as not assessed,
- * which is honest, rather than awaited.
- */
-export const SCORE_SETTLE_MS = 2_500;
-
-/** Under this many seconds left before the hard limit, a finishing lesson does not wait for scores. */
-export const SETTLE_DEADLINE_MARGIN_SEC = 5;
-
-let conversionWarned = false;
-/** Once per process: a capture the paid scorer cannot take is a fleet-wide fact, not a per-turn one. */
-function warnConversionOnce(error: unknown): void {
-  if (conversionWarned) return;
-  conversionWarned = true;
-  console.warn('[luvani] live audio could not be converted for scoring; these utterances stay unscored:', safeError(error));
-}
-
-/** How long one background score may take: the most `scoreUtterance` allows. */
-export const LIVE_SCORE_TIMEOUT_MS = 10_000;
+// The background scorer moved to liveScoring.ts so the conversation shares it;
+// these stay exported from here so existing imports keep working.
+export { SCORE_SETTLE_MS, SETTLE_DEADLINE_MARGIN_SEC, LIVE_SCORE_TIMEOUT_MS };
 
 /**
- * Did the learner say the line the scorer will compare them against?
- *
- * Accuracy scoring force-aligns the reference text to the whole clip, so it
- * means something only when the clip is that line and nothing else. The line
- * itself, the line with hesitation fillers, or the line with one recognition
- * slip all count, which keeps an accented learner whose transcript came back a
- * little off in scope. Grading's looser content match does not: "un café et un
- * croissant s'il vous plaît" carries every content word of the reference, but
- * the extra words would be scored against reference sounds and name a focus
- * the learner never got wrong. An accepted alternative or a different option
- * is never scored either.
+ * Did the learner say this turn's reference line? See `saidTheLine`: an
+ * accepted alternative or a different option is never scored.
  */
 export function saidTheReferenceLine(turn: LessonTurn, transcript: string): boolean {
-  const match = matchAcceptable({ ...turn, target: turn.reference, accepts: [], options: [] }, transcript);
-  return match.via === 'exact' || match.via === 'filler' || match.via === 'typo';
+  return saidTheLine(turn.reference, transcript);
 }
 
 export class LuvaniTutor extends voice.Agent {
@@ -257,16 +229,12 @@ export class LuvaniTutor extends voice.Agent {
   private refused = false;
   /** Keeps a copy of each utterance on its way to the recogniser. */
   private readonly tap = new UtteranceTap();
-  private readonly scoringRequest: typeof fetch | undefined;
-  private readonly scorer: typeof scoreUtterance;
   /**
-   * Sound evidence gathered beside the turns, one entry per scored utterance.
-   * Kept out of the queued lesson state on purpose: a score lands whenever the
-   * vendor answers, and the ladder and the checkpoints never wait for it.
+   * Sound evidence gathered beside the turns. Kept out of the queued lesson
+   * state on purpose: a score lands whenever the vendor answers, and the
+   * ladder and the checkpoints never wait for it.
    */
-  private readonly scoredUtterances: PhonemeObservation[][] = [];
-  private readonly pendingScores = new Set<Promise<void>>();
-  private scoresClosed = false;
+  private readonly scoring: LiveScoring;
   /** A safety stop is closing this room; nothing waits on a score now. */
   private stopping = false;
 
@@ -297,7 +265,21 @@ export class LuvaniTutor extends voice.Agent {
    */
   private readonly persona: TutorPersona | undefined;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance } = {}) {
+  /** Where a consented dataset clip would go. Today only NO_CLIP_SINK exists. */
+  private readonly clipSink: ClipSink;
+
+  /**
+   * The learner's consent to give reference-line clips to the speech dataset.
+   *
+   * A constructor option, read once and never reassigned. Nothing in
+   * production code passes it today, so it is always false and nothing is
+   * captured. Activation passes it from agent.ts after the token server signs
+   * a consent bit, read from a server consent record, into join metadata (as
+   * `memoryLocked` is). See docs/changes/speech-dataset.md.
+   */
+  private readonly datasetConsent: boolean;
+
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
@@ -306,8 +288,10 @@ export class LuvaniTutor extends voice.Agent {
     this.acknowledgedState = state;
     this.voiceless = options.voiceless ?? false;
     this.persona = options.persona;
-    this.scoringRequest = options.scoringRequest;
-    this.scorer = options.scorer ?? scoreUtterance;
+    this.scoring = new LiveScoring({ scoringRequest: options.scoringRequest, scorer: options.scorer,
+      signal: () => this.lifecycle?.signal, maxScores: LESSON_SCORING_EFFECTS });
+    this.clipSink = options.clipSink ?? NO_CLIP_SINK;
+    this.datasetConsent = options.datasetConsent === true;
   }
 
   get sessionState(): SessionState {
@@ -719,7 +703,7 @@ export class LuvaniTutor extends voice.Agent {
     // scoring meaningful at all, so only a learner who said the reference line
     // is scored against it (see the note in packages/core/src/lessons/types.ts).
     if (audioScoringEnabled() && utterance && saidTheReferenceLine(prompt.turn, transcript)) {
-      this.scoreInBackground(utterance.wav, prompt.turn.reference);
+      this.scoreInBackground(utterance.wav, prompt.turn.reference, this.lesson.id, prompt.turn.id, utterance.durationSec);
     }
 
     await this.enqueue(this.session, {
@@ -739,57 +723,49 @@ export class LuvaniTutor extends voice.Agent {
   }
 
   /**
-   * Score one utterance without anybody waiting for it.
-   *
-   * Through the paid transport the audio must be the gate's exact 16 kHz mono
-   * WAV, made here from the PCM the tap already holds rather than by the
-   * external decoder (F805). Anything that cannot be made into it, a vendor
-   * that times out or returns nothing, and a score landing after the end card
-   * was written all leave no evidence, which the card reports as not assessed.
+   * Score one utterance without anybody waiting for it (see LiveScoring.score).
+   * An utterance that comes back with evidence is offered as a dataset clip,
+   * which `offerClip` drops unless the dataset flag and the learner's consent
+   * are both on (VOICE-007). The clip carries the audio exactly as it was scored.
    */
-  private scoreInBackground(wav: Uint8Array, reference: string): void {
-    let audio: Uint8Array;
-    try { audio = this.scoringRequest ? toSpeechaceWav(wav) : wav; } catch (error) {
-      warnConversionOnce(error);
-      return;
-    }
-    const work: Promise<void> = Promise.resolve().then(() => this.scorer({ reference, audio }, {
-      // Nobody waits on this, so it gets the vendor's full budget: a cold
-      // TonePerfect call measured past five seconds on 2026-10-22, then 1 to 2.5.
-      timeoutMs: LIVE_SCORE_TIMEOUT_MS,
-      ...(this.scoringRequest ? { fetchFn: this.scoringRequest } : {}),
-      ...(this.lifecycle ? { signal: this.lifecycle.signal } : {}),
-    })).then((observations) => {
-      if (!this.scoresClosed && observations.length > 0) this.scoredUtterances.push(observations);
-    }).catch(() => {}).finally(() => { this.pendingScores.delete(work); });
-    this.pendingScores.add(work);
+  private scoreInBackground(wav: Uint8Array, reference: string, lessonId: string, turnId: string, durationSec: number): void {
+    this.scoring.score(wav, reference, (observations, audio) =>
+      this.offerClip({ reference, lessonId, turnId, wav: audio, durationSec, observations }));
+  }
+
+  /**
+   * Offer a scored reference-line clip to the speech dataset seam, which is inert.
+   *
+   * Qualification is exactly VOICE-004's scoring gate: the learner said the
+   * reference line, and typed or tapped answers never reach here. Capture
+   * therefore also needs LUVANI_AUDIO_SCORING=1, on top of
+   * the speech dataset flag and the learner's consent, which nothing passes today.
+   *
+   * The clip is the audio the scorer was handed. Through the paid transport
+   * that is the converted 16 kHz mono WAV; the dev path sends the raw tap WAV,
+   * and activation requires the converted 16 kHz audio
+   * (docs/changes/speech-dataset.md). A sink can never break the lesson.
+   */
+  private offerClip(clip: ClipCandidate): void {
+    if (!mayCapture({ enabled: speechDatasetEnabled(), consent: this.datasetConsent })) return;
+    try { this.clipSink.offer(clip); } catch { /* the lesson goes on */ }
   }
 
   /**
    * Give scores still in flight a short, bounded chance to land, then close.
    *
    * Called before the lifecycle completes, because completing aborts the
-   * signal every score is running on. Nothing after this adds evidence.
+   * signal every score is running on. A safety stop closes the room as soon as
+   * its words are delivered, and a lesson ending at its hard limit needs every
+   * second for settlement. Neither waits on a score.
    */
-  private async settleScores(): Promise<void> {
-    const nearDeadline = this.lifecycle ? this.lifecycle.maxSeconds - this.lifecycle.elapsedSeconds() < SETTLE_DEADLINE_MARGIN_SEC : false;
-    // A safety stop closes the room as soon as its words are delivered, and a
-    // lesson ending at its hard limit needs every second for settlement. Neither
-    // waits on a score.
-    if (this.pendingScores.size > 0 && !this.stopping && !nearDeadline) {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      await Promise.race([
-        Promise.allSettled([...this.pendingScores]),
-        new Promise<void>((resolve) => { timer = setTimeout(resolve, SCORE_SETTLE_MS); }),
-      ]);
-      if (timer) clearTimeout(timer);
-    }
-    this.scoresClosed = true;
+  private settleScores(): Promise<void> {
+    return this.scoring.settle({ skip: this.stopping || nearHardLimit(this.lifecycle) });
   }
 
   /** The lesson state with the sound evidence gathered beside it. */
   private withPronunciation(state: SessionState): SessionState {
-    return this.scoredUtterances.reduce(addPronunciation, state);
+    return this.scoring.utterances.reduce(addPronunciation, state);
   }
 
   /**

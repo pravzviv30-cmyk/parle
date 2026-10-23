@@ -150,6 +150,9 @@ export const USER_KEY_SUFFIXES = [
   // gave it, and an answer missing from the export would be a fact about the
   // learner the export does not admit to holding.
   'analytics',
+  // The speech dataset consent (inert groundwork, docs/changes/speech-dataset.md),
+  // here for the analytics consent's reason: erasure clears it, export carries it.
+  'speechDataset',
   // The sync engine's dirty set. It has to be here even though no `userKey`
   // call in the source names it — the engine resolves it through an injected
   // key function, so scope.test.ts's literal scan cannot see it, and

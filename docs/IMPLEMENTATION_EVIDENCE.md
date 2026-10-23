@@ -22,6 +22,19 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 main with `claude/speech-dataset` (VOICE-007, inert) merged onto the
+  mission scoring landing (F866). The lesson's dataset clip now rides LiveScoring's `onScored`
+  callback instead of the old inline scorer: **6,169 tests, 0 failing**; core 936, brain 498,
+  tutor agent 693, token server 458, playground 26, mobile 3558; all 42 migrations replayed.
+  Floors set to this run.
+- 23 October 2026 `claude/speech-dataset` (inert groundwork for a consented, teacher-rated speech
+  dataset, VOICE-007, migration 42 prepared and held) on top of main at 717655fb:
+  **6,146 tests, 0 failing**; core 935, brain 498, tutor agent 672, token server 458,
+  playground 26, mobile 3557. The floors were blessed on this branch; all 42 migrations replayed.
+- 22 October 2026 mission pronunciation (F866: missions scored live on the handed-over line,
+  recap focus sound, convo scoring quote) on branch `claude/mission-scoring` with main 717655fb
+  merged in (held, not on main): **6,147 tests, 0 failing**; core 936, brain 498, tutor agent
+  682, token server 458, playground 26, mobile 3547. Floors raised only through `gate:bless`.
 - 22 October 2026 main after landing Your French (`claude/your-french`, `claude/your-french-evidence`)
   on top of Steps 1–3, VOICE-005, the beta controls and the mission spine, at cb8c7a7e:
   **6,124 tests, 0 failing**; core 935, brain 498, tutor agent 661, token server 458,
@@ -850,7 +863,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 41 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 42 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -864,7 +877,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **41 migrations** for a fresh full schema, applied once in order from
+There are **42 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -949,6 +962,7 @@ There are **41 migrations** for a fresh full schema, applied once in order from
 39. `20261007121856_preserve_store_trial_budget_and_year_extension.sql`, F747/F748: trial phrase audio retains the $0.02 lifetime allowance; extending the same paid year preserves charging for an in-flight session. SQL projection proofs pass, including rollback and reapply. Prepared, not applied live. Roll back this migration before the store trial/year migration, using its guarded rollback.
 40. `20261020140000_weekly_free_taste.sql`, D24: the one-off thirty free minutes become a weekly free taste of five minutes. `entitlements.weekly_taste` marks a claimed (or lapsed) free row, the only kind that refills; the first debit sets the refill time a week out in the same usage epoch, a passed window refills lazily (new epoch, deferred while a session is live), every lapse lands on a fresh taste still marked `lapsed_from_paid`, and the trial cap is 300 seconds. Adds the `launch` and `locked` wall doors. Disposable SQL proofs pass in `scripts/verifyTutorSessions.mjs`, including interlocked rollback and reapply. Prepared, not applied live. Roll it back first, using its guarded rollback.
 41. `20261022120000_live_session_finished_event.sql`, beta instrumentation: `validate_product_event` accepts `live_session_finished` (closed `kind`, boolean `voice`, counts `turns`, `rescues`, `unassistedPct`, nullable `replyLatencyMs`), matching the client union and `parseProductEvent`; every other branch is carried over from 40. Disposable SQL proofs replay it with the other migrations. Prepared, not applied live. Roll it back first, before 40.
+42. `20261022200000_speech_dataset_clips.sql`, inert speech-dataset groundwork: the service-only `speech_dataset_clips` table, metadata only (no audio, no transcript, no free text). RLS on, no policies, every privilege revoked from public, anon, authenticated and service_role, then service_role gets only select, delete and a column insert without `captured_at`, so there is no update or truncate and `captured_at` is always `now()`. Closed jsonb shapes (phonemes: strings of 1..8 chars; scores: core's PhonemeObservation keys only), a non-blank reference line without control characters, `object_path = <user_id>/<id>.wav`, an expiry at most 24 months after capture, named check constraints, and an account-deletion cascade. Disposable SQL proofs in `scripts/verifyDataBoundaries.mjs` (with simulated hosted defaults granting ALL) refuse client reads and writes, service_role update, truncate and captured_at inserts, and each out-of-range row by constraint name, accept exactly 24 months and a valid observation, and prove the rollback refuses by default, drops when authorised, and the migration re-applies twice. Prepared, not applied live, and nothing writes to it until the legal review in docs/changes/speech-dataset.md. Roll it back first, before 41, using its guarded destructive rollback.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

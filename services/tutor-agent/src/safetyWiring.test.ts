@@ -27,6 +27,23 @@ describe('safety is a code boundary, not prompt advice', () => {
     assert.ok(spokenGuard > 0 && scoring > spokenGuard && grading > spokenGuard);
   });
 
+  test('a spoken mission turn is guarded before its audio is scored', () => {
+    const spokenGuard = convo.indexOf('if (this.handleSafety(text)) {');
+    // Unsafe speech never reaches the scoring vendor.
+    const scoring = convo.indexOf('this.scoring.score(', spokenGuard);
+    assert.ok(spokenGuard > 0 && scoring > spokenGuard);
+    assert.equal(convo.indexOf('this.scoring.score('), scoring, 'and nothing scores before the guard');
+  });
+
+  test('scoring never sits on the reply path', () => {
+    for (const name of ['private speakEarly(', 'private async performBrainTurn(', 'private async runBrainTurn(']) {
+      const start = convo.indexOf(name);
+      const body = convo.slice(start, convo.indexOf('\n  }\n', start));
+      assert.ok(start > 0 && body.length > name.length, name);
+      assert.doesNotMatch(body, /scoring/, `${name} never touches the scorer`);
+    }
+  });
+
   test('stop decisions end the session so crisis handling is never metered as more roleplay', () => {
     // `closeAfterStop` finishes the session and then closes the room. The
     // behaviour both halves of that promise is held to lives in convo.test.ts,

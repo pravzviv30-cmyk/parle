@@ -182,6 +182,25 @@ describe('round-tripping real session objects', () => {
     };
     assert.deepEqual(decodeServerMessage(encodeMessage(msg)), msg);
   });
+
+  test('a recap with the one sound heard survives the wire', () => {
+    const msg: ServerMessage = {
+      t: 'recap',
+      recap: {
+        headline: 'You ordered a coffee in French.',
+        wins: [],
+        fixes: [],
+        phrases: [],
+        nextFocus: 'Keep going.',
+        topics: [{ fr: 'Au café', en: 'Ordering at the café' }],
+        cefr: { estimate: 'A1', confidence: 'low' },
+        stats: { turns: 4, rescues: 2, unassistedRate: 0.5 },
+        focusSound: { ipa: 'ʁ', word: 'croissant' },
+      },
+      profile: {},
+    };
+    assert.deepEqual(decodeServerMessage(encodeMessage(msg)), msg);
+  });
 });
 
 describe('client messages', () => {

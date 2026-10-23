@@ -23,7 +23,11 @@ import { voice, type llm, type stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream } from 'node:stream/web';
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
-import { recognitionPhrases, repairRecognizedFrench } from '@luvani/core';
+import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
+import { LiveScoring, nearHardLimit, saidTheLine } from './liveScoring.ts';
+import { CONVO_SCORING_EFFECTS } from '../../shared/lessonScoringQuote.ts';
+import type { scoreUtterance } from '../../shared/pronunciation.ts';
+import { buildReport, recognitionPhrases, repairRecognizedFrench } from '@luvani/core';
 import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parseReviewFocus, parsePreviousCorrection, tutorSessionBrief } from '@luvani/core';
 import { selectedBrain } from './preflight.ts';
 import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
@@ -195,8 +199,11 @@ export function toConvoView(view: TurnView): ConvoView {
   };
 }
 
-/** The recap is already wire-shaped; the map is stated so it cannot silently widen. */
-export function toRecapPayload(recap: SessionRecap): RecapPayload {
+/**
+ * The recap is already wire-shaped; the map is stated so it cannot silently widen.
+ * `focusSound` is added only when a scored line named one.
+ */
+export function toRecapPayload(recap: SessionRecap, focusSound?: RecapPayload['focusSound']): RecapPayload {
   return {
     headline: recap.headline,
     wins: recap.wins,
@@ -206,6 +213,7 @@ export function toRecapPayload(recap: SessionRecap): RecapPayload {
     topics: recap.topics,
     cefr: recap.cefr,
     stats: recap.stats,
+    ...(focusSound ? { focusSound } : {}),
   };
 }
 
@@ -1004,6 +1012,18 @@ export class LuvaniConversation extends voice.Agent {
   private lifecycle: RuntimeLifecycle | undefined;
   private acknowledged: { state: ConversationState; profile: LearnerProfile } | undefined;
 
+  /**
+   * Sounds scored beside the turns (VOICE-004), only on the full line the
+   * learner was handed. Runs on the lifecycle's signal, never `liveWork`'s:
+   * `complete()` aborts live work before it lets the scores settle.
+   */
+  private readonly scoring: LiveScoring;
+  /**
+   * The tap on the recogniser now in use. A new one per `sttNode` call, because
+   * swapping the recogniser mid-session restarts its clock.
+   */
+  private tap: UtteranceTap | undefined;
+
   attachLifecycle(lifecycle: RuntimeLifecycle): void {
     this.lifecycle = lifecycle; this.acknowledged = { state: this.state, profile: this.profile };
   }
@@ -1225,6 +1245,9 @@ export class LuvaniConversation extends voice.Agent {
       persona?: TutorPersona;
       /** Free or lapsed learner: no saved memory in prompts, no remembered opener, no extraction. */
       memoryLocked?: boolean;
+      /** The paid transport for live pronunciation scoring. */
+      scoringRequest?: typeof fetch;
+      scorer?: typeof scoreUtterance;
     } = {},
   ) {
     // The pipeline LLM never generates here; see the header. One line keeps
@@ -1276,6 +1299,8 @@ export class LuvaniConversation extends voice.Agent {
     this.persona = opts.persona;
     if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
     if (opts.setSttPhrases) this.setSttPhrases = opts.setSttPhrases;
+    this.scoring = new LiveScoring({ scoringRequest: opts.scoringRequest, scorer: opts.scorer,
+      signal: () => this.lifecycle?.signal, maxScores: CONVO_SCORING_EFFECTS });
   }
 
   /** Where the conversation has got to. Read-only, for the worker and for tests. */
@@ -2275,13 +2300,34 @@ export class LuvaniConversation extends voice.Agent {
     return frames && this.firstFrameTiming ? this.replyAudio.observe(frames) : frames;
   }
 
-  /** Observe provider confidence without grading it or retaining another take. */
+  /**
+   * Observe provider confidence without grading it. With live scoring on, a
+   * tap also keeps each utterance's audio until its turn takes it.
+   */
   override async sttNode(
     audio: ReadableStream<AudioFrame> | AsyncIterable<AudioFrame>,
     modelSettings: Parameters<voice.Agent['sttNode']>[1],
   ): Promise<ReadableStream<stt.SpeechEvent | string> | null> {
-    const events = await voice.Agent.default.sttNode(this, audio, modelSettings);
-    return events ? ReadableStream.from(observeRecognitionConfidence(events)) : events;
+    if (!audioScoringEnabled()) {
+      const events = await voice.Agent.default.sttNode(this, audio, modelSettings);
+      return events ? ReadableStream.from(observeRecognitionConfidence(events)) : events;
+    }
+    const tap = new UtteranceTap();
+    this.tap = tap;
+    const events = await voice.Agent.default.sttNode(this, observeFrames(audio, tap), modelSettings);
+    if (!events) return events;
+    return ReadableStream.from(observeEvents(observeRecognitionConfidence(events), tap)) as ReadableStream<stt.SpeechEvent | string>;
+  }
+
+  /**
+   * The full line on screen right now, if the learner has been handed one.
+   * Read from the last published view, not the state: an English reply can
+   * hide the card while the state still says depth 2, and a rescue's turn can
+   * replace the support behind it.
+   */
+  private shownFullLine(): string | null {
+    const support = this.lastView?.supportView;
+    return support?.kind === 'full-line' && support.line.trim().length > 0 ? support.line : null;
   }
 
   /** The learner said something. Run it through the brain, speak the answer. */
@@ -2294,6 +2340,8 @@ export class LuvaniConversation extends voice.Agent {
     this.clearRescue();
     this.learnerSpeaking = false;
     const text = (newMessage.textContent ?? '').trim();
+    // Taken on every turn, scored or not, so audio never carries to a later one.
+    const utterance = this.tap?.take() ?? null;
     // Consume even an excluded input's EOU. Choosing, empty input or a safety
     // refusal must not leave a timestamp available to the next scene reply.
     const timing = this.beginReplyTiming?.(
@@ -2318,6 +2366,13 @@ export class LuvaniConversation extends voice.Agent {
           console.error('[luvani] the spoken topic could not open a scene:', safeError(error));
         });
       } else if (this.phase === 'scene') {
+        // Scored beside the turn, never in front of it, and only when the raw
+        // recognition is the line they were handed: the scorer aligns that line
+        // to the whole clip (VOICE-004).
+        const reference = this.shownFullLine();
+        if (audioScoringEnabled() && utterance && reference && saidTheLine(reference, text)) {
+          this.scoring.score(utterance.wav, reference);
+        }
         const inputTiming = this.beginInputReplyTiming?.('spoken');
         const recognized = repairRecognizedFrench(text, this.recognitionContext());
         this.publish({ t: 'transcript', text: recognized.text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}`, ...(recognized.interpreted ? { interpreted: true } : {}) });
@@ -2766,6 +2821,15 @@ export class LuvaniConversation extends voice.Agent {
     this.finishedAt ??= new Date().toISOString();
     this.releaseMoment();
     this.clearRescue();
+    // The legacy path bills wall-clock seconds; they stop here, not after the
+    // wait for scores below.
+    const endedAt = Date.now();
+    // Before the lifecycle completes, which aborts the signal scores run on. A
+    // safety stop, a terminal service failure and a session at its hard limit
+    // wait on no score.
+    await this.scoring.settle({ skip: this.safetyStopped || !!this.serviceFailure || nearHardLimit(this.lifecycle) });
+    const focus = buildReport(this.scoring.utterances.flat()).focus;
+    const focusSound = focus ? { ipa: focus.phoneme.ipa, word: focus.stat.worstWord } : undefined;
 
     if (this.lifecycle) {
       if (this.acknowledged) { this.state = this.acknowledged.state; this.profile = this.acknowledged.profile; }
@@ -2773,7 +2837,7 @@ export class LuvaniConversation extends voice.Agent {
         estimate: this.profile.cefr.estimate, confidence: this.profile.cefr.confidence,
       });
       this.state = state; this.profile = finishSession(this.profile, state);
-      this.lastRecap = { t: 'recap', recap: toRecapPayload(recap), profile: this.profile };
+      this.lastRecap = { t: 'recap', recap: toRecapPayload(recap, focusSound), profile: this.profile };
       if (this.enrichBeforeComplete && this.learnerTurns > 0 && !this.safetyStopped && !this.serviceFailure && !this.lifecycle.signal.aborted) {
         // No analyst calls after completion, lease expiry or deletion. Baseline
         // was acknowledged before this optional bounded work begins.
@@ -2807,10 +2871,10 @@ export class LuvaniConversation extends voice.Agent {
     // just the storage that brings it back next session. Kept for `ready`
     // replays, so an app that reconnects after the scene closed still gets its
     // recap and updated profile instead of a stale scene view.
-    this.lastRecap = { t: 'recap', recap: toRecapPayload(recap), profile: this.profile };
+    this.lastRecap = { t: 'recap', recap: toRecapPayload(recap, focusSound), profile: this.profile };
     this.publish(this.lastRecap);
 
-    const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
+    const wallClockSec = Math.round((endedAt - this.startedAt) / 1000);
     // The same number the bill is built from, kept for the pack: Practice
     // shows the learner how long they spoke, and the agent is the only place
     // that ever knew. `buildConversationPack` decides what counts as timed.
@@ -2835,7 +2899,7 @@ export class LuvaniConversation extends voice.Agent {
       userId: this.learnerId,
       sessionId: this.sessionId,
       seconds: billableSeconds,
-      utterancesScored: 0,
+      utterancesScored: this.scoring.scoredCount,
       ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}),
     });
     if (this.serviceFailure) await this.publish({ t: 'settlement', result: settlement });

@@ -690,11 +690,11 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
     }
     if (env.LUVANI_AUDIO_SCORING === '1') {
       // F863: live scoring is admitted only through a scoring component of the
-      // bound lesson quote. Without one every score is refused as quote-mismatch.
-      let scoringQuoted = false;
-      try { scoringQuoted = paidBindings(env).lesson?.kinds?.includes('scoring') === true; } catch { /* unreadable bindings refuse */ }
-      if (!scoringQuoted) {
-        console.error('[luvani:agent] F863: live scoring needs the lesson quote binding to declare a scoring component (LUVANI_PAID_QUOTE_BINDINGS lesson.kinds).');
+      // bound lesson and convo quotes. Without one every score is refused as quote-mismatch.
+      let missing = ['lesson', 'convo'];
+      try { const bindings = paidBindings(env); missing = missing.filter(activity => bindings[activity as 'lesson' | 'convo']?.kinds?.includes('scoring') !== true); } catch { /* unreadable bindings refuse */ }
+      if (missing.length) {
+        console.error(`[luvani:agent] F863: live scoring needs the ${missing.join(' and ')} quote binding to declare a scoring component (LUVANI_PAID_QUOTE_BINDINGS ${missing.map(a => `${a}.kinds`).join(', ')}).`);
         exit(1); return;
       }
     }

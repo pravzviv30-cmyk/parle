@@ -83,8 +83,8 @@ describe('the end card reads in the order a learner needs it', () => {
   };
 
   test('win, focus, practise, done, then one closed More holding everything else', () => {
-    assert.ok(at('<Label>Your practice today</Label>') < at('<Label>One sound to practise next</Label>'), 'the win is drawn after the focus');
-    assert.ok(at('<Label>One sound to practise next</Label>') < at('label="Practise this sound"'), 'the practice comes before the focus');
+    assert.ok(at('<Label>Your practice today</Label>') < at('<Label>{SOUND_FOCUS_LABEL}</Label>'), 'the win is drawn after the focus');
+    assert.ok(at('<Label>{SOUND_FOCUS_LABEL}</Label>') < at('label="Practise this sound"'), 'the practice comes before the focus');
     assert.ok(at('label="Practise this sound"') < at('label="Finish lesson"'), 'Done comes before the practice');
     assert.ok(at('label="Finish lesson"') < at('expanded: more'), 'More is drawn before Done, so opening it pushes the way out down the screen');
 
@@ -100,7 +100,7 @@ describe('the end card reads in the order a learner needs it', () => {
   });
 
   test('the focus sound leads with a word, and its symbol and reason are an optional detail', () => {
-    const focus = render.slice(at('<Label>One sound to practise next</Label>'), at('label="Practise this sound"'));
+    const focus = render.slice(at('<Label>{SOUND_FOCUS_LABEL}</Label>'), at('label="Practise this sound"'));
     assert.match(focus, /\{soundInWord\(focusWord\)\}/, 'the focus does not lead with an example word');
     assert.ok(focus.indexOf('{soundInWord(focusWord)}') < focus.indexOf('focus.phoneme.ipa'), 'the notation comes before the word');
     assert.match(card, /const \[soundDetail, setSoundDetail\] = useState\(false\);/, 'the symbol is shown before anyone asks');

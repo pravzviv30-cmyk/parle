@@ -138,14 +138,16 @@ the new-vendor escalation in [Escalation and what Luvani is
 not](#escalation-and-what-luvani-is-not); the legal half waits on the same review as
 the rest of this file.
 
-**The scorer hears drills and sound checks, not conversations.** The app uploads one
+**The scorer hears drills, sound checks, and, only with a flag on, single live lines.** The app uploads one
 attempt to `/drill/score` on the token server (`scoreRecordedAttempt` in
 `apps/mobile/src/speech/scoreAttempt.ts`, called by the drill and sound-check
-screens), and the server, not the phone, calls the vendor. The scripted lesson agent
-can hand a live turn's audio to the same router from `services/tutor-agent/src/tutor.ts`,
-but only when `LUVANI_AUDIO_SCORING=1`, and by the founder's decision of the same day
-it stays off until scoring runs off the reply path (ledger F623). With the flag off
-the agent passes the line alone, and an attempt with no audio is never sent anywhere.
+screens), and the server, not the phone, calls the vendor. The live agents can hand
+one turn's audio to the same router, but only when `LUVANI_AUDIO_SCORING=1`, which is
+off by default (VOICE-004). A scripted lesson sends a turn only when the learner said
+the lesson's reference line (`services/tutor-agent/src/tutor.ts`). A mission sends a
+turn only when the learner said the full line the tutor had just handed them on the
+help card (`services/tutor-agent/src/convo.ts`, F866); the rest of a conversation is
+never sent to the scorer. With the flag off the agents send no live audio to it at all.
 
 **What TonePerfect is sent** is one multipart request to
 `https://api.toneperfect.app/v1/assess`, made by `services/shared/toneperfect.ts`,
@@ -443,6 +445,20 @@ Primary reference: https://www.revenuecat.com/docs/api-v1/customers#tag/customer
 The rule for anyone extending this: a feature that needs to keep a recording is a
 new consent, a new retention period and a new disclosure, and it is an escalation
 before it is a branch.
+
+**Speech dataset groundwork (2026-10-22, inert).** The escalation for a consented,
+teacher-rated set of lesson recordings is
+[docs/changes/speech-dataset.md](changes/speech-dataset.md) (VOICE-007). Its
+groundwork is in the repo and collects nothing:
+- the tutor agent's clip seam offers nothing unless `LUVANI_SPEECH_DATASET=1` and
+  the learner's consent bit are both on, and no production code sets that bit
+  (a source-scan test fails if any does);
+- the Settings switch is hidden behind `SPEECH_DATASET_ENABLED`, which is false;
+- the metadata table (migration 42) is prepared and not applied;
+- no storage bucket exists.
+
+Every sentence above about live audio stays true until that doc's legal review
+changes this section, the notice and their pinned tests together.
 
 ### Disclosure at first run
 

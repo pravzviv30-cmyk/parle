@@ -320,7 +320,7 @@ describe('nothing on Settings fails in silence — F473', () => {
       // sentence is true rather than two flags: the disk refusing the write and
       // the operating system refusing the alarm are different facts, and a
       // learner told the wrong one has been lied to about their own phone.
-      ['consentTrouble', 'contactTrouble', 'deleteError', 'exportTrouble', 'phoneTrouble', 'reminderTrouble', 'storeMessage'],
+      ['consentTrouble', 'contactTrouble', 'deleteError', 'exportTrouble', 'phoneTrouble', 'reminderTrouble', 'speechConsentTrouble', 'storeMessage'],
       'two doors out of Settings share one line, so one of them can set a sentence in a card that is not on the page',
     );
 
@@ -413,6 +413,8 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
   const LINES: readonly (readonly [string, string])[] = [
     ['storeLine', 'restoreRows.map('],
     ['consentTrouble', 'CONSENT_ROW'],
+    // The hidden speech dataset switch shares the Data and privacy card.
+    ['speechConsentTrouble', 'SPEECH_CONSENT_ROW'],
     ['exportTrouble', 'DOWNLOAD_ROW'],
     ['contactTrouble', 'contact.address'],
     // The reminder moved into the Phone group with revamp A (F576), and it
