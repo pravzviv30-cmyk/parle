@@ -37,6 +37,17 @@ function pricedNote(usage: LlmUsage, model?: string): string {
   return ` (unpriced ${priced.unknownModel ?? 'model'}, shown at ${priced.pricedAs} rates)`;
 }
 
+/**
+ * The cost an eval prints for a whole run. The model the client stamped on the
+ * usage is what answered, so it prices the run; `costModel` (what the harness
+ * expected) is only for usage that carries no stamp, such as a total merged
+ * across two models or a mock client, or a stamp with no row in the price table.
+ */
+export function evalCostUsd(usage: LlmUsage, costModel: string): number {
+  const stamped = usage.model !== undefined && USD_PER_MTOK[usage.model] !== undefined;
+  return stamped ? costUsd(usage) : costUsd(usage, costModel);
+}
+
 export function formatTurnUsage(usage: LlmUsage, elapsedMs: number, model?: string): string {
   // The three buckets are disjoint on every provider — the adapters normalise
   // that — so this sum is the input the vendor actually charged for.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { OpenAiResponsesBrainClient, openAiLiveModel } from './openaiResponses.ts';
+import { OpenAiResponsesBrainClient, openAiLiveModel, openAiModelFor } from './openaiResponses.ts';
 import { sampleTurn } from '../contract/samples.ts';
 import { buildSystemBlocks } from '../prompt/system.ts';
 import { buildFixLineJudgeRequest } from './fixLineJudge.ts';
@@ -49,4 +49,15 @@ test('factory blank model overrides preserve all three preflight defaults on act
   await client.judge(buildFixLineJudgeRequest({ original: 'Je suis vingt ans.', better: 'J’ai vingt ans.', attempt: 'J’ai vingt ans.', cefr: 'A1', why: null }));
   await client.extract({ kind: 'extract', system: buildSystemBlocks(), request: 'No facts.' });
   assert.deepEqual(models, ['gpt-6-luna', 'gpt-5.6-luna', 'gpt-5.6-terra']);
+});
+
+test('openAiModelFor names the model each activity is really sent to, overrides included', () => {
+  assert.deepEqual(
+    (['turn', 'frame', 'curate', 'judge', 'extract', 'drills'] as const).map((a) => openAiModelFor(a, {})),
+    ['gpt-6-luna', 'gpt-6-luna', 'gpt-5.6-luna', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-terra'],
+  );
+  const env = { OPENAI_LIVE_MODEL: 'live-x', OPENAI_TURN_MODEL: 'fast-x', OPENAI_ANALYST_MODEL: 'analyst-x' };
+  assert.equal(openAiModelFor('turn', env), 'live-x');
+  assert.equal(openAiModelFor('curate', env), 'fast-x');
+  assert.equal(openAiModelFor('drills', env), 'analyst-x');
 });

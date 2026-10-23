@@ -1,0 +1,366 @@
+{
+  "pairs": {
+    "c05d27284a15": {
+      "voice": "alexandre",
+      "line": 0,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "0758cebe3bd4",
+      "clipB": "5b2f592e0b62"
+    },
+    "279272b923a5": {
+      "voice": "alexandre",
+      "line": 1,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "fdee2af55a46",
+      "clipB": "c0d5141952cc"
+    },
+    "09e1b75a1691": {
+      "voice": "alexandre",
+      "line": 2,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "c9dda0148e70",
+      "clipB": "e29f72c6d3d1"
+    },
+    "e89e59d613b5": {
+      "voice": "alexandre",
+      "line": 3,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "27573e44d9df",
+      "clipB": "71997d604c5a"
+    },
+    "897d37b45f77": {
+      "voice": "alexandre",
+      "line": 4,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "98654d82203b",
+      "clipB": "050bb21c7da1"
+    },
+    "22f645838bd0": {
+      "voice": "alexandre",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "94e77cc854c0",
+      "clipB": "c61193b013b4"
+    },
+    "0b1151692f2a": {
+      "voice": "emilie",
+      "line": 0,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "1eb2d33e3ef0",
+      "clipB": "e6059056e617"
+    },
+    "eb9de4893e9d": {
+      "voice": "emilie",
+      "line": 1,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "046f02b881c3",
+      "clipB": "e1d9d3bf4e24"
+    },
+    "62f5f8963b52": {
+      "voice": "emilie",
+      "line": 2,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "2a7d905c20e1",
+      "clipB": "6c961276b754"
+    },
+    "c0ff8467d08a": {
+      "voice": "emilie",
+      "line": 3,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "6bd82364b27b",
+      "clipB": "aa04201eed10"
+    },
+    "cf87a91bb8d4": {
+      "voice": "emilie",
+      "line": 4,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "806bd794cc50",
+      "clipB": "f55fc1aabe8f"
+    },
+    "ebe1aab5d779": {
+      "voice": "emilie",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "85f6ef9e11bd",
+      "clipB": "5de80da9289b"
+    },
+    "2b48f320dbf9": {
+      "voice": "guillaume",
+      "line": 0,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "6d2b5fc45834",
+      "clipB": "db7b8ad1fea8"
+    },
+    "8d3b6e447a21": {
+      "voice": "guillaume",
+      "line": 1,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "a6acd37edffc",
+      "clipB": "bb5624069881"
+    },
+    "cf07f3b73730": {
+      "voice": "guillaume",
+      "line": 2,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "71f014378789",
+      "clipB": "765d26c3fb80"
+    },
+    "6f653c7c9c3e": {
+      "voice": "guillaume",
+      "line": 3,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "867ebfb3a6b3",
+      "clipB": "1f32dd1016ff"
+    },
+    "f946735e7fe8": {
+      "voice": "guillaume",
+      "line": 4,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "ffd6acabbec9",
+      "clipB": "db2d93b09137"
+    },
+    "8f4f49a37f67": {
+      "voice": "guillaume",
+      "line": 5,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "d7005d50bfbb",
+      "clipB": "0fce20e51f11"
+    },
+    "b245bcba5ca8": {
+      "voice": "marie",
+      "line": 0,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "5b5649031d2e",
+      "clipB": "ced59cd658ce"
+    },
+    "e002acb388ae": {
+      "voice": "marie",
+      "line": 1,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "05268c5ba248",
+      "clipB": "b0c47905a877"
+    },
+    "d00a28f12ccb": {
+      "voice": "marie",
+      "line": 2,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "d450f1768fb9",
+      "clipB": "2addfb490453"
+    },
+    "2bbad6b2998c": {
+      "voice": "marie",
+      "line": 3,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "33555bcb744b",
+      "clipB": "a8980e923506"
+    },
+    "115db092d2cc": {
+      "voice": "marie",
+      "line": 4,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "45eee4fa6329",
+      "clipB": "7f68040b237d"
+    },
+    "f20f5067ea37": {
+      "voice": "marie",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "4750e38b68bb",
+      "clipB": "c54c3e895bd9"
+    },
+    "71bcb76f4d6b": {
+      "voice": "anatole",
+      "line": 0,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "3c78396ab650",
+      "clipB": "1070324590d3"
+    },
+    "967ccc9ac6c8": {
+      "voice": "anatole",
+      "line": 1,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "fc8b0530f9b4",
+      "clipB": "a148df088ef1"
+    },
+    "cdb6ecc58c88": {
+      "voice": "anatole",
+      "line": 2,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "d9ce484a751e",
+      "clipB": "9277258e8273"
+    },
+    "28794b288e32": {
+      "voice": "anatole",
+      "line": 3,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "1707d889f478",
+      "clipB": "ccab2293e070"
+    },
+    "7efe518be8ad": {
+      "voice": "anatole",
+      "line": 4,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "6aa71dcef954",
+      "clipB": "eff52f29dae2"
+    },
+    "6372a364c41f": {
+      "voice": "anatole",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "244d68ad593e",
+      "clipB": "fca99c398d40"
+    },
+    "bf6dd19ec736": {
+      "voice": "sarah",
+      "line": 0,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "0c65c351265a",
+      "clipB": "f37a7a75d597"
+    },
+    "ccb40c5b0095": {
+      "voice": "sarah",
+      "line": 1,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "763573b5604b",
+      "clipB": "2917b750ec5f"
+    },
+    "2e447241d75b": {
+      "voice": "sarah",
+      "line": 2,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "6cb2249dde00",
+      "clipB": "1e21e0c5ab86"
+    },
+    "ce90f2c7cc85": {
+      "voice": "sarah",
+      "line": 3,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "af12db405f2e",
+      "clipB": "4cb7c66be387"
+    },
+    "e20430c45c49": {
+      "voice": "sarah",
+      "line": 4,
+      "A": "eleven_flash_v2_5",
+      "B": "eleven_multilingual_v2",
+      "clipA": "36e34ddeac95",
+      "clipB": "42a4c4aac6d4"
+    },
+    "13aa1ef5585e": {
+      "voice": "sarah",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_flash_v2_5",
+      "clipA": "d35958766548",
+      "clipB": "9bfc1acb852a"
+    }
+  },
+  "clips": {
+    "0758cebe3bd4": "eleven_flash_v2_5",
+    "5b2f592e0b62": "eleven_multilingual_v2",
+    "fdee2af55a46": "eleven_flash_v2_5",
+    "c0d5141952cc": "eleven_multilingual_v2",
+    "c9dda0148e70": "eleven_flash_v2_5",
+    "e29f72c6d3d1": "eleven_multilingual_v2",
+    "27573e44d9df": "eleven_multilingual_v2",
+    "71997d604c5a": "eleven_flash_v2_5",
+    "98654d82203b": "eleven_multilingual_v2",
+    "050bb21c7da1": "eleven_flash_v2_5",
+    "94e77cc854c0": "eleven_multilingual_v2",
+    "c61193b013b4": "eleven_flash_v2_5",
+    "1eb2d33e3ef0": "eleven_flash_v2_5",
+    "e6059056e617": "eleven_multilingual_v2",
+    "046f02b881c3": "eleven_flash_v2_5",
+    "e1d9d3bf4e24": "eleven_multilingual_v2",
+    "2a7d905c20e1": "eleven_flash_v2_5",
+    "6c961276b754": "eleven_multilingual_v2",
+    "6bd82364b27b": "eleven_flash_v2_5",
+    "aa04201eed10": "eleven_multilingual_v2",
+    "806bd794cc50": "eleven_multilingual_v2",
+    "f55fc1aabe8f": "eleven_flash_v2_5",
+    "85f6ef9e11bd": "eleven_multilingual_v2",
+    "5de80da9289b": "eleven_flash_v2_5",
+    "6d2b5fc45834": "eleven_multilingual_v2",
+    "db7b8ad1fea8": "eleven_flash_v2_5",
+    "a6acd37edffc": "eleven_flash_v2_5",
+    "bb5624069881": "eleven_multilingual_v2",
+    "71f014378789": "eleven_flash_v2_5",
+    "765d26c3fb80": "eleven_multilingual_v2",
+    "867ebfb3a6b3": "eleven_flash_v2_5",
+    "1f32dd1016ff": "eleven_multilingual_v2",
+    "ffd6acabbec9": "eleven_multilingual_v2",
+    "db2d93b09137": "eleven_flash_v2_5",
+    "d7005d50bfbb": "eleven_flash_v2_5",
+    "0fce20e51f11": "eleven_multilingual_v2",
+    "5b5649031d2e": "eleven_flash_v2_5",
+    "ced59cd658ce": "eleven_multilingual_v2",
+    "05268c5ba248": "eleven_multilingual_v2",
+    "b0c47905a877": "eleven_flash_v2_5",
+    "d450f1768fb9": "eleven_multilingual_v2",
+    "2addfb490453": "eleven_flash_v2_5",
+    "33555bcb744b": "eleven_multilingual_v2",
+    "a8980e923506": "eleven_flash_v2_5",
+    "45eee4fa6329": "eleven_multilingual_v2",
+    "7f68040b237d": "eleven_flash_v2_5",
+    "4750e38b68bb": "eleven_multilingual_v2",
+    "c54c3e895bd9": "eleven_flash_v2_5",
+    "3c78396ab650": "eleven_flash_v2_5",
+    "1070324590d3": "eleven_multilingual_v2",
+    "fc8b0530f9b4": "eleven_multilingual_v2",
+    "a148df088ef1": "eleven_flash_v2_5",
+    "d9ce484a751e": "eleven_flash_v2_5",
+    "9277258e8273": "eleven_multilingual_v2",
+    "1707d889f478": "eleven_flash_v2_5",
+    "ccab2293e070": "eleven_multilingual_v2",
+    "6aa71dcef954": "eleven_flash_v2_5",
+    "eff52f29dae2": "eleven_multilingual_v2",
+    "244d68ad593e": "eleven_multilingual_v2",
+    "fca99c398d40": "eleven_flash_v2_5",
+    "0c65c351265a": "eleven_multilingual_v2",
+    "f37a7a75d597": "eleven_flash_v2_5",
+    "763573b5604b": "eleven_flash_v2_5",
+    "2917b750ec5f": "eleven_multilingual_v2",
+    "6cb2249dde00": "eleven_multilingual_v2",
+    "1e21e0c5ab86": "eleven_flash_v2_5",
+    "af12db405f2e": "eleven_multilingual_v2",
+    "4cb7c66be387": "eleven_flash_v2_5",
+    "36e34ddeac95": "eleven_flash_v2_5",
+    "42a4c4aac6d4": "eleven_multilingual_v2",
+    "d35958766548": "eleven_multilingual_v2",
+    "9bfc1acb852a": "eleven_flash_v2_5"
+  }
+}

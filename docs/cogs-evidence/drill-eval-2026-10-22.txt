@@ -1,0 +1,10 @@
+== terra
+ok    first session (café phrases, no history): 12/12 clean (51.5s)
+ok    returning learner (unmastered backlog, recurring errors): 11/11 clean (54.6s)
+
+~$0.129 for the run
+== luna
+ok    first session (café phrases, no history): 11/11 clean (86.6s)
+ok    returning learner (unmastered backlog, recurring errors): 14/14 clean (65.6s)
+
+~$0.182 for the run

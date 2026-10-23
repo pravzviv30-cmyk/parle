@@ -13,9 +13,7 @@ import process from 'node:process';
 
 import {
   AnthropicBrainClient,
-  DEFAULT_OPENAI_TURN_MODEL,
   OpenAiCompatBrainClient,
-  OpenAiResponsesBrainClient,
   buildScenarioRequest,
   buildSystemBlocks,
   carriesFrench,
@@ -24,7 +22,8 @@ import {
   type ScenarioFrame,
 } from '@luvani/brain';
 
-import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { openAiEvalClient } from './openaiEval.ts';
 
 /** The founder's examples first; the rest span transactional to personal. */
 const REQUESTS = [
@@ -73,12 +72,9 @@ function checkFrame(frame: ScenarioFrame, request: string): string[] {
 function pickClient(): { client: LlmClient; costModel: string } {
   const choice = (process.env.BRAIN_LLM ?? '').toLowerCase();
   if ((choice === 'openai' || (choice === '' && !process.env.ANTHROPIC_API_KEY)) && process.env.OPENAI_API_KEY) {
-    return {
-      client: new OpenAiResponsesBrainClient({ apiKey: process.env.OPENAI_API_KEY }),
-      // Frames are designed by the turn model now, because the learner waits
-      // through them. Pricing them as analyst work overstates the cost ~10x.
-      costModel: DEFAULT_OPENAI_TURN_MODEL,
-    };
+    // Frames are on the live model, because the learner waits through them.
+    // Pricing them as analyst work overstates the cost ~10x.
+    return openAiEvalClient('frame', process.env.OPENAI_API_KEY);
   }
   if ((choice === 'anthropic' || choice === '') && process.env.ANTHROPIC_API_KEY) {
     return { client: new AnthropicBrainClient(), costModel: 'claude-sonnet-5' };
@@ -119,7 +115,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ~$${costUsd(usage, costModel).toFixed(3)}`);
+  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ~$${evalCostUsd(usage, costModel).toFixed(3)}`);
   if (failures > 0) process.exit(1);
 }
 

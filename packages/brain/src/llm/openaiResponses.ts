@@ -108,6 +108,33 @@ export function openAiLiveModel(env: Record<string, string | undefined> = proces
     env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_LIVE_MODEL;
 }
 
+type ModelConfig = Pick<OpenAiResponsesConfig, 'turnModel' | 'liveModel' | 'analystModel'>;
+
+/** The three model names the client sends, from config then env then the defaults. */
+export function openAiModels(env: Record<string, string | undefined> = process.env,
+  config: ModelConfig = {}): Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel'> {
+  return {
+    turnModel: config.turnModel?.trim() || env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
+    liveModel: openAiLiveModel(env, config),
+    analystModel: config.analystModel?.trim() || env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
+  };
+}
+
+/**
+ * The model OpenAiResponsesBrainClient sends one activity to. The client routes
+ * through this, and a harness that has to label or price a run before any usage
+ * exists asks it too, so the two cannot disagree.
+ */
+export function openAiModelFor(activity: BrainActivity, env: Record<string, string | undefined> = process.env,
+  config: ModelConfig & Pick<OpenAiResponsesConfig, 'routing'> = {}): string {
+  return pickModel(activity, openAiModels(env, config), config.routing ?? resolveRouting(env));
+}
+
+function pickModel(activity: BrainActivity, models: Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel'>, routing: BrainRouting): string {
+  return isAnalystActivity(activity, routing) ? models.analystModel
+    : activity === 'turn' || activity === 'frame' ? models.liveModel : models.turnModel;
+}
+
 /**
  * Which of the two models answers is asked of routing.ts, not decided here.
  *
@@ -250,9 +277,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     this.config = {
       apiKey: config.apiKey ?? process.env.OPENAI_API_KEY ?? '',
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
-      turnModel: config.turnModel?.trim() || process.env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
-      liveModel: openAiLiveModel(process.env, config),
-      analystModel: config.analystModel?.trim() || process.env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
+      ...openAiModels(process.env, config),
     };
     this.routing = config.routing ?? resolveRouting();
     this.liveServiceTier = openAiLiveServiceTier(process.env, config);
@@ -330,8 +355,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   /** One activity's model, effort and size. Two tables, one question each. */
   private routeFor(activity: BrainActivity): { model: string; effort: BrainEffort | 'none' | undefined; maxTokens: number } {
     const route = this.routing[activity];
-    const model = isAnalystActivity(activity, this.routing) ? this.config.analystModel
-      : activity === 'turn' || activity === 'frame' ? this.config.liveModel : this.config.turnModel;
+    const model = pickModel(activity, this.config, this.routing);
     return {
       model,
       effort: openAiEffortFor(activity, model, route.effort, this.explicitEffort),
