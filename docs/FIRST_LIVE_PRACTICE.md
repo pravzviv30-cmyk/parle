@@ -1,6 +1,8 @@
 # First live practice implementation, 10 October 2026
 
 Status: **Source merge explicitly authorized by the user; production guest activation remains disabled.**
+
+> **23 October 2026, UI-011:** the guest *conversation* described here stays closed in production. What production may open, behind `LUVANI_GUEST_SCENE=1`, is the guest first scene: one five-turn scripted café exchange with no language model and a 180-second ceiling, admitted by its own Redis budget and voiced through a guest scene gate on the paid voice proxy. See [the change plan](changes/guest-first-scene.md) and the runbook's [Guest first scene](BACKEND_RELEASE_RUNBOOK.md#guest-first-scene-ui-011-23-october) section.
 Production guest admission is deliberately refused in both the token server and worker. The existing paid-operation ledger requires an authenticated account and does not support a guest principal. The normal paid runtime, quotes, per-provider budgets, account entitlement gates and auth checks remain enabled. A new guest principal/admission contract, reviewed worst-case quotes (including the selected 20-minute duration), deployment configuration and live acceptance are required before removing this refusal. A flag cannot bypass it.
 
 ## Journey and presentation

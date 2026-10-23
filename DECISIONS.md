@@ -121,7 +121,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 ## UI-003 — Keep guest refusal and authenticated first practice in their existing owners
 
 - Date: 2026-10-15
-- Status: accepted
+- Status: superseded for the guest first scene by [UI-011](#ui-011--guest-first-scene-one-scripted-café-exchange-before-sign-up) (2026-10-23); the guest conversation stays closed and the account handoff below remains the fallback
 - Decision: preserve the closed production guest-live boundary and distinguish
   disabled anonymous admission from unsupported speaking. Offer the existing
   account flow deliberately for the former, retain the current answered draft,
@@ -599,3 +599,56 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   `analyst-samples.md`), `scripts/measureSessionLlm.mjs`,
   `scripts/ttsBlindCheck.mjs`, `services/tutor-agent/src/ttsCache.ts`,
   `packages/core/src/metering/meter.ts`. Founder answer of 23 October 2026.
+
+## UI-011 — Guest first scene: one scripted café exchange before sign-up
+
+- Date: 2026-10-23
+- Status: accepted (reverses UI-003 for this scene only)
+- Decision: before an account exists, a learner may do one five-turn scripted
+  café exchange (`GUEST_CAFE_SCENE`, five reviewed `cafe-01` turns), by voice
+  or by typing. Production opens it only with `LUVANI_GUEST_SCENE=1` on the API
+  and the tutor roles. The rules:
+  - No language model. A missed answer gets the scripted rescue, and the room
+    builds no LLM client and no scoring.
+  - A server-fixed 180-second ceiling.
+  - Memory locked.
+  - One scene per installation per 30 days, the existing three guest starts per
+    address per day, and a service-wide daily ceiling,
+    `LUVANI_GUEST_SCENE_DAILY` (default 24), booked when the worker claims the
+    room.
+  - Voice runs through the paid voice proxy behind a guest scene gate. The gate
+    admits only Deepgram STT, capped at 180 s in total, and ElevenLabs TTS of
+    the scene's exact scripted lines in the signed voice. Every other effect is
+    refused.
+  - On sign-up, the server returns the scene turn ids the learner answered, and
+    the phone writes those lines to the phrasebook. The server record then
+    shrinks to the owner binding and expires after 48 hours.
+  The guest conversation (`convo`) stays closed in production. UI-003's
+  account handoff is still what a learner sees when scenes are off, the day's
+  places are spent, or this phone already had its scene.
+- Reason: the market report (section 7, "Now") asks for the first French reply
+  before account creation. UI-003 closed guest live for these reasons:
+  - there was no guest principal in the paid ledger;
+  - an LLM conversation of 5 to 20 minutes cost up to about $1 a guest, with no
+    quote;
+  - the only device signal is a forgeable installation id;
+  - pre-account audio was not yet disclosed.
+  A scripted scene removes the model and its cost, and the proxy gate bounds
+  what the worker can spend. The daily ceiling, not the device claim, is the
+  money limit. Read-only reviews by security-engineer and
+  database-security-architect (2026-10-23) agreed with the shape and set the
+  must-fix list that the change plan carries.
+- Consequence:
+  - The installation claim is a courtesy limit. A reinstall, cleared app data
+    or a script gets past it. DeviceCheck or Play Integrity waits for the store
+    accounts.
+  - Worst case is about $0.065 a scene minute with a cold voice cache, so the
+    default ceiling costs at most $4.68 a day. It sits outside SQL paid
+    admission, like guest speech (D13), and must be added to the launch
+    exposure.
+  - No Supabase migration.
+  - The privacy notice names the pre-account processing.
+- Sources: [change plan](docs/changes/guest-first-scene.md),
+  [onboarding](docs/ONBOARDING.md),
+  [runbook](docs/BACKEND_RELEASE_RUNBOOK.md#guest-first-scene-ui-011-23-october), founder approval
+  of 23 October 2026.
