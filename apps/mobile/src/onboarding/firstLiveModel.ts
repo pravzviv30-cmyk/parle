@@ -38,9 +38,12 @@ export function repairFirstLiveRecord(value: unknown): FirstLiveRecord | null {
     if (v.scene !== GUEST_SCENE || v.pack !== null) return null;
     const sceneTurns = parseGuestSceneTurnIds(v.sceneTurns ?? []);
     if (!sceneTurns) return null;
-    if (v.outcome === 'completed' && (!v.sessionId || !v.completedAt || sceneTurns.length === 0)) return null;
+    if (v.outcome === 'completed' && (!v.sessionId || !v.completedAt)) return null;
+    // A finished scene with no confirmed line cannot name or celebrate one, so
+    // it reads as a start worth keeping: the truthful summary, never an error.
+    const outcome = v.outcome === 'completed' && sceneTurns.length === 0 ? 'partial' : v.outcome;
     // Ids only: whatever text arrived alongside is dropped here, on every read and write.
-    return { brief, sessionId: v.sessionId, outcome: v.outcome, contributions: [],
+    return { brief, sessionId: v.sessionId, outcome, contributions: [],
       seconds: v.seconds, completedAt: v.completedAt, pack: null, scene: GUEST_SCENE, sceneTurns };
   }
   if (v.outcome === 'completed' && (!v.sessionId || !v.completedAt || !v.pack)) return null;
@@ -69,4 +72,16 @@ export function firstLiveSummary(record: FirstLiveRecord) {
   return { heading: record.outcome === 'completed' ? 'Your first session completed.' : record.outcome === 'interrupted' ? 'Your practice was interrupted.' : 'A start worth keeping.',
     detail: record.outcome === 'completed' ? 'Here is what you did in this session.' : record.outcome === 'interrupted' ? 'The connection ended before your practice was complete. Your confirmed contributions are still here.' : 'You ended before completing the exercise. Your confirmed contributions are still here.',
     achievements: firstAchievements(record), next: firstPracticeNext(record.brief) };
+}
+
+/**
+ * The guest record merged with a /onboarding/live-result answer. A scene
+ * result carries no `completedAt`, so a completed scene is stamped with the
+ * moment the phone collected it; a conversation result is merged as before.
+ */
+export function sceneResultRecord(live: FirstLiveRecord | undefined, result: Record<string, unknown>, now = Date.now()): unknown {
+  const merged = { ...live, ...result };
+  if (!live?.scene || result.outcome !== 'completed') return merged;
+  const at = result.completedAt;
+  return { ...merged, completedAt: typeof at === 'number' && Number.isSafeInteger(at) && at > 0 ? at : now };
 }

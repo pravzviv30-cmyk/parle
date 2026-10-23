@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { firstPracticeScenario, tutorVoice, GUEST_CAFE_SCENE, GUEST_SCENE_MAX_SECONDS } from '@luvani/core';
 import { rungLabel } from '../tutor/rungLabel.ts';
+import { onColour } from '../palette.ts';
 import { GUEST_ROOM_ENDED, GUEST_SCENE, GUEST_SCENE_LESSON_ID, guestSceneMode } from './guestScene.ts';
 import { IconAction, Sheet } from '../components.tsx';
 import { paper } from '../theme.ts';
@@ -20,7 +21,7 @@ import { C2LiveRoom } from '../live/C2LiveRoom.tsx';
 import { useOnboardingFramePresentation } from './OnboardingLayout.tsx';
 import type { OnboardingProgressValue } from './onboardingProgress.ts';
 import { readGuestLiveResult, endGuestLivePractice, saveGuestPractice, type GuestPractice } from './guestPractice.ts';
-import { repairFirstLiveRecord, type FirstContribution } from './firstLiveModel.ts';
+import { repairFirstLiveRecord, sceneResultRecord, type FirstContribution } from './firstLiveModel.ts';
 
 export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, active = true }: {
   guest: GuestPractice; progress: OnboardingProgressValue; onFinished: (record: GuestPractice) => void; onSafetyExit: () => void; active?: boolean;
@@ -80,7 +81,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     try {
       const result = await readGuestLiveResult(held.current);
       if (result.outcome === 'active') throw new Error('The tutor is still saving your session. Try again in a moment.');
-      const record = repairFirstLiveRecord({ ...held.current.live, ...result });
+      const record = repairFirstLiveRecord(sceneResultRecord(held.current.live, result));
       if (!record || (held.current.live?.sessionId && record.sessionId !== held.current.live.sessionId)) throw new Error('Your session result is not available yet. Try again.');
       const next: GuestPractice = { ...held.current, live: record, secondsUsed: record.seconds,
         completed: record.outcome === 'completed',
@@ -111,7 +112,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     && typedDoorFor(live.status.failure, { typing });
   const canRetryConnection = !roomEnded && live.status.phase === 'error' && !opened && !live.sessionId && !live.settlement && !ending;
   const state: OrbState = failed ? 'error' : live.reconnecting || !ready ? 'connecting' : live.tutorSpeaking ? 'speaking' : live.thinking ? 'thinking' : live.micOpen ? 'listening' : 'ready';
-  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : roomEnded ? GUEST_ROOM_ENDED.label : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
+  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : scene && (over || live.status.phase === 'ended') ? 'Your café scene is over' : roomEnded ? GUEST_ROOM_ENDED.label : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
   const end = async () => {
     setEnding(true); await live.pauseMic();
     if (ready) live.requestRecap();
@@ -171,7 +172,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
         onEnd={() => setConfirmEnd(true)} notice={issue || (scene ? live.feedback?.message : undefined) || live.notice}
         top={<>{live.audioBlocked ? <PillButton label={`Listen to ${name}`} onPress={live.resumeAudio} /> : null}
           {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
-          {scene && live.prompt ? <Text style={[type.small, { color: c.muted, textAlign: 'center' }]}>{rungLabel(live.prompt.directive.rung, name)}, {live.prompt.position} of {live.prompt.total}</Text> : null}</>}
+          {scene && live.prompt ? <Text style={[type.small, { color: onColour.blue, textAlign: 'center' }]}>{rungLabel(live.prompt.directive.rung, name)}, {live.prompt.position} of {live.prompt.total}</Text> : null}</>}
         support={scene
           ? live.prompt && live.prompt.support.kind !== 'none' ? <SupportBlock support={live.prompt.support} onOptionPress={live.sendChoice}
             onHearLine={!live.tutorSpeaking && !typing && !typedScene ? () => live.sendHear() : undefined} /> : undefined

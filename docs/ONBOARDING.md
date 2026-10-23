@@ -215,7 +215,10 @@ result, and no retry or typing door. The guest record keeps only the confirmed t
 no contributions and no pack, and its repair drops anything else. The recap and
 summary name the lines answered with the reviewed French from
 `guestScenePhrases`; a completed scene celebrates ("The café scene, done."), a
-partial or interrupted one keeps the existing truthful copy.
+partial or interrupted one keeps the existing truthful copy. A scene result
+carries no completion time, so the phone stamps one when it collects a completed
+result; a completed scene with no confirmed line reads as partial and goes to
+the summary.
 
 On Keep this practice, `/onboarding/claim` returns the scene's turn ids, which
 are trusted over the phone's copy. Those lines go to the phrasebook through the

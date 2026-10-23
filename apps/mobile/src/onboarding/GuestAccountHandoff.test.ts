@@ -227,7 +227,7 @@ describe('the café scene hand-off', () => {
     assert.deepEqual(record.contributions, []);
     assert.deepEqual(record.sceneTurns, ['t1-greet', 't2-order']);
     assert.doesNotMatch(JSON.stringify(record), /je voudrais|free text/);
-    for (const bad of [{ sceneTurns: ['t1-greet', 'made-up'] }, { pack: {} }, { scene: 'other' }, { sceneTurns: [] }])
+    for (const bad of [{ sceneTurns: ['t1-greet', 'made-up'] }, { pack: {} }, { scene: 'other' }, { completedAt: null }])
       assert.equal(repairFirstLiveRecord({ brief, sessionId, outcome: 'completed', seconds: 90, completedAt: 1, pack: null, scene: 'guest-cafe', sceneTurns: ['t1-greet'], contributions: [], ...bad }), null);
   });
 });
