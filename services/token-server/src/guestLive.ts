@@ -99,8 +99,8 @@ export async function guestLiveOperation(store: GuestStore, key: string, operati
   scene?: Pick<GuestSceneAdmission, 'book'>) {
   if (!['claim', 'checkpoint', 'complete', 'receipt'].includes(operation) || !uuid(body.userId) || !uuid(body.sessionId)) invalid(400);
   if (operation === 'claim') {
-    // A scene room books one slot of today's ceiling before its first fence is
-    // set, idempotently per fence. Booking first errs towards fewer scenes: a
+    // A scene room books one slot of today's ceiling and the installation's
+    // scene before its first fence is set, idempotently per fence. Booking first errs towards fewer scenes: a
     // fence that then loses a race has spent a slot, never the reverse.
     const before = await store.get(key);
     const room = before?.live;
@@ -108,7 +108,8 @@ export async function guestLiveOperation(store: GuestStore, key: string, operati
       && room.sessionId === body.sessionId && uuid(body.claimNonce) && body.roomName === room.roomName && body.mode === room.mode
       && room.joinDeadline > now && before.expiresAt > now) {
       if (!scene) invalid();
-      if (!(await scene!.book(body.claimNonce as string, now))) invalid();
+      // The installation's 30-day scene is booked here too, never at start, so a lost start costs nothing.
+      if ((await scene!.book({ fence: body.claimNonce as string, installation: before.installation, guestKey: key }, now)) !== 'booked') invalid();
     }
   }
   return store.update(key, row => {

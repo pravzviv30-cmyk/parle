@@ -6,12 +6,13 @@ import { MemoryGuestStore, claimGuest, createGuest, guestKey } from './onboardin
 import { endGuestLive, guestLiveOperation, guestLiveResult, prepareGuestLive, prepareGuestScene } from './guestLive.ts';
 import { MemoryGuestSceneLedger, guestSceneAdmission, guestSceneKeys } from './guestSceneAdmission.ts';
 import { tutorDigest } from '../../shared/tutorLifecycle.ts';
+import { privateSignal } from './rateLimit.ts';
 
 async function scene(mode: 'lesson' | 'lesson-text' = 'lesson', ceiling = 24) {
   let time = Date.now();
   const store = new MemoryGuestStore(() => time), ledger = new MemoryGuestSceneLedger(() => time);
   const admission = guestSceneAdmission(ledger, ceiling);
-  const guest = await createGuest(store, { installation: `scene-${randomUUID()}`, eligible: true, goal: 'food', drink: 'coffee', minutes: 5, scene: 'guest-cafe' }, time);
+  const guest = await createGuest(store, { installation: privateSignal('s', 'installation', randomUUID()), eligible: true, goal: 'food', drink: 'coffee', minutes: 5, scene: 'guest-cafe' }, time);
   const key = guestKey(guest.token);
   const room = await prepareGuestScene(store, key, mode, time);
   const fence = randomUUID();
@@ -43,7 +44,7 @@ test('a scene claim requires the signed mode, books one slot, and a repeat with 
 
 test('a spent ceiling refuses the claim and leaves the room unclaimed', async () => {
   const f = await scene('lesson', 1);
-  await f.admission.book(randomUUID(), f.now());
+  await f.admission.book({ fence: randomUUID(), installation: privateSignal('s', 'installation', 'other'), guestKey: guestKey('other') }, f.now());
   await assert.rejects(f.op('claim', f.claimBody), /guest session unavailable/);
   assert.equal((await f.store.get(f.key))!.live!.fence, undefined);
 });

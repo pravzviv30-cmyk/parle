@@ -5,13 +5,16 @@
  * language model. Two limits bound it, both in the same Upstash store as the
  * guest capability and guest speech:
  *
- * - One scene per installation per 30 days: a marker reserved with SET NX before
- *   a capability is created. The installation id is a forgeable courtesy limit,
- *   not the money limit.
+ * - One scene per installation per 30 days: a marker holding a hash of the
+ *   capability. A start only reads it. The installation id is a forgeable
+ *   courtesy limit, not the money limit.
  * - The service-wide daily ceiling, `LUVANI_GUEST_SCENE_DAILY` scenes per UTC
- *   day. This is the money limit (ceiling × 180 s). It is booked when a worker
- *   first claims a room, idempotently per worker fence, so a learner whose
- *   connection fails before the tutor joins spends nothing.
+ *   day. This is the money limit (ceiling × 180 s).
+ *
+ * Both are booked together, in one script, when a worker first claims a scene
+ * room, idempotently per worker fence. So a learner whose start response was
+ * lost, or whose connection failed before the tutor joined, has spent neither
+ * the day's slot nor the installation's scene.
  *
  * Only counters and markers are kept, under hashed keys. No address,
  * installation value or learner content is stored here.
@@ -89,13 +92,17 @@ export const guestSceneKeys: GuestSceneKeys = {
   fence: (fence, now) => `luvani:guest-scene:fence:${utcDay(now)}:${hashed(fence)}`,
 };
 
+/** Why a first claim was refused: today's ceiling, or another capability's scene on this installation. */
+export type GuestSceneBooking = 'booked' | 'ceiling' | 'installation';
+
 export interface GuestSceneLedger {
-  /** SET NX with a 30-day TTL. True when this call reserved the marker. */
-  reserveInstallation(key: string, value: string): Promise<boolean>;
-  /** Deletes the marker only while it still holds `value`. */
-  releaseInstallation(key: string, value: string): Promise<void>;
-  /** Books one slot of the day once per fence. True when booked now or earlier for this fence. */
-  book(dayKey: string, fenceKey: string, ceiling: number): Promise<boolean>;
+  /** Whether the installation marker exists. Reads only. */
+  installationUsed(installationKey: string): Promise<boolean>;
+  /**
+   * Once per fence: refuses when the marker holds another capability or the day
+   * is spent; otherwise books one day slot and sets the marker (30-day TTL) if absent.
+   */
+  book(keys: { day: string; fence: string; installation: string }, capability: string, ceiling: number): Promise<GuestSceneBooking>;
   /** Scenes already booked today. */
   used(dayKey: string): Promise<number>;
 }
@@ -111,22 +118,20 @@ export class MemoryGuestSceneLedger implements GuestSceneLedger {
     return row && row.expiresAt > this.now() ? row.value : null;
   }
   // Each method runs to completion without awaiting, so no two calls interleave.
-  async reserveInstallation(key: string, value: string): Promise<boolean> {
-    if (this.read(key) !== null) return false;
-    this.values.set(key, { value, expiresAt: this.now() + INSTALLATION_TTL_SEC * 1000 });
-    return true;
+  async installationUsed(installationKey: string): Promise<boolean> {
+    return this.read(installationKey) !== null;
   }
-  async releaseInstallation(key: string, value: string): Promise<void> {
-    if (this.read(key) === value) this.values.delete(key);
-  }
-  async book(dayKey: string, fenceKey: string, ceiling: number): Promise<boolean> {
-    if (this.read(fenceKey) !== null) return true;
-    const used = Number(this.read(dayKey) ?? '0');
-    if (used >= ceiling) return false;
+  async book(keys: { day: string; fence: string; installation: string }, capability: string, ceiling: number): Promise<GuestSceneBooking> {
+    if (this.read(keys.fence) !== null) return 'booked';
+    const marker = this.read(keys.installation);
+    if (marker !== null && marker !== capability) return 'installation';
+    const used = Number(this.read(keys.day) ?? '0');
+    if (used >= ceiling) return 'ceiling';
     const expiresAt = this.now() + DAY_TTL_SEC * 1000;
-    this.values.set(dayKey, { value: String(used + 1), expiresAt });
-    this.values.set(fenceKey, { value: '1', expiresAt });
-    return true;
+    this.values.set(keys.day, { value: String(used + 1), expiresAt });
+    this.values.set(keys.fence, { value: '1', expiresAt });
+    if (marker === null) this.values.set(keys.installation, { value: capability, expiresAt: this.now() + INSTALLATION_TTL_SEC * 1000 });
+    return 'booked';
   }
   async used(dayKey: string): Promise<number> {
     return Number(this.read(dayKey) ?? '0');
@@ -138,20 +143,21 @@ export class MemoryGuestSceneLedger implements GuestSceneLedger {
   }
 }
 
-/** KEYS: installation marker. ARGV: value, ttl. */
-export const RESERVE_INSTALLATION_SCRIPT =
-  "if redis.call('SET', KEYS[1], ARGV[1], 'NX', 'EX', ARGV[2]) then return 1 end return 0";
-/** KEYS: installation marker. ARGV: value. */
-export const RELEASE_INSTALLATION_SCRIPT =
-  "if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('DEL', KEYS[1]) end return 1";
-/** KEYS: day counter, fence marker. ARGV: ceiling, ttl. 1 booked (now or before), 0 refused. */
+/**
+ * KEYS: day counter, fence marker, installation marker. ARGV: ceiling, day ttl,
+ * capability hash, installation ttl. 1 booked (now or before), 0 ceiling spent,
+ * 2 the installation holds another capability's scene.
+ */
 export const BOOK_SCRIPT = [
   "if redis.call('EXISTS', KEYS[2]) == 1 then return 1 end",
+  "local marker = redis.call('GET', KEYS[3])",
+  'if marker and marker ~= ARGV[3] then return 2 end',
   "local used = tonumber(redis.call('GET', KEYS[1]) or '0')",
   'if used >= tonumber(ARGV[1]) then return 0 end',
   "redis.call('INCR', KEYS[1])",
   "redis.call('EXPIRE', KEYS[1], ARGV[2])",
   "redis.call('SET', KEYS[2], '1', 'EX', ARGV[2])",
+  "if not marker then redis.call('SET', KEYS[3], ARGV[3], 'EX', ARGV[4]) end",
   'return 1',
 ].join('\n');
 
@@ -176,14 +182,17 @@ export class RedisGuestSceneLedger implements GuestSceneLedger {
     if (body.error) throw new Error('guest scene ledger unavailable');
     return body.result;
   }
-  async reserveInstallation(key: string, value: string): Promise<boolean> {
-    return Number(await this.command(['EVAL', RESERVE_INSTALLATION_SCRIPT, '1', key, value, String(INSTALLATION_TTL_SEC)])) === 1;
+  async installationUsed(installationKey: string): Promise<boolean> {
+    const raw = await this.command(['GET', installationKey]);
+    return raw !== null && raw !== undefined;
   }
-  async releaseInstallation(key: string, value: string): Promise<void> {
-    await this.command(['EVAL', RELEASE_INSTALLATION_SCRIPT, '1', key, value]);
-  }
-  async book(dayKey: string, fenceKey: string, ceiling: number): Promise<boolean> {
-    return Number(await this.command(['EVAL', BOOK_SCRIPT, '2', dayKey, fenceKey, String(ceiling), String(DAY_TTL_SEC)])) === 1;
+  async book(keys: { day: string; fence: string; installation: string }, capability: string, ceiling: number): Promise<GuestSceneBooking> {
+    const result = Number(await this.command(['EVAL', BOOK_SCRIPT, '3', keys.day, keys.fence, keys.installation,
+      String(ceiling), String(DAY_TTL_SEC), capability, String(INSTALLATION_TTL_SEC)]));
+    if (result === 1) return 'booked';
+    if (result === 0) return 'ceiling';
+    if (result === 2) return 'installation';
+    throw new Error('guest scene ledger returned an invalid decision');
   }
   async used(dayKey: string): Promise<number> {
     const raw = await this.command(['GET', dayKey]);
@@ -209,17 +218,20 @@ export function guestSceneAdmission(ledger: GuestSceneLedger, ceiling: number) {
     async open(now = Date.now()): Promise<boolean> {
       return (await ledger.used(guestSceneKeys.day(now))) < ceiling;
     },
-    /** One scene per installation per 30 days. Returns a release handle, or null when used. */
-    async reserveInstallation(installHash: string, value: string): Promise<null | (() => Promise<void>)> {
-      const key = guestSceneKeys.installation(installHash);
-      if (!(await ledger.reserveInstallation(key, value))) return null;
-      return () => ledger.releaseInstallation(key, value);
+    /** Whether this installation already had a scene in the last 30 days. Reads only; a start books nothing. */
+    async installationUsed(installHash: string): Promise<boolean> {
+      return ledger.installationUsed(guestSceneKeys.installation(installHash));
     },
-    /** Books one slot of today's ceiling for this worker fence, at most once. */
-    async book(fence: string, now = Date.now()): Promise<boolean> {
-      const booked = await ledger.book(guestSceneKeys.day(now), guestSceneKeys.fence(fence, now), ceiling);
-      if (!booked) ceilingRefused(now);
-      return booked;
+    /**
+     * At a worker's first claim: books today's slot and the installation's scene
+     * together, at most once per fence. `guestKey` is the capability's stored key;
+     * the marker holds a hash of it, so the same capability is always accepted.
+     */
+    async book(claim: { fence: string; installation: string; guestKey: string }, now = Date.now()): Promise<GuestSceneBooking> {
+      const result = await ledger.book({ day: guestSceneKeys.day(now), fence: guestSceneKeys.fence(claim.fence, now),
+        installation: guestSceneKeys.installation(claim.installation) }, hashed(claim.guestKey), ceiling);
+      if (result === 'ceiling') ceilingRefused(now);
+      return result;
     },
   };
 }

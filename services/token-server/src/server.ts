@@ -110,7 +110,8 @@ if (process.env.LUVANI_GUEST_SPEECH === '1' && !guestSpeechAvailable(process.env
   console.warn(`[luvani] LUVANI_GUEST_SPEECH=1 is not in effect. Guests type until these are set: ${guestSpeechGaps(process.env).join(', ')}.`);
 }
 // The guest first scene (UI-011): one per installation per 30 days, within a
-// service-wide daily ceiling booked when a worker first claims a scene room.
+// service-wide daily ceiling. Both are booked together when a worker first claims
+// a scene room; a start only reads them.
 const guestScene = guestSceneAdmission(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? new RedisGuestSceneLedger(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN) : new MemoryGuestSceneLedger(),
   guestSceneDaily(process.env) ?? GUEST_SCENE_DEFAULT_DAILY);
@@ -418,9 +419,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
           // Starts are not the money limit (claims are), so the global start limit is a flood
           // guard at four starts per scene of ceiling, never a second count of the same scene.
           if (!await withinLimits(req, res, [[{ name: 'guest-live-global', limit: ceiling * 4, windowSec: 86400 }, 'user', 'guest-live-global'], ipCheck(req, { name: 'guest-live-address', limit: 3, windowSec: 86400 })])) return;
-          const marker = randomUUID();
-          const release = await guestScene.reserveInstallation(installHash, marker);
-          if (!release) return json(res, 503, { error: 'guest-scene-used', message: 'This device has already had its free scene. Create an account to keep practising.' });
+          // Read only: the marker is booked at the worker's first claim, so a lost start burns nothing.
+          if (await guestScene.installationUsed(installHash)) return json(res, 503, { error: 'guest-scene-used', message: 'This device has already had its free scene. Create an account to keep practising.' });
           const brief = parseFirstPracticeBrief(body.brief);
           let started;
           try {
@@ -428,7 +428,6 @@ const server = createServer(protectHttpHandler(async (req, res) => {
               goal: brief?.goals[0] ?? 'because', drink: 'coffee', minutes: 5,
               analyticsAllowed: body.analyticsAllowed === true, variant: body.variant === 'five' ? 'five' : 'full' });
           } catch {
-            await release().catch(() => {});
             return json(res, 409, { error: 'starter already used', message: 'This device has already started its guest practice today. Your saved practice is still available offline.' });
           }
           return json(res, 200, { ...started, live: true, scene: GUEST_SCENE, speechAvailable });

@@ -94,36 +94,77 @@ test('a production convo guest is still refused while scenes are open', async ()
   assert.equal((await h.begin()).status, 200);
 });
 
-test('one scene per installation per 30 days; a repeat with the same capability books nothing', async (t) => {
-  t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 9, 23, 9) });
+const INSTALL_HASH = privateSignal(SALT, 'installation', INSTALL);
+async function claimRoom(h: ReturnType<typeof harness>, token: string, mode: 'lesson' | 'lesson-text' = 'lesson', fence = randomUUID()) {
+  const grant = await h.call('/onboarding/live', { token, body: { mode } });
+  assert.equal(grant.status, 200, JSON.stringify(grant.body));
+  const row = (await h.guestStore.get(guestKey(token)))!;
+  return guestLiveOperation(h.guestStore, guestKey(token), 'claim', { userId: row.id, sessionId: row.live!.sessionId, roomName: row.live!.roomName, mode, claimNonce: fence }, Date.now(), h.guestScene);
+}
+
+test('a start reserves no marker; a repeat with the same capability books nothing', async () => {
   const h = harness();
   const first = await h.begin();
   assert.equal(first.status, 200);
   assert.equal(first.body.scene, 'guest-cafe');
+  assert.equal(await h.ledger.installationUsed(guestSceneKeys.installation(INSTALL_HASH)), false, 'the start reserved nothing');
   const token = first.body.token as string;
   const again = await h.begin({ token });
   assert.equal(again.status, 200);
   assert.equal(again.body.token, token);
   assert.equal(h.guestStore.rows.size, 1, 'the repeat start created nothing');
-  assert.equal((await h.begin({ token, installation: 'installation-0000002' })).body.error, undefined, 'another installation starts its own');
-  const used = await h.begin();
+  assert.equal(await h.ledger.installationUsed(guestSceneKeys.installation(INSTALL_HASH)), false);
+});
+
+test('a lost start costs no scene: the same day, guest-install refuses a second capability with 409; the next day a new start works', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 9, 23, 9) });
+  const h = harness();
+  assert.equal((await h.begin()).status, 200);
+  // The 200 was lost: the app has no token. One capability per installation per day already applies.
+  const sameDay = await h.begin({ address: '203.0.113.8' });
+  assert.equal(sameDay.status, 409);
+  assert.equal(sameDay.body.error, 'starter already used');
+  t.mock.timers.tick(86400_000 + 1000);
+  const nextDay = await h.begin({ address: '203.0.113.9' });
+  assert.equal(nextDay.status, 200, 'the lost start never burned the 30-day scene');
+});
+
+test('the first claim books the marker; then a start is refused with guest-scene-used, and another capability\'s claim is refused for 30 days', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 9, 23, 9) });
+  const h = harness();
+  const token = (await h.begin()).body.token as string;
+  // guest-install keeps one live capability per installation per day, so a rival can only
+  // exist by a race or a forged path. Plant one directly, unclaimed, on the same installation.
+  const rival = 'r'.repeat(43);
+  h.guestStore.rows.set(guestKey(rival), { ...structuredClone((await h.guestStore.get(guestKey(token)))!), id: randomUUID() });
+  const fence = randomUUID();
+  await claimRoom(h, token, 'lesson', fence);
+  assert.equal(await h.ledger.installationUsed(guestSceneKeys.installation(INSTALL_HASH)), true, 'the first claim booked the marker');
+  assert.equal(await h.ledger.used(guestSceneKeys.day(Date.now())), 1);
+  const row = (await h.guestStore.get(guestKey(token)))!;
+  await guestLiveOperation(h.guestStore, guestKey(token), 'claim', { userId: row.id, sessionId: row.live!.sessionId, roomName: row.live!.roomName, mode: 'lesson', claimNonce: fence }, Date.now(), h.guestScene);
+  assert.equal(await h.ledger.used(guestSceneKeys.day(Date.now())), 1, 'a repeat claim by the same fence books nothing new');
+  await assert.rejects(claimRoom(h, rival), (e: { status?: number }) => e.status === 403, "another capability's claim on this installation");
+  assert.equal(await h.ledger.used(guestSceneKeys.day(Date.now())), 1, 'the refused claim booked no slot');
+  const used = await h.begin({ address: '203.0.113.10' });
   assert.equal(used.status, 503);
   assert.equal(used.body.error, 'guest-scene-used');
   t.mock.timers.tick(29 * 86400_000);
-  assert.equal((await h.begin({ address: '203.0.113.8' })).body.error, 'guest-scene-used');
+  assert.equal((await h.begin({ address: '203.0.113.11' })).body.error, 'guest-scene-used');
   t.mock.timers.tick(86400_000 + 1000);
-  // The ledger clock is the real Date.now, which the mock moves too.
-  const later = await h.begin({ address: '203.0.113.9' });
+  const later = await h.begin({ address: '203.0.113.12' });
   assert.equal(later.status, 200, JSON.stringify(later.body));
+  await claimRoom(h, later.body.token as string);
+  assert.equal(await h.ledger.installationUsed(guestSceneKeys.installation(INSTALL_HASH)), true, 'a claim after 30 days is allowed');
 });
 
 test('a spent ceiling refuses the start (read-only) without burning the installation', async () => {
   const h = harness({ ...PRODUCTION, LUVANI_GUEST_SCENE_DAILY: '1' });
-  await h.guestScene.book(randomUUID());
+  await h.guestScene.book({ fence: randomUUID(), installation: privateSignal(SALT, 'installation', 'installation-elsewhere'), guestKey: guestKey('elsewhere') });
   const r = await h.begin();
   assert.equal(r.body.error, 'guest-live-unavailable');
   assert.equal(await h.ledger.used(guestSceneKeys.day(Date.now())), 1, 'the start booked nothing');
-  assert.ok(await h.ledger.reserveInstallation(guestSceneKeys.installation(privateSignal(SALT, 'installation', INSTALL)), 'x'), 'the marker was not taken');
+  assert.equal(await h.ledger.installationUsed(guestSceneKeys.installation(INSTALL_HASH)), false, 'the marker was not taken');
 });
 
 test('with LUVANI_TRUST_PROXY off, a forged x-forwarded-for gets no fresh address budget', async () => {

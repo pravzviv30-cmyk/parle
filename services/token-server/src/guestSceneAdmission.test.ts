@@ -2,13 +2,15 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import {
-  BOOK_SCRIPT, MemoryGuestSceneLedger, RedisGuestSceneLedger, RELEASE_INSTALLATION_SCRIPT, RESERVE_INSTALLATION_SCRIPT,
+  BOOK_SCRIPT, MemoryGuestSceneLedger, RedisGuestSceneLedger,
   guestSceneAdmission, guestSceneDaily, guestSceneGaps, guestSceneKeys,
 } from './guestSceneAdmission.ts';
 import { RedisGuestStore, SHRINK_SCRIPT, claimGuest, createGuest, guestKey } from './onboardingGuest.ts';
 import { privateSignal } from './rateLimit.ts';
 
 const INSTALL = privateSignal('salt', 'installation', 'device-1');
+const install = (n: number) => privateSignal('salt', 'installation', `device-${n}`);
+const capability = () => guestKey(randomUUID());
 const DAY = 86400_000;
 
 /**
@@ -33,16 +35,15 @@ function fakeRedis(clock: () => number) {
     if (name !== 'EVAL') throw new Error(`unexpected ${name}`);
     const count = Number(command[2]);
     const keys = rest.slice(0, count), argv = rest.slice(count);
-    if (script === RESERVE_INSTALLATION_SCRIPT) {
-      if (read(keys[0]!)) return 0;
-      set(keys[0]!, argv[0]!, Number(argv[1])); return 1;
-    }
-    if (script === RELEASE_INSTALLATION_SCRIPT) { if (read(keys[0]!)?.value === argv[0]) data.delete(keys[0]!); return 1; }
     if (script === BOOK_SCRIPT) {
       if (read(keys[1]!)) return 1;
+      const marker = read(keys[2]!)?.value ?? null;
+      if (marker !== null && marker !== argv[2]) return 2;
       const used = Number(read(keys[0]!)?.value ?? '0');
       if (used >= Number(argv[0])) return 0;
-      set(keys[0]!, String(used + 1), Number(argv[1])); set(keys[1]!, '1', Number(argv[1])); return 1;
+      set(keys[0]!, String(used + 1), Number(argv[1])); set(keys[1]!, '1', Number(argv[1]));
+      if (marker === null) set(keys[2]!, argv[2]!, Number(argv[3]));
+      return 1;
     }
     if (script === SHRINK_SCRIPT) {
       const row = read(keys[0]!);
@@ -105,18 +106,28 @@ for (const kind of ['memory', 'redis'] as const) {
     return { ledger: kind === 'memory' ? new MemoryGuestSceneLedger(clock) : new RedisGuestSceneLedger('https://fake.invalid', 't', redis.request), redis };
   };
 
-  test(`${kind}: one scene per installation per 30 days, released only by its own holder`, async () => {
+  test(`${kind}: the first claim books the installation's scene; another capability is refused for 30 days; the same one is accepted`, async () => {
     let now = Date.UTC(2026, 9, 23, 12);
-    const { ledger } = make(() => now), admission = guestSceneAdmission(ledger, 24);
-    const release = await admission.reserveInstallation(INSTALL, 'a');
-    assert.ok(release);
-    assert.equal(await admission.reserveInstallation(INSTALL, 'b'), null);
-    await ledger.releaseInstallation(guestSceneKeys.installation(INSTALL), 'b');
-    assert.equal(await admission.reserveInstallation(INSTALL, 'c'), null, 'a different holder cannot release the marker');
+    const { ledger, redis } = make(() => now), admission = guestSceneAdmission(ledger, 24);
+    const first = capability(), fence = randomUUID();
+    assert.equal(await admission.installationUsed(INSTALL), false);
+    assert.equal(await admission.book({ fence, installation: INSTALL, guestKey: first }, now), 'booked');
+    assert.equal(await admission.installationUsed(INSTALL), true);
+    assert.equal(await admission.book({ fence, installation: INSTALL, guestKey: first }, now), 'booked', 'a repeat claim by the same fence');
+    assert.equal(await admission.book({ fence: randomUUID(), installation: INSTALL, guestKey: first }, now), 'booked', 'the same capability is accepted');
+    assert.equal(await ledger.used(guestSceneKeys.day(now)), 2, 'a new fence is a new room, so a new slot');
+    assert.equal(await admission.book({ fence: randomUUID(), installation: INSTALL, guestKey: capability() }, now), 'installation');
+    assert.equal(await ledger.used(guestSceneKeys.day(now)), 2, 'a refused claim books no slot');
+    if (kind === 'redis') {
+      const ttl = redis.ttlSec(guestSceneKeys.installation(INSTALL))!;
+      assert.ok(ttl > 29 * 86400 && ttl <= 30 * 86400);
+      assert.equal(redis.data.get(guestSceneKeys.installation(INSTALL))!.value.includes(first), false, 'the marker holds a hash, not the key');
+    }
     now += 30 * DAY - 1000;
-    assert.equal(await admission.reserveInstallation(INSTALL, 'd'), null);
+    assert.equal(await admission.book({ fence: randomUUID(), installation: INSTALL, guestKey: capability() }, now), 'installation');
     now += 2000;
-    assert.ok(await admission.reserveInstallation(INSTALL, 'e'), 'a new scene after 30 days');
+    assert.equal(await admission.installationUsed(INSTALL), false);
+    assert.equal(await admission.book({ fence: randomUUID(), installation: INSTALL, guestKey: capability() }, now), 'booked', 'a new scene after 30 days');
     assert.throws(() => guestSceneKeys.installation('raw-installation-id'), /hashed/);
   });
 
@@ -126,27 +137,29 @@ for (const kind of ['memory', 'redis'] as const) {
     const warn = t.mock.method(console, 'warn', () => {});
     assert.equal(await admission.open(now), true);
     const fences = Array.from({ length: 24 }, () => randomUUID());
-    for (const fence of fences) assert.equal(await admission.book(fence, now), true);
-    assert.equal(await admission.book(fences[0]!, now), true, 'a repeat claim with the same fence books nothing new');
+    const claim = (fence: string, n: number) => ({ fence, installation: install(n), guestKey: `${'k'.repeat(40)}${String(n).padStart(3, '0')}` });
+    for (const [i, fence] of fences.entries()) assert.equal(await admission.book(claim(fence, i), now), 'booked');
+    assert.equal(await admission.book(claim(fences[0]!, 0), now), 'booked', 'a repeat claim with the same fence books nothing new');
     assert.equal(await ledger.used(guestSceneKeys.day(now)), 24);
     assert.equal(await admission.open(now), false);
     const late = randomUUID();
-    assert.equal(await admission.book(late, now), false);
-    assert.equal(await admission.book(randomUUID(), now), false);
+    assert.equal(await admission.book(claim(late, 100), now), 'ceiling');
+    assert.equal(await admission.book(claim(randomUUID(), 101), now), 'ceiling');
+    assert.equal(await admission.installationUsed(install(100)), false, 'a refused claim takes no installation scene');
     assert.equal(warn.mock.callCount(), 1);
     const line = String(warn.mock.calls[0]!.arguments[0]);
     assert.match(line, /guest scene: the service-wide daily ceiling of 24 is spent/);
-    for (const secret of [late, INSTALL, ...fences]) assert.equal(line.includes(secret), false);
+    for (const secret of [late, install(100), ...fences]) assert.equal(line.includes(secret), false);
     if (kind === 'redis') {
       const ttl = redis.ttlSec(guestSceneKeys.day(now))!;
       assert.ok(ttl > 0 && ttl <= 2 * 86400, 'daily counters carry a two-day TTL');
       assert.ok([...redis.data.keys()].every((key) => key.startsWith('luvani:guest-scene:') && !key.includes(late)), 'fences are stored hashed');
     }
     now += DAY;
-    assert.equal(await admission.book(randomUUID(), now), true, 'the next UTC day has a fresh ceiling');
-    for (let i = 1; i < 24; i++) await admission.book(randomUUID(), now);
-    assert.equal(await admission.book(randomUUID(), now), false);
-    assert.equal(await admission.book(randomUUID(), now), false);
+    assert.equal(await admission.book(claim(randomUUID(), 200), now), 'booked', 'the next UTC day has a fresh ceiling');
+    for (let i = 1; i < 24; i++) await admission.book(claim(randomUUID(), 200 + i), now);
+    assert.equal(await admission.book(claim(randomUUID(), 300), now), 'ceiling');
+    assert.equal(await admission.book(claim(randomUUID(), 301), now), 'ceiling');
     assert.equal(warn.mock.callCount(), 2, 'once per UTC day per process');
   });
 }

@@ -39,7 +39,8 @@ Names come from `@luvani/core` (`packages/core/src/lessons/guestCafe.ts`):
    Refusals use 503 with `error`:
    - `guest-live-unavailable`: the switch is off, a dependency is missing, or today's
      ceiling is spent (a read-only check).
-   - `guest-scene-used`: this installation already started a scene in the last 30 days.
+   - `guest-scene-used`: a scene room from this installation was claimed in the last 30 days
+     (a start only reads the marker; the claim books it).
    - `voice-unavailable`: unchanged.
    A repeat start that presents the same still-valid capability from the same
    installation returns that capability and books nothing new.
@@ -54,8 +55,9 @@ Names come from `@luvani/core` (`packages/core/src/lessons/guestCafe.ts`):
    `tutorVoice`. No `firstPractice` brief, `seedTopic` or `missionId` on a scene.
 4. **Worker claim.** `POST /agent/guest/<key>/claim` with `mode` equal to the signed
    mode (`lesson` or `lesson-text` for a scene room, `convo` for the old path). The
-   first claim books one slot of today's ceiling atomically; a repeat claim with the
-   same fence books nothing. A spent ceiling refuses the claim (403). The response's
+   first claim books one slot of today's ceiling and the 30-day installation marker
+   in one atomic step; a repeat claim with the same fence books nothing. A spent
+   ceiling, or a marker held by another capability, refuses the claim (403). The response's
    `maxSeconds` is 180, and the worker refuses a scene claim whose `maxSeconds` exceeds 180.
 5. **Checkpoint and complete** for a scene room. The digest payload is
    `{ revision, seconds, learnerTurns, serviceFailure, baseline: null,

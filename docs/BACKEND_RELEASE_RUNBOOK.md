@@ -191,7 +191,7 @@ The guest first scene is one five-turn scripted café exchange before sign-up, w
 - **Tutor switch.** Without the switch, the tutor role refuses scene rooms. The guest conversation stays refused in production on both roles.
 - **Budgets.**
   - **Daily ceiling.** `LUVANI_GUEST_SCENE_DAILY` is a whole number from 1 to 2,000 (default 24). Any other value keeps scenes off. It is booked atomically when the worker claims a room, so a room nobody joins spends no slot. When the ceiling first refuses on a UTC day, each API process logs `guest scene: the service-wide daily ceiling of N is spent` once, with no guest, installation or address in the line.
-  - **One scene per installation per 30 days.** This is a hashed marker, a courtesy limit only: a reinstall or a forged header gets past it.
+  - **One scene per installation per 30 days.** This is a hashed marker, booked with the daily slot when the worker first claims a room. A start only reads it, so a lost start response spends nothing. It is a courtesy limit only: a reinstall or a forged header gets past it.
   - **Three guest starts per address per day.** An IPv6 address counts by its /64.
   - **One room per guest capability.** The capability lasts 24 hours.
 - **Hard limits.** Each room lasts 180 s at most, enforced by the worker lifecycle. The guest scene gate on the paid voice proxy admits only Deepgram STT (180 s of audio in total) and ElevenLabs TTS of the scene's exact scripted lines in the signed voice. Every other effect is refused.
@@ -228,6 +228,6 @@ With the `TTS_CACHE_DIR` volume warm, every scene line replays free, and a scene
   4. Show that a second scene from the same installation is refused.
   5. Show that the counters carry a TTL.
   6. Show that a saved scene's lines appear in the new account's phrasebook.
-  7. Prove the three Lua scripts on the real Redis. They have only run offline against a fake transport. The installation marker must be SET NX with a 30-day TTL, the claim booking must happen once per worker fence, and a claimed record must shrink and carry a TTL of 48 hours or less.
+  7. Prove the three Lua scripts on the real Redis. They have only run offline against a fake transport. The claim must book the daily slot and the 30-day installation marker together, once per worker fence, and refuse another capability's claim on the same installation, and a claimed record must shrink and carry a TTL of 48 hours or less.
 
 **Switching it off** needs no migration or drain. Unset `LUVANI_GUEST_SCENE` on the API and redeploy. The counters and records expire by themselves.
