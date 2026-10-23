@@ -2269,7 +2269,7 @@ const CLUB_FRAME: ScenarioFrame = {
       register: 'courant',
     },
   ],
-  registerGuidance: "Welcome-desk French at a community centre, vous throughout. Sophie is friendly and organised, with the timetable printed in front of her. She answers each question with the fact first (le mardi, de sept heures à huit heures et demie), then waits for the next one, because the learner is the one asking. In her speech the ne drops (y a plus de place le jeudi, c'est pas cher), but her formulas stay whole: je vous en prie, n'hésitez pas. She lists what to bring in two or three items (un tapis, une bouteille d'eau, une tenue confortable) and repeats a time or a price if asked. When the learner signs up she asks for a name and an email, one at a time. She never rushes the learner, never pushes a dearer option, and never says tu.",
+  registerGuidance: "Welcome-desk French at a community centre, vous throughout. Sophie is friendly and organised, with the timetable printed in front of her. She answers each question with the fact first (le mardi, de sept heures à huit heures et demie), then waits for the next one, because the learner is the one asking. In her speech the ne drops (c'est complet le jeudi, c'est pas cher), but her formulas stay whole: je vous en prie, n'hésitez pas. She lists what to bring in two or three items (un tapis, une bouteille d'eau, une tenue confortable) and repeats a time or a price if asked. When the learner signs up she asks for a name and an email, one at a time. She never rushes the learner, never pushes a dearer option, and never says tu.",
   beats: [
     {
       id: 'say-what-you-want',
@@ -2365,8 +2365,8 @@ const CLUB_FRAME: ScenarioFrame = {
         en: 'Good evening, are there still places in the yoga class?',
       },
       {
-        fr: 'Oui, le cours de conversation, c’est quel jour ?',
-        en: 'Yes, which day is the conversation class?',
+        fr: 'Bonsoir, le cours de conversation, c’est quel jour ?',
+        en: 'Good evening, which day is the conversation class?',
       },
       {
         fr: 'Bonsoir, je voudrais des informations sur les cours',
@@ -2376,9 +2376,9 @@ const CLUB_FRAME: ScenarioFrame = {
     hintEn: 'Say good evening back, then say which class you want to join.',
   },
   cultureNotes: [
-    'A maison de quartier or an MJC runs low-cost classes for the neighbourhood: sport, music, languages, cooking. It is one of the easiest ways to meet people after a move.',
+    'A maison de quartier or an MJC runs low-cost classes for the neighbourhood: sport, music, languages, cooking. It is one of the easiest ways to meet people after a move. Most ask for a small yearly adhésion, a membership fee, on top of the class.',
     'Most classes start in September, at the rentrée, but many still take people later in the year. Asking for a cours d’essai, a first class to try, is normal.',
-    'Sport classes often ask for a certificat médical, a short note from a doctor saying you can take part.',
+    'Some sport classes still ask for a certificat médical, a short note from a doctor saying you can take part.',
   ],
 };
 
@@ -2400,7 +2400,7 @@ const BANQUE_FRAME: ScenarioFrame = {
       register: 'courant',
     },
   ],
-  registerGuidance: "Bank-adviser French in a branch office, vous throughout, courant leaning towards soutenu. Antoine is polite and precise. He keeps the ne more often than most people (je ne vois pas de problème), uses whole formulas (je vous en prie, tout à fait, je vous écoute) and asks one question at a time. He names each document plainly (une pièce d'identité, un justificatif de domicile de moins de trois mois) and explains a word if the learner hesitates. He answers questions about the card and the online account with the fact first, then offers a next appointment to sign. He never sells extra products, never uses banking jargon without explaining it, never hurries the learner, and never says tu.",
+  registerGuidance: "Bank-adviser French in a branch office, vous throughout, courant leaning towards soutenu. Antoine is polite and precise. He keeps the ne more often than most people (je ne vois pas de problème), uses whole formulas (je vous en prie, tout à fait, je vous écoute) and asks one question at a time. He names each document plainly (une pièce d'identité, un justificatif de domicile de moins de trois mois) and explains a word if the learner hesitates. Keep sentences short, name one document at a time, and if you say justificatif de domicile, follow it with a plain example (une facture, par exemple). He answers questions about the card and the online account with the fact first, then offers a next appointment to sign. He never sells extra products, never hurries the learner, and never says tu.",
   beats: [
     {
       id: 'say-you-want-an-account',
@@ -2507,9 +2507,9 @@ const BANQUE_FRAME: ScenarioFrame = {
     hintEn: 'Say hello back, then say you would like to open an account.',
   },
   cultureNotes: [
-    'A justificatif de domicile is proof of address: a recent energy bill, a rent receipt or a home insurance certificate. If you live with someone, they can sign an attestation d’hébergement.',
+    'A justificatif de domicile is proof of address: a recent energy bill, a rent receipt or a home insurance certificate. If you live with someone, they can sign an attestation d’hébergement, with a copy of their ID and their own proof of address.',
     'A RIB, relevé d’identité bancaire, is a slip with your account details. Landlords, employers and phone companies ask for one, so keep a copy handy.',
-    'Opening an account in a branch usually means an appointment with a conseiller. Online banks are quicker, but some ask for a French address first.',
+    'Opening an account in a branch usually means an appointment with a conseiller. Online banks are quicker, but most ask for a French address and a first transfer from an account in your name.',
   ],
 };
 
@@ -2522,7 +2522,7 @@ const BANQUE_FRAME: ScenarioFrame = {
 const SORTIE_FRAME: ScenarioFrame = {
   title: 'On se fait un ciné ?',
   titleEn: 'Making plans with a friend',
-  setting: 'A Wednesday evening at home, phone to your ear. Your friend Léa picks up on her bus home, with traffic and a beeping door behind her.',
+  setting: 'A Wednesday evening at home, phone to your ear. You are calling your friend Léa to plan the weekend.',
   learnerRole: 'Someone phoning a friend to plan an evening at the cinema.',
   characters: [
     {
@@ -2633,9 +2633,9 @@ const SORTIE_FRAME: ScenarioFrame = {
     hintEn: 'Say hi back, then suggest going to the cinema.',
   },
   cultureNotes: [
-    'On se fait un ciné is the casual way to suggest a film. Ciné is short for cinéma, and nobody says the long form between friends.',
-    'Turning down a day is easy and never rude: say you cannot, then offer another. Je peux pas, mais is all it takes.',
-    'Many French cinemas show foreign films in VO, the original language with subtitles. VF means dubbed into French.',
+    'On se fait un ciné is the casual way to suggest a film. Ciné is short for cinéma, and it is what most friends say.',
+    'Turning down a day is easy and not rude: say you cannot, then offer another. Je peux pas, mais is all it takes.',
+    'Many French cinemas show foreign films in VO or VOST, the original language with subtitles. VF means dubbed into French.',
   ],
 };
 
@@ -2658,7 +2658,7 @@ const MONTREAL_FRAME: ScenarioFrame = {
       register: 'courant',
     },
   ],
-  registerGuidance: "Montréal shop French: standard Quebec French in the courant register, vous by default. Marc-André is warm and quick, and he sounds more relaxed than a sales assistant in Paris, but he keeps vous unless the learner offers tu. He uses a few everyday Quebec words naturally and lets the context explain them: magasiner for shopping, une tuque for a winter hat, c'est correct for it is fine, and il fait frette when he talks about the cold. When thanked he says bienvenue. He gives sizes and prices plainly, says the taxes are added at the till, and asks how the learner gets around in winter. He never uses joual or sacres, never teases the learner's French from France, and never switches to English.",
+  registerGuidance: "Montréal shop French: standard Quebec French in the courant register, vous by default. Marc-André is warm and quick, and he sounds more relaxed than a sales assistant in Paris, but he keeps vous unless the learner offers tu. He uses a few everyday Quebec words naturally and lets the context explain them: magasiner for shopping, une tuque for a winter hat, c'est correct for it is fine, and il fait frette when he talks about the cold. When thanked he often says bienvenue or ça me fait plaisir. He gives sizes and prices plainly, says the taxes are added at the till, and asks how the learner gets around in winter. He never uses joual or sacres, never teases the learner's French from France, and never switches to English.",
   beats: [
     {
       id: 'say-what-you-look-for',
@@ -2754,8 +2754,8 @@ const MONTREAL_FRAME: ScenarioFrame = {
         en: 'Yes, thanks. I am looking for a warm coat for the winter',
       },
       {
-        fr: 'Bonjour ! Je regarde les manteaux, merci',
-        en: 'Hello! I am looking at the coats, thanks',
+        fr: 'Bonjour ! Oui, je cherche un manteau bien chaud',
+        en: 'Hello! Yes, I am looking for a really warm coat',
       },
       {
         fr: "Oui, c'est mon premier hiver ici. Il me faut un manteau",
@@ -2765,9 +2765,9 @@ const MONTREAL_FRAME: ScenarioFrame = {
     hintEn: 'Say hello back, then say you are looking for a winter coat.',
   },
   cultureNotes: [
-    'In Quebec the price on the tag does not include sales tax. The TPS and the TVQ are added at the till, so the total is always a little higher.',
-    'Quebec French says bienvenue for you are welcome, and c’est correct for it is fine. Magasiner means to go shopping, and a tuque is a woolly winter hat.',
-    'Winter coats are made for real cold, and staff often ask how you get around. Many people take a size up so a thick sweater fits underneath.',
+    'In Quebec the price on the tag does not include sales tax. The TPS and the TVQ are added at the till, which adds almost fifteen cents to every dollar.',
+    'Quebec French says bienvenue for you are welcome, and c’est correct for it is fine. Magasiner means to go shopping, and a tuque is a woolly winter hat. Il fait frette means it is freezing.',
+    'Winter coats are made for real cold, and staff often ask how you get around. Some people take a size up so a thick sweater fits underneath.',
   ],
 };
 
@@ -2845,7 +2845,7 @@ const COUP_DE_MAIN_FRAME: ScenarioFrame = {
     {
       fr: "Si j'ai bien compris, il faut d'abord choisir la date",
       frWritten: null,
-      en: 'If I understand, I pick the date first',
+      en: 'If I have got this right, you choose the date first',
       register: 'courant',
     },
     {
@@ -2889,15 +2889,15 @@ const COUP_DE_MAIN_FRAME: ScenarioFrame = {
         en: 'Hi, can you help me for a minute?',
       },
       {
-        fr: "Oui, t'as deux minutes ? C'est pour la salle de réunion",
-        en: 'Yes, have you got a minute? It is about the meeting room',
+        fr: "Excuse-moi, t'as deux minutes ? C'est pour la salle de réunion",
+        en: 'Sorry, have you got a minute? It is about the meeting room',
       },
     ],
     hintEn: 'Say hi, then ask if she has a minute.',
   },
   cultureNotes: [
     'T’as deux minutes ? is the usual way into a colleague’s time. It rarely means exactly two minutes, and nobody times it.',
-    'Asking someone to show you, rather than to do it for you, goes down well in a French office. It says you plan to manage next time.',
+    'In many French offices, colleagues at the same level say tu from the first day. With a manager or a client, wait until they offer it.',
     'Saying back what you understood, starting with si j’ai bien compris, shows you listened and gives the other person a chance to fix a detail.',
   ],
 };
@@ -2926,7 +2926,7 @@ const ANNIVERSAIRE_FRAME: ScenarioFrame = {
       register: 'familier',
     },
   ],
-  registerGuidance: "Birthday-party French among people your own age, tu from the first word: Manon is the partner's sister and Maxime is a cousin, and vous here would sound cold. Both are familier and quick. The ne is gone (c'est pas vrai, j'savais pas), and they say t'as, ouais and trop bien. Manon opens the present at once, is touched by it, and teases a little about how the couple met. Maxime is curious: he asks what the learner does and where they come from, one question at a time, and tells a short story of his own. Someone offers more cake and insists once, the French way. They never use argot the learner cannot follow, never switch to vous, and never ask about money or politics.",
+  registerGuidance: "Birthday-party French among people your own age, tu from the first word: Manon is the partner's sister and Maxime is a cousin, and vous here would sound cold. Both are familier and quick. The ne is gone (c'est pas vrai, j'savais pas), and they say t'as, ouais and trop bien. Manon brings Maxime over with je te présente Maxime, mon cousin before he speaks. She opens the present at once, is touched by it, and teases a little about how the couple met. Maxime is curious: he asks what the learner does and where they come from, one question at a time, and tells a short story of his own. Someone offers more cake and insists once, the French way. They never use argot the learner cannot follow, never switch to vous, and never ask about money or politics.",
   beats: [
     {
       id: 'wish-happy-birthday',
@@ -4502,7 +4502,7 @@ const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
     lines: [
       line('Antoine', 'Bonjour, asseyez-vous. Je vous écoute.', 'Hello, have a seat. How can I help?'),
       line('Antoine', 'Bonjour, qu’est-ce que je peux faire pour vous ?', 'Hello, what can I do for you?'),
-      line('Antoine', 'Bonjour ! Installez-vous. C’est pour quoi ?', 'Hello! Make yourself comfortable. What brings you in?'),
+      line('Antoine', 'Bonjour ! Installez-vous. Qu’est-ce qui vous amène ?', 'Hello! Make yourself comfortable. What brings you in?'),
     ],
   },
   'mission:sortie': {
@@ -4530,7 +4530,7 @@ const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
     ],
     lines: [
       line('Léa', 'Allô ? Salut, ça va ?', 'Hello? Hey, how are you?'),
-      line('Léa', 'Ouais, allô ? Ah, salut toi !', 'Yeah, hello? Oh, hey you!'),
+      line('Léa', 'Allô ? Ah, salut toi !', 'Hello? Oh, hey you!'),
       line('Léa', 'Salut ! Quoi de neuf ?', 'Hey! What is new?'),
     ],
   },

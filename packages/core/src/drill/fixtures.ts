@@ -2755,27 +2755,27 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:c'est quel jour, et à quelle heure ?",
     difficulty: 'production',
     fr: "C'est quel jour, et à quelle heure ?",
-    accepted: ["C'est quel jour, et à quelle heure ?", "C'est quel jour et quelle heure ?", 'Quel jour, et à quelle heure ?'],
+    accepted: ["C'est quel jour, et à quelle heure ?", 'Quel jour, et à quelle heure ?'],
   },
-  // Coûter is to cost. Couper is to cut, and the tile is there to be passed over.
+  // Faire un cours d'essai is to try a class. Être and avoir do not fit here.
   {
     kind: 'tap-translate',
-    id: 'club-tt-prix',
-    phraseKey: "phrase:ça coûte combien pour l'année ?",
+    id: 'club-tt-essai',
+    phraseKey: "phrase:on peut faire un cours d'essai ?",
     difficulty: 'recognition',
-    en: 'How much is it for the year?',
-    tokens: ['ça', 'coûte', 'combien', 'pour', "l'année", 'couper', 'le'],
-    accepted: ["ça coûte combien pour l'année", "combien ça coûte pour l'année"],
+    en: 'Can I try a class first?',
+    tokens: ['on', 'peut', 'faire', 'un', 'cours', "d'essai", 'être', 'la'],
+    accepted: ["on peut faire un cours d'essai"],
   },
   {
     kind: 'fill-blank',
-    id: 'club-fb-prix-typed',
-    phraseKey: "phrase:ça coûte combien pour l'année ?",
+    id: 'club-fb-essai-typed',
+    phraseKey: "phrase:on peut faire un cours d'essai ?",
     difficulty: 'production',
-    accepted: ['combien'],
-    en: 'How much is it for the year?',
+    accepted: ['faire'],
+    en: 'Can I try a class first?',
     options: null,
-    sentence: "Ça coûte ___ pour l'année ?",
+    sentence: "On peut ___ un cours d'essai ?",
   },
   // Any question about what to bring lands. A towel is a guess, not a question.
   {
@@ -2834,6 +2834,8 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     referenceEn: 'Hello, I would like to open an account',
   },
   // Venir de plus the verb is the recent past: it has only just happened.
+  // Déménager is moving out of the old place; emménager is moving into the
+  // new one. Both describe the same move here, so both are accepted.
   {
     kind: 'fill-blank',
     id: 'banque-fb-viens-de',
@@ -2950,7 +2952,6 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     accepted: [
       'Samedi, je peux pas, mais dimanche, ça te va ?',
       'Samedi, je ne peux pas, mais dimanche, ça te va ?',
-      'Samedi je peux pas, dimanche ça te va ?',
     ],
   },
   // Se retrouver is to meet up. Retrouver alone is to find something lost.
@@ -2973,28 +2974,30 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     options: null,
     sentence: 'On se retrouve ___ le cinéma ?',
   },
-  // Agreeing and naming the day both land. Bonne nuit closes the call too soon.
+  // T'es libre asks a friend, either spelling. Vous is for strangers, and
+  // t'es où asks where she is, not when she is free.
   {
     kind: 'appropriate-reply',
-    id: 'sortie-ar-a-dimanche',
-    phraseKey: 'phrase:ça marche, à dimanche !',
+    id: 'sortie-ar-libre',
+    phraseKey: "phrase:t'es libre samedi soir ?",
     difficulty: 'recognition',
     acceptableIndexes: [0, 1],
-    line: { speaker: 'Léa', fr: 'Dimanche, vingt heures, devant le ciné. Ça te va ?', en: 'Sunday, eight in the evening, outside the cinema. Does that work?' },
+    line: { speaker: 'Léa', fr: 'Ouais, carrément ! Mais quand ?', en: 'Yeah, totally! But when?' },
     options: [
-      { fr: 'Ça marche, à dimanche !', en: 'Sounds good, see you Sunday!' },
-      { fr: 'Parfait, à dimanche !', en: 'Perfect, see you Sunday!' },
-      { fr: 'Bonne nuit', en: 'Good night' },
-      { fr: 'Samedi, je travaille', en: 'I am working on Saturday' },
+      { fr: "T'es libre samedi soir ?", en: 'Are you free on Saturday evening?' },
+      { fr: 'Tu es libre samedi soir ?', en: 'Are you free on Saturday evening?' },
+      { fr: 'Vous êtes libre, madame ?', en: 'Are you free, madam?' },
+      { fr: "T'es où ?", en: 'Where are you?' },
     ],
   },
+  // The played line squeezes tu es into t'es, as speech does. Tu es is right too.
   {
     kind: 'listen-type',
-    id: 'sortie-lt-a-dimanche',
-    phraseKey: 'phrase:ça marche, à dimanche !',
+    id: 'sortie-lt-libre',
+    phraseKey: "phrase:t'es libre samedi soir ?",
     difficulty: 'production',
-    fr: 'Ça marche, à dimanche !',
-    accepted: ['Ça marche, à dimanche !', 'Ok, à dimanche !', 'À dimanche !'],
+    fr: "T'es libre samedi soir ?",
+    accepted: ["T'es libre samedi soir ?", 'Tu es libre samedi soir ?', "T'es libre samedi ?"],
   },
 
   // ---- un manteau pour l'hiver ------------------------------------
@@ -3080,7 +3083,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     line: { speaker: 'Marc-André', fr: "Celui-là, il est en spécial cette semaine. C'est un bon manteau.", en: 'That one is on special this week. It is a good coat.' },
     options: [
       { fr: 'Il coûte combien, avec les taxes ?', en: 'How much is it, with the taxes?' },
-      { fr: 'Ça fait combien, taxes comprises ?', en: 'How much does that come to, taxes included?' },
+      { fr: 'Ça fait combien, taxes incluses ?', en: 'How much does that come to, taxes included?' },
       { fr: "Il fait froid aujourd'hui", en: 'It is cold today' },
       { fr: 'Je cherche une tuque', en: 'I am looking for a winter hat' },
     ],
@@ -3137,7 +3140,9 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     fr: "J'arrive pas à réserver une salle",
     accepted: ["J'arrive pas à réserver une salle", "Je n'arrive pas à réserver une salle", "J'arrive pas à réserver la salle"],
   },
-  // Montrer is to show. Donner would have her hand it over instead.
+  // Montrer is to show. Donner would have her hand it over instead. Kept
+  // apart from collegues' tu peux me montrer la cantine ?: here it asks how,
+  // there it asks where, so the two phrases are not merged.
   {
     kind: 'tap-translate',
     id: 'coup-de-main-tt-montrer',
@@ -3173,7 +3178,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     acceptableIndexes: [0, 1],
     line: { speaker: 'Inès', fr: "Tu choisis la date, et après, tu cliques sur la salle. C'est bon ?", en: 'You pick the date, and then you click on the room. All clear?' },
     options: [
-      { fr: "Si j'ai bien compris, il faut d'abord choisir la date", en: 'If I understand, I pick the date first' },
+      { fr: "Si j'ai bien compris, il faut d'abord choisir la date", en: 'If I have got this right, you choose the date first' },
       { fr: "D'abord la date, et après la salle, c'est ça ?", en: 'The date first, then the room, is that it?' },
       { fr: "J'ai pas de date", en: 'I do not have a date' },
       { fr: 'La salle est jolie', en: 'The room is pretty' },
@@ -3185,7 +3190,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:si j'ai bien compris, il faut d'abord choisir la date",
     difficulty: 'production',
     accepted: ['compris'],
-    en: 'If I understand, I pick the date first',
+    en: 'If I have got this right, you choose the date first',
     options: null,
     sentence: "Si j'ai bien ___, il faut d'abord choisir la date",
   },
@@ -3243,25 +3248,25 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     fr: "On s'est rencontrés par des amis",
     accepted: ["On s'est rencontrés par des amis", "On s'est rencontrées par des amis", 'Nous nous sommes rencontrés par des amis'],
   },
-  // Faire dans la vie asks what someone does for a living.
+  // Depuis counts time that is still going on. Pendant would mean it is over.
   {
     kind: 'tap-translate',
-    id: 'anniversaire-tt-vie',
-    phraseKey: 'phrase:et toi, tu fais quoi dans la vie ?',
+    id: 'anniversaire-tt-ensemble',
+    phraseKey: 'phrase:on est ensemble depuis deux ans',
     difficulty: 'recognition',
-    en: 'And you, what do you do for a living?',
-    tokens: ['et', 'toi', 'tu', 'fais', 'quoi', 'dans', 'la', 'vie', 'vas'],
-    accepted: ['et toi tu fais quoi dans la vie'],
+    en: 'We have been together for two years',
+    tokens: ['on', 'est', 'ensemble', 'depuis', 'deux', 'ans', 'pendant', 'a'],
+    accepted: ['on est ensemble depuis deux ans'],
   },
   {
     kind: 'fill-blank',
-    id: 'anniversaire-fb-vie-typed',
-    phraseKey: 'phrase:et toi, tu fais quoi dans la vie ?',
+    id: 'anniversaire-fb-depuis-typed',
+    phraseKey: 'phrase:on est ensemble depuis deux ans',
     difficulty: 'production',
-    accepted: ['vie'],
-    en: 'And you, what do you do for a living?',
+    accepted: ['depuis'],
+    en: 'We have been together for two years',
     options: null,
-    sentence: 'Et toi, tu fais quoi dans la ___ ?',
+    sentence: 'On est ensemble ___ deux ans',
   },
   // Yes to a little more, either way, lands. A flat no after the host insists
   // reads cold, and the coat is for later.

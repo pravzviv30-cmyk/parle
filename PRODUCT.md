@@ -196,7 +196,7 @@ tests across all six workspaces, including 507 in core:
   `apps/mobile/src/onboarding/`
 - Mission, review and generated-drill practice paths — `packages/core/src/missions/`,
   `packages/core/src/review/`, `apps/mobile/src/missions/`, `apps/mobile/src/DrillScreen.tsx`
-- The scene spine: nineteen scenes in order from A0 to A2, each earned only on
+- The scene spine: thirty-one scenes in order from A0 to B1, each earned only on
   independence evidence, with the learner's level read off what is earned, in
   `packages/core/src/missions/spine.ts`
 
