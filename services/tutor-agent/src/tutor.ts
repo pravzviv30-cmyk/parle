@@ -49,6 +49,7 @@ import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 import { safeError } from './safeError.ts';
 import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
+import { NO_CLIP_SINK, mayCapture, speechDatasetEnabled, type ClipCandidate, type ClipSink } from './speechClips.ts';
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
 import { isAcceptedLearnerText, outputGuard, recordSafetyDecision, safetyDecision } from './safety.ts';
 import type { RuntimeLifecycle } from './sessionLifecycle.ts';
@@ -264,7 +265,21 @@ export class LuvaniTutor extends voice.Agent {
    */
   private readonly persona: TutorPersona | undefined;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance } = {}) {
+  /** Where a consented dataset clip would go. Today only NO_CLIP_SINK exists. */
+  private readonly clipSink: ClipSink;
+
+  /**
+   * The learner's consent to give reference-line clips to the speech dataset.
+   *
+   * A constructor option, read once and never reassigned. Nothing in
+   * production code passes it today, so it is always false and nothing is
+   * captured. Activation passes it from agent.ts after the token server signs
+   * a consent bit, read from a server consent record, into join metadata (as
+   * `memoryLocked` is). See docs/changes/speech-dataset.md.
+   */
+  private readonly datasetConsent: boolean;
+
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
@@ -275,6 +290,8 @@ export class LuvaniTutor extends voice.Agent {
     this.persona = options.persona;
     this.scoring = new LiveScoring({ scoringRequest: options.scoringRequest, scorer: options.scorer,
       signal: () => this.lifecycle?.signal, maxScores: LESSON_SCORING_EFFECTS });
+    this.clipSink = options.clipSink ?? NO_CLIP_SINK;
+    this.datasetConsent = options.datasetConsent === true;
   }
 
   get sessionState(): SessionState {
@@ -686,7 +703,7 @@ export class LuvaniTutor extends voice.Agent {
     // scoring meaningful at all, so only a learner who said the reference line
     // is scored against it (see the note in packages/core/src/lessons/types.ts).
     if (audioScoringEnabled() && utterance && saidTheReferenceLine(prompt.turn, transcript)) {
-      this.scoreInBackground(utterance.wav, prompt.turn.reference);
+      this.scoreInBackground(utterance.wav, prompt.turn.reference, this.lesson.id, prompt.turn.id, utterance.durationSec);
     }
 
     await this.enqueue(this.session, {
@@ -705,9 +722,33 @@ export class LuvaniTutor extends voice.Agent {
     throw new voice.StopResponse();
   }
 
-  /** Score one utterance without anybody waiting for it (see LiveScoring.score). */
-  private scoreInBackground(wav: Uint8Array, reference: string): void {
-    this.scoring.score(wav, reference);
+  /**
+   * Score one utterance without anybody waiting for it (see LiveScoring.score).
+   * An utterance that comes back with evidence is offered as a dataset clip,
+   * which `offerClip` drops unless the dataset flag and the learner's consent
+   * are both on (VOICE-007). The clip carries the audio exactly as it was scored.
+   */
+  private scoreInBackground(wav: Uint8Array, reference: string, lessonId: string, turnId: string, durationSec: number): void {
+    this.scoring.score(wav, reference, (observations, audio) =>
+      this.offerClip({ reference, lessonId, turnId, wav: audio, durationSec, observations }));
+  }
+
+  /**
+   * Offer a scored reference-line clip to the speech dataset seam, which is inert.
+   *
+   * Qualification is exactly VOICE-004's scoring gate: the learner said the
+   * reference line, and typed or tapped answers never reach here. Capture
+   * therefore also needs LUVANI_AUDIO_SCORING=1, on top of
+   * the speech dataset flag and the learner's consent, which nothing passes today.
+   *
+   * The clip is the audio the scorer was handed. Through the paid transport
+   * that is the converted 16 kHz mono WAV; the dev path sends the raw tap WAV,
+   * and activation requires the converted 16 kHz audio
+   * (docs/changes/speech-dataset.md). A sink can never break the lesson.
+   */
+  private offerClip(clip: ClipCandidate): void {
+    if (!mayCapture({ enabled: speechDatasetEnabled(), consent: this.datasetConsent })) return;
+    try { this.clipSink.offer(clip); } catch { /* the lesson goes on */ }
   }
 
   /**

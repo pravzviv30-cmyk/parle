@@ -44,6 +44,8 @@
  * switch F239 refused. Both supplied mockups drew one; it stays unbuilt.
  */
 
+import { SPEECH_CONSENT_COPY } from '../speechDataset/consent.ts';
+
 /** The screen's own headline, and the label on the row that opens it. */
 export const SETTINGS_TITLE = 'Settings';
 
@@ -264,4 +266,6 @@ export const SETTINGS_COPY: readonly string[] = [
   ACKNOWLEDGEMENTS_ROW,
   LINK_TROUBLE,
   CONSENT_SAVE_TROUBLE,
+  // The hidden speech dataset switch, scanned now so its words are clean before it ever draws.
+  ...SPEECH_CONSENT_COPY,
 ];

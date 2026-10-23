@@ -146,6 +146,84 @@ try {
   assert.deepEqual(await gameOwnerRows(),['game','history']);
   pass('game rollback refuses by default and deletes nothing; authorised it deletes only game rows and restores the sixteen-name check; the migration re-applies cleanly');
 
+  // Speech dataset groundwork (inert): metadata only, service-only, closed shapes,
+  // retention bounded by the database, path tied to the row, gone with the account.
+  {
+    const owner=id(31);
+    let clipN=0; const nextClip=()=>`20000000-0000-4000-8000-${String(++clipN).padStart(12,'0')}`;
+    const goodScores=[{ipa:'b',score:90,word:'bonjour'},{ipa:'ɔ̃',score:72.5,word:'bonjour',substituted:'o'}];
+    const clip=(o={})=>{const cid=o.id??nextClip();const r={user_id:owner,consent_version:1,object_path:`${owner}/${cid}.wav`,lesson_id:'cafe-01',turn_id:'t1-greet',reference_line:'Bonjour, un café, s\'il vous plaît.',phonemes:['b','ɔ̃'],cefr_band:'A1',vendor:'speechace',scores:goodScores,duration_ms:2400,sample_rate_hz:16000,keep:'12 months',...o};
+      return db.query('insert into public.speech_dataset_clips(id,user_id,consent_version,object_path,lesson_id,turn_id,reference_line,expected_phonemes,vendor,vendor_scores,cefr_band,duration_ms,sample_rate_hz,expires_at) values($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10::jsonb,$11,$12,$13,now()+$14::interval)',
+        [cid,r.user_id,r.consent_version,r.object_path,r.lesson_id,r.turn_id,r.reference_line,JSON.stringify(r.phonemes),r.vendor,JSON.stringify(r.scores),r.cefr_band,r.duration_ms,r.sample_rate_hz,r.keep]);};
+    const clipCount=async()=>(await db.query('select count(*)::integer as n from public.speech_dataset_clips where user_id=$1',[owner])).rows[0].n;
+    await db.query('insert into auth.users values($1)',[owner]);
+    for(const client of ['anon','authenticated']){
+      await role(client,owner);
+      try {
+        await assert.rejects(db.query('select * from public.speech_dataset_clips'),/permission denied/);
+        await assert.rejects(clip(),/permission denied/);
+      } finally { await admin(); }
+    }
+    const refuse=async(bad,name,why)=>assert.rejects(clip(bad),new RegExp(`violates check constraint "speech_dataset_clips_${name}"`),why);
+    const firstId=nextClip();
+    await role('service_role');
+    try {
+      await clip({id:firstId});
+      await clip({keep:'24 months'});
+      await clip({scores:[{ipa:'b',score:0,word:'b'},{ipa:'ʁ',score:100,word:'x'.repeat(40)}]});
+      await assert.rejects(db.query('update public.speech_dataset_clips set consent_version=2 where user_id=$1',[owner]),/permission denied/,'service_role update');
+      await assert.rejects(db.query('truncate public.speech_dataset_clips'),/permission denied/,'service_role truncate');
+      await assert.rejects(db.query("insert into public.speech_dataset_clips(id,user_id,consent_version,object_path,lesson_id,turn_id,reference_line,vendor,cefr_band,duration_ms,sample_rate_hz,captured_at,expires_at) values($1,$2,1,$3,'cafe-01','t1','Bonjour','speechace','A1',2400,16000,now()-interval '1 year',now()+interval '1 month')",[id(40),owner,`${owner}/${id(40)}.wav`]),/permission denied/,'captured_at insert');
+      for(const [bad,name,why] of [
+        [{reference_line:'x'.repeat(201)},'reference_line','201-char line'],
+        [{reference_line:'   '},'reference_line','whitespace-only line'],
+        [{reference_line:'Bonjour\nmerci'},'reference_line','control character'],
+        [{cefr_band:'B1'},'cefr_band','B1'],
+        [{keep:'24 months 1 second'},'retention','24 months + 1 s'],
+        [{keep:'-1 second'},'retention','expiry before capture'],
+        [{object_path:`${id(30)}/${id(41)}.wav`},'object_path','foreign path'],
+        [{object_path:`${owner}/${id(42)}.wav`},'object_path','path naming another clip'],
+        [{sample_rate_hz:24000},'sample_rate','24 kHz'],
+        [{consent_version:0},'consent_version','consent version 0'],
+        [{duration_ms:0},'duration','0 ms'],
+        [{duration_ms:30001},'duration','30001 ms'],
+        [{lesson_id:'Cafe-01'},'lesson_id','uppercase lesson id'],
+        [{phonemes:['b',1]},'phonemes_shape','non-string phoneme'],
+        [{phonemes:['b','x'.repeat(9)]},'phonemes_shape','9-char phoneme'],
+        [{scores:[{ipa:'b',score:90,word:'bon',transcript:'bonjour je voudrais'}]},'scores_shape','transcript key'],
+        [{scores:[{ipa:'b',score:101,word:'bon'}]},'scores_shape','score 101'],
+        [{scores:[{ipa:'b',word:'bon'}]},'scores_shape','missing score'],
+        [{scores:['bonjour']},'scores_shape','string element'],
+      ]) await refuse(bad,name,why);
+      assert.equal(await clipCount(),3);
+    } finally { await admin(); }
+    assert.equal((await db.query("select count(*)::integer as n from public.speech_dataset_clips where captured_at>now()-interval '1 minute'")).rows[0].n,3,'captured_at did not default to now()');
+    await assert.rejects(db.query("insert into public.speech_dataset_clips(id,user_id,consent_version,object_path,lesson_id,turn_id,reference_line,vendor,cefr_band,duration_ms,sample_rate_hz,captured_at,expires_at) values($1,$2,1,$3,'cafe-01','t1','Bonjour','speechace','A1',2400,16000,now()+interval '1 hour',now()+interval '2 hours')",[id(43),owner,`${owner}/${id(43)}.wav`]),/violates check constraint "speech_dataset_clips_captured_at"/,'future captured_at, even from the owner role');
+    pass('speech_dataset_clips: anon and authenticated cannot read or write; service_role inserts valid rows (24 months exactly, PhonemeObservation scores) but cannot update, truncate or set captured_at; blank, long or control-character lines, B1, 24 months + 1 s, foreign or mismatched paths, 24 kHz, consent 0, 0 and 30001 ms, uppercase lesson id, non-string or 9-char phonemes and open or out-of-range score objects are refused by name');
+
+    // Rollback, disposable only: refused by default with rows intact; authorised it
+    // drops the table; the migration then re-applies twice and the cascade still holds.
+    const clipUp=await readFile(`${root}/supabase/migrations/20261022200000_speech_dataset_clips.sql`,'utf8');
+    const clipDown=await readFile(`${root}/supabase/rollback/20261022200000_down.sql`,'utf8');
+    assert.match(clipDown,/^begin;[\s\S]*luvani\.remove_speech_clips[\s\S]*storage\.objects[\s\S]*drop table if exists public\.speech_dataset_clips;[\s\S]*^commit;\s*$/m,'the speech clips rollback does not own its transaction around the interlocks and the drop');
+    await assert.rejects(db.exec(clipDown),/Refusing to drop speech dataset clips/);
+    await db.exec('rollback');
+    assert.equal(await clipCount(),3,'the speech clips rollback dropped rows past its interlock');
+    await db.query("select set_config('luvani.remove_speech_clips','yes',false)");
+    await db.exec(clipDown); await db.exec(clipDown);
+    await db.query("select set_config('luvani.remove_speech_clips','',false)");
+    assert.equal((await db.query("select to_regclass('public.speech_dataset_clips') as t")).rows[0].t,null,'the speech clips rollback left the table');
+    await db.exec(clipUp); await db.exec(clipUp);
+    await role('service_role');
+    try {
+      await clip();
+      await assert.rejects(db.query('update public.speech_dataset_clips set consent_version=2'),/permission denied/,'re-applied grants allow update');
+    } finally { await admin(); }
+    await role('auth_deleter');await db.query('delete from auth.users where id=$1',[owner]);await admin();
+    assert.equal((await db.query('select count(*)::integer as n from public.speech_dataset_clips')).rows[0].n,0,'speech clip outlived its account');
+    pass('speech_dataset_clips rollback refuses by default with rows intact; authorised it drops the table and is safe twice; the migration re-applies twice with the same narrow grants; account deletion cascades');
+  }
+
   await role('authenticated',a);
   const nearLimit=envelope({text:'quoted : space, comma, and café 👋',pad:''});
   nearLimit.data.pad='x'.repeat(MAX_ENVELOPE_BYTES-Buffer.byteLength(JSON.stringify(nearLimit)));

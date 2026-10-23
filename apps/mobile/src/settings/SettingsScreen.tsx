@@ -102,6 +102,8 @@ import { companyLine, contactRow, privacyNote } from '../legal/company.ts';
 import { TERMS_TITLE } from '../legal/terms.ts';
 import { CONSENT_ROW, CONSENT_SUB, analyticsAllowed } from '../analytics/consent.ts';
 import { loadConsent, saveConsent } from '../analytics/consentStore.ts';
+import { SPEECH_CONSENT_LABEL, SPEECH_CONSENT_ROW, SPEECH_CONSENT_SAVE_TROUBLE, SPEECH_CONSENT_SUB, SPEECH_CONSENT_VERSION, SPEECH_DATASET_ENABLED, speechConsentGranted } from '../speechDataset/consent.ts';
+import { loadSpeechConsent, saveSpeechConsent } from '../speechDataset/consentStore.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { downloadVerifiedAccountData } from '../privacy/export.ts';
@@ -257,6 +259,9 @@ export function SettingsScreen({
   // the reminder row is: a guess draws a row at somebody who was never asked.
   const [consent, setConsent] = useState<boolean | null>(null);
   const [consentTrouble, setConsentTrouble] = useState<string | null>(null);
+  // The speech dataset switch (inert while SPEECH_DATASET_ENABLED is false).
+  const [speechConsent, setSpeechConsent] = useState<boolean | null>(null);
+  const [speechConsentTrouble, setSpeechConsentTrouble] = useState<string | null>(null);
   const [offering, setOffering] = useState<StoreOffering | null>(null);
   const [microphone, setMicrophone] = useState<PhonePermission | null>(null);
   const [notifications, setNotifications] = useState<PhonePermission | null>(null);
@@ -381,6 +386,15 @@ export function SettingsScreen({
           // to draw for a permission this build cannot prove was ever given.
           if (!cancelled) setConsent(false);
         });
+      if (SPEECH_DATASET_ENABLED) {
+        void loadSpeechConsent()
+          .then((stored) => {
+            if (!cancelled) setSpeechConsent(speechConsentGranted(stored));
+          })
+          .catch(() => {
+            if (!cancelled) setSpeechConsent(false);
+          });
+      }
       return () => {
         cancelled = true;
         foreground.remove();
@@ -531,6 +545,23 @@ export function SettingsScreen({
       .catch(() => {
         setConsent(!next);
         setConsentTrouble(CONSENT_SAVE_TROUBLE);
+      });
+  };
+
+  /** The speech dataset consent, the same move-then-put-back shape as above. */
+  const setSpeechConsentAllowed = (next: boolean) => {
+    setSpeechConsent(next);
+    setSpeechConsentTrouble(null);
+    void saveSpeechConsent({ allowed: next, version: SPEECH_CONSENT_VERSION })
+      .then((ack) => {
+        if (ack === 'failed') {
+          setSpeechConsent(!next);
+          setSpeechConsentTrouble(SPEECH_CONSENT_SAVE_TROUBLE);
+        }
+      })
+      .catch(() => {
+        setSpeechConsent(!next);
+        setSpeechConsentTrouble(SPEECH_CONSENT_SAVE_TROUBLE);
       });
   };
 
@@ -948,6 +979,7 @@ export function SettingsScreen({
         footer={<Text style={[bType.note, { color: t.muted }]}>{PRIVACY_INTRO} {privacyNote()}</Text>}
       >
         {consentTrouble !== null && <TroubleLine message={consentTrouble} />}
+        {SPEECH_DATASET_ENABLED && speechConsentTrouble !== null && <TroubleLine message={speechConsentTrouble} />}
         {/* The export refusal, in the group that holds the row that asked
             for it, never a sheet a screen and a half away (F489). */}
         {exportTrouble !== null && <TroubleLine message={exportTrouble} />}
@@ -961,6 +993,14 @@ export function SettingsScreen({
           onChange={setConsentAllowed}
           accessibilityLabel={CONSENT_ROW}
         />
+        {/* Hidden until legal review and the policy change (docs/changes/speech-dataset.md). */}
+        {SPEECH_DATASET_ENABLED && <SwitchRow
+          title={SPEECH_CONSENT_ROW}
+          sub={SPEECH_CONSENT_SUB}
+          value={speechConsent === true}
+          onChange={setSpeechConsentAllowed}
+          accessibilityLabel={SPEECH_CONSENT_LABEL}
+        />}
         <SettingsRow label={TUTOR_MEMORY_SETTINGS_ROW} sub={tutorMemorySettingsSub(tutor)} onPress={() => nav.navigate('TutorMemory')} />
         <SettingsRow label={DATA_USE_ROW} sub={DATA_USE_SUB} onPress={() => setSheet('policy')} />
         <SettingsRow label={SAVED_ROW} onPress={() => nav.navigate('Conversations')} />

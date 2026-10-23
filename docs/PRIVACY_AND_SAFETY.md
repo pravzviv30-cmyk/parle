@@ -446,6 +446,20 @@ The rule for anyone extending this: a feature that needs to keep a recording is 
 new consent, a new retention period and a new disclosure, and it is an escalation
 before it is a branch.
 
+**Speech dataset groundwork (2026-10-22, inert).** The escalation for a consented,
+teacher-rated set of lesson recordings is
+[docs/changes/speech-dataset.md](changes/speech-dataset.md) (VOICE-007). Its
+groundwork is in the repo and collects nothing:
+- the tutor agent's clip seam offers nothing unless `LUVANI_SPEECH_DATASET=1` and
+  the learner's consent bit are both on, and no production code sets that bit
+  (a source-scan test fails if any does);
+- the Settings switch is hidden behind `SPEECH_DATASET_ENABLED`, which is false;
+- the metadata table (migration 42) is prepared and not applied;
+- no storage bucket exists.
+
+Every sentence above about live audio stays true until that doc's legal review
+changes this section, the notice and their pinned tests together.
+
 ### Disclosure at first run
 
 What a learner is told, before they say anything out loud, lives in
