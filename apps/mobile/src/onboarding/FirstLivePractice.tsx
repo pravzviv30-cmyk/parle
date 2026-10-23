@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { firstPracticeScenario, tutorVoice, GUEST_CAFE_SCENE, GUEST_SCENE_MAX_SECONDS } from '@luvani/core';
 import { rungLabel } from '../tutor/rungLabel.ts';
-import { GUEST_SCENE, GUEST_SCENE_LESSON_ID, guestSceneMode } from './guestScene.ts';
+import { GUEST_ROOM_ENDED, GUEST_SCENE, GUEST_SCENE_LESSON_ID, guestSceneMode } from './guestScene.ts';
 import { IconAction, Sheet } from '../components.tsx';
 import { paper } from '../theme.ts';
 import { boldType as type, c } from './boldRhythm.ts';
@@ -42,6 +42,8 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   // older record without it still runs the guest conversation.
   const scene = guest.live?.scene === GUEST_SCENE;
   const [typedScene, setTypedScene] = useState(false);
+  // Bumped for each typed restart, so a restart always runs with the typed mode in hand.
+  const [typedRestart, setTypedRestart] = useState(0);
   useOnboardingFramePresentation(progress, { ground: paper.ground }, active);
   const remember = (turn: FirstContribution) => {
     const current = held.current.live!;
@@ -58,8 +60,10 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     void live.start();
     return () => { mounted.current = false; };
   }, []);
-  // Typing chosen before any room opened: open the scene typed, from cold.
-  useEffect(() => { if (typedScene) void live.start(); }, [typedScene]);
+  // Typing chosen when the room cannot switch in place: open the scene typed.
+  // The server re-signs an unclaimed scene room in the other mode; a claimed
+  // one answers 409, which is the "This scene has ended" state.
+  useEffect(() => { if (typedRestart > 0) void live.start(); }, [typedRestart]);
   useEffect(() => {
     if (!live.sessionId || held.current.live?.sessionId === live.sessionId) return;
     held.current = { ...held.current, live: { ...held.current.live!, sessionId: live.sessionId } };
@@ -99,13 +103,15 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     return () => clearTimeout(timer);
   }, [scene, live.sessionId]);
   const opened = scene ? !!live.prompt : !!(live.convo || live.opening);
+  // A guest grant only asks /onboarding/live, so a 409 here is this guest room already claimed.
+  const roomEnded = live.status.phase === 'error' && live.status.failure === 'session-elsewhere';
   const ready = live.status.phase === 'live' && opened && !live.waitingForTutor && !live.reconnecting;
   const failed = live.status.phase === 'error' || live.status.phase === 'out-of-minutes';
-  const canRecoverByTyping = live.status.phase === 'error' && (!!live.sessionId || (scene && !typedScene)) && !live.settlement && !ending && !over
+  const canRecoverByTyping = !roomEnded && live.status.phase === 'error' && (scene ? !typedScene : !!live.sessionId) && !live.settlement && !ending && !over
     && typedDoorFor(live.status.failure, { typing });
-  const canRetryConnection = live.status.phase === 'error' && !opened && !live.sessionId && !live.settlement && !ending;
+  const canRetryConnection = !roomEnded && live.status.phase === 'error' && !opened && !live.sessionId && !live.settlement && !ending;
   const state: OrbState = failed ? 'error' : live.reconnecting || !ready ? 'connecting' : live.tutorSpeaking ? 'speaking' : live.thinking ? 'thinking' : live.micOpen ? 'listening' : 'ready';
-  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
+  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : roomEnded ? GUEST_ROOM_ENDED.label : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
   const end = async () => {
     setEnding(true); await live.pauseMic();
     if (ready) live.requestRecap();
@@ -116,18 +122,22 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   };
   const recoverByTyping = () => {
     if (!canRecoverByTyping) return;
-    // No scene room yet, so nothing is metered: open the scene typed instead.
-    if (scene && !live.sessionId) { setTypedScene(true); setIssue(''); return; }
-    // Guest recovery must keep this room and meter. A failed switch never
+    // A scene with no room to switch in (never granted, or granted and never
+    // joined, as after a refused microphone) restarts typed instead.
+    if (scene && !live.sessionId) { restartTyped(); return; }
+    // A guest conversation must keep this room and meter: a failed switch never
     // falls back to minting another grant while this session is outstanding.
     if (takeTypedDoor(live) === 'kept-the-room') { setTyping(true); setIssue(''); }
+    else if (scene) restartTyped();
     else setIssue('This session cannot continue by typing. End the session or check its result.');
   };
+  const restartTyped = () => { setTypedScene(true); setTypedRestart(n => n + 1); setIssue(''); };
   const changeInput = async (nextTyping = !typing) => {
     if (micPending) return;
     setMicPending(true);
     try {
-      if (nextTyping && scene && !live.sessionId) setTypedScene(true);
+      // Still connecting, or the room never opened: the scene restarts typed.
+      if (nextTyping && scene && !ready) restartTyped();
       else if (nextTyping) { if (await live.pauseMic()) setTyping(true); }
       else { if (await live.openMic()) setTyping(false); }
     } finally { if (mounted.current) setMicPending(false); }
@@ -169,10 +179,11 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
         tools={<><IconAction icon="hint" label="Give me a hint" disabled={live.thinking || live.tutorSpeaking} onPress={() => live.sendHelp()} />
           {scene && live.prompt?.turn.note ? <Text style={type.small}>{live.prompt.turn.note}</Text> : null}</>}
         footer={failed ? <>
-          <Text accessibilityLiveRegion="polite" style={type.body}>{live.status.phase === 'error' || live.status.phase === 'out-of-minutes' ? live.status.message : ''}</Text>
+          <Text accessibilityLiveRegion="polite" style={type.body}>{roomEnded ? GUEST_ROOM_ENDED.message : live.status.phase === 'error' || live.status.phase === 'out-of-minutes' ? live.status.message : ''}</Text>
+          {roomEnded && <PillButton label={saving || ending ? 'Saving…' : GUEST_ROOM_ENDED.action} disabled={saving || ending} onPress={() => void end()} />}
           {canRecoverByTyping && <PillButton label="Continue by typing" onPress={recoverByTyping} />}
           {canRetryConnection && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
-          {!!live.sessionId && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
+          {!!live.sessionId && !roomEnded && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
           <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />
         </> : ending || over ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
       />

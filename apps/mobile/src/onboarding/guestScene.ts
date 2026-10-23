@@ -99,3 +99,17 @@ export function scenePhrasebookEntries(ids: readonly GuestSceneTurnId[]) {
 export function sceneLines(ids: readonly GuestSceneTurnId[]): string[] {
   return guestScenePhrases(ids).map((line) => `You answered with “${line.fr}”.`);
 }
+
+/**
+ * A guest room that cannot be granted again. The hook classifies any 409 from
+ * the token server as `session-elsewhere`, whose copy is about a signed-in
+ * session on another device. A guest grant only ever asks /onboarding/live,
+ * and a 409 there means this guest room was already claimed (the app was
+ * closed mid-scene), so retrying can never work. The guest screen says so in
+ * its own words and offers the way to the result instead.
+ */
+export const GUEST_ROOM_ENDED = {
+  label: 'This scene has ended',
+  message: 'Your café scene closed before it finished. You can see what you reached and save it.',
+  action: 'See what you reached',
+} as const;

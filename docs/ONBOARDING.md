@@ -193,16 +193,21 @@ eligibility/admission enforcement remain release requirements.
 **The guest café scene.** An admitted start records `scene` on the guest
 record, and `FirstLivePractice` opens the scripted lesson tutor on lesson id
 `cafe-guest` instead of a conversation: mode `lesson` by voice, or
-`lesson-text` when the learner chooses typing before a room opens. Once a room
-is open, typing (including after a refused microphone) takes the existing quiet
-door in the same room, so no second grant is asked for. The room grant body is
+`lesson-text` when the learner chooses typing. A joined room switches to typing
+in place through the existing quiet door. When it cannot (still connecting, or
+granted and never joined, as after a refused microphone), the scene restarts as
+`lesson-text`; the server re-signs an unclaimed room in that mode, and a room
+claimed after all answers 409, which shows the scene-ended state below. The room grant body is
 `{ mode }`. The screen reuses the lesson presentation from `LiveSessionScreen`:
 the tutor line in the transcript, the position ("2 of 5"), the target and tap
 options through `SupportBlock`, the hint and the turn note, inside the
 onboarding frame with its progress and safety exit. The scene lasts about two
 minutes; the service stops it at 180 seconds and the screen ends it at the same
 point as a backstop. It ends on the lesson `summary`, then reads
-`/onboarding/live-result`. The guest record keeps only the confirmed turn ids
+`/onboarding/live-result`. A guest room already claimed (the app closed
+mid-scene) is never granted again: the 409 from `/onboarding/live` shows "This
+scene has ended" with **See what you reached**, which ends and collects the
+result, and no retry or typing door. The guest record keeps only the confirmed turn ids
 (`sceneTurns`), never what the learner typed or said: a scene record always has
 no contributions and no pack, and its repair drops anything else. The recap and
 summary name the lines answered with the reviewed French from
