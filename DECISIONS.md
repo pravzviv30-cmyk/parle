@@ -476,3 +476,82 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   The token server passes the snapshot through unchanged.
 - Sources: `packages/brain/src/prompt/turnContext.ts` (`GOAL_FRAMING`),
   `apps/mobile/src/profile/memory.ts` (`snapshotFor`).
+
+## VOICE-008 — Price a live minute from measurement; drills on Luna; never pay twice for a line
+
+- Date: 2026-10-23
+- Status: accepted
+- Decision:
+  - `DEFAULT_COST_MODEL` is re-priced from rates and usage measured on
+    22 and 23 October 2026 (`docs/cogs-evidence/`). STT is $0.009 a minute,
+    LLM $0.006, TTS $0.109 per minute of tutor speech, and tutor speaking
+    share 0.25. Scoring is unchanged.
+  - Post-session drills move from gpt-5.6-terra to gpt-6-luna
+    (`OPENAI_DRILLS_MODEL`). Memory extraction stays on terra.
+  - Free-conversation lines replay from a per-session memory memo instead of
+    a second synthesis.
+  - Authored voice-cache entries no longer expire.
+  - Each session prints one numbers-only `[luvani:cost]` line.
+- Reason:
+  - The market review compared about $0.058 a minute with Duolingo's under
+    $0.01 a call. That figure was stale in both directions:
+    - The LLM line priced a Claude talker, but live turns on gpt-6-luna
+      cost $0.0003 each.
+    - STT priced a batch rate.
+  - Measured, today's configuration cost about $0.064 a mission minute.
+  - The largest LLM item was the drills call, $0.086 a session on terra.
+    On Luna it costs $0.005, and the drill eval was 25/25 clean against
+    23/23 on terra (`analyst-samples.md`).
+  - Production also re-synthesized every Hear tap and started every
+    container with an empty voice cache.
+- Measured, per mission minute:
+
+  | Component | Before (model) | Measured before | After |
+  |---|---|---|---|
+  | STT | $0.0043 | $0.0090 | $0.0090 |
+  | LLM | $0.025 | $0.0219 | $0.0057 |
+  | TTS | $0.0225 | $0.0273 | $0.0273 |
+  | Scoring | $0.006 | $0.006 | $0.006 |
+  | Total | $0.0578 | $0.0642 | $0.0480 |
+
+  - A lesson minute comes to about $0.012 to $0.014 once the voice cache is
+    on a volume.
+  - The replay memo's saving is not modelled until beta tap rates exist.
+- Declined, with numbers:
+  - **Routing simple beginner turns to a cheaper model.** gpt-6-luna is
+    already the cheapest model priced in `pricing.ts`. Live turns are
+    $0.0014 a minute, so even a free turn saves less than that. It would
+    also need a new activity and paid-quote bindings, and would lose Luna's
+    verbosity and effort settings.
+  - **Smaller live prompts.** The cache hit rate is 0.92 to 0.96 (VOICE-005),
+    and the uncached input is about 290 tokens a turn.
+  - **Pausing STT while the tutor speaks.** It would break barge-in.
+- Founder decisions still open:
+  - **Flash v2.5 for conversation lines only**, while scripted lines stay
+    on v2. It halves TTS to about $0.0136 a minute, and a mission minute
+    would come to $0.034. The blind check is at
+    `~/Developer/StartUps/listening/tts-blind-check-2026-10-22/`, with its
+    key in `docs/cogs-evidence/tts-blind-check/`.
+  - **The Railway volume for `TTS_CACHE_DIR`**
+    (`docs/changes/beta-launch.md`). It is a launch blocker for this cost
+    model: the 0.25 speaking share assumes lessons replay authored lines.
+    Without the volume a lesson minute costs about $0.075.
+  - **Re-binding the paid drills quote to gpt-6-luna** before deploying.
+  - **A Deepgram plan.** The $0.0048 promo has no end date.
+  - **Under $0.02 a mission minute.** Flash alone does not get there. It
+    takes Flash plus the promo on a 1× voice (about $0.022 without scoring),
+    or a different TTS vendor, which would give scripted and conversation
+    lines two different voices.
+- Consequence:
+  - The margin floors in `meter.test.ts` are re-baselined. Those that only
+    held because costs were high now carry the new values, and no
+    protective floor was lowered. `moneyUntouched.test.ts` is re-pinned
+    for `meter.ts`.
+  - The 2x voices (emilie, sarah) cost a third more than the roster mean
+    on TTS.
+  - Real-call spend for this work was about $0.53
+    (`docs/cogs-evidence/spend.md`).
+- Sources: `docs/cogs-evidence/` (`before-after.md`, `rates.md`,
+  `analyst-samples.md`), `scripts/measureSessionLlm.mjs`,
+  `scripts/ttsBlindCheck.mjs`, `services/tutor-agent/src/ttsCache.ts`,
+  `packages/core/src/metering/meter.ts`. Founder answer of 23 October 2026.

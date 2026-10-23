@@ -14,7 +14,7 @@ import { evalCostUsd } from '../usage.ts';
 import { curationCostModel } from './curationEval.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
 
-const KEYS = ['OPENAI_LIVE_MODEL', 'OPENAI_TURN_MODEL', 'OPENAI_ANALYST_MODEL', 'BRAIN_EFFORT'] as const;
+const KEYS = ['OPENAI_LIVE_MODEL', 'OPENAI_TURN_MODEL', 'OPENAI_ANALYST_MODEL', 'OPENAI_DRILLS_MODEL', 'BRAIN_EFFORT'] as const;
 
 const usage: LlmUsage = { inputTokens: 1_000_000, outputTokens: 1_000_000, cacheReadTokens: 0, cacheWriteTokens: 0 };
 
@@ -44,13 +44,17 @@ describe('eval model label and price', () => {
     assert.equal(openAiEvalModel('turn'), 'legacy-fast');
   });
 
-  test('curate stays on the turn model and drills follow OPENAI_ANALYST_MODEL', () => {
-    assert.equal(openAiEvalClient('drills', 'k').costModel, 'gpt-5.6-terra');
+  // 2026-10-23 (VOICE-008): drills moved to gpt-6-luna with their own knob,
+  // OPENAI_DRILLS_MODEL; OPENAI_ANALYST_MODEL no longer moves them.
+  test('curate stays on the turn model and drills follow OPENAI_DRILLS_MODEL', () => {
+    assert.equal(openAiEvalClient('drills', 'k').costModel, 'gpt-6-luna');
     assert.equal(curationCostModel('openai', {}), 'gpt-5.6-luna');
     assert.equal(curationCostModel('openai', { OPENAI_TURN_MODEL: 'custom-fast' }), 'custom-fast');
     assert.equal(curationCostModel('openai', { OPENAI_LIVE_MODEL: 'custom-live' }), 'gpt-5.6-luna');
     process.env.OPENAI_ANALYST_MODEL = 'custom-analyst';
-    assert.equal(openAiEvalClient('drills', 'k').costModel, 'custom-analyst');
+    assert.equal(openAiEvalClient('drills', 'k').costModel, 'gpt-6-luna');
+    process.env.OPENAI_DRILLS_MODEL = 'custom-drills';
+    assert.equal(openAiEvalClient('drills', 'k').costModel, 'custom-drills');
   });
 
   test('a run is priced on the model stamped on its usage, then on the label model', () => {

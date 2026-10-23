@@ -67,6 +67,7 @@
         "OPENAI_TURN_MODEL",
         "OPENAI_LIVE_MODEL",
         "OPENAI_ANALYST_MODEL",
+        "OPENAI_DRILLS_MODEL",
         "LUVANI_TTS_VENDOR",
         "LUVANI_AUDIO_DECODER_PATH",
         "LUVANI_AUDIO_DECODER_SHA256",
@@ -101,6 +102,7 @@
         "OPENAI_TURN_MODEL",
         "OPENAI_LIVE_MODEL",
         "OPENAI_ANALYST_MODEL",
+        "OPENAI_DRILLS_MODEL",
         "LUVANI_SCORING_VENDOR",
         "LUVANI_TURN_DETECTION",
         "LUVANI_TTS_MISS_TRANSPORT",
@@ -126,7 +128,8 @@
       "optionalConfiguration": [
         "OPENAI_TURN_MODEL",
         "OPENAI_LIVE_MODEL",
-        "OPENAI_ANALYST_MODEL"
+        "OPENAI_ANALYST_MODEL",
+        "OPENAI_DRILLS_MODEL"
       ]
     },
     "maintenance": {

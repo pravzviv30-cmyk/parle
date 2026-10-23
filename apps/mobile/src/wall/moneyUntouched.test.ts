@@ -165,7 +165,13 @@ const FILES: Record<string, string> = {
   // founder decisions 2026-10-20. Independent review: the Opus orchestrator read
   // the meter, capabilities, billing status and store diffs before this pin.
   'apps/mobile/src/purchases/capabilities.ts': '9c160bfe9ccb4ee1534f0c6569d1d34aec25e9bf3e5560f0bf2e36f3573babe5',
-  'packages/core/src/metering/meter.ts': '8a4a9ac0107e6e8abb947ad1104f26a5fd94c9d57192dea1b44ce6f4f2903b3b',
+  // 2026-10-23, VOICE-008: DEFAULT_COST_MODEL corrected to measured vendor
+  // rates (sttPerMin 0.0043->0.009, llmPerMin 0.025->0.006, ttsPerMin
+  // 0.045->0.109, tutorSpeakingShare 0.5->0.25; evidence docs/cogs-evidence/
+  // rates.md), plus the prose figures that quote it. Founder approved
+  // 2026-10-23. Prices, allowances, plans and every function body are
+  // unchanged; meter.test.ts floors were tightened, none lowered.
+  'packages/core/src/metering/meter.ts': 'fa1fc525f50e867dd179fafe35fccdd114065275db63a154495e1e124eaf2f2e',
   'services/token-server/src/billing/revenuecat.ts': '33964e5a51bf18aa5cb3f7198c9cc377dc2b815eeb13a26a0ebd2a4a0b9ba8ff',
   'services/token-server/src/billingStatus.ts': '416fcc27cc92be9e3c745decf147517c2dd3aa8f33c66ab69a6a1d5657acb025',
   // 3 October 2026: founder-authorized Report 36 confirmed service-failure

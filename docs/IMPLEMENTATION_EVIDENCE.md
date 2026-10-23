@@ -441,8 +441,9 @@ wall clock:                  108.5s
 ```
 
 Read it as a ceiling, not a bill. It prices every tutor-attended second at the full
-cascaded rate from `DEFAULT_COST_MODEL` — recogniser $0.0043/min, brain $0.025/min, voice
-$0.045/min at a 0.5 speaking share — which is what a session with a learner actually
+cascaded rate from `DEFAULT_COST_MODEL` — at the time of this run recogniser $0.0043/min, brain $0.025/min, voice
+$0.045/min at a 0.5 speaking share (corrected on 2026-10-23, VOICE-008, to $0.009, $0.006 and
+$0.109 at a 0.25 share, $0.04825 a minute in all) — which is what a session with a learner actually
 talking costs. This run published no audio and ran the tutor voiceless, so the true spend
 was lower. Transport was $0 because the harness runs its own `livekit-server`; on LiveKit
 Cloud the same run would add about $0.0011 of connection minutes.
