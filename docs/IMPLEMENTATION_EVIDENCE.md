@@ -24,10 +24,10 @@ of the list.
 
 - 23 October 2026 beginner thinking time (VOICE-010: a 1,200 ms pause floor at rungs 1-2 that
   rises 400 ms per cut-off to 2,000 ms, a 2,500 ms floor while "moment" is held, a 60 s hold cap,
-  and a noise no longer switching the rescue off) on branch `claude/thinking-time` from main
-  3acc25b5 (held, not on main): **6,330 tests, 0 failing**; core 1036, brain 502, tutor agent
-  737, token server 458, playground 29, mobile 3568; all 42 migrations replayed. Floors raised
-  only through `gate:bless`.
+  and a noise no longer switching the rescue off) on branch `claude/thinking-time` with main
+  41acc059 merged in (held, not on main): **6,345 tests, 0 failing**; core 1036, brain 502, tutor
+  agent 752, token server 458, playground 29, mobile 3568; all 42 migrations replayed. Floors
+  raised only through `gate:bless`.
 - 23 October 2026 Flash for conversation lines behind a switch, off by default (VOICE-009), on
   branch `claude/flash-conversation` from main 3acc25b5 (held, not on main): **6,320 tests, 0 failing**;
   core 1036, brain 502, tutor agent 727, token server 458, playground 29, mobile 3568; all 42
