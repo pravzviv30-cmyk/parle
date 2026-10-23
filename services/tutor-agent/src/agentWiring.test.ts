@@ -145,3 +145,26 @@ describe('a job process does not re-verify the vendors — F384', () => {
     assert.equal((topLevel.match(/verifyVendors\(/g) ?? []).length, 1, 'verifyVendors is called more than once at the top level');
   });
 });
+
+describe('thinking time reaches the session (VOICE-009)', () => {
+  test('the session is built from turnHandlingFor with the start rung', () => {
+    const build = CODE.slice(CODE.indexOf('turnHandling: turnHandlingFor('));
+    const call = build.slice(0, build.indexOf('}),'));
+    assert.match(call, /startRung/, 'the session opens on the fluent floor whatever the learner\'s rung');
+  });
+
+  test('a rung change reaches session.updateOptions, from both tutors', () => {
+    assert.match(
+      CODE,
+      /new ThinkingTime\(startRung, \(endpointing\) => \{\s*session\.updateOptions\(\{ turnHandling: \{ endpointing \} \}\);\s*\}\)/,
+      'the thinking-time controller is not wired to the session, so the floor never moves',
+    );
+    assert.match(CODE, /thinkingTime: thinking,\s*\}\)/, 'the conversation reports its rung and hold to nobody');
+    assert.match(CODE, /new LuvaniTutor\([^)]*thinkingTime: thinking/, 'the lesson reports its rung and hold to nobody');
+  });
+
+  test('who started speaking reaches the cut-off tracker', () => {
+    assert.match(CODE, /if \(ev\.newState === 'speaking'\) thinking\.tutorSpeaking\(\);/, 'a tutor reply is never seen, so every new turn could count as a cut-off');
+    assert.match(CODE, /thinking\.learnerSpeechStarted\(\);\s*tutor\.setLearnerSpeaking\(true\);/, 'a learner cut off mid-sentence never raises the floor');
+  });
+});

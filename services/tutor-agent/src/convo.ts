@@ -121,6 +121,7 @@ import { CAN_DO_EVIDENCE_TIMEOUT_MS } from './canDoEvidence.ts';
 import { terminalServiceFailure } from './serviceFailure.ts';
 import type { ServiceFailure } from '@luvani/core';
 import { reportConversationPack } from './conversationPacks.ts';
+import { NO_THINKING_TIME, type ThinkingTimeSink } from './thinkingTime.ts';
 import { outputGuard, isAcceptedLearnerText, recordSafetyDecision, safetyDecision } from './safety.ts';
 
 /**
@@ -788,6 +789,15 @@ export const TEXT_SILENCE_MS = 12_000;
  */
 export const MOMENT_GRACE_MS = 20_000;
 
+/**
+ * The most one exchange's "moment" taps can defer the rescue, counted from the
+ * first tap (VOICE-009). Each tap past the first still restarts the grace, but
+ * never past this point; a tap after it only restarts the ordinary window, like
+ * a keystroke. Without it, a learner tapping every fifteen seconds would never
+ * be offered help, which is stranding them politely.
+ */
+export const MOMENT_HOLD_CAP_MS = 60_000;
+
 /** How long the post-session memory call gets before its enrichment is dropped. */
 const EXTRACT_TIMEOUT_MS = 8_000;
 
@@ -959,6 +969,8 @@ export class LuvaniConversation extends voice.Agent {
    */
   private setSttLanguage: (language: SttLanguage) => void = () => {};
   private setSttPhrases: (phrases: string[]) => void = () => {};
+  /** How long the end of a turn waits; agent.ts turns these reports into endpointing. */
+  private thinkingTime: ThinkingTimeSink = NO_THINKING_TIME;
   private publish: Publisher = () => {};
   private silenceTimer?: ReturnType<typeof setTimeout>;
   /**
@@ -978,6 +990,15 @@ export class LuvaniConversation extends voice.Agent {
    * being quiet is not being stuck, and a sound is not an answer.
    */
   private momentHeld = false;
+  /** When this exchange's first "moment" tap landed; the hold cap counts from here. */
+  private momentHoldStartedAt: number | undefined;
+  /**
+   * The learner's sound stood a running clock down. If that sound ends without
+   * a turn (a cough, a word started and dropped), nothing else would ever start
+   * the clock again: the agent never leaves `listening`, so agent.ts has no
+   * transition to re-arm on.
+   */
+  private resumeAfterSpeech = false;
   private startedAt = Date.now();
   private ended = false;
   private serviceFailure: ServiceFailure | null = null;
@@ -1212,6 +1233,8 @@ export class LuvaniConversation extends voice.Agent {
       finishEnrichmentMs?: number;
       setSttLanguage?: (language: SttLanguage) => void;
       setSttPhrases?: (phrases: string[]) => void;
+      /** Where the rung, a "moment" hold and each committed turn are reported (VOICE-009). */
+      thinkingTime?: ThinkingTimeSink;
       /**
        * The topic this session was started on, if it was started from a card.
        * `unknown` on purpose: the guard, not the caller, decides what a seed
@@ -1299,6 +1322,7 @@ export class LuvaniConversation extends voice.Agent {
     this.persona = opts.persona;
     if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
     if (opts.setSttPhrases) this.setSttPhrases = opts.setSttPhrases;
+    if (opts.thinkingTime) this.thinkingTime = opts.thinkingTime;
     this.scoring = new LiveScoring({ scoringRequest: opts.scoringRequest, scorer: opts.scorer,
       signal: () => this.lifecycle?.signal, maxScores: CONVO_SCORING_EFFECTS });
   }
@@ -2018,6 +2042,8 @@ export class LuvaniConversation extends voice.Agent {
     if (this.queue.busy) return;
     const input = { type: 'silence', durationMs: this.silenceWindow() } as const;
     await this.queue.runIfCurrent(generation, async () => {
+      // The rescue closes this exchange; the next one gets its own hold cap.
+      this.momentHoldStartedAt = undefined;
       // A text box going quiet is not dialogue. Reveal the support the current
       // turn already carried, once, and leave the same character line waiting
       // for the learner. Asking the model here used to append a fresh tutor
@@ -2039,12 +2065,25 @@ export class LuvaniConversation extends voice.Agent {
    * of the two.
    */
   setLearnerSpeaking(speaking: boolean): void {
+    const wasSpeaking = this.learnerSpeaking;
     this.learnerSpeaking = speaking;
     // Taking the floor stands the ordinary clock down, but it must not spend a
     // grace the learner has not used: `runRescue` already stands down on its own
     // while they hold the floor, so leaving the grace running costs nothing and
     // keeps the twenty seconds they asked for.
-    if (speaking && !this.momentHeld) this.clearRescue();
+    if (speaking && !this.momentHeld) {
+      const running = this.silenceTimer !== undefined;
+      this.clearRescue();
+      this.resumeAfterSpeech = running;
+    }
+    // The floor handed back. A real turn clears this clock when it is committed
+    // (at most ENDPOINTING_MAX_DELAY_MS later, well inside the window), and the
+    // agent thinking or speaking clears it too; a sound that was never a turn
+    // leaves it running, and `runRescue` still checks the queue and generation.
+    if (!speaking && wasSpeaking && this.resumeAfterSpeech) {
+      this.resumeAfterSpeech = false;
+      this.armRescue(this.session);
+    }
   }
 
   /** Settle once every queued turn has been integrated. For tests. */
@@ -2055,6 +2094,7 @@ export class LuvaniConversation extends voice.Agent {
   clearRescue(): void {
     if (this.silenceTimer) clearTimeout(this.silenceTimer);
     this.silenceTimer = undefined;
+    this.resumeAfterSpeech = false;
   }
 
   /**
@@ -2077,13 +2117,25 @@ export class LuvaniConversation extends voice.Agent {
    * stands down for that on its own.
    */
   private deferForAMoment(): void {
+    // Capped per exchange (MOMENT_HOLD_CAP_MS from the first tap). Past the
+    // cap a tap is presence like a keystroke: it restarts a running ordinary
+    // window and nothing more.
+    const now = Date.now();
+    this.momentHoldStartedAt ??= now;
+    const left = this.momentHoldStartedAt + MOMENT_HOLD_CAP_MS - now;
+    if (left <= 0) {
+      if (this.silenceTimer && !this.momentHeld) this.armRescue(this.session);
+      return;
+    }
     this.clearRescue();
     this.momentHeld = true;
+    this.thinkingTime.holding(true);
     this.silenceTimer = setTimeout(() => {
       this.silenceTimer = undefined;
       this.momentHeld = false;
+      this.thinkingTime.holding(false);
       this.armRescue(this.session);
-    }, MOMENT_GRACE_MS);
+    }, Math.min(MOMENT_GRACE_MS, left));
   }
 
   /**
@@ -2093,7 +2145,10 @@ export class LuvaniConversation extends voice.Agent {
    * invariant is that a learner is never stranded.
    */
   private releaseMoment(): void {
+    this.momentHoldStartedAt = undefined;
+    if (!this.momentHeld) return;
     this.momentHeld = false;
+    this.thinkingTime.holding(false);
   }
 
   /**
@@ -2340,6 +2395,9 @@ export class LuvaniConversation extends voice.Agent {
     this.clearRescue();
     this.learnerSpeaking = false;
     const text = (newMessage.textContent ?? '').trim();
+    // A committed turn with words. If they start again a moment from now, this
+    // turn cut them off, and the pause floor rises (thinkingTime.ts).
+    if (text.length > 0) this.thinkingTime.turnCommitted();
     // Taken on every turn, scored or not, so audio never carries to a later one.
     const utterance = this.tap?.take() ?? null;
     // Consume even an excluded input's EOU. Choosing, empty input or a safety
@@ -2740,6 +2798,7 @@ export class LuvaniConversation extends voice.Agent {
     this.canDoLedger.noteWinningView(view);
     view = { ...view, textTurnId: view.textTurnId ?? `v${++this.textTurnSequence}` };
     this.lastView = view;
+    this.thinkingTime.rung(view.rung);
     if (!this.voiceless) this.setSttPhrases(this.recognitionContext());
     this.publish({ t: 'convo', view });
     // Text mode has no speech, so no AgentStateChanged ever fires to start

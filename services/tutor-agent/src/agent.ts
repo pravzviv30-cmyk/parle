@@ -71,6 +71,7 @@ import { LuvaniTutor } from './tutor.ts';
 import { formatVendorMetrics, type VendorMetrics } from './timing.ts';
 import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
 import { turnHandlingFor } from './turnHandling.ts';
+import { ThinkingTime } from './thinkingTime.ts';
 import { reportUsage } from './usage.ts';
 import { safeError } from './safeError.ts';
 import { claimSessionLifecycle, legacyRuntimeFixture, tutorSupervisorHeartbeat, type TutorSessionIdentity } from './sessionLifecycle.ts';
@@ -221,6 +222,16 @@ export default defineAgent({
         ? (Math.min(4, Math.max(1, meta.startRung)) as Rung)
         : undefined;
 
+    // How long a pause may last before the learner's turn is over (VOICE-009).
+    // The session is built on the starting rung's floor (no rung: a beginner);
+    // the tutor reports rung changes, a "moment" hold and each committed turn,
+    // the handlers below report who started speaking, and only a changed
+    // value reaches the session. `session` is declared further down and is
+    // only touched after it exists, the same as setSttPhrases.
+    const thinking = new ThinkingTime(startRung, (endpointing) => {
+      session.updateOptions({ turnHandling: { endpointing } });
+    });
+
     // Who the learner chose to be taught by, and the one place that choice is
     // settled. `resolveTutorVoice` returns a catalogue key or the default and
     // never throws, which matters twice over: this worker holds the only
@@ -327,8 +338,9 @@ export default defineAgent({
           setSttPhrases: (keyterms) => {
             if (!recognition.experimental && !proxy) session.updateOptions({ keyterms });
           },
+          thinkingTime: thinking,
         })
-      : new LuvaniTutor(lesson, startRung, { voiceless, persona, ...(paid ? { scoringRequest: paid.transport } : {}) });
+      : new LuvaniTutor(lesson, startRung, { voiceless, persona, thinkingTime: thinking, ...(paid ? { scoringRequest: paid.transport } : {}) });
     tutor.learnerId = participant.identity;
     tutor.sessionId = meta.sessionId;
     if (lifecycle) tutor.attachLifecycle(lifecycle);
@@ -411,6 +423,7 @@ export default defineAgent({
       // turnHandling.ts for what each one costs when it is wrong.
       turnHandling: turnHandlingFor(isConvo ? 'convo' : 'lesson', {
         turnDetection: process.env.LUVANI_TURN_DETECTION,
+        startRung,
       }),
     });
     session.on(voice.AgentSessionEventTypes.Close, () => { stopPaidWork(); void finish().catch(() => {}); });
@@ -474,6 +487,9 @@ export default defineAgent({
       // The tutor has stopped talking and is now waiting. Start the clock.
       if (ev.newState === 'listening') tutor.armRescue(session);
       if (ev.newState === 'speaking' || ev.newState === 'thinking') tutor.clearRescue();
+      // The tutor has begun its reply: speech after this is a new turn, not
+      // the end of a sentence that was cut off.
+      if (ev.newState === 'speaking') thinking.tutorSpeaking();
       tutor.sendSpeaking(ev.newState === 'speaking');
 
     });
@@ -501,6 +517,9 @@ export default defineAgent({
       // the timeout alone cannot, and both landing costs the learner a turn.
       if (ev.newState === 'speaking') {
         sceneTiming.speechStarted();
+        // Within 1,500 ms of a committed turn, before the tutor answered: that
+        // turn cut them off, and the pause floor rises for the session.
+        thinking.learnerSpeechStarted();
         tutor.setLearnerSpeaking(true);
       }
       if (ev.newState === 'listening' || ev.newState === 'away') tutor.setLearnerSpeaking(false);

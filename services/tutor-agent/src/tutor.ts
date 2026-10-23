@@ -36,7 +36,8 @@ import {
 // the learner would feel the difference as two different tutors. The import
 // goes both ways between these files (convo.ts already takes the replay ledger
 // from here) and neither module reads the other while it is being evaluated.
-import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
+import { MOMENT_GRACE_MS, MOMENT_HOLD_CAP_MS, TEXT_SILENCE_MS } from './convo.ts';
+import { NO_THINKING_TIME, type ThinkingTimeSink } from './thinkingTime.ts';
 import { buildPrompt } from './prompt.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
 import { scoreUtterance } from '../../shared/pronunciation.ts';
@@ -278,8 +279,10 @@ export class LuvaniTutor extends voice.Agent {
    * `memoryLocked` is). See docs/changes/speech-dataset.md.
    */
   private readonly datasetConsent: boolean;
+  /** How long the end of a turn waits; agent.ts turns these reports into endpointing (VOICE-009). */
+  private readonly thinkingTime: ThinkingTimeSink;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean } = {}) {
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
@@ -292,6 +295,7 @@ export class LuvaniTutor extends voice.Agent {
       signal: () => this.lifecycle?.signal, maxScores: LESSON_SCORING_EFFECTS });
     this.clipSink = options.clipSink ?? NO_CLIP_SINK;
     this.datasetConsent = options.datasetConsent === true;
+    this.thinkingTime = options.thinkingTime ?? NO_THINKING_TIME;
   }
 
   get sessionState(): SessionState {
@@ -344,7 +348,9 @@ export class LuvaniTutor extends voice.Agent {
   /** Send the app whatever it should be rendering right now. */
   sendCurrentPrompt(session?: voice.AgentSession): void {
     if (this.refused || this.state.finished) return;
-    this.publish({ t: 'prompt', prompt: currentPrompt(this.lesson, this.state) });
+    const prompt = currentPrompt(this.lesson, this.state);
+    this.thinkingTime.rung(prompt.directive.rung);
+    this.publish({ t: 'prompt', prompt });
     // With no speech there is no AgentStateChanged to start the silence clock,
     // and the moment the turn renders is the moment they have the floor.
     if (this.voiceless && session) this.armRescue(session);
@@ -616,14 +622,32 @@ export class LuvaniTutor extends voice.Agent {
    * their mouth is stale the moment they do.
    */
   setLearnerSpeaking(speaking: boolean): void {
+    const wasSpeaking = this.learnerSpeaking;
     this.learnerSpeaking = speaking;
     // Taking the floor stands the ordinary clock down; a grace keeps running,
     // because runRescue already stands down while they hold the floor.
-    if (speaking && !this.momentHeld) this.clearRescue();
+    if (speaking && !this.momentHeld) {
+      const running = this.silenceTimer !== undefined;
+      this.clearRescue();
+      this.resumeAfterSpeech = running;
+    }
+    // A sound that never became a turn (a cough, a dropped word) hands the
+    // floor back with the agent still `listening`, so agent.ts has no
+    // transition to re-arm on. A real turn clears this clock when it is
+    // committed, at most ENDPOINTING_MAX_DELAY_MS later; runRescue still
+    // checks the queue generation.
+    if (!speaking && wasSpeaking && this.resumeAfterSpeech) {
+      this.resumeAfterSpeech = false;
+      this.armRescue(this.session);
+    }
   }
 
   /** True while the learner's asked-for time is running. */
   private momentHeld = false;
+  /** When this exchange's first "moment" tap landed; the hold cap counts from here. */
+  private momentHoldStartedAt: number | undefined;
+  /** The learner's sound stood a running clock down; re-arm it if no turn follows. */
+  private resumeAfterSpeech = false;
 
   /**
    * One bounded grace window, then the ordinary policy again. The same handle
@@ -633,13 +657,34 @@ export class LuvaniTutor extends voice.Agent {
    */
   private deferForAMoment(session: voice.AgentSession): void {
     if (this.ended) return;
-    this.clearRescue();
+    // Capped per exchange, MOMENT_HOLD_CAP_MS from the first tap. Past it a
+    // tap is a keystroke: it restarts a running ordinary window, nothing more.
+    const now = Date.now();
+    this.momentHoldStartedAt ??= now;
+    const left = this.momentHoldStartedAt + MOMENT_HOLD_CAP_MS - now;
+    if (left <= 0) {
+      if (this.silenceTimer && !this.momentHeld) this.armRescue(session);
+      return;
+    }
+    // The timer alone, not clearRescue: that would report the hold released
+    // between two taps and send the session a floor it is about to replace.
+    if (this.silenceTimer) clearTimeout(this.silenceTimer);
+    this.silenceTimer = undefined;
+    this.resumeAfterSpeech = false;
     this.momentHeld = true;
+    this.thinkingTime.holding(true);
     this.silenceTimer = setTimeout(() => {
       this.silenceTimer = undefined;
-      this.momentHeld = false;
+      this.endHold();
       this.armRescue(session);
-    }, MOMENT_GRACE_MS);
+    }, Math.min(MOMENT_GRACE_MS, left));
+  }
+
+  /** The hold is over, whichever way; the session goes back to the rung's floor. */
+  private endHold(): void {
+    if (!this.momentHeld) return;
+    this.momentHeld = false;
+    this.thinkingTime.holding(false);
   }
 
   /** Settle once every queued turn has been applied. For tests. */
@@ -650,10 +695,11 @@ export class LuvaniTutor extends voice.Agent {
   clearRescue(): void {
     if (this.silenceTimer) clearTimeout(this.silenceTimer);
     this.silenceTimer = undefined;
+    this.resumeAfterSpeech = false;
     // The grace lives on this one handle, so whatever stands the clock down
     // ends the grace too. A flag left behind would keep disabling the ordinary
     // rules (taking the floor, typing, a mode switch) with no clock to show for it.
-    this.momentHeld = false;
+    this.endHold();
   }
 
   /**
@@ -679,6 +725,9 @@ export class LuvaniTutor extends voice.Agent {
     this.clearRescue();
     this.learnerSpeaking = false;
     const transcript = newMessage.textContent ?? '';
+    // A committed turn with words; if they start again a moment from now, it
+    // cut them off and the pause floor rises (thinkingTime.ts).
+    if (transcript.trim()) this.thinkingTime.turnCommitted();
 
     // A turn that ends with no words is a cough, a door, a passing bus, or the
     // tutor's own voice arriving back through a speakerphone. Returning here
@@ -785,7 +834,9 @@ export class LuvaniTutor extends voice.Agent {
     // `silence` is the rescue, which the agent applies on the learner's behalf.
     // Everything else arrived from their mouth, their keyboard or their thumb,
     // and that difference is exactly what billing keys off in `finish()`.
-    if (input.type !== 'silence') { this.learnerTurns += 1; this.momentHeld = false; }
+    if (input.type !== 'silence') { this.learnerTurns += 1; this.endHold(); }
+    // Any applied input, the rescue included, closes this exchange's hold cap.
+    this.momentHoldStartedAt = undefined;
     const { state, feedback } = submitTurn(this.lesson, this.state, input);
     this.state = state;
 
@@ -810,6 +861,7 @@ export class LuvaniTutor extends voice.Agent {
     await this.updateInstructions(buildPrompt(this.lesson, next.turn, next.directive, this.persona));
     if (this.ended) return;
     this.lifecycle?.assertActive();
+    this.thinkingTime.rung(next.directive.rung);
     this.publish({ t: 'prompt', prompt: next });
 
     // The tutor answers every applied input — a spoken turn, a rescue, a skip —

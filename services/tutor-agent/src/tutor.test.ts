@@ -15,7 +15,8 @@ import {
   type ServerMessage,
   type TutorPersona,
 } from '@luvani/core';
-import { MOMENT_GRACE_MS, TEXT_SILENCE_MS } from './convo.ts';
+import { MOMENT_GRACE_MS, MOMENT_HOLD_CAP_MS, TEXT_SILENCE_MS } from './convo.ts';
+import type { ThinkingTimeSink } from './thinkingTime.ts';
 import { buildPrompt } from './prompt.ts';
 import { LuvaniTutor, SCORE_SETTLE_MS, forgetReportedSessions, saidTheReferenceLine } from './tutor.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
@@ -46,7 +47,7 @@ function stubSession() {
 
 function build(
   startRung: Rung = RUNGS.PROMPTED,
-  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean } = {},
+  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink } = {},
 ) {
   const tutor = new LuvaniTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
@@ -732,6 +733,82 @@ describe('give me a moment, in a spoken lesson', () => {
     t.mock.timers.tick(STUCK_SILENCE_MS + 1);
     await tutor.settled();
     assert.equal(tutor.sessionState.ladder.rescues, 1, 'and then the ordinary rescue, so nobody is stranded');
+  });
+});
+
+describe('thinking time and the moment hold cap in a lesson (VOICE-009)', () => {
+  test('after a moment tap the rescue still fires by MOMENT_GRACE_MS + STUCK_SILENCE_MS', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    tutor.armRescue(session);
+    await tutor.handleClientMessage(session, tapped({ t: 'moment' }));
+    t.mock.timers.tick(MOMENT_GRACE_MS);
+    await tutor.settled();
+    t.mock.timers.tick(STUCK_SILENCE_MS);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 1);
+  });
+
+  test('tapping every 15 s can never push the rescue past MOMENT_HOLD_CAP_MS + STUCK_SILENCE_MS', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+    const { tutor, session } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    tutor.armRescue(session);
+    let rescuedAt: number | undefined;
+    for (let elapsed = 0; elapsed <= MOMENT_HOLD_CAP_MS + STUCK_SILENCE_MS * 3; elapsed += 1_000) {
+      if (elapsed % 15_000 === 0) await tutor.handleClientMessage(session, tapped({ t: 'moment' }));
+      t.mock.timers.tick(1_000);
+      await tutor.settled();
+      if (tutor.sessionState.ladder.rescues > 0) { rescuedAt = elapsed + 1_000; break; }
+    }
+    assert.ok(rescuedAt !== undefined, 'repeated taps kept the rescue away for good');
+    assert.ok(rescuedAt <= MOMENT_HOLD_CAP_MS + STUCK_SILENCE_MS, `the rescue came at ${rescuedAt} ms`);
+  });
+
+  test('aide-moi during a hold rescues at once', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    tutor.armRescue(session);
+    await tutor.handleClientMessage(session, tapped({ t: 'moment' }));
+    await tutor.handleClientMessage(session, tapped({ t: 'help' }));
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 1);
+  });
+
+  test('a sound with no transcript leaves a rescue armed', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session } = build(RUNGS.PROMPTED);
+    t.after(() => tutor.clearRescue());
+    tutor.armRescue(session);
+    t.mock.timers.tick(1_000);
+    tutor.setLearnerSpeaking(true);
+    t.mock.timers.tick(300);
+    tutor.setLearnerSpeaking(false);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 1, 'a noise must not switch the rescue off for good');
+  });
+
+  test('the rung, the hold and the committed turn reach the thinking-time sink', async (t) => {
+    const events: string[] = [];
+    const sink: ThinkingTimeSink = {
+      rung: (r) => events.push(`rung:${r}`),
+      holding: (h) => events.push(`holding:${h}`),
+      turnCommitted: () => events.push('committed'),
+    };
+    const { tutor, session } = build(RUNGS.CUED, { thinkingTime: sink });
+    t.after(() => tutor.clearRescue());
+    tutor.sendCurrentPrompt(session);
+    assert.ok(events.includes(`rung:${RUNGS.CUED}`), 'the rung on screen is reported');
+    events.length = 0;
+    await tutor.handleClientMessage(session, tapped({ t: 'moment' }));
+    assert.deepEqual(events, ['holding:true']);
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    assert.ok(events.includes('committed'), 'a committed turn is reported');
+    assert.ok(events.includes('holding:false'), 'the learner taking their turn releases the hold');
   });
 });
 

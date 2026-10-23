@@ -2,6 +2,7 @@ import { test, describe, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import type { ThinkingTimeSink } from './thinkingTime.ts';
 
 import { tokenize, voice } from '@livekit/agents';
 import {
@@ -59,6 +60,7 @@ import {
 import {
   CONVO_LINES,
   MOMENT_GRACE_MS,
+  MOMENT_HOLD_CAP_MS,
   LuvaniConversation,
   TEXT_SILENCE_MS,
   brainClient,
@@ -556,6 +558,7 @@ function buildConvo(
     memoryLocked?: boolean;
     scorer?: typeof scoreUtterance;
     scoringRequest?: typeof fetch;
+    thinkingTime?: ThinkingTimeSink;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -577,6 +580,7 @@ function buildConvo(
     setSttPhrases: (phrases) => sttPhrases.push(phrases),
     ...(opts.scorer ? { scorer: opts.scorer } : {}),
     ...(opts.scoringRequest ? { scoringRequest: opts.scoringRequest } : {}),
+    ...(opts.thinkingTime ? { thinkingTime: opts.thinkingTime } : {}),
   });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
@@ -652,6 +656,7 @@ async function inScene(
     sessionId?: string;
     persona?: TutorPersona;
     memoryLocked?: boolean;
+    thinkingTime?: ThinkingTimeSink;
   } = {},
 ) {
   const built = buildConvo(t, opts);
@@ -2813,6 +2818,95 @@ describe('a conversation started from a mission', () => {
       /new LuvaniTutor\(lesson, startRung, \{/,
       'the scripted-lesson branch still gets it too',
     );
+  });
+});
+
+describe('thinking time and the moment hold cap (VOICE-009)', () => {
+  test('after a moment tap the rescue still fires by MOMENT_GRACE_MS + STUCK_SILENCE_MS', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session } = await inScene(t);
+    convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    t.mock.timers.tick(MOMENT_GRACE_MS);
+    await convo.settled();
+    t.mock.timers.tick(STUCK_SILENCE_MS);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'the grace is bounded');
+  });
+
+  test('tapping every 15 s can never push the rescue past MOMENT_HOLD_CAP_MS + STUCK_SILENCE_MS', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+    const { convo, session } = await inScene(t);
+    assert.equal(MOMENT_HOLD_CAP_MS, 60_000);
+    convo.armRescue(session);
+    let rescuedAt: number | undefined;
+    for (let elapsed = 0; elapsed <= MOMENT_HOLD_CAP_MS + STUCK_SILENCE_MS * 3; elapsed += 1_000) {
+      if (elapsed % 15_000 === 0) await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+      t.mock.timers.tick(1_000);
+      await convo.settled();
+      if (convo.conversationState.ladder.rescues > 0) { rescuedAt = elapsed + 1_000; break; }
+    }
+    assert.ok(rescuedAt !== undefined, 'repeated taps kept the rescue away for good');
+    assert.ok(rescuedAt <= MOMENT_HOLD_CAP_MS + STUCK_SILENCE_MS, `the rescue came at ${rescuedAt} ms`);
+  });
+
+  test('aide-moi during a hold rescues at once', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session } = await inScene(t);
+    convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'asking for help is not more thinking time');
+  });
+
+  test('the first rescue after a hold is the quiet on-screen hint', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, client, published, said } = await inScene(t);
+    const before = said.length;
+    convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    t.mock.timers.tick(MOMENT_GRACE_MS);
+    await convo.settled();
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1);
+    assert.equal(views(published).at(-1)!.view.supportView.kind, 'hint');
+    assert.deepEqual(said.slice(before), [], 'nothing is said over somebody who asked to think');
+    assert.equal(client.turnRequests.length, 0);
+  });
+
+  test('a sound with no transcript leaves a rescue armed', async (t) => {
+    // A cough, or a word started and dropped: the VAD takes the floor and hands
+    // it back, the recogniser has nothing, so no turn is committed and the
+    // agent never leaves `listening`. Nothing outside re-arms the clock.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session } = await inScene(t);
+    convo.armRescue(session);
+    t.mock.timers.tick(1_000);
+    convo.setLearnerSpeaking(true);
+    t.mock.timers.tick(300);
+    convo.setLearnerSpeaking(false);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'a noise must not switch the rescue off for good');
+  });
+
+  test('the rung, the hold and the committed turn reach the thinking-time sink', async (t) => {
+    const events: string[] = [];
+    const sink: ThinkingTimeSink = {
+      rung: (r) => events.push(`rung:${r}`),
+      holding: (h) => events.push(`holding:${h}`),
+      turnCommitted: () => events.push('committed'),
+    };
+    const { convo, session } = await inScene(t, { thinkingTime: sink });
+    assert.ok(events.some((e) => e.startsWith('rung:')), 'the rung on screen is reported');
+    events.length = 0;
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    assert.deepEqual(events, ['holding:true']);
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Je voudrais un café')), voice.StopResponse);
+    assert.ok(events.includes('committed'), 'a committed turn is reported');
+    assert.ok(events.includes('holding:false'), 'the learner taking their turn releases the hold');
   });
 });
 
