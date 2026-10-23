@@ -38,7 +38,7 @@ export function isAccountHandoffRefusal(code: unknown): code is GuestStartRefusa
 
 export function startRefusalCopy(code: GuestStartRefusal): string {
   return code === 'guest-scene-used'
-    ? 'You’ve had your free café scene on this phone. Create an account to keep going.'
+    ? 'Nice to see you again. Create an account and your tutor will pick up from here.'
     : 'Live practice is resting right now. Create an account to start.';
 }
 
@@ -54,7 +54,7 @@ export function claimRefusalCopy(code: GuestClaimRefusal | null): string {
     case 'guest-claimed-elsewhere':
       return 'This practice is already saved to another account. Your account is ready, and you can start fresh.';
     case 'guest-expired':
-      return 'This practice is too old to save now. Your account is ready, and you can start fresh.';
+      return 'That practice is too old to save, but your account is ready. Let’s start fresh.';
     case 'guest-active':
       return 'Your café scene is still finishing. Try again in a moment.';
     default:

@@ -814,7 +814,7 @@ export function PreAccountOnboarding({
             <Text style={type.body}>
               Your tutor is AI. Live audio uses LiveKit, Deepgram for transcription, and ElevenLabs for the tutor’s voice.
               Your speech and typed replies are checked against a scripted café scene. No AI model writes the replies.
-              Your words are not kept. A record of the scripted turns you reach is held for up to 30 days so you can save it to your account. The scene does not use your free weekly minutes.
+              Your words are not kept. A record of the scripted turns you reach is held for up to 30 days so you can save it to your account. The scene does not count against your weekly minutes.
             </Text>
             <Text style={type.body}>
               Speaking and typing use the same live scene. Detailed processor and retention

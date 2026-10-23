@@ -55,7 +55,7 @@ test('each scene refusal reaches the account handoff with its own line', async (
     assert.doesNotMatch(line, /[—–]/);
     lines.set(code, line);
   }
-  assert.equal(lines.get('guest-scene-used'), 'You’ve had your free café scene on this phone. Create an account to keep going.');
+  assert.equal(lines.get('guest-scene-used'), 'Nice to see you again. Create an account and your tutor will pick up from here.');
   assert.equal(lines.get('guest-live-unavailable'), 'Live practice is resting right now. Create an account to start.');
   assert.match(screen, /<GhostButton label="I already have an account"/);
 });

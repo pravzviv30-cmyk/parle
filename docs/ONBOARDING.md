@@ -35,8 +35,7 @@ closed. Two `/onboarding/start` refusals offer **Create account to start** and
 still available, and each says why in its own line: `guest-live-unavailable`
 (scenes switched off or today's places full) says "Live practice is resting
 right now. Create an account to start.", and `guest-scene-used` (this phone had
-its scene in the last 30 days) says "You’ve had your free café scene on this
-phone. Create an account to keep going." The lines live in
+its scene in the last 30 days) says "Nice to see you again. Create an account and your tutor will pick up from here." The lines live in
 `apps/mobile/src/onboarding/guestScene.ts`. The learner chooses that detour; a failed request does not submit an
 account or fabricate practice. The existing AuthFlow carries the answered plan,
 chosen tutor and optional preferences. A general connection failure keeps its
