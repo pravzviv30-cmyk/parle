@@ -929,6 +929,7 @@ describe('the tutor that never arrived — F196', () => {
       TOKEN_SERVER: 'https://tokens.example',
       authHeaders: () => Promise.resolve({ authorization: 'Bearer account-token' }),
       loadConsent: async () => null,
+      readConsent: async () => null,
       analyticsAllowed: () => false,
       fetch: (url: string, init: Record<string, unknown>) => {
         calls.push({ url, init });
@@ -972,6 +973,7 @@ describe('the tutor that never arrived — F196', () => {
       TOKEN_SERVER: 'https://tokens.example',
       authHeaders: () => Promise.resolve({}),
       loadConsent: async () => null,
+      readConsent: async () => null,
       analyticsAllowed: () => false,
       fetch: () => Promise.reject(new TypeError('Failed to fetch')),
       trace: () => {},
@@ -1851,4 +1853,31 @@ test('the wait from a confirmed learner turn to the tutor\'s voice is recorded, 
   deliver(world, { t: 'speaking', speaking: false });
   deliver(world, { t: 'speaking', speaking: true });
   assert.equal(diagRef.current.replyLatencyMs.length, 1, 'the tutor speaking again without a learner turn is not another wait');
+});
+
+describe('a signed-out guest scene reaches its token request', () => {
+  test('a consent store behind the auth gate never stops a guest start before /onboarding/live', async () => {
+    const READ = fragment(hook, 'function readConsent(guest: boolean): Promise<Awaited<ReturnType<typeof loadConsent>> | null> {');
+    const from = hook.indexOf('const authStartedAt = Date.now();');
+    const to = hook.indexOf('if (await abandoned()) return;', hook.indexOf('const res = await fetch(', from));
+    assert.ok(from > 0 && to > from, 'the start no longer reads consent before its token request');
+    const START = hook.slice(from, to);
+    // What the real store does with nobody signed in: it throws before it returns a promise.
+    let reads = 0;
+    const gated = () => { reads += 1; throw new Error('storage read for "analytics" with no signed-in user - stores live behind the auth gate'); };
+    const consent = new Function('loadConsent', `${asJs(READ)}\nreturn readConsent;`)(gated) as (guest: boolean) => Promise<unknown>;
+    const calls: { url: string; body: unknown }[] = [];
+    await runAsync(START, {
+      Date, authHeaders: async () => ({}), readConsent: consent, abandoned: async () => false,
+      diagRef: { current: {} }, TOKEN_SERVER: 'https://tokens.example', guestToken: 'g'.repeat(43), mode: 'lesson-text',
+      guestLiveBody: (m: string) => ({ mode: m }),
+      fetch: async (url: string, init: { body: string }) => { calls.push({ url, body: JSON.parse(init.body) }); return { status: 200 }; },
+    });
+    assert.deepEqual(calls, [{ url: 'https://tokens.example/onboarding/live', body: { mode: 'lesson-text' } }]);
+    assert.equal(reads, 0, 'a guest has no consent to read, and the body never sends it');
+    // A signed-in caller still reads it, and a synchronous throw is a null, not a failed start.
+    assert.equal(await consent(false), null);
+    assert.equal(reads, 1);
+    assert.doesNotMatch(hook, /loadConsent\(\)\.catch/, 'a synchronous throw from the store escapes .catch');
+  });
 });

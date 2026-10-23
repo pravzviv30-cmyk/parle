@@ -426,7 +426,12 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     duringConnect: (what: () => Promise<void>) => {
       connecting = what;
     },
-    world: (overrides: Record<string, unknown> = {}) => ({ ...shared, ...overrides }),
+    // The hook's own readConsent, bound to whichever loadConsent this start was handed.
+    world: (overrides: Record<string, unknown> = {}) => {
+      const merged: Record<string, unknown> = { ...shared, ...overrides };
+      return { readConsent: (guest: boolean) => guest ? Promise.resolve(null)
+        : Promise.resolve().then(() => (merged.loadConsent as () => unknown)()).catch(() => null), ...merged };
+    },
     leave: () => runAsync(LEAVE, shared),
     unmount: () => runAsync(UNMOUNT, shared),
   };
