@@ -1,5 +1,6 @@
 import { briefFromDraft } from './firstLiveModel.ts';
 import { FirstLivePractice } from './FirstLivePractice.tsx';
+import { isAccountHandoffRefusal, startRefusalCopy } from './guestScene.ts';
 import { FirstSessionCelebration, FirstSessionSummary } from './FirstSessionResult.tsx';
 import { guestPracticeDays } from './guestModel.ts';
 import { dayKeyOf, tutorSampleLine } from '@luvani/core';
@@ -424,9 +425,11 @@ export function PreAccountOnboarding({
 
     } catch (error) {
       if (current.current && ticket === generation.current) {
-        if (error instanceof Error && error.message === 'guest-live-unavailable') {
+        // Scenes switched off, today's places full, or this phone's scene
+        // already used: each says so plainly, then offers the account handoff.
+        if (error instanceof Error && isAccountHandoffRefusal(error.message)) {
           setNeedsAccount(true);
-          setIssue('Create an account to start live practice. Your plan and chosen tutor are ready.');
+          setIssue(startRefusalCopy(error.message));
           return;
         }
         if (error instanceof Error && error.message === 'voice-unavailable') {
@@ -575,7 +578,7 @@ export function PreAccountOnboarding({
           <>
             {/* 2026-10-21 UI-008, artboard B-OB-Ready: the info card. The pinned disclosure copy stays (STARTER_AI, STARTER_LOCAL). */}
             <BCard>
-              <BInfoRow ground={t.lavender} icon={<BShield size={20} color={t.text} />} title={STARTER_AI.replace(/\.$/, '')} body="It can help you practise, and it can make mistakes." />
+              <BInfoRow ground={t.lavender} icon={<BShield size={20} color={t.text} />} title={STARTER_AI.replace(/\.$/, '')} body="It plays a short café scene with you, and it can mishear you." />
               <BInfoRow ground={t.butter} icon={<BMicThin size={20} color={t.text} />} title="Speak when you choose" body="We ask for the microphone only when you start. You can type instead." />
               <BInfoRow ground={t.sage} icon={<BVoiceOff size={20} color={t.text} />} title="What is kept" body={STARTER_LOCAL} />
               <BTextLink label="Privacy details" onPress={() => setSurface('privacy')} />
@@ -590,7 +593,8 @@ export function PreAccountOnboarding({
                 <Text accessibilityLiveRegion="polite" style={type.body}>
                   {issue}
                 </Text>
-                <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => void start()} />
+                {/* A start refusal (needsAccount) is not fixed by retrying now, so it offers only the account actions. */}
+                {!needsAccount && <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => void start()} />}
                 {needsAccount && !signedIn && <GhostButton label="I already have an account" disabled={busy} onPress={() => onSignIn(draftRef.current)} />}
               </>
             ) : null}
@@ -810,11 +814,11 @@ export function PreAccountOnboarding({
           <>
             <Text style={type.body}>
               Your tutor is AI. Live audio uses LiveKit, Deepgram for transcription, and ElevenLabs for the tutor’s voice.
-              Your replies and selected plan go to the configured AI provider to continue this conversation.
-              Confirmed replies stay on this device. The service keeps a temporary session summary for up to 30 days so you can save it to your account. Guest usage comes out of the account’s one-time allowance.
+              Your speech and typed replies are checked against a scripted café scene. No AI model writes the replies.
+              Your words are not kept. A record of the scripted turns you reach is held for up to 30 days so you can save it to your account. The scene does not count against your weekly minutes.
             </Text>
             <Text style={type.body}>
-              Speaking and typing use the same live conversation. Detailed processor and retention
+              Speaking and typing use the same live scene. Detailed processor and retention
               information is in the app’s privacy policy.
             </Text>
             <GhostButton label="Read privacy policy" onPress={() => setSurface('policy')} />

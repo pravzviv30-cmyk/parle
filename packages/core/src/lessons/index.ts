@@ -3,6 +3,18 @@ import type { Lesson } from './types.ts';
 
 export { CAFE_LESSON } from './cafe.ts';
 export {
+  GUEST_SCENE,
+  GUEST_SCENE_TURN_IDS,
+  GUEST_SCENE_MAX_SECONDS,
+  GUEST_CAFE_SCENE,
+  isGuestScene,
+  isGuestSceneTurnId,
+  parseGuestSceneTurnIds,
+  guestScenePhrases,
+  type GuestScene,
+  type GuestSceneTurnId,
+} from './guestCafe.ts';
+export {
   phonemeCoverage,
   normalise,
   isAcceptable,

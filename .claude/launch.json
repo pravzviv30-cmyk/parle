@@ -52,6 +52,16 @@
         "8092"
       ],
       "port": 8092
+    },
+    {
+      "name": "token-server-local",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--workspace=@luvani/token-server"
+      ],
+      "port": 8787
     }
   ]
 }

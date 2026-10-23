@@ -119,7 +119,9 @@ your French.” Positive counts keep the existing unaided/help wording, without
 showing a score or count. This copy does not decide XP, streaks or settlement.
 
 Guest live admission is distinct from authenticated admission. Production
-`/onboarding/start` with `live: true` remains closed. When speaking is supported
+`/onboarding/start` with `live: true` stays closed for the guest conversation;
+only `scene: 'guest-cafe'` can open, behind `LUVANI_GUEST_SCENE=1` and its own
+Redis budget (UI-011, runbook "Guest first scene"). When speaking is supported
 but anonymous admission is disabled, `guest-live-unavailable` lets the existing
 account flow preserve the plan and later reach the normal `FirstScene` entry.
 An already authenticated unfinished setup uses its profile-completion owner.
@@ -128,6 +130,17 @@ supported modes, without claiming an account can restore voice. The guest page
 keeps truthful unavailable-speaking copy and retry; the existing authenticated
 room recovery can offer its supported typed path. See
 [onboarding handoff](ONBOARDING.md#account-handoff-when-guest-live-is-unavailable).
+
+On the tutor worker, a production guest room runs only as the signed guest
+scene (`scene: 'guest-cafe'`, mode `lesson` or `lesson-text`) and only with
+`LUVANI_GUEST_SCENE=1`; the guest convo stays refused. A scene runs
+`LuvaniTutor` with `scriptOnly`: no LLM client, no scoring, and a missed answer
+gets the scripted rescue. Its voice proxy uses `guestSceneGate.ts` instead of
+paid admission: Deepgram streaming and ElevenLabs only, at most 2 STT sockets
+and 180 s of audio in total, at most 48 TTS calls, and only the signed voice,
+the pinned model and the scene's allow-listed sentences (all in the warm
+corpus). The room disconnects at its 180 s ceiling even if settlement fails.
+See [the change contract](changes/guest-first-scene.md).
 
 `live/C2LiveRoom.tsx` is the shared presentation used by first practice,
 conversation and scripted lesson sessions. The existing session owners supply

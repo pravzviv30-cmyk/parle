@@ -3,14 +3,25 @@
  * No client-provided recap, finish flag or elapsed time is trusted by this service.
  */
 import { randomUUID } from 'node:crypto';
-import { isServiceFailure, parseFirstPracticeBrief, type FirstPracticeBrief, type ConversationPack } from '@luvani/core';
+import { isServiceFailure, parseFirstPracticeBrief, parseGuestSceneTurnIds, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS,
+  type FirstPracticeBrief, type ConversationPack, type GuestScene, type GuestSceneTurnId } from '@luvani/core';
 import { tutorDigest } from '../../shared/tutorLifecycle.ts';
 import { validConversationPackFor } from './conversationPacks.ts';
 import { HttpInputError } from './requestBoundary.ts';
 import type { GuestStore } from './onboardingGuest.ts';
+import type { GuestSceneAdmission } from './guestSceneAdmission.ts';
+
+export type GuestSceneMode = 'lesson' | 'lesson-text';
+export const GUEST_SCENE_MODES: readonly GuestSceneMode[] = ['lesson', 'lesson-text'];
 
 export interface GuestLiveRecord {
-  brief: FirstPracticeBrief;
+  /** The convo room's brief. A scene room ignores the brief and holds null. */
+  brief: FirstPracticeBrief | null;
+  /** Set on a guest first scene room: the scene, and the mode the latest grant signed. */
+  scene?: GuestScene;
+  mode?: GuestSceneMode;
+  /** Scene turn ids the worker acknowledged, in scene order. Never shrinks. */
+  sceneTurns?: GuestSceneTurnId[];
   sessionId: string;
   roomName: string;
   maxSeconds: number;
@@ -39,11 +50,34 @@ export function newGuestLive(brief: FirstPracticeBrief, now = Date.now()): Guest
   return { brief, sessionId, roomName: `luvani-${sessionId}`, maxSeconds: (brief.minutes ?? 5) * 60 + 60,
     joinDeadline: now + 120_000, revision: 0, seconds: 0, learnerTurns: 0, objectiveComplete: false, serviceFailure: null, baseline: null };
 }
+export function newGuestScene(mode: GuestSceneMode, now = Date.now()): GuestLiveRecord {
+  const sessionId = randomUUID();
+  return { brief: null, scene: GUEST_SCENE, mode, sceneTurns: [], sessionId, roomName: `luvani-${sessionId}`,
+    maxSeconds: GUEST_SCENE_MAX_SECONDS, joinDeadline: now + 120_000, revision: 0, seconds: 0, learnerTurns: 0,
+    objectiveComplete: false, serviceFailure: null, baseline: null };
+}
+/**
+ * The scene room for a scene capability. The brief plays no part, so brief churn
+ * never mints a second room. An unclaimed room is reissued after a failed
+ * connection, with the mode of this grant; a claimed or ended room never is.
+ */
+export async function prepareGuestScene(store: GuestStore, key: string, mode: unknown, now = Date.now()) {
+  if (!GUEST_SCENE_MODES.includes(mode as GuestSceneMode)) invalid(400);
+  return store.update(key, row => {
+    if (!row.scene || row.owner || row.expiresAt <= now) invalid();
+    if (row.live?.endedAt || row.live?.fence) invalid();
+    if (!row.live) row.live = newGuestScene(mode as GuestSceneMode, now);
+    // The claim must match the mode the newest grant signed. Booking happens at claim, so this spends nothing.
+    row.live.mode = mode as GuestSceneMode;
+    row.live.joinDeadline = now + 120_000;
+    return structuredClone(row.live);
+  });
+}
 export async function prepareGuestLive(store: GuestStore, key: string, brief: unknown, now = Date.now()) {
   const parsed = parseFirstPracticeBrief(brief);
   if (!parsed) invalid(400);
   return store.update(key, row => {
-    if (row.owner || row.expiresAt <= now) invalid();
+    if (row.scene || row.owner || row.expiresAt <= now) invalid();
     if (row.live?.endedAt || row.live?.fence) invalid();
     if (!row.live || JSON.stringify(row.live.brief) !== JSON.stringify(parsed)) row.live = newGuestLive(parsed!, now);
     // Reissue the same unclaimed room after a failed connection, never a second spend.
@@ -61,15 +95,30 @@ function receipt(live: GuestLiveRecord, now: number) {
     baselineStatus: live.baseline ? 'saved' : 'none', completedAt: date(live.endedAt ?? now),
     settlement: { kind: live.serviceFailure || live.safetyStopped || live.learnerTurns === 0 ? 'not-charged' : 'charged', refundedSeconds: 0, secondsRemaining: 0, plan: 'trial' } } };
 }
-export async function guestLiveOperation(store: GuestStore, key: string, operation: string, body: Record<string, unknown>, now = Date.now()) {
+export async function guestLiveOperation(store: GuestStore, key: string, operation: string, body: Record<string, unknown>, now = Date.now(),
+  scene?: Pick<GuestSceneAdmission, 'book'>) {
   if (!['claim', 'checkpoint', 'complete', 'receipt'].includes(operation) || !uuid(body.userId) || !uuid(body.sessionId)) invalid(400);
+  if (operation === 'claim') {
+    // A scene room books one slot of today's ceiling and the installation's
+    // scene before its first fence is set, idempotently per fence. Booking first errs towards fewer scenes: a
+    // fence that then loses a race has spent a slot, never the reverse.
+    const before = await store.get(key);
+    const room = before?.live;
+    if (room?.scene && before && !room.fence && !room.endedAt && !before.owner && before.id === body.userId
+      && room.sessionId === body.sessionId && uuid(body.claimNonce) && body.roomName === room.roomName && body.mode === room.mode
+      && room.joinDeadline > now && before.expiresAt > now) {
+      if (!scene) invalid();
+      // The installation's 30-day scene is booked here too, never at start, so a lost start costs nothing.
+      if ((await scene!.book({ fence: body.claimNonce as string, installation: before.installation, guestKey: key }, now)) !== 'booked') invalid();
+    }
+  }
   return store.update(key, row => {
     const live = row.live;
     if (!live || row.id !== body.userId || live.sessionId !== body.sessionId || row.owner) invalid();
     const room = live!;
     if (operation === 'receipt') return room.endedAt ? receipt(room, now) : { kind: 'pending', sessionId: room.sessionId, revision: room.revision };
     if (operation === 'claim') {
-      if (!uuid(body.claimNonce) || body.roomName !== room.roomName || body.mode !== 'convo' || room.endedAt) invalid();
+      if (!uuid(body.claimNonce) || body.roomName !== room.roomName || body.mode !== (room.scene ? room.mode : 'convo') || room.endedAt) invalid();
       if (room.fence && room.fence !== body.claimNonce) invalid();
       if (!room.fence) {
         if (room.joinDeadline <= now || row.expiresAt <= now) invalid();
@@ -83,11 +132,16 @@ export async function guestLiveOperation(store: GuestStore, key: string, operati
     if (!room.fence || body.fence !== room.fence) invalid();
     const payload = { revision: body.revision, seconds: body.seconds, learnerTurns: body.learnerTurns,
       serviceFailure: body.serviceFailure ?? null, baseline: body.baseline ?? null, firstPracticeComplete: body.firstPracticeComplete === true,
-      ...(body.firstPracticeStopped === true ? {firstPracticeStopped: true} : {}) };
+      ...(body.firstPracticeStopped === true ? {firstPracticeStopped: true} : {}),
+      ...(room.scene ? { sceneTurns: body.sceneTurns } : {}) };
+    // A scene has no learning summary: its evidence is the acknowledged turn ids, so a baseline is refused.
+    const sceneTurns = room.scene ? parseGuestSceneTurnIds(body.sceneTurns) : null;
     if (!int(payload.revision, 0, 10000) || !int(payload.seconds, 0, room.maxSeconds)
       || !int(payload.learnerTurns, 0, 1000) || (payload.serviceFailure !== null && !isServiceFailure(payload.serviceFailure))
-      || (payload.baseline !== null && !validConversationPackFor(payload.baseline, row.id, room.sessionId))
-      || (payload.learnerTurns > 0 && payload.baseline === null) || body.digest !== tutorDigest(payload)) invalid(400);
+      || (room.scene ? (payload.baseline !== null || sceneTurns === null)
+        : ((payload.baseline !== null && !validConversationPackFor(payload.baseline, row.id, room.sessionId))
+          || (payload.learnerTurns > 0 && payload.baseline === null) || 'sceneTurns' in body))
+      || body.digest !== tutorDigest(payload)) invalid(400);
     if (room.endedAt) {
       if (operation === 'complete' && room.digest === body.digest) return receipt(room, now);
       invalid();
@@ -98,9 +152,11 @@ export async function guestLiveOperation(store: GuestStore, key: string, operati
       if (body.digest !== room.digest && room.revision !== 0) invalid();
     } else {
       if (payload.revision !== room.revision + 1 || Number(payload.seconds) < room.seconds || Number(payload.learnerTurns) < room.learnerTurns
-        || (room.objectiveComplete && !payload.firstPracticeComplete) || (room.serviceFailure && payload.serviceFailure !== room.serviceFailure)) invalid();
+        || (room.objectiveComplete && !payload.firstPracticeComplete) || (room.serviceFailure && payload.serviceFailure !== room.serviceFailure)
+        || (room.scene && !(room.sceneTurns ?? []).every(id => sceneTurns!.includes(id)))) invalid();
       // An expired worker can settle time, but cannot promote new learning evidence.
       if (!expired) {
+        if (room.scene) room.sceneTurns = sceneTurns!;
         room.learnerTurns = payload.learnerTurns as number; room.baseline = payload.baseline as ConversationPack | null;
         room.objectiveComplete = payload.firstPracticeComplete && room.learnerTurns > 0;
       }
@@ -109,7 +165,7 @@ export async function guestLiveOperation(store: GuestStore, key: string, operati
       room.revision = payload.revision as number; room.digest = body.digest as string;
     }
     if (operation === 'complete') {
-      if (payload.firstPracticeStopped) { room.safetyStopped = true; room.baseline = null; room.objectiveComplete = false; }
+      if (payload.firstPracticeStopped) { room.safetyStopped = true; room.baseline = null; room.objectiveComplete = false; if (room.scene) room.sceneTurns = []; }
       room.endedAt = now;
       room.outcome = expired || room.serviceFailure || room.safetyStopped ? 'interrupted' : room.objectiveComplete ? 'completed' : 'partial';
       row.seconds = room.serviceFailure || room.safetyStopped || room.learnerTurns === 0 ? 0 : room.seconds;
@@ -124,7 +180,8 @@ export function guestLiveResult(live: GuestLiveRecord, now = Date.now()) {
   const expired = !!live.fence && !live.endedAt && live.leaseUntil! <= now;
   return { sessionId: live.sessionId, outcome: live.outcome ?? (expired ? 'interrupted' : 'active'),
     seconds: live.seconds, learnerTurns: live.learnerTurns, completedAt: live.endedAt ?? null,
-    pack: live.baseline };
+    pack: live.scene ? null : live.baseline,
+    ...(live.scene ? { scene: live.scene, sceneTurns: [...(live.sceneTurns ?? [])] } : {}) };
 }
 
 /** Closing a failed connection can retain acknowledged work, never promote completion. */

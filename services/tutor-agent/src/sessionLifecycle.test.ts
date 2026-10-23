@@ -202,3 +202,44 @@ test('finish billing cutoff excludes analysts while paid lease remains live and 
  await life.checkpoint({learnerTurns:1});await life.complete({learnerTurns:1});
  const after=f.calls.filter(c=>c.operation==='checkpoint'||c.operation==='complete');assert.ok(after.length>=3);assert.ok(after.every(c=>c.payload.seconds===8));
 });
+
+test('a guest scene claim sends the signed mode, refuses maxSeconds above 180, and needs a guest lesson binding', async () => {
+  const guestKey = 'G'.repeat(43);
+  for (const maxSeconds of [181, 900]) {
+    const base = fixture();
+    await assert.rejects(claimSessionLifecycle(identity, { ...base.options, guestKey, scene: true,
+      call: async (op, payload, signal) => ({ ...await base.normal(op, payload, signal), ...(op === 'claim' ? { maxSeconds } : {}) }) }), SessionLifecycleError);
+  }
+  const ok = fixture();
+  const life = await claimSessionLifecycle(identity, { ...ok.options, guestKey, scene: true });
+  assert.equal(life.maxSeconds, 120);
+  assert.equal(ok.calls[0]!.payload.mode, 'lesson-text');
+  await assert.rejects(claimSessionLifecycle(identity, { ...fixture().options, scene: true }), SessionLifecycleError);
+  await assert.rejects(claimSessionLifecycle({ ...identity, mode: 'convo' }, { ...fixture().options, guestKey, scene: true }), SessionLifecycleError);
+});
+test('scene checkpoints carry learner turns with a null baseline and a sceneTurns list that never shrinks', async () => {
+  const f = fixture();
+  const life = await claimSessionLifecycle(identity, { ...f.options, guestKey: 'G'.repeat(43), scene: true });
+  await life.checkpoint({ learnerTurns: 1, sceneTurns: ['t2-order', 't1-greet'] });
+  await life.checkpoint({ learnerTurns: 2, sceneTurns: ['t3-sur-place'] });
+  await life.checkpoint({ learnerTurns: 3, sceneTurns: ['t3-sur-place'], firstPracticeComplete: true });
+  const sent = f.calls.filter(c => c.operation === 'checkpoint').map(c => c.payload);
+  assert.deepEqual(sent.map(p => p.sceneTurns), [['t1-greet', 't2-order'], ['t1-greet', 't2-order', 't3-sur-place'], ['t1-greet', 't2-order', 't3-sur-place']]);
+  assert.equal(sent[0]!.baseline, null);
+  assert.equal(sent[2]!.firstPracticeComplete, true);
+  await life.complete({ learnerTurns: 3, firstPracticeStopped: true });
+  const done = f.calls.find(c => c.operation === 'complete')!.payload;
+  assert.deepEqual(done.sceneTurns, ['t1-greet', 't2-order', 't3-sur-place']);
+  assert.equal(done.firstPracticeStopped, true);
+  for (const bad of [['t4-pastry'], ['t1-greet', 't1-greet'], 'x']) {
+    const g = fixture();
+    const l = await claimSessionLifecycle(identity, { ...g.options, guestKey: 'G'.repeat(43), scene: true });
+    await assert.rejects(l.checkpoint({ learnerTurns: 1, sceneTurns: bad as never }), SessionLifecycleError);
+  }
+});
+test('a room that is not a scene sends no sceneTurns key', async () => {
+  const f = fixture();
+  const life = await f.claim();
+  await life.checkpoint({ learnerTurns: 1, sceneTurns: ['t1-greet'] });
+  assert.equal(Object.hasOwn(f.calls.find(c => c.operation === 'checkpoint')!.payload, 'sceneTurns'), false);
+});

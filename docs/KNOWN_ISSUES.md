@@ -11123,3 +11123,25 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-22 while preparing the closed beta. Live scoring (VOICE-004) ran only in scripted lessons, which are paid-only, and every new learner starts in a mission, so a beta tester could finish every session without one pronunciation result. A mission has one known reference text: the full line handed over on the second rescue. Two defects sat under the extension. The utterance tap kept only the last final segment of a turn, and Deepgram sends one final per `is_final` segment, so a longer line would have been scored on a fragment of its audio, lessons included. And the `convo` quote priced no scoring, so with the flag on every mission score would have been refused at the paid gate as `quote-mismatch`.
 - fixed: 2026-10-22, on `claude/mission-scoring`. The lesson's background scorer is now `services/tutor-agent/src/liveScoring.ts`, shared by both agents and capped at the quote's scoring effects. A mission turn is scored beside the reply only while the full line is on screen (assistance depth 2) and only when the raw transcript is that line (exact, fillers or one slip); typed answers never are. The line is read from the published card, not the state. Each recogniser stream gets its own tap, finals before `take()` extend one clip, and a late final after `take()` is dropped so it cannot drag the tutor's reply into the next clip. A finishing conversation waits at most `SCORE_SETTLE_MS`, not at all after a safety stop, a terminal service failure or within five seconds of the hard limit, and the recap carries `focusSound` (IPA and word), shown on the app's recap sound page. `services/shared/lessonScoringQuote.ts` adds the reviewed convo component (24 effects, 450 s of audio, 48,000 microUSD from the cost model, not a vendor quote); production preflight and `validateEnvironment.mjs tutor` refuse `LUVANI_AUDIO_SCORING=1` unless both the lesson and convo bindings declare `scoring`, `validatePaidBudget.mjs` checks the convo envelope, and `scripts/verifyPaidAdmission.mjs` proves the convo group. Still external: seed the convo quote and its binding kinds, confirm Speechace's billing unit, and see a recap focus sound in one hosted mission (`deployment/PAID_ADMISSION.md`).
 - verified-by: `a score that lands later reaches the recap as the one sound heard`
+
+### F867 — Guest scenes share tutor workers with paying learners and have no concurrency cap
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts (guest scene rooms), services/token-server/src/guestSceneAdmission.ts
+- note: Found 2026-10-23 in the guest first scene review (UI-011). The service-wide daily ceiling (`LUVANI_GUEST_SCENE_DAILY`) bounds money, but nothing bounds how many guest scenes run at once. A burst of guests, honest or not, can take every worker slot and delay a paying learner's room. Add a small concurrent-scene cap at the worker claim (for example three live scene rooms), or reserve worker capacity for authenticated sessions, before raising the ceiling above the default.
+- verified-by: `a guest scene claim is refused while the concurrent scene cap is full`
+
+### F868 — The one-scene-per-device limit is a forgeable installation id
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/installation.ts:11, services/token-server/src/guestSceneAdmission.ts
+- note: Found 2026-10-23 in the guest first scene review (UI-011). The 30-day scene marker is keyed on `x-luvani-installation`, a random UUID in AsyncStorage. A reinstall or cleared app data resets it, and any HTTP client can send a fresh one. The money limit is the daily ceiling, so this is a fairness gap, not a cost hole. Once the Apple Developer membership and Play Console exist, bind the scene claim to DeviceCheck bits on iOS (one per device, survives reinstall) and a Play Integrity verdict on Android. Then update the privacy labels for any new device signal.
+- verified-by: `a second guest scene from the same attested device is refused after a reinstall`
+
+### F869 — A signed-out guest live start fails before its token request
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts (`readConsent`)
+- note: Found 2026-10-23 in the guest first scene web check. `useLiveSession` read consent with `loadConsent().catch(() => null)`, but with no signed-in user `loadConsent` throws synchronously from `userKey` ("stores live behind the auth gate"), before it returns a promise. The `.catch` never ran, so every pre-account guest connect failed as `unknown` before `/onboarding/live`. This was also on main, where guest live is closed in production, so no learner saw it.
+- fixed: 2026-10-23 on `claude/guest-first-scene`. A guest start reads no consent, since the guest body never sends it. Signed-in reads go through `Promise.resolve().then(loadConsent)`, so a synchronous throw becomes null.
+- verified-by: `a consent store behind the auth gate never stops a guest start before /onboarding/live`

@@ -132,6 +132,7 @@ reactive hook that opens the Wall.
 - **Home's review card follows the free deal:** `NextTaskCard` offers only a card Review will deal (`reviewOffer`, `offeredReview` in `review/freeTier.ts`), so a free learner with only conversation phrases due sees the next free step instead. The recap's "Practise this phrase" drill stays free (founder, 2026-10-20): one drill in the moment is a taste, spaced review later is the trial feature.
 - **Streak:** one free freeze, two plus repair on a plan.
 - **Names:** the paid plans read Core and Max (ids `starter`, `regular`).
+- **Guest first scene (UI-011, 23 October 2026, branch `claude/guest-first-scene`):** before sign-up, one five-turn scripted café exchange (`GUEST_CAFE_SCENE` in `packages/core/src/lessons/guestCafe.ts`) with no language model and a 180-second ceiling, off until `LUVANI_GUEST_SCENE=1` on the API and tutor roles. Admission is a Redis budget outside paid admission: one scene per installation per 30 days, three guest starts per address per day, and `LUVANI_GUEST_SCENE_DAILY` (default 24) booked at worker claim. The scene's lines go to the phrasebook on sign-up. The guest conversation stays closed in production.
 
 ### Paywall and account surfaces (19 October 2026)
 

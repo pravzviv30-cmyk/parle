@@ -20,10 +20,14 @@ import {
   addPronunciation,
   createSession,
   currentPrompt,
+  directiveFor,
+  isGuestSceneTurnId,
+  parseGuestSceneTurnIds,
   submitTurn,
   summarise,
   toLearnerInput,
   STUCK_SILENCE_MS,
+  type GuestSceneTurnId,
   type Lesson,
   type LessonTurn,
   type Rung,
@@ -282,7 +286,19 @@ export class LuvaniTutor extends voice.Agent {
   /** How long the end of a turn waits; agent.ts turns these reports into endpointing (VOICE-010). */
   private readonly thinkingTime: ThinkingTimeSink;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink } = {}) {
+  /**
+   * No model at all: an unexpected answer gets the scripted rescue instead of
+   * generateReply, llmNode never runs, nothing is scored, and a safety message
+   * is shown rather than spoken (it is not on the scene's TTS allow-list).
+   */
+  private readonly scriptOnly: boolean;
+  /** A guest scene records the turns answered acceptably and reports them. */
+  private readonly scene: boolean;
+  private readonly sceneTurnIds = new Set<GuestSceneTurnId>();
+  /** Scene turns the learner answered at all (any spoken or typed line). */
+  private readonly sceneAnsweredIds = new Set<string>();
+
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink; scriptOnly?: boolean; scene?: boolean } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
@@ -296,6 +312,22 @@ export class LuvaniTutor extends voice.Agent {
     this.clipSink = options.clipSink ?? NO_CLIP_SINK;
     this.datasetConsent = options.datasetConsent === true;
     this.thinkingTime = options.thinkingTime ?? NO_THINKING_TIME;
+    this.scriptOnly = options.scriptOnly === true || options.scene === true;
+    this.scene = options.scene === true;
+  }
+
+  /** Scene turn ids answered acceptably so far, in scene order. */
+  get sceneTurns(): GuestSceneTurnId[] {
+    return parseGuestSceneTurnIds([...this.sceneTurnIds]) ?? [];
+  }
+
+  private sceneReport(finished: boolean): { sceneTurns?: GuestSceneTurnId[]; firstPracticeComplete?: boolean; firstPracticeStopped?: boolean } {
+    if (!this.scene) return {};
+    // Complete only when every turn got a line from the learner. A skip or a
+    // help request can move a turn on, but it is not an answer.
+    const everyTurnAnswered = this.lesson.turns.every(turn => this.sceneAnsweredIds.has(turn.id));
+    return { sceneTurns: this.sceneTurns, firstPracticeComplete: finished && this.learnerTurns > 0 && everyTurnAnswered,
+      ...(this.stopping ? { firstPracticeStopped: true } : {}) };
   }
 
   get sessionState(): SessionState {
@@ -325,7 +357,7 @@ export class LuvaniTutor extends voice.Agent {
     toolCtx: Parameters<voice.Agent['llmNode']>[1],
     modelSettings: Parameters<voice.Agent['llmNode']>[2],
   ): ReturnType<voice.Agent['llmNode']> {
-    if (this.ended || this.voiceless) throw new voice.StopResponse();
+    if (this.ended || this.voiceless || this.scriptOnly) throw new voice.StopResponse();
     this.lifecycle?.assertActive();
     const source = await voice.Agent.default.llmNode(this, chatCtx, toolCtx, modelSettings);
     if (!source) return source;
@@ -398,7 +430,7 @@ export class LuvaniTutor extends voice.Agent {
       voiceless: this.voiceless,
     });
     const delivered = this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
-    const spoken = !this.voiceless && session ? session.say(decision.message, { allowInterruptions: false }) : undefined;
+    const spoken = !this.voiceless && !this.scriptOnly && session ? session.say(decision.message, { allowInterruptions: false }) : undefined;
     if (decision.action === 'stop') void this.closeAfterStop(delivered, spoken);
     return true;
   }
@@ -551,10 +583,12 @@ export class LuvaniTutor extends voice.Agent {
    * hears the tutor as soon as their turn is applied instead of after a model
    * round trip. Text mode says nothing: the published prompt is the turn.
    */
-  speakCurrentTurn(session: voice.AgentSession, options: { newTurn?: boolean } = {}): void {
+  speakCurrentTurn(session: voice.AgentSession, options: { newTurn?: boolean; rescue?: boolean } = {}): void {
     if (this.ended || this.voiceless || this.refused) return;
     const prompt = currentPrompt(this.lesson, this.state);
-    const line = scriptedSpeech(prompt.turn, prompt.directive, options);
+    // The rescue phrasing models the line to repeat, whatever the rung.
+    const directive = options.rescue ? directiveFor(prompt.directive.rung, true) : prompt.directive;
+    const line = scriptedSpeech(prompt.turn, directive, { newTurn: options.newTurn });
     if (line.length > 0) session.say(line, this.replyOptions());
   }
 
@@ -751,7 +785,7 @@ export class LuvaniTutor extends voice.Agent {
     // card's evidence whenever it lands. Reference text is what makes accuracy
     // scoring meaningful at all, so only a learner who said the reference line
     // is scored against it (see the note in packages/core/src/lessons/types.ts).
-    if (audioScoringEnabled() && utterance && saidTheReferenceLine(prompt.turn, transcript)) {
+    if (!this.scriptOnly && audioScoringEnabled() && utterance && saidTheReferenceLine(prompt.turn, transcript)) {
       this.scoreInBackground(utterance.wav, prompt.turn.reference, this.lesson.id, prompt.turn.id, utterance.durationSec);
     }
 
@@ -834,15 +868,29 @@ export class LuvaniTutor extends voice.Agent {
     // `silence` is the rescue, which the agent applies on the learner's behalf.
     // Everything else arrived from their mouth, their keyboard or their thumb,
     // and that difference is exactly what billing keys off in `finish()`.
+    const answered = currentPrompt(this.lesson, this.state).turn.id;
+    const { state, feedback } = submitTurn(this.lesson, this.state, input);
+    // THE SCENE RULE (scene path only; the core ladder is untouched for lessons):
+    // silence never moves a guest scene on. The first rescue on a turn models
+    // the line as usual; a rescue that would advance the turn is dropped, so
+    // the scene waits for the learner until they answer, leave, or hit the
+    // 180 s ceiling (which ends it as partial).
+    if (this.scene && input.type === 'silence' && (feedback.advanced || state.finished)) return;
     if (input.type !== 'silence') { this.learnerTurns += 1; this.endHold(); }
     // Any applied input, the rescue included, closes this exchange's hold cap.
     this.momentHoldStartedAt = undefined;
-    const { state, feedback } = submitTurn(this.lesson, this.state, input);
+    if (this.scene && input.type === 'spoke') this.sceneAnsweredIds.add(answered);
     this.state = state;
+    // Scene evidence: a spoken, typed or tapped answer (all arrive as `spoke`)
+    // whose words were accepted and that was not graded poor. A rescue, a skip
+    // or a help request never counts, because the learner did not produce it.
+    if (this.scene && input.type === 'spoke' && feedback.wordsCorrect && feedback.quality !== 'poor' && isGuestSceneTurnId(answered)) {
+      this.sceneTurnIds.add(answered);
+    }
 
     if (this.lifecycle) {
       await this.lifecycle.checkpoint({ learnerTurns: this.learnerTurns,
-        ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) }, () => { this.acknowledgedState = state; });
+        ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}), ...this.sceneReport(state.finished) }, () => { this.acknowledgedState = state; });
       if (this.ended) return;
       this.lifecycle.assertActive();
     }
@@ -876,7 +924,8 @@ export class LuvaniTutor extends voice.Agent {
       // A transcript that normalised to nothing is graded as a rescue, not a
       // miss, and gets the scripted rescue like any other.
       const unexpected = input.type === 'spoke' && feedback.quality === 'poor' && !feedback.rescued;
-      if (unexpected) session.generateReply(this.replyOptions());
+      if (unexpected && this.scriptOnly) this.speakCurrentTurn(session, { newTurn: feedback.advanced, rescue: true });
+      else if (unexpected) session.generateReply(this.replyOptions());
       else this.speakCurrentTurn(session, { newTurn: feedback.advanced });
     } else if (session) {
       // Nothing is going to speak, so nothing will hand the floor back. The
@@ -910,7 +959,7 @@ export class LuvaniTutor extends voice.Agent {
 
     if (this.lifecycle) {
       const settlement = await this.lifecycle.complete({ learnerTurns: this.learnerTurns,
-        ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) });
+        ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}), ...this.sceneReport(this.state.finished) });
       this.state = this.withPronunciation(this.acknowledgedState);
       const summary = summarise(this.state);
       noteSessionReported(this.sessionId);

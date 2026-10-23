@@ -1,4 +1,5 @@
 import type { FirstContribution } from '../onboarding/firstLiveModel.ts';
+import { guestLiveBody } from '../onboarding/guestScene.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { attachCorrectionReason } from './correctionReason.ts';
 import { analyticsAllowed } from '../analytics/consent.ts';
@@ -118,6 +119,21 @@ const CONNECT_TIMEOUTS = { peerConnectionTimeout: 12000, websocketTimeout: 8000 
 const NO_TRACKS: LiveSession['audioTracks'] = { mic: null, tutor: null };
 
 /**
+ * The analytics consent a start or release sends, read safely.
+ *
+ * A guest has no signed-in user, and the consent store lives behind the auth
+ * gate: `loadConsent` throws synchronously there, before it returns a promise,
+ * so a `.catch` chained on its call never caught it and a signed-out guest scene
+ * failed before its token request. The guest body never uses consent, so a
+ * guest does not read it at all; a signed-in read is wrapped so a synchronous
+ * throw becomes null too.
+ */
+function readConsent(guest: boolean): Promise<Awaited<ReturnType<typeof loadConsent>> | null> {
+  if (guest) return Promise.resolve(null);
+  return Promise.resolve().then(loadConsent).catch(() => null);
+}
+
+/**
  * Hand the account's session lease back when the tutor never turned up.
  *
  * A grant takes a thirty-minute lease so one account cannot run two sessions at
@@ -134,7 +150,7 @@ const NO_TRACKS: LiveSession['audioTracks'] = { mic: null, tutor: null };
  */
 async function abandonSession(userId: string, sessionId: string): Promise<void> {
   try {
-    const [headers, consent] = await Promise.all([authHeaders(), loadConsent().catch(() => null)]);
+    const [headers, consent] = await Promise.all([authHeaders(), readConsent(false)]);
     const res = await fetch(`${TOKEN_SERVER}/session/abandon`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...headers },
@@ -943,7 +959,7 @@ export function useLiveSession(
       if (modeCarriesAudio(mode) && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
 
       const authStartedAt = Date.now();
-      const [headers, consent] = await Promise.all([authHeaders(), loadConsent().catch(() => null)]);
+      const [headers, consent] = await Promise.all([authHeaders(), readConsent(!!guestToken)]);
       // Checked before the diagnostics are written, not after: the diagnostics
       // describe the session on screen, and this attempt may no longer be it.
       if (await abandoned()) return;
@@ -957,7 +973,9 @@ export function useLiveSession(
         // The token server signs startRung (and, for free conversation, the mode
         // and learner snapshot) into the join credential, so what the session
         // opens as is not something the client can quietly re-assert.
-        body: JSON.stringify(guestToken ? {} : {
+        // A guest scene grant names its mode (lesson or lesson-text); the older
+        // guest conversation still sends an empty body. See onboarding/guestScene.ts.
+        body: JSON.stringify(guestToken ? guestLiveBody(mode) : {
           userId,
           analyticsAllowed: analyticsAllowed(consent),
           lessonId,

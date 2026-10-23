@@ -1,4 +1,3 @@
-import { parseFirstPracticeBrief } from '@luvani/core';
 /**
  * The tutor agent.
  *
@@ -54,6 +53,8 @@ import { buildTTS, resolveTutorVoice } from './voice.ts';
 import { formatCostLine } from './ttsCache.ts';
 import { resumePaidRuntime } from './paidRuntime.ts';
 import { createPaidVoiceProxy, type PaidVoiceProxy } from './paidVoiceProxy.ts';
+import { admitGuestRoom, armSceneHardStop, createGuestSceneGate, sceneLesson } from './guestSceneGate.ts';
+import { ELEVEN_VOICES, MODEL as TTS_MODEL } from './voiceConfiguration.ts';
 
 import {
   CAFE_LESSON,
@@ -121,8 +122,6 @@ export default defineAgent({
   },
 
   entry: async (ctx: JobContext) => {
-    const lesson = CAFE_LESSON;
-
     // Confirmed spoken scene inputs own their records. Untagged TTS frames and
     // speaking-state transitions are not evidence of this reply's first audio.
     const sceneTiming = createSceneReplyTiming(() => performance.now());
@@ -151,6 +150,8 @@ export default defineAgent({
       lifecycleVersion?: unknown;
       guestLifecycleKey?: unknown;
       firstPractice?: unknown;
+      /** Signed `'guest-cafe'` on a guest first scene. It alone selects the scene; lessonId never does. */
+      scene?: unknown;
       /** Signed `true` for a free or lapsed learner: no tutor memory is read or written. Absent on paid sessions. */
       memoryLocked?: unknown;
     };
@@ -171,20 +172,20 @@ export default defineAgent({
     ) {
       throw new Error('signed join metadata is missing a valid session id');
     }
+    if (!['lesson', 'lesson-text', 'convo', 'convo-text'].includes(meta.mode ?? '')) throw new Error('invalid signed session mode');
+    // Every guest and scene rule, decided before any claim or vendor work.
+    const room = admitGuestRoom(meta, process.env);
+    const { guestKey, scene, firstPractice } = room;
+    const lesson = scene ? sceneLesson(scene) : CAFE_LESSON;
     if (meta.lessonId && meta.lessonId !== lesson.id) {
       console.warn('[luvani] signed lesson differs from the worker catalogue');
     }
     const fixture = meta.lifecycleVersion !== 1 && legacyRuntimeFixture(process.env);
     if (meta.lifecycleVersion !== 1 && !fixture) throw new Error('authoritative signed tutor lifecycle is required');
-    if (!['lesson', 'lesson-text', 'convo', 'convo-text'].includes(meta.mode ?? '')) throw new Error('invalid signed session mode');
-    const guestKey = typeof meta.guestLifecycleKey === 'string' && /^[A-Za-z0-9_-]{43}$/.test(meta.guestLifecycleKey) ? meta.guestLifecycleKey : undefined;
-    const firstPractice = parseFirstPracticeBrief(meta.firstPractice);
-    if (guestKey && process.env.NODE_ENV === 'production') throw new Error('guest production paid admission unavailable');
-    if (guestKey && (!firstPractice || meta.mode !== 'convo')) throw new Error('invalid first practice binding');
     const lifecycle = fixture ? undefined : await claimSessionLifecycle({
       userId: participant.identity, sessionId: meta.sessionId, roomName: ctx.room.name ?? '',
       mode: meta.mode as TutorSessionIdentity['mode'],
-    }, guestKey ? { guestKey } : {});
+    }, guestKey ? { guestKey, ...(scene ? { scene: true } : {}) } : {});
     let proxy: PaidVoiceProxy | undefined;
     const closeProxy = async () => { await proxy?.close(); };
     let stopPaidWork = () => { void closeProxy().catch(() => {}); };
@@ -213,8 +214,16 @@ export default defineAgent({
         ? Math.max(1, Math.floor(meta.secondsRemaining))
         : 15 * 60;
     const maximumSessionSec = lifecycle?.maxSeconds ?? Math.min(15 * 60, allowanceRemaining);
-    const paid = process.env.NODE_ENV === 'production' && lifecycle ? await resumePaidRuntime(lifecycle) : undefined;
+    // A scene never resumes paid admission: a guest has no account to admit.
+    const paid = process.env.NODE_ENV === 'production' && lifecycle && !scene ? await resumePaidRuntime(lifecycle) : undefined;
     if (paid && lifecycle) proxy = await createPaidVoiceProxy({ gate: paid.gate, signal: lifecycle.signal, maximumSessionMillis: maximumSessionSec * 1000, credentials: { deepgram: process.env.DEEPGRAM_API_KEY, elevenlabs: process.env.ELEVEN_API_KEY, anthropic: process.env.ANTHROPIC_API_KEY, openai: process.env.OPENAI_API_KEY } });
+    if (scene && process.env.NODE_ENV === 'production') {
+      // Fails closed unless this is a guest-bound lifecycle with no paid admission.
+      if (!lifecycle) throw new Error('guest scene lifecycle unavailable');
+      const sceneGate = createGuestSceneGate({ guestKey, paid, voiceId: ELEVEN_VOICES[resolveTutorVoice(meta.tutorVoice)], model: TTS_MODEL, signal: lifecycle.signal });
+      // Only the two voice keys reach this proxy; no model key is handed over.
+      proxy = await createPaidVoiceProxy({ gate: sceneGate.gate, speechAllowList: sceneGate.admitsText, signal: lifecycle.signal, maximumSessionMillis: maximumSessionSec * 1000, credentials: { deepgram: process.env.DEEPGRAM_API_KEY, elevenlabs: process.env.ELEVEN_API_KEY } });
+    }
     // Clamped, not trusted: the value is server-signed, but a rung outside the
     // ladder would still put createSession into a state that cannot exist.
     const startRung =
@@ -341,7 +350,9 @@ export default defineAgent({
           },
           thinkingTime: thinking,
         })
-      : new LuvaniTutor(lesson, startRung, { voiceless, persona, thinkingTime: thinking, ...(paid ? { scoringRequest: paid.transport } : {}) });
+      : scene
+        ? new LuvaniTutor(lesson, undefined, { voiceless, persona, scriptOnly: true, scene: true })
+        : new LuvaniTutor(lesson, startRung, { voiceless, persona, thinkingTime: thinking, ...(paid ? { scoringRequest: paid.transport } : {}) });
     tutor.learnerId = participant.identity;
     tutor.sessionId = meta.sessionId;
     if (lifecycle) tutor.attachLifecycle(lifecycle);
@@ -360,6 +371,14 @@ export default defineAgent({
       if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
       void tutor.finish().finally(() => ctx.room.disconnect());
     }, maximumSessionSec * 1_000);
+    // A scene's own ceiling: disconnects at its limit even if settlement never answers.
+    const cancelSceneStop = scene && lifecycle ? armSceneHardStop({
+      remainingMillis: (lifecycle.maxSeconds - lifecycle.elapsedSeconds()) * 1_000,
+      stopPaidWork: () => stopPaidWork(),
+      notify: () => tutor.publishError('That is a good place to stop. Your session has reached its time limit.'),
+      settle: () => tutor.finish(),
+      disconnect: () => ctx.room.disconnect(),
+    }) : () => {};
 
     // Capture before queueing so a later input cannot replace an earlier EOU.
     if (tutor instanceof LuvaniConversation) {
@@ -414,8 +433,9 @@ export default defineAgent({
     const session = new voice.AgentSession({
       vad,
       stt,
-      llm: tutorLLM(proxy),
-      ...(paid ? { connOptions: { sttConnOptions: { maxRetry: 0 }, llmConnOptions: { maxRetry: 0 }, ttsConnOptions: { maxRetry: 0 }, maxUnrecoverableErrors: 1 } } : {}),
+      // A scene builds no model client at all.
+      llm: scene ? undefined : tutorLLM(proxy),
+      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 0 }, llmConnOptions: { maxRetry: 0 }, ttsConnOptions: { maxRetry: 0 }, maxUnrecoverableErrors: 1 } } : {}),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.
       tts: voiceTts,
@@ -534,7 +554,7 @@ export default defineAgent({
 
     // A learner who closes the app still gets their minutes debited correctly.
     ctx.room.on('disconnected', () => {
-      clearTimeout(hardStop);
+      clearTimeout(hardStop); cancelSceneStop();
       if (tutor instanceof LuvaniConversation) {
         console.log(sceneTiming.close());
         for (const line of inputTiming?.close() ?? []) console.log(line);
@@ -556,6 +576,8 @@ export default defineAgent({
     ctx.room.on('participantDisconnected', (p) => {
       if (p.identity === tutor.learnerId) {
         clearTimeout(hardStop);
+        // Recognition stops with the learner, not after settlement.
+        stopPaidWork();
         if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
         return tutor.finish().finally(() => ctx.room.disconnect());
       }
@@ -563,8 +585,12 @@ export default defineAgent({
 
     // Learning artefacts are saved explicitly; do not upload raw session audio,
     // transcripts, logs or traces through the SDK's default cloud recorder.
+    // Input is bound to the signed participant, so a second participant's
+    // audio or text never reaches this session.
     await session.start({ agent: tutor, room: ctx.room, record: false,
       ...(voiceless ? { inputOptions: { audioEnabled: false }, outputOptions: { audioEnabled: false } } : {}),
+      // Overrides the typed-mode inputOptions above while keeping audio off there.
+      inputOptions: { participantIdentity: participant.identity, ...(voiceless ? { audioEnabled: false } : {}) },
     });
     lifecycle?.assertActive();
 

@@ -1,4 +1,6 @@
-import { prepareGuestLive, guestLiveOperation, guestLiveResult, endGuestLive } from './guestLive.ts';
+import { prepareGuestLive, prepareGuestScene, guestLiveOperation, guestLiveResult, endGuestLive, GUEST_SCENE_MODES } from './guestLive.ts';
+import { MemoryGuestSceneLedger, RedisGuestSceneLedger, guestSceneAdmission, guestSceneDaily, guestSceneGaps, GUEST_SCENE_DEFAULT_DAILY } from './guestSceneAdmission.ts';
+import { GUEST_SCENE, GUEST_CAFE_SCENE } from '@luvani/core';
 import { firstPracticeScenario, parseFirstPracticeBrief } from '@luvani/core';
 import { reserveGuestDecoder } from '../../shared/audioDecode.ts';
 import { guestSpeechAvailable, guestSpeechGaps, guestSpeechLimits, transcribeGuestTake } from './onboardingSpeech.ts';
@@ -106,6 +108,15 @@ const guestSpeech = guestSpeechAdmission(process.env.UPSTASH_REDIS_REST_URL && p
   ? new RedisGuestSpeechLedger(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN) : new MemoryGuestSpeechLedger(), guestSpeechLimits(process.env));
 if (process.env.LUVANI_GUEST_SPEECH === '1' && !guestSpeechAvailable(process.env)) {
   console.warn(`[luvani] LUVANI_GUEST_SPEECH=1 is not in effect. Guests type until these are set: ${guestSpeechGaps(process.env).join(', ')}.`);
+}
+// The guest first scene (UI-011): one per installation per 30 days, within a
+// service-wide daily ceiling. Both are booked together when a worker first claims
+// a scene room; a start only reads them.
+const guestScene = guestSceneAdmission(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new RedisGuestSceneLedger(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN) : new MemoryGuestSceneLedger(),
+  guestSceneDaily(process.env) ?? GUEST_SCENE_DEFAULT_DAILY);
+if (process.env.LUVANI_GUEST_SCENE === '1' && guestSceneGaps(process.env).length > 0) {
+  console.warn(`[luvani] LUVANI_GUEST_SCENE=1 is not in effect. Guest scenes stay closed until these are set: ${guestSceneGaps(process.env).join(', ')}.`);
 }
 const GUEST_START_LIMIT = { name: 'guest-start', limit: 5, windowSec: 86400 };
 const GUEST_EVENT_LIMIT = { name: 'guest-evidence', limit: 80, windowSec: 3600 };
@@ -365,7 +376,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
     if (req.method === 'POST' && guestOperation) {
       if (!AGENT_SECRET || !agentDebitAllowed(AGENT_SECRET, req.headers['x-luvani-agent'])) return json(res, 401, { error: 'agent authentication required' });
       if (!await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.tutorWorkIp)])) return;
-      return json(res, 200, await guestLiveOperation(guestStore, guestOperation[1]!, guestOperation[2]!, await readJson(req, 160 * 1024)));
+      return json(res, 200, await guestLiveOperation(guestStore, guestOperation[1]!, guestOperation[2]!, await readJson(req, 160 * 1024), Date.now(), guestScene));
     }
 
     const tutorOperation = url.pathname.match(/^\/agent\/tutor\/(claim|checkpoint|complete|receipt)$/)?.[1];
@@ -388,6 +399,39 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (!(await withinLimits(req, res, [ipCheck(req, url.pathname === '/onboarding/start' ? GUEST_START_LIMIT : ['/onboarding/event', '/onboarding/account-event'].includes(url.pathname) ? GUEST_EVENT_LIMIT : GUEST_REPLY_LIMIT)]))) return;
       if (url.pathname === '/onboarding/start') {
         const body = await readJson(req, 4096);
+        if (body.live === true && body.scene !== undefined) {
+          // The guest first scene. It ignores the brief, so none is required.
+          if (body.scene !== GUEST_SCENE || body.eligible !== true) return json(res, 400, { error: 'valid eligibility and plan required' });
+          if (!supportsSessionMode('lesson') && !supportsSessionMode('lesson-text')) return json(res, 503, { error: 'voice-unavailable', message: 'Speaking is unavailable. Signed-in sessions can use typing.', supportedModes: supportedSessionModes() });
+          const closed = { error: 'guest-live-unavailable', message: 'Create an account to start live practice.' };
+          // The same check as the boot log: names only, never values. A malformed ceiling keeps scenes off.
+          if (guestSceneGaps(process.env, AGENT_SECRET).length > 0) return json(res, 503, closed);
+          const speechAvailable = supportsSessionMode('lesson');
+          const priorToken = req.headers['x-luvani-guest'];
+          if (typeof priorToken === 'string' && /^[A-Za-z0-9_-]{43}$/.test(priorToken)) {
+            // The same still-valid capability from the same installation comes back as it is and books nothing.
+            const prior = await guestStore.get(guestKey(priorToken));
+            if (prior && prior.scene === GUEST_SCENE && prior.installation === installHash && !prior.owner && prior.expiresAt > Date.now())
+              return json(res, 200, { token: priorToken, id: prior.id, expiresAt: prior.expiresAt, live: true, scene: GUEST_SCENE, speechAvailable });
+          }
+          const ceiling = guestSceneDaily(process.env)!;
+          if (!await guestScene.open().catch(() => false)) return json(res, 503, closed);
+          // Starts are not the money limit (claims are), so the global start limit is a flood
+          // guard at four starts per scene of ceiling, never a second count of the same scene.
+          if (!await withinLimits(req, res, [[{ name: 'guest-live-global', limit: ceiling * 4, windowSec: 86400 }, 'user', 'guest-live-global'], ipCheck(req, { name: 'guest-live-address', limit: 3, windowSec: 86400 })])) return;
+          // Read only: the marker is booked at the worker's first claim, so a lost start burns nothing.
+          if (await guestScene.installationUsed(installHash)) return json(res, 503, { error: 'guest-scene-used', message: 'This device has already had its free scene. Create an account to keep practising.' });
+          const brief = parseFirstPracticeBrief(body.brief);
+          let started;
+          try {
+            started = await createGuest(guestStore, { installation: installHash, eligible: true, scene: GUEST_SCENE, tutorVoice: brief?.tutorVoice,
+              goal: brief?.goals[0] ?? 'because', drink: 'coffee', minutes: 5,
+              analyticsAllowed: body.analyticsAllowed === true, variant: body.variant === 'five' ? 'five' : 'full' });
+          } catch {
+            return json(res, 409, { error: 'starter already used', message: 'This device has already started its guest practice today. Your saved practice is still available offline.' });
+          }
+          return json(res, 200, { ...started, live: true, scene: GUEST_SCENE, speechAvailable });
+        }
         if (body.live === true) {
           const brief = parseFirstPracticeBrief(body.brief);
           if (!brief || body.eligible !== true) return json(res, 400, { error: 'valid eligibility and plan required' });
@@ -435,10 +479,24 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) return json(res, 401, { error: 'guest capability required' });
       const guest = await guestStore.get(guestKey(token));
       if (!guest || guest.installation !== installHash) return json(res, 401, { error: 'guest capability invalid' });
+      if (url.pathname === '/onboarding/live' && guest.scene === GUEST_SCENE) {
+        const liveBody = await readJson(req, 1024);
+        if (Object.keys(liveBody).some(k => k !== 'mode') || !GUEST_SCENE_MODES.includes(liveBody.mode as never)) return json(res, 400, { error: 'mode must be lesson or lesson-text' });
+        if (guest.owner || guest.expiresAt <= Date.now() || guest.live?.endedAt || guest.live?.fence) return json(res, 409, { error: 'Guest practice has ended.' });
+        if (guestSceneGaps(process.env, AGENT_SECRET).length > 0) return json(res, 503, { error: 'guest-live-unavailable', message: 'Create an account to start live practice.' });
+        if (!supportsSessionMode(liveBody.mode as 'lesson' | 'lesson-text')) return json(res, 503, { error: 'voice-unavailable', message: 'Speaking is unavailable here. You can type instead.', supportedModes: supportedSessionModes() });
+        const prepared = await prepareGuestScene(guestStore, guestKey(token), liveBody.mode);
+        const result = await grantSession({ userId: guest.id, lessonId: GUEST_CAFE_SCENE.id, mode: prepared.mode!, config,
+          entitlement: { plan: 'trial', secondsUsed: 0 }, memoryLocked: true, tutorVoice: guest.tutorVoice,
+          guest: { key: guestKey(token), sessionId: prepared.sessionId, roomName: prepared.roomName, maxSeconds: prepared.maxSeconds, scene: GUEST_SCENE } });
+        if (!result.ok) return json(res, result.status, { error: result.reason });
+        return json(res, 200, { ...result.grant, secondsRemaining: prepared.maxSeconds, livekitUrl });
+      }
       if (url.pathname === '/onboarding/live') {
         await readJson(req, 1024);
         if (!guest.live || guest.owner || guest.expiresAt <= Date.now()) return json(res, 409, { error: 'Guest practice has ended.' });
         const prepared = await prepareGuestLive(guestStore, guestKey(token), guest.live.brief);
+        if (!prepared.brief) return json(res, 409, { error: 'Guest practice has ended.' });
         const result = await grantSession({ userId: guest.id, lessonId: 'convo-01', mode: 'convo', config,
           entitlement: { plan: 'trial', secondsUsed: 0 }, firstPractice: prepared.brief,
           seedTopic: firstPracticeScenario(prepared.brief), tutorVoice: prepared.brief.tutorVoice, memoryLocked: true,
@@ -468,7 +526,12 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         const identity = await users.resolve(req.headers.authorization, process.env.LUVANI_LOCAL_DEVELOPMENT === '1' ? String(claimBody.userId ?? '') : null);
         if (!identity.ok) return json(res, identity.status, { error: identity.message });
         let claimed;
-        try { claimed = await claimGuest(guestStore, token, identity.userId); } catch { return json(res, 409, { error: 'guest practice already claimed or expired' }); }
+        try { claimed = await claimGuest(guestStore, token, identity.userId); } catch (error) {
+          const reason = error instanceof Error ? error.message : '';
+          const code = reason === 'already claimed' ? 'guest-claimed-elsewhere' : reason === 'expired' ? 'guest-expired' : reason === 'session still active' ? 'guest-active' : null;
+          if (!code) throw error;
+          return json(res, 409, { error: code, message: code === 'guest-active' ? 'Your practice is still finishing. Try again in a moment.' : 'This practice can no longer be saved to an account.' });
+        }
         // The worker's acknowledged pack, never a client supplied summary, becomes account-owned.
         if (claimed.live?.baseline) {
           const db = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -480,13 +543,16 @@ const server = createServer(protectHttpHandler(async (req, res) => {
           else return json(res, 503, { error: 'Practice saving is unavailable. Try again.' });
         }
         // The existing one-time installation/account boundary grants the trial, not this route.
-        const trial = await claimTrialWithEvidence(store, eventSink, identity.userId, claimed.installation, privateSignal(rateLimitSalt, 'user', identity.userId), false);
-        if (!trial) return json(res, 200, { secondsRemaining: 0, trialEligible: false });
+        const trial = await claimTrialWithEvidence(store, eventSink, identity.userId, claimed.installation, privateSignal(rateLimitSalt, 'user', identity.userId), claimed.analyticsAllowed === true);
+        const sceneTurns = claimed.scene ? { sceneTurns: [...(claimed.live?.sceneTurns ?? claimed.sceneTurns ?? [])] } : {};
+        // The claimed record keeps only what a same-owner retry needs, for at most 48 hours.
+        await guestStore.shrinkClaimed(guestKey(token), identity.userId);
+        if (!trial) return json(res, 200, { secondsRemaining: 0, trialEligible: false, ...sceneTurns });
         // D24 (founder, 2026-10-20): the onboarding first scene is a gift on top
         // of the weekly free taste, so the guest's seconds are not debited from
         // it. Their cost was already bounded by the guest speech budget when
         // they were spoken, and that is where it stays recorded.
-        return json(res, 200, { secondsRemaining: secondsRemaining(await store.get(identity.userId)) });
+        return json(res, 200, { secondsRemaining: secondsRemaining(await store.get(identity.userId)), ...sceneTurns });
       }
       if (url.pathname === '/onboarding/attempt' || url.pathname === '/onboarding/audio') {
         if (guest.expiresAt <= Date.now() || guest.owner) return json(res, 410, { error: 'guest practice expired' });

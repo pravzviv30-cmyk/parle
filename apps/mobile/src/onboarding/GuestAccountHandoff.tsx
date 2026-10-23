@@ -16,6 +16,7 @@ import { addPhrases } from '../review/store.ts';
 import { activeUserId, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import {
   adoptGuestUsage,
+  claimGuestPractice,
   clearGuestPractice,
   loadGuestPractice,
   type GuestPractice,
@@ -31,6 +32,8 @@ import { tutorTimeLine } from './firstRun/copy.ts';
 import { AccountWelcome } from './AccountWelcome.tsx';
 import { OnboardingFrame, OnboardingLayout } from './OnboardingLayout.tsx';
 import { onboardingProgress } from './onboardingProgress.ts';
+import { guestScenePhrases } from '@luvani/core';
+import { GuestClaimRefused, claimRefusalIsFinal, scenePhrasebookEntries } from './guestScene.ts';
 /**
  * The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it.
  *
@@ -120,15 +123,18 @@ export function GuestAccountHandoff({
     const owner = scopeGeneration();
     const uid = user.id;
     try {
-      const balance = await adoptGuestUsage(guest, uid);
+      const claim = await claimGuestPractice(guest, uid);
+      const balance = claim.secondsRemaining;
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== uid) return;
+      // A café scene has no pack: its lines are the server's turn ids, mapped to the reviewed French.
+      const scene = guest.live?.scene ? claim.sceneTurns : null;
       if (guest.live?.pack) {
         const linked = await loadConversationPackForLearner(user, adapter, guest.live.pack.id);
         if (!linked.ok || !linked.pack || linked.pack.sessionId !== guest.live.sessionId) throw new Error('Your conversation is linked, but has not synced to this device yet. Try again.');
       }
       // Each accepted or kept reply's task, as its natural line, never the
       // learner's unchecked spelling (F757).
-      const phrases = savedPhraseTasks(guest).map((task) => ({
+      const phrases = scene ? scenePhrasebookEntries(scene) : savedPhraseTasks(guest).map((task) => ({
         fr: keptPhrase(task),
         frWritten: null,
         en: task.meaning,
@@ -148,7 +154,7 @@ export function GuestAccountHandoff({
       const key = userKey('onboarding-practice');
       if (
         !(await writeInUserScope(owner, () =>
-          AsyncStorage.setItem(key, JSON.stringify({ ...guest, token: null })),
+          AsyncStorage.setItem(key, JSON.stringify({ ...guest, token: null, ...(scene && guest.live ? { live: { ...guest.live, sceneTurns: scene } } : {}) })),
         ))
       )
         throw new Error('Your practice could not be saved.');
@@ -161,6 +167,8 @@ export function GuestAccountHandoff({
         if (arrival?.sessionId !== guest.live.sessionId) await saveArrival({ sessionId: guest.live.sessionId,
           finishedAt: guest.live.outcome === 'completed' ? guest.finishedAt ?? [] : [], welcomeSeen: !newlyCreated, streakSeen: false });
       }
+      // The card names the newest line the server confirmed, which is the one saved.
+      if (scene && guest.live) setGuest({ ...guest, live: { ...guest.live, sceneTurns: scene } });
       setRemaining(balance);
       setSaved(true);
       // Free or on a plan: the server says, after the claim above has spent the
@@ -186,7 +194,12 @@ export function GuestAccountHandoff({
     try {
       // The usage transfer is required even when the learner declines to import
       // their phrase. Declining an import cannot reset a one-time allowance.
-      if (!saved) await adoptGuestUsage(guest, user.id);
+      // A claim that can never succeed (kept by another account, or expired)
+      // still lets Start fresh finish; anything else keeps the practice here.
+      if (!saved) {
+        try { await adoptGuestUsage(guest, user.id); }
+        catch (cause) { if (!(cause instanceof GuestClaimRefused && claimRefusalIsFinal(cause.code))) throw cause; }
+      }
       if (!mounted.current || owner !== scopeGeneration()) return;
       await clearGuestPractice();
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== user.id) return;
@@ -236,6 +249,7 @@ export function GuestAccountHandoff({
         : null;
   // The phrase the card names is the newest one the save writes, or none.
   const shown = savedPhraseTasks(guest).at(-1);
+  const shownLine = guest.live?.scene ? guestScenePhrases(guest.live.sceneTurns ?? []).at(-1)?.fr : shown ? keptPhrase(shown) : undefined;
   return (
     <OnboardingFrame initialProgress={progress}>
     <OnboardingLayout page="account-welcome" progress={progress}
@@ -250,18 +264,18 @@ export function GuestAccountHandoff({
       }
     >
       <Text accessibilityRole="header" style={[type.title, { textAlign: 'center', marginBottom: 16 }]}>
-        {saved ? (shown ? 'Your phrase is saved.' : 'Your practice is saved.') : 'Keep this practice?'}
+        {saved ? (shownLine ? 'Your phrase is saved.' : 'Your practice is saved.') : 'Keep this practice?'}
       </Text>
       <BoldScene kind={saved ? 'save' : busy ? 'saving' : error ? 'retry' : 'save'} width={220} />
       <Text style={[type.body, { textAlign: 'center' }]}>Signed in as {user?.email ?? 'your account'}.</Text>
       <Card style={{ marginTop: 20, gap: 16 }}>
-        {shown ? <Text style={[type.heading, { textAlign: 'center' }]}>{keptPhrase(shown)}</Text> : null}
+        {shownLine ? <Text style={[type.heading, { textAlign: 'center' }]}>{shownLine}</Text> : null}
         <Text style={[type.body, { textAlign: 'center' }]}>
           {saved
-            ? shown
+            ? shownLine
               ? 'Your phrase is in Practice. Your account can sync it to another device.'
               : 'Your practice from this phone is kept with your account.'
-            : shown
+            : shownLine
               ? 'Keep the phrase from this phone. Your account’s existing learning and preferences stay yours.'
               : 'Keep the practice from this phone. Your account’s existing learning and preferences stay yours.'}
         </Text>

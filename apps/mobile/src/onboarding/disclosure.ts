@@ -373,4 +373,4 @@ export const FIRST_RUN_COPY: readonly string[] = firstRunCopy(DEFAULT_TUTOR_PERS
 
 /** The before-practice summary keeps the AI notice and retention readable. */
 export const STARTER_AI = 'Your tutor is AI.';
-export const STARTER_LOCAL = 'Replies stay on this device. A temporary session summary is held for up to 30 days and can be saved to your account.';
+export const STARTER_LOCAL = 'Your words are not kept. A record of the scripted turns you reach is held for up to 30 days and can be saved to your account.';

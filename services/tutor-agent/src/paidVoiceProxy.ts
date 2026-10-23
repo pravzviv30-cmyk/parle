@@ -28,6 +28,8 @@ export interface PaidVoiceProxyOptions {
   /** Local fixtures inject a transport; destinations and descriptors stay fixed. */
   request?: typeof fetch;
   websocketConnector?: (url:string,options:SocketOptions)=>VendorSocket;
+  /** Guest scene only: TTS text must pass this exact-bytes check, and every model route is refused. */
+  speechAllowList?: (text:string)=>boolean;
 }
 export interface PaidVoiceProxy {
   deepgramBaseURL:string; elevenlabsBaseURL:string; anthropicBaseURL:string; openaiBaseURL:string;
@@ -128,7 +130,9 @@ export async function createPaidVoiceProxy(options:PaidVoiceProxyOptions):Promis
       const route=match[1]!,provider=route.split('/')[0] as 'anthropic'|'openai'|'elevenlabs';
       const credential=options.credentials[provider];if(!credential || /[\r\n]/.test(credential))throw new Error('unconfigured-provider');
       const path=route.slice(provider.length),vendor=new URL(`https://${provider==='elevenlabs'?'api.elevenlabs.io':provider==='anthropic'?'api.anthropic.com':'api.openai.com'}${path}${url.search}`);
-      if(provider==='elevenlabs')checkEleven(vendor,raw);else if(url.search)throw new Error('invalid-parameters');
+      if(options.speechAllowList && provider!=='elevenlabs')throw new Error('scene-route');
+      if(provider==='elevenlabs'){checkEleven(vendor,raw);if(options.speechAllowList && !options.speechAllowList(String((JSON.parse(raw) as {text:unknown}).text)))throw new Error('scene-text');}
+      else if(url.search)throw new Error('invalid-parameters');
       const headers:Record<string,string>={'content-type':'application/json'};
       if(provider==='elevenlabs')headers['xi-api-key']=credential;
       else if(provider==='anthropic'){headers['x-api-key']=credential;headers['anthropic-version']='2023-06-01';}

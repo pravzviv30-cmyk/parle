@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 main with `claude/guest-first-scene` (UI-011, guest café scene before sign-up,
+  off until `LUVANI_GUEST_SCENE=1`) merged onto the thinking-time landing (VOICE-010); the tutor
+  keeps both, and the scene keeps the session's beginner pause: **6,440 tests, 0 failing**; core 1050,
+  brain 502, tutor agent 785, token server 482, playground 29, mobile 3592; all 42 migrations
+  replayed. Floors set to this run.
 - 23 October 2026 beginner thinking time (VOICE-010: a 1,200 ms pause floor at rungs 1-2 that
   rises 400 ms per cut-off to 2,000 ms, a 2,500 ms floor while "moment" is held, a 60 s hold cap,
   and a noise no longer switching the rescue off) on branch `claude/thinking-time` with main
@@ -32,6 +37,17 @@ of the list.
   branch `claude/flash-conversation` from main 3acc25b5 (held, not on main): **6,320 tests, 0 failing**;
   core 1036, brain 502, tutor agent 727, token server 458, playground 29, mobile 3568; all 42
   migrations replayed. Floors raised only through `gate:bless`.
+- 23 October 2026 guest first scene (UI-011: one scripted café exchange before sign-up, no model,
+  180 s, a Redis budget outside paid admission, a guest scene gate on the voice proxy), on branch
+  `claude/guest-first-scene` from main 3acc25b5 (held, not on main): **6,400 tests, 0 failing**;
+  core 1050, brain 502, tutor agent 745, token server 482, playground 29, mobile 3592; all 42
+  migrations replayed, no migration added. Floors raised only through `gate:bless`. Web check
+  on a local token server and tutor worker against LiveKit Cloud, typed scene end to end:
+  disclosure, refused microphone, typed restart, five turns, recap and achievements naming the
+  five lines, scene-used and per-address refusals; `[luvani:cost] ttsCharsBilled=0` for the typed
+  scene. Screenshots in [guest-scene-evidence](guest-scene-evidence/). The web check found and
+  fixed seven defects (see the change plan's execution log). Not run: a spoken scene on a real
+  phone, account sign-up and adoption against Supabase, and the Lua scripts on a real Redis.
 - 23 October 2026 main with `claude/mission-spine-b1` merged (twelve new missions, 19 to 31, the
   first A2 and B1 scenes) onto the goal-edit and cut-cogs landings: **6,305 tests, 0 failing**;
   core 1036, brain 502, tutor agent 712, token server 458, playground 29, mobile 3568; all 42

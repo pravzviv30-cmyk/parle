@@ -23,6 +23,7 @@ code side is prepared on `main`. The support address is `hello@luvani.app`.
 | `live_session_finished` event (counts only) | migration 41, `apps/mobile/src/analytics/sessionFinished.ts` | done, on branch `claude/beta-instrumentation` |
 | Support address and Contact row | `apps/mobile/src/legal/company.ts` | done, same branch |
 | Beta metrics queries | [deployment/beta-metrics.sql](../../deployment/beta-metrics.sql) | done, same branch |
+| Guest first scene: one scripted café exchange before sign-up, no model, 180 s, daily ceiling | UI-011, [guest-first-scene.md](guest-first-scene.md) | done, on branch `claude/guest-first-scene`; off until `LUVANI_GUEST_SCENE=1` |
 
 ## Founder steps, in order
 
@@ -116,13 +117,42 @@ Each step names its proof. Stop at the first step whose proof fails.
    iOS TestFlight waits for the Apple Developer membership. When you have it, add
    the `submit` block and team settings to `apps/mobile/eas.json`, enable Sign in
    with Apple and push, then ship internal, then external.
-8. **First real session.** Run one café lesson and one mission yourself on a
+8. **Guest first scene (optional, after steps 3 to 5).** This lets people try one
+   short scripted café exchange before they make an account (UI-011). It stays
+   off until you switch it on. Worst case is about $0.50 a scene, so the default
+   ceiling of 24 scenes a day costs at most about $12 a day (about $360 a
+   month). With the voice cache warm, a scene costs about $0.03, or about $0.80
+   a day at 24. The full numbers are in the runbook's "Guest first scene"
+   section.
+   - Read the scene's lines (`packages/core/src/lessons/guestCafe.ts`). They
+     are five of the café lesson's reviewed turns plus a new English premise.
+     Say yes or ask for changes.
+   - Confirm the LiveKit per-minute rate on your plan. The cost uses an
+     estimate of about $0.002 a minute.
+   - Confirm that Railway's ingress overwrites `X-Forwarded-For` before you set
+     `LUVANI_TRUST_PROXY=1`. The per-address limit depends on it.
+   - Make sure the `TTS_CACHE_DIR` volume from step 4 is mounted. The cost
+     assumes it.
+   - On staging, set `LUVANI_GUEST_SCENE=1` on both `api` and `tutor`, and
+     `LUVANI_GUEST_SCENE_DAILY=3` on `api`. Then prove:
+     - one scene completes on a real iPhone and on a real Android phone;
+     - the fourth claim that day is refused, and the app offers the account
+       handoff;
+     - a second scene from the same phone is refused;
+     - the Redis counters carry a TTL;
+     - after sign-up, the scene's lines appear in the new account's
+       phrasebook.
+   - Then raise `LUVANI_GUEST_SCENE_DAILY` to 24, or to the number you
+     choose.
+   - Off switch: unset `LUVANI_GUEST_SCENE` on `api` and redeploy. This needs
+     no migration and no drain.
+9. **First real session.** Run one café lesson and one mission yourself on a
    phone. Proof:
    - `[luvani:live] reply-latency` lines appear in the app logs;
    - one `session_usage` row and, with analytics on, one `live_session_finished`
      row appear;
    - query 4 in `beta-metrics.sql` returns it.
-9. **Recruit.** Use expat, relocation and TCF/TEF communities, not r/learnfrench.
+10. **Recruit.** Use expat, relocation and TCF/TEF communities, not r/learnfrench.
 
 ## Reading the results
 
@@ -139,7 +169,8 @@ These are rules of thumb from consumer apps, not benchmarks for this category.
 
 ## Not in this plan
 
-- Guest live before sign-up.
+- A guest conversation before sign-up (only the scripted guest first scene
+  is built; see step 8).
 - Moving the free tier to a daily allowance (decide from beta minutes data).
 - Live pronunciation scoring for learners (`LUVANI_AUDIO_SCORING`), which needs
   one hosted lesson proving a Speechace 200 and a `scored` card, and one hosted

@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
-import { parseFirstPracticeBrief, firstPracticeScenario, secondsRemaining, buildConversationPack } from '@luvani/core';
+import { randomUUID } from 'node:crypto';
+import { parseFirstPracticeBrief, firstPracticeScenario, secondsRemaining, buildConversationPack, GUEST_SCENE, GUEST_CAFE_SCENE } from '@luvani/core';
 import { MemoryGuestStore, createGuest, guestKey, claimGuest } from './onboardingGuest.ts';
-import { prepareGuestLive, guestLiveResult, endGuestLive } from './guestLive.ts';
+import { prepareGuestLive, prepareGuestScene, guestLiveResult, endGuestLive, GUEST_SCENE_MODES } from './guestLive.ts';
+import { MemoryGuestSceneLedger, guestSceneAdmission, guestSceneDaily, guestSceneGaps } from './guestSceneAdmission.ts';
 import { grantSession } from './tokens.ts';
 const source = readFileSync(new URL('./server.ts',import.meta.url),'utf8');
 const start = source.indexOf("    if (req.method === 'POST' && url.pathname.startsWith('/onboarding/')) {");
@@ -28,6 +30,8 @@ function harness(production = false, spokenAvailable = true) {
       users:{resolve:async(header:string|null)=>header?{ok:true,userId:header}:{ok:false,status:401,message:'sign in required'}},
       saveConversationPack:async(_url:string,_key:string,pack:{sessionId:string})=>{if(failSave)throw new Error('database unavailable');saved.set(pack.sessionId,pack);},
       claimTrialWithEvidence:async()=>true,store,eventSink:undefined,secondsRemaining,
+      GUEST_SCENE,GUEST_CAFE_SCENE,GUEST_SCENE_MODES,prepareGuestScene,guestSceneGaps,guestSceneDaily,randomUUID,
+      guestScene:guestSceneAdmission(new MemoryGuestSceneLedger(),24),
     };
     await new AsyncFunction(...Object.keys(world),js.slice(js.indexOf('{')+1,js.lastIndexOf('}')))(...Object.values(world));
     return response;
@@ -71,7 +75,7 @@ test('account transfer retries the authoritative pack after storage failure and 
   h.failSave(false);assert.equal((await h.call('/onboarding/claim',{token})).status,200);
   // D24: the first scene is a gift on top of the weekly free taste, never a debit from it.
   assert.equal(h.saved.size,1);assert.equal(h.consumed.size,0,'the guest first scene was charged to the weekly taste');assert.equal((h.saved.get(live.sessionId) as {learnerId:string}).learnerId,'account-a');
-  assert.equal((await h.guestStore.get(key))!.live!.baseline,null);
+  assert.equal((await h.guestStore.get(key))!.live,undefined,'the claimed record keeps no room, brief or pack');
   assert.equal((await h.call('/onboarding/claim',{token})).status,200);assert.equal(h.saved.size,1);assert.equal(h.consumed.size,0);
   assert.equal((await h.call('/onboarding/claim',{token,user:'account-b'})).status,409);
 });
