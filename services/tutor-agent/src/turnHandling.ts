@@ -7,9 +7,12 @@
  * whether a beginner's sentence survives, and whether every turn quietly buys
  * a model call nobody hears, so they are worth more than a comment.
  *
- * Pure: mode in, options out, no environment read except the one flag passed
- * to it.
+ * Pure: mode and starting rung in, options out, no environment read except the
+ * one flag passed to it. The pause floor itself, and how it moves during the
+ * session, lives in thinkingTime.ts (VOICE-009).
  */
+import type { Rung } from '@luvani/core';
+import { endpointingFor, type Endpointing } from './thinkingTime.ts';
 
 /** Which product the room is running. Text variants share their parent's rules. */
 export type SessionMode = 'convo' | 'lesson';
@@ -20,18 +23,10 @@ export interface TurnHandling {
     minWords: number;
     discardAudioIfUninterruptible: boolean;
   };
-  endpointing: { minDelay: number };
+  endpointing: Endpointing;
   preemptiveGeneration: { enabled: boolean };
   turnDetection?: 'vad';
 }
-
-/**
- * The framework floor is 500ms, or 300ms with a streaming detector. 400ms is
- * the chosen middle ground between a snappy reply and clipping a slow finish.
- * It is additive on top of the recogniser's own end-of-speech signal, so read
- * `[luvani:metrics] eou` before moving it.
- */
-export const ENDPOINTING_MIN_DELAY_MS = 400;
 
 /**
  * Defaults here are 500ms and 0 words, which let the tutor's own voice — picked
@@ -41,7 +36,10 @@ export const ENDPOINTING_MIN_DELAY_MS = 400;
 export const INTERRUPTION_MIN_DURATION_MS = 1_200;
 export const INTERRUPTION_MIN_WORDS = 2;
 
-export function turnHandlingFor(mode: SessionMode, env: { turnDetection?: string } = {}): TurnHandling {
+export function turnHandlingFor(
+  mode: SessionMode,
+  env: { turnDetection?: string; startRung?: Rung } = {},
+): TurnHandling {
   return {
     interruption: {
       minDuration: INTERRUPTION_MIN_DURATION_MS,
@@ -55,7 +53,9 @@ export function turnHandlingFor(mode: SessionMode, env: { turnDetection?: string
       // words are now buffered and arrive when the tutor stops.
       discardAudioIfUninterruptible: false,
     },
-    endpointing: { minDelay: ENDPOINTING_MIN_DELAY_MS },
+    // The session opens on the starting rung's pause floor; no signed rung is
+    // a beginner. agent.ts moves it with the rung, cut-offs and "moment".
+    endpointing: endpointingFor({ rung: env.startRung, cutOffs: 0, holding: false }),
     // H2. The framework generates a reply speculatively on every final
     // transcript, up to three times a turn, and it is on by default. A lesson
     // genuinely uses that — it calls generateReply and speaks the result. A
@@ -64,10 +64,13 @@ export function turnHandlingFor(mode: SessionMode, env: { turnDetection?: string
     // completions was billed, discarded, and left contending for the same key
     // as the turn the learner was actually waiting on.
     preemptiveGeneration: { enabled: mode === 'lesson' },
-    // No turn-detector plugin is installed, so the framework already falls
-    // through to plain silence-based VAD and this flag selects what is
-    // happening anyway. It stays as the seam: adding the plugin is the change
-    // that would make it mean something, and latency A/B work wants the knob.
+    // Unset, SDK 1.9 builds its own audio turn detector: the local
+    // turn-detector-v1-mini through @livekit/local-inference (French threshold
+    // 0.285). When it scores a pause as unlikely to be the end, the wait is
+    // maxDelay; when the native binding or the job's inference executor is
+    // missing, it scores every pause 1.0 and the floor alone decides. VOICE-009
+    // is sized to hold in that worst case. 'vad' turns the detector off, for
+    // latency A/B work.
     ...(env.turnDetection === 'vad' ? { turnDetection: 'vad' as const } : {}),
   };
 }
