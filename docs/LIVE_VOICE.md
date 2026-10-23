@@ -294,6 +294,26 @@ uncached input, cache reads and cache writes are three disjoint buckets whoever
 served the call, and reasoning tokens are reported inside output, never beside
 it.
 
+When the room disconnects the agent also prints one `[luvani:cost]` line for
+cost per minute. It holds numbers only: the same 8-hex session prefix,
+`ttsCharsBilled` (characters sent to the voice vendor), `ttsCharsCached`
+(characters served from the authored disk cache), `ttsCharsReplayed`
+(characters served from the session's replay memo) and `sttSec` (seconds of
+learner audio Deepgram reported receiving). A field the session could not
+measure is left out, never printed as zero.
+
+Each session's `CachedTTS` also keeps a small replay memo in memory. It holds
+the audio of the last 8 non-authored lines it synthesized, up to 4 MB, and
+evicts the least recently used line first. So when a learner taps "hear",
+"english" or "slower" on a free-conversation line, they hear the same frames
+again without a second vendor call. Only a line that finished cleanly is kept.
+An interrupted, cancelled or failed line is never stored. The key is the disk
+cache's own fingerprint, so another voice, model, setting or speed never
+matches. Lines over 220 characters bypass it, as they bypass the disk. The
+memo is never written anywhere and is cleared when the session ends. Authored
+lines stay on disk and no longer expire, because their key already binds
+voice, model, settings and text.
+
 `spoke` and `silence` are **not** wire tags. They are engine inputs
 (`core/session/session.ts`). Audio is the media track; silence is timed agent-side.
 

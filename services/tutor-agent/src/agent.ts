@@ -51,6 +51,7 @@ import 'dotenv/config';
 import { sessionAudio, supportsSessionMode, typedOnly } from '../../shared/sessionCapabilities.ts';
 
 import { buildTTS, resolveTutorVoice } from './voice.ts';
+import { formatCostLine } from './ttsCache.ts';
 import { resumePaidRuntime } from './paidRuntime.ts';
 import { createPaidVoiceProxy, type PaidVoiceProxy } from './paidVoiceProxy.ts';
 
@@ -483,8 +484,14 @@ export default defineAgent({
     // of it to nobody. An `llm` line during a CONVERSATION is a finding in its
     // own right: that model is told it is unused, so anything it reports was
     // speculative, billed and thrown away.
+    // Seconds of learner audio the recogniser was fed, summed from the vendor's
+    // own usage reports (Deepgram flushes one every five seconds of audio and
+    // at stream end). Feeds sttSec on the [luvani:cost] line.
+    let sttAudioMs = 0;
     session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
-      const line = formatVendorMetrics(ev.metrics as VendorMetrics);
+      const m = ev.metrics as VendorMetrics;
+      if (m.type === 'stt_metrics' && typeof m.audioDurationMs === 'number') sttAudioMs += m.audioDurationMs;
+      const line = formatVendorMetrics(m);
       if (line !== null) console.log(line);
     });
 
@@ -515,6 +522,9 @@ export default defineAgent({
       }
       // Cost visibility per session: hits are free lines, misses were billed.
       if (voiceTts) console.log(`[luvani] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
+      // Numbers only, joined to [luvani:brain:summary] by the session prefix.
+      console.log(formatCostLine({ sessionId: tutor.sessionId, tts: voiceTts, sttSec: stt ? sttAudioMs / 1000 : null }));
+      voiceTts?.clearReplayMemo();
       if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
       stopPaidWork();
       void finish().catch(() => {});

@@ -3,9 +3,9 @@
  *
  * The warm cache used to be free to run and free to think about: one voice, one
  * corpus, a few cents, rerun whenever. Eight voices changes that. The scripted
- * corpus is 62 sentences and 1,618 characters, and a voice is a whole second
- * copy of it because the voice is part of the cache key — so `all` is about
- * 12,900 characters, roughly a third of a Starter month's allowance, spent by a
+ * corpus (authoredSpeech.ts) is 110 sentences and 2,950 characters, and a voice
+ * is a whole second copy of it because the voice is part of the cache key, so
+ * `all` (six voices) is about 17,700 characters, spent by a
  * command that reads like a cache warm.
  *
  * That is why the plan is a separate, pure module rather than three lines

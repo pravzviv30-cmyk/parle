@@ -8,6 +8,11 @@
 --
 -- Cohorts: 'deadline' = a trip, family, a move or work; 'hobby' = food or
 -- learning for its own sake; 'unknown' = no synced answer.
+--
+-- Cost per minute: the tutor agent prints one numbers-only [luvani:cost] line
+-- per session (ttsCharsBilled, ttsCharsCached, ttsCharsReplayed, sttSec), keyed
+-- by the same 8-hex session prefix as [luvani:brain:summary]. It lives in the
+-- agent logs, not in this database; join it to session_usage seconds by hand.
 
 -- 1. Who is in which cohort (one row per learner with a synced profile).
 create temporary view beta_cohort as

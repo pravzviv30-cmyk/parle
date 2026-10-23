@@ -1,7 +1,7 @@
 /**
  * Warm the voice cache.
  *
- * Synthesizes every scripted line of every lesson once, so the first learner
+ * Synthesizes every authored line (authoredSpeech.ts) once, so the first learner
  * session plays entirely from disk and the vendor bill for lesson content is a
  * one-off measured in cents. Run it after keys land, and again whenever lesson
  * text or the configured voice changes:
@@ -10,16 +10,16 @@
  *
  * Rerunning is free: cached lines are skipped.
  *
- * WHICH VOICES. The learner chooses from eight, and the voice is part of the
+ * WHICH VOICES. The learner chooses from six, and the voice is part of the
  * cache key, so warming is per voice with no sharing between them. One voice is
- * 62 sentences and 1,618 characters; eight is about 12,900, roughly a third of
- * a Starter month's allowance. A cold clone running this command is following
+ * 110 sentences and 2,950 characters; the run prints the exact total for the
+ * voices it is about to warm before it spends anything. A cold clone running this command is following
  * the README rather than asking to spend that, so the default is the default
  * voice alone:
  *
  *   npm run warm-cache -w @luvani/tutor-agent                       # luc only
  *   LUVANI_WARM_VOICES=celine,emilie npm run warm-cache -w ...      # two
- *   LUVANI_WARM_VOICES=all npm run warm-cache -w ...                # all eight
+ *   LUVANI_WARM_VOICES=all npm run warm-cache -w ...                # all six
  *
  * The plan is resolved in warmPlan.ts before anything is built, so a mistyped
  * key refuses at once instead of after seven voices have been paid for. The run
@@ -32,11 +32,10 @@
  */
 
 import 'dotenv/config';
-import { initializeLogger, tokenize } from '@livekit/agents';
-import { LESSONS, type TutorVoiceKey } from '@luvani/core';
-import { APERO_FRAME, CAFE_FRAME } from '@luvani/brain';
+import { initializeLogger } from '@livekit/agents';
+import type { TutorVoiceKey } from '@luvani/core';
 import { buildTTS, selectedVoiceVendor, VOICE_KEY } from './voice.ts';
-import { CONVO_LINES } from './convo.ts';
+import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
 import { voicesToWarm, warmCost, warmPlanLine, warmVoiceLine } from './warmPlan.ts';
 
 import { assertDevelopmentPaidTool } from './standalonePaidTool.ts';
@@ -46,39 +45,13 @@ assertDevelopmentPaidTool();
 initializeLogger({ pretty: true, level: 'warn' });
 
 /**
- * The same sentence splitter the voice pipeline uses at runtime. This matters:
- * our TTS declares `streaming: false`, so the framework wraps it in a stream
- * adapter that synthesizes one *sentence* at a time — which means cache keys are
- * per sentence. Warming whole multi-sentence lines fills the cache with entries
- * nothing will ever request.
+ * Exactly the authored list the runtime cache accepts (authoredSpeech.ts),
+ * built with the same sentence splitter the voice pipeline uses. One list, so
+ * the warm run can never warm a line the runtime will not read, or skip one it
+ * will (the carry-on lines and every scripted rung used to be missing here).
  */
-const splitter = new tokenize.basic.SentenceTokenizer();
-
 function scriptedLines(): string[] {
-  const lines = new Set<string>();
-  const add = (text: string) => {
-    for (const sentence of splitter.tokenize(text)) lines.add(sentence);
-  };
-  for (const lesson of LESSONS) {
-    for (const turn of lesson.turns) {
-      add(turn.tutor); //           the tutor's own side of the exchange
-      add(turn.target); //          spoken aloud for the learner to echo
-      for (const o of turn.options) add(o.text); // offered aloud at rung 2
-    }
-  }
-  // Free conversation's scripted moments, warmed AS SPOKEN: the opener and
-  // the suggestion are said in English (a new learner is never opened at in
-  // French), the bridge in French. Both fixture scenes' openings too — the
-  // narration is English; the multilingual voice handles it.
-  add(CONVO_LINES.opener.en);
-  add(CONVO_LINES.suggest.en);
-  add(CONVO_LINES.bridge.spoken);
-  for (const frame of [CAFE_FRAME, APERO_FRAME]) {
-    add(frame.openingNarration.en);
-    add(frame.openingLine.fr);
-    add(frame.openingSupport.fullLine.fr);
-  }
-  return [...lines];
+  return [...AUTHORED_SPEECH_LINES];
 }
 
 /**

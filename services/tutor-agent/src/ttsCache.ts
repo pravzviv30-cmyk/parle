@@ -7,6 +7,17 @@
  * saves the audio as a WAV in a bounded, expiring cache, and replays that entry
  * without another synthesis call.
  *
+ * Authored entries never expire. Their key binds voice, model, settings, sample
+ * rate and text, so an old entry cannot be wrong, only unused; a voice or text
+ * change simply stops asking for it. Slot count and the per-entry byte ceiling
+ * still bound the disk.
+ *
+ * Separately, each instance keeps a small in-memory replay memo of the
+ * non-authored lines it synthesized (see ReplayMemo). One CachedTTS is built
+ * per session, so the memo is per session and dies with it. It is what makes a
+ * learner tapping "hear" or "english" on a free-conversation line replay the
+ * audio they just heard instead of paying the vendor for it again.
+ *
  * Only explicitly authored, nonpersonal sentences can be persisted. Free-form
  * replies go to the vendor live, including short replies containing learner
  * details. Length alone never makes a line eligible for storage.
@@ -54,7 +65,9 @@ export interface CachedTTSOptions {
   /** Fixed slots make eviction atomic across SDK jobs; colliding fingerprints are misses. */
   cacheSlots?: number;
   maxEntryBytes?: number;
-  ttlMs?: number;
+  /** Replay memo bounds, per instance (so per session). */
+  memoMaxLines?: number;
+  memoMaxBytes?: number;
   /**
    * How a cache miss reaches the vendor. Defaults to the environment seam
    * (LUVANI_TTS_MISS_TRANSPORT), which defaults to 'http'; see the file header
@@ -75,12 +88,23 @@ type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio'>>
 
 const DEFAULT_MAX_TEXT = 220;
 export const AUTHORED_CACHE_VERSION = 'authored-v1';
-const DEFAULT_CACHE_SLOTS = 1_024;
+/**
+ * 110 authored sentences x 6 voices is 660 entries. At 1,024 slots about 173 of
+ * them would share a slot with another and keep evicting each other; at 65,536
+ * about 3 do. Only authored lines are ever written, so the slot count bounds
+ * collisions, not disk use.
+ */
+const DEFAULT_CACHE_SLOTS = 65_536;
+const SLOT_DIGITS = 5;
 const DEFAULT_MAX_ENTRY_BYTES = 512 * 1_024;
-const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
+const DEFAULT_MEMO_MAX_LINES = 8;
+const DEFAULT_MEMO_MAX_BYTES = 4 * 1_024 * 1_024;
+const PENDING_STALE_MS = 60_000;
 const SWEEP_BATCH = 32;
 const LEGACY_WAV = /^[a-f0-9]{40}\.wav$/;
-const SLOT_FILE = /^\d{4}\.(?:wav|pending)$/;
+/** Four-digit slot names are the old 1,024-slot layout: never read again, so swept. */
+const OLD_SLOT_FILE = /^\d{4}\.(?:wav|pending)$/;
+const SLOT_FILE = /^\d{5}\.(?:wav|pending)$/;
 /** Cache-hit audio is emitted in chunks of this many milliseconds. */
 const REPLAY_CHUNK_MS = 100;
 
@@ -105,16 +129,26 @@ export class CachedTTS extends tts.TTS {
   /** Running counters, logged by the agent so cost per session stays visible. */
   hits = 0;
   misses = 0;
+  /** Lines replayed from this session's in-memory memo. Separate from disk hits. */
+  memoHits = 0;
+  /** Characters sent to the vendor, served from disk, and served from the memo. */
+  charsBilled = 0;
+  charsCached = 0;
+  charsReplayed = 0;
+  readonly memo: ReplayMemo;
 
   constructor(inner: tts.TTS, opts: CachedTTSOptions) {
     // Declaring streaming:false makes the framework sentence-split for us.
     super(inner.sampleRate, inner.numChannels, { streaming: false });
     this.inner = inner;
     this.opts = { maxTextLength: DEFAULT_MAX_TEXT, missTransport: defaultMissTransport(), authoredLines: AUTHORED_SPEECH_LINES,
-      cacheSlots: DEFAULT_CACHE_SLOTS, maxEntryBytes: DEFAULT_MAX_ENTRY_BYTES, ttlMs: DEFAULT_TTL_MS, ...opts };
+      cacheSlots: DEFAULT_CACHE_SLOTS, maxEntryBytes: DEFAULT_MAX_ENTRY_BYTES,
+      memoMaxLines: DEFAULT_MEMO_MAX_LINES, memoMaxBytes: DEFAULT_MEMO_MAX_BYTES, ...opts };
     if (!Number.isInteger(this.opts.cacheSlots) || this.opts.cacheSlots < 1 || this.opts.cacheSlots > DEFAULT_CACHE_SLOTS
-      || !Number.isInteger(this.opts.maxEntryBytes) || this.opts.maxEntryBytes < 128 || this.opts.maxEntryBytes > DEFAULT_MAX_ENTRY_BYTES
-      || !Number.isFinite(this.opts.ttlMs) || this.opts.ttlMs <= 0 || this.opts.ttlMs > DEFAULT_TTL_MS) throw new RangeError('Invalid authored cache bound');
+      || !Number.isInteger(this.opts.maxEntryBytes) || this.opts.maxEntryBytes < 128 || this.opts.maxEntryBytes > DEFAULT_MAX_ENTRY_BYTES) throw new RangeError('Invalid authored cache bound');
+    if (!Number.isInteger(this.opts.memoMaxLines) || this.opts.memoMaxLines < 0 || this.opts.memoMaxLines > DEFAULT_MEMO_MAX_LINES
+      || !Number.isInteger(this.opts.memoMaxBytes) || this.opts.memoMaxBytes < 0 || this.opts.memoMaxBytes > DEFAULT_MEMO_MAX_BYTES) throw new RangeError('Invalid replay memo bound');
+    this.memo = new ReplayMemo(this.opts.memoMaxLines, this.opts.memoMaxBytes);
     this.#allowed = new Set(this.opts.authoredLines.map(normaliseLine).filter(line => line.length > 0));
     this.cacheDirectory = join(this.opts.dir, AUTHORED_CACHE_VERSION);
     // Failure or a symlink disables persistence; speech continues live.
@@ -132,7 +166,7 @@ export class CachedTTS extends tts.TTS {
 
   cachePath(text: string): string {
     const slot = Number.parseInt(this.fingerprint(text).slice(0, 8), 16) % this.opts.cacheSlots;
-    return join(this.cacheDirectory, `${String(slot).padStart(4, '0')}.wav`);
+    return join(this.cacheDirectory, `${String(slot).padStart(SLOT_DIGITS, '0')}.wav`);
   }
 
   fingerprint(text: string): string {
@@ -140,6 +174,12 @@ export class CachedTTS extends tts.TTS {
   }
 
   cacheable(text: string): boolean { return text.length <= this.opts.maxTextLength && this.#allowed.has(normaliseLine(text)); }
+
+  /** Authored lines live on disk; everything else may be replayed from the session memo. */
+  authored(text: string): boolean { return this.#allowed.has(normaliseLine(text)); }
+
+  /** Drop the session's replayed audio. Called at session end and by close(). */
+  clearReplayMemo(): void { this.memo.clear(); }
 
   private safeDirectory(path: string): boolean {
     try { const info = lstatSync(path); return info.isDirectory() && !info.isSymbolicLink(); } catch { return false; }
@@ -156,13 +196,16 @@ export class CachedTTS extends tts.TTS {
         for (let i = 0; i < SWEEP_BATCH; i++) {
           const entry = scan.readSync();
           if (!entry) { scan.closeSync(); return null; }
-          if (!entry.isFile() || !(legacy ? LEGACY_WAV : SLOT_FILE).test(entry.name)) continue;
+          const orphaned = legacy ? LEGACY_WAV.test(entry.name) : OLD_SLOT_FILE.test(entry.name);
+          if (!entry.isFile() || !(orphaned || (!legacy && SLOT_FILE.test(entry.name)))) continue;
           const file = join(path, entry.name);
           try {
             const info = lstatSync(file);
             if (!info.isFile() || info.isSymbolicLink()) continue;
-            const age = Date.now() - info.mtimeMs;
-            if (legacy || age >= (entry.name.endsWith('.pending') ? 60_000 : this.opts.ttlMs)) rmSync(file, { force: true });
+            // Only orphans and abandoned temporary writes go. A completed slot
+            // WAV never expires: its fingerprint makes stale content impossible.
+            const stalePending = entry.name.endsWith('.pending') && Date.now() - info.mtimeMs >= PENDING_STALE_MS;
+            if (orphaned || stalePending) rmSync(file, { force: true });
           } catch { /* A concurrent job may already have replaced/evicted it. */ }
         }
         return scan;
@@ -178,7 +221,7 @@ export class CachedTTS extends tts.TTS {
     try {
       fd = openSync(this.cachePath(text), constants.O_RDONLY | constants.O_NOFOLLOW);
       const info = fstatSync(fd);
-      if (!info.isFile() || info.size > this.opts.maxEntryBytes || Date.now() - info.mtimeMs >= this.opts.ttlMs) return null;
+      if (!info.isFile() || info.size > this.opts.maxEntryBytes) return null;
       const wav = readFileSync(fd);
       // The standard WAV extras chunk keeps the file playable and binds a slot
       // to its complete voice/text identity. A collision never replays another line.
@@ -236,6 +279,7 @@ export class CachedTTS extends tts.TTS {
     // would idle on an open socket.
     for (const scan of [this.#legacyScan, this.#slotScan]) try { scan?.closeSync(); } catch { /* closed */ }
     this.#legacyScan = null; this.#slotScan = null;
+    this.memo.clear();
     await this.inner.close();
   }
 }
@@ -257,6 +301,21 @@ class CachedChunkedStream extends tts.ChunkedStream {
     const text = this.inputText;
     const cacheable = this.#cache.cacheable(text);
     const path = this.#cache.cachePath(text);
+    // Non-authored lines up to the same length limit may be replayed from this
+    // session's memo; longer ones bypass every cache. The key is
+    // the same fingerprint the disk uses, so another voice, model, setting or
+    // sample rate never matches.
+    const memoKey = this.#cache.authored(text) || text.length > this.#cache.opts.maxTextLength ? null : this.#cache.fingerprint(text);
+
+    if (memoKey) {
+      const remembered = this.#cache.memo.get(memoKey);
+      if (remembered) {
+        this.#replayFrames(remembered);
+        this.#cache.memoHits += 1;
+        this.#cache.charsReplayed += text.length;
+        return;
+      }
+    }
 
     this.#cache.maintain();
     const saved = cacheable ? this.#cache.readLine(text) : null;
@@ -264,6 +323,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
       try {
         this.#replay(saved);
         this.#cache.hits += 1;
+        this.#cache.charsCached += text.length;
         return;
       } catch {
         // A corrupt file must never break the tutor's voice mid-sentence.
@@ -272,12 +332,26 @@ class CachedChunkedStream extends tts.ChunkedStream {
       }
     }
 
-    if (this.#cache.opts.missTransport === 'ws') {
-      await this.#missViaStream(path, cacheable);
-    } else {
-      await this.#passthrough(path, cacheable);
-    }
+    // Counted before the request: a vendor bills what it was sent, even when
+    // the learner barges in before the line finishes.
+    this.#cache.charsBilled += text.length;
+    const frames = this.#cache.opts.missTransport === 'ws'
+      ? await this.#missViaStream(path, cacheable, memoKey !== null)
+      : await this.#passthrough(path, cacheable, memoKey !== null);
     this.#cache.misses += 1;
+    // Only a line that finished cleanly is remembered; the transports return
+    // null for anything aborted, closed early or missing its final marker.
+    if (memoKey && frames && frames.length > 0) this.#cache.memo.set(memoKey, frames);
+  }
+
+  /** Replay remembered frames exactly as they first arrived: same samples, same boundaries. */
+  #replayFrames(frames: readonly MemoFrame[]): void {
+    this.#reportFirstAudio(true);
+    const requestId = randomUUID();
+    frames.forEach((f, i) => {
+      const frame = new AudioFrame(new Int16Array(f.data), f.sampleRate, f.channels, f.samplesPerChannel);
+      this.queue.put({ requestId, segmentId: requestId, frame, final: i === frames.length - 1 });
+    });
   }
 
   /** Tell the telemetry hook, if any, that this synthesis just made a sound. */
@@ -307,13 +381,15 @@ class CachedChunkedStream extends tts.ChunkedStream {
   }
 
   /** Live synthesis over per-sentence HTTP, teeing to disk when the line succeeds. */
-  async #passthrough(path: string, cacheable: boolean): Promise<void> {
+  async #passthrough(path: string, cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
     const innerStream = this.#cache.inner.synthesize(this.inputText, this.#connOptions, this.abortSignal);
     const collected: AudioFrame[] = [];
     let collectedBytes = 116;
+    const memo = remember ? new MemoCollector(this.#cache.memo.maxBytes) : null;
 
     for await (const packet of innerStream) {
       this.#reportFirstAudio(false);
+      memo?.push(packet.frame);
       if (cacheable) {
         collectedBytes += packet.frame.data.byteLength;
         if (collectedBytes <= this.#cache.opts.maxEntryBytes) collected.push(packet.frame);
@@ -324,8 +400,9 @@ class CachedChunkedStream extends tts.ChunkedStream {
 
     // Only a complete, non-empty line is worth keeping. A failed request yields
     // nothing above and nothing is written.
-    if (this.abortSignal.aborted || !cacheable || collected.length === 0) return;
-    this.#writeWav(path, collected);
+    if (this.abortSignal.aborted || this.closed) return null;
+    if (cacheable && collected.length > 0) this.#writeWav(path, collected);
+    return memo?.frames() ?? null;
   }
 
   /**
@@ -337,7 +414,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
    * synthesizing into the next turn, and nothing reaches disk unless the
    * vendor's own final marker arrived, so a truncated line is never replayed.
    */
-  async #missViaStream(path: string, cacheable: boolean): Promise<void> {
+  async #missViaStream(path: string, cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
     const innerStream = this.#cache.inner.stream(this.#connOptions ? { connOptions: this.#connOptions } : undefined);
     innerStream.pushText(this.inputText);
     innerStream.endInput();
@@ -349,11 +426,13 @@ class CachedChunkedStream extends tts.ChunkedStream {
     const collected: AudioFrame[] = [];
     let collectedBytes = 116;
     let sawFinal = false;
+    const memo = remember ? new MemoCollector(this.#cache.memo.maxBytes) : null;
     try {
       for await (const packet of innerStream) {
         if (packet === tts.SynthesizeStream.END_OF_STREAM) continue;
         if (this.closed || this.abortSignal.aborted) break;
         this.#reportFirstAudio(false);
+        memo?.push(packet.frame);
         if (cacheable) {
           collectedBytes += packet.frame.data.byteLength;
           if (collectedBytes <= this.#cache.opts.maxEntryBytes) collected.push(packet.frame);
@@ -366,9 +445,9 @@ class CachedChunkedStream extends tts.ChunkedStream {
       this.abortSignal.removeEventListener('abort', closeInner);
     }
 
-    if (this.abortSignal.aborted || !sawFinal) return;
-    if (!cacheable || collected.length === 0) return;
-    this.#writeWav(path, collected);
+    if (this.abortSignal.aborted || this.closed || !sawFinal) return null;
+    if (cacheable && collected.length > 0) this.#writeWav(path, collected);
+    return memo?.frames() ?? null;
   }
 
   /** One WAV per completed line, written atomically so readers never see halves. */
@@ -388,4 +467,97 @@ class CachedChunkedStream extends tts.ChunkedStream {
       // Disk trouble costs us the cache entry, never the spoken reply.
     }
   }
+}
+
+/** One frame as first synthesized, copied so later mutation of the original cannot reach it. */
+export interface MemoFrame {
+  readonly data: Int16Array;
+  readonly sampleRate: number;
+  readonly channels: number;
+  readonly samplesPerChannel: number;
+}
+
+/** Copies frames as they stream, and gives up once the line alone would exceed the memo. */
+class MemoCollector {
+  readonly #limit: number;
+  #frames: MemoFrame[] | null = [];
+  #bytes = 0;
+
+  constructor(limit: number) { this.#limit = limit; }
+
+  push(frame: AudioFrame): void {
+    if (!this.#frames) return;
+    this.#bytes += frame.data.byteLength;
+    if (this.#bytes > this.#limit) { this.#frames = null; return; }
+    this.#frames.push({ data: new Int16Array(frame.data), sampleRate: frame.sampleRate, channels: frame.channels, samplesPerChannel: frame.samplesPerChannel });
+  }
+
+  frames(): MemoFrame[] | null { return this.#frames; }
+}
+
+/**
+ * The per-session replay memo: a least-recently-used map from line fingerprint
+ * to the frames of one completed synthesis, capped by line count and by bytes.
+ * In memory only, never written anywhere, and cleared when the session ends.
+ */
+export class ReplayMemo {
+  readonly maxLines: number;
+  readonly maxBytes: number;
+  readonly #entries = new Map<string, { frames: readonly MemoFrame[]; bytes: number }>();
+  #bytes = 0;
+
+  constructor(maxLines: number, maxBytes: number) { this.maxLines = maxLines; this.maxBytes = maxBytes; }
+
+  get size(): number { return this.#entries.size; }
+  get bytes(): number { return this.#bytes; }
+
+  get(key: string): readonly MemoFrame[] | null {
+    const entry = this.#entries.get(key);
+    if (!entry) return null;
+    // Map iteration order is insertion order; re-inserting marks it most recent.
+    this.#entries.delete(key); this.#entries.set(key, entry);
+    return entry.frames;
+  }
+
+  set(key: string, frames: readonly MemoFrame[]): void {
+    const bytes = frames.reduce((n, f) => n + f.data.byteLength, 0);
+    this.delete(key);
+    if (this.maxLines === 0 || bytes > this.maxBytes) return;
+    this.#entries.set(key, { frames, bytes });
+    this.#bytes += bytes;
+    for (const [oldest] of this.#entries) {
+      if (this.#entries.size <= this.maxLines && this.#bytes <= this.maxBytes) break;
+      this.delete(oldest);
+    }
+  }
+
+  delete(key: string): void {
+    const entry = this.#entries.get(key);
+    if (!entry) return;
+    this.#entries.delete(key); this.#bytes -= entry.bytes;
+  }
+
+  clear(): void { this.#entries.clear(); this.#bytes = 0; }
+}
+
+/**
+ * The one per-session cost line, numbers only, for cost per minute:
+ *   [luvani:cost] session=1a2b3c4d ttsCharsBilled=412 ttsCharsCached=380 ttsCharsReplayed=96 sttSec=184.2
+ * `session` is the same 8-hex prefix the [luvani:brain:summary] line carries,
+ * so the two join. No words, user ids or room names ever go in it. A field the
+ * session could not measure (no session id, no recogniser) is left out, never
+ * printed as zero.
+ */
+export function formatCostLine(input: {
+  sessionId?: string;
+  tts?: Pick<CachedTTS, 'charsBilled' | 'charsCached' | 'charsReplayed'> | null;
+  sttSec?: number | null;
+}): string {
+  const parts = ['[luvani:cost]'];
+  const session = input.sessionId?.slice(0, 8);
+  if (session && /^[0-9a-f]{8}$/i.test(session)) parts.push(`session=${session.toLowerCase()}`);
+  const t = input.tts;
+  parts.push(`ttsCharsBilled=${t?.charsBilled ?? 0}`, `ttsCharsCached=${t?.charsCached ?? 0}`, `ttsCharsReplayed=${t?.charsReplayed ?? 0}`);
+  if (typeof input.sttSec === 'number' && Number.isFinite(input.sttSec) && input.sttSec >= 0) parts.push(`sttSec=${input.sttSec.toFixed(1)}`);
+  return parts.join(' ');
 }

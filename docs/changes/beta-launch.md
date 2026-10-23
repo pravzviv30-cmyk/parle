@@ -45,6 +45,27 @@ Each step names its proof. Stop at the first step whose proof fails.
    the first time each is said after a deploy, which is acceptable for the beta.
    To keep the cache across deploys, attach a Railway volume to `tutor`, set
    `TTS_CACHE_DIR` to a path on it, and confirm the `node` user can write there.
+
+   **Keeping the authored voice cache warm.** The Dockerfile sets
+   `TTS_CACHE_DIR=/tmp/luvani-authored-cache`, so every new container starts
+   cold. To fix that:
+   - Mount a Railway volume on `tutor`, for example at `/data`.
+   - Set `TTS_CACHE_DIR=/data/luvani-authored-cache` on the service. This
+     overrides the Dockerfile default, so the Dockerfile does not change.
+   - The volume then fills itself: each authored line is paid for once per
+     voice the first time a learner hears it, and replays free after every
+     later deploy.
+   - To pay that up front, run the warm once per voice from a non-production
+     shell: `LUVANI_WARM_VOICES=all npm run warm-cache -w @luvani/tutor-agent`.
+     It refuses under `NODE_ENV=production` and prints its plan before it
+     spends anything. It writes to that shell's `TTS_CACHE_DIR`, so the files
+     then have to be copied into the volume. That copy step is not yet
+     scripted or verified.
+
+   Today's plan is 110 lines and 2,950 characters per voice, so all six
+   voices cost up to 17,700 ElevenLabs characters, once. Entries no longer
+   expire, so this only needs repeating when lesson text or a voice setting
+   changes. Changing a voice setting makes the whole cache cold again.
 5. **Spending ceilings (your decision).** Admission stays closed until you set
    finite numbers:
    - `tutor_session_admission_config`: `enabled`, `max_active_sessions`,
