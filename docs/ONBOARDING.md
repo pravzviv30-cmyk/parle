@@ -30,12 +30,15 @@ as choosing. A resumed first session requires its real durable guest record.
 
 Start live practice asks for the guest café scene (`scene: 'guest-cafe'`, see
 the [change plan](changes/guest-first-scene.md)); the guest conversation stays
-closed. Two `/onboarding/start` refusals offer **Create account to start** and
-**I already have an account** on the disclosure page, with connection retry
-still available, and each says why in its own line: `guest-live-unavailable`
-(scenes switched off or today's places full) says "Live practice is resting
-right now. Create an account to start.", and `guest-scene-used` (this phone had
-its scene in the last 30 days) says "Nice to see you again. Create an account and your tutor will pick up from here." The lines live in
+closed. Three `/onboarding/start` refusals offer **Create account to start** and
+**I already have an account** on the disclosure page and no Try again, because
+retrying now cannot change them. Each says why in its own line:
+`guest-live-unavailable` (scenes switched off or today's places full) says
+"Live practice is resting right now. Create an account to start.";
+`guest-scene-used` (this phone had its scene in the last 30 days) says "Nice to
+see you again. Create an account and your tutor will pick up from here."; and a
+429 (this network's daily guest starts are spent) says "Today’s free scenes
+from this network are used up. Create an account to start." The lines live in
 `apps/mobile/src/onboarding/guestScene.ts`. The learner chooses that detour; a failed request does not submit an
 account or fabricate practice. The existing AuthFlow carries the answered plan,
 chosen tutor and optional preferences. A general connection failure keeps its

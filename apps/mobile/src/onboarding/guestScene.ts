@@ -30,16 +30,22 @@ export function guestLiveBody(mode: string | undefined): Record<string, never> |
 }
 
 /** Start refusals that lead to the account handoff, each with its own line. */
-export type GuestStartRefusal = 'guest-live-unavailable' | 'guest-scene-used';
+/** `guest-start-limited` is the app's name for a 429 from /onboarding/start (the per-address daily limit). */
+export type GuestStartRefusal = 'guest-live-unavailable' | 'guest-scene-used' | 'guest-start-limited';
 
 export function isAccountHandoffRefusal(code: unknown): code is GuestStartRefusal {
-  return code === 'guest-live-unavailable' || code === 'guest-scene-used';
+  return code === 'guest-live-unavailable' || code === 'guest-scene-used' || code === 'guest-start-limited';
 }
 
 export function startRefusalCopy(code: GuestStartRefusal): string {
-  return code === 'guest-scene-used'
-    ? 'Nice to see you again. Create an account and your tutor will pick up from here.'
-    : 'Live practice is resting right now. Create an account to start.';
+  switch (code) {
+    case 'guest-scene-used':
+      return 'Nice to see you again. Create an account and your tutor will pick up from here.';
+    case 'guest-start-limited':
+      return 'Today’s free scenes from this network are used up. Create an account to start.';
+    default:
+      return 'Live practice is resting right now. Create an account to start.';
+  }
 }
 
 /** /onboarding/claim refusals (409), each with calm copy of its own. */

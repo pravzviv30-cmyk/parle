@@ -46,7 +46,7 @@ test('only an explicit guest capability refusal offers the preserved account rou
 });
 test('each scene refusal reaches the account handoff with its own line', async () => {
   const lines = new Map<string, string>();
-  for (const code of ['guest-live-unavailable', 'guest-scene-used']) {
+  for (const code of ['guest-live-unavailable', 'guest-scene-used', 'guest-start-limited']) {
     const h = launch(false, code); await h.run();
     assert.equal(h.accountRequired.at(-1), true, `${code} must offer Create account to start`);
     assert.deepEqual(h.account, [], 'a refusal never creates an account by itself');
@@ -57,6 +57,8 @@ test('each scene refusal reaches the account handoff with its own line', async (
   }
   assert.equal(lines.get('guest-scene-used'), 'Nice to see you again. Create an account and your tutor will pick up from here.');
   assert.equal(lines.get('guest-live-unavailable'), 'Live practice is resting right now. Create an account to start.');
+  assert.equal(lines.get('guest-start-limited'), 'Today’s free scenes from this network are used up. Create an account to start.');
+  assert.equal(new Set(lines.values()).size, 3, 'each refusal has its own line');
   assert.match(screen, /<GhostButton label="I already have an account"/);
 });
 test('a speech outage keeps the saved plan and retry without claiming account creation adds voice', async () => {
@@ -208,4 +210,18 @@ test('completed legacy practice stays in the existing guest handoff and never op
   await h.settle();
   assert.deepEqual(h.firstPractices, [false]);
   assert.ok(!h.calls.includes('consume'), 'the existing guest account handoff must finish adoption before clearing its plan');
+});
+
+test('a start refusal offers the account actions and no Try again; a connection failure keeps Try again', async () => {
+  const issue = screen.slice(screen.indexOf("{issue !== '' ? ("), screen.indexOf(') : null}', screen.indexOf("{issue !== '' ? (")));
+  assert.match(issue, /\{!needsAccount && <IconAction layout="inline" icon="refresh" busy=\{busy\} label="Try again"/);
+  assert.match(issue, /\{needsAccount && !signedIn && <GhostButton label="I already have an account"/);
+  assert.match(screen, /label=\{needsAccount \? 'Create account to start' : 'Start live practice'\}/);
+  // Every refusal that cannot change on retry sets needsAccount; a plain connection failure does not.
+  for (const code of ['guest-live-unavailable', 'guest-scene-used', 'guest-start-limited']) {
+    const h = launch(false, code); await h.run();
+    assert.equal(h.accountRequired.at(-1), true, `${code} still shows Try again`);
+  }
+  const offline = launch(false, 'unavailable'); await offline.run();
+  assert.ok(!offline.accountRequired.includes(true), 'a connection failure loses its Try again');
 });

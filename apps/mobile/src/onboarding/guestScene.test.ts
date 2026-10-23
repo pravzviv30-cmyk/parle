@@ -49,7 +49,7 @@ test('the recap and the summary name the lines said, and only a finished scene c
 });
 
 test('no new line uses an em dash or scolds', () => {
-  const lines = [startRefusalCopy('guest-scene-used'), startRefusalCopy('guest-live-unavailable'),
+  const lines = [startRefusalCopy('guest-scene-used'), startRefusalCopy('guest-live-unavailable'), startRefusalCopy('guest-start-limited'),
     claimRefusalCopy('guest-claimed-elsewhere'), claimRefusalCopy('guest-expired'), claimRefusalCopy('guest-active'),
     ...sceneLines([...GUEST_SCENE_TURN_IDS]), 'You completed the café scene.', 'The café scene, done.'];
   for (const line of lines) {

@@ -593,7 +593,8 @@ export function PreAccountOnboarding({
                 <Text accessibilityLiveRegion="polite" style={type.body}>
                   {issue}
                 </Text>
-                <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => void start()} />
+                {/* A start refusal (needsAccount) is not fixed by retrying now, so it offers only the account actions. */}
+                {!needsAccount && <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => void start()} />}
                 {needsAccount && !signedIn && <GhostButton label="I already have an account" disabled={busy} onPress={() => onSignIn(draftRef.current)} />}
               </>
             ) : null}
