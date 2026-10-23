@@ -109,8 +109,33 @@ export const ELEVEN_VOICES: Readonly<Record<TutorVoiceKey, string>> = Object.fre
  * against speed. A beginner imitates what they hear.
  *
  * Re-measure with the [luvani:latency] say->audio segment before touching this.
+ *
+ * Every authored (scripted) line always uses this model, and so does the disk
+ * cache. The opt-in LUVANI_CONVERSATION_TTS_MODEL switch (see
+ * conversationTtsModel below) moves only free-conversation lines to
+ * eleven_flash_v2_5, at half the price per character. It is off by default.
  */
 export const MODEL = 'eleven_multilingual_v2';
+
+/** The env variable for the free-conversation voice model, and the only value it accepts. */
+export const CONVERSATION_TTS_MODEL_ENV = 'LUVANI_CONVERSATION_TTS_MODEL';
+export const CONVERSATION_TTS_MODELS: readonly string[] = Object.freeze(['eleven_flash_v2_5']);
+
+/**
+ * The model free-conversation (non-authored) lines use, or null when they use
+ * MODEL like everything else. Unset or empty is off. Any value other than
+ * eleven_flash_v2_5 throws, naming the variable, because a typo here would
+ * otherwise bill a model nobody listened to. Under the fish vendor the switch
+ * means nothing and is ignored (preflight warns).
+ */
+export function conversationTtsModel(env: Env = process.env): string | null {
+  const raw = (env[CONVERSATION_TTS_MODEL_ENV] ?? '').trim();
+  if (raw === '') return null;
+  if (!CONVERSATION_TTS_MODELS.includes(raw)) {
+    throw new Error(`${CONVERSATION_TTS_MODEL_ENV} must be unset or one of: ${CONVERSATION_TTS_MODELS.join(', ')}`);
+  }
+  return selectedVoiceVendor(env) === 'elevenlabs' ? raw : null;
+}
 
 /**
  * 0 to 4. 3 is the strongest first-byte optimization that keeps the vendor's

@@ -22,6 +22,10 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 Flash for conversation lines behind a switch, off by default (VOICE-009), on
+  branch `claude/flash-conversation` from main 3acc25b5 (held, not on main): **6,320 tests, 0 failing**;
+  core 1036, brain 502, tutor agent 727, token server 458, playground 29, mobile 3568; all 42
+  migrations replayed. Floors raised only through `gate:bless`.
 - 23 October 2026 main with `claude/mission-spine-b1` merged (twelve new missions, 19 to 31, the
   first A2 and B1 scenes) onto the goal-edit and cut-cogs landings: **6,305 tests, 0 failing**;
   core 1036, brain 502, tutor agent 712, token server 458, playground 29, mobile 3568; all 42

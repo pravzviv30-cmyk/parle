@@ -40,8 +40,8 @@ import * as elevenlabs from '@livekit/agents-plugin-elevenlabs';
 import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey, type TutorVoiceKey } from '@luvani/core';
 import { CachedTTS, type CachedTTSOptions } from './ttsCache.ts';
 import { fishVoice } from './voiceFish.ts';
-import { type VoiceVendor, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
-export { selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
+import { type VoiceVendor, conversationTtsModel, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
+export { conversationTtsModel, CONVERSATION_TTS_MODEL_ENV, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
 export type { VoiceVendor } from './voiceConfiguration.ts';
 
 /** Lives inside the service so a repo clone starts cold, not with stale audio. */
@@ -140,6 +140,12 @@ export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' |
   voice?: TutorVoiceKey;
   /** Per-job paid transport. A real vendor key is held only by its proxy. */
   baseURL?: string;
+  /**
+   * Build the free-conversation voice when LUVANI_CONVERSATION_TTS_MODEL is
+   * set. Only the live agent asks for it. The warm-cache and voice-sample
+   * scripts leave it off, so what they synthesize and record is always MODEL.
+   */
+  conversationTier?: boolean;
 }
 
 /**
@@ -153,7 +159,7 @@ export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' |
  * the warmed cache on disk is keyed to that string and a byte of drift throws
  * all of it away.
  */
-export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, ...hooks }: BuildTTSOptions = {}): CachedTTS {
+export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, conversationTier = false, ...hooks }: BuildTTSOptions = {}): CachedTTS {
   const dir = process.env.TTS_CACHE_DIR ?? DEFAULT_CACHE_DIR;
 
   if (selectedVoiceVendor() === 'fish') {
@@ -173,8 +179,10 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, ...hooks }: Bui
   // key, every warmed WAV of the OLD clone would replay under the new one. The
   // vendor id changes when the recording does, so the cache changes with it.
   const voiceId = ELEVEN_VOICES[voice];
-  const inner = new elevenlabs.TTS({
-    model: MODEL,
+  // One constructor for both models, so the conversation voice can differ
+  // from the main one in nothing but the model.
+  const elevenTTS = (model: string) => new elevenlabs.TTS({
+    model,
     streamingLatency: STREAMING_LATENCY,
     voiceSettings: VOICE_SETTINGS,
     ...(LANGUAGE_CODE ? { languageCode: LANGUAGE_CODE } : {}),
@@ -183,6 +191,11 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, ...hooks }: Bui
     enableLogging: false,
     ...(baseURL ? { baseURL, apiKey: 'proxy-only' } : {}),
   });
+  const inner = elevenTTS(MODEL);
+  // Off (the default) builds nothing extra. Read before the main voice key so
+  // an invalid value throws here rather than mid-session.
+  const conversationModel = conversationTier ? conversationTtsModel() : null;
+  const conversationInner = conversationModel ? elevenTTS(conversationModel) : null;
 
   const opts: CachedTTSOptions = {
     // `inner.model` rather than MODEL: it is the value the plugin resolved and
@@ -190,6 +203,7 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, ...hooks }: Bui
     // cache instead of replaying audio made under a different one.
     dir,
     voiceKey: `elevenlabs:${voiceId}:${inner.model}:${SETTINGS_FINGERPRINT}`,
+    ...(conversationInner ? { conversation: { inner: conversationInner, voiceKey: `elevenlabs:${voiceId}:${conversationInner.model}:${SETTINGS_FINGERPRINT}` } } : {}),
     ...hooks,
   };
   return new CachedTTS(inner, opts);

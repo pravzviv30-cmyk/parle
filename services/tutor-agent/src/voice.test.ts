@@ -13,6 +13,7 @@ import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/c
 import {
   OUTPUT_ENCODING,
   ELEVEN_VOICES,
+  MODEL,
   buildTTS,
   LANGUAGE_CODE,
   VOICE_KEY,
@@ -42,6 +43,7 @@ const ENV_KEYS = [
   'FISH_API_KEY',
   'FISH_VOICE_ID',
   'FISH_MODEL',
+  'LUVANI_CONVERSATION_TTS_MODEL',
 ] as const;
 let savedEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
 
@@ -54,6 +56,7 @@ beforeEach(() => {
   delete process.env.FISH_API_KEY;
   delete process.env.FISH_VOICE_ID;
   delete process.env.FISH_MODEL;
+  delete process.env.LUVANI_CONVERSATION_TTS_MODEL;
   process.env.TTS_CACHE_DIR = mkdtempSync(join(tmpdir(), 'luvani-voice-'));
 });
 
@@ -356,5 +359,51 @@ describe('which voice vendor the env selects', () => {
       if (name === 'LIVEKIT_API_KEY' || name === 'LIVEKIT_API_SECRET') continue;
       assert.equal(value, '', `line ${i + 1}: ${name} carries a value in a tracked file. Rotate it, then empty it.`);
     }
+  });
+});
+
+describe('the free-conversation voice model switch (LUVANI_CONVERSATION_TTS_MODEL)', () => {
+  test('off by default: no second voice is built and every line uses MODEL', async () => {
+    const built = buildTTS({ conversationTier: true });
+    assert.equal(built.opts.conversation, undefined);
+    assert.equal(built.charsBilledConversation, undefined);
+    assert.equal(built.inner.model, MODEL);
+    assert.equal(built.route('Tu aimes le jazz ?').inner, built.inner);
+    await built.close();
+  });
+
+  test('on: free conversation gets eleven_flash_v2_5 with the same voice, settings and format', async () => {
+    process.env.LUVANI_CONVERSATION_TTS_MODEL = 'eleven_flash_v2_5';
+    const built = buildTTS({ conversationTier: true, voice: 'marie' });
+    const conversation = built.opts.conversation!;
+    assert.equal(built.inner.model, MODEL);
+    assert.equal(conversation.inner.model, 'eleven_flash_v2_5');
+    assert.equal(conversation.inner.sampleRate, built.inner.sampleRate);
+    assert.equal(conversation.voiceKey, built.opts.voiceKey.replace(`:${MODEL}:`, ':eleven_flash_v2_5:'));
+    assert.ok(conversation.voiceKey.startsWith(`elevenlabs:${ELEVEN_VOICES.marie}:`));
+    assert.equal(built.charsBilledConversation, 0);
+    await built.close();
+  });
+
+  test('the warm-cache and sample scripts never get the conversation voice', async () => {
+    process.env.LUVANI_CONVERSATION_TTS_MODEL = 'eleven_flash_v2_5';
+    const built = buildTTS({ missTransport: 'http' });
+    assert.equal(built.opts.conversation, undefined);
+    await built.close();
+  });
+
+  test('an unknown model is refused, naming the variable', () => {
+    process.env.LUVANI_CONVERSATION_TTS_MODEL = 'eleven_turbo_v2_5';
+    assert.throws(() => buildTTS({ conversationTier: true }), /LUVANI_CONVERSATION_TTS_MODEL/);
+  });
+
+  test('the fish vendor ignores the switch', async () => {
+    process.env.LUVANI_CONVERSATION_TTS_MODEL = 'eleven_flash_v2_5';
+    process.env.LUVANI_TTS_VENDOR = 'fish';
+    process.env.FISH_API_KEY = 'test-key-never-sent';
+    process.env.FISH_VOICE_ID = 'fish-voice';
+    const built = buildTTS({ conversationTier: true });
+    assert.equal(built.opts.conversation, undefined);
+    await built.close();
   });
 });

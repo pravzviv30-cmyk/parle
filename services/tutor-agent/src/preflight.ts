@@ -12,7 +12,7 @@
 
 import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_DRILLS_MODEL, DEFAULT_OPENAI_LIVE_MODEL, DEFAULT_OPENAI_TURN_MODEL, openAiLiveModel } from '@luvani/brain';
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
-import { ELEVEN_VOICES, MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
+import { CONVERSATION_TTS_MODEL_ENV, ELEVEN_VOICES, MODEL, conversationTtsModel, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
 import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
 import { spawnSync } from 'node:child_process';
 import { typedOnly } from '../../shared/sessionCapabilities.ts';
@@ -186,6 +186,9 @@ export function warnings(env: Env = process.env): string[] {
       `LUVANI_TTS_VENDOR is set to “${asked}”, which is not a vendor this worker knows, so ElevenLabs ` +
         'will be used. The two it knows are elevenlabs and fish.',
     );
+  }
+  if ((env[CONVERSATION_TTS_MODEL_ENV] ?? '').trim() !== '' && vendor === 'fish') {
+    out.push(`${CONVERSATION_TTS_MODEL_ENV} is set but only applies to ElevenLabs, so under LUVANI_TTS_VENDOR=fish it is ignored.`);
   }
   if (selectedBrain(env) === 'groq') {
     out.push('TUTOR_LLM=groq selects the $0 fallback brain. Its coaching is visibly weaker than Claude’s.');
@@ -680,6 +683,12 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
   const result = spawnSync('claude', ['--version'], { stdio: 'ignore', timeout: 5000 });
   return !result.error && result.status === 0;
 }): void {
+  // An unknown conversation voice model is refused before anything else: the
+  // switch bills a model, and only one has passed a listening check.
+  try { conversationTtsModel(env); } catch (error) {
+    console.error(`[luvani:agent] Cannot start. ${(error as Error).message} (services/tutor-agent/.env).`);
+    exit(1); return;
+  }
   if (env.NODE_ENV === 'production') {
     const brain = selectedBrain(env);
     let safeServer = false;

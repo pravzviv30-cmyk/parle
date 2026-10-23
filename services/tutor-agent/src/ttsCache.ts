@@ -79,12 +79,21 @@ export interface CachedTTSOptions {
    * audio came from disk. Latency telemetry only: it must never affect the
    * audio, so anything it throws is swallowed.
    */
-  onFirstAudio?: (info: { hit: boolean }) => void;
+  onFirstAudio?: (info: { hit: boolean; tier: 'main' | 'conversation' }) => void;
+  /**
+   * Optional second voice for free-conversation (non-authored) lines only:
+   * same voice, settings and output format, a different model
+   * (LUVANI_CONVERSATION_TTS_MODEL). Authored lines never use it, so the disk
+   * cache stays on the main model. `voiceKey` names this inner's model, and the
+   * replay memo is keyed by it, so audio from one model never replays as the
+   * other. Absent means every line uses `inner`, exactly as before the switch.
+   */
+  conversation?: { inner: tts.TTS; voiceKey: string };
 }
 
 /** The options with defaults applied; the telemetry hook stays optional. */
-type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio'>> &
-  Pick<CachedTTSOptions, 'onFirstAudio'>;
+type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio' | 'conversation'>> &
+  Pick<CachedTTSOptions, 'onFirstAudio' | 'conversation'>;
 
 const DEFAULT_MAX_TEXT = 220;
 export const AUTHORED_CACHE_VERSION = 'authored-v1';
@@ -135,6 +144,11 @@ export class CachedTTS extends tts.TTS {
   charsBilled = 0;
   charsCached = 0;
   charsReplayed = 0;
+  /**
+   * Of charsBilled, the characters sent to the conversation model. Undefined
+   * when the switch is off, so the cost line leaves the field out.
+   */
+  charsBilledConversation: number | undefined;
   readonly memo: ReplayMemo;
 
   constructor(inner: tts.TTS, opts: CachedTTSOptions) {
@@ -148,6 +162,10 @@ export class CachedTTS extends tts.TTS {
       || !Number.isInteger(this.opts.maxEntryBytes) || this.opts.maxEntryBytes < 128 || this.opts.maxEntryBytes > DEFAULT_MAX_ENTRY_BYTES) throw new RangeError('Invalid authored cache bound');
     if (!Number.isInteger(this.opts.memoMaxLines) || this.opts.memoMaxLines < 0 || this.opts.memoMaxLines > DEFAULT_MEMO_MAX_LINES
       || !Number.isInteger(this.opts.memoMaxBytes) || this.opts.memoMaxBytes < 0 || this.opts.memoMaxBytes > DEFAULT_MEMO_MAX_BYTES) throw new RangeError('Invalid replay memo bound');
+    const conversation = this.opts.conversation;
+    if (conversation && (conversation.inner.sampleRate !== inner.sampleRate || conversation.inner.numChannels !== inner.numChannels
+      || !conversation.voiceKey || conversation.voiceKey === this.opts.voiceKey)) throw new RangeError('Invalid conversation voice');
+    this.charsBilledConversation = conversation ? 0 : undefined;
     this.memo = new ReplayMemo(this.opts.memoMaxLines, this.opts.memoMaxBytes);
     this.#allowed = new Set(this.opts.authoredLines.map(normaliseLine).filter(line => line.length > 0));
     this.cacheDirectory = join(this.opts.dir, AUTHORED_CACHE_VERSION);
@@ -169,14 +187,25 @@ export class CachedTTS extends tts.TTS {
     return join(this.cacheDirectory, `${String(slot).padStart(SLOT_DIGITS, '0')}.wav`);
   }
 
-  fingerprint(text: string): string {
-    return createHash('sha256').update(`${AUTHORED_CACHE_VERSION}\n${this.opts.voiceKey}\n${this.inner.sampleRate}\n${normaliseLine(text)}`).digest('hex');
+  fingerprint(text: string, voiceKey: string = this.opts.voiceKey): string {
+    return createHash('sha256').update(`${AUTHORED_CACHE_VERSION}\n${voiceKey}\n${this.inner.sampleRate}\n${normaliseLine(text)}`).digest('hex');
   }
 
   cacheable(text: string): boolean { return text.length <= this.opts.maxTextLength && this.#allowed.has(normaliseLine(text)); }
 
   /** Authored lines live on disk; everything else may be replayed from the session memo. */
   authored(text: string): boolean { return this.#allowed.has(normaliseLine(text)); }
+
+  /**
+   * Which inner speaks a line that must reach the vendor. Authored lines always
+   * use the main model (and its disk cache); everything else uses the
+   * conversation model when one is configured.
+   */
+  route(text: string): { inner: tts.TTS; voiceKey: string; tier: 'main' | 'conversation' } {
+    const conversation = this.opts.conversation;
+    if (!conversation || this.authored(text)) return { inner: this.inner, voiceKey: this.opts.voiceKey, tier: 'main' };
+    return { inner: conversation.inner, voiceKey: conversation.voiceKey, tier: 'conversation' };
+  }
 
   /** Drop the session's replayed audio. Called at session end and by close(). */
   clearReplayMemo(): void { this.memo.clear(); }
@@ -280,7 +309,7 @@ export class CachedTTS extends tts.TTS {
     for (const scan of [this.#legacyScan, this.#slotScan]) try { scan?.closeSync(); } catch { /* closed */ }
     this.#legacyScan = null; this.#slotScan = null;
     this.memo.clear();
-    await this.inner.close();
+    await Promise.all([this.inner.close(), this.opts.conversation?.inner.close()]);
   }
 }
 
@@ -290,6 +319,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
   /** Forwarded to the vendor so the session's retry policy applies end to end. */
   readonly #connOptions?: APIConnectOptions;
   #firstAudioReported = false;
+  #route: ReturnType<CachedTTS['route']> | null = null;
 
   constructor(text: string, cache: CachedTTS, connOptions?: APIConnectOptions, abortSignal?: AbortSignal) {
     super(text, cache, connOptions, abortSignal);
@@ -305,7 +335,10 @@ class CachedChunkedStream extends tts.ChunkedStream {
     // session's memo; longer ones bypass every cache. The key is
     // the same fingerprint the disk uses, so another voice, model, setting or
     // sample rate never matches.
-    const memoKey = this.#cache.authored(text) || text.length > this.#cache.opts.maxTextLength ? null : this.#cache.fingerprint(text);
+    // The key uses the voice key of the model that will produce the audio.
+    const route = this.#cache.route(text);
+    this.#route = route;
+    const memoKey = this.#cache.authored(text) || text.length > this.#cache.opts.maxTextLength ? null : this.#cache.fingerprint(text, route.voiceKey);
 
     if (memoKey) {
       const remembered = this.#cache.memo.get(memoKey);
@@ -335,6 +368,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
     // Counted before the request: a vendor bills what it was sent, even when
     // the learner barges in before the line finishes.
     this.#cache.charsBilled += text.length;
+    if (route.tier === 'conversation') this.#cache.charsBilledConversation = (this.#cache.charsBilledConversation ?? 0) + text.length;
     const frames = this.#cache.opts.missTransport === 'ws'
       ? await this.#missViaStream(path, cacheable, memoKey !== null)
       : await this.#passthrough(path, cacheable, memoKey !== null);
@@ -359,7 +393,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
     if (this.#firstAudioReported) return;
     this.#firstAudioReported = true;
     try {
-      this.#cache.opts.onFirstAudio?.({ hit });
+      this.#cache.opts.onFirstAudio?.({ hit, tier: this.#route?.tier ?? 'main' });
     } catch {
       // Telemetry must never cost the learner audio.
     }
@@ -382,7 +416,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
 
   /** Live synthesis over per-sentence HTTP, teeing to disk when the line succeeds. */
   async #passthrough(path: string, cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
-    const innerStream = this.#cache.inner.synthesize(this.inputText, this.#connOptions, this.abortSignal);
+    const innerStream = this.#route!.inner.synthesize(this.inputText, this.#connOptions, this.abortSignal);
     const collected: AudioFrame[] = [];
     let collectedBytes = 116;
     const memo = remember ? new MemoCollector(this.#cache.memo.maxBytes) : null;
@@ -415,7 +449,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
    * vendor's own final marker arrived, so a truncated line is never replayed.
    */
   async #missViaStream(path: string, cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
-    const innerStream = this.#cache.inner.stream(this.#connOptions ? { connOptions: this.#connOptions } : undefined);
+    const innerStream = this.#route!.inner.stream(this.#connOptions ? { connOptions: this.#connOptions } : undefined);
     innerStream.pushText(this.inputText);
     innerStream.endInput();
 
@@ -543,6 +577,9 @@ export class ReplayMemo {
 /**
  * The one per-session cost line, numbers only, for cost per minute:
  *   [luvani:cost] session=1a2b3c4d ttsCharsBilled=412 ttsCharsCached=380 ttsCharsReplayed=96 sttSec=184.2
+ * With LUVANI_CONVERSATION_TTS_MODEL on, `ttsCharsBilledConversation` follows
+ * the cached count: the part of ttsCharsBilled sent to the conversation model
+ * (ttsCharsBilled stays the total), so each model can be priced.
  * `session` is the same 8-hex prefix the [luvani:brain:summary] line carries,
  * so the two join. No words, user ids or room names ever go in it. A field the
  * session could not measure (no session id, no recogniser) is left out, never
@@ -550,7 +587,7 @@ export class ReplayMemo {
  */
 export function formatCostLine(input: {
   sessionId?: string;
-  tts?: Pick<CachedTTS, 'charsBilled' | 'charsCached' | 'charsReplayed'> | null;
+  tts?: Pick<CachedTTS, 'charsBilled' | 'charsCached' | 'charsReplayed'> & Partial<Pick<CachedTTS, 'charsBilledConversation'>> | null;
   sttSec?: number | null;
 }): string {
   const parts = ['[luvani:cost]'];
@@ -558,6 +595,7 @@ export function formatCostLine(input: {
   if (session && /^[0-9a-f]{8}$/i.test(session)) parts.push(`session=${session.toLowerCase()}`);
   const t = input.tts;
   parts.push(`ttsCharsBilled=${t?.charsBilled ?? 0}`, `ttsCharsCached=${t?.charsCached ?? 0}`, `ttsCharsReplayed=${t?.charsReplayed ?? 0}`);
+  if (typeof t?.charsBilledConversation === 'number') parts.push(`ttsCharsBilledConversation=${t.charsBilledConversation}`);
   if (typeof input.sttSec === 'number' && Number.isFinite(input.sttSec) && input.sttSec >= 0) parts.push(`sttSec=${input.sttSec.toFixed(1)}`);
   return parts.join(' ');
 }

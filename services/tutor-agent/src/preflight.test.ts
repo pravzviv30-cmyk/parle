@@ -965,3 +965,33 @@ describe('the voice vendor the env selected', () => {
     assert.equal(unreachable.find((c) => c.vendor === 'fish.audio')?.fatal, false);
   });
 });
+
+describe('the free-conversation voice model switch', () => {
+  const run = (env: Record<string, string | undefined>) => {
+    const codes: number[] = [];
+    const errors: string[] = [];
+    const original = console.error;
+    console.error = (line: string) => { errors.push(String(line)); };
+    try { preflight({ ...FULL, ...env }, ((c: number) => { codes.push(c); return undefined as never; })); }
+    finally { console.error = original; }
+    return { codes, errors };
+  };
+
+  test('unset, empty and eleven_flash_v2_5 all start', () => {
+    for (const value of [undefined, '', '  ', 'eleven_flash_v2_5']) assert.deepEqual(run({ LUVANI_CONVERSATION_TTS_MODEL: value }).codes, []);
+  });
+
+  test('any other value refuses to start and names the variable', () => {
+    for (const value of ['eleven_turbo_v2_5', 'eleven_multilingual_v2', 'flash']) {
+      const { codes, errors } = run({ LUVANI_CONVERSATION_TTS_MODEL: value });
+      assert.deepEqual(codes, [1]);
+      assert.match(errors.join('\n'), /LUVANI_CONVERSATION_TTS_MODEL/);
+    }
+  });
+
+  test('under the fish vendor the switch is ignored with a warning', () => {
+    const out = warnings({ LUVANI_TTS_VENDOR: 'fish', FISH_VOICE_ID: 'x', LUVANI_CONVERSATION_TTS_MODEL: 'eleven_flash_v2_5' });
+    assert.ok(out.some(line => /LUVANI_CONVERSATION_TTS_MODEL.*ignored/.test(line)));
+    assert.ok(!warnings({ LUVANI_CONVERSATION_TTS_MODEL: 'eleven_flash_v2_5' }).some(line => /LUVANI_CONVERSATION_TTS_MODEL/.test(line)));
+  });
+});

@@ -13,3 +13,9 @@
 2. The account went from 1,622 to 3,014 credits used, which matches the per-clip `character-cost` headers (928 for v2, 464 for Flash). At the Starter plan's $6 for 30,000 credits, that is $0.0002 a credit.
 
 Free calls, not counted: the ElevenLabs subscription reads, and the pricing pages read in the browser. VOICE-005's latency evidence was reused rather than re-run.
+
+## Added 2026-10-23
+| When | What | Cost |
+|---|---|---|
+| 2026-10-23 | First-audio latency, v2 vs Flash v2.5: alexandre, 6 lines × 3 reps each (`flash-latency-2026-10-23.json`) | 522 credits, about $0.10 |
+| | **Running total** | **about $0.63** |

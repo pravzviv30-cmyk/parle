@@ -255,6 +255,7 @@ export default defineAgent({
         : new deepgram.STT({ ...recognition.options, ...(proxy ? { baseUrl: proxy.deepgramBaseURL, apiKey: 'proxy-only', sampleRate: 16000, numChannels: 1, mipOptOut: true } : {}) }),
       tts: () => buildTTS({
         voice: chosenVoice,
+        conversationTier: true,
         ...(proxy ? { baseURL: proxy.elevenlabsBaseURL, missTransport: 'http' as const } : {}),
       }),
     });
