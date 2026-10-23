@@ -22,6 +22,10 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 `claude/speech-dataset` (inert groundwork for a consented, teacher-rated speech
+  dataset, VOICE-007, migration 42 prepared and held) on top of main at 717655fb:
+  **6,146 tests, 0 failing**; core 935, brain 498, tutor agent 672, token server 458,
+  playground 26, mobile 3557. The floors were blessed on this branch; all 42 migrations replayed.
 - 22 October 2026 main after landing Your French (`claude/your-french`, `claude/your-french-evidence`)
   on top of Steps 1–3, VOICE-005, the beta controls and the mission spine, at cb8c7a7e:
   **6,124 tests, 0 failing**; core 935, brain 498, tutor agent 661, token server 458,
