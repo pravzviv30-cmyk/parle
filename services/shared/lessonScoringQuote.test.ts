@@ -1,8 +1,8 @@
-/** F863: live lesson scoring through the paid transport, offline with a fake admission RPC and a stub vendor. */
+/** F863: live lesson and convo scoring through the paid transport, offline with a fake admission RPC and a stub vendor. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
-import { LESSON_SCORING_COMPONENT, LESSON_SCORING_MAX_CALL_MILLIS } from './lessonScoringQuote.ts';
+import { CONVO_SCORING_COMPONENT, LESSON_SCORING_COMPONENT, LESSON_SCORING_MAX_CALL_MILLIS } from './lessonScoringQuote.ts';
 import { paidAdmission, type PaidComponent, type PaidKind, type PaidRpc } from './paidAdmission.ts';
 import { describePaidHttp, paidProviderFetch, reservationGate, SCORING_MAX_WAV_BYTES } from './paidExecution.ts';
 import { SCORING_MAX_SAMPLES, toSpeechaceWav } from './liveScoringAudio.ts';
@@ -24,10 +24,10 @@ const STT: PaidComponent = { key: 'stt', kind: 'stt', provider: 'deepgram', mode
 const TTS: PaidComponent = { key: 'tts', kind: 'tts', provider: 'elevenlabs', model: 'eleven_flash_v2_5', voice: 'voice', configurationSha256: hash('tts'), maxEffects: 64, maxProviderAttempts: 1, maxInputBytes: 0, maxOutputTokens: 0, maxAudioMillis: 0, maxTextBytes: 262144, microUsd: 1 };
 const quoteId = '40000000-0000-4000-8000-000000000863', configurationSha256 = hash('lesson-quote');
 
-function harness(components: PaidComponent[], kinds?: PaidKind[]) {
+function harness(components: PaidComponent[], kinds?: PaidKind[], activity: 'lesson' | 'convo' = 'lesson') {
   const userId = randomUUID(), sessionId = randomUUID(), claimNonce = randomUUID(), operationId = randomUUID(), claims: Record<string, unknown>[] = [];
   const rpc: PaidRpc = async (name, args) => {
-    if (name === 'resume_paid_tutor_v1') return { kind: 'reserved', version: 1, operationId, activity: 'lesson', requestDigest: hash('digest'), quoteId, configurationSha256, components, expiresAt: new Date(Date.now() + 3600000).toISOString(), microUsd: components.reduce((n, c) => n + c.microUsd, 0), providerCalls: components.reduce((n, c) => n + c.maxEffects * c.maxProviderAttempts, 0), replayed: true, day: new Date().toISOString().slice(0, 10) };
+    if (name === 'resume_paid_tutor_v1') return { kind: 'reserved', version: 1, operationId, activity, requestDigest: hash('digest'), quoteId, configurationSha256, components, expiresAt: new Date(Date.now() + 3600000).toISOString(), microUsd: components.reduce((n, c) => n + c.microUsd, 0), providerCalls: components.reduce((n, c) => n + c.maxEffects * c.maxProviderAttempts, 0), replayed: true, day: new Date().toISOString().slice(0, 10) };
     if (name !== 'claim_paid_effect_v1') throw new Error(`unexpected ${name}`);
     claims.push(args);
     // Robust near midnight: the execution day is the day the permit ends in, so dispatchUntil never passes it.
@@ -40,7 +40,7 @@ function harness(components: PaidComponent[], kinds?: PaidKind[]) {
   return {
     claims, vendor,
     async transport(): Promise<ScoreFetch> {
-      const reservation = await paidAdmission({ rpc, bindings: { lesson: binding } }).resume({ userId, sessionId, claimNonce });
+      const reservation = await paidAdmission({ rpc, bindings: { [activity]: binding } }).resume({ userId, sessionId, claimNonce });
       return paidProviderFetch(reservationGate(reservation, { kind: 'tutor', sessionId, claimNonce }, new AbortController().signal), stub) as unknown as ScoreFetch;
     },
   };
@@ -107,4 +107,44 @@ test('a binding whose kinds differ from the reservation is refused as quote-mism
   await assert.rejects(harness([LLM, STT, TTS, LESSON_SCORING_COMPONENT], ['llm', 'stt', 'tts']).transport(), { reason: 'quote-mismatch' });
   await assert.rejects(harness([LLM, STT, TTS], ['llm', 'scoring', 'stt', 'tts']).transport(), { reason: 'quote-mismatch' });
   await assert.rejects(harness([LLM, STT, TTS], ['tts', 'llm', 'stt'] as PaidKind[]).transport(), { reason: 'quote-mismatch' });
+});
+
+test('the convo component shares the lesson identity and scales its envelope per score', () => {
+  const { maxEffects, maxAudioMillis, maxInputBytes, maxTextBytes, microUsd, ...identity } = CONVO_SCORING_COMPONENT;
+  const { maxEffects: le, maxAudioMillis: la, maxInputBytes: li, maxTextBytes: lt, microUsd: lm, ...lessonIdentity } = LESSON_SCORING_COMPONENT;
+  assert.deepEqual(identity, lessonIdentity);
+  assert.deepEqual({ maxEffects, maxAudioMillis, microUsd }, { maxEffects: 24, maxAudioMillis: 450000, microUsd: 48000 });
+  assert.equal(maxAudioMillis / maxEffects, la / le);
+  assert.equal(maxInputBytes / maxEffects, li / le);
+  assert.equal(maxTextBytes / maxEffects, lt / le);
+  assert.equal(microUsd / maxEffects, lm / le);
+});
+
+test('a convo quote with the scoring component admits a live 30 s score through the paid transport', async () => {
+  const h = harness([LLM, STT, TTS, CONVO_SCORING_COMPONENT], ['llm', 'scoring', 'stt', 'tts'], 'convo');
+  assert.ok((await score(await h.transport())).length > 0);
+  assert.equal(h.vendor.length, 1);
+  assert.equal(h.claims[0]!.p_component_key, 'scoring');
+  assert.equal((h.claims[0]!.p_quantities as { audioMillis: number }).audioMillis, 30000);
+});
+
+test('the convo envelope admits 24 scores per mission and refuses the 25th without reaching the vendor', async () => {
+  // 24 x 18.75 s fills the 450 s audio envelope exactly, so the effect count is what stops the 25th.
+  const clip = toSpeechaceWav(capture(18.75)), h = harness([LLM, STT, TTS, CONVO_SCORING_COMPONENT], ['llm', 'scoring', 'stt', 'tts'], 'convo'), fetchFn = await h.transport();
+  for (let i = 0; i < 24; i += 1) assert.ok((await score(fetchFn, clip)).length > 0, `score ${i + 1}`);
+  assert.deepEqual(await score(fetchFn, clip), []);
+  assert.equal(h.vendor.length, 24);
+  assert.equal(h.claims.length, 24);
+});
+
+test('a convo binding whose kinds differ from the reservation is refused as quote-mismatch', async () => {
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    await assert.rejects(harness([LLM, STT, TTS, CONVO_SCORING_COMPONENT], ['llm', 'stt', 'tts'], 'convo').transport(), { reason: 'quote-mismatch' });
+    await assert.rejects(harness([LLM, STT, TTS], ['llm', 'scoring', 'stt', 'tts'], 'convo').transport(), { reason: 'quote-mismatch' });
+  } finally { console.warn = warn; }
+  const h = harness([LLM, STT, TTS], undefined, 'convo');
+  assert.deepEqual(await score(await h.transport()), []);
+  assert.equal(h.vendor.length, 0);
 });

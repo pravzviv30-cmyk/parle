@@ -364,8 +364,17 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   instead. Scores that arrive late are reported as not assessed rather than
   awaited. `LUVANI_AUDIO_SCORING` stays off by default until a real-learner run
   is reviewed, and production activation is blocked on F863 (the paid lesson
-  quote prices no scoring). Free conversation (missions) is still unscored.
-- Sources: [pedagogy](docs/PEDAGOGY.md), F623 and F805 in
+  quote prices no scoring).
+- Amended 2026-10-22 (F866): free conversation (missions) is scored the same
+  way. The only reference text a mission has is the full line the tutor hands
+  over on the second rescue (assistance depth 2), so a spoken turn is scored
+  only while that line is shown and only when the learner said it (exact,
+  fillers or one recognition slip). The brain answers without waiting, a
+  finishing conversation waits at most the same 2.5 s (not after a safety stop,
+  a terminal failure or near the hard limit), and the recap carries one focus sound. One flag
+  covers both session kinds, so production startup refuses it unless the lesson
+  and the convo quote bindings both declare a scoring component.
+- Sources: [pedagogy](docs/PEDAGOGY.md), F623, F805 and F866 in
   [known issues](docs/KNOWN_ISSUES.md).
 
 ## VOICE-005 — Speak once the reply's French has streamed; priority tier is opt-in

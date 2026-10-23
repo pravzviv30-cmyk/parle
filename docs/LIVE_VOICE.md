@@ -217,6 +217,18 @@ reply, never in front of it (VOICE-004): only an answer that matches the
 reference line is sent, the paid route gets 16 kHz mono WAV converted in process
 (`services/shared/liveScoringAudio.ts`), and a finishing lesson waits at most
 `SCORE_SETTLE_MS` for scores in flight before writing the end card.
+A mission (free conversation) is scored the same way, against the one line it
+knows: the full line handed over on the second rescue. A spoken scene turn is
+sent only while that line is shown and only when the raw transcript matches it
+(exact, fillers or one slip), never a typed answer. The finishing conversation
+settles scores with the same bound and the same skips (a safety stop, or under
+five seconds left before the hard limit), and the recap carries `focusSound`
+(one IPA symbol and the word it was heard in), which the app shows on the
+recap's sound page. Each recogniser stream gets its own capture, because a
+language switch restarts the recogniser's clock, every final segment of one
+turn is kept, not just the last, and a final that arrives after its turn was
+taken is dropped rather than carried into the next clip (F866). The line is read
+from the published card, so a line no longer on screen is never the reference.
 In production the score goes through the paid gate, so the bound lesson quote
 must carry the reviewed scoring component (`services/shared/lessonScoringQuote.ts`)
 and its binding must declare `kinds` including `scoring`; startup refuses the flag
@@ -342,8 +354,9 @@ failure available here, so the machinery is deliberately explicit:
   scorer is behind `LUVANI_AUDIO_SCORING=1`, which stays unset until the
   activation checks above pass. Scoring runs beside the reply, never in front of
   it (VOICE-004, which closed F623): the brain answers without waiting, and a
-  finishing lesson waits at most `SCORE_SETTLE_MS` for scores in flight. With the
-  flag off, a live end card reads `unavailable`. Drills and sound
+  finishing lesson waits at most `SCORE_SETTLE_MS` for scores in flight. Missions
+  are scored the same way on the handed-over full line (F866). With the
+  flag off, a live end card reads `unavailable` and a recap shows no live sound. Drills and sound
   checks are scored today, by the token server's `/drill/score`, which does not
   read the flag. Their recordings are .m4a on a phone and WebM on the web, so
   each upload is labelled from its own first bytes rather than assumed to be WAV.

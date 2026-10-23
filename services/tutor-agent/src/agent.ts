@@ -307,7 +307,7 @@ export default defineAgent({
           startRung,
           persona,
           enrichBeforeComplete: !!paid,
-          ...(paid ? { client: brainClientFromEnv(process.env, paid.transport) } : {}),
+          ...(paid ? { client: brainClientFromEnv(process.env, paid.transport), scoringRequest: paid.transport } : {}),
           setSttLanguage: (language) => {
             if (recognition.experimental || !stt) return;
             stt.updateOptions({ language });

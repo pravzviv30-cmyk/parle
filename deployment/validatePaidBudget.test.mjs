@@ -25,12 +25,12 @@ test('unquoted activity/fallback and full voice envelope without owner caps refu
 test('operator JSON identities and evidence reject coercible array/object values',()=>{
  for(const change of [p=>p.review.expiresAt=[p.review.expiresAt],p=>p.review.evidenceUrl=[p.review.evidenceUrl],p=>p.review.evidenceSha256=[p.review.evidenceSha256],p=>p.quotes[0].id=[p.quotes[0].id],p=>p.bindings['api-judge'].quoteId=[p.bindings['api-judge'].quoteId],p=>p.quotes[0].definition.configurationSha256=[p.quotes[0].definition.configurationSha256]]){const p=fixture();change(p);assert.throws(()=>validatePaidBudgetContract(p,{now}));}
 });
-const {LESSON_SCORING_COMPONENT}=await import('../services/shared/lessonScoringQuote.ts');
-function lessonFixture(scoring=true){
+const {CONVO_SCORING_COMPONENT,LESSON_SCORING_COMPONENT}=await import('../services/shared/lessonScoringQuote.ts');
+function lessonFixture(scoring=true,activity='lesson'){
  const p=fixture(),q=p.quotes[0],d=q.definition;p.tutor={accountDailySessions:1,accountDailySeconds:900};
  p.vendors=['openai','deepgram','elevenlabs','speechace'].map(provider=>({provider,enabled:true,dailyMicroUsd:1000000,dailyOperations:100,dailyCalls:1000}));
- d.activity='lesson';d.components=[d.components[0],{key:'stt',kind:'stt',provider:'deepgram',model:'nova-3',voice:'',configurationSha256:hash('stt'),maxEffects:1,maxProviderAttempts:1,maxInputBytes:0,maxOutputTokens:0,maxAudioMillis:900000,maxTextBytes:0,microUsd:1},{key:'tts',kind:'tts',provider:'elevenlabs',model:'eleven_flash_v2_5',voice:'voice',configurationSha256:hash('tts'),maxEffects:1,maxProviderAttempts:1,maxInputBytes:0,maxOutputTokens:0,maxAudioMillis:0,maxTextBytes:100,microUsd:1},...(scoring?[{...LESSON_SCORING_COMPONENT}]:[])];
- p.bindings={lesson:{...p.bindings['api-judge'],kinds:scoring?['llm','scoring','stt','tts']:['llm','stt','tts']}};return p;
+ d.activity=activity;d.components=[d.components[0],{key:'stt',kind:'stt',provider:'deepgram',model:'nova-3',voice:'',configurationSha256:hash('stt'),maxEffects:1,maxProviderAttempts:1,maxInputBytes:0,maxOutputTokens:0,maxAudioMillis:900000,maxTextBytes:0,microUsd:1},{key:'tts',kind:'tts',provider:'elevenlabs',model:'eleven_flash_v2_5',voice:'voice',configurationSha256:hash('tts'),maxEffects:1,maxProviderAttempts:1,maxInputBytes:0,maxOutputTokens:0,maxAudioMillis:0,maxTextBytes:100,microUsd:1},...(scoring?[{...(activity==='convo'?CONVO_SCORING_COMPONENT:LESSON_SCORING_COMPONENT)}]:[])];
+ p.bindings={[activity]:{...p.bindings['api-judge'],kinds:scoring?['llm','scoring','stt','tts']:['llm','stt','tts']}};return p;
 }
 test('lesson quote scoring component must carry the reviewed Speechace identity and envelope',()=>{
  assert.equal(validatePaidBudgetContract(lessonFixture(),{now}).enabled,true);
@@ -43,4 +43,14 @@ test('lesson quote scoring component must carry the reviewed Speechace identity 
 test('binding kinds must be sorted, unique and equal the bound quote kinds',()=>{
  for(const kinds of [['llm','stt','tts'],['llm','scoring','stt','tts','observer'],['scoring','llm','stt','tts'],['llm','llm','scoring','stt','tts'],[],'llm',['llm','scoring','stt','tts','voice']]){const p=lessonFixture();p.bindings.lesson.kinds=kinds;assert.throws(()=>validatePaidBudgetContract(p,{now}));}
  const p=lessonFixture();p.bindings.lesson.extra=true;assert.throws(()=>validatePaidBudgetContract(p,{now}));
+});
+test('convo quote scoring component must carry the reviewed Speechace identity and the convo envelope',()=>{
+ const convo=(scoring=true)=>lessonFixture(scoring,'convo');
+ assert.equal(validatePaidBudgetContract(convo(),{now}).enabled,true);
+ assert.equal(validatePaidBudgetContract(convo(false),{now}).enabled,true,'a convo quote without scoring stays valid');
+ const pricier=convo();pricier.quotes[0].definition.components[3].microUsd*=2;assert.equal(validatePaidBudgetContract(pricier,{now}).enabled,true,'only a higher price passes');
+ const lessonEnvelope=convo();lessonEnvelope.quotes[0].definition.components[3]={...LESSON_SCORING_COMPONENT};assert.throws(()=>validatePaidBudgetContract(lessonEnvelope,{now}),/convo scoring component must match the reviewed Speechace/,'the lesson envelope is not the convo one');
+ const cheaper=convo();cheaper.quotes[0].definition.components[3].maxEffects*=10;assert.throws(()=>validatePaidBudgetContract(cheaper,{now}),/reviewed Speechace/);
+ for(const change of [c=>c.model='text-v8',c=>c.configurationSha256=hash('fr-ca'),c=>c.maxProviderAttempts=2,c=>c.maxEffects=23,c=>c.maxAudioMillis=449999,c=>c.maxAudioMillis=450001,c=>c.maxTextBytes-=1,c=>c.maxTextBytes+=1,c=>c.maxInputBytes-=1,c=>c.maxInputBytes+=1,c=>c.microUsd-=1]){const p=convo();change(p.quotes[0].definition.components[3]);assert.throws(()=>validatePaidBudgetContract(p,{now}),/reviewed Speechace|paid-operation-unavailable/);}
+ const p=convo();p.bindings.convo.kinds=['llm','stt','tts'];assert.throws(()=>validatePaidBudgetContract(p,{now}),/binding kinds/);
 });

@@ -94,6 +94,59 @@ describe('capturing what the learner said', () => {
     assert.equal(tap.take(), null, 'and the next turn does not inherit it');
   });
 
+  test('several finals for one spoken turn give one clip spanning them all', () => {
+    const tap = new UtteranceTap();
+    feed(tap, 1, 111); // before
+    feed(tap, 1, 222); // first segment
+    feed(tap, 0.5, 333); // the pause between segments
+    feed(tap, 1, 444); // second segment
+    feed(tap, 1, 555); // after
+
+    // Deepgram sends one final per is_final segment, several per turn.
+    tap.observe(finalTranscript(1.0, 2.0));
+    tap.observe(finalTranscript(2.5, 3.5));
+    const captured = tap.take();
+    assert.ok(captured);
+    assert.equal(captured.durationSec, 2.5);
+    const samples = [...decodeWav(captured.wav).samples];
+    assert.ok(samples.includes(222), 'the first segment is kept');
+    assert.ok(samples.includes(444), 'and so is the last');
+    assert.ok(samples.every((s) => s === 222 || s === 333 || s === 444), 'nothing outside the turn');
+    assert.equal(tap.take(), null);
+  });
+
+  test('a final that arrives after its turn was taken is not carried into the next turn', () => {
+    const tap = new UtteranceTap();
+    const sos = { type: stt.SpeechEventType.START_OF_SPEECH } as unknown as stt.SpeechEvent;
+    tap.observe(sos); feed(tap, 1, 111);
+    tap.observe(finalTranscript(0, 1));
+    assert.ok(tap.take(), 'the turn is taken');
+    // The SDK can deliver a trailing final once the turn has committed.
+    feed(tap, 0.3, 122);
+    assert.equal(tap.observe(finalTranscript(1.0, 1.3)), null, 'the late fragment is dropped');
+    feed(tap, 4, 333); // the tutor replies
+    tap.observe(sos); feed(tap, 1, 444);
+    tap.observe(finalTranscript(5.3, 6.3));
+    const next = tap.take();
+    assert.ok(next);
+    assert.ok([...decodeWav(next.wav).samples].every((s) => s === 444), 'only the next turn, no reply and no fragment');
+    assert.equal(next.durationSec, 1);
+  });
+
+  test('a take between finals still keeps two turns apart', () => {
+    const tap = new UtteranceTap();
+    feed(tap, 1, 222);
+    tap.observe(finalTranscript(0, 1));
+    const first = tap.take();
+    feed(tap, 0.5, 333); // the tutor replies
+    feed(tap, 1, 444);
+    tap.observe(finalTranscript(1.5, 2.5));
+    const second = tap.take();
+    assert.ok(first && second);
+    assert.ok([...decodeWav(first.wav).samples].every((s) => s === 222));
+    assert.ok([...decodeWav(second.wav).samples].every((s) => s === 444), 'the second turn never carries the first');
+  });
+
   test('frames pass through to the recogniser untouched', async () => {
     const tap = new UtteranceTap();
     const source = (async function* () {

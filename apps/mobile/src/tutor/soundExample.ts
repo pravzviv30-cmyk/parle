@@ -51,6 +51,9 @@ export function heldSoundsLine(words: readonly string[]): string {
     : `You held the sounds in ${quoted} steady in this lesson.`;
 }
 
+/** The label over one sound to work on, on the lesson end card and on a conversation recap that heard one. */
+export const SOUND_FOCUS_LABEL = 'One sound to practise next';
+
 /** The toggle that shows the notation and the scorer's reason, for those who want them. */
 export const SOUND_DETAIL = {
   show: 'Show sound details',
