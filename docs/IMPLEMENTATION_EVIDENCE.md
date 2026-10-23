@@ -22,6 +22,18 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 Quiet voice (VOICE-011: a device-local live-room switch that opens the
+  transcript, lowers the mic meter floor to 0.005 RMS and asks for a soft voice, not a whisper;
+  no agent or wire change) on branch `claude/whisper-mode` from main 461bf409 (held, not on main):
+  **6,454 tests, 0 failing**; core 1050, brain 502, tutor agent 785, token server 482,
+  playground 29, mobile 3606; shared release/provider proofs 175; all 42 migrations replayed, no
+  migration added. Floors raised only through `gate:bless`. Measured first: soft French at
+  -20 dB (about -36 dBFS) gives median Deepgram word accuracy 1.00 (worst 0.75 clean, 0.67 over a
+  -50 dBFS bed) with Silero at its default 0.5; whispers fail, because the Deepgram plugin's
+  energy filter drops audio under RMS 0.004
+  (`docs/live-latency-evidence/2026-10-23-quiet-speech.md`). Web check of the screen preview:
+  the switch shows in Speak, hides in Type, reopens the transcript, shows the note and survives
+  a reload.
 - 23 October 2026 main with `claude/guest-first-scene` (UI-011, guest café scene before sign-up,
   off until `LUVANI_GUEST_SCENE=1`) merged onto the thinking-time landing (VOICE-010); the tutor
   keeps both, and the scene keeps the session's beginner pause: **6,440 tests, 0 failing**; core 1050,
