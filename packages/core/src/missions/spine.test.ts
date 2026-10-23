@@ -47,11 +47,11 @@ describe('the spine — the order scenes are offered in, and what has been earne
         'mission:coup-de-main',
         'mission:anniversaire',
         'mission:fuite',
-        'mission:galere',
         'mission:avis',
-        'mission:entretien',
+        'mission:galere',
         'mission:teletravail',
         'mission:souvenirs',
+        'mission:entretien',
       ],
     );
     assert.equal(SCENE_SPINE[0], FIRST_MISSION);
@@ -183,8 +183,9 @@ describe('the spine — the order scenes are offered in, and what has been earne
 
   test('the B1 scenes close the spine, after every A2 scene', () => {
     // 2026-10-23: the six B1 scenes in docs/changes/mission-spine-b1.md.
+    // 2026-10-23: reordered by difficulty after the learning-science review (avis before galere, entretien last).
     assert.deepEqual(B1_IDS, [
-      'mission:fuite', 'mission:galere', 'mission:avis', 'mission:entretien', 'mission:teletravail', 'mission:souvenirs',
+      'mission:fuite', 'mission:avis', 'mission:galere', 'mission:teletravail', 'mission:souvenirs', 'mission:entretien',
     ]);
     assert.deepEqual([...SCENE_SPINE].slice(-B1_IDS.length), B1_IDS, 'B1 follows every A2 scene');
     const allBelow = [...A0_IDS, ...A1_IDS, ...A2_IDS].map((id) => done(id, 4));

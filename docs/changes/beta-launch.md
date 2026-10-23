@@ -70,6 +70,14 @@ Each step names its proof. Stop at the first step whose proof fails.
    voices cost up to 17,700 ElevenLabs characters, once. Entries no longer
    expire, so this only needs repeating when lesson text or a voice setting
    changes. Changing a voice setting makes the whole cache cold again.
+
+   **Cheaper free-conversation voice (optional, off).** After a blind listening
+   check, setting `LUVANI_CONVERSATION_TTS_MODEL=eleven_flash_v2_5` on `tutor`
+   sends only free-conversation lines to ElevenLabs Flash at half the price per
+   character. Scripted lines and this cache do not change. Before setting it in
+   production, add an `eleven_flash_v2_5` TTS component to the `lesson` and
+   `convo` quotes (see [PAID_ADMISSION.md](../../deployment/PAID_ADMISSION.md)),
+   otherwise every conversation line is refused as quote-mismatch.
 5. **Spending ceilings (your decision).** Admission stays closed until you set
    finite numbers:
    - `tutor_session_admission_config`: `enabled`, `max_active_sessions`,

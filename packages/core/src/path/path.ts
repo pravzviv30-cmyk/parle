@@ -637,26 +637,6 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
     ],
   },
   {
-    id: 'galere',
-    title: 'Tu vas pas me croire',
-    nodes: [
-      {
-        id: 'galere:scene',
-        title: 'Setting the scene',
-        sub: 'The rain, the station, and the cancelled train',
-        kind: 'phrases',
-        phraseKeys: ["phrase:il pleuvait, et j'étais à la gare", 'phrase:et là, le train a été annulé'],
-      },
-      {
-        id: 'galere:ending',
-        title: 'What you did next',
-        sub: 'The night bus, and how it ended',
-        kind: 'phrases',
-        phraseKeys: ["phrase:du coup, j'ai pris le bus de nuit", "phrase:finalement, j'ai dormi chez des amis"],
-      },
-    ],
-  },
-  {
     id: 'avis',
     title: 'Alors, ce film ?',
     nodes: [
@@ -677,22 +657,22 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
     ],
   },
   {
-    id: 'entretien',
-    title: "L'entretien d'embauche",
+    id: 'galere',
+    title: 'Tu vas pas me croire',
     nodes: [
       {
-        id: 'entretien:background',
-        title: 'Your background, and why this job',
-        sub: 'What you have done, and what draws you',
+        id: 'galere:scene',
+        title: 'Setting the scene',
+        sub: 'The rain, the station, and the cancelled train',
         kind: 'phrases',
-        phraseKeys: ["phrase:j'ai travaillé plusieurs années dans la vente", "phrase:ce poste m'intéresse parce que j'aime le travail en équipe"],
+        phraseKeys: ["phrase:il pleuvait, et j'étais à la gare", 'phrase:et là, le train a été annulé'],
       },
       {
-        id: 'entretien:strength',
-        title: 'A strength, and a question',
-        sub: 'What you do well, and what a day looks like',
+        id: 'galere:ending',
+        title: 'What you did next',
+        sub: 'The night bus, and how it ended',
         kind: 'phrases',
-        phraseKeys: ["phrase:mon point fort, c'est l'organisation", "phrase:j'aimerais savoir à quoi ressemble une journée type"],
+        phraseKeys: ["phrase:du coup, j'ai pris le bus de nuit", "phrase:finalement, j'ai dormi chez des amis"],
       },
     ],
   },
@@ -733,6 +713,26 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
         sub: 'Asking about her, and comparing',
         kind: 'phrases',
         phraseKeys: ["phrase:et vous, comment c'était, quand vous étiez jeune ?", "phrase:aujourd'hui, tout va beaucoup plus vite"],
+      },
+    ],
+  },
+  {
+    id: 'entretien',
+    title: "L'entretien d'embauche",
+    nodes: [
+      {
+        id: 'entretien:background',
+        title: 'Your background, and why this job',
+        sub: 'What you have done, and what draws you',
+        kind: 'phrases',
+        phraseKeys: ["phrase:j'ai travaillé plusieurs années dans la vente", "phrase:ce poste m'intéresse parce que j'aime le travail en équipe"],
+      },
+      {
+        id: 'entretien:strength',
+        title: 'A strength, and a question',
+        sub: 'What you do well, and what a day looks like',
+        kind: 'phrases',
+        phraseKeys: ["phrase:mon point fort, c'est l'organisation", "phrase:j'aimerais savoir à quoi ressemble une journée type"],
       },
     ],
   },

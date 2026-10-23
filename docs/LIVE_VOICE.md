@@ -331,6 +331,23 @@ memo is never written anywhere and is cleared when the session ends. Authored
 lines stay on disk and no longer expire, because their key already binds
 voice, model, settings and text.
 
+`LUVANI_CONVERSATION_TTS_MODEL` is an opt-in switch for the free-conversation
+voice, and it is off by default. When it is unset, every line uses the pinned
+`eleven_multilingual_v2` exactly as before. When it is set to
+`eleven_flash_v2_5` (the only accepted value; anything else stops the worker at
+startup), the live agent's `CachedTTS` gets a second ElevenLabs voice with the
+same voice id, settings, output format and streaming latency, and only
+non-authored lines go to it. Flash bills half per character ($0.04 against
+$0.08 per 1,000). Scripted lines never move: every authored line, and the disk
+cache, stay on `eleven_multilingual_v2`, and the warm-cache and voice-sample
+scripts never build the Flash voice. The replay memo is keyed by the voice key
+of the model that made the audio, so Flash audio never replays as the other
+model. With the switch on, `[luvani:cost]` adds `ttsCharsBilledConversation`,
+the part of `ttsCharsBilled` sent to Flash. Under the fish vendor the switch is
+ignored with a startup warning. In production the TTS quote must include an
+`eleven_flash_v2_5` component before the switch is turned on
+(`deployment/PAID_ADMISSION.md`).
+
 `spoke` and `silence` are **not** wire tags. They are engine inputs
 (`core/session/session.ts`). Audio is the media track; silence is timed agent-side.
 

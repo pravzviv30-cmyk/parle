@@ -44,11 +44,11 @@ export const SCENE_SPINE: readonly MissionId[] = [
   'mission:coup-de-main',
   'mission:anniversaire',
   'mission:fuite',
-  'mission:galere',
   'mission:avis',
-  'mission:entretien',
+  'mission:galere',
   'mission:teletravail',
   'mission:souvenirs',
+  'mission:entretien',
 ];
 
 export interface SpineView {
