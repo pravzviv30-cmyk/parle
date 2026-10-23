@@ -155,7 +155,7 @@ export const GOAL_ROW = 'What you’re learning for';
 export const GOAL_UNSET = 'Not chosen yet';
 export const GOAL_SHEET_TITLE = 'Your goal';
 export const GOAL_FOOTER = 'Your goal puts its scenes first in what we suggest. Changing it never changes the level you’ve earned.';
-export const GOAL_CLEAR = 'No goal for now';
+export const GOAL_CLEAR = 'Nothing in particular';
 /** The six onboarding reasons, worded as onboarding words them, then the clear. */
 export const GOAL_OPTIONS: readonly { key: LearnerGoal | null; title: string }[] = [
   ...REASONS.map((reason) => ({ key: reason.key as LearnerGoal, title: reason.title })),
