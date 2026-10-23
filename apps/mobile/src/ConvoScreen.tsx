@@ -91,6 +91,7 @@ import { prefersTyping } from './profile/typing.ts';
 import { withAgeStop } from './profile/store.ts';
 import type { OrbState } from './tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
+import { useQuietVoice } from './live/useQuietVoice.ts';
 import { paceLabel } from './live/liveRoomView.ts';
 import { missionMinutes } from './home/estimate.ts';
 import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
@@ -267,6 +268,7 @@ export function ConvoScreen({
   const [openedTyped, setOpenedTyped] = useState(startInTextMode);
   const [draft, setDraft] = useState('');
   const [transcriptVisible, setTranscriptVisible] = useState(true);
+  const { quietVoice, onQuietVoice } = useQuietVoice(setTranscriptVisible);
   const [modePending, setModePending] = useState(false);
   // The leave gate. `confirming` shows the sheet; `leaving` is raised on commit,
   // which drops the guard so the exit can run from an effect rather than inline.
@@ -985,13 +987,13 @@ export function ConvoScreen({
       typingOpen,
     });
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
-    return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
+    return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
       <View style={{ flex: 1, minHeight: 0 }}>
         <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description="Your French conversation" state={choosing.orb}
           caption={line.text ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Ready when you are')}
           turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
           typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !live.waitingForTutor}
-          modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible}
+          modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} quietVoice={quietVoice} onQuietVoice={onQuietVoice}
           draft={draft} onDraft={changeDraft} onSend={sendDraft} canSend={!live.tutorSpeaking && !live.thinking}
           onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
           onEnd={() => setConfirming(true)} notice={choosing.helper}
@@ -1065,7 +1067,7 @@ export function ConvoScreen({
           ? 'ready'
           : 'listening';
 
-  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
+  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
     <OrbCue value={ticks.cue}>
     <View style={{ flex: 1, minHeight: 0 }}>
       <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
@@ -1075,7 +1077,7 @@ export function ConvoScreen({
         caption={headerLine ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused')}
         turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !finishing}
-        modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible}
+        modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} quietVoice={quietVoice} onQuietVoice={onQuietVoice}
         draft={draft} onDraft={changeDraft} onSend={sendDraft} canSend={listening && !live.thinking}
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
         onEnd={() => setConfirming(true)} onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}

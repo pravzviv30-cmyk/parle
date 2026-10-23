@@ -119,7 +119,7 @@ function TutorMeter({ track, meter, onFail }: { track: RemoteAudioTrack; meter: 
   return null;
 }
 
-export function RoomLevels({ micTrack, tutorTrack, micOpen, tutorSpeaking, focused, children }: RoomLevelsProps) {
+export function RoomLevels({ micTrack, tutorTrack, micOpen, tutorSpeaking, focused, quietVoice = false, children }: RoomLevelsProps) {
   const input = useSharedValue(0);
   const bands = useSharedValue<number[]>([]);
   const output = useSharedValue(0);
@@ -156,6 +156,9 @@ export function RoomLevels({ micTrack, tutorTrack, micOpen, tutorSpeaking, focus
   useEffect(() => {
     meter.measuring({ mic, tutor });
   }, [meter, mic, tutor]);
+  useEffect(() => {
+    meter.quiet(quietVoice);
+  }, [meter, quietVoice]);
   useEffect(() => {
     meter.turn({ micOpen, tutorSpeaking });
   }, [meter, micOpen, tutorSpeaking]);

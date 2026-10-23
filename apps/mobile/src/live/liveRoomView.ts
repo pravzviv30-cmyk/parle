@@ -133,3 +133,34 @@ export function liveBubbles(turns: readonly TurnLine[], partial: string | null |
   const learner = [...after].reverse().find((turn) => turn.who === 'learner') ?? null;
   return { tutor, you: learner?.fr ?? null };
 }
+
+export const QUIET_VOICE_COPY = {
+  label: 'Quiet voice',
+  hint: 'Speak softly, close to your phone',
+} as const;
+
+/**
+ * The Quiet voice switch beside "Show transcript". It is about the learner's
+ * own voice, so it shows only while they are speaking to the tutor: never in
+ * Type, and not in Listen only until they switch to Speak.
+ */
+export function quietVoiceControl(typing: boolean, on: boolean): { label: string; hint: string; checked: boolean } | null {
+  if (typing) return null;
+  return { label: QUIET_VOICE_COPY.label, hint: QUIET_VOICE_COPY.hint, checked: on };
+}
+
+/** What carries in Quiet voice: a soft voice, not a whisper (docs/live-latency-evidence/2026-10-23-quiet-speech.md). */
+export function quietVoiceNote(tutorName: string): string {
+  return `Speak softly, close to your phone. ${tutorName} can hear a soft voice, but not a whisper.`;
+}
+
+/**
+ * The one line under the controls. The typing note speaks while the box is
+ * open; Quiet voice only while the learner is speaking, so the two never
+ * compete, and the typing note wins if they ever would.
+ */
+export function roomNote(typing: boolean, startedWithSpeech: boolean, tutorName: string, quietVoice: boolean): string | null {
+  const typed = typingNote(typing, startedWithSpeech, tutorName);
+  if (typed !== null) return typed;
+  return quietVoice ? quietVoiceNote(tutorName) : null;
+}

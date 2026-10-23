@@ -40,6 +40,10 @@ import {
   micCounts,
   normaliseDb,
   normaliseRms,
+  DEFAULT_MIC_PROFILE,
+  QUIET_MIC_PROFILE,
+  QUIET_VOICE_FLOOR,
+  REST_BELOW,
   release,
   restDue,
   rmsOf,
@@ -283,6 +287,10 @@ describe('the room hears real audio — F764, the plumbing half', () => {
     assert.equal(normaliseRms(5), 1);
     assert.equal(normaliseRms(Number.NaN), 0);
     assert.ok(Math.abs(normaliseRms(0.11) - 0.5 ** 0.6) < 1e-9);
+    // Pinned: Quiet voice adds a profile and never moves the default one.
+    assert.deepEqual(DEFAULT_MIC_PROFILE, { floor: 0.01, span: 0.2 });
+    assert.equal(REST_BELOW, 0.01);
+    assert.equal(normaliseRms(0.11, DEFAULT_MIC_PROFILE), normaliseRms(0.11));
     assert.equal(normaliseDb(-160), 0, 'a silent recorder draws a ring');
     assert.equal(normaliseDb(-50), 0);
     assert.equal(normaliseDb(-10), 1);
@@ -356,7 +364,7 @@ describe('the room hears real audio — F764, the plumbing half', () => {
     const convo = stripComments(read('../ConvoScreen.tsx'));
     assert.match(convo, /const roomFocused = useIsFocused\(\);/, 'the room measures audio while another screen covers it');
     const wrapped = convo.match(
-      /<RoomLevels micTrack=\{live\.audioTracks\.mic\} tutorTrack=\{live\.audioTracks\.tutor\} micOpen=\{live\.micOpen\} tutorSpeaking=\{live\.tutorSpeaking\} focused=\{roomFocused\}>/g,
+      /<RoomLevels micTrack=\{live\.audioTracks\.mic\} tutorTrack=\{live\.audioTracks\.tutor\} micOpen=\{live\.micOpen\} tutorSpeaking=\{live\.tutorSpeaking\} focused=\{roomFocused\} quietVoice=\{quietVoice\}>/g,
     );
     assert.equal(wrapped?.length, 2, 'the choosing moment and the scene are not both measured from the real tracks');
 
@@ -679,5 +687,40 @@ describe('the room rests on time, by the clock — F777', () => {
     late.advanceTo(2000);
     assert.equal(onsIn(heard), 0, 'a late timer said "Hearing you" after the voice had stopped, and nothing would take it back');
     assert.equal(late.pendingCount(), 0, 'the watch keeps a timer with nothing left to decide');
+  });
+});
+
+describe('Quiet voice: the meter for a soft voice', () => {
+  test('a soft voice moves the orb clearly more, and nothing under the plugin\'s cut moves it', () => {
+    assert.equal(QUIET_VOICE_FLOOR, 0.005);
+    assert.deepEqual(QUIET_MIC_PROFILE, { floor: 0.005, span: 0.06 });
+    const soft = 0.016; // about -36 dBFS
+    assert.ok(normaliseRms(soft, QUIET_MIC_PROFILE) > normaliseRms(soft) + 0.2, 'a soft voice barely moves the quiet orb');
+    assert.equal(normaliseRms(0.0045, QUIET_MIC_PROFILE), 0, 'a whisper the tutor cannot receive moves the orb');
+    assert.equal(normaliseRms(0.0045), 0);
+  });
+
+  test('hearMic takes the profile, and defaults to today\'s', () => {
+    const quiet = hearMic(ROOM_AT_REST, 0.016, 0, LEARNERS_TURN, QUIET_MIC_PROFILE);
+    const loud = hearMic(ROOM_AT_REST, 0.016, 0, LEARNERS_TURN);
+    assert.ok(quiet.mic.level > loud.mic.level);
+    assert.deepEqual(hearMic(ROOM_AT_REST, 0.016, 0, LEARNERS_TURN, DEFAULT_MIC_PROFILE), loud);
+  });
+
+  test('the room meter switches profile on quiet(), and back', () => {
+    const levels: number[] = [];
+    const run = (on: boolean | null) => {
+      const s = { input: { value: 0 }, bands: { value: [] as number[] }, output: { value: 0 }, inputLive: { value: false }, outputLive: { value: false } };
+      const meter = createRoomMeter(s as never, { now: () => 0, later: () => 1, cancel: () => {} });
+      if (on !== null) meter.quiet(on);
+      meter.measuring({ mic: {}, tutor: null });
+      meter.turn(LEARNERS_TURN);
+      meter.mic(0.016);
+      levels.push(s.input.value);
+      meter.stop();
+    };
+    run(null); run(true); run(false);
+    assert.ok(levels[1]! > levels[0]!);
+    assert.equal(levels[2], levels[0]);
   });
 });

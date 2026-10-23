@@ -25,6 +25,7 @@ import { Card, GhostButton } from './components.tsx';
 import { ConfirmSheet, Screen } from './layout.tsx';
 import { SupportBlock } from './SessionView.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
+import { useQuietVoice } from './live/useQuietVoice.ts';
 import { IconAction } from './components.tsx';
 import { rungLabel } from './tutor/rungLabel.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
@@ -120,6 +121,7 @@ export function LiveSessionScreen({
   const [leftWithReport, setLeftWithReport] = useState<{ sessionId: string | null } | null>(null);
   const [typingOpen, setTypingOpen] = useState(listenOnly);
   const [transcriptVisible, setTranscriptVisible] = useState(true);
+  const { quietVoice, onQuietVoice } = useQuietVoice(setTranscriptVisible);
   const [draft, setDraft] = useState('');
   const [modePending, setModePending] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -339,12 +341,12 @@ export function LiveSessionScreen({
   const prompt = live.prompt;
   const caption = connectionLine({ reconnecting: live.reconnecting, notice: live.notice }).text
     ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused');
-  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
+  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
     <View style={st.root}>
       <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
         caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing} startedWithSpeech={!textMode} ready={!live.reconnecting} modePending={modePending} active={roomFocused}
-        transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} draft={draft}
+        transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} quietVoice={quietVoice} onQuietVoice={onQuietVoice} draft={draft}
         onDraft={text => { setDraft(text); live.sendTyping(); }} onSend={sendDraft} canSend={!live.tutorSpeaking && !live.thinking}
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
         onEnd={() => setConfirming(true)} notice={live.feedback?.message}

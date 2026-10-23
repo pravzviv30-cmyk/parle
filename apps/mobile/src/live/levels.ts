@@ -77,9 +77,23 @@ function clamp01(value: number): number {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 }
 
+/** How a microphone RMS becomes a level: the floor it rests under and the span to full. */
+export interface MicProfile {
+  floor: number;
+  span: number;
+}
+export const DEFAULT_MIC_PROFILE: MicProfile = { floor: 0.01, span: 0.2 };
+/**
+ * Quiet voice (2026-10-23): just above the speech plugin's own cut (RMS 0.004,
+ * about -48 dBFS), so the orb moves only for a voice the tutor can still
+ * receive, and a span narrow enough that a soft voice near -36 dBFS shows.
+ */
+export const QUIET_VOICE_FLOOR = 0.005;
+export const QUIET_MIC_PROFILE: MicProfile = { floor: QUIET_VOICE_FLOOR, span: 0.06 };
+
 /** A microphone RMS (linear, 0 to 1) as a level. Room noise sits under 0.01 and draws nothing. */
-export function normaliseRms(rms: number): number {
-  return clamp01((rms - 0.01) / 0.2) ** 0.6;
+export function normaliseRms(rms: number, profile: MicProfile = DEFAULT_MIC_PROFILE): number {
+  return clamp01((rms - profile.floor) / profile.span) ** 0.6;
 }
 
 /** A recorder's metering in dBFS (−160 is silence) as a level, for the recorders' rings. */
@@ -250,9 +264,9 @@ function settleTutor(tutor: Bands, now: number): Bands {
  * learner's turn holds the level up; a silent reading, or any reading off
  * their turn, is no news and the level settles as it would with none at all.
  */
-export function hearMic(state: RoomLevelState, rms: number, now: number, turn: Turn): RoomLevelState {
+export function hearMic(state: RoomLevelState, rms: number, now: number, turn: Turn, profile: MicProfile = DEFAULT_MIC_PROFILE): RoomLevelState {
   const heard = state.mic.heard || rms > 0;
-  const value = micCounts(turn) ? normaliseRms(rms) : 0;
+  const value = micCounts(turn) ? normaliseRms(rms, profile) : 0;
   if (value === 0) {
     const settled = settleMic(state.mic, now, turn);
     return settled === state.mic && heard === state.mic.heard ? state : { ...state, mic: { ...settled, heard } };
@@ -368,6 +382,8 @@ export interface RoomMeter {
   turn(turn: Turn): void;
   /** Which tracks are measured now. A track that goes or changes is forgotten, and must prove itself again. */
   measuring(tracks: Measuring): void;
+  /** Quiet voice on or off: which microphone profile the next readings use. */
+  quiet(on: boolean): void;
   /** Cancel the timer and write rest: the room has gone, or the app has. */
   stop(): void;
 }
@@ -387,6 +403,7 @@ export function createRoomMeter(sink: LevelSink, clock: MeterClock, onFrame?: (f
   let gate: Turn = { micOpen: false, tutorSpeaking: false };
   let tracks: Measuring = { mic: null, tutor: null };
   let timer: unknown = null;
+  let profile: MicProfile = DEFAULT_MIC_PROFILE;
 
   const write = (): void => {
     const frame = frameOf(state, { mic: tracks.mic != null, tutor: tracks.tutor != null });
@@ -418,7 +435,7 @@ export function createRoomMeter(sink: LevelSink, clock: MeterClock, onFrame?: (f
   return {
     mic(rms) {
       if (tracks.mic == null) return;
-      state = hearMic(state, rms, clock.now(), gate);
+      state = hearMic(state, rms, clock.now(), gate, profile);
       write();
       schedule();
     },
@@ -431,6 +448,9 @@ export function createRoomMeter(sink: LevelSink, clock: MeterClock, onFrame?: (f
     turn(next) {
       gate = { micOpen: next.micOpen, tutorSpeaking: next.tutorSpeaking };
       schedule();
+    },
+    quiet(on) {
+      profile = on ? QUIET_MIC_PROFILE : DEFAULT_MIC_PROFILE;
     },
     measuring(next) {
       if (next.mic === tracks.mic && next.tutor === tracks.tutor) return;

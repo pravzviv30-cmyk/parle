@@ -18,6 +18,7 @@ import { SupportBlock } from '../SessionView.tsx';
 import { SafetyStopView, SafetyBanner } from '../tutor/SafetyStopView.tsx';
 import { safetySurface } from '../tutor/safetyView.ts';
 import { C2LiveRoom } from '../live/C2LiveRoom.tsx';
+import { useQuietVoice } from '../live/useQuietVoice.ts';
 import { useOnboardingFramePresentation } from './OnboardingLayout.tsx';
 import type { OnboardingProgressValue } from './onboardingProgress.ts';
 import { readGuestLiveResult, endGuestLivePractice, saveGuestPractice, type GuestPractice } from './guestPractice.ts';
@@ -32,6 +33,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   const finishing = useRef(false);
   const [typing, setTyping] = useState(false);
   const [transcript, setTranscript] = useState(true);
+  const { quietVoice, onQuietVoice } = useQuietVoice(setTranscript);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [ending, setEnding] = useState(false);
@@ -161,12 +163,12 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   })().catch(() => setIssue('Your session could not close yet. Try Close again.')); }} />
     {issue ? <Text accessibilityRole="alert" style={[type.small, { padding: 20 }]}>{issue}</Text> : null}
   </View>;
-  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={active}>
+  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={active} quietVoice={quietVoice}>
     <View style={{ flex: 1, minHeight: 0 }}>
       <C2LiveRoom tutorName={name} description={scene ? `${GUEST_CAFE_SCENE.title}, about two minutes` : `${firstPracticeScenario(guest.live!.brief).en}, ${guest.live!.brief.minutes === null ? 'at your pace' : `${guest.live!.brief.minutes} minutes`}`}
         state={state} caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing || typedScene || (scene && live.voiceless)} startedWithSpeech={scene ? !typedScene : undefined} ready={ready && !ending && !over} modePending={micPending} active={active} embedded
-        transcriptVisible={transcript} onTranscriptVisibility={setTranscript} draft={draft}
+        transcriptVisible={transcript} onTranscriptVisibility={setTranscript} quietVoice={quietVoice} onQuietVoice={onQuietVoice} draft={draft}
         onDraft={text => { setDraft(text); live.sendTyping(); }} onSend={send} canSend={!live.thinking && !live.tutorSpeaking && !ending}
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
         onEnd={() => setConfirmEnd(true)} notice={issue || (scene ? live.feedback?.message : undefined) || live.notice}
