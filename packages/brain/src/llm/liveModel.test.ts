@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { OpenAiResponsesBrainClient, openAiLiveModel } from './openaiResponses.ts';
+import { OpenAiResponsesBrainClient, openAiLiveModel, openAiModelFor } from './openaiResponses.ts';
 import { sampleTurn } from '../contract/samples.ts';
 import { buildSystemBlocks } from '../prompt/system.ts';
 import { buildFixLineJudgeRequest } from './fixLineJudge.ts';
@@ -49,4 +49,42 @@ test('factory blank model overrides preserve all three preflight defaults on act
   await client.judge(buildFixLineJudgeRequest({ original: 'Je suis vingt ans.', better: 'J’ai vingt ans.', attempt: 'J’ai vingt ans.', cefr: 'A1', why: null }));
   await client.extract({ kind: 'extract', system: buildSystemBlocks(), request: 'No facts.' });
   assert.deepEqual(models, ['gpt-6-luna', 'gpt-5.6-luna', 'gpt-5.6-terra']);
+});
+
+test('openAiModelFor names the model each activity is really sent to, overrides included', () => {
+  assert.deepEqual(
+    (['turn', 'frame', 'curate', 'judge', 'extract', 'drills'] as const).map((a) => openAiModelFor(a, {})),
+    // 2026-10-23 (VOICE-008): drills moved from gpt-5.6-terra to gpt-6-luna.
+    ['gpt-6-luna', 'gpt-6-luna', 'gpt-5.6-luna', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-6-luna'],
+  );
+  const env = { OPENAI_LIVE_MODEL: 'live-x', OPENAI_TURN_MODEL: 'fast-x', OPENAI_ANALYST_MODEL: 'analyst-x' };
+  assert.equal(openAiModelFor('turn', env), 'live-x');
+  assert.equal(openAiModelFor('curate', env), 'fast-x');
+  // 2026-10-23 (VOICE-008): OPENAI_ANALYST_MODEL no longer moves drills.
+  assert.equal(openAiModelFor('drills', env), 'gpt-6-luna');
+  assert.equal(openAiModelFor('extract', env), 'analyst-x');
+});
+
+test('drills have their own model: gpt-6-luna by default, OPENAI_DRILLS_MODEL to override (VOICE-008)', () => {
+  assert.equal(openAiModelFor('drills', {}), 'gpt-6-luna');
+  assert.equal(openAiModelFor('extract', {}), 'gpt-5.6-terra', 'memory extraction stays on the analyst');
+  assert.equal(openAiModelFor('drills', { OPENAI_DRILLS_MODEL: ' drills-x ' }), 'drills-x');
+  assert.equal(openAiModelFor('drills', { OPENAI_DRILLS_MODEL: '  ' }), 'gpt-6-luna');
+  assert.equal(openAiModelFor('extract', { OPENAI_DRILLS_MODEL: 'drills-x' }), 'gpt-5.6-terra');
+  const analystOnly = { OPENAI_ANALYST_MODEL: 'analyst-x' };
+  assert.equal(openAiModelFor('extract', analystOnly), 'analyst-x');
+  assert.equal(openAiModelFor('drills', analystOnly), 'gpt-6-luna', 'the analyst knob does not move drills');
+  assert.equal(openAiModelFor('drills', {}, { drillsModel: 'configured-drills' }), 'configured-drills');
+  assert.equal(openAiModelFor('drills', { OPENAI_DRILLS_MODEL: 'env-drills' }, { drillsModel: 'configured-drills' }), 'configured-drills');
+});
+
+test('the env-built OpenAI client sends drills to OPENAI_DRILLS_MODEL', async (t) => {
+  const models: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (_url: unknown, init: { body: string }) => {
+    models.push(JSON.parse(init.body).model);
+    return new Response(JSON.stringify({ status: 'completed', output: [{ content: [{ type: 'output_text', text: JSON.stringify({ drills: [] }) }] }], usage: {} }));
+  });
+  const client = brainClientFromEnv({ TUTOR_LLM: 'openai', OPENAI_API_KEY: 'test', OPENAI_DRILLS_MODEL: 'drills-x', OPENAI_ANALYST_MODEL: 'analyst-x' });
+  await client.drills({ kind: 'drills', system: buildSystemBlocks(), request: 'Write drills.' }).catch(() => undefined);
+  assert.equal(models[0], 'drills-x');
 });

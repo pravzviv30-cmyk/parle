@@ -6,10 +6,11 @@
  * and every analytics question worth asking; bolting them on later means
  * rewriting all four.
  *
- * The numbers below come from the plan's unit-economic model. At premium voice
- * quality a conversation minute costs roughly $0.04–0.06, which means a learner
- * talking twenty minutes a day costs about $30/month to serve. Issen sells
- * "unlimited" at $29. That is the trap this module exists to keep us out of.
+ * The numbers below come from measured vendor rates (2026-10-23, VOICE-008,
+ * docs/cogs-evidence/rates.md). An uncached mission minute costs about $0.048,
+ * which means a learner talking thirty minutes a day costs about $43/month to
+ * serve. Issen sells "unlimited" at $29. That is the trap this module exists to
+ * keep us out of.
  *
  * The business works the way a gym works: on unused allowance. Sell 180 minutes,
  * expect 40–60% utilisation, and the margin lives in the gap. That is fine and
@@ -38,8 +39,9 @@ export interface PlanSpec {
  * 2026-10-20, the Headspace model: the app is free, live minutes are paid).
  *
  * Five minutes a week, on a rolling window that starts at first use. Fully
- * burned every week that is about $0.29 a week, $1.25 a month at DEFAULT_COST_MODEL; a
- * 10-minute *daily* tier would be about $15, more than a paid plan earns. The
+ * burned every week that is about $0.24 a week, $1.05 a month at DEFAULT_COST_MODEL
+ * (2026-10-23 rates); a 10-minute *daily* tier would be about $14.50, more than
+ * the $13.30 a Core plan nets after a 30% store fee. The
  * id stays `trial` because it is a database value; the learner reads "Free".
  *
  * It still cannot be farmed: the taste is claimed once per device (the server's
@@ -118,7 +120,7 @@ export const STORE_TRIAL_DAYS = 7;
  * 180 or 300 minutes before anything was paid, which is the freeloader cost the
  * free tier above is sized to avoid. A store configured with a longer trial
  * still grants this week, so the cost of a trial is bounded here and not in a
- * console setting. Full burn costs about $2.43 on Starter and $4.05 on Max at
+ * console setting. Full burn costs about $2.03 on Starter and $3.38 on Max at
  * DEFAULT_COST_MODEL; meter.test.ts holds the ceiling.
  */
 export function storeTrialSeconds(plan: PaidTier): number {
@@ -267,20 +269,28 @@ export interface CostModel {
 }
 
 export const DEFAULT_COST_MODEL: CostModel = {
-  sttPerMin: 0.0043, //  Deepgram streaming
-  // The Claude talker at sticker prices: ~2 structured turns/min, each ~650
-  // output tokens at $15/MTok with the prompt prefix served from cache, plus
-  // the per-session background calls (scene design, extraction, drill
-  // authoring) amortised over a typical session. The old $0.01 figure priced
-  // a free-tier brain; this line now rivals the voice line, and the margin
-  // tests below were re-baselined to that reality.
-  llmPerMin: 0.025,
-  ttsPerMin: 0.045, //   premium French voice (~$50–60 per 1M chars at ~750 chars/min)
+  // Corrected to measured vendor rates 2026-10-23 (DECISIONS.md VOICE-008,
+  // founder approved; evidence in docs/cogs-evidence/rates.md). Priced as an
+  // uncached mission minute, the worst case: lessons are authored and cached.
+  // Deepgram Nova-3 Monolingual streaming at its regular $0.0077/min (the
+  // $0.0048 shown is an open-ended promo) plus Keyterm Prompting at about
+  // $0.0013/min (third-party figure, unverified). Was 0.0043, a batch-era rate.
+  sttPerMin: 0.009,
+  // 2026-10-23, rates.md and session-llm-*.json: live turns on gpt-6-luna at
+  // $0.00034 a turn x ~4 turns/min = $0.0014/min, plus post-session curate,
+  // extract and drills ($0.0213 a session) over a 5-minute session =
+  // $0.0043/min. $0.0057, rounded up. Was 0.025, which priced a Claude talker.
+  llmPerMin: 0.006,
+  // 2026-10-23, rates.md: eleven_multilingual_v2 list $0.08 per 1k chars at a
+  // measured 17.0 chars/s (1,020 chars a minute of tutor speech) = $0.0816 on
+  // a 1x voice; emilie and sarah bill 2x, so the roster mean is 1.333x. Was 0.045.
+  ttsPerMin: 0.109,
   assessmentPerUtterance: 0.002,
-  // Beginners speak far less than the tutor does — at the Echo rung the tutor
-  // says every line first and the learner only repeats it. Modelling this at the
-  // 40% typical of a symmetric voice agent would understate our largest cost line.
-  tutorSpeakingShare: 0.5,
+  // 2026-10-23, rates.md: a measured mission turn speaks ~56 chars at ~4 turns
+  // a minute = 13 s of tutor speech a minute (0.22), plus an allowance for
+  // openers, narration and rescues. Was 0.5, the lesson Echo-rung assumption;
+  // lessons now replay authored lines from cache (VOICE-002).
+  tutorSpeakingShare: 0.25,
 };
 
 /**
@@ -492,10 +502,11 @@ export function planMargin(
  * against the one yearly price, after the store's cut.
  *
  * The same arithmetic as `planMargin`, with the year's windows as the
- * allowance. D16 (2026-10-05) accepted a negative worst case on yearly Max: at
- * the Small Business rate a learner who burns all 300 minutes in every window
- * costs about $208 against $194.65 received, roughly a dollar a month. That is
- * the gym bet made explicit, and meter.test.ts holds it to that size.
+ * allowance. D16 (2026-10-05) accepted a negative worst case on yearly Max at
+ * the old cost model. At the 2026-10-23 measured rates (VOICE-008) a learner
+ * who burns all 300 minutes in every window costs about $173.70 against
+ * $194.65 received at the Small Business rate, an 11% margin; at the standard
+ * 30% rate it is still about $13 under water. meter.test.ts holds both sizes.
  */
 export function yearlyPlanMargin(
   plan: PaidTier,

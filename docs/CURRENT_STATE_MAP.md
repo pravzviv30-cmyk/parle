@@ -141,7 +141,7 @@ The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, 
 - **Store facts:** `purchases/storeTrialFacts.ts` is read only to cancel the reminder; it never grants minutes or a plan.
 - **Account screens:**
   - Profile: identity, Learning, Your French and Plan groups.
-  - Learning preferences: includes the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync.
+  - Learning preferences: includes Your goal, changing or clearing `onboardingGoal` through `withOnboardingGoal` (clocked, newest-edit-wins), and the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync.
   - Settings: six groups.
   - Subscription: never says "Free" when the plan is unknown.
 - **Real purchases:** unverified until the App Store and RevenueCat setup in `REVENUECAT_SETUP.md` is done and sandbox-tested. That setup is deferred (2026-10-19) until the founder has an Apple Developer Program membership; prices are undecided.

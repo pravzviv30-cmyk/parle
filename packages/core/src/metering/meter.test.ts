@@ -258,18 +258,21 @@ describe('starting a session', () => {
 });
 
 describe('cost model', () => {
-  test('a five-minute session costs roughly thirty cents', () => {
+  test('a five-minute session costs about a quarter', () => {
+    // 2026-10-23 (VOICE-008, measured rates): $0.241. Ceiling tightened from
+    // $0.35 to $0.30; the lower bound only catches a model that lost a line.
     const cost = estimateSessionCost({ wallClockSec: 300, utterancesScored: 15 });
-    assert.ok(cost.total > 0.2 && cost.total < 0.35, `unexpected session cost $${cost.total.toFixed(3)}`);
+    assert.ok(cost.total > 0.2 && cost.total < 0.3, `unexpected session cost $${cost.total.toFixed(3)}`);
   });
 
-  test('voice and brain together are the cost; everything else is noise', () => {
-    // With the Claude talker the brain line caught up with the voice line —
-    // the two now co-dominate, and either is the first place to look if
-    // margins bite. STT and assessment stay rounding errors beside them.
+  test('the tutor voice is the dominant cost line', () => {
+    // Re-baselined 2026-10-23 (VOICE-008, measured rates). This test used to say
+    // the brain rivalled the voice, which held only while llmPerMin priced a
+    // Claude talker ($0.025). On gpt-6-luna the brain is $0.006 a minute, and
+    // TTS ($0.027 a minute at a 0.25 speaking share) is over half the bill.
     const c = estimateSessionCost({ wallClockSec: 300, utterancesScored: 15 });
-    assert.ok(c.tts + c.llm > 3 * (c.stt + c.assessment), 'voice + brain should dwarf the rest; if not, the model is wrong');
-    assert.ok(c.llm < 2 * c.tts && c.tts < 2 * c.llm, 'voice and brain should be the same order of magnitude');
+    assert.ok(c.tts > c.llm && c.tts > c.stt && c.tts > c.assessment, 'TTS should be the largest single line; if not, the model is wrong');
+    assert.ok(c.tts > 0.5 * c.total, 'voice should be over half of a minute; if not, re-read rates.md');
   });
 
   test('TTS is only charged while the tutor is actually speaking', () => {
@@ -331,33 +334,34 @@ describe('margins — the check that keeps us out of Issen’s trap', () => {
 
   test('metering inverts that — margin holds no matter how committed the learner is', () => {
     assert.ok(planMargin('starter', 1.0).worstCaseMargin > 0.4);
-    // The Claude-brain repricing squeezed the big plan hardest: a maxed-out
-    // regular learner now leaves ~33%, not 40%. Still profitable on every
-    // learner — the invariant that matters — but if this drops below 30%,
-    // the $39 price point wants revisiting before the vendor bills do it.
-    assert.ok(planMargin('regular', 1.0).worstCaseMargin > 0.3);
+    // 2026-10-23 (VOICE-008, measured rates): a maxed-out Max learner leaves
+    // 50.1% before the store fee, Core 54.3%. Floor tightened from 30% to 45%;
+    // if it drops below, the $29 price point wants revisiting before the
+    // vendor bills do it.
+    assert.ok(planMargin('regular', 1.0).worstCaseMargin > 0.45);
   });
 
   test('the weekly taste is cheap enough to give away every week (D24)', () => {
     const week = estimateSessionCost({ wallClockSec: PLANS.trial.secondsPerPeriod, utterancesScored: PLANS.trial.secondsPerPeriod / 20 });
-    // About $0.29 a week fully burned, about $1.25 a month (52/12 weeks). It
+    // About $0.24 a week fully burned, about $1.05 a month (52/12 weeks), at the
+    // 2026-10-23 rates (ceilings tightened from $0.30 and $1.30). It
     // refills forever, so this is a standing cost per free learner, not a
     // one-off acquisition cost; the ceiling is pinned here.
     const month = (week.total * 52) / 12;
-    assert.ok(week.total < 0.3, `a weekly taste costing $${week.total.toFixed(2)} is too expensive to hand out`);
-    assert.ok(month < 1.3, `a free learner now costs $${month.toFixed(2)} a month at full burn`);
+    assert.ok(week.total < 0.25, `a weekly taste costing $${week.total.toFixed(2)} is too expensive to hand out`);
+    assert.ok(month < 1.1, `a free learner now costs $${month.toFixed(2)} a month at full burn`);
   });
 });
 
 describe('margins after the store takes its cut', () => {
   // Measured from DEFAULT_COST_MODEL, not quoted from anyone: at full burn a
-  // minute costs $0.0578, so starter's 180 minutes cost $10.40 against $19 and
-  // regular's 450 cost $26.01 against $39.
+  // minute costs $0.04825 (2026-10-23, VOICE-008), so starter's 180 minutes
+  // cost $8.69 against $19 and regular's 300 cost $14.48 against $29.
   //
   // Margin here is measured against what actually reaches us. The store's
   // percentage is a deduction from revenue, not a cost of goods, so it divides
-  // as well as subtracts: at 15% starter leaves 35.6% and regular 21.5%; at 30%
-  // starter leaves 21.8% and regular 4.7%.
+  // as well as subtracts: at 15% starter leaves 46.2% and regular 41.3%; at 30%
+  // starter leaves 34.7% and regular 28.7%.
   //
   // Currency: a margin is a ratio, so it holds in any single currency provided
   // price and cost are quoted in the same one. Both are USD here. The store's
@@ -367,11 +371,12 @@ describe('margins after the store takes its cut', () => {
   const worstCase = (plan: 'starter' | 'regular', fee: number) => planMargin(plan, 1.0, DEFAULT_COST_MODEL, fee);
 
   test('both paid plans clear twenty percent worst-case margin after the small business store fee', () => {
+    // Floor tightened from 20% to 40% on 2026-10-23 (VOICE-008 measured rates).
     for (const plan of ['starter', 'regular'] as const) {
       const small = worstCase(plan, STORE_FEE_RATES.smallBusiness);
       const standard = worstCase(plan, STORE_FEE_RATES.standard);
       assert.ok(
-        small.worstCaseMargin > 0.2,
+        small.worstCaseMargin > 0.4,
         `${plan} leaves ${(small.worstCaseMargin * 100).toFixed(1)}% at the ` +
           `${(STORE_FEE_RATES.smallBusiness * 100).toFixed(0)}% Small Business rate ` +
           `($${small.worstCaseCostUsd.toFixed(2)} of vendor cost against $${small.netRevenueUsd.toFixed(2)} received). ` +
@@ -381,19 +386,20 @@ describe('margins after the store takes its cut', () => {
     }
   });
 
-  test('the standard store rate is why Small Business enrolment is a requirement, not a nicety', () => {
-    const regular = worstCase('regular', STORE_FEE_RATES.standard);
-    assert.ok(
-      regular.worstCaseMargin > 0,
-      `regular is underwater at the standard rate: $${regular.worstCaseCostUsd.toFixed(2)} of cost ` +
-        `against $${regular.netRevenueUsd.toFixed(2)} received.`,
-    );
-    assert.ok(
-      regular.worstCaseMargin < 0.2,
-      `regular now clears the twenty percent floor even at the standard rate ` +
-        `(${(regular.worstCaseMargin * 100).toFixed(1)}%). Small Business enrolment has stopped being ` +
-        `load-bearing - say that on the founder checklist rather than leaving this test to say it.`,
-    );
+  test('monthly plans clear twenty percent even at the standard store rate', () => {
+    // Re-baselined 2026-10-23 (VOICE-008, measured rates). This used to assert
+    // regular stayed below 20% at the standard rate, which held only while the
+    // cost model was high; regular now leaves 28.7% and starter 34.7%. Small
+    // Business enrolment is no longer load-bearing for a monthly plan. It still
+    // is for yearly Max, which loses at the standard rate (held below).
+    for (const plan of ['starter', 'regular'] as const) {
+      const m = worstCase(plan, STORE_FEE_RATES.standard);
+      assert.ok(
+        m.worstCaseMargin > 0.2,
+        `${plan} leaves ${(m.worstCaseMargin * 100).toFixed(1)}% at the standard rate: ` +
+          `$${m.worstCaseCostUsd.toFixed(2)} of cost against $${m.netRevenueUsd.toFixed(2)} received.`,
+      );
+    }
   });
 
   test('the modelled store rates are the ones the platforms actually charge', () => {
@@ -471,13 +477,14 @@ describe('a store free trial is a week of the plan, not a month of it (D16)', ()
   });
 
   test('a store trial used to the last second costs a few dollars, and the ceiling is pinned', () => {
-    // Measured from DEFAULT_COST_MODEL at $0.0578 a minute: about $2.43 for
-    // Starter's 42 minutes and $4.05 for Max's 70. That is acquisition cost for a
+    // Measured from DEFAULT_COST_MODEL at $0.04825 a minute (2026-10-23,
+    // VOICE-008): about $2.03 for Starter's 42 minutes and $3.38 for Max's 70
+    // (ceilings tightened from $2.50 and $4.25). That is acquisition cost for a
     // learner who never pays, on top of the free thirty minutes they already had.
     const starter = storeTrialCostUsd('starter');
     const max = storeTrialCostUsd('regular');
-    assert.ok(starter < 2.5, `a Starter trial now costs $${starter.toFixed(2)} to give away`);
-    assert.ok(max < 4.25, `a Max trial now costs $${max.toFixed(2)} to give away`);
+    assert.ok(starter < 2.1, `a Starter trial now costs $${starter.toFixed(2)} to give away`);
+    assert.ok(max < 3.5, `a Max trial now costs $${max.toFixed(2)} to give away`);
     assert.ok(max > starter);
   });
 });
@@ -545,29 +552,32 @@ describe('a yearly plan refills by the window, inside the paid year (D16)', () =
     assert.equal(YEARLY_PLANS.regular.plan, 'regular');
   });
 
-  test('yearly Max loses about a dollar a month at full use, which D16 accepted, and no more than that', () => {
-    // The modelled number, in the contract as the founder decision requires:
-    // twelve windows of 300 minutes cost $208.08 at DEFAULT_COST_MODEL against
-    // $194.65 received at the Small Business rate. That is -6.9% worst case, or
-    // about $1.12 a month on the heaviest possible learner. At the standard 30%
-    // rate the same learner costs about $3.98 a month, which is why enrolment
-    // stays a requirement. If this fails, the loss grew past what was accepted.
+  test('yearly Max pays at full use on Small Business, and loses no more than D16 accepted at the standard rate', () => {
+    // Re-baselined 2026-10-23 (VOICE-008, measured rates). D16 accepted a loss
+    // of about $1.12 a month at the Small Business rate, when twelve windows of
+    // 300 minutes cost $208.08. At $0.04825 a minute they cost $173.70 against
+    // $194.65 received: +10.8%, so that loss no longer exists and the floor
+    // here is now protective. At the standard 30% rate the same learner still
+    // costs about $1.12 a month more than arrives ($160.30), which is why
+    // enrolment stays a requirement. If either fails, say so in D16.
     const max = yearlyPlanMargin('regular', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
-    const lossPerMonth = (max.worstCaseCostUsd - max.netRevenueUsd) / 12;
+    const standard = yearlyPlanMargin('regular', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.standard);
+    const lossPerMonth = (standard.worstCaseCostUsd - standard.netRevenueUsd) / 12;
     assert.equal(max.priceUsd, 229);
     assert.ok(
       Math.abs(max.worstCaseCostUsd - 12 * planMargin('regular', 1.0).worstCaseCostUsd) < 1e-9,
       'a paid year is twelve monthly allowances',
     );
-    assert.ok(max.worstCaseMargin < 0, `yearly Max no longer loses at full use (${(max.worstCaseMargin * 100).toFixed(1)}%); say so in D16`);
-    assert.ok(lossPerMonth < 1.25, `yearly Max now loses $${lossPerMonth.toFixed(2)} a month at full use, past the dollar D16 accepted`);
+    assert.ok(max.worstCaseMargin > 0.1, `yearly Max leaves ${(max.worstCaseMargin * 100).toFixed(1)}% at full use on Small Business`);
+    assert.ok(lossPerMonth < 1.25, `yearly Max now loses $${lossPerMonth.toFixed(2)} a month at full use at the standard rate, past the dollar D16 accepted`);
   });
 
   test('yearly Starter still pays for its heaviest learner at the Small Business rate', () => {
-    // $124.85 of cost against $126.65 received: +1.4%, about fifteen cents a
-    // month. Thin, and below zero at the standard rate (-19.7%).
+    // 2026-10-23 (VOICE-008): $104.22 of cost against $126.65 received, +17.7%
+    // (floor tightened from 0% to 15%). At the standard rate it breaks even
+    // (+0.08%).
     const starter = yearlyPlanMargin('starter', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
-    assert.ok(starter.worstCaseMargin >= 0, `yearly Starter loses ${(starter.worstCaseMargin * 100).toFixed(1)}% at full use`);
+    assert.ok(starter.worstCaseMargin > 0.15, `yearly Starter loses ${(starter.worstCaseMargin * 100).toFixed(1)}% at full use`);
   });
 
   test('at realistic utilisation both yearly plans clear a healthy margin after the store fee', () => {

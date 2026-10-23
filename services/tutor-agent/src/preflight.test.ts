@@ -171,8 +171,10 @@ describe('warnings', () => {
 
   test('OpenAI preflight names configured overrides rather than claiming the default models are active', () => {
     const w = warnings({ ...FULL, TUTOR_LLM: 'openai', OPENAI_API_KEY: 'o',
-      OPENAI_TURN_MODEL: 'gpt-5.6-luna', OPENAI_ANALYST_MODEL: 'gpt-6-sol' });
+      // 2026-10-23 (VOICE-008): drills have their own override, OPENAI_DRILLS_MODEL.
+      OPENAI_TURN_MODEL: 'gpt-5.6-luna', OPENAI_ANALYST_MODEL: 'gpt-6-sol', OPENAI_DRILLS_MODEL: 'gpt-6-drills' });
     assert.equal(w.length, 1);
+    assert.match(w[0]!, /gpt-6-drills for drill authoring/);
     assert.match(w[0]!, /gpt-5\.6-luna/); assert.match(w[0]!, /gpt-6-sol/);
     assert.doesNotMatch(w[0]!, /GPT-6 Luna|gpt-5\.6-terra/);
   });
@@ -753,6 +755,18 @@ describe('verifyVendors', () => {
     assert.equal(checks[0]!.fatal, true);
     assert.match(checks[0]!.detail, /gpt-made-up/);
     assert.match(checks[0]!.detail, /OPENAI_ANALYST_MODEL/);
+  });
+
+  test('OpenAI refuses to register when OPENAI_DRILLS_MODEL names a model the key cannot use (VOICE-008)', async () => {
+    const checks = await verifyVendors(
+      { ...FULL, TUTOR_LLM: 'openai', ANTHROPIC_API_KEY: '', OPENAI_API_KEY: 'o', OPENAI_DRILLS_MODEL: 'gpt-drills-made-up' },
+      '',
+      fakeFetch({ 'api.openai.com': { status: 200, body: OPENAI_MODELS } }),
+    );
+    assert.equal(checks.length, 1);
+    assert.equal(checks[0]!.fatal, true);
+    assert.match(checks[0]!.detail, /gpt-drills-made-up/);
+    assert.match(checks[0]!.detail, /OPENAI_DRILLS_MODEL/);
   });
 });
 

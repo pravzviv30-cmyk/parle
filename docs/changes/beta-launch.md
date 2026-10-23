@@ -19,7 +19,7 @@ code side is prepared on `main`. The support address is `hello@luvani.app`.
 |---|---|---|
 | Fast live turns, quiet first rescue, streaming replies | VOICE-002, VOICE-003 | done, on `main` |
 | Pronunciation beside the turn; paid lesson quote prices scoring | VOICE-004, F863 | done, on `main`; flag `LUVANI_AUDIO_SCORING` off |
-| Missions scored on the handed-over line; convo quote prices scoring; recap focus sound | VOICE-004, F866 | on `claude/mission-scoring`, not merged; flag off |
+| Missions scored on the handed-over line; convo quote prices scoring; recap focus sound | VOICE-004, F866 | done, on `main`; flag off |
 | `live_session_finished` event (counts only) | migration 41, `apps/mobile/src/analytics/sessionFinished.ts` | done, on branch `claude/beta-instrumentation` |
 | Support address and Contact row | `apps/mobile/src/legal/company.ts` | done, same branch |
 | Beta metrics queries | [deployment/beta-metrics.sql](../../deployment/beta-metrics.sql) | done, same branch |
@@ -46,6 +46,30 @@ Each step names its proof. Stop at the first step whose proof fails.
    the first time each is said after a deploy, which is acceptable for the beta.
    To keep the cache across deploys, attach a Railway volume to `tutor`, set
    `TTS_CACHE_DIR` to a path on it, and confirm the `node` user can write there.
+
+   **Keeping the authored voice cache warm (launch blocker for the cost model).**
+   `DEFAULT_COST_MODEL` (VOICE-008) prices lessons as replaying authored lines
+   from this cache. Without the volume a lesson minute costs about $0.075, not
+   $0.048, and full-use Max nets only about $2 a month. The Dockerfile sets
+   `TTS_CACHE_DIR=/tmp/luvani-authored-cache`, so every new container starts
+   cold. To fix that:
+   - Mount a Railway volume on `tutor`, for example at `/data`.
+   - Set `TTS_CACHE_DIR=/data/luvani-authored-cache` on the service. This
+     overrides the Dockerfile default, so the Dockerfile does not change.
+   - The volume then fills itself: each authored line is paid for once per
+     voice the first time a learner hears it, and replays free after every
+     later deploy.
+   - To pay that up front, run the warm once per voice from a non-production
+     shell: `LUVANI_WARM_VOICES=all npm run warm-cache -w @luvani/tutor-agent`.
+     It refuses under `NODE_ENV=production` and prints its plan before it
+     spends anything. It writes to that shell's `TTS_CACHE_DIR`, so the files
+     then have to be copied into the volume. That copy step is not yet
+     scripted or verified.
+
+   Today's plan is 110 lines and 2,950 characters per voice, so all six
+   voices cost up to 17,700 ElevenLabs characters, once. Entries no longer
+   expire, so this only needs repeating when lesson text or a voice setting
+   changes. Changing a voice setting makes the whole cache cold again.
 5. **Spending ceilings (your decision).** Admission stays closed until you set
    finite numbers:
    - `tutor_session_admission_config`: `enabled`, `max_active_sessions`,
@@ -53,16 +77,27 @@ Each step names its proof. Stop at the first step whose proof fails.
    - `deployment/paid-budget-contract.json`: reviewed vendor quotes and per-account
      caps, applied by the SQL owner (see [PAID_ADMISSION.md](../../deployment/PAID_ADMISSION.md)).
 
-   Cost model: about $0.058 per live minute (`meter.ts`). Starting points:
+   Cost model: about $0.048 per live minute (`meter.ts`, measured rates 2026-10-23, VOICE-008). Starting points:
 
    | Setting | Suggested | Why |
    |---|---|---|
    | `max_active_sessions` | 10 | 100 testers rarely overlap more than this |
-   | `max_daily_issued_seconds` | 30,000 (500 min) | caps the worst day at about $29 |
+   | `max_daily_issued_seconds` | 30,000 (500 min) | caps the worst day at about $24 |
    | account daily seconds | 1,200 (20 min) | the beta's generous ceiling |
 
-   At 100 testers averaging 10 minutes a day, a month costs about $1,700 at full
-   use, and about $700 at a realistic 40%.
+   At 100 testers averaging 10 minutes a day, a month costs about $1,450 at full
+   use, and about $580 at a realistic 40%.
+
+   **Drills model (2026-10-23, VOICE-008).** Post-session drills now go to
+   `gpt-6-luna` (`OPENAI_DRILLS_MODEL`), not `gpt-5.6-terra`; memory extraction
+   stays on Terra. Paid admission binds the model into each quote component, so
+   before deploying this change the SQL owner must re-bind the drills `llm`
+   component of the practice quote (and of any session quote that carries a
+   drills component) to model `gpt-6-luna`, then refresh the matching
+   `LUVANI_PAID_QUOTE_BINDINGS` entry. Otherwise practice jobs are refused as
+   `quote-mismatch`. If you set `OPENAI_DRILLS_MODEL`, bind that model instead.
+   Proof: `node deployment/validatePaidBudget.mjs` passes and one practice job
+   completes on staging.
 6. **Beta minutes.** The free tier is 5 minutes a week, which is too little to
    learn from. Decide how testers get more (for example a beta grant of the Core
    plan). Product decision; no code assumes one.

@@ -10,7 +10,7 @@
  * misconfigured it.
  */
 
-import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_LIVE_MODEL, DEFAULT_OPENAI_TURN_MODEL, openAiLiveModel } from '@luvani/brain';
+import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_DRILLS_MODEL, DEFAULT_OPENAI_LIVE_MODEL, DEFAULT_OPENAI_TURN_MODEL, openAiLiveModel } from '@luvani/brain';
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
 import { ELEVEN_VOICES, MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
 import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
@@ -195,9 +195,11 @@ export function warnings(env: Env = process.env): string[] {
     const analystModel = env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL;
     const turnLabel = turnModel === DEFAULT_OPENAI_LIVE_MODEL ? `GPT-6 Luna (${turnModel})` : turnModel;
     const analystLabel = analystModel === DEFAULT_OPENAI_ANALYST_MODEL ? `GPT-5.6 Terra (${analystModel})` : analystModel;
+    const drillsModel = env.OPENAI_DRILLS_MODEL?.trim() || DEFAULT_OPENAI_DRILLS_MODEL;
+    const drillsLabel = drillsModel === DEFAULT_OPENAI_DRILLS_MODEL ? `GPT-6 Luna (${drillsModel})` : drillsModel;
     out.push(
-      `TUTOR_LLM=openai uses ${turnLabel} for live turns and scene design, and `
-        + `${analystLabel} for memory and drill authoring. Curated phrases and written checks use `
+      `TUTOR_LLM=openai uses ${turnLabel} for live turns and scene design, `
+        + `${analystLabel} for memory and ${drillsLabel} for drill authoring. Curated phrases and written checks use `
         + `${env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL}.`,
     );
   }
@@ -473,6 +475,7 @@ export async function verifyVendors(
             openAiLiveModel(env),
             env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
             env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
+            env.OPENAI_DRILLS_MODEL?.trim() || DEFAULT_OPENAI_DRILLS_MODEL,
           ];
           const missing = [...new Set(required)].filter((id) => !ids.includes(id));
           if (missing.length === 0) return null;
@@ -481,7 +484,7 @@ export async function verifyVendors(
             fatal: true,
             detail:
               `does not list the configured model${missing.length === 1 ? '' : 's'} ${missing.map((id) => `"${id}"`).join(', ')} for this key.\n` +
-              `          Check OPENAI_LIVE_MODEL, OPENAI_TURN_MODEL and OPENAI_ANALYST_MODEL in services/tutor-agent/.env.`,
+              `          Check OPENAI_LIVE_MODEL, OPENAI_TURN_MODEL, OPENAI_ANALYST_MODEL and OPENAI_DRILLS_MODEL in services/tutor-agent/.env.`,
           };
         },
       ),

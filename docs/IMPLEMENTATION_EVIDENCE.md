@@ -27,6 +27,20 @@ of the list.
   6326f51b merged in at 7c69fb0c (held, not on main): **6,270 tests, 0 failing**; core 1036,
   brain 498, tutor agent 693, token server 458, playground 26, mobile 3559; all 42 migrations
   replayed. Floors raised only through `gate:bless`.
+- 23 October 2026 main with `claude/goal-edit` merged onto the cut-cogs landing (VOICE-008 and
+  the VOICE-006 goal edit together): **6,204 tests, 0 failing**; core 936, brain 502, tutor agent
+  712, token server 458, playground 29, mobile 3567; all 42 migrations replayed. Floors set to
+  this run.
+- 23 October 2026 cost per live minute (VOICE-008: measured `DEFAULT_COST_MODEL`, drills on
+  gpt-6-luna, replay memo, durable authored voice cache, `[luvani:cost]` line) on branch
+  `claude/cut-cogs` with main 6326f51b merged in (held, not on main): **6,194 tests, 0 failing**;
+  core 936, brain 501, tutor agent 712, token server 458, playground 29, mobile 3558; all 42
+  migrations replayed. Floors raised only through `gate:bless`.
+- 23 October 2026 `claude/goal-edit` (change or clear the onboarding goal from Learning
+  preferences, clocked as the `onboardingGoal` preference field; VOICE-006 amendment) with
+  main 6326f51b merged in (held, not on main): **6,179 tests, 0 failing**; core 936, brain 499,
+  tutor agent 693, token server 458, playground 26, mobile 3567; all 42 migrations replayed.
+  Floors raised only through `gate:bless`.
 - 23 October 2026 main with `claude/speech-dataset` (VOICE-007, inert) merged onto the
   mission scoring landing (F866). The lesson's dataset clip now rides LiveScoring's `onScored`
   callback instead of the old inline scorer: **6,169 tests, 0 failing**; core 936, brain 498,
@@ -455,8 +469,9 @@ wall clock:                  108.5s
 ```
 
 Read it as a ceiling, not a bill. It prices every tutor-attended second at the full
-cascaded rate from `DEFAULT_COST_MODEL` — recogniser $0.0043/min, brain $0.025/min, voice
-$0.045/min at a 0.5 speaking share — which is what a session with a learner actually
+cascaded rate from `DEFAULT_COST_MODEL` — at the time of this run recogniser $0.0043/min, brain $0.025/min, voice
+$0.045/min at a 0.5 speaking share (corrected on 2026-10-23, VOICE-008, to $0.009, $0.006 and
+$0.109 at a 0.25 share, $0.04825 a minute in all) — which is what a session with a learner actually
 talking costs. This run published no audio and ran the tutor voiceless, so the true spend
 was lower. Transport was $0 because the harness runs its own `livekit-server`; on LiveKit
 Cloud the same run would add about $0.0011 of connection minutes.

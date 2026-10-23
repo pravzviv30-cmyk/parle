@@ -20,10 +20,8 @@ import {
   APERO_FRAME,
   CAFE_FRAME,
   AnthropicBrainClient,
-  DEFAULT_OPENAI_TURN_MODEL,
   MockLlmClient,
   OpenAiCompatBrainClient,
-  OpenAiResponsesBrainClient,
   applyNonSpokenInput,
   copyViolations,
   createConversation,
@@ -40,7 +38,8 @@ import {
 import { STUCK_SILENCE_MS } from '@luvani/core';
 
 import { EVAL_CASES, type EvalCase } from './cases.ts';
-import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
 
 const HESITATION_COMMENTARY = /take your time|don'?t worry|are you still there|no rush|no hurry|it'?s (ok|okay|fine) to/i;
 
@@ -71,15 +70,12 @@ function pickClient(): { client: LlmClient; label: string; costModel: string } {
     return {
       client: new MockLlmClient(),
       label: 'mock (pipeline check only, expect misses)',
-      costModel: DEFAULT_OPENAI_TURN_MODEL,
+      costModel: openAiEvalModel('turn'),
     };
   }
   if ((choice === 'openai' || (choice === '' && !anthropicKey)) && openaiKey) {
-    return {
-      client: new OpenAiResponsesBrainClient({ apiKey: openaiKey }),
-      label: `${DEFAULT_OPENAI_TURN_MODEL} · OpenAI Responses`,
-      costModel: DEFAULT_OPENAI_TURN_MODEL,
-    };
+    const { client, costModel } = openAiEvalClient('turn', openaiKey);
+    return { client, label: `${costModel} · OpenAI Responses`, costModel };
   }
   if ((choice === 'anthropic' || choice === '') && anthropicKey) {
     return {
@@ -252,7 +248,7 @@ async function main(): Promise<void> {
   console.log(
     `${results.length - hardFailures.length - misses.length} ok · ${misses.length} expectation misses (judgment calls, read the transcripts) · ${hardFailures.length} hard failures`,
   );
-  console.log(`cost: ~$${costUsd(totals, costModel).toFixed(2)} for the run\n`);
+  console.log(`cost: ~$${evalCostUsd(totals, costModel).toFixed(2)} for the run\n`);
 
   process.exit(hardFailures.length > 0 ? 1 : 0);
 }

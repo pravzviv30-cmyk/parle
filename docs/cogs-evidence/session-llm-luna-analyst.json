@@ -1,0 +1,559 @@
+{
+  "startedAt": "2026-10-22T22:17:06.064Z",
+  "label": "luna-analyst",
+  "syntheticOnly": true,
+  "mission": "mission:premier-cafe",
+  "learnerTurns": 9,
+  "models": {
+    "turn": "gpt-6-luna",
+    "curate": "gpt-5.6-luna",
+    "extract": "gpt-6-luna",
+    "drills": "gpt-6-luna"
+  },
+  "spendUsd": 0.008955,
+  "byKind": {
+    "turn": 0.002298,
+    "curate": 0.000946,
+    "extract": 0.000705,
+    "drills": 0.005005
+  },
+  "spokenCharsPerTurn": 45.9,
+  "calls": [
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 282,
+      "cacheReadTokens": 6429,
+      "cacheWriteTokens": 0,
+      "outputTokens": 276,
+      "usd": 0.00023,
+      "spokenChars": 40
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 278,
+      "cacheReadTokens": 6429,
+      "cacheWriteTokens": 55,
+      "outputTokens": 377,
+      "usd": 0.000287,
+      "spokenChars": 25
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 278,
+      "cacheReadTokens": 6484,
+      "cacheWriteTokens": 102,
+      "outputTokens": 322,
+      "usd": 0.000266,
+      "spokenChars": 45
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 311,
+      "cacheReadTokens": 6586,
+      "cacheWriteTokens": 65,
+      "outputTokens": 231,
+      "usd": 0.000221,
+      "spokenChars": 45
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 282,
+      "cacheReadTokens": 6651,
+      "cacheWriteTokens": 37,
+      "outputTokens": 390,
+      "usd": 0.000294,
+      "spokenChars": 111
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 327,
+      "cacheReadTokens": 6688,
+      "cacheWriteTokens": 122,
+      "outputTokens": 257,
+      "usd": 0.000243,
+      "spokenChars": 38
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 278,
+      "cacheReadTokens": 6810,
+      "cacheWriteTokens": 45,
+      "outputTokens": 307,
+      "usd": 0.000255,
+      "spokenChars": 30
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 282,
+      "cacheReadTokens": 6855,
+      "cacheWriteTokens": 77,
+      "outputTokens": 312,
+      "usd": 0.000262,
+      "spokenChars": 44
+    },
+    {
+      "kind": "turn",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 282,
+      "cacheReadTokens": 6932,
+      "cacheWriteTokens": 60,
+      "outputTokens": 269,
+      "usd": 0.00024,
+      "spokenChars": 35
+    },
+    {
+      "kind": "curate",
+      "model": "gpt-5.6-luna",
+      "exact": true,
+      "inputTokens": 3,
+      "cacheReadTokens": 4185,
+      "cacheWriteTokens": 514,
+      "outputTokens": 611,
+      "usd": 0.000946
+    },
+    {
+      "kind": "extract",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 3,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 5300,
+      "outputTokens": 84,
+      "usd": 0.000705
+    },
+    {
+      "kind": "drills",
+      "model": "gpt-6-luna",
+      "exact": true,
+      "inputTokens": 3,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 5544,
+      "outputTokens": 8623,
+      "usd": 0.005005,
+      "exercises": 14
+    }
+  ],
+  "spoken": [
+    {
+      "fr": "Bonjour ! Qu'est-ce que vous souhaitez ?",
+      "coachLine": null,
+      "chars": 40
+    },
+    {
+      "fr": "Sur place ou à emporter ?",
+      "coachLine": null,
+      "chars": 25
+    },
+    {
+      "fr": "Ça marche. C’est deux euros, s’il vous plaît.",
+      "coachLine": null,
+      "chars": 45
+    },
+    {
+      "fr": "Ça marche. C’est deux euros, s’il vous plaît.",
+      "coachLine": null,
+      "chars": 45
+    },
+    {
+      "fr": "Bien sûr. Vous le prenez sur place ou à emporter ?",
+      "coachLine": "You’re asking for milk; say « s’il vous plaît » for “please.”",
+      "chars": 111
+    },
+    {
+      "fr": "Bien sûr. C’est trois euros cinquante.",
+      "coachLine": null,
+      "chars": 38
+    },
+    {
+      "fr": "Ça fait trois euros cinquante.",
+      "coachLine": null,
+      "chars": 30
+    },
+    {
+      "fr": "Bien sûr. Vous prenez votre café sur place ?",
+      "coachLine": null,
+      "chars": 44
+    },
+    {
+      "fr": "Merci, bonne journée à vous aussi !",
+      "coachLine": null,
+      "chars": 35
+    }
+  ],
+  "curation": {
+    "topics": [
+      {
+        "titleEn": "Your first coffee",
+        "titleFr": "Le premier café",
+        "phraseFr": [
+          "Bonjour, je voudrais un café, s'il vous plaît.",
+          "Sur place, merci.",
+          "Avec du lait, s’il vous plaît.",
+          "C’est combien ?",
+          "par carte, s’il vous plaît"
+        ],
+        "extensions": [
+          {
+            "fr": "À emporter, s'il vous plaît.",
+            "frWritten": null,
+            "en": "To go, please.",
+            "enLiteral": null,
+            "register": "courant",
+            "note": null
+          },
+          {
+            "fr": "Sans sucre, s'il vous plaît.",
+            "frWritten": null,
+            "en": "Without sugar, please.",
+            "enLiteral": null,
+            "register": "courant",
+            "note": null
+          }
+        ]
+      }
+    ]
+  },
+  "extraction": {
+    "facts": [],
+    "openerFr": null,
+    "openerEn": null
+  },
+  "drills": [
+    {
+      "kind": "best-sentence",
+      "id": "gen:phrase:qu'est-ce que vous souhaitez ?:best-sentence",
+      "phraseKey": "phrase:qu'est-ce que vous souhaitez ?",
+      "transfer": false,
+      "difficulty": "recognition",
+      "prompt": "At a café counter, which line asks what you would like?",
+      "candidates": [
+        {
+          "fr": "Qu'est-ce que vous souhaitez ?",
+          "en": "What would you like?"
+        },
+        {
+          "fr": "Vous souhaitez payer ?",
+          "en": "Would you like to pay?"
+        },
+        {
+          "fr": "Vous avez déjà commandé ?",
+          "en": "Have you already ordered?"
+        }
+      ],
+      "correctIndex": 0
+    },
+    {
+      "kind": "fill-blank",
+      "id": "gen:phrase:qu'est-ce que vous souhaitez ?:fill-blank",
+      "phraseKey": "phrase:qu'est-ce que vous souhaitez ?",
+      "transfer": false,
+      "difficulty": "production",
+      "sentence": "Au comptoir, le barista vous accueille et demande : « ___ »",
+      "options": null,
+      "accepted": [
+        "Qu'est-ce que vous souhaitez ?",
+        "Vous souhaitez quoi ?",
+        "Qu'est-ce que vous désirez ?",
+        "Vous désirez quoi ?",
+        "Vous prendrez quoi ?",
+        "Je vous sers quoi ?"
+      ],
+      "en": "What would you like?"
+    },
+    {
+      "kind": "repeat-this",
+      "id": "gen:phrase:qu'est-ce que vous souhaitez ?:repeat-this",
+      "phraseKey": "phrase:qu'est-ce que vous souhaitez ?",
+      "transfer": false,
+      "difficulty": "production",
+      "reference": "Qu'est-ce que vous souhaitez ?",
+      "referenceEn": "What would you like?",
+      "ipa": null,
+      "noMicTwin": {
+        "kind": "listen-type",
+        "id": "gen:phrase:qu'est-ce que vous souhaitez ?:listen-type",
+        "phraseKey": "phrase:qu'est-ce que vous souhaitez ?",
+        "transfer": false,
+        "difficulty": "production",
+        "fr": "Qu'est-ce que vous souhaitez ?",
+        "accepted": [
+          "Qu'est-ce que vous souhaitez ?",
+          "Vous souhaitez quoi ?",
+          "Qu'est-ce que vous désirez ?",
+          "Vous désirez quoi ?",
+          "Vous prendrez quoi ?",
+          "Je vous sers quoi ?"
+        ]
+      }
+    },
+    {
+      "kind": "tap-translate",
+      "id": "gen:phrase:bonjour, je voudrais un café, s'il vous plaît.:tap-translate",
+      "phraseKey": "phrase:bonjour, je voudrais un café, s'il vous plaît.",
+      "transfer": true,
+      "difficulty": "recognition",
+      "en": "At a station café, say: Hello, I would like a coffee, please.",
+      "tokens": [
+        "Bonjour,",
+        "je",
+        "voudrais",
+        "un",
+        "café,",
+        "s'il",
+        "vous",
+        "plaît.",
+        "thé,",
+        "merci."
+      ],
+      "accepted": [
+        "Bonjour, je voudrais un café, s'il vous plaît.",
+        "Bonjour, je voudrais un café s'il vous plaît.",
+        "Bonjour, un café, s'il vous plaît.",
+        "Je voudrais un café, s'il vous plaît.",
+        "Bonjour, je prends un café, s'il vous plaît."
+      ]
+    },
+    {
+      "kind": "fill-blank",
+      "id": "gen:phrase:bonjour, je voudrais un café, s'il vous plaît.:fill-blank",
+      "phraseKey": "phrase:bonjour, je voudrais un café, s'il vous plaît.",
+      "transfer": false,
+      "difficulty": "production",
+      "sentence": "Vous commandez au café : « ___ »",
+      "options": null,
+      "accepted": [
+        "Bonjour, je voudrais un café, s'il vous plaît.",
+        "Bonjour, je voudrais un café s'il vous plaît.",
+        "Bonjour, un café, s'il vous plaît.",
+        "Je voudrais un café, s'il vous plaît.",
+        "Bonjour, je prends un café, s'il vous plaît."
+      ],
+      "en": "Hello, I would like a coffee, please."
+    },
+    {
+      "kind": "repeat-this",
+      "id": "gen:phrase:bonjour, je voudrais un café, s'il vous plaît.:repeat-this",
+      "phraseKey": "phrase:bonjour, je voudrais un café, s'il vous plaît.",
+      "transfer": false,
+      "difficulty": "production",
+      "reference": "Bonjour, je voudrais un café, s'il vous plaît.",
+      "referenceEn": "Hello, I would like a coffee, please.",
+      "ipa": null,
+      "noMicTwin": {
+        "kind": "listen-type",
+        "id": "gen:phrase:bonjour, je voudrais un café, s'il vous plaît.:listen-type",
+        "phraseKey": "phrase:bonjour, je voudrais un café, s'il vous plaît.",
+        "transfer": false,
+        "difficulty": "production",
+        "fr": "Bonjour, je voudrais un café, s'il vous plaît.",
+        "accepted": [
+          "Bonjour, je voudrais un café, s'il vous plaît.",
+          "Bonjour, je voudrais un café s'il vous plaît.",
+          "Bonjour, un café, s'il vous plaît.",
+          "Je voudrais un café, s'il vous plaît.",
+          "Bonjour, je prends un café, s'il vous plaît."
+        ]
+      }
+    },
+    {
+      "kind": "best-sentence",
+      "id": "gen:phrase:sur place ou à emporter ?:best-sentence",
+      "phraseKey": "phrase:sur place ou à emporter ?",
+      "transfer": true,
+      "difficulty": "recognition",
+      "prompt": "At a bakery, the clerk asks whether you want to eat your pastry there or take it away. Which line means that?",
+      "candidates": [
+        {
+          "fr": "Sur place ou à emporter ?",
+          "en": "For here or to go?"
+        },
+        {
+          "fr": "Vous voulez autre chose ?",
+          "en": "Would you like anything else?"
+        },
+        {
+          "fr": "Vous payez comment ?",
+          "en": "How are you paying?"
+        }
+      ],
+      "correctIndex": 0
+    },
+    {
+      "kind": "appropriate-reply",
+      "id": "gen:phrase:sur place ou à emporter ?:appropriate-reply",
+      "phraseKey": "phrase:sur place ou à emporter ?",
+      "transfer": true,
+      "difficulty": "recognition",
+      "line": {
+        "speaker": "Vendeuse à la boulangerie",
+        "fr": "Sur place ou à emporter ?",
+        "en": "For here or to go?"
+      },
+      "options": [
+        {
+          "fr": "À emporter, s'il vous plaît.",
+          "en": "To go, please."
+        },
+        {
+          "fr": "Sur place, merci.",
+          "en": "For here, thanks."
+        },
+        {
+          "fr": "Je voudrais une baguette.",
+          "en": "I would like a baguette."
+        }
+      ],
+      "acceptableIndexes": [
+        0,
+        1
+      ]
+    },
+    {
+      "kind": "tap-translate",
+      "id": "gen:phrase:sur place, merci.:tap-translate",
+      "phraseKey": "phrase:sur place, merci.",
+      "transfer": false,
+      "difficulty": "recognition",
+      "en": "For here, thanks.",
+      "tokens": [
+        "Sur",
+        "place,",
+        "merci.",
+        "à",
+        "emporter"
+      ],
+      "accepted": [
+        "Sur place, merci.",
+        "Sur place merci.",
+        "Ici, merci.",
+        "Je reste ici, merci.",
+        "Sur place, s'il vous plaît."
+      ]
+    },
+    {
+      "kind": "fill-blank",
+      "id": "gen:phrase:sur place, merci.:fill-blank",
+      "phraseKey": "phrase:sur place, merci.",
+      "transfer": true,
+      "difficulty": "production",
+      "sentence": "À la pâtisserie, la vendeuse vous propose de manger votre tarte ici. Vous répondez : « ___ »",
+      "options": null,
+      "accepted": [
+        "Sur place, merci.",
+        "Sur place merci.",
+        "Ici, merci.",
+        "Je reste ici, merci.",
+        "Sur place, s'il vous plaît."
+      ],
+      "en": "For here, thanks."
+    },
+    {
+      "kind": "repeat-this",
+      "id": "gen:phrase:sur place, merci.:repeat-this",
+      "phraseKey": "phrase:sur place, merci.",
+      "transfer": false,
+      "difficulty": "production",
+      "reference": "Sur place, merci.",
+      "referenceEn": "For here, thanks.",
+      "ipa": null,
+      "noMicTwin": {
+        "kind": "listen-type",
+        "id": "gen:phrase:sur place, merci.:listen-type",
+        "phraseKey": "phrase:sur place, merci.",
+        "transfer": false,
+        "difficulty": "production",
+        "fr": "Sur place, merci.",
+        "accepted": [
+          "Sur place, merci.",
+          "Sur place merci.",
+          "Ici, merci.",
+          "Je reste ici, merci.",
+          "Sur place, s'il vous plaît."
+        ]
+      }
+    },
+    {
+      "kind": "best-sentence",
+      "id": "gen:phrase:ça marche.:best-sentence",
+      "phraseKey": "phrase:ça marche.",
+      "transfer": true,
+      "difficulty": "recognition",
+      "prompt": "A friend confirms your coffee plans. Which phrase naturally means “All right, sounds good”?",
+      "candidates": [
+        {
+          "fr": "Ça marche.",
+          "en": "All right, sounds good."
+        },
+        {
+          "fr": "Je voudrais un café.",
+          "en": "I would like a coffee."
+        },
+        {
+          "fr": "Sur place, merci.",
+          "en": "For here, thanks."
+        }
+      ],
+      "correctIndex": 0
+    },
+    {
+      "kind": "fill-blank",
+      "id": "gen:phrase:ça marche.:fill-blank",
+      "phraseKey": "phrase:ça marche.",
+      "transfer": true,
+      "difficulty": "production",
+      "sentence": "À la boulangerie, la vendeuse confirme qu'elle prépare votre commande à emporter. Vous répondez : « ___ »",
+      "options": null,
+      "accepted": [
+        "Ça marche.",
+        "Oui, ça marche.",
+        "Ça marche pour moi.",
+        "D'accord, ça marche.",
+        "Ça me va."
+      ],
+      "en": "All right, sounds good."
+    },
+    {
+      "kind": "repeat-this",
+      "id": "gen:phrase:ça marche.:repeat-this",
+      "phraseKey": "phrase:ça marche.",
+      "transfer": false,
+      "difficulty": "production",
+      "reference": "Ça marche.",
+      "referenceEn": "All right, sounds good.",
+      "ipa": null,
+      "noMicTwin": {
+        "kind": "listen-type",
+        "id": "gen:phrase:ça marche.:listen-type",
+        "phraseKey": "phrase:ça marche.",
+        "transfer": false,
+        "difficulty": "production",
+        "fr": "Ça marche.",
+        "accepted": [
+          "Ça marche.",
+          "Oui, ça marche.",
+          "Ça marche pour moi.",
+          "D'accord, ça marche.",
+          "Ça me va."
+        ]
+      }
+    }
+  ],
+  "costNote": "Standard-tier list price from pricing.ts. Turns are sequential on one learner, so later turns read the prompt cache as the worker does."
+}

@@ -4,13 +4,14 @@ import { existsSync, lstatSync, mkdtempSync, writeFileSync, readdirSync, symlink
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AudioFrame } from '@livekit/rtc-node';
-import { initializeLogger, tts } from '@livekit/agents';
+import { initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agents';
 
 // The worker CLI does this in production; tests must do it themselves before any
 // ChunkedStream is constructed.
 initializeLogger({ pretty: false, level: 'silent' });
 
-import { CachedTTS, normaliseLine } from './ttsCache.ts';
+import { CachedTTS, formatCostLine, normaliseLine } from './ttsCache.ts';
+import { CONVO_LINES } from './authoredSpeech.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
 import { encodeWav, decodeWav } from './wav.ts';
 import { readFileSync } from 'node:fs';
@@ -353,11 +354,13 @@ describe('normalisation', () => {
 });
 
 describe('authored-only bounded persistence', () => {
-  test('a short private model reply is synthesized live every time and never persisted', async () => {
+  test('a short private model reply is never persisted; a repeat in the same session replays from memory', async () => {
     const privateReply = 'Votre rendez-vous privé avec Camille est mardi.';
     await pcmOf(synth(cached, privateReply));
     await pcmOf(synth(cached, privateReply));
-    assert.equal(fake.calls, 2);
+    assert.equal(fake.calls, 1);
+    assert.equal(cached.memoHits, 1);
+    assert.equal(cached.hits, 0, 'a memo replay is not a disk hit');
     assert.equal(existsSync(cached.cachePath(privateReply)), false);
     assert.deepEqual(readdirSync(dir), []);
   });
@@ -399,15 +402,47 @@ describe('authored-only bounded persistence', () => {
     await next.close();
   });
 
-  test('expired audio and entries above the byte ceiling are not replayed or retained', async () => {
-    await pcmOf(synth(cached, 'Bonjour !'));
+  test('authored audio never expires, and entries above the byte ceiling are not retained', async () => {
+    const first = await pcmOf(synth(cached, 'Bonjour !'));
     utimesSync(cached.cachePath('Bonjour !'), new Date(0), new Date(0));
-    await pcmOf(synth(cached, 'Bonjour !'));
-    assert.equal(fake.calls, 2);
+    // A fresh instance runs the startup sweep over the ancient file too.
+    const later = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+    for (let i = 0; i < 4; i++) later.maintain();
+    assert.deepEqual(await pcmOf(synth(later, 'Bonjour !')), first);
+    assert.equal(fake.calls, 1, 'an old authored entry is still the right audio, so it replays');
+    await later.close();
     const small = new CachedTTS(fake, { dir: join(dir, 'small'), voiceKey: 'test-voice', maxEntryBytes: 128 });
     await pcmOf(synth(small, 'Bonjour !')); await pcmOf(synth(small, 'Bonjour !'));
     assert.equal(existsSync(small.cachePath('Bonjour !')), false);
     await small.close();
+  });
+
+  test('the old 1,024-slot files are swept; current slot WAVs are kept however old', async () => {
+    await pcmOf(synth(cached, 'Bonjour !'));
+    const current = cached.cachePath('Bonjour !');
+    utimesSync(current, new Date(0), new Date(0));
+    const old = join(cached.cacheDirectory, '0042.wav');
+    writeFileSync(old, 'old-layout');
+    const next = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+    for (let i = 0; i < 4; i++) next.maintain();
+    assert.equal(existsSync(old), false);
+    assert.equal(existsSync(current), true);
+    assert.match(current, /\/\d{5}\.wav$/);
+    await next.close();
+  });
+
+  test('the old four-digit slot files are swept, current five-digit WAVs are kept', async () => {
+    await pcmOf(synth(cached, 'Bonjour !'));
+    const kept = cached.cachePath('Bonjour !');
+    assert.match(kept, /\d{5}\.wav$/);
+    const old = join(cached.cacheDirectory, '0001.wav');
+    writeFileSync(old, 'old-layout');
+    utimesSync(kept, new Date(0), new Date(0));
+    const next = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+    for (let i = 0; i < 4; i++) next.maintain();
+    assert.equal(existsSync(old), false);
+    assert.equal(existsSync(kept), true);
+    await next.close();
   });
 
   test('an occupied slot temporary file cannot be clobbered by another job', async () => {
@@ -471,5 +506,192 @@ describe('the warm-cache script demands the selected vendor key', () => {
     assert.equal(eleven.status, 1, 'and the default vendor is still ElevenLabs');
     assert.match(eleven.err, /ELEVEN_API_KEY is empty/, 'refusing over its own key');
     assert.doesNotMatch(eleven.err, /FISH_API_KEY/, 'and only its own');
+  });
+});
+
+/** Frames with their boundaries, so "identical" means the same packets, not just the same PCM. */
+async function framesOf(stream: tts.ChunkedStream): Promise<{ data: number[]; rate: number; channels: number; final: boolean }[]> {
+  const out: { data: number[]; rate: number; channels: number; final: boolean }[] = [];
+  for await (const packet of stream) out.push({ data: [...packet.frame.data], rate: packet.frame.sampleRate, channels: packet.frame.channels, final: packet.final });
+  return out;
+}
+
+// Free-conversation lines: not on the authored list, so never on disk.
+const REPLY = 'Tu aimes le jazz ?';
+const GLOSS = 'Do you like jazz?';
+const OTHER = 'Moi, je préfère le rock.';
+/** rampFrames makes two 160-sample mono frames per line: 640 bytes. */
+const LINE_BYTES = 640;
+
+describe('the per-session replay memo', () => {
+  test('a repeated free-conversation line replays from memory with identical frames', async () => {
+    const first = await framesOf(synth(cached, REPLY));
+    const again = await framesOf(synth(cached, REPLY));
+    assert.equal(fake.calls, 1, 'the vendor is paid once per session for a line heard twice');
+    assert.equal(cached.memoHits, 1);
+    assert.equal(cached.hits, 0);
+    assert.deepEqual(again, first, 'same samples, same frame boundaries, same final marker');
+    assert.equal(readdirSync(dir).length, 0, 'the memo never touches disk');
+    assert.deepEqual([cached.charsBilled, cached.charsCached, cached.charsReplayed], [REPLY.length, 0, REPLY.length]);
+  });
+
+  test('also replays over the websocket transport', async () => {
+    const ws = new CachedTTS(fake, { dir, voiceKey: 'test-voice', missTransport: 'ws' });
+    const first = await framesOf(synth(ws, REPLY));
+    assert.deepEqual(await framesOf(synth(ws, REPLY)), first);
+    assert.equal(fake.streamCalls, 1);
+    assert.equal(ws.memoHits, 1);
+    await ws.close();
+  });
+
+  test('a different text, voice, model, setting or speed never matches', async () => {
+    await pcmOf(synth(cached, REPLY));
+    await pcmOf(synth(cached, GLOSS));
+    assert.equal(fake.calls, 2, 'another line is another synthesis');
+    // The voice key carries vendor, voice id, model and the settings
+    // fingerprint (speed included), exactly as the disk cache does.
+    const slower = new CachedTTS(fake, { dir, voiceKey: 'test-voice:speed=0.85' });
+    await pcmOf(synth(slower, REPLY));
+    assert.equal(fake.calls, 3, 'a slower setting must keep producing its own synthesis');
+    assert.equal(slower.memoHits, 0);
+    assert.notEqual(slower.fingerprint(REPLY), cached.fingerprint(REPLY));
+    await slower.close();
+  });
+
+  test('evicts the least recently used line once the line cap is reached', async () => {
+    const memo = new CachedTTS(fake, { dir, voiceKey: 'test-voice', memoMaxLines: 2 });
+    await pcmOf(synth(memo, REPLY)); await pcmOf(synth(memo, GLOSS));
+    await pcmOf(synth(memo, REPLY)); // touch: GLOSS is now the oldest
+    await pcmOf(synth(memo, OTHER)); // evicts GLOSS
+    assert.equal(memo.memo.size, 2);
+    const calls = fake.calls;
+    await pcmOf(synth(memo, REPLY)); await pcmOf(synth(memo, OTHER));
+    assert.equal(fake.calls, calls, 'the two most recent lines are still remembered');
+    await pcmOf(synth(memo, GLOSS));
+    assert.equal(fake.calls, calls + 1, 'the least recently used line was evicted');
+    await memo.close();
+  });
+
+  test('evicts by bytes, and never stores a line larger than the whole memo', async () => {
+    const memo = new CachedTTS(fake, { dir, voiceKey: 'test-voice', memoMaxBytes: LINE_BYTES * 2 + 10 });
+    await pcmOf(synth(memo, REPLY)); await pcmOf(synth(memo, GLOSS)); await pcmOf(synth(memo, OTHER));
+    assert.equal(memo.memo.size, 2);
+    assert.ok(memo.memo.bytes <= LINE_BYTES * 2 + 10);
+    const calls = fake.calls;
+    await pcmOf(synth(memo, REPLY));
+    assert.equal(fake.calls, calls + 1, 'the oldest line made room for the newest');
+
+    const tiny = new CachedTTS(fake, { dir, voiceKey: 'test-voice', memoMaxBytes: LINE_BYTES - 1 });
+    await pcmOf(synth(tiny, REPLY)); await pcmOf(synth(tiny, REPLY));
+    assert.equal(tiny.memoHits, 0);
+    assert.equal(tiny.memo.size, 0);
+    await memo.close(); await tiny.close();
+  });
+
+  test('an interrupted line is never remembered (http)', async () => {
+    const abort = new AbortController();
+    const stream = cached.synthesize(REPLY, NO_RETRY, abort.signal);
+    const before = await stream.next();
+    assert.ok(!before.done);
+    abort.abort();
+    for await (const packet of stream) void packet;
+    assert.equal(cached.memo.size, 0);
+    await pcmOf(synth(cached, REPLY));
+    assert.equal(fake.calls, 2, 'the cut-off line is synthesized again, whole');
+    assert.equal(cached.memoHits, 0);
+  });
+
+  test('a barged-in websocket line is never remembered', async () => {
+    const ws = new CachedTTS(fake, { dir, voiceKey: 'test-voice', missTransport: 'ws' });
+    fake.stallStreams = true;
+    const abort = new AbortController();
+    const stream = ws.synthesize(REPLY, NO_RETRY, abort.signal);
+    assert.ok(!(await stream.next()).done);
+    abort.abort();
+    for await (const packet of stream) void packet;
+    assert.equal(ws.memo.size, 0);
+    await ws.close();
+  });
+
+  test('a failed synthesis is never remembered, on either transport', async () => {
+    for (const missTransport of ['http', 'ws'] as const) {
+      const memo = new CachedTTS(fake, { dir, voiceKey: 'test-voice', missTransport });
+      fake.failNext = true;
+      await pcmOf(synth(memo, REPLY));
+      fake.failNext = false;
+      assert.equal(memo.memo.size, 0, missTransport);
+      assert.ok((await pcmOf(synth(memo, REPLY))).length > 0);
+      assert.equal(memo.memoHits, 0, missTransport);
+      await memo.close();
+    }
+  });
+
+  test('each session has its own memo, and ending the session clears it', async () => {
+    await pcmOf(synth(cached, REPLY));
+    const otherSession = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+    await pcmOf(synth(otherSession, REPLY));
+    assert.equal(fake.calls, 2, 'another learner never hears this session\'s audio');
+    assert.equal(otherSession.memoHits, 0);
+    otherSession.clearReplayMemo();
+    assert.equal(otherSession.memo.size, 0);
+    await otherSession.close();
+    await cached.close();
+    assert.equal(cached.memo.size, 0, 'closing drops the audio');
+  });
+
+  test('a caller mutating the replayed frames cannot change the next replay', async () => {
+    const first = await pcmOf(synth(cached, REPLY));
+    for await (const packet of synth(cached, REPLY)) packet.frame.data.fill(0);
+    assert.deepEqual(await pcmOf(synth(cached, REPLY)), first);
+  });
+
+  test('authored lines stay on disk and do not enter the memo', async () => {
+    await pcmOf(synth(cached, CONVO_LINES.carryOn.fr));
+    await pcmOf(synth(cached, CONVO_LINES.carryOn.fr));
+    assert.equal(cached.hits, 1);
+    assert.equal(cached.memoHits, 0);
+    assert.equal(cached.memo.size, 0);
+    assert.equal(cached.charsCached, CONVO_LINES.carryOn.fr.length);
+  });
+});
+
+describe('the per-session cost line', () => {
+  test('is numbers only, keyed by the same 8-hex prefix as the brain summary', async () => {
+    await pcmOf(synth(cached, REPLY)); await pcmOf(synth(cached, REPLY));
+    await pcmOf(synth(cached, CONVO_LINES.carryOn.en)); await pcmOf(synth(cached, CONVO_LINES.carryOn.en));
+    const line = formatCostLine({ sessionId: '1A2B3C4D-0000-4000-8000-000000000000', tts: cached, sttSec: 61.25 });
+    const b = REPLY.length + CONVO_LINES.carryOn.en.length;
+    assert.equal(line, `[luvani:cost] session=1a2b3c4d ttsCharsBilled=${b} ttsCharsCached=${CONVO_LINES.carryOn.en.length} ttsCharsReplayed=${REPLY.length} sttSec=61.3`);
+    assert.match(line, /^\[luvani:cost\](?: [a-zA-Z]+=[0-9a-f.]+)+$/);
+    for (const word of ['jazz', 'aimes', 'keep', 'listening']) assert.ok(!line.includes(word), `learner-facing text leaked: ${word}`);
+  });
+
+  test('omits what it cannot measure rather than printing zero', () => {
+    assert.equal(formatCostLine({ tts: null, sttSec: null }), '[luvani:cost] ttsCharsBilled=0 ttsCharsCached=0 ttsCharsReplayed=0');
+    assert.ok(!formatCostLine({ sessionId: 'room-with-a-name' }).includes('session='));
+  });
+
+  test('the agent prints it once per session, next to the voice cache line', () => {
+    const agent = readFileSync(new URL('./agent.ts', import.meta.url).pathname, 'utf8');
+    assert.equal(agent.match(/formatCostLine\(/g)?.length, 1);
+    assert.match(agent, /formatCostLine\(\{ sessionId: tutor\.sessionId, tts: voiceTts, sttSec: stt \? sttAudioMs \/ 1000 : null \}\)/);
+    assert.match(agent, /m\.type === 'stt_metrics'[^\n]*sttAudioMs \+= m\.audioDurationMs/);
+  });
+});
+
+describe('the warm run warms exactly the authored list', () => {
+  test('warmCache.ts takes its lines from authoredSpeech.ts and keeps no list of its own', () => {
+    // Reading the source because importing the script runs its paid main().
+    const source = readFileSync(new URL('./warmCache.ts', import.meta.url).pathname, 'utf8');
+    assert.match(source, /function scriptedLines\(\): string\[\] \{\s*return \[\.\.\.AUTHORED_SPEECH_LINES\];\s*\}/);
+    assert.doesNotMatch(source, /LESSONS|CONVO_LINES|tokenize/, 'a second list would drift from the runtime one');
+    assert.match(source, /assertDevelopmentPaidTool\(\)/, 'the production refusal stays');
+    assert.match(source, /warmPlanLine\(cost\)/, 'the billed-character plan still prints before spending');
+  });
+
+  test('the authored list includes the carry-on lines the old warm list missed', () => {
+    for (const line of [CONVO_LINES.carryOn.fr, CONVO_LINES.carryOn.en]) {
+      for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);
+    }
   });
 });

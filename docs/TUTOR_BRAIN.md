@@ -55,13 +55,17 @@ OPENAI_API_KEY=your_standard_openai_api_key
 OPENAI_LIVE_MODEL=gpt-6-luna
 # OPENAI_TURN_MODEL=gpt-5.6-luna
 # OPENAI_ANALYST_MODEL=gpt-5.6-terra
+# OPENAI_DRILLS_MODEL=gpt-6-luna
 ```
 
 There is no separate GPT Luna credential. Luna and Terra use the normal OpenAI
 API key. The implementation uses the Responses API with strict JSON schemas:
 GPT-6 Luna handles live turns and scene design. GPT-5.6 Luna retains curated
-phrases and written checks; GPT-5.6 Terra retains memory extraction and drill
-authoring. `OPENAI_LIVE_MODEL` changes only live turns and scenes. For compatibility,
+phrases and written checks; GPT-5.6 Terra retains memory extraction. Since
+23 October 2026, drill authoring runs on GPT-6 Luna (`OPENAI_DRILLS_MODEL`; drill eval
+25/25 clean, about $0.005 instead of $0.086 a session; VOICE-008 in `DECISIONS.md`,
+evidence in `docs/cogs-evidence/`). `OPENAI_ANALYST_MODEL` moves extraction only, not
+drills. `OPENAI_LIVE_MODEL` changes only live turns and scenes. For compatibility,
 an explicit `OPENAI_TURN_MODEL` also controls those calls when no live override is
 set; it always controls the existing fast curation and judge roles.
 GPT-6 Luna is the founder-selected live brain as of
@@ -150,7 +154,7 @@ Current list prices used for planning:
 
 | route | input / million tokens | output / million tokens |
 |---|---:|---:|
-| GPT-6 Luna (live turns/scenes) | $0.10 | $0.50 |
+| GPT-6 Luna (live turns/scenes, drills) | $0.10 | $0.50 |
 | GPT-5.6 Luna (curation/written checks) | $0.20 | $1.20 |
 | GPT-5.6 Terra | $2.00 | $12.00 |
 | Claude Haiku 4.5 | $1.00 | $5.00 |

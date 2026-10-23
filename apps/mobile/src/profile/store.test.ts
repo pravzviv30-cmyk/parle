@@ -24,6 +24,7 @@ import {
   saveProfile,
   withDailyGoal,
   withName,
+  withOnboardingGoal,
   withPreferTyping,
   withTutorVoice,
   type StoredProfile,
@@ -262,5 +263,30 @@ describe('preferring typing — one field, one write path', () => {
     const again = await loadProfile();
     assert.ok(again);
     assert.equal(again.preferTyping, false, 'turning it back off was lost');
+  });
+});
+
+describe('changing the onboarding goal after onboarding', () => {
+  const GOALS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
+
+  test('each goal is set, and null clears it, without touching the level, the brain or other answers', () => {
+    const before = existing({ onboardingGoal: 'moving', practicePreferences: { level: 'few', confidence: 'trying', focus: 'listening' } });
+    before.brain.cefr.estimate = 'A2';
+    before.brain.stats.sessions = 12;
+    for (const goal of [...GOALS, null]) {
+      const after = withOnboardingGoal(before, goal);
+      assert.equal(after.onboardingGoal, goal);
+      assert.deepEqual(after.practicePreferences, before.practicePreferences, 'the goal moved the stated level');
+      assert.deepEqual(after.brain, before.brain, 'the goal moved the earned level or stats');
+      const { onboardingGoal: _a, preferenceClocks: _b, ...rest } = after;
+      const { onboardingGoal: _c, preferenceClocks: _d, ...restBefore } = before;
+      assert.deepEqual(rest, restBefore);
+    }
+  });
+
+  test('a value that is not one of the six goals is refused', () => {
+    for (const bad of ['nonsense', '', 'Food']) {
+      assert.throws(() => withOnboardingGoal(existing(), bad as never), /invalid onboarding goal/);
+    }
   });
 });

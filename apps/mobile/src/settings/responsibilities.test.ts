@@ -88,6 +88,21 @@ describe('one stored value, one way of saying it — Stage 3', () => {
   });
 });
 
+describe('the onboarding goal has one editor after onboarding', () => {
+  test('only Learning preferences changes or clears the goal; onboarding and the store chain are the other writers', () => {
+    const WRITES = /\bwithOnboardingGoal\(|\bonboardingGoal:/;
+    const writers = sources(SRC)
+      .filter((file) => WRITES.test(stripComments(readFileSync(file, 'utf8'))))
+      .map((file) => relative(SRC, file))
+      .filter((file) => ![join('profile', 'store.ts'), join('profile', 'upgrade.ts'), join('onboarding', 'createFromDraft.ts')].includes(file))
+      .sort();
+    assert.deepEqual(writers, [join('settings', 'LearningPreferencesScreen.tsx')], 'a second surface edits the goal, or the editor stopped writing it');
+    // The bite: a type annotation is not a write, but a literal assignment is.
+    assert.equal(WRITES.test('{ onboardingGoal?: unknown }'), false);
+    assert.equal(WRITES.test("{ ...p, onboardingGoal: 'food' }"), true);
+  });
+});
+
 describe('Delete account stands apart from routine rows — Stage 3', () => {
   test('the delete row is alone in its own group at the foot of Settings, and still opens the confirmation', () => {
     const list = SETTINGS.slice(SETTINGS.lastIndexOf('  return ('));

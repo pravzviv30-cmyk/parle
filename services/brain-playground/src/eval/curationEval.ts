@@ -69,7 +69,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
   AnthropicBrainClient,
-  DEFAULT_OPENAI_TURN_MODEL,
   MAX_CURATED_TOPICS,
   MAX_EXTENSION_PHRASES,
   MAX_KEPT_PHRASES,
@@ -84,7 +83,8 @@ import {
   type NewPhrase,
 } from '@luvani/brain';
 
-import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { openAiEvalModel } from './openaiEval.ts';
 
 // ---------------------------------------------------------------------------
 // The standard
@@ -521,14 +521,21 @@ export function blockedReport(missing: readonly string[]): string {
  * The providers, in the order they are tried when BRAIN_LLM says nothing.
  *
  * Curation is turn-tier work — routing.ts puts it on the fast model because
- * nobody waits for it — so the cost models here are the turn ones. Pricing it
- * as analyst work overstates the bill by roughly ten times.
+ * nobody waits for it — so OpenAI is priced on the model the client really
+ * sends curate to (`openAiEvalModel`, env overrides included), never on a
+ * constant. Pricing it as analyst work overstates the bill by roughly ten times.
  */
 const PROVIDERS = [
-  { name: 'openai', key: 'OPENAI_API_KEY', costModel: DEFAULT_OPENAI_TURN_MODEL },
-  { name: 'anthropic', key: 'ANTHROPIC_API_KEY', costModel: 'claude-sonnet-5' },
-  { name: 'groq', key: 'GROQ_API_KEY', costModel: 'groq' },
+  { name: 'openai', key: 'OPENAI_API_KEY' },
+  { name: 'anthropic', key: 'ANTHROPIC_API_KEY' },
+  { name: 'groq', key: 'GROQ_API_KEY' },
 ] as const;
+
+/** What the run is priced on: the model the client really uses for curate. */
+export function curationCostModel(name: ProviderName, env: Environment): string {
+  if (name === 'openai') return openAiEvalModel('curate', env);
+  return name === 'anthropic' ? 'claude-sonnet-5' : 'groq';
+}
 
 export type ProviderName = (typeof PROVIDERS)[number]['name'];
 
@@ -552,9 +559,10 @@ export function pickProvider(env: Environment): ProviderName | null {
 function buildClient(name: ProviderName, env: Environment): { client: LlmClient; costModel: string } {
   const provider = PROVIDERS.find((candidate) => candidate.name === name) as (typeof PROVIDERS)[number];
   const apiKey = env[provider.key] ?? '';
-  if (name === 'openai') return { client: new OpenAiResponsesBrainClient({ apiKey }), costModel: provider.costModel };
-  if (name === 'anthropic') return { client: new AnthropicBrainClient({ apiKey }), costModel: provider.costModel };
-  return { client: new OpenAiCompatBrainClient({ apiKey }), costModel: provider.costModel };
+  const costModel = curationCostModel(name, env);
+  if (name === 'openai') return { client: new OpenAiResponsesBrainClient({ apiKey }), costModel };
+  if (name === 'anthropic') return { client: new AnthropicBrainClient({ apiKey }), costModel };
+  return { client: new OpenAiCompatBrainClient({ apiKey }), costModel };
 }
 
 // ---------------------------------------------------------------------------
@@ -612,7 +620,7 @@ export async function runCurationEval(options: {
 
   const summary = summariseCuration(scores);
   for (const line of summary.lines) options.log(line);
-  options.log(`\n~$${costUsd(usage, costModel).toFixed(3)} for the run`);
+  options.log(`\n~$${evalCostUsd(usage, costModel).toFixed(3)} for the run`);
   return { ok: summary.ok, blocked: false };
 }
 

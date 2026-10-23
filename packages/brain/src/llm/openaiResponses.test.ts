@@ -9,6 +9,7 @@ import { CAFE_FRAME } from '../fixtures.ts';
 import type { BrainTurnRequest } from './client.ts';
 import {
   DEFAULT_OPENAI_ANALYST_MODEL,
+  DEFAULT_OPENAI_DRILLS_MODEL,
   DEFAULT_OPENAI_LIVE_MODEL,
   DEFAULT_OPENAI_TURN_MODEL,
   OpenAiResponsesBrainClient,
@@ -209,11 +210,12 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     );
   });
 
-  test('the two calls that write load-bearing pedagogy go to the analyst', async () => {
-    for (const activity of ['extract', 'drills'] as const) {
-      const body = await bodyFor(activity);
-      assert.equal(body.model, DEFAULT_OPENAI_ANALYST_MODEL, `${activity} shapes every later session, so it gets the careful model`);
-    }
+  test('memory extraction goes to the analyst; drills go to their own model', async () => {
+    // 2026-10-23 (VOICE-008): drills moved off the analyst to gpt-6-luna after a
+    // clean 25/25 drill eval at a fraction of the cost. Extract stays on Terra.
+    assert.equal((await bodyFor('extract')).model, DEFAULT_OPENAI_ANALYST_MODEL, 'extract shapes every later session, so it gets the careful model');
+    assert.equal((await bodyFor('drills')).model, DEFAULT_OPENAI_DRILLS_MODEL);
+    assert.equal(DEFAULT_OPENAI_DRILLS_MODEL, 'gpt-6-luna');
   });
 
   test('curation is served by the tier routing.ts assigns it, not by who is waiting', async () => {
@@ -233,7 +235,9 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     // wire follows. A future adapter-local shortcut fails here, not in a bill.
     for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
       const body = await bodyFor(activity);
-      const expected = isAnalystActivity(activity) ? DEFAULT_OPENAI_ANALYST_MODEL
+      // 2026-10-23 (VOICE-008): drills have their own model, whatever the tier.
+      const expected = activity === 'drills' ? DEFAULT_OPENAI_DRILLS_MODEL
+        : isAnalystActivity(activity) ? DEFAULT_OPENAI_ANALYST_MODEL
         : activity === 'turn' || activity === 'frame' ? DEFAULT_OPENAI_LIVE_MODEL : DEFAULT_OPENAI_TURN_MODEL;
       assert.equal(body.model, expected, `${activity} must be served by the tier routing.ts assigns it`);
     }

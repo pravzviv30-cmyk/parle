@@ -80,7 +80,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createProfile, repairProfile, withoutForgottenMemory, validMemoryControl, type LearnerProfile } from '@luvani/brain/profile';
 import { preferenceValue, preferenceClocks, sanitisePreferenceClocks, maxPreferenceCounter, newPreferenceClock, resolvePreferenceClocks, type PreferenceField, type PreferenceClock, type PreferenceClocks } from '@luvani/brain/profile/merge';
-import type { TutorVoiceKey } from '@luvani/core';
+import { isLearnerGoal, type LearnerGoal, type TutorVoiceKey } from '@luvani/core';
 import { activeUserId, onUserScopeReset, userKey, scopeGeneration, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
@@ -536,6 +536,18 @@ export function withStatedLevel(existing: StoredProfile, level: StatedLevel): St
   const practicePreferences = storedPracticePreferences({ ...practicePreferencesOf(existing), level });
   if (practicePreferences?.level !== level) throw new Error('invalid stated level');
   return withPreferenceEdit(existing, { ...existing, practicePreferences }, 'statedLevel');
+}
+
+/**
+ * Change or clear the onboarding goal after onboarding. It reorders suggested
+ * scenes and frames the tutor's LEARNER GOAL line; it never touches
+ * `brain.cefr`, stats, `practicePreferences` or mission independence. Null
+ * means "no goal for now". Clocked as the `onboardingGoal` preference field, so
+ * a newer edit, a clear included, wins across devices like `withStatedLevel`.
+ */
+export function withOnboardingGoal(existing: StoredProfile, goal: LearnerGoal | null): StoredProfile {
+  if (goal !== null && !isLearnerGoal(goal)) throw new Error('invalid onboarding goal');
+  return withPreferenceEdit(existing, { ...existing, onboardingGoal: goal }, 'onboardingGoal');
 }
 
 /**

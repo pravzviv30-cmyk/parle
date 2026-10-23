@@ -73,7 +73,7 @@ boundary were dead: `installation_hash` is the primary key and `first_user_hash`
 conflicted, and both were granted.
 
 At the measured rate encoded in `DEFAULT_COST_MODEL`, one full farmed free allowance with
-one scored utterance per 20 seconds is roughly $0.29 of vendor spend, repeatable without limit.
+one scored utterance per 20 seconds is roughly $0.24 of vendor spend (2026-10-23 measured rates, VOICE-008), repeatable without limit.
 That is today's five-minute weekly taste (D24, 2026-10-20); the thirty-minute trial F73
 shipped against cost about six times as much per farmed claim.
 

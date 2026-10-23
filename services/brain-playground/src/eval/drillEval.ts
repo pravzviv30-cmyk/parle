@@ -13,16 +13,15 @@ import process from 'node:process';
 
 import {
   AnthropicBrainClient,
-  DEFAULT_OPENAI_ANALYST_MODEL,
   OpenAiCompatBrainClient,
-  OpenAiResponsesBrainClient,
   buildDrillGenerationRequest,
   buildSystemBlocks,
   type LlmClient,
 } from '@luvani/brain';
 import { validateExercise } from '@luvani/core';
 
-import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { openAiEvalClient } from './openaiEval.ts';
 
 /** Below this share of clean exercises, the authoring prompt is not earning its keep. */
 const ACCEPT_THRESHOLD = 0.7;
@@ -62,10 +61,7 @@ const PROFILES = [
 function pickClient(): { client: LlmClient; costModel: string } {
   const choice = (process.env.BRAIN_LLM ?? '').toLowerCase();
   if ((choice === 'openai' || (choice === '' && !process.env.ANTHROPIC_API_KEY)) && process.env.OPENAI_API_KEY) {
-    return {
-      client: new OpenAiResponsesBrainClient({ apiKey: process.env.OPENAI_API_KEY }),
-      costModel: DEFAULT_OPENAI_ANALYST_MODEL,
-    };
+    return openAiEvalClient('drills', process.env.OPENAI_API_KEY);
   }
   if ((choice === 'anthropic' || choice === '') && process.env.ANTHROPIC_API_KEY) {
     return { client: new AnthropicBrainClient(), costModel: 'claude-opus-5' };
@@ -121,7 +117,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`\n~$${costUsd(usage, costModel).toFixed(3)} for the run`);
+  console.log(`\n~$${evalCostUsd(usage, costModel).toFixed(3)} for the run`);
   if (failed) process.exit(1);
 }
 

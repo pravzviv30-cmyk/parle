@@ -62,6 +62,12 @@ export interface OpenAiResponsesConfig {
   /** Stronger model used for the calls that run once the room has closed. */
   analystModel?: string;
   /**
+   * Post-session drill authoring. Falls back to `OPENAI_DRILLS_MODEL`, then
+   * DEFAULT_OPENAI_DRILLS_MODEL. Deliberately NOT moved by analystModel /
+   * OPENAI_ANALYST_MODEL: drills have their own knob (VOICE-008, 2026-10-23).
+   */
+  drillsModel?: string;
+  /**
    * OpenAI `service_tier` for the live calls only (turn and frame). Opt-in,
    * default off: `priority` is billed at a higher rate. Falls back to
    * `OPENAI_LIVE_SERVICE_TIER`; anything unrecognised means the field is omitted.
@@ -72,7 +78,7 @@ export interface OpenAiResponsesConfig {
 }
 
 /** The wiring half of the config: the two names, and where to send them. */
-type Wiring = Required<Pick<OpenAiResponsesConfig, 'apiKey' | 'baseUrl' | 'turnModel' | 'liveModel' | 'analystModel'>>;
+type Wiring = Required<Pick<OpenAiResponsesConfig, 'apiKey' | 'baseUrl' | 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'>>;
 
 type FetchResponse = Awaited<ReturnType<FetchLike>>;
 
@@ -80,6 +86,16 @@ const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 export const DEFAULT_OPENAI_TURN_MODEL = 'gpt-5.6-luna';
 export const DEFAULT_OPENAI_LIVE_MODEL = 'gpt-6-luna';
 export const DEFAULT_OPENAI_ANALYST_MODEL = 'gpt-5.6-terra';
+/**
+ * Drills moved off the analyst model to GPT-6 Luna on 2026-10-23 (founder
+ * decision, VOICE-008 in docs/DECISIONS.md): drill eval 25/25 clean on Luna vs
+ * 23/23 on Terra, one mission session's drills $0.005 vs $0.086
+ * (docs/cogs-evidence/). Effort and maxTokens for drills are unchanged, and
+ * openAiEffortFor only special-cases turn/frame on gpt-6-luna, so drills keep
+ * the routed effort exactly as the eval run did. Memory extraction stays on
+ * DEFAULT_OPENAI_ANALYST_MODEL.
+ */
+export const DEFAULT_OPENAI_DRILLS_MODEL = 'gpt-6-luna';
 
 const SERVICE_TIERS = ['priority', 'default', 'auto', 'flex'] as const;
 export type OpenAiServiceTier = (typeof SERVICE_TIERS)[number];
@@ -106,6 +122,37 @@ export function openAiLiveModel(env: Record<string, string | undefined> = proces
   config: Pick<OpenAiResponsesConfig, 'liveModel' | 'turnModel'> = {}): string {
   return config.liveModel?.trim() || env.OPENAI_LIVE_MODEL?.trim() || config.turnModel?.trim() ||
     env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_LIVE_MODEL;
+}
+
+type ModelConfig = Pick<OpenAiResponsesConfig, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'>;
+
+/** The four model names the client sends, from config then env then the defaults. */
+export function openAiModels(env: Record<string, string | undefined> = process.env,
+  config: ModelConfig = {}): Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'> {
+  return {
+    turnModel: config.turnModel?.trim() || env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
+    liveModel: openAiLiveModel(env, config),
+    analystModel: config.analystModel?.trim() || env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
+    // Own knob only: OPENAI_ANALYST_MODEL does not move drills (VOICE-008).
+    drillsModel: config.drillsModel?.trim() || env.OPENAI_DRILLS_MODEL?.trim() || DEFAULT_OPENAI_DRILLS_MODEL,
+  };
+}
+
+/**
+ * The model OpenAiResponsesBrainClient sends one activity to. The client routes
+ * through this, and a harness that has to label or price a run before any usage
+ * exists asks it too, so the two cannot disagree.
+ */
+export function openAiModelFor(activity: BrainActivity, env: Record<string, string | undefined> = process.env,
+  config: ModelConfig & Pick<OpenAiResponsesConfig, 'routing'> = {}): string {
+  return pickModel(activity, openAiModels(env, config), config.routing ?? resolveRouting(env));
+}
+
+function pickModel(activity: BrainActivity, models: Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'>, routing: BrainRouting): string {
+  // Drills have their own model whichever tier routing.ts puts them on (VOICE-008).
+  if (activity === 'drills') return models.drillsModel;
+  return isAnalystActivity(activity, routing) ? models.analystModel
+    : activity === 'turn' || activity === 'frame' ? models.liveModel : models.turnModel;
 }
 
 /**
@@ -250,9 +297,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     this.config = {
       apiKey: config.apiKey ?? process.env.OPENAI_API_KEY ?? '',
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
-      turnModel: config.turnModel?.trim() || process.env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
-      liveModel: openAiLiveModel(process.env, config),
-      analystModel: config.analystModel?.trim() || process.env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
+      ...openAiModels(process.env, config),
     };
     this.routing = config.routing ?? resolveRouting();
     this.liveServiceTier = openAiLiveServiceTier(process.env, config);
@@ -330,8 +375,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   /** One activity's model, effort and size. Two tables, one question each. */
   private routeFor(activity: BrainActivity): { model: string; effort: BrainEffort | 'none' | undefined; maxTokens: number } {
     const route = this.routing[activity];
-    const model = isAnalystActivity(activity, this.routing) ? this.config.analystModel
-      : activity === 'turn' || activity === 'frame' ? this.config.liveModel : this.config.turnModel;
+    const model = pickModel(activity, this.config, this.routing);
     return {
       model,
       effort: openAiEffortFor(activity, model, route.effort, this.explicitEffort),

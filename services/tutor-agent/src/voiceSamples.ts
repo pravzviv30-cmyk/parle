@@ -370,9 +370,9 @@ async function synthesizeClip(
     // identical to the one a live session would send, and therefore what makes
     // the cache key real. H4 pins per-sentence synthesis.
     for (const sentence of sampleSentences(voice)) {
-      const before = cached.hits;
+      const before = cached.charsBilled;
       frames.push(await cached.synthesize(sentence).collect());
-      if (cached.hits === before) chars += sentence.length;
+      chars += cached.charsBilled - before;
     }
     // Read off the instance rather than rebuilt from constants, so the record
     // carries what the plugin actually resolved and will have sent.

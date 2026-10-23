@@ -7,7 +7,7 @@ import { adopterFor } from '../sync/registry.ts';
 import { withStrictness } from '../tutor/strictness.ts';
 import { withPace } from '../tutor/pace.ts';
 import { upgradeStored } from './upgrade.ts';
-import { carryPreferenceEdits, createStoredProfile, completeProfile, loadProfile, saveProfile, withDailyGoal, withTutorVoice, withPreferTyping, withName, withUsername, withStatedLevel, type StoredProfile } from './store.ts';
+import { carryPreferenceEdits, createStoredProfile, completeProfile, loadProfile, saveProfile, withDailyGoal, withTutorVoice, withPreferTyping, withName, withUsername, withStatedLevel, withOnboardingGoal, type StoredProfile } from './store.ts';
 
 function disk(owner: string): Map<string, string> {
   setActiveUser(owner);
@@ -21,18 +21,18 @@ function disk(owner: string): Map<string, string> {
 const fresh = () => createStoredProfile({ name: 'Before', ageConfirmed: true, motivation: null, dailyGoalMin: 10 }, 100);
 const id = '00000000-0000-4000-8000-000000000100';
 
-test('the real eight settings doors persist causal metadata through upgrade, cold load, save and remote adoption', async () => {
+test('the real nine settings doors persist causal metadata through upgrade, cold load, save and remote adoption', async () => {
   disk('preference-seven');
   const original = fresh();
   assert.equal(await saveProfile(original), true);
-  const updated = withStatedLevel(withPace(withStrictness(withUsername(withName(withPreferTyping(withTutorVoice(withDailyGoal(original, null), 'marie'), true), 'After'), 'after.1234'), 'flow'), 'slow'), 'getby');
+  const updated = withOnboardingGoal(withStatedLevel(withPace(withStrictness(withUsername(withName(withPreferTyping(withTutorVoice(withDailyGoal(original, null), 'marie'), true), 'After'), 'after.1234'), 'flow'), 'slow'), 'getby'), 'food');
   assert.equal(await saveProfile(updated), true);
   const saved = await loadProfile();
   assert.ok(saved);
   const clocks = preferenceClocks(saved);
-  assert.equal(Object.keys(clocks).length, 8);
+  assert.equal(Object.keys(clocks).length, 9);
   for (const field of PREFERENCE_FIELDS) assert.equal(clocks[field]?.value, preferenceValue(saved, field));
-  assert.equal(maxPreferenceCounter(saved), 8);
+  assert.equal(maxPreferenceCounter(saved), 9);
   assert.equal(saved.dob, original.dob);
   assert.equal(saved.ageConfirmed, original.ageConfirmed);
   assert.equal(saved.ageStopAt, original.ageStopAt);
@@ -166,4 +166,32 @@ test('onboarding completion carries genuine name/goal edits through age confirma
   const planted = { ...saved, name: 'Other', preferenceClocks: { ...saved.preferenceClocks, dob: { counter: 900, mutationId: id, value: null } } };
   assert.equal(upgradeStored(planted)?.preferenceClocks?.name, undefined, 'clock cannot be transferred to different wording');
   assert.equal('dob' in (upgradeStored(planted)?.preferenceClocks ?? {}), false);
+});
+
+test('a goal edit carries its own clock on save, and the newer goal or clear wins a two-device merge', async () => {
+  disk('preference-goal');
+  const moving = { ...fresh(), onboardingGoal: 'moving' };
+  assert.equal(await saveProfile(moving), true);
+  assert.equal(await saveProfile(withOnboardingGoal(moving, 'food')), true);
+  const saved = await loadProfile();
+  assert.ok(saved);
+  assert.equal(saved.onboardingGoal, 'food');
+  assert.equal(saved.preferenceClocks?.onboardingGoal?.value, 'food');
+  assert.equal(saved.preferenceClocks?.onboardingGoal?.counter, 1);
+
+  // The other phone, busier, chose 'moving' first; this phone later changed or cleared it.
+  const busy = { ...moving, brain: { ...moving.brain, stats: { ...moving.brain.stats, sessions: 40 } } };
+  const older = { ...busy, preferenceClocks: { onboardingGoal: newPreferenceClock(busy, 'onboardingGoal', id, 0) } };
+  const at = (goal: 'food' | null) => {
+    const next = { ...moving, onboardingGoal: goal };
+    return { ...next, preferenceClocks: { onboardingGoal: newPreferenceClock(next, 'onboardingGoal', '00000000-0000-4000-8000-000000000200', 1) } };
+  };
+  for (const goal of [null, 'food'] as const) {
+    for (const [a, b] of [[older, at(goal)], [at(goal), older]]) {
+      const result = mergeStoredProfiles({ stored: a, savedAt: 0 }, { stored: b, savedAt: 0 }, { upgrade: upgradeStored, now: 100 });
+      assert.ok(result);
+      assert.equal(result.onboardingGoal, goal, `newer ${String(goal)} beats older moving`);
+      assert.equal(result.brain.stats.sessions, 40, 'the busier learning still lands');
+    }
+  }
 });
