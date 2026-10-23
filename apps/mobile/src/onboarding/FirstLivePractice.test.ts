@@ -116,3 +116,7 @@ test('the café scene opens on the lesson prompt and ends on its summary', () =>
   // The scene keeps no learner text: no contribution callback on its branch.
   assert.match(source, /\? \{ mode: guestSceneMode\(typedScene\), guestToken: guest\.token!, tutorVoice: guest\.plan\.tutorVoice \}\n/);
 });
+
+test('the end sheet says what a scene keeps, and the conversation keeps its own line', () => {
+  assert.match(source, /\{scene \? 'The lines you reach will be kept\.' : 'Your confirmed replies will be kept\.'\}/);
+});

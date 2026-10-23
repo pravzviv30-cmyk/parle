@@ -177,7 +177,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
         </> : ending || over ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
       />
       <Sheet visible={confirmEnd} title="End this practice?" onClose={() => setConfirmEnd(false)}>
-        <Text style={type.body}>Your confirmed replies will be kept. Only a completed practice counts towards your streak.</Text>
+        <Text style={type.body}>{scene ? 'The lines you reach will be kept.' : 'Your confirmed replies will be kept.'} Only a completed practice counts towards your streak.</Text>
         <PillButton label="Keep practising" onPress={() => setConfirmEnd(false)} />
         <IconAction icon="close" label="End practice" onPress={() => { setConfirmEnd(false); void end(); }} />
       </Sheet>

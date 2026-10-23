@@ -578,7 +578,7 @@ export function PreAccountOnboarding({
           <>
             {/* 2026-10-21 UI-008, artboard B-OB-Ready: the info card. The pinned disclosure copy stays (STARTER_AI, STARTER_LOCAL). */}
             <BCard>
-              <BInfoRow ground={t.lavender} icon={<BShield size={20} color={t.text} />} title={STARTER_AI.replace(/\.$/, '')} body="It can help you practise, and it can make mistakes." />
+              <BInfoRow ground={t.lavender} icon={<BShield size={20} color={t.text} />} title={STARTER_AI.replace(/\.$/, '')} body="It plays a short café scene with you, and it can mishear you." />
               <BInfoRow ground={t.butter} icon={<BMicThin size={20} color={t.text} />} title="Speak when you choose" body="We ask for the microphone only when you start. You can type instead." />
               <BInfoRow ground={t.sage} icon={<BVoiceOff size={20} color={t.text} />} title="What is kept" body={STARTER_LOCAL} />
               <BTextLink label="Privacy details" onPress={() => setSurface('privacy')} />
@@ -813,11 +813,11 @@ export function PreAccountOnboarding({
           <>
             <Text style={type.body}>
               Your tutor is AI. Live audio uses LiveKit, Deepgram for transcription, and ElevenLabs for the tutor’s voice.
-              Your replies and selected plan go to the configured AI provider to continue this conversation.
-              Confirmed replies stay on this device. The service keeps a temporary session summary for up to 30 days so you can save it to your account. Guest usage comes out of the account’s one-time allowance.
+              Your speech and typed replies are checked against a scripted café scene. No AI model writes the replies.
+              Your words are not kept. A record of the scripted turns you reach is held for up to 30 days so you can save it to your account. The scene does not use your free weekly minutes.
             </Text>
             <Text style={type.body}>
-              Speaking and typing use the same live conversation. Detailed processor and retention
+              Speaking and typing use the same live scene. Detailed processor and retention
               information is in the app’s privacy policy.
             </Text>
             <GhostButton label="Read privacy policy" onPress={() => setSurface('policy')} />

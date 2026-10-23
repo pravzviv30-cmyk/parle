@@ -298,9 +298,11 @@ describe('the first run says what a learner is talking to', () => {
     assert.doesNotMatch(body, /STARTER_PROCESSING|LiveKit|Deepgram|ElevenLabs/);
     const privacy = screen.slice(screen.indexOf("{surface === 'privacy' &&"), screen.indexOf("{surface === 'policy' &&"));
     assert.match(privacy, /LiveKit, Deepgram for transcription, and ElevenLabs/);
-    assert.match(privacy, /Your replies and selected plan go to the configured AI provider/);
-    assert.match(privacy, /Speaking and typing use the same live conversation/);
-    assert.match(privacy, /Confirmed replies stay on this device/);
+    assert.match(privacy, /Your speech and typed replies are checked against a scripted café scene\. No AI model writes the replies\./);
+    assert.match(privacy, /Speaking and typing use the same live scene\./);
+    assert.match(privacy, /Your words are not kept\. A record of the scripted turns you reach is held for up to 30 days/);
+    assert.doesNotMatch(privacy, /configured AI provider|Confirmed replies stay on this device|session summary|[—–]/);
+    assert.match(body, /body="It plays a short café scene with you, and it can mishear you\."/);
     assert.match(privacy, /up to 30 days/);
     assert.match(privacy, /label="Read privacy policy"/);
     assert.match(disclosure, /up to 30 days/);
