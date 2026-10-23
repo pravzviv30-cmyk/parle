@@ -460,7 +460,7 @@ describe('the per-domain conflict policy — twenty-three namespaces, three clas
     assert.deepEqual(
       [...excluded].sort(),
       // 2026-10-07, come alive Phase 4: `home-seen`, what one phone's Home last drew.
-      ['analytics', 'appearance', 'conversationPacks', 'first-live-arrival', 'friends', 'gameLocal', 'home-seen', 'journal', 'moments', 'onboarding-practice', 'onboarding-repair-draft', 'onboarding-setup-draft', 'packMarks', 'pendingPurchase', 'practiceSession', 'reminder', 'suggestions'],
+      ['analytics', 'appearance', 'conversationPacks', 'first-live-arrival', 'friends', 'gameLocal', 'home-seen', 'journal', 'moments', 'onboarding-practice', 'onboarding-repair-draft', 'onboarding-setup-draft', 'packMarks', 'pendingPurchase', 'practiceSession', 'reminder', 'speechDataset', 'suggestions'],
     );
     // What one phone last drew is excluded, with the reason written down (Phase 4).
     const seen = SYNC_EXCLUSIONS.find((entry) => entry.namespace === 'home-seen');

@@ -105,8 +105,12 @@ export class LiveScoring {
    * that times out or returns nothing, a score past the envelope, and a score
    * landing after the end card was written all leave no evidence, which the
    * card reports as not assessed.
+   *
+   * `onScored`, when given, hears each utterance that came back with evidence,
+   * with the audio exactly as it was scored. The lesson uses it to offer a
+   * consented dataset clip (VOICE-007); it never runs after `settle` closes.
    */
-  score(wav: Uint8Array, reference: string): void {
+  score(wav: Uint8Array, reference: string, onScored?: (observations: PhonemeObservation[], audio: Uint8Array) => void): void {
     if (this.closed || this.requested >= this.maxScores) return;
     let audio: Uint8Array;
     try { audio = this.scoringRequest ? toSpeechaceWav(wav) : wav; } catch (error) {
@@ -122,7 +126,10 @@ export class LiveScoring {
       ...(this.scoringRequest ? { fetchFn: this.scoringRequest } : {}),
       ...(signal ? { signal } : {}),
     })).then((observations) => {
-      if (!this.closed && observations.length > 0) this.scored.push(observations);
+      if (this.closed || observations.length === 0) return;
+      this.scored.push(observations);
+      // The caller's business. A throw there must not cost the session its evidence.
+      try { onScored?.(observations, audio); } catch { /* the score still counts */ }
     }).catch(() => {}).finally(() => { this.pending.delete(work); });
     this.pending.add(work);
   }

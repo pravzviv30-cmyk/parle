@@ -237,6 +237,10 @@ hosted lesson shows a Speechace 200 and a `scored` end card. Also confirm
 Speechace's billing unit and rate: if it bills per second, recompute `microUsd`
 as max(per-call × 48, per-second × 900) before the flag goes on. Follow the
 activation order in `deployment/PAID_ADMISSION.md`.
+A speech-dataset seam (`services/tutor-agent/src/speechClips.ts`) sits after a
+scored reference line, and it does nothing unless `LUVANI_SPEECH_DATASET=1` and
+the learner's consent bit are both on. Nothing sets that consent bit today, so no
+audio is kept or sent; see [docs/changes/speech-dataset.md](changes/speech-dataset.md).
 The app measures the learner's wait on the device: from the confirmed final
 transcript to the worker's `speaking` frame, logged as
 `[luvani:live] reply-latency` and kept in `LiveDiagnostics.replyLatencyMs`
