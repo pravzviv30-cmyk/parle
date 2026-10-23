@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { MAX_MEMORY_FACTS, applyExtractionToProfile, createProfile, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
 import { parsePreviousCorrection } from '@luvani/core';
 
-import { createStoredProfile, type StoredProfile } from './store.ts';
+import { createStoredProfile, withOnboardingGoal, type StoredProfile } from './store.ts';
 import { upgradeStored } from './upgrade.ts';
 import { SYNC_POLICIES } from '../sync/policy.ts';
 import {
@@ -53,6 +53,12 @@ describe('the tutor’s memory, edited by the learner', () => {
     const snap = snapshotFor(paused);
     assert.deepEqual(snap.memory.facts, []);
     assert.equal(snap.memory.goal, 'trip', 'a paused memory dropped the onboarding answer');
+  });
+
+  test('a goal changed or cleared in Learning preferences is the goal the tutor hears', () => {
+    const moving = learner([], { onboardingGoal: 'moving' });
+    assert.equal(snapshotFor(withOnboardingGoal(moving, 'food')).memory.goal, 'food');
+    assert.equal(snapshotFor(withOnboardingGoal(moving, null)).memory.goal, null, 'a cleared goal still framed the tutor');
   });
 
   test('a previous correction is bounded ephemeral learning context, including while personal memory is paused', () => {

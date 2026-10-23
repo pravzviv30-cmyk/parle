@@ -27,8 +27,8 @@ function merge(a: unknown, b: unknown): MergedStoredProfile {
   return result;
 }
 
-test('all eight newer settings beat a busier device, including explicit null/false/default choices', () => {
-  const values = { name: 'New name', username: 'new.1234', dailyGoalMin: null, tutorVoice: 'marie', preferTyping: false, strictness: 'flow', pace: 'normal', statedLevel: 'getby' };
+test('all nine newer settings beat a busier device, including explicit null/false/default choices', () => {
+  const values = { name: 'New name', username: 'new.1234', dailyGoalMin: null, tutorVoice: 'marie', preferTyping: false, strictness: 'flow', pace: 'normal', statedLevel: 'getby', onboardingGoal: 'food' };
   let newer = profile();
   let older = profile(100);
   older.brain.preferences.pace = 'slow';
@@ -76,7 +76,7 @@ test('concurrent same-counter edits use a stable mutation ID, not wall clocks or
 test('clock-aware and legacy inputs remain commutative, idempotent, absorbing and converge under gossip', () => {
   let seed = 4821;
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 0x100000000; };
-  const values: Record<PreferenceField, unknown[]> = { name: [null, 'A', 'Z'], username: [null, 'a.0001', 'z.0002'], dailyGoalMin: [null, 5, 15], tutorVoice: [null, DEFAULT_TUTOR_VOICE, 'marie'], preferTyping: [false, true], strictness: ['flow', 'balanced', 'strict'], pace: [undefined, 'normal', 'slow'], statedLevel: ['zero', 'few', 'getby', 'confident'] };
+  const values: Record<PreferenceField, unknown[]> = { name: [null, 'A', 'Z'], username: [null, 'a.0001', 'z.0002'], dailyGoalMin: [null, 5, 15], tutorVoice: [null, DEFAULT_TUTOR_VOICE, 'marie'], preferTyping: [false, true], strictness: ['flow', 'balanced', 'strict'], pace: [undefined, 'normal', 'slow'], statedLevel: ['zero', 'few', 'getby', 'confident'], onboardingGoal: [null, 'moving', 'food'] };
   const make = () => {
     let p = profile(Math.floor(random() * 3));
     for (const field of PREFERENCE_FIELDS) {
@@ -147,4 +147,23 @@ test('stated-level clocks reject values outside the closed four and mismatched v
   const stale = edit(profile(), 'statedLevel', 'few', 1);
   stale.practicePreferences = { level: 'getby', confidence: null, focus: null };
   assert.equal(preferenceClocks(stale).statedLevel, undefined);
+});
+
+test('the onboarding goal clocks only a real goal or null, and a clocked clear beats an older unclocked goal', () => {
+  for (const value of [null, 'food', 'trip', 'family', 'moving', 'work', 'because']) {
+    const p = edit(profile(), 'onboardingGoal', value, 1);
+    assert.deepEqual(Object.keys(preferenceClocks(p)), ['onboardingGoal'], String(value));
+  }
+  for (const value of ['nonsense', 5, true, '']) {
+    const p = { ...profile(), onboardingGoal: value } as MergedStoredProfile;
+    assert.throws(() => newPreferenceClock(p, 'onboardingGoal', id(1), 0), /cannot be ordered/, String(value));
+    assert.deepEqual(preferenceClocks({ ...p, preferenceClocks: { onboardingGoal: { counter: 1, mutationId: id(1), value } } }), {});
+  }
+  const legacy = { ...profile(100), onboardingGoal: 'moving' } as MergedStoredProfile;
+  const cleared = edit({ ...profile(), onboardingGoal: 'moving' } as MergedStoredProfile, 'onboardingGoal', null, 1);
+  for (const result of [merge(legacy, cleared), merge(cleared, legacy)]) {
+    assert.equal(preferenceValue(result, 'onboardingGoal'), null);
+    assert.equal(result.brain.stats.sessions, 100);
+  }
+  assert.deepEqual(merge(legacy, cleared), merge(cleared, legacy));
 });

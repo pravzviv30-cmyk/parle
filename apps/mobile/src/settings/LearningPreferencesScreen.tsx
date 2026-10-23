@@ -21,6 +21,13 @@
  * stats or a mission's independence, which `profile/store.ts` guarantees. The
  * footer says so in the learner's terms.
  *
+ * ## The goal reorders suggestions, never the earned level
+ *
+ * `withOnboardingGoal` changes or clears the onboarding goal. It puts that
+ * goal's scenes first in what Home and Speak suggest and frames the tutor, and
+ * moves nothing else. It is clocked like the other preferences, so a newer
+ * change or clear wins across devices.
+ *
  * Layout only. Every word is a module's and every write goes through the
  * store's own `with*` door.
  */
@@ -35,7 +42,8 @@ import { space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { withDailyGoal, withPreferTyping, withStatedLevel } from '../profile/store.ts';
+import { withDailyGoal, withOnboardingGoal, withPreferTyping, withStatedLevel } from '../profile/store.ts';
+import { goalOf } from '../onboarding/goalLine.ts';
 import { DAILY_GOAL_ROW, dailyGoalOf, goalLine } from '../profile/dailyGoal.ts';
 import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
 import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
@@ -54,6 +62,11 @@ import { SettingsGroup } from './SettingsGroup.tsx';
 import { SettingsRow } from './SettingsRow.tsx';
 import { SwitchRow } from './SwitchRow.tsx';
 import {
+  GOAL_FOOTER,
+  GOAL_GROUP,
+  GOAL_OPTIONS,
+  GOAL_ROW,
+  GOAL_SHEET_TITLE,
   LEARNING_PREFERENCES_INTRO,
   LEARNING_PREFERENCES_TITLE,
   ROUTINE_GROUP,
@@ -61,6 +74,7 @@ import {
   STARTING_POINT_ROW,
   STARTING_POINT_SHEET_TITLE,
   TUTOR_HELPS_GROUP,
+  onboardingGoalTitle,
   statedLevelTitle,
 } from './profileView.ts';
 
@@ -69,10 +83,13 @@ export function LearningPreferencesScreen() {
   const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string, params?: object) => void }>();
   const { profile, update } = useProfile();
   const [choosing, setChoosing] = useState(false);
+  const [choosingGoal, setChoosingGoal] = useState(false);
   const stated = practicePreferencesOf(profile).level;
+  const goal = goalOf(profile);
 
   // Android's hardware back closes the chooser in place rather than leaving.
   useHardwareBack(choosing, () => setChoosing(false));
+  useHardwareBack(choosingGoal, () => setChoosingGoal(false));
 
   return (
     <SettingsAppearance>
@@ -132,6 +149,10 @@ export function LearningPreferencesScreen() {
         />
       </SettingsGroup>
 
+      <SettingsGroup title={GOAL_GROUP} footer={GOAL_FOOTER}>
+        <SettingsRow first label={GOAL_ROW} sub={onboardingGoalTitle(goal)} onPress={() => setChoosingGoal(true)} />
+      </SettingsGroup>
+
       <SettingsGroup title={STARTING_POINT_GROUP} footer={STATED_LEVEL_FOOTER} style={st.last}>
         <SettingsRow first label={STARTING_POINT_ROW} sub={statedLevelTitle(stated)} onPress={() => setChoosing(true)} />
       </SettingsGroup>
@@ -141,6 +162,13 @@ export function LearningPreferencesScreen() {
       {STATED_LEVEL_OPTIONS.map((option) => (
         <OptionRow key={option.key} title={option.title} selected={stated === option.key}
           onPress={() => update(withStatedLevel(profile, option.key))} />
+      ))}
+    </BottomSheet>
+    <BottomSheet visible={choosingGoal} title={GOAL_SHEET_TITLE} onClose={() => setChoosingGoal(false)} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" tone="brand" onPress={() => setChoosingGoal(false)} />}>
+      <Text style={[type.body, { color: colors.muted }]}>{GOAL_FOOTER}</Text>
+      {GOAL_OPTIONS.map((option) => (
+        <OptionRow key={option.title} title={option.title} selected={goal === option.key}
+          onPress={() => update(withOnboardingGoal(profile, option.key))} />
       ))}
     </BottomSheet>
     </SettingsAppearance>

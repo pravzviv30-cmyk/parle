@@ -476,6 +476,12 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   The token server passes the snapshot through unchanged.
 - Sources: `packages/brain/src/prompt/turnContext.ts` (`GOAL_FRAMING`),
   `apps/mobile/src/profile/memory.ts` (`snapshotFor`).
+- Amendment (2026-10-22): the goal can be changed or cleared from Learning
+  preferences through `withOnboardingGoal`. It is clocked as the
+  `onboardingGoal` preference field, so a newer change or clear wins across
+  devices instead of the answer merge's non-null-beats-null. The seeded
+  `learnerGoals` line (`SEEDED_GOAL`) is deliberately left alone: it is the
+  learner's own sentence, editable on Tutor memory.
 
 ## VOICE-007 — Lay a consented speech dataset's groundwork, inert until legal review
 
