@@ -146,7 +146,7 @@ describe('a job process does not re-verify the vendors — F384', () => {
   });
 });
 
-describe('thinking time reaches the session (VOICE-009)', () => {
+describe('thinking time reaches the session (VOICE-010)', () => {
   test('the session is built from turnHandlingFor with the start rung', () => {
     const build = CODE.slice(CODE.indexOf('turnHandling: turnHandlingFor('));
     const call = build.slice(0, build.indexOf('}),'));

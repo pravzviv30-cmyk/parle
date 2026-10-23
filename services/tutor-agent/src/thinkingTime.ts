@@ -1,6 +1,6 @@
 /**
  * How long a learner may pause mid-sentence before the tutor decides they
- * have finished (VOICE-009).
+ * have finished (VOICE-010).
  *
  * Measured with the real Silero VAD and the local turn detector
  * (docs/live-latency-evidence/2026-10-23-pause-endpointing.md): with the

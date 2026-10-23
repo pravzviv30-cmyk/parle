@@ -791,7 +791,7 @@ export const MOMENT_GRACE_MS = 20_000;
 
 /**
  * The most one exchange's "moment" taps can defer the rescue, counted from the
- * first tap (VOICE-009). Each tap past the first still restarts the grace, but
+ * first tap (VOICE-010). Each tap past the first still restarts the grace, but
  * never past this point; a tap after it only restarts the ordinary window, like
  * a keystroke. Without it, a learner tapping every fifteen seconds would never
  * be offered help, which is stranding them politely.
@@ -1233,7 +1233,7 @@ export class LuvaniConversation extends voice.Agent {
       finishEnrichmentMs?: number;
       setSttLanguage?: (language: SttLanguage) => void;
       setSttPhrases?: (phrases: string[]) => void;
-      /** Where the rung, a "moment" hold and each committed turn are reported (VOICE-009). */
+      /** Where the rung, a "moment" hold and each committed turn are reported (VOICE-010). */
       thinkingTime?: ThinkingTimeSink;
       /**
        * The topic this session was started on, if it was started from a card.

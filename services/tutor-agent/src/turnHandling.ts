@@ -9,7 +9,7 @@
  *
  * Pure: mode and starting rung in, options out, no environment read except the
  * one flag passed to it. The pause floor itself, and how it moves during the
- * session, lives in thinkingTime.ts (VOICE-009).
+ * session, lives in thinkingTime.ts (VOICE-010).
  */
 import type { Rung } from '@luvani/core';
 import { endpointingFor, type Endpointing } from './thinkingTime.ts';
@@ -68,7 +68,7 @@ export function turnHandlingFor(
     // turn-detector-v1-mini through @livekit/local-inference (French threshold
     // 0.285). When it scores a pause as unlikely to be the end, the wait is
     // maxDelay; when the native binding or the job's inference executor is
-    // missing, it scores every pause 1.0 and the floor alone decides. VOICE-009
+    // missing, it scores every pause 1.0 and the floor alone decides. VOICE-010
     // is sized to hold in that worst case. 'vad' turns the detector off, for
     // latency A/B work.
     ...(env.turnDetection === 'vad' ? { turnDetection: 'vad' as const } : {}),

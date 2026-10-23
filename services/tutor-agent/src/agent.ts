@@ -222,7 +222,7 @@ export default defineAgent({
         ? (Math.min(4, Math.max(1, meta.startRung)) as Rung)
         : undefined;
 
-    // How long a pause may last before the learner's turn is over (VOICE-009).
+    // How long a pause may last before the learner's turn is over (VOICE-010).
     // The session is built on the starting rung's floor (no rung: a beginner);
     // the tutor reports rung changes, a "moment" hold and each committed turn,
     // the handlers below report who started speaking, and only a changed

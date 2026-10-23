@@ -2821,7 +2821,7 @@ describe('a conversation started from a mission', () => {
   });
 });
 
-describe('thinking time and the moment hold cap (VOICE-009)', () => {
+describe('thinking time and the moment hold cap (VOICE-010)', () => {
   test('after a moment tap the rescue still fires by MOMENT_GRACE_MS + STUCK_SILENCE_MS', async (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
     const { convo, session } = await inScene(t);

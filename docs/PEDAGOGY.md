@@ -65,7 +65,7 @@ English. Both are bounded by an attempt cap, so nothing can loop.
 Asking for help is never scored against the learner. Neither is hesitating, and
 the tutor is instructed at every rung never to mention it.
 
-**Time to think (VOICE-009).** A pause mid-sentence is not the end of a turn.
+**Time to think (VOICE-010).** A pause mid-sentence is not the end of a turn.
 At rungs 1-2 the session waits 1,200 ms of silence before it decides the learner
 has finished, against 400 ms at rungs 3-4. Each time a learner is cut off (they
 carry on within 1,500 ms, before the tutor has answered) the wait grows by

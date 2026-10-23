@@ -1,6 +1,6 @@
 /**
  * A mid-sentence pause through the installed SDK's real AgentSession
- * (VOICE-009).
+ * (VOICE-010).
  *
  * Only the ears are faked: a scripted VAD and a scripted recogniser. The turn
  * handling is the worker's own (`turnHandlingFor`), and turn detection is left

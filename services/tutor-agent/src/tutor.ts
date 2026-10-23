@@ -279,7 +279,7 @@ export class LuvaniTutor extends voice.Agent {
    * `memoryLocked` is). See docs/changes/speech-dataset.md.
    */
   private readonly datasetConsent: boolean;
-  /** How long the end of a turn waits; agent.ts turns these reports into endpointing (VOICE-009). */
+  /** How long the end of a turn waits; agent.ts turns these reports into endpointing (VOICE-010). */
   private readonly thinkingTime: ThinkingTimeSink;
 
   constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink } = {}) {

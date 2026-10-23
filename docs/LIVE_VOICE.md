@@ -568,7 +568,7 @@ leaves. Device check outstanding: expo-audio setting the sound-effect mode while
 LiveKit's audio unit is still running on iOS. If that reroutes or ducks audio on
 the founder's phone, recap sounds wait for `leave()` instead (core loop risk 2).
 
-## When the learner's turn ends (VOICE-009)
+## When the learner's turn ends (VOICE-010)
 
 The session is VAD-driven. Silero (plugin defaults) reports the end of speech
 550 ms after the last voiced frame, and in VAD mode the endpointing `minDelay`

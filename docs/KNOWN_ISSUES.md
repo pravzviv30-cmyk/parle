@@ -939,7 +939,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   plain silence-based VAD all along, and LUVANI_TURN_DETECTION=vad selects what was
   already happening. A comment that describes protection the learner does not have is
   worse than no comment.
-- note (2026-10-23, VOICE-009): this is no longer true of the SDK. Since 1.9,
+- note (2026-10-23, VOICE-010): this is no longer true of the SDK. Since 1.9,
   `AgentSession` builds the local audio turn detector (`turn-detector-v1-mini`,
   `@livekit/local-inference`) by default when `turnDetection` is unset, without any
   plugin. Without a native binding or job inference executor it scores every pause

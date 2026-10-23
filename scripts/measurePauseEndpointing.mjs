@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Measures what a mid-sentence pause does to the end of a learner's turn
- * (VOICE-009). Dev-only, offline, no paid calls.
+ * (VOICE-010). Dev-only, offline, no paid calls.
  *
  * For each French phrase recorded in artifacts/voice-comparison-2026-09-19/
  * it cuts the sentence at the quietest point near its middle, splices in a

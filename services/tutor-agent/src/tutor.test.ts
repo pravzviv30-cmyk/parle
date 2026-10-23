@@ -736,7 +736,7 @@ describe('give me a moment, in a spoken lesson', () => {
   });
 });
 
-describe('thinking time and the moment hold cap in a lesson (VOICE-009)', () => {
+describe('thinking time and the moment hold cap in a lesson (VOICE-010)', () => {
   test('after a moment tap the rescue still fires by MOMENT_GRACE_MS + STUCK_SILENCE_MS', async (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
     const { tutor, session } = build(RUNGS.PROMPTED);

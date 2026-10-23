@@ -15,7 +15,7 @@ import {
 } from './thinkingTime.ts';
 import { turnHandlingFor } from './turnHandling.ts';
 
-describe('thinking time (VOICE-009)', () => {
+describe('thinking time (VOICE-010)', () => {
   test('rungs 1-2 wait at least 1,200 ms, longer than the VAD already waits', async () => {
     // In VAD mode minDelay is max(VAD silence, minDelay). A floor at or under
     // Silero's own silence changes nothing, which is exactly how 400 ms was

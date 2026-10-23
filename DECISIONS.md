@@ -600,7 +600,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   `scripts/ttsBlindCheck.mjs`, `services/tutor-agent/src/ttsCache.ts`,
   `packages/core/src/metering/meter.ts`. Founder answer of 23 October 2026.
 
-## VOICE-009 — Give beginners time to finish a sentence before their turn ends
+## VOICE-010 — Give beginners time to finish a sentence before their turn ends
 
 - Date: 2026-10-23
 - Status: accepted
@@ -650,7 +650,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     sentence in synthetic voices.
 - Consequence:
   - Tests: `thinkingTime.test.ts`, `pauseEndpointingSdk.test.ts` (a real
-    `AgentSession`: one turn at rung 1, two at 400 ms), the VOICE-009 blocks in
+    `AgentSession`: one turn at rung 1, two at 400 ms), the VOICE-010 blocks in
     `convo.test.ts` and `tutor.test.ts`, and `agentWiring.test.ts`.
   - Founder steps: deploy the tutor agent (no app change, no migration), and
     grep the Railway worker logs for `local-inference native binding` to learn
