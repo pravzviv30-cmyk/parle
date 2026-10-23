@@ -4,18 +4,17 @@
  *
  * A projection, like `missionStates`, and nothing more. There is no level store
  * and no second scale: "earned" is {@link isEarned}, the rule the passport stamp
- * already uses, and the level is read off which A0 and A1 scenes are earned.
+ * already uses, and the level is read off which A0, A1 and A2 scenes are earned.
  * Screens use this to say "You'll be able to..." and to draw the path from A0
- * through A1 to A2. They never
+ * up to B1. They never
  * show a rank name, a date or a promise of a level.
  *
  * The spine orders what is offered. It does not gate: every mission stays open
  * in any order, on the rule `suggestedMission` records.
  */
 
-import type { CefrLevel } from '../lessons/types.ts';
 import { isLearnerGoal, type LearnerGoal } from '../firstPractice.ts';
-import { earnedMissionIds, getMission, type Mission, type MissionId, type MissionProgress } from './missions.ts';
+import { earnedMissionIds, getMission, type Mission, type MissionId, type MissionLevel, type MissionProgress } from './missions.ts';
 
 /** Every mission once, in the order a learner is walked through them. */
 export const SCENE_SPINE: readonly MissionId[] = [
@@ -38,15 +37,28 @@ export const SCENE_SPINE: readonly MissionId[] = [
   'mission:retour',
   'mission:appartement',
   'mission:belle-famille',
+  'mission:club',
+  'mission:banque',
+  'mission:sortie',
+  'mission:montreal',
+  'mission:coup-de-main',
+  'mission:anniversaire',
+  'mission:fuite',
+  'mission:galere',
+  'mission:avis',
+  'mission:entretien',
+  'mission:teletravail',
+  'mission:souvenirs',
 ];
 
 export interface SpineView {
   /**
    * 'A0' until every A0 mission is earned, then 'A1'. 'A2' only once every A0
-   * AND every A1 mission is earned. A helped finish earns nothing, so it never
+   * AND every A1 mission is earned. 'B1' only once every A0, A1 AND A2
+   * mission is earned. A helped finish earns nothing, so it never
    * moves the level.
    */
-  level: CefrLevel;
+  level: MissionLevel;
   /** The first unearned mission on the spine, or null when all are earned. */
   next: Mission | null;
   /** Earned missions, in spine order. */
@@ -66,9 +78,9 @@ export function spineFrom(progress: readonly MissionProgress[]): SpineView {
 
   const earned = spine.filter((mission) => earnedIds.has(mission.id));
   const next = spine.find((mission) => !earnedIds.has(mission.id)) ?? null;
-  const allEarnedAt = (cefr: CefrLevel): boolean =>
+  const allEarnedAt = (cefr: MissionLevel): boolean =>
     spine.filter((mission) => mission.cefr === cefr).every((mission) => earnedIds.has(mission.id));
-  const level: CefrLevel = !allEarnedAt('A0') ? 'A0' : !allEarnedAt('A1') ? 'A1' : 'A2';
+  const level: MissionLevel = !allEarnedAt('A0') ? 'A0' : !allEarnedAt('A1') ? 'A1' : !allEarnedAt('A2') ? 'A2' : 'B1';
 
   return { level, next, earned };
 }
@@ -78,11 +90,20 @@ export function spineFrom(progress: readonly MissionProgress[]): SpineView {
  * has none: a learner learning for its own sake just walks the spine.
  */
 export const GOAL_SCENES: Readonly<Record<Exclude<LearnerGoal, 'because'>, readonly MissionId[]>> = {
-  moving: ['mission:appartement', 'mission:medecin', 'mission:voisin', 'mission:colis', 'mission:pharmacie', 'mission:telephone', 'mission:retour'],
+  moving: [
+    'mission:appartement', 'mission:banque', 'mission:medecin', 'mission:voisin', 'mission:colis', 'mission:pharmacie',
+    'mission:telephone', 'mission:retour', 'mission:club', 'mission:montreal', 'mission:fuite',
+  ],
   trip: ['mission:gare', 'mission:restaurant', 'mission:chemin', 'mission:hotel', 'mission:pharmacie'],
   food: ['mission:cafe', 'mission:restaurant', 'mission:marche'],
-  family: ['mission:belle-famille', 'mission:amis', 'mission:journee', 'mission:week-end'],
-  work: ['mission:collegues', 'mission:telephone', 'mission:week-end', 'mission:journee'],
+  family: [
+    'mission:belle-famille', 'mission:anniversaire', 'mission:amis', 'mission:journee', 'mission:week-end', 'mission:souvenirs',
+    'mission:galere',
+  ],
+  work: [
+    'mission:collegues', 'mission:telephone', 'mission:coup-de-main', 'mission:week-end', 'mission:journee', 'mission:entretien',
+    'mission:teletravail',
+  ],
 };
 
 export interface NextScene {
@@ -91,8 +112,8 @@ export interface NextScene {
   picked: 'goal' | 'spine';
 }
 
-const REACH: Readonly<Record<CefrLevel, CefrLevel>> = { A0: 'A1', A1: 'A2', A2: 'A2' };
-const CEFR_RANK: Readonly<Record<CefrLevel, number>> = { A0: 0, A1: 1, A2: 2 };
+const REACH: Readonly<Record<MissionLevel, MissionLevel>> = { A0: 'A1', A1: 'A2', A2: 'B1', B1: 'B1' };
+const CEFR_RANK: Readonly<Record<MissionLevel, number>> = { A0: 0, A1: 1, A2: 2, B1: 3 };
 
 /**
  * The scene to suggest next, leaning towards the learner's goal.

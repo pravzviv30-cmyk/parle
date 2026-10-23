@@ -20,5 +20,17 @@ export const POSTCARD: Record<MissionId, IllustrationName> = {
   'mission:retour': 'postcard-shop-return',
   'mission:appartement': 'postcard-flat',
   'mission:belle-famille': 'postcard-family-dinner',
+  'mission:club': 'postcard-club',
+  'mission:banque': 'postcard-bank',
+  'mission:sortie': 'postcard-plans',
+  'mission:montreal': 'postcard-montreal-coat',
+  'mission:coup-de-main': 'postcard-office-help',
+  'mission:anniversaire': 'postcard-birthday',
+  'mission:fuite': 'postcard-leak',
+  'mission:galere': 'postcard-story',
+  'mission:avis': 'postcard-film-talk',
+  'mission:entretien': 'postcard-interview',
+  'mission:teletravail': 'postcard-remote-work',
+  'mission:souvenirs': 'postcard-grandmother',
 };
 export function postcardIllustration(id: MissionId): IllustrationName { return POSTCARD[id]; }

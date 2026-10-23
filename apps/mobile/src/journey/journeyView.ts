@@ -9,9 +9,9 @@
  * Honesty rules this file keeps:
  * - Stages are words, never CEFR: Starter, Basics, Everyday, Chatting and
  *   Confident, the founder's names (B4 review, 2026-10-20), as Speak and the
- *   scene preview say them (`scenes/scenePreview.ts` `stageOf`). Only the first two stages are
- *   real (A0 and A1 from `spineFrom`); the other three are future steps that
- *   claim nothing.
+ *   scene preview say them (`scenes/scenePreview.ts` `stageOf`). The first four stages are
+ *   real (A0, A1, A2 and B1 from `spineFrom`, 2026-10-22 mission spine B1);
+ *   Confident is a future step that claims nothing.
  * - Abilities carry no "n of m earned" count (founder rule): the artboard's
  *   "1 of 3 earned" is dropped.
  * - Help is said in words only, the ladder's four (Line given, Choices, Hint,
@@ -39,7 +39,7 @@ import {
   type ReviewCard,
   type Rung,
   type XpLevel,
-  type CefrLevel,
+  type MissionLevel,
 } from '@luvani/core';
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
@@ -137,7 +137,7 @@ export function dayWord(at: number, now: number): string {
 
 // ───────────────────────────────────────────────────────────── the header
 
-/** The five stages, in order. Only the first two are ever "here". */
+/** The five stages, in order. Confident is never "here". */
 export const STAGES = ['Starter', 'Basics', 'Everyday', 'Chatting', 'Confident'] as const;
 export type StageWord = (typeof STAGES)[number];
 
@@ -182,10 +182,11 @@ export function startingOutMissions(): readonly Mission[] {
 export const STAGE_FILL = 0.07;
 
 /**
- * The stage a spine level stands at: A0 Starter, A1 Basics, A2 Everyday. Read
+ * The stage a spine level stands at: A0 Starter, A1 Basics, A2 Everyday, B1
+ * Chatting. Read
  * only from `spineFrom`'s level, so nothing past the earned level is reached.
  */
-export function stageIndexOf(level: CefrLevel): number {
+export function stageIndexOf(level: MissionLevel): number {
   return Math.max(0, MISSION_LEVELS.indexOf(level));
 }
 

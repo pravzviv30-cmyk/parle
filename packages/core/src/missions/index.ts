@@ -16,6 +16,7 @@ export type { SpineView, NextScene } from './spine.ts';
 export type {
   Mission,
   MissionId,
+  MissionLevel,
   MissionPlace,
   MissionCompletion,
   MissionProgress,

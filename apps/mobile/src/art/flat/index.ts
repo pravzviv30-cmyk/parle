@@ -27,6 +27,18 @@ import { PlaceDoctor } from './place-doctor.tsx';
 import { PlaceShopReturn } from './place-shop-return.tsx';
 import { PlaceFlat } from './place-flat.tsx';
 import { PlaceFamilyDinner } from './place-family-dinner.tsx';
+import { PlaceClub } from './place-club.tsx';
+import { PlaceBank } from './place-bank.tsx';
+import { PlacePlans } from './place-plans.tsx';
+import { PlaceMontrealCoat } from './place-montreal-coat.tsx';
+import { PlaceOfficeHelp } from './place-office-help.tsx';
+import { PlaceBirthday } from './place-birthday.tsx';
+import { PlaceLeak } from './place-leak.tsx';
+import { PlaceStory } from './place-story.tsx';
+import { PlaceFilmTalk } from './place-film-talk.tsx';
+import { PlaceInterview } from './place-interview.tsx';
+import { PlaceRemoteWork } from './place-remote-work.tsx';
+import { PlaceGrandmother } from './place-grandmother.tsx';
 import { StateNotebook } from './state-notebook.tsx';
 import { StateWaiting } from './state-waiting.tsx';
 import { StateOffline } from './state-offline.tsx';
@@ -61,6 +73,18 @@ import { PostcardDoctor } from './postcard-doctor.tsx';
 import { PostcardShopReturn } from './postcard-shop-return.tsx';
 import { PostcardFlat } from './postcard-flat.tsx';
 import { PostcardFamilyDinner } from './postcard-family-dinner.tsx';
+import { PostcardClub } from './postcard-club.tsx';
+import { PostcardBank } from './postcard-bank.tsx';
+import { PostcardPlans } from './postcard-plans.tsx';
+import { PostcardMontrealCoat } from './postcard-montreal-coat.tsx';
+import { PostcardOfficeHelp } from './postcard-office-help.tsx';
+import { PostcardBirthday } from './postcard-birthday.tsx';
+import { PostcardLeak } from './postcard-leak.tsx';
+import { PostcardStory } from './postcard-story.tsx';
+import { PostcardFilmTalk } from './postcard-film-talk.tsx';
+import { PostcardInterview } from './postcard-interview.tsx';
+import { PostcardRemoteWork } from './postcard-remote-work.tsx';
+import { PostcardGrandmother } from './postcard-grandmother.tsx';
 
 /** One drawing: the component, its viewBox, and the sizes the catalogue displays it at. */
 export type IllustrationEntry = {
@@ -90,6 +114,18 @@ export const ILLUSTRATIONS = {
   'place-shop-return': { draw: PlaceShopReturn, box: [350, 220], large: [350, 220], small: [262, 165] },
   'place-flat': { draw: PlaceFlat, box: [350, 220], large: [350, 220], small: [262, 165] },
   'place-family-dinner': { draw: PlaceFamilyDinner, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-club': { draw: PlaceClub, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-bank': { draw: PlaceBank, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-plans': { draw: PlacePlans, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-montreal-coat': { draw: PlaceMontrealCoat, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-office-help': { draw: PlaceOfficeHelp, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-birthday': { draw: PlaceBirthday, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-leak': { draw: PlaceLeak, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-story': { draw: PlaceStory, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-film-talk': { draw: PlaceFilmTalk, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-interview': { draw: PlaceInterview, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-remote-work': { draw: PlaceRemoteWork, box: [350, 220], large: [350, 220], small: [262, 165] },
+  'place-grandmother': { draw: PlaceGrandmother, box: [350, 220], large: [350, 220], small: [262, 165] },
   'state-notebook': { draw: StateNotebook, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-waiting': { draw: StateWaiting, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-offline': { draw: StateOffline, box: [160, 160], large: [160, 160], small: [120, 120] },
@@ -124,6 +160,18 @@ export const ILLUSTRATIONS = {
   'postcard-shop-return': { draw: PostcardShopReturn, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-flat': { draw: PostcardFlat, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-family-dinner': { draw: PostcardFamilyDinner, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-club': { draw: PostcardClub, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-bank': { draw: PostcardBank, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-plans': { draw: PostcardPlans, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-montreal-coat': { draw: PostcardMontrealCoat, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-office-help': { draw: PostcardOfficeHelp, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-birthday': { draw: PostcardBirthday, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-leak': { draw: PostcardLeak, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-story': { draw: PostcardStory, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-film-talk': { draw: PostcardFilmTalk, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-interview': { draw: PostcardInterview, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-remote-work': { draw: PostcardRemoteWork, box: [300, 190], large: [300, 190], small: [165, 105] },
+  'postcard-grandmother': { draw: PostcardGrandmother, box: [300, 190], large: [300, 190], small: [165, 105] },
 } as const satisfies Record<string, IllustrationEntry>;
 
 export type IllustrationName = keyof typeof ILLUSTRATIONS;

@@ -90,8 +90,8 @@ test('guided content remains the existing beginner mission inventory and is neve
   const collection = exploreCollection('guided-situations')!;
   const items = collectionItems(collection);
   assert.deepEqual(items.map(x => x.id), MISSIONS.map(m => m.id));
-  assert.ok(items.every(item => item.kind === 'mission' && item.detail.includes('Guided beginner activity.')));
-  assert.ok(items.every(item => item.kind === 'mission' && ['A0', 'A1', 'A2'].includes(item.source.cefr)));
+  assert.ok(items.every(item => item.kind === 'mission' && item.detail.includes('Guided activity.')));
+  assert.ok(items.every(item => item.kind === 'mission' && ['A0', 'A1', 'A2', 'B1'].includes(item.source.cefr)));
   assert.ok(exploreMissions('', 'food').some(m => m.id === 'mission:cafe'));
   assert.ok(exploreMissions('', 'shops').some(m => m.id === 'mission:marche'));
   assert.ok(exploreMissions('', 'admin').some(m => m.id === 'mission:hotel'));

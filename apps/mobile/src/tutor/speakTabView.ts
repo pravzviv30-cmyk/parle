@@ -13,7 +13,7 @@
  * ask what a locked seam would draw.
  */
 
-import { getMission, type CefrLevel, type Mission, type MissionProgress, type Rung } from '@luvani/core';
+import { getMission, type Mission, type MissionLevel, type MissionProgress, type Rung } from '@luvani/core';
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
 import { minutesLine } from '../home/estimate.ts';
@@ -154,7 +154,7 @@ export const DONE_WITHOUT_HELP = 'Done without help, speak it again';
  * Stage words, never CEFR. Matches `scenes/scenePreview.ts` and Journey's
  * stages (2026-10-20, B4 review: the founder's stage names, Starter for A0).
  */
-export function stageWord(level: CefrLevel): string {
+export function stageWord(level: MissionLevel): string {
   return stageOf({ kind: 'mission', cefr: level });
 }
 

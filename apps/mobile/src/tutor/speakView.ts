@@ -25,7 +25,7 @@ import {
   type Mission,
   type MissionProgress,
   type TutorVoiceKey,
-  type CefrLevel,
+  type MissionLevel,
 } from '@luvani/core';
 
 import type { LevelStop } from '../components.tsx';
@@ -134,7 +134,7 @@ export interface SpeakRow {
  */
 export interface SpeakPath {
   /** A0, A1 then A2, each only when a scene carries it. */
-  groups: { level: CefrLevel; rows: SpeakRow[] }[];
+  groups: { level: MissionLevel; rows: SpeakRow[] }[];
 }
 
 
@@ -179,7 +179,7 @@ export function speakPath(progress: readonly MissionProgress[]): SpeakPath {
 
 /** What Speak's one path card holds: the level the learner is in, and a line for the next. */
 export interface PathCard {
-  level: CefrLevel;
+  level: MissionLevel;
   /** Every scene of that level, in spine order, each with its mark and French name. */
   rows: SpeakRow[];
   /** "Then A1, 4 more scenes", or null when nothing comes after this level. */

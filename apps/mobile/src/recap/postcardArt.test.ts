@@ -48,7 +48,7 @@ describe('the postcard each scene sends home, F865', () => {
     );
 
     const postcards = NAMES.filter((name) => name.startsWith('postcard-'));
-    assert.equal(postcards.length, 19, 'the registry ships a different number of postcards than the nineteen scenes');
+    assert.equal(postcards.length, 31, 'the registry ships a different number of postcards than the thirty-one scenes');
     for (const name of postcards) {
       const owners = Object.entries(POSTCARD)
         .filter(([, drawn]) => drawn === name)

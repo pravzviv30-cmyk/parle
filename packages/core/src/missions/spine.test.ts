@@ -14,6 +14,7 @@ const done = (id: MissionId, rung: Rung, at = NOW - DAY): MissionCompletion => (
 const A0_IDS = MISSIONS.filter((m) => m.cefr === 'A0').map((m) => m.id);
 const A1_IDS = MISSIONS.filter((m) => m.cefr === 'A1').map((m) => m.id);
 const A2_IDS = MISSIONS.filter((m) => m.cefr === 'A2').map((m) => m.id);
+const B1_IDS = MISSIONS.filter((m) => m.cefr === 'B1').map((m) => m.id);
 
 describe('the spine — the order scenes are offered in, and what has been earned', () => {
   test('the spine names every mission once, opening on the first scene', () => {
@@ -39,6 +40,18 @@ describe('the spine — the order scenes are offered in, and what has been earne
         'mission:retour',
         'mission:appartement',
         'mission:belle-famille',
+        'mission:club',
+        'mission:banque',
+        'mission:sortie',
+        'mission:montreal',
+        'mission:coup-de-main',
+        'mission:anniversaire',
+        'mission:fuite',
+        'mission:galere',
+        'mission:avis',
+        'mission:entretien',
+        'mission:teletravail',
+        'mission:souvenirs',
       ],
     );
     assert.equal(SCENE_SPINE[0], FIRST_MISSION);
@@ -137,8 +150,11 @@ describe('the spine — the order scenes are offered in, and what has been earne
   });
 
   test('the A2 scenes come last on the spine, and earning them never moves the level early', () => {
-    assert.equal(A2_IDS.length, 7, 'the seven A2 scenes from docs/changes/mission-spine-a2.md');
-    assert.deepEqual([...SCENE_SPINE].slice(-A2_IDS.length), A2_IDS, 'A2 follows every A0 and A1 scene');
+    // 2026-10-22: seven became thirteen with the six A2 scenes in
+    // docs/changes/mission-spine-b1.md (class, bank, cinema plans, Montréal
+    // coat, colleague help, partner's sister's birthday).
+    assert.equal(A2_IDS.length, 13, 'the thirteen A2 scenes from docs/changes/mission-spine-a2.md and mission-spine-b1.md');
+    assert.deepEqual([...SCENE_SPINE].slice(-A2_IDS.length - B1_IDS.length, -B1_IDS.length), A2_IDS, 'A2 follows every A0 and A1 scene');
 
     const allA0 = A0_IDS.map((id) => done(id, 4));
     const allA2 = A2_IDS.map((id) => done(id, 4));
@@ -154,12 +170,36 @@ describe('the spine — the order scenes are offered in, and what has been earne
     assert.equal(view.next?.id, A2_IDS[0], 'with A0 and A1 earned, the next scene is the first A2 one');
   });
 
+  test('the level is B1 only once every A0, A1 and A2 scene is earned', () => {
+    const allA0 = A0_IDS.map((id) => done(id, 4));
+    const allA1 = A1_IDS.map((id) => done(id, 4));
+    const allA2 = A2_IDS.map((id) => done(id, 4));
+    assert.equal(spineFrom(missionStates([...allA0, ...allA1, ...allA2.slice(1)], [], NOW)).level, 'A2', 'one A2 scene is still unearned');
+    const a2OneHelped = [...allA2.slice(1), done(A2_IDS[0]!, 2)];
+    assert.equal(spineFrom(missionStates([...allA0, ...allA1, ...a2OneHelped], [], NOW)).level, 'A2', 'a helped A2 finish is not an earned one');
+    assert.equal(spineFrom(missionStates([...allA0, ...allA1.slice(1), ...allA2], [], NOW)).level, 'A1', 'B1 needs every A1 scene too');
+    assert.equal(spineFrom(missionStates([...allA0, ...allA1, ...allA2], [], NOW)).level, 'B1');
+  });
+
+  test('the B1 scenes close the spine, after every A2 scene', () => {
+    // 2026-10-23: the six B1 scenes in docs/changes/mission-spine-b1.md.
+    assert.deepEqual(B1_IDS, [
+      'mission:fuite', 'mission:galere', 'mission:avis', 'mission:entretien', 'mission:teletravail', 'mission:souvenirs',
+    ]);
+    assert.deepEqual([...SCENE_SPINE].slice(-B1_IDS.length), B1_IDS, 'B1 follows every A2 scene');
+    const allBelow = [...A0_IDS, ...A1_IDS, ...A2_IDS].map((id) => done(id, 4));
+    const view = spineFrom(missionStates(allBelow, [], NOW));
+    assert.equal(view.level, 'B1');
+    assert.equal(view.next?.id, B1_IDS[0], 'with A0 to A2 earned, the next scene is the first B1 one');
+    assert.equal(spineFrom(missionStates([...allBelow, ...B1_IDS.map((id) => done(id, 4))], [], NOW)).level, 'B1', 'earning B1 scenes keeps the level at B1');
+  });
+
   test('with every scene earned there is nothing next', () => {
     const view = spineFrom(missionStates(SCENE_SPINE.map((id) => done(id, 4)), [], NOW));
     assert.equal(view.next, null);
-    // 2026-10-22: was 'A1' while the spine stopped at A1. Every A0 and A1
-    // scene earned is now A2 by definition.
-    assert.equal(view.level, 'A2');
+    // 2026-10-22: was 'A2' while the spine stopped at A2. Every A0, A1 and A2
+    // scene earned is now B1, even before any B1 mission exists.
+    assert.equal(view.level, 'B1');
     assert.deepEqual(view.earned.map((m) => m.id), [...SCENE_SPINE]);
   });
 });
@@ -201,6 +241,29 @@ describe('nextScene — the goal orders the suggestion, never the level', () => 
     const a1 = earnedAll([...A0_IDS, 'mission:marche']);
     assert.equal(spineFrom(a1).level, 'A1');
     assert.deepEqual(nextScene(a1, 'moving'), { mission: getMission('mission:appartement'), picked: 'goal' });
+  });
+
+  test("an A2 learner is offered the goal's B1 scene once its nearer scenes are earned", () => {
+    // Every A0 and A1 scene earned makes the level A2, whose reach is B1, and
+    // the work goal's A2 scenes are earned too, so entretien is next.
+    const progress = earnedAll([...A0_IDS, ...A1_IDS, 'mission:collegues', 'mission:telephone', 'mission:coup-de-main', 'mission:week-end']);
+    assert.equal(spineFrom(progress).level, 'A2');
+    assert.deepEqual(nextScene(progress, 'work'), { mission: getMission('mission:entretien'), picked: 'goal' });
+    const family = earnedAll([...A0_IDS, ...A1_IDS, 'mission:belle-famille', 'mission:anniversaire', 'mission:week-end']);
+    assert.equal(nextScene(family, 'family')?.mission.id, 'mission:souvenirs');
+    const moving = earnedAll([...A0_IDS, ...A1_IDS, ...A2_IDS]);
+    assert.equal(nextScene(moving, 'moving')?.mission.id, 'mission:fuite');
+  });
+
+  test('an A1 learner is never offered a B1 scene, whatever the goal', () => {
+    // Every A0 scene earned, plus every goal scene below B1: the reach is A2.
+    const progress = earnedAll([...A0_IDS, ...A2_IDS, ...A1_IDS.slice(1)]);
+    assert.equal(spineFrom(progress).level, 'A1');
+    for (const goal of ['moving', 'family', 'work', 'trip', 'food'] as const) {
+      const next = nextScene(progress, goal);
+      assert.ok(next, goal);
+      assert.notEqual(next.mission.cefr, 'B1', `${goal} offered ${next.mission.id} to an A1 learner`);
+    }
   });
 
   test('earned goal scenes are skipped', () => {

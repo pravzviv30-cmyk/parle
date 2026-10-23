@@ -34,7 +34,7 @@ describe('the drawing each scene draws — F599', () => {
   test('every scene has a flat drawing of its own, and no two scenes share one', () => {
     assert.ok(NAMES.length > 0, 'the registry was read as empty, so this test is reading nothing');
     const ids = MISSIONS.map((mission) => mission.id);
-    assert.ok(ids.length >= 19, 'the catalogue has fewer scenes than the nineteen place drawings were drawn for');
+    assert.ok(ids.length >= 31, 'the catalogue has fewer scenes than the thirty-one place drawings were drawn for');
 
     const used = new Set<string>();
     for (const id of ids) {
@@ -66,7 +66,7 @@ describe('the drawing each scene draws — F599', () => {
       claimed.set(name, [...(claimed.get(name) ?? []), scene]);
     }
     const places = NAMES.filter((name) => name.startsWith('place-'));
-    assert.equal(places.length, 19, 'the registry ships a different number of place drawings than the nineteen scenes');
+    assert.equal(places.length, 31, 'the registry ships a different number of place drawings than the thirty-one scenes');
     for (const name of places) {
       const owners = claimed.get(name) ?? [];
       assert.equal(

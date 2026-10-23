@@ -27,12 +27,15 @@ import { DRILL_FIXTURES, type DrillExercise } from '@luvani/core';
  * A generous offline bank, bounded so parsing and rendering never grow forever.
  *
  * The shipped fixtures are the floor above the cap, so the cap must sit well
- * above `DRILL_FIXTURES.length` or tutor-written drills get no room at all. At
- * about 195 fixtures (two per mission phrase after mission-spine A2), 256 keeps
- * roughly 60 slots for generated drills. fixturesMissing.test.ts fails when fixtures plus
+ * above `DRILL_FIXTURES.length` or tutor-written drills get no room at all. There
+ * are 182 fixtures before mission-spine B1 and about 278 after its twelve missions
+ * (+96, two per phrase), so 384 keeps roughly 106 slots for generated drills. The
+ * synced `drills` envelope stays small at this cap: fixtures average about 360 JSON
+ * bytes, so a full bank is about 139 KB of the 512 KB envelope limit (about 236 KB if
+ * every row were as large as the largest fixture). fixturesMissing.test.ts fails when fixtures plus
  * `MIN_GENERATED_HEADROOM` pass this cap: raise it with the content, not after.
  */
-export const MAX_DRILL_EXERCISES = 256;
+export const MAX_DRILL_EXERCISES = 384;
 
 /** The fewest generated drills the bank must hold room for beside every fixture. */
 export const MIN_GENERATED_HEADROOM = 48;

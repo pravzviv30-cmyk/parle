@@ -49,7 +49,7 @@ export const PRACTICAL_COLLECTIONS: readonly ExploreCollection[] = [
 export const SKILL_COLLECTIONS: readonly ExploreCollection[] = [
   { id: 'hear-and-practise', title: 'Hear & practise', outcome: 'Hear French in your tutor’s voice. Read the meaning, then say the line your way or record and compare.', motif: 'listen', tone: 'teal', kind: 'daily' },
   { id: 'connect-your-ideas', title: 'Keep a conversation going', outcome: 'Join two thoughts, change the subject or buy yourself a moment with useful French expressions.', motif: 'talk', tone: 'plum', kind: 'daily', refs: CONNECTOR_IDS.map(id => ({ kind: 'daily', id })) },
-  { id: 'guided-situations', title: 'Start speaking', outcome: 'Guided beginner situations, with examples when you want them and writing when you need it.', motif: 'practice', tone: 'ochre', kind: 'missions' },
+  { id: 'guided-situations', title: 'Start speaking', outcome: 'Guided situations, with examples when you want them and writing when you need it.', motif: 'practice', tone: 'ochre', kind: 'missions' },
 ];
 export const TOPIC_COLLECTIONS: readonly ExploreCollection[] = EXPLORE_TOPICS.map(t => ({
   id: `topic:${t.key}`, title: t.title, outcome: 'Choose a situation, prepare a few useful lines if you want to, then speak or write with your tutor.',
@@ -61,7 +61,7 @@ export function exploreScenario(id: unknown): DailyScenario | undefined { return
 
 export function collectionItems(collection: ExploreCollection, options: { tier?: 1 | 2 | 3; audio?: TutorAudioPack; voice?: TutorVoiceKey } = {}): readonly ExploreCollectionItem[] {
   if (collection.kind === 'topics') return [];
-  if (collection.kind === 'missions') return MISSIONS.map(source => ({ kind: 'mission', id: source.id, source, title: source.titleEn, detail: `${source.goalEn}. Guided beginner activity.` }));
+  if (collection.kind === 'missions') return MISSIONS.map(source => ({ kind: 'mission', id: source.id, source, title: source.titleEn, detail: `${source.goalEn}. Guided activity.` }));
   if (collection.kind === 'scenarios') {
     const theme = EXPLORE_TOPICS.find(t => t.key === collection.topic)?.theme;
     const ids = new Set(collection.refs?.filter(ref => ref.kind === 'scenario').map(ref => ref.id));

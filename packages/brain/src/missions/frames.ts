@@ -18,10 +18,13 @@
  * Two of them, the café and the apéro, are the frames `fixtures.ts` already
  * carries. They are referenced rather than copied, because two café scenes that
  * drifted apart is exactly the failure this file would otherwise introduce, and
- * because that file calls itself the quality bar. The other seventeen of the
- * nineteen are authored here to match it: the A0 and A1 scenes first, then the
- * seven A2 ones (weekend chat, first day at work, booking by phone, the doctor,
- * a shop return, a flat viewing and dinner with a partner's parents).
+ * because that file calls itself the quality bar. The other twenty-three of the
+ * twenty-five are authored here to match it: the A0 and A1 scenes first, then
+ * the seven A2 ones (weekend chat, first day at work, booking by phone, the
+ * doctor, a shop return, a flat viewing and dinner with a partner's parents),
+ * then six more A2 ones (signing up for a class, a bank account, cinema plans,
+ * a winter coat in Montréal, a colleague's help and a partner's sister's
+ * birthday).
  *
  * The catalogue half lives in `@luvani/core`'s `missions/missions.ts` and repeats
  * these phrases as literal data, because core cannot import brain.
@@ -2249,6 +2252,1586 @@ const BELLE_FAMILLE_FRAME: ScenarioFrame = {
   ],
 };
 
+/**
+ * mission:club. Signing up for a class at a maison de quartier, the TCF-style
+ * interaction task: ask the times, the price and what to bring. Sophie answers
+ * each question with the fact first and waits, because the learner leads.
+ */
+const CLUB_FRAME: ScenarioFrame = {
+  title: "S'inscrire au club",
+  titleEn: 'Signing up for a class',
+  setting: 'The welcome desk of a maison de quartier in Toulouse on a Tuesday evening. A notice board of yoga, choir and French conversation evenings, a stack of forms, and music from the hall upstairs.',
+  learnerRole: 'Someone new to the area, signing up for a weekly class at the local community centre.',
+  characters: [
+    {
+      name: 'Sophie',
+      role: 'the welcome desk at the maison de quartier, friendly and organised, with every timetable in front of her',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Welcome-desk French at a community centre, vous throughout. Sophie is friendly and organised, with the timetable printed in front of her. She answers each question with the fact first (le mardi, de sept heures à huit heures et demie), then waits for the next one, because the learner is the one asking. In her speech the ne drops (c'est complet le jeudi, c'est pas cher), but her formulas stay whole: je vous en prie, n'hésitez pas. She lists what to bring in two or three items (un tapis, une bouteille d'eau, une tenue confortable) and repeats a time or a price if asked. When the learner signs up she asks for a name and an email, one at a time. She never rushes the learner, never pushes a dearer option, and never says tu.",
+  beats: [
+    {
+      id: 'say-what-you-want',
+      goal: 'Dire à quel cours on veut s’inscrire',
+      goalEn: 'Say what you want to join',
+    },
+    {
+      id: 'ask-the-times',
+      goal: 'Demander les jours et les horaires',
+      goalEn: 'Ask about the times',
+    },
+    {
+      id: 'ask-the-price',
+      goal: 'Demander le prix',
+      goalEn: 'Ask the price',
+    },
+    {
+      id: 'ask-what-to-bring',
+      goal: 'Demander ce qu’il faut apporter',
+      goalEn: 'Ask what to bring',
+    },
+    {
+      id: 'sign-up',
+      goal: 'S’inscrire',
+      goalEn: 'Sign up',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "Je voudrais m'inscrire au cours de yoga",
+      frWritten: null,
+      en: 'I would like to sign up for the yoga class',
+      register: 'courant',
+    },
+    {
+      fr: "C'est quel jour, et à quelle heure ?",
+      frWritten: null,
+      en: 'Which day is it, and at what time?',
+      register: 'courant',
+    },
+    {
+      fr: 'Y a encore de la place ?',
+      frWritten: 'Il y a encore de la place ?',
+      en: 'Are there still places left?',
+      register: 'courant',
+    },
+    {
+      fr: "Ça coûte combien pour l'année ?",
+      frWritten: null,
+      en: 'How much is it for the year?',
+      register: 'courant',
+    },
+    {
+      fr: "Qu'est-ce qu'il faut apporter ?",
+      frWritten: null,
+      en: 'What do I need to bring?',
+      register: 'courant',
+    },
+    {
+      fr: "On peut faire un cours d'essai ?",
+      frWritten: null,
+      en: 'Can I try a class first?',
+      register: 'courant',
+    },
+    {
+      fr: "D'accord, je m'inscris",
+      frWritten: null,
+      en: 'All right, I will sign up',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Une affiche annonce le cours de yoga du mardi. Derrière le bureau d'accueil, une femme range des formulaires et lève la tête.",
+    frWritten: null,
+    en: 'A poster by the door announces the Tuesday yoga class. Behind the welcome desk, a woman is tidying a pile of forms, and she looks up.',
+  },
+  openingLine: {
+    speaker: 'Sophie',
+    fr: 'Bonsoir ! Je peux vous renseigner ?',
+    frWritten: null,
+    en: 'Good evening! Can I help you with anything?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Bonsoir ! Je voudrais m'inscrire au cours de yoga",
+      frWritten: null,
+      en: 'Good evening! I would like to sign up for the yoga class',
+    },
+    options: [
+      {
+        fr: 'Bonsoir, y a encore de la place au cours de yoga ?',
+        en: 'Good evening, are there still places in the yoga class?',
+      },
+      {
+        fr: 'Bonsoir, le cours de conversation, c’est quel jour ?',
+        en: 'Good evening, which day is the conversation class?',
+      },
+      {
+        fr: 'Bonsoir, je voudrais des informations sur les cours',
+        en: 'Good evening, I would like some information about the classes',
+      },
+    ],
+    hintEn: 'Say good evening back, then say which class you want to join.',
+  },
+  cultureNotes: [
+    'A maison de quartier or an MJC runs low-cost classes for the neighbourhood: sport, music, languages, cooking. It is one of the easiest ways to meet people after a move. Most ask for a small yearly adhésion, a membership fee, on top of the class.',
+    'Most classes start in September, at the rentrée, but many still take people later in the year. Asking for a cours d’essai, a first class to try, is normal.',
+    'Some sport classes still ask for a certificat médical, a short note from a doctor saying you can take part.',
+  ],
+};
+
+/**
+ * mission:banque. Opening an account just after a move. Antoine is the most
+ * formal character at A2: vous, the ne kept more than most, and every
+ * document named in turn. The RIB, which every landlord and employer asks
+ * for, goes in a culture note rather than a beat.
+ */
+const BANQUE_FRAME: ScenarioFrame = {
+  title: 'Ouvrir un compte',
+  titleEn: 'Opening a bank account',
+  setting: 'A small bank branch in Bordeaux on a weekday morning. A glass-walled office with two chairs, a screen turned towards the customer, and a pot plant on the filing cabinet.',
+  learnerRole: 'Someone who has just moved to France, opening a bank account at a local branch.',
+  characters: [
+    {
+      name: 'Antoine',
+      role: 'a bank adviser, polite and precise, who goes through each document in turn',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Bank-adviser French in a branch office, vous throughout, courant leaning towards soutenu. Antoine is polite and precise. He keeps the ne more often than most people (je ne vois pas de problème), uses whole formulas (je vous en prie, tout à fait, je vous écoute) and asks one question at a time. He names each document plainly (une pièce d'identité, un justificatif de domicile de moins de trois mois) and explains a word if the learner hesitates. Keep sentences short, name one document at a time, and if you say justificatif de domicile, follow it with a plain example (une facture, par exemple). He answers questions about the card and the online account with the fact first, then offers a next appointment to sign. He never sells extra products, never hurries the learner, and never says tu.",
+  beats: [
+    {
+      id: 'say-you-want-an-account',
+      goal: 'Dire qu’on veut ouvrir un compte',
+      goalEn: 'Say you want an account',
+    },
+    {
+      id: 'say-you-just-moved',
+      goal: 'Dire qu’on vient d’arriver',
+      goalEn: 'Say you just moved here',
+    },
+    {
+      id: 'ask-what-documents',
+      goal: 'Demander quels documents il faut',
+      goalEn: 'Ask what documents',
+    },
+    {
+      id: 'ask-about-the-card',
+      goal: 'Poser une question sur la carte',
+      goalEn: 'Ask about the card',
+    },
+    {
+      id: 'book-the-next-step',
+      goal: 'Prendre le prochain rendez-vous',
+      goalEn: 'Book the next step',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: 'Bonjour, je voudrais ouvrir un compte',
+      frWritten: null,
+      en: 'Hello, I would like to open an account',
+      register: 'courant',
+    },
+    {
+      fr: 'Je viens de déménager dans le quartier',
+      frWritten: null,
+      en: 'I have just moved to the area',
+      register: 'courant',
+    },
+    {
+      fr: 'Vous avez besoin de quels documents ?',
+      frWritten: null,
+      en: 'Which documents do you need?',
+      register: 'courant',
+    },
+    {
+      fr: "J'ai mon passeport et une facture d'électricité",
+      frWritten: null,
+      en: 'I have my passport and an electricity bill',
+      register: 'courant',
+    },
+    {
+      fr: 'Et la carte bancaire, je la reçois quand ?',
+      frWritten: null,
+      en: 'And the bank card, when do I get it?',
+      register: 'courant',
+    },
+    {
+      fr: 'Je peux avoir un RIB ?',
+      frWritten: null,
+      en: 'Can I have my bank details?',
+      register: 'courant',
+    },
+    {
+      fr: 'Mardi prochain, ça me va très bien',
+      frWritten: null,
+      en: 'Next Tuesday suits me very well',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "La porte vitrée du bureau se referme sans bruit. Le conseiller tourne son écran vers vous et ouvre un nouveau dossier.",
+    frWritten: null,
+    en: 'The glass door of the little office closes without a sound. The adviser turns his screen towards you and opens a new file.',
+  },
+  openingLine: {
+    speaker: 'Antoine',
+    fr: 'Bonjour, asseyez-vous. Je vous écoute.',
+    frWritten: null,
+    en: 'Hello, have a seat. How can I help?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: 'Bonjour, je voudrais ouvrir un compte',
+      frWritten: null,
+      en: 'Hello, I would like to open an account',
+    },
+    options: [
+      {
+        fr: 'Bonjour. Je viens de déménager, je voudrais ouvrir un compte',
+        en: 'Hello. I have just moved, I would like to open an account',
+      },
+      {
+        fr: 'Merci. Je voudrais ouvrir un compte, s’il vous plaît',
+        en: 'Thank you. I would like to open an account, please',
+      },
+      {
+        fr: 'Bonjour, j’ai rendez-vous pour ouvrir un compte',
+        en: 'Hello, I have an appointment to open an account',
+      },
+    ],
+    hintEn: 'Say hello back, then say you would like to open an account.',
+  },
+  cultureNotes: [
+    'A justificatif de domicile is proof of address: a recent energy bill, a rent receipt or a home insurance certificate. If you live with someone, they can sign an attestation d’hébergement, with a copy of their ID and their own proof of address.',
+    'A RIB, relevé d’identité bancaire, is a slip with your account details. Landlords, employers and phone companies ask for one, so keep a copy handy.',
+    'Opening an account in a branch usually means an appointment with a conseiller. Online banks are quicker, but most ask for a French address and a first transfer from an account in your name.',
+  ],
+};
+
+/**
+ * mission:sortie. Planning a cinema evening with a friend on the phone, the
+ * TCF invitation task: suggest, turn down a day and offer another, agree a
+ * time and a place. Léa is familier and tu, and her speech bends spelling,
+ * so the frame carries frWritten where it does.
+ */
+const SORTIE_FRAME: ScenarioFrame = {
+  title: 'On se fait un ciné ?',
+  titleEn: 'Making plans with a friend',
+  setting: 'A Wednesday evening at home, phone to your ear. You are calling your friend Léa to plan the weekend.',
+  learnerRole: 'Someone phoning a friend to plan an evening at the cinema.',
+  characters: [
+    {
+      name: 'Léa',
+      role: 'a friend, chatty on the phone, whose week is already half full',
+      register: 'familier',
+    },
+  ],
+  registerGuidance: "Phone French between friends, tu from the first word: Léa is a friend, and vous would sound like a joke. She is relaxed and quick. The ne is gone (je peux pas, c'est pas grave), and she squeezes words the way people do on the phone: t'es libre, t'as vu, j'sais pas. She reacts out loud with ouais, trop bien, ah mince. She is busy one of the days the learner offers, says so plainly and lets the learner offer another, then settles a time and a meeting place. She repeats a time if the line crackles, and she says à dimanche or à plus to close. She never uses argot a learner cannot follow, never switches to vous, and never talks for long without letting the learner in.",
+  beats: [
+    {
+      id: 'suggest-going-out',
+      goal: 'Proposer une sortie',
+      goalEn: 'Suggest going out',
+    },
+    {
+      id: 'turn-down-and-offer',
+      goal: 'Refuser un jour et en proposer un autre',
+      goalEn: 'Turn down a day and offer another',
+    },
+    {
+      id: 'agree-time-and-place',
+      goal: 'Se mettre d’accord sur l’heure et le lieu',
+      goalEn: 'Agree on a time and place',
+    },
+    {
+      id: 'confirm',
+      goal: 'Confirmer',
+      goalEn: 'Confirm',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "T'es libre samedi soir ?",
+      frWritten: 'Tu es libre samedi soir ?',
+      en: 'Are you free on Saturday evening?',
+      register: 'familier',
+    },
+    {
+      fr: 'On se fait un ciné ?',
+      frWritten: null,
+      en: 'Shall we go to the cinema?',
+      register: 'familier',
+    },
+    {
+      fr: 'Samedi, je peux pas, mais dimanche, ça te va ?',
+      frWritten: 'Samedi, je ne peux pas, mais dimanche, ça te va ?',
+      en: 'I cannot do Saturday, but does Sunday work for you?',
+      register: 'familier',
+    },
+    {
+      fr: 'On se retrouve devant le cinéma ?',
+      frWritten: null,
+      en: 'Shall we meet outside the cinema?',
+      register: 'courant',
+    },
+    {
+      fr: 'Vers huit heures, ça marche ?',
+      frWritten: null,
+      en: 'Around eight, does that work?',
+      register: 'courant',
+    },
+    {
+      fr: 'Ça marche, à dimanche !',
+      frWritten: null,
+      en: 'Sounds good, see you Sunday!',
+      register: 'familier',
+    },
+    {
+      fr: "Trop bien, j'ai hâte !",
+      frWritten: null,
+      en: 'Brilliant, I cannot wait!',
+      register: 'familier',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Ça sonne deux fois. Derrière la voix de Léa, on entend un bus qui freine et une porte qui bipe.",
+    frWritten: null,
+    en: 'The phone rings twice. Behind the voice that answers, a bus brakes and a door beeps open.',
+  },
+  openingLine: {
+    speaker: 'Léa',
+    fr: 'Allô ? Salut, ça va ?',
+    frWritten: null,
+    en: 'Hello? Hey, how are you?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: 'Salut ! Ça va. On se fait un ciné ?',
+      frWritten: null,
+      en: 'Hey! I am good. Shall we go to the cinema?',
+    },
+    options: [
+      {
+        fr: "Salut ! T'es libre samedi soir ?",
+        en: 'Hey! Are you free on Saturday evening?',
+      },
+      {
+        fr: 'Ça va, et toi ? Tu veux aller au cinéma ce week-end ?',
+        en: 'Good, and you? Do you want to go to the cinema this weekend?',
+      },
+      {
+        fr: 'Salut ! Dis, on se fait un ciné ce week-end ?',
+        en: 'Hey! Say, shall we go to the cinema this weekend?',
+      },
+    ],
+    hintEn: 'Say hi back, then suggest going to the cinema.',
+  },
+  cultureNotes: [
+    'On se fait un ciné is the casual way to suggest a film. Ciné is short for cinéma, and it is what most friends say.',
+    'Turning down a day is easy and not rude: say you cannot, then offer another. Je peux pas, mais is all it takes.',
+    'Many French cinemas show foreign films in VO or VOST, the original language with subtitles. VF means dubbed into French.',
+  ],
+};
+
+/**
+ * mission:montreal. The one Quebec scene: buying a first winter coat in a
+ * Montréal shop. Standard Quebec French in the courant register, vous by
+ * default. Marc-André uses a few local words naturally and lets context carry
+ * them; there is no joual and no sacre. The learner's lines stay standard
+ * French that works on both sides of the Atlantic.
+ */
+const MONTREAL_FRAME: ScenarioFrame = {
+  title: "Un manteau pour l'hiver",
+  titleEn: 'A coat for the winter',
+  setting: 'A clothing shop on rue Sainte-Catherine in Montréal at the start of November. Racks of parkas, a wall of tuques, wet boots on a mat by the door, and the first snow outside.',
+  learnerRole: 'Someone who has just arrived in Montréal, buying a first real winter coat.',
+  characters: [
+    {
+      name: 'Marc-André',
+      role: 'a sales assistant in a Montréal clothing shop, warm and quick, who knows what a real winter needs',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Montréal shop French: standard Quebec French in the courant register, vous by default. Marc-André is warm and quick, and he sounds more relaxed than a sales assistant in Paris, but he keeps vous unless the learner offers tu. He uses a few everyday Quebec words naturally and lets the context explain them: magasiner for shopping, une tuque for a winter hat, c'est correct for it is fine, and il fait frette when he talks about the cold. When thanked he often says bienvenue or ça me fait plaisir. He gives sizes and prices plainly, says the taxes are added at the till, and asks how the learner gets around in winter. He never uses joual or sacres, never teases the learner's French from France, and never switches to English.",
+  beats: [
+    {
+      id: 'say-what-you-look-for',
+      goal: 'Dire ce qu’on cherche',
+      goalEn: 'Say what you are looking for',
+    },
+    {
+      id: 'ask-for-your-size',
+      goal: 'Demander sa taille',
+      goalEn: 'Ask for your size',
+    },
+    {
+      id: 'say-how-it-fits',
+      goal: 'L’essayer et dire comment il va',
+      goalEn: 'Try it on and say how it fits',
+    },
+    {
+      id: 'ask-the-price',
+      goal: 'Demander le prix',
+      goalEn: 'Ask the price',
+    },
+    {
+      id: 'decide',
+      goal: 'Se décider',
+      goalEn: 'Decide',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "Bonjour, je cherche un manteau pour l'hiver",
+      frWritten: null,
+      en: 'Hello, I am looking for a winter coat',
+      register: 'courant',
+    },
+    {
+      fr: "Vous l'avez dans une plus grande taille ?",
+      frWritten: null,
+      en: 'Do you have it in a bigger size?',
+      register: 'courant',
+    },
+    {
+      fr: "Je peux l'essayer ?",
+      frWritten: null,
+      en: 'Can I try it on?',
+      register: 'courant',
+    },
+    {
+      fr: 'Il est un peu serré aux épaules',
+      frWritten: null,
+      en: 'It is a bit tight across the shoulders',
+      register: 'courant',
+    },
+    {
+      fr: 'Il coûte combien, avec les taxes ?',
+      frWritten: null,
+      en: 'How much is it, with the taxes?',
+      register: 'courant',
+    },
+    {
+      fr: 'Je vais le prendre',
+      frWritten: null,
+      en: 'I will take it',
+      register: 'courant',
+    },
+    {
+      fr: 'Je vais réfléchir, merci',
+      frWritten: null,
+      en: 'I will think about it, thanks',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Dehors, la première neige tombe sur la rue. Vous tapez vos bottes sur le tapis, et un vendeur pose une pile de tuques sur le comptoir.",
+    frWritten: null,
+    en: 'Outside, the first snow is falling on the street. You stamp your boots on the mat, and a sales assistant sets a pile of woolly hats on the counter.',
+  },
+  openingLine: {
+    speaker: 'Marc-André',
+    fr: 'Bonjour ! Je peux vous aider ?',
+    frWritten: null,
+    en: 'Hello! Can I help you?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Bonjour, je cherche un manteau pour l'hiver",
+      frWritten: null,
+      en: 'Hello, I am looking for a winter coat',
+    },
+    options: [
+      {
+        fr: "Oui, merci. Je cherche un manteau chaud pour l'hiver",
+        en: 'Yes, thanks. I am looking for a warm coat for the winter',
+      },
+      {
+        fr: 'Bonjour ! Oui, je cherche un manteau bien chaud',
+        en: 'Hello! Yes, I am looking for a really warm coat',
+      },
+      {
+        fr: "Oui, c'est mon premier hiver ici. Il me faut un manteau",
+        en: 'Yes, it is my first winter here. I need a coat',
+      },
+    ],
+    hintEn: 'Say hello back, then say you are looking for a winter coat.',
+  },
+  cultureNotes: [
+    'In Quebec the price on the tag does not include sales tax. The TPS and the TVQ are added at the till, which adds almost fifteen cents to every dollar.',
+    'Quebec French says bienvenue for you are welcome, and c’est correct for it is fine. Magasiner means to go shopping, and a tuque is a woolly winter hat. Il fait frette means it is freezing.',
+    'Winter coats are made for real cold, and staff often ask how you get around. Some people take a size up so a thick sweater fits underneath.',
+  ],
+};
+
+/**
+ * mission:coup-de-main. Asking a colleague for help with something practical,
+ * here booking a meeting room, though the learner may name the shared drive
+ * or the printer instead. Inès is on tu, as colleagues of the same level are.
+ * The scene's real skill is checking you understood: si j'ai bien compris.
+ */
+const COUP_DE_MAIN_FRAME: ScenarioFrame = {
+  title: 'Un petit coup de main ?',
+  titleEn: 'A little help?',
+  setting: 'An open-plan office in Lille in the middle of the afternoon. Rows of desks, a printer blinking orange in the corner, and Inès two desks away with her headphones round her neck.',
+  learnerRole: 'Someone a few weeks into a new job, stuck on booking a meeting room in the office software.',
+  characters: [
+    {
+      name: 'Inès',
+      role: 'a colleague in the open space, patient and quick with the office tools',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Open-space French between colleagues, tu from the first word: Inès and the learner work at the same level, and vous would sound distant. She is patient and quick. In her speech the ne drops (c'est pas compliqué, t'inquiète pas), and she says t'as and ouais, but she stays clear rather than slangy. She lets the learner explain what is stuck before she touches the mouse, then shows one step at a time with tu cliques ici, après tu choisis, et voilà. When the learner says back what they understood, she confirms or corrects one detail. If the learner is stuck on the printer or the shared drive instead, she helps with that. She never takes over the keyboard without asking, never makes the learner feel slow, and never switches to vous.",
+  beats: [
+    {
+      id: 'ask-if-she-has-a-minute',
+      goal: 'Lui demander si elle a une minute',
+      goalEn: 'Ask if she has a minute',
+    },
+    {
+      id: 'explain-what-you-are-trying',
+      goal: 'Expliquer ce qu’on essaie de faire',
+      goalEn: 'Explain what you are trying to do',
+    },
+    {
+      id: 'ask-her-to-show-you',
+      goal: 'Lui demander de montrer',
+      goalEn: 'Ask her to show you',
+    },
+    {
+      id: 'check-you-understood',
+      goal: 'Vérifier qu’on a compris',
+      goalEn: 'Check you understood',
+    },
+    {
+      id: 'thank-her',
+      goal: 'La remercier',
+      goalEn: 'Thank her',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "T'as deux minutes ?",
+      frWritten: 'Tu as deux minutes ?',
+      en: 'Have you got a minute?',
+      register: 'familier',
+    },
+    {
+      fr: "J'arrive pas à réserver une salle",
+      frWritten: "Je n'arrive pas à réserver une salle",
+      en: 'I cannot manage to book a room',
+      register: 'courant',
+    },
+    {
+      fr: 'Tu peux me montrer comment tu fais ?',
+      frWritten: null,
+      en: 'Can you show me how you do it?',
+      register: 'courant',
+    },
+    {
+      fr: 'Alors, je clique ici, et après ?',
+      frWritten: null,
+      en: 'So, I click here, and then?',
+      register: 'courant',
+    },
+    {
+      fr: "Si j'ai bien compris, il faut d'abord choisir la date",
+      frWritten: null,
+      en: 'If I have got this right, you choose the date first',
+      register: 'courant',
+    },
+    {
+      fr: 'Le dossier partagé, il est où ?',
+      frWritten: null,
+      en: 'Where is the shared folder?',
+      register: 'courant',
+    },
+    {
+      fr: "Merci, c'est super gentil",
+      frWritten: null,
+      en: 'Thanks, that is really kind',
+      register: 'familier',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "L'écran affiche encore le même message d'erreur. Vous vous levez et vous approchez du bureau d'Inès, qui enlève son casque.",
+    frWritten: null,
+    en: 'The screen is showing the same error message again. You get up and go over to the desk where Inès is sliding off her headphones.',
+  },
+  openingLine: {
+    speaker: 'Inès',
+    fr: 'Oui ? Dis-moi.',
+    frWritten: null,
+    en: 'Yes? What is it?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Salut ! T'as deux minutes ?",
+      frWritten: null,
+      en: 'Hi! Have you got a minute?',
+    },
+    options: [
+      {
+        fr: "Pardon de te déranger. J'arrive pas à réserver une salle",
+        en: 'Sorry to bother you. I cannot manage to book a room',
+      },
+      {
+        fr: 'Salut, tu peux m’aider deux minutes ?',
+        en: 'Hi, can you help me for a minute?',
+      },
+      {
+        fr: "Excuse-moi, t'as deux minutes ? C'est pour la salle de réunion",
+        en: 'Sorry, have you got a minute? It is about the meeting room',
+      },
+    ],
+    hintEn: 'Say hi, then ask if she has a minute.',
+  },
+  cultureNotes: [
+    'T’as deux minutes ? is the usual way into a colleague’s time. It rarely means exactly two minutes, and nobody times it.',
+    'In many French offices, colleagues at the same level say tu from the first day. With a manager or a client, wait until they offer it.',
+    'Saying back what you understood, starting with si j’ai bien compris, shows you listened and gives the other person a chance to fix a detail.',
+  ],
+};
+
+/**
+ * mission:anniversaire. A partner's sister's birthday, which widens
+ * mission:belle-famille to the partner's own generation. Everyone is on tu
+ * from the start, which is the contrast with the parents' vous. The learner
+ * tells how the couple met in the passé composé: on s'est rencontrés, the
+ * default spoken form, which sounds the same whatever the couple.
+ */
+const ANNIVERSAIRE_FRAME: ScenarioFrame = {
+  title: "L'anniversaire de sa sœur",
+  titleEn: "Your partner's sister's birthday",
+  setting: "A garden outside Angers on a Saturday afternoon in June. Paper garlands in the trees, a long table, a chocolate cake waiting for its candles, and your partner's sister at the gate.",
+  learnerRole: "Someone at their partner's sister's birthday party, meeting part of the family for the first time.",
+  characters: [
+    {
+      name: 'Manon',
+      role: "your partner's sister, whose birthday it is, warm and teasing",
+      register: 'familier',
+    },
+    {
+      name: 'Maxime',
+      role: 'a cousin, curious and talkative, who wants to know everything about you',
+      register: 'familier',
+    },
+  ],
+  registerGuidance: "Birthday-party French among people your own age, tu from the first word: Manon is the partner's sister and Maxime is a cousin, and vous here would sound cold. Both are familier and quick. The ne is gone (c'est pas vrai, j'savais pas), and they say t'as, ouais and trop bien. Manon brings Maxime over with je te présente Maxime, mon cousin before he speaks. She opens the present at once, is touched by it, and teases a little about how the couple met. Maxime is curious: he asks what the learner does and where they come from, one question at a time, and tells a short story of his own. Someone offers more cake and insists once, the French way. They never use argot the learner cannot follow, never switch to vous, and never ask about money or politics.",
+  beats: [
+    {
+      id: 'wish-happy-birthday',
+      goal: 'Lui souhaiter un joyeux anniversaire',
+      goalEn: 'Wish her happy birthday',
+    },
+    {
+      id: 'say-how-you-met',
+      goal: 'Raconter comment on s’est rencontrés',
+      goalEn: 'Say how you met your partner',
+    },
+    {
+      id: 'chat-with-a-cousin',
+      goal: 'Discuter avec un cousin',
+      goalEn: 'Chat with a cousin',
+    },
+    {
+      id: 'accept-a-second-helping',
+      goal: 'Accepter d’en reprendre',
+      goalEn: 'Accept a second helping',
+    },
+    {
+      id: 'say-goodbye',
+      goal: 'Dire au revoir',
+      goalEn: 'Say goodbye',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "Joyeux anniversaire ! C'est pour toi",
+      frWritten: null,
+      en: 'Happy birthday! This is for you',
+      register: 'familier',
+    },
+    {
+      fr: "On s'est rencontrés par des amis",
+      frWritten: null,
+      en: 'We met through friends',
+      register: 'courant',
+    },
+    {
+      fr: 'On est ensemble depuis deux ans',
+      frWritten: null,
+      en: 'We have been together for two years',
+      register: 'courant',
+    },
+    {
+      fr: 'Et toi, tu fais quoi dans la vie ?',
+      frWritten: null,
+      en: 'And you, what do you do for a living?',
+      register: 'familier',
+    },
+    {
+      fr: 'Allez, juste un petit peu alors',
+      frWritten: null,
+      en: 'Go on then, just a little',
+      register: 'familier',
+    },
+    {
+      fr: "Il est trop bon, ce gâteau",
+      frWritten: null,
+      en: 'This cake is so good',
+      register: 'familier',
+    },
+    {
+      fr: 'Bon, on va y aller. Merci pour tout !',
+      frWritten: null,
+      en: 'Right, we are going to head off. Thanks for everything!',
+      register: 'familier',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Des guirlandes en papier bougent dans les arbres. Manon ouvre le portail en riant, et vous cachez un petit paquet derrière votre dos.",
+    frWritten: null,
+    en: 'Paper garlands sway in the trees. Manon opens the gate laughing, and you hide a small parcel behind your back.',
+  },
+  openingLine: {
+    speaker: 'Manon',
+    fr: 'Salut ! Entre, entre, tout le monde est dans le jardin !',
+    frWritten: null,
+    en: 'Hi! Come in, come in, everyone is in the garden!',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Salut ! Joyeux anniversaire ! C'est pour toi",
+      frWritten: null,
+      en: 'Hi! Happy birthday! This is for you',
+    },
+    options: [
+      {
+        fr: 'Joyeux anniversaire, Manon ! Tiens, un petit cadeau',
+        en: 'Happy birthday, Manon! Here, a little present',
+      },
+      {
+        fr: "Salut ! Bon anniversaire ! C'est trop joli ici",
+        en: 'Hi! Happy birthday! It is so pretty here',
+      },
+      {
+        fr: 'Merci ! Joyeux anniversaire !',
+        en: 'Thanks! Happy birthday!',
+      },
+    ],
+    hintEn: 'Say hi back, wish her happy birthday, and give her the present.',
+  },
+  cultureNotes: [
+    'At a French birthday the present is often opened straight away, in front of everyone. A small thoughtful gift is plenty.',
+    'Hosts usually offer a second helping and insist once. Juste un petit peu is a friendly yes that does not ask for a full plate.',
+    'With a partner’s brothers, sisters and cousins of your own age, tu is normal from the first hello, even with the parents still on vous.',
+  ],
+};
+
+/**
+ * mission:fuite. B1: explaining a problem on the phone, with what happened
+ * (passé composé), what is happening now and a polite request in the
+ * conditional (un plombier pourrait passer quand ?). Follows
+ * mission:appartement once the learner lives there. Patrick is on vous.
+ */
+const FUITE_FRAME: ScenarioFrame = {
+  title: 'Il y a une fuite',
+  titleEn: 'There is a leak',
+  setting: 'A rented flat in Nantes on a weekday. A towel on the kitchen floor, a bucket under the sink, the cupboard doors open, and the phone in your hand ringing the landlord.',
+  learnerRole: 'A tenant phoning the landlord about a leak under the kitchen sink.',
+  characters: [
+    {
+      name: 'Patrick',
+      role: 'the landlord, calm on the phone, who wants the facts before he sends anyone',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Phone French between a tenant and a landlord, vous on both sides from the first word. Patrick is polite, calm and practical, a little formal but never cold. He lets the learner explain before he asks questions, and he asks one at a time: where exactly, since when, is the water off, is it reaching the neighbours. He speaks clearly and repeats a time or a day if the learner hesitates. He reassures without promising too much, and suggests a slot for the plumber, then checks it suits the learner. If the learner mentions the insurance or the neighbours, he says what to do next in one sentence. He never blames the tenant, never rushes the call, never switches to tu and never uses technical plumbing words without explaining them.",
+  beats: [
+    {
+      id: 'explain-the-problem',
+      goal: 'Expliquer le problème',
+      goalEn: 'Explain the problem',
+    },
+    {
+      id: 'say-since-when',
+      goal: 'Dire depuis quand, et ce qu’on a fait',
+      goalEn: 'Say since when and what you tried',
+    },
+    {
+      id: 'say-what-it-damages',
+      goal: 'Dire ce que ça abîme',
+      goalEn: 'Say what it is damaging',
+    },
+    {
+      id: 'ask-when-someone-can-come',
+      goal: 'Demander quand quelqu’un peut venir',
+      goalEn: 'Ask when someone can come',
+    },
+    {
+      id: 'agree-on-a-time',
+      goal: 'Se mettre d’accord sur un horaire',
+      goalEn: 'Agree on a time',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "Il y a une fuite sous l'évier de la cuisine",
+      frWritten: null,
+      en: 'There is a leak under the kitchen sink',
+      register: 'courant',
+    },
+    {
+      fr: "Ça a commencé hier soir, et j'ai coupé l'eau",
+      frWritten: null,
+      en: 'It started last night, and I turned the water off',
+      register: 'courant',
+    },
+    {
+      fr: 'Ça goutte sans arrêt',
+      frWritten: null,
+      en: 'It keeps dripping',
+      register: 'courant',
+    },
+    {
+      fr: "L'eau coule chez le voisin du dessous",
+      frWritten: null,
+      en: 'The water is running into the flat below',
+      register: 'courant',
+    },
+    {
+      fr: 'Le placard est complètement mouillé',
+      frWritten: null,
+      en: 'The cupboard is soaking wet',
+      register: 'courant',
+    },
+    {
+      fr: 'Un plombier pourrait passer quand ?',
+      frWritten: null,
+      en: 'When could a plumber come round?',
+      register: 'courant',
+    },
+    {
+      fr: 'Demain matin, ça me va très bien',
+      frWritten: null,
+      en: 'Tomorrow morning suits me very well',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Le seau sous l'évier est presque plein. Vous appelez votre propriétaire, et il décroche à la deuxième sonnerie.",
+    frWritten: null,
+    en: 'The bucket under the sink is almost full. You call your landlord, and he picks up on the second ring.',
+  },
+  openingLine: {
+    speaker: 'Patrick',
+    fr: 'Allô, oui, bonjour ?',
+    frWritten: null,
+    en: 'Hello, yes?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Bonjour, monsieur. Il y a une fuite sous l'évier de la cuisine",
+      frWritten: null,
+      en: 'Hello. There is a leak under the kitchen sink',
+    },
+    options: [
+      {
+        fr: "Bonjour, c'est votre locataire. J'ai un problème de fuite",
+        en: 'Hello, it is your tenant. I have a leak',
+      },
+      {
+        fr: "Bonjour, je vous appelle pour une fuite dans la cuisine",
+        en: 'Hello, I am calling about a leak in the kitchen',
+      },
+      {
+        fr: "Bonjour. Il y a de l'eau partout sous l'évier",
+        en: 'Hello. There is water everywhere under the sink',
+      },
+    ],
+    hintEn: 'Say hello, then tell him there is a leak under the sink.',
+  },
+  cultureNotes: [
+    'When you move in and out of a rented flat in France, you sign an état des lieux, a room-by-room record of its condition. It decides later who pays for what.',
+    'The landlord pays for big repairs such as a burst pipe or an old boiler. Small upkeep, like a washer on a tap, is usually the tenant’s job.',
+    'Every tenant must have home insurance, the assurance habitation. When water reaches a neighbour, both of you fill in a form called a constat amiable de dégât des eaux for the insurers.',
+  ],
+};
+
+/**
+ * mission:galere. B1: a story told over a drink. The imparfait sets the scene
+ * (il pleuvait, j'étais à la gare), the passé composé moves it on (le train a
+ * été annulé), and du coup, et là and finalement hold it together. Hugo is
+ * familier, so frWritten carries the written form where the ne drops.
+ */
+const GALERE_FRAME: ScenarioFrame = {
+  title: 'Tu vas pas me croire',
+  titleEn: 'You will not believe me',
+  setting: 'A bar terrace in Bordeaux on a Monday evening. Two glasses on a wobbly table, the last sun on the square, and Hugo leaning back, waiting for the story.',
+  learnerRole: 'Someone telling a friend over a drink about a weekend where everything went sideways.',
+  characters: [
+    {
+      name: 'Hugo',
+      role: 'a friend, a great listener who always has a worse story of his own',
+      register: 'familier',
+    },
+  ],
+  registerGuidance: "Easy French between friends over a drink, tu from the first word. Hugo is relaxed and familier: the ne drops (c'est pas vrai, t'as fait comment), he says ouais, sérieux and la galère, and he reacts to every twist with a short noise or question. He lets the learner tell the story in order and nudges it on with et après ? or et là ?, so the imparfait sets the scene and the passé composé carries the events. He never finishes the learner's sentences and never corrects a tense out loud; he just uses the right one in his reply. Once the story ends, he tells a short mishap of his own so the learner can react. He never uses argot the learner cannot follow and never switches to vous.",
+  beats: [
+    {
+      id: 'set-the-scene',
+      goal: 'Planter le décor',
+      goalEn: 'Set the scene',
+    },
+    {
+      id: 'say-what-happened',
+      goal: 'Dire ce qui s’est passé',
+      goalEn: 'Say what happened',
+    },
+    {
+      id: 'say-how-you-reacted',
+      goal: 'Dire comment on a réagi',
+      goalEn: 'Say how you reacted',
+    },
+    {
+      id: 'say-how-it-ended',
+      goal: 'Dire comment ça s’est fini',
+      goalEn: 'Say how it ended',
+    },
+    {
+      id: 'react-to-his-story',
+      goal: 'Réagir à son histoire',
+      goalEn: 'React to his story',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: 'Tu vas pas me croire',
+      frWritten: 'Tu ne vas pas me croire',
+      en: 'You will not believe this',
+      register: 'familier',
+    },
+    {
+      fr: "Il pleuvait, et j'étais à la gare",
+      frWritten: null,
+      en: 'It was raining, and I was at the station',
+      register: 'courant',
+    },
+    {
+      fr: 'Et là, le train a été annulé',
+      frWritten: null,
+      en: 'And then the train got cancelled',
+      register: 'courant',
+    },
+    {
+      fr: "J'en revenais pas",
+      frWritten: "Je n'en revenais pas",
+      en: 'I could not believe it',
+      register: 'familier',
+    },
+    {
+      fr: "Du coup, j'ai pris le bus de nuit",
+      frWritten: null,
+      en: 'So I took the night bus',
+      register: 'familier',
+    },
+    {
+      fr: "Finalement, j'ai dormi chez des amis",
+      frWritten: null,
+      en: 'In the end, I slept at some friends’ place',
+      register: 'courant',
+    },
+    {
+      fr: 'Non, sérieux ? Et après ?',
+      frWritten: null,
+      en: 'No, really? And then what?',
+      register: 'familier',
+    },
+    {
+      fr: "Ah, la galère ! Ça m'est arrivé aussi",
+      frWritten: null,
+      en: 'Oh, what a nightmare! That has happened to me too',
+      register: 'familier',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Hugo pose deux verres sur la table et s'installe. Il vous regarde avec un grand sourire.",
+    frWritten: null,
+    en: 'Hugo puts two glasses on the table and settles in. He looks at you with a big grin.',
+  },
+  openingLine: {
+    speaker: 'Hugo',
+    fr: 'Alors, ce week-end ? Raconte !',
+    frWritten: null,
+    en: 'So, the weekend? Tell me everything!',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Tu vas pas me croire ! Il pleuvait, et j'étais à la gare",
+      frWritten: "Tu ne vas pas me croire ! Il pleuvait, et j'étais à la gare",
+      en: 'You will not believe this! It was raining, and I was at the station',
+    },
+    options: [
+      {
+        fr: "Oh là là, quelle galère ! Il pleuvait, et j'étais à la gare",
+        en: 'Oh dear, what a nightmare! It was raining, and I was at the station',
+      },
+      {
+        fr: "Alors, samedi, j'étais à la gare, et il pleuvait",
+        en: 'So, on Saturday, I was at the station, and it was raining',
+      },
+      {
+        fr: "Tu vas pas me croire. Le train a été annulé !",
+        en: 'You will not believe this. The train got cancelled!',
+      },
+    ],
+    hintEn: 'Start the story: say where you were and what the weather was like.',
+  },
+  cultureNotes: [
+    'La galère is everyday French for a hassle that drags on. Quelle galère ! is the usual sympathetic reaction to a friend’s run of trouble.',
+    'French storytellers mark the turn with et là, and the consequence with du coup. Both are so common that a story without them can sound written.',
+    'Listeners are expected to react as the story goes, with non ?, sérieux ? or et après ?. Silence can read as boredom, not politeness.',
+  ],
+};
+
+/**
+ * mission:avis. B1: opinion and justification after a film, which
+ * mission:sortie planned. À mon avis and ce qui m'a plu, c'est give the
+ * opinion and its reason; pas mal, par contre adds the nuance; pas tout à fait
+ * d'accord disagrees without a fight. Yasmine is familier, on tu.
+ */
+const AVIS_FRAME: ScenarioFrame = {
+  title: 'Alors, ce film ?',
+  titleEn: 'So, that film?',
+  setting: 'Just after a film in Toulouse, late on a Friday evening. Two friends who saw the same film, one of them dying to talk about it.',
+  learnerRole: 'Someone coming out of the cinema with a friend, over a drink next door.',
+  characters: [
+    {
+      name: 'Yasmine',
+      role: 'a friend who loves films and enjoys a friendly argument about them',
+      register: 'familier',
+    },
+  ],
+  registerGuidance: "Relaxed French between friends after a film, tu from the first word. Yasmine is familier and lively: the ne drops (c'était pas terrible, j'ai pas compris la fin), she says franchement, bof and trop bien. She asks what the learner thought and always follows with pourquoi ?, so every opinion gets a reason. She disagrees on purpose about one thing, the ending or the length, to give the learner a chance to answer politely, and she welcomes a nuance such as pas mal, par contre. She takes a polite disagreement well and finds one point to agree on. Near the end she asks what to see next. She never says the learner's opinion is silly, never lectures about cinema, never spoils another film and never switches to vous.",
+  beats: [
+    {
+      id: 'give-your-opinion',
+      goal: 'Donner son avis',
+      goalEn: 'Give your opinion',
+    },
+    {
+      id: 'say-why',
+      goal: 'Dire pourquoi',
+      goalEn: 'Say why',
+    },
+    {
+      id: 'add-a-nuance',
+      goal: 'Nuancer',
+      goalEn: 'Add a nuance',
+    },
+    {
+      id: 'agree-or-disagree',
+      goal: 'Être d’accord ou pas, poliment',
+      goalEn: 'Agree or disagree politely',
+    },
+    {
+      id: 'suggest-what-next',
+      goal: 'Proposer le prochain film',
+      goalEn: 'Suggest what to see next',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "À mon avis, c'était vraiment réussi",
+      frWritten: null,
+      en: 'If you ask me, it was really well done',
+      register: 'courant',
+    },
+    {
+      fr: "Ce qui m'a plu, c'est l'histoire",
+      frWritten: null,
+      en: 'What I liked was the story',
+      register: 'courant',
+    },
+    {
+      fr: "J'ai trouvé que les acteurs jouaient super bien",
+      frWritten: null,
+      en: 'I thought the actors were really good',
+      register: 'familier',
+    },
+    {
+      fr: "C'était pas mal, par contre c'était un peu long",
+      frWritten: "Ce n'était pas mal, par contre c'était un peu long",
+      en: 'It was pretty good, but it was a bit long',
+      register: 'familier',
+    },
+    {
+      fr: "Je suis pas tout à fait d'accord",
+      frWritten: "Je ne suis pas tout à fait d'accord",
+      en: 'I do not quite agree',
+      register: 'familier',
+    },
+    {
+      fr: 'Là, par contre, je suis d’accord avec toi',
+      frWritten: null,
+      en: 'On that, though, I agree with you',
+      register: 'courant',
+    },
+    {
+      fr: 'Et si on allait voir une comédie, la prochaine fois ?',
+      frWritten: null,
+      en: 'How about we see a comedy next time?',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: 'Les billets de cinéma traînent encore sur la table. Yasmine enlève sa veste et vous regarde, curieuse.',
+    frWritten: null,
+    en: 'The cinema tickets are still lying on the table. Yasmine takes off her jacket and looks at you, curious.',
+  },
+  openingLine: {
+    speaker: 'Yasmine',
+    fr: "Alors ? T'en as pensé quoi ?",
+    frWritten: "Alors ? Tu en as pensé quoi ?",
+    en: 'So? What did you think?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "À mon avis, c'était vraiment réussi",
+      frWritten: null,
+      en: 'If you ask me, it was really well done',
+    },
+    options: [
+      {
+        fr: "J'ai bien aimé. Ce qui m'a plu, c'est l'histoire",
+        en: 'I liked it. What I liked was the story',
+      },
+      {
+        fr: "C'était pas mal, par contre c'était un peu long",
+        en: 'It was pretty good, but it was a bit long',
+      },
+      {
+        fr: "Franchement, j'ai adoré ! Et toi ?",
+        en: 'Honestly, I loved it! And you?',
+      },
+    ],
+    hintEn: 'Say whether you liked the film, in a few words.',
+  },
+  cultureNotes: [
+    'Talking a film over afterwards, often over a drink, is part of the outing in France. Friends expect a real opinion, not just yes, it was nice.',
+    'Pas mal is warmer than it sounds: it means pretty good. Bof, with a shrug, means not really.',
+    'Disagreeing about a film is a friendly sport. Starting with je suis pas tout à fait d’accord keeps it light, and nobody takes it personally.',
+  ],
+};
+
+/**
+ * mission:entretien. B1: a short first interview. The learner sums up their
+ * background in the passé composé, gives one reason and one strength, and
+ * asks a question with j'aimerais savoir. No salary talk: that comes later in
+ * a French hiring process. Point fort keeps the strength gender-neutral.
+ */
+const ENTRETIEN_FRAME: ScenarioFrame = {
+  title: "L'entretien d'embauche",
+  titleEn: 'The job interview',
+  setting: 'A meeting room on the third floor of an office in Rennes, on a Tuesday morning. A glass of water, a printed CV on the table, and Claire Lefèvre opening her notebook.',
+  learnerRole: 'A candidate in a first interview for a job in a French company.',
+  characters: [
+    {
+      name: 'Claire Lefèvre',
+      role: 'a recruiter, friendly but precise, who listens for examples',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Interview French, vous on both sides throughout, courant leaning soutenu. Claire Lefèvre keeps the ne (ce n'est pas un problème), speaks clearly and at a steady pace, and uses polite forms such as je vous en prie and pourriez-vous. She asks one open question at a time: tell me about yourself, why this job, a strength with an example. When an answer is vague she asks for a concrete case, gently. She nods along, sums up what she heard in a few words, and leaves room for the learner's question at the end. She keeps the interview short and realistic. She never asks about salary, age, family or nationality, never sounds like an exam, never hurries the learner and never switches to tu.",
+  beats: [
+    {
+      id: 'sum-up-your-background',
+      goal: 'Résumer son parcours',
+      goalEn: 'Sum up your background',
+    },
+    {
+      id: 'say-why-this-job',
+      goal: 'Dire pourquoi ce poste',
+      goalEn: 'Say why this job',
+    },
+    {
+      id: 'give-an-example',
+      goal: 'Donner un exemple d’un point fort',
+      goalEn: 'Give an example of a strength',
+    },
+    {
+      id: 'ask-about-the-role',
+      goal: 'Poser une question sur le poste',
+      goalEn: 'Ask about the role',
+    },
+    {
+      id: 'close-and-thank',
+      goal: 'Conclure et remercier',
+      goalEn: 'Close and thank her',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "J'ai travaillé plusieurs années dans la vente",
+      frWritten: null,
+      en: 'I worked in sales for several years',
+      register: 'courant',
+    },
+    {
+      fr: "Ce poste m'intéresse parce que j'aime le travail en équipe",
+      frWritten: null,
+      en: 'This job interests me because I like teamwork',
+      register: 'courant',
+    },
+    {
+      fr: "Mon point fort, c'est l'organisation",
+      frWritten: null,
+      en: 'My strong point is organisation',
+      register: 'courant',
+    },
+    {
+      fr: "Par exemple, l'année dernière, j'ai organisé un grand salon",
+      frWritten: null,
+      en: 'For example, last year I organised a big trade fair',
+      register: 'courant',
+    },
+    {
+      fr: "J'aimerais savoir à quoi ressemble une journée type",
+      frWritten: null,
+      en: 'I would like to know what a typical day looks like',
+      register: 'soutenu',
+    },
+    {
+      fr: "Quelles seraient les prochaines étapes ?",
+      frWritten: null,
+      en: 'What would the next steps be?',
+      register: 'soutenu',
+    },
+    {
+      fr: 'Merci beaucoup pour cet échange',
+      frWritten: null,
+      en: 'Thank you very much for this conversation',
+      register: 'soutenu',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Claire Lefèvre vous fait entrer dans une petite salle de réunion. Elle pose votre CV sur la table et vous sourit.",
+    frWritten: null,
+    en: 'Claire Lefèvre shows you into a small meeting room. She puts your CV on the table and smiles at you.',
+  },
+  openingLine: {
+    speaker: 'Claire Lefèvre',
+    fr: 'Asseyez-vous, je vous en prie. Alors, parlez-moi un peu de vous.',
+    frWritten: null,
+    en: 'Please, have a seat. So, tell me a little about yourself.',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Merci. Alors, j'ai travaillé plusieurs années dans la vente",
+      frWritten: null,
+      en: 'Thank you. Well, I worked in sales for several years',
+    },
+    options: [
+      {
+        fr: "Bien sûr. J'ai travaillé plusieurs années dans la vente",
+        en: 'Of course. I worked in sales for several years',
+      },
+      {
+        fr: "Merci de me recevoir. Je travaille dans la vente depuis plusieurs années",
+        en: 'Thank you for seeing me. I have been working in sales for several years',
+      },
+      {
+        fr: "Oui, alors, je viens de la vente, et j'aime beaucoup le contact",
+        en: 'Yes, well, my background is in sales, and I really enjoy dealing with people',
+      },
+    ],
+    hintEn: 'Thank her, then say what kind of work you have done.',
+  },
+  cultureNotes: [
+    'French interviews usually open with parlez-moi de vous. A short summary of your path, in order, works better than a list of qualities.',
+    'Recruiters like a strength backed by a real example, told in the past: what happened, what you did, how it turned out.',
+    'In France, it is better not to bring up salary yourself in a first interview, even though a recruiter may ask what you expect. Asking about the next steps is a safe and expected way to close.',
+  ],
+};
+
+/**
+ * mission:teletravail. B1: the polite conditional (ce serait possible de,
+ * j'aimerais, je serais là). Isabelle is the manager from mission:collegues,
+ * who offered tu on the first day, so it is tu both ways here. Her concern
+ * is the team meetings; the answer is a trial.
+ */
+const TELETRAVAIL_FRAME: ScenarioFrame = {
+  title: 'Demander du télétravail',
+  titleEn: 'Asking to work from home',
+  setting: "The manager's glass-walled office at the end of the open space, late on a Thursday afternoon. A plant on the windowsill, the team calendar on the screen, and Isabelle closing her laptop.",
+  learnerRole: 'Someone a few months into the job, asking their manager about working from home.',
+  characters: [
+    {
+      name: 'Isabelle',
+      role: 'the team manager from the first day, open to it but worried about team meetings',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Office French between a manager and a team member who are already on tu, because Isabelle offered it on the learner's first day. She stays on tu and expects tu back, and if the learner slips into vous she smiles and carries on in tu. She is courant and warm: the ne drops at times (c'est pas un souci), but she listens carefully and takes the request seriously. She asks why, and lets the learner give reasons. She raises one real concern, the team meetings and being reachable, and waits for an answer before she decides. She welcomes a suggestion such as a trial and agrees a next step. She never refuses outright, never makes the learner justify their private life and never talks about contracts or law.",
+  beats: [
+    {
+      id: 'ask-for-a-moment',
+      goal: 'Demander un moment',
+      goalEn: 'Ask for a moment',
+    },
+    {
+      id: 'make-the-request',
+      goal: 'Faire la demande',
+      goalEn: 'Make the request',
+    },
+    {
+      id: 'give-your-reasons',
+      goal: 'Donner ses raisons',
+      goalEn: 'Give your reasons',
+    },
+    {
+      id: 'answer-her-concern',
+      goal: 'Répondre à son inquiétude',
+      goalEn: 'Answer her concern',
+    },
+    {
+      id: 'agree-a-next-step',
+      goal: 'Se mettre d’accord sur la suite',
+      goalEn: 'Agree on a next step',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "T'as un moment ? J'aimerais te parler de quelque chose",
+      frWritten: "Tu as un moment ? J'aimerais te parler de quelque chose",
+      en: 'Have you got a moment? I would like to talk to you about something',
+      register: 'familier',
+    },
+    {
+      fr: 'Est-ce que ce serait possible de télétravailler ?',
+      frWritten: null,
+      en: 'Would it be possible to work from home?',
+      register: 'courant',
+    },
+    {
+      fr: "J'aimerais travailler de chez moi deux jours par semaine",
+      frWritten: null,
+      en: 'I would like to work from home two days a week',
+      register: 'courant',
+    },
+    {
+      fr: "À la maison, j'arrive mieux à me concentrer",
+      frWritten: null,
+      en: 'At home, I find it easier to concentrate',
+      register: 'courant',
+    },
+    {
+      fr: 'Ça me ferait gagner beaucoup de temps de transport',
+      frWritten: null,
+      en: 'It would save me a lot of travel time',
+      register: 'courant',
+    },
+    {
+      fr: "Pour les réunions d'équipe, je serais toujours là",
+      frWritten: null,
+      en: 'For the team meetings, I would always be here',
+      register: 'courant',
+    },
+    {
+      fr: 'Et si on faisait un essai, pour voir ?',
+      frWritten: null,
+      en: 'What if we tried it out, to see?',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "La porte du bureau d'Isabelle est ouverte. Vous frappez doucement, et elle lève les yeux de son écran.",
+    frWritten: null,
+    en: 'The door to the manager’s office is open. You knock softly, and Isabelle looks up from her screen.',
+  },
+  openingLine: {
+    speaker: 'Isabelle',
+    fr: "Oui, entre ! Qu'est-ce qui se passe ?",
+    frWritten: null,
+    en: 'Yes, come in! What is up?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Salut. J'aimerais te parler de quelque chose",
+      frWritten: null,
+      en: 'Hi. I would like to talk to you about something',
+    },
+    options: [
+      {
+        fr: "T'as un moment ? C'est à propos du télétravail",
+        en: 'Have you got a moment? It is about working from home',
+      },
+      {
+        fr: 'Merci. Est-ce que ce serait possible de télétravailler ?',
+        en: 'Thanks. Would it be possible to work from home?',
+      },
+      {
+        fr: "Rien de grave ! J'ai juste une petite question",
+        en: 'Nothing serious! I just have a quick question',
+      },
+    ],
+    hintEn: 'Say hi, then say you would like to talk to her about something.',
+  },
+  cultureNotes: [
+    'Working from home, le télétravail, is common in French offices now, often for a few days a week. It is usually agreed with your manager, then written down.',
+    'The conditional softens a request: ce serait possible de and j’aimerais sound polite and open, where je veux would sound like a demand.',
+    'Suggesting a trial, un essai pendant un mois for example, is a classic way to get a yes. It lets the manager agree without committing for good.',
+  ],
+};
+
+/**
+ * mission:souvenirs. B1: the imparfait for descriptions and habits (quand
+ * j'étais enfant, on jouait), then and now (aujourd'hui, tout va plus vite).
+ * Widens mission:belle-famille to the grandparents. A real asymmetry: Jeannine
+ * says tu to the learner, the learner says vous to her. Quand j'étais enfant
+ * keeps the learner's line gender-neutral.
+ */
+const SOUVENIRS_FRAME: ScenarioFrame = {
+  title: 'Chez la grand-mère',
+  titleEn: "At grandmother's house",
+  setting: "A small house in a village in Burgundy on a Sunday afternoon. Lace on the table, coffee in flowered cups, a tin of biscuits, and an old photo album on Jeannine's knees.",
+  learnerRole: "Someone spending an afternoon with their partner's grandmother, over coffee and old photos.",
+  characters: [
+    {
+      name: 'Jeannine',
+      role: "your partner's grandmother, who says tu to you and loves to tell stories",
+      register: 'courant',
+    },
+  ],
+  registerGuidance: "Warm family French across generations, with a real asymmetry: Jeannine says tu to the learner from the start, as many grandparents do with a grandchild's partner, and the learner says vous to her, out of respect. She never asks for vous and never minds it; if the learner slips into tu she takes it kindly. She speaks clearly and slowly, keeps the ne more often than younger people do, and uses a few older words such as à l'époque and de mon temps. She asks where the learner grew up and what it was like, then tells short stories of her own youth in the imparfait. She leaves room for questions and comparisons. She never lectures about how things were better, never talks about illness or money, and never rushes.",
+  beats: [
+    {
+      id: 'say-where-you-grew-up',
+      goal: 'Dire où on a grandi',
+      goalEn: 'Say where you grew up',
+    },
+    {
+      id: 'describe-what-it-was-like',
+      goal: 'Décrire comment c’était',
+      goalEn: 'Describe what it was like',
+    },
+    {
+      id: 'ask-about-her-youth',
+      goal: 'Lui poser des questions sur sa jeunesse',
+      goalEn: 'Ask about her youth',
+    },
+    {
+      id: 'compare-then-and-now',
+      goal: 'Comparer avant et maintenant',
+      goalEn: 'Compare then and now',
+    },
+    {
+      id: 'thank-her-for-the-stories',
+      goal: 'La remercier pour ses histoires',
+      goalEn: 'Thank her for the stories',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: "J'ai grandi dans une petite ville au bord de la mer",
+      frWritten: null,
+      en: 'I grew up in a small town by the sea',
+      register: 'courant',
+    },
+    {
+      fr: "Quand j'étais enfant, on jouait dehors tout le temps",
+      frWritten: null,
+      en: 'When I was a child, we played outside all the time',
+      register: 'courant',
+    },
+    {
+      fr: "Et vous, comment c'était, quand vous étiez jeune ?",
+      frWritten: null,
+      en: 'And you, what was it like when you were young?',
+      register: 'courant',
+    },
+    {
+      fr: 'Il y avait pas encore de portables',
+      frWritten: "Il n'y avait pas encore de portables",
+      en: 'There were no mobile phones yet',
+      register: 'familier',
+    },
+    {
+      fr: "Aujourd'hui, tout va beaucoup plus vite",
+      frWritten: null,
+      en: 'Today, everything moves much faster',
+      register: 'courant',
+    },
+    {
+      fr: "Ça devait être joli, à l'époque",
+      frWritten: null,
+      en: 'It must have been lovely back then',
+      register: 'courant',
+    },
+    {
+      fr: "Merci de m'avoir raconté tout ça",
+      frWritten: null,
+      en: 'Thank you for telling me all that',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: "Jeannine ouvre un vieil album photo sur ses genoux. Le café fume dans des tasses à fleurs.",
+    frWritten: null,
+    en: 'Jeannine opens an old photo album on her knees. Coffee steams in flowered cups.',
+  },
+  openingLine: {
+    speaker: 'Jeannine',
+    fr: 'Viens t’asseoir à côté de moi. Alors, tu as grandi où, toi ?',
+    frWritten: null,
+    en: 'Come and sit next to me. So, where did you grow up?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: "Merci. J'ai grandi dans une petite ville au bord de la mer",
+      frWritten: null,
+      en: 'Thank you. I grew up in a small town by the sea',
+    },
+    options: [
+      {
+        fr: "Avec plaisir. J'ai grandi à la campagne",
+        en: 'With pleasure. I grew up in the countryside',
+      },
+      {
+        fr: "Merci. J'ai grandi dans une grande ville, très loin d'ici",
+        en: 'Thank you. I grew up in a big city, very far from here',
+      },
+      {
+        fr: "J'ai grandi au bord de la mer. Et vous, vous avez toujours vécu ici ?",
+        en: 'I grew up by the sea. And you, have you always lived here?',
+      },
+    ],
+    hintEn: 'Thank her, then say where you grew up.',
+  },
+  cultureNotes: [
+    'Many French grandparents say tu to a grandchild’s partner straight away, while the partner keeps vous. It is a sign of welcome, not of rank.',
+    'An afternoon with the grandparents often means coffee, biscuits and the photo albums. Asking about the old photos is one of the kindest things you can do.',
+    'De mon temps and à l’époque open a story about the past. Then the imparfait takes over: on allait, on faisait, il y avait.',
+  ],
+};
+
 export const MISSION_FRAMES: Record<MissionId, ScenarioFrame> = {
   'mission:premier-cafe': PREMIER_CAFE_FRAME,
   'mission:cafe': CAFE_FRAME,
@@ -2269,6 +3852,18 @@ export const MISSION_FRAMES: Record<MissionId, ScenarioFrame> = {
   'mission:retour': RETOUR_FRAME,
   'mission:appartement': APPARTEMENT_FRAME,
   'mission:belle-famille': BELLE_FAMILLE_FRAME,
+  'mission:club': CLUB_FRAME,
+  'mission:banque': BANQUE_FRAME,
+  'mission:sortie': SORTIE_FRAME,
+  'mission:montreal': MONTREAL_FRAME,
+  'mission:coup-de-main': COUP_DE_MAIN_FRAME,
+  'mission:anniversaire': ANNIVERSAIRE_FRAME,
+  'mission:fuite': FUITE_FRAME,
+  'mission:galere': GALERE_FRAME,
+  'mission:avis': AVIS_FRAME,
+  'mission:entretien': ENTRETIEN_FRAME,
+  'mission:teletravail': TELETRAVAIL_FRAME,
+  'mission:souvenirs': SOUVENIRS_FRAME,
 };
 
 type OpeningNarration = ScenarioFrame['openingNarration'];
@@ -2286,10 +3881,10 @@ const narration = (fr: string, en: string): OpeningNarration => ({
   en,
 });
 
-const line = (speaker: string, fr: string, en: string): OpeningLine => ({
+const line = (speaker: string, fr: string, en: string, frWritten: string | null = null): OpeningLine => ({
   speaker,
   fr,
-  frWritten: null,
+  frWritten,
   en,
 });
 
@@ -2850,6 +4445,354 @@ const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
       line('Françoise', 'Bonsoir ! Entrez, entrez, on vous attendait !', 'Good evening! Come in, come in, we were expecting you!'),
       line('Françoise', 'Bonsoir ! Ah, enfin, on fait connaissance !', 'Good evening! At last, we get to meet you!'),
       line('Françoise', 'Bonsoir ! Vous avez trouvé facilement ?', 'Good evening! Did you find us easily?'),
+    ],
+  },
+  'mission:club': {
+    narrations: [
+      narration(
+        'Une affiche annonce le cours de yoga du mardi. Derrière le bureau d’accueil, Sophie range des formulaires et lève la tête.',
+        'A poster by the door announces the Tuesday yoga class. Behind the welcome desk, Sophie is tidying a pile of forms, and she looks up.',
+      ),
+      narration(
+        'On entend de la musique dans la salle du haut. Sophie raccroche le téléphone et vous fait signe d’approcher.',
+        'Music drifts down from the hall upstairs. Sophie hangs up the phone and waves you over.',
+      ),
+      narration(
+        'Un groupe sort du cours de chant en riant. Quand le couloir se vide, Sophie vous sourit derrière son bureau.',
+        'A group comes out of the choir class laughing. When the corridor empties, Sophie smiles at you from behind her desk.',
+      ),
+      narration(
+        'Sur le tableau, des petites annonces : théâtre, couture, soirée conversation. Sophie pose son stylo et se tourne vers vous.',
+        'The notice board is full of little cards for theatre, sewing and a conversation evening. Sophie puts down her pen and turns to you.',
+      ),
+      narration(
+        'Il fait déjà nuit dehors. Dans le hall éclairé, Sophie range une pile de plannings et vous voit entrer.',
+        'It is already dark outside. In the bright entrance hall, Sophie is stacking timetables, and she sees you come in.',
+      ),
+    ],
+    lines: [
+      line('Sophie', 'Bonsoir ! Je peux vous renseigner ?', 'Good evening! Can I help you with anything?'),
+      line('Sophie', 'Bonsoir, vous venez pour une inscription ?', 'Good evening, are you here to sign up?'),
+      line('Sophie', 'Bonsoir ! Vous cherchez un cours ?', 'Good evening! Are you looking for a class?'),
+    ],
+  },
+  'mission:banque': {
+    narrations: [
+      narration(
+        'La porte vitrée du bureau se referme sans bruit. Antoine tourne son écran vers vous et ouvre un nouveau dossier.',
+        'The glass door of the little office closes without a sound. Antoine turns his screen towards you and opens a new file.',
+      ),
+      narration(
+        'Dans l’agence, une imprimante crache des feuilles. Antoine vient vous chercher à l’accueil et vous montre son bureau.',
+        'A printer is churning out pages in the branch. Antoine comes to fetch you from the front desk and shows you to his office.',
+      ),
+      narration(
+        'Vous avez votre passeport et une facture dans une pochette. Antoine pose deux stylos sur la table et s’assoit en face de vous.',
+        'Your passport and a bill are in a plastic sleeve. Antoine sets two pens on the table and sits down across from you.',
+      ),
+      narration(
+        'Une cliente sort du bureau avec un grand sourire. Antoine range son dossier, puis il vous invite à entrer.',
+        'A customer leaves the office with a broad smile. Antoine puts her file away, then invites you in.',
+      ),
+      narration(
+        'Il est neuf heures, l’agence vient d’ouvrir. Antoine finit son café, ferme un tiroir et vous salue.',
+        'Nine in the morning, and the branch has just opened. Antoine finishes his coffee, shuts a drawer and greets you.',
+      ),
+    ],
+    lines: [
+      line('Antoine', 'Bonjour, asseyez-vous. Je vous écoute.', 'Hello, have a seat. How can I help?'),
+      line('Antoine', 'Bonjour, qu’est-ce que je peux faire pour vous ?', 'Hello, what can I do for you?'),
+      line('Antoine', 'Bonjour ! Installez-vous. Qu’est-ce qui vous amène ?', 'Hello! Make yourself comfortable. What brings you in?'),
+    ],
+  },
+  'mission:sortie': {
+    narrations: [
+      narration(
+        'Ça sonne deux fois. Derrière la voix de Léa, on entend un bus qui freine et une porte qui bipe.',
+        'The phone rings twice. Behind the voice that answers, a bus brakes and a door beeps open.',
+      ),
+      narration(
+        'Vous êtes sur le canapé, le programme du cinéma ouvert sur l’ordinateur. Léa décroche à la troisième sonnerie.',
+        'You are on the sofa with the cinema listings open on the laptop. Léa picks up on the third ring.',
+      ),
+      narration(
+        'Il pleut sur la fenêtre de la cuisine. Vous appelez Léa, et elle répond en mangeant quelque chose.',
+        'Rain is running down the kitchen window. You call Léa, and she answers with her mouth full.',
+      ),
+      narration(
+        'Léa répond tout de suite. On entend de la musique chez elle, puis elle baisse le son.',
+        'Léa answers straight away. There is music playing at her place, and then she turns it down.',
+      ),
+      narration(
+        'Vous venez de voir la bande-annonce d’un film. Vous appelez Léa, et elle décroche, un peu essoufflée.',
+        'You have just watched a trailer for a new film. You call Léa, and she picks up a little out of breath.',
+      ),
+    ],
+    lines: [
+      line('Léa', 'Allô ? Salut, ça va ?', 'Hello? Hey, how are you?'),
+      line('Léa', 'Allô ? Ah, salut toi !', 'Hello? Oh, hey you!'),
+      line('Léa', 'Salut ! Quoi de neuf ?', 'Hey! What is new?'),
+    ],
+  },
+  'mission:montreal': {
+    narrations: [
+      narration(
+        'Dehors, la première neige tombe sur la rue. Vous tapez vos bottes sur le tapis, et Marc-André pose une pile de tuques sur le comptoir.',
+        'Outside, the first snow is falling on the street. You stamp your boots on the mat, and Marc-André sets a pile of woolly hats on the counter.',
+      ),
+      narration(
+        'La porte s’ouvre et l’air froid entre avec vous. Entre deux rangées de parkas, Marc-André plie un chandail et lève les yeux.',
+        'The door opens and the cold air comes in with you. Between two rows of parkas, Marc-André is folding a sweater, and he looks up.',
+      ),
+      narration(
+        'Le magasin est chaud et sent la laine neuve. Marc-André accroche des manteaux sur un présentoir et vous remarque.',
+        'The shop is warm and smells of new wool. Marc-André is hanging coats on a rack, and he notices you.',
+      ),
+      narration(
+        'Vos mains sont rouges de froid. Près des caisses, Marc-André range des mitaines et vous fait un grand sourire.',
+        'Your hands are red with cold. Near the tills, Marc-André is tidying a basket of mittens, and he gives you a big smile.',
+      ),
+      narration(
+        'Une famille sort avec trois gros sacs. Marc-André remet les cintres en place, puis il vient vers vous.',
+        'A family leaves with three big bags. Marc-André puts the hangers back in place, then comes over to you.',
+      ),
+    ],
+    lines: [
+      line('Marc-André', 'Bonjour ! Je peux vous aider ?', 'Hello! Can I help you?'),
+      line('Marc-André', 'Bonjour ! Vous magasinez pour l’hiver ?', 'Hello! Shopping for the winter?'),
+      line('Marc-André', 'Bonjour ! Il fait frette dehors, hein ? Je peux vous aider ?', 'Hello! Freezing out there, isn’t it? Can I help you?'),
+    ],
+  },
+  'mission:coup-de-main': {
+    narrations: [
+      narration(
+        'L’écran affiche encore le même message d’erreur. Vous vous levez et vous approchez du bureau d’Inès, qui enlève son casque.',
+        'The screen is showing the same error message again. You get up and go over to the desk where Inès is sliding off her headphones.',
+      ),
+      narration(
+        'L’imprimante clignote orange depuis dix minutes. Inès passe avec son mug et s’arrête à côté de vous.',
+        'The printer has been blinking orange for ten minutes. Inès walks past with her mug and stops beside you.',
+      ),
+      narration(
+        'La réunion est dans une heure et vous n’avez pas de salle. Inès tape sur son clavier, deux bureaux plus loin.',
+        'The meeting is in an hour and you still have no room. Inès is typing away, two desks further down.',
+      ),
+      narration(
+        'Vous cherchez un fichier depuis un quart d’heure. Inès revient de la machine à café et vous voit froncer les sourcils.',
+        'You have been hunting for a file for a quarter of an hour. Inès comes back from the coffee machine and sees you frowning.',
+      ),
+      narration(
+        'Le bureau est calme, tout le monde a son casque. Inès lève la tête de son écran quand vous approchez votre chaise.',
+        'The office is quiet, everyone in headphones. Inès looks up from her screen as you roll your chair over.',
+      ),
+    ],
+    lines: [
+      line('Inès', 'Oui ? Dis-moi.', 'Yes? What is it?'),
+      line('Inès', 'Ça va ? T’as besoin d’un coup de main ?', 'You all right? Need a hand?'),
+      line('Inès', 'Ouais ? Je t’écoute.', 'Yeah? I am listening.'),
+    ],
+  },
+  'mission:anniversaire': {
+    narrations: [
+      narration(
+        'Des guirlandes en papier bougent dans les arbres. Manon ouvre le portail en riant, et vous cachez un petit paquet derrière votre dos.',
+        'Paper garlands sway in the trees. Manon opens the gate laughing, and you hide a small parcel behind your back.',
+      ),
+      narration(
+        'On entend des rires dans le jardin et de la musique. Manon arrive en courant, une couronne en carton sur la tête.',
+        'Laughter and music come from the garden. Manon runs over with a cardboard crown on her head.',
+      ),
+      narration(
+        'La grande table est couverte de salades et de bouteilles. Manon pose un plat et vient vous embrasser.',
+        'The long table is covered in salads and bottles. Manon puts down a dish and comes over to kiss you on both cheeks.',
+      ),
+      narration(
+        'Un cousin allume le barbecue, la fumée monte. Manon vous voit arriver avec votre cadeau et lève les bras.',
+        'A cousin is lighting the barbecue, and smoke rises. Manon sees you arrive with your present and throws up her arms.',
+      ),
+      narration(
+        'Le gâteau au chocolat attend sur la table, avec ses bougies. Manon ouvre la porte du jardin et vous fait un grand sourire.',
+        'The chocolate cake waits on the table with its candles. Manon opens the garden door and gives you a huge smile.',
+      ),
+    ],
+    lines: [
+      line('Manon', 'Salut ! Entre, entre, tout le monde est dans le jardin !', 'Hi! Come in, come in, everyone is in the garden!'),
+      line('Manon', 'Ah, te voilà ! Trop bien !', 'Oh, there you are! Brilliant!'),
+      line('Manon', 'Salut ! Trop contente de te voir !', 'Hi! So happy to see you!'),
+    ],
+  },
+  'mission:fuite': {
+    narrations: [
+      narration(
+        "Le seau sous l'évier est presque plein. Vous appelez votre propriétaire, et il décroche à la deuxième sonnerie.",
+        'The bucket under the sink is almost full. You call your landlord, and he picks up on the second ring.',
+      ),
+      narration(
+        'Une flaque s’étale sur le carrelage de la cuisine. Vous tenez une serpillière d’une main et le téléphone de l’autre.',
+        'A puddle is spreading across the kitchen tiles. You hold a mop in one hand and the phone in the other.',
+      ),
+      narration(
+        'Le voisin du dessous vient de sonner : il y a une tache au plafond chez lui. Vous composez le numéro du propriétaire.',
+        'The neighbour from downstairs has just rung the bell about a stain on his ceiling. You dial the landlord’s number.',
+      ),
+      narration(
+        'Toute la nuit, vous avez entendu un petit bruit de goutte. Ce matin, le placard sous l’évier est trempé.',
+        'All night you heard a small dripping sound. This morning the cupboard under the sink is soaked.',
+      ),
+      narration(
+        'L’eau est coupée, les serviettes sont par terre. Vous vous asseyez sur une chaise et vous appelez le propriétaire.',
+        'The water is off and the towels are on the floor. You sit down on a chair and call the landlord.',
+      ),
+    ],
+    lines: [
+      line('Patrick', 'Allô, oui, bonjour ?', 'Hello, yes?'),
+      line('Patrick', 'Bonjour ! Tout va bien dans l’appartement ?', 'Hello! Is everything all right in the flat?'),
+      line('Patrick', 'Allô ? Oui, je vous écoute.', 'Hello? Yes, I am listening.'),
+    ],
+  },
+  'mission:galere': {
+    narrations: [
+      narration(
+        "Hugo pose deux verres sur la table et s'installe. Il vous regarde avec un grand sourire.",
+        'Hugo puts two glasses on the table and settles in. He looks at you with a big grin.',
+      ),
+      narration(
+        'La terrasse est pleine, le soleil descend sur la place. Hugo tire une chaise et s’assoit en face de vous.',
+        'The terrace is full, and the sun is going down over the square. Hugo pulls out a chair and sits facing you.',
+      ),
+      narration(
+        'Le serveur apporte les boissons. Hugo trinque avec vous, puis s’accoude à la table.',
+        'The waiter brings the drinks. Hugo clinks glasses with you, then leans on the table.',
+      ),
+      narration(
+        'Vous bâillez encore à cause du week-end. Hugo le remarque tout de suite et hausse un sourcil.',
+        'You are still yawning from the weekend. Hugo notices straight away and raises an eyebrow.',
+      ),
+      narration(
+        'Hugo range son téléphone et pousse un bol de chips vers vous. Il a envie d’une histoire.',
+        'Hugo puts his phone away and pushes a bowl of crisps towards you. He is in the mood for a story.',
+      ),
+    ],
+    lines: [
+      line('Hugo', 'Alors, ce week-end ? Raconte !', 'So, the weekend? Tell me everything!'),
+      line('Hugo', 'T’as une tête, toi ! Il s’est passé quoi ?', 'Look at you! What happened?'),
+      line('Hugo', 'Alors, c’était comment, ton week-end ?', 'So, how was your weekend?'),
+    ],
+  },
+  'mission:avis': {
+    narrations: [
+      narration(
+        'Les billets de cinéma traînent encore sur la table. Yasmine enlève sa veste et vous regarde, curieuse.',
+        'The cinema tickets are still lying on the table. Yasmine takes off her jacket and looks at you, curious.',
+      ),
+      narration(
+        'Le générique vient de finir et la salle se rallume. Yasmine s’étire et attrape son manteau.',
+        'The credits have just finished and the lights come back up. Yasmine stretches and grabs her coat.',
+      ),
+      narration(
+        'Dehors, il fait frais et la rue est calme. Yasmine marche à côté de vous, les mains dans les poches.',
+        'Outside it is cool and the street is quiet. Yasmine walks beside you, hands in her pockets.',
+      ),
+      narration(
+        'Le bar à côté du cinéma est presque vide. Yasmine commande deux verres et se tourne vers vous.',
+        'The bar next to the cinema is almost empty. Yasmine orders two drinks and turns to you.',
+      ),
+      narration(
+        'Une affiche du film est collée sur la vitre du bar. Yasmine la montre du doigt en riant.',
+        'A poster for the film is stuck on the bar window. Yasmine points at it, laughing.',
+      ),
+    ],
+    lines: [
+      line('Yasmine', "Alors ? T'en as pensé quoi ?", 'So? What did you think?', "Alors ? Tu en as pensé quoi ?"),
+      line('Yasmine', 'Bon, moi, j’ai mon avis. Mais toi d’abord !', 'Right, I have my opinion. But you first!'),
+      line('Yasmine', 'Alors, verdict ? Tu as aimé ?', 'So, the verdict? Did you like it?'),
+    ],
+  },
+  'mission:entretien': {
+    narrations: [
+      narration(
+        'Claire Lefèvre vous fait entrer dans une petite salle de réunion. Elle pose votre CV sur la table et vous sourit.',
+        'Claire Lefèvre shows you into a small meeting room. She puts your CV on the table and smiles at you.',
+      ),
+      narration(
+        'Une carafe d’eau et deux verres attendent sur la table. Claire Lefèvre ferme la porte et s’assoit en face de vous.',
+        'A jug of water and two glasses wait on the table. Claire Lefèvre closes the door and sits down opposite you.',
+      ),
+      narration(
+        'Par la fenêtre, on voit les toits de la ville. Claire Lefèvre ouvre son carnet et prend un stylo.',
+        'Through the window you can see the rooftops. Claire Lefèvre opens her notebook and picks up a pen.',
+      ),
+      narration(
+        'Vous attendez dans le hall depuis quelques minutes. Claire Lefèvre arrive, vous serre la main et vous emmène au calme.',
+        'You have been waiting in the lobby for a few minutes. Claire Lefèvre arrives, shakes your hand and leads you somewhere quiet.',
+      ),
+      narration(
+        'La salle est lumineuse, avec une plante dans un coin. Claire Lefèvre relit votre CV une dernière fois, puis lève les yeux.',
+        'The room is bright, with a plant in one corner. Claire Lefèvre reads your CV through one last time, then looks up.',
+      ),
+    ],
+    lines: [
+      line('Claire Lefèvre', 'Asseyez-vous, je vous en prie. Alors, parlez-moi un peu de vous.', 'Please, have a seat. So, tell me a little about yourself.'),
+      line('Claire Lefèvre', 'Merci d’avoir fait le déplacement. Pour commencer, pouvez-vous me présenter votre parcours ?', 'Thank you for coming in. To start, could you walk me through your background?'),
+      line('Claire Lefèvre', 'Bonjour, et bienvenue. Racontez-moi un peu votre parcours.', 'Hello, and welcome. Tell me a little about your background.'),
+    ],
+  },
+  'mission:teletravail': {
+    narrations: [
+      narration(
+        "La porte du bureau d'Isabelle est ouverte. Vous frappez doucement, et elle lève les yeux de son écran.",
+        'The door to the manager’s office is open. You knock softly, and Isabelle looks up from her screen.',
+      ),
+      narration(
+        'Vous passez devant le bureau vitré d’Isabelle. Elle range ses dossiers et vous fait signe d’entrer.',
+        'Walking past Isabelle’s glass office, you catch her eye. She is tidying her files and waves you in.',
+      ),
+      narration(
+        'Isabelle est seule dans son bureau, une tasse de café à la main. Vous frappez à la porte vitrée.',
+        'Alone in her office for once, Isabelle holds a cup of coffee. You tap on the glass door.',
+      ),
+      narration(
+        'Le planning de l’équipe est affiché sur l’écran du bureau. Isabelle le regarde en fronçant les sourcils, puis vous voit arriver.',
+        'The team schedule is up on the office screen. Isabelle frowns at it, then sees you coming.',
+      ),
+      narration(
+        'Il est tard, le plateau se vide. Isabelle ferme son ordinateur portable quand vous passez la tête par la porte.',
+        'It is late and the floor is emptying. Isabelle closes her laptop as you put your head round the door.',
+      ),
+    ],
+    lines: [
+      line('Isabelle', "Oui, entre ! Qu'est-ce qui se passe ?", 'Yes, come in! What is up?'),
+      line('Isabelle', 'Ah, salut ! Tu voulais me voir ?', 'Oh, hi! Did you want to see me?'),
+      line('Isabelle', 'Oui ? J’ai cinq minutes, vas-y.', 'Yes? I have got five minutes, go ahead.'),
+    ],
+  },
+  'mission:souvenirs': {
+    narrations: [
+      narration(
+        'Jeannine ouvre un vieil album photo sur ses genoux. Le café fume dans des tasses à fleurs.',
+        'Jeannine opens an old photo album on her knees. Coffee steams in flowered cups.',
+      ),
+      narration(
+        'Une horloge sonne dans le salon. Jeannine pose une boîte de biscuits sur la nappe et tapote la chaise à côté d’elle.',
+        'A clock chimes in the living room. Jeannine puts a tin of biscuits on the tablecloth and pats the chair beside her.',
+      ),
+      narration(
+        'Le jardin sent l’herbe coupée et les volets sont à moitié fermés. Jeannine s’assoit à la table, l’album devant elle.',
+        'The garden smells of cut grass and the shutters are half closed. Jeannine sits down at the table, the album in front of her.',
+      ),
+      narration(
+        'Une vieille photo en noir et blanc glisse de l’album et tombe à vos pieds. Jeannine sourit en la voyant.',
+        'An old black and white photo slips out of the album and lands at your feet. Jeannine smiles when she sees it.',
+      ),
+      narration(
+        'Tout le monde est parti se promener, et vous restez avec Jeannine à table. Elle verse le café et rouvre l’album.',
+        'Everyone else has gone for a walk, and you stay behind with Jeannine at the table. She pours the coffee and opens the album again.',
+      ),
+    ],
+    lines: [
+      line('Jeannine', 'Viens t’asseoir à côté de moi. Alors, tu as grandi où, toi ?', 'Come and sit next to me. So, where did you grow up?'),
+      line('Jeannine', 'Alors, raconte-moi. Tu viens d’où, toi ?', 'So, tell me. Where are you from?'),
+      line('Jeannine', 'Tu sais, j’aime bien qu’on me pose des questions. Mais toi d’abord : tu as grandi où ?', 'You know, I like being asked questions. But you first: where did you grow up?'),
     ],
   },
 };

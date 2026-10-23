@@ -86,17 +86,17 @@ describe('the next task for a goal — Stage 4', () => {
     // more than one place ("station", "stranger", "tea"), and negated goals.
     // Each of these is a starting point now, never a match. (F864, 2026-10-22:
     // the train ticket, colleagues and table-for-dinner goals moved to the
-    // per-mission test, because the A2 spine added scenes that serve them.)
+    // per-mission test, because the A2 spine added scenes that serve them.
+    // 2026-10-23: "Tea with my grandmother" and "Work from home" moved there
+    // too, because the B1 scenes souvenirs and teletravail serve them.)
     for (const goal of [
       'Buy a house',
       'price negotiation for a car',
-      'Tea with my grandmother',
       'have a drink with a stranger',
       'I do not want to eat at restaurants, I want to read novels',
       'Never stay in hotels again',
       'not the market, the museum',
       "Je ne veux pas aller au marché",
-      'Work from home',
       'I lost my passport',
       'Plan my weekend',
       'Understand the way people speak',
@@ -175,6 +175,18 @@ describe('the next task for a goal — Stage 4', () => {
       ['Get a refund on a broken kettle', 'mission:retour'],
       ['Find a flat to rent in Lyon', 'mission:appartement'],
       ["Dinner with my partner's parents", 'mission:belle-famille'],
+      // The six B1 scenes (docs/changes/mission-spine-b1.md).
+      ['There is a water leak in my kitchen', 'mission:fuite'],
+      ['Call the landlord about a leak', 'mission:fuite'],
+      ['Tell funny stories to my friends', 'mission:galere'],
+      ['Give my opinion about a book', 'mission:avis'],
+      ['Talk about movies I have seen', 'mission:avis'],
+      ['Pass a job interview in French', 'mission:entretien'],
+      ['Ask my boss if I can work from home', 'mission:teletravail'],
+      ['Talk with my grandmother', 'mission:souvenirs'],
+      ['Tea with my grandmother', 'mission:souvenirs'],
+      ['Work from home', 'mission:teletravail'],
+      ['Tell my partner’s grandparents about my childhood', 'mission:souvenirs'],
     ];
     for (const [goal, expected] of matched) {
       assert.deepEqual(nextTaskForGoal(goal, { missions: MISSIONS }), { task: { kind: 'mission', id: expected }, fit: 'matched' }, `"${goal}" went to the wrong mission`);
@@ -190,6 +202,8 @@ describe('the next task for a goal — Stage 4', () => {
       'Train my ear',
       'Plan my weekend',
       'My French sounds flat',
+      'Leak to the press',
+      'Understand the news story',
     ]) {
       const next = nextTaskForGoal(goal, { missions: MISSIONS });
       assert.ok(next);

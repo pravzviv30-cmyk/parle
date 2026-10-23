@@ -15,7 +15,7 @@
  * `missions/preview.ts` uses.
  */
 
-import { DAILY_SCENARIOS, MISSIONS, phraseKeyOf, type CefrLevel, type DailyScenario, type Mission } from '@luvani/core';
+import { DAILY_SCENARIOS, MISSIONS, phraseKeyOf, type DailyScenario, type Mission, type MissionLevel } from '@luvani/core';
 import { estimateMinutes, missionMinutes } from '../home/estimate.ts';
 import { tutorAudioFor } from '../daily/tutorAudio.ts';
 import { dailyItem, DAILY_ITEMS } from '../daily/catalogue.ts';
@@ -98,15 +98,16 @@ export function hasAuthoredOpener(id: string): boolean {
 
 /**
  * The mission levels in spine order, the one list every surface groups by
- * (2026-10-22, mission spine A2: Everyday joins Starter and Basics).
+ * (2026-10-22, mission spine A2: Everyday joins Starter and Basics;
+ * 2026-10-22, mission spine B1: Chatting joins).
  */
-export const MISSION_LEVELS: readonly CefrLevel[] = ['A0', 'A1', 'A2'];
+export const MISSION_LEVELS: readonly MissionLevel[] = ['A0', 'A1', 'A2', 'B1'];
 
 /** The stage word a mission level is shown as, never the CEFR code. */
-const MISSION_STAGE: Readonly<Record<CefrLevel, string>> = { A0: 'Starter', A1: 'Basics', A2: 'Everyday' };
+const MISSION_STAGE: Readonly<Record<MissionLevel, string>> = { A0: 'Starter', A1: 'Basics', A2: 'Everyday', B1: 'Chatting' };
 
 /** Stage words, never CEFR. A daily tier is a pitch, said as a stage. */
-export function stageOf(source: { kind: 'mission'; cefr: CefrLevel } | { kind: 'scenario'; tier: 1 | 2 | 3 }): string {
+export function stageOf(source: { kind: 'mission'; cefr: MissionLevel } | { kind: 'scenario'; tier: 1 | 2 | 3 }): string {
   // 2026-10-20, B4 review: a mission names its stage (Starter, Basics, as on
   // Journey and Speak). A daily scene's tier 1 keeps Explore's difficulty
   // label, "Starting out", which is a pitch and not a stage.
