@@ -1,4 +1,4 @@
-import { parseFirstPracticeBrief } from '@luvani/core';
+import { parseFirstPracticeBrief, GUEST_CAFE_SCENE, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS } from '@luvani/core';
 /**
  * Room access tokens, and the entitlement gate in front of them.
  *
@@ -202,7 +202,12 @@ function validTutorVoice(value: unknown): string | undefined {
 
 export async function grantSession(
   opts: {
-    guest?: { key: string; sessionId: string; roomName: string; maxSeconds: number };
+    /**
+     * A guest room. With `scene`, it is the guest first scene (UI-011): the
+     * lesson is always `cafe-guest`, memory is locked, the length is 180 s, and
+     * no brief, seed topic or mission is ever signed, whatever the caller passes.
+     */
+    guest?: { key: string; sessionId: string; roomName: string; maxSeconds: number; scene?: typeof GUEST_SCENE };
     firstPractice?: unknown;
     userId: string;
     lessonId: string;
@@ -250,9 +255,12 @@ export async function grantSession(
     return { ok: false, status: 402, reason: decision.reason, message: decision.message };
   }
 
+  const scene = opts.guest?.scene === GUEST_SCENE;
+  if (scene && opts.mode !== 'lesson' && opts.mode !== 'lesson-text') throw new Error('guest scene mode must be lesson or lesson-text');
   const startRung = validStartRung(opts.startRung);
-  const seedTopic = validSeedTopic(opts.seedTopic);
-  const missionId = validMissionId(opts.missionId);
+  const seedTopic = scene ? undefined : validSeedTopic(opts.seedTopic);
+  const missionId = scene ? undefined : validMissionId(opts.missionId);
+  const firstPractice = scene ? null : parseFirstPracticeBrief(opts.firstPractice);
   const tutorVoice = validTutorVoice(opts.tutorVoice);
   const revision = parseTutorRevision(opts.revision);
   if (opts.admitted && (opts.admitted.userId !== opts.userId || opts.admitted.mode !== (opts.mode ?? 'lesson'))) {
@@ -278,10 +286,11 @@ export async function grantSession(
     // left off, so a session never restarts from turn one after an interruption.
     metadata: JSON.stringify({
       sessionId,
-      lessonId: opts.lessonId,
-      secondsRemaining: opts.admitted?.reservedSeconds ?? opts.guest?.maxSeconds ?? decision.secondsRemaining,
+      lessonId: scene ? GUEST_CAFE_SCENE.id : opts.lessonId,
+      secondsRemaining: scene ? Math.min(GUEST_SCENE_MAX_SECONDS, opts.guest!.maxSeconds) : opts.admitted?.reservedSeconds ?? opts.guest?.maxSeconds ?? decision.secondsRemaining,
       ...(opts.guest ? { lifecycleVersion: 1, guestLifecycleKey: opts.guest.key } : {}),
-      ...(parseFirstPracticeBrief(opts.firstPractice) ? { firstPractice: parseFirstPracticeBrief(opts.firstPractice) } : {}),
+      ...(scene ? { scene: GUEST_SCENE } : {}),
+      ...(firstPractice ? { firstPractice } : {}),
       ...(opts.admitted ? { lifecycleVersion: 1, joinDeadline: opts.admitted.joinDeadline } : {}),
       mode: opts.mode ?? 'lesson',
       ...(startRung !== undefined ? { startRung } : {}),
@@ -290,7 +299,7 @@ export async function grantSession(
       ...(missionId !== undefined ? { missionId } : {}),
       ...(tutorVoice !== undefined ? { tutorVoice } : {}),
       ...(opts.snapshot !== undefined ? { snapshot: opts.snapshot } : {}),
-      ...(opts.memoryLocked ? { memoryLocked: true } : {}),
+      ...(opts.memoryLocked || scene ? { memoryLocked: true } : {}),
     }),
   });
 

@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { isConversationPack, isServiceFailure, readSessionSettlement, type SettlementResult } from '@luvani/core';
+import { GUEST_SCENE_MAX_SECONDS, isConversationPack, isServiceFailure, parseGuestSceneTurnIds, readSessionSettlement, type SettlementResult } from '@luvani/core';
 import { canonicalJson, tutorDigest, TutorRpcError, type TutorSessionReport } from '../../shared/tutorLifecycle.ts';
 
 type Operation = 'claim' | 'checkpoint' | 'complete' | 'receipt';
 type Row = Record<string, unknown>;
 export interface TutorSessionIdentity { userId: string; sessionId: string; roomName: string; mode: 'lesson' | 'lesson-text' | 'convo' | 'convo-text' }
-export type RuntimeReport = Omit<TutorSessionReport, 'seconds'> & { firstPracticeComplete?: boolean; firstPracticeStopped?: boolean };
+export type RuntimeReport = Omit<TutorSessionReport, 'seconds'> & { firstPracticeComplete?: boolean; firstPracticeStopped?: boolean;
+  /** Guest scene rooms only: scene turn ids answered acceptably. Merged, so it never shrinks. */
+  sceneTurns?: readonly string[] };
 export interface RuntimeLifecycle {
   readonly maxSeconds: number;
   readonly signal: AbortSignal;
@@ -19,6 +21,8 @@ export interface RuntimeLifecycle {
 export interface LifecycleOptions {
   /** A signed guest capability hash selects the separate guest lease endpoint. */
   guestKey?: string;
+  /** A signed guest scene: needs guestKey and a lesson mode, caps maxSeconds at 180 and reports sceneTurns. */
+  scene?: boolean;
   call?: (operation: Operation, payload: Row, signal: AbortSignal) => Promise<Row>;
   request?: typeof fetch;
   tokenServer?: string;
@@ -73,6 +77,7 @@ function httpCall(options: LifecycleOptions): NonNullable<LifecycleOptions['call
 export async function claimSessionLifecycle(identity: TutorSessionIdentity, options: LifecycleOptions = {}): Promise<SessionLifecycle> {
   if (!UUID.test(identity.userId) || !UUID.test(identity.sessionId) || !identity.roomName || identity.roomName.length > 128
     || !['lesson', 'lesson-text', 'convo', 'convo-text'].includes(identity.mode)) throw new SessionLifecycleError();
+  if (options.scene && (!options.guestKey || !identity.mode.startsWith('lesson'))) throw new SessionLifecycleError();
   const lifecycle = new SessionLifecycle(identity, options);
   await lifecycle.claim();
   return lifecycle;
@@ -111,7 +116,8 @@ export class SessionLifecycle implements RuntimeLifecycle {
     if (options.guestKey) {
       if (!/^[A-Za-z0-9_-]{43}$/.test(options.guestKey)) throw new SessionLifecycleError();
       this.#ack.firstPracticeComplete = false;
-    }
+      if (options.scene) this.#ack.sceneTurns = [];
+    } else if (options.scene) throw new SessionLifecycleError();
   }
   paidIdentity():Readonly<{userId:string;sessionId:string;claimNonce:string}> {this.assertActive();return Object.freeze({userId:this.#identity.userId,sessionId:this.#identity.sessionId,claimNonce:this.#nonce});}
   get maxSeconds(): number { return this.#maximum; }
@@ -180,7 +186,7 @@ export class SessionLifecycle implements RuntimeLifecycle {
   async claim(): Promise<void> {
     const { result, sent, received } = await this.invoke('claim', { ...this.#identity, claimNonce: this.#nonce });
     if (result.kind !== 'claimed' || result.version !== 1 || result.sessionId !== this.#identity.sessionId || result.fence !== this.#nonce
-      || !integer(result.maxSeconds, 120, this.#options.guestKey ? 1260 : 900) || result.checkpointRevision !== 0 || !Number.isFinite(date(result.startedAt))) throw new SessionLifecycleError();
+      || !integer(result.maxSeconds, 120, this.#options.scene ? GUEST_SCENE_MAX_SECONDS : this.#options.guestKey ? 1260 : 900) || result.checkpointRevision !== 0 || !Number.isFinite(date(result.startedAt))) throw new SessionLifecycleError();
     this.#maximum = result.maxSeconds;
     // Response-end anchoring undercounts network latency rather than reporting
     // elapsed time the database cannot yet have observed.
@@ -197,9 +203,18 @@ export class SessionLifecycle implements RuntimeLifecycle {
     if (this.#identity.mode.startsWith('convo') && report.learnerTurns > 0 && baseline === null) throw new SessionLifecycleError();
     if (this.#ack.baseline !== null && baseline === null) throw new SessionLifecycleError();
     if (this.#ack.serviceFailure !== null && (report.serviceFailure ?? null) !== this.#ack.serviceFailure) throw new SessionLifecycleError();
+    // A scene is a lesson: learner turns with a null baseline are its normal shape.
+    let sceneTurns: string[] | undefined;
+    if (this.#options.scene) {
+      const reported = parseGuestSceneTurnIds(report.sceneTurns ?? []);
+      const merged = reported && parseGuestSceneTurnIds([...new Set([...(this.#ack.sceneTurns as string[]), ...reported])]);
+      if (!merged) throw new SessionLifecycleError();
+      sceneTurns = merged;
+    }
     return JSON.parse(canonicalJson({ revision, seconds: Math.max(Number(this.#ack.seconds), this.elapsedSeconds()),
       learnerTurns: report.learnerTurns, serviceFailure: report.serviceFailure ?? null, baseline,
-      ...(this.#options.guestKey ? { firstPracticeComplete: this.#ack.firstPracticeComplete === true || report.firstPracticeComplete === true } : {}) }));
+      ...(this.#options.guestKey ? { firstPracticeComplete: this.#ack.firstPracticeComplete === true || report.firstPracticeComplete === true } : {}),
+      ...(sceneTurns ? { sceneTurns } : {}) }));
   }
   private wire(payload: Row): Row { return { userId: this.#identity.userId, sessionId: this.#identity.sessionId, fence: this.#nonce,
     ...payload, digest: tutorDigest(payload) }; }
