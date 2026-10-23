@@ -40,24 +40,38 @@ test('production vendor verification fails closed under network, header and body
   assert.ok(!JSON.stringify(checks).includes('PRIVATE_VENDOR_CONTENT'));
 });
 
-test('the bound lesson quote carries a scoring component whenever live scoring is on', () => {
+test('the bound lesson and convo quotes both carry a scoring component whenever live scoring is on', () => {
   const quote = { quoteId: '11111111-1111-4111-8111-111111111111', configurationSha256: '123456789abcdef0'.repeat(4) };
-  const bindings = (kinds?: string[]) => JSON.stringify({ lesson: kinds ? { ...quote, kinds } : quote });
-  const cases: Array<{ flag: string | undefined; kinds?: string[]; ok: boolean }> = [
-    { flag: '1', ok: false },
-    { flag: '1', kinds: ['llm', 'stt', 'tts'], ok: false },
-    { flag: '1', kinds: ['llm', 'scoring', 'stt', 'tts'], ok: true },
-    { flag: undefined, ok: true },
-    { flag: undefined, kinds: ['llm', 'stt', 'tts'], ok: true },
+  const scored = ['llm', 'scoring', 'stt', 'tts'], unscored = ['llm', 'stt', 'tts'];
+  const binding = (kinds?: string[]) => kinds ? { ...quote, kinds } : quote;
+  const bindings = (lesson?: string[], convo?: string[]) => JSON.stringify({ lesson: binding(lesson), convo: binding(convo) });
+  const cases: Array<{ flag: string | undefined; lesson?: string[]; convo?: string[]; missing: string[] }> = [
+    { flag: '1', missing: ['lesson', 'convo'] },
+    { flag: '1', lesson: unscored, convo: unscored, missing: ['lesson', 'convo'] },
+    { flag: '1', lesson: scored, missing: ['convo'] },
+    { flag: '1', lesson: scored, convo: unscored, missing: ['convo'] },
+    { flag: '1', convo: scored, missing: ['lesson'] },
+    { flag: '1', lesson: scored, convo: scored, missing: [] },
+    { flag: undefined, missing: [] },
+    { flag: undefined, lesson: unscored, convo: unscored, missing: [] },
+    { flag: undefined, lesson: scored, missing: [] },
   ];
   // Tutor preflight (F863).
   const base = { NODE_ENV: 'production', LUVANI_TYPED_ONLY: '1', LIVEKIT_URL: 'wss://example.livekit.cloud', LIVEKIT_API_KEY: 'example-key', LIVEKIT_API_SECRET: 'example-secret', OPENAI_API_KEY: 'example-key', TUTOR_LLM: 'openai', TOKEN_SERVER_URL: 'https://api.example.com', LUVANI_AGENT_SECRET: 'example-strong-secret-for-local-test-only', LUVANI_SCORING_VENDOR: 'speechace', SPEECHACE_API_KEY: 'synthetic' };
   const stop = () => { throw new Error('refused'); };
-  for (const { flag, kinds, ok } of cases) {
-    const env = { ...base, LUVANI_PAID_QUOTE_BINDINGS: bindings(kinds), ...(flag ? { LUVANI_AUDIO_SCORING: flag } : {}) };
-    if (ok) assert.doesNotThrow(() => preflight(env, stop, () => false), JSON.stringify({ flag, kinds }));
-    else assert.throws(() => preflight(env, stop, () => false), /refused/, JSON.stringify({ flag, kinds }));
-  }
+  const errors: unknown[][] = [], error = console.error;
+  console.error = (...args: unknown[]) => { errors.push(args); };
+  try {
+    for (const { flag, lesson, convo, missing } of cases) {
+      const env = { ...base, LUVANI_PAID_QUOTE_BINDINGS: bindings(lesson, convo), ...(flag ? { LUVANI_AUDIO_SCORING: flag } : {}) }, label = JSON.stringify({ flag, lesson, convo });
+      errors.length = 0;
+      if (!missing.length) assert.doesNotThrow(() => preflight(env, stop, () => false), label);
+      else {
+        assert.throws(() => preflight(env, stop, () => false), /refused/, label);
+        assert.match(String(errors.at(-1)?.[0]), new RegExp(`live scoring needs the ${missing.join(' and ')} quote binding`), label);
+      }
+    }
+  } finally { console.error = error; }
   assert.throws(() => preflight({ ...base, LUVANI_AUDIO_SCORING: '1', LUVANI_PAID_QUOTE_BINDINGS: '{not json' }, stop, () => false), /refused/);
   // Container admission: deployment/validateEnvironment.mjs tutor.
   const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -65,10 +79,14 @@ test('the bound lesson quote carries a scoring component whenever live scoring i
   const fixture: Record<string, string> = { PATH: process.env.PATH ?? '', NODE_ENV: 'production', LUVANI_DURABLE_PRACTICE: '1', TUTOR_LLM: 'openai', OPENAI_API_KEY: 'offline-openai-fixture', LUVANI_SCORING_VENDOR: 'speechace', SPEECHACE_API_KEY: 'synthetic' };
   for (const name of contract.roles.tutor.secrets) fixture[name] = `offline-fixture-${name}`.padEnd(48, 'x');
   for (const name of contract.roles.tutor.configuration) if (name.endsWith('_URL')) fixture[name] = `${name === 'LIVEKIT_URL' ? 'wss' : 'https'}://fixture.test`;
-  for (const { flag, kinds, ok } of cases) {
-    const env = { ...fixture, LUVANI_PAID_QUOTE_BINDINGS: bindings(kinds), ...(flag ? { LUVANI_AUDIO_SCORING: flag } : {}) };
+  for (const { flag, lesson, convo, missing } of cases) {
+    const env = { ...fixture, LUVANI_PAID_QUOTE_BINDINGS: bindings(lesson, convo), ...(flag ? { LUVANI_AUDIO_SCORING: flag } : {}) };
     const r = spawnSync(process.execPath, ['deployment/validateEnvironment.mjs', 'tutor'], { cwd: root, env, encoding: 'utf8' });
-    if (ok) assert.equal(r.status, 0, r.stderr);
-    else { assert.notEqual(r.status, 0); assert.match(r.stderr, /live scoring requires a lesson quote binding with a scoring component/); }
+    if (!missing.length) { assert.equal(r.status, 0, r.stderr); continue; }
+    assert.notEqual(r.status, 0);
+    for (const activity of ['lesson', 'convo']) {
+      const named = r.stderr.includes(`live scoring requires a ${activity} quote binding with a scoring component`);
+      assert.equal(named, missing.includes(activity), `${activity} in ${r.stderr}`);
+    }
   }
 });

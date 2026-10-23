@@ -72,7 +72,7 @@ import type { ClosureRepair } from './conversationPacks/closure.ts';
 import { arrived } from './motion/haptics.ts';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { FeedbackLedger } from './motion/feedbackPolicy.ts';
-import { SOUND_DETAIL, exampleFirstHeading } from './tutor/soundExample.ts';
+import { SOUND_DETAIL, SOUND_FOCUS_LABEL, exampleFirstHeading } from './tutor/soundExample.ts';
 import { MouthGuide } from './practice/MouthGuide.tsx';
 import { MAX_CLOSURE_PHRASES, closureFromRecap, type ClosureContext } from './conversationPacks/closure.ts';
 import { missionCompletionsFrom } from './missions/chooserView.ts';
@@ -434,13 +434,18 @@ export function RecapScreen({
 
         {currentPage === 'sound' && <View style={s.pad}>
         <TopInset />
-        <Text accessibilityRole="header" style={[type.title, { color: t.text }]}>From a saved sound check</Text>
-        {sound && <Text style={[type.small, { color: t.text }]}>This check concerns its recorded reference line, not your pronunciation overall. {getMission(sound.missionId)?.titleEn ?? 'A previous scene'}.</Text>}
+        {sound?.source === 'live' ? <>
+          <Text accessibilityRole="header" style={[type.title, { color: t.text }]}>From this conversation</Text>
+          <Text style={[type.small, { color: t.text }]}>Heard when you said the line you were given.</Text>
+        </> : <>
+          <Text accessibilityRole="header" style={[type.title, { color: t.text }]}>From a saved sound check</Text>
+          {sound && <Text style={[type.small, { color: t.text }]}>This check concerns its recorded reference line, not your pronunciation overall. {getMission(sound.missionId)?.titleEn ?? 'A previous scene'}.</Text>}
+        </>}
 
         {/* One sound, met as a word; the notation is a detail the learner opens. */}
         {sound !== null && (
           <View>
-            <Label>{KEEPSAKE_COPY.sound}</Label>
+            <Label>{sound.source === 'live' ? SOUND_FOCUS_LABEL : KEEPSAKE_COPY.sound}</Label>
             <MouthGuide ipa={sound.ipa} />
             <Text style={[type.bodyStrong, { color: t.text, marginTop: space(2) }]}>{exampleFirstHeading(sound.acoustic, sound.example)}</Text>
             <Text style={[type.body, { color: t.muted, marginTop: space(1) }]}>{sound.acoustic.cue}</Text>

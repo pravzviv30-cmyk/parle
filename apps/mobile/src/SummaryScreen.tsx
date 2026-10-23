@@ -20,7 +20,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
 import { HAIRLINE, HIT, paper, space, type } from './theme.ts';
-import { SOUND_DETAIL, heldSoundsLine, soundExampleWord, soundInWord } from './tutor/soundExample.ts';
+import { SOUND_DETAIL, SOUND_FOCUS_LABEL, heldSoundsLine, soundExampleWord, soundInWord } from './tutor/soundExample.ts';
 import { IconAction, Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
@@ -149,7 +149,7 @@ export function SummaryScreen({
         {focus ? (
           <View style={{ gap: space(3) }}>
             <Card>
-              <Label>One sound to practise next</Label>
+              <Label>{SOUND_FOCUS_LABEL}</Label>
               {/* A word first, because a beginner can hear a word in their
                   head and cannot hear a symbol. The notation and the scorer's
                   reason are there for anyone who opens them. */}

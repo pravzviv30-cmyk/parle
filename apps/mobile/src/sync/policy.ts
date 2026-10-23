@@ -44,6 +44,7 @@
  * | `conversationPacks` | **excluded** — see SYNC_EXCLUSIONS                   |
  * | `suggestions` | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `analytics`   | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `speechDataset` | **excluded** — see SYNC_EXCLUSIONS                       |
  * | `appearance`  | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `moments`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `packMarks`   | **excluded** — see SYNC_EXCLUSIONS                          |
@@ -841,6 +842,11 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
     namespace: 'analytics',
     reason:
       'a consent, which is given to the device that asked for it and to nothing else. Every merge in this table resolves a disagreement by picking a winner, and the only winner a permission may have is the most recent thing the learner actually said: a fold that can carry an older yes over a newer no would turn a withdrawal into a setting that comes back by itself, which is why it is not a field on the profile either, where mergeStoredProfiles picks scalars by evidence weight. What excluding it costs is a second device that reports nothing until it is asked in Settings, and reporting nothing is the answer we are content to be wrong with.',
+  },
+  {
+    namespace: 'speechDataset',
+    reason:
+      'a consent to share practice recordings, excluded for the analytics consent\'s reason: every merge here picks a winner, and an older yes merged in from another device must never override a newer no. What excluding it costs is asking again on a second device.',
   },
   {
     namespace: 'moments',

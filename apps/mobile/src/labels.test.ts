@@ -98,7 +98,8 @@ const KEPT = [
   'Small fixes',
   'New phrases',
   'Next step',
-  'One sound to practise next',
+  // 'One sound to practise next' moved into tutor/soundExample.ts (2026-10-22),
+  // shared by the lesson end card and the conversation recap; see below.
   // The leaderboard-only 'You' badge retired with that unreachable screen.
 ];
 
@@ -127,6 +128,7 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
   // French structure names the group "French you can use". Same constant, same
   // module, still drawn as a caps label by SituationsCard.
   { words: 'French you can use', from: 'myfrench/situations.ts', name: 'YOU_CAN_NOW' },
+  { words: 'One sound to practise next', from: 'tutor/soundExample.ts', name: 'SOUND_FOCUS_LABEL' },
   // 'Your tutor' and 'Your learning' left with P2 (2026-10-19): Profile is
   // grouped lists under quiet headings from `settings/profileView.ts` now.
 ];

@@ -1,4 +1,5 @@
-/** The reviewed Speechace scoring component a 'lesson' quote carries when live scoring is on (F863).
+/** The reviewed Speechace scoring components a 'lesson' quote (F863) and a 'convo' quote carry when live scoring is on.
+ * Both use the same call shape and identity and differ only in envelope.
  * The price is the cost model (DEFAULT_COST_MODEL.assessmentPerUtterance), not a verified vendor quote. */
 import {DEFAULT_COST_MODEL} from '@luvani/core/metering';
 import type {PaidComponent} from './paidAdmission.ts';
@@ -9,6 +10,11 @@ export const LESSON_SCORING_MAX_CALL_MILLIS=(SCORING_MAX_WAV_BYTES-44)/32;
 export const LESSON_SCORING_EFFECTS=48;
 /** The whole 900 s lesson, which is also the supported audio maximum. */
 export const LESSON_SCORING_AUDIO_MILLIS=900000;
+/** A mission scores only a line the learner said off the depth-2 full-line help card, far fewer than a lesson's
+ * reference turns. A cost-model figure, not a vendor quote. */
+export const CONVO_SCORING_EFFECTS=24;
+/** The lesson's audio per score (18.75 s) times the convo's effects. */
+export const CONVO_SCORING_AUDIO_MILLIS=450000;
 /** A reference line is short; 256 bytes per score is generous. */
 export const LESSON_SCORING_TEXT_BYTES_PER_EFFECT=256;
 /** Speechace counts text plus 4096 bytes of multipart overhead; the WAV is bounded by audio millis. */
@@ -17,6 +23,8 @@ export const LESSON_SCORING_INPUT_BYTES_PER_EFFECT=4096+LESSON_SCORING_TEXT_BYTE
 export const LESSON_SCORING_MICRO_USD_PER_EFFECT=Math.ceil(DEFAULT_COST_MODEL.assessmentPerUtterance*1e6);
 /** Matches what describePaidHttp produces for scoreWithSpeechace (no dialect, so fr-fr). */
 export const LESSON_SCORING_CONFIGURATION_SHA256=paidConfigurationSha256({kind:'scoring',provider:'speechace',model:'text-v9',voice:'',configuration:{path:'/api/scoring/text/v9/json',dialect:'fr-fr'}});
-export const LESSON_SCORING_COMPONENT:PaidComponent=Object.freeze({key:'scoring',kind:'scoring',provider:'speechace',model:'text-v9',voice:'',configurationSha256:LESSON_SCORING_CONFIGURATION_SHA256,
- maxEffects:LESSON_SCORING_EFFECTS,maxProviderAttempts:1,maxInputBytes:LESSON_SCORING_EFFECTS*LESSON_SCORING_INPUT_BYTES_PER_EFFECT,maxOutputTokens:0,maxAudioMillis:LESSON_SCORING_AUDIO_MILLIS,
- maxTextBytes:LESSON_SCORING_EFFECTS*LESSON_SCORING_TEXT_BYTES_PER_EFFECT,microUsd:LESSON_SCORING_EFFECTS*LESSON_SCORING_MICRO_USD_PER_EFFECT});
+const scoringComponent=(effects:number,audioMillis:number):PaidComponent=>Object.freeze({key:'scoring',kind:'scoring',provider:'speechace',model:'text-v9',voice:'',configurationSha256:LESSON_SCORING_CONFIGURATION_SHA256,
+ maxEffects:effects,maxProviderAttempts:1,maxInputBytes:effects*LESSON_SCORING_INPUT_BYTES_PER_EFFECT,maxOutputTokens:0,maxAudioMillis:audioMillis,
+ maxTextBytes:effects*LESSON_SCORING_TEXT_BYTES_PER_EFFECT,microUsd:effects*LESSON_SCORING_MICRO_USD_PER_EFFECT});
+export const LESSON_SCORING_COMPONENT:PaidComponent=scoringComponent(LESSON_SCORING_EFFECTS,LESSON_SCORING_AUDIO_MILLIS);
+export const CONVO_SCORING_COMPONENT:PaidComponent=scoringComponent(CONVO_SCORING_EFFECTS,CONVO_SCORING_AUDIO_MILLIS);

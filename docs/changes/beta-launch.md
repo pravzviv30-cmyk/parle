@@ -19,6 +19,7 @@ code side is prepared on `main`. The support address is `hello@luvani.app`.
 |---|---|---|
 | Fast live turns, quiet first rescue, streaming replies | VOICE-002, VOICE-003 | done, on `main` |
 | Pronunciation beside the turn; paid lesson quote prices scoring | VOICE-004, F863 | done, on `main`; flag `LUVANI_AUDIO_SCORING` off |
+| Missions scored on the handed-over line; convo quote prices scoring; recap focus sound | VOICE-004, F866 | on `claude/mission-scoring`, not merged; flag off |
 | `live_session_finished` event (counts only) | migration 41, `apps/mobile/src/analytics/sessionFinished.ts` | done, on branch `claude/beta-instrumentation` |
 | Support address and Contact row | `apps/mobile/src/legal/company.ts` | done, same branch |
 | Beta metrics queries | [deployment/beta-metrics.sql](../../deployment/beta-metrics.sql) | done, same branch |
@@ -98,7 +99,8 @@ These are rules of thumb from consumer apps, not benchmarks for this category.
 - Guest live before sign-up.
 - Moving the free tier to a daily allowance (decide from beta minutes data).
 - Live pronunciation scoring for learners (`LUVANI_AUDIO_SCORING`), which needs
-  one hosted lesson proving a Speechace 200 and a `scored` card.
+  one hosted lesson proving a Speechace 200 and a `scored` card, and one hosted
+  mission showing a recap focus sound.
 - An in-session "report this turn" control: for now the Contact row opens mail
   to `hello@luvani.app`.
 

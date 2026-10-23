@@ -12,8 +12,9 @@
  * conversation, read off the deck's own evidence, because a phrase that came
  * out unasked is theirs already and the slot is worth more on one that is not.
  *
- * The focus comes from the strongest evidence available, in this order: the
- * newest sound check, which measured the learner's own voice against a known
+ * The focus comes from the strongest evidence available, in this order: a
+ * sound scored live in this conversation, when the learner said the line the
+ * tutor handed them (VOICE-004); the newest sound check, which measured the learner's own voice against a known
  * line; the tutor's own one-sentence focus for this conversation, which is
  * about clarity rather than sound; and a cadence connector the learner has not
  * yet produced. The pack's `pronunciationFocus` is not read, because nothing
@@ -45,8 +46,14 @@ export interface ClosureContext {
 }
 
 export type ClosureFocus =
-  /** `example` is the inventory's word for the sound, so the card can lead with a word. */
-  | { kind: 'sound'; ipa: string; acoustic: Acoustic; missionId: string; example: string | null }
+  /**
+   * `example` is a word for the sound, so the card can lead with a word. A
+   * 'check' focus came from a saved sound check on `missionId`; a 'live' focus
+   * was heard in this conversation, when the learner said the line they were
+   * given, and `example` is the word it was heard in.
+   */
+  | { kind: 'sound'; source: 'check'; ipa: string; acoustic: Acoustic; missionId: string; example: string | null }
+  | { kind: 'sound'; source: 'live'; ipa: string; acoustic: Acoustic; example: string | null }
   | { kind: 'clarity'; line: string }
   | { kind: 'cadence'; fr: string; en: string; note: string };
 
@@ -82,6 +89,8 @@ export interface ClosureParts {
   corrections: readonly ClosureRepair[];
   /** The tutor's own one-sentence focus for this conversation, or null. */
   clarity: string | null;
+  /** The one sound scored live in this conversation (VOICE-004), when there was one. */
+  liveSound?: { ipa: string; word: string } | null;
 }
 
 /** The newest sound check that named a sound this build can say something about. */
@@ -93,9 +102,15 @@ export function soundFocus(checks: readonly SoundCheckEvidence[]): { acoustic: A
 }
 
 function focusFor(parts: ClosureParts, ctx: ClosureContext | null): ClosureFocus | null {
+  // This conversation's own evidence outranks a saved check from an earlier one.
+  const live = parts.liveSound ?? null;
+  const liveAcoustic = live === null ? null : acousticFor(live.ipa);
+  if (live !== null && liveAcoustic !== null) {
+    return { kind: 'sound', source: 'live', ipa: live.ipa, acoustic: liveAcoustic, example: soundExampleWord(live.ipa, live.word) };
+  }
   if (ctx !== null) {
     const sound = soundFocus(ctx.checks);
-    if (sound !== null) return { kind: 'sound', ipa: sound.ipa, acoustic: sound.acoustic, missionId: sound.missionId, example: soundExampleWord(sound.ipa) };
+    if (sound !== null) return { kind: 'sound', source: 'check', ipa: sound.ipa, acoustic: sound.acoustic, missionId: sound.missionId, example: soundExampleWord(sound.ipa) };
   }
   const clarity = parts.clarity?.trim() ?? '';
   if (clarity.length > 0) return { kind: 'clarity', line: clarity };
@@ -156,6 +171,7 @@ export function closureFromRecap(recap: RecapPayload, ctx: ClosureContext | null
       phrases: recap.phrases,
       corrections: recap.fixes.map((fix) => ({ quote: fix.quote, better: fix.better, betterEn: fix.betterEn, why: fix.why })),
       clarity: recap.nextFocus,
+      liveSound: recap.focusSound ?? null,
     },
     ctx,
   );
