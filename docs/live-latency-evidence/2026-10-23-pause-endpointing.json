@@ -1,0 +1,2226 @@
+{
+  "createdAt": "2026-10-23T15:17:32.193Z",
+  "sdk": "@livekit/agents 1.9.0, agents-plugin-silero 1.9.0 defaults, @livekit/local-inference turn-detector-v1-mini",
+  "eotModel": "loaded",
+  "frThreshold": 0.285,
+  "maxDelayMs": 2500,
+  "pausesMs": [
+    500,
+    1000,
+    1500,
+    2000
+  ],
+  "summary": {
+    "500": {
+      "clips": 6,
+      "vadEndedInPause": 0,
+      "vadEndAfterPauseStartMs": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "eotProbInPause": [
+        0.26,
+        0.214,
+        0.383,
+        0.287,
+        0.206,
+        0.155
+      ],
+      "eotBelowThresholdInPause": 4,
+      "cutOffs": {
+        "today/eot": 0,
+        "today/fallback-1.0": 0,
+        "v009-beginner/eot": 0,
+        "v009-beginner/fallback-1.0": 0,
+        "v009-1-cutoff/eot": 0,
+        "v009-1-cutoff/fallback-1.0": 0,
+        "v009-cap/eot": 0,
+        "v009-cap/fallback-1.0": 0,
+        "v009-moment-hold/eot": 0,
+        "v009-moment-hold/fallback-1.0": 0
+      }
+    },
+    "1000": {
+      "clips": 6,
+      "vadEndedInPause": 6,
+      "vadEndAfterPauseStartMs": [
+        662,
+        574,
+        634,
+        614,
+        574,
+        606
+      ],
+      "eotProbInPause": [
+        0.26,
+        0.214,
+        0.383,
+        0.287,
+        0.206,
+        0.155
+      ],
+      "eotBelowThresholdInPause": 4,
+      "cutOffs": {
+        "today/eot": 2,
+        "today/fallback-1.0": 6,
+        "v009-beginner/eot": 0,
+        "v009-beginner/fallback-1.0": 0,
+        "v009-1-cutoff/eot": 0,
+        "v009-1-cutoff/fallback-1.0": 0,
+        "v009-cap/eot": 0,
+        "v009-cap/fallback-1.0": 0,
+        "v009-moment-hold/eot": 0,
+        "v009-moment-hold/fallback-1.0": 0
+      }
+    },
+    "1500": {
+      "clips": 6,
+      "vadEndedInPause": 6,
+      "vadEndAfterPauseStartMs": [
+        662,
+        574,
+        634,
+        614,
+        574,
+        606
+      ],
+      "eotProbInPause": [
+        0.26,
+        0.214,
+        0.341,
+        0.287,
+        0.206,
+        0.155
+      ],
+      "eotBelowThresholdInPause": 4,
+      "cutOffs": {
+        "today/eot": 2,
+        "today/fallback-1.0": 6,
+        "v009-beginner/eot": 2,
+        "v009-beginner/fallback-1.0": 6,
+        "v009-1-cutoff/eot": 0,
+        "v009-1-cutoff/fallback-1.0": 2,
+        "v009-cap/eot": 0,
+        "v009-cap/fallback-1.0": 0,
+        "v009-moment-hold/eot": 0,
+        "v009-moment-hold/fallback-1.0": 0
+      }
+    },
+    "2000": {
+      "clips": 6,
+      "vadEndedInPause": 6,
+      "vadEndAfterPauseStartMs": [
+        662,
+        574,
+        634,
+        614,
+        574,
+        606
+      ],
+      "eotProbInPause": [
+        0.279,
+        0.222,
+        0.341,
+        0.287,
+        0.213,
+        0.155
+      ],
+      "eotBelowThresholdInPause": 4,
+      "cutOffs": {
+        "today/eot": 2,
+        "today/fallback-1.0": 6,
+        "v009-beginner/eot": 2,
+        "v009-beginner/fallback-1.0": 6,
+        "v009-1-cutoff/eot": 2,
+        "v009-1-cutoff/fallback-1.0": 6,
+        "v009-cap/eot": 2,
+        "v009-cap/fallback-1.0": 5,
+        "v009-moment-hold/eot": 0,
+        "v009-moment-hold/fallback-1.0": 0
+      }
+    }
+  },
+  "finalTurnLatencyMs": {
+    "today/eot": {
+      "p50": 466,
+      "max": 524,
+      "n": 24
+    },
+    "today/fallback-1.0": {
+      "p50": 466,
+      "max": 524,
+      "n": 24
+    },
+    "v009-beginner/eot": {
+      "p50": 1090,
+      "max": 1148,
+      "n": 24
+    },
+    "v009-beginner/fallback-1.0": {
+      "p50": 1090,
+      "max": 1148,
+      "n": 24
+    },
+    "v009-1-cutoff/eot": {
+      "p50": 1490,
+      "max": 1548,
+      "n": 24
+    },
+    "v009-1-cutoff/fallback-1.0": {
+      "p50": 1490,
+      "max": 1548,
+      "n": 24
+    },
+    "v009-cap/eot": {
+      "p50": 1890,
+      "max": 1948,
+      "n": 24
+    },
+    "v009-cap/fallback-1.0": {
+      "p50": 1890,
+      "max": 1948,
+      "n": 24
+    },
+    "v009-moment-hold/eot": {
+      "p50": 2390,
+      "max": 2448,
+      "n": 24
+    },
+    "v009-moment-hold/fallback-1.0": {
+      "p50": 2390,
+      "max": 2448,
+      "n": 24
+    }
+  },
+  "rows": [
+    {
+      "file": "alexandre-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.47,
+      "pauseMs": 500,
+      "pauseStartMs": 810,
+      "vadEndOfSpeechInPauseMs": null,
+      "eotProbInPause": 0.26,
+      "eotProbAtEnd": 0.38,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            2528
+          ],
+          "finalLatencyMs": 474
+        },
+        "today/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            2528
+          ],
+          "finalLatencyMs": 474
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3152
+          ],
+          "finalLatencyMs": 1098
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3152
+          ],
+          "finalLatencyMs": 1098
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3552
+          ],
+          "finalLatencyMs": 1498
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3552
+          ],
+          "finalLatencyMs": 1498
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3952
+          ],
+          "finalLatencyMs": 1898
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3952
+          ],
+          "finalLatencyMs": 1898
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4452
+          ],
+          "finalLatencyMs": 2398
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4452
+          ],
+          "finalLatencyMs": 2398
+        }
+      }
+    },
+    {
+      "file": "alexandre-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.47,
+      "pauseMs": 1000,
+      "pauseStartMs": 810,
+      "vadEndOfSpeechInPauseMs": 662,
+      "eotProbInPause": 0.26,
+      "eotProbAtEnd": 0.312,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3040
+          ],
+          "finalLatencyMs": 486
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1472,
+            3040
+          ],
+          "finalLatencyMs": 486
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3664
+          ],
+          "finalLatencyMs": 1110
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3664
+          ],
+          "finalLatencyMs": 1110
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4064
+          ],
+          "finalLatencyMs": 1510
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4064
+          ],
+          "finalLatencyMs": 1510
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4464
+          ],
+          "finalLatencyMs": 1910
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4464
+          ],
+          "finalLatencyMs": 1910
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4964
+          ],
+          "finalLatencyMs": 2410
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4964
+          ],
+          "finalLatencyMs": 2410
+        }
+      }
+    },
+    {
+      "file": "alexandre-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.47,
+      "pauseMs": 1500,
+      "pauseStartMs": 810,
+      "vadEndOfSpeechInPauseMs": 662,
+      "eotProbInPause": 0.26,
+      "eotProbAtEnd": 0.351,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3520
+          ],
+          "finalLatencyMs": 466
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1472,
+            3520
+          ],
+          "finalLatencyMs": 466
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4144
+          ],
+          "finalLatencyMs": 1090
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2096,
+            4144
+          ],
+          "finalLatencyMs": 1090
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4544
+          ],
+          "finalLatencyMs": 1490
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4544
+          ],
+          "finalLatencyMs": 1490
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4944
+          ],
+          "finalLatencyMs": 1890
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4944
+          ],
+          "finalLatencyMs": 1890
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5444
+          ],
+          "finalLatencyMs": 2390
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5444
+          ],
+          "finalLatencyMs": 2390
+        }
+      }
+    },
+    {
+      "file": "alexandre-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.47,
+      "pauseMs": 2000,
+      "pauseStartMs": 810,
+      "vadEndOfSpeechInPauseMs": 662,
+      "eotProbInPause": 0.279,
+      "eotProbAtEnd": 0.301,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4032
+          ],
+          "finalLatencyMs": 478
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1472,
+            4032
+          ],
+          "finalLatencyMs": 478
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4656
+          ],
+          "finalLatencyMs": 1102
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2096,
+            4656
+          ],
+          "finalLatencyMs": 1102
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5056
+          ],
+          "finalLatencyMs": 1502
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2496,
+            5056
+          ],
+          "finalLatencyMs": 1502
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5456
+          ],
+          "finalLatencyMs": 1902
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5456
+          ],
+          "finalLatencyMs": 1902
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5956
+          ],
+          "finalLatencyMs": 2402
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5956
+          ],
+          "finalLatencyMs": 2402
+        }
+      }
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.41,
+      "pauseMs": 500,
+      "pauseStartMs": 770,
+      "vadEndOfSpeechInPauseMs": null,
+      "eotProbInPause": 0.214,
+      "eotProbAtEnd": 0.505,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            2560
+          ],
+          "finalLatencyMs": 367
+        },
+        "today/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            2560
+          ],
+          "finalLatencyMs": 367
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3184
+          ],
+          "finalLatencyMs": 991
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3184
+          ],
+          "finalLatencyMs": 991
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3584
+          ],
+          "finalLatencyMs": 1391
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3584
+          ],
+          "finalLatencyMs": 1391
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3984
+          ],
+          "finalLatencyMs": 1791
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3984
+          ],
+          "finalLatencyMs": 1791
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4484
+          ],
+          "finalLatencyMs": 2291
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4484
+          ],
+          "finalLatencyMs": 2291
+        }
+      }
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.41,
+      "pauseMs": 1000,
+      "pauseStartMs": 770,
+      "vadEndOfSpeechInPauseMs": 574,
+      "eotProbInPause": 0.214,
+      "eotProbAtEnd": 0.533,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3072
+          ],
+          "finalLatencyMs": 379
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            3072
+          ],
+          "finalLatencyMs": 379
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3696
+          ],
+          "finalLatencyMs": 1003
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3696
+          ],
+          "finalLatencyMs": 1003
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4096
+          ],
+          "finalLatencyMs": 1403
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4096
+          ],
+          "finalLatencyMs": 1403
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4496
+          ],
+          "finalLatencyMs": 1803
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4496
+          ],
+          "finalLatencyMs": 1803
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4996
+          ],
+          "finalLatencyMs": 2303
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4996
+          ],
+          "finalLatencyMs": 2303
+        }
+      }
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.41,
+      "pauseMs": 1500,
+      "pauseStartMs": 770,
+      "vadEndOfSpeechInPauseMs": 574,
+      "eotProbInPause": 0.214,
+      "eotProbAtEnd": 0.531,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3552
+          ],
+          "finalLatencyMs": 359
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            3552
+          ],
+          "finalLatencyMs": 359
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4176
+          ],
+          "finalLatencyMs": 983
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1968,
+            4176
+          ],
+          "finalLatencyMs": 983
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4576
+          ],
+          "finalLatencyMs": 1383
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2368,
+            4576
+          ],
+          "finalLatencyMs": 1383
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4976
+          ],
+          "finalLatencyMs": 1783
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4976
+          ],
+          "finalLatencyMs": 1783
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5476
+          ],
+          "finalLatencyMs": 2283
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5476
+          ],
+          "finalLatencyMs": 2283
+        }
+      }
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.41,
+      "pauseMs": 2000,
+      "pauseStartMs": 770,
+      "vadEndOfSpeechInPauseMs": 574,
+      "eotProbInPause": 0.222,
+      "eotProbAtEnd": 0.409,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4064
+          ],
+          "finalLatencyMs": 371
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            4064
+          ],
+          "finalLatencyMs": 371
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4688
+          ],
+          "finalLatencyMs": 995
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1968,
+            4688
+          ],
+          "finalLatencyMs": 995
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5088
+          ],
+          "finalLatencyMs": 1395
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2368,
+            5088
+          ],
+          "finalLatencyMs": 1395
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5488
+          ],
+          "finalLatencyMs": 1795
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2768,
+            5488
+          ],
+          "finalLatencyMs": 1795
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5988
+          ],
+          "finalLatencyMs": 2295
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5988
+          ],
+          "finalLatencyMs": 2295
+        }
+      }
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.46,
+      "pauseMs": 500,
+      "pauseStartMs": 870,
+      "vadEndOfSpeechInPauseMs": null,
+      "eotProbInPause": 0.383,
+      "eotProbAtEnd": 0.404,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            2656
+          ],
+          "finalLatencyMs": 509
+        },
+        "today/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            2656
+          ],
+          "finalLatencyMs": 509
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3280
+          ],
+          "finalLatencyMs": 1133
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3280
+          ],
+          "finalLatencyMs": 1133
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3680
+          ],
+          "finalLatencyMs": 1533
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3680
+          ],
+          "finalLatencyMs": 1533
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4080
+          ],
+          "finalLatencyMs": 1933
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4080
+          ],
+          "finalLatencyMs": 1933
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4580
+          ],
+          "finalLatencyMs": 2433
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4580
+          ],
+          "finalLatencyMs": 2433
+        }
+      }
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.46,
+      "pauseMs": 1000,
+      "pauseStartMs": 870,
+      "vadEndOfSpeechInPauseMs": 634,
+      "eotProbInPause": 0.383,
+      "eotProbAtEnd": 0.368,
+      "outcome": {
+        "today/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            3136
+          ],
+          "finalLatencyMs": 489
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            3136
+          ],
+          "finalLatencyMs": 489
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3760
+          ],
+          "finalLatencyMs": 1113
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3760
+          ],
+          "finalLatencyMs": 1113
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4160
+          ],
+          "finalLatencyMs": 1513
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4160
+          ],
+          "finalLatencyMs": 1513
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4560
+          ],
+          "finalLatencyMs": 1913
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4560
+          ],
+          "finalLatencyMs": 1913
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5060
+          ],
+          "finalLatencyMs": 2413
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5060
+          ],
+          "finalLatencyMs": 2413
+        }
+      }
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.46,
+      "pauseMs": 1500,
+      "pauseStartMs": 870,
+      "vadEndOfSpeechInPauseMs": 634,
+      "eotProbInPause": 0.341,
+      "eotProbAtEnd": 0.333,
+      "outcome": {
+        "today/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            3648
+          ],
+          "finalLatencyMs": 501
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            3648
+          ],
+          "finalLatencyMs": 501
+        },
+        "v009-beginner/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            2128,
+            4272
+          ],
+          "finalLatencyMs": 1125
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2128,
+            4272
+          ],
+          "finalLatencyMs": 1125
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4672
+          ],
+          "finalLatencyMs": 1525
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4672
+          ],
+          "finalLatencyMs": 1525
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5072
+          ],
+          "finalLatencyMs": 1925
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5072
+          ],
+          "finalLatencyMs": 1925
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5572
+          ],
+          "finalLatencyMs": 2425
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5572
+          ],
+          "finalLatencyMs": 2425
+        }
+      }
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.46,
+      "pauseMs": 2000,
+      "pauseStartMs": 870,
+      "vadEndOfSpeechInPauseMs": 634,
+      "eotProbInPause": 0.341,
+      "eotProbAtEnd": 0.382,
+      "outcome": {
+        "today/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            4160
+          ],
+          "finalLatencyMs": 513
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            4160
+          ],
+          "finalLatencyMs": 513
+        },
+        "v009-beginner/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            2128,
+            4784
+          ],
+          "finalLatencyMs": 1137
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2128,
+            4784
+          ],
+          "finalLatencyMs": 1137
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            2528,
+            5184
+          ],
+          "finalLatencyMs": 1537
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2528,
+            5184
+          ],
+          "finalLatencyMs": 1537
+        },
+        "v009-cap/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            2928,
+            5584
+          ],
+          "finalLatencyMs": 1937
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2928,
+            5584
+          ],
+          "finalLatencyMs": 1937
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            6084
+          ],
+          "finalLatencyMs": 2437
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            6084
+          ],
+          "finalLatencyMs": 2437
+        }
+      }
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 500,
+      "pauseStartMs": 730,
+      "vadEndOfSpeechInPauseMs": null,
+      "eotProbInPause": 0.287,
+      "eotProbAtEnd": 0.51,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            2400
+          ],
+          "finalLatencyMs": 393
+        },
+        "today/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            2400
+          ],
+          "finalLatencyMs": 393
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3024
+          ],
+          "finalLatencyMs": 1017
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3024
+          ],
+          "finalLatencyMs": 1017
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3424
+          ],
+          "finalLatencyMs": 1417
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3424
+          ],
+          "finalLatencyMs": 1417
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3824
+          ],
+          "finalLatencyMs": 1817
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3824
+          ],
+          "finalLatencyMs": 1817
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4324
+          ],
+          "finalLatencyMs": 2317
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4324
+          ],
+          "finalLatencyMs": 2317
+        }
+      }
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 1000,
+      "pauseStartMs": 730,
+      "vadEndOfSpeechInPauseMs": 614,
+      "eotProbInPause": 0.287,
+      "eotProbAtEnd": 0.57,
+      "outcome": {
+        "today/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            2880
+          ],
+          "finalLatencyMs": 373
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            2880
+          ],
+          "finalLatencyMs": 373
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3504
+          ],
+          "finalLatencyMs": 997
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3504
+          ],
+          "finalLatencyMs": 997
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3904
+          ],
+          "finalLatencyMs": 1397
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3904
+          ],
+          "finalLatencyMs": 1397
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4304
+          ],
+          "finalLatencyMs": 1797
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4304
+          ],
+          "finalLatencyMs": 1797
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4804
+          ],
+          "finalLatencyMs": 2297
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4804
+          ],
+          "finalLatencyMs": 2297
+        }
+      }
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 1500,
+      "pauseStartMs": 730,
+      "vadEndOfSpeechInPauseMs": 614,
+      "eotProbInPause": 0.287,
+      "eotProbAtEnd": 0.55,
+      "outcome": {
+        "today/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            3392
+          ],
+          "finalLatencyMs": 385
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            3392
+          ],
+          "finalLatencyMs": 385
+        },
+        "v009-beginner/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1968,
+            4016
+          ],
+          "finalLatencyMs": 1009
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1968,
+            4016
+          ],
+          "finalLatencyMs": 1009
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4416
+          ],
+          "finalLatencyMs": 1409
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4416
+          ],
+          "finalLatencyMs": 1409
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4816
+          ],
+          "finalLatencyMs": 1809
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4816
+          ],
+          "finalLatencyMs": 1809
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5316
+          ],
+          "finalLatencyMs": 2309
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5316
+          ],
+          "finalLatencyMs": 2309
+        }
+      }
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 2000,
+      "pauseStartMs": 730,
+      "vadEndOfSpeechInPauseMs": 614,
+      "eotProbInPause": 0.287,
+      "eotProbAtEnd": 0.53,
+      "outcome": {
+        "today/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            3872
+          ],
+          "finalLatencyMs": 365
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1344,
+            3872
+          ],
+          "finalLatencyMs": 365
+        },
+        "v009-beginner/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            1968,
+            4496
+          ],
+          "finalLatencyMs": 989
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1968,
+            4496
+          ],
+          "finalLatencyMs": 989
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            2368,
+            4896
+          ],
+          "finalLatencyMs": 1389
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2368,
+            4896
+          ],
+          "finalLatencyMs": 1389
+        },
+        "v009-cap/eot": {
+          "cutOff": true,
+          "commitsMs": [
+            2768,
+            5296
+          ],
+          "finalLatencyMs": 1789
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2768,
+            5296
+          ],
+          "finalLatencyMs": 1789
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5796
+          ],
+          "finalLatencyMs": 2289
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5796
+          ],
+          "finalLatencyMs": 2289
+        }
+      }
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 500,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": null,
+      "eotProbInPause": 0.206,
+      "eotProbAtEnd": null,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            2720
+          ],
+          "finalLatencyMs": 202
+        },
+        "today/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            2720
+          ],
+          "finalLatencyMs": 202
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3344
+          ],
+          "finalLatencyMs": 826
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3344
+          ],
+          "finalLatencyMs": 826
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3744
+          ],
+          "finalLatencyMs": 1226
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3744
+          ],
+          "finalLatencyMs": 1226
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4144
+          ],
+          "finalLatencyMs": 1626
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4144
+          ],
+          "finalLatencyMs": 1626
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4644
+          ],
+          "finalLatencyMs": 2126
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4644
+          ],
+          "finalLatencyMs": 2126
+        }
+      }
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 1000,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": 574,
+      "eotProbInPause": 0.206,
+      "eotProbAtEnd": null,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3232
+          ],
+          "finalLatencyMs": 214
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            3232
+          ],
+          "finalLatencyMs": 214
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3856
+          ],
+          "finalLatencyMs": 838
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3856
+          ],
+          "finalLatencyMs": 838
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4256
+          ],
+          "finalLatencyMs": 1238
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4256
+          ],
+          "finalLatencyMs": 1238
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4656
+          ],
+          "finalLatencyMs": 1638
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4656
+          ],
+          "finalLatencyMs": 1638
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5156
+          ],
+          "finalLatencyMs": 2138
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5156
+          ],
+          "finalLatencyMs": 2138
+        }
+      }
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 1500,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": 574,
+      "eotProbInPause": 0.206,
+      "eotProbAtEnd": null,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3744
+          ],
+          "finalLatencyMs": 226
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            3744
+          ],
+          "finalLatencyMs": 226
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4368
+          ],
+          "finalLatencyMs": 850
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2128,
+            4368
+          ],
+          "finalLatencyMs": 850
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4768
+          ],
+          "finalLatencyMs": 1250
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2528,
+            4768
+          ],
+          "finalLatencyMs": 1250
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5168
+          ],
+          "finalLatencyMs": 1650
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5168
+          ],
+          "finalLatencyMs": 1650
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5668
+          ],
+          "finalLatencyMs": 2150
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5668
+          ],
+          "finalLatencyMs": 2150
+        }
+      }
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.44,
+      "pauseMs": 2000,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": 574,
+      "eotProbInPause": 0.213,
+      "eotProbAtEnd": null,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4224
+          ],
+          "finalLatencyMs": 206
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1504,
+            4224
+          ],
+          "finalLatencyMs": 206
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4848
+          ],
+          "finalLatencyMs": 830
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2128,
+            4848
+          ],
+          "finalLatencyMs": 830
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5248
+          ],
+          "finalLatencyMs": 1230
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2528,
+            5248
+          ],
+          "finalLatencyMs": 1230
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5648
+          ],
+          "finalLatencyMs": 1630
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2928,
+            5648
+          ],
+          "finalLatencyMs": 1630
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            6148
+          ],
+          "finalLatencyMs": 2130
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            6148
+          ],
+          "finalLatencyMs": 2130
+        }
+      }
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.48,
+      "pauseMs": 500,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": null,
+      "eotProbInPause": 0.155,
+      "eotProbAtEnd": 0.398,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            2752
+          ],
+          "finalLatencyMs": 512
+        },
+        "today/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            2752
+          ],
+          "finalLatencyMs": 512
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3376
+          ],
+          "finalLatencyMs": 1136
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3376
+          ],
+          "finalLatencyMs": 1136
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3776
+          ],
+          "finalLatencyMs": 1536
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3776
+          ],
+          "finalLatencyMs": 1536
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4176
+          ],
+          "finalLatencyMs": 1936
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4176
+          ],
+          "finalLatencyMs": 1936
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4676
+          ],
+          "finalLatencyMs": 2436
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4676
+          ],
+          "finalLatencyMs": 2436
+        }
+      }
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.48,
+      "pauseMs": 1000,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": 606,
+      "eotProbInPause": 0.155,
+      "eotProbAtEnd": 0.339,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3264
+          ],
+          "finalLatencyMs": 524
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1536,
+            3264
+          ],
+          "finalLatencyMs": 524
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3888
+          ],
+          "finalLatencyMs": 1148
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            3888
+          ],
+          "finalLatencyMs": 1148
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4288
+          ],
+          "finalLatencyMs": 1548
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4288
+          ],
+          "finalLatencyMs": 1548
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4688
+          ],
+          "finalLatencyMs": 1948
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4688
+          ],
+          "finalLatencyMs": 1948
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5188
+          ],
+          "finalLatencyMs": 2448
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5188
+          ],
+          "finalLatencyMs": 2448
+        }
+      }
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.48,
+      "pauseMs": 1500,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": 606,
+      "eotProbInPause": 0.155,
+      "eotProbAtEnd": 0.302,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            3744
+          ],
+          "finalLatencyMs": 504
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1536,
+            3744
+          ],
+          "finalLatencyMs": 504
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4368
+          ],
+          "finalLatencyMs": 1128
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2160,
+            4368
+          ],
+          "finalLatencyMs": 1128
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4768
+          ],
+          "finalLatencyMs": 1528
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            4768
+          ],
+          "finalLatencyMs": 1528
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5168
+          ],
+          "finalLatencyMs": 1928
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5168
+          ],
+          "finalLatencyMs": 1928
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5668
+          ],
+          "finalLatencyMs": 2428
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            5668
+          ],
+          "finalLatencyMs": 2428
+        }
+      }
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "text": "On échange nos numéros ?",
+      "cutFraction": 0.48,
+      "pauseMs": 2000,
+      "pauseStartMs": 930,
+      "vadEndOfSpeechInPauseMs": 606,
+      "eotProbInPause": 0.155,
+      "eotProbAtEnd": 0.391,
+      "outcome": {
+        "today/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4256
+          ],
+          "finalLatencyMs": 516
+        },
+        "today/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            1536,
+            4256
+          ],
+          "finalLatencyMs": 516
+        },
+        "v009-beginner/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            4880
+          ],
+          "finalLatencyMs": 1140
+        },
+        "v009-beginner/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2160,
+            4880
+          ],
+          "finalLatencyMs": 1140
+        },
+        "v009-1-cutoff/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5280
+          ],
+          "finalLatencyMs": 1540
+        },
+        "v009-1-cutoff/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2560,
+            5280
+          ],
+          "finalLatencyMs": 1540
+        },
+        "v009-cap/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            5680
+          ],
+          "finalLatencyMs": 1940
+        },
+        "v009-cap/fallback-1.0": {
+          "cutOff": true,
+          "commitsMs": [
+            2960,
+            5680
+          ],
+          "finalLatencyMs": 1940
+        },
+        "v009-moment-hold/eot": {
+          "cutOff": false,
+          "commitsMs": [
+            6180
+          ],
+          "finalLatencyMs": 2440
+        },
+        "v009-moment-hold/fallback-1.0": {
+          "cutOff": false,
+          "commitsMs": [
+            6180
+          ],
+          "finalLatencyMs": 2440
+        }
+      }
+    }
+  ]
+}
