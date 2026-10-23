@@ -1,0 +1,96 @@
+# Mission spine A2 to B1: twelve new scenes
+
+- Status: building
+- Updated: 2026-10-22
+- Checkout / starting revision: `~/Developer/StartUps/Luvani-worktrees/mission-spine-b1`, branch `claude/mission-spine-b1` from `main` at 717655fb
+- Owner / integrator: Opus orchestrator session (mission spine B1), started from the market-report session
+- Existing programme / contract: [mission-spine-a2.md](mission-spine-a2.md) (the template), [beta-launch.md](beta-launch.md)
+
+## Outcome and scope
+
+Main has nineteen missions from A0 to A2. A beta tester with a month, or an annual subscriber, needs months of runway. This change adds twelve: six that fill A2 gaps for the beta cohorts (moving to France or Quebec, a partner's family, work, TCF/TEF-style everyday tasks) and six that open B1. Learners see B1 as "Chatting", the fourth of the five stages Journey already draws.
+
+- Non-goals: no change to the ladder, grading, `isEarned` or the session engine; no change to the order or content of the nineteen existing missions; no new `MissionPlace`, icon or daily scenario; core's lesson-scoped `CefrLevel` is not widened.
+- Decisions (founder, 2026-10-22): one Montréal scene (A2 coat shop), every other scene in France; twelve missions, six A2 and six B1.
+- Defects: F44 (its verifying test title carries the mission count).
+
+### The twelve missions
+(appended after `mission:belle-famille`, A2 first and then B1, each group easiest first)
+
+| # | id | Title / titleEn | Lvl | Place | Who (register) | Beats (goalEn) |
+|---|---|---|---|---|---|---|
+| 20 | `mission:club` | S'inscrire au club / Sign up for a class | A2 | street | Sophie, the desk at a maison de quartier (courant, vous) | Say what you want to join · Ask about the times · Ask the price · Ask what to bring · Sign up |
+| 21 | `mission:banque` | Ouvrir un compte / Open a bank account | A2 | street | Antoine, bank adviser (courant leaning soutenu, vous) | Say you want an account · Say you just moved here · Ask what documents · Ask about the card · Book the next step |
+| 22 | `mission:sortie` | On se fait un ciné ? / Make plans with a friend | A2 | friends | Léa, a friend on the phone (familier, tu) | Suggest going out · Turn down a day and offer another · Agree on a time and place · Confirm |
+| 23 | `mission:montreal` | Un manteau pour l'hiver / Buy a winter coat in Montréal | A2 | market | Marc-André, a sales assistant in Montréal (courant québécois, vous; light local words such as magasiner, une tuque, c'est correct; no joual) | Say what you are looking for · Ask for your size · Try it on and say how it fits · Ask the price · Decide |
+| 24 | `mission:coup-de-main` | Un petit coup de main ? / Ask a colleague for help | A2 | home | Inès, a colleague in the open space (courant, tu) | Ask if she has a minute · Explain what you are trying to do · Ask her to show you · Check you understood · Thank her |
+| 25 | `mission:anniversaire` | L'anniversaire de sa sœur / Your partner's sister's birthday | A2 | friends | Chloé, your partner's sister, and a cousin (familier, tu) | Wish her happy birthday · Say how you met your partner · Chat with a cousin · Accept a second helping · Say goodbye |
+| 26 | `mission:fuite` | Il y a une fuite / Report a leak to your landlord | B1 | home | Patrick, the landlord, on the phone (courant, vous) | Explain the problem · Say since when and what you tried · Say what it is damaging · Ask when someone can come · Agree on a time |
+| 27 | `mission:galere` | Tu vas pas me croire / Tell the story of your weekend | B1 | cafe | Hugo, a friend over a drink (familier, tu) | Set the scene · Say what happened · Say how you reacted · Say how it ended · React to his story |
+| 28 | `mission:avis` | Alors, ce film ? / Say what you thought of a film | B1 | cafe | Yasmine, a friend after the cinema (familier, tu) | Give your opinion · Say why · Add a nuance · Agree or disagree politely · Suggest what to see next |
+| 29 | `mission:entretien` | L'entretien d'embauche / A short job interview | B1 | home | Claire Lefèvre, recruiter (courant leaning soutenu, vous) | Sum up your background · Say why this job · Give an example of a strength · Ask about the role · Close and thank her |
+| 30 | `mission:teletravail` | Demander du télétravail / Ask your manager to work from home | B1 | home | Isabelle, the manager from `collegues`, now on tu (courant, tu) | Ask for a moment · Make the request · Give your reasons · Answer her concern · Agree on a next step |
+| 31 | `mission:souvenirs` | Chez la grand-mère / Talk with your partner's grandmother | B1 | friends | Jeannine, your partner's grandmother (she says tu, you say vous) | Say where you grew up · Describe what it was like · Ask about her youth · Compare then and now · Thank her for the stories |
+
+How the scenes connect: `banque` and `fuite` follow `appartement`; `sortie` plans the film `avis` discusses; `entretien` leads to `teletravail` with the same Isabelle as `collegues`; `anniversaire` and `souvenirs` widen `belle-famille`. The B1 scenes carry the B1 grammar: imparfait with passé composé (galere, souvenirs), opinion and justification (avis), the polite conditional (teletravail, entretien), and explaining a problem (fuite).
+
+Each frame follows the A2 authoring rules exactly:
+- 2 to 5 beats with goalEn; 6 to 8 register-labelled goalPhrases (`frWritten` only when speech bends spelling); 4 phraseKeys, none already drilled; 2 to 3 referencePhrases (one of the phraseKeys, at least four syllables, `frWritten` null, no names, numbers or cities).
+- openingNarration and openingLine; openingSupport (fullLine differs from openingLine, three options, a hintEn with no French); three cultureNotes; registerGuidance of 100 to 140 words.
+- A 5-narration, 3-line opening deck, which gives 15 openings.
+- English passes `copyViolations`: no "wrong", no praise in winEn, unique first three and last two words, no em dashes, no digits outside quoted French.
+- Learner lines are gender-neutral where French allows.
+
+## Approach and decisions
+- **`MissionLevel = CefrLevel | 'B1'`**, exported from `packages/core/src/missions/missions.ts`. `Mission.cefr`, `SpineView.level`, `REACH`/`CEFR_RANK` in `spine.ts` and the mobile level surfaces use it. Core's `CefrLevel` stays lesson-scoped (A0–A2), as `packages/brain/src/types.ts:4` promises, so scripted lessons are untouched.
+- `spineFrom` reaches `'B1'` once every A0, A1 and A2 scene is earned. `REACH` becomes A2→B1, B1→B1, so `nextScene` can pick a goal's B1 scene for an A2 learner. Onboarding's `goalReachScenes` (A0/A1 only) is unchanged.
+- **Stage word:** `MISSION_LEVELS = ['A0','A1','A2','B1']` and `MISSION_STAGE.B1 = 'Chatting'` in `apps/mobile/src/scenes/scenePreview.ts`, which every surface groups by: Speak, Missions, Notebook, Journey, Then and now, scene preview and first scene. `stageIndexOf('B1')` is 3 on Journey, and `STAGES` is unchanged. A DECISIONS.md note goes beside UI-007's Everyday entry.
+- **Goal ordering (`GOAL_SCENES` in `spine.ts`):**
+  - moving: appartement, banque, medecin, voisin, colis, pharmacie, telephone, retour, club, montreal, fuite
+  - family: belle-famille, anniversaire, amis, journee, week-end, souvenirs, galere
+  - work: collegues, telephone, coup-de-main, week-end, journee, entretien, teletravail
+  - trip and food are unchanged; 'because' still walks the spine.
+- **Free-text goal words (`MISSION_WORDS`, `apps/mobile/src/goals/next.ts`):** one hand-authored list per new mission, with precision over recall. Examples: "bank account", "job interview", "work from home", "landlord", "leak", "montreal", "quebec", "winter coat", "birthday", "grandmother". No bare words that have a second meaning. No mission claims "TCF" or "TEF", because none is an exam scene.
+- **Explore topics:** club culture, banque admin, sortie out, montreal shops, coup-de-main work, anniversaire friends, fuite home, galere friends, avis culture, entretien work, teletravail work, souvenirs friends.
+- **Art:** 12 `place-*` and 12 `postcard-*` drawings are authored in `docs/design-assets/ILLUSTRATIONS.md` and generated with `node scripts/illustrations.mjs`. The registry goes from 53 to 77. They reuse the six places (founder rule from A2).
+- **Drill bank:** 96 new fixtures (two per phraseKey; repeat-this needs a noMicTwin). `MAX_DRILL_EXERCISES` goes from 256 to 384, so the `fixturesMissing.test.ts` headroom guard (fixtures + 48 ≤ cap) stays intact and unweakened. The full bank at the cap is measured against the 512 KB sync envelope, and the measurement is recorded.
+- **Deploy order** (unchanged rule): ship the tutor agent before the app (`services/tutor-agent/src/convo.ts` `validMissionId`).
+- **Jev:** no product LLM call changes, so no Jev product rules apply. Jev is used only as the advisory dev-time copy check.
+
+## Tasks in dependency order
+(worktree `~/Developer/StartUps/Luvani-worktrees/mission-spine-b1`, branch `claude/mission-spine-b1` from main 717655fb)
+
+| ID | Outcome | Owner (model per CLAUDE.md) | Depends | Files |
+|---|---|---|---|---|
+| T0 | Worktree, `npm ci`, write `docs/changes/mission-spine-b1.md` (table above, rules, risks, task list, log) | orchestrator | none | the change doc |
+| T1 | `MissionLevel`, spine B1 level, REACH/CEFR_RANK, tests | implementer-opus-low | T0 | `packages/core/src/missions/{missions,spine,index}.ts`, spine/missions tests |
+| T2 | Drawings: 24 drawings generated and registered, counts and DESIGN.md | design-system-engineer | T0 | ILLUSTRATIONS.md, `apps/mobile/src/art/flat/*`, registry.test, surfaceContract count lines, DESIGN.md |
+| T3 | Drill cap 384, envelope size measured | practice-ux-engineer | T0 | `apps/mobile/src/drill/merge.ts`, its comment and tests |
+| T4 | Chatting stage on every mission level surface | frontend-engineer | T1 | scenePreview, journeyView, notebook, speakView, speakTabView, MissionsScreen, thenNowView, their tests, DECISIONS.md note |
+| T5A | Six A2 missions end to end, plus their GOAL_SCENES, MISSION_WORDS and topic entries | implementer-opus-low | T1 | missions.ts, spine.ts, path.ts, fixtures.ts, frames.ts, exploreCatalogue.ts, goals/next.ts, their tests |
+| T5B | Six B1 missions, same files | implementer-opus-low | T5A | same as T5A |
+| T6 | `SCENE_ILLUSTRATION` and `POSTCARD` for all twelve | frontend-engineer | T2, T5B | `art/flat/scenes.ts`, scenes.test, `recap/postcardArt.ts` |
+| T7 | Read-only French review, in parallel: register (including Quebec) by tutor-behaviour-engineer, CEFR level fit (A2 vs B1) by learning-science-engineer; then implementer-opus-low applies the fixes | specialists, then implementer-opus-low | T5B | frames and catalogue only (a phraseKey change goes in missions.ts, path.ts and fixtures.ts together) |
+| T8 | Jev copy check, docs, gate, bless, evidence, commit, review page, handoff | orchestrator | all | PRODUCT.md (31 scenes, A0 to B1), DESIGN.md, KNOWN_ISSUES F44 and the F570/F599 titles that carry counts, IMPLEMENTATION_EVIDENCE.md snapshot, gate.floors.json |
+
+T1, T2 and T3 run at once (disjoint files). T4 runs beside T5A. Each subagent brief names the absolute worktree path, the allowed files and the focused tests, and says to fix any doc its change makes wrong. Every brief says to run only that agent's own tests while the others are mid-edit.
+
+Acceptance for every task: the owning workspace's tests pass (`npm test -w @luvani/core|brain|mobile`), `agreement.test.ts` covers all 31 missions, the all-workspace typecheck is clean, and `npm run gate` is green with floors held or raised through `gate:bless`.
+
+## Risks
+- **Conflict risk with live branches:** `claude/goal-edit` (goals), `claude/mission-scoring` (missions) and the cut-the-cost session. If one lands first, rebase on main before landing. This branch is not landed here.
+- **Quebec register drift:** the review agent checks it explicitly. Fallback: standard French with a Montréal setting and culture notes only.
+- **B1 scenes on a beginner engine:** the opening support and ladder still apply. The review checks that each B1 scene's phrases are reachable with help.
+
+## Execution log
+
+| Date / task | Attempt and changed paths | Check / result | Next action or blocker |
+|---|---|---|---|
+| 2026-10-22 / T0 | Worktree and branch created from main 717655fb, `npm ci`, this proposal written | `npm ci` clean | T1, T2, T3 in parallel |
+| 2026-10-22 / T1 | `MissionLevel = CefrLevel \| 'B1'` in missions.ts and exported; `Mission.cefr`, `SpineView.level`, REACH (A2 to B1) and CEFR_RANK on it; `spineFrom` gives B1 once every A0, A1 and A2 scene is earned | core 936/936; mobile typecheck shows five surfaces still typed CefrLevel, which T4 fixes | T4 |
+| 2026-10-22 / T3 | `MAX_DRILL_EXERCISES` 256 to 384 in `apps/mobile/src/drill/merge.ts`. 182 fixtures today, about 278 after this change, which leaves about 106 generated slots; headroom guard unchanged. The drill store syncs in its own envelope: 361 bytes per fixture on average, a full 384 bank about 136 KB (27% of 512 KB), 230 KB worst case | drill and sync tests 98/98 | recheck the guard after T5B |
+| 2026-10-22 / restart | The app restarted mid-run. T1 and T3 had finished; T2 had written nothing and was re-briefed | none | T2, T4, T5A in parallel |
+
+## Integrated verification and handoff
+
+- Pending.

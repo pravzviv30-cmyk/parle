@@ -35,6 +35,8 @@ const MISSION_TOPICS: Record<string, ExploreTopic> = {
   'mission:colis': 'shops', 'mission:voisin': 'home',
   'mission:week-end': 'friends', 'mission:collegues': 'work', 'mission:telephone': 'admin',
   'mission:medecin': 'health', 'mission:retour': 'shops', 'mission:appartement': 'home', 'mission:belle-famille': 'friends',
+  'mission:club': 'culture', 'mission:banque': 'admin', 'mission:sortie': 'out',
+  'mission:montreal': 'shops', 'mission:coup-de-main': 'work', 'mission:anniversaire': 'friends',
 };
 export const searchKey = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
 export function isExploreTopic(value: unknown): value is ExploreTopic { return EXPLORE_TOPICS.some(t => t.key === value); }

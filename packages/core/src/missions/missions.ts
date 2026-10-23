@@ -34,6 +34,12 @@ import type { CefrLevel } from '../lessons/types.ts';
 import { isDue } from '../review/evidence.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 
+/**
+ * A mission's CEFR band. Core's `CefrLevel` stays lesson-scoped (A0 to A2, see
+ * packages/brain/src/types.ts:4); missions run up to B1.
+ */
+export type MissionLevel = CefrLevel | 'B1';
+
 export type MissionId =
   | 'mission:premier-cafe'
   | 'mission:cafe'
@@ -53,7 +59,13 @@ export type MissionId =
   | 'mission:medecin'
   | 'mission:retour'
   | 'mission:appartement'
-  | 'mission:belle-famille';
+  | 'mission:belle-famille'
+  | 'mission:club'
+  | 'mission:banque'
+  | 'mission:sortie'
+  | 'mission:montreal'
+  | 'mission:coup-de-main'
+  | 'mission:anniversaire';
 
 /**
  * Where the mission happens: one of the six places the daily pool already
@@ -76,7 +88,7 @@ export interface Mission {
    * door at A0 up into everyday A2 situations; the spine reads this to say
    * where a learner stands (`spine.ts`).
    */
-  cefr: CefrLevel;
+  cefr: MissionLevel;
   /** Who the learner is in the scene. Plain English, one clause. */
   learnerRole: string;
   /** Who the tutor plays. Plain English, one clause. */
@@ -892,5 +904,161 @@ export const MISSIONS: readonly Mission[] = [
       'Merci beaucoup pour cette soirée',
     ],
     pathUnitId: 'belle-famille',
+  },
+  {
+    // A2, second group (docs/changes/mission-spine-b1.md): everyday tasks for
+    // the moving, family and work goals, and the one Montréal scene.
+    id: 'mission:club',
+    title: "S'inscrire au club",
+    titleEn: 'Sign up for a class',
+    place: 'street',
+    cefr: 'A2',
+    learnerRole: 'Someone new to the area, signing up for a weekly class at the local community centre.',
+    tutorRole: 'Sophie, at the welcome desk of the maison de quartier, who knows every timetable by heart.',
+    goalEn: 'Say which class you want, ask the times, the price and what to bring, then sign up.',
+    winEn: 'Sophie has put your name down, and you know what to bring along.',
+    canDoEn: 'Sign up for a class',
+    earnedEn: 'You can sign up for a class',
+    beatIds: ['say-what-you-want', 'ask-the-times', 'ask-the-price', 'ask-what-to-bring', 'sign-up'],
+    phraseKeys: [
+      "phrase:je voudrais m'inscrire au cours de yoga",
+      "phrase:c'est quel jour, et à quelle heure ?",
+      "phrase:ça coûte combien pour l'année ?",
+      "phrase:qu'est-ce qu'il faut apporter ?",
+    ],
+    referencePhrases: [
+      "Je voudrais m'inscrire au cours de yoga",
+      "C'est quel jour, et à quelle heure ?",
+      "Qu'est-ce qu'il faut apporter ?",
+    ],
+    pathUnitId: 'club',
+  },
+  {
+    // Follows mission:appartement for a learner who has just moved.
+    id: 'mission:banque',
+    title: 'Ouvrir un compte',
+    titleEn: 'Open a bank account',
+    place: 'street',
+    cefr: 'A2',
+    learnerRole: 'Someone who has just moved to France, opening a bank account at a local branch.',
+    tutorRole: 'Antoine, a bank adviser, polite and precise, who goes through each document in turn.',
+    goalEn: 'Say you want an account and that you just moved, ask what documents and when the card comes, then book the next step.',
+    winEn: 'The account is open, and the card is on its way to your new address.',
+    canDoEn: 'Open a bank account',
+    earnedEn: 'You can open a bank account',
+    beatIds: ['say-you-want-an-account', 'say-you-just-moved', 'ask-what-documents', 'ask-about-the-card', 'book-the-next-step'],
+    phraseKeys: [
+      'phrase:bonjour, je voudrais ouvrir un compte',
+      'phrase:je viens de déménager dans le quartier',
+      'phrase:vous avez besoin de quels documents ?',
+      'phrase:et la carte bancaire, je la reçois quand ?',
+    ],
+    referencePhrases: [
+      'Bonjour, je voudrais ouvrir un compte',
+      'Vous avez besoin de quels documents ?',
+      'Et la carte bancaire, je la reçois quand ?',
+    ],
+    pathUnitId: 'banque',
+  },
+  {
+    id: 'mission:sortie',
+    title: 'On se fait un ciné ?',
+    titleEn: 'Make plans with a friend',
+    place: 'friends',
+    cefr: 'A2',
+    learnerRole: 'Someone phoning a friend to plan an evening at the cinema.',
+    tutorRole: 'Léa, a friend, chatty on the phone, whose week is already half full.',
+    goalEn: 'Suggest going out, turn down a day and offer another, then agree on a time and a place.',
+    winEn: 'Léa has the evening in her diary, and so do you.',
+    canDoEn: 'Make plans with a friend on the phone',
+    earnedEn: 'You can arrange a night out with a friend',
+    beatIds: ['suggest-going-out', 'turn-down-and-offer', 'agree-time-and-place', 'confirm'],
+    phraseKeys: [
+      'phrase:on se fait un ciné ?',
+      'phrase:samedi, je peux pas, mais dimanche, ça te va ?',
+      'phrase:on se retrouve devant le cinéma ?',
+      'phrase:ça marche, à dimanche !',
+    ],
+    referencePhrases: ['On se fait un ciné ?', 'On se retrouve devant le cinéma ?'],
+    pathUnitId: 'sortie',
+  },
+  {
+    // The one Quebec scene: standard Quebec French, a few local words, no joual.
+    id: 'mission:montreal',
+    title: "Un manteau pour l'hiver",
+    titleEn: 'Buy a winter coat in Montréal',
+    place: 'market',
+    cefr: 'A2',
+    learnerRole: 'Someone who has just arrived in Montréal, buying a first real winter coat.',
+    tutorRole: 'Marc-André, a sales assistant in a Montréal clothing shop, warm and quick.',
+    goalEn: 'Say what you are looking for, ask for your size, try it on and say how it fits, ask the price, and decide.',
+    winEn: 'The coat fits, the taxes were no surprise at the till, and winter can come now.',
+    canDoEn: 'Shop for a winter coat',
+    earnedEn: 'You can shop for winter clothes',
+    beatIds: ['say-what-you-look-for', 'ask-for-your-size', 'say-how-it-fits', 'ask-the-price', 'decide'],
+    phraseKeys: [
+      "phrase:bonjour, je cherche un manteau pour l'hiver",
+      "phrase:vous l'avez dans une plus grande taille ?",
+      'phrase:il est un peu serré aux épaules',
+      'phrase:il coûte combien, avec les taxes ?',
+    ],
+    referencePhrases: [
+      "Bonjour, je cherche un manteau pour l'hiver",
+      "Vous l'avez dans une plus grande taille ?",
+      'Il coûte combien, avec les taxes ?',
+    ],
+    pathUnitId: 'montreal',
+  },
+  {
+    id: 'mission:coup-de-main',
+    title: 'Un petit coup de main ?',
+    titleEn: 'Ask a colleague for help',
+    place: 'home',
+    cefr: 'A2',
+    learnerRole: 'Someone a few weeks into a new job, stuck on booking a meeting room in the office software.',
+    tutorRole: 'Inès, a colleague in the open space, patient and quick with the office tools.',
+    goalEn: 'Ask if she has a minute, explain what you are trying to do, ask her to show you, and check you understood.',
+    winEn: 'Inès showed you once, and the next time you can manage on your own.',
+    canDoEn: 'Ask a colleague to show you how',
+    earnedEn: 'You can ask a colleague for help',
+    beatIds: ['ask-if-she-has-a-minute', 'explain-what-you-are-trying', 'ask-her-to-show-you', 'check-you-understood', 'thank-her'],
+    phraseKeys: [
+      "phrase:t'as deux minutes ?",
+      "phrase:j'arrive pas à réserver une salle",
+      'phrase:tu peux me montrer comment tu fais ?',
+      "phrase:si j'ai bien compris, il faut d'abord choisir la date",
+    ],
+    referencePhrases: [
+      'Tu peux me montrer comment tu fais ?',
+      "Si j'ai bien compris, il faut d'abord choisir la date",
+    ],
+    pathUnitId: 'coup-de-main',
+  },
+  {
+    // Widens mission:belle-famille to the partner's own generation, on tu.
+    id: 'mission:anniversaire',
+    title: "L'anniversaire de sa sœur",
+    titleEn: "Your partner's sister's birthday",
+    place: 'friends',
+    cefr: 'A2',
+    learnerRole: "Someone at their partner's sister's birthday party, meeting part of the family for the first time.",
+    tutorRole: "Manon, your partner's sister, and Maxime, a cousin, both on tu from the start.",
+    goalEn: 'Wish her happy birthday, say how you met your partner, chat with a cousin, accept more cake, and say goodbye.',
+    winEn: 'Manon opened your present first, and Maxime wants the whole story of how you two met.',
+    canDoEn: "Celebrate a birthday with your partner's family",
+    earnedEn: "You can celebrate with your partner's family",
+    beatIds: ['wish-happy-birthday', 'say-how-you-met', 'chat-with-a-cousin', 'accept-a-second-helping', 'say-goodbye'],
+    phraseKeys: [
+      "phrase:joyeux anniversaire ! c'est pour toi",
+      "phrase:on s'est rencontrés par des amis",
+      'phrase:et toi, tu fais quoi dans la vie ?',
+      'phrase:allez, juste un petit peu alors',
+    ],
+    referencePhrases: [
+      "Joyeux anniversaire ! C'est pour toi",
+      "On s'est rencontrés par des amis",
+      'Et toi, tu fais quoi dans la vie ?',
+    ],
+    pathUnitId: 'anniversaire',
   },
 ];

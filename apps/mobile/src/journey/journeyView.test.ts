@@ -10,7 +10,7 @@
 import assert from 'node:assert/strict';
 import { MISSION_LEVELS } from '../scenes/scenePreview.ts';
 import { describe, test } from 'node:test';
-import { FRENCH_PHONEMES, MISSIONS, missionStates, type ReviewCard, type XpLevel } from '@luvani/core';
+import { FRENCH_PHONEMES, MISSIONS, missionStates, spineFrom, type ReviewCard, type XpLevel } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { ledgerFrom } from '../myfrench/ledger.ts';
@@ -101,10 +101,19 @@ describe('the header: the stage word, the level and the counts', () => {
     for (const view of [fresh, allA0]) for (const step of view.steps) assert.doesNotMatch(`${step.label} ${step.accessibilityLabel}`, /\bA[012]\b|B[12]|CEFR/);
   });
 
-  test('every mission level has its own stage, and A2 stands at Everyday', () => {
-    assert.deepEqual([...MISSION_LEVELS], ['A0', 'A1', 'A2']);
-    assert.deepEqual(MISSION_LEVELS.map(stageIndexOf), [0, 1, 2]);
+  test('every mission level has its own stage, A2 stands at Everyday and B1 at Chatting', () => {
+    assert.deepEqual([...MISSION_LEVELS], ['A0', 'A1', 'A2', 'B1']);
+    assert.deepEqual(MISSION_LEVELS.map(stageIndexOf), [0, 1, 2, 3]);
     assert.equal(STAGES[stageIndexOf('A2')], 'Everyday', 'an A2 learner was drawn at Basics');
+    assert.equal(STAGES[stageIndexOf('B1')], 'Chatting', 'a B1 learner was drawn below Chatting');
+  });
+
+  // 2026-10-22, mission spine B1: every A0, A1 and A2 scene earned puts the spine at B1.
+  test('a learner who has earned every current scene stands at Chatting', () => {
+    const progress = progressOf(MISSIONS.filter((m) => m.cefr !== 'B1').map((m, i) => ({ id: m.id, at: NOW - (i + 1) * DAY, rung: 4 })));
+    assert.equal(spineFrom(progress).level, 'B1');
+    const here = stagesFrom(progress).steps.find((step) => step.state === 'here');
+    assert.equal(here?.label, 'Chatting');
   });
 
   test('"Earn all n" counts the real A0 missions on the spine', () => {

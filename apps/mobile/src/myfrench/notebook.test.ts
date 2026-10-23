@@ -167,8 +167,8 @@ describe('the first visit, and the words', () => {
     assert.ok(NOTEBOOK_COPY.includes(NOTEBOOK.firstVisit));
     for (const line of NOTEBOOK_COPY) {
       assert.equal(guiltIn(line), undefined, `"${line}" carries a banned word`);
-      // The level's own name (A0, A1) is a level, not a count, and is the one digit allowed.
-      assert.doesNotMatch(line.replace(/\bA[012]\b/g, ''), /—|\d|%/, `"${line}" carries an em dash, a digit or a percentage`);
+      // The level's own name (A0 to B1) is a level, not a count, and is the one digit allowed.
+      assert.doesNotMatch(line.replace(/\b(A[012]|B1)\b/g, ''), /—|\d|%/, `"${line}" carries an em dash, a digit or a percentage`);
       assert.doesNotMatch(line, /\b(beginner|novice|intermediate|advanced|veteran|expert|points?|xp|rank)\b/i, `"${line}" names a rank or points`);
     }
   });

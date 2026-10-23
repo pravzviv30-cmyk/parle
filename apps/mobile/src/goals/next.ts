@@ -80,6 +80,15 @@ export interface NextGoalTask {
  * reservations), "complaint" and "faulty". Where a bare word stays, its second
  * meanings go in OTHER_MEANINGS ("doctor who", "spin doctor", "part and
  * parcel", "parcel of land").
+ *
+ * Mission spine B1 (2026-10-22): six more A2 missions, same rule. Bare "bank"
+ * stays out (a river bank, a bank holiday), and so do "class" (business
+ * class), "coat" (a coat of paint), "help" and "cinema" (French cinema is
+ * films, not an evening out); each is a phrase instead ("bank account", "buy
+ * a coat", "go to the cinema", "ask a colleague"). "birthday" stays bare, with
+ * "birthday suit" in OTHER_MEANINGS. Where an older scene shares a word the
+ * newer one needs two hits: "ask a colleague for help" carries "ask a
+ * colleague" too, so it beats the first-day scene's "colleague".
  */
 export const MISSION_WORDS: Readonly<Record<Exclude<MissionId, 'mission:premier-cafe'>, readonly string[]>> = {
   'mission:cafe': ['cafe', 'coffee', 'croissant', 'bakery', 'boulangerie', 'barista', 'restaurant', 'restaurants', 'menu', 'waiter', 'bistro'],
@@ -129,6 +138,31 @@ export const MISSION_WORDS: Readonly<Record<Exclude<MissionId, 'mission:premier-
     'boyfriends parents', 'girlfriends parents', 'husbands parents', 'wifes parents', 'meet his parents',
     'meet her parents', 'meet their parents',
   ],
+  'mission:club': [
+    'sign up for a class', 'sign up for classes', 'join a class', 'join a club', 'sports club', 'evening class',
+    'evening classes', 'gym membership', 'join a gym', 'yoga class', 'yoga classes', 'dance class', 'dance classes',
+    'community centre', 'community center', 'maison de quartier',
+  ],
+  'mission:banque': [
+    'bank account', 'bank accounts', 'open an account', 'open a bank account', 'opening a bank account', 'banque',
+    'bank card', 'at the bank', 'bank adviser', 'bank advisor',
+  ],
+  'mission:sortie': [
+    'go to the cinema', 'going to the cinema', 'to the cinema', 'the movies', 'go to the movies', 'see a film with',
+    'see a movie with', 'invite a friend', 'invite friends', 'make plans with friends', 'make plans with a friend',
+    'night out', 'evening out',
+  ],
+  'mission:montreal': [
+    'montreal', 'quebec', 'quebecois', 'winter coat', 'buy a coat', 'buying a coat', 'winter clothes', 'tuque',
+  ],
+  'mission:coup-de-main': [
+    'ask a colleague', 'ask a colleague for help', 'ask colleagues for help', 'ask for help at work', 'help at work',
+    'help from a colleague', 'meeting room', 'book a meeting room', 'shared drive', 'the office printer',
+  ],
+  'mission:anniversaire': [
+    'birthday', 'birthdays', 'birthday party', 'happy birthday', 'anniversaire', 'sister in law', 'brother in law',
+    'sisters in law', 'brothers in law', 'partners sister', 'partners brother',
+  ],
 };
 
 /**
@@ -139,6 +173,7 @@ const OTHER_MEANINGS: readonly string[] = [
   'job market', 'stock market', 'housing market', 'property market', 'labour market', 'labor market',
   'black market', 'market research', 'market share',
   'doctor who', 'spin doctor', 'part and parcel', 'parcel of land',
+  'birthday suit',
 ];
 
 /**

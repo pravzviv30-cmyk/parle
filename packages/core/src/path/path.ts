@@ -497,6 +497,126 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
     ],
   },
   {
+    id: 'club',
+    title: "S'inscrire au club",
+    nodes: [
+      {
+        id: 'club:asking',
+        title: 'Which class, and when',
+        sub: 'The class you want, and the day and time',
+        kind: 'phrases',
+        phraseKeys: ["phrase:je voudrais m'inscrire au cours de yoga", "phrase:c'est quel jour, et à quelle heure ?"],
+      },
+      {
+        id: 'club:signing',
+        title: 'The price, and what to bring',
+        sub: 'What it costs for the year, and what you need',
+        kind: 'phrases',
+        phraseKeys: ["phrase:ça coûte combien pour l'année ?", "phrase:qu'est-ce qu'il faut apporter ?"],
+      },
+    ],
+  },
+  {
+    id: 'banque',
+    title: 'Ouvrir un compte',
+    nodes: [
+      {
+        id: 'banque:opening',
+        title: 'Why you are here',
+        sub: 'An account, and your new address',
+        kind: 'phrases',
+        phraseKeys: ['phrase:bonjour, je voudrais ouvrir un compte', 'phrase:je viens de déménager dans le quartier'],
+      },
+      {
+        id: 'banque:papers',
+        title: 'Papers and the card',
+        sub: 'What to bring, and when the card comes',
+        kind: 'phrases',
+        phraseKeys: ['phrase:vous avez besoin de quels documents ?', 'phrase:et la carte bancaire, je la reçois quand ?'],
+      },
+    ],
+  },
+  {
+    id: 'sortie',
+    title: 'On se fait un ciné ?',
+    nodes: [
+      {
+        id: 'sortie:suggesting',
+        title: 'Asking a friend out',
+        sub: 'The cinema, and another day',
+        kind: 'phrases',
+        phraseKeys: ['phrase:on se fait un ciné ?', 'phrase:samedi, je peux pas, mais dimanche, ça te va ?'],
+      },
+      {
+        id: 'sortie:settling',
+        title: 'Where to meet',
+        sub: 'The place, and see you then',
+        kind: 'phrases',
+        phraseKeys: ['phrase:on se retrouve devant le cinéma ?', 'phrase:ça marche, à dimanche !'],
+      },
+    ],
+  },
+  {
+    id: 'montreal',
+    title: "Un manteau pour l'hiver",
+    nodes: [
+      {
+        id: 'montreal:looking',
+        title: 'The coat you need',
+        sub: 'What you are after, and a bigger size',
+        kind: 'phrases',
+        phraseKeys: ["phrase:bonjour, je cherche un manteau pour l'hiver", "phrase:vous l'avez dans une plus grande taille ?"],
+      },
+      {
+        id: 'montreal:deciding',
+        title: 'How it fits, and the price',
+        sub: 'Too tight, and the taxes on top',
+        kind: 'phrases',
+        phraseKeys: ['phrase:il est un peu serré aux épaules', 'phrase:il coûte combien, avec les taxes ?'],
+      },
+    ],
+  },
+  {
+    id: 'coup-de-main',
+    title: 'Un petit coup de main ?',
+    nodes: [
+      {
+        id: 'coup-de-main:asking',
+        title: 'Asking for help',
+        sub: 'A minute of her time, and what is stuck',
+        kind: 'phrases',
+        phraseKeys: ["phrase:t'as deux minutes ?", "phrase:j'arrive pas à réserver une salle"],
+      },
+      {
+        id: 'coup-de-main:learning',
+        title: 'Show me, and checking',
+        sub: 'How she does it, and saying it back',
+        kind: 'phrases',
+        phraseKeys: ['phrase:tu peux me montrer comment tu fais ?', "phrase:si j'ai bien compris, il faut d'abord choisir la date"],
+      },
+    ],
+  },
+  {
+    id: 'anniversaire',
+    title: "L'anniversaire de sa sœur",
+    nodes: [
+      {
+        id: 'anniversaire:arriving',
+        title: 'The present, and your story',
+        sub: 'Happy birthday, and how you met',
+        kind: 'phrases',
+        phraseKeys: ["phrase:joyeux anniversaire ! c'est pour toi", "phrase:on s'est rencontrés par des amis"],
+      },
+      {
+        id: 'anniversaire:chatting',
+        title: 'The cousin, and more cake',
+        sub: 'What they do, and a little more',
+        kind: 'phrases',
+        phraseKeys: ['phrase:et toi, tu fais quoi dans la vie ?', 'phrase:allez, juste un petit peu alors'],
+      },
+    ],
+  },
+  {
     id: 'mine',
     title: 'From your conversations',
     nodes: [

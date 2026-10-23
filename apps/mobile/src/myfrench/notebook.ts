@@ -31,7 +31,7 @@ import {
   type MissionProgress,
   type ReviewCard,
   type TutorVoiceKey,
-  type CefrLevel,
+  type MissionLevel,
 } from '@luvani/core';
 
 import type { LevelStop, PathLevel } from '../components.tsx';
@@ -58,7 +58,7 @@ export const NOTEBOOK = {
 } as const;
 
 /** "You are working in A0." The level is the spine's, never a rank. */
-export function levelLine(level: CefrLevel): string {
+export function levelLine(level: MissionLevel): string {
   return `You are working in ${level}.`;
 }
 
@@ -77,7 +77,7 @@ export const NOTEBOOK_COPY: readonly string[] = [...Object.values(NOTEBOOK), ...
 // ────────────────────────────────────────────────────────────── the level
 
 export interface LevelPathView {
-  level: CefrLevel;
+  level: MissionLevel;
   /** The levels that carry a scene, in order, each with its stops. */
   levels: readonly PathLevel[];
 }

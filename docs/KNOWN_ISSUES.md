@@ -1384,7 +1384,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: mission spine A2 (2026-10-22): twelve more missions joined, five at A1 and seven at A2
   ([docs/changes/mission-spine-a2.md](changes/mission-spine-a2.md)). Missions now share the six
   drawn places and each has its own place drawing, so the count test was renamed again.
-- verified-by: `nineteen missions exist and each names the path unit that practises it`
+- note: mission spine B1 (2026-10-22): six more A2 missions joined (club, banque, sortie, montreal,
+  coup-de-main, anniversaire; [docs/changes/mission-spine-b1.md](changes/mission-spine-b1.md)),
+  so the count test was renamed to twenty-five.
+- verified-by: `twenty-five missions exist and each names the path unit that practises it`
 - verified-by: `a completed mission whose phrases fall due reads needs-review, never complete`
 - verified-by: `independence comes from the rung the win was earned at, not from the model`
 - verified-by: `every authored path phrase can be drilled the day it appears`
@@ -8632,7 +8635,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp B (2026-09-30, F599): the watercolours retired and the promise moved to the flat
   drawings. The registry test now holds each one decorative, at its catalogue size, and registered in
   both directions, and J14 holds that every one reaches a screen; both lines were renamed for it.
-- verified-by: `the flat registry names all 53 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 77 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
@@ -8968,7 +8971,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/art/registry.ts:38
 - note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
-- verified-by: `the flat registry names all 53 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 77 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `the watercolours are gone: no PNG under assets/art, no Art, no registry, no maps, and nothing imports Image`
 - verified-by: `every scene has a flat drawing of its own, and no two scenes share one`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`

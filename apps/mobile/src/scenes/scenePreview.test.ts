@@ -74,7 +74,9 @@ describe('the rest of the page', () => {
     assert.equal(stageOf({ kind: 'mission', cefr: 'A1' }), 'Basics');
     // 2026-10-22, mission spine A2: an A2 mission is Everyday, never Basics.
     assert.equal(stageOf({ kind: 'mission', cefr: 'A2' }), 'Everyday');
-    assert.deepEqual(MISSION_LEVELS.map((cefr) => stageOf({ kind: 'mission', cefr })), ['Starter', 'Basics', 'Everyday']);
+    assert.deepEqual(MISSION_LEVELS.map((cefr) => stageOf({ kind: 'mission', cefr })), ['Starter', 'Basics', 'Everyday', 'Chatting']);
+    // 2026-10-22, mission spine B1: a B1 mission is Chatting, never the code.
+    assert.equal(stageOf({ kind: 'mission', cefr: 'B1' }), 'Chatting');
     // 2026-10-21, learning-science review: tier 1 is the stage word Starter.
     assert.equal(stageOf({ kind: 'scenario', tier: 1 }), 'Starter');
     assert.equal(stageOf({ kind: 'scenario', tier: 2 }), 'Everyday');

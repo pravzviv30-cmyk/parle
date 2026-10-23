@@ -44,8 +44,8 @@ function finished(id: MissionCompletion['id'], rung: MissionCompletion['rung'], 
   return { id, at, rung };
 }
 
-describe('the catalogue — nineteen front doors, each with somewhere to practise', () => {
-  test('nineteen missions exist and each names the path unit that practises it', () => {
+describe('the catalogue — twenty-five front doors, each with somewhere to practise', () => {
+  test('twenty-five missions exist and each names the path unit that practises it', () => {
     // 2026-09-27: six became seven when the three-line first scene,
     // mission:premier-cafe, joined the catalogue ahead of the full café.
     // 2026-10-22: seven became twelve with the five A1 errands (restaurant,
@@ -53,7 +53,10 @@ describe('the catalogue — nineteen front doors, each with somewhere to practis
     // 2026-10-22: twelve became nineteen with the seven A2 scenes (weekend,
     // first day at work, phone booking, doctor, shop return, flat viewing,
     // dinner with a partner's parents), same change doc.
-    assert.equal(MISSIONS.length, 19, 'the product promises nineteen practical situations; anything fewer is a shorter promise');
+    // 2026-10-22: nineteen became twenty-five with six more A2 scenes (a class,
+    // a bank account, cinema plans, a Montréal coat, a colleague's help, a
+    // partner's sister's birthday), docs/changes/mission-spine-b1.md.
+    assert.equal(MISSIONS.length, 25, 'the product promises twenty-five practical situations; anything fewer is a shorter promise');
 
     const unitIds = new Set(AUTHORED_PATH.map((unit) => unit.id));
     for (const mission of MISSIONS) {
@@ -173,6 +176,12 @@ describe('the catalogue — nineteen front doors, each with somewhere to practis
       'mission:retour': ['Return something that does not work', 'You can return something to a shop'],
       'mission:appartement': ['Ask the right questions about a flat', 'You can ask about a flat to rent'],
       'mission:belle-famille': ["Have dinner with your partner's family", "You can have dinner with your partner's family"],
+      'mission:club': ['Sign up for a class', 'You can sign up for a class'],
+      'mission:banque': ['Open a bank account', 'You can open a bank account'],
+      'mission:sortie': ['Make plans with a friend on the phone', 'You can arrange a night out with a friend'],
+      'mission:montreal': ['Shop for a winter coat', 'You can shop for winter clothes'],
+      'mission:coup-de-main': ['Ask a colleague to show you how', 'You can ask a colleague for help'],
+      'mission:anniversaire': ["Celebrate a birthday with your partner's family", "You can celebrate with your partner's family"],
     };
     assert.deepEqual(MISSIONS.map((m) => m.id).sort(), Object.keys(approved).sort());
     for (const mission of MISSIONS) {
