@@ -1120,3 +1120,75 @@ describe('the guest scene: script only, no model, scene evidence', () => {
     assert.doesNotMatch(source, /@luvani\/brain|extractMemory|drill|brainClient/i);
   });
 });
+
+describe('a typed guest scene at a slow, real pace (fake timers)', () => {
+  type Report = { learnerTurns: number; sceneTurns?: string[]; firstPracticeComplete?: boolean };
+  function typedScene() {
+    const checkpoints: Report[] = [], completes: Report[] = [];
+    const lifecycle = { maxSeconds: 180, signal: new AbortController().signal, elapsedSeconds: () => 1, assertActive() {}, onStop() {},
+      async checkpoint(r: Report, ack?: () => void) { checkpoints.push(structuredClone(r)); ack?.(); },
+      async complete(r: Report) { completes.push(structuredClone(r)); return { kind: 'charged' } as never; } };
+    const tutor = new LuvaniTutor(GUEST_CAFE_SCENE, undefined, { voiceless: true, scriptOnly: true, scene: true });
+    const { session } = stubSession();
+    Object.defineProperty(tutor, 'session', { value: session, configurable: true });
+    tutor.attachLifecycle(lifecycle as never);
+    const published: ServerMessage[] = [];
+    tutor.attach((m) => { published.push(m); });
+    return { tutor, session, published, checkpoints, completes };
+  }
+  const flush = async (tutor: LuvaniTutor) => { for (let n = 0; n < 20; n++) await Promise.resolve(); await tutor.settled(); };
+  const type = async (tutor: LuvaniTutor, text: string) => { await tutor.handleClientMessage(tutor.session as never, tapped({ t: 'say', text })); await flush(tutor); };
+
+  test('five exact typed targets, 30 s apart: five learner turns, finish after the fifth, all five ids, complete', async () => {
+    mock.timers.enable({ apis: ['setTimeout'] });
+    try {
+      const { tutor, published, checkpoints, completes } = typedScene();
+      tutor.sendCurrentPrompt(tutor.session as never);
+      for (const [index, turn] of GUEST_CAFE_SCENE.turns.entries()) {
+        // Slower than two typed-silence windows: the turn must still wait for the learner.
+        for (let n = 0; n < 3; n++) { mock.timers.tick(TEXT_SILENCE_MS + 1_000); await flush(tutor); }
+        assert.equal(tutor.sessionState.finished, false, `finished before answer ${index + 1}`);
+        const shown = published.filter(m => m.t === 'prompt').at(-1) as Extract<ServerMessage, { t: 'prompt' }>;
+        assert.equal(shown.prompt.turn.id, turn.id, 'silence alone never moves the scene on');
+        await type(tutor, turn.target);
+      }
+      assert.equal(tutor.sessionState.finished, true);
+      const final = completes.at(-1)!;
+      assert.equal(final.learnerTurns, 5);
+      assert.deepEqual(final.sceneTurns, [...GUEST_SCENE_TURN_IDS]);
+      assert.equal(final.firstPracticeComplete, true);
+      assert.equal(checkpoints.filter(c => c.firstPracticeComplete).length, 1, 'complete only at the fifth answer');
+    } finally { mock.timers.reset(); }
+  });
+  test('two correct answers then leave gives two ids and is not complete', async () => {
+    mock.timers.enable({ apis: ['setTimeout'] });
+    try {
+      const { tutor, completes } = typedScene();
+      tutor.sendCurrentPrompt(tutor.session as never);
+      for (const turn of GUEST_CAFE_SCENE.turns.slice(0, 2)) { for (let n = 0; n < 3; n++) { mock.timers.tick(TEXT_SILENCE_MS + 1_000); await flush(tutor); } await type(tutor, turn.target); }
+      for (let n = 0; n < 5; n++) { mock.timers.tick(TEXT_SILENCE_MS + 1_000); await flush(tutor); }
+      await tutor.handleClientMessage(tutor.session as never, tapped({ t: 'leave' })); await flush(tutor);
+      await tutor.finish();
+      const final = completes.at(-1)!;
+      assert.deepEqual(final.sceneTurns, ['t1-greet', 't2-order']);
+      assert.equal(final.learnerTurns, 2);
+      assert.equal(final.firstPracticeComplete, false);
+    } finally { mock.timers.reset(); }
+  });
+  test('fast correct typed answers fill sceneTurns too', async () => {
+    const { tutor, completes } = typedScene();
+    for (const turn of GUEST_CAFE_SCENE.turns) await type(tutor, turn.target);
+    assert.deepEqual(completes.at(-1)!.sceneTurns, [...GUEST_SCENE_TURN_IDS]);
+    assert.equal(completes.at(-1)!.firstPracticeComplete, true);
+    tutor.clearRescue();
+  });
+  test('a turn skipped by the learner is not a completed scene', async () => {
+    const { tutor, completes } = typedScene();
+    await tutor.handleClientMessage(tutor.session as never, tapped({ t: 'skip' })); await flush(tutor);
+    await tutor.handleClientMessage(tutor.session as never, tapped({ t: 'skip' })); await flush(tutor);
+    for (const turn of GUEST_CAFE_SCENE.turns.slice(tutor.sessionState.turnIndex)) await type(tutor, turn.target);
+    assert.equal(tutor.sessionState.finished, true);
+    assert.equal(completes.at(-1)!.firstPracticeComplete, false);
+    tutor.clearRescue();
+  });
+});

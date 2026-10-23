@@ -292,6 +292,8 @@ export class LuvaniTutor extends voice.Agent {
   /** A guest scene records the turns answered acceptably and reports them. */
   private readonly scene: boolean;
   private readonly sceneTurnIds = new Set<GuestSceneTurnId>();
+  /** Scene turns the learner answered at all (any spoken or typed line). */
+  private readonly sceneAnsweredIds = new Set<string>();
 
   constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; scriptOnly?: boolean; scene?: boolean } = {}) {
     const state = createSession(lesson, startRung);
@@ -317,7 +319,10 @@ export class LuvaniTutor extends voice.Agent {
 
   private sceneReport(finished: boolean): { sceneTurns?: GuestSceneTurnId[]; firstPracticeComplete?: boolean; firstPracticeStopped?: boolean } {
     if (!this.scene) return {};
-    return { sceneTurns: this.sceneTurns, firstPracticeComplete: finished && this.learnerTurns > 0,
+    // Complete only when every turn got a line from the learner. A skip or a
+    // help request can move a turn on, but it is not an answer.
+    const everyTurnAnswered = this.lesson.turns.every(turn => this.sceneAnsweredIds.has(turn.id));
+    return { sceneTurns: this.sceneTurns, firstPracticeComplete: finished && this.learnerTurns > 0 && everyTurnAnswered,
       ...(this.stopping ? { firstPracticeStopped: true } : {}) };
   }
 
@@ -814,9 +819,16 @@ export class LuvaniTutor extends voice.Agent {
     // `silence` is the rescue, which the agent applies on the learner's behalf.
     // Everything else arrived from their mouth, their keyboard or their thumb,
     // and that difference is exactly what billing keys off in `finish()`.
-    if (input.type !== 'silence') { this.learnerTurns += 1; this.momentHeld = false; }
     const answered = currentPrompt(this.lesson, this.state).turn.id;
     const { state, feedback } = submitTurn(this.lesson, this.state, input);
+    // THE SCENE RULE (scene path only; the core ladder is untouched for lessons):
+    // silence never moves a guest scene on. The first rescue on a turn models
+    // the line as usual; a rescue that would advance the turn is dropped, so
+    // the scene waits for the learner until they answer, leave, or hit the
+    // 180 s ceiling (which ends it as partial).
+    if (this.scene && input.type === 'silence' && (feedback.advanced || state.finished)) return;
+    if (input.type !== 'silence') { this.learnerTurns += 1; this.momentHeld = false; }
+    if (this.scene && input.type === 'spoke') this.sceneAnsweredIds.add(answered);
     this.state = state;
     // Scene evidence: a spoken, typed or tapped answer (all arrive as `spoke`)
     // whose words were accepted and that was not graded poor. A rescue, a skip
