@@ -1,7 +1,9 @@
 /** The existing live room, orb and transcript, opened with the guest capability. */
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
-import { firstPracticeScenario, tutorVoice } from '@luvani/core';
+import { firstPracticeScenario, tutorVoice, GUEST_CAFE_SCENE, GUEST_SCENE_MAX_SECONDS } from '@luvani/core';
+import { rungLabel } from '../tutor/rungLabel.ts';
+import { GUEST_SCENE, GUEST_SCENE_LESSON_ID, guestSceneMode } from './guestScene.ts';
 import { IconAction, Sheet } from '../components.tsx';
 import { paper } from '../theme.ts';
 import { boldType as type, c } from './boldRhythm.ts';
@@ -36,6 +38,10 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   const [issue, setIssue] = useState('');
   const [saving, setSaving] = useState(false);
   const [micPending, setMicPending] = useState(false);
+  // The guest café scene runs the scripted lesson tutor, voiced or typed; an
+  // older record without it still runs the guest conversation.
+  const scene = guest.live?.scene === GUEST_SCENE;
+  const [typedScene, setTypedScene] = useState(false);
   useOnboardingFramePresentation(progress, { ground: paper.ground }, active);
   const remember = (turn: FirstContribution) => {
     const current = held.current.live!;
@@ -43,15 +49,17 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     held.current = { ...held.current, live: { ...current, contributions: [...current.contributions, turn].slice(-500) } };
     void saveGuestPractice(held.current).catch(() => { if (mounted.current) setIssue('Your practice has not saved on this device yet. Keep this screen open and try saving again.'); });
   };
-  const live = useLiveSession(guest.id!, 'convo-01', undefined, {
-    mode: 'convo', guestToken: guest.token!, tutorVoice: guest.plan.tutorVoice, onConfirmedContribution: remember,
-  });
+  const live = useLiveSession(guest.id!, scene ? GUEST_SCENE_LESSON_ID : 'convo-01', undefined, scene
+    ? { mode: guestSceneMode(typedScene), guestToken: guest.token!, tutorVoice: guest.plan.tutorVoice }
+    : { mode: 'convo', guestToken: guest.token!, tutorVoice: guest.plan.tutorVoice, onConfirmedContribution: remember });
   const name = tutorVoice(guest.plan.tutorVoice).persona.name;
   useEffect(() => {
     mounted.current = true;
     void live.start();
     return () => { mounted.current = false; };
   }, []);
+  // Typing chosen before any room opened: open the scene typed, from cold.
+  useEffect(() => { if (typedScene) void live.start(); }, [typedScene]);
   useEffect(() => {
     if (!live.sessionId || held.current.live?.sessionId === live.sessionId) return;
     held.current = { ...held.current, live: { ...held.current.live!, sessionId: live.sessionId } };
@@ -81,12 +89,21 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       if (mounted.current) setIssue(cause instanceof Error ? cause.message : 'Your session could not be saved yet. Try again.');
     } finally { finishing.current = false; if (mounted.current) setSaving(false); }
   };
-  useEffect(() => { if (live.recap && !live.tutorSpeaking && live.safety?.action !== 'stop') void collect(); }, [live.recap, live.tutorSpeaking]);
-  const ready = live.status.phase === 'live' && !!(live.convo || live.opening) && !live.waitingForTutor && !live.reconnecting;
+  // A conversation ends on its recap; the scene ends on the lesson summary.
+  const over = scene ? live.summary : live.recap;
+  useEffect(() => { if (over && !live.tutorSpeaking && live.safety?.action !== 'stop') void collect(); }, [over, live.tutorSpeaking]);
+  // The service stops the scene at three minutes; this is the screen's own backstop.
+  useEffect(() => {
+    if (!scene || !live.sessionId) return;
+    const timer = setTimeout(() => { if (!finished.current) void end(); }, GUEST_SCENE_MAX_SECONDS * 1000);
+    return () => clearTimeout(timer);
+  }, [scene, live.sessionId]);
+  const opened = scene ? !!live.prompt : !!(live.convo || live.opening);
+  const ready = live.status.phase === 'live' && opened && !live.waitingForTutor && !live.reconnecting;
   const failed = live.status.phase === 'error' || live.status.phase === 'out-of-minutes';
-  const canRecoverByTyping = live.status.phase === 'error' && !!live.sessionId && !live.settlement && !ending && !live.recap
+  const canRecoverByTyping = live.status.phase === 'error' && (!!live.sessionId || (scene && !typedScene)) && !live.settlement && !ending && !over
     && typedDoorFor(live.status.failure, { typing });
-  const canRetryConnection = live.status.phase === 'error' && !live.convo && !live.sessionId && !live.settlement && !ending;
+  const canRetryConnection = live.status.phase === 'error' && !opened && !live.sessionId && !live.settlement && !ending;
   const state: OrbState = failed ? 'error' : live.reconnecting || !ready ? 'connecting' : live.tutorSpeaking ? 'speaking' : live.thinking ? 'thinking' : live.micOpen ? 'listening' : 'ready';
   const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
   const end = async () => {
@@ -99,6 +116,8 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   };
   const recoverByTyping = () => {
     if (!canRecoverByTyping) return;
+    // No scene room yet, so nothing is metered: open the scene typed instead.
+    if (scene && !live.sessionId) { setTypedScene(true); setIssue(''); return; }
     // Guest recovery must keep this room and meter. A failed switch never
     // falls back to minting another grant while this session is outstanding.
     if (takeTypedDoor(live) === 'kept-the-room') { setTyping(true); setIssue(''); }
@@ -108,7 +127,8 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     if (micPending) return;
     setMicPending(true);
     try {
-      if (nextTyping) { if (await live.pauseMic()) setTyping(true); }
+      if (nextTyping && scene && !live.sessionId) setTypedScene(true);
+      else if (nextTyping) { if (await live.pauseMic()) setTyping(true); }
       else { if (await live.openMic()) setTyping(false); }
     } finally { if (mounted.current) setMicPending(false); }
   };
@@ -124,31 +144,37 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   };
   const safety = safetySurface(live.safety);
   if (safety.kind === 'stop') return <View style={{ flex: 1 }}><SafetyStopView surface={safety} onClose={() => { void (async () => {
-    const clean = { ...held.current, completed: false, finishedAt: [], live: { ...held.current.live!, outcome: 'interrupted' as const, contributions: [], pack: null } };
+    const clean = { ...held.current, completed: false, finishedAt: [], live: { ...held.current.live!, outcome: 'interrupted' as const, contributions: [], pack: null,
+      ...(held.current.live?.scene ? { sceneTurns: [] } : {}) } };
     await saveGuestPractice(clean); await live.leave(); onSafetyExit();
   })().catch(() => setIssue('Your session could not close yet. Try Close again.')); }} />
     {issue ? <Text accessibilityRole="alert" style={[type.small, { padding: 20 }]}>{issue}</Text> : null}
   </View>;
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={active}>
     <View style={{ flex: 1, minHeight: 0 }}>
-      <C2LiveRoom tutorName={name} description={`${firstPracticeScenario(guest.live!.brief).en}, ${guest.live!.brief.minutes === null ? 'at your pace' : `${guest.live!.brief.minutes} minutes`}`}
+      <C2LiveRoom tutorName={name} description={scene ? `${GUEST_CAFE_SCENE.title}, about two minutes` : `${firstPracticeScenario(guest.live!.brief).en}, ${guest.live!.brief.minutes === null ? 'at your pace' : `${guest.live!.brief.minutes} minutes`}`}
         state={state} caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
-        typing={typing} ready={ready && !ending && !live.recap} modePending={micPending} active={active} embedded
+        typing={typing || typedScene || (scene && live.voiceless)} startedWithSpeech={scene ? !typedScene : undefined} ready={ready && !ending && !over} modePending={micPending} active={active} embedded
         transcriptVisible={transcript} onTranscriptVisibility={setTranscript} draft={draft}
         onDraft={text => { setDraft(text); live.sendTyping(); }} onSend={send} canSend={!live.thinking && !live.tutorSpeaking && !ending}
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
-        onEnd={() => setConfirmEnd(true)} notice={issue || live.notice}
+        onEnd={() => setConfirmEnd(true)} notice={issue || (scene ? live.feedback?.message : undefined) || live.notice}
         top={<>{live.audioBlocked ? <PillButton label={`Listen to ${name}`} onPress={live.resumeAudio} /> : null}
-          {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}</>}
-        support={live.convo?.supportView && live.convo.supportView.kind !== 'none' ? <SupportBlock support={live.convo.supportView} /> : undefined}
-        tools={<IconAction icon="hint" label="Give me a hint" disabled={live.thinking || live.tutorSpeaking} onPress={() => live.sendHelp()} />}
+          {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
+          {scene && live.prompt ? <Text style={[type.small, { color: c.muted, textAlign: 'center' }]}>{rungLabel(live.prompt.directive.rung, name)}, {live.prompt.position} of {live.prompt.total}</Text> : null}</>}
+        support={scene
+          ? live.prompt && live.prompt.support.kind !== 'none' ? <SupportBlock support={live.prompt.support} onOptionPress={live.sendChoice}
+            onHearLine={!live.tutorSpeaking && !typing && !typedScene ? () => live.sendHear() : undefined} /> : undefined
+          : live.convo?.supportView && live.convo.supportView.kind !== 'none' ? <SupportBlock support={live.convo.supportView} /> : undefined}
+        tools={<><IconAction icon="hint" label="Give me a hint" disabled={live.thinking || live.tutorSpeaking} onPress={() => live.sendHelp()} />
+          {scene && live.prompt?.turn.note ? <Text style={type.small}>{live.prompt.turn.note}</Text> : null}</>}
         footer={failed ? <>
           <Text accessibilityLiveRegion="polite" style={type.body}>{live.status.phase === 'error' || live.status.phase === 'out-of-minutes' ? live.status.message : ''}</Text>
           {canRecoverByTyping && <PillButton label="Continue by typing" onPress={recoverByTyping} />}
           {canRetryConnection && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
           {!!live.sessionId && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
           <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />
-        </> : ending || live.recap ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
+        </> : ending || over ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
       />
       <Sheet visible={confirmEnd} title="End this practice?" onClose={() => setConfirmEnd(false)}>
         <Text style={type.body}>Your confirmed replies will be kept. Only a completed practice counts towards your streak.</Text>

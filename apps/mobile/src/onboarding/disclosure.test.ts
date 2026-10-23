@@ -465,11 +465,17 @@ describe('nothing reaches an AI service or the network before the save page is p
     assert.ok(start.indexOf('patch({ eligibilityConfirmed: true })') < start.indexOf('await startGuestPractice(acceptedDraft, guest)'));
     assert.match(screen, /TermsAcceptance context="practice"/);
     assert.match(screen, /label=\{needsAccount \? 'Create account to start' : 'Start live practice'\}[^>]*disabled=\{busy \|\| previewOnly\} onPress=\{\(\) => void \(needsAccount \? continueWithAccount\(\) : start\(\)\)\}/);
-    assert.match(screen, /error\.message === 'guest-live-unavailable'/, 'only a specific unavailable guest capability opens the account route');
+    assert.match(screen, /isAccountHandoffRefusal\(error\.message\)/, 'only a specific unavailable guest capability opens the account route');
     assert.match(screen, /Practice is unavailable in this screen preview/);
     assert.match(screen, /disabled=\{draft\.tutorChosen !== true \|\| busy\} onPress=\{\(\) => open\('start'\)/);
     assert.doesNotMatch(body, /startGuestPractice|requestRecordingPermissionsAsync|new Room\(/);
   });
 
   test("guest service requests require deliberate eligible Start and remain bounded outside authenticated rooms", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); const server = evidence('services/token-server/src/server.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); assert.match(screen, /await startGuestPractice\(acceptedDraft, guest\)/); assert.match(server, /body\.eligible !== true/); assert.match(server, /guest\.installation !== installHash/); assert.match(server, /guest\.expiresAt <= Date\.now\(\) \|\| guest\.owner/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync|joinRoom|new Room\(/); const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx'); assert.match(recording, /mode: 'convo', guestToken: guest\.token!/); assert.match(recording, /await live\.openMic\(\)/); });
+});
+
+test('the start page says what the café scene keeps: turn ids, not words', async () => {
+  const { STARTER_LOCAL } = await import('./disclosure.ts');
+  assert.equal(STARTER_LOCAL, 'Your words are not kept. A record of the scripted turns you reach is held for up to 30 days and can be saved to your account.');
+  assert.doesNotMatch(STARTER_LOCAL, /[—–]|session summary|stay on this device/);
 });

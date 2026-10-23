@@ -1,5 +1,6 @@
 import { briefFromDraft } from './firstLiveModel.ts';
 import { FirstLivePractice } from './FirstLivePractice.tsx';
+import { isAccountHandoffRefusal, startRefusalCopy } from './guestScene.ts';
 import { FirstSessionCelebration, FirstSessionSummary } from './FirstSessionResult.tsx';
 import { guestPracticeDays } from './guestModel.ts';
 import { dayKeyOf, tutorSampleLine } from '@luvani/core';
@@ -424,9 +425,11 @@ export function PreAccountOnboarding({
 
     } catch (error) {
       if (current.current && ticket === generation.current) {
-        if (error instanceof Error && error.message === 'guest-live-unavailable') {
+        // Scenes switched off, today's places full, or this phone's scene
+        // already used: each says so plainly, then offers the account handoff.
+        if (error instanceof Error && isAccountHandoffRefusal(error.message)) {
           setNeedsAccount(true);
-          setIssue('Create an account to start live practice. Your plan and chosen tutor are ready.');
+          setIssue(startRefusalCopy(error.message));
           return;
         }
         if (error instanceof Error && error.message === 'voice-unavailable') {

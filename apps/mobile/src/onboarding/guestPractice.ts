@@ -13,6 +13,8 @@ const KEY = '@luvani/guest-practice/v2';
 import { repairGuestPractice, type GuestPractice, type GuestAttempt } from './guestModel.ts';
 import { keepFinishes, starterMinutes } from './guestProgress.ts';
 import { starterFailure } from './firstRun/speech.ts';
+import { GUEST_SCENE, GuestClaimRefused, claimRefusalOf, trustedSceneTurns } from './guestScene.ts';
+import type { GuestSceneTurnId } from '@luvani/core';
 export type { GuestPractice, GuestAttempt } from './guestModel.ts';
 let writes: Promise<unknown> = Promise.resolve();
 let writeGeneration = 0;
@@ -72,7 +74,8 @@ async function post(
       const body: unknown = await response.json().catch(() => null);
       if (typeof body === 'object' && body !== null) {
         const code = (body as { error?: unknown }).error;
-        if (code === 'guest-live-unavailable' || code === 'voice-unavailable') throw new Error(code);
+        // The two account-handoff refusals (see guestScene.ts) and the speech one.
+        if (code === 'guest-live-unavailable' || code === 'guest-scene-used' || code === 'voice-unavailable') throw new Error(code);
       }
     }
     const said =
@@ -95,6 +98,8 @@ export async function startGuestPractice(plan: PreAccountOnboardingDraft, prior:
   const data = await post('start', {
     eligible: true,
     live: true,
+    // The scripted café scene, not a conversation (docs/changes/guest-first-scene.md).
+    scene: GUEST_SCENE,
     brief: briefFromDraft(plan),
     goal: plan.reason ?? 'food',
     drink: plan.drink ?? 'coffee',
@@ -110,7 +115,9 @@ export async function startGuestPractice(plan: PreAccountOnboardingDraft, prior:
     throw new Error('unavailable');
   const next: GuestPractice = {
     version: 2,
-    live: { brief: briefFromDraft(plan), sessionId: null, outcome: 'active', contributions: [], seconds: 0, completedAt: null, pack: null },
+    live: { brief: briefFromDraft(plan), sessionId: null, outcome: 'active', contributions: [], seconds: 0, completedAt: null, pack: null,
+      // A service that answers without the scene still runs the older guest conversation.
+      ...(data.scene === GUEST_SCENE ? { scene: GUEST_SCENE, sceneTurns: [] } : {}) },
     token: data.token,
     expiresAt: data.expiresAt,
     id: data.id,
@@ -196,11 +203,19 @@ export async function sendGuestAttempt(
   };
 }
 /** An authenticated, idempotent transfer; the guest secret cannot address another account. */
-export async function adoptGuestUsage(
+export async function adoptGuestUsage(guest: GuestPractice, userId: string): Promise<number | null> {
+  return (await claimGuestPractice(guest, userId)).secondsRemaining;
+}
+/**
+ * The claim, with the scene's turn ids the server holds. Those are trusted over
+ * this phone's copy; a missing or invalid list falls back to the local one.
+ */
+export async function claimGuestPractice(
   guest: GuestPractice,
   userId: string,
-): Promise<number | null> {
-  if (!guest.token) return null;
+): Promise<{ secondsRemaining: number | null; sceneTurns: GuestSceneTurnId[] }> {
+  const local = guest.live?.sceneTurns ?? [];
+  if (!guest.token) return { secondsRemaining: null, sceneTurns: [...local] };
   const response = await fetch(`${TOKEN_SERVER}/onboarding/claim`, {
     method: 'POST',
     signal: AbortSignal.timeout(12000),
@@ -212,11 +227,16 @@ export async function adoptGuestUsage(
     },
     body: JSON.stringify({ userId }),
   });
-  if (!response.ok) throw new Error('Your practice could not be linked yet. Try again.');
-  const data = (await response.json()) as { secondsRemaining?: unknown };
+  if (!response.ok) {
+    const code = response.status === 409
+      ? await response.json().then((body: unknown) => claimRefusalOf((body as { error?: unknown } | null)?.error), () => null)
+      : null;
+    throw new GuestClaimRefused(code);
+  }
+  const data = (await response.json()) as { secondsRemaining?: unknown; sceneTurns?: unknown };
   if (typeof data.secondsRemaining !== 'number')
     throw new Error('Your minutes could not be checked yet.');
-  return data.secondsRemaining;
+  return { secondsRemaining: data.secondsRemaining, sceneTurns: guest.live?.scene ? trustedSceneTurns(data.sceneTurns, local) : [] };
 }
 
 export type GuestMetric =

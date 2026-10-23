@@ -1292,7 +1292,7 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
    * agreeing.
    */
   function startBody(world: Record<string, unknown>): Record<string, unknown> {
-    const source = read('./useLiveSession.ts').replace('JSON.stringify(guestToken ? {} : {', 'JSON.stringify({');
+    const source = read('./useLiveSession.ts').replace('JSON.stringify(guestToken ? guestLiveBody(mode) : {', 'JSON.stringify({');
     // Anchored on the route, because the hook posts two bodies and the other
     // one is /session/abandon. Getting that wrong is how this harness would
     // report on a request nobody asked about.

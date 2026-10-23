@@ -7,12 +7,12 @@ import { takeTypedDoor, typedDoorFor } from '../live/typedDoor.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 
 const source = readFileSync(new URL('./FirstLivePractice.tsx', import.meta.url), 'utf8');
-const decisions = source.slice(source.indexOf('  const ready ='), source.indexOf('  const end ='))
+const decisions = source.slice(source.indexOf('  const opened ='), source.indexOf('  const end ='))
   .replace('const state: OrbState', 'const state');
-const evaluate = new Function('live', 'typing', 'ending', 'saving', 'name', 'failureCopy', 'typedDoorFor',
+const evaluate = new Function('live', 'typing', 'ending', 'saving', 'name', 'failureCopy', 'typedDoorFor', 'scene', 'typedScene', 'over',
   `${decisions}\nreturn { caption, state, canRecoverByTyping, canRetryConnection };`);
 const recovery = source.slice(source.indexOf('  const recoverByTyping ='), source.indexOf('  const changeInput ='));
-const recover = new Function('live', 'canRecoverByTyping', 'takeTypedDoor', 'setTyping', 'setIssue',
+const recover = new Function('live', 'canRecoverByTyping', 'takeTypedDoor', 'setTyping', 'setIssue', 'scene', 'setTypedScene',
   `${recovery}\nrecoverByTyping();`);
 const room = (overrides = {}) => ({
   status: { phase: 'error', failure: 'tutor-deaf', message: failureCopy('tutor-deaf').message },
@@ -20,8 +20,8 @@ const room = (overrides = {}) => ({
   tutorSpeaking: false, thinking: false, micOpen: false, reconnecting: false,
   waitingForTutor: false, ...overrides,
 });
-const view = (live: ReturnType<typeof room>, typing = false, ending = false, saving = false) =>
-  evaluate(live, typing, ending, saving, tutorNameOf(null), failureCopy, typedDoorFor);
+const view = (live: ReturnType<typeof room>, typing = false, ending = false, saving = false, scene = false, typedScene = false) =>
+  evaluate(live, typing, ending, saving, tutorNameOf(null), failureCopy, typedDoorFor, scene, typedScene, scene ? (live as { summary?: unknown }).summary ?? null : live.recap);
 
 test('failed first practice never announces readiness or stale live activity', () => {
   for (const typing of [false, true]) {
@@ -49,7 +49,7 @@ test('voice failure typing keeps the existing room and never requests another gr
     let switches = 0, starts = 0, typing = false, issue = 'old notice';
     recover({ ...live, start: () => { starts++; }, switchToText: () => {
       switches++; live.status = { phase: 'live' } as typeof live.status; return true;
-    } }, true, takeTypedDoor, (next: boolean) => { typing = next; }, (next: string) => { issue = next; });
+    } }, true, takeTypedDoor, (next: boolean) => { typing = next; }, (next: string) => { issue = next; }, false, () => assert.fail('a conversation never reopens typed'));
     assert.equal(switches, 1);
     assert.equal(starts, 0);
     assert.equal(live.sessionId, 'same-metered-session');
@@ -73,14 +73,14 @@ test('settling, closed, nonvoice and already-typing failures have no recovery do
   assert.equal(view(room(), false, true).canRecoverByTyping, false);
   let switches = 0;
   recover(room({ switchToText: () => { switches++; return true; } }), false, takeTypedDoor,
-    () => assert.fail('must not open typing'), () => assert.fail('must not clear failure'));
+    () => assert.fail('must not open typing'), () => assert.fail('must not clear failure'), false, () => assert.fail('no cold reopen'));
   assert.equal(switches, 0);
 });
 
 test('a terminal or disconnected room refusing the switch stays failed without a replacement grant', () => {
   let starts = 0, issue = '';
   const live = room({ start: () => { starts++; }, switchToText: () => false });
-  recover(live, true, takeTypedDoor, () => assert.fail('must not open typing'), (next: string) => { issue = next; });
+  recover(live, true, takeTypedDoor, () => assert.fail('must not open typing'), (next: string) => { issue = next; }, false, () => assert.fail('no cold reopen'));
   assert.equal(starts, 0);
   assert.equal(live.status.phase, 'error');
   assert.match(issue, /End the session or check its result/);
@@ -94,4 +94,25 @@ test('connection retry is limited to an error before any session or settlement e
   assert.equal(view(unopened, false, true).canRetryConnection, false);
   assert.match(source, /canRetryConnection && <PillButton label="Try connecting again"/);
   assert.match(source, /live.status.phase === 'out-of-minutes' \? live.status.message/);
+});
+
+test('the café scene opens on the lesson prompt and ends on its summary', () => {
+  const lesson = { ...room({ status: { phase: 'live' }, convo: null }), prompt: { turn: {} } as { turn: object } | null, summary: null };
+  assert.equal(view(lesson, false, false, false, true).state, 'ready');
+  const unopened = { ...lesson, prompt: null };
+  assert.equal(view(unopened, false, false, false, true).state, 'connecting', 'a scene is not open until its first prompt');
+  // A typing door before any room opens reopens the scene typed, without a grant in hand.
+  const cold = room({ convo: null, sessionId: null, status: { phase: 'error', failure: 'mic-unavailable', message: '' } });
+  assert.equal(view(cold, false, false, false, true).canRecoverByTyping, true);
+  assert.equal(view(cold, false, false, false, true, true).canRecoverByTyping, false, 'already typed');
+  let typed = false, starts = 0;
+  recover({ ...cold, start: () => { starts++; } }, true, takeTypedDoor, () => assert.fail('the room is not switched'), () => {}, true, (next: boolean) => { typed = next; });
+  assert.equal(typed, true);
+  assert.equal(starts, 0, 'the restart follows the mode change, not the tap');
+  assert.match(source, /mode: guestSceneMode\(typedScene\), guestToken: guest\.token!/);
+  assert.match(source, /scene \? GUEST_SCENE_LESSON_ID : 'convo-01'/);
+  assert.match(source, /<SupportBlock support=\{live\.prompt\.support\} onOptionPress=\{live\.sendChoice\}/);
+  assert.match(source, /GUEST_SCENE_MAX_SECONDS \* 1000/);
+  // The scene keeps no learner text: no contribution callback on its branch.
+  assert.match(source, /\? \{ mode: guestSceneMode\(typedScene\), guestToken: guest\.token!, tutorVoice: guest\.plan\.tutorVoice \}\n/);
 });

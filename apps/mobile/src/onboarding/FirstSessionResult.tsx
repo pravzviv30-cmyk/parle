@@ -12,6 +12,7 @@ import { OnboardingLayout } from './OnboardingLayout.tsx';
 import { RevealItem } from './motion/OnboardingScenes.tsx';
 import { firstLiveSummary, type FirstLiveRecord } from './firstLiveModel.ts';
 import type { OnboardingProgressValue } from './onboardingProgress.ts';
+import { guestScenePhrases } from '@luvani/core';
 
 export function FirstSessionCelebration({ record, progress, onDone }: { record: FirstLiveRecord; progress: OnboardingProgressValue; onDone: () => void }) {
   const reduced = useReduceMotion();
@@ -32,7 +33,8 @@ export function FirstSessionCelebration({ record, progress, onDone }: { record: 
         <Text style={[type.celebrationSupport, { color: c.white, textAlign: 'center' }]}>You practised French.{'\n'}That’s a real step forward.</Text>
         <View style={{ width: '100%', marginTop: 8, backgroundColor: c.paper, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 16, gap: 6 }}>
           <Text style={[type.small, { color: c.muted, textAlign: 'center' }]}>Your first session</Text>
-          <Text style={[type.heading, { color: c.ink, textAlign: 'center' }]}>A conversation completed.</Text>
+          <Text style={[type.heading, { color: c.ink, textAlign: 'center' }]}>{record.scene ? 'The café scene, done.' : 'A conversation completed.'}</Text>
+          {record.scene ? guestScenePhrases(record.sceneTurns ?? []).map(line => <Text key={line.turnId} style={[type.body, { color: c.ink, textAlign: 'center' }]}>“{line.fr}”</Text>) : null}
         </View>
       </View>
     </OnboardingLayout>

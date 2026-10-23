@@ -6,6 +6,7 @@ import { freshPreAccountDraft } from './preAccountDraft.ts';
 import { shouldStartFirstPractice } from './firstPracticeEntry.ts';
 import { briefFromDraft } from './firstLiveModel.ts';
 import type { GuestPractice } from './guestModel.ts';
+import { isAccountHandoffRefusal, startRefusalCopy } from './guestScene.ts';
 
 const screen = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
@@ -22,7 +23,7 @@ function launch(signedIn: boolean, failure: string | null = 'guest-live-unavaila
     setBusy: () => {}, setNeedsAccount: (value: boolean) => accountRequired.push(value), generation: { current: 0 },
     guest: null, briefFromDraft: () => ({}), startGuestPractice: async () => { guestCalls++; if (failure) throw new Error(failure); return {}; },
     current: { current: true }, refusedRef: { current: false }, persist: async () => true, metric: () => {}, showPage: () => {},
-    setIssue: (value: string) => issues.push(value),
+    setIssue: (value: string) => issues.push(value), isAccountHandoffRefusal, startRefusalCopy,
   };
   const run = new Function(...Object.keys(world), `${stripTypeScriptTypes(startSource)}\nreturn start;`)(...Object.values(world));
   return { draft, account, issues, accountRequired, guestCalls: () => guestCalls, run };
@@ -42,6 +43,21 @@ test('only an explicit guest capability refusal offers the preserved account rou
   const unavailable = launch(false, 'unavailable'); await unavailable.run();
   assert.ok(!unavailable.accountRequired.includes(true), 'network failures retain connection retry');
   assert.match(unavailable.issues.at(-1) ?? '', /connect/i);
+});
+test('each scene refusal reaches the account handoff with its own line', async () => {
+  const lines = new Map<string, string>();
+  for (const code of ['guest-live-unavailable', 'guest-scene-used']) {
+    const h = launch(false, code); await h.run();
+    assert.equal(h.accountRequired.at(-1), true, `${code} must offer Create account to start`);
+    assert.deepEqual(h.account, [], 'a refusal never creates an account by itself');
+    const line = h.issues.at(-1) ?? '';
+    assert.match(line, /Create an account/);
+    assert.doesNotMatch(line, /[—–]/);
+    lines.set(code, line);
+  }
+  assert.equal(lines.get('guest-scene-used'), 'You’ve had your free café scene on this phone. Create an account to keep going.');
+  assert.equal(lines.get('guest-live-unavailable'), 'Live practice is resting right now. Create an account to start.');
+  assert.match(screen, /<GhostButton label="I already have an account"/);
 });
 test('a speech outage keeps the saved plan and retry without claiming account creation adds voice', async () => {
   const h = launch(false, 'voice-unavailable'); await h.run();

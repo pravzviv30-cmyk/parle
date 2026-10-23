@@ -1,4 +1,5 @@
 import type { FirstContribution } from '../onboarding/firstLiveModel.ts';
+import { guestLiveBody } from '../onboarding/guestScene.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { attachCorrectionReason } from './correctionReason.ts';
 import { analyticsAllowed } from '../analytics/consent.ts';
@@ -957,7 +958,9 @@ export function useLiveSession(
         // The token server signs startRung (and, for free conversation, the mode
         // and learner snapshot) into the join credential, so what the session
         // opens as is not something the client can quietly re-assert.
-        body: JSON.stringify(guestToken ? {} : {
+        // A guest scene grant names its mode (lesson or lesson-text); the older
+        // guest conversation still sends an empty body. See onboarding/guestScene.ts.
+        body: JSON.stringify(guestToken ? guestLiveBody(mode) : {
           userId,
           analyticsAllowed: analyticsAllowed(consent),
           lessonId,

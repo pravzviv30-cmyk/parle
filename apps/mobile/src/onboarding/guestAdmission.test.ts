@@ -36,3 +36,8 @@ test('an unavailable speech pipeline reaches disclosure without promising an acc
   const h = await request(503, { error: 'voice-unavailable', supportedModes: ['lesson-text', 'convo-text'] });
   assert.equal(h.result, 'voice-unavailable');
 });
+test('a phone that already had its café scene reaches the account handoff as its own refusal', async () => {
+  const h = await request(503, { error: 'guest-scene-used' });
+  assert.equal(h.result, 'guest-scene-used');
+  assert.equal((await request(503, { error: 'guest-scene-used' }, 'audio')).result, 'unavailable', 'only the start can refuse a scene');
+});

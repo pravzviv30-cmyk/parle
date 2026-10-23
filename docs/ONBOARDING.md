@@ -28,10 +28,16 @@ as choosing. A resumed first session requires its real durable guest record.
 
 ### Account handoff when guest live is unavailable
 
-Production guest live admission remains closed. A specific
-`guest-live-unavailable` response offers **Create account to start** and **I
-already have an account** on the disclosure page, with connection retry still
-available. The learner chooses that detour; a failed request does not submit an
+Start live practice asks for the guest café scene (`scene: 'guest-cafe'`, see
+the [change plan](changes/guest-first-scene.md)); the guest conversation stays
+closed. Two `/onboarding/start` refusals offer **Create account to start** and
+**I already have an account** on the disclosure page, with connection retry
+still available, and each says why in its own line: `guest-live-unavailable`
+(scenes switched off or today's places full) says "Live practice is resting
+right now. Create an account to start.", and `guest-scene-used` (this phone had
+its scene in the last 30 days) says "You’ve had your free café scene on this
+phone. Create an account to keep going." The lines live in
+`apps/mobile/src/onboarding/guestScene.ts`. The learner chooses that detour; a failed request does not submit an
 account or fabricate practice. The existing AuthFlow carries the answered plan,
 chosen tutor and optional preferences. A general connection failure keeps its
 connection recovery. Unsupported speaking is a separate `voice-unavailable`
@@ -184,6 +190,34 @@ keeps the existing draft/guest cleanup and reminder cancellation. Page changes,
 sign-in, sign-out and account switching cannot bypass that launch's refusal.
 No date of birth or new first name is collected. Legal review and server-side
 eligibility/admission enforcement remain release requirements.
+
+**The guest café scene.** An admitted start records `scene` on the guest
+record, and `FirstLivePractice` opens the scripted lesson tutor on lesson id
+`cafe-guest` instead of a conversation: mode `lesson` by voice, or
+`lesson-text` when the learner chooses typing before a room opens. Once a room
+is open, typing (including after a refused microphone) takes the existing quiet
+door in the same room, so no second grant is asked for. The room grant body is
+`{ mode }`. The screen reuses the lesson presentation from `LiveSessionScreen`:
+the tutor line in the transcript, the position ("2 of 5"), the target and tap
+options through `SupportBlock`, the hint and the turn note, inside the
+onboarding frame with its progress and safety exit. The scene lasts about two
+minutes; the service stops it at 180 seconds and the screen ends it at the same
+point as a backstop. It ends on the lesson `summary`, then reads
+`/onboarding/live-result`. The guest record keeps only the confirmed turn ids
+(`sceneTurns`), never what the learner typed or said: a scene record always has
+no contributions and no pack, and its repair drops anything else. The recap and
+summary name the lines answered with the reviewed French from
+`guestScenePhrases`; a completed scene celebrates ("The café scene, done."), a
+partial or interrupted one keeps the existing truthful copy.
+
+On Keep this practice, `/onboarding/claim` returns the scene's turn ids, which
+are trusted over the phone's copy. Those lines go to the phrasebook through the
+same durable `addPhrases` write, "Saved to your phrasebook." follows that write
+as before, day one settles once through `settleGuestHandoff`, and no pack is
+loaded. Claim refusals have their own calm lines: `guest-claimed-elsewhere` and
+`guest-expired` say the practice cannot be kept and Start fresh still finishes;
+`guest-active` asks to try again in a moment. A record without `scene` (an older
+guest conversation) adopts exactly as before.
 
 ## Motion, haptics and sheets
 
