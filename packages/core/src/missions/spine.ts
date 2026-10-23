@@ -43,6 +43,12 @@ export const SCENE_SPINE: readonly MissionId[] = [
   'mission:montreal',
   'mission:coup-de-main',
   'mission:anniversaire',
+  'mission:fuite',
+  'mission:galere',
+  'mission:avis',
+  'mission:entretien',
+  'mission:teletravail',
+  'mission:souvenirs',
 ];
 
 export interface SpineView {
@@ -86,12 +92,18 @@ export function spineFrom(progress: readonly MissionProgress[]): SpineView {
 export const GOAL_SCENES: Readonly<Record<Exclude<LearnerGoal, 'because'>, readonly MissionId[]>> = {
   moving: [
     'mission:appartement', 'mission:banque', 'mission:medecin', 'mission:voisin', 'mission:colis', 'mission:pharmacie',
-    'mission:telephone', 'mission:retour', 'mission:club', 'mission:montreal',
+    'mission:telephone', 'mission:retour', 'mission:club', 'mission:montreal', 'mission:fuite',
   ],
   trip: ['mission:gare', 'mission:restaurant', 'mission:chemin', 'mission:hotel', 'mission:pharmacie'],
   food: ['mission:cafe', 'mission:restaurant', 'mission:marche'],
-  family: ['mission:belle-famille', 'mission:anniversaire', 'mission:amis', 'mission:journee', 'mission:week-end'],
-  work: ['mission:collegues', 'mission:telephone', 'mission:coup-de-main', 'mission:week-end', 'mission:journee'],
+  family: [
+    'mission:belle-famille', 'mission:anniversaire', 'mission:amis', 'mission:journee', 'mission:week-end', 'mission:souvenirs',
+    'mission:galere',
+  ],
+  work: [
+    'mission:collegues', 'mission:telephone', 'mission:coup-de-main', 'mission:week-end', 'mission:journee', 'mission:entretien',
+    'mission:teletravail',
+  ],
 };
 
 export interface NextScene {

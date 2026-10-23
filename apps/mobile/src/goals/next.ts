@@ -89,6 +89,12 @@ export interface NextGoalTask {
  * "birthday suit" in OTHER_MEANINGS. Where an older scene shares a word the
  * newer one needs two hits: "ask a colleague for help" carries "ask a
  * colleague" too, so it beats the first-day scene's "colleague".
+ *
+ * The six B1 missions, same rule. Bare "story" (a news story, a two-storey
+ * house), "film" (cling film), "interview" (a press interview), "manager" and
+ * "home" stay out; each is a phrase ("tell a story", "talk about films", "job
+ * interview", "ask my manager", "work from home"). "leak" and "grandmother"
+ * stay bare, with "leak to the press" in OTHER_MEANINGS.
  */
 export const MISSION_WORDS: Readonly<Record<Exclude<MissionId, 'mission:premier-cafe'>, readonly string[]>> = {
   'mission:cafe': ['cafe', 'coffee', 'croissant', 'bakery', 'boulangerie', 'barista', 'restaurant', 'restaurants', 'menu', 'waiter', 'bistro'],
@@ -163,6 +169,30 @@ export const MISSION_WORDS: Readonly<Record<Exclude<MissionId, 'mission:premier-
     'birthday', 'birthdays', 'birthday party', 'happy birthday', 'anniversaire', 'sister in law', 'brother in law',
     'sisters in law', 'brothers in law', 'partners sister', 'partners brother',
   ],
+  'mission:fuite': [
+    'leak', 'leaks', 'water leak', 'a leak', 'plumber', 'call a plumber', 'call the landlord about',
+    'call my landlord', 'report a problem to my landlord', 'water damage',
+  ],
+  'mission:galere': [
+    'tell a story', 'tell stories', 'tell funny stories', 'funny stories', 'tell a funny story', 'tell an anecdote', 'storytelling',
+    'tell the story of',
+  ],
+  'mission:avis': [
+    'give my opinion', 'share my opinion', 'give opinions', 'say what i think', 'talk about films', 'talk about movies',
+    'discuss films', 'discuss movies', 'talk about a film', 'talk about a movie',
+  ],
+  'mission:entretien': [
+    'job interview', 'job interviews', 'interview in french', 'a job interview', 'interview for a job', 'entretien',
+    'entretien d embauche',
+  ],
+  'mission:teletravail': [
+    'work from home', 'working from home', 'remote work', 'remote working', 'work remotely', 'ask my manager',
+    'ask my boss', 'teletravail',
+  ],
+  'mission:souvenirs': [
+    'grandmother', 'grandmothers', 'grandparents', 'grandma', 'granny', 'grandfather', 'grandpa', 'my childhood',
+    'childhood memories', 'talk about my childhood', 'when i was a child', 'when i was little',
+  ],
 };
 
 /**
@@ -174,6 +204,7 @@ const OTHER_MEANINGS: readonly string[] = [
   'black market', 'market research', 'market share',
   'doctor who', 'spin doctor', 'part and parcel', 'parcel of land',
   'birthday suit',
+  'leak to the press',
 ];
 
 /**

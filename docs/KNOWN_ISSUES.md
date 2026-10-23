@@ -1387,7 +1387,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: mission spine B1 (2026-10-22): six more A2 missions joined (club, banque, sortie, montreal,
   coup-de-main, anniversaire; [docs/changes/mission-spine-b1.md](changes/mission-spine-b1.md)),
   so the count test was renamed to twenty-five.
-- verified-by: `twenty-five missions exist and each names the path unit that practises it`
+- note: mission spine B1 (2026-10-23): the six B1 missions joined (fuite, galere, avis, entretien,
+  teletravail, souvenirs), so the count test was renamed to thirty-one.
+- verified-by: `thirty-one missions exist and each names the path unit that practises it`
 - verified-by: `a completed mission whose phrases fall due reads needs-review, never complete`
 - verified-by: `independence comes from the rung the win was earned at, not from the model`
 - verified-by: `every authored path phrase can be drilled the day it appears`

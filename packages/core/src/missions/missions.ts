@@ -65,7 +65,13 @@ export type MissionId =
   | 'mission:sortie'
   | 'mission:montreal'
   | 'mission:coup-de-main'
-  | 'mission:anniversaire';
+  | 'mission:anniversaire'
+  | 'mission:fuite'
+  | 'mission:galere'
+  | 'mission:avis'
+  | 'mission:entretien'
+  | 'mission:teletravail'
+  | 'mission:souvenirs';
 
 /**
  * Where the mission happens: one of the six places the daily pool already
@@ -1060,5 +1066,165 @@ export const MISSIONS: readonly Mission[] = [
       'Et toi, tu fais quoi dans la vie ?',
     ],
     pathUnitId: 'anniversaire',
+  },
+  {
+    // B1 (docs/changes/mission-spine-b1.md): explaining a problem. Follows
+    // mission:appartement once the learner lives in the flat.
+    id: 'mission:fuite',
+    title: 'Il y a une fuite',
+    titleEn: 'Report a leak to your landlord',
+    place: 'home',
+    cefr: 'B1',
+    learnerRole: 'A tenant phoning the landlord about a leak under the kitchen sink.',
+    tutorRole: 'Patrick, the landlord, calm on the phone, who wants the facts before he sends anyone.',
+    goalEn: 'Explain the leak, say since when and what you tried, say what it is damaging, then agree when a plumber can come.',
+    winEn: 'Patrick is sending a plumber, and the bucket under the sink can go back in the cupboard.',
+    canDoEn: 'Report a problem in your home',
+    earnedEn: 'You can report a problem to your landlord',
+    beatIds: ['explain-the-problem', 'say-since-when', 'say-what-it-damages', 'ask-when-someone-can-come', 'agree-on-a-time'],
+    phraseKeys: [
+      "phrase:il y a une fuite sous l'évier de la cuisine",
+      "phrase:ça a commencé hier soir, et j'ai coupé l'eau",
+      "phrase:l'eau coule chez le voisin du dessous",
+      'phrase:un plombier pourrait passer quand ?',
+    ],
+    referencePhrases: [
+      "Il y a une fuite sous l'évier de la cuisine",
+      "Ça a commencé hier soir, et j'ai coupé l'eau",
+      'Un plombier pourrait passer quand ?',
+    ],
+    pathUnitId: 'fuite',
+  },
+  {
+    // B1: the imparfait sets the scene, the passé composé moves it on.
+    id: 'mission:galere',
+    title: 'Tu vas pas me croire',
+    titleEn: 'Tell the story of your weekend',
+    place: 'cafe',
+    cefr: 'B1',
+    learnerRole: 'Someone telling a friend over a drink about a weekend where everything went sideways.',
+    tutorRole: 'Hugo, a friend, a great listener who always has a worse story of his own.',
+    goalEn: 'Set the scene, say what happened and how you reacted, say how it ended, then react to his story.',
+    winEn: 'Hugo laughed at the train part, then told you his own disaster.',
+    canDoEn: 'Tell a friend a story from start to finish',
+    earnedEn: 'You can tell a story about something that happened',
+    beatIds: ['set-the-scene', 'say-what-happened', 'say-how-you-reacted', 'say-how-it-ended', 'react-to-his-story'],
+    phraseKeys: [
+      "phrase:il pleuvait, et j'étais à la gare",
+      'phrase:et là, le train a été annulé',
+      "phrase:du coup, j'ai pris le bus de nuit",
+      "phrase:finalement, j'ai dormi chez des amis",
+    ],
+    referencePhrases: [
+      "Il pleuvait, et j'étais à la gare",
+      'Et là, le train a été annulé',
+      "Finalement, j'ai dormi chez des amis",
+    ],
+    pathUnitId: 'galere',
+  },
+  {
+    // B1: opinion and justification. The film mission:sortie planned.
+    id: 'mission:avis',
+    title: 'Alors, ce film ?',
+    titleEn: 'Say what you thought of a film',
+    place: 'cafe',
+    cefr: 'B1',
+    learnerRole: 'Someone coming out of the cinema with a friend, over a drink next door.',
+    tutorRole: 'Yasmine, a friend who loves films and enjoys a friendly argument about them.',
+    goalEn: 'Give your opinion and say why, add a nuance, agree or disagree politely, and suggest what to see next.',
+    winEn: 'Yasmine half agrees with you, and the next film is your pick.',
+    canDoEn: 'Say what you thought of a film, and why',
+    earnedEn: 'You can give your opinion and explain it',
+    beatIds: ['give-your-opinion', 'say-why', 'add-a-nuance', 'agree-or-disagree', 'suggest-what-next'],
+    phraseKeys: [
+      "phrase:à mon avis, c'était vraiment réussi",
+      "phrase:ce qui m'a plu, c'est l'histoire",
+      "phrase:c'était pas mal, mais un peu long",
+      "phrase:je suis pas tout à fait d'accord",
+    ],
+    referencePhrases: ["À mon avis, c'était vraiment réussi", "Ce qui m'a plu, c'est l'histoire"],
+    pathUnitId: 'avis',
+  },
+  {
+    // B1: a short, realistic interview. No salary talk.
+    id: 'mission:entretien',
+    title: "L'entretien d'embauche",
+    titleEn: 'A short job interview',
+    place: 'home',
+    cefr: 'B1',
+    learnerRole: 'A candidate in a first interview for a job in a French company.',
+    tutorRole: 'Claire Lefèvre, a recruiter, friendly but precise, who listens for examples.',
+    goalEn: 'Sum up your background, say why this job, give an example of a strength, ask about the role, and close.',
+    winEn: 'Claire Lefèvre walked you to the lift and promised news by the end of the week.',
+    canDoEn: 'Talk about yourself in a job interview',
+    earnedEn: 'You can get through a short job interview in French',
+    beatIds: ['sum-up-your-background', 'say-why-this-job', 'give-an-example', 'ask-about-the-role', 'close-and-thank'],
+    phraseKeys: [
+      "phrase:j'ai travaillé plusieurs années dans la vente",
+      "phrase:ce poste m'intéresse parce que j'aime le travail en équipe",
+      "phrase:mon point fort, c'est l'organisation",
+      "phrase:j'aimerais savoir à quoi ressemble une journée type",
+    ],
+    referencePhrases: [
+      "J'ai travaillé plusieurs années dans la vente",
+      "Mon point fort, c'est l'organisation",
+      "J'aimerais savoir à quoi ressemble une journée type",
+    ],
+    pathUnitId: 'entretien',
+  },
+  {
+    // B1: the polite conditional. Same Isabelle as mission:collegues, who
+    // offered tu there, so it is tu here.
+    id: 'mission:teletravail',
+    title: 'Demander du télétravail',
+    titleEn: 'Ask your manager to work from home',
+    place: 'home',
+    cefr: 'B1',
+    learnerRole: 'Someone a few months into the job, asking their manager about working from home.',
+    tutorRole: 'Isabelle, the team manager from the first day, open to it but worried about team meetings.',
+    goalEn: 'Ask for a moment, make the request, give your reasons, answer her concern, and agree on a next step.',
+    winEn: 'Isabelle said yes to a trial, and the team calendar already shows your home days.',
+    canDoEn: 'Ask your manager for something politely',
+    earnedEn: 'You can make a polite request at work',
+    beatIds: ['ask-for-a-moment', 'make-the-request', 'give-your-reasons', 'answer-her-concern', 'agree-a-next-step'],
+    phraseKeys: [
+      'phrase:est-ce que ce serait possible de télétravailler ?',
+      "phrase:à la maison, j'arrive mieux à me concentrer",
+      "phrase:pour les réunions d'équipe, je serais toujours là",
+      'phrase:et si on faisait un essai, pour voir ?',
+    ],
+    referencePhrases: [
+      'Est-ce que ce serait possible de télétravailler ?',
+      "À la maison, j'arrive mieux à me concentrer",
+      "Pour les réunions d'équipe, je serais toujours là",
+    ],
+    pathUnitId: 'teletravail',
+  },
+  {
+    // B1: imparfait descriptions and then-and-now. Widens
+    // mission:belle-famille to the grandparents' generation.
+    id: 'mission:souvenirs',
+    title: 'Chez la grand-mère',
+    titleEn: "Talk with your partner's grandmother",
+    place: 'friends',
+    cefr: 'B1',
+    learnerRole: "Someone spending an afternoon with their partner's grandmother, over coffee and old photos.",
+    tutorRole: "Jeannine, your partner's grandmother, who says tu to you and loves to tell stories.",
+    goalEn: 'Say where you grew up and what it was like, ask about her youth, compare then and now, and thank her.',
+    winEn: 'Jeannine brought out the old photo album, and wants you back for Sunday lunch.',
+    canDoEn: "Share memories with your partner's grandmother",
+    earnedEn: 'You can talk about the past and how things have changed',
+    beatIds: ['say-where-you-grew-up', 'describe-what-it-was-like', 'ask-about-her-youth', 'compare-then-and-now', 'thank-her-for-the-stories'],
+    phraseKeys: [
+      "phrase:j'ai grandi dans une petite ville au bord de la mer",
+      "phrase:quand j'étais enfant, on jouait dehors tout le temps",
+      "phrase:et vous, comment c'était, quand vous étiez jeune ?",
+      "phrase:aujourd'hui, tout va beaucoup plus vite",
+    ],
+    referencePhrases: [
+      "J'ai grandi dans une petite ville au bord de la mer",
+      "Quand j'étais enfant, on jouait dehors tout le temps",
+    ],
+    pathUnitId: 'souvenirs',
   },
 ];

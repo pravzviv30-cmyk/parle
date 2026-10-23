@@ -46,6 +46,12 @@ export const SCENE_ILLUSTRATION: Record<MissionId, IllustrationName> = {
   'mission:montreal': 'place-montreal-coat',
   'mission:coup-de-main': 'place-office-help',
   'mission:anniversaire': 'place-birthday',
+  'mission:fuite': 'place-leak',
+  'mission:galere': 'place-story',
+  'mission:avis': 'place-film-talk',
+  'mission:entretien': 'place-interview',
+  'mission:teletravail': 'place-remote-work',
+  'mission:souvenirs': 'place-grandmother',
 };
 
 /** The drawing for one scene. Total, because the parameter is the closed union. */

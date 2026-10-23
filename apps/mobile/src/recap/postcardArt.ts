@@ -26,5 +26,11 @@ export const POSTCARD: Record<MissionId, IllustrationName> = {
   'mission:montreal': 'postcard-montreal-coat',
   'mission:coup-de-main': 'postcard-office-help',
   'mission:anniversaire': 'postcard-birthday',
+  'mission:fuite': 'postcard-leak',
+  'mission:galere': 'postcard-story',
+  'mission:avis': 'postcard-film-talk',
+  'mission:entretien': 'postcard-interview',
+  'mission:teletravail': 'postcard-remote-work',
+  'mission:souvenirs': 'postcard-grandmother',
 };
 export function postcardIllustration(id: MissionId): IllustrationName { return POSTCARD[id]; }

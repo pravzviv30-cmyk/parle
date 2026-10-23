@@ -617,6 +617,126 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
     ],
   },
   {
+    id: 'fuite',
+    title: 'Il y a une fuite',
+    nodes: [
+      {
+        id: 'fuite:explaining',
+        title: 'The leak, and what you did',
+        sub: 'Where it is, since when, and the water turned off',
+        kind: 'phrases',
+        phraseKeys: ["phrase:il y a une fuite sous l'évier de la cuisine", "phrase:ça a commencé hier soir, et j'ai coupé l'eau"],
+      },
+      {
+        id: 'fuite:arranging',
+        title: 'The damage, and the plumber',
+        sub: 'The flat below, and when someone can come',
+        kind: 'phrases',
+        phraseKeys: ["phrase:l'eau coule chez le voisin du dessous", 'phrase:un plombier pourrait passer quand ?'],
+      },
+    ],
+  },
+  {
+    id: 'galere',
+    title: 'Tu vas pas me croire',
+    nodes: [
+      {
+        id: 'galere:scene',
+        title: 'Setting the scene',
+        sub: 'The rain, the station, and the cancelled train',
+        kind: 'phrases',
+        phraseKeys: ["phrase:il pleuvait, et j'étais à la gare", 'phrase:et là, le train a été annulé'],
+      },
+      {
+        id: 'galere:ending',
+        title: 'What you did next',
+        sub: 'The night bus, and how it ended',
+        kind: 'phrases',
+        phraseKeys: ["phrase:du coup, j'ai pris le bus de nuit", "phrase:finalement, j'ai dormi chez des amis"],
+      },
+    ],
+  },
+  {
+    id: 'avis',
+    title: 'Alors, ce film ?',
+    nodes: [
+      {
+        id: 'avis:opinion',
+        title: 'Your opinion, and why',
+        sub: 'What you thought, and what you liked',
+        kind: 'phrases',
+        phraseKeys: ["phrase:à mon avis, c'était vraiment réussi", "phrase:ce qui m'a plu, c'est l'histoire"],
+      },
+      {
+        id: 'avis:nuance',
+        title: 'A nuance, and a polite no',
+        sub: 'Good but long, and not quite agreeing',
+        kind: 'phrases',
+        phraseKeys: ["phrase:c'était pas mal, mais un peu long", "phrase:je suis pas tout à fait d'accord"],
+      },
+    ],
+  },
+  {
+    id: 'entretien',
+    title: "L'entretien d'embauche",
+    nodes: [
+      {
+        id: 'entretien:background',
+        title: 'Your background, and why this job',
+        sub: 'What you have done, and what draws you',
+        kind: 'phrases',
+        phraseKeys: ["phrase:j'ai travaillé plusieurs années dans la vente", "phrase:ce poste m'intéresse parce que j'aime le travail en équipe"],
+      },
+      {
+        id: 'entretien:strength',
+        title: 'A strength, and a question',
+        sub: 'What you do well, and what a day looks like',
+        kind: 'phrases',
+        phraseKeys: ["phrase:mon point fort, c'est l'organisation", "phrase:j'aimerais savoir à quoi ressemble une journée type"],
+      },
+    ],
+  },
+  {
+    id: 'teletravail',
+    title: 'Demander du télétravail',
+    nodes: [
+      {
+        id: 'teletravail:asking',
+        title: 'The request, and why',
+        sub: 'Asking politely, and the reason',
+        kind: 'phrases',
+        phraseKeys: ['phrase:est-ce que ce serait possible de télétravailler ?', "phrase:à la maison, j'arrive mieux à me concentrer"],
+      },
+      {
+        id: 'teletravail:settling',
+        title: 'Her concern, and a trial',
+        sub: 'The meetings, and trying it out',
+        kind: 'phrases',
+        phraseKeys: ["phrase:pour les réunions d'équipe, je serais toujours là", 'phrase:et si on faisait un essai, pour voir ?'],
+      },
+    ],
+  },
+  {
+    id: 'souvenirs',
+    title: 'Chez la grand-mère',
+    nodes: [
+      {
+        id: 'souvenirs:childhood',
+        title: 'Where you grew up',
+        sub: 'The town, and what childhood was like',
+        kind: 'phrases',
+        phraseKeys: ["phrase:j'ai grandi dans une petite ville au bord de la mer", "phrase:quand j'étais enfant, on jouait dehors tout le temps"],
+      },
+      {
+        id: 'souvenirs:then-and-now',
+        title: 'Her youth, and today',
+        sub: 'Asking about her, and comparing',
+        kind: 'phrases',
+        phraseKeys: ["phrase:et vous, comment c'était, quand vous étiez jeune ?", "phrase:aujourd'hui, tout va beaucoup plus vite"],
+      },
+    ],
+  },
+  {
     id: 'mine',
     title: 'From your conversations',
     nodes: [

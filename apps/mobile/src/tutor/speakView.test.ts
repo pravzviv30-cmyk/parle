@@ -111,11 +111,12 @@ describe('the level path', () => {
   // level the learner is in, by their French names, and one line for the level
   // after. The card opens the list of every scene, so nothing here is lost.
   test("the path card holds the current level's scenes in French and names the rest in one line", () => {
-    const levelOf = (level: 'A0' | 'A1' | 'A2') => SCENE_SPINE.filter((id) => getMission(id)!.cefr === level);
+    const levelOf = (level: 'A0' | 'A1' | 'A2' | 'B1') => SCENE_SPINE.filter((id) => getMission(id)!.cefr === level);
     const a0 = levelOf('A0');
     const a1 = levelOf('A1');
     const a2 = levelOf('A2');
-    assert.ok(a0.length > 0 && a1.length > 0 && a2.length > 0, 'the spine lost a level, so this test reads nothing');
+    const b1 = levelOf('B1');
+    assert.ok(a0.length > 0 && a1.length > 0 && a2.length > 0 && b1.length > 0, 'the spine lost a level, so this test reads nothing');
 
     // A first run: the "here" is the opener, so the card is A0 and names A1 after it.
     const fresh = pathCard(speakPath(missionStates([], [], NOW)));
@@ -137,17 +138,25 @@ describe('the level path', () => {
     assert.deepEqual(second.rows.map((row) => row.missionId), a1);
     assert.equal(second.rest, `Then A2, ${a2.length} more scenes`);
 
-    // A0 and A1 earned: the card is on A2, the last level, with no line after.
+    // A0 and A1 earned: the card is on A2, and names B1 after it
+    // (2026-10-23, the six B1 scenes in docs/changes/mission-spine-b1.md).
     const pastA1 = missionStates([...a0, ...a1].map((id, i) => ({ id, at: NOW - 10_000 + i, rung: 4 as const })), [], NOW);
     const third = pathCard(speakPath(pastA1));
     assert.equal(third.level, 'A2', 'the card stayed on a level the learner has finished');
     assert.deepEqual(third.rows.map((row) => row.missionId), a2);
-    assert.equal(third.rest, null, 'the last level names a level after it that does not exist');
+    assert.equal(third.rest, `Then B1, ${b1.length} more scenes`);
+
+    // A0 to A2 earned: the card is on B1, the last level, with no line after.
+    const pastA2 = missionStates([...a0, ...a1, ...a2].map((id, i) => ({ id, at: NOW - 10_000 + i, rung: 4 as const })), [], NOW);
+    const fourth = pathCard(speakPath(pastA2));
+    assert.equal(fourth.level, 'B1', 'the card stayed on a level the learner has finished');
+    assert.deepEqual(fourth.rows.map((row) => row.missionId), b1);
+    assert.equal(fourth.rest, null, 'the last level names a level after it that does not exist');
 
     // Everything earned: there is no "here" at all, and the last level stands.
     const done = missionStates(SCENE_SPINE.map((id, i) => ({ id, at: NOW - 10_000 + i, rung: 4 as const })), [], NOW);
     const last = pathCard(speakPath(done));
-    assert.equal(last.level, 'A2');
+    assert.equal(last.level, 'B1');
     assert.ok(last.rows.every((row) => row.state === 'earned'));
     assert.equal(last.rest, null);
 
