@@ -3337,7 +3337,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
       id: 'fuite-rt-coupe-silent',
       phraseKey: "phrase:ça a commencé hier soir, et j'ai coupé l'eau",
       difficulty: 'production',
-      accepted: ["Ça a commencé hier soir, et j'ai coupé l'eau", "Ça a commencé hier soir", "C'est arrivé hier soir, et j'ai coupé l'eau"],
+      accepted: ["Ça a commencé hier soir, et j'ai coupé l'eau"],
       fr: "Ça a commencé hier soir, et j'ai coupé l'eau",
     },
     reference: "Ça a commencé hier soir, et j'ai coupé l'eau",
@@ -3437,7 +3437,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: 'phrase:et là, le train a été annulé',
     difficulty: 'production',
     fr: 'Et là, le train a été annulé',
-    accepted: ['Et là, le train a été annulé', 'Et là, ils ont annulé le train', 'Le train a été annulé'],
+    accepted: ['Et là, le train a été annulé'],
   },
   // Du coup links cause and effect in speech, much like so.
   {
@@ -3479,7 +3479,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:finalement, j'ai dormi chez des amis",
     difficulty: 'production',
     fr: "Finalement, j'ai dormi chez des amis",
-    accepted: ["Finalement, j'ai dormi chez des amis", "Finalement, j'ai dormi chez des potes", "Au final, j'ai dormi chez des amis"],
+    accepted: ["Finalement, j'ai dormi chez des amis", "Finalement, j'ai dormi chez des potes"],
   },
 
   // ---- alors, ce film ? ----------------------------------------------
@@ -3503,7 +3503,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:à mon avis, c'était vraiment réussi",
     difficulty: 'production',
     fr: "À mon avis, c'était vraiment réussi",
-    accepted: ["À mon avis, c'était vraiment réussi", "À mon avis, c'était réussi", "Pour moi, c'était vraiment réussi"],
+    accepted: ["À mon avis, c'était vraiment réussi", "À mon avis, c'était réussi"],
   },
   // Ce qui m'a plu, c'est... puts the thing you liked at the end, for weight.
   {
@@ -3525,33 +3525,33 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     options: null,
     sentence: "Ce qui m'a ___, c'est l'histoire",
   },
-  // Pas mal is a real compliment in French; mais adds the nuance.
+  // Pas mal is a real compliment in French; par contre adds the nuance.
   {
     kind: 'fill-blank',
     id: 'avis-fb-pas-mal',
-    phraseKey: "phrase:c'était pas mal, mais un peu long",
+    phraseKey: "phrase:c'était pas mal, par contre c'était un peu long",
     difficulty: 'recognition',
-    sentence: "C'était pas mal, ___ un peu long",
-    options: ['mais', 'donc', 'parce que'],
-    accepted: ['mais'],
-    en: 'It was pretty good, but a bit long',
+    sentence: "C'était pas mal, ___ c'était un peu long",
+    options: ['par contre', 'parce que', 'pourtant'],
+    accepted: ['par contre'],
+    en: 'It was pretty good, but it was a bit long',
   },
   {
     kind: 'repeat-this',
     id: 'avis-rt-pas-mal',
-    phraseKey: "phrase:c'était pas mal, mais un peu long",
+    phraseKey: "phrase:c'était pas mal, par contre c'était un peu long",
     difficulty: 'production',
     ipa: null,
     noMicTwin: {
       kind: 'listen-type',
       id: 'avis-rt-pas-mal-silent',
-      phraseKey: "phrase:c'était pas mal, mais un peu long",
+      phraseKey: "phrase:c'était pas mal, par contre c'était un peu long",
       difficulty: 'production',
-      accepted: ["C'était pas mal, mais un peu long", "Ce n'était pas mal, mais un peu long", "C'était pas mal, mais trop long"],
-      fr: "C'était pas mal, mais un peu long",
+      accepted: ["C'était pas mal, par contre c'était un peu long", "Ce n'était pas mal, par contre c'était un peu long"],
+      fr: "C'était pas mal, par contre c'était un peu long",
     },
-    reference: "C'était pas mal, mais un peu long",
-    referenceEn: 'It was pretty good, but a bit long',
+    reference: "C'était pas mal, par contre c'était un peu long",
+    referenceEn: 'It was pretty good, but it was a bit long',
   },
   // Tout à fait softens the no: not entirely, rather than not at all.
   {
@@ -3563,7 +3563,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     line: { speaker: 'Yasmine', fr: "Franchement, la fin était nulle, non ?", en: 'Honestly, the ending was rubbish, right?' },
     options: [
       { fr: "Je suis pas tout à fait d'accord", en: 'I do not quite agree' },
-      { fr: "Bof, moi, je l'ai trouvée plutôt belle", en: 'Hmm, I found it rather lovely' },
+      { fr: "Ah non, moi, je l'ai trouvée plutôt belle", en: 'Oh no, I found it rather lovely' },
       { fr: "Tu es nulle.", en: 'You are rubbish.' },
       { fr: 'On prend le métro ?', en: 'Shall we take the metro?' },
     ],
@@ -3574,7 +3574,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:je suis pas tout à fait d'accord",
     difficulty: 'production',
     fr: "Je suis pas tout à fait d'accord",
-    accepted: ["Je suis pas tout à fait d'accord", "Je ne suis pas tout à fait d'accord", "Je suis pas trop d'accord"],
+    accepted: ["Je suis pas tout à fait d'accord", "Je ne suis pas tout à fait d'accord"],
   },
 
   // ---- l'entretien d'embauche ----------------------------------------
@@ -3598,7 +3598,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:j'ai travaillé plusieurs années dans la vente",
     difficulty: 'production',
     fr: "J'ai travaillé plusieurs années dans la vente",
-    accepted: ["J'ai travaillé plusieurs années dans la vente", "J'ai travaillé plusieurs ans dans la vente", "Pendant plusieurs années, j'ai travaillé dans la vente"],
+    accepted: ["J'ai travaillé plusieurs années dans la vente", "Pendant plusieurs années, j'ai travaillé dans la vente"],
   },
   // Parce que gives the reason; ça m'intéresse is the polite way to want something.
   {
@@ -3642,7 +3642,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
       id: 'entretien-rt-fort-silent',
       phraseKey: "phrase:mon point fort, c'est l'organisation",
       difficulty: 'production',
-      accepted: ["Mon point fort, c'est l'organisation", "Mon point fort, c'est mon organisation", "Ma force, c'est l'organisation"],
+      accepted: ["Mon point fort, c'est l'organisation", "Mon point fort, c'est mon organisation"],
       fr: "Mon point fort, c'est l'organisation",
     },
     reference: "Mon point fort, c'est l'organisation",
@@ -3669,7 +3669,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:j'aimerais savoir à quoi ressemble une journée type",
     difficulty: 'production',
     fr: "J'aimerais savoir à quoi ressemble une journée type",
-    accepted: ["J'aimerais savoir à quoi ressemble une journée type", "Je voudrais savoir à quoi ressemble une journée type", 'À quoi ressemble une journée type ?'],
+    accepted: ["J'aimerais savoir à quoi ressemble une journée type", "Je voudrais savoir à quoi ressemble une journée type", ],
   },
 
   // ---- demander du télétravail ---------------------------------------
@@ -3695,7 +3695,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
       id: 'teletravail-rt-serait-silent',
       phraseKey: 'phrase:est-ce que ce serait possible de télétravailler ?',
       difficulty: 'production',
-      accepted: ['Est-ce que ce serait possible de télétravailler ?', 'Ce serait possible de télétravailler ?', 'Est-ce que je pourrais télétravailler ?'],
+      accepted: ['Est-ce que ce serait possible de télétravailler ?', 'Ce serait possible de télétravailler ?'],
       fr: 'Est-ce que ce serait possible de télétravailler ?',
     },
     reference: 'Est-ce que ce serait possible de télétravailler ?',
@@ -3742,7 +3742,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:pour les réunions d'équipe, je serais toujours là",
     difficulty: 'production',
     fr: "Pour les réunions d'équipe, je serais toujours là",
-    accepted: ["Pour les réunions d'équipe, je serais toujours là", "Pour les réunions d'équipe, je serai toujours là", "Je serais toujours là pour les réunions d'équipe"],
+    accepted: ["Pour les réunions d'équipe, je serais toujours là", "Je serais toujours là pour les réunions d'équipe"],
   },
   // Et si on + imparfait makes a suggestion.
   {
@@ -3764,7 +3764,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: 'phrase:et si on faisait un essai, pour voir ?',
     difficulty: 'production',
     fr: 'Et si on faisait un essai, pour voir ?',
-    accepted: ['Et si on faisait un essai, pour voir ?', 'Et si on faisait un essai ?', 'On pourrait faire un essai, pour voir ?'],
+    accepted: ['Et si on faisait un essai, pour voir ?', 'Et si on faisait un essai ?'],
   },
 
   // ---- chez la grand-mère --------------------------------------------
@@ -3788,7 +3788,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     phraseKey: "phrase:j'ai grandi dans une petite ville au bord de la mer",
     difficulty: 'production',
     fr: "J'ai grandi dans une petite ville au bord de la mer",
-    accepted: ["J'ai grandi dans une petite ville au bord de la mer", "J'ai grandi dans une petite ville", "J'ai grandi au bord de la mer"],
+    accepted: ["J'ai grandi dans une petite ville au bord de la mer"],
   },
   // The imparfait for habits: on jouait, every day, not once.
   {

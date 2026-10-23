@@ -188,7 +188,7 @@ describe('the catalogue — thirty-one front doors, each with somewhere to pract
       'mission:fuite': ['Report a problem in your home', 'You can report a problem to your landlord'],
       'mission:galere': ['Tell a friend a story from start to finish', 'You can tell a story about something that happened'],
       'mission:avis': ['Say what you thought of a film, and why', 'You can give your opinion and explain it'],
-      'mission:entretien': ['Talk about yourself in a job interview', 'You can get through a short job interview in French'],
+      'mission:entretien': ['Talk about yourself in a job interview', 'You can talk about yourself in a short job interview'],
       'mission:teletravail': ['Ask your manager for something politely', 'You can make a polite request at work'],
       'mission:souvenirs': ["Share memories with your partner's grandmother", 'You can talk about the past and how things have changed'],
     };

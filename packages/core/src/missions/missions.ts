@@ -933,7 +933,6 @@ export const MISSIONS: readonly Mission[] = [
       "phrase:qu'est-ce qu'il faut apporter ?",
     ],
     referencePhrases: [
-      "Je voudrais m'inscrire au cours de yoga",
       "C'est quel jour, et à quelle heure ?",
       "On peut faire un cours d'essai ?",
       "Qu'est-ce qu'il faut apporter ?",
@@ -1139,7 +1138,7 @@ export const MISSIONS: readonly Mission[] = [
     phraseKeys: [
       "phrase:à mon avis, c'était vraiment réussi",
       "phrase:ce qui m'a plu, c'est l'histoire",
-      "phrase:c'était pas mal, mais un peu long",
+      "phrase:c'était pas mal, par contre c'était un peu long",
       "phrase:je suis pas tout à fait d'accord",
     ],
     referencePhrases: ["À mon avis, c'était vraiment réussi", "Ce qui m'a plu, c'est l'histoire"],
@@ -1157,7 +1156,7 @@ export const MISSIONS: readonly Mission[] = [
     goalEn: 'Sum up your background, say why this job, give an example of a strength, ask about the role, and close.',
     winEn: 'Claire Lefèvre walked you to the lift and promised news by the end of the week.',
     canDoEn: 'Talk about yourself in a job interview',
-    earnedEn: 'You can get through a short job interview in French',
+    earnedEn: 'You can talk about yourself in a short job interview',
     beatIds: ['sum-up-your-background', 'say-why-this-job', 'give-an-example', 'ask-about-the-role', 'close-and-thank'],
     phraseKeys: [
       "phrase:j'ai travaillé plusieurs années dans la vente",

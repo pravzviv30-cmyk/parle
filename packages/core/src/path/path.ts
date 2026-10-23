@@ -672,7 +672,7 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
         title: 'A nuance, and a polite no',
         sub: 'Good but long, and not quite agreeing',
         kind: 'phrases',
-        phraseKeys: ["phrase:c'était pas mal, mais un peu long", "phrase:je suis pas tout à fait d'accord"],
+        phraseKeys: ["phrase:c'était pas mal, par contre c'était un peu long", "phrase:je suis pas tout à fait d'accord"],
       },
     ],
   },

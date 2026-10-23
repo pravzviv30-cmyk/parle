@@ -3048,7 +3048,7 @@ const ANNIVERSAIRE_FRAME: ScenarioFrame = {
 const FUITE_FRAME: ScenarioFrame = {
   title: 'Il y a une fuite',
   titleEn: 'There is a leak',
-  setting: 'A rented flat in Nantes on a weekday evening. A towel on the kitchen floor, a bucket under the sink, the cupboard doors open, and the phone in your hand ringing the landlord.',
+  setting: 'A rented flat in Nantes on a weekday. A towel on the kitchen floor, a bucket under the sink, the cupboard doors open, and the phone in your hand ringing the landlord.',
   learnerRole: 'A tenant phoning the landlord about a leak under the kitchen sink.',
   characters: [
     {
@@ -3166,7 +3166,7 @@ const FUITE_FRAME: ScenarioFrame = {
   cultureNotes: [
     'When you move in and out of a rented flat in France, you sign an état des lieux, a room-by-room record of its condition. It decides later who pays for what.',
     'The landlord pays for big repairs such as a burst pipe or an old boiler. Small upkeep, like a washer on a tap, is usually the tenant’s job.',
-    'Every tenant must have home insurance, the assurance habitation. When water reaches a neighbour, both of you fill in a form called a constat amiable for the insurers.',
+    'Every tenant must have home insurance, the assurance habitation. When water reaches a neighbour, both of you fill in a form called a constat amiable de dégât des eaux for the insurers.',
   ],
 };
 
@@ -3260,7 +3260,7 @@ const GALERE_FRAME: ScenarioFrame = {
       register: 'familier',
     },
     {
-      fr: "Ah, la galère ! Ça m'est déjà arrivé aussi",
+      fr: "Ah, la galère ! Ça m'est arrivé aussi",
       frWritten: null,
       en: 'Oh, what a nightmare! That has happened to me too',
       register: 'familier',
@@ -3281,7 +3281,7 @@ const GALERE_FRAME: ScenarioFrame = {
   openingSupport: {
     fullLine: {
       fr: "Tu vas pas me croire ! Il pleuvait, et j'étais à la gare",
-      frWritten: null,
+      frWritten: "Tu ne vas pas me croire ! Il pleuvait, et j'étais à la gare",
       en: 'You will not believe this! It was raining, and I was at the station',
     },
     options: [
@@ -3310,13 +3310,13 @@ const GALERE_FRAME: ScenarioFrame = {
 /**
  * mission:avis. B1: opinion and justification after a film, which
  * mission:sortie planned. À mon avis and ce qui m'a plu, c'est give the
- * opinion and its reason; pas mal, mais adds the nuance; pas tout à fait
+ * opinion and its reason; pas mal, par contre adds the nuance; pas tout à fait
  * d'accord disagrees without a fight. Yasmine is familier, on tu.
  */
 const AVIS_FRAME: ScenarioFrame = {
   title: 'Alors, ce film ?',
   titleEn: 'So, that film?',
-  setting: 'A small bar next to a cinema in Toulouse, late on a Friday evening. Two coats on the back of the chairs, the film tickets still on the table, and Yasmine stirring her drink.',
+  setting: 'Just after a film in Toulouse, late on a Friday evening. Two friends who saw the same film, one of them dying to talk about it.',
   learnerRole: 'Someone coming out of the cinema with a friend, over a drink next door.',
   characters: [
     {
@@ -3325,7 +3325,7 @@ const AVIS_FRAME: ScenarioFrame = {
       register: 'familier',
     },
   ],
-  registerGuidance: "Relaxed French between friends after a film, tu from the first word. Yasmine is familier and lively: the ne drops (c'était pas terrible, j'ai pas compris la fin), she says franchement, bof and trop bien. She asks what the learner thought and always follows with pourquoi ?, so every opinion gets a reason. She disagrees on purpose about one thing, the ending or the length, to give the learner a chance to answer politely, and she welcomes a nuance such as pas mal, mais. She takes a polite disagreement well and finds one point to agree on. Near the end she asks what to see next. She never says the learner's opinion is silly, never lectures about cinema, never spoils another film and never switches to vous.",
+  registerGuidance: "Relaxed French between friends after a film, tu from the first word. Yasmine is familier and lively: the ne drops (c'était pas terrible, j'ai pas compris la fin), she says franchement, bof and trop bien. She asks what the learner thought and always follows with pourquoi ?, so every opinion gets a reason. She disagrees on purpose about one thing, the ending or the length, to give the learner a chance to answer politely, and she welcomes a nuance such as pas mal, par contre. She takes a polite disagreement well and finds one point to agree on. Near the end she asks what to see next. She never says the learner's opinion is silly, never lectures about cinema, never spoils another film and never switches to vous.",
   beats: [
     {
       id: 'give-your-opinion',
@@ -3373,9 +3373,9 @@ const AVIS_FRAME: ScenarioFrame = {
       register: 'familier',
     },
     {
-      fr: "C'était pas mal, mais un peu long",
-      frWritten: "Ce n'était pas mal, mais un peu long",
-      en: 'It was pretty good, but a bit long',
+      fr: "C'était pas mal, par contre c'était un peu long",
+      frWritten: "Ce n'était pas mal, par contre c'était un peu long",
+      en: 'It was pretty good, but it was a bit long',
       register: 'familier',
     },
     {
@@ -3406,7 +3406,7 @@ const AVIS_FRAME: ScenarioFrame = {
   openingLine: {
     speaker: 'Yasmine',
     fr: "Alors ? T'en as pensé quoi ?",
-    frWritten: null,
+    frWritten: "Alors ? Tu en as pensé quoi ?",
     en: 'So? What did you think?',
   },
   openingSupport: {
@@ -3421,8 +3421,8 @@ const AVIS_FRAME: ScenarioFrame = {
         en: 'I liked it. What I liked was the story',
       },
       {
-        fr: "C'était pas mal, mais un peu long",
-        en: 'It was pretty good, but a bit long',
+        fr: "C'était pas mal, par contre c'était un peu long",
+        en: 'It was pretty good, but it was a bit long',
       },
       {
         fr: "Franchement, j'ai adoré ! Et toi ?",
@@ -3522,9 +3522,9 @@ const ENTRETIEN_FRAME: ScenarioFrame = {
       register: 'soutenu',
     },
     {
-      fr: 'Merci beaucoup pour votre temps',
+      fr: 'Merci beaucoup pour cet échange',
       frWritten: null,
-      en: 'Thank you very much for your time',
+      en: 'Thank you very much for this conversation',
       register: 'soutenu',
     },
   ],
@@ -3565,7 +3565,7 @@ const ENTRETIEN_FRAME: ScenarioFrame = {
   cultureNotes: [
     'French interviews usually open with parlez-moi de vous. A short summary of your path, in order, works better than a list of qualities.',
     'Recruiters like a strength backed by a real example, told in the past: what happened, what you did, how it turned out.',
-    'Salary is rarely raised in a first interview in France. Asking about the next steps is a safe and expected way to close.',
+    'In France, it is better not to bring up salary yourself in a first interview, even though a recruiter may ask what you expect. Asking about the next steps is a safe and expected way to close.',
   ],
 };
 
@@ -3696,7 +3696,7 @@ const TELETRAVAIL_FRAME: ScenarioFrame = {
   cultureNotes: [
     'Working from home, le télétravail, is common in French offices now, often for a few days a week. It is usually agreed with your manager, then written down.',
     'The conditional softens a request: ce serait possible de and j’aimerais sound polite and open, where je veux would sound like a demand.',
-    'Proposing a trial period, une période d’essai, is a classic way to get a yes. It lets the manager agree without committing for good.',
+    'Suggesting a trial, un essai pendant un mois for example, is a classic way to get a yes. It lets the manager agree without committing for good.',
   ],
 };
 
@@ -3819,8 +3819,8 @@ const SOUVENIRS_FRAME: ScenarioFrame = {
         en: 'Thank you. I grew up in a big city, very far from here',
       },
       {
-        fr: "J'ai grandi au bord de la mer. Et vous, toujours ici ?",
-        en: 'I grew up by the sea. And you, always here?',
+        fr: "J'ai grandi au bord de la mer. Et vous, vous avez toujours vécu ici ?",
+        en: 'I grew up by the sea. And you, have you always lived here?',
       },
     ],
     hintEn: 'Thank her, then say where you grew up.',
@@ -3881,10 +3881,10 @@ const narration = (fr: string, en: string): OpeningNarration => ({
   en,
 });
 
-const line = (speaker: string, fr: string, en: string): OpeningLine => ({
+const line = (speaker: string, fr: string, en: string, frWritten: string | null = null): OpeningLine => ({
   speaker,
   fr,
-  frWritten: null,
+  frWritten,
   en,
 });
 
@@ -4703,7 +4703,7 @@ const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
       ),
     ],
     lines: [
-      line('Yasmine', "Alors ? T'en as pensé quoi ?", 'So? What did you think?'),
+      line('Yasmine', "Alors ? T'en as pensé quoi ?", 'So? What did you think?', "Alors ? Tu en as pensé quoi ?"),
       line('Yasmine', 'Bon, moi, j’ai mon avis. Mais toi d’abord !', 'Right, I have my opinion. But you first!'),
       line('Yasmine', 'Alors, verdict ? Tu as aimé ?', 'So, the verdict? Did you like it?'),
     ],
@@ -4744,12 +4744,12 @@ const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
         'The door to the manager’s office is open. You knock softly, and Isabelle looks up from her screen.',
       ),
       narration(
-        'La réunion d’équipe vient de finir. Isabelle range ses affaires et vous fait signe de rester un instant.',
-        'The team meeting has just ended. Isabelle gathers her things and signals you to stay a moment.',
+        'Vous passez devant le bureau vitré d’Isabelle. Elle range ses dossiers et vous fait signe d’entrer.',
+        'Walking past Isabelle’s glass office, you catch her eye. She is tidying her files and waves you in.',
       ),
       narration(
-        'Isabelle est à la machine à café, seule pour une fois. Vous vous approchez avec votre tasse.',
-        'Isabelle is at the coffee machine, alone for once. You walk over with your mug.',
+        'Isabelle est seule dans son bureau, une tasse de café à la main. Vous frappez à la porte vitrée.',
+        'Alone in her office for once, Isabelle holds a cup of coffee. You tap on the glass door.',
       ),
       narration(
         'Le planning de l’équipe est affiché sur l’écran du bureau. Isabelle le regarde en fronçant les sourcils, puis vous voit arriver.',
@@ -4777,16 +4777,16 @@ const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
         'A clock chimes in the living room. Jeannine puts a tin of biscuits on the tablecloth and pats the chair beside her.',
       ),
       narration(
-        'Le jardin sent la lavande et les volets sont à moitié fermés. Jeannine s’installe dans son fauteuil préféré.',
-        'The garden smells of lavender and the shutters are half closed. Jeannine settles into her favourite armchair.',
+        'Le jardin sent l’herbe coupée et les volets sont à moitié fermés. Jeannine s’assoit à la table, l’album devant elle.',
+        'The garden smells of cut grass and the shutters are half closed. Jeannine sits down at the table, the album in front of her.',
       ),
       narration(
         'Une vieille photo en noir et blanc glisse de l’album et tombe à vos pieds. Jeannine sourit en la voyant.',
         'An old black and white photo slips out of the album and lands at your feet. Jeannine smiles when she sees it.',
       ),
       narration(
-        'Tout le monde est parti se promener, et vous restez avec Jeannine dans la cuisine. Elle verse le café.',
-        'Everyone else has gone for a walk, and you stay behind with Jeannine in the kitchen. She pours the coffee.',
+        'Tout le monde est parti se promener, et vous restez avec Jeannine à table. Elle verse le café et rouvre l’album.',
+        'Everyone else has gone for a walk, and you stay behind with Jeannine at the table. She pours the coffee and opens the album again.',
       ),
     ],
     lines: [
