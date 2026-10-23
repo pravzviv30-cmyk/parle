@@ -1,7 +1,7 @@
 # Mission spine A2 to B1: twelve new scenes
 
-- Status: building
-- Updated: 2026-10-22
+- Status: built, held for founder review
+- Updated: 2026-10-23
 - Checkout / starting revision: `~/Developer/StartUps/Luvani-worktrees/mission-spine-b1`, branch `claude/mission-spine-b1` from `main` at 717655fb
 - Owner / integrator: Opus orchestrator session (mission spine B1), started from the market-report session
 - Existing programme / contract: [mission-spine-a2.md](mission-spine-a2.md) (the template), [beta-launch.md](beta-launch.md)
@@ -96,7 +96,14 @@ Acceptance for every task: the owning workspace's tests pass (`npm test -w @luva
 | 2026-10-23 / T7 A2 fixes | Applied: club key to "On peut faire un cours d'essai ?", sortie key to "T'es libre samedi soir ?", anniversaire key to "On est ensemble depuis deux ans" (each across missions.ts, path.ts, fixtures.ts and the frame); banque can-do "Ask to open a bank account" and its win line; coup-de-main can-do names checking you followed; montreal tax note ("almost fifteen cents to every dollar", since "percent" trips the score rule) and opener; sortie setting; Explore says "Guided activity." | core 1035/1035, brain 498/498, mobile 3547/3547, typecheck clean | checkpoint c263f6b2 |
 | 2026-10-23 / T7 B1 | Read-only reviews of the six B1 missions. learning-science-engineer: none re-levelled; nine listen-type and repeat drills credited answers that skip the target structure (et là, finalement, à mon avis, tout à fait, j'aimerais savoir, the conditional serais); entretien earned line overclaimed; avis key was A2. tutor-behaviour-engineer: tu/vous right everywhere including the souvenirs asymmetry; four must-fix (two missing written forms, the salary and période d'essai culture notes); setting and narration drift in fuite, avis, teletravail, souvenirs | read-only | fixes |
 | 2026-10-23 / T7 B1 fixes | Applied all: accepted answers keep the target structure; avis key to "C'était pas mal, par contre c'était un peu long" with a par contre drill; entretien earned line "You can talk about yourself in a short job interview"; culture notes; settings and deck narrations aligned; `line()` takes an optional frWritten. Club back to three reference phrases. Skipped one item with nowhere to go (an accepted variant for a goalPhrase no drill uses) | core 1035/1035, brain 498/498, mobile 3547/3547, typecheck clean, DRILL_FIXTURES 278 | merge main, gate |
+| 2026-10-23 / T8 | Main 6326f51b merged in cleanly (7c69fb0c). Jev copy check on the twelve missions' English (advisory): warm and free of scolding or praise 0.81, short and plain 0.57 (A2 batch 0.74; the B1 culture notes run longer); no em dashes. PRODUCT.md (thirty-one scenes, A0 to B1). `npm run gate:bless` raised core 936 to 1036 and mobile 3558 to 3559 | `npm run gate` green, 6,270 tests; recorded in IMPLEMENTATION_EVIDENCE.md | founder review page, handoff |
 
 ## Integrated verification and handoff
 
-- Pending.
+- Focused checks: core 1036, brain 498 (agreement.test over all 31 missions: schema, 15 openings each, copy rules, engine walk-through to `missionDone`), mobile 3559, all-workspace typecheck clean. DRILL_FIXTURES 278, plus 48 headroom = 326 of the 384 cap.
+- Full gate: `npm run gate` green on 2026-10-23, 6,270 tests, floors raised with `gate:bless`.
+- French: register (tutor-behaviour-engineer) and level (learning-science-engineer) reviews of both batches, all must-fix items applied. No mission was re-levelled.
+- Art: the 24 drawings rendered headless and checked by eye. No dev-build screenshot of the Chatting group yet.
+- Deploy order: ship the tutor agent before the app, or a new mission id opens as the ordinary topic question.
+- Landing disposition: HOLD for founder review of the French and the drawings (review page), then /land.
+- Follow-ups noted, not done here: Speak's path card says "Then B1, 6 more scenes" with the CEFR code (it already did for A1 and A2), opening-deck lines and support options have no frWritten field for spoken spellings, listen-type drills accept reworded answers in general (a grading decision), and the spine order inside B1 (the level review suggests fuite, avis, galere, teletravail, souvenirs, entretien).

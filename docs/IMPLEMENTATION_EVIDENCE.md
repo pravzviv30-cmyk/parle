@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 23 October 2026 mission spine B1 (twelve new missions, 19 to 31: six A2 and six B1, the
+  Chatting stage, 24 drawings, drill cap 384), on branch `claude/mission-spine-b1` with main
+  6326f51b merged in at 7c69fb0c (held, not on main): **6,270 tests, 0 failing**; core 1036,
+  brain 498, tutor agent 693, token server 458, playground 26, mobile 3559; all 42 migrations
+  replayed. Floors raised only through `gate:bless`.
 - 23 October 2026 main with `claude/speech-dataset` (VOICE-007, inert) merged onto the
   mission scoring landing (F866). The lesson's dataset clip now rides LiveScoring's `onScored`
   callback instead of the old inline scorer: **6,169 tests, 0 failing**; core 936, brain 498,
