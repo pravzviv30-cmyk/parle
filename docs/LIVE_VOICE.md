@@ -648,6 +648,34 @@ cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
 2,500 ms either way. A lesson may run preemptive generation once more per held
 pause; the framework caps that at three a turn.
 
+## Speaking quietly (VOICE-011)
+
+The live room has a "Quiet voice" switch beside "Show transcript", shown while
+the learner is speaking to the tutor. It is client-only: the agent, Deepgram,
+Silero and the VOICE-010 floors are unchanged. Turning it on opens the
+transcript, shows one note ("Speak softly, close to your phone. {Tutor} can hear
+a soft voice, but not a whisper.") and lowers the mic meter floor from 0.01 to
+0.005 RMS. The value is stored on the device (`@luvani/quiet-voice/v1`) and is
+off by default.
+
+Why soft and not whispered (`docs/live-latency-evidence/2026-10-23-quiet-speech.md`):
+
+- Soft speech about 20 dB under normal (around -36 dBFS) is heard. Its median
+  word accuracy is 1.00, with the worst clip at 0.75 clean and 0.67 over a
+  -50 dBFS noise bed. Silero fires at its default 0.5.
+- A whisper is not. The Deepgram plugin passes every frame through
+  `AudioEnergyFilter` from `@livekit/agents` 1.9, which stops sending audio
+  whose 100 ms RMS stays at or under 0.004 (about -48 dBFS) after one second of
+  quiet. A whisper held at a normal distance falls under that and never reaches
+  Deepgram. Over noise, Silero also misses most real whispers at every
+  threshold tried (0.5, 0.35, 0.25).
+- That filter is the floor for any quiet speech. The meter's quiet floor of
+  0.005 sits just above it, so the orb moves only for a voice the tutor can
+  still receive.
+
+All clips are synthetic (ElevenLabs). Founder recordings in
+`artifacts/quiet-speech-2026-10-23/real/` and a device check are still owed.
+
 ## Serialisation
 
 Two events can arrive at once — the rescue timer at four seconds, and the learner

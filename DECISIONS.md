@@ -752,3 +752,66 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   [onboarding](docs/ONBOARDING.md),
   [runbook](docs/BACKEND_RELEASE_RUNBOOK.md#guest-first-scene-ui-011-23-october), founder approval
   of 23 October 2026.
+
+## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
+
+- Date: 2026-10-23
+- Status: accepted
+- Decision:
+  - **The mode is "Quiet voice".** It is a switch in the live room, beside "Show
+    transcript", shown while the learner is speaking to the tutor. It is the
+    room's counterpart to Listen only (UI-010), which is chosen before the start.
+  - **It is client-only.** Nothing new goes to the token server or the agent.
+    Deepgram, Silero and the VOICE-010 floors stay at today's settings.
+  - **While it is on:**
+    - the transcript opens, so the tutor's line can be read;
+    - the mic meter floor drops from 0.01 to 0.005 RMS (span 0.06), so a soft
+      voice still moves the orb, and only a voice the tutor can still receive;
+    - one note says "Speak softly, close to your phone. {Tutor} can hear a soft
+      voice, but not a whisper."
+  - **It persists on the device** (`@luvani/quiet-voice/v1`), off by default,
+    because being on a train is about where the phone is, not the account.
+  - **No change to the tutor's voice.** There is no proven slow-synthesis path,
+    and the phone's volume buttons (or earphones) already make it quieter. A
+    second in-app volume would make "I can't hear the tutor" harder to fix.
+- Reason: learners in public cannot speak aloud (PRODUCT.md), and Listen only
+  takes their voice away entirely. The report asked for whisper; the
+  measurement says a soft voice works and a whisper does not, so the product
+  says that.
+- Measured (`docs/live-latency-evidence/2026-10-23-quiet-speech.md`, script
+  `scripts/measureQuietSpeech.mjs`). The clips were six v2 and 18 v3 ElevenLabs
+  French clips, plus 18 v3 clips tagged `[whispers]`, at 0, -10, -20 and -30 dB,
+  clean and over a -50 dBFS pink-noise bed. They ran through the real Deepgram
+  plugin stream (nova-3, fr) and Silero.
+  - **Soft speech at -20 dB** (speech around -36 dBFS) passes: median word
+    accuracy 1.00, worst 0.75 clean and 0.67 over noise. Silero fires on every
+    clip at the default 0.5, every turn commits at the 1,200 ms floor, and
+    there are no false starts on noise alone at any threshold.
+  - **Whispers fail.**
+    - Real whispers (the three tagged clips that lost their pitch) transcribe
+      perfectly at 0 and -10 dB, but score 0.00 at -20 dB clean.
+    - Over noise, Silero catches none of them at 0.5 and 0.35, and 2 of 3 at
+      0.25.
+    - The LiveKit Deepgram plugin runs every frame through `AudioEnergyFilter`
+      (`@livekit/agents` 1.9), which drops audio under RMS 0.004 (about
+      -48 dBFS) after a second of quiet. A whisper at a realistic distance sits
+      below that, and Deepgram never receives it.
+  - **Soft speech at -30 dB** (about -46 to -48 dBFS) starts to fail (worst clip
+    0.00), which is why the note asks for the phone to be close.
+- Caveats:
+  - Every clip is synthetic, and the gain is digital attenuation, not a person
+    speaking softly into a phone with iOS voice processing and AGC.
+  - Only 3 of the 18 `[whispers]` clips actually lost their pitch.
+  - Founder recordings dropped into `artifacts/quiet-speech-2026-10-23/real/`
+    are the next check. A device test in the beta is the one after that.
+- Deferred (needs founder approval, because it changes vendor plugin
+  behaviour): true whisper. This would mean boosting the learner's audio before
+  the energy filter, or bypassing the filter, plus a lower VAD threshold. The
+  measurement suggests even that would miss whispers over train noise.
+- Consequence:
+  - Tests: `scripts/measureQuietSpeech.test.mjs` (helpers, in the gate's shared
+    proofs), plus the mobile preference, meter and room tests.
+  - Founder steps: none to deploy beyond the app build. There is no agent
+    change and no migration.
+- Sources: [live voice](docs/LIVE_VOICE.md) "Speaking quietly", market report
+  section 7 "Next".

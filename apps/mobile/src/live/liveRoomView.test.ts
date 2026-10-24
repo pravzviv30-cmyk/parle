@@ -99,7 +99,8 @@ describe('the note under the controls while typing', () => {
 
   test('the room draws the note from this rule and nowhere else', () => {
     const room = readFileSync(fileURLToPath(new URL('./C2LiveRoom.tsx', import.meta.url)), 'utf8');
-    assert.match(room, /typingNote\(typing, startedWithSpeech, tutorName\)/);
+    // Through roomNote, which keeps the typing note first (quietVoice.test.ts).
+    assert.match(room, /roomNote\(typing, startedWithSpeech, tutorName, /);
     assert.doesNotMatch(room, /started in typing mode/);
     // "Type your choice" carries the keyboard, never the default mic.
     assert.match(room, /label=\{typing \? 'Type your choice' : HELP_COPY\.say\} icon=\{typing \? <KeyboardMark size=\{20\} color=\{t\.onPrimary\} \/> : undefined\}/);

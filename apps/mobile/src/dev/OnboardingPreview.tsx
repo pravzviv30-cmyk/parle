@@ -1,6 +1,7 @@
 import { BoldVoiceOrb } from '../onboarding/BoldVoiceOrb.tsx';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from '../live/C2LiveRoom.tsx';
+import { useQuietVoice } from '../live/useQuietVoice.ts';
 import type { TurnLine } from '../live/turns.ts';
 import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
 import { FirstSessionSummary, FirstSessionCelebration } from '../onboarding/FirstSessionResult.tsx';
@@ -189,6 +190,7 @@ function LiveRoomPreview({ startTyping, controls, onEnd }: { startTyping: boolea
   const [typing, setTyping] = useState(startTyping);
   const [micOpen, setMicOpen] = useState(!startTyping);
   const [transcript, setTranscript] = useState(true);
+  const { quietVoice, onQuietVoice } = useQuietVoice(setTranscript);
   const [draft, setDraft] = useState('');
   const [turns, setTurns] = useState<TurnLine[]>([
     { id: 't1', who: 'tutor', fr: 'Bonjour ! Vous avez réservé une table ?', frWritten: null, en: 'Hello! Have you booked a table?' },
@@ -199,7 +201,7 @@ function LiveRoomPreview({ startTyping, controls, onEnd }: { startTyping: boolea
   const addTutor = () => setTurns(held => [...held, { id: `t${sequence.current++}`, who: 'tutor', fr: 'Très bien ! Vous voulez la carte ? Prenez votre temps, puis dites-moi ce que vous souhaitez commander.', frWritten: null, en: 'Very good! Would you like the menu? Take your time, then tell me what you would like to order.' }]);
   return <C2LiveRoom tutorName="Émilie" description="At the restaurant, synthetic preview" state={typing ? 'ready' : micOpen ? 'listening' : 'ready'}
     caption={typing ? 'Ready for your message' : micOpen ? 'Your turn. Take your time.' : 'Microphone paused'}
-    turns={turns} tutorSpeaking={false} typing={typing} micOpen={micOpen} transcriptVisible={transcript} onTranscriptVisibility={setTranscript}
+    turns={turns} tutorSpeaking={false} typing={typing} micOpen={micOpen} transcriptVisible={transcript} onTranscriptVisibility={setTranscript} quietVoice={quietVoice} onQuietVoice={onQuietVoice}
     draft={draft} onDraft={setDraft} onEnd={onEnd} onMic={() => setMicOpen(value => !value)}
     onModeChange={value => { setTyping(value); setMicOpen(!value); }} onSend={async () => {
       const text = draft.trim();

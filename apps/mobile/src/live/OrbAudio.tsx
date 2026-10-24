@@ -71,6 +71,8 @@ export interface RoomLevelsProps {
    * the navigator itself.
    */
   focused: boolean;
+  /** Quiet voice: the meter's lower floor, so a soft voice moves the orb (levels.ts QUIET_MIC_PROFILE). */
+  quietVoice?: boolean;
   /** The room. The levels are handed to it through `OrbAudioContext`. */
   children: ReactNode;
 }

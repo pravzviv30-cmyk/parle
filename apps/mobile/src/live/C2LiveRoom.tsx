@@ -13,7 +13,7 @@ import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy
 import { RoomReportSheet } from './ReportSheet.tsx';
 import { reportAddress, REPORT_COPY } from '../settings/reportMail.ts';
 import { AskedCard, BulbGlyph, CloseGlyph, FlagGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
-import { HELP_COPY, askedLabel, typingNote, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
+import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
 
 /**
  * Presentation only. Every action is supplied by the existing session owner.
@@ -38,7 +38,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   typing, startedWithSpeech = true, ready = true, modePending = false, active = true, embedded = false,
   transcriptVisible, onTranscriptVisibility, draft, onDraft, onSend, onModeChange, onMic, micOpen,
   onEnd, onReplayTutor, canSend = true, top, support, tools, footer, notice,
-  title, pace = null, goals = [], helpKind = 'none', moreHelp, report,
+  title, pace = null, goals = [], helpKind = 'none', moreHelp, report, quietVoice = false, onQuietVoice,
 }: {
   tutorName: string; description: string; state: OrbState; caption: string;
   turns: readonly TurnLine[]; tutorSpeaking: boolean; partialTranscript?: string | null;
@@ -60,6 +60,9 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   moreHelp?: { onPress: () => void; disabled: boolean };
   /** The closed beta's report control: whether a report is saved for the end card. Absent: no control. */
   report?: { pending: boolean; onPending: (pending: boolean) => void };
+  /** Quiet voice, the owner's device preference (useQuietVoice). Absent: no switch. */
+  quietVoice?: boolean;
+  onQuietVoice?: (on: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
   const t = useB();
@@ -102,7 +105,8 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   const asked = lastTutorLine(turns);
   const ladder = helpLadder(helpKind);
   const helpAvailable = Boolean(support || tools || moreHelp);
-  const note = typingNote(typing, startedWithSpeech, tutorName);
+  const quiet = onQuietVoice ? quietVoiceControl(typing, quietVoice) : null;
+  const note = roomNote(typing, startedWithSpeech, tutorName, quiet !== null && quiet.checked);
   const speakDisabled = !canResumeSpeaking(startedWithSpeech, ready, modePending);
   const sayChoice = () => {
     setHelpOpen(false);
@@ -118,10 +122,17 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
         <GoalsStrip chips={chips} />
       </View>
       {top ? <ScrollView style={st.top} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">{top}</ScrollView> : null}
+      <View style={st.linkRow}>
       <Press haptic="none" accessibilityLabel={transcriptVisible ? 'Hide live transcript' : 'Show live transcript'}
         accessibilityState={{ expanded: transcriptVisible }} aria-expanded={transcriptVisible} onPress={() => { dismiss(); onTranscriptVisibility(!transcriptVisible); }} style={st.transcriptToggle}>
         <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{transcriptVisible ? 'Hide transcript' : 'Show transcript'}</Text>
       </Press>
+      {quiet && onQuietVoice ? <Press haptic="none" accessibilityRole="switch" accessibilityLabel={quiet.label} accessibilityHint={quiet.hint}
+        accessibilityState={{ checked: quiet.checked }} aria-checked={quiet.checked}
+        onPress={() => { dismiss(); const next = !quiet.checked; onQuietVoice(next); if (next) onTranscriptVisibility(true); }} style={st.transcriptToggle}>
+        <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{quiet.label}: {quiet.checked ? 'On' : 'Off'}</Text>
+      </Press> : null}
+      </View>
       {/* Keep the thread mounted while hidden so its history and scroll survive. */}
       <View style={[st.thread, st.threadCard, !transcriptVisible && st.hidden]} accessibilityElementsHidden={!transcriptVisible} aria-hidden={!transcriptVisible} importantForAccessibility={transcriptVisible ? 'auto' : 'no-hide-descendants'}>
         <Transcript turns={turns} tutorName={tutorName} tutorSpeaking={tutorSpeaking} announceReply={typing}
@@ -203,6 +214,7 @@ function makeStyles(t: B) {
     reportPending: { backgroundColor: t.onBrand, borderColor: t.onBrand },
     center: { textAlign: 'center' },
     top: { flexGrow: 0, maxHeight: '20%', paddingTop: 8 },
+    linkRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 8 },
     transcriptToggle: { minHeight: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', paddingHorizontal: 12 },
     thread: { flex: 1, minHeight: 0 }, hidden: { flex: 0, height: 0, opacity: 0, overflow: 'hidden' },
     threadCard: { backgroundColor: t.card, borderRadius: 22, paddingHorizontal: 12 },
