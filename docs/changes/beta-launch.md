@@ -202,8 +202,11 @@ Run [deployment/beta-metrics.sql](../../deployment/beta-metrics.sql) weekly.
 | D30 retention by cohort | above 12% |
 | Median reply wait (query 4) | under 2.5 s in conversations |
 | Unaided share, 1st to 5th conversation (query 5) | rising |
+| Median time to first unaided turn (query 6, minutes and sessions) | falling across cohorts |
 
 These are rules of thumb from consumer apps, not benchmarks for this category.
+
+Query 6 is a proxy (a turn in a session with no rescue) over consented learners only; its comment block lists the limits. Quote it with the count of learners not yet unaided beside it.
 
 ## Not in this plan
 
@@ -222,3 +225,4 @@ These are rules of thumb from consumer apps, not benchmarks for this category.
 | 2026-10-22 | Code preparation (event, migration 41, support address, metrics queries) | Gate green, 5,939 tests, all 41 migrations replayed locally |
 | 2026-10-22 | `beta-metrics.sql` against all 41 migrations replayed in PGlite with synthetic rows | All five statements run; D1/D7/D30, minutes and event aggregates match hand-computed values; the trigger refuses a `live_session_finished` carrying `goal` |
 | 2026-10-23 | REV-001 daily free allowance and repackaging (branch `claude/daily-allowance`) | All 43 migrations replayed in PGlite, including 43 without the held 42; read-only database review applied (rollout order, rollback refusal); web check on a local token server: Profile shows the new free line, a spent free row shows "Your next free conversation is ready on Sunday at 12:58 am" in the phone's time zone ([screenshots](../daily-allowance-evidence/)) |
+| 2026-10-24 | Query 6 (time to first unaided turn) in `beta-metrics.sql`, branch `claude/unaided-metric` | `scripts/betaMetrics.test.mjs` replays all 43 migrations in PGlite, runs the file as written on synthetic rows and matches hand-computed values (deadline median 6.8 min / 2 sessions, p75 8.9 min / 2.5; hobby 13.0 min at session 2 with one learner not yet unaided; unknown 1.5 min at session 1). With the 60 s tolerance set to 0 the test fails, so it discriminates. It runs in the gate |

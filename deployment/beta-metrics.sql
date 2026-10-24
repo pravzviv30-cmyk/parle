@@ -83,3 +83,64 @@ with numbered as (
 )
 select nth, count(*) as learners, round(avg(unaided), 1) as avg_unassisted_pct
 from numbered where nth <= 5 group by nth order by nth;
+
+-- 6. Time to first unaided French sentence, by cohort (the report's headline
+--    number). For each learner with at least one finished live session, find
+--    the first one with unassistedPct > 0 and turns >= 1, then report how many
+--    finished sessions (lessons and conversations, 1-based) and how many billed
+--    live minutes it took. Learners with sessions but no such session yet are
+--    counted, not dropped, so a slow cohort cannot look fast by silence.
+--
+--    Billed minutes add every session_usage row with reported_at up to that
+--    session's occurred_at plus 60 seconds. The tolerance is there because the
+--    two writes race: on the authoritative path the agent settles the debit and
+--    then publishes the recap the phone turns into the event, but the older
+--    path publishes the recap first and debits after, so the usage row can land
+--    a few seconds after the event. Sixty seconds covers that without reaching
+--    the next session in the usual case; a learner who starts another session
+--    inside it gets that session's minutes counted too, which only overstates.
+--    Rows whose seconds were expired by the 24-month retention count as zero.
+--
+--    Honest limits:
+--    - It is a proxy: at least one turn in a session with no rescue is
+--      "unaided". It does not say the sentence was good, or French.
+--    - It covers analytics-consented learners only, because the events exist
+--      only for them; "no sessions" and "not consented" look the same here.
+--      Learners with minutes but no event are absent.
+--    - unassistedPct is rounded to a whole percent, so a session with one
+--      unaided turn in 200 reads 1 and one in 300 reads 0 and is missed.
+--    - Minutes are session length billed (seconds), not charged_seconds, so a
+--      later refund does not reduce them. Same basis as query 3.
+with finished as (
+  select e.user_id, e.occurred_at,
+         (e.properties->>'turns')::numeric as turns,
+         (e.properties->>'unassistedPct')::numeric as unaided,
+         row_number() over (partition by e.user_id order by e.occurred_at, e.id) as nth
+  from public.product_events e
+  where e.name = 'live_session_finished'
+), first_unaided as (
+  select distinct on (user_id) user_id, occurred_at, nth
+  from finished
+  where unaided > 0 and turns >= 1
+  order by user_id, nth
+), measured as (
+  select f.user_id, f.nth as sessions,
+         coalesce(sum(u.seconds), 0) / 60.0 as minutes
+  from first_unaided f
+  left join public.session_usage u
+    on u.user_id = f.user_id and u.reported_at <= f.occurred_at + interval '60 seconds'
+  group by f.user_id, f.nth
+), learners as (
+  select distinct user_id from finished
+)
+select coalesce(c.cohort, 'unknown') as cohort,
+       count(m.user_id) as measured,
+       count(*) filter (where m.user_id is null) as not_yet_unaided,
+       round(percentile_cont(0.5) within group (order by m.minutes)::numeric, 1) as median_minutes,
+       round(percentile_cont(0.75) within group (order by m.minutes)::numeric, 1) as p75_minutes,
+       percentile_cont(0.5) within group (order by m.sessions) as median_sessions,
+       percentile_cont(0.75) within group (order by m.sessions) as p75_sessions
+from learners l
+left join measured m using (user_id)
+left join beta_cohort c using (user_id)
+group by 1 order by 1;

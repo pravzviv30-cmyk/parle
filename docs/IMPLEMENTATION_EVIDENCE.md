@@ -22,6 +22,13 @@ of the list.
 
 ## Current landing snapshot
 
+- 24 October 2026 unaided-sentence metric on branch `claude/unaided-metric` from main f198ab4e
+  (held, not on main): `deployment/beta-metrics.sql` gains query 6, the median and p75 minutes and
+  finished sessions to a learner's first unaided turn by cohort, proved in PGlite against
+  synthetic rows with hand-computed values by `scripts/betaMetrics.test.mjs`, now in the gate's
+  shared release/provider proofs: **6,518 tests, 0 failing**; core 1051, brain 502, tutor agent 785,
+  token server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43
+  migrations replayed, no migration added. Floors unchanged, so no `gate:bless`.
 - 24 October 2026 session eval modes on branch `claude/session-mode` from main c649622e
   (held, not on main): session records carry a mode (lesson, mission or conversation; record
   version 2, version 1 read as conversation), and a scripted lesson's rescue is judged by the
