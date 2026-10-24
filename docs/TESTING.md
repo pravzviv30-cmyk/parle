@@ -125,7 +125,9 @@ Three playground evals need no key:
   (rescue, no read-back, gentle, level fit, safety, reply wait). The synthetic set is
   hand-labelled with one deliberate failure per check, so a clean run exits 1 and lists them.
   The test `the session eval agrees with every hand label in the synthetic set` holds the
-  checks to those labels in the gate. `--jev` adds Jev's advisory opinion on synthetic and dev
+  checks to those labels in the gate. Each record names its mode (lesson, mission or
+  conversation) and a scripted lesson's rescue is judged by the lesson rule, not the quiet-hint
+  rule. `--jev` adds Jev's advisory opinion on synthetic and dev
   records only.
 - `npm run chat -w @luvani/brain-playground -- --record` saves a dev session for it, in the
   gitignored `services/brain-playground/sessions/`.

@@ -42,10 +42,16 @@ const turn = (n: number, input: SessionRecord['turns'][number]['input']): Sessio
   tutor: { sceneReply: 'The recorded line is not used.', coachLine: null, narration: null },
 });
 
-const record = (id: string, inputs: SessionRecord['turns'][number]['input'][], scene = 'cafe-order'): SessionRecord => ({
-  version: 1,
+const record = (
+  id: string,
+  inputs: SessionRecord['turns'][number]['input'][],
+  scene = 'cafe-order',
+  mode: SessionRecord['mode'] = 'conversation',
+): SessionRecord => ({
+  version: 2,
   id,
   source: 'synthetic',
+  mode,
   scene,
   cefr: 'A1',
   turns: inputs.map((input, i) => turn(i + 1, input)),
@@ -170,6 +176,30 @@ test('a first silence rescue makes no client call; a second one does', async () 
   assert.deepEqual([second?.rescued, second?.rescueIndex], [true, 2]);
   assert.notEqual(second?.tutor.sceneReply, '');
   assert.deepEqual([third?.rescued, third?.attempted], [false, true]);
+});
+
+test('a replayed record keeps its source mode', async () => {
+  const session = await replayRecord(record('mis', [{ type: 'spoke', text: 'Bonjour.' }], 'mission:hotel', 'mission'), new MockLlmClient(), 1, 'mock');
+  assert.equal(session.record?.mode, 'mission');
+  const conversation = await replayRecord(record('conv', [{ type: 'spoke', text: 'Bonjour.' }]), new MockLlmClient(), 1, 'mock');
+  assert.equal(conversation.record?.mode, 'conversation');
+});
+
+test('a lesson record is skipped with a note, makes no model call and is counted as no turn', async () => {
+  const lesson = record('lesson-skip', [{ type: 'silence', durationMs: 6000 }, { type: 'spoke', text: 'Un café.' }], 'lesson:cafe-01', 'lesson');
+  const client = new MockLlmClient();
+  const session = await replayRecord(lesson, client, 1, 'mock');
+  assert.equal(client.turnRequests.length, 0);
+  assert.equal(session.record, null);
+  assert.equal(session.modelCalls, 0);
+  assert.deepEqual(session.notes, ['lesson-skip: a lesson is scripted, there is no brain loop to replay']);
+
+  const report = await replayRecords({ records: [lesson], client, costModel: 'gpt-6-luna', label: 'mock' });
+  assert.equal(client.turnRequests.length, 0);
+  assert.equal(report.turns, 0);
+  assert.equal(report.modelTurns, 0);
+  assert.equal(report.acceptedModelTurns, 0);
+  assert.deepEqual(report.notes, ['lesson-skip: a lesson is scripted, there is no brain loop to replay']);
 });
 
 test('quiet rescues and safety steps do not change a vendor acceptance or cost per accepted turn', async () => {

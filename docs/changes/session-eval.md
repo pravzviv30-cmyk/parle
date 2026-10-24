@@ -16,7 +16,7 @@ the session ran. This change adds that measurement and closes F193 (curation get
 
   | Check | Rule | Deterministic verdict |
   |---|---|---|
-  | rescue | [PEDAGOGY.md](../PEDAGOGY.md): silence or "aide-moi" always gets a rescue, and the first one is the quiet hint | a silence or help turn was rescued; a first rescue shows the English hint only and the tutor says none of the card's French |
+  | rescue | [PEDAGOGY.md](../PEDAGOGY.md): silence or "aide-moi" always gets a rescue, and the first one is the quiet hint | a silence or help turn was rescued; a first conversation rescue shows the English hint only and the tutor says none of the card's French; a lesson rescue shows the full target line and the tutor says it |
   | no read-back | PEDAGOGY.md, `packages/brain/src/prompt/system.ts`: the tutor never speaks the learner's answer over the card | before the learner tries, no tutor line contains the card's French (accent and punctuation insensitive) |
   | gentle | `system.ts`: one brief recast, never "wrong", never remarks on hesitation | `copyViolations` (scold, em dash) and `HESITATION_COMMENTARY` |
   | level fit | `RUNG_LENGTH` in `packages/brain/src/prompt/turnContext.ts` | sentence and word caps per rung |
@@ -93,5 +93,6 @@ when that change lands.
 - Focused checks: see the execution log.
 - Full gate: green, 6,489 tests (core 1050, brain 502, tutor agent 785, token server 482, playground 78, mobile 3592), floors blessed.
 - Not run: `eval:replay` on any real provider (needs the founder's approval of the spend, see vendor-comparison.md); no dev session has been recorded yet.
-- Known limits: records carry no lesson or conversation mode, so a scripted lesson's first rescue (which may say the target line) would fail the quiet-rescue check; the safety set covers prompt injection only.
+- Mode (closed 2026-10-24 on `claude/session-mode`): records carry `mode` (`lesson`, `mission` or `conversation`; record version 2, and a version 1 record is read as `conversation`). A lesson is judged by the scripted rule from `services/tutor-agent/src/scriptedSpeech.ts`: every rescue shows the full target line and the tutor says it for the learner to repeat; no read-back is n/a on a rescue and at rungs 1 and 2; level fit is n/a. A mission is free conversation and keeps the conversation rule. `eval:replay` skips a lesson record, because there is no brain loop to replay.
+- Known limits: the safety set covers prompt injection only.
 - Landing disposition: HOLD for the orchestrator to land; the consent decision does not block landing, because nothing here reads learner data.

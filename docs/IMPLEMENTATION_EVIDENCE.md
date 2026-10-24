@@ -22,6 +22,16 @@ of the list.
 
 ## Current landing snapshot
 
+- 24 October 2026 session eval modes on branch `claude/session-mode` from main c649622e
+  (held, not on main): session records carry a mode (lesson, mission or conversation; record
+  version 2, version 1 read as conversation), and a scripted lesson's rescue is judged by the
+  lesson rule from `scriptedSpeech.ts`; a ninth synthetic session, a lesson, holds a correct lesson
+  rescue the conversation rule would fail and one deliberate lesson failure: **6,518 tests,
+  0 failing**; core 1051, brain 502, tutor agent 785, token server 484, playground 87, mobile 3609;
+  shared release/provider proofs 175; all 43 migrations replayed, no migration added. Floors
+  raised only through `gate:bless`. No model changed and no paid model
+  run: the curation model gap (gpt-5.6-luna against gpt-6-luna for live turns) is written up in
+  `docs/changes/vendor-comparison.md` for the founder.
 - 24 October 2026 main with `claude/whisper-mode` (Quiet voice, VOICE-011) and
   `claude/daily-allowance` (REV-001 free allowance and prices, migration 20261023220000 prepared,
   not applied) merged onto the session eval landing: **6,509 tests, 0 failing**; core 1051,

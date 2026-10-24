@@ -11,12 +11,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { CAFE_FRAME, APERO_FRAME, MockLlmClient, createProfile } from '@luvani/brain';
+import { CAFE_FRAME, APERO_FRAME, MISSION_FRAMES, MockLlmClient, createProfile } from '@luvani/brain';
 import { safetyDecision } from '@luvani/tutor-agent/src/safety.ts';
 
 import { beginSession, runInput, silenceInput } from '../sessionLoop.ts';
 import {
   isQuietRescue,
+  modeFor,
   newRecorder,
   parseRecordFlag,
   recordPathFor,
@@ -54,7 +55,7 @@ const spoke = (beat: string, extra: Partial<TurnObservation> = {}): TurnObservat
 });
 
 test('silence, then help, then a spoken line: rescue index and attempted follow the beat', () => {
-  let recorder = newRecorder({ id: 'dev-test', scene: 'cafe-order', cefr: 'A1' });
+  let recorder = newRecorder({ id: 'dev-test', scene: 'cafe-order', mode: 'conversation', cefr: 'A1' });
   recorder = recordTurn(recorder, silence('order-drink'));
   recorder = recordTurn(
     recorder,
@@ -79,7 +80,7 @@ test('silence, then help, then a spoken line: rescue index and attempted follow 
 });
 
 test('a new beat starts the counters again, and a failed model turn moves them without adding a turn', () => {
-  let recorder = newRecorder({ id: 'dev-test', scene: 'cafe-order', cefr: 'A1' });
+  let recorder = newRecorder({ id: 'dev-test', scene: 'cafe-order', mode: 'conversation', cefr: 'A1' });
   recorder = recordTurn(recorder, spoke('greet'));
   recorder = recordTurn(recorder, silence('order-drink'));
   assert.deepEqual([recorder.turns[1]?.rescueIndex, recorder.turns[1]?.attempted], [1, false], 'the earlier beat spoken line does not carry over');
@@ -110,6 +111,8 @@ test('a session recorded through the real loop round-trips through parseSessionR
   assert.ok(session.recorder !== null);
   const record = toSessionRecord(session.recorder);
   assert.equal(record.source, 'dev');
+  assert.equal(record.version, 2);
+  assert.equal(record.mode, 'conversation');
   assert.equal(record.scene, 'cafe-order');
   assert.equal(record.turns.length, 3);
   const [silent, help, said] = record.turns;
@@ -152,7 +155,7 @@ test('a session that is not recording keeps no recorder', () => {
 });
 
 test('an empty recording is refused instead of written', () => {
-  assert.throws(() => toSessionRecord(newRecorder({ id: 'x', scene: 'cafe-order', cefr: 'A1' })), /nothing to record/);
+  assert.throws(() => toSessionRecord(newRecorder({ id: 'x', scene: 'cafe-order', mode: 'conversation', cefr: 'A1' })), /nothing to record/);
 });
 
 test('scene ids and the record path', () => {
@@ -173,10 +176,26 @@ test('scene ids and the record path', () => {
   assert.equal(parseRecordFlag(['--record', 'out.json']), 'out.json');
 });
 
+test('a mission frame records as a mission, every other frame as a conversation, and never as a lesson', () => {
+  const missions = Object.entries(MISSION_FRAMES);
+  assert.ok(missions.length > 0, 'the mission frames must be there');
+  for (const [id, frame] of missions) {
+    // mission:cafe and mission:amis reuse the hand-written frames, recorded as those scenes.
+    if (frame === CAFE_FRAME || frame === APERO_FRAME) continue;
+    assert.equal(modeFor(frame), 'mission', id);
+    const { session } = beginSession(createProfile(), frame, { record: { id: 'dev-mission' } });
+    assert.equal(session.recorder?.mode, 'mission', id);
+  }
+  assert.equal(modeFor(CAFE_FRAME), 'conversation');
+  assert.equal(modeFor(APERO_FRAME), 'conversation');
+  assert.equal(modeFor({ ...CAFE_FRAME, titleEn: 'A walk, by the Seine!' }), 'conversation', 'a built scene is a conversation');
+  assert.equal(beginSession(createProfile(), CAFE_FRAME, { record: { id: 'dev-cafe' } }).session.recorder?.mode, 'conversation');
+});
+
 test('writeDevRecord creates the folder and writes a file the eval can read', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'luvani-dev-record-'));
   const file = path.join(dir, 'nested', 'dev.json');
-  let recorder = newRecorder({ id: 'dev-write', scene: 'cafe-order', cefr: 'A0' });
+  let recorder = newRecorder({ id: 'dev-write', scene: 'cafe-order', mode: 'conversation', cefr: 'A0' });
   recorder = recordTurn(recorder, silence('greet'));
   const record = toSessionRecord(recorder);
   writeDevRecord(file, record);

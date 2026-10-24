@@ -1,0 +1,122 @@
+{
+  "version": 2,
+  "id": "lesson-cafe-a0",
+  "source": "synthetic",
+  "mode": "lesson",
+  "scene": "lesson:cafe-01",
+  "cefr": "A0",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour."
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Un café, s'il vous plaît",
+        "en": "A coffee, please",
+        "kind": "full-line"
+      },
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonjour ! Qu'est-ce que vous prenez ? Un café, s'il vous plaît.",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "gentle": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "silence",
+        "durationMs": 4000
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Un café, s'il vous plaît",
+        "en": "A coffee, please",
+        "kind": "full-line"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Un café, s'il vous plaît.",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "pass",
+        "gentle": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Un café, s'il vous plaît."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Très bien. Sur place ou à emporter ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "gentle": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "help"
+      },
+      "rung": 2,
+      "card": {
+        "fr": "Sur place, s'il vous plaît",
+        "en": "Here, please",
+        "kind": "full-line"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "fail"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Sur place, s'il vous plaît."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Très bien. Ça fait deux euros.",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "gentle": "pass"
+      }
+    }
+  ]
+}

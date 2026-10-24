@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "cafe-terrace-a1",
   "source": "synthetic",
+  "mode": "conversation",
   "scene": "cafe-terrace",
   "cefr": "A1",
   "turns": [

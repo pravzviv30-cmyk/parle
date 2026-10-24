@@ -58,6 +58,12 @@
  * scored against the right rules for the learner's inputs but in the wrong shop.
  * The note says so, per record.
  *
+ * ## Lessons are skipped
+ *
+ * A `lesson` record is scripted (services/tutor-agent/src/scriptedSpeech.ts), so
+ * there is no brain loop to replay it through. It is skipped with a note, makes no
+ * model call and adds no turn. A replayed record keeps its source record's mode.
+ *
  * ## Credentials
  * *
  * `--provider mock` uses MockLlmClient: a pipeline check only, it says the same
@@ -144,6 +150,21 @@ export interface ReplayedSession {
 
 /** Replay one record's learner inputs through the brain loop. */
 export async function replayRecord(record: SessionRecord, client: LlmClient, run: number, label: string): Promise<ReplayedSession> {
+  // A lesson is scripted (scriptedSpeech.ts), so there is no brain loop to run
+  // its inputs through. Skipped with no model call and no turn to score.
+  if (record.mode === 'lesson') {
+    return {
+      record: null,
+      usage: ZERO_USAGE,
+      modelCalls: 0,
+      quietRescues: 0,
+      safetyTurns: 0,
+      kinds: [],
+      failedTurns: 0,
+      unreplayedInputs: 0,
+      notes: [`${record.id}: a lesson is scripted, there is no brain loop to replay`],
+    };
+  }
   const { frame, note } = frameForScene(record.scene);
   const notes = note === null ? [] : [`${record.id}: ${note}`];
   const cefr: CefrBand = CEFR_BANDS.includes(record.cefr) ? (record.cefr as CefrBand) : 'A1';
@@ -154,7 +175,12 @@ export async function replayRecord(record: SessionRecord, client: LlmClient, run
     { cefr, confidence: 'medium', watchFor: [], lastRung: null, sessions: 0, name: null },
     { strictness: 'balanced', maxTurns: Math.max(24, record.turns.length + 2) },
   );
-  let recorder = newRecorder({ id: `${record.id}@${label}${run > 1 ? `#${run}` : ''}`, scene: record.scene, cefr: record.cefr });
+  let recorder = newRecorder({
+    id: `${record.id}@${label}${run > 1 ? `#${run}` : ''}`,
+    scene: record.scene,
+    mode: record.mode,
+    cefr: record.cefr,
+  });
   let usage = ZERO_USAGE;
   let modelCalls = 0;
   let quietRescues = 0;

@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "cafe-order-a0",
   "source": "synthetic",
+  "mode": "conversation",
   "scene": "cafe-order",
   "cefr": "A0",
   "turns": [

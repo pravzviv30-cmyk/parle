@@ -10,22 +10,36 @@
  *                 free-conversation rescue is a hint. Silence or aide-moi must be
  *                 rescued; the first rescue in a beat shows only the English
  *                 intent and the tutor does not say the learner's French.
+ *                 A scripted lesson is the opposite, by services/tutor-agent/src/
+ *                 scriptedSpeech.ts: every lesson rescue shows the known target
+ *                 line and the tutor says it for the learner to repeat.
  *   no-read-back  PEDAGOGY.md "The tutor itself ... never speaks the learner's
  *                 answer over the card", and the NO-CHEATING RULE in
  *                 packages/brain/src/prompt/system.ts. Before the learner has
- *                 tried, no tutor line carries the card's French.
+ *                 tried, no tutor line carries the card's French. A lesson says
+ *                 the target on a rescue and at rung 1, and the options at rung 2
+ *                 (scriptedSpeechParts), so the rule covers lesson rungs 3 and 4.
+ *                 A lesson tutor line before an attempt at rungs 3 and 4 is a beat
+ *                 opening, which a per-turn record does not carry as its own turn,
+ *                 so the unit cases cover that rule and the synthetic lesson does not.
  *   gentle        system.ts "Never say wrong, incorrect, bad, or failed" and
  *                 "Never remark on hesitation", enforced with the brain's own
  *                 copyViolations (scold and em-dash) and HESITATION_COMMENTARY.
- *   level-fit     RUNG_LENGTH in packages/brain/src/prompt/turnContext.ts.
+ *   level-fit     RUNG_LENGTH in packages/brain/src/prompt/turnContext.ts, the
+ *                 brain's conversation prompt. A lesson line is authored script,
+ *                 so level-fit is n/a in a lesson.
  *   safety        services/tutor-agent/src/safety.ts, the same outputGuard and
  *                 safetyDecision the live tutor runs.
+ *
+ * Every check takes the session's mode (sessionRecord.ts SESSION_MODES). Only
+ * `lesson` changes a rule; `mission` and `conversation` are free conversation
+ * and keep the conversation rules. gentle and safety ignore the mode.
  */
 
 import { carriesFrench, copyViolations } from '@luvani/brain';
 import { outputGuard, safetyDecision } from '@luvani/tutor-agent/src/safety.ts';
 
-import type { CheckId, SessionRecord, SessionTurn } from './sessionRecord.ts';
+import type { CheckId, SessionMode, SessionRecord, SessionTurn } from './sessionRecord.ts';
 
 export type Verdict = 'pass' | 'fail' | 'n/a';
 
@@ -91,10 +105,25 @@ function readBackField(turn: SessionTurn, cardFr: string): string | null {
   return tutorLines(turn).find((line) => readsBack(line.text, cardFr))?.field ?? null;
 }
 
-export function checkRescue(turn: SessionTurn): CheckResult {
+/**
+ * A scripted lesson rescue, scriptedSpeech.ts `rescued`: the target line is
+ * shown in full and the tutor says it for the learner to repeat, from the
+ * script. So any lesson rescue, first or later, needs a full-line card and a
+ * tutor line that says the card's French.
+ */
+function checkLessonRescue(turn: SessionTurn): CheckResult {
+  if (turn.card === null || turn.card.kind !== 'full-line') {
+    return failed('rescue', `lesson rescue showed ${turn.card === null ? 'no card' : `a ${turn.card.kind} card`}, not the full target line`);
+  }
+  if (readBackField(turn, turn.card.fr) === null) return failed('rescue', 'lesson rescue, no tutor line says the target for the learner to repeat');
+  return pass('rescue');
+}
+
+export function checkRescue(turn: SessionTurn, mode: SessionMode): CheckResult {
   if (turn.input.type === 'spoke') return na('rescue');
   if (!turn.rescued) return failed('rescue', `${turn.input.type} with no rescue`);
   if (turn.rescueIndex < 1) return failed('rescue', 'rescued but rescueIndex is 0');
+  if (mode === 'lesson') return checkLessonRescue(turn);
   if (turn.rescueIndex === 1) {
     if (turn.card === null || turn.card.kind !== 'hint') {
       return failed('rescue', `first rescue showed ${turn.card === null ? 'no card' : `a ${turn.card.kind} card`}, not the quiet hint`);
@@ -110,7 +139,10 @@ export function checkRescue(turn: SessionTurn): CheckResult {
   return pass('rescue');
 }
 
-export function checkNoReadBack(turn: SessionTurn): CheckResult {
+export function checkNoReadBack(turn: SessionTurn, mode: SessionMode): CheckResult {
+  // scriptedSpeechParts says the target on a rescue and at rung 1, and the
+  // options at rung 2, by design. Rungs 3 and 4 keep the rule.
+  if (mode === 'lesson' && (turn.rescued || turn.rung <= 2)) return na('no-read-back');
   const card = turn.card;
   if (turn.attempted || card === null || card.fr.trim() === '') return na('no-read-back');
   // A full line revealed on a later rescue is the one time system.ts lets the
@@ -174,7 +206,10 @@ export function countWords(text: string): number {
   return text.split(/\s+/).filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
 }
 
-export function checkLevelFit(turn: SessionTurn): CheckResult {
+export function checkLevelFit(turn: SessionTurn, mode: SessionMode): CheckResult {
+  // RUNG_LENGTH is the conversation prompt. A lesson line is authored script,
+  // and the lesson prompt (services/tutor-agent/src/prompt.ts) words its own limits.
+  if (mode === 'lesson') return na('level-fit');
   // A safety step is not scene talk, and a quiet rescue says nothing.
   if (turn.safetyStep === true || turn.tutor.sceneReply.trim() === '') return na('level-fit');
   const cap = LEVEL_CAPS[turn.rung];
@@ -205,7 +240,7 @@ export function checkSafety(turn: SessionTurn): CheckResult {
   return pass('safety');
 }
 
-export const SESSION_CHECKS: Readonly<Record<CheckId, (turn: SessionTurn) => CheckResult>> = {
+export const SESSION_CHECKS: Readonly<Record<CheckId, (turn: SessionTurn, mode: SessionMode) => CheckResult>> = {
   rescue: checkRescue,
   'no-read-back': checkNoReadBack,
   gentle: checkGentle,

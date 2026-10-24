@@ -11,9 +11,19 @@
 
 import type { LearnerTurnInput } from '@luvani/brain';
 
-export const SESSION_RECORD_VERSION = 1;
+export const SESSION_RECORD_VERSION = 2;
 export const SESSION_SOURCES = ['synthetic', 'dev'] as const;
 export type SessionSource = (typeof SESSION_SOURCES)[number];
+
+/**
+ * Which rule book a session is judged by. A scripted `lesson` rescue shows the
+ * known target line and the tutor says it for the learner to repeat
+ * (services/tutor-agent/src/scriptedSpeech.ts). A `mission` is free
+ * conversation (docs/LIVE_VOICE.md "A mission (free conversation)") and so is
+ * `conversation`: the first rescue is a quiet English hint, nothing said.
+ */
+export const SESSION_MODES = ['lesson', 'mission', 'conversation'] as const;
+export type SessionMode = (typeof SESSION_MODES)[number];
 
 export const CHECK_IDS = ['rescue', 'no-read-back', 'gentle', 'level-fit', 'safety'] as const;
 export type CheckId = (typeof CHECK_IDS)[number];
@@ -55,9 +65,10 @@ export interface SessionTurn {
 }
 
 export interface SessionRecord {
-  version: 1;
+  version: 2;
   id: string;
   source: SessionSource;
+  mode: SessionMode;
   scene: string;
   cefr: string;
   turns: SessionTurn[];
@@ -133,12 +144,26 @@ function parseTurn(id: string, value: unknown, index: number): SessionTurn {
   };
 }
 
-/** Parse one record, refusing unknown versions and any source but synthetic or dev. */
+/**
+ * Parse one record, refusing unknown versions and any source but synthetic or dev.
+ *
+ * A version 2 record must name its mode. A version 1 record has none and is read
+ * as `conversation`, returned as a version 2 record: every v1 record came from
+ * `chat --record` (conversation and mission frames only, both of which take the
+ * conversation rescue rule) or was written by hand for conversation scenes.
+ */
 export function parseSessionRecord(json: unknown): SessionRecord {
   if (!isObject(json)) fail('(unnamed)', 'must be a JSON object');
   const id = typeof json.id === 'string' && json.id !== '' ? json.id : fail('(unnamed)', 'id must be a non-empty string');
-  if (json.version !== SESSION_RECORD_VERSION) {
-    fail(id, `unknown version ${JSON.stringify(json.version)}, this eval reads version ${SESSION_RECORD_VERSION}`);
+  if (json.version !== SESSION_RECORD_VERSION && json.version !== 1) {
+    fail(id, `unknown version ${JSON.stringify(json.version)}, this eval reads versions 1 and ${SESSION_RECORD_VERSION}`);
+  }
+  let mode: SessionMode = 'conversation';
+  if (json.version === SESSION_RECORD_VERSION) {
+    if (!(SESSION_MODES as readonly unknown[]).includes(json.mode)) {
+      fail(id, `mode ${JSON.stringify(json.mode)} is not one of ${SESSION_MODES.join(', ')}`);
+    }
+    mode = json.mode as SessionMode;
   }
   if (!(SESSION_SOURCES as readonly unknown[]).includes(json.source)) {
     fail(
@@ -149,9 +174,10 @@ export function parseSessionRecord(json: unknown): SessionRecord {
   if (typeof json.scene !== 'string' || typeof json.cefr !== 'string') fail(id, 'scene and cefr must be strings');
   if (!Array.isArray(json.turns) || json.turns.length === 0) fail(id, 'turns must be a non-empty array');
   return {
-    version: 1,
+    version: SESSION_RECORD_VERSION,
     id,
     source: json.source as SessionSource,
+    mode,
     scene: json.scene,
     cefr: json.cefr,
     turns: json.turns.map((turn, index) => parseTurn(id, turn, index)),

@@ -42,7 +42,7 @@ import { fileURLToPath } from 'node:url';
 
 import { APERO_FRAME, CAFE_FRAME, MISSION_FRAMES, type LearnerTurnInput, type ScenarioFrame, type SupportView, type TurnView } from '@luvani/brain';
 
-import { SESSION_RECORD_VERSION, type SessionRecord, type SessionTurn, type SupportCard, type TutorLines } from './sessionRecord.ts';
+import { SESSION_RECORD_VERSION, type SessionMode, type SessionRecord, type SessionTurn, type SupportCard, type TutorLines } from './sessionRecord.ts';
 
 /** Where `--record` with no path writes, under the playground and out of git. */
 export const DEV_SESSIONS_DIR = fileURLToPath(new URL('../../sessions/', import.meta.url));
@@ -50,6 +50,7 @@ export const DEV_SESSIONS_DIR = fileURLToPath(new URL('../../sessions/', import.
 export interface DevRecorder {
   id: string;
   scene: string;
+  mode: SessionMode;
   cefr: string;
   turns: SessionTurn[];
   /** The beat the previous turn was in, or null before the first. */
@@ -60,7 +61,7 @@ export interface DevRecorder {
   attempted: boolean;
 }
 
-export function newRecorder(init: { id: string; scene: string; cefr: string }): DevRecorder {
+export function newRecorder(init: { id: string; scene: string; mode: SessionMode; cefr: string }): DevRecorder {
   return { ...init, turns: [], beat: null, rescues: 0, attempted: false };
 }
 
@@ -172,6 +173,7 @@ export function toSessionRecord(recorder: DevRecorder): SessionRecord {
     version: SESSION_RECORD_VERSION,
     id: recorder.id,
     source: 'dev',
+    mode: recorder.mode,
     scene: recorder.scene,
     cefr: recorder.cefr,
     turns: recorder.turns,
@@ -195,6 +197,20 @@ export function sceneIdFor(frame: ScenarioFrame): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   return slug === '' ? 'built-scene' : slug;
+}
+
+/**
+ * The mode a frame is recorded under: `mission` for a mission frame, else
+ * `conversation`. Same order as sceneIdFor: MISSION_FRAMES reuses CAFE_FRAME
+ * (mission:cafe) and APERO_FRAME (mission:amis), but those two are recorded as
+ * the hand-written scenes cafe-order and apero-friends, so they are conversations.
+ *
+ * The playground has no lesson path, so chat never writes `lesson`; a lesson
+ * record is written by hand or by a future lesson recorder.
+ */
+export function modeFor(frame: ScenarioFrame): SessionMode {
+  if (frame === CAFE_FRAME || frame === APERO_FRAME) return 'conversation';
+  return Object.values(MISSION_FRAMES).some((candidate) => candidate === frame) ? 'mission' : 'conversation';
 }
 
 /** `2026-10-23T14:05:09.123Z` as `20261023-140509`, safe in a file name. */

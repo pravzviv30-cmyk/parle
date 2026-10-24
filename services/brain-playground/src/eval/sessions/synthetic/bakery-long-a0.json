@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "bakery-long-a0",
   "source": "synthetic",
+  "mode": "conversation",
   "scene": "bakery",
   "cefr": "A0",
   "turns": [

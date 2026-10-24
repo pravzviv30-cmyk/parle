@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "apero-friends-a1",
   "source": "synthetic",
+  "mode": "conversation",
   "scene": "apero-friends",
   "cefr": "A1",
   "turns": [

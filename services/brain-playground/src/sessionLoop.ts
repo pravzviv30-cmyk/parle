@@ -35,7 +35,7 @@ import {
 import { STUCK_SILENCE_MS } from '@luvani/core';
 import { safetyDecision } from '@luvani/tutor-agent/src/safety.ts';
 
-import { SILENT_TUTOR, isQuietRescue, newRecorder, recordTurn, safetyTutor, sceneIdFor, tutorLinesFromView, type DevRecorder } from './eval/devRecord.ts';
+import { SILENT_TUTOR, isQuietRescue, modeFor, newRecorder, recordTurn, safetyTutor, sceneIdFor, tutorLinesFromView, type DevRecorder } from './eval/devRecord.ts';
 import { addUsage, formatTurnUsage, ZERO_USAGE } from './usage.ts';
 import { renderOpening, renderRescue, renderTurnView, meta, warm } from './render.ts';
 
@@ -58,7 +58,7 @@ export function beginSession(
     maxTurns: DEFAULT_CONFIG.maxTurns,
   });
   const recorder =
-    options.record === undefined ? null : newRecorder({ id: options.record.id, scene: sceneIdFor(frame), cefr: state.learner.cefr });
+    options.record === undefined ? null : newRecorder({ id: options.record.id, scene: sceneIdFor(frame), mode: modeFor(frame), cefr: state.learner.cefr });
   const session: Session = { state, profile, totals: ZERO_USAGE, calls: 0, recorder };
   const lines = renderOpening(frame, state.ladder.rung, supportViewForAssistance(0, state.lastSupport));
   return { session, lines };

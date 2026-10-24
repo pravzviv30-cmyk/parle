@@ -54,3 +54,26 @@ Production today is `TUTOR_LLM=openai`, with live turns on gpt-6-luna (VOICE-008
   a few dollars. The founder approves the pilot's figure before the full run.
 - Keys come from `services/brain-playground/.env`. Nothing here reads learner data, and no learner
   text goes to any vendor.
+
+## Curation and live turns run on different models
+
+Checked against the source on 2026-10-24. No model has changed.
+
+- Live turns and frames go to `liveModel`. `DEFAULT_OPENAI_LIVE_MODEL` is `gpt-6-luna`
+  (`packages/brain/src/llm/openaiResponses.ts`), and `OPENAI_LIVE_MODEL` overrides it.
+- Curation and the own-words judge go to `turnModel`. `DEFAULT_OPENAI_TURN_MODEL` is
+  `gpt-5.6-luna` (same file, `pickModel`), and `OPENAI_TURN_MODEL` overrides it. The tier comes
+  from `routing.ts`, where `curate` is not the analyst tier. `packages/brain/src/llm/liveModel.test.ts`
+  pins this split on purpose: "a live-only Luna migration preserves curated practice and written
+  judges on their existing model".
+- Prices in `pricing.ts`, per million tokens: gpt-5.6-luna is $0.20 in and $1.20 out; gpt-6-luna
+  is $0.10 in and $0.50 out.
+- The F193 eval (`npm run eval:curation`) cost about $0.002 a run on gpt-5.6-luna. At the same
+  token counts gpt-6-luna would cost about $0.0008 to $0.0010 a run: 0.42 times if the run were
+  all output, 0.5 times if all input. One caveat: `openAiEffortFor` drops effort only for turn and
+  frame on gpt-6-luna, so curate keeps its routed effort and its reasoning tokens could differ.
+  Only a run settles it.
+- Moving it: setting `OPENAI_TURN_MODEL` alone also moves the judge, and also moves live turns
+  when `OPENAI_LIVE_MODEL` is unset. Moving curation alone needs a code change (its own knob, or
+  curate on `liveModel`) and a change to `liveModel.test.ts`. This waits for the founder, as does
+  a confirmation run of `eval:curation` on gpt-6-luna (about $0.001).

@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "apero-bar-a2",
   "source": "synthetic",
+  "mode": "conversation",
   "scene": "apero-bar",
   "cefr": "A2",
   "turns": [

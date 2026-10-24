@@ -20,6 +20,16 @@
  * outputGuard and safetyDecision. Reply wait is printed and never judged,
  * because no budget for it exists anywhere in the repo.
  *
+ * ## Which rule book: the record's mode
+ *
+ * A record names its mode (lesson, mission or conversation) and every check is
+ * scored against it. A scripted lesson rescue is the opposite of a free
+ * conversation one: services/tutor-agent/src/scriptedSpeech.ts shows the known
+ * target line and says it for the learner to repeat, so a lesson is judged by
+ * that rule and level-fit is n/a for it (a lesson line is authored script). A
+ * mission is free conversation (docs/LIVE_VOICE.md) and keeps the conversation
+ * rule. Scoring a lesson as conversation would fail every correct lesson rescue.
+ *
  * ## Whose sessions
  *
  * Synthetic or dev only. No learner has consented to a transcript being kept,
@@ -46,7 +56,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { JevAsker, JevJson, JevQuestion } from '@luvani/brain/llm';
 
 import { SESSION_CHECKS, replyWaitSummary, type CheckResult } from './sessionChecks.ts';
-import { CHECK_IDS, SESSION_SOURCES, parseSessionRecord, type CheckId, type SessionRecord, type SessionTurn } from './sessionRecord.ts';
+import { CHECK_IDS, SESSION_MODES, SESSION_SOURCES, parseSessionRecord, type CheckId, type SessionMode, type SessionRecord, type SessionTurn } from './sessionRecord.ts';
 
 export const SYNTHETIC_DIR = fileURLToPath(new URL('./sessions/synthetic/', import.meta.url));
 
@@ -61,14 +71,14 @@ export interface SessionScore {
   turns: TurnScore[];
 }
 
-export function scoreTurn(turn: SessionTurn): CheckResult[] {
-  return CHECK_IDS.map((check) => SESSION_CHECKS[check](turn));
+export function scoreTurn(turn: SessionTurn, mode: SessionMode): CheckResult[] {
+  return CHECK_IDS.map((check) => SESSION_CHECKS[check](turn, mode));
 }
 
 export function scoreSession(record: SessionRecord): SessionScore {
   return {
     id: record.id,
-    turns: record.turns.map((turn) => ({ turn: `${record.id}#${turn.n}`, results: scoreTurn(turn) })),
+    turns: record.turns.map((turn) => ({ turn: `${record.id}#${turn.n}`, results: scoreTurn(turn, record.mode) })),
   };
 }
 
@@ -105,7 +115,7 @@ export function summariseSessions(results: readonly SessionScore[]): SessionsSum
 export function labelMismatches(record: SessionRecord): string[] {
   const out: string[] = [];
   for (const turn of record.turns) {
-    const results = scoreTurn(turn);
+    const results = scoreTurn(turn, record.mode);
     for (const result of results) {
       const label = turn.expect?.[result.check];
       const verdict = result.verdict;
@@ -168,6 +178,7 @@ export async function jevNoteForTurn(
   if (Object.keys(questions).length === 0) return null;
   const state: JevJson = {
     scene: record.scene,
+    mode: record.mode,
     level: record.cefr,
     learner: turn.input.type === 'spoke' ? turn.input.text : `(${turn.input.type})`,
     card_french: turn.card?.fr ?? null,
@@ -223,6 +234,12 @@ export function recordPaths(args: readonly string[]): string[] {
   return names.filter((name) => name.endsWith('.json')).sort().map((name) => path.join(folder, name));
 }
 
+/** ` (8 conversation, 1 lesson)`, the modes present in the run, conversation first. */
+function modeCounts(records: readonly SessionRecord[]): string {
+  const parts = [...SESSION_MODES].reverse().map((mode) => ({ mode, count: records.filter((r) => r.mode === mode).length })).filter((m) => m.count > 0);
+  return parts.length === 0 ? '' : ` (${parts.map((m) => `${m.count} ${m.mode}`).join(', ')})`;
+}
+
 const pct = (passed: number, applicable: number): string =>
   applicable === 0 ? '   -' : `${Math.round((passed / applicable) * 100)}%`.padStart(4);
 
@@ -271,7 +288,7 @@ export async function runSessionEval(options: RunOptions): Promise<number> {
       return 1;
     }
   }
-  log(`session eval over ${records.length} records, ${records.reduce((n, r) => n + r.turns.length, 0)} turns`);
+  log(`session eval over ${records.length} records${modeCounts(records)}, ${records.reduce((n, r) => n + r.turns.length, 0)} turns`);
 
   const scores = records.map(scoreSession);
   const summary = summariseSessions(scores);
