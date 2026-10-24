@@ -10,7 +10,7 @@
  * misconfigured it.
  */
 
-import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_DRILLS_MODEL, DEFAULT_OPENAI_LIVE_MODEL, DEFAULT_OPENAI_TURN_MODEL, openAiLiveModel } from '@luvani/brain';
+import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_CURATION_MODEL, DEFAULT_OPENAI_DRILLS_MODEL, DEFAULT_OPENAI_LIVE_MODEL, DEFAULT_OPENAI_TURN_MODEL, openAiLiveModel } from '@luvani/brain';
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
 import { CONVERSATION_TTS_MODEL_ENV, ELEVEN_VOICES, MODEL, conversationTtsModel, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
 import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
@@ -200,10 +200,12 @@ export function warnings(env: Env = process.env): string[] {
     const analystLabel = analystModel === DEFAULT_OPENAI_ANALYST_MODEL ? `GPT-5.6 Terra (${analystModel})` : analystModel;
     const drillsModel = env.OPENAI_DRILLS_MODEL?.trim() || DEFAULT_OPENAI_DRILLS_MODEL;
     const drillsLabel = drillsModel === DEFAULT_OPENAI_DRILLS_MODEL ? `GPT-6 Luna (${drillsModel})` : drillsModel;
+    const curationModel = env.OPENAI_CURATION_MODEL?.trim() || DEFAULT_OPENAI_CURATION_MODEL;
+    const curationLabel = curationModel === DEFAULT_OPENAI_CURATION_MODEL ? `GPT-6 Luna (${curationModel})` : curationModel;
     out.push(
       `TUTOR_LLM=openai uses ${turnLabel} for live turns and scene design, `
-        + `${analystLabel} for memory and ${drillsLabel} for drill authoring. Curated phrases and written checks use `
-        + `${env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL}.`,
+        + `${analystLabel} for memory, ${drillsLabel} for drill authoring and ${curationLabel} for curated phrases. `
+        + `Written checks use ${env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL}.`,
     );
   }
   if (selectedBrain(env) === 'claude-cli') {
@@ -479,6 +481,7 @@ export async function verifyVendors(
             env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
             env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
             env.OPENAI_DRILLS_MODEL?.trim() || DEFAULT_OPENAI_DRILLS_MODEL,
+            env.OPENAI_CURATION_MODEL?.trim() || DEFAULT_OPENAI_CURATION_MODEL,
           ];
           const missing = [...new Set(required)].filter((id) => !ids.includes(id));
           if (missing.length === 0) return null;
@@ -487,7 +490,7 @@ export async function verifyVendors(
             fatal: true,
             detail:
               `does not list the configured model${missing.length === 1 ? '' : 's'} ${missing.map((id) => `"${id}"`).join(', ')} for this key.\n` +
-              `          Check OPENAI_LIVE_MODEL, OPENAI_TURN_MODEL, OPENAI_ANALYST_MODEL and OPENAI_DRILLS_MODEL in services/tutor-agent/.env.`,
+              `          Check OPENAI_LIVE_MODEL, OPENAI_TURN_MODEL, OPENAI_ANALYST_MODEL, OPENAI_DRILLS_MODEL and OPENAI_CURATION_MODEL in services/tutor-agent/.env.`,
           };
         },
       ),

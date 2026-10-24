@@ -312,7 +312,8 @@ the topic cards and exercises describe one practice.
 The selected brain is controlled by `TUTOR_LLM`. `openai` uses the Responses
 API with strict schemas, Luna for live turns and scene design, Terra for
 memory extraction and, since 2026-10-23, GPT-6 Luna for post-session drills
-(`OPENAI_DRILLS_MODEL`; VOICE-008 in `DECISIONS.md`);
+(`OPENAI_DRILLS_MODEL`; VOICE-008 in `DECISIONS.md`) and for curated phrases
+(`OPENAI_CURATION_MODEL`; VOICE-012);
 `anthropic` uses the Claude API; `groq` remains the free-tier plumbing option.
 Every successful call contributes its tokens to the session's `[luvani:brain]`
 log, and every call abandoned at its deadline is named there too. That per-call

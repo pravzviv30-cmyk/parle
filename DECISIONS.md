@@ -881,3 +881,58 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Sources: [market report](https://claude.ai/artifact/1TLMTEHTGdToCv8WDCqVAe)
   section 7, [beta launch](docs/changes/beta-launch.md), founder answers of 23
   October 2026.
+
+## VOICE-012 — Curation on GPT-6 Luna, on its own setting
+
+- Date: 2026-10-24
+- Status: accepted
+- Decision:
+  - The brain's `curate` activity moves from gpt-5.6-luna to gpt-6-luna.
+  - It has its own knob, `OPENAI_CURATION_MODEL` (config `curationModel`,
+    default `DEFAULT_OPENAI_CURATION_MODEL`), exactly as drills have
+    `OPENAI_DRILLS_MODEL` (VOICE-008).
+  - `OPENAI_TURN_MODEL` no longer moves curation. It still moves the own-words
+    judge, and still moves live turns when `OPENAI_LIVE_MODEL` is unset. Judge
+    stays on gpt-5.6-luna and memory extraction on gpt-5.6-terra.
+  - Curation keeps its routed reasoning effort (medium, 3,000 output tokens).
+    `openAiEffortFor` only drops effort for turn and frame on gpt-6-luna.
+  - Tutor preflight now names the curation model and refuses to start if the
+    key cannot list it.
+- Reason: the model gap between live turns (gpt-6-luna) and curation
+  (gpt-5.6-luna) was written up in `docs/changes/vendor-comparison.md` and
+  waited for the founder. gpt-6-luna is priced at $0.10 in and $0.50 out per
+  million tokens against $0.20 and $1.20. Moving curation alone through
+  `OPENAI_TURN_MODEL` would also have moved the judge and live turns, so it
+  needed its own setting.
+- Measured, `npm run eval:curation` (F193), two runs on gpt-6-luna and one
+  same-day baseline on gpt-5.6-luna (`OPENAI_CURATION_MODEL=gpt-5.6-luna`), two
+  fixtures each:
+
+  | Run | Café: kept (worth reaching for), separation | Weekend: kept (worth reaching for), separation | Printed cost |
+  |---|---|---|---|
+  | gpt-6-luna, run 1 | 4 (4/5), 1.13 | 5 (5/5), 1.29 | about $0.001 |
+  | gpt-6-luna, run 2 | 5 (5/5), 1.29 | 5 (5/5), 1.29 | about $0.001 |
+  | gpt-5.6-luna, same day | 5 (5/5), 1.29 | 5 (5/5), 1.29 | about $0.003 |
+
+  - The earlier recorded gpt-5.6-luna run (23 October) cost about $0.002.
+  - The weekend fixture kept 5 of 5 on every run. The café fixture kept 4 once
+    (run 1 left out "sur place, s'il vous plaît", a phrase worth reaching for,
+    and did not replace it) and 5 on the rerun. Neither model's runs had a
+    failing extension.
+  - Run 1 is the one that triggered the stop rule (fewer than 5 of 5 per
+    fixture). It was rerun once on gpt-6-luna, and once on gpt-5.6-luna for the
+    baseline, to tell noise from a real drop.
+  - This is a small sample: two gpt-6-luna runs and one gpt-5.6-luna run on
+    two fixtures. It shows no systematic loss. It cannot show that the single
+    miss will not recur, so treat it as a one-off, not as a measured rate. The
+    run output printed no token counts, only the cost.
+- Consequence:
+  - Setting `OPENAI_CURATION_MODEL=gpt-5.6-luna` restores the old behaviour
+    with no code change.
+  - If curation quality is doubted later, re-run `npm run eval:curation`. The
+    eval prices and labels the run from `openAiModelFor('curate')`, so it
+    follows the setting.
+  - Curation is not part of the paid practice quote (drills are), so no quote
+    needs re-binding.
+- Sources: [vendor comparison](docs/changes/vendor-comparison.md), VOICE-008
+  above, F193 in [known issues](docs/KNOWN_ISSUES.md).

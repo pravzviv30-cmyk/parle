@@ -3276,7 +3276,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   criterion has a measurement to regress against.
 - fixed: the eval was already on main (`src/eval/curationEval.ts`); the first live run on
   2026-10-23 kept 5 of 5 worth reaching for on both fixtures, recorded in
-  docs/IMPLEMENTATION_EVIDENCE.md under "Measurements that are not assertions".
+  docs/IMPLEMENTATION_EVIDENCE.md under "Measurements that are not assertions". On 2026-10-24
+  curation moved to gpt-6-luna (VOICE-012); two runs there and a same-day gpt-5.6-luna baseline
+  are recorded in the same place (café 4 then 5 of 5, weekend 5 of 5 every run, about $0.001
+  against about $0.003).
 - verified-by: `the curation eval scores keeps against drops and runs from the playground`
 
 ### F194 — The storage doc describes the publish that exists

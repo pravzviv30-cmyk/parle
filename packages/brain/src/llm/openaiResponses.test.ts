@@ -9,6 +9,7 @@ import { CAFE_FRAME } from '../fixtures.ts';
 import type { BrainTurnRequest } from './client.ts';
 import {
   DEFAULT_OPENAI_ANALYST_MODEL,
+  DEFAULT_OPENAI_CURATION_MODEL,
   DEFAULT_OPENAI_DRILLS_MODEL,
   DEFAULT_OPENAI_LIVE_MODEL,
   DEFAULT_OPENAI_TURN_MODEL,
@@ -219,6 +220,8 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
   });
 
   test('curation is served by the tier routing.ts assigns it, not by who is waiting', async () => {
+    // 2026-10-24 (VOICE-012): curation moved from gpt-5.6-luna to gpt-6-luna on
+    // its own knob, OPENAI_CURATION_MODEL. The tier question stays routing.ts's.
     // F104. "Nobody is waiting" and "this needs the careful model" are different
     // questions, and this adapter used to answer the second with the first. It
     // agreed for four activities and was wrong for curate, which routing.ts puts
@@ -227,7 +230,8 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     const body = await bodyFor('curate');
 
     assert.equal(isAnalystActivity('curate'), false, 'routing.ts is the source of truth for the tier');
-    assert.equal(body.model, DEFAULT_OPENAI_TURN_MODEL, 'so curate must be served by the fast, cheap model');
+    assert.equal(body.model, DEFAULT_OPENAI_CURATION_MODEL, 'so curate must be served by the curation model, not the analyst');
+    assert.equal(DEFAULT_OPENAI_CURATION_MODEL, 'gpt-6-luna');
   });
 
   test('every activity is served by the tier its route names, with no second table to disagree', async () => {
@@ -236,7 +240,9 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
       const body = await bodyFor(activity);
       // 2026-10-23 (VOICE-008): drills have their own model, whatever the tier.
+      // 2026-10-24 (VOICE-012): curation has its own model too.
       const expected = activity === 'drills' ? DEFAULT_OPENAI_DRILLS_MODEL
+        : activity === 'curate' ? DEFAULT_OPENAI_CURATION_MODEL
         : isAnalystActivity(activity) ? DEFAULT_OPENAI_ANALYST_MODEL
         : activity === 'turn' || activity === 'frame' ? DEFAULT_OPENAI_LIVE_MODEL : DEFAULT_OPENAI_TURN_MODEL;
       assert.equal(body.model, expected, `${activity} must be served by the tier routing.ts assigns it`);
