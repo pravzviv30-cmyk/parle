@@ -20,11 +20,11 @@ code side is prepared on `main`. The support address is `hello@luvani.app`.
 | Fast live turns, quiet first rescue, streaming replies | VOICE-002, VOICE-003 | done, on `main` |
 | Pronunciation beside the turn; paid lesson quote prices scoring | VOICE-004, F863 | done, on `main`; flag `LUVANI_AUDIO_SCORING` off |
 | Missions scored on the handed-over line; convo quote prices scoring; recap focus sound | VOICE-004, F866 | done, on `main`; flag off |
-| `live_session_finished` event (counts only) | migration 41, `apps/mobile/src/analytics/sessionFinished.ts` | done, on branch `claude/beta-instrumentation` |
+| `live_session_finished` event (counts only) | migration 41, `apps/mobile/src/analytics/sessionFinished.ts` | done, on `main` |
 | Support address and Contact row | `apps/mobile/src/legal/company.ts` | done, same branch |
 | Beta metrics queries | [deployment/beta-metrics.sql](../../deployment/beta-metrics.sql) | done, same branch |
-| Guest first scene: one scripted café exchange before sign-up, no model, 180 s, daily ceiling | UI-011, [guest-first-scene.md](guest-first-scene.md) | done, on branch `claude/guest-first-scene`; off until `LUVANI_GUEST_SCENE=1` |
-| Free plan: one ten-minute conversation every other day (600 s, refilled 44 h after first use); Core 300 and Max 600 minutes; prices in the margin model | REV-001, migration 43 `20261023220000_daily_free_allowance.sql` | done, on branch `claude/daily-allowance`; needs migration 43 and the matching token server together (step 1) |
+| Guest first scene: one scripted café exchange before sign-up, no model, 180 s, daily ceiling | UI-011, [guest-first-scene.md](guest-first-scene.md) | done, on `main`; off until `LUVANI_GUEST_SCENE=1` |
+| Free plan: one ten-minute conversation every other day (600 s, refilled 44 h after first use); Core 300 and Max 600 minutes; prices in the margin model | REV-001, migration 43 `20261023220000_daily_free_allowance.sql` | done, on `main`; needs migration 43 and the matching token server together (step 1) |
 
 ## Founder steps, in order
 
