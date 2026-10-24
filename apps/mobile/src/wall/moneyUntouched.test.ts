@@ -157,7 +157,7 @@ const FILES: Record<string, string> = {
   // metering index.ts below). D24, the Headspace model: the one-off 30 free
   // minutes became a 5-minute weekly taste that refills on a rolling 7 days from
   // first use, one claim per device, and a lapse falls back to the taste
-  // (meter.ts refillTaste/TASTE_REFILL_DAYS, exported from index.ts);
+  // (meter.ts refillTaste/TASTE_REFILL_HOURS, exported from index.ts);
   // capabilitiesFor gains `unlocks` for the eight locked features; billing status
   // sends the taste's refill time as periodEnd; the local stores refill
   // (store.ts). D23: the free plan holds one streak freeze. Core: PLANS.starter.label
@@ -171,16 +171,19 @@ const FILES: Record<string, string> = {
   // rates.md), plus the prose figures that quote it. Founder approved
   // 2026-10-23. Prices, allowances, plans and every function body are
   // unchanged; meter.test.ts floors were tightened, none lowered.
-  'packages/core/src/metering/meter.ts': 'fa1fc525f50e867dd179fafe35fccdd114065275db63a154495e1e124eaf2f2e',
+  // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
+  'packages/core/src/metering/meter.ts': '5c121dded5c2fcfbf7a23972a9e3976507d69f7340ddbb4a4becfb719299fdcb',
   'services/token-server/src/billing/revenuecat.ts': '33964e5a51bf18aa5cb3f7198c9cc377dc2b815eeb13a26a0ebd2a4a0b9ba8ff',
-  'services/token-server/src/billingStatus.ts': '416fcc27cc92be9e3c745decf147517c2dd3aa8f33c66ab69a6a1d5657acb025',
+  // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
+  'services/token-server/src/billingStatus.ts': 'f6271546c1276f87d89550649b3421983a1a8b2fd1e8a2ec5adfcd6d01d60425',
   // 3 October 2026: founder-authorized Report 36 confirmed service-failure
   // refunds and Report 32 approved audio spending ceilings. Sol independently
   // reviewed bounded charge/epoch/ownership/disabled-cap repairs; disposable SQL
   // and actual isolated PostgreSQL refund races passed. Hosted/native/crash
   // reconciliation remain release holds. Prices, allowances and margin floors
   // retain their original pins. These new pins guard the deliberate new rules.
-  'packages/core/src/sessionSettlement.ts': '3daea2582cd956bd060215f0ad241bdccd5a08cff4c778ffbfab87d47faf43be',
+  // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
+  'packages/core/src/sessionSettlement.ts': 'a1da5beb4a0b771ac65a06777147ea86e4640a636192aa26b2e5476f28e77198',
   'supabase/migrations/20261002233520_failed_session_refunds.sql': 'e2159b5fa5079ac44a68fc84bbb8717ba891324c000b488be4d4ee6af606b122',
   'supabase/migrations/20261003001510_approved_phrase_audio_caps.sql': '4dcb7de1e44d95cd10c3914ae59d3b8e9d435ea9714e0cb0264cd42d451252c6',
   // 2026-09-27, Fable paywall review: the entitlement gate, the debit, core metering's entry point, the
@@ -200,9 +203,12 @@ const FILES: Record<string, string> = {
   // No allowance, debit, price or trial logic changed. Approval: founder 2026-10-23 (the
   // guest first scene plan named this tokens.ts change). Review: revenue-engineer read-only
   // and the Opus orchestrator read the diff.
-  'services/token-server/src/tokens.ts': '1f5ede4809154d4817a00e570768fe0a62eb1dd37d6a749f51cab4b429a5e620',
-  'services/token-server/src/store.ts': '2d6d42ea21964bd640ad0f4f2e3b931c0e245364cc39f0d76791165b436fb019',
-  'packages/core/src/metering/index.ts': '430ac2a2da7a53dac3d083dccb7a713e4d85d61c910c122128abef675d1c0efa',
+  // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
+  'services/token-server/src/tokens.ts': '3233ef498309c5f596ed07ecbb901b58ac6692190a46e8ec0e0e20a9ccc8fef1',
+  // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
+  'services/token-server/src/store.ts': '8384d63773ac6607c79588987ffc6deed88cfbe7272562a1b754a6102de6c763',
+  // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
+  'packages/core/src/metering/index.ts': 'f8248a199da76f3d1f7dfa195e9c5cfe1d2a236db445e1720af6e18654ca3e67',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
   'apps/mobile/src/purchases/useContinueArc.ts': '122bbc57861e4bd52bf1207d39f0da89a297357369b865a9bed84ee7e505b3c8',
   'supabase/migrations/202608220001_luvani_learning.sql': '837130edcd96955383936bb34814c38a6cf9357e5031355156dd5398eb1f8c23',

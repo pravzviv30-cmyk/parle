@@ -47,24 +47,24 @@ describe('the plans page chooses once, for a learner with a goal', () => {
       [['luvani_starter_month', 'month', '£14.99'], ['luvani_starter_year', 'year', '£119.99']],
       [['luvani_regular_month', 'month', '£24.99'], ['luvani_regular_year', 'year', '£179.99']],
     ]);
-    // Minutes a day from the server's catalogue, rounded down: Starter 180 over
-    // 30 days is 6, Max 300 over 30 days is 10.
-    assert.deepEqual(rows.map((row) => row.daily), [6, 10]);
+    // Minutes a day from the server's catalogue, rounded down (REV-001): Core
+    // 300 over 30 days is 10, Max 600 over 30 days is 20.
+    assert.deepEqual(rows.map((row) => row.daily), [10, 20]);
     assert.equal(dailyMinutes(180, null), null, 'a plan with no period has no day to divide by');
 
     // The cheapest plan that covers the goal, paid yearly.
-    assert.equal(preselectedOffer(rows, 10, FREE)?.productId, 'luvani_regular_year');
-    assert.equal(preselectedOffer(rows, 5, FREE)?.productId, 'luvani_starter_year', 'a dearer plan was chosen when a cheaper one covers the goal');
+    assert.equal(preselectedOffer(rows, 20, FREE)?.productId, 'luvani_regular_year');
+    assert.equal(preselectedOffer(rows, 15, FREE)?.productId, 'luvani_regular_year');
+    assert.equal(preselectedOffer(rows, 10, FREE)?.productId, 'luvani_starter_year', 'a dearer plan was chosen when a cheaper one covers the goal');
     // No goal, or a goal no plan covers: nothing is chosen.
     assert.equal(preselectedOffer(rows, null, FREE)?.productId, 'luvani_starter_month');
-    assert.equal(preselectedOffer(rows, 15, FREE), null);
-    assert.equal(preselectedOffer(rows, 20, FREE), null);
+    assert.equal(preselectedOffer(rows, 25, FREE), null);
     // A learner who holds a paid plan came to manage it, and is not steered; a lapsed one may be.
     assert.equal(preselectedOffer(rows, 10, { plan: 'starter', lapsed: false }), null);
     assert.equal(preselectedOffer(rows, 10, { plan: 'regular', lapsed: false }), null);
-    assert.equal(preselectedOffer(rows, 10, { plan: 'starter', lapsed: true })?.productId, 'luvani_regular_year');
+    assert.equal(preselectedOffer(rows, 20, { plan: 'starter', lapsed: true })?.productId, 'luvani_regular_year');
     // The covering plan not sold yearly: nothing, never the monthly in its place.
-    assert.equal(preselectedOffer(wallPlanRows({ available: true, products: monthly }, PLANS), 10, FREE), null);
+    assert.equal(preselectedOffer(wallPlanRows({ available: true, products: monthly }, PLANS), 20, FREE), null);
     // No catalogue from the server: no minutes a day, so nothing is chosen.
     assert.equal(preselectedOffer(wallPlanRows(offering, null), 10, FREE), null);
 

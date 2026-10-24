@@ -284,10 +284,17 @@ async function withinLimits(
   return false;
 }
 
+/** When a spent free conversation comes back, as ISO, or undefined when core does not know. */
+function refusalRefillsAt(entitlement: Entitlement): string | undefined {
+  const decision = canStartSession(entitlement);
+  return !decision.allowed && decision.refillsAt ? decision.refillsAt.toISOString() : undefined;
+}
+
 /**
  * The sentence for a refused reservation. The database decided; core words it,
- * from the row read just before the reservation, so a spent weekly taste says
- * when it refills ("They refill on Monday."). The app shows its own copy keyed
+ * from the row read just before the reservation, so a spent free conversation
+ * says when it comes back (44 hours after the window's first debit; the ISO
+ * instant rides alongside as `refillsAt`). The app shows its own copy keyed
  * on the error code; this is the fallback a client without that table reads.
  */
 function refusalMessage(reason: string, entitlement: Entitlement): string {
@@ -297,8 +304,8 @@ function refusalMessage(reason: string, entitlement: Entitlement): string {
   const decision = canStartSession(entitlement);
   if (!decision.allowed && decision.reason === reason) return decision.message;
   if (reason === 'insufficient-for-session') return 'There is a little speaking time left, but not quite enough for a full session.';
-  if (reason === 'subscription-lapsed') return 'Your subscription has ended. Your free minutes for this week are used.';
-  return entitlement.plan === 'trial' ? 'Your free minutes for this week are used.' : 'You have used all your minutes for now.';
+  if (reason === 'subscription-lapsed') return 'Your subscription has ended. Your free conversation is used.';
+  return entitlement.plan === 'trial' ? 'Your free conversation is used.' : 'You have used all your minutes for now.';
 }
 
 function ipCheck(req: IncomingMessage, rule: RateLimitRule): readonly [RateLimitRule, 'ip', string] {
@@ -549,7 +556,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         await guestStore.shrinkClaimed(guestKey(token), identity.userId);
         if (!trial) return json(res, 200, { secondsRemaining: 0, trialEligible: false, ...sceneTurns });
         // D24 (founder, 2026-10-20): the onboarding first scene is a gift on top
-        // of the weekly free taste, so the guest's seconds are not debited from
+        // of the free conversation, so the guest's seconds are not debited from
         // it. Their cost was already bounded by the guest speech budget when
         // they were spoken, and that is where it stays recorded.
         return json(res, 200, { secondsRemaining: secondsRemaining(await store.get(identity.userId)), ...sceneTurns });
@@ -760,7 +767,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         if (reservation.kind === 'refused') {
           const status = ['exhausted', 'insufficient-for-session', 'subscription-lapsed'].includes(reservation.reason)
             ? 402 : reservation.reason === 'session-active' ? 409 : 503;
-          return json(res, status, { error: reservation.reason, message: refusalMessage(reservation.reason, entitlement), plans: PLANS });
+          const refillsAt = status === 402 ? refusalRefillsAt(entitlement) : undefined;
+          return json(res, status, { error: reservation.reason, message: refusalMessage(reservation.reason, entitlement), ...(refillsAt ? { refillsAt } : {}), plans: PLANS });
         }
         admitted = reservation;
         if(paid)try {
@@ -798,7 +806,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
 
       if (!result.ok) {
         void recordMinutesRefusal(eventSink, userId, body.analyticsAllowed, entitlement, result.reason);
-        return json(res, result.status, { error: result.reason, message: result.message, plans: PLANS }, { 'server-timing': serverTiming });
+        return json(res, result.status, { error: result.reason, message: result.message, ...(result.refillsAt ? { refillsAt: result.refillsAt } : {}), plans: PLANS }, { 'server-timing': serverTiming });
       }
       const leaseSignal = privateSignal(rateLimitSalt, 'user', userId);
       if (!admitted && !(await sessionLeases.acquire(leaseSignal, result.grant.sessionId, ACTIVE_SESSION_LEASE_SEC))) {

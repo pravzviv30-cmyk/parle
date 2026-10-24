@@ -61,18 +61,18 @@ describe('the store trial and yearly projection in SQL (F733)', () => {
     const trialEnd = inDays(7);
     const started = await apply(id, 'active', 'starter', trialEnd, storeTrialSeconds('starter'));
     assert.equal(started.kind, 'active');
-    assert.equal(remaining(started.entitlement), 42 * 60, 'the trial was granted something other than a week of Starter');
+    assert.equal(remaining(started.entitlement), 70 * 60, 'the trial was granted something other than a week of Core');
     assert.equal(started.entitlement.allowance_window_end, null, 'a trial is one window ending with the trial');
     // Spent most of it; the same trial read again keeps what was spent.
     await db.query('update public.entitlements set seconds_used = seconds_used + 2000 where user_id = $1', [id]);
     const repeat = await apply(id, 'active', 'starter', trialEnd, storeTrialSeconds('starter'));
-    assert.equal(remaining(repeat.entitlement), 42 * 60 - 2000, 'a repeat read of the trial handed time back');
+    assert.equal(remaining(repeat.entitlement), 70 * 60 - 2000, 'a repeat read of the trial handed time back');
     // The trial converts into a paid month: the whole allowance, from zero.
     const paid = await apply(id, 'active', 'starter', inDays(37), PLANS.starter.secondsPerPeriod);
     assert.equal(paid.entitlement.seconds_used, 0);
-    // Max's trial is seventy minutes.
+    // Max's trial is a hundred and forty minutes (REV-001).
     const max = await apply(user(2), 'active', 'regular', trialEnd, storeTrialSeconds('regular'));
-    assert.equal(remaining(max.entitlement), 70 * 60);
+    assert.equal(remaining(max.entitlement), 140 * 60);
   });
 
   test('the database refills a yearly window only when a later window is projected', async () => {
@@ -100,7 +100,7 @@ describe('the store trial and yearly projection in SQL (F733)', () => {
     await apply(id, 'active', 'regular', year, PLANS.regular.secondsPerPeriod, inDays(1));
     // Window one spent to the second and ended twenty-five hours ago, and no
     // renewal sweep has run since. Every read is a zero-second debit.
-    await db.query("update public.entitlements set seconds_used = 18000, allowance_window_end = now() - interval '25 hours' where user_id = $1", [id]);
+    await db.query("update public.entitlements set seconds_used = 36000, allowance_window_end = now() - interval '25 hours' where user_id = $1", [id]);
     const held = await read(id);
     assert.equal(held.plan, 'regular', 'a read lapsed a paying yearly learner whose window was not refilled in time');
     assert.equal(held.lapsed_from_paid, false);
@@ -464,6 +464,9 @@ describe('the F733 migration over a database that already holds paid learners', 
   });
   after(async () => { await db?.close(); });
 
+  // This database stops at F733, so its caps are the ones then in force, not
+  // today's PLANS (REV-001 moved them to 18000 / 36000 in migration 43).
+  const CAPS_AT_F733 = { starter: 10800, regular: 18000 } as const;
   test('the forward migration applies over existing paid rows, twice, and a new period still refills them', async () => {
     const monthly = user(1);
     const spent = user(2);
@@ -484,7 +487,7 @@ describe('the F733 migration over a database that already holds paid learners', 
     const project = async (id: string, plan: string, at: string, start: string) => {
       const t = Number((await db.query<{ t: string }>('select public.begin_billing_refresh($1) as t', [id])).rows[0]!.t);
       return (await db.query<{ r: { kind: string; entitlement: Row } }>('select public.apply_billing_projection_v2($1,$2,$3,$4,$5,null,$6,null,$7) as r',
-        [id, t, 'active', plan, at, PLANS[plan as 'starter' | 'regular'].secondsPerPeriod, start])).rows[0]!.r;
+        [id, t, 'active', plan, at, CAPS_AT_F733[plan as 'starter' | 'regular'], start])).rows[0]!.r;
     };
     // The same period read again with a start it never had refills nothing.
     const same = await project(monthly, 'starter', end, inDays(-10));

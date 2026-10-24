@@ -64,7 +64,7 @@ describe('the store free trial, said only when it is real', () => {
     assert.equal(view.cta, 'Start 7-day free trial');
     assert.deepEqual(view.nodes.map((node) => [node.key, node.title, node.line]), [
       ['today', 'Today', 'Max starts free. Nothing is charged today.'],
-      ['during', null, 'During the trial: up to 70 minutes with your tutor.'],
+      ['during', null, 'During the trial: up to 140 minutes with your tutor.'],
       ['cancel', 'Before day 7', 'Cancel in your App Store settings before day 7 and you pay nothing.'],
       ['then', 'Day 7', 'Max continues at £179.99 a year.'],
     ]);
@@ -74,7 +74,7 @@ describe('the store free trial, said only when it is real', () => {
     // sent, exactly what the projection grants, and none without a catalogue.
     assert.equal(storeTrialMinutes(PLANS, 'regular'), Math.floor(storeTrialSeconds('regular') / 60));
     assert.equal(storeTrialMinutes(PLANS, 'starter'), Math.floor(storeTrialSeconds('starter') / 60));
-    assert.equal(storeTrialMinutes(PLANS, 'starter'), 42);
+    assert.equal(storeTrialMinutes(PLANS, 'starter'), 70);
     assert.equal(storeTrialMinutes(null, 'regular'), null);
     const blind = trialTimeline({ offer: chosen(yearly(WEEK, true)), minutes: null, remind: false });
     assert.ok(blind && !blind.nodes.some((node) => node.key === 'during'), 'the trial\'s minutes were guessed with no catalogue');

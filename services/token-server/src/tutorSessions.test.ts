@@ -13,14 +13,14 @@ test('validated SQL reservation controls a cryptographically verified JWT despit
   }).reserve(input);
   if(admitted.kind!=='reserved')assert.fail('reservation expected');
   const config={apiKey:randomBytes(12).toString('hex'),apiSecret:randomBytes(32).toString('hex')};
-  const result=await grantSession({userId,mode:'convo',lessonId:'cafe-01',entitlement:{plan:'trial',secondsUsed:300},config,admitted});
+  const result=await grantSession({userId,mode:'convo',lessonId:'cafe-01',entitlement:{plan:'trial',secondsUsed:600},config,admitted});
   if(!result.ok)assert.fail('authoritatively reserved grant refused');
   const {payload}=await jwtVerify(result.grant.token,new TextEncoder().encode(config.apiSecret),{issuer:config.apiKey,algorithms:['HS256']});
   const meta=JSON.parse(String(payload.metadata));assert.equal(payload.sub,userId);assert.equal((payload.video as {room:string}).room,input.roomName);
   assert.equal(meta.sessionId,sessionId);assert.equal(meta.mode,'convo');assert.equal(meta.secondsRemaining,600);assert.equal(meta.lifecycleVersion,1);assert.equal(result.grant.secondsRemaining,900);
   await assert.rejects(grantSession({userId:authSessionId,mode:'convo',lessonId:'cafe-01',entitlement:{plan:'trial',secondsUsed:0},config,admitted}));
   await assert.rejects(grantSession({userId,mode:'lesson',lessonId:'cafe-01',entitlement:{plan:'trial',secondsUsed:0},config,admitted}));
-  assert.equal((await grantSession({userId,lessonId:'cafe-01',entitlement:{plan:'trial',secondsUsed:300},config})).ok,false);
+  assert.equal((await grantSession({userId,lessonId:'cafe-01',entitlement:{plan:'trial',secondsUsed:600},config})).ok,false);
 });
 test('service reservation decoder rejects malformed allowance and identity bindings',async()=>{
   for(const bad of [{version:2},{userId:authSessionId},{sessionId:userId},{roomName:'foreign'},{mode:'lesson'},{plan:'toString'},{reservedSeconds:119},{reservedSeconds:901},{reservedSeconds:120.5},{secondsRemaining:599},{secondsRemaining:999999999},{joinDeadline:'invalid'}]) {

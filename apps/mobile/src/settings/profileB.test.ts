@@ -26,7 +26,7 @@ import { PLAN_LABELS, type PlanStatusView } from '../purchases/planStatus.ts';
 import { SETTINGS_COPY, correctsRow, simplerRow } from './sections.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
-const FREE: PlanStatusView = { known: true, planLabel: PLAN_LABELS.trial, periodLine: 'Free every week.', band: 'plenty', bandLine: '3 free minutes this week, refills Monday', canStart: true };
+const FREE: PlanStatusView = { known: true, planLabel: PLAN_LABELS.trial, periodLine: 'One free conversation every other day.', band: 'plenty', bandLine: '3 free minutes left, refills on Monday at 4:10 pm', canStart: true };
 const CORE: PlanStatusView = { known: true, planLabel: PLAN_LABELS.starter, periodLine: 'Renews monthly.', band: 'plenty', bandLine: 'Plenty of speaking time left.', canStart: true };
 
 describe('Profile, to B-Profile', () => {
@@ -42,8 +42,8 @@ describe('Profile, to B-Profile', () => {
 
   test('the plan card names Free only when the plan says so, and says what Free includes', () => {
     const minutes = PLANS.trial.secondsPerPeriod / 60;
-    assert.equal(freeIncludes(1), `Practice and review, ${minutes} free minutes of speaking each week, and 1 streak freeze`);
-    assert.equal(freeIncludes(null), `Practice and review, and ${minutes} free minutes of speaking each week`, 'an unread freeze count is said');
+    assert.equal(freeIncludes(1), `Practice and review, a free ${minutes}-minute conversation every other day, and 1 streak freeze`);
+    assert.equal(freeIncludes(null), `Practice and review, and a free ${minutes}-minute conversation every other day`, 'an unread freeze count is said');
     assert.deepEqual(planCard(FREE, 1), { title: 'Free', line: freeIncludes(1), action: 'See plans', target: 'Wall' });
     assert.equal(planCard(CORE).title, 'Core');
     assert.equal(planCard(CORE).target, 'Subscription');
@@ -76,7 +76,7 @@ describe('Profile, to B-Profile', () => {
 
 describe('Settings, to B-Settings', () => {
   test('the free band row says the band in words, and only on the free plan', () => {
-    assert.equal(freeTimeLine(FREE), '3 free minutes this week, refills Monday');
+    assert.equal(freeTimeLine(FREE), '3 free minutes left, refills on Monday at 4:10 pm');
     assert.equal(freeTimeLine(CORE), null);
     assert.equal(freeTimeLine(null), null);
     assert.equal(freeTimeLine({ known: false, line: 'x' }), null);

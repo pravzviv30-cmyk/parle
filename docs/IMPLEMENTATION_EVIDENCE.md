@@ -22,19 +22,24 @@ of the list.
 
 ## Current landing snapshot
 
+- 24 October 2026 main with `claude/whisper-mode` (Quiet voice, VOICE-011) and
+  `claude/daily-allowance` (REV-001 free allowance and prices, migration 20261023220000 prepared,
+  not applied) merged onto the session eval landing: **6,509 tests, 0 failing**; core 1051,
+  brain 502, tutor agent 785, token server 484, playground 78, mobile 3609; all 43 migrations
+  replayed. Floors set to this run.
 - 23 October 2026 session eval and F193 on branch `claude/session-eval` from main 461bf409
   (held, not on main): `eval:sessions` scores tutor conduct turn by turn over eight hand-labelled
   synthetic sessions (rescue, no read-back, gentle, level fit, safety, reply wait), plus dev
   recording, `eval:replay` (cost per accepted brain turn) and `eval:beta-numbers`; F193 measured
   live and ticked, F870 ticked: **6,489 tests, 0 failing**; core 1050, brain 502, tutor agent 785,
-  token server 482, playground 78, mobile 3592; all 42 migrations replayed, no migration added.
+  token server 482, playground 78, mobile 3592; all 42 then-current migrations replayed, no migration added.
   Floors raised only through `gate:bless`. One `--jev` pass on the synthetic set agreed with
   every deterministic failure and listed one line for a human look.
 - 23 October 2026 Quiet voice (VOICE-011: a device-local live-room switch that opens the
   transcript, lowers the mic meter floor to 0.005 RMS and asks for a soft voice, not a whisper;
   no agent or wire change) on branch `claude/whisper-mode` from main 461bf409 (held, not on main):
   **6,454 tests, 0 failing**; core 1050, brain 502, tutor agent 785, token server 482,
-  playground 29, mobile 3606; shared release/provider proofs 175; all 42 migrations replayed, no
+  playground 29, mobile 3606; shared release/provider proofs 175; all 42 then-current migrations replayed, no
   migration added. Floors raised only through `gate:bless`. Measured first: soft French at
   -20 dB (about -36 dBFS) gives median Deepgram word accuracy 1.00 (worst 0.75 clean, 0.67 over a
   -50 dBFS bed) with Silero at its default 0.5; whispers fail, because the Deepgram plugin's
@@ -42,25 +47,36 @@ of the list.
   (`docs/live-latency-evidence/2026-10-23-quiet-speech.md`). Web check of the screen preview:
   the switch shows in Speak, hides in Type, reopens the transcript, shows the note and survives
   a reload.
+- 23 October 2026 daily free allowance and repackaging (REV-001: free 600 s refilled 44 hours
+  after first use, Core 300 and Max 600 minutes, prices $14.99/$99 and $24.99/$169 in the margin
+  model, `refillsAt` on the 402), on branch `claude/daily-allowance` from main 461bf409 (held, not
+  on main): **6,446 tests, 0 failing**; core 1051, brain 502, tutor agent 785, token server 484,
+  playground 29, mobile 3595; all 43 migrations replayed, migration 43 added and also replayed
+  without the held 42. Floors raised only through `gate:bless`. Read-only database review applied
+  (rollout order with admission closed, rollback refusal while a store trial withholds minutes).
+  Web check on a local token server with a file ledger: Profile shows the new free line, and a
+  spent free row shows "Your next free conversation is ready on Sunday at 12:58 am" in the phone's
+  time zone. Screenshots in [daily-allowance-evidence](daily-allowance-evidence/). Not run: the
+  migration on a hosted project, store purchases at the new prices, a real phone.
 - 23 October 2026 main with `claude/guest-first-scene` (UI-011, guest café scene before sign-up,
   off until `LUVANI_GUEST_SCENE=1`) merged onto the thinking-time landing (VOICE-010); the tutor
   keeps both, and the scene keeps the session's beginner pause: **6,440 tests, 0 failing**; core 1050,
-  brain 502, tutor agent 785, token server 482, playground 29, mobile 3592; all 42 migrations
+  brain 502, tutor agent 785, token server 482, playground 29, mobile 3592; all 42 then-current migrations
   replayed. Floors set to this run.
 - 23 October 2026 beginner thinking time (VOICE-010: a 1,200 ms pause floor at rungs 1-2 that
   rises 400 ms per cut-off to 2,000 ms, a 2,500 ms floor while "moment" is held, a 60 s hold cap,
   and a noise no longer switching the rescue off) on branch `claude/thinking-time` with main
   41acc059 merged in (held, not on main): **6,345 tests, 0 failing**; core 1036, brain 502, tutor
-  agent 752, token server 458, playground 29, mobile 3568; all 42 migrations replayed. Floors
+  agent 752, token server 458, playground 29, mobile 3568; all 42 then-current migrations replayed. Floors
   raised only through `gate:bless`.
 - 23 October 2026 Flash for conversation lines behind a switch, off by default (VOICE-009), on
   branch `claude/flash-conversation` from main 3acc25b5 (held, not on main): **6,320 tests, 0 failing**;
-  core 1036, brain 502, tutor agent 727, token server 458, playground 29, mobile 3568; all 42
+  core 1036, brain 502, tutor agent 727, token server 458, playground 29, mobile 3568; all 42 then-current
   migrations replayed. Floors raised only through `gate:bless`.
 - 23 October 2026 guest first scene (UI-011: one scripted café exchange before sign-up, no model,
   180 s, a Redis budget outside paid admission, a guest scene gate on the voice proxy), on branch
   `claude/guest-first-scene` from main 3acc25b5 (held, not on main): **6,400 tests, 0 failing**;
-  core 1050, brain 502, tutor agent 745, token server 482, playground 29, mobile 3592; all 42
+  core 1050, brain 502, tutor agent 745, token server 482, playground 29, mobile 3592; all 42 then-current
   migrations replayed, no migration added. Floors raised only through `gate:bless`. Web check
   on a local token server and tutor worker against LiveKit Cloud, typed scene end to end:
   disclosure, refused microphone, typed restart, five turns, recap and achievements naming the
@@ -70,36 +86,36 @@ of the list.
   phone, account sign-up and adoption against Supabase, and the Lua scripts on a real Redis.
 - 23 October 2026 main with `claude/mission-spine-b1` merged (twelve new missions, 19 to 31, the
   first A2 and B1 scenes) onto the goal-edit and cut-cogs landings: **6,305 tests, 0 failing**;
-  core 1036, brain 502, tutor agent 712, token server 458, playground 29, mobile 3568; all 42
+  core 1036, brain 502, tutor agent 712, token server 458, playground 29, mobile 3568; all 42 then-current
   migrations replayed. Floors set to this run.
 - 23 October 2026 mission spine B1 (twelve new missions, 19 to 31: six A2 and six B1, the
   Chatting stage, 24 drawings, drill cap 384), on branch `claude/mission-spine-b1` with main
   6326f51b merged in at 7c69fb0c (held, not on main): **6,270 tests, 0 failing**; core 1036,
-  brain 498, tutor agent 693, token server 458, playground 26, mobile 3559; all 42 migrations
+  brain 498, tutor agent 693, token server 458, playground 26, mobile 3559; all 42 then-current migrations
   replayed. Floors raised only through `gate:bless`.
 - 23 October 2026 main with `claude/goal-edit` merged onto the cut-cogs landing (VOICE-008 and
   the VOICE-006 goal edit together): **6,204 tests, 0 failing**; core 936, brain 502, tutor agent
-  712, token server 458, playground 29, mobile 3567; all 42 migrations replayed. Floors set to
+  712, token server 458, playground 29, mobile 3567; all 42 then-current migrations replayed. Floors set to
   this run.
 - 23 October 2026 cost per live minute (VOICE-008: measured `DEFAULT_COST_MODEL`, drills on
   gpt-6-luna, replay memo, durable authored voice cache, `[luvani:cost]` line) on branch
   `claude/cut-cogs` with main 6326f51b merged in (held, not on main): **6,194 tests, 0 failing**;
-  core 936, brain 501, tutor agent 712, token server 458, playground 29, mobile 3558; all 42
+  core 936, brain 501, tutor agent 712, token server 458, playground 29, mobile 3558; all 42 then-current
   migrations replayed. Floors raised only through `gate:bless`.
 - 23 October 2026 `claude/goal-edit` (change or clear the onboarding goal from Learning
   preferences, clocked as the `onboardingGoal` preference field; VOICE-006 amendment) with
   main 6326f51b merged in (held, not on main): **6,179 tests, 0 failing**; core 936, brain 499,
-  tutor agent 693, token server 458, playground 26, mobile 3567; all 42 migrations replayed.
+  tutor agent 693, token server 458, playground 26, mobile 3567; all 42 then-current migrations replayed.
   Floors raised only through `gate:bless`.
 - 23 October 2026 main with `claude/speech-dataset` (VOICE-007, inert) merged onto the
   mission scoring landing (F866). The lesson's dataset clip now rides LiveScoring's `onScored`
   callback instead of the old inline scorer: **6,169 tests, 0 failing**; core 936, brain 498,
-  tutor agent 693, token server 458, playground 26, mobile 3558; all 42 migrations replayed.
+  tutor agent 693, token server 458, playground 26, mobile 3558; all 42 then-current migrations replayed.
   Floors set to this run.
 - 23 October 2026 `claude/speech-dataset` (inert groundwork for a consented, teacher-rated speech
   dataset, VOICE-007, migration 42 prepared and held) on top of main at 717655fb:
   **6,146 tests, 0 failing**; core 935, brain 498, tutor agent 672, token server 458,
-  playground 26, mobile 3557. The floors were blessed on this branch; all 42 migrations replayed.
+  playground 26, mobile 3557. The floors were blessed on this branch; all 42 then-current migrations replayed.
 - 22 October 2026 mission pronunciation (F866: missions scored live on the handed-over line,
   recap focus sound, convo scoring quote) on branch `claude/mission-scoring` with main 717655fb
   merged in (held, not on main): **6,147 tests, 0 failing**; core 936, brain 498, tutor agent
@@ -940,7 +956,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 42 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 43 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -954,7 +970,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **42 migrations** for a fresh full schema, applied once in order from
+There are **43 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -1040,6 +1056,7 @@ There are **42 migrations** for a fresh full schema, applied once in order from
 40. `20261020140000_weekly_free_taste.sql`, D24: the one-off thirty free minutes become a weekly free taste of five minutes. `entitlements.weekly_taste` marks a claimed (or lapsed) free row, the only kind that refills; the first debit sets the refill time a week out in the same usage epoch, a passed window refills lazily (new epoch, deferred while a session is live), every lapse lands on a fresh taste still marked `lapsed_from_paid`, and the trial cap is 300 seconds. Adds the `launch` and `locked` wall doors. Disposable SQL proofs pass in `scripts/verifyTutorSessions.mjs`, including interlocked rollback and reapply. Prepared, not applied live. Roll it back first, using its guarded rollback.
 41. `20261022120000_live_session_finished_event.sql`, beta instrumentation: `validate_product_event` accepts `live_session_finished` (closed `kind`, boolean `voice`, counts `turns`, `rescues`, `unassistedPct`, nullable `replyLatencyMs`), matching the client union and `parseProductEvent`; every other branch is carried over from 40. Disposable SQL proofs replay it with the other migrations. Prepared, not applied live. Roll it back first, before 40.
 42. `20261022200000_speech_dataset_clips.sql`, inert speech-dataset groundwork: the service-only `speech_dataset_clips` table, metadata only (no audio, no transcript, no free text). RLS on, no policies, every privilege revoked from public, anon, authenticated and service_role, then service_role gets only select, delete and a column insert without `captured_at`, so there is no update or truncate and `captured_at` is always `now()`. Closed jsonb shapes (phonemes: strings of 1..8 chars; scores: core's PhonemeObservation keys only), a non-blank reference line without control characters, `object_path = <user_id>/<id>.wav`, an expiry at most 24 months after capture, named check constraints, and an account-deletion cascade. Disposable SQL proofs in `scripts/verifyDataBoundaries.mjs` (with simulated hosted defaults granting ALL) refuse client reads and writes, service_role update, truncate and captured_at inserts, and each out-of-range row by constraint name, accept exactly 24 months and a valid observation, and prove the rollback refuses by default, drops when authorised, and the migration re-applies twice. Prepared, not applied live, and nothing writes to it until the legal review in docs/changes/speech-dataset.md. Roll it back first, before 41, using its guarded destructive rollback.
+43. `20261023220000_daily_free_allowance.sql`, REV-001: `tutor_cap_v1` becomes trial 600, starter 18000, regular 36000; the free window refills 44 hours after its first debit; `begin_billing_refresh` spends its unclaimed row at the cap; the six-argument `apply_billing_projection` clamps with `tutor_cap_v1`. Pre-launch backfill raises unclaimed spent rows to 600 and cuts longer running windows to 44 hours, keeping each row's usage epoch. Requires 40 and 41, never 42. `scripts/verifyTutorSessions.mjs` proves the 44-hour boundary, the 480/481 floor, the paid clamps and grants, idempotence, a replay without 42, and the interlocked rollback (`luvani.reopen_weekly_taste`) and re-apply. Prepared, not applied live. Roll it back before 41.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

@@ -2,7 +2,9 @@
 
 > **Deferred 2026-10-19:** App Store Connect and RevenueCat setup waits until the
 > founder has an Apple Developer Program membership (paid, individual or
-> organisation). Prices are still undecided.
+> organisation). US prices were decided on 2026-10-23 (REV-001, DECISIONS.md):
+> Core $14.99 monthly or $99 yearly (300 minutes per window), Max $24.99
+> monthly or $169 yearly (600 minutes per window). UK prices are still open.
 >
 > UK starting suggestion, **not a decision and not yet checked against Apple's
 > proceeds**: Core £14.99 monthly or £149.99 yearly, Max £22.99 monthly or
@@ -35,7 +37,7 @@ for you.
   Connect, open Agreements, Tax and Banking and make sure the **Paid Apps**
   agreement is active, with banking and tax complete. Purchases cannot work
   until it is. See [section 1](#1-create-the-apple-subscriptions).
-- [ ] **1. Decide prices (founder decision, still open).** For each of the four
+- [ ] **1. Decide prices (US decided 2026-10-23, REV-001; UK still open).** For each of the four
   products, choose an Apple price point in each storefront you will sell in.
   Read the [pricing analysis](#pricing-decision-before-products-are-published)
   and the [UK benchmarks](#competitive-launch-recommendation-not-configured-store-prices)
@@ -43,10 +45,10 @@ for you.
 
   | Product | UK price | US price | Approved by/date |
   |---|---|---|---|
-  | `luvani_starter_monthly` | | | |
-  | `luvani_starter_yearly` | | | |
-  | `luvani_regular_monthly` (Max) | | | |
-  | `luvani_regular_yearly` (Max) | | | |
+  | `luvani_starter_monthly` | | $14.99 | founder, 2026-10-23 |
+  | `luvani_starter_yearly` | | $99 | founder, 2026-10-23 |
+  | `luvani_regular_monthly` (Max) | | $24.99 | founder, 2026-10-23 |
+  | `luvani_regular_yearly` (Max) | | $169 | founder, 2026-10-23 |
 
 - [ ] **2. App Store Connect products.** Create one subscription group and the
   four auto-renewable products with the exact IDs in
@@ -113,10 +115,10 @@ the two billing periods of each tier at the same service level.
 
 | Proposed product ID | Displayed tier | Subscription duration | Paid tutor allowance |
 |---|---|---|---|
-| `luvani_starter_monthly` | Core | One month | 180 minutes per allowance window |
-| `luvani_starter_yearly` | Core | One year | 180 minutes per allowance window |
-| `luvani_regular_monthly` | Max | One month | 300 minutes per allowance window |
-| `luvani_regular_yearly` | Max | One year | 300 minutes per allowance window |
+| `luvani_starter_monthly` | Core | One month | 300 minutes per allowance window |
+| `luvani_starter_yearly` | Core | One year | 300 minutes per allowance window |
+| `luvani_regular_monthly` | Max | One month | 600 minutes per allowance window |
+| `luvani_regular_yearly` | Max | One year | 600 minutes per allowance window |
 
 `regular` is the existing internal Max identifier. Use the exact selected IDs in
 both deployment configurations below. Set the approved price and availability
@@ -338,10 +340,13 @@ notice instead. Do not treat this as a pass for Ask to Buy.
 
 ## Pricing decision before products are published
 
-No new price is established by this checklist. The existing USD model uses
-Core $19 monthly or $149 yearly and Max $29 monthly or $229 yearly. The
-actual consumer price must be approved and configured in App Store Connect,
-then returned by the store in the learner's currency.
+**Decided 2026-10-23 (REV-001):** Core $14.99 monthly or $99 yearly with 300
+minutes per window, Max $24.99 monthly or $169 yearly with 600 minutes per
+window. The margins are in DECISIONS.md REV-001 and pinned in
+`meter.test.ts`. The paragraphs below record the earlier model (Core $19 or
+$149 with 180 minutes, Max $29 or $229 with 300) and are kept as history. The
+actual consumer price is configured in App Store Connect and returned by the
+store in the learner's currency.
 
 At full use, the current cost model estimates $10.404 per Core allowance
 window and $17.34 per Max window. With a 15% store fee, the current annual
@@ -405,8 +410,9 @@ Since D24 (2026-10-20) Luvani follows the Headspace model with a small
 permanent free tier. Free learners keep public collection previews, thirty
 permanent conversation samples, scene previews, existing local practice, the
 daily phrase, the learner's own saved learning, quests and XP, the streak with
-one freeze, a Journey summary, and a weekly taste of live time: five minutes on
-a rolling seven days from first use, claimed once per device. Either active
+one freeze, a Journey summary, and one free conversation every other day: ten
+minutes of live time, refilled 44 hours after the window's first use (REV-001,
+2026-10-23; five minutes a week before that), claimed once per device. Either active
 paid tier and its confirmed store trial open the rest: live time beyond the
 taste, tutor memory (in the tutor's sessions too), Your fixes, spaced review and
 drills of conversation phrases, Then and now, sound practice (including the café
@@ -423,9 +429,9 @@ before submitting.
 
 ```text
 Luvani is free to download and use. Free learners keep local practice, their
-saved learning, one streak freeze, and five minutes of live conversation with
-the AI tutor every week. The five minutes refill weekly and can be claimed once
-per device.
+saved learning, one streak freeze, and one free ten-minute conversation with
+the AI tutor every other day. The minutes come back within two days of being
+first used and can be claimed once per device.
 
 A seven-day free trial (an App Store introductory offer) or a Core or Max plan
 opens the rest: longer live conversations, tutor memory, Your fixes, spaced

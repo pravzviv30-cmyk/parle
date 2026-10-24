@@ -80,7 +80,7 @@ describe('trial or standard is decided by the store, and unknown is never eligib
 
   test('the plan line is the tier and the catalogue minutes, never a guess', () => {
     const { rows, chosen } = setup(true);
-    assert.equal(planLine(rows[0]!, chosen, PLANS), 'Core, 180 min every 30 days');
+    assert.equal(planLine(rows[0]!, chosen, PLANS), 'Core, about 10 minutes a day');
     assert.equal(planLine(wallPlanRows(offering(true), null)![0]!, chosen, null), 'starter', 'minutes were guessed with no catalogue');
   });
 });
@@ -89,8 +89,8 @@ describe('the compare sheet', () => {
   test('trial lines show only when this account may take the trial', () => {
     const eligible = compareCards(setup(true).rows, setup(true).chosen, PLANS);
     assert.deepEqual(eligible.map(card => [card.name, card.price, card.allowance, card.trial]), [
-      ['Core', '£99.99 a year', '180 minutes of live conversation every 30 days', 'Free trial: 42 minutes over 7 days'],
-      ['Max', '£149.99 a year', '300 minutes of live conversation every 30 days', 'Free trial: 70 minutes over 7 days'],
+      ['Core', '£99.99 a year', 'About 10 minutes a day of live conversation', 'Free trial: 70 minutes over 7 days'],
+      ['Max', '£149.99 a year', 'Up to 20 minutes a day of live conversation', 'Free trial: 140 minutes over 7 days'],
     ]);
     assert.deepEqual(eligible.map(compareCta), ['Continue with Core', 'Continue with Max']);
     for (const unknown of [false, null]) {

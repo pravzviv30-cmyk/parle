@@ -944,11 +944,12 @@ one-time trial claim, read, plan save, and idempotent session consumption.
   `SUPABASE_SERVICE_ROLE_KEY` are present. Reads and plan changes use PostgREST;
   consumption uses the atomic `consume_entitlement` database function.
 
-The free plan (`trial`, D24, 2026-10-20) is a five-minute weekly taste. An entitlement
+The free plan (`trial`, D24, 2026-10-20) is a refilling free allowance, ten minutes every
+other day since REV-001 (2026-10-23; migration `20261023220000_daily_free_allowance.sql`). An entitlement
 that passed the device claim, or lapsed from paid (`lapsedEntitlement()`), carries
 `weeklyTaste: true` (`entitlements.weekly_taste` in
 `supabase/migrations/20261020140000_weekly_free_taste.sql`). Its first debit above zero
-sets `periodEnd` seven days out (`recordUsage`); a read at or after that instant refills it
+sets `periodEnd` `TASTE_REFILL_HOURS` (44) out (`recordUsage`); a read at or after that instant refills it
 (`refillTaste`: `secondsUsed` back to 0, `periodEnd` cleared), so the window rolls from first
 use. A trial row without `weeklyTaste` never refills. The local stores apply
 `refillTaste(rollPeriod(row, now), now)` on read; opening a taste's window keeps the usage

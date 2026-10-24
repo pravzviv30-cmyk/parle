@@ -115,13 +115,13 @@ export function profileStats(input: { stage: string | null; level: number | null
 
 /**
  * What the free plan includes, from the plan facts: practice and review, the
- * free plan's weekly speaking allowance (core's PLANS, the number the wall and
+ * free plan's speaking allowance (core's PLANS, the number the wall and
  * onboarding say), and the freezes it holds (D23), as the game view read
  * them from the plan; without that read the freeze clause is left out.
  */
 export function freeIncludes(freezes: number | null): string {
   const minutes = Math.round(PLANS.trial.secondsPerPeriod / 60);
-  const speaking = `${minutes} free minutes of speaking each week`;
+  const speaking = `a free ${minutes}-minute conversation every other day`;
   if (freezes === null || !Number.isFinite(freezes) || freezes < 1) return `Practice and review, and ${speaking}`;
   return `Practice and review, ${speaking}, and ${freezes} streak ${freezes === 1 ? 'freeze' : 'freezes'}`;
 }
@@ -260,7 +260,7 @@ export function onboardingGoalTitle(goal: unknown): string {
   return REASONS.find((reason) => reason.key === goal)?.title ?? GOAL_UNSET;
 }
 
-/** Whether a stored plan view is the free plan (D24: five minutes every week). */
+/** Whether a stored plan view is the free plan (REV-001: one free conversation every other day). */
 function isFree(view: Extract<PlanStatusView, { known: true }>): boolean {
   return view.planLabel === PLAN_LABELS.trial;
 }
@@ -279,8 +279,8 @@ export function planRow(view: PlanStatusView | null): { label: string; sub: stri
 
 /**
  * The Free speaking time row on Settings (2026-10-20 UI-008, artboard
- * B-Settings): the free plan's band in D24's words ("3 free minutes this week,
- * refills Monday"), never a meter. Null for a paid, unread or unknown plan.
+ * B-Settings): the free plan's band in REV-001's words ("4 free minutes left,
+ * refills on Thursday at 4:10 pm"), never a meter. Null for a paid, unread or unknown plan.
  */
 export function freeTimeLine(view: PlanStatusView | null): string | null {
   if (view === null || !view.known || !isFree(view)) return null;

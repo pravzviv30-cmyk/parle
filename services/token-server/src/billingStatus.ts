@@ -34,13 +34,13 @@ export interface BillingStatus {
   /**
    * The instant the current allowance period ends, when the minutes start
    * fresh. For a yearly product that is the current 30-day window, not the
-   * paid year (F733). For the free plan it is when the weekly taste refills
-   * (D24): null until the first minute of a window is spent, because the
+   * paid year (F733). For the free plan it is when the free conversation refills, 44 hours after
+   * the window's first debit (REV-001): null until the first minute of a window is spent, because the
    * window starts at first use. The wire meaning is the same for every plan:
-   * every caller reads it as when the minutes come back ("refills Monday").
+   * every caller reads it as when the minutes come back ("comes back on Thursday at 4:10 pm").
    */
   periodEnd: string | null;
-  /** The free plan stands where a paid period used to (D24: a fresh weekly taste, not an exhausted trial). */
+  /** The free plan stands where a paid period used to (D24, REV-001: a free conversation that refills, not an exhausted trial). */
   lapsed: boolean;
   /** Core's own answer to "may a session start right now". */
   canStart: boolean;

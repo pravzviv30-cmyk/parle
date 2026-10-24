@@ -29,7 +29,7 @@ test('the paywall presents three connected trial moments without dropping the ve
     assert.deepEqual(rows.map(row => TIMELINE_GLYPHS[row.key]), ['unlock', remind ? 'bell' : 'calendar', 'star']);
     assert.match(rows[0]!.line, /Nothing is charged today/);
     if (minutes === null) assert.doesNotMatch(rows[0]!.line, /minutes/);
-    else assert.match(rows[0]!.line, /up to 42 minutes/);
+    else assert.match(rows[0]!.line, /up to 70 minutes/);
     assert.match(rows[2]!.line, /£19.99 a month/);
     assert.deepEqual(timeline, before, 'presentation changed the authoritative timeline view');
   }

@@ -212,20 +212,29 @@ export function conversationLength(minutes: number): string {
 }
 
 /**
- * The free plan's weekly taste (D24), said in minutes and in conversations.
+ * The free plan (REV-001), one conversation every other day, said with its length.
  * "Free minutes" and never "free trial" (come alive, README Part 5.G): a free
  * trial is now the store's own offer, and the two are different things a
  * learner should never have to tell apart from one word.
  */
 export function trialAllowance(minutes: number, conversations: number): string {
-  return conversations >= 1
-    ? `You get ${count(minutes, 'free minute')} every week, about ${count(conversations, 'conversation')}.`
-    : `You get ${count(minutes, 'free minute')} every week.`;
+  if (conversations === 1) return `You get one free conversation every other day, up to ${count(minutes, 'minute')}.`;
+  return conversations > 1
+    ? `You get ${count(minutes, 'free minute')} every other day, about ${count(conversations, 'conversation')}.`
+    : `You get ${count(minutes, 'free minute')} every other day.`;
 }
 
-/** When the free minutes refill, as a weekday (D24). */
-export function freeRefill(day: string): string {
-  return `They refill on ${day}.`;
+/** When the free conversation comes back, as a day and a time ("on Thursday at 4:10 pm"). */
+export function freeRefill(when: string): string {
+  return `The next one is ready ${when}.`;
+}
+
+/**
+ * A paid plan's minutes as a day's worth (REV-001): Core is "about", Max is
+ * "up to", and neither is ever "unlimited".
+ */
+export function dailyAllowance(plan: string, minutesADay: number): string {
+  return `${plan === 'regular' ? 'up to' : 'about'} ${count(minutesADay, 'minute')} a day`;
 }
 
 /** What is left on the account, rounded down, with what that is in conversations. */
@@ -481,12 +490,17 @@ export function standardDisclosure(price: string, period: 'week' | 'month' | 'ye
 }
 
 /** The plan line above the footer: the tier and its live minutes per window. */
-export function planAllowanceLine(name: string, minutes: number, days: number): string {
+export function planAllowanceLine(name: string, minutes: number, days: number, daily?: string): string {
+  if (daily !== undefined) return `${name}, ${daily}`;
   return `${name}, ${minutes} min every ${count(days, 'day')}`;
 }
 
 /** A compare card's allowance. */
-export function compareAllowance(minutes: number, days: number): string {
+export function compareAllowance(minutes: number, days: number, daily?: string): string {
+  if (daily !== undefined) {
+    const said = String(daily);
+    return `${said.charAt(0).toUpperCase()}${said.slice(1)} of live conversation`;
+  }
   return `${count(minutes, 'minute')} of live conversation every ${count(days, 'day')}`;
 }
 

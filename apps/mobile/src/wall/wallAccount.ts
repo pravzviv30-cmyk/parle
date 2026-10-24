@@ -1,7 +1,7 @@
 import type { Plan, PlanSpec } from '@luvani/core';
 
 import type { BillingStatus } from '../purchases/billingStatus.ts';
-import { PLAN_LABELS, refillDay } from '../purchases/planStatus.ts';
+import { PLAN_LABELS, refillTime } from '../purchases/planStatus.ts';
 import {
   ACCOUNT_FRESH_NOW,
   ACCOUNT_NONE_LEFT,
@@ -80,12 +80,12 @@ export function wallAccount(
 ): WallAccount | null {
   if (status === null) return null;
 
-  // The free plan, a lapsed plan included (D24: it falls back to the weekly
-  // taste): the week's size, what is left, and the day it refills.
+  // The free plan, a lapsed plan included (REV-001: it falls back to the free
+  // conversation): its size, what is left, and when it comes back.
   if (status.plan === 'trial') {
     const trial = wallTrial(catalogue);
     const lines = trial === null ? [] : [trialAllowance(trial.minutes, trial.conversations)];
-    const day = status.periodEnd === null ? null : refillDay(status.periodEnd);
+    const day = status.periodEnd === null ? null : refillTime(status.periodEnd);
     return { title: PLAN_LABELS.trial, lines: [...lines, leftLine(status.secondsRemaining), ...(day === null ? [] : [freeRefill(day)])] };
   }
 

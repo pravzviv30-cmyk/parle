@@ -10,18 +10,19 @@
  * The same rule covers the period. "Renews on the 12th" is a date a learner can
  * read as a deadline, so a paid period is said as a distance in words.
  *
- * One exception, by founder decision D24 (2026-10-20): the free plan is a weekly
- * taste of five minutes, and its band says the whole minutes left this week and
- * the weekday they refill ("3 free minutes this week, refills Monday"), the
- * way the design draws it. A few whole minutes and a weekday are a size and a
- * day, not a ticking number, and a paid plan's card still carries no numeral.
+ * One exception, by founder decision REV-001 (2026-10-23, replacing D24): the
+ * free plan is one ten-minute conversation, back 44 hours after the window's
+ * first use, and its band says the whole minutes left and when they come back
+ * ("4 free minutes left, refills on Thursday at 4:10 pm"). A few whole minutes and
+ * a day are a size and a time, not a ticking number, and a paid plan's card
+ * still carries no numeral.
  *
  * Nothing here decides whether a session may start. `canStart` is core's
  * answer, carried through untouched, and the band `none` is drawn from it
  * rather than from a second reading of the seconds.
  */
 
-import { PLANS, STORE_TRIAL_DAYS, storeTrialSeconds } from '@luvani/core';
+import { PLANS, refillWhen, STORE_TRIAL_DAYS, storeTrialSeconds } from '@luvani/core';
 
 import type { BillingStatus } from './billingStatus.ts';
 
@@ -57,7 +58,7 @@ export const PLAN_LABELS = {
 } as const;
 
 export const PERIOD_LINES = {
-  trial: 'Free every week.',
+  trial: 'One free conversation every other day.',
   lapsed: 'Your paid plan has ended.',
   renewingNow: 'Renewing about now.',
   renewsThisWeek: 'Renews within the week.',
@@ -75,19 +76,27 @@ export const BAND_LINES = {
 
 export const PLAN_UNKNOWN = 'Luvani could not check your plan just now.';
 
-/** "Monday": the day a weekly taste refills, as core says it. */
-export function refillDay(periodEnd: string): string | null {
+/**
+ * "on Thursday at 4:10 pm": when the free conversation comes back, as core says
+ * it, in this phone's own time zone. Null for an instant that does not parse.
+ */
+export function refillTime(periodEnd: string): string | null {
   const at = new Date(periodEnd);
-  return Number.isFinite(at.getTime()) ? at.toLocaleDateString('en-GB', { weekday: 'long' }) : null;
+  return Number.isFinite(at.getTime()) ? refillWhen(at) : null;
 }
 
-/** The free plan's band (D24): whole minutes left this week, and the day they refill. */
+/** "Your next free conversation is ready on Thursday at 4:10 pm." */
+export function freeBackLine(when: string): string {
+  return `Your next free conversation is ready ${when}.`;
+}
+
+/** The free plan's band (REV-001): whole minutes left, and when they come back. */
 export function freeBandLine(status: BillingStatus): string {
-  const day = status.periodEnd === null ? null : refillDay(status.periodEnd);
+  const when = status.periodEnd === null ? null : refillTime(status.periodEnd);
   const minutes = Math.floor(status.secondsRemaining / 60);
-  if (!status.canStart || minutes <= 0) return day === null ? BAND_LINES.exhausted : `Free minutes refill ${day}.`;
-  const size = `${minutes} free ${minutes === 1 ? 'minute' : 'minutes'} this week`;
-  return day === null ? size : `${size}, refills ${day}`;
+  if (!status.canStart || minutes <= 0) return when === null ? BAND_LINES.exhausted : freeBackLine(when);
+  const size = `${minutes} free ${minutes === 1 ? 'minute' : 'minutes'} left`;
+  return when === null ? size : `${size}, refills ${when}`;
 }
 
 /** The band and the period as one sentence, for a row with one subtitle. */

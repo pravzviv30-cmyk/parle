@@ -6,10 +6,12 @@ import { decodeServerMessage, encodeMessage } from './protocol/protocol.ts';
 test('settlement rejects invented credit and impossible per-plan balances', () => {
   const valid = { kind: 'restored-current-period', refundedSeconds: 10, secondsRemaining: 290, plan: 'trial' };
   assert.deepEqual(readSettlementResult(valid), valid);
-  for (const patch of [{ refundedSeconds: 0 }, { refundedSeconds: 901 }, { refundedSeconds: -1 }, { refundedSeconds: 1.1 }, { secondsRemaining: 301 }, { plan: 'unknown' }, { kind: 'not-charged' }]) {
+  for (const patch of [{ refundedSeconds: 0 }, { refundedSeconds: 901 }, { refundedSeconds: -1 }, { refundedSeconds: 1.1 }, { secondsRemaining: 601 }, { plan: 'unknown' }, { kind: 'not-charged' }]) {
     assert.equal(readSettlementResult({ ...valid, ...patch }), null);
   }
-  assert.equal(readSettlementResult({ ...valid, plan: 'starter', secondsRemaining: 10801 }), null);
+  assert.equal(readSettlementResult({ ...valid, plan: 'starter', secondsRemaining: 18001 }), null);
+  assert.equal(readSettlementResult({ ...valid, plan: 'regular', secondsRemaining: 36000 })?.kind, 'restored-current-period');
+  assert.equal(readSettlementResult({ ...valid, plan: 'regular', secondsRemaining: 36001 }), null);
   assert.equal(readSettlementResult({ kind: 'pending', refundedSeconds: 90 }), null);
   assert.deepEqual(readSettlementResult({ kind: 'pending' }), { kind: 'pending' });
 });

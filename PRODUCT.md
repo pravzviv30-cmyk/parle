@@ -83,10 +83,11 @@ Market review of 2026-10-22: https://claude.ai/artifact/1TLMTEHTGdToCv8WDCqVAe
 - Pronunciation assessment needs a reference text; free conversation yields
   fluency signals only. This constraint shapes the whole scaffolding design.
 - **Metered minutes, enforced from v1.** The app is free to use (D24, 2026-10-20,
-  the Headspace model): free learners get a weekly taste of live time, 5 minutes on a
-  rolling 7 days from first use, claimed once per device, and a lapsed plan falls back
-  to it. The 7-day trial and the paid plans unlock the rest. Paid: Core 180 minutes,
-  Max 300 minutes. Prices come from the store. Unlimited pricing is rejected
+  the Headspace model): free learners get one free conversation every other day
+  (REV-001, 2026-10-23: 10 minutes, refilled 44 hours after the window's first use),
+  claimed once per device, and a lapsed plan falls back to it. The 7-day trial and
+  the paid plans unlock the rest. Paid: Core 300 minutes per 30 days ($14.99), Max
+  600 minutes ($24.99). The store sets the price a learner sees. Unlimited pricing is rejected
   on modelled unit economics.
 - Premium French TTS voices — the dominant cost line, and the most immediately
   felt quality signal for a beginner.

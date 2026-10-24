@@ -37,6 +37,7 @@ import { fileURLToPath } from 'node:url';
 import { stripTypeScriptTypes } from 'node:module';
 import { PLANS, canStartSession, type Entitlement, type Plan } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
+import { refusalRefill, refusalWords } from './refusalRefill.ts';
 
 const read = (relative: string): string =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -145,6 +146,10 @@ async function answer(
     // can assert the wall gets the same object the screen does.
     noteCatalogue: (plans: unknown) => seen.noted.push(plans),
     PLANS,
+    // REV-001: a free refusal may name when the conversation comes back. The
+    // real module, so the words asserted are the ones the screen gets.
+    refusalRefill,
+    refusalWords,
   });
   return seen;
 }
@@ -199,7 +204,7 @@ describe('the 402 the hook is handed — F251', () => {
     // promise the server no longer makes.
     assert.match(
       server,
-      /json\(res, result\.status, \{ error: result\.reason, message: result\.message, plans: PLANS \}/,
+      /json\(res, result\.status, \{ error: result\.reason, message: result\.message, (?:\.\.\.\(result\.refillsAt \? \{ refillsAt: result\.refillsAt \} : \{\}\), )?plans: PLANS \}/,
       'the token server stopped sending its plans with a refusal, so the app has nothing to offer',
     );
 

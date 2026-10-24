@@ -76,9 +76,9 @@ describe('an unknown plan is never called Free', () => {
     assert.equal(subscriptionView(paid).kind, 'paid');
 
     // No count reaches a paid plan line (F377): the band and the period are
-    // words. D24: the free plan's line says its weekly minutes, as the design does.
+    // words. REV-001: the free plan's line says its minutes left, as the design does.
     assert.doesNotMatch(JSON.stringify([planRow(paid), subscriptionView(paid)]), /\d/, 'a paid plan line counts');
-    assert.equal(planRow(free).sub, '5 free minutes this week. Free every week.');
+    assert.equal(planRow(free).sub, '5 free minutes left. One free conversation every other day.');
   });
 
   test('the Subscription screen draws the unknown notice with Try again, and keeps the store rows', () => {
