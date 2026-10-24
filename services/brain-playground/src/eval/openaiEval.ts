@@ -4,7 +4,8 @@
  * The evals used to price OpenAI runs from DEFAULT_OPENAI_TURN_MODEL, a constant,
  * while the client sends live turns and frames to the live model
  * (gpt-6-luna by default, OPENAI_LIVE_MODEL / OPENAI_TURN_MODEL to override) and
- * drills to their own model (gpt-6-luna, OPENAI_DRILLS_MODEL; VOICE-008). The reported cost was about double what the run spent,
+ * drills to their own model (gpt-6-luna, OPENAI_DRILLS_MODEL; VOICE-008) and curation to its own
+ * (gpt-6-luna, OPENAI_CURATION_MODEL; VOICE-012). The reported cost was about double what the run spent,
  * and an override changed the bill without changing the label.
  *
  * The answer comes from `openAiModelFor` in @luvani/brain, the same function the

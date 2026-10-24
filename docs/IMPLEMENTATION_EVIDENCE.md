@@ -22,6 +22,14 @@ of the list.
 
 ## Current landing snapshot
 
+- 24 October 2026 curation on GPT-6 Luna (VOICE-012) on branch `claude/curation-luna` from main
+  f198ab4e (not on main): curate has its own model setting, `OPENAI_CURATION_MODEL`, defaulting
+  to gpt-6-luna; the judge and extraction stay where they were: **6,521 tests, 0 failing**;
+  core 1051, brain 504, tutor agent 786, token server 484, playground 87, mobile 3609; shared
+  release/provider proofs 175; all 43 migrations replayed, no migration added. Floors raised
+  only through `gate:bless`. Paid model runs: two `eval:curation` runs on gpt-6-luna and one
+  same-day gpt-5.6-luna baseline, about $0.001, $0.001 and $0.003, recorded under
+  "Measurements that are not assertions".
 - 24 October 2026 session eval modes on branch `claude/session-mode` from main c649622e
   (held, not on main): session records carry a mode (lesson, mission or conversation; record
   version 2, version 1 read as conversation), and a scripted lesson's rescue is judged by the
@@ -576,12 +584,27 @@ wish, rather than asserting a wish. Three results are worth carrying forward:
   real concurrency ceiling: one session per slot per 20 seconds of turnover, whatever the
   sessions themselves cost.
 - **Curation keeps what the learner reached for (F193), first live run 23 October 2026.**
-  `npm run eval:curation -w @luvani/brain-playground` on OpenAI (curate routes to
-  gpt-5.6-luna, the `openAiModelFor('curate')` default): both fixtures kept five phrases, all
+  `npm run eval:curation -w @luvani/brain-playground` on OpenAI (curate routed to
+  gpt-5.6-luna at the time; since 24 October 2026 it routes to gpt-6-luna, VOICE-012, measured below): both fixtures kept five phrases, all
   five worth reaching for, and dropped every pleasantry; separation 1.29 kept against 1.29
   proposed; 2 extensions per card set, none failing the gate; about $0.002. This is the
   baseline the curation prompt regresses against; the named test proves the scorer and the
   command, not the model.
+- **Curation moved to gpt-6-luna (VOICE-012), runs of 24 October 2026.** Same command, with
+  `LUVANI_ENV_FILE` pointing at the main checkout's playground `.env` and `BRAIN_LLM=openai`.
+  Two runs on gpt-6-luna (the new default) and one same-day baseline with
+  `OPENAI_CURATION_MODEL=gpt-5.6-luna`:
+
+  | Run | Café: kept (worth reaching for), separation | Weekend: kept (worth reaching for), separation | Printed cost |
+  |---|---|---|---|
+  | gpt-6-luna, run 1 | 4 (4/5), 1.13 | 5 (5/5), 1.29 | about $0.001 |
+  | gpt-6-luna, run 2 | 5 (5/5), 1.29 | 5 (5/5), 1.29 | about $0.001 |
+  | gpt-5.6-luna, same day | 5 (5/5), 1.29 | 5 (5/5), 1.29 | about $0.003 |
+
+  No extension failed the gate in any run, and the run prints no token counts. Run 1's café
+  keep-list left out "sur place, s'il vous plaît" and kept four; the rerun kept it and kept five.
+  This is a small sample, and the one miss is read as a one-off, not a measured rate. The 23
+  October gpt-5.6-luna run above cost about $0.002.
 
 ## Feature matrix
 

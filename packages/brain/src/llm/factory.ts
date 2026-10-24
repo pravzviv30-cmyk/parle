@@ -88,6 +88,7 @@ function vendorBrainFromEnv(env: Record<string, string | undefined>, transport?:
       liveServiceTier: env.OPENAI_LIVE_SERVICE_TIER,
       analystModel: env.OPENAI_ANALYST_MODEL,
       drillsModel: env.OPENAI_DRILLS_MODEL,
+      curationModel: env.OPENAI_CURATION_MODEL,
     },transport);
   }
   // No split, and no key: the subscription answers everything through the

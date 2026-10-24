@@ -68,6 +68,12 @@ export interface OpenAiResponsesConfig {
    */
   drillsModel?: string;
   /**
+   * Post-session practice curation. Falls back to `OPENAI_CURATION_MODEL`, then
+   * DEFAULT_OPENAI_CURATION_MODEL. Deliberately NOT moved by turnModel /
+   * OPENAI_TURN_MODEL: curation has its own knob (VOICE-012, 2026-10-24).
+   */
+  curationModel?: string;
+  /**
    * OpenAI `service_tier` for the live calls only (turn and frame). Opt-in,
    * default off: `priority` is billed at a higher rate. Falls back to
    * `OPENAI_LIVE_SERVICE_TIER`; anything unrecognised means the field is omitted.
@@ -78,7 +84,7 @@ export interface OpenAiResponsesConfig {
 }
 
 /** The wiring half of the config: the two names, and where to send them. */
-type Wiring = Required<Pick<OpenAiResponsesConfig, 'apiKey' | 'baseUrl' | 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'>>;
+type Wiring = Required<Pick<OpenAiResponsesConfig, 'apiKey' | 'baseUrl' | 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel' | 'curationModel'>>;
 
 type FetchResponse = Awaited<ReturnType<FetchLike>>;
 
@@ -96,6 +102,15 @@ export const DEFAULT_OPENAI_ANALYST_MODEL = 'gpt-5.6-terra';
  * DEFAULT_OPENAI_ANALYST_MODEL.
  */
 export const DEFAULT_OPENAI_DRILLS_MODEL = 'gpt-6-luna';
+/**
+ * Curation moved off the turn model to GPT-6 Luna on 2026-10-24 (founder
+ * decision, VOICE-012 in docs/DECISIONS.md). Effort and maxTokens for curate
+ * are unchanged (medium, 3,000), and openAiEffortFor only special-cases
+ * turn/frame on gpt-6-luna, so curation keeps the routed effort. Judge and
+ * extract stay where they were: judge on DEFAULT_OPENAI_TURN_MODEL, extract on
+ * DEFAULT_OPENAI_ANALYST_MODEL.
+ */
+export const DEFAULT_OPENAI_CURATION_MODEL = 'gpt-6-luna';
 
 const SERVICE_TIERS = ['priority', 'default', 'auto', 'flex'] as const;
 export type OpenAiServiceTier = (typeof SERVICE_TIERS)[number];
@@ -124,17 +139,19 @@ export function openAiLiveModel(env: Record<string, string | undefined> = proces
     env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_LIVE_MODEL;
 }
 
-type ModelConfig = Pick<OpenAiResponsesConfig, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'>;
+type ModelConfig = Pick<OpenAiResponsesConfig, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel' | 'curationModel'>;
 
-/** The four model names the client sends, from config then env then the defaults. */
+/** The five model names the client sends, from config then env then the defaults. */
 export function openAiModels(env: Record<string, string | undefined> = process.env,
-  config: ModelConfig = {}): Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'> {
+  config: ModelConfig = {}): Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel' | 'curationModel'> {
   return {
     turnModel: config.turnModel?.trim() || env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
     liveModel: openAiLiveModel(env, config),
     analystModel: config.analystModel?.trim() || env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
     // Own knob only: OPENAI_ANALYST_MODEL does not move drills (VOICE-008).
     drillsModel: config.drillsModel?.trim() || env.OPENAI_DRILLS_MODEL?.trim() || DEFAULT_OPENAI_DRILLS_MODEL,
+    // Own knob only: OPENAI_TURN_MODEL does not move curation (VOICE-012).
+    curationModel: config.curationModel?.trim() || env.OPENAI_CURATION_MODEL?.trim() || DEFAULT_OPENAI_CURATION_MODEL,
   };
 }
 
@@ -148,9 +165,11 @@ export function openAiModelFor(activity: BrainActivity, env: Record<string, stri
   return pickModel(activity, openAiModels(env, config), config.routing ?? resolveRouting(env));
 }
 
-function pickModel(activity: BrainActivity, models: Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel'>, routing: BrainRouting): string {
+function pickModel(activity: BrainActivity, models: Pick<Wiring, 'turnModel' | 'liveModel' | 'analystModel' | 'drillsModel' | 'curationModel'>, routing: BrainRouting): string {
   // Drills have their own model whichever tier routing.ts puts them on (VOICE-008).
   if (activity === 'drills') return models.drillsModel;
+  // Curation has its own model whichever tier routing.ts puts it on (VOICE-012).
+  if (activity === 'curate') return models.curationModel;
   return isAnalystActivity(activity, routing) ? models.analystModel
     : activity === 'turn' || activity === 'frame' ? models.liveModel : models.turnModel;
 }

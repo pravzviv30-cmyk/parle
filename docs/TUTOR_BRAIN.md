@@ -56,18 +56,21 @@ OPENAI_LIVE_MODEL=gpt-6-luna
 # OPENAI_TURN_MODEL=gpt-5.6-luna
 # OPENAI_ANALYST_MODEL=gpt-5.6-terra
 # OPENAI_DRILLS_MODEL=gpt-6-luna
+# OPENAI_CURATION_MODEL=gpt-6-luna
 ```
 
 There is no separate GPT Luna credential. Luna and Terra use the normal OpenAI
 API key. The implementation uses the Responses API with strict JSON schemas:
-GPT-6 Luna handles live turns and scene design. GPT-5.6 Luna retains curated
-phrases and written checks; GPT-5.6 Terra retains memory extraction. Since
+GPT-6 Luna handles live turns and scene design. GPT-5.6 Luna retains written
+checks; GPT-5.6 Terra retains memory extraction. Since
 23 October 2026, drill authoring runs on GPT-6 Luna (`OPENAI_DRILLS_MODEL`; drill eval
 25/25 clean, about $0.005 instead of $0.086 a session; VOICE-008 in `DECISIONS.md`,
 evidence in `docs/cogs-evidence/`). `OPENAI_ANALYST_MODEL` moves extraction only, not
 drills. `OPENAI_LIVE_MODEL` changes only live turns and scenes. For compatibility,
 an explicit `OPENAI_TURN_MODEL` also controls those calls when no live override is
-set; it always controls the existing fast curation and judge roles.
+set; it always controls the written-check judge. Since 24 October 2026, curated
+phrases run on GPT-6 Luna through their own `OPENAI_CURATION_MODEL` (VOICE-012 in
+`DECISIONS.md`), which `OPENAI_TURN_MODEL` no longer moves.
 GPT-6 Luna is the founder-selected live brain as of
 2 October 2026; API account access was verified, while comparative French
 teaching and phone-audible latency remain unverified. Its Responses/structured
@@ -154,8 +157,8 @@ Current list prices used for planning:
 
 | route | input / million tokens | output / million tokens |
 |---|---:|---:|
-| GPT-6 Luna (live turns/scenes, drills) | $0.10 | $0.50 |
-| GPT-5.6 Luna (curation/written checks) | $0.20 | $1.20 |
+| GPT-6 Luna (live turns/scenes, drills, curation) | $0.10 | $0.50 |
+| GPT-5.6 Luna (written checks) | $0.20 | $1.20 |
 | GPT-5.6 Terra | $2.00 | $12.00 |
 | Claude Haiku 4.5 | $1.00 | $5.00 |
 | Claude Sonnet 5 | $2.00 | $10.00 |
@@ -163,7 +166,7 @@ Current list prices used for planning:
 
 An illustrative twelve-turn OpenAI session with 90k Luna input / 10k Luna
 output and 15k Terra input / 8k Terra output is about **$0.14 for the brain**
-before cache discounts and separate curation/written-check calls. This is a
+before cache discounts and separate curation/written-check calls (curation now at the GPT-6 Luna rate). This is a
 planning example, not a billing promise. The
 worker now logs actual input, output and cached tokens for every successful call
 under `[luvani:brain]`; collect those lines from real sessions and replace the
