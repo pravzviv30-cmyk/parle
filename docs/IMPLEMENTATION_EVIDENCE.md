@@ -23,15 +23,49 @@ of the list.
 ## Current landing snapshot
 
 - 25 October 2026 data-boundary quota proof made clock-safe on branch `claude/quota-minute-flake`
-  from main 50b46a0f (not on main): the write quotas are calendar-minute buckets on the real
+  from main 50b46a0f, main 71c485d5 merged in (not on main): the write quotas are calendar-minute buckets on the real
   database clock, and `verifyDataBoundaries.mjs` failed when its 48-write burst straddled a
   minute (`14 !== 48`, also `46 !== 48`). Unpatched it failed 1 run in 50, and on purpose at
   boundary offsets 2,200, 2,320 and 2,700 ms after launch. It now waits for a fresh minute
   before each of its three counted bursts and counts a bucket from an earlier minute as empty.
   Every assertion keeps its value; product SQL unchanged, no learner impact. 50 of 50 runs
-  green: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token server 484,
-  playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations replayed,
+  green: **6,671 tests, 0 failing**; core 1064, brain 524, tutor agent 864, token server 485,
+  playground 92, mobile 3642; shared release/provider proofs 184; all 43 migrations replayed,
   no migration added. Floors unchanged.
+- 25 October 2026 main with `claude/slower-voice-keyterms` (VOICE-016, VOICE-017) and
+  `claude/heads-up-tap-send` (renumbered VOICE-018, VOICE-019) merged onto the beginner-conduct
+  landing (VOICE-013 to VOICE-015): **6,671 tests, 0 failing**; core 1064, brain 524, tutor
+  agent 864, token server 485, playground 92, mobile 3642; all 43 migrations replayed, no
+  migration added. Floors set to this run.
+- 25 October 2026 beginner conduct (VOICE-013, VOICE-014, VOICE-015) on branch
+  `claude/beginner-conduct` from main 50b46a0f (not on main): an A0 or A1 learner stuck twice on
+  one exchange hears an authored English way back on the second rescue; openers and the silence
+  suggestion rotate on the session count, free sessions included; each turn names the tutor's
+  questions already asked this session and a repeat is logged; a learner's sad news can never be
+  the turn that ends the session, with sixteen grief lines in the ORDINARY corpus and self-harm
+  escalation unchanged; `eval:sessions` gains way-back, no-repeat-question and grief checks and
+  three synthetic sessions (12 records) and agrees with every hand label: **6,559 tests,
+  0 failing**; core 1051, brain 524, tutor agent 799, token server 484, playground 92, mobile 3609;
+  shared release/provider proofs 176; all 43 migrations replayed, no migration added. Floors
+  raised only through `gate:bless`. No paid model run; one advisory Jev copy check (warm, about
+  $0.00002).
+- 25 October 2026 slower voice and scripted keyterms (VOICE-016, VOICE-017) on branch
+  `claude/slower-voice-keyterms` from main 50b46a0f (not on main): beginners hear the tutor at
+  ElevenLabs speed 0.85 with a "Slower voice" switch, speed left out of the TTS quote identity;
+  lessons and guest scenes build Nova-3 with one fixed keyterm list, and the paid proxy admits
+  capped keyterms with a quote-mismatch fallback to the plain stream: **6,553 tests, 0 failing**;
+  core 1055, brain 504, tutor agent 802, token server 485, playground 87, mobile 3620; shared
+  release/provider proofs 184; all 43 migrations replayed, no migration added. Floors raised only
+  through `gate:bless`. Paid vendor runs: `measureVoiceSpeed.mjs` (203 ElevenLabs credits, 8
+  Deepgram requests) and `measureKeyterms.mjs` (104 credits, about 141 s of Deepgram), recorded
+  under "Measurements that are not assertions".
+- 25 October 2026 session heads-up (VOICE-018) and tap to send (VOICE-019) on branch
+  `claude/heads-up-tap-send` from main 50b46a0f (not on main): a spoken heads-up a minute before
+  the cap with a numberless room note and a warm close, and an opt-in held turn that ends on
+  Send or at 60 s through the SDK's manual turn detection: **6,601 tests, 0 failing**; core
+  1060, brain 504, tutor agent 835, token server 484, playground 87, mobile 3631; shared
+  release/provider proofs 176; all 43 migrations replayed, no migration added. Floors raised
+  only through `gate:bless`. No paid runs; `warm-cache` for the two new lines is still owed.
 - 24 October 2026 main with `claude/curation-luna` (VOICE-012) merged onto the unaided-sentence
   metric landing: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token
   server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations
@@ -587,6 +621,13 @@ stop, and roughly $2.20 for a full trial allowance. That last figure is what one
 trial costs, which is why F73 is a P0.
 
 ## Measurements that are not assertions
+
+- **Slower voice and keyterms, 25 October 2026 (VOICE-016, VOICE-017).** ElevenLabs bills the
+  same credits at speed 1.0, 0.9 and 0.85 (`character-cost` header), and 0.85 is about 17% slower
+  with Deepgram word accuracy 1.00 (`docs/cogs-evidence/voice-speed-2026-10-25.json`). Café
+  keyterms on an English voice reading French scored 11 of 12 exact with and without keyterms, at
+  normal level and -20 dB: inconclusive at the ceiling, no transcript worse
+  (`docs/live-latency-evidence/keyterms-2026-10-25.json`).
 
 The voice harness records LiveKit's actual behaviour where it differs from what we would
 wish, rather than asserting a wish. Three results are worth carrying forward:

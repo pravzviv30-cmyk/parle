@@ -168,7 +168,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       <C2LiveRoom tutorName={name} description={scene ? `${GUEST_CAFE_SCENE.title}, about two minutes` : `${firstPracticeScenario(guest.live!.brief).en}, ${guest.live!.brief.minutes === null ? 'at your pace' : `${guest.live!.brief.minutes} minutes`}`}
         state={state} caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing || typedScene || (scene && live.voiceless)} startedWithSpeech={scene ? !typedScene : undefined} ready={ready && !ending && !over} modePending={micPending} active={active} embedded
-        transcriptVisible={transcript} onTranscriptVisibility={setTranscript} quietVoice={quietVoice} onQuietVoice={onQuietVoice} draft={draft}
+        transcriptVisible={transcript} onTranscriptVisibility={setTranscript} quietVoice={quietVoice} onQuietVoice={onQuietVoice} draft={draft} wrappingUp={live.wrappingUp}
         onDraft={text => { setDraft(text); live.sendTyping(); }} onSend={send} canSend={!live.thinking && !live.tutorSpeaking && !ending}
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
         onEnd={() => setConfirmEnd(true)} notice={issue || (scene ? live.feedback?.message : undefined) || live.notice}

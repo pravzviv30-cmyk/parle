@@ -1,3 +1,4 @@
+import { tapToSendFrames } from './heldTurn.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { tokenFailureCode, TokenServerError, classifyFailure } from './failure.ts';
 /**
@@ -356,6 +357,12 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     setReconnecting: () => {},
     setVoiceless: () => {},
     voicelessRef: { current: false },
+    // Added by tap to send and the wrap-up note (heldTurn.ts): a new start
+    // forgets both, and connect tells the agent when the preference is on.
+    setWrappingUp: () => {},
+    setHeldTurn: () => {},
+    tapToSendRef: { current: false },
+    tapToSendFrames,
     // Added to `start` by the F763 recap close and the orb's audio tracks: a new
     // start forgets the last session's tracks and its closed microphone. Same
     // bargain as the setters above.
@@ -392,6 +399,8 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     // the account's session lease back when a grant never reached a tutor, so the
     // lifted fragment reaches for the release call and the world must supply it.
     abandonSession: async (): Promise<void> => {},
+    // Slower voice: read from the device at each start; unchosen here.
+    loadVoiceSpeedPreference: async () => null,
     setTimeout: (fire: () => void): number => {
       timers.push(fire);
       return timers.length;

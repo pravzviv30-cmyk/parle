@@ -51,6 +51,15 @@ picks the mode on native. The fixed learners are in
 `apps/mobile/src/journey/yourFrenchFixtures.ts`. Keep the screenshots in
 `artifacts/your-french-2026-10-22/`.
 
+### The live room previews
+
+The same preview flag draws the real `C2LiveRoom` with no room or account:
+`?preview=live-speaking`, `live-typing`, `live-tap-to-send` (Tap to send on, a
+turn held, Send showing) and `live-wrap-up` (the wrap-up note). The tap-to-send
+preview keeps its switch in local state and never writes the stored setting.
+Screenshots for VOICE-018 and VOICE-019 are in
+`artifacts/heads-up-tap-send-2026-10-25/`.
+
 ## Writing
 
 Node's built-in runner. No Jest, no Vitest, no test dependencies anywhere.
@@ -122,7 +131,8 @@ need real keys, so they are not part of the gate.
 Three playground evals need no key:
 
 - `npm run eval:sessions -w @luvani/brain-playground` scores recorded sessions turn by turn
-  (rescue, no read-back, gentle, level fit, safety, reply wait). The synthetic set is
+  (rescue, no read-back, gentle, level fit, safety, way back, no repeat question, grief,
+  reply wait). The synthetic set is
   hand-labelled with one deliberate failure per check, so a clean run exits 1 and lists them.
   The test `the session eval agrees with every hand label in the synthetic set` holds the
   checks to those labels in the gate. Each record names its mode (lesson, mission or

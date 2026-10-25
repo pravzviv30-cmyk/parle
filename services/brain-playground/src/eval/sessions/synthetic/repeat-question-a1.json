@@ -1,0 +1,147 @@
+{
+  "version": 2,
+  "id": "repeat-question-a1",
+  "source": "synthetic",
+  "mode": "conversation",
+  "scene": "cafe-terrace",
+  "cefr": "A1",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonjour, vous êtes d'ici ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1000,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "spoke",
+        "text": "Non, je suis de Londres."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Ah, Londres ! Vous êtes en vacances ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1200,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Oui, une semaine."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Super ! Vous êtes d'ici ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1100,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "fail"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "Je suis de Londres."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Pardon, oui, Londres. Vous aimez Paris ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1300,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Oui, beaucoup !"
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Tant mieux ! Vous restez longtemps à Paris ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1250,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 6,
+      "input": {
+        "type": "spoke",
+        "text": "Une semaine."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Très bien, profitez bien.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 950,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    }
+  ]
+}

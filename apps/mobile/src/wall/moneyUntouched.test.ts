@@ -204,7 +204,11 @@ const FILES: Record<string, string> = {
   // guest first scene plan named this tokens.ts change). Review: revenue-engineer read-only
   // and the Opus orchestrator read the diff.
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
-  'services/token-server/src/tokens.ts': '3233ef498309c5f596ed07ecbb901b58ac6692190a46e8ec0e0e20a9ccc8fef1',
+  // 2026-10-25, VOICE-016: grantSession signs an optional `voiceSpeed` ('slower' or 'normal',
+  // anything else dropped) next to tutorVoice. No allowance, debit, price or trial logic
+  // changed. Approval: founder 2026-10-25 (the slower voice plan named this field). Review:
+  // the Opus orchestrator read the tokens.ts diff.
+  'services/token-server/src/tokens.ts': '6f34d17dd5c0a1d9352cee8d8b857c59538950a314223fc4277c1c1c22c3672a',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
   'services/token-server/src/store.ts': '8384d63773ac6607c79588987ffc6deed88cfbe7272562a1b754a6102de6c763',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.

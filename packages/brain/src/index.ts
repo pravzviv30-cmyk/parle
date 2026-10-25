@@ -31,5 +31,7 @@ export * from './prompt/scenarioPrompt.ts';
 export * from './engine/grading.ts';
 export * from './engine/conversation.ts';
 export * from './engine/recap.ts';
+export * from './engine/askedQuestions.ts';
+export * from './engine/sadNews.ts';
 export * from './profile/profile.ts';
 export * from './llm/index.ts';

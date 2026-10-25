@@ -32,6 +32,7 @@ import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parse
 import { selectedBrain } from './preflight.ts';
 import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 import { safeError } from './safeError.ts';
+import { CLOSE_LINE, HEADS_UP_LINE, boundedPlayout, type SessionEndView } from './sessionEnd.ts';
 import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { inCharacterRecast } from './spokenRecast.ts';
 import type { InputReplyTimingRecord, ReplyInput, SceneReplyTimingRecord } from './sceneReplyTiming.ts';
@@ -61,6 +62,8 @@ import {
   currentPolicyOpener,
   applyNonSpokenInput,
   applyTurnToProfile,
+  askedQuestions,
+  repeatsQuestion,
   assembleRecap,
   buildCurationRequest,
   buildDrillGenerationRequest,
@@ -498,14 +501,49 @@ export function missionOpening(frame: ScenarioFrame): { fr: string; en: string }
  * here said the opposite. Measured, not reasoned: the glued form tokenizes to
  * one chunk, the current form to two, for names from one letter to nine.
  */
-export function openerFor(name: string | null): { fr: string; en: string } {
-  if (name === null || name.length === 0) return { fr: CONVO_LINES.opener.fr, en: CONVO_LINES.opener.en };
+export function openerFor(name: string | null, index = 0): { fr: string; en: string } {
+  const line = deckLine(CONVO_LINES.opener, index);
+  if (name === null || name.length === 0) return { fr: line.fr, en: line.en };
   return {
     // The French is shown, never spoken (open() says the English), so only the
     // spoken half has to clear the splitter's twenty-character floor.
-    fr: `Bonjour ${name}. ${CONVO_LINES.opener.fr}`,
-    en: `Hi ${name}, good to see you. ${CONVO_LINES.opener.en}`,
+    fr: `Bonjour ${name}. ${line.fr}`,
+    en: `Hi ${name}, good to see you. ${line.en}`,
   };
+}
+
+/** One entry of an authored deck, for any integer index. */
+export function deckLine<T>(deck: readonly T[], index: number): T {
+  const n = deck.length;
+  return deck[((Math.trunc(index) % n) + n) % n]!;
+}
+
+/**
+ * Which opener and suggestion this session gets (VOICE-014).
+ *
+ * The session counter first. It is a plain count on every profile, free ones
+ * included (`finishSession` bumps it), and it is not tutor memory: it carries
+ * no brief, no remembered opener and nothing extracted from what the learner
+ * said, so the `memoryLocked` promise holds. Counting gives strict rotation,
+ * which a hash cannot: nobody hears the same opener twice in a row.
+ *
+ * A count of zero is either a real first session or a profile that never came
+ * (a guest, an app that sent no snapshot, which `parseStoredProfile` repairs
+ * to zero). Those two cannot be told apart here, so zero falls back to an
+ * FNV-1a hash of the signed session id, the way `missionFrame` picks its
+ * opening, and an unsigned session gets index 0, which is the line every
+ * session used before this deck existed. The one cost: a first session's
+ * hash and the second session's count can land on the same line once.
+ */
+export function openerIndexFor(sessions: number, sessionId: string | null): number {
+  if (Number.isFinite(sessions) && sessions > 0) return Math.trunc(sessions);
+  if (sessionId === null || sessionId.length === 0) return 0;
+  let hash = 0x811c9dc5;
+  for (const char of `opener:${sessionId}`) {
+    hash ^= char.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
 }
 
 /**
@@ -539,8 +577,13 @@ export function spokenTurn(view: TurnView): string {
    * and a translation would otherwise create two English explanations in the
    * same breath, so the learner's immediate need wins; the shift remains
    * visible on screen.
+   *
+   * The way back in (VOICE-013) takes the same slot for the same reason: it is
+   * the one thing a beginner stuck twice needs to hear, and it is authored
+   * English that never reads the card's French back. support.fullLine is never
+   * spoken here, by any branch.
    */
-  const support = view.reachedForEnglish ? view.coachLine : view.narration?.en;
+  const support = view.reachedForEnglish || view.wayBack ? view.coachLine : view.narration?.en;
   const parts = [support, view.sceneReply.fr];
   return parts
     .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
@@ -1168,6 +1211,19 @@ export class LuvaniConversation extends voice.Agent {
    * exactly as received so the recap hands the stored memory back unchanged.
    */
   private readonly memoryLocked: boolean;
+  /**
+   * This session's place in the opener and suggestion decks, fixed the first
+   * time it is read so the question and the suggestion stay a pair. Read
+   * lazily because the signed session id arrives after construction.
+   */
+  private openerIndexValue: number | null = null;
+  private openerIndex(): number {
+    this.openerIndexValue ??= openerIndexFor(
+      this.profile.stats.sessions,
+      this.sessionId === UNSIGNED_SESSION_ID ? null : this.sessionId,
+    );
+    return this.openerIndexValue;
+  }
   private spokenRecastUsed = false;
   /**
    * The saved conversation this session revisits, by id only, or null. Kept
@@ -1725,7 +1781,7 @@ export class LuvaniConversation extends voice.Agent {
     const opener =
       remembered && this.guardLine(`${remembered.fr} ${remembered.en}`, 'remembered opener')
         ? remembered
-        : openerFor(validLearnerName(this.profile.memory.name));
+        : openerFor(validLearnerName(this.profile.memory.name), this.openerIndex());
     this.lastOpening = { t: 'opening', prompt: { fr: opener.fr, en: opener.en } };
     this.publish(this.lastOpening);
     this.say(opener.en, { allowInterruptions: false });
@@ -1874,7 +1930,8 @@ export class LuvaniConversation extends voice.Agent {
       // its opening is a statement about the topic they tapped, and repeating
       // it would promise the same scene a second time. The ordinary question is
       // honest about where they now are, and it is something they can answer.
-      this.lastOpening = { t: 'opening', prompt: { fr: CONVO_LINES.opener.fr, en: CONVO_LINES.opener.en } };
+      const line = deckLine(CONVO_LINES.opener, this.openerIndex());
+      this.lastOpening = { t: 'opening', prompt: { fr: line.fr, en: line.en } };
     }
     if (this.lastOpening) this.publish(this.lastOpening);
     // The quiet twin: text mode arms its own clock, exactly as `open` does.
@@ -1991,6 +2048,9 @@ export class LuvaniConversation extends voice.Agent {
     // while it runs. `agent.ts` calls this on every transition to `listening`,
     // which for a thinking learner is a stray sound and nothing more.
     if (this.momentHeld && this.silenceTimer) return this.queue.generation;
+    // A tap-to-send turn is still recording: a pause inside it is thinking,
+    // and the learner ends it with Send. After the close line, nothing rescues.
+    if (this.heldTurnOpen || this.closingForTime) { this.clearRescue(); return this.queue.generation; }
     this.clearRescue();
     void session; // kept for signature parity with LuvaniTutor; speech goes via this.session
     // Captured now, checked when the timer fires. Returned so the caller — and
@@ -2003,7 +2063,7 @@ export class LuvaniConversation extends voice.Agent {
       if (this.suggested) return generation;
       this.silenceTimer = setTimeout(() => {
         this.suggested = true;
-        void this.replayLine(CONVO_LINES.suggest.en);
+        void this.replayLine(deckLine(CONVO_LINES.suggest, this.openerIndex()).en);
         if (this.lastOpening) this.publish(this.lastOpening);
       }, window);
       return generation;
@@ -2089,6 +2149,50 @@ export class LuvaniConversation extends voice.Agent {
   /** Settle once every queued turn has been integrated. For tests. */
   settled(): Promise<void> {
     return this.queue.idle();
+  }
+
+  /** True while a tap-to-send turn is recording. Set by agent.ts (tapToSend.ts). */
+  private heldTurnOpen = false;
+  /** The close for time has begun: no rescue and no new turn after its line. */
+  private closingForTime = false;
+
+  /** A tap-to-send turn opened or ended. While open, armRescue stays dark. */
+  setHeldTurn(open: boolean): void {
+    this.heldTurnOpen = open;
+    if (open) this.clearRescue();
+  }
+
+  /** What sessionEnd.ts reads to find a gap and see the last exchange land. */
+  sessionEndView(): SessionEndView {
+    return { learnerTurns: this.learnerTurns, busy: this.queue.busy || this.replayQueue.busy,
+      over: this.ended || this.refused || this.closingForTime, voiceless: this.voiceless, held: this.heldTurnOpen };
+  }
+
+  /** The heads-up a minute before the cap: the frame, and the line said aloud. */
+  wrapUp(): void {
+    if (this.ended || this.closingForTime) return;
+    void this.publish({ t: 'wrap-up' });
+    this.say(HEADS_UP_LINE, { allowInterruptions: false });
+  }
+
+  /**
+   * The warm close for time: the goodbye line, then the same ending `leave`
+   * gets (recap and settlement), then the room. Bounded by the cap, whose
+   * hard stop still closes the room if settlement is slow.
+   */
+  async closeForTime(): Promise<void> {
+    if (this.ended || this.refused || this.closingForTime) return;
+    this.closingForTime = true;
+    this.clearRescue();
+    this.releaseMoment();
+    this.cancelLiveReplies();
+    try {
+      await boundedPlayout(this.say(CLOSE_LINE, { allowInterruptions: false })?.waitForPlayout());
+    } catch (error) {
+      console.warn('[luvani] the closing line did not settle cleanly; closing anyway:', safeError(error));
+    }
+    await this.finish();
+    this.closeRoom();
   }
 
   clearRescue(): void {
@@ -2177,6 +2281,7 @@ export class LuvaniConversation extends voice.Agent {
     if (this.ended && msg.t !== 'ready' && msg.t !== 'leave') return;
 
     if (msg.t === 'say' && this.handleSafety(msg.text)) return;
+    if (this.closingForTime && msg.t !== 'ready' && msg.t !== 'leave') return;
     if (!this.commands.allow(msg.t) || (['say', 'help', 'skip'].includes(msg.t) && this.queue.full)) { this.rejectInput(INPUT_BUSY_MESSAGE); return; }
 
     if (['say','help','skip','mode','leave'].includes(msg.t)) this.cancelCorrectionReason();
@@ -2269,7 +2374,7 @@ export class LuvaniConversation extends voice.Agent {
       if (msg.t === 'help' || msg.t === 'skip') {
         this.clearRescue();
         this.suggested = true;
-        void this.replayLine(CONVO_LINES.suggest.en);
+        void this.replayLine(deckLine(CONVO_LINES.suggest, this.openerIndex()).en);
         if (this.lastOpening) this.publish(this.lastOpening);
       }
       return;
@@ -2297,9 +2402,9 @@ export class LuvaniConversation extends voice.Agent {
     }
     if (msg.t === 'slower') {
       // Two effects, both honest: the line again right now, and a pace flag
-      // that rides every later turn's context so the tutor STAYS slow. The
-      // audio itself replays at the cached speed until slow synthesis is
-      // proven out with the voice vendor.
+      // that rides every later turn's context so the tutor STAYS slow.
+      // This control changes sentences only: the voice speed is chosen once at
+      // session start (tutorSpeedFor in agent.ts) and the replay keeps it.
       this.state = { ...this.state, pace: 'slow' };
       if (this.lastView) return this.replayLine(this.lastView.sceneReply.fr);
       return;
@@ -2405,11 +2510,19 @@ export class LuvaniConversation extends voice.Agent {
     const timing = this.beginReplyTiming?.(
       text.length > 0 && !this.ended && !this.voiceless && this.phase === 'scene',
     );
+    // A turn with no words (a cough, bleed, an empty held turn) is not an
+    // answer. The clock was cleared above; hand it back, as LuvaniTutor does.
+    if (text.length === 0) {
+      if (!this.voiceless) this.armRescue(this.session);
+      throw new voice.StopResponse();
+    }
     if (text.length > 0 && !this.ended) {
       if (this.handleSafety(text)) {
         timing?.finish('cancelled');
         throw new voice.StopResponse();
       }
+      // After the safety check, so a crisis in the last seconds is still heard.
+      if (this.closingForTime) { timing?.finish('cancelled'); throw new voice.StopResponse(); }
       if (!this.commands.allow('say') || this.queue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); timing?.finish('cancelled'); throw new voice.StopResponse(); }
       // Words came out of the learner and the recogniser read them, whatever
       // the phase does with them next. That is the whole test for whether this
@@ -2634,6 +2747,7 @@ export class LuvaniConversation extends voice.Agent {
     // while this call was in flight, this turn folds into that newer state.
     const previousGoalEvidence = this.state.evidencedBeatIds;
     const sourceBeat = this.state.currentBeat;
+    const askedBefore = askedQuestions(this.state.history);
     const { state, view } = integrateTurn(this.state, input, turn);
     this.state = state;
     this.profile = applyTurnToProfile(this.profile, turn, new Date().toISOString());
@@ -2678,6 +2792,12 @@ export class LuvaniConversation extends voice.Agent {
     if (recast.used && guarded.sceneReply.fr === recast.view.sceneReply.fr) this.spokenRecastUsed = true;
     this.state = { ...this.state, history: [...this.state.history.slice(0, -1),
       { role: 'assistant', text: historyForPublishedTurn(turn, guarded) }] };
+    // VOICE-014: the turn context named every question already asked. When the
+    // model asked one again anyway, say so in the log and nothing else: no
+    // learner text, no question text, and no second model call to fix it.
+    if (repeatsQuestion(guarded.sceneReply.fr, askedBefore) !== null) {
+      console.info(`[luvani:conduct] repeated-question session=${this.sessionId.slice(0, 8)}`);
+    }
     const publishedView = toConvoView(guarded);
     if (input.type === 'spoke') this.canDoLedger.recordAcceptedSource(input.text, sourceBeat, previousGoalEvidence, publishedView, guarded === recast.view);
     if (this.lifecycle) inputTiming?.mark('checkpointStarted');

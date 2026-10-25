@@ -204,6 +204,33 @@ export const VOICE_SETTINGS: Readonly<elevenlabs.VoiceSettings> = Object.freeze(
   use_speaker_boost: true,
 });
 
+/**
+ * The slower live voice for beginners (VOICE-016). Measured 2026-10-25
+ * (docs/cogs-evidence/voice-speed-2026-10-25.json): 0.9 was only about 5%
+ * slower than 1.0; 0.85 is about 17% slower with Deepgram word accuracy 1.00,
+ * and billed credits were identical at every speed.
+ *
+ * Deliberately NOT in VOICE_SETTINGS: the bundled clips, saved-phrase Hear and
+ * the build scripts fingerprint those settings, and must stay byte-identical.
+ * Speed is a per-session choice that buildTTS folds into the live voiceKey, so
+ * each speed is its own cache. ElevenLabs bills characters, not pace.
+ */
+export const BEGINNER_SPEED = 0.85;
+
+/**
+ * The live voice speed for a session, decided once at session start, or
+ * undefined for the vendor's normal speed (which keeps today's cache keys).
+ * The learner's switch wins either way. Without it, scripted lessons and
+ * scenes are A0 content and run slower; a conversation runs slower until the
+ * profile estimate reaches A2. No estimate means a new profile, which is A0.
+ */
+export function tutorSpeedFor({ kind, cefr, choice }: { kind: 'lesson' | 'scene' | 'convo'; cefr?: string; choice?: 'slower' | 'normal' }): number | undefined {
+  if (choice === 'slower') return BEGINNER_SPEED;
+  if (choice === 'normal') return undefined;
+  if (kind !== 'convo') return BEGINNER_SPEED;
+  return /^(A2|B1|B2|C1|C2)$/.test(cefr ?? '') ? undefined : BEGINNER_SPEED;
+}
+
 /** No catalogue fallback: a dynamic Hear must honor exactly the selected voice. */
 export function selectedTutorSynthesisConfiguration(rawVoice: unknown, env: Env = process.env) {
   if (!isTutorVoiceKey(rawVoice) || selectedVoiceVendor(env) !== 'elevenlabs') return null;

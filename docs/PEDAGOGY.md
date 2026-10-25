@@ -57,6 +57,25 @@ call is made. A second rescue on the same exchange may reveal the French line,
 and that one asks the tutor to step in. The tutor itself rephrases its own side
 of the scene and never speaks the learner's answer over the card.
 
+**An English way back (VOICE-013).** The first time that second rescue happens on
+an exchange, a beginner also hears, in English, that English is a fine way back
+in. It fires only when all of these hold: the learner's CEFR estimate is A0 or
+A1, the rung is 1 or 2, and they have not already reached for English on this
+exchange. A third rescue does not say it again; a real reply opens a new exchange
+with it available again. The line is authored, not generated, and rotates per
+exchange within the session (`WAY_BACK_LINES` in
+`packages/brain/src/engine/conversation.ts`, decided by `wayBackDue`):
+
+- "You can say it in English. I'll give you the French."
+- "English is fine too. Say it your way, and I'll help with the French."
+- "Try it in English if you like. We'll find the French together."
+
+It rides the turn's coach line, so a typed session reads what a voice session
+hears, and it is spoken in the one English slot before the tutor's own simpler
+French line. The card's French is never read back. If the learner then answers in
+English, the ordinary English-to-French recast takes over. The ladder, the depth
+table and the quiet first rescue are unchanged.
+
 A rescue never advances past the thing the learner could not say. Scripted lessons
 re-attempt the same turn; conversation refuses to complete the beat on the model's
 `beatDone` after a rescue, exactly as it already refused after a reach for
@@ -70,6 +89,11 @@ At rungs 1-2 the session waits 1,200 ms of silence before it decides the learner
 has finished, against 400 ms at rungs 3-4. Each time a learner is cut off (they
 carry on within 1,500 ms, before the tutor has answered) the wait grows by
 400 ms, up to 2,000 ms. Details and measured costs are in `LIVE_VOICE.md`.
+
+**Tap to send (VOICE-019).** A learner who wants all the time they need can turn
+on Tap to send: the turn ends only when they tap Send, or after 60 s. While a
+turn is held there is no rescue, because a pause mid-recording is thinking, not
+being stuck. Before they say anything, the ordinary four seconds still apply.
 
 **"Give me a moment"** is presence, not failure. It holds the rescue for
 `MOMENT_GRACE_MS` (20 s), and while it is held the end of the turn waits 2,500 ms.
@@ -226,5 +250,7 @@ A change that breaks one of these is a bug, however green the tests are.
 - A learner is **never** stranded mid-scene. Every failure has a way forward.
 - Free conversation always gives the learner the first attempt; its first rescue
   is a hint, and only repeated help reveals a possible line.
+- A beginner (A0 or A1) stuck twice on one exchange hears that English is a way
+  back in. The card's French is never read back.
 - No score is ever shown mid-session. Numbers belong on the end card, where they
   can be given context.

@@ -10,6 +10,9 @@
    entitlement, active-session lease, and signed room/session metadata.
 5. `services/tutor-agent/src/agent.ts` binds the first participant, runs either
    `LuvaniTutor` or `LuvaniConversation`, and publishes the core protocol over LiveKit data.
+   About a minute before the cap it gives a spoken heads-up and closes after one more
+   exchange (`sessionEnd.ts`, VOICE-018); a learner can choose Tap to send, which holds
+   each spoken turn until Send or 60 s (`tapToSend.ts`, VOICE-019).
 6. Session finish reports the signed session ID and billable seconds to the token server.
    PostgreSQL records the ID once and atomically debits the entitlement.
 7. The app stores recap/practice/profile artefacts locally. With Supabase configured,
@@ -130,6 +133,7 @@ reactive hook that opens the Wall.
 - **Locks:** `purchases/capabilities.ts` (`unlocks`) and `purchases/featureLocks.ts` answer the eight locked features; `LOCKED_ROUTES` sends a locked route to `Wall {entry:'locked'}` from `App.tsx`'s navigation listener.
 - **Paywall on open:** `Wall {entry:'launch'}` on each cold launch and on return after 30+ minutes away, for learners with no plan or trial, only on a tab root and never over a sitting, a recap or onboarding. The Wall shows "Not now".
 - **Lock gaps closed (20 October 2026):** `Lesson` (the café pronunciation lesson) is locked as `sounds`; Review deals `reviewableFree` cards to a free learner and shows how many conversation phrases wait (`review/freeTier.ts`, `ReviewCard.sources` in `packages/core/src/review/sources.ts`); the token server signs `memoryLocked: true` for free, lapsed and guest sessions and the tutor then sends no saved memory, uses no remembered opener and extracts nothing.
+- **Beginner conduct (VOICE-013 to 015, 25 October 2026, branch `claude/beginner-conduct`):** the opening question and the silence suggestion rotate on the session count, free sessions included, with no memory used; an A0 or A1 learner stuck twice on one exchange hears an authored English way back; each turn names the tutor's questions already asked this session; and a learner's sad news (a death, an illness) can never be the turn that ends the session.
 - **Home's review card follows the free deal:** `NextTaskCard` offers only a card Review will deal (`reviewOffer`, `offeredReview` in `review/freeTier.ts`), so a free learner with only conversation phrases due sees the next free step instead. The recap's "Practise this phrase" drill stays free (founder, 2026-10-20): one drill in the moment is a taste, spaced review later is the trial feature.
 - **Streak:** one free freeze, two plus repair on a plan.
 - **Names:** the paid plans read Core and Max (ids `starter`, `regular`).
@@ -143,7 +147,7 @@ The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, 
 - **Store facts:** `purchases/storeTrialFacts.ts` is read only to cancel the reminder; it never grants minutes or a plan.
 - **Account screens:**
   - Profile: identity, Learning, Your French and Plan groups.
-  - Learning preferences: includes Your goal, changing or clearing `onboardingGoal` through `withOnboardingGoal` (clocked, newest-edit-wins), and the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync.
+  - Learning preferences: includes Your goal, changing or clearing `onboardingGoal` through `withOnboardingGoal` (clocked, newest-edit-wins), and the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync. A "Slower voice" switch stores a device choice (`@luvani/voice-speed/v1`, `slower` or `normal`); `/session/start` carries `voiceSpeed` only when chosen, otherwise the tutor's default applies (slower for lessons and A0 to A1), and the switch shows that default.
   - Settings: six groups.
   - Subscription: never says "Free" when the plan is unknown.
 - **Real purchases:** unverified until the App Store and RevenueCat setup in `REVENUECAT_SETUP.md` is done and sandbox-tested. That setup is deferred (2026-10-19) until the founder has an Apple Developer Program membership; prices are undecided.

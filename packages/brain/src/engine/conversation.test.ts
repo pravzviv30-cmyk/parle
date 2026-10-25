@@ -7,11 +7,13 @@ import { STUCK_SILENCE_MS, directiveFor, replayRung, type Rung } from '@luvani/c
 import {
   MAX_ATTEMPTS_PER_BEAT,
   MAX_SESSION_TOPICS,
+  WAY_BACK_LINES,
   applyNonSpokenInput,
   createConversation,
   integrateTurn,
   openingRungFor,
   prepareTurn,
+  wayBackDue,
   type ConversationState,
   type LearnerSnapshot,
 } from './conversation.ts';
@@ -1173,5 +1175,112 @@ describe('the operating contract says what the engine does', () => {
     // The doc is prose about the product, so it lives by the product's own copy
     // rules like everything else a person reads.
     assert.equal(copyViolations(doc, { allowDigits: true }).length, 0, 'the doc breaks the house copy rules');
+  });
+});
+
+/** Two rescues on one exchange, the way the agent applies them before the brain turn. */
+function stuckTwice(who: LearnerSnapshot): ConversationState {
+  const once = applyNonSpokenInput(fresh({}, who), { type: 'silence', durationMs: STUCK_SILENCE_MS }).state;
+  return applyNonSpokenInput(once, { type: 'help' }).state;
+}
+
+function contextOf(state: ConversationState, input: Parameters<typeof prepareTurn>[1]): string {
+  return prepareTurn(state, input).messages.at(-1)!.text;
+}
+
+describe('the way back in — VOICE-013', () => {
+  const help = { type: 'help' } as const;
+
+  test('a beginner stuck twice hears, in English, that English is fine', () => {
+    for (const cefr of ['A0', 'A1'] as const) {
+      const state = stuckTwice(learner({ cefr }));
+      assert.equal(state.assistanceDepth, 2);
+      assert.equal(wayBackDue(state, help), true, `${cefr} at depth 2`);
+      const { view } = integrateTurn(state, help, sampleTurn({ coachLine: 'Something the model wrote.' }));
+      assert.equal(view.wayBack, true);
+      assert.equal(view.coachLine, WAY_BACK_LINES[0], 'the authored line replaces whatever the model wrote');
+      assert.match(contextOf(state, help), /^WAY BACK: the app has just told them, in English, that English is fine\./m);
+    }
+  });
+
+  test('the first rescue stays quiet: no way back at depth 1', () => {
+    const once = applyNonSpokenInput(fresh({}, learner({ cefr: 'A0' })), { type: 'silence', durationMs: STUCK_SILENCE_MS }).state;
+    assert.equal(once.assistanceDepth, 1);
+    assert.equal(wayBackDue(once, help), false);
+    assert.equal(integrateTurn(once, help, sampleTurn()).view.wayBack, false);
+    assert.doesNotMatch(contextOf(once, help), /WAY BACK/);
+  });
+
+  test('not for A2 and above, and not on rung 3 or above', () => {
+    for (const cefr of ['A2', 'B1', 'C1'] as const) assert.equal(wayBackDue(stuckTwice(learner({ cefr })), help), false, cefr);
+    const high = { ...stuckTwice(learner({ cefr: 'A1' })), directive: directiveFor(3, true) };
+    assert.equal(wayBackDue(high, help), false, 'rung 3');
+    assert.equal(wayBackDue({ ...high, directive: directiveFor(4, true) }, help), false, 'rung 4');
+  });
+
+  test('said once per exchange: a third rescue does not repeat it', () => {
+    const second = integrateTurn(stuckTwice(learner({ cefr: 'A0' })), help, sampleTurn());
+    assert.equal(second.view.wayBack, true);
+    const third = applyNonSpokenInput(second.state, help).state;
+    assert.equal(third.assistanceDepth, 2);
+    assert.equal(wayBackDue(third, help), false);
+    const after = integrateTurn(third, help, sampleTurn({ coachLine: null }));
+    assert.equal(after.view.wayBack, false);
+    assert.notEqual(after.view.coachLine, WAY_BACK_LINES[0]);
+  });
+
+  test('not once they have already reached for English on this exchange', () => {
+    const once = applyNonSpokenInput(fresh({}, learner({ cefr: 'A0' })), help).state;
+    const english = sampleTurn({
+      assessment: { understood: true, taskAchieved: false, comprehensibility: 'clear', language: 'english', cefrEvidence: null },
+    });
+    const reached = integrateTurn(once, spoke('How do I say coffee?'), english).state;
+    const stuck = applyNonSpokenInput(reached, help).state;
+    assert.equal(stuck.assistanceDepth, 2);
+    assert.equal(wayBackDue(stuck, help), false);
+  });
+
+  test('a real reply opens a new exchange, and the next way back is a different line', () => {
+    const first = integrateTurn(stuckTwice(learner({ cefr: 'A0' })), help, sampleTurn());
+    const replied = integrateTurn(first.state, spoke('Un café.'), sampleTurn()).state;
+    assert.equal(replied.wayBackSpent, false);
+    const again = applyNonSpokenInput(applyNonSpokenInput(replied, help).state, help).state;
+    const view = integrateTurn(again, help, sampleTurn()).view;
+    assert.equal(view.wayBack, true);
+    assert.equal(view.coachLine, WAY_BACK_LINES[1]);
+  });
+});
+
+describe('the questions already asked — VOICE-014', () => {
+  test('the turn context names the tutor\'s own questions, and nothing when there are none', () => {
+    const state = fresh();
+    const opening = contextOf(state, spoke());
+    assert.match(opening, /^ALREADY ASKED THIS SESSION: ".+"\. Do not ask any of these again in any wording\. Build on what they answered\.$/m);
+    const none = { ...state, history: [] };
+    assert.doesNotMatch(contextOf(none, spoke()), /ALREADY ASKED/);
+  });
+});
+
+describe('sad news never ends the session — VOICE-015', () => {
+  const sceneDone = (): TutorTurn => sampleTurn({ scene: { beat: 'greet', beatDone: false, sceneDone: true } });
+
+  test('a sad-news turn with sceneDone does not bring the recap; the next ordinary one does', () => {
+    const grief = integrateTurn(fresh(), spoke('Ma mère est morte le mois dernier.'), sceneDone());
+    assert.equal(grief.view.recapDue, false, 'the turn they shared it is never the turn it ends');
+    const next = integrateTurn(grief.state, spoke('Un café, s\'il vous plaît.'), sceneDone());
+    assert.equal(next.view.recapDue, true);
+  });
+
+  test('the turn ceiling stretches by one turn at most', () => {
+    const atCeiling = integrateTurn(fresh({ maxTurns: 1 }), spoke('My dad has cancer.'), sampleTurn());
+    assert.equal(atCeiling.view.recapDue, false);
+    const again = integrateTurn(atCeiling.state, spoke('My dad has cancer.'), sampleTurn());
+    assert.equal(again.view.recapDue, true, 'metered minutes stay bounded');
+  });
+
+  test('the turn context flags it, and only on a matching line', () => {
+    assert.match(contextOf(fresh(), spoke('My grandmother passed away this week.')), /^SAD NEWS: their line may be sad news/m);
+    assert.doesNotMatch(contextOf(fresh(), spoke('Je meurs de faim, on mange ?')), /SAD NEWS/);
+    assert.doesNotMatch(contextOf(fresh(), { type: 'silence', durationMs: STUCK_SILENCE_MS }), /SAD NEWS/);
   });
 });

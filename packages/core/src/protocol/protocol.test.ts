@@ -808,3 +808,57 @@ describe('an error says what failed, and an old one still says something', () =>
     }
   });
 });
+
+describe('the end-of-session heads-up carries no number', () => {
+  test('wrap-up round-trips as a bare tag', () => {
+    assert.deepEqual(decodeServerMessage(encodeMessage({ t: 'wrap-up' })), { t: 'wrap-up' });
+  });
+
+  test('seconds added by any peer are stripped before the app sees the frame', () => {
+    const decoded = decodeServerMessage(new TextEncoder().encode('{"t":"wrap-up","seconds":60,"minutesLeft":1}'));
+    assert.deepEqual(decoded, { t: 'wrap-up' }, 'the live room never shows minutes left (UI-008), so no number may survive decoding');
+    assert.deepEqual(Object.keys(decoded!), ['t']);
+  });
+
+  test('the learner cannot send a wrap-up', () => {
+    assert.equal(decodeClientMessage(encodeMessage({ t: 'wrap-up' })), null);
+  });
+});
+
+describe('a held turn reports where it is', () => {
+  test('every held-turn state round-trips', () => {
+    for (const state of ['open', 'closing', 'sent'] as const) {
+      assert.deepEqual(decodeServerMessage(encodeMessage({ t: 'held-turn', state })), { t: 'held-turn', state });
+    }
+  });
+
+  test('an unknown or missing state drops the frame', () => {
+    for (const raw of ['{"t":"held-turn","state":"paused"}', '{"t":"held-turn"}', '{"t":"held-turn","state":2}']) {
+      assert.equal(decodeServerMessage(new TextEncoder().encode(raw)), null, raw);
+    }
+  });
+});
+
+describe('tap-to-send', () => {
+  test('the switch and the tap round-trip', () => {
+    for (const msg of [{ t: 'tap-to-send', on: true }, { t: 'tap-to-send', on: false }, { t: 'send' }] as const) {
+      assert.deepEqual(decodeClientMessage(encodeMessage(msg)), msg);
+    }
+  });
+
+  test('a switch that does not say which way moves nothing', () => {
+    for (const raw of ['{"t":"tap-to-send"}', '{"t":"tap-to-send","on":"true"}', '{"t":"tap-to-send","on":1}']) {
+      assert.equal(decodeClientMessage(new TextEncoder().encode(raw)), null, raw);
+    }
+  });
+
+  test('neither is learner input', () => {
+    assert.equal(toLearnerInput({ t: 'tap-to-send', on: true }), null);
+    assert.equal(toLearnerInput({ t: 'send' }), null);
+  });
+
+  test('the tutor cannot tap Send for the learner', () => {
+    assert.equal(decodeServerMessage(encodeMessage({ t: 'send' })), null);
+    assert.equal(decodeServerMessage(encodeMessage({ t: 'tap-to-send', on: true })), null);
+  });
+});

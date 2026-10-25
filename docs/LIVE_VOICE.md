@@ -35,8 +35,18 @@ and final transcript, whose caption says “Interpreted from your speech”. Thi
 an interpretation, never an audio pronunciation score or automatic lesson pass.
 Nova-3 phase changes restart the active recognizer through the public Agent API;
 a failed update reports a typing recovery message. The direct conversation path also receives a bounded current-turn keyterm
-list through the active session’s public update seam. Experimental recognition and quote-bound paid proxy settings are unchanged;
-repair still runs after recognition without another model request.
+list through the active session’s public update seam, off the paid proxy only. Scripted lessons and the guest scene
+(VOICE-017) get one fixed keyterm list, `lessonKeyterms(lesson)` from core, set when the Nova-3 recognizer is built, on and
+off the proxy alike. Every target's full line comes first (a trailing `?` stripped), then short forms and acceptable options,
+never the lowercase `accepts`, within 16 phrases and 400 bytes. It is never changed mid-session, because each change reopens
+the socket and under the proxy each socket is admitted as a full session of audio. Experimental recognition gets none.
+The paid proxy accepts repeated `keyterm` parameters only with `model=nova-3` (1 to 16 values, each 1 to 100 characters
+with no control characters or `;`, 400 UTF-8 bytes in total) and forwards the re-encoded query it hashed, never the raw text. The quote identity carries the marker `keyterm: 'prompted'`
+instead of the values, and a stream without keyterms has exactly its old identity. If the quote has no keyterm component,
+the gate refuses with `quote-mismatch` before any claim, and the proxy admits the plain stream and forwards it with every
+keyterm removed. It logs `[luvani] keyterms: prompted` or `[luvani] keyterms: stripped` once per connection, with no values.
+`keytermSttConfigurationSha256(baseQuery)` in `paidVoiceProxy.ts` prints the component hash.
+Repair still runs after recognition without another model request.
 
 What happens between a learner tapping "start" and a tutor answering them, and
 where every part of it can go wrong.
@@ -205,21 +215,45 @@ topics `luvani.server` and `luvani.client`. `decodeServerMessage` never throws �
 malformed frame must not take down a live conversation.
 
 **Agent → app**: `prompt` · `feedback` · `speaking` · `transcript` · `summary` ·
-`convo` · `opening` · `recap` · `practice` · `drills` · `error`
+`convo` · `opening` · `recap` · `practice` · `drills` · `error` · `wrap-up` ·
+`held-turn`
 
 **App → agent**: `ready` · `help` · `skip` · `choice` · `hear` ·
-`slower` · `english` · `say` · `leave`
+`slower` · `english` · `say` · `typing` · `moment` · `mode` · `tap-to-send` ·
+`send` · `leave`
 
 A free conversation opens on `opening`: the tutor asks, out loud and in
 English, what the learner wants to talk about — no menu, no chips. Whatever
 they say or type becomes the scene (the agent treats a pre-scene `say` as the
 topic).
 
+The question is one of five authored lines and the suggestion after silence one
+of three (`CONVO_LINES` in `services/tutor-agent/src/authoredSpeech.ts`, all in
+the warm list). The index is `profile.stats.sessions`, so consecutive sessions
+never hear the same opener; a count of zero falls back to a hash of the signed
+session id (`openerIndexFor` in `convo.ts`). This holds for `memoryLocked`
+sessions too, because a session count is not memory (VOICE-014). A paid
+learner's remembered opener still wins when there is one.
+
 Choosing `convo-text` never starts an AI suggestion timer on this screen. The
 box stays blank until the learner supplies their own topic. Inside a scene,
 ordinary turns likewise carry no suggested reply. One genuine rescue reveals
 an English hint card, silently and without a model call; repeated help may
 reveal a French line, and that rescue asks the brain for the tutor's step-in.
+For an A0 or A1 learner at rung 1 or 2, the first such step-in on an exchange
+also speaks one authored English line first, saying English is a fine way back
+in (VOICE-013, `PEDAGOGY.md`). It is the turn's coach line and never the card's
+French.
+
+Each turn context also lists the tutor's own questions so far this session,
+the last six as said (`askedQuestions` in
+`packages/brain/src/engine/askedQuestions.ts`), with an instruction not to ask
+any of them again. When a reply repeats one anyway, the agent logs
+`[luvani:conduct] repeated-question` with no learner or question text and makes
+no second call (VOICE-014). A learner line that matches `sharesSadNews`
+(a death, an illness, bad news) adds a SAD NEWS line to that turn's context, and
+that turn can never end the session: `sceneDone` and all-beats-done wait for a
+later turn, and the turn ceiling stretches by at most one (VOICE-015).
 
 A scripted lesson speaks its expected paths from the script itself: the opening
 line, every good or partial answer, every rescue and every skip go straight to
@@ -329,7 +363,8 @@ When the room disconnects the agent also prints one `[luvani:cost]` line for
 cost per minute. It holds numbers only: the same 8-hex session prefix,
 `ttsCharsBilled` (characters sent to the voice vendor), `ttsCharsCached`
 (characters served from the authored disk cache), `ttsCharsReplayed`
-(characters served from the session's replay memo) and `sttSec` (seconds of
+(characters served from the session's replay memo), `ttsSpeed` (the session's
+live voice speed, 1 for normal, printed whenever the session had a voice) and `sttSec` (seconds of
 learner audio Deepgram reported receiving). A field the session could not
 measure is left out, never printed as zero.
 
@@ -344,6 +379,22 @@ matches. Lines over 220 characters bypass it, as they bypass the disk. The
 memo is never written anywhere and is cleared when the session ends. Authored
 lines stay on disk and no longer expire, because their key already binds
 voice, model, settings and text.
+
+The live voice speed (VOICE-016) is chosen once at session start by
+`tutorSpeedFor` and never changes mid-session; the "Simpler" pace changes
+sentences only. The learner's signed `voiceSpeed` (`slower` or `normal`) wins.
+Without it, scripted lessons and the guest scene run at `BEGINNER_SPEED`
+(0.85), and a conversation does too until the profile's CEFR estimate reaches
+A2. `VOICE_SETTINGS` itself carries no speed, so bundled clips, saved-phrase
+Hear and the build scripts are untouched. With a speed, `buildTTS` sends
+`{...VOICE_SETTINGS, speed}` to both models and the voice key gains
+`speed=85`, so each speed is its own disk cache and replay memo; at normal
+speed the key is byte-identical to before. Warm the slower copy with
+`LUVANI_WARM_SPEED=slower` (or `both`; the default is `normal`, and any other
+value refuses before anything is synthesized). Speed is excluded from the TTS
+quote identity when it is a number from 0.7 to 1.2 (ElevenLabs bills
+characters, not pace), so existing quotes keep matching; any other speed is
+refused.
 
 `LUVANI_CONVERSATION_TTS_MODEL` is an opt-in switch for the free-conversation
 voice, and it is off by default. When it is unset, every line uses the pinned
@@ -676,6 +727,89 @@ Why soft and not whispered (`docs/live-latency-evidence/2026-10-23-quiet-speech.
 
 All clips are synthetic (ElevenLabs). Founder recordings in
 `artifacts/quiet-speech-2026-10-23/real/` and a device check are still owed.
+
+## Nearly time to finish (VOICE-018)
+
+A session used to end on the cap with no warning: the tutor said "Your session
+has reached its time limit" as the room closed. Now the worker gives a heads-up
+about a minute before and closes warmly after one more exchange
+(`services/tutor-agent/src/sessionEnd.ts`, `SessionEndClock`).
+
+- **When.** At the cap minus `HEADS_UP_LEAD_MS` (60 s), read from the same clock
+  as the cap: `lifecycle.maxSeconds - lifecycle.elapsedSeconds()` on the
+  lifecycle path, `maximumSessionSec` from the session start otherwise. A
+  session that starts with under 90 s left gets neither the heads-up nor the
+  close, and a guest scene keeps its own ceiling (`armSceneHardStop`).
+- **How.** At the first gap (agent listening, learner silent, both queues idle)
+  the tutor's `wrapUp()` publishes the payload-free `wrap-up` frame and says
+  "We're nearly out of time. Let's finish this one together." The app shows
+  "Nearly time to finish. {Tutor} will wrap up after this." with no number:
+  the room never shows minutes left (UI-008, kept on 2026-10-25). A typed
+  session gets the frame and the note only.
+- **The close.** Once the learner has taken one more turn (help and skip count)
+  and the tutor's reply has been spoken, `closeForTime()` stops in-flight
+  replies, says "That's all for today. Thank you, à bientôt !", settles and
+  closes the room through the tutor-owned path. While it closes, rescue stays
+  dark and ordinary new turns are dropped, but safety still screens every one.
+- **The backstop.** At the cap minus `CLOSE_BY_MARGIN_MS` (15 s), if nothing has
+  closed, the learner is silent and no turn is held, the close runs at once.
+  The close line's playout wait is bounded at `CLOSE_LINE_PLAYOUT_MS` (6 s).
+  On the legacy path the close stands the timer down and arms a silent stop at
+  the cap, so nobody hears "time limit" after "à bientôt". If they are
+  speaking, the existing hard stop (lifecycle `onStop` or the legacy timer) and
+  its copy still end the session at the cap. The signed cap is never extended.
+- **Cost.** Metering is unchanged; an early close bills fewer seconds. Both lines
+  are in `AUTHORED_SPEECH_LINES`, so `warm-cache` covers them once it is run.
+- **Kill switch.** `LUVANI_SESSION_HEADS_UP=0` on the tutor role.
+
+## Tap to send (VOICE-019)
+
+An optional mode for anyone the pause floors still cut off. With it on, the
+microphone stays open and the learner's turn ends only when they tap Send, or
+when the recording cap is reached. Off by default; the learner turns it on in
+Settings (Practice) or with the "Tap to send" switch in the room, and the choice
+is stored on the device (`@luvani/tap-to-send/v1`).
+
+- **Wire.** The app sends `{ t: 'tap-to-send', on }` after `ready`, after a
+  reconnect, after returning from Type to voice, and when the switch changes.
+  Send is `{ t: 'send' }`. The worker answers with `held-turn` frames: `open`
+  (the learner started speaking), `closing` (it sends itself in about ten
+  seconds) and `sent`.
+- **Mechanism** (`services/tutor-agent/src/tapToSend.ts`). `agent.ts` intercepts
+  both frames before the tutor, because the worker owns turn detection. On:
+  `session.updateOptions({ turnHandling: { turnDetection: 'manual' } })`, applied
+  only after `session.start()` has resolved (`markLive()`). Switching earlier
+  overwrites the session's detector before the activity is built, and the
+  session runs without it for good. Send: `session.commitUserTurn()`, which
+  waits up to 500 ms for the final transcript and folds in the interim one.
+  Send with nothing held is ignored. A Send or cap that lands while the tutor
+  speaks waits until it stops, because the SDK drops a commit over
+  uninterruptible speech; `sent` goes out only when the commit is made. An
+  empty commit (a cough) re-arms the rescue.
+- **Restoring is `null`, not the saved detector.** In `@livekit/agents` 1.9 the
+  session's `turnDetection` holds the default audio detector object, and the
+  recogniser keeps that object whatever the mode. Passing it back sets the
+  recogniser's mode to an object, which switches VAD end-of-speech off for good.
+  So switch-off restores `null` (how the session was built), or a saved string
+  such as `'vad'` as itself. `tapToSendSdk.test.ts` proves it on a real
+  `AgentSession`.
+- **The cap.** `TAP_SEND_CAP_MS` (60 s) from the first speech of a held turn,
+  with `closing` at `TAP_SEND_WARN_MS` (50 s). The SDK's own `userTurnLimit`
+  fires only on transcripts, so the cap is our own timer.
+- **Rescue.** While a turn is held, `armRescue` returns early in both tutors,
+  so a pause mid-recording is never treated as being stuck. Before the learner
+  says anything, the ordinary stuck clock runs. The cap bounds the dark time to
+  60 s plus `STUCK_SILENCE_MS`. "Give me a moment" keeps working.
+- **Modes.** A `mode` frame to Type turns it off (any held turn is sent first)
+  and refuses it until voice returns; a session that starts typed starts there.
+  Guest scenes never get it. `LUVANI_TAP_TO_SEND=0` on the tutor role makes the
+  worker ignore both frames.
+- **What it costs.** Barge-in by voice is off while it is on (the SDK sets
+  `isDefaultInterruptionByAudioActivityEnabled` false for `'manual'`): words
+  said over the tutor wait and land in the held turn. A lesson's preemptive
+  generation does not fire during a held turn (0 model calls across several
+  final transcripts and a 3 s pause in the SDK test), so a held turn costs no
+  model calls. Recognition runs as it does for any open microphone.
 
 ## Serialisation
 

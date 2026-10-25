@@ -55,6 +55,8 @@ import { historyViewOfTurn } from '../prompt/historyView.ts';
 import type { BrainTurnRequest, ChatMessage } from '../llm/client.ts';
 import { assessmentToQuality, splitCoach } from './grading.ts';
 import { normalizeErrorTag } from '../profile/errorTag.ts';
+import { askedQuestions } from './askedQuestions.ts';
+import { sharesSadNews } from './sadNews.ts';
 
 export { normalizeErrorTag } from '../profile/errorTag.ts';
 
@@ -78,6 +80,33 @@ export const MAX_ATTEMPTS_PER_BEAT = 3;
  * the learner's line. Speaking resets it immediately.
  */
 export type AssistanceDepth = 0 | 1 | 2;
+
+/**
+ * What the app says, out loud and in English, the first time a beginner is
+ * stuck twice on one exchange (VOICE-013).
+ *
+ * The prompt has always accepted an English reply and recast it, but nobody
+ * ever told the learner so. A frozen A0 learner on their second rescue is
+ * looking at a French line on a card and a tutor rephrasing more French, and
+ * has no idea that saying it in English is a perfectly good way back in. One
+ * authored sentence fixes that. Authored rather than generated because it is
+ * the one line whose words matter more than its freshness: it must never
+ * scold, never remark on the pause, and never read the card's French back.
+ *
+ * They live here rather than in the agent because the engine is what decides
+ * the turn's coach line, and text sessions read the same line on screen that
+ * voice sessions hear. The agent's warm-cache list imports them from here.
+ * Rotated per exchange within a session, so a learner stuck twice on two
+ * different exchanges does not hear the same sentence twice.
+ */
+export const WAY_BACK_LINES: readonly string[] = Object.freeze([
+  "You can say it in English. I'll give you the French.",
+  "English is fine too. Say it your way, and I'll help with the French.",
+  "Try it in English if you like. We'll find the French together.",
+]);
+
+/** Learners low enough that English is the obvious way back in. */
+const WAY_BACK_BANDS: ReadonlySet<CefrBand> = new Set<CefrBand>(['A0', 'A1']);
 
 /** What the engine needs to know about the learner. The profile owns the rest. */
 export interface LearnerSnapshot {
@@ -132,6 +161,15 @@ export interface ConversationState {
   lastSupport: SupportMaterial;
   /** How much of lastSupport the learner has explicitly earned this exchange. */
   assistanceDepth: AssistanceDepth;
+  /**
+   * The exchange's way back has been said, or the learner already reached for
+   * English on it. Either way there is nothing left to offer: a third rescue
+   * does not say it again, and someone already speaking English does not need
+   * telling that they may. Clears with assistanceDepth, when a real reply lands.
+   */
+  wayBackSpent: boolean;
+  /** How many way-back lines this session has said, which picks the next one. */
+  wayBacksSaid: number;
   /**
    * Sticky once the learner asks for slower. A tutor that speeds back up two
    * turns later is the competition's most-cited failure; this never resets
@@ -202,6 +240,13 @@ export interface TurnView {
    * that reach as a failure.
    */
   reachedForEnglish: boolean;
+  /**
+   * The coach line is the authored English way back (VOICE-013), and the voice
+   * layer speaks it in the turn's one English slot, like a reach for English.
+   * Engine-side only: it never goes on the wire, because the app shows the
+   * coach line it already shows and has nothing else to do with it.
+   */
+  wayBack: boolean;
 }
 
 /** What the UI renders immediately after silence or aide-moi, before any model call. */
@@ -386,6 +431,8 @@ export function createConversation(
     // lines that a turn call can. Turn zero goes through the same guard.
     lastSupport: learnerSideSupport(frame.openingSupport, frame.openingLine.fr),
     assistanceDepth: 0,
+    wayBackSpent: false,
+    wayBacksSaid: 0,
     pace: config.pace ?? 'normal',
     lastLanguage: null,
     deferred: [],
@@ -553,6 +600,40 @@ export function applyNonSpokenInput(
 }
 
 /**
+ * Is this turn the beginner's way back in (VOICE-013)?
+ *
+ * Code decides, from state the ladder already keeps. It fires on the first
+ * rescue that reaches assistance depth 2 on an exchange, which is the second
+ * rescue and the one that already asks the tutor to step in. The first rescue
+ * stays exactly what PEDAGOGY says it is: a quiet English hint with no model
+ * call and nothing spoken. Only A0 and A1, where English is the natural way
+ * back, and only on rungs 1 and 2, which is where two rescues leave a
+ * beginner anyway; a learner the ladder has carried higher is not frozen in
+ * the same way. Never twice on one exchange, and never once they have already
+ * reached for English on it.
+ *
+ * Called on the state AFTER applyNonSpokenInput, by both prepareTurn and
+ * integrateTurn, so the prompt and the coach line always agree.
+ */
+export function wayBackDue(state: ConversationState, input: LearnerTurnInput): boolean {
+  return (input.type === 'silence' || input.type === 'help')
+    && state.assistanceDepth === 2
+    && !state.wayBackSpent
+    && WAY_BACK_BANDS.has(state.learner.cefr)
+    && state.directive.rung <= 2;
+}
+
+/** The authored way-back line for this session's nth way back. */
+export function wayBackLine(index: number): string {
+  return WAY_BACK_LINES[((index % WAY_BACK_LINES.length) + WAY_BACK_LINES.length) % WAY_BACK_LINES.length]!;
+}
+
+/** Spoken or typed words only: a silence marker is never sad news. */
+function sadNewsInput(input: LearnerTurnInput): boolean {
+  return input.type === 'spoke' && sharesSadNews(input.text);
+}
+
+/**
  * Build the model request for this input. Pure and byte-stable for identical
  * states — the multi-turn prompt cache depends on it.
  */
@@ -582,6 +663,9 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
     lastLanguage: state.lastLanguage,
     // Only a steer is worth a line: the first entry is the frame's own topic.
     activeTopic: state.topics.length > 1 ? state.topics[state.topics.length - 1]!.en : null,
+    wayBack: wayBackDue(state, input),
+    askedAlready: askedQuestions(state.history),
+    sadNews: sadNewsInput(input),
   });
 
   return {
@@ -751,6 +835,13 @@ export function integrateTurn(
         : coachFallbackLine(lead.kind, lead.better, { name: state.learner.name, variant: state.turnCount });
   }
 
+  // The way back outranks everything above. It is the one thing this turn has
+  // to say, it is authored, and it rides the coach line so a text session reads
+  // exactly what a voice session hears. The model was told it had been said
+  // and to add no English of its own, so its own coach line has nothing to add.
+  const wayBack = wayBackDue(state, input);
+  if (wayBack) coachLine = wayBackLine(state.wayBacksSaid);
+
   // Ladder: spoke turns are graded; silence and help already moved it.
   let ladder = state.ladder;
   let directive = state.directive;
@@ -817,7 +908,16 @@ export function integrateTurn(
   // saying the scene itself is over, and the turn ceiling is what keeps metered
   // minutes bounded; a mission that could never end would be its own trap.
   const missionDone = state.missionDone || (state.mission && allBeatsDone);
-  const recapDue = turn.scene.sceneDone || (allBeatsDone && !state.mission) || turnCount >= state.maxTurns;
+  // VOICE-015: sad news is never the turn the session ends. Someone who has
+  // just said their mother died must not be shown a recap card, whatever the
+  // model reported, so sceneDone and every beat done wait for a turn that is
+  // not this one. The ceiling stretches by one turn at most: metered minutes
+  // stay bounded, and a learner who keeps talking about it is answered the
+  // turn after by the ordinary exits, with the conduct section still in force.
+  const sadNews = sadNewsInput(input);
+  const recapDue = sadNews
+    ? turnCount >= state.maxTurns + 1
+    : turn.scene.sceneDone || (allBeatsDone && !state.mission) || turnCount >= state.maxTurns;
 
   // Session memory: phrases (deduped), credit, recurring-error counts.
   const phrases = [...state.phrases];
@@ -893,6 +993,12 @@ export function integrateTurn(
     // at the moment the learner had just asked for it.
     assistanceDepth:
       input.type === 'spoke' && turn.assessment.language !== 'english' ? 0 : state.assistanceDepth,
+    // Same lifetime as the earned help: a real reply opens a new exchange with
+    // a way back still to offer. Reaching for English spends it, because they
+    // have already found the way back on their own.
+    wayBackSpent:
+      input.type === 'spoke' && turn.assessment.language !== 'english' ? false : state.wayBackSpent || wayBack || reachedForEnglish,
+    wayBacksSaid: state.wayBacksSaid + (wayBack ? 1 : 0),
     lastLanguage:
       input.type === 'spoke' && (turn.assessment.language === 'english' || turn.assessment.language === 'mixed')
         ? turn.assessment.language
@@ -932,6 +1038,7 @@ export function integrateTurn(
       beat: { id: beat.id, goalEn: beat.goalEn, position, total: beats.length },
       advancedBeat,
       reachedForEnglish,
+      wayBack,
     },
   };
 }

@@ -25,7 +25,8 @@
       "replyWaitMs": 2600,
       "expect": {
         "gentle": "pass",
-        "level-fit": "fail"
+        "level-fit": "fail",
+        "no-repeat-question": "pass"
       }
     },
     {

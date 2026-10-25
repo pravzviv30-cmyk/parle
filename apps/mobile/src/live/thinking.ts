@@ -53,6 +53,12 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
     case 'practice':
     case 'drills':
       return thinking;
+
+    // A note that time is nearly up, or where a held turn stands, says nothing
+    // about whether an answer has come.
+    case 'wrap-up':
+    case 'held-turn':
+      return thinking;
   }
 }
 

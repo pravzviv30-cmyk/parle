@@ -1,4 +1,5 @@
 import type { FirstContribution } from '../onboarding/firstLiveModel.ts';
+import { loadVoiceSpeedPreference } from './voiceSpeedPreference.ts';
 import { guestLiveBody } from '../onboarding/guestScene.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { attachCorrectionReason } from './correctionReason.ts';
@@ -45,6 +46,7 @@ import {
   type TutorVoiceKey,
   type SettlementResult,
   type CanDoEvidence,
+  type HeldTurnState,
 } from '@luvani/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession, releaseLiveHold } from './globals.ts';
 import { recapMayTakeTheAudio } from './recapAudio.ts';
@@ -63,6 +65,7 @@ import {
 import { pushTurn, type TurnLine } from './turns.ts';
 import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
 import { thinkingAfter } from './thinking.ts';
+import { heldTurnAfter, tapToSendFrames, wrappingUpAfter } from './heldTurn.ts';
 import { opensSession } from './sessionOpened.ts';
 import { afterDismiss } from './safetyState.ts';
 import { modeCarriesAudio, publishesMicAtConnect } from '../tutor/choosingView.ts';
@@ -565,6 +568,17 @@ export interface LiveSession {
    */
   requestRecap: () => void;
   leave: () => Promise<void>;
+  /**
+   * True once the tutor has said time is nearly up, for the rest of this
+   * session. The screen echoes it in words and never with a number.
+   */
+  wrappingUp: boolean;
+  /** Where a tap-to-send turn stands, or null when none is held (heldTurn.ts). */
+  heldTurn: HeldTurnState | null;
+  /** Tell the agent Tap to send is on or off. The `tapToSend` option already does this for the owner. */
+  sendTapToSend: (on: boolean) => void;
+  /** The learner tapped Send: commit the held turn. */
+  sendTurn: () => void;
 }
 
 export function useLiveSession(
@@ -613,6 +627,12 @@ export function useLiveSession(
      * this value has to survive a signed token and a stored profile.
      */
     tutorVoice?: TutorVoiceKey;
+    /**
+     * Tap to send, the owner's device preference (useTapToSend). Sent to the
+     * agent at connect, after a reconnect and back from typing when on, and
+     * whenever it changes in a live room. The agent's default is off.
+     */
+    tapToSend?: boolean;
   },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
@@ -676,6 +696,7 @@ export function useLiveSession(
   const continuationPackId = opts?.continuationPackId;
   const missionId = opts?.missionId;
   const tutorVoice = opts?.tutorVoice;
+  const tapToSend = opts?.tapToSend ?? false;
   const roomRef = useRef<Room | null>(null);
   const leaseRef = useRef<UnjoinedLease | null>(null);
   const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
@@ -702,6 +723,11 @@ export function useLiveSession(
   // is still listening before it decides an audio failure is worth their
   // attention. State for the screens, ref for the wire, assigned together.
   const voicelessRef = useRef(false);
+  // Tap to send again, as a ref, for the connect and reconnect handlers. Moved
+  // only by the effect that tells a live room about a change.
+  const tapToSendRef = useRef(false);
+  const [wrappingUp, setWrappingUp] = useState(false);
+  const [heldTurn, setHeldTurn] = useState<HeldTurnState | null>(null);
   // Monotonic, so a React key never collides and nothing depends on a clock.
   const turnSeq = useRef(0);
   // When the app last told the agent the learner is typing. A ref, not state:
@@ -746,6 +772,14 @@ export function useLiveSession(
   const send = useCallback((message: ClientMessage) => {
     void publish(message);
   }, [publish]);
+
+  // A change in a live room is told at once, on or off. Before a room there is
+  // nobody to tell, and connect sends it; in typing it waits for the way back.
+  useEffect(() => {
+    if (tapToSendRef.current === tapToSend) return;
+    tapToSendRef.current = tapToSend;
+    if (roomRef.current && !voicelessRef.current) send({ t: 'tap-to-send', on: tapToSend });
+  }, [tapToSend, send]);
 
   /**
    * Defined before `start` so the watchdog can use the same exit the learner
@@ -916,6 +950,8 @@ export function useLiveSession(
     setConvo(null);
     conversationTextRef.current.clear();
     setThinking(false);
+    setWrappingUp(false);
+    setHeldTurn(null);
     setMicOpen(false);
     setMicClosedAtRecap(false);
     setAudioTracks(NO_TRACKS);
@@ -960,7 +996,7 @@ export function useLiveSession(
       if (modeCarriesAudio(mode) && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
 
       const authStartedAt = Date.now();
-      const [headers, consent] = await Promise.all([authHeaders(), readConsent(!!guestToken)]);
+      const [headers, consent, voiceSpeed] = await Promise.all([authHeaders(), readConsent(!!guestToken), loadVoiceSpeedPreference()]);
       // Checked before the diagnostics are written, not after: the diagnostics
       // describe the session on screen, and this attempt may no longer be it.
       if (await abandoned()) return;
@@ -991,6 +1027,9 @@ export function useLiveSession(
           // always present, resolved, so the token server signs a voice the
           // learner can actually be shown to have.
           tutorVoice: tutorVoice ?? DEFAULT_TUTOR_VOICE,
+          // Slower voice: sent only when the learner chose, so an unchosen
+          // learner gets the tutor's own default (slower for lessons and A0 to A1).
+          ...(voiceSpeed !== null ? { voiceSpeed } : {}),
         }),
       });
       // The long wait, and the one this guard was built for. A cold start can
@@ -1189,6 +1228,9 @@ export function useLiveSession(
         // message union, not a line in each branch — see thinking.ts for what
         // scattering it cost.
         setThinking((was) => thinkingAfter(was, msg));
+        // The same shape for the wrap-up note and the held turn (heldTurn.ts).
+        setWrappingUp((was) => wrappingUpAfter(was, msg));
+        setHeldTurn((was) => heldTurnAfter(was, msg));
 
         switch (msg.t) {
           case 'prompt':
@@ -1443,6 +1485,7 @@ export function useLiveSession(
         setReconnecting(false);
         send({ t: 'ready' });
         if (voicelessRef.current) send({ t: 'mode', voiceless: true });
+        else for (const frame of tapToSendFrames(tapToSendRef.current, 'reconnect')) send(frame);
       });
 
       // A quiet mode carries no audio in either direction: no microphone to
@@ -1494,6 +1537,7 @@ export function useLiveSession(
       // The room is open. Now find out whether anyone is home.
       setWaitingForTutor(true);
       send({ t: 'ready' });
+      if (!voicelessRef.current) for (const frame of tapToSendFrames(tapToSendRef.current, 'connect')) send(frame);
       // Leaving properly rather than just rendering an error over a live room:
       // an abandoned room is a room the meter is still counting.
       const giveUp = (failure: LiveFailure) => {
@@ -1604,6 +1648,7 @@ export function useLiveSession(
           voicelessRef.current = false;
           setVoiceless(false);
           send({ t: 'mode', voiceless: false });
+          for (const frame of tapToSendFrames(tapToSendRef.current, 'voice')) send(frame);
         }
         return true;
       })
@@ -1812,6 +1857,10 @@ export function useLiveSession(
       send({ t: 'typing' });
     }, [send]),
     sendMoment: useCallback(() => send({ t: 'moment' }), [send]),
+    wrappingUp,
+    heldTurn,
+    sendTapToSend: useCallback((on: boolean) => send({ t: 'tap-to-send', on }), [send]),
+    sendTurn: useCallback(() => send({ t: 'send' }), [send]),
     requestRecap,
     leave,
   };

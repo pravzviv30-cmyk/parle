@@ -89,6 +89,20 @@ Each step names its proof. Stop at the first step whose proof fails.
    expire, so this only needs repeating when lesson text or a voice setting
    changes. Changing a voice setting makes the whole cache cold again.
 
+   Beginners hear a slower voice (VOICE-016, speed 0.85), and each speed is
+   its own cache. Warm both with `LUVANI_WARM_SPEED=both` (default `normal`;
+   `slower` warms only the beginner copy). The slower copy is another 17,700
+   characters, or 23,600 billed characters counting the two 2x voices, about
+   $1.89 once. Lessons and A0 to A1 learners use the slower copy, so if you
+   warm only one, warm `slower`.
+
+   **Keyterms on lessons (optional, VOICE-017).** Production lessons send the
+   lesson's lines to Deepgram as keyterms only once the bound `lesson` quote
+   has a keyterm STT component (see
+   [PAID_ADMISSION.md](../../deployment/PAID_ADMISSION.md)). Until then the
+   tutor quietly sends no keyterms, exactly as today, and logs
+   `[luvani] keyterms: stripped`.
+
    **Cheaper free-conversation voice (optional, off).** After a blind listening
    check, setting `LUVANI_CONVERSATION_TTS_MODEL=eleven_flash_v2_5` on `tutor`
    sends only free-conversation lines to ElevenLabs Flash at half the price per

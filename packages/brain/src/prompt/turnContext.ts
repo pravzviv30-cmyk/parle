@@ -49,6 +49,15 @@ export interface TurnContextInput {
    * they wanted to keep talking.
    */
   missionDone?: boolean;
+  /**
+   * The app has just said the authored English way back (VOICE-013) as this
+   * turn's coach line. The tutor adds no English of its own.
+   */
+  wayBack?: boolean;
+  /** The tutor's own questions so far this session, as said, last six. */
+  askedAlready?: readonly string[];
+  /** The learner's line matched the sad-news list (VOICE-015). */
+  sadNews?: boolean;
 }
 
 const RUNG_NAMES: Record<number, string> = { 1: 'very supported', 2: 'supported', 3: 'mostly independent', 4: 'independent' };
@@ -183,8 +192,34 @@ export function buildTurnContext(input: TurnContextInput): string {
     );
   }
 
+  if (input.askedAlready !== undefined && input.askedAlready.length > 0) {
+    // A long history is exactly where a model loses track of its own
+    // questions. Code reads them back so the tutor never interviews someone
+    // with the same question twice, in any wording.
+    lines.push(
+      `ALREADY ASKED THIS SESSION: ${input.askedAlready.map((q) => `"${q}"`).join(', ')}. Do not ask any of these again in any wording. Build on what they answered.`,
+    );
+  }
+
+  if (input.sadNews === true) {
+    // A pattern match, not a verdict: the model decides whether it is their
+    // life or a story. Code has already made sure this turn cannot end the
+    // session either way.
+    lines.push(
+      'SAD NEWS: their line may be sad news from their own life. If it is, follow WHEN THEY SHARE SAD NEWS. If it is a story, a film or the scene, carry on.',
+    );
+  }
+
   const note = INPUT_NOTES[input.inputKind];
   if (note) lines.push(note);
+
+  if (input.wayBack === true) {
+    // After the input note, because it narrows what that note asks for: the
+    // rephrase is still the tutor's job, the English is already said.
+    lines.push(
+      'WAY BACK: the app has just told them, in English, that English is fine. Do not repeat that or add English of your own. Rephrase your own line in the simplest French, one short sentence.',
+    );
+  }
 
   return lines.join('\n');
 }

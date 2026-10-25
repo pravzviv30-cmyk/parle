@@ -8,7 +8,7 @@
  *
  * The other evals score one call at a time. A learner meets the tutor as a
  * session: they go quiet, ask for help, try, get a recast, try again. This run
- * reads a recorded session and scores every turn against the five rules in
+ * reads a recorded session and scores every turn against the eight rules in
  * sessionChecks.ts, each cited to the doc or prompt line it comes from.
  *
  * ## The standard, and where it comes from
@@ -17,7 +17,11 @@
  * and the NO-CHEATING RULE in the system prompt; gentle is the prompt's "never
  * say wrong" and "never remark on hesitation", enforced with the brain's own
  * copyViolations; level-fit is RUNG_LENGTH; safety is the tutor agent's own
- * outputGuard and safetyDecision. Reply wait is printed and never judged,
+ * outputGuard and safetyDecision; way-back, no-repeat-question and grief are the
+ * beginner-conduct rules (VOICE-013 to VOICE-015): the English way back in on a
+ * second rescue, no question asked twice, and no goodbye after sad news. They
+ * need the record's level and the turns before the one scored, which
+ * contextFor hands every check. Reply wait is printed and never judged,
  * because no budget for it exists anywhere in the repo.
  *
  * ## Which rule book: the record's mode
@@ -55,7 +59,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { JevAsker, JevJson, JevQuestion } from '@luvani/brain/llm';
 
-import { SESSION_CHECKS, replyWaitSummary, type CheckResult } from './sessionChecks.ts';
+import { SESSION_CHECKS, replyWaitSummary, type CheckResult, type SessionContext } from './sessionChecks.ts';
 import { CHECK_IDS, SESSION_MODES, SESSION_SOURCES, parseSessionRecord, type CheckId, type SessionMode, type SessionRecord, type SessionTurn } from './sessionRecord.ts';
 
 export const SYNTHETIC_DIR = fileURLToPath(new URL('./sessions/synthetic/', import.meta.url));
@@ -71,14 +75,22 @@ export interface SessionScore {
   turns: TurnScore[];
 }
 
-export function scoreTurn(turn: SessionTurn, mode: SessionMode): CheckResult[] {
-  return CHECK_IDS.map((check) => SESSION_CHECKS[check](turn, mode));
+export function scoreTurn(turn: SessionTurn, mode: SessionMode, context?: SessionContext): CheckResult[] {
+  return CHECK_IDS.map((check) => SESSION_CHECKS[check](turn, mode, context));
+}
+
+/** What the checks may know about the turn at `index`: the record's level and the turns before it. */
+export function contextFor(record: SessionRecord, index: number): SessionContext {
+  return { cefr: record.cefr, earlier: record.turns.slice(0, index) };
 }
 
 export function scoreSession(record: SessionRecord): SessionScore {
   return {
     id: record.id,
-    turns: record.turns.map((turn) => ({ turn: `${record.id}#${turn.n}`, results: scoreTurn(turn, record.mode) })),
+    turns: record.turns.map((turn, index) => ({
+      turn: `${record.id}#${turn.n}`,
+      results: scoreTurn(turn, record.mode, contextFor(record, index)),
+    })),
   };
 }
 
@@ -114,8 +126,8 @@ export function summariseSessions(results: readonly SessionScore[]): SessionsSum
 /** Where a hand label and the verdict differ. Empty for a record with no labels. */
 export function labelMismatches(record: SessionRecord): string[] {
   const out: string[] = [];
-  for (const turn of record.turns) {
-    const results = scoreTurn(turn, record.mode);
+  for (const [index, turn] of record.turns.entries()) {
+    const results = scoreTurn(turn, record.mode, contextFor(record, index));
     for (const result of results) {
       const label = turn.expect?.[result.check];
       const verdict = result.verdict;
@@ -243,10 +255,13 @@ function modeCounts(records: readonly SessionRecord[]): string {
 const pct = (passed: number, applicable: number): string =>
   applicable === 0 ? '   -' : `${Math.round((passed / applicable) * 100)}%`.padStart(4);
 
+/** Wide enough for the longest check id, so the columns line up. */
+const CHECK_COLUMN = Math.max(...CHECK_IDS.map((check) => check.length));
+
 export function reportLines(summary: SessionsSummary, records: readonly SessionRecord[]): string[] {
-  const lines = ['', 'check          turns  pass'];
+  const lines = ['', `${'check'.padEnd(CHECK_COLUMN)} turns  pass`];
   for (const c of summary.checks) {
-    lines.push(`${c.check.padEnd(14)} ${String(c.applicable).padStart(5)}  ${pct(c.passed, c.applicable)}`);
+    lines.push(`${c.check.padEnd(CHECK_COLUMN)} ${String(c.applicable).padStart(5)}  ${pct(c.passed, c.applicable)}`);
   }
   const failures = summary.checks.flatMap((c) => c.failures.map((f) => ({ ...f, check: c.check })));
   if (failures.length > 0) {

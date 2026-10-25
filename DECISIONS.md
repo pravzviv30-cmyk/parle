@@ -682,7 +682,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - A lesson may run preemptive generation once more per held pause; the
     framework caps that at three a turn.
 - Deferred:
-  - Tap-to-send (manual turn mode with an auto-send cap).
+  - Tap-to-send (manual turn mode with an auto-send cap). Built as VOICE-019.
   - Merging a fragment that was already cut off with its continuation.
   - Field calibration with real beginners in the beta. The clips are one
     sentence in synthetic voices.
@@ -936,3 +936,331 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     needs re-binding.
 - Sources: [vendor comparison](docs/changes/vendor-comparison.md), VOICE-008
   above, F193 in [known issues](docs/KNOWN_ISSUES.md).
+
+## VOICE-013 — A stuck beginner hears an English way back, on the second rescue
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - The ladder, the free-conversation depth table and the quiet first rescue
+    are unchanged.
+  - On the first rescue that reaches assistance depth 2 on an exchange (the
+    second rescue, the one that already reveals the French line and asks the
+    tutor to step in), the app speaks one authored English sentence before the
+    tutor's own rephrased French. Conditions, all required: CEFR estimate A0 or
+    A1, rung 1 or 2, and the learner has not already reached for English on
+    this exchange. A third rescue does not repeat it.
+  - The lines (`WAY_BACK_LINES`, rotating per exchange within a session):
+    "You can say it in English. I'll give you the French." / "English is fine
+    too. Say it your way, and I'll help with the French." / "Try it in English
+    if you like. We'll find the French together."
+  - Code decides (`wayBackDue` in `packages/brain/src/engine/conversation.ts`).
+    The line becomes the turn's coach line, so a typed session reads what a
+    voice session hears, and `spokenTurn` speaks it in the one English slot.
+    The turn context tells the model the English is already said and to add
+    none of its own. The flag never goes on the wire.
+- Reason: learners across the market say AI tutors "break down for beginners":
+  nobody lets them mix in English when stuck. The prompt already accepted and
+  recast English replies, but a frozen A0 learner was never told so. VOICE-002
+  still holds: the card's French is never read back.
+- Consequence: a learner who then answers in English goes down the existing
+  English-to-French recast path. The lines are in the TTS warm list. The
+  session eval's `way-back` check scores it.
+- Sources: [PEDAGOGY](docs/PEDAGOGY.md) "The rescue", [LIVE_VOICE](docs/LIVE_VOICE.md).
+
+## VOICE-014 — Fresh openers on a session count, and no question asked twice
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - The opening question is one of five authored lines and the silence
+    suggestion one of three (`CONVO_LINES` in
+    `services/tutor-agent/src/authoredSpeech.ts`). Index 0 of each is the line
+    every session used before.
+  - The index is `profile.stats.sessions`, which gives strict rotation, so
+    consecutive sessions never share an opener. A count of zero (a first
+    session, or a profile that never arrived) falls back to an FNV-1a hash of
+    the signed session id; an unsigned session gets index 0.
+  - Each turn context lists the tutor's own questions so far this session, the
+    last six as said, and tells the model not to ask any again in any wording
+    (`askedQuestions`). The persona says the same once.
+  - After each turn, `repeatsQuestion` checks the reply against that list. A
+    hit logs `[luvani:conduct] repeated-question` with no learner or question
+    text. There is no regeneration.
+- Reason: "the same questions for weeks" is a top complaint about a
+  competitor's tutor. A free learner heard one English opener every session.
+- Why a session count is not memory: the `memoryLocked` promise is no saved
+  memory brief, no remembered opener and no extraction. A count carries
+  nothing the learner said, is already on every profile (`finishSession`), and
+  is used here only to pick an authored line. The question guard reads the
+  current session's history and stores nothing. No list of past questions is
+  kept for anyone.
+- Consequence: across sessions, repeats are covered by the strict rotation of
+  authored lines, the existing per-session mission decks and the scene
+  builder's recent-scene list. A model-written question from a previous
+  session can still recur; nothing stores it, by design. A regenerated turn
+  would cost the learner latency, so the log and the eval's
+  `no-repeat-question` check are how repeats are seen.
+- Sources: [LIVE_VOICE](docs/LIVE_VOICE.md), [PRIVACY_AND_SAFETY](docs/PRIVACY_AND_SAFETY.md).
+
+## VOICE-015 — Sad news stays kind and in the scene; self-harm unchanged
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - `SAFETY_CONDUCT` gains WHEN THEY SHARE SAD NEWS: answer as yourself in one
+    or two short kind sentences (plain English at A0 and A1), say sorry, do not
+    probe or advise, offer the choice to take a moment or keep going, never end
+    the conversation or say goodbye, and go back into the scene gently or
+    follow them in simple French. The danger section says sad news on its own
+    is not a crisis, and the crisis section still comes first.
+  - The contract says `sceneDone` is never true on a sad-news turn, and code
+    enforces it: a learner line matching `sharesSadNews`
+    (`packages/brain/src/engine/sadNews.ts`) adds a SAD NEWS line to that
+    turn's context, and `integrateTurn` lets neither `sceneDone` nor every beat
+    done end the session on that turn. The turn ceiling stretches by at most
+    one turn.
+  - `sharesSadNews` is not a safety category. It never stops, redirects or
+    logs learner text.
+  - The input net is unchanged. Sixteen bereavement, illness and sad-news lines
+    join the ORDINARY corpus in `safety.test.ts`, and a new test proves grief
+    that also says the learner wants to die still stops as self-harm.
+- Reason: a competitor's tutor hung up on a user who said their parents had
+  died. Here, sad news passed the net untested, the crisis section told the
+  model to drop the scene for anything "real and bad", and a model's
+  `sceneDone` would have called `finish()`.
+- Consequence: a false positive (a film plot) costs one context sentence and
+  one deferred recap. Known and left alone: "my brother committed suicide"
+  stops under `/suicid/`, which is deliberately broad; a kinder path for
+  bereavement by suicide is a founder decision. The session eval's `grief`
+  check scores the conduct.
+- Sources: [PRIVACY_AND_SAFETY](docs/PRIVACY_AND_SAFETY.md), [LIVE_VOICE](docs/LIVE_VOICE.md).
+
+## VOICE-016 — Beginners hear a slower voice, chosen once per session
+
+- Date: 2026-10-25
+- Status: accepted (founder chose "beginner default plus a switch" in the plan)
+- Decision:
+  - The live tutor voice speaks at ElevenLabs `speed` 0.85 (`BEGINNER_SPEED`
+    in `voiceConfiguration.ts`) for scripted lessons, guest scenes and
+    conversations while the profile estimate is A0 or A1 (or absent). From A2
+    up it speaks at the vendor's normal speed.
+  - A "Slower voice" switch in Learning preferences overrides that either way.
+    It is stored on the device (`@luvani/voice-speed/v1`), sent as
+    `voiceSpeed: 'slower' | 'normal'` on session start only when chosen,
+    validated and signed by the token server, and read by the agent.
+  - `tutorSpeedFor` decides the speed once at session start. It never changes
+    mid-session, because it is part of the voice cache key. The scene's
+    "Simpler" control still changes sentences only.
+  - `VOICE_SETTINGS` stays as it was. The bundled daily and onboarding clips,
+    the build scripts' manifest checks and saved-phrase Hear (whose database
+    rates are keyed by that fingerprint) are untouched; Hear plays at normal
+    speed.
+  - Each speed is its own authored-line cache: `buildTTS({ speed })` folds the
+    speed into `voiceKey` (`speed=85`). Normal speed keeps today's keys byte
+    for byte. `LUVANI_WARM_SPEED=normal|slower|both` warms either copy.
+  - Speed is not part of a paid quote component's identity: `describePaidHttp`
+    removes `voice_settings.speed` from the hashed configuration when it is a
+    finite number from 0.7 to 1.2 and refuses anything else. Existing quotes
+    keep matching, so no SQL step is needed.
+  - `[luvani:cost]` carries `ttsSpeed`.
+- Reason: learners in the founder's market report ask for speech-speed
+  control, and the "Simpler" pace only ever shortened sentences. Measured on
+  25 October 2026 on alexandre, two lines (`scripts/measureVoiceSpeed.mjs`,
+  `docs/cogs-evidence/voice-speed-2026-10-25.json`, about 200 credits):
+
+  | Condition | Characters a second | Pace against 1.0 | Credits per character | Deepgram word accuracy (median) |
+  |---|---|---|---|---|
+  | v2 at 1.0 | 20.3 | 1.00 | 0.397 | 0.94 |
+  | v2 at 0.9 | 19.3 | 0.95 | 0.397 | 1.00 |
+  | v2 at 0.85 | 16.9 | 0.83 | 0.397 | 1.00 |
+  | Flash v2.5 at 0.9 | 18.1 | 0.81 | 0.199 | 1.00 |
+
+  - 0.9 is barely slower than 1.0. 0.85 is about 17% slower and Deepgram
+    still recognised every word, so the French is not distorted to a
+    recogniser. Whether it sounds natural is a listening call: clips are in
+    `~/Developer/StartUps/listening/voice-speed-2026-10-25/`.
+  - Billed credits were identical at every speed (the `character-cost`
+    header), so speed is price-neutral.
+  - Flash's pace at 0.9 was inconsistent between the two lines (22.3 and 13.9
+    characters a second). It matters only if the VOICE-009 switch is turned
+    on; listen to it before then.
+  - Two lines on one voice is a small sample, and takes vary at stability 0.4.
+- Consequence:
+  - **Cost per minute:** unchanged or lower. TTS bills characters, and the
+    same scene at 0.85 bills the same characters. Slower lines fill more of
+    each minute, so per wall-clock minute the cost can only fall. A mission
+    minute stays at about $0.048 at most ($0.034 with Flash), a warm lesson
+    minute at about $0.012 to $0.014. `DEFAULT_COST_MODEL` is unchanged.
+  - **Cache:** the slower copy of the authored lines is a second cold cache.
+    Warming it costs 23,600 billed characters across the six voices (two bill
+    2x), about $1.89 once; without a warm it fills lazily for the same total.
+    `docs/changes/beta-launch.md` step 4 has the founder's warm command.
+  - **Rejected:** authored lines at one speed only, which would mix slow and
+    normal lines in one scene; a per-speed quote component, which would
+    exceed the sixteen-component quote limit.
+  - **Known gap:** with no choice, the switch shows the conversation default.
+    An A2 learner who never touches it sees it off, yet a scripted lesson still
+    plays slower, because lesson content is A0.
+  - Hear at the slower speed needs new `phrase_audio_rates` rows; not done.
+- Sources: `services/tutor-agent/src/voiceConfiguration.ts`
+  (`BEGINNER_SPEED`, `tutorSpeedFor`), `voice.ts` (`buildTTS`),
+  `services/shared/paidExecution.ts`, `apps/mobile/src/tutor/voiceSpeed.ts`,
+  VOICE-008, VOICE-009.
+
+## VOICE-017 — Scripted lessons give Deepgram their lines as keyterms, once
+
+- Date: 2026-10-25
+- Status: accepted. Production needs a keyterm STT quote component to turn it
+  on; without one nothing changes.
+- Decision:
+  - Lessons and guest scenes build their Nova-3 recognizer with one fixed
+    keyterm list, `lessonKeyterms(lesson)` (core): every turn's target first
+    (a trailing `?` removed, since `recognitionPhrases` drops question lines),
+    then short forms, then acceptable options, deduplicated, at most 16
+    phrases and 400 bytes. The café lesson keeps all 12 targets. `accepts` is
+    left out because it is lowercase and unaccented.
+  - The list is set once, at construction, with and without the paid proxy.
+    Per-turn updates are deliberately avoided: every keyterm change reopens
+    the Deepgram socket, and under the proxy each socket is admitted as a full
+    session of audio.
+  - Conversations are unchanged: per-turn keyterms off the proxy, none under
+    it. Production mission keyterms are a follow-up that needs reconnect
+    pricing first.
+  - The paid proxy accepts repeated `keyterm` parameters only with nova-3,
+    within those caps and with no control characters or `;`, and forwards the
+    re-encoded query it hashed. The values are input, not configuration: the
+    descriptor carries the marker `keyterm: 'prompted'` instead, because
+    Keyterm Prompting is a per-minute add-on ($0.0013 a minute on Pay As You
+    Go, Deepgram pricing page, 25 October 2026).
+  - If the bound quote has no keyterm component the gate refuses with
+    `quote-mismatch` before any claim; the proxy then admits the plain
+    descriptor and forwards the URL with no keyterms, which is today's
+    behaviour. `PaidGate` documents that a gate may throw `quote-mismatch`
+    only before any spend. The tutor logs `[luvani] keyterms: prompted` or
+    `stripped`, never the values.
+- Reason: the market report names recognising accented beginner speech as
+  the riskiest technical piece and says to constrain recognition to the
+  expected lines on scripted turns.
+- Measured, `scripts/measureKeyterms.mjs`
+  (`docs/live-latency-evidence/keyterms-2026-10-25.json`, 104 ElevenLabs
+  credits and about 141 s of Deepgram audio): the 12 café targets read by an
+  English ElevenLabs voice (Chris), at normal level and at -20 dB, with and
+  without the keyterms. Every condition scored median word accuracy 1.00 and
+  11 of 12 exact. The miss is a clip in which the voice repeated "beaucoup";
+  at -20 dB the keyterms turned "Merci beau." into "Merci beaucoup." This is
+  inconclusive, not a null result: the synthetic voice speaks near-native
+  French, so plain recognition was already at the ceiling. It does show that
+  the keyterms made no transcript worse. Real beginner recordings are needed
+  to measure the gain.
+- Consequence:
+  - **Founder step (optional):** seed NEW `lesson` quotes with a keyterm STT
+    component (hash from `keytermSttConfigurationSha256`, priced at Nova-3
+    plus the add-on) and re-bind. `deployment/PAID_ADMISSION.md` has the
+    detail. `sttPerMin: 0.009` in the cost model already includes the add-on.
+  - The guest scene gate does not hash configuration, so guest scenes send
+    keyterms now; the runbook's $0.027 per scene already prices the add-on.
+  - The security review (read-only, 25 October) found nothing blocking; its
+    two hardening points (re-encoded forwarding, the gate invariant) and test
+    gaps were applied.
+  - The 16-keyterm, 400-byte cap is Luvani's own, not checked against
+    Deepgram's documented limits.
+- Sources: `packages/core/src/lessons/keyterms.ts`,
+  `services/tutor-agent/src/agent.ts`, `paidVoiceProxy.ts`,
+  `services/shared/paidExecution.ts`, `docs/LIVE_VOICE.md`, VOICE-008.
+
+## VOICE-018 — A heads-up a minute before the cap, then a warm close
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - About 60 s before a session's cap (`HEADS_UP_LEAD_MS`), at the first gap,
+    the tutor says "We're nearly out of time. Let's finish this one together."
+    and the worker sends a payload-free `wrap-up` frame. The room shows "Nearly
+    time to finish. {Tutor} will wrap up after this."
+  - No number, anywhere. The pill stays "About N min" and the room never shows
+    minutes left: UI-008's "no left, no clock" is kept (founder, 2026-10-25).
+    The `wrap-up` frame has no field to carry one, and the app rebuilds it from
+    its tag alone.
+  - After one more learner turn and the tutor's spoken reply, the tutor says
+    "That's all for today. Thank you, à bientôt !" and the session ends through
+    the tutor-owned close, a little before the cap instead of on it.
+  - Backstop: at the cap minus 15 s (`CLOSE_BY_MARGIN_MS`), a silent learner
+    with no turn held is closed at once. A learner still speaking meets the
+    existing hard stop. The server-signed cap is never extended. The close
+    line's playout wait is bounded at 6 s, the legacy timer's "time limit"
+    notice stands down once the close begins, and safety still screens every
+    turn while the session closes.
+  - Kill switch: `LUVANI_SESSION_HEADS_UP=0` on the tutor role.
+  - Skipped when a session starts with under 90 s left, and for guest scenes,
+    which keep their own ceiling. Typed sessions get the frame and the note.
+  - Policy in `services/tutor-agent/src/sessionEnd.ts`; the tutors expose
+    `wrapUp()`, `closeForTime()` and `sessionEndView()`.
+- Review: `voice-reliability-architect` (read-only, 2026-10-25) found six
+  issues across VOICE-018 and VOICE-019; all are fixed with tests.
+- Reason: "calls end on a hidden timer" is a top complaint about Duolingo's
+  video calls in the founder's market report. Free sessions are now 10 minutes
+  (REV-001), so more learners meet the cap.
+- Consequence:
+  - Metering unchanged; an early close bills fewer seconds.
+  - Both lines are in `AUTHORED_SPEECH_LINES`. Until `npm run warm-cache` is run
+    (paid), the first use of each line in each voice is synthesised live.
+  - Tests: `sessionEnd.test.ts`, the session-end blocks in `convo.test.ts` and
+    `tutor.test.ts`, `agentWiring.test.ts`, `ttsCache.test.ts`, the `wrap-up`
+    cases in `protocol.test.ts`, and `liveRoomView.test.ts` (the note has no
+    digit, no "left", no "min"; the pill test is unchanged).
+  - Founder steps: deploy the tutor agent and the app together (no migration),
+    run `warm-cache`, and hear a session reach its cap once on a device.
+- Sources: founder answers of 25 October 2026, `docs/LIVE_VOICE.md` "Nearly time
+  to finish", UI-008 above.
+
+## VOICE-019 — Tap to send: the turn ends when the learner says so
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - An optional mode, off by default, offered in Settings (Practice) and from
+    the live room's "Tap to send" switch, stored on the device
+    (`@luvani/tap-to-send/v1`). Speak only; never in a guest scene.
+  - The microphone stays open. With it on, the worker switches the session to
+    the SDK's manual turn detection, and the turn ends only on Send
+    (`session.commitUserTurn()`) or at the 60 s cap (`TAP_SEND_CAP_MS`), with a
+    "Sending what you've said in a moment." note at 50 s.
+  - No rescue while a turn is held; before the learner speaks, the stuck clock
+    runs as usual. The cap bounds the dark time.
+  - Switching off, or going to Type, sends what was said and restores turn
+    detection to `null` (or a saved string mode). Restoring the saved detector
+    object silently disables VAD end-of-speech in `@livekit/agents` 1.9.
+  - Wire: client `tap-to-send` and `send`, server `held-turn`
+    (`open`, `closing`, `sent`). The worker handles them, not the tutors, and
+    applies the switch only once `session.start()` has resolved: switching to
+    manual before the activity exists builds the session without its audio turn
+    detector, for good.
+  - A Send or cap that lands while the tutor speaks waits until it stops: the
+    SDK drops a commit over uninterruptible speech. The heads-up never plays
+    into a held turn. An empty commit re-arms the rescue.
+  - Kill switch: `LUVANI_TAP_TO_SEND=0` on the tutor role.
+- Reason: VOICE-010's floors still end a turn after 2.5 s at most, so slow
+  speakers and people who stutter can be cut off. The market report says users
+  want a mode that waits until they say they are done; Duolingo's push-to-talk
+  was praised for it. Founder chose "talk freely, tap Send" over
+  walkie-talkie, and a 60 s cap (2026-10-25).
+- Tradeoffs:
+  - Barge-in by voice is off while it is on; words said over the tutor wait for
+    the held turn.
+  - A lesson's preemptive generation does not run during a held turn (0 model
+    calls in the SDK test), so a held turn costs no model calls.
+  - A turn costs one tap. That is the point for those who choose it, and why it
+    stays off by default.
+- Consequence:
+  - Tests: `tapToSend.test.ts` and `tapToSendSdk.test.ts` (a real
+    `AgentSession`: a 3 s pause does not commit, Send does, and after switching
+    off a pause commits again), `agentWiring.test.ts`, `runtimeInput.test.ts`,
+    `protocol.test.ts` (and the SDK test also turns it on before
+    `session.start` and checks the detector survives), and in the app
+    `tapToSend.test.ts`,
+    `liveRoomView.test.ts` and `useLiveSession.test.ts`.
+  - Founder steps: deploy agent and app together; try it on a device with a
+    long pause and with a 60 s ramble.
+- Sources: founder answers of 25 October 2026, VOICE-010 "Deferred",
+  `docs/LIVE_VOICE.md` "Tap to send".

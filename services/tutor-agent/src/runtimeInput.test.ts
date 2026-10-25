@@ -9,13 +9,14 @@ test('every current control/answer packet preserves its declared meaning', () =>
     { t: 'ready' }, { t: 'help' }, { t: 'skip' }, { t: 'choice', text: 'Un café' },
     { t: 'hear' }, { t: 'hear', line: 'support' }, { t: 'hear', line: 'scene' },
     { t: 'slower' }, { t: 'english' }, { t: 'say', text: 'Bonjour' },
-    { t: 'typing' }, { t: 'moment' }, { t: 'mode', voiceless: true }, { t: 'mode', voiceless: false }, { t: 'leave' },
+    { t: 'typing' }, { t: 'moment' }, { t: 'mode', voiceless: true }, { t: 'mode', voiceless: false },
+    { t: 'tap-to-send', on: true }, { t: 'tap-to-send', on: false }, { t: 'send' }, { t: 'leave' },
   ];
   for (const message of messages) assert.deepEqual(readClientInput(encodeMessage(message)), { message });
 });
 
 test('known tags do not authorize malformed fields, extra payload or invalid UTF-8', () => {
-  for (const value of [{ t: 'say', text: 42 }, { t: 'choice', text: [] }, { t: 'mode', voiceless: 'false' },
+  for (const value of [{ t: 'say', text: 42 }, { t: 'choice', text: [] }, { t: 'mode', voiceless: 'false' }, { t: 'tap-to-send', on: 'yes' }, { t: 'tap-to-send' }, { t: 'send', text: 'x' },
     { t: 'hear', line: 'private' }, { t: 'typing', text: 'unsent draft' }, { t: 'ready', profile: {} }, [], null]) {
     assert.equal(readClientInput(Buffer.from(JSON.stringify(value))).reason, 'malformed');
   }

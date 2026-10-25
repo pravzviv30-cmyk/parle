@@ -25,7 +25,16 @@ export type SessionSource = (typeof SESSION_SOURCES)[number];
 export const SESSION_MODES = ['lesson', 'mission', 'conversation'] as const;
 export type SessionMode = (typeof SESSION_MODES)[number];
 
-export const CHECK_IDS = ['rescue', 'no-read-back', 'gentle', 'level-fit', 'safety'] as const;
+export const CHECK_IDS = [
+  'rescue',
+  'no-read-back',
+  'gentle',
+  'level-fit',
+  'safety',
+  'way-back',
+  'no-repeat-question',
+  'grief',
+] as const;
 export type CheckId = (typeof CHECK_IDS)[number];
 
 /**
@@ -59,6 +68,11 @@ export interface SessionTurn {
   tutor: TutorLines;
   /** The tutor stepped out of the scene to answer a safety decision. */
   safetyStep?: boolean;
+  /**
+   * The turn closed the scene (TutorTurn.sceneDone). Optional: a record made
+   * before this field existed stays valid, and a missing value reads as false.
+   */
+  sceneDone?: boolean;
   replyWaitMs?: number;
   /** Hand labels, synthetic records only. An n/a check is left out. */
   expect?: Partial<Record<CheckId, 'pass' | 'fail'>>;
@@ -114,6 +128,7 @@ function parseTurn(id: string, value: unknown, index: number): SessionTurn {
   if (!isObject(tutor) || typeof tutor.sceneReply !== 'string') fail(where, 'tutor.sceneReply must be a string');
   if (!optionalLine(tutor.coachLine) || !optionalLine(tutor.narration)) fail(where, 'tutor lines must be strings or null');
   if (value.safetyStep !== undefined && typeof value.safetyStep !== 'boolean') fail(where, 'safetyStep must be a boolean');
+  if (value.sceneDone !== undefined && typeof value.sceneDone !== 'boolean') fail(where, 'sceneDone must be a boolean');
   if (value.replyWaitMs !== undefined && typeof value.replyWaitMs !== 'number') fail(where, 'replyWaitMs must be a number');
   let expect: SessionTurn['expect'];
   if (value.expect !== undefined) {
@@ -139,6 +154,7 @@ function parseTurn(id: string, value: unknown, index: number): SessionTurn {
       narration: (tutor.narration as string | null | undefined) ?? null,
     },
     ...(value.safetyStep === undefined ? {} : { safetyStep: value.safetyStep }),
+    ...(value.sceneDone === undefined ? {} : { sceneDone: value.sceneDone }),
     ...(value.replyWaitMs === undefined ? {} : { replyWaitMs: value.replyWaitMs }),
     ...(expect === undefined ? {} : { expect }),
   };

@@ -54,3 +54,33 @@ test('provider privacy parameters are required at the outbound boundary',async()
  for(const suffix of ['', '&mip_opt_out=false'])await assert.rejects(describePaidHttp(new URL('https://api.deepgram.com/v1/listen?model=nova-3'+suffix),{method:'POST',body:body as BodyInit}));
  for(const suffix of ['', '&enable_logging=true'])await assert.rejects(describePaidHttp(new URL('https://api.elevenlabs.io/v1/text-to-speech/Fixture?output_format=pcm_22050'+suffix),{method:'POST',body:JSON.stringify({model_id:'eleven_multilingual_v2',text:'Bonjour'})}));
 });
+test('TTS speed is input, not quote identity: an admitted speed hashes like no speed, anything else is refused',async()=>{
+ const url=new URL('https://api.elevenlabs.io/v1/text-to-speech/Fixture/stream?output_format=pcm_22050&enable_logging=false');
+ const settings={stability:0.4,similarity_boost:0.8,style:0.3,use_speaker_boost:true};
+ const describe=(voice_settings:unknown)=>describePaidHttp(url,{method:'POST',body:JSON.stringify({text:'Bonjour',model_id:'eleven_multilingual_v2',voice_settings})});
+ const plain=await describe(settings);
+ // Byte-identical to the identity before speed existed: every bound quote keeps matching.
+ assert.deepEqual(plain.configuration,{parameters:{enable_logging:'false',output_format:'pcm_22050'},model_id:'eleven_multilingual_v2',voice_settings:settings});
+ for(const speed of [0.7,0.9,1,1.2])assert.equal(paidConfigurationSha256(await describe({...settings,speed})),paidConfigurationSha256(plain));
+ for(const speed of [0.6,1.3,'0.9',null,Number.NaN])await assert.rejects(describe({...settings,speed}),(error:Error&{reason?:string})=>error.reason==='unsupported-adapter');
+ assert.notEqual(paidConfigurationSha256(await describe({...settings,stability:0.5})),paidConfigurationSha256(plain));
+});
+test('an empty voice_settings with only an admitted speed hashes like voice_settings {}',async()=>{
+ const url=new URL('https://api.elevenlabs.io/v1/text-to-speech/Fixture/stream?output_format=pcm_22050&enable_logging=false');
+ const describe=(voice_settings:unknown)=>describePaidHttp(url,{method:'POST',body:JSON.stringify({text:'Bonjour',model_id:'eleven_multilingual_v2',voice_settings})});
+ // Chosen behaviour: speed is removed, the (now empty) object stays, so it is not the same as omitting voice_settings.
+ assert.equal(paidConfigurationSha256(await describe({speed:0.9})),paidConfigurationSha256(await describe({})));
+ assert.notEqual(paidConfigurationSha256(await describe({speed:0.9})),paidConfigurationSha256(await describePaidHttp(url,{method:'POST',body:JSON.stringify({text:'Bonjour',model_id:'eleven_multilingual_v2'})})));
+});
+test('a keyterm STT descriptor against a plain-only quote is a quote-mismatch before any claim; the plain one is then admitted once',async()=>{
+ const base={kind:'stt' as const,provider:'deepgram' as const,model:'nova-3',voice:'',quantities:{inputBytes:0,outputTokens:0,audioMillis:1000,textBytes:0}};
+ const params={channels:'1',encoding:'linear16',language:'fr',mip_opt_out:'true',model:'nova-3',sample_rate:'16000'};
+ const plain={...base,configuration:{parameters:params}},prompted={...base,configuration:{parameters:{...params,keyterm:'prompted'}}};
+ let claims=0;
+ const reservation={components:[{key:'stt',kind:'stt',provider:'deepgram',model:'nova-3',voice:'',configurationSha256:paidConfigurationSha256(plain),maxProviderAttempts:1,maxEffects:1,maxInputBytes:0,maxOutputTokens:0,maxAudioMillis:1000,maxTextBytes:0,microUsd:1}],
+  claim:async()=>{claims++;return {dispatchUntil:Date.now()+60000,run:async(effect:()=>Promise<AbortSignal>)=>effect()};}} as unknown as PaidReservation;
+ const gate=reservationGate(reservation,{kind:'tutor',sessionId:'11111111-1111-4111-8111-111111111111',claimNonce:'22222222-2222-4222-8222-222222222222'} as never,new AbortController().signal);
+ await assert.rejects(gate(prompted),(error:Error&{reason?:string})=>error.reason==='quote-mismatch');
+ assert.equal(claims,0);
+ assert.equal((await gate(plain)).aborted,false);assert.equal(claims,1);
+});

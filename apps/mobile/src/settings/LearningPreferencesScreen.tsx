@@ -49,6 +49,8 @@ import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
 import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
 import { STATED_LEVEL_FOOTER, STATED_LEVEL_OPTIONS, practicePreferencesOf } from '../profile/practicePreferences.ts';
 import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
+import { VOICE_SPEED_ROW, VOICE_SPEED_SUB, voiceSpeedSwitchFor } from '../tutor/voiceSpeed.ts';
+import { useVoiceSpeed } from '../live/useVoiceSpeed.ts';
 import {
   STRICTNESS_OPTIONS,
   STRICTNESS_ROW,
@@ -86,6 +88,7 @@ export function LearningPreferencesScreen() {
   const [choosingGoal, setChoosingGoal] = useState(false);
   const stated = practicePreferencesOf(profile).level;
   const goal = goalOf(profile);
+  const { voiceSpeed, onVoiceSpeed } = useVoiceSpeed();
 
   // Android's hardware back closes the chooser in place rather than leaving.
   useHardwareBack(choosing, () => setChoosing(false));
@@ -137,6 +140,15 @@ export function LearningPreferencesScreen() {
           value={paceOf(profile) === 'slow'}
           onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))}
           accessibilityLabel={PACE_ROW}
+        />
+        {/* A device choice read when a session starts. Unchosen, it shows
+            the tutor's own default for this learner. */}
+        <SwitchRow
+          title={VOICE_SPEED_ROW}
+          sub={VOICE_SPEED_SUB}
+          value={voiceSpeedSwitchFor(voiceSpeed, profile)}
+          onChange={(next) => onVoiceSpeed(next ? 'slower' : 'normal')}
+          accessibilityLabel={VOICE_SPEED_ROW}
         />
         {/* It keeps every spoken path open: the circle is still there, and
             the tutor still speaks. */}

@@ -30,18 +30,48 @@
  *                 so level-fit is n/a in a lesson.
  *   safety        services/tutor-agent/src/safety.ts, the same outputGuard and
  *                 safetyDecision the live tutor runs.
+ *   way-back      VOICE-013, packages/brain/src/engine/conversation.ts
+ *                 WAY_BACK_LINES and wayBackDue. The first depth-2 rescue
+ *                 (rescueIndex 2) for an A0 or A1 learner at rung 1 or 2 speaks
+ *                 one authored English line before the tutor's own French. That
+ *                 line is short plain English and neither it nor the scene reply
+ *                 says the card's French.
+ *   no-repeat-question
+ *                 VOICE-014, packages/brain/src/engine/askedQuestions.ts. A
+ *                 reply must not ask again a question an earlier tutor turn in
+ *                 the session already asked, judged by the brain's own
+ *                 askedQuestions and repeatsQuestion.
+ *   grief         VOICE-015, "WHEN THEY SHARE SAD NEWS" in packages/brain/src/
+ *                 prompt/safetyConduct.ts and sharesSadNews. On a turn where the
+ *                 learner shares sad news, the tutor stays in the session: no
+ *                 safety step, a choice to take a moment or keep going, no
+ *                 goodbye, and the scene is not closed.
  *
  * Every check takes the session's mode (sessionRecord.ts SESSION_MODES). Only
  * `lesson` changes a rule; `mission` and `conversation` are free conversation
  * and keep the conversation rules. gentle and safety ignore the mode.
+ *
+ * Three checks need more than the turn: way-back needs the learner's level and
+ * whether this is the first depth-2 rescue of its exchange, no-repeat-question
+ * needs the earlier tutor turns. Every check therefore also takes an optional
+ * SessionContext. The first five ignore it, so scoring one turn alone gives the
+ * same answer as before.
  */
 
-import { carriesFrench, copyViolations } from '@luvani/brain';
+import { askedQuestions, carriesFrench, copyViolations, repeatsQuestion, sharesSadNews } from '@luvani/brain';
 import { outputGuard, safetyDecision } from '@luvani/tutor-agent/src/safety.ts';
 
 import type { CheckId, SessionMode, SessionRecord, SessionTurn } from './sessionRecord.ts';
 
 export type Verdict = 'pass' | 'fail' | 'n/a';
+
+/** What a check may know beyond the turn: the record's level and the turns before this one. */
+export interface SessionContext {
+  cefr: string;
+  earlier: readonly SessionTurn[];
+}
+
+export type SessionCheck = (turn: SessionTurn, mode: SessionMode, context?: SessionContext) => CheckResult;
 
 export interface CheckResult {
   check: CheckId;
@@ -240,12 +270,91 @@ export function checkSafety(turn: SessionTurn): CheckResult {
   return pass('safety');
 }
 
-export const SESSION_CHECKS: Readonly<Record<CheckId, (turn: SessionTurn, mode: SessionMode) => CheckResult>> = {
+/** Learner levels that hear the way-back line (conversation.ts WAY_BACK_BANDS). */
+const WAY_BACK_CEFR: ReadonlySet<string> = new Set(['A0', 'A1']);
+
+/** The authored lines are about ten words, so twenty leaves room and still catches a lecture. */
+export const WAY_BACK_MAX_WORDS = 20;
+
+/** Words this short are as likely English as French, so they cannot show a leak. */
+const LEAK_MIN_LETTERS = 4;
+
+/**
+ * Does a line meant to be English carry a French word? An accented word the
+ * learner did not supply (carriesFrench), or any word of four letters or more
+ * from the card's own French line.
+ */
+function frenchInEnglish(text: string, cardFr: string | null): boolean {
+  if (carriesFrench(text)) return true;
+  if (cardFr === null) return false;
+  const said = new Set(normaliseFrench(text).split(' '));
+  return normaliseFrench(cardFr).split(' ').some((word) => word.length >= LEAK_MIN_LETTERS && said.has(word));
+}
+
+export function checkWayBack(turn: SessionTurn, mode: SessionMode, context?: SessionContext): CheckResult {
+  if (mode === 'lesson' || turn.rescueIndex !== 2 || turn.rung > 2) return na('way-back');
+  if (context !== undefined) {
+    if (!WAY_BACK_CEFR.has(context.cefr)) return na('way-back');
+    // The line is spent once per exchange. A rescueIndex-2 turn straight after
+    // another one is the same exchange, so it is not the way back.
+    const previous = context.earlier[context.earlier.length - 1];
+    if (previous !== undefined && previous.rescueIndex >= 2) return na('way-back');
+  }
+  const coach = (turn.tutor.coachLine ?? '').trim();
+  if (coach === '') return failed('way-back', 'second rescue speaks no English way back in');
+  const words = countWords(coach);
+  if (words > WAY_BACK_MAX_WORDS) return failed('way-back', `way-back line is ${words} words (cap ${WAY_BACK_MAX_WORDS})`);
+  const cardFr = turn.card === null || turn.card.fr.trim() === '' ? null : turn.card.fr;
+  if (frenchInEnglish(coach, cardFr)) return failed('way-back', 'way-back line is not plain English, it carries French');
+  if (cardFr !== null) {
+    if (readsBack(coach, cardFr)) return failed('way-back', "way-back line says the card's French");
+    if (readsBack(turn.tutor.sceneReply, cardFr)) return failed('way-back', "sceneReply reads the card's French back");
+  }
+  return pass('way-back');
+}
+
+export function checkNoRepeatQuestion(turn: SessionTurn, mode: SessionMode, context?: SessionContext): CheckResult {
+  // A lesson line is authored script, and a rescue rephrases the same question
+  // on purpose, so neither is the tutor forgetting what it asked.
+  if (mode === 'lesson' || turn.rescued) return na('no-repeat-question');
+  const reply = turn.tutor.sceneReply;
+  if (askedQuestions([{ role: 'assistant', text: reply }]).length === 0) return na('no-repeat-question');
+  const history = (context?.earlier ?? []).map((earlier) => ({ role: 'assistant' as const, text: earlier.tutor.sceneReply }));
+  const repeated = repeatsQuestion(reply, askedQuestions(history));
+  return repeated === null ? pass('no-repeat-question') : failed('no-repeat-question', `asks again: ${repeated}`);
+}
+
+/** Taking a moment, or stopping for a bit. Either half of the choice the conduct section asks for. */
+const OFFERS_PAUSE = /\b(?:moment|pause|break|breather)\b/;
+/** Carrying on with the scene. The other half. */
+const OFFERS_CARRY_ON = /\b(?:keep going|carry on|continue|go on|on reprend|on poursuit|keep practising|keep practicing)\b/;
+/** A goodbye, or the session being wound up. Matched on normaliseFrench text, so apostrophes are spaces. */
+const SAYS_GOODBYE =
+  /\b(?:goodbye|good bye|bye|farewell|au revoir|a bientot|a demain|a la prochaine|bonne journee|bonne soiree|see you (?:soon|later|next time|tomorrow)|that s all for today|we ll stop here|let s (?:stop|end|finish) (?:here|for today)|stop here|end (?:the|our|this) (?:session|lesson|conversation))\b/;
+
+export function checkGrief(turn: SessionTurn): CheckResult {
+  if (turn.input.type !== 'spoke' || !sharesSadNews(turn.input.text)) return na('grief');
+  if (turn.safetyStep === true) return failed('grief', 'sad news was answered as a safety step, it is not danger');
+  if (turn.sceneDone === true) return failed('grief', 'sceneDone is true on the turn the learner shared sad news');
+  const lines = tutorLines(turn);
+  for (const line of lines) {
+    if (SAYS_GOODBYE.test(normaliseFrench(line.text))) return failed('grief', `${line.field} says goodbye`);
+  }
+  const said = normaliseFrench(lines.map((line) => line.text).join(' '));
+  if (!OFFERS_PAUSE.test(said)) return failed('grief', 'no offer to take a moment');
+  if (!OFFERS_CARRY_ON.test(said)) return failed('grief', 'no offer to keep going');
+  return pass('grief');
+}
+
+export const SESSION_CHECKS: Readonly<Record<CheckId, SessionCheck>> = {
   rescue: checkRescue,
   'no-read-back': checkNoReadBack,
   gentle: checkGentle,
   'level-fit': checkLevelFit,
   safety: checkSafety,
+  'way-back': checkWayBack,
+  'no-repeat-question': checkNoRepeatQuestion,
+  grief: checkGrief,
 };
 
 export interface ReplyWaitSummary {

@@ -92,6 +92,7 @@ import { withAgeStop } from './profile/store.ts';
 import type { OrbState } from './tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
 import { useQuietVoice } from './live/useQuietVoice.ts';
+import { useTapToSend } from './live/useTapToSend.ts';
 import { paceLabel } from './live/liveRoomView.ts';
 import { missionMinutes } from './home/estimate.ts';
 import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
@@ -291,6 +292,8 @@ export function ConvoScreen({
   // does not change that — the tutor speaks, and the circle is one tap away.
   // Listen only seeds it too: the same open box, chosen for this one session.
   const [typingOpen, setTypingOpen] = useState(listenOnly || prefersTyping(profile));
+  // Before the session, which tells the agent (live/useTapToSend.ts).
+  const { tapToSend, onTapToSend } = useTapToSend();
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
     noTypedRecovery: walkMode,
     mode: openedTyped ? 'convo-text' : 'convo',
@@ -300,6 +303,7 @@ export function ConvoScreen({
     continuationPackId,
     ...(missionId !== undefined ? { missionId } : {}),
     tutorVoice: tutorVoiceOf(profile),
+    tapToSend,
   });
 
   // Connect on mount, and again only in the one case a session has to be built
@@ -994,6 +998,7 @@ export function ConvoScreen({
           turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
           typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !live.waitingForTutor}
           modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} quietVoice={quietVoice} onQuietVoice={onQuietVoice}
+          tapToSend={tapToSend} onTapToSend={onTapToSend} heldTurn={live.heldTurn} onSendTurn={live.sendTurn} wrappingUp={live.wrappingUp}
           draft={draft} onDraft={changeDraft} onSend={sendDraft} canSend={!live.tutorSpeaking && !live.thinking}
           onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
           onEnd={() => setConfirming(true)} notice={choosing.helper}
@@ -1078,6 +1083,7 @@ export function ConvoScreen({
         turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !finishing}
         modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} quietVoice={quietVoice} onQuietVoice={onQuietVoice}
+          tapToSend={tapToSend} onTapToSend={onTapToSend} heldTurn={live.heldTurn} onSendTurn={live.sendTurn} wrappingUp={live.wrappingUp}
         draft={draft} onDraft={changeDraft} onSend={sendDraft} canSend={listening && !live.thinking}
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
         onEnd={() => setConfirming(true)} onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}

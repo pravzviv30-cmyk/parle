@@ -11,8 +11,10 @@ import { initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agen
 initializeLogger({ pretty: false, level: 'silent' });
 
 import { CachedTTS, formatCostLine, normaliseLine } from './ttsCache.ts';
+import { BEGINNER_SPEED } from './voiceConfiguration.ts';
 import { CONVO_LINES } from './authoredSpeech.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
+import { CLOSE_LINE, HEADS_UP_LINE } from './sessionEnd.ts';
 import { encodeWav, decodeWav } from './wav.ts';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -661,7 +663,8 @@ describe('the per-session cost line', () => {
     await pcmOf(synth(cached, CONVO_LINES.carryOn.en)); await pcmOf(synth(cached, CONVO_LINES.carryOn.en));
     const line = formatCostLine({ sessionId: '1A2B3C4D-0000-4000-8000-000000000000', tts: cached, sttSec: 61.25 });
     const b = REPLY.length + CONVO_LINES.carryOn.en.length;
-    assert.equal(line, `[luvani:cost] session=1a2b3c4d ttsCharsBilled=${b} ttsCharsCached=${CONVO_LINES.carryOn.en.length} ttsCharsReplayed=${REPLY.length} sttSec=61.3`);
+    assert.equal(line, `[luvani:cost] session=1a2b3c4d ttsCharsBilled=${b} ttsCharsCached=${CONVO_LINES.carryOn.en.length} ttsCharsReplayed=${REPLY.length} ttsSpeed=1 sttSec=61.3`);
+    assert.match(formatCostLine({ tts: cached, ttsSpeed: BEGINNER_SPEED, sttSec: 1 }), new RegExp(` ttsCharsReplayed=\\d+ ttsSpeed=${String(BEGINNER_SPEED).replace('.', '\\.')} sttSec=1\\.0$`));
     assert.match(line, /^\[luvani:cost\](?: [a-zA-Z]+=[0-9a-f.]+)+$/);
     for (const word of ['jazz', 'aimes', 'keep', 'listening']) assert.ok(!line.includes(word), `learner-facing text leaked: ${word}`);
   });
@@ -674,7 +677,7 @@ describe('the per-session cost line', () => {
   test('the agent prints it once per session, next to the voice cache line', () => {
     const agent = readFileSync(new URL('./agent.ts', import.meta.url).pathname, 'utf8');
     assert.equal(agent.match(/formatCostLine\(/g)?.length, 1);
-    assert.match(agent, /formatCostLine\(\{ sessionId: tutor\.sessionId, tts: voiceTts, sttSec: stt \? sttAudioMs \/ 1000 : null \}\)/);
+    assert.match(agent, /formatCostLine\(\{ sessionId: tutor\.sessionId, tts: voiceTts, sttSec: stt \? sttAudioMs \/ 1000 : null, ttsSpeed \}\)/);
     assert.match(agent, /m\.type === 'stt_metrics'[^\n]*sttAudioMs \+= m\.audioDurationMs/);
   });
 });
@@ -687,6 +690,24 @@ describe('the warm run warms exactly the authored list', () => {
     assert.doesNotMatch(source, /LESSONS|CONVO_LINES|tokenize/, 'a second list would drift from the runtime one');
     assert.match(source, /assertDevelopmentPaidTool\(\)/, 'the production refusal stays');
     assert.match(source, /warmPlanLine\(cost\)/, 'the billed-character plan still prints before spending');
+  });
+
+  test('every opener, suggestion and way-back line is warm — VOICE-013, VOICE-014', () => {
+    const spoken = [
+      ...CONVO_LINES.opener.map(line => line.en),
+      ...CONVO_LINES.suggest.map(line => line.en),
+      ...CONVO_LINES.wayBack,
+    ];
+    assert.equal(spoken.length, 11, 'five openers, three suggestions, three ways back');
+    for (const line of spoken) {
+      for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);
+    }
+  });
+
+  test('the authored list includes the end-of-session heads-up and close, so neither is billed live', () => {
+    for (const line of [HEADS_UP_LINE, CLOSE_LINE]) {
+      for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);
+    }
   });
 
   test('the authored list includes the carry-on lines the old warm list missed', () => {
@@ -737,7 +758,7 @@ describe('the free-conversation model tier', () => {
 
       assert.equal(tiered.charsBilled, AUTHORED.length + REPLY.length);
       assert.equal(tiered.charsBilledConversation, REPLY.length);
-      assert.match(formatCostLine({ tts: tiered }), new RegExp(`ttsCharsBilled=${AUTHORED.length + REPLY.length} .* ttsCharsBilledConversation=${REPLY.length}$`));
+      assert.match(formatCostLine({ tts: tiered }), new RegExp(`ttsCharsBilled=${AUTHORED.length + REPLY.length} .* ttsCharsBilledConversation=${REPLY.length} ttsSpeed=1$`));
       await tiered.close();
     });
   }

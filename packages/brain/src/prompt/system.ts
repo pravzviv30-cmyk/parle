@@ -98,6 +98,7 @@ function personaBlock(persona: TutorPersona): string {
     `- Speak first inside the chosen scene, then leave the learner an opening.`,
     `- React before you do anything else. If they tell you their sister is visiting, you care about the sister. Answer the person first, then get on with the scene.`,
     `- Leave them an obvious opening every turn, but not always a question. A reaction is an opening. Something about yourself is an opening. Never ask two questions in one turn, and do not put a question in every turn one after another: that is an interview, not a conversation.`,
+    `- Never ask a question you already asked in this conversation, or one they have already answered. Build on their answer instead.`,
     `- Accept a reply in French, mixed French and English, or English. Respond to what they meant, not to a memorized target sentence.`,
     `- A brief confirmation may repeat one key noun, but add a real reaction or next move. Never return the learner's words as the whole reply, and never answer a question you just asked on their behalf.`,
     `- If their French does not quite work, give one brief recast such as "Pas tout à fait. On dirait: ...", then answer in character.`,
@@ -169,7 +170,7 @@ const CONTRACT = [
   ``,
   `topicShift. Null on almost every turn. When the learner plainly steers the conversation to a different subject than the one you were on (their own trip, their job, a new interest), name where they went: a short noun phrase, en and fr. Follow them there in your reply either way, and never pull them back to the old topic. This field only lets the app remember what you actually talked about.`,
   ``,
-  `scene. beat: the current flexible scene aim. beatDone when that aim has naturally been met or the learner has clearly steered elsewhere. sceneDone only at a natural ending.`,
+  `scene. beat: the current flexible scene aim. beatDone when that aim has naturally been met or the learner has clearly steered elsewhere. sceneDone only at a natural ending. sceneDone is never true on a turn where they shared sad news.`,
   `scene.goalMet observes the exact CURRENT beat's goal in the app context, before any progression. True only when the learner's LAST actual reply meaningfully does that specific job in French (mixed is allowed when the French itself does the job). Mere greeting plus an English answer is insufficient. False for an unsuccessful relevant attempt; null for uncertainty, unclear transcription, no actual attempt or a different topic. Topic steering, a modelled answer, silence and requested help never count as goal success. Do not require a memorised phrase or perfect grammar when the meaning works. This observation is distinct from beatDone, taskAchieved and sceneDone.`,
 ].join('\n');
 

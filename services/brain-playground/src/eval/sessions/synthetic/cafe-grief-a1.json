@@ -1,0 +1,125 @@
+{
+  "version": 2,
+  "id": "cafe-grief-a1",
+  "source": "synthetic",
+  "mode": "conversation",
+  "scene": "cafe-order",
+  "cefr": "A1",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour !"
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonjour, qu'est-ce que je vous sers ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 900,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "spoke",
+        "text": "Un café crème, s'il vous plaît."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Très bien. Vous voulez un croissant ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1100,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "spoke",
+        "text": "Ma mère est morte la semaine dernière."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": "I'm so sorry about your mother. Would you like to take a moment, or keep going?",
+        "narration": null
+      },
+      "sceneDone": false,
+      "replyWaitMs": 1400,
+      "expect": {
+        "gentle": "pass",
+        "grief": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "On continue, s'il vous plaît."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bien sûr. Votre café arrive.",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1000,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Mon grand-père est décédé l'an dernier."
+      },
+      "rung": 2,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Je suis désolé. Au revoir, à demain.",
+        "coachLine": "I'm sorry to hear that. We'll stop here for today.",
+        "narration": null
+      },
+      "sceneDone": true,
+      "replyWaitMs": 1350,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "grief": "fail"
+      }
+    }
+  ]
+}

@@ -25,6 +25,7 @@ import type { ThinkingTimeSink } from './thinkingTime.ts';
 import { buildPrompt } from './prompt.ts';
 import { LuvaniTutor, SCORE_SETTLE_MS, forgetReportedSessions, saidTheReferenceLine } from './tutor.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
+import { CLOSE_LINE, CLOSE_LINE_PLAYOUT_MS, HEADS_UP_LINE, SessionEndClock } from './sessionEnd.ts';
 import type { ClipCandidate, ClipSink } from './speechClips.ts';
 import type { scoreUtterance } from '../../shared/pronunciation.ts';
 import { pcmAudioMillis } from '../../shared/paidExecution.ts';
@@ -1267,5 +1268,113 @@ describe('a typed guest scene at a slow, real pace (fake timers)', () => {
     assert.equal(tutor.sessionState.finished, true);
     assert.equal(completes.at(-1)!.firstPracticeComplete, false);
     tutor.clearRescue();
+  });
+});
+
+describe('the end of a lesson, said by the tutor (sessionEnd.ts)', () => {
+  function manualTimers() {
+    let now = 0;
+    const due: { at: number; fn: () => void }[] = [];
+    return {
+      now: () => now,
+      setTimeout: (fn: () => void, ms: number) => { const entry = { at: now + ms, fn }; due.push(entry); return entry; },
+      clearTimeout: (handle: unknown) => { const i = due.indexOf(handle as never); if (i >= 0) due.splice(i, 1); },
+      advance(ms: number) {
+        now += ms;
+        for (let e = due.sort((a, b) => a.at - b.at)[0]; e && e.at <= now; e = due.sort((a, b) => a.at - b.at)[0]) { due.shift(); e.fn(); }
+      },
+    };
+  }
+
+  test('the wrap-up frame carries its tag and nothing else, and the line is said aloud', () => {
+    const { tutor, calls, published } = build(RUNGS.PROMPTED);
+    tutor.wrapUp();
+    assert.deepEqual(published.at(-1), { t: 'wrap-up' });
+    assert.equal(calls.said.at(-1), HEADS_UP_LINE);
+  });
+
+  test('a typed lesson gets the frame and no speech', () => {
+    const { tutor, calls, published } = build(RUNGS.PROMPTED, { voiceless: true });
+    tutor.wrapUp();
+    assert.deepEqual(published.at(-1), { t: 'wrap-up' });
+    assert.deepEqual(calls.said, []);
+  });
+
+  test('the close follows the reply to their one more answer, then the room closes', async (t) => {
+    const { tutor, session, calls } = build(RUNGS.PROMPTED);
+    let finished = 0;
+    let closed = 0;
+    t.mock.method(tutor, 'finish', async () => { finished += 1; });
+    tutor.attachRoomClose(() => { closed += 1; });
+    const timers = manualTimers();
+    const clock = new SessionEndClock(tutor, () => 120_000 - timers.now(), timers);
+    clock.start();
+    clock.agentState('listening');
+    timers.advance(60_000);
+    assert.equal(calls.said.at(-1), HEADS_UP_LINE);
+
+    const before = calls.said.length + calls.generateReply.length;
+    await tutor.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, s\'il vous plaît.' }));
+    await tutor.settled();
+    assert.ok(calls.said.length + calls.generateReply.length > before, 'their last answer was replied to as usual');
+    assert.equal(closed, 0);
+    assert.ok(!calls.said.includes(CLOSE_LINE), 'closed before the reply was spoken');
+    clock.agentState('speaking');
+    clock.agentState('listening');
+    await new Promise((r) => setImmediate(r));
+    assert.equal(calls.said.at(-1), CLOSE_LINE);
+    assert.equal(calls.said.filter((line) => line === CLOSE_LINE).length, 1);
+    assert.equal(finished, 1);
+    assert.equal(closed, 1);
+  });
+
+  test('no rescue fires once the close line has started, nor while a tap-to-send turn is held', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const closing = build(RUNGS.PROMPTED);
+    t.mock.method(closing.tutor, 'finish', async () => {});
+    const done = closing.tutor.closeForTime();
+    closing.tutor.armRescue(closing.session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await closing.tutor.settled();
+    await done;
+    assert.equal(closing.tutor.sessionState.ladder.rescues, 0, 'a goodbye is not a learner being stuck');
+
+    const held = build(RUNGS.PROMPTED);
+    t.after(() => held.tutor.clearRescue());
+    held.tutor.setHeldTurn(true);
+    held.tutor.armRescue(held.session);
+    t.mock.timers.tick(STUCK_SILENCE_MS * 3);
+    await held.tutor.settled();
+    assert.equal(held.tutor.sessionState.ladder.rescues, 0, 'a pause while recording is thinking');
+    held.tutor.setHeldTurn(false);
+    held.tutor.armRescue(held.session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await held.tutor.settled();
+    assert.equal(held.tutor.sessionState.ladder.rescues, 1, 'after send the ordinary clock runs');
+  });
+
+  test('a close line that never reports playout still settles after the bound', async (t) => {
+    const { tutor, session } = build(RUNGS.PROMPTED);
+    Object.defineProperty(session, 'say', { value: () => ({ waitForPlayout: () => new Promise<void>(() => {}) }) });
+    let finished = 0;
+    t.mock.method(tutor, 'finish', async () => { finished += 1; });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const closing = tutor.closeForTime();
+    await Promise.resolve();
+    assert.equal(finished, 0);
+    t.mock.timers.tick(CLOSE_LINE_PLAYOUT_MS);
+    await closing;
+    assert.equal(finished, 1, 'a stuck TTS held settlement hostage');
+  });
+
+  test('a crisis in the last seconds is still answered while the close line plays', async (t) => {
+    const { tutor, session, published } = build(RUNGS.PROMPTED);
+    Object.defineProperty(session, 'say', { value: () => ({ waitForPlayout: () => new Promise<void>(() => {}) }) });
+    t.mock.method(tutor, 'finish', async () => {});
+    void tutor.closeForTime();
+    await assert.rejects(tutor.onUserTurnCompleted({} as never, heard('I want to kill myself')), voice.StopResponse);
+    assert.equal(published.filter((m) => m.t === 'safety').length, 1, 'spoken crisis ignored during the close');
+    await tutor.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    assert.equal(published.filter((m) => m.t === 'safety').length, 2, 'typed crisis ignored during the close');
   });
 });
