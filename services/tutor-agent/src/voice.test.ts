@@ -12,6 +12,7 @@ initializeLogger({ pretty: false, level: 'silent' });
 import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/core';
 import {
   OUTPUT_ENCODING,
+  BEGINNER_SPEED,
   ELEVEN_VOICES,
   MODEL,
   buildTTS,
@@ -21,6 +22,7 @@ import {
   resolveTutorVoice,
   selectedVoiceVendor,
   synthesisProbeRequest,
+  tutorSpeedFor,
 } from './voice.ts';
 import { FISH_SETTINGS } from './voiceFish.ts';
 
@@ -359,6 +361,55 @@ describe('which voice vendor the env selects', () => {
       if (name === 'LIVEKIT_API_KEY' || name === 'LIVEKIT_API_SECRET') continue;
       assert.equal(value, '', `line ${i + 1}: ${name} carries a value in a tracked file. Rotate it, then empty it.`);
     }
+  });
+});
+
+describe('the slower beginner voice (VOICE-013)', () => {
+  const NORMAL_KEY = 'elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true';
+
+  test('tutorSpeedFor: scripted content is slower, convo is slower below A2, the switch wins', () => {
+    assert.equal(tutorSpeedFor({ kind: 'lesson' }), BEGINNER_SPEED);
+    assert.equal(tutorSpeedFor({ kind: 'scene' }), BEGINNER_SPEED);
+    assert.equal(tutorSpeedFor({ kind: 'lesson', cefr: 'B2' }), BEGINNER_SPEED);
+    for (const cefr of ['A0', 'A1', undefined, '', 'unknown']) assert.equal(tutorSpeedFor({ kind: 'convo', cefr }), BEGINNER_SPEED, String(cefr));
+    for (const cefr of ['A2', 'B1', 'B2', 'C1', 'C2']) assert.equal(tutorSpeedFor({ kind: 'convo', cefr }), undefined, cefr);
+    assert.equal(tutorSpeedFor({ kind: 'convo', cefr: 'B1', choice: 'slower' }), BEGINNER_SPEED);
+    assert.equal(tutorSpeedFor({ kind: 'lesson', choice: 'normal' }), undefined);
+    assert.equal(tutorSpeedFor({ kind: 'convo', cefr: 'A0', choice: 'normal' }), undefined);
+  });
+
+  test('a speed is its own cache: it enters the voiceKey, and no speed keeps the key byte-identical', () => {
+    assert.equal(buildTTS().opts.voiceKey, NORMAL_KEY);
+    assert.equal(buildTTS({ speed: undefined }).opts.voiceKey, NORMAL_KEY);
+    const slower = buildTTS({ speed: BEGINNER_SPEED }).opts.voiceKey;
+    assert.equal(slower, NORMAL_KEY.replace('similarity_boost=80,', `similarity_boost=80,speed=${Math.round(BEGINNER_SPEED * 100)},`));
+    // Pinned for the measured 0.85; update with BEGINNER_SPEED.
+    assert.equal(BEGINNER_SPEED, 0.85);
+    assert.equal(slower, NORMAL_KEY.replace('similarity_boost=80,', 'similarity_boost=80,speed=85,'));
+    assert.deepEqual(VOICE_SETTINGS, { stability: 0.4, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true }, 'the global settings never carry a speed');
+  });
+
+  test('the speed reaches the vendor request on both models, and only when asked for', async () => {
+    process.env.LUVANI_CONVERSATION_TTS_MODEL = 'eleven_flash_v2_5';
+    const bodies: Record<string, unknown>[] = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => { bodies.push(JSON.parse(String(init?.body))); return new Response(new Uint8Array(0), { headers: { 'content-type': 'audio/pcm' } }); }) as typeof fetch;
+    try {
+      const slower = buildTTS({ speed: BEGINNER_SPEED, conversationTier: true });
+      assert.equal(slower.opts.conversation!.voiceKey, slower.opts.voiceKey.replace(`:${MODEL}:`, ':eleven_flash_v2_5:'));
+      for (const inner of [slower.inner, slower.opts.conversation!.inner, buildTTS().inner]) { inner.on('error', () => {}); await inner.synthesize('Bonjour.').collect().catch(() => {}); }
+      const sent = bodies.map((body) => body.voice_settings as Record<string, unknown>);
+      assert.equal(sent.length, 3);
+      assert.ok(sent.some((settings) => settings.speed === BEGINNER_SPEED));
+      assert.deepEqual(bodies.filter((b) => b.model_id === 'eleven_flash_v2_5').map((b) => (b.voice_settings as Record<string, unknown>).speed), bodies.filter((b) => b.model_id === 'eleven_flash_v2_5').map(() => BEGINNER_SPEED));
+      assert.ok(sent.some((settings) => !Object.hasOwn(settings, 'speed')), 'normal speed sends no speed key');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  test('a speed outside what the paid proxy admits is refused before any vendor work', () => {
+    for (const speed of [0.6, 1.3, Number.NaN, Number.POSITIVE_INFINITY, '0.9' as unknown as number]) assert.throws(() => buildTTS({ speed }), /voice speed/);
   });
 });
 

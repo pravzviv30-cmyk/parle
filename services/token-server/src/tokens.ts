@@ -200,6 +200,16 @@ function validTutorVoice(value: unknown): string | undefined {
   return trimmed;
 }
 
+/**
+ * How fast the tutor should speak: exactly 'slower' or 'normal'. Anything else
+ * is dropped, never refused, so a speed this server cannot read costs the
+ * learner one session at the default pace and never the session itself. The
+ * agent maps the word to a vendor speed value, not this server.
+ */
+function validVoiceSpeed(value: unknown): 'slower' | 'normal' | undefined {
+  return value === 'slower' || value === 'normal' ? value : undefined;
+}
+
 export async function grantSession(
   opts: {
     /**
@@ -244,6 +254,8 @@ export async function grantSession(
      * the only process that can turn a key into a vendor id.
      */
     tutorVoice?: unknown;
+    /** How fast the tutor speaks: 'slower' or 'normal'. Anything else is dropped. */
+    voiceSpeed?: unknown;
   },
 ): Promise<GrantResult> {
   const decision = opts.admitted
@@ -265,6 +277,7 @@ export async function grantSession(
   const missionId = scene ? undefined : validMissionId(opts.missionId);
   const firstPractice = scene ? null : parseFirstPracticeBrief(opts.firstPractice);
   const tutorVoice = validTutorVoice(opts.tutorVoice);
+  const voiceSpeed = validVoiceSpeed(opts.voiceSpeed);
   const revision = parseTutorRevision(opts.revision);
   if (opts.admitted && (opts.admitted.userId !== opts.userId || opts.admitted.mode !== (opts.mode ?? 'lesson'))) {
     throw new Error('reservation identity mismatch');
@@ -301,6 +314,7 @@ export async function grantSession(
       ...(revision !== undefined ? { revision } : {}),
       ...(missionId !== undefined ? { missionId } : {}),
       ...(tutorVoice !== undefined ? { tutorVoice } : {}),
+      ...(voiceSpeed !== undefined ? { voiceSpeed } : {}),
       ...(opts.snapshot !== undefined ? { snapshot: opts.snapshot } : {}),
       ...(opts.memoryLocked || scene ? { memoryLocked: true } : {}),
     }),

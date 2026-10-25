@@ -1,4 +1,5 @@
 import type { FirstContribution } from '../onboarding/firstLiveModel.ts';
+import { loadVoiceSpeedPreference } from './voiceSpeedPreference.ts';
 import { guestLiveBody } from '../onboarding/guestScene.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { attachCorrectionReason } from './correctionReason.ts';
@@ -960,7 +961,7 @@ export function useLiveSession(
       if (modeCarriesAudio(mode) && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
 
       const authStartedAt = Date.now();
-      const [headers, consent] = await Promise.all([authHeaders(), readConsent(!!guestToken)]);
+      const [headers, consent, voiceSpeed] = await Promise.all([authHeaders(), readConsent(!!guestToken), loadVoiceSpeedPreference()]);
       // Checked before the diagnostics are written, not after: the diagnostics
       // describe the session on screen, and this attempt may no longer be it.
       if (await abandoned()) return;
@@ -991,6 +992,9 @@ export function useLiveSession(
           // always present, resolved, so the token server signs a voice the
           // learner can actually be shown to have.
           tutorVoice: tutorVoice ?? DEFAULT_TUTOR_VOICE,
+          // Slower voice: sent only when the learner chose, so an unchosen
+          // learner gets the tutor's own default (slower for lessons and A0 to A1).
+          ...(voiceSpeed !== null ? { voiceSpeed } : {}),
         }),
       });
       // The long wait, and the one this guard was built for. A cold start can

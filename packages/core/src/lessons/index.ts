@@ -2,6 +2,7 @@ import { CAFE_LESSON } from './cafe.ts';
 import type { Lesson } from './types.ts';
 
 export { CAFE_LESSON } from './cafe.ts';
+export { lessonKeyterms } from './keyterms.ts';
 export {
   GUEST_SCENE,
   GUEST_SCENE_TURN_IDS,

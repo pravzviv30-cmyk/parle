@@ -369,6 +369,21 @@ describe('session shape in token metadata', () => {
     assert.match(server, /\.\.\.\(tutorVoice !== undefined \? \{ tutorVoice \} : \{\}\),/, 'the endpoint reads the tutor voice and then never hands it to grantSession');
   });
 
+  test('the token server signs the voice speed, and only slower or normal', async () => {
+    assert.equal((await metadataFor({ voiceSpeed: 'slower', mode: 'convo' })).voiceSpeed, 'slower');
+    assert.equal((await metadataFor({ voiceSpeed: 'normal' })).voiceSpeed, 'normal');
+    assert.equal('voiceSpeed' in (await metadataFor({})), false, 'never having chosen means no key at all');
+    for (const bad of ['Slower', 'fast', '', ' slower ', 'slow', 0.85, 1, true, null, {}, []] as unknown[]) {
+      const meta = await metadataFor({ voiceSpeed: bad });
+      assert.equal('voiceSpeed' in meta, false, `voiceSpeed ${JSON.stringify(bad)} should have been dropped, not signed`);
+      assert.equal(meta.mode, 'lesson', 'and the session still starts');
+    }
+    const server = readFileSync(new URL('./server.ts', import.meta.url), 'utf8');
+    assert.match(server, /const voiceSpeed = body\.voiceSpeed === 'slower' \|\| body\.voiceSpeed === 'normal'/, 'the endpoint no longer reads the voice speed off the body');
+    assert.match(server, /\.\.\.\(voiceSpeed !== undefined \? \{ voiceSpeed \} : \{\}\),/, 'the endpoint reads the voice speed and never hands it to grantSession');
+    assert.match(server, /missionId, tutorVoice, voiceSpeed \}/, 'the voice speed is part of the reservation request, like the voice');
+  });
+
   test('a tutor voice that is not shaped like a key is dropped, never refused', async () => {
     const malformed: unknown[] = [
       '',

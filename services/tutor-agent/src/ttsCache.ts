@@ -576,10 +576,12 @@ export class ReplayMemo {
 
 /**
  * The one per-session cost line, numbers only, for cost per minute:
- *   [luvani:cost] session=1a2b3c4d ttsCharsBilled=412 ttsCharsCached=380 ttsCharsReplayed=96 sttSec=184.2
+ *   [luvani:cost] session=1a2b3c4d ttsCharsBilled=412 ttsCharsCached=380 ttsCharsReplayed=96 ttsSpeed=0.85 sttSec=184.2
  * With LUVANI_CONVERSATION_TTS_MODEL on, `ttsCharsBilledConversation` follows
  * the cached count: the part of ttsCharsBilled sent to the conversation model
  * (ttsCharsBilled stays the total), so each model can be priced.
+ * `ttsSpeed` is the session's live voice speed (1 is the vendor's normal), so
+ * the beta can compare speeds; it is printed whenever the session had a voice.
  * `session` is the same 8-hex prefix the [luvani:brain:summary] line carries,
  * so the two join. No words, user ids or room names ever go in it. A field the
  * session could not measure (no session id, no recogniser) is left out, never
@@ -589,6 +591,8 @@ export function formatCostLine(input: {
   sessionId?: string;
   tts?: Pick<CachedTTS, 'charsBilled' | 'charsCached' | 'charsReplayed'> & Partial<Pick<CachedTTS, 'charsBilledConversation'>> | null;
   sttSec?: number | null;
+  /** The speed buildTTS was given; absent means normal (1). */
+  ttsSpeed?: number;
 }): string {
   const parts = ['[luvani:cost]'];
   const session = input.sessionId?.slice(0, 8);
@@ -596,6 +600,7 @@ export function formatCostLine(input: {
   const t = input.tts;
   parts.push(`ttsCharsBilled=${t?.charsBilled ?? 0}`, `ttsCharsCached=${t?.charsCached ?? 0}`, `ttsCharsReplayed=${t?.charsReplayed ?? 0}`);
   if (typeof t?.charsBilledConversation === 'number') parts.push(`ttsCharsBilledConversation=${t.charsBilledConversation}`);
+  if (t) parts.push(`ttsSpeed=${typeof input.ttsSpeed === 'number' && Number.isFinite(input.ttsSpeed) ? input.ttsSpeed : 1}`);
   if (typeof input.sttSec === 'number' && Number.isFinite(input.sttSec) && input.sttSec >= 0) parts.push(`sttSec=${input.sttSec.toFixed(1)}`);
   return parts.join(' ');
 }

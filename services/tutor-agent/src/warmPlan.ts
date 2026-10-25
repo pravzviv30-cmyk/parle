@@ -25,6 +25,7 @@
  */
 
 import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/core';
+import { BEGINNER_SPEED } from './voiceConfiguration.ts';
 
 /**
  * The variable name, exported so the script, the tests and any future doc line
@@ -99,9 +100,32 @@ export function voicesToWarm(env: Env = process.env): TutorVoiceKey[] {
   return catalogueKeys().filter((key) => wanted.has(key));
 }
 
+export const WARM_SPEED_ENV = 'LUVANI_WARM_SPEED';
+
+/**
+ * Which live voice speeds this run warms (VOICE-013). The speed is part of the
+ * cache key, so each one is a whole second copy of the corpus.
+ *
+ *   unset, empty or normal  the normal voice only (undefined: today's keys)
+ *   slower                  BEGINNER_SPEED only
+ *   both                    normal, then slower
+ *
+ * Anything else throws for the same reason a typo'd voice does: falling back
+ * would bill a warm of the wrong copy.
+ */
+export function speedsToWarm(env: Env = process.env): (number | undefined)[] {
+  const raw = (env[WARM_SPEED_ENV] ?? '').trim().toLowerCase();
+  if (raw === '' || raw === 'normal') return [undefined];
+  if (raw === 'slower') return [BEGINNER_SPEED];
+  if (raw === 'both') return [undefined, BEGINNER_SPEED];
+  throw new Error(`${WARM_SPEED_ENV} must be normal, slower or both, not "${raw}". Nothing was synthesized.`);
+}
+
 /** What a run is about to cost, in the only unit the vendor bills in. */
 export interface WarmCost {
   voices: number;
+  /** Speeds per voice; each is its own cache, so each pays the corpus again. */
+  speeds: number;
   lines: number;
   /** Characters in the corpus once. Every voice pays this again from cold. */
   charsPerVoice: number;
@@ -115,13 +139,14 @@ export interface WarmCost {
  * the cache key carries the voice, so nothing one voice synthesized is ever
  * replayed for another. There is no sharing to discount for.
  */
-export function warmCost(voices: readonly TutorVoiceKey[], lines: readonly string[]): WarmCost {
+export function warmCost(voices: readonly TutorVoiceKey[], lines: readonly string[], speeds = 1): WarmCost {
   const charsPerVoice = lines.reduce((total, line) => total + line.length, 0);
   return {
     voices: voices.length,
+    speeds,
     lines: lines.length,
     charsPerVoice,
-    charsTotal: charsPerVoice * voices.length,
+    charsTotal: charsPerVoice * voices.length * speeds,
   };
 }
 
@@ -134,6 +159,7 @@ export function warmCost(voices: readonly TutorVoiceKey[], lines: readonly strin
 export function warmPlanLine(cost: WarmCost): string {
   return (
     `${cost.voices} ${cost.voices === 1 ? 'voice' : 'voices'} x ${cost.lines} lines, ` +
+    (cost.speeds > 1 ? `x ${cost.speeds} speeds, ` : '') +
     `${cost.charsPerVoice} characters per voice, ` +
     `up to ${cost.charsTotal} characters if nothing is cached`
   );

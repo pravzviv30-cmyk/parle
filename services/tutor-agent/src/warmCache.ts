@@ -21,6 +21,9 @@
  *   LUVANI_WARM_VOICES=celine,emilie npm run warm-cache -w ...      # two
  *   LUVANI_WARM_VOICES=all npm run warm-cache -w ...                # all six
  *
+ * WHICH SPEEDS. The slower beginner voice (VOICE-013) is its own cache, so it
+ * is warmed separately. LUVANI_WARM_SPEED=normal (the default), slower or both.
+ *
  * The plan is resolved in warmPlan.ts before anything is built, so a mistyped
  * key refuses at once instead of after seven voices have been paid for. The run
  * prints what it is about to cost and then what each voice actually cost.
@@ -36,7 +39,7 @@ import { initializeLogger } from '@livekit/agents';
 import type { TutorVoiceKey } from '@luvani/core';
 import { buildTTS, selectedVoiceVendor, VOICE_KEY } from './voice.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
-import { voicesToWarm, warmCost, warmPlanLine, warmVoiceLine } from './warmPlan.ts';
+import { speedsToWarm, voicesToWarm, warmCost, warmPlanLine, warmVoiceLine } from './warmPlan.ts';
 
 import { assertDevelopmentPaidTool } from './standalonePaidTool.ts';
 assertDevelopmentPaidTool();
@@ -63,7 +66,7 @@ function scriptedLines(): string[] {
  * than a running total, and `chars` counts only misses because a hit costs
  * nothing.
  */
-async function warmVoice(voice: TutorVoiceKey, lines: readonly string[]): Promise<number> {
+async function warmVoice(voice: TutorVoiceKey, lines: readonly string[], speed: number | undefined): Promise<number> {
   // Always HTTP here, whatever the environment says.
   //
   // This script exits by letting the event loop drain, and the websocket
@@ -72,7 +75,7 @@ async function warmVoice(voice: TutorVoiceKey, lines: readonly string[]): Promis
   // three minutes. That flag lives in the same .env this file loads, so "set it
   // on the agent, not on the warm run" was advice that could not be followed.
   // Pinning it is the fix; the trap is gone rather than documented.
-  const cached = buildTTS({ voice, missTransport: 'http' });
+  const cached = buildTTS({ voice, speed, missTransport: 'http' });
 
   let chars = 0;
   for (const line of lines) {
@@ -80,7 +83,7 @@ async function warmVoice(voice: TutorVoiceKey, lines: readonly string[]): Promis
     await cached.synthesize(line).collect();
     const hit = cached.hits > had;
     if (!hit) chars += line.length;
-    console.log(`  ${voice} ${hit ? 'cached ' : 'synthd '} ${line}`);
+    console.log(`  ${voice}${speed === undefined ? '' : `@${speed}`} ${hit ? 'cached ' : 'synthd '} ${line}`);
   }
 
   // Closing matters even on the HTTP path: the fish vendor holds a client the
@@ -88,7 +91,7 @@ async function warmVoice(voice: TutorVoiceKey, lines: readonly string[]): Promis
   // script does not exit.
   await cached.close();
 
-  console.log(`[warm-cache] ${warmVoiceLine(voice, { cached: cached.hits, synthesized: cached.misses, chars })}`);
+  console.log(`[warm-cache] ${speed === undefined ? '' : `speed ${speed} `}${warmVoiceLine(voice, { cached: cached.hits, synthesized: cached.misses, chars })}`);
   return chars;
 }
 
@@ -97,8 +100,10 @@ async function main(): Promise<void> {
   // one environment variable and the catalogue, so a mistyped voice refuses
   // before a key is looked up, a vendor is constructed or a character is spent.
   let plan: TutorVoiceKey[];
+  let speeds: (number | undefined)[];
   try {
     plan = voicesToWarm();
+    speeds = speedsToWarm();
   } catch (err) {
     console.error(`[warm-cache] ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
@@ -114,16 +119,16 @@ async function main(): Promise<void> {
   }
 
   const lines = scriptedLines();
-  const cost = warmCost(plan, lines);
+  const cost = warmCost(plan, lines, speeds.length);
 
   // What it is about to cost, before it costs it. Printed even for the
   // one-voice default: the habit of reading this line is what makes the eight
   // voice number land when someone does type `all`.
-  console.log(`[warm-cache] ${lines.length} scripted lines: ${plan.join(', ')}`);
+  console.log(`[warm-cache] ${lines.length} scripted lines: ${plan.join(', ')} at ${speeds.map((speed) => speed ?? 'normal').join(' and ')} speed`);
   console.log(`[warm-cache] ${warmPlanLine(cost)}`);
 
   let billed = 0;
-  for (const voice of plan) billed += await warmVoice(voice, lines);
+  for (const speed of speeds) for (const voice of plan) billed += await warmVoice(voice, lines, speed);
 
   console.log(`[warm-cache] done: ${cost.voices} ${cost.voices === 1 ? 'voice' : 'voices'}, ~${billed} chars billed`);
 }

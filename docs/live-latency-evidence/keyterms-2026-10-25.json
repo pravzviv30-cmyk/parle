@@ -1,0 +1,630 @@
+{
+  "date": "2026-10-25",
+  "synthetic": true,
+  "syntheticNote": "The accent is SYNTHETIC: an English-native ElevenLabs voice reading French text. It is a stand-in for an English accent, not real beginners, and says nothing about how real learners sound.",
+  "realRecordings": 0,
+  "voice": {
+    "id": "iP95p4xoKVk53GoZ742B",
+    "name": "Chris - Charming, Down-to-Earth",
+    "labels": {
+      "gender": "male",
+      "descriptive": "casual",
+      "language": "en",
+      "use_case": "conversational",
+      "age": "middle_aged",
+      "accent": "american"
+    },
+    "category": "premade"
+  },
+  "model": "eleven_multilingual_v2",
+  "voiceSettings": {
+    "stability": 0.4,
+    "similarity_boost": 0.8,
+    "style": 0.3,
+    "use_speaker_boost": true
+  },
+  "creditsFromHeaders": 104,
+  "keyterms": [
+    "Bonjour",
+    "Un café, s'il vous plaît",
+    "Sur place, s'il vous plaît",
+    "Pardon, vous pouvez répéter",
+    "Un croissant, s'il vous plaît",
+    "Oui, c'est tout, merci",
+    "C'est combien",
+    "Par carte, s'il vous plaît",
+    "Merci beaucoup",
+    "Excusez-moi, où sont les toilettes",
+    "Bonne journée",
+    "Au revoir, madame",
+    "Un café",
+    "Sur place",
+    "Un croissant",
+    "c'est tout"
+  ],
+  "deepgram": {
+    "mode": "plugin-stream",
+    "options": {
+      "model": "nova-3",
+      "language": "fr",
+      "sampleRate": 16000,
+      "numChannels": 1,
+      "mipOptOut": true,
+      "plugin": "defaults (endpointing 25, smartFormat, interimResults)",
+      "withKeyterms": "keyterm option on the plugin; repeated &keyterm= on REST fallback"
+    },
+    "billedSeconds": 140.8,
+    "streams": 48,
+    "speed": "2x real time"
+  },
+  "lead": {
+    "ms": 1100
+  },
+  "tail": {
+    "ms": 2000
+  },
+  "rows": [
+    {
+      "clip": "accented/t01-bonjour-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Bonjour",
+      "transcript": "Bonjour,",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t01-bonjour-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Bonjour",
+      "transcript": "Bonjour,",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t01-bonjour.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Bonjour",
+      "transcript": "Bonjour,",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t01-bonjour.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Bonjour",
+      "transcript": "Bonjour,",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t02-un-cafe-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Un café, s'il vous plaît",
+      "transcript": "Un café, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t02-un-cafe-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Un café, s'il vous plaît",
+      "transcript": "Un café s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t02-un-cafe-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Un café, s'il vous plaît",
+      "transcript": "Un café s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t02-un-cafe-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Un café, s'il vous plaît",
+      "transcript": "Un café s'il vous plaît",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t03-sur-place-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Sur place, s'il vous plaît",
+      "transcript": "Sur place, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t03-sur-place-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Sur place, s'il vous plaît",
+      "transcript": "Sur place, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t03-sur-place-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Sur place, s'il vous plaît",
+      "transcript": "Sur place, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t03-sur-place-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Sur place, s'il vous plaît",
+      "transcript": "Sur place s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t04-pardon-vous-pouvez-repeter-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Pardon, vous pouvez répéter ?",
+      "transcript": "Pardon, vous pouvez répéter?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t04-pardon-vous-pouvez-repeter-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Pardon, vous pouvez répéter ?",
+      "transcript": "Pardon, vous pouvez répéter?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t04-pardon-vous-pouvez-repeter.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Pardon, vous pouvez répéter ?",
+      "transcript": "Pardon, vous pouvez répéter?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t04-pardon-vous-pouvez-repeter.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Pardon, vous pouvez répéter ?",
+      "transcript": "Pardon, vous pouvez répéter?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t05-un-croissant-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Un croissant, s'il vous plaît",
+      "transcript": "Un croissant, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t05-un-croissant-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Un croissant, s'il vous plaît",
+      "transcript": "Un croissant s'il vous plaît",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t05-un-croissant-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Un croissant, s'il vous plaît",
+      "transcript": "Un croissant, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t05-un-croissant-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Un croissant, s'il vous plaît",
+      "transcript": "Un croissant s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t06-oui-c-est-tout-merci-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Oui, c'est tout, merci",
+      "transcript": "Oui, c'est tout, merci.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t06-oui-c-est-tout-merci-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Oui, c'est tout, merci",
+      "transcript": "Oui c'est tout merci",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t06-oui-c-est-tout-merci.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Oui, c'est tout, merci",
+      "transcript": "Oui c'est tout, merci.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t06-oui-c-est-tout-merci.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Oui, c'est tout, merci",
+      "transcript": "Oui c'est tout, merci",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t07-c-est-combien-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "C'est combien ?",
+      "transcript": "C'est combien?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t07-c-est-combien-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "C'est combien ?",
+      "transcript": "C'est combien?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t07-c-est-combien.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "C'est combien ?",
+      "transcript": "C'est combien?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t07-c-est-combien.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "C'est combien ?",
+      "transcript": "C'est combien?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t08-par-carte-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Par carte, s'il vous plaît",
+      "transcript": "Par carte, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t08-par-carte-s-il-vous-plait-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Par carte, s'il vous plaît",
+      "transcript": "Par carte s'il vous plaît",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t08-par-carte-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Par carte, s'il vous plaît",
+      "transcript": "Par carte, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t08-par-carte-s-il-vous-plait.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Par carte, s'il vous plaît",
+      "transcript": "Par carte, s'il vous plaît.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t09-merci-beaucoup-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Merci beaucoup",
+      "transcript": "Merci beaucoup. Beaucoup.",
+      "wordAccuracy": 0.5,
+      "exact": false,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t09-merci-beaucoup-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Merci beaucoup",
+      "transcript": "Merci beau. Beaucoup.",
+      "wordAccuracy": 0.5,
+      "exact": false,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t09-merci-beaucoup.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Merci beaucoup",
+      "transcript": "Ce merci beaucoup.",
+      "wordAccuracy": 0.5,
+      "exact": false,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t09-merci-beaucoup.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Merci beaucoup",
+      "transcript": "Ce merci beaucoup",
+      "wordAccuracy": 0.5,
+      "exact": false,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t10-excusez-moi-ou-sont-les-toilettes-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Excusez-moi, où sont les toilettes ?",
+      "transcript": "Excusez-moi, où sont les toilettes?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t10-excusez-moi-ou-sont-les-toilettes-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Excusez-moi, où sont les toilettes ?",
+      "transcript": "Excusez-moi, où sont les toilettes?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t10-excusez-moi-ou-sont-les-toilettes.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Excusez-moi, où sont les toilettes ?",
+      "transcript": "Excusez-moi, où sont les toilettes?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t10-excusez-moi-ou-sont-les-toilettes.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Excusez-moi, où sont les toilettes ?",
+      "transcript": "Excusez-moi, où sont les toilettes?",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t11-bonne-journee-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Bonne journée",
+      "transcript": "Bonne journée.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t11-bonne-journee-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Bonne journée",
+      "transcript": "Bonne journée.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t11-bonne-journee.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Bonne journée",
+      "transcript": "Bonne journée.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t11-bonne-journee.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Bonne journée",
+      "transcript": "Bonne journée.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t12-au-revoir-madame-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "keyterms",
+      "reference": "Au revoir, madame",
+      "transcript": "Au revoir. Madame.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t12-au-revoir-madame-m20db.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "condition": "plain",
+      "reference": "Au revoir, madame",
+      "transcript": "Au revoir madame.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t12-au-revoir-madame.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "keyterms",
+      "reference": "Au revoir, madame",
+      "transcript": "Au revoir, madame.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    },
+    {
+      "clip": "accented/t12-au-revoir-madame.wav",
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "condition": "plain",
+      "reference": "Au revoir, madame",
+      "transcript": "Au revoir, madame.",
+      "wordAccuracy": 1,
+      "exact": true,
+      "mode": "plugin-stream"
+    }
+  ],
+  "summary": [
+    {
+      "group": "synthetic accent (English voice reading French)",
+      "level": "-20 dB",
+      "plain": {
+        "clips": 12,
+        "medianWordAccuracy": 1,
+        "exactMatches": 11
+      },
+      "keyterms": {
+        "clips": 12,
+        "medianWordAccuracy": 1,
+        "exactMatches": 11
+      },
+      "medianAccuracyGain": 0,
+      "exactGain": 0
+    },
+    {
+      "group": "synthetic accent (English voice reading French)",
+      "level": "normal",
+      "plain": {
+        "clips": 12,
+        "medianWordAccuracy": 1,
+        "exactMatches": 11
+      },
+      "keyterms": {
+        "clips": 12,
+        "medianWordAccuracy": 1,
+        "exactMatches": 11
+      },
+      "medianAccuracyGain": 0,
+      "exactGain": 0
+    }
+  ]
+}

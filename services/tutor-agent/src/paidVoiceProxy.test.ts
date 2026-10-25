@@ -3,9 +3,9 @@ import { test } from 'node:test';
 import { EventEmitter, once } from 'node:events';
 import { createRequire } from 'node:module';
 import { request as httpRequest } from 'node:http';
-import { createPaidVoiceProxy, describeStreamingDeepgram, type VendorSocket, type PaidVoiceProxy } from './paidVoiceProxy.ts';
+import { createPaidVoiceProxy, describeStreamingDeepgram, keytermSttConfigurationSha256, type VendorSocket, type PaidVoiceProxy } from './paidVoiceProxy.ts';
 import { paidConfigurationSha256, reservationGate, type PaidDescriptor, type PaidGate } from '../../shared/paidExecution.ts';
-import type { PaidReservation } from '../../shared/paidAdmission.ts';
+import { PaidAdmissionError, type PaidReservation } from '../../shared/paidAdmission.ts';
 const WebSocket=createRequire(import.meta.url)('ws') as new(url:string,options?:unknown)=>VendorSocket;
 const config='?model=nova-3&language=fr&encoding=linear16&sample_rate=16000&channels=1&punctuate=true&mip_opt_out=true';
 const credentials={deepgram:'stored-deepgram-fixture',elevenlabs:'stored-eleven-fixture',anthropic:'stored-anthropic-fixture',openai:'stored-openai-fixture'};
@@ -28,7 +28,62 @@ test('streaming descriptor is actual pinned configuration, rejects encoding/unkn
   assert.equal(descriptor.model,'nova-3');assert.equal(descriptor.quantities.audioMillis,120000);
   assert.equal((descriptor.configuration.parameters as Record<string,string>).language,'fr');
   assert.equal((descriptor.configuration.parameters as Record<string,string>).mip_opt_out,'true');
-  for(const suffix of [config+'&api_key=private',config+'&model=nova-2',config.replace('16000','48000'),config.replace('linear16','opus'),config+'&keyterm=private',config.replace('&mip_opt_out=true',''),config.replace('mip_opt_out=true','mip_opt_out=false')])assert.throws(()=>describeStreamingDeepgram(new URL('wss://api.deepgram.com/v1/listen'+suffix),120000));
+  for(const suffix of [config+'&api_key=private',config+'&model=nova-2',config.replace('16000','48000'),config.replace('linear16','opus'),config.replace('nova-3','nova-2')+'&keyterm=private',config.replace('&mip_opt_out=true',''),config.replace('mip_opt_out=true','mip_opt_out=false')])assert.throws(()=>describeStreamingDeepgram(new URL('wss://api.deepgram.com/v1/listen'+suffix),120000));
+});
+const keyterm=(terms:string[])=>terms.map(term=>'&keyterm='+encodeURIComponent(term)).join('');
+const describe=(query:string)=>describeStreamingDeepgram(new URL('wss://api.deepgram.com/v1/listen'+query),120000);
+test('nova-3 keyterms are accepted only within caps and never on other models or keys',()=>{
+  const sixteen=Array.from({length:16},(_,n)=>`Un café ${n}`);
+  assert.equal((describe(config+keyterm(sixteen)).configuration.parameters as Record<string,string>).keyterm,'prompted');
+  assert.equal((describe(config+keyterm(['x'.repeat(100)])).configuration.parameters as Record<string,string>).keyterm,'prompted');
+  // 400 bytes of worst-case percent-encoding still fits the route cap.
+  assert.ok(describe(config+keyterm(['é'.repeat(50),'é'.repeat(50),'é'.repeat(50),'é'.repeat(50)])));
+  for(const terms of [[...sixteen,'one more'],['x'.repeat(101)],['é'.repeat(50),'é'.repeat(50),'é'.repeat(50),'é'.repeat(50),'x'],[''],['a\nb'],['a\x7fb'],['a\x00b'],['a;mip_opt_out=false']])
+    assert.throws(()=>describe(config+keyterm(terms)),/invalid-keyterms|invalid-route/);
+  assert.throws(()=>describe(config.replace('nova-3','nova-2')+keyterm(['Bonjour'])));
+  assert.throws(()=>describe(config+'&punctuate=true'+keyterm(['Bonjour'])),/invalid-parameters/);
+});
+test('keyterm identity ignores the values, carries a marker, and leaves the plain descriptor unchanged',()=>{
+  const hash=(query:string)=>{const {quantities:_q,...identity}=describe(query);return paidConfigurationSha256(identity);};
+  assert.equal(hash(config+keyterm(['Bonjour'])),hash(config+keyterm(['Un café, s’il vous plaît','Merci'])));
+  assert.notEqual(hash(config+keyterm(['Bonjour'])),hash(config));
+  assert.equal(keytermSttConfigurationSha256(config),hash(config+keyterm(['Bonjour'])));
+  // Byte-identical to the pre-keyterm descriptor, so every bound quote keeps matching.
+  assert.deepEqual(describe(config).configuration,{parameters:{channels:'1',encoding:'linear16',language:'fr',mip_opt_out:'true',model:'nova-3',punctuate:'true',sample_rate:'16000'}});
+});
+test('a keyterm stream is forwarded with its keyterms when the quote prices them',async()=>{
+  const f=fixture(),logs:unknown[][]=[],log=console.log;console.log=(...args:unknown[])=>{logs.push(args);};
+  const proxy=await createPaidVoiceProxy(f.options);
+  try{
+    const client=await connect(proxy,config+keyterm(['C’est combien','Merci']));await until(()=>f.upstreams.length===1);
+    assert.equal(f.descriptors.length,1);assert.equal((f.descriptors[0]!.configuration.parameters as Record<string,string>).keyterm,'prompted');
+    assert.deepEqual(new URL(f.connections[0]!.url).searchParams.getAll('keyterm'),['C’est combien','Merci']);
+    // The raw upstream text is the re-encoded parse, so no unescaped separator reaches Deepgram.
+    assert.equal(f.connections[0]!.url,`wss://api.deepgram.com/v1/listen?${new URLSearchParams(config+keyterm(['C’est combien','Merci']))}`);
+    assert.deepEqual(logs,[['[luvani] keyterms: prompted']]);client.terminate();
+    // Worst case through the route cap: the full SDK query plus 16 keyterms, 400 bytes, every byte percent-encoded.
+    const sdk='?model=nova-3&punctuate=true&smart_format=true&dictation=false&diarize=false&numerals=false&no_delay=true&interim_results=true&encoding=linear16&vad_events=true&sample_rate=16000&channels=1&endpointing=25&filler_words=false&profanity_filter=false&language=fr&mip_opt_out=true&utterance_end_ms=1000';
+    const worst=Array.from({length:16},()=>'é'.repeat(12)+'?');assert.equal(worst.reduce((n,t)=>n+Buffer.byteLength(t),0),400);
+    const big=await connect(proxy,sdk+worst.map(t=>'&keyterm='+[...Buffer.from(t)].map(b=>'%'+b.toString(16).toUpperCase().padStart(2,'0')).join('')).join(''));
+    await until(()=>f.upstreams.length===2);assert.equal(new URL(f.connections[1]!.url).searchParams.getAll('keyterm').length,16);big.terminate();
+  }finally{console.log=log;await proxy.close();}
+});
+test('quote-mismatch on the keyterm descriptor admits the plain descriptor and strips keyterms upstream',async()=>{
+  const admitted:PaidDescriptor[]=[],root=new AbortController(),logs:unknown[][]=[],log=console.log;console.log=(...args:unknown[])=>{logs.push(args);};
+  const f=fixture(async descriptor=>{if((descriptor.configuration.parameters as Record<string,string>).keyterm)throw new PaidAdmissionError('quote-mismatch');admitted.push(descriptor);return root.signal;});
+  const proxy=await createPaidVoiceProxy(f.options);
+  try{
+    const client=await connect(proxy,config+keyterm(['Bonjour','Merci']));await until(()=>f.upstreams.length===1);
+    assert.equal(admitted.length,1);assert.deepEqual(admitted[0]!.configuration,describe(config).configuration);
+    const upstream=new URL(f.connections[0]!.url);assert.equal(upstream.searchParams.has('keyterm'),false);assert.equal(upstream.searchParams.get('model'),'nova-3');
+    assert.ok(!f.connections[0]!.url.includes('Bonjour'));assert.deepEqual(logs,[['[luvani] keyterms: stripped']]);client.terminate();
+  }finally{console.log=log;await proxy.close();}
+});
+test('any other refusal of a keyterm stream closes it with no second admission',async()=>{
+  for(const error of [new PaidAdmissionError('quantity-limit'),new PaidAdmissionError('admission-unavailable'),new Error('quote-mismatch')]){
+    let calls=0;const f=fixture(async()=>{calls++;throw error;});const proxy=await createPaidVoiceProxy(f.options);
+    try{await assert.rejects(connect(proxy,config+keyterm(['Bonjour'])));assert.equal(calls,1);assert.equal(f.connections.length,0);}finally{await proxy.close();}
+  }
 });
 test('actual SDK-shaped nova3 multilingual conversation query retains fr/multi reset behavior',()=>{
   const actual='?model=nova-3&punctuate=true&smart_format=true&dictation=false&diarize=false&numerals=false&no_delay=true&interim_results=true&encoding=linear16&vad_events=true&sample_rate=16000&channels=1&endpointing=25&filler_words=false&profanity_filter=false&language=multi&mip_opt_out=true';
@@ -194,3 +249,10 @@ function rawUpload(target:string,headers:Record<string,string>,body?:string):Pro
     request.end(body);
   });
 }
+test('a raw semicolon inside a keyterm value never reaches the vendor',async()=>{
+  const f=fixture();const proxy=await createPaidVoiceProxy(f.options);
+  try{await assert.rejects(connect(proxy,config+'&keyterm=a;mip_opt_out=false'));assert.equal(f.connections.length,0);
+    const plain=await connect(proxy,config+'&smart_format=true');await until(()=>f.connections.length===1);
+    assert.equal(f.connections[0]!.url,`wss://api.deepgram.com/v1/listen?${new URLSearchParams(config+'&smart_format=true')}`);plain.terminate();
+  }finally{await proxy.close();}
+});

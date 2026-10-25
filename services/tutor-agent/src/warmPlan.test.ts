@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/core';
-import { voicesToWarm, warmCost, warmPlanLine, warmVoiceLine, WARM_VOICES_ENV } from './warmPlan.ts';
+import { speedsToWarm, voicesToWarm, warmCost, warmPlanLine, warmVoiceLine, WARM_SPEED_ENV, WARM_VOICES_ENV } from './warmPlan.ts';
+import { BEGINNER_SPEED } from './voiceConfiguration.ts';
 
 const CATALOGUE = Object.keys(TUTOR_VOICES) as TutorVoiceKey[];
 
@@ -107,5 +108,33 @@ describe('the warm plan decides which voices a run pays for', () => {
     assert.equal(run.status, 1, 'the run stops rather than warming what it can');
     assert.match(run.stderr, /not in the catalogue/, 'and refuses over the typo');
     assert.doesNotMatch(run.stdout, /scripted lines/, 'having printed nothing about work it did not start');
+  });
+});
+
+describe('the warm plan decides which voice speeds a run pays for (VOICE-013)', () => {
+  test('normal by default; slower and both warm BEGINNER_SPEED; anything else refuses', () => {
+    for (const raw of [undefined, '', '  ', 'normal', ' NORMAL ']) assert.deepEqual(speedsToWarm(raw === undefined ? {} : { [WARM_SPEED_ENV]: raw }), [undefined]);
+    assert.deepEqual(speedsToWarm({ [WARM_SPEED_ENV]: 'slower' }), [BEGINNER_SPEED]);
+    assert.deepEqual(speedsToWarm({ [WARM_SPEED_ENV]: 'Both' }), [undefined, BEGINNER_SPEED]);
+    for (const raw of ['slow', '0.9', 'fast', 'normal,slower']) assert.throws(() => speedsToWarm({ [WARM_SPEED_ENV]: raw }), /LUVANI_WARM_SPEED must be normal, slower or both[^]*Nothing was synthesized/);
+  });
+
+  test('each speed is a whole copy of the corpus in the printed cost', () => {
+    const one = warmCost(['marie'], CORPUS), two = warmCost(['marie'], CORPUS, 2);
+    assert.equal(one.speeds, 1);assert.equal(two.charsTotal, one.charsTotal * 2);
+    assert.doesNotMatch(warmPlanLine(one), /speeds/);
+    assert.match(warmPlanLine(two), /x 2 speeds, .* up to \d+ characters/);
+  });
+
+  test('the run refuses an unknown speed before asking for a key', () => {
+    const script = new URL('./warmCache.ts', import.meta.url).pathname;
+    const run = spawnSync(process.execPath, ['--experimental-strip-types', script], {
+      cwd: mkdtempSync(join(tmpdir(), 'luvani-warmspeed-')),
+      env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', [WARM_SPEED_ENV]: 'slow' },
+      encoding: 'utf8',
+    });
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /LUVANI_WARM_SPEED/);
+    assert.doesNotMatch(run.stderr, /API_KEY/);
   });
 });

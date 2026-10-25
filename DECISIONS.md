@@ -936,3 +936,136 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     needs re-binding.
 - Sources: [vendor comparison](docs/changes/vendor-comparison.md), VOICE-008
   above, F193 in [known issues](docs/KNOWN_ISSUES.md).
+
+## VOICE-013 — Beginners hear a slower voice, chosen once per session
+
+- Date: 2026-10-25
+- Status: accepted (founder chose "beginner default plus a switch" in the plan)
+- Decision:
+  - The live tutor voice speaks at ElevenLabs `speed` 0.85 (`BEGINNER_SPEED`
+    in `voiceConfiguration.ts`) for scripted lessons, guest scenes and
+    conversations while the profile estimate is A0 or A1 (or absent). From A2
+    up it speaks at the vendor's normal speed.
+  - A "Slower voice" switch in Learning preferences overrides that either way.
+    It is stored on the device (`@luvani/voice-speed/v1`), sent as
+    `voiceSpeed: 'slower' | 'normal'` on session start only when chosen,
+    validated and signed by the token server, and read by the agent.
+  - `tutorSpeedFor` decides the speed once at session start. It never changes
+    mid-session, because it is part of the voice cache key. The scene's
+    "Simpler" control still changes sentences only.
+  - `VOICE_SETTINGS` stays as it was. The bundled daily and onboarding clips,
+    the build scripts' manifest checks and saved-phrase Hear (whose database
+    rates are keyed by that fingerprint) are untouched; Hear plays at normal
+    speed.
+  - Each speed is its own authored-line cache: `buildTTS({ speed })` folds the
+    speed into `voiceKey` (`speed=85`). Normal speed keeps today's keys byte
+    for byte. `LUVANI_WARM_SPEED=normal|slower|both` warms either copy.
+  - Speed is not part of a paid quote component's identity: `describePaidHttp`
+    removes `voice_settings.speed` from the hashed configuration when it is a
+    finite number from 0.7 to 1.2 and refuses anything else. Existing quotes
+    keep matching, so no SQL step is needed.
+  - `[luvani:cost]` carries `ttsSpeed`.
+- Reason: learners in the founder's market report ask for speech-speed
+  control, and the "Simpler" pace only ever shortened sentences. Measured on
+  25 October 2026 on alexandre, two lines (`scripts/measureVoiceSpeed.mjs`,
+  `docs/cogs-evidence/voice-speed-2026-10-25.json`, about 200 credits):
+
+  | Condition | Characters a second | Pace against 1.0 | Credits per character | Deepgram word accuracy (median) |
+  |---|---|---|---|---|
+  | v2 at 1.0 | 20.3 | 1.00 | 0.397 | 0.94 |
+  | v2 at 0.9 | 19.3 | 0.95 | 0.397 | 1.00 |
+  | v2 at 0.85 | 16.9 | 0.83 | 0.397 | 1.00 |
+  | Flash v2.5 at 0.9 | 18.1 | 0.81 | 0.199 | 1.00 |
+
+  - 0.9 is barely slower than 1.0. 0.85 is about 17% slower and Deepgram
+    still recognised every word, so the French is not distorted to a
+    recogniser. Whether it sounds natural is a listening call: clips are in
+    `~/Developer/StartUps/listening/voice-speed-2026-10-25/`.
+  - Billed credits were identical at every speed (the `character-cost`
+    header), so speed is price-neutral.
+  - Flash's pace at 0.9 was inconsistent between the two lines (22.3 and 13.9
+    characters a second). It matters only if the VOICE-009 switch is turned
+    on; listen to it before then.
+  - Two lines on one voice is a small sample, and takes vary at stability 0.4.
+- Consequence:
+  - **Cost per minute:** unchanged or lower. TTS bills characters, and the
+    same scene at 0.85 bills the same characters. Slower lines fill more of
+    each minute, so per wall-clock minute the cost can only fall. A mission
+    minute stays at about $0.048 at most ($0.034 with Flash), a warm lesson
+    minute at about $0.012 to $0.014. `DEFAULT_COST_MODEL` is unchanged.
+  - **Cache:** the slower copy of the authored lines is a second cold cache.
+    Warming it costs 23,600 billed characters across the six voices (two bill
+    2x), about $1.89 once; without a warm it fills lazily for the same total.
+    `docs/changes/beta-launch.md` step 4 has the founder's warm command.
+  - **Rejected:** authored lines at one speed only, which would mix slow and
+    normal lines in one scene; a per-speed quote component, which would
+    exceed the sixteen-component quote limit.
+  - **Known gap:** with no choice, the switch shows the conversation default.
+    An A2 learner who never touches it sees it off, yet a scripted lesson still
+    plays slower, because lesson content is A0.
+  - Hear at the slower speed needs new `phrase_audio_rates` rows; not done.
+- Sources: `services/tutor-agent/src/voiceConfiguration.ts`
+  (`BEGINNER_SPEED`, `tutorSpeedFor`), `voice.ts` (`buildTTS`),
+  `services/shared/paidExecution.ts`, `apps/mobile/src/tutor/voiceSpeed.ts`,
+  VOICE-008, VOICE-009.
+
+## VOICE-014 — Scripted lessons give Deepgram their lines as keyterms, once
+
+- Date: 2026-10-25
+- Status: accepted. Production needs a keyterm STT quote component to turn it
+  on; without one nothing changes.
+- Decision:
+  - Lessons and guest scenes build their Nova-3 recognizer with one fixed
+    keyterm list, `lessonKeyterms(lesson)` (core): every turn's target first
+    (a trailing `?` removed, since `recognitionPhrases` drops question lines),
+    then short forms, then acceptable options, deduplicated, at most 16
+    phrases and 400 bytes. The café lesson keeps all 12 targets. `accepts` is
+    left out because it is lowercase and unaccented.
+  - The list is set once, at construction, with and without the paid proxy.
+    Per-turn updates are deliberately avoided: every keyterm change reopens
+    the Deepgram socket, and under the proxy each socket is admitted as a full
+    session of audio.
+  - Conversations are unchanged: per-turn keyterms off the proxy, none under
+    it. Production mission keyterms are a follow-up that needs reconnect
+    pricing first.
+  - The paid proxy accepts repeated `keyterm` parameters only with nova-3,
+    within those caps and with no control characters or `;`, and forwards the
+    re-encoded query it hashed. The values are input, not configuration: the
+    descriptor carries the marker `keyterm: 'prompted'` instead, because
+    Keyterm Prompting is a per-minute add-on ($0.0013 a minute on Pay As You
+    Go, Deepgram pricing page, 25 October 2026).
+  - If the bound quote has no keyterm component the gate refuses with
+    `quote-mismatch` before any claim; the proxy then admits the plain
+    descriptor and forwards the URL with no keyterms, which is today's
+    behaviour. `PaidGate` documents that a gate may throw `quote-mismatch`
+    only before any spend. The tutor logs `[luvani] keyterms: prompted` or
+    `stripped`, never the values.
+- Reason: the market report names recognising accented beginner speech as
+  the riskiest technical piece and says to constrain recognition to the
+  expected lines on scripted turns.
+- Measured, `scripts/measureKeyterms.mjs`
+  (`docs/live-latency-evidence/keyterms-2026-10-25.json`, 104 ElevenLabs
+  credits and about 141 s of Deepgram audio): the 12 café targets read by an
+  English ElevenLabs voice (Chris), at normal level and at -20 dB, with and
+  without the keyterms. Every condition scored median word accuracy 1.00 and
+  11 of 12 exact. The miss is a clip in which the voice repeated "beaucoup";
+  at -20 dB the keyterms turned "Merci beau." into "Merci beaucoup." This is
+  inconclusive, not a null result: the synthetic voice speaks near-native
+  French, so plain recognition was already at the ceiling. It does show that
+  the keyterms made no transcript worse. Real beginner recordings are needed
+  to measure the gain.
+- Consequence:
+  - **Founder step (optional):** seed NEW `lesson` quotes with a keyterm STT
+    component (hash from `keytermSttConfigurationSha256`, priced at Nova-3
+    plus the add-on) and re-bind. `deployment/PAID_ADMISSION.md` has the
+    detail. `sttPerMin: 0.009` in the cost model already includes the add-on.
+  - The guest scene gate does not hash configuration, so guest scenes send
+    keyterms now; the runbook's $0.027 per scene already prices the add-on.
+  - The security review (read-only, 25 October) found nothing blocking; its
+    two hardening points (re-encoded forwarding, the gate invariant) and test
+    gaps were applied.
+  - The 16-keyterm, 400-byte cap is Luvani's own, not checked against
+    Deepgram's documented limits.
+- Sources: `packages/core/src/lessons/keyterms.ts`,
+  `services/tutor-agent/src/agent.ts`, `paidVoiceProxy.ts`,
+  `services/shared/paidExecution.ts`, `docs/LIVE_VOICE.md`, VOICE-008.
