@@ -682,7 +682,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - A lesson may run preemptive generation once more per held pause; the
     framework caps that at three a turn.
 - Deferred:
-  - Tap-to-send (manual turn mode with an auto-send cap). Built as VOICE-017.
+  - Tap-to-send (manual turn mode with an auto-send cap). Built as VOICE-019.
   - Merging a fragment that was already cut off with its continuation.
   - Field calibration with real beginners in the beta. The clips are one
     sentence in synthetic voices.
@@ -937,7 +937,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Sources: [vendor comparison](docs/changes/vendor-comparison.md), VOICE-008
   above, F193 in [known issues](docs/KNOWN_ISSUES.md).
 
-## VOICE-016 — A heads-up a minute before the cap, then a warm close
+## VOICE-018 — A heads-up a minute before the cap, then a warm close
 
 - Date: 2026-10-25
 - Status: accepted
@@ -965,7 +965,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - Policy in `services/tutor-agent/src/sessionEnd.ts`; the tutors expose
     `wrapUp()`, `closeForTime()` and `sessionEndView()`.
 - Review: `voice-reliability-architect` (read-only, 2026-10-25) found six
-  issues across VOICE-016 and VOICE-017; all are fixed with tests.
+  issues across VOICE-018 and VOICE-019; all are fixed with tests.
 - Reason: "calls end on a hidden timer" is a top complaint about Duolingo's
   video calls in the founder's market report. Free sessions are now 10 minutes
   (REV-001), so more learners meet the cap.
@@ -982,7 +982,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Sources: founder answers of 25 October 2026, `docs/LIVE_VOICE.md` "Nearly time
   to finish", UI-008 above.
 
-## VOICE-017 — Tap to send: the turn ends when the learner says so
+## VOICE-019 — Tap to send: the turn ends when the learner says so
 
 - Date: 2026-10-25
 - Status: accepted

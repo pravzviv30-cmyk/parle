@@ -22,7 +22,7 @@ of the list.
 
 ## Current landing snapshot
 
-- 25 October 2026 session heads-up (VOICE-016) and tap to send (VOICE-017) on branch
+- 25 October 2026 session heads-up (VOICE-018) and tap to send (VOICE-019) on branch
   `claude/heads-up-tap-send` from main 50b46a0f (not on main): a spoken heads-up a minute before
   the cap with a numberless room note and a warm close, and an opt-in held turn that ends on
   Send or at 60 s through the SDK's manual turn detection: **6,601 tests, 0 failing**; core

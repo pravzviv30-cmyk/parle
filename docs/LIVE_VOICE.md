@@ -679,7 +679,7 @@ Why soft and not whispered (`docs/live-latency-evidence/2026-10-23-quiet-speech.
 All clips are synthetic (ElevenLabs). Founder recordings in
 `artifacts/quiet-speech-2026-10-23/real/` and a device check are still owed.
 
-## Nearly time to finish (VOICE-016)
+## Nearly time to finish (VOICE-018)
 
 A session used to end on the cap with no warning: the tutor said "Your session
 has reached its time limit" as the room closed. Now the worker gives a heads-up
@@ -713,7 +713,7 @@ about a minute before and closes warmly after one more exchange
   are in `AUTHORED_SPEECH_LINES`, so `warm-cache` covers them once it is run.
 - **Kill switch.** `LUVANI_SESSION_HEADS_UP=0` on the tutor role.
 
-## Tap to send (VOICE-017)
+## Tap to send (VOICE-019)
 
 An optional mode for anyone the pause floors still cut off. With it on, the
 microphone stays open and the learner's turn ends only when they tap Send, or

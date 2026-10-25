@@ -234,7 +234,7 @@ With the `TTS_CACHE_DIR` volume warm, every scene line replays free, and a scene
 
 **Switching it off** needs no migration or drain. Unset `LUVANI_GUEST_SCENE` on the API and redeploy. The counters and records expire by themselves.
 
-## Session heads-up and tap to send (VOICE-016, VOICE-017, 25 October)
+## Session heads-up and tap to send (VOICE-018, VOICE-019, 25 October)
 
 Both are on by default in the tutor role and need no migration. Deploy the tutor
 agent and the app together: an old app never sends `tap-to-send`, and an old

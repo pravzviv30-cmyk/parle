@@ -71,7 +71,7 @@ has finished, against 400 ms at rungs 3-4. Each time a learner is cut off (they
 carry on within 1,500 ms, before the tutor has answered) the wait grows by
 400 ms, up to 2,000 ms. Details and measured costs are in `LIVE_VOICE.md`.
 
-**Tap to send (VOICE-017).** A learner who wants all the time they need can turn
+**Tap to send (VOICE-019).** A learner who wants all the time they need can turn
 on Tap to send: the turn ends only when they tap Send, or after 60 s. While a
 turn is held there is no rescue, because a pause mid-recording is thinking, not
 being stuck. Before they say anything, the ordinary four seconds still apply.
