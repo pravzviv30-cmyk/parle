@@ -103,7 +103,7 @@ export function voicesToWarm(env: Env = process.env): TutorVoiceKey[] {
 export const WARM_SPEED_ENV = 'LUVANI_WARM_SPEED';
 
 /**
- * Which live voice speeds this run warms (VOICE-013). The speed is part of the
+ * Which live voice speeds this run warms (VOICE-016). The speed is part of the
  * cache key, so each one is a whole second copy of the corpus.
  *
  *   unset, empty or normal  the normal voice only (undefined: today's keys)

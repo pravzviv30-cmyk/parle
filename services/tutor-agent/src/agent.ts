@@ -270,7 +270,7 @@ export default defineAgent({
     // the worker would not have been running in.
     lifecycle?.assertActive();
     const persona = tutorVoice(chosenVoice).persona;
-    // The live voice speed, decided once here (VOICE-013) and never mid-session:
+    // The live voice speed, decided once here (VOICE-016) and never mid-session:
     // it is part of the voice cache key, so a change would orphan the cache for
     // the rest of the room. The learner's signed switch wins; without it the
     // speed follows the session kind and, for a conversation, the CEFR estimate.
@@ -281,7 +281,7 @@ export default defineAgent({
       choice: voiceSpeedChoice,
     });
     const recognition = recognitionPlan(isConvo ? 'convo' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
-    // One fixed keyterm list for a scripted lesson or scene (VOICE-014), set at
+    // One fixed keyterm list for a scripted lesson or scene (VOICE-017), set at
     // construction so it never reconnects the socket, and the same with or
     // without the paid proxy. Convo keeps its per-turn phrases off-proxy only.
     const keyterm = isConvo || recognition.experimental ? [] : lessonKeyterms(lesson);

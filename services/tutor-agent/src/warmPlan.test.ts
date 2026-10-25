@@ -111,7 +111,7 @@ describe('the warm plan decides which voices a run pays for', () => {
   });
 });
 
-describe('the warm plan decides which voice speeds a run pays for (VOICE-013)', () => {
+describe('the warm plan decides which voice speeds a run pays for (VOICE-016)', () => {
   test('normal by default; slower and both warm BEGINNER_SPEED; anything else refuses', () => {
     for (const raw of [undefined, '', '  ', 'normal', ' NORMAL ']) assert.deepEqual(speedsToWarm(raw === undefined ? {} : { [WARM_SPEED_ENV]: raw }), [undefined]);
     assert.deepEqual(speedsToWarm({ [WARM_SPEED_ENV]: 'slower' }), [BEGINNER_SPEED]);

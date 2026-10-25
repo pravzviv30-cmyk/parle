@@ -937,7 +937,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Sources: [vendor comparison](docs/changes/vendor-comparison.md), VOICE-008
   above, F193 in [known issues](docs/KNOWN_ISSUES.md).
 
-## VOICE-013 — Beginners hear a slower voice, chosen once per session
+## VOICE-016 — Beginners hear a slower voice, chosen once per session
 
 - Date: 2026-10-25
 - Status: accepted (founder chose "beginner default plus a switch" in the plan)
@@ -1009,7 +1009,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   `services/shared/paidExecution.ts`, `apps/mobile/src/tutor/voiceSpeed.ts`,
   VOICE-008, VOICE-009.
 
-## VOICE-014 — Scripted lessons give Deepgram their lines as keyterms, once
+## VOICE-017 — Scripted lessons give Deepgram their lines as keyterms, once
 
 - Date: 2026-10-25
 - Status: accepted. Production needs a keyterm STT quote component to turn it

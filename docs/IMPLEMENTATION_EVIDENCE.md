@@ -22,7 +22,7 @@ of the list.
 
 ## Current landing snapshot
 
-- 25 October 2026 slower voice and scripted keyterms (VOICE-013, VOICE-014) on branch
+- 25 October 2026 slower voice and scripted keyterms (VOICE-016, VOICE-017) on branch
   `claude/slower-voice-keyterms` from main 50b46a0f (not on main): beginners hear the tutor at
   ElevenLabs speed 0.85 with a "Slower voice" switch, speed left out of the TTS quote identity;
   lessons and guest scenes build Nova-3 with one fixed keyterm list, and the paid proxy admits
@@ -588,7 +588,7 @@ trial costs, which is why F73 is a P0.
 
 ## Measurements that are not assertions
 
-- **Slower voice and keyterms, 25 October 2026 (VOICE-013, VOICE-014).** ElevenLabs bills the
+- **Slower voice and keyterms, 25 October 2026 (VOICE-016, VOICE-017).** ElevenLabs bills the
   same credits at speed 1.0, 0.9 and 0.85 (`character-cost` header), and 0.85 is about 17% slower
   with Deepgram word accuracy 1.00 (`docs/cogs-evidence/voice-speed-2026-10-25.json`). Café
   keyterms on an English voice reading French scored 11 of 12 exact with and without keyterms, at

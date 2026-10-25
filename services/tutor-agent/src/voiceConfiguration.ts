@@ -205,7 +205,7 @@ export const VOICE_SETTINGS: Readonly<elevenlabs.VoiceSettings> = Object.freeze(
 });
 
 /**
- * The slower live voice for beginners (VOICE-013). Measured 2026-10-25
+ * The slower live voice for beginners (VOICE-016). Measured 2026-10-25
  * (docs/cogs-evidence/voice-speed-2026-10-25.json): 0.9 was only about 5%
  * slower than 1.0; 0.85 is about 17% slower with Deepgram word accuracy 1.00,
  * and billed credits were identical at every speed.

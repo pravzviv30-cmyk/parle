@@ -21,7 +21,7 @@
  *   LUVANI_WARM_VOICES=celine,emilie npm run warm-cache -w ...      # two
  *   LUVANI_WARM_VOICES=all npm run warm-cache -w ...                # all six
  *
- * WHICH SPEEDS. The slower beginner voice (VOICE-013) is its own cache, so it
+ * WHICH SPEEDS. The slower beginner voice (VOICE-016) is its own cache, so it
  * is warmed separately. LUVANI_WARM_SPEED=normal (the default), slower or both.
  *
  * The plan is resolved in warmPlan.ts before anything is built, so a mistyped

@@ -364,7 +364,7 @@ describe('which voice vendor the env selects', () => {
   });
 });
 
-describe('the slower beginner voice (VOICE-013)', () => {
+describe('the slower beginner voice (VOICE-016)', () => {
   const NORMAL_KEY = 'elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true';
 
   test('tutorSpeedFor: scripted content is slower, convo is slower below A2, the switch wins', () => {

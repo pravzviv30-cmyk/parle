@@ -36,7 +36,7 @@ an interpretation, never an audio pronunciation score or automatic lesson pass.
 Nova-3 phase changes restart the active recognizer through the public Agent API;
 a failed update reports a typing recovery message. The direct conversation path also receives a bounded current-turn keyterm
 list through the active session’s public update seam, off the paid proxy only. Scripted lessons and the guest scene
-(VOICE-014) get one fixed keyterm list, `lessonKeyterms(lesson)` from core, set when the Nova-3 recognizer is built, on and
+(VOICE-017) get one fixed keyterm list, `lessonKeyterms(lesson)` from core, set when the Nova-3 recognizer is built, on and
 off the proxy alike. Every target's full line comes first (a trailing `?` stripped), then short forms and acceptable options,
 never the lowercase `accepts`, within 16 phrases and 400 bytes. It is never changed mid-session, because each change reopens
 the socket and under the proxy each socket is admitted as a full session of audio. Experimental recognition gets none.
@@ -356,7 +356,7 @@ memo is never written anywhere and is cleared when the session ends. Authored
 lines stay on disk and no longer expire, because their key already binds
 voice, model, settings and text.
 
-The live voice speed (VOICE-013) is chosen once at session start by
+The live voice speed (VOICE-016) is chosen once at session start by
 `tutorSpeedFor` and never changes mid-session; the "Simpler" pace changes
 sentences only. The learner's signed `voiceSpeed` (`slower` or `normal`) wins.
 Without it, scripted lessons and the guest scene run at `BEGINNER_SPEED`

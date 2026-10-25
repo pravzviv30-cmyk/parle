@@ -2,7 +2,7 @@ import { recognitionPhrases } from '../speech/recognitionRepair.ts';
 import type { Lesson } from './types.ts';
 
 /**
- * One fixed Deepgram keyterm list for a scripted session (VOICE-014), set once
+ * One fixed Deepgram keyterm list for a scripted session (VOICE-017), set once
  * when the recogniser is built: every keyterm change reopens the socket, and
  * under the paid proxy each reopening books a full session of audio.
  *

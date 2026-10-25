@@ -204,7 +204,7 @@ const FILES: Record<string, string> = {
   // guest first scene plan named this tokens.ts change). Review: revenue-engineer read-only
   // and the Opus orchestrator read the diff.
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
-  // 2026-10-25, VOICE-013: grantSession signs an optional `voiceSpeed` ('slower' or 'normal',
+  // 2026-10-25, VOICE-016: grantSession signs an optional `voiceSpeed` ('slower' or 'normal',
   // anything else dropped) next to tutorVoice. No allowance, debit, price or trial logic
   // changed. Approval: founder 2026-10-25 (the slower voice plan named this field). Review:
   // the Opus orchestrator read the tokens.ts diff.
