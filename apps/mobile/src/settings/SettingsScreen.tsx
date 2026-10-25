@@ -83,6 +83,8 @@ import { displayPreferenceLabel } from './displayModel.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
 import { loadHapticPreference, setHapticPreference } from '../motion/hapticPreference.ts';
+import { loadTapToSendPreference, setTapToSendPreference } from '../live/tapToSendPreference.ts';
+import { TAP_TO_SEND_COPY } from '../live/liveRoomView.ts';
 import { loadSoundPreference, setSoundPreference } from '../sound/soundPreference.ts';
 import { SwitchRow } from './SwitchRow.tsx';
 import { TroubleLine } from './TroubleLine.tsx';
@@ -235,6 +237,9 @@ export function SettingsScreen({
   const [hapticFeedback, setHapticFeedback] = useState(true);
   const [hapticSaving, setHapticSaving] = useState(false);
   const [hapticTrouble, setHapticTrouble] = useState('');
+  const [tapToSend, setTapToSend] = useState(false);
+  const [tapToSendSaving, setTapToSendSaving] = useState(false);
+  const [tapToSendTrouble, setTapToSendTrouble] = useState('');
   const [soundEffects, setSoundEffects] = useState(true);
   const [soundSaving, setSoundSaving] = useState(false);
   const [soundTrouble, setSoundTrouble] = useState('');
@@ -320,6 +325,7 @@ export function SettingsScreen({
     useCallback(() => {
       let cancelled = false;
       void loadHapticPreference().then(value => { if (!cancelled) setHapticFeedback(value); });
+      void loadTapToSendPreference().then(value => { if (!cancelled) setTapToSend(value); });
       void loadSoundPreference().then(value => { if (!cancelled) setSoundEffects(value); });
       const reminderOwner = { scope: scopeGeneration(), userId: user?.id ?? null };
       const sameReminderOwner = () => !cancelled && reminderOwner.scope === scopeGeneration() && reminderOwner.userId === activeUserId();
@@ -908,6 +914,16 @@ export function SettingsScreen({
           onChange={(next) => update(withPreferTyping(profile, next))}
           accessibilityLabel={PREFER_TYPING_ROW}
         />
+        {/* A device preference, like Haptic feedback: the same store the live
+            room's own switch writes (live/tapToSendPreference.ts). */}
+        <SwitchRow title={TAP_TO_SEND_COPY.label} sub={TAP_TO_SEND_COPY.settingsSub} accessibilityLabel={TAP_TO_SEND_COPY.label} value={tapToSend} disabled={tapToSendSaving} onChange={value => {
+          if (tapToSendSaving) return;
+          setTapToSendSaving(true);
+          const previous = tapToSend;
+          setTapToSend(value);
+          void setTapToSendPreference(value).then(saved => { setTapToSendSaving(false); setTapToSendTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setTapToSend(previous); });
+        }} />
+        {tapToSendTrouble !== '' ? <TroubleLine message={tapToSendTrouble} /> : null}
       </SettingsGroup>
 
       {/* The daily reminder, the trial reminder and a refused permission. Every

@@ -208,6 +208,21 @@ period stay near a purchase action, and large text is never capped to fit.
   and the footnote; Simpler, Give me a moment and In English sit under it.
   The full transcript stays one tap away. Parts in `live/LiveParts.tsx`, rules
   in `live/liveRoomView.ts`.
+- The room's last minute (VOICE-016, 2026-10-25): the pill stays "About N min"
+  and never counts down. When the agent sends `wrap-up`, the note under the mic
+  reads "Nearly time to finish. {Tutor} will wrap up after this.", with no
+  number, in Speak and Type. The note line shows one thing, in this order: the
+  wrap-up note, the typing note, the tap-to-send note, the Quiet voice note.
+- Tap to send (VOICE-017): a "Tap to send: On/Off" switch beside Show transcript
+  and Quiet voice, Speak only. While it is on, a mint pill with ink text, "Send"
+  (screen reader: "Send what you said"), sits above the mic row, at least 54pt
+  tall and growing with large text; mint already means "your turn". It is
+  disabled while the tutor speaks and once a turn is sent. The note reads
+  "Speak, then tap Send when you're done.", then "Tap Send when you're done."
+  while they speak, and "Sending what you've said in a moment." ten seconds
+  before the 60 s cap. Settings, Practice: "Tap to send", "Take all the time
+  you need. Your turn ends when you tap Send, not when you pause." A guest's
+  first practice gets the wrap-up note but not the switch.
 - The end of a conversation reads After a session (blue: the cheer, "Bien
   joué.", minutes, new phrases and XP, the line said well with "Hear it said",
   the day and this week's bars), then the Celebration only for a core-earned

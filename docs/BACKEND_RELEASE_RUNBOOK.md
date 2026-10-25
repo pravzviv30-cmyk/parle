@@ -233,3 +233,17 @@ With the `TTS_CACHE_DIR` volume warm, every scene line replays free, and a scene
   7. Prove the three Lua scripts on the real Redis. They have only run offline against a fake transport. The claim must book the daily slot and the 30-day installation marker together, once per worker fence, and refuse another capability's claim on the same installation, and a claimed record must shrink and carry a TTL of 48 hours or less.
 
 **Switching it off** needs no migration or drain. Unset `LUVANI_GUEST_SCENE` on the API and redeploy. The counters and records expire by themselves.
+
+## Session heads-up and tap to send (VOICE-016, VOICE-017, 25 October)
+
+Both are on by default in the tutor role and need no migration. Deploy the tutor
+agent and the app together: an old app never sends `tap-to-send`, and an old
+agent ignores it, so either order is safe, but the feature only works with both.
+Run `npm run warm-cache` once after deploying so the two new English lines replay
+from the cache. Each has a kill switch on the tutor role, read at session start:
+
+- `LUVANI_SESSION_HEADS_UP=0` skips the heads-up and the warm close; sessions end
+  on the hard stop as before.
+- `LUVANI_TAP_TO_SEND=0` makes the worker ignore `tap-to-send` and `send`, so
+  turns stay automatic. The app still shows the switch, so set it only to stop a
+  live problem.

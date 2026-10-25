@@ -13,6 +13,7 @@ initializeLogger({ pretty: false, level: 'silent' });
 import { CachedTTS, formatCostLine, normaliseLine } from './ttsCache.ts';
 import { CONVO_LINES } from './authoredSpeech.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
+import { CLOSE_LINE, HEADS_UP_LINE } from './sessionEnd.ts';
 import { encodeWav, decodeWav } from './wav.ts';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -687,6 +688,12 @@ describe('the warm run warms exactly the authored list', () => {
     assert.doesNotMatch(source, /LESSONS|CONVO_LINES|tokenize/, 'a second list would drift from the runtime one');
     assert.match(source, /assertDevelopmentPaidTool\(\)/, 'the production refusal stays');
     assert.match(source, /warmPlanLine\(cost\)/, 'the billed-character plan still prints before spending');
+  });
+
+  test('the authored list includes the end-of-session heads-up and close, so neither is billed live', () => {
+    for (const line of [HEADS_UP_LINE, CLOSE_LINE]) {
+      for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);
+    }
   });
 
   test('the authored list includes the carry-on lines the old warm list missed', () => {

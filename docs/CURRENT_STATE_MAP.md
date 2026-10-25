@@ -10,6 +10,9 @@
    entitlement, active-session lease, and signed room/session metadata.
 5. `services/tutor-agent/src/agent.ts` binds the first participant, runs either
    `LuvaniTutor` or `LuvaniConversation`, and publishes the core protocol over LiveKit data.
+   About a minute before the cap it gives a spoken heads-up and closes after one more
+   exchange (`sessionEnd.ts`, VOICE-016); a learner can choose Tap to send, which holds
+   each spoken turn until Send or 60 s (`tapToSend.ts`, VOICE-017).
 6. Session finish reports the signed session ID and billable seconds to the token server.
    PostgreSQL records the ID once and atomically debits the entitlement.
 7. The app stores recap/practice/profile artefacts locally. With Supabase configured,

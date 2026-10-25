@@ -3,6 +3,7 @@ import { tokenize } from '@livekit/agents';
 import { LESSONS, directiveFor, type Rung } from '@luvani/core';
 import { APERO_FRAME, CAFE_FRAME } from '@luvani/brain';
 import { scriptedSpeech } from './scriptedSpeech.ts';
+import { CLOSE_LINE, HEADS_UP_LINE } from './sessionEnd.ts';
 
 export const CONVO_LINES = {
   opener: { fr: "Alors, de quoi on parle aujourd'hui ?", en: 'So, what do you want to talk about today?' },
@@ -49,5 +50,7 @@ for (const lesson of LESSONS) for (const turn of lesson.turns) {
 }
 add(CONVO_LINES.opener.en); add(CONVO_LINES.suggest.en); add(CONVO_LINES.bridge.spoken);
 add(CONVO_LINES.carryOn.fr); add(CONVO_LINES.carryOn.en);
+// The end-of-session heads-up and close (sessionEnd.ts), said in every timed session.
+add(HEADS_UP_LINE); add(CLOSE_LINE);
 for (const frame of [CAFE_FRAME, APERO_FRAME]) { add(frame.openingNarration.en); add(frame.openingLine.fr); add(frame.openingSupport.fullLine.fr); }
 export const AUTHORED_SPEECH_LINES: readonly string[] = Object.freeze([...lines]);

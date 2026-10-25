@@ -205,10 +205,12 @@ topics `luvani.server` and `luvani.client`. `decodeServerMessage` never throws �
 malformed frame must not take down a live conversation.
 
 **Agent → app**: `prompt` · `feedback` · `speaking` · `transcript` · `summary` ·
-`convo` · `opening` · `recap` · `practice` · `drills` · `error`
+`convo` · `opening` · `recap` · `practice` · `drills` · `error` · `wrap-up` ·
+`held-turn`
 
 **App → agent**: `ready` · `help` · `skip` · `choice` · `hear` ·
-`slower` · `english` · `say` · `leave`
+`slower` · `english` · `say` · `typing` · `moment` · `mode` · `tap-to-send` ·
+`send` · `leave`
 
 A free conversation opens on `opening`: the tutor asks, out loud and in
 English, what the learner wants to talk about — no menu, no chips. Whatever
@@ -676,6 +678,89 @@ Why soft and not whispered (`docs/live-latency-evidence/2026-10-23-quiet-speech.
 
 All clips are synthetic (ElevenLabs). Founder recordings in
 `artifacts/quiet-speech-2026-10-23/real/` and a device check are still owed.
+
+## Nearly time to finish (VOICE-016)
+
+A session used to end on the cap with no warning: the tutor said "Your session
+has reached its time limit" as the room closed. Now the worker gives a heads-up
+about a minute before and closes warmly after one more exchange
+(`services/tutor-agent/src/sessionEnd.ts`, `SessionEndClock`).
+
+- **When.** At the cap minus `HEADS_UP_LEAD_MS` (60 s), read from the same clock
+  as the cap: `lifecycle.maxSeconds - lifecycle.elapsedSeconds()` on the
+  lifecycle path, `maximumSessionSec` from the session start otherwise. A
+  session that starts with under 90 s left gets neither the heads-up nor the
+  close, and a guest scene keeps its own ceiling (`armSceneHardStop`).
+- **How.** At the first gap (agent listening, learner silent, both queues idle)
+  the tutor's `wrapUp()` publishes the payload-free `wrap-up` frame and says
+  "We're nearly out of time. Let's finish this one together." The app shows
+  "Nearly time to finish. {Tutor} will wrap up after this." with no number:
+  the room never shows minutes left (UI-008, kept on 2026-10-25). A typed
+  session gets the frame and the note only.
+- **The close.** Once the learner has taken one more turn (help and skip count)
+  and the tutor's reply has been spoken, `closeForTime()` stops in-flight
+  replies, says "That's all for today. Thank you, à bientôt !", settles and
+  closes the room through the tutor-owned path. While it closes, rescue stays
+  dark and ordinary new turns are dropped, but safety still screens every one.
+- **The backstop.** At the cap minus `CLOSE_BY_MARGIN_MS` (15 s), if nothing has
+  closed, the learner is silent and no turn is held, the close runs at once.
+  The close line's playout wait is bounded at `CLOSE_LINE_PLAYOUT_MS` (6 s).
+  On the legacy path the close stands the timer down and arms a silent stop at
+  the cap, so nobody hears "time limit" after "à bientôt". If they are
+  speaking, the existing hard stop (lifecycle `onStop` or the legacy timer) and
+  its copy still end the session at the cap. The signed cap is never extended.
+- **Cost.** Metering is unchanged; an early close bills fewer seconds. Both lines
+  are in `AUTHORED_SPEECH_LINES`, so `warm-cache` covers them once it is run.
+- **Kill switch.** `LUVANI_SESSION_HEADS_UP=0` on the tutor role.
+
+## Tap to send (VOICE-017)
+
+An optional mode for anyone the pause floors still cut off. With it on, the
+microphone stays open and the learner's turn ends only when they tap Send, or
+when the recording cap is reached. Off by default; the learner turns it on in
+Settings (Practice) or with the "Tap to send" switch in the room, and the choice
+is stored on the device (`@luvani/tap-to-send/v1`).
+
+- **Wire.** The app sends `{ t: 'tap-to-send', on }` after `ready`, after a
+  reconnect, after returning from Type to voice, and when the switch changes.
+  Send is `{ t: 'send' }`. The worker answers with `held-turn` frames: `open`
+  (the learner started speaking), `closing` (it sends itself in about ten
+  seconds) and `sent`.
+- **Mechanism** (`services/tutor-agent/src/tapToSend.ts`). `agent.ts` intercepts
+  both frames before the tutor, because the worker owns turn detection. On:
+  `session.updateOptions({ turnHandling: { turnDetection: 'manual' } })`, applied
+  only after `session.start()` has resolved (`markLive()`). Switching earlier
+  overwrites the session's detector before the activity is built, and the
+  session runs without it for good. Send: `session.commitUserTurn()`, which
+  waits up to 500 ms for the final transcript and folds in the interim one.
+  Send with nothing held is ignored. A Send or cap that lands while the tutor
+  speaks waits until it stops, because the SDK drops a commit over
+  uninterruptible speech; `sent` goes out only when the commit is made. An
+  empty commit (a cough) re-arms the rescue.
+- **Restoring is `null`, not the saved detector.** In `@livekit/agents` 1.9 the
+  session's `turnDetection` holds the default audio detector object, and the
+  recogniser keeps that object whatever the mode. Passing it back sets the
+  recogniser's mode to an object, which switches VAD end-of-speech off for good.
+  So switch-off restores `null` (how the session was built), or a saved string
+  such as `'vad'` as itself. `tapToSendSdk.test.ts` proves it on a real
+  `AgentSession`.
+- **The cap.** `TAP_SEND_CAP_MS` (60 s) from the first speech of a held turn,
+  with `closing` at `TAP_SEND_WARN_MS` (50 s). The SDK's own `userTurnLimit`
+  fires only on transcripts, so the cap is our own timer.
+- **Rescue.** While a turn is held, `armRescue` returns early in both tutors,
+  so a pause mid-recording is never treated as being stuck. Before the learner
+  says anything, the ordinary stuck clock runs. The cap bounds the dark time to
+  60 s plus `STUCK_SILENCE_MS`. "Give me a moment" keeps working.
+- **Modes.** A `mode` frame to Type turns it off (any held turn is sent first)
+  and refuses it until voice returns; a session that starts typed starts there.
+  Guest scenes never get it. `LUVANI_TAP_TO_SEND=0` on the tutor role makes the
+  worker ignore both frames.
+- **What it costs.** Barge-in by voice is off while it is on (the SDK sets
+  `isDefaultInterruptionByAudioActivityEnabled` false for `'manual'`): words
+  said over the tutor wait and land in the held turn. A lesson's preemptive
+  generation does not fire during a held turn (0 model calls across several
+  final transcripts and a 3 s pause in the SDK test), so a held turn costs no
+  model calls. Recognition runs as it does for any open microphone.
 
 ## Serialisation
 

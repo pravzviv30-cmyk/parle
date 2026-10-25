@@ -112,7 +112,9 @@
         "LUVANI_CONVERSATION_TTS_MODEL",
         "LUVANI_AUDIO_DECODER_PATH",
         "LUVANI_AUDIO_DECODER_SHA256",
-        "LUVANI_GUEST_SCENE"
+        "LUVANI_GUEST_SCENE",
+        "LUVANI_SESSION_HEADS_UP",
+        "LUVANI_TAP_TO_SEND"
       ]
     },
     "practice": {

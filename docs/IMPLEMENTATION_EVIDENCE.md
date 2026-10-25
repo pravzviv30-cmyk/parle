@@ -22,6 +22,13 @@ of the list.
 
 ## Current landing snapshot
 
+- 25 October 2026 session heads-up (VOICE-016) and tap to send (VOICE-017) on branch
+  `claude/heads-up-tap-send` from main 50b46a0f (not on main): a spoken heads-up a minute before
+  the cap with a numberless room note and a warm close, and an opt-in held turn that ends on
+  Send or at 60 s through the SDK's manual turn detection: **6,601 tests, 0 failing**; core
+  1060, brain 504, tutor agent 835, token server 484, playground 87, mobile 3631; shared
+  release/provider proofs 176; all 43 migrations replayed, no migration added. Floors raised
+  only through `gate:bless`. No paid runs; `warm-cache` for the two new lines is still owed.
 - 24 October 2026 main with `claude/curation-luna` (VOICE-012) merged onto the unaided-sentence
   metric landing: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token
   server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations

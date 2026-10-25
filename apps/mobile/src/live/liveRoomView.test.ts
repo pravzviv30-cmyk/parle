@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { goalStrip, helpLadder, ladderSpoken, liveBubbles, moreHelpOffered, paceLabel, askedLabel, typingNote, HELP_COPY } from './liveRoomView.ts';
+import { goalStrip, helpLadder, ladderSpoken, liveBubbles, moreHelpOffered, paceLabel, askedLabel, typingNote, HELP_COPY, quietVoiceNote, roomNote, sendButton, tapToSendControl, tapToSendNote, wrapUpNote } from './liveRoomView.ts';
 import type { TurnLine } from './turns.ts';
 
 describe('the pace pill', () => {
@@ -104,5 +104,42 @@ describe('the note under the controls while typing', () => {
     assert.doesNotMatch(room, /started in typing mode/);
     // "Type your choice" carries the keyboard, never the default mic.
     assert.match(room, /label=\{typing \? 'Type your choice' : HELP_COPY\.say\} icon=\{typing \? <KeyboardMark size=\{20\} color=\{t\.onPrimary\} \/> : undefined\}/);
+  });
+});
+
+// 2026-10-25: about a minute before the cap the tutor says time is nearly up,
+// and the room echoes it in words. The pace pill above stays the scene's pace.
+describe('the wrap-up note', () => {
+  test('says time is nearly up, with no number, no "left", no minutes and no em dash', () => {
+    const note = wrapUpNote('Émilie');
+    assert.equal(note, 'Nearly time to finish. Émilie will wrap up after this.');
+    assert.doesNotMatch(note, /\d|left|min|\u2014/i);
+  });
+});
+
+describe('Tap to send in the room', () => {
+  test('the switch is hidden in Type mode', () => {
+    assert.equal(tapToSendControl(true, true), null);
+    assert.equal(tapToSendControl(false, true)?.label, 'Tap to send');
+  });
+  test('Send is disabled while the tutor speaks', () => {
+    assert.equal(sendButton('open', true).disabled, true);
+    assert.equal(sendButton('open', false).disabled, false);
+  });
+});
+
+describe('the one line under the controls', () => {
+  const tutor = 'Émilie';
+  test('wrap-up wins over everything, in Speak and in Type', () => {
+    for (const typing of [false, true]) {
+      assert.equal(roomNote(typing, true, tutor, true, { wrappingUp: true, tapToSend: true, heldTurn: 'closing' }), wrapUpNote(tutor));
+    }
+  });
+  test('then the typing note, then Tap to send, then Quiet voice', () => {
+    assert.equal(roomNote(true, true, tutor, true, { tapToSend: true }), typingNote(true, true, tutor));
+    assert.equal(roomNote(false, true, tutor, true, { tapToSend: true, heldTurn: 'closing' }), tapToSendNote('closing'));
+    assert.equal(roomNote(false, true, tutor, true, { tapToSend: false }), quietVoiceNote(tutor));
+    assert.equal(roomNote(false, true, tutor, false, {}), null);
+    assert.equal(roomNote(false, true, tutor, false), null);
   });
 });

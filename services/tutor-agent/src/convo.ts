@@ -32,6 +32,7 @@ import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parse
 import { selectedBrain } from './preflight.ts';
 import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 import { safeError } from './safeError.ts';
+import { CLOSE_LINE, HEADS_UP_LINE, boundedPlayout, type SessionEndView } from './sessionEnd.ts';
 import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { inCharacterRecast } from './spokenRecast.ts';
 import type { InputReplyTimingRecord, ReplyInput, SceneReplyTimingRecord } from './sceneReplyTiming.ts';
@@ -1991,6 +1992,9 @@ export class LuvaniConversation extends voice.Agent {
     // while it runs. `agent.ts` calls this on every transition to `listening`,
     // which for a thinking learner is a stray sound and nothing more.
     if (this.momentHeld && this.silenceTimer) return this.queue.generation;
+    // A tap-to-send turn is still recording: a pause inside it is thinking,
+    // and the learner ends it with Send. After the close line, nothing rescues.
+    if (this.heldTurnOpen || this.closingForTime) { this.clearRescue(); return this.queue.generation; }
     this.clearRescue();
     void session; // kept for signature parity with LuvaniTutor; speech goes via this.session
     // Captured now, checked when the timer fires. Returned so the caller — and
@@ -2091,6 +2095,50 @@ export class LuvaniConversation extends voice.Agent {
     return this.queue.idle();
   }
 
+  /** True while a tap-to-send turn is recording. Set by agent.ts (tapToSend.ts). */
+  private heldTurnOpen = false;
+  /** The close for time has begun: no rescue and no new turn after its line. */
+  private closingForTime = false;
+
+  /** A tap-to-send turn opened or ended. While open, armRescue stays dark. */
+  setHeldTurn(open: boolean): void {
+    this.heldTurnOpen = open;
+    if (open) this.clearRescue();
+  }
+
+  /** What sessionEnd.ts reads to find a gap and see the last exchange land. */
+  sessionEndView(): SessionEndView {
+    return { learnerTurns: this.learnerTurns, busy: this.queue.busy || this.replayQueue.busy,
+      over: this.ended || this.refused || this.closingForTime, voiceless: this.voiceless, held: this.heldTurnOpen };
+  }
+
+  /** The heads-up a minute before the cap: the frame, and the line said aloud. */
+  wrapUp(): void {
+    if (this.ended || this.closingForTime) return;
+    void this.publish({ t: 'wrap-up' });
+    this.say(HEADS_UP_LINE, { allowInterruptions: false });
+  }
+
+  /**
+   * The warm close for time: the goodbye line, then the same ending `leave`
+   * gets (recap and settlement), then the room. Bounded by the cap, whose
+   * hard stop still closes the room if settlement is slow.
+   */
+  async closeForTime(): Promise<void> {
+    if (this.ended || this.refused || this.closingForTime) return;
+    this.closingForTime = true;
+    this.clearRescue();
+    this.releaseMoment();
+    this.cancelLiveReplies();
+    try {
+      await boundedPlayout(this.say(CLOSE_LINE, { allowInterruptions: false })?.waitForPlayout());
+    } catch (error) {
+      console.warn('[luvani] the closing line did not settle cleanly; closing anyway:', safeError(error));
+    }
+    await this.finish();
+    this.closeRoom();
+  }
+
   clearRescue(): void {
     if (this.silenceTimer) clearTimeout(this.silenceTimer);
     this.silenceTimer = undefined;
@@ -2177,6 +2225,7 @@ export class LuvaniConversation extends voice.Agent {
     if (this.ended && msg.t !== 'ready' && msg.t !== 'leave') return;
 
     if (msg.t === 'say' && this.handleSafety(msg.text)) return;
+    if (this.closingForTime && msg.t !== 'ready' && msg.t !== 'leave') return;
     if (!this.commands.allow(msg.t) || (['say', 'help', 'skip'].includes(msg.t) && this.queue.full)) { this.rejectInput(INPUT_BUSY_MESSAGE); return; }
 
     if (['say','help','skip','mode','leave'].includes(msg.t)) this.cancelCorrectionReason();
@@ -2405,11 +2454,19 @@ export class LuvaniConversation extends voice.Agent {
     const timing = this.beginReplyTiming?.(
       text.length > 0 && !this.ended && !this.voiceless && this.phase === 'scene',
     );
+    // A turn with no words (a cough, bleed, an empty held turn) is not an
+    // answer. The clock was cleared above; hand it back, as LuvaniTutor does.
+    if (text.length === 0) {
+      if (!this.voiceless) this.armRescue(this.session);
+      throw new voice.StopResponse();
+    }
     if (text.length > 0 && !this.ended) {
       if (this.handleSafety(text)) {
         timing?.finish('cancelled');
         throw new voice.StopResponse();
       }
+      // After the safety check, so a crisis in the last seconds is still heard.
+      if (this.closingForTime) { timing?.finish('cancelled'); throw new voice.StopResponse(); }
       if (!this.commands.allow('say') || this.queue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); timing?.finish('cancelled'); throw new voice.StopResponse(); }
       // Words came out of the learner and the recogniser read them, whatever
       // the phase does with them next. That is the whole test for whether this

@@ -168,3 +168,52 @@ describe('thinking time reaches the session (VOICE-010)', () => {
     assert.match(CODE, /thinking\.learnerSpeechStarted\(\);\s*tutor\.setLearnerSpeaking\(true\);/, 'a learner cut off mid-sentence never raises the floor');
   });
 });
+
+describe('the end-of-session clock and tap-to-send reach the room', () => {
+  test('the clock runs on both the lifecycle and the legacy cap, and never for a guest scene', () => {
+    assert.match(CODE, /const endClock = scene \|\| !headsUpEnabled\(\) \? undefined : new SessionEndClock\(tutor, remainingMs,/, 'a scene got the heads-up, nobody did, or the kill switch is not read');
+    const build = CODE.slice(CODE.indexOf('const remainingMs = () =>'));
+    const source = build.slice(0, build.indexOf(';\n'));
+    assert.match(source, /\(lifecycle\.maxSeconds - lifecycle\.elapsedSeconds\(\)\) \* 1_000/, 'the lifecycle path reads a different clock from the cap');
+    assert.match(source, /maximumSessionSec \* 1_000 - \(Date\.now\(\) - sessionStartedAt\)/, 'the legacy path has no clock');
+    assert.ok(CODE.indexOf('const sessionStartedAt = Date.now();') < CODE.indexOf('const hardStop ='), 'the legacy clock starts after the hard stop it shadows');
+    assert.ok(CODE.indexOf('endClock?.start();') > CODE.indexOf('await session.start('), 'the clock starts before there is a session to speak through');
+  });
+
+  test('the clock hears the agent and the learner, and stops with the room', () => {
+    const agentState = CODE.slice(CODE.indexOf('AgentSessionEventTypes.AgentStateChanged'), CODE.indexOf('AgentSessionEventTypes.MetricsCollected'));
+    assert.match(agentState, /endClock\?\.agentState\(ev\.newState\)/);
+    const userState = CODE.slice(CODE.indexOf('AgentSessionEventTypes.UserStateChanged'));
+    const handler = userState.slice(0, userState.indexOf('\n    });'));
+    assert.match(handler, /endClock\?\.learnerSpeaking\(true\)/);
+    assert.match(handler, /endClock\?\.learnerSpeaking\(false\)/);
+    assert.match(handler, /tapToSend\?\.learnerSpeaking\(true\)/, 'no held turn ever opens');
+    assert.equal((CODE.match(/endClock\?\.stop\(\); tapToSend\?\.stop\(\);/g) ?? []).length, 2, 'a timer outlives the room or the learner');
+  });
+
+  test('tap-to-send is off for scenes, quiet in typed sessions, and its frames never reach the tutors', () => {
+    assert.match(CODE, /const tapToSend = scene \|\| !tapToSendEnabled\(\) \? undefined : new TapToSend\(\(\) => session, tutor, publish, undefined, \{ voiceless \}\)/, 'a typed start never gets tap-to-send back after switching to voice');
+    const data = CODE.slice(CODE.indexOf("ctx.room.on('dataReceived'"));
+    const intercept = data.indexOf("control?.t === 'tap-to-send' || control?.t === 'send'");
+    assert.ok(intercept > -1 && intercept < data.indexOf('tutor.handleClientMessage('), 'the tutors are handed turn controls they do not own');
+    const peek = data.indexOf('tapToSend?.setVoiceless(control.voiceless);');
+    assert.ok(peek > intercept && peek < data.indexOf('tutor.handleClientMessage('), 'going typed leaves a held turn recording');
+    assert.doesNotMatch(data.slice(peek, data.indexOf('tutor.handleClientMessage(')), /return;/, 'the mode frame is swallowed and the tutor keeps talking');
+  });
+
+  test('tap-to-send waits for session.start and hears the agent state', () => {
+    const live = CODE.indexOf('tapToSend?.markLive();');
+    assert.ok(live > CODE.indexOf('await session.start('), 'turn detection is changed before the session has an activity');
+    const agentState = CODE.slice(CODE.indexOf('AgentSessionEventTypes.AgentStateChanged'), CODE.indexOf('AgentSessionEventTypes.MetricsCollected'));
+    assert.match(agentState, /tapToSend\?\.agentState\(ev\.newState\)/, 'a Send over an uninterruptible line is dropped');
+  });
+
+  test('the close stands the legacy time-limit notice down, and the lifecycle stop is untouched', () => {
+    const build = CODE.slice(CODE.indexOf('new SessionEndClock('));
+    const onClose = build.slice(0, build.indexOf('});'));
+    assert.match(onClose, /clearTimeout\(hardStop\)/, 'the learner hears goodbye and then the time-limit notice');
+    assert.match(onClose, /silentStop = setTimeout\(\(\) => \{ void ctx\.room\.disconnect\(\); \}/, 'the legacy path lost its ceiling');
+    assert.doesNotMatch(onClose, /lifecycle\?*\.(onStop|complete)/);
+    assert.match(CODE, /lifecycle\?\.onStop\(\(\) => \{/, 'the lifecycle backstop is gone');
+  });
+});
