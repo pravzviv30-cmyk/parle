@@ -94,7 +94,7 @@ describe('Profile keeps who you are and how you learn — F473, P2', () => {
     for (const kept of ['initialOf(profile.name)', 'TUTOR_VOICE_OPTIONS', 'withTutorVoice']) {
       assert.ok(PROFILE.includes(kept), `Profile no longer draws ${kept}`);
     }
-    for (const kept of ['DAILY_GOAL_ROW', 'STRICTNESS_ROW', 'PREFER_TYPING_ROW', 'PACE_ROW', 'STATED_LEVEL_OPTIONS']) {
+    for (const kept of ['DAILY_GOAL_ROW', 'STRICTNESS_ROW', 'PREFER_TYPING_ROW', 'PACE_ROW', 'VOICE_SPEED_ROW', 'STATED_LEVEL_OPTIONS']) {
       assert.ok(LEARNING.includes(kept), `Learning preferences does not draw ${kept}, so the move took a learning setting with it`);
     }
     assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('LearningPreferences'\)\}/, 'nothing on Profile leads to Learning preferences');

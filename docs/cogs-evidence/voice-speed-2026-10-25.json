@@ -1,0 +1,269 @@
+{
+  "createdAt": "2026-10-25T21:21:17.229Z",
+  "cap": 1000,
+  "estimatedCredits": 511,
+  "before": {
+    "tier": "starter",
+    "used": 4235,
+    "limit": 37277
+  },
+  "voice": "alexandre",
+  "voiceId": "c365oriviHmAhyLhpuN6",
+  "settings": {
+    "stability": 0.4,
+    "similarity_boost": 0.8,
+    "style": 0.3,
+    "use_speaker_boost": true
+  },
+  "format": "pcm_22050",
+  "streamingLatency": 3,
+  "note": "speed is sent explicitly on every request, 1.0 included. Deepgram: nova-3 fr smart_format, prerecorded REST.",
+  "clips": [
+    {
+      "name": "cafe-v2-speed-1",
+      "line": "cafe",
+      "text": "D'accord. Et avec ceci, vous voulez quelque chose à manger ?",
+      "model": "eleven_multilingual_v2",
+      "speed": 1,
+      "chars": 60,
+      "estimate": 60,
+      "file": "cafe-v2-speed-1.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 24,
+      "costHeader": "character-cost",
+      "bytes": 129024,
+      "seconds": 2.926,
+      "charsPerSecond": 20.51,
+      "creditsPerChar": 0.4,
+      "deepgram": {
+        "transcript": "D'accord, et avec ceci, vous voulez quelque chose à manger?",
+        "confidence": 1,
+        "wordAccuracy": 1
+      }
+    },
+    {
+      "name": "cafe-v2-speed-0p9",
+      "line": "cafe",
+      "text": "D'accord. Et avec ceci, vous voulez quelque chose à manger ?",
+      "model": "eleven_multilingual_v2",
+      "speed": 0.9,
+      "chars": 60,
+      "estimate": 60,
+      "file": "cafe-v2-speed-0p9.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 24,
+      "costHeader": "character-cost",
+      "bytes": 137216,
+      "seconds": 3.111,
+      "charsPerSecond": 19.28,
+      "creditsPerChar": 0.4,
+      "deepgram": {
+        "transcript": "D'accord, et avec ceci, vous voulez quelque chose à manger?",
+        "confidence": 0.99902344,
+        "wordAccuracy": 1
+      }
+    },
+    {
+      "name": "cafe-v2-speed-0p85",
+      "line": "cafe",
+      "text": "D'accord. Et avec ceci, vous voulez quelque chose à manger ?",
+      "model": "eleven_multilingual_v2",
+      "speed": 0.85,
+      "chars": 60,
+      "estimate": 60,
+      "file": "cafe-v2-speed-0p85.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 24,
+      "costHeader": "character-cost",
+      "bytes": 155648,
+      "seconds": 3.529,
+      "charsPerSecond": 17,
+      "creditsPerChar": 0.4,
+      "deepgram": {
+        "transcript": "D'accord, et avec ceci, vous voulez quelque chose à manger?",
+        "confidence": 0.99902344,
+        "wordAccuracy": 1
+      }
+    },
+    {
+      "name": "cafe-flash-speed-0p9",
+      "line": "cafe",
+      "text": "D'accord. Et avec ceci, vous voulez quelque chose à manger ?",
+      "model": "eleven_flash_v2_5",
+      "speed": 0.9,
+      "chars": 60,
+      "estimate": 30,
+      "file": "cafe-flash-speed-0p9.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 12,
+      "costHeader": "character-cost",
+      "bytes": 118784,
+      "seconds": 2.694,
+      "charsPerSecond": 22.28,
+      "creditsPerChar": 0.2,
+      "deepgram": {
+        "transcript": "D'accord, et avec ceci, vous voulez quelque chose à manger?",
+        "confidence": 1,
+        "wordAccuracy": 1
+      }
+    },
+    {
+      "name": "conversation-v2-speed-1",
+      "line": "conversation",
+      "text": "D'accord, alors vous prenez un café et un croissant. Vous voulez autre chose avec ça ?",
+      "model": "eleven_multilingual_v2",
+      "speed": 1,
+      "chars": 86,
+      "estimate": 86,
+      "file": "conversation-v2-speed-1.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 34,
+      "costHeader": "character-cost",
+      "bytes": 188416,
+      "seconds": 4.272,
+      "charsPerSecond": 20.13,
+      "creditsPerChar": 0.395,
+      "deepgram": {
+        "transcript": "D'accord, alors vous prenez un café et t'on un croissant. Vous voulez autre chose avec ça?",
+        "confidence": 0.99902344,
+        "wordAccuracy": 0.875
+      }
+    },
+    {
+      "name": "conversation-v2-speed-0p9",
+      "line": "conversation",
+      "text": "D'accord, alors vous prenez un café et un croissant. Vous voulez autre chose avec ça ?",
+      "model": "eleven_multilingual_v2",
+      "speed": 0.9,
+      "chars": 86,
+      "estimate": 86,
+      "file": "conversation-v2-speed-0p9.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 34,
+      "costHeader": "character-cost",
+      "bytes": 196608,
+      "seconds": 4.458,
+      "charsPerSecond": 19.29,
+      "creditsPerChar": 0.395,
+      "deepgram": {
+        "transcript": "D'accord, alors vous prenez un café et un croissant. Vous voulez autre chose avec ça?",
+        "confidence": 0.99902344,
+        "wordAccuracy": 1
+      }
+    },
+    {
+      "name": "conversation-v2-speed-0p85",
+      "line": "conversation",
+      "text": "D'accord, alors vous prenez un café et un croissant. Vous voulez autre chose avec ça ?",
+      "model": "eleven_multilingual_v2",
+      "speed": 0.85,
+      "chars": 86,
+      "estimate": 86,
+      "file": "conversation-v2-speed-0p85.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 34,
+      "costHeader": "character-cost",
+      "bytes": 225280,
+      "seconds": 5.108,
+      "charsPerSecond": 16.84,
+      "creditsPerChar": 0.395,
+      "deepgram": {
+        "transcript": "D'accord, alors vous prenez un café et un croissant. Vous voulez autre chose avec ça?",
+        "confidence": 0.99902344,
+        "wordAccuracy": 1
+      }
+    },
+    {
+      "name": "conversation-flash-speed-0p9",
+      "line": "conversation",
+      "text": "D'accord, alors vous prenez un café et un croissant. Vous voulez autre chose avec ça ?",
+      "model": "eleven_flash_v2_5",
+      "speed": 0.9,
+      "chars": 86,
+      "estimate": 43,
+      "file": "conversation-flash-speed-0p9.wav",
+      "status": "complete",
+      "sent": true,
+      "credits": 17,
+      "costHeader": "character-cost",
+      "bytes": 272384,
+      "seconds": 6.177,
+      "charsPerSecond": 13.92,
+      "creditsPerChar": 0.198,
+      "deepgram": {
+        "transcript": "D'accord, alors vous prenez un café et un croissant, vous voulez autre chose avec ça?",
+        "confidence": 0.99902344,
+        "wordAccuracy": 1
+      }
+    }
+  ],
+  "status": "complete",
+  "after": {
+    "tier": "starter",
+    "used": 4235,
+    "limit": 37277
+  },
+  "measuredCredits": 0,
+  "creditsFromHeaders": 203,
+  "summary": [
+    {
+      "condition": "eleven_multilingual_v2@1",
+      "model": "eleven_multilingual_v2",
+      "speed": 1,
+      "clips": 2,
+      "totalChars": 146,
+      "totalSeconds": 7.2,
+      "credits": 58,
+      "medianCharsPerSecond": 20.32,
+      "medianWordAccuracy": 0.9375,
+      "paceVsNormal": 1,
+      "creditsPerChar": 0.397
+    },
+    {
+      "condition": "eleven_multilingual_v2@0.9",
+      "model": "eleven_multilingual_v2",
+      "speed": 0.9,
+      "clips": 2,
+      "totalChars": 146,
+      "totalSeconds": 7.57,
+      "credits": 58,
+      "medianCharsPerSecond": 19.285,
+      "medianWordAccuracy": 1,
+      "paceVsNormal": 0.951,
+      "creditsPerChar": 0.397
+    },
+    {
+      "condition": "eleven_multilingual_v2@0.85",
+      "model": "eleven_multilingual_v2",
+      "speed": 0.85,
+      "clips": 2,
+      "totalChars": 146,
+      "totalSeconds": 8.64,
+      "credits": 58,
+      "medianCharsPerSecond": 16.92,
+      "medianWordAccuracy": 1,
+      "paceVsNormal": 0.833,
+      "creditsPerChar": 0.397
+    },
+    {
+      "condition": "eleven_flash_v2_5@0.9",
+      "model": "eleven_flash_v2_5",
+      "speed": 0.9,
+      "clips": 2,
+      "totalChars": 146,
+      "totalSeconds": 8.87,
+      "credits": 29,
+      "medianCharsPerSecond": 18.1,
+      "medianWordAccuracy": 1,
+      "paceVsNormal": 0.812,
+      "creditsPerChar": 0.199
+    }
+  ]
+}

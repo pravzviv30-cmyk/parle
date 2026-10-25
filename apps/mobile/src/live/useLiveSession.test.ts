@@ -929,7 +929,7 @@ describe('the tutor that never arrived — F196', () => {
       TOKEN_SERVER: 'https://tokens.example',
       authHeaders: () => Promise.resolve({ authorization: 'Bearer account-token' }),
       loadConsent: async () => null,
-      readConsent: async () => null,
+      readConsent: async () => null, loadVoiceSpeedPreference: async () => null,
       analyticsAllowed: () => false,
       fetch: (url: string, init: Record<string, unknown>) => {
         calls.push({ url, init });
@@ -973,7 +973,7 @@ describe('the tutor that never arrived — F196', () => {
       TOKEN_SERVER: 'https://tokens.example',
       authHeaders: () => Promise.resolve({}),
       loadConsent: async () => null,
-      readConsent: async () => null,
+      readConsent: async () => null, loadVoiceSpeedPreference: async () => null,
       analyticsAllowed: () => false,
       fetch: () => Promise.reject(new TypeError('Failed to fetch')),
       trace: () => {},
@@ -1337,6 +1337,17 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
     missionId: undefined,
     tutorVoice: chosen,
     DEFAULT_TUTOR_VOICE,
+    voiceSpeed: null,
+  });
+
+  test('the session start carries Slower voice only when the learner chose', () => {
+    for (const speed of ['slower', 'normal'] as const) {
+      const body = startBody({ ...world(undefined), voiceSpeed: speed });
+      assert.equal(body.voiceSpeed, speed);
+    }
+    const unchosen = startBody(world(undefined));
+    assert.ok(!Object.hasOwn(unchosen, 'voiceSpeed'), 'an unchosen voice speed must leave the default to the tutor');
+    assert.match(read('./useLiveSession.ts'), /loadVoiceSpeedPreference\(\)\]\);/, 'the start no longer reads the stored voice speed');
   });
 
   test('every session start sends the chosen voice, and the default when none is chosen', () => {
@@ -1868,7 +1879,7 @@ describe('a signed-out guest scene reaches its token request', () => {
     const consent = new Function('loadConsent', `${asJs(READ)}\nreturn readConsent;`)(gated) as (guest: boolean) => Promise<unknown>;
     const calls: { url: string; body: unknown }[] = [];
     await runAsync(START, {
-      Date, authHeaders: async () => ({}), readConsent: consent, abandoned: async () => false,
+      Date, authHeaders: async () => ({}), readConsent: consent, loadVoiceSpeedPreference: async () => null, abandoned: async () => false,
       diagRef: { current: {} }, TOKEN_SERVER: 'https://tokens.example', guestToken: 'g'.repeat(43), mode: 'lesson-text',
       guestLiveBody: (m: string) => ({ mode: m }),
       fetch: async (url: string, init: { body: string }) => { calls.push({ url, body: JSON.parse(init.body) }); return { status: 200 }; },

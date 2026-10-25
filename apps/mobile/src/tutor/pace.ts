@@ -11,10 +11,10 @@
  *
  * The prompt, not the waveform. Asking for a slower tutor changes what the
  * model is told to produce: shorter sentences, simpler words, one idea at a
- * time. The audio still plays at the speed the cache holds, because the clip is
- * cached per line and a per-learner playback rate would be a second cache. So
- * the sub-line talks about sentences and words, and says nothing about speed of
- * speech, which would be a promise the pipeline does not keep.
+ * time. It does not change how fast the voice speaks. That is a separate
+ * setting, the "Slower voice" row (`voiceSpeed.ts`), chosen on the device and
+ * sent when a session starts. So this sub-line talks about sentences and words
+ * only, and leaves speed of speech to that row.
  *
  * And it takes effect from the first line rather than from the next correction,
  * because the pace rides in the scene's own config: `createConversation` takes
@@ -42,8 +42,9 @@ export const PACE_ORDER: readonly Pace[] = ['normal', 'slow'];
  * The row's own name. It says what the tutor does, not what the field is called.
  *
  * "Tutor speaks slower" until the notebook redesign (2026-09-27, report change
- * 25): the voice is never slowed, the sentences are simplified, so the row and
- * the scene's "Simpler" control now say the same true thing.
+ * 25): this setting simplifies the sentences and does not slow the voice, so
+ * the row and the scene's "Simpler" control say the same true thing. Voice
+ * speed is the separate "Slower voice" row.
  */
 export const PACE_ROW = 'Tutor speaks more simply';
 

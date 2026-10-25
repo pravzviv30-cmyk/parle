@@ -392,6 +392,8 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     // the account's session lease back when a grant never reached a tutor, so the
     // lifted fragment reaches for the release call and the world must supply it.
     abandonSession: async (): Promise<void> => {},
+    // Slower voice: read from the device at each start; unchosen here.
+    loadVoiceSpeedPreference: async () => null,
     setTimeout: (fire: () => void): number => {
       timers.push(fire);
       return timers.length;

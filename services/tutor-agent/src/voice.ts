@@ -41,7 +41,7 @@ import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey, type TutorVoiceKey } from '@luvan
 import { CachedTTS, type CachedTTSOptions } from './ttsCache.ts';
 import { fishVoice } from './voiceFish.ts';
 import { type VoiceVendor, conversationTtsModel, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
-export { conversationTtsModel, CONVERSATION_TTS_MODEL_ENV, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
+export { BEGINNER_SPEED, tutorSpeedFor, conversationTtsModel, CONVERSATION_TTS_MODEL_ENV, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
 export type { VoiceVendor } from './voiceConfiguration.ts';
 
 /** Lives inside the service so a repo clone starts cold, not with stale audio. */
@@ -78,8 +78,8 @@ export function resolveTutorVoice(raw: unknown): TutorVoiceKey {
  *
  * Keys are sorted so declaration order can never re-key the cache on its own.
  */
-function settingsFingerprint(): string {
-  const settings = Object.entries(VOICE_SETTINGS)
+function settingsFingerprint(voiceSettings: Readonly<elevenlabs.VoiceSettings> = VOICE_SETTINGS): string {
+  const settings = Object.entries(voiceSettings)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${typeof value === 'number' ? Math.round(value * 100) : String(value)}`)
     .join(',');
@@ -146,6 +146,12 @@ export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' |
    * scripts leave it off, so what they synthesize and record is always MODEL.
    */
   conversationTier?: boolean;
+  /**
+   * The session's live voice speed from tutorSpeedFor, or absent for normal.
+   * Present, it reaches both models and the voiceKey (`speed=85` at 0.85), so each
+   * speed is its own cache; absent, the key is byte-identical to before.
+   */
+  speed?: number;
 }
 
 /**
@@ -159,7 +165,11 @@ export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' |
  * the warmed cache on disk is keyed to that string and a byte of drift throws
  * all of it away.
  */
-export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, conversationTier = false, ...hooks }: BuildTTSOptions = {}): CachedTTS {
+export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, conversationTier = false, speed, ...hooks }: BuildTTSOptions = {}): CachedTTS {
+  // The range the paid proxy admits. Refused here too, before any vendor work.
+  if (speed !== undefined && (typeof speed !== 'number' || !Number.isFinite(speed) || speed < 0.7 || speed > 1.2)) {
+    throw new Error('voice speed must be a number from 0.7 to 1.2');
+  }
   const dir = process.env.TTS_CACHE_DIR ?? DEFAULT_CACHE_DIR;
 
   if (selectedVoiceVendor() === 'fish') {
@@ -179,12 +189,16 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, conversationTie
   // key, every warmed WAV of the OLD clone would replay under the new one. The
   // vendor id changes when the recording does, so the cache changes with it.
   const voiceId = ELEVEN_VOICES[voice];
+  // The settings actually sent, and the fingerprint computed from them, so a
+  // slowed line can never replay as a normal-speed one or the other way round.
+  const voiceSettings = speed === undefined ? VOICE_SETTINGS : { ...VOICE_SETTINGS, speed };
+  const fingerprint = speed === undefined ? SETTINGS_FINGERPRINT : settingsFingerprint(voiceSettings);
   // One constructor for both models, so the conversation voice can differ
   // from the main one in nothing but the model.
   const elevenTTS = (model: string) => new elevenlabs.TTS({
     model,
     streamingLatency: STREAMING_LATENCY,
-    voiceSettings: VOICE_SETTINGS,
+    voiceSettings,
     ...(LANGUAGE_CODE ? { languageCode: LANGUAGE_CODE } : {}),
     encoding: OUTPUT_ENCODING,
     voiceId,
@@ -202,8 +216,8 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, conversationTie
     // will actually send, so a plugin that ever normalised the name re-keys the
     // cache instead of replaying audio made under a different one.
     dir,
-    voiceKey: `elevenlabs:${voiceId}:${inner.model}:${SETTINGS_FINGERPRINT}`,
-    ...(conversationInner ? { conversation: { inner: conversationInner, voiceKey: `elevenlabs:${voiceId}:${conversationInner.model}:${SETTINGS_FINGERPRINT}` } } : {}),
+    voiceKey: `elevenlabs:${voiceId}:${inner.model}:${fingerprint}`,
+    ...(conversationInner ? { conversation: { inner: conversationInner, voiceKey: `elevenlabs:${voiceId}:${conversationInner.model}:${fingerprint}` } } : {}),
     ...hooks,
   };
   return new CachedTTS(inner, opts);

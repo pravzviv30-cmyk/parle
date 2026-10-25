@@ -54,11 +54,12 @@ import { formatCostLine } from './ttsCache.ts';
 import { resumePaidRuntime } from './paidRuntime.ts';
 import { createPaidVoiceProxy, type PaidVoiceProxy } from './paidVoiceProxy.ts';
 import { admitGuestRoom, armSceneHardStop, createGuestSceneGate, sceneLesson } from './guestSceneGate.ts';
-import { ELEVEN_VOICES, MODEL as TTS_MODEL } from './voiceConfiguration.ts';
+import { ELEVEN_VOICES, MODEL as TTS_MODEL, tutorSpeedFor } from './voiceConfiguration.ts';
 
 import {
   CAFE_LESSON,
   encodeMessage,
+  lessonKeyterms,
   TOPIC_CLIENT,
   TOPIC_SERVER,
   tutorVoice,
@@ -147,6 +148,8 @@ export default defineAgent({
       revision?: unknown;
       missionId?: unknown;
       tutorVoice?: unknown;
+      /** Signed `'slower'` or `'normal'` from the learner's switch; any other value means no choice. */
+      voiceSpeed?: unknown;
       lifecycleVersion?: unknown;
       guestLifecycleKey?: unknown;
       firstPractice?: unknown;
@@ -267,15 +270,30 @@ export default defineAgent({
     // the worker would not have been running in.
     lifecycle?.assertActive();
     const persona = tutorVoice(chosenVoice).persona;
+    // The live voice speed, decided once here (VOICE-016) and never mid-session:
+    // it is part of the voice cache key, so a change would orphan the cache for
+    // the rest of the room. The learner's signed switch wins; without it the
+    // speed follows the session kind and, for a conversation, the CEFR estimate.
+    const voiceSpeedChoice = meta.voiceSpeed === 'slower' || meta.voiceSpeed === 'normal' ? meta.voiceSpeed : undefined;
+    const ttsSpeed = tutorSpeedFor({
+      kind: isConvo ? 'convo' : scene ? 'scene' : 'lesson',
+      cefr: isConvo ? parseStoredProfile(meta.snapshot).cefr.estimate : undefined,
+      choice: voiceSpeedChoice,
+    });
     const recognition = recognitionPlan(isConvo ? 'convo' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
+    // One fixed keyterm list for a scripted lesson or scene (VOICE-017), set at
+    // construction so it never reconnects the socket, and the same with or
+    // without the paid proxy. Convo keeps its per-turn phrases off-proxy only.
+    const keyterm = isConvo || recognition.experimental ? [] : lessonKeyterms(lesson);
     const { vad, stt, tts: voiceTts } = sessionAudio(voiceless, {
       vad: () => ctx.proc.userData.vad as silero.VAD,
       stt: () => recognition.experimental
         ? new deepgram.STTv2(recognition.options)
-        : new deepgram.STT({ ...recognition.options, ...(proxy ? { baseUrl: proxy.deepgramBaseURL, apiKey: 'proxy-only', sampleRate: 16000, numChannels: 1, mipOptOut: true } : {}) }),
+        : new deepgram.STT({ ...recognition.options, ...(keyterm.length ? { keyterm } : {}), ...(proxy ? { baseUrl: proxy.deepgramBaseURL, apiKey: 'proxy-only', sampleRate: 16000, numChannels: 1, mipOptOut: true } : {}) }),
       tts: () => buildTTS({
         voice: chosenVoice,
         conversationTier: true,
+        ...(ttsSpeed === undefined ? {} : { speed: ttsSpeed }),
         ...(proxy ? { baseURL: proxy.elevenlabsBaseURL, missTransport: 'http' as const } : {}),
       }),
     });
@@ -563,7 +581,7 @@ export default defineAgent({
       // Cost visibility per session: hits are free lines, misses were billed.
       if (voiceTts) console.log(`[luvani] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
       // Numbers only, joined to [luvani:brain:summary] by the session prefix.
-      console.log(formatCostLine({ sessionId: tutor.sessionId, tts: voiceTts, sttSec: stt ? sttAudioMs / 1000 : null }));
+      console.log(formatCostLine({ sessionId: tutor.sessionId, tts: voiceTts, sttSec: stt ? sttAudioMs / 1000 : null, ttsSpeed }));
       voiceTts?.clearReplayMemo();
       if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
       stopPaidWork();

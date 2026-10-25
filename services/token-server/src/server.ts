@@ -720,6 +720,9 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       let seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
       const missionId = typeof body.missionId === 'string' && body.missionId ? body.missionId : undefined;
       const tutorVoice = typeof body.tutorVoice === 'string' && body.tutorVoice ? body.tutorVoice : undefined;
+      // voiceSpeed is the fourth passenger: exactly 'slower' or 'normal', anything else is
+      // treated as absent (never a 400). The agent maps the word to a vendor speed.
+      const voiceSpeed = body.voiceSpeed === 'slower' || body.voiceSpeed === 'normal' ? body.voiceSpeed : undefined;
 
       // Only an identifier comes from the app. Saved learning context is loaded
       // under the authenticated user's ownership, never trusted from the body.
@@ -763,7 +766,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         const sessionId = randomUUID();
         const reservation = await tutorSessions.reserve({ userId, authSessionId: resolved.authSessionId,
           sessionId, roomName: `luvani-${sessionId}`, mode,
-          request: { lessonId, mode, revision, startRung, snapshot, seedTopic, missionId, tutorVoice } });
+          request: { lessonId, mode, revision, startRung, snapshot, seedTopic, missionId, tutorVoice, voiceSpeed } });
         if (reservation.kind === 'refused') {
           const status = ['exhausted', 'insufficient-for-session', 'subscription-lapsed'].includes(reservation.reason)
             ? 402 : reservation.reason === 'session-active' ? 409 : 503;
@@ -793,6 +796,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         ...(seedTopic !== undefined ? { seedTopic } : {}),
         ...(missionId !== undefined ? { missionId } : {}),
         ...(tutorVoice !== undefined ? { tutorVoice } : {}),
+        ...(voiceSpeed !== undefined ? { voiceSpeed } : {}),
         // D24 follow-up: a free or lapsed learner's tutor neither reads nor writes memory.
         memoryLocked: entitlement.plan === 'trial' || entitlement.lapsed === true,
       });

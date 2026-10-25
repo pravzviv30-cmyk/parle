@@ -3,6 +3,8 @@ import {createHash,randomUUID} from 'node:crypto';
 import {PaidAdmissionError,type PaidContext,type PaidKind,type PaidProvider,type PaidQuantities,type PaidReservation} from './paidAdmission.ts';
 import {canonicalJson} from './tutorLifecycle.ts';
 export interface PaidDescriptor {kind:PaidKind;provider:PaidProvider;model:string;voice:string;configuration:Record<string,unknown>;quantities:PaidQuantities}
+/** Invariant: a gate may throw PaidAdmissionError('quote-mismatch') only before any claim or local
+ * accounting, because the paid voice proxy treats it as proof nothing was spent and retries without keyterms. */
 export type PaidGate=(descriptor:PaidDescriptor,signal?:AbortSignal)=>Promise<AbortSignal>;
 export const paidConfigurationSha256=(descriptor:Omit<PaidDescriptor,'quantities'>)=>createHash('sha256').update(canonicalJson({version:1,kind:descriptor.kind,provider:descriptor.provider,model:descriptor.model,voice:descriptor.voice,configuration:descriptor.configuration,maxProviderAttempts:1})).digest('hex');
 /** Per-call WAV ceiling: a 44-byte header and 30 s of 16 kHz mono 16-bit PCM. */
@@ -60,7 +62,11 @@ export async function describePaidHttp(url:URL,init:RequestInit):Promise<PaidDes
   if(typeof body.text!=='string' || !body.text.trim() || Object.keys(body).some(key=>!['text','model_id','language_code','voice_settings','apply_text_normalization','apply_language_text_normalization'].includes(key)))throw new PaidAdmissionError('unsupported-adapter');
   if([...url.searchParams.keys()].some(key=>!['output_format','optimize_streaming_latency','enable_logging'].includes(key)))throw new PaidAdmissionError('unsupported-adapter');
   if(typeof body.model_id!=='string')throw new PaidAdmissionError('unsupported-adapter');if((body.apply_text_normalization!==undefined && body.apply_text_normalization!=='auto') || (body.apply_language_text_normalization!==undefined && typeof body.apply_language_text_normalization!=='boolean') || url.searchParams.get('enable_logging')!=='false')throw new PaidAdmissionError('unsupported-adapter');kind='tts';provider='elevenlabs';model=body.model_id;voice=url.pathname.split('/')[3]!;q.textBytes=Buffer.byteLength(body.text);
-  configuration={parameters:Object.fromEntries([...url.searchParams].sort()),...Object.fromEntries(Object.entries(body).filter(([key])=>key!=='text'))};
+  // Speed is delivery input like text: ElevenLabs bills characters, not pace, so one
+  // quote component per voice serves every speed. Only the range the proxy admits is stripped.
+  const settings=body.voice_settings;let voiceSettings=settings;
+  if(settings && typeof settings==='object' && !Array.isArray(settings) && Object.hasOwn(settings,'speed')){const {speed,...rest}=settings as Record<string,unknown>;if(typeof speed!=='number' || !Number.isFinite(speed) || speed<0.7 || speed>1.2)throw new PaidAdmissionError('unsupported-adapter');voiceSettings=rest;}
+  configuration={parameters:Object.fromEntries([...url.searchParams].sort()),...Object.fromEntries(Object.entries(body).filter(([key])=>key!=='text').map(([key,value])=>[key,key==='voice_settings'?voiceSettings:value]))};
  } else if(url.hostname==='api.deepgram.com' && url.pathname==='/v1/listen') {
   if(!(init.body instanceof Uint8Array) || [...url.searchParams.keys()].some(key=>!['model','language','smart_format','mip_opt_out'].includes(key)) || url.searchParams.get('mip_opt_out')!=='true')throw new PaidAdmissionError('unsupported-adapter');
   kind='stt';provider='deepgram';model=url.searchParams.get('model')??'';q.inputBytes=init.body.byteLength;q.audioMillis=pcmAudioMillis(init.body);

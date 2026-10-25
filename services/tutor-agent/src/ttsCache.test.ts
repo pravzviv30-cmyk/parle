@@ -11,6 +11,7 @@ import { initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agen
 initializeLogger({ pretty: false, level: 'silent' });
 
 import { CachedTTS, formatCostLine, normaliseLine } from './ttsCache.ts';
+import { BEGINNER_SPEED } from './voiceConfiguration.ts';
 import { CONVO_LINES } from './authoredSpeech.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
 import { encodeWav, decodeWav } from './wav.ts';
@@ -661,7 +662,8 @@ describe('the per-session cost line', () => {
     await pcmOf(synth(cached, CONVO_LINES.carryOn.en)); await pcmOf(synth(cached, CONVO_LINES.carryOn.en));
     const line = formatCostLine({ sessionId: '1A2B3C4D-0000-4000-8000-000000000000', tts: cached, sttSec: 61.25 });
     const b = REPLY.length + CONVO_LINES.carryOn.en.length;
-    assert.equal(line, `[luvani:cost] session=1a2b3c4d ttsCharsBilled=${b} ttsCharsCached=${CONVO_LINES.carryOn.en.length} ttsCharsReplayed=${REPLY.length} sttSec=61.3`);
+    assert.equal(line, `[luvani:cost] session=1a2b3c4d ttsCharsBilled=${b} ttsCharsCached=${CONVO_LINES.carryOn.en.length} ttsCharsReplayed=${REPLY.length} ttsSpeed=1 sttSec=61.3`);
+    assert.match(formatCostLine({ tts: cached, ttsSpeed: BEGINNER_SPEED, sttSec: 1 }), new RegExp(` ttsCharsReplayed=\\d+ ttsSpeed=${String(BEGINNER_SPEED).replace('.', '\\.')} sttSec=1\\.0$`));
     assert.match(line, /^\[luvani:cost\](?: [a-zA-Z]+=[0-9a-f.]+)+$/);
     for (const word of ['jazz', 'aimes', 'keep', 'listening']) assert.ok(!line.includes(word), `learner-facing text leaked: ${word}`);
   });
@@ -674,7 +676,7 @@ describe('the per-session cost line', () => {
   test('the agent prints it once per session, next to the voice cache line', () => {
     const agent = readFileSync(new URL('./agent.ts', import.meta.url).pathname, 'utf8');
     assert.equal(agent.match(/formatCostLine\(/g)?.length, 1);
-    assert.match(agent, /formatCostLine\(\{ sessionId: tutor\.sessionId, tts: voiceTts, sttSec: stt \? sttAudioMs \/ 1000 : null \}\)/);
+    assert.match(agent, /formatCostLine\(\{ sessionId: tutor\.sessionId, tts: voiceTts, sttSec: stt \? sttAudioMs \/ 1000 : null, ttsSpeed \}\)/);
     assert.match(agent, /m\.type === 'stt_metrics'[^\n]*sttAudioMs \+= m\.audioDurationMs/);
   });
 });
@@ -749,7 +751,7 @@ describe('the free-conversation model tier', () => {
 
       assert.equal(tiered.charsBilled, AUTHORED.length + REPLY.length);
       assert.equal(tiered.charsBilledConversation, REPLY.length);
-      assert.match(formatCostLine({ tts: tiered }), new RegExp(`ttsCharsBilled=${AUTHORED.length + REPLY.length} .* ttsCharsBilledConversation=${REPLY.length}$`));
+      assert.match(formatCostLine({ tts: tiered }), new RegExp(`ttsCharsBilled=${AUTHORED.length + REPLY.length} .* ttsCharsBilledConversation=${REPLY.length} ttsSpeed=1$`));
       await tiered.close();
     });
   }

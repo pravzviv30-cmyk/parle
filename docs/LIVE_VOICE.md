@@ -35,8 +35,18 @@ and final transcript, whose caption says “Interpreted from your speech”. Thi
 an interpretation, never an audio pronunciation score or automatic lesson pass.
 Nova-3 phase changes restart the active recognizer through the public Agent API;
 a failed update reports a typing recovery message. The direct conversation path also receives a bounded current-turn keyterm
-list through the active session’s public update seam. Experimental recognition and quote-bound paid proxy settings are unchanged;
-repair still runs after recognition without another model request.
+list through the active session’s public update seam, off the paid proxy only. Scripted lessons and the guest scene
+(VOICE-017) get one fixed keyterm list, `lessonKeyterms(lesson)` from core, set when the Nova-3 recognizer is built, on and
+off the proxy alike. Every target's full line comes first (a trailing `?` stripped), then short forms and acceptable options,
+never the lowercase `accepts`, within 16 phrases and 400 bytes. It is never changed mid-session, because each change reopens
+the socket and under the proxy each socket is admitted as a full session of audio. Experimental recognition gets none.
+The paid proxy accepts repeated `keyterm` parameters only with `model=nova-3` (1 to 16 values, each 1 to 100 characters
+with no control characters or `;`, 400 UTF-8 bytes in total) and forwards the re-encoded query it hashed, never the raw text. The quote identity carries the marker `keyterm: 'prompted'`
+instead of the values, and a stream without keyterms has exactly its old identity. If the quote has no keyterm component,
+the gate refuses with `quote-mismatch` before any claim, and the proxy admits the plain stream and forwards it with every
+keyterm removed. It logs `[luvani] keyterms: prompted` or `[luvani] keyterms: stripped` once per connection, with no values.
+`keytermSttConfigurationSha256(baseQuery)` in `paidVoiceProxy.ts` prints the component hash.
+Repair still runs after recognition without another model request.
 
 What happens between a learner tapping "start" and a tutor answering them, and
 where every part of it can go wrong.
@@ -351,7 +361,8 @@ When the room disconnects the agent also prints one `[luvani:cost]` line for
 cost per minute. It holds numbers only: the same 8-hex session prefix,
 `ttsCharsBilled` (characters sent to the voice vendor), `ttsCharsCached`
 (characters served from the authored disk cache), `ttsCharsReplayed`
-(characters served from the session's replay memo) and `sttSec` (seconds of
+(characters served from the session's replay memo), `ttsSpeed` (the session's
+live voice speed, 1 for normal, printed whenever the session had a voice) and `sttSec` (seconds of
 learner audio Deepgram reported receiving). A field the session could not
 measure is left out, never printed as zero.
 
@@ -366,6 +377,22 @@ matches. Lines over 220 characters bypass it, as they bypass the disk. The
 memo is never written anywhere and is cleared when the session ends. Authored
 lines stay on disk and no longer expire, because their key already binds
 voice, model, settings and text.
+
+The live voice speed (VOICE-016) is chosen once at session start by
+`tutorSpeedFor` and never changes mid-session; the "Simpler" pace changes
+sentences only. The learner's signed `voiceSpeed` (`slower` or `normal`) wins.
+Without it, scripted lessons and the guest scene run at `BEGINNER_SPEED`
+(0.85), and a conversation does too until the profile's CEFR estimate reaches
+A2. `VOICE_SETTINGS` itself carries no speed, so bundled clips, saved-phrase
+Hear and the build scripts are untouched. With a speed, `buildTTS` sends
+`{...VOICE_SETTINGS, speed}` to both models and the voice key gains
+`speed=85`, so each speed is its own disk cache and replay memo; at normal
+speed the key is byte-identical to before. Warm the slower copy with
+`LUVANI_WARM_SPEED=slower` (or `both`; the default is `normal`, and any other
+value refuses before anything is synthesized). Speed is excluded from the TTS
+quote identity when it is a number from 0.7 to 1.2 (ElevenLabs bills
+characters, not pace), so existing quotes keep matching; any other speed is
+refused.
 
 `LUVANI_CONVERSATION_TTS_MODEL` is an opt-in switch for the free-conversation
 voice, and it is off by default. When it is unset, every line uses the pinned

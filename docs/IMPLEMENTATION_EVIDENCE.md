@@ -34,6 +34,16 @@ of the list.
   shared release/provider proofs 176; all 43 migrations replayed, no migration added. Floors
   raised only through `gate:bless`. No paid model run; one advisory Jev copy check (warm, about
   $0.00002).
+- 25 October 2026 slower voice and scripted keyterms (VOICE-016, VOICE-017) on branch
+  `claude/slower-voice-keyterms` from main 50b46a0f (not on main): beginners hear the tutor at
+  ElevenLabs speed 0.85 with a "Slower voice" switch, speed left out of the TTS quote identity;
+  lessons and guest scenes build Nova-3 with one fixed keyterm list, and the paid proxy admits
+  capped keyterms with a quote-mismatch fallback to the plain stream: **6,553 tests, 0 failing**;
+  core 1055, brain 504, tutor agent 802, token server 485, playground 87, mobile 3620; shared
+  release/provider proofs 184; all 43 migrations replayed, no migration added. Floors raised only
+  through `gate:bless`. Paid vendor runs: `measureVoiceSpeed.mjs` (203 ElevenLabs credits, 8
+  Deepgram requests) and `measureKeyterms.mjs` (104 credits, about 141 s of Deepgram), recorded
+  under "Measurements that are not assertions".
 - 24 October 2026 main with `claude/curation-luna` (VOICE-012) merged onto the unaided-sentence
   metric landing: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token
   server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations
@@ -589,6 +599,13 @@ stop, and roughly $2.20 for a full trial allowance. That last figure is what one
 trial costs, which is why F73 is a P0.
 
 ## Measurements that are not assertions
+
+- **Slower voice and keyterms, 25 October 2026 (VOICE-016, VOICE-017).** ElevenLabs bills the
+  same credits at speed 1.0, 0.9 and 0.85 (`character-cost` header), and 0.85 is about 17% slower
+  with Deepgram word accuracy 1.00 (`docs/cogs-evidence/voice-speed-2026-10-25.json`). Café
+  keyterms on an English voice reading French scored 11 of 12 exact with and without keyterms, at
+  normal level and -20 dB: inconclusive at the ceiling, no transcript worse
+  (`docs/live-latency-evidence/keyterms-2026-10-25.json`).
 
 The voice harness records LiveKit's actual behaviour where it differs from what we would
 wish, rather than asserting a wish. Three results are worth carrying forward:

@@ -2353,9 +2353,9 @@ export class LuvaniConversation extends voice.Agent {
     }
     if (msg.t === 'slower') {
       // Two effects, both honest: the line again right now, and a pace flag
-      // that rides every later turn's context so the tutor STAYS slow. The
-      // audio itself replays at the cached speed until slow synthesis is
-      // proven out with the voice vendor.
+      // that rides every later turn's context so the tutor STAYS slow.
+      // This control changes sentences only: the voice speed is chosen once at
+      // session start (tutorSpeedFor in agent.ts) and the replay keeps it.
       this.state = { ...this.state, pace: 'slow' };
       if (this.lastView) return this.replayLine(this.lastView.sceneReply.fr);
       return;

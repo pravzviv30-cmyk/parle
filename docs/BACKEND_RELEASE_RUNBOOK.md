@@ -206,7 +206,7 @@ The worst case is a scene with a cold voice cache on every call, up to the gate'
 | Item | Per scene |
 |---|---|
 | TTS, ElevenLabs v2 at $0.08 per 1k characters | $0.232, or $0.464 in a 2x voice |
-| STT, Nova-3 with keyterm prompting, 180 s | $0.027 |
+| STT, Nova-3 with keyterm prompting, 180 s (the scene sends the café keyterms since VOICE-017; the add-on is about $0.0013 a minute, already inside this figure) | $0.027 |
 | Model | $0 |
 | Scoring | $0 |
 | LiveKit connection minutes (estimate; confirm against the LiveKit plan) | about $0.006 |

@@ -28,7 +28,7 @@ test('only an explicit conversation review uses Flux French and English hints', 
 test('the review recognizer stays inside lazy session audio and phase updates preserve its bilingual hints', () => {
   const source = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
   assert.match(source, /const recognition = recognitionPlan\(isConvo \? 'convo' : 'lesson', sttLanguageFor\(isConvo \? 'convo' : 'lesson', 'choosing'\), process.env\)/);
-  assert.match(source, /sessionAudio\(voiceless, \{[\s\S]*?stt: \(\) => recognition.experimental\s*\? new deepgram.STTv2\(recognition.options\)\s*: new deepgram.STT\(\{ \.\.\.recognition.options, \.\.\.\(proxy \? \{ baseUrl: proxy.deepgramBaseURL, apiKey: \'proxy-only\', sampleRate: 16000, numChannels: 1, mipOptOut: true \} : \{\}\) \}\)/);
+  assert.match(source, /sessionAudio\(voiceless, \{[\s\S]*?stt: \(\) => recognition.experimental\s*\? new deepgram.STTv2\(recognition.options\)\s*: new deepgram.STT\(\{ \.\.\.recognition.options, \.\.\.\(keyterm.length \? \{ keyterm \} : \{\}\), \.\.\.\(proxy \? \{ baseUrl: proxy.deepgramBaseURL, apiKey: \'proxy-only\', sampleRate: 16000, numChannels: 1, mipOptOut: true \} : \{\}\) \}\)/);
   assert.match(source, /setSttLanguage: \(language\) => \{\s*if \(recognition.experimental \|\| !stt\) return;/);
 });
 
@@ -49,4 +49,13 @@ test('current scene keyterms update the active session without changing paid or 
   const source = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
   assert.match(source, /setSttPhrases: \(keyterms\) => \{\s*if \(!recognition.experimental && !proxy\) session.updateOptions\(\{ keyterms \}\);\s*\}/);
   assert.doesNotMatch(source, /stt\?\.updateOptions\(\{ keyterms? \}\)/);
+});
+
+test('scripted lessons and scenes build recognition with one fixed keyterm list, on and off the proxy; convo and the experiment get none', () => {
+  const source = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
+  assert.match(source, /const lesson = scene \? sceneLesson\(scene\) : CAFE_LESSON;/);
+  assert.match(source, /const keyterm = isConvo \|\| recognition.experimental \? \[\] : lessonKeyterms\(lesson\);/);
+  // Construction only: the keyterms sit before the proxy options, so both paths carry them, and STTv2 never does.
+  assert.match(source, /recognition.experimental\s*\? new deepgram.STTv2\(recognition.options\)\s*: new deepgram.STT\(\{ \.\.\.recognition.options, \.\.\.\(keyterm.length \? \{ keyterm \} : \{\}\), \.\.\.\(proxy \?/);
+  assert.equal(source.match(/lessonKeyterms\(/g)?.length, 1);
 });
