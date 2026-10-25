@@ -22,6 +22,16 @@ of the list.
 
 ## Current landing snapshot
 
+- 25 October 2026 data-boundary quota proof made clock-safe on branch `claude/quota-minute-flake`
+  from main 50b46a0f (not on main): the write quotas are calendar-minute buckets on the real
+  database clock, and `verifyDataBoundaries.mjs` failed when its 48-write burst straddled a
+  minute (`14 !== 48`, also `46 !== 48`). Unpatched it failed 1 run in 50, and on purpose at
+  boundary offsets 2,200, 2,320 and 2,700 ms after launch. It now waits for a fresh minute
+  before each of its three counted bursts and counts a bucket from an earlier minute as empty.
+  Every assertion keeps its value; product SQL unchanged, no learner impact. 50 of 50 runs
+  green: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token server 484,
+  playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations replayed,
+  no migration added. Floors unchanged.
 - 24 October 2026 main with `claude/curation-luna` (VOICE-012) merged onto the unaided-sentence
   metric landing: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token
   server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations

@@ -26,6 +26,14 @@ const envelope = data => sealEnvelope(data,'disposable-proof',now);
 const event = (owner,occurredAt,receivedAt) => db.query('insert into public.product_events(user_id,name,properties,occurred_at,received_at) values($1,$2,$3::jsonb,coalesce($4::timestamptz,now()),coalesce($5::timestamptz,now()))',[owner,'onboarding_completed',JSON.stringify(eventProperties),occurredAt??null,receivedAt??null]);
 const social = async (owner,action,args={}) => { await role('authenticated',owner); try { return (await db.query('select public.luvani_social($1,$2::jsonb) as value',[action,JSON.stringify(args)])).rows[0].value; } finally { await admin(); } };
 async function quota(owner) { await admin(); return (await db.query('select * from luvani_private.data_write_quotas where user_id=$1',[owner])).rows[0]; }
+// The write quotas are calendar-minute buckets on the database clock. A counted
+// burst must not straddle a minute (or a UTC midnight) boundary, so wait for a fresh
+// minute when less than `headroomMs` of this one is left. Real clock, strict asserts.
+async function freshMinute(headroomMs=5000) {
+  await admin();
+  const {left}=(await db.query("select extract(epoch from date_trunc('minute',clock_timestamp())+interval '1 minute'-clock_timestamp())*1000 as left")).rows[0];
+  if (Number(left)<headroomMs) await new Promise(r=>setTimeout(r,Number(left)+50));
+}
 async function retention(size=500) { await role('service_role'); try { return (await db.query('select public.run_data_retention_v1($1) as value',[size])).rows[0].value; } finally { await admin(); } }
 const pass = label => console.log(`PASS: ${label}`);
 try {
@@ -95,6 +103,7 @@ try {
     friends:{},topics:{version:1,topics:[]},journal:[],missions:{version:1,completions:[]},coachMarks:['mic'],soundChecks:{version:1,evidence:[]},
     bookmarks:{version:2,items:Array.from({length:3000},(_,n)=>({situation:`scene:${n}`,saved:true,at:now-n}))},
     scenarioProgress:{version:1,records:[]},practiceHistory:{version:1,events:[]},goalSteps:{version:1,steps:[]}};
+  await freshMinute(); const burstStart=Date.now();
   await role('authenticated',a);
   for(const [namespace,data] of Object.entries(payloads)) {
     assert.ok(Buffer.byteLength(JSON.stringify(envelope(data)))<=MAX_ENVELOPE_BYTES,`fixture ${namespace} exceeds mobile byte bound`);
@@ -106,7 +115,7 @@ try {
   const revision=(await db.query("select revision from learner_state where user_id=$1 and namespace='profile'",[a])).rows[0].revision;
   assert.equal(Number(revision),2);
   assert.equal((await db.query("update learner_state set payload=payload where user_id=$1 and namespace='profile' and revision=1 returning revision",[a])).rows.length,0);
-  await admin(); const q0=await quota(a); assert.equal(q0.learner_minute,48);
+  await admin(); const q0=await quota(a); assert.equal(q0.learner_minute,48,`the 48-write burst took ${Date.now()-burstStart} ms; it must fit one calendar minute`);
   await db.exec('drop trigger aaa_test_parent_lock on learner_state; drop function public.assert_test_parent_lock();');
   await db.exec(statementFunction.replace('create function','create or replace function'));
   pass('all 16 namespaces; numeric tutorIntro; 200-phrase profile; 50 sessions; 1,200 constructed review cards; 5,000 activity entries; 3,000 bookmarks; offline burst/CAS');
@@ -260,8 +269,10 @@ try {
   assert.ok((await db.query("select octet_length(payload::text)::integer as n from learner_state where user_id=$1 and namespace='journal'",[d])).rows[0].n>MAX_ENVELOPE_BYTES);
   await assert.rejects(db.query("update learner_state set payload=payload where user_id=$1 and namespace='journal'",[d]),/byte limit/);
   await db.query("update learner_state set payload='{}' where user_id=$1 and namespace='journal'",[d]);
+  await freshMinute();
+  // A bucket from an earlier minute is zeroed by the next write, so it counts as empty.
+  const remaining=240-(await db.query("select case when minute_started_at=date_trunc('minute',clock_timestamp()) then learner_minute else 0 end as used from luvani_private.data_write_quotas where user_id=$1",[a])).rows[0].used;
   await role('authenticated',a);
-  const remaining=240-(await quota(a)).learner_minute; await role('authenticated',a);
   await db.exec(`do $$ begin for n in 1..${remaining} loop update learner_state set payload='{}' where user_id='${a}' and namespace='journal'; end loop; end $$;`);
   await assert.rejects(db.query("update learner_state set payload='{}' where user_id=$1 and namespace='journal'",[a]),/learner write quota/);
   await admin(); assert.equal((await quota(a)).learner_minute,240);
@@ -273,6 +284,7 @@ try {
   await role('authenticated',a); await db.exec('begin'); await db.query("update learner_state set payload='{}' where user_id=$1 and namespace='journal'",[a]);await db.exec('rollback');assert.equal((await quota(a)).learner_day,1);
   pass('legacy state readable but must shrink on write; atomic 240/min and 20,000/day limits; reset and transaction rollback');
 
+  await freshMinute();
   await role('authenticated',c);
   await db.query(`insert into product_events(user_id,name,properties) select $1::uuid,'onboarding_completed','{"personalisedGreeting":false}' from generate_series(1,60)`,[c]);
   await assert.rejects(event(c),/product event quota/);
