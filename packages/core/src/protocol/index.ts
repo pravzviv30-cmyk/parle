@@ -9,6 +9,8 @@ export {
   type SafetyCategory,
   ERROR_KINDS,
   type ErrorKind,
+  HELD_TURN_STATES,
+  type HeldTurnState,
   type ServerMessage,
   type ClientMessage,
   type ConvoSpeakerLine,

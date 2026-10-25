@@ -14,6 +14,7 @@ import { CachedTTS, formatCostLine, normaliseLine } from './ttsCache.ts';
 import { BEGINNER_SPEED } from './voiceConfiguration.ts';
 import { CONVO_LINES } from './authoredSpeech.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
+import { CLOSE_LINE, HEADS_UP_LINE } from './sessionEnd.ts';
 import { encodeWav, decodeWav } from './wav.ts';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -699,6 +700,12 @@ describe('the warm run warms exactly the authored list', () => {
     ];
     assert.equal(spoken.length, 11, 'five openers, three suggestions, three ways back');
     for (const line of spoken) {
+      for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);
+    }
+  });
+
+  test('the authored list includes the end-of-session heads-up and close, so neither is billed live', () => {
+    for (const line of [HEADS_UP_LINE, CLOSE_LINE]) {
       for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);
     }
   });

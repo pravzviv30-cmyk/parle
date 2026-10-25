@@ -682,7 +682,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - A lesson may run preemptive generation once more per held pause; the
     framework caps that at three a turn.
 - Deferred:
-  - Tap-to-send (manual turn mode with an auto-send cap).
+  - Tap-to-send (manual turn mode with an auto-send cap). Built as VOICE-019.
   - Merging a fragment that was already cut off with its continuation.
   - Field calibration with real beginners in the beta. The clips are one
     sentence in synthetic voices.
@@ -1168,3 +1168,99 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Sources: `packages/core/src/lessons/keyterms.ts`,
   `services/tutor-agent/src/agent.ts`, `paidVoiceProxy.ts`,
   `services/shared/paidExecution.ts`, `docs/LIVE_VOICE.md`, VOICE-008.
+
+## VOICE-018 — A heads-up a minute before the cap, then a warm close
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - About 60 s before a session's cap (`HEADS_UP_LEAD_MS`), at the first gap,
+    the tutor says "We're nearly out of time. Let's finish this one together."
+    and the worker sends a payload-free `wrap-up` frame. The room shows "Nearly
+    time to finish. {Tutor} will wrap up after this."
+  - No number, anywhere. The pill stays "About N min" and the room never shows
+    minutes left: UI-008's "no left, no clock" is kept (founder, 2026-10-25).
+    The `wrap-up` frame has no field to carry one, and the app rebuilds it from
+    its tag alone.
+  - After one more learner turn and the tutor's spoken reply, the tutor says
+    "That's all for today. Thank you, à bientôt !" and the session ends through
+    the tutor-owned close, a little before the cap instead of on it.
+  - Backstop: at the cap minus 15 s (`CLOSE_BY_MARGIN_MS`), a silent learner
+    with no turn held is closed at once. A learner still speaking meets the
+    existing hard stop. The server-signed cap is never extended. The close
+    line's playout wait is bounded at 6 s, the legacy timer's "time limit"
+    notice stands down once the close begins, and safety still screens every
+    turn while the session closes.
+  - Kill switch: `LUVANI_SESSION_HEADS_UP=0` on the tutor role.
+  - Skipped when a session starts with under 90 s left, and for guest scenes,
+    which keep their own ceiling. Typed sessions get the frame and the note.
+  - Policy in `services/tutor-agent/src/sessionEnd.ts`; the tutors expose
+    `wrapUp()`, `closeForTime()` and `sessionEndView()`.
+- Review: `voice-reliability-architect` (read-only, 2026-10-25) found six
+  issues across VOICE-018 and VOICE-019; all are fixed with tests.
+- Reason: "calls end on a hidden timer" is a top complaint about Duolingo's
+  video calls in the founder's market report. Free sessions are now 10 minutes
+  (REV-001), so more learners meet the cap.
+- Consequence:
+  - Metering unchanged; an early close bills fewer seconds.
+  - Both lines are in `AUTHORED_SPEECH_LINES`. Until `npm run warm-cache` is run
+    (paid), the first use of each line in each voice is synthesised live.
+  - Tests: `sessionEnd.test.ts`, the session-end blocks in `convo.test.ts` and
+    `tutor.test.ts`, `agentWiring.test.ts`, `ttsCache.test.ts`, the `wrap-up`
+    cases in `protocol.test.ts`, and `liveRoomView.test.ts` (the note has no
+    digit, no "left", no "min"; the pill test is unchanged).
+  - Founder steps: deploy the tutor agent and the app together (no migration),
+    run `warm-cache`, and hear a session reach its cap once on a device.
+- Sources: founder answers of 25 October 2026, `docs/LIVE_VOICE.md` "Nearly time
+  to finish", UI-008 above.
+
+## VOICE-019 — Tap to send: the turn ends when the learner says so
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - An optional mode, off by default, offered in Settings (Practice) and from
+    the live room's "Tap to send" switch, stored on the device
+    (`@luvani/tap-to-send/v1`). Speak only; never in a guest scene.
+  - The microphone stays open. With it on, the worker switches the session to
+    the SDK's manual turn detection, and the turn ends only on Send
+    (`session.commitUserTurn()`) or at the 60 s cap (`TAP_SEND_CAP_MS`), with a
+    "Sending what you've said in a moment." note at 50 s.
+  - No rescue while a turn is held; before the learner speaks, the stuck clock
+    runs as usual. The cap bounds the dark time.
+  - Switching off, or going to Type, sends what was said and restores turn
+    detection to `null` (or a saved string mode). Restoring the saved detector
+    object silently disables VAD end-of-speech in `@livekit/agents` 1.9.
+  - Wire: client `tap-to-send` and `send`, server `held-turn`
+    (`open`, `closing`, `sent`). The worker handles them, not the tutors, and
+    applies the switch only once `session.start()` has resolved: switching to
+    manual before the activity exists builds the session without its audio turn
+    detector, for good.
+  - A Send or cap that lands while the tutor speaks waits until it stops: the
+    SDK drops a commit over uninterruptible speech. The heads-up never plays
+    into a held turn. An empty commit re-arms the rescue.
+  - Kill switch: `LUVANI_TAP_TO_SEND=0` on the tutor role.
+- Reason: VOICE-010's floors still end a turn after 2.5 s at most, so slow
+  speakers and people who stutter can be cut off. The market report says users
+  want a mode that waits until they say they are done; Duolingo's push-to-talk
+  was praised for it. Founder chose "talk freely, tap Send" over
+  walkie-talkie, and a 60 s cap (2026-10-25).
+- Tradeoffs:
+  - Barge-in by voice is off while it is on; words said over the tutor wait for
+    the held turn.
+  - A lesson's preemptive generation does not run during a held turn (0 model
+    calls in the SDK test), so a held turn costs no model calls.
+  - A turn costs one tap. That is the point for those who choose it, and why it
+    stays off by default.
+- Consequence:
+  - Tests: `tapToSend.test.ts` and `tapToSendSdk.test.ts` (a real
+    `AgentSession`: a 3 s pause does not commit, Send does, and after switching
+    off a pause commits again), `agentWiring.test.ts`, `runtimeInput.test.ts`,
+    `protocol.test.ts` (and the SDK test also turns it on before
+    `session.start` and checks the detector survives), and in the app
+    `tapToSend.test.ts`,
+    `liveRoomView.test.ts` and `useLiveSession.test.ts`.
+  - Founder steps: deploy agent and app together; try it on a device with a
+    long pause and with a 60 s ramble.
+- Sources: founder answers of 25 October 2026, VOICE-010 "Deferred",
+  `docs/LIVE_VOICE.md` "Tap to send".

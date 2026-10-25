@@ -52,6 +52,7 @@ import { modeCarriesAudio, publishesMicAtConnect, type LiveMode } from '../tutor
 import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
 import { holdLive, liveRoom } from '../sound/audioFocus.ts';
 import { recapMayTakeTheAudio } from './recapAudio.ts';
+import { heldTurnAfter, tapToSendFrames, wrappingUpAfter } from './heldTurn.ts';
 
 const NOW = new Date(2026, 7, 27, 14).getTime();
 
@@ -788,12 +789,14 @@ describe('a blip in the middle of a session — F195', () => {
     const reconnecting: boolean[] = [];
     const ended: unknown[] = [];
     const voicelessRef = { current: false };
+    const tapToSendRef = { current: false };
 
-    const wire = (voiceless: boolean): void => {
+    const wire = (voiceless: boolean, tapToSend = false): void => {
       subscribed.clear();
       sent.length = 0;
       reconnecting.length = 0;
       voicelessRef.current = voiceless;
+      tapToSendRef.current = tapToSend;
       run(RECONNECT_HANDLERS, {
         room: { on: (event: string, handler: () => void) => subscribed.set(event, handler) },
         RoomEvent,
@@ -801,6 +804,8 @@ describe('a blip in the middle of a session — F195', () => {
         setReconnecting: (v: boolean) => reconnecting.push(v),
         send: (m: unknown) => sent.push(m),
         voicelessRef,
+        tapToSendRef,
+        tapToSendFrames,
         // The ownership guard main added while this branch was open. A reconnect
         // belongs to the session on screen, so it answers true here; the tests
         // that prove a stale start cannot act live in startOwnership.test.ts.
@@ -833,7 +838,7 @@ describe('a blip in the middle of a session — F195', () => {
     assert.deepEqual(reconnecting, [true, true, false], 'the connection came back and the screen is still apologising for it');
     assert.deepEqual(
       sent,
-      [{ t: 'ready' }],
+      [{ t: 'ready' }, { t: 'tap-to-send', on: false }],
       'nothing re-sent ready, so the agent replay path built for exactly this is never triggered and the session is lost',
     );
     // And it is a frame the agent will actually read, not merely an object.
@@ -851,6 +856,22 @@ describe('a blip in the middle of a session — F195', () => {
       'a session that had gone quiet came back speaking, because only ready was re-sent',
     );
     assert.deepEqual(decodeClientMessage(encodeMessage(sent[1] as never)), { t: 'mode', voiceless: true });
+
+    // Tap to send, the same way: the frame that set it may be in the outage.
+    wire(false, true);
+    subscribed.get(RoomEvent.Reconnected)!();
+    assert.deepEqual(sent, [{ t: 'ready' }, { t: 'tap-to-send', on: true }], 'a held-turn session came back ending turns on a pause');
+    assert.deepEqual(decodeClientMessage(encodeMessage(sent[1] as never)), { t: 'tap-to-send', on: true });
+    // Off is said too: a switch to off lost in the outage would leave the agent
+    // holding every turn for its full minute while the room shows no Send.
+    wire(false, false);
+    subscribed.get(RoomEvent.Reconnected)!();
+    assert.deepEqual(sent, [{ t: 'ready' }, { t: 'tap-to-send', on: false }], 'an off lost in the outage was never said again');
+    assert.deepEqual(decodeClientMessage(encodeMessage(sent[1] as never)), { t: 'tap-to-send', on: false });
+    // Typing has no spoken turn to hold; the way back to voice tells it then.
+    wire(true, true);
+    subscribed.get(RoomEvent.Reconnected)!();
+    assert.deepEqual(sent, [{ t: 'ready' }, { t: 'mode', voiceless: true }]);
 
     assert.deepEqual(ended, [], 'a reconnect ended the session, stood the watchdog down, or wrote the safety state');
 
@@ -1160,7 +1181,7 @@ describe('the quiet door, mid-session — F200', () => {
     // Publishing a microphone IS asking to speak. A tutor left voiceless would
     // answer in silence for the rest of the session, with nothing on the screen
     // to say why, which is the quiet door as a one-way trip.
-    const openMicWorld = (voicelessRef: { current: boolean }, sent: unknown[]): Record<string, unknown> => ({
+    const openMicWorld = (voicelessRef: { current: boolean }, sent: unknown[], tapToSendRef = { current: false }): Record<string, unknown> => ({
       roomRef: {
         current: {
           localParticipant: {
@@ -1176,6 +1197,8 @@ describe('the quiet door, mid-session — F200', () => {
       setMicOpen: () => {},
       voicelessRef,
       setVoiceless: () => {},
+      tapToSendRef,
+      tapToSendFrames,
       send: (m: unknown) => sent.push(m),
       setNotice: () => {},
       noticeTimer: { current: null as unknown },
@@ -1187,7 +1210,7 @@ describe('the quiet door, mid-session — F200', () => {
     const quiet = { current: true };
     run(OPEN_MIC, openMicWorld(quiet, back));
     await new Promise((resolve) => setTimeout(resolve, 0));
-    assert.deepEqual(back, [{ t: 'mode', voiceless: false }], 'the learner went back to speaking and the tutor stayed silent for good');
+    assert.deepEqual(back, [{ t: 'mode', voiceless: false }, { t: 'tap-to-send', on: false }], 'the learner went back to speaking and the tutor stayed silent for good');
     assert.equal(quiet.current, false, 'the session still believes it is quiet, so an audio failure it can feel would be hidden');
 
     const ordinary: unknown[] = [];
@@ -1195,6 +1218,17 @@ describe('the quiet door, mid-session — F200', () => {
     run(OPEN_MIC, openMicWorld(speaking, ordinary));
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.deepEqual(ordinary, [], 'an ordinary first tap now publishes a mode frame nobody asked for');
+
+    // Back to voice with Tap to send on: the agent hears it again, right after the mode.
+    const held: unknown[] = [];
+    run(OPEN_MIC, openMicWorld({ current: true }, held, { current: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(held, [{ t: 'mode', voiceless: false }, { t: 'tap-to-send', on: true }], 'back from typing, turns end on a pause again');
+    // An ordinary tap is not a way back, so it sends nothing new even when on.
+    const plain: unknown[] = [];
+    run(OPEN_MIC, openMicWorld({ current: false }, plain, { current: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(plain, []);
   });
 });
 
@@ -1890,5 +1924,55 @@ describe('a signed-out guest scene reaches its token request', () => {
     assert.equal(await consent(false), null);
     assert.equal(reads, 1);
     assert.doesNotMatch(hook, /loadConsent\(\)\.catch/, 'a synchronous throw from the store escapes .catch');
+  });
+});
+
+describe('tap to send and the wrap-up note, in the hook, 2026-10-25', () => {
+  const HOOK = read('./useLiveSession.ts');
+  const code = HOOK.replace(/^\s*\/\/.*$/gm, '');
+
+  test('every frame passes the two rules beside thinking, and a new start forgets both', () => {
+    assert.match(code, /setThinking\(\(was\) => thinkingAfter\(was, msg\)\);\n\s+setWrappingUp\(\(was\) => wrappingUpAfter\(was, msg\)\);\n\s+setHeldTurn\(\(was\) => heldTurnAfter\(was, msg\)\);/);
+    const startAt = HOOK.indexOf('const start = useCallback(async () => {');
+    const start = HOOK.slice(startAt, HOOK.indexOf('const room = new Room();', startAt));
+    assert.match(start, /setWrappingUp\(false\);/);
+    assert.match(start, /setHeldTurn\(null\);/);
+    // The rules the setters are handed, run on real frames in the order a session sends them.
+    let wrapping = false;
+    let held: ReturnType<typeof heldTurnAfter> = null;
+    for (const frame of [{ t: 'held-turn', state: 'open' }, { t: 'wrap-up' }, { t: 'held-turn', state: 'sent' }] as ServerMessage[]) {
+      wrapping = wrappingUpAfter(wrapping, frame);
+      held = heldTurnAfter(held, frame);
+    }
+    assert.equal(wrapping, true);
+    assert.equal(held, 'sent');
+  });
+
+  test('connect tells the agent after ready, only when on and only in voice', () => {
+    const connected = code.slice(code.indexOf("setWaitingForTutor(true);"));
+    assert.match(connected, /^setWaitingForTutor\(true\);\n\s+send\(\{ t: 'ready' \}\);\n\s+if \(!voicelessRef\.current\) for \(const frame of tapToSendFrames\(tapToSendRef\.current, 'connect'\)\) send\(frame\);/);
+  });
+
+  test('a change in a live room is told at once, on or off, and the session returns the controls', () => {
+    const at = HOOK.indexOf('useEffect(() => {\n    if (tapToSendRef.current === tapToSend) return;');
+    assert.ok(at > 0, 'the hook no longer tells a live room about a change');
+    const effect = fragmentAt(HOOK, at, 'useEffect(() => {').slice('useEffect(() => {'.length, -1);
+    for (const [room, voiceless, from, to, frames] of [
+      [true, false, false, true, [{ t: 'tap-to-send', on: true }]],
+      [true, false, true, false, [{ t: 'tap-to-send', on: false }]],
+      [false, false, false, true, []],
+      [true, true, false, true, []],
+      [true, false, true, true, []],
+    ] as const) {
+      const sent: unknown[] = [];
+      const ref = { current: from };
+      run(effect, { tapToSendRef: ref, tapToSend: to, roomRef: { current: room ? {} : null }, voicelessRef: { current: voiceless }, send: (m: unknown) => sent.push(m) });
+      assert.deepEqual(sent, frames);
+      assert.equal(ref.current, to);
+    }
+    const returned = HOOK.slice(HOOK.lastIndexOf('  return {'));
+    assert.match(returned, /sendTapToSend: useCallback\(\(on: boolean\) => send\(\{ t: 'tap-to-send', on \}\), \[send\]\),/);
+    assert.match(returned, /sendTurn: useCallback\(\(\) => send\(\{ t: 'send' \}\), \[send\]\),/);
+    assert.match(returned, /\n\s+wrappingUp,\n\s+heldTurn,\n/);
   });
 });

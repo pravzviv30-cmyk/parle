@@ -74,6 +74,9 @@ import { formatVendorMetrics, type VendorMetrics } from './timing.ts';
 import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
 import { turnHandlingFor } from './turnHandling.ts';
 import { ThinkingTime } from './thinkingTime.ts';
+import { SessionEndClock, headsUpEnabled } from './sessionEnd.ts';
+import { TapToSend, tapToSendEnabled } from './tapToSend.ts';
+import { readClientInput } from './runtimeInput.ts';
 import { reportUsage } from './usage.ts';
 import { safeError } from './safeError.ts';
 import { claimSessionLifecycle, legacyRuntimeFixture, tutorSupervisorHeartbeat, type TutorSessionIdentity } from './sessionLifecycle.ts';
@@ -384,6 +387,7 @@ export default defineAgent({
 
     // Join-token expiry only limits replay; it does not eject a connected
     // participant. This timer is the actual vendor-cost and allowance ceiling.
+    const sessionStartedAt = Date.now();
     const hardStop = lifecycle ? undefined : setTimeout(() => {
       tutor.publishError('That is a good place to stop. Your session has reached its time limit.');
       if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
@@ -428,6 +432,26 @@ export default defineAgent({
 
     tutor.attach(publish);
 
+    // The heads-up a minute before the cap and the warm close after one more
+    // exchange (sessionEnd.ts). Read off the same clock as the cap itself;
+    // a guest scene keeps its own ceiling and gets neither.
+    // The close stands the legacy hard stop down, so its "time limit" copy
+    // does not follow the goodbye; a silent disconnect at the cap replaces it.
+    // The lifecycle's own stop is untouched and stays the true backstop.
+    let silentStop: ReturnType<typeof setTimeout> | undefined;
+    const remainingMs = () => lifecycle
+      ? (lifecycle.maxSeconds - lifecycle.elapsedSeconds()) * 1_000
+      : maximumSessionSec * 1_000 - (Date.now() - sessionStartedAt);
+    const endClock = scene || !headsUpEnabled() ? undefined : new SessionEndClock(tutor, remainingMs, undefined, () => {
+      if (!hardStop) return;
+      clearTimeout(hardStop);
+      silentStop = setTimeout(() => { void ctx.room.disconnect(); }, Math.max(0, remainingMs()));
+    });
+    // Tap-to-send (tapToSend.ts). Off until the learner turns it on, and a
+    // scene has no switch. A typed session gets one too, held quiet, because
+    // `mode` can bring it back to voice.
+    const tapToSend = scene || !tapToSendEnabled() ? undefined : new TapToSend(() => session, tutor, publish, undefined, { voiceless });
+
     // A stop ends the session, and the room is the worker's to close — the same
     // division as the hard stop above and the learner who walks away below. The
     // tutor owns the judgement that this is over; it disconnects nothing itself.
@@ -439,6 +463,19 @@ export default defineAgent({
     ctx.room.on('dataReceived', (payload: Uint8Array, source, _kind, topic?: string) => {
       if (topic !== TOPIC_CLIENT) return;
       if (!source || source.identity !== tutor.learnerId) return;
+      // Turn-ending controls belong to the worker, which owns the session's
+      // turn detection; the tutors never see them.
+      const control = readClientInput(payload).message;
+      if (control?.t === 'tap-to-send' || control?.t === 'send') {
+        try { if (control.t === 'send') tapToSend?.send(); else tapToSend?.setOn(control.on); }
+        catch (err) { console.error('[luvani] tap-to-send could not change', safeError(err)); }
+        return;
+      }
+      // Peeked, not taken: the tutor still switches its own voice.
+      if (control?.t === 'mode') {
+        try { tapToSend?.setVoiceless(control.voiceless); }
+        catch (err) { console.error('[luvani] tap-to-send could not follow the mode switch', safeError(err)); }
+      }
       // The belt to handleClientMessage's braces. It contains its own failures,
       // so this should never fire — but this worker serves every learner on the
       // process, and an unhandled rejection here ends all of their sessions at
@@ -530,6 +567,8 @@ export default defineAgent({
       // the end of a sentence that was cut off.
       if (ev.newState === 'speaking') thinking.tutorSpeaking();
       tutor.sendSpeaking(ev.newState === 'speaking');
+      endClock?.agentState(ev.newState);
+      tapToSend?.agentState(ev.newState);
 
     });
 
@@ -560,8 +599,10 @@ export default defineAgent({
         // turn cut them off, and the pause floor rises for the session.
         thinking.learnerSpeechStarted();
         tutor.setLearnerSpeaking(true);
+        tapToSend?.learnerSpeaking(true);
+        endClock?.learnerSpeaking(true);
       }
-      if (ev.newState === 'listening' || ev.newState === 'away') tutor.setLearnerSpeaking(false);
+      if (ev.newState === 'listening' || ev.newState === 'away') { tutor.setLearnerSpeaking(false); endClock?.learnerSpeaking(false); }
 
       // The learner falling silent is this turn's end of utterance, the moment
       // every later stage is measured against.
@@ -572,7 +613,7 @@ export default defineAgent({
 
     // A learner who closes the app still gets their minutes debited correctly.
     ctx.room.on('disconnected', () => {
-      clearTimeout(hardStop); cancelSceneStop();
+      clearTimeout(hardStop); clearTimeout(silentStop); cancelSceneStop(); endClock?.stop(); tapToSend?.stop();
       if (tutor instanceof LuvaniConversation) {
         console.log(sceneTiming.close());
         for (const line of inputTiming?.close() ?? []) console.log(line);
@@ -593,7 +634,7 @@ export default defineAgent({
     // teaching nobody at full billing. End the session the moment they go.
     ctx.room.on('participantDisconnected', (p) => {
       if (p.identity === tutor.learnerId) {
-        clearTimeout(hardStop);
+        clearTimeout(hardStop); endClock?.stop(); tapToSend?.stop();
         // Recognition stops with the learner, not after settlement.
         stopPaidWork();
         if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
@@ -611,6 +652,9 @@ export default defineAgent({
       inputOptions: { participantIdentity: participant.identity, ...(voiceless ? { audioEnabled: false } : {}) },
     });
     lifecycle?.assertActive();
+    // Only now does the session have an activity for turn detection to change.
+    tapToSend?.markLive();
+    endClock?.start();
 
     if (tutor instanceof LuvaniConversation) {
       // The scene opens: the character speaks first and the app renders the

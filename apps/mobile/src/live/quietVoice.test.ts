@@ -96,7 +96,7 @@ describe('the wiring', () => {
   test('the room draws a switch from the view, and turning it on opens the transcript', () => {
     const room = stripComments(read('./C2LiveRoom.tsx'));
     assert.match(room, /const quiet = onQuietVoice \? quietVoiceControl\(typing, quietVoice\) : null;/);
-    assert.match(room, /const note = roomNote\(typing, startedWithSpeech, tutorName, quiet !== null && quiet\.checked\);/);
+    assert.match(room, /const note = roomNote\(typing, startedWithSpeech, tutorName, quiet !== null && quiet\.checked, \{ wrappingUp, tapToSend: tap !== null && tap\.checked, heldTurn \}\);/);
     assert.match(room, /accessibilityRole="switch" accessibilityLabel=\{quiet\.label\} accessibilityHint=\{quiet\.hint\}/);
     assert.match(room, /accessibilityState=\{\{ checked: quiet\.checked \}\}/);
     assert.match(room, /onQuietVoice\(next\); if \(next\) onTranscriptVisibility\(true\);/);

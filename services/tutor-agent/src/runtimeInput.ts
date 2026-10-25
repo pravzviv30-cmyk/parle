@@ -6,7 +6,7 @@ export const MAX_CLIENT_PACKET_BYTES = 8_192;
 export const INPUT_LIMIT_MESSAGE = 'That message is too long. Send a shorter answer.';
 export const INPUT_BUSY_MESSAGE = 'Your tutor is finishing a reply. Try again in a moment.';
 const decoder = new TextDecoder('utf-8', { fatal: true });
-const CONTROL = new Set(['ready', 'help', 'skip', 'slower', 'english', 'typing', 'moment', 'leave']);
+const CONTROL = new Set(['ready', 'help', 'skip', 'slower', 'english', 'typing', 'moment', 'send', 'leave']);
 
 export type ClientInputResult = { message: ClientMessage; reason?: never } | { message: null; reason: 'malformed' | 'oversized' };
 
@@ -26,6 +26,7 @@ export function readClientInput(payload: Uint8Array): ClientInputResult {
       return { message: { t: tag, text: fields.text } };
     }
     if (tag === 'mode' && exact(['t', 'voiceless']) && typeof fields.voiceless === 'boolean') return { message: { t: 'mode', voiceless: fields.voiceless } };
+    if (tag === 'tap-to-send' && exact(['t', 'on']) && typeof fields.on === 'boolean') return { message: { t: 'tap-to-send', on: fields.on } };
     if (tag === 'hear' && exact(['t', 'line']) && (fields.line === undefined || fields.line === 'support' || fields.line === 'scene')) {
       return { message: fields.line === undefined ? { t: 'hear' } : { t: 'hear', line: fields.line } };
     }

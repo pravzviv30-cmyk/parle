@@ -26,6 +26,7 @@ import { ConfirmSheet, Screen } from './layout.tsx';
 import { SupportBlock } from './SessionView.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
 import { useQuietVoice } from './live/useQuietVoice.ts';
+import { useTapToSend } from './live/useTapToSend.ts';
 import { IconAction } from './components.tsx';
 import { rungLabel } from './tutor/rungLabel.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
@@ -105,10 +106,13 @@ export function LiveSessionScreen({
   // The voice rides every start, the default included, so the picker on Profile
   // and the agent's own fallback can never mean two different people by
   // "unchosen". See live/useLiveSession.ts for why it is not a conditional.
+  // Before the session, which tells the agent (live/useTapToSend.ts).
+  const { tapToSend, onTapToSend } = useTapToSend();
   const live = useLiveSession(userId, lesson.id, startRung, {
     ...(textMode ? { mode: 'lesson-text' as const } : {}),
     listenOnly,
     tutorVoice: tutorVoiceOf(profile),
+    tapToSend,
   });
 
   // The leave gate. `confirming` shows the sheet; `leaving` is raised once the
@@ -347,6 +351,7 @@ export function LiveSessionScreen({
         caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing} startedWithSpeech={!textMode} ready={!live.reconnecting} modePending={modePending} active={roomFocused}
         transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} quietVoice={quietVoice} onQuietVoice={onQuietVoice} draft={draft}
+        tapToSend={tapToSend} onTapToSend={onTapToSend} heldTurn={live.heldTurn} onSendTurn={live.sendTurn} wrappingUp={live.wrappingUp}
         onDraft={text => { setDraft(text); live.sendTyping(); }} onSend={sendDraft} canSend={!live.tutorSpeaking && !live.thinking}
         onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
         onEnd={() => setConfirming(true)} notice={live.feedback?.message}

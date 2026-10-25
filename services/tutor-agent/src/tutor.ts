@@ -52,6 +52,7 @@ import { terminalServiceFailure } from './serviceFailure.ts';
 import type { ServiceFailure } from '@luvani/core';
 import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 import { safeError } from './safeError.ts';
+import { CLOSE_LINE, HEADS_UP_LINE, boundedPlayout, type SessionEndView } from './sessionEnd.ts';
 import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
 import { NO_CLIP_SINK, mayCapture, speechDatasetEnabled, type ClipCandidate, type ClipSink } from './speechClips.ts';
@@ -489,6 +490,7 @@ export class LuvaniTutor extends voice.Agent {
     if (msg.t === 'mode') { if (msg.voiceless) this.replayQueue.clearPending(); return this.setVoiceless(session, msg.voiceless); }
 
     if ((msg.t === 'say' || msg.t === 'choice') && this.handleSafety(msg.text, session)) return;
+    if (this.closingForTime && msg.t !== 'ready') return;
     if (!this.commands.allow(msg.t) || (['say', 'choice', 'help', 'skip'].includes(msg.t) && this.queue.full)) { this.rejectInput(INPUT_BUSY_MESSAGE); return; }
     if (msg.t === 'ready') return this.sendCurrentPrompt();
 
@@ -603,6 +605,8 @@ export class LuvaniTutor extends voice.Agent {
     // A grace already on the clock is not re-decided by the agent going back
     // to `listening`, which for a thinking learner is a stray sound.
     if (this.momentHeld && this.silenceTimer) return this.queue.generation;
+    // A tap-to-send turn is still recording, or the close line has begun.
+    if (this.heldTurnOpen || this.closingForTime) { this.clearRescue(); return this.queue.generation; }
     this.clearRescue();
     // Captured now, checked when the timer fires. Returned so the caller — and
     // a test — can name the moment this particular wait began.
@@ -726,6 +730,47 @@ export class LuvaniTutor extends voice.Agent {
     return this.queue.idle();
   }
 
+  /** True while a tap-to-send turn is recording. Set by agent.ts (tapToSend.ts). */
+  private heldTurnOpen = false;
+  /** The close for time has begun: no rescue and no new turn after its line. */
+  private closingForTime = false;
+
+  /** A tap-to-send turn opened or ended. While open, armRescue stays dark. */
+  setHeldTurn(open: boolean): void {
+    this.heldTurnOpen = open;
+    if (open) this.clearRescue();
+  }
+
+  /** What sessionEnd.ts reads to find a gap and see the last exchange land. */
+  sessionEndView(): SessionEndView {
+    return { learnerTurns: this.learnerTurns, busy: this.queue.busy || this.replayQueue.busy,
+      over: this.ended || this.refused || this.closingForTime, voiceless: this.voiceless, held: this.heldTurnOpen };
+  }
+
+  /** The heads-up a minute before the cap: the frame, and the line said aloud. */
+  wrapUp(): void {
+    if (this.ended || this.closingForTime) return;
+    void this.publish({ t: 'wrap-up' });
+    if (!this.voiceless) this.session.say(HEADS_UP_LINE, { allowInterruptions: false });
+  }
+
+  /**
+   * The warm close for time, in the conversation's order: the goodbye line,
+   * then the ending `leave` gets (summary and settlement), then the room.
+   */
+  async closeForTime(): Promise<void> {
+    if (this.ended || this.refused || this.closingForTime) return;
+    this.closingForTime = true;
+    this.cancelLiveReplies();
+    try {
+      if (!this.voiceless) await boundedPlayout(this.session.say(CLOSE_LINE, { allowInterruptions: false })?.waitForPlayout());
+    } catch (error) {
+      console.warn('[luvani] the closing line did not settle cleanly; closing anyway:', safeError(error));
+    }
+    await this.finish();
+    this.closeRoom();
+  }
+
   clearRescue(): void {
     if (this.silenceTimer) clearTimeout(this.silenceTimer);
     this.silenceTimer = undefined;
@@ -774,6 +819,8 @@ export class LuvaniTutor extends voice.Agent {
     }
 
     if (this.handleSafety(transcript, this.session)) throw new voice.StopResponse();
+    // After the safety check, so a crisis in the last seconds is still heard.
+    if (this.closingForTime) throw new voice.StopResponse();
     if (!this.commands.allow('say') || this.queue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); throw new voice.StopResponse(); }
 
     this.publish({ t: 'transcript', text: transcript, final: true });

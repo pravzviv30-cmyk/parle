@@ -228,6 +228,26 @@ export type ServerMessage =
   | { t: 'feedback'; feedback: TurnFeedback }
   /** The tutor is talking (or has stopped). Drives the mic control's state. */
   | { t: 'speaking'; speaking: boolean }
+  /**
+   * The session is nearly over: the agent sends this about a minute before the
+   * server cap, at the same moment the tutor says so aloud.
+   *
+   * Payload-free on purpose. The live room never shows minutes left (UI-008), so
+   * there is no field for a number to travel in, and `asTheAppReadsIt` rebuilds
+   * the frame from its tag alone so a peer that adds one cannot put it on the
+   * screen. The note the app draws is words, never a countdown.
+   */
+  | { t: 'wrap-up' }
+  /**
+   * Where a tap-to-send turn is. `open` means the learner has started speaking
+   * in a held turn, `closing` means it will send itself in about ten seconds,
+   * and `sent` means it was committed, by the learner's tap or by the cap.
+   *
+   * Read strictly: a state this build does not know is dropped with the frame,
+   * because guessing `sent` would close the learner's turn on screen while they
+   * are still talking. A dropped frame costs the indicator, never the turn.
+   */
+  | { t: 'held-turn'; state: HeldTurnState }
   /** Recognized learner speech; interpreted marks a contextual spelling repair. */
   | { t: 'transcript'; text: string; final: boolean; input?: 'typed' | 'spoken'; turnId?: string; interpreted?: boolean }
   /** The lesson is over. Carries the end card. */
@@ -315,6 +335,10 @@ export type ServerMessage =
    * losing the frame costs the learner the only sign that anything is wrong.
    */
   | { t: 'error'; message: string; kind?: ErrorKind; recoverable?: boolean; terminal?: boolean };
+
+/** The recording states of a tap-to-send turn, as `held-turn` carries them. */
+export const HELD_TURN_STATES = ['open', 'closing', 'sent'] as const;
+export type HeldTurnState = (typeof HELD_TURN_STATES)[number];
 
 /** App → agent. */
 export type ClientMessage =
@@ -412,6 +436,21 @@ export type ClientMessage =
    * be tapped again.
    */
   | { t: 'mode'; voiceless: boolean }
+  /**
+   * Tap-to-send on or off for this session. While it is on, a spoken turn ends
+   * only when the learner taps Send (or the recording cap is reached), never on
+   * a pause, so nobody is cut off for stopping to think.
+   *
+   * Read strictly for the reason `mode` is: there is no honest default for an
+   * `on` that is not a boolean. An unreadable frame moves nothing and the turn
+   * detection the learner already has keeps working.
+   */
+  | { t: 'tap-to-send'; on: boolean }
+  /**
+   * The learner tapped Send: commit the held turn. Payload-free, like `typing`,
+   * because the words are already on the audio track. Never a ladder event.
+   */
+  | { t: 'send' }
   /** The learner left. Ends the session so metered seconds are debited promptly. */
   | { t: 'leave' };
 
@@ -445,8 +484,9 @@ export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
   return message === null ? null : asTheAgentReadsIt(message);
 }
 
-const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error', 'settlement', 'can-do-evidence', 'correction-reason']);
-const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'mode', 'leave']);
+const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error', 'settlement', 'can-do-evidence', 'correction-reason', 'wrap-up', 'held-turn']);
+const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'mode', 'tap-to-send', 'send', 'leave']);
+const HELD_TURN_STATE_TAGS: ReadonlySet<string> = new Set(HELD_TURN_STATES);
 const SAFETY_CATEGORY_TAGS: ReadonlySet<string> = new Set(SAFETY_CATEGORIES);
 const ERROR_KIND_TAGS: ReadonlySet<string> = new Set(ERROR_KINDS);
 
@@ -473,6 +513,13 @@ const ERROR_KIND_TAGS: ReadonlySet<string> = new Set(ERROR_KINDS);
  * argument: there is no honest default, so there is nothing to repair towards.
  */
 function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
+  // Rebuilt from the tag alone, so a count of seconds added by any peer never
+  // reaches the screen. See the tag for UI-008.
+  if (message.t === 'wrap-up') return { t: 'wrap-up' };
+  if (message.t === 'held-turn') {
+    const state = (message as { state: unknown }).state;
+    return typeof state === 'string' && HELD_TURN_STATE_TAGS.has(state) ? { t: 'held-turn', state: state as HeldTurnState } : null;
+  }
   if (message.t === 'correction-reason') {
     const evidence = readCorrectionReason(message.evidence);
     return evidence ? {t:'correction-reason',evidence} : null;
@@ -567,6 +614,9 @@ function asTheAgentReadsIt(message: ClientMessage): ClientMessage | null {
   // client frame read that strictly, because it is the only one where guessing
   // wrong either takes the learner's voice away or keeps talking at them.
   if (message.t === 'mode' && typeof (message as { voiceless: unknown }).voiceless !== 'boolean') return null;
+  // Tap-to-send is read the same way, and for the same reason: either default
+  // decides for the learner when their turn ends.
+  if (message.t === 'tap-to-send' && typeof (message as { on: unknown }).on !== 'boolean') return null;
 
   return message;
 }

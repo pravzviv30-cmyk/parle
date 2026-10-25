@@ -12,6 +12,7 @@
  * moves. It reads the rung the session already published.
  */
 
+import type { HeldTurnState } from '@luvani/core';
 import type { TurnLine } from './turns.ts';
 
 /** "About N min": the scene's own pace (founder, 2026-10-20). No "left", no clock. */
@@ -154,13 +155,64 @@ export function quietVoiceNote(tutorName: string): string {
   return `Speak softly, close to your phone. ${tutorName} can hear a soft voice, but not a whisper.`;
 }
 
+export const TAP_TO_SEND_COPY = {
+  label: 'Tap to send',
+  hint: 'Your turn ends when you tap Send, not when you pause',
+  send: 'Send',
+  sendSpoken: 'Send what you said',
+  /** The Settings row under the same title (settings/SettingsScreen.tsx). */
+  settingsSub: 'Take all the time you need. Your turn ends when you tap Send, not when you pause.',
+} as const;
+
 /**
- * The one line under the controls. The typing note speaks while the box is
- * open; Quiet voice only while the learner is speaking, so the two never
- * compete, and the typing note wins if they ever would.
+ * The Tap to send switch beside Quiet voice. It changes how a spoken turn
+ * ends, so like Quiet voice it shows only while the learner is speaking.
  */
-export function roomNote(typing: boolean, startedWithSpeech: boolean, tutorName: string, quietVoice: boolean): string | null {
+export function tapToSendControl(typing: boolean, on: boolean): { label: string; hint: string; checked: boolean } | null {
+  if (typing) return null;
+  return { label: TAP_TO_SEND_COPY.label, hint: TAP_TO_SEND_COPY.hint, checked: on };
+}
+
+/**
+ * The Send button by the mic while Tap to send is on. Held back while the
+ * tutor speaks, since there is no turn of the learner's to end, and once the
+ * held turn has gone, so a second tap cannot send an empty one.
+ */
+export function sendButton(heldTurn: HeldTurnState | null, tutorSpeaking: boolean): { label: string; accessibilityLabel: string; disabled: boolean } {
+  return { label: TAP_TO_SEND_COPY.send, accessibilityLabel: TAP_TO_SEND_COPY.sendSpoken, disabled: tutorSpeaking || heldTurn === 'sent' };
+}
+
+/**
+ * What Tap to send says under the controls. Never a count: 'closing' is the
+ * agent's ten second note before its cap, and the line says only that the turn
+ * is about to go, so a learner who is still finding a word is not hurried.
+ */
+export function tapToSendNote(heldTurn: HeldTurnState | null): string {
+  if (heldTurn === 'closing') return "Sending what you've said in a moment.";
+  if (heldTurn === 'open') return "Tap Send when you're done.";
+  return "Speak, then tap Send when you're done.";
+}
+
+/** About a minute before the cap, echoing the tutor. Words only: no number, no "left". */
+export function wrapUpNote(tutorName: string): string {
+  return `Nearly time to finish. ${tutorName} will wrap up after this.`;
+}
+
+/**
+ * The one line under the controls, and only one. In order:
+ *   1. the wrap-up note, because it is about the whole session and holds in
+ *      Speak and Type alike; every other line is about the next turn;
+ *   2. the typing note, while the box is open (Tap to send and Quiet voice
+ *      are hidden there, so it never competes with them in practice);
+ *   3. the Tap to send line, because it says how this turn ends, and a learner
+ *      who does not know to tap Send is left waiting;
+ *   4. the Quiet voice line, which is advice and can wait.
+ */
+export function roomNote(typing: boolean, startedWithSpeech: boolean, tutorName: string, quietVoice: boolean,
+  live: { wrappingUp?: boolean; tapToSend?: boolean; heldTurn?: HeldTurnState | null } = {}): string | null {
+  if (live.wrappingUp) return wrapUpNote(tutorName);
   const typed = typingNote(typing, startedWithSpeech, tutorName);
   if (typed !== null) return typed;
+  if (live.tapToSend) return tapToSendNote(live.heldTurn ?? null);
   return quietVoice ? quietVoiceNote(tutorName) : null;
 }

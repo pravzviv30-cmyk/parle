@@ -3,6 +3,7 @@ import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from '../live/C2LiveRoom.tsx';
 import { useQuietVoice } from '../live/useQuietVoice.ts';
 import type { TurnLine } from '../live/turns.ts';
+import type { HeldTurnState } from '@luvani/core';
 import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
 import { FirstSessionSummary, FirstSessionCelebration } from '../onboarding/FirstSessionResult.tsx';
 import type { FirstLiveRecord } from '../onboarding/firstLiveModel.ts';
@@ -49,10 +50,11 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'select'] as const;
+const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'live-speaking': 'Live speaking layout', 'live-typing': 'Live typing layout',
+  'live-tap-to-send': 'Live tap to send, a turn held', 'live-wrap-up': 'Live wrap-up note',
   orb: 'Fluid orb states', 'hear-it': 'Welcome', reason: 'Purpose', interests: 'Interests', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
   'auth-flow': 'Sign in and create account flow', journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
   'your-french-full': 'Your French, full', 'your-french-sounds': 'Your French, sounds only', 'your-french-scenes': 'Your French, scenes only',
@@ -160,7 +162,7 @@ export function OnboardingPreview() {
             progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
-          {(screen === 'live-speaking' || screen === 'live-typing') && <LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} controls={controlsVisible} onEnd={() => go('celebration')} />}
+          {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} />}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
             initialDraft={{ ...draft, page: screen as PreAccountOnboardingDraft['page'] }} onDraftChange={setDraft}
             onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
@@ -185,12 +187,15 @@ export function OnboardingPreview() {
 }
 
 /** Uses the production room and transcript. These messages never reach a tutor service. */
-function LiveRoomPreview({ startTyping, controls, onEnd }: { startTyping: boolean; controls: boolean; onEnd: () => void }) {
+function LiveRoomPreview({ startTyping, tapToSend: startTapToSend = false, wrappingUp = false, controls, onEnd }: { startTyping: boolean; tapToSend?: boolean; wrappingUp?: boolean; controls: boolean; onEnd: () => void }) {
   useOnboardingFramePresentation(onboardingProgress({ page: 'practice' }), { hideProgress: true });
   const [typing, setTyping] = useState(startTyping);
   const [micOpen, setMicOpen] = useState(!startTyping);
   const [transcript, setTranscript] = useState(true);
   const { quietVoice, onQuietVoice } = useQuietVoice(setTranscript);
+  // Held here, not in the device store: a preview never writes the learner's choice.
+  const [tapToSend, setTapToSend] = useState(startTapToSend);
+  const [heldTurn, setHeldTurn] = useState<HeldTurnState | null>(startTapToSend ? 'open' : null);
   const [draft, setDraft] = useState('');
   const [turns, setTurns] = useState<TurnLine[]>([
     { id: 't1', who: 'tutor', fr: 'Bonjour ! Vous avez réservé une table ?', frWritten: null, en: 'Hello! Have you booked a table?' },
@@ -202,6 +207,7 @@ function LiveRoomPreview({ startTyping, controls, onEnd }: { startTyping: boolea
   return <C2LiveRoom tutorName="Émilie" description="At the restaurant, synthetic preview" state={typing ? 'ready' : micOpen ? 'listening' : 'ready'}
     caption={typing ? 'Ready for your message' : micOpen ? 'Your turn. Take your time.' : 'Microphone paused'}
     turns={turns} tutorSpeaking={false} typing={typing} micOpen={micOpen} transcriptVisible={transcript} onTranscriptVisibility={setTranscript} quietVoice={quietVoice} onQuietVoice={onQuietVoice}
+    tapToSend={tapToSend} onTapToSend={setTapToSend} heldTurn={heldTurn} onSendTurn={() => setHeldTurn('sent')} wrappingUp={wrappingUp}
     draft={draft} onDraft={setDraft} onEnd={onEnd} onMic={() => setMicOpen(value => !value)}
     onModeChange={value => { setTyping(value); setMicOpen(!value); }} onSend={async () => {
       const text = draft.trim();

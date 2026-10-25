@@ -13,7 +13,8 @@ import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy
 import { RoomReportSheet } from './ReportSheet.tsx';
 import { reportAddress, REPORT_COPY } from '../settings/reportMail.ts';
 import { AskedCard, BulbGlyph, CloseGlyph, FlagGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
-import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
+import type { HeldTurnState } from '@luvani/core';
+import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, sendButton, tapToSendControl, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
 
 /**
  * Presentation only. Every action is supplied by the existing session owner.
@@ -39,6 +40,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   transcriptVisible, onTranscriptVisibility, draft, onDraft, onSend, onModeChange, onMic, micOpen,
   onEnd, onReplayTutor, canSend = true, top, support, tools, footer, notice,
   title, pace = null, goals = [], helpKind = 'none', moreHelp, report, quietVoice = false, onQuietVoice,
+  tapToSend = false, onTapToSend, heldTurn = null, onSendTurn, wrappingUp = false,
 }: {
   tutorName: string; description: string; state: OrbState; caption: string;
   turns: readonly TurnLine[]; tutorSpeaking: boolean; partialTranscript?: string | null;
@@ -63,6 +65,15 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   /** Quiet voice, the owner's device preference (useQuietVoice). Absent: no switch. */
   quietVoice?: boolean;
   onQuietVoice?: (on: boolean) => void;
+  /** Tap to send, the owner's device preference (useTapToSend). Absent: no switch and no Send. */
+  tapToSend?: boolean;
+  onTapToSend?: (on: boolean) => void;
+  /** Where the held turn stands (useLiveSession `heldTurn`). */
+  heldTurn?: HeldTurnState | null;
+  /** Commits the held turn (useLiveSession `sendTurn`). */
+  onSendTurn?: () => void;
+  /** The tutor has said time is nearly up (useLiveSession `wrappingUp`). */
+  wrappingUp?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const t = useB();
@@ -106,7 +117,9 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
   const ladder = helpLadder(helpKind);
   const helpAvailable = Boolean(support || tools || moreHelp);
   const quiet = onQuietVoice ? quietVoiceControl(typing, quietVoice) : null;
-  const note = roomNote(typing, startedWithSpeech, tutorName, quiet !== null && quiet.checked);
+  const tap = onTapToSend ? tapToSendControl(typing, tapToSend) : null;
+  const sendTurn = tap !== null && tap.checked && onSendTurn && ready ? sendButton(heldTurn, tutorSpeaking) : null;
+  const note = roomNote(typing, startedWithSpeech, tutorName, quiet !== null && quiet.checked, { wrappingUp, tapToSend: tap !== null && tap.checked, heldTurn });
   const speakDisabled = !canResumeSpeaking(startedWithSpeech, ready, modePending);
   const sayChoice = () => {
     setHelpOpen(false);
@@ -131,6 +144,11 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
         accessibilityState={{ checked: quiet.checked }} aria-checked={quiet.checked}
         onPress={() => { dismiss(); const next = !quiet.checked; onQuietVoice(next); if (next) onTranscriptVisibility(true); }} style={st.transcriptToggle}>
         <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{quiet.label}: {quiet.checked ? 'On' : 'Off'}</Text>
+      </Press> : null}
+      {tap && onTapToSend ? <Press haptic="none" accessibilityRole="switch" accessibilityLabel={tap.label} accessibilityHint={tap.hint}
+        accessibilityState={{ checked: tap.checked }} aria-checked={tap.checked}
+        onPress={() => { dismiss(); onTapToSend(!tap.checked); }} style={st.transcriptToggle}>
+        <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{tap.label}: {tap.checked ? 'On' : 'Off'}</Text>
       </Press> : null}
       </View>
       {/* Keep the thread mounted while hidden so its history and scroll survive. */}
@@ -165,6 +183,10 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
             </View>
             {focused && <View {...decorative} pointerEvents="none" style={[StyleSheet.absoluteFill, st.composerFocus]} />}
           </View> : null}
+          {sendTurn && onSendTurn && controlsVisible ? <Press haptic="light" accessibilityLabel={sendTurn.accessibilityLabel} accessibilityState={{ disabled: sendTurn.disabled }}
+            disabled={sendTurn.disabled} onPress={onSendTurn} style={[st.sendTurn, sendTurn.disabled && st.disabled]}>
+            <Text style={[bType.bold17, { color: t.onMint }]}>{sendTurn.label}</Text>
+          </Press> : null}
           {controlsVisible && <View style={st.controlRow}>
             {typing
               ? <SideControl label="Speak" accessibilityLabel="Speak instead" icon={<BMic size={24} color={t.onBrand} />}
@@ -229,6 +251,8 @@ function makeStyles(t: B) {
     composerRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10, gap: 8 },
     input: { color: t.text, flex: 1, minHeight: 36, maxHeight: 104, padding: 0, paddingVertical: 4, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
     send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: t.brand },
+    // Mint like the mic beside it: Send is the end of the learner's own turn.
+    sendTurn: { minHeight: 54, borderRadius: 27, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, alignSelf: 'center', minWidth: 160 },
     controlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     micSpace: { width: 84 }, sideSpace: { width: 72 },
     disabled: { opacity: 0.55 },

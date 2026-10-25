@@ -93,6 +93,7 @@ import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTimi
 import { SCORE_SETTLE_MS, nearHardLimit, saidTheLine } from './liveScoring.ts';
 import type { scoreUtterance } from '../../shared/pronunciation.ts';
 import { pcmAudioMillis } from '../../shared/paidExecution.ts';
+import { CLOSE_LINE, CLOSE_LINE_PLAYOUT_MS, HEADS_UP_LINE, SessionEndClock } from './sessionEnd.ts';
 
 /** A fresh flow-mode café conversation, exactly as LuvaniConversation builds one. */
 function freshState() {
@@ -4961,5 +4962,119 @@ describe('sad news stays in the scene — VOICE-015', () => {
     await convo.settled();
     for (let i = 0; i < 6; i++) await new Promise((resolve) => setImmediate(resolve));
     assert.equal(published.some((m) => m.t === 'recap'), true, 'the next ordinary turn ends as it always did');
+  });
+});
+
+describe('the end of a conversation, said by the tutor (sessionEnd.ts)', () => {
+  /** A clock the test moves by hand. */
+  function manualTimers() {
+    let now = 0;
+    const due: { at: number; fn: () => void }[] = [];
+    return {
+      now: () => now,
+      setTimeout: (fn: () => void, ms: number) => { const entry = { at: now + ms, fn }; due.push(entry); return entry; },
+      clearTimeout: (handle: unknown) => { const i = due.indexOf(handle as never); if (i >= 0) due.splice(i, 1); },
+      advance(ms: number) {
+        now += ms;
+        for (let e = due.sort((a, b) => a.at - b.at)[0]; e && e.at <= now; e = due.sort((a, b) => a.at - b.at)[0]) { due.shift(); e.fn(); }
+      },
+    };
+  }
+
+  test('the wrap-up frame carries its tag and nothing else, and the line is said aloud', async (t) => {
+    const { convo, published, said } = await inScene(t);
+    convo.wrapUp();
+    assert.deepEqual(published.at(-1), { t: 'wrap-up' }, 'a number on this frame is a countdown on the screen');
+    assert.equal(said.at(-1), HEADS_UP_LINE);
+  });
+
+  test('the close follows the reply to their one more exchange, then the room closes', async (t) => {
+    const { convo, session, said } = await inScene(t);
+    let finished = 0;
+    let closed = 0;
+    t.mock.method(convo, 'finish', async () => { finished += 1; });
+    convo.attachRoomClose(() => { closed += 1; });
+    const timers = manualTimers();
+    const clock = new SessionEndClock(convo, () => 120_000 - timers.now(), timers);
+    clock.start();
+    clock.agentState('listening');
+    timers.advance(60_000);
+    assert.equal(said.at(-1), HEADS_UP_LINE);
+
+    const before = said.length;
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, s\'il vous plaît.' }));
+    await convo.settled();
+    const reply = said.slice(before);
+    assert.ok(reply.length > 0, 'their last turn was answered as usual');
+    assert.equal(closed, 0);
+    clock.agentState('speaking');
+    clock.agentState('listening');
+    await new Promise((r) => setImmediate(r));
+    assert.deepEqual(said.slice(before + reply.length), [CLOSE_LINE], 'the goodbye comes after the reply, once');
+    assert.equal(finished, 1, 'the session ends the way leave ends it');
+    assert.equal(closed, 1, 'and the worker closes the room');
+  });
+
+  test('no rescue fires once the close line has started', async (t) => {
+    const { convo, session } = await inScene(t);
+    t.mock.method(convo, 'finish', async () => {});
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const closing = convo.closeForTime();
+    convo.armRescue(session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    await closing;
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'a goodbye is not a learner being stuck');
+  });
+
+  test('a held tap-to-send turn keeps the rescue dark, and releasing it brings the clock back', async (t) => {
+    const { convo, session } = await inScene(t);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    convo.setHeldTurn(true);
+    convo.armRescue(session);
+    t.mock.timers.tick(STUCK_SILENCE_MS * 3);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'a pause while recording is thinking');
+    convo.setHeldTurn(false);
+    convo.armRescue(session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'after the turn is sent the ordinary clock runs');
+  });
+
+  test('an empty committed turn (a cough, an empty held turn) hands the rescue clock back', async (t) => {
+    const { convo } = await inScene(t);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    await assert.rejects(convo.onUserTurnCompleted({} as never, heard('')), voice.StopResponse);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'an empty turn left the conversation with no clock at all');
+  });
+
+  test('a close line that never reports playout still settles after the bound', async (t) => {
+    const { convo, session } = await inScene(t);
+    Object.defineProperty(session, 'say', { value: () => ({ waitForPlayout: () => new Promise<void>(() => {}) }) });
+    let finished = 0;
+    t.mock.method(convo, 'finish', async () => { finished += 1; });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const closing = convo.closeForTime();
+    await Promise.resolve();
+    assert.equal(finished, 0);
+    t.mock.timers.tick(CLOSE_LINE_PLAYOUT_MS);
+    await closing;
+    assert.equal(finished, 1, 'a stuck TTS held settlement hostage');
+  });
+
+  test('a crisis in the last seconds is still answered while the close line plays', async (t) => {
+    const { convo, session, published } = await inScene(t);
+    Object.defineProperty(session, 'say', { value: () => ({ waitForPlayout: () => new Promise<void>(() => {}) }) });
+    t.mock.method(convo, 'finish', async () => {});
+    void convo.closeForTime();
+    await assert.rejects(convo.onUserTurnCompleted({} as never, heard('I want to kill myself')), voice.StopResponse);
+    assert.equal(published.filter((m) => m.t === 'safety').length, 1, 'spoken crisis ignored during the close');
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    assert.equal(published.filter((m) => m.t === 'safety').length, 2, 'typed crisis ignored during the close');
+    await assert.rejects(convo.onUserTurnCompleted({} as never, heard('Encore un café.')), voice.StopResponse);
+    assert.equal(published.filter((m) => m.t === 'transcript' && m.text === 'Encore un café.').length, 0, 'an ordinary turn still ran after the goodbye');
   });
 });

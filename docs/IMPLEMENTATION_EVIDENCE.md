@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 25 October 2026 main with `claude/slower-voice-keyterms` (VOICE-016, VOICE-017) and
+  `claude/heads-up-tap-send` (renumbered VOICE-018, VOICE-019) merged onto the beginner-conduct
+  landing (VOICE-013 to VOICE-015): **6,671 tests, 0 failing**; core 1064, brain 524, tutor
+  agent 864, token server 485, playground 92, mobile 3642; all 43 migrations replayed, no
+  migration added. Floors set to this run.
 - 25 October 2026 beginner conduct (VOICE-013, VOICE-014, VOICE-015) on branch
   `claude/beginner-conduct` from main 50b46a0f (not on main): an A0 or A1 learner stuck twice on
   one exchange hears an authored English way back on the second rescue; openers and the silence
@@ -44,6 +49,13 @@ of the list.
   through `gate:bless`. Paid vendor runs: `measureVoiceSpeed.mjs` (203 ElevenLabs credits, 8
   Deepgram requests) and `measureKeyterms.mjs` (104 credits, about 141 s of Deepgram), recorded
   under "Measurements that are not assertions".
+- 25 October 2026 session heads-up (VOICE-018) and tap to send (VOICE-019) on branch
+  `claude/heads-up-tap-send` from main 50b46a0f (not on main): a spoken heads-up a minute before
+  the cap with a numberless room note and a warm close, and an opt-in held turn that ends on
+  Send or at 60 s through the SDK's manual turn detection: **6,601 tests, 0 failing**; core
+  1060, brain 504, tutor agent 835, token server 484, playground 87, mobile 3631; shared
+  release/provider proofs 176; all 43 migrations replayed, no migration added. Floors raised
+  only through `gate:bless`. No paid runs; `warm-cache` for the two new lines is still owed.
 - 24 October 2026 main with `claude/curation-luna` (VOICE-012) merged onto the unaided-sentence
   metric landing: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token
   server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations
