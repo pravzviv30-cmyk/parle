@@ -21,6 +21,9 @@ the session ran. This change adds that measurement and closes F193 (curation get
   | gentle | `system.ts`: one brief recast, never "wrong", never remarks on hesitation | `copyViolations` (scold, em dash) and `HESITATION_COMMENTARY` |
   | level fit | `RUNG_LENGTH` in `packages/brain/src/prompt/turnContext.ts` | sentence and word caps per rung |
   | safety | `services/tutor-agent/src/safety.ts` | `outputGuard` on every tutor line; a turn `safetyDecision` flags steps out of the scene in plain English |
+  | way back | VOICE-013, PEDAGOGY.md: an A0 or A1 learner at rung 1 or 2 hears an English way back on the second rescue | the first second-rescue of an exchange has a short plain-English coach line, and no tutor line carries the card's French |
+  | no repeat question | VOICE-014, `packages/brain/src/engine/askedQuestions.ts` | the reply asks no question an earlier tutor turn asked (`repeatsQuestion`); n/a on lessons and rescues |
+  | grief | VOICE-015, `packages/brain/src/prompt/safetyConduct.ts` | on a line `sharesSadNews` matches: no safety stop, the reply offers a moment and keeping going, no goodbye, `sceneDone` false |
   | reply wait | `apps/mobile/src/live/replyLatency.ts` | p50 and p95 of the recorded wait; a measurement only, because no budget is written down |
 
 - **Where sessions come from today.** Two sources, and the record format refuses any other:

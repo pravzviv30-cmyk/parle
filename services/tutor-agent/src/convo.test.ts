@@ -70,7 +70,9 @@ import {
   frameDeadlineMs,
   firstPracticeObjectiveComplete,
   missionOpening,
+  deckLine,
   openerFor,
+  openerIndexFor,
   paceOf,
   parseStoredProfile,
   postSessionDeadlineMs,
@@ -116,6 +118,7 @@ function viewWith(supportView: SupportView): TurnView {
     beat: { id: 'pay', goalEn: 'Pay', position: 4, total: 5 },
     advancedBeat: false,
     reachedForEnglish: false,
+    wayBack: false,
   };
 }
 
@@ -297,16 +300,21 @@ describe('chooseFrame', () => {
 
 describe('the choosing moment', () => {
   test('the canned lines obey the learner-copy rules', () => {
-    for (const line of Object.values(CONVO_LINES)) {
-      // EVERY string on the line, not just fr and en. This loop used to name those
-      // two, which quietly exempted the one field a learner is guaranteed to hear:
-      // `bridge.spoken`, the French/English hybrid said on the way into every scene.
-      // A rule that skips the most-spoken line in the product is not a rule (F509).
-      for (const text of Object.values(line)) {
-        assert.ok(!text.includes('—'), `em dash in "${text}"`);
-        assert.ok(!/\d/.test(text), `digit in "${text}"`);
-        assert.ok(!/wrong|incorrect|failed/i.test(text), `scold in "${text}"`);
-      }
+    // EVERY string on every line, not just fr and en. This loop used to name those
+    // two, which quietly exempted the one field a learner is guaranteed to hear:
+    // `bridge.spoken`, the French/English hybrid said on the way into every scene.
+    // A rule that skips the most-spoken line in the product is not a rule (F509).
+    // Walked to the leaves, because the opener and suggestion are decks now and
+    // the way back is a list (VOICE-013, VOICE-014): a deck entry is still a line.
+    const leaves = (value: unknown): string[] =>
+      typeof value === 'string' ? [value] : Object.values(value as object).flatMap(leaves);
+    const texts = leaves(CONVO_LINES);
+    assert.ok(texts.length >= 20, 'every deck entry is walked');
+    for (const text of texts) {
+      assert.ok(!text.includes('—'), `em dash in "${text}"`);
+      assert.ok(!/\d/.test(text), `digit in "${text}"`);
+      assert.ok(!/wrong|incorrect|failed/i.test(text), `scold in "${text}"`);
+      assert.ok(!/take your time|don't worry|prends ton temps|pas de souci/i.test(text), `remarks on hesitation in "${text}"`);
     }
   });
 });
@@ -883,8 +891,8 @@ describe('the conversation agent, off the worker', () => {
 
     const opening = published.find((m) => m.t === 'opening');
     assert.ok(opening, 'the learner has to be asked what they want to talk about');
-    assert.equal(opening.prompt.en, CONVO_LINES.opener.en);
-    assert.deepEqual(said, [CONVO_LINES.opener.en], 'and asked out loud, in English — a new learner has no French yet');
+    assert.equal(opening.prompt.en, CONVO_LINES.opener[0]!.en);
+    assert.deepEqual(said, [CONVO_LINES.opener[0]!.en], 'and asked out loud, in English — a new learner has no French yet');
     assert.equal(client.turnRequests.length + client.frameRequests.length, 0, 'nothing cost a round-trip');
   });
 
@@ -934,7 +942,7 @@ describe('the conversation agent, off the worker', () => {
     convo.open(session);
     await convo.handleClientMessage(session, tapped({ t: 'help' }));
 
-    assert.ok(said.includes(CONVO_LINES.suggest.en), 'the suggestion is said out loud');
+    assert.ok(said.includes(CONVO_LINES.suggest[0]!.en), 'the suggestion is said out loud');
     assert.equal(published.filter((m) => m.t === 'opening').length, 2, 'and the question lands again with it');
   });
 
@@ -1065,7 +1073,7 @@ describe('a conversation started from a topic card', () => {
 
     const opening = published.find((m) => m.t === 'opening');
     assert.ok(opening, 'the app opens a conversation on the opening message and would wait forever without one');
-    assert.notEqual(opening.prompt.en, CONVO_LINES.opener.en, 'someone who just tapped the topic is not asked to name it again');
+    assert.notEqual(opening.prompt.en, CONVO_LINES.opener[0]!.en, 'someone who just tapped the topic is not asked to name it again');
     assert.ok(opening.prompt.en.includes(SEED.en), `the opening names the topic they tapped: "${opening.prompt.en}"`);
     assert.ok(opening.prompt.fr.includes(SEED.fr), `and names it in French too: "${opening.prompt.fr}"`);
     assert.ok(!opening.prompt.en.includes('?'), 'and says what is about to happen rather than asking');
@@ -1126,7 +1134,7 @@ describe('a conversation started from a topic card', () => {
 
       const opening = published.find((m) => m.t === 'opening');
       assert.ok(opening, `a bad seed must still open the session: ${JSON.stringify(bad)}`);
-      assert.equal(opening.prompt.en, CONVO_LINES.opener.en, 'on the ordinary question, which is what a generic session is');
+      assert.equal(opening.prompt.en, CONVO_LINES.opener[0]!.en, 'on the ordinary question, which is what a generic session is');
       assert.equal(client.frameRequests.length, 0, 'and no scene is designed until the learner says what they want');
     }
   });
@@ -1204,8 +1212,8 @@ describe('a scene that fails to open hands back the choosing moment', () => {
 
     const openings = published.filter((m) => m.t === 'opening');
     assert.equal(openings.length, 2, 'the seeded opening, and then the way forward');
-    assert.equal(openings[1]!.prompt.en, CONVO_LINES.opener.en, 'which is a question, and answerable');
-    assert.ok(said.includes(CONVO_LINES.opener.en), 'and it is asked out loud, like every other choosing moment');
+    assert.equal(openings[1]!.prompt.en, CONVO_LINES.opener[0]!.en, 'which is a question, and answerable');
+    assert.ok(said.includes(CONVO_LINES.opener[0]!.en), 'and it is asked out loud, like every other choosing moment');
     assert.equal(views(published).length, 0, 'with no half-opened scene underneath it');
   });
 
@@ -2371,7 +2379,7 @@ describe('the tutor knows who it is talking to — G1', () => {
     assert.equal(said.length, 1, 'the greeting is one utterance, not two speech handles');
     assert.match(said[0]!, /Sam/, `the learner was not greeted by name: "${said[0]}"`);
     assert.ok(
-      said[0]!.includes(CONVO_LINES.opener.en),
+      said[0]!.includes(CONVO_LINES.opener[0]!.en),
       `the name replaced the question instead of leading it: "${said[0]}"`,
     );
     const opening = published.find((m) => m.t === 'opening');
@@ -2382,7 +2390,7 @@ describe('the tutor knows who it is talking to — G1', () => {
   test('a learner with no name still gets the ordinary opener', (t) => {
     const { convo, session, said } = buildConvo(t);
     convo.open(session);
-    assert.deepEqual(said, [CONVO_LINES.opener.en]);
+    assert.deepEqual(said, [CONVO_LINES.opener[0]!.en]);
   });
 
   test('a remembered opener carries the name without being rewritten around it', (t) => {
@@ -2595,15 +2603,15 @@ describe('the opener the learner actually hears is the one that was warmed', () 
     for (const name of ['A', 'Al', 'Sam', 'Alexandra']) {
       const chunks = tokenizer.tokenize(openerFor(name).en);
       assert.ok(
-        chunks.includes(CONVO_LINES.opener.en),
+        chunks.includes(CONVO_LINES.opener[0]!.en),
         `for "${name}" the question lost its own cache key, so the warm run cannot reach it: ${JSON.stringify(chunks)}`,
       );
     }
   });
 
   test('an unnamed learner still gets exactly the warmed line', () => {
-    assert.equal(openerFor(null).en, CONVO_LINES.opener.en);
-    assert.deepEqual(tokenizer.tokenize(openerFor(null).en), [CONVO_LINES.opener.en]);
+    assert.equal(openerFor(null).en, CONVO_LINES.opener[0]!.en);
+    assert.deepEqual(tokenizer.tokenize(openerFor(null).en), [CONVO_LINES.opener[0]!.en]);
   });
 
   test('every sentence the warm script stores is a sentence the runtime asks for', () => {
@@ -2646,7 +2654,7 @@ describe('a conversation started from a mission', () => {
 
     const opening = published.find((m) => m.t === 'opening');
     assert.ok(opening, 'the app opens a conversation on the opening message and would wait forever without one');
-    assert.notEqual(opening.prompt.en, CONVO_LINES.opener.en, 'somebody who chose a mission is not asked to choose again');
+    assert.notEqual(opening.prompt.en, CONVO_LINES.opener[0]!.en, 'somebody who chose a mission is not asked to choose again');
     assert.equal(published.filter((m) => m.t === 'opening').length, 1, 'one opening, not the mission on top of the question');
 
     const opened = views(published);
@@ -2674,10 +2682,10 @@ describe('a conversation started from a mission', () => {
 
       const opening = published.find((m) => m.t === 'opening');
       assert.ok(opening, `an id this build does not know must still open the session: ${JSON.stringify(bad)}`);
-      assert.equal(opening.prompt.en, CONVO_LINES.opener.en, 'on the ordinary question, which is what a generic session is');
+      assert.equal(opening.prompt.en, CONVO_LINES.opener[0]!.en, 'on the ordinary question, which is what a generic session is');
       assert.equal(views(published).length, 0, 'no scene is substituted for the one that could not be found');
       assert.equal(client.frameRequests.length, 0, 'and nothing is designed until the learner says what they want');
-      assert.deepEqual(said, [CONVO_LINES.opener.en], 'the question is asked out loud, in English, exactly as ever');
+      assert.deepEqual(said, [CONVO_LINES.opener[0]!.en], 'the question is asked out loud, in English, exactly as ever');
     }
 
     // The control: the degradation is a real branch, not a feature that is missing.
@@ -3656,7 +3664,7 @@ describe('the seeded opening', () => {
     assert.equal(redirect[0]!.action, 'redirect');
     const opening = steered.published.find((m) => m.t === 'opening');
     assert.ok(opening, 'a redirected seed left the learner with nothing to answer');
-    assert.equal(opening.prompt.en, CONVO_LINES.opener.en, 'the seeded opening was published anyway');
+    assert.equal(opening.prompt.en, CONVO_LINES.opener[0]!.en, 'the seeded opening was published anyway');
     assert.equal(steered.client.frameRequests.length, 0, 'the seeded scene was built anyway');
     assert.equal(steered.convo.conversationState.finished, false, 'a redirect closed the session');
 
@@ -4810,5 +4818,148 @@ describe('pronunciation is scored beside a mission turn, never in front of it', 
     assert.equal(nearHardLimit({ maxSeconds: 120, elapsedSeconds: () => 116 }), true);
     assert.equal(nearHardLimit({ maxSeconds: 120, elapsedSeconds: () => 100 }), false);
     assert.equal(nearHardLimit(undefined), false);
+  });
+});
+
+describe('the way back in, spoken — VOICE-013', () => {
+  /** A beginner's scene with `depth` aide-moi taps on one exchange. */
+  async function stuck(t: TestContext, depth: number, opts: Parameters<typeof buildConvo>[1] = {}) {
+    const built = await inScene(t, opts);
+    const saidBefore = built.said.length;
+    const turnsBefore = built.client.turnRequests.length;
+    for (let i = 0; i < depth; i++) {
+      await built.convo.handleClientMessage(built.session, tapped({ t: 'help' }));
+      await built.convo.settled();
+    }
+    return { ...built, newlySaid: built.said.slice(saidBefore), newTurns: built.client.turnRequests.length - turnsBefore };
+  }
+
+  test('an A0 learner stuck twice hears the authored English first, and never the card\'s French', async (t) => {
+    const { newlySaid, newTurns, convo, client } = await stuck(t, 2);
+    assert.equal(convo.conversationState.assistanceDepth, 2);
+    assert.equal(newTurns, 1, 'the second rescue asks the brain, exactly as before');
+    assert.match(JSON.stringify(client.turnRequests.at(-1)), /WAY BACK: the app has just told them/);
+    assert.equal(newlySaid.length, 1, 'one utterance');
+    const spoken = newlySaid[0]!;
+    assert.ok(spoken.startsWith(CONVO_LINES.wayBack[0]!), spoken);
+    assert.ok(!spoken.includes(sampleSupport().fullLine.fr), 'the card is never read back');
+    assert.ok(spoken.endsWith(sampleTurn().sceneReply.fr), 'then the tutor\'s own French');
+  });
+
+  test('the first rescue still says nothing and calls nothing', async (t) => {
+    const { newlySaid, newTurns } = await stuck(t, 1);
+    assert.deepEqual(newlySaid, []);
+    assert.equal(newTurns, 0);
+  });
+
+  test('in text mode the way back is the coach line on screen', async (t) => {
+    const { published } = await stuck(t, 2, { voiceless: true });
+    const view = views(published).at(-1)!.view;
+    assert.equal(view.coachLine, CONVO_LINES.wayBack[0]);
+    assert.equal(Object.hasOwn(view, 'wayBack'), false, 'the flag stays off the wire');
+  });
+
+  test('spokenTurn speaks the way back, and nothing else English', () => {
+    const view = { ...viewWith({ kind: 'full-line', line: 'Un café.', written: null, gloss: 'A coffee.' }), coachLine: CONVO_LINES.wayBack[1]!, wayBack: true };
+    assert.equal(spokenTurn(view), `${CONVO_LINES.wayBack[1]} Et voilà.`);
+    assert.equal(spokenTurn({ ...view, wayBack: false }), 'Et voilà.', 'an ordinary coach line stays on screen');
+  });
+});
+
+describe('fresh openers on the session counter — VOICE-014', () => {
+  function openingFor(t: TestContext, opts: { sessions?: number; sessionId?: string; memoryLocked?: boolean; profile?: LearnerProfile } = {}) {
+    const profile = opts.profile ?? createProfile();
+    profile.stats.sessions = opts.sessions ?? 0;
+    const built = buildConvo(t, { profile, sessionId: opts.sessionId, memoryLocked: opts.memoryLocked });
+    built.convo.open(built.session);
+    const opening = built.published.find((m) => m.t === 'opening');
+    assert.ok(opening && opening.t === 'opening');
+    return { prompt: opening.prompt, said: built.said, built };
+  }
+
+  test('sessions one to five rotate through the deck with no repeat in a row', (t) => {
+    const heard = [1, 2, 3, 4, 5].map((sessions) => openingFor(t, { sessions }).prompt.en);
+    assert.equal(new Set(heard).size, 5, 'five sessions, five different openers');
+    for (let i = 1; i < heard.length; i++) assert.notEqual(heard[i], heard[i - 1]);
+    assert.equal(heard[4], CONVO_LINES.opener[0]!.en, 'and the deck comes round again');
+  });
+
+  test('with no count, the signed session id picks the opener, the same way every time', (t) => {
+    const ids = ['sess-aaaaaaaa', 'sess-bbbbbbbb', 'sess-cccccccc', 'sess-dddddddd', 'sess-eeeeeeee', 'sess-ffffffff'];
+    const heard = ids.map((sessionId) => openingFor(t, { sessionId }).prompt.en);
+    assert.ok(new Set(heard).size > 1, 'the hash spreads sessions across the deck');
+    assert.equal(openingFor(t, { sessionId: ids[0] }).prompt.en, heard[0], 'and is stable for one session');
+    assert.equal(heard[0], deckLine(CONVO_LINES.opener, openerIndexFor(0, ids[0]!)).en);
+    assert.equal(openingFor(t).prompt.en, CONVO_LINES.opener[0]!.en, 'an unsigned session keeps the original line');
+  });
+
+  test('a named learner keeps the greeting in front of the rotated line', (t) => {
+    const profile = withLearnerName(createProfile(), 'Sam');
+    const { prompt, said } = openingFor(t, { sessions: 2, profile });
+    assert.equal(prompt.en, `Hi Sam, good to see you. ${CONVO_LINES.opener[2]!.en}`);
+    assert.deepEqual(said, [prompt.en]);
+    assert.deepEqual(openerFor('Sam', 2), prompt);
+  });
+
+  test('a memory-locked session rotates on the counter alone: no remembered opener, no brief', async (t) => {
+    const profile = createProfile();
+    profile.memory.opener = { fr: 'Et le concert ?', en: 'How was the concert?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
+    profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01' }];
+    const { prompt, built } = openingFor(t, { sessions: 3, memoryLocked: true, profile });
+    assert.equal(prompt.en, CONVO_LINES.opener[3]!.en);
+    await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
+    await built.convo.settled();
+    assert.doesNotMatch(JSON.stringify(built.client.frameRequests), /SAVED TUTOR MEMORY|jazz|concert/i);
+  });
+
+  test('the suggestion after silence comes from the same session index', async (t) => {
+    const profile = createProfile();
+    profile.stats.sessions = 1;
+    const { convo, session, said } = buildConvo(t, { profile });
+    convo.open(session);
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    assert.ok(said.includes(CONVO_LINES.suggest[1]!.en), said.join(' | '));
+  });
+});
+
+describe('a question asked twice is logged, never regenerated — VOICE-014', () => {
+  test('the repeat logs with no learner or question text and costs no second call', async (t) => {
+    const ask = (fr: string) => sampleTurn({ sceneReply: { speaker: 'Karim', fr, frWritten: null, en: 'Where do you live?' } });
+    const client = new MockLlmClient({ turns: [ask('Tu habites où ?'), ask('Et vous habitez où ?')] });
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+    const logs: string[] = [];
+    t.mock.method(console, 'info', (...args: unknown[]) => { logs.push(args.join(' ')); });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+    assert.equal(logs.filter((l) => l.includes('[luvani:conduct] repeated-question')).length, 0);
+    const turns = client.turnRequests.length;
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je suis secret' }));
+    await convo.settled();
+    const hits = logs.filter((l) => l.includes('[luvani:conduct] repeated-question'));
+    assert.equal(hits.length, 1);
+    assert.doesNotMatch(hits[0]!, /secret|habit/i, 'no learner text and no question text in the log');
+    assert.equal(client.turnRequests.length, turns + 1, 'no regeneration');
+    assert.match(JSON.stringify(client.turnRequests.at(-1)), /ALREADY ASKED THIS SESSION: .*Tu habites où/);
+  });
+});
+
+describe('sad news stays in the scene — VOICE-015', () => {
+  test('a grief line reaches the brain, and the session does not finish on that turn', async (t) => {
+    const done = sampleTurn({ scene: { beat: 'greet', beatDone: false, sceneDone: true } });
+    const client = new MockLlmClient({ turns: [done, done] });
+    const { convo, session, published } = await inScene(t, { client, voiceless: true });
+    const turns = client.turnRequests.length;
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'My mother died last month.' }));
+    await convo.settled();
+    assert.equal(client.turnRequests.length, turns + 1, 'no safety stop: the tutor answers');
+    assert.match(JSON.stringify(client.turnRequests.at(-1)), /SAD NEWS: their line may be sad news/);
+    assert.equal(published.some((m) => m.t === 'recap'), false, 'the model said sceneDone, and the session stayed');
+    assert.equal(published.some((m) => m.t === 'error'), false);
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'On continue. Un café, merci.' }));
+    await convo.settled();
+    for (let i = 0; i < 6; i++) await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(published.some((m) => m.t === 'recap'), true, 'the next ordinary turn ends as it always did');
   });
 });

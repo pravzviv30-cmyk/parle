@@ -214,6 +214,11 @@ inside `buildFrame` and again in each turn request, as `SAVED TUTOR MEMORY`.
 This happens only on a plan or trial: when the token server signs `memoryLocked: true`
 (a free or lapsed learner), the worker sends no saved memory, skips the remembered opener,
 makes no extraction call, and returns the stored memory unchanged in the recap.
+Its opening question still varies (VOICE-014): one of five authored lines, picked by
+`profile.stats.sessions`, a plain session count, or a hash of the signed session id when
+the count is zero. Neither carries anything the learner said, so a varied opener is not
+memory, and the in-session question guard reads only the tutor's own lines from the
+current session's history and stores nothing.
 The unmastered phrases and recent scene list remain beside it in the scene call.
 Those are stored rows, and they are about the learner's
 real life: `extractMemory` writes them after each session from what was volunteered
@@ -1087,7 +1092,14 @@ Stated plainly, because a review that starts from an inflated claim is worthless
   scene, answer in short plain English, take it seriously the first time, point
   at a local emergency number or one person they trust, say plainly that nobody
   is reading the conversation, and let dark vocabulary in a story stay ordinary
-  French. Before it existed this was design rather than code: grepping both
+  French. Its second section (VOICE-015) keeps sad news out of that path: a
+  learner who says someone they love has died or is ill gets a short, kind
+  answer, the choice to take a moment or keep going, and no goodbye. Code backs
+  it: `sharesSadNews` in `packages/brain/src/engine/sadNews.ts` marks the turn,
+  and a marked turn can never be the one that ends the session. It is not a
+  safety category and never stops or logs. Grief lines are in the ORDINARY
+  corpus in `safety.test.ts`, and grief that also says the learner wants to die
+  still stops exactly as before. Before it existed this was design rather than code: grepping both
   shipped prompts for self-harm, suicide, crisis, minor, sexual or harmful
   returned exactly one hit, and it was the word "minor" describing how heavily a
   coach finding counts. It is guidance to a model, so it is still not a

@@ -122,7 +122,8 @@ need real keys, so they are not part of the gate.
 Three playground evals need no key:
 
 - `npm run eval:sessions -w @luvani/brain-playground` scores recorded sessions turn by turn
-  (rescue, no read-back, gentle, level fit, safety, reply wait). The synthetic set is
+  (rescue, no read-back, gentle, level fit, safety, way back, no repeat question, grief,
+  reply wait). The synthetic set is
   hand-labelled with one deliberate failure per check, so a clean run exits 1 and lists them.
   The test `the session eval agrees with every hand label in the synthetic set` holds the
   checks to those labels in the gate. Each record names its mode (lesson, mission or

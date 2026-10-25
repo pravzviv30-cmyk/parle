@@ -936,3 +936,102 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     needs re-binding.
 - Sources: [vendor comparison](docs/changes/vendor-comparison.md), VOICE-008
   above, F193 in [known issues](docs/KNOWN_ISSUES.md).
+
+## VOICE-013 — A stuck beginner hears an English way back, on the second rescue
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - The ladder, the free-conversation depth table and the quiet first rescue
+    are unchanged.
+  - On the first rescue that reaches assistance depth 2 on an exchange (the
+    second rescue, the one that already reveals the French line and asks the
+    tutor to step in), the app speaks one authored English sentence before the
+    tutor's own rephrased French. Conditions, all required: CEFR estimate A0 or
+    A1, rung 1 or 2, and the learner has not already reached for English on
+    this exchange. A third rescue does not repeat it.
+  - The lines (`WAY_BACK_LINES`, rotating per exchange within a session):
+    "You can say it in English. I'll give you the French." / "English is fine
+    too. Say it your way, and I'll help with the French." / "Try it in English
+    if you like. We'll find the French together."
+  - Code decides (`wayBackDue` in `packages/brain/src/engine/conversation.ts`).
+    The line becomes the turn's coach line, so a typed session reads what a
+    voice session hears, and `spokenTurn` speaks it in the one English slot.
+    The turn context tells the model the English is already said and to add
+    none of its own. The flag never goes on the wire.
+- Reason: learners across the market say AI tutors "break down for beginners":
+  nobody lets them mix in English when stuck. The prompt already accepted and
+  recast English replies, but a frozen A0 learner was never told so. VOICE-002
+  still holds: the card's French is never read back.
+- Consequence: a learner who then answers in English goes down the existing
+  English-to-French recast path. The lines are in the TTS warm list. The
+  session eval's `way-back` check scores it.
+- Sources: [PEDAGOGY](docs/PEDAGOGY.md) "The rescue", [LIVE_VOICE](docs/LIVE_VOICE.md).
+
+## VOICE-014 — Fresh openers on a session count, and no question asked twice
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - The opening question is one of five authored lines and the silence
+    suggestion one of three (`CONVO_LINES` in
+    `services/tutor-agent/src/authoredSpeech.ts`). Index 0 of each is the line
+    every session used before.
+  - The index is `profile.stats.sessions`, which gives strict rotation, so
+    consecutive sessions never share an opener. A count of zero (a first
+    session, or a profile that never arrived) falls back to an FNV-1a hash of
+    the signed session id; an unsigned session gets index 0.
+  - Each turn context lists the tutor's own questions so far this session, the
+    last six as said, and tells the model not to ask any again in any wording
+    (`askedQuestions`). The persona says the same once.
+  - After each turn, `repeatsQuestion` checks the reply against that list. A
+    hit logs `[luvani:conduct] repeated-question` with no learner or question
+    text. There is no regeneration.
+- Reason: "the same questions for weeks" is a top complaint about a
+  competitor's tutor. A free learner heard one English opener every session.
+- Why a session count is not memory: the `memoryLocked` promise is no saved
+  memory brief, no remembered opener and no extraction. A count carries
+  nothing the learner said, is already on every profile (`finishSession`), and
+  is used here only to pick an authored line. The question guard reads the
+  current session's history and stores nothing. No list of past questions is
+  kept for anyone.
+- Consequence: across sessions, repeats are covered by the strict rotation of
+  authored lines, the existing per-session mission decks and the scene
+  builder's recent-scene list. A model-written question from a previous
+  session can still recur; nothing stores it, by design. A regenerated turn
+  would cost the learner latency, so the log and the eval's
+  `no-repeat-question` check are how repeats are seen.
+- Sources: [LIVE_VOICE](docs/LIVE_VOICE.md), [PRIVACY_AND_SAFETY](docs/PRIVACY_AND_SAFETY.md).
+
+## VOICE-015 — Sad news stays kind and in the scene; self-harm unchanged
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision:
+  - `SAFETY_CONDUCT` gains WHEN THEY SHARE SAD NEWS: answer as yourself in one
+    or two short kind sentences (plain English at A0 and A1), say sorry, do not
+    probe or advise, offer the choice to take a moment or keep going, never end
+    the conversation or say goodbye, and go back into the scene gently or
+    follow them in simple French. The danger section says sad news on its own
+    is not a crisis, and the crisis section still comes first.
+  - The contract says `sceneDone` is never true on a sad-news turn, and code
+    enforces it: a learner line matching `sharesSadNews`
+    (`packages/brain/src/engine/sadNews.ts`) adds a SAD NEWS line to that
+    turn's context, and `integrateTurn` lets neither `sceneDone` nor every beat
+    done end the session on that turn. The turn ceiling stretches by at most
+    one turn.
+  - `sharesSadNews` is not a safety category. It never stops, redirects or
+    logs learner text.
+  - The input net is unchanged. Sixteen bereavement, illness and sad-news lines
+    join the ORDINARY corpus in `safety.test.ts`, and a new test proves grief
+    that also says the learner wants to die still stops as self-harm.
+- Reason: a competitor's tutor hung up on a user who said their parents had
+  died. Here, sad news passed the net untested, the crisis section told the
+  model to drop the scene for anything "real and bad", and a model's
+  `sceneDone` would have called `finish()`.
+- Consequence: a false positive (a film plot) costs one context sentence and
+  one deferred recap. Known and left alone: "my brother committed suicide"
+  stops under `/suicid/`, which is deliberately broad; a kinder path for
+  bereavement by suicide is a founder decision. The session eval's `grief`
+  check scores the conduct.
+- Sources: [PRIVACY_AND_SAFETY](docs/PRIVACY_AND_SAFETY.md), [LIVE_VOICE](docs/LIVE_VOICE.md).

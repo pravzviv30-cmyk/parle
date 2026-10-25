@@ -689,6 +689,18 @@ describe('the warm run warms exactly the authored list', () => {
     assert.match(source, /warmPlanLine\(cost\)/, 'the billed-character plan still prints before spending');
   });
 
+  test('every opener, suggestion and way-back line is warm — VOICE-013, VOICE-014', () => {
+    const spoken = [
+      ...CONVO_LINES.opener.map(line => line.en),
+      ...CONVO_LINES.suggest.map(line => line.en),
+      ...CONVO_LINES.wayBack,
+    ];
+    assert.equal(spoken.length, 11, 'five openers, three suggestions, three ways back');
+    for (const line of spoken) {
+      for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);
+    }
+  });
+
   test('the authored list includes the carry-on lines the old warm list missed', () => {
     for (const line of [CONVO_LINES.carryOn.fr, CONVO_LINES.carryOn.en]) {
       for (const sentence of new (tokenizeModule.basic.SentenceTokenizer)().tokenize(line)) assert.ok(AUTHORED_SPEECH_LINES.includes(normaliseLine(sentence)), sentence);

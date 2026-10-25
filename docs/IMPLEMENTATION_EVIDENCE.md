@@ -22,6 +22,18 @@ of the list.
 
 ## Current landing snapshot
 
+- 25 October 2026 beginner conduct (VOICE-013, VOICE-014, VOICE-015) on branch
+  `claude/beginner-conduct` from main 50b46a0f (not on main): an A0 or A1 learner stuck twice on
+  one exchange hears an authored English way back on the second rescue; openers and the silence
+  suggestion rotate on the session count, free sessions included; each turn names the tutor's
+  questions already asked this session and a repeat is logged; a learner's sad news can never be
+  the turn that ends the session, with sixteen grief lines in the ORDINARY corpus and self-harm
+  escalation unchanged; `eval:sessions` gains way-back, no-repeat-question and grief checks and
+  three synthetic sessions (12 records) and agrees with every hand label: **6,559 tests,
+  0 failing**; core 1051, brain 524, tutor agent 799, token server 484, playground 92, mobile 3609;
+  shared release/provider proofs 176; all 43 migrations replayed, no migration added. Floors
+  raised only through `gate:bless`. No paid model run; one advisory Jev copy check (warm, about
+  $0.00002).
 - 24 October 2026 main with `claude/curation-luna` (VOICE-012) merged onto the unaided-sentence
   metric landing: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token
   server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations

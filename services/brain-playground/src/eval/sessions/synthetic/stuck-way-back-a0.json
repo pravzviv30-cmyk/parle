@@ -1,0 +1,184 @@
+{
+  "version": 2,
+  "id": "stuck-way-back-a0",
+  "source": "synthetic",
+  "mode": "conversation",
+  "scene": "cafe-order",
+  "cefr": "A0",
+  "turns": [
+    {
+      "n": 1,
+      "input": {
+        "type": "spoke",
+        "text": "Bonjour."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Bonjour, qu'est-ce que je vous sers ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 950,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 2,
+      "input": {
+        "type": "silence",
+        "durationMs": 4300
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Un thé, s'il vous plaît.",
+        "en": "Ask for a tea",
+        "kind": "hint"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "pass",
+        "no-read-back": "pass"
+      }
+    },
+    {
+      "n": 3,
+      "input": {
+        "type": "help"
+      },
+      "rung": 1,
+      "card": {
+        "fr": "Un thé, s'il vous plaît.",
+        "en": "Ask for a tea",
+        "kind": "full-line"
+      },
+      "rescued": true,
+      "rescueIndex": 2,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "Alors, vous désirez boire quoi ?",
+        "coachLine": "You can say it in English. I'll give you the French.",
+        "narration": null
+      },
+      "replyWaitMs": 1100,
+      "expect": {
+        "rescue": "pass",
+        "gentle": "pass",
+        "level-fit": "pass",
+        "way-back": "pass"
+      }
+    },
+    {
+      "n": 4,
+      "input": {
+        "type": "spoke",
+        "text": "A tea, please."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Un thé avec du citron ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1250,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 5,
+      "input": {
+        "type": "spoke",
+        "text": "Oui, merci."
+      },
+      "rung": 1,
+      "card": null,
+      "rescued": false,
+      "rescueIndex": 0,
+      "attempted": true,
+      "tutor": {
+        "sceneReply": "Très bien, autre chose ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1000,
+      "expect": {
+        "gentle": "pass",
+        "level-fit": "pass",
+        "no-repeat-question": "pass"
+      }
+    },
+    {
+      "n": 6,
+      "input": {
+        "type": "silence",
+        "durationMs": 4600
+      },
+      "rung": 1,
+      "card": {
+        "fr": "L'addition, s'il vous plaît.",
+        "en": "Ask for the bill",
+        "kind": "hint"
+      },
+      "rescued": true,
+      "rescueIndex": 1,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "",
+        "coachLine": null,
+        "narration": null
+      },
+      "expect": {
+        "rescue": "pass",
+        "no-read-back": "pass"
+      }
+    },
+    {
+      "n": 7,
+      "input": {
+        "type": "silence",
+        "durationMs": 5200
+      },
+      "rung": 1,
+      "card": {
+        "fr": "L'addition, s'il vous plaît.",
+        "en": "Ask for the bill",
+        "kind": "full-line"
+      },
+      "rescued": true,
+      "rescueIndex": 2,
+      "attempted": false,
+      "tutor": {
+        "sceneReply": "L'addition, s'il vous plaît ?",
+        "coachLine": null,
+        "narration": null
+      },
+      "replyWaitMs": 1050,
+      "expect": {
+        "rescue": "pass",
+        "gentle": "pass",
+        "level-fit": "pass",
+        "way-back": "fail"
+      }
+    }
+  ]
+}

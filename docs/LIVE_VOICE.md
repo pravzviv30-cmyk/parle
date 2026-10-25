@@ -215,11 +215,33 @@ English, what the learner wants to talk about — no menu, no chips. Whatever
 they say or type becomes the scene (the agent treats a pre-scene `say` as the
 topic).
 
+The question is one of five authored lines and the suggestion after silence one
+of three (`CONVO_LINES` in `services/tutor-agent/src/authoredSpeech.ts`, all in
+the warm list). The index is `profile.stats.sessions`, so consecutive sessions
+never hear the same opener; a count of zero falls back to a hash of the signed
+session id (`openerIndexFor` in `convo.ts`). This holds for `memoryLocked`
+sessions too, because a session count is not memory (VOICE-014). A paid
+learner's remembered opener still wins when there is one.
+
 Choosing `convo-text` never starts an AI suggestion timer on this screen. The
 box stays blank until the learner supplies their own topic. Inside a scene,
 ordinary turns likewise carry no suggested reply. One genuine rescue reveals
 an English hint card, silently and without a model call; repeated help may
 reveal a French line, and that rescue asks the brain for the tutor's step-in.
+For an A0 or A1 learner at rung 1 or 2, the first such step-in on an exchange
+also speaks one authored English line first, saying English is a fine way back
+in (VOICE-013, `PEDAGOGY.md`). It is the turn's coach line and never the card's
+French.
+
+Each turn context also lists the tutor's own questions so far this session,
+the last six as said (`askedQuestions` in
+`packages/brain/src/engine/askedQuestions.ts`), with an instruction not to ask
+any of them again. When a reply repeats one anyway, the agent logs
+`[luvani:conduct] repeated-question` with no learner or question text and makes
+no second call (VOICE-014). A learner line that matches `sharesSadNews`
+(a death, an illness, bad news) adds a SAD NEWS line to that turn's context, and
+that turn can never end the session: `sceneDone` and all-beats-done wait for a
+later turn, and the turn ceiling stretches by at most one (VOICE-015).
 
 A scripted lesson speaks its expected paths from the script itself: the opening
 line, every good or partial answer, every rescue and every skip go straight to

@@ -274,6 +274,36 @@ describe('the stable prefix', () => {
     assert.doesNotMatch(SAFETY_CONDUCT, /—/);
   });
 
+  test('sad news stays kind and in the scene, in both shipped prompts — VOICE-015', () => {
+    // Duolingo's Lily hung up on a bereaved user. The danger section told the
+    // tutor to drop the scene for anything real and bad, and nothing said that
+    // grief is not danger. Both renders carry the same block, so checking the
+    // block and both includes covers both modes.
+    const section = SAFETY_CONDUCT.slice(SAFETY_CONDUCT.indexOf('WHEN THEY SHARE SAD NEWS'));
+    assert.ok(SAFETY_CONDUCT.includes('WHEN THEY SHARE SAD NEWS'), 'the sad-news section is missing');
+    assert.match(SAFETY_CONDUCT, /Sad news on its own is not this\. See the next section\./, 'the danger section does not hand grief on');
+    assert.ok(
+      SAFETY_CONDUCT.indexOf('WHEN IT STOPS BEING PRACTICE') < SAFETY_CONDUCT.indexOf('WHEN THEY SHARE SAD NEWS'),
+      'self-harm comes first',
+    );
+    assert.match(section, /sorry/i);
+    assert.match(section, /take a moment, or keep going/i, 'the learner is not offered the choice');
+    assert.match(section, /never end the conversation for them, never say goodbye/i);
+    assert.match(section, /plain English/i);
+    assert.match(section, /no medical advice/i);
+    assert.match(section, /section above comes first/i, 'self-harm no longer outranks grief');
+    assert.ok(buildSystemBlocks().persona.includes(section));
+    assert.ok(buildLessonPrompt(CAFE_LESSON, CAFE_LESSON.turns[0]!, directiveFor(RUNGS.CUED)).includes(section));
+    assert.match(buildSystemBlocks().contract, /sceneDone is never true on a turn where they shared sad news\./);
+  });
+
+  test('the tutor never asks a question twice — VOICE-014', () => {
+    assert.match(
+      buildSystemBlocks().persona,
+      /- Never ask a question you already asked in this conversation, or one they have already answered\. Build on their answer instead\./,
+    );
+  });
+
   test('no em dashes and no volatile tokens anywhere in the prefix', () => {
     // Prompt text is model-facing, not learner-facing, so it may QUOTE banned
     // words ('never say "wrong"'). Two rules do apply: the model mimics prompt
@@ -287,6 +317,19 @@ describe('the stable prefix', () => {
 });
 
 describe('the per-turn context', () => {
+  test('the way back, the asked questions and sad news each render one line, only when set', () => {
+    const plain = buildTurnContext(contextInput({}));
+    assert.doesNotMatch(plain, /WAY BACK|ALREADY ASKED|SAD NEWS/);
+    assert.doesNotMatch(buildTurnContext(contextInput({ askedAlready: [] })), /ALREADY ASKED/);
+
+    const text = buildTurnContext(contextInput({
+      inputKind: 'help', wayBack: true, sadNews: true, askedAlready: ['Tu habites où ?', 'Vous désirez ?'],
+    }));
+    assert.match(text, /^WAY BACK: the app has just told them, in English, that English is fine\. Do not repeat that or add English of your own\. Rephrase your own line in the simplest French, one short sentence\.$/m);
+    assert.match(text, /^ALREADY ASKED THIS SESSION: "Tu habites où \?", "Vous désirez \?"\. Do not ask any of these again in any wording\. Build on what they answered\.$/m);
+    assert.match(text, /^SAD NEWS: their line may be sad news from their own life\. If it is, follow WHEN THEY SHARE SAD NEWS\. If it is a story, a film or the scene, carry on\.$/m);
+  });
+
   test('uses the ladder only for pacing and never exposes its old answer script', () => {
     for (const rung of [RUNGS.ECHO, RUNGS.CUED, RUNGS.PROMPTED, RUNGS.FREE]) {
       const directive = directiveFor(rung);
