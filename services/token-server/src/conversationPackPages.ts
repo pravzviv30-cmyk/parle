@@ -4,6 +4,38 @@ import { boundedFetchJson } from '../../shared/boundedFetch.ts';
 import type { ConversationPack } from '@luvani/core';
 
 export const CONVERSATION_PAGE_SIZE = 20;
+/** Learner-facing summary of the durable drill job; never its attempts, lease or errors. */
+export type PracticeStatus = 'preparing' | 'ready' | 'failed';
+export type ListedPack = ConversationPack & { practiceStatus?: PracticeStatus };
+function practiceStatusOf(status: unknown): PracticeStatus | null {
+  return status === 'pending' || status === 'running' ? 'preparing' : status === 'complete' ? 'ready' : status === 'failed' ? 'failed' : null;
+}
+/**
+ * One bounded, owner-scoped service read: the jobs table has no owner column and
+ * no learner grant, so it is reached only through the learner's own packs.
+ * A missing job row means a non-durable or legacy pack, which is already final.
+ * If the status read fails the field is omitted; the library is never withheld.
+ */
+async function withPracticeStatus(base: string, secret: string, userId: string, packs: ConversationPack[], request: typeof fetch): Promise<ListedPack[]> {
+  if (!packs.length) return packs;
+  const ids = packs.map(pack => pack.id);
+  const url = `${base.replace(/\/+$/, '')}/rest/v1/conversation_packs?select=id,conversation_practice_jobs(status)`
+    + `&user_id=eq.${encodeURIComponent(userId)}&id=in.(${ids.map(encodeURIComponent).join(',')})&limit=${ids.length}`;
+  try {
+    const response = await boundedFetchJson(request, url, { method: 'GET', headers: { apikey: secret, authorization: `Bearer ${secret}` } }, { maxBytes: 64 * 1024 });
+    if (response.status !== 200 || !Array.isArray(response.value)) return packs;
+    const found = new Map<string, PracticeStatus>();
+    for (const row of response.value as Array<{ id?: unknown; conversation_practice_jobs?: unknown }>) {
+      if (!row || typeof row.id !== 'string' || !ids.includes(row.id)) continue;
+      const embed = row.conversation_practice_jobs;
+      const job = Array.isArray(embed) ? embed[0] : embed;
+      if (job === undefined || job === null) { found.set(row.id, 'ready'); continue; }
+      const status = practiceStatusOf((job as { status?: unknown }).status);
+      if (status) found.set(row.id, status);
+    }
+    return packs.map(pack => found.has(pack.id) ? { ...pack, practiceStatus: found.get(pack.id)! } : pack);
+  } catch { return packs; }
+}
 export interface PackCursor { createdAt: string; packId: string }
 export interface UnavailablePack { id:string; createdAt:string; payloadBytes:number; reason:'oversize' }
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -45,16 +77,16 @@ async function lookup(base: string, secret: string, userId: string, after: PackC
   }
   const nextCursor = value.nextCursor === null ? null : packCursor(JSON.stringify(value.nextCursor));
   if (value.nextCursor !== null && (!nextCursor || packId || value.rows.length===0 || !previous || key(nextCursor) !== key(previous))) throw new Error('invalid-conversation-page');
-  return { packs, unavailable, nextCursor: nextCursor ? JSON.stringify(nextCursor) : null };
+  return { packs: await withPracticeStatus(base, secret, userId, packs, request), unavailable, nextCursor: nextCursor ? JSON.stringify(nextCursor) : null };
 }
 /** SQL fetches at most21 indexed rows; its JSON scalar bypasses REST row caps/count scans. */
-export async function conversationPackPage(base: string, secret: string, userId: string, after: string | null, request: typeof fetch = fetch): Promise<{ packs: ConversationPack[]; unavailable:UnavailablePack[]; nextCursor: string | null }> {
+export async function conversationPackPage(base: string, secret: string, userId: string, after: string | null, request: typeof fetch = fetch): Promise<{ packs: ListedPack[]; unavailable:UnavailablePack[]; nextCursor: string | null }> {
   const cursor = after === null ? null : packCursor(after);
   if (after !== null && !cursor) throw new HttpInputError(400, 'invalid conversation cursor');
   return lookup(base, secret, userId, cursor, null, request);
 }
 /** Old bookmarks remain independently addressable outside a bounded library page. */
-export async function conversationPackById(base: string, secret: string, userId: string, packId: string, request: typeof fetch = fetch): Promise<ConversationPack | null> {
+export async function conversationPackById(base: string, secret: string, userId: string, packId: string, request: typeof fetch = fetch): Promise<ListedPack | null> {
   if (!uuid.test(packId)) throw new HttpInputError(400, 'invalid Conversation Pack id');
   const result=await lookup(base, secret, userId, null, packId, request);
   if(result.unavailable.length)throw new HttpInputError(413,'This historical conversation exceeds the detail byte limit');

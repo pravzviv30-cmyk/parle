@@ -101,7 +101,8 @@ import {
 import {
   STUCK_SILENCE_MS,
   buildConversationPack,
-  validateExercise,
+  groundedDrills,
+  phraseKeyOf,
   type MissionId,
   type Rung,
   type ServerMessage,
@@ -258,6 +259,18 @@ export function safeTutorContext(value: unknown): boolean {
     return Object.entries(item).every(([key, part]) => safeContextText(key) && visit(part, depth + 1));
   };
   return visit(value, 0);
+}
+
+/**
+ * The phrase keys a live drill batch may drill: exactly the phrases the drill
+ * request was built from, the session list (curated keep-list or fallback)
+ * plus the unmastered profile phrases, keyed the way the deck keys them.
+ */
+export function drillPhraseKeys(
+  sessionPhrases: readonly { fr: string }[],
+  profilePhrases: readonly { fr: string }[],
+): Set<string> {
+  return new Set([...sessionPhrases, ...profilePhrases].map((p) => phraseKeyOf(p.fr)));
 }
 
 function safeModelProfile(profile: LearnerProfile): LearnerProfile {
@@ -3325,7 +3338,10 @@ export class LuvaniConversation extends voice.Agent {
       );
       this.recordBrainUsage('drills', result.usage);
 
-      const valid = result.batch.exercises.filter((exercise) => validateExercise(exercise).ok);
+      const valid = groundedDrills(result.batch.exercises, drillPhraseKeys(sessionPhrases, profilePhrases), {
+        screen: outputGuard,
+        band: this.profile.cefr.estimate,
+      });
       const dropped = result.batch.exercises.length - valid.length;
       if (dropped > 0) console.warn(`[luvani] drill linter rejected ${dropped} of ${result.batch.exercises.length} exercises`);
       if (valid.length === 0) return [];

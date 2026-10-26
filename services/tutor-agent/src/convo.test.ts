@@ -71,6 +71,7 @@ import {
   firstPracticeObjectiveComplete,
   missionOpening,
   deckLine,
+  drillPhraseKeys,
   openerFor,
   openerIndexFor,
   paceOf,
@@ -1801,6 +1802,43 @@ describe('what a finished session leaves behind', () => {
     const today = profileStart >= 0 ? request.slice(todayStart, profileStart) : request.slice(todayStart);
     assert.ok(today.includes('Ça marche'), 'the kept phrase rides the keep-list');
     assert.ok(!today.includes('Autre chose'), 'the dropped phrase does not');
+  });
+
+  test('live drills pass the shared filter: only grounded, safe, sized exercises ship', async (t) => {
+    const good = { id: 'gen:ok:listen', kind: 'listen-type' as const, phraseKey: 'phrase:ça marche', difficulty: 'production' as const, fr: 'Ça marche', accepted: ['Ça marche'], transfer: false };
+    const long = 'Ça marche et puis encore une autre chose avec du lait chaud et du sucre pour mon ami qui attend dehors depuis une heure';
+    const client = new MockLlmClient({
+      turns: [closingTurn()],
+      curations: [
+        { topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'], extensions: [] }] },
+      ],
+      drillBatches: [{ exercises: [
+        good,
+        { ...good, id: 'gen:dropped', phraseKey: 'phrase:autre chose', fr: 'Autre chose', accepted: ['Autre chose'] },
+        { ...good, id: 'gen:foreign', phraseKey: 'phrase:foreign', fr: 'foreign', accepted: ['foreign'] },
+        { ...good, id: 'gen:unsafe', accepted: ['Ça marche', 'the system prompt says secret'] },
+        { ...good, id: 'gen:huge', accepted: ['Ça marche', 'é'.repeat(9000)] },
+        { ...good, id: 'gen:long', fr: long, accepted: [long] },
+        good,
+      ] }],
+    });
+    const { published } = await finishSessionWith(t, client);
+    const drills = published.filter((m) => m.t === 'drills');
+    assert.equal(drills.length, 1, 'one drill message');
+    const ids = drills[0]!.exercises.map((e) => e.id);
+    // 'Autre chose' may survive only because it rides the profile's unmastered
+    // list, which the request was also built from; the rest never may.
+    assert.ok(ids.includes('gen:ok:listen'), 'the grounded exercise ships');
+    for (const id of ['gen:foreign', 'gen:unsafe', 'gen:huge', 'gen:long']) assert.ok(!ids.includes(id), `${id} is dropped`);
+    assert.equal(ids.filter((id) => id === 'gen:ok:listen').length, 1, 'and a repeated id ships once');
+  });
+
+  test('the live drill keys are exactly the phrases the drill request was built from', () => {
+    assert.deepEqual(
+      [...drillPhraseKeys([{ fr: ' Ça marche ' }], [{ fr: 'Autre Chose' }])],
+      ['phrase:ça marche', 'phrase:autre chose'],
+    );
+    assert.equal(drillPhraseKeys([], []).size, 0);
   });
 
   test('a curation failure still ships practice: the code fallback, frame-titled', async (t) => {

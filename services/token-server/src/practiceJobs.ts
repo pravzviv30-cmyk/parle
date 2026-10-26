@@ -1,5 +1,5 @@
 /** Durable post-session recovery. Only validated learning artefacts cross this boundary. */
-import { isConversationPack, phraseKeyOf, validateExercise, type ConversationPack, type DrillExercise } from '@luvani/core';
+import { groundedDrills, isConversationPack, phraseKeyOf, type ConversationPack, type DrillExercise } from '@luvani/core';
 import { buildDrillGenerationRequest, buildSystemBlocks } from '@luvani/brain';
 import { BrainParseError, BrainRefusalError, type LlmClient, type LlmUsage } from '@luvani/brain/llm';
 // This pure canonical policy is shared with live tutors; no second safety net.
@@ -50,29 +50,10 @@ export function practiceJobs(baseUrl: string, key: string, request: typeof fetch
   };
 }
 
-/** Reject unrelated/model-invented card identities and malformed exercise objects. */
+/** Reject unrelated/model-invented card identities and malformed exercise objects. The filter itself is core's `groundedDrills`, shared with the live tutor. */
 export function groundedExercises(pack: ConversationPack, candidates: readonly DrillExercise[]): DrillExercise[] {
   const keys = new Set([...pack.keyPhrases.map((p) => phraseKeyOf(p.fr)), ...pack.corrections.map((p) => phraseKeyOf(p.better))]);
-  if (!Array.isArray(candidates) || candidates.length>24) return [];
-  const safe=(value:unknown):boolean=>{
-    const texts:string[]=[];let fields=0;let bytes=0;
-    const collect=(item:unknown):boolean=>{
-      if(++fields>256)return false;
-      if(typeof item==='string'){bytes+=Buffer.byteLength(item,'utf8')+1;if(bytes>16_384)return false;texts.push(item);}
-      else if(Array.isArray(item)){if(item.length>64)return false;return item.every(collect);}
-      else if(item && typeof item==='object')return Object.values(item).every(collect);
-      return true;
-    };
-    return collect(value) && !outputGuard(texts.join('\n'));
-  };
-  const seen = new Set<string>();
-  return candidates.filter((ex) => {
-    try {
-      if (!keys.has(ex.phraseKey) || seen.has(ex.id) || !validateExercise(ex).ok || !safe(ex)) return false;
-      seen.add(ex.id);
-      return true;
-    } catch { return false; }
-  }).slice(0, 24);
+  return groundedDrills(candidates, keys, { screen: outputGuard, band: pack.cefr });
 }
 
 /** One job at a time. SQL owns leases, retry counts and stale-result fencing. */

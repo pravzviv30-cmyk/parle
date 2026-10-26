@@ -11204,3 +11204,41 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/migrations/20261004003511_bounded_session_detail_retention.sql (`receive_conversation_practice`, `finish_conversation_practice`)
 - note: Found 2026-10-25 in the learning-loop audit. Completion meant "the pack has any exercise", and every pack carries built-in translate exercises, so failed AI drills read as complete; finishing also replaced the list and dropped the built-ins. Fixed in `20261026090000_practice_completion_signal.sql` (generated drills only complete a job; finish merges, generated first, at most 24), proved by `npm run verify:database:practice` in the gate. Stays open until the migration is applied to the hosted project; packs already marked complete are not re-queued.
 - verified-by: `the practice pack status reads preparing until generated drills arrive`
+
+### F875 — The app could not show practice still being made, or practice that failed
+- severity: P2
+- status: [x]
+- where: services/token-server/src/conversationPackPages.ts, apps/mobile/src/conversationPacks/practiceStatus.ts
+- note: Found 2026-10-25 in the learning-loop audit. "Becoming practice" keyed on `pack.state === 'generating'`, which no server path writes, and a failed job was never shown. `GET /conversation-packs` and `/:id` now carry an optional `practiceStatus` (`preparing`, `ready`, `failed`) read from the job row through the learner's own packs; the app shows "More practice is on its way" or a calm failed note, still offers the practice it builds from the pack's phrases, and shows no retry (the worker owns retries). Refreshes on screen focus, no polling.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `the practice pack status reads preparing until generated drills arrive`
+- verified-by: `a preparing pack with phrases offers what exists and says more is coming`
+- verified-by: `a failed pack says so calmly and still offers its phrases`
+- verified-by: `a pack with no practice status reads as ready, as older servers meant`
+
+### F876 — Live drills skipped the grounding and safety checks the worker ran
+- severity: P2
+- status: [x]
+- where: packages/core/src/drill/validate.ts (`groundedDrills`), services/tutor-agent/src/convo.ts, services/token-server/src/practiceJobs.ts
+- note: Found 2026-10-25 in the learning-loop audit. The agent's drill path checked shape only. Both paths now share one filter: grounded in the phrases the request was built from, unique ids, bounded size, the safety screen, at most 24, and a generous word cap on the expected French by CEFR band (`DRILL_ANSWER_WORD_CAP`), skipped when the band is unknown.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `live drills pass the shared filter: only grounded, safe, sized exercises ship`
+- verified-by: `the worker drops oversized and over-long answers through the shared filter`
+- verified-by: `an A1 exercise with an absurdly long answer is rejected while a normal one passes`
+- verified-by: `no hand-written fixture trips the length bound, even at the beginner cap`
+
+### F877 — A deleted conversation's name stayed on its review cards
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/store.ts, apps/mobile/src/review/store.ts (`rewriteCardNotes`)
+- note: Found 2026-10-25 in the learning-loop audit. Cards built from a pack carried "From your conversation: <title>" after the conversation was deleted. Founder decision (2026-10-25): keep cards, schedules and evidence, drop the name. After a successful delete the matching notes become "Saved from a past conversation" through the review store, so the change syncs. Cards hold no pack id, so the match is the exact note text.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `deleting a conversation clears its name from review cards and keeps their schedule`
+- verified-by: `a failed server delete leaves the names in place`
+
+### F878 — A more-graded card copy on another device can bring a deleted conversation's name back
+- severity: P2
+- status: [ ]
+- where: packages/core/src/review/merge.ts
+- note: Found 2026-10-26 building F877. The review merge keeps the copy with more grades whole, note included, so a second device that reviewed the card more after the delete restores the old note. The F877 replacement text also relies on the merge's text tie-break when grades are equal. Needs a merge rule that a cleared provenance note wins (data-sync-engineer). Large conversations that never cached a title cannot be cleared; their delete prompt promises nothing.
+- verified-by: `a cleared conversation name survives a merge with a more-graded copy`

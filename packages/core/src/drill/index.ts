@@ -74,6 +74,18 @@ export {
   type PracticeOutcome,
 } from './practice.ts';
 
-export { validateExercise, validateBatch, learnerVisibleStrings, type ValidationResult } from './validate.ts';
+export {
+  validateExercise,
+  validateBatch,
+  learnerVisibleStrings,
+  groundedDrills,
+  exceedsAnswerCap,
+  expectedFrenchAnswers,
+  DRILL_ANSWER_WORD_CAP,
+  GENERATED_DRILL_CAP,
+  type DrillBand,
+  type GroundedDrillOptions,
+  type ValidationResult,
+} from './validate.ts';
 
 export { DRILL_FIXTURES } from './fixtures.ts';

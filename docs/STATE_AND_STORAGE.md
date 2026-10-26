@@ -1018,6 +1018,28 @@ from `lastRung` through `openingRung`, and is deliberately **not** stored
 separately: a second copy of a derived value is a second source of truth for the
 one quantity two engines already disagreed about once.
 
+### Practice status and deleted conversation names (2026-10-26)
+
+`GET /conversation-packs` and `GET /conversation-packs/:id` add an optional
+per-pack `practiceStatus`, read from `public.conversation_practice_jobs` with one
+extra service-role call per page that reaches each job through the learner's own
+`conversation_packs` rows (`user_id` filter, `id=in.(page ids)`): pending or
+running is `preparing`, complete is `ready`, failed is `failed`, and no job row is
+`ready`. Attempts, leases and errors are never returned. If that read fails the
+packs come back without the field, and the app treats a missing or unknown value
+as ready. A job completes only once generated drills arrive (LEARN-004, migration
+44), so `preparing` is honest. The app still offers the practice it builds from a
+pack's phrases while preparing or after a failure, and never shows a retry.
+
+Generated drills from the tutor and the worker pass one filter, `groundedDrills`
+in `packages/core/src/drill/validate.ts`.
+
+Deleting a conversation keeps its review cards, schedules and evidence. Cards
+whose note names it ("From your conversation: <title>") are rewritten to "Saved
+from a past conversation" through the review store, so the change syncs. Cards
+hold no pack id, so the match is the exact note text. A more-graded copy on
+another device can still restore the old note through the merge (F878).
+
 ## Explicit conversation text
 
 `ConversationTextRecorder` holds confirmed room text in memory only until the recap

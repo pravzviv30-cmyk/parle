@@ -103,3 +103,11 @@ test('written variants and resolved topic fields pass policy before the provider
     assert.equal(await processPracticeJob(jobs,{drills:async()=>{calls++;throw new Error('must not dispatch unsafe source');}}),'retry');assert.equal(calls,0);
   }
 });
+
+test('the worker drops oversized and over-long answers through the shared filter', () => {
+  const long = 'Un café et puis encore un autre café avec du lait chaud et du sucre pour mon ami qui attend dehors';
+  const absurd = {...exercise,id:'gen:cafe:long',fr:long,accepted:[long]};
+  assert.deepEqual(groundedExercises({...pack,cefr:'A1'},[absurd,exercise]),[exercise]);
+  assert.deepEqual(groundedExercises({...pack,cefr:null},[absurd]),[absurd],'an unknown band skips the bound');
+  assert.deepEqual(groundedExercises(pack,[{...exercise,accepted:['Un café','é'.repeat(9000)]}]),[]);
+});

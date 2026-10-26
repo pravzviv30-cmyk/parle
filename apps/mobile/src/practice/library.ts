@@ -1,6 +1,7 @@
 /** Presentation over owned conversation packs and the one review deck. Ported by path from ce1fa976 (B3, 2026-10-20). */
 import { phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
 import { orderedConversationPacks } from '../conversationPacks/model.ts';
+import { practiceStatusOf } from '../conversationPacks/practiceStatus.ts';
 
 const folded = (value: string): string => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
 const wordsOf = (query: string): string[] => folded(query).split(/\s+/).filter(Boolean);
@@ -58,7 +59,7 @@ export function libraryPhrases(deck: readonly ReviewCard[], packs: readonly Conv
 
 export function conversationStateLine(pack: ConversationPack): string {
   switch (pack.state) {
-    case 'ready': return 'Phrases and learning notes';
+    case 'ready': return practiceStatusOf(pack) === 'preparing' ? 'Your learning notes are being prepared' : 'Phrases and learning notes';
     case 'generating': return 'Your learning notes are being prepared';
     case 'failed': return 'Learning notes are not ready yet';
     case 'archived': return 'Archived conversation';

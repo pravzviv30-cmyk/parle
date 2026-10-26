@@ -16,6 +16,21 @@
 
 import { ownWordsFrom, phraseKeyOf, validateExercise, type ConversationPack, type ConvoPhrase, type DrillExercise, type RepeatThisExercise, type TranslationExercise } from '@luvani/core';
 
+/** The provenance note a pack writes onto each review card it earns. */
+export const CONVERSATION_NOTE_PREFIX = 'From your conversation: ';
+export function conversationNote(title: string): string {
+  return `${CONVERSATION_NOTE_PREFIX}${title}`;
+}
+/**
+ * What that note becomes once the conversation is deleted: the card, its
+ * schedule and its evidence stay, the name goes. Not an empty string on
+ * purpose. Core's deck merge breaks a tie between two equally graded copies of
+ * a card by comparing their fields as text, and an empty note (or one starting
+ * "From a") sorts below "From your conversation: ...", so a stale copy on the
+ * account would win and bring the name back. "Saved from" sorts above it.
+ */
+export const PAST_CONVERSATION_NOTE = 'Saved from a past conversation';
+
 /** Restore the cards as well as their exercises after a missed room delivery. */
 export function reviewPhrasesFor(pack: ConversationPack): ConvoPhrase[] {
   const source = [...pack.keyPhrases, ...pack.corrections.map((c) => ({ fr: c.better, en: c.betterEn, frWritten: null }))];
@@ -24,7 +39,7 @@ export function reviewPhrasesFor(pack: ConversationPack): ConvoPhrase[] {
     const key = phraseKeyOf(p.fr);
     if (!p.fr.trim() || !p.en.trim() || seen.has(key)) return [];
     seen.add(key);
-    return [{ ...p, frWritten: p.frWritten ?? null, register: '', enLiteral: null, note: `From your conversation: ${pack.title.en}` }];
+    return [{ ...p, frWritten: p.frWritten ?? null, register: '', enLiteral: null, note: conversationNote(pack.title.en) }];
   });
 }
 

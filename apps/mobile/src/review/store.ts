@@ -293,6 +293,22 @@ export function gradeCards(grades: readonly CardGrade[]): Promise<ReviewCard[]> 
   });
 }
 
+/**
+ * Rewrite the provenance note on cards whose note names a deleted conversation.
+ *
+ * Only `context` changes. Scheduling, reps, ease, sources and evidence are
+ * carried over untouched, and the write goes through `saveDeck` as a local
+ * change so the sync engine pushes it like any other card edit.
+ */
+export function rewriteCardNotes(matches: (context: string) => boolean, replacement: string): Promise<PersistAck> {
+  return serialized(async (key, owner) => {
+    const existing = await loadDeckFor(key);
+    if (!existing.some((card) => matches(card.context))) return 'durable';
+    const next = existing.map((card) => (matches(card.context) ? { ...card, context: replacement } : card));
+    return saveDeck(key, next, 'local', owner);
+  });
+}
+
 // ─────────────────────────────────────── acknowledged practice grades (compare-and-set)
 
 /**

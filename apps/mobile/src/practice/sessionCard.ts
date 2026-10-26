@@ -16,6 +16,7 @@
  */
 
 import { localDayKey, phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
+import { practiceStatusOf } from '../conversationPacks/practiceStatus.ts';
 
 /** A day in milliseconds, for the one arithmetic this file does. */
 const DAY = 24 * 60 * 60 * 1000;
@@ -153,7 +154,7 @@ export function spokenLine(durationSec: number | null): string | null {
  * a tally, and "Practised 3 times" from a single date would be invented.
  */
 export function standingOf(pack: ConversationPack, due: ReadonlySet<string>): SessionStanding | null {
-  if (pack.state === 'generating') return { key: 'writing', words: STANDING.writing };
+  if (practiceStatusOf(pack) === 'preparing') return { key: 'writing', words: STANDING.writing };
   if (pack.state === 'failed') return { key: 'held', words: STANDING.held };
   if (pack.state === 'archived') return null;
 

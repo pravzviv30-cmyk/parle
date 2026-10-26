@@ -5,8 +5,9 @@ import { readOwnedCache } from '../storage/ownedRead.ts';
 import { isConversationPack, normaliseConversationPacks, type ConversationPack } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { mergeExercises } from '../drill/store.ts';
-import { packExercisesFor, reviewPhrasesFor } from './packExercises.ts';
-import { addPhrases } from '../review/store.ts';
+import { CONVERSATION_NOTE_PREFIX, PAST_CONVERSATION_NOTE, conversationNote, packExercisesFor, reviewPhrasesFor } from './packExercises.ts';
+import { addPhrases, rewriteCardNotes } from '../review/store.ts';
+import { practiceStatusOf } from './practiceStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { activeUserId, onUserScopeReset, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { orderedConversationPacks } from './model.ts';
@@ -110,6 +111,30 @@ function validUnavailable(value:unknown):value is UnavailablePack {
   return Object.keys(row).length===4 && row.reason==='oversize' && Number.isSafeInteger(row.payloadBytes) && row.payloadBytes>524288
     && validCursor(JSON.stringify({createdAt:row.createdAt,packId:row.id}));
 }
+/**
+ * `practiceStatus` is a late, optional server field. A value this build does
+ * not know is read as ready (the old meaning of no field) and not stored, so
+ * the cache only ever holds the three values the app draws.
+ */
+function withKnownPracticeStatus(pack: ConversationPack): ConversationPack {
+  const raw = (pack as {practiceStatus?: unknown}).practiceStatus;
+  if (raw === undefined || raw === practiceStatusOf(pack)) return pack;
+  const {practiceStatus: _unknown, ...rest} = pack as ConversationPack & {practiceStatus?: unknown};
+  return rest as ConversationPack;
+}
+/**
+ * After a delete, cards earned from the deleted conversations keep their
+ * schedule and evidence but stop naming it. Cards carry no pack id, so the
+ * match is the exact note text `reviewPhrasesFor` wrote. A title still used
+ * by a conversation that remains is left alone, since the note cannot say
+ * which of the two it came from. Deleting everything clears every such note.
+ */
+async function forgetDeletedNames(before: readonly ConversationPack[], after: readonly ConversationPack[], all: boolean): Promise<void> {
+  if (all) { await rewriteCardNotes(context => context.startsWith(CONVERSATION_NOTE_PREFIX), PAST_CONVERSATION_NOTE); return; }
+  const kept = new Set(after.map(pack => conversationNote(pack.title.en)));
+  const gone = new Set(before.filter(pack => !after.some(left => left.id === pack.id)).map(pack => conversationNote(pack.title.en)).filter(note => !kept.has(note)));
+  if (gone.size > 0) await rewriteCardNotes(context => gone.has(context), PAST_CONVERSATION_NOTE);
+}
 async function getReply(url: string, token: string, request: typeof fetch): Promise<{status:number;body:unknown}> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -176,7 +201,7 @@ export function refreshConversationPacks(user:AuthUser,adapter:AuthAdapter,reque
         || page.packs.length+unavailable.length>CONVERSATION_PAGE_SIZE || page.packs.some(pack=>!isConversationPack(pack) || pack.learnerId!==user.id)
         || new Set([...page.packs,...unavailable].map(pack=>pack.id)).size!==page.packs.length+unavailable.length || (page.nextCursor!==null && !validCursor(page.nextCursor))
         || (page.nextCursor!==null && (page.packs.length+unavailable.length===0 || page.nextCursor===after))) return {ok:false};
-      const packs=normaliseConversationPacks(page.packs as ConversationPack[]);
+      const packs=normaliseConversationPacks(page.packs as ConversationPack[]).map(withKnownPracticeStatus);
       if (!(await cacheAndBank(packs,current)) || !current()) return {ok:false};
       return {ok:true,packs,unavailable,nextCursor:page.nextCursor as string|null};
     } catch {return {ok:false};}
@@ -201,8 +226,8 @@ export function loadConversationPackForLearner(user:AuthUser,adapter:AuthAdapter
       if(reply.status===413) return {ok:false,reason:'oversize'};
       const pack=(reply.body as {pack?:unknown}|null)?.pack;
       if(reply.status!==200 || !isConversationPack(pack) || pack.learnerId!==user.id || pack.id!==packId) return {ok:false};
-      if(!(await cacheAndBank([pack],current))) return {ok:false};
-      return {ok:true,pack:normaliseConversationPacks([pack])[0]!};
+      if(!(await cacheAndBank([withKnownPracticeStatus(pack)],current))) return {ok:false};
+      return {ok:true,pack:withKnownPracticeStatus(normaliseConversationPacks([pack])[0]!)};
     } catch {return {ok:false};}
   });
 }
@@ -213,6 +238,7 @@ async function authorisedDelete(
   path: string,
   locally: (packs: readonly ConversationPack[]) => ConversationPack[],
   request: typeof fetch = fetch,
+  all = false,
 ): Promise<ConversationPackMutation> {
   const owner = scopeGeneration();
   const owned = () => activeUserId() === user.id && owner === scopeGeneration();
@@ -226,6 +252,8 @@ async function authorisedDelete(
   if (adapter.kind !== 'supabase') {
     const packs = locally(current);
     await replaceCache(packs, true);
+    if (!owned()) return switched();
+    await forgetDeletedNames(current, packs, all).catch(() => undefined);
     if (!owned()) return switched();
     return { ok: true, packs };
   }
@@ -242,6 +270,8 @@ async function authorisedDelete(
     if (!owned()) return switched();
     const packs = locally(current).filter((pack) => pack.learnerId === user.id);
     await replaceCache(packs, true);
+    if (!owned()) return switched();
+    await forgetDeletedNames(current, packs, all).catch(() => undefined);
     if (!owned()) return switched();
     return { ok: true, packs };
   } catch {
@@ -270,7 +300,7 @@ export function deleteAllConversationPacksForLearner(
 ): Promise<ConversationPackMutation> {
   const owner = scopeGeneration();
   return pull(() => owner === scopeGeneration()
-    ? authorisedDelete(user, adapter, '/conversation-packs', () => [], request)
+    ? authorisedDelete(user, adapter, '/conversation-packs', () => [], request, true)
     : Promise.resolve({ok:false,message:'The account changed. Open your Tutor history again.'}));
 }
 
