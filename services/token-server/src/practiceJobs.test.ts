@@ -111,3 +111,22 @@ test('the worker drops oversized and over-long answers through the shared filter
   assert.deepEqual(groundedExercises({...pack,cefr:null},[absurd]),[absurd],'an unknown band skips the bound');
   assert.deepEqual(groundedExercises(pack,[{...exercise,accepted:['Un café','é'.repeat(9000)]}]),[]);
 });
+
+test('the worker asks for a harder transfer exercise on each of the pack wins, and a right first answer raises transfer evidence', async () => {
+  const { answerCurrent, applyDrillResults, newCard } = await import('@luvani/core');
+  const won = buildConversationPack({ ...pack, keyPhrases:[{fr:'Un café',en:'A coffee',frWritten:null}],
+    wins:['Je voudrais un croissant','Un café','merci'],
+    corrections:[{quote:'merci',better:'Merci beaucoup',betterEn:'Thanks a lot',why:'warmer'}] });
+  const moved: DrillExercise = {id:'gen:croissant:fill',kind:'fill-blank',phraseKey:phraseKeyOf('Je voudrais un croissant'),difficulty:'recognition',
+    sentence:'Au marché : ___, s’il vous plaît.',options:['Je voudrais un croissant','Je suis un croissant'],accepted:['Je voudrais un croissant'],en:'At the market: I would like a croissant, please.',transfer:true};
+  let request='';let finished: DrillExercise[]|null=null;
+  const jobs: PracticeJobs={receive:async()=>{},active:async()=>true,claim:async()=>({...job,payload:won}),finish:async(_job,ex)=>{finished=ex;return true;}};
+  const client={drills:async(call:{request:string})=>{request=call.request;return {batch:{exercises:[moved]},usage:{inputTokens:1,outputTokens:1}} as never;}};
+  assert.equal(await processPracticeJob(jobs,client),'complete');
+  assert.match(request,/Used well today:\n- "Je voudrais un croissant"\n- "Un café" = A coffee$/);
+  assert.doesNotMatch(request,/Used well today:[\s\S]*"merci"/, 'a corrected phrase was asked as a transfer');
+  assert.deepEqual(finished,[moved], 'groundedDrills dropped the transfer exercise');
+  const state=answerCurrent({queue:[moved],missesById:{},answered:[],startedAt:0,finished:false},'Je voudrais un croissant').state;
+  const deck=applyDrillResults([newCard({id:moved.phraseKey,kind:'vocab',front:'x',back:'x',context:'',ipa:''},0)],state,0);
+  assert.equal(deck[0]!.evidence?.transfers,1);
+});

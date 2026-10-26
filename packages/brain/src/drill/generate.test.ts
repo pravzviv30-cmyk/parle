@@ -198,3 +198,45 @@ describe('the generation request renders its material', () => {
     assert.equal('phrase:' + ' Je Voudrais un Café '.trim().toLowerCase(), PHRASE_KEY);
   });
 });
+
+describe('success leads to a harder task', () => {
+  test('the request asks for one transfer exercise per listed win and at most two', async () => {
+    const { TRANSFER_INSTRUCTION } = await import('./generate.ts');
+    const request = buildDrillGenerationRequest(input({
+      transferPhrases: [
+        { fr: 'je voudrais un café', en: 'I would like a coffee' },
+        { fr: "l'addition, s'il vous plaît", en: 'the bill, please' },
+        { fr: 'merci beaucoup', en: 'thanks a lot' },
+      ],
+    }));
+    assert.equal(request.split(TRANSFER_INSTRUCTION).length - 1, 1);
+    assert.match(request, /exactly one exercise marked transfer: true/);
+    assert.match(request, /- "je voudrais un café" = I would like a coffee/);
+    assert.match(request, /- "l'addition, s'il vous plaît" = the bill, please/);
+    assert.doesNotMatch(request, /merci beaucoup/);
+  });
+
+  test('there is no transfer instruction when the session had no wins', async () => {
+    const { TRANSFER_INSTRUCTION } = await import('./generate.ts');
+    for (const transferPhrases of [undefined, []]) {
+      const request = buildDrillGenerationRequest(input({ transferPhrases }));
+      assert.equal(request.includes(TRANSFER_INSTRUCTION), false);
+      assert.doesNotMatch(request, /Used well today/);
+    }
+  });
+
+  test('a corrected phrase is never a transfer ask', async () => {
+    const { transferPhrasesFrom } = await import('./generate.ts');
+    const picked = transferPhrasesFrom(['Je voudrais un café', 'merci beaucoup'], {
+      corrected: ['je voudrais un cafe'],
+      known: [{ fr: 'merci beaucoup', en: 'thanks a lot' }],
+    });
+    assert.deepEqual(picked, [{ fr: 'merci beaucoup', en: 'thanks a lot' }]);
+  });
+
+  test('wins with earlier evidence are picked first and the pick stops at two', async () => {
+    const { transferPhrasesFrom } = await import('./generate.ts');
+    const picked = transferPhrasesFrom(['un', 'deux', 'trois', 'deux'], { prefer: (fr) => fr === 'trois' });
+    assert.deepEqual(picked.map((p) => p.fr), ['trois', 'un']);
+  });
+});

@@ -18,7 +18,7 @@
 
 import { z } from 'zod/v4';
 
-import type { DrillExercise } from '@luvani/core';
+import { normalise, phraseKeyOf, type DrillExercise } from '@luvani/core';
 
 import type { NewPhrase } from '../contract/types.ts';
 
@@ -138,6 +138,60 @@ export interface DrillGenerationInput {
   errorTags: readonly string[];
   /** Topic labels ground situational transfer without inventing a new course. */
   topics: readonly { en: string; fr: string }[];
+  /**
+   * What the learner used well, unaided, this session: each one earns exactly
+   * one harder, changed-situation exercise. Capped at MAX_TRANSFER_PHRASES in
+   * code. The caller must also count these among its grounded phrase keys, or
+   * `groundedDrills` drops the very exercises this asks for.
+   */
+  transferPhrases?: readonly { fr: string; en: string }[];
+}
+
+/** Success leads to a harder task, but only a couple: the set stays a practice set. */
+export const MAX_TRANSFER_PHRASES = 2;
+
+/** The one code-owned instruction a non-empty transfer list adds. */
+export const TRANSFER_INSTRUCTION = `For each phrase listed under "Used well today", write exactly one exercise marked transfer: true that needs that phrase in a changed situation (a different item, place, person or small problem), not the original scene. Keep it at the learner's level. Its phraseKey follows the same rule as every other exercise.`;
+
+/**
+ * Pick at most two transfer phrases from a session's wins.
+ *
+ * A win is already filtered of in-session corrections upstream, but this check
+ * runs again against every corrected form the caller knows (the quote and the
+ * better line): a phrase the tutor had to fix is not a success to build on,
+ * even when the learner later adopted it. `prefer` floats phrases with prior
+ * evidence (mastered, or used well before) to the front; `known` supplies an
+ * English gloss when one is on file.
+ */
+export function transferPhrasesFrom(
+  wins: readonly string[],
+  options: {
+    corrected?: readonly string[];
+    known?: readonly { fr: string; frWritten?: string | null; en: string }[];
+    prefer?: (fr: string) => boolean;
+  } = {},
+): { fr: string; en: string }[] {
+  const corrected = new Set((options.corrected ?? []).map(normalise).filter((key) => key.length > 0));
+  const seen = new Set<string>();
+  const picked: { fr: string; en: string; preferred: boolean }[] = [];
+  for (const raw of wins) {
+    const fr = raw.trim();
+    const key = normalise(fr);
+    if (key.length === 0 || seen.has(key) || corrected.has(key)) continue;
+    seen.add(key);
+    const gloss = options.known?.find((p) => normalise(p.fr) === key || (p.frWritten != null && normalise(p.frWritten) === key));
+    picked.push({ fr, en: gloss?.en ?? '', preferred: options.prefer?.(fr) ?? false });
+  }
+  return picked
+    .map((p, index) => ({ ...p, index }))
+    .sort((a, b) => Number(b.preferred) - Number(a.preferred) || a.index - b.index)
+    .slice(0, MAX_TRANSFER_PHRASES)
+    .map(({ fr, en }) => ({ fr, en }));
+}
+
+/** The phrase keys a request's transfer list adds to the grounded set. */
+export function transferPhraseKeys(phrases: readonly { fr: string }[]): string[] {
+  return phrases.slice(0, MAX_TRANSFER_PHRASES).map((p) => phraseKeyOf(p.fr));
 }
 
 const INSTRUCTION = [
@@ -176,6 +230,15 @@ export function buildDrillGenerationRequest(input: DrillGenerationInput): string
   }
   if (input.errorTags.length > 0) {
     lines.push(`Recurring errors to aim fill-blanks at: ${input.errorTags.join(', ')}`);
+  }
+  const transfer = (input.transferPhrases ?? []).filter((p) => p.fr.trim().length > 0).slice(0, MAX_TRANSFER_PHRASES);
+  if (transfer.length > 0) {
+    if (input.errorTags.length > 0) lines.push(``);
+    lines.push(
+      TRANSFER_INSTRUCTION,
+      `Used well today:`,
+      ...transfer.map((p) => (p.en.trim().length > 0 ? `- "${p.fr.trim()}" = ${p.en.trim()}` : `- "${p.fr.trim()}"`)),
+    );
   }
   return lines.join('\n');
 }

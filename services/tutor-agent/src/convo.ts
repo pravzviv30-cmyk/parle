@@ -28,7 +28,7 @@ import { LiveScoring, nearHardLimit, saidTheLine } from './liveScoring.ts';
 import { CONVO_SCORING_EFFECTS } from '../../shared/lessonScoringQuote.ts';
 import type { scoreUtterance } from '../../shared/pronunciation.ts';
 import { buildReport, recognitionPhrases, repairRecognizedFrench } from '@luvani/core';
-import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parseReviewFocus, parsePreviousCorrection, tutorSessionBrief } from '@luvani/core';
+import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parseReviewFocus, parsePreviousCorrection, tutorSessionBrief, type TutorReviewFocus } from '@luvani/core';
 import { selectedBrain } from './preflight.ts';
 import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 import { safeError } from './safeError.ts';
@@ -67,6 +67,7 @@ import {
   assembleRecap,
   buildCurationRequest,
   buildDrillGenerationRequest,
+  transferPhrasesFrom,
   buildExtractionRequest,
   buildScenarioRequest,
   buildSystemBlocks,
@@ -1014,9 +1015,35 @@ const CONVO_MAX_TURNS = 12;
 /** Where a conversation is: choosing a topic, building the scene, or inside it. */
 export type ConversationPhase = 'choosing' | 'starting' | 'scene';
 
+/**
+ * The phrases the scene frame aims at, weakest first, chosen in code: this
+ * session's review focus, then unmastered phrases only ever said with help,
+ * then the rest by fewest unaided uses. Deduped, capped at five.
+ */
+export function frameTargets(profile: Pick<LearnerProfile, 'phrases'>, reviewFocus: readonly Pick<TutorReviewFocus, 'fr' | 'en'>[] = []): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (fr: string, en: string) => {
+    const key = fr.trim().toLowerCase();
+    if (!key || seen.has(key) || out.length >= 5) return;
+    seen.add(key);
+    out.push(`${fr} (${en})`);
+  };
+  for (const item of reviewFocus) add(item.fr, item.en);
+  const unmastered = Object.values(profile.phrases).filter((phrase) => !phrase.mastered);
+  const helpedOnly = (p: (typeof unmastered)[number]) => p.timesAssisted > 0 && p.timesUsedWell === 0;
+  // Array.sort is stable, so ties keep insertion order.
+  [...unmastered]
+    .sort((a, b) => Number(helpedOnly(b)) - Number(helpedOnly(a)) || a.timesUsedWell - b.timesUsedWell)
+    .forEach((phrase) => add(phrase.fr, phrase.en));
+  return out;
+}
+
 export class LuvaniConversation extends voice.Agent {
   private state: ConversationState;
   private profile: LearnerProfile;
+  /** This session's parsed review focus; the frame aims at it first. */
+  private reviewFocus: TutorReviewFocus[] = [];
   private readonly client: LlmClient;
   /**
    * Retunes the recogniser mid-session. A no-op by default, and correctly so in
@@ -1378,11 +1405,12 @@ export class LuvaniConversation extends voice.Agent {
     this.correctionReasonReader = opts.correctionReasonReader;
     const revision = safeTutorContext(opts.revision) ? parseTutorRevision(opts.revision) : undefined;
     this.revisedFromPackId = revision?.packId ?? null;
+    this.reviewFocus = safeTutorContext(opts.reviewFocus) ? parseReviewFocus(opts.reviewFocus) : [];
     this.teachingBrief = tutorSessionBrief({
       revision,
       missionId: this.missionId,
       seeded: !!this.seedTopic,
-      reviewFocus: safeTutorContext(opts.reviewFocus) ? parseReviewFocus(opts.reviewFocus) : undefined,
+      reviewFocus: this.reviewFocus,
       previousCorrection: safeTutorContext(opts.previousCorrection) ? parsePreviousCorrection(opts.previousCorrection) : undefined,
     });
     // Held, not applied. The placeholder state built just above is the scene
@@ -1955,10 +1983,7 @@ export class LuvaniConversation extends voice.Agent {
   /** One frame call with a hard deadline — a learner is audibly waiting. */
   private async buildFrame(request: string): Promise<ScenarioFrame> {
     const snapshot = learnerSnapshotFrom(this.profile);
-    const unmasteredPhrases = Object.values(this.profile.phrases)
-      .filter((phrase) => !phrase.mastered)
-      .slice(0, 5)
-      .map((phrase) => `${phrase.fr} (${phrase.en})`);
+    const unmasteredPhrases = frameTargets(this.profile, this.reviewFocus);
     try {
       const result = await withDeadline(
         (signal) =>
@@ -3322,12 +3347,23 @@ export class LuvaniConversation extends voice.Agent {
       .slice(0, 3)
       .map(([tag]) => tag);
 
+    // Success leads to a harder task: the session's unaided wins (never a
+    // corrected form), phrases with prior evidence first, earn one
+    // changed-situation exercise each. They join the grounded keys below.
+    const profileEntries = Object.values(this.profile.phrases);
+    const transferPhrases = transferPhrasesFrom(this.state.usedWell, {
+      corrected: [...this.state.correctedForms, ...this.state.deferred.flatMap((fix) => [fix.quote, fix.better])],
+      known: [...sessionPhrases, ...profileEntries],
+      prefer: (fr) => profileEntries.some((p) => phraseKeyOf(p.fr) === phraseKeyOf(fr) && (p.mastered || p.timesUsedWell >= 1)),
+    });
+
     try {
       const request = buildDrillGenerationRequest({
         sessionPhrases,
         profilePhrases,
         errorTags,
         topics: this.state.topics.map((topic) => ({ en: topic.en, fr: topic.fr })),
+        transferPhrases,
       });
       const ms = postSessionDeadlineMs('drills');
       const result = await withDeadline(
@@ -3338,7 +3374,7 @@ export class LuvaniConversation extends voice.Agent {
       );
       this.recordBrainUsage('drills', result.usage);
 
-      const valid = groundedDrills(result.batch.exercises, drillPhraseKeys(sessionPhrases, profilePhrases), {
+      const valid = groundedDrills(result.batch.exercises, drillPhraseKeys([...sessionPhrases, ...transferPhrases], profilePhrases), {
         screen: outputGuard,
         band: this.profile.cefr.estimate,
       });

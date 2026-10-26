@@ -62,6 +62,7 @@ import {
   MOMENT_GRACE_MS,
   MOMENT_HOLD_CAP_MS,
   LuvaniConversation,
+  frameTargets,
   TEXT_SILENCE_MS,
   brainClient,
   chooseFrame,
@@ -5154,4 +5155,19 @@ describe('help earns no independent use in a live scene', () => {
     await convo.settled();
     assert.equal(phraseOf(convo).timesUsedWell, before + 1, 'an unaided reply is a use');
   });
+});
+
+test('frame targets put review focus first, then phrases said only with help, then fewest unaided uses', () => {
+  const profile = createProfile();
+  const entry = (fr: string, timesUsedWell: number, timesAssisted: number, mastered = false) => ({
+    fr, frWritten: null, en: fr.toUpperCase(), register: 'courant' as const, introducedAt: '2026-10-01T00:00:00.000Z', timesUsedWell, timesAssisted, mastered,
+  });
+  profile.phrases = {
+    a: entry('often', 2, 0), b: entry('once', 1, 0), c: entry('helped', 0, 3), d: entry('done', 5, 0, true),
+    e: entry('never', 0, 0), f: entry('focus', 1, 0), g: entry('extra', 1, 1),
+  };
+  const targets = frameTargets(profile, [{ fr: 'Focus', en: 'FOCUS' }, { fr: 'Elsewhere', en: 'x' }]);
+  assert.deepEqual(targets, ['Focus (FOCUS)', 'Elsewhere (x)', 'helped (HELPED)', 'never (NEVER)', 'once (ONCE)']);
+  assert.equal(frameTargets(profile).length, 5);
+  assert.ok(!frameTargets(profile).some((t) => t.startsWith('done')), 'a mastered phrase is never a target');
 });

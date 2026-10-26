@@ -22,6 +22,16 @@ of the list.
 
 ## Current landing snapshot
 
+- 26 October 2026 learning loop (LEARN-001 to LEARN-006, F871 to F881) on branch
+  `claude/learning-loop` from main 4173e94b (not on main): help earns no independent use,
+  suspected vs recurring error patterns, assisted drill grades, practice completion only on
+  generated drills (migration 44 prepared, not applied), practice status in the app, one
+  shared drill filter, deleted conversation names leave cards, evidence-aware session brief,
+  weakest scene targets first, transfer asks for wins. **6,731 tests, 0 failing**; core 1088,
+  brain 533, tutor agent 868, token server 493, playground 92, mobile 3657; shared
+  release/provider proofs 184; all 44 migrations replayed, one migration added. Floors raised
+  through `gate:bless`. `eval:sessions` output identical before and after. Not seen on a
+  device, in a live LiveKit session, or against a hosted database.
 - 25 October 2026 data-boundary quota proof made clock-safe on branch `claude/quota-minute-flake`
   from main 50b46a0f, main 71c485d5 merged in (not on main): the write quotas are calendar-minute buckets on the real
   database clock, and `verifyDataBoundaries.mjs` failed when its 48-write burst straddled a

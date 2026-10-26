@@ -11242,3 +11242,34 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/core/src/review/merge.ts
 - note: Found 2026-10-26 building F877. The review merge keeps the copy with more grades whole, note included, so a second device that reviewed the card more after the delete restores the old note. The F877 replacement text also relies on the merge's text tie-break when grades are equal. Needs a merge rule that a cleared provenance note wins (data-sync-engineer). Large conversations that never cached a title cannot be cleared; their delete prompt promises nothing.
 - verified-by: `a cleared conversation name survives a merge with a more-graded copy`
+
+### F879 — The next session's brief carried no evidence about the phrases it asked for
+- severity: P2
+- status: [x]
+- where: packages/core/src/tutorBrief.ts (`reviewFocusFromDeck`, `tutorSessionBrief`), apps/mobile/src/profile/memory.ts
+- note: Found 2026-10-25 in the learning-loop audit. Review focus was three due cards with no sign of what the learner had shown, and continuation carried only a title, summary, phrases and one correction. Each focus item now carries an `ask` chosen in code from its evidence: `used` asks for a new situation, `introduced` or `recalled` asks for an unaided go, `transferred` is left out. Phrases only ever said with help come first, then a continued conversation's own phrases (LEARN-005).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `a used phrase is asked in a new situation`
+- verified-by: `a recalled phrase is asked unaided`
+- verified-by: `a transferred phrase is left out`
+- verified-by: `a phrase said only with help comes first even when not due`
+- verified-by: `an older app focus without ask parses as unaided, and an unknown ask is refused`
+- verified-by: `the brief explains both asks and keeps the data in untrusted JSON`
+
+### F880 — Scene targets were the first five unmastered phrases, not the weakest
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`frameTargets`, `buildFrame`)
+- note: Found 2026-10-25 in the learning-loop audit. Targets are now the session's review focus, then phrases only ever said with help, then the fewest unaided uses.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `frame targets put review focus first, then phrases said only with help, then fewest unaided uses`
+
+### F881 — Success never led to a harder task
+- severity: P2
+- status: [x]
+- where: packages/brain/src/drill/generate.ts (`transferPhrasesFrom`), services/token-server/src/practiceJobs.ts, services/tutor-agent/src/convo.ts
+- note: Found 2026-10-25 in the learning-loop audit. Mastered phrases simply left practice. Each post-session drill request now asks for one changed-situation exercise, marked transfer, for up to two of the session's wins (never a corrected phrase), on both the tutor and the worker path (LEARN-006). Known gap: the session's wins come from the end card's credit, which does not yet exclude uses said with help (aligning it with LEARN-001 is Phase E).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `the request asks for one transfer exercise per listed win and at most two`
+- verified-by: `a corrected phrase is never a transfer ask`
+- verified-by: `the worker asks for a harder transfer exercise on each of the pack wins, and a right first answer raises transfer evidence`

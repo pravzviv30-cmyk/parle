@@ -1326,3 +1326,33 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   failed. Apply after 43 in `supabase/README.md` order; it changes no data and
   has a paired rollback. Packs already marked complete are not re-queued. Proof:
   `npm run verify:database:practice` (in the gate). F874.
+
+## LEARN-005 — The session brief says what to ask of each phrase, and code decides it
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: each review-focus item (at most three, still untrusted JSON) carries
+  `ask: 'unaided' | 'new-situation'`, set in code from the phrase's evidence
+  state: `used` asks for a new situation, `introduced` or `recalled` for an
+  unaided go, and `transferred` items are left out. Phrases only ever said with
+  help (`timesAssisted > 0`, `timesUsedWell == 0`) rank first, then a continued
+  conversation's own phrases, then lapses, then due date. The scene frame aims
+  at the same phrases first (`frameTargets`). An older app's item without `ask`
+  reads as unaided.
+- Reason: help followed by independent recall, success followed by a changed
+  situation, without letting the model decide the policy.
+- Consequence: the brief grows about 265 bytes with a full focus. The data stays
+  pedagogy-only on the join token and never moves minutes. F879, F880.
+
+## LEARN-006 — Wins earn a transfer exercise
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: the post-session drill request asks for exactly one transfer-marked,
+  changed-situation exercise for up to two of the session's wins
+  (`MAX_TRANSFER_PHRASES`), never a corrected phrase, on the tutor and the worker
+  path alike. Their keys join the grounded set.
+- Reason: consistent success should lead to a harder task, and a right first
+  answer to it is the transfer evidence `evidence.ts` already counts.
+- Consequence: at most two more generated exercises per session, inside the cap
+  of 24. F881.

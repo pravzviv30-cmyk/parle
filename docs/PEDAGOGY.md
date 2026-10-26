@@ -257,6 +257,18 @@ learner's goal orders the suggestion, never gates a scene and never changes the
 level, which still comes only from earned scenes (`spineFrom`). Until the
 learner has earned a scene it is the spine's opener whatever the goal.
 
+The session brief offers up to three practice phrases, and code decides what
+to ask of each (LEARN-005). A phrase only ever said with help comes first and is
+marked unaided, so the tutor gives a natural chance to say it with no hint. A
+phrase already used in conversation is marked new-situation, so the tutor changes
+one detail and the learner needs it somewhere new. A phrase already used in a new
+situation is left out. A continued conversation's own phrases rank ahead of other
+due cards, and the scene frame aims at the same phrases first.
+
+Success leads to a harder task (LEARN-006). After a session, up to two phrases the
+learner used well (never one that was corrected) each get one transfer exercise:
+the same phrase in a changed situation. A right first answer adds a transfer.
+
 Journey's Your French counts only rise with evidence; the one way one goes down
 is the learner deleting a phrase themselves.
 

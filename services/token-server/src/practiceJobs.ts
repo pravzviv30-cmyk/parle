@@ -1,6 +1,6 @@
 /** Durable post-session recovery. Only validated learning artefacts cross this boundary. */
 import { groundedDrills, isConversationPack, phraseKeyOf, type ConversationPack, type DrillExercise } from '@luvani/core';
-import { buildDrillGenerationRequest, buildSystemBlocks } from '@luvani/brain';
+import { buildDrillGenerationRequest, buildSystemBlocks, transferPhraseKeys, transferPhrasesFrom } from '@luvani/brain';
 import { BrainParseError, BrainRefusalError, type LlmClient, type LlmUsage } from '@luvani/brain/llm';
 // This pure canonical policy is shared with live tutors; no second safety net.
 import { safetyDecision, outputGuard } from '../../tutor-agent/src/safety.ts';
@@ -51,8 +51,24 @@ export function practiceJobs(baseUrl: string, key: string, request: typeof fetch
 }
 
 /** Reject unrelated/model-invented card identities and malformed exercise objects. The filter itself is core's `groundedDrills`, shared with the live tutor. */
+/**
+ * The pack's wins that earn one harder, changed-situation exercise each. Never
+ * a phrase that was corrected in the session, quoted or offered.
+ */
+export function packTransferPhrases(pack: ConversationPack): { fr: string; en: string }[] {
+  return transferPhrasesFrom(pack.wins ?? [], {
+    corrected: pack.corrections.flatMap((c) => [c.quote, c.better]),
+    known: pack.keyPhrases,
+  });
+}
+
 export function groundedExercises(pack: ConversationPack, candidates: readonly DrillExercise[]): DrillExercise[] {
-  const keys = new Set([...pack.keyPhrases.map((p) => phraseKeyOf(p.fr)), ...pack.corrections.map((p) => phraseKeyOf(p.better))]);
+  // Transfer wins are grounded too: they are French the learner said this session.
+  const keys = new Set([
+    ...pack.keyPhrases.map((p) => phraseKeyOf(p.fr)),
+    ...pack.corrections.map((p) => phraseKeyOf(p.better)),
+    ...transferPhraseKeys(packTransferPhrases(pack)),
+  ]);
   return groundedDrills(candidates, keys, { screen: outputGuard, band: pack.cefr });
 }
 
@@ -78,6 +94,10 @@ export async function processPracticeJob(jobs: PracticeJobs, client: Pick<LlmCli
       for(const phrase of phrases) {
         for(const text of [phrase.fr,phrase.en,phrase.frWritten ?? ''])if(safetyDecision(text) || outputGuard(text))throw new Error('unsafe-practice-source');
       }
+      const transferPhrases=packTransferPhrases(pack);
+      for(const phrase of transferPhrases) {
+        for(const text of [phrase.fr,phrase.en])if(safetyDecision(text) || outputGuard(text))throw new Error('unsafe-practice-source');
+      }
       const topics=pack.topics?.length ? pack.topics : [pack.title];
       for(const topic of topics) {
         for(const text of [topic.fr,topic.en])if(safetyDecision(text) || outputGuard(text))throw new Error('unsafe-practice-source');
@@ -100,7 +120,7 @@ export async function processPracticeJob(jobs: PracticeJobs, client: Pick<LlmCli
         timer=setTimeout(()=>controller.abort(),generationMs);
         const admittedClient=options.clientFor ? await options.clientFor(job,signal) : client;
         result = await Promise.race([admittedClient.drills({ kind: 'drills', system: buildSystemBlocks(),
-        request: buildDrillGenerationRequest({ sessionPhrases: phrases, profilePhrases: [], errorTags: [], topics }),
+        request: buildDrillGenerationRequest({ sessionPhrases: phrases, profilePhrases: [], errorTags: [], topics, transferPhrases }),
         signal,
         }),stopped]);
       } finally { monitoring=false;if(poll)clearTimeout(poll);if(timer)clearTimeout(timer);signal.removeEventListener('abort',stop);controller.abort(); }
