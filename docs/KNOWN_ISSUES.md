@@ -11166,3 +11166,118 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Opened 2026-10-23 from the market report's "an eval of real sessions". Nothing scored how the tutor behaved in a session, only whether it ran. `eval:sessions` scores each turn of a recorded session against the written rules: rescue (a first rescue is the quiet hint), no read-back of the card, gentle recasts, level fit by rung, and safety, plus reply-wait p50 and p95 as a measurement. Records are `synthetic` or `dev` only, because no consent covers scoring learner transcripts (docs/changes/session-eval.md). Amended 2026-10-24 on `claude/session-mode`: records carry a mode and a scripted lesson's rescue is judged by the lesson rule; nine synthetic sessions.
 - fixed: 2026-10-23 on `claude/session-eval`. Eight hand-labelled synthetic sessions (40 turns, one deliberate failure per check, labels reviewed by tutor-behaviour-engineer); `eval:replay` and `eval:beta-numbers` alongside.
 - verified-by: `the session eval agrees with every hand label in the synthetic set`
+
+### F871 — A phrase said with the hint or the full line showing counted as independent use
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`applyTurnToProfile` call), packages/brain/src/profile/profile.ts
+- note: Found 2026-10-25 in the learning-loop audit. Every turn credited `usedWell` to `timesUsedWell`, the brain half of `convoUses` and of `mastered`, even when the app had revealed a hint or the full line on that exchange. Help is now recorded on `timesAssisted`, which moves no mastery (LEARN-001).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `the same usedWell counts as a use unassisted and only as assisted after help`
+- verified-by: `a reply after the hint is recorded as assisted, and an unaided one as a use`
+- verified-by: `a version 2 profile without the new counts repairs with zero and one defaults`
+
+### F872 — One slip made a "watch for" weakness
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/profile.ts (`learnerSnapshotFrom`)
+- note: Found 2026-10-25 in the learning-loop audit. `watchFor` was the top three error tags by raw count, so a tag seen once qualified and nothing told one bad session from a pattern. Patterns now carry `sessions` and `lastSession`; recurring (two sessions or more) ranks first, suspected fills what is left (LEARN-002).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `a tag seen once is suspected and still fills watchFor when nothing recurs`
+- verified-by: `two sightings in one session stay suspected`
+- verified-by: `a tag seen in two sessions is recurring and ranks ahead of a higher count suspected tag`
+
+### F873 — A drill answer right only after a miss scheduled like a first-try answer
+- severity: P2
+- status: [x]
+- where: packages/core/src/drill/session.ts (`summarise`), packages/core/src/review/scheduler.ts (`applyGrade`)
+- note: Found 2026-10-25 in the learning-loop audit. A miss then a correct answer graded `good` and stepped the schedule as if unaided, and a transfer exercise right after a miss raised `evidence.transfers`. Now it is assisted: back tomorrow at the same drill stage, ease unchanged, no evidence (LEARN-003).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `a phrase right only after a miss is reported as assisted`
+- verified-by: `an assisted good comes back the next day with ease unchanged`
+- verified-by: `a first-try good keeps today's interval`
+- verified-by: `a transfer exercise right only after a miss earns no transfer evidence`
+
+### F874 — A practice job whose AI drills failed was marked complete and never retried
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/20261004003511_bounded_session_detail_retention.sql (`receive_conversation_practice`, `finish_conversation_practice`)
+- note: Found 2026-10-25 in the learning-loop audit. Completion meant "the pack has any exercise", and every pack carries built-in translate exercises, so failed AI drills read as complete; finishing also replaced the list and dropped the built-ins. Fixed in `20261026090000_practice_completion_signal.sql` (generated drills only complete a job; finish merges, generated first, at most 24), proved by `npm run verify:database:practice` in the gate. Stays open until the migration is applied to the hosted project; packs already marked complete are not re-queued.
+- verified-by: `the practice pack status reads preparing until generated drills arrive`
+
+### F875 — The app could not show practice still being made, or practice that failed
+- severity: P2
+- status: [x]
+- where: services/token-server/src/conversationPackPages.ts, apps/mobile/src/conversationPacks/practiceStatus.ts
+- note: Found 2026-10-25 in the learning-loop audit. "Becoming practice" keyed on `pack.state === 'generating'`, which no server path writes, and a failed job was never shown. `GET /conversation-packs` and `/:id` now carry an optional `practiceStatus` (`preparing`, `ready`, `failed`) read from the job row through the learner's own packs; the app shows "More practice is on its way" or a calm failed note, still offers the practice it builds from the pack's phrases, and shows no retry (the worker owns retries). Refreshes on screen focus, no polling.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `the practice pack status reads preparing until generated drills arrive`
+- verified-by: `a preparing pack with phrases offers what exists and says more is coming`
+- verified-by: `a failed pack says so calmly and still offers its phrases`
+- verified-by: `a pack with no practice status reads as ready, as older servers meant`
+
+### F876 — Live drills skipped the grounding and safety checks the worker ran
+- severity: P2
+- status: [x]
+- where: packages/core/src/drill/validate.ts (`groundedDrills`), services/tutor-agent/src/convo.ts, services/token-server/src/practiceJobs.ts
+- note: Found 2026-10-25 in the learning-loop audit. The agent's drill path checked shape only. Both paths now share one filter: grounded in the phrases the request was built from, unique ids, bounded size, the safety screen, at most 24, and a generous word cap on the expected French by CEFR band (`DRILL_ANSWER_WORD_CAP`), skipped when the band is unknown. This is stricter than the agent's old shape-only check: a live drill keyed to an error tag rather than a listed phrase is now dropped, which the prompt already forbade.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `live drills pass the shared filter: only grounded, safe, sized exercises ship`
+- verified-by: `the worker drops oversized and over-long answers through the shared filter`
+- verified-by: `an A1 exercise with an absurdly long answer is rejected while a normal one passes`
+- verified-by: `no hand-written fixture trips the length bound, even at the beginner cap`
+
+### F877 — A deleted conversation's name stayed on its review cards
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/store.ts, apps/mobile/src/review/store.ts (`rewriteCardNotes`)
+- note: Found 2026-10-25 in the learning-loop audit. Cards built from a pack carried "From your conversation: <title>" after the conversation was deleted. Founder decision (2026-10-25): keep cards, schedules and evidence, drop the name. After a successful delete the matching notes become "Saved from a past conversation" through the review store, so the change syncs. Cards hold no pack id, so the match is the exact note text.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `deleting a conversation clears its name from review cards and keeps their schedule`
+- verified-by: `a failed server delete leaves the names in place`
+
+### F878 — A more-graded card copy on another device can bring a deleted conversation's name back
+- severity: P2
+- status: [ ]
+- where: packages/core/src/review/merge.ts
+- note: Found 2026-10-26 building F877. The review merge keeps the copy with more grades whole, note included, so a second device that reviewed the card more after the delete restores the old note. The F877 replacement text also relies on the merge's text tie-break when grades are equal. Needs a merge rule that a cleared provenance note wins (data-sync-engineer). Large conversations that never cached a title cannot be cleared; their delete prompt promises nothing.
+- verified-by: `a cleared conversation name survives a merge with a more-graded copy`
+
+### F879 — The next session's brief carried no evidence about the phrases it asked for
+- severity: P2
+- status: [x]
+- where: packages/core/src/tutorBrief.ts (`reviewFocusFromDeck`, `tutorSessionBrief`), apps/mobile/src/profile/memory.ts
+- note: Found 2026-10-25 in the learning-loop audit. Review focus was three due cards with no sign of what the learner had shown, and continuation carried only a title, summary, phrases and one correction. Each focus item now carries an `ask` chosen in code from its evidence: `used` asks for a new situation, `introduced` or `recalled` asks for an unaided go, `transferred` is left out. Phrases only ever said with help come first, then a continued conversation's own phrases (LEARN-005).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `a used phrase is asked in a new situation`
+- verified-by: `a recalled phrase is asked unaided`
+- verified-by: `a transferred phrase is left out`
+- verified-by: `a phrase said only with help comes first even when not due`
+- verified-by: `an older app focus without ask parses as unaided, and an unknown ask is refused`
+- verified-by: `the brief explains both asks and keeps the data in untrusted JSON`
+
+### F880 — Scene targets were the first five unmastered phrases, not the weakest
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`frameTargets`, `buildFrame`)
+- note: Found 2026-10-25 in the learning-loop audit. Targets are now the session's review focus, then phrases only ever said with help, then the fewest unaided uses.
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `frame targets put review focus first, then phrases said only with help, then fewest unaided uses`
+
+### F881 — Success never led to a harder task
+- severity: P2
+- status: [x]
+- where: packages/brain/src/drill/generate.ts (`transferPhrasesFrom`), services/token-server/src/practiceJobs.ts, services/tutor-agent/src/convo.ts
+- note: Found 2026-10-25 in the learning-loop audit. Mastered phrases simply left practice. Each post-session drill request now asks for one changed-situation exercise, marked transfer, for up to two of the session's wins (never a corrected phrase), on both the tutor and the worker path (LEARN-006). The session's wins (the end card's and the pack's) now leave out a line said while the hint or full line was showing, the same rule as LEARN-001, so help never earns a harder task (found by the branch's adversarial review).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `the request asks for one transfer exercise per listed win and at most two`
+- verified-by: `a corrected phrase is never a transfer ask`
+- verified-by: `a line said with the full line showing is not a session win`
+- verified-by: `the worker asks for a harder transfer exercise on each of the pack wins, and a right first answer raises transfer evidence`
+
+### F882 — Deleting a conversation can clear the note on a card from an uncached conversation with the same title
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/store.ts (`forgetDeletedNames`)
+- note: Found 2026-10-26 by the learning-loop adversarial review. The kept-title guard reads only the cached packs, so an older, uncached conversation with the same title has its cards' note rewritten to "Saved from a past conversation". Only the note changes; schedule and evidence are untouched. A pack id on derived cards would make the match exact.
+- verified-by: `a deleted conversation's name is cleared only from cards built from that conversation`

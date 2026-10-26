@@ -214,7 +214,7 @@ describe('the queue — a miss waits at the back, it does not disappear', () => 
     assert.equal(summary.retries, 1, 'the one re-ask is counted');
     assert.deepEqual(summary.grades, [
       { phraseKey: 'phrase:b', grade: 'good' },
-      { phraseKey: 'phrase:a', grade: 'good' },
+      { phraseKey: 'phrase:a', grade: 'good', assisted: true },
     ]);
   });
 });
@@ -355,6 +355,49 @@ describe('one memory system — outcomes feed the existing scheduler', () => {
     lost = answerCurrent(lost, 'nope').state;
     lost = answerCurrent(lost, 'nope').state;
     assert.equal(applyDrillResults(deck, lost, NOW)[0]!.evidence, undefined);
+  });
+
+  test('a phrase right only after a miss is reported as assisted', () => {
+    let s = sessionOf(optionsEx('a-opt', 'phrase:a'), optionsEx('b-opt', 'phrase:b'));
+    s = answerCurrent(s, 'nope').state; // a missed once
+    s = answerCurrent(s, 'bonjour').state; // b first try (queue order may vary)
+    s = answerCurrent(s, 'bonjour').state;
+    const byKey = new Map(summarise(s).grades.map((g) => [g.phraseKey, g]));
+    assert.deepEqual(byKey.get('phrase:a'), { phraseKey: 'phrase:a', grade: 'good', assisted: true });
+    assert.deepEqual(byKey.get('phrase:b'), { phraseKey: 'phrase:b', grade: 'good' });
+  });
+
+  test('a retry on one exercise makes the phrase assisted even when another exercise was first try', () => {
+    const mixed: DrillSessionState = {
+      ...sessionOf(),
+      finished: true,
+      answered: [
+        { id: 'e1', phraseKey: 'phrase:a', outcome: 'good', attempts: 2 },
+        { id: 'e2', phraseKey: 'phrase:a', outcome: 'good', attempts: 1 },
+      ],
+    };
+    assert.deepEqual(summarise(mixed).grades, [{ phraseKey: 'phrase:a', grade: 'good', assisted: true }]);
+  });
+
+  test('an assisted good comes back the next day without advancing the drill stage', () => {
+    const deck = [card('phrase:a', { reps: 3, intervalDays: 8 })];
+    const s: DrillSessionState = {
+      ...sessionOf(),
+      finished: true,
+      answered: [{ id: 'e1', phraseKey: 'phrase:a', outcome: 'good', attempts: 2 }],
+    };
+    const next = applyDrillResults(deck, s, NOW)[0]!;
+    assert.equal(next.due, NOW + DAY_MS);
+    assert.equal(next.reps, 3);
+    assert.equal(next.ease, deck[0]!.ease);
+  });
+
+  test('a transfer exercise right only after a miss earns no transfer evidence', () => {
+    let s = sessionOf({ ...optionsEx('a-moved', 'phrase:a'), transfer: true });
+    s = answerCurrent(s, 'nope').state;
+    s = answerCurrent(s, 'bonjour').state;
+    assert.deepEqual(summarise(s).grades, [{ phraseKey: 'phrase:a', grade: 'good', assisted: true }]);
+    assert.equal(applyDrillResults([card('phrase:a')], s, NOW)[0]!.evidence, undefined);
   });
 
   test('a sitting the phrase lost claims no transfer, however it started', () => {

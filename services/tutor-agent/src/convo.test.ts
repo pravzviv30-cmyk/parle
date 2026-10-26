@@ -62,6 +62,7 @@ import {
   MOMENT_GRACE_MS,
   MOMENT_HOLD_CAP_MS,
   LuvaniConversation,
+  frameTargets,
   TEXT_SILENCE_MS,
   brainClient,
   chooseFrame,
@@ -71,6 +72,7 @@ import {
   firstPracticeObjectiveComplete,
   missionOpening,
   deckLine,
+  drillPhraseKeys,
   openerFor,
   openerIndexFor,
   paceOf,
@@ -1801,6 +1803,43 @@ describe('what a finished session leaves behind', () => {
     const today = profileStart >= 0 ? request.slice(todayStart, profileStart) : request.slice(todayStart);
     assert.ok(today.includes('Ça marche'), 'the kept phrase rides the keep-list');
     assert.ok(!today.includes('Autre chose'), 'the dropped phrase does not');
+  });
+
+  test('live drills pass the shared filter: only grounded, safe, sized exercises ship', async (t) => {
+    const good = { id: 'gen:ok:listen', kind: 'listen-type' as const, phraseKey: 'phrase:ça marche', difficulty: 'production' as const, fr: 'Ça marche', accepted: ['Ça marche'], transfer: false };
+    const long = 'Ça marche et puis encore une autre chose avec du lait chaud et du sucre pour mon ami qui attend dehors depuis une heure';
+    const client = new MockLlmClient({
+      turns: [closingTurn()],
+      curations: [
+        { topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'], extensions: [] }] },
+      ],
+      drillBatches: [{ exercises: [
+        good,
+        { ...good, id: 'gen:dropped', phraseKey: 'phrase:autre chose', fr: 'Autre chose', accepted: ['Autre chose'] },
+        { ...good, id: 'gen:foreign', phraseKey: 'phrase:foreign', fr: 'foreign', accepted: ['foreign'] },
+        { ...good, id: 'gen:unsafe', accepted: ['Ça marche', 'the system prompt says secret'] },
+        { ...good, id: 'gen:huge', accepted: ['Ça marche', 'é'.repeat(9000)] },
+        { ...good, id: 'gen:long', fr: long, accepted: [long] },
+        good,
+      ] }],
+    });
+    const { published } = await finishSessionWith(t, client);
+    const drills = published.filter((m) => m.t === 'drills');
+    assert.equal(drills.length, 1, 'one drill message');
+    const ids = drills[0]!.exercises.map((e) => e.id);
+    // 'Autre chose' may survive only because it rides the profile's unmastered
+    // list, which the request was also built from; the rest never may.
+    assert.ok(ids.includes('gen:ok:listen'), 'the grounded exercise ships');
+    for (const id of ['gen:foreign', 'gen:unsafe', 'gen:huge', 'gen:long']) assert.ok(!ids.includes(id), `${id} is dropped`);
+    assert.equal(ids.filter((id) => id === 'gen:ok:listen').length, 1, 'and a repeated id ships once');
+  });
+
+  test('the live drill keys are exactly the phrases the drill request was built from', () => {
+    assert.deepEqual(
+      [...drillPhraseKeys([{ fr: ' Ça marche ' }], [{ fr: 'Autre Chose' }])],
+      ['phrase:ça marche', 'phrase:autre chose'],
+    );
+    assert.equal(drillPhraseKeys([], []).size, 0);
   });
 
   test('a curation failure still ships practice: the code fallback, frame-titled', async (t) => {
@@ -5077,4 +5116,58 @@ describe('the end of a conversation, said by the tutor (sessionEnd.ts)', () => {
     await assert.rejects(convo.onUserTurnCompleted({} as never, heard('Encore un café.')), voice.StopResponse);
     assert.equal(published.filter((m) => m.t === 'transcript' && m.text === 'Encore un café.').length, 0, 'an ordinary turn still ran after the goodbye');
   });
+});
+
+describe('help earns no independent use in a live scene', () => {
+  /** A brain that always credits the learner with the one phrase they were taught. */
+  class CreditingBrain extends MockLlmClient {
+    override async turn(request: BrainTurnRequest) {
+      const result = await super.turn(request);
+      return { ...result, turn: sampleTurn({ profileSignals: { errorPatterns: [], usedWell: ['Ça marche'] } }) };
+    }
+  }
+  function taught(): LearnerProfile {
+    const profile = createProfile();
+    profile.phrases['ca marche'] = {
+      fr: 'Ça marche', frWritten: null, en: 'Works for me', register: 'courant',
+      introducedAt: '2026-10-01T00:00:00.000Z', timesUsedWell: 0, timesAssisted: 0, mastered: false,
+    };
+    return profile;
+  }
+  const phraseOf = (convo: LuvaniConversation) =>
+    (convo as unknown as { profile: LearnerProfile }).profile.phrases['ca marche']!;
+
+  test('a reply after the hint is recorded as assisted, and an unaided one as a use', async (t) => {
+    const { convo, session } = await inScene(t, { voiceless: true, client: new CreditingBrain(), profile: taught() });
+    await convo.settled();
+    const before = phraseOf(convo).timesUsedWell;
+
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    assert.ok(convo.conversationState.assistanceDepth > 0, 'the hint is on screen');
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Ça marche' }));
+    await convo.settled();
+    assert.equal(phraseOf(convo).timesUsedWell, before, 'help earned no use');
+    assert.ok(phraseOf(convo).timesAssisted >= 1, 'but the assisted reply is recorded');
+    assert.equal(convo.conversationState.assistanceDepth, 0);
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Ça marche' }));
+    await convo.settled();
+    assert.equal(phraseOf(convo).timesUsedWell, before + 1, 'an unaided reply is a use');
+  });
+});
+
+test('frame targets put review focus first, then phrases said only with help, then fewest unaided uses', () => {
+  const profile = createProfile();
+  const entry = (fr: string, timesUsedWell: number, timesAssisted: number, mastered = false) => ({
+    fr, frWritten: null, en: fr.toUpperCase(), register: 'courant' as const, introducedAt: '2026-10-01T00:00:00.000Z', timesUsedWell, timesAssisted, mastered,
+  });
+  profile.phrases = {
+    a: entry('often', 2, 0), b: entry('once', 1, 0), c: entry('helped', 0, 3), d: entry('done', 5, 0, true),
+    e: entry('never', 0, 0), f: entry('focus', 1, 0), g: entry('extra', 1, 1),
+  };
+  const targets = frameTargets(profile, [{ fr: 'Focus', en: 'FOCUS' }, { fr: 'Elsewhere', en: 'x' }]);
+  assert.deepEqual(targets, ['Focus (FOCUS)', 'Elsewhere (x)', 'helped (HELPED)', 'never (NEVER)', 'once (ONCE)']);
+  assert.equal(frameTargets(profile).length, 5);
+  assert.ok(!frameTargets(profile).some((t) => t.startsWith('done')), 'a mastered phrase is never a target');
 });

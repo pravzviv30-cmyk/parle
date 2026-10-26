@@ -188,7 +188,8 @@ describe('a drill sitting reaches the deck with everything it proved — F128', 
     const map = screen.slice(screen.indexOf('gradeWritesRef.current = gradeCards('), screen.indexOf('recordActivity('));
 
     assert.ok(map.length > 0, 'persistGrades moved; this test is reading the wrong thing');
-    assert.match(map, /\{\s*phraseKey,\s*grade,\s*transfer\s*\}/, 'the screen destructures the transfer mark away again');
+    assert.match(map, /\{\s*phraseKey,\s*grade,\s*transfer,\s*assisted\s*\}/, 'the screen destructures the transfer or assisted mark away again');
+    assert.match(map, /assisted === true \? \{ assisted: true \} : \{\}/, 'an answer right only after a miss must reach the store as assisted');
     assert.match(map, /transfer === true \? \{ transfer: true \} : \{\}/, 'the screen sends transfer: false, which is a claim of its own');
   });
 });

@@ -362,3 +362,128 @@ export function validateBatch(list: readonly DrillExercise[]): ValidationResult 
 
   return reasons.length === 0 ? { ok: true } : { ok: false, reasons };
 }
+
+/**
+ * Word cap for the French answer of a generated exercise, by CEFR band.
+ *
+ * A gross-outlier bound, not a style rule: it exists to drop the model's
+ * clear misfits (a paragraph handed to an A1 learner as one line), so every
+ * cap sits well above the longest answer in the hand-written fixture bank.
+ * The longest fixture answer is 11 words, so A0 sits at 12 rather than 10:
+ * no fixture is rejected even if the whole bank were served to a beginner.
+ * B2 and above share the top cap. An unknown or missing band skips the bound.
+ */
+export const DRILL_ANSWER_WORD_CAP = { A0: 12, A1: 14, A2: 20, B1: 28, B2: 40, C1: 40, C2: 40 } as const;
+export type DrillBand = keyof typeof DRILL_ANSWER_WORD_CAP;
+
+/** Most generated exercises one batch may keep, and the batch size past which it is refused whole. */
+export const GENERATED_DRILL_CAP = 24;
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter((w) => w.length > 0).length;
+}
+
+/**
+ * The French the learner must produce, pick or understand as the answer, per
+ * kind. A repeat-this twin is measured on its own through the parent call.
+ */
+export function expectedFrenchAnswers(exercise: DrillExercise): string[] {
+  switch (exercise.kind) {
+    case 'fill-blank':
+    case 'tap-translate':
+      return [...exercise.accepted];
+    case 'best-sentence':
+      return exercise.candidates[exercise.correctIndex] ? [exercise.candidates[exercise.correctIndex]!.fr] : [];
+    case 'appropriate-reply':
+      return exercise.acceptableIndexes.flatMap((i) => (exercise.options[i] ? [exercise.options[i]!.fr] : []));
+    case 'repeat-this':
+      return [exercise.reference, ...(exercise.noMicTwin ? expectedFrenchAnswers(exercise.noMicTwin) : [])];
+    case 'listen-type':
+      return [exercise.fr, ...exercise.accepted];
+    case 'translate':
+      // fr-en: the French sentence is what must be understood; its accepted
+      // answers are English and are not measured.
+      return exercise.direction === 'en-fr' ? [exercise.fr, ...exercise.accepted] : [exercise.fr];
+    case 'own-words':
+      return [exercise.fr];
+  }
+}
+
+/** True when the band is known and some expected French answer runs past its cap. */
+export function exceedsAnswerCap(exercise: DrillExercise, band: string | null | undefined): boolean {
+  const key = typeof band === 'string' ? band.trim().toUpperCase() : '';
+  if (!Object.hasOwn(DRILL_ANSWER_WORD_CAP, key)) return false;
+  const cap = DRILL_ANSWER_WORD_CAP[key as DrillBand];
+  return expectedFrenchAnswers(exercise).some((text) => wordCount(text) > cap);
+}
+
+function utf8Length(text: string): number {
+  let bytes = 0;
+  for (const ch of text) {
+    const code = ch.codePointAt(0)!;
+    bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4;
+  }
+  return bytes;
+}
+
+/**
+ * Collect every string of an untrusted object, refusing oversized shapes:
+ * more than 256 fields, an array over 64 items, or over 16 KiB of text.
+ * Returns null when a bound trips.
+ */
+function boundedTexts(value: unknown): string[] | null {
+  const texts: string[] = [];
+  let fields = 0;
+  let bytes = 0;
+  const collect = (item: unknown): boolean => {
+    if (++fields > 256) return false;
+    if (typeof item === 'string') {
+      bytes += utf8Length(item) + 1;
+      if (bytes > 16_384) return false;
+      texts.push(item);
+    } else if (Array.isArray(item)) {
+      if (item.length > 64) return false;
+      return item.every(collect);
+    } else if (item && typeof item === 'object') return Object.values(item).every(collect);
+    return true;
+  };
+  return collect(value) ? texts : null;
+}
+
+export interface GroundedDrillOptions {
+  /** The safety screen; truthy means the text is unsafe. Injected because it lives in the services. */
+  screen: (text: string) => unknown;
+  /** The learner's CEFR band for the answer-length bound; unknown or absent skips it. */
+  band?: string | null;
+}
+
+/**
+ * The one filter every model-generated drill batch passes before it reaches a
+ * learner, on the live tutor path and the durable worker alike. Keeps an
+ * exercise only when it drills a phrase the request was built from, its id is
+ * new in the batch, it passes `validateExercise`, its shape is within bounds,
+ * its text passes the safety screen, and its French answer fits the band. A
+ * batch larger than the cap is refused whole. Pure: never throws.
+ */
+export function groundedDrills(
+  candidates: readonly DrillExercise[],
+  allowedPhraseKeys: ReadonlySet<string>,
+  options: GroundedDrillOptions,
+): DrillExercise[] {
+  if (!Array.isArray(candidates) || candidates.length > GENERATED_DRILL_CAP) return [];
+  const seen = new Set<string>();
+  return candidates
+    .filter((ex) => {
+      try {
+        if (!allowedPhraseKeys.has(ex.phraseKey) || seen.has(ex.id) || !validateExercise(ex).ok) return false;
+        const texts = boundedTexts(ex);
+        if (texts === null || options.screen(texts.join('\n'))) return false;
+        if (exceedsAnswerCap(ex, options.band)) return false;
+        seen.add(ex.id);
+        return true;
+      } catch {
+        return false;
+      }
+    })
+    .slice(0, GENERATED_DRILL_CAP);
+}

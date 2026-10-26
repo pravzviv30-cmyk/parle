@@ -164,6 +164,20 @@ starting its app, and refuses an existing preview on its app port. An HTTP 200 d
 not identify a checkout. The running server's directory determines its source;
 merging `main` elsewhere cannot update a server on an older branch.
 
+### Learning loop honesty (LEARN-001 to LEARN-006, 26 October 2026, branch `claude/learning-loop`)
+
+- **Evidence:** a use said with the hint or line showing raises `timesAssisted`, not
+  `timesUsedWell` (profile.ts); error patterns are suspected until seen in two sessions,
+  and `watchFor` is recurring-first; a drill answer right only after a miss comes back
+  tomorrow at the same stage with no evidence (scheduler.ts, drill/session.ts).
+- **Pipeline:** migration 44 (prepared, not applied) completes a practice job only on
+  generated drills; `GET /conversation-packs` carries `practiceStatus` and the app shows
+  preparing and failed calmly (`conversationPacks/practiceStatus.ts`); both drill paths
+  share `groundedDrills`; deleting a conversation clears its name from review cards.
+- **Next session:** review focus items carry an `ask` (unaided or new-situation) chosen
+  from evidence (`tutorBrief.ts`), scene targets are weakest first (`frameTargets`), and
+  wins earn up to two transfer exercises (`transferPhrasesFrom`).
+
 ## Replacement/dependency graph
 
 - Splash removal affects `App.tsx`, `splash/SplashScreen.tsx`, `splash/store.ts`, splash

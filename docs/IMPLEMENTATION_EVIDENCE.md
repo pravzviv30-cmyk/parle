@@ -22,6 +22,16 @@ of the list.
 
 ## Current landing snapshot
 
+- 26 October 2026 learning loop (LEARN-001 to LEARN-006, F871 to F881) on branch
+  `claude/learning-loop` from main 4173e94b (not on main): help earns no independent use,
+  suspected vs recurring error patterns, assisted drill grades, practice completion only on
+  generated drills (migration 44 prepared, not applied), practice status in the app, one
+  shared drill filter, deleted conversation names leave cards, evidence-aware session brief,
+  weakest scene targets first, transfer asks for wins. **6,731 tests, 0 failing**; core 1088,
+  brain 533, tutor agent 868, token server 493, playground 92, mobile 3657; shared
+  release/provider proofs 184; all 44 migrations replayed, one migration added. Floors raised
+  through `gate:bless`. `eval:sessions` output identical before and after. Not seen on a
+  device, in a live LiveKit session, or against a hosted database.
 - 25 October 2026 data-boundary quota proof made clock-safe on branch `claude/quota-minute-flake`
   from main 50b46a0f, main 71c485d5 merged in (not on main): the write quotas are calendar-minute buckets on the real
   database clock, and `verifyDataBoundaries.mjs` failed when its 48-write burst straddled a
@@ -30,12 +40,12 @@ of the list.
   before each of its three counted bursts and counts a bucket from an earlier minute as empty.
   Every assertion keeps its value; product SQL unchanged, no learner impact. 50 of 50 runs
   green: **6,671 tests, 0 failing**; core 1064, brain 524, tutor agent 864, token server 485,
-  playground 92, mobile 3642; shared release/provider proofs 184; all 43 migrations replayed,
+  playground 92, mobile 3642; shared release/provider proofs 184; all 43 then-current migrations replayed,
   no migration added. Floors unchanged.
 - 25 October 2026 main with `claude/slower-voice-keyterms` (VOICE-016, VOICE-017) and
   `claude/heads-up-tap-send` (renumbered VOICE-018, VOICE-019) merged onto the beginner-conduct
   landing (VOICE-013 to VOICE-015): **6,671 tests, 0 failing**; core 1064, brain 524, tutor
-  agent 864, token server 485, playground 92, mobile 3642; all 43 migrations replayed, no
+  agent 864, token server 485, playground 92, mobile 3642; all 43 then-current migrations replayed, no
   migration added. Floors set to this run.
 - 25 October 2026 beginner conduct (VOICE-013, VOICE-014, VOICE-015) on branch
   `claude/beginner-conduct` from main 50b46a0f (not on main): an A0 or A1 learner stuck twice on
@@ -46,7 +56,7 @@ of the list.
   escalation unchanged; `eval:sessions` gains way-back, no-repeat-question and grief checks and
   three synthetic sessions (12 records) and agrees with every hand label: **6,559 tests,
   0 failing**; core 1051, brain 524, tutor agent 799, token server 484, playground 92, mobile 3609;
-  shared release/provider proofs 176; all 43 migrations replayed, no migration added. Floors
+  shared release/provider proofs 176; all 43 then-current migrations replayed, no migration added. Floors
   raised only through `gate:bless`. No paid model run; one advisory Jev copy check (warm, about
   $0.00002).
 - 25 October 2026 slower voice and scripted keyterms (VOICE-016, VOICE-017) on branch
@@ -55,7 +65,7 @@ of the list.
   lessons and guest scenes build Nova-3 with one fixed keyterm list, and the paid proxy admits
   capped keyterms with a quote-mismatch fallback to the plain stream: **6,553 tests, 0 failing**;
   core 1055, brain 504, tutor agent 802, token server 485, playground 87, mobile 3620; shared
-  release/provider proofs 184; all 43 migrations replayed, no migration added. Floors raised only
+  release/provider proofs 184; all 43 then-current migrations replayed, no migration added. Floors raised only
   through `gate:bless`. Paid vendor runs: `measureVoiceSpeed.mjs` (203 ElevenLabs credits, 8
   Deepgram requests) and `measureKeyterms.mjs` (104 credits, about 141 s of Deepgram), recorded
   under "Measurements that are not assertions".
@@ -64,17 +74,17 @@ of the list.
   the cap with a numberless room note and a warm close, and an opt-in held turn that ends on
   Send or at 60 s through the SDK's manual turn detection: **6,601 tests, 0 failing**; core
   1060, brain 504, tutor agent 835, token server 484, playground 87, mobile 3631; shared
-  release/provider proofs 176; all 43 migrations replayed, no migration added. Floors raised
+  release/provider proofs 176; all 43 then-current migrations replayed, no migration added. Floors raised
   only through `gate:bless`. No paid runs; `warm-cache` for the two new lines is still owed.
 - 24 October 2026 main with `claude/curation-luna` (VOICE-012) merged onto the unaided-sentence
   metric landing: **6,521 tests, 0 failing**; core 1051, brain 504, tutor agent 786, token
-  server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 migrations
+  server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 then-current migrations
   replayed, no migration added. Floors set to this run.
 - 24 October 2026 curation on GPT-6 Luna (VOICE-012) on branch `claude/curation-luna` from main
   f198ab4e (not on main): curate has its own model setting, `OPENAI_CURATION_MODEL`, defaulting
   to gpt-6-luna; the judge and extraction stay where they were: **6,521 tests, 0 failing**;
   core 1051, brain 504, tutor agent 786, token server 484, playground 87, mobile 3609; shared
-  release/provider proofs 175; all 43 migrations replayed, no migration added. Floors raised
+  release/provider proofs 175; all 43 then-current migrations replayed, no migration added. Floors raised
   only through `gate:bless`. Paid model runs: two `eval:curation` runs on gpt-6-luna and one
   same-day gpt-5.6-luna baseline, about $0.001, $0.001 and $0.003, recorded under
   "Measurements that are not assertions".
@@ -83,7 +93,7 @@ of the list.
   finished sessions to a learner's first unaided turn by cohort, proved in PGlite against
   synthetic rows with hand-computed values by `scripts/betaMetrics.test.mjs`, now in the gate's
   shared release/provider proofs: **6,518 tests, 0 failing**; core 1051, brain 502, tutor agent 785,
-  token server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43
+  token server 484, playground 87, mobile 3609; shared release/provider proofs 176; all 43 then-current
   migrations replayed, no migration added. Floors unchanged, so no `gate:bless`.
 - 24 October 2026 session eval modes on branch `claude/session-mode` from main c649622e
   (held, not on main): session records carry a mode (lesson, mission or conversation; record
@@ -91,14 +101,14 @@ of the list.
   lesson rule from `scriptedSpeech.ts`; a ninth synthetic session, a lesson, holds a correct lesson
   rescue the conversation rule would fail and one deliberate lesson failure: **6,518 tests,
   0 failing**; core 1051, brain 502, tutor agent 785, token server 484, playground 87, mobile 3609;
-  shared release/provider proofs 175; all 43 migrations replayed, no migration added. Floors
+  shared release/provider proofs 175; all 43 then-current migrations replayed, no migration added. Floors
   raised only through `gate:bless`. No model changed and no paid model
   run: the curation model gap (gpt-5.6-luna against gpt-6-luna for live turns) is written up in
   `docs/changes/vendor-comparison.md` for the founder.
 - 24 October 2026 main with `claude/whisper-mode` (Quiet voice, VOICE-011) and
   `claude/daily-allowance` (REV-001 free allowance and prices, migration 20261023220000 prepared,
   not applied) merged onto the session eval landing: **6,509 tests, 0 failing**; core 1051,
-  brain 502, tutor agent 785, token server 484, playground 78, mobile 3609; all 43 migrations
+  brain 502, tutor agent 785, token server 484, playground 78, mobile 3609; all 43 then-current migrations
   replayed. Floors set to this run.
 - 23 October 2026 session eval and F193 on branch `claude/session-eval` from main 461bf409
   (held, not on main): `eval:sessions` scores tutor conduct turn by turn over eight hand-labelled
@@ -124,7 +134,7 @@ of the list.
   after first use, Core 300 and Max 600 minutes, prices $14.99/$99 and $24.99/$169 in the margin
   model, `refillsAt` on the 402), on branch `claude/daily-allowance` from main 461bf409 (held, not
   on main): **6,446 tests, 0 failing**; core 1051, brain 502, tutor agent 785, token server 484,
-  playground 29, mobile 3595; all 43 migrations replayed, migration 43 added and also replayed
+  playground 29, mobile 3595; all 43 then-current migrations replayed, migration 43 added and also replayed
   without the held 42. Floors raised only through `gate:bless`. Read-only database review applied
   (rollout order with admission closed, rollback refusal while a store trial withholds minutes).
   Web check on a local token server with a file ledger: Profile shows the new free line, and a
@@ -1051,7 +1061,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 43 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 43 then-current migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -1065,7 +1075,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **43 migrations** for a fresh full schema, applied once in order from
+There are **44 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -1152,6 +1162,7 @@ There are **43 migrations** for a fresh full schema, applied once in order from
 41. `20261022120000_live_session_finished_event.sql`, beta instrumentation: `validate_product_event` accepts `live_session_finished` (closed `kind`, boolean `voice`, counts `turns`, `rescues`, `unassistedPct`, nullable `replyLatencyMs`), matching the client union and `parseProductEvent`; every other branch is carried over from 40. Disposable SQL proofs replay it with the other migrations. Prepared, not applied live. Roll it back first, before 40.
 42. `20261022200000_speech_dataset_clips.sql`, inert speech-dataset groundwork: the service-only `speech_dataset_clips` table, metadata only (no audio, no transcript, no free text). RLS on, no policies, every privilege revoked from public, anon, authenticated and service_role, then service_role gets only select, delete and a column insert without `captured_at`, so there is no update or truncate and `captured_at` is always `now()`. Closed jsonb shapes (phonemes: strings of 1..8 chars; scores: core's PhonemeObservation keys only), a non-blank reference line without control characters, `object_path = <user_id>/<id>.wav`, an expiry at most 24 months after capture, named check constraints, and an account-deletion cascade. Disposable SQL proofs in `scripts/verifyDataBoundaries.mjs` (with simulated hosted defaults granting ALL) refuse client reads and writes, service_role update, truncate and captured_at inserts, and each out-of-range row by constraint name, accept exactly 24 months and a valid observation, and prove the rollback refuses by default, drops when authorised, and the migration re-applies twice. Prepared, not applied live, and nothing writes to it until the legal review in docs/changes/speech-dataset.md. Roll it back first, before 41, using its guarded destructive rollback.
 43. `20261023220000_daily_free_allowance.sql`, REV-001: `tutor_cap_v1` becomes trial 600, starter 18000, regular 36000; the free window refills 44 hours after its first debit; `begin_billing_refresh` spends its unclaimed row at the cap; the six-argument `apply_billing_projection` clamps with `tutor_cap_v1`. Pre-launch backfill raises unclaimed spent rows to 600 and cuts longer running windows to 44 hours, keeping each row's usage epoch. Requires 40 and 41, never 42. `scripts/verifyTutorSessions.mjs` proves the 44-hour boundary, the 480/481 floor, the paid clamps and grants, idempotence, a replay without 42, and the interlocked rollback (`luvani.reopen_weekly_taste`) and re-apply. Prepared, not applied live. Roll it back before 41.
+44. `20261026090000_practice_completion_signal.sql`, LEARN-004: `receive_conversation_practice` completes a job only on a generated (non-`translate`) exercise, and `finish_conversation_practice` stores the worker's drills first, then the stored built-in translations, de-duplicated by id, at most 24, through the closed helper `luvani_private.practice_exercises_v1`. No data change; independent of 40 to 43. `scripts/verifyPracticeCompletion.mjs` proves pending on built-ins only, complete on a generated drill, the merge, tombstone and owner fence, and the rollback (`supabase/rollback/20261026090000_down.sql`) run twice and re-applied. Prepared, not applied live. Packs already marked complete are not re-queued.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

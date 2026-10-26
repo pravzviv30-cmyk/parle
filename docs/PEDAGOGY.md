@@ -221,6 +221,27 @@ has been made.
 conversation, read off the same count, so a flag can never disagree with the
 evidence that produced it.
 
+### Help is not independence (LEARN-001, LEARN-003)
+
+A use only counts when the learner said it without help on that exchange. If
+the app had shown the hint or the full line, the brain records the use on
+`timesAssisted` instead of `timesUsedWell`, so it moves neither `used` nor
+mastery. The help stays visible; it just is not natural production.
+
+A drill answer that comes out right only after a miss is assisted too. The
+phrase still grades `good`, but it comes back tomorrow at the same drill stage
+(reps hold, ease unchanged) and earns no evidence. A changed-situation exercise
+right only after a miss records no transfer. A first-try answer schedules
+exactly as before.
+
+### Suspected and recurring mistakes (LEARN-002)
+
+One session's slip is a suspicion, not a weakness. An error pattern counts the
+distinct sessions it was seen in, and it is `recurring` from the second one
+(`RECURRING_SESSIONS`). The tutor's watch-for list takes recurring patterns
+first and only fills the rest from suspected ones, so a learner with nothing
+recurring sees the old top three by count.
+
 Nothing here decays. What expires is the schedule, not the record, because a
 thing that happened stays happened.
 
@@ -235,6 +256,18 @@ Which scene is suggested next is `nextScene` in `missions/spine.ts`: the
 learner's goal orders the suggestion, never gates a scene and never changes the
 level, which still comes only from earned scenes (`spineFrom`). Until the
 learner has earned a scene it is the spine's opener whatever the goal.
+
+The session brief offers up to three practice phrases, and code decides what
+to ask of each (LEARN-005). A phrase only ever said with help comes first and is
+marked unaided, so the tutor gives a natural chance to say it with no hint. A
+phrase already used in conversation is marked new-situation, so the tutor changes
+one detail and the learner needs it somewhere new. A phrase already used in a new
+situation is left out. A continued conversation's own phrases rank ahead of other
+due cards, and the scene frame aims at the same phrases first.
+
+Success leads to a harder task (LEARN-006). After a session, up to two phrases the
+learner used well (never one that was corrected) each get one transfer exercise:
+the same phrase in a changed situation. A right first answer adds a transfer.
 
 Journey's Your French counts only rise with evidence; the one way one goes down
 is the learner deleting a phrase themselves.

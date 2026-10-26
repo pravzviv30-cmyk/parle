@@ -102,11 +102,11 @@ type Phrase = LearnerProfile['phrases'][string];
 type Pattern = LearnerProfile['errorPatterns'][string];
 
 function phrase(fr: string, timesUsedWell: number, mastered: boolean, introducedAt = '2026-01-01T00:00:00.000Z'): Phrase {
-  return { fr, frWritten: null, en: fr, register: 'courant', introducedAt, timesUsedWell, mastered };
+  return { fr, frWritten: null, en: fr, register: 'courant', introducedAt, timesUsedWell, timesAssisted: 0, mastered };
 }
 
 function pattern(count: number, lastSeen: string, example = 'ex'): Pattern {
-  return { count, lastSeen, example };
+  return { count, lastSeen, example, sessions: 1, lastSession: 0 };
 }
 
 function brain(over: Partial<LearnerProfile> = {}): LearnerProfile {

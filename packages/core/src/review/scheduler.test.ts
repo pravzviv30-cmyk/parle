@@ -408,3 +408,26 @@ describe('settledAt — the one transition the counters cannot recover', () => {
     assert.deepEqual(mergeDecks([other], [other]), [other], 'merging a settled card with itself must not move its date');
   });
 });
+
+describe('an assisted good — right only after a miss', () => {
+  const grown = card({ reps: 3, intervalDays: 8 });
+
+  test('an assisted good comes back the next day with ease unchanged', () => {
+    const next = applyGrade(grown, 'good', NOW, { assisted: true });
+    assert.equal(next.due, NOW + DAY_MS);
+    assert.equal(next.intervalDays, 1);
+    assert.equal(next.ease, grown.ease);
+    assert.equal(next.reps, 3, 'the next sitting asks at the same stage');
+  });
+
+  test('an assisted good earns no evidence, even when marked transfer', () => {
+    const next = applyGrade(grown, 'good', NOW, { assisted: true, transfer: true });
+    assert.equal(next.evidence, undefined);
+  });
+
+  test('a first-try good keeps today\'s interval', () => {
+    const next = applyGrade(grown, 'good', NOW);
+    assert.equal(next.intervalDays, 20);
+    assert.equal(next.reps, 4);
+  });
+});

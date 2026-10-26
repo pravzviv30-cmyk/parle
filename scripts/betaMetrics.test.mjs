@@ -7,7 +7,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { ROOT, buildSchemaManifest, MANAGED_DEFAULT_PRIVILEGES_SQL } from './releaseSchemaManifest.mjs';
 
@@ -31,7 +31,8 @@ test('beta-metrics.sql: every statement runs on all migrations and only reads', 
       grant usage on schema public,auth to anon,authenticated,service_role;`);
     await db.exec(MANAGED_DEFAULT_PRIVILEGES_SQL);
     for (const migration of schema.migrations) await db.exec(await readFile(`${ROOT}/supabase/migrations/${migration.name}`, 'utf8'));
-    assert.equal(schema.migrations.length, 43, 'all 43 migrations replayed');
+    const onDisk = (await readdir(`${ROOT}/supabase/migrations`)).filter((name) => name.endsWith('.sql')).length;
+    assert.equal(schema.migrations.length, onDisk, `all ${onDisk} migrations replayed`);
 
     for (const id of [A, B, C, D, E, F]) await db.query('insert into auth.users(id) values($1)', [id]);
     const profile = (id, motivation) => db.query("insert into public.learner_state(user_id,namespace,payload) values($1,'profile',$2)", [id, JSON.stringify({ data: { motivation } })]);

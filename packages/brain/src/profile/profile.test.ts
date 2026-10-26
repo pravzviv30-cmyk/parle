@@ -13,6 +13,7 @@ import {
   finishSession,
   learnerSnapshotFrom,
   migrateProfile,
+  patternStatus,
   repairProfile,
   validLearnerName,
   withLearnerName,
@@ -550,5 +551,75 @@ describe('the learner name — G1', () => {
     const dropped = repairProfile({ ...base, memory: { ...base.memory, goal: 'conquest' } });
     assert.equal('goal' in dropped.memory, false);
     assert.equal(learnerSnapshotFrom(createProfile()).goal, null, 'an old profile has no goal, not a hole');
+  });
+});
+
+describe('help earns no independent use', () => {
+  const credit = () => sampleTurn({ profileSignals: { errorPatterns: [], usedWell: ["j'sais pas"] } });
+
+  test('the same usedWell counts as a use unassisted and only as assisted after help', () => {
+    const taught = applyTurnToProfile(createProfile(), taughtTurn(), NOW);
+    const plain = applyTurnToProfile(taught, credit(), NOW);
+    assert.equal(plain.phrases['je sais pas']!.timesUsedWell, 1);
+    assert.equal(plain.phrases['je sais pas']!.timesAssisted, 0);
+
+    let helped = taught;
+    for (let i = 0; i < MASTERY_USES; i += 1) helped = applyTurnToProfile(helped, credit(), NOW, { assisted: true });
+    const entry = helped.phrases['je sais pas']!;
+    assert.equal(entry.timesUsedWell, 0);
+    assert.equal(entry.timesAssisted, MASTERY_USES);
+    assert.equal(entry.mastered, false);
+  });
+
+  test('a version 2 profile without the new counts repairs with zero and one defaults', () => {
+    const stored = applyTurnToProfile(
+      applyTurnToProfile(createProfile(), taughtTurn(), NOW),
+      sampleTurn({ profileSignals: { errorPatterns: [{ tag: 'liaison', example: 'x' }], usedWell: [] } }),
+      NOW,
+    );
+    stored.stats.sessions = 4;
+    const legacy = JSON.parse(JSON.stringify(stored)) as Record<string, any>;
+    delete legacy.phrases['je sais pas'].timesAssisted;
+    delete legacy.errorPatterns.liaison.sessions;
+    delete legacy.errorPatterns.liaison.lastSession;
+    legacy.phrases['je sais pas'].timesUsedWell = 2;
+    const repaired = repairProfile(legacy);
+    assert.equal(repaired.phrases['je sais pas']!.timesAssisted, 0);
+    assert.equal(repaired.phrases['je sais pas']!.timesUsedWell, 2);
+    assert.equal(repaired.errorPatterns.liaison!.sessions, 1);
+    assert.equal(repaired.errorPatterns.liaison!.lastSession, 4);
+    assert.equal(patternStatus(repaired.errorPatterns.liaison!), 'suspected');
+
+    legacy.phrases['je sais pas'].timesAssisted = 'lots';
+    assert.equal(repairProfile(legacy).phrases['je sais pas']!.timesAssisted, 0);
+  });
+});
+
+describe('suspected and recurring error patterns', () => {
+  const slip = (tag: string) => sampleTurn({ profileSignals: { errorPatterns: [{ tag, example: 'x' }], usedWell: [] } });
+  const nextSession = (profile: LearnerProfile): LearnerProfile => ({ ...profile, stats: { ...profile.stats, sessions: profile.stats.sessions + 1 } });
+
+  test('a tag seen once is suspected and still fills watchFor when nothing recurs', () => {
+    const profile = applyTurnToProfile(createProfile(), slip('liaison'), NOW);
+    assert.equal(patternStatus(profile.errorPatterns.liaison!), 'suspected');
+    assert.deepEqual(learnerSnapshotFrom(profile).watchFor, ['liaison']);
+  });
+
+  test('two sightings in one session stay suspected', () => {
+    let profile = applyTurnToProfile(createProfile(), slip('liaison'), NOW);
+    profile = applyTurnToProfile(profile, slip('liaison'), NOW);
+    assert.equal(profile.errorPatterns.liaison!.count, 2);
+    assert.equal(profile.errorPatterns.liaison!.sessions, 1);
+    assert.equal(patternStatus(profile.errorPatterns.liaison!), 'suspected');
+  });
+
+  test('a tag seen in two sessions is recurring and ranks ahead of a higher count suspected tag', () => {
+    let profile = createProfile();
+    for (let i = 0; i < 5; i += 1) profile = applyTurnToProfile(profile, slip('gender-agreement'), NOW);
+    profile = applyTurnToProfile(profile, slip('liaison'), NOW);
+    profile = applyTurnToProfile(nextSession(profile), slip('liaison'), NOW);
+    assert.equal(profile.errorPatterns.liaison!.sessions, 2);
+    assert.equal(patternStatus(profile.errorPatterns.liaison!), 'recurring');
+    assert.deepEqual(learnerSnapshotFrom(profile).watchFor, ['liaison', 'gender-agreement']);
   });
 });

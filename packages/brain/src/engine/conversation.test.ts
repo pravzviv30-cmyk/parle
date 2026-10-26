@@ -413,6 +413,17 @@ describe('session memory and the recap trigger', () => {
     assert.deepEqual(state.usedWell, ['Bonjour', 'Bonjour']);
   });
 
+  test('a line said with the full line showing is not a session win', () => {
+    const turn = sampleTurn({ profileSignals: { errorPatterns: [], usedWell: ['Bonjour'] } });
+    const first = applyNonSpokenInput(fresh(), { type: 'help' });
+    const helped = applyNonSpokenInput(first.state, { type: 'help' });
+    assert.equal(helped.state.assistanceDepth, 2);
+    const afterHelp = integrateTurn(helped.state, spoke(), turn).state;
+    assert.deepEqual(afterHelp.usedWell, [], 'help earns no win, so no transfer ask either');
+    const unaided = integrateTurn(afterHelp, spoke(), turn).state;
+    assert.deepEqual(unaided.usedWell, ['Bonjour'], 'the next unaided use is a win');
+  });
+
   test('the recap comes due at scene end and at the turn budget', () => {
     const done = integrateTurn(fresh(), spoke(), sampleTurn({ scene: { beat: 'greet', beatDone: false, sceneDone: true } }));
     assert.equal(done.view.recapDue, true);

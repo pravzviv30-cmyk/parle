@@ -22,7 +22,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
-import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, previousCorrectionFromPacks, type TutorPreviousCorrection, type MissionId, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
+import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, previousCorrectionFromPacks, type TutorPreviousCorrection, type ConversationPack, type MissionId, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
 import { FirstSceneScreen } from '../onboarding/FirstSceneScreen.tsx';
 import { loadDeck } from '../review/store.ts';
 import { paper, space, type } from '../theme.ts';
@@ -376,18 +376,24 @@ function ConvoRoute() {
   }, [profile.learnerGoals, route.params?.goalRef, route.params?.goalTask]);
   const [reviewDeck, setReviewDeck] = useState<ReviewCard[] | null>(null);
   const [previousCorrection, setPreviousCorrection] = useState<TutorPreviousCorrection | undefined>();
+  const [continuedPack, setContinuedPack] = useState<ConversationPack | undefined>();
+  const continuationPackId = route.params?.continuationPackId;
   useEffect(() => {
     let cancelled = false;
     const owner = user?.id;
     setReviewDeck(null);
     setPreviousCorrection(undefined);
+    setContinuedPack(undefined);
     void Promise.allSettled([loadDeck(), loadConversationPacks()]).then(([deck, packs]) => {
       if (cancelled) return;
       setReviewDeck(deck.status === 'fulfilled' ? deck.value : []);
       setPreviousCorrection(owner && packs.status === 'fulfilled' ? previousCorrectionFromPacks(packs.value, owner) : undefined);
+      // The continued conversation's key phrases rank first in the review focus.
+      setContinuedPack(owner && continuationPackId !== undefined && packs.status === 'fulfilled'
+        ? packs.value.find((pack) => pack.id === continuationPackId && pack.learnerId === owner) : undefined);
     });
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, continuationPackId]);
 
   /**
    * Whether this route is a replay, and where the replay opens.
@@ -481,7 +487,7 @@ function ConvoRoute() {
         // the facts the learner forgot and the goals they wrote (F562), so this
         // is where they are joined. The snapshot is the only thing that reaches
         // the agent, and `snapshotFor` is the one place it is composed.
-        snapshot={snapshotFor(profile, reviewDeck, Date.now(), previousCorrection)}
+        snapshot={snapshotFor(profile, reviewDeck, Date.now(), previousCorrection, continuedPack)}
         onRecap={onRecap}
         onExit={leave}
         onPractice={(phrase) => nav.replace('Drill', { ownWords: phrase })}

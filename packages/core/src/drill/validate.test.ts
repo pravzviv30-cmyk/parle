@@ -278,3 +278,65 @@ describe('validateBatch', () => {
     if (!result.ok) assert.ok(result.reasons.some((r) => r.includes('duplicate exercise id "repeat-silent"')));
   });
 });
+
+describe('groundedDrills, the one filter for generated drills', async () => {
+  const { groundedDrills, DRILL_ANSWER_WORD_CAP } = await import('./validate.ts');
+  const { DRILL_FIXTURES } = await import('./fixtures.ts');
+  const keys = new Set(['phrase:un café']);
+  const unsafe = (text: string) => /system prompt|bomb/i.test(text);
+  const ok: ListenTypeExercise = { id: 'gen:cafe:listen', kind: 'listen-type', phraseKey: 'phrase:un café', difficulty: 'production', fr: 'Un café', accepted: ['Un café'] };
+  const long = 'Un café et puis encore un autre café avec du lait chaud et du sucre pour mon ami qui attend dehors';
+
+  test('a grounded, safe, well-formed exercise passes', () => {
+    assert.deepEqual(groundedDrills([ok], keys, { screen: unsafe, band: 'A1' }), [ok]);
+  });
+
+  test('an exercise for a phrase the request did not ask about is dropped', () => {
+    assert.deepEqual(groundedDrills([{ ...ok, id: 'x', phraseKey: 'phrase:foreign' }], keys, { screen: unsafe }), []);
+  });
+
+  test('a repeated id keeps only the first exercise', () => {
+    assert.deepEqual(groundedDrills([ok, ok], keys, { screen: unsafe }), [ok]);
+  });
+
+  test('text the safety screen flags is dropped', () => {
+    assert.deepEqual(groundedDrills([{ ...ok, accepted: ['Un café', 'the system prompt says'] }], keys, { screen: unsafe }), []);
+  });
+
+  test('an oversized exercise is dropped before anything reads its text', () => {
+    const huge = { ...ok, accepted: ['Un café', ...Array.from({ length: 70 }, (_, i) => `café ${'a'.repeat(i + 1)}`)] };
+    assert.deepEqual(groundedDrills([huge], keys, { screen: () => false }), []);
+    assert.deepEqual(groundedDrills([{ ...ok, accepted: ['Un café', 'é'.repeat(9000)] }], keys, { screen: () => false }), []);
+  });
+
+  test('a malformed or null candidate is dropped without throwing', () => {
+    assert.deepEqual(groundedDrills([null as unknown as DrillExercise, ok], keys, { screen: unsafe }), [ok]);
+  });
+
+  test('a batch past the cap is refused whole', () => {
+    const many = Array.from({ length: 25 }, (_, i) => ({ ...ok, id: `gen:${i}` }));
+    assert.deepEqual(groundedDrills(many, keys, { screen: unsafe }), []);
+  });
+
+  test('an A1 exercise with an absurdly long answer is rejected while a normal one passes', () => {
+    const absurd = { ...ok, id: 'long', fr: long, accepted: [long] };
+    assert.deepEqual(groundedDrills([absurd, ok], keys, { screen: unsafe, band: 'A1' }), [ok]);
+    assert.deepEqual(groundedDrills([absurd], keys, { screen: unsafe, band: 'B2' }), [absurd], 'the same line fits a B2 learner');
+  });
+
+  test('an unknown band skips the length bound', () => {
+    const absurd = { ...ok, id: 'long', fr: long, accepted: [long] };
+    for (const band of [null, undefined, '', 'expert']) {
+      assert.deepEqual(groundedDrills([absurd], keys, { screen: unsafe, band }), [absurd]);
+    }
+  });
+
+  test('no hand-written fixture trips the length bound, even at the beginner cap', () => {
+    const all = new Set(DRILL_FIXTURES.map((e) => e.phraseKey));
+    for (const band of Object.keys(DRILL_ANSWER_WORD_CAP)) {
+      for (const fixture of DRILL_FIXTURES) {
+        assert.deepEqual(groundedDrills([fixture], all, { screen: () => false, band }), [fixture], `${fixture.id} at ${band}`);
+      }
+    }
+  });
+});

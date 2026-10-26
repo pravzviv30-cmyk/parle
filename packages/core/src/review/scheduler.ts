@@ -130,6 +130,13 @@ export interface GradeContext {
   attempt?: 'typed' | 'said';
   /** The same phrase asked in a changed situation. */
   transfer?: boolean;
+  /**
+   * The learner got there only after a miss or a reveal in this sitting. A
+   * 'good' that needed help comes back tomorrow for an unaided go, without
+   * advancing reps (so the next sitting asks at the same drill stage) and
+   * without earning any evidence.
+   */
+  assisted?: boolean;
 }
 
 /** A missed card comes back within the same sitting, not tomorrow. */
@@ -204,6 +211,10 @@ export function applyGrade(card: ReviewCard, grade: ReviewGrade, now: number, co
     }
 
     case 'good': {
+      if (context.assisted === true) {
+        // Right only after a miss: tomorrow, same ease, same stage, no claim.
+        return dated({ ...card, due: now + DAY_MS, intervalDays: 1 }, card, now);
+      }
       const intervalDays = goodIntervalDays(card);
       return dated(
         earned(

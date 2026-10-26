@@ -76,6 +76,7 @@ function profileWith(used: Record<string, number>): unknown {
       register: 'familier',
       introducedAt: new Date(NOW).toISOString(),
       timesUsedWell,
+      timesAssisted: 0,
       mastered: false,
     };
   }

@@ -137,7 +137,7 @@ function withCanvasMemory(profile: StoredProfile, now: number): StoredProfile {
   const facts = [...profile.brain.memory.facts, ...CANVAS_FACTS.filter((f) => !known.has(f.en)).map((f) => ({ ...f, notedAt }))];
   const errorPatterns = 'gender-agreement' in profile.brain.errorPatterns
     ? profile.brain.errorPatterns
-    : { ...profile.brain.errorPatterns, 'gender-agreement': { count: 3, lastSeen: notedAt, example: "Une croissant, s'il vous plaît." } };
+    : { ...profile.brain.errorPatterns, 'gender-agreement': { count: 3, lastSeen: notedAt, example: "Une croissant, s'il vous plaît.", sessions: 1, lastSession: profile.brain.stats.sessions } };
   return { ...profile, brain: { ...profile.brain, errorPatterns, memory: { ...profile.brain.memory, facts } } };
 }
 

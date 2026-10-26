@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { MAX_MEMORY_FACTS, applyExtractionToProfile, createProfile, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
-import { parsePreviousCorrection } from '@luvani/core';
+import { newCard, parsePreviousCorrection } from '@luvani/core';
 
 import { createStoredProfile, withOnboardingGoal, type StoredProfile } from './store.ts';
 import { upgradeStored } from './upgrade.ts';
@@ -75,6 +75,22 @@ describe('the tutor’s memory, edited by the learner', () => {
     assert.match(navigator, /previousCorrectionFromPacks\(packs.value, owner\)/, 'the source pack must belong to the active learner');
     assert.match(navigator, /Promise.allSettled\(\[loadDeck\(\), loadConversationPacks\(\)\]\)/);
   });
+  test('a phrase said only with help rides the review focus first, asked unaided, even when not due', () => {
+    const profile = learner();
+    profile.brain.phrases['je voudrais'] = { fr: 'Je voudrais', frWritten: null, en: 'I would like', register: 'courant', introducedAt: '2026-09-01T00:00:00.000Z', timesUsedWell: 0, timesAssisted: 2, mastered: false };
+    const due = { ...newCard({ id: 'phrase:merci', kind: 'turn', front: 'Merci', back: 'Thanks', context: '', ipa: '' }, NOW - 10), lapses: 3, evidence: { retrievals: 1, convoUses: 1, transfers: 0 } };
+    const helped = { ...newCard({ id: 'phrase:je voudrais', kind: 'turn', front: 'Je voudrais', back: 'I would like', context: '', ipa: '' }, NOW + 1e9) };
+    const focus = snapshotFor(profile, [due, helped], NOW).reviewFocus!;
+    assert.deepEqual(focus.map((f) => [f.fr, f.ask]), [['Je voudrais', 'unaided'], ['Merci', 'new-situation']]);
+  });
+
+  test('a continued conversation puts its own key phrases ahead of other due cards', () => {
+    const a = newCard({ id: 'phrase:merci', kind: 'turn', front: 'Merci', back: 'Thanks', context: '', ipa: '' }, NOW - 10);
+    const b = { ...newCard({ id: 'phrase:bonjour', kind: 'turn', front: 'Bonjour', back: 'Hello', context: '', ipa: '' }, NOW - 20), lapses: 2 };
+    const focus = snapshotFor(learner(), [a, b], NOW, undefined, { keyPhrases: [{ fr: 'Merci', en: 'Thanks' }] as never }).reviewFocus!;
+    assert.deepEqual(focus.map((f) => f.fr), ['Merci', 'Bonjour']);
+  });
+
   test("a forgotten fact stays forgotten across an extraction that mentions it, and a learner's goal is among the five facts that ride", () => {
     // F562. Forget one: the tombstone is written and the fact leaves the
     // brain in the same step, and nothing else about the learner moves.
@@ -103,7 +119,7 @@ describe('the tutor’s memory, edited by the learner', () => {
     const context = readFileSync(fileURLToPath(new URL('../app/ProfileContext.tsx', import.meta.url)), 'utf8');
     assert.match(context, /brain: brainAfterRecap\(blob, current\)/, 'updateBrain saves the recap’s brain without applying the tombstones');
     const navigator = readFileSync(fileURLToPath(new URL('../nav/RootNavigator.tsx', import.meta.url)), 'utf8');
-    assert.match(navigator, /snapshot=\{snapshotFor\(profile, reviewDeck, Date.now\(\), previousCorrection\)\}/, 'the session snapshot, review focus and previous correction are composed in memory.ts');
+    assert.match(navigator, /snapshot=\{snapshotFor\(profile, reviewDeck, Date.now\(\), previousCorrection, continuedPack\)\}/, 'the session snapshot, review focus and previous correction are composed in memory.ts');
     assert.ok(!navigator.includes('withLearnerName('), 'the navigator still folds the name in itself, beside the one snapshot');
 
     // Forget everything: every fact becomes a tombstone and the opener, which

@@ -29,6 +29,7 @@
     "scan:secrets:history": "node --experimental-strip-types services/token-server/src/secretScan.ts --history",
     "scan:secrets:bundles": "node --experimental-strip-types services/token-server/src/secretScan.ts --bundles",
     "verify:database:bounds": "node --experimental-strip-types scripts/verifyDataBoundaries.mjs",
+    "verify:database:practice": "node --experimental-strip-types scripts/verifyPracticeCompletion.mjs",
     "verify:database:sessions": "node --experimental-strip-types scripts/verifyTutorSessions.mjs",
     "verify:voice": "node --experimental-strip-types services/tutor-agent/src/verify/voiceLifecycle.ts",
     "verify:supabase": "node --experimental-strip-types services/token-server/src/verify/supabaseLive.ts",

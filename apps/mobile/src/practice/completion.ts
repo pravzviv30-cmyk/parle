@@ -205,10 +205,11 @@ export function practiceCardGrades(
   const helped = new Set(assisted);
   const helpedPhrases = new Set(state.answered.filter((a) => helped.has(a.id)).map((a) => a.phraseKey));
   const effective = targets.map((t) => (exposed || helpedPhrases.has(t.phraseKey) ? { ...t, scheduled: false } : t));
-  return practiceGrades(state, effective).map(({ phraseKey, grade, transfer }) => ({
+  return practiceGrades(state, effective).map(({ phraseKey, grade, transfer, assisted: retried }) => ({
     id: phraseKey,
     grade,
     ...(transfer === true ? { transfer: true } : {}),
+    ...(retried === true ? { assisted: true } : {}),
   }));
 }
 

@@ -36,6 +36,7 @@ import { PRACTICE_ALTERNATIVES, RECOMMENDED } from './copy.ts';
 import { starterFrom } from './starter.ts';
 import { SOUND_LEAD } from './soundLead.ts';
 import type { Recommendation } from './recommendation.ts';
+import { practiceStatusOf } from '../conversationPacks/practiceStatus.ts';
 
 export interface PracticeCard {
   /** The line the card opens on. */
@@ -154,7 +155,7 @@ export function practiceCard(input: {
   // had a conversation; collapsing both into "first" told a learner whose
   // conversation was still being prepared to start their first one.
   if (rec.fallback === 'talk') {
-    const preparing = input.packs.some((pack) => pack.state === 'generating');
+    const preparing = input.packs.some((pack) => practiceStatusOf(pack) === 'preparing');
     return {
       phrase: starterFrom().phrase,
       action: { kind: 'talk', label: RECOMMENDED.talk },

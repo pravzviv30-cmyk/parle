@@ -33,7 +33,7 @@
  * the language model is sent, and says the facts can be removed here.
  */
 
-import { isLearnerGoal, normalise, parsePreviousCorrection, reviewFocusFromDeck, type ReviewCard, type TutorReviewFocus, type TutorPreviousCorrection } from '@luvani/core';
+import { isLearnerGoal, normalise, parsePreviousCorrection, phraseKeyOf, reviewFocusFromDeck, type ConversationPack, type ReviewCard, type TutorReviewFocus, type TutorPreviousCorrection } from '@luvani/core';
 import { MAX_MEMORY_FACTS, withLearnerName, memoryPaused, withoutForgottenMemory, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
 
 import type { StoredProfile } from './store.ts';
@@ -164,13 +164,18 @@ export function goalFact(goal: string): RememberedFact {
  * tombstones applied, the goals appended last, and the brain's own cap taken
  * from the end so the goals survive it.
  */
-export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] = [], now = Date.now(), previousCorrection?: TutorPreviousCorrection): LearnerProfile & { reviewFocus?: TutorReviewFocus[]; previousCorrection?: TutorPreviousCorrection } {
+export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] = [], now = Date.now(), previousCorrection?: TutorPreviousCorrection, continuedPack?: Pick<ConversationPack, 'keyPhrases'>): LearnerProfile & { reviewFocus?: TutorReviewFocus[]; previousCorrection?: TutorPreviousCorrection } {
   const withName = withLearnerName(withoutForgotten(profile.brain, profile.forgottenFacts), profile.name);
   // The onboarding goal is an answer, like the name, not a remembered fact: it
   // rides every path, the paused one included.
   const goal = isLearnerGoal(profile.onboardingGoal) ? profile.onboardingGoal : null;
   const named: LearnerProfile = { ...withName, memory: { ...withName.memory, goal } };
-  const focus = reviewFocusFromDeck(deck, now);
+  // Code picks the focus and its ask: the profile says which phrases were only
+  // ever said with help, and a continued conversation's own phrases rank first.
+  const focus = reviewFocusFromDeck(deck, now, {
+    phrases: Object.values(profile.brain.phrases),
+    preferKeys: continuedPack?.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)),
+  });
   const correction = parsePreviousCorrection(previousCorrection);
   const extras = { ...(focus.length ? { reviewFocus: focus } : {}), ...(correction ? { previousCorrection: correction } : {}) };
   if (memoryPaused(named)) return { ...named, ...extras, memory: { ...named.memory, facts: [], opener: null } };

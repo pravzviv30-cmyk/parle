@@ -893,8 +893,8 @@ separate concern from the brain's own `repairProfile`, which repairs the nested
 | field | what it holds |
 |---|---|
 | `cefr` | estimate, confidence, and a rolling window of evidence |
-| `errorPatterns` | what they get wrong, with a count and an example |
-| `phrases` | what they have been taught, and whether it is mastered |
+| `errorPatterns` | what they get wrong: a count, an example, `sessions` (distinct sessions seen) and `lastSession` (the `stats.sessions` ordinal of the latest sighting); `recurring` from two sessions, otherwise `suspected` (LEARN-002) |
+| `phrases` | what they have been taught, `timesUsedWell` (unaided uses, the brain half of `convoUses`), `timesAssisted` (uses with the hint or line showing, LEARN-001) and whether it is mastered |
 | `memory` | facts worth remembering, and an opener |
 | `preferences` | strictness, recent scenarios |
 | `stats` | sessions, turns, rescues, `lastRung` |
@@ -928,7 +928,10 @@ when it reads a snapshot, and the app when it loads from disk — because fixing
 only the agent leaves the device still emitting bad snapshots.
 
 If you add a required field to `LearnerProfile`, add it to `repairProfile` in the
-same change.
+same change. The 2026-10-26 per-entry counts follow that rule: a phrase without
+`timesAssisted` reads 0, and a pattern without `sessions` reads 1 with
+`lastSession` at the current session count, so repair never invents a
+recurring pattern. `merge.ts` takes the max of each.
 
 ## Server side
 
@@ -1014,6 +1017,28 @@ up — a slow disk must never delay it.
 from `lastRung` through `openingRung`, and is deliberately **not** stored
 separately: a second copy of a derived value is a second source of truth for the
 one quantity two engines already disagreed about once.
+
+### Practice status and deleted conversation names (2026-10-26)
+
+`GET /conversation-packs` and `GET /conversation-packs/:id` add an optional
+per-pack `practiceStatus`, read from `public.conversation_practice_jobs` with one
+extra service-role call per page that reaches each job through the learner's own
+`conversation_packs` rows (`user_id` filter, `id=in.(page ids)`): pending or
+running is `preparing`, complete is `ready`, failed is `failed`, and no job row is
+`ready`. Attempts, leases and errors are never returned. If that read fails the
+packs come back without the field, and the app treats a missing or unknown value
+as ready. A job completes only once generated drills arrive (LEARN-004, migration
+44), so `preparing` is honest. The app still offers the practice it builds from a
+pack's phrases while preparing or after a failure, and never shows a retry.
+
+Generated drills from the tutor and the worker pass one filter, `groundedDrills`
+in `packages/core/src/drill/validate.ts`.
+
+Deleting a conversation keeps its review cards, schedules and evidence. Cards
+whose note names it ("From your conversation: <title>") are rewritten to "Saved
+from a past conversation" through the review store, so the change syncs. Cards
+hold no pack id, so the match is the exact note text. A more-graded copy on
+another device can still restore the old note through the merge (F878).
 
 ## Explicit conversation text
 

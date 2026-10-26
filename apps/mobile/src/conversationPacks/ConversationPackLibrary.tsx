@@ -17,11 +17,13 @@ import type { PracticeHistoryItem } from '../practice/history.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { PRACTICE_BEFORE, REVISION_COPY, correctionLine, revisionEvidence } from './revision.ts';
 import { useB } from '../main/bTheme.tsx';
+import { hasPackPractice, packPracticeView } from './practiceStatus.ts';
 
 type DeleteResult = { ok: true } | { ok: false; message: string };
 
 function packStatus(pack: ConversationPack): string {
-  if (pack.state === 'generating') return 'Becoming practice';
+  const practice = packPracticeView(pack);
+  if (practice.listLine !== null) return practice.listLine;
   if (pack.state === 'failed') return 'Needs a moment';
   if (pack.state === 'archived') return 'Archived';
   return `${pack.keyPhrases.length} ${pack.keyPhrases.length === 1 ? 'phrase' : 'phrases'} ready`;
@@ -157,7 +159,8 @@ export function ConversationPackLibrary({
   if (selected !== null) {
     // The practice action sits at the safe-area footer (ported from ce1fa976,
     // B3, 2026-10-20), only when the conversation saved something to practise.
-    const hasPractice = selected.state === 'ready' && (selected.keyPhrases.length > 0 || selected.corrections.length > 0);
+    const hasPractice = hasPackPractice(selected);
+    const practice = packPracticeView(selected);
     return (
       <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: leaveDetail }} />}
         footer={hasPractice ? (
@@ -170,6 +173,11 @@ export function ConversationPackLibrary({
         <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>{selected.title.en}</Text>
         <Text style={[type.bodyStrong, { color: t.text, marginTop: space(1) }]}>{selected.title.fr}</Text>
         <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>{selected.summary}</Text>
+        {practice.note !== null && (
+          <Card style={{ marginTop: space(4) }}>
+            <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.text }]}>{practice.note}</Text>
+          </Card>
+        )}
 
         {selected.keyPhrases.length > 0 && (
           <View style={st.section}>
@@ -228,13 +236,13 @@ export function ConversationPackLibrary({
           </View>
         )}
 
-        {selected.state === 'ready' ? (
+        {selected.state === 'ready' && practice.pending === null ? (
           <View style={st.actions}>
             {/* Two routes, each saying what it costs. Practice is module work
                 and uses no live minutes, said under the footer pill; the tutor
                 revisit is live, is drawn only when the plan opens it, and says
                 it uses minutes. */}
-            {!hasPractice && <Text style={[type.small, { color: t.muted }]}>There are no practice phrases in this conversation yet.</Text>}
+            {!hasPractice && practice.status !== 'failed' && <Text style={[type.small, { color: t.muted }]}>There are no practice phrases in this conversation yet.</Text>}
             {onContinue !== undefined && (
               <>
                 <OutlineButton label="Talk about this again" disabled={busy} onPress={() => onContinue(selected)} />
@@ -244,7 +252,7 @@ export function ConversationPackLibrary({
           </View>
         ) : (
           <Card style={st.section}>
-            <Text style={[type.bodyStrong, { color: t.text }]}>{selected.state === 'generating' ? 'Your conversation is becoming practice.' : 'This conversation needs a little more time.'}</Text>
+            <Text style={[type.bodyStrong, { color: t.text }]}>{practice.pending ?? 'This conversation needs a little more time.'}</Text>
             <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>Your saved phrases remain available in Progress.</Text>
           </Card>
         )}
@@ -253,7 +261,7 @@ export function ConversationPackLibrary({
         <View style={st.delete}>
           {confirming === selected.id ? (
             <>
-              <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete this curated conversation and its details? Your earned phrases and reviews stay.</Text>
+              <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete this curated conversation and its details? Your earned phrases and reviews stay. They won’t show this conversation’s name.</Text>
               <OutlineButton label={busy ? 'Deleting…' : 'Delete conversation'} disabled={busy} onPress={() => removeOne(selected)} />
               <GhostButton label="Keep conversation" color={t.text} disabled={busy} onPress={() => setConfirming(null)} />
             </>
@@ -318,7 +326,7 @@ export function ConversationPackLibrary({
         <View style={st.deleteAll}>
           {confirming === 'all' ? (
             <>
-              <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete all curated Tutor conversations? Your earned phrases and reviews stay.</Text>
+              <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete all curated Tutor conversations? Your earned phrases and reviews stay. They won’t show these conversations’ names.</Text>
               <OutlineButton label={busy ? 'Deleting…' : 'Delete all conversations'} disabled={busy} onPress={removeAll} />
               <GhostButton label="Keep conversations" color={t.text} disabled={busy} onPress={() => setConfirming(null)} />
             </>
