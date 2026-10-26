@@ -53,6 +53,8 @@ COPY --from=dependencies /app/packages/brain/node_modules ./packages/brain/node_
 COPY --from=dependencies /app/packages/core/node_modules ./packages/core/node_modules
 # The reviewed static decoder image exposes its dependency-free binary at /ffmpeg.
 COPY --from=audio-decoder /ffmpeg /usr/local/bin/luvani-ffmpeg
+# LGPL notice, source URL and build configuration travel with the binary.
+COPY --from=audio-decoder /licenses/ /usr/share/licenses/luvani-ffmpeg/
 COPY package.json package-lock.json ./
 COPY packages/core ./packages/core
 COPY packages/brain ./packages/brain

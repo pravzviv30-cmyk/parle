@@ -1,0 +1,15 @@
+# Luvani deletion journal. Deploy steps: README.md in this folder.
+name = "luvani-deletion-journal"
+main = "worker.ts"
+compatibility_date = "2026-05-15"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "luvani-deletion-journal"
+database_id = "REPLACE_WITH_D1_ID"
+
+[vars]
+PROJECT_SHA256 = "REPLACE_WITH_PROJECT_SHA256"
+
+# JOURNAL_TOKEN is a secret: `wrangler secret put JOURNAL_TOKEN`. Never put it here.

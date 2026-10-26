@@ -1,0 +1,91 @@
+name: Audio decoder image
+# Builds the decode-only LGPL ffmpeg (deployment/audio-decoder), publishes it by digest and
+# proves it with the unchanged deployment/verifyAudioDecoder.mjs on the production Node image.
+# Its summary supplies AUDIO_DECODER_IMAGE and AUDIO_DECODER_SHA256 for release.yml (F805).
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: audio-decoder
+  cancel-in-progress: false
+env:
+  FFMPEG_VERSION: '7.1.5'
+  NODE_IMAGE: 'node:24.16.0-bookworm-slim@sha256:2c87ef9bd3c6a3bd4b472b4bec2ce9d16354b0c574f736c476489d09f560a203'
+jobs:
+  build-verify-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5, verified 2026-10-04
+        with: {persist-credentials: false}
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0, verified 2026-10-26
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0, verified 2026-10-26
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push by digest only (no tag until verified)
+        id: build
+        run: |
+          set -euo pipefail
+          REPO="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/luvani-audio-decoder"
+          docker buildx build --platform linux/amd64 --provenance=false --sbom=false \
+            --output "type=image,name=$REPO,push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file build-metadata.json deployment/audio-decoder
+          DIGEST=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('build-metadata.json','utf8'))['containerimage.digest'])")
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo "No pushed digest"; exit 1; }
+          echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+          echo "image=$REPO@$DIGEST" >> "$GITHUB_OUTPUT"
+      - name: Extract /ffmpeg from the pushed digest
+        id: binary
+        env: {IMAGE: '${{ steps.build.outputs.image }}'}
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/amd64 "$IMAGE"
+          CID=$(docker create --platform linux/amd64 "$IMAGE")
+          mkdir -p decoder
+          docker cp "$CID:/ffmpeg" decoder/ffmpeg
+          docker cp "$CID:/licenses" decoder/licenses
+          docker rm "$CID"
+          chmod 0755 decoder/ffmpeg
+          SIZE=$(stat -c %s decoder/ffmpeg)
+          SHA=$(sha256sum decoder/ffmpeg | cut -d' ' -f1)
+          echo "size=$SIZE bytes sha256=$SHA"
+          test "$SIZE" -le 134217728
+          for f in NOTICE COPYING.LGPLv2.1 COPYRIGHT.musl; do test -s "decoder/licenses/$f"; done
+          cat decoder/licenses/NOTICE
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+      - name: Verify with the unchanged release script on the production Node image
+        env: {DECODER_SHA256: '${{ steps.binary.outputs.sha256 }}'}
+        run: |
+          set -euo pipefail
+          docker run --rm --platform linux/amd64 --network none --user node --read-only \
+            -v "$PWD:/app:ro" -w /app \
+            -v "$PWD/decoder/ffmpeg:/usr/local/bin/luvani-ffmpeg:ro" \
+            -e LUVANI_AUDIO_DECODER_PATH=/usr/local/bin/luvani-ffmpeg \
+            -e "LUVANI_AUDIO_DECODER_SHA256=$DECODER_SHA256" \
+            "$NODE_IMAGE" node deployment/verifyAudioDecoder.mjs | tee decoder-verification.json
+          node -e "const r=JSON.parse(require('fs').readFileSync('decoder-verification.json','utf8'));if(r.status!=='passed'||r.decoderSha256!==process.env.DECODER_SHA256||r.over30SecondsRefused!==true)process.exit(1)"
+      - name: Tag the verified digest
+        env:
+          REPO: '${{ steps.build.outputs.repo }}'
+          IMAGE: '${{ steps.build.outputs.image }}'
+        run: docker buildx imagetools create --tag "$REPO:$FFMPEG_VERSION" "$IMAGE"
+      - name: Release inputs
+        env:
+          IMAGE: '${{ steps.build.outputs.image }}'
+          DECODER_SHA256: '${{ steps.binary.outputs.sha256 }}'
+        run: |
+          {
+            echo '### Reviewed audio decoder'
+            echo '```'
+            echo "AUDIO_DECODER_IMAGE=$IMAGE"
+            echo "AUDIO_DECODER_SHA256=$DECODER_SHA256"
+            echo '```'
+            echo 'Verification output:'
+            echo '```json'
+            cat decoder-verification.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
