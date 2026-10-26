@@ -10609,6 +10609,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: deployment/verifyAudioDecoder.mjs, services/shared/audioDecode.ts
 - note: Actual OCI build 38271932614 passed the source contract but refused the independently hashed static-ffmpeg 9.0.2-1 binary (144,081,824 bytes); the maintained 8.1.2 candidate also exceeds the existing 128 MiB bound (140,059,552 bytes). The rejection is correct. A compatible reviewed immutable decoder artifact must pass the unchanged size/hash/compressed-audio and final nonroot offline Linux checks before portable image acceptance. No artifact was published or hosted workload deployed. Since 2026-10-22 (F623) live lesson scoring no longer needs the decoder: the worker converts its own PCM capture in process. Drill and sound-check uploads, which arrive compressed, still do.
+- update: 2026-10-26, DEPLOY-001. `deployment/audio-decoder` builds a decode-only, static, LGPL FFmpeg 7.1.5 (hash-pinned tarball on digest-pinned Alpine 3.21, pipe protocol and the six whitelisted formats only, musl 1.2.5 licence pinned). `.github/workflows/audio-decoder.yml` pushes by digest, runs the unchanged `verifyAudioDecoder.mjs` nonroot and offline on the pinned Node 24.16.0 image, and only then tags. Stays open until that workflow has run green and its digest and binary hash are the release inputs.
 - verified-by: `immutable decoder rejects an executable above 128 MiB before execution`
 
 ### F806 — Raised choices interrupt their own release spring
@@ -11281,3 +11282,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/conversationPacks/store.ts (`forgetDeletedNames`)
 - note: Found 2026-10-26 by the learning-loop adversarial review. The kept-title guard reads only the cached packs, so an older, uncached conversation with the same title has its cards' note rewritten to "Saved from a past conversation". Only the note changes; schedule and evidence are untouched. A pack id on derived cards would make the match exact.
 - verified-by: `a deleted conversation's name is cleared only from cards built from that conversation`
+
+### F883 — The deletion journal had no server
+- severity: P2
+- status: [ ]
+- where: deployment/deletion-journal/ (new), services/token-server/src/deletionJournal.ts
+- note: Found 2026-10-26 preparing staging. `maintenance` refuses to start without the four `LUVANI_DELETION_JOURNAL_*` variables, and no store implemented the client's contract. Built a Cloudflare Worker with D1 (DEPLOY-002): append-only records with triggers refusing UPDATE and DELETE, sealed 24-hour snapshots for replay, constant-time bearer auth, one project per deployment; 10 tests drive the real client against it. Stays open until the founder deploys it, the variables are set on Railway `maintenance`, and a recovery drill has replayed through it.
+- verified-by: `replay through a sealed snapshot returns exactly the recorded users and excludes later writes`

@@ -1358,3 +1358,35 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   of 24. The session's wins themselves leave out lines said with help (the
   LEARN-001 rule, applied in `integrateTurn`), so the end card no longer
   celebrates a line the learner was shown. F881.
+
+## DEPLOY-001 — Our own decode-only FFmpeg instead of a full static build
+
+- Date: 2026-10-26
+- Status: accepted (artifact not yet built)
+- Decision: `deployment/audio-decoder/Dockerfile` compiles FFmpeg 7.1.5 from its
+  hash-pinned release tarball on digest-pinned Alpine 3.21 as a static, LGPL-only
+  binary with only the pipe protocol, the wav, mov, matroska, ogg and mp3 demuxers,
+  the matching audio decoders and the s16le output that `audioDecode.ts` uses.
+  `.github/workflows/audio-decoder.yml` pushes it by digest to GHCR, runs the
+  unchanged `verifyAudioDecoder.mjs` nonroot and offline, and tags it only after.
+- Reason: reviewed full static-ffmpeg builds are 140 MB and over, above the
+  128 MiB executable bound (F805), which is correct and stays.
+- Consequence: we own FFmpeg security updates; bump the version and hash on each
+  7.1.x point release and rerun the workflow. The main image carries the LGPL and
+  musl notices. Builds are not byte-reproducible, so each run's digest and hash are
+  reviewed on their own.
+
+## DEPLOY-002 — Deletion journal on a Cloudflare Worker with D1
+
+- Date: 2026-10-26
+- Status: accepted (built, not deployed)
+- Decision: `deployment/deletion-journal/` serves the client contract in
+  `deletionJournal.ts` from a Worker over D1: write-once records, sealed snapshots
+  for replay (24 hours, reused while nothing new is written), bearer auth, one
+  project per deployment. Founder choice, 2026-10-26.
+- Reason: the journal must live outside Supabase's rollback domain and cost
+  nothing at beta scale; the repo already uses Cloudflare for the launch site.
+- Consequence: Time Travel is 7 days on the free plan. Losing
+  `LUVANI_DELETION_JOURNAL_KEY` makes the journal unreadable, so it is kept in the
+  founder's password manager. A seal reads every row once; Workers Paid lifts the
+  CPU ceiling if it ever matters. F883.
