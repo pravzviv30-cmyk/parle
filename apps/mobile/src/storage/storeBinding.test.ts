@@ -359,6 +359,7 @@ const brainPhrase = (fr: string, en: string) => ({
   register: 'familier' as const,
   introducedAt: '2026-08-26T00:00:00.000Z',
   timesUsedWell: 1,
+  timesAssisted: 0,
   mastered: false,
 });
 

@@ -1304,10 +1304,12 @@ export function DrillScreen({
     // store drops it on the floor if this map does not carry it, and the
     // learner's evidence record never hears about a drill they got right.
     gradeWritesRef.current = gradeCards(
-      summary.grades.map(({ phraseKey, grade, transfer }) => ({
+      summary.grades.map(({ phraseKey, grade, transfer, assisted }) => ({
         id: phraseKey,
         grade,
         ...(transfer === true ? { transfer: true } : {}),
+        // Right only after a miss: core brings it back tomorrow, unaided.
+        ...(assisted === true ? { assisted: true } : {}),
       })),
     ).then(() => undefined);
     // What the sitting was worth. Clean answers count double, because getting

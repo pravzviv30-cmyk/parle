@@ -11166,3 +11166,41 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Opened 2026-10-23 from the market report's "an eval of real sessions". Nothing scored how the tutor behaved in a session, only whether it ran. `eval:sessions` scores each turn of a recorded session against the written rules: rescue (a first rescue is the quiet hint), no read-back of the card, gentle recasts, level fit by rung, and safety, plus reply-wait p50 and p95 as a measurement. Records are `synthetic` or `dev` only, because no consent covers scoring learner transcripts (docs/changes/session-eval.md). Amended 2026-10-24 on `claude/session-mode`: records carry a mode and a scripted lesson's rescue is judged by the lesson rule; nine synthetic sessions.
 - fixed: 2026-10-23 on `claude/session-eval`. Eight hand-labelled synthetic sessions (40 turns, one deliberate failure per check, labels reviewed by tutor-behaviour-engineer); `eval:replay` and `eval:beta-numbers` alongside.
 - verified-by: `the session eval agrees with every hand label in the synthetic set`
+
+### F871 — A phrase said with the hint or the full line showing counted as independent use
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`applyTurnToProfile` call), packages/brain/src/profile/profile.ts
+- note: Found 2026-10-25 in the learning-loop audit. Every turn credited `usedWell` to `timesUsedWell`, the brain half of `convoUses` and of `mastered`, even when the app had revealed a hint or the full line on that exchange. Help is now recorded on `timesAssisted`, which moves no mastery (LEARN-001).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `the same usedWell counts as a use unassisted and only as assisted after help`
+- verified-by: `a reply after the hint is recorded as assisted, and an unaided one as a use`
+- verified-by: `a version 2 profile without the new counts repairs with zero and one defaults`
+
+### F872 — One slip made a "watch for" weakness
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/profile.ts (`learnerSnapshotFrom`)
+- note: Found 2026-10-25 in the learning-loop audit. `watchFor` was the top three error tags by raw count, so a tag seen once qualified and nothing told one bad session from a pattern. Patterns now carry `sessions` and `lastSession`; recurring (two sessions or more) ranks first, suspected fills what is left (LEARN-002).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `a tag seen once is suspected and still fills watchFor when nothing recurs`
+- verified-by: `two sightings in one session stay suspected`
+- verified-by: `a tag seen in two sessions is recurring and ranks ahead of a higher count suspected tag`
+
+### F873 — A drill answer right only after a miss scheduled like a first-try answer
+- severity: P2
+- status: [x]
+- where: packages/core/src/drill/session.ts (`summarise`), packages/core/src/review/scheduler.ts (`applyGrade`)
+- note: Found 2026-10-25 in the learning-loop audit. A miss then a correct answer graded `good` and stepped the schedule as if unaided, and a transfer exercise right after a miss raised `evidence.transfers`. Now it is assisted: back tomorrow at the same drill stage, ease unchanged, no evidence (LEARN-003).
+- fixed: 2026-10-26 on `claude/learning-loop`.
+- verified-by: `a phrase right only after a miss is reported as assisted`
+- verified-by: `an assisted good comes back the next day with ease unchanged`
+- verified-by: `a first-try good keeps today's interval`
+- verified-by: `a transfer exercise right only after a miss earns no transfer evidence`
+
+### F874 — A practice job whose AI drills failed was marked complete and never retried
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/20261004003511_bounded_session_detail_retention.sql (`receive_conversation_practice`, `finish_conversation_practice`)
+- note: Found 2026-10-25 in the learning-loop audit. Completion meant "the pack has any exercise", and every pack carries built-in translate exercises, so failed AI drills read as complete; finishing also replaced the list and dropped the built-ins. Fixed in `20261026090000_practice_completion_signal.sql` (generated drills only complete a job; finish merges, generated first, at most 24), proved by `npm run verify:database:practice` in the gate. Stays open until the migration is applied to the hosted project; packs already marked complete are not re-queued.
+- verified-by: `the practice pack status reads preparing until generated drills arrive`

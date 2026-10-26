@@ -893,8 +893,8 @@ separate concern from the brain's own `repairProfile`, which repairs the nested
 | field | what it holds |
 |---|---|
 | `cefr` | estimate, confidence, and a rolling window of evidence |
-| `errorPatterns` | what they get wrong, with a count and an example |
-| `phrases` | what they have been taught, and whether it is mastered |
+| `errorPatterns` | what they get wrong: a count, an example, `sessions` (distinct sessions seen) and `lastSession` (the `stats.sessions` ordinal of the latest sighting); `recurring` from two sessions, otherwise `suspected` (LEARN-002) |
+| `phrases` | what they have been taught, `timesUsedWell` (unaided uses, the brain half of `convoUses`), `timesAssisted` (uses with the hint or line showing, LEARN-001) and whether it is mastered |
 | `memory` | facts worth remembering, and an opener |
 | `preferences` | strictness, recent scenarios |
 | `stats` | sessions, turns, rescues, `lastRung` |
@@ -928,7 +928,10 @@ when it reads a snapshot, and the app when it loads from disk — because fixing
 only the agent leaves the device still emitting bad snapshots.
 
 If you add a required field to `LearnerProfile`, add it to `repairProfile` in the
-same change.
+same change. The 2026-10-26 per-entry counts follow that rule: a phrase without
+`timesAssisted` reads 0, and a pattern without `sessions` reads 1 with
+`lastSession` at the current session count, so repair never invents a
+recurring pattern. `merge.ts` takes the max of each.
 
 ## Server side
 

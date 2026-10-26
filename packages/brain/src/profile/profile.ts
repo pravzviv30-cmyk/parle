@@ -48,7 +48,13 @@ export interface LearnerProfile {
     /** The last readings, newest last. The estimate is derived, never stored raw. */
     evidence: CefrBand[];
   };
-  errorPatterns: Record<string, { count: number; lastSeen: string; example: string }>;
+  /**
+   * `sessions` is how many distinct sessions the tag was seen in, and
+   * `lastSession` the `stats.sessions` ordinal of the latest sighting, which is
+   * how a second sighting in the same session is told apart from a new one.
+   * See `patternStatus`.
+   */
+  errorPatterns: Record<string, { count: number; lastSeen: string; example: string; sessions: number; lastSession: number }>;
   phrases: Record<
     string,
     {
@@ -58,6 +64,13 @@ export interface LearnerProfile {
       register: RegisterId;
       introducedAt: string;
       timesUsedWell: number;
+      /**
+       * Uses the model credited on an exchange where the app had already shown
+       * a hint or the full line. Kept apart from `timesUsedWell` because help
+       * earns no independent use: it never projects `mastered` and never
+       * counts as `convoUses`.
+       */
+      timesAssisted: number;
       mastered: boolean;
     }
   >;
@@ -110,6 +123,11 @@ export const EVIDENCE_WINDOW = 12;
  * importer of this module keeps working.
  */
 export { MASTERY_USES } from '@luvani/core';
+/**
+ * Distinct sessions a tag must be seen in before it counts as recurring. One
+ * session's slips can be a single bad day; two sessions is a pattern.
+ */
+export const RECURRING_SESSIONS = 2;
 /** Recurring-error patterns kept; beyond this the least recently seen goes. */
 export const MAX_ERROR_PATTERNS = 40;
 export const MAX_PHRASES = 200;
@@ -172,7 +190,7 @@ export function repairProfile(stored: unknown): LearnerProfile {
     return createProfile();
   }
 
-  const migrated = migrateProfile(stored as unknown as LearnerProfile);
+  const migrated = repairLearningHistory(migrateProfile(stored as unknown as LearnerProfile));
   const memory = migrated.memory;
   if (isRecord(memory) && Array.isArray(memory.facts)) {
     const { control: rawControl, goal: rawGoal, ...memoryFields } = memory;
@@ -198,6 +216,38 @@ export function repairProfile(stored: unknown): LearnerProfile {
     } as LearnerProfile;
   }
   return { ...migrated, memory: { facts: [], opener: null, name: null } };
+}
+
+function countOr(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+/**
+ * Fill in the per-entry counts that arrived after version 2 shipped. A phrase
+ * without `timesAssisted` was never credited under help, so it reads 0. A
+ * pattern without `sessions` gets 1 and the current session ordinal: we know
+ * it was seen, but not in how many sessions, and inventing recurrence would
+ * move it ahead of everything the learner really keeps getting wrong.
+ * Everything else on each entry is carried through untouched.
+ */
+function repairLearningHistory(profile: LearnerProfile): LearnerProfile {
+  const stats = profile.stats as unknown as Record<string, unknown>;
+  const ordinal = countOr(stats.sessions, 0);
+  const phrases: Record<string, unknown> = {};
+  for (const [key, raw] of Object.entries(profile.phrases as Record<string, unknown>)) {
+    phrases[key] = isRecord(raw) ? { ...raw, timesAssisted: countOr(raw.timesAssisted, 0) } : raw;
+  }
+  const errorPatterns: Record<string, unknown> = {};
+  for (const [tag, raw] of Object.entries(profile.errorPatterns as Record<string, unknown>)) {
+    errorPatterns[tag] = isRecord(raw)
+      ? { ...raw, sessions: countOr(raw.sessions, 1), lastSession: countOr(raw.lastSession, ordinal) }
+      : raw;
+  }
+  return {
+    ...profile,
+    phrases: phrases as LearnerProfile['phrases'],
+    errorPatterns: errorPatterns as LearnerProfile['errorPatterns'],
+  };
 }
 
 /**
@@ -368,8 +418,13 @@ export function applyExtractionToProfile(
 
 /** The slice of the profile the conversation engine needs. */
 export function learnerSnapshotFrom(profile: LearnerProfile): LearnerSnapshot {
-  const watchFor = Object.entries(profile.errorPatterns)
-    .sort((a, b) => b[1].count - a[1].count)
+  // Recurring patterns first, then suspected ones fill what is left. A
+  // learner with nothing recurring gets exactly the old top-three-by-count.
+  const byCount = Object.entries(profile.errorPatterns).sort((a, b) => b[1].count - a[1].count);
+  const watchFor = [
+    ...byCount.filter(([, p]) => patternStatus(p) === 'recurring'),
+    ...byCount.filter(([, p]) => patternStatus(p) === 'suspected'),
+  ]
     .slice(0, 3)
     .map(([tag]) => tag);
   return {
@@ -381,6 +436,14 @@ export function learnerSnapshotFrom(profile: LearnerProfile): LearnerSnapshot {
     name: validLearnerName(profile.memory.name),
     goal: isLearnerGoal(profile.memory.goal) ? profile.memory.goal : null,
   };
+}
+
+/**
+ * Whether an error pattern is a one-session suspicion or something the learner
+ * keeps doing. A projection of `sessions`, never stored.
+ */
+export function patternStatus(pattern: { sessions?: number }): 'suspected' | 'recurring' {
+  return (pattern.sessions ?? 1) >= RECURRING_SESSIONS ? 'recurring' : 'suspected';
 }
 
 function phraseKey(fr: string, frWritten: string | null): string {
@@ -440,8 +503,18 @@ function namedInCoaching(coached: readonly string[], ...forms: readonly (string 
 
 /**
  * Fold one turn's proposals into the profile. Pure — returns a new profile.
+ *
+ * `assisted` means the app had revealed a hint or the full line on the
+ * exchange this turn answers. A use the model credits then lands on
+ * `timesAssisted` instead of `timesUsedWell`: help earns no independent use.
  */
-export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now: string): LearnerProfile {
+export function applyTurnToProfile(
+  profile: LearnerProfile,
+  turn: TutorTurn,
+  now: string,
+  options: { assisted?: boolean } = {},
+): LearnerProfile {
+  const assisted = options.assisted === true;
   const next: LearnerProfile = {
     ...profile,
     cefr: { ...profile.cefr, evidence: [...profile.cefr.evidence] },
@@ -469,10 +542,17 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
     const tag = normalizeErrorTag(pattern.tag);
     if (tag.length === 0) continue;
     const existing = next.errorPatterns[tag];
+    // Every turn of one live session shares `stats.sessions`, because only
+    // `finishSession` increments it, so a second sighting this session leaves
+    // `sessions` where it was and the next session's sighting raises it.
+    const ordinal = next.stats.sessions;
+    const newSession = existing === undefined || existing.lastSession !== ordinal;
     next.errorPatterns[tag] = {
       count: (existing?.count ?? 0) + 1,
       lastSeen: now,
       example: pattern.example || existing?.example || '',
+      sessions: (existing?.sessions ?? 0) + (newSession ? 1 : 0),
+      lastSession: ordinal,
     };
   }
   evictStalePatterns(next);
@@ -496,6 +576,7 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
       register: phrase.register,
       introducedAt: now,
       timesUsedWell: 0,
+      timesAssisted: 0,
       mastered: false,
     };
   }
@@ -526,6 +607,12 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
         // written form, `usedWell` names the spoken one) and an exclusion that
         // missed on spelling would be no exclusion at all.
         if (namedInCoaching(named, used, entry.fr, entry.frWritten)) continue;
+        if (assisted) {
+          // Said with the hint or the line on screen. Recorded, so the help is
+          // visible, but it is not natural production and moves no mastery.
+          entry.timesAssisted = (entry.timesAssisted ?? 0) + 1;
+          continue;
+        }
         entry.timesUsedWell += 1;
         // Mastery is a projection of the count, recomputed here rather than
         // decided here. `merge.ts` carries the flag across devices without

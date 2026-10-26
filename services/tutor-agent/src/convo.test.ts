@@ -5078,3 +5078,42 @@ describe('the end of a conversation, said by the tutor (sessionEnd.ts)', () => {
     assert.equal(published.filter((m) => m.t === 'transcript' && m.text === 'Encore un café.').length, 0, 'an ordinary turn still ran after the goodbye');
   });
 });
+
+describe('help earns no independent use in a live scene', () => {
+  /** A brain that always credits the learner with the one phrase they were taught. */
+  class CreditingBrain extends MockLlmClient {
+    override async turn(request: BrainTurnRequest) {
+      const result = await super.turn(request);
+      return { ...result, turn: sampleTurn({ profileSignals: { errorPatterns: [], usedWell: ['Ça marche'] } }) };
+    }
+  }
+  function taught(): LearnerProfile {
+    const profile = createProfile();
+    profile.phrases['ca marche'] = {
+      fr: 'Ça marche', frWritten: null, en: 'Works for me', register: 'courant',
+      introducedAt: '2026-10-01T00:00:00.000Z', timesUsedWell: 0, timesAssisted: 0, mastered: false,
+    };
+    return profile;
+  }
+  const phraseOf = (convo: LuvaniConversation) =>
+    (convo as unknown as { profile: LearnerProfile }).profile.phrases['ca marche']!;
+
+  test('a reply after the hint is recorded as assisted, and an unaided one as a use', async (t) => {
+    const { convo, session } = await inScene(t, { voiceless: true, client: new CreditingBrain(), profile: taught() });
+    await convo.settled();
+    const before = phraseOf(convo).timesUsedWell;
+
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    assert.ok(convo.conversationState.assistanceDepth > 0, 'the hint is on screen');
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Ça marche' }));
+    await convo.settled();
+    assert.equal(phraseOf(convo).timesUsedWell, before, 'help earned no use');
+    assert.ok(phraseOf(convo).timesAssisted >= 1, 'but the assisted reply is recorded');
+    assert.equal(convo.conversationState.assistanceDepth, 0);
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Ça marche' }));
+    await convo.settled();
+    assert.equal(phraseOf(convo).timesUsedWell, before + 1, 'an unaided reply is a use');
+  });
+});

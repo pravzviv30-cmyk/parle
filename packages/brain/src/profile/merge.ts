@@ -356,8 +356,18 @@ function identityOf(entry: Record<string, unknown>, merged: readonly string[]): 
   return canonical(rest);
 }
 
-const PHRASE_MERGED_FIELDS: readonly string[] = ['introducedAt', 'timesUsedWell', 'mastered'];
-const PATTERN_MERGED_FIELDS: readonly string[] = ['count', 'lastSeen'];
+const PHRASE_MERGED_FIELDS: readonly string[] = ['introducedAt', 'timesUsedWell', 'timesAssisted', 'mastered'];
+const PATTERN_MERGED_FIELDS: readonly string[] = ['count', 'lastSeen', 'sessions', 'lastSession'];
+
+/**
+ * The larger of a count both sides may or may not carry. Absent on both stays
+ * absent, so merging two profiles stored before the field existed changes
+ * nothing about their shape.
+ */
+function maxOfOptional(key: string, x: Record<string, unknown>, y: Record<string, unknown>): Record<string, number> {
+  if (!(key in x) && !(key in y)) return {};
+  return { [key]: Math.max(finiteOr(x[key], 0), finiteOr(y[key], 0)) };
+}
 
 /**
  * Union the phrase books. The learner's actual French: never dropped, never
@@ -394,6 +404,9 @@ function unionPhrases(
       // device the learner happened to be holding.
       introducedAt: compareStrings(introX, introY) <= 0 ? introX : introY,
       timesUsedWell: Math.max(usedX, usedY),
+      // Kept apart from `timesUsedWell` and merged the same way, so assisted
+      // uses never leak into `convoUses` through a merge.
+      ...maxOfOptional('timesAssisted', x, y),
       // Carried from what each side stored. Not recomputed, not from a count.
       mastered: x.mastered === true || y.mastered === true,
     };
@@ -429,6 +442,8 @@ function unionErrorPatterns(
       ...richer,
       count: Math.max(countX, countY),
       lastSeen: compareStrings(seenX, seenY) >= 0 ? seenX : seenY,
+      ...maxOfOptional('sessions', x, y),
+      ...maxOfOptional('lastSession', x, y),
     };
   }
   return out as LearnerProfile['errorPatterns'];

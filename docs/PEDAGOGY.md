@@ -221,6 +221,27 @@ has been made.
 conversation, read off the same count, so a flag can never disagree with the
 evidence that produced it.
 
+### Help is not independence (LEARN-001, LEARN-003)
+
+A use only counts when the learner said it without help on that exchange. If
+the app had shown the hint or the full line, the brain records the use on
+`timesAssisted` instead of `timesUsedWell`, so it moves neither `used` nor
+mastery. The help stays visible; it just is not natural production.
+
+A drill answer that comes out right only after a miss is assisted too. The
+phrase still grades `good`, but it comes back tomorrow at the same drill stage
+(reps hold, ease unchanged) and earns no evidence. A changed-situation exercise
+right only after a miss records no transfer. A first-try answer schedules
+exactly as before.
+
+### Suspected and recurring mistakes (LEARN-002)
+
+One session's slip is a suspicion, not a weakness. An error pattern counts the
+distinct sessions it was seen in, and it is `recurring` from the second one
+(`RECURRING_SESSIONS`). The tutor's watch-for list takes recurring patterns
+first and only fills the rest from suspected ones, so a learner with nothing
+recurring sees the old top three by count.
+
 Nothing here decays. What expires is the schedule, not the record, because a
 thing that happened stays happened.
 

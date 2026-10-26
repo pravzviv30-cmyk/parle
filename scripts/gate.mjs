@@ -217,14 +217,14 @@ let releaseProviderProofTests = 0;
 if (!fast) {
   const migrationCount = readdirSync(path.join(ROOT, 'supabase', 'migrations')).filter(file => file.endsWith('.sql')).length;
   const proofEnvironment = { ...process.env, PGLITE_MODULE: '' };
-  for (const script of ['verifyDataBoundaries.mjs', 'verifyTutorSessions.mjs', 'verifyPrivacyJobs.mjs','verifyAccountExport.mjs','verifySessionDetails.mjs','verifyFriendsLaunch.mjs','verifyPaidAdmission.mjs','verifyConversationLibrary.mjs']) {
+  for (const script of ['verifyDataBoundaries.mjs', 'verifyTutorSessions.mjs', 'verifyPrivacyJobs.mjs','verifyAccountExport.mjs','verifySessionDetails.mjs','verifyFriendsLaunch.mjs','verifyPaidAdmission.mjs','verifyConversationLibrary.mjs','verifyPracticeCompletion.mjs']) {
     const result = run(process.execPath, ['--experimental-strip-types', path.join(ROOT, 'scripts', script)], {
       env: proofEnvironment, timeout: 120_000,
     });
     let replayed = null;
     if (['verifyDataBoundaries.mjs','verifyFriendsLaunch.mjs'].includes(script)) {
       replayed = Number(result.out.match(/PASS: all (\d+) migrations/)?.[1] ?? NaN);
-    } else if (['verifyPrivacyJobs.mjs','verifyPaidAdmission.mjs','verifyConversationLibrary.mjs'].includes(script)) {
+    } else if (['verifyPrivacyJobs.mjs','verifyPaidAdmission.mjs','verifyConversationLibrary.mjs','verifyPracticeCompletion.mjs'].includes(script)) {
       replayed = Number(result.out.match(/PASS:? all (\d+) migrations/)?.[1] ?? NaN);
     } else {
       try { const proof = JSON.parse(result.out.slice(result.out.indexOf('{'), result.out.lastIndexOf('}') + 1)); if (['PASS','pass'].includes(proof.status) && (Array.isArray(proof.proofGroups)?proof.proofGroups.length>0:proof.proofGroups>0)) replayed = proof.migrationCount; } catch { /* refusal below */ }

@@ -310,6 +310,8 @@ export interface PlannedPracticeGrade {
   id: string;
   grade: ReviewGrade;
   transfer?: true;
+  /** Right only after a miss in the sitting; replays must grade it the same way. */
+  assisted?: true;
   before: string | null;
   after: string | null;
 }
@@ -346,13 +348,17 @@ export function planPracticeGrades(grades: readonly CardGrade[], at: number): Pr
   return serialized(async (key, owner) => {
     const deck = await durableDeck(key);
     if (deck === null) return null;
-    return grades.map(({ id, grade, transfer }) => {
+    return grades.map(({ id, grade, transfer, assisted }) => {
       const card = deck.find((c) => c.id === id);
-      const context: GradeContext = transfer === true ? { transfer: true } : {};
+      const context: GradeContext = {
+        ...(transfer === true ? { transfer: true } : {}),
+        ...(assisted === true ? { assisted: true } : {}),
+      };
       return {
         id,
         grade,
         ...(transfer === true ? { transfer: true as const } : {}),
+        ...(assisted === true ? { assisted: true as const } : {}),
         before: card ? scheduleFingerprint(card) : null,
         after: card ? scheduleFingerprint(applyGrade(card, grade, at, context)) : null,
       };
@@ -384,7 +390,10 @@ export function applyPracticeGrades(plan: readonly PlannedPracticeGrade[], at: n
       if (!planned || graded.has(card.id)) return card;
       const print = scheduleFingerprint(card);
       if (planned.before !== null && print === planned.before) {
-        const updated = applyGrade(card, planned.grade, at, planned.transfer === true ? { transfer: true } : {});
+        const updated = applyGrade(card, planned.grade, at, {
+          ...(planned.transfer === true ? { transfer: true } : {}),
+          ...(planned.assisted === true ? { assisted: true } : {}),
+        });
         graded.set(card.id, updated);
         return updated;
       }

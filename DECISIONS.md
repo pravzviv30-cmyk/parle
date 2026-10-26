@@ -1264,3 +1264,65 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     long pause and with a 60 s ramble.
 - Sources: founder answers of 25 October 2026, VOICE-010 "Deferred",
   `docs/LIVE_VOICE.md` "Tap to send".
+
+## LEARN-001 — Help earns no independent use
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: a phrase the model credits as `usedWell` on an exchange where the
+  app had revealed the hint or the full line (`assistanceDepth > 0`, read before
+  the turn is integrated) raises `timesAssisted`, not `timesUsedWell`. Only
+  `timesUsedWell` feeds `convoUses` and the `mastered` projection.
+- Reason: the master learning-loop brief asks to tell independent recall from
+  assisted performance. Counting help as natural production let the "used" state
+  and mastery be earned on lines the learner was shown.
+- Consequence: "Phrases used in conversation" grows more slowly for learners who
+  lean on help, which is the honest number. Existing counts are never lowered.
+  `repairProfile` fills `timesAssisted: 0`; merges take the max. F871.
+
+## LEARN-002 — A weakness is a pattern across sessions, not one slip
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: error patterns carry `sessions` (distinct sessions seen) and
+  `lastSession` (the `stats.sessions` ordinal). `patternStatus` projects
+  `suspected` (one session) or `recurring` (`RECURRING_SESSIONS = 2` or more).
+  `watchFor` takes recurring patterns first and fills from suspected ones, so a
+  learner with nothing recurring keeps the old top three by count.
+- Reason: one bad session is not a weakness; the tutor should press on what keeps
+  coming back. Uncertain evidence stays labelled as uncertain.
+- Consequence: repaired legacy patterns read `sessions: 1`, never invented
+  recurrence. A cross-device merge takes the max, which can undercount, never
+  overcount. `lastSession` is what a later "getting better at" view needs. F872.
+
+## LEARN-003 — Right only after a miss comes back tomorrow, at the same stage
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: a drill phrase answered right only after a miss in the sitting is
+  reported `assisted`. `applyGrade('good', { assisted: true })` sets the next
+  review to tomorrow, keeps ease and reps, and earns no evidence. A transfer
+  exercise right only after a miss records no transfer. First-try `good`,
+  `easy` and `again` are unchanged.
+- Reason: a correct answer obtained with help should be followed by a chance at
+  unaided recall, and should not move the learner up the drill ramp.
+- Consequence: drills reach the scheduler on three paths (core
+  `applyDrillResults`, the drill screen, the practice sitting's planned write);
+  all three carry the flag. F873.
+
+## LEARN-004 — A practice job completes only when generated drills arrive
+
+- Date: 2026-10-26
+- Status: accepted (migration prepared, not applied)
+- Decision: `20261026090000_practice_completion_signal.sql` redefines
+  `receive_conversation_practice` and `finish_conversation_practice`. Built-in
+  translate exercises (the only `translate` kind; the generator cannot emit it)
+  no longer count as completion. Finishing stores the worker's drills first,
+  then the stored built-ins, de-duplicated by id, at most 24.
+- Reason: every pack carries built-ins, so a session whose AI drills failed read
+  as complete and was never retried, and finishing dropped the built-ins.
+- Consequence: failed drills now retry under the existing lease, backoff and
+  five-attempt cap: a few more bounded worker calls only for sessions that
+  failed. Apply after 43 in `supabase/README.md` order; it changes no data and
+  has a paired rollback. Packs already marked complete are not re-queued. Proof:
+  `npm run verify:database:practice` (in the gate). F874.

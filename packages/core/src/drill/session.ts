@@ -487,7 +487,7 @@ export interface DrillSummary {
    * asked it in a changed situation and got it. `transfer` is present only
    * when it is true, the same rule the mark follows everywhere else.
    */
-  grades: { phraseKey: string; grade: ReviewGrade; transfer?: boolean }[];
+  grades: { phraseKey: string; grade: ReviewGrade; transfer?: boolean; assisted?: boolean }[];
 }
 
 /**
@@ -510,7 +510,7 @@ export function summarise(state: DrillSessionState): DrillSummary {
   let typos = 0;
   let unresolved = 0;
   let retries = 0;
-  const grades = new Map<string, { grade: ReviewGrade; transfer: boolean }>();
+  const grades = new Map<string, { grade: ReviewGrade; transfer: boolean; assisted: boolean }>();
 
   for (const a of state.answered) {
     if (a.outcome === 'unresolved') unresolved += 1;
@@ -525,10 +525,15 @@ export function summarise(state: DrillSessionState): DrillSummary {
     // exercise on the same phrase goes wrong. What that is worth is the
     // scheduler's call, not this report's: an 'again' grade earns no evidence,
     // so a sitting the phrase lost claims nothing.
-    const transfer = (held?.transfer ?? false) || (a.transfer === true && a.outcome !== 'unresolved');
+    // A transfer only counts when it came out on the first attempt: right
+    // after a miss is help, not proof the changed situation was handled.
+    const transfer =
+      (held?.transfer ?? false) || (a.transfer === true && a.outcome !== 'unresolved' && a.attempts <= 1);
     const grade: ReviewGrade =
       held?.grade === 'again' || a.outcome === 'unresolved' ? 'again' : 'good';
-    grades.set(a.phraseKey, { grade, transfer });
+    // Any exercise on the phrase that needed a retry makes the whole good assisted.
+    const assisted = (held?.assisted ?? false) || a.attempts > 1;
+    grades.set(a.phraseKey, { grade, transfer, assisted });
   }
 
   return {
@@ -537,9 +542,12 @@ export function summarise(state: DrillSessionState): DrillSummary {
     typos,
     unresolved,
     retries,
-    grades: [...grades].map(([phraseKey, { grade, transfer }]) =>
-      transfer ? { phraseKey, grade, transfer } : { phraseKey, grade },
-    ),
+    grades: [...grades].map(([phraseKey, { grade, transfer, assisted }]) => ({
+      phraseKey,
+      grade,
+      ...(transfer ? { transfer } : {}),
+      ...(grade === 'good' && assisted ? { assisted: true } : {}),
+    })),
   };
 }
 
@@ -562,6 +570,9 @@ export function applyDrillResults(deck: readonly ReviewCard[], state: DrillSessi
   const grades = new Map(summarise(state).grades.map((g) => [g.phraseKey, g]));
   return deck.map((card) => {
     const graded = grades.get(card.id);
-    return graded === undefined ? card : applyGrade(card, graded.grade, now, { transfer: graded.transfer === true });
+    return graded === undefined ? card : applyGrade(card, graded.grade, now, {
+          transfer: graded.transfer === true,
+          ...(graded.assisted === true ? { assisted: true } : {}),
+        });
   });
 }
