@@ -11200,9 +11200,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F874 — A practice job whose AI drills failed was marked complete and never retried
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: supabase/migrations/20261004003511_bounded_session_detail_retention.sql (`receive_conversation_practice`, `finish_conversation_practice`)
-- note: Found 2026-10-25 in the learning-loop audit. Completion meant "the pack has any exercise", and every pack carries built-in translate exercises, so failed AI drills read as complete; finishing also replaced the list and dropped the built-ins. Fixed in `20261026090000_practice_completion_signal.sql` (generated drills only complete a job; finish merges, generated first, at most 24), proved by `npm run verify:database:practice` in the gate. Stays open until the migration is applied to the hosted project; packs already marked complete are not re-queued.
+- note: Found 2026-10-25 in the learning-loop audit. Completion meant "the pack has any exercise", and every pack carries built-in translate exercises, so failed AI drills read as complete; finishing also replaced the list and dropped the built-ins. Fixed in `20261026090000_practice_completion_signal.sql` (generated drills only complete a job; finish merges, generated first, at most 24), proved by `npm run verify:database:practice` in the gate. Applied to the staging project (`wtexbzuyfersdtiekrvp`) on 2026-10-26 under its original version, fingerprint-checked against a PGlite replay (docs/changes/beta-launch.md execution log); packs already marked complete are not re-queued.
 - verified-by: `the practice pack status reads preparing until generated drills arrive`
 
 ### F875 — The app could not show practice still being made, or practice that failed
