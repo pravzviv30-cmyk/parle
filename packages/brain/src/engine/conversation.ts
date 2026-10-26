@@ -948,7 +948,10 @@ export function integrateTurn(
   for (const form of quoted) {
     if (!correctedForms.includes(form)) correctedForms.push(form);
   }
-  const usedWell = turn.profileSignals.usedWell.filter(
+  // LEARN-001: a line said while the hint or the full line was showing is help,
+  // not a win. The profile records it as `timesAssisted`; the end card and the
+  // transfer asks built from these wins leave it out.
+  const usedWell = state.assistanceDepth > 0 ? [] : turn.profileSignals.usedWell.filter(
     (used) => !namedInCoaching(named, used) && !namedInCoaching(state.correctedForms, used),
   );
 

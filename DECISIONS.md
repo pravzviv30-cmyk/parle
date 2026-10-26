@@ -1355,4 +1355,6 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Reason: consistent success should lead to a harder task, and a right first
   answer to it is the transfer evidence `evidence.ts` already counts.
 - Consequence: at most two more generated exercises per session, inside the cap
-  of 24. F881.
+  of 24. The session's wins themselves leave out lines said with help (the
+  LEARN-001 rule, applied in `integrateTurn`), so the end card no longer
+  celebrates a line the learner was shown. F881.

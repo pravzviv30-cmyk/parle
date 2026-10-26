@@ -11220,7 +11220,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: packages/core/src/drill/validate.ts (`groundedDrills`), services/tutor-agent/src/convo.ts, services/token-server/src/practiceJobs.ts
-- note: Found 2026-10-25 in the learning-loop audit. The agent's drill path checked shape only. Both paths now share one filter: grounded in the phrases the request was built from, unique ids, bounded size, the safety screen, at most 24, and a generous word cap on the expected French by CEFR band (`DRILL_ANSWER_WORD_CAP`), skipped when the band is unknown.
+- note: Found 2026-10-25 in the learning-loop audit. The agent's drill path checked shape only. Both paths now share one filter: grounded in the phrases the request was built from, unique ids, bounded size, the safety screen, at most 24, and a generous word cap on the expected French by CEFR band (`DRILL_ANSWER_WORD_CAP`), skipped when the band is unknown. This is stricter than the agent's old shape-only check: a live drill keyed to an error tag rather than a listed phrase is now dropped, which the prompt already forbade.
 - fixed: 2026-10-26 on `claude/learning-loop`.
 - verified-by: `live drills pass the shared filter: only grounded, safe, sized exercises ship`
 - verified-by: `the worker drops oversized and over-long answers through the shared filter`
@@ -11268,8 +11268,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: packages/brain/src/drill/generate.ts (`transferPhrasesFrom`), services/token-server/src/practiceJobs.ts, services/tutor-agent/src/convo.ts
-- note: Found 2026-10-25 in the learning-loop audit. Mastered phrases simply left practice. Each post-session drill request now asks for one changed-situation exercise, marked transfer, for up to two of the session's wins (never a corrected phrase), on both the tutor and the worker path (LEARN-006). Known gap: the session's wins come from the end card's credit, which does not yet exclude uses said with help (aligning it with LEARN-001 is Phase E).
+- note: Found 2026-10-25 in the learning-loop audit. Mastered phrases simply left practice. Each post-session drill request now asks for one changed-situation exercise, marked transfer, for up to two of the session's wins (never a corrected phrase), on both the tutor and the worker path (LEARN-006). The session's wins (the end card's and the pack's) now leave out a line said while the hint or full line was showing, the same rule as LEARN-001, so help never earns a harder task (found by the branch's adversarial review).
 - fixed: 2026-10-26 on `claude/learning-loop`.
 - verified-by: `the request asks for one transfer exercise per listed win and at most two`
 - verified-by: `a corrected phrase is never a transfer ask`
+- verified-by: `a line said with the full line showing is not a session win`
 - verified-by: `the worker asks for a harder transfer exercise on each of the pack wins, and a right first answer raises transfer evidence`
+
+### F882 — Deleting a conversation can clear the note on a card from an uncached conversation with the same title
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/store.ts (`forgetDeletedNames`)
+- note: Found 2026-10-26 by the learning-loop adversarial review. The kept-title guard reads only the cached packs, so an older, uncached conversation with the same title has its cards' note rewritten to "Saved from a past conversation". Only the note changes; schedule and evidence are untouched. A pack id on derived cards would make the match exact.
+- verified-by: `a deleted conversation's name is cleared only from cards built from that conversation`
