@@ -1428,3 +1428,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   image that would expose server code.
 - Consequence: a Railway build no longer proves the checks need no network.
   That proof exists only once the release capture has run on a Docker host.
+- Revision: on Railway the build takes the commit from `RAILWAY_GIT_COMMIT_SHA`,
+  which Railway injects into builds. The `${{RAILWAY_GIT_COMMIT_SHA}}` reference set
+  as `GIT_SHA` did not render into the build. The release workflow still passes
+  `GIT_SHA`, used when Railway's SHA is absent.

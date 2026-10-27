@@ -8,7 +8,10 @@ FROM ${NODE_IMAGE} AS dependencies
 ARG NODE_IMAGE
 ARG AUDIO_DECODER_IMAGE
 ARG AUDIO_DECODER_SHA256
+# Revision: Railway injects RAILWAY_GIT_COMMIT_SHA into builds; the release
+# workflow passes GIT_SHA. Railway's SHA wins when present.
 ARG GIT_SHA
+ARG RAILWAY_GIT_COMMIT_SHA
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/core/package.json ./packages/core/package.json
@@ -19,7 +22,7 @@ COPY services/brain-playground/package.json ./services/brain-playground/package.
 COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY scripts/installHooks.mjs scripts/patchExpoModulesJsi.mjs ./scripts/
 COPY deployment/validateBuild.mjs ./deployment/validateBuild.mjs
-RUN node deployment/validateBuild.mjs
+RUN GIT_SHA="${RAILWAY_GIT_COMMIT_SHA:-$GIT_SHA}" node deployment/validateBuild.mjs
 # Native ORT/LiveKit install scripts are required. The lock fixes npm archives;
 # record the downloaded native artifacts separately in image provenance.
 RUN LUVANI_SKIP_HOOKS=1 npm ci --omit=dev --workspace=@luvani/token-server --workspace=@luvani/tutor-agent --include-workspace-root=false
@@ -32,8 +35,9 @@ ARG AUDIO_DECODER_SHA256
 ARG AUDIO_DECODER_IMAGE
 ARG NODE_IMAGE
 ARG GIT_SHA
+ARG RAILWAY_GIT_COMMIT_SHA
 LABEL org.opencontainers.image.title="Luvani backend" \
-      org.opencontainers.image.revision="${GIT_SHA}" \
+      org.opencontainers.image.revision="${RAILWAY_GIT_COMMIT_SHA:-${GIT_SHA}}" \
       org.opencontainers.image.base.name="${NODE_IMAGE}" \
       io.luvani.audio-decoder.image="${AUDIO_DECODER_IMAGE}" \
       io.luvani.audio-decoder.sha256="${AUDIO_DECODER_SHA256}"
