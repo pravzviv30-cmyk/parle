@@ -7,7 +7,7 @@ workers_dev = true
 [[d1_databases]]
 binding = "DB"
 database_name = "luvani-deletion-journal"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "c28b8558-7203-48c6-bf1e-1412af77b952"
 
 [vars]
 PROJECT_SHA256 = "b930cd71e3fcbc8308696e72fd1101befe46eb4577c7d1a763189f3b1bdace4e"
