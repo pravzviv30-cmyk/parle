@@ -11288,7 +11288,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [ ]
 - where: deployment/deletion-journal/ (new), services/token-server/src/deletionJournal.ts
-- note: Found 2026-10-26 preparing staging. `maintenance` refuses to start without the four `LUVANI_DELETION_JOURNAL_*` variables, and no store implemented the client's contract. Built a Cloudflare Worker with D1 (DEPLOY-002): append-only records with triggers refusing UPDATE and DELETE, sealed 24-hour snapshots for replay, constant-time bearer auth, one project per deployment; 10 tests drive the real client against it. Stays open until the founder deploys it, the variables are set on Railway `maintenance`, and a recovery drill has replayed through it.
+- note: Found 2026-10-26 preparing staging. `maintenance` refuses to start without the four `LUVANI_DELETION_JOURNAL_*` variables, and no store implemented the client's contract. Built a Cloudflare Worker with D1 (DEPLOY-002): append-only records with triggers refusing UPDATE and DELETE, sealed 24-hour snapshots for replay, constant-time bearer auth, one project per deployment; 10 tests drive the real client against it. Stays open until a recovery drill has replayed through it. Done 2026-10-27: deployed at `luvani-deletion-journal.pravzviv30.workers.dev` (D1 `luvani-deletion-journal`), the real client sealed and replayed an empty snapshot against it, the four variables are on Railway `maintenance`, and `maintenance` started on staging and runs idle.
 - verified-by: `replay through a sealed snapshot returns exactly the recorded users and excludes later writes`
 
 ### F884 — A refused or failed ElevenLabs request crashed the tutor worker
@@ -11304,7 +11304,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F885 — Staging had no price quotes, so api, tutor and practice could not start
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/paidQuotes.mjs (new), luvani_private.paid_quotes
-- note: Found 2026-10-26. Quotes must match runtime request shapes byte for byte and expire within 7 days, and nothing generated them. `scripts/paidQuotes.mjs` captures every shape from the running code with no vendor call, prices worst-case envelopes from the cost model, and writes owner SQL, `LUVANI_PAID_QUOTE_BINDINGS` and evidence outside the repo (DEPLOY-003). Its test applies the SQL over every migration and admits all nine bound activities through the real reserve, claim and resume path. Stays open until the SQL is applied on staging and the bindings are on api, tutor and practice. Renewal every 6 days.
+- note: Found 2026-10-26. Quotes must match runtime request shapes byte for byte and expire within 7 days, and nothing generated them. `scripts/paidQuotes.mjs` captures every shape from the running code with no vendor call, prices worst-case envelopes from the cost model, and writes owner SQL, `LUVANI_PAID_QUOTE_BINDINGS` and evidence outside the repo (DEPLOY-003). Its test applies the SQL over every migration and admits all nine bound activities through the real reserve, claim and resume path. Renewal every 6 days. Closed 2026-10-27: the SQL is applied on staging (quotes matched a PGlite replay), the bindings are on api, tutor and practice, and all three started on staging (`/health` 200, `/ready` green except the closed admission). A real paid session still waits for the acceptance check.
+- fixed: 2026-10-27 on staging (Railway, commit 6da98d94).
 - verified-by: `generated staging quotes admit every bound activity through the real SQL and runtime gate; renewal keeps old quotes valid`
