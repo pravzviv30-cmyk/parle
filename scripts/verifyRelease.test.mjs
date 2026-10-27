@@ -77,13 +77,16 @@ test('container build refuses missing pin/full revision before install',()=>{
   const result=spawnSync(process.execPath,['deployment/validateBuild.mjs'],{cwd:ROOT,env:{PATH:process.env.PATH,NODE_IMAGE:'node:24',GIT_SHA:'pending'},encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/exact reviewed image digest/);
 });
-test('static decoder image keeps byte verification and final nonroot offline runtime proofs',async()=>{
+test('static decoder image keeps byte verification and final nonroot runtime checks; network isolation lives in the release capture',async()=>{
   const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
   assert.match(docker,/COPY --from=audio-decoder \/ffmpeg \/usr\/local\/bin\/luvani-ffmpeg/);
   const runtime=docker.slice(docker.indexOf('\nUSER node\n'));
-  assert.match(runtime,/RUN --network=none node deployment\/verifyAudioDecoder\.mjs/);
+  assert.match(runtime,/RUN node deployment\/verifyAudioDecoder\.mjs/);
+  assert.doesNotMatch(docker,/--network=/);
   assert.match(runtime,/node deployment\/nativeArtifacts\.mjs --verify/);
   assert.match(runtime,/cd services\/tutor-agent[\s\S]*await VAD\.load\(\)/);
+  const capture=await readFile(resolve(ROOT,'deployment/captureContainerRuntime.mjs'),'utf8');
+  assert.match(capture,/'--network','none'/);assert.match(capture,/await VAD\.load\(\)/);assert.match(capture,/'-w','\/app\/services\/tutor-agent'/);
   const env={PATH:process.env.PATH,NODE_IMAGE:`node:24.16.0-bookworm-slim@sha256:${hash('base')}`,
     GIT_SHA:hash('source').slice(0,40),AUDIO_DECODER_IMAGE:`mwader/static-ffmpeg@sha256:${hash('image')}`,AUDIO_DECODER_SHA256:hash('decoder')};
   const valid=spawnSync(process.execPath,['deployment/validateBuild.mjs'],{cwd:ROOT,env,encoding:'utf8'});

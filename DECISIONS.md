@@ -1410,3 +1410,21 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   reminder reruns the generator, and the new bindings go to every service at
   once. Staging must leave the model, tier and TTS overrides unset or sessions
   refuse as `quote-mismatch`. F885.
+
+## DEPLOY-004 — Railway builds without the RUN network flag; the release capture proves offline
+
+- Date: 2026-10-27
+- Status: accepted
+- Decision: the Dockerfile runs the decoder check, the native artifact check and
+  the Silero model load as the runtime user on every build, without a network
+  flag. `deployment/captureContainerRuntime.mjs` runs the same three checks with
+  `--network none`, read-only and nonroot, and hashes each result into the
+  runtime capture (`silero.json` is the fourth file). A capture without the
+  Silero proof is refused before production promotion.
+- Reason: the first staging deploy failed at Dockerfile validation. Railway's
+  builder rejects `RUN --network=none`.
+- Rejected: build in GitHub Actions and deploy a prebuilt private image. That
+  needs Railway Pro ($20/month) for private registry credentials, or a public
+  image that would expose server code.
+- Consequence: a Railway build no longer proves the checks need no network.
+  That proof exists only once the release capture has run on a Docker host.

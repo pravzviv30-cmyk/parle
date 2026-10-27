@@ -67,12 +67,13 @@ COPY deployment/entrypoint.sh deployment/nativeArtifacts.mjs deployment/validate
 RUN chmod 0755 /usr/local/bin/luvani-ffmpeg && node deployment/verifyAudioDecoder.mjs && node deployment/nativeArtifacts.mjs --verify --output /app/native-artifacts.json
 # Image files remain root-owned; the runtime can only write bounded mounts.
 USER node
-# Repeat execution on the final Linux filesystem as the actual runtime user.
-# Network isolation proves imports, model loading and decoding need no download.
-RUN --network=none node deployment/verifyAudioDecoder.mjs \
+# Repeat the checks as the runtime user on the final filesystem.
+# Railway's builder refuses the RUN network flag, so the network-isolated proof of the
+# same checks runs in deployment/captureContainerRuntime.mjs (DEPLOY-004).
+RUN node deployment/verifyAudioDecoder.mjs \
     && node deployment/nativeArtifacts.mjs --verify \
     && cd services/tutor-agent \
-    && node --input-type=module -e "import { VAD } from '@livekit/agents-plugin-silero'; await VAD.load(); console.log('Offline nonroot Silero model load passed');"
+    && node --input-type=module -e "import { VAD } from '@livekit/agents-plugin-silero'; await VAD.load(); console.log('Nonroot Silero model load passed');"
 EXPOSE 8787
 STOPSIGNAL SIGTERM
 ENTRYPOINT ["/bin/sh", "/app/deployment/entrypoint.sh"]
