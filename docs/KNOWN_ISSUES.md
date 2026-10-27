@@ -10601,8 +10601,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: Dockerfile, .github/workflows/release.yml
-- note: The documented static decoder image exposes /ffmpeg, while the unexecuted portable build assumed /usr/local/bin/ffmpeg. The build now uses the documented path and retains byte-hash and compressed-audio verification. Final nonroot, network-disabled Linux decoder/native/model proofs run during the real build; image publication and hosted promotion remain separate.
-- verified-by: `static decoder image keeps byte verification and final nonroot offline runtime proofs`
+- note: The documented static decoder image exposes /ffmpeg, while the unexecuted portable build assumed /usr/local/bin/ffmpeg. The build now uses the documented path and retains byte-hash and compressed-audio verification. Final nonroot Linux decoder/native/model checks run during the real build; their network-disabled proof runs in `deployment/captureContainerRuntime.mjs` (DEPLOY-004), because Railway rejects `RUN --network=none`. Image publication and hosted promotion remain separate.
+- verified-by: `static decoder image keeps byte verification and final nonroot runtime checks; network isolation lives in the release capture`
 
 ### F805 — Reviewed portable decoder inputs exceed the immutable executable bound
 - severity: P2
