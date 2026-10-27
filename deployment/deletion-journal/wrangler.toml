@@ -10,6 +10,6 @@ database_name = "luvani-deletion-journal"
 database_id = "REPLACE_WITH_D1_ID"
 
 [vars]
-PROJECT_SHA256 = "REPLACE_WITH_PROJECT_SHA256"
+PROJECT_SHA256 = "b930cd71e3fcbc8308696e72fd1101befe46eb4577c7d1a763189f3b1bdace4e"
 
 # JOURNAL_TOKEN is a secret: `wrangler secret put JOURNAL_TOKEN`. Never put it here.
