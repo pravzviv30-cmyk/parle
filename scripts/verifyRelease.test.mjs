@@ -73,9 +73,18 @@ test('two different final approvals bind the complete evidence package',()=>{
   const same=fixture();same.promotionApprovals[1].reviewedBy=same.promotionApprovals[0].reviewedBy;assert.throws(()=>validate(same),/distinct/);
   const changed=fixture();changed.acceptance.voicePhysicalDevice.evidence[0].sha256=hash('changed');assert.throws(()=>validate(changed),/stale candidate/);
 });
-test('container build refuses missing pin/full revision before install',()=>{
+test('container build refuses missing pin/full revision before install',async()=>{
   const result=spawnSync(process.execPath,['deployment/validateBuild.mjs'],{cwd:ROOT,env:{PATH:process.env.PATH,NODE_IMAGE:'node:24',GIT_SHA:'pending'},encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/exact reviewed image digest/);
+  const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
+  for(const stage of ['AS dependencies','AS runtime']) {
+    const body=docker.slice(docker.indexOf(stage)).split(/\nFROM /)[0];
+    assert.match(body,/\nARG GIT_SHA\n/);assert.match(body,/\nARG RAILWAY_GIT_COMMIT_SHA\n/);
+  }
+  assert.ok(docker.includes('RUN GIT_SHA="${RAILWAY_GIT_COMMIT_SHA:-$GIT_SHA}" node deployment/validateBuild.mjs'));
+  assert.ok(docker.includes('org.opencontainers.image.revision="${RAILWAY_GIT_COMMIT_SHA:-${GIT_SHA}}"'));
+  const release=await readFile(resolve(ROOT,'.github/workflows/release.yml'),'utf8');
+  assert.ok(release.includes('--build-arg "GIT_SHA=$SOURCE_SHA"'));
 });
 test('static decoder image keeps byte verification and final nonroot runtime checks; network isolation lives in the release capture',async()=>{
   const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
