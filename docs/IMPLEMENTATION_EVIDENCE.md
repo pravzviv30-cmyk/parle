@@ -22,6 +22,12 @@ of the list.
 
 ## Current landing snapshot
 
+- 27 October 2026 staging unblockers on main (branch `claude/staging-unblockers`): decode-only FFmpeg
+  image recipe and workflow (DEPLOY-001), Cloudflare deletion journal (DEPLOY-002), price-quote generator
+  (DEPLOY-003) and the voice-error worker crash fix (F884). **6,736 tests, 0 failing**; core 1088, brain 534,
+  tutor agent 872, token server 493, playground 92, mobile 3657; shared release/provider proofs 206; all 44
+  migrations replayed, no migration added. Floors raised through `gate:bless`. The decoder image has not been
+  built, the journal is not deployed and the quotes are not applied: those are founder and staging steps.
 - 26 October 2026 learning loop (LEARN-001 to LEARN-006, F871 to F881) on branch
   `claude/learning-loop` from main 4173e94b (not on main): help earns no independent use,
   suspected vs recurring error patterns, assisted drill grades, practice completion only on
