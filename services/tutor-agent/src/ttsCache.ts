@@ -166,6 +166,19 @@ export class CachedTTS extends tts.TTS {
     if (conversation && (conversation.inner.sampleRate !== inner.sampleRate || conversation.inner.numChannels !== inner.numChannels
       || !conversation.voiceKey || conversation.voiceKey === this.opts.voiceKey)) throw new RangeError('Invalid conversation voice');
     this.charsBilledConversation = conversation ? 0 : undefined;
+    // The session listens for 'error' on this object only (agent_activity.ts
+    // attaches to the TTS it was handed). The vendor plugin emits on itself when
+    // a request is refused (paid proxy quote-mismatch, budget) or fails, and an
+    // EventEmitter 'error' with no listener throws ERR_UNHANDLED_ERROR, which
+    // takes down the whole worker and every session on it. Forward it to the
+    // session's existing pipeline-error path; with nobody listening yet (warm
+    // cache, guest scene gate) log one metadata-only line instead of throwing.
+    for (const source of [inner, conversation?.inner]) {
+      source?.on('error', (ev) => {
+        if (this.listenerCount('error') > 0) { this.emit('error', ev); return; }
+        console.error(`[luvani:live] tts error with no session listener provider=${source.provider} recoverable=${ev.recoverable ? 'yes' : 'no'}`);
+      });
+    }
     this.memo = new ReplayMemo(this.opts.memoMaxLines, this.opts.memoMaxBytes);
     this.#allowed = new Set(this.opts.authoredLines.map(normaliseLine).filter(line => line.length > 0));
     this.cacheDirectory = join(this.opts.dir, AUTHORED_CACHE_VERSION);

@@ -1390,3 +1390,23 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   `LUVANI_DELETION_JOURNAL_KEY` makes the journal unreadable, so it is kept in the
   founder's password manager. A seal reads every row once; Workers Paid lifts the
   CPU ceiling if it ever matters. F883.
+
+## DEPLOY-003 — Staging price quotes from code, booked worst case, renewed weekly
+
+- Date: 2026-10-27
+- Status: accepted (generated, not applied)
+- Decision: `scripts/paidQuotes.mjs --reviewed-by <name> --out <dir outside the repo>`
+  captures each paid request shape from the running code, prices worst-case
+  envelopes, and writes owner SQL plus `LUVANI_PAID_QUOTE_BINDINGS`. Staging keeps
+  all six voices with a booking ceiling of $21/day globally and $6.70/day per
+  account (founder, 2026-10-27), both derived from the dearest session booking.
+  Admission caps: 3 sessions at once, 3,600 s a day, 1,200 s per account.
+- Reason: bookings are worst case (about 4 times real cost, every voice summed),
+  so a $3 ceiling admitted no spoken conversation. Real tutor spend stays near
+  $3 a day because the admission caps bind first. Judges, takes, Hear and
+  practice are limited by their booking and operation caps and by the provider
+  spend caps the founder set.
+- Consequence: quotes expire after 6 days and every paid route closes; a weekly
+  reminder reruns the generator, and the new bindings go to every service at
+  once. Staging must leave the model, tier and TTS overrides unset or sessions
+  refuse as `quote-mismatch`. F885.

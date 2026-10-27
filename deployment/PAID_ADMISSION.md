@@ -149,3 +149,13 @@ Focused checks as of 2026-10-04:
 - Nine shared-helper tests and five operator-validator tests pass. Explicit strict TypeScript checking of both new shared files passes. All financial test units and evidence URLs are synthetic fixtures, never actual vendor quotes.
 
 Actual independent PostgreSQL concurrency/deadlocks, hosted grants/catalog, migration promotion and restores, quote economics, the provider transport's output/timeout/retry bounds, invoice allocation, load and all paid call-site coverage remain mandatory acceptance. The local validator applies no configuration and always reports `pricesVerified:false` and `runtimeEnvelopeVerified:false`.
+
+## Staging quotes (DEPLOY-003, 2026-10-27)
+
+Staging quotes come from `node scripts/paidQuotes.mjs --reviewed-by "<name>" --out <dir outside the repo>`.
+It captures each request shape from the running code (no vendor call), prices worst-case envelopes from the cost
+model, and writes owner SQL, `LUVANI_PAID_QUOTE_BINDINGS` and an evidence file. Quotes expire after six days: rerun
+it and deploy the new bindings to api, tutor and practice at once. A quote books every voice component it carries,
+so each quoted voice adds its full text-to-speech envelope to every session. Defaults: all six voices, $21/day
+global and $6.70/day per account, derived from the dearest session booking. The pinned environment the hashes
+assume (no model, tier or TTS overrides) is written into the evidence file.

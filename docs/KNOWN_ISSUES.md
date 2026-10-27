@@ -11289,3 +11289,21 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: deployment/deletion-journal/ (new), services/token-server/src/deletionJournal.ts
 - note: Found 2026-10-26 preparing staging. `maintenance` refuses to start without the four `LUVANI_DELETION_JOURNAL_*` variables, and no store implemented the client's contract. Built a Cloudflare Worker with D1 (DEPLOY-002): append-only records with triggers refusing UPDATE and DELETE, sealed 24-hour snapshots for replay, constant-time bearer auth, one project per deployment; 10 tests drive the real client against it. Stays open until the founder deploys it, the variables are set on Railway `maintenance`, and a recovery drill has replayed through it.
 - verified-by: `replay through a sealed snapshot returns exactly the recorded users and excludes later writes`
+
+### F884 — A refused or failed ElevenLabs request crashed the tutor worker
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/ttsCache.ts (`CachedTTS` constructor)
+- note: Found 2026-10-27 while capturing paid request shapes. A refused (paid proxy `quote-mismatch` or budget) or failed ElevenLabs request made the plugin TTS inside `CachedTTS` emit 'error' with nobody listening; Node threw ERR_UNHANDLED_ERROR and the worker died with every live session on it. `CachedTTS` now forwards the main and conversation-tier errors into the session's existing pipeline-error path (`kind=tts_error`, the error frame, `terminalFailureFor`) and logs one metadata-only line when no session listens. Deepgram and the LLM plugins were not affected; the SDK listens on them directly. Not yet covered: an end-to-end refund after a voice refusal, and a possible duplicate error frame if the failure also surfaces through `CachedChunkedStream`.
+- fixed: 2026-10-27 on `claude/staging-unblockers`.
+- verified-by: `a vendor voice error reaches the session through the cached voice instead of crashing the worker`
+- verified-by: `a conversation-tier voice error is routed the same way as the main voice`
+- verified-by: `a vendor voice error with no session listening yet is logged rather than thrown`
+- verified-by: `the ElevenLabs voice built for a session does not crash the worker when the paid proxy refuses it`
+
+### F885 — Staging had no price quotes, so api, tutor and practice could not start
+- severity: P2
+- status: [ ]
+- where: scripts/paidQuotes.mjs (new), luvani_private.paid_quotes
+- note: Found 2026-10-26. Quotes must match runtime request shapes byte for byte and expire within 7 days, and nothing generated them. `scripts/paidQuotes.mjs` captures every shape from the running code with no vendor call, prices worst-case envelopes from the cost model, and writes owner SQL, `LUVANI_PAID_QUOTE_BINDINGS` and evidence outside the repo (DEPLOY-003). Its test applies the SQL over every migration and admits all nine bound activities through the real reserve, claim and resume path. Stays open until the SQL is applied on staging and the bindings are on api, tutor and practice. Renewal every 6 days.
+- verified-by: `generated staging quotes admit every bound activity through the real SQL and runtime gate; renewal keeps old quotes valid`
