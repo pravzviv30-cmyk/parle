@@ -10606,11 +10606,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F805 — Reviewed portable decoder inputs exceed the immutable executable bound
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: deployment/verifyAudioDecoder.mjs, services/shared/audioDecode.ts
 - note: Actual OCI build 38271932614 passed the source contract but refused the independently hashed static-ffmpeg 9.0.2-1 binary (144,081,824 bytes); the maintained 8.1.2 candidate also exceeds the existing 128 MiB bound (140,059,552 bytes). The rejection is correct. A compatible reviewed immutable decoder artifact must pass the unchanged size/hash/compressed-audio and final nonroot offline Linux checks before portable image acceptance. No artifact was published or hosted workload deployed. Since 2026-10-22 (F623) live lesson scoring no longer needs the decoder: the worker converts its own PCM capture in process. Drill and sound-check uploads, which arrive compressed, still do.
 - update: 2026-10-26, DEPLOY-001. `deployment/audio-decoder` builds a decode-only, static, LGPL FFmpeg 7.1.5 (hash-pinned tarball on digest-pinned Alpine 3.21, pipe protocol and the six whitelisted formats only, musl 1.2.5 licence pinned). `.github/workflows/audio-decoder.yml` pushes by digest, runs the unchanged `verifyAudioDecoder.mjs` nonroot and offline on the pinned Node 24.16.0 image, and only then tags. Stays open until that workflow has run green and its digest and binary hash are the release inputs.
 - verified-by: `immutable decoder rejects an executable above 128 MiB before execution`
+- fixed: 2026-10-27. The `audio-decoder` workflow run passed the unchanged verifier nonroot and offline and published `ghcr.io/pravzviv30-cmyk/luvani-audio-decoder@sha256:13196ac81339fb5cae48bca34f31019438d3a9f88f46fc3f49860e7a2d6cfabb` with binary sha256 `aa112fc43d1ac9eec1c39c006bfcad65dfcd6d11772cdd8ba09872d7a7f1128c`; both are staged as `AUDIO_DECODER_IMAGE` and `AUDIO_DECODER_SHA256` on the four Railway staging services. The first Railway build is still to come.
 
 ### F806 — Raised choices interrupt their own release spring
 - severity: P2
