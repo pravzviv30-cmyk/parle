@@ -11309,3 +11309,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-26. Quotes must match runtime request shapes byte for byte and expire within 7 days, and nothing generated them. `scripts/paidQuotes.mjs` captures every shape from the running code with no vendor call, prices worst-case envelopes from the cost model, and writes owner SQL, `LUVANI_PAID_QUOTE_BINDINGS` and evidence outside the repo (DEPLOY-003). Its test applies the SQL over every migration and admits all nine bound activities through the real reserve, claim and resume path. Renewal every 6 days. Closed 2026-10-27: the SQL is applied on staging (quotes matched a PGlite replay), the bindings are on api, tutor and practice, and all three started on staging (`/health` 200, `/ready` green except the closed admission). A real paid session still waits for the acceptance check.
 - fixed: 2026-10-27 on staging (Railway, commit 6da98d94).
 - verified-by: `generated staging quotes admit every bound activity through the real SQL and runtime gate; renewal keeps old quotes valid`
+
+### F886 — A fresh account's billing status fails until its first session
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/store.ts (`SupabaseEntitlementStore.get`), supabase/migrations/20261020140000_weekly_free_taste.sql (`consume_entitlement`)
+- note: Found 2026-10-27 in the staging acceptance check. `/billing/status` reads through `consume_entitlement(user, 0)`. Since migration 40 that function raises `entitlement has not been provisioned` when the row is missing, and only `claim_trial` (run by `/session/start`) creates the row. So a signed-in account that has not yet started a session gets a 500 from `/billing/status`. The app treats it as "could not check" (`fetchBillingStatus` returns null), so nothing breaks for the learner, but every new learner who opens Settings or the wall first logs a server error, and the server comment above the route ("creates a missing default row") is no longer true. Fix shape to decide with data-sync-engineer: answer the not-yet-provisioned case as a fresh trial view without writing (no trial claim, no installation evidence), or have the read call the read-only provisioning check. After the first session the read works: the acceptance account showed trial, 600 s remaining.
+- verified-by: `billing status for a signed-in account with no entitlement row answers a fresh trial and writes nothing`
+
+### F887 — Railway builds fail at random when onnxruntime-node cannot reach its download
+- severity: P2
+- status: [ ]
+- where: Dockerfile (`npm ci` in the dependencies stage), onnxruntime-node install script
+- note: Found 2026-10-27 on the first staging deploys. `onnxruntime-node`'s install script downloads its native library from Microsoft during `npm ci`. It timed out (`ETIMEDOUT 150.171.109.35:443`, no IPv6 route) on 2 of 9 Railway builds, failing the whole build; a redeploy passed each time. A deploy should not need a manual retry. Options: retry the install step, or fetch and hash-pin the native archive once (it is already recorded by `deployment/nativeArtifacts.mjs`) so the build does not depend on that host. Owner: deploy-engineer.
+- verified-by: `the backend image installs native artifacts with a bounded retry or from a pinned archive`
