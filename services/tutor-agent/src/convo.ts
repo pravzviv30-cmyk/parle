@@ -276,6 +276,7 @@ export function drillPhraseKeys(
 
 function safeModelProfile(profile: LearnerProfile): LearnerProfile {
   const fresh = repairProfile(undefined);
+  const { learnerGoals: rawGoals, ...memory } = profile.memory;
   const errorPatterns = Object.fromEntries(Object.entries(profile.errorPatterns).slice(0, MAX_ERROR_PATTERNS)
     .filter(([tag, value]) => safeContextText(tag) && value && Number.isFinite(value.count)));
   const phrases = Object.fromEntries(Object.entries(profile.phrases).slice(0, MAX_PHRASES)
@@ -286,11 +287,18 @@ function safeModelProfile(profile: LearnerProfile): LearnerProfile {
     confidence: ['low','medium','high'].includes(profile.cefr.confidence) ? profile.cefr.confidence : fresh.cefr.confidence },
     errorPatterns, phrases, preferences: { ...profile.preferences,
       lastScenarios: profile.preferences.lastScenarios.slice(-12).filter(safeContextText) },
-    memory: { ...profile.memory, facts: profile.memory.facts.filter(fact => safeContextText(fact.en)
+    memory: { ...memory, facts: profile.memory.facts.filter(fact => safeContextText(fact.en)
       && (fact.fr === null || safeContextText(fact.fr))),
       opener: profile.memory.opener && safeContextText(profile.memory.opener.fr) && safeContextText(profile.memory.opener.en) ? profile.memory.opener : null,
-      name: profile.memory.name && safeContextText(profile.memory.name) ? profile.memory.name : null },
+      name: profile.memory.name && safeContextText(profile.memory.name) ? profile.memory.name : null,
+      ...safeLearnerGoals(rawGoals) },
   };
+}
+
+/** The learner's typed goals, each one only when it is safe model context; the key goes when none is. */
+function safeLearnerGoals(goals: readonly string[] | undefined): { learnerGoals?: string[] } {
+  const kept = (goals ?? []).filter(safeContextText);
+  return kept.length > 0 ? { learnerGoals: kept } : {};
 }
 
 /** Existing saved notes, bounded and labelled without inventing a session source. */
@@ -3307,7 +3315,7 @@ export class LuvaniConversation extends voice.Agent {
     // without a question.
     if (turnCount === 0 || this.lastRecap === null || this.memoryLocked || this.profile.memory.control?.paused === true) return;
     try {
-      const request = buildExtractionRequest({ history: this.state.history, knownFacts: this.profile.memory.facts });
+      const request = buildExtractionRequest({ history: this.state.history, knownFacts: this.profile.memory.facts, knownGoals: this.profile.memory.learnerGoals ?? [] });
       const ms = Math.min(postSessionDeadlineMs('extract'), maximumMs ?? Infinity);
       const result = await withDeadline(
         (signal) => this.client.extract({ kind: 'extract', system: buildSystemBlocks(this.persona), request, signal }),

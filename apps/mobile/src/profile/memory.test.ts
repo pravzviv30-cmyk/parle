@@ -4,8 +4,8 @@
  * The defect these hold against is quiet: a fact deleted from the brain is
  * back the next session that mentions it, because the extraction dedupes on
  * the fact's own text and sees nothing on file. So a forget is a tombstone,
- * applied at the one write every recap goes through, and a goal is appended
- * where the agent's `slice(-5)` will find it.
+ * applied at the one write every recap goes through, and a typed goal rides
+ * beside the facts as `memory.learnerGoals`, never as one of them.
  */
 
 import { describe, test } from 'node:test';
@@ -133,17 +133,15 @@ describe('the tutor’s memory, edited by the learner', () => {
     assert.deepEqual(visibleFacts(cleared), []);
     assert.deepEqual(cleared.forgottenFacts, [factKey('Has a job interview on Friday'), factKey('Likes jazz')]);
 
-    // A goal rides last, or never: the agent sends the last five facts, so
-    // with a full memory the goal is still among them, and the brain's cap
-    // holds from the end.
+    // A goal rides beside the facts, never among them (LEARN-009): a full
+    // memory keeps its twelve facts and the goal rides as `learnerGoals`.
     const full = learner(Array.from({ length: MAX_MEMORY_FACTS }, (_, i) => fact(`Fact number ${i}`)));
     const withGoal = withLearnerGoal(full, '  Order at a bakery   without switching to English ');
     assert.deepEqual(withGoal.learnerGoals, ['Order at a bakery without switching to English'], 'the goal was not trimmed and collapsed');
     const snapshot = snapshotFor(withGoal);
-    assert.equal(snapshot.memory.facts.length, MAX_MEMORY_FACTS, 'the snapshot outgrew the brain’s own cap');
-    const ride = snapshot.memory.facts.slice(-5).map((f) => f.en);
-    assert.ok(ride.includes('Their goal: Order at a bakery without switching to English'), `the goal is not among the five that ride: ${ride.join(' | ')}`);
-    assert.equal(snapshot.memory.facts[snapshot.memory.facts.length - 1]!.kind, 'goal');
+    assert.equal(snapshot.memory.facts.length, MAX_MEMORY_FACTS, 'a goal took a fact’s place');
+    assert.ok(!snapshot.memory.facts.some((f) => f.kind === 'goal'), 'a typed goal rode as a fact');
+    assert.deepEqual(snapshot.memory.learnerGoals, ['Order at a bakery without switching to English']);
     assert.equal(snapshot.memory.name, 'Camille', 'the name stopped riding with the snapshot');
     assert.deepEqual(withGoal.brain, full.brain, 'a goal was written into the brain rather than beside it');
 
@@ -154,7 +152,8 @@ describe('the tutor’s memory, edited by the learner', () => {
     assert.deepEqual(goals.learnerGoals, ['b', 'c', 'd']);
     assert.equal(goals.learnerGoals.length, MAX_LEARNER_GOALS);
     assert.deepEqual(withoutLearnerGoal(goals, 'c').learnerGoals, ['b', 'd']);
-    assert.equal(snapshotFor(learner()).memory.facts.length, 0, 'with no goal, nothing is appended');
+    assert.equal(snapshotFor(learner()).memory.facts.length, 0);
+    assert.equal('learnerGoals' in snapshotFor(learner()).memory, false, 'with no goal, nothing rides');
 
     // Forget markers never expire by count.
     let many = learner();

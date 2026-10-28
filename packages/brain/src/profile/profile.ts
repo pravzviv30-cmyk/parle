@@ -115,6 +115,13 @@ export interface LearnerProfile {
      * memory is paused. Optional so profiles stored before it stay valid.
      */
     goal?: LearnerGoal | null;
+    /**
+     * The learner's own typed goals (at most three), wire-only. The app's
+     * session snapshot composes them from `StoredProfile.learnerGoals`; the app
+     * never stores them back from a recap. They are not facts and do not count
+     * towards `MAX_MEMORY_FACTS`.
+     */
+    learnerGoals?: string[];
   };
   /**
    * `pace` is optional because it arrived after the shape shipped: a profile
@@ -191,6 +198,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * keeps the learner's error patterns, phrases and CEFR evidence, which is the
  * whole point of not simply starting over.
  */
+/** Wire goals read sceptically: strings, collapsed, trimmed, at most 120 chars, deduped, the last three; else none. */
+function validWireLearnerGoals(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const goals: string[] = [];
+  for (const raw of value) {
+    if (typeof raw !== 'string') continue;
+    const text = raw.replace(/\s+/g, ' ').trim().slice(0, 120).trim();
+    if (text.length === 0 || goals.some((goal) => normalise(goal) === normalise(text))) continue;
+    goals.push(text);
+  }
+  return goals.length === 0 ? null : goals.slice(-3);
+}
+
 export function repairProfile(stored: unknown): LearnerProfile {
   if (
     !isRecord(stored) ||
@@ -207,7 +227,8 @@ export function repairProfile(stored: unknown): LearnerProfile {
   const migrated = repairLearningHistory(migrateProfile(stored as unknown as LearnerProfile));
   const memory = migrated.memory;
   if (isRecord(memory) && Array.isArray(memory.facts)) {
-    const { control: rawControl, goal: rawGoal, ...memoryFields } = memory;
+    const { control: rawControl, goal: rawGoal, learnerGoals: rawLearnerGoals, ...memoryFields } = memory;
+    const learnerGoals = validWireLearnerGoals(rawLearnerGoals);
     const control = validMemoryControl(rawControl);
     // `opener` and `name` both arrived after version 2 shipped, so neither can
     // be assumed present. Filling them in beats bumping the version: the
@@ -226,6 +247,7 @@ export function repairProfile(stored: unknown): LearnerProfile {
         // Kept only as a known tag; anything else is dropped, key and all.
         ...(isLearnerGoal(rawGoal) ? { goal: rawGoal } : {}),
         ...(control ? { control } : {}),
+        ...(learnerGoals ? { learnerGoals } : {}),
       },
     } as LearnerProfile;
   }

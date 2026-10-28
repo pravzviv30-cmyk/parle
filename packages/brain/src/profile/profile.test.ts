@@ -681,3 +681,22 @@ describe('a remembered fact says where it came from (LEARN-007)', () => {
     assert.equal(f!.notedAt, now);
   });
 });
+
+describe('repairProfile: wire-only learner goals (LEARN-009)', () => {
+  const withGoals = (learnerGoals: unknown): unknown => {
+    const p = createProfile();
+    return { ...p, memory: { ...p.memory, learnerGoals } };
+  };
+  test('keeps a clean, bounded list of strings', () => {
+    const long = 'x'.repeat(200);
+    const repaired = repairProfile(withGoals(['  Order   bread ', 'order bread', 7, '', long, 'a', 'b']));
+    assert.deepEqual(repaired.memory.learnerGoals, ['x'.repeat(120), 'a', 'b']);
+    assert.deepEqual(repairProfile(withGoals(['Call the plumber'])).memory.learnerGoals, ['Call the plumber']);
+  });
+  test('anything else drops the key, past the unknown-key spread', () => {
+    for (const junk of ['Order bread', [], [3, null], { 0: 'x' }, ['   ']]) {
+      assert.equal('learnerGoals' in repairProfile(withGoals(junk)).memory, false, JSON.stringify(junk));
+    }
+    assert.equal('learnerGoals' in repairProfile(createProfile()).memory, false);
+  });
+});

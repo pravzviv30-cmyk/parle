@@ -63,3 +63,16 @@ describe('the transcript renders with honest speaker labels', () => {
     assert.ok(learner < tutor && tutor < app);
   });
 });
+
+describe('the learner’s typed goals are named, not re-extracted (LEARN-009)', () => {
+  const HEAD = `The learner's own goals (they wrote these; already on file, do not re-extract them as facts):`;
+  test('listed before the transcript when present', () => {
+    const r = request({ knownGoals: ['Order at a bakery', 'Call the plumber'] });
+    assert.ok(r.includes(`${HEAD}\n- Order at a bakery\n- Call the plumber\n`));
+    assert.ok(r.indexOf(HEAD) < r.indexOf('TRANSCRIPT'));
+  });
+  test('absent when there are none', () => {
+    assert.ok(!request().includes(HEAD));
+    assert.ok(!request({ knownGoals: [] }).includes(HEAD));
+  });
+});
