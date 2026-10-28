@@ -30,7 +30,7 @@ import { createProfile, type LearnerProfile, type RememberedFact } from '@luvani
 import { guiltIn } from '../copy/guilt.ts';
 import { createStoredProfile, type StoredProfile } from './store.ts';
 import { withFactForgotten, withLearnerGoal } from './memory.ts';
-import { TUTOR_MEMORY_COPY, memoryLabel, memorySummary } from './tutorMemory.ts';
+import { FORGOTTEN_NOTE, MEMORY_SAVING, TUTOR_MEMORY_COPY, WHAT_LEAVES, memoryLabel, memoryStatusLine, memorySummary } from './tutorMemory.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -180,5 +180,36 @@ describe('what the tutor remembers, drawn', () => {
     assert.equal(writtenBefore('b a', 'a', 'b'), false, 'the ordering check passes on the order it exists to catch');
     assert.equal(writtenBefore('a b', 'a', 'b'), true, 'the shape the card ships does not pass its own check');
     assert.equal(writtenBefore('a', 'a', 'gone'), false, 'a deleted second needle passes the ordering check');
+  });
+});
+
+describe('what the screen says after a forget (F897)', () => {
+  test('the status line puts an error first, a save in flight second and the forgotten note last', () => {
+    const error = 'Your memory change could not be saved. It has not been applied. Try again.';
+    assert.equal(memoryStatusLine({ saving: false, error: null, forgotten: false }), null);
+    assert.equal(memoryStatusLine({ saving: true, error: null, forgotten: false }), MEMORY_SAVING);
+    assert.equal(memoryStatusLine({ saving: false, error: null, forgotten: true }), FORGOTTEN_NOTE);
+    assert.equal(memoryStatusLine({ saving: true, error: null, forgotten: true }), MEMORY_SAVING, 'the next change replaces the note while it saves');
+    assert.equal(memoryStatusLine({ saving: false, error, forgotten: true }), error, 'a failed save is never hidden by the note');
+    assert.equal(memoryStatusLine({ saving: true, error, forgotten: false }), error);
+  });
+
+  test('the note is warm and plain, names where a conversation is deleted, and the screen shows it only after a saved forget or clear', () => {
+    assert.equal(guiltIn(FORGOTTEN_NOTE), undefined);
+    assert.doesNotMatch(FORGOTTEN_NOTE, /\d|—/);
+    assert.ok(TUTOR_MEMORY_COPY.includes(FORGOTTEN_NOTE), 'the copy sweeps do not read the note');
+    // Conversations are deleted from the Journey tab ("Your conversations"), not from Progress.
+    assert.match(FORGOTTEN_NOTE, /Saved conversations stay as they are/);
+    assert.match(FORGOTTEN_NOTE, /Journey/);
+    assert.match(WHAT_LEAVES, /managed separately in Journey\./);
+    assert.doesNotMatch(WHAT_LEAVES, /Progress/);
+    // One live region carries the status; the flag is cleared by every new change and set only on success.
+    assert.match(FLAT, /const statusLine = memoryStatusLine\(\{ saving, error: memoryError, forgotten \}\);/);
+    assert.match(FLAT, /\{statusLine !== null \? <Text accessibilityLiveRegion="polite"/);
+    assert.match(FLAT, /setMemoryError\(null\); setForgotten\(false\);/, 'a new change keeps the old note');
+    assert.match(FLAT, /const forgetNote = \(ok: boolean\) => \{ if \(ok && alive\.current\) setForgotten\(true\); \};/);
+    assert.match(FLAT, /withFactForgotten\(current, fact\.en\)\)\.then\(forgetNote\)/, 'forgetting one detail does not show the note');
+    assert.match(FLAT, /commitMemory\(withMemoryCleared\)\.then\(\(ok\) => \{ forgetNote\(ok\);/, 'clearing every detail does not show the note');
+    assert.equal((SCREEN.match(/setForgotten\(true\)/g) ?? []).length, 1, 'something else shows the note');
   });
 });

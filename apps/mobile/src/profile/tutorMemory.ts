@@ -58,15 +58,35 @@ export const GOAL_PLACEHOLDER = 'e.g. Order at a bakery without switching to Eng
 export const ADD_GOAL = 'Add this goal';
 export const REMOVE_GOAL = 'Remove';
 /** One plain sentence on what leaves the phone. Names the slice the agent sends. */
-export const WHAT_LEAVES = 'Recent remembered details and your goals help personalise new conversations unless you pause personal memory. Your tutor also uses your name, learning progress and preferences. You can edit or remove details here; saved conversations are managed separately in Progress.';
+export const WHAT_LEAVES = 'Recent remembered details and your goals help personalise new conversations unless you pause personal memory. Your tutor also uses your name, learning progress and preferences. You can edit or remove details here; saved conversations are managed separately in Journey.';
+/**
+ * Shown once a forget or a clear has been saved (F897). A saved conversation is
+ * built from the conversation itself and never reads profile memory, so
+ * forgetting a detail leaves nothing of it behind there, but a learner may
+ * reasonably wonder. Deleting a conversation is on the Journey tab, under
+ * "Your conversations".
+ */
+export const FORGOTTEN_NOTE = 'Forgotten. Saved conversations stay as they are, and you can delete one in Journey.';
+export const MEMORY_SAVING = 'Saving your memory change.';
 export const MEMORY_SCOPE = 'Use memory for French goals and everyday interests, family and travel. Keep sensitive personal details out of goals and notes.';
 
 /** Every line the card and the screen spell themselves, for the copy sweeps. */
 export const TUTOR_MEMORY_COPY: readonly string[] = [
   PARTNER_LINE, MEMORY_ROW_SUB, ...Object.values(KIND_GLOSS), FORGET_ONE, FORGET_ALL, NOTHING_YET,
   MEMORY_PAUSE_TITLE, MEMORY_PAUSE_SUB, MEMORY_PAUSED_EMPTY,
-  GOALS_LABEL, GOALS_SUB, GOAL_PLACEHOLDER, ADD_GOAL, REMOVE_GOAL, WHAT_LEAVES, MEMORY_SCOPE,
+  GOALS_LABEL, GOALS_SUB, GOAL_PLACEHOLDER, ADD_GOAL, REMOVE_GOAL, WHAT_LEAVES, MEMORY_SCOPE, FORGOTTEN_NOTE, MEMORY_SAVING,
 ];
+
+/**
+ * The one status line under the memory settings. A failed save always wins,
+ * then the save in flight, then the note after a forget; null draws nothing.
+ * A new change clears `forgotten`, so the note lasts until the next change.
+ */
+export function memoryStatusLine({ saving, error, forgotten }: { saving: boolean; error: string | null; forgotten: boolean }): string | null {
+  if (error) return error;
+  if (saving) return MEMORY_SAVING;
+  return forgotten ? FORGOTTEN_NOTE : null;
+}
 
 /**
  * One line on the card saying how much the tutor holds, in words. Never a
