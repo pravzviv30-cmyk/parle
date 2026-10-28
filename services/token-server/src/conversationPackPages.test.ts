@@ -129,8 +129,9 @@ test('a session with no reply in the scene is never listed as a conversation',as
     String(url).includes('/rest/v1/conversation_packs?')?Response.json([]):Response.json({version:1,kind:'page',rows:[silent,older,replied],nextCursor:next}));
   assert.deepEqual(page.packs.map(pack=>pack.id),[older.id,replied.id],'an older pack and a replied one are shown');
   assert.equal(page.nextCursor,JSON.stringify(next),'hiding a row never costs the page its progress');
-  const alone=await conversationPackPage('https://project.example','fixture',owner,null,response({version:1,kind:'page',rows:[silent],nextCursor:cursor(silent)}));
-  assert.deepEqual(alone.packs,[]);assert.equal(alone.nextCursor,JSON.stringify(cursor(silent)));
+  // The last page holding only a hidden session is an honest end, not an "Older" link.
+  const alone=await conversationPackPage('https://project.example','fixture',owner,null,response({version:1,kind:'page',rows:[silent],nextCursor:null}));
+  assert.deepEqual(alone.packs,[]);assert.equal(alone.nextCursor,null);
   assert.equal(await conversationPackById('https://project.example','fixture',owner,silent.id,response({version:1,kind:'pack',rows:[silent],nextCursor:null})),null,'nor opened by id');
   assert.equal((await conversationPackById('https://project.example','fixture',owner,replied.id,response({version:1,kind:'pack',rows:[replied],nextCursor:null})))?.id,replied.id);
 });
@@ -144,4 +145,29 @@ test('a guest session with no reply in the scene hands back no conversation pack
     const result = guestLiveResult({ ...live, learnerTurns: 1, baseline, endedAt: 1, outcome: 'partial' }, 2);
     assert.equal(result.pack !== null, shown, String(learnerReplies));
   }
+});
+test('a page of only hidden sessions never comes back empty with a cursor',async()=>{
+  const silent=(row:typeof rows[number])=>({...row,payload:{...row.payload,learnerReplies:0}});
+  const pages=[
+    {version:1,kind:'page',rows:[silent(rows[0]!),silent(rows[1]!)],nextCursor:cursor(rows[1]!)},
+    {version:1,kind:'page',rows:[silent(rows[2]!)],nextCursor:cursor(rows[2]!)},
+    {version:1,kind:'page',rows:[rows[3]!],nextCursor:null},
+  ];
+  const asked:unknown[]=[];
+  const page=await conversationPackPage('https://project.example','fixture',owner,null,async(url,init)=>{
+    if(String(url).includes('/rest/v1/conversation_packs?'))return Response.json([]);
+    asked.push(JSON.parse(String(init?.body)).p_after_id);return Response.json(pages[asked.length-1]);
+  });
+  assert.deepEqual(page.packs.map(pack=>pack.id),[rows[3]!.id],'reading on reaches the next real conversation');
+  assert.equal(page.nextCursor,null);
+  assert.deepEqual(asked,[null,rows[1]!.id,rows[2]!.id],'each extra read starts where the last one ended');
+  // Bounded: an endless run of hidden rows stops reading and hands back the cursor it reached.
+  let reads=0;
+  const endless=await conversationPackPage('https://project.example','fixture',owner,null,async(_url,init)=>{
+    reads++;const after=JSON.parse(String(init?.body)).p_after_id as string|null;
+    const index=after===null?0:rows.findIndex(row=>row.id===after)+1;
+    return Response.json({version:1,kind:'page',rows:[silent(rows[index]!)],nextCursor:cursor(rows[index]!)});
+  });
+  assert.ok(reads>=2&&reads<=4,`bounded extra reads, got ${reads}`);
+  assert.deepEqual(endless.packs,[]);assert.notEqual(endless.nextCursor,null);
 });

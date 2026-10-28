@@ -86,8 +86,18 @@ async function lookup(base: string, secret: string, userId: string, after: PackC
 export async function conversationPackPage(base: string, secret: string, userId: string, after: string | null, request: typeof fetch = fetch): Promise<{ packs: ListedPack[]; unavailable:UnavailablePack[]; nextCursor: string | null }> {
   const cursor = after === null ? null : packCursor(after);
   if (after !== null && !cursor) throw new HttpInputError(400, 'invalid conversation cursor');
-  return lookup(base, secret, userId, cursor, null, request);
+  let page = await lookup(base, secret, userId, cursor, null, request);
+  // Zero-reply sessions are dropped after the database pages (F904), so a page
+  // can come back holding only hidden rows. Read on from where it ended, a
+  // bounded number of times, rather than hand the app an empty page with an
+  // "Older" link. Past the bound the cursor is returned as it stands.
+  for (let extra = 0; extra < HIDDEN_PAGE_READS && page.packs.length === 0 && page.unavailable.length === 0 && page.nextCursor !== null; extra++) {
+    page = await lookup(base, secret, userId, packCursor(page.nextCursor), null, request);
+  }
+  return page;
 }
+/** Extra page reads allowed when every row of a page was a hidden session. */
+export const HIDDEN_PAGE_READS = 3;
 /** Old bookmarks remain independently addressable outside a bounded library page. */
 export async function conversationPackById(base: string, secret: string, userId: string, packId: string, request: typeof fetch = fetch): Promise<ListedPack | null> {
   if (!uuid.test(packId)) throw new HttpInputError(400, 'invalid Conversation Pack id');
