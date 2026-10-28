@@ -11,7 +11,7 @@ import { upgradeStored } from './upgrade.ts';
 
 const held = () => {
   const profile = createStoredProfile({ name: 'James', motivation: 'travel' }, 1000);
-  profile.brain.memory.facts = [{ kind: 'interest', en: 'Likes jazz', fr: 'Aime le jazz', notedAt: '2026-01-01', happensAround: null }];
+  profile.brain.memory.facts = [{ kind: 'interest', en: 'Likes jazz', fr: 'Aime le jazz', notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01', happensAround: null }];
   profile.brain.memory.opener = { en: 'How was the concert?', fr: 'Comment était le concert ?' };
   return profile;
 };
@@ -50,6 +50,7 @@ test('pause withholds personal facts and goals while preserving name and French 
   assert.deepEqual(paused.brain.memory.facts, profile.brain.memory.facts, 'pause preserves what the learner can manage');
   const snapshot = snapshotFor(paused);
   assert.deepEqual(snapshot.memory.facts, []);
+  assert.equal(snapshot.memory.learnerGoals, undefined, 'a paused memory still carried the typed goals');
   assert.equal(snapshot.memory.opener, null);
   assert.equal(snapshot.memory.name, 'James');
   assert.deepEqual(snapshot.stats, profile.brain.stats);
@@ -60,7 +61,7 @@ test('pause withholds personal facts and goals while preserving name and French 
   const resumed = withMemoryPaused(paused, false, 1000);
   assert.equal(resumed.brain.memory.control?.changedAt, 2001, 'the local observed clock must advance even after clock rollback');
   assert.equal(memoryPaused(resumed.brain), false);
-  assert.ok(snapshotFor(resumed).memory.facts.some((fact) => fact.en.includes('bakery')));
+  assert.deepEqual(snapshotFor(resumed).memory.learnerGoals, ['Order at a bakery']);
   const screen = readFileSync(new URL('./TutorMemoryScreen.tsx', import.meta.url), 'utf8');
   assert.match(screen, /SwitchRow[^\n]+MEMORY_PAUSE_TITLE[^\n]+commitMemory[^\n]+withMemoryPaused/);
 });

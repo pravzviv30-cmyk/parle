@@ -114,8 +114,8 @@ export function revisitPackFor(learnerId: string, createdAt: string): Conversati
 }
 
 const CANVAS_FACTS: LearnerProfile['memory']['facts'] = [
-  { kind: 'interest', fr: null, en: 'Loves food and cafés', happensAround: null, notedAt: '' },
-  { kind: 'life-event', fr: null, en: 'Dinner in Lyon', happensAround: 'Friday', notedAt: '' },
+  { kind: 'interest', fr: null, en: 'Loves food and cafés', happensAround: null, notedAt: '', source: 'conversation', updatedAt: '' },
+  { kind: 'life-event', fr: null, en: 'Dinner in Lyon', happensAround: 'Friday', notedAt: '', source: 'conversation', updatedAt: '' },
 ];
 
 /** The profile edits still owed, or null when the canvas already holds. Never overwrites a set value. */

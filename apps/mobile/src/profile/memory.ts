@@ -18,23 +18,26 @@
  * `ProfileContext.updateBrain`. The brain's merge unions the tombstones across
  * devices, so a forget on either phone is a forget on both.
  *
- * ## A goal rides last, or never
+ * ## A goal rides beside the facts, never among them
  *
- * The agent sends `facts.slice(-5)`. A goal placed at the head of the list
- * would be the first thing dropped; appended after the remembered facts it is
- * always among the five. The cap is the brain's own `MAX_MEMORY_FACTS`, taken
- * from the end, so the goals survive the cap too.
+ * The learner's typed goals ride the snapshot as `memory.learnerGoals`, a
+ * wire-only field, not as facts. `StoredProfile.learnerGoals` is their only
+ * home: `brainAfterRecap` drops the field from the agent's echo, so a goal
+ * never becomes a stored fact, never duplicates, and leaves with its removal.
+ * The twelve-fact cap is the extraction's alone. Older builds appended goals
+ * as "Their goal: …" facts and a recap stored them; `withoutGoalEchoes`
+ * cleans those on read and on the next recap (LEARN-009).
  *
  * ## What leaves the phone
  *
  * `snapshotFor` is what rides the join credential: the brain with the
  * learner's name folded in (as `withLearnerName` always did), the tombstones
- * applied, and the goals appended. The legal notice names the goals among what
+ * applied, and the goals beside the facts. The legal notice names the goals among what
  * the language model is sent, and says the facts can be removed here.
  */
 
 import { isLearnerGoal, normalise, parsePreviousCorrection, phraseKeyOf, reviewFocusFromDeck, type ConversationPack, type ReviewCard, type TutorReviewFocus, type TutorPreviousCorrection } from '@luvani/core';
-import { MAX_MEMORY_FACTS, withLearnerName, memoryPaused, withoutForgottenMemory, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
+import { MAX_MEMORY_FACTS, validFactSource, withLearnerName, memoryPaused, withoutForgottenMemory, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
 
 import type { StoredProfile } from './store.ts';
 
@@ -91,7 +94,7 @@ export function withoutForgotten(brain: LearnerProfile, forgotten: readonly stri
 
 /** The facts the learner can see: what the brain holds, minus the tombstoned. */
 export function visibleFacts(profile: StoredProfile): readonly RememberedFact[] {
-  return withoutForgotten(profile.brain, profile.forgottenFacts).memory.facts;
+  return withoutForgotten(withoutGoalEchoes(profile.brain), profile.forgottenFacts).memory.facts;
 }
 
 /**
@@ -106,7 +109,7 @@ export function withFactForgotten(profile: StoredProfile, en: string): StoredPro
 }
 
 /** Replace a remembered detail and retire the old wording from future extraction. */
-export function withFactEdited(profile: StoredProfile, original: string, replacement: string): StoredProfile {
+export function withFactEdited(profile: StoredProfile, original: string, replacement: string, now = Date.now()): StoredProfile {
   const text = goalText(replacement);
   const fact = visibleFacts(profile).find((item) => item.en === original);
   if (text === null || fact === undefined || text === original) return profile;
@@ -116,7 +119,7 @@ export function withFactEdited(profile: StoredProfile, original: string, replace
   return {
     ...next,
     forgottenFacts: next.forgottenFacts.filter((held) => held !== key),
-    brain: { ...next.brain, memory: { ...next.brain.memory, opener: null, facts: [...facts, { ...fact, en: text, fr: null }].slice(-MAX_MEMORY_FACTS) } },
+    brain: { ...next.brain, memory: { ...next.brain.memory, opener: null, facts: [...facts, { ...fact, en: text, fr: null, source: 'learner' as const, updatedAt: new Date(now).toISOString() }].slice(-MAX_MEMORY_FACTS) } },
   };
 }
 
@@ -154,18 +157,25 @@ export function withoutLearnerGoal(profile: StoredProfile, text: string): Stored
   return { ...profile, learnerGoals: profile.learnerGoals.filter((goal) => goal !== text) };
 }
 
-/** How a goal reads to the tutor. The learner's own words, said to be theirs. */
-export function goalFact(goal: string): RememberedFact {
-  return { kind: 'goal', fr: null, en: `Their goal: ${goal}`, happensAround: null, notedAt: '' };
+/**
+ * The brain without the goal facts older builds appended to the snapshot and
+ * a recap then stored: exactly kind 'goal', no `notedAt`, and the old
+ * "Their goal: " wording. A goal the extraction wrote has a `notedAt` and stays.
+ */
+export function withoutGoalEchoes(brain: LearnerProfile): LearnerProfile {
+  const facts = brain.memory.facts.filter((fact) => !(fact.kind === 'goal' && fact.notedAt === '' && fact.en.startsWith('Their goal: ')));
+  return facts.length === brain.memory.facts.length ? brain : { ...brain, memory: { ...brain.memory, facts } };
 }
 
 /**
  * The brain as it rides the join credential: the name folded in, the
- * tombstones applied, the goals appended last, and the brain's own cap taken
- * from the end so the goals survive it.
+ * tombstones and old goal echoes removed, and the learner's typed goals beside
+ * the facts as `memory.learnerGoals`. A paused memory carries neither.
  */
 export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] = [], now = Date.now(), previousCorrection?: TutorPreviousCorrection, continuedPack?: Pick<ConversationPack, 'keyPhrases'>): LearnerProfile & { reviewFocus?: TutorReviewFocus[]; previousCorrection?: TutorPreviousCorrection } {
-  const withName = withLearnerName(withoutForgotten(profile.brain, profile.forgottenFacts), profile.name);
+  const { learnerGoals: _staleGoals, ...brainMemory } = profile.brain.memory;
+  const brain = withoutGoalEchoes({ ...profile.brain, memory: brainMemory });
+  const withName = withLearnerName(withoutForgotten(brain, profile.forgottenFacts), profile.name);
   // The onboarding goal is an answer, like the name, not a remembered fact: it
   // rides every path, the paused one included.
   const goal = isLearnerGoal(profile.onboardingGoal) ? profile.onboardingGoal : null;
@@ -180,8 +190,7 @@ export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] 
   const extras = { ...(focus.length ? { reviewFocus: focus } : {}), ...(correction ? { previousCorrection: correction } : {}) };
   if (memoryPaused(named)) return { ...named, ...extras, memory: { ...named.memory, facts: [], opener: null } };
   if (profile.learnerGoals.length === 0) return { ...named, ...extras };
-  const facts = [...named.memory.facts, ...profile.learnerGoals.map(goalFact)].slice(-MAX_MEMORY_FACTS);
-  return { ...named, ...extras, memory: { ...named.memory, facts } };
+  return { ...named, ...extras, memory: { ...named.memory, learnerGoals: [...profile.learnerGoals] } };
 }
 
 
@@ -196,8 +205,33 @@ export function withMemoryPaused(profile: StoredProfile, paused: boolean, now = 
 
 /** A late recap cannot undo the learner's current pause or restore forgotten details. */
 export function brainAfterRecap(blob: LearnerProfile, current: StoredProfile): LearnerProfile {
-  const memory = memoryPaused(current.brain) ? current.brain.memory : blob.memory;
+  const memory = memoryPaused(current.brain) ? current.brain.memory : withOriginsCarried(blob.memory, current.brain.memory.facts);
   const control = current.brain.memory.control;
-  const kept = { ...blob, memory: { ...memory, ...(control ? { control } : {}) } };
-  return withoutForgotten(kept, current.forgottenFacts);
+  // Goals live in `StoredProfile.learnerGoals` alone; the echo is never stored.
+  const { learnerGoals: _echoedGoals, ...stored } = memory;
+  const kept = { ...blob, memory: { ...stored, ...(control ? { control } : {}) } };
+  return withoutForgotten(withoutGoalEchoes(kept), current.forgottenFacts);
+}
+
+/**
+ * An older tutor agent rebuilds facts without `source` or `updatedAt`. Read
+ * the raw value, not a repaired default: where the recap's fact has no valid
+ * source, the stored copy's origin carries over, so a fact the learner wrote
+ * never turns back into a conversation fact because an old agent echoed it.
+ */
+function withOriginsCarried(memory: LearnerProfile['memory'], held: readonly RememberedFact[]): LearnerProfile['memory'] {
+  const byKey = new Map(held.map((fact) => [factKey(fact.en), fact]));
+  const facts = memory.facts.map((fact) => {
+    const raw = (fact as { source?: unknown }).source;
+    if (raw === 'learner' || raw === 'conversation') return fact;
+    const stored = byKey.get(factKey(fact.en));
+    if (stored === undefined) return { ...fact, source: validFactSource(raw), updatedAt: typeof fact.updatedAt === 'string' && fact.updatedAt ? fact.updatedAt : fact.notedAt };
+    return { ...fact, source: stored.source, updatedAt: stored.updatedAt };
+  });
+  return { ...memory, facts };
+}
+
+/** One quiet line on the memory screen saying who wrote the fact. */
+export function factOriginLabel(fact: Pick<RememberedFact, 'source'>): string {
+  return fact.source === 'learner' ? 'You wrote this' : 'Noted from a conversation';
 }

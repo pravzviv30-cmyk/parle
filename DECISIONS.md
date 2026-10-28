@@ -1359,6 +1359,88 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   LEARN-001 rule, applied in `integrateTurn`), so the end card no longer
   celebrates a line the learner was shown. F881.
 
+## LEARN-007 — A memory fact says who wrote it and when it last changed
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: `RememberedFact` carries `source` (`learner` or `conversation`) and
+  `updatedAt`. Code sets the source, never the model: `MemoryFactZ` is unchanged
+  and `applyExtractionToProfile` builds each fact field by field, so a model
+  object carrying `source` cannot smuggle it in. `repairProfile` reads a missing
+  or unknown source as `conversation` (the safe reading: the tutor checks it) and
+  falls `updatedAt` back to `notedAt`. A learner edit stamps `learner` and a new
+  `updatedAt`. `brainAfterRecap` carries the origin over from the stored copy when
+  an older agent echoes facts without it. The memory screen says "You wrote this"
+  or "Noted from a conversation".
+- Reason: a fact the learner typed and a fact the model picked up from speech are
+  not equally reliable, and the tutor had no way to tell them apart.
+- Consequence: every fact written before this reads as a conversation fact, so
+  the tutor checks it before relying on it (LEARN-010). No field is trusted from
+  the wire. F893.
+
+## LEARN-008 — Tutor-noted memory passes a fixed-rule screen before it is stored
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: `sensitiveMemoryCategory` in `packages/brain/src/profile/memoryScreen.ts`
+  runs in `applyExtractionToProfile` over a fact's `en`, `fr` and `happensAround`
+  and over the opener. A match drops the whole fact, or clears the opener, and
+  nothing is logged. Categories: health, finances, intimate, beliefs, secret. It is
+  a French and English word and pattern list over accent-stripped text. The prompt
+  rule in `memoryPolicy.ts` stays the first defence. Learner-typed edits are not
+  screened (founder, 2026-10-28): the learner may write what they choose. The tutor
+  agent's `safeModelProfile` runs the same screen on every profile that enters or
+  leaves the worker. A conversation-noted fact that hits it is left out of the brief,
+  of the extraction's "Already on file" list and of the recap, so older sensitive
+  notes leave the device on the next session, memory-locked sessions included. A
+  stored opener that hits it is never spoken. Learner-written facts stay.
+- Reason: the founder's sensitive-topic boundary (2 October) was a prompt policy
+  only. A model that missed the rule stored the detail and it synced.
+- Consequence: the screen is conservative, so false positives are preferred: a
+  clean fact lost costs one sentence, a sensitive one stored costs trust. The word
+  list was widened after an adversarial review: suicide, abortion, psychiatric
+  diagnoses, drugs, money amounts, party and politician names, and legal and
+  immigration status. Accepted false positives include "works at a hospital", "a
+  temple visit", "mon Dieu", the name Harris, Labour, Faith as a
+  name, a 5k run and prison as a TV series. Limits, said plainly: a paraphrase ("is not well lately"), a misspelling and any
+  other language get through. It is a word list, not a classifier. F894.
+
+## LEARN-009 — Learner goals ride beside memory facts, never among them
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: the learner's typed goals ride the snapshot as `memory.learnerGoals`,
+  a wire-only field (at most three, 120 characters each, repaired on read).
+  `StoredProfile.learnerGoals` is their only home. `brainAfterRecap` drops the
+  echo, so a recap cannot store a goal as a fact. `withoutGoalEchoes` removes old
+  "Their goal:" facts on read and on the next recap. The twelve-fact cap is the
+  extraction's alone. Pause and the free lock still keep goals out. The extraction
+  is told the goals so it does not extract them again. This reverses the "goal
+  rides last" choice in `memory.ts`.
+- Reason: goals sent as facts came back in the recap as stored facts. They
+  duplicated, outlived their removal, and ate the cap.
+- Consequence: only echoes with `notedAt` empty and the old wording are cleaned;
+  a goal the extraction wrote has a `notedAt` and stays. The legal notice still
+  names the goals among what the model is sent. F895.
+
+## LEARN-010 — The brief names each note's source and checks the unconfirmed ones
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: `tutorMemoryBrief` labels each note `the learner wrote this` or
+  `noted from a past conversation, unconfirmed`. The brief tells the tutor to ask
+  lightly before relying on an unconfirmed note and to drop it for the session on
+  a no or an unsure answer. Conversation notes that hit the screen are left out of
+  the brief, which covers notes saved before LEARN-008. The goals sit in a separate
+  `LEARNER'S OWN GOALS` block, as data. The scene builder's heading no longer says
+  "real" memory.
+- Reason: the old brief called every note "saved tutor memory", so a wrong or
+  stale note could be said back as fact.
+- Consequence: the brief grows by one instruction and the tutor sometimes spends a
+  turn confirming a note. `npm run eval:sessions` output is identical before and
+  after, but it replays recorded synthetic sessions, so it shows no regression, not
+  live behaviour. F896.
+
 ## LEARN-011 — Getting better at: a recurring pattern quiet for three conversations
 
 - Date: 2026-10-28

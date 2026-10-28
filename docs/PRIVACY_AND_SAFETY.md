@@ -211,6 +211,12 @@ The turn is not the only call, and the scene call hands over more than a derived
 estimate. `tutorMemoryBrief` in `services/tutor-agent/src/convo.ts` repairs the
 profile and sends `repaired.memory.facts.filter(...).slice(-5)` to the same vendor, once
 inside `buildFrame` and again in each turn request, as `SAVED TUTOR MEMORY`.
+Since LEARN-010 each note carries a source label: `the learner wrote this`, or
+`noted from a past conversation, unconfirmed`. A conversation-noted fact that hits
+the sensitive-topic screen below is left out of the brief, which covers notes saved
+before the screen existed. The learner's typed goals reach the model in a separate
+`LEARNER'S OWN GOALS` block, as data and never instructions. Before LEARN-009 they
+rode as facts; the same words go to the same vendor either way.
 This happens only on a plan or trial: when the token server signs `memoryLocked: true`
 (a free or lapsed learner), the worker sends no saved memory, skips the remembered opener,
 makes no extraction call, and returns the stored memory unchanged in the recap.
@@ -227,8 +233,8 @@ around the scene, interests, events coming up and goals
 them from one session into the next (`docs/STATE_AND_STORAGE.md`). So a learner who
 mentions a job interview on Monday has that sentence sent to the model vendor on
 Wednesday to build the next scene. Since F562 the goals the learner writes in Profile ride
-in the same slice, appended after the remembered facts by `snapshotFor` in
-`apps/mobile/src/profile/memory.ts`, and the facts themselves can be seen and removed
+in the same call, beside the remembered facts as the wire-only `memory.learnerGoals`
+that `snapshotFor` in `apps/mobile/src/profile/memory.ts` composes, and the facts themselves can be seen and removed
 there: a removed fact is kept as a normalised-wording tombstone. These markers
 are no longer capped at forty or aged out by later forgets. Loading, recap
 application and both sync merge orders filter the raw stored facts, not only
@@ -274,6 +280,30 @@ opener lose it. This is a compatibility fence, not proof of non-sensitive text.
 The ordinary name greeting speaks immediately when the marker is absent. Learning recaps/practice packs and explicitly saved
 full conversation text are separate and are not covered by this memory-only rule.
 
+**The extraction screen (LEARN-008).** Since 28 October a fixed-rule check stands
+behind the prompt policy. `sensitiveMemoryCategory` in
+`packages/brain/src/profile/memoryScreen.ts` reads a tutor-noted fact's English
+line, French line and `happensAround` text, and the saved opener, before anything is
+stored. A match in health, finances, intimate life, beliefs or secrets (passwords,
+card and account numbers, emails, street addresses) drops the whole fact or clears
+the opener. The lists cover French and English, with accents ignored. It is
+conservative on purpose: a clean sentence lost is cheaper than a sensitive one kept,
+so it knowingly drops things like "works at a hospital", a temple visit, "mon Dieu",
+the name Harris, Labour, Faith as a name, a 5k run or prison as a TV series. The word
+list was widened after an adversarial review to cover suicide, abortion, psychiatric
+diagnoses, drugs, money amounts, party and politician names, and legal and immigration
+status. It never logs the text or the category. Facts the learner types in Profile
+are not screened; they are the learner's own choice. The limits are honest ones: it
+is a word list, not a classifier, so a paraphrase, a misspelling or another language
+passes, and the prompt rule stays the first defence.
+
+The screen also runs on what is already stored. The tutor agent's `safeModelProfile`
+checks every profile it receives. A conversation-noted fact that hits the screen is
+left out of the memory brief, out of the extraction's `Already on file:` list and out
+of the recap, so an older sensitive note leaves the device on the next session,
+memory-locked sessions included. A stored opener that hits it is never spoken. Facts
+the learner wrote stay.
+
 **A previous correction is separate learning context.** Before the next
 conversation, the app can attach one curated correction from the active learner's
 latest cached ready pack: its original fragment, better form, English meaning,
@@ -307,7 +337,8 @@ learner has gone. `extractMemory` sends that session's turn-by-turn `history` to
 with `knownFacts: profile.memory.facts`, every fact on file up to twelve, rendered as
 `Already on file:` by `packages/brain/src/prompt/extractPrompt.ts`; `curatePractice` and
 `generateDrills` send the session's phrases and topics with the CEFR estimate and the
-top error tags. No category crosses there that has not already crossed during the
+top error tags. The extraction call also lists the learner's typed goals, as data the
+model should not extract again as facts. No category crosses there that has not already crossed during the
 session, and no audio and no identity ever do. Two things follow for the notice all the
 same. The memory facts go over twice, when a scene is set up and again once the session
 has ended, so the notice says both rather than only the first. And "while a session is

@@ -19,6 +19,8 @@ export interface ExtractionInput {
   history: readonly ChatMessage[];
   /** Facts already on file, so nothing is re-extracted or contradicted blindly. */
   knownFacts: readonly MemoryFact[];
+  /** The learner's own typed goals, already on file outside the facts; never re-extracted. */
+  knownGoals?: readonly string[];
 }
 
 const INSTRUCTION = [
@@ -43,6 +45,9 @@ export function buildExtractionRequest(input: ExtractionInput): string {
   const lines: string[] = [INSTRUCTION, ``];
   if (input.knownFacts.length > 0) {
     lines.push('Already on file:', ...input.knownFacts.map(factLine), '');
+  }
+  if (input.knownGoals !== undefined && input.knownGoals.length > 0) {
+    lines.push(`The learner's own goals (they wrote these; already on file, do not re-extract them as facts):`, ...input.knownGoals.map((goal) => `- ${goal}`), '');
   }
   lines.push('TRANSCRIPT');
   for (const message of input.history) {
