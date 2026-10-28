@@ -1432,3 +1432,18 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   which Railway injects into builds. The `${{RAILWAY_GIT_COMMIT_SHA}}` reference set
   as `GIT_SHA` did not render into the build. The release workflow still passes
   `GIT_SHA`, used when Railway's SHA is absent.
+
+## DEPLOY-005 — The backend image skips onnxruntime's GPU provider download
+
+- Date: 2026-10-27
+- Status: accepted
+- Decision: the image's `npm ci` runs with `ONNXRUNTIME_NODE_INSTALL=skip`. On
+  linux/x64, onnxruntime-node's postinstall only downloads the CUDA 12 and
+  TensorRT execution providers from NuGet. The CPU runtime the tutor uses (the
+  Silero VAD and local inference) ships inside the npm archive, and a test fails
+  if a future version moves it behind the download.
+- Reason: Railway has no GPU and nothing in the code asks for a GPU provider. The
+  download timed out on 2 of 9 staging builds and failed them (F887), and the
+  providers made the image much larger for nothing.
+- Consequence: a build reaches npm and the Node, decoder and Docker registries
+  only. A GPU host would need this revisited before it could use CUDA.

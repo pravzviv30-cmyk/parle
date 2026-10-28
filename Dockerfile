@@ -23,9 +23,11 @@ COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY scripts/installHooks.mjs scripts/patchExpoModulesJsi.mjs ./scripts/
 COPY deployment/validateBuild.mjs ./deployment/validateBuild.mjs
 RUN GIT_SHA="${RAILWAY_GIT_COMMIT_SHA:-$GIT_SHA}" node deployment/validateBuild.mjs
-# Native ORT/LiveKit install scripts are required. The lock fixes npm archives;
-# record the downloaded native artifacts separately in image provenance.
-RUN LUVANI_SKIP_HOOKS=1 npm ci --omit=dev --workspace=@luvani/token-server --workspace=@luvani/tutor-agent --include-workspace-root=false
+# The lock fixes npm archives. onnxruntime-node's CPU runtime ships in its npm archive;
+# its postinstall only downloads CUDA/TensorRT providers from NuGet that a GPU-less host
+# cannot use (and that timed out on Railway, F887), so it is skipped.
+# nativeArtifacts.mjs still records the native artifacts in image provenance.
+RUN LUVANI_SKIP_HOOKS=1 ONNXRUNTIME_NODE_INSTALL=skip npm ci --omit=dev --workspace=@luvani/token-server --workspace=@luvani/tutor-agent --include-workspace-root=false
 RUN mkdir -p services/token-server/node_modules services/tutor-agent/node_modules packages/brain/node_modules packages/core/node_modules
 COPY deployment/nativeArtifacts.mjs ./deployment/nativeArtifacts.mjs
 RUN node deployment/nativeArtifacts.mjs --verify --output /app/native-artifacts.json
