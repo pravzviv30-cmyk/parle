@@ -5,6 +5,7 @@ import type { FixLineObserver } from './fixLineObserver.ts';
 import type { CefrBand } from '@luvani/brain';
 import { JUDGE_TIMEOUT_MS, readJudgeBody, type DrillJudgeDeps } from './drillJudge.ts';
 import { answerRequestError } from './requestBoundary.ts';
+import { normaliseAttempt } from './judgeMemo.ts';
 
 function json(res: ServerResponse, status: number, value: unknown): void {
   if (res.destroyed || res.writableEnded) return;
@@ -31,12 +32,19 @@ export async function handleFixLineJudge(req: IncomingMessage, res: ServerRespon
   if (!(await deps.limits(req, res, resolved.userId))) return;
   const original = line(body.original, 400);
   const better = line(body.better, 400);
-  const attempt = line(body.attempt, 600);
+  const rawAttempt = line(body.attempt, 600);
+  const attempt = rawAttempt === null ? null : normaliseAttempt(rawAttempt);
   const why = line(body.why, 400);
   if (!original || !better || !attempt || original.normalize('NFC') === better.normalize('NFC')) {
     return json(res, 400, { error: 'a distinct correction and one retry are required' });
   }
   if (req.aborted || res.destroyed || res.writableEnded) return;
+  const input = { original, better, attempt, why, cefr: level(body.cefr) };
+  const remembered = deps.memo?.get(resolved.userId, 'fix-line', buildFixLineJudgeRequest(input));
+  if (remembered !== undefined) {
+    deps.memoHit?.('fix-line');
+    return json(res, 200, { verdict: remembered });
+  }
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let cancel: () => void = () => {};
@@ -50,14 +58,20 @@ export async function handleFixLineJudge(req: IncomingMessage, res: ServerRespon
     if (deps.fixLineObserver) {
       const accepted = await Promise.race([deps.fixLineObserver.read({original, better, attempt}, controller.signal, usage => deps.usage?.(usage)), expiry]);
       if (controller.signal.aborted || req.aborted || res.destroyed || res.writableEnded) return;
-      if (accepted) return json(res, 200, { verdict: { fixed: true, hint: null } });
+      if (accepted) {
+        const verdict = { fixed: true, hint: null };
+        deps.memo?.set(resolved.userId, 'fix-line', buildFixLineJudgeRequest(input), verdict);
+        return json(res, 200, { verdict });
+      }
     }
     if (controller.signal.aborted || req.aborted || res.destroyed || res.writableEnded) return;
     const admittedClient=await (deps.clientFor?.(resolved,controller.signal) ?? Promise.resolve(deps.client));
-    const pending = admittedClient.judge(buildFixLineJudgeRequest({ original, better, attempt, why, cefr: level(body.cefr) }, controller.signal))
+    const pending = admittedClient.judge(buildFixLineJudgeRequest(input, controller.signal))
       .then(answer => { deps.usage?.(answer.usage); return answer; });
     const answer = await Promise.race([pending, expiry]);
     const verdict = parseFixLineVerdict(answer.verdict, `${original} ${better}`);
+    // An unjudged (null) answer is not remembered: the next try may be read.
+    if (verdict !== null) deps.memo?.set(resolved.userId, 'fix-line', buildFixLineJudgeRequest(input), verdict);
     return json(res, 200, { verdict });
   } catch {
     return json(res, 503, { error: 'judge-unavailable' });

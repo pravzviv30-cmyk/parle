@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { handleFixLineJudge } from './fixLineJudge.ts';
+import { JudgeMemo } from './judgeMemo.ts';
 import { JUDGE_BODY_LIMIT_BYTES, type DrillJudgeDeps } from './drillJudge.ts';
 
 const correction = { userId: 'learner', original: 'Je suis vingt ans.', better: 'J’ai vingt ans.', why: 'Use avoir for age.', attempt: 'J’ai vingt ans.' };
@@ -111,4 +112,27 @@ test('a slow or failed correction observer falls back inside the same overall bu
     await task;assert.equal(d.seen.calls.length,kind==='departure'?0:1);
     assert.equal(r.status(),kind==='departure'?0:200);
   }
+});
+
+test('a repeated correction retry is memoised per user, before the observer and the paid transport', async () => {
+  const memo = new JudgeMemo({ model: () => 'm' });
+  let admitted = 0; let observed = 0;
+  const { seen, deps } = setup({ memo });
+  deps.clientFor = async () => { admitted += 1; return deps.client; };
+  const withObserver = { ...deps, fixLineObserver: { read: async () => { observed += 1; return false; } } as never };
+  const first = response(); await handleFixLineJudge(req(correction), first.res, withObserver);
+  const logged: unknown[][] = [];
+  const second = response();
+  await handleFixLineJudge(req({ ...correction, attempt: ` J’ai  vingt\nans. ` }), second.res, { ...withObserver, memoHit: (...args: unknown[]) => { logged.push(args); } });
+  assert.equal(seen.calls.length, 1); assert.equal(admitted, 1); assert.equal(observed, 1);
+  assert.deepEqual(second.body(), first.body());
+  assert.deepEqual(logged, [['fix-line']]);
+  const changed = response(); await handleFixLineJudge(req({ ...correction, why: 'Age takes avoir.' }), changed.res, withObserver);
+  assert.equal(seen.calls.length, 2);
+  const failing = setup({ memo, client: { judge: async () => { throw new Error('down'); } } });
+  const failed = response(); await handleFixLineJudge(req({ ...correction, attempt: 'J’ai 20 ans.' }), failed.res, failing.deps);
+  assert.equal(failed.status(), 503);
+  const retry = setup({ memo }); const ok = response();
+  await handleFixLineJudge(req({ ...correction, attempt: 'J’ai 20 ans.' }), ok.res, retry.deps);
+  assert.equal(retry.seen.calls.length, 1);
 });

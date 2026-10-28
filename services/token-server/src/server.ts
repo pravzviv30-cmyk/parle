@@ -69,6 +69,7 @@ import { billingStatusOf } from './billingStatus.ts';
 import { claimTrialWithEvidence, recordMinutesRefusal } from './sessionEvents.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
 import { handleDrillJudge, judgeUsageLine } from './drillJudge.ts';
+import { judgeMemoFromEnv, judgeMemoHitLine } from './judgeMemo.ts';
 import { fixLineObserverFromEnv } from './fixLineObserver.ts';
 import { handleFixLineJudge } from './fixLineJudge.ts';
 import { isServiceFailure } from '@luvani/core';
@@ -250,6 +251,15 @@ let draining = false;
  * shown the line — never a server that refused to start.
  */
 let brain: LlmClient | null = null;
+/**
+ * One verdict memo for /drill/judge and /drill/fix-line: a hash key and the
+ * verdict, in process memory, per user, at most 24 hours, cleared on account
+ * deletion and on restart, never logged. See judgeMemo.ts. Off by default
+ * because the privacy notice promises no copy is kept; turning it on needs the
+ * notice updated and reviewed first (COST-002).
+ */
+const judgeMemo = judgeMemoFromEnv(process.env);
+
 function judgeBrain(): LlmClient {
   brain ??= brainClientFromEnv(process.env);
   return brain;
@@ -916,7 +926,10 @@ const server = createServer(protectHttpHandler(async (req, res) => {
 
     // The own-words drill's verdict: the learner's own French, read by the
     // brain because nothing deterministic can grade a paraphrase. It shares
-    // the scoring limits with /drill/score above, stores nothing at all, and
+    // the scoring limits with /drill/score above, stores nothing but the
+    // per-user verdict memo when LUVANI_JUDGE_MEMO=1 (off by default; a hash
+    // key and the verdict, in memory, at most
+    // 24 hours, cleared on account deletion and restart, never logged), and
     // answers 503 rather than inventing a verdict — see drillJudge.ts. The
     // brain is built once, lazily, so a server with no key still boots and
     // still serves every other endpoint.
@@ -934,6 +947,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         client: { judge: request => judgeBrain().judge(request) },
         ...(paid ? {clientFor:async (user,signal)=>brainClientFromEnv(process.env,paid.apiTransport(user,url.pathname==='/drill/fix-line'?'api-fix-judge':'api-judge',signal))} : {}),
         usage: (usage) => console.log(judgeUsageLine(usage)),
+        ...(judgeMemo ? { memo: judgeMemo, memoHit: (endpoint: 'own-words' | 'fix-line') => console.log(judgeMemoHitLine(endpoint)) } : {}),
         ...(url.pathname === '/drill/fix-line' ? { fixLineObserver: fixLineObserverFromEnv() } : {}),
       });
     }
@@ -944,6 +958,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.deletionIp)]))) return;
       const resolved = await users.resolve(req.headers.authorization, null);
       if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      judgeMemo?.forgetUser(resolved.userId);
       if (!(await withinLimits(req, res, [[RATE_LIMITS.deletionUser, 'user', resolved.userId]]))) return;
       const supabaseUrl = process.env.SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

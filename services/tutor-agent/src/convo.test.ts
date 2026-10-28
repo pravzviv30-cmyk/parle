@@ -69,6 +69,8 @@ import {
   chooseFrame,
   emptySpend,
   formatBrainSummary,
+  formatSessionCost,
+  formatDrillValidation,
   frameDeadlineMs,
   firstPracticeObjectiveComplete,
   missionOpening,
@@ -5220,4 +5222,31 @@ test('frame targets put review focus first, then phrases said only with help, th
   assert.deepEqual(targets, ['Focus (FOCUS)', 'Elsewhere (x)', 'helped (HELPED)', 'never (NEVER)', 'once (ONCE)']);
   assert.equal(frameTargets(profile).length, 5);
   assert.ok(!frameTargets(profile).some((t) => t.startsWith('done')), 'a mastered phrase is never a target');
+});
+
+describe('numbers-only cost lines (Phase F)', () => {
+  test('session_cost sums per-activity prices and carries only the 8-hex prefix', () => {
+    const spend = emptySpend();
+    spend.turn = { calls: 3, abandoned: 1, usage: { ...ZERO_USAGE, inputTokens: 1000, outputTokens: 100, model: 'claude-sonnet-4-5' } };
+    spend.drills = { calls: 0, abandoned: 2, usage: ZERO_USAGE };
+    const line = formatSessionCost(spend, '12345678-ABCD-4000-8000-000000000000');
+    const parsed = JSON.parse(line);
+    assert.deepEqual(Object.keys(parsed), ['event', 'session', 'usd', 'priceExact', 'calls', 'abandoned', 'activities']);
+    assert.equal(parsed.event, 'session_cost');
+    assert.equal(parsed.session, '12345678');
+    assert.equal(parsed.calls, 3); assert.equal(parsed.abandoned, 3);
+    assert.deepEqual(Object.keys(parsed.activities), ['turn', 'drills']);
+    assert.equal(parsed.usd, parsed.activities.turn.usd + parsed.activities.drills.usd);
+    assert.ok(!line.includes('abcd'), 'nothing of the id beyond the prefix');
+    assert.doesNotMatch(line, /model|sonnet/);
+    assert.equal(JSON.parse(formatSessionCost(spend, 'not-hex')).session, null);
+  });
+
+  test('drill_validation is one JSON line with counts, also when nothing was rejected', () => {
+    assert.equal(formatDrillValidation(5, 3), '{"event":"drill_validation","path":"live","proposed":5,"accepted":3}');
+    assert.equal(formatDrillValidation(4, 4), '{"event":"drill_validation","path":"live","proposed":4,"accepted":4}');
+    const source = readFileSync(new URL('./convo.ts', import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /drill linter rejected/);
+    assert.match(source, /console\.info\(formatDrillValidation\(result\.batch\.exercises\.length, valid\.length\)\)/);
+  });
 });

@@ -11384,3 +11384,35 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a dropped mastered phrase the session reintroduced stays mastered with its old uses`
 - verified-by: `a dropped suspected pattern seen again in a new session becomes recurring`
 - verified-by: `a sent phrase credited in session and a sent pattern seen again are not double counted`
+
+### F898 — Memory extraction has no eval, so a cheaper model or trimmed transcript cannot be judged
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`extractMemory`), packages/brain/src/prompt/extractPrompt.ts, services/brain-playground
+- note: Found 2026-10-28 (Phase F). Production is OpenAI-only, so `extract` runs on the analyst model `gpt-5.6-terra` at high effort with the whole transcript and about 5,500 tokens of system blocks. `gpt-6-luna` is about 20 times cheaper and already serves drills and curation after their evals, but nothing measured whether it keeps memory honest. Owner: performance-engineer.
+- fixed: 2026-10-28 on `claude/phase-f-cost` (COST-001). `npm run eval:extract -w @luvani/brain-playground` runs ten synthetic sessions through the real request and scores recall, fiction and sensitive leaks (facts and openers), known repeats, structured failures, tokens and cost, with `--model`, `--effort`, `--trim`, `--repeats`, `--baseline`. Baseline in `docs/cogs-evidence/extract-eval-2026-10-28.md`. No model was switched.
+- verified-by: `a sensitive leak is caught in a fact and in the opener`
+
+### F899 — Every judge check pays for the model, even an identical repeat
+- severity: P2
+- status: [x]
+- where: services/token-server/src/drillJudge.ts, services/token-server/src/fixLineJudge.ts
+- note: Found 2026-10-28 (Phase F). `/drill/judge` and `/drill/fix-line` called Jev and the brain for every press of Check, so the same attempt sent twice was judged and admitted against paid spend twice. Owner: performance-engineer.
+- fixed: 2026-10-28 on `claude/phase-f-cost` (COST-002). `JudgeMemo` in `services/token-server/src/judgeMemo.ts`: per user, keyed by a sha256 of the user, memo version, judge model, endpoint and built request, 24 h TTL, 200 per user, 5,000 in all, successful verdicts only, cleared on account deletion. A hit happens after the rate limits and before paid admission and logs `[luvani:judge] memo hit <endpoint>`. Off unless `LUVANI_JUDGE_MEMO=1`, because the in-app notice promises no copy is kept; turning it on needs the notice updated. Even with the memo off, both routes now send the attempt NFC-normalised, trimmed and with whitespace runs collapsed to one space, so the key and the request agree; spacing alone no longer reaches the judge.
+- verified-by: `a repeated attempt, even with extra whitespace, costs one brain call and answers identically`
+
+### F900 — Practice-ready latency and drill validation failures are not counted
+- severity: P2
+- status: [x]
+- where: services/token-server/src/practiceJobs.ts, services/token-server/src/practiceWorker.ts, services/tutor-agent/src/convo.ts
+- note: Found 2026-10-28 (Phase F). The worker logged only `practice_job {result}`, and the live path a free-text `drill linter rejected N of M` line, so neither how long practice takes after a session nor how often the linter rejects exercises could be measured. Owner: observability-engineer.
+- fixed: 2026-10-28 on `claude/phase-f-cost` (COST-003). `processPracticeJob` reports a numbers-only outcome (proposed, accepted, failure kind, generation ms, estimated ms since session end, cost) on the `practice_job` line; the live path prints `{"event":"drill_validation",…}` for every batch.
+- verified-by: `outcome: complete counts proposed and accepted, times generation and session end to ready`
+
+### F901 — Per-session AI cost exists only as free text no tool reads
+- severity: P3
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`logSpendSummary`), services/brain-playground
+- note: Found 2026-10-28 (Phase F). `[luvani:brain:summary] usd=` and `[luvani:cost]` were readable by eye only, and judge and practice spend sat on separate lines, so cost per conversation and per practice set could not be computed. Owner: observability-engineer.
+- fixed: 2026-10-28 on `claude/phase-f-cost` (COST-004). The tutor also prints a numbers-only `{"event":"session_cost",…}` line, and `npm run eval:cost-numbers -w @luvani/brain-playground -- <exported log>` reports cost per conversation, cost per practice set, practice-ready latency, validation rejection, job retry and failure rates, and judge cost and memo hit rate. It reads a local file only. Every line carries numbers and fixed labels plus, on `session_cost` and `[luvani:cost]`, the first 8 hex characters of the session id (as `[luvani:brain:summary]` already did) so the lines join; never words, user ids, room or model names.
+- verified-by: `reads the fixture into sums, joining voice by prefix and skipping the rest`
