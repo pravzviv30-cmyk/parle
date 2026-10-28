@@ -41,6 +41,7 @@ import {
   withLearnerGoal,
   withMemoryCleared,
   withoutLearnerGoal,
+  factOriginLabel,
 } from './memory.ts';
 import {
   ADD_GOAL,
@@ -126,6 +127,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
               <View style={st.factWords}>
                 <Text style={[type.bodyStrong, { color: colors.text }]}>{fact.en}</Text>
                 <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{KIND_GLOSS[fact.kind]}</Text>
+                <Text style={[type.small, { color: colors.muted }]}>{factOriginLabel(fact)}</Text>
               </View>
               <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="edit"
                 label="Edit"

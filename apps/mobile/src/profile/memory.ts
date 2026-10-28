@@ -34,7 +34,7 @@
  */
 
 import { isLearnerGoal, normalise, parsePreviousCorrection, phraseKeyOf, reviewFocusFromDeck, type ConversationPack, type ReviewCard, type TutorReviewFocus, type TutorPreviousCorrection } from '@luvani/core';
-import { MAX_MEMORY_FACTS, withLearnerName, memoryPaused, withoutForgottenMemory, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
+import { MAX_MEMORY_FACTS, validFactSource, withLearnerName, memoryPaused, withoutForgottenMemory, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
 
 import type { StoredProfile } from './store.ts';
 
@@ -106,7 +106,7 @@ export function withFactForgotten(profile: StoredProfile, en: string): StoredPro
 }
 
 /** Replace a remembered detail and retire the old wording from future extraction. */
-export function withFactEdited(profile: StoredProfile, original: string, replacement: string): StoredProfile {
+export function withFactEdited(profile: StoredProfile, original: string, replacement: string, now = Date.now()): StoredProfile {
   const text = goalText(replacement);
   const fact = visibleFacts(profile).find((item) => item.en === original);
   if (text === null || fact === undefined || text === original) return profile;
@@ -116,7 +116,7 @@ export function withFactEdited(profile: StoredProfile, original: string, replace
   return {
     ...next,
     forgottenFacts: next.forgottenFacts.filter((held) => held !== key),
-    brain: { ...next.brain, memory: { ...next.brain.memory, opener: null, facts: [...facts, { ...fact, en: text, fr: null }].slice(-MAX_MEMORY_FACTS) } },
+    brain: { ...next.brain, memory: { ...next.brain.memory, opener: null, facts: [...facts, { ...fact, en: text, fr: null, source: 'learner' as const, updatedAt: new Date(now).toISOString() }].slice(-MAX_MEMORY_FACTS) } },
   };
 }
 
@@ -156,7 +156,7 @@ export function withoutLearnerGoal(profile: StoredProfile, text: string): Stored
 
 /** How a goal reads to the tutor. The learner's own words, said to be theirs. */
 export function goalFact(goal: string): RememberedFact {
-  return { kind: 'goal', fr: null, en: `Their goal: ${goal}`, happensAround: null, notedAt: '' };
+  return { kind: 'goal', fr: null, en: `Their goal: ${goal}`, happensAround: null, notedAt: '', source: 'learner', updatedAt: '' };
 }
 
 /**
@@ -196,8 +196,31 @@ export function withMemoryPaused(profile: StoredProfile, paused: boolean, now = 
 
 /** A late recap cannot undo the learner's current pause or restore forgotten details. */
 export function brainAfterRecap(blob: LearnerProfile, current: StoredProfile): LearnerProfile {
-  const memory = memoryPaused(current.brain) ? current.brain.memory : blob.memory;
+  const memory = memoryPaused(current.brain) ? current.brain.memory : withOriginsCarried(blob.memory, current.brain.memory.facts);
   const control = current.brain.memory.control;
   const kept = { ...blob, memory: { ...memory, ...(control ? { control } : {}) } };
   return withoutForgotten(kept, current.forgottenFacts);
+}
+
+/**
+ * An older tutor agent rebuilds facts without `source` or `updatedAt`. Read
+ * the raw value, not a repaired default: where the recap's fact has no valid
+ * source, the stored copy's origin carries over, so a fact the learner wrote
+ * never turns back into a conversation fact because an old agent echoed it.
+ */
+function withOriginsCarried(memory: LearnerProfile['memory'], held: readonly RememberedFact[]): LearnerProfile['memory'] {
+  const byKey = new Map(held.map((fact) => [factKey(fact.en), fact]));
+  const facts = memory.facts.map((fact) => {
+    const raw = (fact as { source?: unknown }).source;
+    if (raw === 'learner' || raw === 'conversation') return fact;
+    const stored = byKey.get(factKey(fact.en));
+    if (stored === undefined) return { ...fact, source: validFactSource(raw), updatedAt: typeof fact.updatedAt === 'string' && fact.updatedAt ? fact.updatedAt : fact.notedAt };
+    return { ...fact, source: stored.source, updatedAt: stored.updatedAt };
+  });
+  return { ...memory, facts };
+}
+
+/** One quiet line on the memory screen saying who wrote the fact. */
+export function factOriginLabel(fact: Pick<RememberedFact, 'source'>): string {
+  return fact.source === 'learner' ? 'You wrote this' : 'Noted from a conversation';
 }

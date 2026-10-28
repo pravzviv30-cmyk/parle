@@ -623,3 +623,35 @@ describe('suspected and recurring error patterns', () => {
     assert.deepEqual(learnerSnapshotFrom(profile).watchFor, ['liaison', 'gender-agreement']);
   });
 });
+
+describe('a remembered fact says where it came from (LEARN-007)', () => {
+  const at = '2026-09-01T00:00:00.000Z';
+  function repairedFacts(facts: unknown[]) {
+    const raw = JSON.parse(JSON.stringify(createProfile()));
+    raw.memory.facts = facts;
+    return repairProfile(raw).memory.facts;
+  }
+  test('a legacy fact repairs to conversation, updatedAt = notedAt', () => {
+    const [f] = repairedFacts([{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: at }]);
+    assert.equal(f!.source, 'conversation');
+    assert.equal(f!.updatedAt, at);
+  });
+  test('an unknown source becomes conversation; learner survives', () => {
+    const facts = repairedFacts([
+      { kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: at, source: 'admin' },
+      { kind: 'interest', fr: null, en: 'Has a cat', happensAround: null, notedAt: at, source: 'learner', updatedAt: '2026-09-05T00:00:00.000Z' },
+    ]);
+    assert.equal(facts[0]!.source, 'conversation');
+    assert.equal(facts[1]!.source, 'learner');
+    assert.equal(facts[1]!.updatedAt, '2026-09-05T00:00:00.000Z');
+  });
+  test('an extraction stamps conversation and now, even if the model claims learner', () => {
+    const now = '2026-09-10T00:00:00.000Z';
+    const smuggled = { kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, source: 'learner', updatedAt: 'x' };
+    const next = applyExtractionToProfile(createProfile(), { facts: [smuggled], openerFr: null, openerEn: null } as unknown as Parameters<typeof applyExtractionToProfile>[1], now);
+    const [f] = next.memory.facts;
+    assert.equal(f!.source, 'conversation');
+    assert.equal(f!.updatedAt, now);
+    assert.equal(f!.notedAt, now);
+  });
+});

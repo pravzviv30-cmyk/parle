@@ -21,8 +21,11 @@ import { upgradeStored } from './upgrade.ts';
 import { SYNC_POLICIES } from '../sync/policy.ts';
 import {
   MAX_LEARNER_GOALS,
+  brainAfterRecap,
   factKey,
+  factOriginLabel,
   snapshotFor,
+  withFactEdited,
   visibleFacts,
   withFactForgotten,
   withLearnerGoal,
@@ -35,7 +38,7 @@ import {
 const NOW = Date.parse('2026-09-12T10:00:00Z');
 
 function fact(en: string, kind: RememberedFact['kind'] = 'life-event', notedAt = '2026-09-01T00:00:00.000Z'): RememberedFact {
-  return { kind, fr: null, en, happensAround: null, notedAt };
+  return { kind, fr: null, en, happensAround: null, notedAt, source: 'conversation', updatedAt: notedAt };
 }
 
 function learner(facts: readonly RememberedFact[] = [], over: Partial<StoredProfile> = {}): StoredProfile {
@@ -195,5 +198,28 @@ describe('the tutor’s memory, edited by the learner', () => {
       assert.deepEqual(merged.forgottenFacts, [factKey('Has a dog')], 'the busier device undid the forget');
       assert.equal(merged.version, 9);
     }
+  });
+});
+
+describe('a fact says where it came from (LEARN-007)', () => {
+  test('an edit stamps learner and a new updatedAt, keeping notedAt', () => {
+    const edited = withFactEdited(learner([fact('Has a dog')]), 'Has a dog', 'Has two dogs', NOW);
+    const f = edited.brain.memory.facts.find((item) => item.en === 'Has two dogs')!;
+    assert.equal(f.source, 'learner');
+    assert.equal(f.updatedAt, new Date(NOW).toISOString());
+    assert.equal(f.notedAt, '2026-09-01T00:00:00.000Z');
+  });
+  test('an older agent echoing a fact without source keeps the learner source', () => {
+    const current = withFactEdited(learner([fact('Has a dog')]), 'Has a dog', 'Has two dogs', NOW);
+    const stored = current.brain.memory.facts.find((item) => item.en === 'Has two dogs')!;
+    const { source: _s, updatedAt: _u, ...legacy } = stored;
+    const blob = { ...current.brain, memory: { ...current.brain.memory, facts: [legacy as RememberedFact] } };
+    const [f] = brainAfterRecap(blob, current).memory.facts;
+    assert.equal(f!.source, 'learner');
+    assert.equal(f!.updatedAt, stored.updatedAt);
+  });
+  test('factOriginLabel names both origins', () => {
+    assert.equal(factOriginLabel(fact('x')), 'Noted from a conversation');
+    assert.equal(factOriginLabel({ ...fact('x'), source: 'learner' }), 'You wrote this');
   });
 });

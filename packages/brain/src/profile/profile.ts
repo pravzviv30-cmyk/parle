@@ -19,8 +19,19 @@ import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness 
 import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
 import { normalizeErrorTag } from './errorTag.ts';
 
-/** A remembered fact plus when it was noted — the eviction order. */
-export type RememberedFact = MemoryFact & { notedAt: string };
+/** Who wrote a remembered fact: the learner by hand, or the extraction after a conversation. */
+export type FactSource = 'learner' | 'conversation';
+/**
+ * A remembered fact plus when it was noted (the eviction order), who wrote it
+ * and when it last changed. `source` is set by code only: `MemoryFactZ` has no
+ * such field, so the model can never claim a fact as the learner's own.
+ */
+export type RememberedFact = MemoryFact & { notedAt: string; source: FactSource; updatedAt: string };
+
+/** A stored source, read sceptically: anything but 'learner' is a conversation fact. */
+export function validFactSource(value: unknown): FactSource {
+  return value === 'learner' ? 'learner' : 'conversation';
+}
 /** Compatibility marker for the prompt that authored an opener, not a
  * sensitivity classification or proof that learner-writable data is trusted. */
 export const PERSONAL_MEMORY_POLICY_VERSION = 1 as const;
@@ -360,12 +371,15 @@ function validRememberedFacts(value: readonly unknown[]): RememberedFact[] {
     if (typeof raw.kind !== 'string' || !FACT_KINDS.has(raw.kind)) continue;
     const en = sayableText(raw.en, MAX_MEMORY_TEXT_CHARS);
     if (en === null) continue;
+    const notedAt = sayableText(raw.notedAt, MAX_MEMORY_TEXT_CHARS) ?? '';
     kept.push({
       kind: raw.kind as MemoryFact['kind'],
       fr: sayableText(raw.fr, MAX_MEMORY_TEXT_CHARS),
       en,
       happensAround: sayableText(raw.happensAround, MAX_MEMORY_TEXT_CHARS),
-      notedAt: sayableText(raw.notedAt, MAX_MEMORY_TEXT_CHARS) ?? '',
+      notedAt,
+      source: validFactSource(raw.source),
+      updatedAt: sayableText(raw.updatedAt, MAX_MEMORY_TEXT_CHARS) ?? notedAt,
     });
   }
   return kept.slice(-MAX_MEMORY_FACTS);
@@ -398,7 +412,16 @@ export function applyExtractionToProfile(
     const key = normalise(fact.en);
     if (key.length === 0 || seen.has(key)) continue;
     seen.add(key);
-    next.memory.facts.push({ ...fact, notedAt: now });
+    // Built field by field: a model object carrying `source` cannot smuggle it in.
+    next.memory.facts.push({
+      kind: fact.kind,
+      fr: fact.fr,
+      en: fact.en,
+      happensAround: fact.happensAround,
+      notedAt: now,
+      source: 'conversation',
+      updatedAt: now,
+    });
   }
   if (next.memory.facts.length > MAX_MEMORY_FACTS) {
     next.memory.facts.sort((a, b) => a.notedAt.localeCompare(b.notedAt));

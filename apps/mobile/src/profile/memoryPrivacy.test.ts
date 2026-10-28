@@ -11,7 +11,7 @@ import { upgradeStored } from './upgrade.ts';
 
 const held = () => {
   const profile = createStoredProfile({ name: 'James', motivation: 'travel' }, 1000);
-  profile.brain.memory.facts = [{ kind: 'interest', en: 'Likes jazz', fr: 'Aime le jazz', notedAt: '2026-01-01', happensAround: null }];
+  profile.brain.memory.facts = [{ kind: 'interest', en: 'Likes jazz', fr: 'Aime le jazz', notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01', happensAround: null }];
   profile.brain.memory.opener = { en: 'How was the concert?', fr: 'Comment était le concert ?' };
   return profile;
 };

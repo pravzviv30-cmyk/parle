@@ -713,7 +713,7 @@ test('authored tasks arrive before the first attempt and rejected output cannot 
 test('paused personal memory reaches neither the scenario request nor the extraction model, while French practice still completes', async (t) => {
   const profile = createProfile();
   profile.memory.control = { paused: true, changedAt: 2000 };
-  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01' }];
+  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01' }];
   profile.memory.opener = { fr: 'Et le concert ?', en: 'How was the concert?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   const client = new MockLlmClient({ turns: [sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
   const { convo, published } = await inScene(t, { client, profile });
@@ -731,7 +731,7 @@ test('paused personal memory reaches neither the scenario request nor the extrac
 test('a memory-locked (free or lapsed) session neither uses nor writes tutor memory, and hands the stored memory back untouched', async (t) => {
   const profile = createProfile();
   profile.memory.name = 'Camille';
-  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01' }];
+  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01' }];
   profile.memory.opener = { fr: 'Et le concert ?', en: 'How was the concert?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   const received = structuredClone(profile);
   const client = new MockLlmClient({ turns: [sampleTurn(), sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
@@ -756,7 +756,7 @@ test('a memory-locked (free or lapsed) session neither uses nor writes tutor mem
 
 test('an unlocked session still uses the remembered opener and extracts memory', async (t) => {
   const profile = createProfile();
-  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01' }];
+  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01' }];
   profile.memory.opener = { fr: 'Et le concert ?', en: 'How was the concert?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   const client = new MockLlmClient({ turns: [sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
   const { convo, published } = await inScene(t, { client, profile, memoryLocked: false });
@@ -775,7 +775,7 @@ test('memoryLockedFrom only counts a boolean true', () => {
 
 test('saved tutor memory is bounded in the frame and every turn, with an honest editable-note source', async (t) => {
   const profile = createProfile();
-  profile.memory.facts = Array.from({ length: 8 }, (_, i) => ({ kind: 'interest' as const, fr: null, en: 'Enjoys activity ' + i, happensAround: null, notedAt: 'unproven date' }));
+  profile.memory.facts = Array.from({ length: 8 }, (_, i) => ({ kind: 'interest' as const, fr: null, en: 'Enjoys activity ' + i, happensAround: null, notedAt: 'unproven date', source: 'conversation', updatedAt: 'unproven date' }));
   const brief = tutorMemoryBrief(profile);
   assert.doesNotMatch(brief, /Enjoys activity [012]|unproven date/);
   assert.match(brief, /source":"saved tutor memory/);
@@ -4944,7 +4944,7 @@ describe('fresh openers on the session counter — VOICE-014', () => {
   test('a memory-locked session rotates on the counter alone: no remembered opener, no brief', async (t) => {
     const profile = createProfile();
     profile.memory.opener = { fr: 'Et le concert ?', en: 'How was the concert?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
-    profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01' }];
+    profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01' }];
     const { prompt, built } = openingFor(t, { sessions: 3, memoryLocked: true, profile });
     assert.equal(prompt.en, CONVO_LINES.opener[3]!.en);
     await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
