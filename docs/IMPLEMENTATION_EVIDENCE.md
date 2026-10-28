@@ -22,6 +22,15 @@ of the list.
 
 ## Current landing snapshot
 
+- 28 October 2026 Phase D, memory trust, on branch `claude/phase-d-memory` from main 286723d8 (main
+  af36034b merged in, Phases E and F): memory facts carry `source` and `updatedAt`, a fixed-rule FR/EN
+  sensitive-topic screen on tutor-noted memory and on every profile the tutor agent receives, learner
+  goals moved out of `memory.facts` with the recap goal leak fixed, and a brief that labels each note's
+  source and checks the unconfirmed ones (LEARN-007 to LEARN-010, F893 to F897, F897 open as a
+  follow-up). **6,991 tests, 0 failing**; core 1088, brain 714, tutor agent 879, token server 519,
+  playground 110, mobile 3681; shared release/provider proofs 207; all 44 migrations replayed, no
+  migration added. Floors raised through `gate:bless`. `eval:sessions` output identical before and
+  after the brief change; the memory screen origin lines were seen on Expo web with the canvas learner.
 - 28 October 2026 Phase F, cost and measurement, on branch `claude/phase-f-cost` (main 7b3c38ca merged
   in): the memory extraction eval with a recorded baseline, the judge verdict memo switched off behind
   `LUVANI_JUDGE_MEMO`, practice, validation and session cost JSON lines, and the offline
