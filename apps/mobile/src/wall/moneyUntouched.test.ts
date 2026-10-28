@@ -175,7 +175,8 @@ const FILES: Record<string, string> = {
   'packages/core/src/metering/meter.ts': '5c121dded5c2fcfbf7a23972a9e3976507d69f7340ddbb4a4becfb719299fdcb',
   'services/token-server/src/billing/revenuecat.ts': '33964e5a51bf18aa5cb3f7198c9cc377dc2b815eeb13a26a0ebd2a4a0b9ba8ff',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
-  'services/token-server/src/billingStatus.ts': 'f6271546c1276f87d89550649b3421983a1a8b2fd1e8a2ec5adfcd6d01d60425',
+  // 2026-10-27, F886: /billing/status answers a fresh free view (trial, 600 s, nothing written) for an account with no entitlement row, via billingStatusOf and EntitlementNotProvisionedError; no debit, grant, refund, price or allowance changed. Approval: founder approved the F886 plan in chat 2026-10-27. Review: fix-verifier (read-only) and the Opus orchestrator read the diff.
+  'services/token-server/src/billingStatus.ts': '742a4e0479ba48f51be358f770b96289e213207def64d7fc0a255dd699b0e9c9',
   // 3 October 2026: founder-authorized Report 36 confirmed service-failure
   // refunds and Report 32 approved audio spending ceilings. Sol independently
   // reviewed bounded charge/epoch/ownership/disabled-cap repairs; disposable SQL
@@ -210,7 +211,8 @@ const FILES: Record<string, string> = {
   // the Opus orchestrator read the tokens.ts diff.
   'services/token-server/src/tokens.ts': '6f34d17dd5c0a1d9352cee8d8b857c59538950a314223fc4277c1c1c22c3672a',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
-  'services/token-server/src/store.ts': '8384d63773ac6607c79588987ffc6deed88cfbe7272562a1b754a6102de6c763',
+  // 2026-10-27, F886: /billing/status answers a fresh free view (trial, 600 s, nothing written) for an account with no entitlement row, via billingStatusOf and EntitlementNotProvisionedError; no debit, grant, refund, price or allowance changed. Approval: founder approved the F886 plan in chat 2026-10-27. Review: fix-verifier (read-only) and the Opus orchestrator read the diff.
+  'services/token-server/src/store.ts': '4bee8c995ae14048c00241645570ea22fedee0d7ef9d4d0b4c06361009cb8bc8',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
   'packages/core/src/metering/index.ts': 'f8248a199da76f3d1f7dfa195e9c5cfe1d2a236db445e1720af6e18654ca3e67',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
@@ -264,7 +266,8 @@ const FUNCTIONS: ReadonlyArray<{ file: string; from: string; to: string; hash: s
   // pinning the whole server, so an unrelated server change does not trip a money pin.
   { file: 'services/token-server/src/server.ts', from: "if (req.method === 'POST' && url.pathname === '/billing/webhook') {", to: '\n    }\n', hash: 'bea88b27886862ceed72a873b9f4f5980818c82c6b9c85254a65145eba36a9dd' },
   { file: 'services/token-server/src/server.ts', from: "if (req.method === 'POST' && url.pathname === '/billing/refresh') {", to: '\n    }\n', hash: '3fec25dc6d1e7bf7691dcd06e2f14c1b64b8667f2578303993e1e0b2469f593d' },
-  { file: 'services/token-server/src/server.ts', from: "if (req.method === 'POST' && url.pathname === '/billing/status') {", to: '\n    }\n', hash: 'e04ae269c2ef774524d3fcfbd0e0654a65030af2de073e5cd4730778ca123e83' },
+  // 2026-10-27, F886: /billing/status answers a fresh free view (trial, 600 s, nothing written) for an account with no entitlement row, via billingStatusOf and EntitlementNotProvisionedError; no debit, grant, refund, price or allowance changed. Approval: founder approved the F886 plan in chat 2026-10-27. Review: fix-verifier (read-only) and the Opus orchestrator read the diff.
+  { file: 'services/token-server/src/server.ts', from: "if (req.method === 'POST' && url.pathname === '/billing/status') {", to: '\n    }\n', hash: '4ce1d07ca9d061efa8d893761aae2d7959327d6d2001884ff08d59338a3c5159' },
 ];
 
 function cut(body: string, from: string, to: string): string {

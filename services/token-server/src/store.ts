@@ -191,6 +191,26 @@ export class DevelopmentEntitlementStore extends LocalBillingSupport implements 
   }
 }
 
+/**
+ * The row a signed-in account would hold before its trial is claimed: the free
+ * weekly taste (D24), nothing used. Frozen; callers spread a copy.
+ */
+export const FRESH_FREE_ENTITLEMENT: Readonly<Entitlement> = Object.freeze({
+  plan: 'trial', secondsUsed: 0, weeklyTaste: true,
+} as const);
+
+/**
+ * The database has no entitlements row for this account (migration 40: only
+ * `claim_trial` creates one). Distinct so a read-only caller can answer a fresh
+ * view; every debit path still treats it as a failure.
+ */
+export class EntitlementNotProvisionedError extends Error {
+  constructor() {
+    super('entitlement has not been provisioned');
+    this.name = 'EntitlementNotProvisionedError';
+  }
+}
+
 export class InMemoryEntitlementStore extends LocalBillingSupport implements EntitlementStore {
   private readonly rows = new Map<string, Entitlement>();
   private readonly billingEvents = new Set<string>();
@@ -221,7 +241,7 @@ export class InMemoryEntitlementStore extends LocalBillingSupport implements Ent
 
     // A claimed free row is a weekly taste (D24); its window opens at the first debit.
     const fresh: Entitlement = this.defaultPlan === 'trial'
-      ? { plan: 'trial', secondsUsed: 0, weeklyTaste: true } : { plan: this.defaultPlan, secondsUsed: 0 };
+      ? { ...FRESH_FREE_ENTITLEMENT } : { plan: this.defaultPlan, secondsUsed: 0 };
     this.noteEpoch(userId, undefined, fresh);
     this.rows.set(userId, fresh);
     return fresh;
@@ -453,8 +473,9 @@ export class SupabaseEntitlementStore implements EntitlementStore {
 
   async get(userId: string): Promise<Entitlement> {
     // A zero-second atomic debit is also the authoritative read: the database
-    // function creates a missing trial and rolls an expired paid period before
-    // returning it. A plain SELECT left an exhausted paid learner exhausted
+    // function rolls an expired paid period before returning it. It no longer
+    // creates a missing row (migration 40): an unclaimed account raises
+    // EntitlementNotProvisionedError. A plain SELECT left an exhausted paid learner exhausted
     // forever because the roll only used to happen after a session ended.
     return this.consume(userId, 0);
   }
@@ -485,7 +506,16 @@ export class SupabaseEntitlementStore implements EntitlementStore {
       signal: AbortSignal.timeout(5_000),
       body: JSON.stringify({ p_user_id: userId, p_seconds: Math.round(seconds), p_session_id: sessionId ?? null }),
     });
-    if (!response.ok) throw new Error(`entitlement debit failed (${response.status})`);
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error: unknown = await response.json().catch(() => null);
+        if (error !== null && typeof error === 'object'
+          && (error as Record<string, unknown>).message === 'entitlement has not been provisioned') {
+          throw new EntitlementNotProvisionedError();
+        }
+      }
+      throw new Error(`entitlement debit failed (${response.status})`);
+    }
     const body = (await response.json()) as SupabaseEntitlementRow | SupabaseEntitlementRow[];
     const row = Array.isArray(body) ? body[0] : body;
     if (!row) throw new Error('entitlement debit returned no row');

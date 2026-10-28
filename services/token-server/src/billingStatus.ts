@@ -26,6 +26,8 @@ import {
   type StartRefusal,
 } from '@luvani/core';
 
+import { EntitlementNotProvisionedError, FRESH_FREE_ENTITLEMENT, type EntitlementStore } from './store.ts';
+
 export interface BillingStatus {
   plan: Plan;
   allowanceSeconds?: number;
@@ -75,4 +77,20 @@ export function billingStatusFor(stored: Entitlement, now: Date | number = Date.
     canStart: decision.allowed,
     reason: decision.allowed ? null : decision.reason,
   };
+}
+
+/**
+ * The status for an account, read from the store (F886). An account that has
+ * never started a session has no row yet; it is answered a fresh free view and
+ * nothing is written. The session start stays the only place a trial is claimed
+ * (with installation evidence), so the start still decides: a device whose
+ * trial was already claimed gets the start's 402.
+ */
+export async function billingStatusOf(store: Pick<EntitlementStore, 'get'>, userId: string): Promise<BillingStatus> {
+  try {
+    return billingStatusFor(await store.get(userId));
+  } catch (error) {
+    if (error instanceof EntitlementNotProvisionedError) return billingStatusFor({ ...FRESH_FREE_ENTITLEMENT });
+    throw error;
+  }
 }

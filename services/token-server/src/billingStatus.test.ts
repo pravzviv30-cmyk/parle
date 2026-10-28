@@ -4,7 +4,8 @@ import path from 'node:path';
 import { describe, test } from 'node:test';
 import { PLANS, lapsedEntitlement } from '@luvani/core';
 
-import { billingStatusFor } from './billingStatus.ts';
+import { billingStatusFor, billingStatusOf } from './billingStatus.ts';
+import { SupabaseEntitlementStore } from './store.ts';
 import { RATE_LIMITS } from './rateLimit.ts';
 
 const server = readFileSync(path.join(import.meta.dirname, 'server.ts'), 'utf8');
@@ -28,7 +29,7 @@ describe('billing status — what the learner holds, read and never changed (F54
     assert.match(route, /users\.resolve\(req\.headers\.authorization, asserted\)/);
     assert.match(route, /if \(!resolved\.ok\) return json\(res, resolved\.status/, 'a learner the server cannot name is refused');
     assert.match(route, /RATE_LIMITS\.billingStatusUser/);
-    assert.match(route, /billingStatusFor\(await store\.get\(resolved\.userId\)\)/, 'the answer is the store row through the one rule');
+    assert.match(route, /billingStatusOf\(store, resolved\.userId\)/, 'the answer is the store row through the one rule');
     // Read and never changed: nothing on this route moves minutes, claims a
     // trial, or asks the vendor.
     assert.doesNotMatch(route, /store\.consume\(|store\.save\(|claimTrial\(|refreshSubscriber\(/);
@@ -121,5 +122,41 @@ describe('billing status — what the learner holds, read and never changed (F54
     assert.equal(yearly.periodEnd, windowEnd.toISOString(), 'the plan card would promise fresh minutes at the end of the year');
     assert.equal(yearly.lapsed, false);
     assert.equal(billingStatusFor({ plan: 'regular', secondsUsed: 600, periodEnd: yearEnd }).periodEnd, yearEnd.toISOString());
+  });
+});
+
+describe('billing status for an account the database has not provisioned (F886)', () => {
+  const NOT_PROVISIONED = JSON.stringify({ code: 'P0001', details: null, hint: null, message: 'entitlement has not been provisioned' });
+
+  function supabaseAnswering(status: number, body: string) {
+    const urls: string[] = [];
+    const request = async (input: string | URL | Request) => {
+      urls.push(String(input));
+      return new Response(body, { status, headers: { 'content-type': 'application/json' } });
+    };
+    return { urls, store: new SupabaseEntitlementStore('https://project.supabase.co', 'secret', request as typeof fetch) };
+  }
+
+  test('billing status for a signed-in account with no entitlement row answers a fresh trial and writes nothing', async () => {
+    const { urls, store } = supabaseAnswering(400, NOT_PROVISIONED);
+    const status = await billingStatusOf(store, 'user-1');
+    assert.equal(status.plan, 'trial');
+    assert.equal(status.secondsRemaining, 600);
+    assert.equal(status.canStart, true);
+    assert.equal(status.reason, null);
+    // One read, and no claim_trial or entitlements write.
+    assert.deepEqual(urls, ['https://project.supabase.co/rest/v1/rpc/consume_entitlement']);
+  });
+
+  test('any other debit failure still throws the generic error, and the status rethrows it', async () => {
+    for (const [code, body] of [
+      [400, JSON.stringify({ code: 'P0001', message: 'seconds must be non-negative' })],
+      [400, 'not json'],
+      [500, NOT_PROVISIONED],
+    ] as const) {
+      const { store } = supabaseAnswering(code, body);
+      await assert.rejects(store.consume('user-1', 0), { message: `entitlement debit failed (${code})` });
+      await assert.rejects(billingStatusOf(store, 'user-1'), { message: `entitlement debit failed (${code})` });
+    }
   });
 });

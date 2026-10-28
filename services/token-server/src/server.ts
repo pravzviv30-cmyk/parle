@@ -64,7 +64,7 @@ import { accountExports } from './accountExportV2.ts';
 import { privacyJobs } from './privacyJobs.ts';
 import { conversationPackById, conversationPackPage } from './conversationPackPages.ts';
 import { saveConversationText, deleteConversationText, listConversationText } from './conversationText.ts';
-import { billingStatusFor } from './billingStatus.ts';
+import { billingStatusOf } from './billingStatus.ts';
 import { claimTrialWithEvidence, recordMinutesRefusal } from './sessionEvents.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
 import { handleDrillJudge, judgeUsageLine } from './drillJudge.ts';
@@ -844,8 +844,9 @@ const server = createServer(protectHttpHandler(async (req, res) => {
     // a refresh, which needs RevenueCat configured. This reads the entitlement
     // store and nothing else: it works with billing dark, asks no vendor, moves
     // no minutes and claims no trial boundary (the Supabase read is a zero
-    // second debit that creates a missing default row and rolls an expired
-    // period, which is what every read there does). Identity is resolved
+    // second debit that rolls an expired period, which is what every read there
+    // does; an account with no row yet is answered a fresh free view and nothing
+    // is written, because only the session start claims a trial). Identity is resolved
     // exactly as the start resolves it, so a local mock account can still see
     // its plan; the asserted id is honoured only under the non-production,
     // local-development opt-in, by construction of `users`, and a bearer
@@ -857,7 +858,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       const resolved = await users.resolve(req.headers.authorization, asserted);
       if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
       if (!(await withinLimits(req, res, [[RATE_LIMITS.billingStatusUser, 'user', resolved.userId]]))) return;
-      return json(res, 200, billingStatusFor(await store.get(resolved.userId)));
+      return json(res, 200, await billingStatusOf(store, resolved.userId));
     }
 
     // Drill mode's pronunciation check: raw utterance audio in the body, the

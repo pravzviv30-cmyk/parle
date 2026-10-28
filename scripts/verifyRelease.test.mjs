@@ -180,3 +180,17 @@ test('canonical origin and actual CI/protection captures bind one repository, re
  for(const mutate of [p=>p.requestUrl=p.requestUrl.replace('fixture/luvani','other/repository'),p=>p.requestUrl+='?untrusted=1']){const p=structuredClone(protection);mutate(p);assert.throws(()=>validateCiCaptures(c,p,ci));}
  for(const mutate of [r=>r.requestUrl=r.requestUrl.replace('fixture/luvani','fork/luvani'),r=>r.requestUrl+=`&path=/commits/${c.gitSha}/check-runs`,r=>r.requestUrl=r.requestUrl.replace('check-runs?','check-runs-suffix?'),r=>r.body.check_runs[0].url=r.body.check_runs[0].url.replace('fixture/luvani','fork/luvani'),r=>r.body.check_runs[0].app.slug='unreviewed-app',r=>r.body.check_runs[0].head_sha=hash('fork').slice(0,40)]){const r=structuredClone(ci);mutate(r);assert.throws(()=>validateCiCaptures(c,protection,r));}
 });
+test("the backend image skips onnxruntime's GPU download and keeps its bundled CPU runtime",async()=>{
+  const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
+  const deps=docker.slice(docker.indexOf('AS dependencies')).split(/\nFROM /)[0];
+  const ci=deps.split('\n').filter((line)=>/^RUN .*\bnpm ci\b/.test(line));
+  assert.equal(ci.length,1);assert.match(ci[0],/(^|\s)ONNXRUNTIME_NODE_INSTALL=skip\s/);
+  const ort=resolve(ROOT,'node_modules/onnxruntime-node');
+  for(const file of ['libonnxruntime.so.1','onnxruntime_binding.node']) await readFile(resolve(ort,'bin/napi-v6/linux/x64',file));
+  const { createRequire }=await import('node:module');
+  const metadata=createRequire(import.meta.url)(resolve(ort,'script/install-metadata.js'));
+  assert.deepEqual(metadata.requirements['linux/x64'],['cuda12']);
+  const files=Object.keys(metadata.manifests['linux/x64:cuda12']??{});
+  assert.ok(files.length>0);
+  for(const file of files) assert.match(file,/^\.\/libonnxruntime_providers_[a-z0-9_]+\.so$/);
+});
