@@ -1,7 +1,7 @@
 /** Durable post-session recovery. Only validated learning artefacts cross this boundary. */
 import { groundedDrills, isConversationPack, phraseKeyOf, type ConversationPack, type DrillExercise } from '@luvani/core';
 import { buildDrillGenerationRequest, buildSystemBlocks, transferPhraseKeys, transferPhrasesFrom } from '@luvani/brain';
-import { BrainParseError, BrainRefusalError, type LlmClient, type LlmUsage } from '@luvani/brain/llm';
+import { BrainParseError, BrainRefusalError, priceUsage, type LlmClient, type LlmUsage } from '@luvani/brain/llm';
 // This pure canonical policy is shared with live tutors; no second safety net.
 import { safetyDecision, outputGuard } from '../../tutor-agent/src/safety.ts';
 import { boundedFetchJson } from '../../shared/boundedFetch.ts';
@@ -72,12 +72,72 @@ export function groundedExercises(pack: ConversationPack, candidates: readonly D
   return groundedDrills(candidates, keys, { screen: outputGuard, band: pack.cefr });
 }
 
+export type PracticeFailure = 'no-valid' | 'parse' | 'refusal' | 'unsafe-source' | 'stopped' | 'other';
+/**
+ * Numbers-only outcome of one claimed job (never for 'idle'). No text, ids or names.
+ * `generationMs` is claim to finish wall time. `sinceSessionEndMs` is now minus
+ * (pack.createdAt + durationSec): with the tutor lifecycle on, createdAt is the
+ * session START (tutor-agent convo.ts), so this estimates session end to practice
+ * ready on a shared host clock. The claim RPC returns no queue timestamp; null when
+ * durationSec is absent, the date is unparseable or the result is negative.
+ */
+export interface PracticeOutcome {
+  result: 'complete' | 'retry' | 'superseded';
+  proposed: number | null; accepted: number | null; failure: PracticeFailure | null;
+  generationMs: number | null; sinceSessionEndMs: number | null; usdEstimate: number | null;
+}
+export interface PracticeJobOptions {
+  signal?: AbortSignal; generationMs?: number; leasePollMs?:number;
+  clientFor?:(job:PracticeJob,signal:AbortSignal)=>Promise<Pick<LlmClient,'drills'>>;
+  onUsage?: (usage:LlmUsage)=>void; onOutcome?: (outcome:PracticeOutcome)=>void; now?: ()=>number;
+}
+interface Track { claimedAt: number | null; pack: ConversationPack | null; proposed: number | null; accepted: number | null; failure: PracticeFailure | null; usd: number | null }
+
+function failureOf(error: unknown): PracticeFailure {
+  if (error instanceof BrainParseError) return 'parse';
+  if (error instanceof BrainRefusalError) return 'refusal';
+  const message = error instanceof Error ? error.message : '';
+  if (message === 'no valid grounded exercises') return 'no-valid';
+  if (message === 'unsafe-practice-source') return 'unsafe-source';
+  if (message === 'practice-generation-stopped' || (error instanceof Error && error.name === 'AbortError')) return 'stopped';
+  return 'other';
+}
+
+function sinceSessionEnd(pack: ConversationPack | null, at: number): number | null {
+  if (!pack || typeof pack.durationSec !== 'number' || !Number.isFinite(pack.durationSec)) return null;
+  const started = Date.parse(pack.createdAt);
+  if (!Number.isFinite(started)) return null;
+  const ms = at - (started + pack.durationSec * 1000);
+  return ms >= 0 ? ms : null;
+}
+
 /** One job at a time. SQL owns leases, retry counts and stale-result fencing. */
 export async function processPracticeJob(jobs: PracticeJobs, client: Pick<LlmClient, 'drills'>,
-  options: { signal?: AbortSignal; generationMs?: number; leasePollMs?:number; clientFor?:(job:PracticeJob,signal:AbortSignal)=>Promise<Pick<LlmClient,'drills'>>; onUsage?: (usage:LlmUsage)=>void } = {},
+  options: PracticeJobOptions = {},
+): Promise<'idle' | 'complete' | 'retry' | 'superseded'> {
+  const now = options.now ?? Date.now;
+  const track: Track = { claimedAt: null, pack: null, proposed: null, accepted: null, failure: null, usd: null };
+  const onUsage = (usage: LlmUsage) => {
+    const usd = priceUsage(usage).usd;
+    if (Number.isFinite(usd)) track.usd = (track.usd ?? 0) + usd;
+    options.onUsage?.(usage);
+  };
+  const result = await runPracticeJob(jobs, client, { ...options, onUsage }, track, now);
+  if (result !== 'idle' && options.onOutcome) {
+    const at = now();
+    options.onOutcome({ result, proposed: track.proposed, accepted: track.accepted, failure: track.failure,
+      generationMs: track.claimedAt === null ? null : Math.max(0, at - track.claimedAt),
+      sinceSessionEndMs: result === 'complete' ? sinceSessionEnd(track.pack, at) : null, usdEstimate: track.usd });
+  }
+  return result;
+}
+
+async function runPracticeJob(jobs: PracticeJobs, client: Pick<LlmClient, 'drills'>,
+  options: PracticeJobOptions, track: Track, now: () => number,
 ): Promise<'idle' | 'complete' | 'retry' | 'superseded'> {
   const job = await jobs.claim();
   if (!job) return 'idle';
+  track.claimedAt = now(); track.pack = job.payload;
   if(options.signal?.aborted || !await jobs.active(job))return 'superseded';
   let exercises: DrillExercise[];
   try {
@@ -125,11 +185,14 @@ export async function processPracticeJob(jobs: PracticeJobs, client: Pick<LlmCli
         }),stopped]);
       } finally { monitoring=false;if(poll)clearTimeout(poll);if(timer)clearTimeout(timer);signal.removeEventListener('abort',stop);controller.abort(); }
       options.onUsage?.(result.usage);
+      track.proposed = result.batch.exercises.length;
       exercises = groundedExercises(pack, result.batch.exercises);
+      track.accepted = exercises.length;
       if (exercises.length === 0) throw new Error('no valid grounded exercises');
     }
   } catch(error) {
     if ((error instanceof BrainParseError || error instanceof BrainRefusalError) && error.usage) options.onUsage?.(error.usage);
+    track.failure = failureOf(error);
     // No raw model errors, learner text or credentials in the operational log.
     if(options.signal?.aborted || !await jobs.active(job))return 'superseded';
     return await jobs.finish(job, null) ? 'retry' : 'superseded';

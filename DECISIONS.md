@@ -1447,3 +1447,67 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   providers made the image much larger for nothing.
 - Consequence: a build reaches npm and the Node, decoder and Docker registries
   only. A GPU host would need this revisited before it could use CUDA.
+
+## COST-001 — No cheaper memory extraction without the extraction eval
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: memory extraction stays on the analyst model (`gpt-5.6-terra`, effort
+  high, full transcript) until `eval:extract` passes for the candidate against the
+  production baseline and the founder agrees. The eval scores the real request on
+  synthetic sessions: recall, fiction and sensitive leaks in facts and openers,
+  known repeats, structured failures, tokens and cost.
+- Reason: what extraction writes greets the learner next session, and an invented
+  or sensitive fact costs far more than the model saving.
+- Consequence: the first baseline (`docs/cogs-evidence/extract-eval-2026-10-28.md`)
+  has gpt-6-luna at medium effort passing at about a twentieth of the cold-cache
+  cost; trimming the transcript saves about 1% and is not worth it. Phase D's
+  prompt change needs a re-run before any switch. F898.
+
+## COST-002 — Judge verdicts are memoised per user for a day
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: behind `LUVANI_JUDGE_MEMO=1` (off by default, founder 2026-10-28),
+  `/drill/judge` and `/drill/fix-line` share one in-process `JudgeMemo`
+  (`services/token-server/src/judgeMemo.ts`). The key is a sha256 of the user id,
+  `JUDGE_MEMO_VERSION`, the judge model, the endpoint and the built judge request,
+  with the attempt NFC-normalised, trimmed and whitespace-collapsed (case, accents
+  and punctuation kept). Successful verdicts only; 24 h TTL, 200 per user, 5,000 in
+  all; cleared for a user on account deletion and entirely on restart. A hit comes
+  after the rate limits and before paid admission and Jev.
+- Reason: an identical repeat should not be judged or admitted twice, and caching
+  across users would leak one learner's verdict to another.
+- Consequence: when on, the verdict, whose note may quote the learner, is held in
+  memory for up to a day. The in-app notice (`apps/mobile/src/legal/policy.ts`)
+  promises no copy of the answer or verdict, so the flag stays off until that copy
+  is updated and reviewed; `policy.test.ts` fails if the memo runs without it. Savings are claimed only from measured
+  `[luvani:judge] memo hit` lines against `answered by` lines. Bump the version
+  when a Jev threshold changes. F899.
+
+## COST-003 — Practice and validation numbers, no learner text
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: the practice worker's `practice_job` line carries proposed and
+  accepted exercise counts, a failure kind, generation ms, an estimated ms from
+  session end to practice ready, and the job's cost. The live tutor prints one
+  `drill_validation` JSON line per drill batch.
+- Reason: practice-ready latency and validation failure rates were required
+  metrics with no numbers behind them.
+- Consequence: session end is estimated as `createdAt + durationSec` (createdAt is
+  the session start with the lifecycle on), because the claim RPC returns no queue
+  timestamp and this phase adds no migration. F900.
+
+## COST-004 — AI cost stays in numbers-only logs, not product events
+
+- Date: 2026-10-28
+- Status: accepted (founder, 2026-10-28)
+- Decision: per-session cost is one `session_cost` JSON log line beside the
+  existing summaries, and `eval:cost-numbers` aggregates an exported log offline.
+  No product event, migration or consent change.
+- Reason: cost is operational, not learner analytics. A product event would need
+  a migration to the event trigger, a consent flag the tutor does not have, and a
+  link to the learner that the metric does not need.
+- Consequence: cost per cohort is out of reach until a later decision adds it.
+  Voice is reported in units (TTS characters, STT seconds), not dollars. F901.

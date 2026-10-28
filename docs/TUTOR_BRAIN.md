@@ -62,7 +62,9 @@ OPENAI_LIVE_MODEL=gpt-6-luna
 There is no separate GPT Luna credential. Luna and Terra use the normal OpenAI
 API key. The implementation uses the Responses API with strict JSON schemas:
 GPT-6 Luna handles live turns and scene design. GPT-5.6 Luna retains written
-checks; GPT-5.6 Terra retains memory extraction. Since
+checks; GPT-5.6 Terra retains memory extraction, and any move off it waits on
+`eval:extract` and the founder (COST-001; baseline in
+`docs/cogs-evidence/extract-eval-2026-10-28.md`). Since
 23 October 2026, drill authoring runs on GPT-6 Luna (`OPENAI_DRILLS_MODEL`; drill eval
 25/25 clean, about $0.005 instead of $0.086 a session; VOICE-008 in `DECISIONS.md`,
 evidence in `docs/cogs-evidence/`). `OPENAI_ANALYST_MODEL` moves extraction only, not
