@@ -115,9 +115,10 @@ carried wherever a disk holds one. Version 8 added `forgottenFacts`, the normali
 keys of memory facts the learner asked the tutor to forget, kept as tombstones
 because the extraction would otherwise write the fact back the next session that
 mentions it, and `learnerGoals`, up to three lines the learner wrote about what
-they want from French, appended after the remembered facts in the session
-snapshot when personal memory is on, so the agent's last-five slice carries them
-(`apps/mobile/src/profile/memory.ts` is the one writer of both). Version 6 added
+they want from French, which ride the session snapshot beside the remembered
+facts, as the wire-only `memory.learnerGoals`, when personal memory is on
+(`apps/mobile/src/profile/memory.ts` is the one writer of both; before LEARN-009
+they were appended to the facts as "Their goal:" lines). Version 6 added
 `tutorVoice`, the catalogue key of
 the voice the learner asked for, null until they choose. Version 7 added
 `preferTyping`, a plain boolean saying a conversation opens with the reply box
@@ -131,6 +132,18 @@ are under thirteen. Null until one lands, null again once they pass the age gate
 before the field existed can be read as a stop after the fact, and junk in the slot
 reads as null for the same reason every other field in that chain reads junk as an
 unanswered question.
+
+Each remembered fact carries `source` (`learner` or `conversation`) and `updatedAt`
+beside `notedAt` (LEARN-007), added without a version bump: repair reads a missing or
+unknown source as `conversation` and a missing `updatedAt` as `notedAt`. Code sets
+the source. A learner edit stamps `learner` and a new `updatedAt`, and a recap from an
+older agent that echoes facts without them keeps the stored origin. The wire-only
+`memory.learnerGoals` (at most three, 120 characters each, repaired on read) is never
+stored from a recap: `StoredProfile.learnerGoals` is the only home of the goals,
+`brainAfterRecap` drops the echo, and `withoutGoalEchoes` removes old "Their goal:"
+facts on read and on the next recap. Goals do not count in the twelve facts; that cap
+is the extraction's alone. Tutor-noted facts pass the sensitive-topic screen
+(`memoryScreen.ts`, LEARN-008) before they are stored.
 
 The optional `brain.memory.control` adds pause/resume without a version bump;
 legacy profiles retain their existing behavior. Pausing keeps facts available
@@ -895,7 +908,7 @@ separate concern from the brain's own `repairProfile`, which repairs the nested
 | `cefr` | estimate, confidence, and a rolling window of evidence |
 | `errorPatterns` | what they get wrong: a count, an example, `sessions` (distinct sessions seen) and `lastSession` (the `stats.sessions` ordinal of the latest sighting); `recurring` from two sessions, otherwise `suspected` (LEARN-002) |
 | `phrases` | what they have been taught, `timesUsedWell` (unaided uses, the brain half of `convoUses`), `timesAssisted` (uses with the hint or line showing, LEARN-001) and whether it is mastered |
-| `memory` | facts worth remembering, and an opener |
+| `memory` | facts worth remembering (each with its source and updated time), and an opener |
 | `preferences` | strictness, recent scenarios |
 | `stats` | sessions, turns, rescues, `lastRung` |
 

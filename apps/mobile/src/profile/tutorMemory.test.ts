@@ -46,7 +46,7 @@ const FLAT = SCREEN.replace(/\s+/g, ' ');
 const NOW = Date.parse('2026-09-12T10:00:00Z');
 
 function fact(en: string, kind: RememberedFact['kind'] = 'life-event'): RememberedFact {
-  return { kind, fr: null, en, happensAround: null, notedAt: '2026-09-01T00:00:00.000Z' };
+  return { kind, fr: null, en, happensAround: null, notedAt: '2026-09-01T00:00:00.000Z', source: 'conversation', updatedAt: '2026-09-01T00:00:00.000Z' };
 }
 
 function learner(facts: readonly RememberedFact[]): StoredProfile {

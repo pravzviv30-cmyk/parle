@@ -17,7 +17,7 @@ test('memory controls acknowledge only durable writes; refusal keeps cold-reload
     disk.set(key, value);
   };
   const profile = createStoredProfile({ name: 'James', motivation: null }, 1000);
-  profile.brain.memory.facts = [{ kind: 'interest', en: 'Likes jazz', fr: null, happensAround: null, notedAt: '2026-01-01' }];
+  profile.brain.memory.facts = [{ kind: 'interest', en: 'Likes jazz', fr: null, happensAround: null, notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01' }];
   assert.equal(await saveProfile(profile), true);
   refuse = true;
   assert.equal(await saveMemoryChange((current) => withMemoryPaused(current, true, 2000)), null);

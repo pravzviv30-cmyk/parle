@@ -5,7 +5,7 @@ import { factKey, snapshotFor, visibleFacts, withFactEdited, withGoalEdited, wit
 
 function profile() {
   const value = createStoredProfile({ name: 'Test learner', ageConfirmed: true, motivation: 'travel' }, 0);
-  value.brain.memory = { ...value.brain.memory, opener: { fr: 'Bonjour', en: 'Hello' }, facts: [{ kind: 'life-event', en: 'Lives in Paris', fr: 'Habite à Paris', notedAt: '2026-09-01', happensAround: null }] };
+  value.brain.memory = { ...value.brain.memory, opener: { fr: 'Bonjour', en: 'Hello' }, facts: [{ kind: 'life-event', en: 'Lives in Paris', fr: 'Habite à Paris', notedAt: '2026-09-01', source: 'conversation', updatedAt: '2026-09-01', happensAround: null }] };
   return value;
 }
 

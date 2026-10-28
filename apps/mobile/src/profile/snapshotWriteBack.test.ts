@@ -22,8 +22,8 @@ function heavyLearner() {
     profile.brain.phrases[`phrase ${i}`] = { fr: `Est-ce que vous pourriez répéter plus lentement ? ${i} ${'é'.repeat(150)}`, frWritten: null, en: 'Could you repeat more slowly?'.padEnd(180, '.'), register: 'courant', introducedAt: day(i), timesUsedWell: 1, timesAssisted: 0, mastered: i % 2 === 0 };
   }
   profile.brain.memory.facts = [
-    { kind: 'interest', en: 'Likes jazz', fr: null, notedAt: day(1), happensAround: null },
-    { kind: 'life-event', en: 'Has an interview', fr: null, notedAt: day(2), happensAround: null },
+    { kind: 'interest', en: 'Likes jazz', fr: null, notedAt: day(1), updatedAt: day(1), source: 'conversation', happensAround: null },
+    { kind: 'life-event', en: 'Has an interview', fr: null, notedAt: day(2), updatedAt: day(2), source: 'conversation', happensAround: null },
   ];
   return profile;
 }
@@ -39,7 +39,7 @@ test('a fitted session loses no phrase on write-back, keeps what it learned, and
   const used = Object.keys(blob.phrases).at(-1)!;
   blob.phrases[used]!.timesUsedWell = 7;
   blob.phrases.nouvelle = { fr: 'Nouvelle', frWritten: null, en: 'New', register: 'courant', introducedAt: day(400), timesUsedWell: 0, timesAssisted: 0, mastered: false };
-  blob.memory.facts = [...blob.memory.facts, { kind: 'life-event', en: 'Has an interview', fr: null, notedAt: day(3), happensAround: null }];
+  blob.memory.facts = [...blob.memory.facts, { kind: 'life-event', en: 'Has an interview', fr: null, notedAt: day(3), updatedAt: day(3), source: 'conversation', happensAround: null }];
 
   const brain = keepUnsent(learner.brain, brainAfterRecap(blob, learner));
   assert.equal(Object.keys(brain.phrases).length, MAX_PHRASES, 'the cap holds');

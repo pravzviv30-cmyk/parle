@@ -379,6 +379,32 @@ describe('memory — what the tutor knows about the person', () => {
     assert.equal(profile.memory.opener, null);
   });
 
+  test('sensitive extracted facts never land; clean ones do, as conversation facts', () => {
+    const profile = applyExtractionToProfile(
+      createProfile(),
+      {
+        facts: [
+          fact('Was diagnosed with diabetes'),
+          fact('Loves cooking'),
+          { ...fact('Is learning for a trip'), fr: 'Cherche un crédit immobilier' },
+          { ...fact('Has a plan for the week'), happensAround: 'after the surgery' },
+        ],
+        openerFr: 'Alors, la cuisine ?',
+        openerEn: 'So, the cooking?',
+      },
+      '2026-10-28T10:00:00Z',
+    );
+    assert.deepEqual(profile.memory.facts.map((f) => [f.en, f.source]), [['Loves cooking', 'conversation']]);
+    assert.notEqual(profile.memory.opener, null, 'a clean opener survives dropped facts');
+  });
+
+  test('a sensitive opener becomes null', () => {
+    const fr = applyExtractionToProfile(createProfile(), { facts: [], openerFr: 'Et ton salaire ?', openerEn: 'And the pay?' }, '2026-10-28T10:00:00Z');
+    assert.equal(fr.memory.opener, null);
+    const en = applyExtractionToProfile(createProfile(), { facts: [], openerFr: 'Et alors ?', openerEn: 'How was church?' }, '2026-10-28T10:00:00Z');
+    assert.equal(en.memory.opener, null);
+  });
+
   test('the fact book caps oldest-out — the profile rides the join credential', () => {
     let profile = createProfile();
     for (let i = 0; i < MAX_MEMORY_FACTS + 3; i += 1) {
@@ -621,5 +647,56 @@ describe('suspected and recurring error patterns', () => {
     assert.equal(profile.errorPatterns.liaison!.sessions, 2);
     assert.equal(patternStatus(profile.errorPatterns.liaison!), 'recurring');
     assert.deepEqual(learnerSnapshotFrom(profile).watchFor, ['liaison', 'gender-agreement']);
+  });
+});
+
+describe('a remembered fact says where it came from (LEARN-007)', () => {
+  const at = '2026-09-01T00:00:00.000Z';
+  function repairedFacts(facts: unknown[]) {
+    const raw = JSON.parse(JSON.stringify(createProfile()));
+    raw.memory.facts = facts;
+    return repairProfile(raw).memory.facts;
+  }
+  test('a legacy fact repairs to conversation, updatedAt = notedAt', () => {
+    const [f] = repairedFacts([{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: at }]);
+    assert.equal(f!.source, 'conversation');
+    assert.equal(f!.updatedAt, at);
+  });
+  test('an unknown source becomes conversation; learner survives', () => {
+    const facts = repairedFacts([
+      { kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: at, source: 'admin' },
+      { kind: 'interest', fr: null, en: 'Has a cat', happensAround: null, notedAt: at, source: 'learner', updatedAt: '2026-09-05T00:00:00.000Z' },
+    ]);
+    assert.equal(facts[0]!.source, 'conversation');
+    assert.equal(facts[1]!.source, 'learner');
+    assert.equal(facts[1]!.updatedAt, '2026-09-05T00:00:00.000Z');
+  });
+  test('an extraction stamps conversation and now, even if the model claims learner', () => {
+    const now = '2026-09-10T00:00:00.000Z';
+    const smuggled = { kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, source: 'learner', updatedAt: 'x' };
+    const next = applyExtractionToProfile(createProfile(), { facts: [smuggled], openerFr: null, openerEn: null } as unknown as Parameters<typeof applyExtractionToProfile>[1], now);
+    const [f] = next.memory.facts;
+    assert.equal(f!.source, 'conversation');
+    assert.equal(f!.updatedAt, now);
+    assert.equal(f!.notedAt, now);
+  });
+});
+
+describe('repairProfile: wire-only learner goals (LEARN-009)', () => {
+  const withGoals = (learnerGoals: unknown): unknown => {
+    const p = createProfile();
+    return { ...p, memory: { ...p.memory, learnerGoals } };
+  };
+  test('keeps a clean, bounded list of strings', () => {
+    const long = 'x'.repeat(200);
+    const repaired = repairProfile(withGoals(['  Order   bread ', 'order bread', 7, '', long, 'a', 'b']));
+    assert.deepEqual(repaired.memory.learnerGoals, ['x'.repeat(120), 'a', 'b']);
+    assert.deepEqual(repairProfile(withGoals(['Call the plumber'])).memory.learnerGoals, ['Call the plumber']);
+  });
+  test('anything else drops the key, past the unknown-key spread', () => {
+    for (const junk of ['Order bread', [], [3, null], { 0: 'x' }, ['   ']]) {
+      assert.equal('learnerGoals' in repairProfile(withGoals(junk)).memory, false, JSON.stringify(junk));
+    }
+    assert.equal('learnerGoals' in repairProfile(createProfile()).memory, false);
   });
 });

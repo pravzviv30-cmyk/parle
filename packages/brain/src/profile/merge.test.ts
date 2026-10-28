@@ -270,7 +270,7 @@ describe('merging two copies of one learner', () => {
     const heavy = stored({
       brain: brain({
         cefr: { estimate: 'B1', confidence: 'high', evidence: ['B1', 'B1', 'B1', 'A2'] },
-        memory: { facts: [{ kind: 'life-event', en: 'has a dog', fr: 'a un chien', happensAround: null, notedAt: ISO[1] ?? '' }], opener: { fr: 'Alors ?', en: 'So?' }, name: 'Ana' },
+        memory: { facts: [{ kind: 'life-event', en: 'has a dog', fr: 'a un chien', happensAround: null, notedAt: ISO[1] ?? '', source: 'conversation', updatedAt: ISO[1] ?? '' }], opener: { fr: 'Alors ?', en: 'So?' }, name: 'Ana' },
         preferences: { strictness: 'strict', lastScenarios: ['Café'] },
         stats: { sessions: 12, totalTurns: 60, rescues: 3, lastRung: null },
       }),

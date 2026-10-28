@@ -18,9 +18,23 @@ import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.
 import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness } from '../types.ts';
 import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
 import { normalizeErrorTag } from './errorTag.ts';
+import { sensitiveMemoryCategory } from './memoryScreen.ts';
 
-/** A remembered fact plus when it was noted — the eviction order. */
-export type RememberedFact = MemoryFact & { notedAt: string };
+export { sensitiveMemoryCategory, type SensitiveMemoryCategory } from './memoryScreen.ts';
+
+/** Who wrote a remembered fact: the learner by hand, or the extraction after a conversation. */
+export type FactSource = 'learner' | 'conversation';
+/**
+ * A remembered fact plus when it was noted (the eviction order), who wrote it
+ * and when it last changed. `source` is set by code only: `MemoryFactZ` has no
+ * such field, so the model can never claim a fact as the learner's own.
+ */
+export type RememberedFact = MemoryFact & { notedAt: string; source: FactSource; updatedAt: string };
+
+/** A stored source, read sceptically: anything but 'learner' is a conversation fact. */
+export function validFactSource(value: unknown): FactSource {
+  return value === 'learner' ? 'learner' : 'conversation';
+}
 /** Compatibility marker for the prompt that authored an opener, not a
  * sensitivity classification or proof that learner-writable data is trusted. */
 export const PERSONAL_MEMORY_POLICY_VERSION = 1 as const;
@@ -101,6 +115,13 @@ export interface LearnerProfile {
      * memory is paused. Optional so profiles stored before it stay valid.
      */
     goal?: LearnerGoal | null;
+    /**
+     * The learner's own typed goals (at most three), wire-only. The app's
+     * session snapshot composes them from `StoredProfile.learnerGoals`; the app
+     * never stores them back from a recap. They are not facts and do not count
+     * towards `MAX_MEMORY_FACTS`.
+     */
+    learnerGoals?: string[];
   };
   /**
    * `pace` is optional because it arrived after the shape shipped: a profile
@@ -177,6 +198,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * keeps the learner's error patterns, phrases and CEFR evidence, which is the
  * whole point of not simply starting over.
  */
+/** Wire goals read sceptically: strings, collapsed, trimmed, at most 120 chars, deduped, the last three; else none. */
+function validWireLearnerGoals(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const goals: string[] = [];
+  for (const raw of value) {
+    if (typeof raw !== 'string') continue;
+    const text = raw.replace(/\s+/g, ' ').trim().slice(0, 120).trim();
+    if (text.length === 0 || goals.some((goal) => normalise(goal) === normalise(text))) continue;
+    goals.push(text);
+  }
+  return goals.length === 0 ? null : goals.slice(-3);
+}
+
 export function repairProfile(stored: unknown): LearnerProfile {
   if (
     !isRecord(stored) ||
@@ -193,7 +227,8 @@ export function repairProfile(stored: unknown): LearnerProfile {
   const migrated = repairLearningHistory(migrateProfile(stored as unknown as LearnerProfile));
   const memory = migrated.memory;
   if (isRecord(memory) && Array.isArray(memory.facts)) {
-    const { control: rawControl, goal: rawGoal, ...memoryFields } = memory;
+    const { control: rawControl, goal: rawGoal, learnerGoals: rawLearnerGoals, ...memoryFields } = memory;
+    const learnerGoals = validWireLearnerGoals(rawLearnerGoals);
     const control = validMemoryControl(rawControl);
     // `opener` and `name` both arrived after version 2 shipped, so neither can
     // be assumed present. Filling them in beats bumping the version: the
@@ -212,6 +247,7 @@ export function repairProfile(stored: unknown): LearnerProfile {
         // Kept only as a known tag; anything else is dropped, key and all.
         ...(isLearnerGoal(rawGoal) ? { goal: rawGoal } : {}),
         ...(control ? { control } : {}),
+        ...(learnerGoals ? { learnerGoals } : {}),
       },
     } as LearnerProfile;
   }
@@ -365,12 +401,15 @@ function validRememberedFacts(value: readonly unknown[]): RememberedFact[] {
     if (typeof raw.kind !== 'string' || !FACT_KINDS.has(raw.kind)) continue;
     const en = sayableText(raw.en, MAX_MEMORY_TEXT_CHARS);
     if (en === null) continue;
+    const notedAt = sayableText(raw.notedAt, MAX_MEMORY_TEXT_CHARS) ?? '';
     kept.push({
       kind: raw.kind as MemoryFact['kind'],
       fr: sayableText(raw.fr, MAX_MEMORY_TEXT_CHARS),
       en,
       happensAround: sayableText(raw.happensAround, MAX_MEMORY_TEXT_CHARS),
-      notedAt: sayableText(raw.notedAt, MAX_MEMORY_TEXT_CHARS) ?? '',
+      notedAt,
+      source: validFactSource(raw.source),
+      updatedAt: sayableText(raw.updatedAt, MAX_MEMORY_TEXT_CHARS) ?? notedAt,
     });
   }
   return kept.slice(-MAX_MEMORY_FACTS);
@@ -385,10 +424,16 @@ export function withLearnerName(profile: LearnerProfile, name: unknown): Learner
   return { ...profile, memory: { ...profile.memory, name: validLearnerName(name) } };
 }
 
+/** True when any of the texts touches a sensitive memory category. */
+function isSensitiveMemory(...texts: Array<string | null>): boolean {
+  return texts.some((text) => sensitiveMemoryCategory(text) !== null);
+}
+
 /**
  * Merge one extraction into the profile. The model proposes, code disposes:
  * facts are deduped on their English sentence, capped oldest-out, and the
- * opener only lands when both languages arrived. Pure.
+ * opener only lands when both languages arrived. Tutor-noted facts and
+ * openers that touch a sensitive topic are dropped (memoryScreen.ts). Pure.
  */
 export function applyExtractionToProfile(
   profile: LearnerProfile,
@@ -402,15 +447,27 @@ export function applyExtractionToProfile(
   for (const fact of extraction.facts) {
     const key = normalise(fact.en);
     if (key.length === 0 || seen.has(key)) continue;
+    // Code check behind the prompt's memory boundary (LEARN-008): a tutor-noted
+    // fact touching a sensitive topic in any field is dropped whole, unlogged.
+    if (isSensitiveMemory(fact.en, fact.fr, fact.happensAround)) continue;
     seen.add(key);
-    next.memory.facts.push({ ...fact, notedAt: now });
+    // Built field by field: a model object carrying `source` cannot smuggle it in.
+    next.memory.facts.push({
+      kind: fact.kind,
+      fr: fact.fr,
+      en: fact.en,
+      happensAround: fact.happensAround,
+      notedAt: now,
+      source: 'conversation',
+      updatedAt: now,
+    });
   }
   if (next.memory.facts.length > MAX_MEMORY_FACTS) {
     next.memory.facts.sort((a, b) => a.notedAt.localeCompare(b.notedAt));
     next.memory.facts = next.memory.facts.slice(next.memory.facts.length - MAX_MEMORY_FACTS);
   }
 
-  if (extraction.openerFr !== null && extraction.openerEn !== null) {
+  if (extraction.openerFr !== null && extraction.openerEn !== null && !isSensitiveMemory(extraction.openerFr, extraction.openerEn)) {
     next.memory.opener = { fr: extraction.openerFr, en: extraction.openerEn, policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   } else {
     // A session that surfaced nothing real clears the opener rather than
