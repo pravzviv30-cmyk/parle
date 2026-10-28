@@ -93,6 +93,23 @@ export interface ConversationPack {
    * it only after an owner check; see `withVerifiedRevisionSource`.
    */
   revisedFromPackId?: string | null;
+  /**
+   * Typed or spoken replies the learner made in the scene (F904). A topic pick
+   * and help taps do not count. Absent on every pack written before it
+   * existed, which reads as "show it"; zero means the session is kept (the
+   * lifecycle requires a baseline, and account export carries it) but is not
+   * listed as a conversation. See `isListedConversation`.
+   */
+  learnerReplies?: number;
+}
+
+/** Whether a saved pack may be listed to the learner as a conversation they held. */
+export function isListedConversation(pack: Pick<ConversationPack, 'learnerReplies'>): boolean {
+  return pack.learnerReplies !== 0;
+}
+
+function replyCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 export interface BuildConversationPackInput {
@@ -116,6 +133,8 @@ export interface BuildConversationPackInput {
   exercises?: readonly DrillExercise[];
   /** The conversation this one revisited. Dropped unless it is a well-formed, different pack id. */
   revisedFromPackId?: string | null;
+  /** Replies in the scene; omitted when unknown. */
+  learnerReplies?: number;
 }
 
 const PACK_STATES: readonly ConversationPackState[] = ['generating', 'ready', 'failed', 'archived'];
@@ -343,6 +362,7 @@ export function buildConversationPack(input: BuildConversationPackInput): Conver
     })
     .slice(0, MAX_TOPICS);
   const revisedFrom = revisionSourceFor(text(input.id), input.revisedFromPackId);
+  const learnerReplies = replyCount(input.learnerReplies);
 
   return {
     version: CONVERSATION_PACK_VERSION,
@@ -366,6 +386,7 @@ export function buildConversationPack(input: BuildConversationPackInput): Conver
     exercises: ensureTranslationExercises(text(input.id), keyPhrases, input.exercises ?? []),
     continuationSeed: { titleFr: title.fr, titleEn: title.en, correctionFocus },
     ...(revisedFrom !== null ? { revisedFromPackId: revisedFrom } : {}),
+    ...(learnerReplies !== null ? { learnerReplies } : {}),
   };
 }
 
@@ -414,6 +435,8 @@ export function isConversationPack(value: unknown): value is ConversationPack {
   // anything else is not the contract.
   if (value.revisedFromPackId !== undefined && value.revisedFromPackId !== null &&
     typeof value.revisedFromPackId !== 'string') return false;
+  // Absent on older packs; present must be a whole count.
+  if (value.learnerReplies !== undefined && replyCount(value.learnerReplies) === null) return false;
   // Runtime exercise data need not honour the TypeScript union. A bad nested
   // field must reject the pack, not throw out of an authenticated endpoint.
   try {

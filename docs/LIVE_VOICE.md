@@ -248,7 +248,15 @@ in `convo.ts`), the tutor stops re-arming and waits; a typed or spoken reply or
 a help tap starts the clock again, and a keystroke alone does not. So silence
 alone never walks a scene through its beat cap to the recap. The recap's
 `stats.learnerReplies` counts typed or spoken replies in the scene only, never a
-topic picked on the choosing screen, a rescue or a help tap (F904).
+topic picked on the choosing screen, a rescue or a help tap (F904). With zero
+replies the recap still goes out, but the agent publishes no `practice`, runs no
+curation or drills, and on the legacy path saves no conversation pack. On the
+lifecycle path the checkpoint baseline is still written, because the checkpoint
+RPC requires one once `learnerTurns` is above zero and a topic pick counts there. Every
+pack carries `learnerReplies`; the token server never lists, opens by id or
+hands back to a guest a pack with `learnerReplies: 0` (core
+`isListedConversation`; absent means an older pack and is shown), and the
+practice worker drills nothing for it. Account export still contains it.
 
 Each turn context also lists the tutor's own questions so far this session,
 the last six as said (`askedQuestions` in

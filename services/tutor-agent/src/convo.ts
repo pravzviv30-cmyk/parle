@@ -3176,7 +3176,9 @@ export class LuvaniConversation extends voice.Agent {
       });
       this.state = state; this.profile = finishSession(this.profile, state);
       this.lastRecap = { t: 'recap', recap: toRecapPayload(recap, focusSound, this.learnerReplies), profile: this.profile };
-      if (this.enrichBeforeComplete && this.learnerTurns > 0 && !this.safetyStopped && !this.serviceFailure && !this.lifecycle.signal.aborted) {
+      // A scene with no reply curates nothing (F904). Its checkpoint baseline
+      // stays: the lifecycle requires one once learnerTurns > 0.
+      if (this.enrichBeforeComplete && this.learnerReplies > 0 && !this.safetyStopped && !this.serviceFailure && !this.lifecycle.signal.aborted) {
         // No analyst calls after completion, lease expiry or deletion. Baseline
         // was acknowledged before this optional bounded work begins.
         const [curated] = await Promise.all([this.curatePractice(state, this.finishEnrichmentMs), this.extractMemory(state.turnCount, false, this.finishEnrichmentMs)]);
@@ -3244,6 +3246,12 @@ export class LuvaniConversation extends voice.Agent {
 
     // Safety stops keep no practice and do not send earlier turns for enrichment.
     if (this.safetyStopped) {
+      this.logSpendSummary();
+      return;
+    }
+    // Nor does a scene the learner never replied in: the recap says they made
+    // time, and nothing is saved as a conversation or as practice (F904).
+    if (this.learnerReplies === 0) {
       this.logSpendSummary();
       return;
     }
@@ -3347,6 +3355,8 @@ export class LuvaniConversation extends voice.Agent {
       // Both the baseline and the enriched write carry it, so neither
       // persistence phase can drop the link the other one set.
       revisedFromPackId: this.revisedFromPackId,
+      // Every write carries it; a zero is stored but never listed (F904).
+      learnerReplies: this.learnerReplies,
     });
   }
 

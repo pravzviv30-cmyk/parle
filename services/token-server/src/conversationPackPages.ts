@@ -1,7 +1,7 @@
 import { validConversationPackFor } from './conversationPacks.ts';
 import { HttpInputError } from './requestBoundary.ts';
 import { boundedFetchJson } from '../../shared/boundedFetch.ts';
-import type { ConversationPack } from '@luvani/core';
+import { isListedConversation, type ConversationPack } from '@luvani/core';
 
 export const CONVERSATION_PAGE_SIZE = 20;
 /** Learner-facing summary of the durable drill job; never its attempts, lease or errors. */
@@ -72,7 +72,10 @@ async function lookup(base: string, secret: string, userId: string, after: PackC
       || (previous && key(cursor) >= key(previous))) throw new Error('invalid-conversation-page');
     ids.add(row.id); previous = cursor;
     if(row.payload===null && row.unavailable==='oversize' && Object.keys(row).length===5 && Number.isSafeInteger(row.payloadBytes) && row.payloadBytes>524288)unavailable.push({id:row.id,createdAt:row.createdAt,payloadBytes:row.payloadBytes,reason:'oversize'});
-    else if(validConversationPackFor(row.payload,userId,packId??undefined) && row.payload.id===row.id && row.unavailable===undefined)packs.push(row.payload);
+    else if(validConversationPackFor(row.payload,userId,packId??undefined) && row.payload.id===row.id && row.unavailable===undefined){
+      // A session with no reply in the scene is kept, never listed or opened as a conversation (F904).
+      if(isListedConversation(row.payload))packs.push(row.payload);
+    }
     else throw new Error('invalid-conversation-page');
   }
   const nextCursor = value.nextCursor === null ? null : packCursor(JSON.stringify(value.nextCursor));
