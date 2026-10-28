@@ -140,7 +140,12 @@ export interface RecapPayload {
   /** What the conversation was actually about, in order: the scene first, then every steer. */
   topics: { fr: string; en: string }[];
   cefr: { estimate: string; confidence: 'low' | 'medium' | 'high' };
-  stats: { turns: number; rescues: number; unassistedRate: number };
+  /**
+   * `turns` counts every brain turn, silence rescues included. `learnerReplies`
+   * counts only what the learner typed or said (F904); optional so an older
+   * app ignores it and a newer app facing an older agent falls back.
+   */
+  stats: { turns: number; rescues: number; unassistedRate: number; learnerReplies?: number };
   /**
    * One sound heard in this conversation, scored only on the line the learner
    * was handed. Absent when nothing was scored or nothing needs work.

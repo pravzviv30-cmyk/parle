@@ -316,13 +316,19 @@ export function normaliseConversationPacks(packs: readonly ConversationPack[]): 
   return packs.map(normaliseConversationPack);
 }
 
+/**
+ * Every fix the recap holds (brain's MAX_FIXES, held equal by a brain test)
+ * reaches the pack, and so "Your fixes" (F906).
+ */
+export const MAX_PACK_CORRECTIONS = 6;
+
 export function buildConversationPack(input: BuildConversationPackInput): ConversationPack {
   const title = { fr: text(input.title.fr), en: text(input.title.en) };
   const keyPhrases = input.keyPhrases.map(phraseOf).filter((phrase): phrase is ConversationPackPhrase => phrase !== null).slice(0, 12);
   const corrections = (input.corrections ?? [])
     .map(correctionOf)
     .filter((correction): correction is ConversationPackCorrection => correction !== null)
-    .slice(0, 3);
+    .slice(0, MAX_PACK_CORRECTIONS);
   const correctionFocus = corrections[0]?.better ?? null;
   const state = input.state ?? 'ready';
   const seen = new Set<string>();

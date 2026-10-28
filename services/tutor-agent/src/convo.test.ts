@@ -5357,3 +5357,118 @@ describe('numbers-only cost lines (Phase F)', () => {
     assert.match(source, /console\.info\(formatDrillValidation\(result\.batch\.exercises\.length, valid\.length\)\)/);
   });
 });
+
+/**
+ * F904, the agent side. `stats.turns` is `state.turnCount`, which a silence
+ * rescue advances, so the recap alone cannot tell the app whether the learner
+ * ever replied. `learnerReplies` is the count it can trust: typed or spoken
+ * says only. A help tap still counts for billing, never as a reply.
+ */
+describe('the recap tells the app how many times the learner replied', () => {
+  async function missionScene(t: TestContext, voiceless: boolean) {
+    const built = buildConvo(t, { voiceless, missionId: 'mission:cafe' });
+    built.convo.open(built.session);
+    await sceneSettled();
+    return built;
+  }
+  function recapOf(published: readonly ServerMessage[]) {
+    const recap = published.find((m) => m.t === 'recap') as { recap: { stats: { turns: number; learnerReplies?: number } } } | undefined;
+    assert.ok(recap, 'a recap was published');
+    return recap.recap;
+  }
+
+  test('a session with no learner turns reaches the recap with a learner turn count of zero', async (t) => {
+    const { convo, session, published } = await missionScene(t, false);
+    for (let i = 0; i < 2; i += 1) {
+      await convo.runRescue(convo.armRescue(session));
+      await convo.settled();
+    }
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    convo.clearRescue();
+    await convo.finish();
+    const stats = recapOf(published).stats;
+    assert.ok(stats.turns > 0, 'the brain counted rescue turns');
+    assert.equal(stats.learnerReplies, 0, 'rescues and help taps are not replies');
+  });
+
+  test('a topic picked on the choosing screen is not a reply', async (t) => {
+    const { convo, session, published } = await inScene(t, { voiceless: true });
+    await convo.settled();
+    await convo.runRescue(convo.armRescue(session));
+    await convo.settled();
+    convo.clearRescue();
+    await convo.finish();
+    assert.equal(recapOf(published).stats.learnerReplies, 0, 'choosing a topic is not a conversation');
+  });
+
+  test('one typed say reaches the recap as one learner reply', async (t) => {
+    const { convo, session, published } = await missionScene(t, true);
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je voudrais un café' }));
+    await convo.settled();
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    convo.clearRescue();
+    await convo.finish();
+    assert.equal(recapOf(published).stats.learnerReplies, 1);
+  });
+});
+
+describe('the tutor waits after two unanswered rescues', () => {
+  function clockRunning(convo: LuvaniConversation): boolean {
+    return (convo as unknown as { silenceTimer?: unknown }).silenceTimer !== undefined;
+  }
+  async function spokenMission(t: TestContext) {
+    const built = buildConvo(t, { voiceless: false, missionId: 'mission:cafe' });
+    built.convo.open(built.session);
+    await sceneSettled();
+    return built;
+  }
+
+  test('two unanswered rescues pause the tutor instead of moving the scene on', async (t) => {
+    const { convo, session } = await spokenMission(t);
+    const firstBeat = convo.conversationState.currentBeat;
+    let fired = 0;
+    // What agent.ts does: arm on every return to listening, and the timer fires.
+    for (let i = 0; i < 9; i += 1) {
+      const generation = convo.armRescue(session);
+      if (!clockRunning(convo)) continue;
+      convo.clearRescue();
+      await convo.runRescue(generation);
+      await convo.settled();
+      fired += 1;
+    }
+    assert.equal(fired, 2, 'the second rescue is the last one silence gets');
+    assert.equal(convo.conversationState.currentBeat, firstBeat, 'silence alone never moves the scene on');
+    assert.equal(convo.conversationState.ladder.rescues, 2);
+  });
+
+  test('a keystroke does not wake a paused rescue, and a reply or a help tap does', async (t) => {
+    const { convo, session } = await spokenMission(t);
+    for (let i = 0; i < 2; i += 1) {
+      await convo.runRescue(convo.armRescue(session));
+      await convo.settled();
+    }
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), false, 'paused');
+    await convo.handleClientMessage(session, tapped({ t: 'typing' }));
+    assert.equal(clockRunning(convo), false, 'presence alone does not restart the run');
+
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), true, 'a help tap re-arms the ordinary clock');
+    convo.clearRescue();
+
+    for (let i = 0; i < 2; i += 1) {
+      await convo.runRescue(convo.armRescue(session));
+      await convo.settled();
+    }
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), false, 'paused again');
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, s\'il vous plaît' }));
+    await convo.settled();
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), true, 'a reply re-arms it');
+  });
+});

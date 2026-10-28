@@ -243,7 +243,12 @@ reveal a French line, and that rescue asks the brain for the tutor's step-in.
 For an A0 or A1 learner at rung 1 or 2, the first such step-in on an exchange
 also speaks one authored English line first, saying English is a fine way back
 in (VOICE-013, `PEDAGOGY.md`). It is the turn's coach line and never the card's
-French.
+French. After two silence rescues in a row with no reply (`RESCUE_PAUSE_AFTER`
+in `convo.ts`), the tutor stops re-arming and waits; a typed or spoken reply or
+a help tap starts the clock again, and a keystroke alone does not. So silence
+alone never walks a scene through its beat cap to the recap. The recap's
+`stats.learnerReplies` counts typed or spoken replies in the scene only, never a
+topic picked on the choosing screen, a rescue or a help tap (F904).
 
 Each turn context also lists the tutor's own questions so far this session,
 the last six as said (`askedQuestions` in

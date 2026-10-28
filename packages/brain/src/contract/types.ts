@@ -61,5 +61,10 @@ export interface SessionRecap {
   /** What the conversation was actually about, in order: the scene's own topic first, then everywhere the learner steered. */
   topics: { fr: string; en: string }[];
   cefr: { estimate: CefrBand; confidence: 'low' | 'medium' | 'high' };
-  stats: { turns: number; rescues: number; unassistedRate: number };
+  /**
+   * `turns` is `state.turnCount`, which silence rescues advance too. The engine
+   * cannot see who produced a turn, so `learnerReplies` (typed or spoken says
+   * only) is set by the agent when it publishes the recap (F904).
+   */
+  stats: { turns: number; rescues: number; unassistedRate: number; learnerReplies?: number };
 }
