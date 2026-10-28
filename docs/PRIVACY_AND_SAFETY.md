@@ -238,6 +238,13 @@ account export and are deleted with the account. Exact matching does not
 recognise every paraphrase; this is not semantic erasure, and it cannot recover
 markers that an older build already pruned.
 
+Forgetting a fact removes it from tutor memory. It does not change saved
+conversations. The pack builder never reads the memory list, and a test guards
+that (`a forgotten fact leaves no copy in a saved conversation`). A conversation
+the learner starts from a remembered detail is about that detail and keeps it as
+its topic, like any conversation. The learner is told at the moment of
+forgetting that saved conversations stay, and can delete one from Journey.
+
 **Pause personal memory applies from the next conversation.** The profile's
 optional `memory.control` carries a validated pause flag and change clock.
 The next snapshot withholds personal facts, learner-written goals and the

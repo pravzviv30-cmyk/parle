@@ -11240,9 +11240,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F878 — A more-graded card copy on another device can bring a deleted conversation's name back
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/review/merge.ts
 - note: Found 2026-10-26 building F877. The review merge keeps the copy with more grades whole, note included, so a second device that reviewed the card more after the delete restores the old note. The F877 replacement text also relies on the merge's text tie-break when grades are equal. Needs a merge rule that a cleared provenance note wins (data-sync-engineer). Large conversations that never cached a title cannot be cleared; their delete prompt promises nothing.
+- fixed: 2026-10-28 on `claude/forget-pack-copies` (047c63e3). `mergeDecks` has a third field-wise exception: if either copy's note is `PAST_CONVERSATION_NOTE`, the merged card is cleared and has no `contextPackId`, whichever copy had more grades. The note and its id are out of `canonical` and return only as the last tiebreak, so the merge stays commutative, idempotent and associative (LEARN-016). Large conversations that never cached a title still cannot be cleared by title; a card that carries a pack id no longer needs the title.
 - verified-by: `a cleared conversation name survives a merge with a more-graded copy`
 
 ### F879 — The next session's brief carried no evidence about the phrases it asked for
@@ -11279,9 +11280,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F882 — Deleting a conversation can clear the note on a card from an uncached conversation with the same title
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/conversationPacks/store.ts (`forgetDeletedNames`)
 - note: Found 2026-10-26 by the learning-loop adversarial review. The kept-title guard reads only the cached packs, so an older, uncached conversation with the same title has its cards' note rewritten to "Saved from a past conversation". Only the note changes; schedule and evidence are untouched. A pack id on derived cards would make the match exact.
+- fixed: 2026-10-28 on `claude/forget-pack-copies` (047c63e3). Cards now carry `contextPackId`, set by `reviewPhrasesFor`, and `forgetDeletedNames` clears a note by that id exactly. A legacy card with no id keeps the exact-text match and the kept-title guard. No migration (LEARN-016).
 - verified-by: `a deleted conversation's name is cleared only from cards built from that conversation`
 
 ### F883 — The deletion journal had no server
@@ -11416,3 +11418,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-28 (Phase F). `[luvani:brain:summary] usd=` and `[luvani:cost]` were readable by eye only, and judge and practice spend sat on separate lines, so cost per conversation and per practice set could not be computed. Owner: observability-engineer.
 - fixed: 2026-10-28 on `claude/phase-f-cost` (COST-004). The tutor also prints a numbers-only `{"event":"session_cost",…}` line, and `npm run eval:cost-numbers -w @luvani/brain-playground -- <exported log>` reports cost per conversation, cost per practice set, practice-ready latency, validation rejection, job retry and failure rates, and judge cost and memo hit rate. It reads a local file only. Every line carries numbers and fixed labels plus, on `session_cost` and `[luvani:cost]`, the first 8 hex characters of the session id (as `[luvani:brain:summary]` already did) so the lines join; never words, user ids, room or model names.
 - verified-by: `reads the fixture into sums, joining voice by prefix and skipping the rest`
+
+### F902 — Forgetting a fact was thought to leave copies in saved conversations
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/profile/tutorMemory.ts (`FORGOTTEN_NOTE`, `WHAT_LEAVES`), services/tutor-agent/src/convo.ts
+- note: Found 2026-10-28 in the memory-trust review, and first logged as F897 on the Phase D branch (`claude/phase-d-memory`). This entry supersedes F897. There is no copy by design: the pack builder never reads the memory list. `summary` is a fixed headline line, `learnerGoal` is the learner's own request, and the rest is what was said in that conversation. A conversation the learner starts from a remembered detail (a Speak tab talk chip, `memoryTopics` in `apps/mobile/src/tutor/speakTabView.ts`) is about that detail and keeps it as its topic in `learnerGoal`, like any conversation. Forgetting the detail changes neither. A forgotten fact can describe the same event in other words, so rewriting conversations by text match would be guesswork. The learner is now told at the moment of forgetting that saved conversations stay and can be deleted in Journey, and `WHAT_LEAVES` says Journey, not Progress (LEARN-015).
+- fixed: 2026-10-28 on `claude/forget-pack-copies` (0f2bdf57).
+- verified-by: `a forgotten fact leaves no copy in a saved conversation`

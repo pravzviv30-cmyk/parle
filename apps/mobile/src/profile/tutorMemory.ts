@@ -60,11 +60,11 @@ export const REMOVE_GOAL = 'Remove';
 /** One plain sentence on what leaves the phone. Names the slice the agent sends. */
 export const WHAT_LEAVES = 'Recent remembered details and your goals help personalise new conversations unless you pause personal memory. Your tutor also uses your name, learning progress and preferences. You can edit or remove details here; saved conversations are managed separately in Journey.';
 /**
- * Shown once a forget or a clear has been saved (F897). A saved conversation is
- * built from the conversation itself and never reads profile memory, so
- * forgetting a detail leaves nothing of it behind there, but a learner may
- * reasonably wonder. Deleting a conversation is on the Journey tab, under
- * "Your conversations".
+ * Shown once a forget or a clear has been saved (F897). The pack builder never
+ * reads the memory list, but a conversation the learner started from a
+ * remembered detail (a Speak tab talk chip) keeps that detail as its topic.
+ * Forgetting the detail changes neither, by decision, so the learner is told.
+ * Deleting a conversation is on the Journey tab, under "Your conversations".
  */
 export const FORGOTTEN_NOTE = 'Forgotten. Saved conversations stay as they are, and you can delete one in Journey.';
 export const MEMORY_SAVING = 'Saving your memory change.';

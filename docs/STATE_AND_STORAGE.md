@@ -743,7 +743,7 @@ Four pieces, and each has one file:
 `sync/policy.ts` is the one to read. Fifteen namespaces under three merge classes:
 
 - **structured** — `profile`, delegated to `@luvani/brain`'s `mergeStoredProfiles`.
-- **per-item** — `review` (delegated to core's `mergeDecks`; evidence counts max, source tags union), `drills`, `topics`,
+- **per-item** — `review` (delegated to core's `mergeDecks`; evidence counts max, source tags union, and a cleared conversation note wins, F878), `drills`, `topics`,
   `bookmarks`, `scenarioProgress`.
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
   `tutorIntro`, `practiceHistory`, `goalSteps`, `game`.
@@ -1065,9 +1065,21 @@ in `packages/core/src/drill/validate.ts`.
 
 Deleting a conversation keeps its review cards, schedules and evidence. Cards
 whose note names it ("From your conversation: <title>") are rewritten to "Saved
-from a past conversation" through the review store, so the change syncs. Cards
-hold no pack id, so the match is the exact note text. A more-graded copy on
-another device can still restore the old note through the merge (F878).
+from a past conversation" through the review store, so the change syncs.
+
+Review cards may carry `contextPackId`, the conversation pack whose title their
+`context` note names. Cards banked by `reviewPhrasesFor` set it. Older cards
+have none, and a cleared note never has one. Deleting a conversation clears
+notes by `contextPackId` exactly (F882). Cards with no id fall back to the exact
+note text, skipped when a cached conversation still uses that title. Delete-all
+clears every "From your conversation:" note.
+
+`mergeDecks` has a third field-wise exception (F878). If either copy's note is
+`PAST_CONVERSATION_NOTE`, the merged card is cleared and has no `contextPackId`,
+whichever copy had more grades. The note and the id sit outside the tiebreak
+order except as its last step, so the merge stays commutative, idempotent and
+associative. There is no migration: the field is optional, and each card grows
+by about 50 bytes.
 
 ## Explicit conversation text
 
