@@ -81,6 +81,9 @@ DECISIONS.md UI-007):
 - **Journey** (`tabs/MyFrenchTab.tsx`, `journey/journeyView.ts`): the level
   head, Your French first (phrases used and held with one highlighted,
   lines that came back clear, scenes earned; each only with evidence),
+  How it’s going right after it (Getting better at: quiet error patterns,
+  by authored title; Needs another go: up to three due phrases missed or
+  said with help, opening Review; LEARN-013),
   five stages, abilities, Then and now, help in words,
   sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
   (shared with Then and now); Journey and Then and now are dark-ready since
@@ -177,6 +180,20 @@ merging `main` elsewhere cannot update a server on an older branch.
 - **Next session:** review focus items carry an `ask` (unaided or new-situation) chosen
   from evidence (`tutorBrief.ts`), scene targets are weakest first (`frameTargets`), and
   wins earn up to two transfer exercises (`transferPhrasesFrom`).
+
+### Cost and measurement (COST-001 to COST-004, 28 October 2026, branch `claude/phase-f-cost`)
+
+- **Memory extraction eval:** `eval:extract` (brain-playground) scores the production
+  extraction request on ten synthetic sessions; extraction still runs on `gpt-5.6-terra`
+  at high effort with the full transcript. Baseline in
+  `docs/cogs-evidence/extract-eval-2026-10-28.md`; no model switched.
+- **Judge memo:** built but off (`LUVANI_JUDGE_MEMO=1` turns it on): `/drill/judge` and
+  `/drill/fix-line` would memoise successful verdicts per user for 24 hours in process
+  memory (`judgeMemo.ts`), before paid admission. The privacy notice must change first.
+- **Numbers:** the practice worker's `practice_job` line carries counts, failure kind,
+  generation and estimated session-end-to-ready ms and cost; the tutor prints
+  `drill_validation` and `session_cost` JSON lines. `eval:cost-numbers` aggregates an
+  exported log offline. Cost is not a product event (COST-004).
 
 ## Replacement/dependency graph
 

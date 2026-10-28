@@ -1441,6 +1441,102 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   after, but it replays recorded synthetic sessions, so it shows no regression, not
   live behaviour. F896.
 
+## LEARN-011 — Getting better at: a recurring pattern quiet for three conversations
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: `improvingPatterns` lists an error pattern as getting better when it
+  is `recurring` (seen in at least two sessions) and has not been seen in the
+  last three completed sessions (`IMPROVING_AFTER_SESSIONS`), computed as
+  `stats.sessions - 1 - lastSession >= 3` because `finishSession` increments the
+  ordinal after the session's sightings. Most recent first, ties by tag; it
+  returns tags and ordinals, never counts. Legacy patterns repaired to
+  `sessions: 1` never qualify. Pattern examples are clamped to 160 characters
+  (`MAX_PATTERN_EXAMPLE`) when written and when read.
+- Reason: progress should show improvement from evidence of absence of a real
+  weakness, not from activity, and one quiet scene is not enough.
+- Consequence: an absence can come from not meeting the structure rather than
+  mastering it; the copy built on this must say "getting better at", not
+  "mastered". F889.
+
+## LEARN-012 — Corrected forms earn no credit for the rest of the session, on the end card and in the profile
+
+- Date: 2026-10-28
+- Status: accepted (founder decision: the profile follows the end card)
+- Decision: `applyTurnToProfile` takes `correctedEarlier`, the session's
+  `correctedForms` read before the turn, and a use matching it earns neither
+  `timesUsedWell` nor `timesAssisted`, the same whole-word test the end card
+  applies in `integrateTurn`. Only quoted forms are remembered, so adopting the
+  tutor's offered better form on a later turn still counts in both.
+- Reason: the record and the card must give one verdict about one session.
+- Consequence: slightly slower mastery for a phrase the learner was corrected
+  on and then claimed again in the same session. F888.
+
+## LEARN-013 — Journey says what is getting easier and what needs another go
+
+- Date: 2026-10-28
+- Status: accepted (founder approved the "Needs another go" rule and the
+  lapses amendment, 2026-10-28)
+- Decision: the Journey tab draws "How it’s going" right after Your French
+  (`progressRowsView` in `apps/mobile/src/journey/journeyView.ts`, drawn by
+  `ProgressSection`). "Getting better at" lists up to two `improvingPatterns`
+  (LEARN-011) that have authored `PATTERN_COPY`, each said as its title and
+  "It hasn’t come up in your last 3 conversations." "Needs another go" shows up
+  to three French chips: due `phrase:` deck cards, not `transferred`, that
+  have `lapses > 0` or whose profile phrase was used only with help
+  (`timesAssisted > 0 && timesUsedWell === 0`, keyed as `core/tutorBrief.ts`
+  keys it). Oldest `due` first. The row opens Review, which plays the whole
+  due deck these phrases are in; Drill's node path was not used because it
+  plays only phrases the drill bank holds an exercise for. Locked under
+  `fullJourney`, the section shows a teaser instead.
+- Lapses amendment: the `lapses` rule in `packages/core/src/review/scheduler.ts`
+  now lets a reader use lapses to pick a phrase for "Needs another go"
+  (membership only). It still may not display, count, sort, rank or colour by
+  them.
+- Reason: progress should show improvement and the next useful practice from
+  stored evidence, with no percentage, score, count of misses or "n of m".
+- Consequence: a phrase missed once and one missed often read the same, by
+  design. The quiet-pattern line claims absence, not mastery. F890, F891.
+
+## LEARN-014 — The snapshot has a byte budget, and what it leaves out comes back
+
+- Date: 2026-10-28
+- Status: accepted (founder decision: "cap and keep")
+- Decision: `fitSnapshot` (`packages/brain/src/profile/snapshotBudget.ts`) fits
+  the learner snapshot under `SNAPSHOT_MAX_BYTES` (48 KB of UTF-8 JSON). It
+  clamps phrase `fr`, `frWritten` and `en` to 200 characters and a pattern
+  `example` to 160, then, only if still over, leaves out mastered phrases
+  (oldest `introducedAt` first), then unmastered phrases (oldest first), then
+  suspected error patterns (least recent `lastSeen` first). Memory, CEFR,
+  stats, preferences, recurring patterns, `reviewFocus` and
+  `previousCorrection` always ride. The app fits before `/session/start`; the
+  token server fits again for older builds, reads that body up to 160 KB, and
+  answers 413 only when a snapshot cannot be fitted. After the recap,
+  `ProfileContext` saves `keepUnsent(current.brain, brainAfterRecap(blob,
+  current))`: every phrase and pattern the phone holds that the recap lacks
+  comes back, clamped text comes back whole, an entry in both keeps the
+  recap's version, and the usual eviction rules re-apply the 200 and 40 caps.
+  The exception is a left-out entry the session made afresh under the same
+  key, told from the entries alone: a phrase whose `introducedAt` differs
+  (a sent phrase carries it untouched) keeps the phone's introduction and
+  text, sums uses and assisted uses, and projects `mastered` again; a pattern
+  whose `lastSession` moved while its `sessions` did not pass the phone's sums
+  count and sessions and takes the recap's sighting. Otherwise a reintroduced
+  mastered phrase would restart at zero, and a re-sighted pattern would never
+  become recurring (LEARN-002).
+- Reason: a heavy learner at realistic lengths measures about 58 KB, within
+  5 KB of the 64 KB body limit, and the worst case at every cap about 370 KB,
+  so a devoted learner could be refused a conversation. The signed token
+  carries the snapshot again in base64, so the budget sits well under the body
+  limit, and the write-back makes trimming lossless.
+- Consequence: the tutor of a very heavy learner does not see their oldest
+  mastered phrases in that session. `keepUnsent` runs after
+  `brainAfterRecap` and touches only phrases and patterns, so memory pause and
+  forgotten facts are decided before it and cannot be undone by it. No app path
+  removes a single phrase or pattern from the brain, so restoring cannot
+  resurrect a deletion; a full reset replaces the stored profile, and the
+  write-back only restores from that current profile. F892.
+
 ## DEPLOY-001 — Our own decode-only FFmpeg instead of a full static build
 
 - Date: 2026-10-26
@@ -1529,3 +1625,69 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   providers made the image much larger for nothing.
 - Consequence: a build reaches npm and the Node, decoder and Docker registries
   only. A GPU host would need this revisited before it could use CUDA.
+
+## COST-001 — No cheaper memory extraction without the extraction eval
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: memory extraction stays on the analyst model (`gpt-5.6-terra`, effort
+  high, full transcript) until `eval:extract` passes for the candidate against the
+  production baseline and the founder agrees. The eval scores the real request on
+  synthetic sessions: recall, fiction and sensitive leaks in facts and openers,
+  known repeats, structured failures, tokens and cost.
+- Reason: what extraction writes greets the learner next session, and an invented
+  or sensitive fact costs far more than the model saving.
+- Consequence: the first baseline (`docs/cogs-evidence/extract-eval-2026-10-28.md`)
+  has gpt-6-luna at medium effort passing at about a twentieth of the cold-cache
+  cost; trimming the transcript saves about 1% and is not worth it. Phase D's
+  prompt change needs a re-run before any switch. F898.
+
+## COST-002 — Judge verdicts are memoised per user for a day
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: behind `LUVANI_JUDGE_MEMO=1` (off by default, founder 2026-10-28),
+  `/drill/judge` and `/drill/fix-line` share one in-process `JudgeMemo`
+  (`services/token-server/src/judgeMemo.ts`). The key is a sha256 of the user id,
+  `JUDGE_MEMO_VERSION`, the judge model, the endpoint and the built judge request,
+  with the attempt NFC-normalised, trimmed and whitespace-collapsed (case, accents
+  and punctuation kept). Successful verdicts only; 24 h TTL, 200 per user, 5,000 in
+  all; cleared for a user on account deletion and entirely on restart. A hit comes
+  after the rate limits and before paid admission and Jev.
+- Reason: an identical repeat should not be judged or admitted twice, and caching
+  across users would leak one learner's verdict to another.
+- Consequence: when on, the verdict, whose note may quote the learner, is held in
+  memory for up to a day. The in-app notice (`apps/mobile/src/legal/policy.ts`)
+  promises no copy of the answer or verdict, so the flag stays off until that copy
+  is updated and reviewed; `policy.test.ts` fails if the memo runs without it. Savings are claimed only from measured
+  `[luvani:judge] memo hit` lines against `answered by` lines. Bump the version
+  when a Jev threshold changes. F899.
+
+## COST-003 — Practice and validation numbers, no learner text
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: the practice worker's `practice_job` line carries proposed and
+  accepted exercise counts, a failure kind, generation ms, an estimated ms from
+  session end to practice ready, and the job's cost. The live tutor prints one
+  `drill_validation` JSON line per drill batch.
+- Reason: practice-ready latency and validation failure rates were required
+  metrics with no numbers behind them.
+- Consequence: session end is estimated as `createdAt + durationSec` (createdAt is
+  the session start with the lifecycle on), because the claim RPC returns no queue
+  timestamp and this phase adds no migration. F900.
+
+## COST-004 — AI cost stays in numbers-only logs, not product events
+
+- Date: 2026-10-28
+- Status: accepted (founder, 2026-10-28)
+- Decision: per-session cost is one `session_cost` JSON log line beside the
+  existing summaries, and `eval:cost-numbers` aggregates an exported log offline.
+  No product event, migration or consent change.
+- Reason: cost is operational, not learner analytics. A product event would need
+  a migration to the event trigger, a consent flag the tutor does not have, and a
+  link to the learner that the metric does not need.
+- Consequence: cost per cohort is out of reach until a later decision adds it.
+  Voice is reported in units (TTS characters, STT seconds), not dollars. The
+  lines join on the first 8 hex characters of the session id, as
+  `[luvani:brain:summary]` already did; no words, user ids, room or model names. F901.

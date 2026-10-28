@@ -21,7 +21,7 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { CheckDisc } from '../today/TodayParts.tsx';
 import { ChevronGlyph } from '../explore/ExploreParts.tsx';
 import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
-import { HELD_TAG, type JourneyRoute, type Segment, type StageStep, type YourFrenchView } from './journeyView.ts';
+import { HELD_TAG, type JourneyRoute, type ProgressView, type Segment, type StageStep, type YourFrenchView } from './journeyView.ts';
 
 /** Words where the French runs are tagged as French. */
 export function Words({ segments }: { segments: readonly Segment[] }) {
@@ -355,19 +355,66 @@ export function SoundRowView({ ipa, example, line, tile, last, practise }: {
   );
 }
 
-/** A week row: the 10pt dot, the 12/700 label and the 15 line. Opens its place. */
-export function WeekRowView({ label, line, dot, last, onPress }: { label: string; line: string; dot: 'mint' | 'sun' | 'brand'; last: boolean; onPress: () => void }) {
-  const t = useB();
+/**
+ * "How it’s going" (2026-10-28, LEARN-013): Getting better at and Needs
+ * another go, drawn as Your week's rows with Your French's chips. The tab and
+ * the dev preview draw it the same way. A locked section shows its teaser.
+ */
+export function ProgressSection({ view, onOpen, onTeaser }: { view: ProgressView; onOpen: (route: JourneyRoute) => void; onTeaser: (feature: LockedFeature) => void }) {
   const s = useThemedStyles(makeStyles);
   return (
-    <Press haptic="light" accessibilityLabel={`${label}. ${line}`} onPress={onPress} style={[s.weekRow, !last && s.divider]}>
+    <View style={s.yourStack}>
+      <JourneyHead title={view.heading} locked={view.locked} />
+      {view.teaser !== null ? (
+        <Ledger>
+          <LedgerRow title={view.teaser} accessibilityLabel={view.teaser} onPress={() => onTeaser(view.feature)} />
+        </Ledger>
+      ) : (
+        <JourneyList>
+          {view.rows.map((row, i) => (
+            <WeekRowView key={row.key} label={row.label} lines={row.lines} dot={row.dot} last={i === view.rows.length - 1}
+              accessibilityLabel={row.accessibilityLabel} onPress={row.route === null ? undefined : () => onOpen(row.route!)}>
+              {row.chips.length > 0 && <YourChips>{row.chips.map((fr) => <UsedChip key={fr} fr={fr} />)}</YourChips>}
+            </WeekRowView>
+          ))}
+        </JourneyList>
+      )}
+    </View>
+  );
+}
+
+/**
+ * A week row: the 10pt dot, the 12/700 label and the 15 line. Opens its place
+ * when given one. "How it’s going" draws its rows with it too, with more than
+ * one line and its French chips under them.
+ */
+export function WeekRowView({ label, line, dot, last, onPress, lines, children, accessibilityLabel }: {
+  label: string;
+  line?: string;
+  dot: 'mint' | 'sun' | 'brand';
+  last: boolean;
+  onPress?: () => void;
+  lines?: readonly string[];
+  children?: ReactNode;
+  accessibilityLabel?: string;
+}) {
+  const t = useB();
+  const s = useThemedStyles(makeStyles);
+  const said = lines ?? (line !== undefined ? [line] : []);
+  const body = (
+    <>
       <View {...decorative} style={[s.dot, { backgroundColor: t[dot] }]} />
       <View style={s.grow}>
         <Text style={[bType.bold12, { color: t.muted }]}>{label}</Text>
-        <Text style={[bType.line15, { color: t.text }]}>{line}</Text>
+        {said.map((text) => <Text key={text} style={[bType.line15, { color: t.text }]}>{text}</Text>)}
+        {children}
       </View>
-    </Press>
+    </>
   );
+  const label11y = accessibilityLabel ?? `${label}. ${said.join(' ')}`;
+  return onPress !== undefined
+    ? <Press haptic="light" accessibilityLabel={label11y} onPress={onPress} style={[s.weekRow, !last && s.divider]}>{body}</Press>
+    : <View accessible accessibilityLabel={label11y} style={[s.weekRow, !last && s.divider]}>{body}</View>;
 }
 
 /** The Postcards (peach, cafe-table) and Badges (lavender, three discs and the flame) tiles. */

@@ -13,8 +13,9 @@ import { Press } from '../components.tsx';
 import { Columns, ScrollScreen } from '../layout.tsx';
 import { ModeScope, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import type { MainMode } from '../main/appearanceModel.ts';
-import { YourFrenchSection } from '../journey/JourneyParts.tsx';
-import { yourFrenchView } from '../journey/journeyView.ts';
+import { ProgressSection, YourFrenchSection } from '../journey/JourneyParts.tsx';
+import { progressRowsView, yourFrenchView } from '../journey/journeyView.ts';
+import { progressFixture, type ProgressState } from '../journey/progressFixtures.ts';
 import { yourFrenchFixture, type YourFrenchState } from '../journey/yourFrenchFixtures.ts';
 import { HIT, bType, space } from '../theme.ts';
 
@@ -24,6 +25,13 @@ const CAPTIONS: Record<YourFrenchState, string> = {
   scenes: 'Only scenes earned on your own',
   forward: 'Practised, with nothing to show yet',
   free: 'Free plan: phrases and sounds locked',
+};
+
+const PROGRESS_CAPTIONS: Record<ProgressState, string> = {
+  both: 'Getting better at and Needs another go',
+  better: 'Only Getting better at',
+  again: 'Only Needs another go',
+  free: 'Free plan: the section locked',
 };
 
 const NOTE = 'Preview only. Nothing opens.';
@@ -37,18 +45,33 @@ export function YourFrenchPreview({ state, mode, onBack }: { state: YourFrenchSt
   );
 }
 
-function Body({ state, onBack }: { state: YourFrenchState; onBack?: () => void }) {
+/**
+ * "How it’s going" on a fixed learner (2026-10-28, LEARN-013), drawn by the
+ * real `ProgressSection` from the real `progressRowsView`, in the same frame.
+ */
+export function HowItsGoingPreview({ state, mode, onBack }: { state: ProgressState; mode: MainMode; onBack?: () => void }) {
+  return (
+    <ModeScope mode={mode}>
+      <Body progress={state} onBack={onBack} />
+    </ModeScope>
+  );
+}
+
+function Body({ state, progress, onBack }: { state?: YourFrenchState; progress?: ProgressState; onBack?: () => void }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const [note, setNote] = useState(false);
-  const view = yourFrenchView(yourFrenchFixture(state));
+  const view = state === undefined ? null : yourFrenchView(yourFrenchFixture(state));
+  const going = progress === undefined ? null : progressRowsView(progressFixture(progress));
+  const caption = state !== undefined ? `Your French preview. ${CAPTIONS[state]}.` : `How it’s going preview. ${PROGRESS_CAPTIONS[progress!]}.`;
   return (
     <ScrollScreen padded={false}>
       <View style={s.body}>
-        <Text style={[bType.meta, { color: t.muted }]}>{`Your French preview. ${CAPTIONS[state]}.`}</Text>
+        <Text style={[bType.meta, { color: t.muted }]}>{caption}</Text>
         <Columns>
           <View style={s.page}>
-            <YourFrenchSection view={view} onOpen={() => setNote(true)} onTeaser={() => setNote(true)} />
+            {view !== null && <YourFrenchSection view={view} onOpen={() => setNote(true)} onTeaser={() => setNote(true)} />}
+            {going !== null && <ProgressSection view={going} onOpen={() => setNote(true)} onTeaser={() => setNote(true)} />}
           </View>
           <View style={s.page} />
         </Columns>

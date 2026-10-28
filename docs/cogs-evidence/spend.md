@@ -19,3 +19,11 @@ Free calls, not counted: the ElevenLabs subscription reads, and the pricing page
 |---|---|---|
 | 2026-10-23 | First-audio latency, v2 vs Flash v2.5: alexandre, 6 lines × 3 reps each (`flash-latency-2026-10-23.json`) | 522 credits, about $0.10 |
 | | **Running total** | **about $0.63** |
+
+## Added 2026-10-28 (Phase F, COST-001)
+| When | What | Cost |
+|---|---|---|
+| 2026-10-28 | `eval:extract`: gpt-5.6-terra high, gpt-6-luna medium, luna medium trimmed, 30 calls each, run twice (`extract-eval-2026-10-28.md`) | about $0.21 |
+| | **Running total** | **about $0.84** |
+
+How cost is measured from here: `npm run eval:cost-numbers -w @luvani/brain-playground -- <exported log>` reads the `session_cost`, `[luvani:cost]`, `practice_job`, `practice_usage`, `drill_validation` and `[luvani:judge]` lines of a Railway log export (COST-004). The judge memo (COST-002, off until the privacy notice is updated) saves only what its `memo hit` lines show against `answered by` lines; no saving is claimed before that.

@@ -10,9 +10,11 @@
     "eval:frames": "node --experimental-strip-types src/eval/frameEval.ts",
     "eval:drills": "node --experimental-strip-types src/eval/drillEval.ts",
     "eval:curation": "node --experimental-strip-types src/eval/curationEval.ts",
+    "eval:extract": "node --experimental-strip-types src/eval/extractEval.ts",
     "eval:sessions": "node --experimental-strip-types src/eval/sessionEval.ts",
     "eval:replay": "node --experimental-strip-types src/eval/replayEval.ts",
     "eval:beta-numbers": "node --experimental-strip-types src/eval/betaNumbers.ts",
+    "eval:cost-numbers": "node --experimental-strip-types src/eval/costNumbers.ts",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },

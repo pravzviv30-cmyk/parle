@@ -22,6 +22,20 @@ of the list.
 
 ## Current landing snapshot
 
+- 28 October 2026 Phase F, cost and measurement, on branch `claude/phase-f-cost` (main 7b3c38ca merged
+  in): the memory extraction eval with a recorded baseline, the judge verdict memo switched off behind
+  `LUVANI_JUDGE_MEMO`, practice, validation and session cost JSON lines, and the offline
+  `eval:cost-numbers` aggregator (COST-001 to COST-004, F898 to F901). **6,822 tests, 0 failing**; core
+  1088, brain 555, tutor agent 875, token server 519, playground 110, mobile 3675; shared
+  release/provider proofs 207; all 44 migrations replayed, no migration added. Floors raised through
+  `gate:bless`. `eval:extract` ran live (about $0.21); no model was switched and nothing was deployed.
+- 28 October 2026 Phase E, progress that shows improvement, on branch `claude/phase-e-progress` from main
+  286723d8: Journey "How it's going" (Getting better at, Needs another go), the profile's credit rule
+  aligned with the end card, pattern examples clamped, snapshot byte budget with keep-unsent write-back
+  (LEARN-011 to LEARN-014, F888 to F892). **6,782 tests, 0 failing**; core 1088, brain 555, tutor agent
+  873, token server 499, playground 92, mobile 3675; shared release/provider proofs 207; all 44
+  migrations replayed, no migration added. Floors raised through `gate:bless`. The new section was seen
+  in the web dev preview at 375 pt in light and dark; not seen on a device or in a live session.
 - 27 October 2026 staging unblockers on main (branch `claude/staging-unblockers`): decode-only FFmpeg
   image recipe and workflow (DEPLOY-001), Cloudflare deletion journal (DEPLOY-002), price-quote generator
   (DEPLOY-003) and the voice-error worker crash fix (F884). **6,736 tests, 0 failing**; core 1088, brain 534,

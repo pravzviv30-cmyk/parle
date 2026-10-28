@@ -27,9 +27,10 @@ import { StreakCelebrationScreen } from '../onboarding/firstRun/StreakCelebratio
 import { guestStreak } from '../onboarding/guestProgress.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 import { HIT, paper, radius, space, type } from '../theme.ts';
-import { YourFrenchPreview } from './YourFrenchPreview.tsx';
+import { HowItsGoingPreview, YourFrenchPreview } from './YourFrenchPreview.tsx';
 import { preferredMode, type MainMode } from '../main/appearanceModel.ts';
 import { YOUR_FRENCH_STATES, type YourFrenchState } from '../journey/yourFrenchFixtures.ts';
+import { PROGRESS_STATES, type ProgressState } from '../journey/progressFixtures.ts';
 
 const unavailable = async (): Promise<AuthResult> => ({ ok: false, message: 'Screen preview only. No account was created or changed.' });
 const previewAdapterBase: AuthAdapter = {
@@ -50,7 +51,7 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'select'] as const;
+const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'live-speaking': 'Live speaking layout', 'live-typing': 'Live typing layout',
@@ -59,6 +60,8 @@ const LABELS: Record<Preview, string> = {
   'auth-flow': 'Sign in and create account flow', journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
   'your-french-full': 'Your French, full', 'your-french-sounds': 'Your French, sounds only', 'your-french-scenes': 'Your French, scenes only',
   'your-french-forward': 'Your French, nothing yet', 'your-french-free': 'Your French, free plan',
+  'how-its-going-both': 'How it’s going, both rows', 'how-its-going-better': 'How it’s going, getting better only',
+  'how-its-going-again': 'How it’s going, another go only', 'how-its-going-free': 'How it’s going, free plan',
 };
 function previewOptions() {
   const query = Platform.OS === 'web' && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
@@ -77,6 +80,12 @@ function previewOptions() {
 function yourFrenchState(screen: Preview): YourFrenchState | null {
   const state = screen.startsWith('your-french-') ? screen.slice('your-french-'.length) : null;
   return YOUR_FRENCH_STATES.find((value) => value === state) ?? null;
+}
+
+/** The How it’s going state a preview key names, or null for every other screen. */
+function progressState(screen: Preview): ProgressState | null {
+  const state = screen.startsWith('how-its-going-') ? screen.slice('how-its-going-'.length) : null;
+  return PROGRESS_STATES.find((value) => value === state) ?? null;
 }
 
 /** A developer-only presentation fixture. Voice previews play the existing bundled lesson identities. */
@@ -122,6 +131,7 @@ export function OnboardingPreview() {
   // The web query names the mode for screenshots; otherwise the device's appearance (the simulator's on native).
   const yourFrenchMode = options.theme ?? preferredMode('system', useColorScheme());
   const yourFrench = yourFrenchState(screen);
+  const going = progressState(screen);
   const transition = useOnboardingTransition();
   const go = (next: Preview) => {
     transition.transition(() => {
@@ -142,7 +152,7 @@ export function OnboardingPreview() {
           <PillButton tone="white" label={controlsVisible ? 'Hide preview controls' : 'Show preview controls'} onPress={() => setControlsVisible(value => !value)} />
           {PREVIEWS.filter(value => value !== 'select').map(value => <PillButton key={value} label={LABELS[value]} onPress={() => go(value)} />)}
         </View>
-      </ScrollScreen> : yourFrench !== null ? <YourFrenchPreview state={yourFrench} mode={yourFrenchMode} onBack={controlsVisible ? () => go('select') : undefined} />
+      </ScrollScreen> : yourFrench !== null ? <YourFrenchPreview state={yourFrench} mode={yourFrenchMode} onBack={controlsVisible ? () => go('select') : undefined} /> : going !== null ? <HowItsGoingPreview state={going} mode={yourFrenchMode} onBack={controlsVisible ? () => go('select') : undefined} />
       : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen.startsWith('streak') ? 'remind' : screen })}>
         <Animated.View style={[st.root, transition.style]}>
           {screen === 'orb' && <ScrollScreen><View style={[readingColumn, { gap: 24, alignItems: 'center' }]}><Text accessibilityRole="header" style={[type.title, st.heading]}>Fluid voice orb</Text><Text style={[type.body, st.caption]}>Synthetic state preview. No microphone or live audio.</Text><BoldVoiceOrb state={orbState} size={280} active={orbActive} /><Text accessibilityLiveRegion="polite" style={[type.bodyStrong, st.ink]}>{orbState}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{(['ready', 'connecting', 'listening', 'thinking', 'speaking', 'error'] as const).map(value => <PillButton key={value} label={value} onPress={() => setOrbState(value)} />)}</View><PillButton label={orbActive ? 'Pause motion' : 'Resume motion'} onPress={() => setOrbActive(!orbActive)} /></View></ScrollScreen>}
@@ -169,7 +179,7 @@ export function OnboardingPreview() {
 
         </Animated.View>
       </OnboardingFrame>}
-      {(controlsVisible || requestPending) && screen !== 'select' && !screen.startsWith('streak') && yourFrench === null && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
+      {(controlsVisible || requestPending) && screen !== 'select' && !screen.startsWith('streak') && yourFrench === null && going === null && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
         <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={() => go('select')} style={st.badge}>
           <Text style={[type.small, st.ink]}>{requestPending ? 'Preview' : 'Screen preview'}</Text>
         </Press>

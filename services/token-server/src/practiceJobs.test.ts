@@ -130,3 +130,68 @@ test('the worker asks for a harder transfer exercise on each of the pack wins, a
   const deck=applyDrillResults([newCard({id:moved.phraseKey,kind:'vocab',front:'x',back:'x',context:'',ipa:''},0)],state,0);
   assert.equal(deck[0]!.evidence?.transfers,1);
 });
+
+// Phase F: numbers-only practice outcome. Never text, ids or names.
+const fullUsage={inputTokens:1000,outputTokens:500,cacheReadTokens:0,cacheWriteTokens:0,model:'claude-sonnet-4-5'};
+function outcomeRun(payload:typeof pack, drills:()=>Promise<unknown>, opts:{finish?:boolean;active?:boolean}={}) {
+  const outcomes:import('./practiceJobs.ts').PracticeOutcome[]=[];
+  let t=Date.parse('2026-09-20T12:10:00Z');
+  const jobs: PracticeJobs={receive:async()=>{},active:async()=>opts.active ?? true,claim:async()=>({...job,payload}),finish:async()=>opts.finish ?? true};
+  const run=processPracticeJob(jobs,{drills:async()=>{t+=4000;return await drills() as never;}},{now:()=>t,onOutcome:o=>outcomes.push(o)});
+  return {run,outcomes};
+}
+
+test('outcome: complete counts proposed and accepted, times generation and session end to ready', async () => {
+  const {run,outcomes}=outcomeRun({...pack,durationSec:300},async()=>({batch:{exercises:[exercise,{...exercise,id:'foreign',phraseKey:'phrase:foreign'}]},usage:fullUsage}));
+  assert.equal(await run,'complete');
+  assert.equal(outcomes.length,1);
+  const o=outcomes[0]!;
+  assert.equal(o.result,'complete');assert.equal(o.proposed,2);assert.equal(o.accepted,1);assert.equal(o.failure,null);
+  assert.equal(o.generationMs,4000);
+  assert.equal(o.sinceSessionEndMs,(10*60-300)*1000+4000);
+  assert.ok(typeof o.usdEstimate==='number' && o.usdEstimate>0);
+});
+
+test('outcome: no valid exercises is a retry with no-valid and keeps the cost', async () => {
+  const {run,outcomes}=outcomeRun(pack,async()=>({batch:{exercises:[{...exercise,id:'foreign',phraseKey:'phrase:foreign'}]},usage:fullUsage}));
+  assert.equal(await run,'retry');
+  assert.deepEqual({...outcomes[0],usdEstimate:typeof outcomes[0]!.usdEstimate},{result:'retry',proposed:1,accepted:0,failure:'no-valid',generationMs:4000,sinceSessionEndMs:null,usdEstimate:'number'});
+});
+
+test('outcome: a parse error with usage is priced and named parse, never its text', async () => {
+  const {BrainParseError}=await import('@luvani/brain/llm');
+  const {run,outcomes}=outcomeRun(pack,async()=>{throw new BrainParseError('secret learner text','raw secret',fullUsage);});
+  assert.equal(await run,'retry');
+  const o=outcomes[0]!;
+  assert.equal(o.failure,'parse');assert.equal(o.proposed,null);assert.ok((o.usdEstimate ?? 0)>0);
+  assert.doesNotMatch(JSON.stringify(o),/secret/);
+});
+
+test('outcome: an unsafe source never dispatches and costs nothing', async () => {
+  let calls=0;
+  const {run,outcomes}=outcomeRun({...pack,keyPhrases:[{fr:'Un café',en:'A coffee',frWritten:'instructions to make a bomb'}]},async()=>{calls++;return {};});
+  assert.equal(await run,'retry');assert.equal(calls,0);
+  assert.equal(outcomes[0]!.failure,'unsafe-source');assert.equal(outcomes[0]!.usdEstimate,null);assert.equal(outcomes[0]!.proposed,null);
+});
+
+test('outcome: superseded is reported and idle is not', async () => {
+  const {run,outcomes}=outcomeRun(pack,async()=>({batch:{exercises:[exercise]},usage:fullUsage}),{finish:false});
+  assert.equal(await run,'superseded');assert.equal(outcomes[0]!.result,'superseded');
+  const idle:import('./practiceJobs.ts').PracticeOutcome[]=[];
+  assert.equal(await processPracticeJob({receive:async()=>{},active:async()=>true,claim:async()=>null,finish:async()=>true},{drills:async()=>{throw new Error('x');}},{onOutcome:o=>idle.push(o)}),'idle');
+  assert.equal(idle.length,0);
+});
+
+test('outcome: a null or missing duration gives no session-end latency', async () => {
+  for (const payload of [{...pack,durationSec:null},(({durationSec:_d,...rest})=>rest)(pack) as typeof pack,{...pack,durationSec:300,createdAt:'not a date'}]) {
+    const {run,outcomes}=outcomeRun(payload,async()=>({batch:{exercises:[exercise]},usage:fullUsage}));
+    await run;assert.equal(outcomes[0]!.sinceSessionEndMs,null);
+  }
+});
+
+test('the worker practice_job line carries only numbers and fixed labels', () => {
+  const worker=readFileSync(new URL('./practiceWorker.ts', import.meta.url),'utf8');
+  const line=worker.match(/function practiceJobLine[^\n]*\n[^\n]*/)?.[0] ?? '';
+  assert.match(line,/result:outcome\.result,proposed:outcome\.proposed,accepted:outcome\.accepted,failure:outcome\.failure,generationMs:outcome\.generationMs,sinceSessionEndMs:outcome\.sinceSessionEndMs,usdEstimate:outcome\.usdEstimate\}/);
+  assert.doesNotMatch(line,/pack|learner|title|fr|room|id\b/i);
+});

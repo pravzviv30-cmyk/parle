@@ -13,6 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { JevFirstBrainClient, MockLlmClient, OwnWordsVerdictSchema, type JevAnswer } from '@luvani/brain/llm';
 
+import { JudgeMemo } from './judgeMemo.ts';
 import { handleDrillJudge, judgeUsageLine, JUDGE_BODY_LIMIT_BYTES, type DrillJudgeDeps } from './drillJudge.ts';
 
 const ATTEMPT = 'Un café pour moi, merci beaucoup.';
@@ -291,5 +292,72 @@ describe('the own-words judge with Jev in front', () => {
     const line = judgeUsageLine({ inputTokens: 40, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0 });
     assert.match(line, /answered by an unnamed model/);
     assert.match(line, /\(estimated\)$/);
+  });
+});
+
+describe('the own-words judge memo', () => {
+  function counting(memo: JudgeMemo, extra: Partial<DrillJudgeDeps> = {}) {
+    const calls = { judge: 0, clientFor: 0 };
+    const d = deps({
+      memo,
+      client: { judge: async () => { calls.judge += 1; return { verdict: VERDICT, usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 } }; } },
+      ...extra,
+    });
+    return { calls, d };
+  }
+  async function run(d: DrillJudgeDeps, body: unknown) {
+    const out = response();
+    await handleDrillJudge(request(body), out.res, d);
+    return out;
+  }
+
+  test('a repeated attempt, even with extra whitespace, costs one brain call and answers identically', async () => {
+    const { calls, d } = counting(new JudgeMemo({ model: () => 'm' }));
+    const first = await run(d, CARD);
+    const second = await run(d, { ...CARD, attempt: `  Un  café pour\n moi,   merci beaucoup.  ` });
+    assert.equal(calls.judge, 1);
+    assert.equal(second.status(), 200);
+    assert.deepEqual(second.body(), first.body());
+  });
+
+  test('another user, a changed drill field, or a different case or accent each call the brain again', async () => {
+    const memo = new JudgeMemo({ model: () => 'm' });
+    const { calls, d } = counting(memo);
+    await run(d, CARD);
+    await run(d, { ...CARD, situation: 'ordering at a bar' });
+    await run(d, { ...CARD, mustKeep: ['asking for a coffee'] });
+    await run(d, { ...CARD, cefr: 'B1' });
+    await run(d, { ...CARD, attempt: ATTEMPT.toLowerCase() });
+    await run(d, { ...CARD, attempt: ATTEMPT.replace('café', 'cafe') });
+    assert.equal(calls.judge, 6);
+    const other = counting(memo, { users: { resolve: async () => ({ ok: true as const, userId: 'learner-2' }) } });
+    await run(other.d, CARD);
+    assert.equal(other.calls.judge, 1);
+  });
+
+  test('a failed call is not memoised, and the next try reaches the brain', async () => {
+    const memo = new JudgeMemo({ model: () => 'm' });
+    let fail = true; let judged = 0;
+    const d = deps({ memo, client: { judge: async () => { judged += 1; if (fail) throw new Error('down'); return { verdict: VERDICT, usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 } }; } } });
+    assert.equal((await run(d, CARD)).status(), 503);
+    fail = false;
+    assert.equal((await run(d, CARD)).status(), 200);
+    assert.equal(judged, 2);
+    assert.equal(memo.size, 1);
+  });
+
+  test('a memo hit admits no paid transport and logs a line with no attempt text', async () => {
+    const memo = new JudgeMemo({ model: () => 'm' });
+    let admitted = 0;
+    const { calls, d } = counting(memo);
+    d.clientFor = async () => { admitted += 1; return d.client; };
+    const logged: unknown[][] = [];
+    d.memoHit = (...args: unknown[]) => { logged.push(args); };
+    await run(d, CARD);
+    await run(d, CARD);
+    assert.equal(admitted, 1);
+    assert.equal(calls.judge, 1);
+    assert.deepEqual(logged, [['own-words']]);
+    for (const text of [ATTEMPT, CARD.fr, CARD.en, CARD.situation]) assert.ok(!JSON.stringify(logged).includes(text));
   });
 });

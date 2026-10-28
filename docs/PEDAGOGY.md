@@ -228,6 +228,11 @@ the app had shown the hint or the full line, the brain records the use on
 `timesAssisted` instead of `timesUsedWell`, so it moves neither `used` nor
 mastery. The help stays visible; it just is not natural production.
 
+A form the coach quoted as wrong earlier in the session earns no credit for the
+rest of it, neither `timesUsedWell` nor `timesAssisted`, and the end card leaves
+it out of the wins by the same rule (LEARN-012). The better form the tutor
+offered is not remembered, so adopting it later still counts.
+
 A drill answer that comes out right only after a miss is assisted too. The
 phrase still grades `good`, but it comes back tomorrow at the same drill stage
 (reps hold, ease unchanged) and earns no evidence. A changed-situation exercise
@@ -241,6 +246,18 @@ distinct sessions it was seen in, and it is `recurring` from the second one
 (`RECURRING_SESSIONS`). The tutor's watch-for list takes recurring patterns
 first and only fills the rest from suspected ones, so a learner with nothing
 recurring sees the old top three by count.
+
+A recurring pattern not seen in the last three completed conversations is
+"getting better at" (`improvingPatterns`, LEARN-011). A legacy pattern whose
+session count was repaired to one never qualifies. Stored examples are clamped
+to 160 characters.
+
+The Journey says both sides in words (LEARN-013). "Getting better at" names up
+to two of those quiet patterns that have authored copy, and claims absence,
+not mastery. "Needs another go" names up to three due phrases, not yet
+transferred, that were missed in review or only said with help, oldest due
+first. Lapses decide only whether a phrase is in, never its order or what is
+shown.
 
 Nothing here decays. What expires is the schedule, not the record, because a
 thing that happened stays happened.

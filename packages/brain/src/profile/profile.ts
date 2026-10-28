@@ -276,7 +276,12 @@ function repairLearningHistory(profile: LearnerProfile): LearnerProfile {
   const errorPatterns: Record<string, unknown> = {};
   for (const [tag, raw] of Object.entries(profile.errorPatterns as Record<string, unknown>)) {
     errorPatterns[tag] = isRecord(raw)
-      ? { ...raw, sessions: countOr(raw.sessions, 1), lastSession: countOr(raw.lastSession, ordinal) }
+      ? {
+          ...raw,
+          ...(typeof raw.example === 'string' ? { example: clampPatternExample(raw.example) } : {}),
+          sessions: countOr(raw.sessions, 1),
+          lastSession: countOr(raw.lastSession, ordinal),
+        }
       : raw;
   }
   return {
@@ -503,6 +508,52 @@ export function patternStatus(pattern: { sessions?: number }): 'suspected' | 're
   return (pattern.sessions ?? 1) >= RECURRING_SESSIONS ? 'recurring' : 'suspected';
 }
 
+/**
+ * Conversations a recurring pattern must stay quiet for before the learner is
+ * told they are getting better at it. Three, so one lucky scene is not praise.
+ */
+export const IMPROVING_AFTER_SESSIONS = 3;
+
+/**
+ * Patterns the learner has stopped making: recurring (seen in at least
+ * `RECURRING_SESSIONS` sessions), and not seen in the last
+ * `IMPROVING_AFTER_SESSIONS` completed sessions.
+ *
+ * During a session every sighting writes `lastSession = stats.sessions`, and
+ * `finishSession` increments `stats.sessions` afterwards. A pattern last seen in
+ * ordinal k followed by three clean sessions therefore leaves
+ * `stats.sessions === k + 4`, hence the `- 1`.
+ *
+ * Never returns counts: this is evidence of a quiet pattern, not a score.
+ * Legacy patterns repaired to `sessions: 1` are suspected and never qualify.
+ * Most recent `lastSession` first, ties by tag. Pure.
+ */
+export function improvingPatterns(
+  profile: Pick<LearnerProfile, 'errorPatterns' | 'stats'>,
+): Array<{ tag: string; lastSession: number }> {
+  const completed = profile.stats.sessions;
+  const out: Array<{ tag: string; lastSession: number }> = [];
+  for (const [tag, pattern] of Object.entries(profile.errorPatterns)) {
+    if (patternStatus(pattern) !== 'recurring') continue;
+    if (!Number.isFinite(pattern.lastSession)) continue;
+    if (completed - 1 - pattern.lastSession < IMPROVING_AFTER_SESSIONS) continue;
+    out.push({ tag, lastSession: pattern.lastSession });
+  }
+  return out.sort((a, b) => b.lastSession - a.lastSession || (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
+}
+
+/**
+ * Longest stored pattern example, in characters. The whole profile rides the
+ * session join credential, so a model-written example must not grow unbounded.
+ */
+export const MAX_PATTERN_EXAMPLE = 160;
+
+/** Clamp by code points, so a surrogate pair is never split. */
+function clampPatternExample(example: string): string {
+  const chars = Array.from(example);
+  return chars.length <= MAX_PATTERN_EXAMPLE ? example : chars.slice(0, MAX_PATTERN_EXAMPLE).join('');
+}
+
 function phraseKey(fr: string, frWritten: string | null): string {
   return normalise(frWritten ?? fr);
 }
@@ -569,9 +620,12 @@ export function applyTurnToProfile(
   profile: LearnerProfile,
   turn: TutorTurn,
   now: string,
-  options: { assisted?: boolean } = {},
+  options: { assisted?: boolean; correctedEarlier?: readonly string[] } = {},
 ): LearnerProfile {
   const assisted = options.assisted === true;
+  // Forms the coach quoted earlier this session (`state.correctedForms` read
+  // before this turn). Normalised again defensively; they already are.
+  const correctedEarlier = (options.correctedEarlier ?? []).map(normalise).filter((f) => f.length > 0);
   const next: LearnerProfile = {
     ...profile,
     cefr: { ...profile.cefr, evidence: [...profile.cefr.evidence] },
@@ -607,7 +661,7 @@ export function applyTurnToProfile(
     next.errorPatterns[tag] = {
       count: (existing?.count ?? 0) + 1,
       lastSeen: now,
-      example: pattern.example || existing?.example || '',
+      example: clampPatternExample(pattern.example || existing?.example || ''),
       sessions: (existing?.sessions ?? 0) + (newSession ? 1 : 0),
       lastSession: ordinal,
     };
@@ -663,7 +717,14 @@ export function applyTurnToProfile(
         // the model sent, since the two often disagree (the coach quotes the
         // written form, `usedWell` names the spoken one) and an exclusion that
         // missed on spelling would be no exclusion at all.
+        //
+        // The profile and the end card share one rule (LEARN-012): a form
+        // quoted in coaching on an earlier turn of this session earns nothing
+        // for the rest of it, here or on the card (`integrateTurn`). Only the
+        // quote is remembered, never the offered form, so adopting the better
+        // line on a later turn still counts in both.
         if (namedInCoaching(named, used, entry.fr, entry.frWritten)) continue;
+        if (namedInCoaching(correctedEarlier, used, entry.fr, entry.frWritten)) continue;
         if (assisted) {
           // Said with the hint or the line on screen. Recorded, so the help is
           // visible, but it is not natural production and moves no mastery.

@@ -78,6 +78,14 @@ export interface ReviewCard {
    * So a reader may pool this into a deck-wide denominator and divide. It may
    * not display it, sort or rank by it, colour a card with it, or put it
    * anywhere a learner can read one card's worth.
+   *
+   * One amendment (founder, 2026-10-28, DECISIONS.md LEARN-013): a reader may
+   * use `lapses > 0` to PICK a due phrase for the Journey's "Needs another go"
+   * row (`apps/mobile/src/journey/journeyView.ts` `needsAnotherGo`). That is
+   * membership only. The row orders by `due`, shows no count, and a phrase
+   * missed once reads exactly like one missed nine times, so the scoreboard
+   * above still never forms. Displaying, counting, sorting, ranking or
+   * colouring by it stays forbidden.
    */
   lapses: number;
   /**

@@ -120,7 +120,7 @@ describe('the tutor’s memory, edited by the learner', () => {
     // The context applies it at that one write, not in the navigator's
     // handler, whose deps must stay exactly [updateBrain] (F386).
     const context = readFileSync(fileURLToPath(new URL('../app/ProfileContext.tsx', import.meta.url)), 'utf8');
-    assert.match(context, /brain: brainAfterRecap\(blob, current\)/, 'updateBrain saves the recap’s brain without applying the tombstones');
+    assert.match(context, /brain: keepUnsent\(current\.brain, brainAfterRecap\(blob, current\)\)/, 'updateBrain saves the recap’s brain without applying the tombstones');
     const navigator = readFileSync(fileURLToPath(new URL('../nav/RootNavigator.tsx', import.meta.url)), 'utf8');
     assert.match(navigator, /snapshot=\{snapshotFor\(profile, reviewDeck, Date.now\(\), previousCorrection, continuedPack\)\}/, 'the session snapshot, review focus and previous correction are composed in memory.ts');
     assert.ok(!navigator.includes('withLearnerName('), 'the navigator still folds the name in itself, beside the one snapshot');

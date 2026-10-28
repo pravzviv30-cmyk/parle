@@ -1048,6 +1048,39 @@ export function formatBrainSummary(spend: SessionSpend, sessionId: string): stri
 }
 
 /**
+ * The same spend as `formatBrainSummary`, as one numbers-only JSON line an
+ * offline aggregator can read (`eval:cost-numbers`). Total is the sum of the
+ * per-activity prices. Only the 8-hex session prefix goes in, never words, user
+ * ids, room names or model names. Failed calls are not counted separately:
+ * `recordFailedCall` meters a billed failure as a call and keeps no count.
+ */
+export function formatSessionCost(spend: SessionSpend, sessionId: string): string {
+  const prefix = sessionId.slice(0, 8).toLowerCase();
+  const activities: Record<string, { calls: number; abandoned: number; usd: number }> = {};
+  let calls = 0;
+  let abandoned = 0;
+  let dollars = 0;
+  let exact = true;
+  for (const activity of BRAIN_ACTIVITIES) {
+    const row = spend[activity];
+    if (row.calls === 0 && row.abandoned === 0) continue;
+    const priced = priceUsage(row.usage);
+    calls += row.calls;
+    abandoned += row.abandoned;
+    dollars += priced.usd;
+    if (row.calls > 0 && !priced.exact) exact = false;
+    activities[activity] = { calls: row.calls, abandoned: row.abandoned, usd: priced.usd };
+  }
+  return JSON.stringify({ event: 'session_cost', session: /^[0-9a-f]{8}$/.test(prefix) ? prefix : null,
+    usd: dollars, priceExact: exact, calls, abandoned, activities });
+}
+
+/** One live drill batch: how many came back and how many the shared linter kept. */
+export function formatDrillValidation(proposed: number, accepted: number): string {
+  return JSON.stringify({ event: 'drill_validation', path: 'live', proposed, accepted });
+}
+
+/**
  * A 12-turn budget makes a framed 3–5 minute scene, and the beat cap keeps it
  * moving. How much of it is coaching is the learner's, not this file's: see
  * `strictnessOf`.
@@ -1542,6 +1575,7 @@ export class LuvaniConversation extends voice.Agent {
   private logSpendSummary(): void {
     this.spendSummarySent = true;
     console.info(formatBrainSummary(this.spend, this.sessionId));
+    console.info(formatSessionCost(this.spend, this.sessionId));
   }
 
   /**
@@ -2833,9 +2867,12 @@ export class LuvaniConversation extends voice.Agent {
     // hint (1) or the full line (2) was revealed on the exchange this turn
     // answers, which is exactly when a use is help, not independent French.
     const assisted = this.state.assistanceDepth > 0;
+    // The same pre-turn list the end card reads (LEARN-012), so the profile and
+    // the card exclude the same session-wide corrections.
+    const correctedEarlier = this.state.correctedForms;
     const { state, view } = integrateTurn(this.state, input, turn);
     this.state = state;
-    this.profile = applyTurnToProfile(this.profile, turn, new Date().toISOString(), { assisted });
+    this.profile = applyTurnToProfile(this.profile, turn, new Date().toISOString(), { assisted, correctedEarlier });
 
     // Guarded once, before both, so the screen and the speaker can never carry
     // different words. Two checks would be two chances to disagree at the exact
@@ -3420,8 +3457,7 @@ export class LuvaniConversation extends voice.Agent {
         screen: outputGuard,
         band: this.profile.cefr.estimate,
       });
-      const dropped = result.batch.exercises.length - valid.length;
-      if (dropped > 0) console.warn(`[luvani] drill linter rejected ${dropped} of ${result.batch.exercises.length} exercises`);
+      console.info(formatDrillValidation(result.batch.exercises.length, valid.length));
       if (valid.length === 0) return [];
       this.publish({ t: 'drills', exercises: valid });
       return valid;

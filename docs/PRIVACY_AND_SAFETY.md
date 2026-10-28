@@ -395,7 +395,17 @@ timeout sends the same request on to the brain unchanged. So an answer reaches T
 alone, or TypeSafe and then the language model, and with the key unset only the language
 model. The verdict decides nothing on its own: core's `decideOwnWords` does.
 
-**Nothing is stored.** The handler has no table, no event and no log line that carries the
+A repeated answer need not be sent again, but this is **off** unless `LUVANI_JUDGE_MEMO=1`, because the in-app notice promises that no copy of the answer or the verdict is kept (COST-002). Turning it on needs that notice updated and reviewed first. When on, `JudgeMemo` in
+`services/token-server/src/judgeMemo.ts`, shared by `/drill/judge` and `/drill/fix-line`,
+holds a sha256 key (of the account id, the memo version, the endpoint, the judge model and
+the built request) and the parsed verdict, in the server's process memory only, per
+account, for at most 24 hours, and at most 200 per account. The key cannot be read back
+into the answer, but the verdict can quote it: its note and its better line are written by
+the model about the answer and may repeat the learner's words. Only successful verdicts are kept, never a failure or an unjudged answer. An
+account's entries are dropped when it asks for deletion, all of them on restart, and a hit
+logs `[luvani:judge] memo hit` with the endpoint name and nothing from the request.
+
+**Nothing is persisted.** Beyond that memory, the handler has no table, no event and no log line that carries the
 answer. The server's one line per judged attempt is `judgeUsageLine`: the model that
 answered, token counts and cost. The 503 path logs nothing from the body, and
 `TypeSafeError` carries the HTTP status only, because a 422 body can quote the learner's

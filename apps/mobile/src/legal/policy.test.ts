@@ -494,6 +494,10 @@ describe('the privacy notice — F479', () => {
     assert.doesNotMatch(drillJudge, /console\.|\.insert\(|\.upsert\(/, 'the judge handler logs or stores something, so "we keep no copy" is untrue');
     const server = repo('services/token-server/src/server.ts');
     assert.match(server, /client: \{ judge: request => judgeBrain\(\)\.judge\(request\) \},[\s\S]*?usage: \(usage\) => console\.log\(judgeUsageLine\(usage\)\)/, 'the lazy judge route must meter only content-free usage');
+    const judgeMemo = repo('services/token-server/src/judgeMemo.ts');
+    assert.match(server, /const judgeMemo = judgeMemoFromEnv\(process\.env\);/, 'the judge memo is on without the flag, so "we keep no copy" is untrue');
+    assert.doesNotMatch(server, /new JudgeMemo\(/, 'the judge memo is on without the flag, so "we keep no copy" is untrue');
+    assert.match(judgeMemo, /export function judgeMemoFromEnv\([^)]*\)[^{]*\{\s*return env\.LUVANI_JUDGE_MEMO === '1' \? new JudgeMemo\(\) : null;/, 'the judge memo is on without the flag, so "we keep no copy" is untrue');
     const judge = repo('packages/brain/src/llm/judge.ts');
     assert.match(judge, /`LEARNER LEVEL: \$\{input\.cefr\}`/, 'the model stopped being sent the level, so the sentence overclaims');
     const jevJudge = repo('packages/brain/src/llm/jevJudge.ts');

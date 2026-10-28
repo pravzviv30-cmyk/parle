@@ -9,10 +9,14 @@
  *
  * What this endpoint is careful about, in the order it matters:
  *
- *   1. **It stores nothing.** The attempt is a sentence an adult was nervous
- *      about writing. It is read out of the body, put in one prompt, and
- *      dropped. There is no table, no log line and no event that carries it,
- *      and the test that says so is the one to keep if any other is lost. The
+ *   1. **It stores almost nothing.** The attempt is a sentence an adult was
+ *      nervous about writing. It is read out of the body, put in one prompt,
+ *      and dropped. There is no table, no log line and no event that carries
+ *      it, and the test that says so is the one to keep if any other is lost.
+ *      The one thing that can be held is the judge memo (judgeMemo.ts), off
+ *      unless LUVANI_JUDGE_MEMO=1: a sha256 key and
+ *      the parsed verdict, in process memory, per user, for at most 24 hours,
+ *      cleared on account deletion and on restart, and never logged. The
  *      usage meter may learn that a call happened; `LlmUsage` is five numbers
  *      and a model name, and nothing else is ever handed to it.
  *   2. **A brain that will not answer is a 503.** Never an invented verdict,
@@ -40,6 +44,7 @@ import {
 } from '@luvani/brain/llm';
 
 import type { ResolvedUser } from './auth.ts';
+import { normaliseAttempt, type JudgeMemo, type JudgeMemoEndpoint } from './judgeMemo.ts';
 import { HttpInputError, answerRequestError, readRequestBytes, withRequestSignal } from './requestBoundary.ts';
 
 /** A drill card is a sentence or two. Four kilobytes is generous for that. */
@@ -83,6 +88,10 @@ export interface DrillJudgeDeps {
    */
   clientFor?(user:Extract<ResolvedUser,{ok:true}>,signal:AbortSignal):Promise<DrillJudgeDeps['client']>;
   usage?(usage: LlmUsage): void;
+  /** Optional per-user verdict memo shared by /drill/judge and /drill/fix-line. */
+  memo?: JudgeMemo;
+  /** Told the endpoint name on a memo hit, and nothing else. */
+  memoHit?(endpoint: JudgeMemoEndpoint): void;
   timeoutMs?: number;
 }
 
@@ -177,17 +186,25 @@ export async function handleDrillJudge(req: IncomingMessage, res: ServerResponse
   const fr = line(body.fr);
   const en = line(body.en);
   const situation = line(body.situation);
-  const attempt = line(body.attempt, MAX_ATTEMPT);
+  const raw = line(body.attempt, MAX_ATTEMPT);
+  const attempt = raw === null ? null : normaliseAttempt(raw);
   if (!fr || !en || !situation) return json(res, 400, { error: 'the line, its meaning and the situation are required' });
   if (!attempt) return json(res, 400, { error: 'an attempt is required' });
 
+  const request = (signal?: AbortSignal) => buildOwnWordsJudgeRequest({ fr, en, situation, mustKeep: mustKeepOf(body.mustKeep), attempt, cefr: cefrOf(body.cefr) }, signal);
+  const remembered = deps.memo?.get(resolved.userId, 'own-words', request());
+  if (remembered !== undefined) {
+    deps.memoHit?.('own-words');
+    return json(res, 200, { verdict: remembered });
+  }
+
   try {
-    const answer = await withRequestSignal(req, res, async signal => (await (deps.clientFor?.(resolved,signal) ?? Promise.resolve(deps.client))).judge(buildOwnWordsJudgeRequest(
-      { fr, en, situation, mustKeep: mustKeepOf(body.mustKeep), attempt, cefr: cefrOf(body.cefr) }, signal,
-    )).then(answer => { deps.usage?.(answer.usage); return answer; }), Math.max(1, Math.min(JUDGE_TIMEOUT_MS, deps.timeoutMs ?? JUDGE_TIMEOUT_MS)));
+    const answer = await withRequestSignal(req, res, async signal => (await (deps.clientFor?.(resolved,signal) ?? Promise.resolve(deps.client))).judge(request(signal),
+    ).then(answer => { deps.usage?.(answer.usage); return answer; }), Math.max(1, Math.min(JUDGE_TIMEOUT_MS, deps.timeoutMs ?? JUDGE_TIMEOUT_MS)));
     // `allowedFrom` is what the drill and the learner already put on screen, so
     // a note echoing their own café back is not mistaken for a French leak.
     const verdict = parseOwnWordsVerdict(answer.verdict, `${fr} ${en} ${situation} ${attempt}`);
+    deps.memo?.set(resolved.userId, 'own-words', request(), verdict);
     return json(res, 200, { verdict });
   } catch (error) {
     if (error instanceof HttpInputError && (req.aborted || res.destroyed)) return;
