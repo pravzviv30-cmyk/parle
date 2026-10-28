@@ -1537,6 +1537,46 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   resurrect a deletion; a full reset replaces the stored profile, and the
   write-back only restores from that current profile. F892.
 
+## LEARN-015 — Forgetting a fact leaves saved conversations as they are
+
+- Date: 2026-10-28
+- Status: accepted (founder decision, 2026-10-28: guard the invariant with a
+  test, and tell the learner)
+- Decision: the pack builder never reads the memory list. `summary` is a fixed
+  headline line, `learnerGoal` is the learner's own request, and the rest is
+  what was said in that conversation. A conversation the learner starts from a
+  remembered detail (a Speak tab talk chip, "Talk with me about this: ...") is
+  about that detail and keeps it as its topic in `learnerGoal`, like any
+  conversation. Forgetting the detail changes neither. A test guards the
+  builder (`a forgotten fact leaves no copy in a saved conversation`). After a forget or a clear is saved, the memory
+  screen says that saved conversations stay as they are and can be deleted in
+  Journey (`FORGOTTEN_NOTE`). `WHAT_LEAVES` now says Journey, not Progress.
+- Reason: a forgotten fact can describe the same event in other words, so
+  rewriting conversations by text match would be guesswork.
+- Consequence: a conversation the learner already had keeps what was said in
+  it, and its topic, until they delete it. Forgetting a fact never edits a
+  conversation. F902,
+  which supersedes F897.
+
+## LEARN-016 — A card note names its conversation by id, and a cleared name wins every merge
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: a review card may carry `contextPackId`, the pack whose title its
+  `context` note names, set by `reviewPhrasesFor`. `forgetDeletedNames` clears
+  notes by that id. Legacy cards with no id keep the exact title match and the
+  kept-title guard. Core `mergeDecks` has a third field-wise exception: if
+  either copy's note is `PAST_CONVERSATION_NOTE`, the merged card is cleared
+  and has no id, whichever copy had more grades (cleared absorbs). `context`
+  and `contextPackId` are out of `canonical` and come back only as the final
+  tiebreak. The merge stays commutative, idempotent and associative, and the
+  property tests show it. `PAST_CONVERSATION_NOTE` moved to core.
+- Reason: a title can match an uncached conversation, and a second device that
+  reviewed a card more after the delete would bring the name back.
+- Consequence: no migration. The field is optional and passes every deck
+  validator. Each card grows by about 50 bytes. Cards from before the field
+  still match by title. F878, F882.
+
 ## DEPLOY-001 — Our own decode-only FFmpeg instead of a full static build
 
 - Date: 2026-10-26

@@ -58,6 +58,7 @@ import {
   WHAT_LEAVES,
   MEMORY_SCOPE,
   memoryLabel,
+  memoryStatusLine,
   memorySummary,
 } from './tutorMemory.ts';
 
@@ -70,6 +71,8 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [memoryError, setMemoryError] = useState<string | null>(null);
+  // Set once a forget or a clear is saved; the next memory change clears it.
+  const [forgotten, setForgotten] = useState(false);
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState<{ kind: 'fact' | 'goal'; original: string; text: string } | null>(null);
   const [clearing, setClearing] = useState(false);
@@ -84,6 +87,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
     savingRef.current = true;
     setSaving(true);
     setMemoryError(null);
+    setForgotten(false);
     const ok = await updateMemory(edit).catch(() => false);
     savingRef.current = false;
     if (!alive.current) return false;
@@ -91,6 +95,8 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
     if (!ok) setMemoryError('Your memory change could not be saved. It has not been applied. Try again.');
     return ok;
   };
+  const statusLine = memoryStatusLine({ saving, error: memoryError, forgotten });
+  const forgetNote = (ok: boolean) => { if (ok && alive.current) setForgotten(true); };
   const addGoal = async () => {
     const text = draft;
     if (await commitMemory((current) => withLearnerGoal(current, text))) setDraft('');
@@ -114,7 +120,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
           <Text style={[type.small, { color: colors.muted, marginTop: space(2) }]}>{MEMORY_SCOPE}</Text>
         </View>}
       </Card>
-      {saving || memoryError ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: colors.text, marginTop: space(3) }]}>{memoryError ?? 'Saving your memory change.'}</Text> : null}
+      {statusLine !== null ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: colors.text, marginTop: space(3) }]}>{statusLine}</Text> : null}
       {/* 2026-10-21 UI-008: an empty memory is the B empty-state card (B-Empty-States anatomy). */}
       {facts.length === 0 ? (
         <View style={st.card}>
@@ -137,7 +143,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
               <GhostButton color={colors.text}
                 label={FORGET_ONE}
                 accessibilityLabel={`${FORGET_ONE}: ${fact.en}`}
-                onPress={() => { void commitMemory((current) => withFactForgotten(current, fact.en)); }}
+                onPress={() => { void commitMemory((current) => withFactForgotten(current, fact.en)).then(forgetNote); }}
               />
             </View>
           ))}
@@ -215,7 +221,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
         <GhostButton color={colors.text} label="Cancel edit" onPress={() => setEditing(null)} />
       </Card>}
     </ScrollScreen>
-    <ConfirmSheet visible={clearing} title="Clear remembered details?" body="Your tutor will stop using the details listed here and its remembered greeting. Your goals, learning progress and saved conversations will stay." confirmLabel={FORGET_ALL} cancelLabel="Keep details" onConfirm={() => { void commitMemory(withMemoryCleared).then(() => { if (alive.current) setClearing(false); }); }} onCancel={() => setClearing(false)} />
+    <ConfirmSheet visible={clearing} title="Clear remembered details?" body="Your tutor will stop using the details listed here and its remembered greeting. Your goals, learning progress and saved conversations will stay." confirmLabel={FORGET_ALL} cancelLabel="Keep details" onConfirm={() => { void commitMemory(withMemoryCleared).then((ok) => { forgetNote(ok); if (alive.current) setClearing(false); }); }} onCancel={() => setClearing(false)} />
     </View>
     </SettingsAppearance>
   );

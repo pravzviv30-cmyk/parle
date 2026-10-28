@@ -4,10 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { buildConversationPack, phraseKeyOf } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { setActiveUser, userKey } from '../storage/scope.ts';
-import { gradeCard, loadDeck } from '../review/store.ts';
+import { addPhrases, gradeCard, loadDeck } from '../review/store.ts';
 import { conversationContext } from '../review/context.ts';
 import { deleteAllConversationPacksForLearner, deleteConversationPackForLearner, loadConversationPacks, refreshConversationPacks } from './store.ts';
-import { PAST_CONVERSATION_NOTE, conversationNote } from './packExercises.ts';
+import { PAST_CONVERSATION_NOTE, conversationNote, reviewPhrasesFor } from './packExercises.ts';
 
 const disk = new Map<string, string>();
 const storage = AsyncStorage as unknown as Record<string, unknown>;
@@ -43,7 +43,9 @@ test('deleting a conversation clears its name from review cards and keeps their 
   for (const card of after) {
     const held = before.get(card.id)!;
     assert.doesNotMatch(card.context, /Dinner with Sam/);
-    assert.deepEqual({ ...card, context: '' }, { ...held, context: '' }, 'schedule, sources and evidence are unchanged');
+    const { contextPackId: _now, ...bare } = card;
+    const { contextPackId: _then, ...was } = held;
+    assert.deepEqual({ ...bare, context: '' }, { ...was, context: '' }, 'schedule, sources and evidence are unchanged');
   }
   assert.equal(after.find((card) => card.id === phraseKeyOf('Une soupe'))?.context, PAST_CONVERSATION_NOTE);
   assert.equal(after.find((card) => card.id === phraseKeyOf('Un billet'))?.context, conversationNote('At the station'), 'a kept conversation keeps its name');
@@ -83,4 +85,39 @@ test('an unknown practice status from the server is stored as ready', async () =
   const stored = await loadConversationPacks();
   assert.equal('practiceStatus' in stored.find((row) => row.id === id(5))!, false);
   assert.equal((stored.find((row) => row.id === id(6)) as { practiceStatus?: string }).practiceStatus, 'failed');
+});
+
+test("a deleted conversation's name is cleared only from cards built from that conversation", async () => {
+  const uid = 'forget-same-title';
+  setActiveUser(uid);
+  // An older conversation with the same title is no longer in the cache.
+  const older = pack(uid, 7, 'Coffee', 'Un cafe');
+  const doomed = pack(uid, 8, 'Coffee', 'Un the');
+  const ok = await refreshConversationPacks(user(uid), adapter, async () => Response.json({ packs: [doomed], nextCursor: null }));
+  assert.equal(ok.ok, true);
+  // Banked on another device or an earlier page, never cached on this one.
+  assert.equal(await addPhrases(reviewPhrasesFor(older), { source: 'conversation' }), 'durable');
+  assert.equal((await loadConversationPacks()).some((row) => row.id === older.id), false, 'the older pack is not cached');
+
+  const result = await deleteConversationPackForLearner(user(uid), adapter, doomed.id, async () => new Response(null, { status: 204 }));
+  assert.equal(result.ok, true);
+  const deck = await loadDeck();
+  const tea = deck.find((card) => card.id === phraseKeyOf('Un the'))!;
+  assert.equal(tea.context, PAST_CONVERSATION_NOTE);
+  assert.equal(tea.contextPackId, undefined, 'a cleared note names no pack');
+  const coffee = deck.find((card) => card.id === phraseKeyOf('Un cafe'))!;
+  assert.equal(coffee.context, conversationNote('Coffee'), 'the other conversation keeps its name');
+  assert.equal(coffee.contextPackId, older.id);
+});
+
+test('a legacy card with no pack id still follows the title match and the kept-title guard', async () => {
+  const uid = 'forget-legacy';
+  setActiveUser(uid);
+  await addPhrases([{ fr: 'Un vieux', frWritten: null, en: 'Old', enLiteral: null, register: '', note: conversationNote('Old talk') }], { source: 'conversation' });
+  const doomed = pack(uid, 9, 'Old talk', 'Un neuf');
+  await refreshConversationPacks(user(uid), adapter, async () => Response.json({ packs: [doomed], nextCursor: null }));
+  await deleteConversationPackForLearner(user(uid), adapter, doomed.id, async () => new Response(null, { status: 204 }));
+  const legacy = (await loadDeck()).find((card) => card.id === phraseKeyOf('Un vieux'))!;
+  assert.equal(legacy.context, PAST_CONVERSATION_NOTE);
+  assert.equal('contextPackId' in legacy, false);
 });

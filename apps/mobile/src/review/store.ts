@@ -223,6 +223,10 @@ function foldConvoUses(deck: readonly ReviewCard[], uses: readonly PhraseUse[]):
  * from. It is metadata only (core's `sources.ts`): a phrase already in the
  * deck keeps its scheduling and gains the new source in its set.
  */
+function packIdFor(p: ConvoPhrase): string | null {
+  return p.note && typeof p.notePackId === 'string' && p.notePackId !== '' ? p.notePackId : null;
+}
+
 export async function addPhrases(
   phrases: readonly ConvoPhrase[],
   opts: { source: ReviewSource; stagger?: boolean; convoUses?: readonly PhraseUse[] },
@@ -230,8 +234,8 @@ export async function addPhrases(
   const now = Date.now();
   const sources: readonly ReviewSource[] = [opts.source];
   const uses = opts.convoUses ?? [];
-  let incoming = phrases
-    .filter((p) => p.fr.trim() !== '')
+  const kept = phrases.filter((p) => p.fr.trim() !== '');
+  let incoming = kept
     .map((p) =>
       newCard(
         {
@@ -245,7 +249,12 @@ export async function addPhrases(
         now,
       ),
     )
-    .map((card): ReviewCard => ({ ...card, sources }));
+    // The pack id rides only beside the note it explains (F882). A phrase
+    // already in the deck keeps its own note and id through `mergeCards`.
+    .map((card, i): ReviewCard => {
+      const packId = packIdFor(kept[i]!);
+      return packId === null ? { ...card, sources } : { ...card, sources, contextPackId: packId };
+    });
   // Nothing to merge and nothing to raise is nothing at risk, so the honest
   // answer is durable: no disk was asked for anything and none refused.
   if (incoming.length === 0 && uses.length === 0) return 'durable';
@@ -296,15 +305,21 @@ export function gradeCards(grades: readonly CardGrade[]): Promise<ReviewCard[]> 
 /**
  * Rewrite the provenance note on cards whose note names a deleted conversation.
  *
- * Only `context` changes. Scheduling, reps, ease, sources and evidence are
+ * `matches` sees the whole card, so a caller can match by `contextPackId`
+ * rather than by note text. Only `context` changes, and `contextPackId` goes
+ * with the name it belonged to. Scheduling, reps, ease, sources and evidence are
  * carried over untouched, and the write goes through `saveDeck` as a local
  * change so the sync engine pushes it like any other card edit.
  */
-export function rewriteCardNotes(matches: (context: string) => boolean, replacement: string): Promise<PersistAck> {
+export function rewriteCardNotes(matches: (card: ReviewCard) => boolean, replacement: string): Promise<PersistAck> {
   return serialized(async (key, owner) => {
     const existing = await loadDeckFor(key);
-    if (!existing.some((card) => matches(card.context))) return 'durable';
-    const next = existing.map((card) => (matches(card.context) ? { ...card, context: replacement } : card));
+    if (!existing.some(matches)) return 'durable';
+    const next = existing.map((card): ReviewCard => {
+      if (!matches(card)) return card;
+      const { contextPackId: _named, ...rest } = card;
+      return { ...rest, context: replacement };
+    });
     return saveDeck(key, next, 'local', owner);
   });
 }
