@@ -27,6 +27,12 @@ const LEAKS: ReadonlyArray<[string, SensitiveMemoryCategory]> = [
   ['a un decouvert a la banque', 'finances'],
   ['Took out a crédit immobilier', 'finances'],
   ['Is on chômage since March', 'finances'],
+  ['mes revenus ont baissé', 'finances'],
+  ['son revenu est faible', 'finances'],
+  ['a un revenu mensuel de 2000', 'finances'],
+  ['ses revenus annuels', 'finances'],
+  ['une famille à faibles revenus', 'finances'],
+  ['cherche un revenu fixe', 'finances'],
   ['je suis gay', 'intimate'],
   ['Is going through a divorce', 'intimate'],
   ['Uses Tinder in Paris', 'intimate'],
@@ -92,6 +98,10 @@ const BENIGN: readonly string[] = [
   'Loves the 5th arrondissement',
   'Takes line 14 to work',
   'Café at 10:30 every day',
+  // "revenu" as the participle of revenir is a trip, not income.
+  'Il est revenu de Lyon',
+  'Ils sont revenus de vacances',
+  'Est revenue du Japon',
 ];
 
 describe('sensitiveMemoryCategory', () => {

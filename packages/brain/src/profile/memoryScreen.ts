@@ -50,7 +50,11 @@ const FINANCES = words(
   'debts?', 'indebted', 'dettes?', 'endett\\w*', 'salar(?:y|ies)', 'salaires?', 'loans?',
   'prets? (?:bancaires?|immobiliers?|etudiants?|a la consommation)', 'credits? (?:immobiliers?|a la consommation)',
   'mortgag\\w*', 'bankrupt\\w*', 'faillites?', 'overdra\\w*', 'decouverts? bancaires?', 'decouvert a la banque',
-  'un decouvert', 'en decouvert', 'incomes?', 'revenus?', `bank${SEP}accounts?`, 'comptes? bancaires?',
+  'un decouvert', 'en decouvert', 'incomes?',
+  // "revenu" is also the participle of revenir ("est revenu de Lyon"), so it
+  // counts as income only after a determiner or before a money qualifier.
+  '(?:mon|ma|mes|ton|tes|son|ses|notre|nos|votre|vos|leur|leurs|un|le|les|des|du|de|aux|a faibles?|petits?|gros|bons?) revenus?',
+  'revenus? (?:mensuels?|annuels?|fixes?|net|nets|brut|bruts|modestes?|faibles?|eleves?|bas|minimum|universel|de solidarite)', `bank${SEP}accounts?`, 'comptes? bancaires?',
   'comptes? en banque', 'unemploy\\w*', 'chomage', 'chomeu\\w*', 'savings', 'epargne',
 );
 
