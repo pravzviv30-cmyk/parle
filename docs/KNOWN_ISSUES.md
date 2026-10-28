@@ -11325,3 +11325,54 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-27 on the first staging deploys. `onnxruntime-node`'s install script downloads its native library from Microsoft during `npm ci`. It timed out (`ETIMEDOUT 150.171.109.35:443`, no IPv6 route) on 2 of 9 Railway builds, failing the whole build; a redeploy passed each time. A deploy should not need a manual retry. Options: retry the install step, or fetch and hash-pin the native archive once (it is already recorded by `deployment/nativeArtifacts.mjs`) so the build does not depend on that host. Owner: deploy-engineer.
 - fixed: 2026-10-27 on `claude/f886-f887` (DEPLOY-005). Root cause: on linux/x64 the postinstall only downloads the CUDA 12 and TensorRT providers from NuGet; the CPU runtime ships in the npm archive. The image's `npm ci` now sets `ONNXRUNTIME_NODE_INSTALL=skip`.
 - verified-by: `the backend image skips onnxruntime's GPU download and keeps its bundled CPU runtime`
+
+### F893 — A memory fact had no origin and no updated time
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/profile.ts (`RememberedFact`, `validRememberedFacts`, `applyExtractionToProfile`), apps/mobile/src/profile/memory.ts (`withFactEdited`, `brainAfterRecap`, `factOriginLabel`)
+- note: Found 2026-10-28 in the memory-trust review. A fact the learner typed and a fact the extraction picked up from speech were stored the same way, so nothing could tell the tutor which to trust. Facts now carry `source` (`learner` or `conversation`) and `updatedAt`. Code sets the source: extraction builds facts field by field, so a model object cannot claim `learner`. Repair reads a missing or unknown source as `conversation`, and `updatedAt` falls back to `notedAt`. A learner edit stamps `learner` and a new `updatedAt`. A recap from an older agent keeps the stored origin (LEARN-007).
+- fixed: 2026-10-28 on `claude/phase-d-memory`.
+- verified-by: `a legacy fact repairs to conversation, updatedAt = notedAt`
+- verified-by: `an unknown source becomes conversation; learner survives`
+- verified-by: `an extraction stamps conversation and now, even if the model claims learner`
+- verified-by: `an edit stamps learner and a new updatedAt, keeping notedAt`
+- verified-by: `an older agent echoing a fact without source keeps the learner source`
+- verified-by: `factOriginLabel names both origins`
+
+### F894 — Nothing in code checked extracted memory for sensitive topics
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/memoryScreen.ts, packages/brain/src/profile/profile.ts (`applyExtractionToProfile`)
+- note: Found 2026-10-28 in the memory-trust review. The founder's sensitive-topic boundary (2 October) was a prompt rule only, so a model that missed it stored the detail and it synced. `sensitiveMemoryCategory` now screens a tutor-noted fact's `en`, `fr` and `happensAround` and the opener for health, finances, intimate, beliefs and secret topics, in French and English, before anything is stored. It is conservative and never logs. Learner-typed edits are not screened. The tutor agent's `safeModelProfile` also runs the screen on every profile it receives or returns: a conversation-noted fact that hits it is left out of the brief, of the extraction's "Already on file" list and of the recap, so older sensitive notes leave the device on the next session (memory-locked sessions too), and a stored opener that hits it is never spoken. Learner-written facts stay. The word list was widened after an adversarial review (suicide, abortion, psychiatric diagnoses, drugs, money amounts, party and politician names, legal and immigration status). It is a word list: paraphrase, misspellings and other languages get through, and it knowingly drops some clean text such as "works at a hospital", the name Harris, Labour, Faith as a name, a 5k run or prison as a TV series (LEARN-008).
+- fixed: 2026-10-28 on `claude/phase-d-memory`.
+- verified-by: `sensitive extracted facts never land; clean ones do, as conversation facts`
+- verified-by: `a sensitive opener becomes null`
+- verified-by: `null and empty are clean`
+- verified-by: `catches health: Was diagnosed with cancer last year`
+- verified-by: `lets through: Il est revenu de Lyon`
+
+### F895 — Typed goals were stored back as remembered facts
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/profile/memory.ts (`snapshotFor`, `brainAfterRecap`, `withoutGoalEchoes`), packages/brain/src/profile/profile.ts (`repairProfile`)
+- note: Found 2026-10-28 in the memory-trust review and reproduced by a failing test first. `snapshotFor` appended each typed goal to the facts as "Their goal: ...". The agent echoed the facts in its recap and `brainAfterRecap` stored them, so a goal duplicated, outlived its removal and took a slot of the twelve. Goals now ride as the wire-only `memory.learnerGoals` and `StoredProfile.learnerGoals` is their only home. The recap drops the echo, `withoutGoalEchoes` cleans old echoes on read and on the next recap, and the extraction is told the goals so it does not extract them again (LEARN-009).
+- fixed: 2026-10-28 on `claude/phase-d-memory`.
+- verified-by: `a recap echo of the snapshot stores no goal, and goals ride once`
+- verified-by: `echoes already stored are cleaned on read; a real extracted goal fact stays`
+- verified-by: `paused memory carries no typed goals`
+
+### F896 — The brief called every note saved tutor memory and never asked the tutor to check one
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`tutorMemoryBrief`), packages/brain/src/prompt/scenarioPrompt.ts, services/brain-playground/src/sessionLoop.ts
+- note: Found 2026-10-28 in the memory-trust review. Every note rode as `saved tutor memory`, and the scene builder headed them "REAL ACCOUNT MEMORY", so a wrong or stale note picked up from a conversation could be said back as fact. Each note now carries its source. The tutor asks lightly before relying on a note from a past conversation and drops it for the session on a no or an unsure answer. Conversation notes that hit the sensitive screen are left out, which covers notes saved before F894. The typed goals sit in a separate `LEARNER'S OWN GOALS` block (LEARN-010).
+- fixed: 2026-10-28 on `claude/phase-d-memory`.
+- verified-by: `the memory brief names each note source and checks the unconfirmed ones before use`
+- verified-by: `saved tutor memory is bounded in the frame and every turn, with an honest editable-note source`
+
+### F897 — Forgetting a fact leaves copies in saved conversations
+- severity: P3
+- status: [ ]
+- where: packages/core/src/conversationPacks.ts (`summary`, `title`, `learnerGoal`, `topics`, `continuationSeed`)
+- note: Found 2026-10-28 in the memory-trust review. Forgetting a fact removes it from the profile and keeps a tombstone, but a saved conversation pack can hold the same wording in its summary, title, learner goal, topics or continuation seed. Those copies stay until the conversation is deleted. Related to F878 and F882, which also concern text that outlives a delete. The founder decided on 2026-10-28 to keep this out of Phase D. Follow-up for data-sync-engineer.
+- verified-by: `a forgotten fact leaves no copy in a saved conversation`

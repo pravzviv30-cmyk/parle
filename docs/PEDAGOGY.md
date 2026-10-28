@@ -272,6 +272,16 @@ the same phrase in a changed situation. A right first answer adds a transfer.
 Journey's Your French counts only rise with evidence; the one way one goes down
 is the learner deleting a phrase themselves.
 
+## What the tutor remembers about the person
+
+Memory notes carry their source (LEARN-007, LEARN-010). A note the learner wrote is
+theirs and the tutor may use it as stated. A note picked up from a past conversation
+is marked unconfirmed: before relying on it the tutor asks lightly ("C'est toujours
+d'actualité, ton voyage à Lyon ?") and drops it for the session if the learner says no
+or seems unsure. It never presents such a note as something they definitely said. The
+learner's own typed goals reach the tutor in a separate block, as data for choosing
+examples and topics (LEARN-009).
+
 ## The invariants
 
 A change that breaks one of these is a bug, however green the tests are.
