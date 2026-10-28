@@ -776,6 +776,40 @@ test('an unlocked session still uses the remembered opener and extracts memory',
   assert.ok(client.extractRequests.length > 0);
 });
 
+test('a legacy sensitive opener saved before the memory screen is never spoken', async (t) => {
+  const profile = createProfile();
+  profile.memory.opener = { fr: 'Alors, ta chimio s\u2019est bien passée ?', en: 'So, how did the chemo go?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
+  const { published } = await inScene(t, { profile, memoryLocked: false });
+  assert.doesNotMatch(JSON.stringify(published.find((message) => message.t === 'opening')), /chimio|chemo/i);
+});
+
+test('legacy sensitive conversation facts leave the extraction request and the recap; learner-written ones stay', async (t) => {
+  const profile = createProfile();
+  profile.memory.facts = [
+    { kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01', source: 'conversation', updatedAt: '2026-01-01' },
+    { kind: 'life-event', fr: null, en: 'Has a hospital visit', happensAround: null, notedAt: '2026-01-02', source: 'conversation', updatedAt: '2026-01-02' },
+    { kind: 'life-event', fr: null, en: 'Planning a trip', happensAround: 'after the surgery', notedAt: '2026-01-03', source: 'conversation', updatedAt: '2026-01-03' },
+    { kind: 'life-event', fr: null, en: 'Has a hospital shift on Monday', happensAround: null, notedAt: '2026-01-04', source: 'learner', updatedAt: '2026-01-04' },
+  ];
+  const client = new MockLlmClient({ turns: [sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
+  const { convo, published } = await inScene(t, { client, profile, memoryLocked: false });
+  await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')), voice.StopResponse);
+  await convo.settled();
+  for (let i = 0; i < 6; i++) await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(client.extractRequests.length > 0);
+  const extract = JSON.stringify(client.extractRequests);
+  assert.match(extract, /Likes jazz/);
+  assert.match(extract, /hospital shift/, 'the learner wrote this one, so it stays');
+  assert.doesNotMatch(extract, /hospital visit|surgery/);
+  const recaps = published.filter((message) => message.t === 'recap') as Array<{ profile: LearnerProfile }>;
+  assert.ok(recaps.length > 0);
+  for (const recap of recaps) {
+    const facts = recap.profile.memory.facts.map((fact) => fact.en);
+    assert.ok(facts.includes('Likes jazz') && facts.includes('Has a hospital shift on Monday'));
+    assert.ok(!facts.includes('Has a hospital visit') && !facts.includes('Planning a trip'));
+  }
+});
+
 test('memoryLockedFrom only counts a boolean true', () => {
   assert.equal(memoryLockedFrom(true), true);
   for (const value of [undefined, null, false, 'true', 1, {}, [true]]) assert.equal(memoryLockedFrom(value), false);

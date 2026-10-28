@@ -44,6 +44,11 @@ const HEALTH = words(
   `rendez${SEP}vous (?:chez|avec) (?:le|la|un|une|mon|ma) (?:medecin|docteur|dentiste|gyneco\\w*|psy\\w*)`,
   'medecin traitant', 'allerg\\w*', 'autis\\w*', 'adhd', 'tdah', 'asthm\\w*', 'alzheimer\\w*', 'epilep\\w*',
   'migraines?', 'insomni\\w*', `burn(?:${SEP})?out`, 'rehab', 'addict\\w*', 'alcoholi\\w*', 'alcooli\\w*',
+  'abortions?', 'avortement\\w*', 'ivg', 'fausses? couches?', 'miscarr\\w*', 'bipola\\w*', 'schizo\\w*',
+  'antidepress\\w*', 'suicid\\w*', 'drogues?', 'drugs', 'drug (?:use|user|users|addict\\w*|habit)', 'cocaine',
+  'heroin\\w*', 'cannabis', 'covid\\w*',
+  // "règles" is also "rules" (les règles du jeu): only a possessive, not followed by du/de.
+  '(?:mes|tes|ses|leurs) regles(?! d)',
 );
 
 const FINANCES = words(
@@ -56,9 +61,15 @@ const FINANCES = words(
   '(?:mon|ma|mes|ton|tes|son|ses|notre|nos|votre|vos|leur|leurs|un|le|les|des|du|de|aux|a faibles?|petits?|gros|bons?) revenus?',
   'revenus? (?:mensuels?|annuels?|fixes?|net|nets|brut|bruts|modestes?|faibles?|eleves?|bas|minimum|universel|de solidarite)', `bank${SEP}accounts?`, 'comptes? bancaires?',
   'comptes? en banque', 'unemploy\\w*', 'chomage', 'chomeu\\w*', 'savings', 'epargne',
+  'fauches?', '(?:is|am|are|was|were|be|being|been|so|flat|totally|completely) broke(?! up)',
+  'no money', '(?:pas|plus|peu|sans) d argent',
 );
 
+const PARTNER = '(?:girlfriend|boyfriend|wife|husband|partner|fiance\\w*|copine|copain|femme|mari|conjointe?|compagne|compagnon|petite? amie?)';
+
 const INTIMATE = words(
+  'homos?', `${PARTNER} (?:just )?(?:left|dumped|cheated on) (?:him|her|me|them)`,
+  `${PARTNER} (?:l|m|t) a (?:quitte\\w*|largue\\w*|trompe\\w*)`,
   'sex', 'sexe', 'sexual\\w*', 'sexuel\\w*', 'gays?', 'lesbians?', 'lesbiennes?', 'bisexu\\w*', 'queer', 'lgbt\\w*',
   'transgend\\w*', 'transgenres?', 'homosexu\\w*', 'dating', 'sites? de rencontres?', 'rencontres? amoureuses?',
   'tinder', 'bumble', 'grindr', 'divorc\\w*', `break(?:${SEP})?ups?`, 'broke up', 'ruptures?', 'affair',
@@ -74,16 +85,24 @@ const BELIEFS = words(
   'catholi\\w*', 'protestant\\w*', 'jewish', 'jews?', 'juifs?', 'juives?', 'judaism\\w*', 'buddhis\\w*',
   'bouddhis\\w*', 'hindu\\w*', 'hindou\\w*', 'atheis\\w*', 'athees?', 'ramadan', 'bible', 'coran', 'quran', 'koran',
   'torah', 'messe', 'sikh\\w*',
+  // Parties and politicians. "rn" and "lfi" only as whole words; trump not trumpet.
+  'le pen', 'macron\\w*', 'melenchon\\w*', 'zemmour', 'rn', 'lfi', 'trump(?:s|ist|ists|isme)?', 'biden',
+  'harris', 'labour', 'tor(?:y|ies)', 'croyante?s?', 'believers?', 'faith', 'pratiquante?s?',
 );
 
 const SECRET_WORDS = words(
   'passwords?', 'mots? de passe', 'passcodes?', 'pin', 'iban', `account${SEP}numbers?`, 'numeros? de compte',
   `card${SEP}numbers?`, 'numeros? de carte', 'social security', 'securite sociale', 'ssn',
-  'passport number', 'numero de passeport',
+  'passport number', 'numero de passeport', 'codes? de (?:la )?carte', `card${SEP}codes?`,
+  // Identifying legal status.
+  `sans${SEP}papiers?`, 'undocumented', 'criminal records?', 'casiers? judiciaires?', 'prisons?', 'jail\\w*',
+  `garde${SEP}a${SEP}vue`,
 );
 /** Six or more digits, a single space, dot or dash allowed between them: phones, card and account numbers.
  * Years ("2027"), times ("10:30") and small counts stay clear. */
 const LONG_NUMBER = /(?<!\d)\d(?:[\s.-]?\d){5,}(?!\d)/;
+/** A money amount: digits then k, a currency word or sign, or a sign then digits. "5 km" stays clear. */
+const MONEY = /(?<![a-z0-9])\d+(?:[.,\s]\d+)*\s?(?:k|eur|euros?|dollars?|livres?|pounds?)(?![a-z0-9])|\d\s?[€$£]|[€$£]\s?\d/;
 const EMAIL = /[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}/;
 const STREET = '(?:rue|avenue|av|boulevard|bd|blvd|street|st|road|rd|chemin|allee|place|impasse|quai|lane|drive|cours)';
 /** A house number, then a street word, directly ("12 rue") or after a name ("221b baker street"). */
@@ -91,7 +110,7 @@ const ADDRESS = new RegExp(`(?<![a-z0-9])\\d{1,4}[a-z]?(?:\\s*(?:bis|ter))?,?\\s
 
 const SCREENS: ReadonlyArray<[SensitiveMemoryCategory, readonly RegExp[]]> = [
   ['health', [HEALTH]],
-  ['finances', [FINANCES]],
+  ['finances', [FINANCES, MONEY]],
   ['intimate', [INTIMATE]],
   ['beliefs', [BELIEFS]],
   ['secret', [SECRET_WORDS, LONG_NUMBER, EMAIL, ADDRESS]],

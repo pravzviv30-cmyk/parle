@@ -275,6 +275,24 @@ export function drillPhraseKeys(
   return new Set([...sessionPhrases, ...profilePhrases].map((p) => phraseKeyOf(p.fr)));
 }
 
+/** A conversation-noted fact that touches a sensitive topic; screens notes saved before the extraction screen existed. */
+function sensitiveConversationFact(fact: LearnerProfile['memory']['facts'][number]): boolean {
+  if (fact.source !== 'conversation') return false;
+  return (sensitiveMemoryCategory(fact.en) ?? (fact.fr === null ? null : sensitiveMemoryCategory(fact.fr))
+    ?? (fact.happensAround === null ? null : sensitiveMemoryCategory(fact.happensAround))) !== null;
+}
+
+/** A stored greeting saved before the extraction screen existed may still name a sensitive topic. */
+function sensitiveOpener(opener: NonNullable<LearnerProfile['memory']['opener']>): boolean {
+  return sensitiveMemoryCategory(opener.fr) !== null || sensitiveMemoryCategory(opener.en) !== null;
+}
+
+/**
+ * Every profile entering or leaving the worker passes here. Legacy tutor-noted
+ * facts and openers that hit the sensitive screen (LEARN-008) are dropped, so
+ * they reach no prompt and the recap purges them from the device. Learner-written
+ * facts stay, by founder decision.
+ */
 function safeModelProfile(profile: LearnerProfile): LearnerProfile {
   const fresh = repairProfile(undefined);
   const { learnerGoals: rawGoals, ...memory } = profile.memory;
@@ -289,8 +307,9 @@ function safeModelProfile(profile: LearnerProfile): LearnerProfile {
     errorPatterns, phrases, preferences: { ...profile.preferences,
       lastScenarios: profile.preferences.lastScenarios.slice(-12).filter(safeContextText) },
     memory: { ...memory, facts: profile.memory.facts.filter(fact => safeContextText(fact.en)
-      && (fact.fr === null || safeContextText(fact.fr))),
-      opener: profile.memory.opener && safeContextText(profile.memory.opener.fr) && safeContextText(profile.memory.opener.en) ? profile.memory.opener : null,
+      && (fact.fr === null || safeContextText(fact.fr)) && !sensitiveConversationFact(fact)),
+      opener: profile.memory.opener && safeContextText(profile.memory.opener.fr) && safeContextText(profile.memory.opener.en)
+        && !sensitiveOpener(profile.memory.opener) ? profile.memory.opener : null,
       name: profile.memory.name && safeContextText(profile.memory.name) ? profile.memory.name : null,
       ...safeLearnerGoals(rawGoals) },
   };
@@ -310,13 +329,6 @@ function safeLearnerGoals(goals: readonly string[] | undefined): { learnerGoals?
  */
 export function memoryLockedFrom(value: unknown): boolean {
   return value === true;
-}
-
-/** A conversation-noted fact that touches a sensitive topic; screens notes saved before the extraction screen existed. */
-function sensitiveConversationFact(fact: LearnerProfile['memory']['facts'][number]): boolean {
-  if (fact.source !== 'conversation') return false;
-  return (sensitiveMemoryCategory(fact.en) ?? (fact.fr === null ? null : sensitiveMemoryCategory(fact.fr))
-    ?? (fact.happensAround === null ? null : sensitiveMemoryCategory(fact.happensAround))) !== null;
 }
 
 export function tutorMemoryBrief(profile: LearnerProfile): string {
