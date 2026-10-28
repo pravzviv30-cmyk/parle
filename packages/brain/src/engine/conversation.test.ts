@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { STUCK_SILENCE_MS, directiveFor, replayRung, type Rung } from '@luvani/core';
+import { MAX_PACK_CORRECTIONS, STUCK_SILENCE_MS, buildConversationPack, directiveFor, replayRung, type Rung } from '@luvani/core';
 
 import {
   MAX_ATTEMPTS_PER_BEAT,
@@ -1293,5 +1293,37 @@ describe('sad news never ends the session — VOICE-015', () => {
     assert.match(contextOf(fresh(), spoke('My grandmother passed away this week.')), /^SAD NEWS: their line may be sad news/m);
     assert.doesNotMatch(contextOf(fresh(), spoke('Je meurs de faim, on mange ?')), /SAD NEWS/);
     assert.doesNotMatch(contextOf(fresh(), { type: 'silence', durationMs: STUCK_SILENCE_MS }), /SAD NEWS/);
+  });
+});
+
+describe('F906: a high-value slip shown in the scene is still a fix to keep', () => {
+  test('a high-value slip shown in the scene still reaches the recap\'s fixes', () => {
+    const slip = sampleCoachItem({
+      kind: 'grammar-slip',
+      quote: "j'ai allé au cinéma",
+      better: 'je suis allé au cinéma',
+      betterWritten: null,
+      weight: 'minor',
+    });
+    const { state, view } = integrateTurn(fresh({ strictness: 'balanced' }), spoke("Samedi, j'ai allé au cinéma"), sampleTurn({ coach: [slip] }));
+    assert.equal(view.coachNow.length, 1, 'it is shown in the scene');
+    const { recap } = assembleRecap(state, { estimate: 'A2', confidence: 'low' });
+    assert.ok(recap.fixes.some((f) => f.quote === slip.quote), 'and it is kept for Your fixes');
+
+    const pack = buildConversationPack({
+      id: 'pack-1', sessionId: 'session-1', learnerId: 'learner-1', createdAt: '2026-10-28T00:00:00.000Z',
+      title: { fr: 'Au café', en: 'At the café' }, summary: recap.headline, keyPhrases: [],
+      corrections: recap.fixes.slice(0, MAX_PACK_CORRECTIONS).map((fix) => ({
+        quote: fix.quote, better: fix.better, betterEn: fix.betterEn, why: fix.why,
+      })),
+    });
+    assert.ok(pack.corrections.some((c) => c.quote === slip.quote), 'and it reaches the pack');
+  });
+
+  test('other inline kinds are still not re-listed in the recap', () => {
+    const item = sampleCoachItem({ kind: 'textbook-phrasing' });
+    const { state, view } = integrateTurn(fresh({ strictness: 'balanced' }), spoke('Je ne sais pas'), sampleTurn({ coach: [item] }));
+    assert.equal(view.coachNow.length, 1);
+    assert.equal(state.deferred.length, 0);
   });
 });

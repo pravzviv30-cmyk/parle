@@ -187,7 +187,10 @@ export interface ConversationState {
   pace: 'normal' | 'slow';
   /** The language of the last spoken turn, when it was not French. */
   lastLanguage: 'english' | 'mixed' | null;
-  /** The recap queue: findings that did not surface inline. */
+  /**
+   * The recap queue: findings that did not surface inline, plus any high-value
+   * grammar slip that did (F906), so Your fixes still keeps it.
+   */
   deferred: CoachItem[];
   phrases: NewPhrase[];
   usedWell: string[];
@@ -199,7 +202,7 @@ export interface ConversationState {
    * question about the whole session: did the tutor ever hand this phrase back
    * as the thing that did not work? The end card must not celebrate one that it
    * did, whichever turn it happened on. Inline findings are not kept anywhere
-   * else — `deferred` holds only what waited for the recap — so without this
+   * else (`deferred` holds what waited for the recap, plus F906's promoted slips), so without this
    * the record of what was corrected out loud is gone by the time the card is
    * built.
    */
@@ -819,7 +822,7 @@ export function integrateTurn(
   // the first one, so the very first finding of a session is never held back.
   const turnsSinceInterruption =
     state.lastInterruptedTurn === null ? Number.POSITIVE_INFINITY : state.turnCount - state.lastInterruptedTurn;
-  const { inline, deferred, interrupted } = splitCoach(turn.coach, state.strictness, turnsSinceInterruption);
+  const { inline, deferred, interrupted, keptForRecap } = splitCoach(turn.coach, state.strictness, turnsSinceInterruption);
 
   // The coach line survives only when something actually surfaces inline, and
   // only when it agrees with that finding; otherwise the tested template speaks.
@@ -1027,7 +1030,7 @@ export function integrateTurn(
       input.type === 'spoke' && (turn.assessment.language === 'english' || turn.assessment.language === 'mixed')
         ? turn.assessment.language
         : null,
-    deferred: [...state.deferred, ...deferred],
+    deferred: [...state.deferred, ...deferred, ...keptForRecap],
     phrases,
     topics,
     usedWell: [...state.usedWell, ...usedWell],
