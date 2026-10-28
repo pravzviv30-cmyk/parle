@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { mergeDecks, gradesApplied } from './merge.ts';
+import { mergeDecks, gradesApplied, PAST_CONVERSATION_NOTE } from './merge.ts';
 import { addEvidence, evidenceOf, NO_EVIDENCE, type PhraseEvidence } from './evidence.ts';
 import { applyGrade, newCard, DEFAULT_EASE, type ReviewCard, type ReviewGrade } from './scheduler.ts';
 
@@ -451,5 +451,73 @@ describe('merging what two devices counted', () => {
         assert.deepEqual(evidenceOf(c), floor.get(c.id), `a counter went missing in the gossip, round ${round}`);
       }
     }
+  });
+});
+
+/** Named and cleared provenance notes, with and without a pack id, on random decks. */
+function withNotes(deck: readonly ReviewCard[], next: () => number): ReviewCard[] {
+  return deck.map((c) => {
+    const roll = next();
+    if (roll < 0.25) return { ...c, context: PAST_CONVERSATION_NOTE };
+    if (roll < 0.5) return { ...c, context: 'From your conversation: Coffee', contextPackId: next() < 0.5 ? 'pack-a' : 'pack-b' };
+    if (roll < 0.7) return { ...c, context: 'From your conversation: Coffee' };
+    if (roll < 0.85) return { ...c, context: 'From your conversation: Tea', contextPackId: 'pack-c' };
+    return c;
+  });
+}
+
+describe('merging a cleared conversation name', () => {
+  test('a cleared conversation name survives a merge with a more-graded copy', () => {
+    const named = card('vocab:café', { context: 'From your conversation: Coffee', contextPackId: 'pack-a' });
+    const cleared: ReviewCard = { ...named, context: PAST_CONVERSATION_NOTE };
+    delete cleared.contextPackId;
+    const tablet = reviewed(named, ['good', 'good', 'easy']);
+    for (const merged of [mergeDecks([cleared], [tablet]), mergeDecks([tablet], [cleared])]) {
+      assert.equal(merged[0]?.context, PAST_CONVERSATION_NOTE);
+      assert.equal('contextPackId' in merged[0]!, false);
+      assert.equal(gradesApplied(merged[0]!), 3, 'the scheduling still comes from the more-graded copy');
+      assert.equal(merged[0]?.due, tablet.due);
+    }
+  });
+
+  test('a named copy keeps its pack id through a merge', () => {
+    const named = card('vocab:thé', { context: 'From your conversation: Tea', contextPackId: 'pack-c' });
+    const merged = mergeDecks([named], [card('vocab:thé', { context: 'From your conversation: Tea' })]);
+    assert.equal(merged[0]?.contextPackId, 'pack-c');
+    assert.equal(mergeDecks([named], [])[0]?.contextPackId, 'pack-c');
+  });
+
+  test('the cleared-note exception is commutative, idempotent and associative over random decks', () => {
+    const next = rng(28_102_026);
+    let cleared = 0;
+    for (let i = 0; i < 400; i += 1) {
+      const a = withNotes(withCounters(randomDeck(next), next), next);
+      const b = withNotes(withCounters(randomDeck(next), next), next);
+      const c = withNotes(randomDeck(next), next);
+      const ab = mergeDecks(a, b);
+      assert.ok(same(ab, mergeDecks(b, a)), `commutative, round ${i}`);
+      assert.ok(same(ab, mergeDecks(ab, ab)), `idempotent, round ${i}`);
+      assert.ok(same(ab, mergeDecks(ab, a)), `absorbs a, round ${i}`);
+      assert.ok(same(ab, mergeDecks(ab, b)), `absorbs b, round ${i}`);
+      assert.ok(same(mergeDecks(ab, c), mergeDecks(a, mergeDecks(b, c))), `associative, round ${i}`);
+      for (const merged of ab) {
+        const either = [...a, ...b].some((x) => x.id === merged.id && x.context === PAST_CONVERSATION_NOTE);
+        assert.equal(merged.context === PAST_CONVERSATION_NOTE, either, `cleared wins exactly when a side cleared, round ${i}`);
+        if (either) { cleared += 1; assert.equal('contextPackId' in merged, false); }
+      }
+    }
+    assert.ok(cleared > 200, `only ${cleared} cleared merges, the property proved little`);
+  });
+
+  test('copies identical but for their note merge the same way in any order', () => {
+    const base = card('vocab:x');
+    const copies = [
+      { ...base, context: 'From your conversation: Coffee', contextPackId: 'pack-a' },
+      { ...base, context: 'From your conversation: Coffee', contextPackId: 'pack-b' },
+      { ...base, context: 'From your conversation: Coffee' },
+    ];
+    const one = mergeDecks(mergeDecks([copies[0]], [copies[1]]), [copies[2]]);
+    const two = mergeDecks([copies[2]], mergeDecks([copies[1]], [copies[0]]));
+    assert.ok(same(one, two));
   });
 });

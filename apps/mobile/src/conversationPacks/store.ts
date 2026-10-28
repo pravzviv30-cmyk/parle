@@ -124,16 +124,21 @@ function withKnownPracticeStatus(pack: ConversationPack): ConversationPack {
 }
 /**
  * After a delete, cards earned from the deleted conversations keep their
- * schedule and evidence but stop naming it. Cards carry no pack id, so the
- * match is the exact note text `reviewPhrasesFor` wrote. A title still used
- * by a conversation that remains is left alone, since the note cannot say
+ * schedule and evidence but stop naming it. A card that carries the pack id
+ * behind its note is matched by that id, exactly (F882). A legacy card with
+ * no id falls back to the exact note text, and a title still used by a cached
+ * conversation that remains is left alone there, since the note cannot say
  * which of the two it came from. Deleting everything clears every such note.
  */
 async function forgetDeletedNames(before: readonly ConversationPack[], after: readonly ConversationPack[], all: boolean): Promise<void> {
-  if (all) { await rewriteCardNotes(context => context.startsWith(CONVERSATION_NOTE_PREFIX), PAST_CONVERSATION_NOTE); return; }
+  if (all) { await rewriteCardNotes(card => card.context.startsWith(CONVERSATION_NOTE_PREFIX), PAST_CONVERSATION_NOTE); return; }
+  const goneIds = new Set(before.filter(pack => !after.some(left => left.id === pack.id)).map(pack => pack.id));
+  if (goneIds.size === 0) return;
   const kept = new Set(after.map(pack => conversationNote(pack.title.en)));
-  const gone = new Set(before.filter(pack => !after.some(left => left.id === pack.id)).map(pack => conversationNote(pack.title.en)).filter(note => !kept.has(note)));
-  if (gone.size > 0) await rewriteCardNotes(context => gone.has(context), PAST_CONVERSATION_NOTE);
+  const goneNotes = new Set(before.filter(pack => goneIds.has(pack.id)).map(pack => conversationNote(pack.title.en)).filter(note => !kept.has(note)));
+  await rewriteCardNotes(card => typeof card.contextPackId === 'string'
+    ? goneIds.has(card.contextPackId) && card.context.startsWith(CONVERSATION_NOTE_PREFIX)
+    : goneNotes.has(card.context), PAST_CONVERSATION_NOTE);
 }
 async function getReply(url: string, token: string, request: typeof fetch): Promise<{status:number;body:unknown}> {
   const controller = new AbortController();

@@ -74,6 +74,8 @@ export interface ConvoPhrase {
   enLiteral: string | null;
   register: string;
   note: string | null;
+  /** The conversation pack `note` names, so a review card can follow it by id (F882). App-side only. */
+  notePackId?: string;
 }
 
 /** What the app renders after each free-conversation turn. */

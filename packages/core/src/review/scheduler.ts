@@ -40,6 +40,14 @@ export interface ReviewCard {
   back: string;
   /** The sentence or exchange this came from. Honest context beats a dictionary. */
   context: string;
+  /**
+   * The conversation pack whose title `context` names, when it names one.
+   * Optional and late: cards from before it, and cards whose note names no
+   * pack, carry none. A deleted conversation's notes are cleared by this id
+   * (F882), and a cleared note never carries one; note and id always describe
+   * the same pack.
+   */
+  contextPackId?: string;
   /** Broad IPA when we know it for certain, else empty. Wrong IPA is worse than none. */
   ipa: string;
   /** Epoch ms when the card entered the deck. */

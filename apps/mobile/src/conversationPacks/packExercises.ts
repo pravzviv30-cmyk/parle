@@ -22,14 +22,11 @@ export function conversationNote(title: string): string {
   return `${CONVERSATION_NOTE_PREFIX}${title}`;
 }
 /**
- * What that note becomes once the conversation is deleted: the card, its
- * schedule and its evidence stay, the name goes. Not an empty string on
- * purpose. Core's deck merge breaks a tie between two equally graded copies of
- * a card by comparing their fields as text, and an empty note (or one starting
- * "From a") sorts below "From your conversation: ...", so a stale copy on the
- * account would win and bring the name back. "Saved from" sorts above it.
+ * What that note becomes once the conversation is deleted. Core owns it now,
+ * beside the deck merge, because a cleared note wins every merge by rule
+ * (F878); it is re-exported here for the screens that already import it.
  */
-export const PAST_CONVERSATION_NOTE = 'Saved from a past conversation';
+export { PAST_CONVERSATION_NOTE } from '@luvani/core';
 
 /** Restore the cards as well as their exercises after a missed room delivery. */
 export function reviewPhrasesFor(pack: ConversationPack): ConvoPhrase[] {
@@ -39,7 +36,7 @@ export function reviewPhrasesFor(pack: ConversationPack): ConvoPhrase[] {
     const key = phraseKeyOf(p.fr);
     if (!p.fr.trim() || !p.en.trim() || seen.has(key)) return [];
     seen.add(key);
-    return [{ ...p, frWritten: p.frWritten ?? null, register: '', enLiteral: null, note: conversationNote(pack.title.en) }];
+    return [{ ...p, frWritten: p.frWritten ?? null, register: '', enLiteral: null, note: conversationNote(pack.title.en), notePackId: pack.id }];
   });
 }
 

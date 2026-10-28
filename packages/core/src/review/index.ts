@@ -35,7 +35,7 @@ export {
 
 export { buildCardsFromSummary } from './cards.ts';
 
-export { mergeDecks, gradesApplied } from './merge.ts';
+export { mergeDecks, gradesApplied, PAST_CONVERSATION_NOTE } from './merge.ts';
 
 export { reviewPhraseFor } from './language.ts';
 
