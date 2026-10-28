@@ -1218,7 +1218,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: packages/brain/src/engine/grading.ts:86
 - note: the other half of "sounds purely robotic", and the founder put it exactly: it
-  "never just reacts". Not the prompt. The live agent already hardcodes strictness `flow`,
+  "never just reacts". Not the prompt. The live agent then hardcoded strictness `flow` (since F183 it runs the
+  learner's stored setting),
   the loosest column there is, and `flow` still surfaces `textbook-phrasing` inline because
   that finding is the product and a test says so by name. The learners are absolute
   beginners, so every single thing they say IS textbook French. The model found one every

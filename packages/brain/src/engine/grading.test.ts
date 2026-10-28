@@ -10,7 +10,14 @@ import {
   type LearnerInput,
 } from '@luvani/core';
 
-import { INLINE_CAP, INLINE_COACH_COOLDOWN_TURNS, assessmentToQuality, splitCoach, surfacePolicy } from './grading.ts';
+import {
+  INLINE_CAP,
+  INLINE_COACH_COOLDOWN_TURNS,
+  assessmentToQuality,
+  highValueSlip,
+  splitCoach,
+  surfacePolicy,
+} from './grading.ts';
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
 import type { Assessment, CoachKind } from '../contract/types.ts';
 import type { Strictness } from '../types.ts';
@@ -98,6 +105,8 @@ describe('surface policy — when feedback lands, never whether', () => {
     }
   });
 
+  // F906: at balanced the table still says recap; splitCoach lifts only the
+  // few high-value slips (highValueSlip) out of it, one per turn.
   test('grammar slips wait for the recap except at strict', () => {
     assert.equal(surfacePolicy('grammar-slip', 'flow'), 'recap');
     assert.equal(surfacePolicy('grammar-slip', 'balanced'), 'recap');
@@ -314,5 +323,106 @@ describe('splitCoach — the cooldown between interruptions', () => {
     }
     assert.ok(corrections >= 2, `only ${corrections} corrections, so the schedule was never exercised twice`);
     assert.ok(held >= 1, 'no correction was ever held back, so the cooldown proved nothing here');
+  });
+});
+
+const slip = (quote: string, better: string, betterWritten: string | null = null) =>
+  sampleCoachItem({ kind: 'grammar-slip', quote, better, betterWritten, weight: 'minor' });
+
+describe('highValueSlip: the few slips Balanced shows now (F906)', () => {
+  const cases: Array<[string, string, ReturnType<typeof highValueSlip>]> = [
+    ["j'ai allé au cinéma", 'je suis allé au cinéma', 'auxiliary'],
+    ['Samedi, j’ai allé au cinéma', 'Samedi, je suis allé au cinéma', 'auxiliary'],
+    ['elle a venue hier', 'elle est venue hier', 'auxiliary'],
+    ['nous avons partis tôt', 'nous sommes partis tôt', 'auxiliary'],
+    ['ils ont tombé', 'ils sont tombés', 'auxiliary'],
+    ['Je vais à le restaurant', 'Je vais au restaurant', 'contraction'],
+    ['À LE marché', 'Au marché', 'contraction'],
+    ['je parle à les enfants', 'je parle aux enfants', 'contraction'],
+    ['le prix de le café', 'le prix du café', 'contraction'],
+    ['la plupart de les gens', 'la plupart des gens', 'contraction'],
+    ['la croissant', 'le croissant', 'gender'],
+    ['un baguette, merci', 'une baguette, merci', 'gender'],
+    ['Ma frère et mon sœur', 'Mon frère et ma sœur', 'gender'],
+    ['ce table est libre', 'cette table est libre', 'gender'],
+    // Negatives.
+    ['les fille sont content', 'les filles sont contentes', null],
+    ["j'ai mangé", "j'ai mangé quelque chose", null],
+    ["j'ai mangé", 'je suis mangé', null],
+    ['il a le temps', 'il a du temps libre', null],
+    ['je suis content de les voir', 'je suis content de les voir demain avec des amis', null],
+    ['Je voudrais un café', "J'voudrais un café", null],
+    ['un pain', 'une baguette', null],
+    ['je mange le pomme rouge', 'je mange la pomme', null],
+    ['à l’hôtel', 'à l’hôtel', null],
+    ['au la boulangerie', 'à la boulangerie', null],
+    ['Je vais bien', 'Ça va bien', null],
+  ];
+  for (const [quote, better, expected] of cases) {
+    test(`"${quote}" -> "${better}" is ${expected ?? 'not high value'}`, () => {
+      assert.equal(highValueSlip(slip(quote, better)), expected);
+    });
+  }
+
+  test('the written form counts when the spoken one is reduced', () => {
+    assert.equal(highValueSlip(slip("j'ai allé", "j'suis allé", 'je suis allé')), 'auxiliary');
+  });
+});
+
+describe('splitCoach: high-value slips at balanced (F906)', () => {
+  test('at balanced a passé composé auxiliary error surfaces inline', () => {
+    const { inline } = splitCoach([slip("j'ai allé au cinéma", 'je suis allé au cinéma')], 'balanced');
+    assert.equal(inline.length, 1);
+  });
+
+  test('at balanced an uncontracted à le surfaces inline', () => {
+    const { inline } = splitCoach([slip('à le restaurant', 'au restaurant')], 'balanced');
+    assert.equal(inline.length, 1);
+  });
+
+  test('at balanced a determiner gender slip surfaces inline', () => {
+    const { inline, interrupted } = splitCoach([slip('la croissant', 'le croissant')], 'balanced');
+    assert.equal(inline.length, 1);
+    assert.equal(interrupted, true, 'it is an uninvited note, so it starts the cooldown');
+  });
+
+  test('at balanced an agreement slip still waits for the recap', () => {
+    const { inline, deferred } = splitCoach([slip('les fille sont content', 'les filles sont contentes')], 'balanced');
+    assert.equal(inline.length, 0);
+    assert.equal(deferred.length, 1);
+  });
+
+  test('the cooldown still holds a high-value slip back', () => {
+    const { inline, deferred } = splitCoach([slip('à le restaurant', 'au restaurant')], 'balanced', 1);
+    assert.equal(inline.length, 0);
+    assert.equal(deferred.length, 1);
+  });
+
+  test('at most one grammar slip surfaces inline per turn at balanced', () => {
+    const { inline, deferred } = splitCoach(
+      [slip("j'ai allé", 'je suis allé'), slip('à le restaurant', 'au restaurant')],
+      'balanced',
+    );
+    assert.equal(inline.length, 1);
+    assert.equal(deferred.length, 1);
+  });
+
+  test('flow still holds a high-value slip for the recap', () => {
+    const { inline } = splitCoach([slip("j'ai allé", 'je suis allé')], 'flow');
+    assert.equal(inline.length, 0);
+  });
+
+  test('a high-value slip spends the balanced cap like any other finding', () => {
+    const { inline, deferred } = splitCoach(
+      [
+        sampleCoachItem({ kind: 'textbook-phrasing', quote: 'a' }),
+        sampleCoachItem({ kind: 'anglicism', quote: 'b' }),
+        slip('à le restaurant', 'au restaurant'),
+      ],
+      'balanced',
+    );
+    assert.equal(inline.length, INLINE_CAP.balanced);
+    assert.equal(deferred.length, 1);
+    assert.equal(deferred[0]!.kind, 'grammar-slip');
   });
 });
