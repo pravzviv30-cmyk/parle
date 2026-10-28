@@ -105,13 +105,15 @@ DECISIONS.md UI-007):
   the room, with no new storage. Turns earn credit (F904, 2026-10-28,
   `recap/sessionCredit.ts`): a recap whose `learnerReplies` is 0 settles
   nothing (no XP, no minutes, no active or streak day), banks no practice by any
-  path, offers no saved conversation text, shows no "new phrases" tile and says
+  path (crash journal included: such a recap is never journalled and a stored
+  envelope saying 0 replies is dropped on recovery), offers no saved conversation text, shows no "new phrases" tile and says
   "You made time for your French."; an older agent without the count keeps the
   old behaviour. Leaving after at least
   one learner reply (F905, `live/leaveKeepingWork.ts`) takes the Finish path:
   the room stays open, the recap is requested and awaited up to 8 s, so the
   lines are saved and the minutes counted; if none comes the minutes are
-  written locally at the zero-phrase base XP and the ordinary teardown runs.
+  written locally at the zero-phrase base XP and the ordinary teardown runs;
+  exactly one of the two settles, so a late recap never settles twice.
   "Replied" means agent-confirmed scene replies (`sceneReplies` in the hook),
   never a topic pick or an unconfirmed typed line; with no reply Leave is instant. Starting a conversation (F903,
   `tutor/convoStart.ts`): the route's params are read once and coerced, so a
@@ -123,7 +125,9 @@ DECISIONS.md UI-007):
   (its lines recovered from the recap, no end card, not a sitting of its own:
   its replies and the clock carry into the voice room so the scene settles once)
   when the learner has replied, then releases the lease and rebuilds the
-  session as voice (`live/switchToVoice.ts`).
+  session as voice (`live/switchToVoice.ts`). A safety stop during the switch
+  cancels it with no rebuild, and Leave on the switch's wait follows the Leave
+  rule above.
   A web reload of the conversation address (F923, `tutor/reloadGate.ts`) shows
   "Your last conversation ended." with Start again and never opens a session
   by itself. The Convo and Lesson routes follow the device

@@ -122,6 +122,12 @@ export interface SessionJournal {
   phrases: ConvoPhrase[];
   topics: { fr: string; en: string }[];
   /**
+   * The agent's count of learner replies (F904). Zero means the scene earned
+   * nothing, and recovery drops the envelope. Absent from older agents and
+   * older envelopes, which keep today's recovery.
+   */
+  learnerReplies?: number;
+  /**
    * The batch the tutor authored from this conversation.
    *
    * Bounded by `mergeExerciseBank`'s own cap on the way in, so a learner who
@@ -202,6 +208,12 @@ export function convoUsesFrom(profile: unknown): PhraseUse[] {
  * the card the learner is looking at right now, and re-showing them a day later
  * would be strange. Phrases, topics and drills are what become practice.
  */
+/** The recap's own reply count, or null when the agent sent none it can trust. */
+export function replyCount(recap: RecapPayload): number | null {
+  const n = recap.stats?.learnerReplies;
+  return typeof n === 'number' && Number.isSafeInteger(n) && n >= 0 ? n : null;
+}
+
 export function journalFor(recap: RecapPayload, savedAt: number, profile: unknown = null): SessionJournal {
   return {
     version: JOURNAL_VERSION,
@@ -209,6 +221,7 @@ export function journalFor(recap: RecapPayload, savedAt: number, profile: unknow
     batchId: mintBatchId(savedAt),
     phrases: recap.phrases.filter((phrase) => phrase.fr.trim() !== ''),
     topics: recap.topics,
+    ...(replyCount(recap) === null ? {} : { learnerReplies: replyCount(recap)! }),
     drills: [],
     convoUses: convoUsesFrom(profile),
     // Nothing has curated this yet, and saying so is the point: an uncurated
@@ -479,6 +492,8 @@ export function recoveryPlan(raw: unknown): PracticeBatch | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const candidate = raw as Partial<SessionJournal>;
   if (typeof candidate.version !== 'number' || !READABLE_VERSIONS.includes(candidate.version)) return null;
+  // F904: a scene the learner never replied in banks nothing, by crash either.
+  if (candidate.learnerReplies === 0) return null;
 
   const stored = Array.isArray(candidate.phrases)
     ? candidate.phrases.filter(isPhrase).filter((phrase) => phrase.fr.trim() !== '')

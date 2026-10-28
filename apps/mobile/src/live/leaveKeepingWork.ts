@@ -55,10 +55,11 @@ export function leaveOnConfirm(state: LeaveState): LeaveAction[] {
 /**
  * The recap a Leave waited for never came. The sheet said the minutes count,
  * so after a confirmed reply they are settled here, then the ordinary teardown
- * (which banks whatever lines it can recover).
+ * (which banks whatever lines it can recover). A recap that already settled the
+ * sitting needs nothing more.
  */
-export function leaveOnTimeout(state: { confirmedReplies: number; stopped: boolean; recapArrived: boolean }): LeaveAction[] {
-  if (state.confirmedReplies > 0 && !state.stopped && !state.recapArrived) {
+export function leaveOnTimeout(state: { confirmedReplies: number; stopped: boolean; recapSettled: boolean }): LeaveAction[] {
+  if (state.confirmedReplies > 0 && !state.stopped && !state.recapSettled) {
     return [{ kind: 'settle-local', xp: LOCAL_SETTLE_XP }, { kind: 'teardown' }];
   }
   return [{ kind: 'teardown' }];

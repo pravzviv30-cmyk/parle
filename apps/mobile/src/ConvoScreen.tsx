@@ -67,7 +67,7 @@ import { IconAction,
 import { SupportBlock } from './SessionView.tsx';
 import { ConfirmSheet, ScrollScreen } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
-import { SWITCH_WAIT, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
+import { SWITCH_WAIT, leaveDuringSwitch, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
 import { LEAVE_RECAP_WAIT_MS, leaveOnConfirm, leaveOnTimeout } from './live/leaveKeepingWork.ts';
 import { banksPracticeFor, learnerRepliesOf, recapUse, sessionCredit } from './recap/sessionCredit.ts';
 import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
@@ -308,6 +308,9 @@ export function ConvoScreen({
   const [switching, setSwitching] = useState<null | 'waiting' | 'rebuilding'>(null);
   // Read by the recap effect: a recap asked for by the switch keeps lines and settles nothing.
   const switchingRef = useRef(false);
+  // F905: exactly one of the recap's settle and the local one writes the sitting.
+  const settledLocallyRef = useRef(false);
+  const recapSettledRef = useRef(false);
   // Before the session, which tells the agent (live/useTapToSend.ts).
   const { tapToSend, onTapToSend } = useTapToSend();
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
@@ -464,6 +467,9 @@ export function ConvoScreen({
   // disagree about what happened.
   const safety = safetySurface(live.safety);
   const stopped = stoppedBySafety(live.safety);
+  // Read where a closure outlives the render (the switch's teardown, F903).
+  const stoppedRef = useRef(stopped);
+  stoppedRef.current = stopped;
 
   // The scene's goals, and the moment one of them ticks (tutor/taskTicks.ts):
   // the row pops and is announced, and on the last goal the orb ripples once
@@ -609,8 +615,10 @@ export function ConvoScreen({
       // F904: no learner reply settles nothing. F903: the typed part of a
       // switched scene is not a sitting of its own; the scene settles once.
       const credit = sessionCredit(stats, carriedRepliesRef.current);
-      const use = recapUse(credit, switchingRef.current ? 'switch' : 'end');
-      if (use.settle) {
+      const use = recapUse(credit, switchingRef.current ? 'switch' : 'end', settledLocallyRef.current);
+      // Re-checked here, beside the write, so the stop guard stays next to what it withholds (F144).
+      if (use.settle && !stopped) {
+      recapSettledRef.current = true;
       const openedAt = openedAtRef.current;
       // One clock read for both the instant and the length. The room's opening
       // is the start, not the mount: the connecting screen is not time anybody
@@ -895,13 +903,15 @@ export function ConvoScreen({
   // minutes, so after a confirmed reply they are written here (not as a
   // finished sitting), then the ordinary exit banks whatever it can recover.
   const settleLocally = (xp: number) => {
+    if (stopped || settledLocallyRef.current || recapSettledRef.current) return;
+    settledLocallyRef.current = true;
     const at = Date.now();
     const openedAt = openedAtRef.current;
     const activeMs = clock.read();
     void recordActivity('convo', xp, at, openedAt === null ? { activeMs } : { durationMs: at - openedAt, activeMs });
   };
   const leaveTimedOut = () => {
-    for (const action of leaveOnTimeout({ confirmedReplies: learnerReplies, stopped, recapArrived: live.recap !== null })) {
+    for (const action of leaveOnTimeout({ confirmedReplies: learnerReplies, stopped, recapSettled: recapSettledRef.current })) {
       if (action.kind === 'settle-local') settleLocally(action.xp);
       else if (action.kind === 'teardown') leaveNow();
     }
@@ -913,11 +923,13 @@ export function ConvoScreen({
   // Then the lease is released before the rebuild (F201: a second grant over a
   // standing lease is refused), and the session connects again as voice.
   const rebuildAsVoice = () => {
+    if (stopped || stoppedRef.current) return;
     setSwitching('rebuilding');
     bankRecoveredPractice();
     // The typed part's replies carry over and the clock keeps running, so the
     // scene settles once, at its real end, with both parts' minutes (F903).
     void live.leave().finally(() => {
+      if (stoppedRef.current) return;
       carriedRepliesRef.current += live.sceneReplies;
       switchingRef.current = false;
       bankedRef.current = false;
@@ -947,6 +959,16 @@ export function ConvoScreen({
   useEffect(() => {
     if (switching === 'rebuilding' && !openedTyped && live.recap === null) setSwitching(null);
   }, [switching, openedTyped, live.recap]);
+  // A safety stop cancels a switch in flight (F903): the stop screen is in charge.
+  useEffect(() => {
+    if (switchAfterStop({ switching, stopped }) === 'cancel') { switchingRef.current = false; setSwitching(null); }
+  }, [switching, stopped]);
+  // Leave on the switch's wait screen is a Leave (F905), never a lost typed part.
+  const leaveFromSwitch = () => {
+    if (switching === null) { leaveNow(); return; }
+    if (leaveDuringSwitch(switching) === 'wait-for-recap') { switchingRef.current = false; setSwitching(null); setLeaveWaiting(true); setFinishing(true); }
+    else { switchingRef.current = false; leaveTimedOut(); }
+  };
   const switchCopy = switchToVoiceCopy(tutorName);
 
   // A recap drill replaces this route only after the metered room is closed.
@@ -1014,7 +1036,7 @@ export function ConvoScreen({
   }
 
   if (switching !== null) {
-    return <RoomWait title={SWITCH_WAIT.headline} body={SWITCH_WAIT.note} leaveLabel="Leave" onLeave={leaveNow} />;
+    return <RoomWait title={SWITCH_WAIT.headline} body={SWITCH_WAIT.note} leaveLabel="Leave" onLeave={leaveFromSwitch} />;
   }
 
   if (live.recap) {

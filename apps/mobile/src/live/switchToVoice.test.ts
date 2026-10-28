@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { SWITCH_WAIT, switchToVoiceCopy, switchToVoicePlan } from './switchToVoice.ts';
+import { SWITCH_WAIT, leaveDuringSwitch, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './switchToVoice.ts';
 import { canResumeSpeaking } from './c2TranscriptPolicy.ts';
 import { LEAVE_RECAP_WAIT_MS } from './leaveKeepingWork.ts';
 
@@ -60,5 +60,31 @@ describe('Speak in a typed start — F903', () => {
     // The hook forgets the last session's recap and practice on a rebuild.
     const hook = read('./useLiveSession.ts');
     assert.match(hook, /setRecap\(null\);\s*setSceneReplies\(0\);\s*setPractice\(null\);\s*setDrills\(null\);/);
+  });
+
+  test('a safety stop during the switch cancels it and starts no voice session', () => {
+    assert.equal(switchAfterStop({ switching: 'waiting', stopped: true }), 'cancel');
+    assert.equal(switchAfterStop({ switching: 'rebuilding', stopped: true }), 'cancel');
+    assert.equal(switchAfterStop({ switching: 'waiting', stopped: false }), 'carry-on');
+    assert.equal(switchAfterStop({ switching: null, stopped: true }), 'carry-on');
+    const screen = read('../ConvoScreen.tsx');
+    // The stop cancels a switch in flight, and neither the timer, the recap nor the leave's end can rebuild after it.
+    assert.match(screen, /if \(switchAfterStop\(\{ switching, stopped \}\) === 'cancel'\) \{ switchingRef\.current = false; setSwitching\(null\); \}/);
+    const rebuild = screen.slice(screen.indexOf('const rebuildAsVoice = () => {'), screen.indexOf('const switchRebuild'));
+    assert.match(rebuild, /^const rebuildAsVoice = \(\) => \{\s*if \(stopped \|\| stoppedRef\.current\) return;/);
+    assert.match(rebuild, /\.finally\(\(\) => \{\s*if \(stoppedRef\.current\) return;/, 'a stop that lands during the teardown still rebuilds');
+    // The stop screen comes before the switch's wait.
+    assert.ok(screen.indexOf("if (safety.kind === 'stop')") < screen.indexOf('if (switching !== null) {'));
+  });
+
+  test("leaving while switching still keeps the typed part's minutes", () => {
+    // Waiting for the typed recap: Leave becomes the F905 leave, so the recap settles as the scene's end.
+    assert.equal(leaveDuringSwitch('waiting'), 'wait-for-recap');
+    // The recap already came and was kept as a switch (not settled): settle the minutes locally, then go.
+    assert.equal(leaveDuringSwitch('rebuilding'), 'settle-locally');
+    const screen = read('../ConvoScreen.tsx');
+    assert.match(screen, /onLeave=\{leaveFromSwitch\}/);
+    assert.match(screen, /if \(leaveDuringSwitch\(switching\) === 'wait-for-recap'\) \{ switchingRef\.current = false; setSwitching\(null\); setLeaveWaiting\(true\); setFinishing\(true\); \}/);
+    assert.match(screen, /else \{ switchingRef\.current = false; leaveTimedOut\(\); \}/);
   });
 });

@@ -63,7 +63,7 @@ describe('turns earn credit — F904', () => {
     assert.equal(sessionCredit({ turns: 3, rescues: 3, unassistedRate: 1, learnerReplies: 0 }, 2).settles, true);
     // The screen skips the settle for it, and the end card still draws.
     const convo = read('../ConvoScreen.tsx');
-    assert.match(convo, /if \(use\.settle\) \{/, 'the recap effect settles without asking');
+    assert.match(convo, /if \(use\.settle && !stopped\) \{/, 'the recap effect settles without asking');
   });
 
   test('a scene with no learner reply banks no practice by any path', () => {
@@ -94,7 +94,7 @@ describe('turns earn credit — F904', () => {
     assert.deepEqual(recapUse(silent, 'end'), { settle: false, track: true });
     assert.deepEqual(recapUse(silent, 'switch'), { settle: false, track: false });
     const convo = read('../ConvoScreen.tsx');
-    assert.match(convo, /const use = recapUse\(credit, switchingRef\.current \? 'switch' : 'end'\);/);
+    assert.match(convo, /const use = recapUse\(credit, switchingRef\.current \? 'switch' : 'end', settledLocallyRef\.current\);/);
     assert.match(convo, /if \(use\.track\) void trackProductEvent\(sessionFinishedEvent\(/);
   });
 

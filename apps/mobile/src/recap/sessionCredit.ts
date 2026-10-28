@@ -64,6 +64,7 @@ export function banksPracticeFor(stats: RecapStats | null, carriedReplies: numbe
  * both parts' minutes on the same clock. Whether lines are banked is
  * `banksPracticeFor`, asked by every banking path.
  */
-export function recapUse(credit: SessionCredit, use: 'end' | 'switch'): { settle: boolean; track: boolean } {
-  return { settle: use === 'end' && credit.settles, track: use === 'end' };
+export function recapUse(credit: SessionCredit, use: 'end' | 'switch', settledLocally = false): { settle: boolean; track: boolean } {
+  // A Leave whose recap was late already wrote the minutes locally (F905): never twice.
+  return { settle: use === 'end' && credit.settles && !settledLocally, track: use === 'end' };
 }

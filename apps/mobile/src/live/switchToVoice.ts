@@ -31,3 +31,21 @@ export function switchToVoicePlan(state: { learnerReplies: number; stopped: bool
   if (state.stopped) return 'none';
   return state.learnerReplies > 0 ? 'keep-then-rebuild' : 'rebuild';
 }
+
+/**
+ * A safety stop while the switch is in flight cancels it: no rebuild, no voice
+ * session, no microphone. The stop screen is the whole screen.
+ */
+export function switchAfterStop(state: { switching: 'waiting' | 'rebuilding' | null; stopped: boolean }): 'cancel' | 'carry-on' {
+  return state.switching !== null && state.stopped ? 'cancel' : 'carry-on';
+}
+
+/**
+ * Leave on the switch's wait screen follows the Leave rule (F905), not the
+ * switch's. Still waiting for the typed recap: wait for it as a Leave, so it
+ * settles as the scene's end. Already rebuilding: that recap was kept as a
+ * switch and settled nothing, so the minutes are settled locally on the way out.
+ */
+export function leaveDuringSwitch(switching: 'waiting' | 'rebuilding'): 'wait-for-recap' | 'settle-locally' {
+  return switching === 'waiting' ? 'wait-for-recap' : 'settle-locally';
+}

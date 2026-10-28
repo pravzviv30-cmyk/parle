@@ -175,6 +175,34 @@ let uids = 0;
 const nextUid = (): string => `22222222-2222-4222-8222-${String(++uids).padStart(12, '0')}`;
 
 describe('the drills a conversation leaves behind', () => {
+  test('a scene with no learner reply leaves nothing for crash recovery to bank', async () => {
+    // F904: seven rescued silences, the tutor's modelled lines in the recap, no reply.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    await journalRecap(recap({ stats: { turns: 7, rescues: 7, unassistedRate: 1, learnerReplies: 0 } }), { savedAt: NOW });
+    assert.equal(disk.has(`luvani.u.${uid}.journal`), false, 'a recap with no learner reply was journalled');
+    assert.equal(await recoverJournal(), 0);
+    assert.equal((await loadDeck()).length, 0, 'crash recovery banked lines the learner never replied in');
+
+    // An envelope already on disk that says 0 replies (an earlier write) is dropped, not banked.
+    const uid2 = nextUid();
+    const disk2 = installDisk({
+      [`luvani.u.${uid2}.journal`]: JSON.stringify({ ...journalFor(recap(), NOW), learnerReplies: 0 }),
+    });
+    setActiveUser(uid2);
+    assert.equal(await recoverJournal(), 0, 'a stored zero-reply envelope was banked');
+    assert.equal(disk2.has(`luvani.u.${uid2}.journal`), false, 'the zero-reply envelope stayed on disk');
+    assert.equal((await loadDeck()).length, 0);
+
+    // A reply, or an older agent with no count, keeps today's recovery.
+    const uid3 = nextUid();
+    installDisk();
+    setActiveUser(uid3);
+    await journalRecap(recap({ stats: { turns: 6, rescues: 1, unassistedRate: 0.7, learnerReplies: 2 } }), { savedAt: NOW });
+    assert.equal(await recoverJournal(), 2, 'a scene with replies lost its crash recovery');
+  });
+
   test('drills that arrived before the app closed are banked on the next launch', async () => {
     // The whole point of the outbox: the batch is written down the moment it
     // arrives, the app dies before anything banks it, and the next launch finds

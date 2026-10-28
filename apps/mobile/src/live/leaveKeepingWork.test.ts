@@ -59,12 +59,12 @@ describe('leaving keeps the work once the learner has replied — F905', () => {
     // The sheet promised minutes: they are settled locally, at the zero-phrase base XP so activeMs is kept.
     assert.equal(LOCAL_SETTLE_XP, conversationXp({ phraseCount: 0, unassistedRate: 0 }));
     assert.ok(LOCAL_SETTLE_XP > 0, 'a zero XP write would drop the minutes');
-    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 2, stopped: false, recapArrived: false }),
+    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 2, stopped: false, recapSettled: false }),
       [{ kind: 'settle-local', xp: LOCAL_SETTLE_XP }, { kind: 'teardown' }]);
-    // No reply, a stop, or a recap that did land (it settled already): only the ordinary teardown.
-    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 0, stopped: false, recapArrived: false }), [{ kind: 'teardown' }]);
-    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 2, stopped: true, recapArrived: false }), [{ kind: 'teardown' }]);
-    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 2, stopped: false, recapArrived: true }), [{ kind: 'teardown' }]);
+    // No reply, a stop, or a recap that already settled the sitting: only the ordinary teardown.
+    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 0, stopped: false, recapSettled: false }), [{ kind: 'teardown' }]);
+    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 2, stopped: true, recapSettled: false }), [{ kind: 'teardown' }]);
+    assert.deepEqual(leaveOnTimeout({ confirmedReplies: 2, stopped: false, recapSettled: true }), [{ kind: 'teardown' }]);
     const screen = read('../ConvoScreen.tsx');
     assert.match(screen, /leaveWaiting \? LEAVE_RECAP_WAIT_MS : RECAP_WAIT_MS/);
     assert.match(screen, /recapBailLeave\.current = leaveWaiting \? leaveTimedOut : leaveNow/);
@@ -85,5 +85,14 @@ describe('leaving keeps the work once the learner has replied — F905', () => {
     assert.doesNotMatch(hook, /addTurn\(\{ who: 'learner'/);
     assert.match(hook, /setOpening\(null\);\s*choosingRef\.current = false;/);
     assert.match(hook, /setOpening\(\{ prompt: msg\.prompt \}\);\s*choosingRef\.current = true;/);
+  });
+
+  test('a recap that lands after the local settle does not settle the sitting twice', () => {
+    const credit = sessionCredit({ turns: 4, rescues: 0, unassistedRate: 1, learnerReplies: 2 });
+    assert.equal(recapUse(credit, 'end', false).settle, true);
+    assert.equal(recapUse(credit, 'end', true).settle, false, 'a recap after the local settle settled the sitting again');
+    const screen = read('../ConvoScreen.tsx');
+    assert.match(screen, /settledLocallyRef\.current = true;/);
+    assert.match(screen, /recapUse\(credit, switchingRef\.current \? 'switch' : 'end', settledLocallyRef\.current\)/);
   });
 });
