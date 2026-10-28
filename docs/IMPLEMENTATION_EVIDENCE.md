@@ -22,6 +22,13 @@ of the list.
 
 ## Current landing snapshot
 
+- 28 October 2026 Phase F, cost and measurement, on branch `claude/phase-f-cost` (main 7b3c38ca merged
+  in): the memory extraction eval with a recorded baseline, the judge verdict memo switched off behind
+  `LUVANI_JUDGE_MEMO`, practice, validation and session cost JSON lines, and the offline
+  `eval:cost-numbers` aggregator (COST-001 to COST-004, F898 to F901). **6,822 tests, 0 failing**; core
+  1088, brain 555, tutor agent 875, token server 519, playground 110, mobile 3675; shared
+  release/provider proofs 207; all 44 migrations replayed, no migration added. Floors raised through
+  `gate:bless`. `eval:extract` ran live (about $0.21); no model was switched and nothing was deployed.
 - 28 October 2026 Phase E, progress that shows improvement, on branch `claude/phase-e-progress` from main
   286723d8: Journey "How it's going" (Getting better at, Needs another go), the profile's credit rule
   aligned with the end card, pattern examples clamped, snapshot byte budget with keep-unsent write-back

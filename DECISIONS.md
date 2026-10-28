@@ -1606,4 +1606,6 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   a migration to the event trigger, a consent flag the tutor does not have, and a
   link to the learner that the metric does not need.
 - Consequence: cost per cohort is out of reach until a later decision adds it.
-  Voice is reported in units (TTS characters, STT seconds), not dollars. F901.
+  Voice is reported in units (TTS characters, STT seconds), not dollars. The
+  lines join on the first 8 hex characters of the session id, as
+  `[luvani:brain:summary]` already did; no words, user ids, room or model names. F901.
