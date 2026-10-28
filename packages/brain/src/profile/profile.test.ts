@@ -379,6 +379,32 @@ describe('memory — what the tutor knows about the person', () => {
     assert.equal(profile.memory.opener, null);
   });
 
+  test('sensitive extracted facts never land; clean ones do, as conversation facts', () => {
+    const profile = applyExtractionToProfile(
+      createProfile(),
+      {
+        facts: [
+          fact('Was diagnosed with diabetes'),
+          fact('Loves cooking'),
+          { ...fact('Is learning for a trip'), fr: 'Cherche un crédit immobilier' },
+          { ...fact('Has a plan for the week'), happensAround: 'after the surgery' },
+        ],
+        openerFr: 'Alors, la cuisine ?',
+        openerEn: 'So, the cooking?',
+      },
+      '2026-10-28T10:00:00Z',
+    );
+    assert.deepEqual(profile.memory.facts.map((f) => [f.en, f.source]), [['Loves cooking', 'conversation']]);
+    assert.notEqual(profile.memory.opener, null, 'a clean opener survives dropped facts');
+  });
+
+  test('a sensitive opener becomes null', () => {
+    const fr = applyExtractionToProfile(createProfile(), { facts: [], openerFr: 'Et ton salaire ?', openerEn: 'And the pay?' }, '2026-10-28T10:00:00Z');
+    assert.equal(fr.memory.opener, null);
+    const en = applyExtractionToProfile(createProfile(), { facts: [], openerFr: 'Et alors ?', openerEn: 'How was church?' }, '2026-10-28T10:00:00Z');
+    assert.equal(en.memory.opener, null);
+  });
+
   test('the fact book caps oldest-out — the profile rides the join credential', () => {
     let profile = createProfile();
     for (let i = 0; i < MAX_MEMORY_FACTS + 3; i += 1) {

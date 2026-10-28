@@ -18,6 +18,9 @@ import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.
 import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness } from '../types.ts';
 import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
 import { normalizeErrorTag } from './errorTag.ts';
+import { sensitiveMemoryCategory } from './memoryScreen.ts';
+
+export { sensitiveMemoryCategory, type SensitiveMemoryCategory } from './memoryScreen.ts';
 
 /** Who wrote a remembered fact: the learner by hand, or the extraction after a conversation. */
 export type FactSource = 'learner' | 'conversation';
@@ -394,10 +397,16 @@ export function withLearnerName(profile: LearnerProfile, name: unknown): Learner
   return { ...profile, memory: { ...profile.memory, name: validLearnerName(name) } };
 }
 
+/** True when any of the texts touches a sensitive memory category. */
+function isSensitiveMemory(...texts: Array<string | null>): boolean {
+  return texts.some((text) => sensitiveMemoryCategory(text) !== null);
+}
+
 /**
  * Merge one extraction into the profile. The model proposes, code disposes:
  * facts are deduped on their English sentence, capped oldest-out, and the
- * opener only lands when both languages arrived. Pure.
+ * opener only lands when both languages arrived. Tutor-noted facts and
+ * openers that touch a sensitive topic are dropped (memoryScreen.ts). Pure.
  */
 export function applyExtractionToProfile(
   profile: LearnerProfile,
@@ -411,6 +420,9 @@ export function applyExtractionToProfile(
   for (const fact of extraction.facts) {
     const key = normalise(fact.en);
     if (key.length === 0 || seen.has(key)) continue;
+    // Code check behind the prompt's memory boundary (LEARN-008): a tutor-noted
+    // fact touching a sensitive topic in any field is dropped whole, unlogged.
+    if (isSensitiveMemory(fact.en, fact.fr, fact.happensAround)) continue;
     seen.add(key);
     // Built field by field: a model object carrying `source` cannot smuggle it in.
     next.memory.facts.push({
@@ -428,7 +440,7 @@ export function applyExtractionToProfile(
     next.memory.facts = next.memory.facts.slice(next.memory.facts.length - MAX_MEMORY_FACTS);
   }
 
-  if (extraction.openerFr !== null && extraction.openerEn !== null) {
+  if (extraction.openerFr !== null && extraction.openerEn !== null && !isSensitiveMemory(extraction.openerFr, extraction.openerEn)) {
     next.memory.opener = { fr: extraction.openerFr, en: extraction.openerEn, policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   } else {
     // A session that surfaced nothing real clears the opener rather than
