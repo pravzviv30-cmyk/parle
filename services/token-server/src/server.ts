@@ -40,6 +40,7 @@ import {
   type TutorRevision,
 } from '@luvani/core';
 import { brainClientFromEnv, type LlmClient } from '@luvani/brain/llm';
+import { SESSION_START_BODY_LIMIT, sessionSnapshot } from './sessionSnapshot.ts';
 import { scoreUtterance } from '../../shared/pronunciation.ts';
 import {
   SessionReconciliationRequired,
@@ -671,7 +672,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.sessionIp)]))) return;
       if (process.env.NODE_ENV === 'production' && !(await readiness.state()).ready) return json(res, 503, { error: 'session service unavailable', message: 'Your tutor is not ready. Please try again.' });
       const startedAt = performance.now();
-      const body = await readJson(req);
+      const body = await readJson(req, SESSION_START_BODY_LIMIT);
       const parsedAt = performance.now();
       const asserted = typeof body.userId === 'string' && body.userId ? body.userId : null;
       const lessonId = typeof body.lessonId === 'string' && body.lessonId ? body.lessonId : 'cafe-01';
@@ -716,7 +717,10 @@ const server = createServer(protectHttpHandler(async (req, res) => {
               ? ('lesson-text' as const)
               : ('lesson' as const);
       if (!supportsSessionMode(mode)) return json(res, 503, { error: 'voice-unavailable', message: 'Voice is unavailable here. You can start a typed conversation.', supportedModes: supportedSessionModes() });
-      const snapshot = typeof body.snapshot === 'object' && body.snapshot !== null ? body.snapshot : undefined;
+      // Fitted under the brain's byte budget, which guards older app builds (LEARN-014).
+      const fitted = sessionSnapshot(body.snapshot);
+      if (!fitted.ok) return json(res, 413, { error: 'snapshot-too-large', message: 'We could not start this session. Please update the app and try again.' });
+      const snapshot = fitted.snapshot;
       let seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
       const missionId = typeof body.missionId === 'string' && body.missionId ? body.missionId : undefined;
       const tutorVoice = typeof body.tutorVoice === 'string' && body.tutorVoice ? body.tutorVoice : undefined;

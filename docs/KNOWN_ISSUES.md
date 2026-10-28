@@ -11325,3 +11325,62 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-27 on the first staging deploys. `onnxruntime-node`'s install script downloads its native library from Microsoft during `npm ci`. It timed out (`ETIMEDOUT 150.171.109.35:443`, no IPv6 route) on 2 of 9 Railway builds, failing the whole build; a redeploy passed each time. A deploy should not need a manual retry. Options: retry the install step, or fetch and hash-pin the native archive once (it is already recorded by `deployment/nativeArtifacts.mjs`) so the build does not depend on that host. Owner: deploy-engineer.
 - fixed: 2026-10-27 on `claude/f886-f887` (DEPLOY-005). Root cause: on linux/x64 the postinstall only downloads the CUDA 12 and TensorRT providers from NuGet; the CPU runtime ships in the npm archive. The image's `npm ci` now sets `ONNXRUNTIME_NODE_INSTALL=skip`.
 - verified-by: `the backend image skips onnxruntime's GPU download and keeps its bundled CPU runtime`
+
+### F888 — The profile credited a form the end card refused
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/profile.ts (`applyTurnToProfile`), services/tutor-agent/src/convo.ts (`correctedEarlier` call site)
+- note: Found 2026-10-28 in Phase E planning. The end card dropped a `usedWell` form quoted in coaching on any earlier turn of the session (`state.correctedForms`), but the profile only dropped this turn's coaching, so a later claim of the corrected form still earned `timesUsedWell` and could mint mastery the card never showed. `applyTurnToProfile` now takes `correctedEarlier` (the pre-turn `correctedForms`) and gives such a use neither `timesUsedWell` nor `timesAssisted` (LEARN-012). Adopting the tutor's offered better form still counts in both.
+- fixed: 2026-10-28 on `claude/phase-e-progress`.
+- verified-by: `a form corrected earlier earns no profile credit later, matching the end card`
+- verified-by: `turn 1 coaches the quote, turn 2 claims it: both exclude it; adopting the offered form later counts in both`
+
+### F889 — Error pattern examples were stored unbounded
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/profile.ts (`MAX_PATTERN_EXAMPLE`, `applyTurnToProfile`, `repairLearningHistory`)
+- note: Found 2026-10-28 in Phase E planning. A model-written pattern `example` was stored at any length, and the whole profile rides the session join credential. Examples are now clamped to 160 characters by code point when written and when a stored profile is repaired, which also covers merges (they settle through `repairProfile`).
+- fixed: 2026-10-28 on `claude/phase-e-progress`.
+- verified-by: `clamped when written, by code point, without splitting a surrogate pair`
+- verified-by: `clamped on read for stored profiles, and through a merge`
+
+### F890 — "Getting better at" was not shown on the Journey
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/journey/journeyView.ts (`progressRowsView`), apps/mobile/src/journey/JourneyParts.tsx (`ProgressSection`), apps/mobile/src/tabs/MyFrenchTab.tsx
+- note: Found 2026-10-28 in Phase E planning. The brain knew which recurring patterns had gone quiet (`improvingPatterns`, LEARN-011), but no learner surface said so. The Journey's "How it’s going" now lists up to two, by authored title only (LEARN-013).
+- fixed: 2026-10-28 on `claude/phase-e-progress`.
+- verified-by: `a recurring pattern quiet for three conversations shows, under its authored title`
+- verified-by: `two quiet conversations are not enough: the boundary is the brain rule`
+- verified-by: `an un-authored tag never reaches the learner`
+- verified-by: `at most two patterns, newest quiet first`
+
+### F891 — "Needs another go" was not shown on the Journey
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/journey/journeyView.ts (`needsAnotherGo`, `progressRowsView`), packages/core/src/review/scheduler.ts (`lapses` comment)
+- note: Found 2026-10-28 in Phase E planning. Due phrases the learner had missed or only said with help were not named anywhere on the Journey. "How it’s going" now shows up to three as French chips, oldest due first, opening Review. Lapses decide membership only (LEARN-013).
+- fixed: 2026-10-28 on `claude/phase-e-progress`.
+- verified-by: `membership through a lapse`
+- verified-by: `membership through help, by fr and by frWritten, and not once used well`
+- verified-by: `a phrase not yet due is left out`
+- verified-by: `a transferred phrase is left out`
+- verified-by: `order is oldest due first, even when lapses say otherwise, and capped at three`
+- verified-by: `locked under fullJourney: no rows, the teaser instead`
+- verified-by: `null when neither row has evidence`
+
+### F892 — No byte cap on the learner snapshot; a heavy profile could be refused at session start
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/snapshotBudget.ts (`fitSnapshot`, `keepUnsent`), services/token-server/src/sessionSnapshot.ts, services/token-server/src/server.ts (`/session/start`), apps/mobile/src/app/ProfileContext.tsx (`updateBrain`)
+- note: Found 2026-10-28 in Phase E planning. Counts were capped, but text was not and there was no byte budget: a heavy learner measures about 58 KB of snapshot against the 64 KB body limit, and the worst case about 370 KB. The snapshot is now fitted under 48 KB on the phone and again on the server, and what is left out is restored on the phone after the recap (LEARN-014).
+- fixed: 2026-10-28 on `claude/phase-e-progress`.
+- verified-by: `fitSnapshot brings the worst case under budget without touching memory, stats or extras`
+- verified-by: `drop order: mastered phrases oldest first, then unmastered, then suspected patterns; recurring stay`
+- verified-by: `round trip: fit, recap with one new phrase, keepUnsent loses nothing and the caps hold`
+- verified-by: `an oversized snapshot from /session/start is signed in its fitted form`
+- verified-by: `a huge junk snapshot is refused, not a crash`
+- verified-by: `a fitted session loses no phrase on write-back, keeps what it learned, and keeps memory decisions`
+- verified-by: `a dropped mastered phrase the session reintroduced stays mastered with its old uses`
+- verified-by: `a dropped suspected pattern seen again in a new session becomes recurring`
+- verified-by: `a sent phrase credited in session and a sent pattern seen again are not double counted`

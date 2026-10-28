@@ -12,6 +12,7 @@ import type { LearnerProfile } from '@luvani/brain/profile';
 import { loadProfile, saveProfile, saveMemoryChange, withAgeGatePassed, type StoredProfile } from '../profile/store.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { brainAfterRecap } from '../profile/memory.ts';
+import { keepUnsent } from '@luvani/brain/profile/snapshotBudget';
 import { entryFor } from '../onboarding/answers.ts';
 import { AgeGateScreen } from '../onboarding/AgeGateScreen.tsx';
 import { useLaunchHold } from '../launch/useLaunch.ts';
@@ -86,7 +87,10 @@ export function ProfileGate({
       // moment a session mentions it again. The tombstones are applied here,
       // at the one write, rather than in the navigator's handler, whose deps
       // must stay exactly `[updateBrain]` (F386).
-      const next: StoredProfile = { ...current, brain: brainAfterRecap(blob, current) };
+      // The recap only saw the fitted snapshot (LEARN-014). keepUnsent runs
+      // after brainAfterRecap and touches phrases and patterns only, so the
+      // memory decisions above stand and what was left out comes back.
+      const next: StoredProfile = { ...current, brain: keepUnsent(current.brain, brainAfterRecap(blob, current)) };
       void saveProfile(next);
       return next;
     });

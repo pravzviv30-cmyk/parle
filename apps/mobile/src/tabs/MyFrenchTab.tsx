@@ -11,7 +11,7 @@ import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { bType, frenchText, space } from '../theme.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton } from '../today/TodayParts.tsx';
-import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, SoundRowView, StageTrack, TryCell, TwoUp, WeekRowView, YourFrenchSection } from '../journey/JourneyParts.tsx';
+import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, ProgressSection, SoundRowView, StageTrack, TryCell, TwoUp, WeekRowView, YourFrenchSection } from '../journey/JourneyParts.tsx';
 import { LivingBar } from '../motion/LivingBar.tsx';
 import { storyFrom, hasStory, type WeekStory } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
@@ -80,6 +80,7 @@ import {
   thenNowCard,
   yourFrenchView,
   weekView,
+  progressRowsView,
   type JourneyRoute,
 } from '../journey/journeyView.ts';
 
@@ -237,6 +238,7 @@ export function MyFrenchTab() {
   const yourFrench = yourFrenchView({ deck, checks, progress: missions, completions, now, access: locks.access });
   const help = helpView({ completions, story, now, access: locks.access });
   const sounds = soundsView({ checks, now, hasJourney: journey !== null, access: locks.access });
+  const progress = progressRowsView({ brain: profile.brain, deck, now, access: locks.access });
   const week = weekView(reflectionFrom({ story, recent: conversations, checks, progress: missions, now }), locks.access);
   const tiles = collectionTiles({ postcards: earnedPostcards(missions).length, badges: game.view?.badges.length ?? 0 });
   const start = emptyJourney(missions, goalOf(profile));
@@ -335,6 +337,9 @@ export function MyFrenchTab() {
                   Drawn by journey/JourneyParts' YourFrenchSection, where the open parts are drawn once
                   each (never in a .map, so the one highlighter stays one). */}
               <YourFrenchSection view={yourFrench} onOpen={go} onTeaser={(f) => { if (owned()) locks.open(f); }} />
+
+              {/* 2026-10-28 LEARN-013: what is getting easier and what needs another go, from stored evidence only. */}
+              {progress !== null && <ProgressSection view={progress} onOpen={go} onTeaser={(f) => { if (owned()) locks.open(f); }} />}
 
               <View style={st.stack}>
                 <JourneyHead title={STAGE_HEADING} locked={false} subtitle={STAGE_INTRO} />

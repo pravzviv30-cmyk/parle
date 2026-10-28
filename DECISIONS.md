@@ -1359,6 +1359,102 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   LEARN-001 rule, applied in `integrateTurn`), so the end card no longer
   celebrates a line the learner was shown. F881.
 
+## LEARN-011 — Getting better at: a recurring pattern quiet for three conversations
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: `improvingPatterns` lists an error pattern as getting better when it
+  is `recurring` (seen in at least two sessions) and has not been seen in the
+  last three completed sessions (`IMPROVING_AFTER_SESSIONS`), computed as
+  `stats.sessions - 1 - lastSession >= 3` because `finishSession` increments the
+  ordinal after the session's sightings. Most recent first, ties by tag; it
+  returns tags and ordinals, never counts. Legacy patterns repaired to
+  `sessions: 1` never qualify. Pattern examples are clamped to 160 characters
+  (`MAX_PATTERN_EXAMPLE`) when written and when read.
+- Reason: progress should show improvement from evidence of absence of a real
+  weakness, not from activity, and one quiet scene is not enough.
+- Consequence: an absence can come from not meeting the structure rather than
+  mastering it; the copy built on this must say "getting better at", not
+  "mastered". F889.
+
+## LEARN-012 — Corrected forms earn no credit for the rest of the session, on the end card and in the profile
+
+- Date: 2026-10-28
+- Status: accepted (founder decision: the profile follows the end card)
+- Decision: `applyTurnToProfile` takes `correctedEarlier`, the session's
+  `correctedForms` read before the turn, and a use matching it earns neither
+  `timesUsedWell` nor `timesAssisted`, the same whole-word test the end card
+  applies in `integrateTurn`. Only quoted forms are remembered, so adopting the
+  tutor's offered better form on a later turn still counts in both.
+- Reason: the record and the card must give one verdict about one session.
+- Consequence: slightly slower mastery for a phrase the learner was corrected
+  on and then claimed again in the same session. F888.
+
+## LEARN-013 — Journey says what is getting easier and what needs another go
+
+- Date: 2026-10-28
+- Status: accepted (founder approved the "Needs another go" rule and the
+  lapses amendment, 2026-10-28)
+- Decision: the Journey tab draws "How it’s going" right after Your French
+  (`progressRowsView` in `apps/mobile/src/journey/journeyView.ts`, drawn by
+  `ProgressSection`). "Getting better at" lists up to two `improvingPatterns`
+  (LEARN-011) that have authored `PATTERN_COPY`, each said as its title and
+  "It hasn’t come up in your last 3 conversations." "Needs another go" shows up
+  to three French chips: due `phrase:` deck cards, not `transferred`, that
+  have `lapses > 0` or whose profile phrase was used only with help
+  (`timesAssisted > 0 && timesUsedWell === 0`, keyed as `core/tutorBrief.ts`
+  keys it). Oldest `due` first. The row opens Review, which plays the whole
+  due deck these phrases are in; Drill's node path was not used because it
+  plays only phrases the drill bank holds an exercise for. Locked under
+  `fullJourney`, the section shows a teaser instead.
+- Lapses amendment: the `lapses` rule in `packages/core/src/review/scheduler.ts`
+  now lets a reader use lapses to pick a phrase for "Needs another go"
+  (membership only). It still may not display, count, sort, rank or colour by
+  them.
+- Reason: progress should show improvement and the next useful practice from
+  stored evidence, with no percentage, score, count of misses or "n of m".
+- Consequence: a phrase missed once and one missed often read the same, by
+  design. The quiet-pattern line claims absence, not mastery. F890, F891.
+
+## LEARN-014 — The snapshot has a byte budget, and what it leaves out comes back
+
+- Date: 2026-10-28
+- Status: accepted (founder decision: "cap and keep")
+- Decision: `fitSnapshot` (`packages/brain/src/profile/snapshotBudget.ts`) fits
+  the learner snapshot under `SNAPSHOT_MAX_BYTES` (48 KB of UTF-8 JSON). It
+  clamps phrase `fr`, `frWritten` and `en` to 200 characters and a pattern
+  `example` to 160, then, only if still over, leaves out mastered phrases
+  (oldest `introducedAt` first), then unmastered phrases (oldest first), then
+  suspected error patterns (least recent `lastSeen` first). Memory, CEFR,
+  stats, preferences, recurring patterns, `reviewFocus` and
+  `previousCorrection` always ride. The app fits before `/session/start`; the
+  token server fits again for older builds, reads that body up to 160 KB, and
+  answers 413 only when a snapshot cannot be fitted. After the recap,
+  `ProfileContext` saves `keepUnsent(current.brain, brainAfterRecap(blob,
+  current))`: every phrase and pattern the phone holds that the recap lacks
+  comes back, clamped text comes back whole, an entry in both keeps the
+  recap's version, and the usual eviction rules re-apply the 200 and 40 caps.
+  The exception is a left-out entry the session made afresh under the same
+  key, told from the entries alone: a phrase whose `introducedAt` differs
+  (a sent phrase carries it untouched) keeps the phone's introduction and
+  text, sums uses and assisted uses, and projects `mastered` again; a pattern
+  whose `lastSession` moved while its `sessions` did not pass the phone's sums
+  count and sessions and takes the recap's sighting. Otherwise a reintroduced
+  mastered phrase would restart at zero, and a re-sighted pattern would never
+  become recurring (LEARN-002).
+- Reason: a heavy learner at realistic lengths measures about 58 KB, within
+  5 KB of the 64 KB body limit, and the worst case at every cap about 370 KB,
+  so a devoted learner could be refused a conversation. The signed token
+  carries the snapshot again in base64, so the budget sits well under the body
+  limit, and the write-back makes trimming lossless.
+- Consequence: the tutor of a very heavy learner does not see their oldest
+  mastered phrases in that session. `keepUnsent` runs after
+  `brainAfterRecap` and touches only phrases and patterns, so memory pause and
+  forgotten facts are decided before it and cannot be undone by it. No app path
+  removes a single phrase or pattern from the brain, so restoring cannot
+  resurrect a deletion; a full reset replaces the stored profile, and the
+  write-back only restores from that current profile. F892.
+
 ## DEPLOY-001 — Our own decode-only FFmpeg instead of a full static build
 
 - Date: 2026-10-26
