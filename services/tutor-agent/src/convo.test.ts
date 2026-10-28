@@ -4378,8 +4378,8 @@ describe('what a finished conversation writes down about itself', () => {
     t.after(restore);
     const profile = createProfile();
     profile.memory.facts = [
-      { kind: 'life-event', fr: 'Ma sœur Zéphyrine habite à Besançon', en: 'Has a sister called Zéphyrine in Besançon', happensAround: 'au printemps prochain, chez Zéphyrine', notedAt: '2026-01-01' },
-      { kind: 'interest', fr: 'Il collectionne les ocarinas', en: 'Collects ocarinas', happensAround: null, notedAt: '2026-01-02' },
+      { kind: 'life-event', fr: 'Ma sœur Zéphyrine habite à Besançon', en: 'Has a sister called Zéphyrine in Besançon', happensAround: 'au printemps prochain, chez Zéphyrine', notedAt: '2026-01-01', source: 'learner', updatedAt: '2026-01-01' },
+      { kind: 'interest', fr: 'Il collectionne les ocarinas', en: 'Collects ocarinas', happensAround: null, notedAt: '2026-01-02', source: 'conversation', updatedAt: '2026-01-02' },
     ];
     profile.memory.opener = { fr: 'Comment va Zéphyrine à Besançon ?', en: 'How is Zéphyrine in Besançon?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
     const { convo } = await inScene(t, { profile, voiceless: true, sessionId: '56565656-1212-4343-8585-909090909090' });

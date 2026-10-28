@@ -22,6 +22,11 @@ of the list.
 
 ## Current landing snapshot
 
+- 28 October 2026 forget and card notes, landed after Phase D: branch `claude/forget-pack-copies` with
+  main 23693ceb (Phase D) merged in. F897 closed as superseded by F902; the F902 guard test's facts now
+  carry `source` and `updatedAt`. **7,000 tests, 0 failing**; core 1092, brain 714, tutor agent 880,
+  token server 519, playground 110, mobile 3685; shared release/provider proofs 207; all 44 migrations
+  replayed, no migration added. Floors raised through `gate:bless`.
 - 28 October 2026 forget and card notes, on branch `claude/forget-pack-copies` from main af36034b:
   a guard test that the pack builder never reads the memory list, a line after forgetting that saved
   conversations stay and can be deleted in Journey, card notes that name their conversation by
