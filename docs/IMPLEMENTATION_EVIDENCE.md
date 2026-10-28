@@ -22,6 +22,14 @@ of the list.
 
 ## Current landing snapshot
 
+- 28 October 2026 forget and card notes, on branch `claude/forget-pack-copies` from main af36034b:
+  a guard test that the pack builder never reads the memory list, a line after forgetting that saved
+  conversations stay and can be deleted in Journey, card notes that name their conversation by
+  `contextPackId`, and a cleared name that wins every deck merge (LEARN-015, LEARN-016, F878, F882,
+  F902). **6,831 tests, 0 failing**; core 1092, brain 555, tutor agent 876, token server 519,
+  playground 110, mobile 3679; shared release/provider proofs 207; all 44 migrations replayed, no
+  migration added. Floors raised through `gate:bless`. A read-only review fuzzed the deck merge with
+  200,000 random triples: commutative, idempotent and associative, and no cleared name came back.
 - 28 October 2026 Phase F, cost and measurement, on branch `claude/phase-f-cost` (main 7b3c38ca merged
   in): the memory extraction eval with a recorded baseline, the judge verdict memo switched off behind
   `LUVANI_JUDGE_MEMO`, practice, validation and session cost JSON lines, and the offline

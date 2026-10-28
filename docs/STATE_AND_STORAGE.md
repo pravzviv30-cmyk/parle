@@ -1089,7 +1089,7 @@ ConversationPack, profile, sync, journal and learning evidence. Scope reset, lea
 and safety discard it. The authenticated server stores chosen text in
 `saved_conversation_text`; there is no AsyncStorage cache. Per-text deletion clears
 its words and keeps a retry fence until account deletion. Account export
-includes these records. Read/delete is in Progress, Your conversations, Saved
+includes these records. Read/delete is in Journey, Your conversations, Saved
 conversation text. The local development adapter does not advertise remote saving.
 
 ## Optional kept-phrase tutor audio
