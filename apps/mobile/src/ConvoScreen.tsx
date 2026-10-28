@@ -40,9 +40,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, AppState } from 'react-native';
 import { useIsFocused, usePreventRemove } from '@react-navigation/native';
 import {
-  conversationXp,
   missionStates,
   isEarned,
+  conversationXp,
   getMission,
   phraseKeyOf,
   type ConvoPhrase,
@@ -67,6 +67,8 @@ import { IconAction,
 import { SupportBlock } from './SessionView.tsx';
 import { ConfirmSheet, ScrollScreen } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
+import { LEAVE_RECAP_WAIT_MS, learnerRepliesInRoom, leaveKeepsWork } from './live/leaveKeepingWork.ts';
+import { learnerRepliesOf, sessionCredit } from './recap/sessionCredit.ts';
 import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
@@ -280,7 +282,6 @@ export function ConvoScreen({
   const [leftWithReport, setLeftWithReport] = useState<{ sessionId: string | null } | null>(null);
   const paperGround = useB().ground;
   const [leaving, setLeaving] = useState(false);
-  const leaveCopy = leaveConfirmCopy('conversation');
   // Which text input holds the caret, for the ink focus border. Visual only.
   const [focusedInput, setFocusedInput] = useState<'topic' | 'reply' | null>(null);
   // The learner tapped Type instead during a voice scene. Local to the screen
@@ -511,6 +512,9 @@ export function ConvoScreen({
   }, [clock]);
   const roomOpen = live.convo !== null;
   const learnerTurns = live.turns.filter((t) => t.who === 'learner').length;
+  // F905: the room's own reply count decides whether Leave keeps the work, and what the sheet says.
+  const learnerReplies = learnerRepliesInRoom(live.turns);
+  const leaveCopy = leaveConfirmCopy('conversation', learnerReplies);
   useEffect(() => {
     if (roomOpen && learnerTurns > 0) markLearnerAction();
   }, [roomOpen, learnerTurns, markLearnerAction]);
@@ -579,7 +583,9 @@ export function ConvoScreen({
       // is the start, not the mount: the connecting screen is not time anybody
       // spent speaking French.
       const endedAt = Date.now();
-      const xp = conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate });
+      // No learner reply earns no content XP (F904); the active day is still written.
+      const credit = sessionCredit(stats);
+      const xp = credit.earns ? conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate }) : 0;
       const activeMs = clock.read();
       setRecapActiveSec(Number.isFinite(activeMs) && activeMs > 0 ? Math.round(activeMs / 1000) : null);
       // A conversation that ran to its recap is a finished sitting, and it
@@ -594,7 +600,7 @@ export function ConvoScreen({
         write: () => recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: activeMs, finished: true } : { durationMs: endedAt - openedAt, activeMs: activeMs, finished: true }),
       }).then(setConvoDelta);
       // One content-free beta event per finished conversation (analytics/sessionFinished.ts).
-      void trackProductEvent(sessionFinishedEvent({ kind: 'convo', voice: !live.voiceless, turns: stats.turns, rescues: stats.rescues,
+      void trackProductEvent(sessionFinishedEvent({ kind: 'convo', voice: !live.voiceless, turns: learnerRepliesOf(stats) ?? stats.turns, rescues: stats.rescues,
         unassistedRate: stats.unassistedRate, replyLatencyMs: live.replyLatencyMs() }));
     }
     // `clock` is the same controller for the screen's whole life, so it stays
@@ -657,6 +663,8 @@ export function ConvoScreen({
    * through, so the button promised something it then made impossible.
    */
   const [finishing, setFinishing] = useState(false);
+  // A Leave that is waiting for the recap (F905) waits less than a Finish.
+  const [leaveWaiting, setLeaveWaiting] = useState(false);
 
   const recapBailLeave = useRef<() => void>(() => {});
   useLayoutEffect(() => { recapBailLeave.current = leaveNow; });
@@ -667,9 +675,9 @@ export function ConvoScreen({
   // which still banks what they said.
   useEffect(() => {
     if (!finishing || live.recap) return;
-    const bail = setTimeout(() => recapBailLeave.current(), RECAP_WAIT_MS);
+    const bail = setTimeout(() => recapBailLeave.current(), leaveWaiting ? LEAVE_RECAP_WAIT_MS : RECAP_WAIT_MS);
     return () => clearTimeout(bail);
-  }, [finishing, live.recap]);
+  }, [finishing, leaveWaiting, live.recap]);
   useEffect(() => {
     // Nothing is completed by a session that was stopped, and a mission written
     // down here is a congratulation the learner meets later on another screen.
@@ -881,8 +889,16 @@ export function ConvoScreen({
   // one way out, and it is checked first below.
   const reportHeld = reportPending && !stopped;
   const leaveToReport = () => { const sessionId = live.sessionId; leaveTo(() => setLeftWithReport({ sessionId })); };
+  // F905: after a learner reply, Leave is Finish with a shorter wait, so the
+  // recap effect banks the practice and settles the minutes. With no reply, or
+  // a stop, a held report or the recap already here, it stays the instant exit.
+  const leaveKeepingWork = (): boolean => {
+    if (!leaveKeepsWork({ learnerReplies, stopped, reportHeld, recapArrived: live.recap !== null })) return false;
+    setLeaveWaiting(true); setFinishing(true); live.requestRecap();
+    return true;
+  };
   useEffect(() => {
-    if (leaving) { if (!reportHeld) leaveNow(); else leaveToReport(); }
+    if (leaving) { if (reportHeld) leaveToReport(); else if (!leaveKeepingWork()) leaveNow(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaving]);
 

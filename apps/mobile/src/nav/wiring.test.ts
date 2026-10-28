@@ -342,7 +342,7 @@ describe('leaving a metered room is confirmed, not instant — F310', () => {
     const convo = strip(read('../ConvoScreen.tsx'));
     assert.match(convo, /onEnd=\{\(\) => setConfirming\(true\)\}/, 'the conversation end control leaves instead of opening the confirm');
     assert.match(convo, /<ConfirmSheet\b/, 'the conversation renders no confirm sheet');
-    assert.match(convo, /leaveConfirmCopy\('conversation'\)/, 'the conversation confirm is not drawn from the conversation copy');
+    assert.match(convo, /leaveConfirmCopy\('conversation', learnerReplies\)/, 'the conversation confirm is not drawn from the conversation copy');
   });
 
   test('the leave confirm is honest, puts Stay first, and never uses a native alert — F310', () => {
@@ -389,7 +389,7 @@ describe('hardware back and the swipe cannot slip a metered room — F311', () =
       ['the conversation', '../ConvoScreen.tsx'],
     ] as const) {
       const src = strip(read(file));
-      assert.match(src, /useEffect\(\(\) => \{[\s\S]{0,80}leaving[\s\S]{0,40}leaveNow\(\)[\s\S]{0,40}\}, \[leaving\]\)/,
+      assert.match(src, /useEffect\(\(\) => \{[\s\S]{0,80}leaving[\s\S]{0,80}leaveNow\(\)[\s\S]{0,40}\}, \[leaving\]\)/,
         `${name} does not run the exit from an effect keyed on the guard coming down`);
       assert.match(src, /setLeaving\(true\)/, `${name} confirm never lowers the guard, so the exit is prevented forever`);
     }

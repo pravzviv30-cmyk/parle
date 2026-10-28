@@ -102,7 +102,14 @@ DECISIONS.md UI-007):
   live rung (`live/liveRoomView.ts`); the recap pages run After a session, the
   Celebration, the Recap, then sound and next (`recap/pages.ts`,
   `recap/afterSessionView.ts`). The goals reach the Recap passed through from
-  the room, with no new storage. The Convo and Lesson routes follow the device
+  the room, with no new storage. Turns earn credit (F904, 2026-10-28,
+  `recap/sessionCredit.ts`): a recap whose `learnerReplies` is 0 banks no XP,
+  shows no "new phrases" tile and says "You made time for your French."; an
+  older agent without the count keeps the old behaviour. Leaving after at least
+  one learner reply (F905, `live/leaveKeepingWork.ts`) takes the Finish path:
+  the room stays open, the recap is requested and awaited up to 8 s, so the
+  lines are saved and the minutes counted, then the ordinary teardown if none
+  comes; with no reply Leave is instant. The Convo and Lesson routes follow the device
   since 2026-10-21 (UI-008 step 12b): their waiting, error, safety, recap and
   lesson screens read the tokens, and the room keeps its blue in both themes.
 - **Streak, Profile and Settings** (`game/StreakScreen.tsx`,

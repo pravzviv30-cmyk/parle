@@ -10,7 +10,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leaveConfirmCopy } from './leaveConfirm.ts';
+import { LEAVE_KEEPS_WORK, leaveConfirmCopy } from './leaveConfirm.ts';
 
 const ROOMS = ['lesson', 'conversation'] as const;
 
@@ -52,5 +52,15 @@ describe('the leave confirm asks honestly and keeps the mid-session rules — F3
   test('each room speaks about the room the learner is actually in', () => {
     assert.match(leaveConfirmCopy('lesson').title, /lesson/i);
     assert.match(leaveConfirmCopy('conversation').title, /conversation/i);
+  });
+
+  test('after a learner reply the conversation sheet says the work is kept, and before one it stays as today', () => {
+    const kept = leaveConfirmCopy('conversation', 1);
+    assert.equal(kept.body, "We'll keep the lines you reached and count your minutes.");
+    assert.equal(kept.body, LEAVE_KEEPS_WORK);
+    assert.ok(!/—|\d|score|hesitat/i.test(kept.body), 'the kept-work body breaks a mid-session rule');
+    assert.equal(leaveConfirmCopy('conversation', 0).body, 'Your minutes stop here. You can start another one any time.');
+    assert.equal(leaveConfirmCopy('conversation').body, 'Your minutes stop here. You can start another one any time.');
+    assert.match(leaveConfirmCopy('lesson', 3).body, /minutes stop/, 'the lesson sheet changed with the conversation one');
   });
 });

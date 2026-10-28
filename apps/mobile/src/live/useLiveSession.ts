@@ -64,6 +64,7 @@ import {
   type LiveFailure,
 } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
+import { learnerLine } from './leaveKeepingWork.ts';
 import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
 import { thinkingAfter } from './thinking.ts';
 import { heldTurnAfter, tapToSendFrames, wrappingUpAfter } from './heldTurn.ts';
@@ -748,6 +749,8 @@ export function useLiveSession(
     watchdogRef.current = [];
   }, []);
 
+  // The choosing screen is up from 'opening' until the scene's first view (F905).
+  const choosingRef = useRef(false);
   const addTurn = useCallback((line: Omit<TurnLine, 'id'>, confirmedId?: string) => {
     turnSeq.current += 1;
     const id = confirmedId ?? `t${turnSeq.current}`;
@@ -1264,7 +1267,7 @@ export function useLiveSession(
               replyClock.current.learnerTurnConfirmed(Date.now());
               contributionCallback.current?.({ id: confirmedId, text: msg.text, input: msg.input === 'typed' || msg.input === 'spoken' ? msg.input : 'unknown' });
               setLastTranscript(msg.text);
-              addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null });
+              addTurn(learnerLine({ fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null }, choosingRef.current));
             } else setPartialTranscript(msg.text);
             break;
           case 'summary':
@@ -1314,9 +1317,11 @@ export function useLiveSession(
             // never sent an opening (an older build, say) is also covered — the
             // app renders whatever arrives.
             setOpening(null);
+            choosingRef.current = false;
             break;
           case 'opening':
             setOpening({ prompt: msg.prompt });
+            choosingRef.current = true;
             // The opener is SPOKEN in English; the thread shows it the same way
             // round, with the French alongside as exposure.
             addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
@@ -1829,7 +1834,7 @@ export function useLiveSession(
         // Show a typed turn immediately. The current conversation agent echoes
         // it as a confirmed final transcript before running the brain; only
         // that received echo enters optional saved text, never an unsent draft.
-        const optimisticId = addTurn({ who: 'learner', fr: text, frWritten: null, en: null });
+        const optimisticId = addTurn(learnerLine({ fr: text, frWritten: null, en: null }, choosingRef.current));
         setThinking(true);
         const sent = await publish({ t: 'say', text });
         if (sent) return true;

@@ -74,7 +74,7 @@ describe('the owners pass report only to the live room', () => {
     test(`${file} closes the room, then shows ReportSheet, then exits, when a saved report has no end card`, () => {
       assert.match(screen, /const reportHeld = reportPending && !stopped;/);
       assert.match(screen, /const leaveToReport = \(\) => \{ const sessionId = live\.sessionId; (leaveTo|void live\.leave\(\)\.finally)\(\(\) => setLeftWithReport\(\{ sessionId \}\)\); \};/);
-      assert.match(screen, /if \(leaving\) \{ if \(!reportHeld\) leaveNow\(\); else leaveToReport\(\); \}/);
+      assert.match(screen, /if \(leaving\) \{ (if \(!reportHeld\) leaveNow\(\); else leaveToReport\(\);|if \(reportHeld\) leaveToReport\(\); else if \(!leaveKeepingWork\(\)\) leaveNow\(\);) \}/);
       assert.match(screen, /if \(leftWithReport !== null\) \{[\s\S]*?<ReportSheet tutorName=\{tutorName\} sessionId=\{leftWithReport\.sessionId\} onClose=\{onExit\} \/>/);
       const stop = screen.indexOf("if (safety.kind === 'stop') {");
       assert.ok(stop > 0 && stop < screen.indexOf('if (leftWithReport !== null) {'), 'the leave sheet can be drawn over a safety stop');

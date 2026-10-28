@@ -80,6 +80,7 @@ import { loadMissionCompletions } from './missions/store.ts';
 import { loadDeck } from './review/store.ts';
 import { loadSoundChecks } from './soundcheck/store.ts';
 import { recapLine } from './tutor/recapLine.ts';
+import { sessionCredit } from './recap/sessionCredit.ts';
 import { loadReminder } from './reminders/store.ts';
 import { REMINDERS_AVAILABLE, reminderPermission } from './reminders/schedule.ts';
 import { reminderTime, type ReminderMode, type ReminderPermission, type StoredReminder } from './reminders/reminder.ts';
@@ -314,7 +315,7 @@ export function RecapScreen({
   const previousPage = adjacentRecapPage(pages, currentPage, -1);
   const canPractise = keptPhrase !== null && saveState === 'saved' && onPractice !== undefined;
   const ground = currentPage === 'result' ? 'coral' : currentPage === 'sound' ? 'sun' : currentPage === 'ability' ? 'mint' : undefined;
-  const stats = afterSessionStats({ activeSec, phrases: recap.phrases.length, xp: strip?.xp?.value ?? null });
+  const stats = afterSessionStats({ activeSec, phrases: sessionCredit(recap.stats).showPhrases ? recap.phrases.length : 0, xp: strip?.xp?.value ?? null });
   const streakWords = streakLine(strip?.streak?.value ?? null, week);
   const fixes = smallFixes(recap.fixes);
   const celebrate = canDo !== null && mission ? celebrateView({ mission, independent: independentFinish, stamp, next: context === null ? null : nextCanDo(context.progress, goalOf(profile)) }) : null;

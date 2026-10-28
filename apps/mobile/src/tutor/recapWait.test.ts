@@ -79,7 +79,7 @@ describe('pressing Finish and waiting for the recap — F155', () => {
     assert.match(convo, /const RECAP_WAIT_MS = 15_000;/, 'the bail under the wait moved or changed length');
     assert.match(
       convo,
-      /if \(!finishing \|\| live\.recap\) return;[\s\S]{0,200}setTimeout\(\(\) => recapBailLeave\.current\(\), RECAP_WAIT_MS\)/,
+      /if \(!finishing \|\| live\.recap\) return;[\s\S]{0,200}setTimeout\(\(\) => recapBailLeave\.current\(\), leaveWaiting \? LEAVE_RECAP_WAIT_MS : RECAP_WAIT_MS\)/,
       'the fifteen second bail out of the finish wait is gone, so a recap that never comes strands the learner',
     );
   });

@@ -40,6 +40,7 @@ import { ConversationTextRecorder, DEFAULT_TUTOR_VOICE, decodeClientMessage, enc
 import { attachCorrectionReason } from './correctionReason.ts';
 import { scriptedPromptIdentity } from './c2TranscriptPolicy.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
+import { learnerLine } from './leaveKeepingWork.ts';
 import { createProfile } from '@luvani/brain/profile';
 
 import { setActiveUser } from '../storage/scope.ts';
@@ -280,7 +281,7 @@ function asJs(source: string): string {
  * returns the one thing its caller has to decide on.
  */
 function run(source: string, world: Record<string, unknown>): unknown {
-  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, ...world };
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, ...world };
   const names = Object.keys(world);
   const fn = new Function(...names, `"use strict";\n${asJs(source)}`) as (...args: unknown[]) => unknown;
   return fn(...names.map((name) => world[name]));
@@ -291,7 +292,7 @@ const AsyncFunction = Object.getPrototypeOf(async (): Promise<void> => {}).const
 ) => (...args: unknown[]) => Promise<void>;
 
 async function runAsync(source: string, world: Record<string, unknown>): Promise<void> {
-  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, ...world };
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, ...world };
   const names = Object.keys(world);
   const fn = new AsyncFunction(...names, `"use strict";\n${asJs(source)}`);
   await fn(...names.map((name) => world[name]));
@@ -1351,7 +1352,7 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
       }
     }
     assert.ok(expression.length > 0, 'the body object is never closed');
-    world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, ...world };
+    world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, ...world };
   const names = Object.keys(world);
     const run = new Function(...names, `"use strict"; return (${expression});`) as (
       ...args: unknown[]
