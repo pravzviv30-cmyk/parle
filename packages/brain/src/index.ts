@@ -34,4 +34,5 @@ export * from './engine/recap.ts';
 export * from './engine/askedQuestions.ts';
 export * from './engine/sadNews.ts';
 export * from './profile/profile.ts';
+export * from './profile/snapshotBudget.ts';
 export * from './llm/index.ts';

@@ -41,6 +41,7 @@ import {
   type NewPhrase,
   type SupportView,
   type TurnView,
+  type TutorTurn,
 } from '@luvani/brain';
 import {
   CAFE_LESSON,
@@ -5156,6 +5157,55 @@ describe('help earns no independent use in a live scene', () => {
     await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Ça marche' }));
     await convo.settled();
     assert.equal(phraseOf(convo).timesUsedWell, before + 1, 'an unaided reply is a use');
+  });
+});
+
+describe('a form corrected earlier in the session earns no credit on the card or in the profile (LEARN-012)', () => {
+  /** A brain that plays a fixed script of turns, one per learner reply. */
+  class ScriptedBrain extends MockLlmClient {
+    private readonly script: TutorTurn[];
+    constructor(script: TutorTurn[]) { super(); this.script = script; }
+    override async turn(request: BrainTurnRequest) {
+      const result = await super.turn(request);
+      const next = this.script.shift();
+      return next === undefined ? result : { ...result, turn: next };
+    }
+  }
+  function taught(): LearnerProfile {
+    const profile = createProfile();
+    for (const fr of ['Je ne sais pas', "J'sais pas"]) {
+      profile.phrases[fr === 'Je ne sais pas' ? 'je ne sais pas' : 'jsais pas'] = {
+        fr, frWritten: null, en: "I don't know", register: 'courant',
+        introducedAt: '2026-10-01T00:00:00.000Z', timesUsedWell: 0, timesAssisted: 0, mastered: false,
+      };
+    }
+    return profile;
+  }
+  const claim = (used: string) => sampleTurn({ coach: [], profileSignals: { errorPatterns: [], usedWell: [used] } });
+
+  test('turn 1 coaches the quote, turn 2 claims it: both exclude it; adopting the offered form later counts in both', async (t) => {
+    const script = [
+      sampleTurn({ coach: [sampleCoachItem({ quote: 'Je ne sais pas', better: "J'sais pas", betterWritten: null })] }),
+      claim('Je ne sais pas'),
+      claim("J'sais pas"),
+    ];
+    const { convo, session } = await inScene(t, { voiceless: true, client: new ScriptedBrain(script), profile: taught() });
+    await convo.settled();
+    const profileOf = () => (convo as unknown as { profile: LearnerProfile }).profile;
+    const wins = () => assembleRecap(convo.conversationState, { estimate: 'A2', confidence: 'low' }).recap.wins;
+
+    for (const text of ['Je ne sais pas', 'Je ne sais pas']) {
+      await convo.handleClientMessage(session, tapped({ t: 'say', text }));
+      await convo.settled();
+    }
+    assert.equal(profileOf().phrases['je ne sais pas']!.timesUsedWell, 0, 'the profile gave the corrected form no credit');
+    assert.equal(profileOf().phrases['je ne sais pas']!.timesAssisted, 0);
+    assert.ok(!wins().some((w) => w.toLowerCase().includes('je ne sais pas')), 'nor did the end card');
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: "J'sais pas" }));
+    await convo.settled();
+    assert.equal(profileOf().phrases['jsais pas']!.timesUsedWell, 1, 'adopting the better form counts in the profile');
+    assert.ok(wins().some((w) => w.includes("J'sais pas")), 'and on the end card');
   });
 });
 

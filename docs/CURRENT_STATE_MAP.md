@@ -81,6 +81,9 @@ DECISIONS.md UI-007):
 - **Journey** (`tabs/MyFrenchTab.tsx`, `journey/journeyView.ts`): the level
   head, Your French first (phrases used and held with one highlighted,
   lines that came back clear, scenes earned; each only with evidence),
+  How it’s going right after it (Getting better at: quiet error patterns,
+  by authored title; Needs another go: up to three due phrases missed or
+  said with help, opening Review; LEARN-013),
   five stages, abilities, Then and now, help in words,
   sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
   (shared with Then and now); Journey and Then and now are dark-ready since

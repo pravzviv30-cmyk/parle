@@ -906,11 +906,40 @@ credential**, which has a fixed size ceiling.
 ## The round trip, and where it broke
 
 ```
-device  ──POST /session/start { snapshot: profile.brain }──►  token-server
-        signs it into the join token metadata, opaquely
+device  ──POST /session/start { snapshot: fitSnapshot(snapshotFor(...)) }──►  token-server
+        fits it again, signs it into the join token metadata, opaquely
         ──►  agent: parseStoredProfile(meta.snapshot)  ──►  the engine
-        ◄──  { t: 'recap', profile }  ──►  updateBrain() writes it back
+        ◄──  { t: 'recap', profile }  ──►  updateBrain():
+             keepUnsent(current.brain, brainAfterRecap(blob, current))
 ```
+
+**The byte budget (LEARN-014).** Counts alone do not bound the snapshot: a heavy
+learner at realistic lengths measures about 58 KB, and every field at its cap
+about 370 KB, against a 64 KB body limit. `fitSnapshot`
+(`packages/brain/src/profile/snapshotBudget.ts`) fits it under
+`SNAPSHOT_MAX_BYTES` (48 KB of UTF-8 JSON). It first clamps phrase text to 200
+characters and pattern examples to 160, then, only if still over, leaves out
+mastered phrases (oldest `introducedAt` first), then unmastered phrases (oldest
+first), then suspected error patterns (least recent `lastSeen` first). Memory,
+CEFR, stats, preferences, recurring patterns, `reviewFocus` and
+`previousCorrection` always ride. The app fits at the request in
+`useLiveSession.ts`; the token server reads `/session/start` up to 160 KB and fits
+again (`sessionSnapshot.ts`) for older app builds, answering 413 only when a
+snapshot still cannot fit, which only junk can cause. Fitting tolerates any
+shape and never throws.
+
+**The write-back.** The recap only saw what was sent, so `keepUnsent` puts back
+every phrase and pattern the phone holds that the recap lacks, and the full text
+of anything that was clamped. An entry in both keeps the recap's version, unless
+the session made it afresh after it was left out: a phrase whose `introducedAt`
+differs combines with the phone's (its introduction and text, uses summed,
+`mastered` projected again), and a pattern whose `lastSession` moved without its
+`sessions` passing the phone's sums count and sessions, so a second sighting still
+makes it recurring. The
+eviction rules then re-apply the 200 and 40 caps exactly as before. It runs after
+`brainAfterRecap` and touches only phrases and patterns, so memory pause and
+forgotten facts stay decided. Nothing in the app removes a single phrase or
+pattern from the brain, so the restore cannot resurrect a deletion.
 
 Validation is deliberately loose: a tampered profile moves pedagogy, never
 minutes. But every field the engine dereferences at session open **must** exist,

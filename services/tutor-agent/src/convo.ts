@@ -2825,9 +2825,12 @@ export class LuvaniConversation extends voice.Agent {
     // hint (1) or the full line (2) was revealed on the exchange this turn
     // answers, which is exactly when a use is help, not independent French.
     const assisted = this.state.assistanceDepth > 0;
+    // The same pre-turn list the end card reads (LEARN-012), so the profile and
+    // the card exclude the same session-wide corrections.
+    const correctedEarlier = this.state.correctedForms;
     const { state, view } = integrateTurn(this.state, input, turn);
     this.state = state;
-    this.profile = applyTurnToProfile(this.profile, turn, new Date().toISOString(), { assisted });
+    this.profile = applyTurnToProfile(this.profile, turn, new Date().toISOString(), { assisted, correctedEarlier });
 
     // Guarded once, before both, so the screen and the speaker can never carry
     // different words. Two checks would be two chances to disagree at the exact
