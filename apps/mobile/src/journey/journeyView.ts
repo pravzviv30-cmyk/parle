@@ -32,6 +32,8 @@ import {
   getMission,
   spineFrom,
   nextScene,
+  evidenceStateOf,
+  phraseKeyOf,
   type LearnerGoal,
   type Mission,
   type MissionId,
@@ -41,6 +43,8 @@ import {
   type XpLevel,
   type MissionLevel,
 } from '@luvani/core';
+
+import { IMPROVING_AFTER_SESSIONS, improvingPatterns, type LearnerProfile } from '@luvani/brain/profile';
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
 import { SO_FAR_WITH_HELP } from '../home/abilities.ts';
@@ -56,6 +60,7 @@ import { STORY_INDEPENDENCE } from '../progress/story.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { HELP_WORDS } from '../tutor/speakTabView.ts';
 import { MISSION_LEVELS } from '../scenes/scenePreview.ts';
+import { PATTERN_COPY } from '../practice/practiceTabView.ts';
 
 export type Access = (feature: LockedFeature) => FeatureAccess;
 const isLocked = (access: Access, feature: LockedFeature): boolean => access(feature) === 'locked';
@@ -74,6 +79,7 @@ export const JOURNEY_TEASERS = {
   help: 'See how much help you needed this week',
   sounds: 'See which sounds your checks named',
   week: 'See what went well, and what to try next',
+  progress: 'See what’s getting easier, and what to practise next',
 } as const;
 
 /** The teaser a section shows, or null when it is open. */
@@ -86,7 +92,8 @@ export type JourneyRoute =
   | { screen: 'SoundCheck'; params: { missionId?: string } }
   | { screen: 'SoundJourney' }
   | { screen: 'Phrasebook' }
-  | { screen: 'Postcards' };
+  | { screen: 'Postcards' }
+  | { screen: 'Review' };
 
 /** A stored completion as the missions store keeps it. */
 export interface StoredCompletion {
@@ -740,6 +747,103 @@ export function weekView(reflection: Reflection, access: Access = featureAccess)
   return { rows: locked ? [] : rows, locked, teaser: teaserFor(locked, 'week'), feature: 'fullJourney' };
 }
 
+// ───────────────────────────────────────────────────────────── how it's going
+
+/**
+ * "How it’s going" (2026-10-28, LEARN-013): two rows, each drawn only when
+ * stored evidence backs it, never a percent, score, count or "n of m".
+ *
+ * - Getting better at: brain's `improvingPatterns` (recurring, then quiet for
+ *   `IMPROVING_AFTER_SESSIONS` conversations), kept to tags `PATTERN_COPY`
+ *   names, so a raw tag never reaches the learner. It claims a quiet pattern,
+ *   never mastery.
+ * - Needs another go: due `phrase:` deck cards not yet transferred that were
+ *   missed once (`lapses > 0`) or used only with help. Lapses decide
+ *   membership only: the order is oldest due first and nothing shows, ranks
+ *   or colours by them (`core/review/scheduler.ts`, `lapses`). It opens
+ *   Review, which plays the whole due deck these cards are in: Drill's node
+ *   path plays only phrases the drill bank holds an exercise for.
+ */
+export const PROGRESS_HEADING = 'How it’s going';
+export const GETTING_BETTER = 'Getting better at';
+export const NEEDS_ANOTHER_GO = 'Needs another go';
+export const QUIET_LINE = `It hasn’t come up in your last ${IMPROVING_AFTER_SESSIONS} conversations.`;
+export const READY_AGAIN = 'Ready for another go';
+export const OPENS_REVIEW = 'Opens your review';
+export const IMPROVING_ROWS = 2;
+export const ANOTHER_GO_CHIPS = 3;
+
+export interface ProgressRow {
+  key: 'better' | 'again';
+  label: string;
+  /** The row's dot, as Your week's: mint for what went well, sun for what to try. */
+  dot: 'mint' | 'sun';
+  /** One sentence per pattern, or the "Ready for another go" line. */
+  lines: readonly string[];
+  /** French fronts, oldest due first. Empty for Getting better at. */
+  chips: readonly string[];
+  route: JourneyRoute | null;
+  accessibilityLabel: string;
+}
+
+export interface ProgressView {
+  heading: string;
+  /** Empty when locked: the teaser stands in. */
+  rows: readonly ProgressRow[];
+  locked: boolean;
+  teaser: string | null;
+  feature: LockedFeature;
+}
+
+type PhraseRecord = Pick<LearnerProfile['phrases'][string], 'fr' | 'frWritten' | 'timesAssisted' | 'timesUsedWell'>;
+
+/** Phrase keys the brain saw used only with help, built as `core/tutorBrief.ts` builds them. */
+function helpedKeys(phrases: Readonly<Record<string, PhraseRecord>>): Set<string> {
+  const helped = new Set<string>();
+  for (const p of Object.values(phrases)) {
+    if (!(p.timesAssisted > 0 && p.timesUsedWell === 0)) continue;
+    if (typeof p.fr === 'string' && p.fr.trim()) helped.add(phraseKeyOf(p.fr));
+    if (typeof p.frWritten === 'string' && p.frWritten.trim()) helped.add(phraseKeyOf(p.frWritten));
+  }
+  return helped;
+}
+
+/** The deck phrases that need another go, oldest due first. Lapses pick, never order. */
+export function needsAnotherGo(deck: readonly ReviewCard[], phrases: Readonly<Record<string, PhraseRecord>>, now: number): ReviewCard[] {
+  const helped = helpedKeys(phrases);
+  return deck
+    .filter((card) => card.id.startsWith('phrase:') && card.front.trim() !== '' && card.due <= now)
+    .filter((card) => evidenceStateOf(card) !== 'transferred')
+    .filter((card) => card.lapses > 0 || helped.has(card.id))
+    .sort((a, b) => a.due - b.due || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .slice(0, ANOTHER_GO_CHIPS);
+}
+
+/** "How it’s going", or null when neither row has evidence behind it. */
+export function progressRowsView(input: {
+  brain: Pick<LearnerProfile, 'errorPatterns' | 'stats' | 'phrases'>;
+  deck: readonly ReviewCard[];
+  now: number;
+  access?: Access;
+}): ProgressView | null {
+  const rows: ProgressRow[] = [];
+  const titles = improvingPatterns(input.brain)
+    .filter((p) => Object.hasOwn(PATTERN_COPY, p.tag))
+    .slice(0, IMPROVING_ROWS)
+    .map((p) => PATTERN_COPY[p.tag]!.title);
+  if (titles.length > 0) {
+    const lines = titles.map((title) => `${title}. ${QUIET_LINE}`);
+    rows.push({ key: 'better', label: GETTING_BETTER, dot: 'mint', lines, chips: [], route: null, accessibilityLabel: `${GETTING_BETTER}. ${lines.join(' ')}` });
+  }
+  const again = needsAnotherGo(input.deck, input.brain.phrases, input.now).map((card) => card.front.trim());
+  if (again.length > 0) {
+    rows.push({ key: 'again', label: NEEDS_ANOTHER_GO, dot: 'sun', lines: [READY_AGAIN], chips: again, route: { screen: 'Review' }, accessibilityLabel: `${NEEDS_ANOTHER_GO}. ${again.join(', ')}. ${READY_AGAIN}. ${OPENS_REVIEW}` });
+  }
+  if (rows.length === 0) return null;
+  const locked = isLocked(input.access ?? featureAccess, 'fullJourney');
+  return { heading: PROGRESS_HEADING, rows: locked ? [] : rows, locked, teaser: teaserFor(locked, 'progress'), feature: 'fullJourney' };
+}
+
 // ───────────────────────────────────────────────────────────── collections
 
 export interface CollectionTile {
@@ -815,6 +919,12 @@ export const JOURNEY_COPY: readonly string[] = [
   SOUNDS_HEADING,
   PRACTISE,
   WEEK_HEADING,
+  PROGRESS_HEADING,
+  GETTING_BETTER,
+  NEEDS_ANOTHER_GO,
+  QUIET_LINE,
+  READY_AGAIN,
+  OPENS_REVIEW,
   LESSONS_ON_YOUR_OWN,
   ...Object.values(HELP_SENTENCES).flatMap((s) => [s.mostly, s.once]),
 ];

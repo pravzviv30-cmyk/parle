@@ -4,6 +4,7 @@ import { guestLiveBody } from '../onboarding/guestScene.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { attachCorrectionReason } from './correctionReason.ts';
 import { analyticsAllowed } from '../analytics/consent.ts';
+import { fitSnapshot } from '@luvani/brain/profile/snapshotBudget';
 import { loadConsent } from '../analytics/consentStore.ts';
 /**
  * The live session hook — the app side of the wire protocol.
@@ -1018,7 +1019,7 @@ export function useLiveSession(
           lessonId,
           ...(startRung !== undefined ? { startRung } : {}),
           ...(mode !== undefined ? { mode } : {}),
-          ...(snapshot !== undefined ? { snapshot } : {}),
+          ...(snapshot !== undefined ? { snapshot: fitSnapshot(snapshot) } : {}),
           ...(seedTopic !== undefined ? { seedTopic } : {}),
           ...(continuationPackId !== undefined ? { continuationPackId } : {}),
           ...(missionId !== undefined ? { missionId } : {}),
