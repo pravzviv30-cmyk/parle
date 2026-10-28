@@ -346,7 +346,7 @@ describe('the privacy notice — F479', () => {
     // Facts now ride the scene and each turn in the same repaired bounded
     // memory brief. Keep the disclosure and both actual call doors together.
     const convo = readFileSync(fileURLToPath(new URL('../../../../services/tutor-agent/src/convo.ts', import.meta.url)), 'utf8');
-    assert.match(convo, /repaired\.memory\.facts\.filter\(fact => safeContextText\(fact\.en\)\)\.slice\(-5\)/, 'the memory brief stopped sending the bounded repaired facts');
+    assert.match(convo, /repaired\.memory\.facts\s*\.filter\(fact => safeContextText\(fact\.en\) && !sensitiveConversationFact\(fact\)\)\s*\.slice\(-5\)/, 'the memory brief stopped sending the bounded repaired facts');
     assert.match(convo, /this\.memoryBrief = tutorMemoryBrief\(this\.profile\)/);
     assert.match(convo, /this\.teachingBrief,[\s\S]*?this\.memoryBrief/);
     assert.match(convo, /text: this\.memoryBrief/);

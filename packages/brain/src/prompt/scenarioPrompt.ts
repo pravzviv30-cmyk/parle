@@ -105,7 +105,7 @@ export function buildScenarioRequest(input: ScenarioRequestInput): string {
     quoteRequest(input.request),
   ];
   if ((input.learner.facts?.length ?? 0) > 0) {
-    lines.push(`REAL ACCOUNT MEMORY, USE ONLY IF RELEVANT: ${input.learner.facts!.join(' | ')}`);
+    lines.push(`ACCOUNT MEMORY NOTES, UNCONFIRMED UNLESS LEARNER-WRITTEN, USE ONLY IF RELEVANT: ${input.learner.facts!.join(' | ')}`);
   }
   if ((input.learner.recentScenarios?.length ?? 0) > 0) {
     lines.push(`RECENT SCENARIOS, AVOID REPETITION UNLESS REQUESTED: ${input.learner.recentScenarios!.join(' | ')}`);

@@ -129,5 +129,7 @@ describe('the scene builder treats the request as content', () => {
       assert.ok(prompt.includes(carried), `the builder lost ${carried}`);
       assert.ok(!inside.includes(carried), `${carried} was quoted as the learner's own request`);
     }
+    assert.match(prompt, /ACCOUNT MEMORY NOTES, UNCONFIRMED UNLESS LEARNER-WRITTEN, USE ONLY IF RELEVANT:/);
+    assert.doesNotMatch(prompt, /REAL ACCOUNT MEMORY/);
   });
 });

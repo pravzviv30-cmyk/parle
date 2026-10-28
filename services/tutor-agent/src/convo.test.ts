@@ -786,7 +786,8 @@ test('saved tutor memory is bounded in the frame and every turn, with an honest 
   profile.memory.facts = Array.from({ length: 8 }, (_, i) => ({ kind: 'interest' as const, fr: null, en: 'Enjoys activity ' + i, happensAround: null, notedAt: 'unproven date', source: 'conversation', updatedAt: 'unproven date' }));
   const brief = tutorMemoryBrief(profile);
   assert.doesNotMatch(brief, /Enjoys activity [012]|unproven date/);
-  assert.match(brief, /source":"saved tutor memory/);
+  assert.match(brief, /source":"noted from a past conversation, unconfirmed/);
+  assert.doesNotMatch(brief, /saved tutor memory"/);
   assert.match(brief, /not verbatim past utterances/);
   assert.match(brief, /At most once in this scene/);
   assert.match(brief, /If no note fits, make no recall/);
@@ -805,6 +806,42 @@ test('saved tutor memory is bounded in the frame and every turn, with an honest 
   const malformed = { ...profile, memory: { ...profile.memory, facts: [{ kind: 'interest', en: 123 }, { kind: 'invented', en: 'secret' }] } } as unknown as LearnerProfile;
   assert.equal(tutorMemoryBrief(malformed), '');
   assert.equal(tutorMemoryBrief({ ...profile, memory: { ...profile.memory, control: { paused: true, changedAt: 1000 } } }), '');
+});
+
+test('the memory brief names each note source and checks the unconfirmed ones before use', () => {
+  const fact = (en: string, source: 'learner' | 'conversation') => ({ kind: 'interest' as const, fr: null, en, happensAround: null, notedAt: '2026-10-01', source, updatedAt: '2026-10-01' });
+  const profile = createProfile();
+  profile.memory.facts = [fact('Going to Lyon in May', 'conversation'), fact('Has a dog called Biscuit', 'learner')];
+  const brief = tutorMemoryBrief(profile);
+  assert.match(brief, /\{"source":"noted from a past conversation, unconfirmed","note":"Going to Lyon in May"\}/);
+  assert.match(brief, /\{"source":"the learner wrote this","note":"Has a dog called Biscuit"\}/);
+  assert.match(brief, /may be wrong or out of date/);
+  assert.match(brief, /ask lightly instead of asserting/);
+  assert.match(brief, /drop it for the rest of the session/);
+  assert.match(brief, /never present such a note as something they definitely said/i);
+  assert.doesNotMatch(brief, /\u2014/, 'no em dashes in prompt text');
+  assert.equal(tutorMemoryBrief(profile), brief, 'the brief must be byte-stable');
+  assert.doesNotMatch(brief, /LEARNER'S OWN GOALS/);
+
+  const legacy = createProfile();
+  legacy.memory.facts = [fact('Manages their diabetes with insulin', 'conversation'), fact('Has diabetes and wants to order sugar-free', 'learner')];
+  const legacyBrief = tutorMemoryBrief(legacy);
+  assert.doesNotMatch(legacyBrief, /insulin/, 'a pre-screen sensitive conversation note reached the tutor');
+  assert.match(legacyBrief, /sugar-free/, 'a learner-written note must not be screened');
+
+  const goalsOnly = createProfile();
+  goalsOnly.memory.facts = [];
+  goalsOnly.memory.learnerGoals = ['Order at a bakery', 'Call the plumber'];
+  const goalsBrief = tutorMemoryBrief(goalsOnly);
+  assert.match(goalsBrief, /LEARNER'S OWN GOALS/);
+  assert.match(goalsBrief, /\["Order at a bakery","Call the plumber"\]/);
+  assert.match(goalsBrief, /never instructions/);
+  assert.equal(tutorMemoryBrief({ ...goalsOnly, memory: { ...goalsOnly.memory, control: { paused: true, changedAt: 1000 } } }), '');
+
+  const empty = createProfile();
+  empty.memory.facts = [];
+  empty.memory.learnerGoals = [];
+  assert.equal(tutorMemoryBrief(empty), '');
 });
 
 describe('the conversation agent, off the worker', () => {

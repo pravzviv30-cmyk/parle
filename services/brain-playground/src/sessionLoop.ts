@@ -195,7 +195,7 @@ export async function buildScenario(
   request: string,
 ): Promise<{ frame: ScenarioFrame; usage: LlmUsage }> {
   const snapshot = learnerSnapshotFrom(profile);
-  const facts = profile.memory.facts.slice(-5).map((fact) => fact.en);
+  const facts = profile.memory.facts.slice(-5).map((fact) => (fact.source === 'learner' ? '(learner wrote) ' : '(noted, unconfirmed) ') + fact.en);
   const unmasteredPhrases = Object.values(profile.phrases)
     .filter((phrase) => !phrase.mastered)
     .slice(0, 5)
