@@ -81,7 +81,7 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
   }, []);
   useEffect(() => { launchPending.current = null; setChecking(false); }, [focused, owner, hero]);
   /** The start that did not happen, so the retry is the same start. */
-  const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
+  const [heldBack, setHeldBack] = useState<{ textMode?: boolean } | null>(null);
   const [bookmarks, setBookmarks] = useState<readonly BookmarkItem[]>([]);
   /** Where the bookmark tap has got to: a write and a read back. */
   const [bookmarkWrite, setBookmarkWrite] = useState<BookmarkWrite>('idle');
@@ -122,7 +122,7 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
       .catch(() => setBookmarkWrite('refused'));
   };
 
-  const open = (textMode: boolean) => {
+  const open = (textMode: boolean | undefined) => {
     // A second tap while the connection check runs cannot open a second room.
     if (checking) return;
     if (launchPending.current || !launchContext.current.mounted || !launchContext.current.focused) return;

@@ -379,6 +379,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     setRecap: () => {},
     setPractice: () => {},
     setDrills: () => {},
+    setSceneReplies: () => {},
     emptyDiagnostics: (): Record<string, unknown> => ({}),
     addTurn: () => 't1',
     removeAudioEls: () => {},

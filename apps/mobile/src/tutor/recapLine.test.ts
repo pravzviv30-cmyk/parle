@@ -53,7 +53,9 @@ describe('the end of a conversation, said in words — F584', () => {
     // again. The exact expression it used is named, so it cannot come back by
     // being retyped slightly differently.
     const screen = stripComments(read('../RecapScreen.tsx'));
-    assert.match(screen, /recapLine\(recap\.stats\)/, 'the recap screen no longer says how it went at all');
+    // F903/F904: the line comes through sessionCredit, which calls recapLine with the scene's total replies.
+    assert.match(screen, /const credit = sessionCredit\(recap\.stats, carriedReplies\);/, 'the recap screen no longer says how it went at all');
+    assert.match(screen, /\{credit\.line\}/, 'the recap screen no longer says how it went at all');
     assert.doesNotMatch(screen, /unassistedRate/, 'the recap screen reads the rate itself, which is how the percentage came back');
     assert.doesNotMatch(screen, /stats\.turns/, 'the recap screen counts the turns at the learner again');
     assert.ok(!screen.includes('%'), 'a percent sign is back on the one screen that must never carry one');

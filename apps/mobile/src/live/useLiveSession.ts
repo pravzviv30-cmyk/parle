@@ -426,6 +426,8 @@ export interface LiveSession {
    * ever describes the current turn. Empty on the lesson path.
    */
   turns: TurnLine[];
+  /** Agent-confirmed learner replies in the scene: no topic pick, no optimistic typed line (F905). */
+  sceneReplies: number;
   /**
    * True between the learner finishing a turn and the tutor answering it.
    * Derived here from messages that already exist — the agent has no
@@ -646,6 +648,7 @@ export function useLiveSession(
   const [convo, setConvo] = useState<ConvoView | null>(null);
   const [opening, setOpening] = useState<LiveSession['opening']>(null);
   const [recap, setRecap] = useState<{ recap: RecapPayload; profile: unknown } | null>(null);
+  const [sceneReplies, setSceneReplies] = useState(0);
   const [practice, setPractice] = useState<LiveSession['practice']>(null);
   const [drills, setDrills] = useState<DrillExercise[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -952,6 +955,11 @@ export function useLiveSession(
     // The last room's view goes with its turns: a rebuilt session is a new one,
     // and it is open only once its own agent publishes a view (Stage 4).
     setConvo(null);
+    // A rebuilt session (Speak in a typed start, F903) owes nothing to the last one's end.
+    setRecap(null);
+    setSceneReplies(0);
+    setPractice(null);
+    setDrills(null);
     conversationTextRef.current.clear();
     setThinking(false);
     setWrappingUp(false);
@@ -1265,6 +1273,8 @@ export function useLiveSession(
               confirmedIds.current.add(confirmedId);
               // After the dedupe: a re-sent final is not a new wait.
               replyClock.current.learnerTurnConfirmed(Date.now());
+              // F905: an agent-confirmed reply in the scene, never a topic pick or an optimistic line.
+              if (!choosingRef.current) setSceneReplies((n) => n + 1);
               contributionCallback.current?.({ id: confirmedId, text: msg.text, input: msg.input === 'typed' || msg.input === 'spoken' ? msg.input : 'unknown' });
               setLastTranscript(msg.text);
               addTurn(learnerLine({ fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null }, choosingRef.current));
@@ -1799,6 +1809,7 @@ export function useLiveSession(
     safety,
     dismissSafety,
     turns,
+    sceneReplies,
     thinking,
     audioBlocked,
     audioTracks,

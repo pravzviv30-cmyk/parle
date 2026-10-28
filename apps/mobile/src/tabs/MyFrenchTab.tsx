@@ -256,7 +256,7 @@ export function MyFrenchTab() {
     void recheck().then((answered) => {
       if (!owned()) return;
       setChecking(false);
-      const decision = tutorGate(answered, false);
+      const decision = tutorGate(answered);
       if (!decision.go) { setHeldBack(true); return; }
       setHeldBack(false);
       nav.navigate(decision.screen, { missionId: start.missionId, ...decision.params });

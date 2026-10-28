@@ -11,14 +11,14 @@ function deferred<T>() {
 function harness() {
   const request = new ConversationStartRequest();
   const probes: ReturnType<typeof deferred<boolean>>[] = [];
-  const opened: { screen: string; textMode: boolean }[] = [];
+  const opened: { screen: string; textMode?: boolean }[] = [];
   const state = { owner: 1, visible: true, checking: false, failed: false };
   const ports = {
     scope: () => state.owner, visible: () => state.visible,
     probe: () => { const next = deferred<boolean>(); probes.push(next); return next.promise; },
     checking: (value: boolean) => { state.checking = value; },
     failed: (value: boolean) => { state.failed = value; },
-    open: (screen: 'Convo', params: { textMode: boolean }) => { opened.push({ screen, ...params }); },
+    open: (screen: 'Convo', params: { textMode?: boolean }) => { opened.push({ screen, ...params }); },
   };
   return { request, probes, opened, state, start: (typing = false) => request.start(ports, typing) };
 }

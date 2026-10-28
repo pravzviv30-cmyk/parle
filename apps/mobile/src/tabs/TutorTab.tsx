@@ -106,7 +106,7 @@ export function TutorTab() {
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 350 || fontScale >= 1.5;
 
-  const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
+  const [heldBack, setHeldBack] = useState<{ textMode?: boolean } | null>(null);
   // Another screen's recheck can bring the tutor back; a refusal from here is then stale.
   useEffect(() => { if (live) setHeldBack(null); }, [live]);
   const [checking, setChecking] = useState(false);
@@ -195,7 +195,7 @@ export function TutorTab() {
    * The conversation, probed before it opens. `checking` disables every
    * control that starts something, so the rejection path lets go of it too.
    */
-  const open = (textMode: boolean, params: object = {}) => {
+  const open = (textMode: boolean | undefined, params: object = {}) => {
     // A second tap while the connection check runs cannot open a second room.
     if (checking) return;
     if (starting.current) return;
@@ -270,7 +270,7 @@ export function TutorTab() {
   // 2026-10-21 UI-008, B-Empty-States "Tutor away or offline": the retry is
   // the away card's 46 ink button, hugging its words.
   const primary = <BButton hug label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} height={46} ground={t.primary} ink={t.onPrimary} text={bType.bold15}
-    disabled={checking} onPress={() => open(heldBack?.textMode ?? textMode, heldBack ? pendingStart.current : answered(next.params))} />;
+    disabled={checking} onPress={() => open(heldBack ? heldBack.textMode : textMode, heldBack ? pendingStart.current : answered(next.params))} />;
   // B-Empty-States "Out of speaking time": only on the free plan with nothing
   // left this week, and never on top of the away card.
   const outOfTime = offlineShown ? null : outOfTimeCard(planView);

@@ -222,7 +222,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     // The Start opens in the chosen mode, defaulting to the standing one, and a
     // retry is the same start.
     assert.match(tab, /const answer = modeChoice\(chosenMode \?\? modes\.mode\);/, 'a fresh start loses the standing mode');
-    assert.match(tab, /heldBack\?\.textMode \?\? textMode/, 'a retry loses the chosen mode');
+    assert.match(tab, /heldBack \? heldBack\.textMode : textMode/, 'a retry loses the chosen mode');
     assert.match(tab, /heldBack \? pendingStart\.current : answered\(next\.params\)/, 'a retry loses the original scene');
     assert.match(stripComments(read('../tabs/HomeTab.tsx')), /<NextTaskCard/);
     const shared = stripComments(read('../practice/NextTaskCard.tsx'));

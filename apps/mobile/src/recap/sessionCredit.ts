@@ -23,13 +23,47 @@ export interface SessionCredit {
   earns: boolean;
   /** Whether the end card may count new phrases. */
   showPhrases: boolean;
+  /** Whether the sitting is recorded at all: active day, streak, minutes, XP. */
+  settles: boolean;
+  /** Whether the end card offers to save the conversation text. */
+  savesText: boolean;
   /** The one line under the recap headline. */
   line: string;
 }
 
-/** What a finished conversation earns, from its recap stats. */
-export function sessionCredit(stats: RecapStats): SessionCredit {
-  const line = recapLine(stats);
-  if (learnerRepliesOf(stats) === 0) return { earns: false, showPhrases: false, line };
-  return { earns: true, showPhrases: true, line };
+/**
+ * Replies in this scene: the agent's count, plus any carried from the typed
+ * part of a scene switched to voice (F903). Null when the agent sent no count.
+ */
+function sceneReplies(stats: RecapStats, carried: number): number | null {
+  const replies = learnerRepliesOf(stats);
+  return replies === null ? null : replies + Math.max(0, carried);
+}
+
+/**
+ * What a finished conversation earns, from its recap stats. Zero replies earns
+ * nothing at all (founder, 2026-10-28): no XP, no phrases, no minutes, no
+ * streak day, no saved conversation; only the line that time was made.
+ */
+export function sessionCredit(stats: RecapStats, carriedReplies = 0): SessionCredit {
+  const replies = sceneReplies(stats, carriedReplies);
+  if (replies === 0) return { earns: false, showPhrases: false, settles: false, savesText: false, line: recapLine(stats) };
+  const line = recapLine(replies === null ? stats : { ...stats, learnerReplies: replies });
+  return { earns: true, showPhrases: true, settles: true, savesText: true, line };
+}
+
+/** Whether any app path may bank practice for this scene. No recap yet, or an older agent: today's path. */
+export function banksPracticeFor(stats: RecapStats | null, carriedReplies: number): boolean {
+  return stats === null || sceneReplies(stats, carriedReplies) !== 0;
+}
+
+/**
+ * What the recap effect does with a recap. The end of a scene settles one
+ * finished sitting and sends one event. The typed part of a scene switched to
+ * voice (F903) settles nothing: the scene settles once, at its real end, with
+ * both parts' minutes on the same clock. Whether lines are banked is
+ * `banksPracticeFor`, asked by every banking path.
+ */
+export function recapUse(credit: SessionCredit, use: 'end' | 'switch'): { settle: boolean; track: boolean } {
+  return { settle: use === 'end' && credit.settles, track: use === 'end' };
 }

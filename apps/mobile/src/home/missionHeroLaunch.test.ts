@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { tutorGate } from '../tutor/gate.ts';
 
 const source = readFileSync(new URL('./MissionHero.tsx', import.meta.url), 'utf8');
-const start = source.indexOf('  const open = (textMode: boolean) => {');
+const start = source.indexOf('  const open = (textMode: boolean | undefined) => {');
 const end = source.indexOf('\n  if (vivid)', start);
 assert.ok(start > 0 && end > start, 'exercise the actual shared Home and Speak launch handler');
 const handler = `${stripTypeScriptTypes(source.slice(start, end))}\nreturn open;`;

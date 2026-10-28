@@ -125,7 +125,7 @@ export function PracticeTab() {
   // A probe is in flight, so a second tap cannot queue a second navigation.
   const [checking, setChecking] = useState(false);
   // The start that did not happen, so the retry is the same start.
-  const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
+  const [heldBack, setHeldBack] = useState<{ textMode?: boolean } | null>(null);
   // A new account starts on All, with no probe or refusal of the last one's.
   const accountScope = scopeGeneration();
   useEffect(() => { setTopic(null); setQuery(''); setChecking(false); setHeldBack(null); }, [accountScope]);
@@ -154,7 +154,7 @@ export function PracticeTab() {
     void recheck().then((answered) => {
       if (!ownsReadNow()) return;
       setChecking(false);
-      const decision = tutorGate(answered, false);
+      const decision = tutorGate(answered);
       if (!decision.go) {
         setHeldBack(decision.heldBack);
         return;

@@ -6,7 +6,7 @@ const transcript=readFileSync(new URL('./Transcript.tsx',import.meta.url),'utf8'
 
 test('conversation opening and recap timeout use committed state without resetting the deadline',()=>{
  assert.match(convo,/useEffect\(\(\) => \{\n    if \(roomOpen && openedAtRef\.current === null\) openedAtRef\.current = Date\.now\(\);\n  \}, \[roomOpen\]\)/);
- assert.match(convo,/useLayoutEffect\(\(\) => \{ recapBailLeave\.current = leaveNow; \}\);/);
+ assert.match(convo,/useLayoutEffect\(\(\) => \{ recapBailLeave\.current = leaveWaiting \? leaveTimedOut : leaveNow; \}\);/);
  assert.match(convo,/setTimeout\(\(\) => recapBailLeave\.current\(\), leaveWaiting \? LEAVE_RECAP_WAIT_MS : RECAP_WAIT_MS\)/);
  assert.match(convo,/\}, \[finishing, leaveWaiting, live\.recap\]\)/);
  assert.equal((convo.match(/tutorNameOf\(profile\)/g)??[]).length,1);

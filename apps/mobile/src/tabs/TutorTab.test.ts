@@ -317,7 +317,7 @@ describe('Speak keeps its history read, its plan read and its continuation', () 
     assert.match(FLAT, /useEffect\(\(\) => \{ if \(live\) setHeldBack\(null\); \}, \[live\]\);/);
     const offline = between(RENDER, '{offlineShown && (', '</EmptyStateCard>', 'the offline block is drawn');
     assert.ok(!offline.includes('LESSON_MINUTES'));
-    assert.match(FLAT, /open\(heldBack\?\.textMode \?\? textMode, heldBack \? pendingStart\.current : answered\(next\.params\)\)/);
+    assert.match(FLAT, /open\(heldBack \? heldBack\.textMode : textMode, heldBack \? pendingStart\.current : answered\(next\.params\)\)/);
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/);
     assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
   });

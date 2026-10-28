@@ -51,8 +51,8 @@ export const TUTOR_OFFLINE: TutorOfflineCopy = {
  * be handed: they may be on a train.
  */
 export type TutorGate =
-  | { go: true; screen: 'Convo'; params: { textMode: boolean } }
-  | { go: false; offline: TutorOfflineCopy; heldBack: { textMode: boolean } };
+  | { go: true; screen: 'Convo'; params: { textMode?: boolean } }
+  | { go: false; offline: TutorOfflineCopy; heldBack: { textMode?: boolean } };
 
 /**
  * `serversAnswered` is exactly what `recheck()` resolves to.
@@ -61,10 +61,14 @@ export type TutorGate =
  * server the voice does, so offering it as an escape from a dead one would be
  * an exit that fails in precisely the same place. It rides back out too, on
  * both answers, because the route a learner chose survives a server being down.
+ *
+ * Absent is its own answer (F903): `textMode: false` means the learner pressed
+ * a button that says Speak, which opens the microphone (tutor/convoStart.ts).
+ * A start that stated no intent carries none, and opens closed as it always has.
  */
-export function tutorGate(serversAnswered: boolean, textMode = false): TutorGate {
-  if (!serversAnswered) return { go: false, offline: TUTOR_OFFLINE, heldBack: { textMode } };
-  return { go: true, screen: 'Convo', params: { textMode } };
+export function tutorGate(serversAnswered: boolean, textMode?: boolean): TutorGate {
+  if (!serversAnswered) return { go: false, offline: TUTOR_OFFLINE, heldBack: textMode === undefined ? {} : { textMode } };
+  return { go: true, screen: 'Convo', params: textMode === undefined ? {} : { textMode } };
 }
 
 /**

@@ -28,7 +28,7 @@ test('Walk retains safety redirect and immediate exit while recap waits', () => 
   const screen = read('../ConvoScreen.tsx'); const room = read('./WalkRoom.tsx');
   assert.match(screen, /if \(walkMode\) return <WalkRoom[\s\S]*?safety=\{safety.kind === 'redirect' \? <SafetyBanner/);
   assert.match(room, /label="End now" onPress=\{onExit\}/);
-  assert.match(screen, /useLayoutEffect\(\(\) => \{ recapBailLeave\.current = leaveNow; \}\);/);
+  assert.match(screen, /useLayoutEffect\(\(\) => \{ recapBailLeave\.current = leaveWaiting \? leaveTimedOut : leaveNow; \}\);/);
   assert.match(screen, /if \(!finishing \|\| live.recap\) return;[\s\S]*?setTimeout\(\(\) => recapBailLeave\.current\(\), leaveWaiting \? LEAVE_RECAP_WAIT_MS : RECAP_WAIT_MS\)/);
   assert.doesNotMatch(room, /TextInput|switchToText|Type instead/);
 });

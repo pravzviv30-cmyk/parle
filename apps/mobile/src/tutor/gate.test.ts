@@ -66,9 +66,27 @@ describe('the door to a conversation — what the health probe decides', () => {
     assert.equal(decision.go, true, 'a server that answered is a server the learner may talk to');
     if (!decision.go) return;
     assert.equal(decision.screen, 'Convo');
-    assert.equal(decision.params.textMode, false, 'the spoken door opens spoken');
+    // F903: no stated intent carries no textMode (the mic opens closed); a Speak button says false.
+    assert.equal(decision.params.textMode, undefined, 'a start with no stated intent claims the learner chose voice');
+    const spoken = tutorGate(true, false);
+    assert.deepEqual(spoken.go && spoken.params, { textMode: false }, 'the spoken door opens spoken');
     const typed = tutorGate(true, true);
     assert.deepEqual(typed.go && typed.params, { textMode: true }, 'the quiet door keeps its quiet');
+  });
+
+  test('a start with no stated intent is retried with none, so the microphone stays closed (F903)', () => {
+    const held = tutorGate(false);
+    assert.equal(held.go, false);
+    if (held.go) return;
+    assert.equal(held.heldBack.textMode, undefined, 'a held start invented an intent to speak');
+    const retried = tutorGate(true, held.heldBack.textMode);
+    assert.deepEqual(retried.go && retried.params, {}, 'the retry opens the microphone for a learner who never pressed Speak');
+    const spoken = tutorGate(false, false);
+    assert.equal(!spoken.go && spoken.heldBack.textMode, false, 'a held Speak forgot it was Speak');
+    // The retries hand the held intent back unchanged.
+    const read = (r: string) => readFileSync(new URL(r, import.meta.url), 'utf8');
+    assert.match(read('../tabs/TutorTab.tsx'), /open\(heldBack \? heldBack\.textMode : textMode,/);
+    assert.match(read('../home/MissionHero.tsx'), /onRetry: \(\) => open\(heldBack\.textMode\)/);
   });
 
   test('a learner who chose the quiet route is still on it when the servers come back', () => {

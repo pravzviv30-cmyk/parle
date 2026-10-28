@@ -128,8 +128,11 @@ export interface ModeCaps {
  *
  * The lesson keeps its hot microphone on purpose. A lesson has already been
  * started deliberately, from a screen that says so, and its first beat is the
- * learner's line. A free conversation opens closed: the tutor asks out loud and
- * the circle is where the learner agrees to be heard.
+ * learner's line. A free conversation connects closed: the tutor asks out loud
+ * and the circle is where the learner agrees to be heard. Pressing a button that
+ * says Start speaking is also the learner agreeing to be heard, so that room
+ * opens the microphone once it is ready (F903, `tutor/convoStart.ts`); every
+ * other way in still opens closed.
  */
 export const MODE_CAPS: Record<LiveMode, ModeCaps> = {
   lesson: { carriesAudio: true, micAtConnect: true },

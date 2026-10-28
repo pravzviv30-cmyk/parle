@@ -143,7 +143,7 @@ describe('a safety decision, as a surface — F137', () => {
     );
     assert.match(
       convo,
-      /if \(!stopped && !practiceBankedRef\.current && live\.recap\)/,
+      /if \(!stopped && !practiceBankedRef\.current && live\.recap && banksPracticeFor\(/,
       'leaving a stopped conversation still banks the minimal batch on the way out',
     );
     assert.ok(

@@ -281,7 +281,7 @@ function asJs(source: string): string {
  * returns the one thing its caller has to decide on.
  */
 function run(source: string, world: Record<string, unknown>): unknown {
-  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, ...world };
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ...world };
   const names = Object.keys(world);
   const fn = new Function(...names, `"use strict";\n${asJs(source)}`) as (...args: unknown[]) => unknown;
   return fn(...names.map((name) => world[name]));
@@ -292,7 +292,7 @@ const AsyncFunction = Object.getPrototypeOf(async (): Promise<void> => {}).const
 ) => (...args: unknown[]) => Promise<void>;
 
 async function runAsync(source: string, world: Record<string, unknown>): Promise<void> {
-  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, ...world };
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ...world };
   const names = Object.keys(world);
   const fn = new AsyncFunction(...names, `"use strict";\n${asJs(source)}`);
   await fn(...names.map((name) => world[name]));
@@ -484,6 +484,29 @@ test('interpreted speech is labelled on the confirmed transcript without labelli
   assert.deepEqual(contributions.map(line => line.id), ['spoken-1', 'typed-1', 'spoken-2']);
   assert.ok(contributions.every(line => line.text === 'Sur place.'));
   assert.equal(partials.at(-1), 'Souplesse', 'partial recognition remains provisional');
+});
+
+test('only agent-confirmed scene replies count, never a topic pick, a duplicate or a partial (F905)', () => {
+  const { world } = switchWorld();
+  let replies = 0;
+  world.setSceneReplies = (next: number | ((n: number) => number)) => { replies = typeof next === 'function' ? next(replies) : next; };
+  world.addTurn = () => {};
+  world.confirmedIds = { current: new Set<string>() };
+  const choosing = { current: true };
+  world.choosingRef = choosing;
+  const final = { t: 'transcript', final: true, text: 'Le café', input: 'typed', turnId: 'topic-1' };
+  deliver(world, final);
+  assert.equal(replies, 0, 'a topic picked on the choosing screen counted as a reply');
+  choosing.current = false;
+  deliver(world, { ...final, text: 'Un café', turnId: 'reply-1' });
+  deliver(world, { ...final, text: 'Un café', turnId: 'reply-1' });
+  deliver(world, { ...final, final: false, text: 'Un th', turnId: 'partial-1' });
+  assert.equal(replies, 1, 'a re-sent final or a partial counted as a reply');
+  deliver(world, { ...final, input: 'spoken', text: 'Merci', turnId: 'reply-2' });
+  assert.equal(replies, 2);
+  // The optimistic typed line is shown before the agent dequeues it, and never counted.
+  const hook = readFileSync(new URL('./useLiveSession.ts', import.meta.url), 'utf8');
+  assert.equal((hook.match(/setSceneReplies\(\(n\) => n \+ 1\)/g) ?? []).length, 1, 'something other than a confirmed final counts a reply');
 });
 
 describe('the safety decision the hook holds — F136', () => {
@@ -1352,7 +1375,7 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
       }
     }
     assert.ok(expression.length > 0, 'the body object is never closed');
-    world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, ...world };
+    world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ...world };
   const names = Object.keys(world);
     const run = new Function(...names, `"use strict"; return (${expression});`) as (
       ...args: unknown[]
