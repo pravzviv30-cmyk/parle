@@ -52,9 +52,9 @@ export const TERMS_BODY: readonly string[] = [
  */
 export const TERMS_SUBSCRIPTIONS_HEADING = 'Subscriptions';
 export const TERMS_SUBSCRIPTIONS: readonly string[] = [
-  'A subscription renews automatically at the price shown when you bought it, until you cancel it.',
+  'A subscription renews automatically until you cancel it. If its price changes, the store tells you first, as its rules require.',
   'To stop the next renewal, cancel at least 24 hours before it, in the App Store or Google Play.',
-  'A free trial becomes a paid subscription when it ends, unless you cancel before then.',
+  'A free trial offered through the App Store or Google Play becomes a paid subscription when it ends, unless you cancel before then.',
   'Speaking minutes are for the period they come with. Unused minutes end with that period and are not rolled over to the next.',
   'Deleting your account does not cancel a subscription. Cancel it in the store too.',
 ];

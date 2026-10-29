@@ -1012,14 +1012,15 @@ test('the terms state auto-renewal, cancellation timing and that deletion does n
   // reproducing Apple.
   assert.equal(TERMS_SUBSCRIPTIONS_HEADING, 'Subscriptions');
   const subs = TERMS_SUBSCRIPTIONS.join(' ');
-  assert.match(subs, /renews automatically at the price shown when you bought it/, 'auto-renewal and its price are not stated');
+  assert.match(subs, /renews automatically until you cancel it\. If its price changes, the store tells you first/, 'auto-renewal and price-change notice are not stated');
   assert.match(subs, /at least 24 hours before/, 'the cancellation deadline is not stated');
   assert.match(subs, /App Store or Google Play/, 'where to cancel is not stated');
-  assert.match(subs, /free trial becomes a paid subscription/, 'the trial conversion is not stated');
+  assert.match(subs, /free trial offered through the App Store or Google Play becomes a paid subscription/, 'the trial conversion is not stated');
   assert.match(subs, /Unused minutes end with that period and are not rolled over/, 'unused minutes are not said to end with their period');
   assert.match(subs, /Deleting your account does not cancel/, 'the terms do not say deletion leaves the subscription running');
   // Consistent with the privacy notice, which says the same about deletion.
   assert.match(POLICY_SECTIONS.map(s => s.body.join(' ')).join(' '), /Deleting your account does not cancel a store subscription/);
+  assert.doesNotMatch(subs, /price shown when you bought/, 'the terms promise a price the stores let a developer change');
   assert.ok(subs.length < 600, 'the subscriptions section stopped being short');
   for (const line of [TERMS_SUBSCRIPTIONS_HEADING, ...TERMS_SUBSCRIPTIONS]) {
     assert.ok(TERMS_COPY.includes(line), `the copy scans miss a subscriptions line: ${line}`);
