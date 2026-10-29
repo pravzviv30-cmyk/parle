@@ -422,7 +422,7 @@ tutor conversations still consume the server's allowance, and a sample is never
 described as unlimited tutor access. The list lives in code as
 `capabilitiesFor(...).unlocks` (`apps/mobile/src/purchases/capabilities.ts`).
 
-### App Review notes (D24)
+### App Review notes (D24; cadence from founder decision 4, 2026-10-28)
 
 Paste into App Store Connect, App Review Information. Fill in the test account
 before submitting.
@@ -438,9 +438,10 @@ opens the rest: longer live conversations, tutor memory, Your fixes, spaced
 review of conversation phrases, Then and now, sound practice, Prepare for
 something real, the full Journey, and streak repair with a second freeze.
 
-For learners without a plan or trial, the plans page appears when the app
-opens and when it returns after 30 minutes or more away. It never appears
-during onboarding, a live conversation, a drill or a recap. Tapping a locked
+For learners without a plan or trial, the plans page appears at most once a
+day when the app opens, and only after the learner has finished a first
+conversation. It never appears during onboarding, a live conversation, a drill
+or a recap, or straight after leaving a conversation early. Tapping a locked
 feature also opens it. To dismiss it, tap "Not now" or the close button at the
 top. Everything that is free stays free.
 

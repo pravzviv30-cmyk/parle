@@ -34,7 +34,7 @@ import { WALK_AVAILABLE } from '../walk/observer.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { ownedReadStatus } from './ownedRead.ts';
 
-import { Card, IconAction, Label, LOCK_BADGE_LABEL, LockBadge, Press } from '../components.tsx';
+import { Card, IconAction, Label, LockBadge, Press } from '../components.tsx';
 import { BArt } from '../art/BArt.tsx';
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
@@ -46,7 +46,7 @@ import { visibleFacts } from '../profile/memory.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useFeatureAccess } from '../access/useFeatureAccess.ts';
-import { tapThrough } from '../access/featureAccess.ts';
+import { lockSaid, tapThrough } from '../access/featureAccess.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { planStatusFor, type PlanStatusView } from '../purchases/planStatus.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -248,7 +248,7 @@ export function TutorTab() {
     }, [live, user]),
   );
 
-  const orb = tutorOrbState({ live, checking, canStart });
+  const orb = tutorOrbState({ live, checking, canStart, outOfTime: planView?.known ? planView.outOfTime ?? null : null });
   const offlineShown = !live || heldBack !== null;
   const note = startNote(orb, offlineShown);
   const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc, goalOf(profile));
@@ -361,7 +361,7 @@ export function TutorTab() {
         </View>
 
         {replay !== null && (
-          <Press haptic="light" disabled={checking} onPress={() => tapThrough(locks.access, replay.feature, locks.open, () => open(textMode, answered(replay.params)))} accessibilityRole="button" accessibilityLabel={`${LESS_HELP_TITLE}, ${replay.title}, ${replay.line}, ${replay.help}${replay.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`}
+          <Press haptic="light" disabled={checking} onPress={() => tapThrough(locks.access, replay.feature, locks.open, () => open(textMode, answered(replay.params)))} accessibilityRole="button" accessibilityLabel={lockSaid(`${LESS_HELP_TITLE}, ${replay.title}, ${replay.line}, ${replay.help}`, replay.feature, replay.locked)}
             style={st.twist}>
             <View {...decorative} style={st.twistTile}>
               <BArt name="cafe-table" width={70} height={64} style={st.twistArt} />
@@ -369,7 +369,7 @@ export function TutorTab() {
             <View style={st.words}>
               <View style={st.twistHead}>
                 <Text style={[type.badge, { color: t.link }]}>{LESS_HELP_TITLE}</Text>
-                {replay.locked && <LockBadge said />}
+                {replay.locked && <LockBadge feature={replay.feature} said />}
               </View>
               <Text {...frenchText} style={[bType.bold16, { color: t.text }]}>{replay.french}</Text>
               <Text style={[bType.note, { color: t.muted }]}>{replay.line}</Text>
@@ -407,11 +407,11 @@ export function TutorTab() {
 
         <View style={[st.tiles, columns === 1 && st.column]}>
           {tiles.map((tile) => (
-            <Press key={tile.key} haptic="light" onPress={() => nav.navigate(tile.route.screen)} accessibilityLabel={tile.locked ? `${tile.title}, ${LOCK_BADGE_LABEL}` : tile.title}
+            <Press key={tile.key} haptic="light" onPress={() => nav.navigate(tile.route.screen)} accessibilityLabel={tile.feature !== null ? lockSaid(tile.title, tile.feature, tile.locked) : tile.title}
               frame={columns === 2 ? st.half : columns === 3 ? st.third : undefined} style={[st.tile, { backgroundColor: t[tile.ground], padding: tilePad }]}>
               <BArt name={tile.art.name} width={tile.art.width} height={tile.art.height} />
               <Text style={[bType.bold14, { color: t.text }]}>{tile.title}</Text>
-              {tile.locked && <LockBadge form="round" said />}
+              {tile.locked && tile.feature !== null && <LockBadge feature={tile.feature} form="round" said />}
             </Press>
           ))}
         </View>

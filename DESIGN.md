@@ -61,6 +61,9 @@ period stay near a purchase action, and large text is never capped to fit.
   `access/featureAccess.ts` answers locked, and that seam mirrors
   `purchases/featureLocks.ts` (`featureLockedNow`, failing open). A locked
   item that has no route of its own opens the Wall through `tapThrough`.
+  Every badge and every spoken lock passes its feature (or, for a lock that
+  is not a feature, its plan), so it names the plan that opens it, and the
+  Wall is opened as `Wall { entry: 'locked', feature }` (F910).
 - Stage words, never CEFR: Starter (A0) and Basics (A1) on Journey, Speak and
   the scene preview of a guided mission, then Everyday, Chatting and Confident
   as Journey's future stages that claim nothing. "Starting out" survives only
@@ -325,8 +328,20 @@ and chosen tutor survive account and Back detours. See the
 Paywalls and their states, Profile, Settings, Learning preferences and
 Subscription use the B tokens through the `mainApp.light` aliases and Outfit.
 The single action is the primary pill. The Yearly/Monthly switch sits on a
-lavender track with the chosen segment white. The trial timeline uses sun
-markers with ink glyphs on a sun rail. There is no hero art. The billed amount
+lavender track with the chosen segment white. The trial page (F932, founder
+decision 6, 2026-10-29) is titled for the plan's first week ("Your first week
+with Core"; a trial that is not seven days says its days). The route through
+the charge day comes straight after the offer line and before the period
+switch, so it stays above the pinned footer on a 375x812 phone
+(`wallLayout.test.ts` budget). One scene, `place-cafe-counter` at the shared
+`Illustration`'s own small fit, leads the page only on a screen tall enough to
+hold it as well (`trialScenePlace`, iPad-sized today); on a phone it follows
+the plan line, after every fact. The route is in the map motif with no
+glyphs: a 2pt brand-blue line at 35% opacity joins 16pt stops. Today is a
+filled sun dot, the week's learning line a 10pt open ring with no title, the
+reminder or cancel day an open brand ring, and the charge day a filled brand
+dot. Nothing on it animates beyond the shared stagger. The standard page has
+no art. The billed amount
 is the most prominent price, and a reminder line appears only when a reminder
 is really scheduled. Text links use the brand blue; destructive labels and the
 purchase-failed title use `danger`.
@@ -1051,18 +1066,21 @@ More shared parts:
   `ground="violet2"` (Speak's own topic chip): white words only, never
   `onColour.blue`, and it falls back to the chosen ink fill when selected. The
   archive's filters and My French's situation state both draw it.
-- **LockBadge**: the trial's lock, two forms. The pill reads "Included with
-  your trial" in blue `badge` words beside a blue lock, 26 tall, on lavender
-  (or white when it sits on a lavender card). The round form is a 28pt white
-  disc with the blue lock alone, named "Included with your trial" to a screen
-  reader. It is pure presentation and never decides whether something is
-  locked: `access/featureAccess.ts` does, and a surface draws the badge only
-  when that seam says locked. The seam reads the D24 billing standing
-  (`featureLockedNow`) and fails open, so a plan nobody could read shows no
-  lock. Inside a control whose label already says "Included with your trial",
-  the badge is hidden from screen readers so the words are heard once. A
-  locked Journey section keeps its heading and badge and shows one teaser line
-  that opens the Wall, never its content.
+- **LockBadge**: a lock, two forms, naming the plan that opens it (F910,
+  founder decision 14, 2026-10-29). The pill reads the plan's name, "Core" or
+  "Max", in blue `badge` words beside a blue lock, 26 tall, on lavender (or
+  white when it sits on a lavender card). The round form is a 28pt white disc
+  with the blue lock alone. Both say "Locked. Part of Core." (or Max) to a
+  screen reader. The plan is the feature's (`requiredPlan`, from
+  `capabilitiesFor`), never the learner's, so a learner in Core's store trial
+  still sees a Max lock say Max. It is pure presentation and never decides
+  whether something is locked: `access/featureAccess.ts` does, and a surface
+  draws the badge only when that seam says locked. The seam reads the D24
+  billing standing (`featureLockedNow`) and fails open, so a plan nobody could
+  read shows no lock. Inside a control whose label already ends with
+  `lockSaid`'s words, the badge is hidden from screen readers so the words are
+  heard once. A locked Journey section keeps its heading and badge and shows
+  one teaser line that opens the Wall, never its content.
 - **OptionRow**: a one-tap choice, now a thin name for `Choice` as a button
   row: white with a title and a line under it and the field ring when not
   chosen, the brand blue with white words and a white disc holding the blue
@@ -1260,7 +1278,7 @@ grouped lists.
 | Route | What it is |
 |---|---|
 | Learning preferences | Opened from Profile. An intro line saying these never change the level earned, then Routine (the daily goal as its five choices, the one editor it has), How your tutor helps (correction style, the same row word for word as the memory screen's, then Tutor speaks more simply and Prefer typing), Your goal: one row whose subtitle is the onboarding reason's title, opening the six goals plus Nothing in particular (which clears it; the daily goal's own "No goal" is a different choice), saved through `withOnboardingGoal` with the footer saying it reorders suggestions and never the level earned, and Conversation starting point: one row whose subtitle is the chosen sentence, opening the four options, saved through `withStatedLevel` with the footer saying the earned level stays. |
-| Subscription | Opened from the plan row on Profile and Settings. The plan's name at `title`, its period in words, and a tutor-time card saying the speaking-time band in words. No minute count, no date and no filled track (F377, F541), and no price row, because nothing on the phone says which product the account holds. Manage in Apple Subscriptions, Compare plans (See plans for a free learner) and Restore. Restore says what the store found: a granted restore says it is on this account and re-reads the plan, and nothing found says so. When the plan cannot be checked, an `inset` notice and a 56pt Try again, with Manage and Restore still there. |
+| Subscription | Opened from the plan row on Profile and Settings. The plan's name at `title`, and a tutor-time card saying the speaking-time band in words and, for a paid plan, when the minutes are fresh ("Fresh minutes on 27 November.", the server's window). One Next renewal row carries the store's own renewal date and price for the product the store says this account holds ("Core, yearly, £119.99. Renews on 27 November.", "Ends on" when it will not renew, "Free until 3 November, then £119.99 a year." in a store trial; F909, founder decision 9), or, when the store did not answer, where to find it (App Store, Google Play, or either on web). It never guesses a date or a price. No minute count and no filled track (F377, F541). Manage in Apple Subscriptions, Compare plans (See plans for a free learner) and Restore. Restore says what the store found: a granted restore says it is on this account and re-reads the plan, and nothing found says so. When the plan cannot be checked, an `inset` notice and a 56pt Try again, with Manage and Restore still there. |
 
 Settings (B-Settings, 2026-10-21) is seven groups in this order: Account,
 Plan, Practice, Phone, Appearance and sound, Data and privacy, Help and about,

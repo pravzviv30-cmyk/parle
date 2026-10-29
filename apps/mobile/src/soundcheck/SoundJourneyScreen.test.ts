@@ -110,7 +110,7 @@ describe('the sound journey screen — Stage 4 item 2', () => {
 describe('the journey is a route of its own', () => {
   test('declared with no params, given an address, and registered', () => {
     assert.match(stripComments(read('../nav/types.ts')), /^ {2}SoundJourney: undefined;$/m);
-    assert.match(stripComments(read('../nav/theme.ts')), /SoundJourney: 'sound-journey',/);
+    assert.match(stripComments(read('../nav/linking.ts')), /SoundJourney: 'sound-journey',/);
     const navigator = stripComments(read('../nav/RootNavigator.tsx'));
     assert.match(navigator, /<Stack\.Screen name="SoundJourney" component=\{SoundJourneyScreen\} \/>/);
     assert.match(navigator, /import \{ SoundJourneyScreen \} from '\.\.\/soundcheck\/SoundJourneyScreen\.tsx';/);

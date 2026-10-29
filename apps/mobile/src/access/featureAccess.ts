@@ -13,9 +13,14 @@
  * that re-renders a surface and opens the Wall is `useFeatureAccess.ts`.
  */
 
-import { featureLockedNow, LOCKED_FEATURES, type LockedFeature } from '../purchases/featureLocks.ts';
+import { featureLockedNow, LOCKED_FEATURES, lockSpoken, requiredPlan, unlockPlanName, type LockedFeature, type UnlockPlan } from '../purchases/featureLocks.ts';
 
-export { LOCKED_FEATURES, type LockedFeature };
+export { LOCKED_FEATURES, lockSpoken, requiredPlan, unlockPlanName, type LockedFeature, type UnlockPlan };
+
+/** A control's spoken label with its lock said after it, when locked (F910). */
+export function lockSaid(label: string, feature: LockedFeature, locked: boolean): string {
+  return locked ? `${label}. ${lockSpoken(requiredPlan(feature))}` : label;
+}
 
 export type FeatureAccess = 'unlocked' | 'locked';
 

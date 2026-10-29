@@ -82,7 +82,9 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     assert.deepEqual(
       askers,
       // D24 (2026-10-20): featureLocks.ts is the one owner of the locks and reads `unlocks` alone.
-      ['game/view.ts', 'purchases/capabilities.ts', 'purchases/exploreAccess.ts', 'purchases/featureLocks.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'],
+      // F910/F913 (2026-10-29): trialPaywall.ts reads it so the compare sheet and the
+      // "Unlock with" button claim only what a plan opens. It gates nothing.
+      ['game/view.ts', 'purchases/capabilities.ts', 'purchases/exploreAccess.ts', 'purchases/featureLocks.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx', 'wall/trialPaywall.ts'],
       `something else gates on the plan: ${askers.join(', ')}`,
     );
     assert.ok(askers.includes('tutor/RealMomentScreen.tsx'), 'the real moment no longer asks the plan');
@@ -170,7 +172,8 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     // plans page can say what D4 gives every paid plan. One line, written here
     // where what a plan opens is said, and true of every plan the page sells:
     // both tiers, monthly or yearly, during the store's free trial too.
-    assert.equal(INCLUSIONS.streak, 'Every plan includes a second streak freeze and a one-tap repair.');
+    // F913, founder decision 13 (2026-10-29): "Every plan" read as if Free held it too.
+    assert.equal(INCLUSIONS.streak, 'Paid plans add a second streak freeze and a one-tap repair.');
     assert.ok(CAPABILITY_COPY.includes(INCLUSIONS.streak), 'the streak line escapes the copy sweeps');
     assert.equal(guiltIn(INCLUSIONS.streak), undefined);
     assert.equal(streakGuiltIn(INCLUSIONS.streak), undefined, 'the streak line threatens');
@@ -191,6 +194,6 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     const page = readFileSync(join(SRC, 'wall', 'WallPlansPage.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
     assert.equal((page.match(/\{INCLUSIONS\.streak\}/g) ?? []).length, 1, 'the streak line is not said on the plans page, or is said twice');
     assert.ok(page.indexOf('{INCLUSIONS.streak}') > page.lastIndexOf('row.offers.map('), 'the streak line sits inside one plan\'s rows');
-    assert.match(page, /<Sheet surface=\{colors\.surface\} ink=\{colors\.text\} visible=\{comparing\}/);
+    assert.match(page, /<Sheet reading surface=\{colors\.surface\} ink=\{colors\.text\} visible=\{comparing\}/);
   });
 });

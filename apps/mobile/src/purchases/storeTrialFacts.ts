@@ -15,6 +15,7 @@
  */
 
 import type { StoreTrialFacts } from '../reminders/trialReminder.ts';
+import type { StoreHeldPlan } from './contract.ts';
 
 /** The slice of RevenueCat's `CustomerInfo` this reads. */
 export interface CustomerInfoLike {
@@ -30,6 +31,9 @@ export interface EntitlementLike {
   periodType?: unknown;
   expirationDate?: unknown;
   expirationDateMillis?: unknown;
+  productIdentifier?: unknown;
+  /** Android only: the base plan, which the offering joins to the product as `product:basePlan`. */
+  productPlanIdentifier?: unknown;
 }
 
 /** RevenueCat's period types. Only TRIAL is a free trial; INTRO is a paid introductory price. */
@@ -57,4 +61,24 @@ export function storeTrialFactsFrom(customer: CustomerInfoLike | null | undefine
   const period = typeof info.periodType === 'string' ? info.periodType.toUpperCase() : null;
   const inTrial = period !== null && (KNOWN_PERIODS as readonly string[]).includes(period) ? period === 'TRIAL' : null;
   return { inTrial, willRenew, expiresAt };
+}
+
+/**
+ * The held subscription (F909): the active entitlement's product, with the same
+ * renewal facts as above. Null unless the store lists the entitlement as active
+ * with a product id, so a lapsed or unread entitlement never gets a date.
+ */
+export function storeHeldPlanFrom(customer: CustomerInfoLike | null | undefined, entitlementId: string | undefined): StoreHeldPlan | null {
+  if (!entitlementId || !customer || typeof customer !== 'object') return null;
+  const info = customer.entitlements?.active?.[entitlementId];
+  if (!info || typeof info !== 'object' || info.isActive !== true) return null;
+  const bare = typeof info.productIdentifier === 'string' ? info.productIdentifier.trim() : '';
+  const basePlan = typeof info.productPlanIdentifier === 'string' ? info.productPlanIdentifier.trim() : '';
+  // Google Play: the offering's product id is "product:basePlan" (as `storeHolds`
+  // reads activeSubscriptions), so the held id is joined the same way. Matching
+  // the bare id alone could pick a sibling base plan and its price.
+  const productId = bare.length > 0 && basePlan.length > 0 && !bare.includes(':') ? `${bare}:${basePlan}` : bare;
+  const facts = storeTrialFactsFrom(customer, entitlementId);
+  if (productId.length === 0 || facts === null) return null;
+  return { productId, expiresAt: facts.expiresAt, willRenew: facts.willRenew, inTrial: facts.inTrial };
 }

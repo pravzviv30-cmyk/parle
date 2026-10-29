@@ -100,7 +100,7 @@ describe('lock badges against the D24 standing', () => {
     for (const key of ['canDo', 'used', 'help', 'week'] as const) assert.equal(s[key].feature, 'fullJourney');
     assert.equal(s.thenNow.feature, 'thenAndNow');
     assert.equal(s.sounds.feature, 'sounds');
-    // Routed: App.tsx's guard sends each to Wall { entry: 'locked' }.
+    // Routed: App.tsx's guard sends each to Wall { entry: 'locked', feature } (F910).
     for (const tile of s.tiles.filter((t) => t.locked)) assert.notEqual(lockedRouteFeature(tile.route.screen), null, `${tile.key} is badged but its route is free`);
     assert.notEqual(lockedRouteFeature(s.thenNow.route.screen), null);
     assert.notEqual(lockedRouteFeature(s.sounds.practise.screen), null);
@@ -110,7 +110,7 @@ describe('lock badges against the D24 standing', () => {
 
   test('main\'s hook opens the locked door of the Wall, which access/ hands every surface', () => {
     const hook = readFileSync(new URL('../purchases/useFeatureLocks.ts', import.meta.url), 'utf8');
-    assert.match(hook, /const open = useCallback\(\(_feature: LockedFeature\) => nav\.navigate\('Wall', \{ entry: 'locked' \}\)/);
+    assert.match(hook, /const open = useCallback\(\(feature: LockedFeature\) => nav\.navigate\('Wall', \{ entry: 'locked', feature \}\)/);
     const ours = readFileSync(new URL('./useFeatureAccess.ts', import.meta.url), 'utf8');
     assert.match(ours, /open: locks\.open/);
   });

@@ -35,9 +35,9 @@ export type ProductEvent =
   | { name: 'wall_page_seen'; properties: { page: 'yours' | 'plans'; index: number } }
   | { name: 'plan_selected'; properties: { plan: 'starter' | 'regular' } }
   | { name: 'purchase_started'; properties: { plan: 'starter' | 'regular' } }
-  | { name: 'purchase_settled'; properties: { plan: 'starter' | 'regular'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'refresh-trouble' } }
+  | { name: 'purchase_settled'; properties: { plan: 'starter' | 'regular'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'not-charged' | 'refresh-trouble' } }
   | { name: 'restore_started'; properties: { entry: 'settings' | 'wall' | 'inline' } }
-  | { name: 'restore_settled'; properties: { entry: 'settings' | 'wall' | 'inline'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'refresh-trouble' } }
+  | { name: 'restore_settled'; properties: { entry: 'settings' | 'wall' | 'inline'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'not-charged' | 'refresh-trouble' } }
   | { name: 'wall_left'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; outcome: 'granted' | 'unchanged'; destination: 'back' | 'speak' } }
   // One per finished live session (sessionFinished.ts). Counts and closed
   // choices only: what kind of session, spoken or not, how many turns and

@@ -380,13 +380,15 @@ export interface SpeakTile {
   art: { name: BArtName; width: number; height: number };
   route: { screen: 'SoundJourney' | 'TutorMemory' | 'TutorIntro' };
   locked: boolean;
+  /** The feature its lock is for (F910), or null for a tile that is never locked. */
+  feature: LockedFeature | null;
 }
 
 export function speakTiles(tutorName: string, access: Access = featureAccess): SpeakTile[] {
   return [
-    { key: 'sounds', title: 'Pronunciation help', ground: 'peach', art: { name: 'voice-chat', width: 60, height: 55 }, route: { screen: 'SoundJourney' }, locked: access('sounds') === 'locked' },
-    { key: 'memory', title: `What ${tutorName} remembers`, ground: 'sage', art: { name: 'star-jar', width: 60, height: 55 }, route: { screen: 'TutorMemory' }, locked: access('tutorMemory') === 'locked' },
-    { key: 'intro', title: 'How your tutor works', ground: 'butter', art: { name: 'compass', width: 55, height: 55 }, route: { screen: 'TutorIntro' }, locked: false },
+    { key: 'sounds', title: 'Pronunciation help', ground: 'peach', art: { name: 'voice-chat', width: 60, height: 55 }, route: { screen: 'SoundJourney' }, locked: access('sounds') === 'locked', feature: 'sounds' },
+    { key: 'memory', title: `What ${tutorName} remembers`, ground: 'sage', art: { name: 'star-jar', width: 60, height: 55 }, route: { screen: 'TutorMemory' }, locked: access('tutorMemory') === 'locked', feature: 'tutorMemory' },
+    { key: 'intro', title: 'How your tutor works', ground: 'butter', art: { name: 'compass', width: 55, height: 55 }, route: { screen: 'TutorIntro' }, locked: false, feature: null },
   ];
 }
 

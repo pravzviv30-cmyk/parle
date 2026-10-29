@@ -124,7 +124,7 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     assert.match(flat(empty), /<SubHead title=\{EMPTY\.readyNow\} \/>/);
     // 2026-10-21 UI-008, artboard B-Empty-Practice: the café row keeps its cost
     // line ("free" is left out: it uses live minutes) and the seam's lock.
-    assert.match(flat(empty), /<ReadyRow title=\{cafe\.title\} lines=\{\[cafe\.line, cafe\.cost\]\} art="phrasebook" ground="butter" locked=\{cafe\.locked\} disabled=\{checking\} onPress=\{openLesson\} \/>/, 'the café lesson opens without its probe, or hides what it costs');
+    assert.match(flat(empty), /<ReadyRow title=\{cafe\.title\} lines=\{\[cafe\.line, cafe\.cost\]\} art="phrasebook" ground="butter" locked=\{cafe\.locked\} feature="sounds" disabled=\{checking\} onPress=\{openLesson\} \/>/, 'the café lesson opens without its probe, or hides what it costs');
     assert.match(FLAT, /const cafe = cafeRow\(locks\.access\);/);
     assert.match(flat(empty), /go\(\{ screen: 'SoundCheck' \}\)/, 'Sounds of French opens somewhere other than the sound check');
     assert.match(flat(empty), /<SavedBox line=\{data\.deck\.length === 0 \? SAVED_FIRST : savedPhrasesLine\(data\.deck\)\} onPress=\{\(\) => go\(\{ screen: 'Phrasebook' \}\)\} \/>/, 'the empty page lost its saved phrases box, or it opens somewhere other than the phrasebook');
@@ -174,8 +174,8 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     const parts = flat(PARTS_SOURCE());
     assert.match(parts, /\{kept\.map\(\(fr\) => <PhraseChip key=\{fr\} label=\{fr\} french \/>\)\}/, 'kept French is not drawn as French');
     assert.match(parts, /<Text \{\.\.\.\(french \? frenchText : \{\}\)\}/, 'kept French is not tagged as French');
-    assert.match(parts, /\{stepsLocked \? <LockBadge form="round" said \/> : null\}/);
-    assert.match(parts, /\{fixes\.locked \? <LockBadge form="round" said \/> : null\}/);
+    assert.match(parts, /\{stepsLocked \? <LockBadge feature="conversationPractice" form="round" said \/> : null\}/);
+    assert.match(parts, /\{fixes\.locked \? <LockBadge feature="fixes" form="round" said \/> : null\}/);
     // Paging through the existing cursor.
     assert.match(FLAT, /\{library\.nextCursor !== null && <PageLink label=\{library\.loading \? 'Loading…' : OLDER\}/);
     assert.match(FLAT, /\{library\.olderPage && <PageLink label=\{NEWEST\}/);
@@ -232,7 +232,7 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');
     assert.ok(!SCREEN.includes('capabilitiesFor('), 'the tab asks the plan table itself instead of through the helper');
     // 2026-10-21 UI-008, artboard B-Practice: the label is the large card's Talk about it again.
-    assert.match(flat(PARTS_SOURCE()), /accessibilityLabel=\{`\$\{revisit\.label\}\. \$\{revisit\.uses\}/, 'the tutor door does not say its cost to a screen reader');
+    assert.match(flat(PARTS_SOURCE()), /accessibilityLabel=\{lockSaid\(`\$\{revisit\.label\}\. \$\{revisit\.uses\}`, 'continueArc', revisit\.locked\)\}/, 'the tutor door does not say its cost to a screen reader');
     assert.match(FLAT, /uses: card\.revisit\.uses/);
     // 2026-10-20, lock seam wiring: the tab holds the reactive hook, never the seam's own answer.
     assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab asks the access seam itself; the view model does');
@@ -240,7 +240,7 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     assert.match(FLAT, /onPress=\{\(\) => tapThrough\(locks\.access, mix\.feature, locks\.open, \(\) => go\(mix\.route\)\)\}/, 'the locked mix starts a drill instead of opening the Wall');
     // 2026-10-21 UI-008, artboard B-Practice: the white trial pill is MixCard's.
     assert.match(FLAT, /<MixCard title=\{MIX_TITLE\} line=\{mix\.line\} locked=\{mix\.locked\}/);
-    assert.match(flat(PARTS_SOURCE()), /\{locked \? <LockBadge ground="card" said \/> : null\}/);
+    assert.match(flat(PARTS_SOURCE()), /\{locked \? <LockBadge feature="conversationPractice" ground="card" said \/> : null\}/);
   });
 
   test('the door that touches the network guards its tap and says so — F154', () => {
@@ -326,9 +326,9 @@ test('Sounds of French carries the round lock from the seam, heard once', () => 
   assert.match(src, /<ReadyRow title=\{sounds\.title\} lines=\{\[sounds\.gloss\]\} art="voice-chat" ground="peach" locked=\{sounds\.locked\}/);
   const parts = flat(PARTS_SOURCE());
   const row = parts.slice(parts.indexOf('export function ReadyRow('), parts.indexOf('export function SavedBox('));
-  assert.match(row, /\{locked \? <LockBadge form="round" said \/> : null\}/);
-  assert.match(row, /accessibilityLabel=\{lockSaid\(\[title, \.\.\.lines\]\.join\(', '\), locked\)\}/);
-  assert.match(parts, /const lockSaid = \(label: string, locked: boolean\): string => \(locked \? `\$\{label\}, \$\{LOCK_BADGE_LABEL\}` : label\);/);
+  assert.match(row, /\{locked \? <LockBadge feature=\{feature\} form="round" said \/> : null\}/);
+  assert.match(row, /accessibilityLabel=\{lockSaid\(\[title, \.\.\.lines\]\.join\(', '\), feature, locked\)\}/);
+  assert.match(parts, /import \{ lockSaid, type LockedFeature \} from '\.\.\/access\/featureAccess\.ts';/);
 });
 
 // 2026-10-21 UI-008, artboards B-Practice and B-Empty-Practice: the parts draw only theme tokens and the canvas art named for each slot.

@@ -98,6 +98,10 @@ import { useB } from '../main/bTheme.tsx';
 import { backOrTabs, tabsAlone, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
+import { noteLeftEarly } from '../wall/launchWallSeen.ts';
+import { removalIsEarlyExit, watchRemoval, type RemovalSource } from '../wall/launchWall.ts';
+import { singleWallId } from './singleWall.ts';
+import { isLockedFeature } from '../purchases/featureLocks.ts';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -149,6 +153,8 @@ function FirstSceneRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'FirstScene'>>();
   const raw = route.params?.missionId;
   const missionId: MissionId = typeof raw === 'string' && getMission(raw as MissionId) !== undefined ? (raw as MissionId) : FIRST_MISSION;
+  // Founder decision 4: any way back out of the primer is an early exit; Start replacing it with the scene is not.
+  useEffect(() => watchRemoval(nav as unknown as RemovalSource, (action) => removalIsEarlyExit('FirstScene', action), noteLeftEarly), [nav]);
   return (
     <FirstSceneScreen
       missionId={missionId}
@@ -603,16 +609,23 @@ function WallRoute() {
   }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Wall'>>();
   const { entry, resumeRouteKey } = route.params;
+  const feature = isLockedFeature(route.params.feature) ? route.params.feature : null;
+  const unlock = route.params.unlock === 'collections' ? 'collections' as const : null;
   const owner = useRef(scopeGeneration()).current;
 
   // A preview opens ON this screen, so there can be nothing behind it to go back
   // to. Falling through to the tabs is the difference between a way out and a
   // dead end, which is the same bargain MissionsScreen strikes on a first run.
-  const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
+  // F931: replace, not navigate, so no wall is left under the tabs. The wall is
+  // single-instance (`getId`), and a wall left underneath would be the one a
+  // later out-of-minutes wall returns to, popping the live scene above it.
+  const leave = () => (nav.canGoBack() ? nav.goBack() : nav.replace('Tabs'));
 
   return (
     <WallScreen
       entry={entry}
+      feature={feature}
+      unlock={unlock}
       onLeave={leave}
       onStartSpeaking={(canResume) => {
         if (owner !== scopeGeneration()) return;
@@ -622,7 +635,7 @@ function WallRoute() {
         if (resumed !== null) nav.reset(resumed); else leave();
       }}
       onOpenPractice={() => nav.replace('Tabs', { screen: 'Practice' })}
-      onOpenBank={() => nav.navigate('Review')}
+      onOpenBank={() => nav.replace('Review')}
       onOpenPolicy={() => nav.navigate('Policy')}
       onOpenTerms={() => nav.navigate('Terms')}
     />
@@ -836,7 +849,7 @@ export function RootNavigator({
           without this `entry` would be undefined on the one path that exists to
           be looked at. The founder's primary door is the end of the welcome
           path, so that is what a preview shows. */}
-      <Stack.Screen name="Wall" component={WallRoute} initialParams={{ entry: 'path-complete' }} />
+      <Stack.Screen name="Wall" component={WallRoute} getId={singleWallId} initialParams={{ entry: 'path-complete' }} />
       {/* Routes now, not sheets: the purchase surface has to link to both, and a
           sheet only Settings can open is not a link. Settings still renders its
           own copies as early returns, which is the same screen either way. */}

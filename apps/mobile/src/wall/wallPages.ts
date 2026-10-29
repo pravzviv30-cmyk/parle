@@ -93,3 +93,22 @@ export function canBuy(pages: readonly WallPage[]): boolean {
 export function endsOnPlans(pages: readonly WallPage[]): boolean {
   return pages[pages.length - 1] === 'plans';
 }
+
+/** The door a showing came through: the entry, and the feature a lock named. */
+export interface WallDoor {
+  entry: WallEntry;
+  feature: string | null;
+}
+
+/**
+ * What a still-mounted wall does when a navigate changes its door in place
+ * (the wall is single-instance through `getId`, so a lock tap or the limit can
+ * arrive while the launch wall is open). A new door starts the page list again
+ * at its first page, so the index can never point past the new list or at the
+ * old door's page, and the page's own suggestion is dropped so the new door's
+ * can be made. A plan the learner chose themselves is kept.
+ */
+export function doorChange(previous: WallDoor, next: WallDoor, touched: boolean): { resetIndex: boolean; clearSelection: boolean } {
+  const moved = previous.entry !== next.entry || previous.feature !== next.feature;
+  return { resetIndex: moved, clearSelection: moved && !touched };
+}

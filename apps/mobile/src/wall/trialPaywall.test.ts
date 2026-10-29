@@ -46,7 +46,7 @@ describe('trial or standard is decided by the store, and unknown is never eligib
   test('an eligible yearly offer reads as a trial, with the billed amount as its own bold part', () => {
     const { view } = setup(true);
     assert.equal(view.kind, 'trial');
-    assert.equal(view.headline, 'How your trial works');
+    assert.equal(view.headline, 'Your first week with Core');
     assert.equal(view.lead, 'Free for 7 days, then ');
     assert.equal(view.billed, '£99.99 a year');
     assert.equal(view.detail, '£8.33 a month, billed yearly. Save 16%');
@@ -87,14 +87,18 @@ describe('trial or standard is decided by the store, and unknown is never eligib
 
 describe('the compare sheet', () => {
   test('trial lines show only when this account may take the trial', () => {
-    const eligible = compareCards(setup(true).rows, setup(true).chosen, PLANS);
+    // F912/F913 (2026-10-29): trial lines need a free learner the server has read,
+    // and both allowances read in the same words (founder decision 13).
+    const FREE = { plan: 'trial', lapsed: false } as const;
+    const eligible = compareCards(setup(true).rows, setup(true).chosen, PLANS, FREE);
     assert.deepEqual(eligible.map(card => [card.name, card.price, card.allowance, card.trial]), [
-      ['Core', '£99.99 a year', 'About 10 minutes a day of live conversation', 'Free trial: 70 minutes over 7 days'],
-      ['Max', '£149.99 a year', 'Up to 20 minutes a day of live conversation', 'Free trial: 140 minutes over 7 days'],
+      ['Core', '£99.99 a year', '300 minutes every 30 days (about 10 a day).', 'Free trial: 70 minutes over 7 days'],
+      ['Max', '£149.99 a year', '600 minutes every 30 days (about 20 a day), plus Rehearse and Continue a conversation.', 'Free trial: 140 minutes over 7 days'],
     ]);
+    assert.deepEqual(compareCards(setup(true).rows, setup(true).chosen, PLANS).map(card => card.trial), [null, null], 'a trial line before the status was read');
     assert.deepEqual(eligible.map(compareCta), ['Continue with Core', 'Continue with Max']);
     for (const unknown of [false, null]) {
-      const cards = compareCards(setup(unknown).rows, setup(unknown).chosen, PLANS);
+      const cards = compareCards(setup(unknown).rows, setup(unknown).chosen, PLANS, FREE);
       assert.deepEqual(cards.map(card => card.trial), [null, null], 'a trial line was shown to an account that may not take it');
       assert.deepEqual(cards.map(compareCta), ['Subscribe to Core', 'Subscribe to Max']);
     }
@@ -196,7 +200,7 @@ describe('an available offering always shows a priced offer', () => {
     const chosen = chosenOffer(rows, effectiveSelection(rows, null, null))!;
     const view = paywallOffer(chosen, trialTimeline({ offer: chosen, minutes: storeTrialMinutes(PLANS, chosen.plan), remind: false }));
     assert.equal(view.kind, 'trial');
-    assert.equal(view.headline, 'How your trial works');
+    assert.equal(view.headline, 'Your first week with Core');
     assert.equal(`${view.lead}${view.billed}`, 'Free for 7 days, then £119.99 a year');
     assert.equal(view.billed, '£119.99 a year', 'the billed amount is not its own (bold) part');
     assert.equal(view.detail, '£10.00 a month, billed yearly. Save 33%');
@@ -210,7 +214,7 @@ describe('an available offering always shows a priced offer', () => {
   test('the empty plans page cannot draw: the screen always chooses, and a plans page with nothing to price is unavailable', () => {
     const screen = readFileSync(new URL('./WallScreen.tsx', import.meta.url), 'utf8');
     const page = readFileSync(new URL('./WallPlansPage.tsx', import.meta.url), 'utf8');
-    assert.match(screen, /const showing = effectiveSelection\(planRows, selected, suggestion\);\s*const chosen = chosenOffer\(planRows, showing\);/);
+    assert.match(screen, /const showing = effectiveSelection\(planRows, selected, suggestion, entry === 'locked' && feature !== null \? requiredPlan\(feature\) : 'starter'\);\s*const chosen = chosenOffer\(planRows, showing\);/);
     assert.match(screen, /const unavailable = offeringLoaded && \(page === undefined \|\| \(page === 'plans' && chosen === null\)\);/);
     assert.match(page, /\{loading \? <PlansLoading \/> : offer !== null && <>/);
     assert.doesNotMatch(page, /PLANS_TITLE/, 'the old empty headline branch is still drawable');

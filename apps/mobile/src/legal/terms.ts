@@ -36,5 +36,34 @@ export const TERMS_BODY: readonly string[] = [
   "Apple publishes the full text on its own site, and the link below opens it there rather than reprinting it here.",
 ];
 
+/**
+ * How a subscription renews and how to stop it. F914.
+ *
+ * DRAFT: this section has not had professional legal review and must have it
+ * before release (docs/LEGAL_HOSTING.md). It is Luvani's own short summary,
+ * not a copy of Apple's or Google's terms, so it sits in its own section with
+ * its own cap and leaves the licence paragraph's cap alone.
+ *
+ * Every line is product truth: the stores take payment and renewal; a paid
+ * period's speaking time resets to zero when a new period starts (REV-001,
+ * `apply_billing_projection`), so unused minutes end with it; and account
+ * deletion asks RevenueCat to erase its record but cannot cancel a store
+ * subscription, as the privacy notice's "Your rights" section also says.
+ */
+export const TERMS_SUBSCRIPTIONS_HEADING = 'Subscriptions';
+export const TERMS_SUBSCRIPTIONS: readonly string[] = [
+  'A subscription renews automatically until you cancel it. If its price changes, the store tells you first, as its rules require.',
+  'To stop the next renewal, cancel at least 24 hours before it, in the App Store or Google Play.',
+  'A free trial offered through the App Store or Google Play becomes a paid subscription when it ends, unless you cancel before then.',
+  'Speaking minutes are for the period they come with. Unused minutes end with that period and are not rolled over to the next.',
+  'Deleting your account does not cancel a subscription. Cancel it in the store too.',
+];
+
 /** Everything the terms screen says, flattened, for the copy scans. */
-export const TERMS_COPY: readonly string[] = [TERMS_TITLE, ...TERMS_BODY, TERMS_LINK_LABEL];
+export const TERMS_COPY: readonly string[] = [
+  TERMS_TITLE,
+  ...TERMS_BODY,
+  TERMS_SUBSCRIPTIONS_HEADING,
+  ...TERMS_SUBSCRIPTIONS,
+  TERMS_LINK_LABEL,
+];

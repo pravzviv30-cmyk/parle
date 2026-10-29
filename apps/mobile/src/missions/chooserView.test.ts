@@ -104,7 +104,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.match(app, /navigationRef\.resetRoot\([\s\S]*name:\s*'Tabs'/, 'the ready navigator never replaces a stale URL with Today');
     assert.doesNotMatch(app, /resetRoot\([^)]*'Missions'/, 'a first run is sent to the ten-way chooser again');
 
-    const links = stripComments(read('../nav/theme.ts'));
+    const links = stripComments(read('../nav/linking.ts'));
     assert.match(links, /Missions:\s*'missions'/, 'the chooser, reached from Speak, has no web URL');
   });
 

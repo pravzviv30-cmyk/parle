@@ -13,7 +13,7 @@ import { evidence } from '../../test/evidence.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { lockedRouteDecision, lockedRouteFeature, lockedRouteGuard, LOCKED_ROUTES } from '../purchases/featureLocks.ts';
 import {
-  LAUNCH_WALL_AWAY_MS, TAB_ROOTS, launchWallController, launchWallDue, launchWallShowable, rearmsOnReturn, tabRootVisible,
+  LAUNCH_WALL_AWAY_MS, TAB_ROOTS, exitIsEarly, guestPracticeCompletes, launchWallController, recapCompletesConversation, removalIsEarlyExit, watchRemoval, type RemovalAction, launchWallDue, launchWallShowable, rearmsOnReturn, tabRootVisible,
   type WallDoor, type WallMoment,
 } from './launchWall.ts';
 
@@ -24,9 +24,12 @@ const LAPSED: BillingStatus = { ...CORE, plan: 'trial', lapsed: true, periodEnd:
 
 const BLOCKED = ['Lesson', 'Convo', 'Drill', 'Review', 'DailyPractice', 'SoundCheck', 'ConversationPractice', 'FirstScene', 'Wall'];
 
-function rig(opts: { status?: BillingStatus | null | Error; plans?: boolean; awayMs?: number } = {}) {
+function rig(opts: { status?: BillingStatus | null | Error; plans?: boolean; awayMs?: number; reload?: boolean; conversationDone?: boolean; shownDay?: string | null } = {}) {
   const world = {
     ready: true, route: 'Home', held: false, arrival: true, active: true, owner: 1, now: 1_000_000,
+    today: '2026-10-29',
+    seen: { shownDay: opts.shownDay ?? null, conversationDone: opts.conversationDone ?? true },
+    marked: [] as string[],
     status: (opts.status === undefined ? FREE : opts.status) as BillingStatus | null | Error,
     plans: opts.plans ?? true,
     opened: [] as WallDoor[], asked: 0,
@@ -49,6 +52,10 @@ function rig(opts: { status?: BillingStatus | null | Error; plans?: boolean; awa
     frame: (run) => { frames.set(++id, run); return id; },
     cancelFrame: (frame) => { frames.delete(frame); },
     now: () => world.now,
+    today: () => world.today,
+    seen: async () => ({ ...world.seen }),
+    markShown: (day: string) => { world.marked.push(day); world.seen.shownDay = day; },
+    reload: opts.reload ?? false,
     ...(opts.awayMs === undefined ? {} : { awayMs: opts.awayMs }),
   });
   const frame = () => { const next = frames.entries().next().value as [number, () => void] | undefined; if (next) { frames.delete(next[0]); next[1](); } return next !== undefined; };
@@ -66,6 +73,7 @@ describe('the launch wall rules', () => {
     assert.equal(tabRootVisible(undefined), false);
   });
 
+  // Founder decision 4 (2026-10-28): a return after 30 minutes still re-arms, but the once-a-day rule decides.
   test('coming back after 30 minutes is an open of the app; 29 minutes, or a clock that ran backwards, is not', () => {
     assert.equal(LAUNCH_WALL_AWAY_MS, 30 * 60 * 1000);
     assert.equal(rearmsOnReturn(29 * 60 * 1000), false);
@@ -176,6 +184,8 @@ describe('the launch wall controller', () => {
     assert.equal(r.wall.pending(), null, 'just under the override re-armed');
     r.wall.appState('background');
     r.world.now += 20_000;
+    // Founder decision 4: a second showing needs another day, so this return is on the next one.
+    r.world.today = '2026-10-30';
     r.wall.appState('active');
     assert.equal(r.wall.pending(), 'launch');
     await r.show();
@@ -216,6 +226,68 @@ describe('the launch wall controller', () => {
     handoff.wall.pendFirstRun();
     await handoff.show();
     assert.deepEqual(handoff.world.opened, ['path-complete'], 'the kept-practice offer and the launch wall both opened');
+  });
+
+  test('a web refresh is not an app open for the launch wall', async () => {
+    const r = rig({ reload: true });
+    assert.equal(r.wall.pending(), null, 'a reload armed the launch wall');
+    await r.show();
+    assert.deepEqual(r.world.opened, [], 'a reload opened the launch wall');
+    // A reload on the plans page, then leaving it for Home: still nothing.
+    r.world.route = 'Wall'; r.wall.flush(); r.world.route = 'Home';
+    await r.show();
+    assert.deepEqual(r.world.opened, [], 'leaving a reloaded plans page opened a second wall');
+    // Limit and lock doors are other entries and are unaffected; a fresh open still arms.
+    const fresh = rig({ reload: false });
+    await fresh.show();
+    assert.deepEqual(fresh.world.opened, ['launch']);
+  });
+
+  test('the launch wall shows at most once a day and never before a completed conversation', async () => {
+    const first = rig({ conversationDone: false });
+    await first.show();
+    assert.deepEqual(first.world.opened, [], 'the launch wall opened before any finished conversation');
+    const today = rig({ shownDay: '2026-10-29' });
+    await today.show();
+    assert.deepEqual(today.world.opened, [], 'the launch wall opened twice in one day');
+    const r = rig({ awayMs: 1000 });
+    await r.show();
+    assert.deepEqual(r.world.opened, ['launch']);
+    assert.deepEqual(r.world.marked, ['2026-10-29'], 'the showing was not remembered for the day');
+    // Back after the threshold, same day: re-armed, but not shown.
+    r.wall.appState('background'); r.world.now += 5000; r.wall.appState('active');
+    await r.show();
+    assert.deepEqual(r.world.opened, ['launch'], 'a same-day return showed the wall again');
+    // The next day it may show again.
+    r.world.today = '2026-10-30';
+    r.wall.appState('background'); r.world.now += 5000; r.wall.appState('active');
+    await r.show();
+    assert.deepEqual(r.world.opened, ['launch', 'launch']);
+    // The sign-up day's first-run offer counts as that day's showing.
+    const signup = rig({ conversationDone: false });
+    signup.wall.pendFirstRun();
+    await signup.show();
+    assert.deepEqual(signup.world.opened, ['path-complete']);
+    assert.deepEqual(signup.world.marked, ['2026-10-29']);
+  });
+
+  test('leaving a scene early never opens the launch wall', async () => {
+    for (const door of ['launch', 'path-complete'] as const) {
+      const r = rig();
+      if (door === 'path-complete') r.wall.pendFirstRun();
+      r.world.route = 'Convo';
+      r.wall.flush();
+      r.wall.leftEarly();
+      r.world.route = 'Home';
+      await r.show();
+      assert.deepEqual(r.world.opened, [], `an early exit opened the ${door} door`);
+    }
+    // Left early while the frames were already counting: still nothing.
+    const racing = rig();
+    racing.wall.flush(); racing.frame();
+    racing.wall.leftEarly();
+    racing.frame(); await racing.wall.settled();
+    assert.deepEqual(racing.world.opened, []);
   });
 
   test('an account change retires the controller', async () => {
@@ -282,7 +354,107 @@ describe('the locked-route guard', () => {
   });
 });
 
+describe('every way out of a scene', () => {
+  // A fake navigation that removes the route the way a swipe, a hardware back or the browser does: no leaveTo runs.
+  const route = () => {
+    const listeners = new Set<(event: { data: { action: RemovalAction } }) => void>();
+    return {
+      addListener: (_type: 'beforeRemove', listener: (event: { data: { action: RemovalAction } }) => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+      remove: (type: string, name?: string) => { for (const listener of [...listeners]) listener({ data: { action: { type, payload: name === undefined ? undefined : { name } } } }); },
+    };
+  };
+
+  test('a system back out of a scene is an early exit, and a finished one is not', async () => {
+    for (const back of ['POP', 'GO_BACK', 'NAVIGATE', 'RESET']) {
+      // Swiped back while connecting: the launch wall armed by a return is disarmed.
+      const r = rig();
+      r.world.route = 'Convo';
+      const nav = route();
+      const stop = watchRemoval(nav, (action) => removalIsEarlyExit('Convo', action, { recapSettled: false, leaveRequested: false }), () => r.wall.leftEarly());
+      nav.remove(back);
+      nav.remove(back); // twice is harmless
+      r.world.route = 'Home';
+      await r.show();
+      assert.deepEqual(r.world.opened, [], `a ${back} out of a conversation opened the launch wall`);
+      stop();
+      // Out of the end card a Leave asked for: early too.
+      assert.equal(removalIsEarlyExit('Convo', { type: back }, { recapSettled: true, leaveRequested: true }), true);
+      // On the first scene's primer.
+      assert.equal(removalIsEarlyExit('FirstScene', { type: back }), true, `a ${back} out of the first scene was not early`);
+    }
+    // Finish, the end card, then Done: not early, and the wall may open.
+    const done = rig();
+    const nav = route();
+    watchRemoval(nav, (action) => removalIsEarlyExit('Convo', action, { recapSettled: true, leaveRequested: false }), () => done.wall.leftEarly());
+    nav.remove('POP');
+    await done.show();
+    assert.deepEqual(done.world.opened, ['launch']);
+    // The first scene replacing itself with its conversation is the way in.
+    assert.equal(removalIsEarlyExit('FirstScene', { type: 'REPLACE', payload: { name: 'Convo' } }), false);
+  });
+
+  // Round-2 verifier (2026-10-29): any REPLACE used to count as the way in, so
+  // the locked-route guard replacing the primer with the wall left a pending
+  // launch flag armed. Only a replace that goes to the conversation is.
+  test('the first scene replaced by anything but its conversation is an early exit', () => {
+    for (const name of ['Wall', 'Tabs', 'FirstScene', undefined]) {
+      assert.equal(removalIsEarlyExit('FirstScene', { type: 'REPLACE', payload: name === undefined ? undefined : { name } }), true, `a replace to ${String(name)} was not early`);
+    }
+    // Through the real listener shape, as React Navigation 7 sends it.
+    const r = rig();
+    const nav = route();
+    let signalled = 0;
+    const stop = watchRemoval(nav, (action) => removalIsEarlyExit('FirstScene', action), () => { signalled++; r.wall.leftEarly(); });
+    nav.remove('REPLACE', 'Convo');
+    assert.equal(signalled, 0, 'Start into the conversation counted as leaving');
+    nav.remove('REPLACE', 'Wall');
+    assert.equal(signalled, 1, 'the wall replacing the primer did not disarm the launch flag');
+    stop();
+  });
+
+  test('every way out of a scene is wired to the early-exit signal', () => {
+    const convo = evidence('apps/mobile/src/ConvoScreen.tsx');
+    assert.match(convo, /watchRemoval\(navigation, \(action\) => !removalHeldRef\.current && removalIsEarlyExit\('Convo', action, \{ recapSettled: recapSettledRef\.current, leaveRequested: leaveRequestedRef\.current \}\), noteLeftEarly\)/, 'a swipe or system back out of a conversation skips the early-exit signal');
+    const first = evidence('apps/mobile/src/nav/RootNavigator.tsx');
+    const firstRoute = first.slice(first.indexOf('function FirstSceneRoute('), first.indexOf('function LessonRoute('));
+    assert.match(firstRoute, /watchRemoval\(nav as unknown as RemovalSource, \(action\) => removalIsEarlyExit\('FirstScene', action\), noteLeftEarly\)/, 'a swipe or system back out of the first scene skips the early-exit signal');
+  });
+
+  test('a kept guest practice that was completed counts as the first completed conversation', () => {
+    assert.equal(guestPracticeCompletes({ live: { outcome: 'completed' } }), true);
+    for (const outcome of ['active', 'left', 'abandoned', undefined]) assert.equal(guestPracticeCompletes({ live: { outcome } }), false, `${outcome} counted`);
+    assert.equal(guestPracticeCompletes({ live: null }), false);
+    assert.equal(guestPracticeCompletes(null), false);
+    const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
+    const settled = handoff.indexOf("if ((await settleGuestHandoff(guest)).ack !== 'durable')");
+    const marked = handoff.indexOf('if (guestPracticeCompletes(guest)) void markConversationDone();');
+    assert.ok(settled > 0, 'the handoff save moved; this check reads nothing');
+    assert.ok(marked > settled, 'a kept, completed guest practice is not remembered as a finished conversation once the account holds it');
+  });
+});
+
 describe('the App wiring', () => {
+  test('a recap reached by leaving early neither unlocks the launch wall nor opens it', () => {
+    assert.equal(recapCompletesConversation({ leaveRequested: false, switching: false, learnerReplies: 2 }), true);
+    assert.equal(recapCompletesConversation({ leaveRequested: true, switching: false, learnerReplies: 2 }), false, 'a Leave-requested recap counted as a finished conversation');
+    assert.equal(recapCompletesConversation({ leaveRequested: false, switching: true, learnerReplies: 2 }), false, 'the switch-to-voice recap counted');
+    assert.equal(recapCompletesConversation({ leaveRequested: false, switching: false, learnerReplies: 0 }), false);
+    assert.equal(exitIsEarly({ recapSettled: false, leaveRequested: false }), true);
+    assert.equal(exitIsEarly({ recapSettled: true, leaveRequested: true }), true, 'leaving the end card a Leave asked for was not an early exit');
+    assert.equal(exitIsEarly({ recapSettled: true, leaveRequested: false }), false);
+
+    const convo = evidence('apps/mobile/src/ConvoScreen.tsx');
+    const settled = convo.slice(convo.indexOf("source: 'convo',"), convo.indexOf('One content-free beta event per finished conversation'));
+    assert.match(settled, /if \(recapCompletesConversation\(\{ leaveRequested: leaveRequestedRef\.current, switching: switchingRef\.current, learnerReplies \}\)\) void markConversationDone\(\);/, 'the recap marks a finished conversation without asking how it was reached');
+    assert.doesNotMatch(convo, /if \(learnerReplies > 0\) void markConversationDone/, 'the old unconditional mark is still there');
+    assert.match(convo, /if \(exitIsEarly\(\{ recapSettled: recapSettledRef\.current, leaveRequested: leaveRequestedRef\.current \}\)\) noteLeftEarly\(\);/, 'leaving the end card a Leave asked for does not disarm the launch wall');
+    // Every place a Leave asks for the recap marks it, ahead of the wait.
+    const waits = convo.match(/setLeaveWaiting\(true\)/g) ?? [];
+    const marked = convo.match(/leaveRequestedRef\.current = true; setLeaveWaiting\(true\)/g) ?? [];
+    assert.ok(waits.length > 0);
+    assert.equal(marked.length, waits.length, 'a Leave that waits for the recap is not remembered as a Leave');
+  });
+
   test('App calls the hooks, keeps the first-run entry, and guards locked routes on every navigation change', () => {
     const app = evidence('apps/mobile/App.tsx');
     assert.match(app, /const launchWall = useLaunchWall\(navigationRef, user\.id\);/);
@@ -308,9 +480,24 @@ describe('the App wiring', () => {
     assert.match(hook, /open: \(door\) => navigationRef\.navigate\('Wall', \{ entry: door \}\)/);
     assert.match(hook, /celebrationsHeld: celebrationsHeld\(\)/);
     assert.match(hook, /onCelebrationHoldChange\(\(\) => wall\.flush\(\)\)/);
-    assert.doesNotMatch(hook, /AsyncStorage|setItem\(/);
+    assert.doesNotMatch(hook, /AsyncStorage|setItem\(/, 'the hook writes the disk itself instead of through launchWallSeen.ts');
+    // Founder decision 4: the record, the day, the reload and the early exit reach the controller through the hook.
+    assert.match(hook, /seen: loadLaunchWallSeen,/);
+    assert.match(hook, /markShown: \(day\) => \{ void markLaunchWallShown\(/);
+    assert.match(hook, /today: \(\) => localDayKey\(Date\.now\(\)\)/);
+    assert.match(hook, /reload: RELOADED,/);
+    assert.match(hook, /const RELOADED = isWebReload\(/);
+    assert.match(hook, /onLeftEarly\(\(\) => wall\.leftEarly\(\)\)/);
+    const convo = evidence('apps/mobile/src/ConvoScreen.tsx');
+    const settled = convo.slice(convo.indexOf("source: 'convo',"), convo.indexOf('One content-free beta event per finished conversation'));
+    assert.match(settled, /void markConversationDone\(\);/, 'a finished conversation is not remembered for the launch wall');
+    const local = convo.slice(convo.indexOf('const settleLocally = '), convo.indexOf('const leaveTimedOut = '));
+    assert.ok(local.length > 0);
+    assert.doesNotMatch(local, /markConversationDone/, 'an early Leave counted as a finished conversation');
+    assert.match(convo, /leftRef\.current = true;\s*(?:\/\/[^\n]*\s*)?if \(exitIsEarly\(/, 'leaving before the recap does not disarm the launch wall');
+    assert.match(convo, /removalHeldRef\.current = inRoom && !leaving;/, 'a removal the room guard holds counts as leaving');
     const guard = evidence('apps/mobile/src/purchases/useFeatureLocks.ts');
-    assert.match(guard, /navigationRef\.dispatch\(StackActions\.replace\('Wall', \{ entry: 'locked' \}\)\)/);
+    assert.match(guard, /toWall: \(feature\) => navigationRef\.dispatch\(StackActions\.replace\('Wall', \{ entry: 'locked', feature \}\)\)/);
     assert.match(guard, /onBillingChange\(/);
     // The hand-off still says whether the practice was kept.
     const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');

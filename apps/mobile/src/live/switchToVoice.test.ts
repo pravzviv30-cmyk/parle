@@ -84,7 +84,7 @@ describe('Speak in a typed start — F903', () => {
     assert.equal(leaveDuringSwitch('rebuilding'), 'settle-locally');
     const screen = read('../ConvoScreen.tsx');
     assert.match(screen, /onLeave=\{leaveFromSwitch\}/);
-    assert.match(screen, /if \(leaveDuringSwitch\(switching\) === 'wait-for-recap'\) \{ switchingRef\.current = false; setSwitching\(null\); setLeaveWaiting\(true\); setFinishing\(true\); \}/);
+    assert.match(screen, /if \(leaveDuringSwitch\(switching\) === 'wait-for-recap'\) \{ switchingRef\.current = false; setSwitching\(null\); leaveRequestedRef\.current = true; setLeaveWaiting\(true\); setFinishing\(true\); \}/);
     assert.match(screen, /else \{ switchingRef\.current = false; leaveTimedOut\(\); \}/);
   });
 

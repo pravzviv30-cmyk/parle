@@ -101,7 +101,7 @@ describe('a conversation opens the way its button said — F903, F923', () => {
     // Within one visit the param is still the object itself.
     assert.deepEqual(parseSeedTopic(topic), topic);
     // The linking map writes and reads it that way, and the route hands the screen the validated one.
-    const linking = read('../nav/theme.ts');
+    const linking = read('../nav/linking.ts');
     assert.match(linking, /Convo: \{ path: 'conversation', parse: \{ seedTopic: parseSeedTopic \}, stringify: \{ seedTopic: stringifySeedTopic \} \}/);
     assert.match(read('../nav/RootNavigator.tsx'), /seedTopic=\{parseSeedTopic\(route\.params\?\.seedTopic\)\}/);
   });

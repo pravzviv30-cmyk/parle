@@ -12,6 +12,7 @@
  */
 
 import { PLAN_LABELS, type PlanStatusView } from '../purchases/planStatus.ts';
+import { OUT_OF_TIME_WORDS } from '../purchases/outOfTime.ts';
 import { PLANS_LEAD } from '../home/nextAction.ts';
 
 /** The drawings, at the artboard's sizes. Kept here so a screen reads a name rather than spelling one. */
@@ -22,8 +23,8 @@ export const NOTEBOOK_ART = { name: 'phrasebook', width: 150 } as const;
 export const ALL_DONE_ART = { name: 'cloud-cheer', width: 150, height: 114 } as const;
 
 export const OUT_OF_TIME = {
-  title: "You've used your free conversation",
-  still: 'Practice, review and your phrases are all still here.',
+  title: OUT_OF_TIME_WORDS.freeTitle,
+  still: OUT_OF_TIME_WORDS.kept,
   action: PLANS_LEAD.action,
 } as const;
 

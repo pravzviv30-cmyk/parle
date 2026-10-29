@@ -14,10 +14,41 @@
  * check. The reactive read says 'unknown' so a surface can choose to wait.
  */
 
+import { PLANS } from '@luvani/core';
+
 import type { BillingStatus } from './billingStatus.ts';
 import { LOCKED_FEATURES, capabilitiesFor, type LockedFeature } from './capabilities.ts';
 
 export { LOCKED_FEATURES, type LockedFeature };
+
+/** A paid plan a lock can name: Core ('starter') or Max ('regular'). */
+export type UnlockPlan = 'starter' | 'regular';
+
+/**
+ * The cheapest plan that opens a feature (F910, founder decision 14): Core
+ * when Core's own capabilities open it, else Max. Read from `capabilitiesFor`,
+ * never a second list, so a lock can only name the plan that really opens it.
+ * It depends on the feature alone, so a learner in Core's store trial still
+ * sees a Max lock say Max.
+ */
+export function requiredPlan(feature: LockedFeature): UnlockPlan {
+  return capabilitiesFor('starter').unlocks[feature] ? 'starter' : 'regular';
+}
+
+/** The plan's name as every other screen says it (core's PLANS labels: Core, Max). */
+export function unlockPlanName(plan: UnlockPlan): string {
+  return PLANS[plan].label;
+}
+
+/** What a screen reader hears for a lock: "Locked. Part of Core." */
+export function lockSpoken(plan: UnlockPlan): string {
+  return `Locked. Part of ${unlockPlanName(plan)}.`;
+}
+
+/** Is this string one of the locked features? For a feature that travelled as text (a web address). */
+export function isLockedFeature(value: unknown): value is LockedFeature {
+  return typeof value === 'string' && (LOCKED_FEATURES as readonly string[]).includes(value);
+}
 
 export type FeatureLockState = 'unlocked' | 'locked' | 'unknown';
 
@@ -156,8 +187,8 @@ export interface LockedRouteEnv {
   /** One fresh status read. */
   read: () => Promise<BillingStatus | null>;
   owner: () => number;
-  /** Replace the focused screen with the wall at its `locked` door. */
-  toWall: () => void;
+  /** Replace the focused screen with the wall at its `locked` door, naming the feature (F910). */
+  toWall: (feature: LockedFeature) => void;
 }
 
 /**
@@ -173,10 +204,11 @@ export function lockedRouteGuard(env: LockedRouteEnv): () => Promise<void> {
     const route = env.route();
     if (route === undefined) return;
     const decision = lockedRouteDecision(route.name, route.params, env.standing(), false);
+    const feature = lockedRouteFeature(route.name, route.params);
     if (decision !== 'read') {
       request++;
       reading = null;
-      if (decision === 'wall') env.toWall();
+      if (decision === 'wall' && feature !== null) env.toWall(feature);
       return;
     }
     if (reading === route.key) return;
@@ -187,6 +219,6 @@ export function lockedRouteGuard(env: LockedRouteEnv): () => Promise<void> {
     try { status = await env.read(); } catch { status = null; }
     if (req !== request || owner !== env.owner() || env.route()?.key !== route.key) return;
     reading = null;
-    if (lockedRouteDecision(route.name, route.params, status, true) === 'wall') env.toWall();
+    if (lockedRouteDecision(route.name, route.params, status, true) === 'wall' && feature !== null) env.toWall(feature);
   };
 }

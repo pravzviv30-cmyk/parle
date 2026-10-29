@@ -1,14 +1,13 @@
 import type { Plan, PlanSpec } from '@luvani/core';
 
 import type { BillingStatus } from '../purchases/billingStatus.ts';
-import { PLAN_LABELS, refillTime } from '../purchases/planStatus.ts';
+import { dayAndMonthOf, PLAN_LABELS, refillTime } from '../purchases/planStatus.ts';
+import { freshMinutesLine, outOfTimeWords, PERIOD_LINES } from '../purchases/outOfTime.ts';
 import {
-  ACCOUNT_FRESH_NOW,
   ACCOUNT_NONE_LEFT,
   ACCOUNT_UNDER_A_MINUTE,
   minutesLeft,
   freeRefill,
-  startsFresh,
   trialAllowance,
 } from './wallCopy.ts';
 import { CONVERSATION_MINUTES, wallTrial } from './wallPlans.ts';
@@ -61,9 +60,7 @@ const MONTHS = [
  * one, which is the day they will notice the minutes back.
  */
 export function dayAndMonth(iso: string): string | null {
-  const at = new Date(iso);
-  if (!Number.isFinite(at.getTime())) return null;
-  return `${at.getDate()} ${MONTHS[at.getMonth()]}`;
+  return dayAndMonthOf(iso);
 }
 
 function leftLine(secondsRemaining: number): string {
@@ -71,6 +68,12 @@ function leftLine(secondsRemaining: number): string {
   const minutes = Math.floor(secondsRemaining / 60);
   if (minutes < 1) return ACCOUNT_UNDER_A_MINUTE;
   return minutesLeft(minutes, Math.floor(secondsRemaining / (CONVERSATION_MINUTES * 60)));
+}
+
+/** Out of time, in the words every screen uses (F911): the refill, then offline. Digits only as handed in. */
+function outOfTimeLines(status: BillingStatus, now: number): string[] {
+  const words = outOfTimeWords({ plan: status.plan, reason: status.reason, refillsAt: status.periodEnd, now });
+  return [...(words.lead === null ? [] : [words.lead]), words.refill, words.offline];
 }
 
 export function wallAccount(
@@ -85,6 +88,7 @@ export function wallAccount(
   if (status.plan === 'trial') {
     const trial = wallTrial(catalogue);
     const lines = trial === null ? [] : [trialAllowance(trial.minutes, trial.conversations)];
+    if (!status.canStart) return { title: PLAN_LABELS.trial, lines: [...lines, ...outOfTimeLines(status, now)] };
     const day = status.periodEnd === null ? null : refillTime(status.periodEnd);
     return { title: PLAN_LABELS.trial, lines: [...lines, leftLine(status.secondsRemaining), ...(day === null ? [] : [freeRefill(day)])] };
   }
@@ -93,12 +97,14 @@ export function wallAccount(
   // and the page says nothing rather than something it cannot stand behind.
   if (status.lapsed) return null;
 
+  if (!status.canStart) return { title: PLAN_LABELS[status.plan], lines: outOfTimeLines(status, now) };
   const lines = [leftLine(status.secondsRemaining)];
   if (status.periodEnd !== null) {
     const end = new Date(status.periodEnd).getTime();
     const date = dayAndMonth(status.periodEnd);
-    if (Number.isFinite(end) && end <= now) lines.push(ACCOUNT_FRESH_NOW);
-    else if (date !== null) lines.push(startsFresh(date));
+    // F911: the same words as Subscription and the band, from one formatter.
+    if (Number.isFinite(end) && end <= now) lines.push(PERIOD_LINES.freshSoon);
+    else if (date !== null) lines.push(freshMinutesLine(date));
   }
   return { title: PLAN_LABELS[status.plan], lines };
 }

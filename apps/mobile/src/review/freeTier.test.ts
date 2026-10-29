@@ -77,8 +77,10 @@ describe("Home's review offer", () => {
 describe('the held-back row copy', () => {
   test('appears only when something was held back, and reads plainly', () => {
     assert.equal(heldBackLine(0), null);
-    assert.equal(heldBackLine(1), '1 phrase from your conversations is included with your trial.');
-    assert.equal(heldBackLine(3), '3 phrases from your conversations are included with your trial.');
+    // F910 (2026-10-29): the plan that opens it, not the trial.
+    assert.equal(heldBackLine(1), '1 phrase from your conversations is part of Core.');
+    assert.equal(heldBackLine(3), '3 phrases from your conversations are part of Core.');
+    assert.equal(HELD_BACK_ACTION, 'See Core');
   });
 
   test('passes the guilt ban and the punctuation rule', () => {

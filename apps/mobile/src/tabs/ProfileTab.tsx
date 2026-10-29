@@ -328,7 +328,7 @@ export function ProfileTab() {
           label={memoryRowTitle(tutor)}
           sub={MEMORY_PROFILE_SUB}
           lead={<BArt name="star-jar" width={42} height={38} />}
-          badge={memoryLocked ? <LockBadge form="round" /> : null}
+          badge={memoryLocked ? <LockBadge feature="tutorMemory" form="round" /> : null}
           onPress={() => tapThrough(locks.access, 'tutorMemory', locks.open, () => nav.navigate('TutorMemory'))}
         />
       </SettingsGroup>
@@ -339,7 +339,7 @@ export function ProfileTab() {
         <SettingsRow
           label={SOUNDS_ROW}
           sub={soundsLine(evidence.soundJourney) ?? undefined}
-          badge={soundsLocked ? <LockBadge form="round" /> : null}
+          badge={soundsLocked ? <LockBadge feature="sounds" form="round" /> : null}
           onPress={() => tapThrough(locks.access, 'sounds', locks.open, () => (evidence.soundJourney ? nav.navigate('SoundJourney') : openMyFrench()))}
         />
       </SettingsGroup>

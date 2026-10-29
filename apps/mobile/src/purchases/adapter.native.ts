@@ -2,7 +2,7 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { serverBillingReady } from './client.ts';
 import { auth } from '../auth/adapter.ts';
 import { storeQueue } from './storeQueue.ts';
-import { storeTrialFactsFrom } from './storeTrialFacts.ts';
+import { storeHeldPlanFrom, storeTrialFactsFrom } from './storeTrialFacts.ts';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import Purchases, { type PurchasesPackage } from 'react-native-purchases';
@@ -220,7 +220,9 @@ export const purchases: PurchasesAdapter = {
       // else buys nothing, which is what keeps the purchase path to the two
       // tiers the store and the server both agree exist.
       const match = (await paidPackages(userId)).find((entry) => entry.found.product.identifier === productId);
-      if (!match || configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
+      // No package (or not ready): no sheet opened, so nothing could be charged.
+      if (!match) return { ok: false, cancelled: false, notStarted: true };
+      if (configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       await Purchases.purchasePackage(match.found);
       if (configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       return { ok: true };
@@ -255,6 +257,21 @@ export const purchases: PurchasesAdapter = {
       const info = await Purchases.getCustomerInfo();
       if (configuredFor !== userId || owner !== scopeGeneration()) return null;
       return storeTrialFactsFrom(info, ENTITLEMENT_ID);
+    } catch {
+      return null;
+    }
+    });
+  },
+
+  // Read only, for the plan screen's renewal date and price (F909). Never a grant.
+  async heldPlan(userId) {
+    const owner = scopeGeneration();
+    return serial(async () => {
+    try {
+      if (!ENTITLEMENT_ID || !(await ready(userId))) return null;
+      const info = await Purchases.getCustomerInfo();
+      if (configuredFor !== userId || owner !== scopeGeneration()) return null;
+      return storeHeldPlanFrom(info, ENTITLEMENT_ID);
     } catch {
       return null;
     }

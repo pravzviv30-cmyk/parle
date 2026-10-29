@@ -23,10 +23,11 @@
  * Pure, so `trialTimeline.test.ts` can ask it questions; the page only draws it.
  */
 
+import { PLANS } from '@luvani/core';
+
 import {
   TRIAL_NOW,
   TRIAL_REMIND,
-  TRIAL_TITLE,
   startTrialLabel,
   trialBeforeDay,
   trialCancelBy,
@@ -34,6 +35,7 @@ import {
   trialMinutes,
   trialTerms,
   trialThen,
+  trialTitle,
   trialToday,
 } from './wallCopy.ts';
 import type { WallChosen } from './wallPlans.ts';
@@ -79,7 +81,8 @@ export function trialTimeline(input: {
   nodes.push({ key: 'then', title: trialDay(days), line: trialThen(offer.name, offer.price, offer.period) });
   return {
     days,
-    title: TRIAL_TITLE,
+    // The plan is named from the catalogue Luvani wrote (F932): "Your first week with Core".
+    title: trialTitle(PLANS[offer.plan].label, days),
     nodes,
     cta: startTrialLabel(days),
     terms: trialTerms(days, offer.price, offer.period),

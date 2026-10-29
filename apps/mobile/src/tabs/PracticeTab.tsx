@@ -250,8 +250,8 @@ export function PracticeTab() {
             <View style={st.list}>
               <SubHead title={EMPTY.readyNow} />
               {/* "free" is left out: the lesson uses live minutes, said in its own line (founder, 2026-10-21). */}
-              <ReadyRow title={cafe.title} lines={[cafe.line, cafe.cost]} art="phrasebook" ground="butter" locked={cafe.locked} disabled={checking} onPress={openLesson} />
-              <ReadyRow title={sounds.title} lines={[sounds.gloss]} art="voice-chat" ground="peach" locked={sounds.locked} onPress={() => go({ screen: 'SoundCheck' })} />
+              <ReadyRow title={cafe.title} lines={[cafe.line, cafe.cost]} art="phrasebook" ground="butter" locked={cafe.locked} feature="sounds" disabled={checking} onPress={openLesson} />
+              <ReadyRow title={sounds.title} lines={[sounds.gloss]} art="voice-chat" ground="peach" locked={sounds.locked} feature="sounds" onPress={() => go({ screen: 'SoundCheck' })} />
             </View>
             <View style={st.list}>
               <SubHead title={SAVED_PHRASES} />

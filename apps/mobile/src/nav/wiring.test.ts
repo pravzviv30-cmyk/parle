@@ -154,7 +154,7 @@ describe('every root screen has an address on the web — F493', () => {
     // And every one of them has a line in the map. Tabs is the container and
     // takes the empty path with its five children below it; everything else is
     // a word.
-    const linkingSource = strip(read('./theme.ts'));
+    const linkingSource = strip(read('./linking.ts'));
     const config = linkingSource.slice(linkingSource.indexOf('screens: {'));
     const paths = new Map<string, string>();
     for (const name of registered) {

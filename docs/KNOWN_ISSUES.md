@@ -10973,6 +10973,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `start again never grants, never starts a trial and never schedules the reminder`
 - verified-by: `reopening the wall never clears a still pending Ask to Buy`
 - verified-by: `the quiet check on open never clears on an empty store answer`
+- see also: F908 (2026-10-29). On web, and on native store errors that never reached a purchase, `storeHolds` is unknown, so nothing this fix added can clear the fence; F908 clears it on a failure that by definition charged nothing.
 - verified-by: `an existing same tier subscription never clears a checkout for a new period`
 
 ### F849 — "Waiting for approval" lived in screen memory, so a reopen or a "Check again" lost it
@@ -11590,3 +11591,149 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-10-29. A reply typed after an English-only hint now ticks the scene's goal. A typed answer that only copies the line just revealed still never counts.
 - verified-by: `a typed turn that meets an objective ticks it`
 - verified-by: `a typed answer copying the just-revealed line does not tick it`
+
+### F907 — The launch wall opens on every web refresh, unknown address and straight after sign-up
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/launchWall.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-05, review severity High; five reviewers). D24
+  intends a wall on each open; on web every refresh counts as an open, unknown paths redirect to
+  /plans?entry=launch, and the default plan alternated between Core and Max. Founder decision
+  first: revisit D24 (at most once a day, never before a completed conversation, never after an
+  early exit). Decided 2026-10-28 (founder decision 4, supersedes D24's cadence): at most once a
+  day, never before the first completed conversation, never on a web refresh or after an early
+  exit; it still shows at the limit and on a lock tap.
+- verified-by: `a web refresh is not an app open for the launch wall`
+- verified-by: `an unknown address goes Home rather than to the plans page`
+- verified-by: `the launch wall shows at most once a day and never before a completed conversation`
+- verified-by: `leaving a scene early never opens the launch wall`
+- verified-by: `the plans page suggests the same plan however its data arrives`
+- verified-by: `a recap reached by leaving early neither unlocks the launch wall nor opens it`
+- fixed: 2026-10-29. The launch wall now remembers, per account on this phone (`wall/launchWallSeen.ts`), the day it last opened and whether a conversation was finished. It opens at most once a day, only after a conversation ran to its recap with a learner reply, never on a web refresh (the browser's navigation type is read once at load), and never on the return from a conversation or first scene left before its recap. A recap a Leave asked for (F905) or the switch-to-voice recap is not a finished conversation, and leaving its end card is an early exit. Every way out of a conversation or the first scene (a swipe, Android's back, the browser's Back, as well as Leave) is judged when the route is removed (`watchRemoval`, `removalIsEarlyExit`). A kept guest practice that ran to its end counts as the first finished conversation once the account holds it. The first-run offer counts as that day's showing. Unknown web addresses resolve to Home (`nav/linking.ts`, a catch-all alias on Home). The plans page waits for both the goal and the plan status before suggesting a plan, and no goal now suggests nothing, so the page shows Core yearly every time instead of flipping to Core monthly.
+
+### F908 — A store failure leaves the checkout fence up, saying "do not buy again" and "nothing was changed" together
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/pendingPurchase.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-06, review severity High; three reviewers, web
+  with no store). The marker is written before the store sheet opens and a store failure keeps it,
+  so the fence reopens on cold start and from every lock, and "Start again" ends on "We couldn't
+  reach the store". F848's relief relies on storeHolds, which is always unknown on web. That a
+  native store error other than a cancel also keeps the marker is inferred from WallScreen settle.
+  Needs sandbox proof once purchases are configured.
+- fixed: 2026-10-29. A store call that failed before any purchase now carries `notStarted` (web always; native when no package matched or the store was not ready, before any sheet; and RevenueCat codes 3 and 5, purchase not allowed and product not available). Settlement reads it as `not-charged`, the wall clears the fence, stays on the plans page and says "The purchase didn't go through. Nothing was charged. You can try again." Account changes, network and store errors, unknown codes and payment pending keep the fence as before. The pending page no longer prints "Nothing was changed" under its "do not buy again" card, nor "Nothing was charged" when clearing the fence failed and it still stands (`pendingDetail`). Web marks itself `storeless`, so the open check and Start again clear a marker left by an older build there; native `storeHolds` answers are untouched. Money pins (6 files, 3 functions) re-pinned after the founder approved the exact diff on 2026-10-29. Native sandbox proof is still owed, including that RevenueCat codes 3 and 5 never arrive after a charge, which nothing in the SDK source proves.
+- verified-by: `a store call that fails before any purchase clears the checkout fence`
+- verified-by: `the pending page never says nothing was changed and do not buy again together`
+
+### F909 — Subscribers are told to cancel before a renewal the app never dates
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/planStatus.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-07, review severity High). Your plan says
+  "Renews in the coming weeks" three times next to "cancel at least 24 hours before renewal", while
+  the compare sheet knows the minutes date. Manage and Restore are hidden on web, as expected;
+  native was not verified.
+- fixed: 2026-10-29. Founder decision 9 reverses the no-dates rule for paid plans. The Subscription screen's Next renewal row says the store's own date and price once ("Core, yearly, £119.99. Renews on 27 November.", "Ends on" when it will not renew, "Free until …, then … a year." in a store trial), read from the active entitlement's product (`purchases.heldPlan`, `storeHeldPlanFrom`) and joined to the offering. The tutor-time card says when the minutes are fresh, from the server's window, apart from it. With no store answer it points to the App Store, Google Play, or either on web, and never invents a date. "Renews in the coming weeks" is gone. Android joins the entitlement's product and base plan (`product:basePlan`) and never borrows a sibling plan's price. Profile and Settings rows keep the minutes line and ask the store nothing; only the Subscription screen reads the held plan, sharing its one offering read. The cancel footer, Manage and Restore are unchanged. The founder's middot was replaced by commas and full stops, because the punctuation gate refuses it. Native store reads are unproven until sandbox.
+- verified-by: `a subscriber's plan screen shows the renewal date and price from the store`
+- verified-by: `the minutes refresh date is shown apart from the billing renewal date`
+
+### F910 — Free learners see "Included with your trial" on locks, and a Max feature opens the Core offer
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-08; five reviewers). The badge shows to accounts
+  that never had a trial; Rehearse opens the Core trial though only Max lists it; the free list
+  promises "Review and pronunciation practice" while Sounds of French is locked.
+- verified-by: `a lock names the plan that unlocks it`
+- verified-by: `a Max-only lock opens the Max offer`
+- verified-by: `the free list names nothing that is locked on Free`
+- fixed: 2026-10-29. Locks name the plan that opens them, read from `capabilitiesFor` (`requiredPlan` in purchases/featureLocks.ts): the pill reads Core or Max and a screen reader hears "Locked. Part of Core." at every badge and spoken-label site. `open(feature)` and the locked-route guard pass `Wall { entry: 'locked', feature }` (web address round-trips and validates it); the wall preselects the opening plan's yearly offer, opens with a short brief, and says "Unlock with Max" when the chosen plan opens it. The free list reads "Review of your lesson, daily and sample phrases" and "Your earned lesson recaps", held against Free's real review deal (`dealForTier`). Review's held-back row names Core ("… is part of Core.", "See Core"), a source sweep refuses any lock that names the trial, and Explore's plan lock opens `Wall { entry: 'locked', unlock: 'collections' }` with a brief and Core chosen (verifier round, 2026-10-29). Today's Coming up lock is realMoment's, matching its tap. A door changed on a mounted wall resets its page (`doorChange`), and the first scene replaced by anything but its conversation now counts as an early exit. Tests: wall/lockedEntry.test.ts, wallPages.test.ts, launchWall.test.ts.
+
+### F911 — The free limit shows three different messages and never says when time comes back
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/empty/emptyStates.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-09). Speak, Start (live/useLiveSession.ts) and
+  Subscription each word the limit differently, and none shows the refill time the 402 refusal
+  carries. Related F651.
+- verified-by: `every out-of-time message names when the next free conversation is ready`
+- fixed: 2026-10-29. `apps/mobile/src/purchases/outOfTime.ts` is the one source of the out-of-time words (title, refill line, "Until then, practise offline."), from the plan, the reason and `periodEnd` or a 402's `refillsAt`. It is called by `planStatus.ts` (`planStatusFor`'s band line and `outOfTime` field, read by Speak's band via `minutesBand`, the Settings and Subscription `planSentence`, and Speak's card via `empty/emptyStates.ts` `outOfTimeCard`), `tutor/orbState.ts` through `TutorTab.tsx` (the orb), `live/refusalRefill.ts` `refusalWords` (a 402 with `refillsAt`; without one the `useLiveSession.ts` table holds the same untimed words, pinned by `outOfMinutes.test.ts`), `home/nextAction.ts` `plansLeadBody` (Today) and `wall/wallAccount.ts` (the wall's account line). A free refill time already passed says "should be ready about now", never a past time. `outOfTime.ts` imports nothing from the app, so there is no require cycle. A free row with no refill time says "Your free conversation is used for now. Practice and review still work offline." and never a guessed time, which stays true for the row that never refills; a paid plan says "Fresh minutes on 27 November.". Test in `purchases/outOfTime.test.ts`.
+
+### F912 — Subscribers and lapsed subscribers are offered a 7-day free trial
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/wallCopy.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-10; observed, fixture trial facts). A Core
+  subscriber's compare page offers "Start 7-day free trial" and then "You already have this plan";
+  a lapsed Max subscriber gets the Core trial wall at cold start.
+- verified-by: `a current subscriber never sees trial copy on the wall`
+- verified-by: `a lapsed subscriber sees resubscribe wording rather than a trial`
+- fixed: 2026-10-29. Trial copy needs the offer's `trialDays`, a read status on Free, and not lapsed (`trialCopyAllowed`); an unread status shows the plans page loading rather than a trial it may take back. A current subscriber is offered the other plan's yearly offer, their plan is marked "Your plan" in the compare sheet and is not offered as a purchase (buy()'s refusal untouched as the backstop). A lapsed learner reads "Welcome back" and a plain offer. Tests: wall/subscriberWall.test.ts.
+
+### F913 — The compare sheet contradicts itself on conversations, allowances and streak freezes
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/wallCopy.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-11). "Both plans include every conversation"
+  sits beside a Max-only Rehearse line; Core is "about" 10 minutes a day and Max "up to" 20; "every
+  plan includes a second streak freeze" contradicts Free's one (purchases/capabilities.ts). Related
+  F564.
+- verified-by: `the compare sheet claims only what each plan's capabilities grant`
+- verified-by: `both plans state their minutes per 30 days in the same words`
+- fixed: 2026-10-29. One allowance template from the catalogue ("300 minutes every 30 days (about 10 a day)."), Max's extras read from its capabilities, `dailyAllowance` is "about" for both, COMPARE_INTRO says every scene and names Max's two extras, and INCLUSIONS.streak reads "Paid plans add a second streak freeze and a one-tap repair." (a pinned capabilities.ts line; the founder approved the diff on 2026-10-29 and it is re-pinned in moneyUntouched.test.ts). Tests: wall/subscriberWall.test.ts.
+
+### F914 — The Terms have no subscription section, and deleting an account ends with no confirmation
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/terms.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-12). Billing lines exist only in Privacy. After
+  "Verify and delete permanently" (settings/SettingsScreen.tsx) the app goes straight to sign-in,
+  with no confirmation and no reminder to cancel the store subscription. The re-authentication step
+  may be a mock-adapter artefact. Legal wording needs review before release.
+- fixed: 2026-10-29. Terms gain a draft "Subscriptions" section (`TERMS_SUBSCRIPTIONS`, own
+  600-character cap, rendered by `TermsScreen.tsx`); a complete delete ends on
+  `auth/AccountDeletedNotice.tsx` with the store-cancel reminder and a store link on iOS and
+  Android. Legal wording still needs professional review before release.
+- verified-by: `the terms state auto-renewal, cancellation timing and that deletion does not cancel`
+- verified-by: `account deletion ends on a confirmation that names cancelling the store subscription`
+
+### F931 — The wall stacks and stretches, and its default billing period varies
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/nav/RootNavigator.tsx
+- note: Found 2026-10-28 by the product review (LR-32; filed 2026-10-29 on claude/review-b-paywall,
+  Stream B, narrowed to the wall). Terms then Privacy from the wall left two walls stacked (seen
+  after a web reload and browser Back); the desktop compare sheet stretches to 1280 px; the
+  billing period default varies (shares its cause with F907's alternating plan). The sign-out
+  parts of LR-32 (no confirmation, signing back in lands on Settings, password fields outside a
+  form) belong to Stream E and are filed there.
+- verified-by: `opening Terms then Privacy from the wall keeps one wall`
+- verified-by: `the compare sheet keeps a readable width on a desktop screen`
+- fixed: 2026-10-29. The Wall is a single-instance screen (`getId` from `nav/singleWall.ts`), so Terms, Privacy and a browser Back that arrives as a fresh navigate return to the open wall instead of stacking a second. Every other way out of the wall replaces it (the bank, and leaving with nothing behind), so no wall is left under a live scene for a later out-of-minutes wall to pop back to. The compare sheet uses the Sheet's reading measure (`READING`), so it no longer stretches across a desktop screen. The billing-period default now follows F907's fix.
+
+### F932 — The trial page reproduces another app's trial-offer composition
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/wall/trialPaywall.ts
+- note: Found 2026-10-28 by the product review (LR-26, a brand and originality risk; filed
+  2026-10-29 on claude/review-b-paywall, Stream B). The "How your trial works" title, plan toggle
+  and lock, bell, calendar and star timeline follow Headspace's trial screen closely. Keep the
+  transparency (charge date, interval, how to cancel, nothing charged today) and redraw it in
+  Luvani's own learning-led form, per the report's section 10 (founder decision 6).
+- fixed: 2026-10-29. Titled "Your first week with <plan>", a route of dots on one line replaces the glyph timeline, and the cafe counter scene opens the page; tests `the trial page walks the first week as a route with Luvani's own scene art` and `the redrawn trial page still names the charge date, the price, how to cancel and that nothing is charged today` (apps/mobile/src/wall/trialRoute.test.ts).
+- verified-by: `the trial page walks the first week as a route with Luvani's own scene art`
+- verified-by: `the redrawn trial page still names the charge date, the price, how to cancel and that nothing is charged today`
+
+### F933 — A trial row created by a purchase before any device claim is spent and never refills
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/20261023220000_daily_free_allowance.sql:91
+- note: Found 2026-10-29 while fixing F911 (Stream B). `begin_billing_refresh` creates a trial row
+  for an account that starts a purchase before any device claim. The row is already spent, with
+  `weekly_taste=false` and no `period_end`, so the free conversation never refills and
+  `/billing/status` has no refill time to give. The app now words this truthfully ("Your free
+  conversation is used for now. Practice and review still work offline.", `purchases/outOfTime.ts`),
+  but the learner silently loses the every-other-day taste (REV-001). Not fixed here: it needs a
+  migration and the pinned billing files, so it waits for its own change with founder approval.
+- verified-by: `a trial row begun by a purchase still refills its free conversation every other day`
+

@@ -64,11 +64,11 @@ test('the used free minutes lead Home with the plans card, ahead of review and t
 
   // REV-001: on the free plan the card says when the free conversation comes back, on this phone's clock.
   const back = refillWhen(new Date('2026-10-26T12:00:00.000Z'));
-  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }), `Your next free conversation is ready ${back}. ${PLANS_LEAD.body}`);
-  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: null }), PLANS_LEAD.body);
+  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }, Date.parse('2026-10-25T00:00:00.000Z')), `Your next free conversation is ready ${back}. Until then, practise offline. When you want more conversations, a plan adds speaking time every month.`);
+  assert.equal(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: null }), 'Your free conversation is used for now. Practice and review still work offline. When you want more conversations, a plan adds speaking time every month.', 'F911: a free lead with no refill time says so plainly');
   assert.equal(plansLeadBody({ plan: 'starter', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }), PLANS_LEAD.body, 'a paid period end was said as a free refill');
   assert.equal(plansLeadBody(null), PLANS_LEAD.body);
-  assert.equal(guiltIn(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' })), undefined);
+  assert.equal(guiltIn(plansLeadBody({ plan: 'trial', reason: 'exhausted', periodEnd: '2026-10-26T12:00:00.000Z' }, Date.parse('2026-10-25T00:00:00.000Z'))), undefined);
 
   // The white review row under a plans or scene lead counts phrases and nothing else.
   assert.equal(dueLine(1), 'One phrase ready to recall');

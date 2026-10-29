@@ -140,7 +140,7 @@ describe('the Then and now screen', () => {
     // opens the scene preview (not Speak): Speak takes no scene, and the
     // preview is where a scene is started.
     assert.match(flat, /<BackButton onPress=\{\(\) => \(nav\.canGoBack\(\) \? nav\.goBack\(\) : nav\.navigate\('Tabs'\)\)\} \/>/);
-    assert.match(flat, /\{view\?\.locked \? <LockBadge \/> : null\}/);
+    assert.match(flat, /\{view\?\.locked \? <LockBadge feature="thenAndNow" \/> : null\}/);
     assert.match(flat, /\{row\.route !== null && row\.best === null && \( <BButton label=\{TRY_IT_AGAIN\}[^>]*height=\{44\} ground=\{t\.primary\}/);
   });
 

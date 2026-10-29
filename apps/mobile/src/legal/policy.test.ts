@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { guiltIn } from '../copy/guilt.ts';
 import { LEGAL_REVIEW_PENDING, companyFrom, privacyNote } from './company.ts';
 import { POLICY_COPY, POLICY_INTRO, POLICY_SECTIONS, POLICY_TITLE, policyCopy, policySections } from './policy.ts';
-import { APPLE_EULA_URL, TERMS_BODY, TERMS_COPY, TERMS_TITLE } from './terms.ts';
+import { APPLE_EULA_URL, TERMS_BODY, TERMS_COPY, TERMS_SUBSCRIPTIONS, TERMS_SUBSCRIPTIONS_HEADING, TERMS_TITLE } from './terms.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const source = (name: string): string => readFileSync(`${HERE}${name}`, 'utf8');
@@ -1002,6 +1002,36 @@ describe('the privacy notice — F479', () => {
       assert.doesNotMatch(line, /[—–]/, `em dash in the terms copy: ${line}`);
     }
   });
+});
+
+test('the terms state auto-renewal, cancellation timing and that deletion does not cancel', () => {
+  // F914. Apple's Guideline 3.1.2 asks an auto-renewing subscription to say
+  // how it renews and how to stop it, and before this the terms said nothing
+  // about money at all; only the privacy notice did. Its own section and its
+  // own short cap, so the licence paragraph keeps the cap that proves it is not
+  // reproducing Apple.
+  assert.equal(TERMS_SUBSCRIPTIONS_HEADING, 'Subscriptions');
+  const subs = TERMS_SUBSCRIPTIONS.join(' ');
+  assert.match(subs, /renews automatically until you cancel it\. If its price changes, the store tells you first/, 'auto-renewal and price-change notice are not stated');
+  assert.match(subs, /at least 24 hours before/, 'the cancellation deadline is not stated');
+  assert.match(subs, /App Store or Google Play/, 'where to cancel is not stated');
+  assert.match(subs, /free trial offered through the App Store or Google Play becomes a paid subscription/, 'the trial conversion is not stated');
+  assert.match(subs, /Unused minutes end with that period and are not rolled over/, 'unused minutes are not said to end with their period');
+  assert.match(subs, /Deleting your account does not cancel/, 'the terms do not say deletion leaves the subscription running');
+  // Consistent with the privacy notice, which says the same about deletion.
+  assert.match(POLICY_SECTIONS.map(s => s.body.join(' ')).join(' '), /Deleting your account does not cancel a store subscription/);
+  assert.doesNotMatch(subs, /price shown when you bought/, 'the terms promise a price the stores let a developer change');
+  assert.ok(subs.length < 600, 'the subscriptions section stopped being short');
+  for (const line of [TERMS_SUBSCRIPTIONS_HEADING, ...TERMS_SUBSCRIPTIONS]) {
+    assert.ok(TERMS_COPY.includes(line), `the copy scans miss a subscriptions line: ${line}`);
+    assert.doesNotMatch(line, /[\u2014\u2013\u00b7]/, `em dash or middot in the subscriptions copy: ${line}`);
+    assert.equal(guiltIn(line), undefined, `guilt in the subscriptions copy: ${line}`);
+  }
+  // Drawn by the screen, not only exported.
+  const screen = source('TermsScreen.tsx');
+  assert.match(screen, /TERMS_SUBSCRIPTIONS\.map\(/, 'the terms screen does not draw the subscriptions section');
+  assert.match(screen, /\{TERMS_SUBSCRIPTIONS_HEADING\}/, 'the terms screen draws no subscriptions heading');
+  assert.match(source('terms.ts'), /draft/i, 'the subscriptions text no longer says it is a draft awaiting legal review');
 });
 
 test("the privacy notice's age section does not promise the question is asked only once", () => {

@@ -162,6 +162,6 @@ describe('the first scene opens with a microphone primer', () => {
     assert.match(navigator, /<Stack\.Screen name="FirstScene" component=\{FirstSceneRoute\} \/>/, 'the first scene is not a route');
     assert.match(navigator, /nav\.replace\('Convo', \{ missionId, textMode \}\)/, 'the primer does not hand over to the ordinary conversation route');
     assert.match(read('../nav/types.ts'), /FirstScene: \{ missionId: string \}/);
-    assert.match(read('../nav/theme.ts'), /FirstScene: 'first-scene\/:missionId'/);
+    assert.match(read('../nav/linking.ts'), /FirstScene: 'first-scene\/:missionId'/);
   });
 });

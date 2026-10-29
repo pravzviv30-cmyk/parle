@@ -12,7 +12,7 @@ const free = (band: 'plenty' | 'a-little' | 'none', bandLine: string) => ({ know
 test('the free plan with no time left gets the card, with the band line as its refill', () => {
   assert.deepEqual(outOfTimeCard(free('none', 'Your next free conversation is ready on Monday at 4:10 pm.')), {
     title: OUT_OF_TIME.title,
-    body: 'Your next free conversation is ready on Monday at 4:10 pm. Practice, review and your phrases are all still here.',
+    body: 'Your next free conversation is ready on Monday at 4:10 pm. Your phrases are all still here.',
     action: 'See the plans',
   });
   assert.equal(outOfTimeCard(free('a-little', 'x')), null, 'a learner with time left was told it was used');

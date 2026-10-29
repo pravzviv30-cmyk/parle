@@ -96,7 +96,7 @@ describe('the tab that is a person — P2, 2026-10-19', () => {
     assert.match(TAB, /onPress=\{\(\) => setSheet\('tutorVoice'\)\}/, 'the tutor row cannot open the voice sheet');
     assert.match(TAB, /label=\{memoryRowTitle\(tutor\)\}/, 'the memory row spells the tutor name itself');
     assert.match(TAB, /tapThrough\(locks\.access, 'tutorMemory', locks\.open, \(\) => nav\.navigate\('TutorMemory'\)\)/, 'the memory row skips the lock seam, or leads nowhere');
-    assert.match(TAB, /badge=\{memoryLocked \? <LockBadge form="round" \/> : null\}/, 'the memory lock is not the seam\'s');
+    assert.match(TAB, /badge=\{memoryLocked \? <LockBadge feature="tutorMemory" form="round" \/> : null\}/, 'the memory lock is not the seam\'s');
     assert.match(TAB, /const memoryLocked = locks\.access\('tutorMemory'\) === 'locked';/);
     assert.match(TAB, /const soundsLocked = locks\.access\('sounds'\) === 'locked';/);
 

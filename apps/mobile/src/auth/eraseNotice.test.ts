@@ -23,6 +23,14 @@ import { describe, test } from 'node:test';
 import { deleteAccountAndErase, type DeleteAccountSteps } from './deleteAccountFlow.ts';
 import { ERASE_NOTICE_BODY, ERASE_NOTICE_DISMISS, ERASE_NOTICE_TITLE } from './eraseNotice.ts';
 import { guiltIn } from '../copy/guilt.ts';
+import {
+  ACCOUNT_DELETED_BODY,
+  ACCOUNT_DELETED_DISMISS,
+  ACCOUNT_DELETED_STORE,
+  ACCOUNT_DELETED_TITLE,
+  STORE_SUBSCRIPTIONS_URL,
+  storeSubscriptionsUrl,
+} from './accountDeleted.ts';
 
 const AUTH_DIR = import.meta.dirname;
 const read = (name: string): string => readFileSync(path.join(AUTH_DIR, name), 'utf8');
@@ -130,17 +138,54 @@ describe('the device that kept a copy says so, on the far side of the sign-out â
     );
   });
 
-  test('a delete that erased cleanly signs out in silence', async () => {
+  test('account deletion ends on a confirmation that names cancelling the store subscription', async () => {
+    // F914 reverses the old "a clean delete signs out in silence" on purpose:
+    // the learner was dropped on the welcome with no word that the account had
+    // gone, and nothing to say the store keeps charging until they cancel there.
     const { log, steps: clean } = steps();
     const result = await deleteAccountAndErase(clean, 'hunter2');
-
-    assert.deepEqual(
-      log,
-      ['reauthenticate', 'deleteAccount', 'eraseThisDevice', 'signOut'],
-      'the happy path changed shape; a clean delete erases this device and signs out, and says nothing',
-    );
+    assert.deepEqual(log, ['reauthenticate', 'deleteAccount', 'eraseThisDevice', 'signOut'], 'the happy path changed shape');
     assert.ok(!log.includes('warnLocalCopyKept'), 'a device that was erased is warned about anyway');
     assert.equal(result.ok, true);
+
+    assert.equal(ACCOUNT_DELETED_TITLE, 'Your account has been deleted.');
+    assert.equal(ACCOUNT_DELETED_BODY, 'If you subscribed, cancel it in the App Store or Google Play too.');
+    assert.equal(STORE_SUBSCRIPTIONS_URL.ios, 'https://apps.apple.com/account/subscriptions');
+    assert.equal(STORE_SUBSCRIPTIONS_URL.android, 'https://play.google.com/store/account/subscriptions');
+    assert.equal(storeSubscriptionsUrl('ios'), STORE_SUBSCRIPTIONS_URL.ios);
+    assert.equal(storeSubscriptionsUrl('android'), STORE_SUBSCRIPTIONS_URL.android);
+    assert.equal(storeSubscriptionsUrl('web'), null, 'the web guesses a store it cannot know the learner used');
+    for (const line of [ACCOUNT_DELETED_TITLE, ACCOUNT_DELETED_BODY, ACCOUNT_DELETED_STORE, ACCOUNT_DELETED_DISMISS]) {
+      assert.ok(!/[\u2014\u2013\u00b7]/.test(line), `em dash or middot: ${line}`);
+      assert.equal(guiltIn(line), undefined, `guilt: ${line}`);
+    }
+
+    // Only a real, complete deletion: the server said 2xx and not 202.
+    const gate = APP.slice(at('function Gate()', 'Gate moved'), at('export default function App()', 'App moved'));
+    assert.match(gate, /const \[accountDeleted, setAccountDeleted\] = useState\(false\)/, 'the notice flag is not launch-lived memory');
+    assert.match(
+      gate,
+      /if \(result\.ok && result\.deletionPending\) setDeletionPending\(true\);\s*else if \(result\.ok\) setAccountDeleted\(true\);/,
+      'the confirmation is raised for something other than a complete deletion',
+    );
+    // After the device warning and the pending notice, before the welcome.
+    const erase = gate.indexOf('if (localCopyKept) return <EraseNoticeScreen');
+    const pending = gate.indexOf('if (deletionPending) return <DeletionPendingNotice');
+    const deleted = gate.indexOf('if (accountDeleted) return <AccountDeletedNotice');
+    const flow = gate.indexOf('<AuthFlow');
+    assert.ok(erase > 0 && pending > erase && deleted > pending && flow > deleted, 'the confirmation is not drawn after the other notices and before the welcome');
+    assert.match(gate, /<AccountDeletedNotice onDismiss=\{\(\) => setAccountDeleted\(false\)\} \/>/, 'the confirmation cannot be dismissed');
+
+    // Nothing about the deleted account is stored.
+    const screen = read('AccountDeletedNotice.tsx');
+    for (const persistence of ['AsyncStorage', 'SecureStore', 'localStorage', 'userKey', 'storage/']) {
+      assert.ok(!screen.includes(persistence) && !read('accountDeleted.ts').includes(persistence), `the confirmation touches ${persistence}`);
+    }
+    assert.match(screen, /<TroubleLine message=\{ACCOUNT_DELETED_BODY\} strong \/>/, 'the store line is not the announced line');
+    assert.match(screen, /openLink\(url\)/, 'the store button opens nothing');
+    assert.match(screen, /url === null \? null :/, 'the web draws a store link it cannot choose truthfully');
+    assert.match(screen, /<PillButton label=\{ACCOUNT_DELETED_DISMISS\} onPress=\{onDismiss\} \/>/, 'there is no way on');
+    assert.ok(!screen.includes('<ScreenHeader'), 'the confirmation draws a way back to a tree that has gone');
   });
 
   test('a refusal before the account is gone leaves the learner signed in with a reason', async () => {

@@ -38,7 +38,7 @@ import type { MissionCompletion } from '@luvani/core';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, AppState } from 'react-native';
-import { useIsFocused, usePreventRemove } from '@react-navigation/native';
+import { useIsFocused, useNavigation, usePreventRemove } from '@react-navigation/native';
 import {
   missionStates,
   isEarned,
@@ -69,6 +69,8 @@ import { ConfirmSheet, ScrollScreen } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
 import { SWITCH_WAIT, leaveDuringSwitch, rebuildAfterTeardown, switchWaitOver, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
 import { LEAVE_RECAP_WAIT_MS, leaveOnConfirm, leaveOnTimeout } from './live/leaveKeepingWork.ts';
+import { markConversationDone, noteLeftEarly } from './wall/launchWallSeen.ts';
+import { exitIsEarly, recapCompletesConversation, removalIsEarlyExit, watchRemoval, type RemovalSource } from './wall/launchWall.ts';
 import { banksPracticeFor, learnerRepliesOf, recapUse, sessionCredit } from './recap/sessionCredit.ts';
 import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
@@ -320,6 +322,10 @@ export function ConvoScreen({
   // F905: exactly one of the recap's settle and the local one writes the sitting.
   const settledLocallyRef = useRef(false);
   const recapSettledRef = useRef(false);
+  // A Leave asked for the recap (F905): the scene was not finished, so the
+  // launch wall neither counts it nor opens on the way out (founder decision 4).
+  // A ref, not `leaveWaiting`, so the recap effect reads it without a stale render.
+  const leaveRequestedRef = useRef(false);
   // Before the session, which tells the agent (live/useTapToSend.ts).
   const { tapToSend, onTapToSend } = useTapToSend();
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
@@ -661,6 +667,8 @@ export function ConvoScreen({
         activeMs,
         write: () => recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: activeMs, finished: true } : { durationMs: endedAt - openedAt, activeMs: activeMs, finished: true }),
       }).then(setConvoDelta);
+      // Founder decision 4: only Finish or the scene's end, with a learner reply, lets the launch wall open on later days.
+      if (recapCompletesConversation({ leaveRequested: leaveRequestedRef.current, switching: switchingRef.current, learnerReplies })) void markConversationDone();
       }
       // One content-free beta event per finished conversation (analytics/sessionFinished.ts).
       if (use.track) void trackProductEvent(sessionFinishedEvent({ kind: 'convo', voice: !live.voiceless, turns: learnerRepliesOf(stats) ?? stats.turns, rescues: stats.rescues,
@@ -869,6 +877,8 @@ export function ConvoScreen({
 
   const leaveTo = (afterLeave: () => void) => {
     leftRef.current = true;
+    // Founder decision 4: a scene left before its recap, or out of the end card a Leave asked for, opens no launch wall on the way back.
+    if (exitIsEarly({ recapSettled: recapSettledRef.current, leaveRequested: leaveRequestedRef.current })) noteLeftEarly();
     // F402 — where they got to, so the tutor's resume card can offer it back
     // with a minutes line instead of a bare title.
     //
@@ -996,7 +1006,7 @@ export function ConvoScreen({
   const leaveFromSwitch = () => {
     leftRef.current = true;
     if (switching === null) { leaveNow(); return; }
-    if (leaveDuringSwitch(switching) === 'wait-for-recap') { switchingRef.current = false; setSwitching(null); setLeaveWaiting(true); setFinishing(true); }
+    if (leaveDuringSwitch(switching) === 'wait-for-recap') { switchingRef.current = false; setSwitching(null); leaveRequestedRef.current = true; setLeaveWaiting(true); setFinishing(true); }
     else { switchingRef.current = false; leaveTimedOut(); }
   };
   const switchCopy = switchToVoiceCopy(tutorName);
@@ -1028,6 +1038,14 @@ export function ConvoScreen({
   // neither can pop the room without meeting the same sheet the header opens.
   usePreventRemove(inRoom && !leaving, () => setConfirming(true));
 
+  // Founder decision 4: every way out (a swipe, Android's back, the browser's
+  // Back, as well as Leave) tells the launch wall when the scene was left
+  // early. A removal the guard above holds is not a way out.
+  const navigation = useNavigation() as unknown as RemovalSource;
+  const removalHeldRef = useRef(false);
+  removalHeldRef.current = inRoom && !leaving;
+  useEffect(() => watchRemoval(navigation, (action) => !removalHeldRef.current && removalIsEarlyExit('Convo', action, { recapSettled: recapSettledRef.current, leaveRequested: leaveRequestedRef.current }), noteLeftEarly), [navigation]);
+
   // The exit runs from the effect, not from the sheet's confirm: with the guard
   // still up an inline pop would be prevented. Raising `leaving` lowers it first.
   // A report saved in the room, and a leave with no end card after it: the
@@ -1043,7 +1061,7 @@ export function ConvoScreen({
   const leaveKeepingWork = (): boolean => {
     const [action] = leaveOnConfirm({ learnerReplies, stopped, reportHeld, recapArrived: live.recap !== null });
     if (action?.kind !== 'request-recap') return false;
-    setLeaveWaiting(true); setFinishing(true); live.requestRecap();
+    leaveRequestedRef.current = true; setLeaveWaiting(true); setFinishing(true); live.requestRecap();
     return true;
   };
   useEffect(() => {

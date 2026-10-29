@@ -158,7 +158,7 @@ describe('what the tutor remembers, drawn', () => {
     // from row two of the one card on Profile that is about the tutor.
     const types = stripComments(read('../nav/types.ts'));
     assert.match(types, /TutorMemory: undefined;/, 'the route is not declared');
-    assert.match(stripComments(read('../nav/theme.ts')), /TutorMemory: 'tutor-memory'/, 'the route has no web address');
+    assert.match(stripComments(read('../nav/linking.ts')), /TutorMemory: 'tutor-memory'/, 'the route has no web address');
     const navigator = stripComments(read('../nav/RootNavigator.tsx'));
     assert.match(navigator, /<Stack\.Screen name="TutorMemory" component=\{TutorMemoryRoute\} \/>/, 'the route is not registered');
     const profile = stripComments(read('../tabs/ProfileTab.tsx'));

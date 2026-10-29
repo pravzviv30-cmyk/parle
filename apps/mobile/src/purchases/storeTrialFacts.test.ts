@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { storeTrialFactsFrom } from './storeTrialFacts.ts';
+import { storeHeldPlanFrom, storeTrialFactsFrom } from './storeTrialFacts.ts';
 import { purchases } from './adapter.ts';
 
 const END = '2026-10-26T12:00:00Z';
@@ -54,4 +54,13 @@ test('store facts never reach a grant: the reader and the native read touch no b
   const body = native.slice(native.indexOf('async trialFacts('), native.indexOf('onStoreChange(listener)'));
   assert.ok(body.length > 0);
   assert.doesNotMatch(body, /refreshBilling|billingChanged|save\(|fetch\(|purchasePackage|restorePurchases/);
+});
+
+test('an Android held id already joined as sub:base is never joined twice', () => {
+  const held = (productIdentifier: string, productPlanIdentifier?: string) => storeHeldPlanFrom({
+    entitlements: { active: { pro: { isActive: true, productIdentifier, productPlanIdentifier, periodType: 'NORMAL', willRenew: true, expirationDate: '2026-11-27T10:00:00.000Z' } } },
+  } as never, 'pro');
+  assert.equal(held('luvani_core:monthly', 'monthly')?.productId, 'luvani_core:monthly');
+  assert.equal(held('luvani_core', 'monthly')?.productId, 'luvani_core:monthly');
+  assert.equal(held('luvani_core')?.productId, 'luvani_core');
 });

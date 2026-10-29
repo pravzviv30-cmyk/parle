@@ -130,6 +130,6 @@ describe('the goal screen is a route with an address — Stage 4', () => {
     assert.match(types, /GoalStep: \{ key: string \};/);
     const nav = stripComments(read('../nav/RootNavigator.tsx'));
     assert.match(nav, /<Stack\.Screen name="GoalStep" component=\{GoalStepScreen\} \/>/);
-    assert.match(stripComments(read('../nav/theme.ts')), /GoalStep: 'goal-step',/);
+    assert.match(stripComments(read('../nav/linking.ts')), /GoalStep: 'goal-step',/);
   });
 });

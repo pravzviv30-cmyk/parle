@@ -181,10 +181,10 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(RENDER_FLAT, /\{replay !== null && \(/);
     assert.match(RENDER_FLAT, /onPress=\{\(\) => tapThrough\(locks\.access, replay\.feature, locks\.open, \(\) => open\(textMode, answered\(replay\.params\)\)\)\}/);
     // 2026-10-20 UI-008, artboard B-Speak: the drawn line is the artboard's; the help word is said in the label.
-    assert.match(RENDER_FLAT, /accessibilityLabel=\{`\$\{LESS_HELP_TITLE\}, \$\{replay\.title\}, \$\{replay\.line\}, \$\{replay\.help\}\$\{replay\.locked \? `, \$\{LOCK_BADGE_LABEL\}` : ''\}`\}/);
+    assert.match(RENDER_FLAT, /accessibilityLabel=\{lockSaid\(`\$\{LESS_HELP_TITLE\}, \$\{replay\.title\}, \$\{replay\.line\}, \$\{replay\.help\}`, replay\.feature, replay\.locked\)\}/);
     assert.match(RENDER_FLAT, /<BArt name="cafe-table" width=\{70\} height=\{64\} style=\{st\.twistArt\} \/>/);
     assert.match(FLAT, /borderWidth: 2, borderStyle: 'dashed', borderColor: t\.periwinkle/);
-    assert.match(RENDER_FLAT, /\{replay\.locked && <LockBadge said \/>\}/);
+    assert.match(RENDER_FLAT, /\{replay\.locked && <LockBadge feature=\{replay\.feature\} said \/>\}/);
     assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab decides a lock itself instead of reading the view model');
   });
 
@@ -204,7 +204,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     // 2026-10-20, lock seam wiring: tiles read the reactive seam; their routes are App.tsx's locked routes, so the tap needs no gate.
     assert.match(FLAT, /const tiles = speakTiles\(tutorName, locks\.access\);/);
     assert.match(RENDER_FLAT, /onPress=\{\(\) => nav\.navigate\(tile\.route\.screen\)\}/);
-    assert.match(RENDER_FLAT, /\{tile\.locked && <LockBadge form="round" said \/>\}/);
+    assert.match(RENDER_FLAT, /\{tile\.locked && tile\.feature !== null && <LockBadge feature=\{tile\.feature\} form="round" said \/>\}/);
     assert.match(RENDER_FLAT, /<BArt name=\{tile\.art\.name\} width=\{tile\.art\.width\} height=\{tile\.art\.height\} \/>/);
     assert.match(RENDER_FLAT, /backgroundColor: t\[tile\.ground\]/);
     // 2026-10-20 UI-008, sim check: the padding is tileLayout's (12, or 10 to keep three up).
@@ -318,7 +318,7 @@ describe('Speak keeps its history read, its plan read and its continuation', () 
     const offline = between(RENDER, '{offlineShown && (', '</EmptyStateCard>', 'the offline block is drawn');
     assert.ok(!offline.includes('LESSON_MINUTES'));
     assert.match(FLAT, /open\(heldBack \? heldBack\.textMode : textMode, heldBack \? pendingStart\.current : answered\(next\.params\)\)/);
-    assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/);
+    assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart, outOfTime: planView\?\.known \? planView\.outOfTime \?\? null : null \}\)/);
     assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
   });
 });

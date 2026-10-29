@@ -48,7 +48,7 @@ import { levelFor, missionStates, totalXp, type DrillExercise, type ReviewCard }
 
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
 import { HIT, bType, decorative, radius, space, type } from '../theme.ts';
-import { Card, IconAction, LOCK_BADGE_LABEL, LockBadge, PillButton, Skeleton } from '../components.tsx';
+import { Card, IconAction, LockBadge, PillButton, Skeleton } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, ComingUpCard, OutlineLock, WeekCard } from '../today/TodayParts.tsx';
 import { visibleFacts } from '../profile/memory.ts';
@@ -62,7 +62,7 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { goalOf } from '../onboarding/goalLine.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useFeatureAccess } from '../access/useFeatureAccess.ts';
-import { tapThrough } from '../access/featureAccess.ts';
+import { lockSaid, tapThrough } from '../access/featureAccess.ts';
 import { homeGreeting } from '../home/greeting.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { loadPackMarks, withMarks } from '../conversationPacks/marks.ts';
@@ -181,7 +181,7 @@ export function HomeTab() {
     <View style={st.fix}>
       <View style={st.fixHead}>
         <Text accessibilityRole="header" style={[bType.eyebrow, st.grow, { color: t.mintWords }]}>{TODAY_COPY.fix}</Text>
-        {fix.locked && <LockBadge said />}
+        {fix.locked && <LockBadge feature="fixes" said />}
       </View>
       <View style={st.ask}>
         <Text style={[bType.note, { color: t.muted }]}>{TODAY_COPY.fixAsk}</Text>
@@ -193,7 +193,7 @@ export function HomeTab() {
       </View>
       <BButton
         label={TODAY_COPY.fixAction}
-        accessibilityLabel={fix.locked ? `${TODAY_COPY.fixAction}, ${LOCK_BADGE_LABEL}` : undefined}
+        accessibilityLabel={fix.locked ? lockSaid(TODAY_COPY.fixAction, 'fixes', true) : undefined}
         height={50}
         ground={t.primary}
         ink={t.onPrimary}

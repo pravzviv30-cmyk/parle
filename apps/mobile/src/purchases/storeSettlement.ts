@@ -13,6 +13,8 @@ export async function ownedStoreSettlement(
   if (!current()) return { kind: 'store-trouble' };
   // Deferred (Ask to Buy) is not a sale: no refresh, so nothing here can read as a grant.
   if (!action.ok && !action.cancelled && action.deferred === true) return { kind: 'awaiting-approval' };
+  // Never started (F908): nothing charged, nothing to refresh.
+  if (!action.ok && !action.cancelled && action.notStarted === true) return { kind: 'not-charged' };
   if (!action.ok) return { kind: action.cancelled ? 'cancelled' : 'store-trouble' };
   const result = await refresh();
   if (!current() || result === null) return { kind: 'refresh-trouble' };

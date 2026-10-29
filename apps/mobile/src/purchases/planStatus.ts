@@ -7,8 +7,12 @@
  * This folds them into one of three bands and hands the card sentences, and
  * the test holds that no digit can come out of it, whatever goes in.
  *
- * The same rule covers the period. "Renews on the 12th" is a date a learner can
- * read as a deadline, so a paid period is said as a distance in words.
+ * The period used to follow the same rule, as a distance in words. Founder
+ * decision 9 (F909, 2026-10-29) reversed that for paid plans: a subscriber told
+ * to cancel 24 hours before renewal needs the date. So a paid plan says when its
+ * minutes are fresh ("Fresh minutes on 27 November", the server's window), and
+ * `renewalLines` says the store's own renewal date and price apart from it. A
+ * date is printed only when it was handed in; nothing here invents one.
  *
  * One exception, by founder decision REV-001 (2026-10-23, replacing D24): the
  * free plan is one ten-minute conversation, back 44 hours after the window's
@@ -25,6 +29,11 @@
 import { PLANS, refillWhen, STORE_TRIAL_DAYS, storeTrialSeconds } from '@luvani/core';
 
 import type { BillingStatus } from './billingStatus.ts';
+import { dayAndMonthOf, endsOutOfTime, freshMinutesLine, outOfTimeWords, PERIOD_LINES, type OutOfTimeWords } from './outOfTime.ts';
+
+// Said in `outOfTime.ts`, a leaf, so the two never import each other (F911).
+export { dayAndMonthOf, freeBackLine, freshMinutesLine, PERIOD_LINES } from './outOfTime.ts';
+import type { StoreHeldPlan, StoreOffering, StoreProduct } from './contract.ts';
 
 export type PlanBand = 'plenty' | 'a-little' | 'none';
 
@@ -33,11 +42,13 @@ export type PlanStatusView =
       known: true;
       /** The plan's name, in the words a learner reads: Free, Core, Max. */
       planLabel: string;
-      /** The period, as a distance in words. Never a date. */
+      /** The period. On a paid plan, when the minutes are fresh (the server's window), never the billing date. */
       periodLine: string;
       band: PlanBand;
       bandLine: string;
       canStart: boolean;
+      /** The shared out-of-time words when a session cannot start for lack of time (F911). */
+      outOfTime?: OutOfTimeWords;
     }
   | { known: false; line: string };
 
@@ -57,14 +68,46 @@ export const PLAN_LABELS = {
   regular: PLANS.regular.label,
 } as const;
 
-export const PERIOD_LINES = {
-  trial: 'One free conversation every other day.',
-  lapsed: 'Your paid plan has ended.',
-  renewingNow: 'Renewing about now.',
-  renewsThisWeek: 'Renews within the week.',
-  renewsLater: 'Renews in the coming weeks.',
-  monthly: 'Renews monthly.',
+/** Where the renewal date lives when the store did not answer (F909). Never a guessed date. */
+export const RENEWAL_POINTERS = {
+  ios: 'Your renewal date is in your App Store subscriptions.',
+  android: 'Your renewal date is in your Google Play subscriptions.',
+  web: 'Your renewal date is in the App Store or Google Play, wherever you subscribed.',
 } as const;
+
+const PERIOD_WORDS: Record<StoreProduct['period'], { adverb: string; noun: string }> = {
+  week: { adverb: 'weekly', noun: 'week' },
+  month: { adverb: 'monthly', noun: 'month' },
+  year: { adverb: 'yearly', noun: 'year' },
+};
+
+export type StorePlatform = 'ios' | 'android' | 'web';
+
+/**
+ * The renewal line, from the store's own answer (F909). `full` is the plan
+ * screen's ("Core, yearly, £119.99. Renews on 27 November."; the
+ * punctuation gate refuses the middot the founder's sketch used), `short` the plan
+ * rows' ("Renews on 27 November."), null when there is no date to give.
+ *
+ * Only a product the store offered, for the tier the server says this account
+ * holds, with an expiry and a renew answer, gets a date. Anything less is the
+ * pointer to the store. Free, lapsed and unread plans have no renewal: null.
+ */
+export function renewalLines(status: BillingStatus | null, offering: StoreOffering | null, held: StoreHeldPlan | null, platform: StorePlatform): { full: string; short: string | null } | null {
+  if (status === null || status.plan === 'trial' || status.lapsed) return null;
+  const pointer = { full: RENEWAL_POINTERS[platform], short: null };
+  if (held === null || offering === null || !offering.available) return pointer;
+  const product = [...offering.products, ...(offering.yearly ?? []), ...(offering.weekly ?? [])]
+    .find((candidate) => candidate.productId === held.productId);
+  const date = held.expiresAt === null ? null : dayAndMonthOf(held.expiresAt);
+  if (!product || product.plan !== status.plan || date === null || held.willRenew === null) return pointer;
+  const words = PERIOD_WORDS[product.period];
+  if (held.inTrial === true && held.willRenew) return { full: `Free until ${date}, then ${product.localizedPrice} a ${words.noun}.`, short: `Free until ${date}.` };
+  const name = `${PLAN_LABELS[product.plan]}, ${words.adverb}, ${product.localizedPrice}.`;
+  return held.willRenew
+    ? { full: `${name} Renews on ${date}.`, short: `Renews on ${date}.` }
+    : { full: `${name} Ends on ${date}.`, short: `Ends on ${date}.` };
+}
 
 export const BAND_LINES = {
   plenty: 'Plenty of speaking time left.',
@@ -85,22 +128,24 @@ export function refillTime(periodEnd: string): string | null {
   return Number.isFinite(at.getTime()) ? refillWhen(at) : null;
 }
 
-/** "Your next free conversation is ready on Thursday at 4:10 pm." */
-export function freeBackLine(when: string): string {
-  return `Your next free conversation is ready ${when}.`;
+/** The out-of-time paragraph for a status that cannot start (F911): one source for every screen. */
+export function outOfTimeLine(status: BillingStatus, now: number): string {
+  return outOfTimeWords({ plan: status.plan, reason: status.reason, refillsAt: status.periodEnd, now }).message;
 }
 
 /** The free plan's band (REV-001): whole minutes left, and when they come back. */
-export function freeBandLine(status: BillingStatus): string {
+export function freeBandLine(status: BillingStatus, now: number = Date.now()): string {
   const when = status.periodEnd === null ? null : refillTime(status.periodEnd);
   const minutes = Math.floor(status.secondsRemaining / 60);
-  if (!status.canStart || minutes <= 0) return when === null ? BAND_LINES.exhausted : freeBackLine(when);
+  if (!status.canStart || minutes <= 0) return outOfTimeLine(status, now);
   const size = `${minutes} free ${minutes === 1 ? 'minute' : 'minutes'} left`;
   return when === null ? size : `${size}, refills ${when}`;
 }
 
 /** The band and the period as one sentence, for a row with one subtitle. */
 export function planSentence(bandLine: string, periodLine: string): string {
+  // An out-of-time band already says when time comes back (F911); the period adds a second, softer answer.
+  if (endsOutOfTime(bandLine)) return bandLine;
   return /[.!?]$/.test(bandLine) ? `${bandLine} ${periodLine}` : `${bandLine}. ${periodLine}`;
 }
 
@@ -108,6 +153,7 @@ export function planSentence(bandLine: string, periodLine: string): string {
 export const PLAN_STATUS_COPY: readonly string[] = [
   ...Object.values(PLAN_LABELS),
   ...Object.values(PERIOD_LINES),
+  ...Object.values(RENEWAL_POINTERS),
   ...Object.values(BAND_LINES),
   PLAN_UNKNOWN,
 ];
@@ -118,9 +164,9 @@ function periodLineFor(status: BillingStatus, now: number): string {
   if (status.periodEnd === null) return PERIOD_LINES.monthly;
   const left = new Date(status.periodEnd).getTime() - now;
   if (!Number.isFinite(left)) return PERIOD_LINES.monthly;
-  if (left <= 0) return PERIOD_LINES.renewingNow;
-  if (left <= 7 * DAY_MS) return PERIOD_LINES.renewsThisWeek;
-  return PERIOD_LINES.renewsLater;
+  if (left <= 0) return PERIOD_LINES.freshSoon;
+  const date = dayAndMonthOf(status.periodEnd);
+  return date === null ? PERIOD_LINES.monthly : freshMinutesLine(date);
 }
 
 /**
@@ -160,12 +206,11 @@ function measureFor(status: BillingStatus, now: number): number {
 function bandFor(status: BillingStatus, now: number): { band: PlanBand; line: string } {
   if (status.plan === 'trial') {
     const band: PlanBand = !status.canStart ? 'none' : status.secondsRemaining < measureFor(status, now) * A_LITTLE_SHARE ? 'a-little' : 'plenty';
-    return { band, line: freeBandLine(status) };
+    return { band, line: freeBandLine(status, now) };
   }
   if (!status.canStart) {
     if (status.reason === 'subscription-lapsed') return { band: 'none', line: BAND_LINES.lapsed };
-    if (status.reason === 'insufficient-for-session') return { band: 'none', line: BAND_LINES.insufficient };
-    return { band: 'none', line: BAND_LINES.exhausted };
+    return { band: 'none', line: outOfTimeLine(status, now) };
   }
   const allowance = measureFor(status, now);
   if (status.secondsRemaining < allowance * A_LITTLE_SHARE) return { band: 'a-little', line: BAND_LINES.aLittle };
@@ -182,5 +227,7 @@ export function planStatusFor(status: BillingStatus | null, now: number): PlanSt
     band,
     bandLine: line,
     canStart: status.canStart,
+    ...(!status.canStart && !(status.plan !== 'trial' && status.lapsed)
+      ? { outOfTime: outOfTimeWords({ plan: status.plan, reason: status.reason, refillsAt: status.periodEnd, now }) } : {}),
   };
 }

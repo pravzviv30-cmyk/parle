@@ -6,8 +6,9 @@ export const purchases: PurchasesAdapter = {
   async offering() {
     return { available: false };
   },
+  storeless: true,
   async purchase() {
-    return { ok: false, cancelled: false };
+    return { ok: false, cancelled: false, notStarted: true };
   },
   async restore() {
     return { ok: false, cancelled: false };
@@ -16,6 +17,9 @@ export const purchases: PurchasesAdapter = {
     return { ok: false, cancelled: false };
   },
   async trialFacts() {
+    return null;
+  },
+  async heldPlan() {
     return null;
   },
   async storeHolds() {

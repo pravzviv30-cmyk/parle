@@ -506,6 +506,13 @@ cancellation still happens in the store. No audio, learner words or learning dat
 sent in the erasure request. No real customer was deleted during implementation.
 Primary reference: https://www.revenuecat.com/docs/api-v1/customers#tag/customers/operation/delete-subscriber.
 
+**How deletion ends on the device (F914, 2026-10-29).** A failed local erase shows "This
+device kept a copy" first. A 202 (queued) delete shows "Deletion requested". A complete
+delete then shows "Your account has been deleted." with the reminder to cancel any
+subscription in the App Store or Google Play, and on iOS or Android a button to the
+store's subscriptions page (none on the web). All three are flags held in `Gate` memory
+only; nothing about the deleted account is written to disk for them.
+
 The rule for anyone extending this: a feature that needs to keep a recording is a
 new consent, a new retention period and a new disclosure, and it is an escalation
 before it is a branch.

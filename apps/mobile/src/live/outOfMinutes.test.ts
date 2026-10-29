@@ -32,6 +32,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { untimedOutOfTimeWords } from '../purchases/outOfTime.ts';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { stripTypeScriptTypes } from 'node:module';
@@ -341,6 +342,13 @@ describe('the 402 the hook is handed — F251', () => {
 
     // And every sentence that field can hold, over every 402 the server sends,
     // is one of ours.
+    // F911: with no refill time the table says the shared untimed words.
+    for (const code of ['exhausted', 'insufficient-for-session'] as const) {
+      const shared = untimedOutOfTimeWords(code);
+      assert.deepEqual({ label: COPY[code]!.label, message: COPY[code]!.message }, { label: shared.title, message: shared.message }, `${code} drifted from the shared out-of-time words`);
+    }
+    // An unknown code claims nothing about minutes (F911).
+    assert.deepEqual({ label: COPY.unknown!.label, message: COPY.unknown!.message }, { label: "Speaking isn't available right now", message: 'Luvani cannot start a conversation on this account right now. Practice and review still work offline.' });
     const ours = new Set(Object.values(COPY).map((c) => c.message));
     for (const body of EVERY_402) {
       const shown = await onlyMessage(body);

@@ -27,7 +27,7 @@ import { PLANS } from '@luvani/core';
 import { GAME_COPY } from '../game/copy.ts';
 import { streakDays } from '../game/todayHeroView.ts';
 import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
-import { PLAN_LABELS, planSentence, type PlanStatusView } from '../purchases/planStatus.ts';
+import { PLAN_LABELS, planSentence, RENEWAL_POINTERS, type PlanStatusView } from '../purchases/planStatus.ts';
 import { STATED_LEVEL_OPTIONS, type StatedLevel } from '../profile/practicePreferences.ts';
 import { REASONS } from '../onboarding/plan.ts';
 import { isLearnerGoal, type LearnerGoal } from '@luvani/core';
@@ -135,11 +135,11 @@ export interface PlanCardView {
 }
 
 /** The blue plan card. Unread and unknown name no plan and are never called Free. */
-export function planCard(view: PlanStatusView | null, freezes: number | null = null): PlanCardView {
+export function planCard(view: PlanStatusView | null, freezes: number | null = null, renewal: RenewalLines = null): PlanCardView {
   if (view === null) return { title: null, line: PLAN_CHECKING, action: COMPARE_PLANS_ROW, target: 'Subscription' };
   if (!view.known) return { title: null, line: PLAN_UNKNOWN_TITLE, action: COMPARE_PLANS_ROW, target: 'Subscription' };
   if (isFree(view)) return { title: PLAN_FREE_TITLE, line: freeIncludes(freezes), action: SEE_PLANS_ROW, target: 'Wall' };
-  return { title: view.planLabel, line: planSentence(view.bandLine, view.periodLine), action: COMPARE_PLANS_ROW, target: 'Subscription' };
+  return { title: view.planLabel, line: planSentence(view.bandLine, renewal?.short ?? view.periodLine), action: COMPARE_PLANS_ROW, target: 'Subscription' };
 }
 
 // ─────────────────────────────────────────────────── learning preferences
@@ -271,10 +271,11 @@ function isFree(view: Extract<PlanStatusView, { known: true }>): boolean {
  * Unanswered says it is checking; unknown says it could not check; neither
  * names a plan, and above all neither says Free.
  */
-export function planRow(view: PlanStatusView | null): { label: string; sub: string } {
+export function planRow(view: PlanStatusView | null, renewal: RenewalLines = null): { label: string; sub: string } {
   if (view === null) return { label: PLAN_GROUP_TITLE, sub: PLAN_CHECKING };
   if (!view.known) return { label: PLAN_GROUP_TITLE, sub: PLAN_UNKNOWN_TITLE };
-  return { label: isFree(view) ? PLAN_FREE_TITLE : view.planLabel, sub: planSentence(view.bandLine, view.periodLine) };
+  // The short renewal form when the store dated it (F909), else the minutes line.
+  return { label: isFree(view) ? PLAN_FREE_TITLE : view.planLabel, sub: planSentence(view.bandLine, isFree(view) ? view.periodLine : renewal?.short ?? view.periodLine) };
 }
 
 /**
@@ -291,14 +292,21 @@ export type SubscriptionView =
   | { kind: 'checking' }
   | { kind: 'unknown'; title: string; body: string }
   | { kind: 'free'; title: string; period: string; band: string }
-  | { kind: 'paid'; title: string; period: string; band: string };
+  | { kind: 'paid'; title: string; band: string; minutes: string; renewal: string };
 
-/** What the Subscription screen draws, decided once. */
-export function subscriptionView(view: PlanStatusView | null): SubscriptionView {
+/** `renewalLines`' answer, or null when there is none. */
+export type RenewalLines = { full: string; short: string | null } | null;
+
+/**
+ * What the Subscription screen draws, decided once. A paid plan carries the
+ * minutes line (the server's window) and the store's renewal line apart (F909);
+ * with no renewal answer at all it falls back to the store-neutral pointer, never a date.
+ */
+export function subscriptionView(view: PlanStatusView | null, renewal: RenewalLines = null): SubscriptionView {
   if (view === null) return { kind: 'checking' };
   if (!view.known) return { kind: 'unknown', title: PLAN_UNKNOWN_TITLE, body: PLAN_UNKNOWN_BODY };
   if (isFree(view)) return { kind: 'free', title: PLAN_FREE_TITLE, period: view.periodLine, band: view.bandLine };
-  return { kind: 'paid', title: view.planLabel, period: view.periodLine, band: view.bandLine };
+  return { kind: 'paid', title: view.planLabel, band: view.bandLine, minutes: view.periodLine, renewal: renewal?.full ?? RENEWAL_POINTERS.web };
 }
 
 /**

@@ -113,7 +113,7 @@ describe('error boundary — a throw shows a way back', () => {
       'the door returns something that is not the boundary around what it opens on',
     );
     const outsideTheDoor = GATE.replace(DOOR, '');
-    for (const screen of ['<Loading', '<SetNewPasswordScreen', '<SignedInRoot', '<EraseNoticeScreen', '<DeletionPendingNotice', '<GuestReminderPlanner', '<AuthFlow']) {
+    for (const screen of ['<Loading', '<SetNewPasswordScreen', '<SignedInRoot', '<EraseNoticeScreen', '<DeletionPendingNotice', '<AccountDeletedNotice', '<GuestReminderPlanner', '<AuthFlow']) {
       assert.ok(DOOR.includes(screen), `${screen} is no longer one of the screens the door opens on; this test is reading the wrong thing`);
       assert.ok(!outsideTheDoor.includes(screen), `${screen} is drawn outside the boundary, so a throw in it still empties the screen`);
     }
