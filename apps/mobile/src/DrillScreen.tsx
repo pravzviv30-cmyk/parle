@@ -58,6 +58,7 @@ import {
   type TapTranslateExercise,
   type TranslationExercise,
   drillXp,
+  missReason,
 } from '@luvani/core';
 import { HAIRLINE, HIT, bType, colour, font, frenchText, onColour, radius, space, type } from './theme.ts';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
@@ -72,6 +73,7 @@ import { gradeCards, loadDeck } from './review/store.ts';
 import { keepPhrase as keepInPhrasebook } from './review/phraseSaved.ts';
 import { AnswerSheet } from './drill/AnswerSheet.tsx';
 import { ownWordsLook, sheetFor, type SheetTone } from './drill/answerSheet.ts';
+import { firstTry } from './drill/firstTry.ts';
 import { comboAfter, comboGlows, type OwnWordsDecided } from './drill/combo.ts';
 import { fireSheet } from './drill/sheetEffects.ts';
 import { DRILL_END } from './drill/endCopy.ts';
@@ -994,7 +996,7 @@ export function DrillScreen({
   // What the answer sheet needs beside core's feedback: the kind it answered,
   // the run of real passes after it, and its place in the sitting, which the
   // good lines rotate by. Set with the feedback and cleared with it.
-  const [sheetFacts, setSheetFacts] = useState<{ kind: DrillExercise['kind']; combo: number; turn: number } | null>(null);
+  const [sheetFacts, setSheetFacts] = useState<{ kind: DrillExercise['kind']; combo: number; turn: number; reason: string | null; oneOfMany: boolean; answerEnglish: boolean } | null>(null);
   // The run of real passes (drill/combo.ts): a ref for the answer that reads it
   // and state for the bar that glows by it. Never a number on screen.
   const comboRef = useRef(0);
@@ -1313,8 +1315,9 @@ export function DrillScreen({
       })),
     ).then(() => undefined);
     // What the sitting was worth. Clean answers count double, because getting
-    // it right without being shown the spelling is the harder thing.
-    const xp = drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos });
+    // it right without being shown the spelling is the harder thing. Only a
+    // first try is clean: right after a miss was shown the answer (F919).
+    const xp = drillXp({ clean: firstTry(state).clean, typoCorrected: firstTry(state).typos });
     const endedAt = Date.now();
     const activeMs = clock.read();
     // Only a set worked to its end says it finished, and only that settles
@@ -1347,7 +1350,9 @@ export function DrillScreen({
       // will come round again included. A finished sitting completes instead.
       if (!next.finished) savePractice(next);
       setFeedback(fb);
-      const facts = { kind: current.kind, combo: comboAfter(comboRef.current, fb.verdict, current.kind), turn: session.answered.length };
+      const facts = { kind: current.kind, combo: comboAfter(comboRef.current, fb.verdict, current.kind), turn: session.answered.length, reason: missReason(current, fb.closest),
+        oneOfMany: current.kind === 'appropriate-reply' && current.acceptableIndexes.length > 1,
+        answerEnglish: current.kind === 'translate' && current.direction === 'fr-en' };
       comboRef.current = facts.combo;
       setCombo(facts.combo);
       setSheetFacts(facts);
@@ -1854,7 +1859,7 @@ export function DrillScreen({
       <ScrollScreen footer={doneFooter}>
         <View style={ds.ending}>
           {end.state === 'settled' ? (
-            <EndCard delta={end.delta} count={s.resolved} release={release} />
+            <EndCard delta={end.delta} count={firstTry(session).right} release={release} />
           ) : end.state === 'waiting' ? (
             <ActivityIndicator color={bt.muted} />
           ) : (

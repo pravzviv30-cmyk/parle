@@ -301,7 +301,7 @@ describe('the launch wall controller', () => {
 describe('the locked-route guard', () => {
   test('the route map', () => {
     assert.deepEqual({ ...LOCKED_ROUTES }, {
-      TutorMemory: 'tutorMemory', SoundJourney: 'sounds', SoundCheck: 'sounds', Lesson: 'sounds', ConversationPractice: 'conversationPractice',
+      TutorMemory: 'tutorMemory', SoundJourney: 'sounds', SoundCheck: 'sounds', SoundDrill: 'sounds', Lesson: 'sounds', ConversationPractice: 'conversationPractice',
       RealMoment: 'realMoment', Fixes: 'fixes', ThenNow: 'thenAndNow',
     });
     assert.equal(lockedRouteFeature('Drill', { practice: 'pack', packId: 'p1' }), 'conversationPractice');

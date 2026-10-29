@@ -96,6 +96,11 @@ export function useMinutesPractised(): number | null {
   return useGame().view?.minutesPractised ?? null;
 }
 
+/** The measured time behind `useMinutesPractised`, in ms, so under a minute is never drawn as nought (F918). */
+export function usePractisedMs(): number | null {
+  return useGame().view?.practisedMs ?? null;
+}
+
 /** The answer, or `fallback` once `ms` have passed. The work keeps running either way. */
 function within<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {

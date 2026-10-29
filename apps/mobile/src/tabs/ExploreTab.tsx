@@ -72,7 +72,7 @@ export function ExploreTab() {
   const furtherNote = (collection: ExploreCollection) => collectionAccessNote((collection.refs ?? []).map(ref => access.label(ref)));
   // Every real practice door stays in the row (founder, 2026-10-20): Sound practice and the three skill collections.
   const practiceCards = [
-    { key: 'sound', title: 'Sound practice', ...PRACTICE_CARDS.sound!, onPress: () => nav.navigate('SoundCheck') },
+    { key: 'sound', title: 'Sound practice', ...PRACTICE_CARDS.sound!, onPress: () => nav.navigate('SoundDrill') },
     ...SKILL_COLLECTIONS.map(collection => ({ key: collection.id, title: collection.id === 'guided-situations' && !suggestions.fresh ? 'Guided basics, if you want a refresher' : collection.title, ...(PRACTICE_CARDS[collection.id] ?? PRACTICE_CARDS.sound!), onPress: () => openCollection(collection.id) })),
   ];
   const furtherRows = [...PRACTICAL_COLLECTIONS].sort((a, b) => suggestions.fluent ? Number(b.id === 'tell-it-your-way') - Number(a.id === 'tell-it-your-way') : 0);

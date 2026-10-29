@@ -62,7 +62,8 @@ test("a subscriber's plan screen shows the renewal date and price from the store
   const screen = subscriptionView(view, lines);
   assert.equal(screen.kind, 'paid');
   assert.equal(screen.renewal, 'Core, yearly, £119.99. Renews on 27 November.');
-  assert.equal(planRow(view, lines).sub, 'Plenty of speaking time left. Renews on 27 November.');
+  // F935 (founder decision 21): the paid band says the pool with numbers.
+  assert.match(planRow(view, lines).sub, /^\d+ of 300 minutes left\. Renews on 27 November\.$/);
   assert.doesNotMatch(JSON.stringify([screen, planRow(view, lines)]), /coming weeks/);
   // The web preview's held plan is preview-only, gated like the fixture offering.
   const preview = await import('../wall/preview.ts') as Record<string, unknown>;

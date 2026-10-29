@@ -10,7 +10,7 @@
  * measured leaves its tile out rather than showing a zero.
  */
 
-import { rhythmSentence, type WeekDay } from '../progress/momentum.ts';
+import { calendarWeekFrom, rhythmSentence, type WeekDay } from '../progress/momentum.ts';
 
 export interface StatTile {
   key: 'minutes' | 'phrases' | 'xp';
@@ -39,9 +39,17 @@ export function afterSessionStats(input: { activeSec: number | null; phrases: nu
 /** "Day n." and the week in a sentence, under the flame. Null with neither. */
 export function streakLine(streak: number | null, week: readonly WeekDay[] | null): string | null {
   const day = streak !== null && Number.isSafeInteger(streak) && streak > 0 ? `Day ${streak}.` : null;
-  const said = week !== null && week.length > 0 ? rhythmSentence(week) : null;
+  // A settled day of the streak is today, so today is a day of French in the week too (F937).
+  const counted = day !== null && week !== null ? withToday(week) : week;
+  const said = counted !== null && counted.length > 0 ? rhythmSentence(counted) : null;
   if (day === null && said === null) return null;
   return [day, said].filter((part) => part !== null).join(' ');
+}
+
+/** The week with today, the last day not ahead, marked done. */
+function withToday(week: readonly WeekDay[]): readonly WeekDay[] {
+  const today = week.reduce((last, day, index) => (day.state === 'ahead' ? last : index), -1);
+  return week.map((day, index) => (index === today ? { ...day, state: 'done' } : day));
 }
 
 /** The seven bars: lit for a day with French in it, Monday to Sunday. */
@@ -90,4 +98,17 @@ export function smallFixes<F extends { quote: string; better: string; weight: 'm
     kept.push(fix);
   }
   return kept.slice(0, MAX_SMALL_FIXES);
+}
+
+/**
+ * This week from the practice days the streak counts (F937): every day key in
+ * the activity history, zero-XP sittings included, read after the settle.
+ */
+export function recapWeekFrom(days: readonly string[], now: number): readonly WeekDay[] {
+  const at: { at: number }[] = [];
+  for (const day of days) {
+    const [y, m, d] = day.split('-').map(Number);
+    if (y !== undefined && m !== undefined && d !== undefined) at.push({ at: new Date(y, m - 1, d, 12).getTime() });
+  }
+  return calendarWeekFrom(at, now);
 }

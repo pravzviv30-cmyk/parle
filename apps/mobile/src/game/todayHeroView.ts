@@ -38,6 +38,8 @@ export interface TodayHeroView {
   goal: {
     /** Today's measured minutes, floored. */
     minutes: number;
+    /** Some time was measured today but less than a whole minute (F918): drawn "Under 1", never a nought. */
+    underAMinute?: boolean;
     /** The chosen goal in minutes, or null when none is chosen (then there is no ring). */
     target: number | null;
     /** Minutes over the goal, 0 to 1, or null with no goal. */
@@ -73,6 +75,8 @@ export function todayHeroView(facts: TodayHeroFacts): TodayHeroView | null {
   const minutes = whole(goal.minutes);
   const target = goal.target;
   const met = target !== null && goal.met;
+  const under = minutes === 0 && Number.isFinite(goal.activeMs) && goal.activeMs > 0;
+  const said = under ? (target === null ? 'Under 1' : 'under 1') : minutes;
 
   return {
     flame: {
@@ -83,11 +87,13 @@ export function todayHeroView(facts: TodayHeroFacts): TodayHeroView | null {
     },
     goal: {
       minutes,
+      underAMinute: under,
       target,
       fraction: target === null ? null : Math.min(1, minutes / target),
       met,
       words: met ? GAME_COPY.goal.reached : target === null ? GAME_COPY.goal.minutesToday(minutes) : GAME_COPY.goal.progress(minutes, target),
-      label: target === null ? GAME_COPY.spoken.minutes(minutes) : GAME_COPY.spoken.goal(minutes, target),
+      // Said as drawn: "Under 1" on the ring is "under 1" aloud, never "0 of 5".
+      label: target === null ? GAME_COPY.spoken.minutes(said) : GAME_COPY.spoken.goal(said, target),
     },
     level: {
       level: level.level,
@@ -100,7 +106,7 @@ export function todayHeroView(facts: TodayHeroFacts): TodayHeroView | null {
 /**
  * The stats row's three tiles (2026-10-20, B5, B-Today): "3 days" over
  * "streak", "6 of 10" over "min today" (or "6 min" over "today" with no goal
- * chosen), and "Level 2" over "140 XP". With no run there is no number and no
+ * chosen), and "XP level 2" over "140 XP" (F858). With no run there is no number and no
  * streak word: "Practice" over "not yet today" (B5 learning-science review). The spoken labels stay the hero's own.
  */
 export function statTiles(hero: TodayHeroView, xpTotal: number): Record<'streak' | 'goal' | 'level', { value: string; label: string }> {
@@ -108,11 +114,15 @@ export function statTiles(hero: TodayHeroView, xpTotal: number): Record<'streak'
   return {
     streak: count === null ? { value: 'Practice', label: 'not yet today' } : { value: streakDays(count), label: 'streak' },
     goal: hero.goal.target === null
-      ? { value: `${hero.goal.minutes} min`, label: 'today' }
-      : { value: `${hero.goal.minutes} of ${hero.goal.target}`, label: 'min today' },
-    level: { value: GAME_COPY.level.title(hero.level.level), label: `${whole(xpTotal)} XP` },
+      ? { value: `${minutesWords(hero)} min`, label: 'today' }
+      : { value: `${minutesWords(hero)} of ${hero.goal.target}`, label: 'min today' },
+    level: { value: GAME_COPY.level.title(hero.level.level), label: GAME_COPY.level.total(whole(xpTotal)) },
   };
 }
+
+/** "Under 1" while less than a minute was measured, so a short live sitting never reads nought (F918). */
+export const UNDER_A_MINUTE = 'Under 1';
+const minutesWords = (hero: TodayHeroView): string => (hero.goal.underAMinute === true ? UNDER_A_MINUTE : String(hero.goal.minutes));
 
 /** "1 day", "3 days": the streak tile's number, the same words while it counts up. */
 export const streakDays = (count: number): string => `${count} ${count === 1 ? 'day' : 'days'}`;

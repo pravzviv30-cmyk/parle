@@ -52,6 +52,8 @@ export interface NextFacts {
   minutes: number | null;
   /** "Picked for your trip" when the learner's goal chose the scene (`nextConversation`). */
   picked?: string | null;
+  /** "Included in Max" on a Max-only continuation (F935), drawn in the minutes pill's place. */
+  included?: string | null;
   params: { missionId?: string; seedTopic?: unknown; continuationPackId?: string };
 }
 
@@ -71,7 +73,7 @@ export function recommended(next: NextFacts): Recommended {
   const id = next.params.missionId;
   const mission: Mission | undefined = id === undefined ? undefined : getMission(id);
   const eyebrow = next.picked ?? RECOMMENDED;
-  if (mission === undefined) return { eyebrow, title: next.title, sentence: next.body, minutes: null, prepare: null };
+  if (mission === undefined) return { eyebrow, title: next.title, sentence: next.body, minutes: next.included ?? null, prepare: null };
   return {
     eyebrow,
     title: mission.titleEn,

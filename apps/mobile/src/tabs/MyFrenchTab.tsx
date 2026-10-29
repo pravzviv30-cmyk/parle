@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { DAILY_SCENARIOS, MISSIONS, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
+import { DAILY_SCENARIOS, MISSIONS, missionStates, suggestedMission, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 
 import { Ledger, LedgerRow, OutlineButton, Press, Sheet } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
@@ -53,7 +53,8 @@ import { goalRouteKey, goalRows } from '../goals/rows.ts';
 import { ownedReadStatus } from './ownedRead.ts';
 import { StreakSummaryCard } from '../game/StreakSummaryCard.tsx';
 import { BadgeShelf } from '../game/BadgeShelf.tsx';
-import { useGame, useLevel, useMinutesPractised, useStreak } from '../game/GameProvider.tsx';
+import { useGame, useLevel, useMinutesPractised, usePractisedMs, useStreak, useXp } from '../game/GameProvider.tsx';
+import { savedPhraseCount } from '../practice/savedPhrases.ts';
 import { rowTile } from '../game/progressView.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import {
@@ -117,6 +118,8 @@ export function MyFrenchTab() {
   const run = useStreak();
   const xpLevel = useLevel();
   const minutes = useMinutesPractised();
+  const practisedMs = usePractisedMs();
+  const xp = useXp();
   const [deck, setDeck] = useState<readonly ReviewCard[]>([]);
   const [missions, setMissions] = useState<readonly MissionProgress[]>([]);
   const [completions, setCompletions] = useState<readonly { id: string; at: number; rung: number }[]>([]);
@@ -200,7 +203,10 @@ export function MyFrenchTab() {
       setHasWeek(false);
       if (user) {
         void refreshConversationPacks(user, adapter).then((result) => {
-          if (sameAccount() && result.ok) setPacks(result.packs);
+          if (!sameAccount() || !result.ok) return;
+          setPacks(result.packs);
+          // The refresh banks phrases into the deck, so the count is read again (F918).
+          void loadDeck().then((cards) => { if (sameAccount()) setDeck(cards); }).catch(() => {});
         });
       }
       return () => {
@@ -216,7 +222,8 @@ export function MyFrenchTab() {
   const conversations = allConversations({ packs, events: history });
   // Counted once, for the header and for the rows alike.
   const kept = {
-    phrases: new Set(deck.filter((card) => card.front.trim() !== '').map((card) => phraseKeyOf(card.front))).size,
+    // One rule for "a saved phrase", the one Practice counts with (F918).
+    phrases: savedPhraseCount(deck),
     conversations: conversations.length,
   };
   const rows = progressRows({
@@ -232,8 +239,8 @@ export function MyFrenchTab() {
   const owned = () => scopeGeneration() === currentScope;
 
   const stages = stagesFrom(missions, practicePreferencesOf(profile).placement ?? null);
-  const level = levelHeader(xpLevel);
-  const stats = headerStats({ daysInARow: run === null ? null : run.current, minutes, phrases: kept.phrases });
+  const level = levelHeader(xpLevel, xp?.total ?? 0);
+  const stats = headerStats({ daysInARow: run === null ? null : run.current, minutes, measuredMs: practisedMs, phrases: kept.phrases });
   const canDo = canDoView({ progress: missions, completions, now, access: locks.access });
   const thenNow = thenNowCard(completions, locks.access);
   const yourFrench = yourFrenchView({ deck, checks, progress: missions, completions, now, access: locks.access });

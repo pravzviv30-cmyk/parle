@@ -155,6 +155,12 @@ export type RootStackParamList = {
    */
   SoundJourney: undefined;
   /**
+   * Sounds of French (F919): the minimal-pair drill for the learner's newest
+   * measured sound, else the first one. No params: it reads the sound-check
+   * store itself.
+   */
+  SoundDrill: undefined;
+  /**
    * One goal, its next task and what came of it (Stage 4). `key` is the goal's
    * opaque route key (`goals/rows.ts` `goalRouteKey`), never the learner's own
    * words, because on the web a route's params are the address bar. The screen

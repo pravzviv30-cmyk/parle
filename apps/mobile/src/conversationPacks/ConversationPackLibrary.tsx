@@ -1,5 +1,6 @@
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { NOTEBOOK_ART } from '../empty/emptyStates.ts';
+import { includedInMax } from '../access/includedInMax.ts';
 /** A quiet library of the learner's own, curated Tutor conversations. */
 
 import { useNavigation } from '@react-navigation/native';
@@ -246,7 +247,8 @@ export function ConversationPackLibrary({
             {onContinue !== undefined && (
               <>
                 <OutlineButton label="Talk about this again" disabled={busy} onPress={() => onContinue(selected)} />
-                <Text style={[type.small, { color: t.muted }]}>{PRACTICE_ALTERNATIVES.revisitUses}</Text>
+                {/* The library offers the revisit only to a plan that opens it, which is Max (F935). */}
+                <Text style={[type.small, { color: t.muted }]}>{`${PRACTICE_ALTERNATIVES.revisitUses} ${includedInMax('continueArc', true)}.`}</Text>
               </>
             )}
           </View>

@@ -17,6 +17,8 @@
  * anywhere but that one slot.
  */
 
+import { includedInMax } from '../access/includedInMax.ts';
+
 export type RealMomentKey =
   | 'interview'
   | 'date'
@@ -96,7 +98,8 @@ export const MAX_ONLY_LINE = 'Personal rehearsals are included with Max. Everyda
 export const SEE_PLANS = 'See what Max includes';
 /** The plan notice above the situations, one line per answer (Stage 3A). */
 export const PLAN_CHECKING = 'Checking your plan…';
-export const PLAN_INCLUDED = 'Your plan includes personal rehearsals.';
+/** Shown only once the plan opens rehearsals, which only Max does (F935). */
+export const PLAN_INCLUDED = `${includedInMax('realMoment', true)}.`;
 export const PLAN_READ_FAILED = 'We could not check your plan. Your choices will stay here while you try again.';
 
 /** Every line this module can say, for the copy sweeps. */

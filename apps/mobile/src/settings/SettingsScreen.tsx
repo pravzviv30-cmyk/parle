@@ -88,13 +88,14 @@ import { TAP_TO_SEND_COPY } from '../live/liveRoomView.ts';
 import { loadSoundPreference, setSoundPreference } from '../sound/soundPreference.ts';
 import { SwitchRow } from './SwitchRow.tsx';
 import { TroubleLine } from './TroubleLine.tsx';
+import { HelpSheet } from './HelpSheet.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { withName, withPreferTyping } from '../profile/store.ts';
 import { useTrialReminder } from '../reminders/useTrialReminder.ts';
 import { SettingsGroup } from './SettingsGroup.tsx';
 import { TrialReminderRow } from './TrialReminderRow.tsx';
 import { usePlanStatus } from './usePlanStatus.ts';
-import { freeTimeLine, planRow, showTrialReminder } from './profileView.ts';
+import { HELP_FEEDBACK_ROW, freeTimeLine, planRow, showTrialReminder } from './profileView.ts';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { DISPLAY_ROW, DISPLAY_SUB, DATA_USE_ROW, DATA_USE_SUB, CONNECTION_HELP_ROW, LOCAL_PRACTICE_ROW, LOCAL_PRACTICE_SUB, FREE_TIME_ROW, PHONE_FOOTER, PRACTICE_GROUP, PREFER_TYPING_SETTINGS_SUB, SPEAKING_TARGET_ROW, correctsRow, simplerRow, tutorMemorySettingsSub } from './sections.ts';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
@@ -182,7 +183,7 @@ import type { AuthResult } from '../auth/types.ts';
  * closing a card nobody had seen. A refusal is not a sheet: it is a line in the
  * group whose control caused it, which is what every other one here already is.
  */
-type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete' | 'export' | 'display' | 'name';
+type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete' | 'export' | 'display' | 'name' | 'help';
 
 /**
  * Said when the disk refuses the reminder's two-field write, and only then.
@@ -1038,7 +1039,7 @@ export function SettingsScreen({
         {/* The address is the row's own second line, so a phone with no mail
             app set up still leaves something a learner can read. */}
         {contact !== null && (
-          <SettingsRow first label={contact.label} value={contact.address} onPress={() => writeTo(contact.address)} />
+          <SettingsRow first label={HELP_FEEDBACK_ROW} value={contact.address} onPress={() => setSheet('help')} />
         )}
         <SettingsRow first={contact === null} label={CONNECTION_HELP_ROW} onPress={() => setSheet('intro')} />
         <SettingsRow label={LOCAL_PRACTICE_ROW} sub={LOCAL_PRACTICE_SUB} onPress={() => nav.navigate('Tabs', { screen: 'Practice' })} />
@@ -1080,6 +1081,11 @@ export function SettingsScreen({
         : <Text style={[type.body, { color: t.muted }]}>{user?.provider === 'apple' ? 'Apple' : 'Google'} will ask you to sign in again.</Text>}
       {!hasPassword && exportTrouble !== null && <TroubleLine message={exportTrouble} />}
     </BottomSheet>
+    {/* F922: Help and feedback, drawn under the Help group's own trouble line
+        as well, so a mail app that will not open says so where it was tapped. */}
+    {contact !== null && (
+      <HelpSheet visible={sheet === 'help'} onClose={() => setSheet('none')} address={contact.address} trouble={contactTrouble} onWrite={() => writeTo(contact.address)} />
+    )}
     <BottomSheet visible={sheet === 'reminderTime' && reminderOwned} title={REMINDER_TIME_TITLE} onClose={() => setSheet('none')} surface={t.card} ink={t.text} footer={<PillButton label="Done" onPress={() => setSheet('none')} />}>
       <Text style={[type.body, { color: t.muted }]}>{REMINDER_TIME_SUB}</Text>
       <OptionRow title={REMINDER_SMART_LABEL} detail={smartGloss(smartTime)}

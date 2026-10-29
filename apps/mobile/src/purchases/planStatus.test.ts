@@ -39,7 +39,9 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
                 // F911: an out-of-time paid band says the same date, in the shared words.
                 const dated = plan !== 'trial'
                   && ((line === view.periodLine && /^Fresh minutes on \d{1,2} [A-Z][a-z]+\.$/.test(line))
-                    || (line === view.bandLine && /^(There is a little speaking time left, but not quite enough for a whole conversation\. )?Fresh minutes on \d{1,2} [A-Z][a-z]+\. Until then, practise offline\.$/.test(line)));
+                    || (line === view.bandLine && /^(There is a little speaking time left, but not quite enough for a whole conversation\. )?Fresh minutes on \d{1,2} [A-Z][a-z]+\. Until then, practise offline\.$/.test(line))
+                    // F935 (founder decision 21, 2026-10-29): a paid plan that can start says its pool in whole minutes.
+                    || (line === view.bandLine && view.canStart && /^\d+ of \d+ minutes left\.$/.test(line)));
                 if (!dated) assert.doesNotMatch(line, /\d/, `a numeral reached the card: "${line}"`);
                 assert.doesNotMatch(line, /%/, `a percentage reached the card: "${line}"`);
                 assert.doesNotMatch(line, /—/, `an em dash reached the card: "${line}"`);
@@ -118,4 +120,21 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
     assert.equal(billingStatusIn(null), null);
     assert.equal(billingStatusIn('starter'), null);
   });
+});
+
+// Stream D, LR-23 (F935, founder decision 21): a paid plan says its 30-day pool
+// with numbers, never a per-day figure.
+import { planSentence } from './planStatus.ts';
+test("a paid learner sees minutes left of the plan's pool", () => {
+  const end = new Date(NOW + 20 * DAY).toISOString();
+  const max = planStatusFor(status({ plan: 'regular', secondsRemaining: 412 * 60 + 30, periodEnd: end }), NOW);
+  assert.ok(max.known);
+  if (!max.known) return;
+  assert.equal(max.bandLine, '412 of 600 minutes left.');
+  assert.equal(planSentence(max.bandLine, max.periodLine), `412 of 600 minutes left. Fresh minutes on ${dayAndMonthOf(NOW + 20 * DAY)}.`);
+  const core = planStatusFor(status({ plan: 'starter', secondsRemaining: 40 * 60, periodEnd: end }), NOW);
+  if (core.known) { assert.equal(core.bandLine, '40 of 300 minutes left.'); assert.equal(core.band, 'a-little'); }
+  const told = planStatusFor(status({ plan: 'starter', secondsRemaining: 100 * 60, allowanceSeconds: 70 * 60 }), NOW);
+  if (told.known) assert.equal(told.bandLine, '70 of 70 minutes left.');
+  for (const view of [max, core, told]) if (view.known) assert.doesNotMatch(view.bandLine, /a day|per day|daily|·|—/);
 });

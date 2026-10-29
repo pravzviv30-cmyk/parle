@@ -90,8 +90,8 @@ describe('game copy — what the streak, goal, quests and badges say', () => {
   });
 
   test('a level is a number and never a rank name', () => {
-    assert.equal(GAME_COPY.level.title(7), 'Level 7');
-    assert.equal(GAME_COPY.level.next(120, 8), '120 XP to Level 8');
+    assert.equal(GAME_COPY.level.title(7), 'XP level 7');
+    assert.equal(GAME_COPY.level.next(120, 8), '120 XP to XP level 8');
   });
 
   test('the lifetime line matches the day count the rest of the app shows', () => {
@@ -105,7 +105,7 @@ describe('game copy — what the streak, goal, quests and badges say', () => {
   });
 
   test('the intro sheet names the saved practice it counted, and a learner with no run is told how one starts', () => {
-    assert.match(GAME_COPY.intro.body(12, 4), /^You are on a 12-day streak and at Level 4, counted from the practice already saved on your account\.$/);
+    assert.match(GAME_COPY.intro.body(12, 4), /^You are on a 12-day streak and at XP level 4, counted from the practice already saved on your account\.$/);
     assert.match(GAME_COPY.intro.body(0, 1), /^Your next practice starts a streak\./);
   });
 });

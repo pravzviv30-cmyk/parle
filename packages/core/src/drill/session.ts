@@ -420,9 +420,16 @@ export function answerCurrent(
       queue: [...rest, exercise],
       missesById: { ...state.missesById, [exercise.id]: missesSoFar + 1 },
     };
-    // The retry must test memory, not the answer we just handed over. Hide the
-    // closest answer in the data as well as the copy, for every drill surface.
-    return { state: next, feedback: { verdict, closest: null, message: feedbackMessage(verdict, null), advanced: false } };
+    // The first miss shows the right form (LEARN-017): a learner who cannot
+    // see what was wanted learns nothing from the miss. The item still comes
+    // round again, and a right answer then is assisted (LEARN-003), so the
+    // retry earns no independent credit. An own-words retry has no one right
+    // string, so it still hands nothing over. A listen-type retry would only be
+    // copying a shown transcript, so it hides the form until the second miss.
+    // The miss goes to the back, which puts every other item before the retry;
+    // with fewer than two left the retry comes sooner, and stays assisted.
+    const shown = exercise.kind === 'listen-type' ? null : closest;
+    return { state: next, feedback: { verdict, closest: shown, message: feedbackMessage(verdict, shown), advanced: false } };
   }
 
   const outcome: DrillOutcome = verdict === 'miss' ? 'unresolved' : verdict;

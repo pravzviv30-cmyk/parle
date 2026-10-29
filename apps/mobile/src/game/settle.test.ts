@@ -397,7 +397,7 @@ describe('settling a finished sitting — F744', () => {
     assert.deepEqual(intro, { current: 0, level: 3 });
     assert.equal(
       GAME_COPY.intro.body(intro.current, intro.level),
-      'Your next practice starts a streak. You are at Level 3, counted from the practice already saved on your account.',
+      'Your next practice starts a streak. You are at XP level 3, counted from the practice already saved on your account.',
     );
 
     const delta = await drill(NOW, 5, 2 * MINUTE);
@@ -917,5 +917,37 @@ describe('quests without a chest — F773', () => {
     assert.equal(allQuestsDoneNow(talk), false, 'the phone said the third quest was just finished on a day the tablet had finished');
     assert.equal(endCardView(talk).questProgress, 'All three quests done today.');
     assert.equal(endCardView(talk).timeline, 'end-card', 'the quest sound played a second time in one day');
+  });
+});
+
+// Stream D, LR-16 (F918): a finished live sitting reaches today's goal and
+// Journey's minutes through the real settle, and a short one never reads nought.
+import { headerStats } from '../journey/journeyView.ts';
+import { LOCAL_SETTLE_XP } from '../live/leaveKeepingWork.ts';
+import { statTiles, todayHeroView } from './todayHeroView.ts';
+
+describe('F918 minutes', () => {
+  async function surfaces() {
+    const view = gameViewFrom(await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null), TODAY);
+    const hero = todayHeroView({ streak: view.streak, goal: view.goal, level: view.level, xp: view.xp })!;
+    const journey = headerStats({ daysInARow: view.streak.current, minutes: view.minutesPractised, measuredMs: view.practisedMs, phrases: 0 }).find((s) => s.key === 'minutes')!;
+    return { goal: statTiles(hero, view.xp.total).goal, journey };
+  }
+
+  test("live minutes count toward Journey and today's goal", async () => {
+    await convo(NOW - HOUR, 20, 40_000);
+    let seen = await surfaces();
+    assert.deepEqual(seen.goal, { value: 'Under 1 of 5', label: 'min today' });
+    assert.deepEqual([seen.journey.value, seen.journey.label], ['Under 1', 'min practised']);
+    await convo(NOW - HOUR + 5 * MINUTE, 0, 3 * MINUTE);
+    seen = await surfaces();
+    assert.deepEqual(seen.goal, { value: '3 of 5', label: 'min today' });
+    assert.equal(seen.journey.value, '3');
+    // A Leave whose recap never came writes its minutes locally (F905).
+    assert.ok(LOCAL_SETTLE_XP > 0);
+    await recordActivity('convo', LOCAL_SETTLE_XP, NOW - 10 * MINUTE, { activeMs: 2 * MINUTE });
+    seen = await surfaces();
+    assert.deepEqual(seen.goal, { value: '5 of 5', label: 'min today' });
+    assert.equal(seen.journey.value, '5');
   });
 });

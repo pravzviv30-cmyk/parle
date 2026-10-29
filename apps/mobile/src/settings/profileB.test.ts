@@ -32,7 +32,7 @@ const CORE: PlanStatusView = { known: true, planLabel: PLAN_LABELS.starter, peri
 describe('Profile, to B-Profile', () => {
   test('the stats card: stage, level over XP, the run; never a nought', () => {
     assert.deepEqual(profileStats({ stage: 'Starter', level: 2, xpTotal: 140, streak: 3 }).map((s) => [s.value, s.label, s.route]), [
-      ['Starter', 'stage', 'MyFrench'], ['Level 2', '140 XP', 'MyFrench'], ['3 days', 'streak', 'Streak'],
+      ['Starter', 'stage', 'MyFrench'], ['XP level 2', '140 XP', 'MyFrench'], ['3 days', 'streak', 'Streak'],
     ]);
     const none = profileStats({ stage: null, level: null, xpTotal: null, streak: 0 });
     assert.deepEqual(none.map((s) => s.value), [null, null, 'Practice']);

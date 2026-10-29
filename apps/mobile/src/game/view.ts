@@ -173,6 +173,8 @@ export interface GameView {
    * "Minutes practised" and Home's ring agree about a daily phrase (Phase 4).
    */
   minutesPractised: number;
+  /** The same sittings' measured time in ms, so a total under a minute reads "Under 1", not nought (F918). */
+  practisedMs: number;
 }
 
 type DayOf = (at: number) => DayKey;
@@ -205,12 +207,17 @@ export function finishedSittings(facts: Pick<GameFacts, 'activity' | 'game'>): {
  * measurement adds nothing rather than taking time away.
  */
 export function measuredMinutes(sittings: readonly { activeMs?: number }[]): number {
+  return Math.floor(measuredMs(sittings) / 60_000);
+}
+
+/** Every finished sitting's measured time, in ms. */
+export function measuredMs(sittings: readonly { activeMs?: number }[]): number {
   let ms = 0;
   for (const sitting of sittings) {
     const measured = sitting.activeMs;
     if (typeof measured === 'number' && Number.isFinite(measured)) ms += Math.max(0, measured);
   }
-  return Math.floor(ms / 60_000);
+  return ms;
 }
 
 /**
@@ -362,6 +369,7 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
     protection,
     repair: protection?.repair === true ? repairOffer({ ...streakInput, entitled: true, sittings, dayKey: dayOf }) : null,
     minutesPractised: measuredMinutes(sittings),
+    practisedMs: measuredMs(sittings),
   };
 }
 

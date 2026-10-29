@@ -106,6 +106,8 @@ import { tapThrough } from '../access/featureAccess.ts';
 import { useFeatureAccess } from '../access/useFeatureAccess.ts';
 import { contactRow } from '../legal/company.ts';
 import { openMail } from '../settings/links.ts';
+import { HelpSheet } from '../settings/HelpSheet.tsx';
+import { helpTrouble } from '../settings/helpSheet.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
@@ -133,7 +135,7 @@ import { scopeGeneration } from '../storage/scope.ts';
  * screen answers the hardware back for both of them and there is nothing to
  * stand down for.
  */
-type Sheet = 'none' | 'name' | 'tutorVoice';
+type Sheet = 'none' | 'name' | 'tutorVoice' | 'help';
 
 export function ProfileTab() {
   const goBack = useBackToHome();
@@ -166,6 +168,7 @@ export function ProfileTab() {
    * Declared here rather than inside the sheet because the sheet is an early
    * return and a hook behind a branch is a hook that changes order.
    */
+  const [helpLine, setHelpLine] = useState<string | null>(null);
   const [samplePlaying, setSamplePlaying] = useState<TutorVoiceKey | null>(null);
   const samplePlayer = useAudioPlayer();
   const sampleStatus = useAudioPlayerStatus(samplePlayer);
@@ -226,6 +229,10 @@ export function ProfileTab() {
         return;
       case 'name':
         setDraftName(profile.name ?? '');
+        setSheet('none');
+        return;
+      case 'help':
+        setHelpLine(null);
         setSheet('none');
         return;
       default:
@@ -348,9 +355,10 @@ export function ProfileTab() {
 
       <SettingsGroup first title={MORE_GROUP}>
         <SettingsRow first label={FRIENDS_ROW} sub={FRIENDS_SUB} onPress={() => nav.navigate('Friends')} />
-        {/* Help and feedback writes to the one address, and is absent while
-            none is supplied: a row with nothing behind it would lie. */}
-        {contact !== null && <SettingsRow label={HELP_FEEDBACK_ROW} onPress={() => void openMail(contact.address)} />}
+        {/* Help and feedback opens the answers and the one address (F922),
+            and is absent while none is supplied: a row with nothing behind it
+            would lie. */}
+        {contact !== null && <SettingsRow label={HELP_FEEDBACK_ROW} onPress={() => setSheet('help')} />}
         <SettingsRow label={PRIVACY_ROW} sub={PRIVACY_SUB} onPress={() => nav.navigate('Policy')} />
       </SettingsGroup>
       </View>
@@ -374,6 +382,10 @@ export function ProfileTab() {
         setSheet('none');
       }} />
     </BottomSheet>
+    {contact !== null && (
+      <HelpSheet visible={sheet === 'help'} onClose={closeCurrentSheet} address={contact.address} trouble={helpLine}
+        onWrite={() => { setHelpLine(null); void openMail(contact.address).then((outcome) => setHelpLine(helpTrouble(outcome))); }} />
+    )}
     </SettingsAppearance>
   );
 }

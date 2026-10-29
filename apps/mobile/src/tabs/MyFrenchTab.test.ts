@@ -135,8 +135,8 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
   });
 
   test('the phrase bank is the newest kept phrases with audio, and one door to all of them', () => {
-    assert.match(FLAT, /phrases: new Set\(deck.filter/);
-    assert.match(FLAT, /phraseKeyOf\(card.front\)/);
+    // F918: one shared rule for a saved phrase, the one Practice counts with.
+    assert.match(FLAT, /phrases: savedPhraseCount\(deck\)/);
     assert.match(FLAT, /row.kind === 'phrases'\) nav.navigate\('Phrasebook'\)/);
     assert.doesNotMatch(SCREEN, /tutorVoice.speak|useAudioPlayer|useRecordedLine/);
     assert.match(BANK, /row.audio.label/);
@@ -200,7 +200,8 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
   test('every read is bound to the account, once a visit, and a failed read says so', () => {
     assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope;/);
     for (const store of ['loadMissionCompletions()', 'loadDeck()', 'loadBookmarks()', 'loadSoundChecks({ strict: true })', 'loadConversationPacks()', 'loadPracticeHistory()', 'loadPackMarks()']) {
-      assert.equal(SCREEN.split(store).length - 1, 1, `${store} is read more or less than once a visit`);
+      // F918: the deck is read once more after the packs refresh banks phrases into it.
+      assert.equal(SCREEN.split(store).length - 1, store === 'loadDeck()' ? 2 : 1, `${store} is read more or less than once a visit`);
     }
     assert.match(FLAT, /useState<'loading' \| 'ready' \| 'unread'>\('loading'\)/);
     assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\('unread'\)/);

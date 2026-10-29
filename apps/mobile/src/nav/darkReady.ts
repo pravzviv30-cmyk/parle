@@ -67,6 +67,7 @@ export const DARK_READY: ReadonlySet<string> = new Set<string>([
   'Missions',
   'SoundCheck',
   'SoundJourney',
+  'SoundDrill',
   'ExploreCollection',
   'DailyPractice',
   'DailyLibrary',

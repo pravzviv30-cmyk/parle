@@ -23,6 +23,7 @@ import { FIRST_MISSION, getMission, nextScene, type LearnerGoal, type MissionLev
 import { goalPickLine } from '../onboarding/goalLine.ts';
 import { missionMinutes } from '../home/estimate.ts';
 import type { Thread } from './threads.ts';
+import { includedInMax } from '../access/includedInMax.ts';
 
 export function nextConversation(progress: readonly MissionProgress[], thread: Thread | null, continueAllowed: boolean, goal: LearnerGoal | null = null, startAt: MissionLevel | null = null) {
   if (thread?.kind === 'pack' && continueAllowed) {
@@ -32,6 +33,8 @@ export function nextConversation(progress: readonly MissionProgress[], thread: T
       french: null, minutes: null, canDo: null,
       lines: [] as readonly string[],
       picked: null as string | null,
+      // Only Max continues a conversation, so a learner offered it holds Max (F935).
+      included: includedInMax('continueArc', true),
       params: { seedTopic: thread.seedTopic, continuationPackId: thread.packId },
     };
   }
@@ -43,6 +46,7 @@ export function nextConversation(progress: readonly MissionProgress[], thread: T
     title: mission.titleEn, body: mission.canDoEn,
     french: mission.title, minutes: missionMinutes(mission), canDo: mission.canDoEn,
     lines: mission.referencePhrases.slice(0, 3),
+    included: null as string | null,
     picked: ahead?.picked === 'goal' && ahead.mission.id === mission.id ? goalPickLine(goal) : null,
     params: { missionId: mission.id },
   };

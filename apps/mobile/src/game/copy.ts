@@ -177,9 +177,14 @@ export const GAME_COPY = {
   },
 
   level: {
-    title: (level: number): string => `Level ${level}`,
+    /** "XP level 3": the game's level, named so it never reads as a French level (F858, founder decision 22). */
+    title: (level: number): string => `XP level ${level}`,
     line: 'Earned from the French you produced.',
-    next: (toNext: number, nextLevel: number): string => `${toNext} XP to Level ${nextLevel}`,
+    next: (toNext: number, nextLevel: number): string => `${toNext} XP to XP level ${nextLevel}`,
+    /** "130 XP": the lifetime total, the same words on Today and Journey. */
+    total: (total: number): string => `${total} XP`,
+    /** "95 to the next": what is left to the next XP level. */
+    toNext: (toNext: number): string => `${toNext} to the next`,
   },
 
   /** What a screen reader hears for Home's three parts and Profile's tiles (Phase 4). */
@@ -187,10 +192,10 @@ export const GAME_COPY = {
     streak: (current: number, practisedToday: boolean): string =>
       `${current}-day streak, ${practisedToday ? 'practised today' : 'not practised yet today'}. Opens your streak.`,
     noStreak: 'No streak running yet. Opens your streak.',
-    goal: (minutes: number, goal: number): string => `Daily goal: ${minutes} of ${goal} minutes practised today. Opens your streak.`,
-    minutes: (minutes: number): string => `${minutes} minutes practised today. Opens your streak.`,
+    goal: (minutes: number | string, goal: number): string => `Daily goal: ${minutes} of ${goal} minutes practised today. Opens your streak.`,
+    minutes: (minutes: number | string): string => `${minutes} minutes practised today. Opens your streak.`,
     level: (level: number, total: number, toNext: number): string =>
-      `Level ${level}, ${total} XP, ${toNext} XP to Level ${level + 1}. Opens Progress.`,
+      `XP level ${level}, ${total} XP, ${toNext} to the next. Opens Progress.`,
   },
 
   badge: {
@@ -203,7 +208,7 @@ export const GAME_COPY = {
     title: 'Your streak and level',
     body: (current: number, level: number): string =>
       current > 0
-        ? `You are on a ${current}-day streak and at Level ${level}, counted from the practice already saved on your account.`
-        : `Your next practice starts a streak. You are at Level ${level}, counted from the practice already saved on your account.`,
+        ? `You are on a ${current}-day streak and at XP level ${level}, counted from the practice already saved on your account.`
+        : `Your next practice starts a streak. You are at XP level ${level}, counted from the practice already saved on your account.`,
   },
 } as const;

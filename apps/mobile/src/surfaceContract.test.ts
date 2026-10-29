@@ -1524,7 +1524,8 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     const profile = stripComments(readFileSync(join(SRC, 'tabs', 'ProfileTab.tsx'), 'utf8'));
     assert.match(
       profile,
-      /type Sheet = 'none' \| 'name' \| 'tutorVoice';/,
+      // F922 added `help`, a bottom sheet drawn here, so this file's hook answers it too.
+      /type Sheet = 'none' \| 'name' \| 'tutorVoice' \| 'help';/,
       'Profile draws a sheet this check has never seen; say whether it answers its own back press',
     );
     assert.match(

@@ -85,13 +85,14 @@ describe("Home's numbers on a mounted Home — F767", () => {
     assert.deepEqual(neverDown(morning, practised), []);
 
     // A run that resets is drawn at nought where it stands, never counted
-    // down; the next practice counts it up from nought and lights the flame.
+    // down; the next practice draws the new run at one (F918) and lights the flame.
     const reset = nextDraw(practised, { streak: 0, minutes: 0, ring: 0, level: 4, questsDone: 0 }, '2026-10-10');
     assert.deepEqual(reset.counters.streak, { from: 0, to: 0, mount: 1 }, 'a reset run counts down');
     assert.equal(risen(reset.counters.streak), false);
     const restarted = nextDraw(reset, { streak: 1, minutes: 2, ring: 200, level: 4, questsDone: 0 }, '2026-10-10');
-    assert.deepEqual(restarted.counters.streak, { from: 0, to: 1, mount: 1 });
-    assert.equal(risen(restarted.counters.streak), true);
+    // F918: a running streak never draws "0 days", so the new run lands on one rather than counting up from nought.
+    assert.deepEqual(restarted.counters.streak, { from: 1, to: 1, mount: 1 });
+    assert.equal(risen(restarted.counters.streak), false);
 
     // A goal raised in Profile lowers the ring's fraction: drawn again, not drained.
     const raised = nextDraw(restarted, { streak: 1, minutes: 2, ring: 100, level: 4, questsDone: 0 }, '2026-10-10');

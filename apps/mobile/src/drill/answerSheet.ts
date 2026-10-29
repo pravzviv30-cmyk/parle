@@ -52,6 +52,7 @@ export const SHEET_COPY = {
   typoDetail: (form: string): string => `It's spelt «${form}». That one counts.`,
   firstMiss: 'This one comes round again.',
   secondMiss: "Here's how it goes.",
+  oneOfMany: 'Here is one reply that works.',
   secondMissAfter: "It'll come back in your review.",
   continue: 'Continue',
 } as const;
@@ -74,6 +75,8 @@ export interface AnswerSheetModel {
   readonly detail: string | null;
   /** The learner's French, shown on its own line in guillemets, or null. */
   readonly french: string | null;
+  /** The right item's own French and English on a miss, "je vais prendre = I'll have", or null (LEARN-017). */
+  readonly reason: string | null;
   /** A line under the French, or null. */
   readonly after: string | null;
   /** The check mark. Never on a miss. */
@@ -86,8 +89,14 @@ export interface AnswerSheetModel {
 
 export interface SheetInput {
   readonly verdict: SettledVerdict;
-  /** Core's form worth pointing at; null on a first miss by design. */
+  /** Core's form worth pointing at; on a miss, the right answer (LEARN-017). */
   readonly closest: string | null;
+  /** Core's `missReason` for the exercise, shown on a miss beside the form. */
+  readonly reason?: string | null;
+  /** An appropriate-reply with more than one right reply: the form is one of them. */
+  readonly oneOfMany?: boolean;
+  /** The answer is English (translate fr-en): never drawn as French. */
+  readonly answerEnglish?: boolean;
   /** False when the exercise went to the back of the queue. */
   readonly advanced: boolean;
   readonly kind: DrillExercise['kind'];
@@ -106,7 +115,7 @@ function decide(input: SheetInput): AnswerSheetModel {
   if (verdict === 'good') {
     const headline =
       input.kind === 'repeat-this' ? SAID_IT_LINE : input.combo >= COMBO_GLOW_FROM ? rotate(RUN_LINES, input.turn) : rotate(GOOD_LINES, input.turn);
-    return { tone: 'good', headline, detail: null, french: null, after: null, mark: true, sound: 'correct', haptic: 'arrived', autoAdvanceMs: SHEET_AUTO_MS };
+    return { tone: 'good', headline, detail: null, french: null, reason: null, after: null, mark: true, sound: 'correct', haptic: 'arrived', autoAdvanceMs: SHEET_AUTO_MS };
   }
   if (verdict === 'typo') {
     return {
@@ -114,6 +123,7 @@ function decide(input: SheetInput): AnswerSheetModel {
       headline: SHEET_COPY.typo,
       detail: closest === null ? null : SHEET_COPY.typoDetail(closest),
       french: null,
+      reason: null,
       after: null,
       mark: true,
       sound: 'nearly',
@@ -121,14 +131,18 @@ function decide(input: SheetInput): AnswerSheetModel {
       autoAdvanceMs: SHEET_TYPO_MS,
     };
   }
-  // A miss. The first hands nothing over; the second shows the form and waits.
-  if (input.advanced && closest !== null) {
+  // A miss shows the form, its one-line reason, and waits for Continue
+  // (LEARN-017). The first comes round again in the sitting; the second goes
+  // to review.
+  if (closest !== null) {
     return {
       tone: 'calm',
-      headline: SHEET_COPY.secondMiss,
+      headline: input.oneOfMany === true ? SHEET_COPY.oneOfMany : SHEET_COPY.secondMiss,
       detail: null,
-      french: closest,
-      after: SHEET_COPY.secondMissAfter,
+      // English is said once, inside the reason line, and never in guillemets.
+      french: input.answerEnglish === true ? null : closest,
+      reason: input.reason ?? (input.answerEnglish === true ? closest : null),
+      after: input.advanced ? SHEET_COPY.secondMissAfter : SHEET_COPY.firstMiss,
       mark: false,
       sound: null,
       haptic: null,
@@ -140,12 +154,18 @@ function decide(input: SheetInput): AnswerSheetModel {
     headline: input.advanced ? SHEET_COPY.secondMissAfter : SHEET_COPY.firstMiss,
     detail: null,
     french: null,
+    reason: null,
     after: null,
     mark: false,
     sound: null,
     haptic: null,
     autoAdvanceMs: SHEET_AUTO_MS,
   };
+}
+
+/** Everything the sheet says, in reading order, for a screen reader. */
+export function spokenSheet(sheet: AnswerSheetModel, note: string | null): string {
+  return [sheet.headline, sheet.detail, sheet.french, sheet.reason, sheet.after, note].filter((part): part is string => part !== null && part !== '').join(' ');
 }
 
 /** The sheet for one settled answer. */

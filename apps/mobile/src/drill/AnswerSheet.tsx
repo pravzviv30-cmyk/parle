@@ -38,7 +38,7 @@ import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
 import { HAIRLINE, HIT, bType, decorative, frenchText, space } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { SHEET_COPY, continueName, sheetArrival, type AnswerSheetModel, type SheetTone } from './answerSheet.ts';
+import { SHEET_COPY, continueName, sheetArrival, spokenSheet, type AnswerSheetModel, type SheetTone } from './answerSheet.ts';
 
 /** How far the sheet rises as it arrives. */
 const RISE = space(6);
@@ -50,11 +50,6 @@ function groundFor(tone: SheetTone, t: B): { fill: string; head: string; ink: st
   if (tone === 'good') return { fill: t.mintWash, head: t.mintWords, ink: t.secondary };
   if (tone === 'nearly') return { fill: t.butter, head: t.text, ink: t.secondary };
   return { fill: t.card, head: t.text, ink: t.secondary };
-}
-
-/** Everything the sheet says, in reading order, as one sentence for a screen reader. */
-export function spokenSheet(sheet: AnswerSheetModel, note: string | null): string {
-  return [sheet.headline, sheet.detail, sheet.french, sheet.after, note].filter((part): part is string => part !== null && part !== '').join(' ');
 }
 
 export function AnswerSheet({
@@ -114,6 +109,7 @@ export function AnswerSheet({
             «{sheet.french}»
           </Text>
         )}
+        {sheet.reason !== null && <Text {...frenchText} style={[bType.meta, { color: ground.ink }]}>{sheet.reason}</Text>}
         {sheet.after !== null && <Text style={[bType.meta, { color: ground.ink }]}>{sheet.after}</Text>}
         {note !== null && note !== '' && <Text style={[bType.meta, { color: ground.ink }]}>{note}</Text>}
       </View>

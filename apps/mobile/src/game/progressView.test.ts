@@ -62,10 +62,10 @@ describe('Progress from its own records — F769', () => {
 
     // The level: a number from the displayed XP (130: Level 3), never a rank.
     const level = levelXpCardView(view.level, view.xp)!;
-    assert.equal(level.title, 'Level 3');
+    assert.equal(level.title, 'XP level 3');
     assert.equal(level.total, 130);
     assert.equal(level.totalWords, '130 XP');
-    assert.equal(level.next, `${view.level.toNext} XP to Level 4`);
+    assert.equal(level.next, `${view.level.toNext} XP to XP level 4`);
     assert.equal(level.fraction, view.level.intoLevel / view.level.levelSpan);
     assert.equal(level.capped, null, 'a day under the cap is said to be capped');
     for (const name of LEVEL_NAMES) assert.ok(!level.label.includes(name), `the level card names the rank "${name}"`);
@@ -161,7 +161,7 @@ describe('Progress from its own records — F769', () => {
       const after = tab.indexOf(order[i]!);
       assert.ok(before !== -1 && after !== -1 && before < after, `${order[i - 1]} is not drawn before ${order[i]}`);
     }
-    assert.match(tab, /const level = levelHeader\(xpLevel\);/, 'the level is not the game view\'s');
+    assert.match(tab, /const level = levelHeader\(xpLevel, xp\?\.total \?\? 0\);/, 'the level is not the game view\'s');
     assert.match(tab, /const xpLevel = useLevel\(\);/);
     assert.match(tab, /<LivingBar from=\{level\.fraction\} to=\{level\.fraction\}[^>]*accessibilityLabel=\{level\.barLabel\}/, 'the XP bar is not labelled');
     // The weekly day line reads its own record: on the page while the tab has
