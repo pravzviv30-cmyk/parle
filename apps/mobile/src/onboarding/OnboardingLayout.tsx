@@ -7,6 +7,7 @@ import { useReduceMotion } from '../motion.ts';
 import { colour, decorative, paper, space } from '../theme.ts';
 import { c } from './boldRhythm.ts';
 import { sheetRunsUnder } from '../components.tsx';
+import { footerInScroll } from '../responsiveLayout.ts';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
 
 /** `statusBar` lets a page whose band sits under the clock pick light or dark (2026-10-21 UI-008, B-OB bands). */
@@ -113,11 +114,14 @@ type Props = {
   statusBar?: 'light' | 'dark';
 };
 
-export function OnboardingLayout({ page, progress, children, hero, footer, avoidKeyboard = false, actionInScroll = false, embedded = false, active = true, hideProgress = false, dismissKeyboardOnBackground = false, showScrollCue = false, center = false, ground = c.paper, scrollRef, onScroll, scrollEventThrottle = 100, automaticallyAdjustKeyboardInsets, keyboardDismissMode, onViewportLayout, bleedTop = false, statusBar }: Props) {
+export function OnboardingLayout({ page, progress, children, hero, footer, avoidKeyboard = false, actionInScroll: askedInScroll = false, embedded = false, active = true, hideProgress = false, dismissKeyboardOnBackground = false, showScrollCue = false, center = false, ground = c.paper, scrollRef, onScroll, scrollEventThrottle = 100, automaticallyAdjustKeyboardInsets, keyboardDismissMode, onViewportLayout, bleedTop = false, statusBar }: Props) {
   const report = useContext(FrameContext);
   const value = progress ?? onboardingProgress({ page });
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  // F921: on a short screen (under 700pt usable) a pinned footer squeezes the form
+  // and covers the welcome; it scrolls after the content instead.
+  const actionInScroll = askedInScroll || footerInScroll(height - insets.top - insets.bottom);
   const gutter = 24;
   const horizontal = { paddingLeft: Math.max(gutter, insets.left), paddingRight: Math.max(gutter, insets.right) };
   const ownedScroll = useRef<ScrollView | null>(null);

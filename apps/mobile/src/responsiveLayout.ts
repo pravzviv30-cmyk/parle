@@ -62,3 +62,111 @@ export const ACTION_ROW_NARROW = 420;
 export function actionRowWraps(count: number, width: number, fontScale: number): boolean {
   return fontScale >= ACTION_ROW_WRAPS || (count >= 4 && width < ACTION_ROW_NARROW);
 }
+
+// ───────────────────────────────────────────── scene cards (F920, decision 23)
+
+/**
+ * The two yellow scene cards: Today's `SceneLead` and Speak's Recommended card.
+ * Side by side, the café drawing hangs off the top right (`artRight` is its
+ * bleed past the card edge) and the title and line are held to `textWidth`,
+ * the artboard's column. `rail` is what sits between the screen content and
+ * the card: Today's route node draws a 16pt stop and a 14pt gap.
+ */
+export type SceneCard = { artWidth: number; artHeight: number; artRight: number; artTop: number; padding: number; textWidth: number };
+export const SCENE_CARDS = {
+  today: { artWidth: 168, artHeight: 154, artRight: -6, artTop: 14, padding: 20, textWidth: 190 },
+  speak: { artWidth: 150, artHeight: 137, artRight: -10, artTop: 26, padding: 20, textWidth: 200 },
+} as const satisfies Record<string, SceneCard>;
+const SCENE_RAIL = { today: 16 + 14, speak: 0 } as const;
+/** Clear space kept between the words and the drawing. */
+export const SCENE_ART_GAP = 12;
+/** From this reading size the words outgrow their artboard column; the art goes above. */
+export const SCENE_ART_LARGE_TEXT = 1.3;
+/** The drawing in the band is a little smaller than beside the words. */
+export const SCENE_ART_BAND = 0.8;
+
+/**
+ * The narrowest card that holds the words column and the drawing side by
+ * side without touching: padding, the column, the gap, then the drawing less
+ * its bleed. Today 20 + 190 + 12 + 162 = 384; Speak 20 + 200 + 12 + 140 = 372.
+ */
+export function sceneArtThreshold(card: SceneCard): number {
+  return card.padding + card.textWidth + SCENE_ART_GAP + card.artWidth + card.artRight;
+}
+
+export function sceneArtPlacement(cardWidth: number, fontScale = 1, card: SceneCard = SCENE_CARDS.today): 'side' | 'above' {
+  return fontScale >= SCENE_ART_LARGE_TEXT || cardWidth < sceneArtThreshold(card) ? 'above' : 'side';
+}
+
+/** The drawing's size in the band: a little smaller, never wider than the words' width. */
+export function sceneArtBand(card: SceneCard, cardWidth: number): { width: number; height: number } {
+  const width = Math.max(1, Math.min(card.artWidth * SCENE_ART_BAND, cardWidth - card.padding * 2));
+  return { width: Math.round(width), height: Math.round(width * card.artHeight / card.artWidth) };
+}
+
+/** The card's width before it has measured itself: the screen's content width less the rail. */
+export function sceneCardFallbackWidth(kind: keyof typeof SCENE_CARDS, windowWidth: number, left = 0, right = 0): number {
+  const inset = screenInsets(windowWidth, left, right);
+  return Math.max(0, windowWidth - inset.paddingLeft - inset.paddingRight - SCENE_RAIL[kind]);
+}
+
+type Box = { x: number; y: number; w: number; h: number };
+/** Where the drawing and the words column sit inside a card of this width. */
+export function sceneCardGeometry(card: SceneCard, cardWidth: number, fontScale = 1): { placement: 'side' | 'above'; art: Box; text: Omit<Box, 'h'>; band: { width: number; height: number } | null } {
+  const placement = sceneArtPlacement(cardWidth, fontScale, card);
+  if (placement === 'side') {
+    return {
+      placement,
+      art: { x: cardWidth - card.artRight - card.artWidth, y: card.artTop, w: card.artWidth, h: card.artHeight },
+      text: { x: card.padding, y: card.padding, w: card.textWidth },
+      band: null,
+    };
+  }
+  const band = sceneArtBand(card, cardWidth);
+  return {
+    placement,
+    art: { x: (cardWidth - band.width) / 2, y: card.padding, w: band.width, h: band.height },
+    text: { x: card.padding, y: card.padding + band.height + SCENE_ART_GAP, w: Math.max(0, cardWidth - card.padding * 2) },
+    band,
+  };
+}
+
+// ───────────────────────────────────────────── welcome stage (F921, 320pt)
+
+/** The welcome artboard, drawn at 390 wide; a narrower screen scales the whole stage. */
+export const WELCOME_STAGE = { width: 390, height: 320 } as const;
+/** The three speech bubbles in stage units. */
+export const WELCOME_BUBBLE_SPOTS = [
+  { words: 'Bonjour !', left: 18, top: 26, rotate: '-6deg', tail: 'left' },
+  { words: 'Un café ?', left: 258, top: 12, rotate: '5deg', tail: 'right' },
+  { words: 'Enchanté', left: 262, top: 240, rotate: '-4deg', tail: 'left' },
+] as const;
+/** The art bleeds 24pt into each gutter of the 560pt reading column. */
+const WELCOME_SPAN_MAX = 560 + 48;
+
+export function welcomeStageScale(windowWidth: number): number {
+  return Math.min(1, Math.min(windowWidth, WELCOME_SPAN_MAX) / WELCOME_STAGE.width);
+}
+
+/**
+ * A bubble's left and right edge on screen. Width is a generous estimate of
+ * the 17pt heavy words (0.62em a letter) plus the 14pt padding each side and
+ * the rotation's few points; the stage is centred and scaled about its middle.
+ */
+export function welcomeBubbleSpan(windowWidth: number, spot: { words: string; left: number }): { left: number; right: number } {
+  const scale = welcomeStageScale(windowWidth);
+  const width = spot.words.length * 17 * 0.62 + 28 + 6;
+  const origin = windowWidth / 2 - (WELCOME_STAGE.width / 2) * scale;
+  return { left: origin + (spot.left - 3) * scale, right: origin + (spot.left - 3 + width) * scale };
+}
+
+// ───────────────────────────────────────────── onboarding footer (F921)
+
+/**
+ * Below this usable height a pinned footer (capped at 0.4 of the screen)
+ * leaves the form about 90pt on a 568pt phone; the footer scrolls instead.
+ */
+export const FOOTER_SCROLLS_BELOW = 700;
+export function footerInScroll(usableHeight: number): boolean {
+  return usableHeight < FOOTER_SCROLLS_BELOW;
+}

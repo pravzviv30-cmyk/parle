@@ -9,8 +9,8 @@
  * the words beside them say what they mean.
  */
 
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
@@ -19,6 +19,7 @@ import type { LockedFeature } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { COMING_UP_COPY } from '../home/todayView.ts';
 import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
+import { SCENE_CARDS, sceneCardFallbackWidth, sceneCardGeometry } from '../responsiveLayout.ts';
 
 // ─────────────────────────────────────────────────────────────── glyphs
 
@@ -203,12 +204,21 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
+  // F920: below the side-by-side width, or at large text, the café moves to a
+  // band above the words. The first frame guesses from the window, then the
+  // card's own width decides.
+  const { width: windowWidth, fontScale } = useWindowDimensions();
+  const [measured, setMeasured] = useState<number | null>(null);
+  const frame = sceneCardGeometry(SCENE_CARDS.today, measured ?? sceneCardFallbackWidth('today', windowWidth), fontScale);
+  const side = frame.placement === 'side';
   return (
-    <View style={s.lead}>
-      <BArt name="cafe-table" width={168} height={154} style={s.leadArt} />
+    <View style={s.lead} onLayout={(event) => setMeasured(Math.round(event.nativeEvent.layout.width))}>
+      {side
+        ? <BArt name="cafe-table" width={168} height={154} style={s.leadArt} />
+        : <BArt name="cafe-table" width={frame.band!.width} height={frame.band!.height} style={s.leadBand} />}
       <Text style={[bType.eyebrow, { color: t.heroText }]}>{eyebrow}</Text>
-      <Text accessibilityRole="header" style={[bType.leadTitle, s.leadTitle, { color: t.heroText }]}>{title}</Text>
-      <Text style={[bType.line16, s.leadLine, { color: t.heroText }]}>
+      <Text accessibilityRole="header" style={[bType.leadTitle, side && s.leadTitle, { color: t.heroText }]}>{title}</Text>
+      <Text style={[bType.line16, side && s.leadLine, { color: t.heroText }]}>
         {french !== null ? <Text {...frenchText}>{french}</Text> : null}
         {rest}
       </Text>
@@ -296,6 +306,7 @@ const makeStyles = (t: B) =>
     weekLink: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
     lead: { backgroundColor: t.heroGround, borderRadius: 28, padding: 20, gap: space(1), minHeight: 262, overflow: 'hidden' },
     leadArt: { position: 'absolute', right: -6, top: 14 },
+    leadBand: { alignSelf: 'center', marginBottom: 12 },
     leadTitle: { maxWidth: 190 },
     leadLine: { maxWidth: 180 },
     usesChip: { marginTop: 6, alignSelf: 'flex-start', maxWidth: '100%', backgroundColor: t.heroChip, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12 },

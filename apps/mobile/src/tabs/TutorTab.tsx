@@ -40,6 +40,7 @@ import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
+import { SCENE_CARDS, sceneCardFallbackWidth, sceneCardGeometry } from '../responsiveLayout.ts';
 import { KeyboardMark } from '../live/LiveParts.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { visibleFacts } from '../profile/memory.ts';
@@ -105,6 +106,10 @@ export function TutorTab() {
   const answered = (params: object): object => withAnswerMode(answer.key, params);
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 350 || fontScale >= 1.5;
+  // F920: the Recommended card's café moves above the words on a phone or at large text.
+  const [heroWidth, setHeroWidth] = useState<number | null>(null);
+  const heroFrame = sceneCardGeometry(SCENE_CARDS.speak, heroWidth ?? sceneCardFallbackWidth('speak', width), fontScale);
+  const heroSide = heroFrame.placement === 'side';
 
   const [heldBack, setHeldBack] = useState<{ textMode?: boolean } | null>(null);
   // Another screen's recheck can bring the tutor back; a refusal from here is then stale.
@@ -304,11 +309,13 @@ export function TutorTab() {
         )}
 
         {/* The one recommendation: the next scene, or the thread to pick up. */}
-        <View style={st.hero}>
-          <BArt name="cafe-table" width={150} height={137} style={st.heroArt} />
+        <View style={st.hero} onLayout={(event) => setHeroWidth(Math.round(event.nativeEvent.layout.width))}>
+          {heroSide
+            ? <BArt name="cafe-table" width={150} height={137} style={st.heroArt} />
+            : <BArt name="cafe-table" width={heroFrame.band!.width} height={heroFrame.band!.height} style={st.heroBand} />}
           <Text style={[bType.eyebrow, { color: t.heroText }]}>{rec.eyebrow}</Text>
-          <Text accessibilityRole="header" style={[bType.leadTitle, st.heroTitle, { color: t.heroText }]}>{rec.title}</Text>
-          <Text style={[bType.line16, st.heroLine, { color: t.heroText }]}>{rec.sentence}</Text>
+          <Text accessibilityRole="header" style={[bType.leadTitle, heroSide && st.heroTitle, { color: t.heroText }]}>{rec.title}</Text>
+          <Text style={[bType.line16, heroSide && st.heroLine, { color: t.heroText }]}>{rec.sentence}</Text>
           <View style={[st.chips, st.after4]}>
             {rec.minutes !== null && <HeroPill label={rec.minutes} />}
             <HeroPill label={USES_SPEAKING_TIME} />
@@ -523,6 +530,7 @@ const makeStyles = (t: B) =>
     after8: { marginTop: space(2) },
     hero: { backgroundColor: t.heroGround, borderRadius: 28, padding: 20, gap: 6, overflow: 'hidden' },
     heroArt: { position: 'absolute', right: -10, top: 26 },
+    heroBand: { alignSelf: 'center', marginBottom: 6 },
     heroTitle: { maxWidth: 200 },
     heroLine: { maxWidth: 196 },
     heroPill: { backgroundColor: t.heroChip, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, maxWidth: '100%' },

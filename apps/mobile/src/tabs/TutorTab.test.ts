@@ -111,7 +111,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     // choice, Speak or Type, never Listen.
     assert.match(FLAT, /const answer = modeChoice\(chosenMode \?\? modes\.mode\);/);
     assert.match(FLAT, /const textMode = answer\.textMode;/);
-    const card = between(RENDER_FLAT, '<View style={st.hero}>', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
+    const card = between(RENDER_FLAT, '<View style={st.hero} onLayout=', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
     assert.match(card, /accessibilityRole="radiogroup" accessibilityLabel="How you answer"/);
     assert.match(card, /\{answer\.helper\(tutorName\)\}/, 'the chosen mode says what it means under the radios');
     assert.match(card, /MODE_CHOICES\.map\(\(choice\) =>/);
@@ -138,8 +138,11 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
 
   test('the Recommended card reads the scene, its minutes, the speaking time and the two preference chips', () => {
     assert.match(FLAT, /const rec = recommended\(next\);/);
-    const card = between(RENDER_FLAT, '<View style={st.hero}>', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
+    const card = between(RENDER_FLAT, '<View style={st.hero} onLayout=', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
     assert.match(card, /<BArt name="cafe-table" width=\{150\} height=\{137\} style=\{st\.heroArt\} \/>/);
+    // F920: on a phone or at large text the café sits in a band above the words, which run full width.
+    assert.match(card, /<BArt name="cafe-table" width=\{heroFrame\.band!\.width\} height=\{heroFrame\.band!\.height\} style=\{st\.heroBand\} \/>/);
+    assert.match(card, /heroSide && st\.heroTitle/);
     assert.match(card, /\{rec\.title\}/);
     assert.match(card, /\{rec\.sentence\}/);
     assert.match(card, /rec\.minutes !== null && <HeroPill label=\{rec\.minutes\} \/>/);

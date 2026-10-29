@@ -844,6 +844,9 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     // the top right, the title and line held clear of it, the 54pt Start.
     const lead = between(PARTS_FLAT, 'export function SceneLead(', 'export function PhraseCard(', 'the lead is a Today part');
     assert.match(lead, /<BArt name="cafe-table" width=\{168\} height=\{154\} style=\{s\.leadArt\} \/>/);
+    // F920: the side-by-side café above is only for a wide card; a phone or large text puts it in a band over full-width words.
+    assert.match(lead, /\? <BArt name="cafe-table" width=\{168\} height=\{154\} style=\{s\.leadArt\} \/>\s*: <BArt name="cafe-table" width=\{frame\.band!\.width\} height=\{frame\.band!\.height\} style=\{s\.leadBand\} \/>/);
+    assert.match(lead, /side && s\.leadTitle/);
     assert.match(lead, /<Text \{\.\.\.frenchText\}>\{french\}<\/Text>/, 'the French title is not tagged as French');
     assert.match(lead, /<Text \{\.\.\.frenchText\}>\{uses\.french\}<\/Text>/, 'the quoted phrase is not tagged as French');
     assert.match(lead, /height=\{54\} ground=\{t\.heroCta\} ink=\{t\.heroCtaText\} text=\{bType\.bold18\} icon=\{<BMic size=\{20\} color=\{t\.heroCtaText\} \/>\}/);
