@@ -89,6 +89,14 @@ export function micAfterAsk(state: { opened: boolean; askedFor: string | null; n
  */
 export interface SeedTopic { fr: string; en: string; brief?: string }
 
+/**
+ * The title of a conversation on the learner's own topic, the same thing in
+ * both languages (F929). Speak's "Your own topic" chip uses its English, and an
+ * Explore search opens on the pair, because a learner's typed words cannot be
+ * put into French on the phone; the words themselves ride in the brief.
+ */
+export const OWN_TOPIC_TITLE = { fr: 'Ton sujet', en: 'Your own topic' } as const;
+
 /** An idea's seed: its title, and its instructions as the tutor-only brief (F929). */
 export function seedOf(idea: SeedTopic): SeedTopic {
   return idea.brief === undefined ? { fr: idea.fr, en: idea.en } : { fr: idea.fr, en: idea.en, brief: idea.brief };

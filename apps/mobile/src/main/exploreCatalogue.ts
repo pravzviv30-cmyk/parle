@@ -1,5 +1,5 @@
 import { DAILY_SCENARIOS, MISSIONS, type DailyScenario, type Mission } from '@luvani/core';
-import type { SeedTopic } from '../tutor/convoStart.ts';
+import { OWN_TOPIC_TITLE, type SeedTopic } from '../tutor/convoStart.ts';
 import { DAILY_ITEMS, type DailyItem } from '../daily/catalogue.ts';
 import { freeExploreScenarioIds } from '../purchases/exploreAccess.ts';
 
@@ -89,8 +89,10 @@ export function explorePhrases(query: string, topic: ExploreTopic | null, prefer
 export function exploreTopicSeed(query: string, topic: ExploreTopic | null): SeedTopic | null {
   const text = query.trim();
   // F929: the learner's own words are the title; the instruction is the brief.
-  // Shown and spoken, so the first letter is capitalised; the words stay the learner's.
-  if (text) return text.length <= 90 ? { fr: 'Une conversation à ta façon', en: text.charAt(0).toLocaleUpperCase('en') + text.slice(1), brief: `Talk with me in French about: ${text}` } : null;
+  // The title is spoken and shown in both languages, and typed words cannot be
+  // put into French here, so a search opens on one fixed pair and the
+  // learner's words ride whole in the tutor-only brief (F929).
+  if (text) return text.length <= 90 ? { ...OWN_TOPIC_TITLE, brief: `Talk with me in French about: ${text}` } : null;
   if (!topic) return null;
   const topics: Record<ExploreTopic, SeedTopic> = {
     food: { fr: 'À table', en: 'Food and meals', brief: 'Talk with me in French about food, cafés or a meal I enjoyed.' },

@@ -13,7 +13,7 @@
  * ask what a locked seam would draw.
  */
 
-import { seedOf, type SeedTopic } from './convoStart.ts';
+import { OWN_TOPIC_TITLE, seedOf, type SeedTopic } from './convoStart.ts';
 import { getMission, type Mission, type MissionLevel, type MissionProgress, type Rung } from '@luvani/core';
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
@@ -294,7 +294,7 @@ export function lessHelp(stored: readonly { id: string; at: number; rung: number
 
 export const TALK_TITLE = 'Talk about anything';
 export const TALK_SUB = 'Start your own conversation.';
-export const OWN_TOPIC = 'Your own topic';
+export const OWN_TOPIC = OWN_TOPIC_TITLE.en;
 
 export interface TalkChip {
   label: string;
