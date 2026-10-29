@@ -11739,7 +11739,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F915 — Onboarding has no Back, and a new account cannot leave the first scene without starting it
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-13; five reviewers). No step has a back control
   and the URL stays /, so browser Back leaves the app. The signed-in first scene
@@ -11750,7 +11750,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F916 — The personal plan names a first conversation that scene 1 is not
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PersonalPlan.tsx
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-14; five reviewers). The plan promises a train
   ticket or a restaurant table while scene 1 is always "Le premier café"; "A little daunting" is not
@@ -11763,7 +11763,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F917 — "I can get by" starts the learner at Starter
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/plan.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-15). Journey then requires the three Starter
   abilities (café and hotel basics) before Basics; the past-tense scene this learner needs sits in
@@ -11779,7 +11779,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F925 — The guest early-exit summary gives a train-station tip after a café scene
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/firstPractice.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-25; two reviewers). "Next time, try asking about
   departure times and directions" after the café scene, with "Save your progress" as the only
@@ -11792,7 +11792,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F926 — Two full-screen splashes and a disabled tutor choice stand before the first French
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-27). "Get Started" blocks every click until tapped,
   a second splash follows sign-up, and "Choose a tutor" stays disabled until a pick: 13 taps and 8
@@ -11803,7 +11803,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F930 — The guest limit says "this network" with no explanation
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/guestScene.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-31). Learners on office, university or café Wi-Fi
   cannot tell why their free tries are gone; the offline drill is not offered there. Decided 2026-10-29 (founder decision 17): honest copy and an account only, no guest offline drill; the same 429 also comes from the global cap, so the line names no network.
