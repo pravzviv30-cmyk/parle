@@ -121,7 +121,6 @@ describe('F921: control borders', () => {
       ['DrillScreen.tsx#slot', 'the dashed gap a placed word leaves, not pressable'],
       ['journey/JourneyParts.tsx#dashed', 'the frame of DashedCell, whose own words say what is missing'],
       ['game/StreakParts.tsx#freeze', 'the freeze card frame, a plain View'],
-      ['live/LiveParts.tsx#goalRingNow', 'a state mark, but it sits on the blue live-room ground, where sun is 5:1; the scan measures card and cream'],
       ['explore/ExploreParts.tsx#prepare', 'the sun edge of the prepare card, a plain View'],
       ['tabs/HomeTab.tsx#fix', 'the mint edge of the one-fix card, a plain View'],
       ['home/RoutePath.tsx#inline:RouteNode', 'a route dot, its border the same sun as its fill'],
@@ -131,6 +130,18 @@ describe('F921: control borders', () => {
       ['onboarding/motion/C2Scene.tsx#inline:DayOneBadge', 'the day-one badge inside the scene art'],
       ['onboarding/motion/OnboardingScenes.tsx#inline:GlowAction', 'the glow behind an onboarding action, decorative'],
     ]);
+    // A mark that does not sit on the card or the cream names its real ground
+    // (a token in `b`). Every colour in its border is then measured against
+    // that ground in both modes, pale or not, instead of being skipped.
+    const ON_GROUND = new Map<string, string>([
+      ['live/LiveParts.tsx#goalRingNow', 'violetDeep'],
+      ['live/LiveParts.tsx#goalRingLater', 'violetDeep'],
+    ]);
+    const modeValue = (space: string, name: string, mode: (typeof MODES)[number]): string | null => {
+      const table: Record<string, unknown> = space === 'c' ? boldRhythm : space === 'paper' ? paper : space === 'colors' ? mainApp[mode] : b[mode];
+      const value = table[name];
+      return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : null;
+    };
     const lightValue = (space: string, name: string): string | null => {
       const table: Record<string, unknown> = space === 'c' ? boldRhythm : space === 'paper' ? paper : space === 'colors' ? mainApp.light : b.light;
       const value = table[name];
@@ -141,6 +152,19 @@ describe('F921: control borders', () => {
     for (const file of sourceFiles()) {
       const source = read(file);
       for (const m of source.matchAll(/\bborderColor:\s*([^,}\n]+)/g)) {
+        const key = `${file}#${styleKeyAt(source, m.index!)}`;
+        const ground = ON_GROUND.get(key);
+        if (ground != null) {
+          seen.add(key);
+          for (const [ref, space, name] of m[1]!.matchAll(/\b(t|bt|b|c|paper|colors)\.(\w+)\b/g)) {
+            for (const mode of MODES) {
+              const value = modeValue(space!, name!, mode);
+              const under = (b[mode] as Record<string, string>)[ground]!;
+              if (value != null && contrast(value, under) < MARK) findings.push(`${key} (${ref} is ${contrast(value, under).toFixed(2)} on ${mode} ${ground})`);
+            }
+          }
+          continue;
+        }
         const pale = [...m[1]!.matchAll(/\b(t|bt|b|c|paper|colors)\.(\w+)\b/g)].filter(([, space, name]) => {
           const value = lightValue(space!, name!);
           return value != null && contrast(value, paper.card) < MARK && contrast(value, paper.ground) < MARK;
@@ -152,7 +176,19 @@ describe('F921: control borders', () => {
       }
     }
     assert.deepEqual(findings, [], 'controls drawn with an edge under 3:1; use field, or list a truly decorative border with its reason');
+    for (const where of ON_GROUND.keys()) assert.ok(seen.has(where), `${where} declares a ground but has no border any more`);
     for (const where of DECORATIVE.keys()) assert.ok(seen.has(where), `${where} is allowlisted but no longer on a pale edge; drop it from the list`);
+  });
+
+  test('a day still ahead is told from an open day at 3:1', () => {
+    // First-run week strip: an open day is a solid field ring, a day still
+    // ahead a dashed one. Both edges are marks on the cream and the card, and
+    // the dash, not a near-white fill (skeleton was 1.1:1), tells them apart.
+    const strip = read('onboarding/firstRun/WeekStrip.tsx');
+    assert.match(strip, /open: \{[^}]*borderWidth: 1, borderColor: paper\.field \}/, 'an open day has no solid field ring');
+    assert.match(strip, /ahead: \{[^}]*borderStyle: 'dashed'[^}]*borderColor: paper\.field/, 'a day ahead is not a dashed field ring');
+    assert.doesNotMatch(strip, /ahead: \{[^}]*skeleton/, 'a day ahead still leans on the skeleton fill');
+    for (const ground of [paper.ground, paper.card]) assert.ok(contrast(paper.field, ground) >= MARK);
   });
 });
 

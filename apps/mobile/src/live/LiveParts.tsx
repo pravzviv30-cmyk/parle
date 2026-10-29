@@ -361,7 +361,8 @@ function makeStyles(t: B) {
     goalDone: { width: 22, height: 22, borderRadius: 11, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
     goalRing: { width: 22, height: 22, borderRadius: 11 },
     goalRingNow: { borderWidth: 2.5, borderColor: t.sun },
-    goalRingLater: { borderWidth: 2, borderColor: t.violet2 },
+    // On violetDeep: onBrandSoft is 8.0, violet2 was 1.8 (F921 round 4).
+    goalRingLater: { borderWidth: 2, borderColor: t.onBrandSoft },
     struck: { textDecorationLine: 'line-through' },
     orbBlock: { alignItems: 'center', gap: 10, marginTop: 22 },
     ring: { position: 'absolute' },

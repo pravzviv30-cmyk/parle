@@ -49,6 +49,7 @@ const st = StyleSheet.create({
   disc: { width: '100%', maxWidth: space(10), aspectRatio: 1, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   practised: { backgroundColor: colour.sun },
   open: { backgroundColor: paper.card, borderWidth: 1, borderColor: paper.field },
-  ahead: { backgroundColor: paper.skeleton },
+  // A day still ahead: a dashed field ring, told from an open day's solid one by the dash (F921 round 4).
+  ahead: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: paper.field },
   today: { borderWidth: 2, borderColor: paper.ink },
 });

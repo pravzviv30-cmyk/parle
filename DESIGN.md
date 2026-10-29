@@ -461,7 +461,11 @@ are left out, as is a heading focused by script (tabIndex -1). Only a text field
 its outline inline; `controls.test.ts` fails on any other. The outline follows the control's corner: `Press` gives
 its focusable frame the radius of the surface it draws, so a pill's ring is a pill. An empty ring or
 disc that marks an open, ahead or not-yet item is a state mark, not decoration, and takes `field`
-too (WCAG 1.4.11). The halo is a box-shadow, so a control with its own shadow
+too (WCAG 1.4.11). `field` clears 3 only on the card, the cream and the dark grounds: it is
+under 3 on skeleton (2.90), lavender (2.99), dark butter (2.97), sun (2.34) and mint (1.82), so a
+state mark on those grounds needs another token, measured on its real ground. A mark on another
+ground declares it in `controls.test.ts` (the live goal rings on `violetDeep`: sun for now,
+`onBrandSoft` for later). The halo is a box-shadow, so a control with its own shadow
 gives it up while it holds keyboard focus, and only then.
 `AccountField` and the live-room composer draw their own focus. On the web, Space chooses a radio, checkbox, tab or switch built on
 `Press` or `Chip`; Enter is react-native-web's own (F927). A `PillButton` or `Press`
