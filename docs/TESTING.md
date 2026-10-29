@@ -31,6 +31,8 @@ failure count, and why the floors in `scripts/gate.floors.json` only ever go up.
 
 ### The canvas learner (local screenshots)
 
+To capture the web build at 320 and 375 pt, light and dark, with one command, see `scripts/shots/README.md`.
+
 To see every slot on the design artboards filled, run a local mock build with
 `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 EXPO_PUBLIC_LUVANI_CANVAS_LEARNER=1`.
 `apps/mobile/src/dev/canvasLearner.ts` then seeds the signed-in mock account as
