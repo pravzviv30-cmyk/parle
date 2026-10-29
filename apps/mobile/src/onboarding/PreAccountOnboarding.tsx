@@ -51,7 +51,7 @@ import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 import { REASONS, START_LEVELS, CONFIDENCE_OPTIONS, FOCUS_OPTIONS, minutesOf } from './plan.ts';
 import { REASON_LABELS } from './story.ts';
 import { GUEST_PAGES, resumePage } from './guestProgress.ts';
-import { freshPreAccountDraft, type PreAccountOnboardingDraft, type PreAccountPage } from './preAccountDraft.ts';
+import { freshPreAccountDraft, startLevelChange, type PreAccountOnboardingDraft, type PreAccountPage } from './preAccountDraft.ts';
 import { trackGuestMetric, clearGuestPractice, loadGuestPractice, saveGuestPractice, startGuestPractice, type GuestPractice } from './guestPractice.ts';
 import { Choice } from './ChoiceCard.tsx';
 import { ChoiceArt } from './ChoiceArt.tsx';
@@ -615,7 +615,7 @@ export function PreAccountOnboarding({
                 interests: [...(edit.interests ?? [])],
                 speakingConfidence: edit.speakingConfidence,
                 practiceFocus: edit.practiceFocus,
-                startLevel: edit.startLevel,
+                ...startLevelChange(draftRef.current, edit.startLevel),
                 minutes: edit.minutes,
                 quickStart: false,
               });
@@ -736,7 +736,7 @@ export function PreAccountOnboarding({
                     {page === 'reason' && BOLD_GOALS.map((v) => <BOption key={v.key} title={v.title} icon={REASON_ICONS[v.key]} selected={draft.reason === v.key} onPress={() => choose({ reason: v.key })} />)}
                     {page === 'interests' && INTERESTS.map((v) => <BOption key={v.key} title={v.title} detail={v.detail} multiple selected={draft.interests?.includes(v.key) ?? false}
                       onPress={() => choose({ interests: draft.interests?.includes(v.key) ? draft.interests.filter(i => i !== v.key) : [...(draft.interests ?? []), v.key] })} />)}
-                    {page === 'start-level' && START_LEVELS.map((v) => <BOption key={v.key} title={v.title} detail={v.gloss} selected={draft.startLevel === v.key} onPress={() => choose({ startLevel: v.key })} />)}
+                    {page === 'start-level' && START_LEVELS.map((v) => <BOption key={v.key} title={v.title} detail={v.gloss} selected={draft.startLevel === v.key} onPress={() => choose(startLevelChange(draftRef.current, v.key))} />)}
                     {page === 'confidence' && CONFIDENCE_OPTIONS.map((v) => <BOption key={v.key} title={v.title} detail={v.gloss} selected={draft.speakingConfidence === v.key} onPress={() => choose({ speakingConfidence: v.key })} />)}
                     {page === 'focus' && FOCUS_OPTIONS.map((v) => <BOption key={v.key} title={v.title} detail={v.gloss} selected={draft.practiceFocus === v.key} onPress={() => choose({ practiceFocus: v.key })} />)}
                     {page === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BOption key={minutes}

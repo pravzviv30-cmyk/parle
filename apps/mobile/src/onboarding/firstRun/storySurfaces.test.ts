@@ -45,7 +45,7 @@ describe('the personal onboarding journey', () => {
     assert.match(levels, /<BoldChoice/);
     assert.match(levels, /detail=\{v\.gloss\}/);
     assert.match(levels, /title=\{v\.title\}/);
-    assert.match(levels, /choose\(\{ startLevel: v\.key \}\)/);
+    assert.match(levels, /choose\(startLevelChange\(draftRef\.current, v\.key\)\)/); // F917, 2026-10-29: a level change clears Skip ahead.
     assert.doesNotMatch(levels, /numberOfLines|ellipsizeMode|go\(/);
   });
 

@@ -91,7 +91,9 @@ describe('the plan card and the daily goal', () => {
   test('plan editing commits all six answers so new interests reach the live scenario', () => {
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
     const save = screen.slice(screen.indexOf('const sheetFooter ='), screen.indexOf(") : surface === 'start' ?"));
-    for (const key of ['reason', 'startLevel', 'minutes', 'speakingConfidence', 'practiceFocus']) {
+    // F917, 2026-10-29: the level goes through startLevelChange, which also clears a stale Skip ahead.
+    assert.ok(save.includes('...startLevelChange(draftRef.current, edit.startLevel)'), 'Done must commit startLevel');
+    for (const key of ['reason', 'minutes', 'speakingConfidence', 'practiceFocus']) {
       assert.ok(save.includes(`${key}: edit.${key}`), `Done must commit ${key}`);
     }
     assert.match(save, /interests: \[\.\.\.\(edit\.interests \?\? \[\]\)\]/);

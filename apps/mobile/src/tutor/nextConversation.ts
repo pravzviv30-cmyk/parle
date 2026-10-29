@@ -15,7 +15,7 @@
  * conversation has no scene behind it, so all three are null and the card says
  * only what it can back: `body`, the thread's own line.
  *
- * 2026-10-22: the next scene is core's `nextScene(progress, goal)`, the same
+ * 2026-10-22: the next scene is core's `nextScene(progress, goal, startAt)`, the same
  * call Today and the end card make, so all three name one scene. `picked` is
  * the goal line ("Picked for your trip") when the goal chose it, else null.
  */

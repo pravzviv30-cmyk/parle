@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { GUEST_CAFE_SCENE, MISSIONS, SCENE_SPINE, getMission, missionStates } from '@luvani/core';
-import { freshPreAccountDraft, staleSkipAhead, withStartLevel, withoutSkip, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { freshPreAccountDraft, startLevelChange, staleSkipAhead, withStartLevel, withoutSkip, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import {
   CONFIDENCE_OPTIONS, FOCUS_OPTIONS, GENTLE_PACE, METHOD_STEPS, START_LEVELS, REASONS,
   firstConversationLines, firstSceneFor, methodLines, planFor, sceneOrder, startEstimate,
@@ -139,6 +139,21 @@ describe('F917: a starting point, never a credit', () => {
     assert.match(plan, /onSkipAhead\(!plan\.canUndoSkip\)/);
     const screen = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
     assert.match(screen, /onSkipAhead=\{\(skip\) => patch\(\{ skipAhead: skip \}\)\}/);
+  });
+
+  test('changing the starting level clears skip ahead', () => {
+    // The screen's patch merges a change into the draft, so the change itself must clear the skip.
+    const merge = (d: PreAccountOnboardingDraft, l: PreAccountOnboardingDraft['startLevel'] & string) => ({ ...d, ...startLevelChange(d, l) });
+    const skipped = draft({ startLevel: 'getby', skipAhead: true });
+    assert.equal(merge(skipped, 'getby').skipAhead, true, 'choosing the same level again dropped the skip');
+    for (const level of ['zero', 'few', 'confident'] as const) {
+      const back = merge(merge(skipped, level), 'getby');
+      assert.notEqual(back.skipAhead, true, `the skip came back after ${level}`);
+      assert.equal(planFor(back).heading, 'You start at Basics');
+    }
+    const screen = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
+    assert.match(screen, /onPress=\{\(\) => choose\(startLevelChange\(draftRef\.current, v\.key\)\)\}/, 'the level question writes the level without clearing the skip');
+    assert.match(screen, /\.\.\.startLevelChange\(draftRef\.current, edit\.startLevel\)/, 'the plan sheet writes the level without clearing the skip');
   });
 
   test('Journey never credits a stage the learner skipped', () => {

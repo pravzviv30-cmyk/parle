@@ -85,8 +85,9 @@ DECISIONS.md UI-007):
   by authored title; Needs another go: up to three due phrases missed or
   said with help, opening Review; LEARN-013),
   five stages (stages below an onboarding placement read as skipped, never
-  earned; F917; Journey, Today, Speak and the end cards pass the placement to
-  core `nextScene` as `startAt`, so none suggests a scene below it), abilities, Then and now, help in words,
+  earned; F917; Journey's empty state, the Home hero, the next-task card, Speak's Start
+  and Walk mode, the Recap Next time and Next pill, and Week Wrapped pass the
+  placement to core `nextScene` as `startAt` (`startAtOf`), so none suggests a scene below it), abilities, Then and now, help in words,
   sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
   (shared with Then and now); Journey and Then and now are dark-ready since
   2026-10-21 (UI-008), with the Badges sheet pinned light.

@@ -10,7 +10,7 @@
  *
  * Rewritten 2026-09-27. The hero is `spineFrom(progress).next`: the first scene
  * on the CEFR spine the learner has not earned on their own. Since 2026-10-22
- * it is core's `nextScene(progress, goal)`: the same, unless the learner's
+ * it is core's `nextScene(progress, goal, startAt)`: the same, unless the learner's
  * onboarding goal names an unearned scene within reach, which then leads and
  * says "Picked for ..." (`onboarding/goalLine.ts`). That is the opener
  * on a first run, the café once the opener is earned, and so on up to A1. The

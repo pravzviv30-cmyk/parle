@@ -78,7 +78,7 @@ export function keepsakeLines(turns: readonly Pick<TurnLine, 'who' | 'fr'>[]): s
 /**
  * "Next time: <the next scene>", or null once there is none.
  *
- * Core's `nextScene(progress, goal)`, the same call behind Speak's Start and
+ * Core's `nextScene(progress, goal, startAt)`, the same call behind Speak's Start and
  * Today's hero, so the end card never names a different scene from the one
  * the learner is offered next. It leans towards the onboarding goal; with no
  * goal it is the spine's next scene.
@@ -92,7 +92,7 @@ export function nextTimeLine(progress: readonly MissionProgress[], goal: Learner
 
 /**
  * The next scene as a can-do, for the Celebration's "Next:" pill
- * (2026-10-21 UI-008, artboard B-Celebrate). The same `nextScene(progress, goal)`
+ * (2026-10-21 UI-008, artboard B-Celebrate). The same `nextScene(progress, goal, startAt)`
  * as `nextTimeLine`, so the two can never name different scenes.
  */
 export function nextCanDo(progress: readonly MissionProgress[], goal: LearnerGoal | null = null, startAt: MissionLevel | null = null): { canDoEn: string } | null {

@@ -130,6 +130,15 @@ export function withStartLevel(draft: PreAccountOnboardingDraft, startLevel: Sta
   return draft.startLevel === startLevel ? draft : { ...withoutSkip(draft), startLevel };
 }
 
+/**
+ * The level answer as a change to merge into the draft: a different level
+ * also writes `skipAhead: false`, because a merge cannot drop a key
+ * (`withStartLevel` is the same rule on a whole draft).
+ */
+export function startLevelChange(draft: PreAccountOnboardingDraft, startLevel: StartLevel | null): Partial<PreAccountOnboardingDraft> {
+  return draft.startLevel === startLevel ? { startLevel } : { startLevel, skipAhead: false };
+}
+
 /** A Skip ahead left over from a level it no longer belongs to (only "I can get by" can skip). */
 export function staleSkipAhead(draft: PreAccountOnboardingDraft): boolean {
   return draft.skipAhead === true && draft.startLevel !== 'getby';
