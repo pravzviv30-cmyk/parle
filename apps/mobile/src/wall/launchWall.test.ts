@@ -13,7 +13,7 @@ import { evidence } from '../../test/evidence.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { lockedRouteDecision, lockedRouteFeature, lockedRouteGuard, LOCKED_ROUTES } from '../purchases/featureLocks.ts';
 import {
-  LAUNCH_WALL_AWAY_MS, TAB_ROOTS, exitIsEarly, launchWallController, recapCompletesConversation, launchWallDue, launchWallShowable, rearmsOnReturn, tabRootVisible,
+  LAUNCH_WALL_AWAY_MS, TAB_ROOTS, exitIsEarly, guestPracticeCompletes, launchWallController, recapCompletesConversation, removalIsEarlyExit, watchRemoval, launchWallDue, launchWallShowable, rearmsOnReturn, tabRootVisible,
   type WallDoor, type WallMoment,
 } from './launchWall.ts';
 
@@ -354,6 +354,66 @@ describe('the locked-route guard', () => {
   });
 });
 
+describe('every way out of a scene', () => {
+  // A fake navigation that removes the route the way a swipe, a hardware back or the browser does: no leaveTo runs.
+  const route = () => {
+    const listeners = new Set<(event: { data: { action: { type: string } } }) => void>();
+    return {
+      addListener: (_type: 'beforeRemove', listener: (event: { data: { action: { type: string } } }) => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+      remove: (type: string) => { for (const listener of [...listeners]) listener({ data: { action: { type } } }); },
+    };
+  };
+
+  test('a system back out of a scene is an early exit, and a finished one is not', async () => {
+    for (const back of ['POP', 'GO_BACK', 'NAVIGATE', 'RESET']) {
+      // Swiped back while connecting: the launch wall armed by a return is disarmed.
+      const r = rig();
+      r.world.route = 'Convo';
+      const nav = route();
+      const stop = watchRemoval(nav, (type) => removalIsEarlyExit('Convo', type, { recapSettled: false, leaveRequested: false }), () => r.wall.leftEarly());
+      nav.remove(back);
+      nav.remove(back); // twice is harmless
+      r.world.route = 'Home';
+      await r.show();
+      assert.deepEqual(r.world.opened, [], `a ${back} out of a conversation opened the launch wall`);
+      stop();
+      // Out of the end card a Leave asked for: early too.
+      assert.equal(removalIsEarlyExit('Convo', back, { recapSettled: true, leaveRequested: true }), true);
+      // On the first scene's primer.
+      assert.equal(removalIsEarlyExit('FirstScene', back), true, `a ${back} out of the first scene was not early`);
+    }
+    // Finish, the end card, then Done: not early, and the wall may open.
+    const done = rig();
+    const nav = route();
+    watchRemoval(nav, (type) => removalIsEarlyExit('Convo', type, { recapSettled: true, leaveRequested: false }), () => done.wall.leftEarly());
+    nav.remove('POP');
+    await done.show();
+    assert.deepEqual(done.world.opened, ['launch']);
+    // The first scene replacing itself with its conversation is the way in.
+    assert.equal(removalIsEarlyExit('FirstScene', 'REPLACE'), false);
+  });
+
+  test('every way out of a scene is wired to the early-exit signal', () => {
+    const convo = evidence('apps/mobile/src/ConvoScreen.tsx');
+    assert.match(convo, /watchRemoval\(navigation, \(type\) => !removalHeldRef\.current && removalIsEarlyExit\('Convo', type, \{ recapSettled: recapSettledRef\.current, leaveRequested: leaveRequestedRef\.current \}\), noteLeftEarly\)/, 'a swipe or system back out of a conversation skips the early-exit signal');
+    const first = evidence('apps/mobile/src/nav/RootNavigator.tsx');
+    const firstRoute = first.slice(first.indexOf('function FirstSceneRoute('), first.indexOf('function LessonRoute('));
+    assert.match(firstRoute, /watchRemoval\(nav as unknown as RemovalSource, \(type\) => removalIsEarlyExit\('FirstScene', type\), noteLeftEarly\)/, 'a swipe or system back out of the first scene skips the early-exit signal');
+  });
+
+  test('a kept guest practice that was completed counts as the first completed conversation', () => {
+    assert.equal(guestPracticeCompletes({ live: { outcome: 'completed' } }), true);
+    for (const outcome of ['active', 'left', 'abandoned', undefined]) assert.equal(guestPracticeCompletes({ live: { outcome } }), false, `${outcome} counted`);
+    assert.equal(guestPracticeCompletes({ live: null }), false);
+    assert.equal(guestPracticeCompletes(null), false);
+    const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
+    const settled = handoff.indexOf("if ((await settleGuestHandoff(guest)).ack !== 'durable')");
+    const marked = handoff.indexOf('if (guestPracticeCompletes(guest)) void markConversationDone();');
+    assert.ok(settled > 0, 'the handoff save moved; this check reads nothing');
+    assert.ok(marked > settled, 'a kept, completed guest practice is not remembered as a finished conversation once the account holds it');
+  });
+});
+
 describe('the App wiring', () => {
   test('a recap reached by leaving early neither unlocks the launch wall nor opens it', () => {
     assert.equal(recapCompletesConversation({ leaveRequested: false, switching: false, learnerReplies: 2 }), true);
@@ -416,7 +476,7 @@ describe('the App wiring', () => {
     assert.ok(local.length > 0);
     assert.doesNotMatch(local, /markConversationDone/, 'an early Leave counted as a finished conversation');
     assert.match(convo, /leftRef\.current = true;\s*(?:\/\/[^\n]*\s*)?if \(exitIsEarly\(/, 'leaving before the recap does not disarm the launch wall');
-    assert.match(evidence('apps/mobile/src/nav/RootNavigator.tsx'), /onBack=\{\(\) => \{ noteLeftEarly\(\); backOrTabs\(nav\); \}\}/, 'backing out of the first scene does not disarm the launch wall');
+    assert.match(convo, /removalHeldRef\.current = inRoom && !leaving;/, 'a removal the room guard holds counts as leaving');
     const guard = evidence('apps/mobile/src/purchases/useFeatureLocks.ts');
     assert.match(guard, /navigationRef\.dispatch\(StackActions\.replace\('Wall', \{ entry: 'locked' \}\)\)/);
     assert.match(guard, /onBillingChange\(/);

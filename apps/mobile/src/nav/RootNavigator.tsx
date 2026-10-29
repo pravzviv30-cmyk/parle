@@ -99,6 +99,7 @@ import { backOrTabs, tabsAlone, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
 import { noteLeftEarly } from '../wall/launchWallSeen.ts';
+import { removalIsEarlyExit, watchRemoval, type RemovalSource } from '../wall/launchWall.ts';
 import { singleWallId } from './singleWall.ts';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -151,12 +152,13 @@ function FirstSceneRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'FirstScene'>>();
   const raw = route.params?.missionId;
   const missionId: MissionId = typeof raw === 'string' && getMission(raw as MissionId) !== undefined ? (raw as MissionId) : FIRST_MISSION;
+  // Founder decision 4: any way back out of the primer is an early exit; Start replacing it with the scene is not.
+  useEffect(() => watchRemoval(nav as unknown as RemovalSource, (type) => removalIsEarlyExit('FirstScene', type), noteLeftEarly), [nav]);
   return (
     <FirstSceneScreen
       missionId={missionId}
       onStart={(textMode) => nav.replace('Convo', { missionId, textMode })}
-      // Founder decision 4: backing out of the first scene opens no launch wall.
-      onBack={() => { noteLeftEarly(); backOrTabs(nav); }}
+      onBack={() => backOrTabs(nav)}
     />
   );
 }
@@ -611,7 +613,10 @@ function WallRoute() {
   // A preview opens ON this screen, so there can be nothing behind it to go back
   // to. Falling through to the tabs is the difference between a way out and a
   // dead end, which is the same bargain MissionsScreen strikes on a first run.
-  const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
+  // F931: replace, not navigate, so no wall is left under the tabs. The wall is
+  // single-instance (`getId`), and a wall left underneath would be the one a
+  // later out-of-minutes wall returns to, popping the live scene above it.
+  const leave = () => (nav.canGoBack() ? nav.goBack() : nav.replace('Tabs'));
 
   return (
     <WallScreen
@@ -625,7 +630,7 @@ function WallRoute() {
         if (resumed !== null) nav.reset(resumed); else leave();
       }}
       onOpenPractice={() => nav.replace('Tabs', { screen: 'Practice' })}
-      onOpenBank={() => nav.navigate('Review')}
+      onOpenBank={() => nav.replace('Review')}
       onOpenPolicy={() => nav.navigate('Policy')}
       onOpenTerms={() => nav.navigate('Terms')}
     />

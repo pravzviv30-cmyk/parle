@@ -38,7 +38,7 @@ import type { MissionCompletion } from '@luvani/core';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, AppState } from 'react-native';
-import { useIsFocused, usePreventRemove } from '@react-navigation/native';
+import { useIsFocused, useNavigation, usePreventRemove } from '@react-navigation/native';
 import {
   missionStates,
   isEarned,
@@ -70,7 +70,7 @@ import { leaveConfirmCopy } from './live/leaveConfirm.ts';
 import { SWITCH_WAIT, leaveDuringSwitch, rebuildAfterTeardown, switchWaitOver, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
 import { LEAVE_RECAP_WAIT_MS, leaveOnConfirm, leaveOnTimeout } from './live/leaveKeepingWork.ts';
 import { markConversationDone, noteLeftEarly } from './wall/launchWallSeen.ts';
-import { exitIsEarly, recapCompletesConversation } from './wall/launchWall.ts';
+import { exitIsEarly, recapCompletesConversation, removalIsEarlyExit, watchRemoval, type RemovalSource } from './wall/launchWall.ts';
 import { banksPracticeFor, learnerRepliesOf, recapUse, sessionCredit } from './recap/sessionCredit.ts';
 import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
@@ -1037,6 +1037,14 @@ export function ConvoScreen({
   // Android's hardware back and iOS's edge swipe both route through here, so
   // neither can pop the room without meeting the same sheet the header opens.
   usePreventRemove(inRoom && !leaving, () => setConfirming(true));
+
+  // Founder decision 4: every way out (a swipe, Android's back, the browser's
+  // Back, as well as Leave) tells the launch wall when the scene was left
+  // early. A removal the guard above holds is not a way out.
+  const navigation = useNavigation() as unknown as RemovalSource;
+  const removalHeldRef = useRef(false);
+  removalHeldRef.current = inRoom && !leaving;
+  useEffect(() => watchRemoval(navigation, (type) => !removalHeldRef.current && removalIsEarlyExit('Convo', type, { recapSettled: recapSettledRef.current, leaveRequested: leaveRequestedRef.current }), noteLeftEarly), [navigation]);
 
   // The exit runs from the effect, not from the sheet's confirm: with the guard
   // still up an inline pop would be prevented. Raising `leaving` lowers it first.

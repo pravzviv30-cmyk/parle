@@ -28,6 +28,8 @@ import { celebrationKey, publishCelebrations } from '../celebrate/events.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { keptPhrase, savedPhraseTasks } from './guestProgress.ts';
+import { guestPracticeCompletes } from '../wall/launchWall.ts';
+import { markConversationDone } from '../wall/launchWallSeen.ts';
 import { tutorTimeLine } from './firstRun/copy.ts';
 import { AccountWelcome } from './AccountWelcome.tsx';
 import { OnboardingFrame, OnboardingLayout } from './OnboardingLayout.tsx';
@@ -162,6 +164,8 @@ export function GuestAccountHandoff({
       // never lights a second time (F744). Nothing to record is not a failure.
       if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new Error('Your practice could not be saved.');
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== uid) return;
+      // Founder decision 4: a kept guest practice that ran to its end is the first completed conversation.
+      if (guestPracticeCompletes(guest)) void markConversationDone();
       if (guest.live?.sessionId) {
         const arrival = await loadArrival();
         if (arrival?.sessionId !== guest.live.sessionId) await saveArrival({ sessionId: guest.live.sessionId,

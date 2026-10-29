@@ -23,6 +23,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { guestScenePhrases, phraseKeyOf, type GuestSceneTurnId } from '@luvani/core';
 import { GuestClaimRefused, claimRefusalCopy, claimRefusalIsFinal, claimRefusalOf, scenePhrasebookEntries } from './guestScene.ts';
 import { repairFirstLiveRecord } from './firstLiveModel.ts';
+import { guestPracticeCompletes } from '../wall/launchWall.ts';
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
 
 /** A reply the starter check really returned. */
@@ -159,6 +160,7 @@ async function runHandoff(guest: Partial<GuestPractice>, claim: () => Promise<{ 
     loadArrival: async () => null, saveArrival: async () => { calls.push('arrival'); },
     fetchBillingStatus: async () => null, clearGuestPractice: async () => { calls.push('clear'); },
     GuestClaimRefused, claimRefusalIsFinal,
+    guestPracticeCompletes, markConversationDone: async () => { calls.push('conversation-done'); return true; },
   };
   const body = which === 'keep' ? `${keepSource}; return keep();` : `${finishSource}; return finish();`;
   await new Function(...Object.keys(world), body)(...Object.values(world));
@@ -166,6 +168,18 @@ async function runHandoff(guest: Partial<GuestPractice>, claim: () => Promise<{ 
 }
 
 describe('the café scene hand-off', () => {
+  test('keeping a completed guest practice remembers a finished conversation; one left early does not', async () => {
+    const base = { token: 'x'.repeat(43), attempts: [], kept: false, finishedAt: [] } as Partial<GuestPractice>;
+    const claim = async () => ({ secondsRemaining: 300, sceneTurns: [] as GuestSceneTurnId[] });
+    for (const [outcome, expected] of [['completed', true], ['active', false]] as const) {
+      const live = { brief: null, sessionId: null, outcome, contributions: [], seconds: 0, completedAt: null, pack: null } as unknown as GuestPractice['live'];
+      const h = await runHandoff({ ...base, live }, claim);
+      assert.equal(h.error, '');
+      assert.equal(h.calls.includes('conversation-done'), expected, `a ${outcome} guest practice was ${expected ? 'not ' : ''}counted`);
+      if (expected) assert.ok(h.calls.indexOf('settle') < h.calls.indexOf('conversation-done'), 'counted before the account held the practice');
+    }
+  });
+
   const sceneGuest = (turns: GuestSceneTurnId[]): Partial<GuestPractice> => ({
     token: 'x'.repeat(43), attempts: [], kept: false, finishedAt: [Date.UTC(2026, 9, 23)],
     live: { brief, sessionId, outcome: 'completed', contributions: [], seconds: 120, completedAt: Date.UTC(2026, 9, 23), pack: null, scene: 'guest-cafe', sceneTurns: turns },

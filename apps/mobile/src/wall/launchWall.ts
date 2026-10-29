@@ -117,6 +117,36 @@ export function exitIsEarly(r: { recapSettled: boolean; leaveRequested: boolean 
   return !r.recapSettled || r.leaveRequested;
 }
 
+/**
+ * Whether the route being removed is an early exit, whatever removed it: a
+ * Leave, a swipe back, Android's back or the browser's. The first scene
+ * replacing itself with its conversation is the way in, not out. A
+ * conversation is judged by `exitIsEarly`.
+ */
+export function removalIsEarlyExit(
+  screen: 'Convo' | 'FirstScene',
+  actionType: string,
+  convo: { recapSettled: boolean; leaveRequested: boolean } = { recapSettled: false, leaveRequested: false },
+): boolean {
+  if (screen === 'FirstScene') return actionType !== 'REPLACE';
+  return exitIsEarly(convo);
+}
+
+/** The navigation shape `watchRemoval` needs: React Navigation's `addListener('beforeRemove')`. */
+export interface RemovalSource {
+  addListener: (type: 'beforeRemove', listener: (event: { data: { action: { type: string } } }) => void) => () => void;
+}
+
+/** Signal an early exit when the route is removed and `isEarly` says so. Returns the unsubscribe. A second signal is harmless. */
+export function watchRemoval(nav: RemovalSource, isEarly: (actionType: string) => boolean, signal: () => void): () => void {
+  return nav.addListener('beforeRemove', (event) => { if (isEarly(event.data.action.type)) signal(); });
+}
+
+/** A kept guest practice that ran to its end is the learner's first completed conversation. One left early is not. */
+export function guestPracticeCompletes(guest: { live?: { outcome?: string } | null } | null | undefined): boolean {
+  return guest?.live?.outcome === 'completed';
+}
+
 export interface LaunchWallEnv {
   moment: () => WallMoment;
   /** The account scope generation; a change means another account. */

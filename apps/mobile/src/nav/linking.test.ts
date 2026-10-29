@@ -75,6 +75,46 @@ describe('one wall', () => {
   });
 });
 
+describe('leaving the wall', () => {
+  const routeNames = ['Tabs', 'Wall', 'Terms', 'Policy', 'Convo', 'Review'];
+  const router = StackRouter({});
+  const options = { routeNames, routeParamList: {} as ParamListBase, routeGetIdList: { Wall: singleWallId } };
+  const act = (state: NavigationState, action: Parameters<typeof router.getStateForAction>[1]) => {
+    const next = router.getStateForAction(state, action, options);
+    assert.ok(next !== null, `${action.type} was not handled`);
+    return next as NavigationState;
+  };
+
+  test('a wall opened over a live scene never pops the scene', () => {
+    // The onward ways out of the wall, as WallRoute takes them: Start speaking, the bank, and leave with nothing behind.
+    for (const onward of [StackActions.replace('Convo', { textMode: false }), StackActions.replace('Review')]) {
+      let state = router.getInitialState(options) as NavigationState;
+      state = act(state, CommonActions.navigate('Wall', { entry: 'launch' }));
+      state = act(state, onward);
+      if (onward.payload.name === 'Review') state = act(state, CommonActions.navigate('Convo', { textMode: false }));
+      const convoKey = state.routes.find((route) => route.name === 'Convo')?.key;
+      assert.ok(convoKey);
+      // Out of minutes in the scene: the refused wall over it.
+      state = act(state, CommonActions.navigate('Wall', { entry: 'refused', resumeRouteKey: convoKey }));
+      assert.ok(state.routes.some((route) => route.key === convoKey), `the live scene was popped after ${onward.payload.name}`);
+      assert.equal(state.routes.filter((route) => route.name === 'Wall').length, 1);
+    }
+    // A wall opened cold (a reload on /plans) and left: the tabs replace it.
+    let cold = router.getRehydratedState({ routes: [{ name: 'Wall', params: { entry: 'launch' } }] } as never, options) as NavigationState;
+    cold = act(cold, StackActions.replace('Tabs'));
+    cold = act(cold, CommonActions.navigate('Convo', { textMode: false }));
+    cold = act(cold, CommonActions.navigate('Wall', { entry: 'refused' }));
+    assert.deepEqual(cold.routes.map((route) => route.name), ['Tabs', 'Convo', 'Wall']);
+
+    // WallRoute itself: Terms and Privacy return to the wall; nothing else is pushed over it.
+    const nav = evidence('apps/mobile/src/nav/RootNavigator.tsx');
+    const wall = nav.slice(nav.indexOf('function WallRoute('), nav.indexOf('function TutorMemoryRoute('));
+    assert.ok(wall.length > 0, 'WallRoute moved; this check reads nothing');
+    const pushed = [...wall.matchAll(/nav\.navigate\('(\w+)'/g)].map((m) => m[1]).sort();
+    assert.deepEqual(pushed, ['Policy', 'Terms'], 'the wall is left underneath another flow');
+  });
+});
+
 describe('the compare sheet', () => {
   test('the compare sheet keeps a readable width on a desktop screen', () => {
     const page = evidence('apps/mobile/src/wall/WallPlansPage.tsx');
