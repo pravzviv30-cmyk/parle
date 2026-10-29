@@ -49,3 +49,12 @@ export function switchAfterStop(state: { switching: 'waiting' | 'rebuilding' | n
 export function leaveDuringSwitch(switching: 'waiting' | 'rebuilding'): 'wait-for-recap' | 'settle-locally' {
   return switching === 'waiting' ? 'wait-for-recap' : 'settle-locally';
 }
+
+/**
+ * Whether the rebuild may run once the typed room's teardown has finished.
+ * A stop, or a Leave tapped while the teardown ran, means no voice session:
+ * no token, no lease, no microphone request after the learner chose to go.
+ */
+export function rebuildAfterTeardown(state: { stopped: boolean; left: boolean }): 'rebuild' | 'none' {
+  return state.stopped || state.left ? 'none' : 'rebuild';
+}

@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { SWITCH_WAIT, leaveDuringSwitch, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './switchToVoice.ts';
+import { SWITCH_WAIT, leaveDuringSwitch, rebuildAfterTeardown, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './switchToVoice.ts';
 import { canResumeSpeaking } from './c2TranscriptPolicy.ts';
 import { LEAVE_RECAP_WAIT_MS } from './leaveKeepingWork.ts';
 
@@ -71,8 +71,8 @@ describe('Speak in a typed start — F903', () => {
     // The stop cancels a switch in flight, and neither the timer, the recap nor the leave's end can rebuild after it.
     assert.match(screen, /if \(switchAfterStop\(\{ switching, stopped \}\) === 'cancel'\) \{ switchingRef\.current = false; setSwitching\(null\); \}/);
     const rebuild = screen.slice(screen.indexOf('const rebuildAsVoice = () => {'), screen.indexOf('const switchRebuild'));
-    assert.match(rebuild, /^const rebuildAsVoice = \(\) => \{\s*if \(stopped \|\| stoppedRef\.current\) return;/);
-    assert.match(rebuild, /\.finally\(\(\) => \{\s*if \(stoppedRef\.current\) return;/, 'a stop that lands during the teardown still rebuilds');
+    assert.match(rebuild, /^const rebuildAsVoice = \(\) => \{\s*if \(stopped \|\| stoppedRef\.current \|\| leftRef\.current\) return;/);
+    assert.match(rebuild, /\.finally\(\(\) => \{\s*if \(rebuildAfterTeardown\(\{ stopped: stoppedRef\.current,/, 'a stop that lands during the teardown still rebuilds');
     // The stop screen comes before the switch's wait.
     assert.ok(screen.indexOf("if (safety.kind === 'stop')") < screen.indexOf('if (switching !== null) {'));
   });
@@ -86,5 +86,17 @@ describe('Speak in a typed start — F903', () => {
     assert.match(screen, /onLeave=\{leaveFromSwitch\}/);
     assert.match(screen, /if \(leaveDuringSwitch\(switching\) === 'wait-for-recap'\) \{ switchingRef\.current = false; setSwitching\(null\); setLeaveWaiting\(true\); setFinishing\(true\); \}/);
     assert.match(screen, /else \{ switchingRef\.current = false; leaveTimedOut\(\); \}/);
+  });
+
+  test('leaving while the switch rebuilds starts no voice session', () => {
+    assert.equal(rebuildAfterTeardown({ stopped: false, left: false }), 'rebuild');
+    assert.equal(rebuildAfterTeardown({ stopped: false, left: true }), 'none', 'a Leave during the teardown still opened a voice session');
+    assert.equal(rebuildAfterTeardown({ stopped: true, left: false }), 'none');
+    const screen = read('../ConvoScreen.tsx');
+    // The rebuild's end asks, and every exit raises the flag first.
+    assert.match(screen, /\.finally\(\(\) => \{\s*if \(rebuildAfterTeardown\(\{ stopped: stoppedRef\.current, left: leftRef\.current \}\) === 'none'\) return;/);
+    assert.match(screen, /const leaveTo = \(afterLeave: \(\) => void\) => \{\s*leftRef\.current = true;/);
+    assert.match(screen, /const leaveFromSwitch = \(\) => \{\s*leftRef\.current = true;/);
+    assert.match(screen, /if \(stopped \|\| stoppedRef\.current \|\| leftRef\.current\) return;/);
   });
 });

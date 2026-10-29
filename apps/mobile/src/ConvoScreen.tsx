@@ -67,7 +67,7 @@ import { IconAction,
 import { SupportBlock } from './SessionView.tsx';
 import { ConfirmSheet, ScrollScreen } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
-import { SWITCH_WAIT, leaveDuringSwitch, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
+import { SWITCH_WAIT, leaveDuringSwitch, rebuildAfterTeardown, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
 import { LEAVE_RECAP_WAIT_MS, leaveOnConfirm, leaveOnTimeout } from './live/leaveKeepingWork.ts';
 import { banksPracticeFor, learnerRepliesOf, recapUse, sessionCredit } from './recap/sessionCredit.ts';
 import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
@@ -470,6 +470,8 @@ export function ConvoScreen({
   // Read where a closure outlives the render (the switch's teardown, F903).
   const stoppedRef = useRef(stopped);
   stoppedRef.current = stopped;
+  // Raised by every exit (F903): nothing rebuilds or starts after the learner chose to leave.
+  const leftRef = useRef(false);
 
   // The scene's goals, and the moment one of them ticks (tutor/taskTicks.ts):
   // the row pops and is announced, and on the last goal the orb ripples once
@@ -845,6 +847,7 @@ export function ConvoScreen({
   }, [live.practice, live.drills, live.recap, stopped]);
 
   const leaveTo = (afterLeave: () => void) => {
+    leftRef.current = true;
     // F402 — where they got to, so the tutor's resume card can offer it back
     // with a minutes line instead of a bare title.
     //
@@ -923,13 +926,13 @@ export function ConvoScreen({
   // Then the lease is released before the rebuild (F201: a second grant over a
   // standing lease is refused), and the session connects again as voice.
   const rebuildAsVoice = () => {
-    if (stopped || stoppedRef.current) return;
+    if (stopped || stoppedRef.current || leftRef.current) return;
     setSwitching('rebuilding');
     bankRecoveredPractice();
     // The typed part's replies carry over and the clock keeps running, so the
     // scene settles once, at its real end, with both parts' minutes (F903).
     void live.leave().finally(() => {
-      if (stoppedRef.current) return;
+      if (rebuildAfterTeardown({ stopped: stoppedRef.current, left: leftRef.current }) === 'none') return;
       carriedRepliesRef.current += live.sceneReplies;
       switchingRef.current = false;
       bankedRef.current = false;
@@ -965,6 +968,7 @@ export function ConvoScreen({
   }, [switching, stopped]);
   // Leave on the switch's wait screen is a Leave (F905), never a lost typed part.
   const leaveFromSwitch = () => {
+    leftRef.current = true;
     if (switching === null) { leaveNow(); return; }
     if (leaveDuringSwitch(switching) === 'wait-for-recap') { switchingRef.current = false; setSwitching(null); setLeaveWaiting(true); setFinishing(true); }
     else { switchingRef.current = false; leaveTimedOut(); }
