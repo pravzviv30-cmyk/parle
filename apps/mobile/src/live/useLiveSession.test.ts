@@ -1,3 +1,4 @@
+import { ownLeaseRetry } from './ownLease.ts';
 import { classifyFailure } from './failure.ts';
 import { unjoinedLease } from './unjoinedLease.ts';
 /**
@@ -281,7 +282,7 @@ function asJs(source: string): string {
  * returns the one thing its caller has to decide on.
  */
 function run(source: string, world: Record<string, unknown>): unknown {
-  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ...world };
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ownLeaseRetry, ownLeaseRetryRef: { current: false }, ...world };
   const names = Object.keys(world);
   const fn = new Function(...names, `"use strict";\n${asJs(source)}`) as (...args: unknown[]) => unknown;
   return fn(...names.map((name) => world[name]));
@@ -292,7 +293,7 @@ const AsyncFunction = Object.getPrototypeOf(async (): Promise<void> => {}).const
 ) => (...args: unknown[]) => Promise<void>;
 
 async function runAsync(source: string, world: Record<string, unknown>): Promise<void> {
-  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ...world };
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ownLeaseRetry, ownLeaseRetryRef: { current: false }, ...world };
   const names = Object.keys(world);
   const fn = new AsyncFunction(...names, `"use strict";\n${asJs(source)}`);
   await fn(...names.map((name) => world[name]));
@@ -791,6 +792,7 @@ const EVERY_FAILURE = Object.keys({
   // The exhaustive map is the point: a new failure has to be answered here.
   'rate-limited': true,
   'session-elsewhere': true,
+  'own-session-closing': true,
   'sign-in-required': true,
   signal: true,
   media: true,
@@ -1375,7 +1377,7 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
       }
     }
     assert.ok(expression.length > 0, 'the body object is never closed');
-    world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ...world };
+    world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ownLeaseRetry, ownLeaseRetryRef: { current: false }, ...world };
   const names = Object.keys(world);
     const run = new Function(...names, `"use strict"; return (${expression});`) as (
       ...args: unknown[]
@@ -1929,7 +1931,7 @@ describe('a signed-out guest scene reaches its token request', () => {
   test('a consent store behind the auth gate never stops a guest start before /onboarding/live', async () => {
     const READ = fragment(hook, 'function readConsent(guest: boolean): Promise<Awaited<ReturnType<typeof loadConsent>> | null> {');
     const from = hook.indexOf('const authStartedAt = Date.now();');
-    const to = hook.indexOf('if (await abandoned()) return;', hook.indexOf('const res = await fetch(', from));
+    const to = hook.indexOf('if (await abandoned()) return;', hook.indexOf('let res = await requestGrant();', from));
     assert.ok(from > 0 && to > from, 'the start no longer reads consent before its token request');
     const START = hook.slice(from, to);
     // What the real store does with nobody signed in: it throws before it returns a promise.

@@ -34,6 +34,8 @@ export type LiveFailure =
   | 'rate-limited'
   /** Refused because this learner already has a session open somewhere else. */
   | 'session-elsewhere'
+  /** The app's own typed session is still closing after Speak switched it to voice (F903). */
+  | 'own-session-closing'
   /** Refused because nobody is signed in. */
   | 'sign-in-required'
   /** Reached the room service, but the signal connection failed. */
@@ -62,8 +64,8 @@ export type LiveFailure =
 /** Thrown by the hook when the token server answers with something unusable. */
 export class TokenServerError extends Error {
   readonly status: number;
-  readonly code: 'voice-unavailable' | undefined;
-  constructor(status: number, code?: 'voice-unavailable') {
+  readonly code: 'voice-unavailable' | 'own-session-closing' | undefined;
+  constructor(status: number, code?: 'voice-unavailable' | 'own-session-closing') {
     super(`token server replied ${status}`);
     this.name = 'TokenServerError';
     this.status = status;
@@ -116,6 +118,7 @@ export function classifyFailure(err: unknown): LiveFailure {
     // something else. The out-of-minutes 402 never arrives here at all; the
     // hook answers it with the paywall before this is reached.
     if (err.status === 503 && err.code === 'voice-unavailable') return 'voice-unavailable';
+    if (err.status === 409 && err.code === 'own-session-closing') return 'own-session-closing';
     if (err.status >= 500) return 'server-unreachable';
     switch (err.status) {
       case 401:
@@ -247,6 +250,11 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   // as the lease's own length rather than a hopeful minute, and it points at
   // practice, which is on-device and reached by the Back this screen always
   // draws.
+  'own-session-closing': {
+    label: 'Still closing',
+    message: 'Your typed session is still closing. Give it a moment, then tap Try again.',
+    canType: false,
+  },
   'session-elsewhere': {
     label: 'Session already open',
     // One string literal, not a concatenation: the surface walk in

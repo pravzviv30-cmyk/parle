@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { tutorGate } from './gate.ts';
+import { parseSeedTopic, stringifySeedTopic } from './convoStart.ts';
 import { boolParam, convoStartFromParams, micOpensOnReady } from './convoStart.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -89,5 +90,27 @@ describe('a conversation opens the way its button said — F903, F923', () => {
     assert.match(read('../tabs/MyFrenchTab.tsx'), /tutorGate\(answered\)/);
     assert.match(read('../tabs/PracticeTab.tsx'), /tutorGate\(answered\)/);
     assert.match(read('../main/useConversationStart.ts'), /textMode: boolean \| undefined = prefersTyping\(profile\) \? true : undefined/);
+  });
+
+  test('a reloaded topic conversation keeps its topic', () => {
+    const topic = { fr: 'Ta journée', en: 'Tell me about your day' };
+    const inAddress = stringifySeedTopic(topic);
+    assert.equal(typeof inAddress, 'string');
+    assert.doesNotMatch(inAddress, /\[object Object\]/);
+    assert.deepEqual(parseSeedTopic(inAddress), topic, 'the topic did not survive the address');
+    // Within one visit the param is still the object itself.
+    assert.deepEqual(parseSeedTopic(topic), topic);
+    // The linking map writes and reads it that way, and the route hands the screen the validated one.
+    const linking = read('../nav/theme.ts');
+    assert.match(linking, /Convo: \{ path: 'conversation', parse: \{ seedTopic: parseSeedTopic \}, stringify: \{ seedTopic: stringifySeedTopic \} \}/);
+    assert.match(read('../nav/RootNavigator.tsx'), /seedTopic=\{parseSeedTopic\(route\.params\?\.seedTopic\)\}/);
+  });
+
+  test('a malformed topic in the address is dropped, never sent to the tutor', () => {
+    for (const bad of ['[object Object]', '', '{', '"x"', '{"fr":1,"en":"x"}', '{"fr":"a"}', '{"fr":" ","en":" "}', 42, null, undefined, ['a', 'b'], { fr: 'a' }]) {
+      assert.equal(parseSeedTopic(bad), undefined, `kept ${JSON.stringify(bad)}`);
+    }
+    // Extra fields are never passed through.
+    assert.deepEqual(parseSeedTopic('{"fr":"a","en":"b","x":"evil"}'), { fr: 'a', en: 'b' });
   });
 });

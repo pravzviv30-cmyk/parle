@@ -1,4 +1,4 @@
-import { convoStartFromParams } from '../tutor/convoStart.ts';
+import { convoStartFromParams, parseSeedTopic } from '../tutor/convoStart.ts';
 import { consumeReload, isReload } from '../tutor/reloadGate.ts';
 import { ReloadIntro } from '../tutor/ReloadIntro.tsx';
 import { afterPurchase, type ResumeRoute } from '../live/afterPurchase.ts';
@@ -510,7 +510,7 @@ function ConvoRoute() {
         typingOpenAtStart={start.typingOpen}
         // Start speaking is the learner agreeing to be heard (F903).
         openMicOnReady={start.openMicOnReady}
-        seedTopic={route.params?.seedTopic}
+        seedTopic={parseSeedTopic(route.params?.seedTopic)}
         continuationPackId={route.params?.continuationPackId}
         // The mission the learner chose, carried through to the join token so
         // the agent can open its authored scene without a model call. This line

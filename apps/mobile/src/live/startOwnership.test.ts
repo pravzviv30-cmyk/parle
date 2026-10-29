@@ -1,3 +1,4 @@
+import { ownLeaseRetry } from './ownLease.ts';
 import { tapToSendFrames } from './heldTurn.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { tokenFailureCode, TokenServerError, classifyFailure } from './failure.ts';
@@ -379,7 +380,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     setRecap: () => {},
     setPractice: () => {},
     setDrills: () => {},
-    setSceneReplies: () => {},
+    setSceneReplies: () => {}, ownLeaseRetry, ownLeaseRetryRef: { current: false },
     emptyDiagnostics: (): Record<string, unknown> => ({}),
     addTurn: () => 't1',
     removeAudioEls: () => {},

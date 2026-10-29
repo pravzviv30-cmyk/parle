@@ -128,6 +128,11 @@ DECISIONS.md UI-007):
   session as voice (`live/switchToVoice.ts`). A safety stop during the switch
   cancels it with no rebuild, and Leave on the switch's wait follows the Leave
   rule above.
+  The rebuild leaves through `leaveForRebuild` and, on the token server's 409 for its own closing lease,
+  retries for about 20 s behind "Switching to speaking" (`live/ownLease.ts`);
+  past that it says "Still closing your typed session" with Try again and Leave.
+  An ordinary start's 409 still reads as another device. The topic of a
+  conversation travels in the web address as validated JSON, so a reload keeps it.
   A web reload of the conversation address (F923, `tutor/reloadGate.ts`) shows
   "Your last conversation ended." with Start again and never opens a session
   by itself. The Convo and Lesson routes follow the device

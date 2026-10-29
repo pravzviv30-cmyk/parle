@@ -213,7 +213,8 @@ describe('the mission id has to survive the route, not just be declared on it', 
       /missionId=\{route\.params\?\.missionId\}/,
       'ConvoRoute must hand the chosen mission on to the screen, or the authored scene is unreachable from the app',
     );
-    assert.match(props, /seedTopic=\{route\.params\?\.seedTopic\}/, 'and the seed topic it already carried still rides');
+    // F923: validated on the way in, so a reloaded address cannot hand the tutor a garbage topic.
+    assert.match(props, /seedTopic=\{parseSeedTopic\(route\.params\?\.seedTopic\)\}/, 'and the seed topic it already carried still rides');
   });
 });
 

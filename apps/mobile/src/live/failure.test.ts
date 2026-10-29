@@ -30,6 +30,7 @@ const EVERY_FAILURE = Object.keys({
   'server-refused': true,
   'rate-limited': true,
   'session-elsewhere': true,
+  'own-session-closing': true,
   'sign-in-required': true,
   signal: true,
   media: true,

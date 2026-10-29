@@ -60,3 +60,26 @@ export function micOpensOnReady(state: {
 }): boolean {
   return state.openMicOnReady && !state.openedTyped && !state.walkMode && !state.asked && state.live && state.roomShown;
 }
+
+/**
+ * The topic a conversation was started on, as it travels in the web address.
+ *
+ * The route param is an object, and without a stringify the address held
+ * "[object Object]", so a reload (F923) lost the topic or handed the tutor a
+ * garbage string. It is written as JSON and read back here, and anything that
+ * is not exactly a French and an English string is dropped, never sent.
+ */
+export function stringifySeedTopic(topic: { fr: string; en: string }): string {
+  return JSON.stringify({ fr: topic.fr, en: topic.en });
+}
+
+export function parseSeedTopic(value: unknown): { fr: string; en: string } | undefined {
+  let candidate: unknown = value;
+  if (typeof value === 'string') {
+    try { candidate = JSON.parse(value); } catch { return undefined; }
+  }
+  if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) return undefined;
+  const { fr, en } = candidate as { fr?: unknown; en?: unknown };
+  if (typeof fr !== 'string' || typeof en !== 'string' || fr.trim() === '' || en.trim() === '') return undefined;
+  return { fr, en };
+}

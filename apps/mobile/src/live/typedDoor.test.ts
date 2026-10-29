@@ -69,6 +69,7 @@ const EVERY_FAILURE = Object.keys({
   // The exhaustive map is the point: a new failure has to be answered here.
   'rate-limited': true,
   'session-elsewhere': true,
+  'own-session-closing': true,
   'sign-in-required': true,
   signal: true,
   media: true,

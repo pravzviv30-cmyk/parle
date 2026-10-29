@@ -841,7 +841,7 @@ on top of them. One moment of being stuck, two rescues.
 
 ## When it fails
 
-`apps/mobile/src/live/failure.ts` enumerates twenty distinct failures, each with
+`apps/mobile/src/live/failure.ts` enumerates twenty-one distinct failures, each with
 its own words and its own way out; eight carry `canType: true` and offer the typed
 route instead. `LiveErrorView` keeps a **Support details** panel, closed by
 default and drawn after every recovery action, reporting whether

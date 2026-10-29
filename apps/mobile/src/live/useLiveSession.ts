@@ -63,6 +63,7 @@ import {
   tokenFailureCode,
   type LiveFailure,
 } from './failure.ts';
+import { ownLeaseRetry } from './ownLease.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
 import { learnerLine } from './leaveKeepingWork.ts';
 import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
@@ -571,6 +572,8 @@ export interface LiveSession {
    * The screen already renders the recap in place for exactly this reason.
    */
   requestRecap: () => void;
+  /** Leave so the screen can rebuild in another mode; the next start waits out its own lease (F903). */
+  leaveForRebuild: () => Promise<void>;
   leave: () => Promise<void>;
   /**
    * True once the tutor has said time is nearly up, for the rest of this
@@ -754,6 +757,8 @@ export function useLiveSession(
 
   // The choosing screen is up from 'opening' until the scene's first view (F905).
   const choosingRef = useRef(false);
+  // Set by leaveForRebuild: the next start's 409 is our own lease closing (F903).
+  const ownLeaseRetryRef = useRef(false);
   const addTurn = useCallback((line: Omit<TurnLine, 'id'>, confirmedId?: string) => {
     turnSeq.current += 1;
     const id = confirmedId ?? `t${turnSeq.current}`;
@@ -819,6 +824,19 @@ export function useLiveSession(
     conversationTextRef.current.clear();
     await closing;
   }, [teardownRoom]);
+
+  /**
+   * Leave so that this screen can rebuild the session in another mode (F903).
+   * The next start may then meet this session's own lease still closing, and
+   * waits for it instead of reporting another device. Nothing is cancelled by
+   * id: an abandon on a claimed session would mark it cancel-requested while
+   * its agent is still settling the typed part (billing, pack, reply counts),
+   * so the bounded retry covers the gap instead.
+   */
+  const leaveForRebuild = useCallback(async () => {
+    ownLeaseRetryRef.current = true;
+    await leave();
+  }, [leave]);
 
   /** Send the wrap-up tag and keep the room open for the answer. */
   const requestRecap = useCallback(() => {
@@ -1014,7 +1032,7 @@ export function useLiveSession(
       if (await abandoned()) return;
       diagRef.current.authMs = Date.now() - authStartedAt;
       const tokenStartedAt = Date.now();
-      const res = await fetch(`${TOKEN_SERVER}${guestToken ? '/onboarding/live' : '/session/start'}`, {
+      const requestGrant = () => fetch(`${TOKEN_SERVER}${guestToken ? '/onboarding/live' : '/session/start'}`, {
         method: 'POST',
         // The bearer token, when auth is live, lets the server verify the
         // asserted userId instead of trusting it. Mock mode adds nothing.
@@ -1044,10 +1062,24 @@ export function useLiveSession(
           ...(voiceSpeed !== null ? { voiceSpeed } : {}),
         }),
       });
+      let res = await requestGrant();
       // The long wait, and the one this guard was built for. A cold start can
       // sit here for twenty five seconds, which is ample time to give up and
       // walk out, and the grant that arrives afterwards must not become a room.
       if (await abandoned()) return;
+      // F903: the app's own typed session is still closing after a switch to
+      // voice. Ask again on a bounded backoff; a Leave, a stop or a newer start
+      // moves the generation and ends the wait, starting nothing.
+      for (let attempt = 0; ; attempt += 1) {
+        const wait = ownLeaseRetry({ status: res.status, ownRebuild: ownLeaseRetryRef.current, attempt });
+        if (wait === null) break;
+        trace('own-lease-wait', { attempt, ms: wait });
+        await new Promise((resolve) => setTimeout(resolve, wait));
+        if (await abandoned()) return;
+        res = await requestGrant();
+        if (await abandoned()) return;
+      }
+      if (res.status === 409 && ownLeaseRetryRef.current) throw new TokenServerError(409, 'own-session-closing');
       diagRef.current.tokenStatus = res.status;
       diagRef.current.tokenMs = Date.now() - tokenStartedAt;
       diagRef.current.tokenServerTiming = res.headers.get('server-timing');
@@ -1079,6 +1111,7 @@ export function useLiveSession(
       // /session/abandon compares against before releasing anything, which is
       // what stops one caller freeing another's session.
       const grant = (await res.json()) as { token: string; livekitUrl: string; sessionId: string };
+      ownLeaseRetryRef.current = false;
       // The catalogue rides the grant as well as the refusal (F514), so a learner
       // who has started a session has seen what a plan buys without having to be
       // turned away first. Parsed by the same validator either way.
@@ -1879,6 +1912,7 @@ export function useLiveSession(
     sendTapToSend: useCallback((on: boolean) => send({ t: 'tap-to-send', on }), [send]),
     sendTurn: useCallback(() => send({ t: 'send' }), [send]),
     requestRecap,
+    leaveForRebuild,
     leave,
   };
 }

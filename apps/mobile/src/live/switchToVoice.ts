@@ -58,3 +58,8 @@ export function leaveDuringSwitch(switching: 'waiting' | 'rebuilding'): 'wait-fo
 export function rebuildAfterTeardown(state: { stopped: boolean; left: boolean }): 'rebuild' | 'none' {
   return state.stopped || state.left ? 'none' : 'rebuild';
 }
+
+/** The switch's wait ends when the new session is live or has an answer of its own to show. */
+export function switchWaitOver(phase: string): boolean {
+  return phase === 'live' || phase === 'error' || phase === 'out-of-minutes';
+}
