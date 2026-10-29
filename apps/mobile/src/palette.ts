@@ -55,6 +55,12 @@ export const paper = {
    * white: a mark at the 3 floor, never words.
    */
   field: '#8A8499',
+  /**
+   * The keyboard focus ring (F927): a mid violet that reaches 3:1 on the
+   * cream ground, a white card and the dark ground and card alike, so one
+   * web rule serves both modes. A mark, never words.
+   */
+  focus: '#6A5CFF',
   /** Text and icons on a filled ink, blue or coral control. */
   onInk: '#FFFFFF',
 } as const;
@@ -121,12 +127,14 @@ export const boldRhythm = {
   violet: colour.blue, sun: colour.sun, paper: paper.ground, ink: paper.ink,
   white: paper.card, lavender: pastel.lavender, peach: pastel.peach, sage: pastel.sage,
   coral: colour.coral, muted: paper.inkSoft, line: paper.line, sand: paper.inset,
+  /** An input's border and an unchosen ring (F921): 3.6 on white, never the line hairline. */
+  field: paper.field,
 } as const;
 
 /**
  * The retired Luvani-theme semantic names. `light` is now an alias table onto
- * direction B; `dark` keeps its own values for when dark mode returns
- * (DARK_MODE_ENABLED is false).
+ * direction B; `dark` keeps its own values for the dark signed-in screens
+ * (DARK_MODE_ENABLED is true, main/appearanceModel.ts).
  */
 export const mainApp = {
   light: { background: paper.ground, surface: paper.card, inset: pastel.lavender, text: paper.ink, muted: paper.inkSoft, border: paper.line, hero: colour.blue, plum: pastel.lavender, teal: pastel.sage, rose: pastel.peach, ochre: pastel.butter, link: colour.blue, selected: paper.card, danger: '#C2341F' },

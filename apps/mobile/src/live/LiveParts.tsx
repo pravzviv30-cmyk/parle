@@ -373,7 +373,7 @@ function makeStyles(t: B) {
     ladderStep: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 6 },
     ladderRule: { width: 14, height: 2, backgroundColor: t.ring },
     ladderPill: { minHeight: 32, paddingHorizontal: 12, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    choice: { minHeight: 60, borderWidth: 2, borderColor: t.line, borderRadius: 18, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, gap: 4 },
+    choice: { minHeight: 60, borderWidth: 2, borderColor: t.field, borderRadius: 18, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, gap: 4 },
     choicePress: { minHeight: 56, justifyContent: 'center', paddingVertical: 10 },
     choiceWords: { flex: 1, gap: 2, paddingVertical: 10 },
     choiceHear: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
@@ -382,7 +382,7 @@ function makeStyles(t: B) {
     sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sheetClose: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
     asked: { backgroundColor: t.card, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
-    secondary: { minHeight: 46, borderRadius: 23, backgroundColor: t.card, borderWidth: 2, borderColor: t.line, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+    secondary: { minHeight: 46, borderRadius: 23, backgroundColor: t.card, borderWidth: 2, borderColor: t.field, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
     primary: { minHeight: 54, borderRadius: 27, backgroundColor: t.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 18 },
   });
 }

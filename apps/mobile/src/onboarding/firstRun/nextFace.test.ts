@@ -15,15 +15,8 @@ import assert from 'node:assert/strict';
 import { evidence } from '../../../test/evidence.ts';
 import { accent, colour, onColour, paper } from '../../palette.ts';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './nextFace.ts';
+import { contrast } from '../../testing/contrast.ts';
 
-function luminance(hex: string): number {
-  const [r, g, b] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-}
-function contrast(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi! + 0.05) / (lo! + 0.05);
-}
 
 /** Words on a button: the 4.5 floor. */
 const WORDS = 4.5;

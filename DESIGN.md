@@ -419,13 +419,25 @@ and the ring of an unchosen option, a mark and never words.
 | `paper.inkOnPastel` | `#4A4766` | The secondary line on a pastel (6.5 or more on each) |
 | `paper.onInk` | `#FFFFFF` | Text and icons on a filled ink, blue or coral control |
 | `paper.field` | `#8A8499` | The 1.5pt input border and the unchosen option ring. A mark, never words |
+| `paper.focus` | `#6A5CFF` | The 2pt keyboard focus ring (`FOCUS` in theme.ts), web only. 4.3 on the ground, 4.6 on a card, 4.0 on the dark ground. A mark |
 
 Ink clears 16.6 on the ground, 17.8 on a card and 14.4 on the skeleton. Soft
 ink clears 6.2 on the ground and 6.6 on a card. The card lifts off the ground by
 a Delta-E of 7.9, the hairline sits 5.8 off the ground and 12.3 off a card, and
 the skeleton 5.9 off the ground. The hairline is decorative and never the only
 edge of a control. Soft ink clears 5.8 on the inset. The field border clears 3.6 on a card, the
-floor for a mark.
+floor for a mark. Every input border, choice outline and unchosen radio ring takes `field`
+(`c.field` in onboarding, `t.field` on themed screens), in both modes; `controls.test.ts`
+measures each one against the card and the ground (F921).
+
+The keyboard focus ring is `FOCUS` in theme.ts: 2pt, 2pt clear of the control, in
+`paper.focus`. One web rule, installed once by `keyActivation.ts` from components.tsx,
+draws it on `:focus-visible` only, so a mouse click stays ringless. `Press`,
+`OutlineButton`, `OptionCard` and `Chip` carry its data attribute; `AccountField` draws
+its own 2pt ring. On the web, Space chooses a radio, checkbox, tab or switch built on
+`Press` or `Chip`; Enter is react-native-web's own (F927). A `PillButton` or `Press`
+given `disabledReason` stays in the tab order while disabled, says it is off and why,
+and ignores the press.
 
 ### Four colours
 

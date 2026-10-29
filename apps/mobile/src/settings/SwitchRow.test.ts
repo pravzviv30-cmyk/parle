@@ -54,3 +54,19 @@ describe('a switch is drawn on every platform — F736', () => {
     }
   });
 });
+
+describe('the whole row is the switch — F927', () => {
+  test('the whole switch row toggles, said once as a switch', () => {
+    const body = stripComments(readFileSync(join(SRC, 'settings/SwitchRow.tsx'), 'utf8'));
+    const row = /<Press\b[\s\S]*?style=\{\[st\.row, frame\]\}>/.exec(body)?.[0] ?? '';
+    assert.ok(row, 'the row is not a Press, so only the small switch takes a tap');
+    assert.match(row, /accessibilityRole="switch"/, 'the row is not announced as a switch');
+    assert.match(row, /accessibilityState=\{\{ checked: value, disabled \}\}/, 'the row does not say on or off');
+    assert.match(row, /aria-checked=\{value\}/, 'the web does not hear on or off');
+    assert.match(row, /onPress=\{\(\) => onChange\(!value\)\}/, 'a tap on the row does not toggle');
+    // The Switch inside is the picture of the state, not a second control.
+    assert.match(body, /<View ref=\{knob\} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>\s*<Switch/, 'the inner switch is announced and pressed a second time');
+    assert.match(body, /setAttribute\?\.\('inert', ''\)/, 'the inner web checkbox stays in the tab order');
+    assert.doesNotMatch(body, /onValueChange=/, 'the inner switch toggles on its own as well as the row');
+  });
+});

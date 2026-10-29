@@ -4,19 +4,9 @@ import { readFileSync } from 'node:fs';
 import { mainApp, paper } from '../palette.ts';
 import { DISPLAY_OPTIONS, displayPreferenceLabel } from './displayModel.ts';
 import { DARK_MODE_ENABLED, mainMode } from '../main/appearanceModel.ts';
+import { contrast } from '../testing/contrast.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
-function luminance(hex: string): number {
-  const [r, g, b] = [1, 3, 5].map(index => {
-    const channel = parseInt(hex.slice(index, index + 2), 16) / 255;
-    return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4;
-  });
-  return .2126 * r! + .7152 * g! + .0722 * b!;
-}
-function contrast(a: string, b: string): number {
-  const first = luminance(a); const second = luminance(b);
-  return (Math.max(first, second) + .05) / (Math.min(first, second) + .05);
-}
 
 test('Settings and the avatar share one appearance editor and show the stored choice', () => {
   assert.deepEqual(DISPLAY_OPTIONS.map(option => option.value), ['system', 'light', 'dark']);

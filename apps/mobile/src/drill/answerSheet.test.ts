@@ -314,7 +314,10 @@ describe('a waiting answer sheet takes the screen reader with it — F775', () =
     const pressProps = components.slice(components.indexOf('export type PressProps'), components.indexOf('export type Ground'));
     assert.match(pressProps, /ref\?: Ref<View>;/, 'Press drops a ref before it reaches the pressable');
     const press = components.slice(components.indexOf('export function Press('), components.indexOf('function SelectRing('));
-    assert.match(press, /children, \.\.\.rest \}: PressProps\)/, 'the press no longer passes the rest of its props on');
+    assert.match(press, /children, ref: outerRef, \.\.\.rest \}: PressProps\)/, 'the press no longer passes the rest of its props on');
+    // F927: Press holds the node to say a disabled reason on the web, and hands it on.
+    assert.match(press, /ref=\{setRef\}/, 'the press drops the caller ref');
+    assert.match(press, /if \(typeof outerRef === 'function'\) outerRef\(value\);/, 'the press does not hand its node to the caller');
     assert.match(press, /<Pressable accessibilityRole="button" \{\.\.\.rest\}/, 'the press does not pass the ref on to its pressable');
   });
 });

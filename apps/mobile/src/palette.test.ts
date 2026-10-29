@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b } from './palette.ts';
+import { contrast } from './testing/contrast.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -61,19 +62,6 @@ function channels(hex: string): Rgb {
     g: linear(Number.parseInt(h.slice(2, 4), 16)),
     b: linear(Number.parseInt(h.slice(4, 6), 16)),
   };
-}
-
-function luminance(hex: string): number {
-  const c = channels(hex);
-  return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-}
-
-function contrast(a: string, b: string): number {
-  const x = luminance(a);
-  const y = luminance(b);
-  const hi = Math.max(x, y);
-  const lo = Math.min(x, y);
-  return (hi + 0.05) / (lo + 0.05);
 }
 
 /** CIE L*a*b* under D65, which is where lightness and Delta-E both live. */

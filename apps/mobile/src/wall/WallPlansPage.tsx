@@ -157,9 +157,9 @@ function ComparePlans({ comparing, rows, current, catalogue, account, standing, 
             <Press key={card.plan} haptic="selection" accessibilityRole="radio" accessibilityState={{ checked, disabled: card.yours }} aria-checked={checked} disabled={card.yours}
               accessibilityLabel={[card.name, card.yours ? PLAN_YOURS : null, card.price, card.allowance, card.trial].filter(Boolean).join(', ')}
               onPress={() => setPick(card.plan)}
-              style={[st.card, checked ? { borderWidth: 1.5, borderColor: b.mark, backgroundColor: colors.background } : { borderWidth: 1, borderColor: colors.border }]}>
+              style={[st.card, checked ? { borderWidth: 1.5, borderColor: b.mark, backgroundColor: colors.background } : { borderWidth: 1, borderColor: b.field }]}>
               <View style={st.cardHead}>
-                <View {...decorative} style={[st.radio, checked ? { backgroundColor: b.mark } : { borderWidth: 1.5, borderColor: colors.border }]}>
+                <View {...decorative} style={[st.radio, checked ? { backgroundColor: b.mark } : { borderWidth: 1.5, borderColor: b.field }]}>
                   {checked && <View style={[st.radioDot, { backgroundColor: b.onMark }]} />}
                 </View>
                 <Text style={[wallType.medium, { color: colors.text, flex: 1, minWidth: 0 }]}>{card.name}</Text>

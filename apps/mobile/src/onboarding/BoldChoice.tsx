@@ -16,7 +16,7 @@ export function BoldChoice({ title, detail, selected, onPress, multiple = false,
     accessibilityState={{ checked: selected }} aria-checked={selected}
     accessibilityLabel={detail ? `${title}. ${detail}` : title} onPress={onPress}
     frame={{ borderRadius: corner }}
-    style={[colourful ? st.answer : st.quiet, { borderColor: selected ? c.violet : colourful ? 'transparent' : c.line, backgroundColor: fill }]}>
+    style={[colourful ? st.answer : st.quiet, { borderColor: selected ? c.violet : colourful ? 'transparent' : c.field, backgroundColor: fill }]}>
     {art != null && <View {...decorative} style={{ width: 48, height: 48, overflow: 'hidden', borderRadius: 12 }}>{art}</View>}
     <View style={{ gap: colourful ? 3 : 2, flex: 1, minWidth: 0 }}><Text style={[colourful ? type.choiceTitle : type.label, { color: ink }]}>{title}</Text>
       {!!detail && <Text style={[type.small, { color: colourful ? ink : c.muted }]}>{detail}</Text>}

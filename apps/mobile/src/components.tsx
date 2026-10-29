@@ -64,6 +64,7 @@ import {
   type,
   HAIRLINE,
   HIT,
+  FOCUS,
   rungColor,
   rungLabel,
 } from './theme.ts';
@@ -76,6 +77,17 @@ import { OrbSurface } from './tutor/OrbSurface.tsx';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { READING, actionRowWraps } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
+import { focusRing, installFocusRule, spaceActivator } from './keyActivation.ts';
+
+// The keyboard focus ring (F927): one rule, added once, on the web only.
+if (Platform.OS === 'web') installFocusRule(FOCUS);
+/**
+ * Web-only props react-native's types do not name: the focus ring's data
+ * attribute, and a key handler. Typed empty so they spread onto a Pressable.
+ */
+const ringProps = (Platform.OS === 'web' ? { dataSet: focusRing } : {}) as Record<string, never>;
+const webKeyDown = (handler: ((event: { key: string; repeat?: boolean; preventDefault: () => void }) => void) | undefined) =>
+  (Platform.OS === 'web' && handler ? { onKeyDown: handler } : {}) as Record<string, never>;
 
 // ─────────────────────────────────────────────────────────────── drawn icons
 // Come alive (D11): every mark below is now a delegate to the generated icon
@@ -274,10 +286,17 @@ export function PillButton({
   state = 'idle',
   variant = 'primary',
   pastel,
+  disabledReason,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /**
+   * Why a disabled pill is off, for the learner who reaches it by keyboard or
+   * screen reader. When given, the pill stays in the tab order, says it is
+   * off and why, and ignores the press (F927, the NextButton pattern).
+   */
+  disabledReason?: string;
   icon?: React.ReactNode;
   /** Decorative directional affordance after the label. */
   trailingIcon?: React.ReactNode;
@@ -326,7 +345,7 @@ export function PillButton({
   // modes; the ink pill is the theme's primary, and a secondary pill is themed.
   const foreground = secondary ? t.text : tone === 'white' || tone === 'sun' ? paper.ink : t.onPrimary;
   return (
-    <Press haptic="light" depth="control" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: t[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+    <Press haptic="light" depth="control" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: t[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} disabledReason={disabled && !waiting ? disabledReason : undefined} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
       <Text style={[type.button, { color: disabled ? (tone === 'white' ? paper.inkSoft : t.muted) : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
@@ -399,6 +418,7 @@ export function OutlineButton({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      {...ringProps}
       style={({ pressed }) => [s.outline, pressed && !disabled && s.outlinePressed, disabled && { opacity: 0.45 }]}
     >
       <View style={s.outlineRow}>
@@ -499,6 +519,7 @@ export function OptionCard({
         accessibilityLabel={gloss ? `${text}, ${gloss}` : text}
         accessibilityState={{ selected }}
         aria-selected={selected}
+        {...ringProps}
         style={s.optionMain}
       >
         <View style={{ flex: 1 }}>
@@ -513,6 +534,7 @@ export function OptionCard({
           onPress={onHear}
           hitSlop={10}
           accessibilityRole="button"
+          {...ringProps}
           // A sounding ear stops on the next tap, so it says so — and the glyph
           // lights on a quiet disc rather than moving, since there is nothing to
           // reduce-motion here.
@@ -1609,6 +1631,11 @@ export type PressProps = Omit<PressableProps, 'style' | 'onPress' | 'children'> 
   glowRadius?: number;
   /** The pressable itself, for a caller that moves a screen reader onto it. */
   ref?: Ref<View>;
+  /**
+   * Why a disabled control is off (F927). With `disabled`, the control stays
+   * focusable, says it is off and says this reason, and ignores the press.
+   */
+  disabledReason?: string;
   children: ReactNode;
 };
 
@@ -1642,8 +1669,39 @@ export type Ground = 'blue' | 'coral' | 'sun' | 'mint';
  * role wins (a segment passes `tab`). A disabled Press never presses, so it
  * neither shrinks nor ticks.
  */
-export function Press({ onPress, haptic = 'light', style, frame, depth = 'control', selected, glowRadius = radius.control, disabled = false, onPressIn, onPressOut, children, ...rest }: PressProps) {
+export function Press({ onPress, haptic = 'light', style, frame, depth = 'control', selected, glowRadius = radius.control, disabled = false, disabledReason, onPressIn, onPressOut, children, ref: outerRef, ...rest }: PressProps) {
   const reduced = useReduceMotion();
+  // Disabled with a reason stays reachable (F927): the Pressable is not
+  // disabled, so it keeps tabIndex 0, and the off state and the reason are
+  // said instead. react-native-web drops aria-description, so it is set on the
+  // node; it overwrites aria-disabled from its own prop, so the deprecated
+  // accessibilityDisabled carries it.
+  const explained = disabled && disabledReason != null;
+  const node = useRef<View | null>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const element = node.current as unknown as { setAttribute?: (name: string, value: string) => void; removeAttribute?: (name: string) => void } | null;
+    if (element?.setAttribute == null) return;
+    if (explained) element.setAttribute('aria-description', disabledReason);
+    else element.removeAttribute?.('aria-description');
+  }, [explained, disabledReason]);
+  const setRef = (value: View | null) => {
+    node.current = value;
+    if (typeof outerRef === 'function') outerRef(value);
+    else if (outerRef != null) (outerRef as { current: View | null }).current = value;
+  };
+  const say = explained
+    ? Platform.OS === 'web'
+      ? { accessibilityDisabled: true }
+      : { accessibilityState: { ...rest.accessibilityState, disabled: true }, accessibilityHint: disabledReason }
+    : {};
+  const activate = () => {
+    if (disabled || onPress?.() === false) return;
+    if (haptic === 'light') pressed();
+    else if (haptic === 'selection') tapSettled();
+  };
+  const role = rest.accessibilityRole ?? (rest as { role?: string }).role ?? 'button';
+  const onSpace = Platform.OS === 'web' ? spaceActivator(role, activate) : undefined;
   const scale = useSharedValue(1);
   const chosen = useRef(selected === true);
   const pressStyle = useAnimatedStyle(() => ({ transform: depth === 'raised' && !reduced ? [{ perspective: 600 }, { translateY: (1 - scale.value) * 80 }, { rotateX: `${(1 - scale.value) * 65}deg` }, { scale: scale.value }] : [{ scale: scale.value }] }));
@@ -1659,9 +1717,13 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
   }, [selected, reduced, scale, depth]);
   return (
     <Pressable
-      accessibilityRole="button" {...rest}
-      disabled={disabled || undefined}
+      accessibilityRole="button" {...rest} {...say}
+      ref={setRef}
+      {...ringProps}
+      {...webKeyDown(onSpace)}
+      disabled={disabled && !explained ? true : undefined}
       onPressIn={(event) => {
+        if (explained) return;
         pressTo(scale, depth === 'tile' || depth === 'raised' ? PRESS_SCALE_TILE : PRESS_SCALE, reduced);
         onPressIn?.(event);
       }}
@@ -1669,11 +1731,7 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
         pressTo(scale, 1, reduced);
         onPressOut?.(event);
       }}
-      onPress={() => {
-        if (disabled || onPress?.() === false) return;
-        if (haptic === 'light') pressed();
-        else if (haptic === 'selection') tapSettled();
-      }}
+      onPress={activate}
       style={frame}
     >
       {selected !== undefined ? (
@@ -1930,6 +1988,8 @@ export function Chip(props:
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
       aria-selected={selected}
+      {...ringProps}
+      {...webKeyDown(spaceActivator(role, onPress))}
       style={[b.filterChip, selected && b.filterChipChosen, violet && { backgroundColor: colour.violet2, borderColor: colour.violet2 }]}
     >
       {selected ? <View {...decorative}><CheckGlyph size={16} color={paper.onInk} /></View> : null}
@@ -2719,7 +2779,7 @@ export function Choice({
       accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
       onPress={onPress}
       frame={onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share}
-      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : rest) : selected ? fill : onColourGround ? paper.line : t.line }]}
+      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : rest) : selected ? fill : onColourGround ? paper.field : t.field }]}
     >
       {head != null ? <TileOnChosen.Provider value={selected}>{head}</TileOnChosen.Provider> : null}
       <View style={isTile ? ch.tileWords : ch.words}>
