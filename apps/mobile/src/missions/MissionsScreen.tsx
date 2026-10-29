@@ -152,7 +152,7 @@ export function MissionsScreen() {
               </View>
             ))}
             {first.mission.referencePhrases.length > 1 && <IconAction layout="inline" icon="chevron-down" label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
-            {showExamples && referenceLines(first.mission).slice(1).map((line) => (
+            {showExamples && referenceLines(first.mission, Infinity).slice(1).map((line) => (
               <View key={line.fr}>
                 <Text {...frenchText} style={[type.french, { color: t.text }]}>{line.fr}</Text>
                 <Text style={[type.small, { color: t.muted }]}>{line.en}</Text>

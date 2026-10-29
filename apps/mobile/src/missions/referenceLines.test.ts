@@ -21,3 +21,16 @@ test('every reference phrase shows its English', () => {
     assert.doesNotMatch(source, /referencePhrases\.(slice|map)/, `${screen} still draws bare reference phrases`);
   }
 });
+
+// Fix-verifier round 2: Missions' "More examples" used the default limit of
+// three and lost the fourth line of mission:marche. It shows them all again.
+test('More examples shows every reference phrase after the first', () => {
+  const source = read('./MissionsScreen.tsx');
+  const more = source.match(/showExamples && referenceLines\(first\.mission(?:, ([^)]+))?\)\.slice\(1\)/);
+  assert.ok(more, 'the More examples list no longer reads referenceLines');
+  assert.equal(more![1], 'Infinity', 'More examples is capped below the mission\'s own list');
+  const marche = MISSIONS.find((m) => m.id === 'mission:marche')!;
+  const shown = referenceLines(marche, Infinity).slice(1).map((l) => l.fr);
+  assert.deepEqual(shown, marche.referencePhrases.slice(1));
+  assert.ok(shown.includes('Merci, bon week-end !'));
+});

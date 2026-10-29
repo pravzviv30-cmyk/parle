@@ -89,7 +89,8 @@ export function explorePhrases(query: string, topic: ExploreTopic | null, prefer
 export function exploreTopicSeed(query: string, topic: ExploreTopic | null): SeedTopic | null {
   const text = query.trim();
   // F929: the learner's own words are the title; the instruction is the brief.
-  if (text) return text.length <= 90 ? { fr: 'Une conversation à ta façon', en: text, brief: `Talk with me in French about: ${text}` } : null;
+  // Shown and spoken, so the first letter is capitalised; the words stay the learner's.
+  if (text) return text.length <= 90 ? { fr: 'Une conversation à ta façon', en: text.charAt(0).toLocaleUpperCase('en') + text.slice(1), brief: `Talk with me in French about: ${text}` } : null;
   if (!topic) return null;
   const topics: Record<ExploreTopic, SeedTopic> = {
     food: { fr: 'À table', en: 'Food and meals', brief: 'Talk with me in French about food, cafés or a meal I enjoyed.' },

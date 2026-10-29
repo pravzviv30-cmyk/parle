@@ -8,13 +8,13 @@
  * speaks the French half aloud as the opening line, so typed English must
  * never land in that slot: the French is authored, one title per kind. And
  * the server drops a seed whose halves exceed its cap, silently, opening a
- * generic conversation instead, so the learner's own words are cut to fit
- * beside the kind's English before they are sent, and the cap is held equal to
- * the server's by a test that reads the server's source.
+ * generic conversation instead, and drops a brief over its own cap.
  *
- * The learner's words ride the English half only, which is the half the agent
- * screens for safety. Nothing here reads them, keeps them, or sends them
- * anywhere but that one slot.
+ * Since F929 the kind's name is the whole title, and the learner's words ride
+ * in the tutor-only brief, cut on a word to fit, with both caps held equal to
+ * the server's by a test that reads the server's source. The brief is what the
+ * agent screens for safety. Nothing here reads the words, keeps them, or sends
+ * them anywhere but that one slot.
  */
 
 import { includedInMax } from '../access/includedInMax.ts';
@@ -52,27 +52,47 @@ export const REAL_MOMENTS: readonly RealMomentKind[] = [
 
 /** The server's own cap on each half of a seed. Held equal to it by a test. */
 export const MAX_SEED_TOPIC_CHARS = 120;
+/** The server's cap on the tutor-only brief. Held equal to it by a test. */
+export const MAX_SEED_BRIEF_CHARS = 240;
 
-/** The kind and the detail meet with this between them. */
-const JOIN = '. ';
+/**
+ * The brief's opening (F929). The kind's own name is the title the room shows
+ * and the tutor says; the brief, which nobody sees, tells the tutor this is a
+ * rehearsal and carries the learner's words. A seed with a brief opens as a
+ * fresh topic ("Let's talk about it"), never as a continuation.
+ */
+const BRIEF_LEAD = 'Help me rehearse a real moment coming up: ';
 
 export function kindOf(key: string): RealMomentKind | null {
   return REAL_MOMENTS.find((kind) => kind.key === key) ?? null;
 }
 
-/** How many characters of the learner's own words fit beside this kind. */
+function briefHead(kind: RealMomentKind): string {
+  return `${BRIEF_LEAD}${kind.en}.`;
+}
+
+/** How many characters of the learner's own words fit in the brief beside this kind. */
 export function detailCap(kind: RealMomentKind): number {
-  return Math.max(0, MAX_SEED_TOPIC_CHARS - kind.en.length - JOIN.length);
+  return Math.max(0, MAX_SEED_BRIEF_CHARS - briefHead(kind).length - 1);
 }
 
-/** The learner's words, trimmed and cut to what fits. Never padded, never invented. */
+/**
+ * The learner's words, trimmed and cut to what fits. A cut lands on a word
+ * boundary when there is one, so the tutor never reads half a word. Never
+ * padded, never invented.
+ */
 export function fitDetail(kind: RealMomentKind, detail: string): string {
-  return detail.trim().slice(0, detailCap(kind)).trim();
+  const text = detail.trim();
+  const cap = detailCap(kind);
+  if (text.length <= cap) return text;
+  const cut = text.slice(0, cap);
+  const space = cut.lastIndexOf(' ');
+  return (space > cap / 2 && !/\s/.test(text[cap] ?? ' ') ? cut.slice(0, space) : cut).trim();
 }
 
-export function seedFor(kind: RealMomentKind, detail: string): { fr: string; en: string } {
+export function seedFor(kind: RealMomentKind, detail: string): { fr: string; en: string; brief: string } {
   const fitted = fitDetail(kind, detail);
-  return { fr: kind.fr, en: fitted.length === 0 ? kind.en : `${kind.en}${JOIN}${fitted}` };
+  return { fr: kind.fr, en: kind.en, brief: fitted.length === 0 ? briefHead(kind) : `${briefHead(kind)} ${fitted}` };
 }
 
 /**

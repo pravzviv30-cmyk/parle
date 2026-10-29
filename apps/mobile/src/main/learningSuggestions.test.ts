@@ -48,11 +48,18 @@ test('every complete preference combination fits the existing signed topic proto
 });
 
 test('short searches start the requested topic while longer searches stay complete', () => {
-  assert.match(exploreTopicSeed('a job interview', null)!.en, /a job interview/);
+  assert.match(exploreTopicSeed('a job interview', null)!.en, /^A job interview$/);
   assert.equal(exploreTopicSeed('x'.repeat(91), null), null);
   assert.ok(exploreTopicSeed('x'.repeat(90), null)!.en.length <= 120);
   assert.match(exploreTopicSeed('', 'travel')!.brief!, /trip/);
   assert.equal(exploreTopicSeed('', null), null);
+  // The query is the spoken and shown title: first letter capitalised, the
+  // learner's words otherwise kept, and the brief keeps them as typed.
+  assert.equal(exploreTopicSeed('a job interview at the bank', null)!.en, 'A job interview at the bank');
+  assert.equal(exploreTopicSeed('  été à Paris ', null)!.en, 'Été à Paris');
+  assert.equal(exploreTopicSeed('my iPhone broke', null)!.en, 'My iPhone broke');
+  assert.equal(exploreTopicSeed('Paris', null)!.en, 'Paris');
+  assert.match(exploreTopicSeed('a job interview', null)!.brief!, /about: a job interview$/);
 });
 
 // F929: the seed's en/fr is the title the room shows and the tutor says
@@ -72,7 +79,7 @@ test('free talk never shows prompt text in the transcript', () => {
   }
   for (const seed of seeds) {
     assert.ok(seed.en.length <= 40 && seed.fr.length <= 40, `"${seed.en}" / "${seed.fr}" is not a short title`);
-    if (seed.en !== 'a job interview') assert.doesNotMatch(seed.en, instruction, `"${seed.en}" reads as an instruction`);
+    if (seed.en !== 'A job interview') assert.doesNotMatch(seed.en, instruction, `"${seed.en}" reads as an instruction`);
     assert.doesNotMatch(seed.fr, /[.;:]/, `"${seed.fr}" reads as a sentence`);
     assert.ok(seed.brief !== undefined && seed.brief.length > 0 && seed.brief.length <= 240, `"${seed.en}" carries no brief`);
   }
@@ -83,6 +90,6 @@ test('free talk never shows prompt text in the transcript', () => {
   assert.match(getby.ideas[0]!.brief, /Ask why things happened/);
   assert.match(getby.ideas[0]!.brief, /Offer an example/);
   assert.match(getby.freeSeed!.brief!, /Talk about anything\. I get by; connect my ideas\. Offer an example\. Help me speak\./);
-  assert.equal(exploreTopicSeed('a job interview', null)!.en, 'a job interview');
+  assert.equal(exploreTopicSeed('a job interview', null)!.en, 'A job interview');
   assert.match(exploreTopicSeed('a job interview', null)!.brief!, /Talk with me in French about: a job interview/);
 });
