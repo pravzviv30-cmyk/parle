@@ -54,7 +54,8 @@ test('each tutor shows their own portrait', () => {
   // The choose step itself keeps the orb: no tutor is chosen yet.
   assert.match(read('../onboarding/PreAccountOnboarding.tsx'), /<BTutorOrb \/>/);
 
-  // Each ring against the surface under it, both themes.
+  // Each ring against the surface under it, both themes. The portrait's own ground is not
+  // measured: the portrait is decorative, hidden from assistive tech, and named beside it.
   for (const t of [b.light, b.dark]) {
     for (const [surface, ring, where] of [
       [t.card, t.text, 'a card'],

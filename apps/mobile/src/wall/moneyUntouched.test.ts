@@ -218,7 +218,7 @@ const FILES: Record<string, string> = {
   // 2026-10-29, F929 (Stream E): the seed topic gains an optional tutor-only `brief`, trimmed and
   // capped at 240 characters; a bad brief is dropped and the title kept. No allowance, debit,
   // price, trial or entitlement logic changed. Approval: founder 2026-10-29 in chat, for the exact
-  // diff in reviews/2026-10-29-stream-e-money-pin-tokens.diff. Review: the Opus orchestrator read it.
+  // diff in ~/Developer/StartUps/reviews/2026-10-29-stream-e-money-pin-tokens.diff (outside the repo). Review: the Opus orchestrator read it.
   'services/token-server/src/tokens.ts': 'ae5daa4e9f0532c4115db8bcb9c0be2aca1d9c01a3173ee161367bec5714ebcd',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
   // 2026-10-27, F886: /billing/status answers a fresh free view (trial, 600 s, nothing written) for an account with no entitlement row, via billingStatusOf and EntitlementNotProvisionedError; no debit, grant, refund, price or allowance changed. Approval: founder approved the F886 plan in chat 2026-10-27. Review: fix-verifier (read-only) and the Opus orchestrator read the diff.
