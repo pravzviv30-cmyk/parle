@@ -88,10 +88,22 @@ export const SCENE_ART_BAND = 0.8;
 /**
  * The narrowest card that holds the words column and the drawing side by
  * side without touching: padding, the column, the gap, then the drawing less
- * its bleed. Today 20 + 190 + 12 + 162 = 384; Speak 20 + 200 + 12 + 140 = 372.
+ * its bleed (Today 20 + 190 + 12 + 162 = 384; Speak 20 + 200 + 12 + 140 = 372),
+ * raised to `SCENE_SIDE_MIN`, so both cards switch at 400.
  */
 export function sceneArtThreshold(card: SceneCard): number {
-  return card.padding + card.textWidth + SCENE_ART_GAP + card.artWidth + card.artRight;
+  return Math.max(SCENE_SIDE_MIN, card.padding + card.textWidth + SCENE_ART_GAP + card.artWidth + card.artRight);
+}
+/** Founder decision 23: under about 400pt of card the art goes above, whatever the arithmetic allows. */
+export const SCENE_SIDE_MIN = 400;
+
+/**
+ * Side by side, the words column keeps at least this height, so every
+ * full-width row after it (pills, the answer segment, the Uses chip) starts
+ * clear below the art: art top + art height + gap, less the card padding.
+ */
+export function sceneColumnFloor(card: SceneCard): number {
+  return card.artTop + card.artHeight + SCENE_ART_GAP - card.padding;
 }
 
 export function sceneArtPlacement(cardWidth: number, fontScale = 1, card: SceneCard = SCENE_CARDS.today): 'side' | 'above' {
@@ -112,13 +124,13 @@ export function sceneCardFallbackWidth(kind: keyof typeof SCENE_CARDS, windowWid
 
 type Box = { x: number; y: number; w: number; h: number };
 /** Where the drawing and the words column sit inside a card of this width. */
-export function sceneCardGeometry(card: SceneCard, cardWidth: number, fontScale = 1): { placement: 'side' | 'above'; art: Box; text: Omit<Box, 'h'>; band: { width: number; height: number } | null } {
+export function sceneCardGeometry(card: SceneCard, cardWidth: number, fontScale = 1): { placement: 'side' | 'above'; art: Box; text: Omit<Box, 'h'> & { minHeight: number }; band: { width: number; height: number } | null } {
   const placement = sceneArtPlacement(cardWidth, fontScale, card);
   if (placement === 'side') {
     return {
       placement,
       art: { x: cardWidth - card.artRight - card.artWidth, y: card.artTop, w: card.artWidth, h: card.artHeight },
-      text: { x: card.padding, y: card.padding, w: card.textWidth },
+      text: { x: card.padding, y: card.padding, w: card.textWidth, minHeight: sceneColumnFloor(card) },
       band: null,
     };
   }
@@ -126,7 +138,7 @@ export function sceneCardGeometry(card: SceneCard, cardWidth: number, fontScale 
   return {
     placement,
     art: { x: (cardWidth - band.width) / 2, y: card.padding, w: band.width, h: band.height },
-    text: { x: card.padding, y: card.padding + band.height + SCENE_ART_GAP, w: Math.max(0, cardWidth - card.padding * 2) },
+    text: { x: card.padding, y: card.padding + band.height + SCENE_ART_GAP, w: Math.max(0, cardWidth - card.padding * 2), minHeight: 0 },
     band,
   };
 }
@@ -169,4 +181,15 @@ export function welcomeBubbleSpan(windowWidth: number, spot: { words: string; le
 export const FOOTER_SCROLLS_BELOW = 700;
 export function footerInScroll(usableHeight: number): boolean {
   return usableHeight < FOOTER_SCROLLS_BELOW;
+}
+
+/**
+ * The height the footer decision reads: the tallest window seen at this
+ * width. On the web react-native-web measures `visualViewport`, which the
+ * soft keyboard shrinks while typing; the keyboard never changes the width,
+ * so a new width (rotation, split view) starts a fresh reading. The screen
+ * height is not used: on a desktop browser it is the monitor, not the window.
+ */
+export function footerHeightLatch(prev: { width: number; height: number } | null, width: number, height: number): { width: number; height: number } {
+  return prev === null || prev.width !== width ? { width, height } : { width, height: Math.max(prev.height, height) };
 }

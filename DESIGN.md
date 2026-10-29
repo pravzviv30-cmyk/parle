@@ -87,8 +87,9 @@ period stay near a purchase action, and large text is never capped to fit.
   drill would open on an exercise that hides the French; "Your line from
   {day}" when the conversation's day is known), the next scene (the sun card
   with its stage place and the café drawing, at the top right when the card is
-  at least 384pt wide and in a band above full-width words below that or at
-  large text (F920), "Next scene, 2 of 3", a "Uses" chip only when the last
+  at least 400pt wide, where the words column keeps the art's height so every
+  full-width row starts below it, and in a band above full-width words below
+  that or at large text (F920; every phone gets the band), "Next scene, 2 of 3", a "Uses" chip only when the last
   conversation's phrase is one of the scene's lines, and its own minutes; or
   the plans card when a trial cannot start, "Your paid plan has ended." when
   lapsed, a paid plan's out-of-time words with the starter card or local
@@ -441,9 +442,11 @@ edge of a control. Soft ink clears 5.8 on the inset. The field border clears 3.6
 floor for a mark. Every input border, choice outline and unchosen radio ring takes `field`
 (`c.field` in onboarding, `t.field` on themed screens), in both modes: inputs, choice and
 token tiles, filter chips, option cards and bordered icon buttons alike. `controls.test.ts`
-measures them against the card and the ground, and scans every source file: a full
-`borderColor` on `line` or `border` fails unless it is on the test's commented list of
-decorative borders (a progress stop, a rung bullet, day dots, the stat rules) (F921).
+measures them against the card and the ground, and scans every source file by contrast,
+not by name: a full `borderColor` on any token under 3:1 on both the card and the cream
+(`line`, `ring`, `periwinkle`, `sun`, `butter` and the like) fails unless it is on the
+test's commented list of decorative borders (a progress stop, a rung bullet, day dots,
+the stat rules, journey nodes ahead) (F921).
 
 The keyboard focus ring is `FOCUS` in theme.ts: a 2pt `paper.ink` outline 2pt clear of
 the control, with a `paper.card` white halo filling the gap. No single colour clears 3 on
@@ -451,10 +454,13 @@ every ground, so the ring is two-tone and one part always does: ink on cream (16
 (17.8), sun (11.6) and mint (9.0); white on the dark ground (18.4), the dark card (15.5),
 blue (7.9) and coral (4.7). `controls.test.ts` measures all eight. One web rule, installed
 once by `keyActivation.ts` from components.tsx, draws it on `:focus-visible` only, so a
-mouse click stays ringless. The halo is a box-shadow, so a control with its own shadow
-gives it up while it holds keyboard focus, and only then. `Press`,
-`OutlineButton`, `OptionCard` and `Chip` carry its data attribute; `AccountField` draws
-its own 2pt ring. On the web, Space chooses a radio, checkbox, tab or switch built on
+mouse click stays ringless. The rule takes every keyboard-reachable element
+(`[tabindex]` other than -1, `a[href]`, `button`), so every Pressable and the tab bar carry
+it without opting in. Text fields (`input`, `textarea`, `select`) draw their own focus and
+are left out, as is a heading focused by script (tabIndex -1). Only a text field may reset
+its outline inline; `controls.test.ts` fails on any other. The halo is a box-shadow, so a control with its own shadow
+gives it up while it holds keyboard focus, and only then.
+`AccountField` and the live-room composer draw their own focus. On the web, Space chooses a radio, checkbox, tab or switch built on
 `Press` or `Chip`; Enter is react-native-web's own (F927). A `PillButton` or `Press`
 given `disabledReason` stays in the tab order while disabled, says it is off and why,
 and ignores the press.

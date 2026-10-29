@@ -186,7 +186,8 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     // 2026-10-20 UI-008, artboard B-Speak: the drawn line is the artboard's; the help word is said in the label.
     assert.match(RENDER_FLAT, /accessibilityLabel=\{lockSaid\(`\$\{LESS_HELP_TITLE\}, \$\{replay\.title\}, \$\{replay\.line\}, \$\{replay\.help\}`, replay\.feature, replay\.locked\)\}/);
     assert.match(RENDER_FLAT, /<BArt name="cafe-table" width=\{70\} height=\{64\} style=\{st\.twistArt\} \/>/);
-    assert.match(FLAT, /borderWidth: 2, borderStyle: 'dashed', borderColor: t\.periwinkle/);
+    // F921: the twist's only edge is the field token, 3:1 on the card (periwinkle was 2.1).
+    assert.match(FLAT, /borderWidth: 2, borderStyle: 'dashed', borderColor: t\.field/);
     assert.match(RENDER_FLAT, /\{replay\.locked && <LockBadge feature=\{replay\.feature\} said \/>\}/);
     assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab decides a lock itself instead of reading the view model');
   });

@@ -18,10 +18,40 @@ import { b, boldRhythm, colour, mainApp, paper } from './palette.ts';
 import { signupWaitingReason } from './auth/signupForm.ts';
 import { PASSWORD_MIN } from './auth/validate.ts';
 import { contrast, MARK } from './testing/contrast.ts';
-import { composeKeyDown, FOCUS_RING_ATTRIBUTE, focusRuleCss, keyActivates, spaceActivator } from './keyActivation.ts';
+import { composeKeyDown, FOCUS_EXCLUDED, FOCUS_TARGETS, focusRingApplies, focusRuleCss, keyActivates, spaceActivator } from './keyActivation.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const MODES = ['light', 'dark'] as const;
+
+/** Every source file under src, tests and the test helpers aside. */
+function sourceFiles(): string[] {
+  return readdirSync(new URL('.', import.meta.url), { recursive: true, encoding: 'utf8' })
+    .filter((p) => /\.tsx?$/.test(p) && !/\.test\.tsx?$/.test(p) && !p.startsWith('testing/'))
+    .map((p) => p.split('\\').join('/'));
+}
+
+/**
+ * The style a property sits in: the key in front of its innermost open brace,
+ * or, for an inline style, the component it sits in, so one allowlist entry
+ * never covers a whole file.
+ */
+function styleKeyAt(source: string, index: number): string {
+  let depth = 0;
+  let at = index;
+  for (; at >= 0; at -= 1) {
+    const ch = source[at];
+    if (ch === '}') depth += 1;
+    else if (ch === '{') {
+      if (depth > 0) { depth -= 1; continue; }
+      // An object inside a ternary (`web ? { outlineWidth: 0 } : {}`) belongs to the style around it.
+      const before = source.slice(Math.max(0, at - 80), at);
+      if (/[?:]\s*\(?\s*$/.test(before) && !/\w+:\s*$/.test(before)) continue;
+      break;
+    }
+  }
+  return /(\w+):\s*$/.exec(source.slice(Math.max(0, at - 80), at))?.[1]
+    ?? `inline:${[...source.slice(0, at).matchAll(/function (\w+)/g)].at(-1)?.[1] ?? 'module'}`;
+}
 
 /**
  * Every control border and unchosen ring, found in its file by the words
@@ -69,48 +99,61 @@ describe('F921: control borders', () => {
   });
 
   test('a control border never uses the decorative hairline', () => {
-    // App-wide: every full `borderColor` drawn from the hairline (`line`,
-    // `lineOnCard`, or mainApp's `border`, which is the same value) is a
-    // finding unless it is listed here as decorative. A one-sided rule
-    // (borderTopColor and the like) is a divider by construction and is not
-    // read. A new input, choice, tile or chip on the hairline fails by default.
+    // App-wide and by contrast, not by name: every full `borderColor` that
+    // reads a palette token whose light value is under 3:1 on both the white
+    // card and the cream ground (line, ring, periwinkle, sun, butter and the
+    // like) is a finding, unless it is listed here as decorative with its
+    // reason. A one-sided rule (borderTopColor and the like) is a divider by
+    // construction and is not read. A new input, choice, tile or chip drawn
+    // on a pale edge fails by default.
     const DECORATIVE = new Map<string, string>([
       ['components.tsx#stopMark', 'a stop on the progress line, not pressable'],
       ['components.tsx#inline:LineBullet', 'a rung bullet beside a line, not pressable'],
+      ['components.tsx#stationDotHere', 'a cut-out ring in the ground colour around the here dot'],
       ['drill/AnswerSheet.tsx#calm', 'the calm feedback panel around the answer words'],
       ['settings/ProfileParts.tsx#statRuled', 'the rules between the profile stats'],
       ['myfrench/CadenceCard.tsx#notYet', 'a day dot not yet practised'],
       ['tutor/MissionTaskList.tsx#open', 'an open task mark beside its words'],
       ['onboarding/firstRun/StreakCelebrationScreen.tsx#disc', 'a day disc inside the streak art'],
       ['onboarding/firstRun/WeekStrip.tsx#open', 'an open day in the week strip'],
+      ['DrillScreen.tsx#answerBox', 'the sentence well, a plain View; its word tiles are the controls'],
+      ['DrillScreen.tsx#slot', 'the dashed gap a placed word leaves, not pressable'],
+      ['journey/JourneyParts.tsx#nodeAhead', 'a journey node not reached yet, not pressable'],
+      ['journey/JourneyParts.tsx#dashed', 'the dashed outline of a stage still ahead, not pressable'],
+      ['game/StreakParts.tsx#freeze', 'the freeze card frame, a plain View'],
+      ['recap/RecapParts.tsx#goalRing', 'a goal ring in the recap list, not pressable'],
+      ['live/LiveParts.tsx#goalRingNow', 'the current goal ring in the live room, not pressable'],
+      ['explore/ExploreParts.tsx#prepare', 'the sun edge of the prepare card, a plain View'],
+      ['tabs/HomeTab.tsx#fix', 'the mint edge of the one-fix card, a plain View'],
+      ['home/RoutePath.tsx#inline:RouteNode', 'a route dot, its border the same sun as its fill'],
+      ['wall/WallPlansPage.tsx#inline:TrialTimeline', 'a timeline dot, its border the same sun as its fill'],
+      ['live/C2LiveRoom.tsx#reportPending', 'a filled report disc, its border the same as its fill'],
+      ['onboarding/BOnboardingParts.tsx#inline:BStageCard', 'the stage dots of the first-run plan, decorative'],
+      ['onboarding/motion/C2Scene.tsx#inline:DayOneBadge', 'the day-one badge inside the scene art'],
+      ['onboarding/motion/OnboardingScenes.tsx#inline:GlowAction', 'the glow behind an onboarding action, decorative'],
     ]);
-    const root = new URL('.', import.meta.url);
-    const files = readdirSync(root, { recursive: true, encoding: 'utf8' })
-      .filter((p) => /\.tsx?$/.test(p) && !/\.test\.tsx?$/.test(p) && !p.startsWith('testing/'));
+    const lightValue = (space: string, name: string): string | null => {
+      const table: Record<string, unknown> = space === 'c' ? boldRhythm : space === 'paper' ? paper : space === 'colors' ? mainApp.light : b.light;
+      const value = table[name];
+      return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : null;
+    };
     const findings: string[] = [];
     const seen = new Set<string>();
-    for (const file of files) {
+    for (const file of sourceFiles()) {
       const source = read(file);
       for (const m of source.matchAll(/\bborderColor:\s*([^,}\n]+)/g)) {
-        if (!/\.(line|lineOnCard|border)\b/.test(m[1]!)) continue;
-        // The style this border belongs to: the key in front of its innermost open brace.
-        let depth = 0;
-        let at = m.index!;
-        for (; at >= 0; at -= 1) {
-          const ch = source[at];
-          if (ch === '}') depth += 1;
-          else if (ch === '{') { if (depth === 0) break; depth -= 1; }
-        }
-        // An inline style is named by the component it sits in, so one entry never covers a whole file.
-        const key = /(\w+):\s*$/.exec(source.slice(Math.max(0, at - 80), at))?.[1]
-          ?? `inline:${[...source.slice(0, at).matchAll(/function (\w+)/g)].at(-1)?.[1] ?? 'module'}`;
-        const where = `${file.split('\\').join('/')}#${key}`;
+        const pale = [...m[1]!.matchAll(/\b(t|bt|b|c|paper|colors)\.(\w+)\b/g)].filter(([, space, name]) => {
+          const value = lightValue(space!, name!);
+          return value != null && contrast(value, paper.card) < MARK && contrast(value, paper.ground) < MARK;
+        });
+        if (pale.length === 0) continue;
+        const where = `${file}#${styleKeyAt(source, m.index!)}`;
         seen.add(where);
-        if (!DECORATIVE.has(where)) findings.push(`${where} (${m[1]!.trim()})`);
+        if (!DECORATIVE.has(where)) findings.push(`${where} (${pale.map((p) => p[0]).join(', ')})`);
       }
     }
-    assert.deepEqual(findings, [], 'controls drawn with the decorative hairline (1.2:1); use field, or list a truly decorative border with its reason');
-    for (const where of DECORATIVE.keys()) assert.ok(seen.has(where), `${where} is allowlisted but no longer on the hairline; drop it from the list`);
+    assert.deepEqual(findings, [], 'controls drawn with an edge under 3:1; use field, or list a truly decorative border with its reason');
+    for (const where of DECORATIVE.keys()) assert.ok(seen.has(where), `${where} is allowlisted but no longer on a pale edge; drop it from the list`);
   });
 });
 
@@ -184,28 +227,43 @@ describe('F927: Space and the focus ring', () => {
 
     // One rule, keyboard focus only, and it outranks react-native-web's own outline reset.
     const css = focusRuleCss({ width: 2, offset: 2, colour: paper.ink, halo: paper.card });
-    assert.match(css, new RegExp(`\\[data-${FOCUS_RING_ATTRIBUTE}\\]:focus-visible`), 'the ring is not keyboard focus only');
+    // Every keyboard-reachable element, not a tagged few: react-native-web's
+    // Pressable is a div with tabindex 0, a link is an a[href].
+    assert.deepEqual([...FOCUS_TARGETS], ['[tabindex]:not([tabindex="-1"])', 'a[href]', 'button'], 'the ring does not reach every tabbable element');
+    assert.deepEqual([...FOCUS_EXCLUDED], ['input', 'textarea', 'select'], 'a text field would draw a second ring');
+    for (const target of FOCUS_TARGETS) {
+      assert.ok(css.includes(`${target}${FOCUS_EXCLUDED.map((tag) => `:not(${tag})`).join('')}:focus-visible`), `${target} is not ringed, or not with the exclusions`);
+    }
+    assert.equal(focusRingApplies('div', { tabindex: '0' }), true, 'a Pressable is not ringed');
+    assert.equal(focusRingApplies('a', { href: '/today' }), true, 'a link is not ringed');
+    assert.equal(focusRingApplies('button', {}), true, 'a button is not ringed');
+    assert.equal(focusRingApplies('div', { tabindex: '-1' }), false, 'a heading focused by script is ringed');
+    assert.equal(focusRingApplies('input', { tabindex: '0' }), false, 'a text field draws a second ring');
+    assert.equal(focusRingApplies('textarea', {}), false, 'a text area draws a second ring');
+    assert.equal(focusRingApplies('div', {}), false, 'a plain view is ringed');
     assert.match(css, new RegExp(`outline: 2px solid ${paper.ink} !important`), 'the ring is not drawn');
     assert.match(css, new RegExp(`box-shadow: 0 0 0 2px ${paper.card} !important`), 'the halo does not fill the gap');
     assert.match(css, /:focus:not\(:focus-visible\)[^{]*\{[^}]*outline: none/, 'a mouse click would draw a ring');
+
+    // Nothing else suppresses a focus style: an inline outline reset is only
+    // for a text field, which draws its own focus.
+    const OWN_FOCUS = new Set(['auth/AccountField.tsx#input', 'live/C2LiveRoom.tsx#input']);
+    const suppressed: string[] = [];
+    for (const file of sourceFiles()) {
+      const source = read(file);
+      for (const m of source.matchAll(/outlineWidth:\s*0\b|outlineStyle:\s*'none'|outline:\s*'none'|outlineColor:\s*'transparent'/g)) {
+        const where = `${file}#${styleKeyAt(source, m.index!)}`;
+        if (!OWN_FOCUS.has(where)) suppressed.push(where);
+      }
+    }
+    assert.deepEqual(suppressed, [], 'a focus style is suppressed on something that is not a text field');
 
     // Injected once, from components.tsx, on the web only.
     const components = read('components.tsx');
     assert.match(components, /if \(Platform\.OS === 'web'\) installFocusRule\(FOCUS\)/, 'the rule is never installed');
     const keyActivation = read('keyActivation.ts');
     assert.match(keyActivation, /getElementById\(FOCUS_RULE_ID\)/, 'the rule could be injected twice');
-    assert.match(components, /const ringProps = \(Platform\.OS === 'web' \? \{ dataSet: focusRing \}/, 'the ring attribute is not set on the web');
 
-    // Every shared control carries it.
-    const slice = (start: string, end: string) => components.slice(components.indexOf(start), components.indexOf(end, components.indexOf(start)));
-    for (const [name, body] of [
-      ['Press', slice('export function Press(', 'function SelectRing(')],
-      ['OutlineButton', slice('export function OutlineButton(', 'export function GhostButton(')],
-      ['OptionCard', slice('export function OptionCard(', 'A labelled text input')],
-      ['Chip', slice('export function Chip(', 'A lock, drawn two ways')],
-    ] as const) {
-      assert.match(body, /\{\.\.\.ringProps\}/, `${name} does not carry the focus ring`);
-    }
   });
 
   test('a disabled button with a reason stays reachable and says why', () => {
@@ -226,6 +284,8 @@ describe('F927: Space and the focus ring', () => {
     // Sign-up's Create account says what is still missing, and nothing while busy.
     assert.equal(signupWaitingReason('', '', ''), `Add your email and a password of at least ${PASSWORD_MIN} characters to continue.`);
     assert.equal(signupWaitingReason('', 'longenough', 'longenough'), 'Add your email to continue.');
+    assert.equal(signupWaitingReason('ana@', 'longenough', 'longenough'), 'Check your email address to continue.');
+    assert.equal(signupWaitingReason('ana@', 'short', ''), 'Check your email address to continue.');
     assert.equal(signupWaitingReason('a@example.com', 'short', 'short'), `Use a password of at least ${PASSWORD_MIN} characters to continue.`);
     assert.equal(signupWaitingReason('a@example.com', 'longenough', ''), 'Type your password again to continue.');
     assert.equal(signupWaitingReason('a@example.com', 'longenough', 'different1'), 'Make both passwords match to continue.');

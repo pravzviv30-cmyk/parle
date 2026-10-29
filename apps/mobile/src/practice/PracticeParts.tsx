@@ -518,5 +518,5 @@ const makeStyles = (t: B) =>
     empty: { backgroundColor: t.card, borderRadius: 28, paddingVertical: 22, paddingHorizontal: 20, alignItems: 'center', gap: 10 },
     emptyStart: { marginTop: 6, alignSelf: 'stretch' },
     ready: { borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: HIT },
-    savedBox: { borderWidth: 2, borderStyle: 'dashed', borderColor: t.ring, borderRadius: 22, paddingVertical: 18, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: HIT },
+    savedBox: { borderWidth: 2, borderStyle: 'dashed', borderColor: t.field, borderRadius: 22, paddingVertical: 18, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: HIT },
   });

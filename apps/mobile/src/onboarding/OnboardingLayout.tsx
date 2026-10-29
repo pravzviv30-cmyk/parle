@@ -7,7 +7,7 @@ import { useReduceMotion } from '../motion.ts';
 import { colour, decorative, paper, space } from '../theme.ts';
 import { c } from './boldRhythm.ts';
 import { sheetRunsUnder } from '../components.tsx';
-import { footerInScroll } from '../responsiveLayout.ts';
+import { footerHeightLatch, footerInScroll } from '../responsiveLayout.ts';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
 
 /** `statusBar` lets a page whose band sits under the clock pick light or dark (2026-10-21 UI-008, B-OB bands). */
@@ -121,7 +121,11 @@ export function OnboardingLayout({ page, progress, children, hero, footer, avoid
   const { width, height } = useWindowDimensions();
   // F921: on a short screen (under 700pt usable) a pinned footer squeezes the form
   // and covers the welcome; it scrolls after the content instead.
-  const actionInScroll = askedInScroll || footerInScroll(height - insets.top - insets.bottom);
+  // The soft keyboard shrinks the web window while typing; the latch keeps the
+  // tallest height at this width so the footer never jumps mid-form.
+  const footerHeight = useRef<{ width: number; height: number } | null>(null);
+  footerHeight.current = footerHeightLatch(footerHeight.current, width, height);
+  const actionInScroll = askedInScroll || footerInScroll(footerHeight.current.height - insets.top - insets.bottom);
   const gutter = 24;
   const horizontal = { paddingLeft: Math.max(gutter, insets.left), paddingRight: Math.max(gutter, insets.right) };
   const ownedScroll = useRef<ScrollView | null>(null);

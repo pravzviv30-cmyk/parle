@@ -21,6 +21,7 @@ export function signupReady(email: string, password: string, confirm: string): b
  */
 export function signupWaitingReason(email: string, password: string, confirm: string): string | null {
   const problems = signupProblems(email, password, confirm);
+  if (problems.email && email.trim()) return 'Check your email address to continue.';
   if (problems.email && problems.password) return `Add your email and a password of at least ${PASSWORD_MIN} characters to continue.`;
   if (problems.email) return 'Add your email to continue.';
   if (problems.password) return `Use a password of at least ${PASSWORD_MIN} characters to continue.`;

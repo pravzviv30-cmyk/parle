@@ -77,15 +77,11 @@ import { OrbSurface } from './tutor/OrbSurface.tsx';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { READING, actionRowWraps } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
-import { composeKeyDown, focusRing, installFocusRule, spaceActivator } from './keyActivation.ts';
+import { composeKeyDown, installFocusRule, spaceActivator } from './keyActivation.ts';
 
 // The keyboard focus ring (F927): one rule, added once, on the web only.
 if (Platform.OS === 'web') installFocusRule(FOCUS);
-/**
- * Web-only props react-native's types do not name: the focus ring's data
- * attribute, and a key handler. Typed empty so they spread onto a Pressable.
- */
-const ringProps = (Platform.OS === 'web' ? { dataSet: focusRing } : {}) as Record<string, never>;
+/** A web-only key handler react-native's types do not name, typed empty so it spreads onto a Pressable. */
 const webKeyDown = (handler: ((event: { key: string; repeat?: boolean; preventDefault: () => void }) => void) | undefined) =>
   (Platform.OS === 'web' && handler ? { onKeyDown: handler } : {}) as Record<string, never>;
 
@@ -418,7 +414,6 @@ export function OutlineButton({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      {...ringProps}
       style={({ pressed }) => [s.outline, pressed && !disabled && s.outlinePressed, disabled && { opacity: 0.45 }]}
     >
       <View style={s.outlineRow}>
@@ -519,7 +514,6 @@ export function OptionCard({
         accessibilityLabel={gloss ? `${text}, ${gloss}` : text}
         accessibilityState={{ selected }}
         aria-selected={selected}
-        {...ringProps}
         style={s.optionMain}
       >
         <View style={{ flex: 1 }}>
@@ -534,7 +528,6 @@ export function OptionCard({
           onPress={onHear}
           hitSlop={10}
           accessibilityRole="button"
-          {...ringProps}
           // A sounding ear stops on the next tap, so it says so — and the glyph
           // lights on a quiet disc rather than moving, since there is nothing to
           // reduce-motion here.
@@ -1721,7 +1714,6 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
     <Pressable
       accessibilityRole="button" {...rest} {...say}
       ref={setRef}
-      {...ringProps}
       {...webKeyDown(composeKeyDown(onSpace, callerKeyDown))}
       onLongPress={explained ? undefined : onLongPress}
       disabled={disabled && !explained ? true : undefined}
@@ -1991,7 +1983,6 @@ export function Chip(props:
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
       aria-selected={selected}
-      {...ringProps}
       {...webKeyDown(spaceActivator(role, onPress))}
       style={[b.filterChip, selected && b.filterChipChosen, violet && { backgroundColor: colour.violet2, borderColor: colour.violet2 }]}
     >

@@ -43,10 +43,22 @@ export function composeKeyDown<E>(first: ((event: E) => void) | undefined, secon
   return (event) => { first(event); second(event); };
 }
 
-/** The data attribute the focus rule targets: `dataSet={focusRing}` renders `data-focusring`. */
-export const FOCUS_RING_ATTRIBUTE = 'focusring';
-/** Spread as `dataSet={focusRing}` on a Pressable or View. */
-export const focusRing = { [FOCUS_RING_ATTRIBUTE]: 'true' } as const;
+/**
+ * What the ring draws on: every keyboard-reachable element. react-native-web
+ * renders a Pressable as a div with tabindex 0 (the app's own tab bar is
+ * built on Press, so it is one too), and a link with an href as an a. An
+ * element focused only by script (a heading with tabIndex -1) is left alone.
+ */
+export const FOCUS_TARGETS = ['[tabindex]:not([tabindex="-1"])', 'a[href]', 'button'] as const;
+/** Text fields draw their own focus (AccountField's border), so they never take the ring. */
+export const FOCUS_EXCLUDED = ['input', 'textarea', 'select'] as const;
+
+/** Whether the rule's selector takes this element: the same targets and exclusions, as a function. */
+export function focusRingApplies(tag: string, attributes: Record<string, string>): boolean {
+  if ((FOCUS_EXCLUDED as readonly string[]).includes(tag)) return false;
+  if (attributes.tabindex != null) return attributes.tabindex !== '-1';
+  return (tag === 'a' && attributes.href != null) || tag === 'button';
+}
 
 const FOCUS_RULE_ID = 'luvani-focus-ring';
 
@@ -60,9 +72,10 @@ type Ring = { width: number; offset: number; colour: string; halo: string };
  * `:focus:not(:focus-visible)` keeps a mouse click ringless in every browser.
  */
 export function focusRuleCss(ring: Ring): string {
-  const selector = `[data-${FOCUS_RING_ATTRIBUTE}]`;
-  return `${selector}:focus-visible { outline: ${ring.width}px solid ${ring.colour} !important; outline-offset: ${ring.offset}px !important; box-shadow: 0 0 0 ${ring.offset}px ${ring.halo} !important; }\n`
-    + `${selector}:focus:not(:focus-visible) { outline: none !important; }`;
+  const not = FOCUS_EXCLUDED.map((tag) => `:not(${tag})`).join('');
+  const on = (state: string) => FOCUS_TARGETS.map((target) => `${target}${not}${state}`).join(', ');
+  return `${on(':focus-visible')} { outline: ${ring.width}px solid ${ring.colour} !important; outline-offset: ${ring.offset}px !important; box-shadow: 0 0 0 ${ring.offset}px ${ring.halo} !important; }\n`
+    + `${on(':focus:not(:focus-visible)')} { outline: none !important; }`;
 }
 
 /** Adds the rule to the page once. A no-op where there is no document. */
