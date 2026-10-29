@@ -36,7 +36,7 @@ describe('help and feedback', () => {
     const profile = stripComments(read('../tabs/ProfileTab.tsx'));
     const settings = stripComments(read('./SettingsScreen.tsx'));
     for (const [name, src] of [['Profile', profile], ['Settings', settings]] as const) {
-      assert.match(src, /label=\{HELP_FEEDBACK_ROW\}[^\n]*onPress=\{\(\) => setSheet\('help'\)\}/, `${name}: the help row does not open the sheet`);
+      assert.match(src, /label=\{HELP_FEEDBACK_ROW\}[^\n]*onPress=\{\(\) => (?:\{ setContactTrouble\(null\); )?setSheet\('help'\);? ?\}?\}/, `${name}: the help row does not open the sheet`);
       assert.match(src, /<HelpSheet visible=\{sheet === 'help'\}/, `${name}: the help sheet is not drawn`);
     }
     assert.doesNotMatch(profile, /HELP_FEEDBACK_ROW\}[^\n]*openMail/, 'Profile still hands the help row straight to mail');
@@ -68,6 +68,15 @@ describe('help and feedback', () => {
     assert.equal(helpTrouble('failed'), LINK_TROUBLE);
     assert.equal(helpTrouble('done'), null);
     assert.equal(HELP_WRITE_ACTION, helpSheet(false, 'a@b.c').write.action);
+  });
+
+  test('a trouble line from an earlier tap never greets a reopened sheet', () => {
+    const settings = stripComments(read('./SettingsScreen.tsx'));
+    assert.match(settings, /label=\{HELP_FEEDBACK_ROW\}[^\n]*onPress=\{\(\) => \{ setContactTrouble\(null\); setSheet\('help'\); \}\}/, 'Settings opens the sheet on a stale trouble line');
+    assert.match(settings, /<HelpSheet visible=\{sheet === 'help'\} onClose=\{\(\) => \{ setContactTrouble\(null\); setSheet\('none'\); \}\}/, 'Settings closes the sheet and keeps the trouble line');
+    const profile = stripComments(read('../tabs/ProfileTab.tsx'));
+    assert.match(profile, /case 'help':\s*setHelpLine\(null\);/, 'Profile keeps a stale trouble line');
+    assert.match(profile, /<HelpSheet visible=\{sheet === 'help'\} onClose=\{closeCurrentSheet\}/);
   });
 
   test('the address is the company one', () => {

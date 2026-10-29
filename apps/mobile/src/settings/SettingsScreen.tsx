@@ -1039,7 +1039,7 @@ export function SettingsScreen({
         {/* The address is the row's own second line, so a phone with no mail
             app set up still leaves something a learner can read. */}
         {contact !== null && (
-          <SettingsRow first label={HELP_FEEDBACK_ROW} value={contact.address} onPress={() => setSheet('help')} />
+          <SettingsRow first label={HELP_FEEDBACK_ROW} value={contact.address} onPress={() => { setContactTrouble(null); setSheet('help'); }} />
         )}
         <SettingsRow first={contact === null} label={CONNECTION_HELP_ROW} onPress={() => setSheet('intro')} />
         <SettingsRow label={LOCAL_PRACTICE_ROW} sub={LOCAL_PRACTICE_SUB} onPress={() => nav.navigate('Tabs', { screen: 'Practice' })} />
@@ -1084,7 +1084,7 @@ export function SettingsScreen({
     {/* F922: Help and feedback, drawn under the Help group's own trouble line
         as well, so a mail app that will not open says so where it was tapped. */}
     {contact !== null && (
-      <HelpSheet visible={sheet === 'help'} onClose={() => setSheet('none')} address={contact.address} trouble={contactTrouble} onWrite={() => writeTo(contact.address)} />
+      <HelpSheet visible={sheet === 'help'} onClose={() => { setContactTrouble(null); setSheet('none'); }} address={contact.address} trouble={contactTrouble} onWrite={() => writeTo(contact.address)} />
     )}
     <BottomSheet visible={sheet === 'reminderTime' && reminderOwned} title={REMINDER_TIME_TITLE} onClose={() => setSheet('none')} surface={t.card} ink={t.text} footer={<PillButton label="Done" onPress={() => setSheet('none')} />}>
       <Text style={[type.body, { color: t.muted }]}>{REMINDER_TIME_SUB}</Text>
