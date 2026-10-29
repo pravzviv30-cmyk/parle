@@ -59,9 +59,13 @@ DECISIONS.md UI-007):
   route motif in `home/RoutePath.tsx`): retry your last fix (`oneFix`, about
   30 seconds), the next scene (`home/MissionHero.tsx`; core `nextScene`,
   leaning towards the onboarding goal, eyebrow "Picked for ..." when the goal
-  chose it; the lead is `todayLead` in `practice/nextTask.ts`: plans when a
-  trial cannot start, then the starter card, then the offline card, then the
-  scene), say today's phrase (about 2 minutes), and "Review N phrases" when
+  chose it; the lead is `todayLead` in `practice/nextTask.ts`, held on the
+  loading frame until billing answers (a failed read falls back to the scene),
+  in this order: plans when a trial cannot start; "Your paid plan has ended."
+  (lapsed, with See the plans); a paid plan's out-of-time words; each of these
+  two followed by the starter card or local practice; the starter card; the
+  offline or can't-reach card ("Something you can do now"); the scene; Explore
+  when there is no next scene), say today's phrase (about 2 minutes), and "Review N phrases" when
   Review would deal cards (`reviewRow`). Under it: today's three quests
   (`game/QuestsCard.tsx`), Coming up (`comingUp`, the latest remembered life
   event; no countdown or checklist until Phase C; Not now lasts the app

@@ -171,7 +171,8 @@ test('a trial with too little time for a session leads Home the way the plans pa
       const out = plan === 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session');
       // A paid plan out of minutes leads to its out-of-time words (fix-verifier, 2026-10-29).
       const paidOut = plan !== 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session');
-      assert.equal(lead, out ? 'plans' : paidOut ? 'outOfTime' : 'scene', `${plan}/${reason}`);
+      // A lapsed plan is told it ended (fix-verifier round 2).
+      assert.equal(lead, reason === 'subscription-lapsed' ? 'lapsed' : out ? 'plans' : paidOut ? 'outOfTime' : 'scene', `${plan}/${reason}`);
     }
   }
 });
@@ -201,7 +202,7 @@ test('a live learner with no next scene gets a way forward, not the offline card
   assert.equal(sceneOrExplore('scene', true), 'scene');
   assert.equal(sceneOrExplore('scene', false), 'explore');
   assert.equal(sceneOrExplore('local', false), 'local');
-  assert.match(TASK, /sceneOrExplore\(todayLead\(\{ live, billing, starter: starter !== null \}\), value\.hero !== null\)/);
+  assert.match(TASK, /sceneOrExplore\(todayLead\(\{ live, billing, starter: starter !== null, answered: billingAnswered \}\), value\.hero !== null\)/);
   assert.match(TASK, /nav\.navigate\('Explore'\)/);
 });
 
@@ -215,7 +216,8 @@ test('a paid learner out of minutes is led to the out-of-time words, not a scene
     assert.equal(todayLead({ live: true, billing: { plan, reason: null }, starter: false }), 'scene');
   }
   assert.match(TASK, /lead === 'outOfTime'/);
-  assert.match(TASK, /outOfTimeWords\(/);
+  // The words come from heldWords, tested by behaviour below (round 2).
+  assert.match(TASK, /heldWords\(billing, Date\.now\(\)\)/);
 });
 
 test('Speak with my tutor waits until billing has answered', () => {
@@ -231,4 +233,43 @@ test('the review row depends only on what Review would deal', () => {
   assert.doesNotMatch(HOME, /fixFrom === null \? null : reviewRow/);
   assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck, Date\.now\(\), locks\.access\('conversationPractice'\)\)/);
   assert.match(HOME, /loadDeck\(\)\.then\(\(deck\) => \{ if \(!cancelled && scopeGeneration\(\) === scope\) setReviewDeck\(deck\); \}\)/);
+});
+
+// Fix-verifier round 2, 2026-10-29.
+test('an out-of-time or lapsed lead still offers practice that needs no minutes', () => {
+  const { afterHeld } = nt as unknown as { afterHeld: (starter: boolean) => string };
+  assert.equal(afterHeld(true), 'starter', 'the typed starter continuation is lost behind the out-of-time words');
+  assert.equal(afterHeld(false), 'local');
+});
+
+test('a lapsed plan is told it has ended and may see plans, never led to a refused scene', () => {
+  const { heldWords } = nt as unknown as { heldWords: (billing: { plan: Plan; reason: string | null; periodEnd?: string | null }, now: number) => { title: string; message: string; plans: boolean } };
+  for (const plan of Object.keys(PLANS) as Plan[]) {
+    const billing = { plan, reason: 'subscription-lapsed' as const };
+    assert.equal(todayLead({ live: true, billing, starter: false }), 'lapsed', plan);
+    assert.equal(todayLead({ live: true, billing, starter: true }), 'lapsed', plan);
+    const words = heldWords(billing, NOW);
+    assert.equal(words.title, 'Your paid plan has ended.');
+    assert.equal(words.plans, true, 'a lapsed learner holds no plan, so may see plans');
+  }
+  const paid = heldWords({ plan: 'starter', reason: 'exhausted', periodEnd: '2026-11-27T12:00:00.000Z' }, NOW);
+  assert.equal(paid.plans, false, 'a paying learner is pitched plans');
+  assert.match(paid.message, /Fresh minutes on 27 November\./);
+});
+
+test('while billing loads the lead is held, and a failed read falls back to the scene', () => {
+  const out = { plan: 'starter' as Plan, reason: 'exhausted' as const };
+  assert.equal(todayLead({ live: true, billing: null, starter: false, answered: false } as never), 'loading');
+  assert.equal(todayLead({ live: true, billing: out, starter: false, answered: true } as never), 'outOfTime');
+  // A billing read that failed answers with null: the scene, as before.
+  assert.equal(todayLead({ live: true, billing: null, starter: false, answered: true } as never), 'scene');
+  // Offline nothing waits on billing.
+  assert.equal(todayLead({ live: false, billing: null, starter: false, answered: false } as never), 'local');
+});
+
+test('the offline stop is titled truly whether the device or the tutor is away', () => {
+  const { leadStop } = nt as unknown as { leadStop: (lead: string, minutes: number | null) => { title: string; line: string } };
+  assert.equal(leadStop('local', null).title, 'Something you can do now');
+  assert.doesNotMatch(leadStop('local', null).title, /offline/i);
+  assert.equal(leadStop('lapsed', null).line, 'When you choose a plan');
 });
