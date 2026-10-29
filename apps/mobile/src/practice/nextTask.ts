@@ -71,8 +71,8 @@ export function heldWords(billing: HomeBilling, now: number): { title: string; m
 }
 
 /** The path stop's words for each lead: the scene's own minutes, or what the lead honestly is. */
-export function leadStop(lead: TodayLead | 'explore', minutes: number | null): { title: string; line: string } {
-  if (lead === 'scene' && minutes !== null) return pathStep('scene', minutes);
+export function leadStop(lead: TodayLead | 'explore', minutes: number | null): { title: string; line: string | null } {
+  if (lead === 'scene' && minutes !== null) return pathStep('scene');
   if (lead === 'plans') return { title: 'The next scene', line: 'Needs more speaking time' };
   if (lead === 'outOfTime') return { title: 'The next scene', line: 'When your minutes come back' };
   if (lead === 'lapsed') return { title: 'The next scene', line: 'When you choose a plan' };

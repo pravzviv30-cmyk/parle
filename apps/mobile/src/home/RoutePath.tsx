@@ -29,7 +29,7 @@ export interface RouteStopView {
 }
 
 /** One stop: the dot, the line to the next stop unless `last`, the words, and what the stop leads to. */
-export function RouteNode({ mark, title, line, last, children }: { mark: RouteMark; title: string | null; line: string; last: boolean; children?: ReactNode }) {
+export function RouteNode({ mark, title, line, last, children }: { mark: RouteMark; title: string | null; line: string | null; last: boolean; children?: ReactNode }) {
   const { colors, b } = useMainAppearance();
   const dot = mark === 'start'
     ? { backgroundColor: b.sun, borderColor: b.sun }
@@ -42,7 +42,7 @@ export function RouteNode({ mark, title, line, last, children }: { mark: RouteMa
       </View>
       <View style={[st.nodeWords, !last && st.nodeGap]}>
         {title !== null && <Text style={[st.nodeTitle, { color: colors.text }]}>{title}</Text>}
-        <Text style={[st.nodeLine, { color: colors.muted }]}>{line}</Text>
+        {line !== null && <Text style={[st.nodeLine, { color: colors.muted }]}>{line}</Text>}
         {children !== undefined && <View style={st.leads}>{children}</View>}
       </View>
     </View>

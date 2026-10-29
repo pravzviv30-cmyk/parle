@@ -832,11 +832,12 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     const vivid = flat(between(HERO, 'if (vivid) {', 'return (\n    <SceneBrief', 'the hero has a Today look'));
     assert.match(vivid, /<SceneLead /, 'the lead is not the B yellow card');
     assert.match(vivid, /eyebrow=\{sceneEyebrow\(hero\)\}/, 'the eyebrow is not the scene place from the view model');
-    assert.match(vivid, /french=\{line\.french\} rest=\{line\.rest\}/);
+    // Founder, 2026-10-29: only the scene's length under the title.
+    assert.match(vivid, /french=\{null\} rest=\{time\}/);
     assert.match(vivid, /uses=\{buildsOn != null \? buildsOnLine\(buildsOn\) : null\}/, 'the Uses chip is drawn without a real meeting');
     // The same start as the blue brief: the gate, the learner's mode, and the
     // other mode as a quiet link.
-    assert.match(vivid, /start=\{\{ label, accessibilityLabel: `\$\{label\}: \$\{hero\.title\}`, disabled: checking, onPress: \(\) => open\(modes\.textMode\) \}\}/);
+    assert.match(vivid, /start=\{\{ label, accessibilityLabel: `\$\{label\}: \$\{hero\.title\}, \$\{time\}`, disabled: checking, onPress: \(\) => open\(modes\.textMode\) \}\}/);
     assert.match(vivid, /other=\{\{ label: modes\.other\.label, disabled: checking, onPress: \(\) => open\(modes\.other\.textMode\) \}\}/);
     assert.match(vivid, /heldBack=\{heldBack === null \? null : \{ body: TUTOR_OFFLINE\.body, retry: TUTOR_OFFLINE\.retry, disabled: checking, onRetry: \(\) => open\(heldBack\.textMode\) \}\}/, 'the yellow lead lost its held-back answer');
     // The artboard's card: heroGround, 28, 20, min-height 262, the café at

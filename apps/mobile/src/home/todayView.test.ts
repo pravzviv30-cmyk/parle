@@ -80,7 +80,7 @@ import {
   oneFix,
   questTrailing,
   sceneEyebrow,
-  sceneLine,
+  sceneTime,
   threeDone,
   weekInFrench,
   weekStart,
@@ -124,9 +124,8 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.equal(sceneEyebrow(sceneFor(firstA1.id)), `Next scene, 1 of ${a1.length}`);
     assert.equal(sceneEyebrow({ ...sceneFor('mission:cafe'), label: 'Pick up where you left off' }), 'Pick up where you left off');
     for (const id of SCENE_SPINE) assert.doesNotMatch(sceneEyebrow(sceneFor(id)), /[·—]/);
-    const line = sceneLine(sceneFor('mission:cafe'), 'Tutor');
-    assert.equal(line.french, getMission('mission:cafe')!.title);
-    assert.match(line.rest, /^, about \d+ min with Tutor$/);
+    // Founder, 2026-10-29: the card says only the scene's length, not its French name or the tutor.
+    assert.match(sceneTime(sceneFor('mission:cafe')), /^About \d+ minutes?$/);
   });
 
   test('"Builds on" only when the last conversation really meets the scene', () => {

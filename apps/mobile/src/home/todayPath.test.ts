@@ -35,14 +35,14 @@ const card = (id: string, source: ReviewSource): ReviewCard => ({ ...newCard({ i
 test('Today leads with one ordered path of three steps', () => {
   const { TODAY_CARDS, TODAY_PATH, pathStep } = todayView as unknown as {
     TODAY_CARDS: readonly string[]; TODAY_PATH: readonly string[];
-    pathStep: (step: string, minutes?: number) => { title: string; line: string };
+    pathStep: (step: string) => { title: string; line: string | null };
   };
   assert.deepEqual([...TODAY_PATH], ['fix', 'scene', 'phrase']);
   // The path leads; the quotas, Coming up and the week sit under it.
   assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'path', 'three', 'comingUp', 'week']);
   assert.deepEqual(pathStep('fix'), { title: 'Retry your last fix', line: 'About 30 seconds' });
-  assert.deepEqual(pathStep('scene', 6.4), { title: 'The next scene', line: 'About 6 minutes' });
-  assert.deepEqual(pathStep('scene', 0.2), { title: 'The next scene', line: 'About 1 minute' });
+  // Founder, 2026-10-29: the scene's time is on its card only.
+  assert.deepEqual(pathStep('scene'), { title: 'The next scene', line: null });
   assert.deepEqual(pathStep('phrase'), { title: "Say today's phrase", line: 'About 2 minutes' });
   assert.equal(todayView.TODAY_COPY.path, "Today's path");
 
@@ -58,7 +58,7 @@ test('Today leads with one ordered path of three steps', () => {
   // The wall keeps its own copy until its Apple 3.1.2 price pin is repointed (a money pin, left alone).
   assert.match(HOME, /<RouteNode /);
   assert.match(TASK, /<RouteNode /);
-  for (const line of [todayView.TODAY_COPY.path, ...['fix', 'phrase'].flatMap(s => Object.values(pathStep(s)))]) assert.doesNotMatch(line, /[·—]/);
+  for (const line of [todayView.TODAY_COPY.path, ...['fix', 'phrase'].flatMap(s => Object.values(pathStep(s)) as string[])]) assert.doesNotMatch(line, /[·—]/);
 });
 
 test('Today offers review when Review would deal cards', () => {
@@ -272,4 +272,19 @@ test('the offline stop is titled truly whether the device or the tutor is away',
   assert.equal(leadStop('local', null).title, 'Something you can do now');
   assert.doesNotMatch(leadStop('local', null).title, /offline/i);
   assert.equal(leadStop('lapsed', null).line, 'When you choose a plan');
+});
+
+test("Today's scene card shows only how long the scene takes", () => {
+  const { sceneTime } = todayView as unknown as { sceneTime: (hero: { minutes: number }) => string };
+  assert.equal(sceneTime({ minutes: 3.2 }), 'About 3 minutes');
+  assert.equal(sceneTime({ minutes: 0.4 }), 'About 1 minute');
+  const hero = read('./MissionHero.tsx');
+  assert.match(hero, /french=\{null\} rest=\{time\}/, 'the card still draws the French name and the tutor under the title');
+  // The screen reader hears the scene and its time on the Start.
+  assert.match(hero, /accessibilityLabel: `\$\{label\}: \$\{hero\.title\}, \$\{time\}`/);
+  // The time is said once: the path's scene stop names the step only.
+  const { leadStop } = nt as unknown as { leadStop: (lead: string, minutes: number | null) => { title: string; line: string | null } };
+  assert.deepEqual(leadStop('scene', 3), { title: 'The next scene', line: null });
+  assert.equal(todayView.pathStep('fix').line, 'About 30 seconds');
+  assert.equal(todayView.pathStep('phrase').line, 'About 2 minutes');
 });

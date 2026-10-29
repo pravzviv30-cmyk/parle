@@ -136,10 +136,11 @@ const PATH_WORDS: Record<TodayPathStep, string> = {
 };
 
 /** A stop's title and its time: the scene's from its own estimate, the others stated. */
-export function pathStep(step: TodayPathStep, minutes?: number): { title: string; line: string } {
+export function pathStep(step: TodayPathStep): { title: string; line: string | null } {
   if (step === 'fix') return { title: PATH_WORDS.fix, line: 'About 30 seconds' };
   if (step === 'phrase') return { title: PATH_WORDS.phrase, line: aboutMinutes(2) };
-  return { title: PATH_WORDS.scene, line: aboutMinutes(minutes ?? 1) };
+  // The scene's time is on its card, said once (founder, 2026-10-29).
+  return { title: PATH_WORDS.scene, line: null };
 }
 
 /**
@@ -198,10 +199,9 @@ export function sceneEyebrow(hero: HomeMission): string {
   return at === -1 ? 'Next scene' : `Next scene, ${at + 1} of ${stage.length}`;
 }
 
-/** The line under the title: "Au café du coin, about 6 min with Alexandre". */
-export function sceneLine(hero: HomeMission, tutorName: string): { french: string | null; rest: string } {
-  const rest = `about ${Math.max(1, Math.round(hero.minutes))} min with ${tutorName}`;
-  return hero.french === null ? { french: null, rest: `${rest.charAt(0).toUpperCase()}${rest.slice(1)}` } : { french: hero.french, rest: `, ${rest}` };
+/** Under the title on Today's card, only the scene's length: "About 3 minutes" (founder, 2026-10-29). */
+export function sceneTime(hero: Pick<HomeMission, 'minutes'>): string {
+  return aboutMinutes(hero.minutes);
 }
 
 /**
