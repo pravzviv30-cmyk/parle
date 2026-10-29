@@ -784,6 +784,42 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: the wall still draws its own copy of the route; moving it onto
   `RoutePath` needs its Apple 3.1.2 price pin repointed by its owner. F934.
 
+## UI-013 — The live room is face to face with a notebook (direction D)
+
+- Date: 2026-10-29
+- Status: accepted (founder, on the direction board; build not started). Plan:
+  `docs/changes/live-room-d.md`. Board:
+  https://claude.ai/artifact/6GWKSY3gHZsoRKhtU63A5B (D and D in dark).
+- Decision: the live room keeps its blue ground in both themes (UI-008) and
+  becomes:
+  - **Top:** the tutor's live portrait. Rings driven by the real sound level
+    say who is talking (sun: the tutor, mint: the learner).
+  - **Goals:** stamps under the title, with the current goal's short label.
+  - **Bottom:** a notebook sheet on the theme ground. It grows upward as the
+    scene goes on. The newest tutor line is set large with its English;
+    older lines shrink to French only. The learner's lines carry the sun
+    mark, and each recast sits in the margin with the toast mascot.
+  - **Mic:** the cloud mascot is the mic and listens with the input level.
+  - **Room menu (`…`):** Show every line, Quiet voice, Tap to send and
+    Report this reply move out of the header row into it.
+  - **Help:** unchanged apart from the toast peeking over the sheet.
+- Removed as distracting, with their jobs kept elsewhere: the visible orb
+  caption (kept as a spoken live region), the toggle text row, the report disc,
+  the English on older lines and the long goal sentence.
+- The motion rule in `DESIGN.md` "What never moves" is amended. Inside a live
+  room, the portrait's level rings, the cloud mic and the toast's peek also
+  move. Nothing is heard or felt in the room, as before. Reduced motion keeps
+  the expressions and drops the movement.
+- Reason: the room read as a chat log with no focal point (2026-10-29
+  assessment). The founder chose B as the base with C's script, margin fixes
+  and cloud mic and A's goal stamps, and asked that distracting words go
+  without losing a core feature.
+- Consequence:
+  - The room depends on Stream E's portraits and must be built after it lands.
+  - Missions gain an optional short goal label, with a fallback to `goalEn`,
+    which needs a founder copy review.
+  - The mascots become shared art with palette tokens.
+
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 
 - Date: 2026-10-23
