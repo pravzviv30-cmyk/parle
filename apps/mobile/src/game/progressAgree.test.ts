@@ -83,3 +83,36 @@ test('the streak tile never reads 0 days on a running streak', () => {
   assert.ok(drawn.counters.streak!.from >= 1);
   assert.equal(drawn.counters.streak!.to, 2);
 });
+
+// Verifier round: the run's counter after a broken streak and on later days, and the saved-phrase rule alone.
+import { savedPhraseCards } from '../practice/savedPhrases.ts';
+test('the run counts up from where it was on day two and later, and lands on one after a break', () => {
+  const D = '2026-10-05';
+  let drawn = firstDraw(null, heroCounts(heroAt(0, 1)), D);
+  assert.deepEqual(drawn.counters.streak, { from: 1, to: 1, mount: 0 });
+  drawn = nextDraw(drawn, heroCounts(heroAt(0, 2)), '2026-10-06');
+  assert.deepEqual([drawn.counters.streak!.from, drawn.counters.streak!.to], [1, 2]);
+  drawn = nextDraw(drawn, heroCounts(heroAt(0, 3)), '2026-10-07');
+  assert.equal(drawn.counters.streak!.to, 3);
+  assert.ok(drawn.counters.streak!.from >= 1);
+  const seen = { version: 1, day: '2026-10-07', values: { streak: 7 } } as never;
+  assert.deepEqual(firstDraw(seen, heroCounts(heroAt(0, 9)), '2026-10-08').counters.streak, { from: 7, to: 9, mount: 0 });
+  // Broken: the run falls to none (drawn at nought, no number shown), then a new run lands on one.
+  const noRun = { ...heroAt(0), flame: { lit: false, count: null, words: '', label: '' } };
+  drawn = nextDraw(drawn, heroCounts(noRun), '2026-10-10');
+  drawn = nextDraw(drawn, heroCounts(heroAt(0, 1)), '2026-10-11');
+  assert.deepEqual([drawn.counters.streak!.from, drawn.counters.streak!.to], [1, 1]);
+  assert.deepEqual(firstDraw({ version: 1, day: '2026-10-10', values: { streak: 0 } } as never, heroCounts(heroAt(0, 1)), '2026-10-11').counters.streak, { from: 1, to: 1, mount: 0 });
+});
+
+test('a saved phrase is a non-sound card with words, once per phrase', () => {
+  const deck: ReviewCard[] = [
+    card('Merci'), card('merci', { id: 'convo:merci' }), card('  Merci  ', { id: 'x:merci' }),
+    card('ʁ', { id: 'phoneme:ʁ', kind: 'phoneme' }), card('', { id: 'vocab:empty' }), card('   ', { id: 'vocab:blank' }),
+    card("Je voudrais l'addition"),
+  ];
+  assert.deepEqual(savedPhraseCards(deck).map((c) => c.id), [phraseKeyOf('Merci'), phraseKeyOf("Je voudrais l'addition")]);
+  assert.equal(savedPhraseCount(deck), 2);
+  assert.equal(savedPhraseCount([]), 0);
+  assert.equal(savedPhraseCount([card('ʁ', { kind: 'phoneme' })]), 0);
+});

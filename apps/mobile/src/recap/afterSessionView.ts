@@ -39,17 +39,14 @@ export function afterSessionStats(input: { activeSec: number | null; phrases: nu
 /** "Day n." and the week in a sentence, under the flame. Null with neither. */
 export function streakLine(streak: number | null, week: readonly WeekDay[] | null): string | null {
   const day = streak !== null && Number.isSafeInteger(streak) && streak > 0 ? `Day ${streak}.` : null;
-  // A settled day of the streak is today, so today is a day of French in the week too (F937).
-  const counted = day !== null && week !== null ? withToday(week) : week;
-  const said = counted !== null && counted.length > 0 ? rhythmSentence(counted) : null;
+  // F937: the week is the active days the streak counts, read after the settle,
+  // so it is never re-dated from the clock (a sitting across midnight lights
+  // the one day the store holds). A run beside a week the store has not lit
+  // says only its day rather than "No French yet".
+  const lit = week !== null && week.some((d) => d.state === 'done');
+  const said = week !== null && week.length > 0 && (day === null || lit) ? rhythmSentence(week) : null;
   if (day === null && said === null) return null;
   return [day, said].filter((part) => part !== null).join(' ');
-}
-
-/** The week with today, the last day not ahead, marked done. */
-function withToday(week: readonly WeekDay[]): readonly WeekDay[] {
-  const today = week.reduce((last, day, index) => (day.state === 'ahead' ? last : index), -1);
-  return week.map((day, index) => (index === today ? { ...day, state: 'done' } : day));
 }
 
 /** The seven bars: lit for a day with French in it, Monday to Sunday. */

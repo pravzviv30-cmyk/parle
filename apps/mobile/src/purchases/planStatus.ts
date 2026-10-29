@@ -211,9 +211,20 @@ function measureFor(status: BillingStatus, now: number): number {
  * gave one, else the plan's own minutes.
  */
 export function paidPoolLine(status: BillingStatus): string {
-  const pool = Math.max(0, Math.floor((status.allowanceSeconds ?? PLANS[status.plan].secondsPerPeriod) / 60));
+  const pool = Math.max(1, Math.floor(poolFor(status) / 60));
   const left = Math.min(pool, Math.max(0, Math.floor(status.secondsRemaining / 60)));
-  return `${left} of ${pool} minutes left.`;
+  // A few seconds left on a plan that can still start is "Under 1", never a nought (Batch 1's wording).
+  const said = left === 0 ? 'Under 1' : String(left);
+  return `${said} of ${pool} minutes left.`;
+}
+
+/**
+ * The pool a paid band names: the server's allowance, which it sends whenever
+ * a store trial withholds part of the grant (billingStatus.ts), else the
+ * plan's month. No guess from the period end.
+ */
+function poolFor(status: BillingStatus): number {
+  return status.allowanceSeconds ?? PLANS[status.plan].secondsPerPeriod;
 }
 
 function bandFor(status: BillingStatus, now: number): { band: PlanBand; line: string } {

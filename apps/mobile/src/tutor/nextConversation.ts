@@ -34,7 +34,7 @@ export function nextConversation(progress: readonly MissionProgress[], thread: T
       lines: [] as readonly string[],
       picked: null as string | null,
       // Only Max continues a conversation, so a learner offered it holds Max (F935).
-      included: includedInMax('continueArc', true),
+      included: includedInMax('continueArc', continueAllowed),
       params: { seedTopic: thread.seedTopic, continuationPackId: thread.packId },
     };
   }

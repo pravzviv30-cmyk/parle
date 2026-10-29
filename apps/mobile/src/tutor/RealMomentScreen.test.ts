@@ -68,7 +68,8 @@ describe('a real moment says what the plan allows before the learner fills anyth
     assert.match(unknown, /\{planError && <IconAction layout="inline" icon="refresh" label="Check my plan again" onPress=\{\(\) => setPlanAttempt/, 'a failed read has no retry');
     assert.doesNotMatch(unknown, /SEE_PLANS|MAX_ONLY_LINE|onSeePlans/, 'a failed plan read is offered an upgrade');
     assert.match(SCREEN, /setAllowed\(status === null \? null : capabilitiesFor\(status\.plan, status\.lapsed\)\.customRehearsal\)/, 'an unread plan is read as a plan without Max');
-    assert.match(RENDER, /\{allowed === true && <Text[^>]*>\{PLAN_INCLUDED\}<\/Text>\}/, 'a learner with Max is not told it is included');
+    // F935 verifier round: the line is asked of the real capability, not a constant.
+    assert.match(RENDER, /\{allowed === true && <Text[^>]*>\{planIncluded\(allowed\)\}<\/Text>\}/, 'a learner with Max is not told it is included');
     for (const line of [PLAN_CHECKING, PLAN_INCLUDED, PLAN_READ_FAILED]) {
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /—|\d|£|\$|€/, `"${line}" carries an em dash, a number or a price`);

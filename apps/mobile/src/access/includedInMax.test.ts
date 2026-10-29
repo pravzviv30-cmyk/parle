@@ -8,6 +8,7 @@ import type { MissionProgress } from '@luvani/core';
 import { INCLUDED_IN_MAX, includedInMax } from './includedInMax.ts';
 import { nextConversation } from '../tutor/nextConversation.ts';
 import { recommended } from '../tutor/speakTabView.ts';
+import { planIncluded } from '../tutor/realMoments.ts';
 
 const read = (path: string): string => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
 
@@ -25,6 +26,14 @@ test('Max-only entries say they are included in Max', () => {
   assert.equal(recommended(nextConversation([], null, true)).minutes === 'Included in Max', false);
   // Practice "Talk about it again", the library's continue, and Rehearse.
   assert.match(read('../practice/practiceTabView.ts'), /includedInMax\('continueArc', !revisitLocked\)/);
-  assert.match(read('../conversationPacks/ConversationPackLibrary.tsx'), /includedInMax\('continueArc', true\)/);
-  assert.match(read('../tutor/realMoments.ts'), /PLAN_INCLUDED = `\$\{includedInMax\('realMoment', true\)\}\.`/);
+  // Verifier round: every caller passes the real capability, never a hardcoded true.
+  for (const file of ['../conversationPacks/ConversationPackLibrary.tsx', '../tutor/realMoments.ts', '../tutor/nextConversation.ts', '../practice/practiceTabView.ts']) {
+    assert.doesNotMatch(read(file), /includedInMax\([^)]*, true\)/, `${file} hardcodes the plan`);
+  }
+  assert.match(read('../conversationPacks/ConversationPackLibrary.tsx'), /includedInMax\('continueArc', continueArc === true\)/);
+  assert.match(read('../conversationPacks/ConversationsScreen.tsx'), /continueArc=\{continueArc === true\}/);
+  assert.match(read('../tutor/nextConversation.ts'), /includedInMax\('continueArc', continueAllowed\)/);
+  assert.equal(planIncluded(true), 'Included in Max.');
+  assert.equal(planIncluded(false), null);
+  assert.match(read('../tutor/RealMomentScreen.tsx'), /\{allowed === true && <Text[^>]*>\{planIncluded\(allowed\)\}<\/Text>\}/);
 });

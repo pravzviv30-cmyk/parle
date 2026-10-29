@@ -99,7 +99,12 @@ export const SEE_PLANS = 'See what Max includes';
 /** The plan notice above the situations, one line per answer (Stage 3A). */
 export const PLAN_CHECKING = 'Checking your plan…';
 /** Shown only once the plan opens rehearsals, which only Max does (F935). */
-export const PLAN_INCLUDED = `${includedInMax('realMoment', true)}.`;
+export const PLAN_INCLUDED = 'Included in Max.';
+
+/** The included line for the plan's real rehearsal capability (`customRehearsal`), null when it does not open them. */
+export function planIncluded(customRehearsal: boolean): string | null {
+  return includedInMax('realMoment', customRehearsal) === null ? null : PLAN_INCLUDED;
+}
 export const PLAN_READ_FAILED = 'We could not check your plan. Your choices will stay here while you try again.';
 
 /** Every line this module can say, for the copy sweeps. */

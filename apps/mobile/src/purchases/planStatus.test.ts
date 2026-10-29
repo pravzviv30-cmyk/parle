@@ -41,7 +41,7 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
                   && ((line === view.periodLine && /^Fresh minutes on \d{1,2} [A-Z][a-z]+\.$/.test(line))
                     || (line === view.bandLine && /^(There is a little speaking time left, but not quite enough for a whole conversation\. )?Fresh minutes on \d{1,2} [A-Z][a-z]+\. Until then, practise offline\.$/.test(line))
                     // F935 (founder decision 21, 2026-10-29): a paid plan that can start says its pool in whole minutes.
-                    || (line === view.bandLine && view.canStart && /^\d+ of \d+ minutes left\.$/.test(line)));
+                    || (line === view.bandLine && view.canStart && /^(Under 1|[1-9]\d*) of [1-9]\d* minutes left\.$/.test(line)));
                 if (!dated) assert.doesNotMatch(line, /\d/, `a numeral reached the card: "${line}"`);
                 assert.doesNotMatch(line, /%/, `a percentage reached the card: "${line}"`);
                 assert.doesNotMatch(line, /—/, `an em dash reached the card: "${line}"`);
@@ -137,4 +137,25 @@ test("a paid learner sees minutes left of the plan's pool", () => {
   const told = planStatusFor(status({ plan: 'starter', secondsRemaining: 100 * 60, allowanceSeconds: 70 * 60 }), NOW);
   if (told.known) assert.equal(told.bandLine, '70 of 70 minutes left.');
   for (const view of [max, core, told]) if (view.known) assert.doesNotMatch(view.bandLine, /a day|per day|daily|·|—/);
+});
+
+// Verifier round (F935): a store trial is a week of the plan (F742), and a few seconds left is never "0".
+import { STORE_TRIAL_DAYS, storeTrialSeconds } from '@luvani/core';
+test('a store trial says the week it holds, and seconds left read Under 1, never 0', () => {
+  const trialEnd = new Date(NOW + 5 * DAY).toISOString();
+  const week = Math.floor(storeTrialSeconds('regular') / 60);
+  assert.ok(week < 600 && STORE_TRIAL_DAYS === 7);
+  // The server names a store trial's pool itself, as allowanceSeconds (billingStatus.ts).
+  const trial = planStatusFor(status({ plan: 'regular', secondsRemaining: 100 * 60, periodEnd: trialEnd, allowanceSeconds: storeTrialSeconds('regular') }), NOW);
+  if (trial.known) assert.equal(trial.bandLine, `100 of ${week} minutes left.`);
+  const month = planStatusFor(status({ plan: 'regular', secondsRemaining: 100 * 60, periodEnd: new Date(NOW + 20 * DAY).toISOString() }), NOW);
+  if (month.known) assert.equal(month.bandLine, '100 of 600 minutes left.');
+  const seconds = planStatusFor(status({ plan: 'regular', secondsRemaining: 45, periodEnd: new Date(NOW + 20 * DAY).toISOString() }), NOW);
+  assert.ok(seconds.known && seconds.canStart);
+  if (seconds.known) { assert.equal(seconds.bandLine, 'Under 1 of 600 minutes left.'); assert.doesNotMatch(seconds.bandLine, /^0 /); }
+});
+
+test("a normal month's last week still names the month's pool", () => {
+  const view = planStatusFor(status({ plan: 'regular', secondsRemaining: 100 * 60, periodEnd: new Date(NOW + 5 * DAY).toISOString() }), NOW);
+  if (view.known) assert.equal(view.bandLine, '100 of 600 minutes left.');
 });
