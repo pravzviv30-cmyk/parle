@@ -280,10 +280,6 @@ export function minutesLeft(minutes: number, conversations: number): string {
     : `${count(minutes, 'minute')} left.`;
 }
 
-/** When a paid plan's minutes start fresh, as a day and a month. */
-export function startsFresh(date: string): string {
-  return `They start fresh on ${date}.`;
-}
 
 // ── yearly and monthly, in the store's own prices (D16) ────────────────────────
 //
@@ -445,7 +441,6 @@ export const ACCOUNT_UNDER_A_MINUTE = 'Less than a minute left.';
 /** `purchases/planStatus.ts` says the same, in the same words, on the Settings card. */
 export const ACCOUNT_NONE_LEFT = 'No speaking time left for now.';
 /** A period whose end has already passed renews on the server's next read. */
-export const ACCOUNT_FRESH_NOW = 'They start fresh about now.';
 
 // ── the trial paywall, "P2 · Luvani" (2026-10-19, user-approved) ──────────────
 //
@@ -664,7 +659,6 @@ export const WALL_COPY: readonly string[] = [
   ACCOUNT_LABEL,
   ACCOUNT_UNDER_A_MINUTE,
   ACCOUNT_NONE_LEFT,
-  ACCOUNT_FRESH_NOW,
   WALL_LEAVE,
   WALL_NEXT,
   WALL_DONE,

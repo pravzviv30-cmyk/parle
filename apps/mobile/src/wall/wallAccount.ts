@@ -2,14 +2,12 @@ import type { Plan, PlanSpec } from '@luvani/core';
 
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { dayAndMonthOf, PLAN_LABELS, refillTime } from '../purchases/planStatus.ts';
-import { outOfTimeWords } from '../purchases/outOfTime.ts';
+import { freshMinutesLine, outOfTimeWords, PERIOD_LINES } from '../purchases/outOfTime.ts';
 import {
-  ACCOUNT_FRESH_NOW,
   ACCOUNT_NONE_LEFT,
   ACCOUNT_UNDER_A_MINUTE,
   minutesLeft,
   freeRefill,
-  startsFresh,
   trialAllowance,
 } from './wallCopy.ts';
 import { CONVERSATION_MINUTES, wallTrial } from './wallPlans.ts';
@@ -104,8 +102,9 @@ export function wallAccount(
   if (status.periodEnd !== null) {
     const end = new Date(status.periodEnd).getTime();
     const date = dayAndMonth(status.periodEnd);
-    if (Number.isFinite(end) && end <= now) lines.push(ACCOUNT_FRESH_NOW);
-    else if (date !== null) lines.push(startsFresh(date));
+    // F911: the same words as Subscription and the band, from one formatter.
+    if (Number.isFinite(end) && end <= now) lines.push(PERIOD_LINES.freshSoon);
+    else if (date !== null) lines.push(freshMinutesLine(date));
   }
   return { title: PLAN_LABELS[status.plan], lines };
 }

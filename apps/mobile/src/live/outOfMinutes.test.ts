@@ -347,6 +347,8 @@ describe('the 402 the hook is handed — F251', () => {
       const shared = untimedOutOfTimeWords(code);
       assert.deepEqual({ label: COPY[code]!.label, message: COPY[code]!.message }, { label: shared.title, message: shared.message }, `${code} drifted from the shared out-of-time words`);
     }
+    // An unknown code claims nothing about minutes (F911).
+    assert.deepEqual({ label: COPY.unknown!.label, message: COPY.unknown!.message }, { label: "Speaking isn't available right now", message: 'Luvani cannot start a conversation on this account right now. Practice and review still work offline.' });
     const ours = new Set(Object.values(COPY).map((c) => c.message));
     for (const body of EVERY_402) {
       const shown = await onlyMessage(body);

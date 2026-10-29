@@ -303,10 +303,10 @@ const OUT_OF_MINUTES: Record<OutOfMinutesCode, OutOfMinutesCopy> = {
     message:
       'The free conversation on this device is already in use. Each device has one free allowance, so there is none waiting here for this account. Nothing is wrong on your side, and practice and review work offline.',
   },
+  // F911: the code is unknown, so this claims nothing about minutes.
   unknown: {
-    label: 'Out of minutes',
-    message:
-      'Luvani cannot start a session on this account right now, and it is about minutes rather than anything you did. Practice and review work offline, so you can carry on there.',
+    label: "Speaking isn't available right now",
+    message: 'Luvani cannot start a conversation on this account right now. Practice and review still work offline.',
   },
 };
 

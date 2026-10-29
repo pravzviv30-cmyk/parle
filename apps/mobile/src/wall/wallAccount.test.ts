@@ -20,6 +20,7 @@ const FREE_LINE = 'You get one free conversation every other day, up to 10 minut
 import { guiltIn } from '../copy/guilt.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { dayAndMonth, wallAccount } from './wallAccount.ts';
+import { freshMinutesLine, PERIOD_LINES } from '../purchases/outOfTime.ts';
 
 const NOW = Date.parse('2026-09-27T12:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
@@ -53,7 +54,9 @@ describe('the account in hand, in minutes', () => {
     const account = wallAccount(status({ plan: 'starter', secondsRemaining: 42 * 60 + 59, periodEnd }), PLANS, NOW);
     assert.ok(account);
     assert.equal(account.title, 'Core');
-    assert.deepEqual(account.lines, ['42 minutes left, about 4 conversations.', `They start fresh on ${dayAndMonth(periodEnd)}.`]);
+    assert.deepEqual(account.lines, ['42 minutes left, about 4 conversations.', `Fresh minutes on ${dayAndMonth(periodEnd)}.`]);
+    // F911: the same fact in the same words as Subscription and the band.
+    assert.equal(account.lines[1], freshMinutesLine(dayAndMonth(periodEnd)!));
     assert.equal(dayAndMonth(periodEnd), '12 October');
   });
 
@@ -73,7 +76,7 @@ describe('the account in hand, in minutes', () => {
 
   test('a period already over says about now, rather than a date in the past', () => {
     const account = wallAccount(status({ plan: 'starter', secondsRemaining: 600, periodEnd: new Date(NOW - DAY).toISOString() }), PLANS, NOW);
-    assert.equal(account?.lines[1], 'They start fresh about now.');
+    assert.equal(account?.lines[1], PERIOD_LINES.freshSoon);
   });
 
   test('where the account has no minutes to report, the page says nothing about them', () => {
