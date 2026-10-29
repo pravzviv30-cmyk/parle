@@ -11,26 +11,43 @@ import { DEFAULT_TUTOR_VOICE, tutorVoice } from '@luvani/core';
 import { FIVE_SETUP, FULL_SETUP, previousStep } from './flow.ts';
 import { freshPreAccountDraft, repaired } from './preAccountDraft.ts';
 import { shouldStartFirstPractice } from './firstPracticeEntry.ts';
-import { pressBack, recordStep, stepOf, type StepHistory } from './stepHistory.ts';
 import { tutorStep } from './tutorStep.ts';
 import { LOOK_AROUND } from './micPrimer.ts';
 
 const read = (file: string) => readFileSync(new URL(file, import.meta.url), 'utf8');
 
-function fakeHistory() {
+/** A browser history: Back and Forward fire popstate; push drops forward entries; replace fires nothing. */
+function browser() {
   const entries: unknown[] = [null];
   let index = 0;
-  const pops: (() => void)[] = [];
-  const history: StepHistory = {
-    get state() { return entries[index]; },
-    pushState(data) { entries.splice(index + 1); entries.push(data); index += 1; },
-    back() { if (index === 0) { left = true; return; } index -= 1; pops.forEach((fn) => fn()); },
-  };
   let left = false;
-  return { history, onPop: (fn: () => void) => pops.push(fn), get left() { return left; }, get length() { return entries.length; } };
+  const listeners: (() => void)[] = [];
+  const fire = () => listeners.forEach((fn) => fn());
+  const history = {
+    get state() { return entries[index]; },
+    pushState(data: unknown) { entries.splice(index + 1); entries.push(data); index += 1; },
+    replaceState(data: unknown) { entries[index] = data; },
+    back() { if (index === 0) { left = true; return; } index -= 1; fire(); },
+    forward() { if (index >= entries.length - 1) return; index += 1; fire(); },
+  };
+  return { history, listen: (fn: () => void) => listeners.push(fn), get left() { return left; }, get length() { return entries.length; }, get index() { return index; } };
 }
 
-test('every onboarding step after the first offers back', () => {
+async function webFlow() {
+  const mod = await import('./stepHistory.ts') as Record<string, unknown>;
+  const b = browser();
+  let page: string = FULL_SETUP[0]!;
+  let busy = false;
+  const guard = (mod.historyGuard as (h: unknown) => {
+    sync(first: boolean): void; pop(o: { first: boolean; busy: boolean; landsOnFirst: boolean; back: () => void }): void; release(): void })(b.history);
+  const back = () => { page = previousStep(page as never, FULL_SETUP) ?? page; };
+  b.listen(() => guard.pop({ first: page === FULL_SETUP[0], busy, landsOnFirst: previousStep(page as never, FULL_SETUP) === FULL_SETUP[0], back }));
+  const show = (next: string) => { page = next; guard.sync(page === FULL_SETUP[0]); };
+  show(page);
+  return { b, guard, show, get page() { return page; }, set busy(v: boolean) { busy = v; } };
+}
+
+test('every onboarding step after the first offers back', async () => {
   for (const order of [FULL_SETUP, FIVE_SETUP]) {
     assert.equal(previousStep(order[0]!, order), null, 'the first step has nothing behind it');
     for (let i = 1; i < order.length; i++) assert.equal(previousStep(order[i]!, order), order[i - 1]);
@@ -45,28 +62,36 @@ test('every onboarding step after the first offers back', () => {
   assert.equal((screen.match(/<BBand tone="(sun|brand)"[^>]*onBack=\{backPress\}/g) ?? []).length, 3, 'plan, tutor and consent bands');
   assert.match(screen, /const back = \(\) => \{[\s\S]*const previous = previousStep\(page, questionOrder\);/);
 
-  // Web: browser Back steps back inside onboarding; on the first step it leaves.
-  const h = fakeHistory();
-  let page = 'hear-it';
-  const back = () => { page = previousStep(page as never, FULL_SETUP) ?? page; recordStep(h.history, page, page === FULL_SETUP[0]); };
-  h.onPop(back);
-  recordStep(h.history, page, true);
-  assert.equal(h.length, 1, 'the first step pushes nothing');
-  for (const next of ['reason', 'interests']) { page = next; recordStep(h.history, page, false); recordStep(h.history, page, false); }
-  assert.equal(h.length, 3, 'one entry per step, never a duplicate');
-  pressBack(h.history, page, back);
-  assert.equal(page, 'reason');
-  assert.equal(stepOf(h.history.state), 'reason');
-  h.history.back();
-  assert.equal(page, 'hear-it');
-  assert.equal(h.left, false);
-  h.history.back();
-  assert.equal(h.left, true, 'browser Back on the first step leaves normally');
-  // A resumed step that never pushed steps back directly.
-  let direct = 0;
-  pressBack(fakeHistory().history, 'time', () => { direct++; });
-  pressBack(null, 'time', () => { direct++; });
-  assert.equal(direct, 2);
+  // Web: one guard entry past the first step; browser Back steps back once.
+  const w = await webFlow();
+  assert.equal(w.b.length, 1, 'the first step adds nothing');
+  for (const next of ['reason', 'interests', 'start-level']) w.show(next);
+  assert.equal(w.b.length, 2, 'exactly one guard entry, however many steps');
+  w.b.history.back();
+  assert.equal(w.page, 'interests');
+  // Forward never moves the flow, and never moves it backward.
+  w.b.history.forward();
+  assert.equal(w.page, 'interests', 'browser Forward does not step the flow backward');
+  // A Back while busy re-arms and loses nothing.
+  w.busy = true; w.b.history.back(); w.busy = false;
+  assert.equal(w.page, 'interests');
+  w.b.history.back(); assert.equal(w.page, 'reason');
+  w.b.history.back(); assert.equal(w.page, 'hear-it');
+  assert.equal(w.b.left, false);
+  w.b.history.back();
+  assert.equal(w.b.left, true, 'browser Back on the first step leaves');
+  // Onboarding ends: the guard is removed without a popstate, leaving at most one same-URL entry.
+  const end = await webFlow();
+  for (const next of ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan']) end.show(next);
+  let pops = 0; end.b.listen(() => { pops++; });
+  end.guard.release();
+  assert.equal(pops, 0, 'release feeds React Navigation no popstate');
+  assert.equal((end.b.history.state as { luvaniGuard?: boolean } | null)?.luvaniGuard, undefined, 'the guard is gone');
+  assert.ok(end.b.length <= 2);
+  // The visible chevron steps back directly, with no history round trip.
+  const screenSrc = read('./PreAccountOnboarding.tsx');
+  assert.match(screenSrc, /const backPress = \(\) => backRef\.current\(\);/);
+  assert.match(screenSrc, /return \(\) => \{ window\.removeEventListener\('popstate', onPop\); guard\.release\(\); \};/);
 });
 
 test('the first scene and the consent screen offer a way home without starting a session', async () => {
@@ -74,15 +99,16 @@ test('the first scene and the consent screen offer a way home without starting a
   const start = screen.indexOf('  const homeFirst = async');
   const body = stripTypeScriptTypes(screen.slice(start, screen.indexOf('\n  };\n', start) + 5));
   const run = (signedIn: boolean) => {
-    const calls: { account?: unknown; continued?: unknown[]; started: number } = { started: 0 };
+    const calls: { account?: unknown; continued?: unknown[]; started: number; creates: number } = { started: 0, creates: 0 };
     const fn = new Function('operation', 'pageMotion', 'refused', 'previewOnly', 'busy', 'signedIn', 'continueWithAccount', 'onCreateAccount', 'draftRef', 'stopSound', 'start', 'startGuestPractice',
       `${body}; return homeFirst;`)({ current: false }, { locked: { current: false } }, false, false, false, signedIn,
-      async (...args: unknown[]) => { calls.continued = args; }, (d: unknown) => { calls.account = d; },
+      async (...args: unknown[]) => { calls.continued = args; }, (d: unknown) => { calls.account = d; calls.creates++; },
       { current: { ...freshPreAccountDraft(), tutorChosen: true, page: 'choose-tutor' } }, () => {}, () => { calls.started++; }, () => { calls.started++; });
     return { go: fn as () => Promise<void>, calls };
   };
   const guest = run(false);
-  await guest.go();
+  await Promise.all([guest.go(), guest.go()]);
+  assert.equal(guest.calls.creates, 1, 'a double tap creates one account');
   assert.equal(guest.calls.started, 0, 'no session is started');
   const handed = guest.calls.account as ReturnType<typeof freshPreAccountDraft>;
   assert.equal(handed.page, 'plan');
@@ -109,7 +135,8 @@ test('a recommended tutor is preselected', () => {
   const fresh = freshPreAccountDraft();
   const step = tutorStep(fresh);
   assert.equal(step.chosen, DEFAULT_TUTOR_VOICE);
-  assert.equal(step.label, `Continue with ${tutorVoice(DEFAULT_TUTOR_VOICE).persona.name}`);
+  assert.ok(tutorVoice(step.chosen).persona.name.length > 0, 'the footer names a real tutor');
+  assert.equal(Object.keys(step).join(), 'chosen', 'the screen builds its own label from the chosen name');
   // A draft from an older build that stored false is preselected the same way.
   const migrated = repaired({ ...fresh, tutorVoice: 'emilie', tutorChosen: false });
   assert.equal(tutorStep(migrated).chosen, 'emilie');

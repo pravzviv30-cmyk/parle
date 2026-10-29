@@ -507,7 +507,7 @@ function SignedInRoot({
             accountLabel={user.email ?? 'your current account'}
             onConsumed={onPreAccountDraftConsumed}
             done={(profile, startPractice) => {
-              firstScene.current = firstSceneFor(preAccountDraft.startLevel, preAccountDraft.reason);
+              firstScene.current = firstSceneFor(preAccountDraft.startLevel, preAccountDraft.reason, preAccountDraft.skipAhead === true);
               setJustOnboarded(startPractice);
               done(profile);
             }}
@@ -530,7 +530,7 @@ function SignedInRoot({
               if ((await saveConsent({ allowed: draft.analyticsConsent })) !== 'durable' || owner !== scopeGeneration()) return false;
               if ((await saveReminder(reminderFromDraft(draft))) !== 'durable' || owner !== scopeGeneration()) return false;
               if (!(await saveProfile(built)) || owner !== scopeGeneration()) return false;
-              firstScene.current = firstSceneFor(draft.startLevel, draft.reason);
+              firstScene.current = firstSceneFor(draft.startLevel, draft.reason, draft.skipAhead === true);
               setJustOnboarded(startPractice);
               onPreAccountDraftConsumed();
               done(built);

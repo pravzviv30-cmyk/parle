@@ -86,7 +86,10 @@ function practice(value: unknown): { practicePreferences?: Record<string, unknow
   const v = value as Record<string, unknown>;
   const pick = (set: readonly string[], x: unknown) => (typeof x === 'string' && set.includes(x) ? x : null);
   const clean = { level: pick(LEVELS, v.level), confidence: pick(CONFIDENCES, v.confidence), focus: pick(FOCUSES, v.focus) };
-  return clean.level === null && clean.confidence === null && clean.focus === null ? {} : { practicePreferences: clean };
+  // F917: the onboarding placement rides along when valid, as upgrade.ts keeps it.
+  const placement = pick(['basics', 'everyday'], v.placement);
+  const withPlacement = placement === null ? clean : { ...clean, placement };
+  return clean.level === null && clean.confidence === null && clean.focus === null && placement === null ? {} : { practicePreferences: withPlacement };
 }
 
 let chainCalls = 0;
@@ -353,6 +356,19 @@ describe('merging two copies of one learner', () => {
     for (const m of [merge(phoneA, phoneB), merge(phoneB, phoneA)]) {
       assert.deepEqual(m?.practicePreferences, { level: 'getby', confidence: 'hesitant', focus: 'speaking' });
     }
+  });
+
+  test('the onboarding placement survives a merge with a device that never had one, and junk never does', () => {
+    const placed = stored({ practicePreferences: { level: 'getby', confidence: null, focus: null, placement: 'everyday' } });
+    const older = stored({
+      practicePreferences: { level: 'getby', confidence: 'trying', focus: null, placement: 'fluent' },
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    for (const m of [merge(placed, older), merge(older, placed)]) {
+      assert.deepEqual(m?.practicePreferences, { level: 'getby', confidence: 'trying', focus: null, placement: 'everyday' });
+    }
+    const none = stored({ practicePreferences: { level: 'zero', confidence: null, focus: null } });
+    assert.deepEqual(merge(none, none)?.practicePreferences, { level: 'zero', confidence: null, focus: null }, 'a placement appeared from nowhere');
   });
 
   test("a heavier device's real sub-answer beats a lighter device's real sub-answer, field by field", () => {

@@ -60,7 +60,7 @@ test('revamp B Progress opens evidence-based materials, a weekly story and earne
   // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages, the
   // postcard shelf the Postcards tile (its route in journey/journeyView.ts),
   // and the tab's title is "Your journey".
-  has('tabs/MyFrenchTab.tsx',/stagesFrom\(missions\)/,/<DayCount weekly/,/hasStory\(week\)/,/storyFrom\(/,/earnedPostcards\(missions\)\.length/,/nav.navigate\('WeekWrapped'\)/,/nav.navigate\('Phrasebook'\)/,/nav.navigate\('GoalStep'/,/<TabHeader title=\{JOURNEY_TITLE\}/);
+  has('tabs/MyFrenchTab.tsx',/stagesFrom\(missions, practicePreferencesOf\(profile\)\.placement \?\? null\)/,/<DayCount weekly/,/hasStory\(week\)/,/storyFrom\(/,/earnedPostcards\(missions\)\.length/,/nav.navigate\('WeekWrapped'\)/,/nav.navigate\('Phrasebook'\)/,/nav.navigate\('GoalStep'/,/<TabHeader title=\{JOURNEY_TITLE\}/);
   has('journey/journeyView.ts',/screen: 'Postcards'/,/JOURNEY_TITLE = MY_FRENCH_TITLE/);
   lacks('tabs/MyFrenchTab.tsx',/tutorVoice.speak|AudioModule|recordActivity\(/);
   // 2026-10-20, B6: myfrench/LevelCard.tsx was deleted as dead code; the stages pin above replaces it.

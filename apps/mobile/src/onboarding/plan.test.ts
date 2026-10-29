@@ -25,6 +25,7 @@ import {
   SEEDED_GOAL,
   START_LEVELS,
   COVERAGE_NOTE,
+  GENTLE_PACE,
   TRIAL_LINE,
   firstSceneFor,
   goalReachScenes,
@@ -44,15 +45,20 @@ import {
 const draft = (extra: Partial<PreAccountOnboardingDraft>): PreAccountOnboardingDraft => ({ ...freshPreAccountDraft(), ...extra });
 
 describe('answers to a plan', () => {
-  test('scene order is the spine, and a learner who can get by skips the first coffee', () => {
+  test('scene order starts at the placement, and the first scene is the goal scene at that stage', () => {
+    // F917, 2026-10-29 (founder decision 5): I can get by starts at Basics, so
+    // the Starter scenes leave the suggested order; Feeling confident and Skip
+    // ahead start at Everyday. Skipped scenes stay open to visit, just not suggested.
+    const from = (cefr: readonly string[]) => SCENE_SPINE.filter((id) => cefr.includes(getMission(id)!.cefr));
     assert.deepEqual(sceneOrder('zero'), SCENE_SPINE);
     assert.deepEqual(sceneOrder('few'), SCENE_SPINE);
-    assert.deepEqual(sceneOrder('getby'), SCENE_SPINE.filter((id) => id !== 'mission:premier-cafe'));
-    assert.deepEqual(sceneOrder('confident'), sceneOrder('getby'));
+    assert.deepEqual(sceneOrder('getby'), from(['A1', 'A2', 'B1']));
+    assert.deepEqual(sceneOrder('getby', true), from(['A2', 'B1']));
+    assert.deepEqual(sceneOrder('confident'), sceneOrder('getby', true));
     assert.equal(firstSceneFor('zero'), 'mission:premier-cafe');
     assert.equal(firstSceneFor('few'), 'mission:premier-cafe');
-    assert.equal(firstSceneFor('getby'), 'mission:cafe');
-    assert.equal(firstSceneFor('confident'), 'mission:cafe');
+    assert.equal(firstSceneFor('getby'), 'mission:marche');
+    assert.equal(firstSceneFor('confident'), 'mission:week-end');
     assert.equal(firstSceneFor(null), 'mission:premier-cafe', 'an unanswered level starts at the start');
     // 2026-10-22 (review fix): a brand-new learner opens on the opener whatever
     // the goal, the same scene nextScene offers before anything is earned.
@@ -61,16 +67,20 @@ describe('answers to a plan', () => {
       assert.equal(firstSceneFor('few', r), 'mission:premier-cafe', r);
       assert.equal(firstSceneFor(null, r), 'mission:premier-cafe', r);
     }
-    // A learner who can get by starts on the first A0 or A1 scene of the goal.
-    for (const l of ['getby', 'confident'] as const) {
-      assert.equal(firstSceneFor(l, 'trip'), 'mission:gare');
-      assert.equal(firstSceneFor(l, 'moving'), 'mission:voisin');
-      assert.equal(firstSceneFor(l, 'family'), 'mission:amis');
-      assert.equal(firstSceneFor(l, 'work'), 'mission:journee');
-      assert.equal(firstSceneFor(l, 'food'), 'mission:cafe');
-      assert.equal(firstSceneFor(l, 'because'), 'mission:cafe');
+    // At Basics, the first A1 scene of the goal; at Everyday, the first A2 one.
+    assert.equal(firstSceneFor('getby', 'trip'), 'mission:gare');
+    assert.equal(firstSceneFor('getby', 'moving'), 'mission:voisin');
+    assert.equal(firstSceneFor('getby', 'family'), 'mission:amis');
+    assert.equal(firstSceneFor('getby', 'work'), 'mission:journee');
+    assert.equal(firstSceneFor('getby', 'food'), 'mission:restaurant');
+    assert.equal(firstSceneFor('getby', 'because'), 'mission:marche');
+    assert.equal(firstSceneFor('confident', 'moving'), 'mission:appartement');
+    assert.equal(firstSceneFor('confident', 'work'), 'mission:collegues');
+    assert.equal(firstSceneFor('confident', 'food'), 'mission:week-end', 'no A2 food scene, so the Everyday spine opener');
+    assert.equal(firstSceneFor('getby', 'work', true), firstSceneFor('confident', 'work'));
+    for (const l of ['getby', 'confident'] as const) for (const r of [null, ...REASONS.map((x) => x.key)]) {
+      assert.notEqual(getMission(firstSceneFor(l, r))!.cefr, 'A0', `${l} ${r}`);
     }
-    assert.equal(firstSceneFor('getby', null), 'mission:cafe');
   });
 
   test('preset minutes follow the level, and work or a move asks for fifteen', () => {
@@ -87,8 +97,11 @@ describe('answers to a plan', () => {
   test('the starting level becomes a low-confidence estimate the ladder already reads', () => {
     assert.deepEqual(startEstimate('zero'), { estimate: 'A0', confidence: 'low' });
     assert.deepEqual(startEstimate('few'), { estimate: 'A0', confidence: 'low' });
+    // F917, 2026-10-29: Basics is A1, Everyday (confident, or Skip ahead) A2.
     assert.deepEqual(startEstimate('getby'), { estimate: 'A1', confidence: 'low' });
-    assert.deepEqual(startEstimate('confident'), { estimate: 'A1', confidence: 'low' });
+    assert.deepEqual(startEstimate('getby', true), { estimate: 'A2', confidence: 'low' });
+    assert.deepEqual(startEstimate('confident'), { estimate: 'A2', confidence: 'low' });
+    assert.deepEqual(startEstimate('zero', true), { estimate: 'A0', confidence: 'low' }, 'Skip ahead moved a learner who never said they can get by');
   });
 
   test('one seeded goal per reason, short enough to be kept whole', () => {
@@ -214,10 +227,13 @@ describe('the extra personal questions change real support', () => {
       for (const goal of view.tutorGoals) assert.ok(goal.length > 0 && goal.length <= MAX_GOAL_CHARS);
       if (confidence.key === 'hesitant') {
         assert.match(view.startingReason, /model and translation/);
+        // F916, 2026-10-29: the shown pair says it once, and Gentle pace says the typed start.
+        assert.match(view.method, /model line and its translation/);
+        assert.equal(view.gentle, GENTLE_PACE);
         assert.equal(initialPracticeMode(answer), 'typed', 'hesitant learners are not put into speaking by their level');
       } else assert.equal(initialPracticeMode(answer), focus.key === 'speaking' ? 'spoken' : 'typed');
-      if (focus.key === 'listening') assert.match(view.method, /Hear the model/);
-      if (focus.key === 'words') assert.match(view.method, /useful words and translation/);
+      if (focus.key === 'listening') assert.match(view.method, /Replay the French/);
+      if (focus.key === 'words') assert.match(view.method, /useful words/);
     }
     assert.deepEqual(tutorGoalsFor(freshPreAccountDraft()), []);
     assert.equal(initialPracticeMode(freshPreAccountDraft()), 'typed');

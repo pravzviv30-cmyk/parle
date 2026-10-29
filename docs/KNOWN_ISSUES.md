@@ -11744,7 +11744,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-13; five reviewers). No step has a back control
   and the URL stays /, so browser Back leaves the app. The signed-in first scene
   (onboarding/FirstSceneScreen.tsx) and the consent screen offer only ways into a live session. Decided 2026-10-29 (founder decision 15 and the programme plan): a back chevron on every step after the first, browser Back steps back on web, the consent screen offers back and "Create an account first", and the signed-in first scene offers "Look around first". This reverses F352's "no visible back".
-- fixed: 2026-10-29. Every setup step after the first shows a Back chevron, and on web browser Back steps back one step. "Before we start" offers "Create an account first" (or "Look around first" when signed in), and the signed-in first scene offers "Look around first". Both go to Home without starting a scene.
+- fixed: 2026-10-29. Every setup step after the first shows a Back chevron. On web, one guard history entry turns browser Back into one step back; Forward never moves the flow, a Back while busy loses nothing, Back on the first step leaves, and the guard is removed when onboarding ends. "Before we start" offers "Create an account first" (or "Look around first" when signed in), and the signed-in first scene offers "Look around first". Both go to Home without starting a scene. Tests: `every onboarding step after the first offers back`, `the first scene and the consent screen offer a way home without starting a session`.
 - verified-by: `every onboarding step after the first offers back`
 - verified-by: `the first scene and the consent screen offer a way home without starting a session`
 
@@ -11759,6 +11759,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the plan's first conversation line comes from scene 1`
 - verified-by: `the starting point chosen in onboarding shows in learning preferences`
 - verified-by: `the plan's method sentence never repeats a clause`
+- fixed: 2026-10-29. The plan's first-conversation line names the scene really played next, from its scene data: the guest café ("ordering a coffee") before an account, else the can-do of the scene `firstSceneFor` opens, with "Coming up:" for the goal scene when it differs (`plan.ts` `firstConversationLines`). The method is one sentence pair with no idea said twice, plus "Gentle pace" for a hesitant learner, which says only the typed start and the tutor's gentle-start goal (`methodLines`). `profileFromDraft` now writes `practicePreferences`, so Learning preferences shows the starting point chosen. `firstPracticeScenario` is no longer read by the plan; the guest convo prompt and the guest record still use it.
 
 ### F917 — "I can get by" starts the learner at Starter
 - severity: P2
@@ -11770,6 +11771,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a learner who can get by does not start at Starter`
 - verified-by: `skip ahead starts the learner at Everyday`
 - verified-by: `Journey never credits a stage the learner skipped`
+- fixed: 2026-10-29. A placement (`onboarding/placement.ts`) is set from the level answer: "I can get by" is Basics, "Feeling confident" Everyday, and the plan's secondary "Skip ahead" link moves Basics to Everyday (draft `skipAhead`). The plan heading, the stage card, `sceneOrder`, `firstSceneFor` and `startEstimate` (A1, A2, low confidence) follow it, and it is saved as `practicePreferences.placement` (merged per answer by `pickPracticePreferences`). Journey and Profile read it through `stagesFrom(progress, placement)`: stages below it read "Skipped, still open to visit", never done, and a stage above it is reached only by earning all its scenes. No scene or ability is credited.
 
 ### F925 — The guest early-exit summary gives a train-station tip after a café scene
 - severity: P2
@@ -11789,7 +11791,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-27). "Get Started" blocks every click until tapped,
   a second splash follows sign-up, and "Choose a tutor" stays disabled until a pick: 13 taps and 8
   decisions to the first French. Decided 2026-10-29 (founder decision 18): the welcome after sign-up shows once and never again on a reload.
-- fixed: 2026-10-29. The tutor step opens with the recommended tutor already selected, so the button reads "Continue with" that tutor and saves the voice. The welcome after sign-up is marked as seen the moment it shows, so a reload never brings it back.
+- fixed: 2026-10-29. The tutor step opens with the recommended tutor already selected, so the button reads "Continue with" that tutor and saves the voice. The welcome after sign-up is marked as seen the moment it shows, so a reload never brings it back. Tests: `a recommended tutor is preselected`, `the welcome after sign-up shows once and never on a reload`.
 - verified-by: `a recommended tutor is preselected`
 - verified-by: `the welcome after sign-up shows once and never on a reload`
 

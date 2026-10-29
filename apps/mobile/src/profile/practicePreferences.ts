@@ -1,7 +1,12 @@
 import { DEFAULT_TUTOR_VOICE, parseFirstPracticeBrief, type FirstPracticeBrief } from '@luvani/core';
+import { isPlacement, type Placement } from '../onboarding/placement.ts';
 
-/** Self-described support preferences, never earned or certified ability. */
-export type PracticePreferences = Pick<FirstPracticeBrief, 'level' | 'confidence' | 'focus'>;
+/**
+ * Self-described support preferences, never earned or certified ability.
+ * `placement` is where the learner chose to start (F917); it is present only
+ * when set, and it never credits a stage (`onboarding/placement.ts`).
+ */
+export type PracticePreferences = Pick<FirstPracticeBrief, 'level' | 'confidence' | 'focus'> & { placement?: Placement };
 const EMPTY: PracticePreferences = { level: null, confidence: null, focus: null };
 
 /**
@@ -22,7 +27,8 @@ export function storedPracticePreferences(value: unknown): PracticePreferences |
     else if (field === 'confidence') clean.confidence = parsed?.confidence ?? null;
     else clean.focus = parsed?.focus ?? null;
   }
-  return clean.level !== null || clean.confidence !== null || clean.focus !== null ? clean : undefined;
+  if (isPlacement(input.placement)) clean.placement = input.placement;
+  return clean.level !== null || clean.confidence !== null || clean.focus !== null || clean.placement !== undefined ? clean : undefined;
 }
 
 /** Legacy and malformed profiles remain unanswered, without re-onboarding. */

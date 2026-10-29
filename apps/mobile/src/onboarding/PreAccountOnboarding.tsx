@@ -22,7 +22,7 @@ import { useReduceMotion } from '../motion.ts';
 import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, nextSetupLabel, previousStep } from './flow.ts';
-import { pressBack, recordStep, webHistory } from './stepHistory.ts';
+import { historyGuard, webHistory } from './stepHistory.ts';
 import { tutorStep } from './tutorStep.ts';
 import { LOOK_AROUND } from './micPrimer.ts';
 import { GhostButton, IconAction, IconActionRow, PillButton, Press, Sheet } from '../components.tsx';
@@ -303,22 +303,33 @@ export function PreAccountOnboarding({
     });
     return () => sub.remove();
   }, [page, surface, busy]);
-  // F915: the visible chevron, after the first step. On web it pops this
-  // step's own history entry, so the browser and the flow stay in step.
+  // F915: the visible chevron steps back directly. On web, one guard entry
+  // past the first step turns browser Back into one step back (stepHistory.ts).
   const backRef = useRef(back);
   backRef.current = back;
-  const history = webHistory(Platform.OS);
+  const backPress = () => backRef.current();
+  const guardRef = useRef<ReturnType<typeof historyGuard> | null | undefined>(undefined);
+  if (guardRef.current === undefined) { const history = webHistory(Platform.OS); guardRef.current = history && historyGuard(history); }
   const shownStep = surface !== null && ['start', 'privacy', 'policy', 'terms'].includes(surface) ? 'before-practice' : page;
-  const backPress = () => pressBack(history, shownStep, () => backRef.current());
+  const popRef = useRef(() => {});
+  popRef.current = () => {
+    if (GUEST_PAGES.includes(page) || refused) return;
+    const consent = shownStep === 'before-practice';
+    guardRef.current?.pop({ first: !consent && page === questionOrder[0], busy: operation.current || busy || pageMotion.locked.current,
+      landsOnFirst: !consent && previousStep(page, questionOrder) === questionOrder[0], back: () => backRef.current() });
+  };
   useEffect(() => {
-    if (history === null || !active || refused || GUEST_PAGES.includes(page)) return;
-    recordStep(history, shownStep, shownStep === questionOrder[0]);
+    const guard = guardRef.current;
+    if (!guard || !active) return;
+    if (refused || GUEST_PAGES.includes(page)) guard.release();
+    else guard.sync(shownStep === questionOrder[0]);
   }, [shownStep, active, refused]);
   useEffect(() => {
-    if (history === null || !active) return;
-    const onPop = () => backRef.current();
+    const guard = guardRef.current;
+    if (!guard || !active) return;
+    const onPop = () => popRef.current();
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => { window.removeEventListener('popstate', onPop); guard.release(); };
   }, [active]);
   const choose = (change: Partial<PreAccountOnboardingDraft>) => { if (!operation.current && !pageMotion.locked.current) patch(change); };
   const toggleRemember = () => {
@@ -477,8 +488,14 @@ export function PreAccountOnboarding({
   const homeFirst = async () => {
     if (operation.current || pageMotion.locked.current || refused || previewOnly || busy) return;
     if (signedIn) { await continueWithAccount(draftRef.current, 'plan'); return; }
-    stopSound();
-    onCreateAccount({ ...draftRef.current, page: 'plan' });
+    // The lock is taken before anything awaits, so a double tap creates one account.
+    operation.current = true;
+    try {
+      stopSound();
+      await onCreateAccount({ ...draftRef.current, page: 'plan' });
+    } finally {
+      operation.current = false;
+    }
   };
   const saveAccount = async () => {
     if (operation.current || pageMotion.locked.current || refused || !draft.eligibilityConfirmed) return;
@@ -722,7 +739,7 @@ export function PreAccountOnboarding({
                       selected={draft.minutes === minutes} onPress={() => choose({ minutes })} />)}
                   </View>
                 </>}
-                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active && surface === null} onEdit={() => open('plan')} />}
+                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active && surface === null} onEdit={() => open('plan')} guestScene={!signedIn} onSkipAhead={() => patch({ skipAhead: true })} />}
                 {page === 'choose-tutor' && <TutorSelection
                   chosen={tutorStep(draft).chosen}
                   preview={preview}

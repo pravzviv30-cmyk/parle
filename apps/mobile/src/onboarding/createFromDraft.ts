@@ -12,6 +12,9 @@
  *   - the practice style goes through the existing `withPreferTyping` door;
  *   - the voice through `withChosenVoice`, so a default nobody changed still
  *     reads "never chosen" only if nobody touched it;
+ *   - the level, confidence and focus answers and the placement become
+ *     `practicePreferences`, so Learning preferences shows the starting point
+ *     chosen here (F916) and the Journey reads the placement (F917);
  *   - the first name becomes the profile name;
  *   - the reminder goes through `saveReminder`, on only when the learner said
  *     yes to an optional reminder ask and the system scheduled it
@@ -27,7 +30,8 @@ import { carryPreferenceEdits, createStoredProfile, withPreferTyping, type Store
 import { withLearnerGoal, withMemoryPaused } from '../profile/memory.ts';
 import { reminderTime, type StoredReminder } from '../reminders/reminder.ts';
 import { withChosenVoice } from './voiceStep.ts';
-import { initialPracticeMode, levelOf, minutesOf, reminderOf, startEstimate, tutorGoalsFor } from './plan.ts';
+import { initialPracticeMode, levelOf, minutesOf, placementOf, reminderOf, startEstimate, tutorGoalsFor } from './plan.ts';
+import { storedPracticePreferences } from '../profile/practicePreferences.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 
 export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.now()): StoredProfile {
@@ -46,8 +50,12 @@ export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.no
   const placed: StoredProfile = {
     ...built,
     onboardingGoal: draft.reason, onboardingDrink: draft.drink ?? null,
-    brain: { ...built.brain, cefr: { ...built.brain.cefr, ...startEstimate(levelOf(draft)) } },
+    brain: { ...built.brain, cefr: { ...built.brain.cefr, ...startEstimate(levelOf(draft), draft.skipAhead === true) } },
   };
+  const practicePreferences = storedPracticePreferences({
+    level: draft.startLevel, confidence: draft.speakingConfidence ?? null, focus: draft.practiceFocus ?? null, placement: placementOf(draft),
+  });
+  if (practicePreferences) placed.practicePreferences = practicePreferences;
   // An explicit false is a new-flow answer: the fallback voice was never
   // selected. An absent flag belongs to a legacy draft and keeps its voice.
   const chosen = withChosenVoice(placed, draft.tutorChosen === false ? null : draft.tutorVoice);

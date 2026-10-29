@@ -125,7 +125,7 @@ export function JourneyList({ children }: { children: ReactNode }) {
 }
 
 /** "Where you are": the five nodes on their track, and the move-up line under a hairline. */
-export function StageTrack({ steps, fill, moveUp, hereWord }: { steps: readonly StageStep[]; fill: number; moveUp: string | null; hereWord: string }) {
+export function StageTrack({ steps, fill, moveUp, skippedLine = null, hereWord }: { steps: readonly StageStep[]; fill: number; moveUp: string | null; skippedLine?: string | null; hereWord: string }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
@@ -138,18 +138,19 @@ export function StageTrack({ steps, fill, moveUp, hereWord }: { steps: readonly 
           return (
             <View key={step.label} style={s.stage} accessible accessibilityLabel={step.accessibilityLabel} accessibilityState={{ selected: here }}>
               <View style={here ? s.nodeRing : s.nodeSlot}>
-                <View style={[s.node, step.state === 'ahead' ? s.nodeAhead : { backgroundColor: t.brand }]}>
+                <View style={[s.node, step.state === 'ahead' || step.state === 'skipped' ? s.nodeAhead : { backgroundColor: t.brand }]}>
                   {step.state === 'done'
                     ? <NodeTick size={18} color={t.onBrand} />
-                    : <Text style={[here ? bType.heavy15 : bType.bold15, { color: step.state === 'ahead' ? t.muted : t.onBrand }]}>{step.number}</Text>}
+                    : <Text style={[here ? bType.heavy15 : bType.bold15, { color: step.state === 'ahead' || step.state === 'skipped' ? t.muted : t.onBrand }]}>{step.number}</Text>}
                 </View>
               </View>
-              <Text style={[here ? bType.heavy12 : bType.note12, s.centred, { color: step.state === 'ahead' ? t.muted : t.text }]}>{step.label}</Text>
+              <Text style={[here ? bType.heavy12 : bType.note12, s.centred, { color: step.state === 'ahead' || step.state === 'skipped' ? t.muted : t.text }]}>{step.label}</Text>
               {here ? <Text style={[bType.bold11, s.centred, { color: t.link }]}>{hereWord}</Text> : null}
             </View>
           );
         })}
       </View>
+      {skippedLine !== null ? <Text style={[bType.meta, s.hairline, { color: t.secondary }]}>{skippedLine}</Text> : null}
       {moveUp !== null ? <Text style={[bType.meta, s.hairline, { color: t.secondary }]}>{moveUp}</Text> : null}
     </View>
   );

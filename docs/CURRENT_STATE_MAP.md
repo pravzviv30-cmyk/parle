@@ -84,7 +84,8 @@ DECISIONS.md UI-007):
   How it’s going right after it (Getting better at: quiet error patterns,
   by authored title; Needs another go: up to three due phrases missed or
   said with help, opening Review; LEARN-013),
-  five stages, abilities, Then and now, help in words,
+  five stages (stages below an onboarding placement read as skipped, never
+  earned; F917), abilities, Then and now, help in words,
   sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
   (shared with Then and now); Journey and Then and now are dark-ready since
   2026-10-21 (UI-008), with the Badges sheet pinned light.
@@ -187,7 +188,7 @@ The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, 
 - **Store facts:** `purchases/storeTrialFacts.ts` is read only to cancel the reminder; it never grants minutes or a plan.
 - **Account screens:**
   - Profile: identity, Learning, Your French and Plan groups.
-  - Learning preferences: includes Your goal, changing or clearing `onboardingGoal` through `withOnboardingGoal` (clocked, newest-edit-wins), and the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync. A "Slower voice" switch stores a device choice (`@luvani/voice-speed/v1`, `slower` or `normal`); `/session/start` carries `voiceSpeed` only when chosen, otherwise the tutor's default applies (slower for lessons and A0 to A1), and the switch shows that default.
+  - Learning preferences: includes Your goal, changing or clearing `onboardingGoal` through `withOnboardingGoal` (clocked, newest-edit-wins), and the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync (written at account creation from the onboarding answer since F916; `practicePreferences.placement` holds the onboarding placement and is not edited here). A "Slower voice" switch stores a device choice (`@luvani/voice-speed/v1`, `slower` or `normal`); `/session/start` carries `voiceSpeed` only when chosen, otherwise the tutor's default applies (slower for lessons and A0 to A1), and the switch shows that default.
   - Settings: six groups.
   - Subscription: never says "Free" when the plan is unknown. A paid plan shows when its minutes are fresh (from `/billing/status` `periodEnd`) and, once, in the Next renewal row, the store's renewal date and price (`purchases.heldPlan` joined to the offering by `renewalLines`, F909), or a pointer to the App Store or Google Play when the store does not answer. Profile and Settings plan rows keep the minutes line and make no store read. Web never has a store answer; `WALL_PREVIEW=store` uses preview fixtures.
 - **Real purchases:** unverified until the App Store and RevenueCat setup in `REVENUECAT_SETUP.md` is done and sandbox-tested. That setup is deferred (2026-10-19) until the founder has an Apple Developer Program membership; prices are undecided.

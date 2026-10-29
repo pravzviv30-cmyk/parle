@@ -272,8 +272,9 @@ B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
   drawings and no sublines); a chosen row fills brand with a sun tick disc, or
   a rounded sun square for interests, which are checkboxes.
 - **Plan:** a sun band with map-route and the learner's answers as white chips;
-  then the five stages with the learner at Starter, the first three scenes and
-  the blue How it works card.
+  then the five stages with the learner at their starting point (Starter, or
+  Basics or Everyday from the level answer, with a quiet 44-point Skip ahead
+  link at Basics), the first three scenes and the blue How it works card.
 - **Tutor:** a brand band with the canvas orb (never a face); six white voice
   rows, the chosen one brand, each with a 44 speaker. Hearing never chooses.
 - **Before we start:** a brand band with the orb; an info card with three

@@ -121,13 +121,16 @@ describe('the plan is written at account creation', () => {
       const profile = profileFromDraft(answer, NOW);
       assert.equal(profile.preferTyping, preferTyping);
       assert.deepEqual(profile.learnerGoals, tutorGoalsFor(answer));
-      assert.equal(profile.brain.cefr.estimate, 'A1');
+      // F917, 2026-10-29: Feeling confident starts at Everyday, a low-confidence A2.
+      assert.equal(profile.brain.cefr.estimate, 'A2');
+      assert.deepEqual(profile.practicePreferences, { level: 'confident', confidence, focus, placement: 'everyday' });
       assert.equal(profile.brain.cefr.confidence, 'low');
       assert.deepEqual(profile.brain.cefr.evidence, []);
       assert.equal(await saveProfile(profile), true);
       const loaded = await loadProfile();
       assert.equal(loaded?.preferTyping, preferTyping);
       assert.deepEqual(loaded?.learnerGoals, tutorGoalsFor(answer));
+      assert.deepEqual(loaded?.practicePreferences, profile.practicePreferences, 'the stored profile dropped the onboarding starting point');
       assert.equal(loaded?.preferenceClocks?.tutorVoice?.value, 'marie');
     }
     assert.deepEqual(profileFromDraft(freshPreAccountDraft(), NOW).learnerGoals, []);
@@ -241,7 +244,7 @@ describe('the plan is written at account creation', () => {
     const release = boot.indexOf('done(built, startPractice)');
     assert.ok(consent > 0 && reminder > consent && release > reminder, 'the app is released before consent and the reminder are written');
     assert.match(boot, /startPractice = shouldStartFirstPractice\(draft, guest\)/, 'the pending practice must use actual guest completion rather than Terms acceptance');
-    assert.match(APP, /firstScene\.current = firstSceneFor\(preAccountDraft\.startLevel, preAccountDraft\.reason\)/, 'the first scene ignores the starting level');
+    assert.match(APP, /firstScene\.current = firstSceneFor\(preAccountDraft\.startLevel, preAccountDraft\.reason, preAccountDraft\.skipAhead === true\)/, 'the first scene ignores the starting level');
     assert.match(
       APP,
       /navigationRef\.resetRoot\(\{\s*index: 1,\s*routes: \[\{ name: 'Tabs' \}, \{ name: 'FirstScene', params: \{ missionId: firstScene\.current \} \}\]/,

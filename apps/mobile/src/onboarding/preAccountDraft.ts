@@ -108,6 +108,8 @@ export interface PreAccountOnboardingDraft {
   /** Where the learner was, so leaving and coming back resumes there. */
   page: PreAccountPage | null;
   startLevel: StartLevel | null;
+  /** "Skip ahead" on the plan: Basics becomes Everyday (F917). Absent means not taken. */
+  skipAhead?: boolean;
   reason: Reason | null;
   interests?: Interest[];
   /** Null until changed on the plan; the plan shows the preset until then. */
@@ -213,6 +215,7 @@ export function repaired(value: object): PreAccountOnboardingDraft {
     reminderDays: Array.isArray((value as { reminderDays?: unknown }).reminderDays) ? [...new Set((value as { reminderDays: unknown[] }).reminderDays.filter((n): n is number => Number.isInteger(n) && Number(n) >= 1 && Number(n) <= 7))] : [],
     page: oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
     startLevel: oneOf(START_LEVEL_KEYS, (value as { startLevel?: unknown }).startLevel),
+    ...((value as { skipAhead?: unknown }).skipAhead === true ? { skipAhead: true } : {}),
     reason: oneOf(REASON_KEYS, (value as { reason?: unknown }).reason),
     interests: Array.isArray(draft.interests) ? [...new Set(draft.interests.filter(i => INTEREST_KEYS.includes(i)))].slice(0, 4) : [],
     minutes: oneOf(PLAN_MINUTES, (value as { minutes?: unknown }).minutes),
