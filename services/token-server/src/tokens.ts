@@ -111,10 +111,22 @@ function validStartRung(value: unknown): 1 | 2 | 3 | 4 | undefined {
 export interface SeedTopic {
   fr: string;
   en: string;
+  /**
+   * Tutor-only instructions for the topic ("ask why things happened"). Never
+   * shown to the learner and never spoken: `fr`/`en` stay a short title.
+   * Optional, so an app that sends no brief signs exactly what it signed before.
+   */
+  brief?: string;
 }
 
 /** A topic card's title, and nothing longer. Anything longer is not a title. */
 const MAX_SEED_TOPIC_CHARS = 120;
+
+/**
+ * A brief is a sentence or two of guidance, not a prompt. The longest the app
+ * builds today (idea text plus a support cue) is about 100 characters.
+ */
+export const MAX_SEED_BRIEF_CHARS = 240;
 
 /**
  * A requested topic, kept only when it really is one: two strings, both with
@@ -138,6 +150,13 @@ function validSeedTopic(value: unknown): SeedTopic | undefined {
   const trimmed: SeedTopic = { fr: fr.trim(), en: en.trim() };
   if (trimmed.fr.length === 0 || trimmed.en.length === 0) return undefined;
   if (trimmed.fr.length > MAX_SEED_TOPIC_CHARS || trimmed.en.length > MAX_SEED_TOPIC_CHARS) return undefined;
+  // The brief is extra guidance on a title that already passed, so a bad brief
+  // costs the brief only: the learner still opens on the topic they tapped.
+  const { brief } = value as { brief?: unknown };
+  if (typeof brief === 'string') {
+    const b = brief.trim();
+    if (b.length > 0 && b.length <= MAX_SEED_BRIEF_CHARS) trimmed.brief = b;
+  }
   return trimmed;
 }
 

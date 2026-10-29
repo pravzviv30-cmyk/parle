@@ -292,6 +292,30 @@ describe('session shape in token metadata', () => {
     }
   });
 
+  test('the token server carries a seed brief to the tutor and caps it', async () => {
+    const briefed = await metadataFor({ seedTopic: { fr: ' Ma journée ', en: ' My day ', brief: '  Ask why things happened. Hints if I ask.  ' } });
+    assert.deepEqual(briefed.seedTopic, { fr: 'Ma journée', en: 'My day', brief: 'Ask why things happened. Hints if I ask.' });
+
+    const atTheCap = await metadataFor({ seedTopic: { fr: 'Ma journée', en: 'My day', brief: 'b'.repeat(240) } });
+    assert.deepEqual(atTheCap.seedTopic, { fr: 'Ma journée', en: 'My day', brief: 'b'.repeat(240) }, 'a brief exactly at the cap is kept');
+
+    // A bad brief costs the brief only: the title is still a good title.
+    for (const brief of ['b'.repeat(241), '   ', '', 7, { a: 1 }, null]) {
+      const meta = await metadataFor({ seedTopic: { fr: 'Ma journée', en: 'My day', brief } });
+      assert.deepEqual(meta.seedTopic, { fr: 'Ma journée', en: 'My day' }, `brief ${JSON.stringify(brief)} should be dropped, title kept`);
+    }
+
+    // A brief never rescues a bad title.
+    const noTitle = await metadataFor({ seedTopic: { fr: '', en: 'My day', brief: 'Ask why.' } });
+    assert.equal('seedTopic' in noTitle, false);
+  });
+
+  test('a seed without a brief is unchanged', async () => {
+    const meta = await metadataFor({ seedTopic: { fr: 'Commander un café', en: 'Ordering coffee', extra: 'x' } });
+    assert.deepEqual(meta.seedTopic, { fr: 'Commander un café', en: 'Ordering coffee' });
+    assert.equal('brief' in (meta.seedTopic as object), false, 'no brief key at all, so an old app signs exactly what it signed before');
+  });
+
   test('the token server signs the mission id into the join metadata', async () => {
     const chosen = await metadataFor({ missionId: FIRST_MISSION, mode: 'convo' });
     assert.equal(chosen.missionId, FIRST_MISSION, 'the mission the learner chose has to reach the agent');
