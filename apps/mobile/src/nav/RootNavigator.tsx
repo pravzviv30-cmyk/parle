@@ -98,6 +98,8 @@ import { useB } from '../main/bTheme.tsx';
 import { backOrTabs, tabsAlone, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
+import { noteLeftEarly } from '../wall/launchWallSeen.ts';
+import { singleWallId } from './singleWall.ts';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -153,7 +155,8 @@ function FirstSceneRoute() {
     <FirstSceneScreen
       missionId={missionId}
       onStart={(textMode) => nav.replace('Convo', { missionId, textMode })}
-      onBack={() => backOrTabs(nav)}
+      // Founder decision 4: backing out of the first scene opens no launch wall.
+      onBack={() => { noteLeftEarly(); backOrTabs(nav); }}
     />
   );
 }
@@ -836,7 +839,7 @@ export function RootNavigator({
           without this `entry` would be undefined on the one path that exists to
           be looked at. The founder's primary door is the end of the welcome
           path, so that is what a preview shows. */}
-      <Stack.Screen name="Wall" component={WallRoute} initialParams={{ entry: 'path-complete' }} />
+      <Stack.Screen name="Wall" component={WallRoute} getId={singleWallId} initialParams={{ entry: 'path-complete' }} />
       {/* Routes now, not sheets: the purchase surface has to link to both, and a
           sheet only Settings can open is not a link. Settings still renders its
           own copies as early returns, which is the same screen either way. */}

@@ -174,7 +174,7 @@ describe('the Streak screen — F770', () => {
     assert.match(screenFile, /<View style=\{s\.heroRow\} accessible accessibilityLabel=\{hero\.label\}>/);
     assert.match(screenFile, /<BArt name="flame-dance" width=\{170\} height=\{156\}/);
     assert.match(read('../nav/types.ts'), /Streak: undefined;/);
-    assert.match(read('../nav/theme.ts'), /Streak: 'streak',/);
+    assert.match(read('../nav/linking.ts'), /Streak: 'streak',/);
     assert.match(read('../nav/RootNavigator.tsx'), /<Stack\.Screen name="Streak" component=\{StreakScreen\} \/>/);
   });
 

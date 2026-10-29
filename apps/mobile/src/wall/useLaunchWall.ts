@@ -1,12 +1,15 @@
 /**
- * The launch wall's wiring (D24). The rules are `launchWall.ts`'s; this hands
- * them the navigator, AppState, the celebration queue, Home's arrival and the
- * two reads. App.tsx calls it once and renders `LaunchWallArrival` inside the
+ * The launch wall's wiring (D24, cadence from founder decision 4). The rules
+ * are `launchWall.ts`'s; this hands them the navigator, AppState, the
+ * celebration queue, Home's arrival, the two reads, this phone's record
+ * (`launchWallSeen.ts`), the early-exit signal and whether this page load was
+ * a web reload. App.tsx calls it once and renders `LaunchWallArrival` inside the
  * account hand-off, which is the only place Home's arrival can be read.
  */
 
 import { useContext, useEffect, useMemo, useRef } from 'react';
 import { AppState } from 'react-native';
+import { localDayKey } from '@luvani/core';
 import type { NavigationContainerRefWithCurrent } from '@react-navigation/native';
 import { celebrationsHeld, onCelebrationHoldChange } from '../celebrate/queue.ts';
 import { HomeArrivalAllowed } from '../onboarding/HomeArrival.tsx';
@@ -16,8 +19,12 @@ import { setStanding } from '../purchases/featureLocks.ts';
 import { paywallSurface } from '../purchases/paywallView.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import type { RootStackParamList } from '../nav/types.ts';
-import { LAUNCH_WALL_AWAY_MS, launchWallController, type LaunchWall } from './launchWall.ts';
+import { LAUNCH_WALL_AWAY_MS, isWebReload, launchWallController, type LaunchWall } from './launchWall.ts';
+import { loadLaunchWallSeen, markLaunchWallShown, onLeftEarly } from './launchWallSeen.ts';
 import { launchWallAwayMs, previewOffering } from './preview.ts';
+
+/** Read once, when the bundle loads: a web reload is not an open of the app. */
+const RELOADED = isWebReload(typeof performance === 'undefined' ? undefined : (performance as unknown as Parameters<typeof isWebReload>[0]));
 
 export function useLaunchWall(navigationRef: NavigationContainerRefWithCurrent<RootStackParamList>, userId: string): LaunchWall & { arrival: (allowed: boolean) => void } {
   const arrivalAllowed = useRef(true);
@@ -45,12 +52,17 @@ export function useLaunchWall(navigationRef: NavigationContainerRefWithCurrent<R
     frame: (run) => requestAnimationFrame(run),
     cancelFrame: (id) => cancelAnimationFrame(id),
     now: () => Date.now(),
+    today: () => localDayKey(Date.now()),
+    seen: loadLaunchWallSeen,
+    markShown: (day) => { void markLaunchWallShown(day as Parameters<typeof markLaunchWallShown>[0]); },
+    reload: RELOADED,
     awayMs: launchWallAwayMs(undefined, LAUNCH_WALL_AWAY_MS),
   }), [navigationRef, userId]);
   useEffect(() => {
     const foreground = AppState.addEventListener('change', (state) => wall.appState(state));
     const held = onCelebrationHoldChange(() => wall.flush());
-    return () => { wall.dispose(); foreground.remove(); held(); };
+    const left = onLeftEarly(() => wall.leftEarly());
+    return () => { wall.dispose(); foreground.remove(); held(); left(); };
   }, [wall]);
   return useMemo(() => ({
     ...wall,

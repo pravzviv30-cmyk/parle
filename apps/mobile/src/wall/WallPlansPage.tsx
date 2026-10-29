@@ -121,7 +121,7 @@ function ComparePlans({ comparing, rows, current, catalogue, account, onClose, o
   const picked = cards.find(card => card.plan === pick) ?? cards.find(card => card.offer.productId === current?.productId) ?? cards[0];
   const close = () => { setPick(null); onClose(); };
   return (
-    <Sheet surface={colors.surface} ink={colors.text} visible={comparing} title={PLANS_COMPARE} onClose={close}
+    <Sheet reading surface={colors.surface} ink={colors.text} visible={comparing} title={PLANS_COMPARE} onClose={close}
       footer={picked ? <View style={st.sheetFooter}><WallCta label={compareCta(picked)} onPress={() => { const offer = picked.offer; setPick(null); onChoose(offer); }} /></View> : undefined}>
       <Text style={[wallType.line, { color: colors.muted }]}>{COMPARE_INTRO}</Text>
       <View style={st.cards} accessibilityRole="radiogroup">

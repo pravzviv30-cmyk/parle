@@ -194,7 +194,7 @@ describe('the two new routes are registered and addressable', () => {
   test('LearningPreferences and Subscription are declared, pushed and on the web', () => {
     const types = stripComments(read('../nav/types.ts'));
     const navigator = stripComments(read('../nav/RootNavigator.tsx'));
-    const linking = stripComments(read('../nav/theme.ts'));
+    const linking = stripComments(read('../nav/linking.ts'));
     for (const [name, path] of [['LearningPreferences', 'learning-preferences'], ['Subscription', 'subscription']] as const) {
       assert.match(types, new RegExp(`\\n  ${name}: undefined;`), `${name} is not declared`);
       assert.match(navigator, new RegExp(`<Stack\\.Screen name="${name}" component=\\{${name}Screen\\} />`), `${name} is not registered`);

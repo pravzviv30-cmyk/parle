@@ -438,9 +438,11 @@ function SignedInRoot({
   }, [user.id, startupRead]);
 
   /**
-   * The wall on its own (D24): the free-trial offer on each open of the app,
-   * and the D13 first-run offer after a kept guest practice, one pending flag
-   * between them. Rules in `wall/launchWall.ts`; in memory only. The locked
+   * The wall on its own: the free-trial offer at most once a day after the
+   * first finished conversation (founder decision 4, superseding D24's
+   * cadence), and the D13 first-run offer after a kept guest practice, one
+   * pending flag between them. Rules in `wall/launchWall.ts`; the day and the
+   * finished conversation are remembered by `wall/launchWallSeen.ts`, never here. The locked
    * features' standing and the locked-route guard ride beside it.
    */
   const launchWall = useLaunchWall(navigationRef, user.id);

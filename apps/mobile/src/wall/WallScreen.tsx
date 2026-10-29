@@ -32,14 +32,14 @@ import {
   SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
 } from './wallCopy.ts';
 import { wallAccount } from './wallAccount.ts';
-import { chosenOffer, preselectedOffer, storeTrialMinutes, wallPlanRows } from './wallPlans.ts';
+import { chosenOffer, storeTrialMinutes, wallPlanRows, wallSuggestion, type GoalRead } from './wallPlans.ts';
 import { trialTimeline } from './trialTimeline.ts';
 import { effectiveSelection, paywallCta, paywallNotice, paywallOffer, pendingCheckoutNotice, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
 import { publishCelebrations } from '../celebrate/events.ts';
 import { purchaseMoment } from '../celebrate/purchaseMoment.ts';
-import { useGoal } from '../game/GameProvider.tsx';
+import { useGame } from '../game/GameProvider.tsx';
 import { ICON_MOTION } from '../icons/iconMotion.ts';
 import { MORPH } from '../motion/tokens.ts';
 
@@ -105,7 +105,9 @@ export function WallScreen({
   // accepted that purchase (`purchaseAccepted`), so a cancelled trial purchase
   // followed by a restore is never said as a trial.
   const boughtTrial = useRef(false);
-  const goal = useGoal()?.target ?? null;
+  // Read once the game layer has answered (or failed), so the suggestion waits for both reads (F907).
+  const game = useGame();
+  const goal: GoalRead = { loaded: game.view !== null || game.failed, target: game.view?.goal?.target ?? null };
   // The trial-ending reminder's real state: the timeline promises it only when
   // it will be kept, and the success page names it only once it is scheduled.
   const trialReminder = useTrialReminder();
@@ -243,7 +245,7 @@ export function WallScreen({
   // and only once the server has said what the learner holds. It is not the
   // learner's choice, so it records nothing: `plan_selected` is fired by a tap
   // alone, in `onSelect` below.
-  const suggestion = status === null ? null : preselectedOffer(planRows, goal, status)?.productId ?? null;
+  const suggestion = wallSuggestion(planRows, goal, status);
   // What the page shows and the button buys: the learner's choice, else the
   // suggestion, else the default (Starter yearly), so an available offering
   // always shows a priced offer (`effectiveSelection`).

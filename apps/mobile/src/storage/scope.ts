@@ -175,6 +175,10 @@ export const USER_KEY_SUFFIXES = [
   // quests done and lifetime days, so a rise counts up once. Device-local;
   // a reset that left it would start the next learner's numbers from these.
   'home-seen',
+  // When the launch wall last opened and whether a conversation was finished
+  // (founder decision 4). Device-local; a reset that left it would hide the
+  // next learner's wall for a day or open it before their first conversation.
+  'launch-wall-seen',
   // Display follows this device, and is still exported/reset with its account.
   'appearance',
 ] as const;
