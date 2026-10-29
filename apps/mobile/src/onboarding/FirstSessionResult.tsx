@@ -97,7 +97,7 @@ export function FirstSessionSummary({ record, progress, onSave, onFinish, busy =
       <Text style={[type.body, { color: foreground, textAlign: 'center' }]}>{view.detail}</Text>
       {/* No confirmed reply, no box: the empty card read as missing content (F925). */}
       {view.achievements.length > 0 && <View style={{ backgroundColor: completed ? c.paper : c.lavender, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 18 }}>{view.achievements.map((text, index) => <Achievement key={text} text={text} index={index} />)}</View>}
-      {view.achievements.length === 0 && <Text style={type.body}>There are no confirmed replies to summarise yet. Your chosen plan and tutor are ready for your next practice.</Text>}
+      {view.achievements.length === 0 && <Text style={type.body}>Your plan and tutor are ready for your next practice.</Text>}
       <RevealItem index={3}><Text style={[type.label, { color: foreground, textAlign: 'center', marginTop: 8 }]}>{view.next}</Text></RevealItem>
       {!!issue && <Text accessibilityLiveRegion="polite" style={[type.body, { color: foreground }]}>{issue}</Text>}
     </View>

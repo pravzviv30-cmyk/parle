@@ -153,3 +153,16 @@ test('a guest early exit offers to save and finish the scene', () => {
   const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
   assert.equal(app.match(/firstScene\.current = firstRunScene\((preAccountDraft|draft)\)/g)?.length, 2);
 });
+
+test('an early exit with no replies never claims kept contributions', () => {
+  for (const outcome of ['partial', 'interrupted'] as const) {
+    const empty = firstLiveSummary(scene(outcome, [])).detail;
+    assert.doesNotMatch(empty, /contributions|still here/, outcome);
+    assert.doesNotMatch(empty, /[—–]|\b(must|should|failed|wrong)\b/i);
+    assert.match(firstLiveSummary(scene(outcome, ['t1-greet'])).detail, /Your confirmed contributions are still here\./);
+  }
+  assert.equal(firstLiveSummary(scene('partial', [])).detail, 'You ended before completing the exercise.');
+  const summary = result.slice(result.indexOf('export function FirstSessionSummary('));
+  assert.match(summary, />Your plan and tutor are ready for your next practice\.</);
+  assert.doesNotMatch(summary, /no confirmed replies/);
+});
