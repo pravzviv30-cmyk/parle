@@ -1,16 +1,25 @@
 import type { TutorVoiceKey } from '@luvani/core';
 import { colour, paper } from '../palette.ts';
 
+const portraits: Record<TutorVoiceKey, { ground: string; shirt: string; hair: string; style: number }> = {
+  alexandre: { ground: colour.sun, shirt: colour.blue, hair: paper.ink, style: 0 },
+  emilie: { ground: colour.mint, shirt: colour.coral, hair: paper.ink, style: 1 },
+  guillaume: { ground: colour.coral, shirt: colour.sun, hair: paper.inkSoft, style: 2 },
+  marie: { ground: colour.sun, shirt: colour.mint, hair: colour.coral, style: 3 },
+  anatole: { ground: colour.mint, shirt: colour.blue, hair: paper.ink, style: 4 },
+  sarah: { ground: colour.blue, shirt: colour.coral, hair: paper.ink, style: 5 },
+};
+
+/** The colour behind a tutor's portrait, so a surface can check its edge against it. */
+export function portraitGround(voice: TutorVoiceKey): string {
+  return portraits[voice].ground;
+}
+
+/** The ring drawn round a portrait on any surface, so its edge never relies on the ground. */
+export const PORTRAIT_RING = 2;
+
 /** Original illustrated AI characters. The same editable SVGs are used in Figma. */
 export function tutorPortraitSvg(voice: TutorVoiceKey): string {
-  const portraits: Record<TutorVoiceKey, { ground: string; shirt: string; hair: string; style: number }> = {
-    alexandre: { ground: colour.sun, shirt: colour.blue, hair: paper.ink, style: 0 },
-    emilie: { ground: colour.mint, shirt: colour.coral, hair: paper.ink, style: 1 },
-    guillaume: { ground: colour.coral, shirt: colour.sun, hair: paper.inkSoft, style: 2 },
-    marie: { ground: colour.sun, shirt: colour.mint, hair: colour.coral, style: 3 },
-    anatole: { ground: colour.mint, shirt: colour.blue, hair: paper.ink, style: 4 },
-    sarah: { ground: colour.blue, shirt: colour.coral, hair: paper.ink, style: 5 },
-  };
   const p = portraits[voice];
   const hair = [
     'M17 31C13 14 25 9 35 12C47 8 52 17 48 31L44 23C33 25 29 18 21 24Z',

@@ -60,7 +60,7 @@ function at(marker: string): number {
 describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)', () => {
   test('the sections stand in the artboard order', () => {
     // 2026-10-20 UI-008, artboard B-Speak: the tutor row is the orb row, and the revisit row left.
-    const order = ['<TabHeader', '{rec.eyebrow}', '{scenes.heading}', '{LESS_HELP_TITLE}', '{TALK_TITLE}', '<BArt name="tutor-orb"', 'tiles.map(', '{minutesBand(planView)}'];
+    const order = ['<TabHeader', '{rec.eyebrow}', '{scenes.heading}', '{LESS_HELP_TITLE}', '{TALK_TITLE}', '<TutorPortrait voice={voiceKey}', 'tiles.map(', '{minutesBand(planView)}'];
     const positions = order.map((marker) => at(marker));
     assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'a section moved out of the artboard order');
   });
@@ -76,7 +76,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(FLAT, /const card = tutorCardFacts\(voiceKey\)/, 'the card reads its words from somewhere other than speakView.ts');
     assert.match(FLAT, /const voiceKey = tutorVoiceOf\(profile\)/, 'the card is not the learner\'s chosen voice');
     const row = between(RENDER_FLAT, '<View style={st.tutor}>', '<View style={[st.tiles', 'Speak draws the tutor row');
-    assert.match(row, /<BArt name="tutor-orb" width=\{56\} height=\{56\} \/>/);
+    assert.match(row, /<TutorPortrait voice=\{voiceKey\} size=\{56\} ring=\{t\.text\} \/>/);
     assert.match(row, /\{card\.name\}/);
     assert.match(row, /<TextLink label=\{CHANGE_VOICE\} text=\{bType\.bold14\} onPress=\{\(\) => nav\.navigate\(CHANGE_VOICE_ROUTE\.screen, CHANGE_VOICE_ROUTE\.params\)\} \/>/);
     assert.match(row, /onPress=\{hear\}/);

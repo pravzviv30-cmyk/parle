@@ -14,6 +14,8 @@ import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
+import type { TutorVoiceKey } from '@luvani/core';
 import { Press } from '../components.tsx';
 import { TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
@@ -129,7 +131,11 @@ export function GoalsStrip({ chips }: { chips: readonly GoalChip[] }) {
  * sphere did (BoldVoiceOrb): the mic's while it records, the tutor's while it
  * speaks, still otherwise. Never a fabricated meter.
  */
-export function LiveOrb({ caption, size, state, active }: { caption: string; size: 'full' | 'small'; state: OrbState; active: boolean }) {
+export function LiveOrb({ caption, size, state, active, voice }: {
+  caption: string; size: 'full' | 'small'; state: OrbState; active: boolean;
+  /** The learner's tutor, drawn as their portrait; absent, the shared orb. */
+  voice?: TutorVoiceKey;
+}) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const audio = useOrbAudio();
@@ -145,7 +151,7 @@ export function LiveOrb({ caption, size, state, active }: { caption: string; siz
         <View style={[s.ring, { width: outer, height: outer, borderRadius: outer / 2, backgroundColor: t.orbRing }]} />
         <View style={[s.ring, { width: outer * 0.82, height: outer * 0.82, borderRadius: outer * 0.41, backgroundColor: t.violet2 }]} />
         <OrbPulse level={input ? audio.input : output ? audio.output : null} on={input || output}>
-          <BArt name="tutor-orb" width={outer * 0.64} height={outer * 0.64} style={{ borderRadius: outer * 0.32, overflow: 'hidden' }} />
+          {voice ? <TutorPortrait voice={voice} size={outer * 0.64} ring={t.onBrand} /> : <BArt name="tutor-orb" width={outer * 0.64} height={outer * 0.64} style={{ borderRadius: outer * 0.32, overflow: 'hidden' }} />}
         </OrbPulse>
       </View>
       <Text accessibilityLiveRegion="polite" style={[bType.bold18, s.center, { color: t.onBrand }]}>{caption}</Text>

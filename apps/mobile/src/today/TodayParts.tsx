@@ -14,6 +14,9 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp,
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
+import { KeyboardMark } from '../live/LiveParts.tsx';
+import type { TutorVoiceKey } from '@luvani/core';
 import { LockBadge, Press } from '../components.tsx';
 import type { LockedFeature } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
@@ -142,13 +145,19 @@ export interface ComingUpCardView {
  * remembers and when, the plan's lock when Rehearse now is locked, then
  * Rehearse now and Not now. No checklist: nothing stores one yet (Phase C).
  */
-export function ComingUpCard({ view, onRehearse, onNotNow }: { view: ComingUpCardView; onRehearse: () => void; onNotNow: () => void }) {
+export function ComingUpCard({ view, voice, onRehearse, onNotNow }: {
+  view: ComingUpCardView;
+  /** The learner's tutor, drawn as their portrait; absent, the shared orb. */
+  voice?: TutorVoiceKey;
+  onRehearse: () => void;
+  onNotNow: () => void;
+}) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
     <View style={s.comingUp}>
       <View style={s.comingHead}>
-        <View style={s.orb} {...decorative}><BArt name="tutor-orb" width={44} height={44} /></View>
+        <View style={s.orb} {...decorative}>{voice ? <TutorPortrait voice={voice} size={44} ring={t.text} /> : <BArt name="tutor-orb" width={44} height={44} />}</View>
         <View style={s.grow}>
           <Text accessibilityRole="header" style={[bType.bold16, { color: t.text }]}>{view.title}</Text>
           <Text style={[bType.note, { color: t.muted }]}>{view.when}</Text>
@@ -194,7 +203,8 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
   french: string | null;
   rest: string;
   uses: { before: string; french: string; after: string } | null;
-  start: { label: string; accessibilityLabel: string; disabled: boolean; onPress: () => void };
+  /** The mode picks the icon: a keyboard for typing, a mic for speaking (F941). */
+  start: { label: string; mode: 'speak' | 'type'; accessibilityLabel: string; disabled: boolean; onPress: () => void };
   /** The other mode, as a quiet link under the Start. */
   other: { label: string; disabled: boolean; onPress: () => void };
   /** The connection check's line while it runs, or null. */
@@ -230,7 +240,7 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
         </View>
       ) : null}
       <View style={s.leadFoot}>
-        <BButton label={start.label} accessibilityLabel={start.accessibilityLabel} height={54} ground={t.heroCta} ink={t.heroCtaText} text={bType.bold18} icon={<BMic size={20} color={t.heroCtaText} />} disabled={start.disabled} onPress={start.onPress} />
+        <BButton label={start.label} accessibilityLabel={start.accessibilityLabel} height={54} ground={t.heroCta} ink={t.heroCtaText} text={bType.bold18} icon={start.mode === 'type' ? <KeyboardMark size={20} color={t.heroCtaText} /> : <BMic size={20} color={t.heroCtaText} />} disabled={start.disabled} onPress={start.onPress} />
         <Pressable accessibilityRole="button" accessibilityLabel={other.label} accessibilityState={{ disabled: other.disabled }} disabled={other.disabled} onPress={other.onPress} style={s.otherMode}>
           <Text style={[bType.meta, { color: t.heroText, textDecorationLine: 'underline' }]}>{other.label}</Text>
         </Pressable>

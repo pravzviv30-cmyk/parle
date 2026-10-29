@@ -36,6 +36,7 @@ import { ownedReadStatus } from './ownedRead.ts';
 
 import { Card, IconAction, Label, LockBadge, Press } from '../components.tsx';
 import { BArt } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
@@ -401,7 +402,7 @@ export function TutorTab() {
         </View>
 
         <View style={st.tutor}>
-          <View {...decorative} style={st.orb}><BArt name="tutor-orb" width={56} height={56} /></View>
+          <View {...decorative} style={st.orb}><TutorPortrait voice={voiceKey} size={56} ring={t.text} /></View>
           <View style={st.words}>
             <Text style={[bType.bold17, { color: t.text }]}>{card.name}</Text>
             <TextLink label={CHANGE_VOICE} text={bType.bold14} onPress={() => nav.navigate(CHANGE_VOICE_ROUTE.screen, CHANGE_VOICE_ROUTE.params)} />

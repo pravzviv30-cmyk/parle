@@ -14,6 +14,8 @@ import { StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewS
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { BArt, type BArtName } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
+import type { TutorVoiceKey } from '@luvani/core';
 import { Press, RoundButton } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { HIT, bType, decorative, frenchText } from '../theme.ts';
@@ -173,11 +175,15 @@ export function BBandDisc({ size, right, top, color }: { size: number; right: nu
   return <View {...decorative} style={{ position: 'absolute', right, top, width: size, height: size, borderRadius: size / 2, backgroundColor: color }} />;
 }
 
-/** The canvas tutor orb, clipped round and placed on a band (B-OB-Ready). Never a face. */
-export function BBandOrb({ size, right, top }: { size: number; right: number; top: number }) {
+/**
+ * The tutor on a band (B-OB-Ready): their portrait once chosen (founder
+ * decision 25), the canvas orb before, clipped round.
+ */
+export function BBandOrb({ size, right, top, voice }: { size: number; right: number; top: number; voice?: TutorVoiceKey }) {
+  const t = useB();
   return (
     <View {...decorative} style={{ position: 'absolute', right, top, width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>
-      <BArt name="tutor-orb" width={size} height={size} />
+      {voice ? <TutorPortrait voice={voice} size={size} ring={t.onBrand} /> : <BArt name="tutor-orb" width={size} height={size} />}
     </View>
   );
 }
@@ -377,8 +383,8 @@ export function BHowItWorks({ title, steps }: { title: string; steps: readonly s
 
 // ─────────────────────────────────────────────────────────────── tutor
 
-/** The tutor band's orb: three discs and the canvas orb. Never a face. */
-export function BTutorOrb({ size = 150 }: { size?: number }) {
+/** The tutor band: three discs and the tutor's portrait once chosen, the canvas orb before. */
+export function BTutorOrb({ size = 150, voice }: { size?: number; voice?: TutorVoiceKey }) {
   const t = useB();
   const inner = (size * 122) / 150;
   const orb = (size * 100) / 150;
@@ -387,7 +393,7 @@ export function BTutorOrb({ size = 150 }: { size?: number }) {
       <View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, backgroundColor: t.violet2 }} />
       <View style={{ position: 'absolute', width: inner, height: inner, borderRadius: inner / 2, backgroundColor: t.hint }} />
       <View style={{ width: orb, height: orb, borderRadius: orb / 2, overflow: 'hidden' }}>
-        <BArt name="tutor-orb" width={orb} height={orb} />
+        {voice ? <TutorPortrait voice={voice} size={orb} ring={t.onBrand} /> : <BArt name="tutor-orb" width={orb} height={orb} />}
       </View>
     </View>
   );
