@@ -1310,6 +1310,26 @@ describe('a free-talk topic with a tutor brief', () => {
     assert.equal(seedInstruction(undefined), null);
   });
 
+  test('a seeded opening never puts a full stop after a question or exclamation', async () => {
+    const { DAILY_SCENARIOS, seedTopicOf } = await import('@luvani/core');
+    const seeds = [
+      ...DAILY_SCENARIOS.map((s) => seedTopicOf(s)),
+      { fr: 'C\'est combien ?', en: 'How much is it?', brief: 'Ask the price.' },
+      { fr: 'Ah, tu as un accent !', en: 'Oh, you have an accent!', brief: 'Chat about accents.' },
+      { fr: 'Et après…', en: 'And then…' },
+      { fr: 'On y va ?', en: 'Shall we go?' },
+    ];
+    assert.ok(seeds.length > 4);
+    for (const seed of seeds) {
+      for (const [k, v] of Object.entries(seededOpening(seed))) {
+        assert.ok(!/[?!…]\./.test(v), `${k} opening puts a full stop after punctuation: "${v}"`);
+      }
+    }
+    const q = seededOpening({ fr: 'C\'est combien ?', en: 'How much is it?', brief: 'x' });
+    assert.deepEqual(q, { fr: 'C\'est combien ? On en parle.', en: "How much is it? Let's talk about it." }, 'French spacing kept');
+    assert.equal(seededOpening({ fr: 'On y va ?', en: 'Shall we go?' }).fr, 'On y va ? On en reparle.');
+  });
+
   test('the brief is validated: trimmed, capped, unknown fields stripped', () => {
     assert.deepEqual(validSeedTopic({ ...BRIEFED_SEED, brief: '  x  ', extra: 1 }), { fr: 'Ta journée', en: 'Your day', brief: 'x' });
     assert.deepEqual(validSeedTopic({ ...BRIEFED_SEED, brief: '   ' }), { fr: 'Ta journée', en: 'Your day' });

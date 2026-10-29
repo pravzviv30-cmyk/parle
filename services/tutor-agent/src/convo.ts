@@ -742,6 +742,16 @@ function titleOf(text: string): string {
 }
 
 /**
+ * The title as a sentence: a full stop added only when it does not already end
+ * in a question mark, exclamation mark or ellipsis. French spacing before "?"
+ * and "!" is kept as the title had it.
+ */
+function titleSentence(text: string): string {
+  const title = titleOf(text);
+  return /[?!…]$/.test(title) ? title : `${title}.`;
+}
+
+/**
  * What the tutor says when the session already knows its subject.
  *
  * A statement, not a question: the tutor says what is about to happen before it
@@ -761,13 +771,13 @@ function titleOf(text: string): string {
 export function seededOpening(seed: SeedTopic): { fr: string; en: string } {
   if (seed.brief !== undefined) {
     return {
-      fr: `${titleOf(seed.fr)}. On en parle.`,
-      en: `${titleOf(seed.en)}. Let's talk about it.`,
+      fr: `${titleSentence(seed.fr)} On en parle.`,
+      en: `${titleSentence(seed.en)} Let's talk about it.`,
     };
   }
   return {
-    fr: `${titleOf(seed.fr)}. On en reparle.`,
-    en: `${titleOf(seed.en)}. Let's talk about it again.`,
+    fr: `${titleSentence(seed.fr)} On en reparle.`,
+    en: `${titleSentence(seed.en)} Let's talk about it again.`,
   };
 }
 
