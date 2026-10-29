@@ -11065,16 +11065,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F856 — Speak calls the next scene on the path "Recommended" when nothing recommended it
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/speakTabView.ts:38
 - note: Found 2026-10-20 in B6. `RECOMMENDED` heads Speak's sun card, but when no unfinished conversation or thread leads, the pick is only the next scene in spine order. "Recommended" implies a judgement about the learner that was not made. Say "Next" when the pick is the path order and keep "Recommended" only for a pick with a reason behind it, decided in speakTabView.ts.
+- fixed: 2026-10-29 on claude/review-e-visual. `nextConversation` marks a pick that only follows the path order, and Speak heads it "Next"; "Recommended" stays for a pick with a reason.
 - verified-by: `Speak heads a path-order pick "Next" and keeps "Recommended" for a pick with a reason`
 
 ### F857 — "Uses speaking time" shows on Speak while the learner has chosen typing
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/speakTabView.ts:39
 - note: Found 2026-10-20 in B6. The meta chip on the Recommended card (tabs/TutorTab.tsx:279) reads "Uses speaking time" whichever mode is chosen. A typed session is metered too, so the claim is true, but "speaking" reads wrong next to Typing. The wording of the allowance belongs to D5; until it lands, the chip should name the allowance in a word true of both modes.
+- fixed: 2026-10-29 on claude/review-e-visual. The chip reads "Uses live minutes", true of speaking and typing alike.
 - verified-by: `the time chip on Speak is worded true of both speaking and typing`
 
 ### F858 — Today's level tile reads like a French ability level
@@ -11907,7 +11909,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F920 — Scene-card art covers the title and duration on phones
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/today/TodayParts.tsx
 - note: Found 2026-10-28 by the product review (LR-19; filed 2026-10-29 on claude/review-e-visual,
   Stream E). At 375 px the café art overlaps the title and time line on Today's and Speak's yellow
@@ -11916,11 +11918,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   columns, and Today's card loses about 30 pt more inside the route (home/RoutePath.tsx). heroFit
   only sizes the French hero text and is unrelated. Founder decision 23: below about 400 pt of card
   width the art moves into a band above the title.
+- fixed: 2026-10-29 on claude/review-e-visual. Today's and Speak's scene cards measure themselves and keep the café beside the words only from 400pt of card width at fontScale under 1.3 (founder decision 23, UI-013); otherwise the art sits in a band above full-width words, so on every phone it never covers the title, the time or the rows below. Beside the words, the eyebrow, title and line are capped and the words column keeps the art's height, so pills, segment and chips start below it (`sceneCardGeometry`, `responsiveLayout.ts`). Seen live at 320, 375, 414, 430 and 768 in light and dark.
 - verified-by: `scene card art never overlaps the title or duration at 320 and 375 points`
 
 ### F921 — At 320 px the welcome clips, and field borders are 1.24:1
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/palette.ts
 - note: Found 2026-10-28 by the product review (LR-20; filed 2026-10-29 on claude/review-e-visual,
   Stream E). The welcome stage is a fixed 390 pt with absolutely placed bubbles, so "Bonjour !" is
@@ -11928,13 +11931,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   leaves about 90 pt for the sign-up form. Input borders, provider buttons, choice borders and
   unchosen radio rings use the decorative line token #F0E6D6 (1.24:1 on white; WCAG 1.4.11 asks
   3:1) although the 3.6:1 field token exists. Browser text size is split out as F939.
+- fixed: 2026-10-29 on claude/review-e-visual. Every input border, choice outline, tile, chip, bordered icon button and empty state mark moved from the decorative line, ring and periwinkle tokens (1.2 to 2.2:1) to `field` (3.6:1 on white, 3:1 or more on its ground in light and dark), including the live room's composer and later goal ring (onBrandSoft, 8:1 on violetDeep). `controls.test.ts` measures every borderColor in the app by contrast, on a declared real ground where it is not card or cream, with a commented decorative allowlist. The welcome's 390 stage scales to the screen (no bubble off a 320pt screen), and OnboardingLayout scrolls its footer below 700pt of usable height, latched while a text field has focus so a web keyboard cannot flip it. Browser text size is split out as F939.
 - verified-by: `input borders and radio rings reach 3:1 against their background`
 - verified-by: `welcome and sign-up footers scroll below 700 points of height`
 - verified-by: `welcome bubbles stay on screen at 320 points`
 
 ### F927 — Onboarding radios ignore Space, and buttons use the 1 px browser focus ring
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx
 - note: Found 2026-10-28 by the product review (LR-28; filed 2026-10-29 on claude/review-e-visual,
   Stream E). react-native-web presses on Space only for button roles, so every radio, checkbox and
@@ -11942,13 +11946,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   no focus token. The disabled "Create account" leaves the tab order (disabled Pressable gets
   tabIndex -1) with no description; chips are 36 to 40 pt, mode segments 40 pt, and a settings row
   label does not toggle its switch. All pass the WCAG 2.2 AA 24 px minimum.
+- fixed: 2026-10-29 on claude/review-e-visual. Press and Chip choose on Space for radio, checkbox, tab and switch on web (`keyActivation.ts`; Enter stays with react-native-web, a caller's onKeyDown is kept). One injected rule draws a two-tone focus ring (2pt ink outline, white halo; one part passes 3:1 on all eight grounds) on `:focus-visible` for every tabbable element except text fields and script-focused headings, following the control's corners; a scan forbids outline resets elsewhere. PillButton and Press take `disabledReason`: the control stays focusable, says it is off and why, and ignores presses (Create account names what is missing). A settings switch row is one control, toggled from anywhere and announced once. Seen live: Tab rings, Space selects without scrolling.
 - verified-by: `Space selects an onboarding option`
 - verified-by: `focused buttons show the app focus ring`
 - verified-by: `a disabled button with a reason stays reachable and says why`
 
 ### F929 — Settings shows an internal legal note, and free talk shows its prompt text
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/legal/company.ts
 - note: Found 2026-10-28 by the product review (LR-30; filed 2026-10-29 on claude/review-e-visual,
   Stream E, split per screen as the appendix asked: F940 to F945 carry the rest). Settings and the
@@ -11957,18 +11962,20 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (main/learningSuggestions.ts), so the room header shows them and the tutor agent says them as its
   opening ("… Let's talk about it again."), which lands in the transcript. Founder decision 24: the
   note shows only in development and staging builds.
+- fixed: 2026-10-29 on claude/review-e-visual. The legal-review sentence shows only when `EXPO_PUBLIC_LUVANI_BUILD_PROFILE` is not production (eas.json sets each profile; founder decision 24); the hosted policy page renders as production, and the review stays on docs/RELEASE_GATE.md. Seed topics carry an optional tutor-only `brief` (token server and agent capped at 240, safety-screened, never published or spoken; tokens.ts re-pinned with the founder's approval of the exact diff). Free-talk ideas, Explore topics and searches, remembered-topic chips, daily scenes, real moments and the guest first scene send a short title as fr/en with their instructions as the brief; a fresh topic opens "{Title}. Let's talk about it." and no full stop follows a closing ? or !. Seen live: free talk opened "Une conversation libre. On en parle." with no instruction text and no brief in the address.
 - verified-by: `released builds show no internal legal review note`
 - verified-by: `free talk never shows prompt text in the transcript`
 
 ### F938 — Sign-out has no confirmation, and signing back in lands on the last address
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/App.tsx
 - note: Found 2026-10-28 by the product review (sign-out parts of LR-32, cross-referenced from
   F931; filed 2026-10-29 on claude/review-e-visual, Stream E). Settings signs out on one tap. On web
   the address is never reset, so the next sign-in's linking restores /settings, or /plans when the
   learner opened the wall before signing up. The password fields are not inside a form and carry no
   name, so password managers may not offer to save.
+- fixed: 2026-10-29 on claude/review-e-visual. Settings' Sign out opens a ConfirmSheet ("Stay signed in" first; every dismissal stays). Confirming keeps the sheet busy ("Signing out") while one bounded flush (2 s) pushes pending sync, then signs out; the body says only what is true (saved to the account, not yet synced, or kept on this device for demo accounts). A sign-in inside the running app lands on Today (`nav/landing.ts`); a first run keeps its own landing and a cold load with a session keeps its address; on web sign-out resets the address to `/`. Sign-in and sign-up fields sit in a real <form> named email, current-password and new-password, and Enter submits once. Seen live from /settings and /plans.
 - verified-by: `sign-out asks first, and staying keeps the learner signed in`
 - verified-by: `signing back in lands on Today`
 - verified-by: `a cold load with a session keeps its address`
@@ -11986,55 +11993,61 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F940 — Practice says "no conversation needed" above a row that uses live minutes
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/practiceTabView.ts
 - note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
   claude/review-e-visual). The new-learner Practice page heads its list "Ready now, no conversation
   needed", and the café row directly below reads "Uses live minutes while your tutor is connected."
+- fixed: 2026-10-29 on claude/review-e-visual. The new-learner Practice heading reads "Or start small", which claims no time, cost or need its rows contradict.
 - verified-by: `the Practice heading claims nothing its rows contradict`
 
 ### F941 — "Start typing" shows a microphone
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/today/TodayParts.tsx
 - note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
   claude/review-e-visual). SceneLead and MissionHero's pill draw a mic whatever the mode, and the
   secondary link is always a keyboard even when it offers speaking.
+- fixed: 2026-10-29 on claude/review-e-visual. SceneLead and MissionHero draw a keyboard for typing and a mic for speaking, and the quiet other-mode link shows the icon of the mode it offers.
 - verified-by: `the start button's icon matches its mode`
 
 ### F942 — The scene narrates "Karim" while the tutor is Émilie, and Karim is never introduced
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/useLiveSession.ts
 - note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
   claude/review-e-visual). Mission narrations name the character the tutor plays
   (packages/brain/src/missions/frames.ts), but tutorRole is never shown. Founder decision 26: one
   intro line, "Émilie plays Karim, the barista.", before the narration; narrations keep the names.
+- fixed: 2026-10-29 on claude/review-e-visual. Each mission carries `tutorPart`; `roleLine` gives "Émilie plays Karim, the barista.", shown on the scene preview and once as the live room's first line before the narration (founder decision 26). Seen live in the café scene.
 - verified-by: `every mission names who the tutor plays before the narration does`
 
 ### F943 — "One line to try" has no English for brand-new learners
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/FirstSceneScreen.tsx
 - note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
   claude/review-e-visual). The first-scene brief and the missions list render French-only
   referencePhrases.
+- fixed: 2026-10-29 on claude/review-e-visual. Each mission carries `referencePhrasesEn`; both "One line to try" cards draw the English under every French line, and More examples shows every phrase after the first.
 - verified-by: `every reference phrase shows its English`
 
 ### F944 — Voice previews read "Listen Émilie's voice preview"
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/TutorSelection.tsx
 - note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
   claude/review-e-visual). The accessibility label is built as "{action} {name}'s voice preview".
+- fixed: 2026-10-29 on claude/review-e-visual. Voice previews read as plain sentences (`onboarding/previewLabel.ts`): "Listen to Émilie's voice", "Pause …", "Resume …", "Loading …", "Try Émilie's voice again"; the error line says "Tap the speaker to try again."
 - verified-by: `voice preview labels read as plain English`
 
 ### F945 — All six tutors share one avatar
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/tutorPortraits.ts
 - note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
   claude/review-e-visual). Every tutor surface draws BArt tutor-orb; per-tutor portraits exist in
   tutorPortraits.ts but nothing uses them. Founder decision 25: use the portraits, founder sees
   screenshots in light and dark, revert to the orb if off-brand.
+- fixed: 2026-10-29 on claude/review-e-visual. `tutor/TutorPortrait.tsx` draws each tutor's own portrait (decorative, with a 2pt ring that clears 3:1 against its surface) on the choose-tutor cards, Profile, Speak, Home's Coming up card, the onboarding band once a tutor is chosen and every live room; the orb stays only before a tutor is chosen (founder decision 25; revert is one swap per call site).
 - verified-by: `each tutor shows their own portrait`
