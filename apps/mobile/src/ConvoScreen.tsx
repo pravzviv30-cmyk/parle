@@ -1187,7 +1187,7 @@ export function ConvoScreen({
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
       <View style={{ flex: 1, minHeight: 0 }}>
-        <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description="Your French conversation" state={choosing.orb}
+        <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} voice={tutorVoiceOf(profile)} description="Your French conversation" state={choosing.orb}
           caption={line.text ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Ready when you are')}
           turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
           typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !live.waitingForTutor}
@@ -1272,7 +1272,7 @@ export function ConvoScreen({
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
     <OrbCue value={ticks.cue}>
     <View style={{ flex: 1, minHeight: 0 }}>
-      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
+      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} voice={tutorVoiceOf(profile)} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
         title={missionId ? getMission(missionId)?.title : undefined} pace={scenePace} goals={missionItems} helpKind={view.supportView.kind}
         moreHelp={{ disabled: !listening, onPress: () => { closeMark(); live.sendHelp(); } }}
         state={live.reconnecting ? 'connecting' : orbState}

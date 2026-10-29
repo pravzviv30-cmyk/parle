@@ -1,3 +1,4 @@
+import { tutorVoiceOf } from '../tutor/tutorVoice.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { c } from '../onboarding/boldRhythm.ts';
 import { HomeArrival } from '../onboarding/HomeArrival.tsx';
@@ -266,6 +267,7 @@ export function HomeTab() {
             {event !== null && (
               <ComingUpCard
                 view={event}
+                voice={tutorVoiceOf(profile)}
                 onRehearse={() => tapThrough(locks.access, event.feature, locks.open, () => nav.navigate(event.route.screen, event.route.params))}
                 onNotNow={() => { dismissComingUp(event.key); setHidden((n) => n + 1); }}
               />

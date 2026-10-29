@@ -41,6 +41,16 @@ test('each tutor shows their own portrait', () => {
     ['../onboarding/BOnboardingParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{orb\} ring=\{t\.onBrand\} \/> :/],
   ];
   for (const [file, use] of given) assert.match(read(file), use, `${file} cannot draw the learner's tutor`);
+  // And each caller passes it (F945 wiring).
+  const callers: Array<[string, RegExp]> = [
+    ['../tabs/HomeTab.tsx', /<ComingUpCard\s+view=\{event\}\s+voice=\{tutorVoiceOf\(profile\)\}/],
+    ['../onboarding/PreAccountOnboarding.tsx', /<BBandOrb size=\{70\} right=\{18\} top=\{22\} voice=\{draft\.tutorChosen && draft\.tutorVoice \? draft\.tutorVoice : undefined\} \/>/],
+    ['../ConvoScreen.tsx', /<C2LiveRoom [^>]*voice=\{tutorVoiceOf\(profile\)\}/],
+    ['../live/C2LiveRoom.tsx', /<LiveOrb state=\{state\} voice=\{voice\} /],
+  ];
+  for (const [file, use] of callers) assert.match(read(file), use, `${file} does not pass the learner's tutor`);
+  // The choose step itself keeps the orb: no tutor is chosen yet.
+  assert.match(read('../onboarding/PreAccountOnboarding.tsx'), /<BTutorOrb \/>/);
 
   // Each ring against the surface under it, both themes.
   for (const t of [b.light, b.dark]) {

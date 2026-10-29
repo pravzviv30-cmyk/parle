@@ -13,7 +13,7 @@ import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy
 import { RoomReportSheet } from './ReportSheet.tsx';
 import { reportAddress, REPORT_COPY } from '../settings/reportMail.ts';
 import { AskedCard, BulbGlyph, CloseGlyph, FlagGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
-import type { HeldTurnState } from '@luvani/core';
+import type { HeldTurnState, TutorVoiceKey } from '@luvani/core';
 import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, sendButton, tapToSendControl, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
 
 /**
@@ -35,14 +35,17 @@ import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, sendButton, tapToSe
  * The owner passes it only for the live room itself, never for the waiting,
  * error or safety surfaces.
  */
-export function C2LiveRoom({ tutorName, description, state, caption, turns, tutorSpeaking, partialTranscript,
+export function C2LiveRoom({ tutorName, voice, description, state, caption, turns, tutorSpeaking, partialTranscript,
   typing, startedWithSpeech = true, ready = true, modePending = false, active = true, embedded = false,
   transcriptVisible, onTranscriptVisibility, draft, onDraft, onSend, onModeChange, onMic, micOpen,
   onEnd, onReplayTutor, canSend = true, top, support, tools, footer, notice,
   title, pace = null, goals = [], helpKind = 'none', moreHelp, report, quietVoice = false, onQuietVoice,
   tapToSend = false, onTapToSend, heldTurn = null, onSendTurn, wrappingUp = false,
 }: {
-  tutorName: string; description: string; state: OrbState; caption: string;
+  tutorName: string;
+  /** The learner's tutor, drawn as their portrait on the orb (F945); absent, the shared orb. */
+  voice?: TutorVoiceKey;
+  description: string; state: OrbState; caption: string;
   turns: readonly TurnLine[]; tutorSpeaking: boolean; partialTranscript?: string | null;
   typing: boolean; startedWithSpeech?: boolean; ready?: boolean; modePending?: boolean;
   active?: boolean; embedded?: boolean; transcriptVisible: boolean; onTranscriptVisibility: (visible: boolean) => void;
@@ -157,7 +160,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
           onReplayTutor={onReplayTutor} partialTranscript={partialTranscript} focusRevision={focusRevision} focusActive={focused || keyboardOpen} onDismissKeyboard={dismiss} />
       </View>
       {!transcriptVisible && <View style={st.thread} onTouchEnd={dismiss}>
-        <LiveOrb state={state} active={active} caption={caption} size={focused || keyboardOpen || typing ? 'small' : 'full'} />
+        <LiveOrb state={state} voice={voice} active={active} caption={caption} size={focused || keyboardOpen || typing ? 'small' : 'full'} />
         <View style={st.bubbles}>
           {bubbles.tutor ? <TutorBubble name={tutorName} fr={bubbles.tutor.fr} en={bubbles.tutor.en} onHear={onReplayTutor} /> : null}
           {bubbles.you ? <YouBubble text={bubbles.you} /> : null}
