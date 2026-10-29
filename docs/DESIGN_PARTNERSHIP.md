@@ -78,6 +78,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-29 | The cloud and the toast become Luvani's mascots, with expressions and animation. | Founder, characters question |
 | 2026-10-29 | Motion is alive where it matters (the live room, wins, moving between places); everything else stays calm and quick. | Founder, motion question |
 | 2026-10-29 | The tutor's identity is their portrait (founder decision 25, F945). Mascots are companions and must never be mistaken for the tutor. | Stream E, decision 25 |
+| 2026-10-29 | Live room: B (face to face) as the base, with C's visible script, margin fixes and cloud mic, and A's goal stamps. Not taken: A's stage, seated mascots and speech bubble, B's goal bar and mascot pop-up, C's highlighter. D still marks the learner's lines in sun so they stand apart from the tutor's; to confirm. | Founder, mix question on the direction board |
+| 2026-10-29 | Remove words and elements that distract, as long as no core feature is lost. | Founder, same answer |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -90,7 +92,7 @@ Working principles drawn from these (to confirm on the first screens):
 
 | Order | Screen | State |
 |---|---|---|
-| 1 | Live conversation room | Directions A, B and C on the [direction board](https://claude.ai/artifact/6GWKSY3gHZsoRKhtU63A5B); waiting for the founder's pick |
+| 1 | Live conversation room | Founder chose a mix; direction D (face to face with a notebook) on the [direction board](https://claude.ai/artifact/6GWKSY3gHZsoRKhtU63A5B); waiting for the founder's OK on D before the build spec |
 | 2 | Today | Candidate; Stream E's F920 overlap fix folds in |
 | 3 | Drill and practice feedback | Candidate |
 | 4 | Journey | Candidate |
