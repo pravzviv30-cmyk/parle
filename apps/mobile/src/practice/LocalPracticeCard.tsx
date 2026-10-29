@@ -10,7 +10,7 @@ import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { decorative, space, type } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
-import { OFFLINE_NOTICE, localPracticeFor, offlineOffer } from './localPractice.ts';
+import { deviceOnLine, localPracticeFor, offlineNotice, offlineOffer } from './localPractice.ts';
 
 /**
  * Bundled reference audio and a temporary real take, never simulated speech.
@@ -32,7 +32,7 @@ export function LocalPracticeCard({ vivid = false, levelIndex = 0 }: { vivid?: b
   const offer = offlineOffer(levelIndex);
   if (vivid) return <View style={{ gap: space(4) }}>
     <View {...decorative} style={{ alignItems: 'center' }}><Illustration name="state-offline" fit="small" /></View>
-    <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: t.text }]}>{OFFLINE_NOTICE}</Text>
+    <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: t.text }]}>{offlineNotice(deviceOnLine())}</Text>
     {offer === 'cafe' && phrase !== null ? <>
       <Card style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></Card>
       <PillButton label="Try this line" onPress={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />

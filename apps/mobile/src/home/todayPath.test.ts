@@ -126,7 +126,8 @@ test('Today restores the scene card when the connection returns', async () => {
 
 test('the offline card says the learner is offline', () => {
   assert.equal(OFFLINE_NOTICE, "You're offline. Here's something you can do without a connection.");
-  assert.match(LOCAL, /\{OFFLINE_NOTICE\}/);
+  // Fix-verifier 2026-10-29: said only when the device is offline (next test).
+  assert.match(LOCAL, /offlineNotice\(/);
   assert.match(LOCAL, /name="state-offline"/);
   // The café line is a Starter line: a learner past Starter is not handed it as their lead.
   assert.equal(offlineOffer(0), 'cafe');
@@ -168,7 +169,9 @@ test('a trial with too little time for a session leads Home the way the plans pa
     for (const reason of [null, 'exhausted', 'insufficient-for-session', 'subscription-lapsed'] as const) {
       const lead = todayLead({ live: true, billing: { plan, reason }, starter: false });
       const out = plan === 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session');
-      assert.equal(lead, out ? 'plans' : 'scene', `${plan}/${reason}`);
+      // A paid plan out of minutes leads to its out-of-time words (fix-verifier, 2026-10-29).
+      const paidOut = plan !== 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session');
+      assert.equal(lead, out ? 'plans' : paidOut ? 'outOfTime' : 'scene', `${plan}/${reason}`);
     }
   }
 });
@@ -177,4 +180,55 @@ test('the goal ring says under a minute aloud as it draws it', () => {
   const view = todayHeroView({ streak: { current: 0, today: 'open' }, goal: { minutes: 0, activeMs: 20_000, target: 5, met: false }, level: { level: 1, toNext: 50 }, xp: { total: 0 } } as never)!;
   assert.doesNotMatch(view.goal.label, /\b0 of 5/);
   assert.match(view.goal.label, /under 1 of 5 minutes/i);
+});
+
+// Fix-verifier round, 2026-10-29: four claims refuted in 3c8ebd7b.
+import * as lp from '../practice/localPractice.ts';
+import * as nt from '../practice/nextTask.ts';
+
+test('the offline card says offline only when the device is offline, and otherwise that the tutor cannot be reached', () => {
+  const { offlineNotice, TUTOR_UNREACHABLE } = lp as unknown as { offlineNotice: (onLine: boolean | undefined) => string; TUTOR_UNREACHABLE: string };
+  assert.equal(offlineNotice(false), OFFLINE_NOTICE);
+  assert.equal(TUTOR_UNREACHABLE, "We can't reach your tutor right now. Here's something you can do while we try again.");
+  assert.equal(offlineNotice(true), TUTOR_UNREACHABLE);
+  assert.equal(offlineNotice(undefined), TUTOR_UNREACHABLE, 'a platform that cannot say is not called offline');
+  assert.match(LOCAL, /offlineNotice\(deviceOnLine\(\)\)/);
+  assert.doesNotMatch(LOCAL, /\{OFFLINE_NOTICE\}/);
+});
+
+test('a live learner with no next scene gets a way forward, not the offline card', () => {
+  const { sceneOrExplore } = nt as unknown as { sceneOrExplore: (lead: string, hasHero: boolean) => string };
+  assert.equal(sceneOrExplore('scene', true), 'scene');
+  assert.equal(sceneOrExplore('scene', false), 'explore');
+  assert.equal(sceneOrExplore('local', false), 'local');
+  assert.match(TASK, /sceneOrExplore\(todayLead\(\{ live, billing, starter: starter !== null \}\), value\.hero !== null\)/);
+  assert.match(TASK, /nav\.navigate\('Explore'\)/);
+});
+
+test('a paid learner out of minutes is led to the out-of-time words, not a scene or a plans pitch', () => {
+  for (const plan of Object.keys(PLANS) as Plan[]) {
+    if (plan === 'trial') continue;
+    for (const reason of ['exhausted', 'insufficient-for-session'] as const) {
+      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: false }), 'outOfTime', `${plan}/${reason}`);
+      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: true }), 'outOfTime');
+    }
+    assert.equal(todayLead({ live: true, billing: { plan, reason: null }, starter: false }), 'scene');
+  }
+  assert.match(TASK, /lead === 'outOfTime'/);
+  assert.match(TASK, /outOfTimeWords\(/);
+});
+
+test('Speak with my tutor waits until billing has answered', () => {
+  const { starterTutorOpen } = nt as unknown as { starterTutorOpen: (i: { live: boolean; billing: unknown; answered: boolean }) => boolean };
+  assert.equal(starterTutorOpen({ live: true, billing: null, answered: false }), false, 'shown while billing loads');
+  assert.equal(starterTutorOpen({ live: true, billing: { plan: 'trial', reason: null }, answered: true }), true);
+  assert.equal(starterTutorOpen({ live: true, billing: { plan: 'trial', reason: 'exhausted' }, answered: true }), false);
+  assert.equal(starterTutorOpen({ live: false, billing: { plan: 'trial', reason: null }, answered: true }), false);
+  assert.match(TASK, /onTutor=\{starterTutorOpen\(/);
+});
+
+test('the review row depends only on what Review would deal', () => {
+  assert.doesNotMatch(HOME, /fixFrom === null \? null : reviewRow/);
+  assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck, Date\.now\(\), locks\.access\('conversationPractice'\)\)/);
+  assert.match(HOME, /loadDeck\(\)\.then\(\(deck\) => \{ if \(!cancelled && scopeGeneration\(\) === scope\) setReviewDeck\(deck\); \}\)/);
 });

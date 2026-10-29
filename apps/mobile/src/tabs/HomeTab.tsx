@@ -118,6 +118,11 @@ export function HomeTab() {
   // memory); this re-draws the page once it is hidden.
   const [, setHidden] = useState(0);
   const [daily, setDaily] = useState(() => todayItems(0, Date.now()));
+  // The deck Review deals from, read on its own so the review row depends on
+  // nothing but what Review would deal (fix-verifier, 2026-10-29).
+  const [reviewRead, setReviewRead] = useState<{ scope: number; deck: readonly ReviewCard[] } | null>(null);
+  // A deck read for another account is never counted for this one.
+  const reviewDeck = reviewRead !== null && reviewRead.scope === scopeGeneration() ? reviewRead.deck : null;
 
   useFocusEffect(
     useCallback(() => {
@@ -168,6 +173,15 @@ export function HomeTab() {
     }, [profile, revision, readAttempt]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const scope = scopeGeneration();
+      void loadDeck().then((deck) => { if (!cancelled && scopeGeneration() === scope) setReviewDeck(deck); }).catch(() => {});
+      function setReviewDeck(deck: readonly ReviewCard[]) { setReviewRead({ scope, deck }); }
+      return () => { cancelled = true; };
+    }, [revision]),
+  );
   const unowned = readOwner !== scopeGeneration();
   // Asked at draw time, so the lock follows the plan the moment it changes.
   const fix = fixFrom === null ? null : oneFix({ ...fixFrom, tutorName, access: locks.access });
@@ -175,7 +189,7 @@ export function HomeTab() {
   const event = comingUp({ facts: visibleFacts(profile), paused: memoryPaused(profile.brain), tutorName, access: locks.access, now: Date.now() });
 
   // The review row (F934): only when Review would deal cards, by Review's own deal.
-  const review = fixFrom === null ? null : reviewRow(fixFrom.deck, fixFrom.now, locks.access('conversationPractice'));
+  const review = reviewDeck === null ? null : reviewRow(reviewDeck, Date.now(), locks.access('conversationPractice'));
   const three = <QuestsCard />;
   const fixCard = fix !== null && (
     <View style={st.fix}>

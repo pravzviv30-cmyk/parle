@@ -8,7 +8,8 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { HomeBilling } from '../home/nextAction.ts';
 import { PLANS_LEAD, plansLeadBody } from '../home/nextAction.ts';
-import { nextTaskKind, offersPlans, todayLead, type TodayLead } from './nextTask.ts';
+import { nextTaskKind, offersPlans, sceneOrExplore, starterTutorOpen, todayLead, type TodayLead } from './nextTask.ts';
+import { outOfTimeWords } from '../purchases/outOfTime.ts';
 import type { ReactNode } from 'react';
 import { RouteNode, type RouteMark } from '../home/RoutePath.tsx';
 import { pathStep } from '../home/todayView.ts';
@@ -42,9 +43,11 @@ import { LocalPracticeCard } from './LocalPracticeCard.tsx';
 import { DEMO_REPLY_ID } from '../onboarding/tutorLines.ts';
 
 /** The scene stop's words for each lead: the scene's own minutes, or what the lead honestly is. */
-function leadStop(lead: TodayLead | 'loading', minutes: number | null): { title: string; line: string } {
+function leadStop(lead: TodayLead | 'explore' | 'loading', minutes: number | null): { title: string; line: string } {
   if (lead === 'scene' && minutes !== null) return pathStep('scene', minutes);
   if (lead === 'plans') return { title: 'The next scene', line: 'Needs more speaking time' };
+  if (lead === 'outOfTime') return { title: 'The next scene', line: 'When your minutes come back' };
+  if (lead === 'explore') return { title: 'Something new', line: 'Pick a scene or a topic' };
   if (lead === 'starter') return { title: 'Continue your practice', line: 'Typed, no connection needed' };
   if (lead === 'local') return { title: "While you're offline", line: 'No connection needed' };
   return { title: 'The next scene', line: 'Finding your next task' };
@@ -71,12 +74,16 @@ export function NextTaskCard({ vivid = false, step, starter = null }: { vivid?: 
   const startAt = startAtOf(profile);
   const startingMissionId = startAt === null && profile.brain.cefr.estimate === 'A1' && profile.brain.cefr.confidence === 'low' && profile.brain.cefr.evidence.length === 0 ? 'mission:cafe' : undefined;
   const [billing, setBilling] = useState<HomeBilling | null>(null);
+  // Whether the billing read has answered (or cannot run), so nothing that
+  // depends on it is drawn on a guess.
+  const [billingAnswered, setBillingAnswered] = useState(false);
   const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null; levelIndex: number } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useFocusEffect(useCallback(() => {
-    let cancelled = false; const scope = scopeGeneration(); setBilling(null);
-    if (live && user !== null) void fetchBillingStatus(user.id).then(result => { if (!cancelled && scope === scopeGeneration()) setBilling(result); }).catch(() => {});
+    let cancelled = false; const scope = scopeGeneration(); setBilling(null); setBillingAnswered(false);
+    if (live && user !== null) void fetchBillingStatus(user.id).then(result => { if (!cancelled && scope === scopeGeneration()) setBilling(result); }).catch(() => {}).finally(() => { if (!cancelled && scope === scopeGeneration()) setBillingAnswered(true); });
+    else setBillingAnswered(true);
     return () => { cancelled = true; };
   }, [live, user]));
   useFocusEffect(useCallback(() => {
@@ -98,7 +105,7 @@ export function NextTaskCard({ vivid = false, step, starter = null }: { vivid?: 
       }).catch(() => { if (!cancelled && scope === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
   }, [attempt, owner, startingMissionId, startAt]));
-  const onStop = (lead: TodayLead | 'loading', minutes: number | null, body: ReactNode) => {
+  const onStop = (lead: TodayLead | 'explore' | 'loading', minutes: number | null, body: ReactNode) => {
     if (step === undefined) return body;
     const words = leadStop(lead, minutes);
     return <RouteNode mark={step.mark} last={step.last} title={words.title} line={words.line}>{body}</RouteNode>;
@@ -113,9 +120,14 @@ export function NextTaskCard({ vivid = false, step, starter = null }: { vivid?: 
   if (vivid) {
     // Today: one rule picks the lead (F936, F651, F924); review is its own
     // row on the path now, never the lead (DECISIONS 2026-10-29).
-    const lead = todayLead({ live, billing, starter: starter !== null });
+    const lead = sceneOrExplore(todayLead({ live, billing, starter: starter !== null }), value.hero !== null);
     if (lead === 'plans') return onStop(lead, null, plansCard);
-    if (lead === 'starter' && starter !== null) return onStop(lead, null, <StarterContinuation initial={starter} onTutor={live ? () => nav.navigate('Tutor') : undefined} onPlans={offersPlans(billing) ? () => nav.navigate('Wall', { entry: 'recap' }) : undefined} />);
+    if (lead === 'outOfTime' && billing !== null) {
+      const words = outOfTimeWords({ plan: billing.plan, reason: billing.reason, refillsAt: billing.periodEnd ?? null, now: Date.now() });
+      return onStop(lead, null, <Card style={{ gap: 8 }}><Text accessibilityRole="header" style={type.heading}>{words.title}</Text><Text style={type.body}>{words.message}</Text></Card>);
+    }
+    if (lead === 'explore') return onStop(lead, null, <Card style={{ gap: 8 }}><Text style={type.body}>Your next scene isn't ready yet. Explore has scenes and topics you can start now.</Text><PillButton label="Open Explore" onPress={() => nav.navigate('Explore')} /></Card>);
+    if (lead === 'starter' && starter !== null) return onStop(lead, null, <StarterContinuation initial={starter} onTutor={starterTutorOpen({ live, billing, answered: billingAnswered }) ? () => nav.navigate('Tutor') : undefined} onPlans={offersPlans(billing) ? () => nav.navigate('Wall', { entry: 'recap' }) : undefined} />);
     if (lead === 'scene' && value.hero !== null) return onStop(lead, value.hero.minutes, <MissionHero hero={value.hero} vivid buildsOn={value.buildsOn} />);
     return onStop('local', null, <LocalPracticeCard vivid levelIndex={value.levelIndex} />);
   }

@@ -1978,7 +1978,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // 46pt retry, drawn only while the tutor cannot be reached.
     assert.equal((speak.match(/<BButton\b/g) ?? []).length, 3, 'Speak carries a second primary pill');
     assert.match(speak, /<BButton label=\{PREPARE_FIRST\} height=\{48\} ground=\{t\.heroChip\}/, 'Prepare first is not the white secondary');
-    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
+    // 2026-10-29 (fix-verifier): a fourth exclusive branch, Today's Open Explore when there is no next scene.
+    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 4, 'personal practice, authored review, allowance and no-scene are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
     // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B
     // part's one 54pt BButton (today/TodayParts SceneLead); the blue brief

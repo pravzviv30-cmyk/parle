@@ -25,8 +25,10 @@ test('the used free minutes lead Home with the plans card, ahead of review and t
   for (const plan of plans) {
     for (const reason of reasons) {
       const out = plan === 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session');
-      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: false }), out ? 'plans' : 'scene', `${plan}/${reason}`);
-      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: true }), out ? 'plans' : 'starter', `${plan}/${reason} with a starter`);
+      // A paid plan out of minutes gets its out-of-time words, never the plans card (2026-10-29).
+      const paidOut = plan !== 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session');
+      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: false }), out ? 'plans' : paidOut ? 'outOfTime' : 'scene', `${plan}/${reason}`);
+      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: true }), out ? 'plans' : paidOut ? 'outOfTime' : 'starter', `${plan}/${reason} with a starter`);
     }
   }
   // An unknown plan (signed out, offline, a failed read) never leads with plans.
