@@ -22,6 +22,16 @@ of the list.
 
 ## Current landing snapshot
 
+- 29 October 2026 product-review fixes, Stream C (first run): branch `claude/review-c-first-run` from
+  main 706232bf. F915, F916, F917, F925, F926 and F930 closed, each with its named tests; fix-verifier
+  rounds until clean (they found web history drifting on Forward and busy Back, a stale placement after
+  a level change, the Home hero ignoring the placement, an untrue guest plan line, and an undoable Skip
+  ahead); live replay of every finding against the local stack (guest scenes only, no completed live
+  minutes), which caught the plan and Home naming different first scenes. **7,178 tests, 0 failing**;
+  core 1099, brain 773, tutor agent 887, token server 527, playground 110, mobile 3782; shared
+  release/provider proofs 207; all 44 migrations replayed, no migration added; mobile suite also green
+  with the clock 45 days ahead. Floors raised through `gate:bless`. Reverses F352 (no visible back) and
+  the deliberate tutor pick. Not verified: native back gestures and iOS/Android rendering.
 - 29 October 2026 product-review fixes, Stream B (fair paywall and billing truth): branch
   `claude/review-b-paywall` from main 2baf8fcf. F907 to F914, F931 (wall parts) and F932 closed, each
   with its named tests; a fix-verifier round on every batch until it found nothing that breaks a rule;
