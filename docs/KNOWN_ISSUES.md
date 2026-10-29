@@ -9314,9 +9314,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F651 — A trial with under two minutes left leads Home with Start, and only the token server says there is not enough time
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/nextAction.ts:1
 - note: found by the revenue review of F602. `homeActionFor` leads with the plans card only when the trial's reason is `exhausted`. A trial with 1 to 119 seconds left reports `insufficient-for-session`, so Home leads with the blue Start and the server then refuses the session honestly. Decide in F607 whether that state leads with the plans card too, and walk the boundary loop over `Object.keys(PLANS)` rather than a hand-written list so a new plan is covered.
+- fixed: 2026-10-29 on claude/review-d-progress (Stream D). homeActionFor was dead code and is deleted; todayLead, the rule Today uses, sends a trial with too little time for a session to plans, and the named test walks every plan in the catalogue.
 - verified-by: `a trial with too little time for a session leads Home the way the plans pass decides, and every plan in the catalogue is walked`
 
 ### F652 — Closing Fix your line during authentication can start a recording upload after exit
@@ -11078,9 +11079,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F858 — Today's level tile reads like a French ability level
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game/todayHeroView.ts:113
 - note: Found 2026-10-20 in B6. The third stats tile on Today says "Level n" over the XP total. Beside a stage system (Starter, Basics) and CEFR elsewhere, "Level 2" reads as a claim about the learner's French rather than XP earned. Name it as the game's level (for example "XP level") or show XP alone, decided in todayHeroView.ts, and keep Journey's head consistent.
+- fixed: 2026-10-29 on claude/review-d-progress with F918. The tile reads "XP level n" over "n XP", and Journey's head uses the same words.
 - verified-by: `Today's level tile names the XP level, never a French level`
 
 ### F859 — Quest titles make XP the goal
@@ -11812,12 +11814,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F918 — Today, Journey and Practice disagree on level, minutes, saved phrases and streak
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/journey/journeyView.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-16; five reviewers). "Level 3 · 130 XP" on Today
   against "5 of 100 XP" on Journey; "0 min practised" and "0 of 5 min today" after live practice;
   saved-phrase counts differed until a restart; "0 days" beside "1 day streak". The level tile is
   already F858. Decided 2026-10-29 (founder decision 22): stage first, XP labelled the same everywhere; abilities keep no count. Closes F858 with it.
+- fixed: 2026-10-29 on claude/review-d-progress (founder decision 22). XP reads "XP level n" over the lifetime total on Today and Journey ("51 XP, 74 to the next"); minutes go through the real settle and read "Under 1" rather than nought; saved phrases use one shared rule (practice/savedPhrases.ts) and Journey re-reads the deck after a refresh; a running streak's counter never starts at 0. Live replay: Today, Journey and Practice agree after a typed conversation.
 - verified-by: `live minutes count toward Journey and today's goal`
 - verified-by: `Today and Journey read the same XP total`
 - verified-by: `saved phrases count the same on Practice and Journey`
@@ -11825,72 +11828,79 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F919 — A missed drill answer shows no right answer, and "Sounds of French" opens a live scene
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/drill/answerSheet.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-18). A wrong pick shows only "This one comes round
   again", and the summary counted it as right ("Got right 3"). Sounds of French and Guided basics
   open the live-scene sheet (practice/practiceTabView.ts); one listing reads "and pay..". Decided 2026-10-29 (founder decisions 19 and 20): the first miss shows the right answer and a one-line reason, the item returns as assisted; Sounds of French opens the real minimal-pair sound drill (Core). Also the "and pay.." double full stop is in main/exploreCollections.ts:64.
+- fixed: 2026-10-29 on claude/review-d-progress (founder decisions 19 and 20; LEARN-017). A first drill miss shows the nearest accepted answer and a one-line reason built from that same form ("Les tomates ? Celles-là, s'il vous plaît = The tomatoes? Those ones, please"), "Here is one reply that works." for several right replies, English answers never shown as French and only the French half read as French; listen-type keeps its transcript until the second miss; the retry is assisted; Got right, clean XP and typo XP count first tries only; Sounds of French opens the minimal-pair SoundDrill (Core lock); guided rows say "A live scene with your tutor." with one full stop.
 - verified-by: `a missed drill answer shows the right answer and a one-line reason`
 - verified-by: `a miss is not counted as right first time`
 - verified-by: `Sounds of French opens a sound drill rather than a live scene`
 
 ### F922 — Help and feedback is only a mail link
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:351
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-21). On web the row showed no visible change; there
   is no in-app help for a blocked mic, typing, minutes, leaving a scene or what Free includes.
+- fixed: 2026-10-29 on claude/review-d-progress. Help and feedback (Profile and Settings) opens an in-app sheet (settings/HelpSheet.tsx) of five answers built from existing copy, then Write to us with the address as selectable text and Open mail, which shows LINK_TROUBLE if the mail app will not open; an old trouble line never reappears.
 - verified-by: `help opens an in-app sheet with the mail address shown as text`
 
 ### F924 — Going offline swaps Today's main card silently, and it stays swapped online
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/nextAction.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-24; two reviewers). Offline, "Start speaking"
   became the free offline café line with no offline notice, for a Level 3 learner too; back online
   it stayed until a browser restart. Root cause found 2026-10-29: there is no network listener; live comes from a /health probe on mount (app/LiveContext.tsx) and nothing probes again.
+- fixed: 2026-10-29 on claude/review-d-progress. Live re-probes on the browser online event, on foreground and every 30 s while offline (app/liveWatch.ts). "You're offline. Here's something you can do without a connection." shows only when the device reports offline, and "We can't reach your tutor right now. Here's something you can do while we try again." otherwise, under "Something you can do now". The scene card returns with the connection (live replay: back within 8 s, no reload).
 - verified-by: `Today restores the scene card when the connection returns`
 - verified-by: `the offline card says the learner is offline`
 
 ### F934 — Today shows seven equal blocks, and due review never appears
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx
 - note: Found 2026-10-28 by the product review (LR-17; filed 2026-10-29 on claude/review-d-progress,
   Stream D). Stats, next scene, Today's three, one fix, today's phrase, coming up and the week all
   weigh the same, and NextTaskCard deliberately keeps due review off Today. Founder decision 6: one
   ordered "Today's path" from the report's section 10 (retry the fix, the next scene, say today's
   phrase, with minutes per step) and a review row when Review would deal cards.
+- fixed: 2026-10-29 on claude/review-d-progress (founder decision 6; DECISIONS UI-012). Today leads with "Today's path" in the route motif: retry your last fix, the next scene, say today's phrase, each with its time, plus "Review N phrases" whenever Review would deal cards (read from the deck alone). Quotas, Coming up and the week sit below. A live learner with no next scene is pointed to Explore.
 - verified-by: `Today leads with one ordered path of three steps`
 - verified-by: `Today offers review when Review would deal cards`
 
 ### F935 — A paying learner cannot see what the plan gives
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/planStatus.ts
 - note: Found 2026-10-28 by the product review (LR-23; filed 2026-10-29 on claude/review-d-progress,
   Stream D). The paid band says only "Plenty of speaking time left", nothing is labelled Max, and
   Home's "See plans" shows to subscribers. Founder decision 21: the 30-day pool with numbers, "Included
   in Max" on Max-only entries, no "See plans" for paid learners.
+- fixed: 2026-10-29 on claude/review-d-progress (founder decision 21). A paid band reads "N of M minutes left. Fresh minutes on <date>." from the server's allowance or the plan's period ("Under 1 of M" under a minute); Max-only entries say "Included in Max" from the real continueArc or customRehearsal flag; Home's "See plans" shows only on the free plan.
 - verified-by: `a paid learner sees minutes left of the plan's pool`
 - verified-by: `Max-only entries say they are included in Max`
 - verified-by: `a paid learner is never offered See plans on Home`
 
 ### F936 — An out-of-time learner is offered "Continue practice" and "Speak with my tutor"
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/StarterContinuation.tsx
 - note: Found 2026-10-29 in the Stream B live replay. Today's StarterContinuation card replaces the lead
   whenever a starter record exists and no session ran (tabs/HomeTab.tsx:235) and never asks billing,
   so the plans rule in practice/nextTask.ts never runs and "Speak with my tutor" leads into a refused
   live scene. Related F651.
+- fixed: 2026-10-29 on claude/review-d-progress. todayLead waits for billing ("Finding your next task"), sends a trial out of time to plans, a paid plan out of minutes to its refill words and a lapsed plan to "Your paid plan has ended.", each followed by practice that needs no minutes; "Speak with my tutor" waits for billing and hides while offline.
 - verified-by: `an out-of-time learner is led to plans, not to a live scene`
 
 ### F937 — The recap says "Day 1. No French yet this week."
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/recap/afterSessionView.ts
 - note: Found 2026-10-29 in the Stream A live replay. The day comes from the settled streak while the
   week is read once on mount, before the settle writes, and counts activity entries only, not the
   zero-XP sittings the streak counts (RecapScreen.tsx:192-196, momentum.ts:445).
+- fixed: 2026-10-29 on claude/review-d-progress. The recap's week reads the stored active days (zero-XP sittings included) after the settle, so "Day n." never sits beside "No French yet this week", and a sitting across midnight lights one day.
 - verified-by: `the recap's day and week lines never contradict each other`
