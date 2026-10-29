@@ -11594,7 +11594,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F907 — The launch wall opens on every web refresh, unknown address and straight after sign-up
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/launchWall.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-05, review severity High; five reviewers). D24
   intends a wall on each open; on web every refresh counts as an open, unknown paths redirect to
@@ -11613,7 +11613,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F908 — A store failure leaves the checkout fence up, saying "do not buy again" and "nothing was changed" together
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/pendingPurchase.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-06, review severity High; three reviewers, web
   with no store). The marker is written before the store sheet opens and a store failure keeps it,
@@ -11627,7 +11627,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F909 — Subscribers are told to cancel before a renewal the app never dates
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/planStatus.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-07, review severity High). Your plan says
   "Renews in the coming weeks" three times next to "cancel at least 24 hours before renewal", while
@@ -11639,7 +11639,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F910 — Free learners see "Included with your trial" on locks, and a Max feature opens the Core offer
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-08; five reviewers). The badge shows to accounts
   that never had a trial; Rehearse opens the Core trial though only Max lists it; the free list
@@ -11651,7 +11651,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F911 — The free limit shows three different messages and never says when time comes back
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/empty/emptyStates.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-09). Speak, Start (live/useLiveSession.ts) and
   Subscription each word the limit differently, and none shows the refill time the 402 refusal
@@ -11661,7 +11661,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F912 — Subscribers and lapsed subscribers are offered a 7-day free trial
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/wallCopy.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-10; observed, fixture trial facts). A Core
   subscriber's compare page offers "Start 7-day free trial" and then "You already have this plan";
@@ -11672,7 +11672,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F913 — The compare sheet contradicts itself on conversations, allowances and streak freezes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/wallCopy.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-11). "Both plans include every conversation"
   sits beside a Max-only Rehearse line; Core is "about" 10 minutes a day and Max "up to" 20; "every
@@ -11684,7 +11684,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F914 — The Terms have no subscription section, and deleting an account ends with no confirmation
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/legal/terms.ts
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-12). Billing lines exist only in Privacy. After
   "Verify and delete permanently" (settings/SettingsScreen.tsx) the app goes straight to sign-in,
@@ -11699,7 +11699,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F931 — The wall stacks and stretches, and its default billing period varies
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/RootNavigator.tsx
 - note: Found 2026-10-28 by the product review (LR-32; filed 2026-10-29 on claude/review-b-paywall,
   Stream B, narrowed to the wall). Terms then Privacy from the wall left two walls stacked (seen
@@ -11713,7 +11713,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F932 — The trial page reproduces another app's trial-offer composition
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/trialPaywall.ts
 - note: Found 2026-10-28 by the product review (LR-26, a brand and originality risk; filed
   2026-10-29 on claude/review-b-paywall, Stream B). The "How your trial works" title, plan toggle
