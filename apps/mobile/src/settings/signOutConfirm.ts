@@ -15,6 +15,7 @@ export const SIGN_OUT_CONFIRM = {
   body: 'Your French stays saved to your account.',
   stay: 'Stay signed in',
   leave: 'Sign out',
+  leaving: 'Signing out',
   pendingBody: "Some of today's practice hasn't synced yet. It will sync the next time you sign in on this phone.",
 } as const;
 
@@ -55,12 +56,19 @@ export async function flushBeforeSignOut(
   }
 }
 
+/** `open` with `signOut` is the busy sheet: confirmed, saving, then signing out. */
 export type SignOutSheet = { open: boolean; signOut: boolean };
-export type SignOutEvent = 'ask' | 'stay' | 'dismiss' | 'leave';
+export type SignOutEvent = 'ask' | 'stay' | 'dismiss' | 'leave' | 'done';
 
-/** One step of the sheet. Only `leave` signs out, and only from an open sheet. */
+/**
+ * One step of the sheet. Only `leave` signs out, and only from an open sheet.
+ * Once confirmed the sheet stays open and busy; dismissals are ignored so the
+ * learner's answer stands, and only `done` (sign-out finished) closes it.
+ */
 export function signOutStep(state: SignOutSheet, event: SignOutEvent): SignOutSheet {
+  if (event === 'done') return { open: false, signOut: false };
+  if (state.open && state.signOut) return state;
   if (event === 'ask') return { open: true, signOut: false };
-  if (event === 'leave') return { open: false, signOut: state.open };
+  if (event === 'leave') return { open: state.open, signOut: state.open };
   return { open: false, signOut: false };
 }

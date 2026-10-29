@@ -60,7 +60,7 @@ import { clearActiveUserData, migrateLegacyStores, setActiveUser, userKey, scope
 import { startSync, type SyncEngine } from './src/sync/engine.ts';
 import { createSyncDiagnostics } from './src/sync/diagnostics.ts';
 import { syncPolicy } from './src/sync/policy.ts';
-import { flushBeforeSignOut, registerSignOutSync } from './src/settings/signOutConfirm.ts';
+import { registerSignOutSync } from './src/settings/signOutConfirm.ts';
 import { dirtyNamespaces, resetSyncRegistry } from './src/sync/registry.ts';
 import { adoptBeforeReady, mayAdoptPreAccountDraft, type FreshStart } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
@@ -643,8 +643,8 @@ function SignedInRoot({
           {...(Platform.OS === 'web' ? { linking } : {})}
         >
           <RootNavigator
-            // F938: one bounded last push before sync stops (signOutConfirm.ts).
-            onSignOut={() => void (async () => { await flushBeforeSignOut(); await auth.signOut(); })()}
+            // F938: Settings' sign-out sheet runs the one bounded last push first.
+            onSignOut={() => void auth.signOut()}
             onDeleteAccount={onDeleteAccount}
           />
         </NavigationContainer>

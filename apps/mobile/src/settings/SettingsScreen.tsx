@@ -67,7 +67,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { bType, space, type } from '../theme.ts';
 import { IconAction, OptionRow, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
 import { ConfirmSheet, ScrollScreen } from '../layout.tsx';
-import { pendingAtSignOut, SIGN_OUT_CONFIRM, signOutBody, signOutStep, type SignOutEvent, type SignOutSheet } from './signOutConfirm.ts';
+import { flushBeforeSignOut, pendingAtSignOut, SIGN_OUT_CONFIRM, signOutBody, signOutStep, SIGN_OUT_FLUSH_MS, type SignOutEvent, type SignOutSheet } from './signOutConfirm.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BackButton } from '../journey/JourneyParts.tsx';
 import { withPace, paceOf } from '../tutor/pace.ts';
@@ -257,12 +257,19 @@ export function SettingsScreen({
   const [sheet, setSheet] = useState<Sheet>('none');
   const [signOutSheet, setSignOutSheet] = useState<SignOutSheet>({ open: false, signOut: false });
   const [signOutText, setSignOutText] = useState<string>(SIGN_OUT_CONFIRM.body);
-  const stepSignOut = (event: SignOutEvent) => {
+  const stepSignOut = async (event: SignOutEvent) => {
     // The body is read from the real sync state as the sheet opens.
     if (event === 'ask') setSignOutText(signOutBody(pendingAtSignOut()));
     const next = signOutStep(signOutSheet, event);
+    if (next === signOutSheet) return;
     setSignOutSheet(next);
-    if (next.signOut) onSignOut();
+    if (!next.signOut || signOutSheet.signOut) return;
+    // F938: the sheet stays open and busy while the last push runs (bounded),
+    // then signs out. Sign-out unmounts this screen; if it is still here a
+    // moment later (sign-out failed), the sheet closes rather than spinning.
+    await flushBeforeSignOut();
+    onSignOut();
+    setTimeout(() => setSignOutSheet(state => signOutStep(state, 'done')), SIGN_OUT_FLUSH_MS);
   };
   const [draftName, setDraftName] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -864,8 +871,10 @@ export function SettingsScreen({
       body={signOutText}
       cancelLabel={SIGN_OUT_CONFIRM.stay}
       confirmLabel={SIGN_OUT_CONFIRM.leave}
-      onCancel={() => stepSignOut('dismiss')}
-      onConfirm={() => stepSignOut('leave')}
+      busy={signOutSheet.signOut}
+      busyLabel={SIGN_OUT_CONFIRM.leaving}
+      onCancel={() => void stepSignOut('dismiss')}
+      onConfirm={() => void stepSignOut('leave')}
     />
     {/* 2026-10-20 UI-008, artboard B-Settings: the page at 58 22 60 with 22
         between groups, the back disc beside the 28/800 title, and the groups
@@ -883,7 +892,7 @@ export function SettingsScreen({
         <SettingsRow first label={NAME_ROW} value={profile.name ?? NAME_UNSET_VALUE} onPress={openNameSheet} />
         <SettingsRow label={EMAIL_ROW} value={user?.email ?? EMAIL_UNKNOWN} />
         {user?.provider === 'mock' && <SettingsRow label={DEMO_ROW} sub={DEMO_VALUE} />}
-        <SettingsRow label={SIGN_OUT_ROW} action onPress={() => stepSignOut('ask')} />
+        <SettingsRow label={SIGN_OUT_ROW} action onPress={() => void stepSignOut('ask')} />
       </SettingsGroup>
 
       {/* The plan is one row and opens the Subscription screen, which holds

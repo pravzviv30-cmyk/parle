@@ -580,7 +580,16 @@ type ConfirmSheetProps = {
   cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /**
+   * The confirmed action is running. The sheet stays up, both buttons are off,
+   * the link reads `busyLabel`, and every way out is ignored so the learner's
+   * answer stands. Off by default, so existing callers are unchanged.
+   */
+  busy?: boolean;
+  busyLabel?: string;
 };
+
+const ignore = (): void => {};
 
 /**
  * The one leave-confirmation. It asks before a learner abandons something the
@@ -600,17 +609,20 @@ export function ConfirmSheet({
   visible,
   title,
   body,
-  confirmLabel,
+  confirmLabel: askedConfirm,
   cancelLabel,
   onConfirm,
   onCancel,
+  busy = false,
+  busyLabel,
 }: ConfirmSheetProps) {
   const t = useB();
+  const confirmLabel = busy ? (busyLabel ?? askedConfirm) : askedConfirm;
   return (
-    <Sheet visible={visible} title={title} onClose={onCancel}>
+    <Sheet visible={visible} title={title} onClose={busy ? ignore : onCancel}>
       <Text style={[type.body, { color: t.muted }]}>{body}</Text>
-      <PillButton label={cancelLabel} onPress={onCancel} />
-      <GhostButton label={confirmLabel} onPress={onConfirm} />
+      <PillButton label={cancelLabel} onPress={onCancel} disabled={busy} />
+      <GhostButton label={confirmLabel} onPress={onConfirm} disabled={busy} />
     </Sheet>
   );
 }
