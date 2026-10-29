@@ -319,3 +319,15 @@ describe('nextScene — a placement is where suggestions start, never evidence',
     assert.equal(nextScene(empty, null, null)?.mission.id, FIRST_MISSION);
   });
 });
+
+describe('nextScene — a placed learner\'s goal leads from the first suggestion', () => {
+  test('a placed learner with a goal starts on the goal scene at their placement', () => {
+    const empty = missionStates([], [], NOW);
+    assert.deepEqual(nextScene(empty, 'trip', 'A1'), { mission: getMission('mission:gare'), picked: 'goal' });
+    assert.deepEqual(nextScene(empty, 'work', 'A2'), { mission: getMission('mission:collegues'), picked: 'goal' });
+    // No goal scene in the band: the spine from the placement.
+    assert.deepEqual(nextScene(empty, 'food', 'A2'), { mission: getMission('mission:week-end'), picked: 'spine' });
+    // Unplaced learners still open on the first coffee whatever the goal.
+    assert.equal(nextScene(empty, 'trip', null)?.mission.id, FIRST_MISSION);
+  });
+});

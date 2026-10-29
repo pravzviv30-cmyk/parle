@@ -179,3 +179,25 @@ describe('F917: a starting point, never a credit', () => {
     assert.ok(MISSIONS.length > 0);
   });
 });
+
+describe('one rule picks the first scene', () => {
+  test("the plan's first scene is the scene Home offers first", async () => {
+    const { homeMissionFrom } = await import('../home/homeMission.ts');
+    const { goalOf } = await import('./goalLine.ts');
+    const { startAtOf } = await import('../profile/practicePreferences.ts');
+    const { nextScene } = await import('@luvani/core');
+    const empty = missionStates([], [], NOW);
+    for (const level of START_LEVELS) for (const reason of [null, ...REASONS.map((o) => o.key)]) for (const skipAhead of [false, true]) {
+      const d = draft({ startLevel: level.key, reason, skipAhead });
+      const profile = profileFromDraft(d, NOW);
+      const label = `${level.key}/${reason}/${skipAhead}`;
+      const first = firstSceneFor(level.key, reason, skipAhead);
+      assert.equal(planFor(d).scenes[0]?.id, first, label);
+      assert.equal(goalOf(profile), reason, `${label}: the stored goal is the onboarding reason`);
+      assert.equal(nextScene(empty, goalOf(profile), startAtOf(profile))?.mission.id, first, `${label}: core disagrees`);
+      const hero = homeMissionFrom({ progress: empty, records: [], levelIndex: 0, goal: goalOf(profile), startAt: startAtOf(profile), now: NOW });
+      assert.ok(hero?.kind === 'scene', label);
+      assert.equal(hero.mission.id, first, `${label}: Home offers a different first scene`);
+    }
+  });
+});

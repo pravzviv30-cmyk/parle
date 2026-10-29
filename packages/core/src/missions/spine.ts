@@ -129,8 +129,12 @@ const CEFR_RANK: Readonly<Record<MissionLevel, number>> = { A0: 0, A1: 1, A2: 2,
  * `startAt` is the learner's placement (F917, mobile `onboarding/placement.ts`):
  * the band suggestions start at. It is a starting point, never evidence: it
  * moves no level and earns nothing, and the scenes below it stay open to pick.
- * With it, the opener is the first unearned spine scene at or above it, goal
- * scenes below it are passed over, and the reach is never below it. Once every
+ * With it the goal leads from the very first suggestion (the opener rule is
+ * for a learner starting at the bottom): the first unearned goal scene from the
+ * placement's band up to the reach, else the first unearned spine scene at or
+ * above it. Goal scenes below it are passed over, and the reach is never below
+ * it. With empty progress this is exactly the plan's `firstSceneFor` (mobile
+ * `onboarding/plan.ts`), so the plan and Home name one first scene. Once every
  * scene at or above it is earned, the skipped scenes are offered again. Pure
  * and unstored.
  */
@@ -142,7 +146,7 @@ export function nextScene(
   const view = spineFrom(progress);
   const earnedIds = earnedMissionIds(progress);
   const floor = startAt !== null && startAt in CEFR_RANK ? CEFR_RANK[startAt] : 0;
-  if (earnedIds.size > 0 && isLearnerGoal(goal) && goal !== 'because') {
+  if ((earnedIds.size > 0 || floor > 0) && isLearnerGoal(goal) && goal !== 'because') {
     const reach = Math.max(CEFR_RANK[REACH[view.level]], floor);
     for (const id of GOAL_SCENES[goal]) {
       const mission = getMission(id);

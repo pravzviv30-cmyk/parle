@@ -277,11 +277,13 @@ what they told an onboarding screen.
 Which scene is suggested next is `nextScene` in `missions/spine.ts`: the
 learner's goal orders the suggestion, never gates a scene and never changes the
 level, which still comes only from earned scenes (`spineFrom`). Until the
-learner has earned a scene it is the spine's opener whatever the goal.
+learner has earned a scene it is the spine's opener whatever the goal, unless
+they have a placement (below).
 An onboarding placement (F917: "I can get by" is Basics, A1; "Feeling
 confident" or "Skip ahead" is Everyday, A2) is passed as `startAt`: the
 suggestion starts at the first unearned scene in that band or above, and goal
-scenes below it are passed over. A placement is a starting point, never
+scenes below it are passed over; for a placed learner the goal leads from the
+very first suggestion, which is the plan's `firstSceneFor`. A placement is a starting point, never
 evidence: it earns no scene, moves no level and credits no ability, the
 skipped scenes stay open to pick, and once everything at or above it is earned
 they are suggested again. It follows the stated level when Settings changes it

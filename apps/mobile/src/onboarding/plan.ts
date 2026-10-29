@@ -107,8 +107,10 @@ export function goalReachScenes(reason: Reason | null | undefined): readonly Mis
  * The scene the first run opens on after the account is made. Brand new and a
  * few words open on the spine's opener, the same scene core's `nextScene`
  * offers before anything is earned. A learner who can get by starts on the
- * first A0 or A1 scene of their goal; with no goal, 'because', or no such
- * scene, it is the level's first scene on the spine.
+ * first scene of their goal in the placement's band; with no goal, 'because',
+ * or no such scene, it is the level's first scene on the spine. Either way it
+ * is what core's `nextScene(empty, goal, startAt)` picks, so Home offers the
+ * same scene (`planTruth.test.ts`).
  */
 export function firstSceneFor(level: StartLevel | null, reason?: Reason | null, skipAhead = false): MissionId {
   const start = level ?? DEFAULT_START_LEVEL;
