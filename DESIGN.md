@@ -330,9 +330,13 @@ Subscription use the B tokens through the `mainApp.light` aliases and Outfit.
 The single action is the primary pill. The Yearly/Monthly switch sits on a
 lavender track with the chosen segment white. The trial page (F932, founder
 decision 6, 2026-10-29) is titled for the plan's first week ("Your first week
-with Core"; a trial that is not seven days says its days) and opens on one
-scene, `place-cafe-counter` through the shared `Illustration` (64pt tall, 56pt
-on a compact phone). It walks the week as a route in the map motif, with no
+with Core"; a trial that is not seven days says its days). The route through
+the charge day comes straight after the offer line and before the period
+switch, so it stays above the pinned footer on a 375x812 phone
+(`wallLayout.test.ts` budget). One scene, `place-cafe-counter` at the shared
+`Illustration`'s own small fit, leads the page only on a screen tall enough to
+hold it as well (`trialScenePlace`, iPad-sized today); on a phone it follows
+the plan line, after every fact. The route is in the map motif with no
 glyphs: a 2pt brand-blue line at 35% opacity joins 16pt stops. Today is a
 filled sun dot, the week's learning line a 10pt open ring with no title, the
 reminder or cancel day an open brand ring, and the charge day a filled brand

@@ -287,6 +287,18 @@ export function timelineRows(view: TrialTimelineView): readonly RouteStop[] {
   return stops;
 }
 
+/**
+ * Where the trial page's scene sits (F932). The route through the charge day
+ * must stay above the pinned footer, so the scene leads the page only on a
+ * screen tall enough to hold it there at its own size (`Illustration`'s small
+ * fit, 165pt); otherwise, and at large text, it follows the plan line, after
+ * every fact. The height is the budget in `wallLayout.test.ts`.
+ */
+export const TRIAL_SCENE_TOP_MIN_HEIGHT = 900;
+export function trialScenePlace(usableHeight: number, fontScale = 1): 'top' | 'end' {
+  return usableHeight >= TRIAL_SCENE_TOP_MIN_HEIGHT && fontScale < 1.3 ? 'top' : 'end';
+}
+
 export interface PaywallNotice {
   title: string | null;
   body: string;

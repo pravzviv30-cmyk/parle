@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { Label, Press, Sheet } from '../components.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
-import { useCompactPhone } from '../layout.tsx';
+import { useScreenGeometry } from '../layout.tsx';
 import { StaggerIn } from '../motion/StaggerIn.tsx';
 import { STAGGER } from '../motion/tokens.ts';
 import { INCLUSIONS } from '../purchases/capabilities.ts';
@@ -17,15 +17,16 @@ import { BenefitRow, WallCta, WallLinks, WallSkeleton, wallType } from './WallPa
 import type { WallAccount } from './wallAccount.ts';
 import { chosenOffer, type WallPlanOffer, type WallPlanRow } from './wallPlans.ts';
 import type { TrialTimelineView } from './trialTimeline.ts';
-import { compareCards, compareCta, planLine, timelineRows, windowDays, type PaywallOffer, type RouteMark } from './trialPaywall.ts';
+import { compareCards, compareCta, planLine, timelineRows, windowDays, trialScenePlace, type PaywallOffer, type RouteMark } from './trialPaywall.ts';
 
 /**
  * The trial paywall's body ("P2 · Luvani", 2026-10-19): headline, the billed
  * amount, the period switch, then the timeline (trial) or three benefits
  * (standard), and the plan line with its way into the compare sheet.
  *
- * The trial page opens on one of Luvani's own scenes, the cafe counter (F932,
- * founder decision 6), and walks the first week as a route; the standard page
+ * The trial page carries one of Luvani's own scenes, the cafe counter (F932,
+ * founder decision 6): above the headline on a tall screen, else after the
+ * plan line, so the charge day is never pushed below the footer. It walks the first week as a route; the standard page
  * keeps no art. Nothing on it moves. The billed amount is the most prominent price: bold in the
  * trial's offer line, and the largest price on a standard page. The choices
  * select rather than buy; the one button lives in the frame's footer, with the
@@ -69,7 +70,12 @@ export function WallPlansPage({
   const current = chosenOffer(rows, selected);
   const visiblePlan = rows.find(row => row.offers.some(offer => offer.productId === selected))?.plan ?? rows[0]?.plan;
   const visibleRow = rows.find(row => row.plan === visiblePlan);
-  const compact = useCompactPhone();
+  const { usableHeight } = useScreenGeometry();
+  const { fontScale } = useWindowDimensions();
+  const scene = offer?.kind === 'trial' && !loading ? trialScenePlace(usableHeight, fontScale) : null;
+  const periodSwitch = visibleRow !== undefined && <View style={st.switch}>
+    <WallPeriodSwitch offers={visibleRow.offers} name={visibleRow.name} selected={selected} onSelect={onSelect} disabled={busy} />
+  </View>;
   return (
     <View style={st.content}>
       {brief !== null && !loading && <View style={st.brief}>
@@ -77,21 +83,19 @@ export function WallPlansPage({
         <Text style={[wallType.line, { color: colors.muted }]}>{brief.line}</Text>
       </View>}
       {loading ? <PlansLoading /> : offer !== null && <>
-        {offer.kind === 'trial' && <View {...decorative} style={st.art}>
-          <Illustration name="place-cafe-counter" style={{ width: 240, height: compact ? 56 : 64 }} />
-        </View>}
+        {scene === 'top' && <TrialScene />}
         <Text accessibilityRole="header" style={[wallType.headline, { color: colors.text }]}>{offer.headline}</Text>
         {offer.kind === 'trial'
           ? <Text style={[st.offer, { color: colors.text }]}>{offer.lead}<Text style={wallType.bold}>{offer.billed}</Text></Text>
           : <Text style={[wallType.price, st.price, { color: colors.text }]}>{offer.billed}</Text>}
         <Text style={[wallType.detail, st.detail, { color: colors.muted }]}>{offer.detail}</Text>
       </>}
-      {visibleRow !== undefined && <View style={st.switch}>
-        <WallPeriodSwitch offers={visibleRow.offers} name={visibleRow.name} selected={selected} onSelect={onSelect} disabled={busy} />
-      </View>}
+      {/* F932: on a trial the route comes first, so the charge day stays above the footer; the switch follows it. */}
+      {trial === null && periodSwitch}
       {trial !== null && <View style={st.trialSummary}>
         <TrialTimeline view={trial} />
       </View>}
+      {trial !== null && periodSwitch}
       {trial === null && offer !== null && <View style={st.benefits}>
         {offer.benefits.map(line => <BenefitRow key={line} line={line} />)}
       </View>}
@@ -101,6 +105,7 @@ export function WallPlansPage({
           <Text style={[wallType.line, { color: colors.link }]}>{PLANS_COMPARE}</Text>
         </Press>}
       </View>}
+      {scene === 'end' && <TrialScene />}
       <ComparePlans comparing={comparing} rows={rows} current={current} catalogue={catalogue} account={account} standing={standing}
         onClose={() => setComparing(false)} onChoose={(offer) => { onSelect(offer); setComparing(false); }} />
     </View>
@@ -181,6 +186,11 @@ function ComparePlans({ comparing, rows, current, catalogue, account, standing, 
   );
 }
 
+/** Luvani's cafe counter at the component's own small size; callers never set its width. */
+function TrialScene() {
+  return <View {...decorative} style={st.art}><Illustration name="place-cafe-counter" fit="small" /></View>;
+}
+
 /**
  * The store free trial as a route through its first week (F932): today, the
  * week's scenes, the reminder or the day to cancel by, the charge day. Dots on
@@ -251,7 +261,7 @@ const st = StyleSheet.create({
   planLine: { marginTop: space(2), minHeight: HIT, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: space(2) },
   planText: { flexShrink: 1 },
   compareLink: { minHeight: HIT, justifyContent: 'center' },
-  art: { alignItems: 'center', marginBottom: space(1) },
+  art: { alignItems: 'center', marginVertical: space(1) },
   node: { flexDirection: 'row', gap: 14 },
   rail: { alignItems: 'center', width: STOP, paddingTop: 5 },
   stop: { width: STOP, height: STOP, borderRadius: STOP / 2, borderWidth: 2.5 },

@@ -25,7 +25,8 @@ describe('the refill a 402 names', () => {
     assert.deepEqual(refusalWords(TABLE, 'exhausted', { refillsAt: 'soon' }), TABLE);
     const at = '2026-10-29T16:10:00.000Z';
     assert.deepEqual(refusalWords(TABLE, 'subscription-lapsed', { refillsAt: at }), TABLE, 'a lapse kept its own sentence');
-    const words = refusalWords(TABLE, 'exhausted', { refillsAt: at });
+    // A fixed clock an hour before the refill, so the test never depends on today's date.
+    const words = refusalWords(TABLE, 'exhausted', { refillsAt: at }, Date.parse(at) - 3_600_000);
     assert.equal(words.label, "You've used your free conversation");
     assert.equal(words.message, `Your next free conversation is ready ${refillWhen(new Date(at))}. Until then, practise offline.`);
     assert.doesNotMatch(`${words.label} ${words.message}`, /—|week|take your time|sorry/i);

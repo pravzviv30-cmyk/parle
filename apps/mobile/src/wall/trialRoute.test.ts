@@ -43,8 +43,12 @@ test("the trial page walks the first week as a route with Luvani's own scene art
   assert.equal('TIMELINE_GLYPHS' in paywall, false, 'the lock, bell, calendar and star glyphs are still exported');
   assert.doesNotMatch(page, /<Icon\b|TIMELINE_GLYPHS/);
   // Luvani's cafe counter scene, drawn only on the trial page, through the shared Illustration component.
-  assert.match(page, /offer\.kind === 'trial' && <View \{\.\.\.decorative\} style=\{st\.art\}>\s*<Illustration name="place-cafe-counter"/);
-  assert.ok(page.indexOf('name="place-cafe-counter"') < page.indexOf('{offer.headline}'), 'the scene is not at the top of the trial page');
+  // At the component's own size (callers never set its width), above the headline only where it fits.
+  assert.match(page, /<Illustration name="place-cafe-counter" fit="small" \/>/);
+  assert.ok(page.indexOf("{scene === 'top' && <TrialScene />}") < page.indexOf('{offer.headline}'), 'a tall screen does not lead with the scene');
+  assert.equal(paywall.trialScenePlace(1000), 'top');
+  assert.equal(paywall.trialScenePlace(731), 'end');
+  assert.equal(paywall.trialScenePlace(1000, 1.5), 'end');
   // Theme colours only, and nothing moves beyond the shared stagger (which honours reduced motion).
   assert.match(page, /st\.route, \{ backgroundColor: b\.brand \}/);
   assert.doesNotMatch(page, /#[0-9A-Fa-f]{6}|Animated\./);
