@@ -55,12 +55,6 @@ export const paper = {
    * white: a mark at the 3 floor, never words.
    */
   field: '#8A8499',
-  /**
-   * The keyboard focus ring (F927): a mid violet that reaches 3:1 on the
-   * cream ground, a white card and the dark ground and card alike, so one
-   * web rule serves both modes. A mark, never words.
-   */
-  focus: '#6A5CFF',
   /** Text and icons on a filled ink, blue or coral control. */
   onInk: '#FFFFFF',
 } as const;

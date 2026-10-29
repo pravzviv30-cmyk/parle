@@ -86,7 +86,9 @@ period stay near a purchase action, and large text is never capped to fit.
   seconds (only with a fix: English only before the try, and only when the
   drill would open on an exercise that hides the French; "Your line from
   {day}" when the conversation's day is known), the next scene (the sun card
-  with its stage place, "Next scene, 2 of 3", a "Uses" chip only when the last
+  with its stage place and the café drawing, at the top right when the card is
+  at least 384pt wide and in a band above full-width words below that or at
+  large text (F920), "Next scene, 2 of 3", a "Uses" chip only when the last
   conversation's phrase is one of the scene's lines, and its own minutes; or
   the plans card when a trial cannot start, "Your paid plan has ended." when
   lapsed, a paid plan's out-of-time words with the starter card or local
@@ -131,7 +133,9 @@ period stay near a purchase action, and large text is never capped to fit.
   unknown id says so and returns to Explore.
 - Speak (rebuilt to B-Speak in light and dark, UI-008, 2026-10-20): the
   subtitle names the tutor; the `heroGround` Recommended card carries the
-  café drawing, the scene's goal, its minutes and "Uses speaking time" as
+  café drawing (beside the words on a wide card, in a band above them on a
+  phone or at large text: `sceneCardGeometry`, F920, the same rule as
+  Today's scene card), the scene's goal, its minutes and "Uses speaking time" as
   `heroChip` pills, the Speak/Type radios on the `butter` track (the chosen
   cell on `heroChip` with a tick), the two preference chips outlined in
   `heroText`, "Prepare first, free" to the preview and the 54pt `heroCta`
@@ -279,7 +283,11 @@ B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
 - **Welcome:** the brand page with the canvas friends drawing on a sun disc,
   confetti and three French speech bubbles; "A little French." with "A bigger
   world." in sun (40/800), three deep-blue promise chips and the 60 sun button
-  with its pressed edge.
+  with its pressed edge. The 390-wide stage scales about its middle on a
+  narrower screen so every bubble stays on it at 320 (`welcomeStageScale`,
+  F921). Below 700pt of usable height every onboarding and account page
+  scrolls its footer after the content instead of pinning it
+  (`footerInScroll` in `responsiveLayout.ts`).
 - **Questions:** each page bleeds a band under the clock (bottom corners 48):
   the 6-point progress bar and "n of 6", then a 156 halo and its canvas
   drawing. Reason is sun with voice-chat, interests brand with phrasebook,
@@ -419,7 +427,6 @@ and the ring of an unchosen option, a mark and never words.
 | `paper.inkOnPastel` | `#4A4766` | The secondary line on a pastel (6.5 or more on each) |
 | `paper.onInk` | `#FFFFFF` | Text and icons on a filled ink, blue or coral control |
 | `paper.field` | `#8A8499` | The 1.5pt input border and the unchosen option ring. A mark, never words |
-| `paper.focus` | `#6A5CFF` | The 2pt keyboard focus ring (`FOCUS` in theme.ts), web only. 4.3 on the ground, 4.6 on a card, 4.0 on the dark ground. A mark |
 
 Ink clears 16.6 on the ground, 17.8 on a card and 14.4 on the skeleton. Soft
 ink clears 6.2 on the ground and 6.6 on a card. The card lifts off the ground by
@@ -427,12 +434,20 @@ a Delta-E of 7.9, the hairline sits 5.8 off the ground and 12.3 off a card, and
 the skeleton 5.9 off the ground. The hairline is decorative and never the only
 edge of a control. Soft ink clears 5.8 on the inset. The field border clears 3.6 on a card, the
 floor for a mark. Every input border, choice outline and unchosen radio ring takes `field`
-(`c.field` in onboarding, `t.field` on themed screens), in both modes; `controls.test.ts`
-measures each one against the card and the ground (F921).
+(`c.field` in onboarding, `t.field` on themed screens), in both modes: inputs, choice and
+token tiles, filter chips, option cards and bordered icon buttons alike. `controls.test.ts`
+measures them against the card and the ground, and scans every source file: a full
+`borderColor` on `line` or `border` fails unless it is on the test's commented list of
+decorative borders (a progress stop, a rung bullet, day dots, the stat rules) (F921).
 
-The keyboard focus ring is `FOCUS` in theme.ts: 2pt, 2pt clear of the control, in
-`paper.focus`. One web rule, installed once by `keyActivation.ts` from components.tsx,
-draws it on `:focus-visible` only, so a mouse click stays ringless. `Press`,
+The keyboard focus ring is `FOCUS` in theme.ts: a 2pt `paper.ink` outline 2pt clear of
+the control, with a `paper.card` white halo filling the gap. No single colour clears 3 on
+every ground, so the ring is two-tone and one part always does: ink on cream (16.6), a card
+(17.8), sun (11.6) and mint (9.0); white on the dark ground (18.4), the dark card (15.5),
+blue (7.9) and coral (4.7). `controls.test.ts` measures all eight. One web rule, installed
+once by `keyActivation.ts` from components.tsx, draws it on `:focus-visible` only, so a
+mouse click stays ringless. The halo is a box-shadow, so a control with its own shadow
+gives it up while it holds keyboard focus, and only then. `Press`,
 `OutlineButton`, `OptionCard` and `Chip` carry its data attribute; `AccountField` draws
 its own 2pt ring. On the web, Space chooses a radio, checkbox, tab or switch built on
 `Press` or `Chip`; Enter is react-native-web's own (F927). A `PillButton` or `Press`

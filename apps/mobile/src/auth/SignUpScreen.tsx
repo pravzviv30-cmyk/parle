@@ -13,7 +13,7 @@ import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { PasswordMeter } from './PasswordMeter.tsx';
-import { signupProblems, signupReady, passwordsMatch, visibleFormHeight } from './signupForm.ts';
+import { signupProblems, signupReady, signupWaitingReason, passwordsMatch, visibleFormHeight } from './signupForm.ts';
 import { useFormKeyboard } from './useFormKeyboard.ts';
 import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
 import { ProviderButton } from './ProviderButton.tsx';
@@ -275,6 +275,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           label={authButtonLabel('createAccount', pending === 'createAccount')}
           onPress={() => void submit()}
           disabled={busy || !ready || formOk}
+          disabledReason={!busy && !formOk && !ready ? signupWaitingReason(email, password, confirm) ?? undefined : undefined}
           state={pending === 'createAccount' ? 'busy' : formOk ? 'done' : 'idle'}
         />
       </View>

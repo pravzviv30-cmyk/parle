@@ -325,7 +325,7 @@ function makeSt(t: B) {
     borderRadius: HIT / 2,
     backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
     alignItems: 'center',
     justifyContent: 'center',
   },

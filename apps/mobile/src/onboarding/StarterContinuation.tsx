@@ -206,7 +206,7 @@ export function StarterContinuation({
                     padding: 16,
                   backgroundColor: paper.card,
                   borderWidth: 1,
-                  borderColor: paper.line,
+                  borderColor: paper.field,
                     borderRadius: 16,
                   }}
                 />

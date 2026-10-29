@@ -110,7 +110,7 @@ function makeSt(t: B) {
     paddingVertical: space(2.5),
     paddingHorizontal: space(3.5),
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
     borderRadius: radius.row,
     backgroundColor: t.card,
   },

@@ -77,7 +77,7 @@ import { OrbSurface } from './tutor/OrbSurface.tsx';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { READING, actionRowWraps } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
-import { focusRing, installFocusRule, spaceActivator } from './keyActivation.ts';
+import { composeKeyDown, focusRing, installFocusRule, spaceActivator } from './keyActivation.ts';
 
 // The keyboard focus ring (F927): one rule, added once, on the web only.
 if (Platform.OS === 'web') installFocusRule(FOCUS);
@@ -1094,7 +1094,7 @@ const makeS = (t: B) => StyleSheet.create({
     gap: space(3),
     backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
     borderRadius: radius.card,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
@@ -1133,7 +1133,7 @@ const makeS = (t: B) => StyleSheet.create({
   },
   speakIdle: { backgroundColor: colour.mint },
   speakLive: { backgroundColor: colour.mint },
-  speakMuted: { borderWidth: 2, borderColor: t.line },
+  speakMuted: { borderWidth: 2, borderColor: t.field },
   stationRow: { flexDirection: 'row', alignItems: 'center' },
   stationCell: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   stationRail: { height: 2, flex: 1 },
@@ -1669,7 +1669,9 @@ export type Ground = 'blue' | 'coral' | 'sun' | 'mint';
  * role wins (a segment passes `tab`). A disabled Press never presses, so it
  * neither shrinks nor ticks.
  */
-export function Press({ onPress, haptic = 'light', style, frame, depth = 'control', selected, glowRadius = radius.control, disabled = false, disabledReason, onPressIn, onPressOut, children, ref: outerRef, ...rest }: PressProps) {
+export function Press({ onPress, haptic = 'light', style, frame, depth = 'control', selected, glowRadius = radius.control, disabled = false, disabledReason, onPressIn, onPressOut, children, ref: outerRef, onLongPress, ...others }: PressProps) {
+  // A caller's own onKeyDown is web-only and untyped; it runs beside the Space handler.
+  const { onKeyDown: callerKeyDown, ...rest } = others as typeof others & { onKeyDown?: (event: { key: string; repeat?: boolean; preventDefault: () => void }) => void };
   const reduced = useReduceMotion();
   // Disabled with a reason stays reachable (F927): the Pressable is not
   // disabled, so it keeps tabIndex 0, and the off state and the reason are
@@ -1720,7 +1722,8 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
       accessibilityRole="button" {...rest} {...say}
       ref={setRef}
       {...ringProps}
-      {...webKeyDown(onSpace)}
+      {...webKeyDown(composeKeyDown(onSpace, callerKeyDown))}
+      onLongPress={explained ? undefined : onLongPress}
       disabled={disabled && !explained ? true : undefined}
       onPressIn={(event) => {
         if (explained) return;
@@ -2307,7 +2310,7 @@ const makeB = (t: B) => StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
   },
   filterChipChosen: { backgroundColor: t.primary, borderColor: t.primary },
   metaChip: {

@@ -13,10 +13,12 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { b, boldRhythm, mainApp, paper } from './palette.ts';
+import { readdirSync, readFileSync } from 'node:fs';
+import { b, boldRhythm, colour, mainApp, paper } from './palette.ts';
+import { signupWaitingReason } from './auth/signupForm.ts';
+import { PASSWORD_MIN } from './auth/validate.ts';
 import { contrast, MARK } from './testing/contrast.ts';
-import { FOCUS_RING_ATTRIBUTE, focusRuleCss, keyActivates, spaceActivator } from './keyActivation.ts';
+import { composeKeyDown, FOCUS_RING_ATTRIBUTE, focusRuleCss, keyActivates, spaceActivator } from './keyActivation.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const MODES = ['light', 'dark'] as const;
@@ -67,10 +69,48 @@ describe('F921: control borders', () => {
   });
 
   test('a control border never uses the decorative hairline', () => {
-    for (const { file, what, pattern } of CONTROL_BORDERS) {
-      const ref = read(file).match(pattern)?.[1] ?? '';
-      assert.doesNotMatch(ref, /\.(line|lineOnCard|border)$/, `${file}: ${what} uses ${ref}, the divider hairline`);
+    // App-wide: every full `borderColor` drawn from the hairline (`line`,
+    // `lineOnCard`, or mainApp's `border`, which is the same value) is a
+    // finding unless it is listed here as decorative. A one-sided rule
+    // (borderTopColor and the like) is a divider by construction and is not
+    // read. A new input, choice, tile or chip on the hairline fails by default.
+    const DECORATIVE = new Map<string, string>([
+      ['components.tsx#stopMark', 'a stop on the progress line, not pressable'],
+      ['components.tsx#inline:LineBullet', 'a rung bullet beside a line, not pressable'],
+      ['drill/AnswerSheet.tsx#calm', 'the calm feedback panel around the answer words'],
+      ['settings/ProfileParts.tsx#statRuled', 'the rules between the profile stats'],
+      ['myfrench/CadenceCard.tsx#notYet', 'a day dot not yet practised'],
+      ['tutor/MissionTaskList.tsx#open', 'an open task mark beside its words'],
+      ['onboarding/firstRun/StreakCelebrationScreen.tsx#disc', 'a day disc inside the streak art'],
+      ['onboarding/firstRun/WeekStrip.tsx#open', 'an open day in the week strip'],
+    ]);
+    const root = new URL('.', import.meta.url);
+    const files = readdirSync(root, { recursive: true, encoding: 'utf8' })
+      .filter((p) => /\.tsx?$/.test(p) && !/\.test\.tsx?$/.test(p) && !p.startsWith('testing/'));
+    const findings: string[] = [];
+    const seen = new Set<string>();
+    for (const file of files) {
+      const source = read(file);
+      for (const m of source.matchAll(/\bborderColor:\s*([^,}\n]+)/g)) {
+        if (!/\.(line|lineOnCard|border)\b/.test(m[1]!)) continue;
+        // The style this border belongs to: the key in front of its innermost open brace.
+        let depth = 0;
+        let at = m.index!;
+        for (; at >= 0; at -= 1) {
+          const ch = source[at];
+          if (ch === '}') depth += 1;
+          else if (ch === '{') { if (depth === 0) break; depth -= 1; }
+        }
+        // An inline style is named by the component it sits in, so one entry never covers a whole file.
+        const key = /(\w+):\s*$/.exec(source.slice(Math.max(0, at - 80), at))?.[1]
+          ?? `inline:${[...source.slice(0, at).matchAll(/function (\w+)/g)].at(-1)?.[1] ?? 'module'}`;
+        const where = `${file.split('\\').join('/')}#${key}`;
+        seen.add(where);
+        if (!DECORATIVE.has(where)) findings.push(`${where} (${m[1]!.trim()})`);
+      }
     }
+    assert.deepEqual(findings, [], 'controls drawn with the decorative hairline (1.2:1); use field, or list a truly decorative border with its reason');
+    for (const where of DECORATIVE.keys()) assert.ok(seen.has(where), `${where} is allowlisted but no longer on the hairline; drop it from the list`);
   });
 });
 
@@ -100,10 +140,20 @@ describe('F927: Space and the focus ring', () => {
     assert.equal(chosen, 1, 'Enter chose a second time');
     assert.equal(spaceActivator('button', () => {}), undefined, 'a button would take Space twice');
 
+    // A caller's own onKeyDown still runs beside the Space handler (it was replaced).
+    const heard: string[] = [];
+    const both = composeKeyDown((e: { key: string }) => heard.push(`space ${e.key}`), (e: { key: string }) => heard.push(`caller ${e.key}`));
+    both!({ key: 'a' });
+    assert.deepEqual(heard, ['space a', 'caller a'], 'the caller key handler was dropped');
+    assert.equal(composeKeyDown(undefined, undefined), undefined);
+    const solo = (e: { key: string }) => heard.push(e.key);
+    assert.equal(composeKeyDown(undefined, solo), solo);
+
     // Every onboarding option is built on Press, and Press and Chip wire it.
     const components = read('components.tsx');
     const press = components.slice(components.indexOf('export function Press('), components.indexOf('function SelectRing('));
     assert.match(press, /spaceActivator\(/, 'Press does not answer Space');
+    assert.match(press, /webKeyDown\(composeKeyDown\(onSpace, callerKeyDown\)\)/, 'Press replaces the caller onKeyDown');
     const chip = components.slice(components.indexOf('export function Chip('), components.indexOf('export function Chip(') + 3000);
     assert.match(chip, /spaceActivator\(role/, 'a filter chip does not answer Space');
     for (const [file, start] of [
@@ -119,18 +169,24 @@ describe('F927: Space and the focus ring', () => {
   });
 
   test('focused buttons show the app focus ring', () => {
-    // The token: 2pt, and a mark on cream, white and the dark ground.
+    // The token: a 2pt ink outline over a 2pt white halo that fills the gap,
+    // so on every ground the app puts a control on, one of the pair is a mark.
     const theme = read('theme.ts');
-    assert.match(theme, /export const FOCUS = \{ width: 2, offset: 2, colour: paper\.focus \}/, 'theme.ts has no 2pt focus token');
-    for (const [name, ground] of [['cream', paper.ground], ['card', paper.card], ['dark ground', b.dark.ground], ['dark card', b.dark.card]] as const) {
-      const ratio = contrast(paper.focus, ground);
-      assert.ok(ratio >= MARK, `the focus ring is ${ratio.toFixed(2)} on the ${name}, under ${MARK}`);
+    assert.match(theme, /export const FOCUS = \{ width: 2, offset: 2, colour: paper\.ink, halo: paper\.card \}/, 'theme.ts has no two-tone 2pt focus token');
+    const GROUNDS = [
+      ['cream', paper.ground], ['white card', paper.card], ['dark ground', b.dark.ground], ['dark card', b.dark.card],
+      ['blue', colour.blue], ['coral', colour.coral], ['sun', colour.sun], ['mint', colour.mint],
+    ] as const;
+    for (const [name, ground] of GROUNDS) {
+      const best = Math.max(contrast(paper.ink, ground), contrast(paper.card, ground));
+      assert.ok(best >= MARK, `the focus ring is ${best.toFixed(2)} at best on ${name}, under ${MARK}`);
     }
 
     // One rule, keyboard focus only, and it outranks react-native-web's own outline reset.
-    const css = focusRuleCss({ width: 2, offset: 2, colour: paper.focus });
+    const css = focusRuleCss({ width: 2, offset: 2, colour: paper.ink, halo: paper.card });
     assert.match(css, new RegExp(`\\[data-${FOCUS_RING_ATTRIBUTE}\\]:focus-visible`), 'the ring is not keyboard focus only');
-    assert.match(css, new RegExp(`outline: 2px solid ${paper.focus} !important`), 'the ring is not drawn');
+    assert.match(css, new RegExp(`outline: 2px solid ${paper.ink} !important`), 'the ring is not drawn');
+    assert.match(css, new RegExp(`box-shadow: 0 0 0 2px ${paper.card} !important`), 'the halo does not fill the gap');
     assert.match(css, /:focus:not\(:focus-visible\)[^{]*\{[^}]*outline: none/, 'a mouse click would draw a ring');
 
     // Injected once, from components.tsx, on the web only.
@@ -162,9 +218,25 @@ describe('F927: Space and the focus ring', () => {
     assert.match(press, /setAttribute\('aria-description', disabledReason\)/, 'the web does not hear why');
     assert.match(press, /accessibilityHint: disabledReason/, 'a device does not hear why');
     assert.match(press, /if \(disabled \|\| onPress\?\.\(\) === false\) return;/, 'an explained press is not ignored');
+    assert.match(press, /onLongPress=\{explained \? undefined : onLongPress\}/, 'an explained button still answers a long press');
     const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('function PillWait('));
     assert.match(pill, /disabledReason\?: string/, 'PillButton takes no reason');
     assert.match(pill, /disabledReason=\{disabled && !waiting \? disabledReason : undefined\}/, 'PillButton does not pass its reason');
+
+    // Sign-up's Create account says what is still missing, and nothing while busy.
+    assert.equal(signupWaitingReason('', '', ''), `Add your email and a password of at least ${PASSWORD_MIN} characters to continue.`);
+    assert.equal(signupWaitingReason('', 'longenough', 'longenough'), 'Add your email to continue.');
+    assert.equal(signupWaitingReason('a@example.com', 'short', 'short'), `Use a password of at least ${PASSWORD_MIN} characters to continue.`);
+    assert.equal(signupWaitingReason('a@example.com', 'longenough', ''), 'Type your password again to continue.');
+    assert.equal(signupWaitingReason('a@example.com', 'longenough', 'different1'), 'Make both passwords match to continue.');
+    assert.equal(signupWaitingReason('a@example.com', 'longenough', 'longenough'), null);
+    for (const email of ['', 'a@example.com']) for (const password of ['', 'short', 'longenough']) for (const confirm of ['', 'short', 'longenough']) {
+      const reason = signupWaitingReason(email, password, confirm);
+      if (reason) assert.doesNotMatch(reason, /[\u2014\u00B7]/, 'the reason carries an em dash or middot');
+    }
+    const signup = read('auth/SignUpScreen.tsx');
+    assert.match(signup, /disabledReason=\{!busy && !formOk && !ready \? signupWaitingReason\(email, password, confirm\) \?\? undefined : undefined\}/, 'Create account does not say why it is off');
+    assert.match(read('onboarding/BoldButton.tsx'), /<PillButton \{\.\.\.props\}/, 'BoldButton drops the reason');
   });
 });
 

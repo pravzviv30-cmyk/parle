@@ -14,6 +14,21 @@ export function signupReady(email: string, password: string, confirm: string): b
   return problems.email === null && problems.password === null && problems.confirm === null;
 }
 
+/**
+ * Why Create account is still off, said to the learner who reaches it by
+ * keyboard or screen reader (F927). One short step at a time; null once the
+ * form is ready.
+ */
+export function signupWaitingReason(email: string, password: string, confirm: string): string | null {
+  const problems = signupProblems(email, password, confirm);
+  if (problems.email && problems.password) return `Add your email and a password of at least ${PASSWORD_MIN} characters to continue.`;
+  if (problems.email) return 'Add your email to continue.';
+  if (problems.password) return `Use a password of at least ${PASSWORD_MIN} characters to continue.`;
+  if (!confirm) return 'Type your password again to continue.';
+  if (problems.confirm) return 'Make both passwords match to continue.';
+  return null;
+}
+
 export function passwordsMatch(password: string, confirm: string): boolean {
   return !passwordTooShort(password) && confirm === password;
 }

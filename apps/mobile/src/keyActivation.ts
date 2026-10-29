@@ -33,6 +33,16 @@ export function spaceActivator(role: string | null | undefined, activate: () => 
   };
 }
 
+/**
+ * Runs both key handlers in order, so the Space handler never replaces a
+ * caller's own `onKeyDown`. Either may be missing.
+ */
+export function composeKeyDown<E>(first: ((event: E) => void) | undefined, second: ((event: E) => void) | undefined): ((event: E) => void) | undefined {
+  if (first == null) return second;
+  if (second == null) return first;
+  return (event) => { first(event); second(event); };
+}
+
 /** The data attribute the focus rule targets: `dataSet={focusRing}` renders `data-focusring`. */
 export const FOCUS_RING_ATTRIBUTE = 'focusring';
 /** Spread as `dataSet={focusRing}` on a Pressable or View. */
@@ -40,18 +50,23 @@ export const focusRing = { [FOCUS_RING_ATTRIBUTE]: 'true' } as const;
 
 const FOCUS_RULE_ID = 'luvani-focus-ring';
 
+type Ring = { width: number; offset: number; colour: string; halo: string };
+
 /**
- * The rule. `!important` outranks react-native-web's atomic `outline` classes;
+ * The rule. The outline is drawn `offset` clear of the control and a
+ * box-shadow halo fills that gap, so the ring is two-tone. `!important`
+ * outranks react-native-web's atomic classes; it also replaces a control's own
+ * shadow while it holds keyboard focus, and only then.
  * `:focus:not(:focus-visible)` keeps a mouse click ringless in every browser.
  */
-export function focusRuleCss(ring: { width: number; offset: number; colour: string }): string {
+export function focusRuleCss(ring: Ring): string {
   const selector = `[data-${FOCUS_RING_ATTRIBUTE}]`;
-  return `${selector}:focus-visible { outline: ${ring.width}px solid ${ring.colour} !important; outline-offset: ${ring.offset}px !important; }\n`
+  return `${selector}:focus-visible { outline: ${ring.width}px solid ${ring.colour} !important; outline-offset: ${ring.offset}px !important; box-shadow: 0 0 0 ${ring.offset}px ${ring.halo} !important; }\n`
     + `${selector}:focus:not(:focus-visible) { outline: none !important; }`;
 }
 
 /** Adds the rule to the page once. A no-op where there is no document. */
-export function installFocusRule(ring: { width: number; offset: number; colour: string }): void {
+export function installFocusRule(ring: Ring): void {
   const doc = (globalThis as { document?: Document }).document;
   if (doc == null || doc.getElementById(FOCUS_RULE_ID) != null) return;
   const style = doc.createElement('style');
