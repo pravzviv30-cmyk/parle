@@ -4,7 +4,7 @@ import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/n
 import { StatusBar } from 'expo-status-bar';
 import { DAILY_SCENARIOS, MISSIONS, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 
-import { Ledger, LedgerRow, LOCK_BADGE_LABEL, OutlineButton, Press, Sheet } from '../components.tsx';
+import { Ledger, LedgerRow, OutlineButton, Press, Sheet } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
 import { Columns, ScrollScreen, TabHeader, TopInset } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
@@ -31,7 +31,7 @@ import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useFeatureAccess } from '../access/useFeatureAccess.ts';
-import type { LockedFeature } from '../access/featureAccess.ts';
+import { lockSaid, type LockedFeature } from '../access/featureAccess.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
 import { myFrenchFrom, type MyFrench } from '../myfrench/model.ts';
@@ -348,7 +348,7 @@ export function MyFrenchTab() {
 
               {(canDo.rows.length > 0 || canDo.teaser !== null) && (
                 <View style={st.stack}>
-                  <JourneyHead title={CAN_DO_HEADING} locked={canDo.locked} />
+                  <JourneyHead title={CAN_DO_HEADING} locked={canDo.locked} feature={canDo.feature} />
                   {canDo.teaser !== null ? teaser(canDo.teaser, canDo.feature) : <JourneyList>
                     {canDo.rows.map((row, i) => (
                       <AbilityRow key={row.missionId} title={row.title} mark={row.mark} line={row.line} accessibilityLabel={row.accessibilityLabel} last={i === canDo.rows.length - 1} />
@@ -359,7 +359,7 @@ export function MyFrenchTab() {
 
               {thenNow !== null && (
                 <View style={st.stack}>
-                  <JourneyHead title={THEN_NOW_HEADING} locked={thenNow.locked} subtitle={thenNow.teaser !== null ? undefined : THEN_NOW_SUBTITLE}
+                  <JourneyHead title={THEN_NOW_HEADING} locked={thenNow.locked} feature={thenNow.feature} subtitle={thenNow.teaser !== null ? undefined : THEN_NOW_SUBTITLE}
                     link={thenNow.teaser !== null ? undefined : { label: SEE_ALL, accessibilityLabel: `${SEE_ALL}, ${THEN_NOW_HEADING}`, onPress: () => go(thenNow.route) }} />
                   {thenNow.teaser !== null ? teaser(thenNow.teaser, thenNow.feature) : (
                     <Press haptic="light" onPress={() => go(thenNow.route)} style={st.card}
@@ -380,14 +380,14 @@ export function MyFrenchTab() {
 
             <View style={st.page}>
               {help !== null && (
-                <HelpCard heading={HELP_HEADING} line={help.line} locked={help.locked}
+                <HelpCard heading={HELP_HEADING} line={help.line} locked={help.locked} feature={help.feature}
                   onPress={help.teaser !== null ? () => { if (owned()) locks.open(help.feature); } : undefined}
-                  accessibilityLabel={help.teaser !== null ? `${HELP_HEADING}, ${LOCK_BADGE_LABEL}. ${help.line}` : undefined} />
+                  accessibilityLabel={help.teaser !== null ? `${lockSaid(HELP_HEADING, help.feature, true)} ${help.line}` : undefined} />
               )}
 
               {sounds !== null && (
                 <View style={st.stack}>
-                  <JourneyHead title={SOUNDS_HEADING} locked={sounds.locked} />
+                  <JourneyHead title={SOUNDS_HEADING} locked={sounds.locked} feature={sounds.feature} />
                   {sounds.teaser !== null ? teaser(sounds.teaser, sounds.feature) : <JourneyList>
                     {sounds.rows.map((row, i) => (
                       <SoundRowView key={row.key} ipa={row.ipa} example={row.example} line={row.line} tile={row.tile} last={i === sounds.rows.length - 1}
@@ -399,7 +399,7 @@ export function MyFrenchTab() {
 
               {week !== null && (
                 <View style={st.stack}>
-                  <JourneyHead title={WEEK_HEADING} locked={week.locked} />
+                  <JourneyHead title={WEEK_HEADING} locked={week.locked} feature={week.feature} />
                   {week.teaser !== null ? teaser(week.teaser, week.feature) : <JourneyList>
                     {week.rows.map((row, i) => (
                       <WeekRowView key={row.key} label={row.label} line={row.line} dot={row.dot} last={i === week.rows.length - 1}

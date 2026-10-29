@@ -15,7 +15,8 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
-import { LOCK_BADGE_LABEL, LockBadge, Press } from '../components.tsx';
+import { LockBadge, Press } from '../components.tsx';
+import { lockSaid, type LockedFeature } from '../access/featureAccess.ts';
 import { ChevronGlyph, SearchGlyph, TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic } from '../today/TodayParts.tsx';
@@ -24,7 +25,6 @@ import { HIT, bType, decorative, frenchText, liftStyle } from '../theme.ts';
 /** The frame's gutter, which a bleeding row gives back on the right (responsiveLayout.ts). */
 const GUTTER = 20;
 
-const lockSaid = (label: string, locked: boolean): string => (locked ? `${label}, ${LOCK_BADGE_LABEL}` : label);
 
 // ─────────────────────────────────────────────────────────────── glyphs
 
@@ -144,21 +144,21 @@ export function PatternCard({ eyebrow, title, hint, note, practise, locked, onCa
     <>
       <View style={s.patternEyebrow}>
         <Text style={[bType.chip, { color: t.text }]}>{eyebrow}</Text>
-        {locked ? <LockBadge said /> : null}
+        {locked ? <LockBadge feature="fixes" said /> : null}
       </View>
       <View style={s.patternRow}>
         <View style={s.grow2}>
           <Text style={[bType.bold18, { color: t.text }]}>{title}</Text>
           <Text style={[bType.meta, { color: t.secondary }]}>{hint}</Text>
         </View>
-        {onPractise !== null ? <BButton hug label={practise} accessibilityLabel={lockSaid(`${practise}, ${title}`, locked)} height={40} ground={t.primary} ink={t.onPrimary} text={bType.bold14} onPress={onPractise} /> : null}
+        {onPractise !== null ? <BButton hug label={practise} accessibilityLabel={lockSaid(`${practise}, ${title}`, 'fixes', locked)} height={40} ground={t.primary} ink={t.onPrimary} text={bType.bold14} onPress={onPractise} /> : null}
       </View>
       {note !== null ? <Text style={[bType.note12, { color: t.secondary }]}>{note}</Text> : null}
     </>
   );
   if (onCard === null) return <View style={s.pattern}>{body}</View>;
   return (
-    <Press haptic="light" depth="tile" accessibilityLabel={lockSaid(`${eyebrow}, ${title}, ${hint}`, locked)} onPress={onCard} style={s.pattern}>
+    <Press haptic="light" depth="tile" accessibilityLabel={lockSaid(`${eyebrow}, ${title}, ${hint}`, 'fixes', locked)} onPress={onCard} style={s.pattern}>
       {body}
     </Press>
   );
@@ -233,12 +233,12 @@ export function LargeConversationCard({ title, meta, summary, kept, more, revisi
           </View>
         ) : null}
         {fixes !== null ? (
-          <Press haptic="light" depth="tile" accessibilityLabel={lockSaid(`${fixes.title}, ${fixes.gloss}`, fixes.locked)} onPress={fixes.onPress} style={s.fixesRow}>
+          <Press haptic="light" depth="tile" accessibilityLabel={lockSaid(`${fixes.title}, ${fixes.gloss}`, 'fixes', fixes.locked)} onPress={fixes.onPress} style={s.fixesRow}>
             <View style={s.grow}>
               <Text style={[bType.bold15, { color: t.text }]}>{fixes.title}</Text>
               <Text style={[bType.note, { color: t.secondary }]}>{fixes.gloss}</Text>
             </View>
-            {fixes.locked ? <LockBadge form="round" said /> : null}
+            {fixes.locked ? <LockBadge feature="fixes" form="round" said /> : null}
             <ChevronGlyph size={18} color={t.text} />
           </Press>
         ) : null}
@@ -248,13 +248,13 @@ export function LargeConversationCard({ title, meta, summary, kept, more, revisi
             {steps.map((step) => {
               const Glyph = STEP_GLYPH[step.key];
               return (
-                <Press key={step.key} haptic="light" depth="tile" accessibilityLabel={lockSaid(`${stepsLabel}, ${step.title}, ${step.gloss}`, stepsLocked)} onPress={step.onPress} style={s.step}>
+                <Press key={step.key} haptic="light" depth="tile" accessibilityLabel={lockSaid(`${stepsLabel}, ${step.title}, ${step.gloss}`, 'conversationPractice', stepsLocked)} onPress={step.onPress} style={s.step}>
                   <View {...decorative} style={s.stepIcon}><Glyph size={18} color={t.link} /></View>
                   <View style={s.grow}>
                     <Text style={[bType.bold15, { color: t.text }]}>{step.title}</Text>
                     <Text style={[bType.note, { color: t.secondary }]}>{step.gloss}</Text>
                   </View>
-                  {stepsLocked ? <LockBadge form="round" said /> : null}
+                  {stepsLocked ? <LockBadge feature="conversationPractice" form="round" said /> : null}
                 </Press>
               );
             })}
@@ -262,7 +262,7 @@ export function LargeConversationCard({ title, meta, summary, kept, more, revisi
         ) : null}
         {revisit !== null ? (
           <View style={s.revisit}>
-            <Press haptic="light" accessibilityLabel={`${revisit.label}. ${revisit.uses}${revisit.locked ? `, ${LOCK_BADGE_LABEL}` : ''}`} onPress={revisit.onPress} style={s.talk}>
+            <Press haptic="light" accessibilityLabel={lockSaid(`${revisit.label}. ${revisit.uses}`, 'continueArc', revisit.locked)} onPress={revisit.onPress} style={s.talk}>
               <BMic size={18} color={t.onPrimary} />
               {revisit.locked ? <FilledLock size={14} color={t.onPrimary} /> : null}
               <Text style={[bType.bold17, { color: t.onPrimary }]}>{revisit.label}</Text>
@@ -289,11 +289,11 @@ function RevisitPanel({ lines }: { lines: readonly string[] }) {
 }
 
 /** A small 44pt button of the smaller card, with the artboard's 13pt lock when locked. */
-function CardButton({ label, accessibilityLabel, ground, locked, onPress }: { label: string; accessibilityLabel: string; ground: string; locked: boolean; onPress: () => void }) {
+function CardButton({ label, accessibilityLabel, ground, locked, feature, onPress }: { label: string; accessibilityLabel: string; ground: string; locked: boolean; feature: LockedFeature; onPress: () => void }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
-    <Press haptic="light" accessibilityLabel={lockSaid(accessibilityLabel, locked)} onPress={onPress} frame={s.fill} style={[s.cardButton, { backgroundColor: ground }]}>
+    <Press haptic="light" accessibilityLabel={lockSaid(accessibilityLabel, feature, locked)} onPress={onPress} frame={s.fill} style={[s.cardButton, { backgroundColor: ground }]}>
       {locked ? <FilledLock size={13} color={t.link} /> : null}
       <Text style={[bType.bold15, { color: t.text }]}>{label}</Text>
     </Press>
@@ -326,8 +326,8 @@ export function CompactConversationCard({ title, meta, summary, art, revisited, 
       {revisited !== null ? <View style={s.compactPanel}><RevisitPanel lines={revisited} /></View> : null}
       {practise !== null || talk !== null ? (
         <View style={s.cardButtons}>
-          {practise !== null ? <CardButton label={practise.label} accessibilityLabel={`${practise.label}, ${title}`} ground={t.lavender} locked={practise.locked} onPress={practise.onPress} /> : null}
-          {talk !== null ? <CardButton label={talk.label} accessibilityLabel={`${talk.label}, ${title}. ${talk.uses}`} ground={t.inset} locked={talk.locked} onPress={talk.onPress} /> : null}
+          {practise !== null ? <CardButton label={practise.label} accessibilityLabel={`${practise.label}, ${title}`} ground={t.lavender} locked={practise.locked} feature="conversationPractice" onPress={practise.onPress} /> : null}
+          {talk !== null ? <CardButton label={talk.label} accessibilityLabel={`${talk.label}, ${title}. ${talk.uses}`} ground={t.inset} locked={talk.locked} feature="continueArc" onPress={talk.onPress} /> : null}
         </View>
       ) : null}
     </View>
@@ -352,11 +352,11 @@ export function MixCard({ title, line, locked, onPress }: { title: string; line:
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
-    <Press haptic="light" depth="tile" accessibilityLabel={lockSaid(`${title}, ${line}`, locked)} onPress={onPress} style={s.mix}>
+    <Press haptic="light" depth="tile" accessibilityLabel={lockSaid(`${title}, ${line}`, 'conversationPractice', locked)} onPress={onPress} style={s.mix}>
       <BArt name="phrasebook" width={62} height={57} />
       <View style={s.grow2}>
         <Text style={[bType.title17, { color: t.sun }]}>{title}</Text>
-        {locked ? <LockBadge ground="card" said /> : null}
+        {locked ? <LockBadge feature="conversationPractice" ground="card" said /> : null}
         <Text style={[bType.meta, { color: t.onBrandSoft }]}>{line}</Text>
       </View>
       <ChevronGlyph size={18} color={t.onBrand} />
@@ -434,25 +434,27 @@ export function SubHead({ title }: { title: string }) {
 }
 
 /** A Ready-now row: pastel ground, its drawing, two lines and a chevron. */
-export function ReadyRow({ title, lines, art, ground, locked, disabled = false, onPress }: {
+export function ReadyRow({ title, lines, art, ground, locked, feature, disabled = false, onPress }: {
   title: string;
   lines: readonly string[];
   art: 'phrasebook' | 'voice-chat';
   ground: 'butter' | 'peach';
   locked: boolean;
+  /** The feature its lock is for (F910). */
+  feature: LockedFeature;
   disabled?: boolean;
   onPress: () => void;
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
-    <Press haptic="light" depth="tile" accessibilityLabel={lockSaid([title, ...lines].join(', '), locked)} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[s.ready, { backgroundColor: t[ground] }]}>
+    <Press haptic="light" depth="tile" accessibilityLabel={lockSaid([title, ...lines].join(', '), feature, locked)} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[s.ready, { backgroundColor: t[ground] }]}>
       <BArt name={art} width={56} height={51} />
       <View style={s.grow2}>
         <Text style={[bType.bold16, { color: t.text }]}>{title}</Text>
         {lines.map((line) => <Text key={line} style={[bType.note, { color: t.secondary }]}>{line}</Text>)}
       </View>
-      {locked ? <LockBadge form="round" said /> : null}
+      {locked ? <LockBadge feature={feature} form="round" said /> : null}
       <ChevronGlyph size={18} color={t.text} />
     </Press>
   );

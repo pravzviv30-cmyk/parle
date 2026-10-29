@@ -301,7 +301,7 @@ describe('a chosen plan says so to a screen reader', () => {
     assert.match(periods, /minHeight: HIT/);
     assert.match(periods, /share: \{ flex: 1, minWidth: 0, minHeight: HIT \}/);
     assert.doesNotMatch(periods, /numberOfLines|adjustsFontSizeToFit|aria-selected|aria-pressed/);
-    assert.match(page, /<Press key=\{card.plan\} haptic="selection" accessibilityRole="radio" accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/);
+    assert.match(page, /<Press key=\{card.plan\} haptic="selection" accessibilityRole="radio" accessibilityState=\{\{ checked, disabled: card\.yours \}\} aria-checked=\{checked\}/);
   });
 
   // 7 October 2026, P4-C review: the successor of the test above, whose pinned
@@ -319,7 +319,7 @@ describe('a chosen plan says so to a screen reader', () => {
     assert.match(periods, /minHeight: HIT/);
     assert.match(periods, /share: \{ flex: 1, minWidth: 0, minHeight: HIT \}/);
     assert.doesNotMatch(periods, /numberOfLines|adjustsFontSizeToFit|aria-selected|aria-pressed/);
-    assert.match(page, /<Press key=\{card.plan\} haptic="selection" accessibilityRole="radio" accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/);
+    assert.match(page, /<Press key=\{card.plan\} haptic="selection" accessibilityRole="radio" accessibilityState=\{\{ checked, disabled: card\.yours \}\} aria-checked=\{checked\}/);
   });
 });
 

@@ -66,7 +66,7 @@ describe('featureAccess, the one lock seam', () => {
     assert.deepEqual(imports, ['react', '../purchases/useFeatureLocks.ts', './featureAccess.ts']);
     const main = readFileSync(new URL('../purchases/useFeatureLocks.ts', import.meta.url), 'utf8');
     assert.match(main, /onStandingChange\(/);
-    assert.match(main, /navigate\('Wall', \{ entry: 'locked' \}\)/);
+    assert.match(main, /navigate\('Wall', \{ entry: 'locked', feature \}\)/);
   });
 
   test('only access/ talks to purchases/featureLocks from a surface', async () => {

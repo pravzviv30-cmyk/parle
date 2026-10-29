@@ -29,14 +29,15 @@ import { WallYoursPage } from './WallYoursPage.tsx';
 import { WallCta, WallLinks, WallNotice, WallSecondary, WallTextLink, WallTopRow, wallType } from './WallParts.tsx';
 import {
   PAYWALL_CHECK_AGAIN, PAYWALL_LOADING, PAYWALL_PENDING_TITLE, PAYWALL_START_AGAIN, PAYWALL_START_AGAIN_TROUBLE, PAYWALL_START_AGAIN_WAIT, PAYWALL_TRY_AGAIN, PAYWALL_UNAVAILABLE_BODY, PAYWALL_UNAVAILABLE_TITLE,
-  SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
+  PLAN_YOURS, SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
 } from './wallCopy.ts';
 import { wallAccount } from './wallAccount.ts';
-import { chosenOffer, storeTrialMinutes, wallPlanRows, wallSuggestion, type GoalRead } from './wallPlans.ts';
+import { chosenOffer, currentPaidPlan, storeTrialMinutes, trialCopyAllowed, wallPlanRows, wallSuggestion, type GoalRead } from './wallPlans.ts';
+import { requiredPlan, type LockedFeature } from '../purchases/featureLocks.ts';
 import { trialTimeline } from './trialTimeline.ts';
-import { effectiveSelection, paywallCta, paywallNotice, paywallOffer, pendingCheckoutNotice, pendingDetail, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
+import { effectiveSelection, lockBrief, paywallCta, paywallNotice, paywallOffer, pendingCheckoutNotice, pendingDetail, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
-import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
+import { doorChange, wallAction, wallPages, type WallDoor, type WallEntry } from './wallPages.ts';
 import { publishCelebrations } from '../celebrate/events.ts';
 import { purchaseMoment } from '../celebrate/purchaseMoment.ts';
 import { useGame } from '../game/GameProvider.tsx';
@@ -70,6 +71,7 @@ const CHECK_HELD_MS = ICON_MOTION.check.wipeAt + ICON_MOTION.check.wipe + MORPH.
  */
 export function WallScreen({
   entry,
+  feature = null,
   onLeave,
   onStartSpeaking,
   onOpenPractice,
@@ -78,6 +80,8 @@ export function WallScreen({
   startSpeakingLabel = 'Start speaking',
 }: {
   entry: WallEntry;
+  /** The locked feature that opened this wall (F910), or null. */
+  feature?: LockedFeature | null;
   onLeave: () => void;
   onStartSpeaking: (canResume: boolean) => void;
   onOpenPractice: () => void;
@@ -123,6 +127,9 @@ export function WallScreen({
   const [offering, setOffering] = useState<StoreOffering>({ available: false });
   const [offeringLoaded, setOfferingLoaded] = useState(false);
   const [status, setStatus] = useState<BillingStatus | null>(null);
+  // Whether the first status read has answered (or failed). Until then the
+  // plans page waits, so it never draws trial copy and then takes it back (F912).
+  const [statusRead, setStatusRead] = useState(false);
   const [retry, setRetry] = useState(0);
   const [confirmedGrant, setConfirmedGrant] = useState<BillingStatus | null>(null);
   const [grantReadPending, setGrantReadPending] = useState(false);
@@ -138,6 +145,7 @@ export function WallScreen({
     setBusy(false);
     setMessage(null);
     setStatus(null);
+    setStatusRead(false);
     setConfirmedGrant(null);
     setSelected(null);
     touched.current = false;
@@ -193,9 +201,11 @@ export function WallScreen({
     void fetchBillingStatus(user.id).then((next) => {
       if (!cancelled && wallOwner.generation === scopeGeneration()) {
         setStatus(next);
+        setStatusRead(true);
         if (granted) { setConfirmedGrant(next); setGrantReadPending(false); }
       }
     }).catch(() => {
+      if (!cancelled && wallOwner.generation === scopeGeneration()) setStatusRead(true);
       if (!cancelled && wallOwner.generation === scopeGeneration() && granted) setGrantReadPending(false);
     });
     return () => {
@@ -245,16 +255,27 @@ export function WallScreen({
   // and only once the server has said what the learner holds. It is not the
   // learner's choice, so it records nothing: `plan_selected` is fired by a tap
   // alone, in `onSelect` below.
-  const suggestion = wallSuggestion(planRows, goal, status);
+  const suggestion = wallSuggestion(planRows, goal, status, entry === 'locked' ? feature : null);
   // What the page shows and the button buys: the learner's choice, else the
   // suggestion, else the default (Starter yearly), so an available offering
   // always shows a priced offer (`effectiveSelection`).
-  const showing = effectiveSelection(planRows, selected, suggestion);
+  const showing = effectiveSelection(planRows, selected, suggestion, entry === 'locked' && feature !== null ? requiredPlan(feature) : 'starter');
   const chosen = chosenOffer(planRows, showing);
   useEffect(() => {
     if (touched.current || selected !== null || suggestion === null) return;
     setSelected(suggestion);
   }, [suggestion, selected]);
+
+  // A navigate that changes this mounted wall's door in place (a lock tap or
+  // the limit over the launch wall) starts the new door at its first page,
+  // with its own suggestion and brief (`doorChange`).
+  const door = useRef<WallDoor>({ entry, feature });
+  useEffect(() => {
+    const change = doorChange(door.current, { entry, feature }, touched.current);
+    door.current = { entry, feature };
+    if (change.resetIndex) setIndex(0);
+    if (change.clearSelection) setSelected(null);
+  }, [entry, feature]);
 
   // The pill's state while it answers its own purchase. Busy while the store,
   // and then the server, answer; done, the check, only once the server has
@@ -330,11 +351,11 @@ export function WallScreen({
   useHardwareBack(true, back);
 
   const action = wallAction(pages, index);
-  const trial = trialTimeline({
+  const trial = trialCopyAllowed(status) ? trialTimeline({
     offer: chosen,
     minutes: chosen === null ? null : storeTrialMinutes(latestCatalogue(), chosen.plan),
     remind: trialReminder.promised,
-  });
+  }) : null;
 
   /**
    * The half that happens once the store has answered, shared with restore.
@@ -483,13 +504,15 @@ export function WallScreen({
 
   // What the page says for the chosen product (trial or standard), the notice
   // above the button, and the button itself: all decided in trialPaywall.ts.
-  const offerView = chosen === null ? null : paywallOffer(chosen, trial);
+  const offerView = chosen === null ? null : paywallOffer(chosen, trial, { lapsed: status?.lapsed === true, unlocks: entry === 'locked' ? feature : null });
+  // The learner's own plan is not offered as a purchase (F912); buy() still refuses it.
+  const ownPlan = chosen !== null && currentPaidPlan(status) === chosen.plan;
   const notice = paywallNotice(message, lastAction.current);
   const morphLabel = morph === 'done' ? WALL_READY : granted && morph === 'busy' ? WALL_CONFIRMING : null;
   const cta = action === 'buy'
     ? paywallCta({ offer: offerView, busy, morphLabel, notice })
     : { label: action === 'to-plans' ? YOURS_NEXT : action === 'done' ? WALL_DONE : WALL_NEXT, dim: 1 };
-  const label = cta.label;
+  const label = action === 'buy' && ownPlan && morph === 'idle' ? PLAN_YOURS : cta.label;
   const onRestore = () => { lastAction.current = 'restore'; void restore(); };
 
   if (!ownsWall) return (
@@ -577,7 +600,7 @@ export function WallScreen({
   // progress any more, so the store is the one thing it waits for.
   // A plans page with nothing it can price is the unavailable state, never an empty page.
   const unavailable = offeringLoaded && (page === undefined || (page === 'plans' && chosen === null));
-  const loading = !offeringLoaded;
+  const loading = !offeringLoaded || (user !== null && !statusRead && page === 'plans');
   if (unavailable || loading) {
     return (
       <ScrollScreen ground={colors.background} topGap={0} bottom="inset" center={unavailable} header={<WallTopRow onPress={unavailable ? () => leave('back', onOpenPractice) : () => leave()} />}
@@ -625,7 +648,7 @@ export function WallScreen({
               // waits in place (`state`). Nothing to buy until a way to pay is
               // chosen: a purchase needs a product id.
               state={morph}
-              disabled={(busy && morph === 'idle') || (action === 'buy' && chosen === null)}
+              disabled={(busy && morph === 'idle') || (action === 'buy' && (chosen === null || ownPlan))}
               onPress={forward}
             />
             {page === 'plans' && <WallPlansAtButton disclosure={offerView?.disclosure ?? null} busy={busy} onRestore={onRestore} onOpenTerms={onOpenTerms} onOpenPolicy={onOpenPolicy} />}
@@ -641,6 +664,8 @@ export function WallScreen({
             rows={planRows}
             catalogue={latestCatalogue()}
             account={wallAccount(status, latestCatalogue(), Date.now())}
+            standing={status}
+            brief={lockBrief(entry, feature)}
             selected={showing}
             trial={trial}
             offer={offerView}

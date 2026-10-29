@@ -858,8 +858,8 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(card, /\{fix\.english\}/);
     assert.match(card, /\{fix\.after\}/);
     assert.doesNotMatch(card, /quote|better|why/, 'the fix card shows the learner\'s line or the better one before a try');
-    assert.match(card, /\{fix\.locked && <LockBadge said \/>\}/, 'the lock is not drawn from the seam');
-    assert.match(card, /accessibilityLabel=\{fix\.locked \? `\$\{TODAY_COPY\.fixAction\}, \$\{LOCK_BADGE_LABEL\}` : undefined\}/);
+    assert.match(card, /\{fix\.locked && <LockBadge feature="fixes" said \/>\}/, 'the lock is not drawn from the seam');
+    assert.match(card, /accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\}/);
     assert.match(card, /onPress=\{\(\) => tapThrough\(locks\.access, fix\.feature, locks\.open, \(\) => nav\.navigate\(fix\.route\.screen, fix\.route\.params\)\)\}/, 'a locked fix does not open the Wall');
     assert.match(card, /<View \{\.\.\.decorative\}><OutlineLock size=\{18\} color=\{t\.muted\} \/><\/View>/, 'the outline lock beside the line is not hidden from a screen reader');
     assert.match(card, /height=\{50\} ground=\{t\.primary\} ink=\{t\.onPrimary\}/, 'the fix button is not the 50pt primary');
@@ -889,7 +889,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(FLAT, /onNotNow=\{\(\) => \{ dismissComingUp\(event\.key\); setHidden\(\(n\) => n \+ 1\); \}\}/, 'Not now does not hide the card');
     const card = between(PARTS_FLAT, 'export function ComingUpCard(', 'export function WeekCard(', 'Coming up is a Today part');
     assert.match(card, /<BArt name="tutor-orb" width=\{44\} height=\{44\} \/>/);
-    assert.match(card, /\{view\.locked \? <View style=\{s\.pillGap\}><LockBadge \/><\/View> : null\}/, 'the trial pill is not drawn from the lock');
+    assert.match(card, /\{view\.locked \? <View style=\{s\.pillGap\}><LockBadge feature=\{view\.feature\} \/><\/View> : null\}/, 'the trial pill is not drawn from the lock');
     assert.match(card, /label=\{COMING_UP_COPY\.rehearse\} height=\{44\} ground=\{t\.brand\}/);
     assert.match(card, /label=\{COMING_UP_COPY\.notNow\}[^>]*ground=\{t\.quiet\}/);
     for (const body of [SCREEN, PARTS, HERO, read('../home/todayView.ts')]) {

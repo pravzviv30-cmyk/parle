@@ -65,7 +65,7 @@ export function ThenNowScreen() {
           <BackButton onPress={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />
           <View style={st.titleWrap}>
             <Text accessibilityRole="header" style={[bType.title26, { color: t.text }]}>{THEN_NOW_TITLE}</Text>
-            {view?.locked ? <LockBadge /> : null}
+            {view?.locked ? <LockBadge feature="thenAndNow" /> : null}
           </View>
         </View>
 

@@ -125,7 +125,7 @@ export const INCLUSIONS = {
    * repair, so this is not a line of `planInclusions`, which the free plan
    * shares with Core.
    */
-  streak: 'Every plan includes a second streak freeze and a one-tap repair.',
+  streak: 'Paid plans add a second streak freeze and a one-tap repair.',
 } as const;
 
 export function planInclusions(plan: Plan): readonly string[] {

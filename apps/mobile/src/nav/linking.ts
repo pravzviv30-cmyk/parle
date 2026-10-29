@@ -6,6 +6,10 @@
 import type { LinkingOptions } from '@react-navigation/native';
 import type { RootStackParamList } from './types.ts';
 import { parseSeedTopic, stringifySeedTopic } from '../tutor/convoStart.ts';
+import { isLockedFeature } from '../purchases/featureLocks.ts';
+
+/** F910: the lock's feature travels as text, and only a known feature comes back in. */
+const parseLockedFeature = (value: string) => (isLockedFeature(value) ? value : undefined);
 
 /**
  * Web only, and an explicit screen map rather than a catch-all.
@@ -73,7 +77,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       RealMoment: 'real-moment',
       TutorMemory: 'tutor-memory',
       TutorIntro: 'tutor-guide',
-      Wall: 'plans',
+      Wall: { path: 'plans', parse: { feature: parseLockedFeature } },
       Policy: 'privacy',
       Terms: 'terms',
     },

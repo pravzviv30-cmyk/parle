@@ -1,4 +1,5 @@
 import { Feedback } from './motion/Feedback.tsx';
+import { lockSpoken, requiredPlan, unlockPlanName, type LockedFeature, type UnlockPlan } from './access/featureAccess.ts';
 /**
  * Luvani, bright (revamp B): the shared parts every screen builds from.
  *
@@ -1938,35 +1939,43 @@ export function Chip(props:
 }
 
 /**
- * The trial's lock, drawn two ways from the v82 artboards (B0, 2026-10-20): a
- * pill reading "Included with your trial", and a 28pt white disc with the lock
- * alone, named the same to a screen reader.
+ * A lock, drawn two ways from the v82 artboards (B0, 2026-10-20): a pill
+ * reading the plan that opens it ("Core" or "Max"), and a 28pt white disc with
+ * the lock alone. Both say "Locked. Part of Core." to a screen reader (F910,
+ * founder decision 14, 2026-10-29; it used to name the trial).
+ *
+ * The plan is the feature's (`requiredPlan`, from the capability table), never
+ * the learner's, so a learner in Core's store trial still sees a Max lock say
+ * Max. A badge that is not a feature lock (the paid streak repair) names its
+ * plan directly.
  *
  * Pure presentation. Whether a feature is locked is `access/featureAccess.ts`'s
  * answer (the D24 standing, open when the plan is unknown), and a surface draws
  * this only when that seam says so.
  *
  * Read once (2026-10-20, lock seam wiring): inside a control whose own label
- * already ends with `LOCK_BADGE_LABEL`, pass `said` and the badge is hidden
+ * already ends with `lockSaid`'s words, pass `said` and the badge is hidden
  * from screen readers, so the words are not heard twice.
  */
-export const LOCK_BADGE_LABEL = 'Included with your trial';
-export function LockBadge({ form = 'pill', ground = 'lavender', said = false }: { form?: 'pill' | 'round'; ground?: 'lavender' | 'card'; said?: boolean }) {
+export function LockBadge(props: { form?: 'pill' | 'round'; ground?: 'lavender' | 'card'; said?: boolean } & ({ feature: LockedFeature; plan?: undefined } | { plan: UnlockPlan; feature?: undefined })) {
+  const { form = 'pill', ground = 'lavender', said = false } = props;
+  const plan: UnlockPlan = props.plan ?? requiredPlan(props.feature!);
   const t = useB();
   const b = useThemedStyles(makeB);
+  const spoken = said ? decorative : { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: lockSpoken(plan) };
   // The lock's blue is the theme's link: the brand blue in light, the M3
   // periwinkle link in dark, where the blue would vanish on the plum tint.
   if (form === 'round') {
     return (
-      <View style={b.lockRound} {...(said ? decorative : { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: LOCK_BADGE_LABEL })}>
+      <View style={b.lockRound} {...spoken}>
         <View {...decorative}><Icon name="lock" size={14} color={t.link} /></View>
       </View>
     );
   }
   return (
-    <View style={[b.lockPill, { backgroundColor: ground === 'card' ? t.card : t.lavender }]} {...(said ? decorative : {})}>
+    <View style={[b.lockPill, { backgroundColor: ground === 'card' ? t.card : t.lavender }]} {...spoken}>
       <View {...decorative}><Icon name="lock" size={12} color={t.link} /></View>
-      <Text style={b.lockWords}>{LOCK_BADGE_LABEL}</Text>
+      <Text style={b.lockWords}>{unlockPlanName(plan)}</Text>
     </View>
   );
 }

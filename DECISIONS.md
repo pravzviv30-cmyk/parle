@@ -233,6 +233,11 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Decision: lock badges come only from `access/featureAccess.ts`, which mirrors
   `purchases/featureLocks.ts` (`featureLockedNow`, failing open). No surface
   decides a lock inline; a route-less lock opens the Wall through `tapThrough`.
+  Since 2026-10-29 (F910, founder decision 14) every badge names the plan that
+  opens its feature, Core or Max, from `requiredPlan` (which reads
+  `capabilitiesFor`), and every way to the Wall carries the feature:
+  `Wall { entry: 'locked', feature }`, so the Wall opens on that plan with a
+  short brief.
 - Decision: stage words replace CEFR on learner surfaces. Starter (A0) and
   Basics (A1) name the stage on Journey, Speak and guided mission previews.
   "Starting out" stays only as Explore's tier filter and a daily scene's tier.
@@ -881,6 +886,13 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Sources: [market report](https://claude.ai/artifact/1TLMTEHTGdToCv8WDCqVAe)
   section 7, [beta launch](docs/changes/beta-launch.md), founder answers of 23
   October 2026.
+
+- Wording note (2026-10-29, founder decision 13, F913): both plans read
+  "about", with the exact 30-day total and never "unlimited": "Core: 300
+  minutes every 30 days (about 10 a day)." and "Max: 600 minutes every 30 days
+  (about 20 a day), plus Rehearse and Continue a conversation." Max's "up to"
+  above is retired. The numbers come from the catalogue the server sends;
+  allowances, prices and margins are unchanged.
 
 ## VOICE-012 — Curation on GPT-6 Luna, on its own setting
 

@@ -1044,7 +1044,7 @@ export function ConvoScreen({
   const navigation = useNavigation() as unknown as RemovalSource;
   const removalHeldRef = useRef(false);
   removalHeldRef.current = inRoom && !leaving;
-  useEffect(() => watchRemoval(navigation, (type) => !removalHeldRef.current && removalIsEarlyExit('Convo', type, { recapSettled: recapSettledRef.current, leaveRequested: leaveRequestedRef.current }), noteLeftEarly), [navigation]);
+  useEffect(() => watchRemoval(navigation, (action) => !removalHeldRef.current && removalIsEarlyExit('Convo', action, { recapSettled: recapSettledRef.current, leaveRequested: leaveRequestedRef.current }), noteLeftEarly), [navigation]);
 
   // The exit runs from the effect, not from the sheet's confirm: with the guard
   // still up an inline pop would be prevented. Raising `leaving` lowers it first.

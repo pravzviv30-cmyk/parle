@@ -234,7 +234,7 @@ describe('Coming up, 2026-10-20 UI-008, artboard B-Today', () => {
   const CU_NOW = Date.parse('2026-10-20T12:00:00.000Z');
   const fact = (en: string, notedAt: string, happensAround: string | null = null, kind = 'life-event') => ({ kind, en, happensAround, notedAt });
 
-  test('shown: the latest life event, its loose when, and the tutor remembers, behind the tutorMemory lock', () => {
+  test('shown: the latest life event, its loose when, and the tutor remembers, behind the realMoment lock its Rehearse now opens', () => {
     resetComingUpSession();
     const facts = [
       fact('dinner in Lyon', '2026-10-18T10:00:00.000Z', 'Friday'),
@@ -247,7 +247,10 @@ describe('Coming up, 2026-10-20 UI-008, artboard B-Today', () => {
     assert.equal(card.when, 'Friday, Tutor remembers');
     assert.doesNotMatch(card.when, /\baway\b|\bdays?\b|·/, 'a countdown is drawn with no date to count from');
     assert.equal(card.locked, false);
-    assert.equal(comingUp({ facts, paused: false, tutorName: 'Tutor', now: CU_NOW, access: (f) => (f === 'tutorMemory' ? 'locked' : 'unlocked') })!.locked, true);
+    // F910 (2026-10-29): the lock is the tap's, RealMoment, not tutor memory's.
+    assert.equal(comingUp({ facts, paused: false, tutorName: 'Tutor', now: CU_NOW, access: (f) => (f === 'realMoment' ? 'locked' : 'unlocked') })!.locked, true);
+    assert.equal(comingUp({ facts, paused: false, tutorName: 'Tutor', now: CU_NOW, access: (f) => (f === 'tutorMemory' ? 'locked' : 'unlocked') })!.locked, false);
+    assert.equal(comingUp({ facts, paused: false, tutorName: 'Tutor', now: CU_NOW, access: open })!.feature, 'realMoment');
 
   });
 

@@ -14,6 +14,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
 import { LockBadge, Press } from '../components.tsx';
+import { lockSpoken } from '../access/featureAccess.ts';
+
 import { ChevronGlyph } from '../explore/ExploreParts.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
@@ -21,6 +23,9 @@ import { tapSettled } from '../motion/haptics.ts';
 import { HIT, accent, bType, decorative, paper, type } from '../theme.ts';
 import { RepairMark } from './art/RepairMark.tsx';
 import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView.ts';
+
+/** The second freeze and the repair come with any paid plan (D4, D23), so the lock names Core (F910). */
+const STREAK_REPAIR_PLAN = 'starter' as const;
 
 const CIRCLE = 36;
 
@@ -83,9 +88,9 @@ export function FreezeCard({ title, sub, line, returns, upsell, onUpsell }: { ti
       <Text style={[bType.para15, { color: t.secondary }]}>{line}</Text>
       {returns !== null ? <Text style={[bType.para15, { color: t.secondary }]}>{returns}</Text> : null}
       {upsell !== null ? (
-        <Press haptic="light" accessibilityRole="button" accessibilityLabel={`${upsell}. Included with your trial`} onPress={onUpsell} style={s.upsell}>
+        <Press haptic="light" accessibilityRole="button" accessibilityLabel={`${upsell}. ${lockSpoken(STREAK_REPAIR_PLAN)}`} onPress={onUpsell} style={s.upsell}>
           <Text style={[bType.meta, { color: t.secondary }]}>{upsell}</Text>
-          <LockBadge said />
+          <LockBadge plan={STREAK_REPAIR_PLAN} said />
         </Press>
       ) : null}
     </View>

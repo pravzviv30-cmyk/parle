@@ -16,6 +16,7 @@
 
 import type { PracticeRouteOrigin } from '../practice/practiceRoute.ts';
 import type { ExploreTopic } from '../main/exploreCatalogue.ts';
+import type { LockedFeature } from '../purchases/capabilities.ts';
 
 export type TabParamList = {
   Home: undefined;
@@ -193,7 +194,8 @@ export type RootStackParamList = {
    * property the `wall_shown` event carries, so the funnel is split by the same
    * doors the code has. It is a string union and stays serialisable.
    */
-  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; resumeRouteKey?: string };
+  /** `feature` is the locked feature a lock opened the wall for (F910); only with `entry: 'locked'`. */
+  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; resumeRouteKey?: string; feature?: LockedFeature };
   /**
    * The two documents, as routes rather than sheets inside Settings.
    *

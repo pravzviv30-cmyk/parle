@@ -11,7 +11,8 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { LOCK_BADGE_LABEL, LockBadge, Press, RoundButton } from '../components.tsx';
+import { LockBadge, Press, RoundButton } from '../components.tsx';
+import { lockSaid } from '../access/featureAccess.ts';
 import { HearButton, OneWaveSpeaker, TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic } from '../today/TodayParts.tsx';
@@ -28,7 +29,7 @@ export function FixesHeader({ title, subtitle, locked, onBack }: { title: string
       <View style={s.grow}>
         <View style={s.titleRow}>
           <Text accessibilityRole="header" style={[bType.title26, { color: t.text }]}>{title}</Text>
-          {locked && <LockBadge />}
+          {locked && <LockBadge feature="fixes" />}
         </View>
         {subtitle !== null ? <Text style={[bType.meta, { color: t.muted }]}>{subtitle}</Text> : null}
       </View>
@@ -66,7 +67,7 @@ export function FixesPatternCard({ eyebrow, title, hint, practise, locked, onPra
         <Text style={[bType.title17, { color: t.text }]}>{title}</Text>
         <Text style={[bType.note, { color: t.secondary }]}>{hint}</Text>
       </View>
-      {onPractise !== null ? <BButton hug label={practise} accessibilityLabel={`${practise}, ${title}${locked ? `, ${LOCK_BADGE_LABEL}` : ''}`} height={40} ground={t.primary} ink={t.onPrimary} text={bType.bold14} onPress={onPractise} /> : null}
+      {onPractise !== null ? <BButton hug label={practise} accessibilityLabel={lockSaid(`${practise}, ${title}`, 'fixes', locked)} height={40} ground={t.primary} ink={t.onPrimary} text={bType.bold14} onPress={onPractise} /> : null}
     </View>
   );
 }

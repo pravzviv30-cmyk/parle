@@ -7,7 +7,8 @@
  *   locked feature is replaced by the wall at its `locked` door. Unknown reads
  *   once; unreadable leaves the screen open.
  * - `useFeatureLocks` is the reactive read for a surface: `access(feature)` and
- *   `open(feature)`, which opens the wall at its `locked` door.
+ *   `open(feature)`, which opens the wall at its `locked` door with the
+ *   feature, so the wall can name it and offer the plan that opens it (F910).
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -50,7 +51,7 @@ export function useLockedRouteGuard(navigationRef: NavigationContainerRefWithCur
       return status;
     },
     owner: scopeGeneration,
-    toWall: () => navigationRef.dispatch(StackActions.replace('Wall', { entry: 'locked' })),
+    toWall: (feature) => navigationRef.dispatch(StackActions.replace('Wall', { entry: 'locked', feature })),
   }), [navigationRef, userId]);
 }
 
@@ -59,6 +60,6 @@ export function useFeatureLocks(userId: string | null | undefined): { access: (f
   const [, setTick] = useState(0);
   useEffect(() => onStandingChange(() => setTick((n) => n + 1)), []);
   const access = useCallback((feature: LockedFeature) => featureLockState(feature, standingFor(userId)), [userId]);
-  const open = useCallback((_feature: LockedFeature) => nav.navigate('Wall', { entry: 'locked' }), [nav]);
+  const open = useCallback((feature: LockedFeature) => nav.navigate('Wall', { entry: 'locked', feature }), [nav]);
   return { access, open };
 }

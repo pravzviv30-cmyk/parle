@@ -106,8 +106,8 @@ describe('the store free trial, said only when it is real', () => {
     // The screen draws only what this decides: the timeline from the chosen
     // product, the button from its call to action, the terms at the button.
     const screen = read('./WallScreen.tsx');
-    assert.match(screen, /const trial = trialTimeline\(\{\s*offer: chosen,\s*minutes: chosen === null \? null : storeTrialMinutes\(latestCatalogue\(\), chosen\.plan\),\s*remind: trialReminder\.promised,\s*\}\);/);
-    assert.match(screen, /const offerView = chosen === null \? null : paywallOffer\(chosen, trial\);/);
+    assert.match(screen, /const trial = trialCopyAllowed\(status\) \? trialTimeline\(\{\s*offer: chosen,\s*minutes: chosen === null \? null : storeTrialMinutes\(latestCatalogue\(\), chosen\.plan\),\s*remind: trialReminder\.promised,\s*\}\) : null;/);
+    assert.match(screen, /const offerView = chosen === null \? null : paywallOffer\(chosen, trial, \{ lapsed: status\?\.lapsed === true, unlocks: entry === 'locked' \? feature : null \}\);/);
     assert.match(screen, /paywallCta\(\{ offer: offerView, busy, morphLabel, notice \}\)/);
     assert.equal(paywallOffer(chosen(yearly(WEEK, true))!, view).cta, view.cta, 'the button does not say the trial\'s own call to action');
     assert.match(screen, /<WallPlansAtButton disclosure=\{offerView\?\.disclosure \?\? null\}/);

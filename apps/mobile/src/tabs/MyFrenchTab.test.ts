@@ -235,10 +235,10 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
     }
     // 2026-10-20 UI-008, artboard B-Journey: the heads are JourneyHead, which draws the badge only when told the seam locked it.
     const PARTS = stripComments(read('../journey/JourneyParts.tsx')).replace(/\s+/g, ' ');
-    assert.match(PARTS, /\{locked \? <LockBadge \/> : null\}/);
+    assert.match(PARTS, /\{locked && feature !== undefined \? <LockBadge feature=\{feature\} \/> : null\}/);
     for (const section of ['canDo', 'thenNow', 'sounds', 'week']) assert.match(FLAT, new RegExp(`locked=\\{${section}\\.locked\\}`), `${section}'s head is not told its lock`);
     // 2026-10-20, lock seam wiring: the help card says the lock in its own label when locked, so its badge is said once.
-    assert.match(PARTS, /\{locked \? <LockBadge ground="card" said \/> : null\}/);
+    assert.match(PARTS, /\{locked \? <LockBadge feature=\{feature\} ground="card" said \/> : null\}/);
     assert.match(FLAT, /<HelpCard heading=\{HELP_HEADING\} line=\{help\.line\} locked=\{help\.locked\}/);
     assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
     // 2026-10-22: Your French's locked parts leave the card (the view's `open`) and draw their teaser under it.

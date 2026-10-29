@@ -149,7 +149,7 @@ describe('the rest of the screen', () => {
     // 2026-10-21 UI-008, artboard B-Fixes: the trial pill sits beside the 26/800 title, as drawn, in FixesHeader.
     assert.match(screen, /<FixesHeader title=\{FIXES_TITLE\} subtitle=\{fixesSubtitle\(pack, now\)\} locked=\{locked\} onBack=\{back\} \/>/);
     const parts = readFileSync(fileURLToPath(new URL('./FixesParts.tsx', import.meta.url)), 'utf8');
-    assert.match(parts, /\{title\}<\/Text>\s*\{locked && <LockBadge \/>\}/);
+    assert.match(parts, /\{title\}<\/Text>\s*\{locked && <LockBadge feature="fixes" \/>\}/);
     assert.match(screen, /title=\{FIX_COPY\.unknownTitle\}/, 'an unknown conversation has no calm fallback');
     assert.match(screen, /<FixesNotice title=\{FIX_COPY\.unknownTitle\} body=\{FIX_COPY\.unknownBody\} action=\{FIX_COPY\.back\} onPress=\{back\} \/>/, 'the fallback has no way back');
   });

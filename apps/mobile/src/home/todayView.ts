@@ -388,7 +388,8 @@ export function comingUp(input: {
     key,
     title: `Coming up: ${en}`,
     when: `${around}, ${remembers}`,
-    locked: input.access('tutorMemory') === 'locked',
+    // The lock is Rehearse now's, which opens RealMoment (F910): the badge and the tap agree.
+    locked: input.access('realMoment') === 'locked',
     feature: 'realMoment',
     route: { screen: 'RealMoment', params: { detail: en } },
   };

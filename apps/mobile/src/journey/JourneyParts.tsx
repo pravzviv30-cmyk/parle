@@ -88,9 +88,11 @@ export function BandStat({ value, label }: { value: string; label: string }) {
 // ─────────────────────────────────────────────────────────────── sections
 
 /** A 21/800 section head, its lock pill when the seam locked it, a right-hand note or link, and a subtitle. */
-export function JourneyHead({ title, locked, subtitle, right, link }: {
+export function JourneyHead({ title, locked, feature, subtitle, right, link }: {
   title: string;
   locked: boolean;
+  /** The feature the lock is for; required wherever `locked` can be true. */
+  feature?: LockedFeature;
   subtitle?: string;
   right?: string;
   link?: { label: string; accessibilityLabel: string; onPress: () => void };
@@ -102,7 +104,7 @@ export function JourneyHead({ title, locked, subtitle, right, link }: {
       <View style={s.headWords}>
         <View style={s.titleWrap}>
           <Text accessibilityRole="header" style={[bType.section21, { color: t.text }]}>{title}</Text>
-          {locked ? <LockBadge /> : null}
+          {locked && feature !== undefined ? <LockBadge feature={feature} /> : null}
         </View>
         {subtitle !== undefined ? <Text style={[bType.meta, { color: t.muted }]}>{subtitle}</Text> : null}
       </View>
@@ -309,7 +311,7 @@ export function YourFrenchSection({ view, onOpen, onTeaser }: { view: YourFrench
 }
 
 /** The mint "Help you needed" card with the tutor-orb. */
-export function HelpCard({ heading, line, locked, onPress, accessibilityLabel }: { heading: string; line: string; locked: boolean; onPress?: () => void; accessibilityLabel?: string }) {
+export function HelpCard({ heading, line, locked, feature, onPress, accessibilityLabel }: { heading: string; line: string; locked: boolean; feature: LockedFeature; onPress?: () => void; accessibilityLabel?: string }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const body = (
@@ -318,7 +320,7 @@ export function HelpCard({ heading, line, locked, onPress, accessibilityLabel }:
       <View style={[s.grow, s.gap2]}>
         <View style={s.titleWrap}>
           <Text accessibilityRole="header" style={[bType.chip, { color: t.mintWords }]}>{heading}</Text>
-          {locked ? <LockBadge ground="card" said /> : null}
+          {locked ? <LockBadge feature={feature} ground="card" said /> : null}
         </View>
         <Text style={[bType.bold17Loose, { color: t.text }]}>{line}</Text>
       </View>
@@ -364,7 +366,7 @@ export function ProgressSection({ view, onOpen, onTeaser }: { view: ProgressView
   const s = useThemedStyles(makeStyles);
   return (
     <View style={s.yourStack}>
-      <JourneyHead title={view.heading} locked={view.locked} />
+      <JourneyHead title={view.heading} locked={view.locked} feature={view.feature} />
       {view.teaser !== null ? (
         <Ledger>
           <LedgerRow title={view.teaser} accessibilityLabel={view.teaser} onPress={() => onTeaser(view.feature)} />

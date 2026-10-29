@@ -61,6 +61,9 @@ period stay near a purchase action, and large text is never capped to fit.
   `access/featureAccess.ts` answers locked, and that seam mirrors
   `purchases/featureLocks.ts` (`featureLockedNow`, failing open). A locked
   item that has no route of its own opens the Wall through `tapThrough`.
+  Every badge and every spoken lock passes its feature (or, for a lock that
+  is not a feature, its plan), so it names the plan that opens it, and the
+  Wall is opened as `Wall { entry: 'locked', feature }` (F910).
 - Stage words, never CEFR: Starter (A0) and Basics (A1) on Journey, Speak and
   the scene preview of a guided mission, then Everyday, Chatting and Confident
   as Journey's future stages that claim nothing. "Starting out" survives only
@@ -1051,18 +1054,21 @@ More shared parts:
   `ground="violet2"` (Speak's own topic chip): white words only, never
   `onColour.blue`, and it falls back to the chosen ink fill when selected. The
   archive's filters and My French's situation state both draw it.
-- **LockBadge**: the trial's lock, two forms. The pill reads "Included with
-  your trial" in blue `badge` words beside a blue lock, 26 tall, on lavender
-  (or white when it sits on a lavender card). The round form is a 28pt white
-  disc with the blue lock alone, named "Included with your trial" to a screen
-  reader. It is pure presentation and never decides whether something is
-  locked: `access/featureAccess.ts` does, and a surface draws the badge only
-  when that seam says locked. The seam reads the D24 billing standing
-  (`featureLockedNow`) and fails open, so a plan nobody could read shows no
-  lock. Inside a control whose label already says "Included with your trial",
-  the badge is hidden from screen readers so the words are heard once. A
-  locked Journey section keeps its heading and badge and shows one teaser line
-  that opens the Wall, never its content.
+- **LockBadge**: a lock, two forms, naming the plan that opens it (F910,
+  founder decision 14, 2026-10-29). The pill reads the plan's name, "Core" or
+  "Max", in blue `badge` words beside a blue lock, 26 tall, on lavender (or
+  white when it sits on a lavender card). The round form is a 28pt white disc
+  with the blue lock alone. Both say "Locked. Part of Core." (or Max) to a
+  screen reader. The plan is the feature's (`requiredPlan`, from
+  `capabilitiesFor`), never the learner's, so a learner in Core's store trial
+  still sees a Max lock say Max. It is pure presentation and never decides
+  whether something is locked: `access/featureAccess.ts` does, and a surface
+  draws the badge only when that seam says locked. The seam reads the D24
+  billing standing (`featureLockedNow`) and fails open, so a plan nobody could
+  read shows no lock. Inside a control whose label already ends with
+  `lockSaid`'s words, the badge is hidden from screen readers so the words are
+  heard once. A locked Journey section keeps its heading and badge and shows
+  one teaser line that opens the Wall, never its content.
 - **OptionRow**: a one-tap choice, now a thin name for `Choice` as a button
   row: white with a title and a line under it and the field ring when not
   chosen, the brand blue with white words and a white disc holding the blue

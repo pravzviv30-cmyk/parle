@@ -91,7 +91,7 @@ test('revamp B plans preserve catalogue and store prices, accessible selection a
   // the actual price and selected product wired to its accessible name/state.
   // 19 October 2026, "P2 · Luvani": compare cards are a radiogroup of radios
   // whose checked state VoiceOver reads; prices are the store's via trialPaywall.
-  has('wall/WallPlansPage.tsx', /<View style=\{st.cards\} accessibilityRole="radiogroup">/, /accessibilityRole="radio" accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/, /<WallPeriodSwitch offers=\{visibleRow.offers\} name=\{visibleRow.name\} selected=\{selected\} onSelect=\{onSelect\}/);
+  has('wall/WallPlansPage.tsx', /<View style=\{st.cards\} accessibilityRole="radiogroup">/, /accessibilityRole="radio" accessibilityState=\{\{ checked, disabled: card\.yours \}\} aria-checked=\{checked\}/, /<WallPeriodSwitch offers=\{visibleRow.offers\} name=\{visibleRow.name\} selected=\{selected\} onSelect=\{onSelect\}/);
   has('wall/trialPaywall.ts', /price: billedPrice\(offer.price, offer.period\)/, /const billed = billedPrice\(offer\.price, offer\.period\);/, /offerMinutes\(row, offer\)/);
   has('wall/WallPeriodSwitch.tsx', /accessibilityRole="radio"/, /const checked = offer.productId === selected;/, /accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/, /accessibilityLabel=\{\[name, period, billedPrice\(offer.price, offer.period\)\].join\(', '\)\}/, /minHeight: HIT/);
   has('components.tsx', /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, /aria-checked=\{radio \? selected : undefined\}/);

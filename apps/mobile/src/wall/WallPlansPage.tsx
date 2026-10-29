@@ -8,8 +8,9 @@ import { StaggerIn } from '../motion/StaggerIn.tsx';
 import { STAGGER } from '../motion/tokens.ts';
 import { INCLUSIONS } from '../purchases/capabilities.ts';
 import type { Plan, PlanSpec } from '@luvani/core';
+import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { HIT, decorative, space, type } from '../theme.ts';
-import { ACCOUNT_LABEL, COMPARE_INTRO, PLANS_COMPARE, compareNote } from './wallCopy.ts';
+import { ACCOUNT_LABEL, COMPARE_INTRO, PLAN_YOURS, PLANS_COMPARE, compareNote } from './wallCopy.ts';
 import { WallPeriodSwitch } from './WallPeriodSwitch.tsx';
 import { BenefitRow, WallCta, WallLinks, WallSkeleton, wallType } from './WallParts.tsx';
 import type { WallAccount } from './wallAccount.ts';
@@ -32,6 +33,8 @@ export function WallPlansPage({
   rows,
   catalogue,
   account,
+  standing = null,
+  brief = null,
   selected,
   trial,
   offer,
@@ -42,6 +45,10 @@ export function WallPlansPage({
   rows: readonly WallPlanRow[];
   catalogue: Record<Plan, PlanSpec> | null;
   account: WallAccount | null;
+  /** The server's answer for this learner, or null unread: marks their own plan and drops trial lines (F912). */
+  standing?: Pick<BillingStatus, 'plan' | 'lapsed'> | null;
+  /** The locked feature's brief (F910), shown first, or null. */
+  brief?: { title: string; line: string } | null;
   /** The chosen product id, or null. */
   selected: string | null;
   /** The chosen product's free trial, or null when it carries none this account may take. */
@@ -61,6 +68,10 @@ export function WallPlansPage({
   const visibleRow = rows.find(row => row.plan === visiblePlan);
   return (
     <View style={st.content}>
+      {brief !== null && !loading && <View style={st.brief}>
+        <Text accessibilityRole="header" style={[wallType.medium, { color: colors.text }]}>{brief.title}</Text>
+        <Text style={[wallType.line, { color: colors.muted }]}>{brief.line}</Text>
+      </View>}
       {loading ? <PlansLoading /> : offer !== null && <>
         <Text accessibilityRole="header" style={[wallType.headline, { color: colors.text }]}>{offer.headline}</Text>
         {offer.kind === 'trial'
@@ -83,7 +94,7 @@ export function WallPlansPage({
           <Text style={[wallType.line, { color: colors.link }]}>{PLANS_COMPARE}</Text>
         </Press>}
       </View>}
-      <ComparePlans comparing={comparing} rows={rows} current={current} catalogue={catalogue} account={account}
+      <ComparePlans comparing={comparing} rows={rows} current={current} catalogue={catalogue} account={account} standing={standing}
         onClose={() => setComparing(false)} onChoose={(offer) => { onSelect(offer); setComparing(false); }} />
     </View>
   );
@@ -106,19 +117,22 @@ function PlansLoading() {
  * within the sheet; the button commits it and closes. Trial lines show only
  * on an offer the store says this account may take.
  */
-function ComparePlans({ comparing, rows, current, catalogue, account, onClose, onChoose }: {
+function ComparePlans({ comparing, rows, current, catalogue, account, standing, onClose, onChoose }: {
   comparing: boolean;
   rows: readonly WallPlanRow[];
   current: WallPlanOffer | null;
   catalogue: Record<Plan, PlanSpec> | null;
   account: WallAccount | null;
+  standing: Pick<BillingStatus, 'plan' | 'lapsed'> | null;
   onClose: () => void;
   onChoose: (offer: WallPlanOffer) => void;
 }) {
   const { colors, b } = useMainAppearance();
-  const cards = compareCards(rows, current, catalogue);
+  const cards = compareCards(rows, current, catalogue, standing);
   const [pick, setPick] = useState<string | null>(null);
-  const picked = cards.find(card => card.plan === pick) ?? cards.find(card => card.offer.productId === current?.productId) ?? cards[0];
+  // The learner's own plan is never picked: it is marked, and not offered (F912).
+  const open = cards.filter(card => !card.yours);
+  const picked = open.find(card => card.plan === pick) ?? open.find(card => card.offer.productId === current?.productId) ?? open[0];
   const close = () => { setPick(null); onClose(); };
   return (
     <Sheet reading surface={colors.surface} ink={colors.text} visible={comparing} title={PLANS_COMPARE} onClose={close}
@@ -128,8 +142,8 @@ function ComparePlans({ comparing, rows, current, catalogue, account, onClose, o
         {cards.map(card => {
           const checked = card.plan === picked?.plan;
           return (
-            <Press key={card.plan} haptic="selection" accessibilityRole="radio" accessibilityState={{ checked }} aria-checked={checked}
-              accessibilityLabel={[card.name, card.price, card.allowance, card.trial].filter(Boolean).join(', ')}
+            <Press key={card.plan} haptic="selection" accessibilityRole="radio" accessibilityState={{ checked, disabled: card.yours }} aria-checked={checked} disabled={card.yours}
+              accessibilityLabel={[card.name, card.yours ? PLAN_YOURS : null, card.price, card.allowance, card.trial].filter(Boolean).join(', ')}
               onPress={() => setPick(card.plan)}
               style={[st.card, checked ? { borderWidth: 1.5, borderColor: b.mark, backgroundColor: colors.background } : { borderWidth: 1, borderColor: colors.border }]}>
               <View style={st.cardHead}>
@@ -139,8 +153,8 @@ function ComparePlans({ comparing, rows, current, catalogue, account, onClose, o
                 <Text style={[wallType.medium, { color: colors.text, flex: 1, minWidth: 0 }]}>{card.name}</Text>
                 <Text style={[wallType.medium, { color: colors.text }]}>{card.price}</Text>
               </View>
+              {card.yours && <Text style={[wallType.detail, st.left, { color: colors.text }]}>{PLAN_YOURS}</Text>}
               {card.allowance !== null && <Text style={[wallType.line, { color: colors.muted }]}>{card.allowance}</Text>}
-              {card.plan === 'regular' && <Text style={[wallType.line, { color: colors.muted }]}>{INCLUSIONS.maxCompact}</Text>}
               {card.trial !== null && <Text style={[wallType.detail, st.left, { color: colors.muted }]}>{card.trial}</Text>}
             </Press>
           );
@@ -216,6 +230,7 @@ const st = StyleSheet.create({
   // Rhythm tightened 2026-10-19 so headline through plan line fit above the
   // pinned footer on 390x844 at default text size (wallLayout.test.ts budget).
   content: { paddingHorizontal: space(2), paddingTop: space(1) },
+  brief: { gap: space(1), marginBottom: space(3) },
   offer: { ...wallType.body, textAlign: 'center', marginTop: space(2.5) },
   price: { marginTop: space(2.5) },
   detail: { marginTop: space(1) },

@@ -11647,6 +11647,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a lock names the plan that unlocks it`
 - verified-by: `a Max-only lock opens the Max offer`
 - verified-by: `the free list names nothing that is locked on Free`
+- fixed: 2026-10-29. Locks name the plan that opens them, read from `capabilitiesFor` (`requiredPlan` in purchases/featureLocks.ts): the pill reads Core or Max and a screen reader hears "Locked. Part of Core." at every badge and spoken-label site. `open(feature)` and the locked-route guard pass `Wall { entry: 'locked', feature }` (web address round-trips and validates it); the wall preselects the opening plan's yearly offer, opens with a short brief, and says "Unlock with Max" when the chosen plan opens it. The free list reads "Review and offline phrase practice" and "Your earned lesson recaps". Today's Coming up lock is realMoment's, matching its tap. A door changed on a mounted wall resets its page (`doorChange`), and the first scene replaced by anything but its conversation now counts as an early exit. Tests: wall/lockedEntry.test.ts, wallPages.test.ts, launchWall.test.ts.
 
 ### F911 — The free limit shows three different messages and never says when time comes back
 - severity: P2
@@ -11666,6 +11667,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   a lapsed Max subscriber gets the Core trial wall at cold start.
 - verified-by: `a current subscriber never sees trial copy on the wall`
 - verified-by: `a lapsed subscriber sees resubscribe wording rather than a trial`
+- fixed: 2026-10-29. Trial copy needs the offer's `trialDays`, a read status on Free, and not lapsed (`trialCopyAllowed`); an unread status shows the plans page loading rather than a trial it may take back. A current subscriber is offered the other plan's yearly offer, their plan is marked "Your plan" in the compare sheet and is not offered as a purchase (buy()'s refusal untouched as the backstop). A lapsed learner reads "Welcome back" and a plain offer. Tests: wall/subscriberWall.test.ts.
 
 ### F913 — The compare sheet contradicts itself on conversations, allowances and streak freezes
 - severity: P2
@@ -11677,6 +11679,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   F564.
 - verified-by: `the compare sheet claims only what each plan's capabilities grant`
 - verified-by: `both plans state their minutes per 30 days in the same words`
+- fixed: 2026-10-29. One allowance template from the catalogue ("300 minutes every 30 days (about 10 a day)."), Max's extras read from its capabilities, `dailyAllowance` is "about" for both, COMPARE_INTRO says every scene and names Max's two extras, and INCLUSIONS.streak reads "Paid plans add a second streak freeze and a one-tap repair." (a pinned capabilities.ts line, founder approval of the diff owed). Tests: wall/subscriberWall.test.ts.
 
 ### F914 — The Terms have no subscription section, and deleting an account ends with no confirmation
 - severity: P2

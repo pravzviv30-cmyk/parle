@@ -427,7 +427,7 @@ export function RecapScreen({
           <View>
             <View style={s.fixHead}>
               <Text accessibilityRole="header" style={[bType.section20, { color: t.text }]}>Small fixes</Text>
-              {fixesLocked(locks.access) ? <LockBadge /> : null}
+              {fixesLocked(locks.access) ? <LockBadge feature="fixes" /> : null}
             </View>
             <Text style={[bType.meta, { color: t.muted }]}>A more natural way to say it</Text>
           </View>

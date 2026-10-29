@@ -15,6 +15,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
 import { LockBadge, Press } from '../components.tsx';
+import type { LockedFeature } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { COMING_UP_COPY } from '../home/todayView.ts';
 import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
@@ -131,11 +132,13 @@ export interface ComingUpCardView {
   title: string;
   when: string;
   locked: boolean;
+  /** What Rehearse now opens, and so what the lock names (F910): RealMoment, a Max door. */
+  feature: LockedFeature;
 }
 
 /**
  * "Coming up" (founder, 2026-10-20): the tutor-orb, the life event the tutor
- * remembers and when, the trial pill when tutor memory is locked, then
+ * remembers and when, the plan's lock when Rehearse now is locked, then
  * Rehearse now and Not now. No checklist: nothing stores one yet (Phase C).
  */
 export function ComingUpCard({ view, onRehearse, onNotNow }: { view: ComingUpCardView; onRehearse: () => void; onNotNow: () => void }) {
@@ -148,7 +151,7 @@ export function ComingUpCard({ view, onRehearse, onNotNow }: { view: ComingUpCar
         <View style={s.grow}>
           <Text accessibilityRole="header" style={[bType.bold16, { color: t.text }]}>{view.title}</Text>
           <Text style={[bType.note, { color: t.muted }]}>{view.when}</Text>
-          {view.locked ? <View style={s.pillGap}><LockBadge /></View> : null}
+          {view.locked ? <View style={s.pillGap}><LockBadge feature={view.feature} /></View> : null}
         </View>
       </View>
       <View style={s.actions}>

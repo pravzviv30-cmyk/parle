@@ -34,6 +34,8 @@
  * does not typecheck. The rows say how many there are by being there.
  */
 
+import type { LockedFeature } from '../purchases/capabilities.ts';
+
 // ── page one: the map ──────────────────────────────────────────────────────────
 
 export const MAP_TITLE = 'What you can do in French';
@@ -99,16 +101,19 @@ export const YOURS_SUB = 'You can keep practising what you learned for free.';
  * readable transcript (`docs/STATE_AND_STORAGE.md`).
  */
 export const YOURS_BANK = 'Phrase bank: phrases picked from conversations';
-export const YOURS_REVIEW = 'Review and pronunciation practice';
+/**
+ * F910 (2026-10-29): the free list names nothing Free keeps locked, held by
+ * `lockedEntry.test.ts` against the locks themselves. Sound practice and the
+ * progress section are locked on Free, so neither is listed here.
+ */
+export const YOURS_REVIEW = 'Review and offline phrase practice';
 export const YOURS_RECAPS = 'Your earned lesson recaps';
-export const YOURS_DRILLS = 'Pronunciation and sound practice';
-export const YOURS_PROGRESS = 'Your recaps and progress';
 
 /** The rows of page three, in the order they are drawn. */
 export const YOURS_ROWS: readonly string[] = [
   YOURS_BANK,
   YOURS_REVIEW,
-  YOURS_PROGRESS,
+  YOURS_RECAPS,
 ];
 
 export const ADDS_TITLE = 'With a plan';
@@ -120,6 +125,32 @@ export const ADDS_TIME = 'Fresh live minutes each month';
 
 /** The rows of what a plan opens, in the order they are drawn. */
 export const ADDS_ROWS: readonly string[] = [ADDS_SITUATIONS, ADDS_FREELY, ADDS_TIME];
+
+/**
+ * The brief at the top of the plans page when a lock opened the wall (F910,
+ * founder decision 14): the feature's name and one plain sentence on what it
+ * trains. `names` are the words that name the feature, so the free list can be
+ * held to naming none of what Free keeps locked. Nothing here promises
+ * minutes or anything the plan does not open.
+ */
+export const LOCK_BRIEFS: Readonly<Record<LockedFeature, { title: string; line: string; names: readonly string[] }>> = {
+  fixes: { title: 'Your fixes', line: 'Your fixes gathers the small corrections from your conversations, ready to practise.', names: ['fixes', 'corrections'] },
+  thenAndNow: { title: 'Then and now', line: 'Then and now sets what you say today beside what you said before.', names: ['then and now'] },
+  conversationPractice: { title: 'Conversation practice', line: 'Conversation practice drills the phrases from one of your conversations.', names: ['conversation practice', 'drill'] },
+  sounds: { title: 'Sound practice', line: 'Sound practice trains one French sound at a time.', names: ['sound', 'pronunciation'] },
+  realMoment: { title: 'Prepare for something real', line: 'Tell your tutor what is coming up, and rehearse it before it happens.', names: ['rehearse', 'something real'] },
+  continueArc: { title: 'Continue a conversation', line: 'Pick up a conversation where it stopped, with the thread kept for you.', names: ['continue a conversation', 'continue conversations'] },
+  fullJourney: { title: 'Your full journey', line: 'Your journey shows what you can now do in French, scene by scene.', names: ['journey', 'progress'] },
+  tutorMemory: { title: 'What your tutor remembers', line: 'See and manage what your tutor keeps in mind about you.', names: ['tutor remembers', 'memory'] },
+};
+
+/** Every line the briefs say, for the scan. */
+const LOCK_BRIEF_LINES: readonly string[] = Object.values(LOCK_BRIEFS).flatMap((brief) => [brief.title, brief.line]);
+
+/** The button on a locked door's plans page, for a plan that opens the feature. */
+export function unlockWith(plan: string): string {
+  return `Unlock with ${plan}`;
+}
 
 export const YOURS_NEXT = 'See the plans';
 /**
@@ -230,11 +261,11 @@ export function freeRefill(when: string): string {
 }
 
 /**
- * A paid plan's minutes as a day's worth (REV-001): Core is "about", Max is
- * "up to", and neither is ever "unlimited".
+ * A paid plan's minutes as a day's worth (REV-001). Both plans are "about"
+ * (founder decision 13, 2026-10-29), and neither is ever "unlimited".
  */
-export function dailyAllowance(plan: string, minutesADay: number): string {
-  return `${plan === 'regular' ? 'up to' : 'about'} ${count(minutesADay, 'minute')} a day`;
+export function dailyAllowance(minutesADay: number): string {
+  return `about ${count(minutesADay, 'minute')} a day`;
 }
 
 /** What is left on the account, rounded down, with what that is in conversations. */
@@ -427,7 +458,13 @@ export const PAYWALL_BILLED_YEARLY = 'Billed yearly';
 export const PAYWALL_BILLED_WEEKLY = 'Billed weekly';
 /** Said after the billed amount in the footer disclosure, both kinds. */
 export const PAYWALL_RENEWS = 'Renews automatically until you cancel in Apple Subscriptions.';
-export const COMPARE_INTRO = 'Both plans include every conversation, your notes and practice. They differ in live tutor time.';
+/** What Max adds over Core, in the names the app gives them (F913). Which plan says each is `planExtras`, from the capabilities. */
+export const PLAN_EXTRAS = { rehearse: 'Rehearse', continueArc: 'Continue a conversation' } as const;
+/** On the compare card of the plan the learner already holds (F912). */
+export const PLAN_YOURS = 'Your plan';
+/** The headline for a learner whose paid plan has ended (F912): a plain offer, never a trial. */
+export const WELCOME_BACK_TITLE = 'Welcome back';
+export const COMPARE_INTRO = `Both plans include every scene, your notes and practice. Max adds ${PLAN_EXTRAS.rehearse} and ${PLAN_EXTRAS.continueArc}.`;
 
 /** The states the shell draws, in the shell's own words. */
 export const PAYWALL_LOADING = 'Checking your offer…';
@@ -495,13 +532,16 @@ export function planAllowanceLine(name: string, minutes: number, days: number, d
   return `${name}, ${minutes} min every ${count(days, 'day')}`;
 }
 
-/** A compare card's allowance. */
-export function compareAllowance(minutes: number, days: number, daily?: string): string {
-  if (daily !== undefined) {
-    const said = String(daily);
-    return `${said.charAt(0).toUpperCase()}${said.slice(1)} of live conversation`;
-  }
-  return `${count(minutes, 'minute')} of live conversation every ${count(days, 'day')}`;
+/**
+ * A compare card's allowance, one template for both plans (F913, founder
+ * decision 13): "300 minutes every 30 days (about 10 a day)." Every number is
+ * handed in from the catalogue; `extras` is what the plan's capabilities add,
+ * already joined, or empty.
+ */
+export function compareAllowance(minutes: number, days: number, perDay: number | null, extras: string): string {
+  const daily = perDay === null || perDay < 1 ? '' : ` (about ${perDay} a day)`;
+  const plus = typeof extras === 'string' && extras.length > 0 ? `, plus ${extras}` : '';
+  return `${count(minutes, 'minute')} every ${count(days, 'day')}${daily}${plus}.`;
 }
 
 /** A compare card's trial line, only for an offer the store says this account may take. */
@@ -582,12 +622,11 @@ export const WALL_COPY: readonly string[] = [
   YOURS_TITLE,
   YOURS_SUB,
   ...YOURS_ROWS,
-  YOURS_RECAPS,
-  YOURS_DRILLS,
   YOURS_FREE_TITLE,
   ADDS_TITLE,
   ...ADDS_ROWS,
   ADDS_AGAIN,
+  ...LOCK_BRIEF_LINES,
   YOURS_NEXT,
   YOURS_DECLINE,
   YOURS_ONLY,
@@ -629,6 +668,9 @@ export const WALL_COPY: readonly string[] = [
   PAYWALL_BILLED_WEEKLY,
   PAYWALL_RENEWS,
   COMPARE_INTRO,
+  ...Object.values(PLAN_EXTRAS),
+  PLAN_YOURS,
+  WELCOME_BACK_TITLE,
   PAYWALL_LOADING,
   PAYWALL_UNAVAILABLE_TITLE,
   PAYWALL_UNAVAILABLE_BODY,

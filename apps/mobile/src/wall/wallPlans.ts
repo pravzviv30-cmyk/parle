@@ -3,6 +3,7 @@ import { ALLOWANCE_WINDOW_DAYS, STORE_TRIAL_DAYS, WEEKLY_STARTER_SECONDS, type P
 import { purchasable } from '../purchases/paywallView.ts';
 import type { PaidPlan, StoreOffering, StoreProduct } from '../purchases/adapter.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
+import { requiredPlan, type LockedFeature } from '../purchases/featureLocks.ts';
 
 /**
  * How long "a conversation" is, stated once and said on the page.
@@ -283,8 +284,16 @@ export function wallSuggestion(
   rows: readonly WallPlanRow[] | null,
   goal: GoalRead,
   status: Pick<BillingStatus, 'plan' | 'lapsed'> | null,
+  feature: LockedFeature | null = null,
 ): string | null {
-  if (status === null || !goal.loaded) return null;
+  if (status === null || rows === null) return null;
+  const yearlyOf = (plan: PaidPlan) => rows.find((row) => row.plan === plan)?.offers.find((offer) => offer.period === 'year')?.productId ?? null;
+  // F912: a subscriber is offered the other plan, never their own again.
+  const held = currentPaidPlan(status);
+  if (held !== null) return yearlyOf(held === 'starter' ? 'regular' : 'starter');
+  // F910: a lock opened the wall, so the plan that opens it, whatever the goal.
+  if (feature !== null) return yearlyOf(requiredPlan(feature));
+  if (!goal.loaded) return null;
   return preselectedOffer(rows, goal.target, status)?.productId ?? null;
 }
 
@@ -310,4 +319,21 @@ export function wallTrial(catalogue: Record<Plan, PlanSpec> | null): WallTrial |
 /** Weekly allowance is enabled only by the matching server billing contract. */
 export function offerMinutes(row: WallPlanRow, offer: WallPlanOffer | null): number | null {
   return offer?.period === 'week' ? WEEKLY_STARTER_SECONDS / 60 : row.minutes;
+}
+
+/**
+ * Whether trial copy may show at all (F912): only to a learner the server has
+ * read as on the free plan and not lapsed. The offer must still carry the
+ * store's own `trialDays` too. An unread status says no, so a subscriber is
+ * never shown a trial while the read is in flight, and a lapsed learner is
+ * never told a trial is coming even if the store still says intro-eligible.
+ */
+export function trialCopyAllowed(status: Pick<BillingStatus, 'plan' | 'lapsed'> | null): boolean {
+  return status !== null && status.plan === 'trial' && !status.lapsed;
+}
+
+/** The paid plan this learner currently holds, or null (free, lapsed, or unread). */
+export function currentPaidPlan(status: Pick<BillingStatus, 'plan' | 'lapsed'> | null): PaidPlan | null {
+  if (status === null || status.lapsed || status.plan === 'trial') return null;
+  return status.plan;
 }

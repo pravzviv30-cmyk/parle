@@ -101,6 +101,7 @@ import type { AuthResult } from '../auth/types.ts';
 import { noteLeftEarly } from '../wall/launchWallSeen.ts';
 import { removalIsEarlyExit, watchRemoval, type RemovalSource } from '../wall/launchWall.ts';
 import { singleWallId } from './singleWall.ts';
+import { isLockedFeature } from '../purchases/featureLocks.ts';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -153,7 +154,7 @@ function FirstSceneRoute() {
   const raw = route.params?.missionId;
   const missionId: MissionId = typeof raw === 'string' && getMission(raw as MissionId) !== undefined ? (raw as MissionId) : FIRST_MISSION;
   // Founder decision 4: any way back out of the primer is an early exit; Start replacing it with the scene is not.
-  useEffect(() => watchRemoval(nav as unknown as RemovalSource, (type) => removalIsEarlyExit('FirstScene', type), noteLeftEarly), [nav]);
+  useEffect(() => watchRemoval(nav as unknown as RemovalSource, (action) => removalIsEarlyExit('FirstScene', action), noteLeftEarly), [nav]);
   return (
     <FirstSceneScreen
       missionId={missionId}
@@ -608,6 +609,7 @@ function WallRoute() {
   }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Wall'>>();
   const { entry, resumeRouteKey } = route.params;
+  const feature = isLockedFeature(route.params.feature) ? route.params.feature : null;
   const owner = useRef(scopeGeneration()).current;
 
   // A preview opens ON this screen, so there can be nothing behind it to go back
@@ -621,6 +623,7 @@ function WallRoute() {
   return (
     <WallScreen
       entry={entry}
+      feature={feature}
       onLeave={leave}
       onStartSpeaking={(canResume) => {
         if (owner !== scopeGeneration()) return;

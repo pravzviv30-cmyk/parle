@@ -19,6 +19,8 @@ import { ALLOWANCE_WINDOW_DAYS, STORE_TRIAL_DAYS, type Plan, type PlanSpec } fro
 
 import { PURCHASE_AWAITING_APPROVAL, PURCHASE_NOT_CHARGED, PURCHASE_TROUBLE, REFRESH_TROUBLE } from '../purchases/paywallView.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
+import { capabilitiesFor } from '../purchases/capabilities.ts';
+import type { LockedFeature } from '../purchases/featureLocks.ts';
 import type { TrialNodeKey, TrialTimelineView } from './trialTimeline.ts';
 import { dayAndMonth } from './wallAccount.ts';
 import {
@@ -35,6 +37,10 @@ import {
   PAYWALL_RESTORE_NONE_BODY,
   PAYWALL_RESTORE_NONE_TITLE,
   PAYWALL_STANDARD_TITLE,
+  PLAN_EXTRAS,
+  LOCK_BRIEFS,
+  WELCOME_BACK_TITLE,
+  unlockWith,
   PAYWALL_SUBSCRIBE,
   PAYWALL_TRY_AGAIN,
   SUCCESS_ROW_PLAN,
@@ -56,7 +62,7 @@ import {
   successTrialBody,
   trialDisclosure,
 } from './wallCopy.ts';
-import { offerForTier, offerMinutes, storeTrialMinutes, type WallChosen, type WallPlanOffer, type WallPlanRow } from './wallPlans.ts';
+import { currentPaidPlan, offerForTier, offerMinutes, storeTrialMinutes, trialCopyAllowed, type WallChosen, type WallPlanOffer, type WallPlanRow } from './wallPlans.ts';
 import type { WallSuccess } from './wallSuccess.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -71,16 +77,34 @@ const WEEK_DAYS = 7;
  * offering something is always chosen and the empty page cannot draw. Null
  * only when no row carries any product, which the wall treats as unavailable.
  */
-export function effectiveSelection(rows: readonly WallPlanRow[] | null, selected: string | null, suggestion: string | null): string | null {
+export function effectiveSelection(rows: readonly WallPlanRow[] | null, selected: string | null, suggestion: string | null, fallback: WallPlanRow['plan'] = 'starter'): string | null {
   if (rows === null) return null;
   const exists = (id: string | null) => id !== null && rows.some(row => row.offers.some(offer => offer.productId === id));
   if (exists(selected)) return selected;
   if (exists(suggestion)) return suggestion;
-  const starter = rows.find(row => row.plan === 'starter');
+  // A locked door falls back to the plan that opens it (F910), else Core.
+  const starter = rows.find(row => row.plan === fallback) ?? rows.find(row => row.plan === 'starter');
   return starter?.offers.find(offer => offer.period === 'year')?.productId
     ?? starter?.offers.find(offer => offer.period === 'month')?.productId
     ?? rows.flatMap(row => row.offers)[0]?.productId
     ?? null;
+}
+
+/**
+ * The brief a locked door's plans page opens with (F910, founder decision 14):
+ * the feature's name and what it trains. Only on the `locked` door, and only
+ * when the feature that opened it is known.
+ */
+export function lockBrief(entry: string, feature: LockedFeature | null | undefined): { title: string; line: string } | null {
+  if (entry !== 'locked' || feature === null || feature === undefined) return null;
+  const brief = LOCK_BRIEFS[feature];
+  return brief === undefined ? null : { title: brief.title, line: brief.line };
+}
+
+/** Who the offer is for: a lapsed learner (F912), and the feature a lock opened the wall for (F910). */
+export interface OfferContext {
+  lapsed: boolean;
+  unlocks: LockedFeature | null;
 }
 
 export interface PaywallOffer {
@@ -104,7 +128,7 @@ export interface PaywallOffer {
  * answer for the same product, so the two can never disagree about whether
  * this is a trial.
  */
-export function paywallOffer(offer: WallChosen, trial: TrialTimelineView | null): PaywallOffer {
+export function paywallOffer(offer: WallChosen, trial: TrialTimelineView | null, context: OfferContext = { lapsed: false, unlocks: null }): PaywallOffer {
   const billed = billedPrice(offer.price, offer.period);
   const detail = detailLine(offer, trial !== null);
   if (trial !== null) {
@@ -121,11 +145,12 @@ export function paywallOffer(offer: WallChosen, trial: TrialTimelineView | null)
   }
   return {
     kind: 'standard',
-    headline: PAYWALL_STANDARD_TITLE,
+    headline: context.lapsed ? WELCOME_BACK_TITLE : PAYWALL_STANDARD_TITLE,
     lead: null,
     billed,
     detail,
-    cta: PAYWALL_SUBSCRIBE,
+    // "Unlock with Max" only when the chosen plan really opens the feature.
+    cta: context.unlocks !== null && capabilitiesFor(offer.plan).unlocks[context.unlocks] ? unlockWith(offer.name) : PAYWALL_SUBSCRIBE,
     disclosure: standardDisclosure(offer.price, offer.period),
     benefits: PAYWALL_BENEFITS,
   };
@@ -155,13 +180,13 @@ export function windowDays(catalogue: Record<Plan, PlanSpec> | null, plan: Plan,
 
 /**
  * A paid plan's month or year as a day's worth (REV-001): "about 10 minutes a
- * day" for Core, "up to 20 minutes a day" for Max. Undefined for the weekly
+ * day" for Core and "about 20 minutes a day" for Max (decision 13). Undefined for the weekly
  * product and for a window too small to say per day, which keep the minutes.
  */
 export function paidDaily(plan: Plan, minutes: number, days: number, period: WallPlanOffer['period']): string | undefined {
   if (period === 'week' || plan === 'trial' || days <= 0) return undefined;
   const perDay = Math.floor(minutes / days);
-  return perDay >= 1 ? dailyAllowance(plan, perDay) : undefined;
+  return perDay >= 1 ? dailyAllowance(perDay) : undefined;
 }
 
 /** "<Tier>, about <n> minutes a day", or the minutes over the window, or just the tier with no catalogue. */
@@ -179,31 +204,43 @@ export interface CompareCard {
   /** The billed amount for the period currently chosen. */
   price: string;
   allowance: string | null;
-  /** Only when the store says this account may take this offer's trial. */
+  /** Only when the store says this account may take this offer's trial, and the learner is on Free (F912). */
   trial: string | null;
+  /** The plan the learner already holds (F912): marked, and not offered as a purchase. */
+  yours: boolean;
 }
 
 /** The compare sheet's cards: one per tier, in the period the learner chose. */
-export function compareCards(rows: readonly WallPlanRow[], current: WallPlanOffer | null, catalogue: Record<Plan, PlanSpec> | null): CompareCard[] {
+export function compareCards(rows: readonly WallPlanRow[], current: WallPlanOffer | null, catalogue: Record<Plan, PlanSpec> | null, status: Pick<BillingStatus, 'plan' | 'lapsed'> | null = null): CompareCard[] {
+  const held = currentPaidPlan(status);
+  const trialsShown = trialCopyAllowed(status);
   return rows.flatMap((row) => {
     const offer = offerForTier(row, current);
     if (offer === null) return [];
     const minutes = offerMinutes(row, offer);
-    const trialMinutes = offer.trialDays === null ? null : storeTrialMinutes(catalogue, row.plan);
+    const days = windowDays(catalogue, row.plan, offer.period);
+    const trialMinutes = !trialsShown || offer.trialDays === null ? null : storeTrialMinutes(catalogue, row.plan);
     return [{
       plan: row.plan,
       name: row.name,
       offer,
       price: billedPrice(offer.price, offer.period),
-      allowance: minutes === null ? null : compareAllowance(minutes, windowDays(catalogue, row.plan, offer.period), paidDaily(row.plan, minutes, windowDays(catalogue, row.plan, offer.period), offer.period)),
+      allowance: minutes === null ? null : compareAllowance(minutes, days, offer.period === 'week' || days <= 0 ? null : Math.floor(minutes / days), planExtras(row.plan).join(' and ')),
       trial: offer.trialDays === null || trialMinutes === null ? null : compareTrialLine(trialMinutes, offer.trialDays),
+      yours: held === row.plan,
     }];
   });
 }
 
+/** What a plan adds beyond every scene, read from its capabilities, never a list of its own (F913). */
+export function planExtras(plan: Plan): readonly string[] {
+  const caps = capabilitiesFor(plan);
+  return [...(caps.customRehearsal ? [PLAN_EXTRAS.rehearse] : []), ...(caps.continueArc ? [PLAN_EXTRAS.continueArc] : [])];
+}
+
 /** The compare sheet's button for the card picked in it. */
 export function compareCta(card: CompareCard): string {
-  return compareContinue(card.name, card.offer.trialDays !== null);
+  return compareContinue(card.name, card.trial !== null);
 }
 
 /** The glyph each timeline row carries. */

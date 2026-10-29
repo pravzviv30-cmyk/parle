@@ -165,8 +165,8 @@ describe('the tab wires those decisions and nothing else (source probes)', () =>
     assert.match(explore, /locked=\{locks\.access\('realMoment'\) === 'locked'\}/);
     assert.equal((explore.match(/<LockBadge\b/g) ?? []).length, 0, 'a lock badge drawn in the tab, outside the parts');
     const parts = read('../explore/ExploreParts.tsx');
-    assert.match(parts, /\{locked \? <LockBadge \/> : null\}/);
-    assert.match(parts, /\{badge\?\.kind === 'lock' \? <LockBadge form="round" said \/> : null\}/);
+    assert.match(parts, /\{locked \? <LockBadge feature="realMoment" \/> : null\}/);
+    assert.match(parts, /\{badge\?\.kind === 'lock' \? <LockBadge plan=\{EXPLORE_LOCK_PLAN\} form="round" said \/> : null\}/);
     assert.equal((parts.match(/<LockBadge\b/g) ?? []).length, 2, 'a lock badge drawn outside the two seams');
     assert.match(explore, /badge=\{furtherBadge\(furtherNote\(collection\)\)\}/);
   });

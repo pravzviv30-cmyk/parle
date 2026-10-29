@@ -13,7 +13,8 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BArt, type BArtName } from '../art/BArt.tsx';
-import { LOCK_BADGE_LABEL, LockBadge, Press } from '../components.tsx';
+import { LockBadge, Press } from '../components.tsx';
+import { lockSpoken } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { tileDecoration, type Pastel, type TopicTile } from '../main/exploreArt.ts';
 import { HIT, bType, decorative, frenchText, liftStyle } from '../theme.ts';
@@ -149,7 +150,7 @@ export function PrepareCard({ title, line, label, value, onChangeText, placehold
         <View style={s.grow}>
           <View style={s.titleRow}>
             <Text accessibilityRole="header" style={[bType.bold18, { color: t.text }]}>{title}</Text>
-            {locked ? <LockBadge /> : null}
+            {locked ? <LockBadge feature="realMoment" /> : null}
           </View>
           <Text style={[bType.meta, { color: t.muted }]}>{line}</Text>
         </View>
@@ -255,6 +256,9 @@ export function PracticeScroller({ cards }: { cards: readonly { key: string; tit
   );
 }
 
+/** A plan-only collection opens on any paid plan (`hasExplorePlan`), so its lock names Core (F910). */
+const EXPLORE_LOCK_PLAN = 'starter' as const;
+
 /** A "Take the conversation further" row with its Free sample pill or round lock. */
 export function FurtherRow({ title, line, tile, badge, last, onPress }: {
   title: string; line: string; tile: { art: BArtName; width: number; height: number; ground: Pastel };
@@ -262,7 +266,7 @@ export function FurtherRow({ title, line, tile, badge, last, onPress }: {
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
-  const said = [title, line, badge === null ? null : badge.kind === 'pill' ? badge.label : LOCK_BADGE_LABEL].filter(Boolean).join(', ');
+  const said = [title, line, badge === null ? null : badge.kind === 'pill' ? badge.label : lockSpoken(EXPLORE_LOCK_PLAN)].filter(Boolean).join(', ');
   return (
     <Press haptic="light" accessibilityLabel={said} onPress={onPress} style={[s.further, !last && s.divider]}>
       <RowTile {...tile} />
@@ -271,7 +275,7 @@ export function FurtherRow({ title, line, tile, badge, last, onPress }: {
         <Text style={[bType.note, { color: t.muted }]}>{line}</Text>
       </View>
       {badge?.kind === 'pill' ? <View {...decorative} style={[s.smallPill, { backgroundColor: t.lavender }]}><Text style={[bType.bold12, { color: t.text }]}>{badge.label}</Text></View> : null}
-      {badge?.kind === 'lock' ? <LockBadge form="round" said /> : null}
+      {badge?.kind === 'lock' ? <LockBadge plan={EXPLORE_LOCK_PLAN} form="round" said /> : null}
     </Press>
   );
 }
