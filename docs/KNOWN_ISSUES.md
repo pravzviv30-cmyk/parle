@@ -11689,6 +11689,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   "Verify and delete permanently" (settings/SettingsScreen.tsx) the app goes straight to sign-in,
   with no confirmation and no reminder to cancel the store subscription. The re-authentication step
   may be a mock-adapter artefact. Legal wording needs review before release.
+- fixed: 2026-10-29. Terms gain a draft "Subscriptions" section (`TERMS_SUBSCRIPTIONS`, own
+  600-character cap, rendered by `TermsScreen.tsx`); a complete delete ends on
+  `auth/AccountDeletedNotice.tsx` with the store-cancel reminder and a store link on iOS and
+  Android. Legal wording still needs professional review before release.
 - verified-by: `the terms state auto-renewal, cancellation timing and that deletion does not cancel`
 - verified-by: `account deletion ends on a confirmation that names cancelling the store subscription`
 

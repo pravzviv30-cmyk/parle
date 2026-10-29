@@ -34,7 +34,14 @@ import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { openLink } from '../settings/links.ts';
 import { LINK_TROUBLE } from '../settings/sections.ts';
-import { APPLE_EULA_URL, TERMS_BODY, TERMS_LINK_LABEL, TERMS_TITLE } from './terms.ts';
+import {
+  APPLE_EULA_URL,
+  TERMS_BODY,
+  TERMS_LINK_LABEL,
+  TERMS_SUBSCRIPTIONS,
+  TERMS_SUBSCRIPTIONS_HEADING,
+  TERMS_TITLE,
+} from './terms.ts';
 import { c, boldType } from '../onboarding/boldRhythm.ts';
 import { useB } from '../main/bTheme.tsx';
 
@@ -54,6 +61,16 @@ export function TermsScreen({ onBack }: { onBack: () => void }) {
               key={`terms:${index}`}
               style={[boldType.body, { color: t.text, marginTop: index === 0 ? 0 : space(3) }]}
             >
+              {paragraph}
+            </Text>
+          ))}
+        </Card>
+        <Card style={{ backgroundColor: t.lavender, borderRadius: 24, marginTop: space(4) }}>
+          <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>
+            {TERMS_SUBSCRIPTIONS_HEADING}
+          </Text>
+          {TERMS_SUBSCRIPTIONS.map((paragraph, index) => (
+            <Text key={`subscriptions:${index}`} style={[boldType.body, { color: t.text, marginTop: space(3) }]}>
               {paragraph}
             </Text>
           ))}

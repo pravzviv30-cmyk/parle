@@ -51,6 +51,7 @@ import { AuthFlow } from './src/auth/AuthFlow.tsx';
 import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
 import { EraseNoticeScreen } from './src/auth/EraseNoticeScreen.tsx';
 import { DeletionPendingNotice } from './src/auth/DeletionPendingNotice.tsx';
+import { AccountDeletedNotice } from './src/auth/AccountDeletedNotice.tsx';
 import { deleteAccountAndErase } from './src/auth/deleteAccountFlow.ts';
 import type { AuthUser } from './src/auth/types.ts';
 import type { AuthResult } from './src/auth/types.ts';
@@ -675,6 +676,8 @@ function Gate() {
    */
   const [localCopyKept, setLocalCopyKept] = useState(false);
   const [deletionPending, setDeletionPending] = useState(false);
+  // F914: a complete deletion ends on a confirmation. Memory only, never disk.
+  const [accountDeleted, setAccountDeleted] = useState(false);
   /**
    * An under-13 answer on the first run's save page, before any account
    * (F637, F639, F641). Held here because `Gate` stays mounted for the whole
@@ -774,6 +777,7 @@ function Gate() {
         deleteAccount: async () => {
           const result = await auth.deleteAccount();
           if (result.ok && result.deletionPending) setDeletionPending(true);
+          else if (result.ok) setAccountDeleted(true);
           return result;
         },
         eraseThisDevice: () => clearActiveUserData(),
@@ -808,6 +812,7 @@ function Gate() {
     // the next learner's sign-in either. F496.
     if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
     if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
+    if (accountDeleted) return <AccountDeletedNotice onDismiss={() => setAccountDeleted(false)} />;
     return (
       <>
         {/* A guest who said yes on day one has no account yet: their reminder is

@@ -162,6 +162,14 @@ submit the clean address the live-pages table at the top of this file gives.
   custom agreement. The app's Terms of use screen names Apple's licence and links
   to it, which is the arrangement Apple offers for an app that has not written its
   own terms.
+- **Subscriptions section (F914, 2026-10-29), draft.** The Terms of use screen also
+  carries a short "Subscriptions" section (`TERMS_SUBSCRIPTIONS` in
+  `apps/mobile/src/legal/terms.ts`): automatic renewal at the price shown, cancel at
+  least 24 hours before renewal in the App Store or Google Play, a free trial converts
+  unless cancelled, unused minutes do not roll over, and deleting the account does not
+  cancel the subscription. It is a draft. It needs professional legal review before
+  release, as does whether it fits beside Apple's standard EULA. It is not yet on any
+  hosted page; `scripts/legal-html.mjs` renders the privacy notice only.
 
 Apple moves these fields between **App Information** and **App Privacy** across
 console versions, so search for the field name rather than following a fixed path
