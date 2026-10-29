@@ -272,8 +272,9 @@ B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
   drawings and no sublines); a chosen row fills brand with a sun tick disc, or
   a rounded sun square for interests, which are checkboxes.
 - **Plan:** a sun band with map-route and the learner's answers as white chips;
-  then the five stages with the learner at Starter, the first three scenes and
-  the blue How it works card.
+  then the five stages with the learner at their starting point (Starter, or
+  Basics or Everyday from the level answer, with a quiet 44-point Skip ahead
+  link at Basics), the first three scenes and the blue How it works card.
 - **Tutor:** a brand band with the canvas orb (never a face); six white voice
   rows, the chosen one brand, each with a 44 speaker. Hearing never chooses.
 - **Before we start:** a brand band with the orb; an info card with three
@@ -282,8 +283,14 @@ B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
 - **First scene and Save your plan:** a sun band with the café table and a
   brand band with the star jar.
 
-The artboards' back discs keep their 44 place empty: onboarding has no visible
-previous control (F352); platform back still goes back. Bands read the top
+The artboards' back discs hold a Back chevron (`RoundButton kind="back"`, 44 px)
+on every setup step after the first: the questions, the plan, the tutor and
+"Before we start". The welcome keeps its place empty. Browser Back steps back
+on web, and platform back still goes back. This supersedes F352's "no visible
+previous control" (2026-10-29, product review LR-13, F915). "Before we start"
+also offers "Create an account first", and the signed-in first scene offers
+"Look around first" under Start speaking; both land on Home with no scene
+started. Bands read the top
 inset from the onboarding frame (`useOnboardingTopInset`), and the status bar is
 light on blue bands and dark on sun and mint.
 
@@ -1235,7 +1242,9 @@ pieces of the ground's own colour fall away into it; the rest still read.
 ## Structure
 
 First run builds the learner's plan through purpose, interests, self-reported
-level, confidence, focus and daily goal, then a deliberate tutor choice.
+level, confidence, focus and daily goal, then a tutor step with the
+recommended tutor already selected (F926, 2026-10-29), so Continue is never
+disabled waiting for a pick.
 “Meet your tutor” says “Listen, then choose your tutor.”; tutor cards keep names
 without an AI Tutor suffix, and hearing a sample never selects it. The linked
 Terms/Privacy declaration and processing disclosures precede real guest

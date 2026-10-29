@@ -47,6 +47,7 @@ import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { soundJourney } from '../soundcheck/journey.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { practicePreferencesOf, startAtOf } from '../profile/practicePreferences.ts';
 import { goalOf } from '../onboarding/goalLine.ts';
 import { goalRouteKey, goalRows } from '../goals/rows.ts';
 import { ownedReadStatus } from './ownedRead.ts';
@@ -230,7 +231,7 @@ export function MyFrenchTab() {
   const empty = renderStatus === 'ready' && isEmptyJourney(firstVisit, completions);
   const owned = () => scopeGeneration() === currentScope;
 
-  const stages = stagesFrom(missions);
+  const stages = stagesFrom(missions, practicePreferencesOf(profile).placement ?? null);
   const level = levelHeader(xpLevel);
   const stats = headerStats({ daysInARow: run === null ? null : run.current, minutes, phrases: kept.phrases });
   const canDo = canDoView({ progress: missions, completions, now, access: locks.access });
@@ -241,7 +242,7 @@ export function MyFrenchTab() {
   const progress = progressRowsView({ brain: profile.brain, deck, now, access: locks.access });
   const week = weekView(reflectionFrom({ story, recent: conversations, checks, progress: missions, now }), locks.access);
   const tiles = collectionTiles({ postcards: earnedPostcards(missions).length, badges: game.view?.badges.length ?? 0 });
-  const start = emptyJourney(missions, goalOf(profile));
+  const start = emptyJourney(missions, goalOf(profile), startAtOf(profile));
 
   /** Every door on the page, through the account fence. */
   const go = (route: JourneyRoute) => {
@@ -343,7 +344,7 @@ export function MyFrenchTab() {
 
               <View style={st.stack}>
                 <JourneyHead title={STAGE_HEADING} locked={false} subtitle={STAGE_INTRO} />
-                <StageTrack steps={stages.steps} fill={stages.fill} moveUp={stages.moveUp} hereWord={YOU_ARE_HERE} />
+                <StageTrack steps={stages.steps} fill={stages.fill} moveUp={stages.moveUp} skippedLine={stages.skippedLine} hereWord={YOU_ARE_HERE} />
               </View>
 
               {(canDo.rows.length > 0 || canDo.teaser !== null) && (

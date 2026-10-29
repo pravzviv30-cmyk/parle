@@ -65,7 +65,7 @@ test('signed-in setup requires durable consent, reminder and profile before comp
       saveConsent: async () => { calls.push('consent'); return failure === 'consent' ? 'volatile' : 'durable'; },
       saveReminder: async () => { calls.push('reminder'); return failure === 'reminder' ? 'volatile' : 'durable'; },
       saveProfile: async () => { calls.push('profile'); return failure !== 'profile'; },
-      firstScene: { current: null }, firstSceneFor: () => 'first', onPreAccountDraftConsumed: () => calls.push('consume'), done: () => calls.push('done'),
+      firstScene: { current: null }, firstSceneFor: () => 'first', firstRunScene: () => 'first', onPreAccountDraftConsumed: () => calls.push('consume'), done: () => calls.push('done'),
     });
     assert.equal(await invoke({ eligibilityConfirmed: true }), failure === undefined);
     const expected = failure === 'consent' ? ['consent'] : failure === 'reminder' ? ['consent', 'reminder'] : failure === 'profile' ? ['consent', 'reminder', 'profile'] : ['consent', 'reminder', 'profile', 'consume', 'done'];

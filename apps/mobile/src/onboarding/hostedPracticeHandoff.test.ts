@@ -10,7 +10,7 @@ import { isAccountHandoffRefusal, startRefusalCopy } from './guestScene.ts';
 
 const screen = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
-const startSource = screen.slice(screen.indexOf('  const start = async () => {'), screen.indexOf('  const saveAccount = async () => {'));
+const startSource = screen.slice(screen.indexOf('  const start = async () => {'), screen.indexOf('  const saveAccount = async ('));
 
 function launch(signedIn: boolean, failure: string | null = 'guest-live-unavailable') {
   const draft = { ...freshPreAccountDraft(), page: 'choose-tutor' as const, reason: 'trip' as const, tutorVoice: 'emilie' as const, tutorChosen: true, minutes: 10 as const };
@@ -51,13 +51,13 @@ test('each scene refusal reaches the account handoff with its own line', async (
     assert.equal(h.accountRequired.at(-1), true, `${code} must offer Create account to start`);
     assert.deepEqual(h.account, [], 'a refusal never creates an account by itself');
     const line = h.issues.at(-1) ?? '';
-    assert.match(line, /Create an account/);
+    assert.match(line, /Create (an|a free) account/);
     assert.doesNotMatch(line, /[—–]/);
     lines.set(code, line);
   }
   assert.equal(lines.get('guest-scene-used'), 'Nice to see you again. Create an account and your tutor will pick up from here.');
   assert.equal(lines.get('guest-live-unavailable'), 'Live practice is resting right now. Create an account to start.');
-  assert.equal(lines.get('guest-start-limited'), 'Today’s free scenes from this network are used up. Create an account to start.');
+  assert.equal(lines.get('guest-start-limited'), 'Free tries are busy right now. Create a free account to start your first scene.');
   assert.equal(new Set(lines.values()).size, 3, 'each refusal has its own line');
   assert.match(screen, /<GhostButton label="I already have an account"/);
 });
@@ -74,7 +74,7 @@ test('accepted Terms do not suppress the pending first practice after account se
   const callback = app.slice(begin, app.indexOf('\n          />', begin)).match(/done=\{\(([^)]*)\) => \{([\s\S]*?)\n            \}\}/);
   assert.ok(callback, 'the profile owner must retain the existing bootstrap handoff');
   let first: unknown;
-  const world = { firstScene: { current: '' }, firstSceneFor: () => 'mission:cafe', preAccountDraft: { eligibilityConfirmed: true },
+  const world = { firstScene: { current: '' }, firstSceneFor: () => 'mission:cafe', firstRunScene: () => 'mission:cafe', preAccountDraft: { eligibilityConfirmed: true },
     setJustOnboarded: (value: unknown) => { first = value; }, done: () => {} };
   const run = new Function(...Object.keys(world), `return (${callback[1]}) => {${callback[2]}}`)(...Object.values(world));
   run({}, true);
@@ -224,4 +224,15 @@ test('a start refusal offers the account actions and no Try again; a connection 
   }
   const offline = launch(false, 'unavailable'); await offline.run();
   assert.ok(!offline.accountRequired.includes(true), 'a connection failure loses its Try again');
+});
+
+test('the guest limit message offers an account and names no network', async () => {
+  const line = startRefusalCopy('guest-start-limited');
+  assert.equal(line, 'Free tries are busy right now. Create a free account to start your first scene.');
+  assert.doesNotMatch(line, /network|wi-?fi|address|today|used up/i);
+  // The account action is the sheet's existing primary button; no offline drill, no extra button.
+  const h = launch(false, 'guest-start-limited'); await h.run();
+  assert.equal(h.accountRequired.at(-1), true);
+  assert.match(screen, /label=\{needsAccount \? 'Create account to start' : 'Start live practice'\}[^>]*onPress=\{\(\) => void \(needsAccount \? continueWithAccount\(\) : start\(\)\)\}/);
+  assert.doesNotMatch(screen, /offlineGuestPractice/);
 });

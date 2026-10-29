@@ -71,7 +71,7 @@ export function memoryRowTitle(tutorName: string): string {
 }
 
 /** The stage the learner is at, "Starter", from Journey's own five stages. Null with no step marked here. */
-export function stageWordOf(view: { steps: readonly { label: string; state: 'done' | 'here' | 'ahead' }[] }): string | null {
+export function stageWordOf(view: { steps: readonly { label: string; state: string }[] }): string | null {
   return view.steps.find((step) => step.state === 'here')?.label ?? null;
 }
 

@@ -128,7 +128,7 @@ test('withStatedLevel moves only the level, keeps confidence and focus, and crea
   assert.deepEqual(next.practicePreferences, { level: 'few', confidence: 'hesitant', focus: 'listening' });
   assert.deepEqual(base.practicePreferences, answers);
   const bare = fresh(); delete bare.practicePreferences;
-  assert.deepEqual(withStatedLevel(bare, 'confident').practicePreferences, { level: 'confident', confidence: null, focus: null });
+  assert.deepEqual(withStatedLevel(bare, 'confident').practicePreferences, { level: 'confident', confidence: null, focus: null, placement: 'everyday' });
   assert.throws(() => withStatedLevel(base, 'fluent' as never));
 });
 
@@ -201,4 +201,29 @@ test('a newer stated-level edit records a clock and beats an older remote level 
     assert.deepEqual(merged?.practicePreferences, { level: 'zero', confidence: 'hesitant', focus: 'listening' });
     assert.equal(merged?.brain.stats.sessions, 50);
   }
+});
+
+test('the placement follows the stated level and never touches earned evidence', async () => {
+  const { withStatedLevel } = await import('./store.ts');
+  const placed: StoredProfile = { ...fresh(), practicePreferences: { ...answers, placement: 'everyday' } };
+  const before = structuredClone(placed.brain);
+  // Re-choosing the same level keeps an earlier "Skip ahead".
+  assert.equal(withStatedLevel(placed, 'getby').practicePreferences?.placement, 'everyday');
+  assert.equal(withStatedLevel(placed, 'confident').practicePreferences?.placement, 'everyday');
+  assert.equal(withStatedLevel(placed, 'few').practicePreferences?.placement, undefined);
+  assert.equal(withStatedLevel(placed, 'zero').practicePreferences?.placement, undefined);
+  assert.equal(withStatedLevel(withStatedLevel(placed, 'few'), 'getby').practicePreferences?.placement, 'basics');
+  assert.deepEqual(withStatedLevel(placed, 'few').brain, before);
+});
+
+test('a placement follows the stated level when it changes', async () => {
+  const { withStatedLevel } = await import('./store.ts');
+  const { stagesFrom } = await import('../journey/journeyView.ts');
+  const { missionStates } = await import('@luvani/core');
+  const confident: StoredProfile = { ...fresh(), practicePreferences: { level: 'confident', confidence: null, focus: null, placement: 'everyday' } };
+  const brandNew = withStatedLevel(confident, 'zero');
+  const placement = practicePreferencesOf(brandNew).placement ?? null;
+  assert.equal(placement, null);
+  const view = stagesFrom(missionStates([], [], Date.now()), placement);
+  assert.deepEqual(view, stagesFrom(missionStates([], [], Date.now()), null), 'Brand new reads as Starter, nothing skipped');
 });

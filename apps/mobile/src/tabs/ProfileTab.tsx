@@ -79,6 +79,8 @@ import {
   stageWordOf,
 } from '../settings/profileView.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { practicePreferencesOf } from '../profile/practicePreferences.ts';
+import type { Placement } from '../onboarding/placement.ts';
 import { withName, withTutorVoice } from '../profile/store.ts';
 import { dailyGoalOf } from '../profile/dailyGoal.ts';
 import { useGame, useLevel, useStreak, useXp } from '../game/GameProvider.tsx';
@@ -278,7 +280,7 @@ export function ProfileTab() {
   const game = useGame();
   const plan = usePlanStatus();
   const locks = useFeatureAccess();
-  const evidence = useProfileEvidence();
+  const evidence = useProfileEvidence(practicePreferencesOf(profile).placement ?? null);
   const tutor = tutorNameOf(profile);
   const contact = contactRow();
   const preferences = learningPreferencesSummary({ dailyGoalMin: dailyGoalOf(profile), strictness: strictnessOf(profile), slow: paceOf(profile) === 'slow' });
@@ -382,7 +384,7 @@ export function ProfileTab() {
  * Practice counts them, and whether the sound journey holds a sound to
  * revisit. Bound to the account that asked; nothing is drawn until read.
  */
-function useProfileEvidence(): { stage: string | null; saved: number; soundJourney: boolean } {
+function useProfileEvidence(placement: Placement | null): { stage: string | null; saved: number; soundJourney: boolean } {
   const focused = useIsFocused();
   const [read, setRead] = useState<{ stage: string | null; saved: number; soundJourney: boolean }>({ stage: null, saved: 0, soundJourney: false });
   useEffect(() => {
@@ -395,7 +397,7 @@ function useProfileEvidence(): { stage: string | null; saved: number; soundJourn
         const now = Date.now();
         const missions = missionStates(missionCompletionsFrom(completions), deck, now);
         setRead({
-          stage: stageWordOf(stagesFrom(missions)),
+          stage: stageWordOf(stagesFrom(missions, placement)),
           saved: deck.filter((card) => card.kind !== 'phoneme').length,
           soundJourney: soundJourney(checks, now) !== null,
         });
@@ -407,7 +409,7 @@ function useProfileEvidence(): { stage: string | null; saved: number; soundJourn
     return () => {
       cancelled = true;
     };
-  }, [focused]);
+  }, [focused, placement]);
   return read;
 }
 

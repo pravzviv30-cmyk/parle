@@ -50,6 +50,8 @@ export function PRIMER_LINES(count: number): string {
 }
 export const PRIMER_ACTION = 'Start speaking';
 export const TYPE_INSTEAD = 'Type instead';
+/** The first scene's way home without starting it (F915). Secondary to Start speaking. */
+export const LOOK_AROUND = 'Look around first';
 export const OPEN_SETTINGS = 'Open Settings';
 /** A phone with a Settings app said no: what happened, what to do, and how. */
 export const PRIMER_REFUSED_TITLE = 'The microphone is off for Luvani';

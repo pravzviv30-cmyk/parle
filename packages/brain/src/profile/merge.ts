@@ -534,12 +534,13 @@ function pickAnswer(field: string, a: Side, b: Side, cmp: number): unknown {
 }
 
 const PRACTICE_PREFERENCE_KEYS = ['level', 'confidence', 'focus'] as const;
+const PLACEMENTS: readonly unknown[] = ['basics', 'everyday'];
 
 /**
  * `practicePreferences` is three independent answers, so each one follows the
  * answer rule on its own: a partial object from a heavier device (an older
  * install's Settings level edit writes confidence and focus as null) cannot
- * erase another device's real confidence or focus. Only the three known keys
+ * erase another device's real confidence or focus. Only the three known keys (and a valid placement)
  * survive, and all three unanswered is "never asked", which is null.
  */
 function pickPracticePreferences(a: Side, b: Side, cmp: number): unknown {
@@ -547,7 +548,14 @@ function pickPracticePreferences(a: Side, b: Side, cmp: number): unknown {
   const bv = isRecord(b.outer.practicePreferences) ? b.outer.practicePreferences : {};
   const merged: Record<string, unknown> = {};
   for (const key of PRACTICE_PREFERENCE_KEYS) merged[key] = pickValue(av[key], bv[key], cmp);
-  return PRACTICE_PREFERENCE_KEYS.every((key) => merged[key] === null) ? null : merged;
+  // The onboarding placement (F917) is part of the stated-level choice, so it
+  // travels with the level: only a side whose level won can supply it, and a
+  // winning level without one clears it. A placement never sits beside another
+  // device's level. Written only when such a side holds a real one.
+  const held = (v: Record<string, unknown>) => v.level === merged.level && PLACEMENTS.includes(v.placement as never) ? v.placement : null;
+  const placement = merged.level === null ? null : pickValue(held(av), held(bv), cmp);
+  if (placement !== null) merged.placement = placement;
+  return PRACTICE_PREFERENCE_KEYS.every((key) => merged[key] === null) && placement === null ? null : merged;
 }
 
 /**

@@ -21,6 +21,13 @@ export type GuestScene = typeof GUEST_SCENE;
 export const GUEST_SCENE_TURN_IDS = ['t1-greet', 't2-order', 't3-sur-place', 't9-thanks', 't12-goodbye'] as const;
 export type GuestSceneTurnId = (typeof GUEST_SCENE_TURN_IDS)[number];
 
+/**
+ * The summary's "Next time, try …" step after the scene (F925). It names the
+ * café turns the cut leaves out (`t5-croissant`, `t7-how-much`), so the tip
+ * follows the scene that was played, never the learner's goal.
+ */
+export const GUEST_SCENE_NEXT_TRY = 'asking for a croissant and how much it is';
+
 /** A guest scene never runs longer than this. */
 export const GUEST_SCENE_MAX_SECONDS = 180;
 

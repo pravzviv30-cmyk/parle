@@ -85,7 +85,7 @@ import { activeUserId, onUserScopeReset, userKey, scopeGeneration, writeInUserSc
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
 import { upgradeStored } from './upgrade.ts';
-import { practicePreferencesOf, storedPracticePreferences, type PracticePreferences, type StatedLevel } from './practicePreferences.ts';
+import { practicePreferencesOf, statedPlacement, storedPracticePreferences, type PracticePreferences, type StatedLevel } from './practicePreferences.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('profile');
@@ -531,9 +531,14 @@ export function withPracticeDays(existing: StoredProfile, practiceDaysPerWeek: 3
  * object is created when absent. It steers suggested conversations only, never
  * `brain.cefr`, stats or mission independence. Clocked as the `statedLevel`
  * preference field, so a newer edit wins across devices like `withDailyGoal`.
+ *
+ * The placement follows the stated level (F917, `statedPlacement`): it is only
+ * where suggestions start, so moving it never credits or removes an earned scene.
  */
 export function withStatedLevel(existing: StoredProfile, level: StatedLevel): StoredProfile {
-  const practicePreferences = storedPracticePreferences({ ...practicePreferencesOf(existing), level });
+  const current = practicePreferencesOf(existing);
+  const { placement: _held, ...rest } = current;
+  const practicePreferences = storedPracticePreferences({ ...rest, level, placement: statedPlacement(current, level) });
   if (practicePreferences?.level !== level) throw new Error('invalid stated level');
   return withPreferenceEdit(existing, { ...existing, practicePreferences }, 'statedLevel');
 }

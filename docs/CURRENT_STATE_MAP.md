@@ -84,7 +84,10 @@ DECISIONS.md UI-007):
   How it’s going right after it (Getting better at: quiet error patterns,
   by authored title; Needs another go: up to three due phrases missed or
   said with help, opening Review; LEARN-013),
-  five stages, abilities, Then and now, help in words,
+  five stages (stages below an onboarding placement read as skipped, never
+  earned; F917; Journey's empty state, the Home hero, the next-task card, Speak's Start
+  and Walk mode, the Recap Next time and Next pill, and Week Wrapped pass the
+  placement to core `nextScene` as `startAt` (`startAtOf`), so none suggests a scene below it), abilities, Then and now, help in words,
   sounds, the week and the collection tiles. Parts in `journey/JourneyParts.tsx`
   (shared with Then and now); Journey and Then and now are dark-ready since
   2026-10-21 (UI-008), with the Badges sheet pinned light.
@@ -176,6 +179,7 @@ reactive hook that opens the Wall.
 - **Home's review card follows the free deal:** `NextTaskCard` offers only a card Review will deal (`reviewOffer`, `offeredReview` in `review/freeTier.ts`), so a free learner with only conversation phrases due sees the next free step instead. The recap's "Practise this phrase" drill stays free (founder, 2026-10-20): one drill in the moment is a taste, spaced review later is the trial feature.
 - **Streak:** one free freeze, two plus repair on a plan.
 - **Names:** the paid plans read Core and Max (ids `starter`, `regular`).
+- **First-run exits (F915, F926, 29 October 2026, branch `claude/review-c-first-run`):** setup steps after the first show a Back chevron in the band's back disc, with web history entries so browser Back steps back; "Before we start" offers "Create an account first" (guest) or "Look around first" (signed in), and the signed-in first scene offers "Look around first", all landing on Home with no scene; the tutor step preselects the recommended tutor; the post-sign-up welcome is marked seen when drawn.
 - **Guest first scene (UI-011, 23 October 2026, branch `claude/guest-first-scene`):** before sign-up, one five-turn scripted café exchange (`GUEST_CAFE_SCENE` in `packages/core/src/lessons/guestCafe.ts`) with no language model and a 180-second ceiling, off until `LUVANI_GUEST_SCENE=1` on the API and tutor roles. Admission is a Redis budget outside paid admission: one scene per installation per 30 days, three guest starts per address per day, and `LUVANI_GUEST_SCENE_DAILY` (default 24) booked at worker claim. The scene's lines go to the phrasebook on sign-up. The guest conversation stays closed in production.
 
 ### Paywall and account surfaces (19 October 2026)
@@ -186,7 +190,7 @@ The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, 
 - **Store facts:** `purchases/storeTrialFacts.ts` is read only to cancel the reminder; it never grants minutes or a plan.
 - **Account screens:**
   - Profile: identity, Learning, Your French and Plan groups.
-  - Learning preferences: includes Your goal, changing or clearing `onboardingGoal` through `withOnboardingGoal` (clocked, newest-edit-wins), and the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync. A "Slower voice" switch stores a device choice (`@luvani/voice-speed/v1`, `slower` or `normal`); `/session/start` carries `voiceSpeed` only when chosen, otherwise the tutor's default applies (slower for lessons and A0 to A1), and the switch shows that default.
+  - Learning preferences: includes Your goal, changing or clearing `onboardingGoal` through `withOnboardingGoal` (clocked, newest-edit-wins), and the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync (written at account creation from the onboarding answer since F916; `practicePreferences.placement` holds the onboarding placement; changing the level here re-derives it, getby to Basics and confident to Everyday, none below, and re-choosing the same level keeps a Skip ahead; the merge keeps placement and level together). A "Slower voice" switch stores a device choice (`@luvani/voice-speed/v1`, `slower` or `normal`); `/session/start` carries `voiceSpeed` only when chosen, otherwise the tutor's default applies (slower for lessons and A0 to A1), and the switch shows that default.
   - Settings: six groups.
   - Subscription: never says "Free" when the plan is unknown. A paid plan shows when its minutes are fresh (from `/billing/status` `periodEnd`) and, once, in the Next renewal row, the store's renewal date and price (`purchases.heldPlan` joined to the offering by `renewalLines`, F909), or a pointer to the App Store or Google Play when the store does not answer. Profile and Settings plan rows keep the minutes line and make no store read. Web never has a store answer; `WALL_PREVIEW=store` uses preview fixtures.
 - **Real purchases:** unverified until the App Store and RevenueCat setup in `REVENUECAT_SETUP.md` is done and sandbox-tested. That setup is deferred (2026-10-19) until the founder has an Apple Developer Program membership; prices are undecided.

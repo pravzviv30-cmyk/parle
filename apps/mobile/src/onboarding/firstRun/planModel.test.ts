@@ -91,7 +91,9 @@ describe('the plan card and the daily goal', () => {
   test('plan editing commits all six answers so new interests reach the live scenario', () => {
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
     const save = screen.slice(screen.indexOf('const sheetFooter ='), screen.indexOf(") : surface === 'start' ?"));
-    for (const key of ['reason', 'startLevel', 'minutes', 'speakingConfidence', 'practiceFocus']) {
+    // F917, 2026-10-29: the level goes through startLevelChange, which also clears a stale Skip ahead.
+    assert.ok(save.includes('...startLevelChange(draftRef.current, edit.startLevel)'), 'Done must commit startLevel');
+    for (const key of ['reason', 'minutes', 'speakingConfidence', 'practiceFocus']) {
       assert.ok(save.includes(`${key}: edit.${key}`), `Done must commit ${key}`);
     }
     assert.match(save, /interests: \[\.\.\.\(edit\.interests \?\? \[\]\)\]/);
@@ -102,11 +104,12 @@ describe('the plan card and the daily goal', () => {
     const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
     assert.match(screen, /page === 'plan' && <PersonalPlan draft=\{draft\}/);
     assert.match(plan, /const plan = planFor\(draft\);/);
-    assert.match(plan, /firstPracticeScenario\(briefFromDraft\(draft\)\)/);
+    // F916, 2026-10-29: the real first scene, and one deduplicated method pair.
+    assert.match(plan, /firstConversationLines\(draft, \{ guestScene \}\)/);
     assert.match(plan, /\{plan\.method\}/);
     // 2026-10-21 UI-008, artboard B-OB-Plan: the goal is the band's first chip.
     assert.match(evidence('apps/mobile/src/onboarding/planChips.ts'), /BOLD_GOALS\.find\(g => g\.key === draft\.reason\)/);
-    assert.match(plan, /startingSupport\(draft\)/);
+    assert.doesNotMatch(plan, /startingSupport\(draft\)/, 'the support sentence is shown twice');
     assert.doesNotMatch(plan, /taskIndex|attempts|\btask\.(prompt|translation|title)\b/);
   });
 });

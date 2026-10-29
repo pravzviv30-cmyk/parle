@@ -45,13 +45,13 @@ describe('the personal onboarding journey', () => {
     assert.match(levels, /<BoldChoice/);
     assert.match(levels, /detail=\{v\.gloss\}/);
     assert.match(levels, /title=\{v\.title\}/);
-    assert.match(levels, /choose\(\{ startLevel: v\.key \}\)/);
+    assert.match(levels, /choose\(startLevelChange\(draftRef\.current, v\.key\)\)/); // F917, 2026-10-29: a level change clears Skip ahead.
     assert.doesNotMatch(levels, /numberOfLines|ellipsizeMode|go\(/);
   });
 
   test('tutor selection is deliberate and hearing does not silently choose or record', () => {
     const tutors = evidence('apps/mobile/src/onboarding/TutorSelection.tsx');
-    assert.match(screen, /chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/);
+    assert.match(screen, /chosen=\{tutorStep\(draft\)\.chosen\}/); // F926: preselected
     assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/);
     assert.match(tutors, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
     assert.match(tutors, /onPress=\{\(\) => preview \? preview\.toggle\(voice\.value\) : onHear\?\.\(voice\.value\)\}/);

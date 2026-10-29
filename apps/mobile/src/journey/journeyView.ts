@@ -49,6 +49,7 @@ import { IMPROVING_AFTER_SESSIONS, improvingPatterns, type LearnerProfile } from
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
 import { SO_FAR_WITH_HELP } from '../home/abilities.ts';
 import { goalPickLine } from '../onboarding/goalLine.ts';
+import { placementStage, type Placement } from '../onboarding/placement.ts';
 import { MY_FRENCH_TITLE } from '../myfrench/copy.ts';
 import { COMPLETIONS_PER_MISSION } from '../missions/store.ts';
 import { ledgerFrom } from '../myfrench/ledger.ts';
@@ -155,7 +156,8 @@ export const YOU_ARE_HERE = 'You’re here';
 export interface StageStep {
   number: number;
   label: StageWord;
-  state: 'done' | 'here' | 'ahead';
+  /** 'skipped' is below the learner's chosen starting point: never earned, still open to visit. */
+  state: 'done' | 'skipped' | 'here' | 'ahead';
   /** Said to a screen reader: the step, its name and where the learner is. */
   accessibilityLabel: string;
 }
@@ -169,8 +171,10 @@ export interface StagesView {
    * 2026-10-20, sim nits: under a fifth-width column it wrapped to two lines.
    */
   hereLine: string;
-  /** "Earn all 3 Starter abilities to move up to Basics.", or null at Basics. */
+  /** "Earn all 3 Starter abilities to move up to Basics.", or null at Basics with no placement. */
   moveUp: string | null;
+  /** "Starter skipped, still open to visit.", or null when nothing was skipped. */
+  skippedLine: string | null;
   /**
    * How far the brand fill runs along the track, as a fraction of the row
    * (2026-10-20 UI-008, artboard B-Journey: 7% at Starter, from the first
@@ -197,19 +201,42 @@ export function stageIndexOf(level: MissionLevel): number {
   return Math.max(0, MISSION_LEVELS.indexOf(level));
 }
 
-export function stagesFrom(progress: readonly MissionProgress[]): StagesView {
-  const here = stageIndexOf(spineFrom(progress).level);
+export const SKIPPED_WORDS = 'Skipped, still open to visit';
+
+/**
+ * The stages, from earned scenes and the learner's chosen starting point
+ * (F917). The honesty rule: a placement moves where "You're here" starts and
+ * what the move-up line counts, never what is done. Stages below the
+ * placement that the learner has not earned read as skipped, never done, and
+ * a stage above it is reached only by earning every one of its scenes. With no
+ * placement, or once earning has caught up with it, this is exactly the
+ * earned-only view.
+ */
+export function stagesFrom(progress: readonly MissionProgress[], placement: Placement | null = null): StagesView {
+  const earnedAt = stageIndexOf(spineFrom(progress).level);
+  const placed = placementStage(placement);
+  let here = earnedAt;
+  if (placed > earnedAt) {
+    const earned = earnedMissionIds(progress);
+    here = placed;
+    // Climb from the placement only by earning a whole stage's scenes.
+    while (here < MISSION_LEVELS.length - 1 && SCENE_SPINE.filter((id) => getMission(id)?.cefr === MISSION_LEVELS[here]).every((id) => earned.has(id))) here += 1;
+  }
+  const skipped = (i: number) => i >= earnedAt && i < placed;
   const steps = STAGES.map((label, i): StageStep => {
-    const state = i < here ? 'done' : i === here ? 'here' : 'ahead';
-    const where = state === 'here' ? YOU_ARE_HERE : state === 'done' ? 'done' : 'ahead';
+    const state = skipped(i) ? 'skipped' : i < here ? 'done' : i === here ? 'here' : 'ahead';
+    const where = state === 'here' ? YOU_ARE_HERE : state === 'skipped' ? SKIPPED_WORDS : state;
     return { number: i + 1, label, state, accessibilityLabel: `Stage ${i + 1}, ${label}, ${where}` };
   });
-  const a0 = startingOutMissions().length;
+  const countAt = (i: number) => SCENE_SPINE.filter((id) => getMission(id)?.cefr === MISSION_LEVELS[i]).length;
+  const names = STAGES.filter((_, i) => skipped(i));
   return {
     eyebrow: `${STAGES[here]!} stage`,
     steps,
     hereLine: `${YOU_ARE_HERE}: ${STAGES[here]!}`,
-    moveUp: here === 0 ? `Earn all ${a0} ${STAGES[0]} abilities to move up to ${STAGES[1]}.` : null,
+    moveUp: here === 0 || (placed > 0 && here < MISSION_LEVELS.length - 1)
+      ? `Earn all ${countAt(here)} ${STAGES[here]} abilities to move up to ${STAGES[here + 1]}.` : null,
+    skippedLine: names.length === 0 ? null : `${names.join(' and ')} skipped, still open to visit.`,
     fill: STAGE_FILL + here / STAGES.length,
   };
 }
@@ -876,8 +903,8 @@ export interface EmptyJourney {
  * Before the first conversation: the page and the one scene to start, from
  * core's `nextScene`, the same scene Today and Speak offer.
  */
-export function emptyJourney(progress: readonly MissionProgress[], goal: LearnerGoal | null = null): EmptyJourney {
-  const ahead = nextScene(progress, goal);
+export function emptyJourney(progress: readonly MissionProgress[], goal: LearnerGoal | null = null, startAt: MissionLevel | null = null): EmptyJourney {
+  const ahead = nextScene(progress, goal, startAt);
   const next = ahead?.mission ?? getMission(SCENE_SPINE[0]!) ?? MISSIONS[0]!;
   return {
     picked: ahead?.picked === 'goal' ? goalPickLine(goal) : null,

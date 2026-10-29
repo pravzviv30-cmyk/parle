@@ -1,4 +1,4 @@
-import { firstPracticeNext, firstPracticeScenario, GUEST_SCENE, isConversationPack, parseFirstPracticeBrief, parseGuestSceneTurnIds, type ConversationPack, type FirstPracticeBrief, type GuestScene, type GuestSceneTurnId } from '@luvani/core';
+import { firstPracticeNext, firstPracticeScenario, GUEST_SCENE, GUEST_SCENE_NEXT_TRY, isConversationPack, parseFirstPracticeBrief, parseGuestSceneTurnIds, type ConversationPack, type FirstPracticeBrief, type GuestScene, type GuestSceneTurnId } from '@luvani/core';
 import { sceneLines } from './guestScene.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 export interface FirstContribution { id: string; text: string; input: 'typed' | 'spoken' | 'unknown' }
@@ -69,9 +69,14 @@ export function firstAchievements(record: FirstLiveRecord): string[] {
   return [...new Set(claims)].slice(0, 3);
 }
 export function firstLiveSummary(record: FirstLiveRecord) {
+  const achievements = firstAchievements(record);
+  // With no confirmed reply, the detail claims nothing was kept (F925).
+  const kept = achievements.length > 0 ? ' Your confirmed contributions are still here.' : '';
   return { heading: record.outcome === 'completed' ? 'Your first session completed.' : record.outcome === 'interrupted' ? 'Your practice was interrupted.' : 'A start worth keeping.',
-    detail: record.outcome === 'completed' ? 'Here is what you did in this session.' : record.outcome === 'interrupted' ? 'The connection ended before your practice was complete. Your confirmed contributions are still here.' : 'You ended before completing the exercise. Your confirmed contributions are still here.',
-    achievements: firstAchievements(record), next: firstPracticeNext(record.brief) };
+    detail: record.outcome === 'completed' ? 'Here is what you did in this session.' : record.outcome === 'interrupted' ? `The connection ended before your practice was complete.${kept}` : `You ended before completing the exercise.${kept}`,
+    achievements,
+    // The tip follows the scene played: a café scene never suggests a train station (F925).
+    next: firstPracticeNext(record.brief, record.scene ? GUEST_SCENE_NEXT_TRY : undefined) };
 }
 
 /**

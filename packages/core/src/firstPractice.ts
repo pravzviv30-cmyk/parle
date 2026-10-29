@@ -71,6 +71,11 @@ export function firstPracticePrompt(brief: FirstPracticeBrief, elapsedSeconds = 
     'Typed and spoken replies belong to the same conversation. Do not claim pronunciation, mastery or confidence from text.',
   ].join('\n');
 }
-export function firstPracticeNext(brief: FirstPracticeBrief): string {
-  return `${brief.minutes === null ? 'Keep practising at your own pace.' : `Keep practising for ${brief.minutes} minutes a day.`} Next time, try ${firstPracticeScenario(brief).next}.`;
+/**
+ * The minutes sentence and the next step. `nextTry` is the step for the scene
+ * that was played (the guest café scene passes its own); without one, the
+ * goal's scenario names it.
+ */
+export function firstPracticeNext(brief: FirstPracticeBrief, nextTry?: string): string {
+  return `${brief.minutes === null ? 'Keep practising at your own pace.' : `Keep practising for ${brief.minutes} minutes a day.`} Next time, try ${nextTry ?? firstPracticeScenario(brief).next}.`;
 }

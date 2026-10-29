@@ -905,7 +905,7 @@ describe('the privacy notice — F479', () => {
     const fields = [...draft.slice(shapeAt, draft.indexOf('\n}', shapeAt)).matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
     assert.deepEqual(
       fields,
-      ['version', 'onboardingCompletedSteps', 'onboardingSkippedSteps', 'onboardingVariant', 'accountEmail', 'accountMode', 'accountReturnPage', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'tutorChosen', 'speakingConfidence', 'practiceFocus', 'analyticsConsent', 'page', 'startLevel', 'reason', 'interests', 'minutes', 'reminderTime', 'firstName'],
+      ['version', 'onboardingCompletedSteps', 'onboardingSkippedSteps', 'onboardingVariant', 'accountEmail', 'accountMode', 'accountReturnPage', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'tutorChosen', 'speakingConfidence', 'practiceFocus', 'analyticsConsent', 'page', 'startLevel', 'skipAhead', 'reason', 'interests', 'minutes', 'reminderTime', 'firstName'],
       'the first-run draft holds a different set of fields from the ones the holdings row names',
     );
 

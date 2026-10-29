@@ -70,8 +70,8 @@ async function post(
   // connect (F756). A failed transcription is a 503 from the same path after
   // the attempt was reserved: that one is a broken connection, with Try again.
   if (!response.ok) {
-    // The per-address daily limit on guest starts: a retry cannot work today,
-    // so it reaches the account handoff like the other start refusals.
+    // The per-address daily limit or the global cap on guest starts: a retry
+    // cannot help now, so it reaches the account handoff like the other start refusals.
     if (response.status === 429 && path === 'start') throw new Error('guest-start-limited');
     if (response.status === 503 && path === 'start') {
       const body: unknown = await response.json().catch(() => null);

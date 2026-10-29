@@ -1,5 +1,5 @@
 import { FadeOverlay } from '../motion/TimedExit.tsx';
-import { loadArrival, saveArrival } from './arrival.ts';
+import { loadArrival, markWelcomeSeen, saveArrival, welcomePending } from './arrival.ts';
 import { HomeArrivalAllowed } from './HomeArrival.tsx';
 import { loadConversationPackForLearner } from '../conversationPacks/store.ts';
 import { useEffect, useRef, useState } from 'react';
@@ -91,7 +91,7 @@ export function GuestAccountHandoff({
     setReadError(false);
     void Promise.all([loadGuestPractice(true), loadArrival()]).then(([value, arrival]) => {
       if (active) {
-        if (value === null && ((arrival && !arrival.welcomeSeen) || (newlyCreated && !arrival?.welcomeSeen))) setWelcoming(true);
+        if (welcomePending(value !== null, arrival, newlyCreated)) setWelcoming(true);
         if (value?.live?.sessionId === arrival?.sessionId && arrival && !arrival.welcomeSeen) setResumeAdoption(true);
         if (value === null && newlyCreated && arrival?.welcomeSeen) onWelcomeDone?.();
         setGuest(value);
@@ -102,6 +102,11 @@ export function GuestAccountHandoff({
       mounted.current = false;
     };
   }, [readAttempt]);
+  // Founder decision 18 (F926): the receipt is written as soon as the welcome
+  // is drawn, so a reload before Continue never shows it again. The reload
+  // then takes the reader's welcomeSeen path above, which finishes the same
+  // way Continue does (onWelcomeDone).
+  useEffect(() => { if (!welcoming) return; void markWelcomeSeen().catch(() => undefined); }, [welcoming]);
   // Reading the guest's practice draws a blank, so the launch screen stays up
   // over it. Above both returns, so the hook runs on every render.
   useLaunchHold(guest === undefined && !readError);

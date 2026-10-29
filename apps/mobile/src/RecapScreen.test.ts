@@ -54,7 +54,7 @@ describe('the recap is a keepsake', () => {
     // Each piece is the model's, not the screen's.
     assert.match(code, /lines\.map\(\(line, index\) =>/, 'the learner\'s lines are not drawn from the lines they said');
     assert.match(convo, /lines=\{keepsakeLines\(live\.turns\)\}/, 'the conversation does not hand the recap the lines the learner said');
-    assert.match(code, /const nextTime = context === null \? null : nextTimeLine\(context\.progress, goalOf\(profile\)\);/, '"Next time" is not the spine\'s next scene');
+    assert.match(code, /const nextTime = context === null \? null : nextTimeLine\(context\.progress, goalOf\(profile\), startAtOf\(profile\)\);/, '"Next time" is not the spine\'s next scene');
     assert.match(code, /const keptPhrase = closureFromRecap\(recap, null\)\.phrases\[0\] \?\? null/, 'the kept phrase can change under a save already started');
     // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the kept phrase is the Recap's one sun card (the hero ground), not a highlighter.
     const kept = readFileSync(new URL('./recap/KeptPhraseCard.tsx', import.meta.url), 'utf8');

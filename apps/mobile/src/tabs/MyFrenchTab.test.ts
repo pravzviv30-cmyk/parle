@@ -105,12 +105,12 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
 
   test('the stage is the spine\'s, said in words with "You\'re here" on the real one, and no rank anywhere', () => {
     // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages.
-    assert.match(FLAT, /const stages = stagesFrom\(missions\);/);
+    assert.match(FLAT, /const stages = stagesFrom\(missions, practicePreferencesOf\(profile\)\.placement \?\? null\);/);
     // 2026-10-20 UI-008, artboard B-Journey: the five 38pt nodes on their track, the current one brand with
     // its 4pt lavender ring and "You're here" (11/700) under its name, which
     // replaces the 2026-10-20 sim-nits flag and here-line chip. The node is
     // selected (accessibilityState) and the words say so; a done node keeps its tick.
-    assert.match(FLAT, /<StageTrack steps=\{stages\.steps\} fill=\{stages\.fill\} moveUp=\{stages\.moveUp\} hereWord=\{YOU_ARE_HERE\} \/>/);
+    assert.match(FLAT, /<StageTrack steps=\{stages\.steps\} fill=\{stages\.fill\} moveUp=\{stages\.moveUp\} skippedLine=\{stages\.skippedLine\} hereWord=\{YOU_ARE_HERE\} \/>/);
     const PARTS = stripComments(read('../journey/JourneyParts.tsx')).replace(/\s+/g, ' ');
     assert.match(PARTS, /steps\.map\(\(step\) => \{ const here = step\.state === 'here'; return \( <View key=\{step\.label\} style=\{s\.stage\} accessible accessibilityLabel=\{step\.accessibilityLabel\} accessibilityState=\{\{ selected: here \}\}>/);
     assert.match(PARTS, /\{here \? <Text style=\{\[bType\.bold11, s\.centred, \{ color: t\.link \}\]\}>\{hereWord\}<\/Text> : null\}/);

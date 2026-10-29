@@ -469,7 +469,7 @@ describe('nothing reaches an AI service or the network before the save page is p
     assert.match(screen, /label=\{needsAccount \? 'Create account to start' : 'Start live practice'\}[^>]*disabled=\{busy \|\| previewOnly\} onPress=\{\(\) => void \(needsAccount \? continueWithAccount\(\) : start\(\)\)\}/);
     assert.match(screen, /isAccountHandoffRefusal\(error\.message\)/, 'only a specific unavailable guest capability opens the account route');
     assert.match(screen, /Practice is unavailable in this screen preview/);
-    assert.match(screen, /disabled=\{draft\.tutorChosen !== true \|\| busy\} onPress=\{\(\) => open\('start'\)/);
+    // F926: the preselected tutor records the choice on the way to consent.\n    assert.match(screen, /disabled=\{busy\} onPress=\{\(\) => \{ patch\(\{ tutorChosen: true \}\); open\('start'\); \}\}/);
     assert.doesNotMatch(body, /startGuestPractice|requestRecordingPermissionsAsync|new Room\(/);
   });
 

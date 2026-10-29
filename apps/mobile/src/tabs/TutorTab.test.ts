@@ -286,7 +286,7 @@ describe('Speak keeps its history read, its plan read and its continuation', () 
   // is the Recommended card's own conversation, and nextConversation carries its pack.
   test('a thread to pick up is the Recommended conversation, gated by the plan', () => {
     assert.match(FLAT, /threadFrom\(\{ records: scenes, progress, packs, marks, topics \}\)/);
-    assert.match(FLAT, /const next = nextConversation\(progress, thread, capabilitiesFor\(plan\.tier, plan\.lapsed\)\.continueArc, goalOf\(profile\)\);/);
+    assert.match(FLAT, /const next = nextConversation\(progress, thread, capabilitiesFor\(plan\.tier, plan\.lapsed\)\.continueArc, goalOf\(profile\), startAtOf\(profile\)\);/);
     assert.match(stripComments(read('../tutor/nextConversation.ts')), /params: \{ seedTopic: thread\.seedTopic, continuationPackId: thread\.packId \}/);
     const navigator = stripComments(read('../nav/RootNavigator.tsx')).replace(/\s+/g, ' ');
     assert.match(navigator, /continuationPackId=\{route\.params\?\.continuationPackId\}/);

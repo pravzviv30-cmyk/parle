@@ -108,6 +108,8 @@ export interface PreAccountOnboardingDraft {
   /** Where the learner was, so leaving and coming back resumes there. */
   page: PreAccountPage | null;
   startLevel: StartLevel | null;
+  /** "Skip ahead" on the plan: Basics becomes Everyday (F917). Absent means not taken. */
+  skipAhead?: boolean;
   reason: Reason | null;
   interests?: Interest[];
   /** Null until changed on the plan; the plan shows the preset until then. */
@@ -115,6 +117,31 @@ export interface PreAccountOnboardingDraft {
   reminderTime: ReminderTimeId | null;
   /** Optional, typed on the save page. Never sent anywhere before an account exists. */
   firstName: string | null;
+}
+
+/** A draft without the Skip ahead choice: the default start for its level. */
+export function withoutSkip(draft: PreAccountOnboardingDraft): PreAccountOnboardingDraft {
+  const { skipAhead: _skip, ...rest } = draft;
+  return rest;
+}
+
+/** A new level answer; Skip ahead belongs to the level it was taken at, so a change clears it. */
+export function withStartLevel(draft: PreAccountOnboardingDraft, startLevel: StartLevel): PreAccountOnboardingDraft {
+  return draft.startLevel === startLevel ? draft : { ...withoutSkip(draft), startLevel };
+}
+
+/**
+ * The level answer as a change to merge into the draft: a different level
+ * also writes `skipAhead: false`, because a merge cannot drop a key
+ * (`withStartLevel` is the same rule on a whole draft).
+ */
+export function startLevelChange(draft: PreAccountOnboardingDraft, startLevel: StartLevel | null): Partial<PreAccountOnboardingDraft> {
+  return draft.startLevel === startLevel ? { startLevel } : { startLevel, skipAhead: false };
+}
+
+/** A Skip ahead left over from a level it no longer belongs to (only "I can get by" can skip). */
+export function staleSkipAhead(draft: PreAccountOnboardingDraft): boolean {
+  return draft.skipAhead === true && draft.startLevel !== 'getby';
 }
 
 export function freshPreAccountDraft(): PreAccountOnboardingDraft {
@@ -213,6 +240,7 @@ export function repaired(value: object): PreAccountOnboardingDraft {
     reminderDays: Array.isArray((value as { reminderDays?: unknown }).reminderDays) ? [...new Set((value as { reminderDays: unknown[] }).reminderDays.filter((n): n is number => Number.isInteger(n) && Number(n) >= 1 && Number(n) <= 7))] : [],
     page: oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
     startLevel: oneOf(START_LEVEL_KEYS, (value as { startLevel?: unknown }).startLevel),
+    ...((value as { skipAhead?: unknown }).skipAhead === true ? { skipAhead: true } : {}),
     reason: oneOf(REASON_KEYS, (value as { reason?: unknown }).reason),
     interests: Array.isArray(draft.interests) ? [...new Set(draft.interests.filter(i => INTEREST_KEYS.includes(i)))].slice(0, 4) : [],
     minutes: oneOf(PLAN_MINUTES, (value as { minutes?: unknown }).minutes),

@@ -41,3 +41,9 @@ test('interests survive validation and food with travel makes one coherent pract
   assert.equal(parseFirstPracticeBrief({ ...brief, interests: 'food' }), undefined);
   assert.deepEqual(parseFirstPracticeBrief(brief), brief, 'legacy briefs remain byte-shape compatible');
 });
+test('a scene-specific next step replaces the goal tip and keeps the minutes rules', () => {
+  const trip = {...brief,goals:['trip'] as FirstPracticeBrief['goals'],minutes:10 as const};
+  assert.equal(firstPracticeNext(trip,'asking for a croissant'),'Keep practising for 10 minutes a day. Next time, try asking for a croissant.');
+  assert.doesNotMatch(firstPracticeNext({...trip,minutes:null},'asking for a croissant'),/\d/);
+  assert.match(firstPracticeNext(trip),/departure times/);
+});

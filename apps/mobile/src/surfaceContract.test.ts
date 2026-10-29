@@ -2188,6 +2188,14 @@ describe('the first run sits inside the one frame — F352', () => {
       assert.ok(usesSharedFrame(body), `${name} bypasses the shared onboarding layout`);
       assert.doesNotMatch(body, /<ScreenHeader\b|<ChevronLeft\b|\bkind="back"|accessibilityLabel="Back"|label="(?:Back|Previous)[^"]*"/, `${name} exposes a visible previous control`);
     }
+    // F915 (LR-13, 2026-10-29) supersedes F352's "no visible back" for setup
+    // only: steps after the first draw one Back chevron, and only through the
+    // bands' artboard slot, never a hand-drawn one. The other surfaces above
+    // keep the ban.
+    const parts = named('onboarding/BOnboardingParts.tsx');
+    assert.equal((parts.match(/\bkind="back"/g) ?? []).length, 2, 'the question band and the band each own the one chevron slot');
+    assert.match(named('onboarding/PreAccountOnboarding.tsx'), /onBack=\{backPress\}/);
+    assert.doesNotMatch(named('onboarding/AccountWelcome.tsx') + named('onboarding/GuestAccountHandoff.tsx') + named('onboarding/FirstSceneScreen.tsx'), /onBack=\{/, 'the welcome, handoff and first scene draw no band chevron');
     const frame = named('onboarding/OnboardingLayout.tsx');
     assert.match(frame, /keyboardShouldPersistTaps="handled"/);
     assert.match(frame, /insets\.bottom \+ space\(4\)/);

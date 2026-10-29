@@ -60,6 +60,7 @@ import { DailyCard } from '../daily/DailyCard.tsx';
 import { todayItems } from '../daily/catalogue.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { goalOf } from '../onboarding/goalLine.ts';
+import { startAtOf } from '../profile/practicePreferences.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useFeatureAccess } from '../access/useFeatureAccess.ts';
 import { lockSaid, tapThrough } from '../access/featureAccess.ts';
@@ -151,7 +152,7 @@ export function HomeTab() {
           // One projection of where every scene stands, handed to every rule
           // that draws from it, so the lead and the blocks under it agree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, now);
-          setHero(homeMissionFrom({ progress, records, levelIndex: standing.index, goal: goalOf(profile), now }));
+          setHero(homeMissionFrom({ progress, records, levelIndex: standing.index, goal: goalOf(profile), startAt: startAtOf(profile), now }));
           setReadFailed(false);
           setStart(startingPoint(progress));
           const packs = withMarks(fetched, marks);

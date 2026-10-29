@@ -11737,3 +11737,75 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   migration and the pinned billing files, so it waits for its own change with founder approval.
 - verified-by: `a trial row begun by a purchase still refills its free conversation every other day`
 
+### F915 — Onboarding has no Back, and a new account cannot leave the first scene without starting it
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-13; five reviewers). No step has a back control
+  and the URL stays /, so browser Back leaves the app. The signed-in first scene
+  (onboarding/FirstSceneScreen.tsx) and the consent screen offer only ways into a live session. Decided 2026-10-29 (founder decision 15 and the programme plan): a back chevron on every step after the first, browser Back steps back on web, the consent screen offers back and "Create an account first", and the signed-in first scene offers "Look around first". This reverses F352's "no visible back".
+- fixed: 2026-10-29. Every setup step after the first shows a Back chevron. On web, one guard history entry turns browser Back into one step back; Forward never moves the flow, a Back while busy loses nothing, Back on the first step leaves, and the guard is removed when onboarding ends. "Before we start" offers "Create an account first" (or "Look around first" when signed in), and the signed-in first scene offers "Look around first". Both go to Home without starting a scene. Tests: `every onboarding step after the first offers back`, `the first scene and the consent screen offer a way home without starting a session`.
+- verified-by: `every onboarding step after the first offers back`
+- verified-by: `the first scene and the consent screen offer a way home without starting a session`
+
+### F916 — The personal plan names a first conversation that scene 1 is not
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PersonalPlan.tsx
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-14; five reviewers). The plan promises a train
+  ticket or a restaurant table while scene 1 is always "Le premier café"; "A little daunting" is not
+  reflected; the typing sentence appears twice; Learning preferences then show "Not chosen yet"
+  for the starting point (settings/profileView.ts).
+- verified-by: `the plan's first conversation line comes from scene 1`
+- verified-by: `the starting point chosen in onboarding shows in learning preferences`
+- verified-by: `the plan's method sentence never repeats a clause`
+- fixed: 2026-10-29. The plan names what comes first from scene data on both paths (`plan.ts` `firstConversationLines`): a guest sees "Try it now: ordering a coffee." for the café Start live practice plays, which "Create an account first" skips, and every learner sees "First scene in your plan:" with the can-do of the scene `firstSceneFor` opens, plus "Coming up:" for the goal scene when it differs. The method is one sentence pair with no idea said twice, plus "Gentle pace" for a hesitant learner, which says only the typed start and the tutor's gentle-start goal (`methodLines`). `profileFromDraft` now writes `practicePreferences`, so Learning preferences shows the starting point chosen. `firstPracticeScenario` is no longer read by the plan; the guest convo prompt and the guest record still use it.
+
+### F917 — "I can get by" starts the learner at Starter
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/plan.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-15). Journey then requires the three Starter
+  abilities (café and hotel basics) before Basics; the past-tense scene this learner needs sits in
+  Everyday. Where "I can get by" starts is a product decision. Decided 2026-10-28 (founder decision 5): "I can get by" starts at Basics, with "Skip ahead" to Everyday; a skipped stage is never credited as earned.
+- verified-by: `a learner who can get by does not start at Starter`
+- verified-by: `skip ahead starts the learner at Everyday`
+- verified-by: `Journey never credits a stage the learner skipped`
+- verified-by: `the next scene for a placed learner starts at their placement`
+- verified-by: `the plan's first scene is the scene Home offers first`
+- verified-by: `a placement follows the stated level when it changes`
+- verified-by: `a placement never sits beside another device's stated level`
+- fixed: 2026-10-29. A placement (`onboarding/placement.ts`) is set from the level answer: "I can get by" is Basics, "Feeling confident" Everyday, and the plan's secondary "Skip ahead" link moves Basics to Everyday (draft `skipAhead`); once taken the same 44-point link reads "Start at Basics" and undoes it, and a level other than "I can get by" clears it when the plan shows (`staleSkipAhead`; `withStartLevel` is the pure reset). The plan heading, the stage card, `sceneOrder`, `firstSceneFor` and `startEstimate` (A1, A2, low confidence) follow it, and it is saved as `practicePreferences.placement` (merged together with the stated level, see below). Journey and Profile read it through `stagesFrom(progress, placement)`: stages below it read "Skipped, still open to visit", never done, and a stage above it is reached only by earning all its scenes. No scene or ability is credited. Later the same day: core `nextScene(progress, goal, startAt)` starts at the placement's band (skipped scenes stay open and return once everything above is earned); `startAtOf(profile)` passes it from exactly these callers: Journey's empty state (`MyFrenchTab` `emptyJourney`), the Home hero (`HomeTab` `homeMissionFrom`), the practice next-task card (`NextTaskCard` `homeMissionFrom`, which also drops its A1 cafe start for a placed learner), Speak's Start and Walk mode (`TutorTab` `nextConversation`, twice), the Recap "Next time" line and Celebration "Next" pill (`RecapScreen` `nextTimeLine`, `nextCanDo`) and Week Wrapped (`WeekWrappedScreen` `nextTimeLine`). Settings `withStatedLevel` re-derives the placement from the new level (`statedPlacement`; same level keeps Skip ahead), the clocked merge takes the placement from the side whose level edit won, and the answer-rule merge takes it only from a side holding the winning level. One first scene: for a placed learner `nextScene` lets the goal lead from the first suggestion (the goal scene in the placement's band, else the spine from it), which is what `firstSceneFor` and the plan's first row name, so the plan, Home, Speak and Journey offer the same scene; an unplaced learner still opens on the first coffee. `goalOf` reads the reason `profileFromDraft` stores as `onboardingGoal` unchanged, and `firstRunScene` opens `firstSceneFor` (the café only after a finished guest scene).
+
+### F925 — The guest early-exit summary gives a train-station tip after a café scene
+- severity: P2
+- status: [x]
+- where: packages/core/src/firstPractice.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-25; two reviewers). "Next time, try asking about
+  departure times and directions" after the café scene, with "Save your progress" as the only
+  button and an empty box when there were no replies. Decided 2026-10-29 (founder decision 16): "Save and finish the scene" first (account, then the café scene signed in), "Save your progress" second.
+- verified-by: `the early-exit tip matches the scene that was played`
+- verified-by: `an early exit with no replies hides the empty summary box`
+- verified-by: `a guest early exit offers to save and finish the scene`
+- verified-by: `an early exit with no replies never claims kept contributions`
+- fixed: 2026-10-29. The summary tip comes from the scene played: a guest café record passes `GUEST_SCENE_NEXT_TRY` (`core/lessons/guestCafe.ts`) to `firstPracticeNext`, so it reads "Next time, try asking for a croissant and how much it is." with the minutes sentence unchanged. The lavender reply box renders only when there is a confirmed reply. After an early exit from the café scene, "Save and finish the scene" is the primary button: it saves through sign-up with `practice` as the return page, so `shouldStartFirstPractice` is true and `firstRunScene` opens `mission:premier-cafe` signed in; "Save your progress" is second and still lands on Home. With no confirmed reply, the detail drops "Your confirmed contributions are still here." and the empty-state line reads "Your plan and tutor are ready for your next practice."
+
+### F926 — Two full-screen splashes and a disabled tutor choice stand before the first French
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-27). "Get Started" blocks every click until tapped,
+  a second splash follows sign-up, and "Choose a tutor" stays disabled until a pick: 13 taps and 8
+  decisions to the first French. Decided 2026-10-29 (founder decision 18): the welcome after sign-up shows once and never again on a reload.
+- fixed: 2026-10-29. The tutor step opens with the recommended tutor already selected, so the button reads "Continue with" that tutor and saves the voice. The welcome after sign-up is marked as seen the moment it shows, so a reload never brings it back. Tests: `a recommended tutor is preselected`, `the welcome after sign-up shows once and never on a reload`.
+- verified-by: `a recommended tutor is preselected`
+- verified-by: `the welcome after sign-up shows once and never on a reload`
+
+### F930 — The guest limit says "this network" with no explanation
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/onboarding/guestScene.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-31). Learners on office, university or café Wi-Fi
+  cannot tell why their free tries are gone; the offline drill is not offered there. Decided 2026-10-29 (founder decision 17): honest copy and an account only, no guest offline drill; the same 429 also comes from the global cap, so the line names no network.
+- verified-by: `the guest limit message offers an account and names no network`
+- fixed: 2026-10-29. The 429 line reads "Free tries are busy right now. Create a free account to start your first scene." It names no network because the global guest cap sends the same 429. The sheet's existing Create account to start is the one action; no guest offline drill is offered.

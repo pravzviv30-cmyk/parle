@@ -14,7 +14,8 @@
  * name, the scene's title in English and French and its stage; below it the
  * goal, one usable line with more examples on demand, and the microphone note.
  * A refusal shows the microphone illustration and leads with typing. Platform
- * back uses the existing navigation callback; there is no visible back control.
+ * back and the secondary "Look around first" (F915, 2026-10-29) both use the
+ * existing navigation callback, which lands on Home and counts as leaving early.
  * This primer follows completed onboarding, so its shared progress is complete.
  */
 
@@ -24,7 +25,7 @@ import { AudioModule } from 'expo-audio';
 import { getMission, type MissionId } from '@luvani/core';
 
 import { HAIRLINE, frenchText, paper, space, type } from '../theme.ts';
-import { IconAction, Card, Label, MicGlyph, PillButton, canDoSentence } from '../components.tsx';
+import { IconAction, Press, Card, Label, MicGlyph, PillButton, canDoSentence } from '../components.tsx';
 import { KeyboardGlyph } from '../glyphs.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -41,6 +42,7 @@ import { stageOf } from '../scenes/scenePreview.ts';
 import {
   PRIMER_META,
   PRIMER_SETTINGS_FAILED,
+  LOOK_AROUND,
   afterPermission,
   primerView,
   type PrimerAct,
@@ -70,13 +72,17 @@ export function FirstSceneScreen({
     mounted.current = true;
     return () => { mounted.current = false; generation.current += 1; };
   }, []);
+  /** Home without starting the scene: Android Back and "Look around first". */
+  const leave = () => {
+    if (moved.current) return;
+    moved.current = true;
+    generation.current += 1;
+    back.current();
+  };
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const navigation = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (moved.current) return true;
-      moved.current = true;
-      generation.current += 1;
-      back.current();
+      leave();
       return true;
     });
     return () => navigation.remove();
@@ -169,6 +175,7 @@ export function FirstSceneScreen({
               onPress={() => act(view.secondary!.act)}
             />
           )}
+          <Press accessibilityLabel={LOOK_AROUND} onPress={leave} style={st.lookAround}><Text style={[bType.bold15, { color: t.link, textAlign: 'center' }]}>{LOOK_AROUND}</Text></Press>
         </View>
       }
     >
@@ -225,4 +232,5 @@ const st = StyleSheet.create({
   refusedNote: { ...type.body, color: paper.inkSoft, textAlign: 'center' },
   refusedSmall: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
   actions: { gap: space(2) },
+  lookAround: { minHeight: 44, justifyContent: 'center' },
 });

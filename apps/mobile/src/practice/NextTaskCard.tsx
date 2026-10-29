@@ -14,6 +14,7 @@ import { loadPackMarks, withMarks } from '../conversationPacks/marks.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { goalOf } from '../onboarding/goalLine.ts';
+import { startAtOf } from '../profile/practicePreferences.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { loadDeck } from '../review/store.ts';
 import { offeredReview, reviewOffer, type ReviewOffer } from '../review/freeTier.ts';
@@ -43,7 +44,10 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   const locks = useFeatureLocks(user?.id ?? null);
   const { profile } = useProfile();
   const owner = scopeGeneration();
-  const startingMissionId = profile.brain.cefr.estimate === 'A1' && profile.brain.cefr.confidence === 'low' && profile.brain.cefr.evidence.length === 0 ? 'mission:cafe' : undefined;
+  // A placed learner's A1 estimate comes from the placement, not a test, so the
+  // old A1 cafe suggestion would hand them a Starter scene (F917).
+  const startAt = startAtOf(profile);
+  const startingMissionId = startAt === null && profile.brain.cefr.estimate === 'A1' && profile.brain.cefr.confidence === 'low' && profile.brain.cefr.evidence.length === 0 ? 'mission:cafe' : undefined;
   const [billing, setBilling] = useState<HomeBilling | null>(null);
   const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null } | null>(null);
   const [failed, setFailed] = useState(false);
@@ -66,11 +70,11 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
         const packs = withMarks(fetched, marks);
         const rec = recommendation({ resumable: resumableOf(saved, packs, bank), deck, bank, packs, now });
         const card = rec.kind === 'none' ? null : practiceCard({ rec, deck, packs, now, resuming: saved?.targets.map(t => t.phraseKey) ?? [] });
-        const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex: levelFor(totalXp(activity)).index, startingMissionId, goal: goalOf(profile), now });
+        const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex: levelFor(totalXp(activity)).index, startingMissionId, goal: goalOf(profile), startAt, now });
         setValue({ scope, card, offer: reviewOffer(deck, now), hero, buildsOn: buildsOn(packs, hero) });
       }).catch(() => { if (!cancelled && scope === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
-  }, [attempt, owner, startingMissionId]));
+  }, [attempt, owner, startingMissionId, startAt]));
   const navigateOwned = (screen: string, params?: object) => {
     if (value !== null && value.scope === scopeGeneration()) nav.navigate(screen, params);
   };
