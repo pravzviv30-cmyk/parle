@@ -102,7 +102,43 @@ DECISIONS.md UI-007):
   live rung (`live/liveRoomView.ts`); the recap pages run After a session, the
   Celebration, the Recap, then sound and next (`recap/pages.ts`,
   `recap/afterSessionView.ts`). The goals reach the Recap passed through from
-  the room, with no new storage. The Convo and Lesson routes follow the device
+  the room, with no new storage. Turns earn credit (F904, 2026-10-28,
+  `recap/sessionCredit.ts`): a recap whose `learnerReplies` is 0 settles
+  nothing (no XP, no minutes, no active or streak day), banks no practice by any
+  path (crash journal included: such a recap is never journalled and a stored
+  envelope saying 0 replies is dropped on recovery), offers no saved conversation text, shows no "new phrases" tile and says
+  "You made time for your French."; an older agent without the count keeps the
+  old behaviour. Leaving after at least
+  one learner reply (F905, `live/leaveKeepingWork.ts`) takes the Finish path:
+  the room stays open, the recap is requested and awaited up to 8 s, so the
+  lines are saved and the minutes counted; if none comes the minutes are
+  written locally at the zero-phrase base XP and the ordinary teardown runs;
+  exactly one of the two settles, so a late recap never settles twice.
+  "Replied" means agent-confirmed scene replies (`sceneReplies` in the hook),
+  never a topic pick or an unconfirmed typed line; with no reply Leave is instant. Starting a conversation (F903,
+  `tutor/convoStart.ts`): the route's params are read once and coerced, so a
+  reloaded address keeps its mode. A button that says Start speaking or Speak
+  instead passes `textMode: false`, which closes the typing box and opens the
+  microphone once the room is ready, whatever the onboarding typing answer (a
+  refusal opens the box); a start with no stated intent opens closed as before.
+  Speak in a typed-start room asks "Switch to speaking?", keeps the typed part
+  (its lines recovered from the recap, no end card, not a sitting of its own:
+  its replies and the clock carry into the voice room so the scene settles once)
+  when the learner has replied, then releases the lease and rebuilds the
+  session as voice (`live/switchToVoice.ts`). A safety stop during the switch
+  cancels it with no rebuild, and Leave on the switch's wait follows the Leave
+  rule above.
+  The rebuild leaves through `leaveForRebuild` and, on the token server's 409 for its own closing lease,
+  retries for about 20 s behind "Switching to speaking" (`live/ownLease.ts`);
+  past that it says "Still closing your typed session" with Try again and Leave.
+  An ordinary start's 409 still reads as another device. The topic of a
+  conversation travels in the web address as validated JSON, so a reload keeps it.
+  After a switch the address is set to `textMode=false`, so a reload restarts in
+  voice; Start again after a reload waits out the cut-off session's lease the
+  same way.
+  A web reload of the conversation address (F923, `tutor/reloadGate.ts`) shows
+  "Your last conversation ended." with Start again and never opens a session
+  by itself. The Convo and Lesson routes follow the device
   since 2026-10-21 (UI-008 step 12b): their waiting, error, safety, recap and
   lesson screens read the tokens, and the room keeps its blue in both themes.
 - **Streak, Profile and Settings** (`game/StreakScreen.tsx`,

@@ -230,7 +230,7 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     assert.match(code, /const strip = progressStripView\(delta\);/, 'the strip is not drawn from the settled delta');
     // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the strip is the three stat tiles, still on the moment's beat.
     assert.match(render, /\{strip !== null && moment\.reached\('strip'\) \? <StatTiles tiles=\{stats\} \/> : strip === null \? <StatTiles tiles=\{stats\} \/> : null\}/);
-    assert.match(code, /afterSessionStats\(\{ activeSec, phrases: recap\.phrases\.length, xp: strip\?\.xp\?\.value \?\? null \}\)/);
+    assert.match(code, /afterSessionStats\(\{ activeSec, phrases: credit\.showPhrases \? recap\.phrases\.length : 0, xp: strip\?\.xp\?\.value \?\? null \}\)/);
     assert.match(convo, /\}\)\.then\(setConvoDelta\);/, 'the conversation drops what the settle read back');
     assert.match(convo, /delta=\{convoDelta\}/);
     // The lines count up to the number said, once, and are read out once at that number.

@@ -243,7 +243,20 @@ reveal a French line, and that rescue asks the brain for the tutor's step-in.
 For an A0 or A1 learner at rung 1 or 2, the first such step-in on an exchange
 also speaks one authored English line first, saying English is a fine way back
 in (VOICE-013, `PEDAGOGY.md`). It is the turn's coach line and never the card's
-French.
+French. After two silence rescues in a row with no reply (`RESCUE_PAUSE_AFTER`
+in `convo.ts`), the tutor stops re-arming and waits; a typed or spoken reply or
+a help tap starts the clock again, and a keystroke alone does not. So silence
+alone never walks a scene through its beat cap to the recap. The recap's
+`stats.learnerReplies` counts typed or spoken replies in the scene only, never a
+topic picked on the choosing screen, a rescue or a help tap (F904). With zero
+replies the recap still goes out, but the agent publishes no `practice`, runs no
+curation or drills, and on the legacy path saves no conversation pack. On the
+lifecycle path the checkpoint baseline is still written, because the checkpoint
+RPC requires one once `learnerTurns` is above zero and a topic pick counts there. Every
+pack carries `learnerReplies`; the token server never lists, opens by id or
+hands back to a guest a pack with `learnerReplies: 0` (core
+`isListedConversation`; absent means an older pack and is shown), and the
+practice worker drills nothing for it. Account export still contains it.
 
 Each turn context also lists the tutor's own questions so far this session,
 the last six as said (`askedQuestions` in
@@ -828,7 +841,7 @@ on top of them. One moment of being stuck, two rescues.
 
 ## When it fails
 
-`apps/mobile/src/live/failure.ts` enumerates twenty distinct failures, each with
+`apps/mobile/src/live/failure.ts` enumerates twenty-one distinct failures, each with
 its own words and its own way out; eight carry `canType: true` and offer the typed
 route instead. `LiveErrorView` keeps a **Support details** panel, closed by
 default and drawn after every recovery action, reporting whether

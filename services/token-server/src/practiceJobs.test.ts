@@ -195,3 +195,13 @@ test('the worker practice_job line carries only numbers and fixed labels', () =>
   assert.match(line,/result:outcome\.result,proposed:outcome\.proposed,accepted:outcome\.accepted,failure:outcome\.failure,generationMs:outcome\.generationMs,sinceSessionEndMs:outcome\.sinceSessionEndMs,usdEstimate:outcome\.usdEstimate\}/);
   assert.doesNotMatch(line,/pack|learner|title|fr|room|id\b/i);
 });
+
+test('a saved session with no reply in the scene gets no drills written for it', async () => {
+  const finishes: unknown[] = [];
+  let asked = 0;
+  const jobs: PracticeJobs = { receive: async () => {}, active: async () => true,
+    claim: async () => ({ ...job, payload: { ...pack, learnerReplies: 0 } }), finish: async (_job, ex) => { finishes.push(ex); return true; } };
+  assert.equal(await processPracticeJob(jobs, { drills: async () => { asked++; throw new Error('must not be asked'); } }), 'complete');
+  assert.equal(asked, 0, 'no model call for a conversation nobody replied in');
+  assert.deepEqual(finishes, [[]]);
+});

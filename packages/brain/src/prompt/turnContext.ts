@@ -83,7 +83,7 @@ const RUNG_LENGTH: Record<number, string> = {
 
 const STRICTNESS_POLICY: Record<Strictness, string> = {
   flow: 'Inline coaching only for what blocks the scene, plus textbook phrasing. Everything else waits for the recap.',
-  balanced: 'Inline coaching for what matters now, always including textbook phrasing. Small grammar slips wait for the recap.',
+  balanced: 'Inline coaching for what matters now, always including textbook phrasing. Avoir where the passé composé wants être, an uncontracted à le or de le, or a determiner in the other gender gets a small fix now. Other small grammar slips wait for the recap.',
   strict: 'Coach everything you find, briefly, as it happens.',
 };
 

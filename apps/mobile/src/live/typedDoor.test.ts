@@ -69,6 +69,7 @@ const EVERY_FAILURE = Object.keys({
   // The exhaustive map is the point: a new failure has to be answered here.
   'rate-limited': true,
   'session-elsewhere': true,
+  'own-session-closing': true,
   'sign-in-required': true,
   signal: true,
   media: true,
@@ -192,7 +193,8 @@ describe('the quiet door, taken where the learner is standing — F201', () => {
     );
     assert.equal((convo.match(/onModeChange=\{next => void changeInput\(next\)\}/g) ?? []).length, 2, 'both room modes must use the same in-room input switch');
     assert.match(convo, /if \(nextTyping\) \{ if \(await live\.pauseMic\(\)\) setTypingOpen\(true\); \}/, 'typing must pause the existing microphone');
-    assert.match(convo, /else if \(!openedTyped && await live\.openMic\(\)\) setTypingOpen\(false\);/, 'returning to speaking must reopen the same room microphone');
+    // F903: in a typed start Speak asks to rebuild as voice (live/switchToVoice.ts); otherwise it reopens the same room's microphone.
+    assert.match(convo, /else if \(openedTyped\) setSwitchAsking\(true\);\s*else if \(await live\.openMic\(\)\) setTypingOpen\(false\);/, 'returning to speaking must reopen the same room microphone');
     assert.match(
       convo,
       /onType=\{!walkMode && typedDoorFor\(live\.status\.failure, \{ typing \}\) \? goQuiet : null\}/,

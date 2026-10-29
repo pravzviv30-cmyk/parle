@@ -16,7 +16,8 @@ import type { CefrBand } from '../types.ts';
 import type { ConversationState } from './conversation.ts';
 import { KIND_PRIORITY } from './grading.ts';
 
-const MAX_FIXES = 6;
+/** The recap holds this many fixes; core's MAX_PACK_CORRECTIONS must equal it (F906). */
+export const MAX_FIXES = 6;
 const MAX_WINS = 5;
 const MAX_PHRASES = 12;
 

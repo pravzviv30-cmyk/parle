@@ -162,6 +162,15 @@ export interface ConversationState {
   /** How much of lastSupport the learner has explicitly earned this exchange. */
   assistanceDepth: AssistanceDepth;
   /**
+   * A rescue on this exchange has put the French in front of the learner: the
+   * full-line card, or a tutor turn that answered a silence or a help request.
+   * An English hint alone does not set it. While it is set, a correct reply is
+   * a copy of what was just modelled and is not evidence (F928). Clears with
+   * assistanceDepth. Optional so a checkpoint written before it existed reads
+   * as set, which is the old, stricter rule.
+   */
+  frenchGiven?: boolean;
+  /**
    * The exchange's way back has been said, or the learner already reached for
    * English on it. Either way there is nothing left to offer: a third rescue
    * does not say it again, and someone already speaking English does not need
@@ -178,7 +187,10 @@ export interface ConversationState {
   pace: 'normal' | 'slow';
   /** The language of the last spoken turn, when it was not French. */
   lastLanguage: 'english' | 'mixed' | null;
-  /** The recap queue: findings that did not surface inline. */
+  /**
+   * The recap queue: findings that did not surface inline, plus any high-value
+   * grammar slip that did (F906), so Your fixes still keeps it.
+   */
   deferred: CoachItem[];
   phrases: NewPhrase[];
   usedWell: string[];
@@ -190,7 +202,7 @@ export interface ConversationState {
    * question about the whole session: did the tutor ever hand this phrase back
    * as the thing that did not work? The end card must not celebrate one that it
    * did, whichever turn it happened on. Inline findings are not kept anywhere
-   * else — `deferred` holds only what waited for the recap — so without this
+   * else (`deferred` holds what waited for the recap, plus F906's promoted slips), so without this
    * the record of what was corrected out loud is gone by the time the card is
    * built.
    */
@@ -431,6 +443,7 @@ export function createConversation(
     // lines that a turn call can. Turn zero goes through the same guard.
     lastSupport: learnerSideSupport(frame.openingSupport, frame.openingLine.fr),
     assistanceDepth: 0,
+    frenchGiven: false,
     wayBackSpent: false,
     wayBacksSaid: 0,
     pace: config.pace ?? 'normal',
@@ -584,18 +597,20 @@ export function applyNonSpokenInput(
   const attempts = state.attemptsOnBeat + 1;
   const assistanceDepth: AssistanceDepth = state.assistanceDepth === 0 ? 1 : 2;
 
+  const supportView = supportViewForAssistance(assistanceDepth, state.lastSupport);
   const next: ConversationState = {
     ...state,
     ladder,
     directive,
     assistanceDepth,
+    frenchGiven: state.frenchGiven !== false || supportView.kind === 'full-line',
     attemptsOnBeat: attempts,
     forceAdvance: state.forceAdvance || attempts >= MAX_ATTEMPTS_PER_BEAT,
   };
 
   return {
     state: next,
-    view: { rescued: directive.rescued, rung: ladder.rung, supportView: supportViewForAssistance(assistanceDepth, state.lastSupport) },
+    view: { rescued: directive.rescued, rung: ladder.rung, supportView },
   };
 }
 
@@ -807,7 +822,7 @@ export function integrateTurn(
   // the first one, so the very first finding of a session is never held back.
   const turnsSinceInterruption =
     state.lastInterruptedTurn === null ? Number.POSITIVE_INFINITY : state.turnCount - state.lastInterruptedTurn;
-  const { inline, deferred, interrupted } = splitCoach(turn.coach, state.strictness, turnsSinceInterruption);
+  const { inline, deferred, interrupted, keptForRecap } = splitCoach(turn.coach, state.strictness, turnsSinceInterruption);
 
   // The coach line survives only when something actually surfaces inline, and
   // only when it agrees with that finding; otherwise the tested template speaks.
@@ -872,7 +887,13 @@ export function integrateTurn(
   // shape as the English guard, and bounded by the same cap: forceAdvance is
   // already set for them by applyNonSpokenInput once the attempts run out, so
   // the scene still moves whatever happens.
-  const wasRescued = input.type === 'silence' || input.type === 'help' || state.directive.rescued;
+  //
+  // "Modelled" is literal (F928). A rescue that only revealed the English
+  // intent hint, which is all a typed scene's silence clock does on a fresh
+  // exchange, gave no French: the reply after it is the learner's own. Once
+  // the full line was shown or the tutor answered the rescue, it is a copy.
+  const wasRescued = input.type === 'silence' || input.type === 'help' ||
+    (state.directive.rescued && state.frenchGiven !== false);
   const evidencedBeatIds = [...state.evidencedBeatIds];
   if (state.mission && state.missionId !== null && input.type === 'spoke' && input.text.trim().length > 0 &&
       (turn.assessment.language === 'french' || turn.assessment.language === 'mixed') &&
@@ -996,6 +1017,9 @@ export function integrateTurn(
     // at the moment the learner had just asked for it.
     assistanceDepth:
       input.type === 'spoke' && turn.assessment.language !== 'english' ? 0 : state.assistanceDepth,
+    // A tutor turn answering a rescue models the line; a real reply clears it.
+    frenchGiven: input.type !== 'spoke' ? true
+      : turn.assessment.language !== 'english' ? false : state.frenchGiven !== false,
     // Same lifetime as the earned help: a real reply opens a new exchange with
     // a way back still to offer. Reaching for English spends it, because they
     // have already found the way back on their own.
@@ -1006,7 +1030,7 @@ export function integrateTurn(
       input.type === 'spoke' && (turn.assessment.language === 'english' || turn.assessment.language === 'mixed')
         ? turn.assessment.language
         : null,
-    deferred: [...state.deferred, ...deferred],
+    deferred: [...state.deferred, ...deferred, ...keptForRecap],
     phrases,
     topics,
     usedWell: [...state.usedWell, ...usedWell],

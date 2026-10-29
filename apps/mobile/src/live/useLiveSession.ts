@@ -63,7 +63,9 @@ import {
   tokenFailureCode,
   type LiveFailure,
 } from './failure.ts';
+import { ownLeaseRetry } from './ownLease.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
+import { learnerLine } from './leaveKeepingWork.ts';
 import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
 import { thinkingAfter } from './thinking.ts';
 import { heldTurnAfter, tapToSendFrames, wrappingUpAfter } from './heldTurn.ts';
@@ -425,6 +427,8 @@ export interface LiveSession {
    * ever describes the current turn. Empty on the lesson path.
    */
   turns: TurnLine[];
+  /** Agent-confirmed learner replies in the scene: no topic pick, no optimistic typed line (F905). */
+  sceneReplies: number;
   /**
    * True between the learner finishing a turn and the tutor answering it.
    * Derived here from messages that already exist — the agent has no
@@ -568,6 +572,8 @@ export interface LiveSession {
    * The screen already renders the recap in place for exactly this reason.
    */
   requestRecap: () => void;
+  /** Leave so the screen can rebuild in another mode; the next start waits out its own lease (F903). */
+  leaveForRebuild: () => Promise<void>;
   leave: () => Promise<void>;
   /**
    * True once the tutor has said time is nearly up, for the rest of this
@@ -597,6 +603,11 @@ export function useLiveSession(
      * sent anywhere; the server and the agent see an ordinary voiced session.
      */
     listenOnly?: boolean;
+    /**
+     * The first start restarts the learner's own session a web reload cut off
+     * (F923), so a 409 is that lease closing and waits (live/ownLease.ts).
+     */
+    ownLeaseAtStart?: boolean;
     snapshot?: unknown;
     /**
      * What the learner asked to talk about, when a topic card started this.
@@ -645,6 +656,7 @@ export function useLiveSession(
   const [convo, setConvo] = useState<ConvoView | null>(null);
   const [opening, setOpening] = useState<LiveSession['opening']>(null);
   const [recap, setRecap] = useState<{ recap: RecapPayload; profile: unknown } | null>(null);
+  const [sceneReplies, setSceneReplies] = useState(0);
   const [practice, setPractice] = useState<LiveSession['practice']>(null);
   const [drills, setDrills] = useState<DrillExercise[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -748,6 +760,10 @@ export function useLiveSession(
     watchdogRef.current = [];
   }, []);
 
+  // The choosing screen is up from 'opening' until the scene's first view (F905).
+  const choosingRef = useRef(false);
+  // Set by leaveForRebuild: the next start's 409 is our own lease closing (F903).
+  const ownLeaseRetryRef = useRef(opts?.ownLeaseAtStart === true);
   const addTurn = useCallback((line: Omit<TurnLine, 'id'>, confirmedId?: string) => {
     turnSeq.current += 1;
     const id = confirmedId ?? `t${turnSeq.current}`;
@@ -813,6 +829,19 @@ export function useLiveSession(
     conversationTextRef.current.clear();
     await closing;
   }, [teardownRoom]);
+
+  /**
+   * Leave so that this screen can rebuild the session in another mode (F903).
+   * The next start may then meet this session's own lease still closing, and
+   * waits for it instead of reporting another device. Nothing is cancelled by
+   * id: an abandon on a claimed session would mark it cancel-requested while
+   * its agent is still settling the typed part (billing, pack, reply counts),
+   * so the bounded retry covers the gap instead.
+   */
+  const leaveForRebuild = useCallback(async () => {
+    ownLeaseRetryRef.current = true;
+    await leave();
+  }, [leave]);
 
   /** Send the wrap-up tag and keep the room open for the answer. */
   const requestRecap = useCallback(() => {
@@ -949,6 +978,11 @@ export function useLiveSession(
     // The last room's view goes with its turns: a rebuilt session is a new one,
     // and it is open only once its own agent publishes a view (Stage 4).
     setConvo(null);
+    // A rebuilt session (Speak in a typed start, F903) owes nothing to the last one's end.
+    setRecap(null);
+    setSceneReplies(0);
+    setPractice(null);
+    setDrills(null);
     conversationTextRef.current.clear();
     setThinking(false);
     setWrappingUp(false);
@@ -1003,7 +1037,7 @@ export function useLiveSession(
       if (await abandoned()) return;
       diagRef.current.authMs = Date.now() - authStartedAt;
       const tokenStartedAt = Date.now();
-      const res = await fetch(`${TOKEN_SERVER}${guestToken ? '/onboarding/live' : '/session/start'}`, {
+      const requestGrant = () => fetch(`${TOKEN_SERVER}${guestToken ? '/onboarding/live' : '/session/start'}`, {
         method: 'POST',
         // The bearer token, when auth is live, lets the server verify the
         // asserted userId instead of trusting it. Mock mode adds nothing.
@@ -1033,10 +1067,24 @@ export function useLiveSession(
           ...(voiceSpeed !== null ? { voiceSpeed } : {}),
         }),
       });
+      let res = await requestGrant();
       // The long wait, and the one this guard was built for. A cold start can
       // sit here for twenty five seconds, which is ample time to give up and
       // walk out, and the grant that arrives afterwards must not become a room.
       if (await abandoned()) return;
+      // F903: the app's own typed session is still closing after a switch to
+      // voice. Ask again on a bounded backoff; a Leave, a stop or a newer start
+      // moves the generation and ends the wait, starting nothing.
+      for (let attempt = 0; ; attempt += 1) {
+        const wait = ownLeaseRetry({ status: res.status, ownRebuild: ownLeaseRetryRef.current, attempt });
+        if (wait === null) break;
+        trace('own-lease-wait', { attempt, ms: wait });
+        await new Promise((resolve) => setTimeout(resolve, wait));
+        if (await abandoned()) return;
+        res = await requestGrant();
+        if (await abandoned()) return;
+      }
+      if (res.status === 409 && ownLeaseRetryRef.current) throw new TokenServerError(409, 'own-session-closing');
       diagRef.current.tokenStatus = res.status;
       diagRef.current.tokenMs = Date.now() - tokenStartedAt;
       diagRef.current.tokenServerTiming = res.headers.get('server-timing');
@@ -1068,6 +1116,7 @@ export function useLiveSession(
       // /session/abandon compares against before releasing anything, which is
       // what stops one caller freeing another's session.
       const grant = (await res.json()) as { token: string; livekitUrl: string; sessionId: string };
+      ownLeaseRetryRef.current = false;
       // The catalogue rides the grant as well as the refusal (F514), so a learner
       // who has started a session has seen what a plan buys without having to be
       // turned away first. Parsed by the same validator either way.
@@ -1262,9 +1311,11 @@ export function useLiveSession(
               confirmedIds.current.add(confirmedId);
               // After the dedupe: a re-sent final is not a new wait.
               replyClock.current.learnerTurnConfirmed(Date.now());
+              // F905: an agent-confirmed reply in the scene, never a topic pick or an optimistic line.
+              if (!choosingRef.current) setSceneReplies((n) => n + 1);
               contributionCallback.current?.({ id: confirmedId, text: msg.text, input: msg.input === 'typed' || msg.input === 'spoken' ? msg.input : 'unknown' });
               setLastTranscript(msg.text);
-              addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null });
+              addTurn(learnerLine({ fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null }, choosingRef.current));
             } else setPartialTranscript(msg.text);
             break;
           case 'summary':
@@ -1302,6 +1353,7 @@ export function useLiveSession(
                     textTurnId: msg.view.textTurnId,
                     correctionIndex,
                     quote: c.quote,
+                    kind: c.kind,
                     better: c.better,
                     betterEn: c.betterEn,
                     why: c.why,
@@ -1314,9 +1366,11 @@ export function useLiveSession(
             // never sent an opening (an older build, say) is also covered — the
             // app renders whatever arrives.
             setOpening(null);
+            choosingRef.current = false;
             break;
           case 'opening':
             setOpening({ prompt: msg.prompt });
+            choosingRef.current = true;
             // The opener is SPOKEN in English; the thread shows it the same way
             // round, with the French alongside as exposure.
             addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
@@ -1794,6 +1848,7 @@ export function useLiveSession(
     safety,
     dismissSafety,
     turns,
+    sceneReplies,
     thinking,
     audioBlocked,
     audioTracks,
@@ -1829,7 +1884,7 @@ export function useLiveSession(
         // Show a typed turn immediately. The current conversation agent echoes
         // it as a confirmed final transcript before running the brain; only
         // that received echo enters optional saved text, never an unsent draft.
-        const optimisticId = addTurn({ who: 'learner', fr: text, frWritten: null, en: null });
+        const optimisticId = addTurn(learnerLine({ fr: text, frWritten: null, en: null }, choosingRef.current));
         setThinking(true);
         const sent = await publish({ t: 'say', text });
         if (sent) return true;
@@ -1863,6 +1918,7 @@ export function useLiveSession(
     sendTapToSend: useCallback((on: boolean) => send({ t: 'tap-to-send', on }), [send]),
     sendTurn: useCallback(() => send({ t: 'send' }), [send]),
     requestRecap,
+    leaveForRebuild,
     leave,
   };
 }

@@ -26,8 +26,11 @@ export interface LeaveConfirmCopy {
   leave: string;
 }
 
+/** The conversation body once the learner has replied: Leave keeps the work (F905). */
+export const LEAVE_KEEPS_WORK = "We'll keep the lines you reached and count your minutes.";
+
 /** What the leave sheet says for the room that is open. */
-export function leaveConfirmCopy(room: LeaveRoom): LeaveConfirmCopy {
+export function leaveConfirmCopy(room: LeaveRoom, learnerReplies = 0): LeaveConfirmCopy {
   if (room === 'lesson') {
     return {
       title: 'Leave the lesson?',
@@ -38,7 +41,7 @@ export function leaveConfirmCopy(room: LeaveRoom): LeaveConfirmCopy {
   }
   return {
     title: 'Leave the conversation?',
-    body: 'Your minutes stop here. You can start another one any time.',
+    body: learnerReplies > 0 ? LEAVE_KEEPS_WORK : 'Your minutes stop here. You can start another one any time.',
     stay: 'Stay',
     leave: 'Leave',
   };

@@ -1,3 +1,6 @@
+import { convoStartFromParams, parseSeedTopic } from '../tutor/convoStart.ts';
+import { consumeReload, isReload } from '../tutor/reloadGate.ts';
+import { ReloadIntro } from '../tutor/ReloadIntro.tsx';
 import { afterPurchase, type ResumeRoute } from '../live/afterPurchase.ts';
 import { WalkIntro } from '../walk/WalkIntro.tsx';
 /**
@@ -18,7 +21,7 @@ import { WalkIntro } from '../walk/WalkIntro.tsx';
  */
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
@@ -353,6 +356,7 @@ function LessonRoute() {
 function ConvoRoute() {
   const nav = useNavigation<LeavingNav & {
     replace: (screen: 'Drill', params: NonNullable<RootStackParamList['Drill']>) => void;
+    setParams: (p: { textMode?: boolean }) => void;
   }>();
   const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
@@ -362,8 +366,14 @@ function ConvoRoute() {
   const { live, recheck } = useLive();
   const [checking, setChecking] = useState(false);
   const missionId = route.params?.missionId;
-  const walkMode = route.params?.walkMode === true;
+  // One reading of the params (F903, F923): coerced, so a reloaded address keeps its mode.
+  const start = convoStartFromParams(route.params, profile);
+  const walkMode = start.walkMode;
   const [walkStarted, setWalkStarted] = useState(false);
+  // F923: a web reload of this address waits for Start again instead of opening a session.
+  const [reloaded, setReloaded] = useState(() => isReload(Platform.OS));
+  const [afterReload, setAfterReload] = useState(false);
+  useEffect(() => { consumeReload(); }, []);
   // Opened from a goal (Stage 4): the route carries the goal's opaque key and
   // the task, never the goal's words, so the step is made here from the
   // profile. A key that names no goal the profile holds records nothing.
@@ -477,6 +487,7 @@ function ConvoRoute() {
   // After the offline gate on purpose: a learner with no server to talk to gets
   // the honest screen at once rather than a spinner over a disk read that
   // cannot help them.
+  if (reloaded) return <ReloadIntro onStart={() => { setAfterReload(true); setReloaded(false); }} onBack={leave} />;
   if (walkMode && !walkStarted) return <WalkIntro onStart={() => setWalkStarted(true)} onBack={leave} />;
   if (!replayRead || reviewDeck === null) return <Loading />;
   return (
@@ -494,11 +505,16 @@ function ConvoRoute() {
         // 2026-10-21 UI-008, artboard B-Celebrate: "See your journey" opens the Journey tab.
         onJourney={() => nav.reset(tabsAlone('MyFrench'))}
         walkMode={walkMode}
-        startInTextMode={walkMode ? false : route.params?.textMode ?? false}
+        startInTextMode={start.openedTyped}
         // Listen only: the voice stays, the microphone does not open. A walk is
-        // hands-free by definition and typed wins over it.
-        listenOnly={!walkMode && !(route.params?.textMode ?? false) && (route.params?.listenOnly ?? false)}
-        seedTopic={route.params?.seedTopic}
+        // hands-free by definition and typed wins over it (tutor/convoStart.ts).
+        listenOnly={start.listenOnly}
+        typingOpenAtStart={start.typingOpen}
+        // Start speaking is the learner agreeing to be heard (F903).
+        openMicOnReady={start.openMicOnReady}
+        ownLeaseAtStart={afterReload}
+        onModeSwitched={() => nav.setParams({ textMode: false })}
+        seedTopic={parseSeedTopic(route.params?.seedTopic)}
         continuationPackId={route.params?.continuationPackId}
         // The mission the learner chose, carried through to the join token so
         // the agent can open its authored scene without a model call. This line
@@ -600,7 +616,7 @@ function WallRoute() {
       onLeave={leave}
       onStartSpeaking={(canResume) => {
         if (owner !== scopeGeneration()) return;
-        if (entry !== 'refused') { nav.replace('Convo'); return; }
+        if (entry !== 'refused') { nav.replace('Convo', { textMode: false }); return; }
         const resumed = afterPurchase({ granted: canResume, canStart: canResume,
           ownsAccount: owner === scopeGeneration(), resumeRouteKey, wallKey: route.key, state: nav.getState() });
         if (resumed !== null) nav.reset(resumed); else leave();

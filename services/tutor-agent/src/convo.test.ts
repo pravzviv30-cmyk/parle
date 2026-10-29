@@ -581,6 +581,7 @@ function buildConvo(
     scorer?: typeof scoreUtterance;
     scoringRequest?: typeof fetch;
     thinkingTime?: ThinkingTimeSink;
+    enrichBeforeComplete?: boolean;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -603,6 +604,7 @@ function buildConvo(
     ...(opts.scorer ? { scorer: opts.scorer } : {}),
     ...(opts.scoringRequest ? { scoringRequest: opts.scoringRequest } : {}),
     ...(opts.thinkingTime ? { thinkingTime: opts.thinkingTime } : {}),
+    ...(opts.enrichBeforeComplete !== undefined ? { enrichBeforeComplete: opts.enrichBeforeComplete } : {}),
   });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
@@ -4349,7 +4351,10 @@ describe('what a finished conversation writes down about itself', () => {
     const { packs, restore } = capturePacks();
     t.after(restore);
 
-    const { convo } = await inScene(t, { sessionId: '99999999-9999-4999-8999-999999999999' });
+    const { convo, session } = await inScene(t, { sessionId: '99999999-9999-4999-8999-999999999999' });
+    await convo.settled();
+    // One scene reply: a topic pick alone saves nothing (F904).
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, merci.' }));
     await convo.settled();
     convo.clearRescue();
     ranFor(convo, 487);
@@ -4382,7 +4387,10 @@ describe('what a finished conversation writes down about itself', () => {
       { kind: 'interest', fr: 'Il collectionne les ocarinas', en: 'Collects ocarinas', happensAround: null, notedAt: '2026-01-02', source: 'conversation', updatedAt: '2026-01-02' },
     ];
     profile.memory.opener = { fr: 'Comment va Zéphyrine à Besançon ?', en: 'How is Zéphyrine in Besançon?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
-    const { convo } = await inScene(t, { profile, voiceless: true, sessionId: '56565656-1212-4343-8585-909090909090' });
+    const { convo, session } = await inScene(t, { profile, voiceless: true, sessionId: '56565656-1212-4343-8585-909090909090' });
+    await convo.settled();
+    // One scene reply: a topic pick alone saves nothing (F904).
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, merci.' }));
     await convo.settled();
     convo.clearRescue();
     await convo.finish();
@@ -4409,6 +4417,9 @@ describe('what a finished conversation writes down about itself', () => {
     revisit.convo.open(revisit.session);
     await revisit.convo.handleClientMessage(revisit.session, tapped({ t: 'say', text: 'Au café' }));
     await revisit.convo.settled();
+    // One scene reply: a topic pick alone saves nothing (F904).
+    await revisit.convo.handleClientMessage(revisit.session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    await revisit.convo.settled();
     revisit.convo.clearRescue();
     await revisit.convo.finish();
     assert.equal(packs.length, 2, 'baseline and enriched');
@@ -4419,6 +4430,8 @@ describe('what a finished conversation writes down about itself', () => {
 
     packs.length = 0;
     const ordinary = await inScene(t, { sessionId: '56565656-7878-4989-8a0a-121212121212' });
+    await ordinary.convo.settled();
+    await ordinary.convo.handleClientMessage(ordinary.session, tapped({ t: 'say', text: 'Un café, merci.' }));
     await ordinary.convo.settled();
     ordinary.convo.clearRescue();
     await ordinary.convo.finish();
@@ -4435,6 +4448,9 @@ describe('what a finished conversation writes down about itself', () => {
     });
     convo.open(session);
     await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Au café' }));
+    await convo.settled();
+    // One scene reply: a topic pick alone saves nothing (F904).
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, merci.' }));
     await convo.settled();
     convo.clearRescue();
     await convo.finish();
@@ -5355,5 +5371,188 @@ describe('numbers-only cost lines (Phase F)', () => {
     const source = readFileSync(new URL('./convo.ts', import.meta.url), 'utf8');
     assert.doesNotMatch(source, /drill linter rejected/);
     assert.match(source, /console\.info\(formatDrillValidation\(result\.batch\.exercises\.length, valid\.length\)\)/);
+  });
+});
+
+/**
+ * F904, the agent side. `stats.turns` is `state.turnCount`, which a silence
+ * rescue advances, so the recap alone cannot tell the app whether the learner
+ * ever replied. `learnerReplies` is the count it can trust: typed or spoken
+ * says only. A help tap still counts for billing, never as a reply.
+ */
+describe('the recap tells the app how many times the learner replied', () => {
+  async function missionScene(t: TestContext, voiceless: boolean) {
+    const built = buildConvo(t, { voiceless, missionId: 'mission:cafe' });
+    built.convo.open(built.session);
+    await sceneSettled();
+    return built;
+  }
+  function recapOf(published: readonly ServerMessage[]) {
+    const recap = published.find((m) => m.t === 'recap') as { recap: { stats: { turns: number; learnerReplies?: number } } } | undefined;
+    assert.ok(recap, 'a recap was published');
+    return recap.recap;
+  }
+
+  test('a session with no learner turns reaches the recap with a learner turn count of zero', async (t) => {
+    const { convo, session, published } = await missionScene(t, false);
+    for (let i = 0; i < 2; i += 1) {
+      await convo.runRescue(convo.armRescue(session));
+      await convo.settled();
+    }
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    convo.clearRescue();
+    await convo.finish();
+    const stats = recapOf(published).stats;
+    assert.ok(stats.turns > 0, 'the brain counted rescue turns');
+    assert.equal(stats.learnerReplies, 0, 'rescues and help taps are not replies');
+  });
+
+  test('a topic picked on the choosing screen is not a reply', async (t) => {
+    const { convo, session, published } = await inScene(t, { voiceless: true });
+    await convo.settled();
+    await convo.runRescue(convo.armRescue(session));
+    await convo.settled();
+    convo.clearRescue();
+    await convo.finish();
+    assert.equal(recapOf(published).stats.learnerReplies, 0, 'choosing a topic is not a conversation');
+  });
+
+  /** Catch every pack write; nothing here has a token server. */
+  function packWrites(t: TestContext) {
+    const packs: unknown[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
+      const body: unknown = JSON.parse(String(init?.body));
+      if (typeof body === 'object' && body !== null && 'pack' in body) packs.push((body as { pack: unknown }).pack);
+      return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
+    }) as unknown as typeof fetch;
+    t.after(() => { globalThis.fetch = real; });
+    return packs;
+  }
+  /** A lifecycle that records every baseline it is handed, the way agent.ts attaches it. */
+  function recordingLifecycle(convo: LuvaniConversation) {
+    const baselines: unknown[] = [];
+    convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 30,
+      assertActive() {}, onStop() {},
+      checkpoint: async (report, acknowledge) => { if (report.baseline) baselines.push(report.baseline); acknowledge?.(); },
+      complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
+    });
+    return baselines;
+  }
+  async function topicThenSilence(t: TestContext, lifecycle: boolean, reply: boolean) {
+    const packs = packWrites(t);
+    const built = buildConvo(t, { voiceless: true, sessionId: `edededed-1212-4343-8585-9090909090${lifecycle ? 1 : 0}${reply ? 1 : 0}`, enrichBeforeComplete: lifecycle });
+    const baselines = lifecycle ? recordingLifecycle(built.convo) : [];
+    built.convo.open(built.session);
+    await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
+    await built.convo.settled();
+    if (reply) await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Je voudrais un café' }));
+    await built.convo.runRescue(built.convo.armRescue(built.session));
+    await built.convo.settled();
+    built.convo.clearRescue();
+    await built.convo.finish();
+    return { ...built, packs, baselines, practice: built.published.filter((m) => m.t === 'practice') };
+  }
+
+  test('a scene the learner never replied in saves no conversation and publishes no practice', async (t) => {
+    const legacy = await topicThenSilence(t, false, false);
+    assert.equal(recapOf(legacy.published).stats.learnerReplies, 0, 'the recap still goes out');
+    assert.equal(legacy.packs.length, 0, 'legacy: no conversation is saved');
+    assert.equal(legacy.practice.length, 0, 'legacy: no practice is published');
+    assert.equal(legacy.client.curateRequests.length + legacy.client.drillsRequests.length, 0, 'legacy: and none is written');
+
+    const lifecycle = await topicThenSilence(t, true, false);
+    assert.equal(recapOf(lifecycle.published).stats.learnerReplies, 0);
+    assert.equal(lifecycle.practice.length, 0, 'lifecycle: no practice is published');
+    assert.equal(lifecycle.client.curateRequests.length + lifecycle.client.drillsRequests.length, 0, 'lifecycle: no curation either');
+    assert.ok(lifecycle.baselines.length >= 1, 'the lifecycle still requires its baseline');
+    for (const pack of lifecycle.baselines) {
+      assert.equal((pack as { learnerReplies?: number }).learnerReplies, 0, 'and it says nobody replied, so it is never listed');
+    }
+  });
+
+  test('one scene reply still saves the conversation and its practice', async (t) => {
+    const legacy = await topicThenSilence(t, false, true);
+    assert.equal(recapOf(legacy.published).stats.learnerReplies, 1);
+    assert.ok(legacy.packs.length >= 1, 'legacy: the conversation is saved');
+    assert.equal(legacy.practice.length, 1, 'legacy: practice is published');
+
+    const lifecycle = await topicThenSilence(t, true, true);
+    assert.ok(lifecycle.baselines.length >= 1, 'lifecycle: the conversation is saved as a baseline');
+    assert.equal(lifecycle.client.curateRequests.length, 1, 'lifecycle: the practice is curated');
+    for (const pack of [...legacy.packs, ...lifecycle.baselines.slice(-1)]) {
+      assert.equal((pack as { learnerReplies?: number }).learnerReplies, 1, 'every pack written carries the reply count');
+    }
+  });
+
+  test('one typed say reaches the recap as one learner reply', async (t) => {
+    const { convo, session, published } = await missionScene(t, true);
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je voudrais un café' }));
+    await convo.settled();
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    convo.clearRescue();
+    await convo.finish();
+    assert.equal(recapOf(published).stats.learnerReplies, 1);
+  });
+});
+
+describe('the tutor waits after two unanswered rescues', () => {
+  function clockRunning(convo: LuvaniConversation): boolean {
+    return (convo as unknown as { silenceTimer?: unknown }).silenceTimer !== undefined;
+  }
+  async function spokenMission(t: TestContext) {
+    const built = buildConvo(t, { voiceless: false, missionId: 'mission:cafe' });
+    built.convo.open(built.session);
+    await sceneSettled();
+    return built;
+  }
+
+  test('two unanswered rescues pause the tutor instead of moving the scene on', async (t) => {
+    const { convo, session } = await spokenMission(t);
+    const firstBeat = convo.conversationState.currentBeat;
+    let fired = 0;
+    // What agent.ts does: arm on every return to listening, and the timer fires.
+    for (let i = 0; i < 9; i += 1) {
+      const generation = convo.armRescue(session);
+      if (!clockRunning(convo)) continue;
+      convo.clearRescue();
+      await convo.runRescue(generation);
+      await convo.settled();
+      fired += 1;
+    }
+    assert.equal(fired, 2, 'the second rescue is the last one silence gets');
+    assert.equal(convo.conversationState.currentBeat, firstBeat, 'silence alone never moves the scene on');
+    assert.equal(convo.conversationState.ladder.rescues, 2);
+  });
+
+  test('a keystroke does not wake a paused rescue, and a reply or a help tap does', async (t) => {
+    const { convo, session } = await spokenMission(t);
+    for (let i = 0; i < 2; i += 1) {
+      await convo.runRescue(convo.armRescue(session));
+      await convo.settled();
+    }
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), false, 'paused');
+    await convo.handleClientMessage(session, tapped({ t: 'typing' }));
+    assert.equal(clockRunning(convo), false, 'presence alone does not restart the run');
+
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), true, 'a help tap re-arms the ordinary clock');
+    convo.clearRescue();
+
+    for (let i = 0; i < 2; i += 1) {
+      await convo.runRescue(convo.armRescue(session));
+      await convo.settled();
+    }
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), false, 'paused again');
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, s\'il vous plaît' }));
+    await convo.settled();
+    convo.armRescue(session);
+    assert.equal(clockRunning(convo), true, 'a reply re-arms it');
   });
 });

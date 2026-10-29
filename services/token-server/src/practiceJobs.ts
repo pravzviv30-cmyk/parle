@@ -146,7 +146,8 @@ async function runPracticeJob(jobs: PracticeJobs, client: Pick<LlmClient, 'drill
       ...pack.keyPhrases,
       ...pack.corrections.map((c) => ({ fr: c.better, en: c.betterEn, frWritten: null })),
     ].slice(0, 12).map((p) => ({ ...p, frWritten: p.frWritten ?? null, register: 'courant' as const, enLiteral: null, note: '' }));
-    if (phrases.length === 0) exercises = [];
+    // No reply in the scene: the pack is kept but never listed, so nothing is drilled (F904).
+    if (phrases.length === 0 || pack.learnerReplies === 0) exercises = [];
     else {
       const generationMs=options.generationMs ?? 90_000;
       if (!Number.isInteger(generationMs) || generationMs < 1 || generationMs > 90_000) throw new Error('invalid-practice-deadline');

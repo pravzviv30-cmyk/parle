@@ -129,7 +129,7 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
     assert.equal(tags(SCREEN, 'BButton').length, 1, 'the empty journey carries other than one start');
     assert.match(FLAT, /<EmptyJourneyCard eyebrow=\{start\.picked\} title=\{start\.title\} body=\{start\.body\}>/);
     assert.match(PARTS_OF(), /<BArt name="map-route" width=\{150\} height=\{137\} \/>/);
-    assert.match(FLAT, /const decision = tutorGate\(answered, false\); if \(!decision\.go\) \{ setHeldBack\(true\); return; \}/);
+    assert.match(FLAT, /const decision = tutorGate\(answered\); if \(!decision\.go\) \{ setHeldBack\(true\); return; \}/);
     assert.match(FLAT, /nav\.navigate\(decision\.screen, \{ missionId: start\.missionId, \.\.\.decision\.params \}\)/);
     gated('<LocalPracticeCard', 'heldBack &&', 300);
   });

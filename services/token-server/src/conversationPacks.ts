@@ -1,6 +1,6 @@
 /** Server-owned Conversation Pack persistence. */
 
-import { isConversationPack, type ConversationPack } from '@luvani/core';
+import { isConversationPack, isListedConversation, type ConversationPack } from '@luvani/core';
 
 function headers(serviceRoleKey: string): Record<string, string> {
   return { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}` };
@@ -76,7 +76,7 @@ export async function listConversationPacks(
   if (!Array.isArray(rows)) throw new Error('conversation pack read returned an invalid payload');
   return rows.flatMap((row) => {
     const payload = typeof row === 'object' && row !== null ? (row as { payload?: unknown }).payload : undefined;
-    return validConversationPackFor(payload, userId) ? [payload] : [];
+    return validConversationPackFor(payload, userId) && isListedConversation(payload) ? [payload] : [];
   });
 }
 

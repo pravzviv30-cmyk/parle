@@ -6,6 +6,7 @@ import {
   containsForbiddenConversationData,
   conversationPackIdOf,
   isConversationPack,
+  isListedConversation,
   normaliseConversationPack,
   translationExercisesFor,
   validateExercise,
@@ -246,5 +247,44 @@ describe('a revisit pack names the conversation it came from', () => {
     // A claim on the pack itself is ignored: only the verified argument links.
     const stripped = await withVerifiedRevisionSource(claimed, null, owns(true));
     assert.equal('revisedFromPackId' in stripped, false);
+  });
+});
+
+describe('how many times the learner replied, on a saved conversation (F904)', () => {
+  const base = {
+    id: '01234567-89ab-4def-8123-456789abcdef', sessionId: '01234567-89ab-4def-8123-456789abcdef',
+    learnerId: 'learner-1', createdAt: '2026-10-28T12:00:00.000Z',
+    title: { fr: 'Au café', en: 'At the café' }, summary: 'A coffee.', keyPhrases: [phrase],
+  };
+
+  test('a pack carries the reply count it was built with and survives a round trip', () => {
+    for (const learnerReplies of [0, 3]) {
+      const pack = buildConversationPack({ ...base, learnerReplies });
+      assert.equal(pack.learnerReplies, learnerReplies);
+      const back: unknown = JSON.parse(JSON.stringify(pack));
+      assert.equal(isConversationPack(back), true);
+      assert.equal(normaliseConversationPack(back as ConversationPack).learnerReplies, learnerReplies);
+    }
+  });
+
+  test('a pack stored before the count existed stays valid and carries no count', () => {
+    const pack = buildConversationPack(base);
+    assert.equal(Object.hasOwn(pack, 'learnerReplies'), false, 'absent, never invented');
+    assert.equal(isConversationPack(pack), true);
+    assert.equal(Object.hasOwn(normaliseConversationPack(pack), 'learnerReplies'), false);
+  });
+
+  test('a count that is not a whole non-negative number is not the contract', () => {
+    const pack = buildConversationPack(base);
+    for (const bad of [-1, 1.5, '2', null, Number.NaN]) {
+      assert.equal(isConversationPack({ ...pack, learnerReplies: bad }), false, String(bad));
+    }
+    assert.equal(Object.hasOwn(buildConversationPack({ ...base, learnerReplies: -1 }), 'learnerReplies'), false);
+  });
+
+  test('only a pack known to have no reply is kept out of the conversation list', () => {
+    assert.equal(isListedConversation(buildConversationPack({ ...base, learnerReplies: 0 })), false);
+    assert.equal(isListedConversation(buildConversationPack({ ...base, learnerReplies: 1 })), true);
+    assert.equal(isListedConversation(buildConversationPack(base)), true, 'an older pack is shown');
   });
 });

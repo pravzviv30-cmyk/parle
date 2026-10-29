@@ -3,7 +3,7 @@
  * No client-provided recap, finish flag or elapsed time is trusted by this service.
  */
 import { randomUUID } from 'node:crypto';
-import { isServiceFailure, parseFirstPracticeBrief, parseGuestSceneTurnIds, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS,
+import { isListedConversation, isServiceFailure, parseFirstPracticeBrief, parseGuestSceneTurnIds, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS,
   type FirstPracticeBrief, type ConversationPack, type GuestScene, type GuestSceneTurnId } from '@luvani/core';
 import { tutorDigest } from '../../shared/tutorLifecycle.ts';
 import { validConversationPackFor } from './conversationPacks.ts';
@@ -180,7 +180,8 @@ export function guestLiveResult(live: GuestLiveRecord, now = Date.now()) {
   const expired = !!live.fence && !live.endedAt && live.leaseUntil! <= now;
   return { sessionId: live.sessionId, outcome: live.outcome ?? (expired ? 'interrupted' : 'active'),
     seconds: live.seconds, learnerTurns: live.learnerTurns, completedAt: live.endedAt ?? null,
-    pack: live.scene ? null : live.baseline,
+    // A baseline with no reply in the scene stays stored, but is not handed back as a conversation (F904).
+    pack: live.scene || !live.baseline || !isListedConversation(live.baseline) ? null : live.baseline,
     ...(live.scene ? { scene: live.scene, sceneTurns: [...(live.sceneTurns ?? [])] } : {}) };
 }
 

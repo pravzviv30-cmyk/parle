@@ -27,7 +27,7 @@ import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from 
 import { LiveScoring, nearHardLimit, saidTheLine } from './liveScoring.ts';
 import { CONVO_SCORING_EFFECTS } from '../../shared/lessonScoringQuote.ts';
 import type { scoreUtterance } from '../../shared/pronunciation.ts';
-import { buildReport, recognitionPhrases, repairRecognizedFrench } from '@luvani/core';
+import { buildReport, MAX_PACK_CORRECTIONS, recognitionPhrases, repairRecognizedFrench } from '@luvani/core';
 import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parseReviewFocus, parsePreviousCorrection, tutorSessionBrief, type TutorReviewFocus } from '@luvani/core';
 import { selectedBrain } from './preflight.ts';
 import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
@@ -210,7 +210,7 @@ export function toConvoView(view: TurnView): ConvoView {
  * The recap is already wire-shaped; the map is stated so it cannot silently widen.
  * `focusSound` is added only when a scored line named one.
  */
-export function toRecapPayload(recap: SessionRecap, focusSound?: RecapPayload['focusSound']): RecapPayload {
+export function toRecapPayload(recap: SessionRecap, focusSound?: RecapPayload['focusSound'], learnerReplies?: number): RecapPayload {
   return {
     headline: recap.headline,
     wins: recap.wins,
@@ -219,7 +219,7 @@ export function toRecapPayload(recap: SessionRecap, focusSound?: RecapPayload['f
     nextFocus: recap.nextFocus,
     topics: recap.topics,
     cefr: recap.cefr,
-    stats: recap.stats,
+    stats: learnerReplies === undefined ? recap.stats : { ...recap.stats, learnerReplies },
     ...(focusSound ? { focusSound } : {}),
   };
 }
@@ -873,6 +873,12 @@ async function withDeadline<T>(
  * like being hovered over. Twelve seconds of nothing still means stuck.
  */
 export const TEXT_SILENCE_MS = 12_000;
+/**
+ * Unanswered silence rescues before the tutor stops stepping in and waits
+ * (F904). The second carries the English way back in (VOICE-013); a third
+ * would only spend a beat attempt the learner never made.
+ */
+export const RESCUE_PAUSE_AFTER = 2;
 
 /**
  * How long "give me a moment" buys, before the ordinary silence policy resumes.
@@ -1188,6 +1194,19 @@ export class LuvaniConversation extends voice.Agent {
    * which `integrateTurn` advances for a rescue too — see `finish()`.
    */
   private learnerTurns = 0;
+  /**
+   * What the learner typed or said: `learnerTurns` without the help taps. The
+   * recap carries it as `stats.learnerReplies`, the one count the app can trust
+   * to say whether a conversation happened (F904).
+   */
+  private learnerReplies = 0;
+  /**
+   * Silence rescues since the learner last replied or tapped help. At
+   * RESCUE_PAUSE_AFTER the tutor stops re-arming and waits: the second rescue
+   * already carried the way back in, and silence alone must not walk the scene
+   * to its recap through the beat cap.
+   */
+  private unansweredRescues = 0;
   private lifecycle: RuntimeLifecycle | undefined;
   private acknowledged: { state: ConversationState; profile: LearnerProfile } | undefined;
 
@@ -2182,8 +2201,17 @@ export class LuvaniConversation extends voice.Agent {
       }, window);
       return generation;
     }
+    // Paused after two unanswered rescues: the tutor waits, without a remark,
+    // until a reply or a help tap resets the run.
+    if (this.unansweredRescues >= RESCUE_PAUSE_AFTER) return generation;
     this.silenceTimer = setTimeout(() => { void this.runRescue(generation).catch(() => {}); }, window);
     return generation;
+  }
+
+  /** A typed or spoken say: a reply for the recap, and the end of a rescue run. */
+  private noteReply(): void {
+    this.learnerReplies += 1;
+    this.unansweredRescues = 0;
   }
 
   /** How long nothing may happen before the learner is stuck rather than thinking. */
@@ -2218,6 +2246,7 @@ export class LuvaniConversation extends voice.Agent {
     await this.queue.runIfCurrent(generation, async () => {
       // The rescue closes this exchange; the next one gets its own hold cap.
       this.momentHoldStartedAt = undefined;
+      this.unansweredRescues += 1;
       // A text box going quiet is not dialogue. Reveal the support the current
       // turn already carried, once, and leave the same character line waiting
       // for the learner. Asking the model here used to append a fresh tutor
@@ -2480,7 +2509,9 @@ export class LuvaniConversation extends voice.Agent {
         // Confirm only the accepted choosing answer. A duplicate during scene
         // preparation has not entered this conversation and is not saved text.
         if (this.phase === 'choosing') {
+          // A topic is not a reply (F904): billing counts it, the recap does not.
           this.learnerTurns += 1;
+          this.unansweredRescues = 0;
           this.publish({ t: 'transcript', text: msg.text, final: true, input: 'typed', turnId: `u${++this.inputSequence}` });
         }
         return this.startScene(msg.text);
@@ -2545,6 +2576,7 @@ export class LuvaniConversation extends voice.Agent {
         await this.queue.run(() => {
           inputTiming?.mark('queueStarted');
           this.learnerTurns += 1;
+          this.noteReply();
           return this.runBrainTurn({ type: 'spoke', text: msg.text }, undefined, correctionGeneration, inputTiming);
         });
       } finally { inputTiming?.finish(this.ended || this.liveWork.signal.aborted ? 'cancelled' : 'failed'); }
@@ -2561,6 +2593,8 @@ export class LuvaniConversation extends voice.Agent {
       // rescue that was already on its way.
       this.releaseMoment();
       this.clearRescue();
+      // Help counts for billing and resets the rescue run, but is not a reply.
+      this.unansweredRescues = 0;
       await this.queue.run(() => { this.learnerTurns += 1; return this.rescue({ type: 'help' }); });
     }
     // 'choice' arrives as speech as well, exactly like the scripted path.
@@ -2643,7 +2677,9 @@ export class LuvaniConversation extends voice.Agent {
       // room reached anybody — see `finish()`.
       this.cancelCorrectionReason();
       if (this.phase === 'choosing') {
+        // A topic is not a reply (F904): billing counts it, the recap does not.
         this.learnerTurns += 1;
+        this.unansweredRescues = 0;
         // Speech on the choosing screen IS the topic. The transcript shows
         // the learner they were heard; the scene does the rest.
         this.publish({ t: 'transcript', text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}` });
@@ -2666,6 +2702,7 @@ export class LuvaniConversation extends voice.Agent {
           await this.queue.run(() => {
             inputTiming?.mark('queueStarted');
             this.learnerTurns += 1;
+          this.noteReply();
             return this.runBrainTurn({ type: 'spoke', text: recognized.text }, timing, correctionGeneration, inputTiming);
           });
         } finally { inputTiming?.finish(this.ended || this.liveWork.signal.aborted ? 'cancelled' : 'failed'); }
@@ -3138,8 +3175,10 @@ export class LuvaniConversation extends voice.Agent {
         estimate: this.profile.cefr.estimate, confidence: this.profile.cefr.confidence,
       });
       this.state = state; this.profile = finishSession(this.profile, state);
-      this.lastRecap = { t: 'recap', recap: toRecapPayload(recap, focusSound), profile: this.profile };
-      if (this.enrichBeforeComplete && this.learnerTurns > 0 && !this.safetyStopped && !this.serviceFailure && !this.lifecycle.signal.aborted) {
+      this.lastRecap = { t: 'recap', recap: toRecapPayload(recap, focusSound, this.learnerReplies), profile: this.profile };
+      // A scene with no reply curates nothing (F904). Its checkpoint baseline
+      // stays: the lifecycle requires one once learnerTurns > 0.
+      if (this.enrichBeforeComplete && this.learnerReplies > 0 && !this.safetyStopped && !this.serviceFailure && !this.lifecycle.signal.aborted) {
         // No analyst calls after completion, lease expiry or deletion. Baseline
         // was acknowledged before this optional bounded work begins.
         const [curated] = await Promise.all([this.curatePractice(state, this.finishEnrichmentMs), this.extractMemory(state.turnCount, false, this.finishEnrichmentMs)]);
@@ -3172,7 +3211,7 @@ export class LuvaniConversation extends voice.Agent {
     // just the storage that brings it back next session. Kept for `ready`
     // replays, so an app that reconnects after the scene closed still gets its
     // recap and updated profile instead of a stale scene view.
-    this.lastRecap = { t: 'recap', recap: toRecapPayload(recap, focusSound), profile: this.profile };
+    this.lastRecap = { t: 'recap', recap: toRecapPayload(recap, focusSound, this.learnerReplies), profile: this.profile };
     this.publish(this.lastRecap);
 
     const wallClockSec = Math.round((endedAt - this.startedAt) / 1000);
@@ -3207,6 +3246,12 @@ export class LuvaniConversation extends voice.Agent {
 
     // Safety stops keep no practice and do not send earlier turns for enrichment.
     if (this.safetyStopped) {
+      this.logSpendSummary();
+      return;
+    }
+    // Nor does a scene the learner never replied in: the recap says they made
+    // time, and nothing is saved as a conversation or as practice (F904).
+    if (this.learnerReplies === 0) {
       this.logSpendSummary();
       return;
     }
@@ -3300,7 +3345,7 @@ export class LuvaniConversation extends voice.Agent {
       topics: recap.topics,
       keyPhrases: phrases.map((phrase) => ({ fr: phrase.fr, frWritten: phrase.frWritten ?? null, en: phrase.en })),
       wins: recap.wins,
-      corrections: recap.fixes.slice(0, 3).map((fix) => ({
+      corrections: recap.fixes.slice(0, MAX_PACK_CORRECTIONS).map((fix) => ({
         quote: fix.quote,
         better: fix.better,
         betterEn: fix.betterEn,
@@ -3310,6 +3355,8 @@ export class LuvaniConversation extends voice.Agent {
       // Both the baseline and the enriched write carry it, so neither
       // persistence phase can drop the link the other one set.
       revisedFromPackId: this.revisedFromPackId,
+      // Every write carries it; a zero is stored but never listed (F904).
+      learnerReplies: this.learnerReplies,
     });
   }
 

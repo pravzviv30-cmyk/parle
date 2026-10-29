@@ -116,7 +116,7 @@ export function RealMomentScreen({
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   /** The start that did not happen, so the retry is the same start. */
-  const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
+  const [heldBack, setHeldBack] = useState<{ textMode?: boolean } | null>(null);
 
   useFocusEffect(
     useCallback(() => {

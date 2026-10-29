@@ -57,6 +57,11 @@ call is made. A second rescue on the same exchange may reveal the French line,
 and that one asks the tutor to step in. The tutor itself rephrases its own side
 of the scene and never speaks the learner's answer over the card.
 
+A reply that follows a rescue completes a scene objective only if no French was
+given: after the English hint alone (all a typed scene's silence clock shows) the
+reply is the learner's own and ticks the goal; once the full line was shown or the
+tutor answered the rescue, it is a copy and does not (F928, `frenchGiven`).
+
 **An English way back (VOICE-013).** The first time that second rescue happens on
 an exchange, a beginner also hears, in English, that English is a fine way back
 in. It fires only when all of these hold: the learner's CEFR estimate is A0 or

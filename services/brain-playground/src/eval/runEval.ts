@@ -182,6 +182,9 @@ function expectationMisses(
   if (expect.deferredAtBalanced && !(view.coachNow.length === 0 && deferredCount > 0)) {
     misses.push(`expected deferral at balanced (inline: ${view.coachNow.length}, deferred: ${deferredCount})`);
   }
+  if (expect.inlineSlipAtBalanced && !view.coachNow.some((c) => c.kind === 'grammar-slip')) {
+    misses.push(`expected a grammar slip shown inline at balanced (inline: [${view.coachNow.map((c) => c.kind).join(', ') || 'none'}])`);
+  }
   if (expect.emptyCoach && turn.coach.some((c) => c.weight === 'matters-now')) {
     misses.push(`expected no matters-now coaching, got [${turn.coach.map((c) => `${c.kind}/${c.weight}`).join(', ')}]`);
   }

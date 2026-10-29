@@ -25,16 +25,17 @@ import type { TurnLine } from '../live/turns.ts';
 import { useReduceMotion } from '../motion.ts';
 import { BubbleIn } from '../motion/BubbleIn.tsx';
 import { replayEar } from './replayEar.ts';
+import { recastLabel } from './recastLabel.ts';
 import { boldRhythm as c } from '../palette.ts';
 import { boldType } from '../theme.ts';
 import { createTranscriptScrollController, latestSentMessageId } from '../live/c2TranscriptPolicy.ts';
 
-function Recast({ better, betterEn, reason, latest }: { quote: string; better: string; betterEn: string; reason?: CorrectionReasonId; latest: boolean }) {
+function Recast({ kind, better, betterEn, reason, latest }: { quote: string; kind?: string; better: string; betterEn: string; reason?: CorrectionReasonId; latest: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const explanation = authoredCorrectionReason(reason);
   return (
     <View style={st.recast}>
-      <Label>A more natural way</Label>
+      <Label>{recastLabel(kind)}</Label>
       {latest ? <Highlight text={better} /> : <Text {...frenchText} style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>}
       <Text style={[type.small, { color: paper.inkSoft }]}>{betterEn}</Text>
       {explanation !== null && <>

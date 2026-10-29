@@ -138,7 +138,7 @@ describe('one way to a level or an XP total on screen — README Part 6, F744', 
       const code = withoutComments(readFileSync(join(SRC, file), 'utf8'));
       const name = helper.slice(0, -1);
       assert.equal((code.match(new RegExp(`\\b${name}\\(`, 'g')) ?? []).length, 1, `${file} prices a sitting with ${helper} more than once`);
-      assert.match(code, new RegExp(`const xp = ${name}\\(`), `${file} no longer names the sitting's XP before it records it`);
+      assert.match(code, new RegExp(`const xp = (?:credit\\.earns \\? )?${name}\\(`), `${file} no longer names the sitting's XP before it records it`);
       assert.match(code, /settleSitting\(\{/, `${file} prices a sitting and never settles it`);
     }
 

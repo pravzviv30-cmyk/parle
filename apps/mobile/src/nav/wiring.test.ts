@@ -213,7 +213,8 @@ describe('the mission id has to survive the route, not just be declared on it', 
       /missionId=\{route\.params\?\.missionId\}/,
       'ConvoRoute must hand the chosen mission on to the screen, or the authored scene is unreachable from the app',
     );
-    assert.match(props, /seedTopic=\{route\.params\?\.seedTopic\}/, 'and the seed topic it already carried still rides');
+    // F923: validated on the way in, so a reloaded address cannot hand the tutor a garbage topic.
+    assert.match(props, /seedTopic=\{parseSeedTopic\(route\.params\?\.seedTopic\)\}/, 'and the seed topic it already carried still rides');
   });
 });
 
@@ -342,7 +343,7 @@ describe('leaving a metered room is confirmed, not instant — F310', () => {
     const convo = strip(read('../ConvoScreen.tsx'));
     assert.match(convo, /onEnd=\{\(\) => setConfirming\(true\)\}/, 'the conversation end control leaves instead of opening the confirm');
     assert.match(convo, /<ConfirmSheet\b/, 'the conversation renders no confirm sheet');
-    assert.match(convo, /leaveConfirmCopy\('conversation'\)/, 'the conversation confirm is not drawn from the conversation copy');
+    assert.match(convo, /leaveConfirmCopy\('conversation', learnerReplies\)/, 'the conversation confirm is not drawn from the conversation copy');
   });
 
   test('the leave confirm is honest, puts Stay first, and never uses a native alert — F310', () => {
@@ -389,7 +390,7 @@ describe('hardware back and the swipe cannot slip a metered room — F311', () =
       ['the conversation', '../ConvoScreen.tsx'],
     ] as const) {
       const src = strip(read(file));
-      assert.match(src, /useEffect\(\(\) => \{[\s\S]{0,80}leaving[\s\S]{0,40}leaveNow\(\)[\s\S]{0,40}\}, \[leaving\]\)/,
+      assert.match(src, /useEffect\(\(\) => \{[\s\S]{0,80}leaving[\s\S]{0,80}leaveNow\(\)[\s\S]{0,40}\}, \[leaving\]\)/,
         `${name} does not run the exit from an effect keyed on the guard coming down`);
       assert.match(src, /setLeaving\(true\)/, `${name} confirm never lowers the guard, so the exit is prevented forever`);
     }
@@ -547,12 +548,13 @@ describe('Listen only is delivered, not just declared', () => {
     assert.match(nav, /const listenOnly = !textMode && \(route\.params\?\.listenOnly \?\? false\);/);
     assert.match(nav, /key=\{textMode \? 'live-text' : listenOnly \? 'live-listen' : 'live'\}/, 'switching lesson mode must rebuild the room');
     assert.match(nav, /listenOnly=\{listenOnly\}/);
-    assert.match(nav, /listenOnly=\{!walkMode && !\(route\.params\?\.textMode \?\? false\) && \(route\.params\?\.listenOnly \?\? false\)\}/);
+    // F903/F923: the conversation reads its params once, through tutor/convoStart.ts, which keeps typed over listen.
+    assert.match(nav, /listenOnly=\{start\.listenOnly\}/);
   });
 
   test('both screens hand it to the hook and open the typing box with it', () => {
     const convo = flat(read('../ConvoScreen.tsx'));
-    assert.match(convo, /useState\(listenOnly \|\| prefersTyping\(profile\)\)/);
+    assert.match(convo, /useState\(typingOpenAtStart \?\? \(listenOnly \|\| prefersTyping\(profile\)\)\)/);
     const convoOpts = convo.slice(convo.indexOf('useLiveSession('), convo.indexOf('useLiveSession(') + 300);
     assert.match(convoOpts, /listenOnly,/);
     assert.match(convo, /onOptionPress=\{typing \|\| typingOpen \? changeDraft : undefined\}/, 'a tapped option has nowhere to go in the conversation');

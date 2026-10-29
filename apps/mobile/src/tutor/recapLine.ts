@@ -29,6 +29,11 @@ export interface RecapStats {
   readonly rescues: number;
   /** Nought to one: the share of turns the learner produced unaided. */
   readonly unassistedRate: number;
+  /**
+   * Typed or spoken learner replies only (F904). `turns` includes silence
+   * rescues; absent from an older agent, in which case `turns` decides.
+   */
+  readonly learnerReplies?: number;
 }
 
 /** They carried it. */
@@ -56,6 +61,7 @@ export const MOSTLY_UNAIDED = 0.6;
  * of participation. Positive counts retain the same unaided/help distinction.
  */
 export function recapLine(stats: RecapStats): string {
+  if (stats.learnerReplies === 0) return MADE_TIME_FOR_FRENCH;
   if (!Number.isInteger(stats.turns) || stats.turns <= 0) return MADE_TIME_FOR_FRENCH;
   return stats.unassistedRate >= MOSTLY_UNAIDED ? HELD_ON_THEIR_OWN : HELD_WITH_HELP;
 }

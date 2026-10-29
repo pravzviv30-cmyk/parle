@@ -1,7 +1,7 @@
 import { validConversationPackFor } from './conversationPacks.ts';
 import { HttpInputError } from './requestBoundary.ts';
 import { boundedFetchJson } from '../../shared/boundedFetch.ts';
-import type { ConversationPack } from '@luvani/core';
+import { isListedConversation, type ConversationPack } from '@luvani/core';
 
 export const CONVERSATION_PAGE_SIZE = 20;
 /** Learner-facing summary of the durable drill job; never its attempts, lease or errors. */
@@ -72,7 +72,10 @@ async function lookup(base: string, secret: string, userId: string, after: PackC
       || (previous && key(cursor) >= key(previous))) throw new Error('invalid-conversation-page');
     ids.add(row.id); previous = cursor;
     if(row.payload===null && row.unavailable==='oversize' && Object.keys(row).length===5 && Number.isSafeInteger(row.payloadBytes) && row.payloadBytes>524288)unavailable.push({id:row.id,createdAt:row.createdAt,payloadBytes:row.payloadBytes,reason:'oversize'});
-    else if(validConversationPackFor(row.payload,userId,packId??undefined) && row.payload.id===row.id && row.unavailable===undefined)packs.push(row.payload);
+    else if(validConversationPackFor(row.payload,userId,packId??undefined) && row.payload.id===row.id && row.unavailable===undefined){
+      // A session with no reply in the scene is kept, never listed or opened as a conversation (F904).
+      if(isListedConversation(row.payload))packs.push(row.payload);
+    }
     else throw new Error('invalid-conversation-page');
   }
   const nextCursor = value.nextCursor === null ? null : packCursor(JSON.stringify(value.nextCursor));
@@ -83,8 +86,21 @@ async function lookup(base: string, secret: string, userId: string, after: PackC
 export async function conversationPackPage(base: string, secret: string, userId: string, after: string | null, request: typeof fetch = fetch): Promise<{ packs: ListedPack[]; unavailable:UnavailablePack[]; nextCursor: string | null }> {
   const cursor = after === null ? null : packCursor(after);
   if (after !== null && !cursor) throw new HttpInputError(400, 'invalid conversation cursor');
-  return lookup(base, secret, userId, cursor, null, request);
+  let page = await lookup(base, secret, userId, cursor, null, request);
+  // Zero-reply sessions are dropped after the database pages (F904), so a page
+  // can come back holding only hidden rows. Read on from where it ended, a
+  // bounded number of times, rather than hand the app an empty page with an
+  // "Older" link. Past the bound the cursor is returned as it stands.
+  for (let extra = 0; extra < HIDDEN_PAGE_READS && page.packs.length === 0 && page.unavailable.length === 0 && page.nextCursor !== null; extra++) {
+    // Fail soft: an extra read that errors hands back the last good page and
+    // its cursor, so "Older" can retry. Only the first read may fail the request.
+    try { page = await lookup(base, secret, userId, packCursor(page.nextCursor), null, request); }
+    catch { break; }
+  }
+  return page;
 }
+/** Extra page reads allowed when every row of a page was a hidden session. */
+export const HIDDEN_PAGE_READS = 3;
 /** Old bookmarks remain independently addressable outside a bounded library page. */
 export async function conversationPackById(base: string, secret: string, userId: string, packId: string, request: typeof fetch = fetch): Promise<ListedPack | null> {
   if (!uuid.test(packId)) throw new HttpInputError(400, 'invalid Conversation Pack id');

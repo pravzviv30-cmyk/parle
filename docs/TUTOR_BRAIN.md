@@ -29,7 +29,11 @@ vendor pages again before publishing.
   Flow, balanced and strict move only *when* a finding lands, never whether it
   lands, and a new learner starts on balanced. Correct-but-textbook phrasing
   surfaces mid-scene at every setting, because telling people what locals
-  actually say is the product.
+  actually say is the product. On balanced, grammar slips wait for the recap
+  except three that code picks out (F906): avoir where the passé composé wants
+  être ("j'ai allé"), à or de with le or les left uncontracted ("à le restaurant"),
+  and a determiner in the other gender ("la croissant"). One of those may show
+  per turn, inside the same cap and cooldown as any other note.
 - An English attempt gets the natural French for that meaning after the attempt.
 - Each turn gets one verdict, and it is the code's. The spoken coach line has to
   describe the finding the tutor surfaced, the end card never celebrates a

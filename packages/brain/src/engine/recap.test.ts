@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assembleRecap, HEADLINE_FAMILIES } from './recap.ts';
+import { assembleRecap, HEADLINE_FAMILIES, MAX_FIXES } from './recap.ts';
+import { buildConversationPack, MAX_PACK_CORRECTIONS } from '@luvani/core';
 import { createConversation, type ConversationState } from './conversation.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
 import { sampleCoachItem } from '../contract/samples.ts';
@@ -138,5 +139,23 @@ describe('the recap remembers what you talked about', () => {
       { fr: 'Au café', en: 'Ordering at the café' },
       { fr: 'Le rugby', en: 'Rugby' },
     ]);
+  });
+});
+
+describe('the recap and the conversation pack keep the same fixes (F906)', () => {
+  test('every fix the recap holds reaches the conversation pack', () => {
+    assert.equal(MAX_PACK_CORRECTIONS, MAX_FIXES, 'the pack cap and the recap cap cannot drift');
+    const deferred = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((quote) =>
+      sampleCoachItem({ kind: 'grammar-slip', quote: `au la ${quote}` }));
+    const { recap } = assembleRecap(baseState({ deferred }), CEFR);
+    assert.equal(recap.fixes.length, MAX_FIXES);
+    const pack = buildConversationPack({
+      id: 'pack-1', sessionId: 'session-1', learnerId: 'learner-1', createdAt: '2026-10-28T00:00:00.000Z',
+      title: { fr: 'Au café', en: 'At the café' }, summary: recap.headline, keyPhrases: [],
+      corrections: recap.fixes.slice(0, MAX_PACK_CORRECTIONS).map((fix) => ({
+        quote: fix.quote, better: fix.better, betterEn: fix.betterEn, why: fix.why,
+      })),
+    });
+    assert.deepEqual(pack.corrections.map((c) => c.quote), recap.fixes.map((f) => f.quote));
   });
 });

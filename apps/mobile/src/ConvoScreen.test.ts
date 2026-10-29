@@ -273,7 +273,7 @@ describe('the conversation screen no longer banks by hand — F118, F124', () =>
     // which two callsites this is counting. Both now stand down on a safety
     // stop as well, which is F137 and is proved properly in tutor/safetyView.test.ts.
     assert.match(screen, /if \(!live\.practice \|\| practiceBankedRef\.current \|\| stopped\) return;[\s\S]{0,200}journalPractice\(/);
-    assert.match(screen, /if \(!stopped && !practiceBankedRef\.current && live\.recap\)[\s\S]{0,400}journalPractice\(/);
+    assert.match(screen, /if \(!stopped && !practiceBankedRef\.current && live\.recap && banksPracticeFor\([^)]*\)\)[\s\S]{0,400}journalPractice\(/);
 
     // And the early exit takes the same few phrases the crash path recovers,
     // from the same named cap rather than a second literal five.

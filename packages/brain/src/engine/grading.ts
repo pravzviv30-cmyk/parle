@@ -133,6 +133,136 @@ const ANSWERS_RATHER_THAN_INTERRUPTS: ReadonlySet<CoachKind> = new Set<CoachKind
   'blocking-error',
 ]);
 
+/**
+ * F906. The few grammar slips worth a mid-scene note at Balanced (founder,
+ * 2026-10-28). At A2 these are the errors a French listener notices at once
+ * and a learner can fix on the next line: the wrong auxiliary in the passé
+ * composé, à/de + le/les left uncontracted, and the wrong gender shown by a
+ * determiner. Every other slip still waits for the recap at Balanced.
+ *
+ * Code decides, from the model's own `quote` and `better`. Nothing new is asked
+ * of the model. "de les voir" (les as an object pronoun) does not fire as long
+ * as the better form keeps "de les"; if a model rewrote it to "des" it would.
+ */
+export type HighValueSlip = 'auxiliary' | 'contraction' | 'gender';
+
+function fold(text: string): string {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’]/g, "'");
+}
+
+function words(text: string): string[] {
+  return fold(text)
+    .replace(/'/g, "' ")
+    .split(/[^a-z']+/)
+    .filter((w) => w.length > 0);
+}
+
+function rawWords(text: string): string[] {
+  return text.toLowerCase().normalize('NFC').split(/[^a-zàâçéèêëîïôûùüÿœ]+/).filter((w) => w.length > 0);
+}
+function loosePairs(ws: string[]): number {
+  let n = 0;
+  for (let i = 0; i + 1 < ws.length; i++) {
+    if ((ws[i] === 'à' || ws[i] === 'de') && (ws[i + 1] === 'le' || ws[i + 1] === 'les')) n++;
+  }
+  return n;
+}
+function contracted(ws: string[]): number {
+  return ws.filter((w) => w === 'au' || w === 'aux' || w === 'du' || w === 'des').length;
+}
+
+const AVOIR = new Set(["ai", "as", "a", "avons", "avez", "ont"]);
+const ETRE = new Set(["suis", "es", "est", "sommes", "etes", "sont"]);
+// Participle stems of the verbs that take être, accents folded.
+const ETRE_PARTICIPLES = [
+  'alle', 'venu', 'parti', 'arrive', 'entre', 'sorti', 'reste', 'tombe', 'ne', 'mort',
+  'monte', 'descendu', 'retourne', 'devenu', 'revenu', 'rentre',
+];
+function etreParticiple(word: string): string | null {
+  for (const stem of ETRE_PARTICIPLES) {
+    if (word === stem || word === `${stem}e` || word === `${stem}s` || word === `${stem}es`) return stem;
+  }
+  return null;
+}
+
+function auxiliaryStems(ws: string[], aux: Set<string>): Set<string> {
+  const found = new Set<string>();
+  for (let i = 0; i + 1 < ws.length; i++) {
+    if (!aux.has(ws[i]!)) continue;
+    const stem = etreParticiple(ws[i + 1]!);
+    if (stem) found.add(stem);
+  }
+  return found;
+}
+
+// A reflexive verb takes être too: "je m'ai levé" is "je me suis levé".
+const CLITIC: Record<string, string> = {
+  me: 'me', "m'": 'me', te: 'te', "t'": 'te', se: 'se', "s'": 'se', nous: 'nous', vous: 'vous',
+};
+const PARTICIPLE = /^[a-z]+(e|i|u|is|it)(e|s|es)?$/;
+function reflexiveAux(ws: string[], aux: Set<string>): Set<string> {
+  const found = new Set<string>();
+  for (let i = 0; i + 1 < ws.length; i++) {
+    const clitic = CLITIC[ws[i]!];
+    if (!clitic || !aux.has(ws[i + 1]!)) continue;
+    const next = ws[i + 2];
+    if (aux === ETRE || (next && PARTICIPLE.test(next))) found.add(clitic);
+  }
+  return found;
+}
+
+// Before these, le/la/l' is an object pronoun ("je le vois"), not a determiner.
+const PRONOUN_CONTEXT = new Set([
+  'je', "j'", 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'ne', "n'",
+  'me', "m'", 'te', "t'", 'se', "s'", 'y', 'en',
+]);
+
+const DETERMINER_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  ['le', 'la'], ['un', 'une'], ['mon', 'ma'], ['ton', 'ta'], ['son', 'sa'], ['ce', 'cette'], ['cet', 'cette'],
+];
+function isDeterminerSwap(a: string, b: string): boolean {
+  return DETERMINER_PAIRS.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+}
+
+export function highValueSlip(item: Pick<CoachItem, 'quote' | 'better' | 'betterWritten'>): HighValueSlip | null {
+  const quote = words(item.quote);
+  const betters = [item.better, item.betterWritten].filter((b): b is string => !!b).map(words);
+  if (quote.length === 0 || betters.length === 0) return null;
+
+  const wrongAux = auxiliaryStems(quote, AVOIR);
+  if (wrongAux.size > 0 && betters.some((b) => [...auxiliaryStems(b, ETRE)].some((s) => wrongAux.has(s)))) {
+    return 'auxiliary';
+  }
+
+  const wrongReflexive = reflexiveAux(quote, AVOIR);
+  if (wrongReflexive.size > 0 && betters.some((b) => [...reflexiveAux(b, ETRE)].some((c) => wrongReflexive.has(c)))) {
+    return 'auxiliary';
+  }
+
+  // Contraction. Read before folding accents, because "a le" (avoir) is fine
+  // French and only "à le" is the slip. The better must drop the loose pair
+  // and gain a contracted form, so "de les voir" kept as it is never fires.
+  const rawQuote = rawWords(item.quote);
+  const loose = loosePairs(rawQuote);
+  if (loose > 0) {
+    const rawBetters = [item.better, item.betterWritten].filter((b): b is string => !!b).map(rawWords);
+    if (rawBetters.some((b) => loosePairs(b) < loose && contracted(b) > contracted(rawQuote))) return 'contraction';
+  }
+
+  for (const b of betters) {
+    if (b.length !== quote.length) continue;
+    const diffs = quote.map((w, i) => [w, b[i]!, i] as const).filter(([x, y]) => x !== y);
+    if (
+      diffs.length >= 1 &&
+      diffs.length <= 2 &&
+      diffs.every(([x, y, i]) => isDeterminerSwap(x, y) && !(i > 0 && PRONOUN_CONTEXT.has(quote[i - 1]!)))
+    ) {
+      return 'gender';
+    }
+  }
+  return null;
+}
+
 export function surfacePolicy(kind: CoachKind, strictness: Strictness): 'inline' | 'recap' {
   return SURFACE[strictness][kind];
 }
@@ -151,7 +281,7 @@ export function splitCoach(
   coach: readonly CoachItem[],
   strictness: Strictness,
   turnsSinceInterruption: number = Number.POSITIVE_INFINITY,
-): { inline: CoachItem[]; deferred: CoachItem[]; interrupted: boolean } {
+): { inline: CoachItem[]; deferred: CoachItem[]; interrupted: boolean; keptForRecap: CoachItem[] } {
   const ordered = [...coach].sort((a, b) => {
     const byKind = KIND_PRIORITY.indexOf(a.kind) - KIND_PRIORITY.indexOf(b.kind);
     if (byKind !== 0) return byKind;
@@ -170,8 +300,18 @@ export function splitCoach(
   let interrupted = false;
   const coolingDown = turnsSinceInterruption < INLINE_COACH_COOLDOWN_TURNS;
 
+  // F906. At balanced a grammar slip waits for the recap unless it is one of
+  // the few high-value A2 errors, and then only one per turn.
+  let slipShown = false;
+  // A promoted slip is shown now AND kept for Your fixes: before F906 these
+  // waited for the recap, and showing them early must not cost the learner
+  // the fix to keep. Other inline kinds are not re-listed.
+  const keptForRecap: CoachItem[] = [];
+
   for (const item of ordered) {
-    if (surfacePolicy(item.kind, strictness) !== 'inline') {
+    const promoted =
+      strictness === 'balanced' && item.kind === 'grammar-slip' && !slipShown && highValueSlip(item) !== null;
+    if (!promoted && surfacePolicy(item.kind, strictness) !== 'inline') {
       deferred.push(item);
     } else if (item.kind === 'english-to-french') {
       inline.push(item);
@@ -182,8 +322,12 @@ export function splitCoach(
     } else {
       inline.push(item);
       spent += 1;
+      if (promoted) {
+        slipShown = true;
+        keptForRecap.push(item);
+      }
       if (!ANSWERS_RATHER_THAN_INTERRUPTS.has(item.kind)) interrupted = true;
     }
   }
-  return { inline, deferred, interrupted };
+  return { inline, deferred, interrupted, keptForRecap };
 }

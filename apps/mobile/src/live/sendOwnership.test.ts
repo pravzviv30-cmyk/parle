@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { test } from 'node:test';
 import type { TurnLine } from './turns.ts';
+import { learnerLine } from './leaveKeepingWork.ts';
 
 const source = readFileSync(new URL('./useLiveSession.ts', import.meta.url), 'utf8');
 const marker = source.indexOf('    sendSay: useCallback(');
@@ -22,6 +23,8 @@ function sending() {
   let turns: TurnLine[] = [], thinking = false, notice: string | null = null, sequence = 0;
   const world = {
     roomRef, startGenRef, typedSendRevision, noticeTimer,
+    learnerLine,
+    choosingRef: { current: false },
     addTurn: (turn: Omit<TurnLine, 'id'>) => { const id = `test-${++sequence}`; turns.push({ ...turn, id }); return id; },
     setTurns: (update: (previous: TurnLine[]) => TurnLine[]) => { turns = update(turns); },
     setThinking: (value: boolean) => { thinking = value; },

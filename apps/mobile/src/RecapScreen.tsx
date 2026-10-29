@@ -79,7 +79,7 @@ import { missionCompletionsFrom } from './missions/chooserView.ts';
 import { loadMissionCompletions } from './missions/store.ts';
 import { loadDeck } from './review/store.ts';
 import { loadSoundChecks } from './soundcheck/store.ts';
-import { recapLine } from './tutor/recapLine.ts';
+import { sessionCredit } from './recap/sessionCredit.ts';
 import { loadReminder } from './reminders/store.ts';
 import { REMINDERS_AVAILABLE, reminderPermission } from './reminders/schedule.ts';
 import { reminderTime, type ReminderMode, type ReminderPermission, type StoredReminder } from './reminders/reminder.ts';
@@ -122,6 +122,7 @@ export function RecapScreen({
   openReport = false,
   onResultShown,
   activeSec = null,
+  carriedReplies = 0,
   goals = [],
   onSeeJourney,
 }: {
@@ -146,6 +147,8 @@ export function RecapScreen({
   onSeeJourney?: () => void;
   /** The room's own active clock for this sitting, in seconds, or null when unmeasured. */
   activeSec?: number | null;
+  /** Replies from the typed part of a scene switched to voice (F903), counted with the recap's own. */
+  carriedReplies?: number;
   /** The scene's goals, passed through from the live room's `visibleMissionTasks` (no new storage). */
   goals?: readonly { id: string; goalEn: string; achieved: boolean }[];
   /** The learner's own lines from this conversation, from `keepsakeLines`. */
@@ -314,7 +317,9 @@ export function RecapScreen({
   const previousPage = adjacentRecapPage(pages, currentPage, -1);
   const canPractise = keptPhrase !== null && saveState === 'saved' && onPractice !== undefined;
   const ground = currentPage === 'result' ? 'coral' : currentPage === 'sound' ? 'sun' : currentPage === 'ability' ? 'mint' : undefined;
-  const stats = afterSessionStats({ activeSec, phrases: recap.phrases.length, xp: strip?.xp?.value ?? null });
+  // One credit rule for the line, the phrases and the settle (F904, F903).
+  const credit = sessionCredit(recap.stats, carriedReplies);
+  const stats = afterSessionStats({ activeSec, phrases: credit.showPhrases ? recap.phrases.length : 0, xp: strip?.xp?.value ?? null });
   const streakWords = streakLine(strip?.streak?.value ?? null, week);
   const fixes = smallFixes(recap.fixes);
   const celebrate = canDo !== null && mission ? celebrateView({ mission, independent: independentFinish, stamp, next: context === null ? null : nextCanDo(context.progress, goalOf(profile)) }) : null;
@@ -390,7 +395,7 @@ export function RecapScreen({
           <Text style={[bType.chip, { color: t.link }]}>{recapEyebrow(situation, activeSec)}</Text>
           <Text accessibilityRole="header" style={[bType.title30, s.bandWords, { color: t.text }]}>{recap.headline}</Text>
           {/* How it went, in a sentence. See tutor/recapLine.ts. */}
-          <Text style={[bType.line16, s.bandWords, { color: t.secondary }]}>{recapLine(recap.stats)}</Text>
+          <Text style={[bType.line16, s.bandWords, { color: t.secondary }]}>{credit.line}</Text>
           {goals.length > 0 ? <View style={s.goalCard}>{goals.map((goal) => <BandGoal key={goal.id} label={goal.goalEn} achieved={goal.achieved} />)}</View> : null}
         </View>
         <View style={s.recapBody}>

@@ -11,6 +11,7 @@ import { DefaultTheme } from '@react-navigation/native';
 import { font } from '../theme.ts';
 import { b } from '../palette.ts';
 import type { RootStackParamList } from './types.ts';
+import { parseSeedTopic, stringifySeedTopic } from '../tutor/convoStart.ts';
 
 /**
  * The navigation theme for one mode (UI-008, 2026-10-20). Light is the paper
@@ -81,7 +82,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Fixes: 'fixes/:packId',
       ThenNow: 'then-and-now',
       Lesson: 'lesson',
-      Convo: 'conversation',
+      // F923: the topic is an object, so it travels as JSON and is validated on the way back in.
+      Convo: { path: 'conversation', parse: { seedTopic: parseSeedTopic }, stringify: { seedTopic: stringifySeedTopic } },
       Drill: 'drill',
       Review: 'review',
       SoundCheck: 'sound-check',

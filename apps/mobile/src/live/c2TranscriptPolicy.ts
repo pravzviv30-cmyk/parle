@@ -34,9 +34,13 @@ export function liveRoomControlsVisible(focused: boolean, keyboardOpen: boolean)
   return !focused && !keyboardOpen;
 }
 
-/** A text-only grant has no speech pipeline; opening a mic cannot create one. */
-export function canResumeSpeaking(startedWithSpeech: boolean, ready: boolean, pending: boolean): boolean {
-  return startedWithSpeech && ready && !pending;
+/**
+ * Whether Speak is live. A text-only grant has no speech pipeline and opening a
+ * mic cannot create one, so in a typed start Speak rebuilds the session as
+ * voice after asking (F903, live/switchToVoice.ts); it is live in both.
+ */
+export function canResumeSpeaking(_startedWithSpeech: boolean, ready: boolean, pending: boolean): boolean {
+  return ready && !pending;
 }
 
 /** Republished authored prompts retain identity; changed rescue speech does not. */

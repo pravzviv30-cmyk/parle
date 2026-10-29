@@ -27,7 +27,8 @@ export function useConversationStart() {
     request.invalidate();
     if (mounted.current) { setChecking(false); setFailed(false); }
   }, [request]));
-  const start = (params: object = {}, textMode = prefersTyping(profile)) => {
+  // A typer's default stays typed; otherwise no intent is stated, so the mic opens closed (F903).
+  const start = (params: object = {}, textMode: boolean | undefined = prefersTyping(profile) ? true : undefined) => {
     void request.start({
       scope: scopeGeneration,
       visible: () => mounted.current && focus.current && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',

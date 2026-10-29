@@ -163,7 +163,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
     const convo = stripComments(read('../ConvoScreen.tsx'));
     assert.match(
       convo,
-      /useState\(listenOnly \|\| prefersTyping\(profile\)\)/,
+      /useState\(typingOpenAtStart \?\? \(listenOnly \|\| prefersTyping\(profile\)\)\)/,
       'the conversation opens with the box closed however the learner set it, so the setting does nothing',
     );
     const call = convo.slice(convo.indexOf('choosingView({'));

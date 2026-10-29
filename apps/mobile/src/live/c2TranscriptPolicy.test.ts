@@ -30,7 +30,9 @@ test('focus or an open native keyboard hides mode and end controls', () => {
 });
 
 test('a cold text grant cannot enable Speaking without a server speech pipeline', () => {
-  assert.equal(canResumeSpeaking(false, true, false), false);
+  // F903: a typed start's Speak is live now; it rebuilds the session as voice
+  // (live/switchToVoice.ts) rather than opening a mic the grant has no pipeline for.
+  assert.equal(canResumeSpeaking(false, true, false), true);
   assert.equal(canResumeSpeaking(true, true, false), true);
   assert.equal(canResumeSpeaking(true, false, false), false);
   assert.equal(canResumeSpeaking(true, true, true), false);

@@ -6,7 +6,7 @@ interface ConversationStartPorts {
   probe: () => Promise<boolean>;
   checking: (value: boolean) => void;
   failed: (value: boolean) => void;
-  open: (screen: 'Convo', params: { textMode: boolean }) => void;
+  open: (screen: 'Convo', params: { textMode?: boolean }) => void;
 }
 
 /** One current start per visible screen; an abandoned probe can never reopen it. */
@@ -19,7 +19,7 @@ export class ConversationStartRequest {
     this.pending = false;
   }
 
-  async start(ports: ConversationStartPorts, textMode: boolean): Promise<void> {
+  async start(ports: ConversationStartPorts, textMode?: boolean): Promise<void> {
     if (this.pending || !ports.visible()) return;
     const ticket = ++this.issued;
     const owner = ports.scope();

@@ -35,7 +35,7 @@ import { addFromSummary, addPhrases } from '../review/store.ts';
 import type { PersistAck } from '../storage/ack.ts';
 import { activeUserId, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { mergeSessionTopics } from '../topics/store.ts';
-import {
+import { replyCount,
   isWorthKeeping,
   journalFor,
   journalWithDrills,
@@ -101,6 +101,8 @@ export function journalRecap(
   recap: RecapPayload,
   opts: { profile?: unknown; savedAt?: number } = {},
 ): Promise<void> {
+  // F904: a scene with no learner reply leaves nothing behind to recover.
+  if (replyCount(recap) === 0) return Promise.resolve();
   const savedAt = opts.savedAt ?? Date.now();
   const journal = journalFor(recap, savedAt, opts.profile ?? null);
   if (!isWorthKeeping(journal)) return Promise.resolve();

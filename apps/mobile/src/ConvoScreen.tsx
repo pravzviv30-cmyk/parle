@@ -40,9 +40,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, AppState } from 'react-native';
 import { useIsFocused, usePreventRemove } from '@react-navigation/native';
 import {
-  conversationXp,
   missionStates,
   isEarned,
+  conversationXp,
   getMission,
   phraseKeyOf,
   type ConvoPhrase,
@@ -67,6 +67,9 @@ import { IconAction,
 import { SupportBlock } from './SessionView.tsx';
 import { ConfirmSheet, ScrollScreen } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
+import { SWITCH_WAIT, leaveDuringSwitch, rebuildAfterTeardown, switchWaitOver, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
+import { LEAVE_RECAP_WAIT_MS, leaveOnConfirm, leaveOnTimeout } from './live/leaveKeepingWork.ts';
+import { banksPracticeFor, learnerRepliesOf, recapUse, sessionCredit } from './recap/sessionCredit.ts';
 import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
@@ -88,6 +91,7 @@ import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { isUnderAgeStop } from './profile/age.ts';
 import { prefersTyping } from './profile/typing.ts';
+import { micAfterAsk, micOpensOnReady } from './tutor/convoStart.ts';
 import { withAgeStop } from './profile/store.ts';
 import type { OrbState } from './tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
@@ -111,6 +115,7 @@ import { sceneIllustration } from './art/flat/scenes.ts';
 import { recapWait } from './tutor/recapWait.ts';
 import { KeyboardGlyph, SpeakerSlowGlyph } from './glyphs.tsx';
 import { RoomWait } from './live/RoomWait.tsx';
+import { OwnLeaseClosing } from './live/OwnLeaseClosing.tsx';
 import { useB } from './main/bTheme.tsx';
 import { ReportSheet } from './live/ReportSheet.tsx';
 import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
@@ -195,6 +200,10 @@ export function ConvoScreen({
   onJourney,
   startInTextMode = false,
   listenOnly = false,
+  typingOpenAtStart,
+  openMicOnReady = false,
+  ownLeaseAtStart,
+  onModeSwitched,
   walkMode = false,
   seedTopic,
   continuationPackId,
@@ -216,6 +225,14 @@ export function ConvoScreen({
   startInTextMode?: boolean;
   /** Listen only: the tutor speaks out loud, the mic stays closed, the box is open. */
   listenOnly?: boolean;
+  /** Whether the typing box opens with the room (tutor/convoStart.ts). Absent: the stored preference. */
+  typingOpenAtStart?: boolean;
+  /** The learner pressed Start speaking: open the microphone once the room is ready (F903). */
+  openMicOnReady?: boolean;
+  /** Start again after a web reload: the first start waits out the cut-off session's lease (F923). */
+  ownLeaseAtStart?: boolean;
+  /** The session was rebuilt as voice: the address should say so, for a reload (F903). */
+  onModeSwitched?: () => void;
   walkMode?: boolean;
   /**
    * What the learner asked to talk about again, from a topic card. It rides the
@@ -280,7 +297,6 @@ export function ConvoScreen({
   const [leftWithReport, setLeftWithReport] = useState<{ sessionId: string | null } | null>(null);
   const paperGround = useB().ground;
   const [leaving, setLeaving] = useState(false);
-  const leaveCopy = leaveConfirmCopy('conversation');
   // Which text input holds the caret, for the ink focus border. Visual only.
   const [focusedInput, setFocusedInput] = useState<'topic' | 'reply' | null>(null);
   // The learner tapped Type instead during a voice scene. Local to the screen
@@ -291,13 +307,26 @@ export function ConvoScreen({
   // is already open when the room is. Still not the quiet door, and the seed
   // does not change that — the tutor speaks, and the circle is one tap away.
   // Listen only seeds it too: the same open box, chosen for this one session.
-  const [typingOpen, setTypingOpen] = useState(listenOnly || prefersTyping(profile));
+  const [typingOpen, setTypingOpen] = useState(typingOpenAtStart ?? (listenOnly || prefersTyping(profile)));
+  // F903: Start speaking, or Speak in a typed start, asks for the microphone once the room is ready.
+  const [micWanted, setMicWanted] = useState(openMicOnReady);
+  // Speak in a typed start: the sheet, then the keep-and-rebuild (live/switchToVoice.ts).
+  const [switchAsking, setSwitchAsking] = useState(false);
+  const [switching, setSwitching] = useState<null | 'waiting' | 'rebuilding'>(null);
+  // Read by the recap effect: a recap asked for by the switch keeps lines and settles nothing.
+  const switchingRef = useRef(false);
+  // The old room's status when the rebuild began: the wait ends on the NEW session's status, not that one.
+  const statusAtSwitchRef = useRef<unknown>(null);
+  // F905: exactly one of the recap's settle and the local one writes the sitting.
+  const settledLocallyRef = useRef(false);
+  const recapSettledRef = useRef(false);
   // Before the session, which tells the agent (live/useTapToSend.ts).
   const { tapToSend, onTapToSend } = useTapToSend();
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
     noTypedRecovery: walkMode,
     mode: openedTyped ? 'convo-text' : 'convo',
     listenOnly,
+    ownLeaseAtStart,
     snapshot,
     seedTopic,
     continuationPackId,
@@ -330,6 +359,27 @@ export function ConvoScreen({
     walkMicAsked.current = true;
     void live.openMic().then(opened => { if (!opened) walkClose.current(); });
   }, [walkMode, live.status.phase, live.convo, live.openMic]);
+  // Start speaking (F903): the microphone opens once the room is ready. A
+  // refusal falls back to the open typing box, the quiet twin.
+  const micOnReadyAsked = useRef(false);
+  // The session the switch to voice left, so the ask waits for the new one (F903).
+  const leftSessionRef = useRef<string | null>(null);
+  const sessionIdRef = useRef<string | null>(live.sessionId);
+  sessionIdRef.current = live.sessionId;
+  const [micRetry, setMicRetry] = useState(0);
+  useEffect(() => {
+    if (!micOpensOnReady({ openMicOnReady: micWanted, openedTyped, walkMode, asked: micOnReadyAsked.current,
+      live: live.status.phase === 'live', roomShown: live.convo !== null || live.opening !== null,
+      sessionId: live.sessionId, leftSessionId: leftSessionRef.current })) return;
+    micOnReadyAsked.current = true;
+    const askedFor = live.sessionId;
+    void live.openMic().then(opened => {
+      const next = micAfterAsk({ opened, askedFor, now: sessionIdRef.current });
+      if (next === 'open-box') setTypingOpen(true);
+      else if (next === 'ask-again') { micOnReadyAsked.current = false; setMicRetry((n) => n + 1); }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [micWanted, openedTyped, walkMode, live.status.phase, live.convo, live.opening, live.openMic, live.sessionId, micRetry]);
 
   // Retire a remembered pack only once this route has become a real room. The
   // ref is raised before the async write so a second view cannot queue a second
@@ -438,6 +488,11 @@ export function ConvoScreen({
   // disagree about what happened.
   const safety = safetySurface(live.safety);
   const stopped = stoppedBySafety(live.safety);
+  // Read where a closure outlives the render (the switch's teardown, F903).
+  const stoppedRef = useRef(stopped);
+  stoppedRef.current = stopped;
+  // Raised by every exit (F903): nothing rebuilds or starts after the learner chose to leave.
+  const leftRef = useRef(false);
 
   // The scene's goals, and the moment one of them ticks (tutor/taskTicks.ts):
   // the row pops and is announced, and on the last goal the orb ripples once
@@ -474,7 +529,8 @@ export function ConvoScreen({
     setModePending(true);
     try {
       if (nextTyping) { if (await live.pauseMic()) setTypingOpen(true); }
-      else if (!openedTyped && await live.openMic()) setTypingOpen(false);
+      else if (openedTyped) setSwitchAsking(true);
+      else if (await live.openMic()) setTypingOpen(false);
     } finally { setModePending(false); }
   };
 
@@ -511,6 +567,11 @@ export function ConvoScreen({
   }, [clock]);
   const roomOpen = live.convo !== null;
   const learnerTurns = live.turns.filter((t) => t.who === 'learner').length;
+  // F905: the room's own reply count decides whether Leave keeps the work, and what the sheet says.
+  // Replies carried from the typed part of a scene switched to voice (F903).
+  const carriedRepliesRef = useRef(0);
+  const learnerReplies = live.sceneReplies + carriedRepliesRef.current;
+  const leaveCopy = leaveConfirmCopy('conversation', learnerReplies);
   useEffect(() => {
     if (roomOpen && learnerTurns > 0) markLearnerAction();
   }, [roomOpen, learnerTurns, markLearnerAction]);
@@ -574,12 +635,19 @@ export function ConvoScreen({
     if (!bankedRef.current) {
       bankedRef.current = true;
       const { phrases, stats } = live.recap.recap;
+      // F904: no learner reply settles nothing. F903: the typed part of a
+      // switched scene is not a sitting of its own; the scene settles once.
+      const credit = sessionCredit(stats, carriedRepliesRef.current);
+      const use = recapUse(credit, switchingRef.current ? 'switch' : 'end', settledLocallyRef.current);
+      // Re-checked here, beside the write, so the stop guard stays next to what it withholds (F144).
+      if (use.settle && !stopped) {
+      recapSettledRef.current = true;
       const openedAt = openedAtRef.current;
       // One clock read for both the instant and the length. The room's opening
       // is the start, not the mount: the connecting screen is not time anybody
       // spent speaking French.
       const endedAt = Date.now();
-      const xp = conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate });
+      const xp = credit.earns ? conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate }) : 0;
       const activeMs = clock.read();
       setRecapActiveSec(Number.isFinite(activeMs) && activeMs > 0 ? Math.round(activeMs / 1000) : null);
       // A conversation that ran to its recap is a finished sitting, and it
@@ -593,8 +661,9 @@ export function ConvoScreen({
         activeMs,
         write: () => recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: activeMs, finished: true } : { durationMs: endedAt - openedAt, activeMs: activeMs, finished: true }),
       }).then(setConvoDelta);
+      }
       // One content-free beta event per finished conversation (analytics/sessionFinished.ts).
-      void trackProductEvent(sessionFinishedEvent({ kind: 'convo', voice: !live.voiceless, turns: stats.turns, rescues: stats.rescues,
+      if (use.track) void trackProductEvent(sessionFinishedEvent({ kind: 'convo', voice: !live.voiceless, turns: learnerRepliesOf(stats) ?? stats.turns, rescues: stats.rescues,
         unassistedRate: stats.unassistedRate, replyLatencyMs: live.replyLatencyMs() }));
     }
     // `clock` is the same controller for the screen's whole life, so it stays
@@ -657,9 +726,11 @@ export function ConvoScreen({
    * through, so the button promised something it then made impossible.
    */
   const [finishing, setFinishing] = useState(false);
+  // A Leave that is waiting for the recap (F905) waits less than a Finish.
+  const [leaveWaiting, setLeaveWaiting] = useState(false);
 
   const recapBailLeave = useRef<() => void>(() => {});
-  useLayoutEffect(() => { recapBailLeave.current = leaveNow; });
+  useLayoutEffect(() => { recapBailLeave.current = leaveWaiting ? leaveTimedOut : leaveNow; });
 
   // A recap that never comes must not leave them holding a dead screen. The
   // ceiling is generous because the agent is assembling a recap and folding a
@@ -667,9 +738,9 @@ export function ConvoScreen({
   // which still banks what they said.
   useEffect(() => {
     if (!finishing || live.recap) return;
-    const bail = setTimeout(() => recapBailLeave.current(), RECAP_WAIT_MS);
+    const bail = setTimeout(() => recapBailLeave.current(), leaveWaiting ? LEAVE_RECAP_WAIT_MS : RECAP_WAIT_MS);
     return () => clearTimeout(bail);
-  }, [finishing, live.recap]);
+  }, [finishing, leaveWaiting, live.recap]);
   useEffect(() => {
     // Nothing is completed by a session that was stopped, and a mission written
     // down here is a congratulation the learner meets later on another screen.
@@ -780,6 +851,7 @@ export function ConvoScreen({
     // banks nothing, not even the ordinary practice from before the disclosure.
     // Nothing is written down, which is what the privacy doc promises.
     if (!live.practice || practiceBankedRef.current || stopped) return;
+    if (!banksPracticeFor(live.recap?.recap.stats ?? null, carriedRepliesRef.current)) return;
     practiceBankedRef.current = true;
     // Journal first, then bank what the journal named. The batch that comes
     // back carries the id of the entry now on disk, and handing THAT to the
@@ -796,6 +868,7 @@ export function ConvoScreen({
   }, [live.practice, live.drills, live.recap, stopped]);
 
   const leaveTo = (afterLeave: () => void) => {
+    leftRef.current = true;
     // F402 — where they got to, so the tutor's resume card can offer it back
     // with a minutes line instead of a bare title.
     //
@@ -820,13 +893,18 @@ export function ConvoScreen({
         beatsDone: Math.max(0, live.convo.beat.position - 1),
       });
     }
-    // Leaving before the practice message landed: bank a minimal version from
-    // the recap (its first few phrases under the session's own topic) so an
-    // early exit never loses what the learner said. Through the same outbox as
-    // the ordinary path, because an early exit that clears the journal on a
-    // promise resolving is the identical bug one beat earlier. The only
-    // remaining loss window is killing the app, same as the drills.
-    if (!stopped && !practiceBankedRef.current && live.recap) {
+    bankRecoveredPractice();
+    void live.leave().finally(afterLeave);
+  };
+
+  // Leaving before the practice message landed: bank a minimal version from
+  // the recap (its first few phrases under the session's own topic) so an
+  // early exit never loses what the learner said. Through the same outbox as
+  // the ordinary path, because an early exit that clears the journal on a
+  // promise resolving is the identical bug one beat earlier. The only
+  // remaining loss window is killing the app, same as the drills.
+  const bankRecoveredPractice = () => {
+    if (!stopped && !practiceBankedRef.current && live.recap && banksPracticeFor(live.recap.recap.stats, carriedRepliesRef.current)) {
       // The same cap the crash path uses, named rather than typed twice: a
       // learner who leaves early and a learner whose phone dies wake up to the
       // same few cards, and two literals is how those two drift apart.
@@ -841,10 +919,87 @@ export function ConvoScreen({
         })).then(bankPractice);
       }
     }
-    void live.leave().finally(afterLeave);
   };
 
   const leaveNow = () => leaveTo(onExit);
+
+  // F905: the recap a Leave waited for never came. The sheet promised the
+  // minutes, so after a confirmed reply they are written here (not as a
+  // finished sitting), then the ordinary exit banks whatever it can recover.
+  const settleLocally = (xp: number) => {
+    if (stopped || settledLocallyRef.current || recapSettledRef.current) return;
+    settledLocallyRef.current = true;
+    const at = Date.now();
+    const openedAt = openedAtRef.current;
+    const activeMs = clock.read();
+    void recordActivity('convo', xp, at, openedAt === null ? { activeMs } : { durationMs: at - openedAt, activeMs });
+  };
+  const leaveTimedOut = () => {
+    for (const action of leaveOnTimeout({ confirmedReplies: learnerReplies, stopped, recapSettled: recapSettledRef.current })) {
+      if (action.kind === 'settle-local') settleLocally(action.xp);
+      else if (action.kind === 'teardown') leaveNow();
+    }
+  };
+
+  // Speak in a typed start (F903). The typed part is kept the way a Leave keeps
+  // it: the recap is requested on the open room and the recap effect above banks
+  // the lines and the minutes, while the wait below stands in for the end card.
+  // Then the lease is released before the rebuild (F201: a second grant over a
+  // standing lease is refused), and the session connects again as voice.
+  const rebuildAsVoice = () => {
+    if (stopped || stoppedRef.current || leftRef.current) return;
+    statusAtSwitchRef.current = live.status;
+    setSwitching('rebuilding');
+    bankRecoveredPractice();
+    // The typed part's replies carry over and the clock keeps running, so the
+    // scene settles once, at its real end, with both parts' minutes (F903).
+    void live.leaveForRebuild().finally(() => {
+      if (rebuildAfterTeardown({ stopped: stoppedRef.current, left: leftRef.current }) === 'none') return;
+      carriedRepliesRef.current += live.sceneReplies;
+      switchingRef.current = false;
+      bankedRef.current = false;
+      practiceBankedRef.current = false;
+      setRecapActiveSec(null);
+      setTypingOpen(false);
+      leftSessionRef.current = live.sessionId;
+      setMicWanted(true); micOnReadyAsked.current = false;
+      onModeSwitched?.();
+      setOpenedTyped(false);
+    });
+  };
+  const switchRebuild = useRef(rebuildAsVoice);
+  useLayoutEffect(() => { switchRebuild.current = rebuildAsVoice; });
+  const switchToVoice = () => {
+    setSwitchAsking(false);
+    const plan = switchToVoicePlan({ learnerReplies, stopped });
+    if (plan === 'keep-then-rebuild') { switchingRef.current = true; setSwitching('waiting'); live.requestRecap(); }
+    else if (plan === 'rebuild') rebuildAsVoice();
+  };
+  // The recap effect runs first in the same commit, so it has banked by now.
+  useEffect(() => {
+    if (switching !== 'waiting') return;
+    if (live.recap !== null) { switchRebuild.current(); return; }
+    const bail = setTimeout(() => switchRebuild.current(), LEAVE_RECAP_WAIT_MS);
+    return () => clearTimeout(bail);
+  }, [switching, live.recap]);
+  // The rebuild is over once the voice room has forgotten the typed recap.
+  useEffect(() => {
+    // Held through the own-lease wait (F903): the learner sees "Switching to speaking", not a connecting screen.
+    if (switching === 'rebuilding' && !openedTyped && live.recap === null && live.status !== statusAtSwitchRef.current
+      && switchWaitOver(live.status.phase)) setSwitching(null);
+  }, [switching, openedTyped, live.recap, live.status]);
+  // A safety stop cancels a switch in flight (F903): the stop screen is in charge.
+  useEffect(() => {
+    if (switchAfterStop({ switching, stopped }) === 'cancel') { switchingRef.current = false; setSwitching(null); }
+  }, [switching, stopped]);
+  // Leave on the switch's wait screen is a Leave (F905), never a lost typed part.
+  const leaveFromSwitch = () => {
+    leftRef.current = true;
+    if (switching === null) { leaveNow(); return; }
+    if (leaveDuringSwitch(switching) === 'wait-for-recap') { switchingRef.current = false; setSwitching(null); setLeaveWaiting(true); setFinishing(true); }
+    else { switchingRef.current = false; leaveTimedOut(); }
+  };
+  const switchCopy = switchToVoiceCopy(tutorName);
 
   // A recap drill replaces this route only after the metered room is closed.
   // Navigating first leaves the live conversation underneath the drill, so
@@ -862,6 +1017,7 @@ export function ConvoScreen({
     safety.kind !== 'stop' &&
     !live.recap &&
     !finishing &&
+    switching === null &&
     phase !== 'connecting' &&
     phase !== 'idle' &&
     live.status.phase !== 'out-of-minutes' &&
@@ -881,8 +1037,17 @@ export function ConvoScreen({
   // one way out, and it is checked first below.
   const reportHeld = reportPending && !stopped;
   const leaveToReport = () => { const sessionId = live.sessionId; leaveTo(() => setLeftWithReport({ sessionId })); };
+  // F905: after a learner reply, Leave is Finish with a shorter wait, so the
+  // recap effect banks the practice and settles the minutes. With no reply, or
+  // a stop, a held report or the recap already here, it stays the instant exit.
+  const leaveKeepingWork = (): boolean => {
+    const [action] = leaveOnConfirm({ learnerReplies, stopped, reportHeld, recapArrived: live.recap !== null });
+    if (action?.kind !== 'request-recap') return false;
+    setLeaveWaiting(true); setFinishing(true); live.requestRecap();
+    return true;
+  };
   useEffect(() => {
-    if (leaving) { if (!reportHeld) leaveNow(); else leaveToReport(); }
+    if (leaving) { if (reportHeld) leaveToReport(); else if (!leaveKeepingWork()) leaveNow(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaving]);
 
@@ -900,7 +1065,13 @@ export function ConvoScreen({
     </View>;
   }
 
+  if (switching !== null) {
+    return <RoomWait title={SWITCH_WAIT.headline} body={SWITCH_WAIT.note} leaveLabel="Leave" onLeave={leaveFromSwitch} />;
+  }
+
   if (live.recap) {
+    // F904: a scene with no learner reply offers no saved conversation text.
+    const credit = sessionCredit(live.recap.recap.stats, carriedRepliesRef.current);
     return (
       <RecapScreen
         recap={live.recap.recap}
@@ -918,9 +1089,10 @@ export function ConvoScreen({
         onPractice={onPractice === undefined ? undefined : practiseAfterRecap}
         onSeeJourney={onJourney === undefined ? undefined : () => leaveTo(onJourney)}
         activeSec={recapActiveSec}
+        carriedReplies={carriedRepliesRef.current}
         goals={missionItems}
         onSave={saveRecapKeepsake}
-        conversationText={{ ownerId: userId, conversation: live.sessionId && live.conversationText ? { sessionId: live.sessionId, title: live.recap.recap.topics[0]?.en ?? 'Your conversation', lines: live.conversationText } : null }}
+        conversationText={credit.savesText ? { ownerId: userId, conversation: live.sessionId && live.conversationText ? { sessionId: live.sessionId, title: live.recap.recap.topics[0]?.en ?? 'Your conversation', lines: live.conversationText } : null } : undefined}
       />
     );
   }
@@ -940,6 +1112,10 @@ export function ConvoScreen({
 
   if (live.status.phase === 'out-of-minutes') {
     return <OutOfMinutesView label={live.status.label} message={live.status.message} userId={userId} onExit={onExit} />;
+  }
+
+  if (live.status.phase === 'error' && live.status.failure === 'own-session-closing') {
+    return <OwnLeaseClosing onRetry={live.start} onLeave={leaveNow} />;
   }
 
   if (live.status.phase === 'error') {
@@ -1008,6 +1184,9 @@ export function ConvoScreen({
       <ConfirmSheet visible={confirming} title={leaveCopy.title} body={leaveCopy.body}
         confirmLabel={leaveCopy.leave} cancelLabel={leaveCopy.stay}
         onConfirm={() => { setConfirming(false); setLeaving(true); }} onCancel={() => setConfirming(false)} />
+      <ConfirmSheet visible={switchAsking} title={switchCopy.title} body={switchCopy.body}
+        confirmLabel={switchCopy.confirm} cancelLabel={switchCopy.stay}
+        onConfirm={switchToVoice} onCancel={() => setSwitchAsking(false)} />
       </View>
     </RoomLevels>;
   }
@@ -1110,6 +1289,9 @@ export function ConvoScreen({
       <ConfirmSheet visible={confirming} title={leaveCopy.title} body={leaveCopy.body}
         confirmLabel={leaveCopy.leave} cancelLabel={leaveCopy.stay}
         onConfirm={() => { setConfirming(false); setLeaving(true); }} onCancel={() => setConfirming(false)} />
+      <ConfirmSheet visible={switchAsking} title={switchCopy.title} body={switchCopy.body}
+        confirmLabel={switchCopy.confirm} cancelLabel={switchCopy.stay}
+        onConfirm={switchToVoice} onCancel={() => setSwitchAsking(false)} />
     </View>
     </OrbCue>
   </RoomLevels>;

@@ -16,6 +16,8 @@ export interface EvalExpectation {
   betterMatch?: RegExp;
   /** At balanced strictness this lands in the recap queue, not inline. */
   deferredAtBalanced?: boolean;
+  /** F906: a high-value grammar slip is shown in the scene at balanced. */
+  inlineSlipAtBalanced?: boolean;
   /** No matters-now coaching — the learner did fine. */
   emptyCoach?: boolean;
   language?: 'french' | 'mixed' | 'english' | 'none';
@@ -68,11 +70,25 @@ export const EVAL_CASES: EvalCase[] = [
     note: 'Actuellement means currently, not actually.',
   },
   {
-    id: 'grammar-slip-defers',
+    id: 'agreement-slip-defers',
     scenario: 'cafe',
-    input: { type: 'spoke', text: 'Je voudrais aller au la boulangerie après.' },
+    input: { type: 'spoke', text: 'Les croissants sont très bon ici.' },
     expect: { kindsAny: ['grammar-slip'], deferredAtBalanced: true },
-    note: 'Understood fine; mechanics slipped. At balanced it waits for the recap.',
+    note: 'Understood fine; only the agreement slipped. At balanced it waits for the recap.',
+  },
+  {
+    id: 'auxiliary-slip-inline',
+    scenario: 'cafe',
+    input: { type: 'spoke', text: "Samedi, j'ai allé au cinéma avec mon frère." },
+    expect: { kindsAny: ['grammar-slip'], inlineSlipAtBalanced: true },
+    note: 'F906: the wrong passé composé auxiliary is worth a small fix in the scene at balanced.',
+  },
+  {
+    id: 'contraction-slip-inline',
+    scenario: 'cafe',
+    input: { type: 'spoke', text: 'Je vais à le restaurant ce soir.' },
+    expect: { kindsAny: ['grammar-slip'], inlineSlipAtBalanced: true },
+    note: 'F906: à le should be au, and at balanced it is shown in the scene.',
   },
   {
     id: 'register-vous-to-friend',
