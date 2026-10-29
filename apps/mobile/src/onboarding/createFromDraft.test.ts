@@ -244,7 +244,8 @@ describe('the plan is written at account creation', () => {
     const release = boot.indexOf('done(built, startPractice)');
     assert.ok(consent > 0 && reminder > consent && release > reminder, 'the app is released before consent and the reminder are written');
     assert.match(boot, /startPractice = shouldStartFirstPractice\(draft, guest\)/, 'the pending practice must use actual guest completion rather than Terms acceptance');
-    assert.match(APP, /firstScene\.current = firstSceneFor\(preAccountDraft\.startLevel, preAccountDraft\.reason, preAccountDraft\.skipAhead === true\)/, 'the first scene ignores the starting level');
+    assert.match(APP, /firstScene\.current = firstRunScene\(preAccountDraft\)/, 'the first scene ignores the starting level');
+    assert.match(readFileSync(new URL('./firstPracticeEntry.ts', import.meta.url), 'utf8'), /: firstSceneFor\(draft\.startLevel, draft\.reason, draft\.skipAhead === true\);/, 'outside Save and finish, the plan picks the first scene');
     assert.match(
       APP,
       /navigationRef\.resetRoot\(\{\s*index: 1,\s*routes: \[\{ name: 'Tabs' \}, \{ name: 'FirstScene', params: \{ missionId: firstScene\.current \} \}\]/,

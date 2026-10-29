@@ -9,20 +9,25 @@
  * the first-conversation line names the scene really played next (the guest
  * café before an account), and "Skip ahead" is a quiet secondary link.
  */
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { canDoSentence, Press } from '../components.tsx';
 import { useB } from '../main/bTheme.tsx';
 import { bType } from '../theme.ts';
 import { BHowItWorks, BSceneRow, BStageCard } from './BOnboardingParts.tsx';
-import { METHOD_LABEL, METHOD_STEPS, PLAN_SCENES_LABEL, SKIP_AHEAD, SKIP_AHEAD_HINT, firstConversationLines, planFor } from './plan.ts';
-import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { METHOD_LABEL, METHOD_STEPS, PLAN_SCENES_LABEL, SKIP_AHEAD, SKIP_AHEAD_HINT, START_AT_BASICS, START_AT_BASICS_HINT, firstConversationLines, planFor } from './plan.ts';
+import { staleSkipAhead, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { planSceneRows } from './planScenes.ts';
 
-export function PersonalPlan({ draft, guestScene, onSkipAhead }: { draft: PreAccountOnboardingDraft; onEdit: () => void; compact: boolean; active?: boolean; guestScene: boolean; onSkipAhead: () => void }) {
+export function PersonalPlan({ draft, guestScene, onSkipAhead }: { draft: PreAccountOnboardingDraft; onEdit: () => void; compact: boolean; active?: boolean; guestScene: boolean; onSkipAhead: (skip: boolean) => void }) {
   const t = useB();
   const plan = planFor(draft);
   const lines = firstConversationLines(draft, { guestScene });
   const rows = planSceneRows(plan.scenes, canDoSentence);
+  // A level changed away from "I can get by" drops its Skip ahead (verifier, 2026-10-29).
+  const stale = staleSkipAhead(draft);
+  useEffect(() => { if (stale) onSkipAhead(false); }, [stale]);
+  const skipLabel = plan.canUndoSkip ? START_AT_BASICS : SKIP_AHEAD;
   return <View style={{ gap: 22 }}>
     <View style={{ gap: 10 }}>
       <View style={{ gap: 2 }}>
@@ -30,12 +35,13 @@ export function PersonalPlan({ draft, guestScene, onSkipAhead }: { draft: PreAcc
         <Text style={[bType.meta, { color: t.muted }]}>Five stages, from first words to confident French</Text>
       </View>
       <BStageCard current={plan.stage} />
-      {plan.canSkipAhead ? <Press accessibilityRole="button" accessibilityLabel={SKIP_AHEAD} accessibilityHint={SKIP_AHEAD_HINT} onPress={onSkipAhead}
+      {plan.canSkipAhead || plan.canUndoSkip ? <Press accessibilityRole="button" accessibilityLabel={skipLabel} accessibilityHint={plan.canUndoSkip ? START_AT_BASICS_HINT : SKIP_AHEAD_HINT} onPress={() => onSkipAhead(!plan.canUndoSkip)}
         style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
-        <Text style={[bType.bold14, { color: t.link }]}>{SKIP_AHEAD}</Text>
+        <Text style={[bType.bold14, { color: t.link }]}>{skipLabel}</Text>
       </Press> : null}
       <Text style={[bType.note, { color: t.muted }]}>{plan.method}</Text>
       {plan.gentle !== null ? <Text style={[bType.note, { color: t.muted }]}>{plan.gentle}</Text> : null}
+      {lines.tryNow !== null ? <Text style={[bType.note, { color: t.muted }]}>{lines.tryNow}</Text> : null}
       <Text style={[bType.note, { color: t.muted }]}>{lines.first}</Text>
       {lines.comingUp !== null ? <Text style={[bType.note, { color: t.muted }]}>{lines.comingUp}</Text> : null}
     </View>

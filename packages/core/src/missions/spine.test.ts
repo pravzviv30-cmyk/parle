@@ -295,3 +295,27 @@ describe('nextScene — the goal orders the suggestion, never the level', () => 
     assert.equal(spineFrom(progress).level, before);
   });
 });
+
+describe('nextScene — a placement is where suggestions start, never evidence', () => {
+  const earnedAll = (ids: readonly MissionId[]) => missionStates(ids.map((id) => done(id, 4)), [], NOW);
+  const empty = missionStates([], [], NOW);
+
+  test('the next scene for a placed learner starts at their placement', () => {
+    // Placed at Basics (A1): never a Starter scene, before or after the first scene.
+    assert.equal(nextScene(empty, null, 'A1')?.mission.id, 'mission:marche');
+    const afterFirst = earnedAll(['mission:marche']);
+    assert.equal(nextScene(afterFirst, null, 'A1')?.mission.id, 'mission:chemin');
+    for (const goal of ['moving', 'trip', 'food', 'family', 'work', 'because', null] as const) {
+      const next = nextScene(afterFirst, goal, 'A1');
+      assert.ok(next && next.mission.cefr !== 'A0', `${goal} offered ${next?.mission.id}`);
+    }
+    // Placed at Everyday (A2): the food goal has nothing at A2 or above, so the spine from A2.
+    assert.equal(nextScene(earnedAll(['mission:week-end']), 'food', 'A2')?.mission.id, 'mission:collegues');
+    // The placement credits nothing: the level still comes only from earned scenes.
+    assert.equal(spineFrom(afterFirst).level, 'A0');
+    // Once everything at or above it is earned, the skipped scenes are offered.
+    assert.equal(nextScene(earnedAll([...A1_IDS, ...A2_IDS, ...B1_IDS]), null, 'A1')?.mission.id, FIRST_MISSION);
+    // No placement keeps today's behaviour.
+    assert.equal(nextScene(empty, null, null)?.mission.id, FIRST_MISSION);
+  });
+});

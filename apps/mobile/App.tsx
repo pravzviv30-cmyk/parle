@@ -76,8 +76,8 @@ import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
 import { profileFromDraft, reminderFromDraft, reminderSummary } from './src/onboarding/createFromDraft.ts';
-import { shouldStartFirstPractice } from './src/onboarding/firstPracticeEntry.ts';
-import { firstSceneFor, planFor } from './src/onboarding/plan.ts';
+import { firstRunScene, shouldStartFirstPractice } from './src/onboarding/firstPracticeEntry.ts';
+import { planFor } from './src/onboarding/plan.ts';
 import { saveReminder } from './src/reminders/store.ts';
 import { cancelReminder } from './src/reminders/schedule.ts';
 import { GuestReminderPlanner, ReminderPlanner, stopReminders, useReminderTaps } from './src/reminders/ReminderPlanner.tsx';
@@ -507,7 +507,7 @@ function SignedInRoot({
             accountLabel={user.email ?? 'your current account'}
             onConsumed={onPreAccountDraftConsumed}
             done={(profile, startPractice) => {
-              firstScene.current = firstSceneFor(preAccountDraft.startLevel, preAccountDraft.reason, preAccountDraft.skipAhead === true);
+              firstScene.current = firstRunScene(preAccountDraft);
               setJustOnboarded(startPractice);
               done(profile);
             }}
@@ -530,7 +530,7 @@ function SignedInRoot({
               if ((await saveConsent({ allowed: draft.analyticsConsent })) !== 'durable' || owner !== scopeGeneration()) return false;
               if ((await saveReminder(reminderFromDraft(draft))) !== 'durable' || owner !== scopeGeneration()) return false;
               if (!(await saveProfile(built)) || owner !== scopeGeneration()) return false;
-              firstScene.current = firstSceneFor(draft.startLevel, draft.reason, draft.skipAhead === true);
+              firstScene.current = firstRunScene(draft);
               setJustOnboarded(startPractice);
               onPreAccountDraftConsumed();
               done(built);

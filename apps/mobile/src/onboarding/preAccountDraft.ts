@@ -119,6 +119,22 @@ export interface PreAccountOnboardingDraft {
   firstName: string | null;
 }
 
+/** A draft without the Skip ahead choice: the default start for its level. */
+export function withoutSkip(draft: PreAccountOnboardingDraft): PreAccountOnboardingDraft {
+  const { skipAhead: _skip, ...rest } = draft;
+  return rest;
+}
+
+/** A new level answer; Skip ahead belongs to the level it was taken at, so a change clears it. */
+export function withStartLevel(draft: PreAccountOnboardingDraft, startLevel: StartLevel): PreAccountOnboardingDraft {
+  return draft.startLevel === startLevel ? draft : { ...withoutSkip(draft), startLevel };
+}
+
+/** A Skip ahead left over from a level it no longer belongs to (only "I can get by" can skip). */
+export function staleSkipAhead(draft: PreAccountOnboardingDraft): boolean {
+  return draft.skipAhead === true && draft.startLevel !== 'getby';
+}
+
 export function freshPreAccountDraft(): PreAccountOnboardingDraft {
   return {
     version: 1,

@@ -497,7 +497,13 @@ export function PreAccountOnboarding({
       operation.current = false;
     }
   };
-  const saveAccount = async () => {
+  /**
+   * Save keeps the guest practice through sign-up. The return page decides
+   * where the account lands: this page ('keep') is Home, and 'practice'
+   * ("Save and finish the scene", founder decision 16) opens the café scene
+   * signed in (firstPracticeEntry.ts).
+   */
+  const saveAccount = async (returnPage: PreAccountPage = page) => {
     if (operation.current || pageMotion.locked.current || refused || !draft.eligibilityConfirmed) return;
     operation.current = true;
     setBusy(true);
@@ -505,7 +511,7 @@ export function PreAccountOnboarding({
     metric('save_progress');
     const owner = scopeGeneration();
     try {
-      const saved = await onCreateAccount({ ...draftRef.current, page });
+      const saved = await onCreateAccount({ ...draftRef.current, page: returnPage });
       if (owner !== scopeGeneration()) return;
       if (saved === false) { if (current.current) setIssue('Your plan could not be saved. Try again.'); }
       else if (signedIn) await clearSetupDraft();
@@ -666,7 +672,7 @@ export function PreAccountOnboarding({
       : !refused && page === 'practice' && guest?.live ? <FirstLivePractice guest={guest} progress={progress} active={active && surface === null}
         onSafetyExit={() => showPage('plan')} onFinished={next => { setGuest(next); showPage(next.live?.outcome === 'completed' ? 'recap' : 'keep'); }} />
       : page === 'recap' && guest?.live ? <FirstSessionCelebration record={guest.live} progress={progress} onDone={() => showPage('keep')} />
-      : page === 'keep' && guest?.live ? <FirstSessionSummary record={guest.live} progress={progress} busy={busy} issue={issue || storageNote} onSave={() => void saveAccount()} />
+      : page === 'keep' && guest?.live ? <FirstSessionSummary record={guest.live} progress={progress} busy={busy} issue={issue || storageNote} onSave={() => void saveAccount()} onFinish={() => void saveAccount('practice')} />
       : (
       <OnboardingLayout
         active={active}
@@ -739,7 +745,7 @@ export function PreAccountOnboarding({
                       selected={draft.minutes === minutes} onPress={() => choose({ minutes })} />)}
                   </View>
                 </>}
-                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active && surface === null} onEdit={() => open('plan')} guestScene={!signedIn} onSkipAhead={() => patch({ skipAhead: true })} />}
+                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active && surface === null} onEdit={() => open('plan')} guestScene={!signedIn} onSkipAhead={(skip) => patch({ skipAhead: skip })} />}
                 {page === 'choose-tutor' && <TutorSelection
                   chosen={tutorStep(draft).chosen}
                   preview={preview}

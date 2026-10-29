@@ -903,8 +903,8 @@ export interface EmptyJourney {
  * Before the first conversation: the page and the one scene to start, from
  * core's `nextScene`, the same scene Today and Speak offer.
  */
-export function emptyJourney(progress: readonly MissionProgress[], goal: LearnerGoal | null = null): EmptyJourney {
-  const ahead = nextScene(progress, goal);
+export function emptyJourney(progress: readonly MissionProgress[], goal: LearnerGoal | null = null, startAt: MissionLevel | null = null): EmptyJourney {
+  const ahead = nextScene(progress, goal, startAt);
   const next = ahead?.mission ?? getMission(SCENE_SPINE[0]!) ?? MISSIONS[0]!;
   return {
     picked: ahead?.picked === 'goal' ? goalPickLine(goal) : null,

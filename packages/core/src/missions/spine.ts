@@ -124,16 +124,36 @@ const CEFR_RANK: Readonly<Record<MissionLevel, number>> = { A0: 0, A1: 1, A2: 2,
  * brand-new learner always starts on the first coffee. After that, the first
  * unearned goal scene at most one band above the learner's level wins; with no
  * such scene, or no usable goal ('because', missing, unknown), it is the spine's
- * next scene. Pure and unstored.
+ * next scene.
+ *
+ * `startAt` is the learner's placement (F917, mobile `onboarding/placement.ts`):
+ * the band suggestions start at. It is a starting point, never evidence: it
+ * moves no level and earns nothing, and the scenes below it stay open to pick.
+ * With it, the opener is the first unearned spine scene at or above it, goal
+ * scenes below it are passed over, and the reach is never below it. Once every
+ * scene at or above it is earned, the skipped scenes are offered again. Pure
+ * and unstored.
  */
-export function nextScene(progress: readonly MissionProgress[], goal: LearnerGoal | null | undefined): NextScene | null {
+export function nextScene(
+  progress: readonly MissionProgress[],
+  goal: LearnerGoal | null | undefined,
+  startAt: MissionLevel | null = null,
+): NextScene | null {
   const view = spineFrom(progress);
   const earnedIds = earnedMissionIds(progress);
+  const floor = startAt !== null && startAt in CEFR_RANK ? CEFR_RANK[startAt] : 0;
   if (earnedIds.size > 0 && isLearnerGoal(goal) && goal !== 'because') {
-    const reach = CEFR_RANK[REACH[view.level]];
+    const reach = Math.max(CEFR_RANK[REACH[view.level]], floor);
     for (const id of GOAL_SCENES[goal]) {
       const mission = getMission(id);
-      if (mission && !earnedIds.has(id) && CEFR_RANK[mission.cefr] <= reach) return { mission, picked: 'goal' };
+      const rank = mission ? CEFR_RANK[mission.cefr] : -1;
+      if (mission && !earnedIds.has(id) && rank >= floor && rank <= reach) return { mission, picked: 'goal' };
+    }
+  }
+  if (floor > 0) {
+    for (const id of SCENE_SPINE) {
+      const mission = getMission(id);
+      if (mission && !earnedIds.has(id) && CEFR_RANK[mission.cefr] >= floor) return { mission, picked: 'spine' };
     }
   }
   return view.next ? { mission: view.next, picked: 'spine' } : null;

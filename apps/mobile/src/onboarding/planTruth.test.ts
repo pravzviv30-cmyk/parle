@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { GUEST_CAFE_SCENE, MISSIONS, SCENE_SPINE, getMission, missionStates } from '@luvani/core';
-import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { freshPreAccountDraft, staleSkipAhead, withStartLevel, withoutSkip, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import {
   CONFIDENCE_OPTIONS, FOCUS_OPTIONS, GENTLE_PACE, METHOD_STEPS, START_LEVELS, REASONS,
   firstConversationLines, firstSceneFor, methodLines, planFor, sceneOrder, startEstimate,
@@ -28,26 +28,34 @@ const NOW = new Date(2026, 9, 29, 12).getTime();
 
 describe('F916: the plan says what really happens first', () => {
   test("the plan's first conversation line comes from scene 1", () => {
-    for (const startLevel of LEVELS) for (const reason of REASON_KEYS) {
-      const d = draft({ startLevel, reason });
-      // Before an account, the scripted guest café always plays first.
-      const guest = firstConversationLines(d, { guestScene: true });
-      assert.equal(guest.first, `Your first conversation: ${GUEST_CAFE_SCENE.titleEn.toLocaleLowerCase()}.`);
-      // Signed in, the scene firstSceneFor opens is the one played, so it is the one named.
-      const signed = firstConversationLines(d, { guestScene: false });
-      const scene = getMission(firstSceneFor(startLevel, reason, d.skipAhead === true))!;
-      assert.equal(signed.first, `Your first conversation: ${scene.canDoEn.toLocaleLowerCase()}.`);
+    // Verifier, 2026-10-29: a guest may tap "Create an account first" on the
+    // consent sheet and skip the café, so the café is named only as what Start
+    // live practice plays now, and scene 1 is named as the plan's first scene
+    // on every path, because it is what the account opens on either way.
+    for (const startLevel of LEVELS) for (const reason of REASON_KEYS) for (const skipAhead of [false, true]) {
+      const d = draft({ startLevel, reason, ...(skipAhead ? { skipAhead } : {}) });
+      const scene = getMission(firstSceneFor(startLevel, reason, skipAhead))!;
       assert.equal(planFor(d).scenes[0]!.id, scene.id, 'scene 1 of the plan is not the scene the account opens on');
+      const guest = firstConversationLines(d, { guestScene: true });
+      const signed = firstConversationLines(d, { guestScene: false });
+      assert.equal(guest.tryNow, `Try it now: ${GUEST_CAFE_SCENE.titleEn.toLocaleLowerCase()}.`);
+      assert.equal(signed.tryNow, null, 'a signed-in learner never plays the guest café');
       for (const line of [guest, signed]) {
-        if (line.comingUp !== null) assert.match(line.comingUp, /^Coming up: /);
-        assert.notEqual(line.comingUp?.slice('Coming up: '.length), line.first.slice('Your first conversation: '.length));
+        assert.equal(line.first, `First scene in your plan: ${scene.canDoEn.toLocaleLowerCase()}.`);
+        assert.doesNotMatch(line.first, /first conversation/i);
+        if (line.comingUp !== null) {
+          assert.match(line.comingUp, /^Coming up: /);
+          assert.notEqual(line.comingUp.slice('Coming up: '.length), line.first.slice('First scene in your plan: '.length));
+        }
       }
+      assert.deepEqual(guest.comingUp, signed.comingUp);
     }
-    // A traveller who can get by: the café now, the station next.
-    const trip = firstConversationLines(draft({ startLevel: 'getby', reason: 'trip' }), { guestScene: true });
+    // A brand-new traveller: the opener first, the station next.
+    const trip = firstConversationLines(draft({ startLevel: 'zero', reason: 'trip' }), { guestScene: true });
     assert.equal(trip.comingUp, `Coming up: ${getMission('mission:gare')!.canDoEn.toLocaleLowerCase()}.`);
     const plan = readFileSync(new URL('./PersonalPlan.tsx', import.meta.url), 'utf8');
     assert.doesNotMatch(plan, /firstPracticeScenario/, 'the plan still names the retired guest conversation');
+    assert.match(plan, /lines\.tryNow !== null/);
   });
 
   test('the starting point chosen in onboarding shows in learning preferences', () => {
@@ -115,7 +123,22 @@ describe('F917: a starting point, never a credit', () => {
     // Skip ahead never changes the learner's own answer.
     assert.equal(practicePreferencesOf(profile).level, 'getby');
     const plan = readFileSync(new URL('./PersonalPlan.tsx', import.meta.url), 'utf8');
-    assert.match(plan, /accessibilityLabel=\{SKIP_AHEAD\}[^>]*minHeight: 44/);
+    assert.match(plan, /accessibilityLabel=\{skipLabel\}[^\n]*\n\s*style=\{\{ minHeight: 44, minWidth: 44/);
+    // Verifier, 2026-10-29: Skip ahead can be undone, and a level change clears it.
+    assert.equal(view.canUndoSkip, true);
+    assert.equal(planFor(draft({ startLevel: 'getby' })).canUndoSkip, false);
+    assert.equal(planFor(withoutSkip(skipped)).heading, 'You start at Basics');
+    assert.equal(withStartLevel(skipped, 'getby').skipAhead, true, 'choosing the same level again dropped the skip');
+    for (const level of ['zero', 'few', 'confident'] as const) {
+      assert.equal(withStartLevel(skipped, level).skipAhead, undefined, level);
+      assert.equal(withStartLevel(withStartLevel(skipped, level), 'getby').skipAhead, undefined, 'the skip came back with the level');
+    }
+    assert.equal(staleSkipAhead(draft({ startLevel: 'few', skipAhead: true })), true);
+    assert.equal(staleSkipAhead(skipped), false);
+    assert.match(plan, /staleSkipAhead\(draft\)/);
+    assert.match(plan, /onSkipAhead\(!plan\.canUndoSkip\)/);
+    const screen = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
+    assert.match(screen, /onSkipAhead=\{\(skip\) => patch\(\{ skipAhead: skip \}\)\}/);
   });
 
   test('Journey never credits a stage the learner skipped', () => {

@@ -371,6 +371,24 @@ describe('merging two copies of one learner', () => {
     assert.deepEqual(merge(none, none)?.practicePreferences, { level: 'zero', confidence: null, focus: null }, 'a placement appeared from nowhere');
   });
 
+  test('a placement never sits beside another device\'s stated level', () => {
+    // Phone A onboarded "Feeling confident" (Everyday); the heavier phone B later said "Brand new".
+    const confident = stored({ practicePreferences: { level: 'confident', confidence: null, focus: null, placement: 'everyday' } });
+    const brandNew = stored({
+      practicePreferences: { level: 'zero', confidence: null, focus: null },
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    for (const m of [merge(confident, brandNew), merge(brandNew, confident)]) {
+      assert.deepEqual(m?.practicePreferences, { level: 'zero', confidence: null, focus: null });
+    }
+    // The other way round, the level and its placement still win together.
+    const heavyConfident = stored({ ...confident, brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }) });
+    const lightNew = stored({ practicePreferences: { level: 'zero', confidence: null, focus: null } });
+    for (const m of [merge(heavyConfident, lightNew), merge(lightNew, heavyConfident)]) {
+      assert.deepEqual(m?.practicePreferences, { level: 'confident', confidence: null, focus: null, placement: 'everyday' });
+    }
+  });
+
   test("a heavier device's real sub-answer beats a lighter device's real sub-answer, field by field", () => {
     const heavy = stored({
       practicePreferences: { level: 'few', confidence: null, focus: 'words' },

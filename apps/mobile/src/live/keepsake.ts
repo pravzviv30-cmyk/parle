@@ -30,7 +30,7 @@
  * screen hands in `reminders/schedule.ts` and `reminders/store.ts`.
  */
 
-import { getMission, nextScene, type LearnerGoal, type MissionProgress } from '@luvani/core';
+import { getMission, nextScene, type LearnerGoal, type MissionLevel, type MissionProgress } from '@luvani/core';
 
 import type { PersistAck } from '../storage/ack.ts';
 import {
@@ -83,8 +83,8 @@ export function keepsakeLines(turns: readonly Pick<TurnLine, 'who' | 'fr'>[]): s
  * the learner is offered next. It leans towards the onboarding goal; with no
  * goal it is the spine's next scene.
  */
-export function nextTimeLine(progress: readonly MissionProgress[], goal: LearnerGoal | null = null): string | null {
-  const next = nextScene(progress, goal);
+export function nextTimeLine(progress: readonly MissionProgress[], goal: LearnerGoal | null = null, startAt: MissionLevel | null = null): string | null {
+  const next = nextScene(progress, goal, startAt);
   if (next === null) return null;
   const mission = getMission(next.mission.id);
   return mission === undefined ? null : `Next time: ${mission.titleEn}`;
@@ -95,8 +95,8 @@ export function nextTimeLine(progress: readonly MissionProgress[], goal: Learner
  * (2026-10-21 UI-008, artboard B-Celebrate). The same `nextScene(progress, goal)`
  * as `nextTimeLine`, so the two can never name different scenes.
  */
-export function nextCanDo(progress: readonly MissionProgress[], goal: LearnerGoal | null = null): { canDoEn: string } | null {
-  const next = nextScene(progress, goal);
+export function nextCanDo(progress: readonly MissionProgress[], goal: LearnerGoal | null = null, startAt: MissionLevel | null = null): { canDoEn: string } | null {
+  const next = nextScene(progress, goal, startAt);
   if (next === null) return null;
   const mission = getMission(next.mission.id);
   return mission === undefined ? null : { canDoEn: mission.canDoEn };

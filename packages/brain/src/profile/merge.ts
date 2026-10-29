@@ -548,9 +548,12 @@ function pickPracticePreferences(a: Side, b: Side, cmp: number): unknown {
   const bv = isRecord(b.outer.practicePreferences) ? b.outer.practicePreferences : {};
   const merged: Record<string, unknown> = {};
   for (const key of PRACTICE_PREFERENCE_KEYS) merged[key] = pickValue(av[key], bv[key], cmp);
-  // The onboarding placement (F917) follows the same answer rule, and is
-  // written only when one side holds a real one.
-  const placement = pickValue(PLACEMENTS.includes(av.placement as never) ? av.placement : null, PLACEMENTS.includes(bv.placement as never) ? bv.placement : null, cmp);
+  // The onboarding placement (F917) is part of the stated-level choice, so it
+  // travels with the level: only a side whose level won can supply it, and a
+  // winning level without one clears it. A placement never sits beside another
+  // device's level. Written only when such a side holds a real one.
+  const held = (v: Record<string, unknown>) => v.level === merged.level && PLACEMENTS.includes(v.placement as never) ? v.placement : null;
+  const placement = merged.level === null ? null : pickValue(held(av), held(bv), cmp);
   if (placement !== null) merged.placement = placement;
   return PRACTICE_PREFERENCE_KEYS.every((key) => merged[key] === null) && placement === null ? null : merged;
 }

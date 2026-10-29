@@ -62,7 +62,7 @@ import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { loadDeck } from '../review/store.ts';
-import { practicePreferencesOf } from '../profile/practicePreferences.ts';
+import { practicePreferencesOf, startAtOf } from '../profile/practicePreferences.ts';
 import { learningSuggestions } from '../main/learningSuggestions.ts';
 import { bType, decorative, frenchText, space, type, HIT } from '../theme.ts';
 
@@ -251,7 +251,7 @@ export function TutorTab() {
   const orb = tutorOrbState({ live, checking, canStart, outOfTime: planView?.known ? planView.outOfTime ?? null : null });
   const offlineShown = !live || heldBack !== null;
   const note = startNote(orb, offlineShown);
-  const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc, goalOf(profile));
+  const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc, goalOf(profile), startAtOf(profile));
   const rec = recommended(next);
   const scenes = starterScenes(progress);
   const replay = lessHelp(completions, locks.access);
@@ -336,7 +336,7 @@ export function TutorTab() {
           {note !== null && <Text style={[bType.meta, st.centred, { color: t.heroText }]}>{note}</Text>}
         </View>
 
-        {WALK_AVAILABLE && <IconAction layout="inline" icon="headphones" label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false, goalOf(profile)).params, walkMode: true })} />}
+        {WALK_AVAILABLE && <IconAction layout="inline" icon="headphones" label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false, goalOf(profile), startAtOf(profile)).params, walkMode: true })} />}
 
         <View style={st.scenes}>
           <View style={st.titleRow}>

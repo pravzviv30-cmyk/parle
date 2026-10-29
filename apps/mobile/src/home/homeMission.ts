@@ -42,6 +42,7 @@ import {
   type LearnerGoal,
   type Mission,
   type MissionId,
+  type MissionLevel,
   type MissionProgress,
 } from '@luvani/core';
 
@@ -131,6 +132,8 @@ export function homeMissionFrom(input: {
   startingMissionId?: MissionId;
   /** The learner's onboarding goal; the next scene leans towards it (core `nextScene`). */
   goal?: LearnerGoal | null;
+  /** The placement's band (F917); the next scene starts there, never earns it. */
+  startAt?: MissionLevel | null;
   now: number;
 }): HomeMission | null {
   if (input.progress.length === 0) return null;
@@ -151,7 +154,7 @@ export function homeMissionFrom(input: {
   const untouched = input.progress.every(item => item.lastFinishedAt === null);
   const suggested = untouched && input.startingMissionId !== undefined ? getMission(input.startingMissionId) : null;
   if (suggested) return sceneHero(suggested, missionMinutes(suggested), null);
-  const next = nextScene(input.progress, input.goal ?? null);
+  const next = nextScene(input.progress, input.goal ?? null, input.startAt ?? null);
   if (next !== null) {
     const hero = sceneHero(next.mission, missionMinutes(next.mission), null);
     if (hero.kind !== 'scene') return hero;

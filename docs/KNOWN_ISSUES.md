@@ -11759,7 +11759,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the plan's first conversation line comes from scene 1`
 - verified-by: `the starting point chosen in onboarding shows in learning preferences`
 - verified-by: `the plan's method sentence never repeats a clause`
-- fixed: 2026-10-29. The plan's first-conversation line names the scene really played next, from its scene data: the guest café ("ordering a coffee") before an account, else the can-do of the scene `firstSceneFor` opens, with "Coming up:" for the goal scene when it differs (`plan.ts` `firstConversationLines`). The method is one sentence pair with no idea said twice, plus "Gentle pace" for a hesitant learner, which says only the typed start and the tutor's gentle-start goal (`methodLines`). `profileFromDraft` now writes `practicePreferences`, so Learning preferences shows the starting point chosen. `firstPracticeScenario` is no longer read by the plan; the guest convo prompt and the guest record still use it.
+- fixed: 2026-10-29. The plan names what comes first from scene data on both paths (`plan.ts` `firstConversationLines`): a guest sees "Try it now: ordering a coffee." for the café Start live practice plays, which "Create an account first" skips, and every learner sees "First scene in your plan:" with the can-do of the scene `firstSceneFor` opens, plus "Coming up:" for the goal scene when it differs. The method is one sentence pair with no idea said twice, plus "Gentle pace" for a hesitant learner, which says only the typed start and the tutor's gentle-start goal (`methodLines`). `profileFromDraft` now writes `practicePreferences`, so Learning preferences shows the starting point chosen. `firstPracticeScenario` is no longer read by the plan; the guest convo prompt and the guest record still use it.
 
 ### F917 — "I can get by" starts the learner at Starter
 - severity: P2
@@ -11771,7 +11771,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a learner who can get by does not start at Starter`
 - verified-by: `skip ahead starts the learner at Everyday`
 - verified-by: `Journey never credits a stage the learner skipped`
-- fixed: 2026-10-29. A placement (`onboarding/placement.ts`) is set from the level answer: "I can get by" is Basics, "Feeling confident" Everyday, and the plan's secondary "Skip ahead" link moves Basics to Everyday (draft `skipAhead`). The plan heading, the stage card, `sceneOrder`, `firstSceneFor` and `startEstimate` (A1, A2, low confidence) follow it, and it is saved as `practicePreferences.placement` (merged per answer by `pickPracticePreferences`). Journey and Profile read it through `stagesFrom(progress, placement)`: stages below it read "Skipped, still open to visit", never done, and a stage above it is reached only by earning all its scenes. No scene or ability is credited.
+- verified-by: `the next scene for a placed learner starts at their placement`
+- verified-by: `a placement follows the stated level when it changes`
+- verified-by: `a placement never sits beside another device's stated level`
+- fixed: 2026-10-29. A placement (`onboarding/placement.ts`) is set from the level answer: "I can get by" is Basics, "Feeling confident" Everyday, and the plan's secondary "Skip ahead" link moves Basics to Everyday (draft `skipAhead`); once taken the same 44-point link reads "Start at Basics" and undoes it, and a level other than "I can get by" clears it when the plan shows (`staleSkipAhead`; `withStartLevel` is the pure reset). The plan heading, the stage card, `sceneOrder`, `firstSceneFor` and `startEstimate` (A1, A2, low confidence) follow it, and it is saved as `practicePreferences.placement` (merged per answer by `pickPracticePreferences`). Journey and Profile read it through `stagesFrom(progress, placement)`: stages below it read "Skipped, still open to visit", never done, and a stage above it is reached only by earning all its scenes. No scene or ability is credited. Later the same day: core `nextScene(progress, goal, startAt)` starts at the placement's band (skipped scenes stay open and return once everything above is earned); `startAtOf(profile)` threads it to Journey's empty state, Today (`homeMissionFrom`, and `NextTaskCard` drops its A1 cafe start for a placed learner), Speak (`nextConversation`), the Recap and Week Wrapped next lines. Settings `withStatedLevel` re-derives the placement from the new level (`statedPlacement`; same level keeps Skip ahead), the clocked merge takes the placement from the side whose level edit won, and the answer-rule merge takes it only from a side holding the winning level.
 
 ### F925 — The guest early-exit summary gives a train-station tip after a café scene
 - severity: P2
@@ -11783,6 +11786,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the early-exit tip matches the scene that was played`
 - verified-by: `an early exit with no replies hides the empty summary box`
 - verified-by: `a guest early exit offers to save and finish the scene`
+- fixed: 2026-10-29. The summary tip comes from the scene played: a guest café record passes `GUEST_SCENE_NEXT_TRY` (`core/lessons/guestCafe.ts`) to `firstPracticeNext`, so it reads "Next time, try asking for a croissant and how much it is." with the minutes sentence unchanged. The lavender reply box renders only when there is a confirmed reply. After an early exit from the café scene, "Save and finish the scene" is the primary button: it saves through sign-up with `practice` as the return page, so `shouldStartFirstPractice` is true and `firstRunScene` opens `mission:premier-cafe` signed in; "Save your progress" is second and still lands on Home.
 
 ### F926 — Two full-screen splashes and a disabled tutor choice stand before the first French
 - severity: P3
@@ -11802,3 +11806,4 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-31). Learners on office, university or café Wi-Fi
   cannot tell why their free tries are gone; the offline drill is not offered there. Decided 2026-10-29 (founder decision 17): honest copy and an account only, no guest offline drill; the same 429 also comes from the global cap, so the line names no network.
 - verified-by: `the guest limit message offers an account and names no network`
+- fixed: 2026-10-29. The 429 line reads "Free tries are busy right now. Create a free account to start your first scene." It names no network because the global guest cap sends the same 429. The sheet's existing Create account to start is the one action; no guest offline drill is offered.

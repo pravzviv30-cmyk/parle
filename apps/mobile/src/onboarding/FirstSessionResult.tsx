@@ -2,6 +2,7 @@ import { TimedExit } from '../motion/TimedExit.tsx';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { BoldButton as PillButton } from './BoldButton.tsx';
+import { GhostButton } from '../components.tsx';
 import { boldType as type, c } from './boldRhythm.ts';
 import { BoldScene } from './motion/BoldScene.tsx';
 import { decorative } from '../theme.ts';
@@ -70,19 +71,32 @@ function Achievement({ text, index }: { text: string; index: number }) {
     </View>
   </RevealItem>;
 }
-export function FirstSessionSummary({ record, progress, onSave, busy = false, issue = '' }: {
-  record: FirstLiveRecord; progress: OnboardingProgressValue; onSave: () => void; busy?: boolean; issue?: string;
+/**
+ * `onFinish` (founder decision 16, F925): after a guest leaves the café scene
+ * early, "Save and finish the scene" comes first. It keeps the practice like
+ * Save does, then the new account opens the café scene (firstPracticeEntry.ts).
+ * "Save your progress" stays second with its own behaviour.
+ */
+export function FirstSessionSummary({ record, progress, onSave, onFinish, busy = false, issue = '' }: {
+  record: FirstLiveRecord; progress: OnboardingProgressValue; onSave: () => void; onFinish?: () => void; busy?: boolean; issue?: string;
 }) {
   const view = firstLiveSummary(record);
   const completed = record.outcome === 'completed';
   const foreground = completed ? c.white : c.ink;
-  return <OnboardingLayout page="keep" ground={completed ? c.violet : c.paper} progress={progress} footer={<RevealItem index={2}><PillButton tone={completed ? 'sun' : 'brand'} label={busy ? 'Saving…' : 'Save your progress'} disabled={busy} onPress={onSave} /></RevealItem>}>
+  const finishable = !completed && record.scene !== undefined && onFinish !== undefined;
+  const footer = <RevealItem index={2}><View style={{ gap: 4 }}>
+    {finishable && <PillButton tone="brand" label={busy ? 'Saving…' : 'Save and finish the scene'} disabled={busy} onPress={onFinish} />}
+    {finishable ? <GhostButton label={busy ? 'Saving…' : 'Save your progress'} disabled={busy} onPress={onSave} />
+      : <PillButton tone={completed ? 'sun' : 'brand'} label={busy ? 'Saving…' : 'Save your progress'} disabled={busy} onPress={onSave} />}
+  </View></RevealItem>;
+  return <OnboardingLayout page="keep" ground={completed ? c.violet : c.paper} progress={progress} footer={footer}>
     <View style={{ gap: 14 }}>
       {completed && <Text style={[type.small, { color: c.white, textAlign: 'center', letterSpacing: 1.6 }]}>YOUR FIRST SESSION</Text>}
       <Text accessibilityRole="header" style={[completed ? type.achievement : type.title, { color: foreground, textAlign: 'center' }]}>{completed ? 'Look what\nyou can do.' : view.heading}</Text>
       <View style={{ alignItems: 'center' }}><BoldScene kind={completed ? 'summary' : 'pause'} width={192} /></View>
       <Text style={[type.body, { color: foreground, textAlign: 'center' }]}>{view.detail}</Text>
-      <View style={{ backgroundColor: completed ? c.paper : c.lavender, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 18 }}>{view.achievements.map((text, index) => <Achievement key={text} text={text} index={index} />)}</View>
+      {/* No confirmed reply, no box: the empty card read as missing content (F925). */}
+      {view.achievements.length > 0 && <View style={{ backgroundColor: completed ? c.paper : c.lavender, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 18 }}>{view.achievements.map((text, index) => <Achievement key={text} text={text} index={index} />)}</View>}
       {view.achievements.length === 0 && <Text style={type.body}>There are no confirmed replies to summarise yet. Your chosen plan and tutor are ready for your next practice.</Text>}
       <RevealItem index={3}><Text style={[type.label, { color: foreground, textAlign: 'center', marginTop: 8 }]}>{view.next}</Text></RevealItem>
       {!!issue && <Text accessibilityLiveRegion="polite" style={[type.body, { color: foreground }]}>{issue}</Text>}

@@ -177,6 +177,8 @@ export interface PlanView {
   heading: string;
   /** True only at Basics, where "Skip ahead" moves the start to Everyday. */
   canSkipAhead: boolean;
+  /** True once skipped from Basics, where "Start at Basics" undoes it. */
+  canUndoSkip: boolean;
   tutorGoals: readonly string[];
   reminder: { time: ReminderTimeId; clock: string; note: string };
 }
@@ -220,6 +222,8 @@ export function startingReasonFor(level: StartLevel): string {
 export const GENTLE_PACE = 'Gentle pace. You start by typing, and your tutor is asked to go gently.';
 export const SKIP_AHEAD = 'Skip ahead';
 export const SKIP_AHEAD_HINT = 'Start at Everyday instead. Basics stays open to visit.';
+export const START_AT_BASICS = 'Start at Basics';
+export const START_AT_BASICS_HINT = 'Go back to starting at Basics.';
 
 function startSentence(draft: PreAccountOnboardingDraft): string {
   if (draft.speakingConfidence === 'hesitant') return 'Start with a model line and its translation.';
@@ -241,20 +245,22 @@ export function methodLines(draft: PreAccountOnboardingDraft): { method: string;
 }
 
 /**
- * The plan's first-conversation line names the scene really played next
- * (F916): the scripted guest café before an account, else the scene
- * `firstSceneFor` opens. "Coming up" names the goal scene when it differs.
+ * What the plan says comes first (F916, verifier 2026-10-29). Before an
+ * account, Start live practice plays the scripted guest café, but the consent
+ * sheet's "Create an account first" skips it, so the café is named only as
+ * what can be tried now. Scene 1 is named as the plan's first scene on every
+ * path, because the account opens on it either way (`firstSceneFor`).
+ * "Coming up" names the goal scene when it differs.
  */
-export function firstConversationLines(draft: PreAccountOnboardingDraft, where: { guestScene: boolean }): { first: string; comingUp: string | null } {
-  const accountFirst = firstSceneFor(draft.startLevel, draft.reason, draft.skipAhead === true);
+export function firstConversationLines(draft: PreAccountOnboardingDraft, where: { guestScene: boolean }): { tryNow: string | null; first: string; comingUp: string | null } {
+  const sceneOne = firstSceneFor(draft.startLevel, draft.reason, draft.skipAhead === true);
   const outcome = (id: MissionId) => getMission(id)!.canDoEn.toLocaleLowerCase();
-  const first = where.guestScene ? GUEST_CAFE_SCENE.titleEn.toLocaleLowerCase() : outcome(accountFirst);
   const goal = goalScenesFor(draft.reason, placementOf(draft))[0];
-  // After the guest café, the account opens on accountFirst; a goal scene leads otherwise.
-  const next = where.guestScene ? (accountFirst === 'mission:premier-cafe' ? goal : accountFirst) : goal;
-  const playedId = where.guestScene ? 'mission:premier-cafe' : accountFirst;
-  const comingUp = next !== undefined && next !== playedId && outcome(next) !== first ? `Coming up: ${outcome(next)}.` : null;
-  return { first: `Your first conversation: ${first}.`, comingUp };
+  return {
+    tryNow: where.guestScene ? `Try it now: ${GUEST_CAFE_SCENE.titleEn.toLocaleLowerCase()}.` : null,
+    first: `First scene in your plan: ${outcome(sceneOne)}.`,
+    comingUp: goal !== undefined && goal !== sceneOne && outcome(goal) !== outcome(sceneOne) ? `Coming up: ${outcome(goal)}.` : null,
+  };
 }
 
 /** Confidence chooses scaffolding, even for a learner who knows some French. */
@@ -343,6 +349,8 @@ export const PLAN_COPY: readonly string[] = [
   GENTLE_PACE,
   SKIP_AHEAD,
   SKIP_AHEAD_HINT,
+  START_AT_BASICS,
+  START_AT_BASICS_HINT,
   NO_STREAKS,
   REMINDER_LABEL,
   REMINDER_NOT_ON,
@@ -375,6 +383,7 @@ export function planFor(draft: PreAccountOnboardingDraft): PlanView {
     stage: placementStage(placement),
     heading: `You start at ${STAGE_WORDS[placementStage(placement)]}`,
     canSkipAhead: canSkipAhead(draft.startLevel, skipAhead),
+    canUndoSkip: skipAhead && draft.startLevel === 'getby',
     tutorGoals: tutorGoalsFor(draft),
     reminder: { time, clock: reminderTime(time).gloss, note: REMINDER_NOT_ON },
   };

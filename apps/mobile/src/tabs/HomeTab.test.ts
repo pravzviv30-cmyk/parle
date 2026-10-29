@@ -163,7 +163,7 @@ describe('Today opens on a still greeting — F420, notebook Phase 3', () => {
 describe('Today leads with the next scene, as a brief', () => {
   test("the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides", () => {
     // The rule reads the spine; the screen hands it the facts and decides nothing.
-    assert.match(flat(RULE), /nextScene\(input\.progress, input\.goal \?\? null\)/, 'the hero is not chosen from the CEFR spine, leaning towards the goal');
+    assert.match(flat(RULE), /nextScene\(input\.progress, input\.goal \?\? null, input\.startAt \?\? null\)/, 'the hero is not chosen from the CEFR spine, leaning towards the goal');
     assert.match(FLAT, /const progress = missionStates\(missionCompletionsFrom\(completions\), deck, now\)/);
     assert.match(FLAT, /setHero\(homeMissionFrom\(\{ progress, records, levelIndex: standing\.index, goal: goalOf\(profile\), now \}\)\)/, 'the hero is not the one homeMission.ts decides');
     // Revamp B (F602): the lead waits on the storage having answered and on

@@ -167,3 +167,21 @@ test('the onboarding goal clocks only a real goal or null, and a clocked clear b
   }
   assert.deepEqual(merge(legacy, cleared), merge(cleared, legacy));
 });
+
+test('a newer stated-level edit carries its placement across devices, a clear included', () => {
+  const placed = (level: string, placement: string | undefined, counter: number) => {
+    const next = edit(profile(counter === 1 ? 100 : 0), 'statedLevel', level, counter);
+    const prefs = { ...(next.practicePreferences as Record<string, unknown>) };
+    if (placement === undefined) delete prefs.placement; else prefs.placement = placement;
+    next.practicePreferences = prefs;
+    return next;
+  };
+  const placement = (r: MergedStoredProfile) => (r.practicePreferences as Record<string, unknown>).placement;
+  const getby = placed('getby', 'basics', 1);
+  const lowered = placed('few', undefined, 2);
+  for (const r of [merge(getby, lowered), merge(lowered, getby)]) assert.equal(placement(r), undefined);
+  const raised = placed('confident', 'everyday', 3);
+  for (const r of [merge(raised, lowered), merge(lowered, raised)]) assert.equal(placement(r), 'everyday');
+  // A legacy profile with no placement never gains one from a merge.
+  for (const r of [merge(edit(profile(100), 'statedLevel', 'few', 1), edit(profile(), 'statedLevel', 'confident', 2))]) assert.equal(placement(r), undefined);
+});

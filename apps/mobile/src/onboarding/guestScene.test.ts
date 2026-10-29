@@ -6,6 +6,9 @@ import { DEFAULT_TUTOR_VOICE, GUEST_SCENE_TURN_IDS, guestScenePhrases } from '@l
 import { claimRefusalCopy, guestLiveBody, guestSceneMode, sceneLines, startRefusalCopy, trustedSceneTurns } from './guestScene.ts';
 import { firstLiveSummary, repairFirstLiveRecord, sceneResultRecord, type FirstLiveRecord } from './firstLiveModel.ts';
 import { pushTurn, type TurnLine } from '../live/turns.ts';
+import { firstRunScene, shouldStartFirstPractice } from './firstPracticeEntry.ts';
+import { freshPreAccountDraft } from './preAccountDraft.ts';
+import type { GuestPractice } from './guestModel.ts';
 import { scriptedPromptIdentity } from '../live/c2TranscriptPolicy.ts';
 
 const practice = readFileSync(new URL('./guestPractice.ts', import.meta.url), 'utf8');
@@ -107,4 +110,46 @@ test('the transcript keeps the order the frames arrive in: each typed reply righ
   assert.deepEqual(turns.map((t) => `${t.who}:${t.fr}`), [
     'tutor:Bonjour !', 'learner:Bonjour', "tutor:Qu'est-ce que je vous sers ?", "learner:Un café, s'il vous plaît", 'tutor:Très bien. Sur place ou à emporter ?',
   ]);
+});
+
+// F925 and F930 (founder decisions 16 and 17).
+test('the early-exit tip matches the scene that was played', () => {
+  const trip = (outcome: FirstLiveRecord['outcome'], minutes: 10 | null) => ({ ...scene(outcome, ['t1-greet']), brief: { ...scene(outcome).brief, goals: ['trip' as const], minutes } });
+  for (const outcome of ['partial', 'interrupted', 'completed'] as const) {
+    const next = firstLiveSummary(trip(outcome, 10)).next;
+    assert.equal(next, 'Keep practising for 10 minutes a day. Next time, try asking for a croissant and how much it is.');
+    assert.doesNotMatch(next, /train|departure|directions/);
+  }
+  assert.equal(firstLiveSummary(trip('partial', null)).next, 'Keep practising at your own pace. Next time, try asking for a croissant and how much it is.');
+  // A conversation that is not the café scene keeps the goal's tip.
+  const { scene: _s, sceneTurns: _t, ...conversation } = trip('partial', 10);
+  assert.match(firstLiveSummary(conversation).next, /departure times/);
+});
+
+test('an early exit with no replies hides the empty summary box', () => {
+  const summary = result.slice(result.indexOf('export function FirstSessionSummary('));
+  assert.match(summary, /\{view\.achievements\.length > 0 && <View style=\{\{ backgroundColor: completed \? c\.paper : c\.lavender/);
+  assert.equal(firstLiveSummary(scene('partial', [])).achievements.length, 0);
+});
+
+test('a guest early exit offers to save and finish the scene', () => {
+  const summary = result.slice(result.indexOf('export function FirstSessionSummary('));
+  assert.match(summary, /const finishable = !completed && record\.scene !== undefined && onFinish !== undefined;/);
+  const finish = summary.indexOf("'Save and finish the scene'"), save = summary.indexOf("'Save your progress'");
+  assert.ok(finish > 0 && save > finish, 'Save and finish comes first, Save your progress second');
+  assert.match(summary, /finishable \? <GhostButton label=\{busy \? 'Saving…' : 'Save your progress'\}/);
+  const screen = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
+  assert.match(screen, /<FirstSessionSummary[^;]*onSave=\{\(\) => void saveAccount\(\)\} onFinish=\{\(\) => void saveAccount\('practice'\)\}/);
+  assert.match(screen, /const saveAccount = async \(returnPage: PreAccountPage = page\) =>/);
+  assert.match(screen, /onCreateAccount\(\{ \.\.\.draftRef\.current, page: returnPage \}\)/);
+  // After sign-up the account opens the café scene, not Home.
+  const draft = { ...freshPreAccountDraft(), eligibilityConfirmed: true, startLevel: 'getby' as const, reason: 'trip' as const };
+  const guest = { completed: false, live: scene('partial', ['t1-greet']) } as unknown as GuestPractice;
+  assert.equal(shouldStartFirstPractice({ ...draft, page: 'account', accountReturnPage: 'practice' }, guest), true);
+  assert.equal(shouldStartFirstPractice({ ...draft, page: 'account', accountReturnPage: 'keep' }, guest), false, 'Save your progress still lands on Home');
+  assert.equal(firstRunScene({ ...draft, accountReturnPage: 'practice' }), 'mission:premier-cafe');
+  assert.equal(firstRunScene({ ...draft, page: 'practice' }), 'mission:premier-cafe');
+  assert.notEqual(firstRunScene({ ...draft, accountReturnPage: 'keep' }), 'mission:premier-cafe', 'other routes keep the planned first scene');
+  const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
+  assert.equal(app.match(/firstScene\.current = firstRunScene\((preAccountDraft|draft)\)/g)?.length, 2);
 });

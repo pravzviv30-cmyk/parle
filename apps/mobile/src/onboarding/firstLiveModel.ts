@@ -1,4 +1,4 @@
-import { firstPracticeNext, firstPracticeScenario, GUEST_SCENE, isConversationPack, parseFirstPracticeBrief, parseGuestSceneTurnIds, type ConversationPack, type FirstPracticeBrief, type GuestScene, type GuestSceneTurnId } from '@luvani/core';
+import { firstPracticeNext, firstPracticeScenario, GUEST_SCENE, GUEST_SCENE_NEXT_TRY, isConversationPack, parseFirstPracticeBrief, parseGuestSceneTurnIds, type ConversationPack, type FirstPracticeBrief, type GuestScene, type GuestSceneTurnId } from '@luvani/core';
 import { sceneLines } from './guestScene.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 export interface FirstContribution { id: string; text: string; input: 'typed' | 'spoken' | 'unknown' }
@@ -71,7 +71,9 @@ export function firstAchievements(record: FirstLiveRecord): string[] {
 export function firstLiveSummary(record: FirstLiveRecord) {
   return { heading: record.outcome === 'completed' ? 'Your first session completed.' : record.outcome === 'interrupted' ? 'Your practice was interrupted.' : 'A start worth keeping.',
     detail: record.outcome === 'completed' ? 'Here is what you did in this session.' : record.outcome === 'interrupted' ? 'The connection ended before your practice was complete. Your confirmed contributions are still here.' : 'You ended before completing the exercise. Your confirmed contributions are still here.',
-    achievements: firstAchievements(record), next: firstPracticeNext(record.brief) };
+    achievements: firstAchievements(record),
+    // The tip follows the scene played: a café scene never suggests a train station (F925).
+    next: firstPracticeNext(record.brief, record.scene ? GUEST_SCENE_NEXT_TRY : undefined) };
 }
 
 /**

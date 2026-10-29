@@ -96,7 +96,17 @@ export function resolvePreferenceClocks<T extends object>(base: T, a: unknown, b
       next.brain = { ...brain, preferences };
     } else if (field === 'statedLevel') {
       // Only the level moves; the answer-field merge already chose confidence and focus.
-      next.practicePreferences = { confidence: null, focus: null, ...record(next.practicePreferences), level: clock.value };
+      // The placement (F917) is set together with the stated level (mobile
+      // `withStatedLevel`), so it comes from the side whose level edit won, a
+      // cleared placement included. Nothing is derived here, so a legacy
+      // profile never gains a placement it was not given.
+      const winner = clock === x ? a : b;
+      const practicePreferences: Record<string, unknown> = { confidence: null, focus: null, ...record(next.practicePreferences), level: clock.value };
+      const held = record(record(winner).practicePreferences).placement;
+      const placement = held === 'basics' || held === 'everyday' ? held : null;
+      if (placement === null) delete practicePreferences.placement;
+      else practicePreferences.placement = placement;
+      next.practicePreferences = practicePreferences;
     } else next[field] = clock.value;
   }
   delete next.preferenceClocks;

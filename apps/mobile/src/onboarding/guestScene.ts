@@ -30,7 +30,11 @@ export function guestLiveBody(mode: string | undefined): Record<string, never> |
 }
 
 /** Start refusals that lead to the account handoff, each with its own line. */
-/** `guest-start-limited` is the app's name for a 429 from /onboarding/start (the per-address daily limit). */
+/**
+ * `guest-start-limited` is the app's name for a 429 from /onboarding/start. The
+ * same 429 comes from the per-address daily limit and the global guest cap, so
+ * its line names no network (F930, founder decision 17).
+ */
 export type GuestStartRefusal = 'guest-live-unavailable' | 'guest-scene-used' | 'guest-start-limited';
 
 export function isAccountHandoffRefusal(code: unknown): code is GuestStartRefusal {
@@ -42,7 +46,7 @@ export function startRefusalCopy(code: GuestStartRefusal): string {
     case 'guest-scene-used':
       return 'Nice to see you again. Create an account and your tutor will pick up from here.';
     case 'guest-start-limited':
-      return 'Today’s free scenes from this network are used up. Create an account to start.';
+      return 'Free tries are busy right now. Create a free account to start your first scene.';
     default:
       return 'Live practice is resting right now. Create an account to start.';
   }

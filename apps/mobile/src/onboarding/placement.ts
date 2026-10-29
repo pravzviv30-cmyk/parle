@@ -29,6 +29,15 @@ export const PLACEMENT_STAGE: Readonly<Record<Placement, 1 | 2>> = { basics: 1, 
 /** The mission level a placement starts on. Used as the brain's low-confidence estimate. */
 export const PLACEMENT_CEFR: Readonly<Record<Placement, 'A1' | 'A2'>> = { basics: 'A1', everyday: 'A2' };
 
+/**
+ * The band core's `nextScene` starts suggestions at, or null with no placement.
+ * Every surface that names a next scene passes this, so none of them offers a
+ * Starter scene to a learner the plan told "You start at Basics".
+ */
+export function placementStartAt(placement: Placement | null | undefined): 'A1' | 'A2' | null {
+  return placement ? PLACEMENT_CEFR[placement] : null;
+}
+
 /** The placement the level answer sets, with "Skip ahead" taken only from Basics. */
 export function placementFor(level: StartLevel | null | undefined, skipAhead = false): Placement | null {
   if (level === 'getby') return skipAhead ? 'everyday' : 'basics';

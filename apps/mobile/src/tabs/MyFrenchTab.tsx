@@ -47,7 +47,7 @@ import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { soundJourney } from '../soundcheck/journey.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { practicePreferencesOf } from '../profile/practicePreferences.ts';
+import { practicePreferencesOf, startAtOf } from '../profile/practicePreferences.ts';
 import { goalOf } from '../onboarding/goalLine.ts';
 import { goalRouteKey, goalRows } from '../goals/rows.ts';
 import { ownedReadStatus } from './ownedRead.ts';
@@ -242,7 +242,7 @@ export function MyFrenchTab() {
   const progress = progressRowsView({ brain: profile.brain, deck, now, access: locks.access });
   const week = weekView(reflectionFrom({ story, recent: conversations, checks, progress: missions, now }), locks.access);
   const tiles = collectionTiles({ postcards: earnedPostcards(missions).length, badges: game.view?.badges.length ?? 0 });
-  const start = emptyJourney(missions, goalOf(profile));
+  const start = emptyJourney(missions, goalOf(profile), startAtOf(profile));
 
   /** Every door on the page, through the account fence. */
   const go = (route: JourneyRoute) => {

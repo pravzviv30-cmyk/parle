@@ -19,12 +19,12 @@
  * call Today and the end card make, so all three name one scene. `picked` is
  * the goal line ("Picked for your trip") when the goal chose it, else null.
  */
-import { FIRST_MISSION, getMission, nextScene, type LearnerGoal, type MissionProgress } from '@luvani/core';
+import { FIRST_MISSION, getMission, nextScene, type LearnerGoal, type MissionLevel, type MissionProgress } from '@luvani/core';
 import { goalPickLine } from '../onboarding/goalLine.ts';
 import { missionMinutes } from '../home/estimate.ts';
 import type { Thread } from './threads.ts';
 
-export function nextConversation(progress: readonly MissionProgress[], thread: Thread | null, continueAllowed: boolean, goal: LearnerGoal | null = null) {
+export function nextConversation(progress: readonly MissionProgress[], thread: Thread | null, continueAllowed: boolean, goal: LearnerGoal | null = null, startAt: MissionLevel | null = null) {
   if (thread?.kind === 'pack' && continueAllowed) {
     return {
       label: 'Continue your conversation', title: thread.seedTopic.en,
@@ -35,7 +35,7 @@ export function nextConversation(progress: readonly MissionProgress[], thread: T
       params: { seedTopic: thread.seedTopic, continuationPackId: thread.packId },
     };
   }
-  const ahead = thread?.kind === 'scene' ? null : nextScene(progress, goal);
+  const ahead = thread?.kind === 'scene' ? null : nextScene(progress, goal, startAt);
   const id = thread?.kind === 'scene' ? thread.missionId : ahead?.mission.id ?? FIRST_MISSION;
   const mission = getMission(id) ?? getMission(FIRST_MISSION)!;
   return {

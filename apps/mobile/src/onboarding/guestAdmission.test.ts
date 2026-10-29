@@ -42,7 +42,7 @@ test('a phone that already had its café scene reaches the account handoff as it
   assert.equal((await request(503, { error: 'guest-scene-used' }, 'audio')).result, 'unavailable', 'only the start can refuse a scene');
 });
 
-test('the daily start limit for this network reaches the account handoff instead of a retry', async () => {
+test('the guest start limit reaches the account handoff instead of a retry', async () => {
   const h = await request(429, { error: 'too many guest starts' });
   assert.equal(h.result, 'guest-start-limited');
   assert.equal((await request(429, {}, 'audio')).result, 'unavailable', 'only the start limit opens the account route');

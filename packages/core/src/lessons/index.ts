@@ -7,6 +7,7 @@ export {
   GUEST_SCENE,
   GUEST_SCENE_TURN_IDS,
   GUEST_SCENE_MAX_SECONDS,
+  GUEST_SCENE_NEXT_TRY,
   GUEST_CAFE_SCENE,
   isGuestScene,
   isGuestSceneTurnId,
