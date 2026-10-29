@@ -22,7 +22,7 @@
  */
 
 import { paper } from '../palette.ts';
-import { companyLine, contactRow, type CompanyFacts, COMPANY } from './company.ts';
+import { companyLine, contactRow, legalReviewNoteShown, type CompanyFacts, COMPANY } from './company.ts';
 import { POLICY_INTRO, POLICY_TITLE, policySections } from './policy.ts';
 
 /** What the support page is called, in its title bar and on the page. */
@@ -135,10 +135,14 @@ function page(title: string, body: readonly string[], facts: CompanyFacts): stri
   ].join('\n');
 }
 
-/** The privacy notice, section for section, exactly as the app draws it. */
+/**
+ * The privacy notice, section for section, exactly as the production app draws
+ * it. The founder uploads this page for the App Store listing, which is the
+ * production app's notice, so it carries no internal legal review note (F929).
+ */
 export function privacyHtml(facts: CompanyFacts = COMPANY): string {
   const body = [`<h1>${escape(POLICY_TITLE)}</h1>`, `<p class="lede">${escape(POLICY_INTRO)}</p>`];
-  for (const section of policySections(facts)) {
+  for (const section of policySections(facts, legalReviewNoteShown('production'))) {
     body.push(`<h2>${escape(section.heading)}</h2>`);
     for (const paragraph of section.body) body.push(`<p>${escape(paragraph)}</p>`);
   }

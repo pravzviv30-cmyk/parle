@@ -140,7 +140,7 @@ export const LEGAL_REVIEW_PENDING = 'Our privacy policy and terms still need leg
  * Development and staging builds say it; a production build never does, since
  * a released app telling its learners it cannot be released is not true of
  * the app in their hand. The review itself is tracked on the release checklist
- * (docs/changes/beta-launch.md), which is what stops a production build until
+ * (docs/RELEASE_GATE.md, "Policy and operational checks"), which is what stops a production build until
  * it is done. Unset (local web, tests) is not a release, so it shows.
  */
 export function legalReviewNoteShown(profile: string | undefined = bundledBuildProfile()): boolean {
