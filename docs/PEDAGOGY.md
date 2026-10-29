@@ -187,7 +187,7 @@ independent use, no XP for a clean answer or a typo, and no "Got right"
 count. A second miss shows the answer again and sends the item to review
 (LEARN-017, 2026-10-29). Two exceptions keep the retry honest: listen-type
 hides the transcript on the first miss, so the retry still tests listening
-(the exercise plays again when it comes back), and own words has no single
+(the learner can tap Hear it again when it comes back), and own words has no single
 right string, so its retry shows nothing. Conversation matching and listen/read-and-choose use the same
 two-miss limit with separate counts per item.
 Changing items starts a fresh count. A correct answer completes immediately.

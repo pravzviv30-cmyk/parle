@@ -67,6 +67,10 @@ export function AnswerSheet({
   const ground = groundFor(sheet.tone, t);
   const waits = sheet.autoAdvanceMs === null;
   const spoken = spokenSheet(sheet, note);
+  // The reason is "French = English": split once, at the first " = ".
+  const cut = sheet.reason?.indexOf(' = ') ?? -1;
+  const reasonFr = cut < 0 ? sheet.reason : sheet.reason!.slice(0, cut);
+  const reasonEn = cut < 0 ? null : sheet.reason!.slice(cut + 3);
   const named = continueName(spoken);
   const arrival = sheetArrival(sheet, Platform.OS === 'web');
 
@@ -109,7 +113,13 @@ export function AnswerSheet({
             «{sheet.french}»
           </Text>
         )}
-        {sheet.reason !== null && <Text {...frenchText} style={[bType.meta, { color: ground.ink }]}>{sheet.reason}</Text>}
+        {sheet.reason !== null && (
+          // Two siblings, so a screen reader speaks each half in its own language.
+          <View style={st.reason}>
+            <Text {...frenchText} style={[bType.meta, { color: ground.ink }]}>{reasonFr}</Text>
+            {reasonEn !== null && <Text style={[bType.meta, { color: ground.ink }]}>{` = ${reasonEn}`}</Text>}
+          </View>
+        )}
         {sheet.after !== null && <Text style={[bType.meta, { color: ground.ink }]}>{sheet.after}</Text>}
         {note !== null && note !== '' && <Text style={[bType.meta, { color: ground.ink }]}>{note}</Text>}
       </View>
@@ -141,6 +151,7 @@ function makeStyles(t: B) {
     calm: { borderWidth: HAIRLINE, borderColor: t.line },
     tap: { minHeight: HIT, justifyContent: 'center' },
     words: { flex: 1, minWidth: 0, gap: space(0.5) },
+    reason: { flexDirection: 'row', flexWrap: 'wrap' },
     mark: { width: MARK, height: MARK, borderRadius: MARK / 2, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
   });
 }

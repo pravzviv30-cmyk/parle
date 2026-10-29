@@ -202,6 +202,13 @@ describe('the answer sheet — F759', () => {
     assert.match(screen, /reason: missReason\(current, fb\.closest\)/, 'the reason is not built from the form shown');
   });
 
+  test('only the French half of the reason is read as French', () => {
+    const file = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+    assert.doesNotMatch(file, /<Text \{\.\.\.frenchText\}[^>]*>\{sheet\.reason\}/, 'the whole reason, English included, is read as French');
+    assert.match(file, /<Text \{\.\.\.frenchText\}[^>]*>\{reasonFr\}<\/Text>/);
+    assert.match(file, /<Text style=\{\[bType\.meta, \{ color: ground\.ink \}\]\}>\{` = \$\{reasonEn\}`\}<\/Text>/);
+  });
+
   test('a miss draws no mark, plays no sound and fires no haptic', () => {
     const first = feedback(sitting([listen()]), 'je ne sais pas');
     const second = feedback(first.state, 'toujours pas');
