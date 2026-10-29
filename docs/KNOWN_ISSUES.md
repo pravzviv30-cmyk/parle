@@ -11484,7 +11484,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F903 — "Start speaking" opens the room with the microphone closed, and Speak does nothing in a typed start
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/plan.ts:187
 - note: Found 2026-10-28 by the product review (LR-01, review severity High; reproduced by three
   reviewers and the orchestrator on web, main af36034b). `initialPracticeMode` returns typed unless
@@ -11493,12 +11493,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   only when the session did not start typed. A button labelled "Start speaking" therefore opens on
   "Your mic is off", and Speak inside a typed-start room is inert. Founder decision first: is the
   gentle typed start a suggestion or a setting. Not verified on a device with real speech.
+- fixed: 2026-10-29. A start labelled Speak now opens the microphone once the room is ready, whatever the onboarding typing preference. Speak in a room that started typed asks first, keeps the typed part and rebuilds the room as voice, waiting out its own lease instead of reporting another device. A safety stop or a Leave during the switch cancels it and starts no voice session, and after the switch the microphone opens on the new room.
 - verified-by: `pressing Start speaking opens the microphone whatever the onboarding typing preference`
 - verified-by: `Speak in a room that started typed switches the session to voice`
+- verified-by: `a safety stop during the switch cancels it and starts no voice session`
+- verified-by: `leaving while the switch rebuilds starts no voice session`
+- verified-by: `switching to voice waits for its own typed session to close instead of reporting another device`
+- verified-by: `after switching to voice the microphone opens on the new room, not the old one`
+- verified-by: `a start with no stated intent is retried with none, so the microphone stays closed (F903)`
 
 ### F904 — A scene the learner never spoke in is still praised and awards new phrases and XP
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/RecapScreen.tsx:393
 - note: Found 2026-10-28 by the product review (LR-02, review severity High; reproduced twice by the
   orchestrator). Tutor log "8 turns (0 from the learner), 9 rescues, 86s" was followed by the recap
@@ -11508,12 +11514,21 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   has no zero-turn rule for phrases or XP. Scripted rescues also advance beats with no learner reply;
   rescue pacing changes go through eval:sessions. Check first whether the local legacyRuntimeFixture
   counts turns differently from lifecycleVersion 1.
+- fixed: 2026-10-29. The recap now carries `learnerReplies`, counting scene replies only (a topic picked on the choosing screen is not one), and two unanswered rescues pause the tutor instead of moving the scene on. A scene with no learner reply earns nothing anywhere: no XP, no new phrases, no minutes, no active day or streak, no practice, nothing for crash recovery to bank, and it is not saved or listed as a conversation. Replies carried from a typed start still count after switching to voice. Accepted limits: crash-journal entries written by builds before this change carry no reply count and recover as before (no released build exists), and the library read-on stops after 3 extra pages.
 - verified-by: `a session with no learner turns reaches the recap with a learner turn count of zero`
+- verified-by: `a topic picked on the choosing screen is not a reply`
+- verified-by: `two unanswered rescues pause the tutor instead of moving the scene on`
 - verified-by: `the end card awards no new phrases and no content XP when the learner never replied`
+- verified-by: `a scene with no learner reply settles nothing: no active day, no streak, no minutes, no XP`
+- verified-by: `a scene with no learner reply banks no practice by any path`
+- verified-by: `a scene with no learner reply leaves nothing for crash recovery to bank`
+- verified-by: `a scene the learner never replied in saves no conversation and publishes no practice`
+- verified-by: `a session with no reply in the scene is never listed as a conversation`
+- verified-by: `replies carried from a typed start still earn the scene its credit after switching to voice`
 
 ### F905 — Leaving a typed scene early keeps no recap, saves no lines and counts no minutes
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/ConvoScreen.tsx
 - note: Found 2026-10-28 by the product review (LR-03, review severity High; three sessions, two
   reviewers). After ✕ then Leave, the app returned to the scene sheet or Today; Journey said "0 min
@@ -11521,11 +11536,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   line was saved, although the leave dialog promises the lines reached will be kept. A voice-started
   session did reach an end card, so the gap depends on the path. Not tested whether the recap
   appears only on completion.
+- fixed: 2026-10-29. After a learner reply, Leave now keeps the room, asks for the recap and waits up to 8 seconds for it. If the recap never comes, the ordinary leave runs and the minutes are settled locally, and a recap that lands after that does not settle the sitting twice. Leaving with no reply stays instant, and leaving while a switch to voice rebuilds still keeps the typed part's minutes.
 - verified-by: `leaving a typed scene after a learner turn keeps a recap, the modelled lines and the minutes`
+- verified-by: `leaving with no reply stays instant`
+- verified-by: `a recap that never comes falls back to the ordinary leave, and still counts the minutes it promised`
+- verified-by: `a recap that lands after the local settle does not settle the sitting twice`
+- verified-by: `leaving while switching still keeps the typed part's minutes`
+- verified-by: `a topic picked on the choosing screen does not make Leave wait`
 
 ### F906 — Balanced corrections hold every grammar slip for a recap an early exit never shows
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/prompt/turnContext.ts:86
 - note: Found 2026-10-28 by the product review (LR-04, review severity High; four errors, one
   reviewer). "j'ai allé" and "à le restaurant" passed with no note at Balanced. The policy says
@@ -11536,21 +11557,36 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   Separately, the recap holds up to six fixes (MAX_FIXES, packages/brain/src/engine/recap.ts) but
   buildConversationPack keeps only three (packages/core/src/conversationPacks.ts:325), so fixes four
   to six never reach Your fixes.
-- verified-by: `fixes held for the recap are saved to Your fixes when the learner leaves early`
+- fixed: 2026-10-29. The code now promotes three high-value A2 slips (passé composé auxiliary, uncontracted à le, determiner gender) to a small inline fix at Balanced, at most one per turn within the cap and cooldown. Agreement slips still wait for the recap. A slip shown in the scene is kept for Your fixes, and the conversation pack now keeps all six recap fixes instead of three.
+- verified-by: `at balanced a passé composé auxiliary error surfaces inline`
+- verified-by: `at balanced an uncontracted à le surfaces inline`
+- verified-by: `at balanced a determiner gender slip surfaces inline`
+- verified-by: `at balanced an agreement slip still waits for the recap`
+- verified-by: `at most one grammar slip surfaces inline per turn at balanced`
+- verified-by: `a high-value slip shown in the scene still reaches the recap's fixes`
+- verified-by: `every fix the recap holds reaches the conversation pack`
 
 ### F923 — Refreshing a live session starts a new one in a different mode without asking
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/ConvoScreen.tsx
 - note: Found 2026-10-28 by the product review (LR-22; seen once). A refreshed voice session reset the
   transcript and said "This session started in typing mode" while the URL kept textMode=false. It
   spends minutes without consent.
+- fixed: 2026-10-29. Conversation parameters are now coerced from the address, so a malformed topic is dropped and never sent to the tutor. A reload of a live room lands on the scene intro ("Your last conversation ended."), keeps the learner's mode and never starts a session. Topics survive a reload, stored as JSON.
+- verified-by: `a reloaded conversation address keeps its mode`
 - verified-by: `reloading a live room lands on the scene intro and keeps the learner's mode`
+- verified-by: `a reloaded topic conversation keeps its topic`
+- verified-by: `a malformed topic in the address is dropped, never sent to the tutor`
+- verified-by: `after switching to voice a reload restarts in voice`
+- verified-by: `starting again after a reload waits out the cut-off session's lease`
 
 ### F928 — Scene objectives do not tick for typed turns that meet them
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/liveRoomView.ts
 - note: Found 2026-10-28 by the product review (LR-29; two reviewers, observed). The location is
   inferred.
+- fixed: 2026-10-29. A reply typed after an English-only hint now ticks the scene's goal. A typed answer that only copies the line just revealed still never counts.
 - verified-by: `a typed turn that meets an objective ticks it`
+- verified-by: `a typed answer copying the just-revealed line does not tick it`
