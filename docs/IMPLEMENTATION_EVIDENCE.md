@@ -22,6 +22,14 @@ of the list.
 
 ## Current landing snapshot
 
+- 29 October 2026 product-review fixes, Stream A (honest session loop): branch
+  `claude/review-a-session-loop` from main f409c6dc. F903, F904, F905, F906, F923 and F928 closed, each
+  with its named tests; three fix-verifier rounds; `eval:sessions` identical to its baseline and the
+  curated model eval 17 ok, 0 hard failures; live replay against a local token server and tutor agent
+  (about 6 live minutes). **7,105 tests, 0 failing**; core 1096, brain 770, tutor agent 887, token server
+  524, playground 110, mobile 3718; shared release/provider proofs 207; all 44 migrations replayed, no
+  migration added. Floors raised through `gate:bless`. Not verified: real speech on a device, staging.
+  Deploy order: token server, then tutor agent, then app.
 - 28 October 2026 forget and card notes, landed after Phase D: branch `claude/forget-pack-copies` with
   main 23693ceb (Phase D) merged in. F897 closed as superseded by F902; the F902 guard test's facts now
   carry `source` and `updatedAt`. **7,000 tests, 0 failing**; core 1092, brain 714, tutor agent 880,
