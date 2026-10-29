@@ -92,7 +92,10 @@ export async function conversationPackPage(base: string, secret: string, userId:
   // bounded number of times, rather than hand the app an empty page with an
   // "Older" link. Past the bound the cursor is returned as it stands.
   for (let extra = 0; extra < HIDDEN_PAGE_READS && page.packs.length === 0 && page.unavailable.length === 0 && page.nextCursor !== null; extra++) {
-    page = await lookup(base, secret, userId, packCursor(page.nextCursor), null, request);
+    // Fail soft: an extra read that errors hands back the last good page and
+    // its cursor, so "Older" can retry. Only the first read may fail the request.
+    try { page = await lookup(base, secret, userId, packCursor(page.nextCursor), null, request); }
+    catch { break; }
   }
   return page;
 }

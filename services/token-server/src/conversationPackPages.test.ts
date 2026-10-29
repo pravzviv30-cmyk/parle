@@ -171,3 +171,16 @@ test('a page of only hidden sessions never comes back empty with a cursor',async
   assert.ok(reads>=2&&reads<=4,`bounded extra reads, got ${reads}`);
   assert.deepEqual(endless.packs,[]);assert.notEqual(endless.nextCursor,null);
 });
+test('a failed extra read returns the last good page rather than an error',async()=>{
+  const silent={...rows[0]!,payload:{...rows[0]!.payload,learnerReplies:0}};
+  let reads=0;
+  const page=await conversationPackPage('https://project.example','fixture',owner,null,async(url)=>{
+    if(String(url).includes('/rest/v1/conversation_packs?'))return Response.json([]);
+    reads++;if(reads>1)return new Response(null,{status:503});
+    return Response.json({version:1,kind:'page',rows:[silent],nextCursor:cursor(silent)});
+  });
+  assert.equal(reads,2,'one extra read was tried');
+  assert.deepEqual(page.packs,[]);
+  assert.equal(page.nextCursor,JSON.stringify(cursor(silent)),'the cursor the last good read reached, so Older can retry');
+  await assert.rejects(conversationPackPage('https://project.example','fixture',owner,null,async()=>new Response(null,{status:503})),'the first read still fails loudly');
+});
