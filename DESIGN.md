@@ -282,8 +282,14 @@ B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
 - **First scene and Save your plan:** a sun band with the café table and a
   brand band with the star jar.
 
-The artboards' back discs keep their 44 place empty: onboarding has no visible
-previous control (F352); platform back still goes back. Bands read the top
+The artboards' back discs hold a Back chevron (`RoundButton kind="back"`, 44 px)
+on every setup step after the first: the questions, the plan, the tutor and
+"Before we start". The welcome keeps its place empty. Browser Back steps back
+on web, and platform back still goes back. This supersedes F352's "no visible
+previous control" (2026-10-29, product review LR-13, F915). "Before we start"
+also offers "Create an account first", and the signed-in first scene offers
+"Look around first" under Start speaking; both land on Home with no scene
+started. Bands read the top
 inset from the onboarding frame (`useOnboardingTopInset`), and the status bar is
 light on blue bands and dark on sun and mint.
 
@@ -1235,7 +1241,9 @@ pieces of the ground's own colour fall away into it; the rest still read.
 ## Structure
 
 First run builds the learner's plan through purpose, interests, self-reported
-level, confidence, focus and daily goal, then a deliberate tutor choice.
+level, confidence, focus and daily goal, then a tutor step with the
+recommended tutor already selected (F926, 2026-10-29), so Continue is never
+disabled waiting for a pick.
 “Meet your tutor” says “Listen, then choose your tutor.”; tutor cards keep names
 without an AI Tutor suffix, and hearing a sample never selects it. The linked
 Terms/Privacy declaration and processing disclosures precede real guest

@@ -11743,7 +11743,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-13; five reviewers). No step has a back control
   and the URL stays /, so browser Back leaves the app. The signed-in first scene
-  (onboarding/FirstLivePractice.tsx) and the consent screen offer only ways into a live session. Decided 2026-10-29 (founder decision 15 and the programme plan): a back chevron on every step after the first, browser Back steps back on web, the consent screen offers back and "Create an account first", and the signed-in first scene offers "Look around first". This reverses F352's "no visible back".
+  (onboarding/FirstSceneScreen.tsx) and the consent screen offer only ways into a live session. Decided 2026-10-29 (founder decision 15 and the programme plan): a back chevron on every step after the first, browser Back steps back on web, the consent screen offers back and "Create an account first", and the signed-in first scene offers "Look around first". This reverses F352's "no visible back".
+- fixed: 2026-10-29. Every setup step after the first shows a Back chevron, and on web browser Back steps back one step. "Before we start" offers "Create an account first" (or "Look around first" when signed in), and the signed-in first scene offers "Look around first". Both go to Home without starting a scene.
 - verified-by: `every onboarding step after the first offers back`
 - verified-by: `the first scene and the consent screen offer a way home without starting a session`
 
@@ -11788,6 +11789,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-c-first-run, Stream C; LR-27). "Get Started" blocks every click until tapped,
   a second splash follows sign-up, and "Choose a tutor" stays disabled until a pick: 13 taps and 8
   decisions to the first French. Decided 2026-10-29 (founder decision 18): the welcome after sign-up shows once and never again on a reload.
+- fixed: 2026-10-29. The tutor step opens with the recommended tutor already selected, so the button reads "Continue with" that tutor and saves the voice. The welcome after sign-up is marked as seen the moment it shows, so a reload never brings it back.
 - verified-by: `a recommended tutor is preselected`
 - verified-by: `the welcome after sign-up shows once and never on a reload`
 

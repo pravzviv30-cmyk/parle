@@ -21,7 +21,10 @@ import { useReduceMotion } from '../motion.ts';
 
 import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
-import { FULL_SETUP, FIVE_SETUP, nextSetupLabel } from './flow.ts';
+import { FULL_SETUP, FIVE_SETUP, nextSetupLabel, previousStep } from './flow.ts';
+import { pressBack, recordStep, webHistory } from './stepHistory.ts';
+import { tutorStep } from './tutorStep.ts';
+import { LOOK_AROUND } from './micPrimer.ts';
 import { GhostButton, IconAction, IconActionRow, PillButton, Press, Sheet } from '../components.tsx';
 import { Screen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } from '../layout.tsx';
 import { paper, radius, space } from '../theme.ts';
@@ -289,9 +292,8 @@ export function PreAccountOnboarding({
       return;
     }
     if (GUEST_PAGES.includes(page)) return;
-    if (page === 'choose-tutor') { go('plan', true); return; }
-    const index = questionOrder.indexOf(page);
-    if (index > 0) go(questionOrder[index - 1]!, true);
+    const previous = previousStep(page, questionOrder);
+    if (previous !== null) go(previous, true);
   };
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -301,6 +303,23 @@ export function PreAccountOnboarding({
     });
     return () => sub.remove();
   }, [page, surface, busy]);
+  // F915: the visible chevron, after the first step. On web it pops this
+  // step's own history entry, so the browser and the flow stay in step.
+  const backRef = useRef(back);
+  backRef.current = back;
+  const history = webHistory(Platform.OS);
+  const shownStep = surface !== null && ['start', 'privacy', 'policy', 'terms'].includes(surface) ? 'before-practice' : page;
+  const backPress = () => pressBack(history, shownStep, () => backRef.current());
+  useEffect(() => {
+    if (history === null || !active || refused || GUEST_PAGES.includes(page)) return;
+    recordStep(history, shownStep, shownStep === questionOrder[0]);
+  }, [shownStep, active, refused]);
+  useEffect(() => {
+    if (history === null || !active) return;
+    const onPop = () => backRef.current();
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [active]);
   const choose = (change: Partial<PreAccountOnboardingDraft>) => { if (!operation.current && !pageMotion.locked.current) patch(change); };
   const toggleRemember = () => {
     if (busy || operation.current || pageMotion.locked.current) return;
@@ -372,13 +391,13 @@ export function PreAccountOnboarding({
     playSfx('select');
     tapSettled();
   };
-  const continueWithAccount = async (basis = draftRef.current) => {
+  const continueWithAccount = async (basis = draftRef.current, returnPage: PreAccountPage = 'choose-tutor') => {
     if (operation.current || pageMotion.locked.current || refused || previewOnly || !basis.eligibilityConfirmed) return;
     operation.current = true; setBusy(true); stopSound();
     const ticket = generation.current;
     const owner = scopeGeneration();
     try {
-      const saved = await onCreateAccount({ ...basis, page: 'choose-tutor' });
+      const saved = await onCreateAccount({ ...basis, page: returnPage });
       if (owner !== scopeGeneration()) return;
       // Successful profile setup may unmount this screen before returning.
       // Clear only its captured account's setup draft after that durable save.
@@ -448,6 +467,19 @@ export function PreAccountOnboarding({
       if (current.current) setBusy(false);
     }
   };
+  /**
+   * The consent screen's way home without a session (founder decision 15).
+   * A guest goes to sign-up, whose own Terms notice records the declaration;
+   * the plan page as the return page means the new account lands on Home,
+   * not on the first scene (firstPracticeEntry.ts). A signed-in learner who
+   * already accepted the Terms saves the plan and goes Home.
+   */
+  const homeFirst = async () => {
+    if (operation.current || pageMotion.locked.current || refused || previewOnly || busy) return;
+    if (signedIn) { await continueWithAccount(draftRef.current, 'plan'); return; }
+    stopSound();
+    onCreateAccount({ ...draftRef.current, page: 'plan' });
+  };
   const saveAccount = async () => {
     if (operation.current || pageMotion.locked.current || refused || !draft.eligibilityConfirmed) return;
     operation.current = true;
@@ -501,8 +533,8 @@ export function PreAccountOnboarding({
   const statusBar = refused ? 'dark' : blue ? 'light' : band ? band.statusBar : page === 'choose-tutor' ? 'light' : 'dark';
   const progress = onboardingProgress({ page, completed: draft.onboardingCompletedSteps, five, signedIn, skipped: [...(draft.onboardingSkippedSteps ?? []), ...(draft.quickStart ? ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] : [])] });
   const reasonGrid = !drinksWrap;
-  const goalGrid = !drinksWrap;
   const tutorName = tutorVoice(draft.tutorVoice).persona.name;
+  const goalGrid = !drinksWrap;
   const closeSheet = () => {
     if (busy) return false;
     stopSound();
@@ -541,7 +573,7 @@ export function PreAccountOnboarding({
       <BoldButton label="Choose your tutor" onPress={() => go('choose-tutor')} /><Press accessibilityLabel="Adjust my plan" onPress={() => open('plan')} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[bType.bold15, { color: t.link, textAlign: 'center' }]}>Adjust my plan</Text></Press>
     </View>
   ) : page === 'choose-tutor' ? (
-    <View style={[readingColumn, { gap: 10 }]}><Text style={[bType.note, { color: t.muted, textAlign: 'center' }]}>You can change voice any time in Settings.</Text><BoldButton label={draft.tutorChosen ? `Continue with ${tutorName}` : 'Choose a tutor'} disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
+    <View style={[readingColumn, { gap: 10 }]}><Text style={[bType.note, { color: t.muted, textAlign: 'center' }]}>You can change voice any time in Settings.</Text><BoldButton label={`Continue with ${tutorName}`} disabled={busy} onPress={() => { patch({ tutorChosen: true }); open('start'); }} /></View>
   ) : page === 'keep' ? (
     <PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} />
   ) : null;
@@ -604,13 +636,14 @@ export function PreAccountOnboarding({
     <>
       <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
       {consentVisible ? <OnboardingLayout page="before-practice" showScrollCue active={active} bleedTop statusBar="light" progress={{ ...progress, stageFraction: (1 + 2 / 3) / 4 }}
-        hero={<BBand tone="brand" art={<><BBandDisc size={150} right={-36} top={-14} color={t.violet2} /><BBandOrb size={70} right={18} top={22} /></>}>
+        hero={<BBand tone="brand" onBack={backPress} art={<><BBandDisc size={150} right={-36} top={-14} color={t.violet2} /><BBandOrb size={70} right={18} top={22} /></>}>
           <Text ref={heading} accessibilityRole="header" style={[bType.band32, { color: t.onBrand, marginTop: 12, maxWidth: '75%' }]}>Before we start.</Text>
           <Text style={[bType.para16, { color: t.onBrandSoft, maxWidth: '64%' }]}>A few things to know about your practice.</Text>
         </BBand>}
         footer={<View style={{ gap: 8 }}>
         <TermsAcceptance context="practice" onTerms={() => { if (!busy) setSurface('terms'); }} onPrivacy={() => { if (!busy) setSurface('policy'); }} />
         <BoldButton label={needsAccount ? 'Create account to start' : 'Start live practice'} state={busy ? 'busy' : 'idle'} disabled={busy || previewOnly} onPress={() => void (needsAccount ? continueWithAccount() : start())} />
+        {!needsAccount && (!signedIn || draft.eligibilityConfirmed) && <Press accessibilityLabel={signedIn ? LOOK_AROUND : 'Create an account first'} disabled={busy || previewOnly} onPress={() => void homeFirst()} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[bType.bold15, { color: t.link, textAlign: 'center' }]}>{signedIn ? LOOK_AROUND : 'Create an account first'}</Text></Press>}
         {previewOnly && <Text style={[type.small, { color: c.muted }]}>Practice is unavailable in this screen preview.</Text>}
       </View>}><View style={{ gap: 14, paddingTop: 20 }}>{consentBody}</View></OnboardingLayout>
       : !refused && page === 'practice' && guest?.live ? <FirstLivePractice guest={guest} progress={progress} active={active && surface === null}
@@ -630,13 +663,13 @@ export function PreAccountOnboarding({
         bleedTop={!refused}
         statusBar={statusBar}
         hero={refused ? undefined
-          : question ? <BQuestionBand page={page as C2QuestionPage} step={questionStep} total={questionPages.length} />
-          : page === 'plan' ? <BBand tone="sun" art={<BArt name="map-route" width={176} height={161} style={{ position: 'absolute', right: -14, top: 20 }} />}>
+          : question ? <BQuestionBand page={page as C2QuestionPage} step={questionStep} total={questionPages.length} onBack={backPress} />
+          : page === 'plan' ? <BBand tone="sun" onBack={backPress} art={<BArt name="map-route" width={176} height={161} style={{ position: 'absolute', right: -14, top: 20 }} />}>
               <Text style={[bType.eyebrow, { color: t.text, marginTop: 8 }]}>Your plan</Text>
               <Text ref={heading} accessibilityRole="header" nativeID="onboarding-plan-heading" style={[bType.band32, { color: t.text, maxWidth: '50%' }]}>{title.replace('\n', ' ')}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, maxWidth: '62%' }}>{planChips(draft).map(chip => <BPlanChip key={chip} label={chip} />)}</View>
             </BBand>
-          : page === 'choose-tutor' ? <BBand tone="brand" style={{ paddingBottom: 24, gap: 10 }}>
+          : page === 'choose-tutor' ? <BBand tone="brand" onBack={backPress} style={{ paddingBottom: 24, gap: 10 }}>
               <View style={{ alignItems: 'center', gap: 10 }}>
                 <BTutorOrb />
                 <Text ref={heading} accessibilityRole="header" nativeID="onboarding-choose-tutor-heading" style={[bType.band32, { color: t.onBrand, textAlign: 'center' }]}>{title}</Text>
@@ -691,7 +724,7 @@ export function PreAccountOnboarding({
                 </>}
                 {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active && surface === null} onEdit={() => open('plan')} />}
                 {page === 'choose-tutor' && <TutorSelection
-                  chosen={draft.tutorChosen ? draft.tutorVoice : null}
+                  chosen={tutorStep(draft).chosen}
                   preview={preview}
                   onChoose={(voice) => choose({ tutorVoice: voice, tutorChosen: true })} />}
                 {page === 'keep' && <Text style={type.body}>Save the practice already completed on this device to your account.</Text>}

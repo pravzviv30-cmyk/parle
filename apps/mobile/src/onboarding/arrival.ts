@@ -15,3 +15,22 @@ export async function loadArrival(): Promise<Arrival | null> {
 export async function saveArrival(value: Arrival): Promise<void> {
   await setItemInUserScope(scopeGeneration(), userKey('first-live-arrival'), JSON.stringify(value));
 }
+/**
+ * Whether the post-sign-up welcome should show (founder decision 18, F926).
+ * Only for an account with no guest practice left to hand off, and only while
+ * the receipt says it has not been seen.
+ */
+export function welcomePending(guestLeft: boolean, arrival: Arrival | null, newlyCreated: boolean): boolean {
+  if (guestLeft) return false;
+  return arrival ? !arrival.welcomeSeen : newlyCreated;
+}
+/**
+ * Written the moment the welcome is drawn, not on Continue, so a reload before
+ * Continue never shows it twice. Everything Continue does besides this still
+ * runs on Continue, or on the reload path when the welcome is not shown.
+ */
+export async function markWelcomeSeen(): Promise<void> {
+  const arrival = await loadArrival();
+  if (arrival?.welcomeSeen === true) return;
+  await saveArrival({ ...(arrival ?? { sessionId: 'account-welcome', finishedAt: [], streakSeen: true }), welcomeSeen: true });
+}

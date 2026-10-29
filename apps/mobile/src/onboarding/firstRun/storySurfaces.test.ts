@@ -51,7 +51,7 @@ describe('the personal onboarding journey', () => {
 
   test('tutor selection is deliberate and hearing does not silently choose or record', () => {
     const tutors = evidence('apps/mobile/src/onboarding/TutorSelection.tsx');
-    assert.match(screen, /chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/);
+    assert.match(screen, /chosen=\{tutorStep\(draft\)\.chosen\}/); // F926: preselected
     assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/);
     assert.match(tutors, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
     assert.match(tutors, /onPress=\{\(\) => preview \? preview\.toggle\(voice\.value\) : onHear\?\.\(voice\.value\)\}/);

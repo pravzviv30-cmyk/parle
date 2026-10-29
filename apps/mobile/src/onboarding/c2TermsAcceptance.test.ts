@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { test } from 'node:test';
 import { freshPreAccountDraft } from './preAccountDraft.ts';
+import { previousStep } from './flow.ts';
 
 const source = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
 const start = source.indexOf('  const start = async');
@@ -25,7 +26,7 @@ function practice({ refused = false, previewOnly = false, locked = false } = {})
   const response = new Promise<void>(resolve => { complete = resolve; });
   const bindings = { operation, refused, previewOnly, pageMotion: { locked: { current: locked }, transition: (commit: () => void) => { commit(); return true; } }, generation, refusedRef,
     guest: null, current: { current: true }, setBusy: () => {}, setIssue: () => {}, setNeedsAccount: () => {}, continueWithAccount: async () => {},
-    busy: false, surface: 'start', stopSound: () => {}, GUEST_PAGES: [], page: 'choose-tutor', questionOrder: [], go: () => {},
+    busy: false, surface: 'start', stopSound: () => {}, GUEST_PAGES: [], page: 'choose-tutor', questionOrder: [], go: () => {}, previousStep,
     setSurface: (value: string | null) => { if (value === null) dismissals++; },
     patch: (change: unknown) => { order.push('declaration'); return { ...freshPreAccountDraft(), reason: 'trip', ...change as object }; },
     startGuestPractice: async (plan: ReturnType<typeof freshPreAccountDraft>) => { assert.equal(plan.eligibilityConfirmed, true); assert.equal(plan.reason, 'trip'); order.push('admission'); await response; return { id: 'test-practice' }; },

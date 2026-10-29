@@ -52,6 +52,12 @@ guest-record reads distinguish completed practice from a pending first scene;
 accepting Terms is not session completion. After the durable profile writes, a
 no-guest plan is consumed once and the existing `FirstScene` microphone primer
 opens with Home behind it, after the new-account welcome where applicable.
+"Look around first" on that primer, and "Create an account first" (or "Look
+around first" when signed in) on "Before we start", land on Home with no scene
+started: the plan page becomes the return page, so `shouldStartFirstPractice`
+is false (F915). Setup steps after the first show a Back chevron, and on web
+each step pushes one history entry so browser Back steps back
+(`onboarding/stepHistory.ts`).
 Normal authenticated session admission still decides whether the room can
 start. Completed guest practice retains its existing adoption and result
 handoff. An account with an existing profile keeps that profile. These routing
@@ -84,10 +90,12 @@ header remains mounted and interpolates for 300 ms. Shared content transitions
 fade/translate for 300 ms using explicit completion callbacks and a synchronous
 advancement lock; reduced motion and backgrounding settle them immediately.
 Sign in, account welcome and Home omit progress. Account welcome has an explicit
-Continue and no skip or automatic exit; only its logo ring begins rotating after
+Continue and no automatic exit, and shows once: its receipt is written when it
+is drawn, so a reload before Continue lands on Home without it (founder
+decision 18, F926); only its logo ring begins rotating after
 800 ms, over a continuous 8.8-second cycle.
 
-The unsigned draft preserves its route, answers, deliberate tutor selection, experiment variant, completed/skipped routes and account email/form mode. Passwords are never persisted. Signed-in setup and repair drafts use separate account-scoped local keys, reject stale account writes and clear after completion or refusal. A refusal retains no typed answers or refusal marker.
+The unsigned draft preserves its route, answers, tutor selection (the recommended tutor is preselected, F926), experiment variant, completed/skipped routes and account email/form mode. Passwords are never persisted. Signed-in setup and repair drafts use separate account-scoped local keys, reject stale account writes and clear after completion or refusal. A refusal retains no typed answers or refusal marker.
 
 | Surface | Action and consequence |
 |---|---|

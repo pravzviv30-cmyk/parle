@@ -40,3 +40,13 @@ export function nextSetupLabel(page: PreAccountPage, five = false): string {
   const next = nextSetup(page, five);
   return next === 'plan' ? 'See your plan' : 'Continue';
 }
+/**
+ * The step a visible Back returns to, or null on the first step (F915, LR-13).
+ * The tutor page goes back to the plan; a guest page (practice, recap, keep)
+ * has no setup step behind it.
+ */
+export function previousStep(page: PreAccountPage, order: readonly PreAccountPage[]): PreAccountPage | null {
+  if (page === 'choose-tutor') return 'plan';
+  const index = order.indexOf(page);
+  return index > 0 ? order[index - 1]! : null;
+}

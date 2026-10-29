@@ -14,7 +14,7 @@ import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-na
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { BArt, type BArtName } from '../art/BArt.tsx';
-import { Press } from '../components.tsx';
+import { Press, RoundButton } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { HIT, bType, decorative, frenchText } from '../theme.ts';
 import type { C2QuestionPage } from './c2QuestionScenes.ts';
@@ -102,11 +102,11 @@ export const QUESTION_BANDS: Readonly<Record<C2QuestionPage, { tone: BandTone; a
 
 /**
  * The question band: the 6 high progress bar and "n of 6", then the halo and
- * its drawing. The artboard's back disc keeps its 44 place empty: onboarding
- * shows no visible previous control (F352, surfaceContract); platform back
- * still goes to the previous question.
+ * its drawing. The artboard's back disc holds the Back chevron when `onBack`
+ * is given (F915, LR-13, 2026-10-29, superseding F352's "no visible back"),
+ * and otherwise keeps its 44 place empty.
  */
-export function BQuestionBand({ page, step, total }: { page: C2QuestionPage; step: number; total: number }) {
+export function BQuestionBand({ page, step, total, onBack }: { page: C2QuestionPage; step: number; total: number; onBack?: () => void }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const top = useOnboardingTopInset();
@@ -116,7 +116,7 @@ export function BQuestionBand({ page, step, total }: { page: C2QuestionPage; ste
   return (
     <View style={[s.questionBand, { backgroundColor: k.ground, paddingTop: top + 14 }]}>
       <View style={s.progressRow}>
-        <View style={s.backSpace} />
+        {onBack ? <RoundButton kind="back" accessibilityLabel="Back" onPress={onBack} /> : <View style={s.backSpace} />}
         <View accessibilityRole="progressbar" accessibilityLabel="Onboarding"
           accessibilityValue={{ min: 0, max: total, now: step, text: `Onboarding, step ${step} of ${total}` }}
           style={[s.track, { backgroundColor: k.track }]}>
@@ -144,8 +144,10 @@ export function BTopSpace({ extra }: { extra: number }) {
  * A band with the 40 bottom corners that heads Plan, Tutor, Ready, First scene
  * and Save your plan. `art` is placed from just under the clock.
  */
-export function BBand({ tone, children, art, style }: {
+export function BBand({ tone, children, art, style, onBack }: {
   tone: BandTone;
+  /** Draws the Back chevron in the artboard's back disc (F915); without it the place stays empty. */
+  onBack?: () => void;
   children: ReactNode;
   /** Absolutely placed decoration (circle and drawing), drawn behind the words. */
   art?: ReactNode;
@@ -158,8 +160,8 @@ export function BBand({ tone, children, art, style }: {
   return (
     <View style={[s.band, { backgroundColor: k.ground, paddingTop: top + 14 }, style]}>
       {art != null ? <View {...decorative} style={[StyleSheet.absoluteFill, { top }]}>{art}</View> : null}
-      {/* The artboard's back disc keeps its place empty (F352: no visible previous control). */}
-      <View style={s.backSpace} />
+      {/* The artboard's back disc: the Back chevron after the first step (F915), otherwise an empty place. */}
+      {onBack ? <RoundButton kind="back" accessibilityLabel="Back" onPress={onBack} /> : <View style={s.backSpace} />}
       {children}
     </View>
   );

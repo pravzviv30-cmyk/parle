@@ -297,7 +297,9 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Decision: Journey's "What you can do" shows no "n of 3 earned" count; abilities
   carry no count, as before. The live mic is green (mint, with ink on it), not
   the artboard's sun. Onboarding keeps no visible back button (F352); the
-  phone's back gesture still works. The age check stays after sign-up and the
+  phone's back gesture still works. (Superseded 2026-10-29 by the product
+  review, LR-13, F915: setup steps after the first show a Back chevron, and
+  browser Back steps back on web.) The age check stays after sign-up and the
   AI-partner consent stays where it is; moving either before the first scene is
   an age-policy change for another round. Profile's plan card may name the free
   plan's "5 free minutes of speaking each week", the plan's fixed allowance.
