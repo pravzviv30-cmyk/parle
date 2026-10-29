@@ -202,6 +202,8 @@ export function ConvoScreen({
   listenOnly = false,
   typingOpenAtStart,
   openMicOnReady = false,
+  ownLeaseAtStart,
+  onModeSwitched,
   walkMode = false,
   seedTopic,
   continuationPackId,
@@ -227,6 +229,10 @@ export function ConvoScreen({
   typingOpenAtStart?: boolean;
   /** The learner pressed Start speaking: open the microphone once the room is ready (F903). */
   openMicOnReady?: boolean;
+  /** Start again after a web reload: the first start waits out the cut-off session's lease (F923). */
+  ownLeaseAtStart?: boolean;
+  /** The session was rebuilt as voice: the address should say so, for a reload (F903). */
+  onModeSwitched?: () => void;
   walkMode?: boolean;
   /**
    * What the learner asked to talk about again, from a topic card. It rides the
@@ -320,6 +326,7 @@ export function ConvoScreen({
     noTypedRecovery: walkMode,
     mode: openedTyped ? 'convo-text' : 'convo',
     listenOnly,
+    ownLeaseAtStart,
     snapshot,
     seedTopic,
     continuationPackId,
@@ -956,6 +963,7 @@ export function ConvoScreen({
       setTypingOpen(false);
       leftSessionRef.current = live.sessionId;
       setMicWanted(true); micOnReadyAsked.current = false;
+      onModeSwitched?.();
       setOpenedTyped(false);
     });
   };

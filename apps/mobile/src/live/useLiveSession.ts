@@ -603,6 +603,11 @@ export function useLiveSession(
      * sent anywhere; the server and the agent see an ordinary voiced session.
      */
     listenOnly?: boolean;
+    /**
+     * The first start restarts the learner's own session a web reload cut off
+     * (F923), so a 409 is that lease closing and waits (live/ownLease.ts).
+     */
+    ownLeaseAtStart?: boolean;
     snapshot?: unknown;
     /**
      * What the learner asked to talk about, when a topic card started this.
@@ -758,7 +763,7 @@ export function useLiveSession(
   // The choosing screen is up from 'opening' until the scene's first view (F905).
   const choosingRef = useRef(false);
   // Set by leaveForRebuild: the next start's 409 is our own lease closing (F903).
-  const ownLeaseRetryRef = useRef(false);
+  const ownLeaseRetryRef = useRef(opts?.ownLeaseAtStart === true);
   const addTurn = useCallback((line: Omit<TurnLine, 'id'>, confirmedId?: string) => {
     turnSeq.current += 1;
     const id = confirmedId ?? `t${turnSeq.current}`;

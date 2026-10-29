@@ -356,6 +356,7 @@ function LessonRoute() {
 function ConvoRoute() {
   const nav = useNavigation<LeavingNav & {
     replace: (screen: 'Drill', params: NonNullable<RootStackParamList['Drill']>) => void;
+    setParams: (p: { textMode?: boolean }) => void;
   }>();
   const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
@@ -371,6 +372,7 @@ function ConvoRoute() {
   const [walkStarted, setWalkStarted] = useState(false);
   // F923: a web reload of this address waits for Start again instead of opening a session.
   const [reloaded, setReloaded] = useState(() => isReload(Platform.OS));
+  const [afterReload, setAfterReload] = useState(false);
   useEffect(() => { consumeReload(); }, []);
   // Opened from a goal (Stage 4): the route carries the goal's opaque key and
   // the task, never the goal's words, so the step is made here from the
@@ -485,7 +487,7 @@ function ConvoRoute() {
   // After the offline gate on purpose: a learner with no server to talk to gets
   // the honest screen at once rather than a spinner over a disk read that
   // cannot help them.
-  if (reloaded) return <ReloadIntro onStart={() => setReloaded(false)} onBack={leave} />;
+  if (reloaded) return <ReloadIntro onStart={() => { setAfterReload(true); setReloaded(false); }} onBack={leave} />;
   if (walkMode && !walkStarted) return <WalkIntro onStart={() => setWalkStarted(true)} onBack={leave} />;
   if (!replayRead || reviewDeck === null) return <Loading />;
   return (
@@ -510,6 +512,8 @@ function ConvoRoute() {
         typingOpenAtStart={start.typingOpen}
         // Start speaking is the learner agreeing to be heard (F903).
         openMicOnReady={start.openMicOnReady}
+        ownLeaseAtStart={afterReload}
+        onModeSwitched={() => nav.setParams({ textMode: false })}
         seedTopic={parseSeedTopic(route.params?.seedTopic)}
         continuationPackId={route.params?.continuationPackId}
         // The mission the learner chose, carried through to the join token so

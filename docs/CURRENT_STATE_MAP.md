@@ -133,6 +133,9 @@ DECISIONS.md UI-007):
   past that it says "Still closing your typed session" with Try again and Leave.
   An ordinary start's 409 still reads as another device. The topic of a
   conversation travels in the web address as validated JSON, so a reload keeps it.
+  After a switch the address is set to `textMode=false`, so a reload restarts in
+  voice; Start again after a reload waits out the cut-off session's lease the
+  same way.
   A web reload of the conversation address (F923, `tutor/reloadGate.ts`) shows
   "Your last conversation ended." with Start again and never opens a session
   by itself. The Convo and Lesson routes follow the device

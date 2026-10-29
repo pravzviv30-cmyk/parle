@@ -37,7 +37,28 @@ describe('a reloaded conversation waits to be asked — F923', () => {
     const nav = read('../nav/RootNavigator.tsx');
     assert.match(nav, /const \[reloaded, setReloaded\] = useState\(\(\) => isReload\(Platform\.OS\)\);/);
     assert.match(nav, /useEffect\(\(\) => \{ consumeReload\(\); \}, \[\]\);/);
-    assert.match(nav, /if \(reloaded\) return <ReloadIntro onStart=\{\(\) => setReloaded\(false\)\} onBack=\{leave\} \/>;/);
+    assert.match(nav, /if \(reloaded\) return <ReloadIntro onStart=\{\(\) => \{ setAfterReload\(true\); setReloaded\(false\); \}\} onBack=\{leave\} \/>;/);
     assert.ok(nav.indexOf('if (reloaded) return <ReloadIntro') < nav.indexOf('<LazyConvoScreen'), 'the session can start before the intro is answered');
+  });
+
+  test('after switching to voice a reload restarts in voice', () => {
+    // The address follows the room: the rebuild writes textMode false before it connects as voice.
+    const screen = read('../ConvoScreen.tsx');
+    assert.match(screen, /onModeSwitched\?\.\(\);\s*setOpenedTyped\(false\);/, 'the address still says typed after the switch');
+    const nav = read('../nav/RootNavigator.tsx');
+    assert.match(nav, /onModeSwitched=\{\(\) => nav\.setParams\(\{ textMode: false \}\)\}/);
+    // And that address, reloaded, starts voice with the mic: the params read back as voice chosen.
+    const start = convoStartFromParams({ textMode: 'false' }, { preferTyping: true });
+    assert.deepEqual([start.openedTyped, start.openMicOnReady], [false, true]);
+  });
+
+  test("starting again after a reload waits out the cut-off session's lease", () => {
+    // Only Start again on the reload intro arms the own-lease wait; every other start keeps today's 409.
+    const nav = read('../nav/RootNavigator.tsx');
+    assert.match(nav, /ownLeaseAtStart=\{afterReload\}/);
+    assert.match(nav, /const \[afterReload, setAfterReload\] = useState\(false\);/);
+    assert.match(read('../ConvoScreen.tsx'), /ownLeaseAtStart,\n/);
+    const hook = read('../live/useLiveSession.ts');
+    assert.match(hook, /const ownLeaseRetryRef = useRef\(opts\?\.ownLeaseAtStart === true\);/, 'the first start after a reload reads its own lease as another device');
   });
 });
