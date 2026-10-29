@@ -45,7 +45,7 @@ describe('Speak in a typed start — F903', () => {
     assert.match(screen, /if \(switching !== null\) \{\s*return <RoomWait/);
     assert.ok(screen.indexOf('if (switching !== null)') < screen.indexOf('if (live.recap) {'), 'the end card shows before the switch');
     // The rebuild releases the lease first (F201), then flips the mode once.
-    assert.match(screen, /void live\.leaveForRebuild\(\)\.finally\(\(\) => \{[\s\S]{0,400}setOpenedTyped\(false\);/);
+    assert.match(screen, /void live\.leaveForRebuild\(\)\.finally\(\(\) => \{[\s\S]{0,600}setOpenedTyped\(false\);/);
     // The typed part is not a sitting of its own: its replies carry into the voice
     // room and the one clock keeps running, so the scene settles once, at its end.
     assert.match(screen, /carriedRepliesRef\.current \+= live\.sceneReplies;/);

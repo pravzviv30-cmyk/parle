@@ -91,7 +91,7 @@ import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { isUnderAgeStop } from './profile/age.ts';
 import { prefersTyping } from './profile/typing.ts';
-import { micOpensOnReady } from './tutor/convoStart.ts';
+import { micAfterAsk, micOpensOnReady } from './tutor/convoStart.ts';
 import { withAgeStop } from './profile/store.ts';
 import type { OrbState } from './tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
@@ -355,13 +355,24 @@ export function ConvoScreen({
   // Start speaking (F903): the microphone opens once the room is ready. A
   // refusal falls back to the open typing box, the quiet twin.
   const micOnReadyAsked = useRef(false);
+  // The session the switch to voice left, so the ask waits for the new one (F903).
+  const leftSessionRef = useRef<string | null>(null);
+  const sessionIdRef = useRef<string | null>(live.sessionId);
+  sessionIdRef.current = live.sessionId;
+  const [micRetry, setMicRetry] = useState(0);
   useEffect(() => {
     if (!micOpensOnReady({ openMicOnReady: micWanted, openedTyped, walkMode, asked: micOnReadyAsked.current,
-      live: live.status.phase === 'live', roomShown: live.convo !== null || live.opening !== null })) return;
+      live: live.status.phase === 'live', roomShown: live.convo !== null || live.opening !== null,
+      sessionId: live.sessionId, leftSessionId: leftSessionRef.current })) return;
     micOnReadyAsked.current = true;
-    void live.openMic().then(opened => { if (!opened) setTypingOpen(true); });
+    const askedFor = live.sessionId;
+    void live.openMic().then(opened => {
+      const next = micAfterAsk({ opened, askedFor, now: sessionIdRef.current });
+      if (next === 'open-box') setTypingOpen(true);
+      else if (next === 'ask-again') { micOnReadyAsked.current = false; setMicRetry((n) => n + 1); }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [micWanted, openedTyped, walkMode, live.status.phase, live.convo, live.opening, live.openMic]);
+  }, [micWanted, openedTyped, walkMode, live.status.phase, live.convo, live.opening, live.openMic, live.sessionId, micRetry]);
 
   // Retire a remembered pack only once this route has become a real room. The
   // ref is raised before the async write so a second view cannot queue a second
@@ -943,6 +954,7 @@ export function ConvoScreen({
       practiceBankedRef.current = false;
       setRecapActiveSec(null);
       setTypingOpen(false);
+      leftSessionRef.current = live.sessionId;
       setMicWanted(true); micOnReadyAsked.current = false;
       setOpenedTyped(false);
     });

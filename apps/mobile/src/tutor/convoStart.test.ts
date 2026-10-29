@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 import { tutorGate } from './gate.ts';
 import { parseSeedTopic, stringifySeedTopic } from './convoStart.ts';
-import { boolParam, convoStartFromParams, micOpensOnReady } from './convoStart.ts';
+import { boolParam, convoStartFromParams, micAfterAsk, micOpensOnReady } from './convoStart.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 const typer = { preferTyping: true } as const;
@@ -61,7 +61,7 @@ describe('a conversation opens the way its button said — F903, F923', () => {
   });
 
   test('Start speaking opens the microphone once, when the room is ready, and a refusal opens the box', () => {
-    const ready = { openMicOnReady: true, openedTyped: false, walkMode: false, asked: false, live: true, roomShown: true };
+    const ready = { openMicOnReady: true, openedTyped: false, walkMode: false, asked: false, live: true, roomShown: true, sessionId: 's1', leftSessionId: null };
     assert.equal(micOpensOnReady(ready), true);
     assert.equal(micOpensOnReady({ ...ready, asked: true }), false, 'the microphone is asked for twice');
     assert.equal(micOpensOnReady({ ...ready, live: false }), false, 'the microphone is asked for before the room is live');
@@ -71,7 +71,7 @@ describe('a conversation opens the way its button said — F903, F923', () => {
     assert.equal(micOpensOnReady({ ...ready, openMicOnReady: false }), false, 'a start with no stated intent opened the microphone');
     const screen = read('../ConvoScreen.tsx');
     assert.match(screen, /micOpensOnReady\(\{/);
-    assert.match(screen, /micOnReadyAsked\.current = true;\s*void live\.openMic\(\)\.then\(opened => \{ if \(!opened\) setTypingOpen\(true\); \}\);/);
+    assert.match(screen, /micOnReadyAsked\.current = true;\s*const askedFor = live\.sessionId;\s*void live\.openMic\(\)\.then\(opened => \{/);
   });
 
   test('every Start speaking button says it chose voice, and other ways in say nothing', () => {
@@ -112,5 +112,24 @@ describe('a conversation opens the way its button said — F903, F923', () => {
     }
     // Extra fields are never passed through.
     assert.deepEqual(parseSeedTopic('{"fr":"a","en":"b","x":"evil"}'), { fr: 'a', en: 'b' });
+  });
+
+  test('after switching to voice the microphone opens on the new room, not the old one', () => {
+    const base = { openMicOnReady: true, openedTyped: false, walkMode: false, asked: false, live: true, roomShown: true };
+    // The commit the switch flips the mode in still shows the old typed room as live: never ask there.
+    assert.equal(micOpensOnReady({ ...base, sessionId: 'typed-1', leftSessionId: 'typed-1' }), false, 'the microphone was asked for on the room that was left');
+    // The new voice session, once live: ask.
+    assert.equal(micOpensOnReady({ ...base, sessionId: 'voice-2', leftSessionId: 'typed-1' }), true);
+    // First-load Start speaking: nothing was left, so it asks once, as before.
+    assert.equal(micOpensOnReady({ ...base, sessionId: 's1', leftSessionId: null }), true);
+    assert.equal(micOpensOnReady({ ...base, sessionId: 's1', leftSessionId: null, asked: true }), false);
+    // A refusal on the room it asked for opens the box; a room that changed underneath asks again.
+    assert.equal(micAfterAsk({ opened: true, askedFor: 's1', now: 's1' }), 'done');
+    assert.equal(micAfterAsk({ opened: false, askedFor: 's1', now: 's1' }), 'open-box');
+    assert.equal(micAfterAsk({ opened: false, askedFor: 'typed-1', now: 'voice-2' }), 'ask-again', 'a torn-down room opened the box');
+    const screen = read('../ConvoScreen.tsx');
+    assert.match(screen, /sessionId: live\.sessionId, leftSessionId: leftSessionRef\.current/);
+    assert.match(screen, /leftSessionRef\.current = live\.sessionId;/);
+    assert.match(screen, /micAfterAsk\(\{ opened, askedFor, now: sessionIdRef\.current \}\)/);
   });
 });

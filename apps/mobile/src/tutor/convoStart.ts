@@ -57,8 +57,21 @@ export function convoStartFromParams(
 export function micOpensOnReady(state: {
   openMicOnReady: boolean; openedTyped: boolean; walkMode: boolean;
   asked: boolean; live: boolean; roomShown: boolean;
+  /** The session on screen, and the one a switch to voice left (null when none was left). */
+  sessionId: string | null; leftSessionId: string | null;
 }): boolean {
-  return state.openMicOnReady && !state.openedTyped && !state.walkMode && !state.asked && state.live && state.roomShown;
+  // The commit a switch flips the mode in still shows the old room as live; it is never the one asked.
+  const newRoom = state.leftSessionId === null || state.sessionId !== state.leftSessionId;
+  return state.openMicOnReady && !state.openedTyped && !state.walkMode && !state.asked && state.live && state.roomShown && newRoom;
+}
+
+/**
+ * After asking: a refusal on the room it asked for opens the typing box (the
+ * quiet twin); a room that changed underneath the ask asks again on the new one.
+ */
+export function micAfterAsk(state: { opened: boolean; askedFor: string | null; now: string | null }): 'done' | 'open-box' | 'ask-again' {
+  if (state.opened) return 'done';
+  return state.askedFor === state.now ? 'open-box' : 'ask-again';
 }
 
 /**
