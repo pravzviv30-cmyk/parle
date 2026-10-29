@@ -548,7 +548,7 @@ const makeStyles = (t: B) =>
     // The current node's 4pt lavender ring sits outside its 38pt disc, as the box-shadow does.
     nodeRing: { width: 46, height: 46, borderRadius: 23, margin: -4, padding: 4, backgroundColor: t.lavender },
     node: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-    nodeAhead: { backgroundColor: t.card, borderWidth: 2, borderColor: t.ring },
+    nodeAhead: { backgroundColor: t.card, borderWidth: 2, borderColor: t.field },
     // What you can do.
     ability: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14, minHeight: HIT },
     // Then and now cells.

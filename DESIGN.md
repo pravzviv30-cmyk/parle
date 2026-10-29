@@ -458,7 +458,10 @@ mouse click stays ringless. The rule takes every keyboard-reachable element
 (`[tabindex]` other than -1, `a[href]`, `button`), so every Pressable and the tab bar carry
 it without opting in. Text fields (`input`, `textarea`, `select`) draw their own focus and
 are left out, as is a heading focused by script (tabIndex -1). Only a text field may reset
-its outline inline; `controls.test.ts` fails on any other. The halo is a box-shadow, so a control with its own shadow
+its outline inline; `controls.test.ts` fails on any other. The outline follows the control's corner: `Press` gives
+its focusable frame the radius of the surface it draws, so a pill's ring is a pill. An empty ring or
+disc that marks an open, ahead or not-yet item is a state mark, not decoration, and takes `field`
+too (WCAG 1.4.11). The halo is a box-shadow, so a control with its own shadow
 gives it up while it holds keyboard focus, and only then.
 `AccountField` and the live-room composer draw their own focus. On the web, Space chooses a radio, checkbox, tab or switch built on
 `Press` or `Chip`; Enter is react-native-web's own (F927). A `PillButton` or `Press`

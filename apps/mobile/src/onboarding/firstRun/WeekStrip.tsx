@@ -48,7 +48,7 @@ const st = StyleSheet.create({
   cell: { flex: 1, alignItems: 'center', gap: space(1) },
   disc: { width: '100%', maxWidth: space(10), aspectRatio: 1, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   practised: { backgroundColor: colour.sun },
-  open: { backgroundColor: paper.card, borderWidth: 1, borderColor: paper.line },
+  open: { backgroundColor: paper.card, borderWidth: 1, borderColor: paper.field },
   ahead: { backgroundColor: paper.skeleton },
   today: { borderWidth: 2, borderColor: paper.ink },
 });

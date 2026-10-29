@@ -81,7 +81,8 @@ const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space(2), borderRadius: radius.chip },
   tick: { width: 20, height: 20 },
   disc: { width: 20, height: 20, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  open: { backgroundColor: paper.card, borderColor: paper.line },
+  // An open task's only mark: 3:1 on the card (F921 round 3, WCAG 1.4.11).
+  open: { backgroundColor: paper.card, borderColor: paper.field },
   done: { backgroundColor: colour.mint, borderColor: colour.mint },
   // The ticked disc sits exactly over the open one, so popping in covers it.
   cover: { position: 'absolute', top: 0, left: 0 },

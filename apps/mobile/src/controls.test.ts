@@ -106,29 +106,28 @@ describe('F921: control borders', () => {
     // reason. A one-sided rule (borderTopColor and the like) is a divider by
     // construction and is not read. A new input, choice, tile or chip drawn
     // on a pale edge fails by default.
+    //
+    // A state mark is never decorative: an empty ring or disc that tells an
+    // open, ahead or not-yet item from a done one carries that state on its own
+    // to a sighted learner (the words beside it do not say it; only the screen
+    // reader label does), so it needs 3:1 too (WCAG 1.4.11, round 3). Only
+    // frames, wells, dividers, art and marks whose border is their own fill
+    // belong here.
     const DECORATIVE = new Map<string, string>([
-      ['components.tsx#stopMark', 'a stop on the progress line, not pressable'],
-      ['components.tsx#inline:LineBullet', 'a rung bullet beside a line, not pressable'],
       ['components.tsx#stationDotHere', 'a cut-out ring in the ground colour around the here dot'],
       ['drill/AnswerSheet.tsx#calm', 'the calm feedback panel around the answer words'],
       ['settings/ProfileParts.tsx#statRuled', 'the rules between the profile stats'],
-      ['myfrench/CadenceCard.tsx#notYet', 'a day dot not yet practised'],
-      ['tutor/MissionTaskList.tsx#open', 'an open task mark beside its words'],
-      ['onboarding/firstRun/StreakCelebrationScreen.tsx#disc', 'a day disc inside the streak art'],
-      ['onboarding/firstRun/WeekStrip.tsx#open', 'an open day in the week strip'],
       ['DrillScreen.tsx#answerBox', 'the sentence well, a plain View; its word tiles are the controls'],
       ['DrillScreen.tsx#slot', 'the dashed gap a placed word leaves, not pressable'],
-      ['journey/JourneyParts.tsx#nodeAhead', 'a journey node not reached yet, not pressable'],
-      ['journey/JourneyParts.tsx#dashed', 'the dashed outline of a stage still ahead, not pressable'],
+      ['journey/JourneyParts.tsx#dashed', 'the frame of DashedCell, whose own words say what is missing'],
       ['game/StreakParts.tsx#freeze', 'the freeze card frame, a plain View'],
-      ['recap/RecapParts.tsx#goalRing', 'a goal ring in the recap list, not pressable'],
-      ['live/LiveParts.tsx#goalRingNow', 'the current goal ring in the live room, not pressable'],
+      ['live/LiveParts.tsx#goalRingNow', 'a state mark, but it sits on the blue live-room ground, where sun is 5:1; the scan measures card and cream'],
       ['explore/ExploreParts.tsx#prepare', 'the sun edge of the prepare card, a plain View'],
       ['tabs/HomeTab.tsx#fix', 'the mint edge of the one-fix card, a plain View'],
       ['home/RoutePath.tsx#inline:RouteNode', 'a route dot, its border the same sun as its fill'],
       ['wall/WallPlansPage.tsx#inline:TrialTimeline', 'a timeline dot, its border the same sun as its fill'],
       ['live/C2LiveRoom.tsx#reportPending', 'a filled report disc, its border the same as its fill'],
-      ['onboarding/BOnboardingParts.tsx#inline:BStageCard', 'the stage dots of the first-run plan, decorative'],
+      ['onboarding/BOnboardingParts.tsx#inline:BStageCard', 'ordinal stage dots under visible stage names; the current stage is a brand fill that passes'],
       ['onboarding/motion/C2Scene.tsx#inline:DayOneBadge', 'the day-one badge inside the scene art'],
       ['onboarding/motion/OnboardingScenes.tsx#inline:GlowAction', 'the glow behind an onboarding action, decorative'],
     ]);
@@ -245,6 +244,17 @@ describe('F927: Space and the focus ring', () => {
     assert.match(css, new RegExp(`box-shadow: 0 0 0 2px ${paper.card} !important`), 'the halo does not fill the gap');
     assert.match(css, /:focus:not\(:focus-visible\)[^{]*\{[^}]*outline: none/, 'a mouse click would draw a ring');
 
+    // The ring follows the control's shape. The outline is drawn on the
+    // focusable element, so it needs the drawn surface's corner: Press's
+    // Pressable is the outer frame around the shrinking surface, and an
+    // OptionCard's Pressable sits inside its rounded card.
+    const components = read('components.tsx');
+    const pressBody = components.slice(components.indexOf('export function Press('), components.indexOf('function SelectRing('));
+    assert.match(pressBody, /const frameRadius = StyleSheet\.flatten\(style\)\?\.borderRadius;/, 'Press does not read its surface corner');
+    assert.match(pressBody, /style=\{frameRadius != null \? \[\{ borderRadius: frameRadius \}, frame\] : frame\}/, 'the focusable frame is square around a rounded pill');
+    assert.match(components, /optionMain: \{[^}]*borderRadius: radius\.card/, 'the OptionCard ring is square inside a rounded card');
+    assert.match(components, /filterChip: \{[^}]*borderRadius: radius\.pill/, 'the chip ring is square');
+
     // Nothing else suppresses a focus style: an inline outline reset is only
     // for a text field, which draws its own focus.
     const OWN_FOCUS = new Set(['auth/AccountField.tsx#input', 'live/C2LiveRoom.tsx#input']);
@@ -259,7 +269,6 @@ describe('F927: Space and the focus ring', () => {
     assert.deepEqual(suppressed, [], 'a focus style is suppressed on something that is not a text field');
 
     // Injected once, from components.tsx, on the web only.
-    const components = read('components.tsx');
     assert.match(components, /if \(Platform\.OS === 'web'\) installFocusRule\(FOCUS\)/, 'the rule is never installed');
     const keyActivation = read('keyActivation.ts');
     assert.match(keyActivation, /getElementById\(FOCUS_RULE_ID\)/, 'the rule could be injected twice');

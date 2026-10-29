@@ -906,7 +906,7 @@ export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: bo
         borderRadius: radius.pill,
         backgroundColor: active ? color : 'transparent',
         borderWidth: active ? 0 : HAIRLINE + 0.5,
-        borderColor: active ? color : t.line,
+        borderColor: active ? color : t.field,
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -1094,7 +1094,7 @@ const makeS = (t: B) => StyleSheet.create({
   },
   optionSelected: { borderColor: t.text, borderWidth: 1.5 },
   optionPressed: { backgroundColor: t.skeleton },
-  optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
+  optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', borderRadius: radius.card },
   field: {
     minHeight: HIT + 12,
     backgroundColor: t.card,
@@ -1570,7 +1570,7 @@ const makeLs = (t: B) => StyleSheet.create({
     marginTop: space(1),
     borderRadius: radius.pill,
     borderWidth: HAIRLINE + 0.5,
-    borderColor: t.line,
+    borderColor: t.field,
   },
   stopEarned: { backgroundColor: t.text, borderColor: t.text },
   tutor: { gap: space(3) },
@@ -1695,6 +1695,9 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
     if (haptic === 'light') pressed();
     else if (haptic === 'selection') tapSettled();
   };
+  // The keyboard ring is drawn on the Pressable, the outer frame; give it the
+  // surface's corner so a pill's ring is a pill (a caller's frame still wins).
+  const frameRadius = StyleSheet.flatten(style)?.borderRadius;
   const role = rest.accessibilityRole ?? (rest as { role?: string }).role ?? 'button';
   const onSpace = Platform.OS === 'web' ? spaceActivator(role, activate) : undefined;
   const scale = useSharedValue(1);
@@ -1727,7 +1730,7 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
         onPressOut?.(event);
       }}
       onPress={activate}
-      style={frame}
+      style={frameRadius != null ? [{ borderRadius: frameRadius }, frame] : frame}
     >
       {selected !== undefined ? (
         <SelectRing selected={selected} scale={scale} glowRadius={glowRadius} reduced={reduced} />
