@@ -11708,7 +11708,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   after a web reload and browser Back); the desktop compare sheet stretches to 1280 px; the
   billing period default varies (shares its cause with F907's alternating plan). The sign-out
   parts of LR-32 (no confirmation, signing back in lands on Settings, password fields outside a
-  form) belong to Stream E and are filed there.
+  form) belong to Stream E and are filed there as F938.
 - verified-by: `opening Terms then Privacy from the wall keeps one wall`
 - verified-by: `the compare sheet keeps a readable width on a desktop screen`
 - fixed: 2026-10-29. The Wall is a single-instance screen (`getId` from `nav/singleWall.ts`), so Terms, Privacy and a browser Back that arrives as a fresh navigate return to the open wall instead of stacking a second. Every other way out of the wall replaces it (the bank, and leaving with nothing behind), so no wall is left under a live scene for a later out-of-minutes wall to pop back to. The compare sheet uses the Sheet's reading measure (`READING`), so it no longer stretches across a desktop screen. The billing-period default now follows F907's fix.
@@ -11904,3 +11904,137 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   zero-XP sittings the streak counts (RecapScreen.tsx:192-196, momentum.ts:445).
 - fixed: 2026-10-29 on claude/review-d-progress. The recap's week reads the stored active days (zero-XP sittings included) after the settle, so "Day n." never sits beside "No French yet this week", and a sitting across midnight lights one day.
 - verified-by: `the recap's day and week lines never contradict each other`
+
+### F920 — Scene-card art covers the title and duration on phones
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/today/TodayParts.tsx
+- note: Found 2026-10-28 by the product review (LR-19; filed 2026-10-29 on claude/review-e-visual,
+  Stream E). At 375 px the café art overlaps the title and time line on Today's and Speak's yellow
+  scene cards in both themes; at 320 px the duration is struck through. Desktop is fine. The art is
+  absolutely placed (168×154 on Today, 150×137 on Speak, tabs/TutorTab.tsx) over fixed text
+  columns, and Today's card loses about 30 pt more inside the route (home/RoutePath.tsx). heroFit
+  only sizes the French hero text and is unrelated. Founder decision 23: below about 400 pt of card
+  width the art moves into a band above the title.
+- verified-by: `scene card art never overlaps the title or duration at 320 and 375 points`
+
+### F921 — At 320 px the welcome clips, and field borders are 1.24:1
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/palette.ts
+- note: Found 2026-10-28 by the product review (LR-20; filed 2026-10-29 on claude/review-e-visual,
+  Stream E). The welcome stage is a fixed 390 pt with absolutely placed bubbles, so "Bonjour !" is
+  cut off at 320 px, and the pinned onboarding footer (OnboardingLayout.tsx, 40% of the height)
+  leaves about 90 pt for the sign-up form. Input borders, provider buttons, choice borders and
+  unchosen radio rings use the decorative line token #F0E6D6 (1.24:1 on white; WCAG 1.4.11 asks
+  3:1) although the 3.6:1 field token exists. Browser text size is split out as F939.
+- verified-by: `input borders and radio rings reach 3:1 against their background`
+- verified-by: `welcome and sign-up footers scroll below 700 points of height`
+- verified-by: `welcome bubbles stay on screen at 320 points`
+
+### F927 — Onboarding radios ignore Space, and buttons use the 1 px browser focus ring
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/components.tsx
+- note: Found 2026-10-28 by the product review (LR-28; filed 2026-10-29 on claude/review-e-visual,
+  Stream E). react-native-web presses on Space only for button roles, so every radio, checkbox and
+  tab control answers Enter only. Press and the raw Pressables draw no focus state and theme.ts has
+  no focus token. The disabled "Create account" leaves the tab order (disabled Pressable gets
+  tabIndex -1) with no description; chips are 36 to 40 pt, mode segments 40 pt, and a settings row
+  label does not toggle its switch. All pass the WCAG 2.2 AA 24 px minimum.
+- verified-by: `Space selects an onboarding option`
+- verified-by: `focused buttons show the app focus ring`
+- verified-by: `a disabled button with a reason stays reachable and says why`
+
+### F929 — Settings shows an internal legal note, and free talk shows its prompt text
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/legal/company.ts
+- note: Found 2026-10-28 by the product review (LR-30; filed 2026-10-29 on claude/review-e-visual,
+  Stream E, split per screen as the appendix asked: F940 to F945 carry the rest). Settings and the
+  policy notice show "Our privacy policy and terms still need legal review before Luvani can be
+  released." with no gate. Free-talk ideas put tutor instructions in the seed's English
+  (main/learningSuggestions.ts), so the room header shows them and the tutor agent says them as its
+  opening ("… Let's talk about it again."), which lands in the transcript. Founder decision 24: the
+  note shows only in development and staging builds.
+- verified-by: `released builds show no internal legal review note`
+- verified-by: `free talk never shows prompt text in the transcript`
+
+### F938 — Sign-out has no confirmation, and signing back in lands on the last address
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/App.tsx
+- note: Found 2026-10-28 by the product review (sign-out parts of LR-32, cross-referenced from
+  F931; filed 2026-10-29 on claude/review-e-visual, Stream E). Settings signs out on one tap. On web
+  the address is never reset, so the next sign-in's linking restores /settings, or /plans when the
+  learner opened the wall before signing up. The password fields are not inside a form and carry no
+  name, so password managers may not offer to save.
+- verified-by: `sign-out asks first, and staying keeps the learner signed in`
+- verified-by: `signing back in lands on Today`
+- verified-by: `a cold load with a session keeps its address`
+- verified-by: `password fields sit in a form on web`
+
+### F939 — Text ignores the browser's font size
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/theme.ts
+- note: Found 2026-10-28 by the product review (LR-20; filed 2026-10-29 on claude/review-e-visual,
+  Stream E). Every size is a numeric fontSize, so html{font-size:200%} changes nothing on web.
+  Deferred by the founder on 2026-10-29 with the Stream E plan: react-native-web sizes are numeric,
+  and native Dynamic Type is checked on the iPhone in Wave 3 (docs/DEVICE_VERIFICATION.md).
+- verified-by: `web text follows the browser's font size`
+
+### F940 — Practice says "no conversation needed" above a row that uses live minutes
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/practice/practiceTabView.ts
+- note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
+  claude/review-e-visual). The new-learner Practice page heads its list "Ready now, no conversation
+  needed", and the café row directly below reads "Uses live minutes while your tutor is connected."
+- verified-by: `the Practice heading claims nothing its rows contradict`
+
+### F941 — "Start typing" shows a microphone
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/today/TodayParts.tsx
+- note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
+  claude/review-e-visual). SceneLead and MissionHero's pill draw a mic whatever the mode, and the
+  secondary link is always a keyboard even when it offers speaking.
+- verified-by: `the start button's icon matches its mode`
+
+### F942 — The scene narrates "Karim" while the tutor is Émilie, and Karim is never introduced
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/live/useLiveSession.ts
+- note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
+  claude/review-e-visual). Mission narrations name the character the tutor plays
+  (packages/brain/src/missions/frames.ts), but tutorRole is never shown. Founder decision 26: one
+  intro line, "Émilie plays Karim, the barista.", before the narration; narrations keep the names.
+- verified-by: `every mission names who the tutor plays before the narration does`
+
+### F943 — "One line to try" has no English for brand-new learners
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/onboarding/FirstSceneScreen.tsx
+- note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
+  claude/review-e-visual). The first-scene brief and the missions list render French-only
+  referencePhrases.
+- verified-by: `every reference phrase shows its English`
+
+### F944 — Voice previews read "Listen Émilie's voice preview"
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/onboarding/TutorSelection.tsx
+- note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
+  claude/review-e-visual). The accessibility label is built as "{action} {name}'s voice preview".
+- verified-by: `voice preview labels read as plain English`
+
+### F945 — All six tutors share one avatar
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/onboarding/tutorPortraits.ts
+- note: Found 2026-10-28 by the product review (LR-30, split from F929; filed 2026-10-29 on
+  claude/review-e-visual). Every tutor surface draws BArt tutor-orb; per-tutor portraits exist in
+  tutorPortraits.ts but nothing uses them. Founder decision 25: use the portraits, founder sees
+  screenshots in light and dark, revert to the orb if off-brand.
+- verified-by: `each tutor shows their own portrait`
