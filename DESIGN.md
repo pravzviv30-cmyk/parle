@@ -126,16 +126,19 @@ period stay near a purchase action, and large text is never capped to fit.
   plum in dark; under the status bar, radius 0 0 36 36, the back button and
   the scene's topic drawing inside it, the café table where the canvas has
   none) with topic and stage, the English and French
-  titles and minutes; what you'll practise; "The barista might say" only where
+  titles and minutes; what you'll practise; "{tutor} plays {part}." in muted
+  `meta` (F942, from the mission's `tutorPart`); "The barista might say" only where
   an authored opener ships on the device, otherwise "You could start with" the
   learner's own opening line; the lines with hear buttons; the 56pt Start
   with the tutor; and the 48pt free practice of the lines, which uses no speaking time. An
   unknown id says so and returns to Explore.
 - Speak (rebuilt to B-Speak in light and dark, UI-008, 2026-10-20): the
-  subtitle names the tutor; the `heroGround` Recommended card carries the
+  subtitle names the tutor; the `heroGround` card (eyebrow "Next" for a pick
+  that only follows the path order, "Recommended" for a pick with a reason, the
+  goal line when the goal chose it; F856) carries the
   café drawing (beside the words on a wide card, in a band above them on a
   phone or at large text: `sceneCardGeometry`, F920, the same rule as
-  Today's scene card), the scene's goal, its minutes and "Uses speaking time" as
+  Today's scene card), the scene's goal, its minutes and "Uses live minutes" (F857) as
   `heroChip` pills, the Speak/Type radios on the `butter` track (the chosen
   cell on `heroChip` with a tick), the two preference chips outlined in
   `heroText`, "Prepare first, free" to the preview and the 54pt `heroCta`
@@ -224,7 +227,9 @@ period stay near a purchase action, and large text is never capped to fit.
   paths. Since 2026-10-21 (UI-008, B-Live and B-LiveHelp) the room keeps its
   blue ground in both themes: the leave disc, the scene and its pace ("About N
   min", the scene's own pace, never the allowance), the goals strip (done,
-  current, to do), the tutor-orb art pulsing with the real room levels, the
+  current, to do), the orb pulsing with the real room levels and carrying the
+  learner's tutor portrait (F945), the room's first line "{tutor} plays {part}."
+  in the narration style before the scene's narration (F942), the
   tutor's last line in a card bubble and the learner's words in sun, then
   Type, the sun mic and Help. Help opens the cream sheet (the M3 ground in
   dark): what the tutor asked, the ladder Hint, Choices, Line given over the
@@ -1938,3 +1943,19 @@ Come alive (README Part 5.C, first run). The promise, where, level and daily goa
 After the win (README Part 5.C rows 9 to 12), day one uses darker green (`#1CB982`), navy type and a cream streak summary. An original local Rive flame ignites for 800 ms, then gently deforms its contour and inner layers while visible; web animates the same cubic geometry. A fresh, durably saved qualifying day owns one central flame-and-message entrance: hold, fade, reposition while invisible, then reveal the settled hero and supporting content in a restrained stagger. First days and milestones take 2,120 ms, ordinary daily updates 1,200 ms. One brief confetti burst, the existing streak sound and a preference-aware success haptic accompany ignition. The actual count never counts up from a fabricated value: one day says “Your streak has started.” and longer runs “Your streak continues.” Seven localised weekday indicators start at the achievement's local calendar date, with a golden check for its completed practice, a clear Today label and neutral future dates; a nearby milestone derives its remaining days from the run. No qualifying run or future-only record gets a streak claim. Continue learning opens Save progress; the no-run state offers Start learning French and opens practice. Optional Remind me tomorrow opens the shared time-confirmation sheet only where available and not already enabled; permission is requested only after the learner chooses Remind me. Back stays accessible, a tap skips without activating the revealed action, and event receipts prevent replay on reopening or retry. Reduced motion and native screen readers show the final still composition; backgrounding, navigation and sheets settle the entrance and pause idle motion. Opening the page never awards a day. The save card shows only earned results, with no “On this phone only” label; the guest home retains its actual run, kept natural line and action tiles. The existing-account first-run offer remains the existing wall, once after a kept practice and gated by real account and store status.
 
 Onboarding motion is interruptible and event-driven: card 180 ms; Continue arrow 100/140 ms; page opacity/translation 270 ms; progress transform 220 ms; illustration pulse 140/220 ms or 300 ms success settle; sheet 310/250 ms. The streak entrance is brief and skippable; its quiet contour-deforming idle runs only while the screen is visible and the app is in the foreground, with Reduce Motion showing a still frame. Native uses supported opacity/transform drivers; web uses its supported driver. Live Reduce Motion changes cancel to final states. One accepted-action haptic, no duplicate selection tick and no vibration during recording; honor the Settings preference. Preserve screen-reader heading focus, modal trapping/restoration, keyboard/safe-area behavior and the visible Close/Cancel action.
+
+## Tutor portraits, start icons and reference lines (Stream E, 2026-10-29)
+
+- Tutor portraits (founder decision 25, F945): every tutor surface draws
+  `<TutorPortrait voice size ring>`, the learner's own tutor from
+  `onboarding/tutorPortraits.ts`, clipped round with a 2pt ring that clears 3:1
+  against the surface under it (`t.text` on a card, `t.sun` on the chosen blue
+  card, `t.onBrand` on violet2 or hint). The canvas tutor-orb stays only where
+  no tutor is chosen yet (the choose step's band) and in the dev preview. To
+  revert, swap `TutorPortrait` back to `<BArt name="tutor-orb">` at each call site.
+- Start icons (F941): a start shows a keyboard for typing and a mic for
+  speaking; the quiet other-mode link shows the icon of the mode it offers.
+- "One line to try" (Missions and First scene, F943): the English sits under
+  each French line in `small`, muted ink, from the mission's `referencePhrasesEn`.
+- Voice previews (F944) are labelled as plain sentences: "Listen to Émilie's
+  voice", "Pause Émilie's voice", "Try Émilie's voice again".
