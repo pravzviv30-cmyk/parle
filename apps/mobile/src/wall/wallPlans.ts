@@ -285,6 +285,7 @@ export function wallSuggestion(
   goal: GoalRead,
   status: Pick<BillingStatus, 'plan' | 'lapsed'> | null,
   feature: LockedFeature | null = null,
+  plan: PaidPlan | null = null,
 ): string | null {
   if (status === null || rows === null) return null;
   const yearlyOf = (plan: PaidPlan) => rows.find((row) => row.plan === plan)?.offers.find((offer) => offer.period === 'year')?.productId ?? null;
@@ -293,6 +294,8 @@ export function wallSuggestion(
   if (held !== null) return yearlyOf(held === 'starter' ? 'regular' : 'starter');
   // F910: a lock opened the wall, so the plan that opens it, whatever the goal.
   if (feature !== null) return yearlyOf(requiredPlan(feature));
+  // A plan lock that is no feature (Explore's collections) names its plan directly.
+  if (plan !== null) return yearlyOf(plan);
   if (!goal.loaded) return null;
   return preselectedOffer(rows, goal.target, status)?.productId ?? null;
 }

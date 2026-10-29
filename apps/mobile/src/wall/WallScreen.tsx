@@ -29,7 +29,7 @@ import { WallYoursPage } from './WallYoursPage.tsx';
 import { WallCta, WallLinks, WallNotice, WallSecondary, WallTextLink, WallTopRow, wallType } from './WallParts.tsx';
 import {
   PAYWALL_CHECK_AGAIN, PAYWALL_LOADING, PAYWALL_PENDING_TITLE, PAYWALL_START_AGAIN, PAYWALL_START_AGAIN_TROUBLE, PAYWALL_START_AGAIN_WAIT, PAYWALL_TRY_AGAIN, PAYWALL_UNAVAILABLE_BODY, PAYWALL_UNAVAILABLE_TITLE,
-  PLAN_YOURS, SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
+  LOCK_BRIEFS, PLAN_YOURS, SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
 } from './wallCopy.ts';
 import { wallAccount } from './wallAccount.ts';
 import { chosenOffer, currentPaidPlan, storeTrialMinutes, trialCopyAllowed, wallPlanRows, wallSuggestion, type GoalRead } from './wallPlans.ts';
@@ -72,6 +72,7 @@ const CHECK_HELD_MS = ICON_MOTION.check.wipeAt + ICON_MOTION.check.wipe + MORPH.
 export function WallScreen({
   entry,
   feature = null,
+  unlock = null,
   onLeave,
   onStartSpeaking,
   onOpenPractice,
@@ -82,6 +83,8 @@ export function WallScreen({
   entry: WallEntry;
   /** The locked feature that opened this wall (F910), or null. */
   feature?: LockedFeature | null;
+  /** Explore's plan lock, which is no feature: the collections brief, with Core chosen. */
+  unlock?: 'collections' | null;
   onLeave: () => void;
   onStartSpeaking: (canResume: boolean) => void;
   onOpenPractice: () => void;
@@ -255,7 +258,7 @@ export function WallScreen({
   // and only once the server has said what the learner holds. It is not the
   // learner's choice, so it records nothing: `plan_selected` is fired by a tap
   // alone, in `onSelect` below.
-  const suggestion = wallSuggestion(planRows, goal, status, entry === 'locked' ? feature : null);
+  const suggestion = wallSuggestion(planRows, goal, status, entry === 'locked' ? feature : null, entry === 'locked' && unlock === 'collections' ? 'starter' : null);
   // What the page shows and the button buys: the learner's choice, else the
   // suggestion, else the default (Starter yearly), so an available offering
   // always shows a priced offer (`effectiveSelection`).
@@ -269,13 +272,13 @@ export function WallScreen({
   // A navigate that changes this mounted wall's door in place (a lock tap or
   // the limit over the launch wall) starts the new door at its first page,
   // with its own suggestion and brief (`doorChange`).
-  const door = useRef<WallDoor>({ entry, feature });
+  const door = useRef<WallDoor>({ entry, feature: feature ?? unlock });
   useEffect(() => {
-    const change = doorChange(door.current, { entry, feature }, touched.current);
-    door.current = { entry, feature };
+    const change = doorChange(door.current, { entry, feature: feature ?? unlock }, touched.current);
+    door.current = { entry, feature: feature ?? unlock };
     if (change.resetIndex) setIndex(0);
     if (change.clearSelection) setSelected(null);
-  }, [entry, feature]);
+  }, [entry, feature, unlock]);
 
   // The pill's state while it answers its own purchase. Busy while the store,
   // and then the server, answer; done, the check, only once the server has
@@ -665,7 +668,7 @@ export function WallScreen({
             catalogue={latestCatalogue()}
             account={wallAccount(status, latestCatalogue(), Date.now())}
             standing={status}
-            brief={lockBrief(entry, feature)}
+            brief={entry === 'locked' && unlock === 'collections' ? { title: LOCK_BRIEFS.collections.title, line: LOCK_BRIEFS.collections.line } : lockBrief(entry, feature)}
             selected={showing}
             trial={trial}
             offer={offerView}

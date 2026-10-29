@@ -328,8 +328,16 @@ and chosen tutor survive account and Back detours. See the
 Paywalls and their states, Profile, Settings, Learning preferences and
 Subscription use the B tokens through the `mainApp.light` aliases and Outfit.
 The single action is the primary pill. The Yearly/Monthly switch sits on a
-lavender track with the chosen segment white. The trial timeline uses sun
-markers with ink glyphs on a sun rail. There is no hero art. The billed amount
+lavender track with the chosen segment white. The trial page (F932, founder
+decision 6, 2026-10-29) is titled for the plan's first week ("Your first week
+with Core"; a trial that is not seven days says its days) and opens on one
+scene, `place-cafe-counter` through the shared `Illustration` (64pt tall, 56pt
+on a compact phone). It walks the week as a route in the map motif, with no
+glyphs: a 2pt brand-blue line at 35% opacity joins 16pt stops. Today is a
+filled sun dot, the week's learning line a 10pt open ring with no title, the
+reminder or cancel day an open brand ring, and the charge day a filled brand
+dot. Nothing on it animates beyond the shared stagger. The standard page has
+no art. The billed amount
 is the most prominent price, and a reminder line appears only when a reminder
 is really scheduled. Text links use the brand blue; destructive labels and the
 purchase-failed title use `danger`.

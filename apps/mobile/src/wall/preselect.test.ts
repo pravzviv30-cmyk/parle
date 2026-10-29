@@ -114,7 +114,7 @@ describe('the plans page chooses once, for a learner with a goal', () => {
     const at = screen.indexOf('const suggestion = ');
     const effect = screen.slice(at, screen.indexOf('}, [suggestion, selected]);', at));
     // F907: the suggestion waits for both the goal and the status (`wallSuggestion`).
-    assert.match(effect, /const suggestion = wallSuggestion\(planRows, goal, status, entry === 'locked' \? feature : null\);/);
+    assert.match(effect, /const suggestion = wallSuggestion\(planRows, goal, status, entry === 'locked' \? feature : null, entry === 'locked' && unlock === 'collections' \? 'starter' : null\);/);
     assert.match(effect, /if \(touched\.current \|\| selected !== null \|\| suggestion === null\) return;\s*setSelected\(suggestion\);/);
     assert.doesNotMatch(effect, /trackProductEvent|plan_selected/, 'the suggestion records a selection');
     assert.equal((screen.match(/name: 'plan_selected'/g) ?? []).length, 1, 'a selection is recorded somewhere other than the tap');

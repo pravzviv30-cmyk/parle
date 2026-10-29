@@ -77,7 +77,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       RealMoment: 'real-moment',
       TutorMemory: 'tutor-memory',
       TutorIntro: 'tutor-guide',
-      Wall: { path: 'plans', parse: { feature: parseLockedFeature } },
+      Wall: { path: 'plans', parse: { feature: parseLockedFeature, unlock: (value: string) => (value === 'collections' ? value : undefined) } },
       Policy: 'privacy',
       Terms: 'terms',
     },

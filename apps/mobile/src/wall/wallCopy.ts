@@ -104,9 +104,11 @@ export const YOURS_BANK = 'Phrase bank: phrases picked from conversations';
 /**
  * F910 (2026-10-29): the free list names nothing Free keeps locked, held by
  * `lockedEntry.test.ts` against the locks themselves. Sound practice and the
- * progress section are locked on Free, so neither is listed here.
+ * progress section are locked on Free, so neither is listed here, and Free
+ * review holds back conversation-only phrases (`review/freeTier.ts`), so the
+ * review row names what Free is really dealt.
  */
-export const YOURS_REVIEW = 'Review and offline phrase practice';
+export const YOURS_REVIEW = 'Review of your lesson, daily and sample phrases';
 export const YOURS_RECAPS = 'Your earned lesson recaps';
 
 /** The rows of page three, in the order they are drawn. */
@@ -133,7 +135,7 @@ export const ADDS_ROWS: readonly string[] = [ADDS_SITUATIONS, ADDS_FREELY, ADDS_
  * held to naming none of what Free keeps locked. Nothing here promises
  * minutes or anything the plan does not open.
  */
-export const LOCK_BRIEFS: Readonly<Record<LockedFeature, { title: string; line: string; names: readonly string[] }>> = {
+export const LOCK_BRIEFS: Readonly<Record<LockedFeature | 'collections', { title: string; line: string; names: readonly string[] }>> = {
   fixes: { title: 'Your fixes', line: 'Your fixes gathers the small corrections from your conversations, ready to practise.', names: ['fixes', 'corrections'] },
   thenAndNow: { title: 'Then and now', line: 'Then and now sets what you say today beside what you said before.', names: ['then and now'] },
   conversationPractice: { title: 'Conversation practice', line: 'Conversation practice drills the phrases from one of your conversations.', names: ['conversation practice', 'drill'] },
@@ -142,6 +144,9 @@ export const LOCK_BRIEFS: Readonly<Record<LockedFeature, { title: string; line: 
   continueArc: { title: 'Continue a conversation', line: 'Pick up a conversation where it stopped, with the thread kept for you.', names: ['continue a conversation', 'continue conversations'] },
   fullJourney: { title: 'Your full journey', line: 'Your journey shows what you can now do in French, scene by scene.', names: ['journey', 'progress'] },
   tutorMemory: { title: 'What your tutor remembers', line: 'See and manage what your tutor keeps in mind about you.', names: ['tutor remembers', 'memory'] },
+  // Not a locked feature: Explore's authored collections open on any paid plan
+  // (`hasExplorePlan`), so this brief is shown with Core chosen. Client-only key.
+  collections: { title: 'Explore collections', line: 'Core opens the full collections in Explore, beyond the free samples.', names: ['collections'] },
 };
 
 /** Every line the briefs say, for the scan. */
@@ -397,8 +402,16 @@ export function trialTerms(days: number, price: string, period: 'week' | 'month'
     : `Free for ${count(days, 'day')}, then ${price} a month until you cancel.`;
 }
 
-/** Above the timeline. */
-export const TRIAL_TITLE = 'How your trial works';
+/**
+ * The trial page's title (F932, founder decision 6): the first week with the
+ * chosen plan. "Week" only when the store's trial really is seven days;
+ * any other length is said in the days it was handed.
+ */
+export function trialTitle(plan: string, days: number): string {
+  return days === 7 ? `Your first week with ${plan}` : `Your first ${count(days, 'day')} with ${plan}`;
+}
+/** The quiet stop on the trial's route, between today and the reminder: what the week is for. Claims no number. */
+export const TRIAL_WALK = 'Your first French scenes, with your tutor.';
 /** Short overview above the period switch; complete renewal terms stay at the action. */
 export function trialIntroLine(days: number, price: string, period: 'week' | 'month' | 'year'): string {
   return `${count(days, 'day')} free, then ${billedPrice(price, period)}.`;
@@ -644,7 +657,7 @@ export const WALL_COPY: readonly string[] = [
   PLAN_WEEKLY,
   PLANS_TRUST,
   TRIAL_REMIND,
-  TRIAL_TITLE,
+  TRIAL_WALK,
   TRIAL_NOW,
   SUCCESS_MONTH,
   SUCCESS_TRIAL,

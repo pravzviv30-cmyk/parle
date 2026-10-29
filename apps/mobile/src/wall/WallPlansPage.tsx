@@ -3,7 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { Label, Press, Sheet } from '../components.tsx';
-import { Icon } from '../icons/Icon.tsx';
+import { Illustration } from '../art/flat/Illustration.tsx';
+import { useCompactPhone } from '../layout.tsx';
 import { StaggerIn } from '../motion/StaggerIn.tsx';
 import { STAGGER } from '../motion/tokens.ts';
 import { INCLUSIONS } from '../purchases/capabilities.ts';
@@ -16,14 +17,16 @@ import { BenefitRow, WallCta, WallLinks, WallSkeleton, wallType } from './WallPa
 import type { WallAccount } from './wallAccount.ts';
 import { chosenOffer, type WallPlanOffer, type WallPlanRow } from './wallPlans.ts';
 import type { TrialTimelineView } from './trialTimeline.ts';
-import { TIMELINE_GLYPHS, compareCards, compareCta, planLine, timelineRows, windowDays, type PaywallOffer } from './trialPaywall.ts';
+import { compareCards, compareCta, planLine, timelineRows, windowDays, type PaywallOffer, type RouteMark } from './trialPaywall.ts';
 
 /**
  * The trial paywall's body ("P2 · Luvani", 2026-10-19): headline, the billed
  * amount, the period switch, then the timeline (trial) or three benefits
  * (standard), and the plan line with its way into the compare sheet.
  *
- * No hero art. The billed amount is the most prominent price: bold in the
+ * The trial page opens on one of Luvani's own scenes, the cafe counter (F932,
+ * founder decision 6), and walks the first week as a route; the standard page
+ * keeps no art. Nothing on it moves. The billed amount is the most prominent price: bold in the
  * trial's offer line, and the largest price on a standard page. The choices
  * select rather than buy; the one button lives in the frame's footer, with the
  * disclosure and the links right under it (`WallPlansAtButton`). Nothing is
@@ -66,6 +69,7 @@ export function WallPlansPage({
   const current = chosenOffer(rows, selected);
   const visiblePlan = rows.find(row => row.offers.some(offer => offer.productId === selected))?.plan ?? rows[0]?.plan;
   const visibleRow = rows.find(row => row.plan === visiblePlan);
+  const compact = useCompactPhone();
   return (
     <View style={st.content}>
       {brief !== null && !loading && <View style={st.brief}>
@@ -73,6 +77,9 @@ export function WallPlansPage({
         <Text style={[wallType.line, { color: colors.muted }]}>{brief.line}</Text>
       </View>}
       {loading ? <PlansLoading /> : offer !== null && <>
+        {offer.kind === 'trial' && <View {...decorative} style={st.art}>
+          <Illustration name="place-cafe-counter" style={{ width: 240, height: compact ? 56 : 64 }} />
+        </View>}
         <Text accessibilityRole="header" style={[wallType.headline, { color: colors.text }]}>{offer.headline}</Text>
         {offer.kind === 'trial'
           ? <Text style={[st.offer, { color: colors.text }]}>{offer.lead}<Text style={wallType.bold}>{offer.billed}</Text></Text>
@@ -175,23 +182,25 @@ function ComparePlans({ comparing, rows, current, catalogue, account, standing, 
 }
 
 /**
- * The store free trial, day by day: today, the reminder or the day to cancel
- * by, the day it becomes the plan. Drawn only with a real eligible offer; the
- * lines are `trialTimeline.ts`'s, folded by `timelineRows`. Every word here is
- * set no larger than the billed amount it leads to.
+ * The store free trial as a route through its first week (F932): today, the
+ * week's scenes, the reminder or the day to cancel by, the charge day. Dots on
+ * one line in theme colours, Luvani's map motif; no glyphs. Drawn only with a
+ * real eligible offer; the lines are `trialTimeline.ts`'s, walked by
+ * `timelineRows`. Every word here is set no larger than the billed amount.
  */
 function TrialTimeline({ view }: { view: TrialTimelineView }) {
   const { colors, b } = useMainAppearance();
   const rows = timelineRows(view);
+  const dot = (mark: RouteMark) => mark === 'start'
+    ? { backgroundColor: b.sun, borderColor: b.sun }
+    : mark === 'end' ? { backgroundColor: b.brand, borderColor: b.brand } : { backgroundColor: colors.background, borderColor: b.brand };
   return (
     <StaggerIn step={STAGGER.base}>
       {rows.map((node, index) => (
         <View key={node.key} style={st.node}>
           <View style={st.rail} {...decorative}>
-            <View style={[st.disc, { backgroundColor: b.sun }]}>
-              <Icon name={TIMELINE_GLYPHS[node.key]} size={18} color={b.onSun} />
-            </View>
-            {index < rows.length - 1 && <View style={[st.connector, { backgroundColor: b.sun }]} />}
+            <View style={[node.title === null ? st.waypoint : st.stop, dot(node.mark)]} />
+            {index < rows.length - 1 && <View style={[st.route, { backgroundColor: b.brand }]} />}
           </View>
           <View style={[st.nodeWords, index < rows.length - 1 && st.nodeGap]}>
             {node.title !== null && <Text style={[st.nodeTitle, { color: colors.text }]}>{node.title}</Text>}
@@ -224,7 +233,8 @@ export function WallPlansAtButton({ disclosure, onRestore, onOpenTerms, onOpenPo
   );
 }
 
-const DISC = 28;
+const STOP = 16;
+const WAYPOINT = 10;
 
 const st = StyleSheet.create({
   // Rhythm tightened 2026-10-19 so headline through plan line fit above the
@@ -234,19 +244,21 @@ const st = StyleSheet.create({
   offer: { ...wallType.body, textAlign: 'center', marginTop: space(2.5) },
   price: { marginTop: space(2.5) },
   detail: { marginTop: space(1) },
-  switch: { marginTop: space(5) },
+  switch: { marginTop: space(3) },
   loading: { gap: space(3) },
-  trialSummary: { marginTop: space(6) },
+  trialSummary: { marginTop: space(3) },
   benefits: { marginTop: space(6), gap: space(3.5) },
-  planLine: { marginTop: space(3), minHeight: HIT, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: space(2) },
+  planLine: { marginTop: space(2), minHeight: HIT, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: space(2) },
   planText: { flexShrink: 1 },
   compareLink: { minHeight: HIT, justifyContent: 'center' },
+  art: { alignItems: 'center', marginBottom: space(1) },
   node: { flexDirection: 'row', gap: 14 },
-  rail: { alignItems: 'center', width: DISC },
-  disc: { width: DISC, height: DISC, borderRadius: DISC / 2, alignItems: 'center', justifyContent: 'center' },
-  connector: { flex: 1, width: 3, opacity: 0.45 },
-  nodeWords: { flex: 1, minWidth: 0, paddingTop: 3, gap: 2 },
-  nodeGap: { paddingBottom: space(4) },
+  rail: { alignItems: 'center', width: STOP, paddingTop: 5 },
+  stop: { width: STOP, height: STOP, borderRadius: STOP / 2, borderWidth: 2.5 },
+  waypoint: { width: WAYPOINT, height: WAYPOINT, borderRadius: WAYPOINT / 2, borderWidth: 2 },
+  route: { flex: 1, width: 2, marginTop: space(0.5), opacity: 0.35 },
+  nodeWords: { flex: 1, minWidth: 0, gap: 2 },
+  nodeGap: { paddingBottom: space(3) },
   nodeTitle: { ...type.bodyStrong },
   nodeLine: { ...type.small },
   cards: { gap: space(3) },

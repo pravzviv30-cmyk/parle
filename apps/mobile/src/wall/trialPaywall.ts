@@ -22,6 +22,7 @@ import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import type { LockedFeature } from '../purchases/featureLocks.ts';
 import type { TrialNodeKey, TrialTimelineView } from './trialTimeline.ts';
+import { TRIAL_WALK } from './wallCopy.ts';
 import { dayAndMonth } from './wallAccount.ts';
 import {
   PAYWALL_BENEFITS,
@@ -243,24 +244,47 @@ export function compareCta(card: CompareCard): string {
   return compareContinue(card.name, card.trial !== null);
 }
 
-/** The glyph each timeline row carries. */
-export const TIMELINE_GLYPHS: Record<TrialNodeKey, 'unlock' | 'bell' | 'calendar' | 'star' | 'chat'> = {
-  today: 'unlock',
-  during: 'chat',
-  remind: 'bell',
-  cancel: 'calendar',
-  then: 'star',
+/**
+ * A stop on the trial's route (F932, founder decision 6). The page walks the
+ * first week as a path in Luvani's map motif: dots on one line, no glyphs.
+ * `start` is where the learner stands today (filled sun), `stop` a stop along
+ * the way (an open ring), `end` the charge day (filled ink blue).
+ */
+export type RouteMark = 'start' | 'stop' | 'end';
+
+export interface RouteStop {
+  key: TrialNodeKey | 'walk';
+  title: string | null;
+  line: string;
+  mark: RouteMark;
+}
+
+const ROUTE_MARKS: Record<RouteStop['key'], RouteMark> = {
+  today: 'start',
+  during: 'start',
+  walk: 'stop',
+  remind: 'stop',
+  cancel: 'stop',
+  then: 'end',
 };
 
 /**
- * The timeline's rows as drawn: the minutes line folded into Today, so the
- * page reads Today, Day 5, Day 7. Pure; the view is never changed.
+ * The route's stops as drawn: the minutes line folded into Today (the tutor
+ * minutes the trial unlocks), then the week's learning stop, then the reminder
+ * or the day to cancel by, then the charge day. The learning stop claims no
+ * number: nothing here can show the trial's minutes cover a given path, so it
+ * names what the week is for and no more. Pure; the view is never changed.
  */
-export function timelineRows(view: TrialTimelineView): TrialTimelineView['nodes'] {
+export function timelineRows(view: TrialTimelineView): readonly RouteStop[] {
   const during = view.nodes.find((node) => node.key === 'during');
-  return view.nodes
-    .filter((node) => node.key !== 'during')
-    .map((node) => (node.key === 'today' && during ? { ...node, line: `${node.line} ${during.line}` } : node));
+  const stops: RouteStop[] = [];
+  for (const node of view.nodes) {
+    if (node.key === 'during') continue;
+    const line = node.key === 'today' && during ? `${node.line} ${during.line}` : node.line;
+    stops.push({ key: node.key, title: node.title, line, mark: ROUTE_MARKS[node.key] });
+    if (node.key === 'today') stops.push({ key: 'walk', title: null, line: TRIAL_WALK, mark: ROUTE_MARKS.walk });
+  }
+  return stops;
 }
 
 export interface PaywallNotice {

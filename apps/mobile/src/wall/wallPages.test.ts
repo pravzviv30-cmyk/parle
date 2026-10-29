@@ -160,8 +160,8 @@ describe('a door that changes on a mounted wall', () => {
     assert.deepEqual(doorChange(lock, { ...lock }, false), { resetIndex: false, clearSelection: false });
     const { readFileSync } = await import('node:fs');
     const screen = readFileSync(new URL('./WallScreen.tsx', import.meta.url), 'utf8');
-    assert.match(screen, /const change = doorChange\(door\.current, \{ entry, feature \}, touched\.current\);[\s\S]*?if \(change\.resetIndex\) setIndex\(0\);[\s\S]*?if \(change\.clearSelection\) setSelected\(null\);[\s\S]*?\}, \[entry, feature\]\);/);
+    assert.match(screen, /const change = doorChange\(door\.current, \{ entry, feature: feature \?\? unlock \}, touched\.current\);[\s\S]*?if \(change\.resetIndex\) setIndex\(0\);[\s\S]*?if \(change\.clearSelection\) setSelected\(null\);[\s\S]*?\}, \[entry, feature, unlock\]\);/);
     // The brief is read from the current door on every render.
-    assert.match(screen, /brief=\{lockBrief\(entry, feature\)\}/);
+    assert.match(screen, /: lockBrief\(entry, feature\)\}/);
   });
 });

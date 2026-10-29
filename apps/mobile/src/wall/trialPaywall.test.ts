@@ -46,7 +46,7 @@ describe('trial or standard is decided by the store, and unknown is never eligib
   test('an eligible yearly offer reads as a trial, with the billed amount as its own bold part', () => {
     const { view } = setup(true);
     assert.equal(view.kind, 'trial');
-    assert.equal(view.headline, 'How your trial works');
+    assert.equal(view.headline, 'Your first week with Core');
     assert.equal(view.lead, 'Free for 7 days, then ');
     assert.equal(view.billed, '£99.99 a year');
     assert.equal(view.detail, '£8.33 a month, billed yearly. Save 16%');
@@ -200,7 +200,7 @@ describe('an available offering always shows a priced offer', () => {
     const chosen = chosenOffer(rows, effectiveSelection(rows, null, null))!;
     const view = paywallOffer(chosen, trialTimeline({ offer: chosen, minutes: storeTrialMinutes(PLANS, chosen.plan), remind: false }));
     assert.equal(view.kind, 'trial');
-    assert.equal(view.headline, 'How your trial works');
+    assert.equal(view.headline, 'Your first week with Core');
     assert.equal(`${view.lead}${view.billed}`, 'Free for 7 days, then £119.99 a year');
     assert.equal(view.billed, '£119.99 a year', 'the billed amount is not its own (bold) part');
     assert.equal(view.detail, '£10.00 a month, billed yearly. Save 33%');

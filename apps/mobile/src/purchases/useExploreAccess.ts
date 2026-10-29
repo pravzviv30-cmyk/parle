@@ -53,7 +53,8 @@ export function useExploreAccess() {
         return next;
       },
       open: action,
-      plans: () => nav.navigate('Wall', { entry: 'settings' }),
+      // F910: the locked door, with the collections brief and Core chosen (any paid plan opens them).
+      plans: () => nav.navigate('Wall', { entry: 'locked', unlock: 'collections' }),
       unavailable: () => setError('Your plan could not be checked. Try again when you’re connected. Free samples and your saved French are still available.'),
     }).finally(() => { if (current()) setChecking(false); });
   };

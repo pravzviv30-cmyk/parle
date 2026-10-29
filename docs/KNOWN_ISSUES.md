@@ -11647,7 +11647,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a lock names the plan that unlocks it`
 - verified-by: `a Max-only lock opens the Max offer`
 - verified-by: `the free list names nothing that is locked on Free`
-- fixed: 2026-10-29. Locks name the plan that opens them, read from `capabilitiesFor` (`requiredPlan` in purchases/featureLocks.ts): the pill reads Core or Max and a screen reader hears "Locked. Part of Core." at every badge and spoken-label site. `open(feature)` and the locked-route guard pass `Wall { entry: 'locked', feature }` (web address round-trips and validates it); the wall preselects the opening plan's yearly offer, opens with a short brief, and says "Unlock with Max" when the chosen plan opens it. The free list reads "Review and offline phrase practice" and "Your earned lesson recaps". Today's Coming up lock is realMoment's, matching its tap. A door changed on a mounted wall resets its page (`doorChange`), and the first scene replaced by anything but its conversation now counts as an early exit. Tests: wall/lockedEntry.test.ts, wallPages.test.ts, launchWall.test.ts.
+- fixed: 2026-10-29. Locks name the plan that opens them, read from `capabilitiesFor` (`requiredPlan` in purchases/featureLocks.ts): the pill reads Core or Max and a screen reader hears "Locked. Part of Core." at every badge and spoken-label site. `open(feature)` and the locked-route guard pass `Wall { entry: 'locked', feature }` (web address round-trips and validates it); the wall preselects the opening plan's yearly offer, opens with a short brief, and says "Unlock with Max" when the chosen plan opens it. The free list reads "Review of your lesson, daily and sample phrases" and "Your earned lesson recaps", held against Free's real review deal (`dealForTier`). Review's held-back row names Core ("… is part of Core.", "See Core"), a source sweep refuses any lock that names the trial, and Explore's plan lock opens `Wall { entry: 'locked', unlock: 'collections' }` with a brief and Core chosen (verifier round, 2026-10-29). Today's Coming up lock is realMoment's, matching its tap. A door changed on a mounted wall resets its page (`doorChange`), and the first scene replaced by anything but its conversation now counts as an early exit. Tests: wall/lockedEntry.test.ts, wallPages.test.ts, launchWall.test.ts.
 
 ### F911 — The free limit shows three different messages and never says when time comes back
 - severity: P2
@@ -11679,7 +11679,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   F564.
 - verified-by: `the compare sheet claims only what each plan's capabilities grant`
 - verified-by: `both plans state their minutes per 30 days in the same words`
-- fixed: 2026-10-29. One allowance template from the catalogue ("300 minutes every 30 days (about 10 a day)."), Max's extras read from its capabilities, `dailyAllowance` is "about" for both, COMPARE_INTRO says every scene and names Max's two extras, and INCLUSIONS.streak reads "Paid plans add a second streak freeze and a one-tap repair." (a pinned capabilities.ts line, founder approval of the diff owed). Tests: wall/subscriberWall.test.ts.
+- fixed: 2026-10-29. One allowance template from the catalogue ("300 minutes every 30 days (about 10 a day)."), Max's extras read from its capabilities, `dailyAllowance` is "about" for both, COMPARE_INTRO says every scene and names Max's two extras, and INCLUSIONS.streak reads "Paid plans add a second streak freeze and a one-tap repair." (a pinned capabilities.ts line; the founder approved the diff on 2026-10-29 and it is re-pinned in moneyUntouched.test.ts). Tests: wall/subscriberWall.test.ts.
 
 ### F914 — The Terms have no subscription section, and deleting an account ends with no confirmation
 - severity: P2
@@ -11719,5 +11719,6 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   and lock, bell, calendar and star timeline follow Headspace's trial screen closely. Keep the
   transparency (charge date, interval, how to cancel, nothing charged today) and redraw it in
   Luvani's own learning-led form, per the report's section 10 (founder decision 6).
+- fixed: 2026-10-29. Titled "Your first week with <plan>", a route of dots on one line replaces the glyph timeline, and the cafe counter scene opens the page; tests `the trial page walks the first week as a route with Luvani's own scene art` and `the redrawn trial page still names the charge date, the price, how to cancel and that nothing is charged today` (apps/mobile/src/wall/trialRoute.test.ts).
 - verified-by: `the trial page walks the first week as a route with Luvani's own scene art`
 - verified-by: `the redrawn trial page still names the charge date, the price, how to cancel and that nothing is charged today`

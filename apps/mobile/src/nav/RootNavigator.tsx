@@ -610,6 +610,7 @@ function WallRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'Wall'>>();
   const { entry, resumeRouteKey } = route.params;
   const feature = isLockedFeature(route.params.feature) ? route.params.feature : null;
+  const unlock = route.params.unlock === 'collections' ? 'collections' as const : null;
   const owner = useRef(scopeGeneration()).current;
 
   // A preview opens ON this screen, so there can be nothing behind it to go back
@@ -624,6 +625,7 @@ function WallRoute() {
     <WallScreen
       entry={entry}
       feature={feature}
+      unlock={unlock}
       onLeave={leave}
       onStartSpeaking={(canResume) => {
         if (owner !== scopeGeneration()) return;

@@ -194,8 +194,8 @@ export type RootStackParamList = {
    * property the `wall_shown` event carries, so the funnel is split by the same
    * doors the code has. It is a string union and stays serialisable.
    */
-  /** `feature` is the locked feature a lock opened the wall for (F910); only with `entry: 'locked'`. */
-  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; resumeRouteKey?: string; feature?: LockedFeature };
+  /** `feature` is the locked feature a lock opened the wall for (F910); `unlock: 'collections'` is Explore's plan lock, which is no feature. Both only with `entry: 'locked'`. */
+  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; resumeRouteKey?: string; feature?: LockedFeature; unlock?: 'collections' };
   /**
    * The two documents, as routes rather than sheets inside Settings.
    *

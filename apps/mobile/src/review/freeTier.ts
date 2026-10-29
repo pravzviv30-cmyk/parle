@@ -2,8 +2,8 @@
  * The free tier's share of a review sitting (founder decision 2026-10-20, a
  * follow-up to D24).
  *
- * Spaced review of phrases that came only out of conversations is part of the
- * trial. The daily phrase, the café lesson, the free sample pack and curated
+ * Spaced review of phrases that came only out of conversations is part of a
+ * paid plan (Core, named through `requiredPlan`; F910). The daily phrase, the café lesson, the free sample pack and curated
  * phrases stay reviewable for everyone, and so does any card that predates
  * source tags (core's `reviewableFree` fails open).
  *
@@ -14,7 +14,10 @@
  */
 
 import { conversationOnly, dueCards, reviewableFree, type ReviewCard } from '@luvani/core';
-import type { FeatureLockState } from '../purchases/featureLocks.ts';
+import { requiredPlan, unlockPlanName, type FeatureLockState } from '../purchases/featureLocks.ts';
+
+/** The plan that opens review of conversation phrases (F910): Core, from the capability table. */
+const OPENS = unlockPlanName(requiredPlan('conversationPractice'));
 
 export interface FreeTierDeal {
   /** The cards to deal, already through `dueCards` (capped, oldest first). */
@@ -58,9 +61,9 @@ export function offeredReview(offer: ReviewOffer, lock: FeatureLockState): Revie
 export function heldBackLine(count: number): string | null {
   if (count <= 0) return null;
   return count === 1
-    ? '1 phrase from your conversations is included with your trial.'
-    : `${count} phrases from your conversations are included with your trial.`;
+    ? `1 phrase from your conversations is part of ${OPENS}.`
+    : `${count} phrases from your conversations are part of ${OPENS}.`;
 }
 
 /** The text action beside it, which opens the wall at its locked door. */
-export const HELD_BACK_ACTION = 'See the trial';
+export const HELD_BACK_ACTION = `See ${OPENS}`;

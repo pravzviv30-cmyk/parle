@@ -18,7 +18,7 @@ import { PLANS, type Plan, type PlanSpec } from '@luvani/core';
 
 import type { PaidPlan, StoreOffering, StoreProduct } from '../purchases/adapter.ts';
 import { PLAN_LABELS } from '../purchases/planStatus.ts';
-import { PAYWALL_RENEWS, PLANS_RENEWAL, WALL_COPY, WALL_LEAVE, PLANS_TRUST, standardDisclosure, trialDisclosure, TRIAL_TITLE, SUCCESS_TRIAL, YOURS_DECLINE, trialAllowance } from './wallCopy.ts';
+import { PAYWALL_RENEWS, PLANS_RENEWAL, WALL_COPY, WALL_LEAVE, PLANS_TRUST, standardDisclosure, trialDisclosure, trialTitle, SUCCESS_TRIAL, YOURS_DECLINE, trialAllowance } from './wallCopy.ts';
 import { CONVERSATION_MINUTES, conversationsAWeek, wallPlanRows, wallTrial, offerForTier } from './wallPlans.ts';
 
 const read = (relative: string): string =>
@@ -352,7 +352,8 @@ describe('the plans page around its plans', () => {
     assert.equal(trialAllowance(30, 3), 'You get 30 free minutes every other day, about 3 conversations.');
     // Only the store trial's own lines say "free trial".
     const said = WALL_COPY.filter((line) => /free trial/i.test(line));
-    assert.equal(TRIAL_TITLE, 'How your trial works');
+    // F932: the title names the plan's first week, and says no "free trial" of its own.
+    assert.equal(trialTitle('Core', 7), 'Your first week with Core');
     assert.deepEqual(said, [SUCCESS_TRIAL]);
   });
 });
