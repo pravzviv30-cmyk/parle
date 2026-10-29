@@ -11621,6 +11621,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   reach the store". F848's relief relies on storeHolds, which is always unknown on web. That a
   native store error other than a cancel also keeps the marker is inferred from WallScreen settle.
   Needs sandbox proof once purchases are configured.
+- fixed: 2026-10-29. A store call that failed before any purchase now carries `notStarted` (web always; native when no package matched or the store was not ready, before any sheet; and RevenueCat codes 3 and 5, purchase not allowed and product not available). Settlement reads it as `not-charged`, the wall clears the fence, stays on the plans page and says "The purchase didn't go through. Nothing was charged. You can try again." Account changes, network and store errors, unknown codes and payment pending keep the fence as before. The pending page no longer prints "Nothing was changed" under its "do not buy again" card (`pendingDetail`). Web marks itself `storeless`, so the open check and Start again clear a marker left by an older build there; native `storeHolds` answers are untouched. Money pins changed and await the founder. Native sandbox proof is still owed, including that RevenueCat codes 3 and 5 never arrive after a charge, which nothing in the SDK source proves.
 - verified-by: `a store call that fails before any purchase clears the checkout fence`
 - verified-by: `the pending page never says nothing was changed and do not buy again together`
 
@@ -11632,6 +11633,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   "Renews in the coming weeks" three times next to "cancel at least 24 hours before renewal", while
   the compare sheet knows the minutes date. Manage and Restore are hidden on web, as expected;
   native was not verified.
+- fixed: 2026-10-29. Founder decision 9 reverses the no-dates rule for paid plans. The Subscription screen's Next renewal row says the store's own date and price once ("Core, yearly, £119.99. Renews on 27 November.", "Ends on" when it will not renew, "Free until …, then … a year." in a store trial), read from the active entitlement's product (`purchases.heldPlan`, `storeHeldPlanFrom`) and joined to the offering. The tutor-time card says when the minutes are fresh, from the server's window, apart from it. With no store answer it points to the App Store, Google Play, or either on web, and never invents a date. "Renews in the coming weeks" is gone. Android joins the entitlement's product and base plan (`product:basePlan`) and never borrows a sibling plan's price. Profile and Settings rows keep the minutes line and ask the store nothing; only the Subscription screen reads the held plan, sharing its one offering read. The cancel footer, Manage and Restore are unchanged. The founder's middot was replaced by commas and full stops, because the punctuation gate refuses it. Native store reads are unproven until sandbox.
 - verified-by: `a subscriber's plan screen shows the renewal date and price from the store`
 - verified-by: `the minutes refresh date is shown apart from the billing renewal date`
 

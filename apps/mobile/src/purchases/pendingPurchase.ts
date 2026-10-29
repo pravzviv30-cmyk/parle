@@ -82,7 +82,7 @@ export function confirmsPendingPurchase(purchase: PendingPurchase, status: Billi
 }
 
 /** What the store itself holds for this account, after `PurchasesAdapter.storeHolds`. Never a grant. */
-export type StoreHolding = 'active' | 'none' | 'unknown';
+export type StoreHolding = 'active' | 'none' | 'unknown' | 'storeless';
 
 /**
  * Whether a checkout fence may come down. The fence exists to stop a second store transaction while an accepted one
@@ -91,6 +91,8 @@ export type StoreHolding = 'active' | 'none' | 'unknown';
  */
 export function resolvePendingCheckout(purchase: PendingPurchase, store: StoreHolding, server: BillingStatus | null, trigger: 'open' | 'start-again'): 'clear' | 'wait' | 'unknown' {
   if (confirmsPendingPurchase(purchase, server)) return 'clear';
+  // F908: no store exists here (web), so no store purchase can stand behind the fence.
+  if (store === 'storeless') return 'clear';
   // On open the store was not synced and a pending Ask to Buy also reads as none, so an empty answer only waits.
   if (store === 'none') return trigger === 'start-again' ? 'clear' : 'wait';
   // An existing same-tier subscription also reads as active, so active store access alone never clears.

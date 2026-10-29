@@ -51,6 +51,7 @@ export type RestoreOutcome =
   /** The store deferred it (Ask to Buy). Nothing was paid or granted. */
   | { kind: 'awaiting-approval' }
   | { kind: 'store-trouble' }
+  | { kind: 'not-charged' }
   | { kind: 'refresh-trouble' };
 
 /**

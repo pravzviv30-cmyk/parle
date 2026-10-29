@@ -4,7 +4,7 @@ import { PLANS, refillWhen, type Plan, type StartRefusal } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { billingStatusIn, type BillingStatus } from './billingStatus.ts';
-import { PLAN_STATUS_COPY, planStatusFor } from './planStatus.ts';
+import { dayAndMonthOf, PLAN_STATUS_COPY, planStatusFor } from './planStatus.ts';
 
 const NOW = Date.parse('2026-09-12T12:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
@@ -34,7 +34,10 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
               bands.add(view.band);
               // REV-001: the free plan's band alone says its whole minutes and when they come back.
               for (const line of plan === 'trial' ? [view.planLabel, view.periodLine] : [view.planLabel, view.periodLine, view.bandLine]) {
-                assert.doesNotMatch(line, /\d/, `a numeral reached the card: "${line}"`);
+                // F909 (founder decision 9, 2026-10-29): a paid plan's period line may say the
+                // day its minutes are fresh, and that date is the only numeral it may carry.
+                const dated = plan !== 'trial' && line === view.periodLine && /^Fresh minutes on \d{1,2} [A-Z][a-z]+\.$/.test(line);
+                if (!dated) assert.doesNotMatch(line, /\d/, `a numeral reached the card: "${line}"`);
                 assert.doesNotMatch(line, /%/, `a percentage reached the card: "${line}"`);
                 assert.doesNotMatch(line, /—/, `an em dash reached the card: "${line}"`);
               }
@@ -60,9 +63,10 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
     assert.ok(plenty.known && plenty.band === 'plenty' && plenty.planLabel === 'Core');
     const little = planStatusFor(status({ plan: 'regular', secondsRemaining: 60 * 10, periodEnd: new Date(NOW + 2 * DAY).toISOString() }), NOW);
     assert.ok(little.known && little.band === 'a-little' && little.planLabel === 'Max');
-    if (little.known) assert.equal(little.periodLine, 'Renews within the week.');
+    // F909: the minutes window is dated, said apart from the store's billing renewal.
+    if (little.known) assert.equal(little.periodLine, `Fresh minutes on ${dayAndMonthOf(NOW + 2 * DAY)}.`);
     const later = planStatusFor(status({ plan: 'starter', periodEnd: new Date(NOW + 20 * DAY).toISOString() }), NOW);
-    if (later.known) assert.equal(later.periodLine, 'Renews in the coming weeks.');
+    if (later.known) assert.equal(later.periodLine, `Fresh minutes on ${dayAndMonthOf(NOW + 20 * DAY)}.`);
     // REV-001 (2026-10-23): the free plan is "Free", one conversation every
     // other day, and its band says the minutes left and when they come back,
     // as a day and a time on this phone's clock.

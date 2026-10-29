@@ -34,7 +34,7 @@ import {
 import { wallAccount } from './wallAccount.ts';
 import { chosenOffer, storeTrialMinutes, wallPlanRows, wallSuggestion, type GoalRead } from './wallPlans.ts';
 import { trialTimeline } from './trialTimeline.ts';
-import { effectiveSelection, paywallCta, paywallNotice, paywallOffer, pendingCheckoutNotice, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
+import { effectiveSelection, paywallCta, paywallNotice, paywallOffer, pendingCheckoutNotice, pendingDetail, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
 import { publishCelebrations } from '../celebrate/events.ts';
@@ -166,7 +166,7 @@ export function WallScreen({
       // A quiet look on open, with no store sync and so no Apple ID prompt: the
       // fence comes down only when the server confirms or the store holds nothing.
       const id = user.id;
-      void Promise.all([purchases.storeHolds(id, false), fetchBillingStatus(id)]).then(async ([store, server]) => {
+      void Promise.all([purchases.storeless === true ? 'storeless' as const : purchases.storeHolds(id, false), fetchBillingStatus(id)]).then(async ([store, server]) => {
         if (cancelled || owner !== scopeGeneration() || storeActionInFlight.current) return;
         if (resolvePendingCheckout(pending, store, server, 'open') !== 'clear') return;
         const cleared = await clearPendingPurchase(pending).catch(() => false);
@@ -350,7 +350,7 @@ export function WallScreen({
     const accepted = outcome.kind === 'done' || outcome.kind === 'refresh-trouble' || outcome.kind === 'nothing-granted';
     if (accepted) { storeGranted.current = true; setPurchaseAccepted(true); }
     const matching = outcome.kind === 'done' && outcome.plan === plan;
-    if (matching || outcome.kind === 'cancelled') {
+    if (matching || outcome.kind === 'cancelled' || outcome.kind === 'not-charged') {
       const cleared = await clearPendingPurchase(checkout).catch(() => false);
       if (owner !== scopeGeneration()) return;
       if (cleared) { setPendingPurchase(null); if (!matching) storeGranted.current = false; }
@@ -440,7 +440,7 @@ export function WallScreen({
     const owner = scopeGeneration();
     const record = pendingPurchase;
     storeActionInFlight.current = true; setBusy(true); setMessage(null);
-    const store = await purchases.storeHolds(user.id, true);
+    const store = purchases.storeless === true ? 'storeless' as const : await purchases.storeHolds(user.id, true);
     if (owner !== scopeGeneration()) return;
     await refreshBilling(user.id, owner);
     if (owner !== scopeGeneration()) return;
@@ -562,7 +562,7 @@ export function WallScreen({
     <ScrollScreen ground={colors.background} topGap={0} bottom="inset" header={<WallTopRow onPress={() => leave()} />}
       footer={<View style={st.footer}>
         <WallNotice notice={pendingCheckoutNotice(pendingPurchase.deferred === true) ?? { title: PAYWALL_PENDING_TITLE, body: 'A store purchase was started on this phone. Its matching paid plan has not been confirmed. Please do not buy again. Free local practice is available while confirmation catches up.', danger: false }} />
-        {message !== null && message !== PURCHASE_AWAITING_APPROVAL && <Text accessibilityLiveRegion="polite" style={[wallType.detail, { color: colors.muted }]}>{message}</Text>}
+        {pendingDetail(message) !== null && <Text accessibilityLiveRegion="polite" style={[wallType.detail, { color: colors.muted }]}>{pendingDetail(message)}</Text>}
         <WallCta label={PAYWALL_CHECK_AGAIN} dim={busy ? 0.6 : 1} disabled={busy} state={busy ? 'busy' : 'idle'} onPress={() => void checkAcceptedPurchase()} />
         <WallSecondary label={PAYWALL_START_AGAIN} disabled={busy} onPress={() => void startAgain()} />
         <WallLinks onTerms={onOpenTerms} onPrivacy={onOpenPolicy} />

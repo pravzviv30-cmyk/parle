@@ -17,7 +17,7 @@
 
 import { ALLOWANCE_WINDOW_DAYS, STORE_TRIAL_DAYS, type Plan, type PlanSpec } from '@luvani/core';
 
-import { PURCHASE_AWAITING_APPROVAL, PURCHASE_TROUBLE, REFRESH_TROUBLE } from '../purchases/paywallView.ts';
+import { PURCHASE_AWAITING_APPROVAL, PURCHASE_NOT_CHARGED, PURCHASE_TROUBLE, REFRESH_TROUBLE } from '../purchases/paywallView.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import type { TrialNodeKey, TrialTimelineView } from './trialTimeline.ts';
 import { dayAndMonth } from './wallAccount.ts';
@@ -252,6 +252,17 @@ export function paywallNotice(message: string | null, last: 'buy' | 'restore' | 
  */
 export function pendingCheckoutNotice(deferred: boolean): PaywallNotice | null {
   return deferred ? { title: PAYWALL_APPROVAL_TITLE, body: PAYWALL_APPROVAL_BODY, danger: false } : null;
+}
+
+/**
+ * The detail line under the pending page's card (F908). The card already says
+ * "Please do not buy again", so it never also says "Nothing was changed"
+ * (PURCHASE_TROUBLE), and the approval words already live in the card.
+ */
+export function pendingDetail(message: string | null): string | null {
+  // Nor "Nothing was charged": if that clear failed, the fence still stands and only its card is true.
+  if (message === null || message === PURCHASE_TROUBLE || message === PURCHASE_NOT_CHARGED || message === PURCHASE_AWAITING_APPROVAL) return null;
+  return message;
 }
 
 /** The footer button's words and look while the offer is on screen. */

@@ -77,7 +77,11 @@ describe('an unknown plan is never called Free', () => {
 
     // No count reaches a paid plan line (F377): the band and the period are
     // words. REV-001: the free plan's line says its minutes left, as the design does.
-    assert.doesNotMatch(JSON.stringify([planRow(paid), subscriptionView(paid)]), /\d/, 'a paid plan line counts');
+    // F909 (founder decision 9): a paid plan prints the minutes date it was
+    // handed (its period end) and no other number. No store answer: no billing date.
+    const handed = new Date(NOW + 20 * DAY);
+    const printed = JSON.stringify([planRow(paid), subscriptionView(paid)]).replaceAll(`${handed.getDate()} `, '');
+    assert.doesNotMatch(printed, /\d/, 'a paid plan line printed a number nobody handed it');
     assert.equal(planRow(free).sub, '5 free minutes left. One free conversation every other day.');
   });
 

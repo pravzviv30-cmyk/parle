@@ -10,12 +10,13 @@
  * and Restore so a learner who cannot see their plan can still reach the store.
  * It never names a plan it has not been told, and above all never says Free.
  *
- * ## No count, no date
+ * ## The store's date, once (F909)
  *
- * The plan's period is a distance in words and the speaking time a band, as
- * `purchases/planStatus.ts` hands them over (F377, F541). There is no price
- * row: nothing on the phone says which of the store's products this account
- * holds, and a price for the wrong one would be the first lie on the page.
+ * The speaking time is a band and the tutor-time card says when the minutes are
+ * fresh (the server's window). The Next renewal row is the one place the
+ * billing renewal is said: the store's own date and price for the product the
+ * store says this account holds (`useStoreRenewal`), or, when the store did not
+ * answer, where to find it. It never guesses a date or a price.
  *
  * ## The store, asked once at a time
  *
@@ -47,6 +48,7 @@ import { SettingsGroup } from './SettingsGroup.tsx';
 import { SettingsRow } from './SettingsRow.tsx';
 import { restoreResult } from './subscriptionRestore.ts';
 import { usePlanStatus } from './usePlanStatus.ts';
+import { useStoreRenewal } from './useStoreRenewal.ts';
 import {
   CANCEL_FOOTER,
   COMPARE_PLANS_ROW,
@@ -64,8 +66,9 @@ export function SubscriptionScreen() {
   const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string, params?: object) => void }>();
   const { user } = useAuth();
   const plan = usePlanStatus();
-  const view = subscriptionView(plan.view);
   const [offering, setOffering] = useState<StoreOffering | null>(null);
+  const renewal = useStoreRenewal(plan.status, offering);
+  const view = subscriptionView(plan.view, renewal);
   const [storeBusy, setStoreBusy] = useState<'none' | SubscriptionAction>('none');
   const [storeMessage, setStoreMessage] = useState<string | null>(null);
 
@@ -134,14 +137,14 @@ export function SubscriptionScreen() {
       {view.kind === 'free' || view.kind === 'paid' ? (
         <View>
           <Text accessibilityRole="header" style={[type.title, { color: colors.text }]}>{view.title}</Text>
-          <Text style={[type.body, { color: colors.muted, marginTop: space(1) }]}>{view.period}</Text>
-          <PlanCard band={view.band} period={view.period} />
+          {view.kind === 'free' ? <Text style={[type.body, { color: colors.muted, marginTop: space(1) }]}>{view.period}</Text> : null}
+          {view.kind === 'free' ? <PlanCard band={view.band} period={view.period} /> : <PlanCard band={view.band} period={view.minutes} />}
         </View>
       ) : null}
 
       {view.kind === 'paid' ? (
         <SettingsGroup>
-          <SettingsRow first label={NEXT_RENEWAL_ROW} sub={view.period} />
+          <SettingsRow first label={NEXT_RENEWAL_ROW} sub={view.renewal} />
         </SettingsGroup>
       ) : null}
 

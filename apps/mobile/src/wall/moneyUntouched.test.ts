@@ -98,7 +98,8 @@ const FILES: Record<string, string> = {
   // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
   // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
-  'apps/mobile/src/purchases/adapter.ts': '6868f03bd7c7e2a6521dbd439ba56e35d7854bda6c2c08f8bf9cbf9bfb2ba605',
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  'apps/mobile/src/purchases/adapter.ts': '4d6bb004d2de8d8446330cc1e4ee9afc6a288e26b5a167a396483fc854d51279',
   // 7 October 2026, F772 (come-alive Phase 4, ca/p4-wall): the plans page says a
   // yearly price with the store's own monthly figure ("about ... a month"), so
   // the contract gains an optional display-only `localizedPricePerMonth` and the
@@ -117,9 +118,11 @@ const FILES: Record<string, string> = {
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
   // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
-  'apps/mobile/src/purchases/adapter.native.ts': 'c65a65c860e71b90454684a35f7e1115950f14b9581a996627fb73a9c608dc91',
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  'apps/mobile/src/purchases/adapter.native.ts': '85b233a3ba9561fdae45d8c0944c32510511b5a46268105e4660338b2f4bd534',
   // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
-  'apps/mobile/src/purchases/pendingPurchase.ts': 'ab1249bc6f38e96c3a808c4193a035639a669fb767c3256f83d0108a7d83b89d',
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  'apps/mobile/src/purchases/pendingPurchase.ts': '4af90872cbe07ea97c0ae32cf717092fe4289ec6584f23890afb781b61b4663b',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
   // no contract text, imports or purchase behavior changed. Sol independently
@@ -132,9 +135,11 @@ const FILES: Record<string, string> = {
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
   // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
-  'apps/mobile/src/purchases/contract.ts': 'c0f706ff234505dc3bb0bd71875435e020153571f47d15413fc9ae3682152efc',
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  'apps/mobile/src/purchases/contract.ts': '295c94cfa282eeebb9f0f205432bb2fed23662569ffcd3648ca21f482813aa09',
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
-  'apps/mobile/src/purchases/restore.ts': 'f625d4062beab096ea5b4802d19c3069e146d3d2223f242d70330325a7148dfe',
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  'apps/mobile/src/purchases/restore.ts': '8c43b317c29cc5ad2449598f103d9766126225191aa3d5d56655e47fb1050da0',
   // 7 October 2026: authorized completion adds account-scoped invalidation after
   // validated billing refresh (F783); listeners re-read server authority. No grant
   // or pricing rule changes here. billingChanges.test.ts covers the boundary.
@@ -226,7 +231,8 @@ const FILES: Record<string, string> = {
   'supabase/migrations/202608300003_paid_lapse_marker.sql': 'f62c7f5af3db814128873c98903f5161e1dd215a80071d0f66f9727b7e4c3b41',
   'supabase/migrations/202609100001_max_allowance_three_hundred.sql': '0e0982a4a43efa7100674848e8698eb5a7d15f44e39e4cbeac1e866c7069aadc',
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
-  'apps/mobile/src/purchases/storeSettlement.ts': '8dd08774be07a8d9b8bd6053d1aca93b144dc0de33cbadda0b8f4d1fd8199674',
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  'apps/mobile/src/purchases/storeSettlement.ts': '5f00e6e28da4c41800db21e40eb56060a3077d7fd84c27ba229954ffa72778de',
   'apps/mobile/src/purchases/storeQueue.ts': 'e082c5feb556e5eda675884e56255ebf2ef4365ddfa783d26ad0005c271d9c74',
   'apps/mobile/src/purchases/billingReadiness.ts': '00d56ec03d31717376149bf4d9e50738452d55e8cd7d2951114e70f858ec5cd6',
   'services/token-server/src/billing/state.ts': 'e564bd2e58a25fea9dc942c7e4a52563802bbcc309fc3caa4cbeaea2ec3abc17',
@@ -253,14 +259,17 @@ const FUNCTIONS: ReadonlyArray<{ file: string; from: string; to: string; hash: s
   { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function purchasable(', to: '\n}\n', hash: '356663b565acadb4db7149d52bb3b19a34db93da9cb7045dc65dcdb4381cc9d3' },
   { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function paywallSurface(', to: '\n}\n', hash: 'd84931dc6e9138415641ca4acde9fd0fc746b4032c318ffe52fbe22d0b8935a9' },
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
-  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function restoreTrouble(', to: '\n}\n', hash: 'b0b7d80154b7438209dc99dda1583b7a9b3269b5f663915b5f1ba5bab6b9a094' },
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function restoreTrouble(', to: '\n}\n', hash: '37607df41a0031563d9c5f9dd749da210cca4421cac5c738f09c826726768f24' },
   { file: 'apps/mobile/src/purchases/Paywall.tsx', from: '  const finish = async (', to: '\n  };\n', hash: '84b76d1009e37cb18928dba63a23fbe243160a42d96fcc48581f6bebd76e508d' },
     // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
-{ file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const settle = async (', to: '\n  };\n', hash: 'a487d6486c9eacc5cda384cce61adc599787feec6eff0e238be7d0a3a0962abd' },
+// 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+{ file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const settle = async (', to: '\n  };\n', hash: '23a13e33c26179e24f0003ee4604a9875d5bed11a6d9894f67666a257aa05cce' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const buy = async () => {', to: '\n  };\n', hash: '722a6d7ab28faaa9751d1e3ae938b92983f44f2f125228cd1c654cb7d98a3c40' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const restore = async () => {', to: '\n  };\n', hash: 'eb161316f3375fefd7f77bd06e7c9196839976c64e51c9a1f1a0e42cf96f3b14' },
   // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
-  { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const startAgain = async () => {', to: '\n  };\n', hash: '99719e14ee6805a55b3f655979574e57bb9adf7b49bf64565946227eaad5c277' },
+  // 2026-10-29, founder approved per diff (Stream B batch 2): F908 clears the checkout fence only on a store call that never started (web storeless, no package, RevenueCat codes 3 and 5); F909 adds a read-only heldPlan for the renewal line.
+  { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const startAgain = async () => {', to: '\n  };\n', hash: '047dbe52d33570b58401e77f0c4fee81936ae782b47e655b1202d45ed179f43a' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const checkAcceptedPurchase = async () => {', to: '\n  };\n', hash: 'a1c162349a5a3655958a1b6bf0d64614aa46812ca6265a81f672072829030c19' },
   // 2026-09-27, Fable paywall review: the token server's billing routes, cut out of server.ts rather than
   // pinning the whole server, so an unrelated server change does not trip a money pin.

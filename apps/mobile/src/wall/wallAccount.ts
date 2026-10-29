@@ -1,7 +1,7 @@
 import type { Plan, PlanSpec } from '@luvani/core';
 
 import type { BillingStatus } from '../purchases/billingStatus.ts';
-import { PLAN_LABELS, refillTime } from '../purchases/planStatus.ts';
+import { dayAndMonthOf, PLAN_LABELS, refillTime } from '../purchases/planStatus.ts';
 import {
   ACCOUNT_FRESH_NOW,
   ACCOUNT_NONE_LEFT,
@@ -61,9 +61,7 @@ const MONTHS = [
  * one, which is the day they will notice the minutes back.
  */
 export function dayAndMonth(iso: string): string | null {
-  const at = new Date(iso);
-  if (!Number.isFinite(at.getTime())) return null;
-  return `${at.getDate()} ${MONTHS[at.getMonth()]}`;
+  return dayAndMonthOf(iso);
 }
 
 function leftLine(secondsRemaining: number): string {

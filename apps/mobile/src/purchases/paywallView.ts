@@ -113,6 +113,8 @@ export function inlinePaywall(offering: StoreOffering): InlinePaywallView {
 }
 
 export const PURCHASE_TROUBLE ='The store could not finish that just now. Nothing was changed, and you can try later.';
+/** F908: the store call failed before any purchase began, so nothing was charged. */
+export const PURCHASE_NOT_CHARGED = "The purchase didn't go through. Nothing was charged. You can try again.";
 export const REFRESH_TROUBLE = 'The store finished, but speaking time is still catching up. Try again in a moment.';
 /** Ask to Buy: the store is holding the purchase until a parent or organiser approves it. */
 export const PURCHASE_AWAITING_APPROVAL = 'Someone on your Family Sharing account needs to approve this. Nothing has been charged yet. Your plan will appear here once it is approved.';
@@ -138,6 +140,7 @@ export const RESTORE_BUSY = 'Checking the store…';
  */
 export function restoreTrouble(outcome: RestoreOutcome): string | null {
   if (outcome.kind === 'store-trouble') return PURCHASE_TROUBLE;
+  if (outcome.kind === 'not-charged') return PURCHASE_NOT_CHARGED;
   if (outcome.kind === 'refresh-trouble') return REFRESH_TROUBLE;
   if (outcome.kind === 'awaiting-approval') return PURCHASE_AWAITING_APPROVAL;
   // The store finished and the server granted nothing. On this surface that has

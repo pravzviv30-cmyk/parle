@@ -101,7 +101,23 @@ export type StoreOffering =
 export type StoreAction =
   | { ok: true }
   | { ok: false; cancelled: true }
-  | { ok: false; cancelled: false; deferred?: true };
+  | { ok: false; cancelled: false; deferred?: true; notStarted?: true };
+// `notStarted` (F908, founder decision 11): the store call failed before any
+// purchase could begin, so by definition nothing was charged and the checkout
+// fence may come down. Set only where that is certain (`storeError.ts`).
+
+/**
+ * The store's own facts about the subscription this account holds (F909): which
+ * product, when it next renews or ends, whether it renews, and whether it is in
+ * a store free trial. Display only, never a grant: plan, minutes and entitlement
+ * stay the server's. Null fields mean the store did not say.
+ */
+export interface StoreHeldPlan {
+  productId: string;
+  expiresAt: number | null;
+  willRenew: boolean | null;
+  inTrial: boolean | null;
+}
 
 export interface PurchasesAdapter {
   offering(userId: string): Promise<StoreOffering>;
@@ -124,6 +140,8 @@ export interface PurchasesAdapter {
    * the server's (`storeTrialFacts.ts`).
    */
   trialFacts(userId: string): Promise<StoreTrialFacts | null>;
+  /** The held subscription's store facts, for the plan screen's renewal line (F909). Null when the store could not say. */
+  heldPlan(userId: string): Promise<StoreHeldPlan | null>;
   /**
    * Whether the store itself holds a Luvani purchase for this account, so a stuck
    * checkout fence can come down when there is nothing to buy twice
@@ -133,6 +151,12 @@ export interface PurchasesAdapter {
    * error or account mismatch answers `unknown`, which never clears a fence.
    */
   storeHolds(userId: string, sync: boolean): Promise<'active' | 'none' | 'unknown'>;
+  /**
+   * True only where no store can exist at all (web), so no real store purchase
+   * can be pending and a checkout marker left by an older build is stale (F908).
+   * Native leaves it unset, and `storeHolds` keeps its own answer.
+   */
+  storeless?: true;
   /** Called when the store reports new customer info. Returns the unsubscribe. */
   onStoreChange(listener: () => void): () => void;
 }

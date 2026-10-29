@@ -121,3 +121,66 @@ test('a currently active matching plan is checked before checkout and cannot ope
   assert.deepEqual(a.calls, []); assert.equal(a.checkout(), null);
   assert.match(String(a.messages.at(-1)), /already have this plan/);
 });
+
+// F908 (2026-10-29, founder decision 11): a store call that by definition charged
+// nothing clears the fence; anything uncertain keeps it.
+test('a store call that fails before any purchase clears the checkout fence', async () => {
+  const { storeActionFromError } = await import('../purchases/storeError.ts');
+  const { ownedStoreSettlement } = await import('../purchases/storeSettlement.ts');
+  const { purchases: web } = await import('../purchases/adapter.ts');
+  const paywallView = await import('../purchases/paywallView.ts') as Record<string, unknown>;
+  // Web can never reach a store, so its purchase is a clean failure.
+  assert.deepEqual(await web.purchase('someone', 'monthly'), { ok: false, cancelled: false, notStarted: true });
+  assert.equal((web as { storeless?: boolean }).storeless, true);
+  // Only the codes that mean no charge could happen; everything else stays uncertain.
+  for (const code of ['3', '5']) assert.deepEqual(storeActionFromError({ code, userCancelled: false }), { ok: false, cancelled: false, notStarted: true });
+  for (const code of ['0', '2', '4', '8', '10', '23', '35', undefined]) assert.deepEqual(storeActionFromError({ code, userCancelled: false }), { ok: false, cancelled: false }, `code ${code} read as not charged`);
+  const outcome = await ownedStoreSettlement(async () => ({ ok: false, cancelled: false, notStarted: true } as never), async () => { throw new Error('must not refresh'); }, () => true);
+  assert.deepEqual(outcome, { kind: 'not-charged' });
+  // An account change still wins over a clean failure.
+  assert.deepEqual(await ownedStoreSettlement(async () => ({ ok: false, cancelled: false, notStarted: true } as never), async () => null, () => false), { kind: 'store-trouble' });
+  const line = (paywallView.restoreTrouble as (o: unknown) => string | null)(outcome);
+  assert.equal(line, "The purchase didn't go through. Nothing was charged. You can try again.");
+  assert.equal(paywallView.PURCHASE_NOT_CHARGED, line);
+  // The wall clears its fence and stays on the plans page, with no pending page.
+  const a = actions(Promise.resolve({ kind: 'not-charged' }));
+  await a.buy();
+  assert.equal(a.checkout(), null, 'a clean failure left the checkout fence up');
+  assert.deepEqual(a.accepted, []);
+  // Uncertain failures keep it.
+  for (const kind of ['store-trouble', 'refresh-trouble']) {
+    const b = actions(Promise.resolve({ kind })); await b.buy();
+    assert.notEqual(b.checkout(), null, `${kind} cleared the fence`);
+  }
+  // A stale marker on web clears on open and on Start again; native answers are untouched.
+  const { resolvePendingCheckout } = await import('../purchases/pendingPurchase.ts');
+  const stale = { plan: 'regular' as const, productId: 'monthly', before: { plan: 'trial' as const, periodEnd: null } };
+  for (const trigger of ['open', 'start-again'] as const) {
+    assert.equal(resolvePendingCheckout(stale as never, 'storeless', null, trigger), 'clear');
+    assert.equal(resolvePendingCheckout(stale as never, 'unknown', null, trigger), 'unknown');
+    assert.equal(resolvePendingCheckout(stale as never, 'active', null, trigger), 'wait');
+  }
+  assert.equal(resolvePendingCheckout(stale as never, 'none', null, 'open'), 'wait');
+  assert.match(source, /purchases\.storeless === true \? 'storeless' as const : purchases\.storeHolds\(id, false\)/);
+  assert.match(source, /purchases\.storeless === true \? 'storeless' as const : await purchases\.storeHolds\(user\.id, true\)/);
+});
+
+test('the pending page never says nothing was changed and do not buy again together', async () => {
+  const { pendingDetail } = await import('./trialPaywall.ts') as unknown as { pendingDetail?: (message: string | null) => string | null };
+  const { PURCHASE_TROUBLE, PURCHASE_AWAITING_APPROVAL, REFRESH_TROUBLE } = await import('../purchases/paywallView.ts');
+  assert.equal(typeof pendingDetail, 'function', 'the pending page has no filter for its detail line');
+  assert.equal(pendingDetail!(PURCHASE_TROUBLE), null);
+  assert.equal(pendingDetail!(PURCHASE_AWAITING_APPROVAL), null);
+  assert.equal(pendingDetail!(REFRESH_TROUBLE), REFRESH_TROUBLE);
+  assert.equal(pendingDetail!(null), null);
+  const page = source.slice(source.indexOf('  if (pendingPurchase !== null) return ('), source.indexOf('  // A missing native store'));
+  assert.match(page, /Please do not buy again/);
+  assert.match(page, /pendingDetail\(message\)/);
+  assert.doesNotMatch(page, /message !== null &&/, 'the pending page prints the raw message');
+});
+
+test('the pending page never says nothing was charged while the fence still stands', async () => {
+  const { pendingDetail } = await import('./trialPaywall.ts');
+  const { PURCHASE_NOT_CHARGED } = await import('../purchases/paywallView.ts') as unknown as { PURCHASE_NOT_CHARGED: string };
+  assert.equal(pendingDetail(PURCHASE_NOT_CHARGED), null, 'the pending page printed "Nothing was charged" under "do not buy again"');
+});

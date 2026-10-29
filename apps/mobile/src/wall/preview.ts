@@ -19,7 +19,8 @@
  */
 import { PLANS, type Plan, type PlanSpec } from '@luvani/core';
 
-import type { StoreOffering } from '../purchases/adapter.ts';
+import type { StoreHeldPlan, StoreOffering } from '../purchases/adapter.ts';
+import type { BillingStatus } from '../purchases/billingStatus.ts';
 
 export interface PreviewEnvironment {
   EXPO_PUBLIC_LUVANI_WALL_PREVIEW?: string;
@@ -120,6 +121,19 @@ export function previewOffering(env: PreviewEnvironment = bundledEnvironment()):
       { plan: 'regular', productId: 'luvani_regular_yearly_preview', title: 'Max', localizedPrice: '£179.99', price: 179.99, currencyCode: 'GBP', period: 'year', localizedPricePerMonth: '£15.00', intro: PREVIEW_WEEK, introEligible: true },
     ],
   };
+}
+
+/**
+ * The held plan a preview build pretends the store answered (F909), so the
+ * Subscription screen's dated renewal line can be looked at on web with a paid
+ * file entitlement. Gated exactly like `previewOffering`: null on any production
+ * build, off the local-development switch, or for a free or lapsed plan. The
+ * product is the preview's own yearly fixture for the server's tier, renewing
+ * four weeks from now.
+ */
+export function previewHeldPlan(status: BillingStatus | null, env: PreviewEnvironment = bundledEnvironment(), now: number = Date.now()): StoreHeldPlan | null {
+  if (!storePreviewEnabled(env) || status === null || status.plan === 'trial' || status.lapsed) return null;
+  return { productId: `luvani_${status.plan}_yearly_preview`, expiresAt: now + 28 * 24 * 60 * 60 * 1000, willRenew: true, inTrial: false };
 }
 
 const PREVIEW_WEEK = { priceString: '£0.00', periodUnit: 'WEEK', periodNumberOfUnits: 1, cycles: 1 } as const;
