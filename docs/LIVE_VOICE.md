@@ -312,6 +312,15 @@ one, and the scene is built from it straight away. Everything downstream is the
 same code path, including the request-grounded recovery scene when the frame
 call fails.
 
+A `seedTopic` is `{ fr, en, brief? }`. `fr`/`en` are the short title the
+learner read; they are the only part spoken or published. `brief` (at most 240
+characters, tutor only) is what the scene is built from and what the pack's
+learner goal records; a recovery scene keeps the title as its visible title. A
+seed with a brief is a fresh topic and opens "{Title}. Let's talk about it." /
+"{Titre}. On en parle."; a seed without one is a continuation and opens "...
+Let's talk about it again." / "... On en reparle." The brief is safety-screened
+with the title before anything is said.
+
 ### One spoken answer, not a lecture
 
 On an ordinary free-conversation turn, the learner hears the French character
