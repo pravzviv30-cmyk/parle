@@ -66,7 +66,8 @@ import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { bType, space, type } from '../theme.ts';
 import { IconAction, OptionRow, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
-import { ScrollScreen } from '../layout.tsx';
+import { ConfirmSheet, ScrollScreen } from '../layout.tsx';
+import { SIGN_OUT_CONFIRM, signOutStep, type SignOutEvent, type SignOutSheet } from './signOutConfirm.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BackButton } from '../journey/JourneyParts.tsx';
 import { withPace, paceOf } from '../tutor/pace.ts';
@@ -254,6 +255,12 @@ export function SettingsScreen({
   const planStatus = usePlanStatus();
   const trial = useTrialReminder();
   const [sheet, setSheet] = useState<Sheet>('none');
+  const [signOutSheet, setSignOutSheet] = useState<SignOutSheet>({ open: false, signOut: false });
+  const stepSignOut = (event: SignOutEvent) => {
+    const next = signOutStep(signOutSheet, event);
+    setSignOutSheet(next);
+    if (next.signOut) onSignOut();
+  };
   const [draftName, setDraftName] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -847,6 +854,16 @@ export function SettingsScreen({
 
   return (
     <SettingsAppearance b>
+    {/* F938: signing out asks first. Staying is the pill; every dismissal stays. */}
+    <ConfirmSheet
+      visible={signOutSheet.open}
+      title={SIGN_OUT_CONFIRM.title}
+      body={SIGN_OUT_CONFIRM.body}
+      cancelLabel={SIGN_OUT_CONFIRM.stay}
+      confirmLabel={SIGN_OUT_CONFIRM.leave}
+      onCancel={() => stepSignOut('dismiss')}
+      onConfirm={() => stepSignOut('leave')}
+    />
     {/* 2026-10-20 UI-008, artboard B-Settings: the page at 58 22 60 with 22
         between groups, the back disc beside the 28/800 title, and the groups
         in the artboard's order. Delete account stands alone at the foot. */}
@@ -863,7 +880,7 @@ export function SettingsScreen({
         <SettingsRow first label={NAME_ROW} value={profile.name ?? NAME_UNSET_VALUE} onPress={openNameSheet} />
         <SettingsRow label={EMAIL_ROW} value={user?.email ?? EMAIL_UNKNOWN} />
         {user?.provider === 'mock' && <SettingsRow label={DEMO_ROW} sub={DEMO_VALUE} />}
-        <SettingsRow label={SIGN_OUT_ROW} action onPress={onSignOut} />
+        <SettingsRow label={SIGN_OUT_ROW} action onPress={() => stepSignOut('ask')} />
       </SettingsGroup>
 
       {/* The plan is one row and opens the Subscription screen, which holds
