@@ -3,7 +3,7 @@
  * core-loop review's finding 1 and founder decision D21).
  *
  * The verdicts are core's own, from a real `answerCurrent` on a real sitting,
- * so a change in what core hands over on a first miss (nothing, by design) is
+ * so a change in what core hands over on a first miss (the form, LEARN-017) is
  * met here rather than assumed. The sheet's model is pure and runs; the screen
  * and the sheet component are read as text, because this workspace has no
  * renderer (docs/TESTING.md).
@@ -13,7 +13,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { answerCurrent, type DrillExercise, type DrillFeedback, type DrillSessionState } from '@luvani/core';
+import { answerCurrent, missReason, type DrillExercise, type DrillFeedback, type DrillSessionState } from '@luvani/core';
 
 import { streakGuiltIn } from '../copy/guilt.ts';
 import type { SfxId } from '../sound/sfxIds.ts';
@@ -99,16 +99,14 @@ describe('the answer sheet — F759', () => {
     assert.equal(typo.haptic, 'soft');
     assert.ok(typo.autoAdvanceMs !== null);
 
-    // A first miss: core hands nothing over, so the sheet says only that it comes round again.
+    // A listen-type first miss (LEARN-017's listening exception): nothing handed over.
     const first = feedback(sitting([listen()]), 'je ne sais pas');
-    assert.equal(first.fb.closest, null, 'core handed the answer over on a first miss, so the retry tests nothing');
+    assert.equal(first.fb.closest, null, 'the listening retry was handed its transcript');
     assert.equal(first.fb.advanced, false);
     const firstSheet = sheetOf(first.fb, 'listen-type', false);
     assert.equal(firstSheet.tone, 'calm');
     assert.equal(firstSheet.headline, 'This one comes round again.');
-    assert.equal(firstSheet.french, null, 'a first miss shows French it was never given');
-    assert.equal(firstSheet.detail, null);
-    assert.ok(firstSheet.autoAdvanceMs !== null, 'a first miss has nothing to read, so it has no reason to wait');
+    assert.equal(firstSheet.french, null);
 
     // The second miss moves on, so now the form is shown, and it waits for Continue.
     const second = sheetOf(feedback(first.state, 'toujours pas').fb, 'listen-type', false);
@@ -154,6 +152,61 @@ describe('the answer sheet — F759', () => {
     const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
     assert.match(sheetFile, /const waits = sheet\.autoAdvanceMs === null;/);
     assert.match(sheetFile, /\{waits \? \( <> \{body\} <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} \/> <\/> \)/, 'a sheet that waits has no Continue');
+  });
+
+  test('a missed drill answer shows the right answer and a one-line reason', () => {
+    // F919, founder decision 19 (LEARN-017). A best-sentence miss: core hands
+    // over the right sentence, the sheet shows it with its own meaning, says it
+    // comes round again, and waits so the learner can read it.
+    const choice = {
+      id: 'gen:best', phraseKey: 'phrase:je vais prendre', kind: 'best-sentence', difficulty: 'recognition', prompt: 'Order a coffee',
+      candidates: [{ fr: 'Je suis un café', en: 'I am a coffee' }, { fr: 'je vais prendre', en: "I'll have" }], correctIndex: 1,
+    } as unknown as DrillExercise;
+    const first = feedback(sitting([choice]), 0 as unknown as string);
+    assert.equal(first.fb.advanced, false, 'the item no longer comes round again');
+    assert.equal(first.fb.closest, 'je vais prendre', 'core hid the right answer on a first miss');
+    const sheet = sheetFor({ verdict: first.fb.verdict, closest: first.fb.closest, advanced: first.fb.advanced, reason: missReason(choice), kind: 'best-sentence', combo: 0, turn: 0, screenReader: false });
+    assert.equal(sheet.headline, "Here's how it goes.");
+    assert.equal(sheet.french, 'je vais prendre');
+    assert.equal(sheet.reason, "je vais prendre = I'll have");
+    assert.equal(sheet.after, 'This one comes round again.');
+    assert.equal(sheet.autoAdvanceMs, null, 'a first miss with an answer to read moved on by itself');
+    assert.equal(sheet.mark, false);
+    // It is one line, and it reaches a screen reader with the rest.
+    assert.doesNotMatch(sheet.reason ?? '', /\n/);
+    // The drill hands the current exercise's reason to the sheet, and the sheet draws it.
+    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    assert.match(screen, /reason: missReason\(current, fb\.closest\)/, 'the drill does not hand the sheet a reason');
+    const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+    assert.match(sheetFile, /sheet\.reason !== null/, 'the sheet does not draw the reason');
+    assert.match(read('./answerSheet.ts'), /\[sheet\.headline, sheet\.detail, sheet\.french, sheet\.reason, sheet\.after, note\]/, 'a screen reader does not hear the reason');
+  });
+
+  test('a miss sheet names its answer honestly: one of several replies, English as English, listening still tested', () => {
+    // Several acceptable replies: the sheet says this is one that works.
+    const many = sheetFor({ verdict: 'miss', closest: 'Oui, merci', advanced: false, reason: 'Oui, merci = Yes, thanks', kind: 'appropriate-reply', oneOfMany: true, combo: 0, turn: 0, screenReader: false });
+    assert.equal(many.headline, SHEET_COPY.oneOfMany);
+    assert.equal(SHEET_COPY.oneOfMany, 'Here is one reply that works.');
+    // fr-en: the answer is English, so no French line in guillemets; the reason carries it once.
+    for (const advanced of [false, true]) {
+      const en = sheetFor({ verdict: 'miss', closest: "That's all, thanks", advanced, reason: "Ça sera tout, merci = That's all, thanks", kind: 'translate', answerEnglish: true, combo: 0, turn: 0, screenReader: false });
+      assert.equal(en.french, null, 'English was drawn as French');
+      assert.equal(en.reason, "Ça sera tout, merci = That's all, thanks");
+    }
+    // Listen-type first miss: core hands nothing over, the sheet says it comes round again.
+    const listened = feedback(sitting([listen()]), 'zzz');
+    assert.equal(sheetOf(listened.fb, 'listen-type', false).headline, 'This one comes round again.');
+    // One spokenSheet, in the pure module.
+    assert.doesNotMatch(stripComments(read('./AnswerSheet.tsx')), /export function spokenSheet/);
+    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    assert.match(screen, /reason: missReason\(current, fb\.closest\)/, 'the reason is not built from the form shown');
+  });
+
+  test('only the French half of the reason is read as French', () => {
+    const file = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+    assert.doesNotMatch(file, /<Text \{\.\.\.frenchText\}[^>]*>\{sheet\.reason\}/, 'the whole reason, English included, is read as French');
+    assert.match(file, /<Text \{\.\.\.frenchText\}[^>]*>\{reasonFr\}<\/Text>/);
+    assert.match(file, /<Text style=\{\[bType\.meta, \{ color: ground\.ink \}\]\}>\{` = \$\{reasonEn\}`\}<\/Text>/);
   });
 
   test('a miss draws no mark, plays no sound and fires no haptic', () => {

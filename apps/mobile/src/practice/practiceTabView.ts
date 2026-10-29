@@ -47,6 +47,8 @@ import { practiceRouteParams, type PracticeRouteParams } from './practiceRoute.t
 import { packSelection, recommendation } from './recommendation.ts';
 import { relativeDay, spokenLine } from './sessionCard.ts';
 import { restorePracticeSession, type PracticeSessionRecord } from './sessionStore.ts';
+import { includedInMax } from '../access/includedInMax.ts';
+import { savedPhraseCards } from './savedPhrases.ts';
 import { sittingProgress } from './sittingProgress.ts';
 
 export type Access = (feature: LockedFeature) => FeatureAccess;
@@ -405,7 +407,7 @@ export function conversationCard(input: {
         ]
       : null,
     stepsLocked: isLocked(access, 'conversationPractice'),
-    revisit: door === null ? null : { label: TALK_AGAIN, uses: door.uses, route: { screen: 'Convo', params: { continuationPackId: door.packId } }, locked: revisitLocked, feature: 'continueArc' },
+    revisit: door === null ? null : { label: TALK_AGAIN, uses: withIncluded(door.uses, includedInMax('continueArc', !revisitLocked)), route: { screen: 'Convo', params: { continuationPackId: door.packId } }, locked: revisitLocked, feature: 'continueArc' },
     revisited: revision === null ? null : { from: revision.source.title.en, win: revision.after.wins[0] ?? null },
     art: compactArt(pack, index),
     practiseIt: canPractise ? { route: { screen: 'ConversationPractice', params: { packId: pack.id } }, locked: isLocked(access, 'conversationPractice'), feature: 'conversationPractice' } : null,
@@ -452,6 +454,12 @@ export function mixCard(input: {
   };
 }
 
+/** "Uses live minutes. Included in Max.": the cost line, then the plan's label when there is one (F935). */
+function withIncluded(uses: string, included: string | null): string {
+  if (included === null) return uses;
+  return /[.!?]$/.test(uses) ? `${uses} ${included}.` : `${uses}. ${included}.`;
+}
+
 // ─────────────────────────────────────────────────────────────── saved
 
 export const SAVED_PHRASES = 'Saved phrases';
@@ -461,7 +469,8 @@ export const SAVED_TEXT = { title: 'Saved conversation text', gloss: 'The words 
 
 /** "8 saved, 3 used in conversation", from the deck and each card's own counter. */
 export function savedPhrasesLine(deck: readonly ReviewCard[]): string {
-  const kept = deck.filter((card) => card.kind !== 'phoneme');
+  // The shared rule, so Journey's count is this one (F918).
+  const kept = savedPhraseCards(deck);
   if (kept.length === 0) return SAVED_FIRST;
   const used = kept.filter((card) => evidenceOf(card).convoUses >= 1).length;
   return `${kept.length} saved, ${used} used in conversation`;

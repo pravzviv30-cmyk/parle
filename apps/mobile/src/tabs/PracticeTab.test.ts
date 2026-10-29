@@ -126,7 +126,8 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     // line ("free" is left out: it uses live minutes) and the seam's lock.
     assert.match(flat(empty), /<ReadyRow title=\{cafe\.title\} lines=\{\[cafe\.line, cafe\.cost\]\} art="phrasebook" ground="butter" locked=\{cafe\.locked\} feature="sounds" disabled=\{checking\} onPress=\{openLesson\} \/>/, 'the café lesson opens without its probe, or hides what it costs');
     assert.match(FLAT, /const cafe = cafeRow\(locks\.access\);/);
-    assert.match(flat(empty), /go\(\{ screen: 'SoundCheck' \}\)/, 'Sounds of French opens somewhere other than the sound check');
+    // F919: Sounds of French plays the minimal-pair drill, not the sound check.
+    assert.match(flat(empty), /onPress=\{openSoundDrill\}/, 'Sounds of French opens somewhere other than the sound drill');
     assert.match(flat(empty), /<SavedBox line=\{data\.deck\.length === 0 \? SAVED_FIRST : savedPhrasesLine\(data\.deck\)\} onPress=\{\(\) => go\(\{ screen: 'Phrasebook' \}\)\} \/>/, 'the empty page lost its saved phrases box, or it opens somewhere other than the phrasebook');
     const lesson = between(SCREEN, 'const openLesson = (', '\n  };\n', 'the lesson opener is a component-level handler');
     assert.match(lesson, /if \(checking \|\| !ownsReadNow\(\)\) return;/);

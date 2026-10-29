@@ -86,11 +86,11 @@ describe('what a celebration card says — F743', () => {
 
   test('a level card says the number from the moment and never a rank name', () => {
     const view = cardView(cardOf([level(3, 4)]));
-    assert.equal(view.title, 'Level 4');
-    assert.equal(view.titleBefore, 'Level 3', 'the number does not change from the level the learner had');
+    assert.equal(view.title, 'XP level 4');
+    assert.equal(view.titleBefore, 'XP level 3', 'the number does not change from the level the learner had');
     assert.deepEqual(view.lines, [GAME_COPY.level.line]);
     assert.equal(view.ground, 'blue');
-    assert.equal(cardView(cardOf([level(2, 3), level(3, 5)])).titleBefore, 'Level 2', 'two levels in one sitting do not count from the first');
+    assert.equal(cardView(cardOf([level(2, 3), level(3, 5)])).titleBefore, 'XP level 2', 'two levels in one sitting do not count from the first');
   });
 
   test('the title a screen reader lands on says the whole moment, and a level never changes under it', () => {
@@ -102,13 +102,13 @@ describe('what a celebration card says — F743', () => {
 
     const rise = cardView(cardOf([level(3, 4)]));
     // For the eye: the old level until the title beat, then the new one.
-    assert.equal(shownTitle(rise, { titleReached: false, screenReader: false }), 'Level 3');
-    assert.equal(shownTitle(rise, { titleReached: true, screenReader: false }), 'Level 4');
+    assert.equal(shownTitle(rise, { titleReached: false, screenReader: false }), 'XP level 3');
+    assert.equal(shownTitle(rise, { titleReached: true, screenReader: false }), 'XP level 4');
     // Before the OS has answered, the swap plays, so a sighted learner never sees 4, then 3, then 4.
-    assert.equal(shownTitle(rise, { titleReached: false, screenReader: null }), 'Level 3');
+    assert.equal(shownTitle(rise, { titleReached: false, screenReader: null }), 'XP level 3');
     // With a screen reader on, the header the reader stands on never changes.
-    assert.equal(shownTitle(rise, { titleReached: false, screenReader: true }), 'Level 4', 'the header changed under a screen reader, so its focus is lost');
-    assert.equal(shownTitle(rise, { titleReached: true, screenReader: true }), 'Level 4');
+    assert.equal(shownTitle(rise, { titleReached: false, screenReader: true }), 'XP level 4', 'the header changed under a screen reader, so its focus is lost');
+    assert.equal(shownTitle(rise, { titleReached: true, screenReader: true }), 'XP level 4');
     // A card with nothing to swap always shows its title.
     const run = cardView(cardOf([streak(12, 240)]));
     assert.equal(shownTitle(run, { titleReached: false, screenReader: false }), run.title);
@@ -117,10 +117,10 @@ describe('what a celebration card says — F743', () => {
   test('the rows under "Also today" name what did not get a card of its own', () => {
     const last = cardView(cardOf([streak(4, 9), level(5, 6), badge('goal-7'), badge('scene-own')], 1));
     assert.equal(last.title, GAME_COPY.streak.line(4));
-    assert.deepEqual(last.rows, ['Level 6', 'Badge: Goal met 7 times', 'Badge: On your own']);
+    assert.deepEqual(last.rows, ['XP level 6', 'Badge: Goal met 7 times', 'Badge: On your own']);
     assert.equal(rowFor(streak(9, 20)), '9 day streak');
     assert.equal(rowFor(badge('nothing-like-this')), null);
-    assert.equal(spoken(['Level 4', 'Earned from the French you produced.']), 'Level 4. Earned from the French you produced.');
+    assert.equal(spoken(['XP level 4', 'Earned from the French you produced.']), 'XP level 4. Earned from the French you produced.');
     assert.equal(spoken(['You practised today.', null, '5 day streak']), 'You practised today. 5 day streak');
   });
 

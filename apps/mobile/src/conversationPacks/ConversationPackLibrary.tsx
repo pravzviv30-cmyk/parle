@@ -1,5 +1,6 @@
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { NOTEBOOK_ART } from '../empty/emptyStates.ts';
+import { includedInMax } from '../access/includedInMax.ts';
 /** A quiet library of the learner's own, curated Tutor conversations. */
 
 import { useNavigation } from '@react-navigation/native';
@@ -39,6 +40,7 @@ export function ConversationPackLibrary({
   onBack,
   onReview,
   onContinue,
+  continueArc,
   onDeleteOne,
   onDeleteAll,
   initialPackId,
@@ -77,6 +79,8 @@ export function ConversationPackLibrary({
    * the door is not drawn at all rather than drawn and refused.
    */
   onContinue?: (pack: ConversationPack) => void;
+  /** The plan's continueArc capability, so "Included in Max" is said only when the plan opens it (F935). */
+  continueArc?: boolean;
   onDeleteOne: (pack: ConversationPack) => Promise<DeleteResult>;
   onDeleteAll: () => Promise<DeleteResult>;
 }) {
@@ -246,7 +250,8 @@ export function ConversationPackLibrary({
             {onContinue !== undefined && (
               <>
                 <OutlineButton label="Talk about this again" disabled={busy} onPress={() => onContinue(selected)} />
-                <Text style={[type.small, { color: t.muted }]}>{PRACTICE_ALTERNATIVES.revisitUses}</Text>
+                {/* The library offers the revisit only to a plan that opens it, which is Max (F935). */}
+                <Text style={[type.small, { color: t.muted }]}>{revisitLine(includedInMax('continueArc', continueArc === true))}</Text>
               </>
             )}
           </View>
@@ -351,3 +356,8 @@ const st = StyleSheet.create({
   cardActions: { marginTop: space(4), gap: space(2) },
   deleteAll: { marginTop: space(8), gap: space(3), paddingBottom: space(4) },
 });
+
+/** "Uses live minutes. Included in Max." when the plan opens the revisit, else the cost line alone (F935). */
+function revisitLine(included: string | null): string {
+  return included === null ? PRACTICE_ALTERNATIVES.revisitUses : `${PRACTICE_ALTERNATIVES.revisitUses} ${included}.`;
+}

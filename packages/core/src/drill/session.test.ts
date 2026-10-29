@@ -195,8 +195,9 @@ describe('the queue — a miss waits at the back, it does not disappear', () => 
     assert.equal(state.finished, false);
     assert.equal(feedback?.verdict, 'miss');
     assert.equal(feedback?.advanced, false, 'the exercise will come back');
-    assert.equal(feedback?.message, missFeedback(null));
-    assert.equal(feedback?.closest, null, 'the first miss must not reveal the answer');
+    // LEARN-017: the first miss shows the right form; the retry is assisted.
+    assert.equal(feedback?.closest, 'bonjour', 'the first miss shows the answer');
+    assert.equal(feedback?.message, missFeedback('bonjour'));
   });
 
   test('the session completes only when every exercise has been answered correctly', () => {
@@ -220,12 +221,16 @@ describe('the queue — a miss waits at the back, it does not disappear', () => 
 });
 
 describe('two misses and the learner proceeds anyway', () => {
-  test('every automatically graded drill hides its answer on the first miss', () => {
-    for (const exercise of DRILL_FIXTURES.filter((e) => e.kind !== 'own-words')) {
+  test('every automatically graded drill shows its answer on the first miss and still brings it back', () => {
+    // LEARN-017 (2026-10-29) replaced the hidden first miss: the form is shown,
+    // the item comes round again, and a right retry is assisted (LEARN-003).
+    // Listen-type is the exception: its retry tests listening, so it hides.
+    for (const exercise of DRILL_FIXTURES.filter((e) => e.kind !== 'own-words' && e.kind !== 'listen-type')) {
       const first = answerCurrent(sessionOf(exercise), 'definitely not this answer');
       assert.equal(first.feedback?.verdict, 'miss', exercise.id);
-      assert.equal(first.feedback?.closest, null, exercise.id);
-      assert.equal(first.feedback?.message, missFeedback(null), exercise.id);
+      assert.equal(first.feedback?.advanced, false, exercise.id);
+      assert.ok(first.feedback?.closest, `first miss shows ${exercise.id}`);
+      assert.equal(first.feedback?.message, missFeedback(first.feedback?.closest ?? null), exercise.id);
       const second = answerCurrent(first.state, 'definitely not this answer');
       assert.equal(second.feedback?.advanced, true, exercise.id);
       assert.ok(second.feedback?.closest, `second miss reveals ${exercise.id}`);
@@ -458,7 +463,7 @@ describe('the three feedback lines', () => {
     const ex = typedEx('a-typ', 'phrase:a');
     assert.equal(answerCurrent(sessionOf(ex), 'bonjour').feedback?.message, GOOD_FEEDBACK);
     assert.equal(answerCurrent(sessionOf(ex), 'bonjout').feedback?.message, typoFeedback('bonjour'));
-    assert.equal(answerCurrent(sessionOf(ex), 'nope').feedback?.message, missFeedback(null));
+    assert.equal(answerCurrent(sessionOf(ex), 'nope').feedback?.message, missFeedback('bonjour'), 'LEARN-017: the first miss shows the form');
   });
 });
 

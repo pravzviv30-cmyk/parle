@@ -89,3 +89,4 @@ export {
 } from './validate.ts';
 
 export { DRILL_FIXTURES } from './fixtures.ts';
+export { missReason } from './missReason.ts';

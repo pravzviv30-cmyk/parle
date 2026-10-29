@@ -48,6 +48,8 @@ import { IMPROVING_AFTER_SESSIONS, improvingPatterns, type LearnerProfile } from
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
 import { SO_FAR_WITH_HELP } from '../home/abilities.ts';
+import { GAME_COPY } from '../game/copy.ts';
+import { UNDER_A_MINUTE } from '../game/todayHeroView.ts';
 import { goalPickLine } from '../onboarding/goalLine.ts';
 import { placementStage, type Placement } from '../onboarding/placement.ts';
 import { MY_FRENCH_TITLE } from '../myfrench/copy.ts';
@@ -246,17 +248,23 @@ export interface LevelHeader {
   xp: string;
   /** Into this level over its span, 0 to 1. */
   fraction: number;
-  /** The bar, said: "Level 2, 140 of 250 XP towards level 3". */
+  /** The bar, said: "XP level 2, 390 XP, 110 to the next". */
   barLabel: string;
 }
 
-export function levelHeader(level: XpLevel | null): LevelHeader | null {
+/**
+ * The XP head under the stage (F918, F858, founder decision 22): "XP level 2"
+ * over "390 XP, 110 to the next", the same level name and lifetime total
+ * Today's tile draws. The bar still fills within the level.
+ */
+export function levelHeader(level: XpLevel | null, total: number): LevelHeader | null {
   if (level === null) return null;
   const into = Math.max(0, Math.floor(level.intoLevel));
   const span = Math.max(1, Math.floor(level.levelSpan));
-  const title = `Level ${level.level}`;
-  const xp = `${into} of ${span} XP`;
-  return { title, xp, fraction: Math.min(1, into / span), barLabel: `${title}, ${xp} towards level ${level.level + 1}` };
+  const all = Number.isFinite(total) ? Math.max(0, Math.floor(total)) : 0;
+  const title = GAME_COPY.level.title(level.level);
+  const xp = `${GAME_COPY.level.total(all)}, ${GAME_COPY.level.toNext(Math.max(0, Math.floor(level.toNext)))}`;
+  return { title, xp, fraction: Math.min(1, into / span), barLabel: `${title}, ${xp}` };
 }
 
 export interface HeaderStat {
@@ -271,10 +279,15 @@ export interface HeaderStat {
  * minutes, so they are labelled "min practised". An unread figure is left out
  * rather than drawn as a nought.
  */
-export function headerStats(input: { daysInARow: number | null; minutes: number | null; phrases: number }): HeaderStat[] {
+export function headerStats(input: { daysInARow: number | null; minutes: number | null; measuredMs?: number | null; phrases: number }): HeaderStat[] {
   const stats: HeaderStat[] = [];
   if (input.daysInARow !== null) stats.push({ key: 'days', value: String(input.daysInARow), label: input.daysInARow === 1 ? 'day in a row' : 'days in a row' });
-  if (input.minutes !== null) stats.push({ key: 'minutes', value: String(Math.max(0, Math.floor(input.minutes))), label: 'min practised' });
+  if (input.minutes !== null) {
+    const whole = Math.max(0, Math.floor(input.minutes));
+    // F918: time was measured but under a minute, so it reads "Under 1", as Today's tile does.
+    const under = whole === 0 && typeof input.measuredMs === 'number' && input.measuredMs > 0;
+    stats.push({ key: 'minutes', value: under ? UNDER_A_MINUTE : String(whole), label: 'min practised' });
+  }
   stats.push({ key: 'phrases', value: String(input.phrases), label: input.phrases === 1 ? 'phrase saved' : 'phrases saved' });
   return stats;
 }

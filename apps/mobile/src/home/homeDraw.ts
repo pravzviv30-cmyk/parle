@@ -60,7 +60,18 @@ export function firstDraw(seen: HomeSeen | null, fresh: ShownValues, today: DayK
     if (!isCount(value)) continue;
     counters[field] = { from: Math.min(startFrom(seen, field, value, today), value), to: value, mount: 0 };
   }
-  return { day: today, counters };
+  return { day: today, counters: runNeverFromNought(counters) };
+}
+
+/**
+ * A running streak never draws "0 days" (F918): the run's counter starts at
+ * one at the lowest, so a first day lands on "1 day" and a longer run counts
+ * up from where it was, never through nought.
+ */
+function runNeverFromNought(counters: Partial<Record<ShownField, Counter>>): Partial<Record<ShownField, Counter>> {
+  const run = counters.streak;
+  if (run !== undefined && run.to >= 1 && run.from < 1) counters.streak = { ...run, from: 1 };
+  return counters;
 }
 
 /**
@@ -82,7 +93,7 @@ export function nextDraw(drawn: HomeDraw, fresh: ShownValues, today: DayKey): Ho
     else if (value > was.to) counters[field] = { from: was.from, to: value, mount: was.mount };
     else counters[field] = { from: value, to: value, mount: was.mount + 1 };
   }
-  return { day: today, counters };
+  return { day: today, counters: runNeverFromNought(counters) };
 }
 
 /** True when the counter rose to where it is: it counts up, and the flame may light. */

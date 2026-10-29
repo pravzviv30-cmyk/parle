@@ -80,7 +80,8 @@ describe('an unknown plan is never called Free', () => {
     // F909 (founder decision 9): a paid plan prints the minutes date it was
     // handed (its period end) and no other number. No store answer: no billing date.
     const handed = new Date(NOW + 20 * DAY);
-    const printed = JSON.stringify([planRow(paid), subscriptionView(paid)]).replaceAll(`${handed.getDate()} `, '');
+    // F935 (founder decision 21): and its pool, "50 of 300 minutes left.", the only other numbers.
+    const printed = JSON.stringify([planRow(paid), subscriptionView(paid)]).replaceAll(`${handed.getDate()} `, '').replaceAll(/\d+ of \d+ minutes left\./g, '');
     assert.doesNotMatch(printed, /\d/, 'a paid plan line printed a number nobody handed it');
     assert.equal(planRow(free).sub, '5 free minutes left. One free conversation every other day.');
   });
@@ -179,8 +180,8 @@ describe('the small lines Profile says', () => {
     const summary = learningPreferencesSummary({ dailyGoalMin: null, strictness: 'balanced', slow: true });
     assert.match(summary, /^No goal, Balanced corrections, Simpler French on$/);
     assert.equal(progressSummary({ level: null, cefr: null, confidence: null, days: null }), null);
-    assert.equal(progressSummary({ level: 3, cefr: 'A2', confidence: 'medium', days: 12 }), 'Level 3, A2, 12 practice days');
-    assert.equal(progressSummary({ level: 3, cefr: 'A2', confidence: 'low', days: 1 }), 'Level 3, 1 practice day', 'a tentative estimate is shown as a level');
+    assert.equal(progressSummary({ level: 3, cefr: 'A2', confidence: 'medium', days: 12 }), 'XP level 3, A2, 12 practice days');
+    assert.equal(progressSummary({ level: 3, cefr: 'A2', confidence: 'low', days: 1 }), 'XP level 3, 1 practice day', 'a tentative estimate is shown as a level');
   });
 
   test('every word is in the copy list and clears the house bar', () => {

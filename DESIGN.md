@@ -70,27 +70,44 @@ period stay near a purchase action, and large text is never capped to fit.
   as Explore's tier filter chip, and a daily scene's tier.
 - Help is said in words only, the ladder's four: Line given, Choices, Hint and
   On your own (`HELP_WORDS`). No number, percentage or dot stands for help.
-- Live speaking time is a band in words (plenty, a little, none) from
-  `purchases/planStatus.ts`, never a count of minutes or a date. A scene's
-  length is an estimate said as "about n min".
+- Live speaking time comes from `purchases/planStatus.ts`. The free plan says
+  its whole minutes left and when they come back; a paid plan says its 30-day
+  pool, "412 of 600 minutes left. Fresh minutes on 27 November." (F935,
+  founder decision 21), never a per-day figure. A Max-only entry a Max learner
+  sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
+  an estimate said as "about n min".
 - Today, top to bottom: "Bonjour, Name." (one word all day, no question under
-  it), a white stats row of three tiles (streak, today's goal ring, numbered
-  level) with decorative discs, the sun next scene card with its stage place
-  ("Next scene, 2 of 3") and a "Uses" chip only when the last conversation's
-  phrase is one of the scene's lines, today's three quests ("n of 3 done", XP
-  chips in butter and sage), one fix to try (English only before the try, and
-  only when the drill would open on an exercise that hides the French; "Your
-  line from {day}" when the conversation's day is known, and the drill then
-  shows the moment after the first answer), today's phrase on lavender, Coming
-  up (the latest life event the tutor remembers, "{when}, {tutor} remembers",
-  the trial pill from the tutorMemory lock, Rehearse now to RealMoment and Not
-  now for this app session; no countdown or checklist until Phase C; hidden
-  with no event or with memory paused), and the blue week card ("n minutes
-  practised, n phrases saved" over seven local days, with "See your week" in
-  the Monday line's slot and the cloud-heart drawing; absent with no evidence).
+  it), a white stats row of three tiles (streak, today's goal ring, "XP level
+  n" over the lifetime "130 XP", the same words as Journey's head; F918, F858)
+  with decorative discs; a running streak never draws "0 days" and a short
+  sitting reads "Under 1" rather than nought (said "under 1" aloud too), then
+  "Today's path" (F934, UI-012), stops on the route motif's dots and line
+  (`home/RoutePath.tsx`), each with its time: "Retry your last fix", About 30
+  seconds (only with a fix: English only before the try, and only when the
+  drill would open on an exercise that hides the French; "Your line from
+  {day}" when the conversation's day is known), the next scene (the sun card
+  with its stage place, "Next scene, 2 of 3", a "Uses" chip only when the last
+  conversation's phrase is one of the scene's lines, and its own minutes; or
+  the plans card when a trial cannot start, "Your paid plan has ended." when
+  lapsed, a paid plan's out-of-time words with the starter card or local
+  practice under them, the starter card, "Something you can do now" with
+  "You're offline. Here's something you can do without a connection." only when
+  the device is offline and "We can't reach your tutor right now. Here's
+  something you can do while we try again." when the tutor is out of reach, or
+  Explore when there is no next scene; held on the loading frame until billing
+  answers), "Say today's phrase", About 2 minutes, on lavender, and
+  "Review N phrases", About 2 minutes, only when Review would deal cards. Under
+  the path: today's three quests ("n of 3 done", XP chips in butter and sage),
+  Coming up (the latest life event the tutor remembers, "{when}, {tutor}
+  remembers", the trial pill from the tutorMemory lock, Rehearse now to
+  RealMoment and Not now for this app session; no countdown or checklist until
+  Phase C; hidden with no event or with memory paused), and the blue week card
+  ("n minutes practised, n phrases saved" over seven local days, with "See
+  your week" in the Monday line's slot and the cloud-heart drawing; absent with
+  no evidence). The path is one column at every width.
   Rebuilt to the artboard in light and dark on 2026-10-20 (UI-008); the blue
-  practice and review leads, "Where you're starting" and the friends card left
-  Today. Loading never claims the learner has no history.
+  practice lead, "Where you're starting" and the friends card left Today, and
+  review came back as the path's row on 2026-10-29 (UI-012). Loading never claims the learner has no history.
 - Explore: search, then four filter chips (Starting out, Under 5 min, Free,
   offline, With your tutor), Prepare for something real with its badge, the
   topic tiles, situations, a blue "Live with your tutor, picked for you" card
@@ -1273,7 +1290,7 @@ revamp B content until Phase B rebuilds them. Friends is a Profile route and ret
 
 | Tab | What it is |
 |---|---|
-| Today | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing (the next scene leans towards the learner's onboarding goal, and its eyebrow says "Picked for ..." when the goal chose it); a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. |
+| Today | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing (the next scene leans towards the learner's onboarding goal, and its eyebrow says "Picked for ..." when the goal chose it); a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. Since 2026-10-29 (F934, UI-012) the next task is one stop on Today's path; when the tutor's server cannot be reached it says "We can't reach your tutor right now" ("You're offline" only when the device is), and with no next scene it opens Explore. |
 | Explore | Topic tiles with their drawings, conversation ideas shaped by learning preferences, skill and practical collections, and search over scenarios, missions and phrases. A collection or scenario opens `ExploreCollection`; the last rows open the word library and Journey. |
 | Speak | The chosen tutor or real continuity, the same next task as Home (the same goal-leaning scene, its eyebrow "Picked for ..." when the goal chose it; the path's "you are here" stays the spine position), then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
@@ -1457,9 +1474,10 @@ headline). A pass is the mint wash with green words and a short warm line,
 `correct` and a light arrival haptic, and moves on by itself after 1.4
 seconds. A typo the drill accepted is butter, "Nearly." and the real spelling,
 `nearly` and a soft haptic. A miss is the plain card under a hairline with no
-mark, no sound and no haptic: the first hands nothing over ("This one comes
-round again."), and the second shows the French and waits for Continue, drawn
-under the panel. With a screen reader on, no sheet moves on by itself. The
+mark, no sound and no haptic. Both misses show "Here's how it goes.", the
+French and its one-line meaning ("je vais prendre = I'll have") and wait for
+Continue, drawn under the panel; the first ends "This one comes round again.",
+the second "It'll come back in your review." (LEARN-017). With a screen reader on, no sheet moves on by itself. The
 living bar sits in the header row between the close disc and the words (8pt,
 brand on the card track), fills as phrases settle, carries no digit, glows sun
 after three real passes in a row, and never moves back.

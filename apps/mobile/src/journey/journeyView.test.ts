@@ -122,14 +122,15 @@ describe('the header: the stage word, the level and the counts', () => {
     assert.equal(stagesFrom(progressOf([])).moveUp, `Earn all ${n} Starter abilities to move up to Basics.`);
   });
 
-  test('the level reads "x of y XP" and its bar is labelled; unread draws nothing', () => {
+  test('the level reads "XP level n" over the total and what is left, and its bar is labelled; unread draws nothing', () => {
+    // Founder decision 22 (F918): the same level name and lifetime total as Today's tile.
     const level: XpLevel = { level: 2, intoLevel: 140, levelSpan: 250, toNext: 110 };
-    const view = levelHeader(level)!;
-    assert.equal(view.title, 'Level 2');
-    assert.equal(view.xp, '140 of 250 XP');
+    const view = levelHeader(level, 390)!;
+    assert.equal(view.title, 'XP level 2');
+    assert.equal(view.xp, '390 XP, 110 to the next');
     assert.equal(view.fraction, 140 / 250);
-    assert.equal(view.barLabel, 'Level 2, 140 of 250 XP towards level 3');
-    assert.equal(levelHeader(null), null);
+    assert.equal(view.barLabel, 'XP level 2, 390 XP, 110 to the next');
+    assert.equal(levelHeader(null, 0), null);
   });
 
   test('the counts are days in a row, minutes practised (never "spoken") and phrases saved, and an unread one is left out', () => {

@@ -760,6 +760,30 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   [runbook](docs/BACKEND_RELEASE_RUNBOOK.md#guest-first-scene-ui-011-23-october), founder approval
   of 23 October 2026.
 
+## UI-012 — Today leads with one ordered path, and review comes back to Today
+
+- Date: 2026-10-29
+- Status: accepted (founder decision 6, LR-17). Reverses UI-008's "review is
+  off Today" (`NextTaskCard`'s `!vivid && review`), on purpose.
+- Decision: Today leads with "Today's path", drawn in Luvani's route motif
+  (`home/RoutePath.tsx`, the wall trial route's dots and line): retry your last
+  fix ("About 30 seconds", only when there is a fix), the next scene (its own
+  estimate, or the plans, starter or offline lead in its place), and say
+  today's phrase ("About 2 minutes"). A "Review N phrases" row ("About 2
+  minutes") joins the path only when Review would deal cards, counted by
+  Review's own `dealForTier`, so a free learner with only conversation phrases
+  due is offered nothing. Today's three, Coming up and the week sit under it.
+  The 30-second and 2-minute times are stated estimates, said with "About".
+- The lead is one rule, `todayLead` (`practice/nextTask.ts`): plans when a
+  trial cannot start a session (exhausted or insufficient, F651), ahead of the
+  starter card (F936); then the starter card, then offline, then the scene.
+  The unused `homeActionFor` was deleted. "See plans" is drawn only on the
+  free plan (F935).
+- Reason: seven blocks of equal weight said nothing about what to do first,
+  and due review never appeared on the page a returning learner opens.
+- Consequence: the wall still draws its own copy of the route; moving it onto
+  `RoutePath` needs its Apple 3.1.2 price pin repointed by its owner. F934.
+
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 
 - Date: 2026-10-23
@@ -1590,6 +1614,33 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: no migration. The field is optional and passes every deck
   validator. Each card grows by about 50 bytes. Cards from before the field
   still match by title. F878, F882.
+
+## LEARN-017 — A first drill miss shows the answer and a one-line reason
+
+- Date: 2026-10-29
+- Status: accepted (founder decision 19), replaces the rule in
+  `docs/PEDAGOGY.md` that "An incorrect answer gets one retry without an
+  answer or translation."
+- Decision: on a first miss core `answerCurrent` returns the form it shows,
+  the accepted answer nearest the learner's (`closest`), and still sends the
+  item to the back of the queue. Core `missReason(exercise, shown)` builds the
+  reason from that same form and its English, so the two never disagree. The
+  sheet shows "Here's how it goes." (or "Here is one reply that works." when
+  an appropriate reply has several), the form, the reason and "This one comes
+  round again.", and waits for Continue. A fr-en answer is English and is said
+  once, in the reason, never as French. Exceptions: listen-type hides the
+  transcript until the second miss so the retry still tests listening (an
+  orchestrator decision, 2026-10-29, to be confirmed with the founder), and
+  own words still hides. The drill's "Got right", clean XP and typo XP count
+  first-try answers only (`drill/firstTry.ts`).
+- Retry gap: the back of the queue puts every other item before the retry.
+  With fewer than two items left it comes back sooner; it is still assisted,
+  so no credit leaks.
+- Reason: a learner who never sees what was wanted learns nothing from the
+  miss, and the later try still tests memory.
+- Consequence: a right retry is assisted (LEARN-003) and earns no independent
+  use (LEARN-001), which both stay as they are. The reason line claims a
+  meaning only, never a grammar rule. F919.
 
 ## DEPLOY-001 — Our own decode-only FFmpeg instead of a full static build
 

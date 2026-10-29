@@ -67,6 +67,8 @@ export const LOCKED_ROUTES: Readonly<Record<string, LockedFeature>> = {
   TutorMemory: 'tutorMemory',
   SoundJourney: 'sounds',
   SoundCheck: 'sounds',
+  // Sounds of French, the minimal-pair drill (F919): Core, like the check.
+  SoundDrill: 'sounds',
   // The café pronunciation lesson is sound practice (founder, 2026-10-20,
   // after D24): locked in spoken and typed mode alike.
   Lesson: 'sounds',

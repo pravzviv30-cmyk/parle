@@ -54,7 +54,7 @@ import { prefersTyping } from '../profile/typing.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { sceneMeta } from './estimate.ts';
 import { heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
-import { buildsOnLine, sceneEyebrow, sceneLine } from './todayView.ts';
+import { buildsOnLine, sceneEyebrow, sceneTime } from './todayView.ts';
 import { SceneArt } from './SceneArt.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 
@@ -167,15 +167,16 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
   // 2026-10-20 UI-008, artboard B-Today: drawn by today/TodayParts `SceneLead`
   // from the theme, so it turns plum with the gold Start in dark.
   if (vivid) {
-    const line = sceneLine(hero, tutorName);
+    // Founder, 2026-10-29: under the title only how long the scene takes; the
+    // French name and the tutor left the card, and the path stop drops its time.
+    const time = sceneTime(hero);
     return (
       <SceneLead
         eyebrow={sceneEyebrow(hero)}
         title={hero.title}
-        french={line.french}
-        rest={line.rest}
+        french={null} rest={time}
         uses={buildsOn != null ? buildsOnLine(buildsOn) : null}
-        start={{ label, accessibilityLabel: `${label}: ${hero.title}`, disabled: checking, onPress: () => open(modes.textMode) }}
+        start={{ label, accessibilityLabel: `${label}: ${hero.title}, ${time}`, disabled: checking, onPress: () => open(modes.textMode) }}
         other={{ label: modes.other.label, disabled: checking, onPress: () => open(modes.other.textMode) }}
         checking={checking ? TUTOR_OFFLINE.checking : null}
         heldBack={heldBack === null ? null : { body: TUTOR_OFFLINE.body, retry: TUTOR_OFFLINE.retry, disabled: checking, onRetry: () => open(heldBack.textMode) }}

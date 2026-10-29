@@ -206,7 +206,7 @@ describe('the tab wires those decisions and nothing else (source probes)', () =>
 
   test('A little practice keeps every real door in its row', () => {
     // Founder, 2026-10-20: Sound practice and all three skill collections.
-    assert.match(explore, /\{ key: 'sound', title: 'Sound practice', \.\.\.PRACTICE_CARDS\.sound!, onPress: \(\) => nav\.navigate\('SoundCheck'\) \}/);
+    assert.match(explore, /\{ key: 'sound', title: 'Sound practice', \.\.\.PRACTICE_CARDS\.sound!, onPress: \(\) => nav\.navigate\('SoundDrill'\) \}/); // F919: the minimal-pair drill
     assert.match(explore, /\.\.\.SKILL_COLLECTIONS\.map\(collection =>/);
     assert.match(explore, /<PracticeScroller cards=\{practiceCards\} \/>/);
   });

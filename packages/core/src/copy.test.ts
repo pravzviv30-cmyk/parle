@@ -189,13 +189,13 @@ describe('drill feedback is pinned, plain, and kind', () => {
       assert.match(line, /^[A-Z][^]*\.$/, `"${line}" is not one plain sentence`);
     }
 
-    // The first miss still hands over no answer, by design: the retry has to
-    // test memory, not copying. Only the second miss shows the form.
+    // LEARN-017 (2026-10-29): the first miss shows the form too. The item
+    // still comes round again and a right retry counts as assisted.
     const ex = DRILL_FIXTURES.find((e) => e.kind === 'fill-blank')!;
     const first = answerCurrent({ queue: [ex], missesById: {}, answered: [], startedAt: 0, finished: false }, 'not this');
-    assert.equal(first.feedback?.closest, null);
-    assert.equal(first.feedback?.message, 'This one comes round again.');
-    assert.doesNotMatch(first.feedback?.message ?? '', /«/, 'the first miss gave the answer away');
+    assert.ok(first.feedback?.closest, 'the first miss shows the form');
+    assert.equal(first.feedback?.message, `Here's how it goes: «${first.feedback?.closest}».`);
+    assert.equal(first.feedback?.advanced, false, 'the item comes round again');
     const second = answerCurrent(first.state, 'not this');
     assert.ok(second.feedback?.closest, 'the second miss shows the form');
     assert.equal(second.feedback?.message, `Here's how it goes: «${second.feedback?.closest}».`);

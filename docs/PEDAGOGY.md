@@ -175,10 +175,21 @@ limit stay in force; a miss earns no new rung. Own words checks the existing
 semantic judgment, offers editable transcription or typing, and claims no
 pronunciation or changed-situation transfer evidence.
 
-An incorrect answer gets one retry without an answer or translation. Only the
-second incorrect attempt on that exercise reveals it. The drill engine hides
-the answer in both feedback copy and feedback data; conversation matching and
-listen/read-and-choose use the same two-miss limit with separate counts per item.
+A first incorrect drill answer shows the answer nearest to what the learner
+gave and a one-line reason built from that same form and its English
+("je vais prendre = I'll have"); an appropriate reply with several right
+answers says it is one reply that works, and a French-to-English answer is
+shown as English, never in guillemets. The exercise goes to the back of the
+queue, so every other item comes before the retry; with fewer than two items
+left the retry comes sooner, and it is still assisted. A right answer on the
+retry counts as assisted (LEARN-003), never as right first time: it earns no
+independent use, no XP for a clean answer or a typo, and no "Got right"
+count. A second miss shows the answer again and sends the item to review
+(LEARN-017, 2026-10-29). Two exceptions keep the retry honest: listen-type
+hides the transcript on the first miss, so the retry still tests listening
+(the learner can tap Hear it again when it comes back), and own words has no single
+right string, so its retry shows nothing. Conversation matching and listen/read-and-choose use the same
+two-miss limit with separate counts per item.
 Changing items starts a fresh count. A correct answer completes immediately.
 French choice exercises do not display English glosses that solve the question.
 Translation prompts and pronunciation references remain visible where they are

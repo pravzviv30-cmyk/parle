@@ -44,7 +44,7 @@ test('revamp B Practice keeps an evidence-bounded sound guide and local compare 
   has('practice/TuneSoundCard.tsx',/measured === null \? SOUND_LEAD.starterLabel : SOUND_LEAD.measuredLabel/,/lead.cue/,/measured !== null/,/native !== null/,/details && <View/,/<MouthGuide ipa=\{lead.ipa\}/);
   const practice = read('tabs/PracticeTab.tsx');
   assert.ok(practice.indexOf('{CONVERSATIONS_TITLE}') < practice.indexOf('<TuneSoundCard'), 'the sound guide buries the conversations');
-  has('tabs/PracticeTab.tsx',/<TuneSoundCard/,/shadowingPhrase/,/mode: 'shadowing'/,/Hear, say and compare/,/go\(\{ screen: 'SoundCheck' \}\)/);
+  has('tabs/PracticeTab.tsx',/<TuneSoundCard/,/shadowingPhrase/,/mode: 'shadowing'/,/Hear, say and compare/,/nav\.navigate\('SoundDrill'\)/);
   has('daily/DailyPracticeScreen.tsx',/state-headphones/,/Nothing is graded/,/Record my take/,/Hear my take/,/Try again/,/recordActiveDay\(\)/,/ack === 'durable'/,/setDaySaved\(true\)/,/discardRecording/,/enterVoicePlayback\(\)/);
   lacks('daily/DailyPracticeScreen.tsx',/fetch\(|Speech.speak|pronunciationScore/);
 });

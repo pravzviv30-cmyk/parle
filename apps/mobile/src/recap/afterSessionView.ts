@@ -10,7 +10,7 @@
  * measured leaves its tile out rather than showing a zero.
  */
 
-import { rhythmSentence, type WeekDay } from '../progress/momentum.ts';
+import { calendarWeekFrom, rhythmSentence, type WeekDay } from '../progress/momentum.ts';
 
 export interface StatTile {
   key: 'minutes' | 'phrases' | 'xp';
@@ -39,7 +39,12 @@ export function afterSessionStats(input: { activeSec: number | null; phrases: nu
 /** "Day n." and the week in a sentence, under the flame. Null with neither. */
 export function streakLine(streak: number | null, week: readonly WeekDay[] | null): string | null {
   const day = streak !== null && Number.isSafeInteger(streak) && streak > 0 ? `Day ${streak}.` : null;
-  const said = week !== null && week.length > 0 ? rhythmSentence(week) : null;
+  // F937: the week is the active days the streak counts, read after the settle,
+  // so it is never re-dated from the clock (a sitting across midnight lights
+  // the one day the store holds). A run beside a week the store has not lit
+  // says only its day rather than "No French yet".
+  const lit = week !== null && week.some((d) => d.state === 'done');
+  const said = week !== null && week.length > 0 && (day === null || lit) ? rhythmSentence(week) : null;
   if (day === null && said === null) return null;
   return [day, said].filter((part) => part !== null).join(' ');
 }
@@ -90,4 +95,17 @@ export function smallFixes<F extends { quote: string; better: string; weight: 'm
     kept.push(fix);
   }
   return kept.slice(0, MAX_SMALL_FIXES);
+}
+
+/**
+ * This week from the practice days the streak counts (F937): every day key in
+ * the activity history, zero-XP sittings included, read after the settle.
+ */
+export function recapWeekFrom(days: readonly string[], now: number): readonly WeekDay[] {
+  const at: { at: number }[] = [];
+  for (const day of days) {
+    const [y, m, d] = day.split('-').map(Number);
+    if (y !== undefined && m !== undefined && d !== undefined) at.push({ at: new Date(y, m - 1, d, 12).getTime() });
+  }
+  return calendarWeekFrom(at, now);
 }

@@ -143,6 +143,8 @@ export function PracticeTab() {
     recorded.stop();
     nav.navigate(route.screen, 'params' in route ? route.params : undefined);
   };
+  // Sounds of French plays the minimal-pair drill, not the sound check (F919).
+  const openSoundDrill = () => { if (!ownsReadNow()) return; recorded.stop(); nav.navigate('SoundDrill'); };
 
   /**
    * A live conversation, probed the way the hero's start is (F555). A refusal
@@ -251,7 +253,7 @@ export function PracticeTab() {
               <SubHead title={EMPTY.readyNow} />
               {/* "free" is left out: the lesson uses live minutes, said in its own line (founder, 2026-10-21). */}
               <ReadyRow title={cafe.title} lines={[cafe.line, cafe.cost]} art="phrasebook" ground="butter" locked={cafe.locked} feature="sounds" disabled={checking} onPress={openLesson} />
-              <ReadyRow title={sounds.title} lines={[sounds.gloss]} art="voice-chat" ground="peach" locked={sounds.locked} feature="sounds" onPress={() => go({ screen: 'SoundCheck' })} />
+              <ReadyRow title={sounds.title} lines={[sounds.gloss]} art="voice-chat" ground="peach" locked={sounds.locked} feature="sounds" onPress={openSoundDrill} />
             </View>
             <View style={st.list}>
               <SubHead title={SAVED_PHRASES} />

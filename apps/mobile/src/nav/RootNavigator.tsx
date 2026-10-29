@@ -25,7 +25,7 @@ import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-nativ
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
-import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, previousCorrectionFromPacks, type TutorPreviousCorrection, type ConversationPack, type MissionId, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
+import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, previousCorrectionFromPacks, type TutorPreviousCorrection, type ConversationPack, type MissionId, type ProgressReport, type Rung, type SessionSummary, type ReviewCard, type Drill } from '@luvani/core';
 import { FirstSceneScreen } from '../onboarding/FirstSceneScreen.tsx';
 import { loadDeck } from '../review/store.ts';
 import { paper, space, type } from '../theme.ts';
@@ -96,6 +96,9 @@ import { LuvaniTabBar } from './LuvaniTabBar.tsx';
 import { RouteTheme, useRouteGround } from './RouteTheme.tsx';
 import { useB } from '../main/bTheme.tsx';
 import { backOrTabs, tabsAlone, type LeavingNav } from './leave.ts';
+import { FocusDrillPlayer } from '../drill/FocusDrillPlayer.tsx';
+import { loadSoundChecks } from '../soundcheck/store.ts';
+import { soundDrillFor } from '../soundcheck/soundDrill.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
 import { noteLeftEarly } from '../wall/launchWallSeen.ts';
@@ -725,6 +728,29 @@ function ConversationPracticeRoute() {
       : nav.replace('Drill', practiceRouteParams({ origin: 'pack', packId: node.id, exposed }))} />;
 }
 
+/**
+ * Sounds of French (F919): the real minimal-pair drill, for the sound the
+ * learner's newest measured check named. An unreadable store plays the first
+ * pair rather than nothing. No live scene is reachable from here.
+ */
+function SoundDrillRoute() {
+  const nav = useNavigation<LeavingNav>();
+  const { user } = useAuth();
+  const [drill, setDrill] = useState<Drill | null>(null);
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    if (userId === null) return undefined;
+    let cancelled = false;
+    void Promise.resolve().then(() => loadSoundChecks()).then(
+      (checks) => { if (!cancelled) setDrill(soundDrillFor(checks)); },
+      () => { if (!cancelled) setDrill(soundDrillFor([])); },
+    );
+    return () => { cancelled = true; };
+  }, [userId]);
+  if (!user || drill === null) return <Loading />;
+  return <FocusDrillPlayer drill={drill} onDone={() => backOrTabs(nav)} />;
+}
+
 function SoundCheckRoute() {
   const nav = useNavigation<LeavingNav & { navigate: (screen: 'Missions') => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
@@ -830,6 +856,7 @@ export function RootNavigator({
       <Stack.Screen name="Drill" component={DrillRoute} />
       <Stack.Screen name="Review" component={ReviewRoute} />
       <Stack.Screen name="SoundCheck" component={SoundCheckRoute} />
+      <Stack.Screen name="SoundDrill" component={SoundDrillRoute} />
       <Stack.Screen name="SoundJourney" component={SoundJourneyScreen} />
       <Stack.Screen name="GoalStep" component={GoalStepScreen} />
       <Stack.Screen name="Missions" component={MissionsScreen} />

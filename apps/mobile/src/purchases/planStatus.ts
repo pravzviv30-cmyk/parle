@@ -18,8 +18,9 @@
  * free plan is one ten-minute conversation, back 44 hours after the window's
  * first use, and its band says the whole minutes left and when they come back
  * ("4 free minutes left, refills on Thursday at 4:10 pm"). A few whole minutes and
- * a day are a size and a time, not a ticking number, and a paid plan's card
- * still carries no numeral.
+ * a day are a size and a time, not a ticking number. Founder decision 21
+ * (F935, 2026-10-29) gives a paid plan the same honesty: its band says the
+ * pool, "412 of 600 minutes left.", beside "Fresh minutes on 27 November.".
  *
  * Nothing here decides whether a session may start. `canStart` is core's
  * answer, carried through untouched, and the band `none` is drawn from it
@@ -203,6 +204,29 @@ function measureFor(status: BillingStatus, now: number): number {
   return Math.min(month, storeTrialSeconds(status.plan));
 }
 
+/**
+ * A paid plan's band (F935, founder decision 21): the 30-day pool with
+ * numbers, "412 of 600 minutes left.", whole minutes and never a per-day
+ * figure, because a plan is a pool. The pool is the server's allowance when it
+ * gave one, else the plan's own minutes.
+ */
+export function paidPoolLine(status: BillingStatus): string {
+  const pool = Math.max(1, Math.floor(poolFor(status) / 60));
+  const left = Math.min(pool, Math.max(0, Math.floor(status.secondsRemaining / 60)));
+  // A few seconds left on a plan that can still start is "Under 1", never a nought (Batch 1's wording).
+  const said = left === 0 ? 'Under 1' : String(left);
+  return `${said} of ${pool} minutes left.`;
+}
+
+/**
+ * The pool a paid band names: the server's allowance, which it sends whenever
+ * a store trial withholds part of the grant (billingStatus.ts), else the
+ * plan's month. No guess from the period end.
+ */
+function poolFor(status: BillingStatus): number {
+  return status.allowanceSeconds ?? PLANS[status.plan].secondsPerPeriod;
+}
+
 function bandFor(status: BillingStatus, now: number): { band: PlanBand; line: string } {
   if (status.plan === 'trial') {
     const band: PlanBand = !status.canStart ? 'none' : status.secondsRemaining < measureFor(status, now) * A_LITTLE_SHARE ? 'a-little' : 'plenty';
@@ -213,8 +237,9 @@ function bandFor(status: BillingStatus, now: number): { band: PlanBand; line: st
     return { band: 'none', line: outOfTimeLine(status, now) };
   }
   const allowance = measureFor(status, now);
-  if (status.secondsRemaining < allowance * A_LITTLE_SHARE) return { band: 'a-little', line: BAND_LINES.aLittle };
-  return { band: 'plenty', line: BAND_LINES.plenty };
+  const line = paidPoolLine(status);
+  if (status.secondsRemaining < allowance * A_LITTLE_SHARE) return { band: 'a-little', line };
+  return { band: 'plenty', line };
 }
 
 export function planStatusFor(status: BillingStatus | null, now: number): PlanStatusView {

@@ -64,9 +64,9 @@ import { bType } from './theme.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 import { useFeatureAccess } from './access/useFeatureAccess.ts';
 import { fixesLocked } from './practice/fixesView.ts';
-import { loadActivity } from './progress/activity.ts';
-import { calendarWeekFrom, type WeekDay } from './progress/momentum.ts';
-import { afterSessionStats, celebrateView, recapEyebrow, smallFixes, streakLine, weekBars } from './recap/afterSessionView.ts';
+import { loadActiveDays } from './progress/activity.ts';
+import type { WeekDay } from './progress/momentum.ts';
+import { afterSessionStats, celebrateView, recapEyebrow, smallFixes, recapWeekFrom, streakLine, weekBars } from './recap/afterSessionView.ts';
 import { BandGoal, CelebrateConfetti, CloseDisc, FixCard, LineRow, NextPill, PostcardCard, PostcardTile, SaidWellCard, StatTiles, StreakRow } from './recap/RecapParts.tsx';
 import type { ClosureRepair } from './conversationPacks/closure.ts';
 import { arrived } from './motion/haptics.ts';
@@ -189,11 +189,13 @@ export function RecapScreen({
   const locks = useFeatureAccess(user?.id);
   // This week, Monday to Sunday, for the seven bars (progress/momentum.ts). A failed read draws no bars.
   const [week, setWeek] = useState<readonly WeekDay[] | null>(null);
+  // F937: the practice days the streak counts, zero-XP sittings included, read
+  // again once the settle has answered, so "Day n." and the week agree.
   useEffect(() => {
     let cancelled = false;
-    void loadActivity().then((activity) => { if (!cancelled) setWeek(calendarWeekFrom(activity, Date.now())); }).catch(() => {});
+    void loadActiveDays().then((days) => { if (!cancelled) setWeek(recapWeekFrom(days, Date.now())); }).catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [delta]);
   // The tutor's voice saying a line: the device voice, never the learner's recording.
   const hear = (line: string) => { tutorVoice.speak(line); };
   useEffect(() => () => tutorVoice.stop(), []);

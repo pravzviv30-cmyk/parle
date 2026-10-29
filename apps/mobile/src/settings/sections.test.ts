@@ -132,7 +132,7 @@ describe('Profile keeps who you are and how you learn — F473, P2', () => {
     assert.match(PROFILE, /export function ProfileTab\(\) \{/, 'ProfileTab still takes props, so Tabs still has to thread them');
     assert.match(
       PROFILE,
-      /type Sheet = 'none' \| 'name' \| 'tutorVoice';/,
+      /type Sheet = 'none' \| 'name' \| 'tutorVoice' \| 'help';/,
       'the sheet union names a sheet that moved to Settings, or lost one that did not',
     );
 
@@ -488,7 +488,8 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // voice-circle intro, which was a row on Profile, and the reminder's four
       // presets, which were a sheet on Profile (F576). Both take the screen for
       // the same reason the other four do.
-      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export', 'display', 'name'],
+      // `help` joined with F922: the answers and the address, a bottom sheet in place.
+      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export', 'display', 'name', 'help'],
       'the sheet union names something other than the views this screen draws',
     );
     assert.ok(!SETTINGS.includes('unavailable'), 'the export refusal is a sheet again, which is where F489 started');
@@ -497,7 +498,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // there is no such thing as an open sheet the learner cannot see. That is
     // the fix by construction: a card drawn at the foot of a scroll could be
     // open and invisible, and an early return cannot.
-    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export' && m !== 'display' && m !== 'name')) {
+    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export' && m !== 'display' && m !== 'name' && m !== 'help')) {
       assert.ok(
         SETTINGS.includes(`if (sheet === '${member}')`),
         `the ${member} sheet is not an early return, so it can be open while the learner is looking at something else`,
@@ -521,7 +522,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // The reminder presets joined the delete confirmation with revamp A. It
       // is an ordinary `ScrollScreen` drawn by this file with no hook of its
       // own, so this screen's hook is the only thing that can close it.
-      ['reminderTime', 'delete', 'export', 'display', 'name'],
+      ['reminderTime', 'delete', 'export', 'display', 'name', 'help'],
       'the hardware back is answered for a sheet this screen does not draw in place, so a press is eaten',
     );
     // The four that stand it down are exactly the four that bring their own

@@ -41,7 +41,7 @@ import {
   DETAIL_PLACEHOLDER,
   MAX_ONLY_LINE,
   PLAN_CHECKING,
-  PLAN_INCLUDED,
+  planIncluded,
   PLAN_READ_FAILED,
   REAL_MOMENTS,
   REAL_MOMENT_SUB,
@@ -206,7 +206,7 @@ export function RealMomentScreen({
             <GhostButton label="Not now" onPress={onBack} />
           </View>
         )}
-        {allowed === true && <Text style={st.planLine}>{PLAN_INCLUDED}</Text>}
+        {allowed === true && <Text style={st.planLine}>{planIncluded(allowed)}</Text>}
       </Card>
 
       <View style={st.detail}>

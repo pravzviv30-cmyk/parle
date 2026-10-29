@@ -27,6 +27,7 @@ import {
 } from '@luvani/core';
 
 import type { FeatureAccess, LockedFeature } from '../access/featureAccess.ts';
+import { dealForTier, offeredReview, reviewOffer } from '../review/freeTier.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
 import { goalPickLine } from '../onboarding/goalLine.ts';
 import { dayWord } from '../journey/journeyView.ts';
@@ -106,11 +107,57 @@ export function weekLines(input: { story: Pick<WeekStory, 'sentences'>; reflecti
  * anything or reads the allowance: minutes left belong to the wall.
  * =========================================================================== */
 
-/** The page's blocks, in the artboard's order. */
-export const TODAY_CARDS = ['greeting', 'stats', 'nextScene', 'three', 'fix', 'phrase', 'comingUp', 'week'] as const;
+/**
+ * The page's blocks, in order. 2026-10-29 (F934, LR-17, founder decision 6):
+ * Today leads with one ordered path, and the quotas, Coming up and the week
+ * sit under it. The fix and the phrase are stops on the path now.
+ */
+export const TODAY_CARDS = ['greeting', 'stats', 'path', 'three', 'comingUp', 'week'] as const;
 export type TodayCard = (typeof TODAY_CARDS)[number];
 
+/** Today's path, in the review's section 10 order: retry the fix, the next scene, say today's phrase. */
+export const TODAY_PATH = ['fix', 'scene', 'phrase'] as const;
+export type TodayPathStep = (typeof TODAY_PATH)[number];
+
+/**
+ * Stated estimates, said as such ("About"), never a measured length. The scene
+ * has its own estimate (`estimate.ts`); a fix is one line (about 30 seconds);
+ * the phrase and a review sitting are about 2 minutes.
+ */
+export function aboutMinutes(minutes: number): string {
+  const n = Math.max(1, Math.round(minutes));
+  return n === 1 ? 'About 1 minute' : `About ${n} minutes`;
+}
+
+const PATH_WORDS: Record<TodayPathStep, string> = {
+  fix: 'Retry your last fix',
+  scene: 'The next scene',
+  phrase: "Say today's phrase",
+};
+
+/** A stop's title and its time: the scene's from its own estimate, the others stated. */
+export function pathStep(step: TodayPathStep): { title: string; line: string | null } {
+  if (step === 'fix') return { title: PATH_WORDS.fix, line: 'About 30 seconds' };
+  if (step === 'phrase') return { title: PATH_WORDS.phrase, line: aboutMinutes(2) };
+  // The scene's time is on its card, said once (founder, 2026-10-29).
+  return { title: PATH_WORDS.scene, line: null };
+}
+
+/**
+ * The review row (F934; reverses UI-008's "review off Today", DECISIONS
+ * 2026-10-29): drawn only when Review would deal cards, by Review's own deal
+ * (`dealForTier`), so a free learner with only conversation phrases due is
+ * offered nothing Review would hold back.
+ */
+export function reviewRow(deck: readonly ReviewCard[], now: number, lock: Parameters<typeof dealForTier>[2]): { title: string; line: string; count: number } | null {
+  if (offeredReview(reviewOffer(deck, now), lock) === null) return null;
+  const count = dealForTier(deck, now, lock).due.length;
+  if (count === 0) return null;
+  return { title: count === 1 ? 'Review 1 phrase' : `Review ${count} phrases`, line: aboutMinutes(2), count };
+}
+
 export const TODAY_COPY = {
+  path: "Today's path",
   three: "Today's three",
   fix: 'One fix to try',
   fixAsk: 'How would you say this in French?',
@@ -152,10 +199,9 @@ export function sceneEyebrow(hero: HomeMission): string {
   return at === -1 ? 'Next scene' : `Next scene, ${at + 1} of ${stage.length}`;
 }
 
-/** The line under the title: "Au café du coin, about 6 min with Alexandre". */
-export function sceneLine(hero: HomeMission, tutorName: string): { french: string | null; rest: string } {
-  const rest = `about ${Math.max(1, Math.round(hero.minutes))} min with ${tutorName}`;
-  return hero.french === null ? { french: null, rest: `${rest.charAt(0).toUpperCase()}${rest.slice(1)}` } : { french: hero.french, rest: `, ${rest}` };
+/** Under the title on Today's card, only the scene's length: "About 3 minutes" (founder, 2026-10-29). */
+export function sceneTime(hero: Pick<HomeMission, 'minutes'>): string {
+  return aboutMinutes(hero.minutes);
 }
 
 /**

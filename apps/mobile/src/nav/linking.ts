@@ -55,6 +55,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Review: 'review',
       SoundCheck: 'sound-check',
       SoundJourney: 'sound-journey',
+      SoundDrill: 'sound-drill',
       GoalStep: 'goal-step',
       Missions: 'missions',
       FirstScene: 'first-scene/:missionId',

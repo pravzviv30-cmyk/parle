@@ -80,7 +80,7 @@ import {
   oneFix,
   questTrailing,
   sceneEyebrow,
-  sceneLine,
+  sceneTime,
   threeDone,
   weekInFrench,
   weekStart,
@@ -124,9 +124,8 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.equal(sceneEyebrow(sceneFor(firstA1.id)), `Next scene, 1 of ${a1.length}`);
     assert.equal(sceneEyebrow({ ...sceneFor('mission:cafe'), label: 'Pick up where you left off' }), 'Pick up where you left off');
     for (const id of SCENE_SPINE) assert.doesNotMatch(sceneEyebrow(sceneFor(id)), /[·—]/);
-    const line = sceneLine(sceneFor('mission:cafe'), 'Tutor');
-    assert.equal(line.french, getMission('mission:cafe')!.title);
-    assert.match(line.rest, /^, about \d+ min with Tutor$/);
+    // Founder, 2026-10-29: the card says only the scene's length, not its French name or the tutor.
+    assert.match(sceneTime(sceneFor('mission:cafe')), /^About \d+ minutes?$/);
   });
 
   test('"Builds on" only when the last conversation really meets the scene', () => {
@@ -214,7 +213,8 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
   // up now (plan.md "Data slots" 2), so the page has eight blocks and the
   // Rehearse door; the countdown and the checklist are not drawn (no data).
   test('Coming up is in the page order, every door named, and no raw seconds', () => {
-    assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'nextScene', 'three', 'fix', 'phrase', 'comingUp', 'week']);
+    // 2026-10-29 (F934, founder decision 6): the fix and the phrase are stops on Today's path.
+    assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'path', 'three', 'comingUp', 'week']);
     assert.deepEqual({ ...TODAY_ROUTES }, { profile: 'Profile', fix: 'Drill', phrase: 'DailyPractice', week: 'WeekWrapped', rehearse: 'RealMoment', start: 'Convo' });
     assert.match(readFileSync(new URL('../profile/ProfileButton.tsx', import.meta.url), 'utf8'), /nav\.navigate\('Profile'\)/);
     assert.match(readFileSync(new URL('../daily/DailyCard.tsx', import.meta.url), 'utf8'), /nav\.navigate\('DailyPractice', \{ id: item\.id \}\)/);

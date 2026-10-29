@@ -12,15 +12,21 @@ import { saveStarter } from './savedStarter.ts';
 import { trackAccountStarter } from './guestPractice.ts';
 import { keptPhrase } from './guestProgress.ts';
 
-/** Home resumes the introduced goal and the exact line, even without a connection. */
+/**
+ * Home resumes the introduced goal and the exact line, even without a connection.
+ *
+ * Drawn by Today's lead rule (`todayLead`, F936), never ahead of billing. The
+ * caller leaves out `onTutor` when a live scene cannot start (offline), and
+ * `onPlans` for anyone not on the free plan (F935): the door is then not drawn.
+ */
 export function StarterContinuation({
   initial,
   onTutor,
   onPlans,
 }: {
   initial: GuestPractice;
-  onTutor: () => void;
-  onPlans: () => void;
+  onTutor?: () => void;
+  onPlans?: () => void;
 }) {
   const { user } = useAuth();
   const [guest, setGuest] = useState(initial);
@@ -112,8 +118,8 @@ export function StarterContinuation({
         <PillButton label="Continue practice" onPress={() => open(false)} />
         <IconActionRow>
         <IconAction layout="tile" icon="replay" label="Retry my last line" onPress={() => open(true)} />
-        <IconAction layout="tile" icon="microphone" label="Speak with my tutor" onPress={onTutor} />
-        <IconAction layout="tile" icon="crown" label="See plans" onPress={onPlans} />
+        {onTutor !== undefined && <IconAction layout="tile" icon="microphone" label="Speak with my tutor" onPress={onTutor} />}
+        {onPlans !== undefined && <IconAction layout="tile" icon="crown" label="See plans" onPress={onPlans} />}
         </IconActionRow>
       </ColourCard>
       <Sheet

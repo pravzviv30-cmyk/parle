@@ -55,13 +55,24 @@ Each tab is layout over a plain view model (DESIGN.md composition rules,
 DECISIONS.md UI-007):
 
 - **Today** (`tabs/HomeTab.tsx`, `home/todayView.ts`): "Bonjour, Name.", the
-  stats row (`game/TodayHero.tsx`), the next scene (`home/MissionHero.tsx`; core `nextScene`, leaning towards
-  the onboarding goal, eyebrow "Picked for ..." when the goal chose it),
-  today's three quests (`game/QuestsCard.tsx`), one fix to try (`oneFix`),
-  today's phrase, Coming up (`comingUp`, the latest remembered life event;
-  no countdown or checklist until Phase C; Not now lasts the app session) and
-  the week in French. Parts in `today/TodayParts.tsx`; dark-ready since
-  2026-10-20 (UI-008, artboard B-Today).
+  stats row (`game/TodayHero.tsx`), then "Today's path" (F934, UI-012; the
+  route motif in `home/RoutePath.tsx`): retry your last fix (`oneFix`, about
+  30 seconds), the next scene (`home/MissionHero.tsx`; core `nextScene`,
+  leaning towards the onboarding goal, eyebrow "Picked for ..." when the goal
+  chose it; the lead is `todayLead` in `practice/nextTask.ts`, held on the
+  loading frame until billing answers (a failed read falls back to the scene),
+  in this order: plans when a trial cannot start; "Your paid plan has ended."
+  (lapsed, with See the plans); a paid plan's out-of-time words; each of these
+  two followed by the starter card or local practice; the starter card; the
+  offline or can't-reach card ("Something you can do now"); the scene; Explore
+  when there is no next scene), say today's phrase (about 2 minutes), and "Review N phrases" when
+  Review would deal cards (`reviewRow`). Under it: today's three quests
+  (`game/QuestsCard.tsx`), Coming up (`comingUp`, the latest remembered life
+  event; no countdown or checklist until Phase C; Not now lasts the app
+  session) and the week in French. Live re-probes on `online`, on foreground
+  and every 30 s while offline (`app/liveWatch.ts`, F924). Parts in
+  `today/TodayParts.tsx`; dark-ready since 2026-10-20 (UI-008, artboard
+  B-Today).
 - **Explore** (`tabs/ExploreTab.tsx`, `main/exploreView.ts`): four filter chips,
   Prepare for something real, topic tiles and situations; a situation opens
   the scene preview. Drawn from `explore/ExploreParts.tsx` with art and badges
@@ -78,8 +89,11 @@ DECISIONS.md UI-007):
   and the sound guide, with search and "Comes up often" (authored patterns
   only, never a count); Your fixes (`practice/FixesScreen.tsx`) also shows it.
   Both rebuilt to their artboards in light and dark (2026-10-21, UI-008).
-- **Journey** (`tabs/MyFrenchTab.tsx`, `journey/journeyView.ts`): the level
-  head, Your French first (phrases used and held with one highlighted,
+- **Journey** (`tabs/MyFrenchTab.tsx`, `journey/journeyView.ts`): the stage
+  eyebrow, then the XP head ("XP level 3", "130 XP, 95 to the next", the same
+  level and total as Today's tile; F918), the counts (saved phrases counted by
+  `practice/savedPhrases.ts`, the rule Practice uses, and re-read after the
+  packs refresh; minutes "Under 1" while under a minute was measured), Your French first (phrases used and held with one highlighted,
   lines that came back clear, scenes earned; each only with evidence),
   How it’s going right after it (Getting better at: quiet error patterns,
   by authored title; Needs another go: up to three due phrases missed or
@@ -160,7 +174,13 @@ DECISIONS.md UI-007):
   rows draw the B row only under `<SettingsAppearance b>`; Learning
   preferences and Subscription keep the P2 row and follow the device since
   2026-10-21 (UI-008 step 12b), with every other signed-in route except the
-  first scene.
+  first scene. Help and feedback (Profile's More group, Settings' Help group,
+  shown only when `legal/company.ts` has an address) opens an in-app sheet
+  (`settings/HelpSheet.tsx`, copy in `settings/helpSheet.ts`, F922). It holds five
+  short answers built from existing copy: a blocked mic, typing, minutes, leaving a
+  scene, and what Free includes. Write to us comes last, with the address as
+  selectable text and an Open mail button. If the mail app won't open, the button
+  shows `LINK_TROUBLE` and the address stays on screen.
 
 Three stack routes were added in `nav/RootNavigator.tsx` and `nav/types.ts`:
 `ScenePreview` (`scenes/ScenePreviewScreen.tsx`, by mission or daily scene id),

@@ -197,6 +197,7 @@ export function ConversationsScreen({
     return (
       <ConversationPackLibrary
         packs={visiblePacks}
+        continueArc={continueArc === true}
         initialPackId={openPackId}
         linkedPack={archiveIsOwned ? linkedPack : null}
         linkMessage={archiveIsOwned ? linkMessage : null}

@@ -195,7 +195,8 @@ describe('an end card is the settle pipeline\'s read-back — F760', () => {
     ];
     assert.deepEqual(cards, [
       '<EndCard delta={end.delta} release={release} />',
-      '<EndCard delta={end.delta} count={s.resolved} release={release} />',
+      // F919: Got right counts first-time answers only.
+      '<EndCard delta={end.delta} count={firstTry(session).right} release={release} />',
       '<EndCard delta={end.delta} count={recalled.current} release={release} />',
       '<EndCard delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />',
       '<EndCard delta={delta} release={release} />',
@@ -287,7 +288,7 @@ describe('a finish shown in words stays in words — F775', () => {
     assert.match(end, /return \( <ScrollScreen footer=\{doneFooter\}>/);
     assert.match(
       end,
-      /\{end\.state === 'settled' \? \( <EndCard delta=\{end\.delta\} count=\{s\.resolved\} release=\{release\} \/> \) : end\.state === 'waiting' \? \( <ActivityIndicator color=\{bt\.muted\} \/> \) : \( <Card> <FinishFelt \/>/,
+      /\{end\.state === 'settled' \? \( <EndCard delta=\{end\.delta\} count=\{firstTry\(session\)\.right\} release=\{release\} \/> \) : end\.state === 'waiting' \? \( <ActivityIndicator color=\{bt\.muted\} \/> \) : \( <Card> <FinishFelt \/>/,
       'the drill end draws something other than the card, the wait or the words',
     );
     // The practice set's wait is inside its screen with Done too.

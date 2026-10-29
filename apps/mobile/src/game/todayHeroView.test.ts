@@ -70,8 +70,8 @@ describe("Home's today hero — F767", () => {
     // The level: a number from the displayed XP (70: Level 2, 55 to Level 3),
     // never a rank name.
     assert.equal(hero.level.level, 2);
-    assert.equal(hero.level.words, 'Level 2');
-    assert.equal(hero.level.label, 'Level 2, 70 XP, 55 XP to Level 3. Opens Progress.');
+    assert.equal(hero.level.words, 'XP level 2');
+    assert.equal(hero.level.label, 'XP level 2, 70 XP, 55 to the next. Opens Progress.');
     for (const name of LEVEL_NAMES) {
       for (const said of [hero.level.words, hero.level.label, hero.flame.label, hero.goal.label]) {
         assert.ok(!said.includes(name), `the hero names the rank "${name}"`);

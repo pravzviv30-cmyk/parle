@@ -2,6 +2,8 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HEAR_IT_SAID, MAX_SMALL_FIXES, afterSessionStats, smallFixes, celebrateView, recapEyebrow, streakLine, weekBars } from './afterSessionView.ts';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { WeekDay } from '../progress/momentum.ts';
 
 const week = (states: WeekDay['state'][]): WeekDay[] => states.map((state, index) => ({ label: 'MTWTFSS'[index]!, state }) as WeekDay);
@@ -61,4 +63,34 @@ describe('small fixes', () => {
     assert.equal(list.length, MAX_SMALL_FIXES);
     assert.deepEqual(smallFixes([]), []);
   });
+});
+
+// Stream D (F937): the day comes from the settled streak and the week from
+// the same practice days, read after the settle, so they never disagree.
+import { recapWeekFrom } from './afterSessionView.ts';
+test("the recap's day and week lines never contradict each other", () => {
+  const now = new Date(2026, 9, 29, 15).getTime(); // a Thursday
+  const empty = recapWeekFrom([], now);
+  for (const streak of [1, 2, 5]) {
+    const line = streakLine(streak, empty)!;
+    assert.doesNotMatch(line, /No French yet/, line);
+    assert.match(line, /^Day \d+\./);
+  }
+  // A week the store has not lit yet says only the day, never inventing one (verifier round).
+  assert.equal(streakLine(1, empty), 'Day 1.');
+  // A zero-XP sitting's day is a practice day, and the week counts it.
+  const days = recapWeekFrom(['2026-10-27', '2026-10-29'], now);
+  assert.equal(streakLine(1, days), 'Day 1. You spoke French on two days this week.');
+  assert.equal(streakLine(null, recapWeekFrom([], now)), 'No French yet this week. Your first day lands here.');
+  const screen = readFileSync(fileURLToPath(new URL('../RecapScreen.tsx', import.meta.url)), 'utf8');
+  assert.match(screen, /loadActiveDays\(\)\.then\(\(days\) => \{ if \(!cancelled\) setWeek\(recapWeekFrom\(days, Date\.now\(\)\)\); \}\)/);
+  assert.match(screen, /\}, \[delta\]\);/, 'the week is read again once the settle answers');
+});
+
+test('a sitting across midnight lights the one day the active days hold', () => {
+  // Started 23:58 on Wednesday, recap at 00:01 on Thursday; the store holds Wednesday.
+  const now = new Date(2026, 9, 29, 0, 1).getTime();
+  const week = recapWeekFrom(['2026-10-28'], now);
+  assert.deepEqual(weekBars(week), [false, false, true, false, false, false, false]);
+  assert.equal(streakLine(1, week), 'Day 1. One day of French this week.');
 });

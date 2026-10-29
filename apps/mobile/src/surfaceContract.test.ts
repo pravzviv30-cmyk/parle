@@ -1524,7 +1524,8 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     const profile = stripComments(readFileSync(join(SRC, 'tabs', 'ProfileTab.tsx'), 'utf8'));
     assert.match(
       profile,
-      /type Sheet = 'none' \| 'name' \| 'tutorVoice';/,
+      // F922 added `help`, a bottom sheet drawn here, so this file's hook answers it too.
+      /type Sheet = 'none' \| 'name' \| 'tutorVoice' \| 'help';/,
       'Profile draws a sheet this check has never seen; say whether it answers its own back press',
     );
     assert.match(
@@ -1977,7 +1978,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // 46pt retry, drawn only while the tutor cannot be reached.
     assert.equal((speak.match(/<BButton\b/g) ?? []).length, 3, 'Speak carries a second primary pill');
     assert.match(speak, /<BButton label=\{PREPARE_FIRST\} height=\{48\} ground=\{t\.heroChip\}/, 'Prepare first is not the white secondary');
-    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
+    // 2026-10-29 (fix-verifier): a fourth exclusive branch, Today's Open Explore when there is no next scene.
+    // Round 2: a lapsed plan's See the plans, on its own exclusive branch.
+    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 5, 'personal practice, authored review, allowance, lapsed and no-scene are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
     // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B
     // part's one 54pt BButton (today/TodayParts SceneLead); the blue brief
@@ -2564,7 +2567,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     );
     assert.match(home, /\{!unowned && readFailed \? \(/, 'Home no longer separates failed reads from a fresh account');
     assert.match(home, /\) : hero === null \|\| unowned \? \(/, 'Home no longer waits on storage before it draws a lead');
-    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard vivid \/>/, 'the hero is not the lead Home falls back to');
+    // 2026-10-29 (F934): the lead is the second stop on Today's path.
+    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard vivid step=/, 'the hero is not the lead Home falls back to');
     // The momentum gate that used to sit beside it left Home with the block
     // itself, so the half of this check that made sure the hero was not hidden
     // behind it is now made by the line above: there is one condition on the

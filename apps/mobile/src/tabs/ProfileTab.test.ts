@@ -119,7 +119,7 @@ describe('the tab that is a person — P2, 2026-10-19', () => {
     assert.match(TAB, /sub=\{soundsLine\(evidence\.soundJourney\) \?\? undefined\}/, 'the sounds line is not the journey\'s');
     assert.match(TAB, /label=\{FRIENDS_ROW\} sub=\{FRIENDS_SUB\} onPress=\{\(\) => nav\.navigate\('Friends'\)\}/, 'Friends was dropped from Profile');
     assert.match(TAB, /label=\{PRIVACY_ROW\} sub=\{PRIVACY_SUB\} onPress=\{\(\) => nav\.navigate\('Policy'\)\}/);
-    assert.match(TAB, /\{contact !== null && <SettingsRow label=\{HELP_FEEDBACK_ROW\}/, 'Help and feedback is drawn with no address behind it');
+    assert.match(TAB, /\{contact !== null && <SettingsRow label=\{HELP_FEEDBACK_ROW\} onPress=\{\(\) => setSheet\('help'\)\} \/>\}/, 'Help and feedback is drawn with no address behind it, or does not open its sheet (F922)');
     assert.match(stripComments(read('../nav/LuvaniTabBar.tsx')), /focused: false,/, 'the detached bar selects a tab');
     for (const spelled of ['Your tutor', 'Learning preferences', 'Your French', '>Plan<', '>Edit<']) {
       assert.ok(!TAB.includes(spelled), `Profile writes "${spelled}" in JSX, so the copy sweeps cannot read it`);
@@ -166,7 +166,7 @@ describe('the tab that is a person — P2, 2026-10-19', () => {
     }
     assert.match(
       TAB,
-      /type Sheet = 'none' \| 'name' \| 'tutorVoice';/,
+      /type Sheet = 'none' \| 'name' \| 'tutorVoice' \| 'help';/,
       'the sheet union names a sheet Profile does not draw, or lost one that it does',
     );
     assert.match(TAB, /useHardwareBack\(sheet !== 'none', closeCurrentSheet\)/, 'Profile answers the hardware back for a sheet it does not draw, or for none');
