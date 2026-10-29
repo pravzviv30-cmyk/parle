@@ -36,6 +36,12 @@ describe('sign-out and unsynced practice (F938)', () => {
   test('the sign-out sheet never claims unsynced practice is saved to the account', async () => {
     const { signOutBody } = await import('./signOutConfirm.ts');
     assert.equal(signOutBody(0), SIGN_OUT_CONFIRM.body);
+    // The mock adapter has no account to save to: the learning is kept on this device.
+    const mock = signOutBody(0, 'mock');
+    assert.equal(mock, 'Your French stays saved on this device.');
+    assert.doesNotMatch(mock, /account/, 'the mock adapter claims the account holds the learning');
+    assert.equal(signOutBody(3, 'mock'), mock, 'the mock adapter has no sync to be pending');
+    assert.match(strip(read('./SettingsScreen.tsx')), /signOutBody\(pendingAtSignOut\(\), user\?\.provider\)/, 'Settings does not pass the provider');
     const pending = signOutBody(2);
     assert.notEqual(pending, SIGN_OUT_CONFIRM.body, 'pending writes are still told they are saved to the account');
     assert.doesNotMatch(pending, /saved to your account/);

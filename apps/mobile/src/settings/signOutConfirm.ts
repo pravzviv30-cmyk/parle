@@ -4,23 +4,26 @@
  * (the scrim, a screen reader's escape, the back gesture) is staying.
  *
  * The body is chosen when the sheet opens, from the real sync state
- * (`signOutBody`). With nothing pending, or on the local mock (which keeps the
- * learning on this device under the learner's own namespace, `storage/scope.ts`),
- * the learning is saved to the account. With writes still pending on Supabase it
+ * (`signOutBody`). With nothing pending the learning is saved to the account.
+ * The local mock has no account to save to: it keeps the learning on this
+ * device under the learner's own namespace (`storage/scope.ts`), and says so.
+ * With writes still pending on Supabase it
  * is not yet, so the sheet says where it is: on this phone, pushed on the next
  * sign-in here (`sync/engine.ts` keeps the dirty set in the learner's namespace).
  */
 export const SIGN_OUT_CONFIRM = {
   title: 'Sign out?',
   body: 'Your French stays saved to your account.',
+  deviceBody: 'Your French stays saved on this device.',
   stay: 'Stay signed in',
   leave: 'Sign out',
   leaving: 'Signing out',
   pendingBody: "Some of today's practice hasn't synced yet. It will sync the next time you sign in on this phone.",
 } as const;
 
-/** The sheet's body, from what is still waiting to sync when it opens. */
-export function signOutBody(pending: number): string {
+/** The sheet's body, from the auth provider and what is still waiting to sync when it opens. */
+export function signOutBody(pending: number, provider?: string): string {
+  if (provider === 'mock') return SIGN_OUT_CONFIRM.deviceBody;
   return pending > 0 ? SIGN_OUT_CONFIRM.pendingBody : SIGN_OUT_CONFIRM.body;
 }
 
@@ -29,8 +32,10 @@ export const SIGN_OUT_FLUSH_MS = 2_000;
 
 /**
  * The running account's sync, as sign-out needs it. `App.tsx` registers it
- * when the engine starts and clears it when the engine stops. Null means no
- * engine (the local mock, or sync not started yet): nothing to flush.
+ * when the engine starts (`startAccountSync`); nothing clears it. Once that
+ * engine stops (sign-out or account switch) the registration reports nothing
+ * pending and its flush does nothing, and the next account's engine replaces
+ * it. Null means no engine ever started (the local mock): nothing to flush.
  */
 export type SignOutSync = { pending: () => number; flush: () => Promise<unknown> };
 let activeSync: SignOutSync | null = null;

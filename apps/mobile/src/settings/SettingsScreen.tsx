@@ -259,7 +259,7 @@ export function SettingsScreen({
   const [signOutText, setSignOutText] = useState<string>(SIGN_OUT_CONFIRM.body);
   const stepSignOut = async (event: SignOutEvent) => {
     // The body is read from the real sync state as the sheet opens.
-    if (event === 'ask') setSignOutText(signOutBody(pendingAtSignOut()));
+    if (event === 'ask') setSignOutText(signOutBody(pendingAtSignOut(), user?.provider));
     const next = signOutStep(signOutSheet, event);
     if (next === signOutSheet) return;
     setSignOutSheet(next);
