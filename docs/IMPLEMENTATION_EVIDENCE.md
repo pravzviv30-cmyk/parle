@@ -22,6 +22,16 @@ of the list.
 
 ## Current landing snapshot
 
+- 29 October 2026 product-review fixes, Stream B (fair paywall and billing truth): branch
+  `claude/review-b-paywall` from main 2baf8fcf. F907 to F914, F931 (wall parts) and F932 closed, each
+  with its named tests; a fix-verifier round on every batch until it found nothing that breaks a rule;
+  money pins re-pinned only after the founder approved each exact diff (6 files and 3 functions for
+  F908/F909, capabilities.ts for F913); live replay of every finding against a local token server
+  with the file entitlement store and the store preview (about 15 live tutor seconds). **7,151 tests,
+  0 failing**; core 1096, brain 770, tutor agent 887, token server 527, playground 110, mobile 3761;
+  shared release/provider proofs 207; all 44 migrations replayed, no migration added. Floors raised
+  through `gate:bless`. F933 filed open. Not verified: native store reads (renewal date, error codes 3
+  and 5, Manage and Restore), which wait for sandbox purchases. Deploy order: token server, then app.
 - 29 October 2026 product-review fixes, Stream A (honest session loop): branch
   `claude/review-a-session-loop` from main f409c6dc. F903, F904, F905, F906, F923 and F928 closed, each
   with its named tests; three fix-verifier rounds; `eval:sessions` identical to its baseline and the
