@@ -146,6 +146,20 @@ test('scene card art never overlaps the title or duration at 320 and 375 points'
   const parts = readFileSync(new URL('./today/TodayParts.tsx', import.meta.url), 'utf8');
   const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('export function PhraseCard('));
   const tutor = readFileSync(new URL('./tabs/TutorTab.tsx', import.meta.url), 'utf8');
+  // The eyebrow sits at the top beside the art too: the longest goal eyebrow
+  // (goalLine.ts) at the windows where a card is just wide enough to go side by side.
+  const EYEBROW = 'Picked for ordering food and drinks';
+  for (const [where, body, key, cap] of [['SceneLead', lead, 'today', /side && s\.leadEyebrow/], ['Speak', tutor, 'speak', /heroSide && st\.heroEyebrow/]] as const) {
+    const card = SCENE_CARDS[key];
+    const capped = cap.test(body);
+    for (const screen of [440, 460, 480, 500, 520]) for (const fontScale of [1, 1.2]) {
+      const width = sceneCardFallbackWidth(key, screen);
+      const frame = sceneCardGeometry(card, width, fontScale);
+      const natural = EYEBROW.length * 13 * 0.62 * fontScale;
+      const eyebrow = { x: frame.text.x, y: frame.text.y, w: capped ? Math.min(natural, frame.text.w) : natural, h: 18 * fontScale };
+      assert.ok(!meets(frame.art, eyebrow), `${where} at ${screen}pt, text x${fontScale}: the eyebrow runs under the art`);
+    }
+  }
   for (const [where, body, key] of [['SceneLead', lead, 'today'], ['Speak', tutor, 'speak']] as const) {
     assert.match(body, new RegExp(`sceneCardGeometry\\(SCENE_CARDS\\.${key}, `), `${where} does not place its art from the shared geometry`);
     assert.match(body, new RegExp(`sceneCardFallbackWidth\\('${key}', `), `${where} has no first-frame width`);
@@ -191,10 +205,15 @@ test('the onboarding footer does not move when the keyboard opens', async () => 
   const { footerHeightLatch, footerInScroll } = layout as typeof import('./responsiveLayout.ts');
   assert.equal(typeof footerHeightLatch, 'function', 'the footer decides from the live window height, which the web keyboard shrinks');
   // react-native-web measures visualViewport, so the soft keyboard shrinks the height while typing.
-  const run = (frames: [number, number][], insets = 59 + 34) => {
+  // Each frame: width, height, and whether a text field has focus (the only time a soft keyboard can be up).
+  const run = (frames: [number, number, boolean?][], insets = 59 + 34) => {
     let latch: { width: number; height: number } | null = null;
-    return frames.map(([width, height]) => { latch = footerHeightLatch(latch, width, height); return footerInScroll(latch.height - insets); });
+    return frames.map(([width, height, typing = true]) => { latch = footerHeightLatch(latch, width, height, typing); return footerInScroll(latch.height - insets); });
   };
+  // A desktop window dragged shorter at the same width, nothing focused: it follows the real height.
+  assert.deepEqual(run([[1024, 900, false], [1024, 640, false], [1024, 900, false]], 0), [false, true, false]);
+  // The keyboard case stays steady when a field has focus, and the latch lets go once it blurs.
+  assert.deepEqual(run([[375, 812, false], [375, 812, true], [375, 420, true], [375, 812, false]]), [false, false, false, false]);
   // A 375x812 phone: pinned, and still pinned with the keyboard open and after it closes.
   assert.deepEqual(run([[375, 812], [375, 476], [375, 420], [375, 812]]), [false, false, false, false]);
   // A 320x568 phone scrolls its footer throughout.
@@ -202,6 +221,6 @@ test('the onboarding footer does not move when the keyboard opens', async () => 
   // Rotation changes the width, so the frame decides again from the new shape.
   assert.deepEqual(run([[375, 812], [812, 375]], 21), [false, true]);
   const frame = readFileSync(new URL('./onboarding/OnboardingLayout.tsx', import.meta.url), 'utf8');
-  assert.match(frame, /footerHeightLatch\(/, 'the onboarding frame does not latch its height');
+  assert.match(frame, /footerHeightLatch\(footerHeight\.current, width, height, editableFocused\(\)\)/, 'the onboarding frame does not latch its height');
   assert.match(frame, /footerInScroll\(footerHeight\.current\.height - insets\.top - insets\.bottom\)/, 'the frame decides from the live height');
 });

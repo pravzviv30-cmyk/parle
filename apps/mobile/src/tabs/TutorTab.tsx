@@ -316,7 +316,7 @@ export function TutorTab() {
             : <BArt name="cafe-table" width={heroFrame.band!.width} height={heroFrame.band!.height} style={st.heroBand} />}
           {/* Side by side the words column keeps the art's height, so the pills and the answer segment start below it. */}
           <View style={[st.heroWords, { minHeight: heroFrame.text.minHeight }]}>
-            <Text style={[bType.eyebrow, { color: t.heroText }]}>{rec.eyebrow}</Text>
+            <Text style={[bType.eyebrow, heroSide && st.heroEyebrow, { color: t.heroText }]}>{rec.eyebrow}</Text>
             <Text accessibilityRole="header" style={[bType.leadTitle, heroSide && st.heroTitle, { color: t.heroText }]}>{rec.title}</Text>
             <Text style={[bType.line16, heroSide && st.heroLine, { color: t.heroText }]}>{rec.sentence}</Text>
           </View>
@@ -536,6 +536,7 @@ const makeStyles = (t: B) =>
     heroArt: { position: 'absolute', right: -10, top: 26 },
     heroBand: { alignSelf: 'center', marginBottom: 6 },
     heroWords: { gap: 6 },
+    heroEyebrow: { maxWidth: 200 },
     heroTitle: { maxWidth: 200 },
     heroLine: { maxWidth: 196 },
     heroPill: { backgroundColor: t.heroChip, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, maxWidth: '100%' },

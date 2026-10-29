@@ -81,6 +81,13 @@ export function OnboardingFrame({ initialProgress, children }: { initialProgress
   </FrameContext.Provider>;
 }
 
+/** Is a text field focused? Only then can a web soft keyboard be shrinking the window. Native windows never shrink for it. */
+function editableFocused(): boolean {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return false;
+  const active = document.activeElement as HTMLElement | null;
+  return active != null && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+}
+
 type Props = {
   page: string;
   ground?: string;
@@ -124,7 +131,7 @@ export function OnboardingLayout({ page, progress, children, hero, footer, avoid
   // The soft keyboard shrinks the web window while typing; the latch keeps the
   // tallest height at this width so the footer never jumps mid-form.
   const footerHeight = useRef<{ width: number; height: number } | null>(null);
-  footerHeight.current = footerHeightLatch(footerHeight.current, width, height);
+  footerHeight.current = footerHeightLatch(footerHeight.current, width, height, editableFocused());
   const actionInScroll = askedInScroll || footerInScroll(footerHeight.current.height - insets.top - insets.bottom);
   const gutter = 24;
   const horizontal = { paddingLeft: Math.max(gutter, insets.left), paddingRight: Math.max(gutter, insets.right) };

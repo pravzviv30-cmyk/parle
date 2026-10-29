@@ -228,7 +228,7 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
         : <BArt name="cafe-table" width={frame.band!.width} height={frame.band!.height} style={s.leadBand} />}
       {/* Side by side the words column keeps the art's height, so the Uses chip and Start start below it. */}
       <View style={[s.leadWords, { minHeight: frame.text.minHeight }]}>
-        <Text style={[bType.eyebrow, { color: t.heroText }]}>{eyebrow}</Text>
+        <Text style={[bType.eyebrow, side && s.leadEyebrow, { color: t.heroText }]}>{eyebrow}</Text>
         <Text accessibilityRole="header" style={[bType.leadTitle, side && s.leadTitle, { color: t.heroText }]}>{title}</Text>
         <Text style={[bType.line16, side && s.leadLine, { color: t.heroText }]}>
           {french !== null ? <Text {...frenchText}>{french}</Text> : null}
@@ -321,6 +321,7 @@ const makeStyles = (t: B) =>
     leadArt: { position: 'absolute', right: -6, top: 14 },
     leadBand: { alignSelf: 'center', marginBottom: 12 },
     leadWords: { gap: space(1) },
+    leadEyebrow: { maxWidth: 190 },
     leadTitle: { maxWidth: 190 },
     leadLine: { maxWidth: 180 },
     usesChip: { marginTop: 6, alignSelf: 'flex-start', maxWidth: '100%', backgroundColor: t.heroChip, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12 },

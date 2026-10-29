@@ -187,9 +187,13 @@ export function footerInScroll(usableHeight: number): boolean {
  * The height the footer decision reads: the tallest window seen at this
  * width. On the web react-native-web measures `visualViewport`, which the
  * soft keyboard shrinks while typing; the keyboard never changes the width,
- * so a new width (rotation, split view) starts a fresh reading. The screen
+ * so a new width (rotation, split view) starts a fresh reading. The tallest
+ * height is held only while a text field has focus; a desktop window dragged
+ * shorter with nothing focused follows its real height. The screen
  * height is not used: on a desktop browser it is the monitor, not the window.
  */
-export function footerHeightLatch(prev: { width: number; height: number } | null, width: number, height: number): { width: number; height: number } {
-  return prev === null || prev.width !== width ? { width, height } : { width, height: Math.max(prev.height, height) };
+export function footerHeightLatch(prev: { width: number; height: number } | null, width: number, height: number, typing: boolean): { width: number; height: number } {
+  // Only a focused field can raise a soft keyboard; otherwise a shorter window is really shorter.
+  if (!typing || prev === null || prev.width !== width) return { width, height };
+  return { width, height: Math.max(prev.height, height) };
 }
