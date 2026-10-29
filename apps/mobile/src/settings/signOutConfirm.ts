@@ -3,16 +3,57 @@
  * and comes first; signing out is the quiet link. Every other way off the sheet
  * (the scrim, a screen reader's escape, the back gesture) is staying.
  *
- * The body is true for both adapters: Supabase reconciles the account's
- * learning with the server, and the local mock keeps it on this device under
- * the learner's own namespace (`storage/scope.ts`), so signing back in finds it.
+ * The body is chosen when the sheet opens, from the real sync state
+ * (`signOutBody`). With nothing pending, or on the local mock (which keeps the
+ * learning on this device under the learner's own namespace, `storage/scope.ts`),
+ * the learning is saved to the account. With writes still pending on Supabase it
+ * is not yet, so the sheet says where it is: on this phone, pushed on the next
+ * sign-in here (`sync/engine.ts` keeps the dirty set in the learner's namespace).
  */
 export const SIGN_OUT_CONFIRM = {
   title: 'Sign out?',
   body: 'Your French stays saved to your account.',
   stay: 'Stay signed in',
   leave: 'Sign out',
+  pendingBody: "Some of today's practice hasn't synced yet. It will sync the next time you sign in on this phone.",
 } as const;
+
+/** The sheet's body, from what is still waiting to sync when it opens. */
+export function signOutBody(pending: number): string {
+  return pending > 0 ? SIGN_OUT_CONFIRM.pendingBody : SIGN_OUT_CONFIRM.body;
+}
+
+/** How long sign-out waits for a last push before it goes anyway. */
+export const SIGN_OUT_FLUSH_MS = 2_000;
+
+/**
+ * The running account's sync, as sign-out needs it. `App.tsx` registers it
+ * when the engine starts and clears it when the engine stops. Null means no
+ * engine (the local mock, or sync not started yet): nothing to flush.
+ */
+export type SignOutSync = { pending: () => number; flush: () => Promise<unknown> };
+let activeSync: SignOutSync | null = null;
+export function registerSignOutSync(sync: SignOutSync | null): void { activeSync = sync; }
+export function pendingAtSignOut(): number { return activeSync?.pending() ?? 0; }
+
+/**
+ * Try one last push before sign-out stops sync, bounded so an offline or stuck
+ * network never holds the learner. Never throws: whatever does not land stays
+ * dirty in the learner's namespace and pushes on the next sign-in here.
+ */
+export async function flushBeforeSignOut(
+  sync: SignOutSync | null = activeSync,
+  timeoutMs: number = SIGN_OUT_FLUSH_MS,
+): Promise<void> {
+  if (sync === null || sync.pending() === 0) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<void>((resolve) => { timer = setTimeout(resolve, timeoutMs); });
+  try {
+    await Promise.race([sync.flush().then(() => {}, () => {}), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export type SignOutSheet = { open: boolean; signOut: boolean };
 export type SignOutEvent = 'ask' | 'stay' | 'dismiss' | 'leave';

@@ -31,3 +31,37 @@ describe('sign-out confirmation (F938)', () => {
     assert.match(settings, /if \(next\.signOut\) onSignOut\(\)/, 'leaving never reaches onSignOut');
   });
 });
+
+describe('sign-out and unsynced practice (F938)', () => {
+  test('the sign-out sheet never claims unsynced practice is saved to the account', async () => {
+    const { signOutBody } = await import('./signOutConfirm.ts');
+    assert.equal(signOutBody(0), SIGN_OUT_CONFIRM.body);
+    const pending = signOutBody(2);
+    assert.notEqual(pending, SIGN_OUT_CONFIRM.body, 'pending writes are still told they are saved to the account');
+    assert.doesNotMatch(pending, /saved to your account/);
+    assert.match(pending, /next time you sign in on this phone/);
+    assert.ok(!/[—·]/.test(pending));
+    const settings = strip(read('./SettingsScreen.tsx'));
+    const sheet = settings.match(/<ConfirmSheet[\s\S]*?\/>/)?.[0] ?? '';
+    assert.doesNotMatch(sheet, /body=\{SIGN_OUT_CONFIRM\.body\}/, 'the sheet still shows the fixed body');
+  });
+
+  test('sign-out flushes pending writes before stopping sync', async () => {
+    const { flushBeforeSignOut } = await import('./signOutConfirm.ts');
+    const order: string[] = [];
+    let pending = 1;
+    await flushBeforeSignOut({ pending: () => pending, flush: async () => { order.push('flush'); pending = 0; } }, 50);
+    order.push('stop');
+    assert.deepEqual(order, ['flush', 'stop']);
+    // A flush that never answers is bounded.
+    const started = Date.now();
+    await flushBeforeSignOut({ pending: () => 1, flush: () => new Promise(() => {}) }, 30);
+    assert.ok(Date.now() - started < 1000, 'a stuck flush holds sign-out');
+    // A failing flush still lets sign-out go.
+    await flushBeforeSignOut({ pending: () => 1, flush: () => Promise.reject(new Error('offline')) }, 30);
+    // App wiring: the onSignOut path flushes before auth.signOut, and the engine is registered.
+    const app = strip(read('../../App.tsx'));
+    assert.match(app, /await flushBeforeSignOut\(\);\s*await auth\.signOut\(\)/, 'sign-out does not flush first');
+    assert.match(app, /registerSignOutSync\(\{[\s\S]*?engine\.stopped\(\)/, 'the engine is not registered for sign-out');
+  });
+});

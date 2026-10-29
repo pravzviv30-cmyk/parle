@@ -67,7 +67,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { bType, space, type } from '../theme.ts';
 import { IconAction, OptionRow, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
 import { ConfirmSheet, ScrollScreen } from '../layout.tsx';
-import { SIGN_OUT_CONFIRM, signOutStep, type SignOutEvent, type SignOutSheet } from './signOutConfirm.ts';
+import { pendingAtSignOut, SIGN_OUT_CONFIRM, signOutBody, signOutStep, type SignOutEvent, type SignOutSheet } from './signOutConfirm.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BackButton } from '../journey/JourneyParts.tsx';
 import { withPace, paceOf } from '../tutor/pace.ts';
@@ -256,7 +256,10 @@ export function SettingsScreen({
   const trial = useTrialReminder();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [signOutSheet, setSignOutSheet] = useState<SignOutSheet>({ open: false, signOut: false });
+  const [signOutText, setSignOutText] = useState<string>(SIGN_OUT_CONFIRM.body);
   const stepSignOut = (event: SignOutEvent) => {
+    // The body is read from the real sync state as the sheet opens.
+    if (event === 'ask') setSignOutText(signOutBody(pendingAtSignOut()));
     const next = signOutStep(signOutSheet, event);
     setSignOutSheet(next);
     if (next.signOut) onSignOut();
@@ -858,7 +861,7 @@ export function SettingsScreen({
     <ConfirmSheet
       visible={signOutSheet.open}
       title={SIGN_OUT_CONFIRM.title}
-      body={SIGN_OUT_CONFIRM.body}
+      body={signOutText}
       cancelLabel={SIGN_OUT_CONFIRM.stay}
       confirmLabel={SIGN_OUT_CONFIRM.leave}
       onCancel={() => stepSignOut('dismiss')}

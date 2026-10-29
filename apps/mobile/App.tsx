@@ -60,7 +60,8 @@ import { clearActiveUserData, migrateLegacyStores, setActiveUser, userKey, scope
 import { startSync, type SyncEngine } from './src/sync/engine.ts';
 import { createSyncDiagnostics } from './src/sync/diagnostics.ts';
 import { syncPolicy } from './src/sync/policy.ts';
-import { resetSyncRegistry } from './src/sync/registry.ts';
+import { flushBeforeSignOut, registerSignOutSync } from './src/settings/signOutConfirm.ts';
+import { dirtyNamespaces, resetSyncRegistry } from './src/sync/registry.ts';
 import { adoptBeforeReady, mayAdoptPreAccountDraft, type FreshStart } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
@@ -145,7 +146,7 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 async function startAccountSync(uid: string): Promise<SyncEngine | null> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   const diagnostics = createSyncDiagnostics();
-  return startSync({
+  const engine = startSync({
     uid,
     // A per-install random already on this device. It is not an account, not a
     // person and not a platform; it only tells two devices apart in an envelope.
@@ -161,6 +162,13 @@ async function startAccountSync(uid: string): Promise<SyncEngine | null> {
     policy: syncPolicy,
     record: diagnostics.record,
   });
+  // F938: sign-out reads what is still waiting and tries one bounded last push.
+  // A stopped engine (this account signed out or switched) has nothing to offer.
+  registerSignOutSync({
+    pending: () => engine.stopped() ? 0 : dirtyNamespaces().filter((namespace) => syncPolicy.namespaces.includes(namespace)).length,
+    flush: () => engine.stopped() ? Promise.resolve() : engine.flushDirty(),
+  });
+  return engine;
 }
 
 /**
@@ -635,7 +643,8 @@ function SignedInRoot({
           {...(Platform.OS === 'web' ? { linking } : {})}
         >
           <RootNavigator
-            onSignOut={() => void auth.signOut()}
+            // F938: one bounded last push before sync stops (signOutConfirm.ts).
+            onSignOut={() => void (async () => { await flushBeforeSignOut(); await auth.signOut(); })()}
             onDeleteAccount={onDeleteAccount}
           />
         </NavigationContainer>
