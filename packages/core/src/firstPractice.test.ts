@@ -7,7 +7,7 @@ test('every chosen goal and supported duration shapes a concrete task and truthf
   for (const goal of ['food','trip','family','moving','work','because'] as const)
     for (const minutes of [5,10,15,20] as const) {
       const b = {...brief,goals:[goal],minutes}; assert.ok(parseFirstPracticeBrief(b));
-      assert.ok(firstPracticeScenario(b).en.length > 30);
+      assert.ok(firstPracticeScenario(b).brief.length > 30);
       assert.match(firstPracticeNext(b),new RegExp(`${minutes} minutes`));
       assert.match(firstPracticePrompt(b,minutes*60-30),/Approach a natural conclusion/);
     }
@@ -20,7 +20,7 @@ test('the complete closed brief preserves preferences; null answers never become
 });
 test('compatible goals form one scenario, with unrelated goals retained as supporting context', () => {
   const b = {...brief,goals:['trip','food','work'] as FirstPracticeBrief['goals']};
-  assert.match(firstPracticeScenario(b).en,/restaurant during your trip/);
+  assert.match(firstPracticeScenario(b).brief,/restaurant during your trip/);
   assert.match(firstPracticePrompt(b),/"work"/); assert.match(firstPracticePrompt(b),/not abrupt scene changes/);
 });
 test('difficulty, scaffolding and listening or vocabulary preferences reach the tutor', () => {
@@ -34,7 +34,7 @@ test('interests survive validation and food with travel makes one coherent pract
   const selected = { ...brief, goals: ['trip'] as FirstPracticeBrief['goals'], interests: ['food', 'travel', 'music'] };
   const parsed = parseFirstPracticeBrief(selected);
   assert.deepEqual(parsed?.interests, selected.interests);
-  assert.match(firstPracticeScenario(parsed!).en, /restaurant during your trip/);
+  assert.match(firstPracticeScenario(parsed!).brief, /restaurant during your trip/);
   assert.match(firstPracticePrompt(parsed!), /music/);
   assert.match(firstPracticePrompt(parsed!), /Unrelated interests/);
   assert.equal(parseFirstPracticeBrief({ ...brief, interests: ['invented'] }), undefined);
@@ -47,3 +47,13 @@ test('a scene-specific next step replaces the goal tip and keeps the minutes rul
   assert.doesNotMatch(firstPracticeNext({...trip,minutes:null},'asking for a croissant'),/\d/);
   assert.match(firstPracticeNext(trip),/departure times/);
 });
+
+test('the guest first scene opens on its title, not its instructions', () => {
+  for (const goals of [['food'], ['trip'], ['family'], ['moving'], ['work'], ['because'], ['trip', 'food']] as FirstPracticeBrief['goals'][]) {
+    const s = firstPracticeScenario({ ...brief, goals });
+    assert.ok(s.en.length <= 40 && !/\b(ask|arrange|buy|choose|explain|you)\b/i.test(s.en), `"${s.en}" is an instruction`);
+    assert.ok(s.brief.length > 30 && s.brief.length <= 240, s.brief);
+    assert.ok(firstPracticePrompt({ ...brief, goals }).includes(`Situation and objective: ${s.brief}.`), 'the tutor lost the situation');
+  }
+});
+

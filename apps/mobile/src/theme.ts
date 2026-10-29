@@ -282,6 +282,16 @@ export const HAIRLINE = 1;
 export const HIT = 44;
 
 /**
+ * The keyboard focus ring (F927): a 2pt ink outline 2pt clear of the control,
+ * with a white halo filling that gap. No single colour reaches 3:1 on every
+ * ground (a violet fails blue, coral, sun and mint), but the pair always has
+ * one part that does: ink on cream, white, sun and mint; white on the dark
+ * ground, the dark card, blue and coral. Drawn on the web on keyboard focus
+ * only, by the one rule `keyActivation.ts` installs.
+ */
+export const FOCUS = { width: 2, offset: 2, colour: paper.ink, halo: paper.card } as const;
+
+/**
  * Hides decorative art from assistive tech. Spread onto any illustration.
  *
  * The scenes carry no information the surrounding text does not already say,

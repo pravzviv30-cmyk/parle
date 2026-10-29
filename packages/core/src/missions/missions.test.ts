@@ -219,6 +219,28 @@ describe('the catalogue — thirty-one front doors, each with somewhere to pract
     }
   });
 
+  test('every reference phrase shows its English', () => {
+    // F943: "One line to try" was French alone. The English sits beside each
+    // French line, index for index, and says something.
+    for (const mission of MISSIONS) {
+      assert.equal(mission.referencePhrasesEn.length, mission.referencePhrases.length, `${mission.id} has a French line with no English`);
+      for (const en of mission.referencePhrasesEn) {
+        assert.ok(en.trim().length > 0, `${mission.id} has an empty English line`);
+        assert.doesNotMatch(en, /\u2014|\u00b7/, `${mission.id}: "${en}" carries an em dash or middot`);
+      }
+    }
+  });
+
+  test('every mission names who the tutor plays before the narration does', () => {
+    // F942: the short part is the character the long tutorRole names, first name first.
+    for (const mission of MISSIONS) {
+      assert.ok(mission.tutorPart.length > 0 && mission.tutorPart.length <= 48, `${mission.id}: "${mission.tutorPart}"`);
+      const name = mission.tutorPart.split(/,| and /)[0]!.trim();
+      assert.ok(mission.tutorRole.startsWith(name), `${mission.id}: "${mission.tutorPart}" is not the character in "${mission.tutorRole}"`);
+      assert.doesNotMatch(mission.tutorPart, /\.$|\u2014/);
+    }
+  });
+
   test('a reference phrase is long enough for a scorer to say anything about it', () => {
     // buildReport needs MIN_SAMPLES_TO_FLAG observations of a sound before it
     // will name it, so a two-syllable line cannot support a focus point however

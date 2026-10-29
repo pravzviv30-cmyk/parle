@@ -86,7 +86,10 @@ period stay near a purchase action, and large text is never capped to fit.
   seconds (only with a fix: English only before the try, and only when the
   drill would open on an exercise that hides the French; "Your line from
   {day}" when the conversation's day is known), the next scene (the sun card
-  with its stage place, "Next scene, 2 of 3", a "Uses" chip only when the last
+  with its stage place and the café drawing, at the top right when the card is
+  at least 400pt wide, where the words column keeps the art's height so every
+  full-width row starts below it, and in a band above full-width words below
+  that or at large text (F920; every phone gets the band), "Next scene, 2 of 3", a "Uses" chip only when the last
   conversation's phrase is one of the scene's lines, and its own minutes; or
   the plans card when a trial cannot start, "Your paid plan has ended." when
   lapsed, a paid plan's out-of-time words with the starter card or local
@@ -124,14 +127,19 @@ period stay near a purchase action, and large text is never capped to fit.
   plum in dark; under the status bar, radius 0 0 36 36, the back button and
   the scene's topic drawing inside it, the café table where the canvas has
   none) with topic and stage, the English and French
-  titles and minutes; what you'll practise; "The barista might say" only where
+  titles and minutes; what you'll practise; "{tutor} plays {part}." in muted
+  `meta` (F942, from the mission's `tutorPart`); "The barista might say" only where
   an authored opener ships on the device, otherwise "You could start with" the
   learner's own opening line; the lines with hear buttons; the 56pt Start
   with the tutor; and the 48pt free practice of the lines, which uses no speaking time. An
   unknown id says so and returns to Explore.
 - Speak (rebuilt to B-Speak in light and dark, UI-008, 2026-10-20): the
-  subtitle names the tutor; the `heroGround` Recommended card carries the
-  café drawing, the scene's goal, its minutes and "Uses speaking time" as
+  subtitle names the tutor; the `heroGround` card (eyebrow "Next" for a pick
+  that only follows the path order, "Recommended" for a pick with a reason, the
+  goal line when the goal chose it; F856) carries the
+  café drawing (beside the words on a wide card, in a band above them on a
+  phone or at large text: `sceneCardGeometry`, F920, the same rule as
+  Today's scene card), the scene's goal, its minutes and "Uses live minutes" (F857) as
   `heroChip` pills, the Speak/Type radios on the `butter` track (the chosen
   cell on `heroChip` with a tick), the two preference chips outlined in
   `heroText`, "Prepare first, free" to the preview and the 54pt `heroCta`
@@ -220,7 +228,9 @@ period stay near a purchase action, and large text is never capped to fit.
   paths. Since 2026-10-21 (UI-008, B-Live and B-LiveHelp) the room keeps its
   blue ground in both themes: the leave disc, the scene and its pace ("About N
   min", the scene's own pace, never the allowance), the goals strip (done,
-  current, to do), the tutor-orb art pulsing with the real room levels, the
+  current, to do), the orb pulsing with the real room levels and carrying the
+  learner's tutor portrait (F945), the room's first line "{tutor} plays {part}."
+  in the narration style before the scene's narration (F942), the
   tutor's last line in a card bubble and the learner's words in sun, then
   Type, the sun mic and Help. Help opens the cream sheet (the M3 ground in
   dark): what the tutor asked, the ladder Hint, Choices, Line given over the
@@ -279,7 +289,11 @@ B-OB-Consent).** Onboarding stays pinned light (founder decision): the parts in
 - **Welcome:** the brand page with the canvas friends drawing on a sun disc,
   confetti and three French speech bubbles; "A little French." with "A bigger
   world." in sun (40/800), three deep-blue promise chips and the 60 sun button
-  with its pressed edge.
+  with its pressed edge. The 390-wide stage scales about its middle on a
+  narrower screen so every bubble stays on it at 320 (`welcomeStageScale`,
+  F921). Below 700pt of usable height every onboarding and account page
+  scrolls its footer after the content instead of pinning it
+  (`footerInScroll` in `responsiveLayout.ts`).
 - **Questions:** each page bleeds a band under the clock (bottom corners 48):
   the 6-point progress bar and "n of 6", then a 156 halo and its canvas
   drawing. Reason is sun with voice-chat, interests brand with phrasebook,
@@ -425,7 +439,38 @@ ink clears 6.2 on the ground and 6.6 on a card. The card lifts off the ground by
 a Delta-E of 7.9, the hairline sits 5.8 off the ground and 12.3 off a card, and
 the skeleton 5.9 off the ground. The hairline is decorative and never the only
 edge of a control. Soft ink clears 5.8 on the inset. The field border clears 3.6 on a card, the
-floor for a mark.
+floor for a mark. Every input border, choice outline and unchosen radio ring takes `field`
+(`c.field` in onboarding, `t.field` on themed screens), in both modes: inputs, choice and
+token tiles, filter chips, option cards and bordered icon buttons alike. `controls.test.ts`
+measures them against the card and the ground, and scans every source file by contrast,
+not by name: a full `borderColor` on any token under 3:1 on both the card and the cream
+(`line`, `ring`, `periwinkle`, `sun`, `butter` and the like) fails unless it is on the
+test's commented list of decorative borders (a progress stop, a rung bullet, day dots,
+the stat rules, journey nodes ahead) (F921).
+
+The keyboard focus ring is `FOCUS` in theme.ts: a 2pt `paper.ink` outline 2pt clear of
+the control, with a `paper.card` white halo filling the gap. No single colour clears 3 on
+every ground, so the ring is two-tone and one part always does: ink on cream (16.6), a card
+(17.8), sun (11.6) and mint (9.0); white on the dark ground (18.4), the dark card (15.5),
+blue (7.9) and coral (4.7). `controls.test.ts` measures all eight. One web rule, installed
+once by `keyActivation.ts` from components.tsx, draws it on `:focus-visible` only, so a
+mouse click stays ringless. The rule takes every keyboard-reachable element
+(`[tabindex]` other than -1, `a[href]`, `button`), so every Pressable and the tab bar carry
+it without opting in. Text fields (`input`, `textarea`, `select`) draw their own focus and
+are left out, as is a heading focused by script (tabIndex -1). Only a text field may reset
+its outline inline; `controls.test.ts` fails on any other. The outline follows the control's corner: `Press` gives
+its focusable frame the radius of the surface it draws, so a pill's ring is a pill. An empty ring or
+disc that marks an open, ahead or not-yet item is a state mark, not decoration, and takes `field`
+too (WCAG 1.4.11). `field` clears 3 only on the card, the cream and the dark grounds: it is
+under 3 on skeleton (2.90), lavender (2.99), dark butter (2.97), sun (2.34) and mint (1.82), so a
+state mark on those grounds needs another token, measured on its real ground. A mark on another
+ground declares it in `controls.test.ts` (the live goal rings on `violetDeep`: sun for now,
+`onBrandSoft` for later). The halo is a box-shadow, so a control with its own shadow
+gives it up while it holds keyboard focus, and only then.
+`AccountField` and the live-room composer draw their own focus. On the web, Space chooses a radio, checkbox, tab or switch built on
+`Press` or `Chip`; Enter is react-native-web's own (F927). A `PillButton` or `Press`
+given `disabledReason` stays in the tab order while disabled, says it is off and why,
+and ignores the press.
 
 ### Four colours
 
@@ -1911,3 +1956,19 @@ Come alive (README Part 5.C, first run). The promise, where, level and daily goa
 After the win (README Part 5.C rows 9 to 12), day one uses darker green (`#1CB982`), navy type and a cream streak summary. An original local Rive flame ignites for 800 ms, then gently deforms its contour and inner layers while visible; web animates the same cubic geometry. A fresh, durably saved qualifying day owns one central flame-and-message entrance: hold, fade, reposition while invisible, then reveal the settled hero and supporting content in a restrained stagger. First days and milestones take 2,120 ms, ordinary daily updates 1,200 ms. One brief confetti burst, the existing streak sound and a preference-aware success haptic accompany ignition. The actual count never counts up from a fabricated value: one day says “Your streak has started.” and longer runs “Your streak continues.” Seven localised weekday indicators start at the achievement's local calendar date, with a golden check for its completed practice, a clear Today label and neutral future dates; a nearby milestone derives its remaining days from the run. No qualifying run or future-only record gets a streak claim. Continue learning opens Save progress; the no-run state offers Start learning French and opens practice. Optional Remind me tomorrow opens the shared time-confirmation sheet only where available and not already enabled; permission is requested only after the learner chooses Remind me. Back stays accessible, a tap skips without activating the revealed action, and event receipts prevent replay on reopening or retry. Reduced motion and native screen readers show the final still composition; backgrounding, navigation and sheets settle the entrance and pause idle motion. Opening the page never awards a day. The save card shows only earned results, with no “On this phone only” label; the guest home retains its actual run, kept natural line and action tiles. The existing-account first-run offer remains the existing wall, once after a kept practice and gated by real account and store status.
 
 Onboarding motion is interruptible and event-driven: card 180 ms; Continue arrow 100/140 ms; page opacity/translation 270 ms; progress transform 220 ms; illustration pulse 140/220 ms or 300 ms success settle; sheet 310/250 ms. The streak entrance is brief and skippable; its quiet contour-deforming idle runs only while the screen is visible and the app is in the foreground, with Reduce Motion showing a still frame. Native uses supported opacity/transform drivers; web uses its supported driver. Live Reduce Motion changes cancel to final states. One accepted-action haptic, no duplicate selection tick and no vibration during recording; honor the Settings preference. Preserve screen-reader heading focus, modal trapping/restoration, keyboard/safe-area behavior and the visible Close/Cancel action.
+
+## Tutor portraits, start icons and reference lines (Stream E, 2026-10-29)
+
+- Tutor portraits (founder decision 25, F945): every tutor surface draws
+  `<TutorPortrait voice size ring>`, the learner's own tutor from
+  `onboarding/tutorPortraits.ts`, clipped round with a 2pt ring that clears 3:1
+  against the surface under it (`t.text` on a card, `t.sun` on the chosen blue
+  card, `t.onBrand` on violet2 or hint). The canvas tutor-orb stays only where
+  no tutor is chosen yet (the choose step's band) and in the dev preview. To
+  revert, swap `TutorPortrait` back to `<BArt name="tutor-orb">` at each call site.
+- Start icons (F941): a start shows a keyboard for typing and a mic for
+  speaking; the quiet other-mode link shows the icon of the mode it offers.
+- "One line to try" (Missions and First scene, F943): the English sits under
+  each French line in `small`, muted ink, from the mission's `referencePhrasesEn`.
+- Voice previews (F944) are labelled as plain sentences: "Listen to Émilie's
+  voice", "Pause Émilie's voice", "Try Émilie's voice again".

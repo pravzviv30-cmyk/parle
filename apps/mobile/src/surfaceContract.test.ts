@@ -989,7 +989,7 @@ describe('a tap that starts with a network probe — F154', () => {
     assert.match(tutor, /onPress=\{\(\) => open\(textMode, answered\(next\.params\)\)\}/, 'the Start ignores the chosen mode');
     assert.match(
       named('home/MissionHero.tsx'),
-      /<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
+      /<IconAction layout="inline" icon=\{modes\.other\.textMode \? 'keyboard' : 'microphone'\} label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
       'the quiet door is gone, and a learner who cannot speak aloud has no way through',
     );
     assert.deepEqual(

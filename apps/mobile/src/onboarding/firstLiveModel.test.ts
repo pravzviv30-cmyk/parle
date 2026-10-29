@@ -9,7 +9,7 @@ test('travel and café interests reach the live scenario without mutating the sa
     startLevel: 'few' as const, speakingConfidence: 'trying' as const, practiceFocus: 'speaking' as const, minutes: 10 as const, tutorVoice: 'emilie' as const };
   const brief = briefFromDraft(draft);
   assert.deepEqual(brief, { version: 1, goals: ['trip'], interests: ['food', 'music'], level: 'few', confidence: 'trying', focus: 'speaking', minutes: 10, tutorVoice: 'emilie' });
-  assert.match(firstPracticeScenario(brief).en, /restaurant during your trip/);
+  assert.match(firstPracticeScenario(brief).brief, /restaurant during your trip/);
   brief.interests?.pop();
   assert.deepEqual(draft.interests, ['food', 'music']);
 });

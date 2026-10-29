@@ -91,8 +91,8 @@ describe('the tab that is a person — P2, 2026-10-19', () => {
     assert.match(TAB, /setDraftName\(profile\.name \?\? ''\); setSheet\('name'\);/, 'Edit does not open the name sheet on the stored name');
     assert.match(PARTS, /edit: \{ minHeight: HIT, minWidth: HIT/, 'Edit sits under the touch floor');
 
-    // ─────────────────────────────── the tutor is the orb, never a face
-    assert.match(TAB, /label=\{YOUR_TUTOR_ROW\} sub=\{tutor\} lead=\{<RowArt round size=\{40\}><BArt name="tutor-orb"/, 'the tutor is drawn as something other than the orb');
+    // ─────────────────────────────── the tutor is their own portrait (F945)
+    assert.match(TAB, /label=\{YOUR_TUTOR_ROW\} sub=\{tutor\} lead=\{<RowArt round size=\{40\}><TutorPortrait voice=\{tutorVoiceOf\(profile\)\}/, 'the tutor row does not draw the learner\'s own tutor');
     assert.match(TAB, /onPress=\{\(\) => setSheet\('tutorVoice'\)\}/, 'the tutor row cannot open the voice sheet');
     assert.match(TAB, /label=\{memoryRowTitle\(tutor\)\}/, 'the memory row spells the tutor name itself');
     assert.match(TAB, /tapThrough\(locks\.access, 'tutorMemory', locks\.open, \(\) => nav\.navigate\('TutorMemory'\)\)/, 'the memory row skips the lock seam, or leads nowhere');

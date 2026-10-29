@@ -82,6 +82,8 @@ import {
   parseStoredProfile,
   postSessionDeadlineMs,
   seededOpening,
+  seedInstruction,
+  validSeedTopic,
   spokenTurn,
   streamedTurnsEnabled,
   tutorMemoryBrief,
@@ -1252,6 +1254,96 @@ describe('a conversation started from a topic card', () => {
       seeded.en,
       'a title that already ends in a full stop does not get a second one',
     );
+  });
+});
+
+/** A free-talk idea: a short title the learner reads, and a brief only the tutor reads. */
+const BRIEFED_SEED = {
+  fr: 'Ta journée',
+  en: 'Your day',
+  brief: 'Discuss my day in French. Ask why things happened. Hints if I ask.',
+};
+
+describe('a free-talk topic with a tutor brief', () => {
+  test('free talk never shows prompt text in the transcript', async (t) => {
+    for (const client of [new MockLlmClient(), new NoFrameBrain()]) {
+      for (const voiceless of [false, true]) {
+        const { convo, session, published, said } = buildConvo(t, { seedTopic: BRIEFED_SEED, client, voiceless });
+        convo.open(session);
+        await sceneSettled();
+        await convo.handleClientMessage(session, tapped({ t: 'ready' }));
+        const out = JSON.stringify(published) + JSON.stringify(said);
+        for (const fragment of ['Discuss my day', 'Ask why', 'Hints if I ask']) {
+          assert.ok(!out.includes(fragment), `the brief leaked to the learner (${fragment}): ${out.slice(0, 400)}`);
+        }
+        const opening = published.find((m) => m.t === 'opening');
+        assert.ok(opening, 'the session opened');
+        assert.deepEqual(opening.prompt, { fr: 'Ta journée. On en parle.', en: "Your day. Let's talk about it." }, 'the opening is the short title only');
+        if (!(client instanceof NoFrameBrain)) {
+          assert.ok(JSON.stringify(client.frameRequests).includes('Hints if I ask'), 'while the tutor did get the brief');
+        }
+      }
+    }
+  });
+
+  test('a fresh topic opens without "again"', () => {
+    const fresh = seededOpening(BRIEFED_SEED);
+    assert.equal(fresh.en, "Your day. Let's talk about it.");
+    assert.equal(fresh.fr, 'Ta journée. On en parle.');
+    assert.ok(!/again|reparle/i.test(`${fresh.en} ${fresh.fr}`));
+    for (const text of [fresh.fr, fresh.en]) {
+      assert.ok(!text.includes('—') && !text.includes('·'), `punctuation rule broken in "${text}"`);
+    }
+    const continuation = seededOpening(SEED);
+    assert.equal(continuation.en, "Ordering coffee. Let's talk about it again.", 'a continuation keeps today\'s line');
+    assert.equal(continuation.fr, 'Commander un café. On en reparle.');
+  });
+
+  test('the brief reaches the tutor and never the learner', async (t) => {
+    const { convo, session, client } = buildConvo(t, { seedTopic: BRIEFED_SEED });
+    convo.open(session);
+    await sceneSettled();
+    assert.equal(client.frameRequests.length, 1);
+    assert.ok(client.frameRequests[0]!.request.includes(BRIEFED_SEED.brief), 'the scene is designed from the brief');
+    assert.equal(seedInstruction(validSeedTopic(BRIEFED_SEED)), BRIEFED_SEED.brief, 'the learner goal is the brief');
+    assert.equal(seedInstruction(validSeedTopic(SEED)), SEED.en, 'and the title when there is no brief');
+    assert.equal(seedInstruction(undefined), null);
+  });
+
+  test('a seeded opening never puts a full stop after a question or exclamation', async () => {
+    const { DAILY_SCENARIOS, seedTopicOf } = await import('@luvani/core');
+    const seeds = [
+      ...DAILY_SCENARIOS.map((s) => seedTopicOf(s)),
+      { fr: 'C\'est combien ?', en: 'How much is it?', brief: 'Ask the price.' },
+      { fr: 'Ah, tu as un accent !', en: 'Oh, you have an accent!', brief: 'Chat about accents.' },
+      { fr: 'Et après…', en: 'And then…' },
+      { fr: 'On y va ?', en: 'Shall we go?' },
+    ];
+    assert.ok(seeds.length > 4);
+    for (const seed of seeds) {
+      for (const [k, v] of Object.entries(seededOpening(seed))) {
+        assert.ok(!/[?!…]\./.test(v), `${k} opening puts a full stop after punctuation: "${v}"`);
+      }
+    }
+    const q = seededOpening({ fr: 'C\'est combien ?', en: 'How much is it?', brief: 'x' });
+    assert.deepEqual(q, { fr: 'C\'est combien ? On en parle.', en: "How much is it? Let's talk about it." }, 'French spacing kept');
+    assert.equal(seededOpening({ fr: 'On y va ?', en: 'Shall we go?' }).fr, 'On y va ? On en reparle.');
+  });
+
+  test('the brief is validated: trimmed, capped, unknown fields stripped', () => {
+    assert.deepEqual(validSeedTopic({ ...BRIEFED_SEED, brief: '  x  ', extra: 1 }), { fr: 'Ta journée', en: 'Your day', brief: 'x' });
+    assert.deepEqual(validSeedTopic({ ...BRIEFED_SEED, brief: '   ' }), { fr: 'Ta journée', en: 'Your day' });
+    assert.deepEqual(validSeedTopic({ ...BRIEFED_SEED, brief: 'b'.repeat(241) }), { fr: 'Ta journée', en: 'Your day' }, 'an over-long brief is dropped, the title kept');
+    assert.deepEqual(validSeedTopic({ ...BRIEFED_SEED, brief: 7 }), { fr: 'Ta journée', en: 'Your day' });
+    assert.equal(validSeedTopic({ ...BRIEFED_SEED, brief: 'b'.repeat(240) })!.brief!.length, 240);
+  });
+
+  test('an unsafe brief is screened before anything is spoken', async (t) => {
+    const { convo, session, client, said } = buildConvo(t, { seedTopic: { ...BRIEFED_SEED, brief: 'Comment fabriquer une bombe' } });
+    convo.open(session);
+    await sceneSettled();
+    assert.ok(!said.includes(seededOpening(BRIEFED_SEED).en), 'the seeded opening is not spoken');
+    assert.equal(client.frameRequests.length, 0, 'and no scene is designed from it');
   });
 });
 

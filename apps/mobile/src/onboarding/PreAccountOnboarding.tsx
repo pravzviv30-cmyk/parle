@@ -659,7 +659,7 @@ export function PreAccountOnboarding({
     <>
       <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
       {consentVisible ? <OnboardingLayout page="before-practice" showScrollCue active={active} bleedTop statusBar="light" progress={{ ...progress, stageFraction: (1 + 2 / 3) / 4 }}
-        hero={<BBand tone="brand" onBack={backPress} art={<><BBandDisc size={150} right={-36} top={-14} color={t.violet2} /><BBandOrb size={70} right={18} top={22} /></>}>
+        hero={<BBand tone="brand" onBack={backPress} art={<><BBandDisc size={150} right={-36} top={-14} color={t.violet2} /><BBandOrb size={70} right={18} top={22} voice={draft.tutorChosen && draft.tutorVoice ? draft.tutorVoice : undefined} /></>}>
           <Text ref={heading} accessibilityRole="header" style={[bType.band32, { color: t.onBrand, marginTop: 12, maxWidth: '75%' }]}>Before we start.</Text>
           <Text style={[bType.para16, { color: t.onBrandSoft, maxWidth: '64%' }]}>A few things to know about your practice.</Text>
         </BBand>}

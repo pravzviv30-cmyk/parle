@@ -60,7 +60,7 @@ function at(marker: string): number {
 describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)', () => {
   test('the sections stand in the artboard order', () => {
     // 2026-10-20 UI-008, artboard B-Speak: the tutor row is the orb row, and the revisit row left.
-    const order = ['<TabHeader', '{rec.eyebrow}', '{scenes.heading}', '{LESS_HELP_TITLE}', '{TALK_TITLE}', '<BArt name="tutor-orb"', 'tiles.map(', '{minutesBand(planView)}'];
+    const order = ['<TabHeader', '{rec.eyebrow}', '{scenes.heading}', '{LESS_HELP_TITLE}', '{TALK_TITLE}', '<TutorPortrait voice={voiceKey}', 'tiles.map(', '{minutesBand(planView)}'];
     const positions = order.map((marker) => at(marker));
     assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'a section moved out of the artboard order');
   });
@@ -76,7 +76,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(FLAT, /const card = tutorCardFacts\(voiceKey\)/, 'the card reads its words from somewhere other than speakView.ts');
     assert.match(FLAT, /const voiceKey = tutorVoiceOf\(profile\)/, 'the card is not the learner\'s chosen voice');
     const row = between(RENDER_FLAT, '<View style={st.tutor}>', '<View style={[st.tiles', 'Speak draws the tutor row');
-    assert.match(row, /<BArt name="tutor-orb" width=\{56\} height=\{56\} \/>/);
+    assert.match(row, /<TutorPortrait voice=\{voiceKey\} size=\{56\} ring=\{t\.text\} \/>/);
     assert.match(row, /\{card\.name\}/);
     assert.match(row, /<TextLink label=\{CHANGE_VOICE\} text=\{bType\.bold14\} onPress=\{\(\) => nav\.navigate\(CHANGE_VOICE_ROUTE\.screen, CHANGE_VOICE_ROUTE\.params\)\} \/>/);
     assert.match(row, /onPress=\{hear\}/);
@@ -111,7 +111,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     // choice, Speak or Type, never Listen.
     assert.match(FLAT, /const answer = modeChoice\(chosenMode \?\? modes\.mode\);/);
     assert.match(FLAT, /const textMode = answer\.textMode;/);
-    const card = between(RENDER_FLAT, '<View style={st.hero}>', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
+    const card = between(RENDER_FLAT, '<View style={st.hero} onLayout=', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
     assert.match(card, /accessibilityRole="radiogroup" accessibilityLabel="How you answer"/);
     assert.match(card, /\{answer\.helper\(tutorName\)\}/, 'the chosen mode says what it means under the radios');
     assert.match(card, /MODE_CHOICES\.map\(\(choice\) =>/);
@@ -138,8 +138,11 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
 
   test('the Recommended card reads the scene, its minutes, the speaking time and the two preference chips', () => {
     assert.match(FLAT, /const rec = recommended\(next\);/);
-    const card = between(RENDER_FLAT, '<View style={st.hero}>', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
+    const card = between(RENDER_FLAT, '<View style={st.hero} onLayout=', '{WALK_AVAILABLE', 'Speak draws the yellow Recommended card');
     assert.match(card, /<BArt name="cafe-table" width=\{150\} height=\{137\} style=\{st\.heroArt\} \/>/);
+    // F920: on a phone or at large text the café sits in a band above the words, which run full width.
+    assert.match(card, /<BArt name="cafe-table" width=\{heroFrame\.band!\.width\} height=\{heroFrame\.band!\.height\} style=\{st\.heroBand\} \/>/);
+    assert.match(card, /heroSide && st\.heroTitle/);
     assert.match(card, /\{rec\.title\}/);
     assert.match(card, /\{rec\.sentence\}/);
     assert.match(card, /rec\.minutes !== null && <HeroPill label=\{rec\.minutes\} \/>/);
@@ -183,7 +186,8 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     // 2026-10-20 UI-008, artboard B-Speak: the drawn line is the artboard's; the help word is said in the label.
     assert.match(RENDER_FLAT, /accessibilityLabel=\{lockSaid\(`\$\{LESS_HELP_TITLE\}, \$\{replay\.title\}, \$\{replay\.line\}, \$\{replay\.help\}`, replay\.feature, replay\.locked\)\}/);
     assert.match(RENDER_FLAT, /<BArt name="cafe-table" width=\{70\} height=\{64\} style=\{st\.twistArt\} \/>/);
-    assert.match(FLAT, /borderWidth: 2, borderStyle: 'dashed', borderColor: t\.periwinkle/);
+    // F921: the twist's only edge is the field token, 3:1 on the card (periwinkle was 2.1).
+    assert.match(FLAT, /borderWidth: 2, borderStyle: 'dashed', borderColor: t\.field/);
     assert.match(RENDER_FLAT, /\{replay\.locked && <LockBadge feature=\{replay\.feature\} said \/>\}/);
     assert.doesNotMatch(SCREEN, /featureAccess\(/, 'the tab decides a lock itself instead of reading the view model');
   });

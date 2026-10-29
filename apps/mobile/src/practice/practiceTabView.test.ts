@@ -278,6 +278,13 @@ describe('the empty page — B-Empty-Practice', () => {
     assert.doesNotMatch(JSON.stringify(EMPTY), /\bfree\b|offline/i);
     assert.equal(EMPTY.start, 'Start your first conversation');
   });
+  test('the Practice heading claims nothing its rows contradict', () => {
+    // F940: "Ready now, no conversation needed" sat over a café lesson that
+    // uses live minutes while the tutor is connected, and a row that can be
+    // locked. The heading says neither when, nor cost, nor what is needed.
+    assert.equal(EMPTY.readyNow, 'Or start small');
+    assert.doesNotMatch(EMPTY.readyNow, /ready|now|need|conversation|free|offline|minute/i);
+  });
   test('Sounds of French badges only when the seam says sounds is locked', () => {
     // 2026-10-20, sim nits: the row had no badge though sounds is a locked feature.
     const asked: LockedFeature[] = [];

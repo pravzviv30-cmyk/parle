@@ -454,18 +454,40 @@ export function brainClient(env: Record<string, string | undefined> = process.en
 export { CONVO_LINES } from './authoredSpeech.ts';
 
 /**
+ * The request-grounded fallback, with its learner-visible text (title and
+ * opening narration) built from the title the learner read when the request
+ * is a tutor-only brief. The setting, which only the tutor reads, keeps the
+ * full request.
+ */
+function fallbackFrameFor(request: string, shownTitle: string | undefined): ScenarioFrame {
+  if (shownTitle === undefined || shownTitle === request) return requestFallbackFrame(request);
+  return { ...requestFallbackFrame(shownTitle), setting: requestFallbackFrame(request).setting };
+}
+
+/**
  * A topic the learner already talked about, tapped on a practice card and
  * carried here in the join token's metadata. The token server validated it and
  * signed it; this file checks it again on arrival, because signed is not the
  * same as sane and the value goes straight into a line the tutor speaks.
  */
 export interface SeedTopic {
+  /** The short title the learner read on the card. Spoken and shown. */
   fr: string;
   en: string;
+  /**
+   * What the tutor should do with the topic, for the tutor only. Present on a
+   * fresh free-talk idea, absent on a continuation (a pack's own topic, the
+   * guest first scene, an app from before briefs). Never published, never
+   * spoken: it goes to the scene builder and the learner goal, nowhere else.
+   */
+  brief?: string;
 }
 
 /** A topic card's title, and nothing longer. The token server's cap, restated. */
 const MAX_SEED_TOPIC_CHARS = 120;
+
+/** A tutor brief's cap. The token server's cap, restated. */
+export const MAX_SEED_BRIEF_CHARS = 240;
 
 /**
  * The seed, kept only when it really is one: two strings, both with something
@@ -483,6 +505,13 @@ export function validSeedTopic(value: unknown): SeedTopic | undefined {
   const trimmed: SeedTopic = { fr: fr.trim(), en: en.trim() };
   if (trimmed.fr.length === 0 || trimmed.en.length === 0) return undefined;
   if (trimmed.fr.length > MAX_SEED_TOPIC_CHARS || trimmed.en.length > MAX_SEED_TOPIC_CHARS) return undefined;
+  // The brief is extra, not part of the pair: a bad one is dropped alone and
+  // the topic stays, because the title is still a perfectly good scene.
+  const { brief } = value as { brief?: unknown };
+  if (typeof brief === 'string') {
+    const cleaned = brief.trim();
+    if (cleaned.length > 0 && cleaned.length <= MAX_SEED_BRIEF_CHARS) trimmed.brief = cleaned;
+  }
   return trimmed;
 }
 
@@ -698,9 +727,28 @@ export function surfacesPassGuard(view: TurnView): boolean {
     && (view.narration === null || outputGuard(`${view.narration.fr} ${view.narration.en}`) === null);
 }
 
+/**
+ * What the tutor is asked to do with a seed: the brief when there is one,
+ * otherwise the title, which is all an older app ever sent. Instruction only;
+ * the learner sees the title through `seededOpening`.
+ */
+export function seedInstruction(seed: SeedTopic | undefined): string | null {
+  return seed ? (seed.brief ?? seed.en) : null;
+}
+
 /** The title as it read on the card, with any full stop of its own removed. */
 function titleOf(text: string): string {
   return text.trim().replace(/\.+$/, '').trim();
+}
+
+/**
+ * The title as a sentence: a full stop added only when it does not already end
+ * in a question mark, exclamation mark or ellipsis. French spacing before "?"
+ * and "!" is kept as the title had it.
+ */
+function titleSentence(text: string): string {
+  const title = titleOf(text);
+  return /[?!…]$/.test(title) ? title : `${title}.`;
 }
 
 /**
@@ -714,11 +762,22 @@ function titleOf(text: string): string {
  * moment ago and the one shape that stays grammatical in both languages
  * whatever the title turns out to be. Threading the title through a preposition
  * instead would trip over the first French topic that starts with a vowel.
+ *
+ * A seed with a brief is a fresh idea the learner has never talked about, so
+ * it is "Let's talk about it", not "again". A seed without one is a
+ * continuation (or an app from before briefs) and keeps the "again" line
+ * exactly. The brief itself never appears here: only the title is spoken.
  */
 export function seededOpening(seed: SeedTopic): { fr: string; en: string } {
+  if (seed.brief !== undefined) {
+    return {
+      fr: `${titleSentence(seed.fr)} On en parle.`,
+      en: `${titleSentence(seed.en)} Let's talk about it.`,
+    };
+  }
   return {
-    fr: `${titleOf(seed.fr)}. On en reparle.`,
-    en: `${titleOf(seed.en)}. Let's talk about it again.`,
+    fr: `${titleSentence(seed.fr)} On en reparle.`,
+    en: `${titleSentence(seed.en)} Let's talk about it again.`,
   };
 }
 
@@ -1884,7 +1943,9 @@ export class LuvaniConversation extends voice.Agent {
       // it. The title comes off a practice card, which is the learner's own
       // past session played back at them, so the one thing it must not do is
       // be spoken before it is read.
-      if (this.handleSafety(this.seedTopic.fr) || this.handleSafety(this.seedTopic.en)) {
+      if (this.handleSafety(this.seedTopic.fr)
+        || this.handleSafety(this.seedTopic.en)
+        || (this.seedTopic.brief !== undefined && this.handleSafety(this.seedTopic.brief))) {
         // A stop has already closed the session. A redirect has not, and a
         // redirect with no opening after it is a screen that never changes —
         // so the seeded scene is dropped and the ordinary choosing question
@@ -1895,7 +1956,9 @@ export class LuvaniConversation extends voice.Agent {
         this.lastOpening = { t: 'opening', prompt: seeded };
         this.publish(this.lastOpening);
         this.say(seeded.en, { allowInterruptions: false });
-        void this.startScene(this.seedTopic.en).catch((error: unknown) => {
+        // The tutor builds from the brief; a failed build falls back on the
+        // title, so the brief never becomes a learner-visible scene title.
+        void this.startScene(seedInstruction(this.seedTopic)!, this.seedTopic.en).catch((error: unknown) => {
           console.error('[luvani] the seeded scene could not be started:', safeError(error));
         });
         return;
@@ -1995,7 +2058,7 @@ export class LuvaniConversation extends voice.Agent {
    * answer to a screen that will not change is to press Send again, and every
    * one of those went into the same hole.
    */
-  private async startScene(request: string): Promise<void> {
+  private async startScene(request: string, shownTitle?: string): Promise<void> {
     if (this.ended) return;
     this.lifecycle?.assertActive();
     if (this.handleSafety(request)) return;
@@ -2018,7 +2081,7 @@ export class LuvaniConversation extends voice.Agent {
       if (this.lifecycle && !(error instanceof BrainParseError) && !(error instanceof BrainRefusalError)) {
         await this.failInfrastructure(); return;
       }
-      frame = requestFallbackFrame(request);
+      frame = fallbackFrameFor(request, shownTitle);
       console.error('[luvani] scenario build failed; opening a simpler scene on the learner request:', safeError(error));
       this.publish({ t: 'error', message: "I've kept your topic. We'll start with a simpler version." });
     }
@@ -3338,7 +3401,7 @@ export class LuvaniConversation extends voice.Agent {
       state,
       title,
       summary: recap.headline,
-      learnerGoal: this.seedTopic?.en ?? null,
+      learnerGoal: seedInstruction(this.seedTopic),
       tutorGoal: recap.nextFocus,
       cefr: recap.cefr.estimate,
       durationSec: this.durationSec,

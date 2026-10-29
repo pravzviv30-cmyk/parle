@@ -242,8 +242,15 @@ not have), or being signed out while the plaintext key is still in AsyncStorage
 2. If the project requires confirmation, confirm the sentence shown is the one the
    adapter sends: *Almost there. Check your email for a confirmation link, then
    sign in.* Then confirm the email and sign in.
-3. Sign out from Profile → Settings. Confirm the welcome screen.
-4. Sign in again with the right password.
+3. Sign out from Profile → Settings. The sheet asks *Sign out?*: tap *Stay
+   signed in* (or the scrim) and confirm you are still on Settings, signed in.
+   Tap Sign out again, then the *Sign out* link. Confirm the welcome screen; on
+   web the address reads `/`.
+4. Sign in again with the right password. Confirm it lands on Today, not on
+   Settings (F938). On web, a reload of a signed-in deep link such as
+   `/settings` still opens Settings.
+   On web, the browser offers to save the password on sign-up and fills it on
+   sign-in (the fields sit in a real form).
 5. Sign in with a deliberately wrong password.
 
 **Expect:** step 5 shows *That email and password do not match an account.* — a

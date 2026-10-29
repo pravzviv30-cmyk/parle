@@ -36,7 +36,9 @@ describe('profile and settings controls answer a tap', () => {
     assert.match(choice, /<TabBar/);
     assert.match(choice, /onChange=\{onChange\}/);
     assert.doesNotMatch(choice, /tapSettled\(/, 'shared TabBar owns the single selection tick');
-    assert.match(toggle, /tapSettled\(\);\s*onChange\(next\);/);
+    // F927: the whole row is the switch, so the row's Press ticks once and toggles.
+    assert.match(toggle, /<Press haptic="selection" accessibilityRole="switch"/);
+    assert.match(toggle, /onPress=\{\(\) => onChange\(!value\)\}/);
     assert.match(toggle, /accessibilityHint=\{sub\}/);
     assert.match(toggle, /trackColor=\{\{ true: accent.brand, false: offTrack \}\}/);
     // UI-005: the off track is the field grey everywhere; the hairline it used

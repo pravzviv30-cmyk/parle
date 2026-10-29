@@ -49,6 +49,36 @@ not ported. Profile is a pushed screen reached from the profile
 button; Friends is an optional stack route inside Profile. Revamp B and the
 video UX implementation use this same navigator.
 
+### Visual and accessibility rules (Stream E, 29 October 2026, UI-013)
+
+- **Controls:** every input border, choice outline, tile, chip and empty state
+  mark is drawn in `field` (3:1 or more on its ground, light and dark);
+  `controls.test.ts` measures every control border (F921).
+- **Keyboard (web):** Space chooses radios, checkboxes, tabs and switches
+  (`keyActivation.ts`); every keyboard stop shows a two-tone ink and white
+  ring on `:focus-visible` only; a disabled button with a reason
+  (`disabledReason`, e.g. Create account) stays reachable and says why; a
+  settings switch row is one control (F927).
+- **Short and narrow screens:** the welcome stage scales to the screen;
+  onboarding footers scroll below 700pt of usable height, latched while a
+  text field has focus so a web keyboard cannot flip them (F921). Browser
+  text size is not followed yet (F939, deferred to the Wave 3 device check).
+- **Sign-out (F938):** Settings asks first (`settings/signOutConfirm.ts`),
+  saves pending sync for at most 2 s while busy, and says only what is true
+  of the account's sync state. A sign-in inside the running app lands on
+  Today (`nav/landing.ts`); a cold load with a session keeps its address; on
+  web sign-out resets the address to `/` and the auth fields sit in a real
+  form (`auth/AuthForm.tsx`).
+- **Seeds (F929):** a seed topic is `{ fr, en, brief? }`; only the short
+  title is shown or spoken, the tutor-only `brief` carries instructions
+  (free talk, Explore, daily scenes, real moments, the guest first scene).
+  The legal-review sentence shows only outside production builds
+  (`EXPO_PUBLIC_LUVANI_BUILD_PROFILE`).
+- **Copy and art:** each tutor's own portrait (`tutor/TutorPortrait.tsx`);
+  "{tutor} plays {part}." before a mission's narration; English under every
+  reference phrase; start icons match their mode; Speak says "Next" for a
+  path-order pick and "Uses live minutes" (F940 to F945, F856, F857).
+
 ### Direction B tabs (Phase B, 20 October 2026)
 
 Each tab is layout over a plain view model (DESIGN.md composition rules,
@@ -72,7 +102,10 @@ DECISIONS.md UI-007):
   session) and the week in French. Live re-probes on `online`, on foreground
   and every 30 s while offline (`app/liveWatch.ts`, F924). Parts in
   `today/TodayParts.tsx`; dark-ready since 2026-10-20 (UI-008, artboard
-  B-Today).
+  B-Today). The scene card measures itself: the café sits beside the words
+  only from 400pt of card width, otherwise in a band above them, so on every
+  phone it never covers the title or time (`sceneCardGeometry` in
+  `responsiveLayout.ts`, F920, UI-013; Speak's card follows the same rule).
 - **Explore** (`tabs/ExploreTab.tsx`, `main/exploreView.ts`): four filter chips,
   Prepare for something real, topic tiles and situations; a situation opens
   the scene preview. Drawn from `explore/ExploreParts.tsx` with art and badges

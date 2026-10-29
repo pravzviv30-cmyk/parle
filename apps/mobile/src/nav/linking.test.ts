@@ -125,3 +125,26 @@ describe('the compare sheet', () => {
     assert.match(evidence('apps/mobile/src/components.tsx'), /sheetReading: \{ alignSelf: 'center', width: '100%', maxWidth: READING \}/);
   });
 });
+
+// F929: the brief is tutor-only. react-navigation (core getPathFromState, called
+// by native useLinking on every state change, not only on reload) writes the
+// focused route's params through the `stringify` config, so the address is
+// whatever stringifySeedTopic writes. Asked of the real library and the real map.
+test('the tutor brief never reaches the web address', async () => {
+  const { getPathFromState } = await import('@react-navigation/core');
+  const { learningSuggestions } = await import('../main/learningSuggestions.ts');
+  const { talkChips } = await import('../tutor/speakTabView.ts');
+  const { DAILY_SCENARIOS, seedTopicOf } = await import('@luvani/core');
+  const seeds = [
+    ...talkChips(learningSuggestions({ level: 'getby', confidence: 'hesitant', focus: 'speaking' })).map((c) => c.params.seedTopic!).filter(Boolean),
+    seedTopicOf(DAILY_SCENARIOS[0]!),
+  ];
+  for (const seedTopic of seeds) {
+    assert.ok(seedTopic.brief, 'this seed carries no brief to keep out');
+    const state = { index: 1, routes: [{ name: 'Main', state: { index: 0, routes: [{ name: 'Tutor' }] } }, { name: 'Convo', params: { seedTopic, textMode: true } }] };
+    const path = decodeURIComponent(getPathFromState(state as never, linking.config as never));
+    assert.match(path, /^\/conversation\?/, path);
+    assert.ok(path.includes(seedTopic.en), `the title should survive a reload: ${path}`);
+    assert.ok(!path.includes(seedTopic.brief!) && !/brief/.test(path), `the brief reached the address: ${path}`);
+  }
+});

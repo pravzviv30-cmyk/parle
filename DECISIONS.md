@@ -784,6 +784,33 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: the wall still draws its own copy of the route; moving it onto
   `RoutePath` needs its Apple 3.1.2 price pin repointed by its owner. F934.
 
+## UI-013 — Scene art above the words on phones, portraits, roles and a production-only legal note
+
+- Date: 2026-10-29
+- Status: accepted (founder decisions 23 to 26, Stream E of the product review).
+- Decision:
+  - **Scene cards (23, F920).** Today's and Speak's scene cards keep the café
+    beside the words only from 400pt of card width; below that, or at large
+    text, it sits in a band above full-width words.
+  - **Legal note (24, F929).** "Our privacy policy and terms still need legal
+    review before Luvani can be released." shows only in development and
+    staging builds (`EXPO_PUBLIC_LUVANI_BUILD_PROFILE` set per EAS profile),
+    never in production or on the hosted page. The review itself stays on the
+    release gate (docs/RELEASE_GATE.md).
+  - **Portraits (25, F945).** Each tutor shows their own portrait from
+    `onboarding/tutorPortraits.ts` on every surface where the tutor is known;
+    the orb stays only before a tutor is chosen. The portrait is decorative,
+    so its ring is held to 3:1 against the surface, not against the portrait.
+    Revert is one swap per call site if the founder finds it off-brand.
+  - **Roles (26, F942).** One line, "{tutor} plays {part}.", from the
+    mission's `tutorPart`, shows on the scene preview and before the
+    narration; narrations keep their character names.
+- Reason: the review found art over the title, an internal note shown to
+  learners, six tutors drawn alike and a character never introduced.
+- Consequence: free-talk and other seeds carry a tutor-only `brief`, so
+  only a short title is ever shown or spoken (token server, agent, app;
+  deploy token server, then agent, then app).
+
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 
 - Date: 2026-10-23

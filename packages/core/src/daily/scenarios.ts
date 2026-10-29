@@ -152,13 +152,14 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
 ];
 
 /**
- * The two strings the tutor is opened with.
+ * The seed the tutor is opened with.
  *
- * The French name of the scene and the English description of what the learner
- * is doing, which is exactly what `seedTopic` carries: no beats, no phrases and
- * no frame. A scenario is a subject to talk about, and the agent decides the
- * conversation the same way it does when a learner picks a topic in Practice.
+ * The scene's two titles are what the room header shows and the tutor says
+ * (F929: "{Title}. Let's talk about it."), and the English description of what
+ * the learner is doing rides as the tutor-only `brief`, never shown or spoken.
+ * No beats, no phrases and no frame: a scenario is a subject to talk about, and
+ * the agent decides the conversation the same way it does for a Practice topic.
  */
-export function seedTopicOf(s: DailyScenario): { fr: string; en: string } {
-  return { fr: s.titleFr, en: s.bodyEn };
+export function seedTopicOf(s: DailyScenario): { fr: string; en: string; brief: string } {
+  return { fr: s.titleFr, en: s.titleEn, brief: s.bodyEn };
 }

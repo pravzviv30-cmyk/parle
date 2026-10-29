@@ -259,7 +259,7 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.match(pill, /tone="white"/, 'the Start is not the white pill on the blue');
     assert.match(pill, /label=\{label\}/);
     assert.match(pill, /accessibilityLabel=\{`\$\{label\}: \$\{hero\.title\}`\}/, 'the Start does not name its scene to a screen reader');
-    assert.match(pill, /icon=\{<MicGlyph size=\{20\} color=\{paper\.ink\} \/>\}/, 'the mic is not ink on the white pill');
+    assert.match(pill, /<MicGlyph size=\{20\} color=\{paper\.ink\} \/>/, 'the mic is not ink on the white pill');
     assert.match(pill, /disabled=\{checking\}/);
 
     // 2026-09-27 follow-up: the Start opens in the learner's standing mode
@@ -268,7 +268,7 @@ describe('Today leads with the next scene, as a brief', () => {
     // the link is white.
     assert.match(HERO_FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/, "Today ignores the learner's standing choice to type");
     assert.match(HERO_FLAT, /onPress=\{\(\) => open\(modes\.textMode\)\}/, 'Start does not open the scene in the preferred mode');
-    assert.match(HERO_FLAT, /secondary=\{<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\} ground="blue"/, 'the quiet link under Start is not the other mode, in white');
+    assert.match(HERO_FLAT, /secondary=\{<IconAction layout="inline" icon=\{modes\.other\.textMode \? 'keyboard' : 'microphone'\} label=\{modes\.other\.label\} ground="blue"/, 'the quiet link under Start is not the other mode, in white');
     assert.match(HERO_FLAT, /onPress=\{\(\) => open\(modes\.other\.textMode\)\}/, 'the quiet link does not open the scene the other way');
     assert.ok(!/open\((true|false)\)/.test(HERO), 'the brief hard-codes a mode instead of reading the preference');
     assert.ok(!/<TabBar\b/.test(HERO) && !/<TabBar\b/.test(SCREEN), 'a Speak/Type segmented control is back on Today');
@@ -837,16 +837,19 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(vivid, /uses=\{buildsOn != null \? buildsOnLine\(buildsOn\) : null\}/, 'the Uses chip is drawn without a real meeting');
     // The same start as the blue brief: the gate, the learner's mode, and the
     // other mode as a quiet link.
-    assert.match(vivid, /start=\{\{ label, accessibilityLabel: `\$\{label\}: \$\{hero\.title\}, \$\{time\}`, disabled: checking, onPress: \(\) => open\(modes\.textMode\) \}\}/);
+    assert.match(vivid, /start=\{\{ label, mode: modes\.mode, accessibilityLabel: `\$\{label\}: \$\{hero\.title\}, \$\{time\}`, disabled: checking, onPress: \(\) => open\(modes\.textMode\) \}\}/);
     assert.match(vivid, /other=\{\{ label: modes\.other\.label, disabled: checking, onPress: \(\) => open\(modes\.other\.textMode\) \}\}/);
     assert.match(vivid, /heldBack=\{heldBack === null \? null : \{ body: TUTOR_OFFLINE\.body, retry: TUTOR_OFFLINE\.retry, disabled: checking, onRetry: \(\) => open\(heldBack\.textMode\) \}\}/, 'the yellow lead lost its held-back answer');
     // The artboard's card: heroGround, 28, 20, min-height 262, the café at
     // the top right, the title and line held clear of it, the 54pt Start.
     const lead = between(PARTS_FLAT, 'export function SceneLead(', 'export function PhraseCard(', 'the lead is a Today part');
     assert.match(lead, /<BArt name="cafe-table" width=\{168\} height=\{154\} style=\{s\.leadArt\} \/>/);
+    // F920: the side-by-side café above is only for a wide card; a phone or large text puts it in a band over full-width words.
+    assert.match(lead, /\? <BArt name="cafe-table" width=\{168\} height=\{154\} style=\{s\.leadArt\} \/>\s*: <BArt name="cafe-table" width=\{frame\.band!\.width\} height=\{frame\.band!\.height\} style=\{s\.leadBand\} \/>/);
+    assert.match(lead, /side && s\.leadTitle/);
     assert.match(lead, /<Text \{\.\.\.frenchText\}>\{french\}<\/Text>/, 'the French title is not tagged as French');
     assert.match(lead, /<Text \{\.\.\.frenchText\}>\{uses\.french\}<\/Text>/, 'the quoted phrase is not tagged as French');
-    assert.match(lead, /height=\{54\} ground=\{t\.heroCta\} ink=\{t\.heroCtaText\} text=\{bType\.bold18\} icon=\{<BMic size=\{20\} color=\{t\.heroCtaText\} \/>\}/);
+    assert.match(lead, /height=\{54\} ground=\{t\.heroCta\} ink=\{t\.heroCtaText\} text=\{bType\.bold18\} icon=\{start\.mode === 'type'/);
     assert.match(PARTS, /lead: \{ backgroundColor: t\.heroGround, borderRadius: 28, padding: 20, gap: space\(1\), minHeight: 262, overflow: 'hidden' \}/);
     assert.match(PARTS, /leadArt: \{ position: 'absolute', right: -6, top: 14 \}/);
     assert.match(PARTS, /usesChip: \{[^}]*backgroundColor: t\.heroChip, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12 \}/);
@@ -891,6 +894,18 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.doesNotMatch(SCREEN, /arrives on Monday/, 'the Monday recap promise is back');
   });
 
+  // F941: "Start typing" drew a microphone, and the quiet link was a keyboard
+  // even when it offered speaking. Each icon now names its own action.
+  test("the start button's icon matches its mode", () => {
+    assert.equal(launchLabel({ checking: false, live: true, mode: 'type' }), 'Start typing');
+    assert.match(HERO_FLAT, /start=\{\{ label, mode: modes\.mode,/, 'the yellow lead is not told the mode');
+    const lead = between(PARTS_FLAT, 'export function SceneLead(', 'export function PhraseCard(', 'the lead is a Today part');
+    assert.match(lead, /icon=\{start\.mode === 'type' \? <KeyboardMark size=\{20\} color=\{t\.heroCtaText\} \/> : <BMic size=\{20\} color=\{t\.heroCtaText\} \/>\}/, 'the lead draws one icon for both modes');
+    const pill = flat(tags(HERO.slice(HERO.indexOf('<SceneBrief')), 'PillButton')[0]!);
+    assert.match(pill, /icon=\{modes\.mode === 'type' \? <KeyboardMark size=\{20\} color=\{paper\.ink\} \/> : <MicGlyph size=\{20\} color=\{paper\.ink\} \/>\}/, 'the brief pill draws one icon for both modes');
+    assert.match(HERO_FLAT, /<IconAction layout="inline" icon=\{modes\.other\.textMode \? 'keyboard' : 'microphone'\} label=\{modes\.other\.label\}/, 'the quiet link draws a keyboard when it offers speaking');
+  });
+
   // 2026-10-20 UI-008, artboard B-Today: rewritten from "no Coming up card"
   // (founder decision, plan.md "Data slots" 2). The card is drawn only from
   // the view model, with no countdown and no checklist.
@@ -899,7 +914,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(RENDER, /\{event !== null && \(/, 'Coming up is drawn with no life event');
     assert.match(FLAT, /onNotNow=\{\(\) => \{ dismissComingUp\(event\.key\); setHidden\(\(n\) => n \+ 1\); \}\}/, 'Not now does not hide the card');
     const card = between(PARTS_FLAT, 'export function ComingUpCard(', 'export function WeekCard(', 'Coming up is a Today part');
-    assert.match(card, /<BArt name="tutor-orb" width=\{44\} height=\{44\} \/>/);
+    assert.match(card, /voice \? <TutorPortrait voice=\{voice\} size=\{44\} ring=\{t\.text\} \/> : <BArt name="tutor-orb" width=\{44\} height=\{44\} \/>/);
     assert.match(card, /\{view\.locked \? <View style=\{s\.pillGap\}><LockBadge feature=\{view\.feature\} \/><\/View> : null\}/, 'the trial pill is not drawn from the lock');
     assert.match(card, /label=\{COMING_UP_COPY\.rehearse\} height=\{44\} ground=\{t\.brand\}/);
     assert.match(card, /label=\{COMING_UP_COPY\.notNow\}[^>]*ground=\{t\.quiet\}/);

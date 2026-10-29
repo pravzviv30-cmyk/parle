@@ -60,7 +60,8 @@ import { clearActiveUserData, migrateLegacyStores, setActiveUser, userKey, scope
 import { startSync, type SyncEngine } from './src/sync/engine.ts';
 import { createSyncDiagnostics } from './src/sync/diagnostics.ts';
 import { syncPolicy } from './src/sync/policy.ts';
-import { resetSyncRegistry } from './src/sync/registry.ts';
+import { registerSignOutSync } from './src/settings/signOutConfirm.ts';
+import { dirtyNamespaces, resetSyncRegistry } from './src/sync/registry.ts';
 import { adoptBeforeReady, mayAdoptPreAccountDraft, type FreshStart } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
@@ -94,6 +95,7 @@ import { MainAppearanceProvider } from './src/main/MainAppearance.tsx';
 import { GameProvider } from './src/game/GameProvider.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { linking } from './src/nav/theme.ts';
+import { addressAfterSignOut, landingAfterAuth, sawSignedOut } from './src/nav/landing.ts';
 import { MainNavigationTheme } from './src/main/MainNavigationTheme.tsx';
 import { PinLight } from './src/main/bTheme.tsx';
 import type { RootStackParamList } from './src/nav/types.ts';
@@ -144,7 +146,7 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 async function startAccountSync(uid: string): Promise<SyncEngine | null> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   const diagnostics = createSyncDiagnostics();
-  return startSync({
+  const engine = startSync({
     uid,
     // A per-install random already on this device. It is not an account, not a
     // person and not a platform; it only tells two devices apart in an envelope.
@@ -160,6 +162,13 @@ async function startAccountSync(uid: string): Promise<SyncEngine | null> {
     policy: syncPolicy,
     record: diagnostics.record,
   });
+  // F938: sign-out reads what is still waiting and tries one bounded last push.
+  // A stopped engine (this account signed out or switched) has nothing to offer.
+  registerSignOutSync({
+    pending: () => engine.stopped() ? 0 : dirtyNamespaces().filter((namespace) => syncPolicy.namespaces.includes(namespace)).length,
+    flush: () => engine.stopped() ? Promise.resolve() : engine.flushDirty(),
+  });
+  return engine;
 }
 
 /**
@@ -294,8 +303,11 @@ function SignedInRoot({
   refused,
   onRefuseOnboarding,
   onDeleteAccount,
+  signedInThisLaunch,
 }: {
   user: AuthUser;
+  /** F938: signed in while the app was running, so the last address is not this learner's to resume. */
+  signedInThisLaunch: boolean;
   preAccountDraft: PreAccountOnboardingDraft | null;
   onPreAccountDraftConsumed: () => void;
   refused: boolean;
@@ -326,6 +338,8 @@ function SignedInRoot({
    * lands on Today, whose Start leads to the same scene.
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
+  /** The Today landing runs once per container; later onReady calls (a remount) leave the learner where they are. */
+  const landedAfterSignIn = useRef(false);
   /** Which scene the plan put first: the spine's first, less the opener for "I can get by". */
   const firstScene = useRef<MissionId>(FIRST_MISSION);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
@@ -467,16 +481,24 @@ function SignedInRoot({
    */
   const openFirstRun = useCallback(() => {
     if (!navigationRef.isReady()) return;
-    if (justOnboarded) {
+    // F938: a sign-in inside the running app lands on Today; a cold load keeps its address.
+    const landing = landingAfterAuth({ justOnboarded, signedInThisLaunch });
+    if (landing === 'first-run') {
       navigationRef.resetRoot({
         index: 1,
         routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
       });
       setJustOnboarded(false);
+    } else if (landing === 'today' && !landedAfterSignIn.current) {
+      landedAfterSignIn.current = true;
+      navigationRef.resetRoot({
+        index: 0,
+        routes: [{ name: 'Tabs', state: { routes: [{ name: 'Home' }] } }],
+      });
     }
     // Then the pending wall, if it may open (below).
     launchWall.flush();
-  }, [justOnboarded, navigationRef, launchWall]);
+  }, [justOnboarded, signedInThisLaunch, navigationRef, launchWall]);
 
   // An unreachable account is not an empty account. Keep existing learning
   // safe and offer retry instead of treating an offline reinstall as first use.
@@ -621,6 +643,7 @@ function SignedInRoot({
           {...(Platform.OS === 'web' ? { linking } : {})}
         >
           <RootNavigator
+            // F938: Settings' sign-out sheet runs the one bounded last push first.
             onSignOut={() => void auth.signOut()}
             onDeleteAccount={onDeleteAccount}
           />
@@ -703,11 +726,29 @@ function Gate() {
    */
   const signedInAs = status === 'signedIn' ? user?.id ?? null : null;
   const lastSignedIn = useRef<string | null>(null);
+  /** F938: has this launch seen the door closed? A cold load with a session never has. */
+  const signedOutThisLaunch = useRef(false);
   useLayoutEffect(() => {
     if (status === 'loading') return;
     const was = lastSignedIn.current;
     lastSignedIn.current = signedInAs;
     if (was !== null && was !== signedInAs) void stopReminders();
+  }, [status, signedInAs]);
+  /**
+   * F938: remember whether this launch has seen the door closed, so a sign-in
+   * inside the running app lands on Today, and on web wipe the address the
+   * last learner left behind, so the next sign-in's linking cannot restore it.
+   */
+  const wasSignedIn = useRef(false);
+  useLayoutEffect(() => {
+    if (status === 'loading') return;
+    signedOutThisLaunch.current = sawSignedOut(signedOutThisLaunch.current, status);
+    const was = wasSignedIn.current;
+    wasSignedIn.current = signedInAs !== null;
+    const address = addressAfterSignOut(Platform.OS, was, status === 'signedOut');
+    if (address !== null && typeof window !== 'undefined' && window.location.pathname !== address) {
+      window.history.replaceState(null, '', address);
+    }
   }, [status, signedInAs]);
   // The trial-ending reminder: synced on launch, foreground and every billing
   // change, and cancelled on sign-out or account switch.
@@ -802,6 +843,7 @@ function Gate() {
           refused={preAccountRefused}
           onRefuseOnboarding={refusePreAccount}
           onDeleteAccount={deleteAccount}
+          signedInThisLaunch={signedOutThisLaunch.current}
         />
       );
     }

@@ -10,13 +10,16 @@
  * beside them carry the meaning (surfaceContract J6).
  */
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { BArt, type BArtName } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
+import type { TutorVoiceKey } from '@luvani/core';
 import { Press, RoundButton } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { HIT, bType, decorative, frenchText } from '../theme.ts';
+import { WELCOME_BUBBLE_SPOTS, WELCOME_STAGE, welcomeStageScale } from '../responsiveLayout.ts';
 import type { C2QuestionPage } from './c2QuestionScenes.ts';
 import { useOnboardingTopInset } from './OnboardingLayout.tsx';
 
@@ -172,11 +175,15 @@ export function BBandDisc({ size, right, top, color }: { size: number; right: nu
   return <View {...decorative} style={{ position: 'absolute', right, top, width: size, height: size, borderRadius: size / 2, backgroundColor: color }} />;
 }
 
-/** The canvas tutor orb, clipped round and placed on a band (B-OB-Ready). Never a face. */
-export function BBandOrb({ size, right, top }: { size: number; right: number; top: number }) {
+/**
+ * The tutor on a band (B-OB-Ready): their portrait once chosen (founder
+ * decision 25), the canvas orb before, clipped round.
+ */
+export function BBandOrb({ size, right, top, voice }: { size: number; right: number; top: number; voice?: TutorVoiceKey }) {
+  const t = useB();
   return (
     <View {...decorative} style={{ position: 'absolute', right, top, width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>
-      <BArt name="tutor-orb" width={size} height={size} />
+      {voice ? <TutorPortrait voice={voice} size={size} ring={t.onBrand} /> : <BArt name="tutor-orb" width={size} height={size} />}
     </View>
   );
 }
@@ -249,14 +256,14 @@ export function BWelcomeArt() {
     { left: 40, top: 286, size: 9, color: t.peach, rotate: '30deg' },
     { left: 190, top: 0, size: 8, color: t.periwinkle, rotate: '45deg' },
   ];
-  const bubbles: { words: string; left: number; top: number; ground: string; rotate: string; tail: 'left' | 'right' }[] = [
-    { words: 'Bonjour !', left: 18, top: 26, ground: t.card, rotate: '-6deg', tail: 'left' },
-    { words: 'Un café ?', left: 258, top: 12, ground: t.mint, rotate: '5deg', tail: 'right' },
-    { words: 'Enchanté', left: 262, top: 240, ground: t.peach, rotate: '-4deg', tail: 'left' },
-  ];
+  // F921: the 390-wide artboard scales about its middle to fit a narrower
+  // screen, so every bubble stays on it at 320; 390 and wider draw unchanged.
+  const scale = welcomeStageScale(useWindowDimensions().width);
+  const grounds = [t.card, t.mint, t.peach];
+  const bubbles = WELCOME_BUBBLE_SPOTS.map((spot, at) => ({ ...spot, ground: grounds[at]! }));
   return (
-    <View {...decorative} style={s.welcomeArt}>
-      <View style={s.welcomeStage}>
+    <View {...decorative} style={[s.welcomeArt, { height: WELCOME_STAGE.height * scale }]}>
+      <View style={[s.welcomeStage, scale < 1 ? { transform: [{ scale }] } : null]}>
         <View style={[s.disc, { left: 55, top: 20, width: 280, height: 280, borderRadius: 140, backgroundColor: t.violet2 }]} />
         <View style={[s.disc, { left: 79, top: 44, width: 232, height: 232, borderRadius: 116, backgroundColor: t.sun }]} />
         <View style={[s.disc, { left: 122, top: 268, width: 146, height: 16, borderRadius: 8, backgroundColor: t.sunDeep }]} />
@@ -376,8 +383,8 @@ export function BHowItWorks({ title, steps }: { title: string; steps: readonly s
 
 // ─────────────────────────────────────────────────────────────── tutor
 
-/** The tutor band's orb: three discs and the canvas orb. Never a face. */
-export function BTutorOrb({ size = 150 }: { size?: number }) {
+/** The tutor band: three discs and the tutor's portrait once chosen, the canvas orb before. */
+export function BTutorOrb({ size = 150, voice }: { size?: number; voice?: TutorVoiceKey }) {
   const t = useB();
   const inner = (size * 122) / 150;
   const orb = (size * 100) / 150;
@@ -386,7 +393,7 @@ export function BTutorOrb({ size = 150 }: { size?: number }) {
       <View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, backgroundColor: t.violet2 }} />
       <View style={{ position: 'absolute', width: inner, height: inner, borderRadius: inner / 2, backgroundColor: t.hint }} />
       <View style={{ width: orb, height: orb, borderRadius: orb / 2, overflow: 'hidden' }}>
-        <BArt name="tutor-orb" width={orb} height={orb} />
+        {voice ? <TutorPortrait voice={voice} size={orb} ring={t.onBrand} /> : <BArt name="tutor-orb" width={orb} height={orb} />}
       </View>
     </View>
   );
@@ -474,7 +481,7 @@ const makeStyles = (_t: B) => StyleSheet.create({
   optionIcon: { width: 32, alignItems: 'center' },
   optionWords: { flex: 1, minWidth: 0, gap: 2 },
   optionMark: { width: 26, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  welcomeArt: { height: 320, alignItems: 'center', overflow: 'visible', marginHorizontal: -24 },
+  welcomeArt: { height: 320, alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginHorizontal: -24 },
   welcomeStage: { width: 390, height: 320, overflow: 'visible' },
   disc: { position: 'absolute' },
   bubbleAt: { position: 'absolute' },

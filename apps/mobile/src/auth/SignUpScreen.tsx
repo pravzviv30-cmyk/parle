@@ -8,11 +8,12 @@ import { OnboardingLayout } from '../onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 import { AccountField as Field } from './AccountField.tsx';
+import { AuthForm, useWebFieldName } from './AuthForm.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { PasswordMeter } from './PasswordMeter.tsx';
-import { signupProblems, signupReady, passwordsMatch, visibleFormHeight } from './signupForm.ts';
+import { signupProblems, signupReady, signupWaitingReason, passwordsMatch, visibleFormHeight } from './signupForm.ts';
 import { useFormKeyboard } from './useFormKeyboard.ts';
 import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
 import { ProviderButton } from './ProviderButton.tsx';
@@ -66,6 +67,9 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
+  useWebFieldName(emailRef, 'email');
+  useWebFieldName(passwordRef, 'new-password');
+  useWebFieldName(confirmRef, 'new-password');
   const emailGroup = useRef<View>(null);
   const passwordGroup = useRef<View>(null);
   const confirmGroup = useRef<View>(null);
@@ -271,6 +275,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           label={authButtonLabel('createAccount', pending === 'createAccount')}
           onPress={() => void submit()}
           disabled={busy || !ready || formOk}
+          disabledReason={!busy && !formOk && !ready ? signupWaitingReason(email, password, confirm) ?? undefined : undefined}
           state={pending === 'createAccount' ? 'busy' : formOk ? 'done' : 'idle'}
         />
       </View>
@@ -297,6 +302,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
     >
       {/* The saved plan remains in the handoff; this form needs only its task. */}
       <View style={[readingColumn, st.page]}>
+      <AuthForm onSubmit={() => void submit()}>
       <View style={st.fields}>
         <View ref={emailGroup} collapsable={false} onLayout={keepFocusedVisible}>
         <Field
@@ -380,6 +386,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           </Feedback>}
         </View>
       </View>
+      </AuthForm>
 
       <Text style={[boldType.small, { color: c.muted, marginTop: 12 }]}>Use at least {PASSWORD_MIN} characters. A longer phrase can be easier to remember.</Text>
       {/* Provider choices remain embedded beneath the form. */}

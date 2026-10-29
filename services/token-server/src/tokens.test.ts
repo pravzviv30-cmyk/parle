@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { FIRST_MISSION, PLANS, TUTOR_VOICES, type Entitlement } from '@luvani/core';
+import { DEFAULT_TUTOR_VOICE, FIRST_MISSION, PLANS, TUTOR_VOICES, firstPracticeScenario, type Entitlement, type FirstPracticeBrief } from '@luvani/core';
 import { ROOM_LIFECYCLE, grantSession, roomNameFor, type TokenConfig } from './tokens.ts';
 import { DevelopmentEntitlementStore, InMemoryEntitlementStore, developmentEntitlementsEnabled } from './store.ts';
 
@@ -181,6 +181,21 @@ describe('session shape in token metadata', () => {
     return JSON.parse(claims.metadata) as Record<string, unknown>;
   }
 
+  // F929: server.ts signs firstPracticeScenario(brief) as the guest seed. Its
+  // fr/en is what the tutor says and the room shows, so it is a short title;
+  // the full situation rides as the tutor-only brief.
+  test('the guest first scene opens on its title, not its instructions', async () => {
+    const base: FirstPracticeBrief = { version: 1, goals: ['food'], level: 'zero', confidence: 'hesitant', focus: 'speaking', minutes: 5, tutorVoice: DEFAULT_TUTOR_VOICE };
+    for (const goals of [['food'], ['trip'], ['family'], ['moving'], ['work'], ['because'], ['trip', 'food']] as FirstPracticeBrief['goals'][]) {
+      const scenario = firstPracticeScenario({ ...base, goals });
+      const meta = await metadataFor({ seedTopic: scenario });
+      const seed = meta.seedTopic as { fr: string; en: string; brief?: string };
+      assert.ok(seed.en.length <= 40 && !/\b(ask|arrange|buy|choose|explain|you)\b/i.test(seed.en), `"${seed.en}" is an instruction, not a title`);
+      assert.ok(seed.brief !== undefined && seed.brief.length > 30, `${goals.join('+')} lost its situation`);
+      assert.equal(seed.brief, scenario.brief);
+    }
+  });
+
   test('a valid startRung is signed into the metadata', async () => {
     const meta = await metadataFor({ startRung: 3 });
     assert.equal(meta.startRung, 3);
@@ -290,6 +305,30 @@ describe('session shape in token metadata', () => {
       assert.equal('seedTopic' in meta, false, `seedTopic ${JSON.stringify(bad)} should have been dropped, not signed`);
       assert.equal(meta.mode, 'lesson', 'and the session still starts, generic');
     }
+  });
+
+  test('the token server carries a seed brief to the tutor and caps it', async () => {
+    const briefed = await metadataFor({ seedTopic: { fr: ' Ma journée ', en: ' My day ', brief: '  Ask why things happened. Hints if I ask.  ' } });
+    assert.deepEqual(briefed.seedTopic, { fr: 'Ma journée', en: 'My day', brief: 'Ask why things happened. Hints if I ask.' });
+
+    const atTheCap = await metadataFor({ seedTopic: { fr: 'Ma journée', en: 'My day', brief: 'b'.repeat(240) } });
+    assert.deepEqual(atTheCap.seedTopic, { fr: 'Ma journée', en: 'My day', brief: 'b'.repeat(240) }, 'a brief exactly at the cap is kept');
+
+    // A bad brief costs the brief only: the title is still a good title.
+    for (const brief of ['b'.repeat(241), '   ', '', 7, { a: 1 }, null]) {
+      const meta = await metadataFor({ seedTopic: { fr: 'Ma journée', en: 'My day', brief } });
+      assert.deepEqual(meta.seedTopic, { fr: 'Ma journée', en: 'My day' }, `brief ${JSON.stringify(brief)} should be dropped, title kept`);
+    }
+
+    // A brief never rescues a bad title.
+    const noTitle = await metadataFor({ seedTopic: { fr: '', en: 'My day', brief: 'Ask why.' } });
+    assert.equal('seedTopic' in noTitle, false);
+  });
+
+  test('a seed without a brief is unchanged', async () => {
+    const meta = await metadataFor({ seedTopic: { fr: 'Commander un café', en: 'Ordering coffee', extra: 'x' } });
+    assert.deepEqual(meta.seedTopic, { fr: 'Commander un café', en: 'Ordering coffee' });
+    assert.equal('brief' in (meta.seedTopic as object), false, 'no brief key at all, so an old app signs exactly what it signed before');
   });
 
   test('the token server signs the mission id into the join metadata', async () => {

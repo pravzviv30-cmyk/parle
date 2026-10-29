@@ -318,7 +318,7 @@ const makeStyles = (t: B) =>
     prepareTile: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
     prepareArt: { marginTop: 6 },
     field: { gap: 6 },
-    fieldInput: { minHeight: 48, borderRadius: 14, borderWidth: 1.5, borderColor: t.line, backgroundColor: t.ground, paddingHorizontal: 14 },
+    fieldInput: { minHeight: 48, borderRadius: 14, borderWidth: 1.5, borderColor: t.field, backgroundColor: t.ground, paddingHorizontal: 14 },
     button48: { minHeight: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
     topic: { flex: 1, borderRadius: 26, overflow: 'hidden', ...liftStyle },
     topicArt: { height: 138, alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden' },

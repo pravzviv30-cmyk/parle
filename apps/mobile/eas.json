@@ -9,7 +9,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "1"
+        "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "1",
+        "EXPO_PUBLIC_LUVANI_BUILD_PROFILE": "development"
       },
       "channel": "development"
     },
@@ -21,7 +22,8 @@
       "autoIncrement": false,
       "env": {
         "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "0",
-        "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0"
+        "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0",
+        "EXPO_PUBLIC_LUVANI_BUILD_PROFILE": "staging"
       },
       "android": {
         "buildType": "apk"
@@ -36,7 +38,8 @@
       "autoIncrement": false,
       "env": {
         "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "0",
-        "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0"
+        "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0",
+        "EXPO_PUBLIC_LUVANI_BUILD_PROFILE": "production"
       },
       "channel": "production"
     }

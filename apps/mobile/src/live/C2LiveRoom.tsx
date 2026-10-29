@@ -13,7 +13,7 @@ import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy
 import { RoomReportSheet } from './ReportSheet.tsx';
 import { reportAddress, REPORT_COPY } from '../settings/reportMail.ts';
 import { AskedCard, BulbGlyph, CloseGlyph, FlagGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
-import type { HeldTurnState } from '@luvani/core';
+import type { HeldTurnState, TutorVoiceKey } from '@luvani/core';
 import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, sendButton, tapToSendControl, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
 
 /**
@@ -35,14 +35,17 @@ import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, sendButton, tapToSe
  * The owner passes it only for the live room itself, never for the waiting,
  * error or safety surfaces.
  */
-export function C2LiveRoom({ tutorName, description, state, caption, turns, tutorSpeaking, partialTranscript,
+export function C2LiveRoom({ tutorName, voice, description, state, caption, turns, tutorSpeaking, partialTranscript,
   typing, startedWithSpeech = true, ready = true, modePending = false, active = true, embedded = false,
   transcriptVisible, onTranscriptVisibility, draft, onDraft, onSend, onModeChange, onMic, micOpen,
   onEnd, onReplayTutor, canSend = true, top, support, tools, footer, notice,
   title, pace = null, goals = [], helpKind = 'none', moreHelp, report, quietVoice = false, onQuietVoice,
   tapToSend = false, onTapToSend, heldTurn = null, onSendTurn, wrappingUp = false,
 }: {
-  tutorName: string; description: string; state: OrbState; caption: string;
+  tutorName: string;
+  /** The learner's tutor, drawn as their portrait on the orb (F945); absent, the shared orb. */
+  voice?: TutorVoiceKey;
+  description: string; state: OrbState; caption: string;
   turns: readonly TurnLine[]; tutorSpeaking: boolean; partialTranscript?: string | null;
   typing: boolean; startedWithSpeech?: boolean; ready?: boolean; modePending?: boolean;
   active?: boolean; embedded?: boolean; transcriptVisible: boolean; onTranscriptVisibility: (visible: boolean) => void;
@@ -157,7 +160,7 @@ export function C2LiveRoom({ tutorName, description, state, caption, turns, tuto
           onReplayTutor={onReplayTutor} partialTranscript={partialTranscript} focusRevision={focusRevision} focusActive={focused || keyboardOpen} onDismissKeyboard={dismiss} />
       </View>
       {!transcriptVisible && <View style={st.thread} onTouchEnd={dismiss}>
-        <LiveOrb state={state} active={active} caption={caption} size={focused || keyboardOpen || typing ? 'small' : 'full'} />
+        <LiveOrb state={state} voice={voice} active={active} caption={caption} size={focused || keyboardOpen || typing ? 'small' : 'full'} />
         <View style={st.bubbles}>
           {bubbles.tutor ? <TutorBubble name={tutorName} fr={bubbles.tutor.fr} en={bubbles.tutor.en} onHear={onReplayTutor} /> : null}
           {bubbles.you ? <YouBubble text={bubbles.you} /> : null}
@@ -246,8 +249,8 @@ function makeStyles(t: B) {
     sheetLayer: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '80%', backgroundColor: t.ground, borderTopLeftRadius: 32, borderTopRightRadius: 32 },
     footer: { gap: 10, paddingTop: 8 },
     footerPanel: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 10 },
-    composer: { backgroundColor: t.card, borderColor: t.sun, borderWidth: 1.5, borderRadius: 22, paddingTop: 8, paddingBottom: 8 },
-    composerFocus: { borderRadius: 22, borderColor: t.sun, borderWidth: 2 },
+    composer: { backgroundColor: t.card, borderColor: t.field, borderWidth: 1.5, borderRadius: 22, paddingTop: 8, paddingBottom: 8 },
+    composerFocus: { borderRadius: 22, borderColor: t.text, borderWidth: 2 },
     composerRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10, gap: 8 },
     input: { color: t.text, flex: 1, minHeight: 36, maxHeight: 104, padding: 0, paddingVertical: 4, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
     send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: t.brand },

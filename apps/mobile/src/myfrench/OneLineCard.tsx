@@ -143,7 +143,7 @@ function makeSt(t: B) {
     minHeight: HIT + 8,
     backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
     borderRadius: radius.input,
     paddingHorizontal: space(4),
     paddingVertical: space(3),

@@ -1,6 +1,9 @@
 import type { TutorVoiceKey } from '@luvani/core';
 import { colour, paper } from '../palette.ts';
 
+/** The ring drawn round a portrait on any surface, so its edge never relies on the ground. */
+export const PORTRAIT_RING = 2;
+
 /** Original illustrated AI characters. The same editable SVGs are used in Figma. */
 export function tutorPortraitSvg(voice: TutorVoiceKey): string {
   const portraits: Record<TutorVoiceKey, { ground: string; shirt: string; hair: string; style: number }> = {

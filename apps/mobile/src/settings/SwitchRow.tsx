@@ -12,17 +12,21 @@
  * somebody opens a conversation. So the row says so, in soft ink at the 4.5
  * words are held to rather than the 3 a mark gets.
  *
- * The switch is named to assistive tech by the row's own title, because the
- * title is drawn as text rather than bound to the control.
+ * The whole row is the switch (F927): a tap anywhere on it toggles, and it is
+ * said once, as a switch with its on or off state, named by the row's own
+ * label. The Switch inside is the picture of that state only: it takes no
+ * touch, is hidden from assistive tech, and its web checkbox is made inert so
+ * it is neither a second tab stop nor a second click.
  *
  * The off track is said twice: `trackColor.false` for Android and the web, and
  * `ios_backgroundColor` for iOS, which ignores the first when it paints an off
  * switch and would otherwise leave a bare white thumb on the card (F736).
  */
 
-import { View, Text, Switch, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Platform, View, Text, Switch, StyleSheet } from 'react-native';
+import { Press } from '../components.tsx';
 import { accent, bType, paper, space, type } from '../theme.ts';
-import { tapSettled } from '../motion/haptics.ts';
 import { useBRows, useSettingsColors } from './SettingsAppearance.tsx';
 import { RowDivider, useInGroup, useRowFrame } from './SettingsGroup.tsx';
 
@@ -57,27 +61,30 @@ export function SwitchRow({
   // UI-005: the off track is the field grey everywhere, the 3:1 non-text
   // floor on white. The hairline it used in grouped lists read ~1.24:1.
   const offTrack = paper.field;
+  const knob = useRef<View>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    (knob.current as unknown as { setAttribute?: (name: string, value: string) => void } | null)?.setAttribute?.('inert', '');
+  }, []);
   return (
-    <View style={[st.row, frame]}>
+    <Press haptic="selection" accessibilityRole="switch" accessibilityState={{ checked: value, disabled }} aria-checked={value}
+      accessibilityLabel={accessibilityLabel} accessibilityHint={sub} disabled={disabled}
+      onPress={() => onChange(!value)} style={[st.row, frame]}>
       {first ? null : <RowDivider />}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[b ? type.label : type.body, { color: colors.text }]}>{title}</Text>
         {sub.length > 0 ? <Text style={[b ? bType.note : type.small, { color: colors.muted, marginTop: b ? 2 : space(0.5) }]}>{sub}</Text> : null}
       </View>
-      <Switch
-        value={value}
-        disabled={disabled}
-        onValueChange={(next) => {
-          tapSettled();
-          onChange(next);
-        }}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={sub}
-        trackColor={{ true: accent.brand, false: offTrack }}
-        ios_backgroundColor={offTrack}
-        thumbColor={paper.card}
-      />
-    </View>
+      <View ref={knob} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Switch
+          value={value}
+          disabled={disabled}
+          trackColor={{ true: accent.brand, false: offTrack }}
+          ios_backgroundColor={offTrack}
+          thumbColor={paper.card}
+        />
+      </View>
+    </Press>
   );
 }
 

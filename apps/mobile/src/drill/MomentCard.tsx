@@ -72,7 +72,7 @@ function makeStyles(t: B) {
     justifyContent: 'center',
     backgroundColor: t.card,
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
   },
   why: { ...type.small, color: t.muted, marginTop: space(2) },
 });

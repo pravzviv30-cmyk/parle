@@ -120,7 +120,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
         } else setNotice('Not this pair. Keep the French phrase selected and try another meaning.');
       }}
       style={{ minHeight: HIT * 1.5, justifyContent: 'center', padding: space(3), borderRadius: radius.card,
-        borderWidth: chosen ? 2 : 1, borderColor: chosen ? t.text : t.line,
+        borderWidth: chosen ? 2 : 1, borderColor: chosen ? t.text : t.field,
         backgroundColor: done ? t.skeleton : t.card, opacity: 1 }}>
       <Text {...(side === 'fr' ? frenchText : {})} style={[side === 'fr' ? type.frenchSm : type.small, { color: t.text }]}>{done && !assisted ? '✓ ' : ''}{label}</Text>
     </Pressable>;
@@ -192,7 +192,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
           </Card>
           {current.options.map((option, i) => <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected: choice === i, disabled: revealed || (!played && !reading) }}
             disabled={revealed || (!played && !reading)} onPress={() => setChoice(i)}
-            style={{ minHeight: HIT, padding: space(4), borderRadius: radius.card, borderWidth: choice === i ? 2 : 1, borderColor: choice === i ? t.text : t.line, backgroundColor: t.card }}>
+            style={{ minHeight: HIT, padding: space(4), borderRadius: radius.card, borderWidth: choice === i ? 2 : 1, borderColor: choice === i ? t.text : t.field, backgroundColor: t.card }}>
             <Text style={[type.body, { color: t.text }]}>{option}</Text>
           </Pressable>)}
           {attempt.outcome !== 'waiting' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{attempt.outcome === 'correct' ? 'That’s the meaning.' : attempt.outcome === 'revealed' ? `The meaning is: ${current.phrase.en}` : 'Not quite. Try once more before seeing the meaning.'}</Text>}

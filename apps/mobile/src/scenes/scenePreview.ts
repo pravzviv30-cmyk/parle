@@ -53,6 +53,8 @@ export interface ScenePreviewModel {
   practise: string;
   /** Null when nothing authored can fill it: the section hides rather than invent a line. */
   opener: { heading: string; line: PreviewLine } | null;
+  /** Who the tutor plays, as core's short part ("Karim, the barista"), or null for a daily scene (F942). */
+  part: string | null;
   lines: PreviewLine[];
   /**
    * The free practice door, or null rather than open an empty sitting. Both
@@ -145,6 +147,7 @@ function scenarioModel(s: DailyScenario, env: AudioEnv): ScenePreviewModel {
     minutes: estimateMinutes({ kind: 'scenario', lines: s.lines.length }),
     art: sceneArt(scenarioTopic(s)?.key),
     practise: s.bodyEn,
+    part: null,
     opener: { heading: PREVIEW_COPY.youCould, line: { fr: s.openingFr, en: s.openingEn, sound: { kind: 'device' } } },
     lines,
     practice,
@@ -157,9 +160,9 @@ function missionModel(m: Mission, env: AudioEnv): ScenePreviewModel {
   // premier café's three lines are the first-coffee scene's); then its clip is
   // that recording, matched on the exact words, never on a topic.
   const voiced = (fr: string) => DAILY_ITEMS.find((item) => key(item.fr) === key(fr) && tutorAudioFor(env.audio, item.id, env.voice) !== undefined);
-  const lines = m.referencePhrases.slice(0, 3).map((fr): PreviewLine => {
+  const lines = m.referencePhrases.slice(0, 3).map((fr, index): PreviewLine => {
     const item = voiced(fr);
-    return { fr, en: item?.en ?? null, sound: item ? { kind: 'clip', id: item.id } : { kind: 'device' } };
+    return { fr, en: item?.en ?? m.referencePhrasesEn[index] ?? null, sound: item ? { kind: 'clip', id: item.id } : { kind: 'device' } };
   });
   // The drill plays exactly the shown lines, from the mission's own phrase
   // keys: local practice with no speaking time.
@@ -175,6 +178,7 @@ function missionModel(m: Mission, env: AudioEnv): ScenePreviewModel {
     titleFr: m.title,
     minutes: missionMinutes(m),
     art: sceneArt(missionTopic(m)?.key),
+    part: m.tutorPart,
     practise: `Practise how to ${m.canDoEn.length ? m.canDoEn[0]!.toLocaleLowerCase('en') + m.canDoEn.slice(1) : m.goalEn}`,
     opener,
     lines,

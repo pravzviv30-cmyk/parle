@@ -442,7 +442,7 @@ function makeSt(t: B) {
     flex: 1,
     color: t.text,
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
     borderRadius: radius.input,
     paddingHorizontal: space(3),
     paddingVertical: space(2.5),
