@@ -1353,6 +1353,7 @@ export function useLiveSession(
                     textTurnId: msg.view.textTurnId,
                     correctionIndex,
                     quote: c.quote,
+                    kind: c.kind,
                     better: c.better,
                     betterEn: c.betterEn,
                     why: c.why,

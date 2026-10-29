@@ -31,7 +31,7 @@ export interface TurnLine {
    * A correction attached to the learner line it corrects, so a recast is read
    * where the mistake was made rather than floating free at the bottom.
    */
-  recasts?: { quote: string; better: string; betterEn: string; why: string; textTurnId?: string; correctionIndex?: number; reason?: CorrectionReasonId }[];
+  recasts?: { quote: string; kind?: string; better: string; betterEn: string; why: string; textTurnId?: string; correctionIndex?: number; reason?: CorrectionReasonId }[];
 }
 
 /** Long enough that nobody scrolls to the top of a five-minute conversation. */
