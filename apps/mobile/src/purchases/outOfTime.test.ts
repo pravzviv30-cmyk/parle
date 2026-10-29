@@ -18,6 +18,8 @@ import { plansLeadBody } from '../home/nextAction.ts';
 import { wallAccount } from '../wall/wallAccount.ts';
 import { PLANS } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
+import { tutorOrbState } from '../tutor/orbState.ts';
+import { untimedOutOfTimeWords } from './outOfTime.ts';
 
 const NOW = Date.parse('2026-10-27T09:00:00.000Z');
 const REFILL = '2026-10-29T16:10:00.000Z';
@@ -38,7 +40,7 @@ function everySite(s: BillingStatus): Record<string, string> {
     'Settings and Subscription': view.known ? planSentence(view.bandLine, view.periodLine) : '',
     ...(s.plan === 'trial' ? {
       'live Start': refusalWords(TABLE, s.reason ?? 'exhausted', { error: s.reason, refillsAt: s.periodEnd }, NOW).message,
-      'Today lead': plansLeadBody({ plan: s.plan, reason: s.reason, periodEnd: s.periodEnd }),
+      'Today lead': plansLeadBody({ plan: s.plan, reason: s.reason, periodEnd: s.periodEnd }, NOW),
     } : {}),
     wall: (wallAccount(s, PLANS, NOW)?.lines ?? []).join(' '),
   };
@@ -55,6 +57,26 @@ describe('F911: one out-of-time message, with the time it comes back', () => {
     // Settings says it once, not followed by a second, vaguer answer.
     const settings = everySite(status())['Settings and Subscription'];
     assert.equal(settings, line);
+    // The orb under the band says the same title and nothing that contradicts it.
+    const view = planStatusFor(status(), NOW);
+    const orb = tutorOrbState({ live: true, checking: false, canStart: false, outOfTime: view.known ? view.outOfTime ?? null : null });
+    assert.equal(orb.title, "You've used your free conversation");
+    assert.equal(orb.subline, 'Until then, practise offline.');
+  });
+
+  test('a free refill time already passed is never promised as a time in the past', () => {
+    const past = status({ periodEnd: new Date(NOW - 60_000).toISOString() });
+    const line = 'Your next free conversation should be ready about now. Practice and review still work offline.';
+    for (const [site, words] of Object.entries(everySite(past))) {
+      assert.ok(words.includes(line), `${site} promised a past time: "${words}"`);
+    }
+  });
+
+  test('a 402 with no refill time says the shared untimed words, never "Out of minutes"', () => {
+    // The hook's table is the fallback; outOfMinutes.test.ts holds it to these words.
+    assert.deepEqual(untimedOutOfTimeWords('exhausted'), { title: 'Speaking time used for now', message: 'Your speaking time is used for now. Practice and review still work offline.' });
+    assert.deepEqual(untimedOutOfTimeWords('insufficient-for-session'), { title: 'Not quite enough time for a conversation', message: 'There is a little speaking time left, but not quite enough for a whole conversation. Practice and review still work offline.' });
+    assert.deepEqual(refusalWords(TABLE, 'exhausted', {}, NOW), TABLE, 'a body with no time keeps the hook table');
   });
 
   test('a paid plan out of minutes says the day they are fresh', () => {
@@ -78,7 +100,6 @@ describe('F911: one out-of-time message, with the time it comes back', () => {
     const said = refusalWords(TABLE, 'insufficient-for-session', { error: 'insufficient-for-session', refillsAt: REFILL }, NOW);
     assert.equal(said.label, 'Not quite enough time for a conversation');
     assert.equal(said.message, `There is a little speaking time left, but not quite enough for a whole conversation. Your next free conversation is ready ${refillWhen(new Date(REFILL))}. Until then, practise offline.`);
-    assert.deepEqual(refusalWords(TABLE, 'insufficient-for-session', { error: 'insufficient-for-session' }, NOW), TABLE);
   });
 
   test('a free row with no known refill says so truthfully, never a time', () => {

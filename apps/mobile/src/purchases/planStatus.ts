@@ -29,7 +29,10 @@
 import { PLANS, refillWhen, STORE_TRIAL_DAYS, storeTrialSeconds } from '@luvani/core';
 
 import type { BillingStatus } from './billingStatus.ts';
-import { endsOutOfTime, outOfTimeWords } from './outOfTime.ts';
+import { dayAndMonthOf, endsOutOfTime, freshMinutesLine, outOfTimeWords, PERIOD_LINES, type OutOfTimeWords } from './outOfTime.ts';
+
+// Said in `outOfTime.ts`, a leaf, so the two never import each other (F911).
+export { dayAndMonthOf, freeBackLine, freshMinutesLine, PERIOD_LINES } from './outOfTime.ts';
 import type { StoreHeldPlan, StoreOffering, StoreProduct } from './contract.ts';
 
 export type PlanBand = 'plenty' | 'a-little' | 'none';
@@ -44,6 +47,8 @@ export type PlanStatusView =
       band: PlanBand;
       bandLine: string;
       canStart: boolean;
+      /** The shared out-of-time words when a session cannot start for lack of time (F911). */
+      outOfTime?: OutOfTimeWords;
     }
   | { known: false; line: string };
 
@@ -63,33 +68,12 @@ export const PLAN_LABELS = {
   regular: PLANS.regular.label,
 } as const;
 
-export const PERIOD_LINES = {
-  trial: 'One free conversation every other day.',
-  lapsed: 'Your paid plan has ended.',
-  freshSoon: 'Fresh minutes any moment now.',
-  monthly: 'Fresh minutes each month.',
-} as const;
-
 /** Where the renewal date lives when the store did not answer (F909). Never a guessed date. */
 export const RENEWAL_POINTERS = {
   ios: 'Your renewal date is in your App Store subscriptions.',
   android: 'Your renewal date is in your Google Play subscriptions.',
   web: 'Your renewal date is in the App Store or Google Play, wherever you subscribed.',
 } as const;
-
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-/** "27 November", on this phone's clock, or null for an instant that does not read. */
-export function dayAndMonthOf(at: number | string): string | null {
-  const when = new Date(at);
-  if (!Number.isFinite(when.getTime())) return null;
-  return `${when.getDate()} ${MONTHS[when.getMonth()]}`;
-}
-
-/** "Fresh minutes on 27 November." */
-export function freshMinutesLine(date: string): string {
-  return `Fresh minutes on ${date}.`;
-}
 
 const PERIOD_WORDS: Record<StoreProduct['period'], { adverb: string; noun: string }> = {
   week: { adverb: 'weekly', noun: 'week' },
@@ -142,11 +126,6 @@ export const PLAN_UNKNOWN = 'Luvani could not check your plan just now.';
 export function refillTime(periodEnd: string): string | null {
   const at = new Date(periodEnd);
   return Number.isFinite(at.getTime()) ? refillWhen(at) : null;
-}
-
-/** "Your next free conversation is ready on Thursday at 4:10 pm." */
-export function freeBackLine(when: string): string {
-  return `Your next free conversation is ready ${when}.`;
 }
 
 /** The out-of-time paragraph for a status that cannot start (F911): one source for every screen. */
@@ -248,5 +227,7 @@ export function planStatusFor(status: BillingStatus | null, now: number): PlanSt
     band,
     bandLine: line,
     canStart: status.canStart,
+    ...(!status.canStart && !(status.plan !== 'trial' && status.lapsed)
+      ? { outOfTime: outOfTimeWords({ plan: status.plan, reason: status.reason, refillsAt: status.periodEnd, now }) } : {}),
   };
 }

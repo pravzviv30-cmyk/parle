@@ -318,7 +318,7 @@ describe('Speak keeps its history read, its plan read and its continuation', () 
     const offline = between(RENDER, '{offlineShown && (', '</EmptyStateCard>', 'the offline block is drawn');
     assert.ok(!offline.includes('LESSON_MINUTES'));
     assert.match(FLAT, /open\(heldBack \? heldBack\.textMode : textMode, heldBack \? pendingStart\.current : answered\(next\.params\)\)/);
-    assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/);
+    assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart, outOfTime: planView\?\.known \? planView\.outOfTime \?\? null : null \}\)/);
     assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
   });
 });

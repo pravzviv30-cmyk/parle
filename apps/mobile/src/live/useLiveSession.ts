@@ -276,17 +276,18 @@ const OUT_OF_MINUTES: Record<OutOfMinutesCode, OutOfMinutesCopy> = {
   // spent. The server tells them apart in prose we do not render, and the
   // catalogue does not say which plan the learner is on, so this sentence has
   // to be true of both. It is.
+  // F911: the shared untimed words (`untimedOutOfTimeWords` in
+  // purchases/outOfTime.ts), true of a free row, a paid month and a row that
+  // never refills. Literals, because outOfMinutes.test.ts reads this table whole.
   exhausted: {
-    label: 'Out of minutes',
-    message:
-      'You have used all the speaking time on your account for now. Practice and review work offline, so you can carry on there and come back to a conversation later.',
+    label: 'Speaking time used for now',
+    message: 'Your speaking time is used for now. Practice and review still work offline.',
   },
   // The server's version of this one counts out the seconds, which is the
   // clearest reason of all four not to render what it wrote.
   'insufficient-for-session': {
-    label: 'Not enough for a session',
-    message:
-      'There is a little speaking time left, but not quite enough for a whole conversation. Starting one now would end it partway through. Practice and review work offline, so you can carry on there.',
+    label: 'Not quite enough time for a conversation',
+    message: 'There is a little speaking time left, but not quite enough for a whole conversation. Practice and review still work offline.',
   },
   'subscription-lapsed': {
     label: 'Speaking plan ended',

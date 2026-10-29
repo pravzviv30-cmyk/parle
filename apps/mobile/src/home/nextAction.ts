@@ -62,9 +62,9 @@ export const PLANS_LEAD = {
  * out-of-time words first (F911, `purchases/outOfTime.ts`), with when the free
  * conversation comes back (REV-001). A day and a time, never a countdown.
  */
-export function plansLeadBody(billing: HomeBilling | null): string {
+export function plansLeadBody(billing: HomeBilling | null, now: number = Date.now()): string {
   if (billing?.plan !== 'trial') return PLANS_LEAD.body;
-  const words = outOfTimeWords({ plan: 'trial', reason: billing.reason, refillsAt: billing.periodEnd ?? null, now: 0 }); // a free refill reads no clock
+  const words = outOfTimeWords({ plan: 'trial', reason: billing.reason, refillsAt: billing.periodEnd ?? null, now });
   return `${words.message} ${PLANS_LEAD_MORE}`;
 }
 

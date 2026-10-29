@@ -24,7 +24,8 @@ export function refusalRefill(body: unknown): string | null {
  * The refusal's words (F911). A 402 that names its refill instant is a free
  * plan's (core sends `refillsAt` only for one), and gets the same words every
  * other screen says, the "not quite enough" lead included. A body without one
- * keeps the table's own sentence.
+ * keeps the table's sentence, which for these two codes is the shared
+ * untimed words (`untimedOutOfTimeWords`), since the plan is unknown here.
  */
 export function refusalWords(
   copy: { label: string; message: string },
@@ -32,7 +33,9 @@ export function refusalWords(
   body: unknown,
   now: number = Date.now(),
 ): { label: string; message: string } {
-  if (refusalRefill(body) === null || (code !== 'exhausted' && code !== 'insufficient-for-session')) return copy;
+  if (code !== 'exhausted' && code !== 'insufficient-for-session') return copy;
+  // No time named: the table's own sentence, which is the shared untimed words (outOfMinutes.test.ts holds them equal).
+  if (refusalRefill(body) === null) return copy;
   const at = (body as { refillsAt: string }).refillsAt;
   const words = outOfTimeWords({ plan: 'trial', reason: code, refillsAt: at, now });
   return { label: words.title, message: words.message };

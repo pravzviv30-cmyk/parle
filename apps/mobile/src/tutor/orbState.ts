@@ -28,6 +28,8 @@ export interface TutorOrbFacts {
   checking: boolean;
   /** Core's answer to "may a session start", or null when nobody could ask. */
   canStart: boolean | null;
+  /** The shared out-of-time words (F911), so the orb never contradicts the band above it. */
+  outOfTime?: { title: string; offline: string } | null;
 }
 
 export interface TutorOrbView {
@@ -40,7 +42,7 @@ export interface TutorOrbView {
 export const ORB_AWAY = 'Unavailable';
 export const ORB_AWAY_SUB = 'Your tutor is away right now. Practice and review still work.';
 export const ORB_SPENT = 'Speaking paused';
-export const ORB_SPENT_SUB = 'No speaking time just now. Practice and review stay open.';
+export const ORB_SPENT_SUB = 'Practice and review still work offline.';
 export const ORB_CONNECTING = 'Connecting';
 export const ORB_CONNECTING_SUB = 'Opening your room.';
 export const ORB_READY = 'Tap to talk';
@@ -120,6 +122,8 @@ export function orbStatusLabel(view: TutorOrbView, tutorName: string): string {
 export function tutorOrbState(facts: TutorOrbFacts): TutorOrbView {
   if (facts.checking) return { state: 'connecting', title: ORB_CONNECTING, subline: ORB_CONNECTING_SUB };
   if (!facts.live) return { state: 'error', title: ORB_AWAY, subline: ORB_AWAY_SUB };
-  if (facts.canStart === false) return { state: 'idle', title: ORB_SPENT, subline: ORB_SPENT_SUB };
+  if (facts.canStart === false) {
+    return { state: 'idle', title: facts.outOfTime?.title ?? ORB_SPENT, subline: facts.outOfTime?.offline ?? ORB_SPENT_SUB };
+  }
   return { state: 'ready', title: ORB_READY, subline: TUTOR_ORB_SUBLINE };
 }

@@ -248,7 +248,7 @@ export function TutorTab() {
     }, [live, user]),
   );
 
-  const orb = tutorOrbState({ live, checking, canStart });
+  const orb = tutorOrbState({ live, checking, canStart, outOfTime: planView?.known ? planView.outOfTime ?? null : null });
   const offlineShown = !live || heldBack !== null;
   const note = startNote(orb, offlineShown);
   const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc, goalOf(profile));
