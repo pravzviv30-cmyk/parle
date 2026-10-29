@@ -77,7 +77,7 @@ import { shouldPingTyping } from '../tutor/typingPing.ts';
 import type { ReplayLine } from '../tutor/sceneControls.ts';
 import { onUserScopeReset } from '../storage/scope.ts';
 import { createReplyLatencyClock, medianMs } from './replyLatency.ts';
-import { refusalRefill, refusalWords } from './refusalRefill.ts';
+import { refusalWords } from './refusalRefill.ts';
 
 
 /**
@@ -1098,7 +1098,7 @@ export function useLiveSession(
         if (await abandoned()) return;
         const code = refusalCode(body);
         // A free refusal may name when the conversation comes back (REV-001).
-        const copy = refusalWords(OUT_OF_MINUTES[code], refusalRefill(body));
+        const copy = refusalWords(OUT_OF_MINUTES[code], code, body);
         const plans = plansIn(body);
         // Kept for the wall, which needs it on a page this refusal can lead to.
         noteCatalogue(plans);

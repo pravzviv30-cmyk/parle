@@ -19,7 +19,7 @@
 
 import { PLANS, type Plan, type StartRefusal } from '@luvani/core';
 
-import { freeBackLine, refillTime } from '../purchases/planStatus.ts';
+import { outOfTimeWords } from '../purchases/outOfTime.ts';
 import type { HomeMission } from './homeMission.ts';
 
 /** The one lead Home draws. */
@@ -47,21 +47,25 @@ export function homeActionFor(hero: Pick<HomeMission, 'kind'>, dueCount: number,
  * before it says what a plan adds, and it says what the learner keeps: running
  * out of speaking time takes nothing they made away from them.
  */
+/** What a plan adds, said after the out-of-time words on the free plan (F911). */
+export const PLANS_LEAD_MORE = 'When you want more conversations, a plan adds speaking time every month.';
+
 export const PLANS_LEAD = {
   title: `Ready for more speaking time?`,
-  body: 'Practice and review still work offline. When you want more conversations, a plan adds speaking time every month.',
+  body: `Practice and review still work offline. ${PLANS_LEAD_MORE}`,
   keeps: 'Your phrases, recaps and progress stay yours.',
   action: 'See the plans',
 } as const;
 
 /**
- * The sun card's body for this learner: on the free plan with a refill time,
- * it says when the free conversation comes back first (REV-001). A day and a
- * time, never a countdown.
+ * The sun card's body for this learner: on the free plan it says the shared
+ * out-of-time words first (F911, `purchases/outOfTime.ts`), with when the free
+ * conversation comes back (REV-001). A day and a time, never a countdown.
  */
 export function plansLeadBody(billing: HomeBilling | null): string {
-  const when = billing?.plan === 'trial' && billing.periodEnd ? refillTime(billing.periodEnd) : null;
-  return when === null ? PLANS_LEAD.body : `${freeBackLine(when)} ${PLANS_LEAD.body}`;
+  if (billing?.plan !== 'trial') return PLANS_LEAD.body;
+  const words = outOfTimeWords({ plan: 'trial', reason: billing.reason, refillsAt: billing.periodEnd ?? null, now: 0 }); // a free refill reads no clock
+  return `${words.message} ${PLANS_LEAD_MORE}`;
 }
 
 /** The white review row's title: how many phrases are ready, in words that count nothing else. */

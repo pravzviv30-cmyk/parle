@@ -11657,6 +11657,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   Subscription each word the limit differently, and none shows the refill time the 402 refusal
   carries. Related F651.
 - verified-by: `every out-of-time message names when the next free conversation is ready`
+- fixed: 2026-10-29. `apps/mobile/src/purchases/outOfTime.ts` is the one source of the out-of-time words (title, refill line, "Until then, practise offline."), from the plan, the reason and `periodEnd` or a 402's `refillsAt`. Speak's card and band, the Settings and Subscription plan sentence, the live refusal (both `exhausted` and `insufficient-for-session`), Today's plans lead and the wall's account line all use it. A free row with no refill time says "Your free conversation is used for now. Practice and review still work offline." and never a guessed time, which stays true for the row that never refills; a paid plan says "Fresh minutes on 27 November.". Test in `purchases/outOfTime.test.ts`.
 
 ### F912 — Subscribers and lapsed subscribers are offered a 7-day free trial
 - severity: P2
@@ -11722,3 +11723,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-10-29. Titled "Your first week with <plan>", a route of dots on one line replaces the glyph timeline, and the cafe counter scene opens the page; tests `the trial page walks the first week as a route with Luvani's own scene art` and `the redrawn trial page still names the charge date, the price, how to cancel and that nothing is charged today` (apps/mobile/src/wall/trialRoute.test.ts).
 - verified-by: `the trial page walks the first week as a route with Luvani's own scene art`
 - verified-by: `the redrawn trial page still names the charge date, the price, how to cancel and that nothing is charged today`
+
+### F933 — A trial row created by a purchase before any device claim is spent and never refills
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/20261023220000_daily_free_allowance.sql:91
+- note: Found 2026-10-29 while fixing F911 (Stream B). `begin_billing_refresh` creates a trial row
+  for an account that starts a purchase before any device claim. The row is already spent, with
+  `weekly_taste=false` and no `period_end`, so the free conversation never refills and
+  `/billing/status` has no refill time to give. The app now words this truthfully ("Your free
+  conversation is used for now. Practice and review still work offline.", `purchases/outOfTime.ts`),
+  but the learner silently loses the every-other-day taste (REV-001). Not fixed here: it needs a
+  migration and the pinned billing files, so it waits for its own change with founder approval.
+- verified-by: `a trial row begun by a purchase still refills its free conversation every other day`
+

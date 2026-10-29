@@ -10,7 +10,7 @@
 
 import { refillWhen } from '@luvani/core';
 
-import { freeBackLine } from '../purchases/planStatus.ts';
+import { outOfTimeWords } from '../purchases/outOfTime.ts';
 
 /** "on Thursday at 4:10 pm", or null when the body names no usable instant. */
 export function refusalRefill(body: unknown): string | null {
@@ -20,13 +20,20 @@ export function refusalRefill(body: unknown): string | null {
   return Number.isFinite(when.getTime()) ? refillWhen(when) : null;
 }
 
-export const REFILL_LABEL = 'Free conversation used';
-export const REFILL_STILL = 'Practice and review work offline, so you can carry on there.';
-
-/** The refusal's words when the free conversation's return is known, or the table's own. */
+/**
+ * The refusal's words (F911). A 402 that names its refill instant is a free
+ * plan's (core sends `refillsAt` only for one), and gets the same words every
+ * other screen says, the "not quite enough" lead included. A body without one
+ * keeps the table's own sentence.
+ */
 export function refusalWords(
   copy: { label: string; message: string },
-  when: string | null,
+  code: string,
+  body: unknown,
+  now: number = Date.now(),
 ): { label: string; message: string } {
-  return when === null ? copy : { label: REFILL_LABEL, message: `${freeBackLine(when)} ${REFILL_STILL}` };
+  if (refusalRefill(body) === null || (code !== 'exhausted' && code !== 'insufficient-for-session')) return copy;
+  const at = (body as { refillsAt: string }).refillsAt;
+  const words = outOfTimeWords({ plan: 'trial', reason: code, refillsAt: at, now });
+  return { label: words.title, message: words.message };
 }

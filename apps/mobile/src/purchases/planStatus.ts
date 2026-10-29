@@ -29,6 +29,7 @@
 import { PLANS, refillWhen, STORE_TRIAL_DAYS, storeTrialSeconds } from '@luvani/core';
 
 import type { BillingStatus } from './billingStatus.ts';
+import { endsOutOfTime, outOfTimeWords } from './outOfTime.ts';
 import type { StoreHeldPlan, StoreOffering, StoreProduct } from './contract.ts';
 
 export type PlanBand = 'plenty' | 'a-little' | 'none';
@@ -148,17 +149,24 @@ export function freeBackLine(when: string): string {
   return `Your next free conversation is ready ${when}.`;
 }
 
+/** The out-of-time paragraph for a status that cannot start (F911): one source for every screen. */
+export function outOfTimeLine(status: BillingStatus, now: number): string {
+  return outOfTimeWords({ plan: status.plan, reason: status.reason, refillsAt: status.periodEnd, now }).message;
+}
+
 /** The free plan's band (REV-001): whole minutes left, and when they come back. */
-export function freeBandLine(status: BillingStatus): string {
+export function freeBandLine(status: BillingStatus, now: number = Date.now()): string {
   const when = status.periodEnd === null ? null : refillTime(status.periodEnd);
   const minutes = Math.floor(status.secondsRemaining / 60);
-  if (!status.canStart || minutes <= 0) return when === null ? BAND_LINES.exhausted : freeBackLine(when);
+  if (!status.canStart || minutes <= 0) return outOfTimeLine(status, now);
   const size = `${minutes} free ${minutes === 1 ? 'minute' : 'minutes'} left`;
   return when === null ? size : `${size}, refills ${when}`;
 }
 
 /** The band and the period as one sentence, for a row with one subtitle. */
 export function planSentence(bandLine: string, periodLine: string): string {
+  // An out-of-time band already says when time comes back (F911); the period adds a second, softer answer.
+  if (endsOutOfTime(bandLine)) return bandLine;
   return /[.!?]$/.test(bandLine) ? `${bandLine} ${periodLine}` : `${bandLine}. ${periodLine}`;
 }
 
@@ -219,12 +227,11 @@ function measureFor(status: BillingStatus, now: number): number {
 function bandFor(status: BillingStatus, now: number): { band: PlanBand; line: string } {
   if (status.plan === 'trial') {
     const band: PlanBand = !status.canStart ? 'none' : status.secondsRemaining < measureFor(status, now) * A_LITTLE_SHARE ? 'a-little' : 'plenty';
-    return { band, line: freeBandLine(status) };
+    return { band, line: freeBandLine(status, now) };
   }
   if (!status.canStart) {
     if (status.reason === 'subscription-lapsed') return { band: 'none', line: BAND_LINES.lapsed };
-    if (status.reason === 'insufficient-for-session') return { band: 'none', line: BAND_LINES.insufficient };
-    return { band: 'none', line: BAND_LINES.exhausted };
+    return { band: 'none', line: outOfTimeLine(status, now) };
   }
   const allowance = measureFor(status, now);
   if (status.secondsRemaining < allowance * A_LITTLE_SHARE) return { band: 'a-little', line: BAND_LINES.aLittle };

@@ -36,7 +36,10 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
               for (const line of plan === 'trial' ? [view.planLabel, view.periodLine] : [view.planLabel, view.periodLine, view.bandLine]) {
                 // F909 (founder decision 9, 2026-10-29): a paid plan's period line may say the
                 // day its minutes are fresh, and that date is the only numeral it may carry.
-                const dated = plan !== 'trial' && line === view.periodLine && /^Fresh minutes on \d{1,2} [A-Z][a-z]+\.$/.test(line);
+                // F911: an out-of-time paid band says the same date, in the shared words.
+                const dated = plan !== 'trial'
+                  && ((line === view.periodLine && /^Fresh minutes on \d{1,2} [A-Z][a-z]+\.$/.test(line))
+                    || (line === view.bandLine && /^(There is a little speaking time left, but not quite enough for a whole conversation\. )?Fresh minutes on \d{1,2} [A-Z][a-z]+\. Until then, practise offline\.$/.test(line)));
                 if (!dated) assert.doesNotMatch(line, /\d/, `a numeral reached the card: "${line}"`);
                 assert.doesNotMatch(line, /%/, `a percentage reached the card: "${line}"`);
                 assert.doesNotMatch(line, /—/, `an em dash reached the card: "${line}"`);
@@ -72,7 +75,8 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
     // as a day and a time on this phone's clock.
     const MONDAY = '2026-09-14T12:00:00.000Z';
     const WHEN = refillWhen(new Date(MONDAY));
-    const BACK = `Your next free conversation is ready ${WHEN}.`;
+    const BACK = `Your next free conversation is ready ${WHEN}. Until then, practise offline.`;
+    const SHORT = `There is a little speaking time left, but not quite enough for a whole conversation. ${BACK}`;
     const untouched = planStatusFor(status({ secondsRemaining: 600 }), NOW);
     assert.ok(untouched.known);
     if (untouched.known) {
@@ -84,7 +88,7 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
     const some = planStatusFor(status({ secondsRemaining: 190, periodEnd: MONDAY }), NOW);
     if (some.known) assert.equal(some.bandLine, `3 free minutes left, refills ${WHEN}`);
     const one = planStatusFor(status({ secondsRemaining: 61, periodEnd: MONDAY, canStart: false, reason: 'insufficient-for-session' }), NOW);
-    if (one.known) { assert.equal(one.bandLine, BACK); assert.equal(one.band, 'none'); }
+    if (one.known) { assert.equal(one.bandLine, SHORT); assert.equal(one.band, 'none'); }
     const spent = planStatusFor(status({ secondsRemaining: 0, periodEnd: MONDAY, canStart: false, reason: 'exhausted' }), NOW);
     if (spent.known) assert.equal(spent.bandLine, BACK);
     for (const view of [untouched, some, one, spent]) {

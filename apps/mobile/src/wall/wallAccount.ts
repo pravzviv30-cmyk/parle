@@ -2,6 +2,7 @@ import type { Plan, PlanSpec } from '@luvani/core';
 
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { dayAndMonthOf, PLAN_LABELS, refillTime } from '../purchases/planStatus.ts';
+import { outOfTimeWords } from '../purchases/outOfTime.ts';
 import {
   ACCOUNT_FRESH_NOW,
   ACCOUNT_NONE_LEFT,
@@ -71,6 +72,12 @@ function leftLine(secondsRemaining: number): string {
   return minutesLeft(minutes, Math.floor(secondsRemaining / (CONVERSATION_MINUTES * 60)));
 }
 
+/** Out of time, in the words every screen uses (F911): the refill, then offline. Digits only as handed in. */
+function outOfTimeLines(status: BillingStatus, now: number): string[] {
+  const words = outOfTimeWords({ plan: status.plan, reason: status.reason, refillsAt: status.periodEnd, now });
+  return [...(words.lead === null ? [] : [words.lead]), words.refill, words.offline];
+}
+
 export function wallAccount(
   status: BillingStatus | null,
   catalogue: Record<Plan, PlanSpec> | null,
@@ -83,6 +90,7 @@ export function wallAccount(
   if (status.plan === 'trial') {
     const trial = wallTrial(catalogue);
     const lines = trial === null ? [] : [trialAllowance(trial.minutes, trial.conversations)];
+    if (!status.canStart) return { title: PLAN_LABELS.trial, lines: [...lines, ...outOfTimeLines(status, now)] };
     const day = status.periodEnd === null ? null : refillTime(status.periodEnd);
     return { title: PLAN_LABELS.trial, lines: [...lines, leftLine(status.secondsRemaining), ...(day === null ? [] : [freeRefill(day)])] };
   }
@@ -91,6 +99,7 @@ export function wallAccount(
   // and the page says nothing rather than something it cannot stand behind.
   if (status.lapsed) return null;
 
+  if (!status.canStart) return { title: PLAN_LABELS[status.plan], lines: outOfTimeLines(status, now) };
   const lines = [leftLine(status.secondsRemaining)];
   if (status.periodEnd !== null) {
     const end = new Date(status.periodEnd).getTime();

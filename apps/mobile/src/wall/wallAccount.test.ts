@@ -67,8 +67,8 @@ describe('the account in hand, in minutes', () => {
       PLANS,
       NOW,
     );
-    assert.equal(none?.lines[0], 'No speaking time left for now.');
-    assert.match(none?.lines[1] ?? '', /^They start fresh on /, 'an empty paid plan did not say when it fills again');
+    // F911: an empty paid plan says when it fills again, in the words every screen uses.
+    assert.deepEqual(none?.lines, [`Fresh minutes on ${dayAndMonth(new Date(NOW + 3 * DAY).toISOString())}.`, 'Until then, practise offline.']);
   });
 
   test('a period already over says about now, rather than a date in the past', () => {

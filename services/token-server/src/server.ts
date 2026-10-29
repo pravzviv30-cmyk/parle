@@ -102,6 +102,7 @@ import {
   privateSignal,
   type RateLimitRule,
 } from './rateLimit.ts';
+import { refusalRefillsAt } from './refusalRefill.ts';
 
 const guestStore = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? new RedisGuestStore(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN) : new MemoryGuestStore();
@@ -293,12 +294,6 @@ async function withinLimits(
     { 'retry-after': String(refused.retryAfterSec) },
   );
   return false;
-}
-
-/** When a spent free conversation comes back, as ISO, or undefined when core does not know. */
-function refusalRefillsAt(entitlement: Entitlement): string | undefined {
-  const decision = canStartSession(entitlement);
-  return !decision.allowed && decision.refillsAt ? decision.refillsAt.toISOString() : undefined;
 }
 
 /**
@@ -784,7 +779,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         if (reservation.kind === 'refused') {
           const status = ['exhausted', 'insufficient-for-session', 'subscription-lapsed'].includes(reservation.reason)
             ? 402 : reservation.reason === 'session-active' ? 409 : 503;
-          const refillsAt = status === 402 ? refusalRefillsAt(entitlement) : undefined;
+          const refillsAt = status === 402 ? refusalRefillsAt(reservation.reason, entitlement) : undefined;
           return json(res, status, { error: reservation.reason, message: refusalMessage(reservation.reason, entitlement), ...(refillsAt ? { refillsAt } : {}), plans: PLANS });
         }
         admitted = reservation;
