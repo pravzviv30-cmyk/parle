@@ -17,7 +17,7 @@ test('Explore is a tab and advertises real conversation ideas instead of opening
   assert.match(navigator, /<Stack\.Screen name="ExploreCollection" component=\{ExploreCollectionScreen\} \/>/);
   assert.match(bar, /Explore: 'Explore'/, 'the Explore tab has no word under its glyph');
   assert.match(explore, /suggestions\.ideas\.map\(idea =>/);
-  assert.match(explore, /conversation\.start\(\{ seedTopic: \{ fr: idea\.fr, en: idea\.en \} \}\)/,
+  assert.match(explore, /conversation\.start\(\{ seedTopic: seedOf\(idea\) \}\)/,
     'the named conversation idea must carry its own topic to the tutor');
 });
 

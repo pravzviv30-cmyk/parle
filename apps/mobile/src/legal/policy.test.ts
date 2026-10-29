@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { LEGAL_REVIEW_PENDING, companyFrom, privacyNote } from './company.ts';
+import { COMPANY, LEGAL_REVIEW_PENDING, companyFrom, legalReviewNoteShown, privacyNote } from './company.ts';
 import { POLICY_COPY, POLICY_INTRO, POLICY_SECTIONS, POLICY_TITLE, policyCopy, policySections } from './policy.ts';
 import { APPLE_EULA_URL, TERMS_BODY, TERMS_COPY, TERMS_SUBSCRIPTIONS, TERMS_SUBSCRIPTIONS_HEADING, TERMS_TITLE } from './terms.ts';
 
@@ -960,10 +960,14 @@ describe('the privacy notice — F479', () => {
   test('the screen says a review is still owed until it is not', () => {
     // One sentence, in one module, quoted by both surfaces that carry it. When
     // a lawyer has read the documents it is deleted once, and both stop saying
-    // it in the same commit.
-    assert.ok(POLICY_COPY.includes(LEGAL_REVIEW_PENDING), 'the notice stopped saying a review is still required');
-    assert.equal(POLICY_SECTIONS.at(-1)?.body.at(-1), LEGAL_REVIEW_PENDING, 'the sentence moved off the end');
-    assert.ok(privacyNote().includes(LEGAL_REVIEW_PENDING), 'the Settings note stopped saying it');
+    // it in the same commit. Development and staging builds show it; a
+    // production build never does (founder decision 24, F929).
+    const shown = policySections(COMPANY, true);
+    assert.ok(shown.flatMap((s) => s.body).includes(LEGAL_REVIEW_PENDING), 'the notice stopped saying a review is still required');
+    assert.equal(shown.at(-1)?.body.at(-1), LEGAL_REVIEW_PENDING, 'the sentence moved off the end');
+    assert.ok(privacyNote(COMPANY, true).includes(LEGAL_REVIEW_PENDING), 'the Settings note stopped saying it');
+    // An unset profile (tests, local web) is not a release, so it shows.
+    assert.ok(POLICY_COPY.includes(LEGAL_REVIEW_PENDING));
     assert.doesNotMatch(
       source('policy.ts'),
       /Our privacy policy and terms still need legal review/,
@@ -971,6 +975,20 @@ describe('the privacy notice — F479', () => {
     );
     // Accurate is not cleared, and the notice must not imply that it is.
     assert.doesNotMatch(WHOLE, /reviewed by (a )?(lawyer|solicitor|counsel)/i, 'the notice claims a review it has not had');
+  });
+
+  test('released builds show no internal legal review note', () => {
+    assert.equal(legalReviewNoteShown('production'), false);
+    for (const profile of ['development', 'staging', undefined, '']) assert.equal(legalReviewNoteShown(profile), true, String(profile));
+    const released = policySections(COMPANY, false);
+    assert.ok(!released.flatMap((s) => [s.heading, ...s.body]).includes(LEGAL_REVIEW_PENDING), 'the notice tells a released app\'s learner about an internal review');
+    assert.ok(released.every((s) => s.body.length > 0), 'a section went empty without the sentence');
+    assert.ok(!privacyNote(COMPANY, false).includes(LEGAL_REVIEW_PENDING), 'Settings tells a released app\'s learner about an internal review');
+    assert.match(privacyNote(COMPANY, false), /delete your account here\.$|You can reach us at/);
+    // The profile is read the way Expo inlines it: one static access.
+    assert.match(source('company.ts'), /process\.env\.EXPO_PUBLIC_LUVANI_BUILD_PROFILE/);
+    const eas = JSON.parse(readFileSync(new URL('../../eas.json', import.meta.url), 'utf8')) as { build: Record<string, { env: Record<string, string> }> };
+    for (const profile of ['development', 'staging', 'production']) assert.equal(eas.build[profile]!.env.EXPO_PUBLIC_LUVANI_BUILD_PROFILE, profile);
   });
 
   test("the terms screen names apple's licence rather than reproducing it", () => {

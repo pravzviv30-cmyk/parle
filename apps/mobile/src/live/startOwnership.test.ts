@@ -262,6 +262,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     guestToken: undefined,
     setPartialTranscript: () => {},
     confirmedIds: {current: new Set()},
+    roleShownRef: {current: false},
     startGenRef,
     roomRef,
     leaseRef,

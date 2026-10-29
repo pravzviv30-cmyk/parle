@@ -82,17 +82,30 @@ export function micAfterAsk(state: { opened: boolean; askedFor: string | null; n
  * garbage string. It is written as JSON and read back here, and anything that
  * is not exactly a French and an English string is dropped, never sent.
  */
-export function stringifySeedTopic(topic: { fr: string; en: string }): string {
+/**
+ * A conversation's topic. `fr`/`en` are a short title the room shows and the
+ * tutor says; `brief` is tutor-only instructions, never shown or spoken
+ * (F929, tutor-agent `validSeedTopic`).
+ */
+export interface SeedTopic { fr: string; en: string; brief?: string }
+
+/** An idea's seed: its title, and its instructions as the tutor-only brief (F929). */
+export function seedOf(idea: SeedTopic): SeedTopic {
+  return idea.brief === undefined ? { fr: idea.fr, en: idea.en } : { fr: idea.fr, en: idea.en, brief: idea.brief };
+}
+
+/** The brief stays out of the address: it is for the tutor, not the address bar. */
+export function stringifySeedTopic(topic: SeedTopic): string {
   return JSON.stringify({ fr: topic.fr, en: topic.en });
 }
 
-export function parseSeedTopic(value: unknown): { fr: string; en: string } | undefined {
+export function parseSeedTopic(value: unknown): SeedTopic | undefined {
   let candidate: unknown = value;
   if (typeof value === 'string') {
     try { candidate = JSON.parse(value); } catch { return undefined; }
   }
   if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) return undefined;
-  const { fr, en } = candidate as { fr?: unknown; en?: unknown };
+  const { fr, en, brief } = candidate as { fr?: unknown; en?: unknown; brief?: unknown };
   if (typeof fr !== 'string' || typeof en !== 'string' || fr.trim() === '' || en.trim() === '') return undefined;
-  return { fr, en };
+  return typeof brief === 'string' && brief.trim() !== '' ? { fr, en, brief } : { fr, en };
 }

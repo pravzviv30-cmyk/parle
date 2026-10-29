@@ -13,6 +13,7 @@
  * Prepare's lock comes only from `access/featureAccess.ts`.
  */
 
+import { seedOf } from '../tutor/convoStart.ts';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -131,7 +132,7 @@ export function ExploreTab() {
             line={`Live with ${tutorName}, picked for you`}
             ideas={suggestions.ideas.map(idea => ({ key: idea.fr, title: idea.title, detail: idea.fr, french: true }))}
             disabled={conversation.checking}
-            onIdea={key => { const idea = suggestions.ideas.find(i => i.fr === key); if (idea) conversation.start({ seedTopic: { fr: idea.fr, en: idea.en } }); }}
+            onIdea={key => { const idea = suggestions.ideas.find(i => i.fr === key); if (idea) conversation.start({ seedTopic: seedOf(idea) }); }}
           />}
 
           {shown('practice') && <View style={st.stack}>

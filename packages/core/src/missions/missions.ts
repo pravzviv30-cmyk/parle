@@ -99,6 +99,12 @@ export interface Mission {
   learnerRole: string;
   /** Who the tutor plays. Plain English, one clause. */
   tutorRole: string;
+  /**
+   * The same character, short enough to sit in one line after "plays":
+   * "Karim, the barista". Data, not a parse of `tutorRole`, because the long
+   * clause runs on in a different shape in nearly every mission (F942).
+   */
+  tutorPart: string;
   /** The can-do outcome, in the learner's language. */
   goalEn: string;
   /**
@@ -142,6 +148,11 @@ export interface Mission {
    * lines and no others.
    */
   referencePhrases: readonly string[];
+  /**
+   * The English of each reference phrase, index for index, so a line to try
+   * is never French alone (F943). Display only: scoring reads the French.
+   */
+  referencePhrasesEn: readonly string[];
   /** The `AUTHORED_PATH` unit that practises this mission's phrases. */
   pathUnitId: string;
 }
@@ -405,6 +416,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A0',
     learnerRole: 'A customer ordering a coffee at the counter.',
     tutorRole: 'Karim, the barista working the counter.',
+    tutorPart: 'Karim, the barista',
     goalEn: 'Order a coffee, say you will have it here, and pay.',
     winEn: 'The coffee is on the counter, and you ordered it yourself.',
     canDoEn: 'Order a coffee at the counter',
@@ -420,6 +432,7 @@ export const MISSIONS: readonly Mission[] = [
       "Sur place, au comptoir, s'il vous plaît",
       'Je vous dois combien ?',
     ],
+    referencePhrasesEn: ["Hello, I'll have a coffee", 'Here, at the counter, please', 'How much do I owe you?'],
     pathUnitId: 'cafe',
   },
   {
@@ -430,6 +443,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A0',
     learnerRole: 'A customer ordering a coffee and something to eat.',
     tutorRole: 'Karim, the barista working the counter.',
+    tutorPart: 'Karim, the barista',
     goalEn: 'Order a drink and something to eat, then pay and leave.',
     winEn: 'Et voilà. You just ordered a coffee, start to finish.',
     canDoEn: 'Order food and drink, then pay',
@@ -443,6 +457,7 @@ export const MISSIONS: readonly Mission[] = [
       'phrase:bonne journée !',
     ],
     referencePhrases: ["Bonjour, un café s'il vous plaît", 'Je peux payer par carte ?', 'Bonne journée !'],
+    referencePhrasesEn: ['Hello, a coffee please', 'Can I pay by card?', 'Have a good day!'],
     pathUnitId: 'cafe',
   },
   {
@@ -453,6 +468,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A0',
     learnerRole: 'A traveller arriving to check into a small family hotel.',
     tutorRole: 'Martine, the owner who checks you in and hands you the key.',
+    tutorPart: 'Martine, the hotel owner',
     goalEn: 'Check in at a small hotel and ask one thing about your stay.',
     winEn: 'You checked in, asked your question, and walked off with the key in your hand.',
     canDoEn: 'Check in and ask one question',
@@ -475,6 +491,7 @@ export const MISSIONS: readonly Mission[] = [
       'Le petit déjeuner, c\'est à quelle heure ?',
       'Je vous remercie',
     ],
+    referencePhrasesEn: ['Good evening, I have a booking', 'What time is breakfast?', 'Thank you'],
     pathUnitId: 'hotel',
   },
   {
@@ -485,6 +502,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'A shopper buying tomatoes at a market stall.',
     tutorRole: 'Corinne, the stallholder who weighs and bags whatever you ask for.',
+    tutorPart: 'Corinne, the stallholder',
     goalEn: 'Buy produce at a market stall: how much, which ones, and what it comes to.',
     winEn: 'You asked the price, chose the tomatoes yourself, and knew what it came to before you handed anything over.',
     canDoEn: 'Ask the price and choose',
@@ -510,6 +528,7 @@ export const MISSIONS: readonly Mission[] = [
       'Ça fait combien ?',
       'Merci, bon week-end !',
     ],
+    referencePhrasesEn: ['Those ones, please', "It's for tonight", 'How much is that?', 'Thanks, have a good weekend!'],
     pathUnitId: 'marche',
   },
   {
@@ -520,6 +539,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'Someone on foot who has come up out of the Metro and cannot find the train station.',
     tutorRole: 'Sylvie, a passerby walking her dog, who slows down when you ask.',
+    tutorPart: 'Sylvie, a passerby',
     goalEn: 'Stop a stranger, ask the way, and understand the answer you get back.',
     winEn: 'You stopped a stranger in the street, asked the way, and understood what she told you.',
     canDoEn: 'Ask the way and follow the answer',
@@ -543,6 +563,7 @@ export const MISSIONS: readonly Mission[] = [
       'C\'est à gauche ou à droite ?',
       'D\'accord, je vois',
     ],
+    referencePhrasesEn: ['More slowly, please', 'Is it left or right?', 'OK, I see'],
     pathUnitId: 'chemin',
   },
   {
@@ -553,6 +574,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'A friend home at the end of the day.',
     tutorRole: 'Nadia, a friend from the flat downstairs.',
+    tutorPart: 'Nadia, a friend downstairs',
     goalEn: 'Tell a friend how your day went, and ask about theirs.',
     winEn: 'You told a friend how your day went, and then you asked about hers. That is a catch-up, not an exercise.',
     canDoEn: 'Say how your day went, ask about theirs',
@@ -576,6 +598,7 @@ export const MISSIONS: readonly Mission[] = [
       'Ça a été',
       'Et toi, ta journée ?',
     ],
+    referencePhrasesEn: ['It was fine', 'And you, how was your day?'],
     pathUnitId: 'journee',
   },
   {
@@ -586,6 +609,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'One of the friends, just arrived.',
     tutorRole: 'Chloé and Sami, old friends of yours.',
+    tutorPart: 'Chloé and Sami, old friends',
     goalEn: 'Say how your week went, make a plan, and raise a glass.',
     winEn: 'That was a whole evening with friends, in French.',
     canDoEn: 'Make a plan with friends',
@@ -600,6 +624,7 @@ export const MISSIONS: readonly Mission[] = [
       'phrase:santé !',
     ],
     referencePhrases: ['Salut ! Ça va ?', 'On fait quoi samedi ?'],
+    referencePhrasesEn: ['Hi! How are you?', 'What are we doing on Saturday?'],
     pathUnitId: 'amis',
   },
   {
@@ -612,6 +637,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'Someone stopping at a bistro door in the afternoon to book a table for tonight.',
     tutorRole: 'Hélène, the bistro owner, setting up the terrace before evening service.',
+    tutorPart: 'Hélène, the bistro owner',
     goalEn: 'Book a table for two tonight: the time, the name, and where you sit.',
     winEn: 'A table for two is waiting tonight, and the booking is in your name.',
     canDoEn: 'Book a table for tonight',
@@ -628,6 +654,7 @@ export const MISSIONS: readonly Mission[] = [
       "En terrasse, si c'est possible",
       'À ce soir, alors',
     ],
+    referencePhrasesEn: ['Hello, do you have a table for two tonight?', 'On the terrace, if possible', 'See you tonight, then'],
     pathUnitId: 'restaurant',
   },
   {
@@ -638,6 +665,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'Someone with a sore throat asking a pharmacist for something to take.',
     tutorRole: 'Thomas, the pharmacist, who asks a question before he hands anything over.',
+    tutorPart: 'Thomas, the pharmacist',
     goalEn: 'Say what hurts and since when, find out how to take what you are given, and pay.',
     winEn: 'Thomas knows what hurts, you know how to take it, and the box is in your pocket.',
     canDoEn: 'Ask a pharmacist for help',
@@ -654,6 +682,7 @@ export const MISSIONS: readonly Mission[] = [
       'Depuis hier soir',
       'Je le prends combien de fois par jour ?',
     ],
+    referencePhrasesEn: ['Hello, I have a sore throat', 'Since last night', 'How many times a day do I take it?'],
     pathUnitId: 'pharmacie',
   },
   {
@@ -665,6 +694,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'A traveller buying a return ticket to Lyon at the station desk.',
     tutorRole: 'Julien, the agent at the ticket desk.',
+    tutorPart: 'Julien, the ticket agent',
     goalEn: 'Buy a return ticket, pick a train, and find out which platform it leaves from.',
     winEn: 'Ticket bought, train chosen, platform found. Off you go.',
     canDoEn: 'Buy a ticket and find your train',
@@ -677,6 +707,7 @@ export const MISSIONS: readonly Mission[] = [
       "phrase:c'est un train direct ?",
     ],
     referencePhrases: ['Le prochain train part à quelle heure ?', "C'est un train direct ?"],
+    referencePhrasesEn: ['What time does the next train leave?', 'Is it a direct train?'],
     pathUnitId: 'gare',
   },
   {
@@ -687,6 +718,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'A customer collecting a parcel from the pickup point in a corner shop.',
     tutorRole: 'Sandrine, who runs the tabac-presse and its parcel shelf.',
+    tutorPart: 'Sandrine, at the parcel shop',
     goalEn: 'Say you are here for a parcel, give the name and code, show ID, and check it is yours.',
     winEn: 'The parcel came out from the back room, and it left the shop with you.',
     canDoEn: 'Collect a parcel at the counter',
@@ -703,6 +735,7 @@ export const MISSIONS: readonly Mission[] = [
       "Voilà ma pièce d'identité",
       "Oui, c'est bien ça, merci",
     ],
+    referencePhrasesEn: ["Hello, I've come to collect a parcel", "Here's my ID", "Yes, that's right, thanks"],
     pathUnitId: 'colis',
   },
   {
@@ -713,6 +746,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A1',
     learnerRole: 'Someone who has just moved into the building, carrying the last boxes upstairs.',
     tutorRole: 'Monique, the retired neighbour across the landing, who knows everyone.',
+    tutorPart: 'Monique, the neighbour',
     goalEn: 'Introduce yourself to a neighbour, chat about the area, and get one good tip.',
     winEn: 'Monique knows who lives on the third floor now, and you know where the good bread is.',
     canDoEn: 'Introduce yourself to a neighbour',
@@ -728,6 +762,7 @@ export const MISSIONS: readonly Mission[] = [
       'Vous habitez ici depuis longtemps ?',
       'Bonne soirée, à bientôt',
     ],
+    referencePhrasesEn: ['Have you lived here long?', 'Have a good evening, see you soon'],
     pathUnitId: 'voisin',
   },
   {
@@ -740,6 +775,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone who works in the office, getting a coffee before the first meeting on a Monday.',
     tutorRole: 'Lucas, a colleague from the next desk, chatty at the coffee machine.',
+    tutorPart: 'Lucas, a colleague',
     goalEn: 'Say what you did at the weekend, add a detail, then ask about his and react.',
     winEn: 'Lucas heard about your Saturday, and you heard all about his.',
     canDoEn: 'Say what you did at the weekend',
@@ -752,6 +788,7 @@ export const MISSIONS: readonly Mission[] = [
       "phrase:bon, j'y retourne",
     ],
     referencePhrases: ["On a mangé au resto, c'était top", "Bon, j'y retourne"],
+    referencePhrasesEn: ['We ate out, it was great', 'Right, back to it'],
     pathUnitId: 'week-end',
   },
   {
@@ -762,6 +799,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone starting a new job today, meeting the team manager for the first time.',
     tutorRole: 'Isabelle, the team manager, who starts with vous and offers tu.',
+    tutorPart: 'Isabelle, the team manager',
     goalEn: 'Say who you are and what you did before, accept tu, and ask one practical thing.',
     winEn: 'Isabelle switched to tu, and you know where the team eats at lunchtime.',
     canDoEn: 'Introduce yourself at work',
@@ -778,6 +816,7 @@ export const MISSIONS: readonly Mission[] = [
       'Avant, je travaillais dans une banque',
       'Tu peux me montrer la cantine ?',
     ],
+    referencePhrasesEn: ["Hello, I'm starting on the team today", 'Before, I worked in a bank', 'Can you show me the canteen?'],
     pathUnitId: 'collegues',
   },
   {
@@ -789,6 +828,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone phoning a GP practice to book an appointment for a cough.',
     tutorRole: 'Nathalie, the practice secretary, who spells and repeats on request.',
+    tutorPart: 'Nathalie, the practice secretary',
     goalEn: 'Say why you are calling, settle on a slot, spell your name, and repeat the time back.',
     winEn: 'The appointment is booked, and the name on it is spelled right.',
     canDoEn: 'Book an appointment by phone',
@@ -805,6 +845,7 @@ export const MISSIONS: readonly Mission[] = [
       'Vous auriez quelque chose plus tôt ?',
       "Je vous l'épelle",
     ],
+    referencePhrasesEn: ["Hello, I'd like to make an appointment", 'Would you have anything earlier?', "I'll spell it for you"],
     pathUnitId: 'telephone',
   },
   {
@@ -815,6 +856,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'A patient with a cough that has lasted a week, keeping the appointment booked by phone.',
     tutorRole: 'Dr Benali, the GP, who listens first and asks one question at a time.',
+    tutorPart: 'Dr Benali, the GP',
     goalEn: 'Say what the trouble is and since when, answer her questions, and ask how long to take the treatment.',
     winEn: 'Dr Benali knows what the trouble is, and you know how long to take the treatment.',
     canDoEn: 'Explain your symptoms to a doctor',
@@ -831,6 +873,7 @@ export const MISSIONS: readonly Mission[] = [
       'Depuis la semaine dernière',
       'Je dois le prendre pendant combien de temps ?',
     ],
+    referencePhrasesEn: ['I cough a lot, especially at night', 'Since last week', 'How long do I need to take it for?'],
     pathUnitId: 'medecin',
   },
   {
@@ -841,6 +884,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'A customer bringing back a kettle that stopped working after two days.',
     tutorRole: 'Mehdi, the sales assistant at the returns counter, who offers a credit note first.',
+    tutorPart: 'Mehdi, the sales assistant',
     goalEn: 'Explain the problem, show the receipt, ask for a refund, and insist politely if you need to.',
     winEn: 'The kettle went back on the shelf, and the money went back on your card.',
     canDoEn: 'Return something that does not work',
@@ -857,6 +901,7 @@ export const MISSIONS: readonly Mission[] = [
       'Je préfère un remboursement',
       "C'est possible de voir avec un responsable ?",
     ],
+    referencePhrasesEn: ['I kept the receipt', "I'd prefer a refund", 'Could I check with a manager?'],
     pathUnitId: 'retour',
   },
   {
@@ -867,6 +912,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone looking for a flat to rent, at a viewing with the letting agent.',
     tutorRole: 'Céline, the letting agent, brisk and friendly, with a busy morning of viewings.',
+    tutorPart: 'Céline, the letting agent',
     goalEn: 'Ask about the rent and the flat, when it is free, and what the application needs.',
     winEn: 'Céline has answered every question, and you know what goes in the file.',
     canDoEn: 'Ask the right questions about a flat',
@@ -883,6 +929,7 @@ export const MISSIONS: readonly Mission[] = [
       'Il est libre à partir de quand ?',
       "Qu'est-ce qu'il faut pour le dossier ?",
     ],
+    referencePhrasesEn: ['Does the rent include charges?', 'When is it free from?', 'What do I need for the application?'],
     pathUnitId: 'appartement',
   },
   {
@@ -893,6 +940,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: "Someone meeting their partner's parents for dinner for the first time.",
     tutorRole: "Françoise and Bernard, your partner's parents, both on vous.",
+    tutorPart: "Françoise and Bernard, your partner's parents",
     goalEn: 'Arrive with a gift, answer their questions, compliment the food, talk about plans, and thank them.',
     winEn: 'Françoise wrapped up some cake for later, and Bernard walked you both to the door.',
     canDoEn: "Have dinner with your partner's family",
@@ -909,6 +957,7 @@ export const MISSIONS: readonly Mission[] = [
       "C'est délicieux, c'est vous qui l'avez fait ?",
       'Merci beaucoup pour cette soirée',
     ],
+    referencePhrasesEn: ['Good evening! Here, this is for you', "It's delicious, did you make it?", 'Thank you so much for this evening'],
     pathUnitId: 'belle-famille',
   },
   {
@@ -921,6 +970,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone new to the area, signing up for a weekly class at the local community centre.',
     tutorRole: 'Sophie, at the welcome desk of the maison de quartier, who knows every timetable by heart.',
+    tutorPart: 'Sophie, at the welcome desk',
     goalEn: 'Say which class you want, ask the times, the price and what to bring, then sign up.',
     winEn: 'Sophie has put your name down, and you know what to bring along.',
     canDoEn: 'Sign up for a class',
@@ -937,6 +987,7 @@ export const MISSIONS: readonly Mission[] = [
       "On peut faire un cours d'essai ?",
       "Qu'est-ce qu'il faut apporter ?",
     ],
+    referencePhrasesEn: ['Which day is it, and what time?', 'Can I do a trial class?', 'What do I need to bring?'],
     pathUnitId: 'club',
   },
   {
@@ -948,6 +999,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone who has just moved to France, opening a bank account at a local branch.',
     tutorRole: 'Antoine, a bank adviser, polite and precise, who goes through each document in turn.',
+    tutorPart: 'Antoine, the bank adviser',
     goalEn: 'Say you want an account and that you just moved, ask what documents and when the card comes, then book the next step.',
     winEn: 'Your next appointment is booked, and you know exactly which papers to bring.',
     canDoEn: 'Ask to open a bank account',
@@ -964,6 +1016,7 @@ export const MISSIONS: readonly Mission[] = [
       'Vous avez besoin de quels documents ?',
       'Et la carte bancaire, je la reçois quand ?',
     ],
+    referencePhrasesEn: ["Hello, I'd like to open an account", 'Which documents do you need?', 'And the bank card, when will I get it?'],
     pathUnitId: 'banque',
   },
   {
@@ -974,6 +1027,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone phoning a friend to plan an evening at the cinema.',
     tutorRole: 'Léa, a friend, chatty on the phone, whose week is already half full.',
+    tutorPart: 'Léa, a friend',
     goalEn: 'Suggest going out, turn down a day and offer another, then agree on a time and a place.',
     winEn: 'Léa has the evening in her diary, and so do you.',
     canDoEn: 'Make plans with a friend on the phone',
@@ -986,6 +1040,7 @@ export const MISSIONS: readonly Mission[] = [
       "phrase:t'es libre samedi soir ?",
     ],
     referencePhrases: ['On se fait un ciné ?', 'On se retrouve devant le cinéma ?'],
+    referencePhrasesEn: ['Shall we go to the cinema?', 'Shall we meet outside the cinema?'],
     pathUnitId: 'sortie',
   },
   {
@@ -997,6 +1052,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone who has just arrived in Montréal, buying a first real winter coat.',
     tutorRole: 'Marc-André, a sales assistant in a Montréal clothing shop, warm and quick.',
+    tutorPart: 'Marc-André, the sales assistant',
     goalEn: 'Say what you are looking for, ask for your size, try it on and say how it fits, ask the price, and decide.',
     winEn: 'The coat fits, the taxes were no surprise at the till, and winter can come now.',
     canDoEn: 'Shop for a winter coat',
@@ -1013,6 +1069,7 @@ export const MISSIONS: readonly Mission[] = [
       "Vous l'avez dans une plus grande taille ?",
       'Il coûte combien, avec les taxes ?',
     ],
+    referencePhrasesEn: ["Hello, I'm looking for a winter coat", 'Do you have it in a bigger size?', 'How much is it, with tax?'],
     pathUnitId: 'montreal',
   },
   {
@@ -1023,6 +1080,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: 'Someone a few weeks into a new job, stuck on booking a meeting room in the office software.',
     tutorRole: 'Inès, a colleague in the open space, patient and quick with the office tools.',
+    tutorPart: 'Inès, a colleague',
     goalEn: 'Ask if she has a minute, explain what you are trying to do, ask her to show you, and check you understood.',
     winEn: 'Inès showed you once, and the next time you can manage on your own.',
     canDoEn: 'Ask a colleague to show you how, and check you followed',
@@ -1038,6 +1096,7 @@ export const MISSIONS: readonly Mission[] = [
       'Tu peux me montrer comment tu fais ?',
       "Si j'ai bien compris, il faut d'abord choisir la date",
     ],
+    referencePhrasesEn: ['Can you show me how you do it?', "If I've understood, you choose the date first"],
     pathUnitId: 'coup-de-main',
   },
   {
@@ -1049,6 +1108,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'A2',
     learnerRole: "Someone at their partner's sister's birthday party, meeting part of the family for the first time.",
     tutorRole: "Manon, your partner's sister, and Maxime, a cousin, both on tu from the start.",
+    tutorPart: "Manon and Maxime, your partner's family",
     goalEn: 'Wish her happy birthday, say how you met your partner, chat with a cousin, accept more cake, and say goodbye.',
     winEn: 'Manon opened your present first, and Maxime wants the whole story of how you two met.',
     canDoEn: "Celebrate a birthday with your partner's family",
@@ -1064,6 +1124,7 @@ export const MISSIONS: readonly Mission[] = [
       "Joyeux anniversaire ! C'est pour toi",
       "On s'est rencontrés par des amis",
     ],
+    referencePhrasesEn: ['Happy birthday! This is for you', 'We met through friends'],
     pathUnitId: 'anniversaire',
   },
   {
@@ -1076,6 +1137,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'B1',
     learnerRole: 'A tenant phoning the landlord about a leak under the kitchen sink.',
     tutorRole: 'Patrick, the landlord, calm on the phone, who wants the facts before he sends anyone.',
+    tutorPart: 'Patrick, the landlord',
     goalEn: 'Explain the leak, say since when and what you tried, say what it is damaging, then agree when a plumber can come.',
     winEn: 'Patrick is sending a plumber, and the bucket under the sink can go back in the cupboard.',
     canDoEn: 'Report a problem in your home',
@@ -1092,6 +1154,7 @@ export const MISSIONS: readonly Mission[] = [
       "Ça a commencé hier soir, et j'ai coupé l'eau",
       'Un plombier pourrait passer quand ?',
     ],
+    referencePhrasesEn: ["There's a leak under the kitchen sink", 'It started last night, and I turned off the water', 'When could a plumber come?'],
     pathUnitId: 'fuite',
   },
   {
@@ -1103,6 +1166,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'B1',
     learnerRole: 'Someone coming out of the cinema with a friend, over a drink next door.',
     tutorRole: 'Yasmine, a friend who loves films and enjoys a friendly argument about them.',
+    tutorPart: 'Yasmine, a friend',
     goalEn: 'Give your opinion and say why, add a nuance, agree or disagree politely, and suggest what to see next.',
     winEn: 'Yasmine half agrees with you, and the next film is your pick.',
     canDoEn: 'Say what you thought of a film, and why',
@@ -1115,6 +1179,7 @@ export const MISSIONS: readonly Mission[] = [
       "phrase:je suis pas tout à fait d'accord",
     ],
     referencePhrases: ["À mon avis, c'était vraiment réussi", "Ce qui m'a plu, c'est l'histoire"],
+    referencePhrasesEn: ['In my opinion, it was really good', 'What I liked was the story'],
     pathUnitId: 'avis',
   },
   {
@@ -1126,6 +1191,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'B1',
     learnerRole: 'Someone telling a friend over a drink about a weekend where everything went sideways.',
     tutorRole: 'Hugo, a friend, a great listener who always has a worse story of his own.',
+    tutorPart: 'Hugo, a friend',
     goalEn: 'Set the scene, say what happened and how you reacted, say how it ended, then react to his story.',
     winEn: 'Hugo laughed at the train part, then told you his own disaster.',
     canDoEn: 'Tell a friend a story from start to finish',
@@ -1142,6 +1208,7 @@ export const MISSIONS: readonly Mission[] = [
       'Et là, le train a été annulé',
       "Finalement, j'ai dormi chez des amis",
     ],
+    referencePhrasesEn: ['It was raining, and I was at the station', 'And then the train was cancelled', "In the end, I slept at some friends' place"],
     pathUnitId: 'galere',
   },
   {
@@ -1154,6 +1221,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'B1',
     learnerRole: 'Someone a few months into the job, asking their manager about working from home.',
     tutorRole: 'Isabelle, the team manager from the first day, open to it but worried about team meetings.',
+    tutorPart: 'Isabelle, the team manager',
     goalEn: 'Ask for a moment, make the request, give your reasons, answer her concern, and agree on a next step.',
     winEn: 'Isabelle said yes to a trial, and the team calendar already shows your home days.',
     canDoEn: 'Ask your manager for something politely',
@@ -1170,6 +1238,7 @@ export const MISSIONS: readonly Mission[] = [
       "À la maison, j'arrive mieux à me concentrer",
       "Pour les réunions d'équipe, je serais toujours là",
     ],
+    referencePhrasesEn: ['Would it be possible to work from home?', 'At home, I can concentrate better', "For team meetings, I'd always be there"],
     pathUnitId: 'teletravail',
   },
   {
@@ -1182,6 +1251,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'B1',
     learnerRole: "Someone spending an afternoon with their partner's grandmother, over coffee and old photos.",
     tutorRole: "Jeannine, your partner's grandmother, who says tu to you and loves to tell stories.",
+    tutorPart: "Jeannine, your partner's grandmother",
     goalEn: 'Say where you grew up and what it was like, ask about her youth, compare then and now, and thank her.',
     winEn: 'Jeannine brought out the old photo album, and wants you back for Sunday lunch.',
     canDoEn: "Share memories with your partner's grandmother",
@@ -1197,6 +1267,7 @@ export const MISSIONS: readonly Mission[] = [
       "J'ai grandi dans une petite ville au bord de la mer",
       "Quand j'étais enfant, on jouait dehors tout le temps",
     ],
+    referencePhrasesEn: ['I grew up in a small town by the sea', 'When I was a child, we played outside all the time'],
     pathUnitId: 'souvenirs',
   },
   {
@@ -1208,6 +1279,7 @@ export const MISSIONS: readonly Mission[] = [
     cefr: 'B1',
     learnerRole: 'A candidate in a first interview for a job in a French company.',
     tutorRole: 'Claire Lefèvre, a recruiter, friendly but precise, who listens for examples.',
+    tutorPart: 'Claire Lefèvre, the recruiter',
     goalEn: 'Sum up your background, say why this job, give an example of a strength, ask about the role, and close.',
     winEn: 'Claire Lefèvre walked you to the lift and promised news by the end of the week.',
     canDoEn: 'Talk about yourself in a job interview',
@@ -1224,6 +1296,7 @@ export const MISSIONS: readonly Mission[] = [
       "Mon point fort, c'est l'organisation",
       "J'aimerais savoir à quoi ressemble une journée type",
     ],
+    referencePhrasesEn: ['I worked for several years in sales', 'My strong point is organisation', "I'd like to know what a typical day looks like"],
     pathUnitId: 'entretien',
   },
 ];

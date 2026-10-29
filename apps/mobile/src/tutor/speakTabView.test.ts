@@ -227,7 +227,7 @@ describe('talk about anything', () => {
     const suggestions = learningSuggestions({ level: 'zero', confidence: null, focus: null } as never);
     const chips = talkChips(suggestions);
     assert.deepEqual(chips.slice(0, -1).map((c) => c.label), suggestions.ideas.map((i) => i.title));
-    for (const [i, idea] of suggestions.ideas.entries()) assert.deepEqual(chips[i]!.params, { seedTopic: { fr: idea.fr, en: idea.en } });
+    for (const [i, idea] of suggestions.ideas.entries()) assert.deepEqual(chips[i]!.params, { seedTopic: { fr: idea.fr, en: idea.en, brief: idea.brief } });
     const own = chips.at(-1)!;
     assert.equal(own.label, OWN_TOPIC);
     assert.equal(own.own, true);
@@ -251,7 +251,7 @@ describe('talk about anything', () => {
     const chips = talkChips(suggestions, { facts, paused: false });
     assert.deepEqual(chips.map((c) => c.label), ['A trip to Lyon', 'Running', 'Cooking Italian food', OWN_TOPIC]);
     assert.equal(MAX_MEMORY_TOPICS, 3);
-    assert.deepEqual(chips[2]!.params.seedTopic, { fr: 'La cuisine italienne', en: 'Talk with me about this: Cooking Italian food' });
+    assert.deepEqual(chips[2]!.params.seedTopic, { fr: 'La cuisine italienne', en: 'Cooking Italian food', brief: 'Talk with me about this: Cooking Italian food' });
     assert.ok(chips.slice(0, -1).every((c) => !c.own));
     for (const idea of suggestions.ideas) assert.ok(!chips.some((c) => c.label === idea.title), 'suggestions show beside remembered topics');
   });
@@ -263,7 +263,7 @@ describe('talk about anything', () => {
     const ideas = suggestions.ideas.map((i) => i.title);
     const dog = talkChips(suggestions, { facts: [fact('interest', '  has a dog ', '2026-10-12T09:00:00Z', 'un chien')], paused: false });
     assert.equal(dog[0]!.label, 'Has a dog');
-    assert.deepEqual(dog[0]!.params.seedTopic, { fr: 'un chien', en: 'Talk with me about this: Has a dog' });
+    assert.deepEqual(dog[0]!.params.seedTopic, { fr: 'un chien', en: 'Has a dog', brief: 'Talk with me about this: Has a dog' });
     for (const fr of [null, '', '   ']) {
       const none = talkChips(suggestions, { facts: [fact('interest', 'has a dog', '2026-10-12T09:00:00Z', fr)], paused: false });
       assert.deepEqual(none.slice(0, -1).map((c) => c.label), ideas, `a fact with French ${JSON.stringify(fr)} became a chip`);
@@ -410,3 +410,53 @@ describe('the copy', () => {
     }
   });
 });
+
+// F929: a free-talk idea's title is what the room shows; its instructions ride
+// to the tutor as the brief, through navigation and into the start body.
+test('a free-talk idea sends its instructions as a brief', async () => {
+  const { parseSeedTopic, stringifySeedTopic } = await import('./convoStart.ts');
+  const { readFileSync } = await import('node:fs');
+  const suggestions = learningSuggestions({ level: 'getby', confidence: 'hesitant', focus: 'speaking' });
+  const chips = talkChips(suggestions);
+  const day = chips[0]!.params.seedTopic!;
+  assert.equal(day.en, 'Your day');
+  assert.match(day.brief!, /^Discuss my day in French\. Ask why things happened and help me connect the details\. Offer an example\.$/);
+  const own = chips.at(-1)!.params.seedTopic!;
+  assert.equal(own.en, 'An open conversation');
+  assert.match(own.brief!, /Talk about anything/);
+  // Navigation keeps the brief in memory; the web address never carries it.
+  assert.deepEqual(parseSeedTopic(day), day);
+  assert.doesNotMatch(stringifySeedTopic(day), /brief|Discuss/);
+  assert.deepEqual(parseSeedTopic(stringifySeedTopic(day)), { fr: day.fr, en: day.en });
+  // Every builder passes the whole seed, and the start body sends it as is.
+  const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+  assert.match(read('../tabs/ExploreTab.tsx'), /seedTopic: seedOf\(idea\)/);
+  assert.doesNotMatch(read('./speakTabView.ts'), /seedTopic: \{ fr: idea\.fr, en: idea\.en \}/);
+  assert.match(read('../live/useLiveSession.ts'), /\.\.\.\(seedTopic !== undefined \? \{ seedTopic \} : \{\}\)/);
+});
+
+// F856: "Recommended" claims a judgement; a pick that is only the next scene
+// on the path says "Next".
+test('Speak heads a path-order pick "Next" and keeps "Recommended" for a pick with a reason', async () => {
+  const { NEXT } = await import('./speakTabView.ts') as { NEXT?: string };
+  assert.equal(NEXT, 'Next');
+  const path = nextConversation(missionStates([], [], NOW), null, false);
+  assert.equal(recommended(path).eyebrow, 'Next', 'the path order is called a recommendation');
+  // A scene the learner left part way is a reason.
+  const resumed = nextConversation(missionStates([], [], NOW), { kind: 'scene', missionId: FIRST_MISSION } as never, false);
+  assert.equal(recommended(resumed).eyebrow, 'Recommended');
+  // A conversation carried on is a reason.
+  assert.equal(recommended({ title: 'Ma journée', body: 'x', minutes: null, params: { seedTopic: {}, continuationPackId: 'p1' } }).eyebrow, 'Recommended');
+  // The goal's own line wins when the goal chose it.
+  assert.equal(recommended({ ...path, picked: 'Picked for your trip' }).eyebrow, 'Picked for your trip');
+});
+
+// F857: a typed session draws on the same allowance, so the chip names it in
+// the words copy/access.ts already uses, true of speaking and typing alike.
+test('the time chip on Speak is worded true of both speaking and typing', async () => {
+  const { USES_SPEAKING_TIME } = await import('./speakTabView.ts');
+  const { LIVE_MINUTES } = await import('../copy/access.ts');
+  assert.doesNotMatch(USES_SPEAKING_TIME, /speak|talk|voice|typ/i);
+  assert.equal(`${USES_SPEAKING_TIME}.`, LIVE_MINUTES);
+});
+

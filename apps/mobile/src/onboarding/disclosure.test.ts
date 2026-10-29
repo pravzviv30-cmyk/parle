@@ -44,7 +44,7 @@ import {
 } from './disclosure.ts';
 import { DEFAULT_TUTOR_PERSONA, TUTOR_NAME } from '../tutor/tutorName.ts';
 import { guiltIn } from '../copy/guilt.ts';
-import { LEGAL_REVIEW_PENDING, privacyNote } from '../legal/company.ts';
+import { COMPANY, LEGAL_REVIEW_PENDING, privacyNote } from '../legal/company.ts';
 import { POLICY_SECTIONS } from '../legal/policy.ts';
 import { TUTOR_VOICES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { PRE_ACCOUNT_PAGES } from './preAccountDraft.ts';
@@ -215,7 +215,8 @@ describe('the first run says what a learner is talking to', () => {
     assert.match(note, /processed by speech and language services for tutor replies and practice/);
     assert.match(note, /control memory, saved conversation text and optional usage data/);
     assert.match(note, /export your data or delete your account/);
-    assert.ok(note.includes(LEGAL_REVIEW_PENDING), 'a concise footer hides the unchecked legal review');
+    assert.ok(privacyNote(COMPANY, true).includes(LEGAL_REVIEW_PENDING), 'a development or staging footer hides the unchecked legal review');
+    assert.ok(!privacyNote(COMPANY, false).includes(LEGAL_REVIEW_PENDING), 'a production footer shows an internal review note');
     assert.doesNotMatch(note, /Nothing is shared with anyone else/, 'the footer denies a sharing that happens every turn');
     assert.doesNotMatch(note, /anyone else/i, 'the footer bounds its recipients by who is not one of them again');
     assert.doesNotMatch(

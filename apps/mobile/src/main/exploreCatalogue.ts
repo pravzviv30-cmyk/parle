@@ -1,4 +1,5 @@
 import { DAILY_SCENARIOS, MISSIONS, type DailyScenario, type Mission } from '@luvani/core';
+import type { SeedTopic } from '../tutor/convoStart.ts';
 import { DAILY_ITEMS, type DailyItem } from '../daily/catalogue.ts';
 import { freeExploreScenarioIds } from '../purchases/exploreAccess.ts';
 
@@ -85,21 +86,22 @@ export function explorePhrases(query: string, topic: ExploreTopic | null, prefer
 }
 
 /** A short search can separately become a tutor topic without losing the search. */
-export function exploreTopicSeed(query: string, topic: ExploreTopic | null): { fr: string; en: string } | null {
+export function exploreTopicSeed(query: string, topic: ExploreTopic | null): SeedTopic | null {
   const text = query.trim();
-  if (text) return text.length <= 90 ? { fr: 'Une conversation à votre façon', en: `Talk with me in French about: ${text}` } : null;
+  // F929: the learner's own words are the title; the instruction is the brief.
+  if (text) return text.length <= 90 ? { fr: 'Une conversation à ta façon', en: text, brief: `Talk with me in French about: ${text}` } : null;
   if (!topic) return null;
-  const topics: Record<ExploreTopic, { fr: string; en: string }> = {
-    food: { fr: 'À table', en: 'Talk with me in French about food, cafés or a meal I enjoyed.' },
-    friends: { fr: 'Entre amis', en: 'Talk with me in French about friends, making plans or a story I want to share.' },
-    travel: { fr: 'En voyage', en: 'Talk with me in French about travelling, getting around or a trip I am planning.' },
-    work: { fr: 'Au travail', en: 'Talk with me in French about my work, studies or an upcoming conversation.' },
-    shops: { fr: 'Au marché', en: 'Help me shop in French, compare choices or explain what I am looking for.' },
-    home: { fr: 'Chez moi', en: 'Talk with me in French about home, my neighbours or something that needs sorting out.' },
-    health: { fr: 'À la pharmacie', en: 'Rehearse a French conversation at a pharmacy, asking clearly for what I need.' },
-    admin: { fr: 'Un rendez-vous', en: 'Rehearse a French appointment or a conversation about paperwork.' },
-    out: { fr: 'Une sortie', en: 'Help me plan an evening out in French and discuss what I would enjoy.' },
-    culture: { fr: 'Un jour de repos', en: 'Talk with me in French about a day off, a book, a film or something I enjoy.' },
+  const topics: Record<ExploreTopic, SeedTopic> = {
+    food: { fr: 'À table', en: 'Food and meals', brief: 'Talk with me in French about food, cafés or a meal I enjoyed.' },
+    friends: { fr: 'Entre amis', en: 'With friends', brief: 'Talk with me in French about friends, making plans or a story I want to share.' },
+    travel: { fr: 'En voyage', en: 'Travelling', brief: 'Talk with me in French about travelling, getting around or a trip I am planning.' },
+    work: { fr: 'Au travail', en: 'At work', brief: 'Talk with me in French about my work, studies or an upcoming conversation.' },
+    shops: { fr: 'Au marché', en: 'At the market', brief: 'Help me shop in French, compare choices or explain what I am looking for.' },
+    home: { fr: 'Chez moi', en: 'At home', brief: 'Talk with me in French about home, my neighbours or something that needs sorting out.' },
+    health: { fr: 'À la pharmacie', en: 'At the pharmacy', brief: 'Rehearse a French conversation at a pharmacy, asking clearly for what I need.' },
+    admin: { fr: 'Un rendez-vous', en: 'An appointment', brief: 'Rehearse a French appointment or a conversation about paperwork.' },
+    out: { fr: 'Une sortie', en: 'A night out', brief: 'Help me plan an evening out in French and discuss what I would enjoy.' },
+    culture: { fr: 'Un jour de repos', en: 'A day off', brief: 'Talk with me in French about a day off, a book, a film or something I enjoy.' },
   };
   return topics[topic];
 }

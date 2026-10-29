@@ -135,6 +135,24 @@ export function companyLine(facts: CompanyFacts = COMPANY): string | null {
 export const LEGAL_REVIEW_PENDING = 'Our privacy policy and terms still need legal review before Luvani can be released.';
 
 /**
+ * Whether this build shows `LEGAL_REVIEW_PENDING` (founder decision 24, F929).
+ *
+ * Development and staging builds say it; a production build never does, since
+ * a released app telling its learners it cannot be released is not true of
+ * the app in their hand. The review itself is tracked on the release checklist
+ * (docs/changes/beta-launch.md), which is what stops a production build until
+ * it is done. Unset (local web, tests) is not a release, so it shows.
+ */
+export function legalReviewNoteShown(profile: string | undefined = bundledBuildProfile()): boolean {
+  return profile !== 'production';
+}
+
+/** Expo inlines EXPO_PUBLIC_* at build time, so this must stay one static access (as in wall/preview.ts). */
+function bundledBuildProfile(): string | undefined {
+  return process.env.EXPO_PUBLIC_LUVANI_BUILD_PROFILE;
+}
+
+/**
  * The short, honest paragraph about what Luvani keeps.
  *
  * It is the footer's four sentences: what is recorded, where live speech goes,
@@ -162,11 +180,11 @@ export const LEGAL_REVIEW_PENDING = 'Our privacy policy and terms still need leg
  * is not, and a new one is a new word here rather than a lie nobody noticed.
  * `policy.test.ts` holds this sentence against the notice's own bound.
  */
-export function privacyNote(facts: CompanyFacts = COMPANY): string {
+export function privacyNote(facts: CompanyFacts = COMPANY, reviewNote: boolean = legalReviewNoteShown()): string {
   const contact = facts.supportEmail === null ? '' : ` You can reach us at ${facts.supportEmail}.`;
   return (
     'Your account stores your email, name, age confirmation and learning. Spoken or typed words are processed by speech and language ' +
     'services for tutor replies and practice. You control memory, saved conversation text and optional usage data. ' +
-    `You can export your data or delete your account here. ${LEGAL_REVIEW_PENDING}${contact}`
+    `You can export your data or delete your account here.${reviewNote ? ` ${LEGAL_REVIEW_PENDING}` : ''}${contact}`
   );
 }

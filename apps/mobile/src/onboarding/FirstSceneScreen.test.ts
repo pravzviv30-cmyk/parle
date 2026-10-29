@@ -5,7 +5,7 @@ import { test } from 'node:test';
 const screen = readFileSync(new URL('./FirstSceneScreen.tsx', import.meta.url), 'utf8');
 
 test('the first scene puts one example before its action and makes the rest optional', () => {
-  assert.match(screen, /mission\.referencePhrases\.slice\(0, 3\)/);
+  assert.match(screen, /referenceLines\(mission, 3\)/);
   assert.match(screen, /lines\.slice\(0, 1\)\.map/);
   assert.match(screen, /showMore && lines\.slice\(1\)\.map/);
   assert.match(screen, /More examples/);

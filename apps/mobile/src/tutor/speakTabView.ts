@@ -13,6 +13,7 @@
  * ask what a locked seam would draw.
  */
 
+import { seedOf, type SeedTopic } from './convoStart.ts';
 import { getMission, type Mission, type MissionLevel, type MissionProgress, type Rung } from '@luvani/core';
 
 import { featureAccess, type FeatureAccess, type LockedFeature } from '../access/featureAccess.ts';
@@ -38,7 +39,10 @@ export const HELP_WORDS: Record<Rung, string> = { 1: 'Line given', 2: 'Choices',
 // ─────────────────────────────────────────────────────────── the recommended card
 
 export const RECOMMENDED = 'Recommended';
-export const USES_SPEAKING_TIME = 'Uses speaking time';
+/** F856: the eyebrow when the pick is only the next scene on the path, with no reason behind it. */
+export const NEXT = 'Next';
+/** F857: a typed session uses the same allowance, so the chip says it as copy/access.ts does (`LIVE_MINUTES`). */
+export const USES_SPEAKING_TIME = 'Uses live minutes';
 /**
  * No estimate exists for the preview itself, so the artboard's "1 min" is not
  * said. The preview's drill lines are free (scenes/scenePreview.ts).
@@ -54,11 +58,13 @@ export interface NextFacts {
   picked?: string | null;
   /** "Included in Max" on a Max-only continuation (F935), drawn in the minutes pill's place. */
   included?: string | null;
+  /** True when nothing chose this but the path's own order (F856). */
+  pathOrder?: boolean;
   params: { missionId?: string; seedTopic?: unknown; continuationPackId?: string };
 }
 
 export interface Recommended {
-  /** The card's eyebrow: the goal line when the goal chose the scene, else "Recommended". */
+  /** The card's eyebrow: the goal line when the goal chose the scene, "Next" for the path's order, else "Recommended". */
   eyebrow: string;
   title: string;
   /** The scene's authored goal, led by a verb, or the thread's own line. */
@@ -72,7 +78,7 @@ export interface Recommended {
 export function recommended(next: NextFacts): Recommended {
   const id = next.params.missionId;
   const mission: Mission | undefined = id === undefined ? undefined : getMission(id);
-  const eyebrow = next.picked ?? RECOMMENDED;
+  const eyebrow = next.picked ?? (next.pathOrder === true ? NEXT : RECOMMENDED);
   if (mission === undefined) return { eyebrow, title: next.title, sentence: next.body, minutes: next.included ?? null, prepare: null };
   return {
     eyebrow,
@@ -293,7 +299,7 @@ export const OWN_TOPIC = 'Your own topic';
 export interface TalkChip {
   label: string;
   own: boolean;
-  params: { seedTopic?: { fr: string; en: string } };
+  params: { seedTopic?: SeedTopic };
 }
 
 /** Personal topics shown at most, before "Your own topic" (the artboard's three). */
@@ -326,13 +332,13 @@ export interface TopicFact {
  * personal topic is invented.
  */
 export function talkChips(
-  suggestions: { ideas: readonly { title: string; fr: string; en: string }[]; freeSeed?: { fr: string; en: string } },
+  suggestions: { ideas: readonly (SeedTopic & { title: string })[]; freeSeed?: SeedTopic },
   memory: { facts: readonly TopicFact[]; paused: boolean } = { facts: [], paused: true },
 ): TalkChip[] {
   const remembered = memory.paused ? [] : memoryTopics(memory.facts);
   const lead = remembered.length > 0
     ? remembered
-    : suggestions.ideas.map((idea) => ({ label: idea.title, own: false, params: { seedTopic: { fr: idea.fr, en: idea.en } } }));
+    : suggestions.ideas.map((idea) => ({ label: idea.title, own: false, params: { seedTopic: seedOf(idea) } }));
   return [
     ...lead,
     { label: OWN_TOPIC, own: true, params: suggestions.freeSeed === undefined ? {} : { seedTopic: suggestions.freeSeed } },
@@ -355,7 +361,8 @@ function memoryTopics(facts: readonly TopicFact[]): TalkChip[] {
     // and English never stands in for it, so a fact with no French is no chip.
     const fr = fact.fr?.trim() ?? '';
     if (fr === '') continue;
-    chips.push({ label, own: false, params: { seedTopic: { fr, en: `Talk with me about this: ${label}` } } });
+    // F929: the label is the title; the request to talk about it is the brief.
+    chips.push({ label, own: false, params: { seedTopic: { fr, en: label, brief: `Talk with me about this: ${label}` } } });
     if (chips.length === MAX_MEMORY_TOPICS) break;
   }
   return chips;

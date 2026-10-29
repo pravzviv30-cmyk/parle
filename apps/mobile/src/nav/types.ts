@@ -14,6 +14,7 @@
  * non-serialisable is ever put into navigation state.
  */
 
+import type { SeedTopic } from '../tutor/convoStart.ts';
 import type { PracticeRouteOrigin } from '../practice/practiceRoute.ts';
 import type { ExploreTopic } from '../main/exploreCatalogue.ts';
 import type { LockedFeature } from '../purchases/capabilities.ts';
@@ -89,7 +90,7 @@ export type RootStackParamList = {
     textMode?: boolean;
     /** Listen only: the tutor speaks, the learner types or taps, the mic stays closed. */
     listenOnly?: boolean;
-    seedTopic?: { fr: string; en: string };
+    seedTopic?: SeedTopic;
     missionId?: string;
     continuationPackId?: string;
     goalRef?: string;
