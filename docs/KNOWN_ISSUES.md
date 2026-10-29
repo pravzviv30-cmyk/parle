@@ -10973,6 +10973,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `start again never grants, never starts a trial and never schedules the reminder`
 - verified-by: `reopening the wall never clears a still pending Ask to Buy`
 - verified-by: `the quiet check on open never clears on an empty store answer`
+- see also: F908 (2026-10-29). On web, and on native store errors that never reached a purchase, `storeHolds` is unknown, so nothing this fix added can clear the fence; F908 clears it on a failure that by definition charged nothing.
 - verified-by: `an existing same tier subscription never clears a checkout for a new period`
 
 ### F849 — "Waiting for approval" lived in screen memory, so a reopen or a "Check again" lost it
@@ -11590,3 +11591,121 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-10-29. A reply typed after an English-only hint now ticks the scene's goal. A typed answer that only copies the line just revealed still never counts.
 - verified-by: `a typed turn that meets an objective ticks it`
 - verified-by: `a typed answer copying the just-revealed line does not tick it`
+
+### F907 — The launch wall opens on every web refresh, unknown address and straight after sign-up
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/wall/launchWall.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-05, review severity High; five reviewers). D24
+  intends a wall on each open; on web every refresh counts as an open, unknown paths redirect to
+  /plans?entry=launch, and the default plan alternated between Core and Max. Founder decision
+  first: revisit D24 (at most once a day, never before a completed conversation, never after an
+  early exit). Decided 2026-10-28 (founder decision 4, supersedes D24's cadence): at most once a
+  day, never before the first completed conversation, never on a web refresh or after an early
+  exit; it still shows at the limit and on a lock tap.
+- verified-by: `a web refresh is not an app open for the launch wall`
+- verified-by: `an unknown address goes Home rather than to the plans page`
+- verified-by: `the launch wall shows at most once a day and never before a completed conversation`
+- verified-by: `leaving a scene early never opens the launch wall`
+- verified-by: `the plans page suggests the same plan however its data arrives`
+
+### F908 — A store failure leaves the checkout fence up, saying "do not buy again" and "nothing was changed" together
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/purchases/pendingPurchase.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-06, review severity High; three reviewers, web
+  with no store). The marker is written before the store sheet opens and a store failure keeps it,
+  so the fence reopens on cold start and from every lock, and "Start again" ends on "We couldn't
+  reach the store". F848's relief relies on storeHolds, which is always unknown on web. That a
+  native store error other than a cancel also keeps the marker is inferred from WallScreen settle.
+  Needs sandbox proof once purchases are configured.
+- verified-by: `a store call that fails before any purchase clears the checkout fence`
+- verified-by: `the pending page never says nothing was changed and do not buy again together`
+
+### F909 — Subscribers are told to cancel before a renewal the app never dates
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/purchases/planStatus.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-07, review severity High). Your plan says
+  "Renews in the coming weeks" three times next to "cancel at least 24 hours before renewal", while
+  the compare sheet knows the minutes date. Manage and Restore are hidden on web, as expected;
+  native was not verified.
+- verified-by: `a subscriber's plan screen shows the renewal date and price from the store`
+- verified-by: `the minutes refresh date is shown apart from the billing renewal date`
+
+### F910 — Free learners see "Included with your trial" on locks, and a Max feature opens the Core offer
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/components.tsx
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-08; five reviewers). The badge shows to accounts
+  that never had a trial; Rehearse opens the Core trial though only Max lists it; the free list
+  promises "Review and pronunciation practice" while Sounds of French is locked.
+- verified-by: `a lock names the plan that unlocks it`
+- verified-by: `a Max-only lock opens the Max offer`
+- verified-by: `the free list names nothing that is locked on Free`
+
+### F911 — The free limit shows three different messages and never says when time comes back
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/empty/emptyStates.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-09). Speak, Start (live/useLiveSession.ts) and
+  Subscription each word the limit differently, and none shows the refill time the 402 refusal
+  carries. Related F651.
+- verified-by: `every out-of-time message names when the next free conversation is ready`
+
+### F912 — Subscribers and lapsed subscribers are offered a 7-day free trial
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall/wallCopy.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-10; observed, fixture trial facts). A Core
+  subscriber's compare page offers "Start 7-day free trial" and then "You already have this plan";
+  a lapsed Max subscriber gets the Core trial wall at cold start.
+- verified-by: `a current subscriber never sees trial copy on the wall`
+- verified-by: `a lapsed subscriber sees resubscribe wording rather than a trial`
+
+### F913 — The compare sheet contradicts itself on conversations, allowances and streak freezes
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall/wallCopy.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-11). "Both plans include every conversation"
+  sits beside a Max-only Rehearse line; Core is "about" 10 minutes a day and Max "up to" 20; "every
+  plan includes a second streak freeze" contradicts Free's one (purchases/capabilities.ts). Related
+  F564.
+- verified-by: `the compare sheet claims only what each plan's capabilities grant`
+- verified-by: `both plans state their minutes per 30 days in the same words`
+
+### F914 — The Terms have no subscription section, and deleting an account ends with no confirmation
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/legal/terms.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-b-paywall, Stream B; LR-12). Billing lines exist only in Privacy. After
+  "Verify and delete permanently" (settings/SettingsScreen.tsx) the app goes straight to sign-in,
+  with no confirmation and no reminder to cancel the store subscription. The re-authentication step
+  may be a mock-adapter artefact. Legal wording needs review before release.
+- verified-by: `the terms state auto-renewal, cancellation timing and that deletion does not cancel`
+- verified-by: `account deletion ends on a confirmation that names cancelling the store subscription`
+
+### F931 — The wall stacks and stretches, and its default billing period varies
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/nav/RootNavigator.tsx
+- note: Found 2026-10-28 by the product review (LR-32; filed 2026-10-29 on claude/review-b-paywall,
+  Stream B, narrowed to the wall). Terms then Privacy from the wall left two walls stacked (seen
+  after a web reload and browser Back); the desktop compare sheet stretches to 1280 px; the
+  billing period default varies (shares its cause with F907's alternating plan). The sign-out
+  parts of LR-32 (no confirmation, signing back in lands on Settings, password fields outside a
+  form) belong to Stream E and are filed there.
+- verified-by: `opening Terms then Privacy from the wall keeps one wall`
+- verified-by: `the compare sheet keeps a readable width on a desktop screen`
+
+### F932 — The trial page reproduces another app's trial-offer composition
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/wall/trialPaywall.ts
+- note: Found 2026-10-28 by the product review (LR-26, a brand and originality risk; filed
+  2026-10-29 on claude/review-b-paywall, Stream B). The "How your trial works" title, plan toggle
+  and lock, bell, calendar and star timeline follow Headspace's trial screen closely. Keep the
+  transparency (charge date, interval, how to cancel, nothing charged today) and redraw it in
+  Luvani's own learning-led form, per the report's section 10 (founder decision 6).
+- verified-by: `the trial page walks the first week as a route with Luvani's own scene art`
+- verified-by: `the redrawn trial page still names the charge date, the price, how to cancel and that nothing is charged today`
