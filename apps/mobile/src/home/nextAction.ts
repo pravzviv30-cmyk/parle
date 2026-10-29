@@ -1,29 +1,17 @@
 /**
- * Which one colour card Today leads with (F438, F602).
+ * Home's plans-card words and the billing shape the lead rule reads (F438, F602).
  *
- * Home leads with exactly one card, and the screen does not choose it: this
- * does. Three answers, in this order.
- *
- * 1. `plans`, when the free plan's conversation is used (REV-001). Revamp B draws this as
- *    the sun card on Home (HomeOutOfMinutes), read through the same billing
- *    call Speak makes. A trial without enough time to start leads with it: a paid
- *    plan out of minutes, or a lapsed subscription, is F607's with revenue. An
- *    unknown plan (`billing` null: signed out, offline, or a read that failed)
- *    never leads with plans, because a purchase surface that guesses is the
- *    failure F265 was.
- * 2. `review`, when the hero is the day's scene and phrases are due. Recall
- *    can only stand in for the day's scene, never for the next one on the
- *    spine (2026-09-27, notebook Phase 3).
- * 3. `conversation`, the next scene.
+ * The lead itself is chosen by `practice/nextTask.ts` (`todayLead`, over
+ * `nextTaskKind`): the plans card when a trial cannot start a session
+ * (exhausted or insufficient, F651), the starter card, offline practice, else
+ * the next scene. An unknown plan (`billing` null) never leads with plans,
+ * because a purchase surface that guesses is the failure F265 was. The old
+ * `homeActionFor` was never called in production and was deleted 2026-10-29.
  */
 
-import { PLANS, type Plan, type StartRefusal } from '@luvani/core';
+import { type Plan, type StartRefusal } from '@luvani/core';
 
 import { outOfTimeWords } from '../purchases/outOfTime.ts';
-import type { HomeMission } from './homeMission.ts';
-
-/** The one lead Home draws. */
-export type HomeAction = 'plans' | 'review' | 'conversation' | 'local';
 
 /** The part of the billing status this rule reads. `BillingStatus` fits it. */
 export interface HomeBilling {
@@ -31,12 +19,6 @@ export interface HomeBilling {
   reason: StartRefusal | null;
   /** On the free plan, when the free conversation comes back (REV-001); null before first use. */
   periodEnd?: string | null;
-}
-
-export function homeActionFor(hero: Pick<HomeMission, 'kind'>, dueCount: number, billing: HomeBilling | null, live = true): HomeAction {
-  if (!live) return dueCount > 0 ? 'review' : 'local';
-  if (billing?.plan === 'trial' && (billing.reason === 'exhausted' || billing.reason === 'insufficient-for-session')) return 'plans';
-  return hero.kind === 'today' && dueCount > 0 ? 'review' : 'conversation';
 }
 
 /**

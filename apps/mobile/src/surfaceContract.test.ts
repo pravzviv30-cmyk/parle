@@ -2565,7 +2565,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     );
     assert.match(home, /\{!unowned && readFailed \? \(/, 'Home no longer separates failed reads from a fresh account');
     assert.match(home, /\) : hero === null \|\| unowned \? \(/, 'Home no longer waits on storage before it draws a lead');
-    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard vivid \/>/, 'the hero is not the lead Home falls back to');
+    // 2026-10-29 (F934): the lead is the second stop on Today's path.
+    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard vivid step=/, 'the hero is not the lead Home falls back to');
     // The momentum gate that used to sit beside it left Home with the block
     // itself, so the half of this check that made sure the hero was not hidden
     // behind it is now made by the line above: there is one condition on the

@@ -8,7 +8,12 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { HomeBilling } from '../home/nextAction.ts';
 import { PLANS_LEAD, plansLeadBody } from '../home/nextAction.ts';
-import { nextTaskKind } from './nextTask.ts';
+import { nextTaskKind, offersPlans, todayLead, type TodayLead } from './nextTask.ts';
+import type { ReactNode } from 'react';
+import { RouteNode, type RouteMark } from '../home/RoutePath.tsx';
+import { pathStep } from '../home/todayView.ts';
+import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
+import type { GuestPractice } from '../onboarding/guestModel.ts';
 import { recoverPracticeCompletion } from './completion.ts';
 import { loadPackMarks, withMarks } from '../conversationPacks/marks.ts';
 import { useLive } from '../app/LiveContext.tsx';
@@ -36,8 +41,25 @@ import { buildsOn } from '../home/todayView.ts';
 import { LocalPracticeCard } from './LocalPracticeCard.tsx';
 import { DEMO_REPLY_ID } from '../onboarding/tutorLines.ts';
 
-/** One account-bound next action, on Home (2026-10-20, lock seam wiring: direction B moved Speak and Practice off it). */
-export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
+/** The scene stop's words for each lead: the scene's own minutes, or what the lead honestly is. */
+function leadStop(lead: TodayLead | 'loading', minutes: number | null): { title: string; line: string } {
+  if (lead === 'scene' && minutes !== null) return pathStep('scene', minutes);
+  if (lead === 'plans') return { title: 'The next scene', line: 'Needs more speaking time' };
+  if (lead === 'starter') return { title: 'Continue your practice', line: 'Typed, no connection needed' };
+  if (lead === 'local') return { title: "While you're offline", line: 'No connection needed' };
+  return { title: 'The next scene', line: 'Finding your next task' };
+}
+
+/**
+ * One account-bound next action, on Home (2026-10-20, lock seam wiring: direction B moved Speak and Practice off it).
+ *
+ * On Today (`vivid`) it is the second stop on Today's path (F934): `step`
+ * places it on the route. The lead is `todayLead` (F936): a trial that cannot
+ * start leads with plans, ahead of the starter card; the starter card drops
+ * "Speak with my tutor" while offline, and "See plans" for anyone not on the
+ * free plan (F935).
+ */
+export function NextTaskCard({ vivid = false, step, starter = null }: { vivid?: boolean; step?: { mark: RouteMark; last: boolean }; starter?: GuestPractice | null }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
   const { user } = useAuth();
@@ -49,7 +71,7 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   const startAt = startAtOf(profile);
   const startingMissionId = startAt === null && profile.brain.cefr.estimate === 'A1' && profile.brain.cefr.confidence === 'low' && profile.brain.cefr.evidence.length === 0 ? 'mission:cafe' : undefined;
   const [billing, setBilling] = useState<HomeBilling | null>(null);
-  const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null } | null>(null);
+  const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null; levelIndex: number } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useFocusEffect(useCallback(() => {
@@ -70,16 +92,33 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
         const packs = withMarks(fetched, marks);
         const rec = recommendation({ resumable: resumableOf(saved, packs, bank), deck, bank, packs, now });
         const card = rec.kind === 'none' ? null : practiceCard({ rec, deck, packs, now, resuming: saved?.targets.map(t => t.phraseKey) ?? [] });
-        const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex: levelFor(totalXp(activity)).index, startingMissionId, goal: goalOf(profile), startAt, now });
-        setValue({ scope, card, offer: reviewOffer(deck, now), hero, buildsOn: buildsOn(packs, hero) });
+        const levelIndex = levelFor(totalXp(activity)).index;
+        const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex, startingMissionId, goal: goalOf(profile), startAt, now });
+        setValue({ scope, card, offer: reviewOffer(deck, now), hero, buildsOn: buildsOn(packs, hero), levelIndex });
       }).catch(() => { if (!cancelled && scope === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
   }, [attempt, owner, startingMissionId, startAt]));
+  const onStop = (lead: TodayLead | 'loading', minutes: number | null, body: ReactNode) => {
+    if (step === undefined) return body;
+    const words = leadStop(lead, minutes);
+    return <RouteNode mark={step.mark} last={step.last} title={words.title} line={words.line}>{body}</RouteNode>;
+  };
   const navigateOwned = (screen: string, params?: object) => {
     if (value !== null && value.scope === scopeGeneration()) nav.navigate(screen, params);
   };
+  const plansCard = <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{plansLeadBody(billing)}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
+  if (failed && vivid) return onStop('loading', null, <View><Text style={type.body}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
-  if (value === null || value.scope !== scopeGeneration()) return <Text style={type.small}>Finding your next task…</Text>;
+  if (value === null || value.scope !== scopeGeneration()) return onStop('loading', null, <Text style={type.small}>Finding your next task…</Text>);
+  if (vivid) {
+    // Today: one rule picks the lead (F936, F651, F924); review is its own
+    // row on the path now, never the lead (DECISIONS 2026-10-29).
+    const lead = todayLead({ live, billing, starter: starter !== null });
+    if (lead === 'plans') return onStop(lead, null, plansCard);
+    if (lead === 'starter' && starter !== null) return onStop(lead, null, <StarterContinuation initial={starter} onTutor={live ? () => nav.navigate('Tutor') : undefined} onPlans={offersPlans(billing) ? () => nav.navigate('Wall', { entry: 'recap' }) : undefined} />);
+    if (lead === 'scene' && value.hero !== null) return onStop(lead, value.hero.minutes, <MissionHero hero={value.hero} vivid buildsOn={value.buildsOn} />);
+    return onStop('local', null, <LocalPracticeCard vivid levelIndex={value.levelIndex} />);
+  }
   // 2026-10-20 UI-008, artboard B-Today: Today (vivid) leads with the scene
   // and never the blue "Your next practice" or "Ready for review" cards. A
   // sitting to finish is Practice's "Pick up where you stopped"; due review
@@ -104,6 +143,6 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
     <Text style={[type.small, { color: paper.onInk }]}>A saved phrase, ready to revisit. Free on this phone.</Text>
     <PillButton tone="white" label="Practise review" onPress={() => navigateOwned('Review')} />
   </ColourCard>;
-  if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{plansLeadBody(billing)}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
+  if (kind === 'plans') return plansCard;
   return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} vivid={vivid} buildsOn={vivid ? value.buildsOn : null} /> : <LocalPracticeCard vivid={vivid} />;
 }

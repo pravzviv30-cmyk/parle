@@ -2,53 +2,35 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PLANS, refillWhen, type Plan, type StartRefusal } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
-import { PLANS_LEAD, dueLine, homeActionFor, plansLeadBody } from './nextAction.ts';
-import { fallbackHero } from './homeMission.ts';
-// 2026-09-27 (notebook Phase 3): the hero is a spine scene or, once the whole
-// spine is earned, the day's scene. Recall can only stand in for the day's.
-test('Today keeps one next action: the next scene, recall, then a fresh scene', () => {
-  const hero = fallbackHero();
-  assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 12, null), 'conversation', 'recall replaced the next scene on the spine');
-  // Only the discriminant is read by this policy.
-  assert.equal(homeActionFor({ ...hero, kind: 'today' }, 12, null), 'review');
-  assert.equal(homeActionFor({ ...hero, kind: 'today' }, 0, null), 'conversation');
-});
+import { PLANS_LEAD, dueLine, plansLeadBody } from './nextAction.ts';
+import { nextTaskKind, todayLead } from '../practice/nextTask.ts';
+// 2026-10-29 (F651, F934): `homeActionFor` was never called in production and
+// was deleted; these tests now hold the rule Today really uses, `todayLead`
+// over `nextTaskKind`. Review is no longer a lead: it is its own row on
+// Today's path (todayPath.test.ts), so the recall cases left with it.
+const none = { kind: 'none', fallback: 'first' } as const;
 
 test('an unavailable live tutor leads to an owned review or local phrase practice', () => {
-  const hero = fallbackHero();
-  assert.equal(homeActionFor(hero, 0, null, false), 'local');
-  assert.equal(homeActionFor(hero, 2, null, false), 'review');
-  assert.equal(homeActionFor(hero, 0, { plan: 'trial', reason: 'exhausted' }, false), 'local');
+  assert.equal(todayLead({ live: false, billing: null, starter: false }), 'local');
+  assert.equal(nextTaskKind(none, false, null, true), 'review', 'an owned review still comes before local practice where a surface offers it');
+  // Offline, the starter's typed practice still leads: it needs no connection.
+  assert.equal(todayLead({ live: false, billing: null, starter: true }), 'starter');
 });
 
 // Revamp B (F602): the trial's used minutes lead Home with the sun card, read
-// through the same billing call Speak makes. Only that one state does.
+// through the same billing call Speak makes. Only that state does.
 test('the used free minutes lead Home with the plans card, ahead of review and the scene', () => {
-  const hero = fallbackHero();
-  const spent = { plan: 'trial', reason: 'exhausted' } as const;
-
-  // Ahead of the scene, and ahead of recall.
-  assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 0, spent), 'plans', 'a spent trial still leads with the next scene');
-  assert.equal(homeActionFor({ ...hero, kind: 'today' }, 12, spent), 'plans', 'recall stood in front of the used free minutes');
-
-  // Every other billing answer leaves the old rule exactly as it was.
   const plans = Object.keys(PLANS) as Plan[];
   const reasons: readonly (StartRefusal | null)[] = [null, 'exhausted', 'insufficient-for-session', 'subscription-lapsed'];
   for (const plan of plans) {
     for (const reason of reasons) {
-      if (plan === 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session')) {
-        assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 12, { plan, reason }), 'plans');
-        assert.equal(homeActionFor({ ...hero, kind: 'today' }, 12, { plan, reason }), 'plans');
-        continue;
-      }
-      const billing = { plan, reason };
-      assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 12, billing), 'conversation', `${plan}/${reason} changed the scene lead`);
-      assert.equal(homeActionFor({ ...hero, kind: 'today' }, 12, billing), 'review', `${plan}/${reason} changed the recall lead`);
-      assert.equal(homeActionFor({ ...hero, kind: 'today' }, 0, billing), 'conversation', `${plan}/${reason} changed the fresh scene`);
+      const out = plan === 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session');
+      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: false }), out ? 'plans' : 'scene', `${plan}/${reason}`);
+      assert.equal(todayLead({ live: true, billing: { plan, reason }, starter: true }), out ? 'plans' : 'starter', `${plan}/${reason} with a starter`);
     }
   }
   // An unknown plan (signed out, offline, a failed read) never leads with plans.
-  assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 0, null), 'conversation');
+  assert.equal(todayLead({ live: true, billing: null, starter: false }), 'scene');
 
   // The card's words: the trial's own minutes, what still works, what is kept.
   assert.equal(PLANS_LEAD.title, 'Ready for more speaking time?', 'the card must stay true even with a short amount remaining');

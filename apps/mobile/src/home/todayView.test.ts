@@ -214,7 +214,8 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
   // up now (plan.md "Data slots" 2), so the page has eight blocks and the
   // Rehearse door; the countdown and the checklist are not drawn (no data).
   test('Coming up is in the page order, every door named, and no raw seconds', () => {
-    assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'nextScene', 'three', 'fix', 'phrase', 'comingUp', 'week']);
+    // 2026-10-29 (F934, founder decision 6): the fix and the phrase are stops on Today's path.
+    assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'path', 'three', 'comingUp', 'week']);
     assert.deepEqual({ ...TODAY_ROUTES }, { profile: 'Profile', fix: 'Drill', phrase: 'DailyPractice', week: 'WeekWrapped', rehearse: 'RealMoment', start: 'Convo' });
     assert.match(readFileSync(new URL('../profile/ProfileButton.tsx', import.meta.url), 'utf8'), /nav\.navigate\('Profile'\)/);
     assert.match(readFileSync(new URL('../daily/DailyCard.tsx', import.meta.url), 'utf8'), /nav\.navigate\('DailyPractice', \{ id: item\.id \}\)/);

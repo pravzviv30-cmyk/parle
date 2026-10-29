@@ -4,9 +4,9 @@ import { HomeArrival } from '../onboarding/HomeArrival.tsx';
 import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 /**
  * Today, drawn to B-Today (2026-10-20, B5; rebuilt to the artboard in light
- * and dark, 2026-10-20 UI-008): the greeting, the stats row, the learner's
- * next scene on the yellow card, today's three quests, one fix to try,
- * today's phrase, Coming up, and the week in French, 22pt apart.
+ * and dark, 2026-10-20 UI-008; the path since 2026-10-29, F934): the
+ * greeting, the stats row, Today's path, today's three quests, Coming up, and
+ * the week in French, 22pt apart.
  *
  * The page opens on a still "Bonjour, Name." (or "Bonjour.") with the avatar.
  * Under it, `game/TodayHero` reads the game layer on its own and draws the
@@ -18,21 +18,18 @@ import { NextTaskCard } from '../practice/NextTaskCard.tsx';
  * refresh keeps what is drawn until the new read lands (F768): only a read for
  * an account nothing was drawn for brings the sand back.
  *
- * Then the shared `NextTaskCard` leads with the next scene on the yellow card
- * (its "Uses" chip only when the last conversation really meets it), the plans
- * card when the trial's minutes are used, or a genuine offline café task. The
- * blue "Your next practice" and review leads left Today with UI-008: a sitting
- * to finish is Practice's "Pick up where you stopped". No minute count or
- * allowance figure is drawn here.
- *
- * Under the lead: today's three quests (`game/QuestsCard`); one fix to try
- * from the newest conversation, English first, attempt first, behind the
- * trial's lock through the one access seam; today's phrase on the lavender
- * card; Coming up, from the latest life event the tutor remembers (hidden with
- * none, and for this app session after Not now); and the week in French when
- * the week has evidence, with the way into the weekly recap. "Where you're
- * starting" and the friends card left with UI-008 (the artboard draws
- * neither): the stages live on Journey, and friends on their own screen.
+ * Then "Today's path" (F934, LR-17, founder decision 6; DECISIONS UI-012),
+ * stops on Luvani's route motif (`home/RoutePath.tsx`), each with its time:
+ * retry your last fix (only with one, behind the trial's lock through the one
+ * access seam), the shared `NextTaskCard` as the next scene (or the plans
+ * card when a trial cannot start, the starter card, or the offline card; one
+ * rule, `todayLead`), and say today's phrase; plus "Review N phrases" when
+ * Review would deal cards. Under the path: today's three quests
+ * (`game/QuestsCard`); Coming up, from the latest life event the tutor
+ * remembers (hidden with none, and for this app session after Not now); and
+ * the week in French when the week has evidence, with the way into the weekly
+ * recap. "Where you're starting" and the friends card left with UI-008: the
+ * stages live on Journey, and friends on their own screen.
  *
  * The four momentum tiles, the seven-dot rail, the "More for today" sheet and
  * every rank name left this page. What has been earned is My French's to
@@ -46,14 +43,14 @@ import { memoryPaused } from '@luvani/brain/profile';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp, type DrillExercise, type ReviewCard } from '@luvani/core';
 
-import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
+import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { HIT, bType, decorative, radius, space, type } from '../theme.ts';
 import { Card, IconAction, LockBadge, PillButton, Skeleton } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, ComingUpCard, OutlineLock, WeekCard } from '../today/TodayParts.tsx';
 import { visibleFacts } from '../profile/memory.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
+import { RouteNode } from '../home/RoutePath.tsx';
 import { loadSavedStarter } from '../onboarding/savedStarter.ts';
 import type { GuestPractice } from '../onboarding/guestModel.ts';
 import { DailyCard } from '../daily/DailyCard.tsx';
@@ -82,7 +79,7 @@ import { QuestsCard } from '../game/QuestsCard.tsx';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import { madeFromConversations, type Replay } from '../practice/madeFrom.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, startingPoint, weekInFrench, type StartingPoint } from '../home/todayView.ts';
+import { TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, pathStep, reviewRow, startingPoint, weekInFrench, type StartingPoint } from '../home/todayView.ts';
 import type { ConversationPack } from '@luvani/core';
 
 export function HomeTab() {
@@ -177,13 +174,13 @@ export function HomeTab() {
   // The latest life event the tutor remembers, unless memory is paused.
   const event = comingUp({ facts: visibleFacts(profile), paused: memoryPaused(profile.brain), tutorName, access: locks.access, now: Date.now() });
 
+  // The review row (F934): only when Review would deal cards, by Review's own deal.
+  const review = fixFrom === null ? null : reviewRow(fixFrom.deck, fixFrom.now, locks.access('conversationPractice'));
   const three = <QuestsCard />;
   const fixCard = fix !== null && (
     <View style={st.fix}>
-      <View style={st.fixHead}>
-        <Text accessibilityRole="header" style={[bType.eyebrow, st.grow, { color: t.mintWords }]}>{TODAY_COPY.fix}</Text>
-        {fix.locked && <LockBadge feature="fixes" said />}
-      </View>
+      {/* The stop above names the fix; the card keeps only its lock. */}
+      {fix.locked && <View style={st.fixHead}><LockBadge feature="fixes" said /></View>}
       <View style={st.ask}>
         <Text style={[bType.note, { color: t.muted }]}>{TODAY_COPY.fixAsk}</Text>
         <Text style={[bType.bold20, { color: t.text }]}>{fix.english}</Text>
@@ -229,16 +226,28 @@ export function HomeTab() {
             <IconAction layout="inline" icon="refresh" label="Try loading my scenes again" onPress={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
           </Card>
         ) : hero === null || unowned ? (
-          <Skeleton blocks={[{ height: 262, radius: radius.feature }, { height: 196, radius: radius.card }, { height: 220, radius: radius.card }, { height: 168, radius: radius.feature }]} />
+          <Skeleton blocks={[{ height: 220, radius: radius.card }, { height: 262, radius: radius.feature }, { height: 168, radius: radius.feature }, { height: 196, radius: radius.card }]} />
         ) : (
           <View style={st.page}>
-            {starter !== null && profile.brain.stats.sessions === 0 ? (
-              <StarterContinuation initial={starter} onTutor={() => nav.navigate('Tutor')} onPlans={() => nav.navigate('Wall', { entry: 'recap' })} />
-            ) : <NextTaskCard vivid />}
+            {/* Today's path (F934, LR-17, founder decision 6): retry the fix,
+                the next scene, say today's phrase, each with its time, and a
+                review row when Review would deal cards. The quotas, Coming up
+                and the week sit under it. */}
+            <View>
+              <Text accessibilityRole="header" style={[bType.eyebrow, st.pathHead, { color: t.muted }]}>{TODAY_COPY.path}</Text>
+              {fix !== null && fixCard && <RouteNode mark="start" last={false} {...pathStep('fix')}>{fixCard}</RouteNode>}
+              <NextTaskCard vivid step={{ mark: fix === null ? 'start' : 'stop', last: false }} starter={starter !== null && profile.brain.stats.sessions === 0 ? starter : null} />
+              <RouteNode mark={review === null ? 'end' : 'stop'} last={review === null} {...pathStep('phrase')}>
+                <DailyCard item={daily.phrase} variant="today" />
+              </RouteNode>
+              {review !== null && (
+                <RouteNode mark="end" last title={review.title} line={review.line}>
+                  <PillButton label="Practise review" onPress={() => nav.navigate('Review')} />
+                </RouteNode>
+              )}
+            </View>
 
-            {fixCard ? <Columns>{three}{fixCard}</Columns> : three}
-
-            <DailyCard item={daily.phrase} variant="today" />
+            {three}
 
             {event !== null && (
               <ComingUpCard
@@ -265,6 +274,7 @@ const makeStyles = (t: B) =>
     // its own 20pt foot, so it is pulled back to the same 22.
     head: { position: 'relative', marginBottom: -space(5) },
     page: { gap: 22 },
+    pathHead: { marginBottom: space(3) },
     grow: { flex: 1, minWidth: 0 },
     // One fix to try: the white card with the 2pt mint edge (radius 26, padding 18).
     fix: { gap: space(3), backgroundColor: t.card, borderRadius: 26, padding: 18, borderWidth: 2, borderColor: t.mint },

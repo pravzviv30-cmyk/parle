@@ -67,7 +67,8 @@ function calls(source: string): string[] {
 /** The content-difficulty standing: the only `levelFor(` a screen may hold, read for its index alone. */
 const STANDING: Readonly<Record<string, RegExp>> = {
   'tabs/HomeTab.tsx': /const standing = levelFor\(totalXp\(activity\)\);/,
-  'practice/NextTaskCard.tsx': /levelIndex: levelFor\(totalXp\(activity\)\)\.index/,
+  // 2026-10-29 (F924): the standing is named once so the offline card can pitch its offer.
+  'practice/NextTaskCard.tsx': /const levelIndex = levelFor\(totalXp\(activity\)\)\.index;/,
 };
 
 /** The four places a sitting with an activity entry finishes, and the one evidence helper each prices it with. */

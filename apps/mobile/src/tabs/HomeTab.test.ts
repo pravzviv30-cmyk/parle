@@ -33,7 +33,7 @@ import { sceneMeta } from '../home/estimate.ts';
 import { STARTING_LABEL } from '../home/todayView.ts';
 import { DAY_CHECK_MS, dayTurned, refreshClears } from '../home/homeRefresh.ts';
 import { START, fallbackHero } from '../home/homeMission.ts';
-import { PLANS_LEAD, dueLine, homeActionFor } from '../home/nextAction.ts';
+import { PLANS_LEAD, dueLine } from '../home/nextAction.ts';
 import { launchLabel } from '../tutor/orbState.ts';
 import { TYPE_INSTEAD } from '../tutor/speakView.ts';
 import { TUTOR_NAME } from '../tutor/tutorName.ts';
@@ -315,7 +315,8 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
   // live on Journey). The read still asks for it, because the arrival waits
   // on it, and the page reads in the artboard's order.
   test('day one draws no block of its own, and the page reads in the artboard order', () => {
-    assert.match(FLAT, /import \{ TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, startingPoint, weekInFrench, type StartingPoint \} from '\.\.\/home\/todayView\.ts'/);
+    // 2026-10-29 (F934): Today's path takes its stops and the review row from the view.
+    assert.match(FLAT, /import \{ TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, pathStep, reviewRow, startingPoint, weekInFrench, type StartingPoint \} from '\.\.\/home\/todayView\.ts'/);
     assert.match(FLAT, /setStart\(startingPoint\(progress\)\)/);
     assert.match(FLAT, /ready=\{!interacted && !unowned && !readFailed && start !== null\}/, 'the arrival no longer waits for the read');
     assert.ok(!RENDER.includes('{start !== null && ('), 'the day-one block is back on Today');
@@ -327,13 +328,14 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
       assert.ok(!SCREEN.includes(gone), `Today still carries ${gone}`);
     }
 
-    // Order: greeting, stats, the lead, the three and the fix, the phrase,
-    // Coming up, then the week.
-    const order = ['<TabHeader', '<TodayHero />', '<NextTaskCard vivid />', '{three}', '<DailyCard', '{event !== null', '{week !== null'];
+    // Order, changed on purpose 2026-10-29 (F934, founder decision 6):
+    // greeting, stats, Today's path (the fix, the lead, the phrase), then the
+    // three, Coming up and the week.
+    const order = ['<TabHeader', '<TodayHero />', "pathStep('fix')", '<NextTaskCard vivid', '<DailyCard', '{three}', '{event !== null', '{week !== null'];
     for (let i = 1; i < order.length; i += 1) {
       assert.ok(at(order[i - 1]!) < at(order[i]!), `Today draws ${order[i]} before ${order[i - 1]}`);
     }
-    assert.match(flat(RENDER), /\{fixCard \? <Columns>\{three\}\{fixCard\}<\/Columns> : three\}/, 'the three and the fix do not share a row on a wide screen');
+    assert.doesNotMatch(flat(RENDER), /<Columns>/, 'the path is split into columns, so it no longer reads in order');
     assert.ok(!SCREEN.includes('<DailyCarousel'), 'the word and phrase carousel is back on Today');
     // The artboard's 22pt rhythm.
     assert.match(style(SCREEN, 'page'), /gap: 22/);
@@ -459,8 +461,8 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // Shaped like the page: the lead card, the heading, a row, today's phrase.
     assert.equal(
       skeleton[0],
-      // 2026-10-20, B5, B-Today: the yellow lead, the three, the fix, the phrase.
-      "<Skeleton blocks={[{ height: 262, radius: radius.feature }, { height: 196, radius: radius.card }, { height: 220, radius: radius.card }, { height: 168, radius: radius.feature }]} />",
+      // 2026-10-29 (F934): the path's fix, the yellow lead, the phrase, then the three.
+      "<Skeleton blocks={[{ height: 220, radius: radius.card }, { height: 262, radius: radius.feature }, { height: 168, radius: radius.feature }, { height: 196, radius: radius.card }]} />",
       'the sand blocks are not shaped like the page',
     );
     // Everything else waits for the other branch.
@@ -852,7 +854,8 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(task, /const review = offeredReview\(value\.offer, locks\.access\('conversationPractice'\)\);/);
     assert.match(task, /<MissionHero hero=\{value\.hero\} vivid=\{vivid\} buildsOn=\{vivid \? value\.buildsOn : null\} \/>/);
     assert.match(task, /buildsOn: buildsOn\(packs, hero\)/);
-    assert.match(FLAT, /<NextTaskCard vivid \/>/);
+    // 2026-10-29 (F934): the lead is the second stop on Today's path, and the starter card is drawn by the lead rule (F936).
+    assert.match(FLAT, /<NextTaskCard vivid step=\{\{ mark: fix === null \? 'start' : 'stop', last: false \}\} starter=\{starter !== null && profile\.brain\.stats\.sessions === 0 \? starter : null\} \/>/);
   });
 
   test('one fix to try is English first, attempt first, names the day where known, and goes through the lock seam', () => {
@@ -864,12 +867,13 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(card, /\{fix\.english\}/);
     assert.match(card, /\{fix\.after\}/);
     assert.doesNotMatch(card, /quote|better|why/, 'the fix card shows the learner\'s line or the better one before a try');
-    assert.match(card, /\{fix\.locked && <LockBadge feature="fixes" said \/>\}/, 'the lock is not drawn from the seam');
+    assert.match(card, /\{fix\.locked && <View style=\{st\.fixHead\}><LockBadge feature="fixes" said \/><\/View>\}/, 'the lock is not drawn from the seam');
     assert.match(card, /accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\}/);
     assert.match(card, /onPress=\{\(\) => tapThrough\(locks\.access, fix\.feature, locks\.open, \(\) => nav\.navigate\(fix\.route\.screen, fix\.route\.params\)\)\}/, 'a locked fix does not open the Wall');
     assert.match(card, /<View \{\.\.\.decorative\}><OutlineLock size=\{18\} color=\{t\.muted\} \/><\/View>/, 'the outline lock beside the line is not hidden from a screen reader');
     assert.match(card, /height=\{50\} ground=\{t\.primary\} ink=\{t\.onPrimary\}/, 'the fix button is not the 50pt primary');
-    assert.match(card, /color: t\.mintWords/, 'the eyebrow is not the mint words');
+    // 2026-10-29 (F934): the path's stop ("Retry your last fix") names the card, so its own eyebrow left.
+    assert.match(SCREEN, /<RouteNode mark="start" last=\{false\} \{\.\.\.pathStep\('fix'\)\}>\{fixCard\}<\/RouteNode>/);
     assert.match(style(SCREEN, 'after'), /minHeight: HIT/);
     assert.match(style(SCREEN, 'after'), /backgroundColor: t\.inset, borderRadius: 14/);
     assert.match(style(SCREEN, 'fix'), /borderRadius: 26, padding: 18, borderWidth: 2, borderColor: t\.mint/);

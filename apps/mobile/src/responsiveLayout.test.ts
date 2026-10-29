@@ -67,7 +67,9 @@ test('regular columns follow usable width and return to a stack in split view', 
 
 test('on a regular-width screen the tabs use two columns and sheets keep the reading width', () => {
   // 2026-10-20, B1, B-Explore: Explore splits its sections into two columns too.
-  for (const file of ['tabs/HomeTab.tsx', 'tabs/ExploreTab.tsx', 'tabs/MyFrenchTab.tsx', 'tabs/PracticeTab.tsx']) {
+  // 2026-10-29 (F934, founder decision 6): Today leads with one ordered path,
+  // which reads top to bottom at every width, so Home left this list.
+  for (const file of ['tabs/ExploreTab.tsx', 'tabs/MyFrenchTab.tsx', 'tabs/PracticeTab.tsx']) {
     assert.match(readFileSync(new URL(file, import.meta.url), 'utf8'), /<Columns>/, file);
   }
   // 2026-10-20, B1, B-Explore: inside a column the topic and practice tiles
