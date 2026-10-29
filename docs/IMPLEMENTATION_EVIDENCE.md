@@ -22,6 +22,17 @@ of the list.
 
 ## Current landing snapshot
 
+- 29 October 2026 product-review fixes, Stream D (progress, Today and practice): branch
+  `claude/review-d-progress` from main 005ae4d2. F918, F919, F922, F924, F934, F935, F936 and F937
+  closed with F858 and F651, each with its named tests; fix-verifier rounds until clean on every
+  batch, plus a learning-science review of the first-miss reveal (LEARN-017) and DECISIONS UI-012
+  (review back on Today); live replay of every finding against the local stack (one typed
+  conversation), which showed Today, Journey and Practice agreeing after real practice. **7,224
+  tests, 0 failing**; core 1105, brain 773, tutor agent 887, token server 527, playground 110,
+  mobile 3822; all 44 migrations replayed, no migration added; mobile suite also green with the
+  clock 45 days ahead. Floors raised through `gate:bless`. Not verified: native network status
+  (React Native has no navigator.onLine, so native always says it cannot reach the tutor), iOS
+  rendering.
 - 29 October 2026 product-review fixes, Stream C (first run): branch `claude/review-c-first-run` from
   main 706232bf. F915, F916, F917, F925, F926 and F930 closed, each with its named tests; fix-verifier
   rounds until clean (they found web history drifting on Forward and busy Back, a stale placement after
