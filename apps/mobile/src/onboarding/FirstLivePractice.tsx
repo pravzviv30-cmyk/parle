@@ -165,7 +165,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   </View>;
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={active} quietVoice={quietVoice}>
     <View style={{ flex: 1, minHeight: 0 }}>
-      <C2LiveRoom tutorName={name} description={scene ? `${GUEST_CAFE_SCENE.title}, about two minutes` : `${firstPracticeScenario(guest.live!.brief).en}, ${guest.live!.brief.minutes === null ? 'at your pace' : `${guest.live!.brief.minutes} minutes`}`}
+      <C2LiveRoom tutorName={name} voice={guest.plan.tutorVoice} description={scene ? `${GUEST_CAFE_SCENE.title}, about two minutes` : `${firstPracticeScenario(guest.live!.brief).en}, ${guest.live!.brief.minutes === null ? 'at your pace' : `${guest.live!.brief.minutes} minutes`}`}
         state={state} caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing || typedScene || (scene && live.voiceless)} startedWithSpeech={scene ? !typedScene : undefined} ready={ready && !ending && !over} modePending={micPending} active={active} embedded
         transcriptVisible={transcript} onTranscriptVisibility={setTranscript} quietVoice={quietVoice} onQuietVoice={onQuietVoice} draft={draft} wrappingUp={live.wrappingUp}

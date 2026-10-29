@@ -46,6 +46,8 @@ test('each tutor shows their own portrait', () => {
     ['../tabs/HomeTab.tsx', /<ComingUpCard\s+view=\{event\}\s+voice=\{tutorVoiceOf\(profile\)\}/],
     ['../onboarding/PreAccountOnboarding.tsx', /<BBandOrb size=\{70\} right=\{18\} top=\{22\} voice=\{draft\.tutorChosen && draft\.tutorVoice \? draft\.tutorVoice : undefined\} \/>/],
     ['../ConvoScreen.tsx', /<C2LiveRoom [^>]*voice=\{tutorVoiceOf\(profile\)\}/],
+    ['../LiveSessionScreen.tsx', /<C2LiveRoom [^>]*voice=\{tutorVoiceOf\(profile\)\}/],
+    ['../onboarding/FirstLivePractice.tsx', /<C2LiveRoom tutorName=\{name\} voice=\{guest\.plan\.tutorVoice\}/],
     ['../live/C2LiveRoom.tsx', /<LiveOrb state=\{state\} voice=\{voice\} /],
   ];
   for (const [file, use] of callers) assert.match(read(file), use, `${file} does not pass the learner's tutor`);
