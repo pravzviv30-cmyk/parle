@@ -11809,3 +11809,88 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   cannot tell why their free tries are gone; the offline drill is not offered there. Decided 2026-10-29 (founder decision 17): honest copy and an account only, no guest offline drill; the same 429 also comes from the global cap, so the line names no network.
 - verified-by: `the guest limit message offers an account and names no network`
 - fixed: 2026-10-29. The 429 line reads "Free tries are busy right now. Create a free account to start your first scene." It names no network because the global guest cap sends the same 429. The sheet's existing Create account to start is the one action; no guest offline drill is offered.
+
+### F918 — Today, Journey and Practice disagree on level, minutes, saved phrases and streak
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/journey/journeyView.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-16; five reviewers). "Level 3 · 130 XP" on Today
+  against "5 of 100 XP" on Journey; "0 min practised" and "0 of 5 min today" after live practice;
+  saved-phrase counts differed until a restart; "0 days" beside "1 day streak". The level tile is
+  already F858. Decided 2026-10-29 (founder decision 22): stage first, XP labelled the same everywhere; abilities keep no count. Closes F858 with it.
+- verified-by: `live minutes count toward Journey and today's goal`
+- verified-by: `Today and Journey read the same XP total`
+- verified-by: `saved phrases count the same on Practice and Journey`
+- verified-by: `the streak tile never reads 0 days on a running streak`
+
+### F919 — A missed drill answer shows no right answer, and "Sounds of French" opens a live scene
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/drill/answerSheet.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-18). A wrong pick shows only "This one comes round
+  again", and the summary counted it as right ("Got right 3"). Sounds of French and Guided basics
+  open the live-scene sheet (practice/practiceTabView.ts); one listing reads "and pay..". Decided 2026-10-29 (founder decisions 19 and 20): the first miss shows the right answer and a one-line reason, the item returns as assisted; Sounds of French opens the real minimal-pair sound drill (Core). Also the "and pay.." double full stop is in main/exploreCollections.ts:64.
+- verified-by: `a missed drill answer shows the right answer and a one-line reason`
+- verified-by: `a miss is not counted as right first time`
+- verified-by: `Sounds of French opens a sound drill rather than a live scene`
+
+### F922 — Help and feedback is only a mail link
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:351
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-21). On web the row showed no visible change; there
+  is no in-app help for a blocked mic, typing, minutes, leaving a scene or what Free includes.
+- verified-by: `help opens an in-app sheet with the mail address shown as text`
+
+### F924 — Going offline swaps Today's main card silently, and it stays swapped online
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/nextAction.ts
+- note: Found 2026-10-28 by the product review (filed 2026-10-29 on claude/review-d-progress, Stream D; LR-24; two reviewers). Offline, "Start speaking"
+  became the free offline café line with no offline notice, for a Level 3 learner too; back online
+  it stayed until a browser restart. Root cause found 2026-10-29: there is no network listener; live comes from a /health probe on mount (app/LiveContext.tsx) and nothing probes again.
+- verified-by: `Today restores the scene card when the connection returns`
+- verified-by: `the offline card says the learner is offline`
+
+### F934 — Today shows seven equal blocks, and due review never appears
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.tsx
+- note: Found 2026-10-28 by the product review (LR-17; filed 2026-10-29 on claude/review-d-progress,
+  Stream D). Stats, next scene, Today's three, one fix, today's phrase, coming up and the week all
+  weigh the same, and NextTaskCard deliberately keeps due review off Today. Founder decision 6: one
+  ordered "Today's path" from the report's section 10 (retry the fix, the next scene, say today's
+  phrase, with minutes per step) and a review row when Review would deal cards.
+- verified-by: `Today leads with one ordered path of three steps`
+- verified-by: `Today offers review when Review would deal cards`
+
+### F935 — A paying learner cannot see what the plan gives
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/purchases/planStatus.ts
+- note: Found 2026-10-28 by the product review (LR-23; filed 2026-10-29 on claude/review-d-progress,
+  Stream D). The paid band says only "Plenty of speaking time left", nothing is labelled Max, and
+  Home's "See plans" shows to subscribers. Founder decision 21: the 30-day pool with numbers, "Included
+  in Max" on Max-only entries, no "See plans" for paid learners.
+- verified-by: `a paid learner sees minutes left of the plan's pool`
+- verified-by: `Max-only entries say they are included in Max`
+- verified-by: `a paid learner is never offered See plans on Home`
+
+### F936 — An out-of-time learner is offered "Continue practice" and "Speak with my tutor"
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/StarterContinuation.tsx
+- note: Found 2026-10-29 in the Stream B live replay. Today's StarterContinuation card replaces the lead
+  whenever a starter record exists and no session ran (tabs/HomeTab.tsx:235) and never asks billing,
+  so the plans rule in practice/nextTask.ts never runs and "Speak with my tutor" leads into a refused
+  live scene. Related F651.
+- verified-by: `an out-of-time learner is led to plans, not to a live scene`
+
+### F937 — The recap says "Day 1. No French yet this week."
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/recap/afterSessionView.ts
+- note: Found 2026-10-29 in the Stream A live replay. The day comes from the settled streak while the
+  week is read once on mount, before the settle writes, and counts activity entries only, not the
+  zero-XP sittings the streak counts (RecapScreen.tsx:192-196, momentum.ts:445).
+- verified-by: `the recap's day and week lines never contradict each other`
