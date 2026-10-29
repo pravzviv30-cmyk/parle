@@ -93,7 +93,7 @@ import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { isUnderAgeStop } from './profile/age.ts';
 import { prefersTyping } from './profile/typing.ts';
-import { micAfterAsk, micOpensOnReady } from './tutor/convoStart.ts';
+import { micAfterAsk, micOpensOnReady, type SeedTopic } from './tutor/convoStart.ts';
 import { withAgeStop } from './profile/store.ts';
 import type { OrbState } from './tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
@@ -241,7 +241,7 @@ export function ConvoScreen({
    * start body into the join token, the same channel mode and the snapshot use.
    * A session with no seed opens exactly as it always has.
    */
-  seedTopic?: { fr: string; en: string };
+  seedTopic?: SeedTopic;
   /**
    * The finished conversation this room is genuinely carrying on.
    *

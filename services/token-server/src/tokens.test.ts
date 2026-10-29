@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { FIRST_MISSION, PLANS, TUTOR_VOICES, type Entitlement } from '@luvani/core';
+import { DEFAULT_TUTOR_VOICE, FIRST_MISSION, PLANS, TUTOR_VOICES, firstPracticeScenario, type Entitlement, type FirstPracticeBrief } from '@luvani/core';
 import { ROOM_LIFECYCLE, grantSession, roomNameFor, type TokenConfig } from './tokens.ts';
 import { DevelopmentEntitlementStore, InMemoryEntitlementStore, developmentEntitlementsEnabled } from './store.ts';
 
@@ -180,6 +180,21 @@ describe('session shape in token metadata', () => {
     const claims = JSON.parse(Buffer.from(result.grant.token.split('.')[1]!, 'base64url').toString('utf8'));
     return JSON.parse(claims.metadata) as Record<string, unknown>;
   }
+
+  // F929: server.ts signs firstPracticeScenario(brief) as the guest seed. Its
+  // fr/en is what the tutor says and the room shows, so it is a short title;
+  // the full situation rides as the tutor-only brief.
+  test('the guest first scene opens on its title, not its instructions', async () => {
+    const base: FirstPracticeBrief = { version: 1, goals: ['food'], level: 'zero', confidence: 'hesitant', focus: 'speaking', minutes: 5, tutorVoice: DEFAULT_TUTOR_VOICE };
+    for (const goals of [['food'], ['trip'], ['family'], ['moving'], ['work'], ['because'], ['trip', 'food']] as FirstPracticeBrief['goals'][]) {
+      const scenario = firstPracticeScenario({ ...base, goals });
+      const meta = await metadataFor({ seedTopic: scenario });
+      const seed = meta.seedTopic as { fr: string; en: string; brief?: string };
+      assert.ok(seed.en.length <= 40 && !/\b(ask|arrange|buy|choose|explain|you)\b/i.test(seed.en), `"${seed.en}" is an instruction, not a title`);
+      assert.ok(seed.brief !== undefined && seed.brief.length > 30, `${goals.join('+')} lost its situation`);
+      assert.equal(seed.brief, scenario.brief);
+    }
+  });
 
   test('a valid startRung is signed into the metadata', async () => {
     const meta = await metadataFor({ startRung: 3 });

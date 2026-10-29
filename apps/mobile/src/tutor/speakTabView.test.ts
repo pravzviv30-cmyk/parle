@@ -433,6 +433,8 @@ test('a free-talk idea sends its instructions as a brief', async () => {
   assert.match(read('../tabs/ExploreTab.tsx'), /seedTopic: seedOf\(idea\)/);
   assert.doesNotMatch(read('./speakTabView.ts'), /seedTopic: \{ fr: idea\.fr, en: idea\.en \}/);
   assert.match(read('../live/useLiveSession.ts'), /\.\.\.\(seedTopic !== undefined \? \{ seedTopic \} : \{\}\)/);
+  // The room's prop is typed to carry the brief, not just structurally allowed to.
+  assert.match(read('../ConvoScreen.tsx'), /\n  seedTopic\?: SeedTopic;\n/);
 });
 
 // F856: "Recommended" claims a judgement; a pick that is only the next scene
