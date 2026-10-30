@@ -1,33 +1,20 @@
 /**
- * The parts the live room is drawn from, to the B-Live and B-LiveHelp
- * artboards (2026-10-21 UI-008), in light and dark.
- *
- * The room keeps its blue ground in both themes (the brand); the bubbles and
- * the help sheet follow the theme: cream in light, the M3 ground in dark.
- * Pure presentation: every word and every decision arrives as a prop, mostly
- * from `live/liveRoomView.ts`, and every colour is a `useB()` token. Marks are
- * decoration; the words beside them say what they mean.
+ * Shared parts of the live room (UI-014, direction D): the top bar, the glyphs,
+ * the notebook's side controls and the Help sheet with its ladder and choices.
+ * Pure presentation: every word and decision arrives as a prop, mostly from
+ * `live/liveRoomView.ts`, and every colour is a `useB()` token.
  */
 
-import { useEffect, useRef, type ReactNode } from 'react';
-import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
+import { type ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
-import { BArt } from '../art/BArt.tsx';
-import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
-import type { TutorVoiceKey } from '@luvani/core';
 import { Press } from '../components.tsx';
 import { TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BMic, BSpeaker } from '../today/TodayParts.tsx';
 import { HIT, bType, decorative, frenchText } from '../theme.ts';
-import type { GoalChip, LadderStep } from './liveRoomView.ts';
-import { tickAnnouncement } from '../tutor/taskTicks.ts';
-import { useAppActive, useOrbAudio } from './OrbAudio.tsx';
-import { orbLayers } from '../tutor/orbLayers.ts';
-import { OrbPulse } from '../tutor/OrbPulse.tsx';
-import type { OrbState } from '../tutor/VoiceOrb.tsx';
-import { useReduceMotion } from '../motion.ts';
+import type { LadderStep } from './liveRoomView.ts';
 
 // ─────────────────────────────────────────────────────────────── glyphs
 
@@ -92,108 +79,6 @@ export function LiveTopBar({ leave, title, line, pace, report }: { leave: ReactN
   );
 }
 
-/** The goals strip: a mint tick for done, a sun ring for now, a soft ring for to do. */
-export function GoalsStrip({ chips }: { chips: readonly GoalChip[] }) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  // A goal reached while the strip is on screen is said once, in its own
-  // words (tutor/taskTicks.ts). Goals already done at first sight are not.
-  const firstLook = useRef<Set<string> | null>(null);
-  const said = useRef(new Set<string>());
-  const signature = chips.map((chip) => `${chip.id}:${chip.state}`).join('|');
-  useEffect(() => {
-    if (chips.length === 0) return;
-    const done = chips.filter((chip) => chip.state === 'done');
-    if (firstLook.current === null) { firstLook.current = new Set(done.map((chip) => chip.id)); return; }
-    const fresh = done.filter((chip) => !firstLook.current!.has(chip.id) && !said.current.has(chip.id));
-    for (const chip of fresh) said.current.add(chip.id);
-    const line = tickAnnouncement(fresh.map((chip) => chip.label));
-    if (line !== null) AccessibilityInfo.announceForAccessibility(line);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature]);
-  if (chips.length === 0) return null;
-  return (
-    <View style={s.goals} accessibilityRole="list" accessibilityLabel="Goals in this scene">
-      {chips.map((chip) => (
-        <View key={chip.id} style={s.goal} accessible accessibilityLabel={chip.spoken}>
-          {chip.state === 'done'
-            ? <View style={s.goalDone}><TickGlyph size={12} color={t.onMint} /></View>
-            : <View style={[s.goalRing, chip.state === 'current' ? s.goalRingNow : s.goalRingLater]} />}
-          <Text style={[chip.state === 'current' ? bType.bold14 : bType.meta, { color: chip.state === 'current' ? t.onBrand : t.onBrandSoft },
-            chip.state === 'done' && s.struck]}>{chip.label}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-/**
- * The tutor's orb: two rings and the tutor-orb art, with the state in words
- * under it. The art pulses with the room's measured levels, exactly as the C2
- * sphere did (BoldVoiceOrb): the mic's while it records, the tutor's while it
- * speaks, still otherwise. Never a fabricated meter.
- */
-export function LiveOrb({ caption, size, state, active, voice }: {
-  caption: string; size: 'full' | 'small'; state: OrbState; active: boolean;
-  /** The learner's tutor, drawn as their portrait; absent, the shared orb. */
-  voice?: TutorVoiceKey;
-}) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  const audio = useOrbAudio();
-  const foreground = useAppActive();
-  const reduced = useReduceMotion();
-  const layers = orbLayers({ state, room: audio?.room ?? null, reduced, paused: !active || !foreground });
-  const input = layers.ring && audio !== null;
-  const output = layers.bars === 'live' && audio !== null;
-  const outer = size === 'full' ? 200 : 96;
-  return (
-    <View style={s.orbBlock}>
-      <View {...decorative} style={{ width: outer, height: outer, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={[s.ring, { width: outer, height: outer, borderRadius: outer / 2, backgroundColor: t.orbRing }]} />
-        <View style={[s.ring, { width: outer * 0.82, height: outer * 0.82, borderRadius: outer * 0.41, backgroundColor: t.violet2 }]} />
-        <OrbPulse level={input ? audio.input : output ? audio.output : null} on={input || output}>
-          {voice ? <TutorPortrait voice={voice} size={outer * 0.64} ring={t.onBrand} /> : <BArt name="tutor-orb" width={outer * 0.64} height={outer * 0.64} style={{ borderRadius: outer * 0.32, overflow: 'hidden' }} />}
-        </OrbPulse>
-      </View>
-      <Text accessibilityLiveRegion="polite" style={[bType.bold18, s.center, { color: t.onBrand }]}>{caption}</Text>
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────── bubbles
-
-/** The tutor's bubble: name, French, English, and a 44pt hear button. */
-export function TutorBubble({ name, fr, en, onHear }: { name: string; fr: string; en: string | null; onHear?: () => void }) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  return (
-    <View style={s.tutorBubble}>
-      <View style={s.bubbleWords}>
-        <Text style={[bType.bold12, { color: t.link }]}>{name}</Text>
-        <Text {...frenchText} style={[bType.bold19, { color: t.text }]}>{fr}</Text>
-        {en ? <Text style={[bType.meta, { color: t.muted }]}>{en}</Text> : null}
-      </View>
-      {onHear ? (
-        <Press haptic="light" depth="tile" accessibilityLabel="Hear it again" onPress={onHear} style={s.hear}>
-          <BSpeaker size={18} color={t.text} />
-        </Press>
-      ) : null}
-    </View>
-  );
-}
-
-/** The learner's bubble, in sun, on the right. */
-export function YouBubble({ text }: { text: string }) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  return (
-    <View style={s.youBubble}>
-      <Text style={[bType.bold12, { color: t.onMint }]}>You</Text>
-      <Text {...frenchText} style={[bType.bold17, { color: t.onMint }]}>{text}</Text>
-    </View>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────── controls
 
@@ -218,31 +103,6 @@ export function SideControl({ label, accessibilityLabel, icon, onPress, disabled
   );
 }
 
-/**
- * The 84pt live mic with its rim, and the mic's state in words under it. Mint,
- * not the artboard's sun: the live mic is green (founder, 2026-10-21 UI-008).
- */
-export function MicControl({ label, accessibilityLabel, onPress, disabled = false }: { label: string; accessibilityLabel: string; onPress: () => void; disabled?: boolean }) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  return (
-    <View style={s.micColumn}>
-      <Press haptic="light" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[s.mic, disabled && s.disabled]}>
-        <BMicHeavy color={t.onMint} />
-      </Press>
-      <Text {...decorative} style={[bType.bold12, { color: t.onBrand }]}>{label}</Text>
-    </View>
-  );
-}
-
-function BMicHeavy({ color }: { color: string }) {
-  return (
-    <Svg {...decorative} width={32} height={32} viewBox="0 0 24 24">
-      <Rect x={8.5} y={3} width={7} height={12} rx={3.5} fill="none" stroke={color} strokeWidth={2.2} />
-      <Path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" />
-    </Svg>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────── help sheet
 
@@ -362,25 +222,9 @@ function makeStyles(t: B) {
     top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     topWords: { flex: 1, minWidth: 0 },
     topSpace: { width: HIT, height: HIT },
-    goals: { marginTop: 14, backgroundColor: t.violetDeep, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 8 },
-    goal: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 22 },
-    goalDone: { width: 22, height: 22, borderRadius: 11, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
-    goalRing: { width: 22, height: 22, borderRadius: 11 },
-    goalRingNow: { borderWidth: 2.5, borderColor: t.sun },
-    // On violetDeep: onBrandSoft is 8.0, violet2 was 1.8 (F921 round 4).
-    goalRingLater: { borderWidth: 2, borderColor: t.onBrandSoft },
-    struck: { textDecorationLine: 'line-through' },
-    orbBlock: { alignItems: 'center', gap: 10, marginTop: 22 },
-    ring: { position: 'absolute' },
     center: { textAlign: 'center' },
-    tutorBubble: { backgroundColor: t.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomRightRadius: 22, borderBottomLeftRadius: 6, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-    bubbleWords: { flex: 1, gap: 4 },
-    hear: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center' },
-    youBubble: { alignSelf: 'flex-end', maxWidth: 270, backgroundColor: t.sun, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomRightRadius: 6, borderBottomLeftRadius: 22, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
     side: { width: 72, alignItems: 'center', gap: 6 },
     sideDisc: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
-    micColumn: { alignItems: 'center', gap: 4 },
-    mic: { width: 84, height: 84, borderRadius: 42, borderWidth: 6, borderColor: t.orbRing, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
     disabled: { opacity: 0.55 },
     ladder: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', rowGap: 6 },
     ladderStep: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 6 },

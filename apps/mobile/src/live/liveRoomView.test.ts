@@ -3,8 +3,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { cloudExpression, goalStamps, ringMode, roomMenuRows, goalStrip, helpLadder, ladderSpoken, liveBubbles, moreHelpOffered, paceLabel, askedLabel, typingNote, HELP_COPY, quietVoiceNote, roomNote, sendButton, tapToSendControl, tapToSendNote, wrapUpNote } from './liveRoomView.ts';
-import type { TurnLine } from './turns.ts';
+import { cloudExpression, goalStamps, ringMode, roomMenuRows, goalStrip, helpLadder, ladderSpoken, moreHelpOffered, paceLabel, askedLabel, typingNote, HELP_COPY, quietVoiceNote, roomNote, sendButton, tapToSendControl, tapToSendNote, wrapUpNote } from './liveRoomView.ts';
 
 describe('the pace pill', () => {
   test('says the scene pace, never a countdown or minutes left', () => {
@@ -59,25 +58,14 @@ describe('the help ladder', () => {
   });
 });
 
-describe('the bubbles', () => {
-  const turn = (id: string, who: TurnLine['who'], fr: string): TurnLine => ({ id, who, fr, frWritten: null, en: null });
-  test('the tutor’s last line and the learner’s words since', () => {
-    const turns = [turn('1', 'tutor', 'Bonjour'), turn('2', 'learner', 'Bonjour'), turn('3', 'tutor', 'Et avec ceci ?')];
-    assert.deepEqual(liveBubbles(turns, null), { tutor: turns[2], you: null });
-    assert.deepEqual(liveBubbles(turns, 'Oui, c’est quoi le'), { tutor: turns[2], you: 'Oui, c’est quoi le' });
-    assert.deepEqual(liveBubbles([...turns, turn('4', 'learner', 'Un café')], '  '), { tutor: turns[2], you: 'Un café' });
-    assert.deepEqual(liveBubbles([], null), { tutor: null, you: null });
-  });
-});
-
 describe('the live mic is green', () => {
   // 2026-10-21 UI-008, founder decision: the live mic keeps the green signal
   // rule rather than the artboard's sun, with ink on it in both themes.
-  test('the mic fills mint and draws its glyph in ink', () => {
-    const parts = readFileSync(fileURLToPath(new URL('./LiveParts.tsx', import.meta.url)), 'utf8');
-    assert.match(parts, /mic: \{[^}]*backgroundColor: t\.mint/, 'the live mic is not mint');
-    assert.doesNotMatch(parts, /mic: \{[^}]*backgroundColor: t\.sun/, 'the live mic went back to sun');
-    assert.match(parts, /<BMicHeavy color=\{t\.onMint\} \/>/, 'the mic glyph is not ink on mint');
+  // UI-014, direction D: the mic is the cloud, and its listening ring is mint.
+  test('the cloud mic listens in a mint ring, never sun', () => {
+    const dock = readFileSync(fileURLToPath(new URL('./DockParts.tsx', import.meta.url)), 'utf8');
+    assert.match(dock, /<LevelRing level=\{audio\.input\} size=\{CLOUD\.ring\} color=\{t\.mint\} \/>/, 'the live mic ring is not mint');
+    assert.doesNotMatch(dock, /LevelRing[^\n]*color=\{t\.sun\}/, 'the live mic went back to sun');
   });
 });
 

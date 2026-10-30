@@ -1,14 +1,11 @@
 /**
- * The live room's decisions, apart from drawing them (2026-10-21 UI-008,
- * artboards B-Live and B-LiveHelp). Pure, so every rule here has a test and
- * the room's .tsx keeps only layout.
+ * The live room's decisions, apart from drawing them. Pure, so every rule
+ * here has a test and the room's .tsx keeps only layout.
  *
- *   - the top pill: the scene's own pace, never the allowance, never a countdown;
- *   - the goals strip: done, current (the first goal not yet reached), to do;
- *   - the help ladder: Hint, Choices, Line given, in words, over the live rung;
- *   - the two bubbles: the tutor's last line and what the learner is saying;
- *   - direction D (UI-014): the goal stamps, the cloud mic's face, the
- *     portrait ring's colour and the room menu's rows.
+ *   - the pace under the title: the scene's own, never a countdown;
+ *   - the goal states behind the stamps, the cloud mic's face, the portrait
+ *     ring's colour and the room menu's rows (UI-014, direction D);
+ *   - the help ladder: Hint, Choices, Line given, in words, over the live rung.
  *
  * Presentation only: nothing here changes what the tutor does or how the rung
  * moves. It reads the rung the session already published.
@@ -124,19 +121,6 @@ export function lastTutorLine(turns: readonly TurnLine[]): TurnLine | null {
     if (turns[index]!.who === 'tutor') return turns[index]!;
   }
   return null;
-}
-
-/**
- * The two bubbles under the orb: the tutor's last line, and the learner's
- * words since then (the live partial first, else their last line after it).
- */
-export function liveBubbles(turns: readonly TurnLine[], partial: string | null | undefined): { tutor: TurnLine | null; you: string | null } {
-  const tutor = lastTutorLine(turns);
-  const heard = partial?.trim() ? partial.trim() : null;
-  if (heard !== null) return { tutor, you: heard };
-  const after = tutor === null ? turns : turns.slice(turns.indexOf(tutor) + 1);
-  const learner = [...after].reverse().find((turn) => turn.who === 'learner') ?? null;
-  return { tutor, you: learner?.fr ?? null };
 }
 
 export const QUIET_VOICE_COPY = {

@@ -36,7 +36,6 @@ test('each tutor shows their own portrait', () => {
   // Surfaces whose caller passes the tutor: the portrait when it does.
   const given: Array<[string, RegExp]> = [
     ['../today/TodayParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{44\} ring=\{t\.text\} \/> :/],
-    ['../live/LiveParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{outer \* 0\.64\} ring=\{t\.onBrand\} \/> :/],
     ['../onboarding/BOnboardingParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{size\} ring=\{t\.onBrand\} \/> :/],
     ['../onboarding/BOnboardingParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{orb\} ring=\{t\.onBrand\} \/> :/],
     ['../live/StageParts.tsx', /\? <TutorPortrait voice=\{voice\} size=\{size\} ring=\{mode === 'idle' \? t\.onBrand : ring\} \/>/],

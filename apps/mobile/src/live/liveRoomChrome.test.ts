@@ -146,7 +146,7 @@ describe('a live room is silent and still to the touch — F765', () => {
 
     // 3. Nothing the room draws reaches a sound or a haptic of its own: the
     //    goal ticks, the scene's card, the orb and its layers, and the screen.
-    const ROOM = ['../ConvoScreen.tsx', '../tutor/MissionWin.tsx', '../tutor/MissionTaskList.tsx', '../tutor/useTaskTicks.ts', '../tutor/VoiceOrb.tsx', '../tutor/Transcript.tsx',
+    const ROOM = ['../ConvoScreen.tsx', '../tutor/MissionWin.tsx', '../tutor/useTaskTicks.ts', '../tutor/VoiceOrb.tsx', '../tutor/Transcript.tsx',
       // UI-014, direction D: the room's new parts and their motion.
       './C2LiveRoom.tsx', './StageParts.tsx', './NotebookParts.tsx', './DockParts.tsx', '../motion/MascotMotion.tsx'];
     const layers = readdirSync(fileURLToPath(new URL('../tutor/', import.meta.url)))

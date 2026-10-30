@@ -36,9 +36,10 @@ describe('the microphone meter', () => {
     assert.match(stage, /useOrbAudio\(\)/);
     assert.match(stage, /const level = audio === null \? null : mode === 'tutor' \? audio\.output : mode === 'learner' \? audio\.input : null;/);
     assert.match(stage, /<LevelRing level=\{level\}/);
-    const liveOrb = evidence('apps/mobile/src/live/LiveParts.tsx');
-    assert.match(liveOrb, /useOrbAudio\(\)/);
-    assert.match(liveOrb, /<OrbPulse level=\{input \? audio\.input : output \? audio\.output : null\}/);
+    // The cloud mic's ring reads the mic's real level, never a fabricated meter.
+    const dock = evidence('apps/mobile/src/live/DockParts.tsx');
+    assert.match(dock, /useOrbAudio\(\)/);
+    assert.match(dock, /<LevelRing level=\{audio\.input\}/);
     const orb = evidence('apps/mobile/src/onboarding/BoldVoiceOrb.tsx');
     assert.match(orb, /useOrbAudio\(\)/);
     assert.match(orb, /<OrbPulse level=\{input \? audio\.input : output \? audio\.output : null\}/,

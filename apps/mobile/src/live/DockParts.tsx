@@ -13,7 +13,7 @@
  * nothing; every press goes back to the room.
  */
 
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Cloud } from '../art/mascots/Cloud.tsx';
 import { Press } from '../components.tsx';
@@ -22,6 +22,7 @@ import { LevelRing } from '../motion/LevelRing.tsx';
 import { Hop, LevelSquish } from '../motion/MascotMotion.tsx';
 import { HIT, bType, decorative } from '../theme.ts';
 import { HelpSheet } from './LiveParts.tsx';
+import { SwitchKnob } from '../settings/SwitchKnob.tsx';
 import type { CloudExpression, RoomMenuRow } from './liveRoomView.ts';
 import { useOrbAudio } from './OrbAudio.tsx';
 
@@ -80,9 +81,7 @@ export function RoomMenu({ rows, onRow, onClose }: { rows: readonly RoomMenuRow[
               <Text style={[bType.bold16, { color: t.text }]}>{row.label}</Text>
               {row.hint ? <Text style={[bType.note, { color: t.muted }]}>{row.hint}</Text> : null}
             </View>
-            <View {...decorative} pointerEvents="none">
-              <Switch value={row.checked === true} trackColor={{ true: t.brand, false: t.field }} ios_backgroundColor={t.field} thumbColor={t.card} />
-            </View>
+            <SwitchKnob value={row.checked === true} />
           </Press>
         ) : (
           <Press key={row.kind} haptic="none" accessibilityRole="button" accessibilityLabel={row.label} onPress={() => onRow(row)} style={s.row}>

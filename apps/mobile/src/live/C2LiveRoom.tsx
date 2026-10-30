@@ -25,13 +25,11 @@ import { HELP_COPY, CHEER_MS, askedLabel, cloudExpression, freshGoals, quietVoic
  * Presentation only. Every action is supplied by the existing session owner.
  *
  * 2026-10-30 UI-014, direction D: face to face with a notebook. On the room's
- * blue ground in both themes: the top bar (leave, the scene and its pace, the
- * room menu), the goal stamps, then the tutor's portrait with live level
- * rings. Under it the notebook sheet on the theme's ground grows upward with
- * the newest tutor line large, the learner's lines in sun and recasts in the
- * margin; the dock (Type, the cloud mic, Help) sits on the same sheet. The
- * state the orb used to say in words is still spoken, from a live region that
- * is not drawn. Every rule is in liveRoomView.ts and notebookView.ts.
+ * blue ground, the top bar, the goal stamps and the tutor's portrait with live
+ * level rings (StageParts); under them the notebook sheet (NotebookParts) with
+ * the dock of Type, the cloud mic and Help (DockParts). The room's state is
+ * spoken from a live region that is not drawn, and every rule is in
+ * liveRoomView.ts and notebookView.ts.
  *
  * The room menu holds the transcript, Quiet voice and Tap to send switches
  * and, in the closed beta, "Report this reply", which opens the room report

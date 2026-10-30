@@ -62,8 +62,8 @@ export function tickAnnouncement(goals: readonly string[]): string | null {
 
 /**
  * Where a conversation's ticks stand, for the orb and the scene's card. The
- * list draws its own ticks from `newlyAchieved` against its first look, in the
- * same render a goal turns, so a tick is drawn ticking from its first frame.
+ * room's goal stamps draw their own ticks against their first look
+ * (`freshGoals`, live/StageParts.tsx).
  */
 export interface TickState {
   /** The session these belong to; another session starts again. */

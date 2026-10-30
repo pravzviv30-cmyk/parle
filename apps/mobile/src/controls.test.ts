@@ -133,8 +133,6 @@ describe('F921: control borders', () => {
     // (a token in `b`). Every colour in its border is then measured against
     // that ground in both modes, pale or not, instead of being skipped.
     const ON_GROUND = new Map<string, string>([
-      ['live/LiveParts.tsx#goalRingNow', 'violetDeep'],
-      ['live/LiveParts.tsx#goalRingLater', 'violetDeep'],
       // UI-014: the to-do goal stamp is a ring on the room's blue.
       ['live/StageParts.tsx#todo', 'brand'],
     ]);

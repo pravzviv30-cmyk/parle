@@ -41,10 +41,7 @@ describe('a switch is drawn on every platform — F736', () => {
         switches.push({ file: relative(SRC, path).split(sep).join('/'), element: body.slice(m.index, body.indexOf('/>', m.index) + 2) });
       }
     }
-    assert.ok(
-      switches.some((s) => s.file === 'settings/SwitchRow.tsx'),
-      'SwitchRow no longer draws a Switch, so this check reads nothing',
-    );
+    assert.ok(switches.length > 0, 'no Switch is drawn anywhere, so this check reads nothing');
     for (const { file, element } of switches) {
       const off = /trackColor=\{\{ true: [\w.]+, false: ([\w.]+) \}\}/.exec(element);
       assert.ok(off, `${file} draws a Switch with no off track colour`);
@@ -64,9 +61,26 @@ describe('the whole row is the switch — F927', () => {
     assert.match(row, /accessibilityState=\{\{ checked: value, disabled \}\}/, 'the row does not say on or off');
     assert.match(row, /aria-checked=\{value\}/, 'the web does not hear on or off');
     assert.match(row, /onPress=\{\(\) => onChange\(!value\)\}/, 'a tap on the row does not toggle');
-    // The Switch inside is the picture of the state, not a second control.
-    assert.match(body, /<View ref=\{knob\} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>\s*<Switch/, 'the inner switch is announced and pressed a second time');
-    assert.match(body, /setAttribute\?\.\('inert', ''\)/, 'the inner web checkbox stays in the tab order');
+    // The knob is the picture of the state, not a second control.
+    assert.match(body, /<SwitchKnob value=\{value\} disabled=\{disabled\} on=\{accent\.brand\} off=\{offTrack\} thumb=\{paper\.card\} \/>/, 'the row does not draw its state, or draws it off the palette');
     assert.doesNotMatch(body, /onValueChange=/, 'the inner switch toggles on its own as well as the row');
+  });
+});
+
+describe('a switch row has one tab stop', () => {
+  // React Native Web renders <Switch> as a focusable checkbox, and inside a
+  // hidden subtree that is an invisible, unnamed tab stop after the row.
+  test('neither switch row draws a platform Switch inside it', () => {
+    for (const file of ['settings/SwitchRow.tsx', 'live/DockParts.tsx']) {
+      const body = stripComments(readFileSync(join(SRC, file), 'utf8'));
+      assert.doesNotMatch(body, /<Switch\b/, `${file} renders a platform Switch inside a row that is already the switch`);
+      assert.match(body, /<SwitchKnob\b/, `${file} no longer draws the row's state`);
+    }
+  });
+  test('the knob has nothing to focus, press or announce', () => {
+    const knob = stripComments(readFileSync(join(SRC, 'settings/SwitchKnob.tsx'), 'utf8'));
+    assert.doesNotMatch(knob, /<(?:Switch|Press|Pressable|TextInput)\b|accessibilityRole|onPress/, 'the knob became a control');
+    assert.match(knob, /<View \{\.\.\.decorative\} pointerEvents="none"/, 'the knob is not hidden from assistive tech');
+    assert.match(knob, /backgroundColor: value \? on \?\? t\.brand : off \?\? t\.field, alignItems: value \? 'flex-end' : 'flex-start'/, 'on is not brand with the thumb trailing, or off is not field with it leading');
   });
 });

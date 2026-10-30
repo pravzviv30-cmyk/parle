@@ -49,4 +49,14 @@ describe('the notebook', () => {
     assert.deepEqual(notebookLines(turns.slice(0, 4), null, 'newest').map((item) => item.id), ['a1']);
     assert.deepEqual(notebookLines([], null, 'newest'), []);
   });
+  // Re-pins the retired bubbles test: the tutor's last line and the
+  // learner's newest words, the live partial first and a blank one ignored.
+  // Unlike the old bubble, the notebook keeps the learner's last line in view
+  // even when the tutor has spoken since, so the exchange reads as a pair.
+  test('newest mode reads the tutor’s last line and the learner’s newest words', () => {
+    const tail = [line('x1', 'tutor', 'Bonjour'), line('y1', 'learner', 'Salut'), line('x2', 'tutor', 'Et avec ceci ?')];
+    assert.deepEqual(notebookLines(tail, null, 'newest').map((item) => item.fr), ['Salut', 'Et avec ceci ?']);
+    assert.deepEqual(notebookLines(tail, 'Oui, c’est quoi le', 'newest').map((item) => [item.fr, item.partial === true]), [['Et avec ceci ?', false], ['Oui, c’est quoi le', true]]);
+    assert.deepEqual(notebookLines([...tail, line('y2', 'learner', 'Un café')], '  ', 'newest').map((item) => item.fr), ['Et avec ceci ?', 'Un café']);
+  });
 });
