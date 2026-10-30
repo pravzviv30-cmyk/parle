@@ -288,6 +288,19 @@ Acceptance:
 | Date / task | Attempt and changed paths | Check / result | Next action or blocker |
 |---|---|---|---|
 | 2026-10-29 / design | Directions A, B, C, then the founder's mix D and D in dark on the direction board; prototype fixes (rings, goal moment, hint per question, cloud outline, sheet growth, to-do stamp ring contrast, dark fix note) | Played through a full turn and Help in the browser, light and dark | T0 |
+| 2026-10-30 / T0 | Worktree `Luvani-worktrees/live-room-d` from main `e9030f7e`; before shots in `reviews/2026-10-30-live-room-d/before/` (8 web, 1 native) | `npm run shots` and `xcrun simctl io` | T1, T2 |
+| 2026-10-30 / T5 | 144 short labels drafted in `live-room-d-goal-labels.md` (77 unchanged, 67 shortened, all at most 24 characters) and sent to the founder | Rule check script: 0 problems | Founder approval blocks landing |
+| 2026-10-30 / T1 | Mascots `art/mascots/` (Cloud, Toast, six faces) and the `mascot` palette group; limbs left out, toast keeps the source face without cheeks | Mobile tests green; palette contrast checks for the outline and the dark sheet | none |
+| 2026-10-30 / T2 | `goalStamps`, `cloudExpression`, `ringMode` (from the room state, not the measured levels), `roomMenuRows`, `notebookLines`, `recastView`, core `shortGoals.ts` (empty) | Mobile 3,882 and core 1,112 green | none |
+| 2026-10-30 / T3, T4 | `StageParts`, `NotebookParts`, `DockParts`, `MascotMotion`, `OrbPortraitMotion`; `C2LiveRoom` recomposed with the props API unchanged; dark preview via `ModeScope`; review fixes: no line drawn in the sheet's top band, the toast peek, a 0.4 scrim behind every sheet, themed preview Help text | Mobile 3,894 green; 32 after shots; Help and the room menu checked in the browser in dark | Clean-out |
+| 2026-10-30 / clean-out | Deleted `LiveOrb`, `TutorBubble`, `YouBubble`, `GoalsStrip`, `MicControl`, `liveBubbles`, `tutor/MissionTaskList.tsx`, 23 dead ConvoScreen styles and their imports, LiveSessionScreen leftovers; new `settings/SwitchKnob.tsx` replaces the hidden native Switch in the room menu and SwitchRow (it was a hidden keyboard stop on web); ConvoScreen coach mark on the themed primary pair | Mobile 3,896, core 1,112 green; old names gone from source | T6, T7 |
+
+Built differently from the spec, on purpose:
+- **Newest-only mode** keeps the learner's last line even when the tutor has spoken since, so the exchange reads "you said, she replied". The old `liveBubbles` showed only learner words after the tutor's line.
+- **The partial line's caret does not blink.** Loops are allowed only in `tutor/Orb*` files.
+- **The scene description** shows only when a scene has no pace. D's top bar is the title and pace.
+- **The spoken caption** uses a 1x1 clipped box in the room's colour (no visually-hidden pattern existed). It still needs a VoiceOver check on device.
+- **Left in place:** `QUIET_DOOR`, `OPEN_MIC_LABEL` and `SpeakerSlowGlyph` are unused outside their own tests, but they were unused before D and are not room code it replaces.
 
 ## Integrated verification and handoff
 

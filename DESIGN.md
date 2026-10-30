@@ -225,27 +225,47 @@ period stay near a purchase action, and large text is never capped to fit.
   phrasebook drawing with Choose a scene; those three routes follow the device
   since 2026-10-21 (UI-008 step 12b).
 - Live rooms keep the real start, pause, type, help, slower, English and leave
-  paths. Since 2026-10-21 (UI-008, B-Live and B-LiveHelp) the room keeps its
-  blue ground in both themes: the leave disc, the scene and its pace ("About N
-  min", the scene's own pace, never the allowance), the goals strip (done,
-  current, to do), the orb pulsing with the real room levels and carrying the
-  learner's tutor portrait (F945), the room's first line "{tutor} plays {part}."
-  in the narration style before the scene's narration (F942), the
-  tutor's last line in a card bubble and the learner's words in sun, then
-  Type, the sun mic and Help. Help opens the cream sheet (the M3 ground in
-  dark): what the tutor asked, the ladder Hint, Choices, Line given over the
-  live rung, the rung's content, "More help: show the line", "Say your choice"
-  and the footnote; Simpler, Give me a moment and In English sit under it.
-  The full transcript stays one tap away. Parts in `live/LiveParts.tsx`, rules
-  in `live/liveRoomView.ts`.
+  paths. Since 2026-10-30 the room is direction D, face to face with a notebook
+  (UI-014). It keeps its blue ground in both themes (UI-008):
+  - **Top bar:** the leave disc, the scene and its pace ("About N min", the
+    scene's own pace, never the allowance), and the `…` room menu disc, which
+    carries a sun dot when a report is saved.
+  - **Goal stamps:** done is a mint disc with the ink tick, current is a sun
+    disc with its number, and to do is an `onBrandSoft` ring. The current
+    goal's short label sits beside them; a screen reader hears the full goal.
+  - **Portrait stage:** the learner's tutor portrait (F945), centred in the
+    blue space left above the sheet. Level rings move with the real room level
+    (`LevelRing`) in sun while the tutor speaks and mint on the learner's turn,
+    with a dashed sun ring while the tutor thinks.
+  - **Notebook sheet:** on the theme ground, growing upward as the scene goes
+    on. It holds the narration (the role line "{tutor} plays {part}." first,
+    F942), then the newest tutor line large with its English and a hear button,
+    and older lines in French only. The learner's lines carry the sun mark.
+    Each recast sits in the margin on lavender with the toast beside it, with
+    the existing "Why?".
+  - **Dock:** Type, the cloud mic (the cloud mascot with an ink edge, its face
+    following the room) and Help.
+  - **Room menu (`…`):** Show every line, Quiet voice, Tap to send and Report
+    this reply.
+  - **Help:** opens the cream sheet (the M3 ground in dark) over a 0.4 scrim,
+    with the toast peeking over its edge. It holds what the tutor asked, the
+    ladder (Hint, Choices, Line given) over the live rung, the rung's content,
+    "More help: show the line", "Say your choice" and the footnote, with
+    Simpler, Give me a moment and In English under it.
+  - **Spoken only:** the room's state ("Émilie is speaking") is a live region
+    that is not drawn, because the ring colour shows it.
+  - **Where it lives:** parts in `live/StageParts.tsx`,
+    `live/NotebookParts.tsx`, `live/DockParts.tsx` and `live/LiveParts.tsx`;
+    rules in `live/liveRoomView.ts` and `live/notebookView.ts`; the plan is
+    `docs/changes/live-room-d.md`.
 - The room's last minute (VOICE-018, 2026-10-25): the pill stays "About N min"
-  and never counts down. When the agent sends `wrap-up`, the note under the mic
+  and never counts down. When the agent sends `wrap-up`, the note above the dock
   reads "Nearly time to finish. {Tutor} will wrap up after this.", with no
   number, in Speak and Type. The note line shows one thing, in this order: the
   wrap-up note, the typing note, the tap-to-send note, the Quiet voice note.
-- Tap to send (VOICE-019): a "Tap to send: On/Off" switch beside Show transcript
-  and Quiet voice, Speak only. While it is on, a mint pill with ink text, "Send"
-  (screen reader: "Send what you said"), sits above the mic row, at least 54pt
+- Tap to send (VOICE-019): a "Tap to send" switch in the room menu, under Show
+  every line and Quiet voice, Speak only. While it is on, a mint pill with ink
+  text, "Send" (screen reader: "Send what you said"), sits above the dock, at least 54pt
   tall and growing with large text; mint already means "your turn". It is
   disabled while the tutor speaks and once a turn is sent. The note reads
   "Speak, then tap Send when you're done.", then "Tap Send when you're done."
@@ -725,6 +745,12 @@ teal); the yellow hero becomes the M3 hero with a gold button, ink words on the
 button and cream words on the card; the ink primary becomes violet; links become
 the M3 periwinkle. Violet cards, the sun, the mint and the art stay as they are.
 The tab capsule is ink in both modes (Figma `C2/Main2/Navigation`, 292:1103).
+
+The live room (UI-014) keeps the brand blue in both modes. Its notebook, dock
+and sheets take the theme ground (`#151127` in dark), with cream words (17.2:1),
+soft lilac English and older lines (10.3:1), and margin fixes on the dark
+lavender (12.3:1). The learner's sun mark with ink words (11.6:1) and the white
+cloud mic (18.4:1 on the dark sheet) are the same in both modes.
 `palette.test.ts` holds every text pair in both modes to 4.5 and every mark to 3.
 
 **Pinned light until rebuilt.** A screen follows the device only once it is
@@ -1443,8 +1469,8 @@ browser.
 
 ## Inside a conversation
 
-The C2 scene screen uses the shared orb, transcript, composer and compact mode
-controls described above. Current-turn support and Help me out, Simpler,
+The scene screen uses the live room described above (UI-014): the portrait
+stage, the notebook sheet, the composer and the dock. Current-turn support and Help me out, Simpler,
 Give me a moment and In English retain their existing protocol actions behind
 the practice-support control. They wrap rather than shrink and retain the
 44-point floor. A failed connection and a safety stop keep their dedicated
@@ -1456,12 +1482,11 @@ Three rules the row now keeps that it did not:
   support line, so on a hint turn, an options turn or a bare turn the button
   was pressable and silent. It is hidden instead of being taught to speak the
   tutor's line, which would hand back exactly what the support ladder withheld.
-- **Replay lives on the tutor's last bubble**, not on a sixth chip. Tapping it
-  plays that line again, and the bubble now shows its ear so the affordance is
-  found rather than guessed: ink while quiet, the accent on a `groundDeep`
-  disc while the tutor is sounding, exactly as an option card's ear. Every
-  tutor bubble carries the tutor's name, so a thread
-  read back later still says who spoke.
+- **Replay lives on the newest tutor line** in the notebook, not on a sixth
+  chip. Its 44pt hear button plays that line again and shows its ear state
+  (`replayEar`) so the affordance is found rather than guessed. The portrait
+  above the notebook says who is speaking; the error view's transcript still
+  names the tutor on every line.
 - **A learner who prefers typing** opens the conversation with the reply box
   already showing and the microphone closed until the circle is tapped; the
   tutor still speaks. It is a standing choice in Profile, not the quiet door,
@@ -1492,16 +1517,14 @@ control. At most one on screen, at most one *new* one per conversation, each
 shown once ever. That last pair of rules is what stops three notes becoming the
 manual again, spread out.
 
-**The goals tick as they are reached.** The scene's goals sit under its title
-with no count. When the learner reaches one, its mint disc pops in and the
-check lands in it a beat later, the row glints once, the list scrolls it into
-view, and a screen reader hears "Goal reached:" and the goal's own words. At
-rest a tick is the ink check on mint it always was (the Iconsax tick-circle's
-own disc would set the check on a dark teal and halve its contrast). A goal
-already reached when the list appears is simply drawn ticked, and nothing ticks
-after a safety stop. On the last goal the orb ripples once, and the scene's card
-waits for that ripple (under a second) before it arrives; with movement reduced
-it arrives at once.
+**The goals stamp as they are reached** (UI-014). The scene's goals are stamps
+under its title, with the current goal's short label beside them. When the
+learner reaches one, its stamp turns mint and pops once, the cloud mic cheers
+with two hops inside `CELEBRATION_MAX_MS`, and a screen reader hears "Goal
+reached:" and the goal's own words. A goal already reached when the stamps
+appear is simply drawn done, and nothing stamps after a safety stop. With
+movement reduced the stamp and the cloud's face change at once, without the pop
+or the hops.
 
 **The completion moment** is a card in the support card's own place, so the
 screen keeps its shape. Above the mission's own sentence about what the learner
@@ -1801,9 +1824,11 @@ events.
 The tab bar itself (its selected icon pops once in `nav/TabGlyph.tsx`), the
 greeting, the highlighter, the skeleton, the layout primitives, the flat
 drawings themselves (a wrapper may move one; the drawing
-does not), and legal or consent text. Inside a live room only the orb, the
-goal ticks, the arriving lines and the scene's card move, and nothing is heard
-or felt; the fanfare waits for the recap.
+does not), and legal or consent text. Inside a live room only the portrait's
+level rings and breath, the goal stamps, the arriving lines, the notebook's
+growth, the cloud mic (its listening squish and goal cheer) and the toast's
+peek over Help move (UI-014), and nothing is heard or felt; the fanfare waits
+for the recap.
 
 ### Haptics
 

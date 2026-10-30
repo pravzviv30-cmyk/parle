@@ -724,8 +724,8 @@ pause; the framework caps that at three a turn.
 
 ## Speaking quietly (VOICE-011)
 
-The live room has a "Quiet voice" switch beside "Show transcript", shown while
-the learner is speaking to the tutor. It is client-only: the agent, Deepgram,
+The live room has a "Quiet voice" switch in its room menu (`…`, UI-014), under
+"Show every line", shown while the learner is speaking to the tutor. It is client-only: the agent, Deepgram,
 Silero and the VOICE-010 floors are unchanged. Turning it on opens the
 transcript, shows one note ("Speak softly, close to your phone. {Tutor} can hear
 a soft voice, but not a whisper.") and lowers the mic meter floor from 0.01 to
