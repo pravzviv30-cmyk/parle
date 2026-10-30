@@ -58,7 +58,7 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
   /** "About N min", the scene's own pace (`paceLabel`), or null. */
   pace?: string | null;
   /** The scene's goals, from `visibleMissionTasks`. */
-  goals?: readonly { id: string; goalEn: string; achieved: boolean }[];
+  goals?: readonly { id: string; goalEn: string; achieved: boolean; goalShortEn?: string }[];
   /** The live rung's content kind, for the help ladder. */
   helpKind?: SupportKind;
   /** Steps the rung on: the session's own help request. */

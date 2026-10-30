@@ -9,5 +9,5 @@ test('authored correction reasons require exact current learner recast provenanc
   assert.equal(attachCorrectionReason(lines,evidence,null)[0]?.recasts?.[0]?.reason,undefined);
   const tutor=[{...lines[0]!,who:'tutor' as const}];assert.equal(attachCorrectionReason(tutor,evidence,sessionId)[0]?.recasts?.[0]?.reason,undefined);
   const noSource=[{...lines[0]!,fr:'An invented bubble.'}];assert.equal(attachCorrectionReason(noSource,evidence,sessionId)[0]?.recasts?.[0]?.reason,undefined);
-  const screen=readFileSync(new URL('../tutor/Transcript.tsx',import.meta.url),'utf8');assert.ok(screen.includes('authoredCorrectionReason(reason)'));assert.ok(screen.includes('accessibilityState={{expanded}}'));assert.ok(!screen.includes('{why}</Text>'));
+  const screen=readFileSync(new URL('../tutor/Transcript.tsx',import.meta.url),'utf8');assert.ok(screen.includes('recastView({ kind, better, betterEn, reason }, { latest })'));assert.ok(readFileSync(new URL('../tutor/recastLabel.ts',import.meta.url),'utf8').includes('reason: authoredCorrectionReason(recast.reason)'));assert.ok(screen.includes('accessibilityState={{expanded}}'));assert.ok(!screen.includes('{why}</Text>'));
 });

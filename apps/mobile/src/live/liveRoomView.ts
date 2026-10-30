@@ -6,13 +6,16 @@
  *   - the top pill: the scene's own pace, never the allowance, never a countdown;
  *   - the goals strip: done, current (the first goal not yet reached), to do;
  *   - the help ladder: Hint, Choices, Line given, in words, over the live rung;
- *   - the two bubbles: the tutor's last line and what the learner is saying.
+ *   - the two bubbles: the tutor's last line and what the learner is saying;
+ *   - direction D (UI-014): the goal stamps, the cloud mic's face, the
+ *     portrait ring's colour and the room menu's rows.
  *
  * Presentation only: nothing here changes what the tutor does or how the rung
  * moves. It reads the rung the session already published.
  */
 
 import type { HeldTurnState } from '@luvani/core';
+import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import type { TurnLine } from './turns.ts';
 
 /** "About N min": the scene's own pace (founder, 2026-10-20). No "left", no clock. */
@@ -141,7 +144,7 @@ export const QUIET_VOICE_COPY = {
 } as const;
 
 /**
- * The Quiet voice switch beside "Show transcript". It is about the learner's
+ * The Quiet voice switch in the room menu. It is about the learner's
  * own voice, so it shows only while they are speaking to the tutor: never in
  * Type, and not in Listen only until they switch to Speak.
  */
@@ -165,7 +168,7 @@ export const TAP_TO_SEND_COPY = {
 } as const;
 
 /**
- * The Tap to send switch beside Quiet voice. It changes how a spoken turn
+ * The Tap to send switch under Quiet voice in the room menu. It changes how a spoken turn
  * ends, so like Quiet voice it shows only while the learner is speaking.
  */
 export function tapToSendControl(typing: boolean, on: boolean): { label: string; hint: string; checked: boolean } | null {
@@ -215,4 +218,101 @@ export function roomNote(typing: boolean, startedWithSpeech: boolean, tutorName:
   if (typed !== null) return typed;
   if (live.tapToSend) return tapToSendNote(live.heldTurn ?? null);
   return quietVoice ? quietVoiceNote(tutorName) : null;
+}
+
+export interface GoalStamp {
+  id: string;
+  /** The goal's number in the scene, from 1. */
+  n: number;
+  state: GoalState;
+}
+
+/**
+ * The goal stamps under the title (UI-014). The marks are numbers; the label
+ * beside them is the current goal's short label, else its full sentence. The
+ * whole row is one accessible element, and it says the FULL goal, since the
+ * short label is for the eye.
+ */
+export function goalStamps(goals: readonly { id: string; goalEn: string; achieved: boolean; goalShortEn?: string }[]): {
+  stamps: GoalStamp[]; currentLabel: string | null; spoken: string;
+} {
+  if (goals.length === 0) return { stamps: [], currentLabel: null, spoken: '' };
+  const chips = goalStrip(goals);
+  const stamps = chips.map((chip, index) => ({ id: chip.id, n: index + 1, state: chip.state }));
+  const at = chips.findIndex((chip) => chip.state === 'current');
+  const done = chips.filter((chip) => chip.state === 'done').length;
+  const total = goals.length;
+  const noun = total === 1 ? 'goal' : 'goals';
+  if (at < 0) return { stamps, currentLabel: null, spoken: `All ${total} ${noun} done.` };
+  const current = goals[at]!;
+  const sentence = current.goalEn.trim().replace(/[.!?]+$/u, '');
+  const said = sentence.charAt(0).toLowerCase() + sentence.slice(1);
+  return { stamps, currentLabel: current.goalShortEn ?? current.goalEn, spoken: `${done} of ${total} ${noun} done. Now: ${said}.` };
+}
+
+export type CloudExpression = 'paused' | 'listening' | 'tutor' | 'thinking' | 'cheer';
+
+/**
+ * The cloud mic's face. Null while typing: the cloud is not drawn then. A goal
+ * just reached wins over everything else for its one cheer; then whoever is
+ * talking; then the open mic; else it rests. `modePending` dims the cloud but
+ * never changes its face.
+ */
+export function cloudExpression(input: { micOpen: boolean; tutorSpeaking: boolean; thinking: boolean; typing: boolean; goalJustReached: boolean; modePending?: boolean }): CloudExpression | null {
+  if (input.typing) return null;
+  if (input.goalJustReached) return 'cheer';
+  if (input.tutorSpeaking) return 'tutor';
+  if (input.thinking) return 'thinking';
+  if (input.micOpen) return 'listening';
+  return 'paused';
+}
+
+export type RingMode = 'tutor' | 'learner' | 'thinking' | 'idle';
+
+/**
+ * Who the portrait ring says is talking: sun for the tutor (and while the
+ * tutor thinks), mint for the learner's open turn. The session's state decides
+ * it. Whether the levels are measured (`inputLive`, `outputLive`) only decides
+ * whether the level rings can move, never the colour, and reduced motion is not
+ * an input at all, so the colour still says who is talking with motion off.
+ */
+export function ringMode(input: { state: OrbState; inputLive: boolean; outputLive: boolean }): RingMode {
+  switch (input.state) {
+    case 'speaking': return 'tutor';
+    case 'thinking': return 'thinking';
+    case 'listening': return 'learner';
+    default: return 'idle';
+  }
+}
+
+export interface RoomMenuRow {
+  kind: 'transcript' | 'quietVoice' | 'tapToSend' | 'report';
+  label: string;
+  hint?: string;
+  checked?: boolean;
+  role: 'switch' | 'button';
+}
+
+export const ROOM_MENU_COPY = {
+  transcript: 'Show every line',
+  report: 'Report this reply',
+} as const;
+
+/**
+ * The room menu (`…`), in order: every line, Quiet voice, Tap to send, report.
+ * Quiet voice and Tap to send keep their own rules for when they show (never
+ * while typing). Report shows only when the room can take one.
+ */
+export function roomMenuRows(input: { typing: boolean; transcriptVisible: boolean; quietVoice?: boolean; tapToSend?: boolean; reportable: boolean; reportPending?: boolean }): RoomMenuRow[] {
+  const rows: RoomMenuRow[] = [{ kind: 'transcript', label: ROOM_MENU_COPY.transcript, checked: input.transcriptVisible, role: 'switch' }];
+  if (input.quietVoice !== undefined) {
+    const quiet = quietVoiceControl(input.typing, input.quietVoice);
+    if (quiet) rows.push({ kind: 'quietVoice', ...quiet, role: 'switch' });
+  }
+  if (input.tapToSend !== undefined) {
+    const tap = tapToSendControl(input.typing, input.tapToSend);
+    if (tap) rows.push({ kind: 'tapToSend', ...tap, role: 'switch' });
+  }
+  if (input.reportable) rows.push({ kind: 'report', label: ROOM_MENU_COPY.report, role: 'button' });
+  return rows;
 }

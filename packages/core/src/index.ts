@@ -26,6 +26,7 @@ export * from './auth/recent.ts';
 export * from './conversationText.ts';
 export * from './phraseAudio.ts';
 export { readMissionTasks, type MissionTasks } from './missions/tasks.ts';
+export { SHORT_GOALS, shortGoalLabel } from './missions/shortGoals.ts';
 export * from './sessionSettlement.ts';
 export * from './canDoEvidence.ts';
 
