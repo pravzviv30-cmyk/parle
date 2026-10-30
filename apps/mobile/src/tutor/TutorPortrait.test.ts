@@ -39,6 +39,7 @@ test('each tutor shows their own portrait', () => {
     ['../live/LiveParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{outer \* 0\.64\} ring=\{t\.onBrand\} \/> :/],
     ['../onboarding/BOnboardingParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{size\} ring=\{t\.onBrand\} \/> :/],
     ['../onboarding/BOnboardingParts.tsx', /voice \? <TutorPortrait voice=\{voice\} size=\{orb\} ring=\{t\.onBrand\} \/> :/],
+    ['../live/StageParts.tsx', /\? <TutorPortrait voice=\{voice\} size=\{size\} ring=\{mode === 'idle' \? t\.onBrand : ring\} \/>/],
   ];
   for (const [file, use] of given) assert.match(read(file), use, `${file} cannot draw the learner's tutor`);
   // And each caller passes it (F945 wiring).
@@ -48,7 +49,8 @@ test('each tutor shows their own portrait', () => {
     ['../ConvoScreen.tsx', /<C2LiveRoom [^>]*voice=\{tutorVoiceOf\(profile\)\}/],
     ['../LiveSessionScreen.tsx', /<C2LiveRoom [^>]*voice=\{tutorVoiceOf\(profile\)\}/],
     ['../onboarding/FirstLivePractice.tsx', /<C2LiveRoom tutorName=\{name\} voice=\{guest\.plan\.tutorVoice\}/],
-    ['../live/C2LiveRoom.tsx', /<LiveOrb state=\{state\} voice=\{voice\} /],
+    // 2026-10-30 UI-014: the room's portrait stage.
+    ['../live/C2LiveRoom.tsx', /<PortraitStage state=\{state\} voice=\{voice\} /],
   ];
   for (const [file, use] of callers) assert.match(read(file), use, `${file} does not pass the learner's tutor`);
   // The choose step itself keeps the orb: no tutor is chosen yet.
@@ -62,6 +64,10 @@ test('each tutor shows their own portrait', () => {
       [colour.blue, t.sun, 'the chosen tutor card'],
       [t.violet2, t.onBrand, 'the live orb ring'],
       [t.hint, t.onBrand, 'the tutor band disc'],
+      // UI-014: the live portrait on the room's blue, idle, tutor (sun) and learner (mint).
+      [t.brand, t.onBrand, 'the live portrait at rest'],
+      [t.brand, t.sun, 'the live portrait while the tutor speaks'],
+      [t.brand, t.mint, 'the live portrait on the learner\'s turn'],
     ] as const) {
       assert.ok(contrast(surface, ring) >= MARK, `the ring on ${where} is ${contrast(surface, ring).toFixed(2)}:1`);
     }

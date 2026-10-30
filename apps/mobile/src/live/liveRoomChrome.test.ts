@@ -75,7 +75,8 @@ describe('quiet live-room chrome', () => {
       assert.ok(convo.includes(seam), `${seam} disappeared while the header changed`);
     }
     assert.match(room, /accessibilityLiveRegion="polite"[\s\S]{0,100}\{caption\}/, 'shared live status is no longer announced');
-    assert.match(room, /<Transcript\b/, 'the shared live thread disappeared');
+    // UI-014: the shared live thread is the notebook sheet.
+    assert.match(room, /<NotebookSheet\b/, 'the shared live thread disappeared');
     // 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the Type control switches the mode.
     assert.match(room, /onModeChange\(true\)/, 'the mode toggle does not reach the room owner');
   });
@@ -145,7 +146,9 @@ describe('a live room is silent and still to the touch — F765', () => {
 
     // 3. Nothing the room draws reaches a sound or a haptic of its own: the
     //    goal ticks, the scene's card, the orb and its layers, and the screen.
-    const ROOM = ['../ConvoScreen.tsx', '../tutor/MissionWin.tsx', '../tutor/MissionTaskList.tsx', '../tutor/useTaskTicks.ts', '../tutor/VoiceOrb.tsx', '../tutor/Transcript.tsx'];
+    const ROOM = ['../ConvoScreen.tsx', '../tutor/MissionWin.tsx', '../tutor/MissionTaskList.tsx', '../tutor/useTaskTicks.ts', '../tutor/VoiceOrb.tsx', '../tutor/Transcript.tsx',
+      // UI-014, direction D: the room's new parts and their motion.
+      './C2LiveRoom.tsx', './StageParts.tsx', './NotebookParts.tsx', './DockParts.tsx', '../motion/MascotMotion.tsx'];
     const layers = readdirSync(fileURLToPath(new URL('../tutor/', import.meta.url)))
       .filter((name) => /^(?:Orb|LiveBars)[^/]*\.tsx?$/.test(name))
       .map((name) => `../tutor/${name}`);

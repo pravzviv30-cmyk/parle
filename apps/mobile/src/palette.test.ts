@@ -944,19 +944,19 @@ describe('the paywall reads in both modes — UI-008, 2026-10-21', () => {
   }
 });
 
-describe('the saved-report flag disc in the live room', () => {
-  // A mark that reports state clears 3 against its paper. The room's paper is
-  // `brand`; the pending disc is `onBrand` with a `brand` flag inside it.
+describe('the saved-report mark in the live room', () => {
+  // A mark that reports state clears 3 against its paper. UI-014: a saved report
+  // is a 10pt `sun` dot on the `violetDeep` menu disc, which sits on `brand`.
   for (const mode of ['light', 'dark'] as const) {
-    test(`${mode}: the filled disc reads against the room, and its flag against the disc`, () => {
+    test(`${mode}: the dot reads against its disc and against the room`, () => {
       const t = b[mode];
-      assert.ok(contrast(t.onBrand, t.brand) >= 3, `${mode}: the pending disc is ${contrast(t.onBrand, t.brand).toFixed(2)}:1 on the room`);
-      assert.ok(contrast(t.brand, t.onBrand) >= 3, `${mode}: the flag is lost inside its disc`);
+      assert.ok(contrast(t.sun, t.violetDeep) >= 3, `${mode}: the pending dot is ${contrast(t.sun, t.violetDeep).toFixed(2)}:1 on its disc`);
+      assert.ok(contrast(t.sun, t.brand) >= 3, `${mode}: the pending dot is lost on the room`);
     });
   }
   test('the room draws it from those tokens', () => {
     const room = readFileSync(fileURLToPath(new URL('./live/C2LiveRoom.tsx', import.meta.url)), 'utf8');
-    assert.match(room, /reportPending: \{ backgroundColor: t\.onBrand, borderColor: t\.onBrand \}/);
-    assert.match(room, /<FlagGlyph size=\{18\} color=\{report\.pending \? t\.brand : t\.onBrandSoft\} \/>/);
+    assert.match(room, /reportPending: \{ position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: t\.sun \}/);
+    assert.match(room, /menu: \{ width: 44, height: 44, borderRadius: 22, backgroundColor: t\.violetDeep/);
   });
 });

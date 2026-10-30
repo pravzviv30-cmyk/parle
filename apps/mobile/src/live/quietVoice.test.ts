@@ -97,8 +97,12 @@ describe('the wiring', () => {
     const room = stripComments(read('./C2LiveRoom.tsx'));
     assert.match(room, /const quiet = onQuietVoice \? quietVoiceControl\(typing, quietVoice\) : null;/);
     assert.match(room, /const note = roomNote\(typing, startedWithSpeech, tutorName, quiet !== null && quiet\.checked, \{ wrappingUp, tapToSend: tap !== null && tap\.checked, heldTurn \}\);/);
-    assert.match(room, /accessibilityRole="switch" accessibilityLabel=\{quiet\.label\} accessibilityHint=\{quiet\.hint\}/);
-    assert.match(room, /accessibilityState=\{\{ checked: quiet\.checked \}\}/);
+    // UI-014: the switch is a room menu row, built by roomMenuRows from quietVoiceControl.
+    assert.match(room, /roomMenuRows\(\{ typing, transcriptVisible, quietVoice: onQuietVoice \? quietVoice : undefined/);
+    const dock = stripComments(read('./DockParts.tsx'));
+    assert.match(dock, /accessibilityRole="switch" accessibilityLabel=\{row\.label\} accessibilityHint=\{row\.hint\}/);
+    assert.match(dock, /accessibilityState=\{\{ checked: row\.checked === true \}\}/);
+    assert.match(room, /row\.kind === 'quietVoice' && quiet && onQuietVoice\) \{ const next = !quiet\.checked;/);
     assert.match(room, /onQuietVoice\(next\); if \(next\) onTranscriptVisibility\(true\);/);
     assert.doesNotMatch(room, /typingNote\(/, 'a second note rule beside roomNote');
   });

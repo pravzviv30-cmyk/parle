@@ -72,20 +72,22 @@ export function FlagGlyph({ size, color }: { size: number; color: string }) {
 
 /**
  * The leave disc (drawn by the room, which owns its name), the scene's title
- * and line, the pace pill, and, in the closed beta, the report disc after it.
+ * centred with its pace under it, and the room menu disc at the other end
+ * (UI-014, direction D). The scene's line is drawn only when there is no pace,
+ * so a scene shows two lines at most and the title stays the one to read.
  */
 export function LiveTopBar({ leave, title, line, pace, report }: { leave: ReactNode; title: string; line: string | null; pace: string | null; report?: ReactNode }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
+  const under = pace ?? line;
   return (
     <View style={s.top}>
       {leave}
       <View style={s.topWords}>
-        <Text accessibilityRole="header" style={[bType.bold17, { color: t.onBrand }]}>{title}</Text>
-        {line ? <Text style={[bType.note, { color: t.onBrandSoft }]}>{line}</Text> : null}
+        <Text accessibilityRole="header" style={[bType.bold17, s.center, { color: t.onBrand }]}>{title}</Text>
+        {under ? <Text style={[bType.meta, s.center, { color: t.onBrandSoft }]}>{under}</Text> : null}
       </View>
-      {pace ? <View style={s.pace}><Text style={[bType.chip, { color: t.onBrand }]}>{pace}</Text></View> : null}
-      {report ?? null}
+      {report ?? <View {...decorative} style={s.topSpace} />}
     </View>
   );
 }
@@ -195,7 +197,11 @@ export function YouBubble({ text }: { text: string }) {
 
 // ─────────────────────────────────────────────────────────────── controls
 
-/** A 56pt deep-blue side control with its 12/600 label under it. */
+/**
+ * A 56pt side control on the notebook sheet (UI-014, direction D): a `card`
+ * disc, the caller's glyph in `text`, and its `meta` label in `text` under it.
+ * The disc is decoration on the sheet; the glyph and the words name it.
+ */
 export function SideControl({ label, accessibilityLabel, icon, onPress, disabled = false, expanded }: {
   label: string; accessibilityLabel: string; icon: ReactNode; onPress: () => void; disabled?: boolean; expanded?: boolean;
 }) {
@@ -207,7 +213,7 @@ export function SideControl({ label, accessibilityLabel, icon, onPress, disabled
         disabled={disabled} onPress={onPress} style={[s.sideDisc, disabled && s.disabled]}>
         {icon}
       </Press>
-      <Text {...decorative} style={[bType.semi12, { color: t.onBrandSoft }]}>{label}</Text>
+      <Text {...decorative} style={[bType.meta, s.center, { color: t.text }]}>{label}</Text>
     </View>
   );
 }
@@ -355,7 +361,7 @@ function makeStyles(t: B) {
   return StyleSheet.create({
     top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     topWords: { flex: 1, minWidth: 0 },
-    pace: { backgroundColor: t.violetDeep, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12 },
+    topSpace: { width: HIT, height: HIT },
     goals: { marginTop: 14, backgroundColor: t.violetDeep, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 8 },
     goal: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 22 },
     goalDone: { width: 22, height: 22, borderRadius: 11, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
@@ -371,8 +377,8 @@ function makeStyles(t: B) {
     bubbleWords: { flex: 1, gap: 4 },
     hear: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center' },
     youBubble: { alignSelf: 'flex-end', maxWidth: 270, backgroundColor: t.sun, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomRightRadius: 6, borderBottomLeftRadius: 22, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
-    side: { width: 72, alignItems: 'center', gap: 4 },
-    sideDisc: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
+    side: { width: 72, alignItems: 'center', gap: 6 },
+    sideDisc: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
     micColumn: { alignItems: 'center', gap: 4 },
     mic: { width: 84, height: 84, borderRadius: 42, borderWidth: 6, borderColor: t.orbRing, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
     disabled: { opacity: 0.55 },

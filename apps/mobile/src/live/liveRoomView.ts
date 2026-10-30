@@ -17,6 +17,7 @@
 import type { HeldTurnState } from '@luvani/core';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import type { TurnLine } from './turns.ts';
+import { REPORT_COPY } from '../settings/reportMail.ts';
 
 /** "About N min": the scene's own pace (founder, 2026-10-20). No "left", no clock. */
 export function paceLabel(minutes: number | null | undefined): string | null {
@@ -295,7 +296,7 @@ export interface RoomMenuRow {
 
 export const ROOM_MENU_COPY = {
   transcript: 'Show every line',
-  report: 'Report this reply',
+  report: REPORT_COPY.control,
 } as const;
 
 /**
@@ -313,6 +314,23 @@ export function roomMenuRows(input: { typing: boolean; transcriptVisible: boolea
     const tap = tapToSendControl(input.typing, input.tapToSend);
     if (tap) rows.push({ kind: 'tapToSend', ...tap, role: 'switch' });
   }
-  if (input.reportable) rows.push({ kind: 'report', label: ROOM_MENU_COPY.report, role: 'button' });
+  // A saved report says so, in the words the old report disc used.
+  if (input.reportable) rows.push({ kind: 'report', label: input.reportPending ? REPORT_COPY.pendingControl : ROOM_MENU_COPY.report, role: 'button' });
   return rows;
 }
+
+/**
+ * The goals reached since the room first looked (UI-014). Goals already done at
+ * first sight are never news, so a rejoined scene does not cheer or announce
+ * its history. `firstLook` null means this is the first look: it is taken and
+ * nothing is fresh. One rule for the stamp's pop, the once-only announcement
+ * and the cloud's cheer, so they can never disagree.
+ */
+export function freshGoals(firstLook: ReadonlySet<string> | null, goals: readonly { id: string; achieved: boolean }[]): { firstLook: ReadonlySet<string>; fresh: string[] } {
+  const done = goals.filter((goal) => goal.achieved).map((goal) => goal.id);
+  if (firstLook === null) return { firstLook: new Set(done), fresh: [] };
+  return { firstLook, fresh: done.filter((id) => !firstLook.has(id)) };
+}
+
+/** How long the cloud keeps its cheering face after a goal: two hops, inside CELEBRATION_MAX_MS. */
+export const CHEER_MS = 1600;

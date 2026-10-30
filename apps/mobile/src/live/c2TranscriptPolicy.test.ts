@@ -46,7 +46,15 @@ test('the compact mode switch exposes its selected state and retains the rounded
   assert.match(room, /focused && <View \{\.\.\.decorative\} pointerEvents="none" style=\{\[StyleSheet\.absoluteFill, st\.composerFocus\]\}/);
 });
 test('hidden transcript history stays mounted but is removed from web and native accessibility navigation', () => {
-  for (const path of ['./C2LiveRoom.tsx', './LiveErrorView.tsx']) {
+  // UI-014, direction D: the room's notebook is never unmounted; `transcriptVisible = false`
+  // is its newest-only mode, so its history and scroll controller survive.
+  const room = readFileSync(new URL('./C2LiveRoom.tsx', import.meta.url), 'utf8');
+  const notebook = readFileSync(new URL('./NotebookParts.tsx', import.meta.url), 'utf8');
+  assert.match(room, /<NotebookSheet turns=\{turns\}[^>]*transcriptVisible=\{transcriptVisible\}/);
+  assert.doesNotMatch(room, /transcriptVisible && <NotebookSheet/, 'hiding must retain the notebook and its scroll controller');
+  assert.match(notebook, /notebookLines\(turns, partialTranscript, transcriptVisible \? 'all' : 'newest'\)/);
+  assert.match(notebook, /createTranscriptScrollController\(/);
+  for (const path of ['./LiveErrorView.tsx']) {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8');
     assert.match(source, /accessibilityElementsHidden=\{!transcriptVisible\} aria-hidden=\{!transcriptVisible\}/);
     assert.match(source, /importantForAccessibility=\{transcriptVisible \? 'auto' : 'no-hide-descendants'\}/);
