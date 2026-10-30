@@ -81,9 +81,9 @@ describe('first run introduces the voices and lets the learner choose one — F2
     assert.match(CARDS, /TUTOR_VOICE_OPTIONS\.map\(/);
     assert.match(CARDS, /\{voice\.label\}/);
     assert.doesNotMatch(CARDS, /\{voice\.gloss\}/);
-    // 2026-10-21 UI-008, artboard B-OB-Tutor: every voice wears the canvas orb, never a face.
-    assert.match(CARDS, /<BArt name="tutor-orb"/);
-    assert.doesNotMatch(CARDS, /C2TutorPortrait|Portrait/);
+    // F945, founder decision 25 (replaces UI-008's canvas orb): every voice wears its own portrait.
+    assert.match(CARDS, /<TutorPortrait voice=\{voice\.value\}/);
+    assert.doesNotMatch(CARDS, /tutor-orb|C2TutorPortrait/);
     assert.match(CARDS, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
     assert.match(CARDS, /preview\.toggle\(voice\.value\)/);
     assert.match(FLOW, /useTutorPreview\(\{ active: loaded && page === 'voice' \}\)/);
@@ -243,7 +243,7 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     // then the drawing in the primitive.
     assert.match(FLOW, /preview=\{preview\}/);
     assert.match(CARDS, /preview\?\.voice === voice\.value \? preview\.phase/);
-    assert.match(CARDS, /phase === 'playing' \? 'Pause'/);
+    assert.match(CARDS, /previewLabel\(phase, voice\.label\)/);
     assert.match(SHEET, /playing=\{samplePlaying === option\.value\}/);
 
     // And the card draws it the way the design system says: the ear tints to the

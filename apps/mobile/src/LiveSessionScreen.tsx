@@ -347,7 +347,7 @@ export function LiveSessionScreen({
     ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused');
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
     <View style={st.root}>
-      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
+      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} voice={tutorVoiceOf(profile)} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
         caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
         typing={typing} startedWithSpeech={!textMode} ready={!live.reconnecting} modePending={modePending} active={roomFocused}
         transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} quietVoice={quietVoice} onQuietVoice={onQuietVoice} draft={draft}

@@ -676,14 +676,21 @@ describe('the authored pools Home draws its two daily cards from', () => {
       assert.ok(usedPlaces.has(place), `no situation happens in ${place}, so that scene never comes round on Home`);
     }
 
-    // The seed is the two strings and nothing else. Anything richer would be a
-    // frame, and a frame is a mission, which this deliberately is not.
+  });
+
+  test('a daily scene opens on its title, not its body', () => {
+    // F929: the seed's fr/en is what the room header shows and the tutor says
+    // ("{Title}. Let's talk about it."), so it is the scene's two titles. The
+    // body describes the situation, and rides as the tutor-only brief (at most
+    // 240 characters, tutor-agent MAX_SEED_BRIEF_CHARS). Still no frame.
     for (const scenario of DAILY_SCENARIOS) {
       assert.deepEqual(
         seedTopicOf(scenario),
-        { fr: scenario.titleFr, en: scenario.bodyEn },
+        { fr: scenario.titleFr, en: scenario.titleEn, brief: scenario.bodyEn },
         `${scenario.id} would open the tutor on something other than the scene the card shows`,
       );
+      assert.ok(scenario.titleEn.length > 0 && scenario.titleEn.length <= SEED_TOPIC_MAX, scenario.id);
+      assert.ok(scenario.bodyEn.length <= 240, scenario.id);
     }
   });
 

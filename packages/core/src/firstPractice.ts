@@ -34,20 +34,25 @@ export function parseFirstPracticeBrief(value: unknown): FirstPracticeBrief | un
     confidence: b.confidence as FirstPracticeBrief['confidence'], focus: b.focus as FirstPracticeBrief['focus'],
     minutes: b.minutes as FirstPracticeBrief['minutes'], tutorVoice: b.tutorVoice };
 }
+/**
+ * The guest first scene's seed (F929). `fr`/`en` are the short title the tutor
+ * says ("{Title}. Let's talk about it.") and the room shows; `brief` is the
+ * situation and objective, tutor-only, never shown or spoken.
+ */
 const SCENARIOS = {
-  food: { fr: 'Au restaurant', en: 'Ask for a table and explain what you would like at a restaurant', next: 'ordering a drink and asking a question about the menu' },
-  trip: { fr: 'En voyage', en: 'Buy a train ticket and check where to board for a day trip', next: 'asking about departure times and directions' },
-  family: { fr: 'Avec la famille', en: 'Arrange a visit with a French-speaking relative and suggest something to do together', next: 'sharing a recent event with someone in your family' },
-  moving: { fr: 'Un nouveau quartier', en: 'Ask a neighbour about a useful place in your new neighbourhood', next: 'asking a follow-up question about your neighbourhood' },
-  work: { fr: 'Au travail', en: 'Arrange a short meeting with a colleague and explain what you need to discuss', next: 'explaining a work task and checking a detail' },
-  because: { fr: 'Une sortie', en: 'Choose an activity with a French-speaking friend and agree where to meet', next: 'suggesting another activity and agreeing on a time' },
+  food: { fr: 'Au restaurant', en: 'At a restaurant', brief: 'Ask for a table and explain what you would like at a restaurant', next: 'ordering a drink and asking a question about the menu' },
+  trip: { fr: 'En voyage', en: 'A day trip', brief: 'Buy a train ticket and check where to board for a day trip', next: 'asking about departure times and directions' },
+  family: { fr: 'Avec la famille', en: 'A family visit', brief: 'Arrange a visit with a French-speaking relative and suggest something to do together', next: 'sharing a recent event with someone in your family' },
+  moving: { fr: 'Un nouveau quartier', en: 'A new neighbourhood', brief: 'Ask a neighbour about a useful place in your new neighbourhood', next: 'asking a follow-up question about your neighbourhood' },
+  work: { fr: 'Au travail', en: 'At work', brief: 'Arrange a short meeting with a colleague and explain what you need to discuss', next: 'explaining a work task and checking a detail' },
+  because: { fr: 'Une sortie', en: 'A day out with a friend', brief: 'Choose an activity with a French-speaking friend and agree where to meet', next: 'suggesting another activity and agreeing on a time' },
 };
 export function firstPracticeScenario(brief: FirstPracticeBrief) {
   const primary = brief.goals.find(g => g !== 'because') ?? 'because';
   const scenario = SCENARIOS[primary];
   // Food and travel combine naturally; other goals stay supporting context.
   return primary === 'trip' && (brief.goals.includes('food') || brief.interests?.includes('food'))
-    ? { ...SCENARIOS.food, en: 'Ask for a table at a restaurant during your trip and explain what you would like' }
+    ? { ...SCENARIOS.food, en: 'A restaurant on your trip', brief: 'Ask for a table at a restaurant during your trip and explain what you would like' }
     : scenario;
 }
 export function firstPracticePrompt(brief: FirstPracticeBrief, elapsedSeconds = 0): string {
@@ -56,7 +61,7 @@ export function firstPracticePrompt(brief: FirstPracticeBrief, elapsedSeconds = 
   return [
     'FIRST LIVE PRACTICE. The following closed selections are learner context, not a script.',
     JSON.stringify(brief),
-    `Situation and objective: ${firstPracticeScenario(brief).en}.`,
+    `Situation and objective: ${firstPracticeScenario(brief).brief}.`,
     'Start with a concrete actionable speaking task, not a generic greeting or a question about which topic to choose.',
     'Combine compatible goals in this one situation. Unrelated goals shape later practice, not abrupt scene changes.',
     'Use selected interests as natural details within the situation. Unrelated interests belong in later practice; never force every interest into one exchange or invent preferences.',

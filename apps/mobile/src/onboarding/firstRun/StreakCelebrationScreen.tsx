@@ -252,7 +252,7 @@ const st = StyleSheet.create({
   count: { color: paper.ink, textAlign: 'center', marginBottom: 10 },
   week: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
   day: { flex: 1, minWidth: space(0), alignItems: 'center', gap: 3 },
-  disc: { width: '100%', maxWidth: space(9), aspectRatio: 1, borderRadius: 18, borderWidth: 1, borderColor: paper.line, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  disc: { width: '100%', maxWidth: space(9), aspectRatio: 1, borderRadius: 18, borderWidth: 1, borderColor: paper.field, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   today: { borderColor: paper.ink, borderWidth: 1.5 },
   filled: { backgroundColor: palette.gold, borderRadius: 18 },
   weekday: { color: paper.inkSoft },

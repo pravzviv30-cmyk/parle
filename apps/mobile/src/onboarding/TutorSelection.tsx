@@ -12,7 +12,8 @@ import { AnimatedIcon } from '../icons/AnimatedIcon.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { HIT, bType, decorative } from '../theme.ts';
 import { c } from './boldRhythm.ts';
-import { BArt } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
+import { previewLabel } from './previewLabel.ts';
 import { BSpeaker } from '../today/TodayParts.tsx';
 import { BTick } from './BOnboardingParts.tsx';
 import { useB } from '../main/bTheme.tsx';
@@ -40,19 +41,18 @@ export function TutorSelection({ chosen, preview, playing = null, onChoose, onHe
     {TUTOR_VOICE_OPTIONS.map(voice => {
       const selected = chosen === voice.value;
       const phase = preview?.voice === voice.value ? preview.phase : playing === voice.value ? 'playing' : 'idle';
-      const label = phase === 'playing' ? 'Pause' : phase === 'paused' ? 'Resume' : phase === 'loading' ? 'Loading…' : phase === 'error' ? 'Retry' : 'Listen';
       const ink = selected ? t.onBrand : t.text;
       return <View key={voice.value} style={[st.card, { backgroundColor: t.card }, selected && { backgroundColor: c.violet, borderColor: c.violet }]}>
         <Press haptic="selection" accessibilityRole="radio" accessibilityState={{ checked: selected }}
           aria-checked={selected} accessibilityLabel={voice.label}
           onPress={() => onChoose(voice.value)} frame={{ flex: 1, minWidth: 0 }} style={st.identity}>
           <View {...decorative} style={st.avatar}>
-            <View style={st.orb}><BArt name="tutor-orb" width={44} height={44} /></View>
+            <TutorPortrait voice={voice.value} size={44} ring={selected ? t.sun : t.text} />
             {selected && <View style={[st.chosenMark, { backgroundColor: t.sun }]}><BTick size={10} color={t.text} /></View>}
           </View>
           <Text style={[bType.title17, st.name, { color: ink }]}>{voice.label}</Text>
         </Press>
-        <Press haptic="light" accessibilityLabel={`${label} ${voice.label}’s voice preview`}
+        <Press haptic="light" accessibilityLabel={previewLabel(phase, voice.label)}
           accessibilityState={{ busy: phase === 'loading' }}
           onPress={() => preview ? preview.toggle(voice.value) : onHear?.(voice.value)}
           style={[st.listen, { backgroundColor: selected ? t.card : t.lavender }]}>
@@ -65,7 +65,7 @@ export function TutorSelection({ chosen, preview, playing = null, onChoose, onHe
           </View>
         </Press>
         {phase === 'error' && !!preview?.error && <Text accessibilityLiveRegion="polite" style={[bType.note, st.error, { color: ink }]}>
-          {preview.error} Tap Retry to listen again. You can still choose this tutor.
+          {preview.error} Tap the speaker to try again. You can still choose this tutor.
         </Text>}
       </View>;
     })}
@@ -77,7 +77,6 @@ const st = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12, minHeight: 68, borderRadius: 20, borderWidth: 0, borderColor: 'transparent', overflow: 'hidden', paddingVertical: 8, paddingLeft: 12, paddingRight: 10 },
   identity: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 44, height: 44 },
-  orb: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
   chosenMark: { position: 'absolute', right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   name: { flexShrink: 1 },
   listen: { width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

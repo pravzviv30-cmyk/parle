@@ -93,7 +93,7 @@ import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { isUnderAgeStop } from './profile/age.ts';
 import { prefersTyping } from './profile/typing.ts';
-import { micAfterAsk, micOpensOnReady } from './tutor/convoStart.ts';
+import { micAfterAsk, micOpensOnReady, type SeedTopic } from './tutor/convoStart.ts';
 import { withAgeStop } from './profile/store.ts';
 import type { OrbState } from './tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
@@ -241,7 +241,7 @@ export function ConvoScreen({
    * start body into the join token, the same channel mode and the snapshot use.
    * A session with no seed opens exactly as it always has.
    */
-  seedTopic?: { fr: string; en: string };
+  seedTopic?: SeedTopic;
   /**
    * The finished conversation this room is genuinely carrying on.
    *
@@ -1187,7 +1187,7 @@ export function ConvoScreen({
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
       <View style={{ flex: 1, minHeight: 0 }}>
-        <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description="Your French conversation" state={choosing.orb}
+        <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} voice={tutorVoiceOf(profile)} description="Your French conversation" state={choosing.orb}
           caption={line.text ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Ready when you are')}
           turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
           typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !live.waitingForTutor}
@@ -1272,7 +1272,7 @@ export function ConvoScreen({
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused} quietVoice={quietVoice}>
     <OrbCue value={ticks.cue}>
     <View style={{ flex: 1, minHeight: 0 }}>
-      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
+      <C2LiveRoom report={{ pending: reportPending, onPending: setReportPending }} tutorName={tutorName} voice={tutorVoiceOf(profile)} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
         title={missionId ? getMission(missionId)?.title : undefined} pace={scenePace} goals={missionItems} helpKind={view.supportView.kind}
         moreHelp={{ disabled: !listening, onPress: () => { closeMark(); live.sendHelp(); } }}
         state={live.reconnecting ? 'connecting' : orbState}
@@ -1349,19 +1349,6 @@ const st = StyleSheet.create({
   quietDoor: { alignItems: 'center', paddingTop: space(2) },
   controls: { alignItems: 'center', paddingTop: space(1) },
   typeRow: { flexDirection: 'row', alignSelf: 'stretch', gap: space(2), alignItems: 'center' },
-  typeInput: {
-    flex: 1,
-    minHeight: HIT + 6,
-    backgroundColor: paper.card,
-    borderWidth: 1.5,
-    borderColor: paper.line,
-    borderRadius: radius.input,
-    paddingHorizontal: space(4),
-    paddingVertical: space(3),
-    ...type.body,
-    color: paper.ink,
-  },
-  typeInputFocused: { borderColor: paper.ink },
   typeSend: {
     minHeight: HIT,
     width: HIT,

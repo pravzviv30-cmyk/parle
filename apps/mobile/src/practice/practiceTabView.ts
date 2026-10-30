@@ -498,7 +498,8 @@ export const EMPTY = {
   title: 'Your practice grows from here',
   body: 'Every conversation leaves a few phrases and fixes to come back to. Have your first one and they’ll appear here.',
   start: 'Start your first conversation',
-  readyNow: 'Ready now, no conversation needed',
+  // F940: names no time, cost or need, so neither row below can contradict it.
+  readyNow: 'Or start small',
   cafe: {
     title: 'Café basics',
     /** The café lesson's own turns, counted, and the shared words for what a lesson costs. */

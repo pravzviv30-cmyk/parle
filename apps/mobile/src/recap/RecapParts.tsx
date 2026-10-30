@@ -209,7 +209,7 @@ function makeStyles(t: B) {
     postcard: { backgroundColor: t.card, borderRadius: 24, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
     nextPill: { backgroundColor: t.sun, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'center' },
     goal: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 24 },
-    goalRing: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: t.ring },
+    goalRing: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: t.field },
     lineRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
     ruled: { borderBottomWidth: 1, borderBottomColor: t.line },
     fix: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 8 },

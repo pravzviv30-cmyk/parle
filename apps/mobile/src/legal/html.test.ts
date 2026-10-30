@@ -19,12 +19,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { companyFrom } from './company.ts';
+import { LEGAL_REVIEW_PENDING, companyFrom } from './company.ts';
 import { POLICY_INTRO, POLICY_TITLE } from './policy.ts';
 import {
   indexHtml,
   indexTitle,
   legalPages,
+  privacyHtml,
   supportHtml,
   supportSummary,
   SUPPORT_ANSWERS,
@@ -64,6 +65,14 @@ describe('the hosted legal pages — F480', () => {
       // The trader is identifiable on the page itself, not only in the app.
       assert.match(html, /Vision Strategies Ltd, registered in the UK\./, `${file} does not say whose page it is`);
     }
+  });
+
+  test('the hosted policy page carries no internal legal review note', () => {
+    // F929: the founder uploads dist/ for the App Store listing, which is the
+    // production app's notice, so it is rendered as production renders it.
+    const sentence = LEGAL_REVIEW_PENDING;
+    assert.ok(!privacyHtml().includes(sentence), 'the hosted notice tells learners about an internal review');
+    assert.ok(!readFileSync(join(DIST, 'privacy.html'), 'utf8').includes(sentence), 'the committed privacy.html still carries the review note');
   });
 
   test('the gate fails when the committed html no longer matches the module', () => {

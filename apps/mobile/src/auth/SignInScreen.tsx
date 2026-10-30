@@ -18,6 +18,7 @@ import { AccessibilityInfo, BackHandler, Keyboard, findNodeHandle, Platform, Vie
 import { colour, paper, space, type, HIT, STROKE } from '../theme.ts';
 import { PillButton, GhostButton, Press, GoogleMark, AppleMark, AlertGlyph, ArrowRight, ROW_WORDS } from '../components.tsx';
 import { AccountField as Field } from './AccountField.tsx';
+import { AuthForm, useWebFieldName } from './AuthForm.tsx';
 import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
 import { ProviderButton } from './ProviderButton.tsx';
 import { BoldButton } from '../onboarding/BoldButton.tsx';
@@ -70,6 +71,8 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   const headingRef = useRef<Text>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
+  useWebFieldName(emailRef, 'email');
+  useWebFieldName(passwordRef, 'current-password');
   const emailGroup = useRef<View>(null);
   const passwordGroup = useRef<View>(null);
   const scrollRef = useRef<NativeScrollView>(null);
@@ -280,6 +283,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
 
         <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[boldType.returningTitle, { color: c.ink, textAlign: 'center', letterSpacing: 0 }]}>Good to have{'\n'}you back.</Text>
       </View>}
+      <AuthForm onSubmit={() => void submit()}>
       <View style={{ gap: 12, marginTop: embedded ? 0 : fontScale > 1.3 ? 32 : 64 }}>
         <View ref={emailGroup} collapsable={false} onLayout={keepFocusedVisible}>
         <Field
@@ -326,6 +330,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
         />
         </View>
       </View>
+      </AuthForm>
 
       {/* The reset link sits under the password it is about, centred below the field. */}
       <View style={st.forgot}>

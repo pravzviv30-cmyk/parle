@@ -33,6 +33,7 @@ export function nextConversation(progress: readonly MissionProgress[], thread: T
       french: null, minutes: null, canDo: null,
       lines: [] as readonly string[],
       picked: null as string | null,
+      pathOrder: false,
       // Only Max continues a conversation, so a learner offered it holds Max (F935).
       included: includedInMax('continueArc', continueAllowed),
       params: { seedTopic: thread.seedTopic, continuationPackId: thread.packId },
@@ -48,6 +49,8 @@ export function nextConversation(progress: readonly MissionProgress[], thread: T
     lines: mission.referencePhrases.slice(0, 3),
     included: null as string | null,
     picked: ahead?.picked === 'goal' && ahead.mission.id === mission.id ? goalPickLine(goal) : null,
+    // F856: no thread and no goal chose it, so it is only the path's next scene.
+    pathOrder: thread?.kind !== 'scene' && !(ahead?.picked === 'goal' && ahead.mission.id === mission.id),
     params: { missionId: mission.id },
   };
 }

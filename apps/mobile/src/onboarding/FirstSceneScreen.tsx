@@ -19,6 +19,7 @@
  * This primer follows completed onboarding, so its shared progress is complete.
  */
 
+import { referenceLines } from '../missions/referenceLines.ts';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, BackHandler, Platform, StyleSheet, Text, View } from 'react-native';
 import { AudioModule } from 'expo-audio';
@@ -145,7 +146,7 @@ export function FirstSceneScreen({
 
   if (mission === undefined) return null;
 
-  const lines = mission.referencePhrases.slice(0, 3);
+  const lines = referenceLines(mission, 3);
   const typing = view.primary.act === 'type';
 
   return (
@@ -199,11 +200,19 @@ export function FirstSceneScreen({
           {lines.length > 0 && (
             <Card style={st.lines}>
               <Label>One line to try</Label>
-              {lines.slice(0, 1).map((line, at) => (
-                <Text key={line} {...frenchText} style={[st.line, at > 0 && st.lineRuled]}>{line}</Text>
+              {lines.slice(0, 1).map((line) => (
+                <View key={line.fr}>
+                  <Text {...frenchText} style={st.line}>{line.fr}</Text>
+                  <Text style={st.lineEn}>{line.en}</Text>
+                </View>
               ))}
               {lines.length > 1 && <IconAction layout="inline" icon="chevron-down" label={showMore ? 'Fewer examples' : 'More examples'} onPress={() => setShowMore((open) => !open)} />}
-              {showMore && lines.slice(1).map((line) => <Text key={line} {...frenchText} style={st.line}>{line}</Text>)}
+              {showMore && lines.slice(1).map((line) => (
+                <View key={line.fr}>
+                  <Text {...frenchText} style={st.line}>{line.fr}</Text>
+                  <Text style={st.lineEn}>{line.en}</Text>
+                </View>
+              ))}
             </Card>
           )}
           {/* The artboard's microphone note, with the pinned live-minutes line. */}
@@ -224,6 +233,7 @@ const st = StyleSheet.create({
   pills: { flexDirection: 'row', gap: 6, marginTop: 6 },
   lines: { gap: space(3) },
   line: { ...type.french, color: paper.ink },
+  lineEn: { ...type.small, color: paper.inkSoft },
   micNote: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16 },
   micDisc: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   lineRuled: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },

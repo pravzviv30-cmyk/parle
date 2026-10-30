@@ -109,7 +109,7 @@
  * `company.ts`'s rule reaching the longest piece of copy in the app.
  */
 
-import { COMPANY, LEGAL_REVIEW_PENDING, companyLine, contactRow, type CompanyFacts } from './company.ts';
+import { COMPANY, LEGAL_REVIEW_PENDING, companyLine, contactRow, legalReviewNoteShown, type CompanyFacts } from './company.ts';
 
 /** One part of the notice: a heading somebody can scan for, and its paragraphs. */
 export interface PolicySection {
@@ -131,7 +131,7 @@ export const POLICY_INTRO =
  * of the persona: the sentences that name an address are only true once there
  * is one, and a document that renders a blank is worse than one that is shorter.
  */
-export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySection[] {
+export function policySections(facts: CompanyFacts = COMPANY, reviewNote: boolean = legalReviewNoteShown()): readonly PolicySection[] {
   const company = companyLine(facts);
   const contact = contactRow(facts);
   return [
@@ -255,7 +255,7 @@ export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySe
       heading: 'Changes to this notice',
       body: [
         'This notice ships inside the app, so what you are reading here matches the version you are running. When it changes, it changes with an update, and the same words go up at the address in our App Store listing.',
-        LEGAL_REVIEW_PENDING,
+        ...(reviewNote ? [LEGAL_REVIEW_PENDING] : []),
       ],
     },
   ];

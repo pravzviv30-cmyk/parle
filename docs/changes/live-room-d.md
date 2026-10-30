@@ -1,10 +1,10 @@
 # Live room, direction D: face to face with a notebook
 
-- Status: draft, approved direction; build not started
+- Status: in progress, approved direction (UI-014); build on `claude/live-room-d`
 - Updated: 2026-10-29
-- Checkout / starting revision: build from `main` **after Stream E lands** (`claude/review-e-visual`, last seen at `70845322`). Stream E changes the same files (`live/C2LiveRoom.tsx` composer colours, tutor portraits in `LiveOrb`, F945). Do not build on `c1840f26`.
+- Checkout / starting revision: build from `main` at or after `d82fc957`, the Stream E merge (composer colours, tutor portraits in `LiveOrb` F945, the role line). Branch `claude/live-room-d`.
 - Owner / integrator: Opus orchestrator session; builders as named per task
-- Existing programme / contract: [DESIGN_PARTNERSHIP.md](../DESIGN_PARTNERSHIP.md) (screen 1); decision [UI-013](../../DECISIONS.md); direction board <https://claude.ai/artifact/6GWKSY3gHZsoRKhtU63A5B> (boards "D · Face to face + notebook" and "D · Dark mode")
+- Existing programme / contract: [DESIGN_PARTNERSHIP.md](../DESIGN_PARTNERSHIP.md) (screen 1); decision [UI-014](../../DECISIONS.md) (main's UI-013 is Stream E's); direction board <https://claude.ai/artifact/6GWKSY3gHZsoRKhtU63A5B> (boards "D · Face to face + notebook" and "D · Dark mode")
 
 ## Outcome and scope
 
@@ -47,12 +47,12 @@ Words that repeat what the picture already says are gone. Every capability stays
 - No change to `WalkRoom` or `TutorIntro` (they use `VoiceOrb`).
 
 **Risks / unresolved choices:**
-1. **Short goal labels.** Missions carry only `goalEn` ("Say hello and order a coffee"). D shows "Order a coffee". T2 adds an optional short label with a fallback to `goalEn`. Writing the 93 short labels is content work that needs the founder's review before it ships.
-2. **Motion rule.** `DESIGN.md` "What never moves" allows only the orb, goal ticks, arriving lines and the scene card to move in a live room. D adds the cloud mic's listening squish and a cheer on a goal. UI-013 amends the rule; `DESIGN.md` must change with T6.
+1. **Short goal labels.** The room's goals are brain frame beats (`packages/brain/src/missions/frames.ts`, 144 tasks across 31 missions); the client keeps only `id`, `goalEn` and `achieved` (`packages/core/src/missions/tasks.ts` `readMissionTasks`). D shows "Order a coffee" for "Say hello and order a coffee". T2 adds a core-only lookup keyed `missionId:beatId` with a fallback to `goalEn`, so there is no wire change or agent redeploy. The founder approves all 144 labels before the build lands (founder, 2026-10-30).
+2. **Motion rule.** `DESIGN.md` "What never moves" allows only the orb, goal ticks, arriving lines and the scene card to move in a live room. D adds the cloud mic's listening squish and a cheer on a goal. UI-014 amends the rule; `DESIGN.md` must change with T6.
 3. **Mascot art.** No toast-only drawing exists today (it appears only with the cloud in `friends-cheer`). The prototype mascots were sketches. T1 builds them from the existing B-art drawings in the same hand, and their colours become palette tokens.
-4. **Stream E** must land first (see the header).
+4. **Stream E** landed on main at `d82fc957` (2026-10-30).
 
-**Decisions:** UI-013 (this direction; motion rule amendment; report and toggles move to the room menu).
+**Decisions:** UI-014 (this direction; motion rule amendment; report and toggles move to the room menu).
 
 **Defects:** none filed. If the orchestrator files ledger entries for traceability, they go in `docs/KNOWN_ISSUES.md` with named tests.
 
@@ -73,9 +73,9 @@ The room fills the screen on the brand blue in both themes. That rule is UI-008'
    - The whole row is one accessible element saying "1 of 3 goals done. Now: say whether it is for here or to go."
    - The existing once-only announcement of a newly reached goal (`tickAnnouncement`) is kept.
 3. **Portrait stage.** It takes the space left between the stamps and the sheet (`flex: 1`, at least 168pt) and is centred in it.
-   - `TutorPortrait` at 112pt (72pt while typing or with the keyboard open) with a 3pt ring.
+   - `TutorPortrait` at 112pt (72pt while typing or with the keyboard open) with the existing `PORTRAIT_RING` (2pt).
    - The ring is `sun` while the tutor speaks or thinks, and `mint` while the learner's turn is open.
-   - Two level rings, 4pt, at 1.0 to 1.38 scale, driven by the real level: output while the tutor speaks, input while listening. Use the `LevelRing` primitive with `LEVEL_RING` tokens, not a timed loop.
+   - Two level rings driven by the real level: output while the tutor speaks, input while listening. Use the `LevelRing` primitive as it is (`LEVEL_RING.grow` 0.22), not a timed loop and not a new token. Who is talking comes from `useOrbAudio()` `outputLive` and `inputLive`, so it still shows under reduced motion.
    - Thinking: one dashed 3pt `sun` ring turning once per 2.4 s.
    - The portrait breathes (1.0 to 1.035) only while the tutor speaks.
    - The tutor's name sits under the portrait in `bold15` `onBrand`.
@@ -164,7 +164,7 @@ The scrim behind sheets is the theme `scrim` at 0.4 opacity. Add a contrast test
 |---|---|---|---|---|---|
 | T0 | Branch from `main` with Stream E landed; `npm ci`; baseline web and native shots of the four live previews | orchestrator | Stream E landed | none (shots to `reviews/` or the scratchpad) | todo |
 | T1 | Mascot parts and tokens: cloud and toast as react-native-svg components with expression props; mascot colours in `palette.ts` with contrast tests | `design-system-engineer` | T0 | `apps/mobile/src/palette.ts`, `palette.test.ts`, `apps/mobile/src/art/mascots/*` (new), `DESIGN.md` Colour and Illustrations | todo |
-| T2 | Room rules: notebook lines, goal stamps with short labels, cloud expression, ring mode, room menu rows | `frontend-engineer` | T0 | `apps/mobile/src/live/liveRoomView.ts`, `liveRoomView.test.ts`, `packages/core` mission type (optional `goalShortEn` only), `apps/mobile/src/live/c2TranscriptPolicy.ts` if needed | todo |
+| T2 | Room rules: notebook lines, goal stamps with short labels, cloud expression, ring mode, room menu rows | `frontend-engineer` | T0 | `apps/mobile/src/live/liveRoomView.ts`, `liveRoomView.test.ts`, `apps/mobile/src/live/notebookView.ts` (new), `packages/core/src/missions/shortGoals.ts` (new, ships empty) and where the client builds mission tasks, `apps/mobile/src/live/c2TranscriptPolicy.ts` if needed | todo |
 | T3 | Room parts: `GoalStamps`, `PortraitStage`, `NotebookSheet`, `NotebookLine`, `MarginFix`, `CloudMic`, `RoomMenu` | `frontend-engineer` | T1, T2 | `apps/mobile/src/live/LiveParts.tsx` (or a new `live/NotebookParts.tsx`) | todo |
 | T4 | Compose D in `C2LiveRoom` with every existing prop and behaviour kept; remove the old link row, bubbles and caption text | `frontend-engineer` | T3 | `apps/mobile/src/live/C2LiveRoom.tsx`, the dev preview in `dev/OnboardingPreview.tsx` | todo |
 | T5 | Short goal labels for the 31 missions, for founder copy review | content (orchestrator drafts) | T2 | mission data in `packages/core` | todo |
@@ -198,11 +198,11 @@ Acceptance:
 
 Add to `liveRoomView.ts`:
 - **`notebookLines(turns, partial, mode)`:** returns `{ kind: 'narration' | 'tutor' | 'learner'; fr; en | null; emphasis: 'newest' | 'older'; recasts }[]`. Only the newest tutor line keeps `en`. `mode = 'newest'` keeps only the newest tutor line and the learner's current or last line. Topic lines (`topic: true`) stay out of the scene, as in F905.
-- **`goalStamps(goals)`:** returns the stamps, the current label (`goalShortEn ?? goalEn`) and the spoken summary. It reuses the existing `goalStrip()` states.
+- **`goalStamps(goals)`:** returns the stamps, the current label (the short-goal lookup, else `goalEn`) and the spoken summary. It reuses the existing `goalStrip()` states.
 - **`cloudExpression({ micOpen, tutorSpeaking, thinking, typing, goalJustReached, modePending })`:** returns the expression or `null` while typing.
 - **`ringMode(state)`:** returns `'tutor' | 'learner' | 'thinking' | 'idle'` from the `OrbState` the room already receives.
 - **`roomMenuRows(...)`:** the rows and their labels, built from `quietVoiceControl` and `tapToSendControl` plus the transcript and report rows.
-- **Short labels (optional `goalShortEn` on the mission task type):** fallback to `goalEn`. A test pins the fallback.
+- **Short labels:** `packages/core/src/missions/shortGoals.ts`, a lookup keyed `missionId:beatId` that ships empty, with a fallback to `goalEn`. A test pins the fallback. The approved table fills it in T5.
 
 Acceptance:
 - `cd apps/mobile && npm test` includes new tests for each function. These cover the newest and older emphasis, the English kept only on the newest tutor line, the newest-only mode, every cloud expression branch, the stamp states and spoken summary, and the label fallback.
@@ -244,7 +244,7 @@ Rebuild `C2LiveRoom`'s return to the structure in "Screens and states".
 - The bubbles path.
 - The visible caption. The caption stays as a spoken live region.
 
-**Dev preview:** `OnboardingPreview` gains `live-speaking-dark` or follows `?theme=dark`, whichever the preview already supports.
+**Dev preview:** wrap `LiveRoomPreview` in `ModeScope` so `?theme=dark` reaches it (today `App.tsx` pins the preview light), and pass `voice`, `goals`, `title`, `pace`, `report`, recasts, `onReplayTutor` and `support` so every part shows.
 
 Acceptance:
 - Existing room tests still pass unchanged. A test that asserted the removed link row is rewritten to assert the same behaviour through the room menu, with that change named in the commit message.
@@ -252,7 +252,7 @@ Acceptance:
 
 ### T5. Short goal labels
 
-Draft `goalShortEn` for each mission task, two to four words each ("Order a coffee", "Here or to go", "Pay"). Plain words, no em dashes. The founder reviews the list as a copy file before it merges; Jev's copy check is advisory.
+Draft a short label for each of the 144 mission tasks (review file `docs/changes/live-room-d-goal-labels.md`), two to four words each ("Order a coffee", "Here or to go", "Pay"). Plain words, no em dashes. The founder reviews the list as a copy file before it merges; Jev's copy check is advisory.
 
 Acceptance:
 - Every mission task has a short label.
@@ -287,13 +287,13 @@ Acceptance:
 
 | Date / task | Attempt and changed paths | Check / result | Next action or blocker |
 |---|---|---|---|
-| 2026-10-29 / design | Directions A, B, C, then the founder's mix D and D in dark on the direction board; prototype fixes (rings, goal moment, hint per question, cloud outline, sheet growth, to-do stamp ring contrast, dark fix note) | Played through a full turn and Help in the browser, light and dark | T0 once Stream E lands |
+| 2026-10-29 / design | Directions A, B, C, then the founder's mix D and D in dark on the direction board; prototype fixes (rings, goal moment, hint per question, cloud outline, sheet growth, to-do stamp ring contrast, dark fix note) | Played through a full turn and Help in the browser, light and dark | T0 |
 
 ## Integrated verification and handoff
 
 - Focused checks: not run (no code yet)
 - Full gate: not run for this plan (branch `claude/design-partnership` gate green at 7,225 before this doc)
 - UI / hosted / device / paid checks: prototypes only; native build and live replay are T7
-- Documentation and decisions: this plan, UI-013, `DESIGN_PARTNERSHIP.md`
+- Documentation and decisions: this plan, UI-014, `DESIGN_PARTNERSHIP.md`
 - Landing disposition: the plan lands with `claude/design-partnership` (docs only); the build lands separately after T7
-- Next task: T0, blocked on Stream E landing
+- Next task: T0

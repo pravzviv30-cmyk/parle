@@ -19,6 +19,7 @@
  * should be holding.
  */
 
+import { referenceLines } from './referenceLines.ts';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../nav/types.ts';
 import { useCallback, useEffect, useState } from 'react';
@@ -144,9 +145,19 @@ export function MissionsScreen() {
           {first.status !== 'New' && <Text style={[type.small, { color: paper.onInk }]}>{first.status}</Text>}
           <Card style={{ gap: space(3) }}>
             <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>One line to try</Text>
-            {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: t.text }]}>{line}</Text>)}
+            {referenceLines(first.mission).slice(0, 1).map((line) => (
+              <View key={line.fr}>
+                <Text {...frenchText} style={[type.french, { color: t.text }]}>{line.fr}</Text>
+                <Text style={[type.small, { color: t.muted }]}>{line.en}</Text>
+              </View>
+            ))}
             {first.mission.referencePhrases.length > 1 && <IconAction layout="inline" icon="chevron-down" label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
-            {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: t.text }]}>{line}</Text>)}
+            {showExamples && referenceLines(first.mission, Infinity).slice(1).map((line) => (
+              <View key={line.fr}>
+                <Text {...frenchText} style={[type.french, { color: t.text }]}>{line.fr}</Text>
+                <Text style={[type.small, { color: t.muted }]}>{line.en}</Text>
+              </View>
+            ))}
             <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
           </Card>
           <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={{ alignSelf: 'center' }} />

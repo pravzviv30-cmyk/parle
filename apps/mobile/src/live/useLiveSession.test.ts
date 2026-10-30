@@ -1,6 +1,7 @@
 import { ownLeaseRetry } from './ownLease.ts';
 import { classifyFailure } from './failure.ts';
 import { unjoinedLease } from './unjoinedLease.ts';
+import { missionRoleLine, sceneTurns } from './roleLine.ts';
 /**
  * What the live hook does with the messages it is sent, held to its own source.
  *
@@ -282,7 +283,7 @@ function asJs(source: string): string {
  * returns the one thing its caller has to decide on.
  */
 function run(source: string, world: Record<string, unknown>): unknown {
-  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ownLeaseRetry, ownLeaseRetryRef: { current: false }, ...world };
+  world = { sceneTurns, missionRoleLine, roleShownRef: {current: false}, missionId: undefined, tutorVoice: undefined, guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, learnerLine, choosingRef: {current: false}, setSceneReplies: () => {}, ownLeaseRetry, ownLeaseRetryRef: { current: false }, ...world };
   const names = Object.keys(world);
   const fn = new Function(...names, `"use strict";\n${asJs(source)}`) as (...args: unknown[]) => unknown;
   return fn(...names.map((name) => world[name]));

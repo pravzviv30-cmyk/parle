@@ -28,6 +28,7 @@ import { BButton, BMic, CheckDisc } from '../today/TodayParts.tsx';
 import { HearButton } from '../explore/ExploreParts.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { tutorNameOf } from '../tutor/tutorName.ts';
+import { roleLine } from '../live/roleLine.ts';
 import { dailyTutorVoice, tutorAudioFor } from '../daily/tutorAudio.ts';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { TUTOR_LINE_AUDIO } from '../onboarding/tutorLineAudio.ts';
@@ -122,6 +123,7 @@ export function ScenePreviewScreen() {
           <View style={st.goalWords}>
             <Text style={[bType.chip, { color: t.muted }]}>{PREVIEW_COPY.practiseHeading}</Text>
             <Text style={[bType.bold18, st.goalLine, { color: t.text }]}>{model.practise}</Text>
+            {model.part !== null && <Text style={[bType.meta, { color: t.muted }]}>{roleLine(tutorName, model.part)}</Text>}
           </View>
         </View>
 

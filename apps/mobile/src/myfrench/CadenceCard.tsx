@@ -81,7 +81,7 @@ function makeSt(t: B) {
   // said yet is not a state worth signalling.
   mark: { width: MARK, height: MARK, borderRadius: MARK / 2, marginTop: space(2) },
   mine: { backgroundColor: t.text },
-  notYet: { borderWidth: HAIRLINE + 0.4, borderColor: t.line },
+  notYet: { borderWidth: HAIRLINE + 0.4, borderColor: t.field },
   hear: {
     minHeight: HIT,
     minWidth: HIT,

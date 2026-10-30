@@ -111,7 +111,7 @@ describe('the first scene opens with a microphone primer', () => {
     assert.match(screen, /<Text \{\.\.\.frenchText\}[^\n]*>\{mission\.title\}<\/Text>/, 'the French scene title is missing');
     assert.match(screen, /style=\{\[type\.heading, \{ color: paper\.ink, textAlign: 'center' \}, st\.bandFrench\]\}>\{mission\.title\}/, 'the French title must remain legible');
     assert.match(screen, /\{canDoSentence\(mission\.canDoEn\)\}/, 'the can-do is not one sentence');
-    assert.match(screen, /mission\.referencePhrases\.slice\(0, 3\)/, 'the brief shows other than the first three lines');
+    assert.match(screen, /referenceLines\(mission, 3\)/, 'the brief shows other than the first three lines');
     assert.match(screen, /<Label>One line to try<\/Label>/, 'the brief lacks a first usable line');
     assert.match(screen, /showMore && lines\.slice\(1\)/, 'the other examples cannot be disclosed');
     assert.equal(PRIMER_LINES(3), "The three lines you'll say");

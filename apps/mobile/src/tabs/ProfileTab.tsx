@@ -100,6 +100,7 @@ import { useBackToHome } from '../nav/useBackToHome.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { SettingsAppearance, SettingsField as Field } from '../settings/SettingsAppearance.tsx';
 import { BArt } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
 import { BackButton } from '../journey/JourneyParts.tsx';
 import { stagesFrom } from '../journey/journeyView.ts';
 import { tapThrough } from '../access/featureAccess.ts';
@@ -331,8 +332,8 @@ export function ProfileTab() {
 
       <SettingsGroup first title={LEARNING_GROUP}>
         <SettingsRow first label={LEARNING_PREFERENCES_ROW} sub={preferences} onPress={() => nav.navigate('LearningPreferences')} />
-        {/* The tutor is the orb, never a face, and opens the voice sheet. */}
-        <SettingsRow label={YOUR_TUTOR_ROW} sub={tutor} lead={<RowArt round size={40}><BArt name="tutor-orb" width={40} height={40} /></RowArt>} onPress={() => setSheet('tutorVoice')} />
+        {/* The tutor is their own portrait (founder decision 25), and opens the voice sheet. */}
+        <SettingsRow label={YOUR_TUTOR_ROW} sub={tutor} lead={<RowArt round size={40}><TutorPortrait voice={tutorVoiceOf(profile)} size={40} ring={t.text} /></RowArt>} onPress={() => setSheet('tutorVoice')} />
         <SettingsRow
           label={memoryRowTitle(tutor)}
           sub={MEMORY_PROFILE_SUB}

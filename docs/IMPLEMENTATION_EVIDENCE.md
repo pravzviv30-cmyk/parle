@@ -22,6 +22,19 @@ of the list.
 
 ## Current landing snapshot
 
+- 29 October 2026 product-review fixes, Stream E (visual and accessibility): branch
+  `claude/review-e-visual` from main c1840f26. F920, F921, F927, F929, F938 and F940 to F945
+  closed with F856 and F857, each with its named tests; F939 (browser text size) filed and
+  deferred by the founder. Six fix-verifier rounds until a round found nothing; tokens.ts
+  re-pinned with the founder's approval of the exact seed-brief diff; eval:sessions identical to
+  its baseline; live replay against the local stack (Today and Speak at 320 to 768 in light and
+  dark, the 320 welcome, keyboard Tab and Space, sign-up fields and form, sign-out and sign-in
+  landing, the café role line, free talk with no prompt text, 24 live seconds).
+  **7,272 tests, 0 failing**; core 1109, brain 773, tutor agent 893, token server 530, playground 110,
+  mobile 3857; all 44 migrations replayed, no migration added; mobile suite also green with the
+  clock 45 days ahead. Floors raised through `gate:bless`. Not verified: iOS rendering, Dynamic
+  Type, a real password manager save prompt, the production Settings screen on screen (the
+  production bundle was checked instead).
 - 29 October 2026 product-review fixes, Stream D (progress, Today and practice): branch
   `claude/review-d-progress` from main 005ae4d2. F918, F919, F922, F924, F934, F935, F936 and F937
   closed with F858 and F651, each with its named tests; fix-verifier rounds until clean on every

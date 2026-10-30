@@ -80,7 +80,7 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-29 | The tutor's identity is their portrait (founder decision 25, F945). Mascots are companions and must never be mistaken for the tutor. | Stream E, decision 25 |
 | 2026-10-29 | Live room: B (face to face) as the base, with C's visible script, margin fixes and cloud mic, and A's goal stamps. Not taken: A's stage, seated mascots and speech bubble, B's goal bar and mascot pop-up, C's highlighter. D still marks the learner's lines in sun so they stand apart from the tutor's. | Founder, mix question on the direction board |
 | 2026-10-29 | Remove words and elements that distract, as long as no core feature is lost. | Founder, same answer |
-| 2026-10-29 | Direction D accepted as drawn (including the sun mark on the learner's lines) when the founder asked for its build spec with dark mode. Recorded as UI-013. | Founder, build spec request |
+| 2026-10-29 | Direction D accepted as drawn (including the sun mark on the learner's lines) when the founder asked for its build spec with dark mode. Recorded as UI-014 (main's UI-013 is Stream E's). | Founder, build spec request |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -93,8 +93,8 @@ Working principles drawn from these (to confirm on the first screens):
 
 | Order | Screen | State |
 |---|---|---|
-| 1 | Live conversation room | Direction D accepted (UI-013); build spec with dark mode in [changes/live-room-d.md](changes/live-room-d.md); build waits for Stream E to land |
-| 2 | Today | Candidate; Stream E's F920 overlap fix folds in |
+| 1 | Live conversation room | Direction D accepted (UI-014); building on `claude/live-room-d` from [changes/live-room-d.md](changes/live-room-d.md); lands after the founder approves the 144 short goal labels |
+| 2 | Today | Chosen next (founder, 2026-10-30); brief and direction board next |
 | 3 | Drill and practice feedback | Candidate |
 | 4 | Journey | Candidate |
 

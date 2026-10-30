@@ -14,6 +14,8 @@ import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
+import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
+import type { TutorVoiceKey } from '@luvani/core';
 import { Press } from '../components.tsx';
 import { TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
@@ -129,7 +131,11 @@ export function GoalsStrip({ chips }: { chips: readonly GoalChip[] }) {
  * sphere did (BoldVoiceOrb): the mic's while it records, the tutor's while it
  * speaks, still otherwise. Never a fabricated meter.
  */
-export function LiveOrb({ caption, size, state, active }: { caption: string; size: 'full' | 'small'; state: OrbState; active: boolean }) {
+export function LiveOrb({ caption, size, state, active, voice }: {
+  caption: string; size: 'full' | 'small'; state: OrbState; active: boolean;
+  /** The learner's tutor, drawn as their portrait; absent, the shared orb. */
+  voice?: TutorVoiceKey;
+}) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const audio = useOrbAudio();
@@ -145,7 +151,7 @@ export function LiveOrb({ caption, size, state, active }: { caption: string; siz
         <View style={[s.ring, { width: outer, height: outer, borderRadius: outer / 2, backgroundColor: t.orbRing }]} />
         <View style={[s.ring, { width: outer * 0.82, height: outer * 0.82, borderRadius: outer * 0.41, backgroundColor: t.violet2 }]} />
         <OrbPulse level={input ? audio.input : output ? audio.output : null} on={input || output}>
-          <BArt name="tutor-orb" width={outer * 0.64} height={outer * 0.64} style={{ borderRadius: outer * 0.32, overflow: 'hidden' }} />
+          {voice ? <TutorPortrait voice={voice} size={outer * 0.64} ring={t.onBrand} /> : <BArt name="tutor-orb" width={outer * 0.64} height={outer * 0.64} style={{ borderRadius: outer * 0.32, overflow: 'hidden' }} />}
         </OrbPulse>
       </View>
       <Text accessibilityLiveRegion="polite" style={[bType.bold18, s.center, { color: t.onBrand }]}>{caption}</Text>
@@ -355,7 +361,8 @@ function makeStyles(t: B) {
     goalDone: { width: 22, height: 22, borderRadius: 11, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
     goalRing: { width: 22, height: 22, borderRadius: 11 },
     goalRingNow: { borderWidth: 2.5, borderColor: t.sun },
-    goalRingLater: { borderWidth: 2, borderColor: t.violet2 },
+    // On violetDeep: onBrandSoft is 8.0, violet2 was 1.8 (F921 round 4).
+    goalRingLater: { borderWidth: 2, borderColor: t.onBrandSoft },
     struck: { textDecorationLine: 'line-through' },
     orbBlock: { alignItems: 'center', gap: 10, marginTop: 22 },
     ring: { position: 'absolute' },
@@ -373,7 +380,7 @@ function makeStyles(t: B) {
     ladderStep: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 6 },
     ladderRule: { width: 14, height: 2, backgroundColor: t.ring },
     ladderPill: { minHeight: 32, paddingHorizontal: 12, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    choice: { minHeight: 60, borderWidth: 2, borderColor: t.line, borderRadius: 18, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, gap: 4 },
+    choice: { minHeight: 60, borderWidth: 2, borderColor: t.field, borderRadius: 18, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, gap: 4 },
     choicePress: { minHeight: 56, justifyContent: 'center', paddingVertical: 10 },
     choiceWords: { flex: 1, gap: 2, paddingVertical: 10 },
     choiceHear: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
@@ -382,7 +389,7 @@ function makeStyles(t: B) {
     sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sheetClose: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
     asked: { backgroundColor: t.card, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
-    secondary: { minHeight: 46, borderRadius: 23, backgroundColor: t.card, borderWidth: 2, borderColor: t.line, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+    secondary: { minHeight: 46, borderRadius: 23, backgroundColor: t.card, borderWidth: 2, borderColor: t.field, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
     primary: { minHeight: 54, borderRadius: 27, backgroundColor: t.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 18 },
   });
 }

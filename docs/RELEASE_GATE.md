@@ -41,6 +41,11 @@ asks for those missing release proofs rather than reopening the fixed defects.
   controller identity, contact route, governing law, vendor terms and retention
   schedule have been confirmed. Publish the reviewed versions before inviting
   learners.
+  The legal review is still pending before production. Since F929 (founder
+  decision 24) the in-app sentence `LEGAL_REVIEW_PENDING` shows only in
+  development and staging builds (`EXPO_PUBLIC_LUVANI_BUILD_PROFILE` in
+  `apps/mobile/eas.json`) and never in a production build, so this item, not the
+  app, is what holds production until the review is done.
 - [ ] Confirm LiveKit, Deepgram, ElevenLabs, Speechace, TonePerfect, TypeSafe and the
   language model vendor's retention and deletion terms; amend the learner-facing
   policy to match, not to assume.

@@ -65,6 +65,7 @@ import {
 } from './failure.ts';
 import { ownLeaseRetry } from './ownLease.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
+import { missionRoleLine, sceneTurns } from './roleLine.ts';
 import { learnerLine } from './leaveKeepingWork.ts';
 import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
 import { thinkingAfter } from './thinking.ts';
@@ -616,7 +617,8 @@ export function useLiveSession(
      * seed and opens a generic session rather than refusing, because a bad
      * hint must never strand anyone, but that is not a reason to send blanks.
      */
-    seedTopic?: { fr: string; en: string };
+    /** `brief`, when present, is tutor-only instructions (F929): sent, never shown. */
+    seedTopic?: { fr: string; en: string; brief?: string };
     /** Owner-scoped lookup on the server; no stored conversation text is sent. */
     continuationPackId?: string;
     /**
@@ -667,10 +669,13 @@ export function useLiveSession(
   const terminalFailureRef = useRef(false);
   const [safety, setSafety] = useState<SafetyDecision | null>(null);
   const [turns, setTurns] = useState<TurnLine[]>([]);
+  // The role line is said once per session (F942), even after old turns are trimmed.
+  const roleShownRef = useRef(false);
   const conversationTextRef = useRef(new ConversationTextRecorder());
   useEffect(() => onUserScopeReset(() => {
     conversationTextRef.current.clear();
     setTurns([]);
+    roleShownRef.current = false;
     setPartialTranscript(null);
     confirmedIds.current.clear();
     terminalFailureRef.current = false;
@@ -974,6 +979,7 @@ export function useLiveSession(
     safetyRef.current = null;
     setSafety(null);
     setTurns([]);
+    roleShownRef.current = false;
     setPartialTranscript(null);
     confirmedIds.current.clear();
     // The last room's view goes with its turns: a rebuilt session is a new one,
@@ -1325,22 +1331,11 @@ export function useLiveSession(
             break;
           case 'convo':
             setConvo(msg.view);
-            // Narration lands before the line it introduces, the way it is
-            // heard. `pushTurn` drops it when it is the same one as last turn.
-            if (msg.view.narration) {
-              addTurn({
-                who: 'narration',
-                fr: msg.view.narration.fr,
-                frWritten: msg.view.narration.frWritten ?? null,
-                en: msg.view.narration.en,
-              }, msg.view.textTurnId ? `narration:${msg.view.textTurnId}` : undefined);
-            }
-            addTurn({
-              who: 'tutor',
-              fr: msg.view.sceneReply.fr,
-              frWritten: msg.view.sceneReply.frWritten ?? null,
-              en: msg.view.sceneReply.en,
-            }, msg.view.textTurnId ? `tutor:${msg.view.textTurnId}` : undefined);
+            // Who the tutor plays comes first (F942, once, by its fixed id),
+            // then narration before the line it introduces, the way it is
+            // heard. `pushTurn` drops a turn already in the list.
+            for (const turn of sceneTurns(msg.view, roleShownRef.current ? null : missionRoleLine(missionId, tutorVoice))) addTurn(turn.line, turn.id);
+            roleShownRef.current = true;
             // A recast belongs under the learner line it corrects, so it is
             // attached backwards to the last thing the learner said.
             if (msg.view.coachNow.length > 0) {

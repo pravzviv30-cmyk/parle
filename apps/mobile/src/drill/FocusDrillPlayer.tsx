@@ -147,7 +147,7 @@ function makeSt(t: B) {
     paddingHorizontal: space(3.5),
     borderRadius: radius.pill,
     borderWidth: HAIRLINE,
-    borderColor: t.line,
+    borderColor: t.field,
   },
 });
 }

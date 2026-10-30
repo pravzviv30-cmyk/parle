@@ -46,6 +46,7 @@ import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/stor
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
 import { IconAction, BookmarkGlyph, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
 import { SceneLead } from '../today/TodayParts.tsx';
+import { KeyboardMark } from '../live/LiveParts.tsx';
 import { HIT, onColour, paper, space, textOn, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { launchLabel } from '../tutor/orbState.ts';
@@ -176,7 +177,7 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
         title={hero.title}
         french={null} rest={time}
         uses={buildsOn != null ? buildsOnLine(buildsOn) : null}
-        start={{ label, accessibilityLabel: `${label}: ${hero.title}, ${time}`, disabled: checking, onPress: () => open(modes.textMode) }}
+        start={{ label, mode: modes.mode, accessibilityLabel: `${label}: ${hero.title}, ${time}`, disabled: checking, onPress: () => open(modes.textMode) }}
         other={{ label: modes.other.label, disabled: checking, onPress: () => open(modes.other.textMode) }}
         checking={checking ? TUTOR_OFFLINE.checking : null}
         heldBack={heldBack === null ? null : { body: TUTOR_OFFLINE.body, retry: TUTOR_OFFLINE.retry, disabled: checking, onRetry: () => open(heldBack.textMode) }}
@@ -212,7 +213,7 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
             tone="white"
             label={label}
             accessibilityLabel={`${label}: ${hero.title}`}
-            icon={<MicGlyph size={20} color={paper.ink} />}
+            icon={modes.mode === 'type' ? <KeyboardMark size={20} color={paper.ink} /> : <MicGlyph size={20} color={paper.ink} />}
             disabled={checking}
             onPress={() => open(modes.textMode)}
           />
@@ -237,7 +238,7 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
           )}
         </>
       }
-      secondary={<IconAction layout="inline" icon="keyboard" label={modes.other.label} ground="blue" disabled={checking} onPress={() => open(modes.other.textMode)} />}
+      secondary={<IconAction layout="inline" icon={modes.other.textMode ? 'keyboard' : 'microphone'} label={modes.other.label} ground="blue" disabled={checking} onPress={() => open(modes.other.textMode)} />}
     />
   );
 }
