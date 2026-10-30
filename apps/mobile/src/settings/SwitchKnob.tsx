@@ -8,7 +8,8 @@
  * row. This draws the same state from plain views instead, so there is nothing
  * to focus, press or announce. On: the track in `on` with the thumb at the
  * trailing end. Off: the track in `off` with the thumb at the leading end.
- * Sized like the platform switch.
+ * Sized like the platform switch. Themed by default with `mark` on, which
+ * clears 3:1 on the ground in both themes (brand is 2.3:1 on the dark ground).
  */
 
 import { StyleSheet, View } from 'react-native';
@@ -29,7 +30,7 @@ export function SwitchKnob({ value, disabled = false, on, off, thumb }: {
   const t = useB();
   return (
     <View {...decorative} pointerEvents="none"
-      style={[st.track, { backgroundColor: value ? on ?? t.brand : off ?? t.field, alignItems: value ? 'flex-end' : 'flex-start' }, disabled && st.disabled]}>
+      style={[st.track, { backgroundColor: value ? on ?? t.mark : off ?? t.field, alignItems: value ? 'flex-end' : 'flex-start' }, disabled && st.disabled]}>
       <View style={[st.thumb, { backgroundColor: thumb ?? t.card }]} />
     </View>
   );

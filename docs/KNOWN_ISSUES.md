@@ -10339,7 +10339,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F765 — Nothing marks a scene goal or a scene won in the room
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/tutor/MissionTaskList.tsx, apps/mobile/src/ConvoScreen.tsx
+- where: apps/mobile/src/live/StageParts.tsx (GoalStamps; was tutor/MissionTaskList.tsx, removed 2026-10-30 by UI-014), apps/mobile/src/ConvoScreen.tsx
 - note: Goal ticks pop with a check and are announced; the scene won card plays in place; no sound or haptic while the microphone is live; the recap plays the scene moment and a postcard stamp for every independent finish.
 - note 2026-10-06, ca/p3-room (step P3-C): goal ticks pop their mint disc and land the check a beat later, glint once, scroll into view and are announced in the goal's words (`tutor/taskTicks.ts`); the last tick ripples the orb and holds the card for the ripple; `tutor/MissionWin.tsx` adds "Scene complete", the place drawing on blue, a mint glow and Burst 24 with "Keep talking" still the one pill and no sound or haptic; the recap's result page plays `recap-result` once the room frees the audio, with the progress strip from the settled GameDelta and the lines on `CountUp`; `celebrate/PostcardStamp.tsx` stamps every independent finish (`postcard-first` or `postcard-again`) and never an assisted one. OnceConfetti and OnceCount are retired. Not yet checked on a device.
 - verified-by: `the room plays no sound while the mic is live or the tutor speaks`

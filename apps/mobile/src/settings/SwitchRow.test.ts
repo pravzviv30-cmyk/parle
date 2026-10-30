@@ -81,6 +81,6 @@ describe('a switch row has one tab stop', () => {
     const knob = stripComments(readFileSync(join(SRC, 'settings/SwitchKnob.tsx'), 'utf8'));
     assert.doesNotMatch(knob, /<(?:Switch|Press|Pressable|TextInput)\b|accessibilityRole|onPress/, 'the knob became a control');
     assert.match(knob, /<View \{\.\.\.decorative\} pointerEvents="none"/, 'the knob is not hidden from assistive tech');
-    assert.match(knob, /backgroundColor: value \? on \?\? t\.brand : off \?\? t\.field, alignItems: value \? 'flex-end' : 'flex-start'/, 'on is not brand with the thumb trailing, or off is not field with it leading');
+    assert.match(knob, /backgroundColor: value \? on \?\? t\.mark : off \?\? t\.field, alignItems: value \? 'flex-end' : 'flex-start'/, 'on is not mark with the thumb trailing, or off is not field with it leading');
   });
 });

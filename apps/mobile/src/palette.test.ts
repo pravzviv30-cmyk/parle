@@ -870,6 +870,12 @@ describe('B tokens, light and dark — UI-008', () => {
         ['onMint on mint', t.onMint, t.mint],
         ['the selected glyph on its cell', t.tabGlyphSelected, t.tabSelected],
         ['an unselected glyph on the capsule', t.tabLabel, t.tabCapsule],
+        // The room menu's SwitchKnob (settings/SwitchKnob.tsx) on the sheet's ground:
+        // the on track, and the thumb on it. The off track is field on ground, above.
+        ['the switch knob on track on ground', t.mark, t.ground],
+        ['the switch knob thumb on its on track', t.card, t.mark],
+        // The dock's SideControl disc edge (live/LiveParts.tsx sideDisc) on the notebook ground.
+        ['the side control edge on ground', t.field, t.ground],
       ];
       for (const [name, fg, bg] of marks) {
         const r = contrast(fg, bg);

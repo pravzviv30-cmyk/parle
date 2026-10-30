@@ -46,15 +46,6 @@ export function BulbGlyph({ size, color }: { size: number; color: string }) {
   );
 }
 
-/** A small flag on its pole, stroke 1.8: the beta's "Report this reply". */
-export function FlagGlyph({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M6 21V4M6 4h10l-2 4 2 4H6" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────── top
 
 /**
@@ -84,7 +75,7 @@ export function LiveTopBar({ leave, title, line, pace, report }: { leave: ReactN
 
 /**
  * A 56pt side control on the notebook sheet (UI-014, direction D): a `card`
- * disc, the caller's glyph in `text`, and its `meta` label in `text` under it.
+ * disc edged in `field` (card on the ground is near 1:1), the caller's glyph in `text`, and its `meta` label in `text` under it.
  * The disc is decoration on the sheet; the glyph and the words name it.
  */
 export function SideControl({ label, accessibilityLabel, icon, onPress, disabled = false, expanded }: {
@@ -224,7 +215,7 @@ function makeStyles(t: B) {
     topSpace: { width: HIT, height: HIT },
     center: { textAlign: 'center' },
     side: { width: 72, alignItems: 'center', gap: 6 },
-    sideDisc: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
+    sideDisc: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.field, alignItems: 'center', justifyContent: 'center' },
     disabled: { opacity: 0.55 },
     ladder: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', rowGap: 6 },
     ladderStep: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 6 },
