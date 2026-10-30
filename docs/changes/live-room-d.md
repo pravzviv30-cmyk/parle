@@ -300,6 +300,11 @@ Built differently from the spec, on purpose:
 - **The partial line's caret does not blink.** Loops are allowed only in `tutor/Orb*` files.
 - **The scene description** shows only when a scene has no pace. D's top bar is the title and pace.
 - **The spoken caption** uses a 1x1 clipped box in the room's colour (no visually-hidden pattern existed). It still needs a VoiceOver check on device.
+- **The room note** (wrap-up, typing, tap-to-send, Quiet voice) is drawn above the Send pill rather than under it. Its order is unchanged.
+- **The goal list's glint and scroll-into-view** are gone with the list. Stamps are always on screen, so there is nothing to scroll to.
+- **The cloud mic's mint level ring** is faint on the light sheet (1.85:1). It is decorative; the "Listening" word carries the state.
+- **The scrim** behind Help, the menu and report is a plain `Pressable` filling the room, as the shared `Sheet` draws it. A `Press` had no touch area there (found in the live replay).
+- **Scene goals did not tick in the local replays, typed or spoken**. The same scene on main's old room behaved identically, so it is not this change. To investigate separately.
 - **Left in place:** `QUIET_DOOR`, `OPEN_MIC_LABEL` and `SpeakerSlowGlyph` are unused outside their own tests, but they were unused before D and are not room code it replaces.
 
 ## Integrated verification and handoff
