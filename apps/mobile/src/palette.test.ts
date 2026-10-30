@@ -21,7 +21,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b } from './palette.ts';
+import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b, mascot } from './palette.ts';
 import { contrast } from './testing/contrast.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
@@ -663,6 +663,17 @@ describe('one highlighter — notebook Phase 1', () => {
   });
 });
 
+describe('the cloud mascot reads as a control (UI-014)', () => {
+  test('its ink outline has an edge on the cream ground', () => {
+    const r = contrast(paper.ink, paper.ground);
+    assert.ok(r >= 3, `the cloud outline is ${r.toFixed(2)} on the ground, under 3`);
+  });
+  test('its white body has an edge on the dark ground', () => {
+    const r = contrast(paper.card, b.dark.ground);
+    assert.ok(r >= 3, `the cloud body is ${r.toFixed(2)} on the dark ground, under 3`);
+  });
+});
+
 describe('the recorded palette matches the code — F327, F328', () => {
   /** Every shipped token, flattened to the path the doc and the app.json use. */
   const tokens: Record<string, string> = {};
@@ -674,6 +685,8 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(colour)) tokens[`colour.${k}`] = v;
   // Direction B (DECISIONS.md UI-005): the four pastels are recorded like the rest.
   for (const [k, v] of Object.entries(pastel)) tokens[`pastel.${k}`] = v;
+  // UI-014: the mascots' own colours are recorded like the rest.
+  for (const [k, v] of Object.entries(mascot)) tokens[`mascot.${k}`] = v;
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const [k, v] of Object.entries(onOrb)) tokens[`onOrb.${k}`] = v;

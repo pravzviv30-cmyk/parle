@@ -105,6 +105,18 @@ export const pastel = {
 } as const;
 
 /**
+ * The mascots' own colours (UI-014): the cloud's underside and cheeks, the
+ * toast's crust and face. The rest of each drawing reuses paper, colour and
+ * pastel tokens. Static: the mascots look the same in light and dark.
+ */
+export const mascot = {
+  cloudUnderside: '#C7DAD5',
+  cheek: '#EF8770',
+  toastCrust: '#F59A45',
+  toastFace: '#F9B694',
+} as const;
+
+/**
  * The one soft lift (DECISIONS.md, 2026-10-19), reversing the old no-shadow
  * rule for illustrated Explore cards only. Ink at 0.45 alpha; the geometry
  * lives with the token in theme.ts.

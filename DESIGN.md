@@ -1247,6 +1247,24 @@ map the exact IPA symbol to the corresponding guide, with an authored cue in
 words. Unknown sounds draw no substitute. The thirty-one place drawings, state drawings,
 recaps, earned postcards and the weekly story reach their relevant screens.
 
+### Mascots
+
+The cloud and the toast are Luvani's mascots (UI-014). They are drawn by hand in
+`src/art/mascots/` from the cloud in `cloud-cheer` and the orange companion in
+`friends-cheer`, with the same shapes. Only the eyes and the mouth change, one
+face per state of the live room, and the drawings themselves never move. In the
+live room the cloud is the microphone button, so it takes a 2.5pt ink outline to
+keep an edge on the cream paper. They look the same in light and dark. Ink,
+white, sun, peach and lavender come from the tokens above; these four are theirs
+alone.
+
+| Token | Value | Role |
+|---|---|---|
+| `mascot.cloudUnderside` | `#C7DAD5` | The cloud's shaded underside |
+| `mascot.cheek` | `#EF8770` | The cloud's cheeks |
+| `mascot.toastCrust` | `#F59A45` | The toast's crust |
+| `mascot.toastFace` | `#F9B694` | The toast's face |
+
 ### Raster scenes, retired
 
 The place watercolours, `apps/mobile/assets/art/`, `Art.tsx`, the raster
