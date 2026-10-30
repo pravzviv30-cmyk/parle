@@ -98,6 +98,13 @@ describe('the room parts, from source', () => {
     assert.match(room, /\{menuOpen && !helpOpen && !reportOpen \? <View style=\{\[st\.sheetLayer/);
     assert.match(room, /setHelpOpen\(false\); setReportOpen\(false\); setMenuOpen\(value => !value\)/);
   });
+
+  test('a tap on the scrim closes the open sheet: the press fills the room, as the shared Sheet does', () => {
+    // Press draws its style on an inner surface, so a Press here had no touch area
+    // and the scrim could not be tapped (found in the live replay, 2026-10-30).
+    const room = stripComments(read('./C2LiveRoom.tsx'));
+    assert.match(room, /<View style=\{st\.scrim\}><Pressable accessibilityRole="button" accessibilityLabel="Close" style=\{StyleSheet\.absoluteFill\}\s+onPress=\{\(\) => \{ setHelpOpen\(false\); setMenuOpen\(false\); setReportOpen\(false\); \}\} \/><\/View>/);
+  });
 });
 
 describe('the room at large text', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { Press } from '../components.tsx';
@@ -236,8 +236,8 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
     {/* One scrim behind whichever sheet is open, in front of the room. A tap closes
         that sheet, with the same "Close" the shared Sheet's scrim carries. */}
     {(menuOpen && !helpOpen && !reportOpen) || (reportOpen && reportable && report && !helpOpen) || (helpOpen && controlsVisible && helpAvailable && !footer)
-      ? <View style={st.scrim}><Press haptic="none" accessibilityRole="button" accessibilityLabel="Close" style={StyleSheet.absoluteFill}
-          onPress={() => { setHelpOpen(false); setMenuOpen(false); setReportOpen(false); }}>{null}</Press></View> : null}
+      ? <View style={st.scrim}><Pressable accessibilityRole="button" accessibilityLabel="Close" style={StyleSheet.absoluteFill}
+          onPress={() => { setHelpOpen(false); setMenuOpen(false); setReportOpen(false); }} /></View> : null}
     {menuOpen && !helpOpen && !reportOpen ? <View style={[st.sheetLayer, { paddingBottom: sheetBottom }]}>
       <RoomMenu rows={menuRows} onRow={menuRow} onClose={() => setMenuOpen(false)} />
     </View> : null}
