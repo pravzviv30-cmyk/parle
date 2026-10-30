@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { TutorVoiceKey } from '@luvani/core';
 
 import { BArt } from '../art/BArt.tsx';
@@ -23,16 +23,20 @@ import { OrbBreathe, OrbDashedRing } from '../tutor/OrbPortraitMotion.tsx';
 import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
 import { tickAnnouncement } from '../tutor/taskTicks.ts';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
-import { freshGoals, goalStamps, goalStrip, ringMode } from './liveRoomView.ts';
+import { freshGoals, goalStamps, goalStrip, ringMode, stampSize } from './liveRoomView.ts';
 import { useAppActive, useOrbAudio } from './OrbAudio.tsx';
 
 type Goal = { id: string; goalEn: string; achieved: boolean; goalShortEn?: string };
 
-/** The stamps, 26pt and 6pt apart, then the current goal's label. One accessible element. */
+/** The stamps, 26pt (more at large text) and 6pt apart, then the current goal's label. One accessible element. */
 export function GoalStamps({ goals }: { goals: readonly Goal[] }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const view = goalStamps(goals);
+  // The digits scale with Dynamic Type, so the discs grow with them (stampSize).
+  const { fontScale } = useWindowDimensions();
+  const disc = stampSize(fontScale);
+  const round = { width: disc, height: disc, borderRadius: disc / 2 };
   // A goal reached while the stamps are on screen is said once, in its own
   // words (tutor/taskTicks.ts), and its stamp lands once. Goals already done
   // at first sight are neither.
@@ -59,10 +63,10 @@ export function GoalStamps({ goals }: { goals: readonly Goal[] }) {
       {view.stamps.map((stamp) => (
         <PopIn key={stamp.id} play={stamp.state === 'done' && landed.has(stamp.id)}>
           {stamp.state === 'done'
-            ? <View style={[s.stamp, s.done]}><TickGlyph size={13} color={t.onMint} /></View>
+            ? <View style={[s.stamp, round, s.done]}><TickGlyph size={13} color={t.onMint} /></View>
             : stamp.state === 'current'
-              ? <View style={[s.stamp, s.current]}><Text style={[bType.eyebrow, { color: t.onSun }]}>{stamp.n}</Text></View>
-              : <View style={[s.stamp, s.todo]}><Text style={[bType.bold12, { color: t.onBrandSoft }]}>{stamp.n}</Text></View>}
+              ? <View style={[s.stamp, round, s.current]}><Text style={[bType.eyebrow, { color: t.onSun }]}>{stamp.n}</Text></View>
+              : <View style={[s.stamp, round, s.todo]}><Text style={[bType.bold12, { color: t.onBrandSoft }]}>{stamp.n}</Text></View>}
         </PopIn>
       ))}
       {view.currentLabel ? <Text {...decorative} style={[bType.bold14, s.label, { color: t.onBrand }]}>{view.currentLabel}</Text> : null}
@@ -111,7 +115,7 @@ export function PortraitStage({ state, voice, name, active, compact }: {
 function makeStyles(t: B) {
   return StyleSheet.create({
     stamps: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 6, rowGap: 6, marginTop: 14 },
-    stamp: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    stamp: { alignItems: 'center', justifyContent: 'center' },
     done: { backgroundColor: t.mint },
     current: { backgroundColor: t.sun },
     todo: { borderWidth: 2, borderColor: t.onBrandSoft },

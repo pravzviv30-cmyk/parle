@@ -318,3 +318,33 @@ export function freshGoals(firstLook: ReadonlySet<string> | null, goals: readonl
 
 /** How long the cloud keeps its cheering face after a goal: two hops, inside CELEBRATION_MAX_MS. */
 export const CHEER_MS = 1600;
+
+/** The goal stamp's disc at 1x, the digit's line height at 1x, and the room around the digit. */
+export const STAMP = { base: 26, digitLine: 18, pad: 8 } as const;
+
+/**
+ * A goal stamp's diameter at the learner's text size. The digit scales with
+ * Dynamic Type, so the disc grows with it rather than clipping it: never under
+ * 26, else the scaled digit's line plus its padding. The ring stays 2pt.
+ */
+export function stampSize(fontScale: number): number {
+  const scale = Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
+  return Math.max(STAMP.base, Math.ceil(STAMP.digitLine * scale) + STAMP.pad);
+}
+
+/** The portrait's two sizes, the gap to the name, the name's line at 1x, and the rings' reach past the portrait. */
+export const PORTRAIT_FIT = { full: 112, compact: 72, gap: 8, nameLine: 19, rings: 28 } as const;
+
+/**
+ * Which portrait the stage has room for. The stage takes what the goal stamps,
+ * the owner's `top` slot and the sheet leave; the portrait yields rather than
+ * draw over any of them. Full when it fits and nothing asks for compact, then
+ * compact, then none: the name and the spoken state carry the meaning.
+ */
+export function portraitFit(available: number, fontScale: number, preferCompact: boolean): 'full' | 'compact' | 'none' {
+  const name = PORTRAIT_FIT.nameLine * (Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1);
+  const need = (size: number) => size + PORTRAIT_FIT.rings + PORTRAIT_FIT.gap + name;
+  if (!preferCompact && available >= need(PORTRAIT_FIT.full)) return 'full';
+  if (available >= need(PORTRAIT_FIT.compact)) return 'compact';
+  return 'none';
+}

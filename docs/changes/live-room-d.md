@@ -72,7 +72,7 @@ The room fills the screen on the brand blue in both themes. That rule is UI-008'
    - To do: a 2pt `onBrandSoft` ring with the number in `onBrandSoft` (6.2:1 on blue). The prototype's lilac ring was 2.2:1 and is not used.
    - The whole row is one accessible element saying "1 of 3 goals done. Now: say whether it is for here or to go."
    - The existing once-only announcement of a newly reached goal (`tickAnnouncement`) is kept.
-3. **Portrait stage.** It takes the space left between the stamps and the sheet (`flex: 1`, at least 168pt) and is centred in it.
+3. **Portrait stage.** It takes the space left between the stamps and the sheet (`flex: 1`) and is centred in it. It measures that space (`portraitFit`) and draws the portrait full, at 72pt, or not at all, so it never overlaps the owner slot or the sheet; at large text on a small phone with the owner slot open, it steps aside and the name and spoken state remain.
    - `TutorPortrait` at 112pt (72pt while typing or with the keyboard open) with the existing `PORTRAIT_RING` (2pt).
    - The ring is `sun` while the tutor speaks or thinks, and `mint` while the learner's turn is open.
    - Two level rings driven by the real level: output while the tutor speaks, input while listening. Use the `LevelRing` primitive as it is (`LEVEL_RING.grow` 0.22), not a timed loop and not a new token. Who is talking comes from `useOrbAudio()` `outputLive` and `inputLive`, so it still shows under reduced motion.

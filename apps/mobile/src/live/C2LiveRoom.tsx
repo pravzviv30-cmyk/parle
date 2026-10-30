@@ -19,7 +19,7 @@ import { CloudMic, CLOUD, RoomMenu } from './DockParts.tsx';
 import { Toast } from '../art/mascots/Toast.tsx';
 import { Rise } from '../motion/MascotMotion.tsx';
 import type { HeldTurnState, TutorVoiceKey } from '@luvani/core';
-import { HELP_COPY, CHEER_MS, askedLabel, cloudExpression, freshGoals, quietVoiceControl, roomMenuRows, roomNote, sendButton, tapToSendControl, helpLadder, ladderSpoken, lastTutorLine, moreHelpOffered, type RoomMenuRow, type SupportKind } from './liveRoomView.ts';
+import { HELP_COPY, CHEER_MS, portraitFit, askedLabel, cloudExpression, freshGoals, quietVoiceControl, roomMenuRows, roomNote, sendButton, tapToSendControl, helpLadder, ladderSpoken, lastTutorLine, moreHelpOffered, type RoomMenuRow, type SupportKind } from './liveRoomView.ts';
 
 /**
  * Presentation only. Every action is supplied by the existing session owner.
@@ -154,6 +154,8 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
   const largeText = fontScale >= 1.35;
   // The smaller portrait while typing, at the largest text, and on a short phone.
   const compact = focused || keyboardOpen || typing || largeText || height < 700;
+  const [stageHeight, setStageHeight] = useState(0);
+  const fit = portraitFit(stageHeight, fontScale, compact);
   const sayChoice = () => {
     setHelpOpen(false);
     if (typing) { input.current?.focus(); return; }
@@ -181,8 +183,10 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
         <GoalStamps goals={goals} />
       </View>
       {top ? <ScrollView style={st.top} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">{top}</ScrollView> : null}
-      <View style={[st.stage, compact && st.stageCompact]} onTouchEnd={dismiss}>
-        <PortraitStage state={state} voice={voice} name={tutorName} active={active} compact={compact} />
+      {/* The stage takes what is left and the portrait yields to fit it (portraitFit), so it
+          never draws over the goal stamps, the owner's top slot or the sheet. */}
+      <View style={st.stage} onTouchEnd={dismiss} onLayout={(event) => setStageHeight(event.nativeEvent.layout.height)}>
+        {fit !== 'none' ? <PortraitStage state={state} voice={voice} name={tutorName} active={active} compact={fit === 'compact'} /> : null}
         {/* The state the orb used to say in words: spoken, not drawn. */}
         <Text accessibilityLiveRegion="polite" style={st.spoken}>{caption}</Text>
       </View>
@@ -269,9 +273,8 @@ function makeStyles(t: B) {
     // A report saved for the end card: a 10pt sun dot on the menu disc.
     reportPending: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: t.sun },
     center: { textAlign: 'center' },
-    top: { flexGrow: 0, maxHeight: '20%', paddingTop: 8, paddingHorizontal: 22 },
-    stage: { flex: 1, minHeight: 168, alignItems: 'center', justifyContent: 'center' },
-    stageCompact: { minHeight: 96 },
+    top: { flexGrow: 0, flexShrink: 0, maxHeight: '20%', paddingTop: 8, paddingHorizontal: 22 },
+    stage: { flex: 1, minHeight: 0, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
     // Spoken, not drawn: a 1pt clipped box in the ground's own colour, which a
     // screen reader still reads (opacity 0 would hide it from VoiceOver).
     spoken: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'hidden', color: t.brand },

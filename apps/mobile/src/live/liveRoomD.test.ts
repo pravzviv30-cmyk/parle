@@ -99,3 +99,34 @@ describe('the room parts, from source', () => {
     assert.match(room, /setHelpOpen\(false\); setReportOpen\(false\); setMenuOpen\(value => !value\)/);
   });
 });
+
+describe('the room at large text', () => {
+  test('a goal stamp grows with the digit and never shrinks under 26', async () => {
+    const { stampSize } = await import('./liveRoomView.ts');
+    assert.equal(stampSize(1), 26);
+    assert.equal(stampSize(0.8), 26);
+    assert.equal(stampSize(Number.NaN), 26);
+    assert.ok(stampSize(2) >= 18 * 2 + 8, 'the digit at 2x does not fit its disc');
+    assert.ok(stampSize(3.1) >= Math.ceil(18 * 3.1) + 8);
+  });
+
+  test('the portrait yields before it overlaps: full, then compact, then none', async () => {
+    const { portraitFit } = await import('./liveRoomView.ts');
+    assert.equal(portraitFit(400, 1, false), 'full');
+    assert.equal(portraitFit(400, 1, true), 'compact', 'typing or a short screen asks for compact');
+    assert.equal(portraitFit(140, 1, false), 'compact');
+    assert.equal(portraitFit(60, 1, false), 'none');
+    assert.equal(portraitFit(170, 1, false), 'full');
+    assert.equal(portraitFit(170, 3, false), 'compact', 'a large name line takes the full portrait\'s room');
+    assert.equal(portraitFit(0, 1, false), 'none', 'an unmeasured stage draws nothing over its neighbours');
+  });
+
+  test('the room measures its stage and clips nothing outside it', () => {
+    const room = stripComments(read('./C2LiveRoom.tsx'));
+    assert.match(room, /onLayout=\{\(event\) => setStageHeight\(event\.nativeEvent\.layout\.height\)\}/);
+    assert.match(room, /portraitFit\(stageHeight, fontScale, compact\)/);
+    assert.match(room, /stage: \{ flex: 1, minHeight: 0, overflow: 'hidden'/);
+    const stage = stripComments(read('./StageParts.tsx'));
+    assert.match(stage, /const disc = stampSize\(fontScale\);/);
+  });
+});
