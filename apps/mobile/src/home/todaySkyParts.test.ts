@@ -49,7 +49,8 @@ describe('the stat tiles choose their layout from the measured row', () => {
 
   test('the container keeps every behaviour of the old hero', () => {
     const stats = strip(read('../game/TodayStats.tsx'));
-    assert.match(stats, /useFocusEffect\(/);
+    // Fix round 3: the focus effect re-reads the game layer; an emptied callback fails.
+    assert.match(stats, /useFocusEffect\(\s*useCallback\(\(\) => \{\s*refresh\(\);\s*\}, \[refresh\]\),?\s*\)/, 'Today does not re-read the game layer on focus');
     assert.match(stats, /if \(dayTurned\(today, Date\.now\(\)\)\) refresh\(\);/);
     assert.match(stats, /DAY_CHECK_MS/);
     assert.match(stats, /useHomeDraw<HeroModel>\(today, hero === null \? null : \{ hero, nudge \}, \(model\) => heroCounts\(model\.hero\)\)/);
@@ -63,11 +64,18 @@ describe('the stat tiles choose their layout from the measured row', () => {
 
 describe("Today's path row and greeting", () => {
   test('a row says its title, its line and what the press does, once', () => {
-    assert.equal(routeRowLabel({ title: 'Review 4 phrases', line: 'About 2 minutes', action: { label: 'Practise' } }), 'Review 4 phrases, About 2 minutes, Practise');
-    assert.equal(routeRowLabel({ title: "Today's phrase", line: null, action: { label: 'Say it', accessibilityLabel: 'Say On se tutoie' } }), "Today's phrase, Say On se tutoie");
-    assert.equal(routeRowLabel({ title: 'Order at a café', line: ' ' }), 'Order at a café');
+    // Fix round 3: an English row is one label, eyebrow first.
+    assert.deepEqual(routeRowLabel({ title: 'Review 4 phrases', line: 'About 2 minutes', action: { label: 'Practise' } }), { label: 'Review 4 phrases, About 2 minutes, Practise', hint: undefined, language: undefined });
+    assert.deepEqual(routeRowLabel({ eyebrow: 'Next scene', title: 'Order at a café', line: ' ' }), { label: 'Next scene, Order at a café', hint: undefined, language: undefined });
+    // A French title is the label alone, in French; the eyebrow, line and action are the hint.
+    assert.deepEqual(
+      routeRowLabel({ eyebrow: "Today's phrase", title: 'Je voudrais un café.', titleLang: 'fr', line: 'I would like a coffee, please.', action: { label: 'Say it' } }),
+      { label: 'Je voudrais un café.', hint: "Today's phrase. I would like a coffee, please. Say it", language: 'fr' },
+    );
+    assert.deepEqual(routeRowLabel({ title: 'Salut', titleLang: 'fr' }), { label: 'Salut', hint: undefined, language: 'fr' });
     const route = strip(read('./RoutePath.tsx'));
-    assert.match(route, /accessibilityLabel=\{routeRowLabel\(\{ title, line, action \}\)\}/);
+    assert.match(route, /const said = routeRowLabel\(\{ eyebrow, title, titleLang, line, action \}\);/, 'the eyebrow or the language is dropped from what is said');
+    assert.match(route, /accessibilityLabel=\{said\.label\} accessibilityHint=\{said\.hint\} accessibilityLanguage=\{said\.language\}/);
     assert.match(route, /row: \{ minHeight: HIT,/);
   });
 

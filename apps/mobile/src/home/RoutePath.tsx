@@ -19,7 +19,7 @@ import { routeRowStacked } from './skyView.ts';
  * One of Today's remaining stops as a flat row (UI-015): the rail (a ring
  * stop, or the ink end dot, and the 2pt line to the next), a 52pt art thumb
  * on its pastel, the words, and a trailing text action or a chevron. The whole
- * row is one press at the touch floor with one label (`routeRowLabel`); a
+ * row is one press at the touch floor with one label (`routeRowLabel`; a French title is read in French, the rest as the hint); a
  * hairline sits under every row but the last.
  */
 export function RouteRow({ mark, last, thumb, thumbGround, eyebrow = null, title, titleLang, line = null, action = null, chevron = false, disabled = false, onPress }: {
@@ -41,9 +41,10 @@ export function RouteRow({ mark, last, thumb, thumbGround, eyebrow = null, title
 }) {
   const t = useB();
   const french = titleLang === 'fr' ? frenchText : null;
+  const said = routeRowLabel({ eyebrow, title, titleLang, line, action });
   const stacked = routeRowStacked(useWindowDimensions().fontScale);
   return (
-    <Press haptic="light" accessibilityRole="button" accessibilityLabel={routeRowLabel({ title, line, action })} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress} glowRadius={ROW_THUMB_RADIUS} style={st.row}>
+    <Press haptic="light" accessibilityRole="button" accessibilityLabel={said.label} accessibilityHint={said.hint} accessibilityLanguage={said.language} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress} glowRadius={ROW_THUMB_RADIUS} style={st.row}>
       <View style={st.rowRail} {...decorative}>
         <View style={mark === 'end' ? [st.rowEnd, { backgroundColor: t.text }] : [st.rowStop, { borderColor: t.link }]} />
         {!last && <View style={[st.rowLine, { backgroundColor: t.line }]} />}
@@ -74,6 +75,8 @@ const ROW_DOT_TOP = 18;
 /** The art thumb (board: 52, radius 16). */
 const ROW_THUMB = 52;
 const ROW_THUMB_RADIUS = 16;
+/** The drawing inside the 52pt thumb, for every row's caller. */
+export const ROW_ART = 40;
 const ROW_CHEVRON = 20;
 /** The 1pt rule under a row (board). */
 const HAIRLINE = 1;

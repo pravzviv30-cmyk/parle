@@ -24,7 +24,7 @@ import { SkyBand } from '../home/SkyBand.tsx';
 import { TodayHeroCard } from '../home/TodayHeroCard.tsx';
 import { TODAY_OVERLAP, TodayLayout } from '../home/TodayLayout.tsx';
 import { FixHero, TodayFailedHero, TodayLoadingHero } from '../home/TodayHeroes.tsx';
-import { RouteRow } from '../home/RoutePath.tsx';
+import { ROW_ART, RouteRow } from '../home/RoutePath.tsx';
 import { skyView } from '../home/skyView.ts';
 import { COMING_UP_COPY, TODAY_COPY } from '../home/todayView.ts';
 import { PLANS_LEAD } from '../home/nextAction.ts';
@@ -138,8 +138,6 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
   );
 }
 
-/** The drawing inside a row's 52pt thumb, as HomeTab draws it. */
-const ROW_ART = 40;
 
 const makeStyles = (_t: B) =>
   StyleSheet.create({

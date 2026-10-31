@@ -1,7 +1,6 @@
 import type { Recommendation } from './recommendation.ts';
 import type { HomeBilling } from '../home/nextAction.ts';
 import { OUT_OF_TIME_WORDS, PERIOD_LINES, outOfTimeWords } from '../purchases/outOfTime.ts';
-import { pathStep } from '../home/todayView.ts';
 /** Resume/owned practice first. Purchase and live scene gates never strand local work. */
 export function nextTaskKind(rec: Recommendation, live: boolean, billing: HomeBilling | null, reviewReady = false): 'practice' | 'review' | 'local' | 'plans' | 'scene' {
   if (rec.kind !== 'none') return 'practice';
@@ -72,7 +71,8 @@ export function heldWords(billing: HomeBilling, now: number): { title: string; m
 
 /** The path stop's words for each lead: the scene's own minutes, or what the lead honestly is. */
 export function leadStop(lead: TodayLead | 'explore', minutes: number | null): { title: string; line: string | null } {
-  if (lead === 'scene' && minutes !== null) return pathStep('scene');
+  // The scene's time is on its card only (founder, 2026-10-29).
+  if (lead === 'scene' && minutes !== null) return { title: 'The next scene', line: null };
   if (lead === 'plans') return { title: 'The next scene', line: 'Needs more speaking time' };
   if (lead === 'outOfTime') return { title: 'The next scene', line: 'When your minutes come back' };
   if (lead === 'lapsed') return { title: 'The next scene', line: 'When you choose a plan' };

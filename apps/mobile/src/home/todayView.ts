@@ -107,20 +107,6 @@ export function weekLines(input: { story: Pick<WeekStory, 'sentences'>; reflecti
  * anything or reads the allowance: minutes left belong to the wall.
  * =========================================================================== */
 
-/**
- * The page's blocks, in order. 2026-10-29 (F934, LR-17, founder decision 6):
- * Today leads with one ordered path, and the quotas, Coming up and the week
- * sit under it. The fix and the phrase are stops on the path now. UI-015
- * (direction A): the sky carries the greeting and the three stat tiles, then
- * one hero (the fix, or the scene's lead), then the path's remaining stops.
- */
-export const TODAY_CARDS = ['sky', 'hero', 'path', 'three', 'comingUp', 'week'] as const;
-export type TodayCard = (typeof TODAY_CARDS)[number];
-
-/** Today's path, in the review's section 10 order: retry the fix, the next scene, say today's phrase. */
-export const TODAY_PATH = ['fix', 'scene', 'phrase'] as const;
-export type TodayPathStep = (typeof TODAY_PATH)[number];
-
 /** A stop on Today's path, in UI-012 order: the fix, the scene, the phrase, the review. */
 export type TodayStop = 'fix' | 'scene' | 'phrase' | 'review';
 
@@ -149,20 +135,6 @@ export function todayStops(input: { fix: boolean; review: boolean }): { hero: 'f
 export function aboutMinutes(minutes: number): string {
   const n = Math.max(1, Math.round(minutes));
   return n === 1 ? 'About 1 minute' : `About ${n} minutes`;
-}
-
-const PATH_WORDS: Record<TodayPathStep, string> = {
-  fix: 'Retry your last fix',
-  scene: 'The next scene',
-  phrase: "Say today's phrase",
-};
-
-/** A stop's title and its time: the scene's from its own estimate, the others stated. */
-export function pathStep(step: TodayPathStep): { title: string; line: string | null } {
-  if (step === 'fix') return { title: PATH_WORDS.fix, line: 'About 30 seconds' };
-  if (step === 'phrase') return { title: PATH_WORDS.phrase, line: aboutMinutes(2) };
-  // The scene's time is on its card, said once (founder, 2026-10-29).
-  return { title: PATH_WORDS.scene, line: null };
 }
 
 /**

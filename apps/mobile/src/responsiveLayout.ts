@@ -66,18 +66,17 @@ export function actionRowWraps(count: number, width: number, fontScale: number):
 // ───────────────────────────────────────────── scene cards (F920, decision 23)
 
 /**
- * The two yellow scene cards: Today's `SceneLead` and Speak's Recommended card.
+ * The yellow scene card: Speak's Recommended card (Today's `SceneLead` sizes itself, UI-015).
  * Side by side, the café drawing hangs off the top right (`artRight` is its
  * bleed past the card edge) and the title and line are held to `textWidth`,
  * the artboard's column. `rail` is what sits between the screen content and
- * the card: Today's route node draws a 16pt stop and a 14pt gap.
+ * the card (none for Speak; Today's scene card left with UI-015).
  */
 export type SceneCard = { artWidth: number; artHeight: number; artRight: number; artTop: number; padding: number; textWidth: number };
 export const SCENE_CARDS = {
-  today: { artWidth: 168, artHeight: 154, artRight: -6, artTop: 14, padding: 20, textWidth: 190 },
   speak: { artWidth: 150, artHeight: 137, artRight: -10, artTop: 26, padding: 20, textWidth: 200 },
 } as const satisfies Record<string, SceneCard>;
-const SCENE_RAIL = { today: 16 + 14, speak: 0 } as const;
+const SCENE_RAIL = { speak: 0 } as const;
 /** Clear space kept between the words and the drawing. */
 export const SCENE_ART_GAP = 12;
 /** From this reading size the words outgrow their artboard column; the art goes above. */
@@ -88,8 +87,8 @@ export const SCENE_ART_BAND = 0.8;
 /**
  * The narrowest card that holds the words column and the drawing side by
  * side without touching: padding, the column, the gap, then the drawing less
- * its bleed (Today 20 + 190 + 12 + 162 = 384; Speak 20 + 200 + 12 + 140 = 372),
- * raised to `SCENE_SIDE_MIN`, so both cards switch at 400.
+ * its bleed (Speak 20 + 200 + 12 + 140 = 372),
+ * raised to `SCENE_SIDE_MIN`, so the card switches at 400.
  */
 export function sceneArtThreshold(card: SceneCard): number {
   return Math.max(SCENE_SIDE_MIN, card.padding + card.textWidth + SCENE_ART_GAP + card.artWidth + card.artRight);
@@ -106,7 +105,7 @@ export function sceneColumnFloor(card: SceneCard): number {
   return card.artTop + card.artHeight + SCENE_ART_GAP - card.padding;
 }
 
-export function sceneArtPlacement(cardWidth: number, fontScale = 1, card: SceneCard = SCENE_CARDS.today): 'side' | 'above' {
+export function sceneArtPlacement(cardWidth: number, fontScale: number, card: SceneCard): 'side' | 'above' {
   return fontScale >= SCENE_ART_LARGE_TEXT || cardWidth < sceneArtThreshold(card) ? 'above' : 'side';
 }
 

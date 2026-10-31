@@ -33,18 +33,12 @@ const LIVE = read('../app/LiveContext.tsx');
 const NOW = Date.parse('2026-10-29T10:00:00Z');
 const card = (id: string, source: ReviewSource): ReviewCard => ({ ...newCard({ id, kind: 'vocab', front: id, back: 'x', context: '', ipa: '' }, NOW - 1000), sources: [source] });
 
-test('Today leads with one ordered path of three steps', () => {
-  const { TODAY_CARDS, TODAY_PATH, pathStep } = todayView as unknown as {
-    TODAY_CARDS: readonly string[]; TODAY_PATH: readonly string[];
-    pathStep: (step: string) => { title: string; line: string | null };
-  };
-  assert.deepEqual([...TODAY_PATH], ['fix', 'scene', 'phrase']);
-  // Under the sky and its hero, the path; the quotas, Coming up and the week sit under it (UI-015).
-  assert.deepEqual([...TODAY_CARDS], ['sky', 'hero', 'path', 'three', 'comingUp', 'week']);
-  assert.deepEqual(pathStep('fix'), { title: 'Retry your last fix', line: 'About 30 seconds' });
-  // Founder, 2026-10-29: the scene's time is on its card only.
-  assert.deepEqual(pathStep('scene'), { title: 'The next scene', line: null });
-  assert.deepEqual(pathStep('phrase'), { title: "Say today's phrase", line: 'About 2 minutes' });
+test('Today leads with one ordered path', () => {
+  // Fix round 3: TODAY_CARDS, TODAY_PATH and pathStep left with the
+  // card-under-the-words path; the page order is pinned from HomeTab below,
+  // and the scene stop's words through leadStop.
+  assert.equal('TODAY_CARDS' in todayView, false);
+  assert.equal('pathStep' in todayView, false);
   assert.equal(todayView.TODAY_COPY.path, "Today's path");
 
   // Source order on the screen (UI-015): the stats in the sky, the hero (the
@@ -64,7 +58,7 @@ test('Today leads with one ordered path of three steps', () => {
   assert.match(HOME, /<RouteRow /);
   assert.match(TASK, /<RouteRow /);
   assert.doesNotMatch(HOME + TASK, /<RouteNode\b/);
-  for (const line of [todayView.TODAY_COPY.path, ...['fix', 'phrase'].flatMap(s => Object.values(pathStep(s)) as string[])]) assert.doesNotMatch(line, /[·—]/);
+  for (const line of [todayView.TODAY_COPY.path, ...Object.values(nt.leadStop('scene', 3)).filter((v): v is string => v !== null)]) assert.doesNotMatch(line, /[·—]/);
 });
 
 test('Today offers review when Review would deal cards', () => {
@@ -292,8 +286,7 @@ test("Today's scene card shows only how long the scene takes", () => {
   // The time is said once: the path's scene stop names the step only.
   const { leadStop } = nt as unknown as { leadStop: (lead: string, minutes: number | null) => { title: string; line: string | null } };
   assert.deepEqual(leadStop('scene', 3), { title: 'The next scene', line: null });
-  assert.equal(todayView.pathStep('fix').line, 'About 30 seconds');
-  assert.equal(todayView.pathStep('phrase').line, 'About 2 minutes');
+  assert.equal(todayView.aboutMinutes(2), 'About 2 minutes');
 });
 
 // UI-015: one rule picks the hero and the rows, and NextTaskCard is placed as one or the other.
@@ -307,7 +300,7 @@ test('the hero is the first stop present, and the rows never repeat it', () => {
     const stops = todayStops({ fix, review });
     const heroStop = stops.hero === 'fix' ? 'fix' : 'scene';
     assert.ok(!stops.rows.includes(heroStop), `the hero's ${heroStop} is drawn again as a row`);
-    assert.ok(!stops.rows.includes('fix'), 'the fix is ever a row');
+    assert.ok(!stops.rows.includes('fix'), 'the fix is drawn as a row; it is only ever the hero');
   }
   // The ink end dot only on the last row.
   assert.deepEqual(rowMarks(['scene', 'phrase']).map((r) => [r.row, r.mark, r.last]), [['scene', 'stop', false], ['phrase', 'end', true]]);

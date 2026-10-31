@@ -95,7 +95,7 @@ describe('the status bar over Today, and path rows at large text — fix round 2
     assert.equal(skyScrolledPast(0, size), false);
     assert.equal(skyScrolledPast(237, size), false);
     assert.equal(skyScrolledPast(238, size), true);
-    assert.equal(skyScrolledPast(500, null), false, 'an unmeasured sky is called scrolled past');
+    assert.equal(skyScrolledPast(500, null), false, 'an unmeasured sky should never count as scrolled past');
     const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
     assert.match(band, /const barStyle = skyBarStyle\(\{ focused, scrolledPast, themeBar: t\.statusBar \}\);/);
     assert.match(band, /\{barStyle !== null \? <StatusBar style=\{barStyle\} \/> : null\}/);
@@ -119,5 +119,73 @@ describe('the status bar over Today, and path rows at large text — fix round 2
     assert.match(words, /\{stacked && action !== null && <Text[^>]*>\{action\.label\}<\/Text>\}/, 'the action is not under the words');
     assert.match(row, /\? stacked \? null : <Text/, 'the action is drawn twice at large text');
     assert.equal((row.match(/<Press\b/g) ?? []).length, 1, 'the row is no longer one press');
+  });
+});
+
+describe('fix round 3: clouds, the one sky clock, and the greeting clear of the disc', () => {
+  test('a cloud with under 40pt of room is left out, and the first frame guesses the greeting at half the band', async () => {
+    const { cloudPlaces } = await import('./skyView.ts');
+    // A greeting that runs almost to the profile button leaves the upper cloud no room.
+    const crowded = cloudPlaces(320, 220);
+    assert.ok(crowded.every((c) => c.top !== 16), 'a cloud under 40pt wide is still drawn');
+    assert.ok(crowded.every((c) => c.width >= 40));
+    // Unmeasured: the greeting is taken to end at half the band.
+    const first = cloudPlaces(375, null);
+    assert.equal(first[0]!.left, Math.round(375 * 0.5 + 8), 'the first frame does not keep clear of a greeting it has not measured');
+    assert.ok(first.every((c) => c.left >= 375 * 0.5 + 8));
+  });
+
+  test('the sky and the greeting move on together at 12:00, 18:00, 22:00 and 05:00, and not between', async () => {
+    const { skyClockMoved } = await import('./skyView.ts');
+    assert.equal(skyClockMoved(at(11, 58), at(11, 59)), false);
+    assert.equal(skyClockMoved(at(9), at(11, 59)), false, 'the clock moves inside one window');
+    for (const [from, to] of [[11, 12], [17, 18], [21, 22], [4, 5]] as const) assert.equal(skyClockMoved(at(from, 59), at(to)), true, `Today keeps the old sky past ${to}:00`);
+    const home = readFileSync(new URL('../tabs/HomeTab.tsx', import.meta.url), 'utf8');
+    assert.match(home, /const skyClock = useSkyClock\(focused\);/);
+    assert.match(home, /homeGreeting\(firstName, skyClock\)/);
+    assert.match(home, /skyNow\(skyClock, t\.mode\)/);
+    assert.doesNotMatch(home, /skyNow\(Date\.now\(\)|homeGreeting\(firstName, Date\.now\(\)\)/, 'the sky and the greeting read two clocks');
+    assert.doesNotMatch(home, /setInterval|setTimeout/, 'HomeTab runs a timer of its own');
+    const hook = readFileSync(new URL('./useSkyClock.ts', import.meta.url), 'utf8');
+    assert.match(hook, /if \(!focused\) return;/);
+    assert.match(hook, /setInterval\(check, DAY_CHECK_MS\)/);
+    assert.match(hook, /skyClockMoved\(drawn, at\) \? at : drawn/, 'the clock bumps on every tick');
+  });
+
+  test('the greeting is capped clear of the sun or moon at 320, 375 and 402', async () => {
+    const { SKY_DISC, greetingMaxWidth } = await import('./skyView.ts');
+    const r = SKY_DISC.size / 2;
+    for (const width of [320, 375, 402]) {
+      const cx = width + SKY_DISC.bleed - r;
+      const cy = r - SKY_DISC.bleed;
+      for (const bar of [null, 20, 47, 62]) {
+        const right = 20 + greetingMaxWidth(width, bar);
+        // Every point of the three line boxes (36pt each, from the bar + 8) is outside the disc.
+        const top = (bar ?? 0) + 8;
+        for (let y = top; y <= top + 3 * 36; y += 1) {
+          const dy = Math.abs(y - cy);
+          if (dy >= r) continue;
+          assert.ok(right <= cx - Math.sqrt(r * r - dy * dy), `the greeting runs over the disc at ${width}pt (bar ${bar}) at y ${y}`);
+        }
+      }
+      assert.ok(greetingMaxWidth(width, 62) >= 150, `"Bonjour," no longer fits on one line at ${width}pt`);
+    }
+    const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
+    assert.match(band, /maxWidth: greetingMaxWidth\(width, bar\)/);
+    assert.match(band, /const DISC = SKY_DISC\.size;/);
+    assert.match(band, /const DISC_BLEED = -SKY_DISC\.bleed;/);
+  });
+
+  test('the row art is one size from RoutePath, and a label on a still LipTile is read', () => {
+    const route = readFileSync(new URL('./RoutePath.tsx', import.meta.url), 'utf8');
+    assert.match(route, /export const ROW_ART = 40;/);
+    for (const file of ['../tabs/HomeTab.tsx', '../practice/NextTaskCard.tsx', '../dev/TodayPreview.tsx']) {
+      const body = readFileSync(new URL(file, import.meta.url), 'utf8');
+      assert.doesNotMatch(body, /const ROW_ART\b/, `${file} sizes the row art itself`);
+      assert.match(body, /import \{ ROW_ART, RouteRow \} from '\.\.\/home\/RoutePath\.tsx';/);
+    }
+    const components = readFileSync(new URL('../components.tsx', import.meta.url), 'utf8');
+    const lip = components.slice(components.indexOf('export function LipTile('), components.indexOf('return (\n    <View style={[ground, faded]}>\n      <Press'));
+    assert.match(lip, /if \(onPress === undefined\) \{[\s\S]*?<View style=\{\[ground, faded\]\} accessible=\{accessibilityLabel !== undefined\} accessibilityLabel=\{accessibilityLabel\}/, 'a still LipTile carries a label no screen reader reaches');
   });
 });

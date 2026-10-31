@@ -13,7 +13,7 @@
  */
 
 import { sky } from '../palette.ts';
-import { localHour, withinWindow, type HourWindow } from './greeting.ts';
+import { greetingWord, localHour, withinWindow, type HourWindow } from './greeting.ts';
 import { ROWS_FONT_SCALE } from '../game/todayHeroView.ts';
 
 export type SkyTime = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -114,4 +114,50 @@ export function skyBarStyle(input: { focused: boolean; scrolledPast: boolean; th
 /** Whether a path row puts its trailing action under its words: at accessibility text sizes, the tiles' own cut-off (1.6). */
 export function routeRowStacked(fontScale: number): boolean {
   return Number.isFinite(fontScale) && fontScale >= ROWS_FONT_SCALE;
+}
+
+/**
+ * Whether Today's one clock should move on (fix round 3): only when the sky's
+ * window or the greeting's word differs between the clock drawn and now, so a
+ * Today left open across 12:00, 18:00 or 22:00 redraws, and nothing else does.
+ */
+export function skyClockMoved(drawn: number, now: number): boolean {
+  return skyNow(drawn, 'light').time !== skyNow(now, 'light').time || greetingWord(drawn) !== greetingWord(now);
+}
+
+/** The sky's disc as SkyBand draws it: 170pt, hanging 40pt past the top right corner. */
+export const SKY_DISC = { size: 170, bleed: 40 } as const;
+/** Where the greeting's words start across the band (16 + 4), how far below the bar (space(2)), its line height, and its clearance. */
+const GREETING_LEFT = 20;
+const GREETING_BELOW_BAR = 8;
+const GREETING_LINE = 36;
+const GREETING_CLEAR = 8;
+/** Lines the cap is reckoned over: the word and the name, and a wrapped name. */
+const GREETING_LINES = 3;
+
+/**
+ * The greeting's widest box (fix round 3), so white words never run over the
+ * sun (about 1.6:1 against the morning disc) or the moon: for each line box,
+ * the disc's leftmost point within that line's height, less a clearance.
+ * Unmeasured (`bar` null), the disc's whole left edge. A long single word may
+ * then wrap, which is better than white on yellow.
+ */
+export function greetingMaxWidth(width: number, bar: number | null): number {
+  const r = SKY_DISC.size / 2;
+  const cx = width + SKY_DISC.bleed - r;
+  const cy = -SKY_DISC.bleed + r;
+  let edge = cx - r;
+  if (bar !== null) {
+    edge = Infinity;
+    for (let line = 0; line < GREETING_LINES; line += 1) {
+      const top = bar + GREETING_BELOW_BAR + line * GREETING_LINE;
+      const bottom = top + GREETING_LINE;
+      // The circle's leftmost x across [top, bottom]: at the centre's height if inside, else at the nearer edge.
+      const y = cy >= top && cy <= bottom ? cy : Math.abs(top - cy) < Math.abs(bottom - cy) ? top : bottom;
+      const dy = Math.abs(y - cy);
+      if (dy < r) edge = Math.min(edge, cx - Math.sqrt(r * r - dy * dy));
+    }
+    if (edge === Infinity) edge = width;
+  }
+  return Math.max(0, Math.floor(edge - GREETING_CLEAR - GREETING_LEFT));
 }

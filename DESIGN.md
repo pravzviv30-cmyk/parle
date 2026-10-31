@@ -106,7 +106,11 @@ period stay near a purchase action, and large text is never capped to fit.
   countdown or checklist until Phase C; hidden with no event or with memory
   paused), and Your week in French under its title ("n minutes practised, n
   phrases saved" over seven local days, with "See your week"; absent with no
-  evidence). The path is one column at every width.
+  evidence). The path is one column at every width. The status bar is light
+  over the sky and takes the theme's own style once the sky has scrolled up
+  under it. At 320 the tiles stack their coin above the number, and at
+  accessibility sizes they become three full-width rows and each path row
+  puts its action under its words.
   Rebuilt to the artboard in light and dark on 2026-10-20 (UI-008); the blue
   practice lead, "Where you're starting" and the friends card left Today, and
   review came back as the path's row on 2026-10-29 (UI-012). Loading never claims the learner has no history.

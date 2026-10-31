@@ -24,13 +24,13 @@ import { TopInset } from '../layout.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { Drift } from '../motion/Drift.tsx';
 import { bType, decorative, space, type } from '../theme.ts';
-import { cloudPlaces, greetingLines, skyBarStyle, type SkyView } from './skyView.ts';
+import { SKY_DISC, cloudPlaces, greetingLines, greetingMaxWidth, skyBarStyle, type SkyView } from './skyView.ts';
 
 /** Where the head box starts across the band (its padding, space(4)): an absolute child and an onLayout x both count from here. */
 const BAND_PAD = 16;
 /** The disc, 170pt, hangs 40pt past the top right corner. */
-const DISC = 170;
-const DISC_BLEED = -40;
+const DISC = SKY_DISC.size;
+const DISC_BLEED = -SKY_DISC.bleed;
 
 
 export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, focused = true, scrolledPast = false, onMeasure }: {
@@ -76,7 +76,7 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
             <SkyCloud width={cloud.width} color={t.onBrand} opacity={cloud.opacity} />
           </Drift>
         ))}
-        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand }]} onLayout={(event) => { const { x, width: w } = event.nativeEvent.layout; setGreetingRight(Math.round(BAND_PAD + x + w)); }}>
+        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand, maxWidth: greetingMaxWidth(width, bar) }]} onLayout={(event) => { const { x, width: w } = event.nativeEvent.layout; setGreetingRight(Math.round(BAND_PAD + x + w)); }}>
           {greetingLines(greeting).join('\n')}
         </Text>
         <View style={s.profile}>{profile}</View>

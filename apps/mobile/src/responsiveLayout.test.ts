@@ -237,7 +237,7 @@ test("the scene hero's words sit beside the tile only when they have room, and n
   // The hero card's inner width at 375 and 320: the screen less 16 + 16 margins and 18 + 18 padding.
   assert.equal(sceneTileSide(375 - 68, 1), true, '375pt keeps the words beside the tile');
   assert.equal(sceneTileSide(320 - 68, 1), true, '320pt keeps 132pt of words beside the tile');
-  assert.equal(sceneTileSide(SCENE_TILE.width + SCENE_TILE.gap + SCENE_TILE_WORDS_MIN - 1, 1), false, 'a column under its minimum stays beside the tile');
-  assert.equal(sceneTileSide(375 - 68, 1.3), false, 'large text keeps the words beside the tile');
-  assert.equal(sceneTileSide(Number.NaN, 1), false, 'an unmeasured card guesses side by side');
+  assert.equal(sceneTileSide(SCENE_TILE.width + SCENE_TILE.gap + SCENE_TILE_WORDS_MIN - 1, 1), false, 'a column under its minimum is still put beside the tile; it should go above');
+  assert.equal(sceneTileSide(375 - 68, 1.3), false, 'large text still puts the words beside the tile; they should go above');
+  assert.equal(sceneTileSide(Number.NaN, 1), false, 'an unmeasured card guesses side by side; it should guess above');
 });

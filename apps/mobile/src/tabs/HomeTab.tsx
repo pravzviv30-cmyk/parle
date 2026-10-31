@@ -45,7 +45,7 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { ComingUpCard, SectionTitle, WeekCard } from '../today/TodayParts.tsx';
 import { visibleFacts } from '../profile/memory.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { RouteRow } from '../home/RoutePath.tsx';
+import { ROW_ART, RouteRow } from '../home/RoutePath.tsx';
 import { BArt } from '../art/BArt.tsx';
 import { SkyBand } from '../home/SkyBand.tsx';
 import { TodayHeroCard } from '../home/TodayHeroCard.tsx';
@@ -73,6 +73,7 @@ import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { firstNameOf } from '../tutor/dashboard.ts';
 import { useHomeRefresh } from '../home/useHomeRefresh.ts';
+import { useSkyClock } from '../home/useSkyClock.ts';
 import { refreshClears } from '../home/homeRefresh.ts';
 import { TodayStats } from '../game/TodayStats.tsx';
 import { QuestsCard } from '../game/QuestsCard.tsx';
@@ -100,7 +101,9 @@ export function HomeTab() {
   // greeted by the word alone, never by "you" and never with a bare comma.
   const firstName = firstNameOf(profile.name);
   const revision = useHomeRefresh(focused);
-  const greeting = homeGreeting(firstName, Date.now());
+  // One clock for the sky and the greeting, moved on at the hour boundaries.
+  const skyClock = useSkyClock(focused);
+  const greeting = homeGreeting(firstName, skyClock);
 
   // Null here means the storage read has not answered yet.
   const [starter, setStarter] = useState<GuestPractice | null>(null);
@@ -194,7 +197,7 @@ export function HomeTab() {
   // One rule picks the hero and the rows under it (UI-012 order, UI-015), so
   // the hero's stop is never drawn twice.
   const stops = todayStops({ fix: fix !== null, review: review !== null });
-  const sky = skyNow(Date.now(), t.mode);
+  const sky = skyNow(skyClock, t.mode);
   // Fix round 2: once the sky has scrolled up under the status bar, the bar
   // takes the theme's own style (`skyBarStyle`), so its clock stays readable.
   const [skySize, setSkySize] = useState<{ band: number; bar: number } | null>(null);
@@ -287,8 +290,6 @@ export function HomeTab() {
   );
 }
 
-/** The drawing inside a row's 52pt thumb. */
-const ROW_ART = 40;
 
 const makeStyles = (_t: B) =>
   StyleSheet.create({

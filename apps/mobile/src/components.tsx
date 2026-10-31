@@ -2809,7 +2809,7 @@ export function LipTile({ tone = 'card', lip, size = 'tile', onPress, selected =
   const faded = disabled ? { opacity: LIP_DISABLED } : null;
   if (onPress === undefined) {
     return (
-      <View style={[ground, faded]} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole} accessibilityHint={accessibilityHint}>
+      <View style={[ground, faded]} accessible={accessibilityLabel !== undefined} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole} accessibilityHint={accessibilityHint}>
         <View style={[face, style]}>{children}</View>
       </View>
     );

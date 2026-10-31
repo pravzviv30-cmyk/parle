@@ -143,7 +143,8 @@ describe('Today opens on a still greeting — F420, notebook Phase 3', () => {
     // word, so the greeting takes the first name and the moment, and the rule
     // picks the word. The screen never picks it itself, and the question under
     // the greeting stays retired.
-    assert.match(FLAT, /const greeting = homeGreeting\(firstName, Date\.now\(\)\);/, 'the greeting is not built from the first name and the moment');
+    // Fix round 3: the moment is Today's one sky clock (home/useSkyClock.ts), shared with the sky.
+    assert.match(FLAT, /const skyClock = useSkyClock\(focused\); const greeting = homeGreeting\(firstName, skyClock\);/, 'the greeting is not built from the first name and the moment');
     assert.doesNotMatch(SCREEN, /Bonsoir|greetingWord|greetingSubline|greeting\.subline/, 'Today picks its greeting word itself instead of through homeGreeting');
     assert.ok(!SCREEN.includes('useGreetingRotation'), 'the rotating greeting is back on Today');
     assert.ok(!SCREEN.includes('titleSwap'), 'the header is handed a swap, so the greeting moves');
@@ -514,7 +515,13 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.match(FLAT, /week=\{failedHero \|\| loading \|\| week === null \? null :/);
     assert.ok(FLAT.indexOf(') : loading ? (') < FLAT.indexOf('<NextTaskCard vivid placement="hero"'), 'the lead is drawn before storage has answered');
     // The greeting does not wait on storage: the sky is drawn in every branch.
-    assert.doesNotMatch(FLAT, /sky=\{[^}]*loading/, 'the greeting waits on storage');
+    // Fix round 3: the sky (the greeting) is drawn in every branch: TodayLayout
+    // is never behind a loading or failed test, and its sky prop is the
+    // SkyBand itself, not a choice.
+    assert.equal((FLAT.match(/<TodayLayout\b/g) ?? []).length, 1, 'Today draws its layout other than once');
+    assert.match(FLAT, /<TodayLayout sky=\{<SkyBand sky=\{sky\} greeting=\{greeting\}/, "the layout's sky is not the SkyBand itself");
+    assert.doesNotMatch(FLAT, /(?:loading|failedHero|unowned|readFailed)[^;{}]*\?\s*(?:\(\s*)?(?:null\s*:\s*)?<TodayLayout/, 'the greeting waits on storage');
+    assert.doesNotMatch(FLAT, /sky=\{[^<]*\?/, 'the sky prop is conditional');
 
     // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
     // Still: the shared part is sand, read once as "Loading", and never moves.
@@ -804,8 +811,21 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     assert.match(stripComments(read('../components.tsx')), /const lipStyles = StyleSheet\.create\(\{ hit: \{ minHeight: HIT \} \}\);/);
     assert.match(tiles, /<BArt name="flame" width=\{FLAME\.width\} height=\{FLAME\.height\}/);
     assert.ok(tags(files.find(file => file.path === 'home/RoutePath.tsx')!.body, 'Press').length === 1, 'a path row is not one press');
-    // The three stat tiles press through LipTile (floored above), so they count as walked.
-    walked += (tiles.match(/<Tile layout=/g) ?? []).length;
+    // Fix round 3, said plainly: the walk above reads every <Press>/<Pressable>
+    // in home/, HomeTab and the game cards. The stat tiles are not among them:
+    // they press through components.tsx LipTile, so that press is walked here
+    // as a real check (its one Press carries lipStyles.hit, minHeight: HIT),
+    // and each of the three Tile call sites counts once only because Tile
+    // hands its onPress to that one LipTile.
+    const components = stripComments(read('../components.tsx'));
+    const lipTile = between(components, 'export function LipTile(', '\nexport function ', 'LipTile is drawn in components.tsx');
+    const lipPresses = tags(lipTile, 'Press');
+    assert.equal(lipPresses.length, 1, 'LipTile is not one press');
+    assert.match(flat(lipPresses[0]!), /style=\{\[lipStyles\.hit, face, style\]\}/, 'the LipTile press does not carry the touch floor');
+    walked += lipPresses.length;
+    const tile = between(tiles, 'function Tile(', '\n}\n', 'Tile is drawn in TodayStatTiles.tsx');
+    assert.match(flat(tile), /<LipTile lip=\{lip\} onPress=\{onPress\}/, 'a stat tile does not press through the floored LipTile');
+    walked += (tiles.match(/<Tile layout=\{layout\} lip=\{sky\.lip\} label=\{labels\.\w+\} onPress=\{on\w+\}/g) ?? []).length;
     assert.ok(walked >= 4, `the walk read ${walked} tappable rows on Home, so it is checking almost nothing`);
   });
 });

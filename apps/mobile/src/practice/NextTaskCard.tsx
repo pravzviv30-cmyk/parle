@@ -10,7 +10,7 @@ import type { HomeBilling } from '../home/nextAction.ts';
 import { PLANS_LEAD, plansLeadBody } from '../home/nextAction.ts';
 import { afterHeld, heldWords, leadRowArt, leadStop, sceneRowState, nextTaskKind, offersPlans, sceneOrExplore, starterTutorOpen, todayLead, type TodayLead } from './nextTask.ts';
 import { BArt } from '../art/BArt.tsx';
-import { RouteRow } from '../home/RoutePath.tsx';
+import { ROW_ART, RouteRow } from '../home/RoutePath.tsx';
 import { useSceneStart } from '../home/useSceneStart.ts';
 import { useB } from '../main/bTheme.tsx';
 import { DAILY_ITEMS } from '../daily/catalogue.ts';
@@ -242,5 +242,3 @@ export function LeadRow({ lead, last, title, line, disabled = false, onPress }: 
   return <RouteRow mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name={art} width={ROW_ART} height={ROW_ART} />} thumbGround={t[ground]} title={title} line={line} chevron disabled={disabled} onPress={onPress} />;
 }
 
-/** The café inside the 52pt row thumb. */
-const ROW_ART = 40;

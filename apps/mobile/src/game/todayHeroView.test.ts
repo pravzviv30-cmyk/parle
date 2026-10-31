@@ -181,7 +181,7 @@ describe('the goal coin and a word for a number — Today sky fix round 1', () =
   test('a chosen goal always draws the ring, still at its fraction when nothing counted; the clock only with no goal', async () => {
     const { goalCoin } = await import('./todayHeroView.ts');
     const goal = { number: '4', of: '/10', label: 'minutes', ring: true, fraction: 0.4 };
-    assert.deepEqual(goalCoin(goal, undefined, 1000), { kind: 'ring', from: 0.4, to: 0.4, key: 'ring-still' }, 'no counter falls back to the clock');
+    assert.deepEqual(goalCoin(goal, undefined, 1000), { kind: 'ring', from: 0.4, to: 0.4, key: 'ring-still' }, 'with no counter the goal should still draw a still ring, not the clock');
     assert.deepEqual(goalCoin(goal, { from: 100, to: 400, mount: 2 }, 1000), { kind: 'ring', from: 0.1, to: 0.4, key: 'ring-2' });
     assert.deepEqual(goalCoin({ ...goal, ring: false, of: null, fraction: null }, undefined, 1000), { kind: 'clock' });
     const tiles = readFileSync(new URL('./TodayStatTiles.tsx', import.meta.url), 'utf8');

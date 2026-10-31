@@ -11,18 +11,25 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useReduceMotion } from '../motion.ts';
 import { cancel, sequence, spring } from './drive.ts';
-import { useLandOnLeave } from './landing.ts';
+import { useAnswered, useLandOnLeave } from './landing.ts';
 import { SPRING } from './tokens.ts';
 
 /** How far the pop swells. */
 export const POP_PEAK = 1.18;
 
 export function PopOnce({ play, children }: { play: boolean; children?: ReactNode }) {
-  const reduced = useReduceMotion();
+  // Waits for the OS's answer (as Drift, CountUp and ProgressRing do), so a
+  // first mount that has not heard yet does not spend the pop as reduced.
+  const reduced = useAnswered(useReduceMotion(true));
   const scale = useSharedValue(1);
   const played = useRef(false);
   useEffect(() => {
-    if (!play || played.current) return;
+    // A rise that has gone again re-arms, so a later rise (a later day, Today still mounted) pops again.
+    if (!play) {
+      played.current = false;
+      return;
+    }
+    if (reduced === null || played.current) return;
     played.current = true;
     if (reduced) return;
     scale.value = sequence(reduced, spring(POP_PEAK, SPRING.pop, reduced), spring(1, SPRING.pop, reduced));
