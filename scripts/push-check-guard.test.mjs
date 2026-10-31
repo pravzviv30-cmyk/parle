@@ -551,3 +551,10 @@ test('end to end: unusual names and moves out of the frontend still count', () =
   r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', moved]);
   assert.equal(r.status, 1, 'moving a file out of apps/mobile/ is frontend');
 });
+
+test('end to end: a sibling folder that only starts like the frontend is not frontend', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile-old/x.tsx');
+  const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--dir', dir]);
+  assert.equal(r.status, 0, r.stderr);
+});

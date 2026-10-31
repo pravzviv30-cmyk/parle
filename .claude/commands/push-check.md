@@ -127,7 +127,8 @@ git diff origin/main...HEAD -- apps/mobile packages/core > reviews/push-check/<Y
 ```
 
 Name the section 3 screenshot paths in the brief. The plugin version directory changes, so
-find it with `ls ~/.claude/plugins/cache/impeccable/impeccable/` and use the newest.
+find the newest with `ls ~/.claude/plugins/cache/impeccable/impeccable/ | sort -V | tail -1`
+(a plain `ls` puts 4.10.0 before 4.8.0).
 
 **Optional detector.** Against the section 3 web build:
 
@@ -260,5 +261,7 @@ Then, if the Impeccable reviewer made proposals, ask the founder in **one
 answer before pushing. When it comes, update each row's State in
 `docs/DESIGN_PARTNERSHIP.md` to `queued for a board`, `folded into <screen> redesign`, or
 `not now: <reason, from the founder's note, or "no reason given">`, and commit by path.
-That commit goes out with the next push, checked like any other. If the founder is not
-there, the rows already say `asked, no answer yet`.
+That commit goes out with the next push, checked like any other. After a landing the
+branch is gone, so make that commit on `main` in the main checkout and push it with
+`/push-check --main`; it only touches a doc, so Impeccable is `n/a` there. If the founder
+is not there, the rows already say `asked, no answer yet`.

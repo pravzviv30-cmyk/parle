@@ -553,20 +553,22 @@ export function isTagOnly(dir, name) {
   return refExists(dir, `refs/tags/${name}`) && !refExists(dir, `refs/heads/${name}`);
 }
 
-// Files the commit changes against origin/main. Without origin/main there is
-// no base, so every file in the commit counts as new. `-z` keeps unusual names
-// unquoted (git would print "apps/mobile/\303\251.tsx" in quotes), and
-// --no-renames lists both sides of a move, so moving a file out of the
-// frontend still counts as touching it.
-export function changedPaths(dir, sha) {
+// Files the commit changes against origin/main, limited to `paths` when given.
+// Without origin/main there is no base, so every file in the commit counts as
+// new. `-z` keeps unusual names unquoted (git would print
+// "apps/mobile/\303\251.tsx" in quotes), and --no-renames lists both sides of
+// a move, so moving a file out of the frontend still counts as touching it.
+export function changedPaths(dir, sha, paths = []) {
+  const limit = paths.length ? ['--', ...paths] : [];
   const out = refExists(dir, 'refs/remotes/origin/main')
-    ? git(dir, ['diff', '--name-only', '--no-renames', '-z', `origin/main...${sha}`])
-    : git(dir, ['ls-tree', '-r', '--name-only', '-z', sha]);
+    ? git(dir, ['diff', '--name-only', '--no-renames', '-z', `origin/main...${sha}`, ...limit])
+    : git(dir, ['ls-tree', '-r', '--name-only', '-z', sha, ...limit]);
   return out.split('\0').filter(Boolean);
 }
 
+// Asks git for frontend paths only, so the hook stays cheap on a large tree.
 export function touchesFrontendAt(dir, sha) {
-  return touchesFrontend(changedPaths(dir, sha));
+  return touchesFrontend(changedPaths(dir, sha, FRONTEND_PREFIXES));
 }
 
 const realGit = { resolveCommit, currentBranch, readStamp, isTagOnly, touchesFrontendAt };
