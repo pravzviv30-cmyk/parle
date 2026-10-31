@@ -1745,6 +1745,28 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   use (LEARN-001), which both stay as they are. The reason line claims a
   meaning only, never a grammar rule. F919.
 
+## LEARN-018 — A phrase not right first time can be practised again, with nothing recorded
+
+- Date: 2026-10-31
+- Status: accepted (founder approved the action, 2026-10-31)
+- Decision: at the end of a drill sitting a phrase is settled when every
+  exercise on it came out on the first ask, a first-try typo included (the
+  `drill/firstTry.ts` rule). Right only after a miss, or not right at all, is
+  "Still settling". Own words and repeat-this follow core's outcome the same
+  way; phrases left unanswered get no mark. When any phrase is still settling
+  the end scene offers "Practise the one still settling" ("the ones" for more
+  than one). It starts an assisted sitting of just the exercises that did not
+  come out first time. That sitting writes nothing: no grade, no evidence, no
+  first-try count, no XP, no activity day and no history event, and its misses
+  change nothing for the scheduler. Its end shows Done only, with no first-try
+  tile and no second retry. Rules in `apps/mobile/src/practice/stillSettling.ts`.
+- Reason: the answer was just shown, so a right retry is help (LEARN-003), not
+  recall. The first sitting already graded the phrase (assisted, so tomorrow,
+  or again); a second write would double a lapse or erase one. Paying no XP
+  keeps the retry a choice, not a way to earn.
+- Consequence: the real test of a still-settling phrase stays tomorrow's
+  unaided review. A retry is extra exposure the scheduler never sees.
+
 ## DEPLOY-001 — Our own decode-only FFmpeg instead of a full static build
 
 - Date: 2026-10-26
