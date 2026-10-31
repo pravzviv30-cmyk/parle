@@ -98,21 +98,37 @@ shared floor rather than a staging area.
 
 ## 6. Landing
 
-Only on **LAND**, and only in this order. First, on the branch, run **`/push-check --main`**
-(founder rule, 2026-10-31): the Playwright pass on the version being landed, the review
-fan-out, the built-in `/code-review`, and the built-in `/security-review` on
-`git diff origin/main...HEAD`. A high or medium security finding is **HOLD** until it is
-fixed or the founder accepts it in chat. After the merge, stamp the merge commit too
-(`node scripts/push-check-guard.mjs stamp ... --security pass`, carrying the branch's
-results forward when the merge brought nothing new), or the guard refuses the push.
-
-Then:
+Only on **LAND**, and only in this order:
 
 ```bash
 git switch -c <branch>          # if the work is sitting on main, branch it first
 git add <explicit paths>        # never -A, never .
 git commit                      # pre-commit runs gate:fast
+```
+
+Then, on the committed branch tip, run **`/push-check --main`** (founder rule,
+2026-10-31): the Playwright pass on the version being landed, the review fan-out, the
+built-in `/code-review`, and the built-in `/security-review` on
+`git diff origin/main...HEAD`. A high or medium security finding is **HOLD** until it is
+fixed or the founder accepts it in chat. Then merge:
+
+```bash
 git switch main && git merge --no-ff <branch>
+git diff --quiet <branch> HEAD && echo "merge tree = branch tip"
+```
+
+The guard checks the commit being pushed, which is now the merge commit, so it needs its
+own stamp:
+
+- **The merge tree equals the branch tip** (main had not moved, so the line above prints):
+  the merge brought nothing the check did not see. Carry the branch's stamp forward with
+  the full line, `node scripts/push-check-guard.mjs stamp --gate pass --playwright <as the
+  branch> --backend <as the branch> --review pass --security pass --notes "merge of <branch>,
+  tree identical to the checked tip <sha>"`.
+- **It differs** (main moved, or a conflict was resolved): run `/push-check --main` again
+  here, on the merge commit, before pushing. Never carry a stamp onto code nobody checked.
+
+```bash
 git push                        # pre-push runs the full gate
 git branch -d <branch>          # retire the label, now that main carries the work
 ```

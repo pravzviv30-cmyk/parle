@@ -41,7 +41,14 @@ const NEXT_STEP =
 // with quotes removed. Separators: && || ; | & newline ( ) and backticks.
 // Quotes are respected, so `echo "git push"` is one command with two words.
 export function splitCommands(input) {
+  return tokenize(input).filter(Array.isArray);
+}
+
+// Same split, but `(`, `)` and backticks also leave a { paren } marker between
+// commands so a caller can scope `cd` to its subshell.
+function tokenize(input) {
   const commands = [];
+  let backtickOpen = false;
   let words = [];
   let word = '';
   let inWord = false;
@@ -57,6 +64,10 @@ export function splitCommands(input) {
     if (words.length) commands.push(words);
     words = [];
   };
+
+  // Here-document delimiters waiting for the end of the current line. A
+  // heredoc body is data (a commit message, a doc), never a command.
+  const heredocs = [];
 
   const s = String(input);
   for (let i = 0; i < s.length; i++) {
@@ -85,7 +96,42 @@ export function splitCommands(input) {
       while (i + 1 < s.length && s[i + 1] !== '\n') i++;
     } else if (c === ' ' || c === '\t') {
       endWord();
-    } else if (c === '\n' || c === ';' || c === '|' || c === '(' || c === ')' || c === '`') {
+    } else if (c === '<' && s[i + 1] === '<' && s[i + 2] !== '<' && !inWord) {
+      // `<<EOF`, `<<-EOF`, `<<'EOF'`, `<< "EOF"`: remember the delimiter.
+      let j = i + 2;
+      const strip = s[j] === '-';
+      if (strip) j++;
+      while (s[j] === ' ' || s[j] === '\t') j++;
+      let delim = '';
+      while (j < s.length && !/[\s;&|<>()]/.test(s[j])) {
+        if (s[j] !== "'" && s[j] !== '"' && s[j] !== '\\') delim += s[j];
+        j++;
+      }
+      if (delim) heredocs.push({ delim, strip });
+      i = j - 1;
+    } else if (c === '\n' && heredocs.length) {
+      endCommand();
+      // Skip each pending body up to and including its delimiter line.
+      while (heredocs.length && i < s.length) {
+        const { delim, strip } = heredocs.shift();
+        for (;;) {
+          const start = i + 1;
+          if (start >= s.length) { i = s.length; break; }
+          const end = s.indexOf('\n', start);
+          const line = s.slice(start, end === -1 ? s.length : end);
+          i = end === -1 ? s.length : end;
+          if ((strip ? line.replace(/^\t+/, '') : line) === delim) break;
+        }
+      }
+    } else if (c === '(' || c === ')' || c === '`') {
+      endCommand();
+      if (c === '`') {
+        commands.push({ paren: backtickOpen ? ')' : '(' });
+        backtickOpen = !backtickOpen;
+      } else {
+        commands.push({ paren: c });
+      }
+    } else if (c === '\n' || c === ';' || c === '|') {
       endCommand();
     } else if (c === '&') {
       // `2>&1` and `>&2` are redirects, not separators.
@@ -115,7 +161,8 @@ function stripRedirects(words) {
   return out;
 }
 
-const WRAPPERS = new Set(['env', 'command', 'time', 'nohup', 'exec']);
+const WRAPPERS = new Set(['env', 'command', 'time', 'nohup', 'exec', 'sudo']);
+const KEYWORDS = new Set(['if', 'then', 'else', 'elif', 'do', 'while', 'until', '!', '{', '}']);
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const GIT_GLOBAL_WITH_VALUE = new Set([
   '-C', '-c', '--git-dir', '--work-tree', '--namespace', '--super-prefix', '--config-env',
@@ -123,14 +170,34 @@ const GIT_GLOBAL_WITH_VALUE = new Set([
 const PUSH_FLAG_WITH_VALUE = new Set([
   '-o', '--push-option', '--repo', '--receive-pack', '--exec',
 ]);
+// Git subcommands that move HEAD, make commits or move branches.
+const HEAD_MOVERS = new Set([
+  'commit', 'merge', 'switch', 'checkout', 'rebase', 'reset', 'cherry-pick', 'revert', 'pull', 'am',
+]);
 
-function afterCd(dir, args) {
+// Does `git <sub> <args>` move HEAD or a branch?
+function movesHead(sub, args) {
+  if (HEAD_MOVERS.has(sub)) return true;
+  if (sub === 'stash') return args[0] === 'pop' || args[0] === 'apply';
+  if (sub === 'worktree') return args[0] === 'add';
+  if (sub === 'branch') {
+    return args.some((a) => a === '--force' || a === '--move' || /^-[a-zA-Z]*[fmM][a-zA-Z]*$/.test(a));
+  }
+  return false;
+}
+
+// A path the guard cannot resolve without running a shell.
+const UNRESOLVABLE = /[$`*?[{]/;
+
+// `cd` target -> { dir, known }.
+function afterCd(dir, known, args) {
   const target = args.find((a) => a === '-' || !a.startsWith('-'));
-  if (target === undefined) return homedir();
-  if (target === '-') return dir; // previous directory: unknown, keep going
-  if (target === '~') return homedir();
-  if (target.startsWith('~/')) return resolve(homedir(), target.slice(2));
-  return resolve(dir, target);
+  if (target === undefined) return { dir: homedir(), known: true };
+  if (target === '-' || UNRESOLVABLE.test(target)) return { dir, known: false };
+  if (target === '~') return { dir: homedir(), known: true };
+  if (target.startsWith('~/')) return { dir: resolve(homedir(), target.slice(2)), known: true };
+  // An absolute path restores certainty; a relative one stays as unsure as before.
+  return { dir: resolve(dir, target), known: known || target.startsWith('/') };
 }
 
 // Parse the args after `git push` into a plain description.
@@ -143,6 +210,7 @@ export function parsePushArgs(args) {
     tags: false,
     all: false,
   };
+  let repo = null;
   const positional = [];
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -154,6 +222,9 @@ export function parsePushArgs(args) {
       else if (name === '--dry-run') push.dryRun = true;
       else if (name === '--tags') push.tags = true;
       else if (name === '--all' || name === '--mirror' || name === '--branches') push.all = true;
+      if (name === '--repo') {
+        repo = a.includes('=') ? a.slice(a.indexOf('=') + 1) : (args[i + 1] ?? null);
+      }
       if (PUSH_FLAG_WITH_VALUE.has(name) && !a.includes('=')) i++;
     } else {
       if (/^-[a-zA-Z]+$/.test(a)) {
@@ -163,8 +234,15 @@ export function parsePushArgs(args) {
       if (PUSH_FLAG_WITH_VALUE.has(a)) i++;
     }
   }
-  push.remote = positional.length ? positional[0] : null;
-  const refspecs = positional.slice(1);
+  // With --repo, every positional argument is a refspec.
+  let refspecs;
+  if (repo !== null) {
+    push.remote = repo;
+    refspecs = positional;
+  } else {
+    push.remote = positional.length ? positional[0] : null;
+    refspecs = positional.slice(1);
+  }
   // `git push origin tag v1.0` is the long spelling of a tag push.
   const tagAt = refspecs.indexOf('tag');
   push.refspecs = tagAt === -1 ? refspecs : refspecs.filter((_, i) => i !== tagAt && i !== tagAt + 1);
@@ -172,24 +250,42 @@ export function parsePushArgs(args) {
   return push;
 }
 
-// Find every `git push` in a shell command. Each result has the directory it
-// runs in (tracking an earlier `cd` and `git -C`) plus the parsed push args.
-export function findPushes(command, baseCwd) {
-  const pushes = [];
-  let dir = resolve(baseCwd);
+const baseName = (word) => word.split('/').pop();
 
-  for (const raw of splitCommands(command)) {
-    let words = stripRedirects(raw);
+// Walk a shell command and report what the hook needs to judge:
+//   { kind: 'push', dir, dirKnown, movedBefore, ...parsed push args }
+//   { kind: 'opaque' }  eval/xargs wrapped around git push, which cannot be read
+// `dir` tracks earlier `cd` and `git -C`; `dirKnown` is false once a directory
+// depends on the shell (`cd $(mktemp -d)`). `movedBefore` is true when an
+// earlier git command in the same call can move HEAD or a branch, which makes
+// HEAD and the current branch at hook time the wrong thing to judge.
+export function analyzeCommand(command, baseCwd, parent = null) {
+  const events = [];
+  const state = {
+    dir: resolve(baseCwd),
+    known: parent ? parent.known : true,
+    moved: parent ? parent.moved : false,
+  };
+  const scopes = [];
+
+  for (const item of tokenize(command)) {
+    if (!Array.isArray(item)) {
+      if (item.paren === '(') scopes.push({ dir: state.dir, known: state.known });
+      else if (scopes.length) Object.assign(state, scopes.pop());
+      continue;
+    }
+
+    let words = stripRedirects(item);
     let afterWrapper = false;
     while (words.length) {
       const w = words[0];
-      if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) {
+      if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w) || KEYWORDS.has(w)) {
         words = words.slice(1);
       } else if (WRAPPERS.has(w)) {
         afterWrapper = true;
         words = words.slice(1);
       } else if (afterWrapper && w.startsWith('-')) {
-        words = words.slice(1); // flags of env/command/etc.
+        words = words.slice(1); // flags of env/sudo/command/etc.
       } else {
         break;
       }
@@ -197,27 +293,60 @@ export function findPushes(command, baseCwd) {
     if (!words.length) continue;
 
     const [head, ...rest] = words;
+    const name = baseName(head);
     if (head === 'cd' || head === 'pushd') {
-      dir = afterCd(dir, rest);
-    } else if (SHELLS.has(head) && rest.includes('-c') && rest[rest.indexOf('-c') + 1] !== undefined) {
-      pushes.push(...findPushes(rest[rest.indexOf('-c') + 1], dir));
-    } else if (head === 'git') {
-      let gitDir = dir;
+      const next = afterCd(state.dir, state.known, rest);
+      state.dir = next.dir;
+      state.known = next.known;
+    } else if (head === 'popd') {
+      state.known = false;
+    } else if (SHELLS.has(name) && rest.some((a) => /^-[a-zA-Z]*c[a-zA-Z]*$/.test(a))) {
+      const at = rest.findIndex((a) => /^-[a-zA-Z]*c[a-zA-Z]*$/.test(a));
+      if (rest[at + 1] !== undefined) {
+        const inner = { dir: state.dir, known: state.known, moved: state.moved };
+        events.push(...analyzeCommand(rest[at + 1], state.dir, inner));
+        state.moved = state.moved || inner.moved;
+      }
+    } else if (name === 'eval' || name === 'xargs') {
+      const tokens = rest.flatMap((w) => w.split(/\s+/)).map(baseName);
+      if (tokens.includes('git') && tokens.includes('push')) events.push({ kind: 'opaque' });
+    } else if (name === 'git') {
+      let gitDir = state.dir;
+      let gitKnown = state.known;
       let i = 0;
       for (; i < rest.length && rest[i].startsWith('-'); i++) {
         const flag = rest[i];
         if (flag === '-C') {
-          if (rest[i + 1] !== undefined) gitDir = resolve(gitDir, rest[++i]);
+          if (rest[i + 1] !== undefined) {
+            const next = afterCd(gitDir, gitKnown, [rest[++i]]);
+            gitDir = next.dir;
+            gitKnown = next.known;
+          }
         } else if (GIT_GLOBAL_WITH_VALUE.has(flag)) {
           i++;
         }
       }
-      if (rest[i] === 'push') {
-        pushes.push({ dir: gitDir, ...parsePushArgs(rest.slice(i + 1)) });
+      const sub = rest[i];
+      if (sub === 'push') {
+        events.push({
+          kind: 'push',
+          dir: gitDir,
+          dirKnown: gitKnown,
+          movedBefore: state.moved,
+          ...parsePushArgs(rest.slice(i + 1)),
+        });
+      } else if (sub && movesHead(sub, rest.slice(i + 1))) {
+        state.moved = true;
       }
     }
   }
-  return pushes;
+  if (parent) parent.moved = state.moved;
+  return events;
+}
+
+// Every `git push` in a shell command (see analyzeCommand).
+export function findPushes(command, baseCwd) {
+  return analyzeCommand(command, baseCwd).filter((e) => e.kind === 'push');
 }
 
 // ---------------------------------------------------------------------------
@@ -225,10 +354,10 @@ export function findPushes(command, baseCwd) {
 // ---------------------------------------------------------------------------
 
 export function isMainRef(ref) {
-  return ref === 'main' || ref === 'refs/heads/main';
+  return ref === 'main' || ref === 'refs/heads/main' || ref === 'heads/main';
 }
 
-const stripHeads = (ref) => (ref ?? '').replace(/^refs\/heads\//, '');
+const stripHeads = (ref) => (ref ?? '').replace(/^(refs\/)?heads\//, '');
 
 // Which commits does this push publish? Returns [{ src, dst }] where src is
 // what to resolve and dst is the branch it lands on (null when unknown).
@@ -249,7 +378,7 @@ export function pushTargets(push, currentBranch) {
     if (!src) continue;
     if (src.startsWith('refs/tags/') || dst.startsWith('refs/tags/')) continue;
     if (colon === -1 && src === 'HEAD') dst = currentBranch ?? null;
-    targets.push({ src, dst });
+    targets.push({ src, dst, bare: colon === -1 && src !== 'HEAD' });
   }
   return targets;
 }
@@ -264,6 +393,8 @@ export function checkStamp(stamp, sha, toMain) {
   }
   const checks = stamp.checks && typeof stamp.checks === 'object' ? stamp.checks : {};
   const failed = CHECK_NAMES.filter((name) => checks[name] === 'fail');
+  // The gate and the review always apply; a stamp that skips them is not a pass.
+  for (const name of ['gate', 'review']) if (checks[name] !== 'pass' && !failed.includes(name)) failed.push(name);
   if (stamp.result !== 'pass' || failed.length) {
     return { ok: false, kind: 'failed', failed };
   }
@@ -288,30 +419,62 @@ export function denyReason({ kind, failed = [] }, sha, branch) {
   return `Push blocked. ${what} ${NEXT_STEP}`;
 }
 
+const MOVED_REASON =
+  'Push blocked. Run the push as its own command, after the commit or branch change, ' +
+  'so the guard can check the exact commit being pushed.';
+const UNKNOWN_REASON =
+  'Push blocked: the guard could not tell which commit this push publishes. ' +
+  'Run git push as a plain command from the checkout.';
+
 // The whole hook decision, with git access injected so it can be tested.
-// Returns null to allow, or { reason } to deny.
+// Returns null to allow, or { reason } to deny. Unparsable input and non-Bash
+// calls allow; once a command clearly contains a push, anything the guard
+// cannot resolve denies, and every push in the command is still examined.
 //   git.resolveCommit(dir, rev) -> full sha (throws when rev does not resolve)
 //   git.currentBranch(dir)      -> branch name or null
 //   git.readStamp(dir, sha)     -> parsed stamp or null
+//   git.isTagOnly(dir, name)    -> true when name is a tag and not a branch
 export function hookDecision(input, git) {
   if (!input || input.tool_name !== 'Bash') return null;
   const command = input.tool_input?.command;
   if (typeof command !== 'string' || !/\bpush\b/.test(command)) return null;
 
   const cwd = input.cwd || process.cwd();
-  for (const push of findPushes(command, cwd)) {
-    const current = git.currentBranch(push.dir);
-    for (const target of pushTargets(push, current)) {
-      const sha = git.resolveCommit(push.dir, target.src);
-      const toMain = Boolean(target.all) || isMainRef(target.dst);
-      const verdict = checkStamp(git.readStamp(push.dir, sha), sha, toMain);
-      if (!verdict.ok) {
-        const branch = stripHeads(target.dst) || current;
-        return { reason: denyReason(verdict, sha, branch) };
+  let denial = null;
+  const deny = (reason) => {
+    denial ??= reason;
+  };
+
+  for (const ev of analyzeCommand(command, cwd)) {
+    if (ev.kind === 'opaque') {
+      deny(MOVED_REASON);
+      continue;
+    }
+    try {
+      const current = ev.dirKnown ? git.currentBranch(ev.dir) : null;
+      const targets = pushTargets(ev, current);
+      if (!targets.length) continue;
+      if (!ev.dirKnown) {
+        deny(UNKNOWN_REASON);
+        continue;
       }
+      if (ev.movedBefore) {
+        deny(MOVED_REASON);
+        continue;
+      }
+      for (const target of targets) {
+        if (/[*?[]/.test(target.src)) throw new Error('glob refspec');
+        if (target.bare && git.isTagOnly?.(ev.dir, target.src)) continue;
+        const sha = git.resolveCommit(ev.dir, target.src);
+        const toMain = Boolean(target.all) || isMainRef(target.dst);
+        const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, toMain);
+        if (!verdict.ok) deny(denyReason(verdict, sha, stripHeads(target.dst) || current));
+      }
+    } catch {
+      deny(UNKNOWN_REASON);
     }
   }
-  return null;
+  return denial ? { reason: denial } : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -354,7 +517,20 @@ export function readStamp(dir, sha) {
   }
 }
 
-const realGit = { resolveCommit, currentBranch, readStamp };
+function refExists(dir, ref) {
+  try {
+    git(dir, ['rev-parse', '--verify', '-q', ref]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function isTagOnly(dir, name) {
+  return refExists(dir, `refs/tags/${name}`) && !refExists(dir, `refs/heads/${name}`);
+}
+
+const realGit = { resolveCommit, currentBranch, readStamp, isTagOnly };
 
 // ---------------------------------------------------------------------------
 // Subcommands

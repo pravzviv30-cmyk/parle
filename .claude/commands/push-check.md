@@ -20,18 +20,21 @@ checkout), never in another session's tree. Stage by explicit path; never `git a
 
 ```bash
 git status --porcelain
-BASE=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || echo origin/main)
 git fetch origin --quiet
-git diff --stat "$BASE"...HEAD
-git diff --name-only "$BASE"...HEAD
+git diff --stat origin/main...HEAD
+git diff --name-only origin/main...HEAD
 ```
+
+The scope is always the whole branch against `origin/main`, not only what is new since
+the last push, so the reviewers see every commit together. Shell state does not carry
+between calls, so write `origin/main...HEAD` out each time rather than a variable.
 
 The working tree must be clean apart from files this session wrote and is about to commit;
 the check covers HEAD, so commit first. Sort the changed files:
 
-- **Frontend:** `apps/mobile/**`, and `packages/*` the app imports (`packages/core`,
-  `packages/brain` client parts).
-- **Backend:** `services/**`, `packages/brain/**`, `supabase/**`, `deployment/**`.
+- **Frontend:** `apps/mobile/**` and `packages/core/**` (the app imports it).
+- **Backend:** `services/**`, `packages/brain/**`, `supabase/**`, `deployment/**`. A
+  change in `packages/brain` that the app also imports gets both reviewers.
 - **Docs or tooling only:** neither suite of runtime checks applies; the gate and the
   review still do.
 
@@ -49,7 +52,7 @@ Only when frontend files changed. Start this checkout's web build in the backgro
 free port, from the checkout root:
 
 ```bash
-EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW=1 npx --workspace=@luvani/mobile expo start --web --port <port>
+EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW=1 npm run web --workspace=@luvani/mobile -- --port <port>
 ```
 
 Use the screen-preview build for screens with `?preview=` keys (`dev/OnboardingPreview.tsx`),
@@ -64,7 +67,8 @@ the diff touches and the screens that import a changed shared part:
 3. Press each control the diff added or changed (`browser_click`), and go back.
 4. Collect `browser_console_messages` (errors and warnings) and `browser_network_requests`
    (anything 4xx/5xx or failed).
-5. `browser_take_screenshot` into `reviews/<YYYY-MM-DD>-<branch>/push-check/`.
+5. `browser_take_screenshot` into `reviews/push-check/<YYYY-MM-DD>-<branch-slug>/`, which
+   git ignores, so the check leaves the tree clean.
 
 Report as a finding: a console error or React warning, a failed request, clipped or
 overlapping text, a control that does nothing, a horizontal scroll or broken layout at
@@ -88,7 +92,7 @@ Only when backend files changed.
 ## 5. Review fan-out
 
 Dispatch these **in one message, in parallel**, each a `push-reviewer` (read-only,
-Sonnet). Give each the diff (`git diff "$BASE"...HEAD` limited to its files), the branch's
+Sonnet). Give each the diff (`git diff origin/main...HEAD -- <its files>`), the branch's
 purpose, the plan or spec in `docs/changes/` if there is one, and the browser and backend
 findings so far:
 
@@ -122,7 +126,8 @@ founder's words if so. For a backend or data change, also consider `/backend-rev
 
 ## 8. Stamp
 
-Stamp the exact commit that will be pushed, after the last fix commit:
+Stamp the exact commit that will be pushed, after the last fix commit. For a landing, that
+is first the branch tip; the merge commit then needs its own stamp (see `/land` §6):
 
 ```bash
 node scripts/push-check-guard.mjs stamp --gate pass --playwright <pass|fail|n/a> --backend <pass|fail|n/a> --review pass --security <pass|n/a> --notes "<counts, reviewers, findings fixed>"
