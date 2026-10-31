@@ -162,14 +162,14 @@ The scrim behind sheets is the theme `scrim` at 0.4 opacity. Add a contrast test
 
 | ID | Outcome | Owner | Depends on | Allowed files | Status |
 |---|---|---|---|---|---|
-| T0 | Branch from `main` with Stream E landed; `npm ci`; baseline web and native shots of the four live previews | orchestrator | Stream E landed | none (shots to `reviews/` or the scratchpad) | todo |
-| T1 | Mascot parts and tokens: cloud and toast as react-native-svg components with expression props; mascot colours in `palette.ts` with contrast tests | `design-system-engineer` | T0 | `apps/mobile/src/palette.ts`, `palette.test.ts`, `apps/mobile/src/art/mascots/*` (new), `DESIGN.md` Colour and Illustrations | todo |
-| T2 | Room rules: notebook lines, goal stamps with short labels, cloud expression, ring mode, room menu rows | `frontend-engineer` | T0 | `apps/mobile/src/live/liveRoomView.ts`, `liveRoomView.test.ts`, `apps/mobile/src/live/notebookView.ts` (new), `packages/core/src/missions/shortGoals.ts` (new, ships empty) and where the client builds mission tasks, `apps/mobile/src/live/c2TranscriptPolicy.ts` if needed | todo |
-| T3 | Room parts: `GoalStamps`, `PortraitStage`, `NotebookSheet`, `NotebookLine`, `MarginFix`, `CloudMic`, `RoomMenu` | `frontend-engineer` | T1, T2 | `apps/mobile/src/live/LiveParts.tsx` (or a new `live/NotebookParts.tsx`) | todo |
-| T4 | Compose D in `C2LiveRoom` with every existing prop and behaviour kept; remove the old link row, bubbles and caption text | `frontend-engineer` | T3 | `apps/mobile/src/live/C2LiveRoom.tsx`, the dev preview in `dev/OnboardingPreview.tsx` | todo |
-| T5 | Short goal labels for the 31 missions, for founder copy review | content (orchestrator drafts) | T2 | mission data in `packages/core` | todo |
-| T6 | Docs: `DESIGN.md` "Inside a conversation", the live room bullet in Composition rules, "What never moves", Dark mode; this plan's log | orchestrator | T4 | `DESIGN.md`, `docs/changes/live-room-d.md`, `docs/DESIGN_PARTNERSHIP.md` | todo |
-| T7 | Verification: tests, gate, web and native shots, live replay, fix-verifier round, founder review | orchestrator | T4, T6 | none | todo |
+| T0 | Branch from `main` with Stream E landed; `npm ci`; baseline web and native shots of the four live previews | orchestrator | Stream E landed | none (shots to `reviews/` or the scratchpad) | done |
+| T1 | Mascot parts and tokens: cloud and toast as react-native-svg components with expression props; mascot colours in `palette.ts` with contrast tests | `design-system-engineer` | T0 | `apps/mobile/src/palette.ts`, `palette.test.ts`, `apps/mobile/src/art/mascots/*` (new), `DESIGN.md` Colour and Illustrations | done |
+| T2 | Room rules: notebook lines, goal stamps with short labels, cloud expression, ring mode, room menu rows | `frontend-engineer` | T0 | `apps/mobile/src/live/liveRoomView.ts`, `liveRoomView.test.ts`, `apps/mobile/src/live/notebookView.ts` (new), `packages/core/src/missions/shortGoals.ts` (new; filled in T5) and where the client builds mission tasks, `apps/mobile/src/live/c2TranscriptPolicy.ts` if needed | done |
+| T3 | Room parts: `GoalStamps`, `PortraitStage`, `NotebookSheet`, `NotebookLine`, `MarginFix`, `CloudMic`, `RoomMenu` | `frontend-engineer` | T1, T2 | `apps/mobile/src/live/LiveParts.tsx` (or a new `live/NotebookParts.tsx`) | done |
+| T4 | Compose D in `C2LiveRoom` with every existing prop and behaviour kept; remove the old link row, bubbles and caption text | `frontend-engineer` | T3 | `apps/mobile/src/live/C2LiveRoom.tsx`, the dev preview in `dev/OnboardingPreview.tsx` | done |
+| T5 | Short goal labels for the 31 missions, for founder copy review | content (orchestrator drafts) | T2 | mission data in `packages/core` | done |
+| T6 | Docs: `DESIGN.md` "Inside a conversation", the live room bullet in Composition rules, "What never moves", Dark mode; this plan's log | orchestrator | T4 | `DESIGN.md`, `docs/changes/live-room-d.md`, `docs/DESIGN_PARTNERSHIP.md` | done |
+| T7 | Verification: tests, gate, web and native shots, live replay, fix-verifier round, founder review | orchestrator | T4, T6 | none | done |
 
 ### T0. Start from Stream E
 
@@ -202,7 +202,7 @@ Add to `liveRoomView.ts`:
 - **`cloudExpression({ micOpen, tutorSpeaking, thinking, typing, goalJustReached, modePending })`:** returns the expression or `null` while typing.
 - **`ringMode(state)`:** returns `'tutor' | 'learner' | 'thinking' | 'idle'` from the `OrbState` the room already receives.
 - **`roomMenuRows(...)`:** the rows and their labels, built from `quietVoiceControl` and `tapToSendControl` plus the transcript and report rows.
-- **Short labels:** `packages/core/src/missions/shortGoals.ts`, a lookup keyed `missionId:beatId` that ships empty, with a fallback to `goalEn`. A test pins the fallback. The approved table fills it in T5.
+- **Short labels:** `packages/core/src/missions/shortGoals.ts`, a lookup keyed `missionId:beatId` with a fallback to `goalEn`. A test pins the fallback. T5 filled it with the 144 labels the founder approved on 2026-10-31, and a test fails for any beat without one.
 
 Acceptance:
 - `cd apps/mobile && npm test` includes new tests for each function. These cover the newest and older emphasis, the English kept only on the newest tutor line, the newest-only mode, every cloud expression branch, the stamp states and spoken summary, and the label fallback.

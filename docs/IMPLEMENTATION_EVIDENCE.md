@@ -29,8 +29,10 @@ of the list.
   spoken café scene to the recap. The same typed scene on main's old room for comparison: goals
   did not tick in either, so that is pre-existing. Native iPhone 17 Pro simulator, including
   accessibility-large text.
-  **7,318 tests, 0 failing**; core 1112, brain 773, tutor agent 893, token server 530, playground 110,
+  **7,319 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
   mobile 3900; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  On 2026-10-31 the founder approved the 144 short goal labels as drafted; they fill
+  `shortGoals.ts`, and a new test fails for any beat without one.
   Not verified: VoiceOver on device, a physical iPhone.
 - 29 October 2026 product-review fixes, Stream E (visual and accessibility): branch
   `claude/review-e-visual` from main c1840f26. F920, F921, F927, F929, F938 and F940 to F945
