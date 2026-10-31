@@ -81,6 +81,9 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-29 | Live room: B (face to face) as the base, with C's visible script, margin fixes and cloud mic, and A's goal stamps. Not taken: A's stage, seated mascots and speech bubble, B's goal bar and mascot pop-up, C's highlighter. D still marks the learner's lines in sun so they stand apart from the tutor's. | Founder, mix question on the direction board |
 | 2026-10-29 | Remove words and elements that distract, as long as no core feature is lost. | Founder, same answer |
 | 2026-10-29 | Direction D accepted as drawn (including the sun mark on the learner's lines) when the founder asked for its build spec with dark mode. Recorded as UI-014 (main's UI-013 is Stream E's). | Founder, build spec request |
+| 2026-10-31 | Drill and practice feedback: B (sheet and coins) picked, on every practice page, made more alive. | Founder, drill board |
+| 2026-10-31 | Cloud appears at moments only: the right sheet, listening on speak drills, endings. Never on the question. | Founder, drill board |
+| 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -95,7 +98,7 @@ Working principles drawn from these (to confirm on the first screens):
 |---|---|---|
 | 1 | Live conversation room | Built on `claude/live-room-d` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)): gate green at 7,319, two verifier rounds to HOLDS, live replay typed and spoken, native simulator checked; the founder approved the 144 short goal labels as drafted on 2026-10-31 and the room is landing on main |
 | 2 | Today | Directions A (morning sky), B (the path is home, recommended) and C (one card) on the [Today board](https://claude.ai/artifact/8hQGYBiERChAzbtXjN82Dc); waiting for the founder's pick |
-| 3 | Drill and practice feedback | Candidate |
+| 3 | Drill and practice feedback | B v2 picked and approved on the [drill board](https://claude.ai/artifact/XAZR2pptSi5YgH4ncZTXiK) (page "B v2, every surface"); building on `claude/drill-b` (UI-016, [changes/drill-b.md](changes/drill-b.md)) |
 | 4 | Journey | Candidate |
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type

@@ -851,6 +851,42 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     stays `PORTRAIT_RING`, rather than new tokens.
   - The mascots become shared art with palette tokens.
 
+## UI-016 — Every drill and practice surface is one frame, one sheet and one ending (B v2)
+
+- Date: 2026-10-31
+- Status: accepted (founder picked B on the drill board and approved the B v2
+  boards: "Build it"). Plan: `docs/changes/drill-b.md`. Board:
+  https://claude.ai/artifact/XAZR2pptSi5YgH4ncZTXiK, page "B v2, every surface".
+- Decision: the 8 drill kinds, own words, Review, the sound drill, Sound Check,
+  Fixes and Fix your line share one set of parts:
+  - **Frame:** close and the living bar (no digits, sun glow on a run), a stage
+    band on the family tint with the eyebrow and prompt, the answer area on the
+    ground, and one primary pill with a 4pt lip.
+  - **Families:** Choose lavender, Build butter, Write sage, Speak peach,
+    Review butter, from existing pastel tokens (`drillStage`).
+  - **One tile** (today-sky's `LipTile`) for options, word chips, review
+    grades, the Fixes buttons and end tiles; one lip field; one mic.
+  - **One sheet in four tones** (right mint, nearly butter, a calm miss with a
+    Notice tip, own words), with every rule and string of `answerSheet.ts`
+    kept.
+  - **One end scene** for every sitting, dark aware, with Today's stat tiles,
+    the phrases marked settled or still settling, and "Practise the one still
+    settling" (LEARN-018).
+- Cloud appears at moments only: on the right sheet, beside the mic while a
+  speak drill listens, and at the end. Never on the question (founder,
+  2026-10-31).
+- Reason: practice surfaces had three tile systems, a light-only end card and
+  no shared frame. The founder asked for B on every practice page, made more
+  alive.
+- Consequence:
+  - `OptionCard`, the tap-translate tile styles, Review's grade tiles and
+    `EndCard` are removed. `BButton` leaves practice surfaces only.
+  - The dark primary stays `primary` (brand blue) rather than the boards' sun,
+    so the drill matches every other dark screen (UI-008). A decorative
+    `primaryLip` token pair is added.
+  - Motion reuses `Enter`, `PopIn`, `LevelSquish`, `CountUp`, `TokenFlight` and
+    `PopOnce`; confetti only at the end; all of it off under reduced motion.
+
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 
 - Date: 2026-10-23
