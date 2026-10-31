@@ -135,14 +135,19 @@ describe("Home's increments — F767", () => {
     assert.match(hook, /const next = \{ model, draw: firstDraw\(gate \? seen : null, fresh, today\) \};/, 'the first draw does not start where home-seen says, or counts where the learner cannot see it');
     assert.match(hook, /void markShown\(fresh, today, seen\)/, 'what was drawn is not remembered');
     assert.match(hook, /if \(!gate\) return; const next = \{ model, draw: nextDraw\(before\.draw, fresh, today\) \};/, 'a new value is drawn, and remembered, while the learner cannot see it');
-    const hero = stripComments(readFileSync(new URL('../game/TodayHero.tsx', import.meta.url), 'utf8'));
-    assert.match(hero, /useHomeDraw<HeroModel>\(today, hero === null \? null : \{ hero, nudge \}, \(model\) => heroCounts\(model\.hero\)\)/);
+    // UI-015: TodayHero.tsx split in two: TodayStats.tsx holds the draw, TodayStatTiles.tsx the counters.
+    const stats = stripComments(readFileSync(new URL('../game/TodayStats.tsx', import.meta.url), 'utf8'));
+    const hero = stripComments(readFileSync(new URL('../game/TodayStatTiles.tsx', import.meta.url), 'utf8'));
+    assert.match(stats, /useHomeDraw<HeroModel>\(today, hero === null \? null : \{ hero, nudge \}, \(model\) => heroCounts\(model\.hero\)\)/);
     assert.match(hero, /<CountUp key=\{`run-\$\{run\.mount\}`\} from=\{run\.from\} to=\{run\.to\}/, 'the run does not count from what was last shown');
-    assert.match(hero, /<ProgressRing key=\{`ring-\$\{ring\.mount\}`\} from=\{ring\.from \/ RING_STEPS\} to=\{ring\.to \/ RING_STEPS\}/, 'the ring does not draw from what was last shown');
+    // Fix round 1: drawn through goalCoin, which passes the counter's from and to over RING_STEPS.
+    assert.match(hero, /const coin = goalCoin\(tiles\.goal, ring, RING_STEPS\);/);
+    assert.match(hero, /<ProgressRing key=\{coin\.key\} from=\{coin\.from\} to=\{coin\.to\}/, 'the ring does not draw from what was last shown');
     assert.match(hero, /<CountUp key=\{`level-\$\{chip\.mount\}`\} from=\{chip\.from\} to=\{chip\.to\}/, 'the level does not count from what was last shown');
     // 2026-10-20 UI-008, artboard B-Today: the flame is the still canvas
     // drawing now, so nothing lights or flickers; an open day draws it dimmed.
-    assert.match(hero, /<BArt name="flame" width=\{28\} height=\{35\} style=\{hero\.flame\.lit \? undefined : st\.unlit\} \/>/, 'the flame does not say whether today has counted');
+    // UI-015: the flame sits in its coin at the tile's own size, still dimmed on an open day.
+    assert.match(hero, /<BArt name="flame" width=\{FLAME\.width\} height=\{FLAME\.height\} style=\{tiles\.streak\.lit \? undefined : s\.unlit\} \/>/, 'the flame does not say whether today has counted');
     assert.doesNotMatch(hero, /ignite=|flicker=/, 'the flame still animates outside the artboard');
     const quests = stripComments(readFileSync(new URL('../game/QuestsCard.tsx', import.meta.url), 'utf8'));
     assert.match(quests, /useHomeDraw\(view\?\.today \?\? null, fresh, questCounts\)/);

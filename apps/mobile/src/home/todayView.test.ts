@@ -69,7 +69,7 @@ import { fallbackHero, heroStart, homeMissionFrom, type HomeMission } from './ho
 import {
   COMING_UP_COPY,
   COMING_UP_FRESH_MS,
-  TODAY_CARDS,
+  todayStops,
   TODAY_COPY,
   comingUp,
   dismissComingUp,
@@ -107,12 +107,14 @@ const sceneFor = (id: string): HomeMission => {
 };
 
 describe('Today, B-Today (2026-10-20, B5)', () => {
-  test('the greeting is always Bonjour, with the first name or the word alone', () => {
-    assert.equal(homeGreeting('Yasmin').title, 'Bonjour, Yasmin.');
-    assert.equal(homeGreeting('  Yasmin Haddad ').title, 'Bonjour, Yasmin.');
-    assert.equal(homeGreeting(null).title, 'Bonjour.');
-    assert.equal(homeGreeting('').title, 'Bonjour.');
-    assert.doesNotMatch(JSON.stringify(homeGreeting('Yasmin')), /Bonsoir|\?/);
+  // UI-015 (founder 2026-10-30): the hour's word is back under the sky.
+  test("the greeting is the hour's word, with the first name or the word alone", () => {
+    const morning = new Date(2026, 0, 15, 9).getTime();
+    assert.equal(homeGreeting('Yasmin', morning).title, 'Bonjour, Yasmin.');
+    assert.equal(homeGreeting('  Yasmin Haddad ', morning).title, 'Bonjour, Yasmin.');
+    assert.equal(homeGreeting(null, morning).title, 'Bonjour.');
+    assert.equal(homeGreeting('', new Date(2026, 0, 15, 20).getTime()).title, 'Bonsoir.');
+    assert.doesNotMatch(JSON.stringify(homeGreeting('Yasmin', morning)), /Bonsoir|\?/);
   });
 
   test('the eyebrow is the scene place in its stage, with commas', () => {
@@ -214,7 +216,8 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
   // Rehearse door; the countdown and the checklist are not drawn (no data).
   test('Coming up is in the page order, every door named, and no raw seconds', () => {
     // 2026-10-29 (F934, founder decision 6): the fix and the phrase are stops on Today's path.
-    assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'path', 'three', 'comingUp', 'week']);
+    // UI-015: the sky (greeting and tiles) and the one hero lead it.
+    // Fix round 3: the page order is pinned from HomeTab's source (todayPath.test.ts); TODAY_CARDS is gone.
     assert.deepEqual({ ...TODAY_ROUTES }, { profile: 'Profile', fix: 'Drill', phrase: 'DailyPractice', week: 'WeekWrapped', rehearse: 'RealMoment', start: 'Convo' });
     assert.match(readFileSync(new URL('../profile/ProfileButton.tsx', import.meta.url), 'utf8'), /nav\.navigate\('Profile'\)/);
     assert.match(readFileSync(new URL('../daily/DailyCard.tsx', import.meta.url), 'utf8'), /nav\.navigate\('DailyPractice', \{ id: item\.id \}\)/);
@@ -243,7 +246,7 @@ describe('Coming up, 2026-10-20 UI-008, artboard B-Today', () => {
     ];
     const card = comingUp({ facts, paused: false, tutorName: 'Tutor', access: open, now: CU_NOW });
     assert.ok(card !== null);
-    assert.equal(card.title, 'Coming up: dinner in Lyon');
+    assert.equal(card.title, 'Dinner in Lyon', 'the section title says Coming up, so the line is the event alone (UI-015)');
     assert.equal(card.when, 'Friday, Tutor remembers');
     assert.doesNotMatch(card.when, /\baway\b|\bdays?\b|·/, 'a countdown is drawn with no date to count from');
     assert.equal(card.locked, false);
@@ -293,7 +296,7 @@ describe('Coming up, 2026-10-20 UI-008, artboard B-Today', () => {
     dismissComingUp(card.key);
     assert.equal(comingUp({ facts: first, paused: false, tutorName: 'A', access: open, now: CU_NOW }), null, 'Not now did not hide the card');
     const newer = [...first, fact('a trip to Nice', '2026-10-19T10:00:00.000Z', 'next week')];
-    assert.equal(comingUp({ facts: newer, paused: false, tutorName: 'A', access: open, now: CU_NOW })!.title, 'Coming up: a trip to Nice');
+    assert.equal(comingUp({ facts: newer, paused: false, tutorName: 'A', access: open, now: CU_NOW })!.title, 'A trip to Nice');
     // A new app session (a fresh module state) shows it again: nothing is stored.
     resetComingUpSession();
     assert.ok(comingUp({ facts: first, paused: false, tutorName: 'A', access: open, now: CU_NOW }) !== null);
@@ -319,5 +322,14 @@ describe('One fix to try names the day, 2026-10-20 UI-008, artboard B-Today', ()
     assert.equal(unknown.after, "Tutor's version shows after you try");
     assert.ok(!('moment' in unknown.route.params.node));
     assert.doesNotMatch(yesterday.english, /je veux|Je peux/, 'the card shows the French before the try');
+  });
+});
+
+describe('Today stops (UI-012, UI-015)', () => {
+  test('the fix leads when there is one, otherwise the scene lead, and no stop is drawn twice', () => {
+    assert.deepEqual(todayStops({ fix: true, review: true }), { hero: 'fix', rows: ['scene', 'phrase', 'review'] });
+    assert.deepEqual(todayStops({ fix: true, review: false }), { hero: 'fix', rows: ['scene', 'phrase'] });
+    assert.deepEqual(todayStops({ fix: false, review: true }), { hero: 'lead', rows: ['phrase', 'review'] });
+    assert.deepEqual(todayStops({ fix: false, review: false }), { hero: 'lead', rows: ['phrase'] });
   });
 });

@@ -107,17 +107,25 @@ export function weekLines(input: { story: Pick<WeekStory, 'sentences'>; reflecti
  * anything or reads the allowance: minutes left belong to the wall.
  * =========================================================================== */
 
-/**
- * The page's blocks, in order. 2026-10-29 (F934, LR-17, founder decision 6):
- * Today leads with one ordered path, and the quotas, Coming up and the week
- * sit under it. The fix and the phrase are stops on the path now.
- */
-export const TODAY_CARDS = ['greeting', 'stats', 'path', 'three', 'comingUp', 'week'] as const;
-export type TodayCard = (typeof TODAY_CARDS)[number];
+/** A stop on Today's path, in UI-012 order: the fix, the scene, the phrase, the review. */
+export type TodayStop = 'fix' | 'scene' | 'phrase' | 'review';
 
-/** Today's path, in the review's section 10 order: retry the fix, the next scene, say today's phrase. */
-export const TODAY_PATH = ['fix', 'scene', 'phrase'] as const;
-export type TodayPathStep = (typeof TODAY_PATH)[number];
+/**
+ * Which stop is the hero and which stops follow it as rows (UI-012, UI-015).
+ *
+ * The order is UI-012's: fix, scene, phrase, review. The first stop present is
+ * the hero: the fix when there is one, otherwise the scene's lead. The rows are
+ * the stops after it, in order, so the hero's stop is never drawn twice. The
+ * fix and the review are drawn only when there is one; the scene and the
+ * phrase are always there.
+ */
+export function todayStops(input: { fix: boolean; review: boolean }): { hero: 'fix' | 'lead'; rows: TodayStop[] } {
+  const all: TodayStop[] = ['fix', 'scene', 'phrase', 'review'];
+  const present = all.filter((stop) => (stop === 'fix' ? input.fix : stop === 'review' ? input.review : true));
+  return input.fix
+    ? { hero: 'fix', rows: present.filter((stop) => stop !== 'fix') }
+    : { hero: 'lead', rows: present.filter((stop) => stop !== 'scene') };
+}
 
 /**
  * Stated estimates, said as such ("About"), never a measured length. The scene
@@ -127,20 +135,6 @@ export type TodayPathStep = (typeof TODAY_PATH)[number];
 export function aboutMinutes(minutes: number): string {
   const n = Math.max(1, Math.round(minutes));
   return n === 1 ? 'About 1 minute' : `About ${n} minutes`;
-}
-
-const PATH_WORDS: Record<TodayPathStep, string> = {
-  fix: 'Retry your last fix',
-  scene: 'The next scene',
-  phrase: "Say today's phrase",
-};
-
-/** A stop's title and its time: the scene's from its own estimate, the others stated. */
-export function pathStep(step: TodayPathStep): { title: string; line: string | null } {
-  if (step === 'fix') return { title: PATH_WORDS.fix, line: 'About 30 seconds' };
-  if (step === 'phrase') return { title: PATH_WORDS.phrase, line: aboutMinutes(2) };
-  // The scene's time is on its card, said once (founder, 2026-10-29).
-  return { title: PATH_WORDS.scene, line: null };
 }
 
 /**
@@ -164,6 +158,10 @@ export const TODAY_COPY = {
   fixAction: 'Say it better, then compare',
   phrase: "Today's phrase",
   sayIt: 'Say it yourself',
+  /** The phrase row's action on Today's path (UI-015). */
+  sayRow: 'Say it',
+  /** The review row's action on Today's path (UI-015). */
+  practise: 'Practise',
   week: 'Your week in French',
   seeWeek: 'See your week',
   todayScene: "Today's scene",
@@ -202,6 +200,19 @@ export function sceneEyebrow(hero: HomeMission): string {
 /** Under the title on Today's card, only the scene's length: "About 3 minutes" (founder, 2026-10-29). */
 export function sceneTime(hero: Pick<HomeMission, 'minutes'>): string {
   return aboutMinutes(hero.minutes);
+}
+
+/** The scene as a row on Today's path (UI-015, when the fix is the hero): its place, then its length. */
+export function sceneRowLine(hero: HomeMission): string {
+  return `${sceneEyebrow(hero)}. ${sceneTime(hero)}`;
+}
+
+/** Each row's stop mark: the ink end dot on the last row, a ring before it. */
+export function rowMarks<T>(rows: readonly T[]): { row: T; mark: 'stop' | 'end'; last: boolean }[] {
+  return rows.map((row, index) => {
+    const last = index === rows.length - 1;
+    return { row, mark: last ? 'end' : 'stop', last };
+  });
 }
 
 /**
@@ -365,6 +376,7 @@ export function weekInFrench(input: { packs: readonly ConversationPack[]; deck: 
  * =========================================================================== */
 
 export const COMING_UP_COPY = {
+  title: 'Coming up',
   rehearse: 'Rehearse now',
   notNow: 'Not now',
 } as const;
@@ -432,7 +444,8 @@ export function comingUp(input: {
   const remembers = `${input.tutorName} remembers`;
   return {
     key,
-    title: `Coming up: ${en}`,
+    // The section title outside the card says "Coming up" (UI-015), so the line is the event alone.
+    title: `${en.charAt(0).toLocaleUpperCase()}${en.slice(1)}`,
     when: `${around}, ${remembers}`,
     // The lock is Rehearse now's, which opens RealMoment (F910): the badge and the tap agree.
     locked: input.access('realMoment') === 'locked',

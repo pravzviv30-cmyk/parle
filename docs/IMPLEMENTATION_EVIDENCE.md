@@ -22,6 +22,19 @@ of the list.
 
 ## Current landing snapshot
 
+- 31 October 2026 Today as A's morning sky (UI-015): branch `claude/today-sky` from main d1b216c3
+  (rebased on 64f6a2cc, the /push-check landing). Today opens on a sky that follows the hour,
+  the greeting with Bonjour or Bonsoir, three chunky stat tiles on the shared `LipTile`, one hero
+  card that is the first stop of today's path, flat route rows, and flattened Coming up and week
+  cards; TodayHero, StatRow/StatTile, RouteNode, DailyCard's today look and PhraseCard are
+  removed. Seven fix-verifier rounds, ending HOLDS. /push-check: Playwright pass on all 11
+  `?preview=today-*` keys at 320 and 375 in light and dark (no console errors, real taps routed),
+  two push-reviewers and /code-review, findings fixed. Native iPhone 17 Pro simulator at normal
+  and accessibility-large text and with reduced motion.
+  **7,360 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
+  mobile 3941; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  Not verified: VoiceOver on device, a physical iPhone, a live tutor session from Today (the local
+  token server was not running, so the scene lead was checked through the preview keys).
 - 30 October 2026 live room direction D (UI-014): branch `claude/live-room-d` from main e9030f7e.
   The room is rebuilt as face to face with a notebook (portrait stage, goal stamps, notebook sheet
   with margin fixes, cloud mic, room menu), and the old room parts it replaced are removed.

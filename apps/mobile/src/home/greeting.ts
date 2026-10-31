@@ -29,7 +29,7 @@ export interface HourWindow {
 }
 
 /** Bonsoir from six in the evening until five in the morning. */
-const EVENING: HourWindow = { from: 18, to: 5 };
+export const EVENING: HourWindow = { from: 18, to: 5 };
 
 /**
  * The local hour of `now`, 0 to 23.
@@ -45,7 +45,7 @@ export function localHour(now: number): number {
 }
 
 /** Whether `hour` falls inside `window`, wrapping around midnight when it must. */
-function withinWindow(hour: number, window: HourWindow): boolean {
+export function withinWindow(hour: number, window: HourWindow): boolean {
   const { from, to } = window;
   return from <= to ? hour >= from && hour < to : hour >= from || hour < to;
 }
@@ -89,14 +89,19 @@ export function greetingSubline(now: number): string {
 }
 
 /**
- * Today's header: "Bonjour, Name." or, with no name, "Bonjour." (2026-10-20,
- * B5, B-Today). The founder's decision for direction B is one word all day,
- * with no Bonsoir switch and no question under it, so the header reads no
- * clock. The name is the app's own use of it and goes nowhere else.
- * `greetingWord` and `greetingSubline` stay as rules for any surface that
- * still wants the hour.
+ * Today's header: "Bonjour, Name." or "Bonsoir, Name.", and the word alone
+ * with no name. Direction A's sky (UI-015, founder 2026-10-30) brings back the
+ * hour's word, superseding direction B's one word all day (2026-10-20, B5): the
+ * sky follows the hour, so the word under it does too, from the same evening
+ * window. It is drawn in two lines, the word with its comma and then the name;
+ * `title` is the one line a screen reader says. The name is the app's own use
+ * of it and goes nowhere else.
  */
-export function homeGreeting(firstName: string | null): { title: string } {
-  const first = firstNameOf(firstName);
-  return { title: first === null ? 'Bonjour.' : `Bonjour, ${first}.` };
+export function homeGreeting(
+  firstName: string | null,
+  now: number,
+): { word: 'Bonjour' | 'Bonsoir'; name: string | null; title: string } {
+  const name = firstNameOf(firstName);
+  const word = greetingWord(now);
+  return { word, name, title: name === null ? `${word}.` : `${word}, ${name}.` };
 }

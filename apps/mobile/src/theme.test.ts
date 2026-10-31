@@ -50,6 +50,7 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     assert.match(radius, /\bcard: 24,/, 'the one Card no longer turns the B corner of 24');
     assert.match(radius, /\bfeature: 28,/, 'a feature card no longer turns 28');
     assert.match(radius, /\btile: 20,/, 'a stat tile no longer turns 20');
+    assert.match(radius, /\bstat: 18,/, 'the chunky Today stat tile no longer turns 18');
     assert.match(radius, /\bfield: 16,/, 'a field no longer turns 16');
     assert.match(radius, /\bpill: 999,/, 'the primary pill is no longer fully rounded like the logo');
     assert.match(radius, /\brow: 20,/, 'the row alias no longer points at the tile corner');
@@ -131,7 +132,6 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
       ['button', 'semiBold', 16, 20],
       ['small', 'medium', 14, 20],
       // B0 (2026-10-20): the compact stat, its caption and the lock badge's words.
-      ['statSm', 'bold', 17, 20],
       ['caption', 'medium', 12, 16],
       ['badge', 'bold', 12, 16],
       ['tabLabel', 'semiBold', 12, 12],

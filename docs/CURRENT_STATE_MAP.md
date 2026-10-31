@@ -84,9 +84,13 @@ video UX implementation use this same navigator.
 Each tab is layout over a plain view model (DESIGN.md composition rules,
 DECISIONS.md UI-007):
 
-- **Today** (`tabs/HomeTab.tsx`, `home/todayView.ts`): "Bonjour, Name.", the
-  stats row (`game/TodayHero.tsx`), then "Today's path" (F934, UI-012; the
-  route motif in `home/RoutePath.tsx`): retry your last fix (`oneFix`, about
+- **Today** (`tabs/HomeTab.tsx`, `home/todayView.ts`; UI-015): the sky band
+  (`home/SkyBand.tsx`, the hour's sky from `skyNow`, "Bonjour, Name." or
+  "Bonsoir, Name.", the profile button, and the three stat tiles and nudge from
+  `game/TodayStats.tsx`), one hero card (`home/TodayHeroCard.tsx`) and then
+  "Today's path" (F934, UI-012; `todayStops` picks the hero, the first stop
+  present, and the rows after it as `RouteRow`s in `home/RoutePath.tsx`), in
+  this order: retry your last fix (`oneFix`, about
   30 seconds), the next scene (`home/MissionHero.tsx`; core `nextScene`,
   leaning towards the onboarding goal, eyebrow "Picked for ..." when the goal
   chose it; the lead is `todayLead` in `practice/nextTask.ts`, held on the

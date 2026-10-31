@@ -20,6 +20,7 @@
  * quest played it.
  */
 
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CountUp } from '../motion/CountUp.tsx';
@@ -32,7 +33,7 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { CheckDisc, QuestRing, SmallPill } from '../today/TodayParts.tsx';
 import { HAIRLINE, bType, decorative, space, type } from '../theme.ts';
 import { useGame, useGoal, useQuests } from './GameProvider.tsx';
-import { questsCardView } from './questsCardView.ts';
+import { questsCardView, type QuestRowView, type QuestsCardView } from './questsCardView.ts';
 
 /** A row's mark, 26 as drawn: the row is not a target. */
 const MARK = 26;
@@ -53,7 +54,6 @@ const MARK = 26;
  */
 export function QuestsCard() {
   const t = useB();
-  const st = useThemedStyles(makeStyles);
   const { profile } = useProfile();
   const { view } = useGame();
   const quests = useQuests();
@@ -61,26 +61,33 @@ export function QuestsCard() {
   const fresh = questsCardView(quests, { tutorName: tutorNameOf(profile), goalTarget: goal?.target ?? null });
   const drawn = useHomeDraw(view?.today ?? null, fresh, questCounts);
   if (fresh === null || drawn === null) return null;
-  const card = drawn.model;
   const done = drawn.draw.counters.questsDone;
+  const doneLine = done !== undefined ? (
+    <CountUp key={`done-${done.mount}`} from={done.from} to={done.to} format={threeDone} textStyle={[bType.meta, { color: t.muted }]} />
+  ) : null;
+  return <QuestsCardBody card={drawn.model} rowKey={(row) => `${drawn.draw.day}:${row.id}:${row.target}`} doneLine={doneLine} />;
+}
 
+/**
+ * The three's block, props in (UI-015, shared with the dev preview): the
+ * heading and the done line outside, one card of rows.
+ */
+export function QuestsCardBody({ card, rowKey, doneLine }: { card: QuestsCardView; rowKey: (row: QuestRowView) => string; doneLine: ReactNode }) {
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
   return (
     <View style={st.block}>
       <View style={st.head}>
         <Text accessibilityRole="header" style={[type.heading, st.title, { color: t.text }]}>
           {TODAY_COPY.three}
         </Text>
-        <View accessibilityLiveRegion="polite">
-          {done !== undefined ? (
-            <CountUp key={`done-${done.mount}`} from={done.from} to={done.to} format={threeDone} textStyle={[bType.meta, { color: t.muted }]} />
-          ) : null}
-        </View>
+        <View accessibilityLiveRegion="polite">{doneLine}</View>
       </View>
       <View style={st.card}>
         {card.rows.map((row, index) => {
           const trailing = questTrailing(row);
           return (
-            <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={[st.row, index < card.rows.length - 1 && st.ruled]}>
+            <View key={rowKey(row)} accessible accessibilityLabel={row.label} style={[st.row, index < card.rows.length - 1 && st.ruled]}>
               <View {...decorative}>
                 {row.complete ? (
                   <CheckDisc size={MARK} fill={t.mint} tick={t.onMint} />

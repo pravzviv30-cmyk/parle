@@ -476,3 +476,31 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     statusBar: 'light',
   },
 };
+
+/**
+ * Today's sky (UI-015). The band behind the greeting follows the hour through
+ * `skyView(hour, mode)`: a ground, a sun or moon disc, the profile chip and the
+ * 4pt lip under each stat tile. It sits here, after `b`, so it can name the B
+ * values it shares (the mascots' colours above are its neighbours in spirit).
+ * White `onBrand` words and glyphs sit on every ground and chip and clear the
+ * 4.5 text floor on each (palette.test.ts); the disc and the lip are
+ * decoration and carry nothing a learner reads.
+ */
+export const sky = {
+  light: {
+    /** 05 to 12: the brand blue under the sun. White 7.9 on the ground, 5.6 on the chip. */
+    morning: { ground: colour.blue, disc: colour.sun, chip: colour.violet2, lip: colour.bluePressed },
+    /** 12 to 18: a lighter blue under a pale sun. White 6.4 on the ground, 4.6 on the chip. */
+    afternoon: { ground: '#4B3FF0', disc: b.light.haloSun, chip: '#6A61F0', lip: colour.bluePressed },
+    /** 18 to 22: dusk under a coral moon. White 12.1 on the ground, 8.4 on the chip. */
+    evening: { ground: '#2A2390', disc: mascot.cheek, chip: '#433BB0', lip: paper.ink },
+    /** 22 to 05: the ink night under a pale moon. White 17.8 on the ground, 13.2 on the chip. */
+    night: { ground: paper.ink, disc: mainArtColours.dark.cream, chip: '#2E2860', lip: '#0D0A1A' },
+  },
+  dark: {
+    /** 05 to 18: the dark hero ground. White 11.9 on it, 9.2 on the chip. */
+    day: { ground: b.dark.heroGround, disc: mainArtColours.dark.cream, chip: b.dark.heroChip, lip: '#0D0A1A' },
+    /** 18 to 05: near black. White 19.5 on it, 9.2 on the chip. */
+    night: { ground: '#0D0A1A', disc: mainArtColours.dark.cream, chip: b.dark.heroChip, lip: '#0D0A1A' },
+  },
+} as const;

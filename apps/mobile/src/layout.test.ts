@@ -359,9 +359,13 @@ describe('the tab title is the working title — F602', () => {
     // Every tab that names a subject takes the left branch: it opens on the
     // one header and does not ask to be centred.
     // 2026-10-20, B1, B-Explore: Explore opens on the one header like the rest.
+    // UI-015: Today has no TabHeader (its sky band draws the greeting), so it
+    // is held below to none; every other tab keeps exactly one.
     for (const tab of ['HomeTab.tsx', 'ExploreTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
       const body = stripComments(readFileSync(join(SRC, 'tabs', tab), 'utf8'));
-      if (tab === 'TutorTab.tsx') {
+      if (tab === 'HomeTab.tsx') {
+        assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 0, 'Today draws a tab header under its sky');
+      } else if (tab === 'TutorTab.tsx') {
         const unreadStart = body.indexOf("if (renderHistoryStatus !== 'ready') return <ScrollScreen");
         assert.notEqual(unreadStart, -1, 'Speak no longer separates loading or unread history from a ready conversation');
         const unreadEnd = body.indexOf('</ScrollScreen>;', unreadStart);
@@ -382,12 +386,13 @@ describe('the tab title is the working title — F602', () => {
       assert.doesNotMatch(body, /<TabHeader\b[^>]*align="center"/, `${tab} centres its title, which only a tab that is a person does`);
     }
 
-    // And the greeting is one of them: Home hands its greeting to the header
-    // as the title, so it is set at the same 30 as every other tab name.
+    // And the greeting: since UI-015 Home hands its greeting to the sky band,
+    // which sets it as one header in bType.greeting (its own size, DESIGN.md),
+    // with the avatar beside it and no question under it.
     const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
-    // 2026-10-20, B5, B-Today: the greeting is "Bonjour, Name." alone, with
-    // the avatar beside it and no question under it.
-    assert.match(home, /<TabHeader title=\{greeting\.title\} trailing=\{<ProfileButton \/>\} \/>/, 'Home does not hand its greeting to the working header');
+    assert.match(home, /<SkyBand sky=\{sky\} greeting=\{greeting\} profile=\{<ProfileButton ground=\{sky\.chip\} \/>\}/, 'Home does not hand its greeting to the sky');
+    const band = stripComments(readFileSync(join(SRC, 'home', 'SkyBand.tsx'), 'utf8'));
+    assert.match(band, /<Text accessibilityRole="header" accessibilityLabel=\{greeting\.title\} style=\{\[bType\.greeting,/, 'the greeting is not the header in its own type');
     assert.doesNotMatch(home, /purpose=/, 'Home draws a line under its greeting again');
 
     // 2026-10-20, B1, B-Explore: Explore left MainScreen for the loop above,

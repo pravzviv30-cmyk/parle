@@ -4,9 +4,10 @@ import { stripTypeScriptTypes } from 'node:module';
 import { test } from 'node:test';
 import { tutorGate } from '../tutor/gate.ts';
 
-const source = readFileSync(new URL('./MissionHero.tsx', import.meta.url), 'utf8');
+// 2026-10-31 UI-015: the start moved, unchanged, from MissionHero into the shared hook.
+const source = readFileSync(new URL('./useSceneStart.ts', import.meta.url), 'utf8');
 const start = source.indexOf('  const open = (textMode: boolean | undefined) => {');
-const end = source.indexOf('\n  if (vivid)', start);
+const end = source.indexOf('\n  return { open,', start);
 assert.ok(start > 0 && end > start, 'exercise the actual shared Home and Speak launch handler');
 const handler = `${stripTypeScriptTypes(source.slice(start, end))}\nreturn open;`;
 const setupStart = source.indexOf('  const owner = scopeGeneration();');

@@ -35,6 +35,7 @@ import {
   type StyleProp,
   type TextStyle,
   type ViewStyle,
+  type AccessibilityRole,
   type KeyboardTypeOptions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -789,11 +790,11 @@ export function Stat({ value, label, columns = 2 }: { value: string; label: stri
  * or the control that holds it names itself, so a screen reader walks past a
  * loose letter.
  */
-export function Monogram({ initial, size = HIT, inverted = false }: { initial: string | null; size?: number; inverted?: boolean }) {
+export function Monogram({ initial, size = HIT, inverted = false, ground, ink: askedInk }: { initial: string | null; size?: number; inverted?: boolean; /** A disc on a band's own chip (UI-015, Today's sky), with its ink. */ ground?: string; ink?: string }) {
   const t = useB();
   // 2026-10-20 UI-008, artboard B-Journey: on the brand band the disc flips to
   // the card fill with ink letters (`inverted`); everywhere else it is unchanged.
-  const ink = inverted ? t.text : t.onAvatar;
+  const ink = askedInk ?? (inverted ? t.text : t.onAvatar);
   return (
     <View
       {...decorative}
@@ -804,13 +805,13 @@ export function Monogram({ initial, size = HIT, inverted = false }: { initial: s
         backgroundColor: t.avatar,
         alignItems: 'center',
         justifyContent: 'center',
-      }, inverted ? { backgroundColor: t.card } : null]}
+      }, inverted ? { backgroundColor: t.card } : null, ground !== undefined ? { backgroundColor: ground } : null]}
     >
       {initial === null ? (
         // 2026-10-20, sim nits: no name, no letter; a neutral person glyph.
         <Icon name="user" size={Math.round(size * 0.5)} color={ink} />
       ) : (
-        <Text style={[{ fontFamily: font.bold, fontSize: size * 0.44, color: t.onAvatar }, inverted ? { color: ink } : null]}>{initial}</Text>
+        <Text style={[{ fontFamily: font.bold, fontSize: size * 0.44, color: t.onAvatar }, inverted || askedInk !== undefined ? { color: ink } : null]}>{initial}</Text>
       )}
     </View>
   );
@@ -1891,54 +1892,6 @@ export function ColourCard({
 }
 
 /**
- * A number and one plain line (SNIPPETS stat-tile), on a colour ground or on
- * paper. One phrase to a screen reader: "1 min 12, longest stretch in French".
- */
-export function StatTile({ value, label, mark, compact = false, valueNode }: {
-  value: string;
-  label: string;
-  /**
-   * What is drawn in the number's place when it moves (B5, 2026-10-20: Today's
-   * count-ups). `value` is still what a screen reader hears.
-   */
-  valueNode?: ReactNode;
-  /**
-   * A decorative disc above the number, as on Today's stats row (B0,
-   * 2026-10-20). Hidden from a screen reader: the value and label say it. A
-   * ring or bar that means something must be labelled by its caller instead.
-   */
-  mark?: ReactNode;
-  /** The smaller, centred cut that sits three to a `StatRow` card. */
-  compact?: boolean;
-}) {
-  const t = useB();
-  const b = useThemedStyles(makeB);
-  return (
-    <View style={compact ? b.statCompact : b.statTile} accessible accessibilityLabel={`${value}, ${label}`}>
-      {mark ? <View {...decorative}>{mark}</View> : null}
-      {valueNode ?? <Text style={[compact ? b.statCompactValue : type.stat, { color: t.text }]}>{value}</Text>}
-      <Text style={[compact ? b.statCompactLabel : type.small, { color: t.muted }]}>{label}</Text>
-    </View>
-  );
-}
-
-/**
- * Three stats in one white card, three equal columns (B-Today's stats row, B0
- * 2026-10-20). It lays out `StatTile compact` children and draws nothing of
- * its own; a column's words wrap rather than shrink at a large reading size.
- */
-export function StatRow({ children }: { children: ReactNode }) {
-  const b = useThemedStyles(makeB);
-  return (
-    <View style={b.statRow}>
-      {Children.toArray(children).map((child, i) => (
-        <View key={i} style={b.statColumn}>{child}</View>
-      ))}
-    </View>
-  );
-}
-
-/**
  * A small pill (B0, 2026-10-20), lifted from the archive's filter row so every
  * chip is one part.
  *
@@ -2284,12 +2237,6 @@ const makeB = (t: B) => StyleSheet.create({
   roundFrame: { alignSelf: 'flex-start' },
   roundRow: { flexDirection: 'row', alignItems: 'center', gap: space(3.5) },
   roundDisc: { alignItems: 'center', justifyContent: 'center' },
-  statTile: { backgroundColor: t.card, borderRadius: radius.tile, padding: space(4), gap: space(1.5) },
-  statCompact: { alignItems: 'center', gap: space(1.5) },
-  statCompactValue: { ...type.statSm, textAlign: 'center' },
-  statCompactLabel: { ...type.caption, textAlign: 'center' },
-  statRow: { flexDirection: 'row', gap: space(1.5), backgroundColor: t.card, borderRadius: radius.card, paddingVertical: space(3.5), paddingHorizontal: space(3) },
-  statColumn: { flex: 1, minWidth: 0 },
   // The touch floor is the height, not the padding, so a chip stays reachable
   // whatever the reading size does to the word inside it.
   filterChip: {
@@ -2807,6 +2754,89 @@ export function Choice({
   );
 }
 
+// ─────────────────────────────────────────────────────── the lip tile (UI-015)
+
+/** The fills a lip tile may take, each the `useB()` token of the same name (`mintWash` for drill B's right answer). */
+export type LipTone = 'card' | 'mint' | 'mintWash' | 'butter' | 'lavender' | 'sage' | 'peach';
+/** The two sizes: the stat tile, and a smaller chip (word chips, grades). */
+export const LIP_SIZES = {
+  tile: { radius: radius.stat, lip: 4 },
+  chip: { radius: radius.field, lip: 3 },
+} as const;
+/** How far a pressed tile sinks into its lip. */
+export const LIP_PRESS = 2;
+/** The selected edge and the disabled fade, as BButton fades. */
+const LIP_EDGE = 2;
+const LIP_DISABLED = 0.6;
+
+/**
+ * The shared game-button chrome (UI-015): a solid tile on a lip of its own
+ * colour drawn as a View under it, never a shadow. Today's stat tiles use it,
+ * and the drills' option cards, word chips, review grades and end tiles.
+ *
+ * With `onPress` it is one `Press` at the touch floor with a light haptic, and
+ * while pressed it sits `LIP_PRESS` lower so the lip shows less; without it a
+ * plain View. `selected` draws a 2pt `mark` edge (the app's chosen-option
+ * mark); `disabled` fades it and takes no press.
+ */
+export function LipTile({ tone = 'card', lip, size = 'tile', onPress, selected = false, disabled = false, accessibilityLabel, accessibilityRole, accessibilityHint, style, children }: {
+  tone?: LipTone;
+  /** The lip's colour; the `line` token by default. */
+  lip?: string;
+  size?: keyof typeof LIP_SIZES;
+  onPress?: () => void;
+  selected?: boolean;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityHint?: string;
+  /** The tile's own layout (direction, padding, height). */
+  style?: StyleProp<ViewStyle>;
+  children?: ReactNode;
+}) {
+  const t = useB();
+  const [pressed, setPressed] = useState(false);
+  const shape = LIP_SIZES[size];
+  const sunk = pressed && !disabled ? LIP_PRESS : 0;
+  const ground: ViewStyle = { backgroundColor: lip ?? t.line, borderRadius: shape.radius };
+  const face: ViewStyle = {
+    backgroundColor: t[tone],
+    borderRadius: shape.radius,
+    marginTop: sunk,
+    marginBottom: shape.lip - sunk,
+    ...(selected ? { borderWidth: LIP_EDGE, borderColor: t.mark } : null),
+  };
+  const faded = disabled ? { opacity: LIP_DISABLED } : null;
+  if (onPress === undefined) {
+    return (
+      <View style={[ground, faded]} accessible={accessibilityLabel !== undefined} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole} accessibilityHint={accessibilityHint}>
+        <View style={[face, style]}>{children}</View>
+      </View>
+    );
+  }
+  return (
+    <View style={[ground, faded]}>
+      <Press
+        haptic="light"
+        accessibilityRole={accessibilityRole ?? 'button'}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled, selected }}
+        disabled={disabled}
+        glowRadius={shape.radius}
+        onPress={onPress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={[lipStyles.hit, face, style]}
+      >
+        {children}
+      </Press>
+    </View>
+  );
+}
+
+const lipStyles = StyleSheet.create({ hit: { minHeight: HIT } });
+
 const ic = StyleSheet.create({
   buttonFrame: { alignSelf: 'flex-start' },
   button: { alignItems: 'center', justifyContent: 'center' },
@@ -2883,3 +2913,4 @@ export function sheetRunsUnder(content: number, viewport: number, offset: number
   const seen = Math.max(0, offset) + viewport;
   return content > viewport + 1 && seen < content - 1;
 }
+
