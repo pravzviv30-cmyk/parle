@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
-import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -207,6 +207,33 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.equal(tabAccessibilityLabel('MyFrench', false), 'Journey');
     const glyph = read('./TabGlyph.tsx');
     assert.match(glyph, /style=\{\[st\.badge, \{ backgroundColor: t\.sun \}, mark\]\}/, 'the dot is not sun, so it vanishes into the ink capsule');
+  });
+
+  test('tab bar labels never clip at accessibility text sizes', () => {
+    // F947, founder decision 2026-10-31: icons only at the largest sizes. The
+    // widest word is measured at the label's size times the reading size; when
+    // it cannot fit whole in a fifth of the capsule, every word goes and the
+    // icons stay, each tab still heard by its full name.
+    const em = 0.6; // must stay at or above the widest real Outfit Bold average per letter
+    for (const phone of [320, 402]) {
+      const capsule = tabCapsuleWidth(phone, 0, 0);
+      const room = (capsule - 16) / 5 - 8;
+      for (const scale of [1.3, 2.0, 2.35, 3.1]) {
+        const widest = Math.max(...Object.values(TAB_LABELS).map((w) => w.length * 13 * em * scale));
+        assert.ok(
+          widest <= room || !tabLabelsShown(scale, capsule),
+          `at ${scale}x on ${phone}pt a ${Math.round(widest)}pt word is drawn in ${Math.round(room)}pt and clips`,
+        );
+      }
+      // Below the accessibility sizes nothing changes.
+      assert.equal(tabLabelsShown(1, capsule), true, `the words are hidden at the default size on ${phone}pt`);
+      assert.equal(tabLabelsShown(1.2, capsule), true, `the words are hidden below the accessibility sizes on ${phone}pt`);
+    }
+    // The bar draws the word only when the model says it fits, and every tab
+    // keeps its full name for a screen reader.
+    assert.match(FLAT, /tabLabelsShown\(fontScale, capsule\)/, 'the bar does not ask the model whether the words fit');
+    assert.match(FLAT, /\{shown && <Text style=\{\[st\.label/, 'the bar draws the word even when it cannot fit whole');
+    assert.match(FLAT, /accessibilityLabel=\{tabAccessibilityLabel\(route\.name, dot\)\}/, 'a tab without its word loses its name for a screen reader');
   });
 
   test('five cells fit a 320pt phone above the touch floor', () => {

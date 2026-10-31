@@ -12071,13 +12071,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F947 — Tab bar labels cut off at accessibility text sizes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx
 - note: Found 2026-10-31 on the iPhone 17 Pro simulator at accessibility-large while checking
   claude/today-sky. The five labels clip mid-word ("Toda", "Explo", "Spea", "Pract", "Jourr").
   The tab bar is unchanged by UI-015 (the founder kept it), so this predates it. Fix: let the
   labels scale only to a cap, or hide them behind the icons with full accessibility labels at
   the largest sizes, with a test.
+- fixed: 2026-10-31 on claude/finish-fixes. Founder decision: icons only at the largest sizes.
+  `tabLabelsShown` (nav/tabBarModel.ts) measures the widest word at 13pt times the reading size
+  at 0.6em a letter (Outfit Bold's real advances are 0.48 to 0.59) against a fifth of the live
+  capsule; from 1.3 up, when it cannot fit whole, all five tabs show only their icons and keep
+  their full accessibility labels. Below 1.3 nothing changes. No cap was added (F583 ban kept).
 - verified-by: `tab bar labels never clip at accessibility text sizes`
 
 ### F948 — Today's starter-line sheet is dark on dark in dark mode
