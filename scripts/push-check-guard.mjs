@@ -161,7 +161,9 @@ function stripRedirects(words) {
   return out;
 }
 
-const WRAPPERS = new Set(['env', 'command', 'time', 'nohup', 'exec', 'sudo']);
+const WRAPPERS = new Set([
+  'env', 'command', 'time', 'nohup', 'exec', 'sudo', 'timeout', 'gtimeout', 'nice', 'caffeinate', 'stdbuf', 'setsid',
+]);
 const KEYWORDS = new Set(['if', 'then', 'else', 'elif', 'do', 'while', 'until', '!', '{', '}']);
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const GIT_GLOBAL_WITH_VALUE = new Set([
@@ -173,6 +175,7 @@ const PUSH_FLAG_WITH_VALUE = new Set([
 // Git subcommands that move HEAD, make commits or move branches.
 const HEAD_MOVERS = new Set([
   'commit', 'merge', 'switch', 'checkout', 'rebase', 'reset', 'cherry-pick', 'revert', 'pull', 'am',
+  'update-ref', 'symbolic-ref', 'filter-branch', 'filter-repo', 'replace', 'commit-tree',
 ]);
 
 // Does `git <sub> <args>` move HEAD or a branch?
@@ -180,6 +183,8 @@ function movesHead(sub, args) {
   if (HEAD_MOVERS.has(sub)) return true;
   if (sub === 'stash') return args[0] === 'pop' || args[0] === 'apply';
   if (sub === 'worktree') return args[0] === 'add';
+  // `git fetch . other:feat` rewrites a local branch.
+  if (sub === 'fetch') return args.some((a) => !a.startsWith('-') && a.includes(':'));
   if (sub === 'branch') {
     return args.some((a) => a === '--force' || a === '--move' || /^-[a-zA-Z]*[fmM][a-zA-Z]*$/.test(a));
   }
@@ -284,8 +289,8 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       } else if (WRAPPERS.has(w)) {
         afterWrapper = true;
         words = words.slice(1);
-      } else if (afterWrapper && w.startsWith('-')) {
-        words = words.slice(1); // flags of env/sudo/command/etc.
+      } else if (afterWrapper && (w.startsWith('-') || /^\d+(\.\d+)?[smhd]?$/.test(w))) {
+        words = words.slice(1); // flags of env/sudo/command/etc., and timeout's duration
       } else {
         break;
       }

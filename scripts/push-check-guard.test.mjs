@@ -424,3 +424,24 @@ test('a non-HEAD ref is judged by its own stamp', () => {
   assert.equal(hookDecision(bash('git push origin feat'), both), null);
   assert.match(hookDecision(bash('git push origin HEAD'), both).reason, /aaaaaaa/);
 });
+
+test('wrapped pushes are still seen', () => {
+  for (const c of ['timeout 60 git push origin feat', 'caffeinate git push origin feat', 'nice -n 5 git push origin feat']) {
+    const pushes = findPushes(c, '/tmp');
+    assert.equal(pushes.length, 1, c);
+    assert.deepEqual(pushes[0].refspecs, ['feat'], c);
+  }
+});
+
+test('ref rewrites before a push count as moving the branch', () => {
+  for (const c of [
+    'git update-ref refs/heads/feat other && git push origin feat',
+    'git fetch . other:feat && git push origin feat',
+    'git symbolic-ref HEAD refs/heads/other && git push',
+  ]) {
+    const decision = hookDecision({ tool_name: 'Bash', tool_input: { command: c }, cwd: '/tmp' }, fakeGit({ stamp: stampOf({}) }));
+    assert.ok(decision && /own command/.test(decision.reason), c);
+  }
+  // A plain fetch is not a mover.
+  assert.equal(hookDecision({ tool_name: 'Bash', tool_input: { command: 'git fetch origin --quiet' }, cwd: '/tmp' }, fakeGit()), null);
+});

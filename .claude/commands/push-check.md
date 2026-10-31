@@ -136,6 +136,10 @@ node scripts/push-check-guard.mjs stamp --gate pass --playwright <pass|fail|n/a>
 `n/a` is for checks that do not apply to this diff, never for one that was skipped. The
 stamp is per commit: a new commit needs a new check.
 
+Push as its own Bash command. The guard refuses `git commit ... && git push` (or a
+switch, merge or ref rewrite before the push) in one call, because it checks the commit
+before the earlier command makes a new one.
+
 ## 9. Report
 
 Five lines: the gate count, what the browser pass covered (screens, sizes, modes) and
