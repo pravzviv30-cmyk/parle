@@ -66,6 +66,29 @@ export function canvasStartsFresh(env: CanvasEnvironment = defaultEnv()): boolea
   return env.EXPO_PUBLIC_LUVANI_CANVAS_LEARNER === 'fresh';
 }
 
+/** Device key: this mock account has had its one fresh start. Development only. */
+export const canvasFreshKey = (uid: string): string => `luvani.dev.canvasFresh.${uid}`;
+
+export interface FreshStartDeps {
+  fresh: () => boolean;
+  activeUid: () => string | null;
+  read: (key: string) => Promise<string | null>;
+  write: (key: string, value: string) => Promise<void>;
+  clear: () => Promise<void>;
+}
+
+/**
+ * Clears the account once, the first time a fresh canvas run meets it. The
+ * one fresh start is spent only when this account's scope is active, so the
+ * clear really ran; with no scope it waits for a later call.
+ */
+export async function spendFreshStart(uid: string, deps: FreshStartDeps): Promise<void> {
+  if (!deps.fresh() || deps.activeUid() !== uid) return;
+  if ((await deps.read(canvasFreshKey(uid))) !== null) return;
+  await deps.clear();
+  await deps.write(canvasFreshKey(uid), new Date().toISOString());
+}
+
 function defaultEnv(): CanvasEnvironment {
   return {
     NODE_ENV: process.env.NODE_ENV,

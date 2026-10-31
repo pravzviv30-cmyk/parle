@@ -324,6 +324,10 @@ function SignedInRoot({
   const { newAccountUserId, clearNewAccount } = useAuth();
   const newlyCreated = newAccountUserId === user.id;
   const [ready, setReady] = useState(false);
+  // Development only (UI-008): the labelled canvas learner for side-by-side
+  // screenshots. Held until startup is ready, so this account's storage scope
+  // is active before it seeds (a fresh sign-up reaches Gate before the scope).
+  useCanvasLearner(auth, ready ? user : null);
   const [startupFailed, setStartupFailed] = useState(false);
   const [startupRead, setStartupRead] = useState(0);
   const [freshStart, setFreshStart] = useState<FreshStart | null>(null);
@@ -673,8 +677,6 @@ function SignedInRoot({
  */
 function Gate() {
   const { status, user, recovering, clearRecovery, creatingAccount } = useAuth();
-  // Development only (UI-008): the labelled canvas learner for side-by-side screenshots.
-  useCanvasLearner(auth, user);
   const [preAccountDraft, setPreAccountDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [returning, setReturning] = useState(false);
