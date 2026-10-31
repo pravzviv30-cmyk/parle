@@ -2,7 +2,7 @@
 
 - Status: in progress, approved direction (UI-015); build on `claude/today-sky`
 - Updated: 2026-10-31
-- Checkout / starting revision: `main` at `e9030f7e` (live room D not landed). Worktree `Luvani-worktrees/today-sky`.
+- Checkout / starting revision: `main` at `d1b216c3` (the live room D merge, with the mascots and the `mascot` palette group). Worktree `Luvani-worktrees/today-sky`.
 - Owner / integrator: Opus orchestrator session; builders as named per task
 - Existing programme / contract: [DESIGN_PARTNERSHIP.md](../DESIGN_PARTNERSHIP.md) (screen 2); decision [UI-015](../../DECISIONS.md); board "A × Today (chosen)" on <https://claude.ai/artifact/8hQGYBiERChAzbtXjN82Dc> (`project/Mix.dc.html`, with the chunky stat tiles from the founder's comment of 2026-10-31)
 
@@ -26,12 +26,12 @@ Today opens on a stack: a header, a white card of three stats, then cards. After
 - Frame: `ScrollScreen bleedTop` + `TopInset` (`layout.tsx`), as MyFrench does; HomeTab and `home/` may not read the safe area themselves.
 - Tokens come from `useB()`; every hex lives in `palette.ts`.
 
-**Non-goals:** no change to `LuvaniTabBar` or `tabBarModel`; no sideways rail, no text-only tabs, no mascots (Cloud is only on `claude/live-room-d`, a later follow-up); no change to what any lead does, to the game layer, the quests, Coming up's rules or the week's rules; no new dependency, no Rive.
+**Non-goals:** no change to `LuvaniTabBar` or `tabBarModel`; no sideways rail, no text-only tabs, no mascots (the Cloud mascot is on main since D landed; putting it in the sky is a later follow-up); no change to what any lead does, to the game layer, the quests, Coming up's rules or the week's rules; no new dependency, no Rive.
 
 **Risks:**
 1. `TodayHero`'s refresh is load-bearing (QuestsCard goes stale without it).
 2. 26 test files pin Today's markup or view models; each is re-pinned to the same behaviour, none dropped.
-3. Live room D edits the same shared files (`palette.ts`, `palette.test.ts`, `DESIGN.md`, `DECISIONS.md`, `OnboardingPreview.tsx`); whichever lands second resolves. `#EF8770` is D's `mascot.cheek`; dedupe then.
+3. The live room D landed first (`d1b216c3`), so the `sky` group sits beside its `mascot` group, and the evening sun reuses `mascot.cheek` (`#EF8770`) rather than a second copy of the value.
 4. `SceneLead`, `StarterContinuation`, `LocalPracticeCard` and `ProfileButton` are shared; changes keep their defaults and name the blast radius.
 
 **Decisions:** UI-015.
@@ -117,7 +117,7 @@ Acceptance per task is in the approved plan and repeated in each builder's brief
 |---|---|---|---|
 | 2026-10-30 / design | Board "A × Today (chosen)" drawn; founder picked the mix | Browser pane, light and dark | Build session |
 | 2026-10-31 / design | Founder comment: chunky game-style stat tiles (board version 18); this session's answers: "Start" over "today" with no streak, "<1" with "/10" under a minute, the nudge in the sky | Board read at version 1793454188-20ef | T0 |
-| 2026-10-31 / T0 | Worktree from `e9030f7e`, `npm ci`; this spec; UI-015 | | Baseline gate, before shots |
+| 2026-10-31 / T0 | Worktree from `d1b216c3` (D had landed when it was cut), `npm ci`; this spec; UI-015; before shots in `reviews/2026-10-30-today-sky/before/` (4, real Today, offline lead) | Same base gate green at 7,319 (D's landing evidence) | T1 |
 
 ## Integrated verification and handoff
 

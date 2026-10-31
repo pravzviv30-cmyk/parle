@@ -879,7 +879,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     title. No card sits inside another card.
   - **Kept:** the icon tab bar (`LuvaniTabBar`, `tabBarModel`).
 - Not taken: A's sideways rail (it hides the third item) and text-only tabs;
-  mascots in the sky until the live room D lands.
+  mascots in the sky for now (the Cloud is on main since D landed; a later
+  follow-up).
 - The motion rule in `DESIGN.md` "What never moves" is amended. On Today the
   clouds drift in once on arrival and the flame pops once when today's streak
   ticks, beside the numbers that already counted up and the ring that already
@@ -893,9 +894,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     `game/StatTiles.tsx`, which keeps Home's game-layer refresh on focus and
     at the day's turn, the count-up rules (`useHomeDraw`) and the states.
   - The lead bodies draw on the hero's ground instead of their own cards.
-  - Live room D edits the same palette, preview and design files; whichever
-    lands second resolves them, and the shared coral cheek colour is deduped
-    then.
+  - The `sky` group sits beside D's `mascot` group, and the evening sun
+    reuses `mascot.cheek` rather than repeating its value.
 
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 
