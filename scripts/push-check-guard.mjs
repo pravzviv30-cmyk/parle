@@ -489,7 +489,7 @@ export function hookDecision(input, git) {
         if (target.bare && git.isTagOnly?.(ev.dir, target.src)) continue;
         const sha = git.resolveCommit(ev.dir, target.src);
         const toMain = Boolean(target.all) || isMainRef(target.dst);
-        const frontend = git.touchesFrontendAt ? git.touchesFrontendAt(ev.dir, sha) : false;
+        const frontend = git.touchesFrontendAt(ev.dir, sha);
         const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, toMain, frontend);
         if (!verdict.ok) deny(denyReason(verdict, sha, stripHeads(target.dst) || current));
       }
@@ -558,11 +558,16 @@ export function isTagOnly(dir, name) {
 // new. `-z` keeps unusual names unquoted (git would print
 // "apps/mobile/\303\251.tsx" in quotes), and --no-renames lists both sides of
 // a move, so moving a file out of the frontend still counts as touching it.
+// Git runs from the top of the checkout, because pathspecs and ls-tree are
+// relative to the working directory (a push from apps/mobile/ must still see
+// apps/mobile/). With no merge base (unrelated history, a shallow clone) the
+// diff throws, and the hook then denies as unresolvable: fail closed.
 export function changedPaths(dir, sha, paths = []) {
+  const top = git(dir, ['rev-parse', '--show-toplevel']);
   const limit = paths.length ? ['--', ...paths] : [];
-  const out = refExists(dir, 'refs/remotes/origin/main')
-    ? git(dir, ['diff', '--name-only', '--no-renames', '-z', `origin/main...${sha}`, ...limit])
-    : git(dir, ['ls-tree', '-r', '--name-only', '-z', sha, ...limit]);
+  const out = refExists(top, 'refs/remotes/origin/main')
+    ? git(top, ['diff', '--name-only', '--no-renames', '-z', `origin/main...${sha}`, ...limit])
+    : git(top, ['ls-tree', '-r', '--full-tree', '--name-only', '-z', sha, ...limit]);
   return out.split('\0').filter(Boolean);
 }
 

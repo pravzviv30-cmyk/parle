@@ -558,3 +558,27 @@ test('end to end: a sibling folder that only starts like the frontend is not fro
   const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--dir', dir]);
   assert.equal(r.status, 0, r.stderr);
 });
+
+test('end to end: run from a subfolder, a frontend commit still counts', () => {
+  for (const withOrigin of [true, false]) {
+    const dir = withOrigin ? repoWithOriginMain() : tempRepo();
+    commitFile(dir, 'apps/mobile/a.tsx');
+    commitFile(dir, 'docs/x.md');
+    for (const sub of ['docs', 'apps/mobile']) {
+      const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', join(dir, sub)]);
+      assert.equal(r.status, 1, `${sub}, origin/main ${withOrigin}`);
+    }
+  }
+});
+
+test('end to end: the real hook refuses a passing stamp without Impeccable on a frontend commit', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile/a.tsx');
+  // A stamp the old guard could have written: everything passes, no Impeccable field.
+  const sha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8' }).trim();
+  const common = execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: dir, encoding: 'utf8' }).trim();
+  mkdirSync(join(dir, common, 'push-check'), { recursive: true });
+  writeFileSync(join(dir, common, 'push-check', `${sha}.json`), JSON.stringify(stampOf({}, 'pass', sha)));
+  const r = runScript(['hook'], { input: hookInput('git push origin work', join(dir, 'apps/mobile')) });
+  assert.match(JSON.parse(r.stdout).hookSpecificOutput.permissionDecisionReason, /no passing Impeccable design review/);
+});
