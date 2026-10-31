@@ -18,6 +18,15 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/graphify-guard.mjs\" read"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/push-check-guard.mjs\" hook"
+          }
+        ]
       }
     ]
   }

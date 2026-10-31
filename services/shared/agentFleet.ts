@@ -39,6 +39,7 @@ export const READ_ONLY_AGENTS = [
   'database-security-architect',
   'voice-reliability-architect',
   'deployment-architect',
+  'push-reviewer',
 ] as const;
 
 export type AgentFrontmatter = {

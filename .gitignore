@@ -79,3 +79,6 @@ artifacts/onboarding-audio/generation.lock
 artifacts/onboarding-audio/manifest.json.tmp
 artifacts/sfx-audition/
 artifacts/game-art/
+
+# /push-check screenshots: evidence for the run, not for the repo
+reviews/push-check/

@@ -47,6 +47,7 @@ approval before they are dispatched.
 | `privacy-safety-engineer` | opus | yes | minimisation, consent, retention, deletion and safety policy |
 | `social-systems-engineer` | fable | **no** | approval gate for social, moderation and abuse systems |
 | `qa-release-engineer` | opus | **no** | independent product/security/learning/build release evidence |
+| `push-reviewer` | claude-sonnet-5-5 | **no** | one slice (frontend, backend or tests) of a diff about to be pushed, for `/push-check` |
 | `backend-architect` | fable | **no** | cross-service contracts and architecture review routing |
 | `database-security-architect` | fable | **no** | auth, RLS, privileged RPCs, migrations and privacy |
 | `voice-reliability-architect` | fable | **no** | admission across jobs, voice/typed input, settlement and recovery |
@@ -81,7 +82,7 @@ cross-cutting test files belong to one integrator and nobody else edits them.
 ## The independent reviewers
 
 `release-engineer`, `scaling-engineer`, `repository-archaeologist`,
-`social-systems-engineer`, `qa-release-engineer`, and the four backend architects have no `Edit` and no `Write`, for the
+`social-systems-engineer`, `qa-release-engineer`, `push-reviewer`, and the four backend architects have no `Edit` and no `Write`, for the
 same reason `design-architect` and `work-judge` do not: an agent that can quietly fix what
 it found has stopped being a second opinion.
 
