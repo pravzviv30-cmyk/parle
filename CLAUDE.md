@@ -163,7 +163,7 @@ The current roster, territories and review triggers are in `docs/TEAM.md`.
 | Something built properly | `/forge <what you want built>` |
 | To know if it is safe to release | `/ship` |
 | A backend architecture review before implementation or promotion | `/backend-review <scope>` |
-| To check the version you are about to push, fix what it finds, and stamp it | `/push-check` (`--main` before landing) |
+| To check the version you are about to push (frontend pushes get an Impeccable design review: slop fixed, redesign ideas asked of you, never applied), fix what it finds, and stamp it | `/push-check` (`--main` before landing) |
 | To know if this belongs on main yet | `/land` |
 | One pass at the ledger's top open item | `/bug-sweep` |
 | A specific specialist | ask for it by name |
@@ -280,10 +280,13 @@ Three hard stops, and none of them is negotiable by being asked:
 - **Push check before every push (founder, 2026-10-31).** Every push, frontend or backend,
   goes through `/push-check` first: a Playwright pass on the version being pushed, a
   fan-out of read-only `push-reviewer` agents plus the built-in `/code-review`, and fixes
-  for what they find. A push to `main` adds the built-in `/security-review`
-  (`/push-check --main`, which `/land` runs). `scripts/push-check-guard.mjs` is a
-  `PreToolUse` hook that refuses `git push` from a Claude session until the commit has a
-  passing stamp; the founder can still push from their own terminal.
+  for what they find. A frontend push also gets the Impeccable design review
+  (`impeccable:impeccable-finish-reviewer`): slop is fixed in the push, redesign ideas are
+  asked of the founder and never applied. A push to `main` adds the built-in
+  `/security-review` (`/push-check --main`, which `/land` runs).
+  `scripts/push-check-guard.mjs` is a `PreToolUse` hook that refuses `git push` from a
+  Claude session until the commit has a passing stamp, and refuses a frontend push without
+  `impeccable: pass`; the founder can still push from their own terminal.
 - **Never `--force`, `--no-verify`, or rebase anything already pushed.** The hooks are the
   last honest check on the way out; a change that needs them off is a change that is not
   ready.
