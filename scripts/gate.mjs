@@ -236,7 +236,7 @@ if (!fast) {
 }
 
 if(!fast) {
-  const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,'services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs']);
+  const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,'services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs']);
   const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
   if(result.code!==0 || tested===0 || !/[ℹ#] fail 0/.test(result.out))fail('release/provider proofs',result.out.slice(-4000));
   else {
@@ -332,6 +332,8 @@ const AGENT_MODELS = {
   // generic builders for approved plans (StartUps/CLAUDE.md routing, 2026-10-19)
   'implementer': 'claude-sonnet-5-5',
   'implementer-opus-low': 'opus',
+  // the push check's read-only reviewers (founder rule, 2026-10-31)
+  'push-reviewer': 'claude-sonnet-5-5',
   // the team, read-only
   'release-engineer': 'opus',
   'scaling-engineer': 'fable',

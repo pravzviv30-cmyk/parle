@@ -98,7 +98,15 @@ shared floor rather than a staging area.
 
 ## 6. Landing
 
-Only on **LAND**, and only in this order:
+Only on **LAND**, and only in this order. First, on the branch, run **`/push-check --main`**
+(founder rule, 2026-10-31): the Playwright pass on the version being landed, the review
+fan-out, the built-in `/code-review`, and the built-in `/security-review` on
+`git diff origin/main...HEAD`. A high or medium security finding is **HOLD** until it is
+fixed or the founder accepts it in chat. After the merge, stamp the merge commit too
+(`node scripts/push-check-guard.mjs stamp ... --security pass`, carrying the branch's
+results forward when the merge brought nothing new), or the guard refuses the push.
+
+Then:
 
 ```bash
 git switch -c <branch>          # if the work is sitting on main, branch it first

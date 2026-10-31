@@ -114,6 +114,19 @@ is detection after execution, not an OS sandbox: ignored files and arbitrary
 trusted check commands are not isolated. Use a dedicated checkout and narrow
 write scopes. Paths cannot escape the repo or traverse known symlinks.
 
+## Before every push
+
+`/push-check` (`.claude/commands/push-check.md`, founder rule 2026-10-31) runs before any
+push: the gate, a Playwright pass over the screens the diff touches at 320 and 375 in
+light and dark, a local boot and smoke of touched services, parallel `push-reviewer`
+agents (frontend, backend, tests) with the built-in `/code-review`, and a fix loop until
+nothing new above low is found. `--main` adds the built-in `/security-review` on the
+merge diff. It ends by stamping the commit
+(`<git common dir>/push-check/<sha>.json`); the `PreToolUse` hook
+`scripts/push-check-guard.mjs hook` refuses a Claude session's `git push` without a
+passing stamp, and a push to `main` without a passing security review. The `pre-push`
+git hook still runs the full gate as the last check.
+
 ## Repair a failing gate
 
 Without `--plan`, the runner retains bug-repair mode. It runs the gate first and
