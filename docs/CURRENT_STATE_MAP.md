@@ -162,7 +162,8 @@ DECISIONS.md UI-007):
 - **Live room and the end of a conversation** (`live/C2LiveRoom.tsx`,
   `RecapScreen.tsx`): rebuilt to B-Live, B-LiveHelp, B-AfterSession,
   B-Celebrate and B-Recap (2026-10-21, UI-008). The room shows the scene's own
-  pace, the goals strip from `visibleMissionTasks` and the help ladder over the
+  pace, the goals strip from `visibleMissionTasks` (a goal ticks for the beat
+  current before the turn when the brain's `goalMet` is true, F949) and the help ladder over the
   live rung (`live/liveRoomView.ts`); the recap pages run After a session, the
   Celebration, the Recap, then sound and next (`recap/pages.ts`,
   `recap/afterSessionView.ts`). The goals reach the Recap passed through from
