@@ -24,7 +24,7 @@ import { TopInset } from '../layout.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { Drift } from '../motion/Drift.tsx';
 import { bType, decorative, space, type } from '../theme.ts';
-import { SKY_DISC, cloudPlaces, greetingLines, greetingMaxWidth, skyBarStyle, type SkyView } from './skyView.ts';
+import { SKY_DISC, cloudPlaces, greetingLayout, greetingLines, skyBarStyle, type SkyView } from './skyView.ts';
 
 /** Where the head box starts across the band (its padding, space(4)): an absolute child and an onLayout x both count from here. */
 const BAND_PAD = 16;
@@ -53,10 +53,12 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const barStyle = skyBarStyle({ focused, scrolledPast, themeBar: t.statusBar });
   const [bar, setBar] = useState<number | null>(null);
   const [band, setBand] = useState<number | null>(null);
+  // The greeting's box, and how far the disc slides off the edge to keep it clear at large text.
+  const layout = greetingLayout(width, bar, fontScale, greeting.name);
   useEffect(() => {
     if (band !== null && bar !== null) onMeasure?.({ band, bar });
   }, [band, bar, onMeasure]);
@@ -65,7 +67,7 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
   return (
     <View style={[s.band, { backgroundColor: sky.ground }]} onLayout={(event) => setBand(Math.round(event.nativeEvent.layout.height))}>
       {barStyle !== null ? <StatusBar style={barStyle} /> : null}
-      <View {...decorative} pointerEvents="none" style={s.disc}>
+      <View {...decorative} pointerEvents="none" style={[s.disc, { right: DISC_BLEED - layout.discShift }]}>
         <SkyDisc kind={sky.discKind} size={DISC} color={sky.disc} />
       </View>
       <View onLayout={(event) => setBar(Math.round(event.nativeEvent.layout.height) - space(2))}><TopInset extra={space(2)} /></View>
@@ -76,7 +78,7 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
             <SkyCloud width={cloud.width} color={t.onBrand} opacity={cloud.opacity} />
           </Drift>
         ))}
-        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand, maxWidth: greetingMaxWidth(width, bar) }]} onLayout={(event) => { const { x, width: w } = event.nativeEvent.layout; setGreetingRight(Math.round(BAND_PAD + x + w)); }}>
+        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand, maxWidth: layout.maxWidth }]} onLayout={(event) => { const { x, width: w } = event.nativeEvent.layout; setGreetingRight(Math.round(BAND_PAD + x + w)); }}>
           {greetingLines(greeting).join('\n')}
         </Text>
         <View style={s.profile}>{profile}</View>

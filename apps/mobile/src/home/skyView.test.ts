@@ -152,28 +152,46 @@ describe('fix round 3: clouds, the one sky clock, and the greeting clear of the 
     assert.match(hook, /skyClockMoved\(drawn, at\) \? at : drawn/, 'the clock bumps on every tick');
   });
 
-  test('the greeting is capped clear of the sun or moon at 320, 375 and 402', async () => {
-    const { SKY_DISC, greetingMaxWidth } = await import('./skyView.ts');
+  test('the greeting never breaks a word and never sits on the sun or moon, at every reading size', async () => {
+    const { SKY_DISC, greetingLayout, greetingWordWidth, GREETING_CHAR_WIDTH } = await import('./skyView.ts');
     const r = SKY_DISC.size / 2;
+    // The estimate covers "Bonjour," as measured (about 133pt at 1.0).
+    assert.ok(greetingWordWidth(1) >= 133 && GREETING_CHAR_WIDTH === 17);
+    assert.ok(greetingWordWidth(1, 'Maximilienne') > greetingWordWidth(1), "the name's longest word is not in the floor");
     for (const width of [320, 375, 402]) {
-      const cx = width + SKY_DISC.bleed - r;
-      const cy = r - SKY_DISC.bleed;
-      for (const bar of [null, 20, 47, 62]) {
-        const right = 20 + greetingMaxWidth(width, bar);
-        // Every point of the three line boxes (36pt each, from the bar + 8) is outside the disc.
-        const top = (bar ?? 0) + 8;
-        for (let y = top; y <= top + 3 * 36; y += 1) {
-          const dy = Math.abs(y - cy);
-          if (dy >= r) continue;
-          assert.ok(right <= cx - Math.sqrt(r * r - dy * dy), `the greeting runs over the disc at ${width}pt (bar ${bar}) at y ${y}`);
+      for (const scale of [1, 1.3, 2]) {
+        for (const bar of [null, 20, 62]) {
+          const { maxWidth, discShift } = greetingLayout(width, bar, scale);
+          const at = `${width}pt, text ${scale}, bar ${bar}`;
+          assert.ok(maxWidth >= greetingWordWidth(scale), `the cap breaks "Bonjour," mid-word at ${at}`);
+          assert.ok(discShift >= 0);
+          // Every point of the three line boxes is outside the (shifted) disc.
+          const cx = width + SKY_DISC.bleed - r + discShift;
+          const cy = r - SKY_DISC.bleed;
+          const right = 20 + maxWidth;
+          const top = (bar ?? 0) + 8;
+          for (let y = top; y <= top + 3 * 36 * scale; y += 1) {
+            const dy = Math.abs(y - cy);
+            if (dy >= r) continue;
+            assert.ok(right <= cx - Math.sqrt(r * r - dy * dy), `the greeting runs over the disc at ${at}, y ${y}`);
+          }
         }
       }
-      assert.ok(greetingMaxWidth(width, 62) >= 150, `"Bonjour," no longer fits on one line at ${width}pt`);
     }
+    // At the default size on a 375pt phone nothing slides; large text on 320 slides the disc.
+    assert.equal(greetingLayout(375, 62, 1).discShift, 0);
+    assert.ok(greetingLayout(320, null, 2).discShift > 0);
     const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
-    assert.match(band, /maxWidth: greetingMaxWidth\(width, bar\)/);
+    assert.match(band, /const layout = greetingLayout\(width, bar, fontScale, greeting\.name\);/, 'the cap ignores the reading size');
+    assert.match(band, /maxWidth: layout\.maxWidth/);
+    assert.match(band, /style=\{\[s\.disc, \{ right: DISC_BLEED - layout\.discShift \}\]\}/, 'the disc does not slide clear of a wide greeting');
     assert.match(band, /const DISC = SKY_DISC\.size;/);
     assert.match(band, /const DISC_BLEED = -SKY_DISC\.bleed;/);
+  });
+
+  test('the sky clock stops its timer when Today leaves the top or unmounts', () => {
+    const hook = readFileSync(new URL('./useSkyClock.ts', import.meta.url), 'utf8');
+    assert.match(hook, /const timer = setInterval\(check, DAY_CHECK_MS\);\s*return \(\) => clearInterval\(timer\);/, 'the interval keeps running after cleanup');
   });
 
   test('the row art is one size from RoutePath, and a label on a still LipTile is read', () => {

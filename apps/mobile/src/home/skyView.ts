@@ -136,22 +136,41 @@ const GREETING_CLEAR = 8;
 const GREETING_LINES = 3;
 
 /**
- * The greeting's widest box (fix round 3), so white words never run over the
- * sun (about 1.6:1 against the morning disc) or the moon: for each line box,
- * the disc's leftmost point within that line's height, less a clearance.
- * Unmeasured (`bar` null), the disc's whole left edge. A long single word may
- * then wrap, which is better than white on yellow.
+ * Outfit ExtraBold at 34pt, one character's width, generously: "Bonjour,"
+ * measures about 133pt at the default size (8 characters, about 16.6 each),
+ * so 17 per character over-estimates every greeting word a little.
  */
-export function greetingMaxWidth(width: number, bar: number | null): number {
+export const GREETING_CHAR_WIDTH = 17;
+
+/** The widest word the greeting draws, at the reading size: the greeting word with its comma, and each word of the name. */
+export function greetingWordWidth(fontScale: number, name: string | null = null): number {
+  const scale = Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
+  const words = ['Bonjour,', 'Bonsoir,', ...(name ?? '').split(/\s+/).filter((w) => w !== '').map((w) => `${w}.`)];
+  return Math.ceil(Math.max(...words.map((w) => w.length)) * GREETING_CHAR_WIDTH * scale);
+}
+
+/**
+ * The greeting's box and the disc's slide (fix rounds 3 and 4), so white
+ * words never sit on the sun (about 1.6:1 against the morning disc) or the
+ * moon, and never break mid-word. The cap is the disc's leftmost point within
+ * each of three line boxes (the greeting's 36pt line, at the reading size),
+ * less a clearance; unmeasured (`bar` null), the disc's whole left edge. The
+ * cap never goes below the widest greeting word at that size; when it would,
+ * the disc slides further off the band's right edge by the difference, so the
+ * text keeps its size and stays clear.
+ */
+export function greetingLayout(width: number, bar: number | null, fontScale: number, name: string | null = null): { maxWidth: number; discShift: number } {
+  const scale = Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
   const r = SKY_DISC.size / 2;
   const cx = width + SKY_DISC.bleed - r;
   const cy = -SKY_DISC.bleed + r;
+  const line = GREETING_LINE * scale;
   let edge = cx - r;
   if (bar !== null) {
     edge = Infinity;
-    for (let line = 0; line < GREETING_LINES; line += 1) {
-      const top = bar + GREETING_BELOW_BAR + line * GREETING_LINE;
-      const bottom = top + GREETING_LINE;
+    for (let index = 0; index < GREETING_LINES; index += 1) {
+      const top = bar + GREETING_BELOW_BAR + index * line;
+      const bottom = top + line;
       // The circle's leftmost x across [top, bottom]: at the centre's height if inside, else at the nearer edge.
       const y = cy >= top && cy <= bottom ? cy : Math.abs(top - cy) < Math.abs(bottom - cy) ? top : bottom;
       const dy = Math.abs(y - cy);
@@ -159,5 +178,7 @@ export function greetingMaxWidth(width: number, bar: number | null): number {
     }
     if (edge === Infinity) edge = width;
   }
-  return Math.max(0, Math.floor(edge - GREETING_CLEAR - GREETING_LEFT));
+  const cap = Math.max(0, Math.floor(edge - GREETING_CLEAR - GREETING_LEFT));
+  const floor = greetingWordWidth(scale, name);
+  return floor > cap ? { maxWidth: floor, discShift: floor - cap } : { maxWidth: cap, discShift: 0 };
 }
