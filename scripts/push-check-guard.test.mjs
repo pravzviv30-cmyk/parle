@@ -536,3 +536,18 @@ test('end to end: without origin/main every file in the commit counts', () => {
   assert.equal(r.status, 1);
   assert.match(r.stderr, /--impeccable must be pass or fail/);
 });
+
+test('end to end: unusual names and moves out of the frontend still count', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile/\u00e9t\u00e9 \u2603.tsx');
+  let r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', dir]);
+  assert.equal(r.status, 1, 'a non-ASCII name under apps/mobile/ is frontend');
+
+  const moved = repoWithOriginMain();
+  commitFile(moved, 'apps/mobile/screen.tsx');
+  execFileSync('git', ['update-ref', 'refs/remotes/origin/main', 'HEAD'], { cwd: moved });
+  execFileSync('git', ['mv', 'apps/mobile/screen.tsx', 'screen.tsx'], { cwd: moved });
+  execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'move'], { cwd: moved });
+  r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', moved]);
+  assert.equal(r.status, 1, 'moving a file out of apps/mobile/ is frontend');
+});

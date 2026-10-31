@@ -554,12 +554,15 @@ export function isTagOnly(dir, name) {
 }
 
 // Files the commit changes against origin/main. Without origin/main there is
-// no base, so every file in the commit counts as new.
+// no base, so every file in the commit counts as new. `-z` keeps unusual names
+// unquoted (git would print "apps/mobile/\303\251.tsx" in quotes), and
+// --no-renames lists both sides of a move, so moving a file out of the
+// frontend still counts as touching it.
 export function changedPaths(dir, sha) {
   const out = refExists(dir, 'refs/remotes/origin/main')
-    ? git(dir, ['diff', '--name-only', `origin/main...${sha}`])
-    : git(dir, ['ls-tree', '-r', '--name-only', sha]);
-  return out.split('\n').filter(Boolean);
+    ? git(dir, ['diff', '--name-only', '--no-renames', '-z', `origin/main...${sha}`])
+    : git(dir, ['ls-tree', '-r', '--name-only', '-z', sha]);
+  return out.split('\0').filter(Boolean);
 }
 
 export function touchesFrontendAt(dir, sha) {
