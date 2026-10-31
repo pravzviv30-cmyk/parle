@@ -100,7 +100,7 @@ Working principles drawn from these (to confirm on the first screens):
 |---|---|---|
 | 1 | Live conversation room | Built on `claude/live-room-d` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)): gate green at 7,319, two verifier rounds to HOLDS, live replay typed and spoken, native simulator checked; the founder approved the 144 short goal labels as drafted on 2026-10-31 and the room is landing on main |
 | 2 | Today | The A × Today mix accepted (UI-015, founder 2026-10-30) with chunky stat tiles (2026-10-31); built on `claude/today-sky` from [changes/today-sky.md](changes/today-sky.md) |
-| 3 | Drill and practice feedback | B v2 picked and approved on the [drill board](https://claude.ai/artifact/XAZR2pptSi5YgH4ncZTXiK) (page "B v2, every surface"); built on `claude/drill-b` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)): gate green at 7,422, four verifier rounds to HOLDS, native simulator and a live run checked; landing |
+| 3 | Drill and practice feedback | B v2 picked and approved on the [drill board](https://claude.ai/artifact/XAZR2pptSi5YgH4ncZTXiK) (page "B v2, every surface"); built on `claude/drill-b` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)): gate green at 7,449, four verifier rounds to HOLDS, native simulator and a live run checked; landing |
 | 4 | Journey | Candidate |
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type

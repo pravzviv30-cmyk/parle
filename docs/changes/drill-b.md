@@ -199,6 +199,8 @@ After this change every drill and practice surface is built from one set of part
 | 2026-10-31 / verifier 3 | Screen reader HOLDS; TokenFlight under reduced motion HOLDS. BROKEN: a chip in flight could land after Check or in the next exercise (this branch); a double tap on a Review grade graded twice and skipped a card (older). Fixed (0f1efbdd): `flightMayLand`, Check off while a word flies, kinds keyed on `exercise.id`; `firstGradeAt` ref guard | Mobile 4,002 green | Live run |
 | 2026-10-31 / shots, native | After shots, 148 web files in `reviews/2026-10-31-drill-b/after/`. iPhone 17 Pro simulator: say-listening at normal text, reply-miss and the end scene at accessibility-large with reduced motion (Continue and the end actions stay pinned and visible; confetti still). Simulator reset to large text, reduced motion off | No console errors in any shot | Live run |
 | 2026-10-31 / live run | Real app on `127.0.0.1:8099` (mock auth, canvas learner, local token server): a practice sitting with a miss, fill-blank, tap-translate and a choose tile; the end with Still settling; the retry (zero stored keys changed from start to end, calm end with Done only); a Review sitting to Review complete (a double tap counted once). Found and fixed (9cad005f, ec1f2bc0): the retry header said "Phrase one of three"; now "Phrase one of one" | Mobile 4,003 green | Round 4 |
+| 2026-10-31 / verifier 4 | flightMayLand, keying, Review guard, retry keys: HOLDS | Mobile 4,003 green, tsc clean | Gate, bless |
+| 2026-10-31 / push-check | Browser pass on this checkout (148 shots, real-app taps; only CORS from the 127.0.0.1 test origin). /code-review: 5 findings, 4 fixed (sentence a11y, Hear it stops on advance, case fold, blank punctuation), 1 logged (tap-translate display line). push-reviewers frontend and tests: 10 low, all fixed (sound drill step label and close name, `peachTrack` 3.4:1, chip minHeight, dead code, tighter pins). Delta review: 1 low (guillemets), fixed | Gate green 7,449, floors blessed | Stamp, push |
 
 
 Built differently from the spec or the boards, on purpose:
@@ -222,7 +224,7 @@ Follow-ups found during the build, outside this change:
 ## Integrated verification and handoff
 
 - Focused checks: every task ran its own tests and typecheck; mobile 4,003 green
-- Full gate: green, **7,422 tests, 0 failing**; floors blessed (mobile 4,003)
+- Full gate: green, **7,449 tests, 0 failing**; floors blessed (mobile 4,030)
 - Verifier: four fix-verifier rounds, the last HOLDS
 - UI / device checks: 148 web after shots; native iPhone 17 Pro at normal and accessibility-large text with reduced motion; a live run on the real app with a local token server
 - Documentation and decisions: this spec, UI-016, LEARN-018, `DESIGN.md`, `docs/CURRENT_STATE_MAP.md`, `docs/DESIGN_PARTNERSHIP.md`, `docs/IMPLEMENTATION_EVIDENCE.md`

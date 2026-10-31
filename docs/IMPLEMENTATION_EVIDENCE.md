@@ -34,8 +34,11 @@ of the list.
   native iPhone 17 Pro at normal and accessibility-large text with reduced motion. Live run on the
   real app (mock auth, canvas learner, local token server): a practice sitting with a miss, the
   end with Still settling, the retry (zero stored keys changed), and a Review to the end.
-  **7,422 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
-  mobile 4003; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  /push-check: the browser pass above, two push-reviewers, /code-review and a delta review; 14 low
+  findings fixed (sound drill labels and track contrast, blank punctuation, chip growth, dead code,
+  pins), nothing above low left.
+  **7,449 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
+  mobile 4030; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
   Not verified: VoiceOver on device, a physical iPhone, a speak drill with a real microphone.
 - 31 October 2026 Today as A's morning sky (UI-015): branch `claude/today-sky` from main d1b216c3
   (rebased on 64f6a2cc, the /push-check landing). Today opens on a sky that follows the hour,
