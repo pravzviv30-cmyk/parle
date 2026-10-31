@@ -1859,6 +1859,10 @@ level rings and breath, the goal stamps, the arriving lines, the notebook's
 growth, the cloud mic (its listening squish and goal cheer) and the toast's
 peek over Help move (UI-014), and nothing is heard or felt; the fanfare waits
 for the recap.
+On Today (UI-015) the sky's two clouds drift in once on arrival and the flame
+on the streak tile pops once when today's streak ticks, beside the numbers that
+count up and the goal ring that fills; the greeting and the sun or moon stay
+still, and under reduced motion nothing on Today moves.
 
 ### Haptics
 
