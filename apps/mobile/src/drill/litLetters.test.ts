@@ -47,4 +47,11 @@ describe('litLetters: the letter the learner missed lights up in the field', () 
     assert.equal(litLetters('', 'oui'), null);
     assert.equal(litLetters('voudrais', 'voudrais'), null);
   });
+
+  test('a letter whose lowercase is longer never shifts the lit spans', () => {
+    const lit = litLetters('İstanbu', 'İstanbul');
+    assert.ok(lit !== null);
+    assert.equal(lit.text, 'İstanbul');
+    assert.deepEqual(lit.lit, [[7, 8]]);
+  });
 });

@@ -86,4 +86,12 @@ describe('fill-blank flight wiring', () => {
     assert.match(src, /<FillBlankView key=\{exercise\.id\}/);
     assert.match(src, /<TapTranslateView\s+key=\{exercise\.id\}/);
   });
+
+  test('push-check: the empty-gap sentence is read whole, and advancing stops a sheet\'s Hear it', () => {
+    const build = readFileSync(fileURLToPath(new URL('./kinds/build.tsx', import.meta.url)), 'utf8');
+    assert.match(build, /accessible=\{landed === null\}\s*accessibilityLabel=\{landed === null \? `\$\{split\.before\.trim\(\)\} blank \$\{split\.after\.trim\(\)\}`\.trim\(\) : undefined\}/);
+    const screen = readFileSync(fileURLToPath(new URL('../DrillScreen.tsx', import.meta.url)), 'utf8');
+    const advance = screen.slice(screen.indexOf('const advance = useCallback('), screen.indexOf('setFeedback(null);', screen.indexOf('const advance = useCallback(')));
+    assert.match(advance, /tutorVoice\.stop\(\);/, 'a sheet that moves on leaves its line playing');
+  });
 });

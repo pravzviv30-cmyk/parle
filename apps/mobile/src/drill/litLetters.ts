@@ -33,8 +33,10 @@ type Op = 'same' | 'swap' | 'missing' | 'extra';
 
 /** Edit script from attempt to expected, compared without case. Returns ops in order, with indexes. */
 function align(attempt: string, expected: string): { op: Op; a: number; e: number }[] {
-  const a = [...attempt.toLowerCase()];
-  const e = [...expected.toLowerCase()];
+  // Fold case one character at a time, so the indexes stay those of the original strings.
+  const fold = (s: string) => [...s].map((ch) => (ch.toLowerCase().length === ch.length ? ch.toLowerCase() : ch));
+  const a = fold(attempt);
+  const e = fold(expected);
   const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: e.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
   for (let i = 1; i <= a.length; i++) {
     for (let j = 1; j <= e.length; j++) {

@@ -120,7 +120,10 @@ export function FillBlankView({
 
   // The sentence with its gap, word by word so the gap sits in the line and wraps with it.
   const prompt = split === null ? exercise.sentence : (
-    <View style={st.sentence} accessibilityRole="header">
+    // Read whole while the gap is empty ("blank" for the gap); once a word sits
+    // there, the words are read in turn so the send-back button stays reachable.
+    <View style={st.sentence} accessibilityRole="header" accessible={landed === null}
+      accessibilityLabel={landed === null ? `${split.before.trim()} blank ${split.after.trim()}`.trim() : undefined}>
       {split.before.split(/\s+/).filter(Boolean).map((word, i) => <Text key={`b${i}`} {...frenchText} style={[bType.prompt23, { color: bt.text }]}>{word}</Text>)}
       <View ref={gapRef} collapsable={false} style={landed === null ? [ds.gap, { borderBottomColor: bt.link }] : null}>
         {landed !== null ? (

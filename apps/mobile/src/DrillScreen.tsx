@@ -752,6 +752,9 @@ export function DrillScreen({
     const next = pendingRef.current;
     if (next === null) return;
     pendingRef.current = null;
+    // A line the learner asked to hear on the sheet stops with the sheet, so
+    // it never plays over the next exercise's own audio.
+    tutorVoice.stop();
     beatRef.current += 1;
     setFeedback(null);
     setSheetFacts(null);
