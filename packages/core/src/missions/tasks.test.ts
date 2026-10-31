@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { getMission } from './missions.ts';
+import { SHORT_GOALS } from './shortGoals.ts';
 import { readMissionTasks } from './tasks.ts';
 import { decodeServerMessage, encodeMessage } from '../protocol/protocol.ts';
 const valid = () => ({ missionId: 'mission:premier-cafe', items: getMission('mission:premier-cafe')!.beatIds.map(id => ({ id, goalEn: `Practise ${id}`, achieved: false })) });
+/** The list as `readMissionTasks` returns it: each item also carries its approved short label. */
+const labelled = () => { const list = valid(); return { ...list, items: list.items.map(item => ({ ...item, goalShortEn: SHORT_GOALS[`${list.missionId}:${item.id}`]! })) }; };
 
 test('task lists validate the whole authored catalogue and active mission rather than an arbitrary passed subset', () => {
-  assert.deepEqual(readMissionTasks(valid(), 'mission:premier-cafe'), valid());
+  assert.deepEqual(readMissionTasks(valid(), 'mission:premier-cafe'), labelled());
   assert.equal(readMissionTasks(valid(), 'mission:cafe'), null);
   for (const malformed of [null, {}, { ...valid(), items: [] }, { ...valid(), items: valid().items.slice(1) },
     { ...valid(), items: [valid().items[0], valid().items[0], valid().items[2]] },
@@ -25,6 +28,6 @@ test('protocol preserves absence for old workers and repairs present invalid tas
     const decoded = decodeServerMessage(encodeMessage({ ...frame, view: { ...frame.view, missionTasks } } as never));
     assert.equal(decoded?.t, 'convo'); if (decoded?.t !== 'convo') continue;
     assert.equal(Object.hasOwn(decoded.view, 'missionTasks'), true);
-    assert.deepEqual(decoded.view.missionTasks, missionTasks === null || Array.isArray(missionTasks) || missionTasks.items.length === 0 ? null : valid());
+    assert.deepEqual(decoded.view.missionTasks, missionTasks === null || Array.isArray(missionTasks) || missionTasks.items.length === 0 ? null : labelled());
   }
 });

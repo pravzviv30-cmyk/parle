@@ -1,6 +1,6 @@
 # Live room D: short goal labels for review
 
-- Status: **waiting for the founder's approval**. The live room build does not land until every label below is approved (founder, 2026-10-30).
+- Status: **approved**. The founder approved every label below exactly as drafted on 2026-10-31, and they are in `packages/core/src/missions/shortGoals.ts`. (The live room build was held until this approval, founder 2026-10-30.)
 - What these are: the live room shows the current goal next to its stamps. These short labels replace the full goal sentence there. The full sentence stays everywhere else (the screen reader still hears it in full, and the scene preview and recap are unchanged).
 - Rules used: at most 24 characters, usually two to four words, plain English, sentence case, no full stop, no dashes. A goal that was already short keeps its own words (marked *same*).
 - Source: the goals come from the tutor's mission frames (`packages/brain/src/missions/frames.ts`, 31 missions, 144 goals). After approval they go into `packages/core/src/missions/shortGoals.ts`, keyed by mission and goal.

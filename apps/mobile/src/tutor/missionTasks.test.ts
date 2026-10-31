@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { getMission } from '@luvani/core';
+import { SHORT_GOALS, getMission } from '@luvani/core';
 import { visibleMissionTasks } from './missionTasks.ts';
 import { NO_WIN, winAfterTurn } from './missionWin.ts';
 
 const valid = () => ({ missionId: 'mission:premier-cafe', items: getMission('mission:premier-cafe')!.beatIds.map(id => ({ id, goalEn: `Practise ${id}`, achieved: true })) });
+
+/** The visible items: each also carries its approved short label. */
+const labelledItems = () => valid().items.map(item => ({ ...item, goalShortEn: SHORT_GOALS[`${valid().missionId}:${item.id}`]! }));
+
 test('task-aware wins gate the card and durable completion together and do not mark an unfinished session seen', () => {
   for (const missionTasks of [null, { ...valid(), items: [] }, { ...valid(), items: valid().items.slice(1) },
     { ...valid(), items: valid().items.map((item, index) => ({ ...item, achieved: index !== 1 })) },
@@ -20,7 +24,7 @@ test('task-aware wins gate the card and durable completion together and do not m
 });
 
 test('visible task projection is authored whole-list only and does not fabricate old-worker or wrong-mission ticks', () => {
-  assert.deepEqual(visibleMissionTasks({ missionTasks: valid() }, 'mission:premier-cafe'), valid().items);
+  assert.deepEqual(visibleMissionTasks({ missionTasks: valid() }, 'mission:premier-cafe'), labelledItems());
   assert.deepEqual(visibleMissionTasks({}, 'mission:premier-cafe'), []);
   assert.deepEqual(visibleMissionTasks({ missionTasks: valid() }, 'mission:cafe'), []);
   assert.deepEqual(visibleMissionTasks({ missionTasks: valid() }, null), []);

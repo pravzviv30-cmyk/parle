@@ -38,3 +38,15 @@ test('every short label names a real beat and reads as a short, plain label', ()
     assert.doesNotMatch(label, /\.$/u, `${key}: trailing full stop`);
   }
 });
+
+test('every beat of every mission has an approved label, and the table holds nothing else', () => {
+  let beats = 0;
+  for (const mission of MISSIONS) {
+    for (const beatId of mission.beatIds) {
+      beats += 1;
+      assert.notEqual(shortGoalLabel(mission.id, beatId), null, `${mission.id}:${beatId}: no approved short label`);
+    }
+  }
+  assert.ok(beats > 0);
+  assert.equal(Object.keys(SHORT_GOALS).length, beats, 'the table has an entry that is not a beat, or a beat is missing');
+});
