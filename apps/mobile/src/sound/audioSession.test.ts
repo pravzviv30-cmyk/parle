@@ -184,9 +184,9 @@ describe('one module owns the audio session', () => {
     const recorders = FILES.filter(({ code }) => /\.record\(\)/.test(code));
     const names = recorders.map(({ name }) => name).sort();
     assert.deepEqual(names, [
-      'DrillScreen.tsx',
       'daily/DailyPracticeScreen.tsx',
       'drill/SpokenAttempt.tsx',
+      'drill/kinds/RepeatThisView.tsx',
       'recap/PrivatePractice.tsx',
       'soundcheck/SoundCheckScreen.tsx',
     ], 'a recorder was added or removed: hold it to the same rule');

@@ -9,12 +9,17 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { drillSource } from '../testing/drillSource.ts';
 
 import { LEVEL_CEILING_DB, LEVEL_FLOOR_DB, LEVEL_POLL_MS, levelFromMetering, levelOfStatus } from './recorderLevel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
-const flat = (relative: string): string =>
-  read(relative).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1').replace(/\s+/g, ' ');
+const flatten = (text: string): string =>
+  text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1').replace(/\s+/g, ' ');
+
+const flat = (relative: string): string => flatten(read(relative));
+/** The drill's kinds left DrillScreen for drill/kinds (drill-b T1); its recorder is read across both. */
+const flatSource = (relative: string): string => (relative === '../DrillScreen.tsx' ? flatten(drillSource()) : flat(relative));
 
 describe('a recorder level, heard and never made up', () => {
   test('metering maps onto the ring from still to full, and no reading is no level', () => {
@@ -39,7 +44,7 @@ describe('a recorder level, heard and never made up', () => {
     assert.match(hook, /const now = levelOfStatus\(status\); if \(now === null\) return; level\.value = now;/, 'the ring is fed something other than a level the recorder reported');
     assert.match(hook, /if \(!heard\) \{ heard = true; setMetered\(true\); \}/);
     for (const file of ['../DrillScreen.tsx', '../drill/SpokenAttempt.tsx', '../daily/DailyPracticeScreen.tsx']) {
-      const screen = flat(file);
+      const screen = flatSource(file);
       assert.match(screen, /const METERED_TAKE = \{ \.\.\.RecordingPresets\.HIGH_QUALITY, isMeteringEnabled: true \};/, `${file} records without metering, so its ring could never move`);
       assert.match(screen, /useAudioRecorder\(METERED_TAKE\)/, `${file} records with an unmetered preset`);
       assert.match(screen, /useRecorderLevel\(recorder, /, `${file} has no level for its ring`);

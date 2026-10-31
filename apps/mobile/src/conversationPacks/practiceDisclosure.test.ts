@@ -2,6 +2,7 @@ import { evidence } from '../../test/evidence.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { drillSource } from '../testing/drillSource.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -27,7 +28,8 @@ test('conversation warm-up helper and recall handoff remain readable on a dark c
 });
 
 test('French choice exercises do not give away meanings through visible or spoken option glosses', () => {
-  const screen = read('../DrillScreen.tsx');
+  // The choice kinds moved to drill/kinds/choose.tsx (drill-b T1); read the drill whole.
+  const screen = drillSource();
   assert.doesNotMatch(screen, /gloss=\{(?:candidate|option).en\}/);
   assert.doesNotMatch(screen, /\{exercise.line.en\}/);
 });

@@ -45,6 +45,12 @@ function stripComments(source: string): string {
 
 const SOURCES = walk(SRC).map((path) => ({ path, body: stripComments(readFileSync(path, 'utf8')) }));
 const named = (name: string) => SOURCES.find((f) => f.path.endsWith(name))!.body;
+/**
+ * The drill's kind views left DrillScreen for drill/kinds (drill-b T1), so a
+ * count across the drill reads the screen and its kinds together.
+ */
+const DRILL_BODY = [named('DrillScreen.tsx'), ...SOURCES.filter((f) => f.path.includes('/drill/kinds/')).sort((a, b) => a.path.localeCompare(b.path)).map((f) => f.body)].join('\n');
+const namedDrill = (name: string) => (name === 'DrillScreen.tsx' ? DRILL_BODY : named(name));
 const usesSharedFrame = (body: string): boolean => /<(Screen|ScrollScreen|OnboardingLayout)\b/.test(body) ||
   /<C2LiveRoom\b/.test(body) ||
   /const Frame = (?:onboarding \? OnboardingLayout : )?ScrollScreen;/.test(body) && /<Frame\b/.test(body);
@@ -1296,7 +1302,7 @@ describe('one way back, and it is the shared header — F309', () => {
     const DOORS = ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx'];
     const isDoor = (tag: string) => /\bicon=\{\s*<(?:AppleMark|GoogleMark)\b/.test(tag);
     for (const name of PUSHED_ONE_BACK) {
-      const body = named(name);
+      const body = namedDrill(name);
       assert.equal(
         (body.match(/<ScreenHeader\b/g) ?? []).length,
         1,
@@ -1796,7 +1802,7 @@ describe('the tabs and the drill use the app buttons — F339', () => {
   });
 
   test("the drill's Check is the pill, twice, and nothing hand-rolled", () => {
-    const drill = named('DrillScreen.tsx');
+    const drill = namedDrill('DrillScreen.tsx');
     assert.equal(
       (drill.match(/<PillButton\s+label="Check"/g) ?? []).length,
       2,
@@ -1891,7 +1897,7 @@ describe('a chip is set in the token, not a raw size — F341', () => {
         const value = Number(m[1]);
         const ok =
           (p === 'components.tsx' && (value === 24 || value === 20)) ||
-          ((p === 'ReviewScreen.tsx' || p === 'DrillScreen.tsx') && value === 16);
+          ((p === 'ReviewScreen.tsx' || p === 'drill/kinds/styles.ts') && value === 16);
         assert.ok(
           ok,
           `${p} names a raw font size ${value}; only fitDisplay and the iOS-16 inputs may, everything else is a token`,

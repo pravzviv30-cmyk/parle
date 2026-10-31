@@ -39,6 +39,7 @@ import {
 
 import { gradeCards, loadDeck } from './review/store.ts';
 import { setActiveUser } from './storage/scope.ts';
+import { drillSource, readSrc } from './testing/drillSource.ts';
 import { JUDGE_UNAVAILABLE, OWN_WORDS_HINT, OWN_WORDS_PROMPT } from './drill/ownWordsCopy.ts';
 
 const NOW = new Date(2026, 7, 20, 14).getTime();
@@ -53,7 +54,7 @@ function stripComments(source: string): string {
 
 describe('a used word stays readable in the sentence bank — F593', () => {
   test('a word already placed stays readable on the ground it is left on', () => {
-    const screen = stripComments(read('./DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     // 2026-10-21 UI-008, artboard B-Drill: a placed word now reads in its brand
     // tile in the answer box, and leaves a dashed slot its own size in the bank,
     // so the bank never jumps and the word is never faint ink on a ground.
@@ -184,7 +185,7 @@ describe('a drill sitting reaches the deck with everything it proved — F128', 
     // The one-line regression that started this: a destructure that names two
     // of three fields silently drops the third, and nothing about the call
     // looks wrong afterwards.
-    const screen = stripComments(read('./DrillScreen.tsx'));
+    const screen = stripComments(drillSource());
     const map = screen.slice(screen.indexOf('gradeWritesRef.current = gradeCards('), screen.indexOf('recordActivity('));
 
     assert.ok(map.length > 0, 'persistGrades moved; this test is reading the wrong thing');
@@ -209,7 +210,7 @@ describe('a drill sitting reaches the deck with everything it proved — F128', 
  * `match` prints the whole thirty-thousand-character file at whoever broke it.
  */
 describe('the empty drill bank draws the scene the art registry promises it — F158', () => {
-  const screen = stripComments(read('./DrillScreen.tsx'));
+  const screen = stripComments(drillSource());
 
   /**
    * The built-empty branch alone. The end card sits directly under it, renders
@@ -260,7 +261,11 @@ describe('the empty drill bank draws the scene the art registry promises it — 
  * source, which is what `docs/TESTING.md` allows and names.
  * =========================================================================== */
 
-const SCREEN = stripComments(read('./DrillScreen.tsx'));
+const SCREEN = stripComments(drillSource());
+/** The own-words view, which now has a file of its own (drill/kinds). */
+const OWN_WORDS_VIEW = stripComments(readSrc('drill/kinds/OwnWordsView.tsx'));
+/** The write kinds' file, where TranslationView now lives. */
+const WRITE = stripComments(readSrc('drill/kinds/write.tsx'));
 
 /** The own-words Check handler alone. Sliced, so a match elsewhere cannot pass. */
 const checkBlock = (() => {
@@ -333,7 +338,7 @@ const OWN_WORDS = ownWordsFrom(
 
 describe('the drill asks for the learner’s own French — F581', () => {
   test('feedback keeps the learner’s thought visible beside a supported alternative', () => {
-    const view = SCREEN.slice(SCREEN.indexOf('function OwnWordsView('), SCREEN.indexOf('export function DrillScreen('));
+    const view = OWN_WORDS_VIEW;
     assert.match(view, /\{outcome\.attempt !== null && <View/, 'the learner’s checked words disappear when the feedback arrives');
     assert.match(view, /\{outcome\.attempt\}/, 'the feedback cannot be compared with the learner’s words');
     assert.match(view, /\{outcome\.note\}/, 'the judge’s supported reason is hidden');
@@ -348,7 +353,7 @@ describe('the drill asks for the learner’s own French — F581', () => {
     assert.ok(OWN_WORDS.mustKeep.length > 0, 'nothing says what the learner’s own words have to get across');
 
     // A recording supplies editable text, with the same typed fallback.
-    const view = SCREEN.slice(SCREEN.indexOf('function OwnWordsView('), SCREEN.indexOf('export function DrillScreen('));
+    const view = OWN_WORDS_VIEW;
     assert.ok(view.length > 0, 'the own-words view moved; this test is reading the wrong thing');
     assert.match(view, /placeholder=\{OWN_WORDS_PROMPT\}/, 'the own-words field does not ask for the learner’s own French');
     assert.match(view, /\{OWN_WORDS_HINT\}/, 'the card never tells the learner to say it out loud first');
@@ -611,7 +616,7 @@ describe('a practice sitting says where the learner is, and nothing about how it
 
 describe('help in a practice sitting: the known phrase, recorded so it is never recall', () => {
   test('only a practice sitting offers it, only on an English-to-French ask, and it shows the exercise\'s own line', () => {
-    const view = SCREEN.slice(SCREEN.indexOf('function TranslationView('), SCREEN.indexOf('function RepeatThisView('));
+    const view = WRITE.slice(WRITE.indexOf('function TranslationView('));
     assert.match(view, /const canHelp = help !== undefined && !isFrenchPrompt;/, 'help is offered where the French is already on screen, or outside practice');
     assert.match(view, /\{canHelp && help\.shown && \(/);
     assert.match(view, /\{exercise\.fr\}/, 'the help shows something other than the exercise\'s own French line');
@@ -639,7 +644,7 @@ describe('help in a practice sitting: the known phrase, recorded so it is never 
 // 2026-10-21 UI-008, simulator check of the Drill in light and dark.
 describe('the drill draws no stray strip and keeps its end figures on one line', () => {
   test('no exercise card carries a top border, which drew as an ink strip across its top', () => {
-    const screen = stripComments(read('./DrillScreen.tsx'));
+    const screen = stripComments(drillSource());
     const card = /exCard: \{([^}]*)\}/.exec(screen);
     assert.ok(card, 'the exercise card style moved; this test is stale');
     assert.doesNotMatch(card[1]!, /borderTop/, 'the exercise card draws a top edge again');

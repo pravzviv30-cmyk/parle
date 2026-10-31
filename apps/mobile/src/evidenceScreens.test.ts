@@ -22,6 +22,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { drillSource } from './testing/drillSource.ts';
 
 import { FRENCH_LIFE_COPY, PROFILE_PURPOSE } from './profile/frenchLife.ts';
 import { FRIENDS_PURPOSE, FRIENDS_NO_POINTS } from './friends/friendsView.ts';
@@ -36,7 +37,7 @@ function stripComments(source: string): string {
 const read = (rel: string): string => stripComments(readFileSync(`${SRC}${rel}`, 'utf8'));
 
 /** Every screen file this pass owns, by directory where the directory is whole. */
-const WHOLE_DIRS = ['drill', 'phrases', 'conversationPacks', 'soundcheck', 'goals', 'profile', 'friends', 'practice'];
+const WHOLE_DIRS = ['drill', 'drill/kinds', 'phrases', 'conversationPacks', 'soundcheck', 'goals', 'profile', 'friends', 'practice'];
 const SINGLE = [
   'DrillScreen.tsx',
   'ReviewScreen.tsx',
@@ -131,7 +132,8 @@ describe('the practice and evidence screens wear the notebook — Phase 4 B2', (
     const reward = read('illustrations/scenes/reward.tsx');
     assert.doesNotMatch(reward, /\bAnimated\b|useSceneMotion|arriveStyle|interpolate/, 'RewardMark moves again');
     assert.match(reward, /export function RewardMark\(/, 'RewardMark is gone, so the drill has no verdict mark');
-    const drill = read('DrillScreen.tsx');
+    // The word chips moved to drill/kinds/shared.tsx (drill-b T1); read the drill whole.
+    const drill = stripComments(drillSource());
     assert.doesNotMatch(drill, /WORD_TINT/, 'the drill still names a tint for its word chips');
   });
 

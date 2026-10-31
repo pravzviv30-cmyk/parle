@@ -13,6 +13,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { drillSource, readSrc } from '../testing/drillSource.ts';
 import { answerCurrent, missReason, type DrillExercise, type DrillFeedback, type DrillSessionState } from '@luvani/core';
 
 import { streakGuiltIn } from '../copy/guilt.ts';
@@ -142,7 +143,7 @@ describe('the answer sheet — F759', () => {
     // The drill draws this model and nothing of its own: the sheet's pace is
     // the model's, read with the live screen reader answer, and a sheet that
     // waits carries its own Continue, so the drill's pill count is unchanged.
-    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     assert.match(screen, /const screenReader = useScreenReader\(\);/, 'the drill does not watch the screen reader');
     assert.match(screen, /sheetFor\(\{ verdict: feedback\.verdict, closest: feedback\.closest, advanced: feedback\.advanced, \.\.\.sheetFacts, screenReader \}\)/, 'the sheet on screen is not the model read with the live screen reader');
     assert.match(screen, /const autoAdvanceMs = sheet\?\.autoAdvanceMs \?\? null;/);
@@ -175,7 +176,7 @@ describe('the answer sheet — F759', () => {
     // It is one line, and it reaches a screen reader with the rest.
     assert.doesNotMatch(sheet.reason ?? '', /\n/);
     // The drill hands the current exercise's reason to the sheet, and the sheet draws it.
-    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     assert.match(screen, /reason: missReason\(current, fb\.closest\)/, 'the drill does not hand the sheet a reason');
     const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
     assert.match(sheetFile, /sheet\.reason !== null/, 'the sheet does not draw the reason');
@@ -198,7 +199,7 @@ describe('the answer sheet — F759', () => {
     assert.equal(sheetOf(listened.fb, 'listen-type', false).headline, 'This one comes round again.');
     // One spokenSheet, in the pure module.
     assert.doesNotMatch(stripComments(read('./AnswerSheet.tsx')), /export function spokenSheet/);
-    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     assert.match(screen, /reason: missReason\(current, fb\.closest\)/, 'the reason is not built from the form shown');
   });
 
@@ -244,13 +245,13 @@ describe('the answer sheet — F759', () => {
     assert.match(sheetFile, /\{sheet\.mark && \(/, 'the sheet draws its mark from something other than the model');
     assert.equal((sheetFile.match(/<CheckGlyph\b/g) ?? []).length, 1);
     assert.doesNotMatch(sheetFile, /from '\.\.\/sound\/sfx\.ts'|from '\.\.\/motion\/haptics\.ts'/, 'the sheet plays something itself');
-    const screen = stripComments(read('../DrillScreen.tsx'));
+    const screen = stripComments(drillSource());
     assert.doesNotMatch(screen, /\bplay\(|from '\.\/sound\/sfx\.ts'/, 'the drill plays a sound beside the sheet');
     assert.doesNotMatch(screen, /\b(arrived|soft|celebrate)\(\)/, 'the drill fires a haptic beside the sheet');
     const answer = screen.slice(screen.indexOf('const answer = useCallback('), screen.indexOf('const spoke = useCallback('));
     assert.match(answer, /fireSheet\(sheetFor\(/, 'an answer does not fire its sheet\'s effects');
     // The own-words card: no mark for a retry or a reveal.
-    const view = screen.slice(screen.indexOf('function OwnWordsView('), screen.indexOf('export function DrillScreen('));
+    const view = stripComments(readSrc('drill/kinds/OwnWordsView.tsx'));
     assert.match(view, /\{look\.mark && \(/, 'the own-words card draws its mark from something other than the decision');
   });
 });
