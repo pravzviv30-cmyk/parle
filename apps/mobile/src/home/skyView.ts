@@ -14,6 +14,7 @@
 
 import { sky } from '../palette.ts';
 import { localHour, withinWindow, type HourWindow } from './greeting.ts';
+import { ROWS_FONT_SCALE } from '../game/todayHeroView.ts';
 
 export type SkyTime = 'morning' | 'afternoon' | 'evening' | 'night';
 
@@ -89,4 +90,28 @@ export function cloudPlaces(width: number, greetingRight: number | null): CloudP
     places.push({ left: Math.round(left), top: spec.top, width: Math.round(size), opacity: spec.opacity });
   }
   return places;
+}
+
+/**
+ * Whether the sky's foot has scrolled up under the status bar (fix round 2):
+ * the band's measured height less the bar's own height. Unmeasured, never.
+ */
+export function skyScrolledPast(scrollY: number, sky: { band: number; bar: number } | null): boolean {
+  if (sky === null || !Number.isFinite(scrollY)) return false;
+  return scrollY >= sky.band - sky.bar;
+}
+
+/**
+ * The status bar's content over Today: light while Today is on top and the
+ * sky is still under the bar; once it has scrolled past, the theme's own
+ * (dark on light paper, light in dark mode). Not focused, Today sets none.
+ */
+export function skyBarStyle(input: { focused: boolean; scrolledPast: boolean; themeBar: 'dark' | 'light' }): 'dark' | 'light' | null {
+  if (!input.focused) return null;
+  return input.scrolledPast ? input.themeBar : 'light';
+}
+
+/** Whether a path row puts its trailing action under its words: at accessibility text sizes, the tiles' own cut-off (1.6). */
+export function routeRowStacked(fontScale: number): boolean {
+  return Number.isFinite(fontScale) && fontScale >= ROWS_FONT_SCALE;
 }

@@ -14,7 +14,7 @@
  * `Drift`, which lands at rest under Reduce Motion.
  */
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -24,7 +24,7 @@ import { TopInset } from '../layout.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { Drift } from '../motion/Drift.tsx';
 import { bType, decorative, space, type } from '../theme.ts';
-import { cloudPlaces, greetingLines, type SkyView } from './skyView.ts';
+import { cloudPlaces, greetingLines, skyBarStyle, type SkyView } from './skyView.ts';
 
 /** Where the head box starts across the band (its padding, space(4)): an absolute child and an onLayout x both count from here. */
 const BAND_PAD = 16;
@@ -33,7 +33,7 @@ const DISC = 170;
 const DISC_BLEED = -40;
 
 
-export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, focused = true }: {
+export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, focused = true, scrolledPast = false, onMeasure }: {
   sky: SkyView;
   greeting: { word: string; name: string | null; title: string };
   /** The ProfileButton on the sky's chip. */
@@ -46,19 +46,29 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
   overlap: number;
   /** Light status bar content only while Today is on top (tabs stay mounted). */
   focused?: boolean;
+  /** The sky's foot has scrolled up under the status bar: the theme's own bar style then (`skyBarStyle`). */
+  scrolledPast?: boolean;
+  /** The band's height and the bar's, measured, so the screen can tell when the sky has gone up under it. */
+  onMeasure?: (sky: { band: number; bar: number }) => void;
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const { width } = useWindowDimensions();
+  const barStyle = skyBarStyle({ focused, scrolledPast, themeBar: t.statusBar });
+  const [bar, setBar] = useState<number | null>(null);
+  const [band, setBand] = useState<number | null>(null);
+  useEffect(() => {
+    if (band !== null && bar !== null) onMeasure?.({ band, bar });
+  }, [band, bar, onMeasure]);
   // The greeting's right edge across the band, measured, so no cloud sits on its words.
   const [greetingRight, setGreetingRight] = useState<number | null>(null);
   return (
-    <View style={[s.band, { backgroundColor: sky.ground }]}>
-      {focused ? <StatusBar style="light" /> : null}
+    <View style={[s.band, { backgroundColor: sky.ground }]} onLayout={(event) => setBand(Math.round(event.nativeEvent.layout.height))}>
+      {barStyle !== null ? <StatusBar style={barStyle} /> : null}
       <View {...decorative} pointerEvents="none" style={s.disc}>
         <SkyDisc kind={sky.discKind} size={DISC} color={sky.disc} />
       </View>
-      <TopInset extra={space(2)} />
+      <View onLayout={(event) => setBar(Math.round(event.nativeEvent.layout.height) - space(2))}><TopInset extra={space(2)} /></View>
       <View style={s.head}>
         {/* Behind the greeting's row, right of its words (`cloudPlaces`); the tiles sit under it. */}
         {cloudPlaces(width, greetingRight).map((cloud, index) => (

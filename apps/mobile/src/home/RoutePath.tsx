@@ -6,13 +6,14 @@
  * still draws its own trial route (`wall/WallPlansPage.tsx` TrialTimeline).
  */
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Press } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useB } from '../main/bTheme.tsx';
 import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
 import { routeRowLabel } from './routeRow.ts';
+import { routeRowStacked } from './skyView.ts';
 
 /**
  * One of Today's remaining stops as a flat row (UI-015): the rail (a ring
@@ -40,6 +41,7 @@ export function RouteRow({ mark, last, thumb, thumbGround, eyebrow = null, title
 }) {
   const t = useB();
   const french = titleLang === 'fr' ? frenchText : null;
+  const stacked = routeRowStacked(useWindowDimensions().fontScale);
   return (
     <Press haptic="light" accessibilityRole="button" accessibilityLabel={routeRowLabel({ title, line, action })} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress} glowRadius={ROW_THUMB_RADIUS} style={st.row}>
       <View style={st.rowRail} {...decorative}>
@@ -52,9 +54,11 @@ export function RouteRow({ mark, last, thumb, thumbGround, eyebrow = null, title
           {eyebrow !== null && <Text style={[bType.eyebrow, { color: t.link }]}>{eyebrow}</Text>}
           <Text {...french} style={[bType.heavy16, { color: t.text }]}>{title}</Text>
           {line !== null && <Text style={[bType.note, { color: t.muted }]}>{line}</Text>}
+          {/* At accessibility sizes the action goes under the words, in the same press (`routeRowStacked`). */}
+          {stacked && action !== null && <Text style={[bType.bold14, st.actionUnder, { color: t.text }]}>{action.label}</Text>}
         </View>
         {action !== null
-          ? <Text style={[bType.bold14, st.action, { color: t.text }]}>{action.label}</Text>
+          ? stacked ? null : <Text style={[bType.bold14, st.action, { color: t.text }]}>{action.label}</Text>
           : chevron ? <View {...decorative}><Icon name="chevron-right" size={ROW_CHEVRON} color={t.muted} /></View> : null}
       </View>
     </Press>
@@ -88,4 +92,5 @@ const st = StyleSheet.create({
   thumb: { width: ROW_THUMB, height: ROW_THUMB, borderRadius: ROW_THUMB_RADIUS, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   rowWords: { flex: 1, minWidth: 0 },
   action: { textDecorationLine: 'underline', flexShrink: 0 },
+  actionUnder: { textDecorationLine: 'underline', marginTop: space(1) },
 });

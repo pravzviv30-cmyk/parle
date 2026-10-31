@@ -51,7 +51,7 @@ import { SkyBand } from '../home/SkyBand.tsx';
 import { TodayHeroCard } from '../home/TodayHeroCard.tsx';
 import { FixHero, TodayFailedHero, TodayLoadingHero } from '../home/TodayHeroes.tsx';
 import { TODAY_OVERLAP, TodayLayout } from '../home/TodayLayout.tsx';
-import { skyNow } from '../home/skyView.ts';
+import { skyNow, skyScrolledPast } from '../home/skyView.ts';
 import { loadSavedStarter } from '../onboarding/savedStarter.ts';
 import type { GuestPractice } from '../onboarding/guestModel.ts';
 import { todayItems } from '../daily/catalogue.ts';
@@ -195,6 +195,10 @@ export function HomeTab() {
   // the hero's stop is never drawn twice.
   const stops = todayStops({ fix: fix !== null, review: review !== null });
   const sky = skyNow(Date.now(), t.mode);
+  // Fix round 2: once the sky has scrolled up under the status bar, the bar
+  // takes the theme's own style (`skyBarStyle`), so its clock stays readable.
+  const [skySize, setSkySize] = useState<{ band: number; bar: number } | null>(null);
+  const [scrolledPast, setScrolledPast] = useState(false);
   const starterFor = starter !== null && profile.brain.stats.sessions === 0 ? starter : null;
 
   const fixHero = fix !== null && (
@@ -245,14 +249,15 @@ export function HomeTab() {
     // padded={false}: the sky runs full bleed; TodayLayout pads the body.
     <View style={{ flex: 1 }} onTouchStart={() => setInteracted(true)}
       {...(Platform.OS === 'web' ? { onPointerDownCapture: () => setInteracted(true), onKeyDownCapture: () => setInteracted(true) } : {})}>
-    <ScrollScreen bottom="tab" padded={false} bleedTop>
+    <ScrollScreen bottom="tab" padded={false} bleedTop scrollEventThrottle={32}
+      onScroll={(event) => { const past = skyScrolledPast(event.nativeEvent.contentOffset.y, skySize); if (past !== scrolledPast) setScrolledPast(past); }}>
       <HomeArrival tutorName={tutorNameOf(profile)} ready={!interacted && !unowned && !readFailed && start !== null} />
       {/* The habit first: TodayStats reads the game layer itself, and draws
           nothing it could not read rather than a nought. */}
       <TodayStats sky={sky}>
         {({ tiles, nudge }) => (
           <TodayLayout
-            sky={<SkyBand sky={sky} greeting={greeting} profile={<ProfileButton ground={sky.chip} />} stats={tiles} nudge={nudge} overlap={TODAY_OVERLAP} focused={focused} />}
+            sky={<SkyBand sky={sky} greeting={greeting} profile={<ProfileButton ground={sky.chip} />} stats={tiles} nudge={nudge} overlap={TODAY_OVERLAP} focused={focused} scrolledPast={scrolledPast} onMeasure={setSkySize} />}
             hero={heroCard}
             pathTitle={TODAY_COPY.path}
             rows={rows}

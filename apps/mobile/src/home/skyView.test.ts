@@ -83,3 +83,41 @@ describe('the clouds sit in the top of the sky — fix round 1', () => {
     assert.ok(band.indexOf('cloudPlaces(') < band.indexOf('accessibilityRole="header"'), 'a cloud is drawn over the greeting');
   });
 });
+
+describe('the status bar over Today, and path rows at large text — fix round 2', () => {
+  test('light over the sky; the theme bar once the sky has scrolled under it; none while Today is not on top', async () => {
+    const { skyBarStyle, skyScrolledPast } = await import('./skyView.ts');
+    assert.equal(skyBarStyle({ focused: true, scrolledPast: false, themeBar: 'dark' }), 'light');
+    assert.equal(skyBarStyle({ focused: true, scrolledPast: true, themeBar: 'dark' }), 'dark', 'white icons over white paper');
+    assert.equal(skyBarStyle({ focused: true, scrolledPast: true, themeBar: 'light' }), 'light');
+    assert.equal(skyBarStyle({ focused: false, scrolledPast: false, themeBar: 'dark' }), null);
+    const size = { band: 300, bar: 62 };
+    assert.equal(skyScrolledPast(0, size), false);
+    assert.equal(skyScrolledPast(237, size), false);
+    assert.equal(skyScrolledPast(238, size), true);
+    assert.equal(skyScrolledPast(500, null), false, 'an unmeasured sky is called scrolled past');
+    const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
+    assert.match(band, /const barStyle = skyBarStyle\(\{ focused, scrolledPast, themeBar: t\.statusBar \}\);/);
+    assert.match(band, /\{barStyle !== null \? <StatusBar style=\{barStyle\} \/> : null\}/);
+    assert.doesNotMatch(band, /<StatusBar style="light"/, 'the sky still pins the bar light');
+    const home = readFileSync(new URL('../tabs/HomeTab.tsx', import.meta.url), 'utf8');
+    assert.match(home, /onScroll=\{\(event\) => \{ const past = skyScrolledPast\(event\.nativeEvent\.contentOffset\.y, skySize\); if \(past !== scrolledPast\) setScrolledPast\(past\); \}\}/, 'the state is not set only when it changes');
+    assert.match(home, /scrolledPast=\{scrolledPast\} onMeasure=\{setSkySize\}/);
+  });
+
+  test('at accessibility text sizes a row puts its action under the words, inside the one press', async () => {
+    const { routeRowStacked } = await import('./skyView.ts');
+    const { ROWS_FONT_SCALE } = await import('../game/todayHeroView.ts');
+    assert.equal(routeRowStacked(1.0), false);
+    assert.equal(routeRowStacked(1.59), false);
+    assert.equal(routeRowStacked(ROWS_FONT_SCALE), true);
+    assert.equal(routeRowStacked(2.2), true);
+    assert.equal(routeRowStacked(Number.NaN), false);
+    const row = readFileSync(new URL('./RoutePath.tsx', import.meta.url), 'utf8');
+    assert.match(row, /const stacked = routeRowStacked\(useWindowDimensions\(\)\.fontScale\);/);
+    const words = row.slice(row.indexOf('<View style={st.rowWords}>'), row.indexOf('{action !== null'));
+    assert.match(words, /\{stacked && action !== null && <Text[^>]*>\{action\.label\}<\/Text>\}/, 'the action is not under the words');
+    assert.match(row, /\? stacked \? null : <Text/, 'the action is drawn twice at large text');
+    assert.equal((row.match(/<Press\b/g) ?? []).length, 1, 'the row is no longer one press');
+  });
+});
