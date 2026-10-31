@@ -103,23 +103,6 @@ export function todayHeroView(facts: TodayHeroFacts): TodayHeroView | null {
   };
 }
 
-/**
- * The stats row's three tiles (2026-10-20, B5, B-Today): "3 days" over
- * "streak", "6 of 10" over "min today" (or "6 min" over "today" with no goal
- * chosen), and "XP level 2" over "140 XP" (F858). With no run there is no number and no
- * streak word: "Practice" over "not yet today" (B5 learning-science review). The spoken labels stay the hero's own.
- */
-export function statTiles(hero: TodayHeroView, xpTotal: number): Record<'streak' | 'goal' | 'level', { value: string; label: string }> {
-  const count = hero.flame.count;
-  return {
-    streak: count === null ? { value: 'Practice', label: 'not yet today' } : { value: streakDays(count), label: 'streak' },
-    goal: hero.goal.target === null
-      ? { value: `${minutesWords(hero)} min`, label: 'today' }
-      : { value: `${minutesWords(hero)} of ${hero.goal.target}`, label: 'min today' },
-    level: { value: GAME_COPY.level.title(hero.level.level), label: GAME_COPY.level.total(whole(xpTotal)) },
-  };
-}
-
 /** "Under 1" while less than a minute was measured, so a short live sitting never reads nought (F918). */
 export const UNDER_A_MINUTE = 'Under 1';
 const minutesWords = (hero: TodayHeroView): string => (hero.goal.underAMinute === true ? UNDER_A_MINUTE : String(hero.goal.minutes));

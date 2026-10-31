@@ -1,7 +1,7 @@
 /**
  * Today's stats as the sky draws them (UI-015): the container that reads the
  * game layer and hands the presentational `TodayStatTiles` what to draw. Every
- * behaviour is `TodayHero`'s, moved here so the tiles can be previewed:
+ * behaviour is the retired stats-row hero's, moved here so the tiles can be previewed:
  *
  * - coming into focus asks the game layer to catch up quietly (F766), and the
  *   day turning while Today is on top asks again;

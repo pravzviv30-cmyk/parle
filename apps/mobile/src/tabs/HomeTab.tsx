@@ -1,41 +1,36 @@
 import { tutorVoiceOf } from '../tutor/tutorVoice.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { c } from '../onboarding/boldRhythm.ts';
 import { HomeArrival } from '../onboarding/HomeArrival.tsx';
 import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 /**
- * Today, drawn to B-Today (2026-10-20, B5; rebuilt to the artboard in light
- * and dark, 2026-10-20 UI-008; the path since 2026-10-29, F934): the
- * greeting, the stats row, Today's path, today's three quests, Coming up, and
- * the week in French, 22pt apart.
+ * Today, drawn to UI-015 (direction A's morning sky over today's path,
+ * 2026-10-31; before it B-Today, UI-008, and the path, F934): the sky band,
+ * one hero card overlapping it, Today's path, today's three quests, Coming up,
+ * and the week in French.
  *
- * The page opens on a still "Bonjour, Name." (or "Bonjour.") with the avatar.
- * Under it, `game/TodayHero` reads the game layer on its own and draws the
- * stats row: the streak, today's goal ring in measured minutes, and the level
- * with its XP. It draws nothing it could not read.
+ * The sky (`home/SkyBand`) follows the hour (`skyNow`) and carries the still
+ * greeting ("Bonjour, Name." or "Bonsoir, Name.", the word alone with no name),
+ * the profile button, and the three stat tiles and nudge that
+ * `game/TodayStats` reads from the game layer on its own. It draws nothing it
+ * could not read. There is no TabHeader on Today; the other tabs keep theirs.
  *
- * Until storage answers, the rest draws still sand blocks shaped like the page
- * and nothing else, so no card is drawn before the lead it sits under. A
- * refresh keeps what is drawn until the new read lands (F768): only a read for
- * an account nothing was drawn for brings the sand back.
+ * Until storage answers, the hero and the page under it are still sand blocks
+ * shaped like the page and nothing else, so no card is drawn before the lead
+ * it sits under. A refresh keeps what is drawn until the new read lands
+ * (F768): only a read for an account nothing was drawn for brings the sand back.
  *
- * Then "Today's path" (F934, LR-17, founder decision 6; DECISIONS UI-012),
- * stops on Luvani's route motif (`home/RoutePath.tsx`), each with its time:
- * retry your last fix (only with one, behind the trial's lock through the one
- * access seam), the shared `NextTaskCard` as the next scene (or the plans
- * card when a trial cannot start, the starter card, or the offline card; one
- * rule, `todayLead`), and say today's phrase; plus "Review N phrases" when
- * Review would deal cards. Under the path: today's three quests
- * (`game/QuestsCard`); Coming up, from the latest life event the tutor
- * remembers (hidden with none, and for this app session after Not now); and
- * the week in French when the week has evidence, with the way into the weekly
- * recap. "Where you're starting" and the friends card left with UI-008: the
- * stages live on Journey, and friends on their own screen.
- *
- * The four momentum tiles, the seven-dot rail, the "More for today" sheet and
- * every rank name left this page. What has been earned is My French's to
- * draw; the content standing is read here only to pitch the daily pool. All
- * data is re-read on focus with one clock.
+ * `todayStops` (UI-012 order: fix, scene, phrase, review) picks the hero and
+ * the rows. The hero is the fix when there is one (behind the trial's lock
+ * through the one access seam), otherwise the shared `NextTaskCard` lead
+ * (`todayLead`: the scene, plans, starter, explore or offline). The rows are
+ * the stops after it on Luvani's route rail (`home/RoutePath.tsx` `RouteRow`),
+ * so the hero's stop is never drawn twice: the scene, today's phrase, and
+ * "Review N phrases" when Review would deal cards. Under the path: today's
+ * three quests (`game/QuestsCard`); Coming up, from the latest life event the
+ * tutor remembers (hidden with none, and for this app session after Not now);
+ * and the week in French when the week has evidence. What has been earned is
+ * My French's to draw; the content standing is read here only to pitch the
+ * daily pool. All data is re-read on focus with one clock.
  */
 
 import { useCallback, useRef, useState } from 'react';
@@ -44,17 +39,21 @@ import { memoryPaused } from '@luvani/brain/profile';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp, type DrillExercise, type ReviewCard } from '@luvani/core';
 
-import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { HIT, bType, decorative, radius, space, type } from '../theme.ts';
-import { Card, IconAction, LockBadge, PillButton, Skeleton } from '../components.tsx';
+import { IconAction, LockBadge, PillButton, Skeleton } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { BButton, BMic, ComingUpCard, OutlineLock, WeekCard } from '../today/TodayParts.tsx';
+import { BButton, BMic, ComingUpCard, OutlineLock, SectionTitle, WeekCard } from '../today/TodayParts.tsx';
 import { visibleFacts } from '../profile/memory.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { RouteNode } from '../home/RoutePath.tsx';
+import { RouteRow } from '../home/RoutePath.tsx';
+import { BArt } from '../art/BArt.tsx';
+import { SkyBand } from '../home/SkyBand.tsx';
+import { TodayHeroCard } from '../home/TodayHeroCard.tsx';
+import { TODAY_OVERLAP, TodayLayout } from '../home/TodayLayout.tsx';
+import { skyNow } from '../home/skyView.ts';
 import { loadSavedStarter } from '../onboarding/savedStarter.ts';
 import type { GuestPractice } from '../onboarding/guestModel.ts';
-import { DailyCard } from '../daily/DailyCard.tsx';
 import { todayItems } from '../daily/catalogue.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { goalOf } from '../onboarding/goalLine.ts';
@@ -75,12 +74,12 @@ import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { firstNameOf } from '../tutor/dashboard.ts';
 import { useHomeRefresh } from '../home/useHomeRefresh.ts';
 import { refreshClears } from '../home/homeRefresh.ts';
-import { TodayHero } from '../game/TodayHero.tsx';
+import { TodayStats } from '../game/TodayStats.tsx';
 import { QuestsCard } from '../game/QuestsCard.tsx';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import { madeFromConversations, type Replay } from '../practice/madeFrom.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, pathStep, reviewRow, startingPoint, weekInFrench, type StartingPoint } from '../home/todayView.ts';
+import { COMING_UP_COPY, TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, reviewRow, rowMarks, startingPoint, todayStops, weekInFrench, type StartingPoint } from '../home/todayView.ts';
 import type { ConversationPack } from '@luvani/core';
 
 export function HomeTab() {
@@ -192,14 +191,19 @@ export function HomeTab() {
   // The review row (F934): only when Review would deal cards, by Review's own deal.
   const review = reviewDeck === null ? null : reviewRow(reviewDeck, Date.now(), locks.access('conversationPractice'));
   const three = <QuestsCard />;
-  const fixCard = fix !== null && (
-    <View style={st.fix}>
-      {/* The stop above names the fix; the card keeps only its lock. */}
-      {fix.locked && <View style={st.fixHead}><LockBadge feature="fixes" said /></View>}
-      <View style={st.ask}>
-        <Text style={[bType.note, { color: t.muted }]}>{TODAY_COPY.fixAsk}</Text>
-        <Text style={[bType.bold20, { color: t.text }]}>{fix.english}</Text>
-      </View>
+  // One rule picks the hero and the rows under it (UI-012 order, UI-015), so
+  // the hero's stop is never drawn twice.
+  const stops = todayStops({ fix: fix !== null, review: review !== null });
+  const sky = skyNow(Date.now(), t.mode);
+  const starterFor = starter !== null && profile.brain.stats.sessions === 0 ? starter : null;
+
+  const fixHero = fix !== null && (
+    <>
+      <Text accessibilityRole="header" style={[bType.eyebrow, { color: t.link }]}>{TODAY_COPY.fix}</Text>
+      {fix.locked && <View style={st.lockRow}><LockBadge feature="fixes" said /></View>}
+      <Text style={[bType.note, { color: t.muted }]}>{TODAY_COPY.fixAsk}</Text>
+      <Text style={[bType.bold20, { color: t.text }]}>{fix.english}</Text>
+      {/* What shows after the try, on the inset panel with the outline lock. */}
       <View style={st.after}>
         <View {...decorative}><OutlineLock size={18} color={t.muted} /></View>
         <Text style={[bType.note, st.grow, { color: t.muted }]}>{fix.after}</Text>
@@ -214,88 +218,103 @@ export function HomeTab() {
         icon={<BMic size={18} color={t.onPrimary} />}
         onPress={() => tapThrough(locks.access, fix.feature, locks.open, () => nav.navigate(fix.route.screen, fix.route.params))}
       />
-    </View>
+    </>
   );
 
+  // HomeLoading: the storage read has not answered, so still sand blocks
+  // shaped like the page (the hero, the path's rows, the three), and nothing else.
+  const loading = hero === null || unowned;
+  const failedHero = !unowned && readFailed;
+  const heroCard = failedHero ? (
+    <TodayHeroCard>
+      <Text accessibilityRole="header" style={[type.bodyStrong, { color: t.text }]}>Your next scene could not be loaded.</Text>
+      <Text style={[type.body, { color: t.muted }]}>We could not check your saved work. Today's phrase is available on this phone while we try again.</Text>
+      <PillButton label="Practise today's phrase" onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
+      <IconAction layout="inline" icon="refresh" label="Try loading my scenes again" onPress={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
+    </TodayHeroCard>
+  ) : loading ? (
+    <Skeleton blocks={[{ height: 262, radius: radius.feature }, { height: 168, radius: radius.card }, { height: 196, radius: radius.card }]} />
+  ) : (
+    <TodayHeroCard>
+      {stops.hero === 'fix' ? fixHero : <NextTaskCard vivid placement="hero" starter={starterFor} />}
+    </TodayHeroCard>
+  );
+
+  // Today's path (F934, LR-17, founder decision 6; UI-015): the stops after
+  // the hero, as flat rows, the last one ending the rail.
+  const rows = failedHero || loading ? null : rowMarks(stops.rows).map(({ row, last }) => {
+    if (row === 'scene') return <NextTaskCard key="scene" vivid placement="row" last={last} starter={starterFor} />;
+    if (row === 'phrase') {
+      return (
+        <RouteRow key="phrase" mark={last ? 'end' : 'stop'} last={last}
+          thumb={<BArt name="voice-chat" width={ROW_ART} height={ROW_ART} />} thumbGround={t.lavender}
+          eyebrow={TODAY_COPY.phrase} title={daily.phrase.fr ?? daily.phrase.en} titleLang={daily.phrase.fr ? 'fr' : undefined} line={daily.phrase.fr ? daily.phrase.en : null}
+          action={{ label: TODAY_COPY.sayRow }}
+          onPress={() => nav.navigate(TODAY_ROUTES.phrase, { id: daily.phrase.id })} />
+      );
+    }
+    if (row === 'review' && review !== null) {
+      return (
+        <RouteRow key="review" mark={last ? 'end' : 'stop'} last={last}
+          thumb={<BArt name="phrasebook" width={ROW_ART} height={ROW_ART} />} thumbGround={t.sage}
+          title={review.title} line={review.line}
+          action={{ label: TODAY_COPY.practise }}
+          onPress={() => nav.navigate('Review')} />
+      );
+    }
+    return null;
+  });
+
   return (
-    // bottom="tab": the tab bar owns the bottom edge.
+    // bottom="tab": the tab bar owns the bottom edge. bleedTop and
+    // padded={false}: the sky runs full bleed; TodayLayout pads the body.
     <View style={{ flex: 1 }} onTouchStart={() => setInteracted(true)}
       {...(Platform.OS === 'web' ? { onPointerDownCapture: () => setInteracted(true), onKeyDownCapture: () => setInteracted(true) } : {})}>
-    <ScrollScreen bottom="tab" ground={c.paper} topGap={8}>
+    <ScrollScreen bottom="tab" padded={false} bleedTop>
       <HomeArrival tutorName={tutorNameOf(profile)} ready={!interacted && !unowned && !readFailed && start !== null} />
-      <View style={st.page}>
-        <View style={st.head}>
-          <TabHeader title={greeting.title} trailing={<ProfileButton />} />
-        </View>
-
-        {/* The habit first: it reads the game layer itself, and draws nothing
-            it could not read rather than a nought. */}
-        <TodayHero />
-        {/* HomeLoading: the storage read has not answered, so still sand blocks
-            shaped like the page, and nothing else. */}
-        {!unowned && readFailed ? (
-          <Card style={{ gap: space(3) }}>
-            <Text style={[type.bodyStrong, { color: t.text }]}>Your next scene could not be loaded.</Text>
-            <Text style={[type.body, { color: t.muted }]}>We could not check your saved work. Today's phrase is available on this phone while we try again.</Text>
-            <PillButton label="Practise today's phrase" onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
-            <IconAction layout="inline" icon="refresh" label="Try loading my scenes again" onPress={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
-          </Card>
-        ) : hero === null || unowned ? (
-          <Skeleton blocks={[{ height: 220, radius: radius.card }, { height: 262, radius: radius.feature }, { height: 168, radius: radius.feature }, { height: 196, radius: radius.card }]} />
-        ) : (
-          <View style={st.page}>
-            {/* Today's path (F934, LR-17, founder decision 6): retry the fix,
-                the next scene, say today's phrase, each with its time, and a
-                review row when Review would deal cards. The quotas, Coming up
-                and the week sit under it. */}
-            <View>
-              <Text accessibilityRole="header" style={[bType.eyebrow, st.pathHead, { color: t.muted }]}>{TODAY_COPY.path}</Text>
-              {fix !== null && fixCard && <RouteNode mark="start" last={false} {...pathStep('fix')}>{fixCard}</RouteNode>}
-              <NextTaskCard vivid step={{ mark: fix === null ? 'start' : 'stop', last: false }} starter={starter !== null && profile.brain.stats.sessions === 0 ? starter : null} />
-              <RouteNode mark={review === null ? 'end' : 'stop'} last={review === null} {...pathStep('phrase')}>
-                <DailyCard item={daily.phrase} variant="today" />
-              </RouteNode>
-              {review !== null && (
-                <RouteNode mark="end" last title={review.title} line={review.line}>
-                  <PillButton label="Practise review" onPress={() => nav.navigate('Review')} />
-                </RouteNode>
-              )}
-            </View>
-
-            {three}
-
-            {event !== null && (
-              <ComingUpCard
-                view={event}
-                voice={tutorVoiceOf(profile)}
-                onRehearse={() => tapThrough(locks.access, event.feature, locks.open, () => nav.navigate(event.route.screen, event.route.params))}
-                onNotNow={() => { dismissComingUp(event.key); setHidden((n) => n + 1); }}
-              />
+      {/* The habit first: TodayStats reads the game layer itself, and draws
+          nothing it could not read rather than a nought. */}
+      <TodayStats sky={sky}>
+        {({ tiles, nudge }) => (
+          <TodayLayout
+            sky={<SkyBand sky={sky} greeting={greeting} profile={<ProfileButton ground={sky.chip} />} stats={tiles} nudge={nudge} overlap={TODAY_OVERLAP} focused={focused} />}
+            hero={heroCard}
+            pathTitle={TODAY_COPY.path}
+            rows={rows}
+            three={failedHero || loading ? null : three}
+            comingUp={failedHero || loading || event === null ? null : (
+              <View style={st.section}>
+                <SectionTitle title={COMING_UP_COPY.title} />
+                <ComingUpCard
+                  view={event}
+                  voice={tutorVoiceOf(profile)}
+                  onRehearse={() => tapThrough(locks.access, event.feature, locks.open, () => nav.navigate(event.route.screen, event.route.params))}
+                  onNotNow={() => { dismissComingUp(event.key); setHidden((n) => n + 1); }}
+                />
+              </View>
             )}
-
-            {week !== null && (
-              <WeekCard eyebrow={TODAY_COPY.week} sentence={week} link={TODAY_COPY.seeWeek} onLink={() => nav.navigate(TODAY_ROUTES.week)} />
+            week={failedHero || loading || week === null ? null : (
+              <View style={st.section}>
+                <SectionTitle title={TODAY_COPY.week} />
+                <WeekCard sentence={week} link={TODAY_COPY.seeWeek} onLink={() => nav.navigate(TODAY_ROUTES.week)} />
+              </View>
             )}
-          </View>
+          />
         )}
-      </View>
+      </TodayStats>
     </ScrollScreen>
     </View>
   );
 }
 
+/** The drawing inside a row's 52pt thumb. */
+const ROW_ART = 40;
+
 const makeStyles = (t: B) =>
   StyleSheet.create({
-    // The artboard's 22pt rhythm between every block; the shared header keeps
-    // its own 20pt foot, so it is pulled back to the same 22.
-    head: { position: 'relative', marginBottom: -space(5) },
-    page: { gap: 22 },
-    pathHead: { marginBottom: space(3) },
+    section: { gap: space(3) },
     grow: { flex: 1, minWidth: 0 },
-    // One fix to try: the white card with the 2pt mint edge (radius 26, padding 18).
-    fix: { gap: space(3), backgroundColor: t.card, borderRadius: 26, padding: 18, borderWidth: 2, borderColor: t.mint },
-    fixHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space(2) },
-    ask: { gap: space(1) },
-    // The locked note: the inset panel with the outline lock.
+    lockRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2) },
+    // The after-the-try note: the inset panel with the outline lock.
     after: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: HIT, backgroundColor: t.inset, borderRadius: 14, paddingVertical: 10, paddingHorizontal: space(3) },
   });

@@ -57,10 +57,11 @@ describe("Home's nudge line — F767", () => {
       assert.doesNotMatch(line, /\bin a row\b|\bmissed\b|\blose\b|\bbefore midnight\b|\bhours?\b/i, `"${line}" threatens or counts down`);
     }
 
-    // The hero draws it under itself, and only when there is one.
-    const hero = readFileSync(new URL('../game/TodayHero.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    // UI-015: TodayStats.tsx reads it (as TodayHero.tsx did) and the sky draws
+    // it under the tiles, and only when there is one, in onBrand on the sky.
+    const hero = readFileSync(new URL('../game/TodayStats.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
     assert.match(hero, /const nudge = homeNudge\(run\);/);
-    // 2026-10-20 UI-008, artboard B-Today: in the theme's text colour, so it reads in dark too.
-    assert.match(hero, /\{nudge !== null \? <Text style=\{\[type\.body, \{ color: t\.text \}\]\}>\{nudge\}<\/Text> : null\}/);
+    const sky = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    assert.match(sky, /\{nudge !== null \? <Text style=\{\[type\.body, \{ color: t\.onBrand \}\]\}>\{nudge\}<\/Text> : null\}/);
   });
 });

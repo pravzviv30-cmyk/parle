@@ -1892,54 +1892,6 @@ export function ColourCard({
 }
 
 /**
- * A number and one plain line (SNIPPETS stat-tile), on a colour ground or on
- * paper. One phrase to a screen reader: "1 min 12, longest stretch in French".
- */
-export function StatTile({ value, label, mark, compact = false, valueNode }: {
-  value: string;
-  label: string;
-  /**
-   * What is drawn in the number's place when it moves (B5, 2026-10-20: Today's
-   * count-ups). `value` is still what a screen reader hears.
-   */
-  valueNode?: ReactNode;
-  /**
-   * A decorative disc above the number, as on Today's stats row (B0,
-   * 2026-10-20). Hidden from a screen reader: the value and label say it. A
-   * ring or bar that means something must be labelled by its caller instead.
-   */
-  mark?: ReactNode;
-  /** The smaller, centred cut that sits three to a `StatRow` card. */
-  compact?: boolean;
-}) {
-  const t = useB();
-  const b = useThemedStyles(makeB);
-  return (
-    <View style={compact ? b.statCompact : b.statTile} accessible accessibilityLabel={`${value}, ${label}`}>
-      {mark ? <View {...decorative}>{mark}</View> : null}
-      {valueNode ?? <Text style={[compact ? b.statCompactValue : type.stat, { color: t.text }]}>{value}</Text>}
-      <Text style={[compact ? b.statCompactLabel : type.small, { color: t.muted }]}>{label}</Text>
-    </View>
-  );
-}
-
-/**
- * Three stats in one white card, three equal columns (B-Today's stats row, B0
- * 2026-10-20). It lays out `StatTile compact` children and draws nothing of
- * its own; a column's words wrap rather than shrink at a large reading size.
- */
-export function StatRow({ children }: { children: ReactNode }) {
-  const b = useThemedStyles(makeB);
-  return (
-    <View style={b.statRow}>
-      {Children.toArray(children).map((child, i) => (
-        <View key={i} style={b.statColumn}>{child}</View>
-      ))}
-    </View>
-  );
-}
-
-/**
  * A small pill (B0, 2026-10-20), lifted from the archive's filter row so every
  * chip is one part.
  *
@@ -2285,12 +2237,6 @@ const makeB = (t: B) => StyleSheet.create({
   roundFrame: { alignSelf: 'flex-start' },
   roundRow: { flexDirection: 'row', alignItems: 'center', gap: space(3.5) },
   roundDisc: { alignItems: 'center', justifyContent: 'center' },
-  statTile: { backgroundColor: t.card, borderRadius: radius.tile, padding: space(4), gap: space(1.5) },
-  statCompact: { alignItems: 'center', gap: space(1.5) },
-  statCompactValue: { ...type.statSm, textAlign: 'center' },
-  statCompactLabel: { ...type.caption, textAlign: 'center' },
-  statRow: { flexDirection: 'row', gap: space(1.5), backgroundColor: t.card, borderRadius: radius.card, paddingVertical: space(3.5), paddingHorizontal: space(3) },
-  statColumn: { flex: 1, minWidth: 0 },
   // The touch floor is the height, not the padding, so a chip stays reachable
   // whatever the reading size does to the word inside it.
   filterChip: {
@@ -2810,8 +2756,8 @@ export function Choice({
 
 // ─────────────────────────────────────────────────────── the lip tile (UI-015)
 
-/** The fills a lip tile may take, each the `useB()` token of the same name. */
-export type LipTone = 'card' | 'mint' | 'butter' | 'lavender' | 'sage' | 'peach';
+/** The fills a lip tile may take, each the `useB()` token of the same name (`mintWash` for drill B's right answer). */
+export type LipTone = 'card' | 'mint' | 'mintWash' | 'butter' | 'lavender' | 'sage' | 'peach';
 /** The two sizes: the stat tile, and a smaller chip (word chips, grades). */
 export const LIP_SIZES = {
   tile: { radius: radius.stat, lip: 4 },

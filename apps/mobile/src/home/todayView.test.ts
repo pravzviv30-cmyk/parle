@@ -247,7 +247,7 @@ describe('Coming up, 2026-10-20 UI-008, artboard B-Today', () => {
     ];
     const card = comingUp({ facts, paused: false, tutorName: 'Tutor', access: open, now: CU_NOW });
     assert.ok(card !== null);
-    assert.equal(card.title, 'Coming up: dinner in Lyon');
+    assert.equal(card.title, 'Dinner in Lyon', 'the section title says Coming up, so the line is the event alone (UI-015)');
     assert.equal(card.when, 'Friday, Tutor remembers');
     assert.doesNotMatch(card.when, /\baway\b|\bdays?\b|·/, 'a countdown is drawn with no date to count from');
     assert.equal(card.locked, false);
@@ -297,7 +297,7 @@ describe('Coming up, 2026-10-20 UI-008, artboard B-Today', () => {
     dismissComingUp(card.key);
     assert.equal(comingUp({ facts: first, paused: false, tutorName: 'A', access: open, now: CU_NOW }), null, 'Not now did not hide the card');
     const newer = [...first, fact('a trip to Nice', '2026-10-19T10:00:00.000Z', 'next week')];
-    assert.equal(comingUp({ facts: newer, paused: false, tutorName: 'A', access: open, now: CU_NOW })!.title, 'Coming up: a trip to Nice');
+    assert.equal(comingUp({ facts: newer, paused: false, tutorName: 'A', access: open, now: CU_NOW })!.title, 'A trip to Nice');
     // A new app session (a fresh module state) shows it again: nothing is stored.
     resetComingUpSession();
     assert.ok(comingUp({ facts: first, paused: false, tutorName: 'A', access: open, now: CU_NOW }) !== null);

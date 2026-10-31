@@ -193,10 +193,9 @@ export function ComingUpCard({ view, voice, onRehearse, onNotNow }: {
 
 /**
  * Your week in French (flattened for UI-015): one card under the caller's
- * section title, the sentence and the See your week link. `eyebrow` is kept
- * for callers that still pass it; the title is drawn outside now.
+ * section title, the sentence and the See your week link.
  */
-export function WeekCard({ sentence, link, onLink }: { eyebrow?: string; sentence: string; link: string; onLink: () => void }) {
+export function WeekCard({ sentence, link, onLink }: { sentence: string; link: string; onLink: () => void }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (

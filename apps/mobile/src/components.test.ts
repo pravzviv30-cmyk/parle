@@ -370,7 +370,7 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     'CheckGlyph',
     'RoundButton',
     'ColourCard',
-    'StatTile',
+    // StatTile left with Today's old stats row (UI-015); Today's tiles are LipTile.
     'HeroNumber',
     'OptionRow',
     'Sheet',
@@ -788,9 +788,12 @@ describe('the B parts keep their promises — F597', () => {
     assert.ok(card.indexOf('if (onPress != null)') !== -1 && card.indexOf('if (onPress != null)') < card.indexOf('<Press'), 'the card presses without being given somewhere to go');
     assert.match(card, /return <View style=\{surface\}>/, 'a card with no onPress is not a plain view');
 
-    const tile = part('StatTile');
-    assert.match(tile, /type\.stat/, 'the tile\'s number is not the stat style');
-    assert.match(tile, /accessible accessibilityLabel=\{`\$\{value\}, \$\{label\}`\}/, 'the tile is read as two loose lines rather than one phrase');
+    // UI-015: StatTile and StatRow left with Today's old stats row. A stat tile
+    // still reads as one phrase: Today's tiles are the shared LipTile with one label.
+    assert.equal(componentsSource().indexOf('export function StatTile('), -1, 'the retired StatTile is back');
+    assert.equal(componentsSource().indexOf('export function StatRow('), -1, 'the retired StatRow is back');
+    const tiles = readFileSync(new URL('./game/TodayStatTiles.tsx', import.meta.url), 'utf8');
+    assert.match(tiles, /<LipTile lip=\{lip\} onPress=\{onPress\} accessibilityLabel=\{label\}/, 'a stat tile is read as loose lines rather than one phrase');
 
     const hero = part('HeroNumber');
     assert.match(hero, /type\.hero/, 'the number is not the hero style');

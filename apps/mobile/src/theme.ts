@@ -94,8 +94,6 @@ export const type = {
   button: { fontFamily: font.semiBold, fontSize: 16, lineHeight: 20 },
   /** Metadata lines, captions, and the English under a French line. */
   small: { fontFamily: font.medium, fontSize: 14, lineHeight: 20 },
-  /** The number in a compact stat, three to a `StatRow` (B-Today, B0 2026-10-20). */
-  statSm: { fontFamily: font.bold, fontSize: 17, lineHeight: 20 },
   /** The line under a compact stat (B-Today, B0 2026-10-20). */
   caption: { fontFamily: font.medium, fontSize: 12, lineHeight: 16 },
   /** The words of a lock badge (v82 artboards, B0 2026-10-20). */

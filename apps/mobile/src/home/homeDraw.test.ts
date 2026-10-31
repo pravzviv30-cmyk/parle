@@ -140,7 +140,8 @@ describe("Home's numbers on a mounted Home — F767", () => {
     assert.equal(drawMoved(evening, morning), true);
 
     // The cards key every counter on its mount and draw only from the draw.
-    const hero = read('../game/TodayHero.tsx');
+    // UI-015: TodayHero.tsx's counters moved to TodayStatTiles.tsx.
+    const hero = read('../game/TodayStatTiles.tsx');
     for (const key of ['run', 'ring', 'level']) assert.match(hero, new RegExp(`key=\\{\`${key}-\\$\\{\\w+\\.mount\\}\`\\}`), `the hero's ${key} is not keyed on its mount`);
     assert.doesNotMatch(hero, /\bfrom=\{[^}]*\?\?/, 'a counter starts from a fallback guess');
     const quests = read('../game/QuestsCard.tsx');
@@ -215,7 +216,8 @@ describe("Home's numbers on a mounted Home — F767", () => {
 
     // The hero asks the game layer again when the day turns while Home is on
     // top, so midnight's new ring and quests arrive without leaving the tab.
-    const hero = read('../game/TodayHero.tsx');
+    // UI-015: TodayHero.tsx's day-turn refresh moved to TodayStats.tsx unchanged.
+    const hero = read('../game/TodayStats.tsx');
     assert.match(hero, /if \(dayTurned\(today, Date\.now\(\)\)\) refresh\(\);/, 'the hero keeps yesterday after midnight');
     assert.match(hero, /\}, DAY_CHECK_MS\);/);
   });

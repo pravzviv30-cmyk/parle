@@ -186,6 +186,10 @@ export const TODAY_COPY = {
   fixAction: 'Say it better, then compare',
   phrase: "Today's phrase",
   sayIt: 'Say it yourself',
+  /** The phrase row's action on Today's path (UI-015). */
+  sayRow: 'Say it',
+  /** The review row's action on Today's path (UI-015). */
+  practise: 'Practise',
   week: 'Your week in French',
   seeWeek: 'See your week',
   todayScene: "Today's scene",
@@ -224,6 +228,19 @@ export function sceneEyebrow(hero: HomeMission): string {
 /** Under the title on Today's card, only the scene's length: "About 3 minutes" (founder, 2026-10-29). */
 export function sceneTime(hero: Pick<HomeMission, 'minutes'>): string {
   return aboutMinutes(hero.minutes);
+}
+
+/** The scene as a row on Today's path (UI-015, when the fix is the hero): its place, then its length. */
+export function sceneRowLine(hero: HomeMission): string {
+  return `${sceneEyebrow(hero)}. ${sceneTime(hero)}`;
+}
+
+/** Each row's stop mark: the ink end dot on the last row, a ring before it. */
+export function rowMarks<T>(rows: readonly T[]): { row: T; mark: 'stop' | 'end'; last: boolean }[] {
+  return rows.map((row, index) => {
+    const last = index === rows.length - 1;
+    return { row, mark: last ? 'end' : 'stop', last };
+  });
 }
 
 /**
@@ -387,6 +404,7 @@ export function weekInFrench(input: { packs: readonly ConversationPack[]; deck: 
  * =========================================================================== */
 
 export const COMING_UP_COPY = {
+  title: 'Coming up',
   rehearse: 'Rehearse now',
   notNow: 'Not now',
 } as const;
@@ -454,7 +472,8 @@ export function comingUp(input: {
   const remembers = `${input.tutorName} remembers`;
   return {
     key,
-    title: `Coming up: ${en}`,
+    // The section title outside the card says "Coming up" (UI-015), so the line is the event alone.
+    title: `${en.charAt(0).toLocaleUpperCase()}${en.slice(1)}`,
     when: `${around}, ${remembers}`,
     // The lock is Rehearse now's, which opens RealMoment (F910): the badge and the tap agree.
     locked: input.access('realMoment') === 'locked',

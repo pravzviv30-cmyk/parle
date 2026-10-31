@@ -1672,12 +1672,17 @@ describe('the five tabs open the same way — F336', () => {
     assert.doesNotMatch(profile, /<TabHeader\b/, 'Profile draws a second header shape');
     for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx')) {
       const body = named(name);
-      const expectedHeaders = name === 'tabs/TutorTab.tsx' ? 2 : 1;
+      // UI-015: Today opens on its sky band instead, whose greeting is the page's one header.
+      const expectedHeaders = name === 'tabs/TutorTab.tsx' ? 2 : name === 'tabs/HomeTab.tsx' ? 0 : 1;
       assert.equal(
         (body.match(/<TabHeader\b/g) ?? []).length,
         expectedHeaders,
         `${name} lacks the header in a reachable render branch`,
       );
+      if (name === 'tabs/HomeTab.tsx') {
+        assert.match(body, /<SkyBand sky=\{sky\} greeting=\{greeting\}/, 'Today lost the sky band that names it');
+        assert.equal((named('home/SkyBand.tsx').match(/accessibilityRole="header"/g) ?? []).length, 1, 'the sky band has other than one heading');
+      }
       if (name === 'tabs/TutorTab.tsx') {
         assert.match(body, /if \(renderHistoryStatus !== 'ready'\) return <ScrollScreen/, 'Speak must have a separate loading and unread branch');
         // 2026-10-20, B2, B-Speak: the title is "Speak" and the tutor is named in the subtitle, in both branches.
@@ -1717,9 +1722,11 @@ describe('the five tabs open the same way — F336', () => {
     // (founder decision) with no line under it at all, so it carries no
     // purpose, literal or otherwise.
     assert.doesNotMatch(named('tabs/HomeTab.tsx'), /purpose=/, 'Home draws a line under its greeting again');
+    // UI-015: the sky band draws the greeting, its one spoken line greeting.title.
+    assert.match(named('tabs/HomeTab.tsx'), /greeting=\{greeting\}/, "Home's greeting is not the greeting rule's");
     assert.match(
-      named('tabs/HomeTab.tsx'),
-      /\{greeting\.title\}/,
+      named('home/SkyBand.tsx'),
+      /accessibilityLabel=\{greeting\.title\}/,
       "Home's purpose line is not the hour's own sentence from useGreetingRotation",
     );
     assert.doesNotMatch(
@@ -1921,7 +1928,10 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   // with no pill of its own and no ledger row (README Part 7, Surfaces).
   const SURFACES: Record<string, readonly string[]> = {
     // 2026-10-20 UI-008, artboard B-Today: plus the Today parts it draws from.
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx', 'today/TodayParts.tsx'],
+    // 2026-10-31 UI-015: game/TodayHero.tsx became game/TodayStats.tsx; the
+    // phrase is a RouteRow (home/RoutePath.tsx), so DailyCard left Today; plus
+    // the sky band, the hero frame and the layout.
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayStats.tsx', 'game/QuestsCard.tsx', 'today/TodayParts.tsx', 'home/RoutePath.tsx', 'home/SkyBand.tsx', 'home/TodayHeroCard.tsx', 'home/TodayLayout.tsx'],
     // 2026-10-20, B1, B-Explore: every Explore list is drawn inline in the
     // tab file as ledger rows; it imports no card file of its own.
     // 2026-10-20 UI-008, artboard B-Explore: plus the B parts it draws from.
@@ -1998,7 +2008,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.match(task, /if \(value.card !== null && !vivid\)/);
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
-    assert.match(named('tabs/HomeTab.tsx'), /!unowned && readFailed/);
+    assert.match(named('tabs/HomeTab.tsx'), /const failedHero = !unowned && readFailed;/);
     // 2026-10-20, B4, B-Journey: Journey's one primary is the empty journey's
     // first scene, behind the empty gate; Practise your sounds is secondary.
     // 2026-10-20 UI-008, artboard B-Journey / B-Empty-States: that primary is
@@ -2481,10 +2491,12 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(design, /thirty-one place drawings/);
     assert.doesNotMatch(design, /watercolours ship|Raster scenes, retiring/);
     assert.doesNotMatch(home, /titleSwap|useGreetingRotation|<DailyCarousel|<WordOfDayCard/);
-    assert.match(home, /\{greeting\.title\}/);
-    assert.match(home, /\{greeting\.title\}/);
-    // Revamp B (F602): Today draws the white "today" look of the same card.
-    assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
+    // UI-015: the static greeting is handed to the sky band, which says greeting.title once.
+    assert.match(home, /greeting=\{greeting\}/);
+    assert.match(named('home/SkyBand.tsx'), /accessibilityLabel=\{greeting\.title\}/);
+    // Revamp B (F602), UI-015: today's phrase is its row on Today's path, a
+    // thumb drawing and words, still no picture of the phrase itself.
+    assert.match(home, /<RouteRow key="phrase"[\s\S]*?title=\{daily\.phrase\.fr \?\? daily\.phrase\.en\} titleLang=\{daily\.phrase\.fr \? 'fr' : undefined\}/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
     // 2026-10-20, B2, B-Speak: Speak's one primary is its own Start, on the
     // Recommended card; connection retry stays a quiet IconAction.
@@ -2568,19 +2580,22 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       /const unowned = readOwner !== scopeGeneration\(\);/,
       'the hero is drawn behind some other condition than having a situation to offer',
     );
-    assert.match(home, /\{!unowned && readFailed \? \(/, 'Home no longer separates failed reads from a fresh account');
-    assert.match(home, /\) : hero === null \|\| unowned \? \(/, 'Home no longer waits on storage before it draws a lead');
-    // 2026-10-29 (F934): the lead is the second stop on Today's path.
-    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard vivid step=/, 'the hero is not the lead Home falls back to');
+    // UI-015: the hero slot splits on a failed read, then on storage having answered.
+    assert.match(home, /const failedHero = !unowned && readFailed;/, 'Home no longer separates failed reads from a fresh account');
+    assert.match(home, /const loading = hero === null \|\| unowned;/, 'Home no longer waits on storage before it draws a lead');
+    assert.match(home.replace(/\s+/g, ' '), /const heroCard = failedHero \? \(.*\) : loading \? \(/, 'Home no longer waits on storage before it draws a lead');
+    // 2026-10-29 (F934), UI-015: the lead is the hero when there is no fix.
+    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard vivid placement="hero"/, 'the hero is not the lead Home falls back to');
     // The momentum gate that used to sit beside it left Home with the block
     // itself, so the half of this check that made sure the hero was not hidden
     // behind it is now made by the line above: there is one condition on the
     // hero and it is having a situation to offer.
     // 2026-09-27, Phase 3: the momentum tiles left Today, so the order now pinned is the next scene before
     // today's phrase. Both must be present, or the comparison would pass on a missing tag.
-    assert.ok(home.includes('<NextTaskCard') && home.includes('<DailyCard'), 'Today no longer draws the scene brief and today\'s phrase');
+    // UI-015: the phrase is the RouteRow keyed "phrase".
+    assert.ok(home.includes('<NextTaskCard') && home.includes('<RouteRow key="phrase"'), 'Today no longer draws the scene brief and today\'s phrase');
     assert.ok(
-      home.indexOf('<NextTaskCard') < home.indexOf('<DailyCard'),
+      home.indexOf('<NextTaskCard') < home.indexOf('<RouteRow key="phrase"'),
       'the next scene must lead Today, ahead of today\'s phrase',
     );
     assert.doesNotMatch(home, /<HomeMomentum\b/, 'the four empty tiles came back to Today');

@@ -110,18 +110,20 @@ describe("Home's today hero — F767", () => {
       assert.equal(todayHeroView({ ...full, [missing]: null }), null, `with ${missing} unread the hero still draws`);
     }
 
-    // The screen draws this model from the hooks and works nothing out itself.
-    const screen = stripComments(readFileSync(new URL('./TodayHero.tsx', import.meta.url), 'utf8')).replace(/\s+/g, ' ');
+    // The screen draws this model from the hooks and works nothing out itself
+    // (UI-015: the retired stats-row hero's reads moved to TodayStats.tsx unchanged).
+    const screen = stripComments(readFileSync(new URL('./TodayStats.tsx', import.meta.url), 'utf8')).replace(/\s+/g, ' ');
     assert.match(screen, /const hero = todayHeroView\(\{ streak: run, goal, level, xp \}\)/);
     for (const hook of ['useStreak()', 'useGoal()', 'useLevel()', 'useXp()']) assert.ok(screen.includes(hook), `the hero does not read ${hook}`);
     assert.doesNotMatch(screen, /\b(?:levelFor|xpLevelFor|totalXp|displayXp|goalProgressFrom|streakFrom)\(/, 'the hero works a number out itself');
-    assert.match(screen, /if \(hero === null\) \{[^}]*return failed \? null : <Skeleton/, 'an unread hero draws something other than nothing');
+    assert.match(screen, /if \(hero === null\) \{[^}]*tiles: failed \? null : <TodayStatTilesSkeleton/, 'an unread hero draws something other than nothing');
   });
 });
 
-// 2026-10-20, B5 learning-science review: with no run the stats tile says
-// "Practice" over "not yet today", with no streak word until a run exists.
-import { statTiles as b5Tiles } from './todayHeroView.ts';
+// 2026-10-20, B5 learning-science review: with no run the stats tile names no
+// streak until a run exists. UI-015: statTiles became statTileView, whose
+// no-run tile is "Start" over "today" (founder, 2026-10-31); same intent.
+import { statTileView as b5Tiles } from './todayHeroView.ts';
 import { test as b5Test } from 'node:test';
 import assertB5 from 'node:assert/strict';
 b5Test('the streak tile names no streak before a run exists', () => {
@@ -130,11 +132,12 @@ b5Test('the streak tile names no streak before a run exists', () => {
     goal: { minutes: 6, target: 10, fraction: 0.6, met: false, words: '', label: '' },
     level: { level: 2, words: '', label: '' },
   };
-  assertB5.deepEqual(b5Tiles(hero, 140).streak, { value: 'Practice', label: 'not yet today' });
-  assertB5.doesNotMatch(JSON.stringify(b5Tiles(hero, 140).streak), /streak/i);
-  assertB5.deepEqual(b5Tiles({ ...hero, flame: { ...hero.flame, count: 3 } }, 140).streak, { value: '3 days', label: 'streak' });
-  assertB5.deepEqual(b5Tiles(hero, 140).goal, { value: '6 of 10', label: 'min today' });
-  assertB5.deepEqual(b5Tiles({ ...hero, goal: { ...hero.goal, target: null, fraction: null } }, 140).goal, { value: '6 min', label: 'today' });
+  assertB5.deepEqual(b5Tiles(hero).streak, { number: 'Start', label: 'today', lit: false });
+  assertB5.doesNotMatch(JSON.stringify(b5Tiles(hero).streak), /streak/i);
+  assertB5.deepEqual(b5Tiles({ ...hero, flame: { ...hero.flame, count: 3 } }).streak, { number: '3', label: 'days', lit: false });
+  assertB5.deepEqual([b5Tiles(hero).goal.number, b5Tiles(hero).goal.of, b5Tiles(hero).goal.label], ['6', '/10', 'minutes']);
+  const noGoal = b5Tiles({ ...hero, goal: { ...hero.goal, target: null, fraction: null } }).goal;
+  assertB5.deepEqual([noGoal.number, noGoal.of, noGoal.label, noGoal.ring], ['6', null, 'minutes', false]);
 });
 
 describe("Today's chunky stat tiles (UI-015)", () => {
