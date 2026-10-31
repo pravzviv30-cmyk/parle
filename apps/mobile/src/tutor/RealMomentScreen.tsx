@@ -65,7 +65,7 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
  * redesign (Phase 4, 2026-09-27) every cell is the same white: the place tints
  * retired, and the title is what tells one moment from another.
  *
- * Chosen is an ink ring, not a fill and never a second tint. `OptionCard` and
+ * Chosen is an ink ring, not a fill and never a second tint. `LipTile` and
  * `TabBar` already say "this one" that way, and a filled card here would read
  * as a state rather than a choice. The state is said twice, once per platform:
  * `accessibilityState` is what VoiceOver and TalkBack read, and `aria-selected`

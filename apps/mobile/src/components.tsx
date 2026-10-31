@@ -2539,8 +2539,7 @@ export type ChoiceGround = 'paper' | 'card' | 'blue' | 'sun';
  * The one choice (icons section 1.6): a pick-one, or an answer, as a row or a
  * tile. Every option, plan, voice, level, goal and time draws through this,
  * and `OptionRow` and the first run's `Choice` are thin names for it.
- * `OptionCard`, the answer row in sittings and drills, joins them once the
- * voice-card test (F355) reads the Hear here rather than its own ear.
+ * Drill answers are not choices: they are `LipTile`s (UI-016).
  *
  * A row is 72 (56 when compact) with the caller's tile at its head, the title,
  * a line under it and a 28 disc at its end; a tile stacks the tile over the

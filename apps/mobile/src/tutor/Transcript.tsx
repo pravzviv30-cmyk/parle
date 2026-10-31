@@ -295,7 +295,7 @@ const st = StyleSheet.create({
   // The bubble becomes a row when it carries the ear, so the glyph sits at the
   // trailing edge of the words rather than under them.
   withEar: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  // The same treatment OptionCard gives an auditioning voice: a quiet disc, and
+  // The treatment the retired OptionCard gave an auditioning voice: a quiet disc, and
   // the glyph in the accent. Colour rather than movement, because there is
   // nothing here for reduce motion to withhold.
   ear: { padding: space(1) },

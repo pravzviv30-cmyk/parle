@@ -50,7 +50,7 @@ describe('splitBlank', () => {
 
 describe('the landed word', () => {
   test('is a button named for sending its word back, with the one line under it', () => {
-    assert.equal(sendBackLabel('voudrais'), 'Send «voudrais» back');
+    assert.equal(sendBackLabel('voudrais'), 'Send voudrais back');
     assert.equal(SEND_BACK_LINE, 'Tap the word in the sentence to send it back.');
   });
 });

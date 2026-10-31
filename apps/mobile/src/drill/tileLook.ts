@@ -57,5 +57,5 @@ export const SEND_BACK_LINE = 'Tap the word in the sentence to send it back.';
 
 /** The landed word's accessible name: it is a button that returns the word to the bank. */
 export function sendBackLabel(word: string): string {
-  return `Send «${word}» back`;
+  return `Send ${word} back`;
 }

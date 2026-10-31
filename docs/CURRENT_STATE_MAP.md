@@ -143,10 +143,20 @@ DECISIONS.md UI-007):
   (shared with Then and now); Journey and Then and now are dark-ready since
   2026-10-21 (UI-008), with the Badges sheet pinned light.
 - **Review and Drill** (`ReviewScreen.tsx`, `DrillScreen.tsx`): rebuilt to
-  B-Review, B-ReviewReveal and B-Drill in light and dark (2026-10-21, UI-008).
+  B-Review and B-ReviewReveal in light and dark (2026-10-21, UI-008).
   Review names the source conversation (`review/context.ts`) and shows "Also
   fine:" from the drill bank's accepted French (`review/alsoFine.ts`); its
-  count and grade intervals stay held. Empty states share
+  count and grade intervals stay held. Since 2026-10-31 (drill B v2, UI-016,
+  LEARN-018) every drill and practice surface, Review, Fixes, Fix your line,
+  the sound drill and Sound Check included, stands in one frame
+  (`drill/DrillFrame.tsx`) on its family's stage band (`drill/drillStage.ts`),
+  with kind views in `drill/kinds/`, one `LipTile` for options, chips, slots
+  and grades (`OptionCard` is deleted), one mic (`drill/SpeakMic.tsx`) and one
+  answer sheet (`drill/AnswerSheet.tsx`, capped by `drill/sheetLayout.ts`, lit
+  letters from `drill/litLetters.ts`). Every ending is
+  `celebrate/EndScene.tsx` (`EndCard` is deleted), which marks each phrase
+  settled or still settling (`practice/stillSettling.ts`) and offers a retry
+  that records nothing. Empty states share
   `empty/EmptyStateCard.tsx`; Speak draws the away and out-of-time cards
   (`empty/emptyStates.ts`).
 - **Live room and the end of a conversation** (`live/C2LiveRoom.tsx`,
