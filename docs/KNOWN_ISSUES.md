@@ -12054,7 +12054,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F946 — Out of time past Starter offers the Starter café line
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/NextTaskCard.tsx (the held lead's local line) and the hero's `LocalPracticeCard` without `levelIndex`
 - note: Found 2026-10-31 by the fix-verifier on claude/today-sky (UI-015). A paid learner who is
   out of minutes and past Starter is offered the Starter café line (DailyPractice, shadowing), in
@@ -12063,6 +12063,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   happened before UI-015 (the old path drew `LocalPracticeCard` with the default level), so the
   Today build kept it unchanged. Fix: pass the level index to both and offer a line at the
   learner's level, with a test.
+- fixed: 2026-10-31 on claude/finish-fixes. The held lead asks `offlineOffer(value.levelIndex)`: at
+  Starter the row and hero still offer the café line; past Starter the row keeps the held stop and its
+  tap opens Review, and the hero's `LocalPracticeCard` gets the level, whose plain branch now draws nothing for
+  'below', so the phrase and review below are the practice. No new copy.
 - verified-by: `out of time past Starter offers a line at the learner's level`
 
 ### F947 — Tab bar labels cut off at accessibility text sizes

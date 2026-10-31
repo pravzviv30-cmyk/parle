@@ -145,12 +145,14 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
       // (fix-verifier round 2): the starter's typed line, or the local card.
       const words = heldWords(billing, Date.now());
       const then = afterHeld(starter !== null) === 'starter' && starter !== null ? 'starter' : 'local';
+      const cafe = local !== null && offlineOffer(value.levelIndex) === 'cafe';
       if (row) {
         if (words.plans) return leadRow(lead, () => navigateOwned('Wall', { entry: 'refused' }));
         if (then === 'starter' && starter !== null) return starterRow(starter);
-        // Past Starter the held words still hold the scene's stop, and the tap
-        // opens the practice that needs no minutes (fix round 1).
-        return local !== null ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : null;
+        // Without the starter the held words still hold the scene's stop (fix
+        // round 1), and the tap opens practice that needs no minutes: the café
+        // line at Starter, Review past it (F946), never a first order.
+        return cafe ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : leadRow(lead, () => navigateOwned('Review'));
       }
       const heldText = <>
         <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{words.title}</Text>
@@ -159,7 +161,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
       </>;
       return <View style={{ gap: 12 }}>
         {bare ? <View style={{ gap: 8 }}>{heldText}</View> : <Card style={{ gap: 8 }}>{heldText}</Card>}
-        {then === 'starter' && starter !== null ? starterCard(starter) : <LocalPracticeCard bare={bare} />}
+        {then === 'starter' && starter !== null ? starterCard(starter) : <LocalPracticeCard bare={bare} levelIndex={value.levelIndex} />}
       </View>;
     }
     if (lead === 'explore') {

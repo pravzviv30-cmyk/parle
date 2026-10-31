@@ -251,6 +251,18 @@ test('an out-of-time or lapsed lead still offers practice that needs no minutes'
   assert.equal(afterHeld(false), 'local');
 });
 
+// F946, 2026-10-31.
+test("out of time past Starter offers a line at the learner's level", () => {
+  assert.equal(offlineOffer(0), 'cafe');
+  assert.equal(offlineOffer(1), 'below');
+  const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
+  assert.match(held, /const cafe = local !== null && offlineOffer\(value\.levelIndex\) === 'cafe';/, 'the held lead does not ask the learner\'s level');
+  assert.match(held, /return cafe \? leadRow\(lead, \(\) => nav\.navigate\('DailyPractice', \{ id: local\.id, mode: 'shadowing' \}\)\) : leadRow\(lead, \(\) => navigateOwned\('Review'\)\);/, 'the held row past Starter opens the Starter café line or a dead tap, not Review');
+  assert.match(held, /<LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} \/>/, 'the held hero draws the café line at the default level');
+  const plain = flat(LOCAL.slice(LOCAL.indexOf('if (phrase === null')));
+  assert.match(plain, /^if \(phrase === null \|\| offer === 'below'\) return null;/, 'the plain card hands a learner past Starter a first order');
+});
+
 test('a lapsed plan is told it has ended and may see plans, never led to a refused scene', () => {
   const { heldWords } = nt as unknown as { heldWords: (billing: { plan: Plan; reason: string | null; periodEnd?: string | null }, now: number) => { title: string; message: string; plans: boolean } };
   for (const plan of Object.keys(PLANS) as Plan[]) {
@@ -343,7 +355,8 @@ test('NextTaskCard on the hero has no rail, and on a row is one RouteRow', () =>
   const vividBranch = flat(TASK.slice(TASK.indexOf('if (vivid) {'), TASK.indexOf('// 2026-10-20 UI-008, artboard B-Today: Today (vivid) leads')));
   assert.match(vividBranch, /const starterRow = \(initial: GuestPractice\) => <StarterContinuation initial=\{initial\} face=\{\(continuePractice\) => leadRow\('starter', continuePractice\)\} \/>;/, 'the starter row is not a LeadRow opening the card\'s own practice');
   assert.match(vividBranch, /if \(then === 'starter' && starter !== null\) return starterRow\(starter\);/, 'held time draws the starter card on a row');
-  assert.match(vividBranch, /return local !== null \? leadRow\(lead, \(\) => nav\.navigate\('DailyPractice', \{ id: local\.id, mode: 'shadowing' \}\)\) : null;/, 'held time past Starter drops the scene stop');
+  // F946: the stop stays past Starter, its tap opening Review instead of the café line.
+  assert.match(vividBranch, /return cafe \? leadRow\(lead, [^;]*\) : leadRow\(lead, \(\) => navigateOwned\('Review'\)\);/, 'held time past Starter drops the scene stop');
   assert.match(vividBranch, /if \(lead === 'starter' && starter !== null && row\) return starterRow\(starter\);/, 'the starter lead draws its card on a row');
   assert.doesNotMatch(vividBranch, /if \(row\)[^;]*starterCard\(/, 'a row still draws the starter card');
   const starterSrc = flat(read('../onboarding/StarterContinuation.tsx'));
