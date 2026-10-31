@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { checkStarter } from '@luvani/core';
 import { IconActionRow, IconAction, IconButton, Card, ColourCard, GhostButton, PillButton, Sheet } from '../components.tsx';
-import { frenchText, paper, space, type } from '../theme.ts';
+import { frenchText, space, type } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -150,7 +150,7 @@ export function StarterContinuation({
       >
         {leaveAsked ? (
           <>
-            <Text style={type.body}>Your unsent reply will be cleared if you leave.</Text>
+            <Text style={[type.body, { color: t.text }]}>Your unsent reply will be cleared if you leave.</Text>
             <PillButton label="Keep practising" onPress={() => setLeaveAsked(false)} />
             <GhostButton
               label="Leave practice"
@@ -163,23 +163,23 @@ export function StarterContinuation({
           </>
         ) : (
           <>
-            <Text {...frenchText} style={type.frenchLg}>
+            <Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>
               {task.prompt}
             </Text>
-            <Text style={type.body}>{task.translation}</Text>
-            <Text style={type.small}>
+            <Text style={[type.body, { color: t.text }]}>{task.translation}</Text>
+            <Text style={[type.small, { color: t.text }]}>
               Offline phrase practice. This checks authored replies, without assessing
               pronunciation.
             </Text>
             {feedback ? (
               <>
                 <Card style={{ gap: 12 }}>
-                  <Text {...frenchText} style={type.frenchLg}>
+                  <Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>
                     {reply}
                   </Text>
-                  <Text style={type.body}>{feedback.text}</Text>
+                  <Text style={[type.body, { color: t.text }]}>{feedback.text}</Text>
                   {!feedback.accepted && (
-                    <Text {...frenchText} style={type.french}>
+                    <Text {...frenchText} style={[type.french, { color: t.text }]}>
                       {feedback.model}
                     </Text>
                   )}
@@ -212,14 +212,15 @@ export function StarterContinuation({
                   multiline
                   editable={!busy}
                   placeholder="Your reply in French"
+                  placeholderTextColor={t.muted}
                   style={{
                     ...type.body,
-                    color: paper.ink,
+                    color: t.text,
                     minHeight: 90,
                     padding: 16,
-                  backgroundColor: paper.card,
-                  borderWidth: 1,
-                  borderColor: paper.field,
+                    backgroundColor: t.card,
+                    borderWidth: 1,
+                    borderColor: t.field,
                     borderRadius: 16,
                   }}
                 />
@@ -237,7 +238,7 @@ export function StarterContinuation({
               </>
             )}
             {note !== '' ? (
-              <Text accessibilityLiveRegion="polite" style={type.body}>
+              <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>
                 {note}
               </Text>
             ) : null}

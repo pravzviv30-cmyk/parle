@@ -12075,3 +12075,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   labels scale only to a cap, or hide them behind the icons with full accessibility labels at
   the largest sizes, with a test.
 - verified-by: `tab bar labels never clip at accessibility text sizes`
+
+### F948 — Today's starter-line sheet is dark on dark in dark mode
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/StarterContinuation.tsx (the `<Sheet>` body, the feedback Card and the reply `TextInput`)
+- note: Found 2026-10-31 by drill-b, reproduced on main 06b5ac8d with the preview key
+  `?preview=today-starter&theme=dark` (tap "Continue practice"). The sheet's panel is themed
+  (`t.card`, #25203D in dark) but its lines set no colour and drew default near-black, the
+  feedback Card's lines likewise, and the reply field was hard-coded to light paper
+  (`paper.ink`, `paper.card`, `paper.field`).
+- fixed: 2026-10-31 on claude/finish-fixes. Every line in the sheet and its feedback Card is set in
+  `t.text`, and the reply field takes `t.text`, `t.card`, `t.field` and a `t.muted` placeholder,
+  the same tokens as the shared `Field` in `components.tsx`.
+- verified-by: `the starter sheet draws every line on theme colours in dark`
