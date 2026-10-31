@@ -561,12 +561,13 @@ export function isTagOnly(dir, name) {
 // Git runs from the top of the checkout, because pathspecs and ls-tree are
 // relative to the working directory (a push from apps/mobile/ must still see
 // apps/mobile/). With no merge base (unrelated history, a shallow clone) the
-// diff throws, and the hook then denies as unresolvable: fail closed.
+// diff throws, and the hook then denies as unresolvable: fail closed. The
+// base is the full ref, so a local tag or branch named origin/main cannot stand in.
 export function changedPaths(dir, sha, paths = []) {
   const top = git(dir, ['rev-parse', '--show-toplevel']);
   const limit = paths.length ? ['--', ...paths] : [];
   const out = refExists(top, 'refs/remotes/origin/main')
-    ? git(top, ['diff', '--name-only', '--no-renames', '-z', `origin/main...${sha}`, ...limit])
+    ? git(top, ['diff', '--name-only', '--no-renames', '-z', `refs/remotes/origin/main...${sha}`, ...limit])
     : git(top, ['ls-tree', '-r', '--full-tree', '--name-only', '-z', sha, ...limit]);
   return out.split('\0').filter(Boolean);
 }
