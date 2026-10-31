@@ -207,3 +207,22 @@ describe('fix round 3: clouds, the one sky clock, and the greeting clear of the 
     assert.match(lip, /if \(onPress === undefined\) \{[\s\S]*?<View style=\{\[ground, faded\]\} accessible=\{accessibilityLabel !== undefined\} accessibilityLabel=\{accessibilityLabel\}/, 'a still LipTile carries a label no screen reader reaches');
   });
 });
+
+describe('the disc slide counts the greeting from under the status bar (verifier round 6)', () => {
+  test('a box that starts below the disc centre slides by the worked amount, so a wrong vertical offset fails', async () => {
+    const { discShiftFor } = await import('./skyView.ts');
+    // 320pt band, bar 62: the head starts 62 + 8 = 70pt down. The disc's centre
+    // is (320 + 40 - 85, 85 - 40) = (275, 45), its reach 85 + 8 = 93. A box
+    // right of 200, 0 to 72 in the head, spans 70 to 142 in the band, so its
+    // nearest point is (200, 70): dy 25, and the slide is
+    // ceil(200 + sqrt(93^2 - 25^2) - 275) = ceil(14.58) = 15. Counting the box
+    // from the band's top instead (dy 0) gives 18; a 16pt head offset gives 12.
+    assert.equal(discShiftFor({ width: 320, bar: 62, box: { left: 20, right: 200, top: 0, bottom: 72 } }), 15);
+  });
+  test('the head offset matches the space under the top inset in SkyBand', () => {
+    const view = readFileSync(new URL('./skyView.ts', import.meta.url), 'utf8');
+    const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
+    assert.match(view, /const HEAD_BELOW_BAR = 8;/, 'the head offset is no longer the 8pt under the inset');
+    assert.match(band, /<TopInset extra=\{space\(2\)\} \/>/, 'SkyBand no longer puts space(2), 8pt, under the inset');
+  });
+});
