@@ -152,41 +152,41 @@ describe('fix round 3: clouds, the one sky clock, and the greeting clear of the 
     assert.match(hook, /skyClockMoved\(drawn, at\) \? at : drawn/, 'the clock bumps on every tick');
   });
 
-  test('the greeting never breaks a word and never sits on the sun or moon, at every reading size', async () => {
-    const { SKY_DISC, greetingLayout, greetingWordWidth, GREETING_CHAR_WIDTH } = await import('./skyView.ts');
+  test('the disc slides right just enough to clear the measured greeting, and never caps it', async () => {
+    const { SKY_DISC, discShiftFor } = await import('./skyView.ts');
     const r = SKY_DISC.size / 2;
-    // The estimate covers "Bonjour," as measured (about 133pt at 1.0).
-    assert.ok(greetingWordWidth(1) >= 133 && GREETING_CHAR_WIDTH === 17);
-    assert.ok(greetingWordWidth(1, 'Maximilienne') > greetingWordWidth(1), "the name's longest word is not in the floor");
-    for (const width of [320, 375, 402]) {
-      for (const scale of [1, 1.3, 2]) {
-        for (const bar of [null, 20, 62]) {
-          const { maxWidth, discShift } = greetingLayout(width, bar, scale);
-          const at = `${width}pt, text ${scale}, bar ${bar}`;
-          assert.ok(maxWidth >= greetingWordWidth(scale), `the cap breaks "Bonjour," mid-word at ${at}`);
-          assert.ok(discShift >= 0);
-          // Every point of the three line boxes is outside the (shifted) disc.
-          const cx = width + SKY_DISC.bleed - r + discShift;
-          const cy = r - SKY_DISC.bleed;
-          const right = 20 + maxWidth;
-          const top = (bar ?? 0) + 8;
-          for (let y = top; y <= top + 3 * 36 * scale; y += 1) {
-            const dy = Math.abs(y - cy);
-            if (dy >= r) continue;
-            assert.ok(right <= cx - Math.sqrt(r * r - dy * dy), `the greeting runs over the disc at ${at}, y ${y}`);
-          }
-        }
-      }
+    const clears = (width: number, bar: number, box: { left: number; right: number; top: number; bottom: number }, shift: number) => {
+      const cx = width + SKY_DISC.bleed - r + shift;
+      const cy = r - SKY_DISC.bleed;
+      const near = Math.min(Math.max(cy, bar + 8 + box.top), bar + 8 + box.bottom);
+      const nx = Math.min(Math.max(cx, box.left), box.right);
+      return Math.hypot(nx - cx, near - cy) >= r + 8 - 0.5;
+    };
+    // "Bonjour," / "Léa." at the default size on 375: no slide.
+    const short = { left: 20, right: 154, top: 0, bottom: 72 };
+    assert.equal(discShiftFor({ width: 375, bar: 62, box: short }), 0);
+    // A long name at 320 reaches under the disc: it slides exactly enough, no more.
+    const long = { left: 20, right: 240, top: 0, bottom: 72 };
+    const shift = discShiftFor({ width: 320, bar: 20, box: long });
+    assert.ok(shift > 0, 'a greeting under the disc does not move it');
+    assert.ok(clears(320, 20, long, shift), 'the slide is not enough');
+    assert.ok(!clears(320, 20, long, shift - 2), 'the disc slides further than it needs to');
+    // A box the width of the band slides the disc fully off.
+    assert.equal(discShiftFor({ width: 320, bar: 20, box: { left: 20, right: 320, top: 0, bottom: 144 } }), 320 - (320 + SKY_DISC.bleed - 2 * r));
+    // Unmeasured, or not a number: no slide, never NaN.
+    assert.equal(discShiftFor({ width: 320, bar: 20, box: null }), 0);
+    assert.equal(discShiftFor({ width: 320, bar: null, box: long }), 0);
+    for (const bad of [Number.NaN, Infinity]) {
+      assert.equal(discShiftFor({ width: bad, bar: 20, box: long }), 0);
+      assert.equal(discShiftFor({ width: 320, bar: 20, box: { ...long, right: bad } }), 0);
     }
-    // At the default size on a 375pt phone nothing slides; large text on 320 slides the disc.
-    assert.equal(greetingLayout(375, 62, 1).discShift, 0);
-    assert.ok(greetingLayout(320, null, 2).discShift > 0);
     const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
-    assert.match(band, /const layout = greetingLayout\(width, bar, fontScale, greeting\.name\);/, 'the cap ignores the reading size');
-    assert.match(band, /maxWidth: layout\.maxWidth/);
-    assert.match(band, /style=\{\[s\.disc, \{ right: DISC_BLEED - layout\.discShift \}\]\}/, 'the disc does not slide clear of a wide greeting');
-    assert.match(band, /const DISC = SKY_DISC\.size;/);
-    assert.match(band, /const DISC_BLEED = -SKY_DISC\.bleed;/);
+    assert.match(band, /const shift = discShiftFor\(\{ width, bar, box: greetingBox \}\);/);
+    assert.match(band, /style=\{\[s\.disc, \{ right: DISC_BLEED - shift \}\]\}/, 'the disc does not slide clear of the greeting');
+    assert.match(band, /setGreetingBox\(\{ left: BAND_PAD \+ x, right: BAND_PAD \+ x \+ w, top: y, bottom: y \+ h \}\)/, 'the slide is not from the measured box');
+    assert.doesNotMatch(band, /maxWidth/, 'the greeting is capped again, which splits words');
+    const sky = readFileSync(new URL('./skyView.ts', import.meta.url), 'utf8');
+    assert.doesNotMatch(sky, /GREETING_CHAR_WIDTH|greetingWordWidth|greetingLayout|greetingMaxWidth/, 'the width estimate is back');
   });
 
   test('the sky clock stops its timer when Today leaves the top or unmounts', () => {

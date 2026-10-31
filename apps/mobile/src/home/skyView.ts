@@ -127,58 +127,36 @@ export function skyClockMoved(drawn: number, now: number): boolean {
 
 /** The sky's disc as SkyBand draws it: 170pt, hanging 40pt past the top right corner. */
 export const SKY_DISC = { size: 170, bleed: 40 } as const;
-/** Where the greeting's words start across the band (16 + 4), how far below the bar (space(2)), its line height, and its clearance. */
-const GREETING_LEFT = 20;
-const GREETING_BELOW_BAR = 8;
-const GREETING_LINE = 36;
-const GREETING_CLEAR = 8;
-/** Lines the cap is reckoned over: the word and the name, and a wrapped name. */
-const GREETING_LINES = 3;
+/** The clearance kept between the disc's circle and the greeting's measured box. */
+const DISC_CLEAR = 8;
+/** The head sits this far under the bar (TopInset's extra, space(2)). */
+const HEAD_BELOW_BAR = 8;
 
 /**
- * Outfit ExtraBold at 34pt, one character's width, generously: "Bonjour,"
- * measures about 133pt at the default size (8 characters, about 16.6 each),
- * so 17 per character over-estimates every greeting word a little.
+ * How far the sun or moon slides right, off the band, so its circle clears
+ * the greeting's measured box by 8pt (fix round 5). White words never sit on
+ * the disc (about 1.6:1 against the morning sun), and nothing is capped, so
+ * no word is ever split for it. The disc is 170pt and hangs 40pt past the
+ * top right corner of the band; the box is the greeting's own layout,
+ * relative to the head (which starts `bar` + 8 below the band's top), with
+ * `left` and `right` across the band. Zero before the box is measured, when
+ * it already clears, and for any input that is not a number; at most fully
+ * off the band.
  */
-export const GREETING_CHAR_WIDTH = 17;
-
-/** The widest word the greeting draws, at the reading size: the greeting word with its comma, and each word of the name. */
-export function greetingWordWidth(fontScale: number, name: string | null = null): number {
-  const scale = Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
-  const words = ['Bonjour,', 'Bonsoir,', ...(name ?? '').split(/\s+/).filter((w) => w !== '').map((w) => `${w}.`)];
-  return Math.ceil(Math.max(...words.map((w) => w.length)) * GREETING_CHAR_WIDTH * scale);
-}
-
-/**
- * The greeting's box and the disc's slide (fix rounds 3 and 4), so white
- * words never sit on the sun (about 1.6:1 against the morning disc) or the
- * moon, and never break mid-word. The cap is the disc's leftmost point within
- * each of three line boxes (the greeting's 36pt line, at the reading size),
- * less a clearance; unmeasured (`bar` null), the disc's whole left edge. The
- * cap never goes below the widest greeting word at that size; when it would,
- * the disc slides further off the band's right edge by the difference, so the
- * text keeps its size and stays clear.
- */
-export function greetingLayout(width: number, bar: number | null, fontScale: number, name: string | null = null): { maxWidth: number; discShift: number } {
-  const scale = Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
+export function discShiftFor(input: { width: number; bar: number | null; box: { left: number; right: number; top: number; bottom: number } | null }): number {
+  const { width, bar, box } = input;
+  if (box === null || bar === null) return 0;
+  if (![width, bar, box.left, box.right, box.top, box.bottom].every(Number.isFinite)) return 0;
   const r = SKY_DISC.size / 2;
   const cx = width + SKY_DISC.bleed - r;
-  const cy = -SKY_DISC.bleed + r;
-  const line = GREETING_LINE * scale;
-  let edge = cx - r;
-  if (bar !== null) {
-    edge = Infinity;
-    for (let index = 0; index < GREETING_LINES; index += 1) {
-      const top = bar + GREETING_BELOW_BAR + index * line;
-      const bottom = top + line;
-      // The circle's leftmost x across [top, bottom]: at the centre's height if inside, else at the nearer edge.
-      const y = cy >= top && cy <= bottom ? cy : Math.abs(top - cy) < Math.abs(bottom - cy) ? top : bottom;
-      const dy = Math.abs(y - cy);
-      if (dy < r) edge = Math.min(edge, cx - Math.sqrt(r * r - dy * dy));
-    }
-    if (edge === Infinity) edge = width;
-  }
-  const cap = Math.max(0, Math.floor(edge - GREETING_CLEAR - GREETING_LEFT));
-  const floor = greetingWordWidth(scale, name);
-  return floor > cap ? { maxWidth: floor, discShift: floor - cap } : { maxWidth: cap, discShift: 0 };
+  const cy = r - SKY_DISC.bleed;
+  const top = bar + HEAD_BELOW_BAR + box.top;
+  const bottom = bar + HEAD_BELOW_BAR + box.bottom;
+  const near = Math.min(Math.max(cy, top), bottom);
+  const dy = Math.abs(near - cy);
+  const reach = r + DISC_CLEAR;
+  if (dy >= reach) return 0;
+  const needed = box.right + Math.sqrt(reach * reach - dy * dy) - cx;
+  const fullyOff = width - (cx - r);
+  return Math.max(0, Math.min(Math.ceil(needed), fullyOff));
 }
