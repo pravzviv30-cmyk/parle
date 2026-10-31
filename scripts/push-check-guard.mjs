@@ -13,8 +13,9 @@
 //   stamp   Write <git-common-dir>/push-check/<sha>.json for a commit.
 //   status  Print the stamp for HEAD (or --sha), or "no stamp".
 //
-// Contract for `hook`: it only ever denies for the three known reasons (no
-// stamp, failed stamp, main without a passing security review). Anything
+// Contract for `hook`: it only ever denies for the four known reasons (no
+// stamp, failed stamp, main without a passing security review, frontend
+// changes without a passing Impeccable design review). Anything
 // unexpected (not a git repo, git missing, unparsable stdin) allows the call,
 // so a bug in this guard can never wedge a session. The stamp lives in the
 // git common dir, so every worktree of a repo shares one stamp folder.
@@ -26,8 +27,17 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-export const CHECK_NAMES = ['gate', 'playwright', 'backend', 'review', 'security'];
+export const CHECK_NAMES = ['gate', 'playwright', 'backend', 'review', 'security', 'impeccable'];
 const CHECK_VALUES = ['pass', 'fail', 'n/a'];
+
+// Paths that count as frontend. A push whose diff against origin/main touches
+// one of these needs a passing Impeccable design review (founder, 2026-10-31).
+export const FRONTEND_PREFIXES = ['apps/mobile/', 'packages/core/'];
+
+// True when any path starts with a frontend prefix.
+export function touchesFrontend(paths) {
+  return paths.some((p) => FRONTEND_PREFIXES.some((prefix) => p.startsWith(prefix)));
+}
 
 const NEXT_STEP =
   'Run /push-check (or /push-check --main before landing) in this checkout, then push again. ' +
@@ -392,7 +402,8 @@ export function pushTargets(push, currentBranch) {
 //   kind 'missing'  no usable stamp for this commit
 //   kind 'failed'   the stamp says a check failed (failed lists their names)
 //   kind 'security' going to main without a passing security review
-export function checkStamp(stamp, sha, toMain) {
+//   kind 'impeccable' frontend changes without a passing Impeccable review
+export function checkStamp(stamp, sha, toMain, frontend = false) {
   if (!stamp || typeof stamp !== 'object' || stamp.sha !== sha) {
     return { ok: false, kind: 'missing', failed: [] };
   }
@@ -406,6 +417,9 @@ export function checkStamp(stamp, sha, toMain) {
   if (toMain && checks.security !== 'pass') {
     return { ok: false, kind: 'security', failed: [] };
   }
+  if (frontend && checks.impeccable !== 'pass') {
+    return { ok: false, kind: 'impeccable', failed: [] };
+  }
   return { ok: true };
 }
 
@@ -418,6 +432,8 @@ export function denyReason({ kind, failed = [] }, sha, branch) {
       : `The push check for ${where} did not pass.`;
   } else if (kind === 'security') {
     what = `${where} is going to main, and its push check has no passing security review.`;
+  } else if (kind === 'impeccable') {
+    what = `${where} changes frontend files, and its push check has no passing Impeccable design review.`;
   } else {
     what = `${where} has no push check yet.`;
   }
@@ -439,6 +455,7 @@ const UNKNOWN_REASON =
 //   git.currentBranch(dir)      -> branch name or null
 //   git.readStamp(dir, sha)     -> parsed stamp or null
 //   git.isTagOnly(dir, name)    -> true when name is a tag and not a branch
+//   git.touchesFrontendAt(dir, sha) -> true when the commit changes frontend files
 export function hookDecision(input, git) {
   if (!input || input.tool_name !== 'Bash') return null;
   const command = input.tool_input?.command;
@@ -472,7 +489,8 @@ export function hookDecision(input, git) {
         if (target.bare && git.isTagOnly?.(ev.dir, target.src)) continue;
         const sha = git.resolveCommit(ev.dir, target.src);
         const toMain = Boolean(target.all) || isMainRef(target.dst);
-        const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, toMain);
+        const frontend = git.touchesFrontendAt ? git.touchesFrontendAt(ev.dir, sha) : false;
+        const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, toMain, frontend);
         if (!verdict.ok) deny(denyReason(verdict, sha, stripHeads(target.dst) || current));
       }
     } catch {
@@ -535,7 +553,20 @@ export function isTagOnly(dir, name) {
   return refExists(dir, `refs/tags/${name}`) && !refExists(dir, `refs/heads/${name}`);
 }
 
-const realGit = { resolveCommit, currentBranch, readStamp, isTagOnly };
+// Files the commit changes against origin/main. Without origin/main there is
+// no base, so every file in the commit counts as new.
+export function changedPaths(dir, sha) {
+  const out = refExists(dir, 'refs/remotes/origin/main')
+    ? git(dir, ['diff', '--name-only', `origin/main...${sha}`])
+    : git(dir, ['ls-tree', '-r', '--name-only', sha]);
+  return out.split('\n').filter(Boolean);
+}
+
+export function touchesFrontendAt(dir, sha) {
+  return touchesFrontend(changedPaths(dir, sha));
+}
+
+const realGit = { resolveCommit, currentBranch, readStamp, isTagOnly, touchesFrontendAt };
 
 // ---------------------------------------------------------------------------
 // Subcommands
@@ -566,6 +597,7 @@ function runHook() {
 const STAMP_USAGE =
   'usage: push-check-guard.mjs stamp --gate pass|fail --review pass|fail ' +
   '[--playwright pass|fail|n/a] [--backend pass|fail|n/a] [--security pass|fail|n/a] ' +
+  '[--impeccable pass|fail|n/a] ' +
   '[--notes "text"] [--sha rev] [--dir path]';
 
 function runStamp(argv) {
@@ -582,6 +614,7 @@ function runStamp(argv) {
         backend: { type: 'string' },
         review: { type: 'string' },
         security: { type: 'string' },
+        impeccable: { type: 'string' },
       },
       strict: true,
     }));
@@ -601,6 +634,13 @@ function runStamp(argv) {
   try {
     const dir = resolve(values.dir ?? process.cwd());
     const sha = resolveCommit(dir, values.sha ?? 'HEAD');
+    if (values.checks.impeccable === 'n/a' && touchesFrontendAt(dir, sha)) {
+      process.stderr.write(
+        'This commit changes frontend files (apps/mobile/, packages/core/), so --impeccable must be pass or fail, not n/a. ' +
+          'Run the Impeccable design review step of /push-check.\n',
+      );
+      process.exit(1);
+    }
     const result = Object.values(values.checks).includes('fail') ? 'fail' : 'pass';
     const stamp = {
       sha,
