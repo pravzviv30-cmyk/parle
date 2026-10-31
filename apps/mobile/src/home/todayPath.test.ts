@@ -38,8 +38,8 @@ test('Today leads with one ordered path of three steps', () => {
     pathStep: (step: string) => { title: string; line: string | null };
   };
   assert.deepEqual([...TODAY_PATH], ['fix', 'scene', 'phrase']);
-  // The path leads; the quotas, Coming up and the week sit under it.
-  assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'path', 'three', 'comingUp', 'week']);
+  // Under the sky and its hero, the path; the quotas, Coming up and the week sit under it (UI-015).
+  assert.deepEqual([...TODAY_CARDS], ['sky', 'hero', 'path', 'three', 'comingUp', 'week']);
   assert.deepEqual(pathStep('fix'), { title: 'Retry your last fix', line: 'About 30 seconds' });
   // Founder, 2026-10-29: the scene's time is on its card only.
   assert.deepEqual(pathStep('scene'), { title: 'The next scene', line: null });

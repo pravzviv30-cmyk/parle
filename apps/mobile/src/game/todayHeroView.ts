@@ -126,3 +126,58 @@ const minutesWords = (hero: TodayHeroView): string => (hero.goal.underAMinute ==
 
 /** "1 day", "3 days": the streak tile's number, the same words while it counts up. */
 export const streakDays = (count: number): string => `${count} ${count === 1 ? 'day' : 'days'}`;
+
+/**
+ * Direction A's chunky stat tiles (UI-015): a big number over one small word.
+ * With no run the streak tile says "Start" over "today", never a nought
+ * (founder, 2026-10-31); under a minute is "<1" (founder, 2026-10-31). The
+ * spoken labels stay the hero's own.
+ */
+export interface StatTileView {
+  streak: { number: string; label: string; lit: boolean };
+  goal: { number: string; of: string | null; label: string; ring: boolean; fraction: number | null };
+  level: { number: string; label: string };
+}
+
+export function statTileView(hero: TodayHeroView): StatTileView {
+  const count = hero.flame.count;
+  const target = hero.goal.target;
+  return {
+    streak: count === null
+      ? { number: 'Start', label: 'today', lit: hero.flame.lit }
+      : { number: String(count), label: count === 1 ? 'day' : 'days', lit: hero.flame.lit },
+    goal: {
+      number: hero.goal.underAMinute === true ? '<1' : String(hero.goal.minutes),
+      of: target === null ? null : `/${target}`,
+      label: 'minutes',
+      ring: target !== null,
+      fraction: hero.goal.fraction,
+    },
+    level: { number: String(hero.level.level), label: 'level' },
+  };
+}
+
+/**
+ * How a tile sets its coin and its words.
+ *
+ * Three tiles share the row inside 16pt page margins with 8pt between them, so
+ * at 375 each tile is (375 - 32 - 16) / 3 = 109pt: the 38pt coin, an 8pt gap
+ * and "minutes" fit side by side inside 12pt padding (38 + 8 + 12 * 2 = 70,
+ * leaving 34pt+ for the words at 1.0). At 320 a tile is (320 - 32 - 16) / 3 =
+ * 91pt and "minutes" cannot sit beside the coin, so the coin stacks over the
+ * number. From 1.6 (accessibility sizes) the tiles become full-width rows.
+ */
+export const SIDE_MIN_WIDTH = 104;
+export const STAT_COIN = 38;
+export const STAT_GAP = 8;
+export const STAT_PADDING = 12;
+export const SIDE_MAX_FONT_SCALE = 1.15;
+export const ROWS_FONT_SCALE = 1.6;
+
+export type StatTileLayout = 'side' | 'stacked' | 'rows';
+
+export function statTileLayout(tileWidth: number, fontScale: number): StatTileLayout {
+  if (!Number.isFinite(tileWidth) || !Number.isFinite(fontScale)) return 'stacked';
+  if (fontScale >= ROWS_FONT_SCALE) return 'rows';
+  return tileWidth >= SIDE_MIN_WIDTH && fontScale <= SIDE_MAX_FONT_SCALE ? 'side' : 'stacked';
+}

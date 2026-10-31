@@ -15,7 +15,7 @@ import { LEVEL_NAMES } from '@luvani/core';
 
 import type { ActivityEntry } from '../progress/activity.ts';
 import { emptyGame } from './model.ts';
-import { todayHeroView } from './todayHeroView.ts';
+import { statTileLayout, statTileView, todayHeroView, type TodayHeroView } from './todayHeroView.ts';
 import { NO_OUTSIDE_FACTS, gameViewFrom, type GameFacts } from './view.ts';
 
 const TODAY = '2026-10-07';
@@ -135,4 +135,41 @@ b5Test('the streak tile names no streak before a run exists', () => {
   assertB5.deepEqual(b5Tiles({ ...hero, flame: { ...hero.flame, count: 3 } }, 140).streak, { value: '3 days', label: 'streak' });
   assertB5.deepEqual(b5Tiles(hero, 140).goal, { value: '6 of 10', label: 'min today' });
   assertB5.deepEqual(b5Tiles({ ...hero, goal: { ...hero.goal, target: null, fraction: null } }, 140).goal, { value: '6 min', label: 'today' });
+});
+
+describe("Today's chunky stat tiles (UI-015)", () => {
+  const hero = (over: { count?: number | null; lit?: boolean; minutes?: number; under?: boolean; target?: number | null; level?: number } = {}): TodayHeroView => {
+    const target = over.target === undefined ? 10 : over.target;
+    const minutes = over.minutes ?? 4;
+    return {
+      flame: { lit: over.lit ?? true, count: over.count === undefined ? 3 : over.count, words: '', label: '' },
+      goal: { minutes, underAMinute: over.under ?? false, target, fraction: target === null ? null : Math.min(1, minutes / target), met: false, words: '', label: '' },
+      level: { level: over.level ?? 2, words: '', label: '' },
+    };
+  };
+
+  test('the streak tile counts days, and says Start today with no run, never a nought', () => {
+    assert.deepEqual(statTileView(hero()).streak, { number: '3', label: 'days', lit: true });
+    assert.deepEqual(statTileView(hero({ count: 1, lit: false })).streak, { number: '1', label: 'day', lit: false });
+    assert.deepEqual(statTileView(hero({ count: null, lit: false })).streak, { number: 'Start', label: 'today', lit: false });
+  });
+
+  test('the goal tile shows measured minutes over the goal, <1 under a minute, and no ring without a goal', () => {
+    assert.deepEqual(statTileView(hero()).goal, { number: '4', of: '/10', label: 'minutes', ring: true, fraction: 0.4 });
+    assert.deepEqual(statTileView(hero({ minutes: 0, under: true })).goal, { number: '<1', of: '/10', label: 'minutes', ring: true, fraction: 0 });
+    assert.deepEqual(statTileView(hero({ target: null, minutes: 7 })).goal, { number: '7', of: null, label: 'minutes', ring: false, fraction: null });
+  });
+
+  test('the level tile is the number over the word', () => {
+    assert.deepEqual(statTileView(hero({ level: 5 })).level, { number: '5', label: 'level' });
+  });
+
+  test('the tile layout follows the width and the text size', () => {
+    assert.equal(statTileLayout(109, 1.0), 'side');
+    assert.equal(statTileLayout(91, 1.0), 'stacked');
+    assert.equal(statTileLayout(109, 1.3), 'stacked');
+    assert.equal(statTileLayout(109, 1.6), 'rows');
+    assert.equal(statTileLayout(Number.NaN, 1.0), 'stacked');
+    assert.equal(statTileLayout(109, Number.NaN), 'stacked');
+  });
 });

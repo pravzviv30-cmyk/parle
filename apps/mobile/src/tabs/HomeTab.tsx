@@ -101,7 +101,7 @@ export function HomeTab() {
   // greeted by the word alone, never by "you" and never with a bare comma.
   const firstName = firstNameOf(profile.name);
   const revision = useHomeRefresh(focused);
-  const greeting = homeGreeting(firstName);
+  const greeting = homeGreeting(firstName, Date.now());
 
   // Null here means the storage read has not answered yet.
   const [starter, setStarter] = useState<GuestPractice | null>(null);

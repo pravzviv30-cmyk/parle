@@ -21,8 +21,8 @@ describe('profile avatar initial', () => {
 
   test('the avatar agrees with the greeting: a letter only when Today names the learner', () => {
     for (const name of [null, '', '  ', 'Ana', ' bob smith']) {
-      const title = homeGreeting(firstNameOf(name)).title;
-      const named = title !== homeGreeting(null).title;
+      const title = homeGreeting(firstNameOf(name), Date.UTC(2026, 0, 15, 12)).title;
+      const named = title !== homeGreeting(null, Date.UTC(2026, 0, 15, 12)).title;
       assert.equal(avatarInitial(name) !== null, named, `${JSON.stringify(name)}: "${title}"`);
       if (named) assert.ok(title.includes(firstNameOf(name)!), title);
     }

@@ -110,14 +110,36 @@ export function weekLines(input: { story: Pick<WeekStory, 'sentences'>; reflecti
 /**
  * The page's blocks, in order. 2026-10-29 (F934, LR-17, founder decision 6):
  * Today leads with one ordered path, and the quotas, Coming up and the week
- * sit under it. The fix and the phrase are stops on the path now.
+ * sit under it. The fix and the phrase are stops on the path now. UI-015
+ * (direction A): the sky carries the greeting and the three stat tiles, then
+ * one hero (the fix, or the scene's lead), then the path's remaining stops.
  */
-export const TODAY_CARDS = ['greeting', 'stats', 'path', 'three', 'comingUp', 'week'] as const;
+export const TODAY_CARDS = ['sky', 'hero', 'path', 'three', 'comingUp', 'week'] as const;
 export type TodayCard = (typeof TODAY_CARDS)[number];
 
 /** Today's path, in the review's section 10 order: retry the fix, the next scene, say today's phrase. */
 export const TODAY_PATH = ['fix', 'scene', 'phrase'] as const;
 export type TodayPathStep = (typeof TODAY_PATH)[number];
+
+/** A stop on Today's path, in UI-012 order: the fix, the scene, the phrase, the review. */
+export type TodayStop = 'fix' | 'scene' | 'phrase' | 'review';
+
+/**
+ * Which stop is the hero and which stops follow it as rows (UI-012, UI-015).
+ *
+ * The order is UI-012's: fix, scene, phrase, review. The first stop present is
+ * the hero: the fix when there is one, otherwise the scene's lead. The rows are
+ * the stops after it, in order, so the hero's stop is never drawn twice. The
+ * fix and the review are drawn only when there is one; the scene and the
+ * phrase are always there.
+ */
+export function todayStops(input: { fix: boolean; review: boolean }): { hero: 'fix' | 'lead'; rows: TodayStop[] } {
+  const all: TodayStop[] = ['fix', 'scene', 'phrase', 'review'];
+  const present = all.filter((stop) => (stop === 'fix' ? input.fix : stop === 'review' ? input.review : true));
+  return input.fix
+    ? { hero: 'fix', rows: present.filter((stop) => stop !== 'fix') }
+    : { hero: 'lead', rows: present.filter((stop) => stop !== 'scene') };
+}
 
 /**
  * Stated estimates, said as such ("About"), never a measured length. The scene

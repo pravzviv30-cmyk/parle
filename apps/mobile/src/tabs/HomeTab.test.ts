@@ -129,10 +129,12 @@ function spoken(body: string): string[] {
 describe('Today opens on a still greeting — F420, notebook Phase 3', () => {
   test('the greeting is static: the hour\'s French word, the first name, a full stop, and no rotation', () => {
     assert.match(FLAT, /import \{ homeGreeting \} from '\.\.\/home\/greeting\.ts'/, 'Today reads its greeting from somewhere other than the greeting rule');
-    // 2026-10-20, B5, B-Today: always "Bonjour" (founder decision), so the
-    // greeting is built from the first name alone and reads no clock.
-    assert.match(FLAT, /const greeting = homeGreeting\(firstName\);/, 'the greeting is not built from the first name alone');
-    assert.doesNotMatch(SCREEN, /Bonsoir|greetingWord|greetingSubline|greeting\.subline/, 'Today switches its greeting with the hour again');
+    // UI-015 (founder 2026-10-30): direction A's sky brings back the hour's
+    // word, so the greeting takes the first name and the moment, and the rule
+    // picks the word. The screen never picks it itself, and the question under
+    // the greeting stays retired.
+    assert.match(FLAT, /const greeting = homeGreeting\(firstName, Date\.now\(\)\);/, 'the greeting is not built from the first name and the moment');
+    assert.doesNotMatch(SCREEN, /Bonsoir|greetingWord|greetingSubline|greeting\.subline/, 'Today picks its greeting word itself instead of through homeGreeting');
     assert.ok(!SCREEN.includes('useGreetingRotation'), 'the rotating greeting is back on Today');
     assert.ok(!SCREEN.includes('titleSwap'), 'the header is handed a swap, so the greeting moves');
     assert.ok(!existsSync(fileURLToPath(new URL('../home/useGreetingRotation.ts', import.meta.url))), 'the rotation hook still ships');
