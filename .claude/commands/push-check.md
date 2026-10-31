@@ -162,6 +162,9 @@ Inputs:
 - Detector output, advisory and web-only: <paste, or "none">
 - What the branch does: <one line>
 
+Read in this order, because your turn budget is short: the screenshots, the diff, the
+DESIGN.md sections, craft-floor.md, then the rest. Name anything left unread.
+
 The landed system: LipTile (a solid tile on a darker lip, like a pressable game button);
 chunky stat tiles (coin, big number, one word); one stage tint per drill family from
 existing tokens (Choose lavender, Build butter, Write sage, Speak peach, Review butter);
@@ -184,7 +187,9 @@ Output: the disposition word first, then your usual sections, plus two more.
 
 **Sorting the result.** The session checks every item in the code before acting.
 
-- **Slop** goes through the section 7 fix loop like any other finding. On a later round,
+- **Slop** on lines this diff added or changed goes through the section 7 fix loop like
+  any other finding. Slop the reviewer finds in older code nearby is written up as out of
+  scope, the way section 7 allows, and never blocks the push. On a later round,
   send the same reviewer the recaptured screenshots with `SendMessage` instead of starting
   a new one: it scores its earlier fixes (its verdict pass) and names at most three
   regressions.
