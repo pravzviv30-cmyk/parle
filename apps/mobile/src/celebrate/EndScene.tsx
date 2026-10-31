@@ -57,7 +57,7 @@ import { HIT, bType, decorative, radius, space, type } from '../theme.ts';
 import { StarMark } from '../today/TodayParts.tsx';
 import { Confetti } from './Confetti.tsx';
 import { countTick, fireBeat, fireStill } from './effects.ts';
-import { endCardView, timeText, xpText, type EndCardView, type EndTile } from './endCardModel.ts';
+import { endCardView, tileText, type EndCardView, type EndTile } from './endCardModel.ts';
 import type { EndPhrase } from './endPhrases.ts';
 import { claimInPlace, holdCelebrations } from './queue.ts';
 import { TIMELINES, beatAt, playsStill } from './timelines.ts';
@@ -75,12 +75,6 @@ const DOT = 10;
 /** The page margins the tile row sits in, for the first frame before it measures itself. */
 const ROW_MARGINS = space(8);
 const noop = () => {};
-
-function tileText(tile: EndTile, value: number): string {
-  if (tile.id === 'xp') return xpText(value);
-  if (tile.id === 'time') return timeText(value);
-  return tile.of === undefined ? String(value) : `${value}/${tile.of}`;
-}
 
 interface SceneWords {
   /** The scene's title; null in tiles mode, where the kicker and line stand. */

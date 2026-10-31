@@ -1296,10 +1296,10 @@ describe('one way back, and it is the shared header — F309', () => {
     // six pills across six mutually exclusive branches, of which a learner ever
     // sees one — the two Checks, "I said it", and a Done on each of the three
     // terminal cards.
-    // Review (drill B v2, UI-016) is pinned at three across exclusive branches:
-    // Done on the finished page, Show me, and "I said it" (one tag, the lip
-    // primary on the front and the secondary while typing).
-    const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6, 'ReviewScreen.tsx': 3 };
+    // Review (drill B v2, UI-016) is pinned at two: Show me, and "I said it"
+    // (one tag, the lip primary on the front and the secondary while typing).
+    // Done on the finished page is the shared EndActions, not a pill here.
+    const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6, 'ReviewScreen.tsx': 2 };
     // The two auth screens are the other pinned case. They are one thing to do,
     // have an account, and revamp B's approved board (F601) draws two provider
     // doors above the form: Apple's ink pill, only where the platform offers it,
@@ -1478,10 +1478,15 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     // The "no check" and "result" cards are terminal: Done is the one door, as
     // on Review and Drill. The chevron is gated off them, so a terminal card
     // never offers two ways to the same place.
+    // The "no check" card returns early with Done as its footer and no header,
+    // so the drill frame's header only needs gating off the result.
     const src = stripComments(readFileSync(join(SRC, 'soundcheck', 'SoundCheckScreen.tsx'), 'utf8'));
+    const noCheck = src.slice(src.indexOf('if (noCheck) {'), src.indexOf('<DrillFrame'));
+    assert.match(noCheck, /return \(\s*<ScrollScreen footer=\{done\}>/, 'the no-check card is not a terminal card with Done');
+    assert.doesNotMatch(noCheck, /ScreenHeader/, 'the no-check card draws a header, so a terminal card shows two doors');
     assert.match(
       src,
-      /header=\{!noCheck && shownPhase !== 'result' \?/,
+      /header=\{shownPhase !== 'result' \?/,
       'the sound-check chevron is not gated off the terminal cards, so a terminal card shows two doors',
     );
   });

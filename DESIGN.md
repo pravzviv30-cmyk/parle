@@ -845,6 +845,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
 | `b.light.stageTrack` | `#EFE7F9` | The five-stage track behind the nodes (B-Journey) |
 | `b.light.peachSoft` | `#FCEADF` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.light.peachTrack` | `#7B7385` | Pending step bars on the peach drill band: 3.4 on peach in both modes, 3.9 (light) and 3.2 (dark) against the done bars (text). A mark, never words |
 | `b.light.lavenderSoft` | `#F5F1FE` | The art panel inside the lavender Badges tile (B-Journey) |
 | `b.light.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
 | `b.light.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |
@@ -905,6 +906,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
 | `b.dark.stageTrack` | `#302A48` | The five-stage track behind the nodes (B-Journey) |
 | `b.dark.peachSoft` | `#5A3F4C` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.dark.peachTrack` | `#94869B` | Pending step bars on the peach drill band: 3.4 on peach in both modes, 3.9 (light) and 3.2 (dark) against the done bars (text). A mark, never words |
 | `b.dark.lavenderSoft` | `#3D3560` | The art panel inside the lavender Badges tile (B-Journey) |
 | `b.dark.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
 | `b.dark.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |

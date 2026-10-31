@@ -1,4 +1,4 @@
-/** The write kinds: listen and type, and translate. Moved from DrillScreen with no change. */
+/** The write kinds: listen and type, and translate. Moved from DrillScreen, then rebuilt on the drill frame for drill B v2 (UI-016). */
 import { Pressable, Text, View } from 'react-native';
 import type { ListenTypeExercise, TranslationExercise } from '@luvani/core';
 import { bType, space, type } from '../../theme.ts';
@@ -83,7 +83,6 @@ export function TranslationView({
   shell: DrillShell;
 }) {
   const bt = useB();
-  const ds = useThemedStyles(makeDs);
   const isFrenchPrompt = exercise.direction === 'fr-en';
   const prompt = isFrenchPrompt ? exercise.fr : exercise.en;
   // Only an English-to-French ask hides the French, so only it has anything to

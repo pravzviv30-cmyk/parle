@@ -24,8 +24,8 @@
  * different place the learner has gone to.
  *
  * 2026-10-31 drill B v2 (UI-016; drill-b.md "Sound"): it stands in the one
- * drill frame on the speak family's peach stage. The close (named "Finish
- * here") and the progress dots make the header; the stage holds the sound's
+ * drill frame on the speak family's peach stage. The close (named "Leave the
+ * sound drill", its title carrying the step) and the progress dots make the header; the stage holds the sound's
  * name, the word with its IPA and gloss, and the pair it is not to be confused
  * with; Hear it again sits under the stage; Next is the lip primary at the
  * foot, with "Finish here" under it.
@@ -71,9 +71,12 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
   const last = step === undefined || index + 1 === steps.length;
   const header = (
     <ScreenHeader
-      title={drill.title}
-      leave={{ onPress: onDone, label: 'Finish here', close: true }}
-      centre={step ? <ProgressDots total={steps.length} index={index} ground="paper" /> : null}
+      // The centre slot is one element named by the title, so the step position
+      // rides in the title or a screen reader never hears it.
+      title={step ? `${drill.title}, step ${index + 1} of ${steps.length}` : drill.title}
+      // The foot link is also "Finish here"; the close disc gets its own name.
+      leave={{ onPress: onDone, label: 'Finish here', accessibilityLabel: 'Leave the sound drill', close: true }}
+      centre={step ? <ProgressDots total={steps.length} index={index} ground="paper" track={t.peachTrack} /> : null}
     />
   );
 

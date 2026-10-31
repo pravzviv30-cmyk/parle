@@ -65,7 +65,7 @@ describe('a used word stays readable in the sentence bank — F593', () => {
     assert.match(screen, /landed: \{[^}]*backgroundColor: bt\.brand/, 'a placed word is not on the brand fill');
     assert.match(screen, /placed=\{assembled\.includes\(i\)\}/, 'a placed word leaves no slot in the bank');
     assert.match(screen, /if \(placed\) \{ return \( <View style=\{ds\.slot\}/, 'a placed word leaves no slot in the bank');
-    assert.match(screen, /slot: \{ height: 46, marginBottom: LIP_SIZES\.chip\.lip, borderRadius: LIP_SIZES\.chip\.radius, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt\.ring/);
+    assert.match(screen, /slot: \{ minHeight: 46, marginBottom: LIP_SIZES\.chip\.lip, borderRadius: LIP_SIZES\.chip\.radius, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt\.ring/);
   });
 });
 
@@ -650,10 +650,10 @@ describe('help in a practice sitting: the known phrase, recorded so it is never 
 // 2026-10-21 UI-008, simulator check of the Drill in light and dark.
 describe('the drill draws no stray strip and keeps its end figures on one line', () => {
   test('no exercise card carries a top border, which drew as an ink strip across its top', () => {
+    // Drill B v2 (UI-016) retired the exCard style with the card it named: the
+    // kinds now stand in DrillFrame's stage band. The intent stays: nothing the
+    // drill draws (drillSource() covers the screen and its kinds) has a top edge.
     const screen = stripComments(drillSource());
-    const card = /exCard: \{([^}]*)\}/.exec(screen);
-    assert.ok(card, 'the exercise card style moved; this test is stale');
-    assert.doesNotMatch(card[1]!, /borderTop/, 'the exercise card draws a top edge again');
     assert.doesNotMatch(screen, /borderTopWidth/, 'something on the drill draws a top edge');
   });
 

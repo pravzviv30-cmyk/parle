@@ -766,14 +766,14 @@ export function Monogram({ initial, size = HIT, inverted = false, ground, ink: a
  * header's centred title slot, where bars that share the width would otherwise
  * share nothing.
  */
-export function ProgressDots({ total, index, ground = 'paper' }: { total: number; index: number; ground?: Ground | 'paper' }) {
+export function ProgressDots({ total, index, ground = 'paper', track }: { total: number; index: number; ground?: Ground | 'paper'; /** Pending bar colour for a band the hairline vanishes on, such as the peach drill band. */ track?: string }) {
   const t = useB();
   const s = useThemedStyles(makeS);
   const done = ground === 'blue' || ground === 'coral' ? paper.onInk : ground === 'paper' ? t.text : paper.ink;
   return (
     <View style={s.segments} accessible accessibilityLabel={`Step ${index + 1} of ${total}`}>
       {Array.from({ length: total }, (_, i) => (
-        <View key={i} style={[s.segment, { backgroundColor: i <= index ? done : ground === 'paper' ? t.line : segmentPending[ground] }]} />
+        <View key={i} style={[s.segment, { backgroundColor: i <= index ? done : track ?? (ground === 'paper' ? t.line : segmentPending[ground]) }]} />
       ))}
     </View>
   );

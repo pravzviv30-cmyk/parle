@@ -70,6 +70,13 @@ export function xpText(xp: number): string {
   return `+${Math.max(0, Math.floor(xp))}`;
 }
 
+/** A tile's figure at `value`: the XP and Time words, or the count with its whole ("4/5"). */
+export function tileText(tile: EndTile, value: number): string {
+  if (tile.id === 'xp') return xpText(value);
+  if (tile.id === 'time') return timeText(value);
+  return tile.of === undefined ? String(value) : `${value}/${tile.of}`;
+}
+
 const fraction = (minutes: number, target: number): number => Math.min(1, Math.max(0, minutes / target));
 
 export function endCardView(

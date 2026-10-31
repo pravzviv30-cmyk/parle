@@ -5,7 +5,7 @@
  * touch. The word chip is a `LipTile` chip in build.tsx.
  */
 import { createContext, useContext } from 'react';
-import { Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Text, TextInput } from 'react-native';
 import { RecordingPresets } from 'expo-audio';
 import type { DrillExercise } from '@luvani/core';
 import { bType, frenchText, type } from '../../theme.ts';

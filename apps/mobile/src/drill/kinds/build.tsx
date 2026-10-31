@@ -14,7 +14,7 @@ import { LipTile, PillButton, Press } from '../../components.tsx';
 import { useTokenFlight } from '../../motion/TokenFlight.tsx';
 import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
 import { drillStage } from '../drillStage.ts';
-import { SEND_BACK_LINE, flightMayLand, sendBackLabel, splitBlank } from '../tileLook.ts';
+import { SEND_BACK_LINE, blankLine, flightMayLand, sendBackLabel, splitBlank } from '../tileLook.ts';
 import { CheckPill, DrillClock, TAP_LINE, TypedAnswer, kindTag } from './shared.tsx';
 import { makeDs } from './styles.ts';
 
@@ -84,6 +84,7 @@ export function FillBlankView({
   const [flying, setFlying] = useState<string | null>(null);
   const options = exercise.options;
   const split = options ? splitBlank(exercise.sentence) : null;
+  const line = split === null ? null : blankLine(split);
   const landed = options && typed !== '' ? typed : null;
   // Live facts a landing reads, since the flight lands after the render that launched it.
   const live = useRef({ mounted: true, locked, exerciseId: exercise.id });
@@ -119,20 +120,25 @@ export function FillBlankView({
   };
 
   // The sentence with its gap, word by word so the gap sits in the line and wraps with it.
-  const prompt = split === null ? exercise.sentence : (
+  const prompt = split === null || line === null ? exercise.sentence : (
     // Read whole while the gap is empty ("blank" for the gap); once a word sits
     // there, the words are read in turn so the send-back button stays reachable.
     <View style={st.sentence} accessibilityRole="header" accessible={landed === null}
       accessibilityLabel={landed === null ? `${split.before.trim()} blank ${split.after.trim()}`.trim() : undefined}>
-      {split.before.split(/\s+/).filter(Boolean).map((word, i) => <Text key={`b${i}`} {...frenchText} style={[bType.prompt23, { color: bt.text }]}>{word}</Text>)}
-      <View ref={gapRef} collapsable={false} style={landed === null ? [ds.gap, { borderBottomColor: bt.link }] : null}>
-        {landed !== null ? (
-          <Press haptic="light" onPress={sendBack} disabled={locked} accessibilityRole="button" accessibilityLabel={sendBackLabel(landed)} style={ds.landedPress}>
-            <LandedWord word={landed} />
-          </Press>
-        ) : null}
+      {line.before.map((word, i) => <Text key={`b${i}`} {...frenchText} style={[bType.prompt23, { color: bt.text }]}>{word}</Text>)}
+      {/* The gap and what sits tight against it ("l'", a comma) are one item, so they wrap together. */}
+      <View style={st.tight}>
+        {line.lead !== null ? <Text {...frenchText} style={[bType.prompt23, { color: bt.text }]}>{line.lead}</Text> : null}
+        <View ref={gapRef} collapsable={false} style={landed === null ? [ds.gap, { borderBottomColor: bt.link }] : null}>
+          {landed !== null ? (
+            <Press haptic="light" onPress={sendBack} disabled={locked} accessibilityRole="button" accessibilityLabel={sendBackLabel(landed)} style={ds.landedPress}>
+              <LandedWord word={landed} />
+            </Press>
+          ) : null}
+        </View>
+        {line.tail !== null ? <Text {...frenchText} style={[bType.prompt23, { color: bt.text }]}>{line.tail}</Text> : null}
       </View>
-      {split.after.split(/\s+/).filter(Boolean).map((word, i) => <Text key={`a${i}`} {...frenchText} style={[bType.prompt23, { color: bt.text }]}>{word}</Text>)}
+      {line.after.map((word, i) => <Text key={`a${i}`} {...frenchText} style={[bType.prompt23, { color: bt.text }]}>{word}</Text>)}
     </View>
   );
 
@@ -165,6 +171,7 @@ export function FillBlankView({
 const st = StyleSheet.create({
   sentence: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 6, rowGap: 4 },
   centred: { textAlign: 'center' },
+  tight: { flexDirection: 'row', alignItems: 'center' },
 });
 
 export function TapTranslateView({

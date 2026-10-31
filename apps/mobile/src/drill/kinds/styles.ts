@@ -6,18 +6,12 @@ import type { B } from '../../main/bTheme.tsx';
 /** The speak circle's size, which the level ring around it matches. */
 export const SPEAK = 108;
 
-/** The drill kinds' shared styles, moved from DrillScreen with no change. */
+/** The drill kinds' shared styles, moved from DrillScreen and reshaped for drill B v2 (UI-016). */
 export function makeDs(bt: B) {
   return StyleSheet.create({
   // The own-words outcome's check: a white disc, so it reads on the mint card
   // as well as on paper.
   verdictMark: { width: 28, height: 28, borderRadius: 14, backgroundColor: bt.card, alignItems: 'center', justifyContent: 'center' },
-
-  // The exercise card: the SessionView main-card anatomy, content centred.
-  // 2026-10-21 UI-008, sim check: no top border. The old 5pt accent edge drew
-  // as an ink strip across the card's top on the lavender ground.
-  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center' },
-  promptCard: { minHeight: 260, justifyContent: 'space-between' },
 
   // The own-words outcome: the verdict beside its mark, then whatever the
   // judge gave the learner to read. It is a card rather than a timed line
@@ -53,14 +47,15 @@ export function makeDs(bt: B) {
     gap: 8,
     padding: 14,
   },
-  // A word chip's face (`LipTile` chip): 46 tall, padding 0 14.
-  chip: { height: 46, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  // A word chip's face (`LipTile` chip): at least 46 tall, padding 0 14; it
+  // grows with the text so a French word never overflows at large sizes.
+  chip: { minHeight: 46, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   // The bank: centred, wrapping, gap 10. A placed word leaves a 2pt dashed
   // slot the chip's size, on the chip's lip line so nothing jumps.
   bank: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
-  slot: { height: 46, marginBottom: LIP_SIZES.chip.lip, borderRadius: LIP_SIZES.chip.radius, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt.ring, justifyContent: 'center' },
+  slot: { minHeight: 46, marginBottom: LIP_SIZES.chip.lip, borderRadius: LIP_SIZES.chip.radius, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt.ring, justifyContent: 'center' },
   // The answer box's next place: an empty slot, 44 tall.
-  nextSlot: { height: 44, minWidth: 64, marginBottom: 0 },
+  nextSlot: { minHeight: 44, minWidth: 64, marginBottom: 0 },
   // The fill-blank gap: a 3pt dashed underline in the link colour.
   gap: { minWidth: 96, height: 34, borderBottomWidth: 3, borderStyle: 'dashed' },
   // A landed word (board `.landed`): the brand fill and a 5pt soft brand halo.
@@ -95,8 +90,6 @@ export function makeDs(bt: B) {
   },
 
   speakBlock: { alignItems: 'center', gap: space(2) },
-  speakCircle: { width: SPEAK, height: SPEAK, alignItems: 'center', justifyContent: 'center' },
-  speakRing: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
   saidIt: { alignSelf: 'stretch' },
   noMic: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(4) },
 });

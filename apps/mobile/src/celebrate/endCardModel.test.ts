@@ -11,7 +11,9 @@ import type { StreakState } from '@luvani/core';
 import { streakGuiltIn } from '../copy/guilt.ts';
 import { GAME_COPY } from '../game/copy.ts';
 import type { GameDelta } from '../game/delta.ts';
-import { endCardView, timeText, xpText } from './endCardModel.ts';
+import { endCardView, tileText, timeText, xpText } from './endCardModel.ts';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const RUN: StreakState = { current: 3, today: 'practised', runStart: '2026-10-04', longest: 3, lifetimeDays: 9, lastPracticeDay: '2026-10-06', gap: [], coveredInRun: [] };
 
@@ -121,5 +123,32 @@ describe('the end card — F743', () => {
     assert.equal(count({ count: 4 })?.of, undefined, 'a count with no whole grew one');
     assert.equal(count({ count: 4, countOf: 3 })?.of, undefined, 'a whole smaller than its count was drawn');
     assert.equal(count({ count: 4, countOf: null })?.of, undefined);
+  });
+});
+
+describe('tileText: the figure each end tile draws', () => {
+  test('a count with its whole reads "4/5"', () => {
+    assert.equal(tileText({ id: 'count', value: 4, label: 'First try', of: 5 }, 4), '4/5');
+  });
+  test('the count up shows the running value over the same whole', () => {
+    assert.equal(tileText({ id: 'count', value: 4, label: 'First try', of: 5 }, 2), '2/5');
+  });
+  test('a count without a whole is the bare number', () => {
+    assert.equal(tileText({ id: 'count', value: 7, label: 'Phrases' }, 7), '7');
+  });
+  test('XP and Time keep their own words', () => {
+    assert.equal(tileText({ id: 'xp', value: 30, label: 'XP' }, 30), xpText(30));
+    assert.equal(tileText({ id: 'time', value: 95, label: 'Time' }, 95), timeText(95));
+  });
+});
+
+describe('the end phrase rows', () => {
+  const scene = readFileSync(fileURLToPath(new URL('./EndScene.tsx', import.meta.url)), 'utf8').replace(/\s+/g, ' ');
+  test('Hear it names the phrase it plays', () => {
+    assert.match(scene, /accessibilityLabel=\{`Hear it in French: \$\{fr\}`\}/);
+  });
+  test('each phrase is marked Settled or Still settling, and only Still settling is written out', () => {
+    assert.match(scene, /accessibilityLabel=\{settled \? SETTLED_LABEL : STILL_SETTLING_LABEL\}/);
+    assert.match(scene, /\{!settled && <Text style=\{\[bType\.bold11, \{ color: t\.muted \}\]\}>\{STILL_SETTLING_LABEL\}<\/Text>\}/);
   });
 });

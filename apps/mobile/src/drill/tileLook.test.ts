@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { ASIDE_OPACITY, SEND_BACK_LINE, choosePick, flightMayLand, sendBackLabel, splitBlank, tileLook } from './tileLook.ts';
+import { ASIDE_OPACITY, SEND_BACK_LINE, blankLine, choosePick, flightMayLand, sendBackLabel, splitBlank, tileLook } from './tileLook.ts';
 
 describe('tileLook', () => {
   test('every tile rests before a pick', () => {
@@ -93,5 +93,26 @@ describe('fill-blank flight wiring', () => {
     const screen = readFileSync(fileURLToPath(new URL('../DrillScreen.tsx', import.meta.url)), 'utf8');
     const advance = screen.slice(screen.indexOf('const advance = useCallback('), screen.indexOf('setFeedback(null);', screen.indexOf('const advance = useCallback(')));
     assert.match(advance, /tutorVoice\.stop\(\);/, 'a sheet that moves on leaves its line playing');
+  });
+});
+
+describe('blankLine (fill-blank punctuation stays tight)', () => {
+  test('a comma right after the gap rides with the gap', () => {
+    assert.deepEqual(blankLine(splitBlank("Un ___, s'il vous plaît.")!), { before: ['Un'], lead: null, tail: ',', after: ["s'il", 'vous', 'plaît.'] });
+  });
+  test('a period after the gap rides with the gap', () => {
+    assert.deepEqual(blankLine(splitBlank('Je prends ___.')!), { before: ['Je', 'prends'], lead: null, tail: '.', after: [] });
+  });
+  test('an elision before the gap rides with the gap', () => {
+    assert.deepEqual(blankLine(splitBlank("Je prends l'___ de huit heures.")!), { before: ['Je', 'prends'], lead: "l'", tail: null, after: ['de', 'huit', 'heures.'] });
+  });
+  test('a spaced question mark stays its own item', () => {
+    assert.deepEqual(blankLine(splitBlank('Je vous dois ____ ?')!), { before: ['Je', 'vous', 'dois'], lead: null, tail: null, after: ['?'] });
+  });
+  test('spaced punctuation written tight still does not glue', () => {
+    assert.equal(blankLine(splitBlank('Tu viens ___?')!).tail, null);
+  });
+  test('a stray spaced comma glues onto the word before it', () => {
+    assert.deepEqual(blankLine(splitBlank('Bonjour , ___ va')!).before, ['Bonjour,']);
   });
 });

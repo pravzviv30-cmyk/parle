@@ -267,7 +267,7 @@ export function SoundCheckScreen({
   return (
     <DrillFrame
       stage={drillStage('sound-check', t.mode)}
-      header={!noCheck && shownPhase !== 'result' ? <ScreenHeader leave={{ onPress: onDone, label: 'Back', close: true }} /> : <View style={{ height: HIT, marginBottom: 18 }} />}
+      header={shownPhase !== 'result' ? <ScreenHeader leave={{ onPress: onDone, label: 'Back', close: true }} /> : <View style={{ height: HIT, marginBottom: 18 }} />}
       sheet={resultSheet}
       eyebrow="Sound check"
       prompt={<DrillPrompt header>One useful line, once.</DrillPrompt>}

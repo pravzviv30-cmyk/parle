@@ -10,11 +10,10 @@
  * pressing the real control on the web. Nothing is graded or sent.
  */
 import { useEffect, useState, type ReactNode } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { NavigationContext } from '@react-navigation/native';
-import { bType, space, type } from '../theme.ts';
-import { useB } from '../main/bTheme.tsx';
-import { Card, IconAction, PillButton } from '../components.tsx';
+import { space } from '../theme.ts';
+import { IconAction } from '../components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from '../layout.tsx';
 import type { DrillShell } from '../drill/DrillFrame.tsx';
 import { LitField } from '../drill/kinds/shared.tsx';

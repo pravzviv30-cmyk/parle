@@ -52,6 +52,41 @@ export function splitBlank(sentence: string): { before: string; after: string } 
   return { before: sentence.slice(0, at.index), after: sentence.slice(at.index + at[0].length) };
 }
 
+/** Punctuation French sets tight against the word before it: , . ) » … and an apostrophe. */
+const TIGHT = /^[,.)»…'’]/;
+/** Punctuation French spaces off (? ! : ; «): it never glues, even written tight. */
+const SPACED = /^[?!:;«]/;
+
+/** One run of words, a no-space punctuation token glued onto the word before it. */
+function lineWords(text: string): string[] {
+  const out: string[] = [];
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    if (out.length > 0 && TIGHT.test(word)) out[out.length - 1] += word;
+    else out.push(word);
+  }
+  return out;
+}
+
+/**
+ * The fill-blank sentence as the items the line wraps: the words before the
+ * gap, what sits tight on either side of the gap (`lead`, such as an elision
+ * "l'", and `tail`, such as a comma), and the words after. Lead and tail are
+ * drawn with the gap as one item, so "Un ___, s'il" never draws a space before
+ * the comma or wraps it onto a line of its own. French spaced punctuation
+ * (? ! : ; «) stays its own item.
+ */
+export function blankLine(split: { before: string; after: string }): { before: string[]; lead: string | null; tail: string | null; after: string[] } {
+  const before = lineWords(split.before);
+  const after = lineWords(split.after);
+  let lead: string | null = null;
+  let tail: string | null = null;
+  const last = before[before.length - 1];
+  if (last !== undefined && /\S$/.test(split.before) && !SPACED.test(last)) lead = before.pop()!;
+  const first = after[0];
+  if (first !== undefined && (/^\S/.test(split.after) || TIGHT.test(first)) && !SPACED.test(first)) tail = after.shift()!;
+  return { before, lead, tail, after };
+}
+
 /** The one line under a landed word, shown only while a word sits in the gap. */
 export const SEND_BACK_LINE = 'Tap the word in the sentence to send it back.';
 

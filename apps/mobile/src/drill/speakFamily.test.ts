@@ -43,7 +43,7 @@ describe('the speak family, drill B v2', () => {
   test('the sound drill stands on the peach frame, never records, and keeps both ways out', () => {
     const player = read('./FocusDrillPlayer.tsx');
     assert.match(player, /drillStage\('sound-drill', t\.mode\)/);
-    assert.match(player, /leave=\{\{ onPress: onDone, label: 'Finish here', close: true \}\}/);
+    assert.match(player, /leave=\{\{ onPress: onDone, label: 'Finish here', accessibilityLabel: 'Leave the sound drill', close: true \}\}/);
     assert.match(player, /<ProgressDots total=\{steps\.length\} index=\{index\}/);
     assert.match(player, /<PillButton label=\{last \? 'Done' : 'Next'\} onPress=\{next\} lip \/>/);
     assert.match(player, /\{!last && <GhostButton label="Finish here" onPress=\{onDone\} \/>\}/);

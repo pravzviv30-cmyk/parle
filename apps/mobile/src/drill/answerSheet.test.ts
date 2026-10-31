@@ -14,6 +14,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { drillSource, readSrc } from '../testing/drillSource.ts';
+import { MARK, WORDS, contrast } from '../testing/contrast.ts';
+import { b } from '../palette.ts';
 import { answerCurrent, missReason, type DrillExercise, type DrillFeedback, type DrillSessionState } from '@luvani/core';
 
 import { streakGuiltIn } from '../copy/guilt.ts';
@@ -332,5 +334,58 @@ describe('a waiting answer sheet takes the screen reader with it — F775', () =
     assert.match(press, /ref=\{setRef\}/, 'the press drops the caller ref');
     assert.match(press, /if \(typeof outerRef === 'function'\) outerRef\(value\);/, 'the press does not hand its node to the caller');
     assert.match(press, /<Pressable accessibilityRole="button" \{\.\.\.rest\}/, 'the press does not pass the ref on to its pressable');
+  });
+});
+
+describe('the lit letters reach the field only on a nearly sheet', () => {
+  test('the screen lights letters only while a nearly sheet is up', () => {
+    const screen = stripComments(readSrc('DrillScreen.tsx')).replace(/\s+/g, ' ');
+    assert.match(
+      screen,
+      /const lit = sheet !== null && sheet\.tone === 'nearly' && feedback\?\.closest != null && sheetFacts !== null \? litLetters\(sheetFacts\.attempt, feedback\.closest\) : null;/,
+      'the lit letters are not gated on a nearly sheet, so a miss or a right answer could light the field',
+    );
+    assert.match(screen, /<LitField\.Provider value=\{lit\}>/, 'the lit letters never reach the field');
+  });
+  test('the field draws lit letters only once the answer is locked', () => {
+    const shared = stripComments(read('./kinds/shared.tsx'));
+    assert.match(shared, /const lit = useContext\(LitField\);\s*if \(lit !== null && locked\) \{/, 'the field lights letters while the learner can still type');
+  });
+});
+
+describe('the answer sheet grounds each verdict, and its words read on them', () => {
+  const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+  test('good is the mint wash with mint words, nearly is butter, anything else the card', () => {
+    assert.match(sheetFile, /if \(tone === 'good'\) return \{ fill: t\.mintWash, head: t\.mintWords, ink: t\.text \};/);
+    assert.match(sheetFile, /if \(tone === 'nearly'\) return \{ fill: t\.butter, head: t\.text, ink: t\.text \};/);
+    assert.match(sheetFile, /return \{ fill: t\.card, head: t\.text, ink: t\.text \}; \}/);
+  });
+  test('the Notice sits on the stage band with the stage eyebrow token', () => {
+    assert.match(sheetFile, /<View style=\{\[st\.notice, \{ backgroundColor: t\[stage\.band\] \}\]\}> <Text style=\{\[bType\.eyebrow800, \{ color: t\[stage\.eyebrow\] \}\]\}>Notice<\/Text>/);
+  });
+  test('the Hear it pill is mint wash words on mint words', () => {
+    assert.match(sheetFile, /st\.hearPill, \{ backgroundColor: t\.mintWords \}/);
+    assert.match(sheetFile, /<Text style=\{\[bType\.bold14, \{ color: t\.mintWash \}\]\}>Hear it<\/Text>/);
+  });
+  for (const mode of ['light', 'dark'] as const) {
+    const t = b[mode];
+    test(`${mode}: muted words read on the mint wash and on butter`, () => {
+      assert.ok(contrast(t.muted, t.mintWash) >= WORDS, `muted on mintWash is ${contrast(t.muted, t.mintWash).toFixed(2)}`);
+      assert.ok(contrast(t.muted, t.butter) >= WORDS, `muted on butter is ${contrast(t.muted, t.butter).toFixed(2)}`);
+    });
+    // Bold 14 is under WCAG's large-text floor (14pt is about 18.7 px), so the pill holds the 4.5 words bar.
+    test(`${mode}: the Hear it pill's words read at the words bar`, () => {
+      assert.ok(contrast(t.mintWash, t.mintWords) >= WORDS, `mintWash on mintWords is ${contrast(t.mintWash, t.mintWords).toFixed(2)}`);
+    });
+    test(`${mode}: the sound drill's pending step bars show on the peach band, apart from the done bars`, () => {
+      assert.ok(contrast(t.peachTrack, t.peach) >= MARK, `peachTrack on peach is ${contrast(t.peachTrack, t.peach).toFixed(2)}`);
+      assert.ok(contrast(t.peachTrack, t.text) >= MARK, `peachTrack against the done bars is ${contrast(t.peachTrack, t.text).toFixed(2)}`);
+    });
+  }
+  test('the sound drill passes the peach track to its step bars', () => {
+    const player = stripComments(read('./FocusDrillPlayer.tsx')).replace(/\s+/g, ' ');
+    assert.match(player, /<ProgressDots total=\{steps\.length\} index=\{index\} ground="paper" track=\{t\.peachTrack\} \/>/);
+    assert.match(player, /title=\{step \? `\$\{drill\.title\}, step \$\{index \+ 1\} of \$\{steps\.length\}` : drill\.title\}/, 'the step position is not spoken with the header');
+    assert.match(player, /accessibilityLabel: 'Leave the sound drill'/, 'the close shares its name with the Finish here link');
   });
 });

@@ -1,4 +1,4 @@
-/** Say it your own way, and what an attempt came back with. Moved from DrillScreen with no change. */
+/** Say it your own way, and what an attempt came back with. Moved from DrillScreen, then rebuilt on the drill frame for drill B v2 (UI-016). */
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import type { OwnWordsExercise, SettledVerdict } from '@luvani/core';
