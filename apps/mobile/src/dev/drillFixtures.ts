@@ -7,10 +7,12 @@
  * outside `dev/`, and nothing here is graded, saved or sent.
  */
 import type {
+  AnsweredExercise,
   AppropriateReplyExercise,
   BestSentenceExercise,
   ConvoPhrase,
   Drill,
+  DrillExercise,
   FillBlankExercise,
   ListenTypeExercise,
   OwnWordsExercise,
@@ -158,9 +160,17 @@ export const END_DELTA: GameDelta = {
 /** The same delta for a review sitting. */
 export const REVIEW_END_DELTA: GameDelta = { ...END_DELTA, key: END_DELTA.key.replace('drill', 'review'), source: 'review' };
 
-/** First-try answers on the drill end, and recalled cards on the review end. */
-export const END_COUNT = 5;
+/** First-try answers on the drill end (of END_ASKED), and recalled cards on the review end. */
+export const END_COUNT = 4;
+export const END_ASKED = 5;
 export const REVIEW_END_COUNT = 3;
+
+/** The drill end's phrases: the bill settled first time, "combien" right only after a miss. */
+export const END_EXERCISES: DrillExercise[] = [BEST_SENTENCE, TRANSLATE_INTO_FR];
+export const END_ANSWERED: AnsweredExercise[] = [
+  { id: BEST_SENTENCE.id, phraseKey: BEST_SENTENCE.phraseKey, outcome: 'good', attempts: 1 },
+  { id: TRANSLATE_INTO_FR.id, phraseKey: TRANSLATE_INTO_FR.phraseKey, outcome: 'good', attempts: 2 },
+];
 
 /** A sound drill with minimal pairs, in the player's shape. */
 export const SOUND_DRILL: Drill = {

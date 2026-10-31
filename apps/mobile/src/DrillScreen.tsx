@@ -66,7 +66,9 @@ import { comboAfter, comboGlows } from './drill/combo.ts';
 import { fireSheet } from './drill/sheetEffects.ts';
 import { DRILL_END } from './drill/endCopy.ts';
 import { SittingBar } from './drill/SittingBar.tsx';
-import { EndCard } from './celebrate/EndCard.tsx';
+import { EndActions, EndScene } from './celebrate/EndScene.tsx';
+import { endPhrases } from './celebrate/endPhrases.ts';
+import { retryButtonLabel, retryEnd, retrySitting, type RetrySitting } from './practice/stillSettling.ts';
 import { useScreenReader } from './celebrate/useScreenReader.ts';
 import { useSittingEnd } from './practice/useSittingEnd.ts';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
@@ -283,6 +285,23 @@ export function DrillScreen({
   // return. Only ever added to: help once asked for stays asked for.
   const [assisted, setAssisted] = useState<string[]>([]);
   const assistedRef = useRef<string[]>([]);
+  // Every exercise this sitting has asked, twins and misses included, so the
+  // end scene can name each phrase and the retry can ask its exercises again.
+  const askedRef = useRef<DrillExercise[]>([]);
+  useEffect(() => {
+    if (session === null) return;
+    for (const e of session.queue) if (!askedRef.current.some((x) => x.id === e.id)) askedRef.current.push(e);
+  }, [session]);
+
+  // The assisted retry (LEARN-018): a sitting of just the exercises that did
+  // not come out first time, run in this screen after the first one ended.
+  // It writes nothing. `recordsNothing` is the one guard every write path
+  // asks (practice save, grades, evidence, XP, activity day, settle, history,
+  // the finished signals and the scorer's upload), so a retry cannot reach
+  // any of them by a path that forgot to look.
+  const [isRetry, setIsRetry] = useState(false);
+  const retryRef = useRef(false);
+  const recordsNothing = (): boolean => retryRef.current;
 
   useEffect(() => {
     if (practice === undefined || practice === 'invalid') return;
@@ -360,6 +379,7 @@ export function DrillScreen({
    * A write for an account that has since changed is refused by the store.
    */
   const savePractice = useCallback((state: DrillSessionState) => {
+    if (recordsNothing()) return;
     const held = practiceRef.current;
     if (held === null || scopeGeneration() !== held.scope) return;
     for (const exercise of state.queue) if (!held.exercises.some((e) => e.id === exercise.id)) held.exercises.push(exercise);
@@ -477,7 +497,7 @@ export function DrillScreen({
    * rest simply stay due.
    */
   const persistGrades = useCallback((state: DrillSessionState) => {
-    if (persistedRef.current) return;
+    if (recordsNothing() || persistedRef.current) return;
     const held = practiceRef.current;
     if (held !== null) {
       // A practice sitting that is not finished is saved, never graded: Leave
@@ -577,6 +597,8 @@ export function DrillScreen({
       if (!current || current.kind !== 'repeat-this') return discardRecording(uri);
       const beat = beatRef.current;
       answer(current.reference);
+      // A retry's take is help, not evidence: it is never sent to be scored.
+      if (recordsNothing()) return discardRecording(uri);
       void consumeRecording(uri, (recorded) => scoreRecordedAttempt(userId, recorded, current.reference)).then(
         (score) => {
           const reason = score?.report.focus?.reason ?? null;
@@ -759,6 +781,7 @@ export function DrillScreen({
   // card, which gives one celebrate() once its numbers are read back.
   useEffect(() => {
     if (!session?.finished || !node || finishedRef.current) return;
+    if (recordsNothing()) return;
     if (!hasAnsweredWork(session)) return;
     finishedRef.current = true;
     onFinished?.(node.id);
@@ -770,6 +793,7 @@ export function DrillScreen({
   useEffect(() => {
     const held = practiceRef.current;
     if (!session?.finished || held === null || finishedRef.current) return;
+    if (recordsNothing()) return;
     if (!hasAnsweredWork(session)) return;
     finishedRef.current = true;
     const answeredKeys = new Set(session.answered.map((a) => a.phraseKey));
@@ -804,6 +828,27 @@ export function DrillScreen({
       })
       .finally(() => setPracticeRetrying(false));
   }, [session, practiceRetrying, finishPractice, onPracticeFinished]);
+
+  /**
+   * Start the assisted retry in place (LEARN-018). The first sitting has
+   * already persisted, so from here `recordsNothing` holds every write shut.
+   */
+  const startRetry = useCallback((retry: RetrySitting) => {
+    retryRef.current = true;
+    setIsRetry(true);
+    tutorVoice.stop();
+    pendingRef.current = null;
+    beatRef.current += 1;
+    comboRef.current = 0;
+    setCombo(0);
+    setFeedback(null);
+    setSheetFacts(null);
+    setFocusLine(null);
+    setOwnWords(null);
+    setTyped('');
+    setAssembled([]);
+    setSession({ queue: retry.exercises, missesById: {}, answered: [], startedAt: Date.now(), finished: false });
+  }, []);
 
   const finishAndLeave = useCallback(() => {
     tutorVoice.stop();
@@ -969,6 +1014,20 @@ export function DrillScreen({
     );
   }
 
+  // The assisted retry's own end (LEARN-018): `retryEnd()` says what it shows,
+  // which is no first-try tile, no XP and Done only. Calm: nothing settled,
+  // so no delta, no confetti and no marks, because a right answer here was help.
+  if (isRetry && session.finished) {
+    const shown = retryEnd();
+    return (
+      <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: finishAndLeave }} />}>
+        <View style={ds.ending}>
+          <EndScene count={shown.firstTry} title={DRILL_END.title} sub={DRILL_END.deck} />
+        </View>
+      </ScrollScreen>
+    );
+  }
+
   // A practice sitting with nothing playable. Said as a fact with a real way
   // forward, never as a finish: nothing was answered, so nothing is recorded.
   if (practice !== undefined && session.finished && !hasAnsweredWork(session)) {
@@ -1005,20 +1064,23 @@ export function DrillScreen({
       practiceOutcomes({ state: session, targets: held.targets, exercises: held.exercises, exposed: held.exposed, assisted }),
     );
     const card = practiceEndCard(practiceSaved, statement);
+    // The assisted retry is offered only once the sitting is safe: a save
+    // still to retry comes first, and a retry would only blur it.
+    const again = card.retry ? null : retrySitting(session.answered, held.exercises, { isRetry });
+    const againLabel = again === null ? null : retryButtonLabel(again.phraseKeys.length);
     return (
-      <ScrollScreen footer={doneFooter}>
+      <ScrollScreen footer={<EndActions retry={again !== null && againLabel !== null ? { label: againLabel, onPress: () => startRetry(again) } : null} done={{ label: 'Done', onPress: finishAndLeave }} />}>
         <View style={ds.ending}>
-          {/* The end card in place, only from the delta the settle read back.
-              A sitting kept to finish saving, or not saved, has no delta and
-              shows none: its statement below says what is true. */}
-          {end.state === 'settled' ? <EndCard delta={end.delta} release={release} /> : !card.retry && <FinishFelt />}
-          <Card>
-            <Text style={[type.title, { color: bt.text }]}>{card.title}</Text>
-            <Text style={[type.small, { color: bt.muted, marginTop: space(3) }]}>{card.body}</Text>
+          {/* The end scene in place, its numbers only from the delta the settle
+              read back. A sitting kept to finish saving, or not saved, has no
+              delta and draws the calm scene: its statement says what is true. */}
+          {end.state === 'settled' ? null : !card.retry && <FinishFelt />}
+          <EndScene delta={end.state === 'settled' ? end.delta : null} release={release} title={card.title} sub={card.body}
+            phrases={card.retry ? [] : endPhrases(session.answered, held.exercises)}>
             {/* Nothing is safe yet, so the one thing to offer is the same save
                 again. The store replays the frozen plan, so it awards nothing twice. */}
             {card.retry && (
-              <View style={{ marginTop: space(3), alignItems: 'flex-start' }}>
+              <View style={{ alignItems: 'flex-start' }}>
                 <IconAction layout="inline" icon="refresh" busy={practiceRetrying}
                   label={practiceRetrying ? PRACTICE_END.retrying : PRACTICE_END.retry}
 
@@ -1027,7 +1089,7 @@ export function DrillScreen({
                 />
               </View>
             )}
-          </Card>
+          </EndScene>
         </View>
       </ScrollScreen>
     );
@@ -1061,22 +1123,24 @@ export function DrillScreen({
   // F775). Terminal, so Done alone, no back header.
   if (session.finished) {
     const s = summariseDrill(session);
+    const sub = s.unresolved > 0 ? DRILL_END.comingBack : DRILL_END.deck;
+    const phrases = endPhrases(session.answered, askedRef.current);
+    // "Practise the one still settling" (LEARN-018), once the end has spoken.
+    const again = end.state === 'waiting' ? null : retrySitting(session.answered, askedRef.current, { isRetry });
+    const againLabel = again === null ? null : retryButtonLabel(again.phraseKeys.length);
     return (
-      <ScrollScreen footer={doneFooter}>
+      <ScrollScreen footer={<EndActions retry={again !== null && againLabel !== null ? { label: againLabel, onPress: () => startRetry(again) } : null} done={{ label: 'Done', onPress: finishAndLeave }} />}>
         <View style={ds.ending}>
           {end.state === 'settled' ? (
-            <EndCard delta={end.delta} count={firstTry(session).right} release={release} />
+            <EndScene delta={end.delta} count={firstTry(session).right} countOf={session.answered.length} release={release} title={DRILL_END.title} sub={sub} phrases={phrases} />
           ) : end.state === 'waiting' ? (
             <ActivityIndicator color={bt.muted} />
           ) : (
-            <Card>
+            <>
               <FinishFelt />
-              <Text style={[type.title, { color: bt.text }]}>{DRILL_END.finished}</Text>
-            </Card>
+              <EndScene title={DRILL_END.title} sub={sub} phrases={phrases} />
+            </>
           )}
-          <Text style={[type.small, { color: bt.muted }]}>
-            {s.unresolved > 0 ? DRILL_END.comingBack : DRILL_END.deck}
-          </Text>
         </View>
       </ScrollScreen>
     );

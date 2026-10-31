@@ -122,12 +122,16 @@ export function TodayStatTiles({ tiles, labels, sky, counters = {}, flamePop, on
   );
 }
 
-/** One tile: the lip behind it, the press on top, the coin and the words set by the layout. */
-function Tile({ layout, lip, label, onPress, coin, number, word }: {
+/**
+ * One tile: the lip behind it, the press on top, the coin and the words set by
+ * the layout. Shared with the end scene (`celebrate/EndScene.tsx`), whose tiles
+ * are read, not pressed, so the press is optional.
+ */
+export function Tile({ layout, lip, label, onPress, coin, number, word }: {
   layout: StatTileLayout;
   lip: string;
   label: string;
-  onPress: () => void;
+  onPress?: () => void;
   coin: ReactNode;
   number: ReactNode;
   word: string;

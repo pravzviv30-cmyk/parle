@@ -79,7 +79,7 @@ import { recordActivity } from './progress/activity.ts';
 import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { useSittingEnd } from './practice/useSittingEnd.ts';
-import { EndCard } from './celebrate/EndCard.tsx';
+import { EndActions, EndScene } from './celebrate/EndScene.tsx';
 import { REVIEW_END, reviewPage } from './review/sittingEnd.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
@@ -272,15 +272,17 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     // never answers, the finish stands in words.
     if (reviewPage(queue.length, index) === 'finished') {
       return (
-        <ScrollScreen footer={<PillButton label="Done" onPress={onDone} lip />}>
+        <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: onDone }} />}>
           <View style={st.ending}>
-            <Text accessibilityRole="header" style={[type19, { color: t.text }]}>{REVIEW_END.finished}</Text>
             {end.state === 'settled' ? (
-              <EndCard delta={end.delta} count={recalled.current} release={release} />
+              <EndScene delta={end.delta} count={recalled.current} release={release} title={REVIEW_END.finished} sub={REVIEW_END.finishedBody} />
             ) : end.state === 'unsettled' ? (
-              <Text style={[bType.para15, { color: t.secondary }]}>{REVIEW_END.finishedBody}</Text>
+              <EndScene title={REVIEW_END.finished} sub={REVIEW_END.finishedBody} />
             ) : (
-              <ActivityIndicator color={t.muted} />
+              <>
+                <Text accessibilityRole="header" style={[type19, { color: t.text }]}>{REVIEW_END.finished}</Text>
+                <ActivityIndicator color={t.muted} />
+              </>
             )}
             {heldRow}
           </View>

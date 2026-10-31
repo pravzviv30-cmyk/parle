@@ -27,7 +27,7 @@ import { enterRecording, enterVoicePlayback, leaveRecording } from '../sound/aud
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { announcePhraseSaved } from '../review/phraseSaved.ts';
 import { useSittingEnd } from '../practice/useSittingEnd.ts';
-import { EndCard } from '../celebrate/EndCard.tsx';
+import { EndScene } from '../celebrate/EndScene.tsx';
 import { useRecorderLevel } from '../speech/useRecorderLevel.ts';
 import { RecordingLevel } from './RecordingLevel.tsx';
 import { useB } from '../main/bTheme.tsx';
@@ -235,7 +235,7 @@ export function DailyPracticeScreen() {
       {/* The end card in place, once the day is durable and the settle has read
           it back: only the delta's numbers. While it is still being read, or if
           it never is, the line above already says the practice counted. */}
-      {daySaved && end.state === 'settled' && <EndCard delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />}
+      {daySaved && end.state === 'settled' && <EndScene tilesOnly delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />}
       {shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={[type.body, { color: t.text }]}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
   </ScrollScreen>;
 }

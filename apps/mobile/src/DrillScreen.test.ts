@@ -656,10 +656,14 @@ describe('the drill draws no stray strip and keeps its end figures on one line',
     assert.doesNotMatch(screen, /borderTopWidth/, 'something on the drill draws a top edge');
   });
 
-  test('an end card tile sets its figure at 22/800 with 12pt sides, so "0:30" fits a third of the row', () => {
-    const end = stripComments(read('./celebrate/EndCard.tsx'));
-    assert.match(end, /textStyle=\{\[bType\.section22, \{ color: paper\.ink \}\]\}/, 'the tile figure is set larger than a third of the row holds');
-    assert.match(end, /tile: \{ backgroundColor: paper\.card, borderRadius: radius\.tile, paddingVertical: space\(3\), paddingHorizontal: space\(3\)/);
+  test('an end scene tile sets its figure at 24/800 on the shared stat tile, and stacks when "0:30" would not fit beside its coin', () => {
+    const end = stripComments(read('./celebrate/EndScene.tsx'));
+    // Dark aware: the figure is the theme's text on the theme's card, never paper ink.
+    assert.match(end, /const number = \[bType\.stat24, \{ color: t\.text \}\];/, 'the tile figure is not the stat tiles\' 24/800 in the theme\'s text');
+    assert.match(end, /textStyle=\{number\}/);
+    assert.match(end, /<Tile\s+key=\{tile\.id\}\s+layout=\{layout\}/, 'the end tiles are not the shared stat tile');
+    assert.match(end, /const layout = statTileLayout\(statRowTileWidth\(width > 0 \? width : windowWidth - ROW_MARGINS\), fontScale, viewTiles\.flatMap\(\(tile\) => \[tileText\(tile, tile\.value\), tile\.label\]\)\);/, 'the end tiles no longer fit their own figures, so "0:30" can break');
     assert.doesNotMatch(end, /type\.stat\b/, 'the 36pt stat size is back in a tile');
+    assert.doesNotMatch(end, /\bpaper\.|\bcolour\.|textOn\.|onColour\./, 'the end scene draws a light-only colour');
   });
 });

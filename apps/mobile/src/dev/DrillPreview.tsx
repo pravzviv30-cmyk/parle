@@ -33,7 +33,9 @@ import { RepeatThisView } from '../drill/kinds/RepeatThisView.tsx';
 import { OwnWordsView, type OwnWordsOutcome } from '../drill/kinds/OwnWordsView.tsx';
 import { FocusDrillPlayer } from '../drill/FocusDrillPlayer.tsx';
 import { FixLineSheet } from '../drill/FixLineSheet.tsx';
-import { EndCard } from '../celebrate/EndCard.tsx';
+import { EndActions, EndScene } from '../celebrate/EndScene.tsx';
+import { endPhrases } from '../celebrate/endPhrases.ts';
+import { retryButtonLabel, retryEnd, retrySitting } from '../practice/stillSettling.ts';
 import { REVIEW_END } from '../review/sittingEnd.ts';
 import { ReviewScreen } from '../ReviewScreen.tsx';
 import { addPhrases, gradeCards, loadDeck } from '../review/store.ts';
@@ -56,7 +58,7 @@ export const DRILL_PREVIEWS = [
   'drill-review-front', 'drill-review-typing', 'drill-review-back', 'drill-review-said', 'drill-review-empty',
   'drill-sound', 'drill-soundcheck', 'drill-soundcheck-result',
   'drill-fixes', 'drill-fixes-compared', 'drill-fixline',
-  'drill-end', 'drill-end-unsaved', 'drill-end-review',
+  'drill-end', 'drill-end-unsaved', 'drill-end-review', 'drill-end-retry',
 ] as const;
 export type DrillPreviewKey = typeof DRILL_PREVIEWS[number];
 
@@ -213,49 +215,49 @@ function Tapped({ initial, children }: { initial: number[]; children: (placed: n
   return <>{children(placed, setPlaced)}</>;
 }
 
-/** The drill end as DrillScreen draws a settled finish. */
+/** The drill end as DrillScreen draws a settled finish, one phrase still settling. */
 function DrillEnd() {
-  const bt = useB();
+  const retry = retrySitting(F.END_ANSWERED, F.END_EXERCISES, { isRetry: false });
+  const label = retry === null ? null : retryButtonLabel(retry.phraseKeys.length);
   return (
-    <ScrollScreen footer={<PillButton label="Done" onPress={noop} />}>
-      <View style={{ gap: space(4) }}>
-        <EndCard delta={F.END_DELTA} count={F.END_COUNT} />
-        <Text style={[type.small, { color: bt.muted }]}>{DRILL_END.deck}</Text>
-      </View>
+    <ScrollScreen footer={<EndActions retry={label !== null ? { label, onPress: noop } : null} done={{ label: 'Done', onPress: noop }} />}>
+      <EndScene delta={F.END_DELTA} count={F.END_COUNT} countOf={F.END_ASKED} title={DRILL_END.title} sub={DRILL_END.deck}
+        phrases={endPhrases(F.END_ANSWERED, F.END_EXERCISES)} />
     </ScrollScreen>
   );
 }
 
-/** A practice sitting whose save did not land, as DrillScreen draws it. */
+/** A practice sitting whose save did not land, as DrillScreen draws it: calm, no confetti, Retry save. */
 function PracticeUnsaved() {
-  const bt = useB();
   const card = practiceEndCard('not-saved', 'practised');
   return (
-    <ScrollScreen footer={<PillButton label="Done" onPress={noop} />}>
-      <View style={{ gap: space(4) }}>
-        <Card>
-          <Text style={[type.title, { color: bt.text }]}>{card.title}</Text>
-          <Text style={[type.small, { color: bt.muted, marginTop: space(3) }]}>{card.body}</Text>
-          {card.retry && (
-            <View style={{ marginTop: space(3), alignItems: 'flex-start' }}>
-              <IconAction layout="inline" icon="refresh" busy={false} label={PRACTICE_END.retry} disabled={false} onPress={noop} />
-            </View>
-          )}
-        </Card>
-      </View>
+    <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: noop }} />}>
+      <EndScene title={card.title} sub={card.body}>
+        {card.retry && (
+          <View style={{ alignItems: 'flex-start' }}>
+            <IconAction layout="inline" icon="refresh" busy={false} label={PRACTICE_END.retry} disabled={false} onPress={noop} />
+          </View>
+        )}
+      </EndScene>
     </ScrollScreen>
   );
 }
 
 /** The review end as ReviewScreen draws a settled finish. */
 function ReviewEnd() {
-  const bt = useB();
   return (
-    <ScrollScreen footer={<PillButton label="Done" onPress={noop} />}>
-      <View style={{ gap: space(4) }}>
-        <Text accessibilityRole="header" style={[bType.bold19, { color: bt.text }]}>{REVIEW_END.finished}</Text>
-        <EndCard delta={F.REVIEW_END_DELTA} count={F.REVIEW_END_COUNT} />
-      </View>
+    <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: noop }} />}>
+      <EndScene delta={F.REVIEW_END_DELTA} count={F.REVIEW_END_COUNT} title={REVIEW_END.finished} sub={REVIEW_END.finishedBody} />
+    </ScrollScreen>
+  );
+}
+
+/** The assisted retry's own end (LEARN-018): no first-try tile, no XP, Done only. */
+function RetryEnd() {
+  const shown = retryEnd();
+  return (
+    <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: noop }} />}>
+      <EndScene count={shown.firstTry} title={DRILL_END.title} sub={DRILL_END.deck} />
     </ScrollScreen>
   );
 }
@@ -342,5 +344,6 @@ function body(preview: DrillPreviewKey): ReactNode {
     case 'drill-end': return <DrillEnd />;
     case 'drill-end-unsaved': return <PracticeUnsaved />;
     case 'drill-end-review': return <ReviewEnd />;
+    case 'drill-end-retry': return <RetryEnd />;
   }
 }

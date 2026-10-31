@@ -33,7 +33,7 @@ describe('right first time — F919', () => {
     // The drill's end card and its clean XP read this, not the resolved count.
     const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
     const screen = read('../DrillScreen.tsx').replace(/\s+/g, ' ');
-    assert.match(screen, /<EndCard delta=\{end\.delta\} count=\{firstTry\(session\)\.right\}/, 'Got right counts a right-after-miss');
+    assert.match(screen, /<EndScene delta=\{end\.delta\} count=\{firstTry\(session\)\.right\}/, 'Got right counts a right-after-miss');
     assert.match(screen, /drillXp\(\{ clean: firstTry\(state\)\.clean, typoCorrected: firstTry\(state\)\.typos \}\)/, 'XP counts a right-after-miss');
   });
 });

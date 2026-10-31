@@ -7,7 +7,7 @@
  * back, which is before the page can mount the end card that holds the queue.
  * Without a hold taken first, a streak or a level could start under the card
  * in that gap. So the page takes this hold before it calls the settle, and the
- * end card lets it go when the card itself goes (`celebrate/EndCard.tsx`,
+ * end card lets it go when the card itself goes (`celebrate/EndScene.tsx`,
  * `release`). When no card will come (the settle never started, settled
  * nothing, or the page gave up waiting for it), the page lets it go itself.
  *

@@ -110,14 +110,14 @@ describe('a finished review and an empty deck — F761', () => {
     assert.match(finished, /\{REVIEW_END\.finished\}/);
     assert.match(
       finished,
-      /<EndCard delta=\{end\.delta\} count=\{recalled\.current\} release=\{release\} \/>/,
+      /<EndScene delta=\{end\.delta\} count=\{recalled\.current\} release=\{release\} title=\{REVIEW_END\.finished\} sub=\{REVIEW_END\.finishedBody\} \/>/,
       'the end card is drawn from something other than this sitting\'s delta, or never lets the settle hold go',
     );
     assert.match(finished, /end\.state === 'settled'/, 'the end card can draw before the settle answered');
     assert.doesNotMatch(finished, /Nothing waiting/, 'a finished review says nothing was waiting');
     assert.match(empty, /Nothing waiting\./, 'the empty deck lost its calm card');
     assert.match(empty, /Your next session adds more\./);
-    assert.doesNotMatch(empty, /EndCard|REVIEW_END|expect\(|settleSitting|bankSitting|celebrate|play\(/, 'an empty deck celebrates or settles something');
+    assert.doesNotMatch(empty, /EndScene|REVIEW_END|expect\(|settleSitting|bankSitting|celebrate|play\(/, 'an empty deck celebrates or settles something');
     // Banked before it settles, once, and only a sitting with grades settles.
     const bank = screen.slice(screen.indexOf('const bankSitting = useRef('), screen.indexOf('}).current;'));
     assert.ok(bank.indexOf('banked.current = true;') < bank.indexOf('recordActivity('), 'the sitting is written before it is marked banked');

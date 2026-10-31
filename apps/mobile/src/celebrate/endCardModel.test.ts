@@ -114,4 +114,12 @@ describe('the end card — F743', () => {
       }
     }
   });
+
+  test('a count may carry its whole ("4/5" first try), only when the whole holds it', () => {
+    const count = (opts: { count: number; countOf?: number | null }) => endCardView(delta(), opts).tiles.find((t) => t.id === 'count');
+    assert.deepEqual(count({ count: 4, countOf: 5 }), { id: 'count', value: 4, label: GAME_COPY.endCard.countLabel.drill, of: 5 });
+    assert.equal(count({ count: 4 })?.of, undefined, 'a count with no whole grew one');
+    assert.equal(count({ count: 4, countOf: 3 })?.of, undefined, 'a whole smaller than its count was drawn');
+    assert.equal(count({ count: 4, countOf: null })?.of, undefined);
+  });
 });
