@@ -5,6 +5,8 @@ import type { OwnWordsExercise, SettledVerdict } from '@luvani/core';
 import { space, type } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { Card, CheckGlyph, IconAction, Label } from '../../components.tsx';
+import { DrillFrame, DrillPrompt, type DrillShell } from '../DrillFrame.tsx';
+import { drillStage } from '../drillStage.ts';
 import { SpokenAttempt } from '../SpokenAttempt.tsx';
 import { ownWordsLook } from '../answerSheet.ts';
 import type { OwnWordsDecided } from '../combo.ts';
@@ -66,6 +68,7 @@ export function OwnWordsView({
   keeping,
   kept,
   keepFailed,
+  shell,
 }: {
   exercise: OwnWordsExercise;
   typed: string;
@@ -82,6 +85,7 @@ export function OwnWordsView({
   kept: boolean;
   /** The last keep was refused; it can be tried again. */
   keepFailed: boolean;
+  shell: DrillShell;
 }) {
   const bt = useB();
   const ds = useThemedStyles(makeDs);
@@ -93,13 +97,16 @@ export function OwnWordsView({
   // Words on a mint or sun outcome are ink in both modes; on the plain card they follow the theme.
   const ink = ground === null ? bt.text : bt.onMint;
   return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.promptCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[type.small, { color: bt.muted, marginTop: space(2) }]}>{exercise.situation}</Text>
-        <Text style={[type.title, { color: bt.text, marginTop: space(5), marginBottom: space(5) }]}>{exercise.en}</Text>
-        <Text style={[type.small, { color: bt.muted, marginTop: space(3) }]}>{OWN_WORDS_HINT}</Text>
-      </Card>
+    <DrillFrame
+      {...shell}
+      stage={drillStage(exercise.kind, bt.mode)}
+      eyebrow={kindTag(exercise)}
+      prompt={<>
+        <Text style={[type.small, { color: bt.muted }]}>{exercise.situation}</Text>
+        <DrillPrompt>{exercise.en}</DrillPrompt>
+      </>}
+      english={OWN_WORDS_HINT}
+    >
       {!typing && typed === '' && outcome === null && <SpokenAttempt onTake={onTake} onTyping={typeInstead} busy={busy} />}
       {(typing || typed !== '' || outcome !== null) && <TypedAnswer
         typed={typed}
@@ -152,6 +159,6 @@ export function OwnWordsView({
           )}
         </Card>
       )}
-    </View>
+    </DrillFrame>
   );
 }

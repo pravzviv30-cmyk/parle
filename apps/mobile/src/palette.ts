@@ -388,6 +388,8 @@ const bLight = {
   /** The one primary pill. */
   primary: paper.ink,
   onPrimary: paper.onInk,
+  /** The 4pt lip under a drill's primary pill (drill B v2, UI-016): one step darker than \`primary\`. A mark, never words. */
+  primaryLip: '#000000',
   /** The quiet secondary button and chip. */
   quiet: paper.inset,
   link: colour.blue,
@@ -457,6 +459,8 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     heroChip: '#4A4170',
     primary: colour.blue,
     onPrimary: paper.onInk,
+    // The dark primary is the brand blue, so its lip is the pressed blue.
+    primaryLip: colour.bluePressed,
     quiet: '#302A48',
     link: '#A79AFF',
     avatar: '#302A48',

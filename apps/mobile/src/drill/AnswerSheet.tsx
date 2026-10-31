@@ -132,7 +132,7 @@ export function AnswerSheet({
         {waits ? (
           <>
             {body}
-            <PillButton ref={continueRef} label={SHEET_COPY.continue} accessibilityLabel={named} onPress={onContinue} />
+            <PillButton ref={continueRef} label={SHEET_COPY.continue} accessibilityLabel={named} onPress={onContinue} lip />
           </>
         ) : (
           <Pressable onPress={onContinue} accessibilityRole="button" accessibilityLabel={named} style={st.tap}>

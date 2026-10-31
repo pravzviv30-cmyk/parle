@@ -1,10 +1,12 @@
 /** The build kinds: fill the blank and tap to translate. Moved from DrillScreen with no change. */
 import { Pressable, Text, View } from 'react-native';
 import type { FillBlankExercise, TapTranslateExercise } from '@luvani/core';
-import { bType, frenchText, space, type } from '../../theme.ts';
+import { bType, frenchText } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
-import { Card, Label, PillButton, fitDisplay } from '../../components.tsx';
-import { DrillHead, TAP_LINE, TypedAnswer, WordChoice, kindTag } from './shared.tsx';
+import { PillButton } from '../../components.tsx';
+import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
+import { drillStage } from '../drillStage.ts';
+import { TAP_LINE, TypedAnswer, WordChoice, kindTag } from './shared.tsx';
 import { makeDs } from './styles.ts';
 
 export function FillBlankView({
@@ -13,24 +15,19 @@ export function FillBlankView({
   onChange,
   onAnswer,
   locked,
+  shell,
 }: {
   exercise: FillBlankExercise;
   typed: string;
   onChange: (t: string) => void;
   onAnswer: (a: string) => void;
   locked: boolean;
+  shell: DrillShell;
 }) {
   const bt = useB();
   const ds = useThemedStyles(makeDs);
   return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[fitDisplay(exercise.sentence), { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
-          {exercise.sentence}
-        </Text>
-        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>{exercise.en}</Text>
-      </Card>
+    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.sentence} english={exercise.en}>
       {exercise.options ? (
         <View style={ds.tokenPool}>
           {exercise.options.map((option) => (
@@ -46,7 +43,7 @@ export function FillBlankView({
           placeholder="The missing word"
         />
       )}
-    </View>
+    </DrillFrame>
   );
 }
 
@@ -56,6 +53,7 @@ export function TapTranslateView({
   onAssembled,
   onAnswer,
   locked,
+  shell,
 }: {
   exercise: TapTranslateExercise;
   /** Indexes into `exercise.tokens`, in tap order. Indexes, because a bank may offer the same word twice. */
@@ -63,16 +61,17 @@ export function TapTranslateView({
   onAssembled: (next: number[]) => void;
   onAnswer: (a: string) => void;
   locked: boolean;
+  shell: DrillShell;
 }) {
   const bt = useB();
   const ds = useThemedStyles(makeDs);
   const answerText = assembled.map((i) => exercise.tokens[i]).join(' ');
   const canCheck = assembled.length > 0 && !locked;
   return (
+    // Drill B v2 (UI-016): the eyebrow, the English as the stage's header,
+    // and the one instruction, on the build's butter stage.
+    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.en} promptIsHeader english={TAP_LINE}>
     <View style={ds.build}>
-      {/* 2026-10-21 UI-008, artboard B-Drill: the eyebrow, the English as the
-          screen's title, and the one instruction. */}
-      <DrillHead eyebrow={kindTag(exercise)} title={exercise.en} line={TAP_LINE} />
 
       {/* The answer box: the words placed so far, in brand tiles. Tap a word to put it back. */}
       <View style={ds.answerBox} accessibilityLabel="Your sentence so far">
@@ -126,7 +125,9 @@ export function TapTranslateView({
         disabled={!canCheck}
         accessibilityLabel="Check your sentence"
         onPress={() => onAnswer(answerText)}
+        lip
       />
     </View>
+    </DrillFrame>
   );
 }

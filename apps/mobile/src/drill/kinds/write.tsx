@@ -1,9 +1,11 @@
 /** The write kinds: listen and type, and translate. Moved from DrillScreen with no change. */
 import { Pressable, Text, View } from 'react-native';
 import type { ListenTypeExercise, TranslationExercise } from '@luvani/core';
-import { space, type } from '../../theme.ts';
+import { bType, space, type } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
-import { Card, EarGlyph, IconAction, Label } from '../../components.tsx';
+import { EarGlyph, IconAction } from '../../components.tsx';
+import { DrillFrame, DrillPrompt, type DrillShell } from '../DrillFrame.tsx';
+import { drillStage } from '../drillStage.ts';
 import { Feedback } from '../../motion/Feedback.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
 import { PRACTICE_HELP } from '../../practice/copy.ts';
@@ -16,19 +18,23 @@ export function ListenTypeView({
   onChange,
   onAnswer,
   locked,
+  shell,
 }: {
   exercise: ListenTypeExercise;
   typed: string;
   onChange: (t: string) => void;
   onAnswer: (a: string) => void;
   locked: boolean;
+  shell: DrillShell;
 }) {
   const bt = useB();
   const ds = useThemedStyles(makeDs);
   return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
+    <DrillFrame
+      {...shell}
+      stage={drillStage(exercise.kind, bt.mode)}
+      eyebrow={kindTag(exercise)}
+      stageExtra={<>
         {/* Replayable freely — dictation is a listening exercise, not a memory test. */}
         <Pressable
           onPress={() => tutorVoice.speak(exercise.fr)}
@@ -39,10 +45,9 @@ export function ListenTypeView({
           <EarGlyph size={22} color={bt.text} />
           <Text style={[type.button, { color: bt.text }]}>Hear it</Text>
         </Pressable>
-        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>
-          Listen, then type what you hear.
-        </Text>
-      </Card>
+        <Text style={[bType.line15, { color: bt.muted }]}>Listen, then type what you hear.</Text>
+      </>}
+    >
       <TypedAnswer
         typed={typed}
         onChange={onChange}
@@ -50,7 +55,7 @@ export function ListenTypeView({
         locked={locked}
         placeholder="What you hear"
       />
-    </View>
+    </DrillFrame>
   );
 }
 
@@ -61,6 +66,7 @@ export function TranslationView({
   onAnswer,
   locked,
   help,
+  shell,
 }: {
   exercise: TranslationExercise;
   typed: string;
@@ -73,6 +79,7 @@ export function TranslationView({
    * learner has already asked, so the line stays up after a reload.
    */
   help?: { shown: boolean; onShow: () => void };
+  shell: DrillShell;
 }) {
   const bt = useB();
   const ds = useThemedStyles(makeDs);
@@ -82,12 +89,12 @@ export function TranslationView({
   // show. The reference is the exercise's own line, never generated.
   const canHelp = help !== undefined && !isFrenchPrompt;
   return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[isFrenchPrompt ? type.french : type.heading, { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
-          {prompt}
-        </Text>
+    <DrillFrame
+      {...shell}
+      stage={drillStage(exercise.kind, bt.mode)}
+      eyebrow={kindTag(exercise)}
+      prompt={<DrillPrompt>{prompt}</DrillPrompt>}
+      stageExtra={<>
         {isFrenchPrompt && <HearRow text={exercise.fr} />}
         {canHelp && help.shown && (
           <Feedback kind="help" active appear>
@@ -101,7 +108,8 @@ export function TranslationView({
             <IconAction layout="inline" icon="hint" label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
           </View>
         )}
-      </Card>
+      </>}
+    >
       <TypedAnswer
         typed={typed}
         onChange={onChange}
@@ -110,6 +118,6 @@ export function TranslationView({
         placeholder={isFrenchPrompt ? 'Meaning in English' : 'Answer in French'}
         accessibilityLabel={isFrenchPrompt ? 'Your answer in English' : 'Your answer in French'}
       />
-    </View>
+    </DrillFrame>
   );
 }

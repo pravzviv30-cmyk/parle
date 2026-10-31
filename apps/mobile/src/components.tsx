@@ -283,6 +283,7 @@ export function PillButton({
   variant = 'primary',
   pastel,
   disabledReason,
+  lip = false,
 }: {
   label: string;
   onPress: () => void;
@@ -331,6 +332,12 @@ export function PillButton({
   variant?: 'primary' | 'secondary';
   /** The pastel fill of a secondary pill on a white card. */
   pastel?: keyof typeof pastelFill;
+  /**
+   * Drill B v2 (UI-016): a 4pt lip in `primaryLip` drawn as a View under the
+   * pill, never a shadow, sinking 2pt while pressed. Opt in; off by default so
+   * every other pill draws as before. A disabled pill keeps the space but no lip.
+   */
+  lip?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
   const t = useB();
@@ -340,15 +347,25 @@ export function PillButton({
   // White and sun pills sit on a colour ground and keep their ink in both
   // modes; the ink pill is the theme's primary, and a secondary pill is themed.
   const foreground = secondary ? t.text : tone === 'white' || tone === 'sun' ? paper.ink : t.onPrimary;
-  return (
-    <Press haptic="light" depth="control" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: t[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} disabledReason={disabled && !waiting ? disabledReason : undefined} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+  const [pressed, setPressed] = useState(false);
+  const sunk = lip && pressed && !disabled && !waiting ? PILL_LIP_PRESS : 0;
+  const pressIn = lip ? () => setPressed(true) : undefined;
+  const pressOut = lip ? () => setPressed(false) : undefined;
+  const pill = (
+    <Press haptic="light" depth="control" onPressIn={pressIn} onPressOut={pressOut} style={[lip && { marginTop: sunk, marginBottom: PILL_LIP - sunk }, s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: t[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} disabledReason={disabled && !waiting ? disabledReason : undefined} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
       <Text style={[type.button, { color: disabled ? (tone === 'white' ? paper.inkSoft : t.muted) : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
       {decoration}
     </Press>
   );
+  if (!lip) return pill;
+  return <View style={{ borderRadius: radius.pill, backgroundColor: disabled ? 'transparent' : t.primaryLip }}>{pill}</View>;
 }
+
+/** The drill primary's lip, and how far the pill sinks into it under a finger (UI-016). */
+const PILL_LIP = 4;
+const PILL_LIP_PRESS = 2;
 
 /**
  * The pill's waiting mark: the check-draw mounted from the start so it draws

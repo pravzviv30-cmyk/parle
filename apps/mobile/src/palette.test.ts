@@ -808,6 +808,15 @@ describe('B tokens, light and dark — UI-008', () => {
     assert.deepEqual(Object.keys(b.dark).sort(), Object.keys(b.light).sort(), 'the two modes do not name the same tokens');
   });
 
+  test('primaryLip is a decorative step under the primary pill, never the primary itself (drill B v2)', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const t = b[mode];
+      assert.notEqual(t.primaryLip.toLowerCase(), t.primary.toLowerCase(), `${mode} primaryLip is the primary`);
+    }
+    assert.equal(b.light.primaryLip, '#000000');
+    assert.equal(b.dark.primaryLip, b.dark.brandPressed, 'the dark lip is not the pressed brand blue');
+  });
+
   test('b.dark follows the Figma M3 page: the main app dark values, violet kept, the hero turned', () => {
     const t = b.dark;
     const m3: [keyof typeof t, string][] = [

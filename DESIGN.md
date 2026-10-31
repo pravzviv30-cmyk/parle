@@ -819,6 +819,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.heroChip` | `#FFFFFF` | A chip on the hero |
 | `b.light.primary` | `#16123A` | The one primary pill |
 | `b.light.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.light.primaryLip` | `#000000` | The 4pt lip under a drill's primary pill (UI-016); decorative |
 | `b.light.quiet` | `#F5EEE2` | The quiet secondary button and chip |
 | `b.light.link` | `#3B2FE0` | Links and the lock mark |
 | `b.light.avatar` | `#16123A` | The avatar disc |
@@ -878,6 +879,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.heroChip` | `#4A4170` | A chip on the hero |
 | `b.dark.primary` | `#3B2FE0` | The one primary pill |
 | `b.dark.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.dark.primaryLip` | `#2A20B0` | The lip under the dark primary: the pressed brand blue (UI-016); decorative |
 | `b.dark.quiet` | `#302A48` | The quiet secondary button and chip |
 | `b.dark.link` | `#A79AFF` | Links and the lock mark |
 | `b.dark.avatar` | `#302A48` | The avatar disc |

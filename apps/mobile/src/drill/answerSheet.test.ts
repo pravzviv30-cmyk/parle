@@ -152,7 +152,7 @@ describe('the answer sheet — F759', () => {
     assert.match(screen, /<AnswerSheet key=\{beatRef\.current\} sheet=\{sheet\} note=\{focusLine\} onContinue=\{advance\} \/>/);
     const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
     assert.match(sheetFile, /const waits = sheet\.autoAdvanceMs === null;/);
-    assert.match(sheetFile, /\{waits \? \( <> \{body\} <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} \/> <\/> \)/, 'a sheet that waits has no Continue');
+    assert.match(sheetFile, /\{waits \? \( <> \{body\} <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/> <\/> \)/, 'a sheet that waits has no Continue');
   });
 
   test('a missed drill answer shows the right answer and a one-line reason', () => {
@@ -294,7 +294,7 @@ describe('a waiting answer sheet takes the screen reader with it — F775', () =
     assert.match(sheetFile, /const continueRef = useRef<View>\(null\);/, 'the sheet holds no ref to its Continue');
     assert.match(sheetFile, /const arrival = sheetArrival\(sheet, Platform\.OS === 'web'\);/, 'the sheet decides its arrival some other way');
     assert.match(sheetFile, /const named = continueName\(spoken\);/, 'Continue is not named for the sheet');
-    assert.match(sheetFile, /<PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} \/>/, 'the waiting Continue cannot be focused, or is not named for the sheet');
+    assert.match(sheetFile, /<PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/>/, 'the waiting Continue cannot be focused, or is not named for the sheet');
     const effect = sheetFile.slice(sheetFile.indexOf('useEffect(() => {'), sheetFile.indexOf('}, [spoken, arrival]);'));
     assert.ok(effect.length > 0, 'the arrival effect moved; this test is stale');
     assert.match(effect, /if \(arrival === 'live-region'\) return undefined;/, 'the web moves focus or announces over its own live region');

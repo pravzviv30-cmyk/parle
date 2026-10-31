@@ -22,7 +22,7 @@
  * one calm line; it has no way to slow, block, or punish.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   View,
   Text,
@@ -56,6 +56,7 @@ import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { Card, IconAction, PillButton } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
+import type { DrillShell } from './drill/DrillFrame.tsx';
 import { gradeCards, loadDeck } from './review/store.ts';
 import { keepPhrase as keepInPhrasebook } from './review/phraseSaved.ts';
 import { AnswerSheet } from './drill/AnswerSheet.tsx';
@@ -856,10 +857,12 @@ export function DrillScreen({
   // with the answer rather than after it.
   const placed = pendingRef.current ?? session;
   const fill = practice !== undefined && practiceRef.current !== null ? sittingFill(placed, practiceRef.current.targets) : queueFill(placed);
-  // 2026-10-21 UI-008, artboard B-Drill: the close disc, the 8pt bar where
+  // 2026-10-21 UI-008, artboard B-Drill: the close disc, the bar where
   // Phase B already draws it, and the words beside it only in a practice
   // sitting ("Phrase four of eight"). The title names the row for a screen
   // reader; the exercise's own eyebrow says what it is on glass.
+  // 2026-10-31 drill B v2 (UI-016): DrillFrame draws this one header on the
+  // stage band, over the kind's family colour.
   const header = (
     <ScreenHeader
       leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills', close: true }}
@@ -870,6 +873,9 @@ export function DrillScreen({
       ) : undefined}
     />
   );
+  // What every kind's DrillFrame takes from the screen: the header, what leads
+  // the answer area, and the pinned footer.
+  const shell = (lead?: ReactNode, footer?: ReactNode): DrillShell => ({ header, lead, footer });
   // The one door on every terminal card, built once for the same reason as
   // the header: each terminal branch shows exactly one way out, and it is this
   // one. `finishAndLeave` and `leave` are the same callback.
@@ -938,7 +944,6 @@ export function DrillScreen({
   if (holding !== null) {
     return (
       <DrillClock.Provider value={clock}>
-      <ScrollScreen avoidKeyboard ground={bt.lavender} header={header}>
         <OwnWordsView
           key={holding.exercise.id}
           exercise={holding.exercise}
@@ -953,8 +958,8 @@ export function DrillScreen({
           keeping={keeping}
           kept={kept}
           keepFailed={keepFailed}
+          shell={shell()}
         />
-      </ScrollScreen>
       </DrillClock.Provider>
     );
   }
@@ -1076,30 +1081,28 @@ export function DrillScreen({
   if (!exercise) return null; // Unreachable: an unfinished session has a head.
   const locked = feedback !== null;
 
+  // The frame every kind stands in: the moment card leads the answer area,
+  // and the sheet's reserved slot is the pinned footer.
+  const frame = shell(
+    node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) ? <MomentCard moment={node.moment} /> : undefined,
+    // Reserved height, so the card never jumps when a sheet arrives. The
+    // sheet draws no mark on a miss, and that is the rule rather than an
+    // oversight: a mid-session message may not scold, and a drawing scolds
+    // louder than a word. The scorer's whole say is its one muted line,
+    // core's focus reason, already learner-safe: never a score.
+    <View style={ds.feedbackArea}>
+      {sheet !== null && <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} />}
+    </View>,
+  );
+
   return (
     <DrillClock.Provider value={clock}>
-    <ScrollScreen
-      avoidKeyboard
-      ground={bt.lavender}
-      header={header}
-      footer={
-        // Reserved height, so the card never jumps when a sheet arrives. The
-        // sheet draws no mark on a miss, and that is the rule rather than an
-        // oversight: a mid-session message may not scold, and a drawing scolds
-        // louder than a word. The scorer's whole say is its one muted line,
-        // core's focus reason, already learner-safe: never a score.
-        <View style={ds.feedbackArea}>
-          {sheet !== null && <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} />}
-        </View>
-      }
-    >
-      {node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) && <MomentCard moment={node.moment} />}
       {exercise.kind === 'fill-blank' && (
-        <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+        <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
       )}
-      {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} />}
+      {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} shell={frame} />}
       {exercise.kind === 'appropriate-reply' && (
-        <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} />
+        <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} shell={frame} />
       )}
       {exercise.kind === 'tap-translate' && (
         <TapTranslateView
@@ -1108,10 +1111,11 @@ export function DrillScreen({
           onAssembled={setAssembled}
           onAnswer={answer}
           locked={locked}
+          shell={frame}
         />
       )}
       {exercise.kind === 'listen-type' && (
-        <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+        <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
       )}
       {exercise.kind === 'translate' && (
         <TranslationView
@@ -1121,10 +1125,11 @@ export function DrillScreen({
           onAnswer={answer}
           locked={locked}
           help={practice !== undefined ? { shown: assisted.includes(exercise.id), onShow: () => showPhrase(exercise.id) } : undefined}
+          shell={frame}
         />
       )}
       {exercise.kind === 'repeat-this' && (
-        <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} />
+        <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} shell={frame} />
       )}
       {exercise.kind === 'own-words' && (
         <OwnWordsView
@@ -1141,9 +1146,9 @@ export function DrillScreen({
           keeping={keeping}
           kept={kept}
           keepFailed={keepFailed}
+          shell={frame}
         />
       )}
-    </ScrollScreen>
     </DrillClock.Provider>
   );
 }

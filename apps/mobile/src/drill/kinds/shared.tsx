@@ -7,7 +7,7 @@ import { createContext, useContext } from 'react';
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { RecordingPresets } from 'expo-audio';
 import type { DrillExercise } from '@luvani/core';
-import { bType, colour, onColour, type } from '../../theme.ts';
+import { colour, onColour, type } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { EarGlyph, PillButton } from '../../components.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
@@ -165,25 +165,10 @@ export function TypedAnswer({
         accessibilityLabel={accessibilityLabel}
         style={ds.input}
       />
-      <PillButton label="Check" disabled={!canSubmit} accessibilityLabel="Check your answer" onPress={onSubmit} />
+      <PillButton label="Check" disabled={!canSubmit} accessibilityLabel="Check your answer" onPress={onSubmit} lip />
     </View>
   );
 }
 
 /** The build's one instruction (B-Drill). */
 export const TAP_LINE = 'Tap the words in order.';
-
-/**
- * The head of a built exercise (B-Drill): the 13/700 brand eyebrow, the 26/800
- * title and a 15 muted line, gap 6.
- */
-export function DrillHead({ eyebrow, title, line }: { eyebrow: string; title: string; line: string }) {
-  const bt = useB();
-  return (
-    <View style={{ gap: 6 }}>
-      <Text style={[bType.chip, { color: bt.link }]}>{eyebrow}</Text>
-      <Text accessibilityRole="header" style={[bType.title26, { color: bt.text }]}>{title}</Text>
-      <Text style={[bType.line15, { color: bt.muted }]}>{line}</Text>
-    </View>
-  );
-}

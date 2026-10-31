@@ -5,7 +5,9 @@ import { AudioModule, useAudioRecorder } from 'expo-audio';
 import type { RepeatThisExercise } from '@luvani/core';
 import { colour, space, type } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
-import { Card, IconAction, Label, PillButton, SpeakCircle, fitDisplay } from '../../components.tsx';
+import { IconAction, PillButton, SpeakCircle } from '../../components.tsx';
+import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
+import { drillStage } from '../drillStage.ts';
 import { LevelRing } from '../../motion/LevelRing.tsx';
 import { useRecorderLevel } from '../../speech/useRecorderLevel.ts';
 import { Illustration } from '../../art/flat/Illustration.tsx';
@@ -23,6 +25,7 @@ export function RepeatThisView({
   onNoMic,
   locked,
   initialMic,
+  shell,
 }: {
   exercise: RepeatThisExercise;
   onAnswer: (a: string) => void;
@@ -32,6 +35,7 @@ export function RepeatThisView({
   locked: boolean;
   /** Screen preview only: the microphone state to open in. Absent everywhere the app draws it. */
   initialMic?: 'armed' | 'live' | 'silent';
+  shell: DrillShell;
 }) {
   const bt = useB();
   const ds = useThemedStyles(makeDs);
@@ -116,22 +120,21 @@ export function RepeatThisView({
   }, [mic, locked, recorder, onSpoke, letGoOfMic]);
 
   return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[fitDisplay(exercise.reference), { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
-          {exercise.reference}
-        </Text>
-        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>
-          {exercise.referenceEn}
-        </Text>
+    <DrillFrame
+      {...shell}
+      stage={drillStage(exercise.kind, bt.mode)}
+      eyebrow={kindTag(exercise)}
+      prompt={exercise.reference}
+      english={exercise.referenceEn}
+      stageExtra={<>
         {exercise.ipa !== null && (
-          <Text style={[type.notation, { color: bt.muted, textAlign: 'center', marginTop: space(2) }]}>
+          <Text style={[type.notation, { color: bt.muted }]}>
             /{exercise.ipa}/
           </Text>
         )}
         <HearRow text={exercise.reference} />
-      </Card>
+      </>}
+    >
 
       <View style={{ alignItems: 'center', gap: space(3) }}>
         {mic === 'silent' ? (
@@ -185,6 +188,6 @@ export function RepeatThisView({
           <Text style={[type.small, { color: bt.muted }]}>Unable to speak right now?</Text>
         </Pressable>
       </View>
-    </View>
+    </DrillFrame>
   );
 }

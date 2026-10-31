@@ -17,6 +17,10 @@
  * 2026-10-21 UI-008, artboard B-Drill: the bar sits in the header row between
  * the close disc and the words, 8 high at radius 4, the brand fill on the card
  * track (the dark link colour on the M3 surface).
+ *
+ * 2026-10-31 drill B v2 (UI-016): the bar sits in `DrillFrame`'s header row on
+ * the stage band, 14 high at radius 7, the `link` fill on the `card` track. The
+ * halo, the no-digits rule and the decorative contract are unchanged.
  */
 
 import { StyleSheet, View } from 'react-native';
@@ -27,7 +31,7 @@ import { DUR } from '../motion/tokens.ts';
 import { colour, decorative, radius } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 
-const HEIGHT = 8;
+const HEIGHT = 14;
 /** How far the halo stands out around the bar on every side. */
 const HALO = 3;
 /** The halo's opacity at rest: a warm light, never a fill. */

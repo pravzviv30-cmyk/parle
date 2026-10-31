@@ -3,9 +3,9 @@
  * same state can be shot before and after a restyle.
  *
  * A drill key composes what DrillScreen draws for that state, from the same
- * parts in the same frame: ScreenHeader with SittingBar, the kind view, and
- * the AnswerSheet in the reserved footer. The sheet is core's own model read
- * with fixture verdicts. Review and Sound Check mount their real screens
+ * parts in the same frame: the kind view in the real DrillFrame, with
+ * SittingBar in its header and the AnswerSheet in the reserved footer. The
+ * sheet is core's own model read with fixture verdicts. Review and Sound Check mount their real screens
  * under a preview-only storage scope; a state that needs a tap is reached by
  * pressing the real control on the web. Nothing is graded or sent.
  */
@@ -16,6 +16,7 @@ import { HIT, bType, space, type } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { Card, IconAction, PillButton } from '../components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from '../layout.tsx';
+import type { DrillShell } from '../drill/DrillFrame.tsx';
 import { AnswerSheet } from '../drill/AnswerSheet.tsx';
 import { sheetFor, type SheetInput } from '../drill/answerSheet.ts';
 import { comboGlows } from '../drill/combo.ts';
@@ -65,35 +66,31 @@ const PREVIEW_NAVIGATION = new Proxy({} as Record<string, unknown>, {
   get: (_target, key) => (key === 'isFocused' ? () => true : key === 'addListener' ? () => noop : key === 'getState' ? () => undefined : noop),
 }) as never;
 
-/** DrillScreen's sitting frame: the close header with its bar, the lavender ground, the reserved sheet footer. */
-function DrillFrame({ kind, fill = 0.4, combo = 1, sheet = null, note = null, footer = true, children }: {
-  kind: DrillExercise['kind'];
+/**
+ * DrillScreen's shell for the real `DrillFrame`: the close, the bar with its
+ * fill and glow, and the reserved sheet footer. The kind view draws the frame.
+ */
+function shell(kind: DrillExercise['kind'], { fill = 0.4, combo = 1, sheet = null, note = null, footer = true }: {
   fill?: number;
   combo?: number;
   sheet?: SheetInput | null;
   note?: string | null;
   footer?: boolean;
-  children: ReactNode;
-}) {
-  const bt = useB();
-  const header = (
-    <ScreenHeader
-      leave={{ onPress: noop, label: 'Leave', accessibilityLabel: 'Leave the drills', close: true }}
-      title={drillTitle(kind)}
-      centre={<SittingBar fill={fill} glow={comboGlows(combo)} />}
-    />
-  );
-  return (
-    <ScrollScreen avoidKeyboard ground={bt.lavender} header={header}
-      footer={footer ? (
-        <View style={{ minHeight: HIT + 8, justifyContent: 'flex-end' }}>
-          {sheet !== null && <AnswerSheet sheet={sheetFor(sheet)} note={note} onContinue={noop} />}
-        </View>
-      ) : undefined}
-    >
-      {children}
-    </ScrollScreen>
-  );
+} = {}): DrillShell {
+  return {
+    header: (
+      <ScreenHeader
+        leave={{ onPress: noop, label: 'Leave', accessibilityLabel: 'Leave the drills', close: true }}
+        title={drillTitle(kind)}
+        centre={<SittingBar fill={fill} glow={comboGlows(combo)} />}
+      />
+    ),
+    footer: footer ? (
+      <View style={{ minHeight: HIT + 8, justifyContent: 'flex-end' }}>
+        {sheet !== null && <AnswerSheet sheet={sheetFor(sheet)} note={note} onContinue={noop} />}
+      </View>
+    ) : undefined,
+  };
 }
 
 /** Presses the real controls named in `labels`, in order, on the web, each once it is drawn. */
@@ -177,10 +174,8 @@ function FixesPreview({ compared, sheet }: { compared: boolean; sheet: boolean }
 function OwnWords({ outcome, typed = '' }: { outcome: OwnWordsOutcome | null; typed?: string }) {
   const [text, setText] = useState(typed);
   return (
-    <DrillFrame kind="own-words" footer={false}>
-      <OwnWordsView exercise={F.OWN_WORDS} typed={text} onChange={setText} onCheck={noop} onTake={noop}
-        busy={false} outcome={outcome} onKeep={noop} keeping={false} kept={false} keepFailed={false} />
-    </DrillFrame>
+    <OwnWordsView exercise={F.OWN_WORDS} typed={text} onChange={setText} onCheck={noop} onTake={noop}
+      busy={false} outcome={outcome} onKeep={noop} keeping={false} kept={false} keepFailed={false} shell={shell('own-words', { footer: false })} />
   );
 }
 
@@ -252,55 +247,50 @@ function body(preview: DrillPreviewKey): ReactNode {
     case 'drill-choose':
     case 'drill-choose-right': {
       const sheet = preview === 'drill-choose-right' ? F.SHEETS.chooseRight : null;
-      return <DrillFrame kind="best-sentence" sheet={sheet}><BestSentenceView exercise={F.BEST_SENTENCE} onAnswer={noop} locked={locked(sheet)} /></DrillFrame>;
+      return <BestSentenceView exercise={F.BEST_SENTENCE} onAnswer={noop} locked={locked(sheet)} shell={shell('best-sentence', { sheet })} />;
     }
     case 'drill-reply':
     case 'drill-roll':
     case 'drill-reply-miss': {
       const sheet = preview === 'drill-roll' ? F.SHEETS.roll : preview === 'drill-reply-miss' ? F.SHEETS.replyMiss : null;
-      return <DrillFrame kind="appropriate-reply" combo={preview === 'drill-roll' ? 3 : 1} fill={preview === 'drill-roll' ? 0.6 : 0.4} sheet={sheet}>
-        <AppropriateReplyView exercise={F.APPROPRIATE_REPLY} onAnswer={noop} locked={locked(sheet)} />
-      </DrillFrame>;
+      return <AppropriateReplyView exercise={F.APPROPRIATE_REPLY} onAnswer={noop} locked={locked(sheet)}
+        shell={shell('appropriate-reply', { combo: preview === 'drill-roll' ? 3 : 1, fill: preview === 'drill-roll' ? 0.6 : 0.4, sheet })} />;
     }
     case 'drill-blank':
     case 'drill-blank-landed': {
       const sheet = preview === 'drill-blank-landed' ? F.SHEETS.blankLanded : null;
-      return <DrillFrame kind="fill-blank" sheet={sheet}><FillBlankView exercise={F.FILL_BLANK_CHOICE} typed="" onChange={noop} onAnswer={noop} locked={locked(sheet)} /></DrillFrame>;
+      return <FillBlankView exercise={F.FILL_BLANK_CHOICE} typed="" onChange={noop} onAnswer={noop} locked={locked(sheet)} shell={shell('fill-blank', { sheet })} />;
     }
     case 'drill-blank-nearly':
-      return <DrillFrame kind="fill-blank" sheet={F.SHEETS.blankNearly}><FillBlankView exercise={F.FILL_BLANK_TYPED} typed="combein" onChange={noop} onAnswer={noop} locked /></DrillFrame>;
+      return <FillBlankView exercise={F.FILL_BLANK_TYPED} typed="combein" onChange={noop} onAnswer={noop} locked shell={shell('fill-blank', { sheet: F.SHEETS.blankNearly })} />;
     case 'drill-build':
     case 'drill-build-right': {
       const right = preview === 'drill-build-right';
-      return <DrillFrame kind="tap-translate" sheet={right ? F.SHEETS.buildRight : null}>
-        <Tapped initial={right ? F.TAP_ALL : F.TAP_PLACED}>{(placed, onPlaced) =>
-          <TapTranslateView exercise={F.TAP_TRANSLATE} assembled={placed} onAssembled={onPlaced} onAnswer={noop} locked={right} />}</Tapped>
-      </DrillFrame>;
+      return <Tapped initial={right ? F.TAP_ALL : F.TAP_PLACED}>{(placed, onPlaced) =>
+        <TapTranslateView exercise={F.TAP_TRANSLATE} assembled={placed} onAssembled={onPlaced} onAnswer={noop} locked={right}
+          shell={shell('tap-translate', { sheet: right ? F.SHEETS.buildRight : null })} />}</Tapped>;
     }
     case 'drill-translate':
     case 'drill-translate-hint':
-      return <DrillFrame kind="translate"><Typed>{(typed, onChange) =>
+      return <Typed>{(typed, onChange) =>
         <TranslationView exercise={F.TRANSLATE_INTO_FR} typed={typed} onChange={onChange} onAnswer={noop} locked={false}
-          help={{ shown: preview === 'drill-translate-hint', onShow: noop }} />}</Typed></DrillFrame>;
+          help={{ shown: preview === 'drill-translate-hint', onShow: noop }} shell={shell('translate')} />}</Typed>;
     case 'drill-into-en-right':
-      return <DrillFrame kind="translate" sheet={F.SHEETS.intoEnRight}>
-        <TranslationView exercise={F.TRANSLATE_INTO_EN} typed="The bill, please." onChange={noop} onAnswer={noop} locked />
-      </DrillFrame>;
+      return <TranslationView exercise={F.TRANSLATE_INTO_EN} typed="The bill, please." onChange={noop} onAnswer={noop} locked
+        shell={shell('translate', { sheet: F.SHEETS.intoEnRight })} />;
     case 'drill-listen':
-      return <DrillFrame kind="listen-type"><Typed>{(typed, onChange) =>
-        <ListenTypeView exercise={F.LISTEN_TYPE} typed={typed} onChange={onChange} onAnswer={noop} locked={false} />}</Typed></DrillFrame>;
+      return <Typed>{(typed, onChange) =>
+        <ListenTypeView exercise={F.LISTEN_TYPE} typed={typed} onChange={onChange} onAnswer={noop} locked={false} shell={shell('listen-type')} />}</Typed>;
     case 'drill-listen-miss2':
-      return <DrillFrame kind="listen-type" sheet={F.SHEETS.listenMiss2}>
-        <ListenTypeView exercise={F.LISTEN_TYPE} typed="Je voudrai un cafait" onChange={noop} onAnswer={noop} locked />
-      </DrillFrame>;
+      return <ListenTypeView exercise={F.LISTEN_TYPE} typed="Je voudrai un cafait" onChange={noop} onAnswer={noop} locked
+        shell={shell('listen-type', { sheet: F.SHEETS.listenMiss2 })} />;
     case 'drill-say':
     case 'drill-say-listening':
     case 'drill-say-result': {
       const result = preview === 'drill-say-result';
-      return <DrillFrame kind="repeat-this" sheet={result ? F.SHEETS.sayResult : null} note={result ? F.SAY_NOTE : null}>
-        <RepeatThisView exercise={F.REPEAT_THIS} onAnswer={noop} onSpoke={noop} onNoMic={noop} locked={result}
-          initialMic={preview === 'drill-say-listening' ? 'live' : 'armed'} />
-      </DrillFrame>;
+      return <RepeatThisView exercise={F.REPEAT_THIS} onAnswer={noop} onSpoke={noop} onNoMic={noop} locked={result}
+        initialMic={preview === 'drill-say-listening' ? 'live' : 'armed'}
+        shell={shell('repeat-this', { sheet: result ? F.SHEETS.sayResult : null, note: result ? F.SAY_NOTE : null })} />;
     }
     case 'drill-own': return <OwnWords outcome={null} />;
     case 'drill-own-works': return <OwnWords outcome={F.OWN_OUTCOMES.works} typed={F.OWN_OUTCOMES.works.attempt!} />;
