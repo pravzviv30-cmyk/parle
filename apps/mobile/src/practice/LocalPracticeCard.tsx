@@ -30,17 +30,9 @@ export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false 
   const t = useB();
   const phrase = localPracticeFor(profile.tutorVoice, DAILY_ITEMS, TUTOR_DAILY_AUDIO);
   const offer = offlineOffer(levelIndex);
-  if (vivid) return <View style={{ gap: space(4) }}>
-    <View {...decorative} style={{ alignItems: 'center' }}><Illustration name="state-offline" fit="small" /></View>
-    <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: t.text }]}>{offlineNotice(deviceOnLine())}</Text>
-    {offer === 'cafe' && phrase !== null ? <>
-      {bare
-        ? <View style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></View>
-        : <Card style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></Card>}
-      <PillButton label="Try this line" onPress={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />
-    </> : <Text style={[type.body, { color: t.muted }]}>Your next scene comes back when you're online. Today's phrase and review below work without a connection.</Text>}
-    <IconAction layout="inline" icon="refresh" busy={checking} disabled={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} />
-  </View>;
+  if (vivid) return <OfflineLeadBody notice={offlineNotice(deviceOnLine())} cafe={offer === 'cafe' && phrase !== null} bare={bare} checking={checking}
+    onTry={() => { if (phrase !== null) nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' }); }}
+    onRecheck={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} />;
   if (phrase === null) return null;
   // Bare on Today's hero (UI-015) the same words sit on the card's ground, in its ink.
   const words = bare ? t.text : t.onMint;
@@ -51,4 +43,24 @@ export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false 
     <PillButton label="Try this line" tone={bare ? undefined : 'ink'} onPress={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />
   </>;
   return bare ? <View style={{ gap: space(4) }}>{body}</View> : <ColourCard ground="sun">{body}</ColourCard>;
+}
+
+/**
+ * Today's offline lead, props in (UI-015, shared with the dev preview): the
+ * offline art and notice, the Starter café line when it is offered, else the
+ * pointer to the phrase and review below, and the re-check.
+ */
+export function OfflineLeadBody({ notice, cafe, bare, checking, onTry, onRecheck }: { notice: string; cafe: boolean; bare: boolean; checking: boolean; onTry: () => void; onRecheck: () => void }) {
+  const t = useB();
+  return <View style={{ gap: space(4) }}>
+    <View {...decorative} style={{ alignItems: 'center' }}><Illustration name="state-offline" fit="small" /></View>
+    <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: t.text }]}>{notice}</Text>
+    {cafe ? <>
+      {bare
+        ? <View style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></View>
+        : <Card style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></Card>}
+      <PillButton label="Try this line" onPress={onTry} />
+    </> : <Text style={[type.body, { color: t.muted }]}>Your next scene comes back when you're online. Today's phrase and review below work without a connection.</Text>}
+    <IconAction layout="inline" icon="refresh" busy={checking} disabled={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} onPress={onRecheck} />
+  </View>;
 }

@@ -287,45 +287,6 @@ const HERO_INSET = 68;
 /** The café inside its 108 by 84 tile (board: 100 by 80, the drawing's own aspect). */
 const SCENE_ART = { width: 87, height: 80 } as const;
 
-/**
- * Today's phrase on the lavender card: the eyebrow, the French over its
- * English, the 48pt brand speaker (only when a bundled clip exists, and it
- * says Stop while it sounds), and the white "Say it yourself".
- */
-export function PhraseCard({ eyebrow, fr, en, hearLabel, onHear, playing, sayLabel, sayAccessibilityLabel, onSay, note }: {
-  eyebrow: string;
-  fr: string;
-  en: string;
-  hearLabel: string;
-  onHear?: () => void;
-  playing: boolean;
-  sayLabel: string;
-  sayAccessibilityLabel: string;
-  onSay: () => void;
-  note: string;
-}) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  return (
-    <View style={s.phrase}>
-      <Text style={[bType.eyebrow, { color: t.link }]}>{eyebrow}</Text>
-      <View style={s.phraseRow}>
-        <View style={s.phraseWords}>
-          <Text {...frenchText} selectable style={[bType.bold22, { color: t.text }]}>{fr}</Text>
-          <Text style={[bType.line15, { color: t.secondary }]}>{en}</Text>
-        </View>
-        {onHear !== undefined ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={playing ? 'Stop' : hearLabel} accessibilityState={{ busy: playing }} onPress={onHear} style={s.speaker}>
-            <BSpeaker size={22} color={t.onBrand} />
-          </Pressable>
-        ) : null}
-      </View>
-      <BButton label={sayLabel} accessibilityLabel={sayAccessibilityLabel} height={46} ground={t.card} ink={t.text} text={bType.bold16} onPress={onSay} />
-      {note !== '' ? <Text accessibilityLiveRegion="polite" style={[bType.note, { color: t.secondary }]}>{note}</Text> : null}
-    </View>
-  );
-}
-
 const makeStyles = (t: B) =>
   StyleSheet.create({
     grow: { flex: 1, minWidth: 0 },
@@ -355,8 +316,4 @@ const makeStyles = (t: B) =>
     centred: { textAlign: 'center' },
     heldBack: { gap: space(1) },
     otherMode: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(2) },
-    phrase: { backgroundColor: t.lavender, borderRadius: 26, padding: 18, gap: 10 },
-    phraseRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },
-    phraseWords: { flex: 1, minWidth: 0, gap: 2 },
-    speaker: { width: 48, height: 48, borderRadius: 24, backgroundColor: t.brand, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   });

@@ -34,22 +34,22 @@ import { NextTaskCard } from '../practice/NextTaskCard.tsx';
  */
 
 import { useCallback, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { memoryPaused } from '@luvani/brain/profile';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp, type DrillExercise, type ReviewCard } from '@luvani/core';
 
 import { ScrollScreen } from '../layout.tsx';
-import { HIT, bType, decorative, radius, space, type } from '../theme.ts';
-import { IconAction, LockBadge, PillButton, Skeleton } from '../components.tsx';
+import { space } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { BButton, BMic, ComingUpCard, OutlineLock, SectionTitle, WeekCard } from '../today/TodayParts.tsx';
+import { ComingUpCard, SectionTitle, WeekCard } from '../today/TodayParts.tsx';
 import { visibleFacts } from '../profile/memory.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { RouteRow } from '../home/RoutePath.tsx';
 import { BArt } from '../art/BArt.tsx';
 import { SkyBand } from '../home/SkyBand.tsx';
 import { TodayHeroCard } from '../home/TodayHeroCard.tsx';
+import { FixHero, TodayFailedHero, TodayLoadingHero } from '../home/TodayHeroes.tsx';
 import { TODAY_OVERLAP, TodayLayout } from '../home/TodayLayout.tsx';
 import { skyNow } from '../home/skyView.ts';
 import { loadSavedStarter } from '../onboarding/savedStarter.ts';
@@ -60,7 +60,7 @@ import { goalOf } from '../onboarding/goalLine.ts';
 import { startAtOf } from '../profile/practicePreferences.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useFeatureAccess } from '../access/useFeatureAccess.ts';
-import { lockSaid, tapThrough } from '../access/featureAccess.ts';
+import { tapThrough } from '../access/featureAccess.ts';
 import { homeGreeting } from '../home/greeting.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { loadPackMarks, withMarks } from '../conversationPacks/marks.ts';
@@ -198,27 +198,7 @@ export function HomeTab() {
   const starterFor = starter !== null && profile.brain.stats.sessions === 0 ? starter : null;
 
   const fixHero = fix !== null && (
-    <>
-      <Text accessibilityRole="header" style={[bType.eyebrow, { color: t.link }]}>{TODAY_COPY.fix}</Text>
-      {fix.locked && <View style={st.lockRow}><LockBadge feature="fixes" said /></View>}
-      <Text style={[bType.note, { color: t.muted }]}>{TODAY_COPY.fixAsk}</Text>
-      <Text style={[bType.bold20, { color: t.text }]}>{fix.english}</Text>
-      {/* What shows after the try, on the inset panel with the outline lock. */}
-      <View style={st.after}>
-        <View {...decorative}><OutlineLock size={18} color={t.muted} /></View>
-        <Text style={[bType.note, st.grow, { color: t.muted }]}>{fix.after}</Text>
-      </View>
-      <BButton
-        label={TODAY_COPY.fixAction}
-        accessibilityLabel={fix.locked ? lockSaid(TODAY_COPY.fixAction, 'fixes', true) : undefined}
-        height={50}
-        ground={t.primary}
-        ink={t.onPrimary}
-        text={bType.bold17}
-        icon={<BMic size={18} color={t.onPrimary} />}
-        onPress={() => tapThrough(locks.access, fix.feature, locks.open, () => nav.navigate(fix.route.screen, fix.route.params))}
-      />
-    </>
+    <FixHero fix={fix} onTry={() => tapThrough(locks.access, fix.feature, locks.open, () => nav.navigate(fix.route.screen, fix.route.params))} />
   );
 
   // HomeLoading: the storage read has not answered, so still sand blocks
@@ -226,14 +206,9 @@ export function HomeTab() {
   const loading = hero === null || unowned;
   const failedHero = !unowned && readFailed;
   const heroCard = failedHero ? (
-    <TodayHeroCard>
-      <Text accessibilityRole="header" style={[type.bodyStrong, { color: t.text }]}>Your next scene could not be loaded.</Text>
-      <Text style={[type.body, { color: t.muted }]}>We could not check your saved work. Today's phrase is available on this phone while we try again.</Text>
-      <PillButton label="Practise today's phrase" onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
-      <IconAction layout="inline" icon="refresh" label="Try loading my scenes again" onPress={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
-    </TodayHeroCard>
+    <TodayFailedHero onPhrase={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} onRetry={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
   ) : loading ? (
-    <Skeleton blocks={[{ height: 262, radius: radius.feature }, { height: 168, radius: radius.card }, { height: 196, radius: radius.card }]} />
+    <TodayLoadingHero />
   ) : (
     <TodayHeroCard>
       {stops.hero === 'fix' ? fixHero : <NextTaskCard vivid placement="hero" starter={starterFor} />}
@@ -310,11 +285,7 @@ export function HomeTab() {
 /** The drawing inside a row's 52pt thumb. */
 const ROW_ART = 40;
 
-const makeStyles = (t: B) =>
+const makeStyles = (_t: B) =>
   StyleSheet.create({
     section: { gap: space(3) },
-    grow: { flex: 1, minWidth: 0 },
-    lockRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2) },
-    // The after-the-try note: the inset panel with the outline lock.
-    after: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: HIT, backgroundColor: t.inset, borderRadius: 14, paddingVertical: 10, paddingHorizontal: space(3) },
   });

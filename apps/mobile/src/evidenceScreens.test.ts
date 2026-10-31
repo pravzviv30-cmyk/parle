@@ -50,6 +50,8 @@ const SINGLE = [
   'journey/JourneyParts.tsx',
   'tabs/MyFrenchTab.tsx',
   'dev/YourFrenchPreview.tsx',
+  // 2026-10-31 UI-015: Today's dev preview.
+  'dev/TodayPreview.tsx',
 ];
 const FILES: string[] = [
   ...SINGLE,

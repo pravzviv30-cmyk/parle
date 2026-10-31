@@ -16,14 +16,10 @@ test('failed read has a visible retry while local audio and text practice remain
   assert.match(card, /Save status unavailable\. You can still hear and practise this phrase\./);
   assert.match(card, /Retry save status/);
   assert.match(card, /setReadAttempt\(value => value \+ 1\)/);
-  // 2026-10-20, B5, B-Today: Today's lavender card carries no save (the
-  // library card keeps it), so only the collection variant draws the save's
-  // recovery. Today keeps its play disc and its one way to practise.
-  assert.equal((card.match(/\{saveFailure\}/g) ?? []).length, 1, 'the collection variant needs visible recovery');
-  const today = card.slice(card.indexOf("if (variant === 'today')"), card.indexOf('return embedded ?'));
-  assert.doesNotMatch(today, /save\(\)|bookmark/, "Today's phrase offers a save it cannot recover from");
-  assert.match(card, /onHear=\{asset != null \? toggle : undefined\}/);
-  // 2026-10-20 UI-008, artboard B-Today: the lavender card is today/TodayParts
-  // PhraseCard; the one practice and the play toggle are still this card's.
-  assert.match(card, /sayLabel="Say it yourself"\s+sayAccessibilityLabel="Say today's phrase yourself"\s+onSay=\{sayIt\}/);
+  // T5 (UI-015 cleanup): the lavender today look left the card, so the one
+  // card draws the save's recovery once, and keeps Hear and its one practice.
+  assert.equal((card.match(/\{saveFailure\}/g) ?? []).length, 1, 'the card needs visible recovery');
+  assert.doesNotMatch(card, /variant|PhraseCard/, 'the retired today look is back');
+  assert.match(card, /<IconAction layout="inline" icon="speaker" label="Hear"  onPress=\{\(\) => void play\(\)\} \/>/);
+  assert.match(card, /<IconAction layout="inline" icon="microphone" label="Say it" onPress=\{sayIt\} \/>/);
 });

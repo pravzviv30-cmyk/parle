@@ -193,7 +193,8 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\);/, 'the lead must respond to live availability and account ownership');
     // UI-015: the hero card is split on whether storage has answered.
     assert.match(FLAT, /const loading = hero === null \|\| unowned;/, 'the page is not split on whether storage has answered');
-    assert.match(FLAT, /\) : loading \? \( <Skeleton/, 'the page is not split on whether storage has answered');
+    // T5: the sand blocks are home/TodayHeroes.tsx TodayLoadingHero, shared with the preview.
+    assert.match(FLAT, /\) : loading \? \( <TodayLoadingHero \/>/, 'the page is not split on whether storage has answered');
 
     // Drawn on the one scene brief, and every field is the rule's. The meta
     // line is one sentence `sceneMeta` writes from the label, the minutes and
@@ -264,9 +265,12 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.match(shared, /<LocalPracticeCard/);
     assert.match(shared, /nextTaskKind/);
     // UI-015: the failed read is the hero card's body.
+    // T5: drawn by home/TodayHeroes.tsx TodayFailedHero, with one pill, whose door HomeTab hands it.
     const unread = between(FLAT, 'const heroCard = failedHero ? (', ') : loading ? (', 'failed reads have a working door');
-    assert.equal((unread.match(/<PillButton\b/g) ?? []).length, 1);
-    assert.match(unread, /navigate\('DailyPractice', \{ id: daily.phrase.id \}\)/);
+    const failedPart = flat(between(stripComments(read('../home/TodayHeroes.tsx')), 'export function TodayFailedHero(', 'export function TodayLoadingHero(', 'the failed hero is a shared part'));
+    assert.equal((failedPart.match(/<PillButton\b/g) ?? []).length, 1);
+    assert.match(failedPart, /<PillButton label="Practise today's phrase" onPress=\{onPhrase\} \/>/);
+    assert.match(unread, /onPhrase=\{\(\) => nav\.navigate\('DailyPractice', \{ id: daily.phrase.id \}\)\}/);
 
     // The Start: white on the blue, Speak's words, an ink mic, and the scene
     // named to a screen reader.
@@ -489,9 +493,13 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // UI-015: the hero slot's loading branch is the sand blocks and nothing
     // else, so no card is drawn before the lead it sits under.
     const loading = between(FLAT, ') : loading ? (', ') : (', 'the loading branch is its own');
-    const skeleton = tags(loading, 'Skeleton');
+    // T5: the loading branch is TodayLoadingHero alone, and that part is one Skeleton alone.
+    assert.equal(loading.replace(') : loading ? (', '').trim(), '<TodayLoadingHero />', 'Today draws something beside the sand blocks while it loads');
+    const heroes = flat(stripComments(read('../home/TodayHeroes.tsx')));
+    const loadingPart = between(heroes, 'export function TodayLoadingHero(', 'const makeStyles', 'the sand blocks are a shared part');
+    const skeleton = tags(loadingPart, 'Skeleton');
     assert.equal(skeleton.length, 1, 'Today draws other than one skeleton while it loads');
-    assert.equal(loading.replace(skeleton[0]!, '').replace(') : loading ? (', '').trim(), '', 'Today draws something beside the sand blocks while it loads');
+    assert.match(loadingPart, /\{ return <Skeleton [^]*\/>; \}\s*$/, 'the loading part draws something beside the sand blocks');
     // Shaped like the page (UI-015): the hero card, the path's rows, the three.
     assert.equal(
       skeleton[0],
@@ -524,30 +532,22 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
   // PhraseCard (lavender, radius 26, padding 18): the link-blue eyebrow, the
   // French at 22 bold over its English, the 48pt brand speaker and the 46pt
   // white "Say it yourself". The audio stays DailyCard's.
-  test("today's phrase is the lavender card: the French with a play disc, the English, and Say it yourself", () => {
+  test("today's phrase is a row on Today, and the one daily card keeps the tutor's audio", () => {
     // UI-015: Today draws its phrase as a row; the lavender card stays DailyCard's today look.
     assert.ok(FLAT.includes(PHRASE_ROW), "Today does not draw today's phrase as its row");
-    assert.match(DAILY, /variant = 'full'/, 'the library look is no longer the default');
-    const today = between(DAILY, "if (variant === 'today') {", 'return embedded ?', 'the daily card has a today look');
-    const card = flat(today);
-    assert.match(card, /<PhraseCard eyebrow="Today's phrase" fr=\{item\.fr\} en=\{item\.en\} hearLabel=\{`Hear \$\{tutorName\} say it`\} onHear=\{asset != null \? toggle : undefined\} playing=\{status\.playing\}/);
-    assert.match(card, /sayLabel="Say it yourself" sayAccessibilityLabel="Say today's phrase yourself" onSay=\{sayIt\}/);
-    assert.match(flat(DAILY), /const status = useAudioPlayerStatus\(player\)/, 'the disc cannot know the line is sounding');
+    // T5 (UI-015 cleanup): the lavender look left DailyCard and PhraseCard left
+    // the Today parts, since Today draws its phrase as a row. Re-pinned to the
+    // same intent: one look for the library, and the phrase still practised
+    // and heard the library's way.
+    assert.doesNotMatch(DAILY, /variant/, 'the daily card still carries a second look');
+    assert.doesNotMatch(read('../today/TodayParts.tsx'), /export function PhraseCard\(/, 'the retired phrase card is still a Today part');
+    assert.match(flat(DAILY), /const status = useAudioPlayerStatus\(player\)/, 'the voice hold cannot know the line is sounding');
     assert.match(flat(DAILY), /const asset = tutorAudioFor\(TUTOR_DAILY_AUDIO, item\.id, tutorVoice\)/, "Hear is not the tutor's bundled clip");
-    const toggle = between(flat(DAILY), 'const toggle = ', '; const contents', 'the disc has one handler');
-    assert.match(toggle, /if \(status\.playing\) \{ playTicket\.current\+\+; releaseDailyPlayback\(player\); \} else void play\(\)/, 'the disc does not stop what it started');
-    const sayIt = between(flat(DAILY), 'const sayIt = ', '; const toggle', 'the practice has one handler');
+    const sayIt = between(flat(DAILY), 'const sayIt = ', '; const contents', 'the practice has one handler');
     assert.ok(sayIt.indexOf('releaseDailyPlayback(player)') < sayIt.indexOf("nav.navigate('DailyPractice', { id: item.id })"), 'the practice opens over the tutor still speaking');
     assert.match(DAILY, /<IconAction layout="inline" icon="microphone" label="Say it" onPress=\{sayIt\} \/>/, 'the library and Today practise a phrase two ways');
-    for (const gone of ['<Label', 'exampleFr', 'exampleEn', 'item.label', 'LockBadge', 'save()']) {
-      assert.ok(!today.includes(gone), `today's phrase still carries ${gone}`);
-    }
-    const parts = flat(stripComments(read('../today/TodayParts.tsx')));
-    const phrase = between(parts, 'export function PhraseCard(', 'const makeStyles', 'the phrase card is a Today part');
-    assert.match(phrase, /accessibilityLabel=\{playing \? 'Stop' : hearLabel\}/, 'the speaker does not say Stop while it sounds');
-    assert.match(phrase, /<Text \{\.\.\.frenchText\} selectable style=\{\[bType\.bold22, \{ color: t\.text \}\]\}>\{fr\}<\/Text>/, 'the French is not tagged as French at 22 bold');
-    assert.match(parts, /phrase: \{ backgroundColor: t\.lavender, borderRadius: 26, padding: 18, gap: 10 \}/);
-    assert.match(parts, /speaker: \{ width: 48, height: 48, borderRadius: 24, backgroundColor: t\.brand/, 'the speaker is not the 48pt brand disc');
+    // Today's row opens the same practice.
+    assert.match(FLAT, /onPress=\{\(\) => nav\.navigate\(TODAY_ROUTES\.phrase, \{ id: daily\.phrase\.id \}\)\}/);
   });
 
   test('Home names no weekday, counts no days this week, shows no rate and draws no tag', () => {
@@ -630,7 +630,9 @@ describe('Today keeps its day when the disk will not answer', () => {
     assert.match(readChain, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/);
     const rescue = readChain.slice(readChain.indexOf('.catch('));
     assert.match(rescue, /setReadFailed\(true\)/, 'a failed read must remain distinct from a fresh account');
-    assert.match(FLAT, /const heroCard = failedHero \? \( <TodayHeroCard>/, 'the failed read is not drawn in the hero frame');
+    // T5: the failed hero is home/TodayHeroes.tsx TodayFailedHero, which is the hero frame.
+    assert.match(FLAT, /const heroCard = failedHero \? \( <TodayFailedHero onPhrase=\{\(\) => nav\.navigate\('DailyPractice', \{ id: daily\.phrase\.id \}\)\} onRetry=\{\(\) => \{ setHero\(null\); setReadAttempt\(\(n\) => n \+ 1\); \}\} \/>/, 'the failed read is not drawn in the hero frame');
+    assert.match(flat(stripComments(read('../home/TodayHeroes.tsx'))), /export function TodayFailedHero\([^]*?return \( <TodayHeroCard>/, 'the failed read is not drawn in the hero frame');
     assert.match(FLAT, /nav\.navigate\('DailyPractice', \{ id: daily\.phrase\.id \}\)/);
     assert.match(FLAT, /setReadAttempt\(\(n\) => n \+ 1\)/);
     for (const invented of ['setStart(', 'setWeek(', 'startingPoint(', 'missionStates(']) {
@@ -881,7 +883,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     // the hero card's ground: the café in a 108 by 84 butter tile, the words
     // beside it while the card is wide enough (else the tile goes above), the
     // French still tagged, and the 54pt primary Start.
-    const lead = between(PARTS_FLAT, 'export function SceneLead(', 'export function PhraseCard(', 'the lead is a Today part');
+    const lead = between(PARTS_FLAT, 'export function SceneLead(', 'const HERO_INSET', 'the lead is a Today part');
     assert.match(lead, /<View \{\.\.\.decorative\} style=\{\[s\.leadTile, \{ backgroundColor: t\.butter \}\]\}> <BArt name="cafe-table"/);
     assert.match(lead, /const side = sceneTileSide\(measured \?\? windowWidth - HERO_INSET, fontScale\);/);
     assert.match(lead, /<View style=\{side \? s\.leadSide : s\.leadStacked\}>/);
@@ -910,14 +912,18 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(FLAT, /const fix = fixFrom === null \? null : oneFix\(\{ \.\.\.fixFrom, tutorName, access: locks\.access \}\);/);
     assert.match(FLAT, /replay: madeFromConversations\(\{ packs: fetched, marks, deck, checks, bank, now \}\)\?\.replay \?\? null, deck, bank, packs: fetched, now/, 'the fix cannot name the day of the conversation');
     // UI-015: the fix is the hero card's body, built once as fixHero.
-    const card = flat(between(SCREEN, 'const fixHero = ', '\n  const loading', 'the fix card is built once'));
-    assert.match(card, /fix !== null && \(/, 'the fix card is drawn with no replay');
+    // T5: HomeTab hands the fix to home/TodayHeroes.tsx FixHero (shared with the
+    // preview) and keeps the lock seam; the card's words are pinned in that part.
+    const built = flat(between(SCREEN, 'const fixHero = ', '\n  const loading', 'the fix card is built once'));
+    assert.match(built, /fix !== null && \( <FixHero fix=\{fix\} onTry=\{\(\) => tapThrough\(locks\.access, fix\.feature, locks\.open, \(\) => nav\.navigate\(fix\.route\.screen, fix\.route\.params\)\)\} \/>/, 'a locked fix does not open the Wall');
+    const heroesSrc = stripComments(read('../home/TodayHeroes.tsx'));
+    const card = flat(between(heroesSrc, 'export function FixHero(', 'export function TodayFailedHero(', 'the fix card is a shared part'));
     assert.match(card, /\{fix\.english\}/);
     assert.match(card, /\{fix\.after\}/);
     assert.doesNotMatch(card, /quote|better|why/, 'the fix card shows the learner\'s line or the better one before a try');
     assert.match(card, /\{fix\.locked && <View style=\{st\.lockRow\}><LockBadge feature="fixes" said \/><\/View>\}/, 'the lock is not drawn from the seam');
     assert.match(card, /accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\}/);
-    assert.match(card, /onPress=\{\(\) => tapThrough\(locks\.access, fix\.feature, locks\.open, \(\) => nav\.navigate\(fix\.route\.screen, fix\.route\.params\)\)\}/, 'a locked fix does not open the Wall');
+    assert.match(card, /onPress=\{onTry\}/, 'the fix button does not press through what the screen hands it');
     assert.match(card, /<View \{\.\.\.decorative\}><OutlineLock size=\{18\} color=\{t\.muted\} \/><\/View>/, 'the outline lock beside the line is not hidden from a screen reader');
     assert.match(card, /height=\{50\} ground=\{t\.primary\} ink=\{t\.onPrimary\}/, 'the fix button is not the 50pt primary');
     // UI-015 (was: the RouteNode stop named the card): the hero names it with
@@ -926,8 +932,8 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(card, /<Text accessibilityRole="header" style=\{\[bType\.eyebrow, \{ color: t\.link \}\]\}>\{TODAY_COPY\.fix\}<\/Text>/);
     assert.match(card, /<Text style=\{\[bType\.bold20, \{ color: t\.text \}\]\}>\{fix\.english\}<\/Text>/);
     assert.match(FLAT, /<TodayHeroCard> \{stops\.hero === 'fix' \? fixHero :/);
-    assert.match(style(SCREEN, 'after'), /minHeight: HIT/);
-    assert.match(style(SCREEN, 'after'), /backgroundColor: t\.inset, borderRadius: 14/);
+    assert.match(style(heroesSrc, 'after'), /minHeight: HIT/);
+    assert.match(style(heroesSrc, 'after'), /backgroundColor: t\.inset, borderRadius: 14/);
     assert.doesNotMatch(SCREEN, /borderColor: t\.mint/, 'the fix still draws its own mint-edged card inside the hero');
   });
 
@@ -950,7 +956,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
   test("the start button's icon matches its mode", () => {
     assert.equal(launchLabel({ checking: false, live: true, mode: 'type' }), 'Start typing');
     assert.match(HERO_FLAT, /start=\{\{ label, mode: modes\.mode,/, 'the yellow lead is not told the mode');
-    const lead = between(PARTS_FLAT, 'export function SceneLead(', 'export function PhraseCard(', 'the lead is a Today part');
+    const lead = between(PARTS_FLAT, 'export function SceneLead(', 'const HERO_INSET', 'the lead is a Today part');
     assert.match(lead, /icon=\{start\.mode === 'type' \? <KeyboardMark size=\{20\} color=\{t\.onPrimary\} \/> : <BMic size=\{20\} color=\{t\.onPrimary\} \/>\}/, 'the lead draws one icon for both modes');
     const pill = flat(tags(HERO.slice(HERO.indexOf('<SceneBrief')), 'PillButton')[0]!);
     assert.match(pill, /icon=\{modes\.mode === 'type' \? <KeyboardMark size=\{20\} color=\{paper\.ink\} \/> : <MicGlyph size=\{20\} color=\{paper\.ink\} \/>\}/, 'the brief pill draws one icon for both modes');

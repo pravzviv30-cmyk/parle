@@ -116,7 +116,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   };
   // The plans lead's words and doors, once: on its own sun card, or (UI-015)
   // on the hero card's ground in the theme's ink.
-  const plansBody = (onSun: boolean) => <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{plansLeadBody(billing)}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground={onSun ? 'sun' : undefined} icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></>;
+  const plansBody = (onSun: boolean) => <PlansLeadBody onSun={onSun} body={plansLeadBody(billing)} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onCafe={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} />;
   const plansCard = <ColourCard ground="sun">{plansBody(true)}</ColourCard>;
   if (failed && vivid) return row ? null : (<View><Text style={type.body}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
@@ -158,8 +158,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     }
     if (lead === 'explore') {
       if (row) return leadRow(lead, () => nav.navigate('Explore'));
-      const exploreText = <><Text style={[type.body, { color: t.text }]}>Your next scene isn't ready yet. Explore has scenes and topics you can start now.</Text><PillButton label="Open Explore" onPress={() => nav.navigate('Explore')} /></>;
-      return bare ? <View style={{ gap: 8 }}><Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{leadStop(lead, null).title}</Text>{exploreText}</View> : <Card style={{ gap: 8 }}>{exploreText}</Card>;
+      return <ExploreLeadBody bare={bare} title={leadStop(lead, null).title} onExplore={() => nav.navigate('Explore')} />;
     }
     if (lead === 'starter' && starter !== null) return <StarterContinuation initial={starter} bare={bare} onTutor={starterTutorOpen({ live, billing, answered: billingAnswered }) ? () => nav.navigate('Tutor') : undefined} onPlans={offersPlans(billing) ? () => nav.navigate('Wall', { entry: 'recap' }) : undefined} />;
     if (lead === 'scene' && value.hero !== null) return row ? <SceneRow hero={value.hero} last={last} /> : <MissionHero hero={value.hero} vivid buildsOn={value.buildsOn} />;
@@ -194,6 +193,22 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} vivid={vivid} buildsOn={vivid ? value.buildsOn : null} /> : <LocalPracticeCard vivid={vivid} />;
 }
 
+/**
+ * The plans lead's words and doors, props in (UI-015, shared with the dev
+ * preview): on its own sun card, or on the hero card's ground in the theme's ink.
+ */
+export function PlansLeadBody({ onSun, body, onPlans, onCafe }: { onSun: boolean; body: string; onPlans: () => void; onCafe: () => void }) {
+  const t = useB();
+  return <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{body}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={onPlans} /><IconAction layout="inline" ground={onSun ? 'sun' : undefined} icon="headphones" label="Try the offline café line" onPress={onCafe} /></>;
+}
+
+/** No next scene yet: Explore's door, props in (UI-015, shared with the dev preview). */
+export function ExploreLeadBody({ bare, title, onExplore }: { bare: boolean; title: string; onExplore: () => void }) {
+  const t = useB();
+  const exploreText = <><Text style={[type.body, { color: t.text }]}>Your next scene isn't ready yet. Explore has scenes and topics you can start now.</Text><PillButton label="Open Explore" onPress={onExplore} /></>;
+  return bare ? <View style={{ gap: 8 }}><Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{title}</Text>{exploreText}</View> : <Card style={{ gap: 8 }}>{exploreText}</Card>;
+}
+
 /** The scene as a row on Today's path: its title, place and time, started through the same tutor gate as the hero's Start. */
 function SceneRow({ hero, last }: { hero: HomeMission; last: boolean }) {
   const { open, modes } = useSceneStart(hero);
@@ -201,7 +216,7 @@ function SceneRow({ hero, last }: { hero: HomeMission; last: boolean }) {
 }
 
 /** One lead row: the scene art on butter, the words and a chevron. */
-function LeadRow({ last, title, line, onPress }: { last: boolean; title: string; line: string | null; onPress: () => void }) {
+export function LeadRow({ last, title, line, onPress }: { last: boolean; title: string; line: string | null; onPress: () => void }) {
   const t = useB();
   return <RouteRow mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name="cafe-table" width={ROW_ART} height={ROW_ART} />} thumbGround={t.butter} title={title} line={line} chevron onPress={onPress} />;
 }

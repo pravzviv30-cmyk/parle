@@ -144,7 +144,7 @@ test('scene card art never overlaps the title or duration at 320 and 375 points'
   }
   // Both cards draw from the shared geometry and measure themselves.
   const parts = readFileSync(new URL('./today/TodayParts.tsx', import.meta.url), 'utf8');
-  const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('export function PhraseCard('));
+  const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('const HERO_INSET'));
   const tutor = readFileSync(new URL('./tabs/TutorTab.tsx', import.meta.url), 'utf8');
   // The eyebrow sits at the top beside the art too: the longest goal eyebrow
   // (goalLine.ts) at the windows where a card is just wide enough to go side by side.

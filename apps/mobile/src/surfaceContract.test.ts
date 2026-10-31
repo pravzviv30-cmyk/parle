@@ -1931,7 +1931,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // 2026-10-31 UI-015: game/TodayHero.tsx became game/TodayStats.tsx; the
     // phrase is a RouteRow (home/RoutePath.tsx), so DailyCard left Today; plus
     // the sky band, the hero frame and the layout.
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayStats.tsx', 'game/QuestsCard.tsx', 'today/TodayParts.tsx', 'home/RoutePath.tsx', 'home/SkyBand.tsx', 'home/TodayHeroCard.tsx', 'home/TodayLayout.tsx'],
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayStats.tsx', 'game/QuestsCard.tsx', 'today/TodayParts.tsx', 'home/RoutePath.tsx', 'home/SkyBand.tsx', 'home/TodayHeroCard.tsx', 'home/TodayLayout.tsx', 'home/TodayHeroes.tsx'],
     // 2026-10-20, B1, B-Explore: every Explore list is drawn inline in the
     // tab file as ledger rows; it imports no card file of its own.
     // 2026-10-20 UI-008, artboard B-Explore: plus the B parts it draws from.
@@ -2002,9 +2002,14 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // one primary of its own door.
     assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 1);
     const parts = named('today/TodayParts.tsx');
-    const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('export function PhraseCard('));
+    const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('const HERO_INSET'));
     assert.equal((lead.match(/<BButton\b/g) ?? []).length, 1, 'the yellow lead carries other than one Start');
-    assert.equal((named('tabs/HomeTab.tsx').match(/<BButton\b/g) ?? []).length, 1, 'the fix card carries other than one primary');
+    // T5: the fix hero is home/TodayHeroes.tsx FixHero, shared with the preview.
+    assert.equal((named('tabs/HomeTab.tsx').match(/<BButton\b/g) ?? []).length, 0, 'Home draws a primary of its own beside its parts');
+    const heroes = named('home/TodayHeroes.tsx');
+    const fixPart = heroes.slice(heroes.indexOf('export function FixHero('), heroes.indexOf('export function TodayFailedHero('));
+    assert.equal((fixPart.match(/<BButton\b/g) ?? []).length, 1, 'the fix card carries other than one primary');
+    assert.equal((heroes.match(/<BButton\b/g) ?? []).length, 1, 'the shared hero bodies carry a second primary');
     assert.match(task, /if \(value.card !== null && !vivid\)/);
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
