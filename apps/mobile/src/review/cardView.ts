@@ -153,6 +153,12 @@ export interface CardAnswer {
   context: string;
   /** Broad IPA, or empty. Never invented. */
   ipa: string;
+  /**
+   * Whether `text` is French. Always in retrieval. On an introduction only a
+   * turn card's back is: a word or a sound fronts its French and turns over to
+   * the English, which must never sit under the "In French" label.
+   */
+  french: boolean;
 }
 
 export interface CardView {
@@ -259,7 +265,7 @@ export function cardView(card: ReviewCard, now: number, turn: ReviewTurn = CARD_
     ask: mode === 'retrieval' ? RETRIEVAL_ASK : null,
     question: mode === 'retrieval' && !revealed && card.kind !== 'phoneme' ? REVIEW_COPY.question : null,
     revealed,
-    answer: revealed ? { text: answer, context: contextUnder(card, prompt, answer), ipa: card.ipa } : null,
+    answer: revealed ? { text: answer, context: contextUnder(card, prompt, answer), ipa: card.ipa, french: mode === 'retrieval' || (french !== null && !french.frontToo) } : null,
     hear: hearable(french, mode, revealed),
     flippable: mode === 'introduction',
     asksForAttempt: mode === 'retrieval' && !revealed,

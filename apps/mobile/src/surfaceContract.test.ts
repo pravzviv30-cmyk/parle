@@ -1293,7 +1293,10 @@ describe('one way back, and it is the shared header — F309', () => {
     // six pills across six mutually exclusive branches, of which a learner ever
     // sees one — the two Checks, "I said it", and a Done on each of the three
     // terminal cards.
-    const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6 };
+    // Review (drill B v2, UI-016) is pinned at three across exclusive branches:
+    // Done on the finished page, Show me, and "I said it" (one tag, the lip
+    // primary on the front and the secondary while typing).
+    const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6, 'ReviewScreen.tsx': 3 };
     // The two auth screens are the other pinned case. They are one thing to do,
     // have an account, and revamp B's approved board (F601) draws two provider
     // doors above the form: Apple's ink pill, only where the platform offers it,

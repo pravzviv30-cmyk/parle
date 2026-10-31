@@ -36,10 +36,11 @@ import { FixLineSheet } from '../drill/FixLineSheet.tsx';
 import { EndCard } from '../celebrate/EndCard.tsx';
 import { REVIEW_END } from '../review/sittingEnd.ts';
 import { ReviewScreen } from '../ReviewScreen.tsx';
-import { addPhrases } from '../review/store.ts';
+import { addPhrases, gradeCards, loadDeck } from '../review/store.ts';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
-import { AttemptCard, ComparedCard, FixesHeader } from '../practice/FixesParts.tsx';
-import { FIXES_TITLE, FIX_COPY } from '../practice/fixesView.ts';
+import { AttemptCard, ComparedCard, FixesHeader, FixesPatternCard, ScopeToggle } from '../practice/FixesParts.tsx';
+import { FIXES_TITLE, FIX_COPY, SCOPES, type FixesScope } from '../practice/fixesView.ts';
+import { COMES_UP_SHORT, PATTERN_COPY, PRACTISE_THIS } from '../practice/practiceTabView.ts';
 import { PRACTICE_END } from '../practice/copy.ts';
 import { practiceEndCard } from '../practice/saveState.ts';
 import { setActiveUser } from '../storage/scope.ts';
@@ -113,25 +114,43 @@ function usePressOnWeb(labels: readonly string[]) {
   }, [labels]);
 }
 
+/**
+ * Seed the preview deck as cards met two days ago and recalled once, so each
+ * is due today for its first real test: a retrieval, which is what Review's
+ * front, typing and said states are drawn on. The clock is moved back only
+ * while the seed is written, in this preview scope alone, and put back at once.
+ */
+async function seedRetrieval(): Promise<void> {
+  const realNow = Date.now;
+  const then = realNow() - 2 * 86_400_000;
+  Date.now = () => then;
+  try {
+    await addPhrases(F.REVIEW_PHRASES, { source: 'sample' });
+    const deck = await loadDeck();
+    await gradeCards(deck.map((card) => ({ id: card.id, grade: 'good' as const })));
+  } finally {
+    Date.now = realNow;
+  }
+}
+
 /** A real screen under its own preview storage scope, optionally seeded with a review deck first. */
-function Scoped({ name, seed, children }: { name: string; seed: boolean; children: (scope: string) => ReactNode }) {
+function Scoped({ name, seed, children }: { name: string; seed: boolean | 'retrieval'; children: (scope: string) => ReactNode }) {
   // A fresh scope per open, so a seeded deck or a recorded check never carries over.
   const [scope] = useState(() => `screen-preview-${name}-${Date.now()}`);
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let cancelled = false;
     setActiveUser(scope);
-    void (seed ? addPhrases(F.REVIEW_PHRASES, { source: 'sample' }) : Promise.resolve()).catch(noop).then(() => { if (!cancelled) setReady(true); });
+    void (seed === 'retrieval' ? seedRetrieval() : seed ? addPhrases(F.REVIEW_PHRASES, { source: 'sample' }) : Promise.resolve()).catch(noop).then(() => { if (!cancelled) setReady(true); });
     return () => { cancelled = true; };
   }, [scope, seed]);
   return ready ? <>{children(scope)}</> : <Screen><View /></Screen>;
 }
 
 /**
- * The real control each state is one press behind. A fresh preview deck holds
- * only first meetings, which turn over with Show me; "I said it" and "Type it"
- * belong to a due retrieval, which a deck seeded now cannot hold, so the
- * typing and said keys press them only if a retrieval card is drawn.
+ * The real control each state is one press behind. The back is a first
+ * meeting turned over with Show me; front, typing and said are drawn on a due
+ * retrieval (`seedRetrieval`), where "Type it" and "I said it" live.
  */
 const REVIEW_STEPS: Partial<Record<DrillPreviewKey, readonly string[]>> = {
   'drill-review-typing': ['Type it'],
@@ -150,10 +169,14 @@ function Driven({ preview, children }: { preview: DrillPreviewKey; children: Rea
 /** The Fixes page's attempt and compared cards, composed as FixesScreen composes them. */
 function FixesPreview({ compared, sheet }: { compared: boolean; sheet: boolean }) {
   const [open, setOpen] = useState(sheet);
+  const [scope, setScope] = useState<FixesScope>('this');
+  const pattern = Object.values(PATTERN_COPY)[0]!;
   return (
     <ScrollScreen bottom="inset" topGap={8}>
       <View style={{ gap: space(4.5) }}>
         <FixesHeader title={FIXES_TITLE} subtitle="Au café, Saturday" locked={false} onBack={noop} />
+        <ScopeToggle scopes={SCOPES} active={scope} onChange={setScope} />
+        <FixesPatternCard eyebrow={COMES_UP_SHORT} title={pattern.title} hint={pattern.hint} practise={PRACTISE_THIS} locked={false} onPractise={noop} />
         {compared ? (
           <ComparedCard label={`Fix 1, ${FIX_COPY.triedLabel}`}
             wrote={{ label: FIX_COPY.youWrote, text: 'Je veux un café.' }}
@@ -300,8 +323,9 @@ function body(preview: DrillPreviewKey): ReactNode {
     case 'drill-own-oneway': return <OwnWords outcome={F.OWN_OUTCOMES.oneway} typed={F.OWN_OUTCOMES.oneway.attempt!} />;
     case 'drill-review-front':
     case 'drill-review-typing':
-    case 'drill-review-back':
     case 'drill-review-said':
+      return <Scoped name={preview} seed="retrieval">{() => <Driven preview={preview}><ReviewScreen onDone={noop} /></Driven>}</Scoped>;
+    case 'drill-review-back':
       return <Scoped name={preview} seed>{() => <Driven preview={preview}><ReviewScreen onDone={noop} /></Driven>}</Scoped>;
     case 'drill-review-empty':
       return <Scoped name={preview} seed={false}>{() => <ReviewScreen onDone={noop} />}</Scoped>;

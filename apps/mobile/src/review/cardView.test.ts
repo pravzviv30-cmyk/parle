@@ -344,6 +344,26 @@ describe('typing, and what the app refuses to say about it', () => {
   });
 });
 
+// Drill B v2 preview, 2026-10-31: a new word turned over showed its English
+// under "In French". The view now says whether the answer is French, and the
+// screen heads it "In French" only then.
+test('the answer is called French only when it is French', () => {
+  const newWord = cardView(card({ reps: 0, due: NOW }), NOW, { ...CARD_START, flipped: true });
+  assert.equal(newWord.mode, 'introduction');
+  assert.equal(newWord.answer?.text, 'the bill, please');
+  assert.equal(newWord.answer?.french, false, 'a new word turns over to its English, which is not French');
+  const newTurn = cardView(turnCard({ reps: 0, due: NOW }), NOW, { ...CARD_START, flipped: true });
+  assert.equal(newTurn.answer?.french, true, 'a new line turns over to its French');
+  const asked = cardView(card(), NOW, { ...CARD_START, attempt: 'said' });
+  assert.equal(asked.mode, 'retrieval');
+  assert.equal(asked.answer?.text, "l'addition, s'il vous plaît");
+  assert.equal(asked.answer?.french, true, 'a retrieval always answers in French');
+  const sound = cardView(card({ kind: 'phoneme', id: 'phoneme:ʁ', front: '/ʁ/', back: 'the French r', context: 'rue' }), NOW, { ...CARD_START, flipped: true });
+  assert.equal(sound.answer?.french, false, 'a sound card turns over to its English');
+  const screen = stripComments(read('../ReviewScreen.tsx'));
+  assert.match(screen, /\{view\.answer\.french && <Text[^>]*>\{REVIEW_COPY\.inFrench\}/, 'the screen heads the answer "In French" whatever language it is in');
+});
+
 describe('the review sitting on screen', () => {
   const screen = stripComments(read('../ReviewScreen.tsx'));
 
@@ -399,8 +419,11 @@ describe('the review sitting on screen', () => {
     // 2026-10-21 UI-008, artboard B-ReviewReveal: the three grades are filled
     // tiles, one Pressable mapped, so the count is four: the speaker, the grade
     // tile, and the two attempt buttons.
+    // 2026-10-31 drill B v2 (UI-016): "I said it" is the frame's lip primary, a
+    // PillButton that carries its role and is named below, so the hand-rolled
+    // count is three: the speaker, the grade tile and "Type it".
     const controls = tags(screen, 'Pressable');
-    assert.ok(controls.length === 4, `only ${controls.length} controls found; this test is reading the wrong thing`);
+    assert.ok(controls.length === 3, `only ${controls.length} controls found; this test is reading the wrong thing`);
     for (const tag of controls) {
       assert.match(tag, /accessibilityRole=/, `a control on the review screen has no role: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
       assert.match(tag, /accessibilityLabel=/, `a control on the review screen has no name: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
@@ -418,6 +441,9 @@ describe('the review sitting on screen', () => {
     assert.match(fields[0]!, /accessibilityLabel="Your answer in French"/, 'the typing field has no accessible name');
     assert.ok(screen.includes(`accessibilityLabel={TYPE_IT}`), 'the type-it control is not named after what it says');
     assert.ok(screen.includes(`accessibilityLabel={SAID_IT}`), 'the said-it control is not named after what it says');
+    const said = tags(screen, 'PillButton').filter((tag) => tag.includes('label={SAID_IT}'));
+    assert.equal(said.length, 1, 'the said-it control is not the one lip pill');
+    assert.match(said[0]!, /accessibilityLabel=\{SAID_IT\}/, 'the said-it pill is not named after what it says');
     assert.equal(TYPE_IT, 'Type it');
     assert.equal(SAID_IT, 'I said it');
   });
