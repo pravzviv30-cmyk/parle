@@ -1,4 +1,4 @@
-/** Say it aloud. Moved from DrillScreen with no change. */
+/** Say it aloud, on the peach stage, with the one mic (`SpeakMic`): Cloud listens beside it while live. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { AudioModule, useAudioRecorder } from 'expo-audio';
@@ -8,7 +8,7 @@ import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { IconAction, PillButton, SpeakCircle } from '../../components.tsx';
 import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
 import { drillStage } from '../drillStage.ts';
-import { LevelRing } from '../../motion/LevelRing.tsx';
+import { SpeakMic } from '../SpeakMic.tsx';
 import { useRecorderLevel } from '../../speech/useRecorderLevel.ts';
 import { Illustration } from '../../art/flat/Illustration.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
@@ -160,12 +160,7 @@ export function RepeatThisView({
              never marks the learner's microphone. Tapping Done grades exactly
              as I said it does; the recording only ever adds a line. */
           <View style={ds.speakBlock}>
-            <View style={ds.speakCircle}>
-              {mic === 'live' && voice.metered && (
-                <View style={ds.speakRing}>
-                  <LevelRing level={voice.level} size={SPEAK} color={colour.mint} />
-                </View>
-              )}
+            <SpeakMic live={mic === 'live'} voice={voice} size={SPEAK} ring={colour.mint} cloud>
               <SpeakCircle
                 onPress={() => void toggleRecord()}
                 active={mic === 'live'}
@@ -173,7 +168,7 @@ export function RepeatThisView({
                 size={SPEAK}
                 accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
               />
-            </View>
+            </SpeakMic>
             <Text style={[type.label, { color: bt.text }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
           </View>
         )}

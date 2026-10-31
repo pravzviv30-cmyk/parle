@@ -22,22 +22,31 @@
  * It renders in place rather than on a route, which is the pattern ConvoScreen
  * already uses for its recap: a drill is a state the end card is in, not a
  * different place the learner has gone to.
+ *
+ * 2026-10-31 drill B v2 (UI-016; drill-b.md "Sound"): it stands in the one
+ * drill frame on the speak family's peach stage. The close (named "Finish
+ * here") and the progress dots make the header; the stage holds the sound's
+ * name, the word with its IPA and gloss, and the pair it is not to be confused
+ * with; Hear it again sits under the stage; Next is the lip primary at the
+ * foot, with "Finish here" under it.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { focusDrillSteps, type Drill } from '@luvani/core';
 
-import { Card, Label, PillButton, GhostButton, EarGlyph, ProgressDots } from '../components.tsx';
+import { PillButton, GhostButton, EarGlyph, ProgressDots } from '../components.tsx';
+import { ScreenHeader } from '../layout.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { HAIRLINE, radius, space, type } from '../theme.ts';
+import { HIT, frenchText, space, type } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
+import { DrillFrame, DrillPrompt } from './DrillFrame.tsx';
+import { drillStage } from './drillStage.ts';
 
 export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () => void }) {
   const t = useB();
   const st = useThemedStyles(makeSt);
-  const insets = useSafeAreaInsets();
+  const stage = drillStage('sound-drill', t.mode);
   const steps = focusDrillSteps(drill);
   const [index, setIndex] = useState(0);
   const step = steps[index];
@@ -59,95 +68,88 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
     setIndex((i) => i + 1);
   }, [index, steps.length, onDone]);
 
+  const last = step === undefined || index + 1 === steps.length;
+  const header = (
+    <ScreenHeader
+      title={drill.title}
+      leave={{ onPress: onDone, label: 'Finish here', close: true }}
+      centre={step ? <ProgressDots total={steps.length} index={index} ground="paper" /> : null}
+    />
+  );
+
   // Nothing to play. The card should not have offered this, and if it somehow
   // did, going back is better than an empty screen.
   if (!step) {
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
-        <Card>
-          <Label color={t.muted}>Nothing to practise</Label>
-          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>
-            This sound has no drill written for it yet.
-          </Text>
-        </Card>
-        <View style={{ marginTop: space(4) }}>
-          <PillButton label="Back" onPress={onDone} />
-        </View>
-      </View>
+      <DrillFrame
+        stage={stage}
+        header={header}
+        eyebrow="Nothing to practise"
+        prompt="This sound has no drill written for it yet."
+        primary={<PillButton label="Back" onPress={onDone} lip />}
+      />
     );
   }
 
-  const last = index + 1 === steps.length;
-
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(4), paddingBottom: insets.bottom + space(6) }]}>
-      <View style={st.head}>
-        <Label color={t.text}>{drill.title}</Label>
-        <ProgressDots total={steps.length} index={index} />
-      </View>
-
-      <View style={st.stage}>
-        <Text style={[type.frenchLg, { color: t.text, textAlign: 'center' }]}>{step.word}</Text>
-        <Text style={[type.notation, { color: t.muted, marginTop: space(1.5) }]}>/{step.ipa}/</Text>
-        <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{step.gloss}</Text>
-
-        {step.contrast && (
-          <View style={st.contrast}>
-            <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Not to be confused with</Text>
-            <View style={st.contrastRow}>
-              <Text style={[type.french, { color: t.muted }]}>{step.contrast.word}</Text>
-              <Text style={[type.small, { color: t.muted }]}>{step.contrast.gloss}</Text>
-            </View>
+    <DrillFrame
+      stage={stage}
+      header={header}
+      eyebrow={drill.title}
+      prompt={<View style={st.word}>
+        <DrillPrompt center><Text {...frenchText} style={type.frenchLg}>{step.word}</Text></DrillPrompt>
+        <Text style={[type.notation, { color: t.muted }]}>/{step.ipa}/</Text>
+        <Text style={[type.body, { color: t.muted }]}>{step.gloss}</Text>
+      </View>}
+      stageExtra={step.contrast ? (
+        <View style={st.contrast}>
+          <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Not to be confused with</Text>
+          <View style={st.contrastRow}>
+            <Text {...frenchText} style={[type.french, { color: t.text }]}>{step.contrast.word}</Text>
+            <Text style={[type.small, { color: t.muted }]}>{step.contrast.gloss}</Text>
           </View>
-        )}
-
-        <Pressable
-          onPress={() => tutorVoice.speak(step.word)}
-          accessibilityRole="button"
-          accessibilityLabel="Hear it again"
-          style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
-        >
-          <EarGlyph size={15} color={t.muted} />
-          <Text style={[type.small, { color: t.muted }]}>Hear it again</Text>
-        </Pressable>
-      </View>
-
-      <View style={{ gap: space(2) }}>
-        <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>
-          Say it out loud if you can. Nothing is listening.
-        </Text>
-        <PillButton label={last ? 'Done' : 'Next'} onPress={next} />
-        {!last && <GhostButton label="Finish here" onPress={onDone} />}
-      </View>
-    </View>
+        </View>
+      ) : undefined}
+      primary={
+        <View style={{ gap: space(2) }}>
+          <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>
+            Say it out loud if you can. Nothing is listening.
+          </Text>
+          <PillButton label={last ? 'Done' : 'Next'} onPress={next} lip />
+          {!last && <GhostButton label="Finish here" onPress={onDone} />}
+        </View>
+      }
+    >
+      <Pressable
+        onPress={() => tutorVoice.speak(step.word)}
+        accessibilityRole="button"
+        accessibilityLabel="Hear it again"
+        style={({ pressed }) => [st.hear, pressed && { opacity: 0.7 }]}
+      >
+        <EarGlyph size={16} color={t.text} />
+        <Text style={[type.label, { color: t.text }]}>Hear it again</Text>
+      </Pressable>
+    </DrillFrame>
   );
 }
 
 function makeSt(t: B) {
   return StyleSheet.create({
-  root: { flex: 1, backgroundColor: t.ground, paddingHorizontal: space(5), gap: space(4) },
-  head: { gap: space(3) },
-  stage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(0) },
-  contrast: {
-    marginTop: space(5),
-    alignItems: 'center',
-    gap: space(1),
-    borderTopWidth: HAIRLINE,
-    borderTopColor: t.line,
-    paddingTop: space(4),
-    alignSelf: 'stretch',
-  },
-  contrastRow: { alignItems: 'center', gap: space(0.5) },
-  hear: {
-    marginTop: space(6),
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(1.5),
-    paddingVertical: space(2),
-    paddingHorizontal: space(3.5),
-    borderRadius: radius.pill,
-    borderWidth: HAIRLINE,
-    borderColor: t.field,
-  },
-});
+    word: { alignItems: 'center', gap: space(1), paddingVertical: space(2) },
+    contrast: { alignItems: 'center', gap: space(1), paddingTop: space(2) },
+    contrastRow: { alignItems: 'center', gap: space(0.5) },
+    // The board's chip: the card on a 3pt line lip.
+    hear: {
+      alignSelf: 'center',
+      minHeight: HIT,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space(1.5),
+      paddingHorizontal: space(4),
+      borderRadius: HIT / 2,
+      backgroundColor: t.card,
+      borderBottomWidth: 3,
+      borderBottomColor: t.line,
+    },
+  });
 }

@@ -1133,8 +1133,8 @@ const ADOPTERS = [
  * The only files that may still measure the safe area themselves.
  *
  * `layout.tsx` owns it. `ConvoScreen` keeps its own scene layout this phase and
- * is not adopted. `RecapScreen` and the focus drill player are pushed screens
- * the design system has not reached yet. `SetNewPasswordScreen` is the one auth
+ * is not adopted. `RecapScreen` is a pushed screen
+ * the design system has not reached yet (the focus drill player joined the drill frame in drill B v2). `SetNewPasswordScreen` is the one auth
  * screen Pass 3 did not reach: it is the password-recovery landing, not a
  * first-run surface, so it still frames itself. `friends` and the leaderboard
  * are the same. The first-run auth and onboarding screens dropped off this list
@@ -1149,7 +1149,6 @@ const SAFE_AREA_ALLOW = [
   'live/C2LiveRoom.tsx', // The shared C2 live frame owns keyboard and safe-area insets for every live session.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
-  'drill/FocusDrillPlayer.tsx',
   'auth/SetNewPasswordScreen.tsx',
   'friends/AddFriendsScreen.tsx',
   // 2026-10-20 UI-008, artboard B-Profile: the tab bar drawn under Profile, outside the tab navigator, pays the bottom inset as the navigator's bar does.

@@ -116,6 +116,7 @@ describe('F921: control borders', () => {
     const DECORATIVE = new Map<string, string>([
       ['components.tsx#stationDotHere', 'a cut-out ring in the ground colour around the here dot'],
       ['drill/AnswerSheet.tsx#calm', 'the calm feedback panel around the answer words'],
+      ['soundcheck/SoundCheckScreen.tsx#sheet', 'the sound check result panel, the same calm edge as the answer sheet; Done is the control'],
       ['settings/ProfileParts.tsx#statRuled', 'the rules between the profile stats'],
       ['drill/kinds/styles.ts#answerBox', 'the sentence well, a plain View; its word tiles are the controls'],
       ['drill/kinds/styles.ts#slot', 'the dashed gap a placed word leaves, not pressable'],

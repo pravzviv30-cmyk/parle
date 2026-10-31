@@ -1,13 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import { getMission } from '@luvani/core';
 
-import { IconAction, Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
+import { IconAction, Card, EarGlyph, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
 import { AcousticCard } from '../myfrench/AcousticCard.tsx';
 import { acousticFor, type Acoustic } from '../myfrench/acoustic.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { HIT, space, type } from '../theme.ts';
+import { HIT, bType, frenchText, space, type } from '../theme.ts';
+import { DrillFrame, DrillPrompt, useFootLayout } from '../drill/DrillFrame.tsx';
+import { drillStage } from '../drill/drillStage.ts';
+import { SpeakMic } from '../drill/SpeakMic.tsx';
+import { Enter } from '../motion/layout.tsx';
+import { DUR } from '../motion/tokens.ts';
+import { useRecorderLevel } from '../speech/useRecorderLevel.ts';
 import { scoreRecordedAttempt } from '../speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from '../speech/discardRecording.ts';
 import { recorderUri } from '../daily/recorderUri.ts';
@@ -26,6 +32,9 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 const CAN_RECORD =
   Platform.OS !== 'web' ||
   (typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
+
+/** The usual preset, metered for the level ring; the take itself is unchanged. */
+const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
 
 export function SoundCheckScreen({
   userId,
@@ -46,7 +55,8 @@ export function SoundCheckScreen({
 }) {
   const t = useB();
   const st = useThemedStyles(makeSt);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // Metered, so the one mic's ring follows the learner's real voice.
+  const recorder = useAudioRecorder(METERED_TAKE);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const cleanupRef = useRef<Promise<void> | null>(null);
   const stopping = useRef<Promise<void> | null>(null);
@@ -85,6 +95,7 @@ export function SoundCheckScreen({
   const shownReference = ownerMatches ? reference : null;
   const shownAcoustic = ownerMatches ? acoustic : null;
   const shownResult = ownerMatches ? result : null;
+  const voice = useRecorderLevel(recorder, shownPhase === 'recording');
 
   useEffect(() => {
     let cancelled = false;
@@ -216,102 +227,140 @@ export function SoundCheckScreen({
   // one door. Everywhere else the chevron is the way out, so the "Not now" pill
   // that used to sit at the bottom is gone.
   const noCheck = !mission || (shownPhase === 'ready' && shownReference === null);
+  // The one Done, on the terminal cards and on the result sheet.
+  const done = <PillButton label="Done" onPress={onDone} lip />;
+
+  if (noCheck) {
+    return (
+      <ScrollScreen footer={done}>
+        {missionId === null ? (
+          <Card>
+            <Text style={[type.title, { color: t.text }]}>Choose a situation first.</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>
+              A sound check uses the known lines from one situation, so it needs to know which one.
+            </Text>
+            {onChooseSituation !== undefined && (
+              <View style={{ marginTop: space(4) }}>
+                <IconAction layout="inline" icon="map" label="Choose a situation" onPress={onChooseSituation} />
+              </View>
+            )}
+          </Card>
+        ) : (
+          <Card>
+            <Text style={[type.title, { color: t.text }]}>No sound check for this situation yet.</Text>
+            <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
+          </Card>
+        )}
+      </ScrollScreen>
+    );
+  }
+
+  // 2026-10-31 drill B v2 (UI-016; drill-b.md "Sound"): the check stands in the
+  // one drill frame on the speak family's peach stage. The stage holds the
+  // eyebrow, the title and the honest line about what is assessed; the area
+  // holds how the sound is made, the line card with Hear it and the one mic;
+  // the result rises as the calm sheet at the foot, with Done.
+  const resultSheet = shownPhase === 'result' && shownResult ? (
+    <ResultSheet result={shownResult} done={done} />
+  ) : null;
 
   return (
-    <ScrollScreen
-      header={!noCheck && shownPhase !== 'result' ? <ScreenHeader back={{ onPress: onDone }} /> : undefined}
-      footer={noCheck || shownPhase === 'result' ? <PillButton label="Done" onPress={onDone} /> : null}
+    <DrillFrame
+      stage={drillStage('sound-check', t.mode)}
+      header={!noCheck && shownPhase !== 'result' ? <ScreenHeader leave={{ onPress: onDone, label: 'Back', close: true }} /> : <View style={{ height: HIT, marginBottom: 18 }} />}
+      sheet={resultSheet}
+      eyebrow="Sound check"
+      prompt={<DrillPrompt header>One useful line, once.</DrillPrompt>}
+      stageExtra={<Text style={[type.body, { color: t.muted }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>}
     >
-      {noCheck && missionId === null ? (
-        <Card>
-          <Text style={[type.title, { color: t.text }]}>Choose a situation first.</Text>
-          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>
-            A sound check uses the known lines from one situation, so it needs to know which one.
+      {/* How the sound is made, above the line that uses it. It came off My
+          French in revamp A: instructions two taps from the doing are a
+          leaflet, and this is the screen where the learner does it. */}
+      {shownAcoustic !== null && shownPhase !== 'result' && <AcousticCard acoustic={shownAcoustic} />}
+
+      {shownReference ? (
+        <Card tone="journal" style={st.line}>
+          <Text {...frenchText} style={[fitDisplay(shownReference), { color: t.text, textAlign: 'center' }]}>{shownReference}</Text>
+          <Pressable
+            onPress={() => { if (ownsReadNow()) tutorVoice.speak(shownReference); }}
+            accessibilityRole="button"
+            accessibilityLabel="Hear the reference line"
+            style={({ pressed }) => [st.hear, pressed && { opacity: 0.7 }]}
+          >
+            <EarGlyph size={16} color={t.text} />
+            <Text style={[type.label, { color: t.text }]}>Hear it</Text>
+          </Pressable>
+        </Card>
+      ) : null}
+
+      {shownPhase === 'unread' ? (
+        <Card style={{ gap: space(3) }}>
+          <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{shownReference ? 'Your earlier sound checks could not be read. You can still hear and say this known line; it will not be assessed until the read succeeds.' : 'Your earlier sound checks could not be read. Try again before checking a sound.'}</Text>
+          <IconAction layout="inline" icon="refresh" label="Retry sound checks" onPress={() => { if (ownsReadNow()) setAttempt((n) => n + 1); }} />
+        </Card>
+      ) : shownPhase === 'loading' ? (
+        <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.muted }]}>Reading your sound checks…</Text>
+      ) : shownPhase === 'result' && shownResult ? null : (
+        <View style={st.micBlock}>
+          <SpeakMic live={shownPhase === 'recording'} voice={voice} size={SPEAK} ring={t.mint}>
+            <SpeakCircle
+              onPress={() => void toggle()}
+              active={shownPhase === 'recording'}
+              muted={!CAN_RECORD}
+              disabled={shownPhase === 'scoring'}
+              size={SPEAK}
+              accessibilityLabel={shownPhase === 'recording' ? 'Finish recording' : 'Start recording'}
+            />
+          </SpeakMic>
+          <Text style={[type.bodyStrong, { color: t.text, textAlign: 'center' }]}>
+            {shownPhase === 'recording' ? 'Tap when you are done' : shownPhase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
           </Text>
-          {onChooseSituation !== undefined && (
-            <View style={{ marginTop: space(4) }}>
-              <IconAction layout="inline" icon="map" label="Choose a situation" onPress={onChooseSituation} />
-            </View>
-          )}
-        </Card>
-      ) : noCheck ? (
-        <Card>
-          <Text style={[type.title, { color: t.text }]}>No sound check for this situation yet.</Text>
-          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
-        </Card>
-      ) : (
-        <>
-          <Label>Sound check</Label>
-          <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>One useful line, once.</Text>
-          <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>
-
-          {/* How the sound is made, above the line that uses it. It came off My
-              French in revamp A: instructions two taps from the doing are a
-              leaflet, and this is the screen where the learner does it. */}
-          {shownAcoustic !== null && shownPhase !== 'result' && (
-            <View style={st.acoustic}>
-              <AcousticCard acoustic={shownAcoustic} />
-            </View>
-          )}
-
-          {shownReference ? (
-            <Card tone="journal" style={{ marginTop: space(6), alignItems: 'center', paddingVertical: space(6) }}>
-              <Text style={[fitDisplay(shownReference), { color: t.text, textAlign: 'center' }]}>{shownReference}</Text>
-              <Pressable
-                onPress={() => { if (ownsReadNow()) tutorVoice.speak(shownReference); }}
-                accessibilityRole="button"
-                accessibilityLabel="Hear the reference line"
-                style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
-              >
-                <EarGlyph size={16} color={t.muted} />
-                <Text style={[type.small, { color: t.muted }]}>Hear it</Text>
-              </Pressable>
-            </Card>
-          ) : null}
-
-          {shownPhase === 'unread' ? (
-            <Card style={{ marginTop: space(5), gap: space(3) }}>
-              <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{shownReference ? 'Your earlier sound checks could not be read. You can still hear and say this known line; it will not be assessed until the read succeeds.' : 'Your earlier sound checks could not be read. Try again before checking a sound.'}</Text>
-              <IconAction layout="inline" icon="refresh" label="Retry sound checks" onPress={() => { if (ownsReadNow()) setAttempt((n) => n + 1); }} />
-            </Card>
-          ) : shownPhase === 'loading' ? (
-            <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.muted, marginTop: space(5) }]}>Reading your sound checks…</Text>
-          ) : shownPhase === 'result' && shownResult ? (
-            <Card style={{ marginTop: space(5) }}>
-              <Text style={[type.title, { color: t.text }]}>{shownResult.headline}</Text>
-              <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>{shownResult.detail}</Text>
-              {shownResult === MIC_DENIED && PHONE_SETTINGS_AVAILABLE && (
-                <View style={{ marginTop: space(3) }}>
-                  <IconAction layout="inline" icon="settings" label="Open settings" onPress={() => void openPhoneSettings()} />
-                </View>
-              )}
-            </Card>
-          ) : (
-            <View style={st.micBlock}>
-              <SpeakCircle
-                onPress={() => void toggle()}
-                active={shownPhase === 'recording'}
-                muted={!CAN_RECORD}
-                disabled={shownPhase === 'scoring'}
-                accessibilityLabel={shownPhase === 'recording' ? 'Finish recording' : 'Start recording'}
-              />
-              <Text style={[type.bodyStrong, { color: t.text, textAlign: 'center' }]}>
-                {shownPhase === 'recording' ? 'Tap when you are done' : shownPhase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
-              </Text>
-              {!CAN_RECORD && <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
-              <IconAction layout="inline" icon="tick-circle" label="I said it without assessment" disabled={shownPhase === 'scoring'} onPress={() => selfGuided()} />
-            </View>
-          )}
-        </>
+          {!CAN_RECORD && <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
+          <IconAction layout="inline" icon="tick-circle" label="I said it without assessment" disabled={shownPhase === 'scoring'} onPress={() => selfGuided()} />
+        </View>
       )}
-    </ScrollScreen>
+    </DrillFrame>
   );
 }
 
+/**
+ * The result, as the drill's calm sheet: the card under a line edge at its
+ * top, the headline and its detail, Open settings when the microphone was
+ * refused, then Done. No mark, sound or haptic: a sound check is never a pass
+ * or a fail. Short by design (a headline and one line), so it never needs
+ * the cap and scroll the answer sheet carries.
+ */
+function ResultSheet({ result, done }: { result: SoundCheckDecision; done: ReactNode }) {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
+  const foot = useFootLayout();
+  return (
+    <Enter from="down" distance={space(6)} duration={DUR.fast}>
+      <View accessibilityLiveRegion="polite" style={[st.sheet, { paddingBottom: 26 + foot.inset }]}>
+        <View style={{ gap: 8 }}>
+          <Text accessibilityRole="header" style={[bType.sheet21, { color: t.text }]}>{result.headline}</Text>
+          <Text style={[bType.meta, { color: t.text }]}>{result.detail}</Text>
+          {result === MIC_DENIED && PHONE_SETTINGS_AVAILABLE && (
+            <View style={{ marginTop: space(1) }}>
+              <IconAction layout="inline" icon="settings" label="Open settings" onPress={() => void openPhoneSettings()} />
+            </View>
+          )}
+        </View>
+        {done}
+      </View>
+    </Enter>
+  );
+}
+
+/** The one mic's size, as on the speak drills. */
+const SPEAK = 108;
+
 function makeSt(t: B) {
   return StyleSheet.create({
-  hear: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(3) },
-  micBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(3), marginTop: space(7) },
-  acoustic: { marginTop: space(6) },
+  line: { alignItems: 'center', paddingVertical: space(5), gap: space(2) },
+  // The board's Hear it chip: the stage's peach on the line card.
+  hear: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), borderRadius: HIT / 2, backgroundColor: t.peach },
+  micBlock: { alignItems: 'center', gap: space(3), marginTop: space(2) },
+  sheet: { backgroundColor: t.card, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderTopWidth: 2, borderColor: t.line, paddingTop: 20, paddingHorizontal: 18, gap: 12 },
 });
 }

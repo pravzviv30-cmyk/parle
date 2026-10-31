@@ -43,12 +43,20 @@ describe('a recorder level, heard and never made up', () => {
     const hook = flat('./useRecorderLevel.ts');
     assert.match(hook, /const now = levelOfStatus\(status\); if \(now === null\) return; level\.value = now;/, 'the ring is fed something other than a level the recorder reported');
     assert.match(hook, /if \(!heard\) \{ heard = true; setMetered\(true\); \}/);
-    for (const file of ['../DrillScreen.tsx', '../drill/SpokenAttempt.tsx', '../daily/DailyPracticeScreen.tsx']) {
+    // Drill B v2 (UI-016): the speak family draws its ring through the one mic,
+    // drill/SpeakMic.tsx, which holds the same "only once heard" gate.
+    const mic = flatSource('../drill/SpeakMic.tsx');
+    assert.match(mic, /\{live && voice\.metered && \(/, 'the one mic draws its ring before any level was heard');
+    for (const file of ['../DrillScreen.tsx', '../drill/SpokenAttempt.tsx', '../daily/DailyPracticeScreen.tsx', '../soundcheck/SoundCheckScreen.tsx']) {
       const screen = flatSource(file);
       assert.match(screen, /const METERED_TAKE = \{ \.\.\.RecordingPresets\.HIGH_QUALITY, isMeteringEnabled: true \};/, `${file} records without metering, so its ring could never move`);
       assert.match(screen, /useAudioRecorder\(METERED_TAKE\)/, `${file} records with an unmetered preset`);
       assert.match(screen, /useRecorderLevel\(recorder, /, `${file} has no level for its ring`);
-      assert.match(screen, /&& voice\.metered && /, `${file} draws its ring before any level was heard`);
+      if (file !== '../daily/DailyPracticeScreen.tsx') {
+        assert.match(screen, /<SpeakMic live=\{[^}]+\} voice=\{voice\}/, `${file} draws its ring outside the one mic`);
+      } else {
+        assert.match(screen, /&& voice\.metered && /, `${file} draws its ring before any level was heard`);
+      }
     }
   });
 });
