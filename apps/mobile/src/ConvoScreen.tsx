@@ -37,11 +37,9 @@ import type { MissionCompletion } from '@luvani/core';
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, AppState } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, AppState } from 'react-native';
 import { useIsFocused, useNavigation, usePreventRemove } from '@react-navigation/native';
 import {
-  missionStates,
-  isEarned,
   conversationXp,
   getMission,
   phraseKeyOf,
@@ -52,20 +50,9 @@ import {
   type Rung,
 } from '@luvani/core';
 import { paper, space, type, radius, HIT } from './theme.ts';
-import { IconAction,
-  Card,
-  Label,
-  OutlineButton,
-  GhostButton,
-  EarGlyph,
-  HelpGlyph,
-  fitDisplay,
-  ControlTile,
-  Press,
-  ChevronRight,
-} from './components.tsx';
+import { IconAction, Card, Press } from './components.tsx';
 import { SupportBlock } from './SessionView.tsx';
-import { ConfirmSheet, ScrollScreen } from './layout.tsx';
+import { ConfirmSheet } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
 import { SWITCH_WAIT, leaveDuringSwitch, rebuildAfterTeardown, switchWaitOver, switchAfterStop, switchToVoiceCopy, switchToVoicePlan } from './live/switchToVoice.ts';
 import { LEAVE_RECAP_WAIT_MS, leaveOnConfirm, leaveOnTimeout } from './live/leaveKeepingWork.ts';
@@ -101,13 +88,13 @@ import { useQuietVoice } from './live/useQuietVoice.ts';
 import { useTapToSend } from './live/useTapToSend.ts';
 import { paceLabel } from './live/liveRoomView.ts';
 import { missionMinutes } from './home/estimate.ts';
-import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
+import { choosingView } from './tutor/choosingView.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { tutorVoiceOf } from './tutor/tutorVoice.ts';
-import { OPEN_MIC_LABEL, sceneControls, simplerLabel, typedTurn } from './tutor/sceneControls.ts';
+import { sceneControls, simplerLabel, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
 import { MissionWin } from './tutor/MissionWin.tsx';
 import { visibleMissionTasks } from './tutor/missionTasks.ts';
@@ -115,14 +102,12 @@ import { useTaskTicks } from './tutor/useTaskTicks.ts';
 import { OrbCue } from './tutor/OrbRipple.tsx';
 import { sceneIllustration } from './art/flat/scenes.ts';
 import { recapWait } from './tutor/recapWait.ts';
-import { KeyboardGlyph, SpeakerSlowGlyph } from './glyphs.tsx';
 import { RoomWait } from './live/RoomWait.tsx';
 import { OwnLeaseClosing } from './live/OwnLeaseClosing.tsx';
 import { useB } from './main/bTheme.tsx';
 import { ReportSheet } from './live/ReportSheet.tsx';
 import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
 import { waitingNote } from './tutor/waitingView.ts';
-import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
 import { RoomLevels } from './live/RoomLevels.tsx';
 import { useThinkingLine } from './live/useThinkingLine.ts';
 
@@ -297,10 +282,9 @@ export function ConvoScreen({
   const [reportPending, setReportPending] = useState(false);
   // Set once the room has closed on a leave with a saved report (see the leave effect).
   const [leftWithReport, setLeftWithReport] = useState<{ sessionId: string | null } | null>(null);
-  const paperGround = useB().ground;
+  const room = useB();
+  const paperGround = room.ground;
   const [leaving, setLeaving] = useState(false);
-  // Which text input holds the caret, for the ink focus border. Visual only.
-  const [focusedInput, setFocusedInput] = useState<'topic' | 'reply' | null>(null);
   // The learner tapped Type instead during a voice scene. Local to the screen
   // and deliberately NOT the quiet door: this opens the box without asking the
   // session, so the microphone stays live and the scene survives.
@@ -1294,7 +1278,7 @@ export function ConvoScreen({
           onOptionPress={typing || typingOpen ? changeDraft : undefined} /> : undefined}
         notice={momentTaps > 0 ? momentAnswer(tutorName) : view.coachLine}
         tools={<>
-          {marks.showing ? <Press onPress={closeMark} haptic="none" accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`} style={st.mark}><Text style={[type.small, { color: paper.onInk }]}>{COACH_MARK_TEXT[marks.showing]}</Text></Press> : null}
+          {marks.showing ? <Press onPress={closeMark} haptic="none" accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`} style={[st.mark, { backgroundColor: room.primary }]}><Text style={[type.small, { color: room.onPrimary }]}>{COACH_MARK_TEXT[marks.showing]}</Text></Press> : null}
           {!typing && <IconAction layout="inline" icon="chat" label="Simpler" accessibilityLabel={simplerLabel(tutorName)} disabled={!listening} onPress={() => { closeMark(); live.sendSlower(); }} />}
           <IconAction layout="inline" icon="moment" label="Give me a moment" onPress={askForAMoment} />
           {!typing && <IconAction layout="inline" icon="translate" label="In English" disabled={!listening} onPress={() => { closeMark(); live.sendEnglish(); }} />}
@@ -1316,59 +1300,11 @@ export function ConvoScreen({
 }
 
 const st = StyleSheet.create({
-  orbBlock: { alignItems: 'center', paddingVertical: space(1) },
-  support: { flexGrow: 0, flexShrink: 1, maxHeight: '35%', paddingBottom: space(2) },
-  shell: { flex: 1, backgroundColor: paper.ground },
-  root: { flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center', backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
-  terminalAction: { marginTop: space(6), alignSelf: 'stretch' },
-  // The centring root shrink-wraps its children, so the card is told to take
-  // the width: a store offer sized to its longest word is not an offer.
-  outOfMinutes: { alignSelf: 'stretch' },
-  // The waiting screen centres its children, so the banner has to be told to
-  // take the width: a safety sentence shrink-wrapped to its longest word is
-  // unreadable, and this one is the whole reason the branch draws anything.
-  waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
-  header: { paddingBottom: space(3) },
-  // Nothing but the question and the circle yet: they sit in the middle of the
-  // screen, exactly as they always have.
-  chooseHeadGrow: { flex: 1 },
-  chooseScroll: { flexGrow: 1, alignItems: 'center', paddingVertical: space(5) },
-  // Once the thread opens it takes the room, and the head above it gives way
-  // rather than pushing anything off the bottom.
-  chooseHeadShrink: { flexGrow: 0, flexShrink: 1 },
-  // Plain paper since the notebook redesign: the question and the circle sit on
-  // the page, with no feature panel and no ink outline around them.
-  chooseTop: { alignItems: 'center', padding: space(4), alignSelf: 'stretch' },
-  chooseOrb: { alignItems: 'center', marginTop: space(5), marginBottom: space(5) },
-  chooseOrbTight: { alignItems: 'center', marginTop: space(2), marginBottom: space(5) },
-  // The circle is well past the touch floor already; the floor is here so it
-  // stays past it if the circle ever shrinks.
-  orbTap: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-  quietDoor: { alignItems: 'center', paddingTop: space(2) },
-  controls: { alignItems: 'center', paddingTop: space(1) },
-  typeRow: { flexDirection: 'row', alignSelf: 'stretch', gap: space(2), alignItems: 'center' },
-  typeSend: {
-    minHeight: HIT,
-    width: HIT,
-    height: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: paper.ink,
-    borderRadius: radius.pill,
-    minWidth: HIT,
-  },
-  helpRow: {
-    marginTop: space(3),
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: space(1),
-  },
   // A note, not a dialogue: no border, no shadow, nothing to answer. The touch
-  // floor is here because the whole strip is what dismisses it.
+  // floor is here because the whole strip is what dismisses it. It sits in the
+  // room's Help sheet, so it takes the room's primary pill pair (`useB()`),
+  // which keeps its edge on the dark sheet too.
   mark: {
     minHeight: HIT,
     justifyContent: 'center',
@@ -1376,21 +1312,6 @@ const st = StyleSheet.create({
     paddingHorizontal: space(4),
     paddingVertical: space(2),
     marginBottom: space(2),
-    backgroundColor: paper.ink,
     borderRadius: radius.chip,
-  },
-  // Off, and it looks it. `components.tsx` argues this at length for the shared
-  // controls: a control that is disabled and looks live is a control a learner
-  // taps twice and then stops believing. These three are turned off while the
-  // tutor holds the floor, and "Give me a moment" beside them deliberately is
-  // not, so the difference has to be visible or the row is lying.
-  helpItemOff: { opacity: 0.55 },
-  helpItem: {
-    minHeight: HIT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space(1.5),
-    paddingHorizontal: space(2.5),
   },
 });

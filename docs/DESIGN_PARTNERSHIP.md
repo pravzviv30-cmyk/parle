@@ -93,8 +93,8 @@ Working principles drawn from these (to confirm on the first screens):
 
 | Order | Screen | State |
 |---|---|---|
-| 1 | Live conversation room | Direction D accepted (UI-014); building on `claude/live-room-d` from [changes/live-room-d.md](changes/live-room-d.md); lands after the founder approves the 144 short goal labels |
-| 2 | Today | Chosen next (founder, 2026-10-30); brief and direction board next |
+| 1 | Live conversation room | Built on `claude/live-room-d` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)): gate green at 7,319, two verifier rounds to HOLDS, live replay typed and spoken, native simulator checked; the founder approved the 144 short goal labels as drafted on 2026-10-31 and the room is landing on main |
+| 2 | Today | Directions A (morning sky), B (the path is home, recommended) and C (one card) on the [Today board](https://claude.ai/artifact/8hQGYBiERChAzbtXjN82Dc); waiting for the founder's pick |
 | 3 | Drill and practice feedback | Candidate |
 | 4 | Journey | Candidate |
 

@@ -90,15 +90,13 @@ describe('a scene goal ticks in the room — F765', () => {
     assert.doesNotMatch(line, /\d|[—–·]/, 'a mid-session line carries a number or a dash');
     assert.equal(streakGuiltIn(line), undefined);
 
-    const list = stripComments(read('./MissionTaskList.tsx'));
-    // Fresh against the list's first look, decided in the render the goal turns.
-    assert.match(list, /if \(firstLook\.current === null && items\.length > 0\) firstLook\.current = achievedIds\(items\);/, 'goals already reached when the list appeared would tick again');
-    assert.match(list, /const fresh = new Set\(newlyAchieved\(firstLook\.current, items\)\);/);
-    assert.match(list, /<Enter from="none" scaleFrom=\{0\.6\} duration=\{DUR\.fast\} play=\{ticking\} style=\{st\.cover\}>/, 'a tick does not pop its disc');
-    assert.match(list, /<Enter from="none" scaleFrom=\{0\.4\} delay=\{DUR\.micro\} duration=\{DUR\.fast\} play=\{ticking\}>\s*<CheckGlyph size=\{14\} color=\{paper\.ink\} \/>/, 'the check does not land a beat after the disc, in ink on mint');
-    assert.match(list, /\{ticking \? <Glint when/, 'the row does not glint, or glints for a goal already reached');
-    assert.match(list, /AccessibilityInfo\.announceForAccessibility\(line\)/, 'a screen reader is not told which goal was reached');
-    assert.match(list, /scrollTo\(\{ y: [^}]*animated: !reduced \}\)/, 'the ticked row is not scrolled into view, or glides with movement reduced');
-    assert.doesNotMatch(list, /\bof \d|\d+ of|sound\/|haptics|celebrate\/effects/, 'the list counts goals or plays a sound or haptic in the room');
+    // UI-014, direction D: the goal stamps say a reached goal once (GoalStamps).
+    const stamps = stripComments(read('../live/StageParts.tsx'));
+    // Fresh against the stamps' first look, so goals done at first sight stay quiet.
+    assert.match(stamps, /const next = freshGoals\(look\.current, goals\);\s*look\.current = next\.firstLook;/, 'goals already reached when the stamps appeared would be said again');
+    assert.match(stamps, /const unsaid = next\.fresh\.filter\(\(id\) => !said\.current\.has\(id\)\);/, 'a goal could be said twice');
+    assert.match(stamps, /<PopIn key=\{stamp\.id\} play=\{stamp\.state === 'done' && landed\.has\(stamp\.id\)\}>/, 'a stamp lands for a goal already reached');
+    assert.match(stamps, /const line = tickAnnouncement\(labels\);\s*if \(line !== null\) AccessibilityInfo\.announceForAccessibility\(line\);/, 'a screen reader is not told which goal was reached');
+    assert.doesNotMatch(stamps, /\bof \d|\d+ of|sound\/|haptics|celebrate\/effects/, 'the stamps count goals or play a sound or haptic in the room');
   });
 });

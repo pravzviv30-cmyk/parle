@@ -22,6 +22,18 @@ of the list.
 
 ## Current landing snapshot
 
+- 30 October 2026 live room direction D (UI-014): branch `claude/live-room-d` from main e9030f7e.
+  The room is rebuilt as face to face with a notebook (portrait stage, goal stamps, notebook sheet
+  with margin fixes, cloud mic, room menu), and the old room parts it replaced are removed.
+  Two fix-verifier rounds until HOLDS. Live replay against the local stack: one typed and one
+  spoken café scene to the recap. The same typed scene on main's old room for comparison: goals
+  did not tick in either, so that is pre-existing. Native iPhone 17 Pro simulator, including
+  accessibility-large text.
+  **7,319 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
+  mobile 3900; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  On 2026-10-31 the founder approved the 144 short goal labels as drafted; they fill
+  `shortGoals.ts`, and a new test fails for any beat without one.
+  Not verified: VoiceOver on device, a physical iPhone.
 - 29 October 2026 product-review fixes, Stream E (visual and accessibility): branch
   `claude/review-e-visual` from main c1840f26. F920, F921, F927, F929, F938 and F940 to F945
   closed with F856 and F857, each with its named tests; F939 (browser text size) filed and

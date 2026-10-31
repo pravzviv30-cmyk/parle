@@ -6,8 +6,8 @@
  * scene's card is being held back for that ripple. The hold is
  * `FINAL_TICK_HOLD_MS` and only when movement is not reduced; with it reduced,
  * or with nothing ticked, the card arrives on the turn the scene completes,
- * exactly as before. A safety stop moves nothing. The rows draw their own ticks
- * (`MissionTaskList`).
+ * exactly as before. A safety stop moves nothing. The room's goal stamps draw
+ * their own ticks (`live/StageParts.tsx` `GoalStamps`).
  */
 
 import { useEffect, useRef, useState } from 'react';

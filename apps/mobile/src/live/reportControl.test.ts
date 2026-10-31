@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { REPORT_COPY } from '../settings/reportMail.ts';
+import { roomMenuRows } from './liveRoomView.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 function stripComments(source: string): string {
@@ -23,23 +24,30 @@ const src = (relative: string) => stripComments(read(relative));
 describe('the live room', () => {
   const room = src('./C2LiveRoom.tsx');
 
-  test('draws the report disc only when the owner passes report', () => {
+  test('draws the report control only when the owner passes report', () => {
+    // UI-014: the report control is the room menu's "Report this reply" row,
+    // and roomMenuRows adds it only when the room is reportable.
     assert.match(room, /const reportable = report !== undefined && reportAddress\(\) !== null;/);
-    assert.match(room, /report=\{reportable \? <Press [^>]*accessibilityLabel=\{report\.pending \? /);
+    assert.match(room, /roomMenuRows\(\{[^}]*reportable, reportPending: report\?\.pending \}\)/);
+    assert.deepEqual(roomMenuRows({ typing: false, transcriptVisible: true, reportable: false }).map((row) => row.kind), ['transcript']);
+    assert.equal(roomMenuRows({ typing: false, transcriptVisible: true, reportable: true }).at(-1)?.kind, 'report');
   });
 
   test('opens the room report sheet in the sheet layer, never with Help', () => {
     assert.match(room, /\{reportOpen && reportable && report && !helpOpen \? <View style=\{\[st\.sheetLayer/);
     assert.match(room, /<RoomReportSheet tutorName=\{tutorName\} pending=\{report\.pending\} onPending=\{report\.onPending\}/);
     assert.doesNotMatch(room, /<ReportSheet /);
-    assert.match(room, /setHelpOpen\(false\); setReportOpen\(value => !value\)/);
+    assert.match(room, /row\.kind === 'report'\) \{ setMenuOpen\(false\); setHelpOpen\(false\); setReportOpen\(value => !value\)/);
     assert.match(room, /useEffect\(\(\) => \{ if \(helpOpen\) setReportOpen\(false\); \}, \[helpOpen\]\);/);
   });
 
-  test('a saved report fills the disc and says so', () => {
-    assert.match(room, /accessibilityLabel=\{report\.pending \? REPORT_COPY\.pendingControl : REPORT_COPY\.control\}/);
-    assert.match(room, /accessibilityState=\{report\.pending \? \{ selected: true \}/);
-    assert.match(room, /style=\{\[st\.report, report\.pending && st\.reportPending\]\}/);
+  test('a saved report marks the menu disc and says so', () => {
+    // UI-014: a saved report puts a sun dot on the menu disc, and the disc and
+    // the row both say it in REPORT_COPY.pendingControl.
+    assert.match(room, /accessibilityLabel=\{report\?\.pending \? `Room settings\. \$\{REPORT_COPY\.pendingControl\}` : 'Room settings'\}/);
+    assert.match(room, /\{report\?\.pending \? <View \{\.\.\.decorative\} style=\{st\.reportPending\} \/> : null\}/);
+    assert.equal(roomMenuRows({ typing: false, transcriptVisible: true, reportable: true, reportPending: true }).at(-1)?.label, REPORT_COPY.pendingControl);
+    assert.equal(roomMenuRows({ typing: false, transcriptVisible: true, reportable: true, reportPending: false }).at(-1)?.label, REPORT_COPY.control);
   });
 
   test('the room never opens Mail', () => {
@@ -47,7 +55,8 @@ describe('the live room', () => {
   });
 
   test('the disc meets the 44pt floor', () => {
-    assert.match(room, /report: \{ width: 44, height: 44/);
+    assert.match(room, /menu: \{ width: 44, height: 44/);
+    assert.match(src('./DockParts.tsx'), /row: \{ minHeight: 56/);
   });
 });
 

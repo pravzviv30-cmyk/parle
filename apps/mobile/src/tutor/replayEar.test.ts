@@ -135,7 +135,8 @@ describe('the ear on the tutor line — F372', () => {
     const rooms = convo.match(/<C2LiveRoom[^>]*tutorName=\{tutorName\}/g) ?? [];
     assert.equal(rooms.length, 2, 'both rooms must pass the learner’s chosen tutor into the shared thread');
     const room = stripComments(read('../live/C2LiveRoom.tsx'));
-    assert.match(room, /<Transcript[\s\S]{0,120}tutorName=\{tutorName\}/);
+    // UI-014: the room's thread is the notebook sheet.
+    assert.match(room, /<NotebookSheet[\s\S]{0,160}tutorName=\{tutorName\}/);
     assert.match(room, /tutorSpeaking=\{tutorSpeaking\}/, 'the thread must light its ear from real tutor speech');
     assert.ok(
       !/tutorName="/.test(convo),

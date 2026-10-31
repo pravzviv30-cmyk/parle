@@ -29,6 +29,7 @@ import { freshPreAccountDraft, type PreAccountOnboardingDraft } from '../onboard
 import { HIT, paper, radius, space, type } from '../theme.ts';
 import { HowItsGoingPreview, YourFrenchPreview } from './YourFrenchPreview.tsx';
 import { preferredMode, type MainMode } from '../main/appearanceModel.ts';
+import { ModeScope, useB } from '../main/bTheme.tsx';
 import { YOUR_FRENCH_STATES, type YourFrenchState } from '../journey/yourFrenchFixtures.ts';
 import { PROGRESS_STATES, type ProgressState } from '../journey/progressFixtures.ts';
 
@@ -172,7 +173,7 @@ export function OnboardingPreview() {
             progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
-          {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} />}
+          {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <ModeScope mode={yourFrenchMode}><LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} /></ModeScope>}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
             initialDraft={{ ...draft, page: screen as PreAccountOnboardingDraft['page'] }} onDraftChange={setDraft}
             onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
@@ -208,13 +209,23 @@ function LiveRoomPreview({ startTyping, tapToSend: startTapToSend = false, wrapp
   const [heldTurn, setHeldTurn] = useState<HeldTurnState | null>(startTapToSend ? 'open' : null);
   const [draft, setDraft] = useState('');
   const [turns, setTurns] = useState<TurnLine[]>([
-    { id: 't1', who: 'tutor', fr: 'Bonjour ! Vous avez réservé une table ?', frWritten: null, en: 'Hello! Have you booked a table?' },
-    { id: 'u1', who: 'learner', fr: 'Une table pour deux, s’il vous plaît.', frWritten: null, en: null },
-    { id: 't2', who: 'tutor', fr: 'Bien sûr. Une table pour deux. Vous préférez à l’intérieur ou sur la terrasse ?', frWritten: null, en: 'Of course. A table for two. Would you prefer inside or on the terrace?' },
+    { id: 'n1', who: 'narration', fr: 'It is early and the café is nearly empty.', frWritten: null, en: 'It is early and the café is nearly empty.' },
+    { id: 't1', who: 'tutor', fr: 'Bonjour ! Qu’est-ce que je vous sers ?', frWritten: null, en: 'Hello! What can I get you?' },
+    { id: 'u1', who: 'learner', fr: 'Je veux un café.', frWritten: null, en: null, recasts: [{ quote: 'Je veux un café.', kind: 'grammar-slip', better: 'Je voudrais un café.', betterEn: 'I would like a coffee.', why: 'Softer and more polite.' }] },
+    { id: 't2', who: 'tutor', fr: 'Très bien. Sur place ou à emporter ?', frWritten: null, en: 'Of course. For here or to go?' },
   ]);
+  const [reportPending, setReportPending] = useState(false);
+  const goals = [
+    { id: 'g1', goalEn: 'Say hello and order a coffee', goalShortEn: 'Order a coffee', achieved: true },
+    { id: 'g2', goalEn: 'Say whether it is for here or to go', goalShortEn: 'Here or to go', achieved: false },
+    { id: 'g3', goalEn: 'Pay for your coffee', goalShortEn: 'Pay', achieved: false },
+  ];
   const sequence = useRef(3);
-  const addTutor = () => setTurns(held => [...held, { id: `t${sequence.current++}`, who: 'tutor', fr: 'Très bien ! Vous voulez la carte ? Prenez votre temps, puis dites-moi ce que vous souhaitez commander.', frWritten: null, en: 'Very good! Would you like the menu? Take your time, then tell me what you would like to order.' }]);
-  return <C2LiveRoom tutorName="Émilie" description="At the restaurant, synthetic preview" state={typing ? 'ready' : micOpen ? 'listening' : 'ready'}
+  const addTutor = () => setTurns(held => [...held, { id: `t${sequence.current++}`, who: 'tutor', fr: 'Parfait. Ça fait deux euros, s’il vous plaît.', frWritten: null, en: 'Perfect. That is two euros, please.' }]);
+  return <C2LiveRoom tutorName="Émilie" voice="emilie" title="The first coffee" pace="About 3 min" goals={goals}
+    report={{ pending: reportPending, onPending: setReportPending }} onReplayTutor={() => {}}
+    support={<PreviewSupport />}
+    description="At the café, synthetic preview" state={typing ? 'ready' : micOpen ? 'listening' : 'ready'}
     caption={typing ? 'Ready for your message' : micOpen ? 'Your turn. Take your time.' : 'Microphone paused'}
     turns={turns} tutorSpeaking={false} typing={typing} micOpen={micOpen} transcriptVisible={transcript} onTranscriptVisibility={setTranscript} quietVoice={quietVoice} onQuietVoice={onQuietVoice}
     tapToSend={tapToSend} onTapToSend={setTapToSend} heldTurn={heldTurn} onSendTurn={() => setHeldTurn('sent')} wrappingUp={wrappingUp}
@@ -226,6 +237,12 @@ function LiveRoomPreview({ startTyping, tapToSend: startTapToSend = false, wrapp
       setTurns(held => [...held, { id: `u${sequence.current++}`, who: 'learner', fr: text, frWritten: null, en: null }]);
       return true;
     }} top={controls ? <Press accessibilityRole="button" accessibilityLabel="Add a synthetic tutor reply" onPress={addTutor} style={st.badge}><Text style={[type.small, st.ink]}>Add a tutor reply</Text></Press> : undefined} />;
+}
+
+/** The preview's Help content, in the sheet's own themed ink. */
+function PreviewSupport() {
+  const t = useB();
+  return <Text style={[type.small, { color: t.text }]}>Start with Je voudrais, then name what you want.</Text>;
 }
 
 const st = StyleSheet.create({

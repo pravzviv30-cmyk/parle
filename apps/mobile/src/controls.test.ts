@@ -125,7 +125,6 @@ describe('F921: control borders', () => {
       ['tabs/HomeTab.tsx#fix', 'the mint edge of the one-fix card, a plain View'],
       ['home/RoutePath.tsx#inline:RouteNode', 'a route dot, its border the same sun as its fill'],
       ['wall/WallPlansPage.tsx#inline:TrialTimeline', 'a timeline dot, its border the same sun as its fill'],
-      ['live/C2LiveRoom.tsx#reportPending', 'a filled report disc, its border the same as its fill'],
       ['onboarding/BOnboardingParts.tsx#inline:BStageCard', 'ordinal stage dots under visible stage names; the current stage is a brand fill that passes'],
       ['onboarding/motion/C2Scene.tsx#inline:DayOneBadge', 'the day-one badge inside the scene art'],
       ['onboarding/motion/OnboardingScenes.tsx#inline:GlowAction', 'the glow behind an onboarding action, decorative'],
@@ -134,8 +133,8 @@ describe('F921: control borders', () => {
     // (a token in `b`). Every colour in its border is then measured against
     // that ground in both modes, pale or not, instead of being skipped.
     const ON_GROUND = new Map<string, string>([
-      ['live/LiveParts.tsx#goalRingNow', 'violetDeep'],
-      ['live/LiveParts.tsx#goalRingLater', 'violetDeep'],
+      // UI-014: the to-do goal stamp is a ring on the room's blue.
+      ['live/StageParts.tsx#todo', 'brand'],
     ]);
     const modeValue = (space: string, name: string, mode: (typeof MODES)[number]): string | null => {
       const table: Record<string, unknown> = space === 'c' ? boldRhythm : space === 'paper' ? paper : space === 'colors' ? mainApp[mode] : b[mode];

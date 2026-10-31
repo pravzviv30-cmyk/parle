@@ -1,39 +1,43 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 import { Press } from '../components.tsx';
 import { bType, decorative } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
-import { Transcript } from '../tutor/Transcript.tsx';
 import { enterSubmits, keyPressFrom } from '../tutor/enterSubmit.ts';
 import { BMic } from '../today/TodayParts.tsx';
 import type { TurnLine } from './turns.ts';
 import { canResumeSpeaking, liveRoomControlsVisible } from './c2TranscriptPolicy.ts';
 import { RoomReportSheet } from './ReportSheet.tsx';
 import { reportAddress, REPORT_COPY } from '../settings/reportMail.ts';
-import { AskedCard, BulbGlyph, CloseGlyph, FlagGlyph, GoalsStrip, HelpLadder, HelpSheet, KeyboardMark, LiveOrb, LiveTopBar, MicControl, SheetPrimary, SheetSecondary, SideControl, TutorBubble, YouBubble } from './LiveParts.tsx';
+import { AskedCard, BulbGlyph, CloseGlyph, HelpLadder, HelpSheet, KeyboardMark, LiveTopBar, SheetPrimary, SheetSecondary, SideControl } from './LiveParts.tsx';
+import { GoalStamps, PortraitStage } from './StageParts.tsx';
+import { NotebookSheet } from './NotebookParts.tsx';
+import { CloudMic, CLOUD, RoomMenu } from './DockParts.tsx';
+import { Toast } from '../art/mascots/Toast.tsx';
+import { Rise } from '../motion/MascotMotion.tsx';
 import type { HeldTurnState, TutorVoiceKey } from '@luvani/core';
-import { HELP_COPY, askedLabel, quietVoiceControl, roomNote, sendButton, tapToSendControl, goalStrip, helpLadder, ladderSpoken, liveBubbles, lastTutorLine, moreHelpOffered, type SupportKind } from './liveRoomView.ts';
+import { HELP_COPY, CHEER_MS, portraitFit, askedLabel, cloudExpression, freshGoals, quietVoiceControl, roomMenuRows, roomNote, sendButton, tapToSendControl, helpLadder, ladderSpoken, lastTutorLine, moreHelpOffered, type RoomMenuRow, type SupportKind } from './liveRoomView.ts';
 
 /**
  * Presentation only. Every action is supplied by the existing session owner.
  *
- * 2026-10-21 UI-008, artboards B-Live and B-LiveHelp: the room on its blue
- * ground in both themes. The top bar (leave, the scene, its pace), the goals
- * strip, the tutor's orb with the state in words, the tutor's last line and
- * the learner's words, then Type, the mic and Help. Help opens the cream sheet
- * (the M3 ground in dark): what the tutor asked, the ladder Hint, Choices,
- * Line given over the live rung, the rung's own content, "More help: show the
- * line", "Say your choice" and the footnote. Every rule is in liveRoomView.ts.
+ * 2026-10-30 UI-014, direction D: face to face with a notebook. On the room's
+ * blue ground, the top bar, the goal stamps and the tutor's portrait with live
+ * level rings (StageParts); under them the notebook sheet (NotebookParts) with
+ * the dock of Type, the cloud mic and Help (DockParts). The room's state is
+ * spoken from a live region that is not drawn, and every rule is in
+ * liveRoomView.ts and notebookView.ts.
  *
- * Closed beta: when the owner passes `report`, a quiet flag disc sits after
- * the pace pill and opens "Report this reply" in the same sheet layer as Help.
- * The room never opens Mail, because leaving the app drops the room: the
- * sheet saves the report (`report.pending`, owned by the screen) and the end
- * card opens the mail sheet by itself. A saved report fills the disc.
- * The owner passes it only for the live room itself, never for the waiting,
- * error or safety surfaces.
+ * The room menu holds the transcript, Quiet voice and Tap to send switches
+ * and, in the closed beta, "Report this reply", which opens the room report
+ * sheet in the same layer as Help. The room never opens Mail, because leaving
+ * the app drops the room: the sheet saves the report (`report.pending`, owned
+ * by the screen) and the end card opens the mail sheet by itself. A saved
+ * report puts a sun dot on the menu disc. The owner passes `report` only for
+ * the live room itself, never for the waiting, error or safety surfaces.
  */
 export function C2LiveRoom({ tutorName, voice, description, state, caption, turns, tutorSpeaking, partialTranscript,
   typing, startedWithSpeech = true, ready = true, modePending = false, active = true, embedded = false,
@@ -58,7 +62,7 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
   /** "About N min", the scene's own pace (`paceLabel`), or null. */
   pace?: string | null;
   /** The scene's goals, from `visibleMissionTasks`. */
-  goals?: readonly { id: string; goalEn: string; achieved: boolean }[];
+  goals?: readonly { id: string; goalEn: string; achieved: boolean; goalShortEn?: string }[];
   /** The live rung's content kind, for the help ladder. */
   helpKind?: SupportKind;
   /** Steps the rung on: the session's own help request. */
@@ -114,8 +118,9 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
   const [reportOpen, setReportOpen] = useState(false);
   const reportable = report !== undefined && reportAddress() !== null;
   useEffect(() => { if (helpOpen) setReportOpen(false); }, [helpOpen]);
-  const chips = goalStrip(goals);
-  const bubbles = liveBubbles(turns, partialTranscript);
+  // The room menu shares the sheet layer too: Help closes it, and it closes Help.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => { if (helpOpen) setMenuOpen(false); }, [helpOpen]);
   const asked = lastTutorLine(turns);
   const ladder = helpLadder(helpKind);
   const helpAvailable = Boolean(support || tools || moreHelp);
@@ -124,91 +129,124 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
   const sendTurn = tap !== null && tap.checked && onSendTurn && ready ? sendButton(heldTurn, tutorSpeaking) : null;
   const note = roomNote(typing, startedWithSpeech, tutorName, quiet !== null && quiet.checked, { wrappingUp, tapToSend: tap !== null && tap.checked, heldTurn });
   const speakDisabled = !canResumeSpeaking(startedWithSpeech, ready, modePending);
+  const menuRows = roomMenuRows({ typing, transcriptVisible, quietVoice: onQuietVoice ? quietVoice : undefined, tapToSend: onTapToSend ? tapToSend : undefined, reportable, reportPending: report?.pending });
+  // A goal reached since the room first looked makes the cloud cheer once (freshGoals).
+  const goalLook = useRef<ReadonlySet<string> | null>(null);
+  const cheered = useRef(new Set<string>());
+  const [cheer, setCheer] = useState(0);
+  const [cheering, setCheering] = useState(false);
+  const goalSignature = goals.map((goal) => `${goal.id}:${goal.achieved ? 1 : 0}`).join('|');
+  useEffect(() => {
+    if (goals.length === 0) return undefined;
+    const next = freshGoals(goalLook.current, goals);
+    goalLook.current = next.firstLook;
+    const fresh = next.fresh.filter((id) => !cheered.current.has(id));
+    if (fresh.length === 0) return undefined;
+    for (const id of fresh) cheered.current.add(id);
+    setCheer((value) => value + 1);
+    setCheering(true);
+    const done = setTimeout(() => { if (mounted.current) setCheering(false); }, CHEER_MS);
+    return () => clearTimeout(done);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goalSignature]);
+  const face = cloudExpression({ micOpen, tutorSpeaking, thinking: state === 'thinking', typing, goalJustReached: cheering, modePending });
+  const { fontScale, height } = useWindowDimensions();
+  const largeText = fontScale >= 1.35;
+  // The smaller portrait while typing, at the largest text, and on a short phone.
+  const compact = focused || keyboardOpen || typing || largeText || height < 700;
+  const [stageHeight, setStageHeight] = useState(0);
+  const fit = portraitFit(stageHeight, fontScale, compact);
   const sayChoice = () => {
     setHelpOpen(false);
     if (typing) { input.current?.focus(); return; }
     if (!micOpen && ready && !modePending) onMic();
   };
+  const menuRow = (row: RoomMenuRow) => {
+    if (row.kind === 'transcript') onTranscriptVisibility(!transcriptVisible);
+    if (row.kind === 'quietVoice' && quiet && onQuietVoice) { const next = !quiet.checked; onQuietVoice(next); if (next) onTranscriptVisibility(true); }
+    if (row.kind === 'tapToSend' && tap && onTapToSend) onTapToSend(!tap.checked);
+    if (row.kind === 'report') { setMenuOpen(false); setHelpOpen(false); setReportOpen(value => !value); }
+  };
+  const sheetBottom = Math.max(insets.bottom, 10) + 20;
   return <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
-    <View style={[st.column, { paddingTop: embedded ? 12 : insets.top + 20, paddingBottom: keyboardOpen ? 10 : Math.max(insets.bottom, 10) + 10 }]}>
+    <View style={[st.column, { paddingTop: embedded ? 12 : insets.top + 20 }]}>
       <View style={st.head} onTouchEnd={dismiss}>
         <LiveTopBar title={title ?? `${tutorName}, your tutor`} line={description} pace={pace}
-          report={reportable ? <Press haptic="none" accessibilityLabel={report.pending ? REPORT_COPY.pendingControl : REPORT_COPY.control} accessibilityState={report.pending ? { selected: true } : { expanded: reportOpen }} onPress={() => { dismiss(); setHelpOpen(false); setReportOpen(value => !value); }} style={[st.report, report.pending && st.reportPending]}><FlagGlyph size={18} color={report.pending ? t.brand : t.onBrandSoft} /></Press> : null}
+          report={<Press haptic="none" accessibilityLabel={report?.pending ? `Room settings. ${REPORT_COPY.pendingControl}` : 'Room settings'} accessibilityState={{ expanded: menuOpen }} aria-expanded={menuOpen}
+            onPress={() => { dismiss(); setHelpOpen(false); setReportOpen(false); setMenuOpen(value => !value); }} style={st.menu}>
+            <Svg {...decorative} width={20} height={6} viewBox="0 0 20 6">
+              <Circle cx={3} cy={3} r={2.2} fill={t.onBrand} /><Circle cx={10} cy={3} r={2.2} fill={t.onBrand} /><Circle cx={17} cy={3} r={2.2} fill={t.onBrand} />
+            </Svg>
+            {report?.pending ? <View {...decorative} style={st.reportPending} /> : null}
+          </Press>}
           leave={<Press haptic="none" onPress={onEnd} accessibilityLabel="End session" style={st.leave}><CloseGlyph size={18} color={t.onBrand} /></Press>} />
-        <GoalsStrip chips={chips} />
+        <GoalStamps goals={goals} />
       </View>
       {top ? <ScrollView style={st.top} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">{top}</ScrollView> : null}
-      <View style={st.linkRow}>
-      <Press haptic="none" accessibilityLabel={transcriptVisible ? 'Hide live transcript' : 'Show live transcript'}
-        accessibilityState={{ expanded: transcriptVisible }} aria-expanded={transcriptVisible} onPress={() => { dismiss(); onTranscriptVisibility(!transcriptVisible); }} style={st.transcriptToggle}>
-        <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{transcriptVisible ? 'Hide transcript' : 'Show transcript'}</Text>
-      </Press>
-      {quiet && onQuietVoice ? <Press haptic="none" accessibilityRole="switch" accessibilityLabel={quiet.label} accessibilityHint={quiet.hint}
-        accessibilityState={{ checked: quiet.checked }} aria-checked={quiet.checked}
-        onPress={() => { dismiss(); const next = !quiet.checked; onQuietVoice(next); if (next) onTranscriptVisibility(true); }} style={st.transcriptToggle}>
-        <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{quiet.label}: {quiet.checked ? 'On' : 'Off'}</Text>
-      </Press> : null}
-      {tap && onTapToSend ? <Press haptic="none" accessibilityRole="switch" accessibilityLabel={tap.label} accessibilityHint={tap.hint}
-        accessibilityState={{ checked: tap.checked }} aria-checked={tap.checked}
-        onPress={() => { dismiss(); onTapToSend(!tap.checked); }} style={st.transcriptToggle}>
-        <Text style={[bType.semi13, { color: t.onBrandSoft }]}>{tap.label}: {tap.checked ? 'On' : 'Off'}</Text>
-      </Press> : null}
+      {/* The stage takes what is left and the portrait yields to fit it (portraitFit), so it
+          never draws over the goal stamps, the owner's top slot or the sheet. */}
+      <View style={st.stage} onTouchEnd={dismiss} onLayout={(event) => setStageHeight(event.nativeEvent.layout.height)}>
+        {fit !== 'none' ? <PortraitStage state={state} voice={voice} name={tutorName} active={active} compact={fit === 'compact'} /> : null}
+        {/* The state the orb used to say in words: spoken, not drawn. */}
+        <Text accessibilityLiveRegion="polite" style={st.spoken}>{caption}</Text>
       </View>
-      {/* Keep the thread mounted while hidden so its history and scroll survive. */}
-      <View style={[st.thread, st.threadCard, !transcriptVisible && st.hidden]} accessibilityElementsHidden={!transcriptVisible} aria-hidden={!transcriptVisible} importantForAccessibility={transcriptVisible ? 'auto' : 'no-hide-descendants'}>
-        <Transcript turns={turns} tutorName={tutorName} tutorSpeaking={tutorSpeaking} announceReply={typing}
-          onReplayTutor={onReplayTutor} partialTranscript={partialTranscript} focusRevision={focusRevision} focusActive={focused || keyboardOpen} onDismissKeyboard={dismiss} />
-      </View>
-      {!transcriptVisible && <View style={st.thread} onTouchEnd={dismiss}>
-        <LiveOrb state={state} voice={voice} active={active} caption={caption} size={focused || keyboardOpen || typing ? 'small' : 'full'} />
-        <View style={st.bubbles}>
-          {bubbles.tutor ? <TutorBubble name={tutorName} fr={bubbles.tutor.fr} en={bubbles.tutor.en} onHear={onReplayTutor} /> : null}
-          {bubbles.you ? <YouBubble text={bubbles.you} /> : null}
-        </View>
-      </View>}
-      {transcriptVisible ? <Text accessibilityLiveRegion="polite" style={[bType.bold16, st.center, { color: t.onBrand }]}>{caption}</Text> : null}
-      {notice ? <Text accessibilityLiveRegion="polite" style={[bType.meta, st.notice]}>{notice}</Text> : null}
-      <View style={st.footer}>
-        {footer ? <View style={st.footerPanel}>{footer}</View> : <>
-          {typing ? <View style={st.composer}>
-            {controlsVisible && <Text style={[bType.semi13, { color: t.muted, paddingHorizontal: 16 }]}>Your message</Text>}
-            <View style={st.composerRow}>
-              <TextInput ref={input} accessibilityLabel="Your message to your tutor" value={draft} onChangeText={onDraft}
-                placeholder="Write your reply…" placeholderTextColor={t.muted} maxLength={600} multiline scrollEnabled underlineColorAndroid="transparent"
-                autoCapitalize="sentences" returnKeyType="send" submitBehavior="blurAndSubmit" onSubmitEditing={() => void submit()}
-                onKeyPress={keyDraft} onFocus={() => { setFocused(true); setFocusRevision(value => value + 1); }}
-                onBlur={() => setFocused(false)} editable={ready && !sending} style={[bType.line16, st.input]} />
-              <Press haptic="none" accessibilityLabel={sending ? 'Sending your message' : 'Send message'}
-                disabled={!canSend || !ready || !draft.trim() || sending} accessibilityState={{ disabled: !canSend || !ready || !draft.trim() || sending, busy: sending }}
-                onPress={() => void submit()} style={[st.send, (!canSend || !ready || !draft.trim() || sending) && st.disabled]}>
-                <Text style={[bType.bold20, { color: t.onBrand }]}>↑</Text>
-              </Press>
-            </View>
-            {focused && <View {...decorative} pointerEvents="none" style={[StyleSheet.absoluteFill, st.composerFocus]} />}
-          </View> : null}
-          {sendTurn && onSendTurn && controlsVisible ? <Press haptic="light" accessibilityLabel={sendTurn.accessibilityLabel} accessibilityState={{ disabled: sendTurn.disabled }}
-            disabled={sendTurn.disabled} onPress={onSendTurn} style={[st.sendTurn, sendTurn.disabled && st.disabled]}>
-            <Text style={[bType.bold17, { color: t.onMint }]}>{sendTurn.label}</Text>
-          </Press> : null}
-          {controlsVisible && <View style={st.controlRow}>
-            {typing
-              ? <SideControl label="Speak" accessibilityLabel="Speak instead" icon={<BMic size={24} color={t.onBrand} />}
-                  disabled={speakDisabled} onPress={() => onModeChange(false)} />
-              : <SideControl label="Type" accessibilityLabel="Type instead" icon={<KeyboardMark size={24} color={t.onBrand} />}
-                  disabled={!ready || modePending} onPress={() => onModeChange(true)} />}
-            {!typing && ready ? <MicControl label={micOpen ? 'Listening' : 'Paused'} accessibilityLabel={micOpen ? 'Pause microphone' : 'Open microphone'}
-              disabled={modePending} onPress={onMic} /> : <View {...decorative} style={st.micSpace} />}
-            {helpAvailable ? <SideControl label="Help" accessibilityLabel={helpOpen ? 'Close help' : 'Get help'} expanded={helpOpen}
-              icon={<BulbGlyph size={24} color={t.onBrand} />} onPress={() => setHelpOpen(value => !value)} /> : <View {...decorative} style={st.sideSpace} />}
-          </View>}
-          {note !== null && controlsVisible && <Text style={[bType.note, st.center, { color: t.onBrandSoft }]}>{note}</Text>}
-        </>}
+      <View style={[st.sheet, largeText && st.sheetLarge, { paddingBottom: keyboardOpen ? 10 : Math.max(insets.bottom, 10) + 10 }]}>
+        <NotebookSheet turns={turns} partialTranscript={partialTranscript} transcriptVisible={transcriptVisible} tutorName={tutorName} tutorSpeaking={tutorSpeaking}
+          announceReply={typing} onReplayTutor={onReplayTutor} focusRevision={focusRevision} focusActive={focused || keyboardOpen} onDismissKeyboard={dismiss}>
+          {notice ? <Text accessibilityLiveRegion="polite" style={[bType.meta, st.notice]}>{notice}</Text> : null}
+          <View style={st.footer}>
+            {footer ? <View style={st.footerPanel}>{footer}</View> : <>
+              {typing ? <View style={st.composer}>
+                {controlsVisible && <Text style={[bType.semi13, { color: t.muted, paddingHorizontal: 16 }]}>Your message</Text>}
+                <View style={st.composerRow}>
+                  <TextInput ref={input} accessibilityLabel="Your message to your tutor" value={draft} onChangeText={onDraft}
+                    placeholder="Write your reply…" placeholderTextColor={t.muted} maxLength={600} multiline scrollEnabled underlineColorAndroid="transparent"
+                    autoCapitalize="sentences" returnKeyType="send" submitBehavior="blurAndSubmit" onSubmitEditing={() => void submit()}
+                    onKeyPress={keyDraft} onFocus={() => { setFocused(true); setFocusRevision(value => value + 1); }}
+                    onBlur={() => setFocused(false)} editable={ready && !sending} style={[bType.line16, st.input]} />
+                  <Press haptic="none" accessibilityLabel={sending ? 'Sending your message' : 'Send message'}
+                    disabled={!canSend || !ready || !draft.trim() || sending} accessibilityState={{ disabled: !canSend || !ready || !draft.trim() || sending, busy: sending }}
+                    onPress={() => void submit()} style={[st.send, (!canSend || !ready || !draft.trim() || sending) && st.disabled]}>
+                    <Text style={[bType.bold20, { color: t.onBrand }]}>↑</Text>
+                  </Press>
+                </View>
+                {focused && <View {...decorative} pointerEvents="none" style={[StyleSheet.absoluteFill, st.composerFocus]} />}
+              </View> : null}
+              {note !== null && controlsVisible && <Text style={[bType.note, st.center, { color: t.muted }]}>{note}</Text>}
+              {sendTurn && onSendTurn && controlsVisible ? <Press haptic="light" accessibilityLabel={sendTurn.accessibilityLabel} accessibilityState={{ disabled: sendTurn.disabled }}
+                disabled={sendTurn.disabled} onPress={onSendTurn} style={[st.sendTurn, sendTurn.disabled && st.disabled]}>
+                <Text style={[bType.bold17, { color: t.onMint }]}>{sendTurn.label}</Text>
+              </Press> : null}
+              {controlsVisible && <View style={st.controlRow}>
+                {typing
+                  ? <SideControl label="Speak" accessibilityLabel="Speak instead" icon={<BMic size={24} color={t.text} />}
+                      disabled={speakDisabled} onPress={() => onModeChange(false)} />
+                  : <SideControl label="Type" accessibilityLabel="Type instead" icon={<KeyboardMark size={24} color={t.text} />}
+                      disabled={!ready || modePending} onPress={() => onModeChange(true)} />}
+                {!typing && ready && face !== null ? <CloudMic expression={face} label={micOpen ? 'Listening' : 'Paused'} accessibilityLabel={micOpen ? 'Pause microphone' : 'Open microphone'}
+                  cheer={cheer} disabled={modePending} onPress={onMic} /> : <View {...decorative} style={st.micSpace} />}
+                {helpAvailable ? <SideControl label="Help" accessibilityLabel={helpOpen ? 'Close help' : 'Get help'} expanded={helpOpen}
+                  icon={<BulbGlyph size={24} color={t.text} />} onPress={() => setHelpOpen(value => !value)} /> : <View {...decorative} style={st.sideSpace} />}
+              </View>}
+            </>}
+          </View>
+        </NotebookSheet>
       </View>
     </View>
-    {reportOpen && reportable && report && !helpOpen ? <View style={[st.sheetLayer, { paddingBottom: Math.max(insets.bottom, 10) + 20 }]}>
+    {/* One scrim behind whichever sheet is open, in front of the room. A tap closes
+        that sheet, with the same "Close" the shared Sheet's scrim carries. */}
+    {(menuOpen && !helpOpen && !reportOpen) || (reportOpen && reportable && report && !helpOpen) || (helpOpen && controlsVisible && helpAvailable && !footer)
+      ? <View style={st.scrim}><Pressable accessibilityRole="button" accessibilityLabel="Close" style={StyleSheet.absoluteFill}
+          onPress={() => { setHelpOpen(false); setMenuOpen(false); setReportOpen(false); }} /></View> : null}
+    {menuOpen && !helpOpen && !reportOpen ? <View style={[st.sheetLayer, { paddingBottom: sheetBottom }]}>
+      <RoomMenu rows={menuRows} onRow={menuRow} onClose={() => setMenuOpen(false)} />
+    </View> : null}
+    {reportOpen && reportable && report && !helpOpen ? <View style={[st.sheetLayer, { paddingBottom: sheetBottom }]}>
       <RoomReportSheet tutorName={tutorName} pending={report.pending} onPending={report.onPending} onClose={() => setReportOpen(false)} />
     </View> : null}
-    {helpOpen && controlsVisible && helpAvailable && !footer ? <View style={[st.sheetLayer, { paddingBottom: Math.max(insets.bottom, 10) + 20 }]}>
+    {helpOpen && controlsVisible && helpAvailable && !footer ? <View style={[st.sheetLayer, { paddingBottom: sheetBottom }]}>
+      {/* The toast peeks over the sheet's top edge, clear of its close button. Decorative. */}
+      <View {...decorative} pointerEvents="none" style={st.peek}><Rise><Toast size={54} /></Rise></View>
       <HelpSheet title={HELP_COPY.title} closeLabel={HELP_COPY.close} onClose={() => setHelpOpen(false)}>
         <ScrollView style={st.support} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 14, paddingBottom: 4 }}>
           {asked ? <AskedCard label={askedLabel(tutorName)} fr={asked.fr} en={asked.en} /> : null}
@@ -227,37 +265,40 @@ export function C2LiveRoom({ tutorName, voice, description, state, caption, turn
 function makeStyles(t: B) {
   return StyleSheet.create({
     shell: { flex: 1, minHeight: 0, backgroundColor: t.brand },
-    column: { flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 22 },
-    head: { flexShrink: 0 },
+    column: { flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center' },
+    head: { flexShrink: 0, paddingHorizontal: 16 },
     leave: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
-    // The report disc: the leave disc's size and place in the bar, but quieter, an
-    // outline on the room rather than a filled disc, so leaving stays the louder exit.
-    report: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
-    // Filled like the leave disc once a report is saved for the end card.
-    // Filled in the room's words colour, not violetDeep: violetDeep on the brand
-    // ground is 1.3:1, so the saved state could not be told from the empty one.
-    reportPending: { backgroundColor: t.onBrand, borderColor: t.onBrand },
+    // The room menu: the leave disc's size and colour, at the other end of the bar.
+    menu: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
+    // A report saved for the end card: a 10pt sun dot on the menu disc.
+    reportPending: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: t.sun },
     center: { textAlign: 'center' },
-    top: { flexGrow: 0, maxHeight: '20%', paddingTop: 8 },
-    linkRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 8 },
-    transcriptToggle: { minHeight: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', paddingHorizontal: 12 },
-    thread: { flex: 1, minHeight: 0 }, hidden: { flex: 0, height: 0, opacity: 0, overflow: 'hidden' },
-    threadCard: { backgroundColor: t.card, borderRadius: 22, paddingHorizontal: 12 },
-    bubbles: { paddingTop: 20, gap: 10 },
-    notice: { paddingVertical: 6, textAlign: 'center', color: t.onBrandSoft },
+    top: { flexGrow: 0, flexShrink: 0, maxHeight: '20%', paddingTop: 8, paddingHorizontal: 22 },
+    stage: { flex: 1, minHeight: 0, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+    // Spoken, not drawn: a 1pt clipped box in the ground's own colour, which a
+    // screen reader still reads (opacity 0 would hide it from VoiceOver).
+    spoken: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'hidden', color: t.brand },
+    // The notebook and the dock on the theme's ground; its own height up to the cap.
+    sheet: { flexShrink: 1, maxHeight: '64%', paddingTop: 22, overflow: 'hidden', backgroundColor: t.ground, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+    sheetLarge: { maxHeight: '75%' },
+    notice: { paddingVertical: 6, paddingHorizontal: 20, textAlign: 'center', color: t.muted },
     support: { flexGrow: 0, flexShrink: 1 },
+    // The theme's scrim at 0.4, as the shared Sheet draws it.
+    scrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: t.scrim, opacity: 0.4 },
+    // 54 by 60 over the top edge, 96pt from the right: the close button sits in the last 66.
+    peek: { position: 'absolute', top: -50, right: 96, width: 54, height: 60, overflow: 'hidden' },
     sheetLayer: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '80%', backgroundColor: t.ground, borderTopLeftRadius: 32, borderTopRightRadius: 32 },
-    footer: { gap: 10, paddingTop: 8 },
+    footer: { gap: 10, paddingTop: 4, paddingHorizontal: 28 },
     footerPanel: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 10 },
     composer: { backgroundColor: t.card, borderColor: t.field, borderWidth: 1.5, borderRadius: 22, paddingTop: 8, paddingBottom: 8 },
     composerFocus: { borderRadius: 22, borderColor: t.text, borderWidth: 2 },
     composerRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10, gap: 8 },
     input: { color: t.text, flex: 1, minHeight: 36, maxHeight: 104, padding: 0, paddingVertical: 4, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
     send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: t.brand },
-    // Mint like the mic beside it: Send is the end of the learner's own turn.
+    // Mint: Send is the end of the learner's own turn.
     sendTurn: { minHeight: 54, borderRadius: 27, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, alignSelf: 'center', minWidth: 160 },
     controlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    micSpace: { width: 84 }, sideSpace: { width: 72 },
+    micSpace: { width: CLOUD.slot }, sideSpace: { width: 72 },
     disabled: { opacity: 0.55 },
   });
 }

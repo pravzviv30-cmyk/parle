@@ -17,12 +17,11 @@ import { sessionSettlementCopy } from '@luvani/core';
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useIsFocused, usePreventRemove } from '@react-navigation/native';
 import type { Lesson, Rung, SessionSummary } from '@luvani/core';
-import { space, type, HIT } from './theme.ts';
-import { Card, GhostButton } from './components.tsx';
-import { ConfirmSheet, Screen } from './layout.tsx';
+import { type } from './theme.ts';
+import { ConfirmSheet } from './layout.tsx';
 import { SupportBlock } from './SessionView.tsx';
 import { C2LiveRoom } from './live/C2LiveRoom.tsx';
 import { useQuietVoice } from './live/useQuietVoice.ts';
@@ -372,16 +371,5 @@ export function LiveSessionScreen({
 function makeSt(t: B) {
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: t.ground },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
-  // Both are drawn in the frame's header slot, which pays the horizontal pad,
-  // so neither repeats it. See `aboveTheScene`.
-  listen: { minHeight: HIT, paddingTop: space(3) },
-  // The centring root shrink-wraps its children, so the card is told to take
-  // the width: a store offer sized to its longest word is not an offer.
-  banner: { paddingTop: space(2) },
-  // The waiting screen centres its children, so the banner has to be told to
-  // take the width: a safety sentence shrink-wrapped to its longest word is
-  // unreadable, and this one is the whole reason the branch draws anything.
-  waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
 });
 }

@@ -1,19 +1,20 @@
 /**
- * The live room's decisions, apart from drawing them (2026-10-21 UI-008,
- * artboards B-Live and B-LiveHelp). Pure, so every rule here has a test and
- * the room's .tsx keeps only layout.
+ * The live room's decisions, apart from drawing them. Pure, so every rule
+ * here has a test and the room's .tsx keeps only layout.
  *
- *   - the top pill: the scene's own pace, never the allowance, never a countdown;
- *   - the goals strip: done, current (the first goal not yet reached), to do;
- *   - the help ladder: Hint, Choices, Line given, in words, over the live rung;
- *   - the two bubbles: the tutor's last line and what the learner is saying.
+ *   - the pace under the title: the scene's own, never a countdown;
+ *   - the goal states behind the stamps, the cloud mic's face, the portrait
+ *     ring's colour and the room menu's rows (UI-014, direction D);
+ *   - the help ladder: Hint, Choices, Line given, in words, over the live rung.
  *
  * Presentation only: nothing here changes what the tutor does or how the rung
  * moves. It reads the rung the session already published.
  */
 
 import type { HeldTurnState } from '@luvani/core';
+import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import type { TurnLine } from './turns.ts';
+import { REPORT_COPY } from '../settings/reportMail.ts';
 
 /** "About N min": the scene's own pace (founder, 2026-10-20). No "left", no clock. */
 export function paceLabel(minutes: number | null | undefined): string | null {
@@ -122,26 +123,13 @@ export function lastTutorLine(turns: readonly TurnLine[]): TurnLine | null {
   return null;
 }
 
-/**
- * The two bubbles under the orb: the tutor's last line, and the learner's
- * words since then (the live partial first, else their last line after it).
- */
-export function liveBubbles(turns: readonly TurnLine[], partial: string | null | undefined): { tutor: TurnLine | null; you: string | null } {
-  const tutor = lastTutorLine(turns);
-  const heard = partial?.trim() ? partial.trim() : null;
-  if (heard !== null) return { tutor, you: heard };
-  const after = tutor === null ? turns : turns.slice(turns.indexOf(tutor) + 1);
-  const learner = [...after].reverse().find((turn) => turn.who === 'learner') ?? null;
-  return { tutor, you: learner?.fr ?? null };
-}
-
 export const QUIET_VOICE_COPY = {
   label: 'Quiet voice',
   hint: 'Speak softly, close to your phone',
 } as const;
 
 /**
- * The Quiet voice switch beside "Show transcript". It is about the learner's
+ * The Quiet voice switch in the room menu. It is about the learner's
  * own voice, so it shows only while they are speaking to the tutor: never in
  * Type, and not in Listen only until they switch to Speak.
  */
@@ -165,7 +153,7 @@ export const TAP_TO_SEND_COPY = {
 } as const;
 
 /**
- * The Tap to send switch beside Quiet voice. It changes how a spoken turn
+ * The Tap to send switch under Quiet voice in the room menu. It changes how a spoken turn
  * ends, so like Quiet voice it shows only while the learner is speaking.
  */
 export function tapToSendControl(typing: boolean, on: boolean): { label: string; hint: string; checked: boolean } | null {
@@ -215,4 +203,148 @@ export function roomNote(typing: boolean, startedWithSpeech: boolean, tutorName:
   if (typed !== null) return typed;
   if (live.tapToSend) return tapToSendNote(live.heldTurn ?? null);
   return quietVoice ? quietVoiceNote(tutorName) : null;
+}
+
+export interface GoalStamp {
+  id: string;
+  /** The goal's number in the scene, from 1. */
+  n: number;
+  state: GoalState;
+}
+
+/**
+ * The goal stamps under the title (UI-014). The marks are numbers; the label
+ * beside them is the current goal's short label, else its full sentence. The
+ * whole row is one accessible element, and it says the FULL goal, since the
+ * short label is for the eye.
+ */
+export function goalStamps(goals: readonly { id: string; goalEn: string; achieved: boolean; goalShortEn?: string }[]): {
+  stamps: GoalStamp[]; currentLabel: string | null; spoken: string;
+} {
+  if (goals.length === 0) return { stamps: [], currentLabel: null, spoken: '' };
+  const chips = goalStrip(goals);
+  const stamps = chips.map((chip, index) => ({ id: chip.id, n: index + 1, state: chip.state }));
+  const at = chips.findIndex((chip) => chip.state === 'current');
+  const done = chips.filter((chip) => chip.state === 'done').length;
+  const total = goals.length;
+  const noun = total === 1 ? 'goal' : 'goals';
+  if (at < 0) return { stamps, currentLabel: null, spoken: `All ${total} ${noun} done.` };
+  const current = goals[at]!;
+  const sentence = current.goalEn.trim().replace(/[.!?]+$/u, '');
+  const said = sentence.charAt(0).toLowerCase() + sentence.slice(1);
+  return { stamps, currentLabel: current.goalShortEn ?? current.goalEn, spoken: `${done} of ${total} ${noun} done. Now: ${said}.` };
+}
+
+export type CloudExpression = 'paused' | 'listening' | 'tutor' | 'thinking' | 'cheer';
+
+/**
+ * The cloud mic's face. Null while typing: the cloud is not drawn then. A goal
+ * just reached wins over everything else for its one cheer; then whoever is
+ * talking; then the open mic; else it rests. `modePending` dims the cloud but
+ * never changes its face.
+ */
+export function cloudExpression(input: { micOpen: boolean; tutorSpeaking: boolean; thinking: boolean; typing: boolean; goalJustReached: boolean; modePending?: boolean }): CloudExpression | null {
+  if (input.typing) return null;
+  if (input.goalJustReached) return 'cheer';
+  if (input.tutorSpeaking) return 'tutor';
+  if (input.thinking) return 'thinking';
+  if (input.micOpen) return 'listening';
+  return 'paused';
+}
+
+export type RingMode = 'tutor' | 'learner' | 'thinking' | 'idle';
+
+/**
+ * Who the portrait ring says is talking: sun for the tutor (and while the
+ * tutor thinks), mint for the learner's open turn. The session's state decides
+ * it. Whether the levels are measured (`inputLive`, `outputLive`) only decides
+ * whether the level rings can move, never the colour, and reduced motion is not
+ * an input at all, so the colour still says who is talking with motion off.
+ */
+export function ringMode(input: { state: OrbState; inputLive: boolean; outputLive: boolean }): RingMode {
+  switch (input.state) {
+    case 'speaking': return 'tutor';
+    case 'thinking': return 'thinking';
+    case 'listening': return 'learner';
+    default: return 'idle';
+  }
+}
+
+export interface RoomMenuRow {
+  kind: 'transcript' | 'quietVoice' | 'tapToSend' | 'report';
+  label: string;
+  hint?: string;
+  checked?: boolean;
+  role: 'switch' | 'button';
+}
+
+export const ROOM_MENU_COPY = {
+  transcript: 'Show every line',
+  report: REPORT_COPY.control,
+} as const;
+
+/**
+ * The room menu (`…`), in order: every line, Quiet voice, Tap to send, report.
+ * Quiet voice and Tap to send keep their own rules for when they show (never
+ * while typing). Report shows only when the room can take one.
+ */
+export function roomMenuRows(input: { typing: boolean; transcriptVisible: boolean; quietVoice?: boolean; tapToSend?: boolean; reportable: boolean; reportPending?: boolean }): RoomMenuRow[] {
+  const rows: RoomMenuRow[] = [{ kind: 'transcript', label: ROOM_MENU_COPY.transcript, checked: input.transcriptVisible, role: 'switch' }];
+  if (input.quietVoice !== undefined) {
+    const quiet = quietVoiceControl(input.typing, input.quietVoice);
+    if (quiet) rows.push({ kind: 'quietVoice', ...quiet, role: 'switch' });
+  }
+  if (input.tapToSend !== undefined) {
+    const tap = tapToSendControl(input.typing, input.tapToSend);
+    if (tap) rows.push({ kind: 'tapToSend', ...tap, role: 'switch' });
+  }
+  // A saved report says so, in the words the old report disc used.
+  if (input.reportable) rows.push({ kind: 'report', label: input.reportPending ? REPORT_COPY.pendingControl : ROOM_MENU_COPY.report, role: 'button' });
+  return rows;
+}
+
+/**
+ * The goals reached since the room first looked (UI-014). Goals already done at
+ * first sight are never news, so a rejoined scene does not cheer or announce
+ * its history. `firstLook` null means this is the first look: it is taken and
+ * nothing is fresh. One rule for the stamp's pop, the once-only announcement
+ * and the cloud's cheer, so they can never disagree.
+ */
+export function freshGoals(firstLook: ReadonlySet<string> | null, goals: readonly { id: string; achieved: boolean }[]): { firstLook: ReadonlySet<string>; fresh: string[] } {
+  const done = goals.filter((goal) => goal.achieved).map((goal) => goal.id);
+  if (firstLook === null) return { firstLook: new Set(done), fresh: [] };
+  return { firstLook, fresh: done.filter((id) => !firstLook.has(id)) };
+}
+
+/** How long the cloud keeps its cheering face after a goal: two hops, inside CELEBRATION_MAX_MS. */
+export const CHEER_MS = 1600;
+
+/** The goal stamp's disc at 1x, the digit's line height at 1x, and the room around the digit. */
+export const STAMP = { base: 26, digitLine: 18, pad: 8 } as const;
+
+/**
+ * A goal stamp's diameter at the learner's text size. The digit scales with
+ * Dynamic Type, so the disc grows with it rather than clipping it: never under
+ * 26, else the scaled digit's line plus its padding. The ring stays 2pt.
+ */
+export function stampSize(fontScale: number): number {
+  const scale = Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
+  return Math.max(STAMP.base, Math.ceil(STAMP.digitLine * scale) + STAMP.pad);
+}
+
+/** The portrait's two sizes, the gap to the name, the name's line at 1x, and the rings' reach past the portrait. */
+export const PORTRAIT_FIT = { full: 112, compact: 72, gap: 8, nameLine: 19, rings: 28 } as const;
+
+/**
+ * Which portrait the stage has room for. The stage takes what the goal stamps,
+ * the owner's `top` slot and the sheet leave; the portrait yields rather than
+ * draw over any of them. Full when it fits and nothing asks for compact, then
+ * compact, then none: the name and the spoken state carry the meaning.
+ */
+export function portraitFit(available: number, fontScale: number, preferCompact: boolean): 'full' | 'compact' | 'none' {
+  const name = PORTRAIT_FIT.nameLine * (Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1);
+  const need = (size: number) => size + PORTRAIT_FIT.rings + PORTRAIT_FIT.gap + name;
+  if (!preferCompact && available >= need(PORTRAIT_FIT.full)) return 'full';
+  if (available >= need(PORTRAIT_FIT.compact)) return 'compact';
+  return 'none';
 }

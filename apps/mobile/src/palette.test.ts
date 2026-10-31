@@ -21,7 +21,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b } from './palette.ts';
+import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b, mascot } from './palette.ts';
 import { contrast } from './testing/contrast.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
@@ -663,6 +663,17 @@ describe('one highlighter — notebook Phase 1', () => {
   });
 });
 
+describe('the cloud mascot reads as a control (UI-014)', () => {
+  test('its ink outline has an edge on the cream ground', () => {
+    const r = contrast(paper.ink, paper.ground);
+    assert.ok(r >= 3, `the cloud outline is ${r.toFixed(2)} on the ground, under 3`);
+  });
+  test('its white body has an edge on the dark ground', () => {
+    const r = contrast(paper.card, b.dark.ground);
+    assert.ok(r >= 3, `the cloud body is ${r.toFixed(2)} on the dark ground, under 3`);
+  });
+});
+
 describe('the recorded palette matches the code — F327, F328', () => {
   /** Every shipped token, flattened to the path the doc and the app.json use. */
   const tokens: Record<string, string> = {};
@@ -674,6 +685,8 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(colour)) tokens[`colour.${k}`] = v;
   // Direction B (DECISIONS.md UI-005): the four pastels are recorded like the rest.
   for (const [k, v] of Object.entries(pastel)) tokens[`pastel.${k}`] = v;
+  // UI-014: the mascots' own colours are recorded like the rest.
+  for (const [k, v] of Object.entries(mascot)) tokens[`mascot.${k}`] = v;
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const [k, v] of Object.entries(onOrb)) tokens[`onOrb.${k}`] = v;
@@ -857,6 +870,12 @@ describe('B tokens, light and dark — UI-008', () => {
         ['onMint on mint', t.onMint, t.mint],
         ['the selected glyph on its cell', t.tabGlyphSelected, t.tabSelected],
         ['an unselected glyph on the capsule', t.tabLabel, t.tabCapsule],
+        // The room menu's SwitchKnob (settings/SwitchKnob.tsx) on the sheet's ground:
+        // the on track, and the thumb on it. The off track is field on ground, above.
+        ['the switch knob on track on ground', t.mark, t.ground],
+        ['the switch knob thumb on its on track', t.card, t.mark],
+        // The dock's SideControl disc edge (live/LiveParts.tsx sideDisc) on the notebook ground.
+        ['the side control edge on ground', t.field, t.ground],
       ];
       for (const [name, fg, bg] of marks) {
         const r = contrast(fg, bg);
@@ -931,19 +950,19 @@ describe('the paywall reads in both modes — UI-008, 2026-10-21', () => {
   }
 });
 
-describe('the saved-report flag disc in the live room', () => {
-  // A mark that reports state clears 3 against its paper. The room's paper is
-  // `brand`; the pending disc is `onBrand` with a `brand` flag inside it.
+describe('the saved-report mark in the live room', () => {
+  // A mark that reports state clears 3 against its paper. UI-014: a saved report
+  // is a 10pt `sun` dot on the `violetDeep` menu disc, which sits on `brand`.
   for (const mode of ['light', 'dark'] as const) {
-    test(`${mode}: the filled disc reads against the room, and its flag against the disc`, () => {
+    test(`${mode}: the dot reads against its disc and against the room`, () => {
       const t = b[mode];
-      assert.ok(contrast(t.onBrand, t.brand) >= 3, `${mode}: the pending disc is ${contrast(t.onBrand, t.brand).toFixed(2)}:1 on the room`);
-      assert.ok(contrast(t.brand, t.onBrand) >= 3, `${mode}: the flag is lost inside its disc`);
+      assert.ok(contrast(t.sun, t.violetDeep) >= 3, `${mode}: the pending dot is ${contrast(t.sun, t.violetDeep).toFixed(2)}:1 on its disc`);
+      assert.ok(contrast(t.sun, t.brand) >= 3, `${mode}: the pending dot is lost on the room`);
     });
   }
   test('the room draws it from those tokens', () => {
     const room = readFileSync(fileURLToPath(new URL('./live/C2LiveRoom.tsx', import.meta.url)), 'utf8');
-    assert.match(room, /reportPending: \{ backgroundColor: t\.onBrand, borderColor: t\.onBrand \}/);
-    assert.match(room, /<FlagGlyph size=\{18\} color=\{report\.pending \? t\.brand : t\.onBrandSoft\} \/>/);
+    assert.match(room, /reportPending: \{ position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: t\.sun \}/);
+    assert.match(room, /menu: \{ width: 44, height: 44, borderRadius: 22, backgroundColor: t\.violetDeep/);
   });
 });

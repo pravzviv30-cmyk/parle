@@ -3,8 +3,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { goalStrip, helpLadder, ladderSpoken, liveBubbles, moreHelpOffered, paceLabel, askedLabel, typingNote, HELP_COPY, quietVoiceNote, roomNote, sendButton, tapToSendControl, tapToSendNote, wrapUpNote } from './liveRoomView.ts';
-import type { TurnLine } from './turns.ts';
+import { cloudExpression, goalStamps, ringMode, roomMenuRows, goalStrip, helpLadder, ladderSpoken, moreHelpOffered, paceLabel, askedLabel, typingNote, HELP_COPY, quietVoiceNote, roomNote, sendButton, tapToSendControl, tapToSendNote, wrapUpNote } from './liveRoomView.ts';
 
 describe('the pace pill', () => {
   test('says the scene pace, never a countdown or minutes left', () => {
@@ -59,25 +58,14 @@ describe('the help ladder', () => {
   });
 });
 
-describe('the bubbles', () => {
-  const turn = (id: string, who: TurnLine['who'], fr: string): TurnLine => ({ id, who, fr, frWritten: null, en: null });
-  test('the tutor’s last line and the learner’s words since', () => {
-    const turns = [turn('1', 'tutor', 'Bonjour'), turn('2', 'learner', 'Bonjour'), turn('3', 'tutor', 'Et avec ceci ?')];
-    assert.deepEqual(liveBubbles(turns, null), { tutor: turns[2], you: null });
-    assert.deepEqual(liveBubbles(turns, 'Oui, c’est quoi le'), { tutor: turns[2], you: 'Oui, c’est quoi le' });
-    assert.deepEqual(liveBubbles([...turns, turn('4', 'learner', 'Un café')], '  '), { tutor: turns[2], you: 'Un café' });
-    assert.deepEqual(liveBubbles([], null), { tutor: null, you: null });
-  });
-});
-
 describe('the live mic is green', () => {
   // 2026-10-21 UI-008, founder decision: the live mic keeps the green signal
   // rule rather than the artboard's sun, with ink on it in both themes.
-  test('the mic fills mint and draws its glyph in ink', () => {
-    const parts = readFileSync(fileURLToPath(new URL('./LiveParts.tsx', import.meta.url)), 'utf8');
-    assert.match(parts, /mic: \{[^}]*backgroundColor: t\.mint/, 'the live mic is not mint');
-    assert.doesNotMatch(parts, /mic: \{[^}]*backgroundColor: t\.sun/, 'the live mic went back to sun');
-    assert.match(parts, /<BMicHeavy color=\{t\.onMint\} \/>/, 'the mic glyph is not ink on mint');
+  // UI-014, direction D: the mic is the cloud, and its listening ring is mint.
+  test('the cloud mic listens in a mint ring, never sun', () => {
+    const dock = readFileSync(fileURLToPath(new URL('./DockParts.tsx', import.meta.url)), 'utf8');
+    assert.match(dock, /<LevelRing level=\{audio\.input\} size=\{CLOUD\.ring\} color=\{t\.mint\} \/>/, 'the live mic ring is not mint');
+    assert.doesNotMatch(dock, /LevelRing[^\n]*color=\{t\.sun\}/, 'the live mic went back to sun');
   });
 });
 
@@ -141,5 +129,83 @@ describe('the one line under the controls', () => {
     assert.equal(roomNote(false, true, tutor, true, { tapToSend: false }), quietVoiceNote(tutor));
     assert.equal(roomNote(false, true, tutor, false, {}), null);
     assert.equal(roomNote(false, true, tutor, false), null);
+  });
+});
+
+describe('direction D: the goal stamps (UI-014)', () => {
+  const goals = [
+    { id: 'a', goalEn: 'Say hello', achieved: true },
+    { id: 'b', goalEn: 'Say whether it is for here or to go', achieved: false, goalShortEn: 'Here or to go' },
+    { id: 'c', goalEn: 'Pay', achieved: false },
+  ];
+  test('numbers the stamps with goalStrip states, shows the short label and says the full goal', () => {
+    const view = goalStamps(goals);
+    assert.deepEqual(view.stamps, [{ id: 'a', n: 1, state: 'done' }, { id: 'b', n: 2, state: 'current' }, { id: 'c', n: 3, state: 'todo' }]);
+    assert.equal(view.currentLabel, 'Here or to go');
+    assert.equal(view.spoken, '1 of 3 goals done. Now: say whether it is for here or to go.');
+  });
+  test('falls back to the full goal when there is no short label', () => {
+    assert.equal(goalStamps([{ id: 'c', goalEn: 'Pay', achieved: false }]).currentLabel, 'Pay');
+    assert.equal(goalStamps([{ id: 'c', goalEn: 'Pay', achieved: false }]).spoken, '0 of 1 goal done. Now: pay.');
+  });
+  test('says plainly when every goal is done, and nothing without goals', () => {
+    const done = goalStamps(goals.map((goal) => ({ ...goal, achieved: true })));
+    assert.equal(done.currentLabel, null);
+    assert.equal(done.spoken, 'All 3 goals done.');
+    assert.deepEqual(goalStamps([]), { stamps: [], currentLabel: null, spoken: '' });
+  });
+});
+
+describe('direction D: the cloud mic face', () => {
+  const rest = { micOpen: false, tutorSpeaking: false, thinking: false, typing: false, goalJustReached: false, modePending: false };
+  test('every branch, in precedence order', () => {
+    assert.equal(cloudExpression({ ...rest, typing: true, goalJustReached: true, tutorSpeaking: true, micOpen: true }), null);
+    assert.equal(cloudExpression({ ...rest, goalJustReached: true, tutorSpeaking: true, thinking: true, micOpen: true }), 'cheer');
+    assert.equal(cloudExpression({ ...rest, tutorSpeaking: true, thinking: true, micOpen: true }), 'tutor');
+    assert.equal(cloudExpression({ ...rest, thinking: true, micOpen: true }), 'thinking');
+    assert.equal(cloudExpression({ ...rest, micOpen: true }), 'listening');
+    assert.equal(cloudExpression(rest), 'paused');
+  });
+  test('a pending mode change dims the cloud but never changes its face', () => {
+    assert.equal(cloudExpression({ ...rest, micOpen: true, modePending: true }), 'listening');
+    assert.equal(cloudExpression({ ...rest, modePending: true }), 'paused');
+  });
+});
+
+describe('direction D: the portrait ring', () => {
+  test('says who is talking from the session state', () => {
+    for (const live of [true, false]) {
+      assert.equal(ringMode({ state: 'speaking', inputLive: live, outputLive: live }), 'tutor');
+      assert.equal(ringMode({ state: 'thinking', inputLive: live, outputLive: live }), 'thinking');
+      assert.equal(ringMode({ state: 'listening', inputLive: live, outputLive: live }), 'learner');
+      for (const state of ['ready', 'idle', 'connecting', 'error'] as const) assert.equal(ringMode({ state, inputLive: live, outputLive: live }), 'idle');
+    }
+  });
+  test('does not read reduced motion, so the colour holds with motion off', () => {
+    assert.equal(ringMode.length, 1);
+    const source = readFileSync(fileURLToPath(new URL('./liveRoomView.ts', import.meta.url)), 'utf8');
+    const body = source.slice(source.indexOf('export function ringMode'), source.indexOf('export interface RoomMenuRow'));
+    assert.doesNotMatch(body, /reduced/i);
+  });
+});
+
+describe('direction D: the room menu', () => {
+  test('lists every line, Quiet voice, Tap to send and report, in order', () => {
+    const rows = roomMenuRows({ typing: false, transcriptVisible: true, quietVoice: false, tapToSend: true, reportable: true, reportPending: false });
+    assert.deepEqual(rows.map((row) => row.kind), ['transcript', 'quietVoice', 'tapToSend', 'report']);
+    assert.deepEqual(rows[0], { kind: 'transcript', label: 'Show every line', checked: true, role: 'switch' });
+    assert.equal(rows[1]!.label, 'Quiet voice');
+    assert.equal(rows[1]!.checked, false);
+    assert.equal(rows[2]!.hint, tapToSendControl(false, true)!.hint);
+    assert.equal(rows[2]!.checked, true);
+    assert.deepEqual(rows[3], { kind: 'report', label: 'Report this reply', role: 'button' });
+  });
+  test('typing hides the voice switches, and report shows only when reportable', () => {
+    const rows = roomMenuRows({ typing: true, transcriptVisible: false, quietVoice: true, tapToSend: true, reportable: false });
+    assert.deepEqual(rows.map((row) => row.kind), ['transcript']);
+    assert.equal(rows[0]!.checked, false);
+  });
+  test('a switch the owner does not offer is not listed', () => {
+    assert.deepEqual(roomMenuRows({ typing: false, transcriptVisible: true, reportable: false }).map((row) => row.kind), ['transcript']);
   });
 });

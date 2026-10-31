@@ -30,11 +30,16 @@ describe('the microphone meter', () => {
     const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
     assert.match(recording, /<RoomLevels micTrack=\{live\.audioTracks\.mic\} tutorTrack=\{live\.audioTracks\.tutor\}/);
     assert.match(recording, /<C2LiveRoom[\s\S]{0,600}state=\{state\}/);
-    // 2026-10-21 UI-008, artboard B-Live: the room draws the tutor-orb art (LiveOrb), pulsing with the same room levels.
-    assert.match(evidence('apps/mobile/src/live/C2LiveRoom.tsx'), /<LiveOrb state=\{state\}/);
-    const liveOrb = evidence('apps/mobile/src/live/LiveParts.tsx');
-    assert.match(liveOrb, /useOrbAudio\(\)/);
-    assert.match(liveOrb, /<OrbPulse level=\{input \? audio\.input : output \? audio\.output : null\}/);
+    // 2026-10-30 UI-014: the room draws the portrait stage, whose level rings read the same room levels.
+    assert.match(evidence('apps/mobile/src/live/C2LiveRoom.tsx'), /<PortraitStage state=\{state\}/);
+    const stage = evidence('apps/mobile/src/live/StageParts.tsx');
+    assert.match(stage, /useOrbAudio\(\)/);
+    assert.match(stage, /const level = audio === null \? null : mode === 'tutor' \? audio\.output : mode === 'learner' \? audio\.input : null;/);
+    assert.match(stage, /<LevelRing level=\{level\}/);
+    // The cloud mic's ring reads the mic's real level, never a fabricated meter.
+    const dock = evidence('apps/mobile/src/live/DockParts.tsx');
+    assert.match(dock, /useOrbAudio\(\)/);
+    assert.match(dock, /<LevelRing level=\{audio\.input\}/);
     const orb = evidence('apps/mobile/src/onboarding/BoldVoiceOrb.tsx');
     assert.match(orb, /useOrbAudio\(\)/);
     assert.match(orb, /<OrbPulse level=\{input \? audio\.input : output \? audio\.output : null\}/,

@@ -137,7 +137,10 @@ describe('the wiring', () => {
     const room = stripComments(read('./C2LiveRoom.tsx'));
     assert.match(room, /const tap = onTapToSend \? tapToSendControl\(typing, tapToSend\) : null;/);
     assert.match(room, /sendButton\(heldTurn, tutorSpeaking\)/);
-    assert.match(room, /accessibilityRole="switch" accessibilityLabel=\{tap\.label\} accessibilityHint=\{tap\.hint\}/);
+    // UI-014: the switch is a room menu row, built by roomMenuRows from tapToSendControl.
+    assert.match(room, /tapToSend: onTapToSend \? tapToSend : undefined/);
+    assert.match(room, /row\.kind === 'tapToSend' && tap && onTapToSend\) onTapToSend\(!tap\.checked\)/);
+    assert.match(stripComments(read('./DockParts.tsx')), /accessibilityRole="switch" accessibilityLabel=\{row\.label\} accessibilityHint=\{row\.hint\}/);
     assert.match(room, /accessibilityLabel=\{sendTurn\.accessibilityLabel\}[^>]*disabled=\{sendTurn\.disabled\} onPress=\{onSendTurn\}/);
   });
 

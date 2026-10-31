@@ -1,5 +1,5 @@
 import { transcriptTail, replyAnnouncement } from './transcriptTail.ts';
-import { authoredCorrectionReason, type CorrectionReasonId } from '@luvani/core';
+import type { CorrectionReasonId } from '@luvani/core';
 /**
  * The conversation as a thread.
  *
@@ -25,19 +25,20 @@ import type { TurnLine } from '../live/turns.ts';
 import { useReduceMotion } from '../motion.ts';
 import { BubbleIn } from '../motion/BubbleIn.tsx';
 import { replayEar } from './replayEar.ts';
-import { recastLabel } from './recastLabel.ts';
+import { recastView } from './recastLabel.ts';
 import { boldRhythm as c } from '../palette.ts';
 import { boldType } from '../theme.ts';
 import { createTranscriptScrollController, latestSentMessageId } from '../live/c2TranscriptPolicy.ts';
 
 function Recast({ kind, better, betterEn, reason, latest }: { quote: string; kind?: string; better: string; betterEn: string; reason?: CorrectionReasonId; latest: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const explanation = authoredCorrectionReason(reason);
+  const view = recastView({ kind, better, betterEn, reason }, { latest });
+  const explanation = view.reason;
   return (
     <View style={st.recast}>
-      <Label>{recastLabel(kind)}</Label>
-      {latest ? <Highlight text={better} /> : <Text {...frenchText} style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>}
-      <Text style={[type.small, { color: paper.inkSoft }]}>{betterEn}</Text>
+      <Label>{view.label}</Label>
+      {view.latest ? <Highlight text={view.better} /> : <Text {...frenchText} style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{view.better}</Text>}
+      <Text style={[type.small, { color: paper.inkSoft }]}>{view.betterEn}</Text>
       {explanation !== null && <>
         <Pressable accessibilityRole="button" accessibilityLabel="Why this form?" accessibilityState={{expanded}}
           onPress={() => setExpanded(value => !value)} style={{minHeight:HIT,minWidth:HIT,justifyContent:'center'}}>

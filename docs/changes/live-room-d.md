@@ -72,7 +72,7 @@ The room fills the screen on the brand blue in both themes. That rule is UI-008'
    - To do: a 2pt `onBrandSoft` ring with the number in `onBrandSoft` (6.2:1 on blue). The prototype's lilac ring was 2.2:1 and is not used.
    - The whole row is one accessible element saying "1 of 3 goals done. Now: say whether it is for here or to go."
    - The existing once-only announcement of a newly reached goal (`tickAnnouncement`) is kept.
-3. **Portrait stage.** It takes the space left between the stamps and the sheet (`flex: 1`, at least 168pt) and is centred in it.
+3. **Portrait stage.** It takes the space left between the stamps and the sheet (`flex: 1`) and is centred in it. It measures that space (`portraitFit`) and draws the portrait full, at 72pt, or not at all, so it never overlaps the owner slot or the sheet; at large text on a small phone with the owner slot open, it steps aside and the name and spoken state remain.
    - `TutorPortrait` at 112pt (72pt while typing or with the keyboard open) with the existing `PORTRAIT_RING` (2pt).
    - The ring is `sun` while the tutor speaks or thinks, and `mint` while the learner's turn is open.
    - Two level rings driven by the real level: output while the tutor speaks, input while listening. Use the `LevelRing` primitive as it is (`LEVEL_RING.grow` 0.22), not a timed loop and not a new token. Who is talking comes from `useOrbAudio()` `outputLive` and `inputLive`, so it still shows under reduced motion.
@@ -162,14 +162,14 @@ The scrim behind sheets is the theme `scrim` at 0.4 opacity. Add a contrast test
 
 | ID | Outcome | Owner | Depends on | Allowed files | Status |
 |---|---|---|---|---|---|
-| T0 | Branch from `main` with Stream E landed; `npm ci`; baseline web and native shots of the four live previews | orchestrator | Stream E landed | none (shots to `reviews/` or the scratchpad) | todo |
-| T1 | Mascot parts and tokens: cloud and toast as react-native-svg components with expression props; mascot colours in `palette.ts` with contrast tests | `design-system-engineer` | T0 | `apps/mobile/src/palette.ts`, `palette.test.ts`, `apps/mobile/src/art/mascots/*` (new), `DESIGN.md` Colour and Illustrations | todo |
-| T2 | Room rules: notebook lines, goal stamps with short labels, cloud expression, ring mode, room menu rows | `frontend-engineer` | T0 | `apps/mobile/src/live/liveRoomView.ts`, `liveRoomView.test.ts`, `apps/mobile/src/live/notebookView.ts` (new), `packages/core/src/missions/shortGoals.ts` (new, ships empty) and where the client builds mission tasks, `apps/mobile/src/live/c2TranscriptPolicy.ts` if needed | todo |
-| T3 | Room parts: `GoalStamps`, `PortraitStage`, `NotebookSheet`, `NotebookLine`, `MarginFix`, `CloudMic`, `RoomMenu` | `frontend-engineer` | T1, T2 | `apps/mobile/src/live/LiveParts.tsx` (or a new `live/NotebookParts.tsx`) | todo |
-| T4 | Compose D in `C2LiveRoom` with every existing prop and behaviour kept; remove the old link row, bubbles and caption text | `frontend-engineer` | T3 | `apps/mobile/src/live/C2LiveRoom.tsx`, the dev preview in `dev/OnboardingPreview.tsx` | todo |
-| T5 | Short goal labels for the 31 missions, for founder copy review | content (orchestrator drafts) | T2 | mission data in `packages/core` | todo |
-| T6 | Docs: `DESIGN.md` "Inside a conversation", the live room bullet in Composition rules, "What never moves", Dark mode; this plan's log | orchestrator | T4 | `DESIGN.md`, `docs/changes/live-room-d.md`, `docs/DESIGN_PARTNERSHIP.md` | todo |
-| T7 | Verification: tests, gate, web and native shots, live replay, fix-verifier round, founder review | orchestrator | T4, T6 | none | todo |
+| T0 | Branch from `main` with Stream E landed; `npm ci`; baseline web and native shots of the four live previews | orchestrator | Stream E landed | none (shots to `reviews/` or the scratchpad) | done |
+| T1 | Mascot parts and tokens: cloud and toast as react-native-svg components with expression props; mascot colours in `palette.ts` with contrast tests | `design-system-engineer` | T0 | `apps/mobile/src/palette.ts`, `palette.test.ts`, `apps/mobile/src/art/mascots/*` (new), `DESIGN.md` Colour and Illustrations | done |
+| T2 | Room rules: notebook lines, goal stamps with short labels, cloud expression, ring mode, room menu rows | `frontend-engineer` | T0 | `apps/mobile/src/live/liveRoomView.ts`, `liveRoomView.test.ts`, `apps/mobile/src/live/notebookView.ts` (new), `packages/core/src/missions/shortGoals.ts` (new; filled in T5) and where the client builds mission tasks, `apps/mobile/src/live/c2TranscriptPolicy.ts` if needed | done |
+| T3 | Room parts: `GoalStamps`, `PortraitStage`, `NotebookSheet`, `NotebookLine`, `MarginFix`, `CloudMic`, `RoomMenu` | `frontend-engineer` | T1, T2 | `apps/mobile/src/live/LiveParts.tsx` (or a new `live/NotebookParts.tsx`) | done |
+| T4 | Compose D in `C2LiveRoom` with every existing prop and behaviour kept; remove the old link row, bubbles and caption text | `frontend-engineer` | T3 | `apps/mobile/src/live/C2LiveRoom.tsx`, the dev preview in `dev/OnboardingPreview.tsx` | done |
+| T5 | Short goal labels for the 31 missions, for founder copy review | content (orchestrator drafts) | T2 | mission data in `packages/core` | done |
+| T6 | Docs: `DESIGN.md` "Inside a conversation", the live room bullet in Composition rules, "What never moves", Dark mode; this plan's log | orchestrator | T4 | `DESIGN.md`, `docs/changes/live-room-d.md`, `docs/DESIGN_PARTNERSHIP.md` | done |
+| T7 | Verification: tests, gate, web and native shots, live replay, fix-verifier round, founder review | orchestrator | T4, T6 | none | done |
 
 ### T0. Start from Stream E
 
@@ -202,7 +202,7 @@ Add to `liveRoomView.ts`:
 - **`cloudExpression({ micOpen, tutorSpeaking, thinking, typing, goalJustReached, modePending })`:** returns the expression or `null` while typing.
 - **`ringMode(state)`:** returns `'tutor' | 'learner' | 'thinking' | 'idle'` from the `OrbState` the room already receives.
 - **`roomMenuRows(...)`:** the rows and their labels, built from `quietVoiceControl` and `tapToSendControl` plus the transcript and report rows.
-- **Short labels:** `packages/core/src/missions/shortGoals.ts`, a lookup keyed `missionId:beatId` that ships empty, with a fallback to `goalEn`. A test pins the fallback. The approved table fills it in T5.
+- **Short labels:** `packages/core/src/missions/shortGoals.ts`, a lookup keyed `missionId:beatId` with a fallback to `goalEn`. A test pins the fallback. T5 filled it with the 144 labels the founder approved on 2026-10-31, and a test fails for any beat without one.
 
 Acceptance:
 - `cd apps/mobile && npm test` includes new tests for each function. These cover the newest and older emphasis, the English kept only on the newest tutor line, the newest-only mode, every cloud expression branch, the stamp states and spoken summary, and the label fallback.
@@ -288,6 +288,25 @@ Acceptance:
 | Date / task | Attempt and changed paths | Check / result | Next action or blocker |
 |---|---|---|---|
 | 2026-10-29 / design | Directions A, B, C, then the founder's mix D and D in dark on the direction board; prototype fixes (rings, goal moment, hint per question, cloud outline, sheet growth, to-do stamp ring contrast, dark fix note) | Played through a full turn and Help in the browser, light and dark | T0 |
+| 2026-10-30 / T0 | Worktree `Luvani-worktrees/live-room-d` from main `e9030f7e`; before shots in `reviews/2026-10-30-live-room-d/before/` (8 web, 1 native) | `npm run shots` and `xcrun simctl io` | T1, T2 |
+| 2026-10-30 / T5 | 144 short labels drafted in `live-room-d-goal-labels.md` (77 unchanged, 67 shortened, all at most 24 characters) and sent to the founder | Rule check script: 0 problems | Founder approval blocks landing |
+| 2026-10-30 / T1 | Mascots `art/mascots/` (Cloud, Toast, six faces) and the `mascot` palette group; limbs left out, toast keeps the source face without cheeks | Mobile tests green; palette contrast checks for the outline and the dark sheet | none |
+| 2026-10-30 / T2 | `goalStamps`, `cloudExpression`, `ringMode` (from the room state, not the measured levels), `roomMenuRows`, `notebookLines`, `recastView`, core `shortGoals.ts` (empty) | Mobile 3,882 and core 1,112 green | none |
+| 2026-10-30 / T3, T4 | `StageParts`, `NotebookParts`, `DockParts`, `MascotMotion`, `OrbPortraitMotion`; `C2LiveRoom` recomposed with the props API unchanged; dark preview via `ModeScope`; review fixes: no line drawn in the sheet's top band, the toast peek, a 0.4 scrim behind every sheet, themed preview Help text | Mobile 3,894 green; 32 after shots; Help and the room menu checked in the browser in dark | Clean-out |
+| 2026-10-30 / clean-out | Deleted `LiveOrb`, `TutorBubble`, `YouBubble`, `GoalsStrip`, `MicControl`, `liveBubbles`, `tutor/MissionTaskList.tsx`, 23 dead ConvoScreen styles and their imports, LiveSessionScreen leftovers; new `settings/SwitchKnob.tsx` replaces the hidden native Switch in the room menu and SwitchRow (it was a hidden keyboard stop on web); ConvoScreen coach mark on the themed primary pair | Mobile 3,896, core 1,112 green; old names gone from source | T6, T7 |
+| 2026-10-31 / T5 | Founder approved all 144 short goal labels exactly as drafted; filled into `packages/core/src/missions/shortGoals.ts` (generated from the doc), `shortGoals.test.ts` now fails for any beat without a label | `node --test shortGoals.test.ts` and the core suite | Verifier round, landing |
+
+Built differently from the spec, on purpose:
+- **Newest-only mode** keeps the learner's last line even when the tutor has spoken since, so the exchange reads "you said, she replied". The old `liveBubbles` showed only learner words after the tutor's line.
+- **The partial line's caret does not blink.** Loops are allowed only in `tutor/Orb*` files.
+- **The scene description** shows only when a scene has no pace. D's top bar is the title and pace.
+- **The spoken caption** uses a 1x1 clipped box in the room's colour (no visually-hidden pattern existed). It still needs a VoiceOver check on device.
+- **The room note** (wrap-up, typing, tap-to-send, Quiet voice) is drawn above the Send pill rather than under it. Its order is unchanged.
+- **The goal list's glint and scroll-into-view** are gone with the list. Stamps are always on screen, so there is nothing to scroll to.
+- **The cloud mic's mint level ring** is faint on the light sheet (1.85:1). It is decorative; the "Listening" word carries the state.
+- **The scrim** behind Help, the menu and report is a plain `Pressable` filling the room, as the shared `Sheet` draws it. A `Press` had no touch area there (found in the live replay).
+- **Scene goals did not tick in the local replays, typed or spoken**. The same scene on main's old room behaved identically, so it is not this change. To investigate separately.
+- **Left in place:** `QUIET_DOOR`, `OPEN_MIC_LABEL` and `SpeakerSlowGlyph` are unused outside their own tests, but they were unused before D and are not room code it replaces.
 
 ## Integrated verification and handoff
 
