@@ -1,7 +1,9 @@
 /** The lip tile's four looks in a drill, the choose pick, and the fill-blank gap (drill B v2, UI-016). */
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ASIDE_OPACITY, SEND_BACK_LINE, choosePick, sendBackLabel, splitBlank, tileLook } from './tileLook.ts';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { ASIDE_OPACITY, SEND_BACK_LINE, choosePick, flightMayLand, sendBackLabel, splitBlank, tileLook } from './tileLook.ts';
 
 describe('tileLook', () => {
   test('every tile rests before a pick', () => {
@@ -52,5 +54,36 @@ describe('the landed word', () => {
   test('is a button named for sending its word back, with the one line under it', () => {
     assert.equal(sendBackLabel('voudrais'), 'Send voudrais back');
     assert.equal(SEND_BACK_LINE, 'Tap the word in the sentence to send it back.');
+  });
+});
+
+describe('flightMayLand (fill-blank chip flight)', () => {
+  const base = { mounted: true, locked: false, exerciseId: 'e1', launchedFor: 'e1' };
+  test('lands on the open exercise it was tapped in', () => {
+    assert.equal(flightMayLand(base), true);
+  });
+  test('a land after Check locked the view is dropped', () => {
+    assert.equal(flightMayLand({ ...base, locked: true }), false);
+  });
+  test('a land after Continue moved to another exercise is dropped', () => {
+    assert.equal(flightMayLand({ ...base, exerciseId: 'e2' }), false);
+  });
+  test('a land after unmount is dropped', () => {
+    assert.equal(flightMayLand({ ...base, mounted: false }), false);
+  });
+});
+
+describe('fill-blank flight wiring', () => {
+  const read = (r: string) => readFileSync(fileURLToPath(new URL(r, import.meta.url)), 'utf8');
+  test('Check is disabled while a word is in flight', () => {
+    assert.match(read('./kinds/build.tsx'), /<CheckPill typed=\{typed\} locked=\{locked \|\| flying !== null\}/);
+  });
+  test('onLand goes through flightMayLand', () => {
+    assert.match(read('./kinds/build.tsx'), /if \(flightMayLand\(\{ \.\.\.live\.current, launchedFor \}\)\) onChange\(word\);/);
+  });
+  test('DrillScreen keys the build views on the exercise id', () => {
+    const src = read('../DrillScreen.tsx');
+    assert.match(src, /<FillBlankView key=\{exercise\.id\}/);
+    assert.match(src, /<TapTranslateView\s+key=\{exercise\.id\}/);
   });
 });

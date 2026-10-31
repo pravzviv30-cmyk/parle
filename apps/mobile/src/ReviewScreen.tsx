@@ -59,6 +59,7 @@ import { KeyboardGlyph } from './review/ReviewParts.tsx';
 import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
 import { conversationContext, fromLine } from './review/context.ts';
 import { alsoFine } from './review/alsoFine.ts';
+import { firstGradeAt } from './review/gradeGuard.ts';
 import { loadDrillBank } from './drill/store.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
@@ -223,9 +224,13 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     if (announce !== null) AccessibilityInfo.announceForAccessibility(announce);
   }, [announce]);
 
+  // The position already graded, so a second quick tap on the same card is ignored.
+  const gradedAt = useRef<number | null>(null);
   const handleGrade = useCallback(
     (grade: ReviewGrade) => {
       if (!card || !view) return;
+      if (!firstGradeAt(gradedAt.current, index)) return;
+      gradedAt.current = index;
       clock.touch();
       tutorVoice.stop();
       // Persist in the background; the sitting itself never waits on a disk.
@@ -241,7 +246,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       setTyping(false);
       setIndex((i) => i + 1);
     },
-    [card, view, clock],
+    [card, view, clock, index],
   );
 
   if (queue === null) {

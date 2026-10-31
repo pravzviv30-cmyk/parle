@@ -5,7 +5,7 @@
  * word is a brand pill that sends itself back. Tap-translate fills its answer
  * box in place. Under reduced motion nothing flies: the word is in the gap at once.
  */
-import { useContext, useRef, useState, type RefObject } from 'react';
+import { useContext, useEffect, useRef, useState, type RefObject } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { FillBlankExercise, TapTranslateExercise } from '@luvani/core';
 import { bType, decorative, frenchText } from '../../theme.ts';
@@ -14,7 +14,7 @@ import { LipTile, PillButton, Press } from '../../components.tsx';
 import { useTokenFlight } from '../../motion/TokenFlight.tsx';
 import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
 import { drillStage } from '../drillStage.ts';
-import { SEND_BACK_LINE, sendBackLabel, splitBlank } from '../tileLook.ts';
+import { SEND_BACK_LINE, flightMayLand, sendBackLabel, splitBlank } from '../tileLook.ts';
 import { CheckPill, DrillClock, TAP_LINE, TypedAnswer, kindTag } from './shared.tsx';
 import { makeDs } from './styles.ts';
 
@@ -85,19 +85,30 @@ export function FillBlankView({
   const options = exercise.options;
   const split = options ? splitBlank(exercise.sentence) : null;
   const landed = options && typed !== '' ? typed : null;
+  // Live facts a landing reads, since the flight lands after the render that launched it.
+  const live = useRef({ mounted: true, locked, exerciseId: exercise.id });
+  live.current.locked = locked;
+  live.current.exerciseId = exercise.id;
+  useEffect(() => {
+    live.current.mounted = true;
+    return () => { live.current.mounted = false; };
+  }, []);
 
   const place = (word: string) => {
     if (locked || flying !== null) return;
     clock.touch();
     const from = (chipRefs.current[word] ??= { current: null });
     setFlying(word);
+    const launchedFor = exercise.id;
     flight.launch({
       from,
       to: gapRef,
       token: <LandedWord word={word} />,
       onLand: () => {
+        // Checked, moved on or gone while the word was in the air: the word is dropped.
+        if (!live.current.mounted) return;
         setFlying(null);
-        onChange(word);
+        if (flightMayLand({ ...live.current, launchedFor })) onChange(word);
       },
     });
   };
@@ -124,7 +135,7 @@ export function FillBlankView({
 
   return (
     <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={prompt} english={exercise.en}
-      primary={<CheckPill typed={typed} locked={locked} onSubmit={() => onAnswer(typed)} />}>
+      primary={<CheckPill typed={typed} locked={locked || flying !== null} onSubmit={() => onAnswer(typed)} />}>
       {options ? (
         <View style={ds.build}>
           <View style={ds.bank}>

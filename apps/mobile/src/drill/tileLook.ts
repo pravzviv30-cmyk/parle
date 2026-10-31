@@ -59,3 +59,12 @@ export const SEND_BACK_LINE = 'Tap the word in the sentence to send it back.';
 export function sendBackLabel(word: string): string {
   return `Send ${word} back`;
 }
+
+/**
+ * Whether a fill-blank word still in the air may land in the gap. A word tapped
+ * just before Check, or before Continue moved to the next exercise, is dropped,
+ * so the submitted answer and the next exercise are never touched by it.
+ */
+export function flightMayLand(f: { mounted: boolean; locked: boolean; exerciseId: string; launchedFor: string }): boolean {
+  return f.mounted && !f.locked && f.exerciseId === f.launchedFor;
+}

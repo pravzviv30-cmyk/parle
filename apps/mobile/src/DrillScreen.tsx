@@ -1174,7 +1174,7 @@ export function DrillScreen({
     <DrillClock.Provider value={clock}>
     <LitField.Provider value={lit}>
       {exercise.kind === 'fill-blank' && (
-        <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
+        <FillBlankView key={exercise.id} exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
       )}
       {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} pick={pick} shell={frame} />}
       {exercise.kind === 'appropriate-reply' && (
@@ -1182,6 +1182,7 @@ export function DrillScreen({
       )}
       {exercise.kind === 'tap-translate' && (
         <TapTranslateView
+          key={exercise.id}
           exercise={exercise}
           assembled={assembled}
           onAssembled={setAssembled}
