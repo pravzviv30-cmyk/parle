@@ -115,4 +115,12 @@ describe('blankLine (fill-blank punctuation stays tight)', () => {
   test('a stray spaced comma glues onto the word before it', () => {
     assert.deepEqual(blankLine(splitBlank('Bonjour , ___ va')!).before, ['Bonjour,']);
   });
+
+  test('guillemets stay spaced on both sides of the gap (push check, delta review)', () => {
+    const line = blankLine(splitBlank('Il dit « ___ » merci')!);
+    assert.deepEqual(line.before, ['Il', 'dit', '«']);
+    assert.equal(line.tail, null);
+    assert.equal(line.lead, null);
+    assert.deepEqual(line.after, ['»', 'merci']);
+  });
 });

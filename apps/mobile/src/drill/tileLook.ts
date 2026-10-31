@@ -52,10 +52,10 @@ export function splitBlank(sentence: string): { before: string; after: string } 
   return { before: sentence.slice(0, at.index), after: sentence.slice(at.index + at[0].length) };
 }
 
-/** Punctuation French sets tight against the word before it: , . ) » … and an apostrophe. */
-const TIGHT = /^[,.)»…'’]/;
-/** Punctuation French spaces off (? ! : ; «): it never glues, even written tight. */
-const SPACED = /^[?!:;«]/;
+/** Punctuation French sets tight against the word before it: , . ) … and an apostrophe. */
+const TIGHT = /^[,.)…'’]/;
+/** Punctuation French spaces off (? ! : ; « »): it never glues, even written tight. */
+const SPACED = /^[?!:;«»]/;
 
 /** One run of words, a no-space punctuation token glued onto the word before it. */
 function lineWords(text: string): string[] {
