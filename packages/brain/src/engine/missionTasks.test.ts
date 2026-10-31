@@ -24,7 +24,7 @@ test('authored task observations start unticked and credit the pre-turn goal rat
   assert.deepEqual(fresh().evidencedBeatIds, [], 'a replay inherits no session ticks');
 });
 
-test('uncertain false mismatched English rescued empty and steered turns cannot credit a task', () => {
+test('uncertain false English rescued empty and steered turns cannot credit a task', () => {
   for (const goalMet of [false, null, undefined]) {
     const turn = success();
     if (goalMet === undefined) delete (turn.scene as { goalMet?: boolean | null }).goalMet;
@@ -33,12 +33,10 @@ test('uncertain false mismatched English rescued empty and steered turns cannot 
   }
   const state = fresh();
   for (const turn of [
-    { ...success(), scene: { ...success().scene, beat: 'pay' } },
     { ...success(), topicShift: { en: 'Weekend', fr: 'Le week-end' } },
     { ...success(), assessment: { ...success().assessment, language: 'english' as const } },
     { ...success(), assessment: { ...success().assessment, understood: false } },
     { ...success(), assessment: { ...success().assessment, taskAchieved: false } },
-    { ...success(), scene: { ...success().scene, beatDone: false } },
   ]) assert.deepEqual(integrateTurn(state, spoke, turn).state.evidencedBeatIds, []);
   assert.deepEqual(integrateTurn(state, { type: 'help' }, success()).state.evidencedBeatIds, []);
   assert.deepEqual(integrateTurn(state, { type: 'silence', durationMs: 5000 }, success()).state.evidencedBeatIds, []);
@@ -97,4 +95,33 @@ test('a typed answer copying the just-revealed line does not tick it', async () 
   const legacy = { ...hinted } as ConversationState;
   delete (legacy as { frenchGiven?: boolean }).frenchGiven;
   assert.deepEqual(integrateTurn(legacy, spoke, success(legacy)).state.evidencedBeatIds, []);
+});
+
+// F949. Live, the model names in scene.beat where the scene goes AFTER this
+// turn. goalMet observes the beat that was current before it, so the tick is
+// about that source beat whatever scene.beat and beatDone say.
+test('a goal ticks when the learner meets it even as the model moves the scene on', () => {
+  const nextBeat = frame.beats[1]!.id;
+  for (const beatDone of [true, false]) {
+    const state = fresh();
+    const turn = sampleTurn({ scene: { beat: nextBeat, beatDone, goalMet: true } });
+    const next = integrateTurn(state, spoke, turn).state;
+    assert.deepEqual(next.evidencedBeatIds, [state.currentBeat], `beatDone ${beatDone}`);
+  }
+  const moved = (_state: ConversationState) => sampleTurn({ scene: { beat: nextBeat, beatDone: false, goalMet: true } });
+  // Guards that stay: goalMet not true, rescue, forceAdvance, topic shift, English, non-mission.
+  for (const goalMet of [false, null]) {
+    assert.deepEqual(integrateTurn(fresh(), spoke, sampleTurn({ scene: { beat: nextBeat, beatDone: true, goalMet } })).state.evidencedBeatIds, []);
+  }
+  const state = fresh();
+  assert.deepEqual(integrateTurn({ ...state, directive: { ...state.directive, rescued: true }, frenchGiven: true }, spoke, moved(state)).state.evidencedBeatIds, []);
+  assert.deepEqual(integrateTurn({ ...state, forceAdvance: true }, spoke, moved(state)).state.evidencedBeatIds, []);
+  assert.deepEqual(integrateTurn(state, spoke, { ...moved(state), topicShift: { en: 'Weekend', fr: 'Le week-end' } }).state.evidencedBeatIds, []);
+  assert.deepEqual(integrateTurn(state, spoke, { ...moved(state), assessment: { ...moved(state).assessment, language: 'english' as const } }).state.evidencedBeatIds, []);
+  const generated = createConversation(frame, { ...learner, watchFor: [] }, { strictness: 'balanced', maxTurns: 24 });
+  assert.deepEqual(integrateTurn(generated, spoke, moved(generated)).state.evidencedBeatIds, []);
+  // A beat already evidenced is not added twice.
+  const once = integrateTurn(state, spoke, moved(state)).state;
+  const twice = integrateTurn(once, spoke, moved(once)).state;
+  assert.equal(twice.evidencedBeatIds.filter(id => id === state.currentBeat).length, 1);
 });

@@ -12098,3 +12098,30 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `t.text`, and the reply field takes `t.text`, `t.card`, `t.field` and a `t.muted` placeholder,
   the same tokens as the shared `Field` in `components.tsx`.
 - verified-by: `the starter sheet draws every line on theme colours in dark`
+
+### F949 — Scene goals never tick in a live mission
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts (the `evidencedBeatIds` condition in `integrateTurn`) and packages/brain/src/prompt/system.ts (the `scene` and `scene.goalMet` lines)
+- note: Found 2026-10-31 on the local stack (TUTOR_LLM=openai, gpt-6-luna), mission:cafe started from
+  Today, typed turns, logged per turn. Turn 1 "Bonjour monsieur ! Je voudrais un café, s'il vous plaît."
+  at source beat greet came back scene.beat order-drink, beatDone true, goalMet false, with understood,
+  taskAchieved and French all true, no topic shift, no rescue: nothing ticked. Turn 3 "Oui, un croissant,
+  s'il vous plaît." at order-drink came back scene.beat order-food, goalMet null, and was rescued (carried
+  from a silence turn): nothing ticked. The model names in scene.beat where the scene goes after this
+  turn, while the engine required scene.beat to echo the source beat exactly plus beatDone plus
+  goalMet true, so a completed goal almost never ticked. goalMet false on a clear greeting suggests the
+  model judged it against the beat it named. The mission task list, a core live-room feature, silently
+  never filled. Follow-up: the playground replays (services/brain-playground/src/eval/replayEval.ts and
+  sessionLoop.ts) build every conversation without `mission: true`, even for mission:* frames, so no
+  replay exercises the tick; worth a mission replay that checks ticks.
+- fixed: 2026-10-31 on claude/finish-fixes. The tick evidences the source beat (the one current before
+  the turn) on goalMet true, without the scene.beat echo or beatDone. Kept: mission only, spoke with
+  text, French or mixed, understood, taskAchieved, no topic shift, not rescued, not forceAdvance, no
+  duplicate. The prompt now says goalMet observes the SCENE AIM given in the turn context, even when
+  the reply moves the scene on, and scene.beat is the aim this reply works on. Live replay the same
+  evening (same stack and brain, mission:cafe from Today): "Bonjour monsieur ! Comment allez-vous ?" at
+  greet came back goalMet true and the first stamp ticked on screen; "Je voudrais un café crème, s'il
+  vous plaît." at order-drink came back goalMet true and was rightly held back as rescued, because the
+  tester's long pause had drawn a silence nudge first.
+- verified-by: `a goal ticks when the learner meets it even as the model moves the scene on`

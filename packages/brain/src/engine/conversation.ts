@@ -894,11 +894,15 @@ export function integrateTurn(
   // the full line was shown or the tutor answered the rescue, it is a copy.
   const wasRescued = input.type === 'silence' || input.type === 'help' ||
     (state.directive.rescued && state.frenchGiven !== false);
+  // The tick is about the SOURCE beat, the one current before this turn, which
+  // goalMet is defined to observe. scene.beat and beatDone are not required
+  // (F949): live, the model names in scene.beat where the scene goes next, so
+  // an exact echo almost never matched and completed goals never ticked.
   const evidencedBeatIds = [...state.evidencedBeatIds];
   if (state.mission && state.missionId !== null && input.type === 'spoke' && input.text.trim().length > 0 &&
       (turn.assessment.language === 'french' || turn.assessment.language === 'mixed') &&
       turn.assessment.understood && turn.assessment.taskAchieved && turn.scene.goalMet === true &&
-      turn.scene.beat === state.currentBeat && turn.scene.beatDone && turn.topicShift === null &&
+      turn.topicShift === null &&
       !wasRescued && !state.forceAdvance && !evidencedBeatIds.includes(state.currentBeat)) {
     evidencedBeatIds.push(state.currentBeat);
   }
