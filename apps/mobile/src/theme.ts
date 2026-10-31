@@ -167,6 +167,12 @@ export const bType = {
   title17: { fontFamily: font.bold, fontSize: 17, lineHeight: 22 },
   /** A pushed screen's title, "Your fixes": 26/800 (B-Fixes). */
   title26: { fontFamily: font.extraBold, fontSize: 26, lineHeight: 31 },
+  /** The drill stage prompt: 23/29 extra bold (drill B v2, UI-016). */
+  prompt23: { fontFamily: font.extraBold, fontSize: 23, lineHeight: 29 },
+  /** The answer sheet headline: 21 extra bold (drill B v2, UI-016). */
+  sheet21: { fontFamily: font.extraBold, fontSize: 21, lineHeight: 26 },
+  /** The drill stage eyebrow: 13 extra bold (drill B v2, UI-016). */
+  eyebrow800: { fontFamily: font.extraBold, fontSize: 13, lineHeight: 18 },
   /** The empty card's head: 22/800 (B-Empty-Practice). */
   section22: { fontFamily: font.extraBold, fontSize: 22, lineHeight: 27 },
   /** A tab's sub-section head: 20/800 (B-Empty-Practice). */

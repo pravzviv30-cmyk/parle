@@ -45,6 +45,12 @@ function stripComments(source: string): string {
 
 const SOURCES = walk(SRC).map((path) => ({ path, body: stripComments(readFileSync(path, 'utf8')) }));
 const named = (name: string) => SOURCES.find((f) => f.path.endsWith(name))!.body;
+/**
+ * The drill's kind views left DrillScreen for drill/kinds (drill-b T1), so a
+ * count across the drill reads the screen and its kinds together.
+ */
+const DRILL_BODY = [named('DrillScreen.tsx'), ...SOURCES.filter((f) => f.path.includes('/drill/kinds/')).sort((a, b) => a.path.localeCompare(b.path)).map((f) => f.body)].join('\n');
+const namedDrill = (name: string) => (name === 'DrillScreen.tsx' ? DRILL_BODY : named(name));
 const usesSharedFrame = (body: string): boolean => /<(Screen|ScrollScreen|OnboardingLayout)\b/.test(body) ||
   /<C2LiveRoom\b/.test(body) ||
   /const Frame = (?:onboarding \? OnboardingLayout : )?ScrollScreen;/.test(body) && /<Frame\b/.test(body);
@@ -1130,8 +1136,8 @@ const ADOPTERS = [
  * The only files that may still measure the safe area themselves.
  *
  * `layout.tsx` owns it. `ConvoScreen` keeps its own scene layout this phase and
- * is not adopted. `RecapScreen` and the focus drill player are pushed screens
- * the design system has not reached yet. `SetNewPasswordScreen` is the one auth
+ * is not adopted. `RecapScreen` is a pushed screen
+ * the design system has not reached yet (the focus drill player joined the drill frame in drill B v2). `SetNewPasswordScreen` is the one auth
  * screen Pass 3 did not reach: it is the password-recovery landing, not a
  * first-run surface, so it still frames itself. `friends` and the leaderboard
  * are the same. The first-run auth and onboarding screens dropped off this list
@@ -1146,11 +1152,14 @@ const SAFE_AREA_ALLOW = [
   'live/C2LiveRoom.tsx', // The shared C2 live frame owns keyboard and safe-area insets for every live session.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
-  'drill/FocusDrillPlayer.tsx',
   'auth/SetNewPasswordScreen.tsx',
   'friends/AddFriendsScreen.tsx',
   // 2026-10-20 UI-008, artboard B-Profile: the tab bar drawn under Profile, outside the tab navigator, pays the bottom inset as the navigator's bar does.
   'nav/LuvaniTabBar.tsx',
+  // 2026-10-31 drill B v2 (UI-016): the drill's frame on ScrollScreen with its
+  // foot edge to edge; it reads the bottom inset once and hands it to the
+  // answer sheet, which runs to the bottom edge.
+  'drill/DrillFrame.tsx',
 ];
 
 /**
@@ -1287,7 +1296,10 @@ describe('one way back, and it is the shared header — F309', () => {
     // six pills across six mutually exclusive branches, of which a learner ever
     // sees one — the two Checks, "I said it", and a Done on each of the three
     // terminal cards.
-    const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6 };
+    // Review (drill B v2, UI-016) is pinned at two: Show me, and "I said it"
+    // (one tag, the lip primary on the front and the secondary while typing).
+    // Done on the finished page is the shared EndActions, not a pill here.
+    const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6, 'ReviewScreen.tsx': 2 };
     // The two auth screens are the other pinned case. They are one thing to do,
     // have an account, and revamp B's approved board (F601) draws two provider
     // doors above the form: Apple's ink pill, only where the platform offers it,
@@ -1299,7 +1311,7 @@ describe('one way back, and it is the shared header — F309', () => {
     const DOORS = ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx'];
     const isDoor = (tag: string) => /\bicon=\{\s*<(?:AppleMark|GoogleMark)\b/.test(tag);
     for (const name of PUSHED_ONE_BACK) {
-      const body = named(name);
+      const body = namedDrill(name);
       assert.equal(
         (body.match(/<ScreenHeader\b/g) ?? []).length,
         1,
@@ -1466,10 +1478,15 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     // The "no check" and "result" cards are terminal: Done is the one door, as
     // on Review and Drill. The chevron is gated off them, so a terminal card
     // never offers two ways to the same place.
+    // The "no check" card returns early with Done as its footer and no header,
+    // so the drill frame's header only needs gating off the result.
     const src = stripComments(readFileSync(join(SRC, 'soundcheck', 'SoundCheckScreen.tsx'), 'utf8'));
+    const noCheck = src.slice(src.indexOf('if (noCheck) {'), src.indexOf('<DrillFrame'));
+    assert.match(noCheck, /return \(\s*<ScrollScreen footer=\{done\}>/, 'the no-check card is not a terminal card with Done');
+    assert.doesNotMatch(noCheck, /ScreenHeader/, 'the no-check card draws a header, so a terminal card shows two doors');
     assert.match(
       src,
-      /header=\{!noCheck && shownPhase !== 'result' \?/,
+      /header=\{shownPhase !== 'result' \?/,
       'the sound-check chevron is not gated off the terminal cards, so a terminal card shows two doors',
     );
   });
@@ -1806,7 +1823,7 @@ describe('the tabs and the drill use the app buttons — F339', () => {
   });
 
   test("the drill's Check is the pill, twice, and nothing hand-rolled", () => {
-    const drill = named('DrillScreen.tsx');
+    const drill = namedDrill('DrillScreen.tsx');
     assert.equal(
       (drill.match(/<PillButton\s+label="Check"/g) ?? []).length,
       2,
@@ -1901,7 +1918,7 @@ describe('a chip is set in the token, not a raw size — F341', () => {
         const value = Number(m[1]);
         const ok =
           (p === 'components.tsx' && (value === 24 || value === 20)) ||
-          ((p === 'ReviewScreen.tsx' || p === 'DrillScreen.tsx') && value === 16);
+          ((p === 'ReviewScreen.tsx' || p === 'drill/kinds/styles.ts') && value === 16);
         assert.ok(
           ok,
           `${p} names a raw font size ${value}; only fitDisplay and the iOS-16 inputs may, everything else is a token`,

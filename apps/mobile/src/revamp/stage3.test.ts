@@ -51,7 +51,10 @@ test('revamp B Practice keeps an evidence-bounded sound guide and local compare 
 test('revamp B retrieval and drills preserve attempted recall, honest scoring and the typed twin',()=>{
   has('ReviewScreen.tsx',/'Show me'/,/setTurn/,/st.grades/,/conversationContext/,/view.answer.context/);
   lacks('ReviewScreen.tsx',/borderLeftWidth|<VoiceOrb|score/);
-  has('DrillScreen.tsx',/drillTitle/,/CheckGlyph/,/colour.mint/,/state-microphone/,/label="I said it"/);
+  has('DrillScreen.tsx',/drillTitle/);
+  // The kind views moved to drill/kinds (drill-b T1): own words draws the check, say-it the mic states.
+  has('drill/kinds/OwnWordsView.tsx',/CheckGlyph/);
+  has('drill/kinds/RepeatThisView.tsx',/colour.mint/,/state-microphone/,/label="I said it"/);
   has('daily/DailyLibraryScreen.tsx',/appearance="underline"/,/label="Clear search"/,/change\(\{ query: '', limit: 12 \}\)/,/Retry saved items/);
   // 2026-10-21 UI-008, B-Empty-States: the notebook drawing and its pill became the B empty-state card.
   for(const file of ['phrases/PhrasebookScreen.tsx','conversationPacks/ConversationPackLibrary.tsx']) has(file,/<EmptyStateCard art=\{NOTEBOOK_ART\}/,/label: 'Choose a scene'/,/nav.navigate\('Missions'\)/);

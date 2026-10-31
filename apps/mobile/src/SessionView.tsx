@@ -10,7 +10,7 @@ import { useState, type ReactNode } from 'react';
 import { View, Text, Pressable, PixelRatio, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
 import { paper, radius, rungLabel, space, type, HAIRLINE, HIT, frenchText } from './theme.ts';
-import { Card, GhostButton, Label, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay, Press, ChevronRight, ControlTile } from './components.tsx';
+import { Card, GhostButton, Label, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay, Press, ChevronRight, ControlTile } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { KeyboardGlyph } from './glyphs.tsx';
 import { MORE_HINT, MORE_LABEL, showsActionRow, soundNoteIn } from './lessonFooter.ts';

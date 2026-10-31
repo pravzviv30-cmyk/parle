@@ -26,7 +26,7 @@ import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
 import { saveTextFile } from './progress/saveFile.ts';
-import { EndCard } from './celebrate/EndCard.tsx';
+import { EndScene } from './celebrate/EndScene.tsx';
 import type { GameDelta } from './game/delta.ts';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import { useProfile } from './app/ProfileContext.tsx';
@@ -122,10 +122,10 @@ export function SummaryScreen({
           </Text>
         </View>
 
-        {/* The end card in place: XP, time, the goal ring and quests, every
+        {/* The end scene's tiles in place: XP, time, the goal ring and quests, every
             number the settle's read-back of this lesson. Its words count is
             the Stat below, so it passes no count of its own. */}
-        {delta !== null && <EndCard delta={delta} release={release} />}
+        {delta !== null && <EndScene tilesOnly delta={delta} release={release} />}
 
         {historySaveFailed && <Text accessibilityRole="alert" style={[type.body, { color: t.muted }]}>Your lesson history could not be confirmed as saved. This practice card is available until you leave; totals from your saved history are not shown.</Text>}
 

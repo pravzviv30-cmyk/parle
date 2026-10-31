@@ -24,7 +24,11 @@ describe('the moment a replay drill replays (F556)', () => {
     assert.match(nodeProp, /moment\?: DrillMoment;/, 'the drill screen does not accept the moment');
     // 2026-10-20 UI-008, artboard B-Today: a node may ask for the moment only
     // after the first answer (`afterTry`), so Today's fix stays attempt first.
-    const drawn = screen.indexOf("{node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) && <MomentCard moment={node.moment} />}");
+    // Drill B v2 (UI-016): the card is the frame's `lead`, which DrillFrame
+    // draws first in the answer area, above the kind's controls.
+    const drawn = screen.indexOf("node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) ? <MomentCard moment={node.moment} /> : undefined,");
+    const frame = flat(read('./DrillFrame.tsx'));
+    assert.match(frame, /<View style=\{s\.area\}> \{lead\} \{children\} <\/View>/, 'the frame draws the moment somewhere other than above the exercise');
     assert.match(nodeProp, /afterTry\?: boolean;/, 'the drill screen cannot hold the moment back until a try');
     assert.match(routes, /afterTry\?: boolean \}/, 'the drill route cannot ask for the moment after a try');
     const exercise = screen.indexOf("{exercise.kind === 'fill-blank' && (");

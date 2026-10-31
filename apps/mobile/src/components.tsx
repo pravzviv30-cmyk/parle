@@ -284,6 +284,7 @@ export function PillButton({
   variant = 'primary',
   pastel,
   disabledReason,
+  lip = false,
 }: {
   label: string;
   onPress: () => void;
@@ -332,6 +333,12 @@ export function PillButton({
   variant?: 'primary' | 'secondary';
   /** The pastel fill of a secondary pill on a white card. */
   pastel?: keyof typeof pastelFill;
+  /**
+   * Drill B v2 (UI-016): a 4pt lip in `primaryLip` drawn as a View under the
+   * pill, never a shadow, sinking 2pt while pressed. Opt in; off by default so
+   * every other pill draws as before. A disabled pill keeps the space but no lip.
+   */
+  lip?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
   const t = useB();
@@ -341,15 +348,25 @@ export function PillButton({
   // White and sun pills sit on a colour ground and keep their ink in both
   // modes; the ink pill is the theme's primary, and a secondary pill is themed.
   const foreground = secondary ? t.text : tone === 'white' || tone === 'sun' ? paper.ink : t.onPrimary;
-  return (
-    <Press haptic="light" depth="control" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: t[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} disabledReason={disabled && !waiting ? disabledReason : undefined} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+  const [pressed, setPressed] = useState(false);
+  const sunk = lip && pressed && !disabled && !waiting ? PILL_LIP_PRESS : 0;
+  const pressIn = lip ? () => setPressed(true) : undefined;
+  const pressOut = lip ? () => setPressed(false) : undefined;
+  const pill = (
+    <Press haptic="light" depth="control" onPressIn={pressIn} onPressOut={pressOut} style={[lip && { marginTop: sunk, marginBottom: PILL_LIP - sunk }, s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: t[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} disabledReason={disabled && !waiting ? disabledReason : undefined} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
       <Text style={[type.button, { color: disabled ? (tone === 'white' ? paper.inkSoft : t.muted) : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
       {decoration}
     </Press>
   );
+  if (!lip) return pill;
+  return <View style={{ borderRadius: radius.pill, backgroundColor: disabled ? 'transparent' : t.primaryLip }}>{pill}</View>;
 }
+
+/** The drill primary's lip, and how far the pill sinks into it under a finger (UI-016). */
+const PILL_LIP = 4;
+const PILL_LIP_PRESS = 2;
 
 /**
  * The pill's waiting mark: the check-draw mounted from the start so it draws
@@ -469,83 +486,6 @@ export function GhostButton({
   );
 }
 
-
-/**
- * A tappable option the learner can choose — the successor of the direction
- * plaque. French text in the serif, English gloss beneath, optional replay.
- *
- * `selected` is the heavier ink rule and is spoken to a screen reader; `playing`
- * is the replay ear sounding, drawn as the accent glyph on a quiet disc with a
- * "Stop" label. The two are orthogonal: a learner can audition one voice while
- * another is the chosen one, so a card can be selected and playing at once.
- */
-export function OptionCard({
-  text,
-  gloss,
-  onPress,
-  onHear,
-  selected = false,
-  playing = false,
-}: {
-  text: string;
-  gloss?: string;
-  onPress: () => void;
-  /** Replay this option aloud without choosing it. */
-  onHear?: () => void;
-  selected?: boolean;
-  /** This option's sample is sounding: the ear becomes a Stop on a lit disc. */
-  playing?: boolean;
-}) {
-  // The hear control is a sibling of the main press target, not a child — a
-  // button nested inside a button is invalid HTML on web. Pressed feedback is
-  // lifted to the container so the whole card still flashes as one object.
-  const [pressed, setPressed] = useState(false);
-  const t = useB();
-  const s = useThemedStyles(makeS);
-  return (
-    <View style={[s.option, selected && s.optionSelected, pressed && s.optionPressed]}>
-      <Pressable
-        onPress={() => {
-          tapSettled();
-          onPress();
-        }}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        accessibilityRole="button"
-        accessibilityLabel={gloss ? `${text}, ${gloss}` : text}
-        accessibilityState={{ selected }}
-        aria-selected={selected}
-        style={s.optionMain}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={[type.french, { color: t.text }]}>{text}</Text>
-          {gloss != null && (
-            <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{gloss}</Text>
-          )}
-        </View>
-      </Pressable>
-      {onHear && (
-        <Pressable
-          onPress={onHear}
-          hitSlop={10}
-          accessibilityRole="button"
-          // A sounding ear stops on the next tap, so it says so — and the glyph
-          // lights on a quiet disc rather than moving, since there is nothing to
-          // reduce-motion here.
-          accessibilityLabel={playing ? `Stop ${text}` : `Hear ${text}`}
-          style={({ pressed: hearPressed }) => [
-            { padding: space(2) },
-            playing && { backgroundColor: t.skeleton, borderRadius: radius.pill },
-            hearPressed && { opacity: 0.6 },
-          ]}
-        >
-          <EarGlyph size={18} color={playing ? t.text : t.muted} />
-        </Pressable>
-      )}
-      <ArrowRight size={18} color={t.muted} />
-    </View>
-  );
-}
 
 /**
  * A labelled text input with an inline error line.
@@ -826,14 +766,14 @@ export function Monogram({ initial, size = HIT, inverted = false, ground, ink: a
  * header's centred title slot, where bars that share the width would otherwise
  * share nothing.
  */
-export function ProgressDots({ total, index, ground = 'paper' }: { total: number; index: number; ground?: Ground | 'paper' }) {
+export function ProgressDots({ total, index, ground = 'paper', track }: { total: number; index: number; ground?: Ground | 'paper'; /** Pending bar colour for a band the hairline vanishes on, such as the peach drill band. */ track?: string }) {
   const t = useB();
   const s = useThemedStyles(makeS);
   const done = ground === 'blue' || ground === 'coral' ? paper.onInk : ground === 'paper' ? t.text : paper.ink;
   return (
     <View style={s.segments} accessible accessibilityLabel={`Step ${index + 1} of ${total}`}>
       {Array.from({ length: total }, (_, i) => (
-        <View key={i} style={[s.segment, { backgroundColor: i <= index ? done : ground === 'paper' ? t.line : segmentPending[ground] }]} />
+        <View key={i} style={[s.segment, { backgroundColor: i <= index ? done : track ?? (ground === 'paper' ? t.line : segmentPending[ground]) }]} />
       ))}
     </View>
   );
@@ -1081,21 +1021,6 @@ const makeS = (t: B) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space(3),
   },
-  option: {
-    minHeight: HIT + 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(3),
-    backgroundColor: t.card,
-    borderWidth: HAIRLINE,
-    borderColor: t.field,
-    borderRadius: radius.card,
-    paddingVertical: space(3),
-    paddingHorizontal: space(4),
-  },
-  optionSelected: { borderColor: t.text, borderWidth: 1.5 },
-  optionPressed: { backgroundColor: t.skeleton },
-  optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', borderRadius: radius.card },
   field: {
     minHeight: HIT + 12,
     backgroundColor: t.card,
@@ -2614,8 +2539,7 @@ export type ChoiceGround = 'paper' | 'card' | 'blue' | 'sun';
  * The one choice (icons section 1.6): a pick-one, or an answer, as a row or a
  * tile. Every option, plan, voice, level, goal and time draws through this,
  * and `OptionRow` and the first run's `Choice` are thin names for it.
- * `OptionCard`, the answer row in sittings and drills, joins them once the
- * voice-card test (F355) reads the Hear here rather than its own ear.
+ * Drill answers are not choices: they are `LipTile`s (UI-016).
  *
  * A row is 72 (56 when compact) with the caller's tile at its head, the title,
  * a line under it and a 28 disc at its end; a tile stacks the tile over the
@@ -2822,6 +2746,7 @@ export function LipTile({ tone = 'card', lip, size = 'tile', onPress, selected =
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled, selected }}
+        aria-selected={selected}
         disabled={disabled}
         glowRadius={shape.radius}
         onPress={onPress}

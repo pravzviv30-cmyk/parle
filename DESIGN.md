@@ -211,13 +211,21 @@ period stay near a purchase action, and large text is never capped to fit.
   drill bank's other accepted French when there is one, "You said it" or "You
   typed" follows, and the grades are three filled 64pt tiles (Again, Got it,
   Easy) with no interval line, held by the founder.
-- Drill (B-Drill, UI-008, 2026-10-21, light and dark): the lavender ground
-  (plum in dark), the close disc, the sitting bar where Phase B drew it and
-  "Phrase four of eight" only in a practice sitting. The build exercise is the
-  brand eyebrow, the English at 26/800, "Tap the words in order.", the answer
-  box (2pt periwinkle) with brand word tiles, and the bank, where a placed word
-  leaves a dashed slot and a free word is a white tile on a ring lip. Other
-  exercise kinds keep their cards, drawn from the theme.
+- Drill (B v2, UI-016, 2026-10-31, light and dark; spec
+  `docs/changes/drill-b.md`): every drill and practice surface stands in one
+  frame, `drill/DrillFrame.tsx`. The header row holds the 44pt close disc and
+  the living bar. Under it the stage band (28 bottom radius) carries the
+  eyebrow (`bType.eyebrow800`), the prompt (`bType.prompt23`) and any English
+  line, on the family's band token from `drill/drillStage.ts`. The answer area
+  sits on the `ground`, and the foot holds one primary pill with its lip
+  (`PillButton lip`, `primaryLip`). The families are Choose (lavender), Build
+  (butter), Write (sage), Speak (peach) and Review (butter). Fixes takes the
+  family of its answer: say it is Speak, type it is Write. The eyebrow is
+  `link` on every band except dark butter, where it is `text` for contrast.
+  There is one tile, `LipTile` (options, word chips, slots, grades and Fixes),
+  one field and one mic, `drill/SpeakMic.tsx`. Cloud appears at moments only:
+  on the right sheet, listening on a speak drill, and at the ending. It is
+  never on the question.
 - Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
   padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
   button. Review and the drill bank with nothing due use cloud-cheer with Done;
@@ -822,6 +830,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.heroChip` | `#FFFFFF` | A chip on the hero |
 | `b.light.primary` | `#16123A` | The one primary pill |
 | `b.light.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.light.primaryLip` | `#000000` | The 4pt lip under a drill's primary pill (UI-016); decorative |
 | `b.light.quiet` | `#F5EEE2` | The quiet secondary button and chip |
 | `b.light.link` | `#3B2FE0` | Links and the lock mark |
 | `b.light.avatar` | `#16123A` | The avatar disc |
@@ -836,6 +845,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
 | `b.light.stageTrack` | `#EFE7F9` | The five-stage track behind the nodes (B-Journey) |
 | `b.light.peachSoft` | `#FCEADF` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.light.peachTrack` | `#7B7385` | Pending step bars on the peach drill band: 3.4 on peach in both modes, 3.9 (light) and 3.2 (dark) against the done bars (text). A mark, never words |
 | `b.light.lavenderSoft` | `#F5F1FE` | The art panel inside the lavender Badges tile (B-Journey) |
 | `b.light.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
 | `b.light.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |
@@ -881,6 +891,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.heroChip` | `#4A4170` | A chip on the hero |
 | `b.dark.primary` | `#3B2FE0` | The one primary pill |
 | `b.dark.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.dark.primaryLip` | `#2A20B0` | The lip under the dark primary: the pressed brand blue (UI-016); decorative |
 | `b.dark.quiet` | `#302A48` | The quiet secondary button and chip |
 | `b.dark.link` | `#A79AFF` | Links and the lock mark |
 | `b.dark.avatar` | `#302A48` | The avatar disc |
@@ -895,6 +906,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.sunDeep` | `#E0A800` | The half arc of an ability practised with help (B-Journey); a mark |
 | `b.dark.stageTrack` | `#302A48` | The five-stage track behind the nodes (B-Journey) |
 | `b.dark.peachSoft` | `#5A3F4C` | The art panel inside the peach Postcards tile (B-Journey) |
+| `b.dark.peachTrack` | `#94869B` | Pending step bars on the peach drill band: 3.4 on peach in both modes, 3.9 (light) and 3.2 (dark) against the done bars (text). A mark, never words |
 | `b.dark.lavenderSoft` | `#3D3560` | The art panel inside the lavender Badges tile (B-Journey) |
 | `b.dark.orbRing` | `#4A3FE6` | The live room's outer orb ring and the mic's rim on blue (B-Live); a mark |
 | `b.dark.haloSun` | `#FFE08A` | The halo behind a question's drawing on a sun band (B-Question; onboarding is pinned light); a mark |
@@ -962,6 +974,9 @@ the Profile avatar's initial), `name30` (ExtraBold 30/34, -0.3, the Profile
 name) and `run52` (ExtraBold 52/56, -1, the streak's run on its band).
 Today's sky (UI-015, 2026-10-31) added `stat24` (ExtraBold 24/26, the number
 on a chunky stat tile).
+Drill B v2 (UI-016, 2026-10-31) added `prompt23` (ExtraBold 23/29, the stage
+prompt), `eyebrow800` (ExtraBold 13/18, the stage eyebrow) and `sheet21`
+(ExtraBold 21/26, the answer sheet headline).
 
 ## Surfaces and controls
 
@@ -977,8 +992,8 @@ Built in A2 (UI-004, UI-005), all through `PillButton` in `components.tsx`.
 - **Secondary**: `variant="secondary"`, a `SECONDARY_HEIGHT` 46pt white pill
   with ink words, or a pastel one with `pastel="butter|lavender|peach|sage"`.
 - **Chip**: 36pt visible, with a 1.5pt ink outline; its touch target still
-  reaches 44pt. Not a shared part yet: the chips in use are local to the drill
-  and conversation screens and move with their screens.
+  reaches 44pt. Not a shared part yet: the chips in use are local to the
+  conversation screens and move with their screens.
 - The quiet text links (`OutlineButton`, `GhostButton`) are tertiary, not the
   secondary pill, and are unchanged.
 - The wall's own CTA (`wall/WallParts`) still draws its own pill until the
@@ -1017,9 +1032,7 @@ the new look, listed at the end, and they go with their call sites.
   SNIPPETS' link-text, an underlined ink word at the touch floor (white on blue
   and coral, which the caller passes), never a box, so nothing competes with the
   one pill. `OutlineButton` is the older quiet link until Stage 6.
-- **OptionCard**: a legacy tappable choice: French in Outfit, English gloss under,
-  quiet arrow, optional replay ear. Selection is a heavier ink rule on white; a
-  replay ear that is sounding is drawn in ink on a `paper.groundDeep` disc.
+- **OptionCard** is gone (UI-016, 2026-10-31). Drill answers are `LipTile`s.
 - **Field, TabBar, ProgressDots**: inputs are white, 56 tall, with a 1.5
   `paper.field` rule that turns ink on focus, and a secure field carries a 44pt
   **Show / Hide** at its trailing edge so a password is not typed blind; the
@@ -1217,8 +1230,8 @@ sound of its own:
   with a brand mark, and it pops once and lights the ring layer. It is a radio
   by default, said on a device and on the web. A Hear is its own speaker button
   beside it, so hearing never chooses. `OptionRow` and the first run's `Choice`
-  are thin names for it, and `ChoiceArt` draws an `IconTile`. `OptionCard`, the
-  answer row in sittings and drills, still draws its own until it joins them.
+  are thin names for it, and `ChoiceArt` draws an `IconTile`. Answers in a
+  drill are `LipTile`s, not `Choice` (UI-016).
 
 The deprecated TintRow, TintPanel, TintDisc, IconRowCard and HeroCard wrappers
 are deleted. Callers use LedgerRow, Card and SceneBrief directly. No tint or
@@ -1570,30 +1583,44 @@ the learner's ears, so the fanfare waits for the recap. Both doors work from the
 first frame. It shows exactly once, at the turn the mission completes, and with
 movement reduced it is simply there, with no glow and no confetti.
 
-**End cards** close every finished sitting in place, on the page that ran it:
-a drill set, a practice set, a review, today's phrase and a lesson. One mint
-card under "Practice complete." (`celebrate/EndCard.tsx`) carries up to three
-tiles that count up (XP, time and the sitting's own count), the goal ring and
-any quest the sitting finished. Every number on it is the GameDelta that
-`game/settle.ts` read back from disk once the sitting's writes landed. A tile
-appears only when its number exists, and a finish the settle could not read
-back stands in words with no number at all. It sounds `complete` with one
-`celebrate()`, once per sitting. While a sitting page is open, and from before
-it settles until its end card goes, the celebration queue is held, so a streak,
+**End scenes** close every finished sitting in place, on the page that ran it:
+a drill set, a practice set, a review, today's phrase and a lesson. One part,
+`celebrate/EndScene.tsx`, draws them all, and it follows dark mode. A practice
+end is a soft lavender band with Cloud and Toast, the title and its line, up
+to three stat tiles (the `LipTile` chrome of Today's stat tile, counting up
+with `CountUp`), the goal ring, any quest the sitting finished, and the
+phrases with Hear it, each marked settled or "Still settling". A still
+settling phrase can be tried again with its answer seen (LEARN-018); that
+retry records nothing and its end shows Done only. Summary and Daily use
+tiles mode: the tiles, goal and quests with no band, under the page's own
+heading. Every number is the GameDelta that `game/settle.ts` read back from
+disk once the sitting's writes landed. A tile appears only when its number
+exists, and a finish the settle could not read back stands in words with no
+number at all. Confetti falls only on a safe save; an unsaved sitting or a
+retry's end is calm, with Cloud at rest and no sound. A celebrated end sounds
+`complete` with one `celebrate()`, once per sitting. While a sitting page is open, and from before
+it settles until its end scene goes, the celebration queue is held, so a streak,
 a level or a badge plays only after the learner leaves. A review with
 nothing due still says "Nothing waiting." and plays nothing, and a safety stop
-has no end card.
+has no end scene.
 
-**The answer sheet** rises from the foot of a drill after each answer, as the
-B-Drill feedback panel (radius 20, the 28pt mint check disc, a 17 bold
-headline). A pass is the mint wash with green words and a short warm line,
-`correct` and a light arrival haptic, and moves on by itself after 1.4
-seconds. A typo the drill accepted is butter, "Nearly." and the real spelling,
-`nearly` and a soft haptic. A miss is the plain card under a hairline with no
-mark, no sound and no haptic. Both misses show "Here's how it goes.", the
-French and its one-line meaning ("je vais prendre = I'll have") and wait for
-Continue, drawn under the panel; the first ends "This one comes round again.",
-the second "It'll come back in your review." (LEARN-017). With a screen reader on, no sheet moves on by itself. The
+**The answer sheet** (`drill/AnswerSheet.tsx`, UI-016) is one bottom sheet
+that rises from the foot of a drill after each answer (radius 26 at the top,
+a `bType.sheet21` headline). It has four tones, all from the theme. Right is
+`mintWash` with `mintWords`, Cloud cheering beside the headline, the French,
+its English and Hear it, `correct` and a light arrival haptic; it moves on by
+itself after 1.4 seconds. Nearly is `butter` with "Nearly." and the real
+spelling, `nearly` and a soft haptic, and the field above lights the missed
+letters (`drill/litLetters.ts`). A miss is the `card` under a `line` top edge
+with no mark, no sound and no haptic: the French with a 44pt Hear it disc, one
+Notice on the stage's own colour with the reason, and the after-line. Calm is
+the same card for a reveal. Cloud shows on the right sheet only. A miss shows
+"Here's how it goes." and waits for Continue; the first ends "This one comes
+round again.", the second "It'll come back in your review." (LEARN-017). The
+sheet grows to a cap (`drill/sheetLayout.ts`); past it the body scrolls and
+Continue stays pinned, so it is always on screen at 320 and at large text.
+With a screen reader on, no sheet moves on by itself and focus moves to
+Continue, whose name carries the whole sheet. The
 living bar sits in the header row between the close disc and the words (8pt,
 brand on the card track), fills as phrases settle, carries no digit, glows sun
 after three real passes in a row, and never moves back.
@@ -1776,6 +1803,11 @@ primitive's own numbers are named groups in `motion/tokens.ts`.
   `DUR.slow`: Today's clouds. Under reduced motion it is simply there.
 - `PopOnce`: a mark swells to 1.18 and back on `SPRING.pop` once, when `play`
   turns true: Today's flame when the streak ticks. No scale under reduced motion.
+- In a drill (UI-016): the right tile pops once (`PopOnce`) with one `Sparkle`
+  (`art/Sparkle.tsx`), a chosen chip flies to its slot (`TokenFlight`), Cloud
+  squishes to the voice while listening (`LevelSquish`), the answer sheet rises
+  (`Enter`) and the end tiles count up (`CountUp`). Under reduced motion none
+  of it moves: the tile, chip and sheet are simply there and Cloud is still.
 - `LevelRing`: two rings swell with a live sound level; under reduced motion,
   three opacity steps and no scale.
 
@@ -1788,12 +1820,13 @@ pipeline and the wall publish to it (`celebrate/events.ts`) after their writes
 land, and every number it shows comes from the moment's own data. The queue
 (`celebrate/queue.ts`) decides; the frame and templates draw.
 
-- **A finished practice ends in place.** The screen draws `celebrate/EndCard.tsx`
-  on the page: mint, "Practice complete.", up to three tiles counting up (XP,
+- **A finished practice ends in place.** The screen draws `celebrate/EndScene.tsx`
+  on the page: the lavender band with Cloud, up to three tiles counting up (XP,
   time and the screen's own count, each only when its number exists), the goal
   ring drawing from before to now, the quests this sitting finished, the day so
   far ("2 of 3 quests done today"), and the cap line when the daily XP limit held
-  some back. It sounds `complete` with one `celebrate()` once per sitting, and
+  some back, then the phrases settled and still settling. Confetti falls only
+  on a safe save. It sounds `complete` with one `celebrate()` once per sitting, and
   holds the queue while it is on screen. On the sitting that finishes the day's
   third quest, the day so far is the one quiet line "All three quests done
   today." and it lands with the `quest` sound, which is also the card's one
@@ -1867,6 +1900,10 @@ On Today (UI-015) the sky's two clouds drift in once on arrival and the flame
 on the streak tile pops once when today's streak ticks, beside the numbers that
 count up and the goal ring that fills; the greeting and the sun or moon stay
 still, and under reduced motion nothing on Today moves.
+In a drill only the right tile's pop and sparkle, the chip flight, Cloud
+listening, the sheet rising, the living bar and the end scene move. The
+question and its stage band stay still, and under reduced motion nothing in a
+drill moves.
 
 ### Haptics
 

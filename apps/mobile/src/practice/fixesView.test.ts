@@ -169,7 +169,8 @@ describe('the rest of the screen', () => {
     // 2026-10-21 UI-008, artboard B-Fixes: the toggle is the artboard's white segmented ScopeToggle, its chosen side carrying a tick and selected state.
     assert.match(screen, /<ScopeToggle scopes=\{SCOPES\} active=\{scope\}/, 'the This conversation and All conversations toggle is not drawn from SCOPES');
     const parts = readFileSync(fileURLToPath(new URL('./FixesParts.tsx', import.meta.url)), 'utf8');
-    assert.match(parts, /accessibilityState=\{\{ selected: on \}\}/);
+    // T7b: each scope is a LipTile chip, whose `selected` becomes accessibilityState.selected.
+    assert.match(parts, /<LipTile key=\{scope\.key\}[^>]*selected=\{on\} accessibilityRole="tab"/);
     assert.match(parts, /\{on \? <TickGlyph /);
     // The try-first card takes no French at all, so no layout can reveal before a try.
     const attemptPart = parts.slice(parts.indexOf('export function AttemptCard('), parts.indexOf('export function ComparedCard(')).replace(/\/\*[\s\S]*?\*\//g, '');

@@ -187,19 +187,18 @@ describe('an end card is the settle pipeline\'s read-back — F760', () => {
       'the lesson\'s end card is fed something other than the delta its own settle returned',
     );
     assert.match(nav, /delta=\{delta\}/);
-    const cards = [
-      ...[...drill.matchAll(/<EndCard\b[^>]*\/>/g)].map((m) => m[0]),
-      ...[...review.matchAll(/<EndCard\b[^>]*\/>/g)].map((m) => m[0]),
-      ...[...daily.matchAll(/<EndCard\b[^>]*\/>/g)].map((m) => m[0]),
-      ...[...flat('../SummaryScreen.tsx').matchAll(/<EndCard\b[^>]*\/>/g)].map((m) => m[0]),
-    ];
+    // Every end scene that draws numbers (has a delta), in page order. A calm
+    // scene has no delta, so it can draw no number at all.
+    const scenes = (page: string): string[] => [...page.matchAll(/<EndScene\b[^>]*>/g)].map((m) => m[0]).filter((scene) => /\bdelta=/.test(scene));
+    const cards = [...scenes(drill), ...scenes(review), ...scenes(daily), ...scenes(flat('../SummaryScreen.tsx'))];
     assert.deepEqual(cards, [
-      '<EndCard delta={end.delta} release={release} />',
+      // The practice end: the settled delta, else the calm scene with none.
+      "<EndScene delta={end.state === 'settled' ? end.delta : null} release={release} title={card.title} sub={card.body} phrases={card.retry ? [] : endPhrases(session.answered, held.exercises)}>",
       // F919: Got right counts first-time answers only.
-      '<EndCard delta={end.delta} count={firstTry(session).right} release={release} />',
-      '<EndCard delta={end.delta} count={recalled.current} release={release} />',
-      '<EndCard delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />',
-      '<EndCard delta={delta} release={release} />',
+      '<EndScene delta={end.delta} count={firstTry(session).right} countOf={session.answered.length} release={release} title={DRILL_END.title} sub={sub} phrases={phrases} />',
+      '<EndScene delta={end.delta} count={recalled.current} release={release} title={REVIEW_END.finished} sub={REVIEW_END.finishedBody} />',
+      '<EndScene tilesOnly delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />',
+      '<EndScene tilesOnly delta={delta} release={release} />',
     ], 'an end card is drawn from something other than the settled delta');
     for (const page of [drill, review, daily]) {
       assert.match(page, /const \{ end,[^}]*\bexpect\b[^}]*\} = useSittingEnd\(\);/, 'a page waits for its numbers some other way');
@@ -285,10 +284,12 @@ describe('a finish shown in words stays in words — F775', () => {
     assert.ok(fromEmpty > 0 && endAt > fromEmpty && end.length > 0, 'the drill end moved; this test is stale');
     assert.doesNotMatch(end, /<Screen>/, 'the drill end waits on a bare screen with no way out');
     assert.equal((end.match(/return \(/g) ?? []).length, 1, 'the drill end draws its wait apart from the screen it finishes on');
-    assert.match(end, /return \( <ScrollScreen footer=\{doneFooter\}>/);
+    // Done is always there; the retry (LEARN-018) only once the end has spoken.
+    assert.match(end, /return \( <ScrollScreen footer=\{<EndActions retry=\{again !== null && againLabel !== null \? \{ label: againLabel, onPress: \(\) => startRetry\(again\) \} : null\} done=\{\{ label: 'Done', onPress: finishAndLeave \}\} \/>\}>/);
+    assert.match(end, /const again = end\.state === 'waiting' \? null : retrySitting\(session\.answered, askedRef\.current, \{ isRetry \}\);/, 'the retry is offered while the end is still waiting');
     assert.match(
       end,
-      /\{end\.state === 'settled' \? \( <EndCard delta=\{end\.delta\} count=\{firstTry\(session\)\.right\} release=\{release\} \/> \) : end\.state === 'waiting' \? \( <ActivityIndicator color=\{bt\.muted\} \/> \) : \( <Card> <FinishFelt \/>/,
+      /\{end\.state === 'settled' \? \( <EndScene delta=\{end\.delta\} count=\{firstTry\(session\)\.right\} countOf=\{session\.answered\.length\} release=\{release\} [^>]*\/> \) : end\.state === 'waiting' \? \( <ActivityIndicator color=\{bt\.muted\} \/> \) : \( <> <FinishFelt \/> <EndScene title=\{DRILL_END\.title\} sub=\{sub\} phrases=\{phrases\} \/>/,
       'the drill end draws something other than the card, the wait or the words',
     );
     // The practice set's wait is inside its screen with Done too.

@@ -300,7 +300,9 @@ describe('celebrations wait for the learner to leave — F766', () => {
     assert.match(daily, /finally \{ dropSettleHold\(\);/, 'today\'s phrase keeps the queue held when nothing settled');
     for (const [name, page] of [['DrillScreen', drill], ['ReviewScreen', review], ['DailyPracticeScreen', daily]] as const) {
       assert.match(page, /= useSittingEnd\(\);/, `${name} neither holds the queue while it is up nor waits for its end card`);
-      const cards = page.match(/<EndCard\b[^>]*\/>/g) ?? [];
+      // Every end scene that celebrates a settled delta takes the hold; a calm
+      // scene (not saved, a retry's end) has no delta and no hold to take.
+      const cards = (page.match(/<EndScene\b[^>]*>/g) ?? []).filter((card) => /\bdelta=/.test(card));
       assert.ok(cards.length > 0, `${name} draws no end card`);
       for (const card of cards) assert.match(card, /release=\{release\}/, `${name} never hands its hold to the end card`);
     }
@@ -310,10 +312,10 @@ describe('celebrations wait for the learner to leave — F766', () => {
     assert.match(lesson, /useEffect\(\(\) => \{ endHold\.open\(\); return \(\) => endHold\.close\(\); \}, \[endHold\]\);/, 'leaving the lesson keeps the queue held');
     assert.ok(before(lesson, 'endHold.take();', "void settleSitting({ source: 'lesson'"), 'the lesson settles before it holds the queue');
     assert.match(lesson, /release=\{endHold\.release\}/, 'the lesson never hands its hold to the end card');
-    assert.match(flat('../SummaryScreen.tsx'), /<EndCard delta=\{delta\} release=\{release\} \/>/);
+    assert.match(flat('../SummaryScreen.tsx'), /<EndScene tilesOnly delta=\{delta\} release=\{release\} \/>/);
 
     // The end card lets the handed hold go only when it goes.
-    const endCard = flat('../celebrate/EndCard.tsx');
+    const endCard = flat('../celebrate/EndScene.tsx');
     assert.match(endCard, /useEffect\(\(\) => holdCelebrations\(\), \[\]\);/);
     assert.match(endCard, /useEffect\(\(\) => \(\) => handed\.current\?\.\(\), \[\]\);/, 'the end card never lets the handed hold go, or lets it go early');
 

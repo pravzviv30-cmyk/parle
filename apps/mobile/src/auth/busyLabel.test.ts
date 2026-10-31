@@ -144,7 +144,7 @@ describe('a screen that is waiting says so — F152', () => {
     const components = read('components.tsx');
     const ghost = components.slice(
       components.indexOf('export function GhostButton('),
-      components.indexOf('export function OptionCard('),
+      components.indexOf('export function Field('),
     );
     assert.ok(ghost.length > 0, 'GhostButton moved or was renamed; this test is reading nothing');
     assert.match(ghost, /disabled\?: boolean/, 'GhostButton takes no disabled prop, so the sign-in screen is passing one into a void');

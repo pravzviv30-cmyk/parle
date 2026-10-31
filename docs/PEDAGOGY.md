@@ -190,6 +190,11 @@ hides the transcript on the first miss, so the retry still tests listening
 (the learner can tap Hear it again when it comes back), and own words has no single
 right string, so its retry shows nothing. Conversation matching and listen/read-and-choose use the same
 two-miss limit with separate counts per item.
+At the end of a drill sitting each phrase is marked settled (right on the
+first ask, a typo included) or "Still settling". The learner may practise the
+ones still settling straight away; that sitting is assisted and records
+nothing, no grade, XP, first-try count or evidence, and offers no second retry
+(LEARN-018). Tomorrow's review stays the real test.
 Changing items starts a fresh count. A correct answer completes immediately.
 French choice exercises do not display English glosses that solve the question.
 Translation prompts and pronunciation references remain visible where they are

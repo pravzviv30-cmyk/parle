@@ -81,6 +81,12 @@ export type ScreenBottom = 'tab' | 'inset' | 'none';
 
 type ScreenProps = {
   children: ReactNode;
+  /**
+   * The footer's height cap, in points, over the usual share of the screen.
+   * Only for a footer that keeps its own action visible inside the cap (the
+   * drill's answer sheet pins Continue and scrolls its body).
+   */
+  footerMaxHeight?: number;
   /** The page's own light. Defaults to the theme's ground (`useB().ground`). */
   ground?: string;
   /** Horizontal padding of space(5) on the content, header and footer. */
@@ -146,6 +152,7 @@ export function Screen({
   header,
   footer,
   avoidKeyboard,
+  footerMaxHeight,
   overflowing = false,
 }: ScreenProps) {
   const t = useB();
@@ -186,7 +193,7 @@ export function Screen({
           }}
         >
           <ScrollView
-            style={{ width: '100%', maxWidth: FOOTER_MAX, maxHeight: geometry.footerMaxHeight, flexGrow: 0, alignSelf: 'center' }}
+            style={{ width: '100%', maxWidth: FOOTER_MAX, maxHeight: footerMaxHeight ?? geometry.footerMaxHeight, flexGrow: 0, alignSelf: 'center' }}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
             showsVerticalScrollIndicator
@@ -264,6 +271,7 @@ export function ScrollScreen({
   header,
   footer,
   avoidKeyboard,
+  footerMaxHeight,
 }: ScrollScreenProps) {
   const [contentHeight, setContentHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -285,6 +293,7 @@ export function ScrollScreen({
       header={header}
       footer={footer}
       avoidKeyboard={avoidKeyboard}
+      footerMaxHeight={footerMaxHeight}
       overflowing={overflowing}
     >
       <ScrollView

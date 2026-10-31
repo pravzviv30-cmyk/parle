@@ -1,4 +1,3 @@
-import { Feedback } from './motion/Feedback.tsx';
 /**
  * The drill sitting — the review deck made active.
  *
@@ -23,17 +22,13 @@ import { Feedback } from './motion/Feedback.tsx';
  * one calm line; it has no way to slow, block, or punish.
  */
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
-import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import {
   answerCurrent,
   buildDrillSession,
@@ -44,47 +39,38 @@ import {
   scopedOwnWordsSession,
   suppressMic,
   summariseDrill,
-  type AppropriateReplyExercise,
-  type BestSentenceExercise,
   type DrillExercise,
   type DrillFeedback,
   type DrillSessionState,
-  type FillBlankExercise,
-  type ListenTypeExercise,
   type OwnWordsExercise,
   type PracticeTarget,
-  type RepeatThisExercise,
-  type SettledVerdict,
-  type TapTranslateExercise,
-  type TranslationExercise,
   drillXp,
   missReason,
 } from '@luvani/core';
-import { HAIRLINE, HIT, bType, colour, font, frenchText, onColour, radius, space, type } from './theme.ts';
+import { bType, space, type } from './theme.ts';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
 import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
-import { Card, GhostButton, IconAction, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
+import { Card, IconAction, PillButton } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
+import type { DrillShell } from './drill/DrillFrame.tsx';
 import { gradeCards, loadDeck } from './review/store.ts';
 import { keepPhrase as keepInPhrasebook } from './review/phraseSaved.ts';
 import { AnswerSheet } from './drill/AnswerSheet.tsx';
-import { ownWordsLook, sheetFor, type SheetTone } from './drill/answerSheet.ts';
+import { ownWordsLook, sheetFor } from './drill/answerSheet.ts';
 import { firstTry } from './drill/firstTry.ts';
-import { comboAfter, comboGlows, type OwnWordsDecided } from './drill/combo.ts';
+import { comboAfter, comboGlows } from './drill/combo.ts';
 import { fireSheet } from './drill/sheetEffects.ts';
 import { DRILL_END } from './drill/endCopy.ts';
 import { SittingBar } from './drill/SittingBar.tsx';
-import { EndCard } from './celebrate/EndCard.tsx';
+import { EndActions, EndScene } from './celebrate/EndScene.tsx';
+import { endPhrases } from './celebrate/endPhrases.ts';
+import { retryButtonLabel, retryEnd, retrySitting, type RetrySitting } from './practice/stillSettling.ts';
 import { useScreenReader } from './celebrate/useScreenReader.ts';
 import { useSittingEnd } from './practice/useSittingEnd.ts';
-import { LevelRing } from './motion/LevelRing.tsx';
-import { useRecorderLevel } from './speech/useRecorderLevel.ts';
-import { Illustration } from './art/flat/Illustration.tsx';
-import { CheckGlyph } from './components.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { MomentCard, type DrillMoment } from './drill/MomentCard.tsx';
 import { momentShown } from './drill/momentShown.ts';
@@ -95,11 +81,9 @@ import * as tutorVoice from './speech/tutorVoice.ts';
 import { scoreRecordedAttempt } from './speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from './speech/discardRecording.ts';
 import { transcribeRecordedAttempt } from './speech/transcribeAttempt.ts';
-import { SpokenAttempt } from './drill/SpokenAttempt.tsx';
 import { judgeOwnWords } from './speech/judgeAttempt.ts';
-import { MADE_FROM } from './practice/madeFrom.ts';
 import { hasAnsweredWork, sittingStatement } from './practice/sittingOutcome.ts';
-import { PRACTICE_END, PRACTICE_HELP } from './practice/copy.ts';
+import { PRACTICE_END } from './practice/copy.ts';
 import { practiceEndCard, saveStateOfResult, type SaveState } from './practice/saveState.ts';
 import { completePracticeSitting, practiceOutcomes, recoverPracticeCompletion } from './practice/completion.ts';
 import { clearPracticeSession, loadPracticeSession, mintSittingId, savePracticeSession } from './practice/sessionStore.ts';
@@ -107,72 +91,24 @@ import { practiceOpening } from './practice/opening.ts';
 import { sittingProgress } from './practice/sittingProgress.ts';
 import { queueFill, sittingFill } from './practice/sittingProgress.ts';
 import { scopeGeneration } from './storage/scope.ts';
-import { holdMic } from './sound/audioFocus.ts';
-import { enterRecording, leaveRecording } from './sound/audioSession.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import type { PracticeRoute } from './practice/practiceRoute.ts';
 import {
   JUDGE_UNAVAILABLE,
-  OWN_WORDS_ANOTHER,
-  OWN_WORDS_FIELD_LABEL,
-  OWN_WORDS_HINT,
   TRANSCRIPTION_UNAVAILABLE,
-  OWN_WORDS_LABEL,
-  OWN_WORDS_PROMPT,
-  OWN_WORDS_NOT_KEPT,
 } from './drill/ownWordsCopy.ts';
+import { DrillClock, LitField } from './drill/kinds/shared.tsx';
+import { litLetters } from './drill/litLetters.ts';
+import { sheetLine, type SheetLine } from './drill/sheetLine.ts';
+import { BestSentenceView, AppropriateReplyView } from './drill/kinds/choose.tsx';
+import { FillBlankView, TapTranslateView } from './drill/kinds/build.tsx';
+import { choosePick } from './drill/tileLook.ts';
+import { ListenTypeView, TranslationView } from './drill/kinds/write.tsx';
+import { RepeatThisView } from './drill/kinds/RepeatThisView.tsx';
+import { OwnWordsView, type OwnWordsOutcome } from './drill/kinds/OwnWordsView.tsx';
 
 /** "Can't speak now" holds for an hour, then spoken drills quietly return. */
 const MIC_SUPPRESS_MS = 60 * 60 * 1000;
-/** The speak circle's size, which the level ring around it matches. */
-const SPEAK = 108;
-/** The usual preset, metered, so the ring follows the learner's real voice. */
-const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
-
-/**
- * Web records only on a secure origin with MediaRecorder present; native Expo
- * always ships the recorder. A failed probe is not an error — it just means
- * the honest self-report control stays in charge.
- */
-const CAN_RECORD =
-  Platform.OS !== 'web' ||
-  (typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
-
-/** What this exercise asks for, said plainly. */
-function kindTag(exercise: DrillExercise): string {
-  switch (exercise.kind) {
-    case 'fill-blank':
-      return 'Fill the blank';
-    case 'best-sentence':
-      return 'Which would you say?';
-    case 'appropriate-reply':
-      return 'Choose a reply';
-    case 'tap-translate':
-      return 'Build it in French';
-    case 'translate':
-      return exercise.direction === 'fr-en' ? 'Translate into English' : 'Translate into French';
-    case 'listen-type':
-      return 'Listen and type';
-    case 'repeat-this':
-      return 'Say it aloud';
-    case 'own-words':
-      return OWN_WORDS_LABEL;
-  }
-}
-
-/**
- * The own-words outcome card's ground, by the same tones the answer sheet
- * uses (`drill/answerSheet.ts`): mint for "That works.", sun for "Nearly
- * there.", and the plain white card for the reveal and for a tutor nobody
- * could reach. Ink on every one; the softer line takes its ground's own soft
- * colour, because soft ink is never set on a colour.
- */
-const OUTCOME_GROUND: Readonly<Record<SheetTone, { fill: string; soft: string } | null>> = {
-  good: { fill: colour.mint, soft: onColour.mint },
-  nearly: { fill: colour.sun, soft: onColour.sun },
-  calm: null,
-};
-
 // ─────────────────────────────────────────────── the pronunciation side-channel
 
 /**
@@ -182,740 +118,6 @@ const OUTCOME_GROUND: Readonly<Record<SheetTone, { fill: string; soft: string } 
  * exactly like the self-report flow. At most one learner-safe sentence comes
  * back: the reason behind core's single focus point, never a number.
  */
-// ──────────────────────────────────────────────────────── local card pieces
-// Composed here rather than added to components.tsx: OptionCard wants a gloss,
-// and fill-blank options are bare words by authored design.
-
-/**
- * A single-word option, as a chip.
- *
- * It was a full-width row with a chevron, which read as navigation: four doors
- * stacked down the screen rather than four words to choose between. Revamp A
- * draws the bare-word options as chips in the tap-translate pool's anatomy,
- * because they are the same thing: a word you put into a sentence.
- *
- * Notebook Phase 4 (2026-09-27): the chip is plain white paper under a paper
- * hairline, with no tint, and the press is an opacity step.
- */
-function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={locked}
-      accessibilityRole="button"
-      accessibilityLabel={word}
-      style={({ pressed }) => pressed && ds.chipPressed}
-    >
-      <View style={ds.choice}>
-        <Text style={[type.french, { color: bt.text }]}>{word}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-/**
- * The sitting's active learning clock, reached by the small input pieces below
- * without threading a prop through every exercise view. Outside a drill it is
- * inert, so nothing a piece does there is ever counted.
- */
-const DrillClock = createContext<{ touch: () => void }>({ touch: () => undefined });
-
-/** The hear-it affordance ReviewScreen uses, for hearing a French line again. */
-function HearRow({ text }: { text: string }) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  const clock = useContext(DrillClock);
-  return (
-    <Pressable
-      onPress={() => {
-        clock.touch();
-        tutorVoice.speak(text);
-      }}
-      accessibilityRole="button"
-      accessibilityLabel="Hear it in French"
-      style={({ pressed }) => [ds.hear, pressed && { opacity: 0.6 }]}
-    >
-      <EarGlyph size={15} color={bt.muted} />
-      <Text style={[type.small, { color: bt.muted }]}>Hear it</Text>
-    </Pressable>
-  );
-}
-
-/** The app's first text input: a paper field in the Field anatomy. */
-function TypedAnswer({
-  typed,
-  onChange,
-  onSubmit,
-  locked,
-  placeholder,
-  accessibilityLabel = 'Your answer',
-}: {
-  typed: string;
-  onChange: (t: string) => void;
-  onSubmit: () => void;
-  locked: boolean;
-  placeholder: string;
-  accessibilityLabel?: string;
-}) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  const canSubmit = typed.trim() !== '' && !locked;
-  const clock = useContext(DrillClock);
-  return (
-    <View style={{ gap: space(2.5) }}>
-      <TextInput
-        value={typed}
-        onChangeText={(text) => {
-          clock.touch();
-          onChange(text);
-        }}
-        editable={!locked}
-        autoCapitalize="none"
-        autoCorrect={false}
-        spellCheck={false}
-        returnKeyType="done"
-        onSubmitEditing={() => {
-          if (canSubmit) onSubmit();
-        }}
-        placeholder={placeholder}
-        placeholderTextColor={bt.muted}
-        accessibilityLabel={accessibilityLabel}
-        style={ds.input}
-      />
-      <PillButton label="Check" disabled={!canSubmit} accessibilityLabel="Check your answer" onPress={onSubmit} />
-    </View>
-  );
-}
-
-// ──────────────────────────────────────────────────────── per-kind renderers
-
-function FillBlankView({
-  exercise,
-  typed,
-  onChange,
-  onAnswer,
-  locked,
-}: {
-  exercise: FillBlankExercise;
-  typed: string;
-  onChange: (t: string) => void;
-  onAnswer: (a: string) => void;
-  locked: boolean;
-}) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[fitDisplay(exercise.sentence), { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
-          {exercise.sentence}
-        </Text>
-        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>{exercise.en}</Text>
-      </Card>
-      {exercise.options ? (
-        <View style={ds.tokenPool}>
-          {exercise.options.map((option) => (
-            <WordChoice key={option} word={option} onPress={() => onAnswer(option)} locked={locked} />
-          ))}
-        </View>
-      ) : (
-        <TypedAnswer
-          typed={typed}
-          onChange={onChange}
-          onSubmit={() => onAnswer(typed)}
-          locked={locked}
-          placeholder="The missing word"
-        />
-      )}
-    </View>
-  );
-}
-
-function BestSentenceView({
-  exercise,
-  onAnswer,
-  locked,
-}: {
-  exercise: BestSentenceExercise;
-  onAnswer: (i: number) => void;
-  locked: boolean;
-}) {
-  const bt = useB();
-  return (
-    <View style={{ gap: space(4) }}>
-      <Card>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[type.heading, { color: bt.text, marginTop: space(3) }]}>{exercise.prompt}</Text>
-      </Card>
-      <View style={{ gap: space(2.5) }}>
-        {exercise.candidates.map((candidate, i) => (
-          <OptionCard
-            key={candidate.fr}
-            text={candidate.fr}
-            onPress={() => {
-              if (!locked) onAnswer(i);
-            }}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function AppropriateReplyView({
-  exercise,
-  onAnswer,
-  locked,
-}: {
-  exercise: AppropriateReplyExercise;
-  onAnswer: (i: number) => void;
-  locked: boolean;
-}) {
-  const bt = useB();
-  return (
-    <View style={{ gap: space(4) }}>
-      <Card>
-        <Label>{kindTag(exercise)}</Label>
-        <View style={{ marginTop: space(3) }}>
-          <Label color={bt.text}>{exercise.line.speaker}</Label>
-          <Text style={[type.french, { color: bt.text, marginTop: space(1.5) }]}>{exercise.line.fr}</Text>
-        </View>
-        <HearRow text={exercise.line.fr} />
-      </Card>
-      <View style={{ gap: space(2.5) }}>
-        {exercise.options.map((option, i) => (
-          <OptionCard
-            key={option.fr}
-            text={option.fr}
-            onPress={() => {
-              if (!locked) onAnswer(i);
-            }}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function TapTranslateView({
-  exercise,
-  assembled,
-  onAssembled,
-  onAnswer,
-  locked,
-}: {
-  exercise: TapTranslateExercise;
-  /** Indexes into `exercise.tokens`, in tap order. Indexes, because a bank may offer the same word twice. */
-  assembled: number[];
-  onAssembled: (next: number[]) => void;
-  onAnswer: (a: string) => void;
-  locked: boolean;
-}) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  const answerText = assembled.map((i) => exercise.tokens[i]).join(' ');
-  const canCheck = assembled.length > 0 && !locked;
-  return (
-    <View style={ds.build}>
-      {/* 2026-10-21 UI-008, artboard B-Drill: the eyebrow, the English as the
-          screen's title, and the one instruction. */}
-      <DrillHead eyebrow={kindTag(exercise)} title={exercise.en} line={TAP_LINE} />
-
-      {/* The answer box: the words placed so far, in brand tiles. Tap a word to put it back. */}
-      <View style={ds.answerBox} accessibilityLabel="Your sentence so far">
-        {assembled.map((tokenIndex, position) => (
-          <Pressable
-            key={tokenIndex}
-            onPress={() => onAssembled(assembled.filter((_, p) => p !== position))}
-            disabled={locked}
-            accessibilityRole="button"
-            accessibilityLabel={`Remove ${exercise.tokens[tokenIndex]}`}
-            style={({ pressed }) => [ds.placed, pressed && { opacity: 0.7 }]}
-          >
-            <Text {...frenchText} style={[bType.bold17, { color: bt.onBrand }]}>{exercise.tokens[tokenIndex]}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* The bank. A placed word leaves a dashed slot its own size, so nothing
-          jumps; the distractors stay white tiles until they are placed too. */}
-      <View style={ds.bank}>
-        {exercise.tokens.map((token, i) => {
-          const used = assembled.includes(i);
-          return (
-            <Pressable
-              key={i}
-              onPress={() => onAssembled([...assembled, i])}
-              disabled={used || locked}
-              accessibilityRole="button"
-              accessibilityLabel={used ? `${token}, placed` : `Add ${token}`}
-              accessibilityState={{ disabled: used }}
-              style={({ pressed }) => pressed && !used && ds.chipPressed}
-            >
-              {used ? (
-                <View style={ds.slot}>
-                  <Text style={[bType.semi17, { color: 'transparent' }]}>{token}</Text>
-                </View>
-              ) : (
-                <View style={ds.tileLip}>
-                  <View style={ds.tile}>
-                    <Text {...frenchText} style={[bType.semi17, { color: bt.text }]}>{token}</Text>
-                  </View>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <PillButton
-        label="Check"
-        disabled={!canCheck}
-        accessibilityLabel="Check your sentence"
-        onPress={() => onAnswer(answerText)}
-      />
-    </View>
-  );
-}
-
-/** The build's one instruction (B-Drill). */
-const TAP_LINE = 'Tap the words in order.';
-
-/**
- * The head of a built exercise (B-Drill): the 13/700 brand eyebrow, the 26/800
- * title and a 15 muted line, gap 6.
- */
-function DrillHead({ eyebrow, title, line }: { eyebrow: string; title: string; line: string }) {
-  const bt = useB();
-  return (
-    <View style={{ gap: 6 }}>
-      <Text style={[bType.chip, { color: bt.link }]}>{eyebrow}</Text>
-      <Text accessibilityRole="header" style={[bType.title26, { color: bt.text }]}>{title}</Text>
-      <Text style={[bType.line15, { color: bt.muted }]}>{line}</Text>
-    </View>
-  );
-}
-
-function ListenTypeView({
-  exercise,
-  typed,
-  onChange,
-  onAnswer,
-  locked,
-}: {
-  exercise: ListenTypeExercise;
-  typed: string;
-  onChange: (t: string) => void;
-  onAnswer: (a: string) => void;
-  locked: boolean;
-}) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        {/* Replayable freely — dictation is a listening exercise, not a memory test. */}
-        <Pressable
-          onPress={() => tutorVoice.speak(exercise.fr)}
-          accessibilityRole="button"
-          accessibilityLabel="Play the French line"
-          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: bt.skeleton }]}
-        >
-          <EarGlyph size={22} color={bt.text} />
-          <Text style={[type.button, { color: bt.text }]}>Hear it</Text>
-        </Pressable>
-        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>
-          Listen, then type what you hear.
-        </Text>
-      </Card>
-      <TypedAnswer
-        typed={typed}
-        onChange={onChange}
-        onSubmit={() => onAnswer(typed)}
-        locked={locked}
-        placeholder="What you hear"
-      />
-    </View>
-  );
-}
-
-function TranslationView({
-  exercise,
-  typed,
-  onChange,
-  onAnswer,
-  locked,
-  help,
-}: {
-  exercise: TranslationExercise;
-  typed: string;
-  onChange: (t: string) => void;
-  onAnswer: (a: string) => void;
-  locked: boolean;
-  /**
-   * Help for a practice sitting only: show the known French line on request.
-   * Absent for an ordinary drill, which is unchanged. `shown` is whether the
-   * learner has already asked, so the line stays up after a reload.
-   */
-  help?: { shown: boolean; onShow: () => void };
-}) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  const isFrenchPrompt = exercise.direction === 'fr-en';
-  const prompt = isFrenchPrompt ? exercise.fr : exercise.en;
-  // Only an English-to-French ask hides the French, so only it has anything to
-  // show. The reference is the exercise's own line, never generated.
-  const canHelp = help !== undefined && !isFrenchPrompt;
-  return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[isFrenchPrompt ? type.french : type.heading, { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
-          {prompt}
-        </Text>
-        {isFrenchPrompt && <HearRow text={exercise.fr} />}
-        {canHelp && help.shown && (
-          <Feedback kind="help" active appear>
-            <Text style={[type.french, { color: bt.muted, textAlign: 'center', marginTop: space(3) }]}>{exercise.fr}</Text>
-            <HearRow text={exercise.fr} />
-            <Text style={[type.small, { color: bt.muted }]}>With help</Text>
-          </Feedback>
-        )}
-        {canHelp && !help.shown && (
-          <View style={{ marginTop: space(3) }}>
-            <IconAction layout="inline" icon="hint" label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
-          </View>
-        )}
-      </Card>
-      <TypedAnswer
-        typed={typed}
-        onChange={onChange}
-        onSubmit={() => onAnswer(typed)}
-        locked={locked}
-        placeholder={isFrenchPrompt ? 'Meaning in English' : 'Answer in French'}
-        accessibilityLabel={isFrenchPrompt ? 'Your answer in English' : 'Your answer in French'}
-      />
-    </View>
-  );
-}
-
-function RepeatThisView({
-  exercise,
-  onAnswer,
-  onSpoke,
-  onNoMic,
-  locked,
-}: {
-  exercise: RepeatThisExercise;
-  onAnswer: (a: string) => void;
-  /** A finished take: its uri, or null when the recorder lost it. Grading either way is the callee's law. */
-  onSpoke: (uri: string | null) => void;
-  onNoMic: () => void;
-  locked: boolean;
-}) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  const recorder = useAudioRecorder(METERED_TAKE);
-  // 'armed': the circle records on tap. 'live': the microphone is on. 'silent':
-  // the platform said no — recorder missing, permission refused, or a start
-  // that threw — and the honest self-report control is back in charge, because
-  // refusing the microphone must cost the learner nothing.
-  const [mic, setMic] = useState<'armed' | 'live' | 'silent'>(CAN_RECORD ? 'armed' : 'silent');
-  // The ring around the live circle, from the recorder's real level; none is
-  // drawn until a level has been heard.
-  const voice = useRecorderLevel(recorder, mic === 'live');
-  // The recorder's async edges must run one at a time; a double-tap cannot be
-  // allowed to race prepare against stop.
-  const busyRef = useRef(false);
-  // The microphone focus, held from before the mode change until the take
-  // ends, fails or the view goes, so no haptic or sound effect lands on it (F724).
-  const micHold = useRef<(() => void) | null>(null);
-  const letGoOfMic = useCallback(() => {
-    const release = micHold.current;
-    micHold.current = null;
-    if (!release) return false;
-    release();
-    return true;
-  }, []);
-  useEffect(() => () => {
-    if (letGoOfMic()) void leaveRecording().catch(() => undefined);
-  }, [letGoOfMic]);
-
-  const toggleRecord = useCallback(async () => {
-    if (busyRef.current || locked) return;
-    busyRef.current = true;
-    try {
-      if (mic === 'live') {
-        let lost = false;
-        try {
-          await recorder.stop();
-        } catch {
-          // A take the recorder lost was still spoken; only scoring goes without.
-          lost = true;
-        }
-        // Where it was written, asked for on its own. A stop that threw can
-        // still have left bytes on disk, and reading the path is the only way
-        // to reach them; if even that fails there is nothing to name.
-        let uri: string | null = null;
-        try {
-          uri = recorder.uri;
-        } catch {
-          uri = null;
-        }
-        if (lost) {
-          // Unscorable, so it travels no further, and unscorable is exactly
-          // when a file would otherwise be left behind for good.
-          discardRecording(uri);
-          uri = null;
-        }
-        // Hand the audio session back to playback, so Hear it keeps its volume.
-        letGoOfMic();
-        void leaveRecording().catch(() => undefined);
-        setMic('armed');
-        onSpoke(uri);
-      } else {
-        const permission = await AudioModule.requestRecordingPermissionsAsync();
-        if (!permission.granted) {
-          setMic('silent');
-          return;
-        }
-        tutorVoice.stop(); // the reference playing into the microphone scores nobody
-        letGoOfMic();
-        micHold.current = holdMic();
-        await enterRecording();
-        await recorder.prepareToRecordAsync();
-        recorder.record();
-        setMic('live');
-      }
-    } catch {
-      setMic('silent');
-      if (letGoOfMic()) void leaveRecording().catch(() => undefined);
-    } finally {
-      busyRef.current = false;
-    }
-  }, [mic, locked, recorder, onSpoke, letGoOfMic]);
-
-  return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[fitDisplay(exercise.reference), { color: bt.text, textAlign: 'center', marginTop: space(4) }]}>
-          {exercise.reference}
-        </Text>
-        <Text style={[type.small, { color: bt.muted, textAlign: 'center', marginTop: space(2.5) }]}>
-          {exercise.referenceEn}
-        </Text>
-        {exercise.ipa !== null && (
-          <Text style={[type.notation, { color: bt.muted, textAlign: 'center', marginTop: space(2) }]}>
-            /{exercise.ipa}/
-          </Text>
-        )}
-        <HearRow text={exercise.reference} />
-      </Card>
-
-      <View style={{ alignItems: 'center', gap: space(3) }}>
-        {mic === 'silent' ? (
-          <>
-            {/* The speak circle in its muted state: nothing records here, and
-                the red fill must keep meaning "the microphone is on". */}
-            <View style={ds.speakBlock}>
-              <Illustration name="state-microphone" fit="small" />
-              <Text style={[type.label, { color: bt.text }]}>Speak</Text>
-            </View>
-
-            {/* Without a microphone the learner's word is the grade. Saying so
-                out loud in the control's own copy keeps the report honest. */}
-            <View style={ds.saidIt}>
-              <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
-              <IconAction layout="inline" icon="tick-circle" label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
-            </View>
-          </>
-        ) : (
-          /* The one speak control made real: hollow at rest, and filled green
-             only while the microphone is actually on. Green means you speak,
-             here as in ConvoScreen; red belongs to the tutor's own voice and
-             never marks the learner's microphone. Tapping Done grades exactly
-             as I said it does; the recording only ever adds a line. */
-          <View style={ds.speakBlock}>
-            <View style={ds.speakCircle}>
-              {mic === 'live' && voice.metered && (
-                <View style={ds.speakRing}>
-                  <LevelRing level={voice.level} size={SPEAK} color={colour.mint} />
-                </View>
-              )}
-              <SpeakCircle
-                onPress={() => void toggleRecord()}
-                active={mic === 'live'}
-                disabled={locked}
-                size={SPEAK}
-                accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
-              />
-            </View>
-            <Text style={[type.label, { color: bt.text }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
-          </View>
-        )}
-
-        <Pressable
-          onPress={onNoMic}
-          disabled={locked}
-          accessibilityRole="button"
-          accessibilityLabel="I can't speak right now"
-          style={({ pressed }) => [ds.noMic, pressed && { opacity: 0.6 }]}
-        >
-          <Text style={[type.small, { color: bt.muted }]}>Unable to speak right now?</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-/**
- * What one own-words attempt came back with.
- *
- * Held as a value rather than as the timed feedback beat every other kind
- * uses, because there is more to read here than a word: a second way to say
- * it, or the judge's own sentence, or the line itself when nobody could read
- * the attempt. A 1.6 second beat would take all three away mid-sentence.
- */
-interface OwnWordsOutcome {
-  /** The exercise it belongs to, so the card survives the sitting finishing. */
-  exercise: OwnWordsExercise;
-  /** Core's settled verdict, or null when nobody judged it and nothing moved. */
-  verdict: SettledVerdict | null;
-  /** How core decided it, which sets the card's tone; null when nobody judged it. */
-  decided: OwnWordsDecided | null;
-  /** Core's own feedback line, or the line that says the tutor is unreachable. */
-  message: string;
-  /** The judge's sentence, before a second go. */
-  note: string | null;
-  /** A better way, offered after a success and never instead of one. */
-  another: string | null;
-  /** The taught line, when the attempt is let go or nobody could read it. */
-  reveal: string | null;
-  /** They said it their own way: offer to keep the phrase. */
-  keep: boolean;
-  /** The learner's checked words, held only on this screen for comparison. */
-  attempt: string | null;
-}
-
-/**
- * Say it your own way.
- *
- * The one drill kind with no right string. The situation sets the scene, the
- * English says what has to get across, and the field takes whatever French the
- * learner has. A temporary take can supply editable text. Checking meaning
- * still uses the text judge, and never claims a pronunciation score.
- *
- * It borrows `TypedAnswer` rather than growing a field of its own, which is
- * also what keeps the drill's Check at exactly two shared pills.
- */
-function OwnWordsView({
-  exercise,
-  typed,
-  onChange,
-  onCheck,
-  onTake,
-  quiet = false,
-  busy,
-  outcome,
-  onKeep,
-  keeping,
-  kept,
-  keepFailed,
-}: {
-  exercise: OwnWordsExercise;
-  typed: string;
-  onChange: (t: string) => void;
-  onCheck: () => void;
-  onTake: (uri: string | null) => void;
-  quiet?: boolean;
-  /** A judge is reading it. The field and the pill are off until it answers. */
-  busy: boolean;
-  outcome: OwnWordsOutcome | null;
-  onKeep: () => void;
-  keeping: boolean;
-  /** The phrasebook said its write is durable. Only then is it called saved. */
-  kept: boolean;
-  /** The last keep was refused; it can be tried again. */
-  keepFailed: boolean;
-}) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  const [typing, setTyping] = useState(!CAN_RECORD || quiet);
-  const typeInstead = useCallback(() => setTyping(true), []);
-  const look = ownWordsLook(outcome?.decided ?? null);
-  const ground = look.tone === null ? null : OUTCOME_GROUND[look.tone];
-  const soft = ground === null ? bt.muted : ground.soft;
-  // Words on a mint or sun outcome are ink in both modes; on the plain card they follow the theme.
-  const ink = ground === null ? bt.text : bt.onMint;
-  return (
-    <View style={{ gap: space(4) }}>
-      <Card style={ds.promptCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[type.small, { color: bt.muted, marginTop: space(2) }]}>{exercise.situation}</Text>
-        <Text style={[type.title, { color: bt.text, marginTop: space(5), marginBottom: space(5) }]}>{exercise.en}</Text>
-        <Text style={[type.small, { color: bt.muted, marginTop: space(3) }]}>{OWN_WORDS_HINT}</Text>
-      </Card>
-      {!typing && typed === '' && outcome === null && <SpokenAttempt onTake={onTake} onTyping={typeInstead} busy={busy} />}
-      {(typing || typed !== '' || outcome !== null) && <TypedAnswer
-        typed={typed}
-        onChange={onChange}
-        onSubmit={onCheck}
-        locked={busy}
-        placeholder={OWN_WORDS_PROMPT}
-        accessibilityLabel={OWN_WORDS_FIELD_LABEL}
-      />}
-      {busy && <ActivityIndicator color={bt.muted} />}
-      {outcome !== null && (
-        <Card style={[ds.outcome, ground !== null && { backgroundColor: ground.fill }]}>
-          {outcome.attempt !== null && <View style={{ gap: space(1) }}>
-            <Label color={soft}>Your words</Label>
-            <Text style={[type.body, { color: ink }]}>{outcome.attempt}</Text>
-          </View>}
-          <View style={ds.outcomeRow} accessibilityLiveRegion="polite">
-            {/* Same rule as the answer sheet: no mark on a miss, and a retry
-                is not a pass. A drawing scolds louder than a word, and this
-                card is read for longer. */}
-            {look.mark && (
-              <View style={ds.verdictMark}><CheckGlyph size={18} color={bt.text} /></View>
-            )}
-            <Text style={[type.bodyStrong, { color: ink, flex: 1 }]}>
-              {outcome.message}
-            </Text>
-          </View>
-          {outcome.note !== null && <Text style={[type.body, { color: ink }]}>{outcome.note}</Text>}
-          {outcome.another !== null && (
-            <Text style={[type.body, { color: ink }]}>{OWN_WORDS_ANOTHER(outcome.another)}</Text>
-          )}
-          {outcome.reveal !== null && <Text style={[type.french, { color: ink }]}>{outcome.reveal}</Text>}
-          {/* Kept means the phrasebook's write came back durable, and only
-              then does the bookmark fill and the label say so (F762). A
-              refused write says it plainly and leaves the way to try again. */}
-          {outcome.keep && (
-            <IconAction
-              layout="inline"
-              ground={look.tone === 'good' ? 'mint' : 'paper'}
-              icon="bookmark"
-              animate="bookmark-fill"
-              selected={kept}
-              busy={keeping}
-              label={kept ? MADE_FROM.phrase.saved : MADE_FROM.phrase.save}
-              onPress={onKeep}
-            />
-          )}
-          {outcome.keep && keepFailed && !kept && (
-            <Text accessibilityLiveRegion="polite" style={[type.small, { color: soft }]}>{OWN_WORDS_NOT_KEPT}</Text>
-          )}
-        </Card>
-      )}
-    </View>
-  );
-}
-
 /**
  * A finish with no end card to celebrate it is still felt: one settled tap,
  * once, as every finished drill was before end cards. The end card gives its
@@ -996,7 +198,7 @@ export function DrillScreen({
   // What the answer sheet needs beside core's feedback: the kind it answered,
   // the run of real passes after it, and its place in the sitting, which the
   // good lines rotate by. Set with the feedback and cleared with it.
-  const [sheetFacts, setSheetFacts] = useState<{ kind: DrillExercise['kind']; combo: number; turn: number; reason: string | null; oneOfMany: boolean; answerEnglish: boolean } | null>(null);
+  const [sheetFacts, setSheetFacts] = useState<{ kind: DrillExercise['kind']; combo: number; turn: number; reason: string | null; oneOfMany: boolean; answerEnglish: boolean; line: SheetLine | null; attempt: string } | null>(null);
   // The run of real passes (drill/combo.ts): a ref for the answer that reads it
   // and state for the bar that glows by it. Never a number on screen.
   const comboRef = useRef(0);
@@ -1083,6 +285,29 @@ export function DrillScreen({
   // return. Only ever added to: help once asked for stays asked for.
   const [assisted, setAssisted] = useState<string[]>([]);
   const assistedRef = useRef<string[]>([]);
+  // Every exercise this sitting has asked, twins and misses included, so the
+  // end scene can name each phrase and the retry can ask its exercises again.
+  const askedRef = useRef<DrillExercise[]>([]);
+  useEffect(() => {
+    if (session === null) return;
+    for (const e of session.queue) if (!askedRef.current.some((x) => x.id === e.id)) askedRef.current.push(e);
+  }, [session]);
+
+  // The assisted retry (LEARN-018): a sitting of just the exercises that did
+  // not come out first time, run in this screen after the first one ended.
+  // It writes nothing. `recordsNothing` is the one guard every write path
+  // asks (practice save, grades, evidence, XP, activity day, settle, history,
+  // the finished signals, the scorer's upload, a kept phrase and the quiet-mic
+  // window), so a retry cannot reach any of them by a path that forgot to
+  // look. An own-words retry still asks the judge and the transcriber, as any
+  // own-words answer does: that is feedback, not a record, and nothing it
+  // returns is stored.
+  const [isRetry, setIsRetry] = useState(false);
+  const retryRef = useRef(false);
+  const recordsNothing = (): boolean => retryRef.current;
+  // The retry's own phrases, so its header and bar count the retry, not the
+  // sitting it came from.
+  const retryKeysRef = useRef<ReadonlySet<string> | null>(null);
 
   useEffect(() => {
     if (practice === undefined || practice === 'invalid') return;
@@ -1160,6 +385,7 @@ export function DrillScreen({
    * A write for an account that has since changed is refused by the store.
    */
   const savePractice = useCallback((state: DrillSessionState) => {
+    if (recordsNothing()) return;
     const held = practiceRef.current;
     if (held === null || scopeGeneration() !== held.scope) return;
     for (const exercise of state.queue) if (!held.exercises.some((e) => e.id === exercise.id)) held.exercises.push(exercise);
@@ -1277,7 +503,7 @@ export function DrillScreen({
    * rest simply stay due.
    */
   const persistGrades = useCallback((state: DrillSessionState) => {
-    if (persistedRef.current) return;
+    if (recordsNothing() || persistedRef.current) return;
     const held = practiceRef.current;
     if (held !== null) {
       // A practice sitting that is not finished is saved, never graded: Leave
@@ -1352,7 +578,9 @@ export function DrillScreen({
       setFeedback(fb);
       const facts = { kind: current.kind, combo: comboAfter(comboRef.current, fb.verdict, current.kind), turn: session.answered.length, reason: missReason(current, fb.closest),
         oneOfMany: current.kind === 'appropriate-reply' && current.acceptableIndexes.length > 1,
-        answerEnglish: current.kind === 'translate' && current.direction === 'fr-en' };
+        answerEnglish: current.kind === 'translate' && current.direction === 'fr-en',
+        // What the sheet draws beyond its words: a right answer's own line, and the attempt a nearly lights.
+        line: sheetLine(current, value), attempt: String(value) };
       comboRef.current = facts.combo;
       setCombo(facts.combo);
       setSheetFacts(facts);
@@ -1375,6 +603,8 @@ export function DrillScreen({
       if (!current || current.kind !== 'repeat-this') return discardRecording(uri);
       const beat = beatRef.current;
       answer(current.reference);
+      // A retry's take is help, not evidence: it is never sent to be scored.
+      if (recordsNothing()) return discardRecording(uri);
       void consumeRecording(uri, (recorded) => scoreRecordedAttempt(userId, recorded, current.reference)).then(
         (score) => {
           const reason = score?.report.focus?.reason ?? null;
@@ -1491,7 +721,7 @@ export function DrillScreen({
    */
   const keepPhrase = useCallback(
     (exercise: OwnWordsExercise) => {
-      if (keeping || kept) return;
+      if (recordsNothing() || keeping || kept) return;
       setKeeping(true);
       setKeepFailed(false);
       void keepInPhrasebook({ fr: exercise.fr, frWritten: null, en: exercise.en, enLiteral: null, register: 'courant', note: null }, 'conversation')
@@ -1522,6 +752,9 @@ export function DrillScreen({
     const next = pendingRef.current;
     if (next === null) return;
     pendingRef.current = null;
+    // A line the learner asked to hear on the sheet stops with the sheet, so
+    // it never plays over the next exercise's own audio.
+    tutorVoice.stop();
     beatRef.current += 1;
     setFeedback(null);
     setSheetFacts(null);
@@ -1557,6 +790,7 @@ export function DrillScreen({
   // card, which gives one celebrate() once its numbers are read back.
   useEffect(() => {
     if (!session?.finished || !node || finishedRef.current) return;
+    if (recordsNothing()) return;
     if (!hasAnsweredWork(session)) return;
     finishedRef.current = true;
     onFinished?.(node.id);
@@ -1568,6 +802,7 @@ export function DrillScreen({
   useEffect(() => {
     const held = practiceRef.current;
     if (!session?.finished || held === null || finishedRef.current) return;
+    if (recordsNothing()) return;
     if (!hasAnsweredWork(session)) return;
     finishedRef.current = true;
     const answeredKeys = new Set(session.answered.map((a) => a.phraseKey));
@@ -1603,6 +838,28 @@ export function DrillScreen({
       .finally(() => setPracticeRetrying(false));
   }, [session, practiceRetrying, finishPractice, onPracticeFinished]);
 
+  /**
+   * Start the assisted retry in place (LEARN-018). The first sitting has
+   * already persisted, so from here `recordsNothing` holds every write shut.
+   */
+  const startRetry = useCallback((retry: RetrySitting) => {
+    retryRef.current = true;
+    retryKeysRef.current = new Set(retry.phraseKeys);
+    setIsRetry(true);
+    tutorVoice.stop();
+    pendingRef.current = null;
+    beatRef.current += 1;
+    comboRef.current = 0;
+    setCombo(0);
+    setFeedback(null);
+    setSheetFacts(null);
+    setFocusLine(null);
+    setOwnWords(null);
+    setTyped('');
+    setAssembled([]);
+    setSession({ queue: retry.exercises, missesById: {}, answered: [], startedAt: Date.now(), finished: false });
+  }, []);
+
   const finishAndLeave = useCallback(() => {
     tutorVoice.stop();
     // Mid-beat, the answered exercise lives in pendingRef; count it.
@@ -1637,7 +894,7 @@ export function DrillScreen({
     setSession(quiet);
     setTyped('');
     setAssembled([]);
-    void setMicSuppressed(new Date(Date.now() + MIC_SUPPRESS_MS).toISOString());
+    if (!recordsNothing()) void setMicSuppressed(new Date(Date.now() + MIC_SUPPRESS_MS).toISOString());
     // A practice sitting that went quiet resumes quiet, on its twins' ids.
     micSuppressedRef.current = true;
     savePractice(quiet);
@@ -1654,16 +911,20 @@ export function DrillScreen({
   // Where the learner is in a bounded practice sitting, in words, in the
   // header's quiet centre slot: never a score, a fraction or a bar, and never
   // drawn for an ordinary review sitting, whose queue is not bounded this way.
-  const progress = practice !== undefined && practiceRef.current !== null ? sittingProgress(session, practiceRef.current.targets) : null;
+  const keys = retryKeysRef.current;
+  const targets = practiceRef.current === null ? null : keys === null ? practiceRef.current.targets : practiceRef.current.targets.filter((t) => keys.has(t.phraseKey));
+  const progress = practice !== undefined && targets !== null ? sittingProgress(session, targets) : null;
   // The living bar: position only, never a digit, filled by phrases settled.
   // During a sheet it reads the state the answer just made, so the bar moves
   // with the answer rather than after it.
   const placed = pendingRef.current ?? session;
-  const fill = practice !== undefined && practiceRef.current !== null ? sittingFill(placed, practiceRef.current.targets) : queueFill(placed);
-  // 2026-10-21 UI-008, artboard B-Drill: the close disc, the 8pt bar where
+  const fill = practice !== undefined && targets !== null ? sittingFill(placed, targets) : queueFill(placed);
+  // 2026-10-21 UI-008, artboard B-Drill: the close disc, the bar where
   // Phase B already draws it, and the words beside it only in a practice
   // sitting ("Phrase four of eight"). The title names the row for a screen
   // reader; the exercise's own eyebrow says what it is on glass.
+  // 2026-10-31 drill B v2 (UI-016): DrillFrame draws this one header on the
+  // stage band, over the kind's family colour.
   const header = (
     <ScreenHeader
       leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills', close: true }}
@@ -1674,6 +935,9 @@ export function DrillScreen({
       ) : undefined}
     />
   );
+  // What every kind's DrillFrame takes from the screen: the header, what leads
+  // the answer area, and the pinned footer.
+  const shell = (lead?: ReactNode, sheetNode?: ReactNode): DrillShell => ({ header, lead, sheet: sheetNode });
   // The one door on every terminal card, built once for the same reason as
   // the header: each terminal branch shows exactly one way out, and it is this
   // one. `finishAndLeave` and `leave` are the same callback.
@@ -1742,7 +1006,6 @@ export function DrillScreen({
   if (holding !== null) {
     return (
       <DrillClock.Provider value={clock}>
-      <ScrollScreen avoidKeyboard ground={bt.lavender} header={header}>
         <OwnWordsView
           key={holding.exercise.id}
           exercise={holding.exercise}
@@ -1752,14 +1015,28 @@ export function DrillScreen({
           onTake={recordOwnWords}
           quiet={micSuppressedRef.current}
           busy={judging}
-          outcome={holding}
+          outcome={isRetry ? { ...holding, keep: false } : holding}
           onKeep={() => keepPhrase(holding.exercise)}
           keeping={keeping}
           kept={kept}
           keepFailed={keepFailed}
+          shell={shell()}
         />
-      </ScrollScreen>
       </DrillClock.Provider>
+    );
+  }
+
+  // The assisted retry's own end (LEARN-018): `retryEnd()` says what it shows,
+  // which is no first-try tile, no XP and Done only. Calm: nothing settled,
+  // so no delta, no confetti and no marks, because a right answer here was help.
+  if (isRetry && session.finished) {
+    const shown = retryEnd();
+    return (
+      <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: finishAndLeave }} />}>
+        <View style={ds.ending}>
+          <EndScene count={shown.firstTry} title={DRILL_END.title} sub={DRILL_END.deck} />
+        </View>
+      </ScrollScreen>
     );
   }
 
@@ -1799,20 +1076,23 @@ export function DrillScreen({
       practiceOutcomes({ state: session, targets: held.targets, exercises: held.exercises, exposed: held.exposed, assisted }),
     );
     const card = practiceEndCard(practiceSaved, statement);
+    // The assisted retry is offered only once the sitting is safe: a save
+    // still to retry comes first, and a retry would only blur it.
+    const again = card.retry ? null : retrySitting(session.answered, held.exercises, { isRetry });
+    const againLabel = again === null ? null : retryButtonLabel(again.phraseKeys.length);
     return (
-      <ScrollScreen footer={doneFooter}>
+      <ScrollScreen footer={<EndActions retry={again !== null && againLabel !== null ? { label: againLabel, onPress: () => startRetry(again) } : null} done={{ label: 'Done', onPress: finishAndLeave }} />}>
         <View style={ds.ending}>
-          {/* The end card in place, only from the delta the settle read back.
-              A sitting kept to finish saving, or not saved, has no delta and
-              shows none: its statement below says what is true. */}
-          {end.state === 'settled' ? <EndCard delta={end.delta} release={release} /> : !card.retry && <FinishFelt />}
-          <Card>
-            <Text style={[type.title, { color: bt.text }]}>{card.title}</Text>
-            <Text style={[type.small, { color: bt.muted, marginTop: space(3) }]}>{card.body}</Text>
+          {/* The end scene in place, its numbers only from the delta the settle
+              read back. A sitting kept to finish saving, or not saved, has no
+              delta and draws the calm scene: its statement says what is true. */}
+          {end.state === 'settled' ? null : !card.retry && <FinishFelt />}
+          <EndScene delta={end.state === 'settled' ? end.delta : null} release={release} title={card.title} sub={card.body}
+            phrases={card.retry ? [] : endPhrases(session.answered, held.exercises)}>
             {/* Nothing is safe yet, so the one thing to offer is the same save
                 again. The store replays the frozen plan, so it awards nothing twice. */}
             {card.retry && (
-              <View style={{ marginTop: space(3), alignItems: 'flex-start' }}>
+              <View style={{ alignItems: 'flex-start' }}>
                 <IconAction layout="inline" icon="refresh" busy={practiceRetrying}
                   label={practiceRetrying ? PRACTICE_END.retrying : PRACTICE_END.retry}
 
@@ -1821,7 +1101,7 @@ export function DrillScreen({
                 />
               </View>
             )}
-          </Card>
+          </EndScene>
         </View>
       </ScrollScreen>
     );
@@ -1855,22 +1135,24 @@ export function DrillScreen({
   // F775). Terminal, so Done alone, no back header.
   if (session.finished) {
     const s = summariseDrill(session);
+    const sub = s.unresolved > 0 ? DRILL_END.comingBack : DRILL_END.deck;
+    const phrases = endPhrases(session.answered, askedRef.current);
+    // "Practise the one still settling" (LEARN-018), once the end has spoken.
+    const again = end.state === 'waiting' ? null : retrySitting(session.answered, askedRef.current, { isRetry });
+    const againLabel = again === null ? null : retryButtonLabel(again.phraseKeys.length);
     return (
-      <ScrollScreen footer={doneFooter}>
+      <ScrollScreen footer={<EndActions retry={again !== null && againLabel !== null ? { label: againLabel, onPress: () => startRetry(again) } : null} done={{ label: 'Done', onPress: finishAndLeave }} />}>
         <View style={ds.ending}>
           {end.state === 'settled' ? (
-            <EndCard delta={end.delta} count={firstTry(session).right} release={release} />
+            <EndScene delta={end.delta} count={firstTry(session).right} countOf={session.answered.length} release={release} title={DRILL_END.title} sub={sub} phrases={phrases} />
           ) : end.state === 'waiting' ? (
             <ActivityIndicator color={bt.muted} />
           ) : (
-            <Card>
+            <>
               <FinishFelt />
-              <Text style={[type.title, { color: bt.text }]}>{DRILL_END.finished}</Text>
-            </Card>
+              <EndScene title={DRILL_END.title} sub={sub} phrases={phrases} />
+            </>
           )}
-          <Text style={[type.small, { color: bt.muted }]}>
-            {s.unresolved > 0 ? DRILL_END.comingBack : DRILL_END.deck}
-          </Text>
         </View>
       </ScrollScreen>
     );
@@ -1880,42 +1162,46 @@ export function DrillScreen({
   if (!exercise) return null; // Unreachable: an unfinished session has a head.
   const locked = feedback !== null;
 
+  // The frame every kind stands in: the moment card leads the answer area,
+  // and the answer sheet, while one is up, takes the foot from the kind's Check.
+  const frame = shell(
+    node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) ? <MomentCard moment={node.moment} /> : undefined,
+    // The sheet draws no mark on a miss, and that is the rule rather than an
+    // oversight: a mid-session message may not scold, and a drawing scolds
+    // louder than a word. The scorer's whole say is its one muted line,
+    // core's focus reason, already learner-safe: never a score.
+    sheet !== null && sheetFacts !== null ? (
+      <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} kind={sheetFacts.kind} line={sheetFacts.line} />
+    ) : null,
+  );
+  // A nearly lights the letters the learner missed in the field above the sheet.
+  // A choose kind's pick, while its sheet is up, so its tile shows right or picked (drill/tileLook.ts).
+  const pick = sheetFacts !== null && feedback !== null ? choosePick(sheetFacts.attempt, feedback.verdict) : null;
+  const lit = sheet !== null && sheet.tone === 'nearly' && feedback?.closest != null && sheetFacts !== null ? litLetters(sheetFacts.attempt, feedback.closest) : null;
+
   return (
     <DrillClock.Provider value={clock}>
-    <ScrollScreen
-      avoidKeyboard
-      ground={bt.lavender}
-      header={header}
-      footer={
-        // Reserved height, so the card never jumps when a sheet arrives. The
-        // sheet draws no mark on a miss, and that is the rule rather than an
-        // oversight: a mid-session message may not scold, and a drawing scolds
-        // louder than a word. The scorer's whole say is its one muted line,
-        // core's focus reason, already learner-safe: never a score.
-        <View style={ds.feedbackArea}>
-          {sheet !== null && <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} />}
-        </View>
-      }
-    >
-      {node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) && <MomentCard moment={node.moment} />}
+    <LitField.Provider value={lit}>
       {exercise.kind === 'fill-blank' && (
-        <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+        <FillBlankView key={exercise.id} exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
       )}
-      {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} />}
+      {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} pick={pick} shell={frame} />}
       {exercise.kind === 'appropriate-reply' && (
-        <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} />
+        <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} pick={pick} shell={frame} />
       )}
       {exercise.kind === 'tap-translate' && (
         <TapTranslateView
+          key={exercise.id}
           exercise={exercise}
           assembled={assembled}
           onAssembled={setAssembled}
           onAnswer={answer}
           locked={locked}
+          shell={frame}
         />
       )}
       {exercise.kind === 'listen-type' && (
-        <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+        <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
       )}
       {exercise.kind === 'translate' && (
         <TranslationView
@@ -1925,10 +1211,11 @@ export function DrillScreen({
           onAnswer={answer}
           locked={locked}
           help={practice !== undefined ? { shown: assisted.includes(exercise.id), onShow: () => showPhrase(exercise.id) } : undefined}
+          shell={frame}
         />
       )}
       {exercise.kind === 'repeat-this' && (
-        <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} />
+        <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} shell={frame} />
       )}
       {exercise.kind === 'own-words' && (
         <OwnWordsView
@@ -1940,14 +1227,15 @@ export function DrillScreen({
           onTake={recordOwnWords}
           quiet={micSuppressedRef.current}
           busy={judging}
-          outcome={ownWords}
+          outcome={isRetry && ownWords !== null ? { ...ownWords, keep: false } : ownWords}
           onKeep={() => keepPhrase(exercise)}
           keeping={keeping}
           kept={kept}
           keepFailed={keepFailed}
+          shell={frame}
         />
       )}
-    </ScrollScreen>
+    </LitField.Provider>
     </DrillClock.Provider>
   );
 }
@@ -1955,119 +1243,7 @@ export function DrillScreen({
 function makeDs(bt: B) {
   return StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  feedbackArea: { minHeight: HIT + 8, justifyContent: 'flex-end' },
-  // The own-words outcome's check: a white disc, so it reads on the mint card
-  // as well as on paper.
-  verdictMark: { width: 28, height: 28, borderRadius: 14, backgroundColor: bt.card, alignItems: 'center', justifyContent: 'center' },
   // A finished sitting's end card and the words under it.
   ending: { gap: space(4) },
-
-  // The exercise card: the SessionView main-card anatomy, content centred.
-  // 2026-10-21 UI-008, sim check: no top border. The old 5pt accent edge drew
-  // as an ink strip across the card's top on the lavender ground.
-  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center' },
-  promptCard: { minHeight: 260, justifyContent: 'space-between' },
-
-  // The chip anatomy, for choices that are bare words: white paper under a
-  // paper hairline, the notebook's one surface, with no tint.
-  choice: {
-    minHeight: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: bt.card,
-    borderWidth: HAIRLINE,
-    borderColor: bt.field,
-    borderRadius: radius.chip,
-    paddingVertical: space(2),
-    paddingHorizontal: space(3.5),
-  },
-  chipPressed: { opacity: 0.6 },
-
-  // The own-words outcome: the verdict beside its mark, then whatever the
-  // judge gave the learner to read. It is a card rather than a timed line
-  // because a better way to say something is worth more than 1.6 seconds.
-  outcome: { gap: space(2.5) },
-  outcomeRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-
-  // The paper text field, in the Field anatomy. Type styles from the theme,
-  // minus lineHeight, which clips single-line TextInputs on iOS.
-  input: {
-    minHeight: HIT + 8,
-    backgroundColor: bt.card,
-    borderWidth: 1.5,
-    borderColor: bt.field,
-    borderRadius: radius.input,
-    paddingVertical: space(3),
-    paddingHorizontal: space(4),
-    color: bt.text,
-    fontFamily: font.regular,
-    fontSize: 16,
-  },
-
-  // B-Drill: the build, gap 18; the answer box (white, radius 22, padding 14,
-  // min-height 120, 2pt periwinkle) and its brand tiles (46, radius 14, padding 0 14).
-  build: { gap: 18 },
-  answerBox: {
-    minHeight: 120,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignContent: 'flex-start',
-    gap: 8,
-    backgroundColor: bt.card,
-    borderWidth: 2,
-    borderColor: bt.periwinkle,
-    borderRadius: 22,
-    padding: 14,
-  },
-  placed: { minHeight: 46, borderRadius: 14, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: bt.brand },
-  // The bank: centred, wrapping, gap 8. A placed word leaves a 2pt dashed slot;
-  // a free word is a white tile on a 3pt ring-coloured lip.
-  bank: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
-  slot: { height: 46, borderRadius: 14, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt.ring, justifyContent: 'center' },
-  tileLip: { borderRadius: 14, backgroundColor: bt.ring, paddingBottom: 3 },
-  tile: { height: 46, borderRadius: 14, paddingHorizontal: 14, justifyContent: 'center', backgroundColor: bt.card },
-  tokenPool: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-  token: {
-    minHeight: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: bt.card,
-    borderWidth: HAIRLINE,
-    borderColor: bt.field,
-    borderRadius: radius.chip,
-    paddingVertical: space(2),
-    paddingHorizontal: space(3),
-  },
-  tokenUsed: { backgroundColor: 'transparent' },
-
-  listenButton: {
-    marginTop: space(3.5),
-    minHeight: HIT + 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space(2.5),
-    backgroundColor: bt.card,
-    // A paper hairline, not an ink outline (notebook Phase 4, 2026-09-27):
-    // the ink is kept for the one primary pill.
-    borderWidth: HAIRLINE,
-    borderColor: bt.field,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(5),
-  },
-  hear: {
-    marginTop: space(3),
-    minHeight: HIT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space(2),
-  },
-
-  speakBlock: { alignItems: 'center', gap: space(2) },
-  speakCircle: { width: SPEAK, height: SPEAK, alignItems: 'center', justifyContent: 'center' },
-  speakRing: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
-  saidIt: { alignSelf: 'stretch' },
-  noMic: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(4) },
 });
 }

@@ -188,6 +188,8 @@ function mount(path: string, exported: string, platform: Platform) {
     '../sound/audioSession.ts': { enterRecording: async () => {}, leaveRecording: async () => {} },
     '../sound/audioFocus.ts': { holdMic: () => { mutes++; let released = false; return () => { if (!released) mutes--; released = true; }; } },
     '../motion/LevelRing.tsx': { LevelRing: 'LevelRing' },
+    // Drill B v2: the drill's take draws its circle inside the one mic.
+    './SpeakMic.tsx': { SpeakMic: 'SpeakMic' },
     '../speech/useRecorderLevel.ts': { useRecorderLevel: () => ({ metered: false, level: 0 }) },
     './firstRun/copy.ts': { FIRST_RUN_COPY: {}, TAKE_CAP_SECONDS: 20 },
     './firstRun/micLevel.ts': { meterLevel: () => 0 },

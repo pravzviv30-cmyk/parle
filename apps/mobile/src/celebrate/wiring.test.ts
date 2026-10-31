@@ -63,7 +63,7 @@ describe('the celebration host in the app — F743', () => {
     const stop = region(src('tutor/SafetyStopView.tsx'), 'export function SafetyStopView(');
     assert.match(stop, /useEffect\(\(\) => suppressCelebrations\(\), \[\]\);/, 'the safety stop does not clear and refuse celebrations (F137)');
     assert.doesNotMatch(region(src('tutor/SafetyStopView.tsx'), 'export function SafetyBanner('), /suppressCelebrations/, 'a redirect, which ends nothing, suppressed celebrations');
-    assert.match(src('celebrate/EndCard.tsx'), /useEffect\(\(\) => holdCelebrations\(\), \[\]\);/, 'an end card on screen does not hold the queue');
+    assert.match(src('celebrate/EndScene.tsx'), /useEffect\(\(\) => holdCelebrations\(\), \[\]\);/, 'an end card on screen does not hold the queue');
     const host = src('celebrate/CelebrationHost.tsx');
     assert.match(host, /onUserScopeReset\(\(\) => queue\.reset\(\)\)/, 'a sign-out does not clear the queue');
     assert.match(host, /AppState\.addEventListener\('change'/, 'the queue does not hold while the app is away');
@@ -97,7 +97,7 @@ describe('the celebration host in the app — F743', () => {
     assert.match(frame, /const ready = final \|\| reader === true \|\| waited;/, 'Continue waits for a screen reader user or under reduced motion');
     assert.match(frame, /label=\{GAME_COPY\.continue\} onPress=\{next\} disabled=\{!ready\}/);
     assert.match(frame, /const final = useLatch\(reduced \|\| landed\);/, 'reduced motion does not land on the final frame, or turning it off replays the card');
-    assert.match(src('celebrate/EndCard.tsx'), /const final = useLatch\(reduced \|\| !first\);/, 'turning Reduce Motion off replays an end card');
+    assert.match(src('celebrate/EndScene.tsx'), /const final = useLatch\(reduced \|\| !first\);/, 'turning Reduce Motion off replays an end card');
     assert.match(src('celebrate/Toast.tsx'), /const still = useLatch\(answered === true\);/, 'turning Reduce Motion off replays a toast and its sound');
     assert.equal((frame.match(/onContinue\(/g) ?? []).length, 1, 'something other than Continue moves the learner on, so a takeover could dismiss itself');
     assert.match(frame, /export const COLUMN_MAX = 520;/, 'the column is not held to 520 on an iPad');
@@ -152,7 +152,7 @@ describe('the celebration host in the app — F743', () => {
     assert.match(src('celebrate/ConfettiStill.tsx'), /<Illustration name="celebrate-confetti"/, 'the confetti drawing no longer reaches a screen (J14, F599)');
     const confetti = src('celebrate/Confetti.tsx');
     assert.match(confetti, /if \(final \|\| fallen\) return reduced \|\| web \? <ConfettiStill \/> : null;/, 'reduced motion or the web lost the still final frame');
-    for (const path of ['templates/StreakExtended.tsx', 'templates/StreakMilestone.tsx', 'templates/LevelUp.tsx', 'templates/PurchaseConfirmed.tsx', 'EndCard.tsx']) {
+    for (const path of ['templates/StreakExtended.tsx', 'templates/StreakMilestone.tsx', 'templates/LevelUp.tsx', 'templates/PurchaseConfirmed.tsx', 'EndScene.tsx']) {
       assert.match(src(`celebrate/${path}`), /<Confetti\b/, `${path} throws no confetti`);
     }
   });

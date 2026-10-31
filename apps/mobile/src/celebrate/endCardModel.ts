@@ -1,5 +1,5 @@
 /**
- * What an end card shows, decided apart from drawing it (README Part 6: the
+ * What an end scene's tiles and rows show (`celebrate/EndScene.tsx`), decided apart from drawing it (README Part 6: the
  * finished sitting's numbers sit in place on the page, never in a takeover).
  *
  * Every number is the GameDelta's, which `game/settle.ts` read back from disk
@@ -27,6 +27,8 @@ export interface EndTile {
   /** The number the tile counts up to. */
   readonly value: number;
   readonly label: string;
+  /** The count's whole, drawn after it ("4/5" first try), when the screen hands one over. */
+  readonly of?: number;
 }
 
 export interface EndGoal {
@@ -68,11 +70,18 @@ export function xpText(xp: number): string {
   return `+${Math.max(0, Math.floor(xp))}`;
 }
 
+/** A tile's figure at `value`: the XP and Time words, or the count with its whole ("4/5"). */
+export function tileText(tile: EndTile, value: number): string {
+  if (tile.id === 'xp') return xpText(value);
+  if (tile.id === 'time') return timeText(value);
+  return tile.of === undefined ? String(value) : `${value}/${tile.of}`;
+}
+
 const fraction = (minutes: number, target: number): number => Math.min(1, Math.max(0, minutes / target));
 
 export function endCardView(
   delta: GameDelta,
-  options: { readonly count?: number | null; readonly tutorName?: string | null } = {},
+  options: { readonly count?: number | null; readonly countOf?: number | null; readonly tutorName?: string | null } = {},
 ): EndCardView {
   const tiles: EndTile[] = [];
   // The XP this sitting itself credited: the activity XP the cap let through and
@@ -84,7 +93,9 @@ export function endCardView(
   if (seconds > 0) tiles.push({ id: 'time', value: seconds, label: GAME_COPY.endCard.timeLabel });
   const count = options.count;
   if (typeof count === 'number' && Number.isSafeInteger(count) && count > 0) {
-    tiles.push({ id: 'count', value: count, label: GAME_COPY.endCard.countLabel[delta.source] });
+    const of = options.countOf;
+    const whole = typeof of === 'number' && Number.isSafeInteger(of) && of >= count ? { of } : {};
+    tiles.push({ id: 'count', value: count, label: GAME_COPY.endCard.countLabel[delta.source], ...whole });
   }
 
   const target = delta.goal.target;

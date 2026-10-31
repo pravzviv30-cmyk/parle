@@ -20,6 +20,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { drillSource } from '../testing/drillSource.ts';
 
 const read = (relative: string): string =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -152,7 +153,7 @@ describe('a sitting says how much of it was active learning — Phase 1B', () =>
   });
 
   test('drill: both completion paths carry active time, and the resume record saves and restores it', () => {
-    const body = flat('../DrillScreen.tsx');
+    const body = stripComments(drillSource()).replace(/\s+/g, ' ');
     const complete = body.indexOf('completePracticeSitting(');
     assert.ok(complete >= 0, 'the drill no longer completes practice sittings, so this test is stale');
     assert.match(body.slice(complete, complete + 600), /activeMs:/, 'a practice sitting completes without its active time');

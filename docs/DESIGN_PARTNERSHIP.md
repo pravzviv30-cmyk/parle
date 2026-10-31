@@ -83,6 +83,9 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-29 | Direction D accepted as drawn (including the sun mark on the learner's lines) when the founder asked for its build spec with dark mode. Recorded as UI-014 (main's UI-013 is Stream E's). | Founder, build spec request |
 | 2026-10-30 | Today: A's morning sky (a sky that follows the hour, Bonsoir after dark, the greeting and profile in the sky, one hero card that is the first stop of today's path) over Today as it ships (the rest of the path, Today's three, Coming up and the week, flattened), keeping the icon tab bar. Not taken: A's sideways rail (it hides the third item) and text-only tabs. Recorded as UI-015. | Founder, mix question on the Today direction board |
 | 2026-10-31 | The stats become chunky game-style tiles: a solid tile on a darker lip like a pressable game button, a coloured coin, a big number and one word. With no streak the tile says "Start" over "today", under a minute is "<1" with "/10", and the nudge sits in the sky. | Founder, board comment (version 18) and the build session's three questions |
+| 2026-10-31 | Drill and practice feedback: B (sheet and coins) picked, on every practice page, made more alive. | Founder, drill board |
+| 2026-10-31 | Cloud appears at moments only: the right sheet, listening on speak drills, endings. Never on the question. | Founder, drill board |
+| 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -97,7 +100,7 @@ Working principles drawn from these (to confirm on the first screens):
 |---|---|---|
 | 1 | Live conversation room | Built on `claude/live-room-d` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)): gate green at 7,319, two verifier rounds to HOLDS, live replay typed and spoken, native simulator checked; the founder approved the 144 short goal labels as drafted on 2026-10-31 and the room is landing on main |
 | 2 | Today | The A × Today mix accepted (UI-015, founder 2026-10-30) with chunky stat tiles (2026-10-31); built on `claude/today-sky` from [changes/today-sky.md](changes/today-sky.md) |
-| 3 | Drill and practice feedback | Candidate |
+| 3 | Drill and practice feedback | B v2 picked and approved on the [drill board](https://claude.ai/artifact/XAZR2pptSi5YgH4ncZTXiK) (page "B v2, every surface"); built on `claude/drill-b` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)): gate green at 7,449, four verifier rounds to HOLDS, native simulator and a live run checked; landing |
 | 4 | Journey | Candidate |
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type

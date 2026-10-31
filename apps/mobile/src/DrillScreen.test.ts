@@ -39,6 +39,7 @@ import {
 
 import { gradeCards, loadDeck } from './review/store.ts';
 import { setActiveUser } from './storage/scope.ts';
+import { drillSource, readSrc } from './testing/drillSource.ts';
 import { JUDGE_UNAVAILABLE, OWN_WORDS_HINT, OWN_WORDS_PROMPT } from './drill/ownWordsCopy.ts';
 
 const NOW = new Date(2026, 7, 20, 14).getTime();
@@ -53,13 +54,18 @@ function stripComments(source: string): string {
 
 describe('a used word stays readable in the sentence bank — F593', () => {
   test('a word already placed stays readable on the ground it is left on', () => {
-    const screen = stripComments(read('./DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     // 2026-10-21 UI-008, artboard B-Drill: a placed word now reads in its brand
     // tile in the answer box, and leaves a dashed slot its own size in the bank,
     // so the bank never jumps and the word is never faint ink on a ground.
-    assert.match(screen, /style=\{\[bType\.bold17, \{ color: bt\.onBrand \}\]\}>\{exercise\.tokens\[tokenIndex\]\}/, 'a placed word is not a readable brand tile');
-    assert.match(screen, /\{used \? \( <View style=\{ds\.slot\}>/, 'a placed word leaves no slot in the bank');
-    assert.match(screen, /slot: \{ height: 46, borderRadius: 14, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt\.ring/);
+    // Drill B v2 T5 (UI-016): the placed word is the landed brand pill in the
+    // answer box, and the bank's chip leaves a dashed slot the chip's size.
+    assert.match(screen, /<LandedWord big word=\{exercise\.tokens\[tokenIndex\] \?\? ''\} \/>/, 'a placed word is not a readable brand tile');
+    assert.match(screen, /style=\{\[bType\.bold17, \{ color: bt\.onBrand \}\]\}>\{word\}/, 'a placed word is not readable on its brand fill');
+    assert.match(screen, /landed: \{[^}]*backgroundColor: bt\.brand/, 'a placed word is not on the brand fill');
+    assert.match(screen, /placed=\{assembled\.includes\(i\)\}/, 'a placed word leaves no slot in the bank');
+    assert.match(screen, /if \(placed\) \{ return \( <View style=\{ds\.slot\}/, 'a placed word leaves no slot in the bank');
+    assert.match(screen, /slot: \{ minHeight: 46, marginBottom: LIP_SIZES\.chip\.lip, borderRadius: LIP_SIZES\.chip\.radius, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt\.ring/);
   });
 });
 
@@ -184,7 +190,7 @@ describe('a drill sitting reaches the deck with everything it proved — F128', 
     // The one-line regression that started this: a destructure that names two
     // of three fields silently drops the third, and nothing about the call
     // looks wrong afterwards.
-    const screen = stripComments(read('./DrillScreen.tsx'));
+    const screen = stripComments(drillSource());
     const map = screen.slice(screen.indexOf('gradeWritesRef.current = gradeCards('), screen.indexOf('recordActivity('));
 
     assert.ok(map.length > 0, 'persistGrades moved; this test is reading the wrong thing');
@@ -209,7 +215,7 @@ describe('a drill sitting reaches the deck with everything it proved — F128', 
  * `match` prints the whole thirty-thousand-character file at whoever broke it.
  */
 describe('the empty drill bank draws the scene the art registry promises it — F158', () => {
-  const screen = stripComments(read('./DrillScreen.tsx'));
+  const screen = stripComments(drillSource());
 
   /**
    * The built-empty branch alone. The end card sits directly under it, renders
@@ -260,7 +266,11 @@ describe('the empty drill bank draws the scene the art registry promises it — 
  * source, which is what `docs/TESTING.md` allows and names.
  * =========================================================================== */
 
-const SCREEN = stripComments(read('./DrillScreen.tsx'));
+const SCREEN = stripComments(drillSource());
+/** The own-words view, which now has a file of its own (drill/kinds). */
+const OWN_WORDS_VIEW = stripComments(readSrc('drill/kinds/OwnWordsView.tsx'));
+/** The write kinds' file, where TranslationView now lives. */
+const WRITE = stripComments(readSrc('drill/kinds/write.tsx'));
 
 /** The own-words Check handler alone. Sliced, so a match elsewhere cannot pass. */
 const checkBlock = (() => {
@@ -333,7 +343,7 @@ const OWN_WORDS = ownWordsFrom(
 
 describe('the drill asks for the learner’s own French — F581', () => {
   test('feedback keeps the learner’s thought visible beside a supported alternative', () => {
-    const view = SCREEN.slice(SCREEN.indexOf('function OwnWordsView('), SCREEN.indexOf('export function DrillScreen('));
+    const view = OWN_WORDS_VIEW;
     assert.match(view, /\{outcome\.attempt !== null && <View/, 'the learner’s checked words disappear when the feedback arrives');
     assert.match(view, /\{outcome\.attempt\}/, 'the feedback cannot be compared with the learner’s words');
     assert.match(view, /\{outcome\.note\}/, 'the judge’s supported reason is hidden');
@@ -348,7 +358,7 @@ describe('the drill asks for the learner’s own French — F581', () => {
     assert.ok(OWN_WORDS.mustKeep.length > 0, 'nothing says what the learner’s own words have to get across');
 
     // A recording supplies editable text, with the same typed fallback.
-    const view = SCREEN.slice(SCREEN.indexOf('function OwnWordsView('), SCREEN.indexOf('export function DrillScreen('));
+    const view = OWN_WORDS_VIEW;
     assert.ok(view.length > 0, 'the own-words view moved; this test is reading the wrong thing');
     assert.match(view, /placeholder=\{OWN_WORDS_PROMPT\}/, 'the own-words field does not ask for the learner’s own French');
     assert.match(view, /\{OWN_WORDS_HINT\}/, 'the card never tells the learner to say it out loud first');
@@ -594,7 +604,8 @@ describe('a practice sitting says where the learner is, and nothing about how it
     const flatScreen = SCREEN.replace(/\s+/g, ' ');
     assert.match(
       flatScreen,
-      /const progress = practice !== undefined && practiceRef\.current !== null \? sittingProgress\(session, practiceRef\.current\.targets\) : null;/,
+      // The targets are the sitting's own, narrowed to the retry's phrases in a LEARN-018 retry.
+      /const targets = practiceRef\.current === null \? null : keys === null \? practiceRef\.current\.targets : practiceRef\.current\.targets\.filter\(\(t\) => keys\.has\(t\.phraseKey\)\); const progress = practice !== undefined && targets !== null \? sittingProgress\(session, targets\) : null;/,
       'the strip is drawn outside a practice sitting, or from something other than its own targets',
     );
     // In the header's centre slot, which scrolls with nothing and never
@@ -611,7 +622,7 @@ describe('a practice sitting says where the learner is, and nothing about how it
 
 describe('help in a practice sitting: the known phrase, recorded so it is never recall', () => {
   test('only a practice sitting offers it, only on an English-to-French ask, and it shows the exercise\'s own line', () => {
-    const view = SCREEN.slice(SCREEN.indexOf('function TranslationView('), SCREEN.indexOf('function RepeatThisView('));
+    const view = WRITE.slice(WRITE.indexOf('function TranslationView('));
     assert.match(view, /const canHelp = help !== undefined && !isFrenchPrompt;/, 'help is offered where the French is already on screen, or outside practice');
     assert.match(view, /\{canHelp && help\.shown && \(/);
     assert.match(view, /\{exercise\.fr\}/, 'the help shows something other than the exercise\'s own French line');
@@ -639,17 +650,21 @@ describe('help in a practice sitting: the known phrase, recorded so it is never 
 // 2026-10-21 UI-008, simulator check of the Drill in light and dark.
 describe('the drill draws no stray strip and keeps its end figures on one line', () => {
   test('no exercise card carries a top border, which drew as an ink strip across its top', () => {
-    const screen = stripComments(read('./DrillScreen.tsx'));
-    const card = /exCard: \{([^}]*)\}/.exec(screen);
-    assert.ok(card, 'the exercise card style moved; this test is stale');
-    assert.doesNotMatch(card[1]!, /borderTop/, 'the exercise card draws a top edge again');
+    // Drill B v2 (UI-016) retired the exCard style with the card it named: the
+    // kinds now stand in DrillFrame's stage band. The intent stays: nothing the
+    // drill draws (drillSource() covers the screen and its kinds) has a top edge.
+    const screen = stripComments(drillSource());
     assert.doesNotMatch(screen, /borderTopWidth/, 'something on the drill draws a top edge');
   });
 
-  test('an end card tile sets its figure at 22/800 with 12pt sides, so "0:30" fits a third of the row', () => {
-    const end = stripComments(read('./celebrate/EndCard.tsx'));
-    assert.match(end, /textStyle=\{\[bType\.section22, \{ color: paper\.ink \}\]\}/, 'the tile figure is set larger than a third of the row holds');
-    assert.match(end, /tile: \{ backgroundColor: paper\.card, borderRadius: radius\.tile, paddingVertical: space\(3\), paddingHorizontal: space\(3\)/);
+  test('an end scene tile sets its figure at 24/800 on the shared stat tile, and stacks when "0:30" would not fit beside its coin', () => {
+    const end = stripComments(read('./celebrate/EndScene.tsx'));
+    // Dark aware: the figure is the theme's text on the theme's card, never paper ink.
+    assert.match(end, /const number = \[bType\.stat24, \{ color: t\.text \}\];/, 'the tile figure is not the stat tiles\' 24/800 in the theme\'s text');
+    assert.match(end, /textStyle=\{number\}/);
+    assert.match(end, /<Tile\s+key=\{tile\.id\}\s+layout=\{layout\}/, 'the end tiles are not the shared stat tile');
+    assert.match(end, /const layout = statTileLayout\(statRowTileWidth\(width > 0 \? width : windowWidth - ROW_MARGINS\), fontScale, viewTiles\.flatMap\(\(tile\) => \[tileText\(tile, tile\.value\), tile\.label\]\)\);/, 'the end tiles no longer fit their own figures, so "0:30" can break');
     assert.doesNotMatch(end, /type\.stat\b/, 'the 36pt stat size is back in a tile');
+    assert.doesNotMatch(end, /\bpaper\.|\bcolour\.|textOn\.|onColour\./, 'the end scene draws a light-only colour');
   });
 });

@@ -13,6 +13,9 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { drillSource, readSrc } from '../testing/drillSource.ts';
+import { MARK, WORDS, contrast } from '../testing/contrast.ts';
+import { b } from '../palette.ts';
 import { answerCurrent, missReason, type DrillExercise, type DrillFeedback, type DrillSessionState } from '@luvani/core';
 
 import { streakGuiltIn } from '../copy/guilt.ts';
@@ -142,16 +145,19 @@ describe('the answer sheet — F759', () => {
     // The drill draws this model and nothing of its own: the sheet's pace is
     // the model's, read with the live screen reader answer, and a sheet that
     // waits carries its own Continue, so the drill's pill count is unchanged.
-    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     assert.match(screen, /const screenReader = useScreenReader\(\);/, 'the drill does not watch the screen reader');
     assert.match(screen, /sheetFor\(\{ verdict: feedback\.verdict, closest: feedback\.closest, advanced: feedback\.advanced, \.\.\.sheetFacts, screenReader \}\)/, 'the sheet on screen is not the model read with the live screen reader');
     assert.match(screen, /const autoAdvanceMs = sheet\?\.autoAdvanceMs \?\? null;/);
     assert.match(screen, /if \(!feedback \|\| autoAdvanceMs === null\) return; const t = setTimeout\(advance, autoAdvanceMs\);/, 'the drill moves on by a clock of its own');
     assert.doesNotMatch(screen, /FEEDBACK_MS/, 'the old fixed beat is back beside the sheet');
-    assert.match(screen, /<AnswerSheet key=\{beatRef\.current\} sheet=\{sheet\} note=\{focusLine\} onContinue=\{advance\} \/>/);
+    // Drill B v2 (UI-016): the sheet also takes the kind (the Notice's stage colour) and a right answer's own line.
+    assert.match(screen, /<AnswerSheet key=\{beatRef\.current\} sheet=\{sheet\} note=\{focusLine\} onContinue=\{advance\} kind=\{sheetFacts\.kind\} line=\{sheetFacts\.line\} \/>/);
     const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
     assert.match(sheetFile, /const waits = sheet\.autoAdvanceMs === null;/);
-    assert.match(sheetFile, /\{waits \? \( <> \{body\} <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} \/> <\/> \)/, 'a sheet that waits has no Continue');
+    // Drill B v2 (UI-016): the body scrolls under the sheet's cap and the
+    // waiting Continue sits after that scroll, pinned at the sheet's foot.
+    assert.match(sheetFile, /<\/ScrollView> \{waits \? <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/> : null\}/, 'a sheet that waits has no Continue, or it scrolls with the body');
   });
 
   test('a missed drill answer shows the right answer and a one-line reason', () => {
@@ -175,7 +181,7 @@ describe('the answer sheet — F759', () => {
     // It is one line, and it reaches a screen reader with the rest.
     assert.doesNotMatch(sheet.reason ?? '', /\n/);
     // The drill hands the current exercise's reason to the sheet, and the sheet draws it.
-    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     assert.match(screen, /reason: missReason\(current, fb\.closest\)/, 'the drill does not hand the sheet a reason');
     const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
     assert.match(sheetFile, /sheet\.reason !== null/, 'the sheet does not draw the reason');
@@ -198,7 +204,7 @@ describe('the answer sheet — F759', () => {
     assert.equal(sheetOf(listened.fb, 'listen-type', false).headline, 'This one comes round again.');
     // One spokenSheet, in the pure module.
     assert.doesNotMatch(stripComments(read('./AnswerSheet.tsx')), /export function spokenSheet/);
-    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     assert.match(screen, /reason: missReason\(current, fb\.closest\)/, 'the reason is not built from the form shown');
   });
 
@@ -243,14 +249,22 @@ describe('the answer sheet — F759', () => {
     const sheetFile = stripComments(read('./AnswerSheet.tsx'));
     assert.match(sheetFile, /\{sheet\.mark && \(/, 'the sheet draws its mark from something other than the model');
     assert.equal((sheetFile.match(/<CheckGlyph\b/g) ?? []).length, 1);
+    // Drill B v2 (UI-016): inside that one mark, Cloud cheers on a right
+    // answer and the check sits beside a nearly; a miss (mark false) has neither.
+    assert.equal((sheetFile.match(/<Cloud\b/g) ?? []).length, 1, 'Cloud is drawn more than once on the sheet');
+    // And Cloud is never on the question: no kind view and not the frame draws it.
+    for (const file of ['./DrillFrame.tsx', './kinds/shared.tsx', './kinds/choose.tsx', './kinds/build.tsx', './kinds/write.tsx', './kinds/RepeatThisView.tsx', './kinds/OwnWordsView.tsx']) {
+      assert.doesNotMatch(read(file), /\bCloud\b.*from|<Cloud\b/, `${file} draws Cloud on the question`);
+    }
+    assert.match(sheetFile.replace(/\s+/g, ' '), /\{sheet\.mark && \( good \? \( .*<Cloud expression="cheer"[^]*?\) : \( .*<CheckGlyph/, 'Cloud is not the right answer\'s mark, or the check is not the nearly\'s');
     assert.doesNotMatch(sheetFile, /from '\.\.\/sound\/sfx\.ts'|from '\.\.\/motion\/haptics\.ts'/, 'the sheet plays something itself');
-    const screen = stripComments(read('../DrillScreen.tsx'));
+    const screen = stripComments(drillSource());
     assert.doesNotMatch(screen, /\bplay\(|from '\.\/sound\/sfx\.ts'/, 'the drill plays a sound beside the sheet');
     assert.doesNotMatch(screen, /\b(arrived|soft|celebrate)\(\)/, 'the drill fires a haptic beside the sheet');
     const answer = screen.slice(screen.indexOf('const answer = useCallback('), screen.indexOf('const spoke = useCallback('));
     assert.match(answer, /fireSheet\(sheetFor\(/, 'an answer does not fire its sheet\'s effects');
     // The own-words card: no mark for a retry or a reveal.
-    const view = screen.slice(screen.indexOf('function OwnWordsView('), screen.indexOf('export function DrillScreen('));
+    const view = stripComments(readSrc('drill/kinds/OwnWordsView.tsx'));
     assert.match(view, /\{look\.mark && \(/, 'the own-words card draws its mark from something other than the decision');
   });
 });
@@ -293,7 +307,7 @@ describe('a waiting answer sheet takes the screen reader with it — F775', () =
     assert.match(sheetFile, /const continueRef = useRef<View>\(null\);/, 'the sheet holds no ref to its Continue');
     assert.match(sheetFile, /const arrival = sheetArrival\(sheet, Platform\.OS === 'web'\);/, 'the sheet decides its arrival some other way');
     assert.match(sheetFile, /const named = continueName\(spoken\);/, 'Continue is not named for the sheet');
-    assert.match(sheetFile, /<PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} \/>/, 'the waiting Continue cannot be focused, or is not named for the sheet');
+    assert.match(sheetFile, /<PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/>/, 'the waiting Continue cannot be focused, or is not named for the sheet');
     const effect = sheetFile.slice(sheetFile.indexOf('useEffect(() => {'), sheetFile.indexOf('}, [spoken, arrival]);'));
     assert.ok(effect.length > 0, 'the arrival effect moved; this test is stale');
     assert.match(effect, /if \(arrival === 'live-region'\) return undefined;/, 'the web moves focus or announces over its own live region');
@@ -320,5 +334,58 @@ describe('a waiting answer sheet takes the screen reader with it — F775', () =
     assert.match(press, /ref=\{setRef\}/, 'the press drops the caller ref');
     assert.match(press, /if \(typeof outerRef === 'function'\) outerRef\(value\);/, 'the press does not hand its node to the caller');
     assert.match(press, /<Pressable accessibilityRole="button" \{\.\.\.rest\}/, 'the press does not pass the ref on to its pressable');
+  });
+});
+
+describe('the lit letters reach the field only on a nearly sheet', () => {
+  test('the screen lights letters only while a nearly sheet is up', () => {
+    const screen = stripComments(readSrc('DrillScreen.tsx')).replace(/\s+/g, ' ');
+    assert.match(
+      screen,
+      /const lit = sheet !== null && sheet\.tone === 'nearly' && feedback\?\.closest != null && sheetFacts !== null \? litLetters\(sheetFacts\.attempt, feedback\.closest\) : null;/,
+      'the lit letters are not gated on a nearly sheet, so a miss or a right answer could light the field',
+    );
+    assert.match(screen, /<LitField\.Provider value=\{lit\}>/, 'the lit letters never reach the field');
+  });
+  test('the field draws lit letters only once the answer is locked', () => {
+    const shared = stripComments(read('./kinds/shared.tsx'));
+    assert.match(shared, /const lit = useContext\(LitField\);\s*if \(lit !== null && locked\) \{/, 'the field lights letters while the learner can still type');
+  });
+});
+
+describe('the answer sheet grounds each verdict, and its words read on them', () => {
+  const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+  test('good is the mint wash with mint words, nearly is butter, anything else the card', () => {
+    assert.match(sheetFile, /if \(tone === 'good'\) return \{ fill: t\.mintWash, head: t\.mintWords, ink: t\.text \};/);
+    assert.match(sheetFile, /if \(tone === 'nearly'\) return \{ fill: t\.butter, head: t\.text, ink: t\.text \};/);
+    assert.match(sheetFile, /return \{ fill: t\.card, head: t\.text, ink: t\.text \}; \}/);
+  });
+  test('the Notice sits on the stage band with the stage eyebrow token', () => {
+    assert.match(sheetFile, /<View style=\{\[st\.notice, \{ backgroundColor: t\[stage\.band\] \}\]\}> <Text style=\{\[bType\.eyebrow800, \{ color: t\[stage\.eyebrow\] \}\]\}>Notice<\/Text>/);
+  });
+  test('the Hear it pill is mint wash words on mint words', () => {
+    assert.match(sheetFile, /st\.hearPill, \{ backgroundColor: t\.mintWords \}/);
+    assert.match(sheetFile, /<Text style=\{\[bType\.bold14, \{ color: t\.mintWash \}\]\}>Hear it<\/Text>/);
+  });
+  for (const mode of ['light', 'dark'] as const) {
+    const t = b[mode];
+    test(`${mode}: muted words read on the mint wash and on butter`, () => {
+      assert.ok(contrast(t.muted, t.mintWash) >= WORDS, `muted on mintWash is ${contrast(t.muted, t.mintWash).toFixed(2)}`);
+      assert.ok(contrast(t.muted, t.butter) >= WORDS, `muted on butter is ${contrast(t.muted, t.butter).toFixed(2)}`);
+    });
+    // Bold 14 is under WCAG's large-text floor (14pt is about 18.7 px), so the pill holds the 4.5 words bar.
+    test(`${mode}: the Hear it pill's words read at the words bar`, () => {
+      assert.ok(contrast(t.mintWash, t.mintWords) >= WORDS, `mintWash on mintWords is ${contrast(t.mintWash, t.mintWords).toFixed(2)}`);
+    });
+    test(`${mode}: the sound drill's pending step bars show on the peach band, apart from the done bars`, () => {
+      assert.ok(contrast(t.peachTrack, t.peach) >= MARK, `peachTrack on peach is ${contrast(t.peachTrack, t.peach).toFixed(2)}`);
+      assert.ok(contrast(t.peachTrack, t.text) >= MARK, `peachTrack against the done bars is ${contrast(t.peachTrack, t.text).toFixed(2)}`);
+    });
+  }
+  test('the sound drill passes the peach track to its step bars', () => {
+    const player = stripComments(read('./FocusDrillPlayer.tsx')).replace(/\s+/g, ' ');
+    assert.match(player, /<ProgressDots total=\{steps\.length\} index=\{index\} ground="paper" track=\{t\.peachTrack\} \/>/);
+    assert.match(player, /title=\{step \? `\$\{drill\.title\}, step \$\{index \+ 1\} of \$\{steps\.length\}` : drill\.title\}/, 'the step position is not spoken with the header');
+    assert.match(player, /accessibilityLabel: 'Leave the sound drill'/, 'the close shares its name with the Finish here link');
   });
 });

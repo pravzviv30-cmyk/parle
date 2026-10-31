@@ -90,7 +90,7 @@ describe('celebration timelines — F743', () => {
     const clock = read('./useTimeline.ts');
     assert.match(clock, /if \(latest\.current\.still\) latest\.current\.onStill\(\);/, 'the clock sounds every card that is final before it started');
     assert.match(read('./Takeover.tsx'), /still: playsStill\(\{ reduced, stopped: landed \|\| paused \}\),/, 'a takeover a hold or a skip landed still sounds');
-    assert.match(read('./EndCard.tsx'), /still: playsStill\(\{ reduced, stopped: !first \}\),/);
+    assert.match(read('./EndScene.tsx'), /still: playsStill\(\{ reduced, stopped: !first \}\),/);
     assert.match(read('./Toast.tsx'), /still: playsStill\(\{ reduced: still, stopped: false \}\),/);
   });
 
@@ -133,8 +133,8 @@ describe('celebration timelines — F743', () => {
       ['level-up', './templates/LevelUp.tsx'],
       ['badge-earned', './templates/BadgeEarned.tsx'],
       ['purchase-confirmed', './templates/PurchaseConfirmed.tsx'],
-      ['end-card', './EndCard.tsx'],
-      ['end-card-quests', './EndCard.tsx'],
+      ['end-card', './EndScene.tsx'],
+      ['end-card-quests', './EndScene.tsx'],
       ['toast', './Toast.tsx'],
     ];
     for (const [id, path] of templates) {

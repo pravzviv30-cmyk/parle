@@ -89,7 +89,7 @@ describe('the drawn vocabulary keeps its promises — F332, F333', () => {
       'OutlineButton does not forward its accessibilityLabel, or does not fall back to the label',
     );
 
-    const ghost = region(componentsSource(), 'export function GhostButton(', 'export function OptionCard(');
+    const ghost = region(componentsSource(), 'export function GhostButton(', 'export function Field(');
     assert.match(ghost, /accessibilityLabel\?: string/, 'GhostButton takes no accessibilityLabel');
     assert.match(
       ghost,
@@ -106,11 +106,13 @@ describe('the onboarding-polish primitives speak their state — F354, F358', ()
     // The tab bar folds its active state into accessibilityState so VoiceOver
     // says "selected" (components.tsx:426); the option card must do the same, or
     // a learner picking a voice, goal, strictness or reminder hears nothing.
-    const option = region(componentsSource(), 'export function OptionCard(', 'export function Field(');
+    // Drill B v2 (UI-016): OptionCard is gone; the selectable option is the
+    // lip tile, which says its selected state the same way.
+    const option = region(componentsSource(), 'export function LipTile(', 'const lipStyles');
     assert.match(
       option,
-      /accessibilityState=\{\{ selected \}\}/,
-      'the option card does not tell a screen reader whether it is selected',
+      /accessibilityState=\{\{ disabled, selected \}\}/,
+      'the option tile does not tell a screen reader whether it is selected',
     );
   });
 
@@ -289,13 +291,15 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     const outline = region(source, '  outline: {', '  outlinePressed:');
     assert.match(outline, /minHeight: HIT/, 'the quiet link is under the touch floor');
     assert.doesNotMatch(outline, /borderWidth|backgroundColor/, 'the secondary action is a boxed button, not a quiet link');
-    const ghost = region(source, '  ghost: {', '  option:'); // UI-005: the dead ink chip styles are gone
+    const ghost = region(source, '  ghost: {', '  field: {'); // UI-005: the dead ink chip styles are gone
     assert.match(ghost, /minHeight: HIT/, 'the underlined link is under the touch floor');
     assert.doesNotMatch(ghost, /borderWidth|backgroundColor/, 'the underlined link is drawn as a box');
     const label = region(source, 'export function Label(', 'export function PillButton(');
     assert.match(label, /type\.small/, 'the label is not the small meta line');
     assert.match(label, /const color = asked \?\? t\.muted;/, 'the meta line is not soft ink');
-    const option = region(source, '  optionSelected: {', '  optionPressed:');
+    // Drill B v2 (UI-016): the chosen option is the lip tile's `selected`, an edge and never a fill.
+    const option = region(source, '    ...(selected ? {', ' : null),');
+    assert.match(option, /borderWidth: LIP_EDGE, borderColor: t\.mark/, 'a chosen option draws no edge');
     assert.doesNotMatch(option, /backgroundColor/, 'a chosen option is still a filled panel');
   });
 
@@ -318,9 +322,10 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     const bar = region(source, 'export function TabBar<', 'export function Stat(');
     assert.match(bar, /accessibilityState=\{\{ selected: isActive \}\}/, 'a segment no longer says it is selected on a device');
     assert.match(bar, /aria-selected=\{isActive\}/, 'a segment says nothing to the browser, so on the web the choice is silent');
-    const option = region(source, 'export function OptionCard(', 'export function Field(');
-    assert.match(option, /accessibilityState=\{\{ selected \}\}/, 'the option card no longer says it is selected on a device');
-    assert.match(option, /aria-selected=\{selected\}/, 'the option card says nothing to the browser, so on the web the choice is silent');
+    // Drill B v2 (UI-016): the option card is the lip tile now.
+    const option = region(source, 'export function LipTile(', 'const lipStyles');
+    assert.match(option, /accessibilityState=\{\{ disabled, selected \}\}/, 'the option tile no longer says it is selected on a device');
+    assert.match(option, /aria-selected=\{selected\}/, 'the option tile says nothing to the browser, so on the web the choice is silent');
     // Revamp B: the segmented control has a sand track and a white chosen
     // segment with ink lettering at Bold, the rest soft ink at SemiBold, so it
     // never competes with the one ink pill. The selected state is still said
@@ -743,7 +748,7 @@ describe('the B parts keep their promises — F597', () => {
     // Pressable of its own beside it.
     for (const [name, end] of [
       ['PillButton', 'export function OutlineButton('],
-      ['GhostButton', 'export function OptionCard('],
+      ['GhostButton', 'export function Field('],
       ['LedgerRow', 'export function Highlight('],
       ['TabBar<', 'export function Stat('],
     ] as const) {

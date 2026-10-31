@@ -116,9 +116,9 @@ describe('F921: control borders', () => {
     const DECORATIVE = new Map<string, string>([
       ['components.tsx#stationDotHere', 'a cut-out ring in the ground colour around the here dot'],
       ['drill/AnswerSheet.tsx#calm', 'the calm feedback panel around the answer words'],
+      ['soundcheck/SoundCheckScreen.tsx#sheet', 'the sound check result panel, the same calm edge as the answer sheet; Done is the control'],
       ['settings/ProfileParts.tsx#statRuled', 'the rules between the profile stats'],
-      ['DrillScreen.tsx#answerBox', 'the sentence well, a plain View; its word tiles are the controls'],
-      ['DrillScreen.tsx#slot', 'the dashed gap a placed word leaves, not pressable'],
+      ['drill/kinds/styles.ts#slot', 'the dashed gap a placed word leaves, not pressable'],
       ['journey/JourneyParts.tsx#dashed', 'the frame of DashedCell, whose own words say what is missing'],
       ['game/StreakParts.tsx#freeze', 'the freeze card frame, a plain View'],
       ['explore/ExploreParts.tsx#prepare', 'the sun edge of the prepare card, a plain View'],
@@ -283,12 +283,13 @@ describe('F927: Space and the focus ring', () => {
     // The ring follows the control's shape. The outline is drawn on the
     // focusable element, so it needs the drawn surface's corner: Press's
     // Pressable is the outer frame around the shrinking surface, and an
-    // OptionCard's Pressable sits inside its rounded card.
+    // a lip tile's press is its own rounded face (drill B v2; OptionCard is gone).
     const components = read('components.tsx');
     const pressBody = components.slice(components.indexOf('export function Press('), components.indexOf('function SelectRing('));
     assert.match(pressBody, /const frameRadius = StyleSheet\.flatten\(style\)\?\.borderRadius;/, 'Press does not read its surface corner');
     assert.match(pressBody, /style=\{frameRadius != null \? \[\{ borderRadius: frameRadius \}, frame\] : frame\}/, 'the focusable frame is square around a rounded pill');
-    assert.match(components, /optionMain: \{[^}]*borderRadius: radius\.card/, 'the OptionCard ring is square inside a rounded card');
+    assert.match(components, /const face: ViewStyle = \{[^}]*borderRadius: shape\.radius/, 'the lip tile face has no corner for the ring to follow');
+    assert.match(components, /style=\{\[lipStyles\.hit, face, style\]\}/, 'the lip tile ring is square inside a rounded tile');
     assert.match(components, /filterChip: \{[^}]*borderRadius: radius\.pill/, 'the chip ring is square');
 
     // Nothing else suppresses a focus style: an inline outline reset is only

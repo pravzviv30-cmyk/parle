@@ -15,8 +15,8 @@
  *   screen has no replay to offer. An ear on a bubble that cannot be played is
  *   a control that lies about what it does.
  * - `quiet` — there is a line to hear. Drawn in ink, as a mark on a card.
- * - `sounding` — it is playing right now, drawn the way `OptionCard` draws an
- *   auditioning voice: the accent on a `paper.groundDeep` disc. Colour rather
+ * - `sounding` — it is playing right now, drawn the way the retired `OptionCard`
+ *   drew an auditioning voice: the accent on a `paper.groundDeep` disc. Colour rather
  *   than movement, because there is nothing here for reduce motion to withhold.
  *
  * Why only the last tutor line, restated because it is a product rule rather

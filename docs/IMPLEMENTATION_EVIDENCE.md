@@ -22,6 +22,24 @@ of the list.
 
 ## Current landing snapshot
 
+- 31 October 2026 drill and practice B v2 (UI-016, LEARN-018): branch `claude/drill-b` from main
+  64f6a2cc, with main 9c7ad093 (Today, `LipTile`) merged in. Every drill and practice surface is
+  one frame (stage band on the family's pastel, lip primary), one tile (`LipTile`), one field, one
+  mic (Cloud listening), one answer sheet in four tones (Cloud on a right answer, lit letters on
+  nearly, a Notice on a miss) and one dark-aware `EndScene` for every ending, with
+  "Practise the one still settling", an assisted retry that records nothing. `OptionCard`,
+  `WordChoice` and `EndCard` are removed. Four fix-verifier rounds, ending HOLDS (fixed on the
+  way: the retry could keep a phrase; a chip in flight could land after Check; an older double
+  grade in Review). After shots of 37 `?preview=drill-*` keys at 320 and 375 in light and dark;
+  native iPhone 17 Pro at normal and accessibility-large text with reduced motion. Live run on the
+  real app (mock auth, canvas learner, local token server): a practice sitting with a miss, the
+  end with Still settling, the retry (zero stored keys changed), and a Review to the end.
+  /push-check: the browser pass above, two push-reviewers, /code-review and a delta review; 14 low
+  findings fixed (sound drill labels and track contrast, blank punctuation, chip growth, dead code,
+  pins), nothing above low left.
+  **7,449 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
+  mobile 4030; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  Not verified: VoiceOver on device, a physical iPhone, a speak drill with a real microphone.
 - 31 October 2026 Today as A's morning sky (UI-015): branch `claude/today-sky` from main d1b216c3
   (rebased on 64f6a2cc, the /push-check landing). Today opens on a sky that follows the hour,
   the greeting with Bonjour or Bonsoir, three chunky stat tiles on the shared `LipTile`, one hero

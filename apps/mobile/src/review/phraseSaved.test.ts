@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { drillSource, readSrc } from '../testing/drillSource.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { phraseKeyOf, type ConvoPhrase } from '@luvani/core';
 
@@ -79,14 +80,14 @@ describe('saved means durable — F762', () => {
     assert.equal(published.length, 1);
 
     // The drill: kept, the filled bookmark and the saved label only on that answer.
-    const screen = stripComments(read('../DrillScreen.tsx')).replace(/\s+/g, ' ');
+    const screen = stripComments(drillSource()).replace(/\s+/g, ' ');
     const keep = screen.slice(screen.indexOf('const keepPhrase = useCallback('), screen.indexOf('const sheet = feedback !== null'));
     assert.ok(keep.length > 0, 'the keep handler moved; this test is reading the wrong thing');
     assert.match(keep, /void keepInPhrasebook\(\{ fr: exercise\.fr,/, 'the drill keeps the phrase some other way');
     assert.match(keep, /\.then\(\(saved\) => \{ if \(!attemptAlive\.current\) return; if \(saved\) setKept\(true\); else setKeepFailed\(true\); \}\)/, 'kept is set without a durable answer');
     assert.equal((screen.match(/setKept\(true\)/g) ?? []).length, 1, 'something else calls the phrase kept');
     assert.doesNotMatch(screen, /addPhrases\(/, 'the drill writes the phrasebook beside the one keep');
-    const view = screen.slice(screen.indexOf('function OwnWordsView('), screen.indexOf('export function DrillScreen('));
+    const view = stripComments(readSrc('drill/kinds/OwnWordsView.tsx')).replace(/\s+/g, ' ');
     assert.match(view, /<IconAction layout="inline" ground=\{look\.tone === 'good' \? 'mint' : 'paper'\} icon="bookmark" animate="bookmark-fill" selected=\{kept\} busy=\{keeping\} label=\{kept \? MADE_FROM\.phrase\.saved : MADE_FROM\.phrase\.save\} onPress=\{onKeep\} \/>/, 'the bookmark fills, or the label says saved, on something other than kept');
     assert.match(view, /\{outcome\.keep && keepFailed && !kept && \(/, 'a refused keep is not said');
 

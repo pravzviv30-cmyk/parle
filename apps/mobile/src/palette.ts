@@ -388,6 +388,8 @@ const bLight = {
   /** The one primary pill. */
   primary: paper.ink,
   onPrimary: paper.onInk,
+  /** The 4pt lip under a drill's primary pill (drill B v2, UI-016): one step darker than `primary`. A mark, never words. */
+  primaryLip: '#000000',
   /** The quiet secondary button and chip. */
   quiet: paper.inset,
   link: colour.blue,
@@ -408,6 +410,8 @@ const bLight = {
   stageTrack: '#EFE7F9',
   /** The art panel inside the peach Postcards tile (B-Journey). */
   peachSoft: '#FCEADF',
+  /** Pending step bars on the peach drill band: 3.4 on peach in both modes, 3.9 (light) and 3.2 (dark) against the done bars (text). A mark, never words. */
+  peachTrack: '#7B7385',
   /** The art panel inside the lavender Badges tile (B-Journey). */
   lavenderSoft: '#F5F1FE',
   /** The live room's outer orb ring and the mic's rim on blue, in both modes (B-Live, 2026-10-21). A mark, never words. */
@@ -457,6 +461,8 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     heroChip: '#4A4170',
     primary: colour.blue,
     onPrimary: paper.onInk,
+    // The dark primary is the brand blue, so its lip is the pressed blue.
+    primaryLip: colour.bluePressed,
     quiet: '#302A48',
     link: '#A79AFF',
     avatar: '#302A48',
@@ -467,6 +473,7 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     // dark card's inset, and the tiles' art panels one step lighter than their pastel.
     stageTrack: '#302A48',
     peachSoft: '#5A3F4C',
+    peachTrack: '#94869B',
     lavenderSoft: '#3D3560',
     // 2026-10-21 UI-008, the paywall: violet is 2.4 on the dark ground, under
     // the 3.0 mark floor, so a selected mark takes the M3 link lilac and its

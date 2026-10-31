@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import { IconAction, GhostButton, SpeakCircle } from '../components.tsx';
@@ -7,7 +7,7 @@ import { colour, space, type } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { finishLocalTake } from '../daily/finishLocalTake.ts';
 import { recorderUri } from '../daily/recorderUri.ts';
-import { LevelRing } from '../motion/LevelRing.tsx';
+import { SpeakMic } from './SpeakMic.tsx';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { useRecorderLevel } from '../speech/useRecorderLevel.ts';
 import { scopeGeneration } from '../storage/scope.ts';
@@ -24,7 +24,7 @@ const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true
  * A bounded temporary take; the consumer owns deletion after handoff. While it
  * records, a mint ring swells around the circle from the recorder's real level
  * (`speech/useRecorderLevel.ts`), and none is drawn until a level has been
- * heard. Nothing sounds or vibrates here: the microphone hold keeps both seams
+ * heard, and Cloud listens beside it (`SpeakMic`). Nothing sounds or vibrates here: the microphone hold keeps both seams
  * still for the whole take.
  */
 export function SpokenAttempt({ onTake, onTyping, busy }: {
@@ -104,16 +104,11 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
   };
 
   return <View style={{ alignItems: 'center', gap: space(3) }}>
-    <View style={st.circle}>
-      {recording && voice.metered && <View style={st.ring}><LevelRing level={voice.level} size={SPEAK} color={colour.mint} /></View>}
+    <SpeakMic live={recording} voice={voice} size={SPEAK} ring={colour.mint} cloud>
       <SpeakCircle active={recording} disabled={busy} size={SPEAK} onPress={() => { void toggle(); }} accessibilityLabel={recording ? 'Stop recording' : 'Record your French'} />
-    </View>
+    </SpeakMic>
     <Text style={[type.small, { color: t.muted }]}>{recording ? RECORDING_LIVE : RECORDING_READY}</Text>
     <IconAction layout="inline" icon="keyboard" label={RECORDING_TYPE} disabled={busy} onPress={() => { void stop(false).then(onTyping); }} />
   </View>;
 }
 
-const st = StyleSheet.create({
-  circle: { width: SPEAK, height: SPEAK, alignItems: 'center', justifyContent: 'center' },
-  ring: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
-});

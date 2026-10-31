@@ -25,10 +25,11 @@ test('the review screen reads the bank for it and shows the line only after the 
   const screen = readFileSync(new URL('../ReviewScreen.tsx', import.meta.url), 'utf8');
   assert.match(screen, /loadDrillBank\(\)/);
   assert.match(screen, /alsoFine\(card\.id, view\.answer\.text, bank\)/);
-  // The front face comes first in the ternary; the line lives only on the turned-over face after it.
-  const face = screen.indexOf('const face = view.answer === null ? (');
-  const back = screen.indexOf(') : (', face);
-  assert.ok(face > 0 && back > face, 'the face moved; this test is reading the wrong thing');
-  assert.ok(!screen.slice(face, back).includes('REVIEW_COPY.alsoFine'), 'the other way to say it can show before the answer');
-  assert.ok(screen.indexOf('REVIEW_COPY.alsoFine', back) > back, 'the turned-over card lost its other way to say it');
+  // Drill B v2: the answer card is null until the answer is out; the line lives only inside it.
+  const face = screen.indexOf('const answerCard = view.answer === null ? null : (');
+  const end = screen.indexOf('\n  );', face);
+  assert.ok(face > 0 && end > face, 'the face moved; this test is reading the wrong thing');
+  assert.ok(!screen.slice(0, face).includes('REVIEW_COPY.alsoFine'), 'the other way to say it can show before the answer');
+  const line = screen.indexOf('REVIEW_COPY.alsoFine', face);
+  assert.ok(line > face && line < end, 'the turned-over card lost its other way to say it');
 });
