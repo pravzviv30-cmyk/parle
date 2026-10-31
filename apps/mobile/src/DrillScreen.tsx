@@ -100,6 +100,7 @@ import { litLetters } from './drill/litLetters.ts';
 import { sheetLine, type SheetLine } from './drill/sheetLine.ts';
 import { BestSentenceView, AppropriateReplyView } from './drill/kinds/choose.tsx';
 import { FillBlankView, TapTranslateView } from './drill/kinds/build.tsx';
+import { choosePick } from './drill/tileLook.ts';
 import { ListenTypeView, TranslationView } from './drill/kinds/write.tsx';
 import { RepeatThisView } from './drill/kinds/RepeatThisView.tsx';
 import { OwnWordsView, type OwnWordsOutcome } from './drill/kinds/OwnWordsView.tsx';
@@ -1098,6 +1099,8 @@ export function DrillScreen({
     ) : null,
   );
   // A nearly lights the letters the learner missed in the field above the sheet.
+  // A choose kind's pick, while its sheet is up, so its tile shows right or picked (drill/tileLook.ts).
+  const pick = sheetFacts !== null && feedback !== null ? choosePick(sheetFacts.attempt, feedback.verdict) : null;
   const lit = sheet !== null && sheet.tone === 'nearly' && feedback?.closest != null && sheetFacts !== null ? litLetters(sheetFacts.attempt, feedback.closest) : null;
 
   return (
@@ -1106,9 +1109,9 @@ export function DrillScreen({
       {exercise.kind === 'fill-blank' && (
         <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
       )}
-      {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} shell={frame} />}
+      {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} pick={pick} shell={frame} />}
       {exercise.kind === 'appropriate-reply' && (
-        <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} shell={frame} />
+        <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} pick={pick} shell={frame} />
       )}
       {exercise.kind === 'tap-translate' && (
         <TapTranslateView

@@ -270,19 +270,21 @@ function body(preview: DrillPreviewKey): ReactNode {
     case 'drill-choose':
     case 'drill-choose-right': {
       const sheet = preview === 'drill-choose-right' ? F.SHEETS.chooseRight : null;
-      return <BestSentenceView exercise={F.BEST_SENTENCE} onAnswer={noop} locked={locked(sheet)} shell={shell('best-sentence', { sheet, line: sheetLine(F.BEST_SENTENCE, 0) })} />;
+      return <BestSentenceView exercise={F.BEST_SENTENCE} onAnswer={noop} locked={locked(sheet)} pick={sheet !== null ? { index: 0, right: true } : null} shell={shell('best-sentence', { sheet, line: sheetLine(F.BEST_SENTENCE, 0) })} />;
     }
     case 'drill-reply':
     case 'drill-roll':
     case 'drill-reply-miss': {
       const sheet = preview === 'drill-roll' ? F.SHEETS.roll : preview === 'drill-reply-miss' ? F.SHEETS.replyMiss : null;
       return <AppropriateReplyView exercise={F.APPROPRIATE_REPLY} onAnswer={noop} locked={locked(sheet)}
+        pick={preview === 'drill-roll' ? { index: 0, right: true } : preview === 'drill-reply-miss' ? { index: 2, right: false } : null}
         shell={shell('appropriate-reply', { combo: preview === 'drill-roll' ? 3 : 1, fill: preview === 'drill-roll' ? 0.6 : 0.4, sheet, line: sheetLine(F.APPROPRIATE_REPLY, 0) })} />;
     }
     case 'drill-blank':
     case 'drill-blank-landed': {
       const sheet = preview === 'drill-blank-landed' ? F.SHEETS.blankLanded : null;
-      return <FillBlankView exercise={F.FILL_BLANK_CHOICE} typed="" onChange={noop} onAnswer={noop} locked={locked(sheet)} shell={shell('fill-blank', { sheet, line: sheetLine(F.FILL_BLANK_CHOICE, 'voudrais') })} />;
+      return <Typed initial={sheet !== null ? 'voudrais' : ''}>{(typed, onChange) =>
+        <FillBlankView exercise={F.FILL_BLANK_CHOICE} typed={typed} onChange={onChange} onAnswer={noop} locked={locked(sheet)} shell={shell('fill-blank', { sheet, line: sheetLine(F.FILL_BLANK_CHOICE, 'voudrais') })} />}</Typed>;
     }
     case 'drill-blank-nearly':
       return <LitField.Provider value={litLetters('combein', 'combien')}>

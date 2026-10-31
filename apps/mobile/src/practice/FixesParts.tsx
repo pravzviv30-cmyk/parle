@@ -10,14 +10,15 @@
  * 2026-10-31 drill B v2 (UI-016; drill-b.md "Screens and states" 9): the scope
  * chips carry a lip, the try-first card stands on the stage colour of its
  * answer family (`drillStage('fixes-say' | 'fixes-type')`), and the compared
- * card is the frame's white card on a `line` lip. Say it and Type it keep
- * their buttons until the shared lip tile lands (T7, part 2).
+ * card is the frame's white card on a `line` lip. Part 2 (T7b): Say it is the
+ * lip primary and Type it a `LipTile`, and every lip here (the scope chips,
+ * "Practise this", the compared card) is the one `LipTile`.
  */
 
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { LockBadge, Press, RoundButton } from '../components.tsx';
+import { LipTile, LockBadge, PillButton, Press, RoundButton } from '../components.tsx';
 import { lockSaid } from '../access/featureAccess.ts';
 import { HearButton, OneWaveSpeaker, TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
@@ -53,10 +54,10 @@ export function ScopeToggle<K extends string>({ scopes, active, onChange }: { sc
       {scopes.map((scope) => {
         const on = scope.key === active;
         return (
-          <Press key={scope.key} haptic="selection" accessibilityRole="tab" accessibilityLabel={scope.label} accessibilityState={{ selected: on }} onPress={() => onChange(scope.key)} style={[s.segment, on && { backgroundColor: t.brand, borderBottomColor: t.brand }]}>
+          <LipTile key={scope.key} size="chip" lip={on ? t.brand : undefined} selected={on} accessibilityRole="tab" accessibilityLabel={scope.label} onPress={() => onChange(scope.key)} style={[s.segment, on && { backgroundColor: t.brand, borderColor: t.brand }]}>
             {on ? <TickGlyph size={14} color={t.onBrand} /> : null}
             <Text style={[bType.bold14, { color: on ? t.onBrand : t.text }]}>{scope.label}</Text>
-          </Press>
+          </LipTile>
         );
       })}
     </View>
@@ -74,7 +75,13 @@ export function FixesPatternCard({ eyebrow, title, hint, practise, locked, onPra
         <Text style={[bType.title17, { color: t.text }]}>{title}</Text>
         <Text style={[bType.note, { color: t.secondary }]}>{hint}</Text>
       </View>
-      {onPractise !== null ? <View style={s.chipLip}><BButton hug label={practise} accessibilityLabel={lockSaid(`${practise}, ${title}`, 'fixes', locked)} height={HIT} ground={t.card} ink={t.text} text={bType.bold14} onPress={onPractise} /></View> : null}
+      {onPractise !== null ? (
+        <View style={s.hug}>
+          <LipTile size="chip" accessibilityLabel={lockSaid(`${practise}, ${title}`, 'fixes', locked)} onPress={onPractise} style={s.practise}>
+            <Text style={[bType.bold14, { color: t.text }]}>{practise}</Text>
+          </LipTile>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -108,9 +115,13 @@ export function AttemptCard({ label, prompt, english, note, say, type, typing }:
       {typing ?? (
         <View style={s.pair}>
           {say !== null ? (
-            <View style={s.fill}><BButton label={say.label} height={48} ground={t.primary} ink={t.onPrimary} text={bType.bold15} icon={<BMic size={16} color={t.onPrimary} />} onPress={say.onPress} /></View>
+            <View style={s.fill}><PillButton label={say.label} icon={<BMic size={16} color={t.onPrimary} />} onPress={say.onPress} lip compact /></View>
           ) : null}
-          <View style={s.fill}><BButton label={type.label} height={48} ground={t.quiet} ink={t.text} text={bType.bold15} onPress={type.onPress} /></View>
+          <View style={s.fill}>
+            <LipTile accessibilityLabel={type.label} onPress={type.onPress} style={s.typeIt}>
+              <Text style={[bType.bold15, { color: t.text }]}>{type.label}</Text>
+            </LipTile>
+          </View>
         </View>
       )}
     </View>
@@ -133,7 +144,7 @@ export function ComparedCard({ label, wrote, said, quote, natural, better, engli
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
-    <View style={s.compared}>
+    <LipTile style={s.compared}>
       <Text style={[bType.eyebrow800, { color: t.mintWords }]}>{label}</Text>
       {wrote !== null ? (
         <View style={s.gap4}>
@@ -161,7 +172,7 @@ export function ComparedCard({ label, wrote, said, quote, natural, better, engli
           <Text style={[bType.bold14, { color: t.link }]}>{again.label}</Text>
         </Press>
       ) : null}
-    </View>
+    </LipTile>
   );
 }
 
@@ -233,15 +244,19 @@ const makeStyles = (t: B) =>
     titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 4 },
     // The scope chips (drill B v2): 44 tall, pill round, a 3pt lip, 8 apart.
     segmented: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    segment: { minHeight: HIT, borderRadius: HIT / 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 16, backgroundColor: t.card, borderBottomWidth: 3, borderBottomColor: t.line },
-    // The chip's own lip under "Practise this".
-    chipLip: { borderRadius: HIT / 2, paddingBottom: 3, backgroundColor: t.line, alignSelf: 'flex-start' },
+    // Each a `LipTile` chip; the chosen one takes the brand fill on a brand lip.
+    segment: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 16 },
+    // "Practise this": a white `LipTile` chip that hugs its words.
+    hug: { alignSelf: 'flex-start' },
+    practise: { minHeight: HIT, justifyContent: 'center', paddingHorizontal: 16 },
+    // "Type it" beside the lip primary: a white `LipTile`, the pill's height.
+    typeIt: { minHeight: 54, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
     pattern: { backgroundColor: t.butter, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
     // Try it first, on its stage, with the brand edge of the card in hand.
     attempt: { borderRadius: 22, padding: 16, gap: 10, borderWidth: 2, borderColor: t.brand },
     pair: { flexDirection: 'row', gap: 8 },
     // After your try: the white card on a `line` lip.
-    compared: { backgroundColor: t.card, borderRadius: 22, padding: 16, gap: 10, borderBottomWidth: 4, borderBottomColor: t.line },
+    compared: { padding: 16, gap: 10 },
     better: { backgroundColor: t.mintWash, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
     speaker: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     link: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },

@@ -58,9 +58,14 @@ describe('a used word stays readable in the sentence bank — F593', () => {
     // 2026-10-21 UI-008, artboard B-Drill: a placed word now reads in its brand
     // tile in the answer box, and leaves a dashed slot its own size in the bank,
     // so the bank never jumps and the word is never faint ink on a ground.
-    assert.match(screen, /style=\{\[bType\.bold17, \{ color: bt\.onBrand \}\]\}>\{exercise\.tokens\[tokenIndex\]\}/, 'a placed word is not a readable brand tile');
-    assert.match(screen, /\{used \? \( <View style=\{ds\.slot\}>/, 'a placed word leaves no slot in the bank');
-    assert.match(screen, /slot: \{ height: 46, borderRadius: 14, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt\.ring/);
+    // Drill B v2 T5 (UI-016): the placed word is the landed brand pill in the
+    // answer box, and the bank's chip leaves a dashed slot the chip's size.
+    assert.match(screen, /<LandedWord big word=\{exercise\.tokens\[tokenIndex\] \?\? ''\} \/>/, 'a placed word is not a readable brand tile');
+    assert.match(screen, /style=\{\[bType\.bold17, \{ color: bt\.onBrand \}\]\}>\{word\}/, 'a placed word is not readable on its brand fill');
+    assert.match(screen, /landed: \{[^}]*backgroundColor: bt\.brand/, 'a placed word is not on the brand fill');
+    assert.match(screen, /placed=\{assembled\.includes\(i\)\}/, 'a placed word leaves no slot in the bank');
+    assert.match(screen, /if \(placed\) \{ return \( <View style=\{ds\.slot\}/, 'a placed word leaves no slot in the bank');
+    assert.match(screen, /slot: \{ height: 46, marginBottom: LIP_SIZES\.chip\.lip, borderRadius: LIP_SIZES\.chip\.radius, paddingHorizontal: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: bt\.ring/);
   });
 });
 

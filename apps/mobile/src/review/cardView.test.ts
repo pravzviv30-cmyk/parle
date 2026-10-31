@@ -422,7 +422,10 @@ describe('the review sitting on screen', () => {
     // 2026-10-31 drill B v2 (UI-016): "I said it" is the frame's lip primary, a
     // PillButton that carries its role and is named below, so the hand-rolled
     // count is three: the speaker, the grade tile and "Type it".
-    const controls = tags(screen, 'Pressable');
+    // 2026-10-31 drill B v2 T7b: the grade tile and "Type it" are the shared
+    // LipTile, which presses through Press and carries the role it is given,
+    // so the three are read as Pressables plus LipTiles, still three.
+    const controls = [...tags(screen, 'Pressable'), ...tags(screen, 'LipTile')];
     assert.ok(controls.length === 3, `only ${controls.length} controls found; this test is reading the wrong thing`);
     for (const tag of controls) {
       assert.match(tag, /accessibilityRole=/, `a control on the review screen has no role: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);

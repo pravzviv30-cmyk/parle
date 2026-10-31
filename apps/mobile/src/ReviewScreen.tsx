@@ -47,8 +47,9 @@ import {
   TextInput,
 } from 'react-native';
 import { reviewXp, type DrillExercise, type ReviewCard, type ReviewGrade } from '@luvani/core';
-import { HIT, bType, font, frenchText, space } from './theme.ts';
-import { GhostButton, PillButton } from './components.tsx';
+import { HIT, bType, decorative, font, frenchText, space } from './theme.ts';
+import Svg, { Path } from 'react-native-svg';
+import { GhostButton, LipTile, PillButton } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import { DrillFrame, DrillPrompt } from './drill/DrillFrame.tsx';
@@ -408,8 +409,9 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       {view.grades ? (
         <>
           <Text style={[bType.bold15, st.centred, { color: t.text }]}>{REVIEW_COPY.gradeAsk}</Text>
-          {/* Three filled tiles, evenly (B-ReviewReveal). The intervals under
-              each word are held back by the founder: no clock on this screen. */}
+          {/* Three lip tiles, evenly (drill B v2, V2-Review back), each a coin
+              over its word. The intervals under each word are held back by
+              the founder: no clock on this screen. */}
           <View style={st.grades}>
             {(
               [
@@ -418,15 +420,12 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
                 { grade: 'easy', label: 'Easy' },
               ] as const
             ).map(({ grade, label }) => (
-              <Pressable
-                key={grade}
-                onPress={() => handleGrade(grade)}
-                accessibilityRole="button"
-                accessibilityLabel={label}
-                style={({ pressed }) => [st.grade, st[grade], pressed && { opacity: 0.8 }]}
-              >
-                <Text style={[bType.bold17, { color: grade === 'again' ? t.text : t.onMint }]}>{label}</Text>
-              </Pressable>
+              <View key={grade} style={st.gradeCell}>
+                <LipTile onPress={() => handleGrade(grade)} accessibilityRole="button" accessibilityLabel={label} style={st.grade}>
+                  <GradeCoin grade={grade} />
+                  <Text style={[bType.heavy15, { color: t.text }]}>{label}</Text>
+                </LipTile>
+              </View>
             ))}
           </View>
         </>
@@ -447,18 +446,18 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
               UI-008, founder: no mic glyph on "I said it", because nothing
               records and a learner should never think it does. */}
           {saidIt(false)}
-          <Pressable
+          <LipTile
             onPress={() => {
               clock.touch();
               setTyping(true);
             }}
             accessibilityRole="button"
             accessibilityLabel={TYPE_IT}
-            style={({ pressed }) => [st.typeIt, pressed && { opacity: 0.85 }]}
+            style={st.typeIt}
           >
             <KeyboardGlyph size={20} color={t.text} />
             <Text style={[bType.bold16, { color: t.text }]}>{TYPE_IT}</Text>
-          </Pressable>
+          </LipTile>
           <Text style={[bType.note, st.centred, { color: t.muted }]}>{REVIEW_COPY.attemptFirst}</Text>
         </>
       ) : (
@@ -519,6 +518,37 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
+/** A grade's coin (board: 34). */
+const COIN = 34;
+
+/**
+ * A grade's coin, as Today draws one: a round disc with one simple glyph.
+ * Again a loop on the quiet disc, Got it a tick on the sun, Easy a star on the
+ * mint wash. Decorative: the tile's label is what a reader hears.
+ */
+function GradeCoin({ grade }: { grade: ReviewGrade }) {
+  const t = useB();
+  const st = useThemedStyles(makeStyles);
+  const key = grade === 'again' ? 'again' : grade === 'good' ? 'good' : 'easy';
+  return (
+    <View {...decorative} style={[st.coin, st[key]]}>
+      {key === 'again' ? (
+        <Svg {...decorative} width={18} height={18} viewBox="0 0 18 18">
+          <Path d="M14 9A5 5 0 1 1 9 4H12M12 4L10 2M12 4L10 6" stroke={t.text} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      ) : key === 'good' ? (
+        <Svg {...decorative} width={16} height={14} viewBox="0 0 12 10">
+          <Path d="M1 5L4.5 8.5L11 1.5" stroke={t.onSun} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      ) : (
+        <Svg {...decorative} width={18} height={18} viewBox="0 0 14 14">
+          <Path d="M7 .8L8.9 4.8L13.2 5.3L10 8.2L10.9 12.6L7 10.4L3.1 12.6L4 8.2L.8 5.3L5.1 4.8Z" fill={t.mint} />
+        </Svg>
+      )}
+    </View>
+  );
+}
+
 /** The finished sitting's heading: the artboards' 19 bold card title. */
 const type19 = bType.bold19;
 
@@ -545,12 +575,15 @@ function makeStyles(t: B) {
     yours: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, gap: space(0.5) },
     foot: { gap: 10 },
     grades: { flexDirection: 'row', gap: 8, marginTop: space(0.5) },
-    grade: { flex: 1, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    // A grade (V2-Review back): a white lip tile, 84 tall, its coin over its word.
+    gradeCell: { flex: 1 },
+    grade: { minHeight: 84, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 6 },
+    coin: { width: COIN, height: COIN, borderRadius: COIN / 2, alignItems: 'center', justifyContent: 'center' },
     again: { backgroundColor: t.quiet },
     good: { backgroundColor: t.sun },
-    easy: { backgroundColor: t.mint },
-    // "Type it": the 56 white secondary under the primary, its lip in `line`.
-    typeIt: { minHeight: 56, borderRadius: 18, backgroundColor: t.card, borderBottomWidth: 4, borderBottomColor: t.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    easy: { backgroundColor: t.mintWash },
+    // "Type it": the 56 white lip tile under the primary.
+    typeIt: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     // The one field, opened by "Type it": white, radius 18. Type styles minus
     // lineHeight, which clips a single-line TextInput on iOS.
     input: {

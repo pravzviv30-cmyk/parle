@@ -488,83 +488,6 @@ export function GhostButton({
 
 
 /**
- * A tappable option the learner can choose — the successor of the direction
- * plaque. French text in the serif, English gloss beneath, optional replay.
- *
- * `selected` is the heavier ink rule and is spoken to a screen reader; `playing`
- * is the replay ear sounding, drawn as the accent glyph on a quiet disc with a
- * "Stop" label. The two are orthogonal: a learner can audition one voice while
- * another is the chosen one, so a card can be selected and playing at once.
- */
-export function OptionCard({
-  text,
-  gloss,
-  onPress,
-  onHear,
-  selected = false,
-  playing = false,
-}: {
-  text: string;
-  gloss?: string;
-  onPress: () => void;
-  /** Replay this option aloud without choosing it. */
-  onHear?: () => void;
-  selected?: boolean;
-  /** This option's sample is sounding: the ear becomes a Stop on a lit disc. */
-  playing?: boolean;
-}) {
-  // The hear control is a sibling of the main press target, not a child — a
-  // button nested inside a button is invalid HTML on web. Pressed feedback is
-  // lifted to the container so the whole card still flashes as one object.
-  const [pressed, setPressed] = useState(false);
-  const t = useB();
-  const s = useThemedStyles(makeS);
-  return (
-    <View style={[s.option, selected && s.optionSelected, pressed && s.optionPressed]}>
-      <Pressable
-        onPress={() => {
-          tapSettled();
-          onPress();
-        }}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        accessibilityRole="button"
-        accessibilityLabel={gloss ? `${text}, ${gloss}` : text}
-        accessibilityState={{ selected }}
-        aria-selected={selected}
-        style={s.optionMain}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={[type.french, { color: t.text }]}>{text}</Text>
-          {gloss != null && (
-            <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{gloss}</Text>
-          )}
-        </View>
-      </Pressable>
-      {onHear && (
-        <Pressable
-          onPress={onHear}
-          hitSlop={10}
-          accessibilityRole="button"
-          // A sounding ear stops on the next tap, so it says so — and the glyph
-          // lights on a quiet disc rather than moving, since there is nothing to
-          // reduce-motion here.
-          accessibilityLabel={playing ? `Stop ${text}` : `Hear ${text}`}
-          style={({ pressed: hearPressed }) => [
-            { padding: space(2) },
-            playing && { backgroundColor: t.skeleton, borderRadius: radius.pill },
-            hearPressed && { opacity: 0.6 },
-          ]}
-        >
-          <EarGlyph size={18} color={playing ? t.text : t.muted} />
-        </Pressable>
-      )}
-      <ArrowRight size={18} color={t.muted} />
-    </View>
-  );
-}
-
-/**
  * A labelled text input with an inline error line.
  *
  * Every form in the app is one of these, so the assistive bindings live here
@@ -1098,21 +1021,6 @@ const makeS = (t: B) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space(3),
   },
-  option: {
-    minHeight: HIT + 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(3),
-    backgroundColor: t.card,
-    borderWidth: HAIRLINE,
-    borderColor: t.field,
-    borderRadius: radius.card,
-    paddingVertical: space(3),
-    paddingHorizontal: space(4),
-  },
-  optionSelected: { borderColor: t.text, borderWidth: 1.5 },
-  optionPressed: { backgroundColor: t.skeleton },
-  optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', borderRadius: radius.card },
   field: {
     minHeight: HIT + 12,
     backgroundColor: t.card,
@@ -2839,6 +2747,7 @@ export function LipTile({ tone = 'card', lip, size = 'tile', onPress, selected =
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled, selected }}
+        aria-selected={selected}
         disabled={disabled}
         glowRadius={shape.radius}
         onPress={onPress}

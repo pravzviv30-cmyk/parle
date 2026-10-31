@@ -249,21 +249,18 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     // And the card draws it the way the design system says: the ear tints to the
     // accent on a quiet disc while it sounds, and its label reads Stop so a
     // screen reader hears the toggle rather than a second Hear.
+    // Drill B v2 (UI-016): OptionCard, which drew a quiet-disc ear, is gone.
+    // It drew no voice card by then: both lists are OptionRow, which is the
+    // shared Choice, whose ear is the speaker IconButton. Its sounding state
+    // is the speaker's held waves, and its label says Stop.
     const COMPONENTS = stripComments(read('components.tsx'));
+    const choice = COMPONENTS.slice(COMPONENTS.indexOf('export function Choice('), COMPONENTS.indexOf('export type LipTone'));
+    assert.match(SHEET, /<OptionRow [^>]*playing=\{samplePlaying === option\.value\}/, 'the Profile sheet hands its card no sounding state');
+    assert.match(COMPONENTS, /export function OptionRow\([\s\S]*?playing=\{playing\} \/>/, 'OptionRow drops the sounding state before the card');
+    assert.match(choice, /animate="speaker-waves"\s*active=\{playing\}/, 'the sounding ear is not drawn as sounding');
     assert.match(
-      COMPONENTS,
-      // 2026-10-20, UI-008: themed; the playing ear is the theme's ink.
-      /playing \? t\.text : t\.muted/,
-      'the sounding ear is not tinted in the accent',
-    );
-    assert.match(
-      COMPONENTS,
-      /playing && \{ backgroundColor: t\.skeleton, borderRadius: radius\.pill \}/,
-      'the sounding ear sits on no lit disc',
-    );
-    assert.match(
-      COMPONENTS,
-      /playing \? `Stop \$\{text\}` : `Hear \$\{text\}`/,
+      choice,
+      /label=\{`\$\{playing \? 'Stop' : 'Hear'\} \$\{title\}`\}/,
       'the ear never says Stop while it is sounding',
     );
   });

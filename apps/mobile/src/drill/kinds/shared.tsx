@@ -1,7 +1,8 @@
 /**
  * The small pieces every drill kind view shares, moved out of DrillScreen
- * with no change: the kind's plain tag, the hear-it row, the typed field,
- * the word chip, the build's head, and the clock the inputs touch.
+ * with no change: the kind's plain tag, the hear-it row, the typed field
+ * (now the lip field, drill B v2), the build's head, and the clock the inputs
+ * touch. The word chip is a `LipTile` chip in build.tsx.
  */
 import { createContext, useContext } from 'react';
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
@@ -9,13 +10,12 @@ import { RecordingPresets } from 'expo-audio';
 import type { DrillExercise } from '@luvani/core';
 import { bType, frenchText, type } from '../../theme.ts';
 import { useB, useThemedStyles, type B } from '../../main/bTheme.tsx';
-import { EarGlyph, PillButton } from '../../components.tsx';
+import { EarGlyph, LipTile, PillButton } from '../../components.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
 import type { SheetTone } from '../answerSheet.ts';
 import type { LitAnswer } from '../litLetters.ts';
 import { OWN_WORDS_LABEL } from '../ownWordsCopy.ts';
 import { makeDs } from './styles.ts';
-import { space } from '../../theme.ts';
 
 /** The usual preset, metered, so the ring follows the learner's real voice. */
 export const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
@@ -85,39 +85,6 @@ export function CheckPill({ typed, locked, onSubmit }: { typed: string; locked: 
   return <PillButton label="Check" disabled={!canCheck(typed, locked)} accessibilityLabel="Check your answer" onPress={onSubmit} lip />;
 }
 
-// ──────────────────────────────────────────────────────── local card pieces
-// Composed here rather than added to components.tsx: OptionCard wants a gloss,
-// and fill-blank options are bare words by authored design.
-
-/**
- * A single-word option, as a chip.
- *
- * It was a full-width row with a chevron, which read as navigation: four doors
- * stacked down the screen rather than four words to choose between. Revamp A
- * draws the bare-word options as chips in the tap-translate pool's anatomy,
- * because they are the same thing: a word you put into a sentence.
- *
- * Notebook Phase 4 (2026-09-27): the chip is plain white paper under a paper
- * hairline, with no tint, and the press is an opacity step.
- */
-export function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
-  const bt = useB();
-  const ds = useThemedStyles(makeDs);
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={locked}
-      accessibilityRole="button"
-      accessibilityLabel={word}
-      style={({ pressed }) => pressed && ds.chipPressed}
-    >
-      <View style={ds.choice}>
-        <Text style={[type.french, { color: bt.text }]}>{word}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
 /**
  * The sitting's active learning clock, reached by the small input pieces below
  * without threading a prop through every exercise view. Outside a drill it is
@@ -146,7 +113,11 @@ export function HearRow({ text }: { text: string }) {
   );
 }
 
-/** The app's first text input: a paper field in the Field anatomy. */
+/**
+ * The app's first text input, as the lip field (drill B v2, UI-016;
+ * drill-b.md "Field"): a white `LipTile` (radius 18 on a 4pt `line` lip)
+ * holding the TextInput, bold 18, the placeholder muted.
+ */
 export function TypedAnswer({
   typed,
   onChange,
@@ -179,15 +150,15 @@ export function TypedAnswer({
     }
     if (at < lit.text.length) runs.push({ text: lit.text.slice(at), lit: false });
     return (
-      <View style={[ds.input, ds.litField]} accessible accessibilityLabel={`${accessibilityLabel}: ${lit.text}`}>
-        <Text {...frenchText} style={[bType.bold17, { color: bt.text }]}>
+      <LipTile accessibilityLabel={`${accessibilityLabel}: ${lit.text}`} style={[ds.fieldFace, ds.litField]}>
+        <Text {...frenchText} style={[bType.bold18, { color: bt.text }]}>
           {runs.map((run, i) => (run.lit ? <Text key={i} style={{ backgroundColor: bt.sun, color: bt.onSun }}>{run.text}</Text> : run.text))}
         </Text>
-      </View>
+      </LipTile>
     );
   }
   return (
-    <View style={{ gap: space(2.5) }}>
+    <LipTile style={ds.fieldFace}>
       <TextInput
         value={typed}
         onChangeText={(text) => {
@@ -207,7 +178,7 @@ export function TypedAnswer({
         accessibilityLabel={accessibilityLabel}
         style={ds.input}
       />
-    </View>
+    </LipTile>
   );
 }
 
