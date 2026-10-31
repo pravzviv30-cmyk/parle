@@ -33,7 +33,15 @@ const LIVE = read('../app/LiveContext.tsx');
 const NOW = Date.parse('2026-10-29T10:00:00Z');
 const card = (id: string, source: ReviewSource): ReviewCard => ({ ...newCard({ id, kind: 'vocab', front: id, back: 'x', context: '', ipa: '' }, NOW - 1000), sources: [source] });
 
-test('Today leads with one ordered path', () => {
+test('Today leads with one ordered path of three steps', () => {
+  // F934 (founder decision 6, UI-012): one ordered path of three steps, the
+  // fix, the scene and today's phrase. Since UI-015 the first stop is the hero
+  // and the rest follow as rows, so the order is todayStops' (review is an
+  // optional fourth row when Review would deal).
+  const withFix = todayView.todayStops({ fix: true, review: false });
+  assert.deepEqual([withFix.hero, ...withFix.rows], ['fix', 'scene', 'phrase']);
+  const noFix = todayView.todayStops({ fix: false, review: false });
+  assert.deepEqual([noFix.hero, ...noFix.rows], ['lead', 'phrase'], 'without a fix the scene is the hero (the lead), then the phrase');
   // Fix round 3: TODAY_CARDS, TODAY_PATH and pathStep left with the
   // card-under-the-words path; the page order is pinned from HomeTab below,
   // and the scene stop's words through leadStop.

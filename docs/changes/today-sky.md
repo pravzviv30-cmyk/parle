@@ -1,6 +1,6 @@
 # Today: A's morning sky over Today as it ships
 
-- Status: in progress, approved direction (UI-015); build on `claude/today-sky`
+- Status: built and verified on `claude/today-sky` (UI-015); lands after the founder sees the after shots
 - Updated: 2026-10-31
 - Checkout / starting revision: `main` at `d1b216c3` (the live room D merge, with the mascots and the `mascot` palette group). Worktree `Luvani-worktrees/today-sky`.
 - Owner / integrator: Opus orchestrator session; builders as named per task
@@ -100,14 +100,14 @@ The build checks every pair above in `palette.test.ts`; a value that fails is ch
 
 | ID | Outcome | Owner | Depends on | Allowed files | Status |
 |---|---|---|---|---|---|
-| T0 | Worktree, baseline, before shots, this spec, UI-015 | orchestrator | none | this file, `DECISIONS.md` | in progress |
-| T1 | `sky` palette group, contrast pairs, `radius.stat`, `bType.stat24`, `art/sky/`, `motion/Drift.tsx`, the pop | `design-system-engineer` | T0 | `palette.ts`, `palette.test.ts`, `theme.ts`, `theme.test.ts`, `art/sky/*`, `motion/*`, `motion/primitives.test.ts`, `DESIGN.md` colour, type and motion rows | todo |
-| T2 | `skyView`, `homeGreeting(firstName, now)`, `statTiles` reworked, `statTileLayout`, `todayStops`, `TODAY_CARDS` | `frontend-engineer` | T0 | `home/skyView.ts`, `home/greeting.ts`, `game/todayHeroView.ts`, `home/todayView.ts`, their tests | todo |
-| T3 | Presentational parts: `SkyBand`, `StatTiles` + `TodayStats`, `TodayHeroCard`, `TodayLayout`, `RouteRow`, `SceneLead` restyle, bare lead bodies, `useSceneStart`, phrase row, flattened Coming up and week, `ProfileButton` ground | `frontend-engineer` | T1, T2 | `home/*`, `game/StatTiles.tsx`, `today/TodayParts.tsx`, `home/MissionHero.tsx`, `practice/*` lead bodies, `onboarding/StarterContinuation.tsx`, `daily/DailyCard.tsx`, `profile/ProfileButton.tsx` | todo |
-| T4 | Compose HomeTab; delete the replaced code; re-pin the 26 test files | `frontend-engineer` | T3 | `tabs/HomeTab.tsx`, `practice/NextTaskCard.tsx`, deletions, tests | todo |
-| T5 | Preview keys | `frontend-engineer` | T4 | `dev/TodayPreview.tsx`, `dev/OnboardingPreview.tsx` | todo |
-| T6 | Docs | orchestrator | T4 | `DESIGN.md`, `docs/DESIGN_PARTNERSHIP.md`, this log, `docs/IMPLEMENTATION_EVIDENCE.md` | todo |
-| T7 | Gate, shots, simulator, fix-verifier, `/push-check`, push, land, handoff | orchestrator | T5, T6 | none | todo |
+| T0 | Worktree, baseline, before shots, this spec, UI-015 | orchestrator | none | this file, `DECISIONS.md` | done |
+| T1 | `sky` palette group, contrast pairs, `radius.stat`, `bType.stat24`, `art/sky/`, `motion/Drift.tsx`, the pop | `design-system-engineer` | T0 | `palette.ts`, `palette.test.ts`, `theme.ts`, `theme.test.ts`, `art/sky/*`, `motion/*`, `motion/primitives.test.ts`, `DESIGN.md` colour, type and motion rows | done |
+| T2 | `skyView`, `homeGreeting(firstName, now)`, `statTiles` reworked, `statTileLayout`, `todayStops`, `TODAY_CARDS` | `frontend-engineer` | T0 | `home/skyView.ts`, `home/greeting.ts`, `game/todayHeroView.ts`, `home/todayView.ts`, their tests | done |
+| T3 | Presentational parts: `SkyBand`, `StatTiles` + `TodayStats`, `TodayHeroCard`, `TodayLayout`, `RouteRow`, `SceneLead` restyle, bare lead bodies, `useSceneStart`, phrase row, flattened Coming up and week, `ProfileButton` ground | `frontend-engineer` | T1, T2 | `home/*`, `game/StatTiles.tsx`, `today/TodayParts.tsx`, `home/MissionHero.tsx`, `practice/*` lead bodies, `onboarding/StarterContinuation.tsx`, `daily/DailyCard.tsx`, `profile/ProfileButton.tsx` | done |
+| T4 | Compose HomeTab; delete the replaced code; re-pin the 26 test files | `frontend-engineer` | T3 | `tabs/HomeTab.tsx`, `practice/NextTaskCard.tsx`, deletions, tests | done |
+| T5 | Preview keys | `frontend-engineer` | T4 | `dev/TodayPreview.tsx`, `dev/OnboardingPreview.tsx` | done |
+| T6 | Docs | orchestrator | T4 | `DESIGN.md`, `docs/DESIGN_PARTNERSHIP.md`, this log, `docs/IMPLEMENTATION_EVIDENCE.md` | done |
+| T7 | Gate, shots, simulator, fix-verifier, `/push-check`, push, land, handoff | orchestrator | T5, T6 | none | verified; push and landing next |
 
 Acceptance per task is in the approved plan and repeated in each builder's brief: tests for every pure rule (the mobile floor rises), no hex or `rgba(` outside `palette.ts`, Reanimated only in `motion/`, no `fontSize:`, literal widths, safe-area reads or `ScrollView` in `home/` or HomeTab, every re-pinned assertion named in its commit message.
 
@@ -118,10 +118,17 @@ Acceptance per task is in the approved plan and repeated in each builder's brief
 | 2026-10-30 / design | Board "A × Today (chosen)" drawn; founder picked the mix | Browser pane, light and dark | Build session |
 | 2026-10-31 / design | Founder comment: chunky game-style stat tiles (board version 18); this session's answers: "Start" over "today" with no streak, "<1" with "/10" under a minute, the nudge in the sky | Board read at version 1793454188-20ef | T0 |
 | 2026-10-31 / T0 | Worktree from `d1b216c3` (D had landed when it was cut), `npm ci`; this spec; UI-015; before shots in `reviews/2026-10-30-today-sky/before/` (4, real Today, offline lead) | Same base gate green at 7,319 (D's landing evidence) | T1 |
+| 2026-10-31 / T1 | `sky` palette group (six new values, the rest referenced), `radius.stat`, `bType.stat24`, `art/sky/` (SkyDisc, SkyCloud), `motion/Drift.tsx`, `motion/PopOnce.tsx` (design-system-engineer) | White on every sky ground and chip at least 4.58; mobile 3,901 | T2 |
+| 2026-10-31 / T2 | `skyView`, `homeGreeting(firstName, now)`, `statTileView`, `statTileLayout`, `todayStops` (frontend-engineer) | All 24 hours agree with Bonsoir; mobile 3,910 | T3 |
+| 2026-10-31 / T3 | Shared `LipTile` (agreed with the drill B v2 session, plus `mintWash`), `TodayStatTiles`, `TodayStats`, `SkyBand`, `TodayHeroCard`, `TodayLayout`, `RouteRow`, `useSceneStart`, SceneLead restyle, flat Coming up and week, `bare` lead bodies | mobile 3,921 | T4 |
+| 2026-10-31 / T4 | HomeTab recomposed; NextTaskCard `placement`; TodayHero, StatRow/StatTile, statSm, statTiles, RouteNode/RoutePath deleted; tests re-pinned | mobile 3,923 | T5 |
+| 2026-10-31 / T5 | `?preview=today-*` (11 keys) through the same parts; FixHero, TodayFailedHero, TodayLoadingHero extracted; DailyCard's today look and PhraseCard deleted | mobile 3,929; gate green 7,348 | Verify |
+| 2026-10-31 / verify | Verifier round 1 REFUTED (scene row dropped the tutor gate's answer; whole cards in rows; one art for every row) and shots showed the clock in place of the ring and clouds behind the tiles; simulator showed "Star/t" breaking. Round 2 HOLDS. Simulator: the status bar unreadable after scrolling, rows squeezed at large text (fixed). Round 3 HOLDS | 45 web shots, no console errors; native at normal, accessibility-large and reduced motion | /push-check |
+| 2026-10-31 / push-check | Playwright plugin pass (preview keys and real taps on the canvas build), two push-reviewers and /code-review: PopOnce lost its first pop, the sky went stale across hours, row labels dropped the eyebrow and read French in the English voice, unpressable LipTile labels, untested focus refresh, a synthetic touch-floor count, and dead exports; all fixed. Rounds 4 to 6 found the greeting cap split words, then a flat width estimate failing wide names; replaced by sliding the disc from the measured greeting box, with a vertical-offset test. Round 7 HOLDS. F946 and F947 filed (both predate this change). F934's test title restored | Gate green after bless: 7,360 tests, 0 failing (mobile 3,941) | Push, founder review, land |
 
 ## Integrated verification and handoff
 
-- Focused checks: not run yet
-- Full gate: not run yet
-- UI / device checks: not run yet
+- Focused checks: every rule above has tests (mobile 3,941)
+- Full gate: green after `gate:bless`, 7,360 tests, 0 failing
+- UI / device checks: 45 web shots of the 11 preview keys; real Today on the canvas build; iPhone 17 Pro simulator at normal and accessibility-large text and with reduced motion (shots in `reviews/2026-10-30-today-sky/after/`). Not verified: VoiceOver on device, a physical iPhone, a live tutor session from Today
 - Landing disposition: lands on main after every Done-when item passes and the founder has seen the after shots (founder, 2026-10-31)
