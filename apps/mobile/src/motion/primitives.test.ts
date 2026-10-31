@@ -43,6 +43,8 @@ const PRIMITIVES: Record<string, string[]> = {
   'layout.tsx': ['Enter', 'Reflow', 'Exit'],
   'BubbleIn.tsx': ['BubbleIn'],
   'LevelRing.tsx': ['LevelRing'],
+  'Drift.tsx': ['Drift'],
+  'PopOnce.tsx': ['PopOnce'],
 };
 
 /** The primitives that land through the part they are built on, rather than themselves. */
@@ -132,6 +134,10 @@ describe('the motion primitives keep one contract', () => {
     assert.match(code('FlightLayer.tsx'), /if \(reduced\) flights\.landAll\(\);/, 'tokens in the air keep flying when reduced motion is turned on');
     // The level ring keeps no scale, only steps.
     assert.match(code('LevelRing.tsx'), /if \(reduced\) \{\s*const step = LEVEL_RING\.steps\.find/, 'the level ring scales under reduced motion');
+    // UI-015: a drift is simply there, and a pop does not scale.
+    assert.match(code('Drift.tsx'), /if \(reduced\) \{\s*cancel\(shown\);\s*shown\.value = 1;\s*return;\s*\}/, 'a drift under reduced motion is not at rest at once');
+    assert.match(code('PopOnce.tsx'), /if \(reduced\) return;\s*scale\.value = sequence/, 'the pop scales under reduced motion');
+    assert.doesNotMatch(code('Drift.tsx'), /translateY|scale|width|height/, 'a drift animates more than transform X and opacity');
   });
 
   test('a count says only its final value to a screen reader, keeps its width and ticks by the rules', () => {

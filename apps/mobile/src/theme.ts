@@ -207,6 +207,8 @@ export const bType = {
   name30: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 34, letterSpacing: -0.3 },
   /** The streak's run, "3 days": 52/800 at -1 (B-Streak, 2026-10-21). */
   run52: { fontFamily: font.extraBold, fontSize: 52, lineHeight: 56, letterSpacing: -1 },
+  /** The number on a chunky Today stat tile (UI-015): 24/800. */
+  stat24: { fontFamily: font.extraBold, fontSize: 24, lineHeight: 26 },
   /** The welcome's display, "A little French.": 40/800 at -1, 1.04 (B-OB-Welcome, 2026-10-21). */
   welcome40: { fontFamily: font.extraBold, fontSize: 40, lineHeight: 42, letterSpacing: -1 },
   /** An onboarding band's title, "Meet your tutor": 32/800 at -0.5 (B-OB-Tutor, 2026-10-21). */
@@ -243,6 +245,8 @@ export const radius = {
   feature: 28,
   /** A stat tile. */
   tile: 20,
+  /** The chunky Today stat tile with its 4pt lip (UI-015). */
+  stat: 18,
   /** An input field. */
   field: 16,
   /** A real tappable capsule, fully rounded. */

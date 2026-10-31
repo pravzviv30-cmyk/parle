@@ -957,6 +957,8 @@ and `para17` (Regular 17/24, a sentence on a blue page).
 Streak, Profile and Settings (2026-10-21) added `initial34` (ExtraBold 34/40,
 the Profile avatar's initial), `name30` (ExtraBold 30/34, -0.3, the Profile
 name) and `run52` (ExtraBold 52/56, -1, the streak's run on its band).
+Today's sky (UI-015, 2026-10-31) added `stat24` (ExtraBold 24/26, the number
+on a chunky stat tile).
 
 ## Surfaces and controls
 
@@ -1290,6 +1292,40 @@ alone.
 | `mascot.cheek` | `#EF8770` | The cloud's cheeks |
 | `mascot.toastCrust` | `#F59A45` | The toast's crust |
 | `mascot.toastFace` | `#F9B694` | The toast's face |
+
+### Today's sky
+
+The band behind Today's greeting follows the hour (UI-015). `sky.light` has
+four hours, `sky.dark` a day and a night. White words and glyphs sit on every
+ground and chip and clear the 4.5 text floor; the disc and the tile lip are
+decoration. Values shared with other tokens are references, not copies.
+
+| Token | Value | Role |
+|---|---|---|
+| `sky.light.morning.ground` | `#3B2FE0` | The sky ground, morning |
+| `sky.light.morning.disc` | `#FFC93C` | The sun or moon disc, morning |
+| `sky.light.morning.chip` | `#5A50EA` | The profile chip, morning |
+| `sky.light.morning.lip` | `#2A20B0` | The lip under a stat tile, morning |
+| `sky.light.afternoon.ground` | `#4B3FF0` | The sky ground, afternoon |
+| `sky.light.afternoon.disc` | `#FFE08A` | The sun or moon disc, afternoon |
+| `sky.light.afternoon.chip` | `#6A61F0` | The profile chip, afternoon |
+| `sky.light.afternoon.lip` | `#2A20B0` | The lip under a stat tile, afternoon |
+| `sky.light.evening.ground` | `#2A2390` | The sky ground, evening |
+| `sky.light.evening.disc` | `#EF8770` | The sun or moon disc, evening |
+| `sky.light.evening.chip` | `#433BB0` | The profile chip, evening |
+| `sky.light.evening.lip` | `#16123A` | The lip under a stat tile, evening |
+| `sky.light.night.ground` | `#16123A` | The sky ground, night |
+| `sky.light.night.disc` | `#EEE8FF` | The sun or moon disc, night |
+| `sky.light.night.chip` | `#2E2860` | The profile chip, night |
+| `sky.light.night.lip` | `#0D0A1A` | The lip under a stat tile, night |
+| `sky.dark.day.ground` | `#363064` | The sky ground, day |
+| `sky.dark.day.disc` | `#EEE8FF` | The sun or moon disc, day |
+| `sky.dark.day.chip` | `#4A4170` | The profile chip, day |
+| `sky.dark.day.lip` | `#0D0A1A` | The lip under a stat tile, day |
+| `sky.dark.night.ground` | `#0D0A1A` | The sky ground, night |
+| `sky.dark.night.disc` | `#EEE8FF` | The sun or moon disc, night |
+| `sky.dark.night.chip` | `#4A4170` | The profile chip, night |
+| `sky.dark.night.lip` | `#0D0A1A` | The lip under a stat tile, night |
 
 ### Raster scenes, retired
 
@@ -1742,6 +1778,10 @@ primitive's own numbers are named groups in `motion/tokens.ts`.
   words change.
 - `Enter`, `Reflow`, `Exit`: entrances, reflows and exits in a layout.
 - `BubbleIn`: a transcript line added after the transcript opened arrives.
+- `Drift`: something drifts in once from 14pt to its left as it fades in, on
+  `DUR.slow`: Today's clouds. Under reduced motion it is simply there.
+- `PopOnce`: a mark swells to 1.18 and back on `SPRING.pop` once, when `play`
+  turns true: Today's flame when the streak ticks. No scale under reduced motion.
 - `LevelRing`: two rings swell with a live sound level; under reduced motion,
   three opacity steps and no scale.
 
