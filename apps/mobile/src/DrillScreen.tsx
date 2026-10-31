@@ -297,8 +297,11 @@ export function DrillScreen({
   // not come out first time, run in this screen after the first one ended.
   // It writes nothing. `recordsNothing` is the one guard every write path
   // asks (practice save, grades, evidence, XP, activity day, settle, history,
-  // the finished signals and the scorer's upload), so a retry cannot reach
-  // any of them by a path that forgot to look.
+  // the finished signals, the scorer's upload, a kept phrase and the quiet-mic
+  // window), so a retry cannot reach any of them by a path that forgot to
+  // look. An own-words retry still asks the judge and the transcriber, as any
+  // own-words answer does: that is feedback, not a record, and nothing it
+  // returns is stored.
   const [isRetry, setIsRetry] = useState(false);
   const retryRef = useRef(false);
   const recordsNothing = (): boolean => retryRef.current;
@@ -715,7 +718,7 @@ export function DrillScreen({
    */
   const keepPhrase = useCallback(
     (exercise: OwnWordsExercise) => {
-      if (keeping || kept) return;
+      if (recordsNothing() || keeping || kept) return;
       setKeeping(true);
       setKeepFailed(false);
       void keepInPhrasebook({ fr: exercise.fr, frWritten: null, en: exercise.en, enLiteral: null, register: 'courant', note: null }, 'conversation')
@@ -884,7 +887,7 @@ export function DrillScreen({
     setSession(quiet);
     setTyped('');
     setAssembled([]);
-    void setMicSuppressed(new Date(Date.now() + MIC_SUPPRESS_MS).toISOString());
+    if (!recordsNothing()) void setMicSuppressed(new Date(Date.now() + MIC_SUPPRESS_MS).toISOString());
     // A practice sitting that went quiet resumes quiet, on its twins' ids.
     micSuppressedRef.current = true;
     savePractice(quiet);
@@ -1003,7 +1006,7 @@ export function DrillScreen({
           onTake={recordOwnWords}
           quiet={micSuppressedRef.current}
           busy={judging}
-          outcome={holding}
+          outcome={isRetry ? { ...holding, keep: false } : holding}
           onKeep={() => keepPhrase(holding.exercise)}
           keeping={keeping}
           kept={kept}
@@ -1214,7 +1217,7 @@ export function DrillScreen({
           onTake={recordOwnWords}
           quiet={micSuppressedRef.current}
           busy={judging}
-          outcome={ownWords}
+          outcome={isRetry && ownWords !== null ? { ...ownWords, keep: false } : ownWords}
           onKeep={() => keepPhrase(exercise)}
           keeping={keeping}
           kept={kept}

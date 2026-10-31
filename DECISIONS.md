@@ -1812,6 +1812,9 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   keeps the retry a choice, not a way to earn.
 - Consequence: the real test of a still-settling phrase stays tomorrow's
   unaided review. A retry is extra exposure the scheduler never sees.
+  It keeps no phrase and sets no quiet-mic window either. An own-words
+  retry still asks the judge and the transcriber, as any own-words answer
+  does: that is feedback, and nothing it returns is stored.
 
 ## DEPLOY-001 — Our own decode-only FFmpeg instead of a full static build
 

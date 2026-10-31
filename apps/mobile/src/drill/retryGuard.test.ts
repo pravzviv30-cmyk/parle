@@ -108,4 +108,14 @@ describe('the assisted retry writes nothing (LEARN-018)', () => {
     assert.equal((SCREEN.match(/retrySitting\(session\.answered, (?:askedRef\.current|held\.exercises), \{ isRetry \}\)/g) ?? []).length, 2);
     assert.match(SCREEN, /const again = card\.retry \? null : retrySitting\(session\.answered, held\.exercises, \{ isRetry \}\);/, 'a practice end that is not saved offers a retry before Retry save');
   });
+
+  test('a retry keeps no phrase and sets no quiet-mic window (verifier round 1)', () => {
+    const keep = region('const keepPhrase = useCallback(', 'keepInPhrasebook(');
+    assert.match(keep, /if \(recordsNothing\(\) \|\| keeping \|\| kept\) return;/, 'a retry can keep a phrase');
+    assert.equal((SCREEN.match(/keepInPhrasebook\(/g) ?? []).length, 1, 'a phrase is kept outside the guarded path');
+    assert.match(FLAT, /outcome=\{isRetry \? \{ \.\.\.holding, keep: false \} : holding\}/, 'a retry offers Keep phrase on a held outcome');
+    assert.match(FLAT, /outcome=\{isRetry && ownWords !== null \? \{ \.\.\.ownWords, keep: false \} : ownWords\}/, 'a retry offers Keep phrase');
+    const silent = region('const goSilent = useCallback(', 'savePractice(quiet)');
+    assert.match(silent, /if \(!recordsNothing\(\)\) void setMicSuppressed\(/, 'Type instead in a retry turns spoken drills off for the next sitting');
+  });
 });

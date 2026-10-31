@@ -205,7 +205,7 @@ Built differently from the spec or the boards, on purpose:
 - **Summary and Daily** use `EndScene` in its tiles-only mode, with no scene band: each has its own heading and is not a drill end.
 - **The repeat-this result** has no "One sound to try" Notice. That copy does not exist, so the scorer's note shows as its plain line.
 - **The Sound Check result** keeps today's rule of no close on the result (F317), and has no Hear it on the sheet because the line card has one.
-- **Own-words "Keep phrase"** still works during a retry. It is the learner's own phrasebook save, not progress.
+- **In a retry,** Keep phrase is hidden and the quiet-mic window is not set (verifier round 1). An own-words retry still asks the judge and the transcriber, because that is feedback, not a record.
 
 ## Integrated verification and handoff
 
