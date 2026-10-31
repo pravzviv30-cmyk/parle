@@ -1,6 +1,6 @@
 # Drill and practice, direction B v2: one frame, one sheet, one ending
 
-- Status: in progress, approved direction (UI-016); build on `claude/drill-b`
+- Status: built and verified (UI-016, LEARN-018) on `claude/drill-b`; landing after /push-check
 - Updated: 2026-10-31
 - Checkout / starting revision: `origin/main` at `64f6a2cc` (push check landed), worktree `Luvani-worktrees/drill-b`. The tile tasks (T5 on) start after `claude/today-sky` lands, which brings `LipTile`, `radius.stat`, `bType.stat24` and `motion/PopOnce`.
 - Owner / integrator: Opus orchestrator session; builders as named per task
@@ -174,8 +174,8 @@ After this change every drill and practice surface is built from one set of part
 | T6 | The speak family: one mic, Cloud listening, sound drill, Sound Check | `practice-ux-engineer` | T5 | `drill/kinds/RepeatThis*`, `drill/SpokenAttempt.tsx`, `drill/FocusDrillPlayer.tsx`, `soundcheck/SoundCheckScreen.tsx` | done |
 | T7 | Review, Fixes and Fix your line | `practice-ux-engineer` | T5 | `ReviewScreen.tsx`, `practice/FixesParts.tsx`, `practice/FixesScreen.tsx`, `drill/FixLineSheet.tsx`, their tests | done |
 | T8 | `EndScene` for every sitting; still-settling retry wired | `practice-ux-engineer` | T2, T5 | `celebrate/EndScene.tsx` (new), `celebrate/EndCard.tsx` (deleted), `DrillScreen.tsx`, `ReviewScreen.tsx`, `practice/*` end wiring, their tests | done |
-| T9 | Docs, Jev copy check | orchestrator + `design-system-engineer` | T8 | `DESIGN.md`, `docs/CURRENT_STATE_MAP.md`, `docs/KNOWN_ISSUES.md` if wrong, this file | in progress |
-| T10 | Verification: gate and bless, verifier rounds, after shots, simulator, live sitting, `/push-check`, after shots to the founder, `/land --no-ff` | orchestrator | T9 | `docs/IMPLEMENTATION_EVIDENCE.md`, `reviews/2026-10-31-drill-b/` | todo |
+| T9 | Docs, Jev copy check | orchestrator + `design-system-engineer` | T8 | `DESIGN.md`, `docs/CURRENT_STATE_MAP.md`, `docs/KNOWN_ISSUES.md` if wrong, this file | done |
+| T10 | Verification: gate and bless, verifier rounds, after shots, simulator, live sitting, `/push-check`, after shots to the founder, `/land --no-ff` | orchestrator | T9 | `docs/IMPLEMENTATION_EVIDENCE.md`, `reviews/2026-10-31-drill-b/` | in progress |
 
 ## Execution log
 
@@ -193,6 +193,13 @@ After this change every drill and practice surface is built from one set of part
 | 2026-10-31 / T5, T7b | `LipTile` for options (PopOnce and one Sparkle), fill-blank chips (TokenFlight into the gap, send back), tap-translate slots, the lip field, Review grades with coins, Fixes Say it and Type it; `OptionCard` and `WordChoice` deleted | Mobile 3,981 green; fill-blank flow tapped through in the browser | T8 |
 | 2026-10-31 / T8 | `EndScene` for every ending (Summary and Daily use its tiles-only mode), Today's stat `Tile` exported; the still-settling retry in the same screen behind one `recordsNothing` guard; `EndCard` deleted | Mobile 3,991 green | T9 |
 | 2026-10-31 / T9 | Docs. Jev copy check (advisory, yes/no at 0.5): all six new strings free of scolding (0.79 together); "Practise the one still settling" scored low on plainness (0.29) and "Notice" low on warmth (0.46). Both are on the approved board; flagged for the founder, not changed. The spoken send-back name loses its guillemets | Jev run from the main checkout (the worktree has no key) | T10 |
+| 2026-10-31 / T10 gate | Full `npm run gate` before the verifier fixes | Green, 7,410 tests, 0 failing | Verifier rounds |
+| 2026-10-31 / verifier 1 | fix-verifier: the retry could still keep a phrase and set the quiet-mic window. Fixed (e290700c): `recordsNothing` heads `keepPhrase` and the quiet-mic write; Keep phrase hidden in a retry | Mobile 3,992 green | Round 2 |
+| 2026-10-31 / verifier 2 | Retry fix and Cloud placement: HOLDS. Screen reader, reduced motion, fill-blank and double input not yet traced | n/a | Round 3 |
+| 2026-10-31 / verifier 3 | Screen reader HOLDS; TokenFlight under reduced motion HOLDS. BROKEN: a chip in flight could land after Check or in the next exercise (this branch); a double tap on a Review grade graded twice and skipped a card (older). Fixed (0f1efbdd): `flightMayLand`, Check off while a word flies, kinds keyed on `exercise.id`; `firstGradeAt` ref guard | Mobile 4,002 green | Live run |
+| 2026-10-31 / shots, native | After shots, 148 web files in `reviews/2026-10-31-drill-b/after/`. iPhone 17 Pro simulator: say-listening at normal text, reply-miss and the end scene at accessibility-large with reduced motion (Continue and the end actions stay pinned and visible; confetti still). Simulator reset to large text, reduced motion off | No console errors in any shot | Live run |
+| 2026-10-31 / live run | Real app on `127.0.0.1:8099` (mock auth, canvas learner, local token server): a practice sitting with a miss, fill-blank, tap-translate and a choose tile; the end with Still settling; the retry (zero stored keys changed from start to end, calm end with Done only); a Review sitting to Review complete (a double tap counted once). Found and fixed (9cad005f, ec1f2bc0): the retry header said "Phrase one of three"; now "Phrase one of one" | Mobile 4,003 green | Round 4 |
+
 
 Built differently from the spec or the boards, on purpose:
 - **The close** is the existing 44pt disc in `ScreenHeader`, not the board's bare cross: app-wide pins require one `ScreenHeader` with "Leave the drills" on every pushed screen.
@@ -207,11 +214,17 @@ Built differently from the spec or the boards, on purpose:
 - **The Sound Check result** keeps today's rule of no close on the result (F317), and has no Hear it on the sheet because the line card has one.
 - **In a retry,** Keep phrase is hidden and the quiet-mic window is not set (verifier round 1). An own-words retry still asks the judge and the transcriber, because that is feedback, not a record.
 
+Follow-ups found during the build, outside this change:
+- **The canvas learner never seeds through the app.** `useCanvasLearner` (App.tsx) did not seed a fresh mock account on web; calling `seedCanvasLearner` directly worked. The live run seeded it that way.
+- **Tap-translate has no authored display sentence.** The right sheet and the end list show `accepted[0]` ("je vous dois combien"). The exercise data would need a display line.
+- **The offline starter-line sheet on Today** draws its French prompt dark on the dark sheet in dark mode. It was seen on an older local account. Not checked on main.
+
 ## Integrated verification and handoff
 
-- Focused checks: not run yet
-- Full gate: not run yet
-- UI / device checks: not run yet
-- Documentation and decisions: this spec, UI-016
-- Landing disposition: lands after T10 and the founder sees the after shots
-- Next task: T1
+- Focused checks: every task ran its own tests and typecheck; mobile 4,003 green
+- Full gate: green, **7,422 tests, 0 failing**; floors blessed (mobile 4,003)
+- Verifier: four fix-verifier rounds, the last HOLDS
+- UI / device checks: 148 web after shots; native iPhone 17 Pro at normal and accessibility-large text with reduced motion; a live run on the real app with a local token server
+- Documentation and decisions: this spec, UI-016, LEARN-018, `DESIGN.md`, `docs/CURRENT_STATE_MAP.md`, `docs/DESIGN_PARTNERSHIP.md`, `docs/IMPLEMENTATION_EVIDENCE.md`
+- Not verified: VoiceOver on device, a physical iPhone, a speak drill with a real microphone
+- Landing disposition: `/push-check`, the after shots to the founder, then `/land --no-ff` (with `/push-check --main` and `/security-review`)
