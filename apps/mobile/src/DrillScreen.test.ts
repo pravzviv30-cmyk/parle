@@ -604,7 +604,8 @@ describe('a practice sitting says where the learner is, and nothing about how it
     const flatScreen = SCREEN.replace(/\s+/g, ' ');
     assert.match(
       flatScreen,
-      /const progress = practice !== undefined && practiceRef\.current !== null \? sittingProgress\(session, practiceRef\.current\.targets\) : null;/,
+      // The targets are the sitting's own, narrowed to the retry's phrases in a LEARN-018 retry.
+      /const targets = practiceRef\.current === null \? null : keys === null \? practiceRef\.current\.targets : practiceRef\.current\.targets\.filter\(\(t\) => keys\.has\(t\.phraseKey\)\); const progress = practice !== undefined && targets !== null \? sittingProgress\(session, targets\) : null;/,
       'the strip is drawn outside a practice sitting, or from something other than its own targets',
     );
     // In the header's centre slot, which scrolls with nothing and never
