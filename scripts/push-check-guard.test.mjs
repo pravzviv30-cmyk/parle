@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, existsSync } from 'node:fs';
+import { mkdtempSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -15,6 +15,7 @@ import {
   checkStamp,
   denyReason,
   hookDecision,
+  touchesFrontend,
 } from './push-check-guard.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./push-check-guard.mjs', import.meta.url));
@@ -23,13 +24,13 @@ const SHA = 'a'.repeat(40);
 const stampOf = (checks, result = 'pass', sha = SHA) => ({
   sha,
   result,
-  checks: { gate: 'pass', playwright: 'n/a', backend: 'n/a', review: 'pass', security: 'n/a', ...checks },
+  checks: { gate: 'pass', playwright: 'n/a', backend: 'n/a', review: 'pass', security: 'n/a', impeccable: 'n/a', ...checks },
 });
 
 // A fake git. `refs` maps a ref to its sha (anything else resolves to SHA);
 // `stamps` maps a sha to its stamp; `stamp` is shorthand for stamps[SHA];
 // `missing` lists refs that do not exist; `tags` lists tag-only names.
-function fakeGit({ stamp = null, stamps = {}, refs = {}, missing = [], tags = [], branch = 'claude/today-sky' } = {}) {
+function fakeGit({ stamp = null, stamps = {}, refs = {}, missing = [], tags = [], branch = 'claude/today-sky', frontend = false } = {}) {
   return {
     resolveCommit: (_dir, rev) => {
       if (missing.includes(rev)) throw new Error('unknown revision');
@@ -38,6 +39,7 @@ function fakeGit({ stamp = null, stamps = {}, refs = {}, missing = [], tags = []
     currentBranch: () => branch,
     readStamp: (_dir, sha) => stamps[sha] ?? (sha === SHA ? stamp : null),
     isTagOnly: (_dir, name) => tags.includes(name),
+    touchesFrontendAt: () => frontend,
   };
 }
 
@@ -444,4 +446,139 @@ test('ref rewrites before a push count as moving the branch', () => {
   }
   // A plain fetch is not a mover.
   assert.equal(hookDecision({ tool_name: 'Bash', tool_input: { command: 'git fetch origin --quiet' }, cwd: '/tmp' }, fakeGit()), null);
+});
+
+// ---- Impeccable design review for frontend pushes ----
+
+test('touchesFrontend matches only the frontend prefixes', () => {
+  assert.ok(touchesFrontend(['apps/mobile/x']));
+  assert.ok(touchesFrontend(['docs/a.md', 'packages/core/x']));
+  for (const paths of [['services/x'], ['docs/x'], ['apps/mobile-old/x'], []]) {
+    assert.equal(touchesFrontend(paths), false, paths.join(','));
+  }
+});
+
+test('frontend stamps need a passing Impeccable review', () => {
+  assert.equal(checkStamp(stampOf({}), SHA, false, true).kind, 'impeccable');
+  assert.equal(checkStamp(stampOf({ impeccable: undefined }), SHA, false, true).kind, 'impeccable');
+  const failed = checkStamp(stampOf({ impeccable: 'fail' }, 'fail'), SHA, false, true);
+  assert.equal(failed.kind, 'failed');
+  assert.ok(failed.failed.includes('impeccable'));
+  assert.ok(checkStamp(stampOf({ impeccable: 'pass' }), SHA, false, true).ok);
+  assert.ok(checkStamp(stampOf({}), SHA, false, false).ok);
+  // main plus frontend needs both
+  assert.equal(checkStamp(stampOf({ impeccable: 'pass' }), SHA, true, true).kind, 'security');
+  assert.equal(checkStamp(stampOf({ security: 'pass' }), SHA, true, true).kind, 'impeccable');
+  assert.ok(checkStamp(stampOf({ security: 'pass', impeccable: 'pass' }), SHA, true, true).ok);
+});
+
+test('hook: frontend pushes need Impeccable, backend pushes do not', () => {
+  const d = hookDecision(bash('git push origin HEAD'), fakeGit({ frontend: true, stamp: stampOf({}) }));
+  assert.match(d.reason, /Impeccable/);
+  assert.ok(!d.reason.includes('—'));
+  assert.equal(hookDecision(bash('git push origin HEAD'), fakeGit({ frontend: true, stamp: stampOf({ impeccable: 'pass' }) })), null);
+  assert.equal(hookDecision(bash('git push origin HEAD'), fakeGit({ frontend: false, stamp: stampOf({}) })), null);
+});
+
+test('denyReason for a missing Impeccable review', () => {
+  const r = denyReason({ kind: 'impeccable' }, SHA, 'feat');
+  assert.match(r, /^Push blocked\. commit aaaaaaa for feat changes frontend files/);
+  assert.match(r, /no passing Impeccable design review/);
+  assert.match(r, /Run \/push-check/);
+});
+
+const commitFile = (dir, path) => {
+  const g = (...a) => execFileSync('git', a, { cwd: dir, encoding: 'utf8' });
+  mkdirSync(join(dir, dirname(path)), { recursive: true });
+  writeFileSync(join(dir, path), 'x\n');
+  g('add', path);
+  g('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', path);
+};
+
+const repoWithOriginMain = () => {
+  const dir = tempRepo();
+  execFileSync('git', ['update-ref', 'refs/remotes/origin/main', 'HEAD'], { cwd: dir });
+  return dir;
+};
+
+test('end to end: a frontend commit needs --impeccable pass or fail', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile/a.tsx');
+  for (const extra of [[], ['--impeccable', 'n/a']]) {
+    const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', ...extra, '--dir', dir]);
+    assert.equal(r.status, 1, extra.join(' '));
+    assert.match(r.stderr, /changes frontend files .*--impeccable must be pass or fail, not n\/a/);
+    assert.equal(runScript(['status', '--dir', dir]).stdout.trim(), 'no stamp');
+  }
+  const failed = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'fail', '--dir', dir]);
+  assert.equal(failed.status, 0, failed.stderr);
+  assert.match(failed.stdout, /result: fail/);
+  const denied = runScript(['hook'], { input: hookInput('git push origin work', dir) });
+  assert.match(JSON.parse(denied.stdout).hookSpecificOutput.permissionDecisionReason, /impeccable/);
+
+  const passed = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'pass', '--dir', dir]);
+  assert.equal(passed.status, 0, passed.stderr);
+  assert.equal(runScript(['hook'], { input: hookInput('git push origin work', dir) }).stdout, '');
+});
+
+test('end to end: a docs-only commit needs no Impeccable review', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'docs/x.md');
+  const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--dir', dir]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(runScript(['hook'], { input: hookInput('git push origin work', dir) }).stdout, '');
+});
+
+test('end to end: without origin/main every file in the commit counts', () => {
+  const dir = tempRepo();
+  commitFile(dir, 'packages/core/x.ts');
+  const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', dir]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--impeccable must be pass or fail/);
+});
+
+test('end to end: unusual names and moves out of the frontend still count', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile/\u00e9t\u00e9 \u2603.tsx');
+  let r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', dir]);
+  assert.equal(r.status, 1, 'a non-ASCII name under apps/mobile/ is frontend');
+
+  const moved = repoWithOriginMain();
+  commitFile(moved, 'apps/mobile/screen.tsx');
+  execFileSync('git', ['update-ref', 'refs/remotes/origin/main', 'HEAD'], { cwd: moved });
+  execFileSync('git', ['mv', 'apps/mobile/screen.tsx', 'screen.tsx'], { cwd: moved });
+  execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'move'], { cwd: moved });
+  r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', moved]);
+  assert.equal(r.status, 1, 'moving a file out of apps/mobile/ is frontend');
+});
+
+test('end to end: a sibling folder that only starts like the frontend is not frontend', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile-old/x.tsx');
+  const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--dir', dir]);
+  assert.equal(r.status, 0, r.stderr);
+});
+
+test('end to end: run from a subfolder, a frontend commit still counts', () => {
+  for (const withOrigin of [true, false]) {
+    const dir = withOrigin ? repoWithOriginMain() : tempRepo();
+    commitFile(dir, 'apps/mobile/a.tsx');
+    commitFile(dir, 'docs/x.md');
+    for (const sub of ['docs', 'apps/mobile']) {
+      const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'n/a', '--dir', join(dir, sub)]);
+      assert.equal(r.status, 1, `${sub}, origin/main ${withOrigin}`);
+    }
+  }
+});
+
+test('end to end: the real hook refuses a passing stamp without Impeccable on a frontend commit', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile/a.tsx');
+  // A stamp the old guard could have written: everything passes, no Impeccable field.
+  const sha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8' }).trim();
+  const common = execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: dir, encoding: 'utf8' }).trim();
+  mkdirSync(join(dir, common, 'push-check'), { recursive: true });
+  writeFileSync(join(dir, common, 'push-check', `${sha}.json`), JSON.stringify(stampOf({}, 'pass', sha)));
+  const r = runScript(['hook'], { input: hookInput('git push origin work', join(dir, 'apps/mobile')) });
+  assert.match(JSON.parse(r.stdout).hookSpecificOutput.permissionDecisionReason, /no passing Impeccable design review/);
 });

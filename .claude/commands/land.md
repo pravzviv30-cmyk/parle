@@ -108,8 +108,8 @@ git commit                      # pre-commit runs gate:fast
 
 Then, on the committed branch tip, run **`/push-check --main`** (founder rule,
 2026-10-31): the Playwright pass on the version being landed, the review fan-out, the
-built-in `/code-review`, and the built-in `/security-review` on
-`git diff origin/main...HEAD`. A high or medium security finding is **HOLD** until it is
+built-in `/code-review`, the Impeccable design review for frontend changes, and the
+built-in `/security-review` on `git diff origin/main...HEAD`. A high or medium security finding is **HOLD** until it is
 fixed or the founder accepts it in chat. Then merge:
 
 ```bash
@@ -123,8 +123,8 @@ own stamp:
 - **The merge tree equals the branch tip** (main had not moved, so the line above prints):
   the merge brought nothing the check did not see. Carry the branch's stamp forward with
   the full line, `node scripts/push-check-guard.mjs stamp --gate pass --playwright <as the
-  branch> --backend <as the branch> --review pass --security pass --notes "merge of <branch>,
-  tree identical to the checked tip <sha>"`.
+  branch> --backend <as the branch> --review pass --impeccable <as the branch> --security
+  pass --notes "merge of <branch>, tree identical to the checked tip <sha>"`.
 - **It differs** (main moved, or a conflict was resolved): run `/push-check --main` again
   here, on the merge commit, before pushing. Never carry a stamp onto code nobody checked.
 

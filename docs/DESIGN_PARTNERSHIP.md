@@ -107,6 +107,15 @@ Systemic fixes waiting for evidence from the first screens: one card system, a t
 scale named by role, native sheet and modal presentation, and route transitions that
 show where you went.
 
+## Proposals from push-check
+
+The Impeccable reviewer in `/push-check` looks at every frontend push. What breaks our own
+rules it fixes in the push; redesign ideas it would not apply land here, and the founder
+chooses per row. A screen's redesign session reads its rows here before its brief.
+
+| Date | Screen | Problem | Direction | Branch | State |
+|---|---|---|---|---|---|
+
 ## Tools and how they are used
 
 - **Figma** (claude.ai connector, signed in): read the canvas file
@@ -115,7 +124,10 @@ show where you went.
 - **Appllama** (claude.ai connector, 1,500 credits a month): two to four targeted
   references per screen. Media links expire in an hour.
 - **Impeccable**: a reviewer for critique and polish. Its detector reads web markup, so
-  every suggestion is checked for React Native fit before use.
+  every suggestion is checked for React Native fit before use. Its
+  `impeccable-finish-reviewer` reviews every frontend push in `/push-check`: slop is fixed
+  in the push, redesign ideas are asked of the founder and logged under "Proposals from
+  push-check".
 - **Design canvas** (Artifact): direction boards with interactive prototypes.
 - **iOS simulator**: a dev client built with `npx expo run:ios` (needs a UTF-8 locale:
   `LANG=en_US.UTF-8`, or CocoaPods fails). The `luvani-metro-design` launch entry serves
