@@ -47,7 +47,7 @@ import {
   drillXp,
   missReason,
 } from '@luvani/core';
-import { HIT, bType, space, type } from './theme.ts';
+import { bType, space, type } from './theme.ts';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
 import { tapSettled } from './motion/haptics.ts';
@@ -95,7 +95,9 @@ import {
   JUDGE_UNAVAILABLE,
   TRANSCRIPTION_UNAVAILABLE,
 } from './drill/ownWordsCopy.ts';
-import { DrillClock } from './drill/kinds/shared.tsx';
+import { DrillClock, LitField } from './drill/kinds/shared.tsx';
+import { litLetters } from './drill/litLetters.ts';
+import { sheetLine, type SheetLine } from './drill/sheetLine.ts';
 import { BestSentenceView, AppropriateReplyView } from './drill/kinds/choose.tsx';
 import { FillBlankView, TapTranslateView } from './drill/kinds/build.tsx';
 import { ListenTypeView, TranslationView } from './drill/kinds/write.tsx';
@@ -193,7 +195,7 @@ export function DrillScreen({
   // What the answer sheet needs beside core's feedback: the kind it answered,
   // the run of real passes after it, and its place in the sitting, which the
   // good lines rotate by. Set with the feedback and cleared with it.
-  const [sheetFacts, setSheetFacts] = useState<{ kind: DrillExercise['kind']; combo: number; turn: number; reason: string | null; oneOfMany: boolean; answerEnglish: boolean } | null>(null);
+  const [sheetFacts, setSheetFacts] = useState<{ kind: DrillExercise['kind']; combo: number; turn: number; reason: string | null; oneOfMany: boolean; answerEnglish: boolean; line: SheetLine | null; attempt: string } | null>(null);
   // The run of real passes (drill/combo.ts): a ref for the answer that reads it
   // and state for the bar that glows by it. Never a number on screen.
   const comboRef = useRef(0);
@@ -549,7 +551,9 @@ export function DrillScreen({
       setFeedback(fb);
       const facts = { kind: current.kind, combo: comboAfter(comboRef.current, fb.verdict, current.kind), turn: session.answered.length, reason: missReason(current, fb.closest),
         oneOfMany: current.kind === 'appropriate-reply' && current.acceptableIndexes.length > 1,
-        answerEnglish: current.kind === 'translate' && current.direction === 'fr-en' };
+        answerEnglish: current.kind === 'translate' && current.direction === 'fr-en',
+        // What the sheet draws beyond its words: a right answer's own line, and the attempt a nearly lights.
+        line: sheetLine(current, value), attempt: String(value) };
       comboRef.current = facts.combo;
       setCombo(facts.combo);
       setSheetFacts(facts);
@@ -875,7 +879,7 @@ export function DrillScreen({
   );
   // What every kind's DrillFrame takes from the screen: the header, what leads
   // the answer area, and the pinned footer.
-  const shell = (lead?: ReactNode, footer?: ReactNode): DrillShell => ({ header, lead, footer });
+  const shell = (lead?: ReactNode, sheetNode?: ReactNode): DrillShell => ({ header, lead, sheet: sheetNode });
   // The one door on every terminal card, built once for the same reason as
   // the header: each terminal branch shows exactly one way out, and it is this
   // one. `finishAndLeave` and `leave` are the same callback.
@@ -1082,21 +1086,23 @@ export function DrillScreen({
   const locked = feedback !== null;
 
   // The frame every kind stands in: the moment card leads the answer area,
-  // and the sheet's reserved slot is the pinned footer.
+  // and the answer sheet, while one is up, takes the foot from the kind's Check.
   const frame = shell(
     node?.moment !== undefined && momentShown({ afterTry: node.afterTry, answering: feedback !== null, answered: session?.answered.length ?? 0 }) ? <MomentCard moment={node.moment} /> : undefined,
-    // Reserved height, so the card never jumps when a sheet arrives. The
-    // sheet draws no mark on a miss, and that is the rule rather than an
+    // The sheet draws no mark on a miss, and that is the rule rather than an
     // oversight: a mid-session message may not scold, and a drawing scolds
     // louder than a word. The scorer's whole say is its one muted line,
     // core's focus reason, already learner-safe: never a score.
-    <View style={ds.feedbackArea}>
-      {sheet !== null && <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} />}
-    </View>,
+    sheet !== null && sheetFacts !== null ? (
+      <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} kind={sheetFacts.kind} line={sheetFacts.line} />
+    ) : null,
   );
+  // A nearly lights the letters the learner missed in the field above the sheet.
+  const lit = sheet !== null && sheet.tone === 'nearly' && feedback?.closest != null && sheetFacts !== null ? litLetters(sheetFacts.attempt, feedback.closest) : null;
 
   return (
     <DrillClock.Provider value={clock}>
+    <LitField.Provider value={lit}>
       {exercise.kind === 'fill-blank' && (
         <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} shell={frame} />
       )}
@@ -1149,6 +1155,7 @@ export function DrillScreen({
           shell={frame}
         />
       )}
+    </LitField.Provider>
     </DrillClock.Provider>
   );
 }
@@ -1156,7 +1163,6 @@ export function DrillScreen({
 function makeDs(bt: B) {
   return StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  feedbackArea: { minHeight: HIT + 8, justifyContent: 'flex-end' },
   // A finished sitting's end card and the words under it.
   ending: { gap: space(4) },
 });

@@ -7,11 +7,12 @@ import { createContext, useContext } from 'react';
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { RecordingPresets } from 'expo-audio';
 import type { DrillExercise } from '@luvani/core';
-import { colour, onColour, type } from '../../theme.ts';
-import { useB, useThemedStyles } from '../../main/bTheme.tsx';
+import { bType, frenchText, type } from '../../theme.ts';
+import { useB, useThemedStyles, type B } from '../../main/bTheme.tsx';
 import { EarGlyph, PillButton } from '../../components.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
 import type { SheetTone } from '../answerSheet.ts';
+import type { LitAnswer } from '../litLetters.ts';
 import { OWN_WORDS_LABEL } from '../ownWordsCopy.ts';
 import { makeDs } from './styles.ts';
 import { space } from '../../theme.ts';
@@ -51,17 +52,38 @@ export function kindTag(exercise: DrillExercise): string {
 }
 
 /**
- * The own-words outcome card's ground, by the same tones the answer sheet
- * uses (`drill/answerSheet.ts`): mint for "That works.", sun for "Nearly
- * there.", and the plain white card for the reveal and for a tutor nobody
- * could reach. Ink on every one; the softer line takes its ground's own soft
- * colour, because soft ink is never set on a colour.
+ * The own-words outcome card's ground, by the same themed tones the answer
+ * sheet uses (`drill/AnswerSheet.tsx`, drill B v2): the mint wash for "That
+ * works.", the butter for "Nearly there.", and the plain card (null) for the
+ * reveal and for a tutor nobody could reach. The theme's text on every one;
+ * the softer line takes a colour that clears the floor on its own ground:
+ * the green words on the mint wash, the secondary ink on the butter.
  */
-export const OUTCOME_GROUND: Readonly<Record<SheetTone, { fill: string; soft: string } | null>> = {
-  good: { fill: colour.mint, soft: onColour.mint },
-  nearly: { fill: colour.sun, soft: onColour.sun },
-  calm: null,
-};
+export function outcomeGround(tone: SheetTone, t: B): { fill: string; ink: string; soft: string } | null {
+  if (tone === 'good') return { fill: t.mintWash, ink: t.text, soft: t.mintWords };
+  if (tone === 'nearly') return { fill: t.butter, ink: t.text, soft: t.secondary };
+  return null;
+}
+
+/**
+ * The lit letters of a nearly-right answer (`drill/litLetters.ts`), handed to
+ * the field by the drill while its nearly sheet is up, else null. A context,
+ * like the clock below, so no prop is threaded through every kind.
+ */
+export const LitField = createContext<LitAnswer | null>(null);
+
+/** Whether a typed answer can be checked: some words, and nothing settling. */
+export function canCheck(typed: string, locked: boolean): boolean {
+  return typed.trim() !== '' && !locked;
+}
+
+/**
+ * The typed kinds' Check, pinned at the frame's foot (drill B v2): the lip
+ * primary, off until there is something to check.
+ */
+export function CheckPill({ typed, locked, onSubmit }: { typed: string; locked: boolean; onSubmit: () => void }) {
+  return <PillButton label="Check" disabled={!canCheck(typed, locked)} accessibilityLabel="Check your answer" onPress={onSubmit} lip />;
+}
 
 // ──────────────────────────────────────────────────────── local card pieces
 // Composed here rather than added to components.tsx: OptionCard wants a gloss,
@@ -142,8 +164,28 @@ export function TypedAnswer({
 }) {
   const bt = useB();
   const ds = useThemedStyles(makeDs);
-  const canSubmit = typed.trim() !== '' && !locked;
+  const canSubmit = canCheck(typed, locked);
   const clock = useContext(DrillClock);
+  const lit = useContext(LitField);
+  if (lit !== null && locked) {
+    // Nearly: the field holds the right spelling with the missed letters lit
+    // in the sun, ink on it in both modes. Read as one line.
+    let at = 0;
+    const runs: { text: string; lit: boolean }[] = [];
+    for (const [start, end] of lit.lit) {
+      if (start > at) runs.push({ text: lit.text.slice(at, start), lit: false });
+      runs.push({ text: lit.text.slice(start, end), lit: true });
+      at = end;
+    }
+    if (at < lit.text.length) runs.push({ text: lit.text.slice(at), lit: false });
+    return (
+      <View style={[ds.input, ds.litField]} accessible accessibilityLabel={`${accessibilityLabel}: ${lit.text}`}>
+        <Text {...frenchText} style={[bType.bold17, { color: bt.text }]}>
+          {runs.map((run, i) => (run.lit ? <Text key={i} style={{ backgroundColor: bt.sun, color: bt.onSun }}>{run.text}</Text> : run.text))}
+        </Text>
+      </View>
+    );
+  }
   return (
     <View style={{ gap: space(2.5) }}>
       <TextInput
@@ -165,7 +207,6 @@ export function TypedAnswer({
         accessibilityLabel={accessibilityLabel}
         style={ds.input}
       />
-      <PillButton label="Check" disabled={!canSubmit} accessibilityLabel="Check your answer" onPress={onSubmit} lip />
     </View>
   );
 }

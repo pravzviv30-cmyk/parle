@@ -9,7 +9,7 @@ import { drillStage } from '../drillStage.ts';
 import { Feedback } from '../../motion/Feedback.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
 import { PRACTICE_HELP } from '../../practice/copy.ts';
-import { HearRow, TypedAnswer, kindTag } from './shared.tsx';
+import { CheckPill, HearRow, TypedAnswer, kindTag } from './shared.tsx';
 import { makeDs } from './styles.ts';
 
 export function ListenTypeView({
@@ -34,6 +34,7 @@ export function ListenTypeView({
       {...shell}
       stage={drillStage(exercise.kind, bt.mode)}
       eyebrow={kindTag(exercise)}
+      primary={<CheckPill typed={typed} locked={locked} onSubmit={() => onAnswer(typed)} />}
       stageExtra={<>
         {/* Replayable freely — dictation is a listening exercise, not a memory test. */}
         <Pressable
@@ -94,6 +95,7 @@ export function TranslationView({
       stage={drillStage(exercise.kind, bt.mode)}
       eyebrow={kindTag(exercise)}
       prompt={<DrillPrompt>{prompt}</DrillPrompt>}
+      primary={<CheckPill typed={typed} locked={locked} onSubmit={() => onAnswer(typed)} />}
       stageExtra={<>
         {isFrenchPrompt && <HearRow text={exercise.fr} />}
         {canHelp && help.shown && (

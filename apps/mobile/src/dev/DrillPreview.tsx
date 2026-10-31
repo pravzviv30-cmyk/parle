@@ -12,11 +12,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { NavigationContext } from '@react-navigation/native';
-import { HIT, bType, space, type } from '../theme.ts';
+import { bType, space, type } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { Card, IconAction, PillButton } from '../components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from '../layout.tsx';
 import type { DrillShell } from '../drill/DrillFrame.tsx';
+import { LitField } from '../drill/kinds/shared.tsx';
+import { litLetters } from '../drill/litLetters.ts';
+import { sheetLine, type SheetLine } from '../drill/sheetLine.ts';
 import { AnswerSheet } from '../drill/AnswerSheet.tsx';
 import { sheetFor, type SheetInput } from '../drill/answerSheet.ts';
 import { comboGlows } from '../drill/combo.ts';
@@ -70,12 +73,13 @@ const PREVIEW_NAVIGATION = new Proxy({} as Record<string, unknown>, {
  * DrillScreen's shell for the real `DrillFrame`: the close, the bar with its
  * fill and glow, and the reserved sheet footer. The kind view draws the frame.
  */
-function shell(kind: DrillExercise['kind'], { fill = 0.4, combo = 1, sheet = null, note = null, footer = true }: {
+function shell(kind: DrillExercise['kind'], { fill = 0.4, combo = 1, sheet = null, note = null, line = null }: {
   fill?: number;
   combo?: number;
   sheet?: SheetInput | null;
   note?: string | null;
-  footer?: boolean;
+  /** A right sheet's own line, as DrillScreen reads it through `sheetLine`. */
+  line?: SheetLine | null;
 } = {}): DrillShell {
   return {
     header: (
@@ -85,11 +89,7 @@ function shell(kind: DrillExercise['kind'], { fill = 0.4, combo = 1, sheet = nul
         centre={<SittingBar fill={fill} glow={comboGlows(combo)} />}
       />
     ),
-    footer: footer ? (
-      <View style={{ minHeight: HIT + 8, justifyContent: 'flex-end' }}>
-        {sheet !== null && <AnswerSheet sheet={sheetFor(sheet)} note={note} onContinue={noop} />}
-      </View>
-    ) : undefined,
+    sheet: sheet !== null ? <AnswerSheet sheet={sheetFor(sheet)} note={note} onContinue={noop} kind={kind} line={line} /> : null,
   };
 }
 
@@ -175,7 +175,7 @@ function OwnWords({ outcome, typed = '' }: { outcome: OwnWordsOutcome | null; ty
   const [text, setText] = useState(typed);
   return (
     <OwnWordsView exercise={F.OWN_WORDS} typed={text} onChange={setText} onCheck={noop} onTake={noop}
-      busy={false} outcome={outcome} onKeep={noop} keeping={false} kept={false} keepFailed={false} shell={shell('own-words', { footer: false })} />
+      busy={false} outcome={outcome} onKeep={noop} keeping={false} kept={false} keepFailed={false} shell={shell('own-words')} />
   );
 }
 
@@ -247,28 +247,30 @@ function body(preview: DrillPreviewKey): ReactNode {
     case 'drill-choose':
     case 'drill-choose-right': {
       const sheet = preview === 'drill-choose-right' ? F.SHEETS.chooseRight : null;
-      return <BestSentenceView exercise={F.BEST_SENTENCE} onAnswer={noop} locked={locked(sheet)} shell={shell('best-sentence', { sheet })} />;
+      return <BestSentenceView exercise={F.BEST_SENTENCE} onAnswer={noop} locked={locked(sheet)} shell={shell('best-sentence', { sheet, line: sheetLine(F.BEST_SENTENCE, 0) })} />;
     }
     case 'drill-reply':
     case 'drill-roll':
     case 'drill-reply-miss': {
       const sheet = preview === 'drill-roll' ? F.SHEETS.roll : preview === 'drill-reply-miss' ? F.SHEETS.replyMiss : null;
       return <AppropriateReplyView exercise={F.APPROPRIATE_REPLY} onAnswer={noop} locked={locked(sheet)}
-        shell={shell('appropriate-reply', { combo: preview === 'drill-roll' ? 3 : 1, fill: preview === 'drill-roll' ? 0.6 : 0.4, sheet })} />;
+        shell={shell('appropriate-reply', { combo: preview === 'drill-roll' ? 3 : 1, fill: preview === 'drill-roll' ? 0.6 : 0.4, sheet, line: sheetLine(F.APPROPRIATE_REPLY, 0) })} />;
     }
     case 'drill-blank':
     case 'drill-blank-landed': {
       const sheet = preview === 'drill-blank-landed' ? F.SHEETS.blankLanded : null;
-      return <FillBlankView exercise={F.FILL_BLANK_CHOICE} typed="" onChange={noop} onAnswer={noop} locked={locked(sheet)} shell={shell('fill-blank', { sheet })} />;
+      return <FillBlankView exercise={F.FILL_BLANK_CHOICE} typed="" onChange={noop} onAnswer={noop} locked={locked(sheet)} shell={shell('fill-blank', { sheet, line: sheetLine(F.FILL_BLANK_CHOICE, 'voudrais') })} />;
     }
     case 'drill-blank-nearly':
-      return <FillBlankView exercise={F.FILL_BLANK_TYPED} typed="combein" onChange={noop} onAnswer={noop} locked shell={shell('fill-blank', { sheet: F.SHEETS.blankNearly })} />;
+      return <LitField.Provider value={litLetters('combein', 'combien')}>
+        <FillBlankView exercise={F.FILL_BLANK_TYPED} typed="combein" onChange={noop} onAnswer={noop} locked shell={shell('fill-blank', { sheet: F.SHEETS.blankNearly })} />
+      </LitField.Provider>;
     case 'drill-build':
     case 'drill-build-right': {
       const right = preview === 'drill-build-right';
       return <Tapped initial={right ? F.TAP_ALL : F.TAP_PLACED}>{(placed, onPlaced) =>
         <TapTranslateView exercise={F.TAP_TRANSLATE} assembled={placed} onAssembled={onPlaced} onAnswer={noop} locked={right}
-          shell={shell('tap-translate', { sheet: right ? F.SHEETS.buildRight : null })} />}</Tapped>;
+          shell={shell('tap-translate', { sheet: right ? F.SHEETS.buildRight : null, line: sheetLine(F.TAP_TRANSLATE, '') })} />}</Tapped>;
     }
     case 'drill-translate':
     case 'drill-translate-hint':
@@ -277,7 +279,7 @@ function body(preview: DrillPreviewKey): ReactNode {
           help={{ shown: preview === 'drill-translate-hint', onShow: noop }} shell={shell('translate')} />}</Typed>;
     case 'drill-into-en-right':
       return <TranslationView exercise={F.TRANSLATE_INTO_EN} typed="The bill, please." onChange={noop} onAnswer={noop} locked
-        shell={shell('translate', { sheet: F.SHEETS.intoEnRight })} />;
+        shell={shell('translate', { sheet: F.SHEETS.intoEnRight, line: sheetLine(F.TRANSLATE_INTO_EN, 'The bill, please.') })} />;
     case 'drill-listen':
       return <Typed>{(typed, onChange) =>
         <ListenTypeView exercise={F.LISTEN_TYPE} typed={typed} onChange={onChange} onAnswer={noop} locked={false} shell={shell('listen-type')} />}</Typed>;
@@ -290,7 +292,7 @@ function body(preview: DrillPreviewKey): ReactNode {
       const result = preview === 'drill-say-result';
       return <RepeatThisView exercise={F.REPEAT_THIS} onAnswer={noop} onSpoke={noop} onNoMic={noop} locked={result}
         initialMic={preview === 'drill-say-listening' ? 'live' : 'armed'}
-        shell={shell('repeat-this', { sheet: result ? F.SHEETS.sayResult : null, note: result ? F.SAY_NOTE : null })} />;
+        shell={shell('repeat-this', { sheet: result ? F.SHEETS.sayResult : null, note: result ? F.SAY_NOTE : null, line: sheetLine(F.REPEAT_THIS, F.REPEAT_THIS.reference) })} />;
     }
     case 'drill-own': return <OwnWords outcome={null} />;
     case 'drill-own-works': return <OwnWords outcome={F.OWN_OUTCOMES.works} typed={F.OWN_OUTCOMES.works.attempt!} />;

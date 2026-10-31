@@ -10,19 +10,40 @@
  *   eyebrow, the prompt and an optional English line, then any stage extras
  *   such as Hear it;
  * - the answer area on the `ground`, padding 18;
- * - the footer, pinned by `ScrollScreen`, which already owns the safe area and
- *   the keyboard.
+ * - the foot, pinned by `ScrollScreen`, which already owns the keyboard: the
+ *   kind's primary (Check, with its lip), replaced by the answer sheet while
+ *   one is up.
  *
  * The header row stays put while the stage band scrolls with the answer, so a
  * long prompt at large text never pushes the answer off a small phone.
  */
-import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { createContext, useContext, type ReactNode } from 'react';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollScreen, TopInset } from '../layout.tsx';
 import { bType } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import type { DrillStage } from './drillStage.ts';
+import { sheetMaxHeight } from './sheetLayout.ts';
+
+/**
+ * The foot's geometry for the answer sheet. The frame reads the safe area
+ * once; the sheet, which runs edge to edge to the bottom, pads by the bottom
+ * inset and grows no taller than `maxHeight` (`sheetLayout.ts`), scrolling its
+ * body past that with Continue pinned.
+ */
+export interface FootLayout {
+  readonly inset: number;
+  readonly maxHeight: number | undefined;
+}
+
+const Foot = createContext<FootLayout>({ inset: 0, maxHeight: undefined });
+
+/** The bottom inset and height cap the answer sheet draws to. */
+export function useFootLayout(): FootLayout {
+  return useContext(Foot);
+}
 
 /** What the drill screen hands every kind: the parts of the frame that are not the kind's own. */
 export interface DrillShell {
@@ -34,7 +55,11 @@ export interface DrillShell {
   header: ReactNode;
   /** Drawn at the top of the answer area, before the kind's controls (the moment card). */
   lead?: ReactNode;
-  footer?: ReactNode;
+  /**
+   * The answer sheet while one is up, else null. It takes the whole foot,
+   * edge to edge, in place of the kind's primary (drill-b.md "Sheet").
+   */
+  sheet?: ReactNode;
   /** Lift the footer over the keyboard. */
   avoidKeyboard?: boolean;
 }
@@ -50,6 +75,8 @@ export interface DrillFrameProps extends DrillShell {
   english?: string;
   /** Anything else that belongs on the stage: Hear it, the IPA, help. */
   stageExtra?: ReactNode;
+  /** The kind's one primary (Check, with its lip), pinned at the foot while no sheet is up. Choose kinds have none. */
+  primary?: ReactNode;
   /** The answer area. */
   children?: ReactNode;
 }
@@ -68,7 +95,8 @@ export function DrillFrame({
   stage,
   header,
   lead,
-  footer,
+  sheet,
+  primary,
   avoidKeyboard = true,
   eyebrow,
   prompt,
@@ -80,6 +108,12 @@ export function DrillFrame({
   const t = useB();
   const s = useThemedStyles(make);
   const band = t[stage.band];
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const sheetCap = sheetMaxHeight(Math.max(0, height - insets.top - insets.bottom));
+  // The foot: the sheet edge to edge while one is up (it pays the bottom inset
+  // itself), else the kind's primary in the gutter over the bottom inset.
+  const foot = sheet != null ? <Foot.Provider value={{ inset: insets.bottom, maxHeight: sheetCap }}>{sheet}</Foot.Provider> : <View style={[s.foot, { paddingBottom: insets.bottom + FOOT_BOTTOM }]}>{primary}</View>;
   const top = (
     <View style={[s.top, { backgroundColor: band }]}>
       <TopInset />
@@ -87,7 +121,7 @@ export function DrillFrame({
     </View>
   );
   return (
-    <ScrollScreen avoidKeyboard={avoidKeyboard} ground={t.ground} padded={false} bleedTop header={top} footer={footer != null ? <View style={s.foot}>{footer}</View> : undefined}>
+    <ScrollScreen avoidKeyboard={avoidKeyboard} ground={t.ground} padded={false} bleedTop bottom="none" header={top} footer={foot} footerMaxHeight={sheet != null ? sheetCap : undefined}>
       <View style={[s.stage, { backgroundColor: band }]}>
         <Text style={[s.eyebrow, { color: t[stage.eyebrow] }]}>{eyebrow}</Text>
         {typeof prompt === 'string' ? <DrillPrompt header={promptIsHeader}>{prompt}</DrillPrompt> : prompt}
@@ -104,6 +138,8 @@ export function DrillFrame({
 
 /** The board's stage gutter. */
 const GUTTER = 18;
+/** Air under the primary, over the bottom inset. */
+const FOOT_BOTTOM = 16;
 
 const fr = StyleSheet.create({
   prompt: bType.prompt23,

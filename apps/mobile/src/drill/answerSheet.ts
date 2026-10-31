@@ -12,13 +12,18 @@
  *   it, so it is told "You said it." and nothing about accuracy.
  * - **typo**: sun, a check (the drill accepted it), "Nearly." and the real
  *   spelling in guillemets, `nearly` and `soft()`.
- * - **first miss**: core hands nothing over on a first miss (`closest` is null
- *   by design, so the retry tests memory), so the sheet is calm: "This one
- *   comes round again." No French, no mark, no sound, no haptic.
- * - **second miss**: the two-miss mercy moves on, so now the form is shown:
- *   "Here's how it goes.", the French on its own line, and "It'll come back in
- *   your review." It waits for Continue, because it is the one sheet with
- *   French to read. Still no mark, no sound and no haptic.
+ * - **a miss with a form**: since LEARN-017 core hands over the right form
+ *   (`closest`) on a first miss for every kind except listen-type and
+ *   own-words, and on every second miss. The sheet is calm: "Here's how it
+ *   goes." (or "Here is one reply that works." when several replies are
+ *   right), the French on its own line, its one-line reason from
+ *   `missReason`, then "This one comes round again." on a first miss or
+ *   "It'll come back in your review." once the two-miss mercy moves on. It
+ *   waits for Continue, because there is French to read. No mark, no sound,
+ *   no haptic.
+ * - **a first miss with no form** (listen-type, so the retry still tests the
+ *   ear): "This one comes round again." alone, and it moves on by itself. No
+ *   French, no mark, no sound, no haptic.
  *
  * With a screen reader on, or not yet known to be off, nothing moves on by
  * itself: every sheet waits for Continue, and on a phone the reader is moved

@@ -1154,6 +1154,10 @@ const SAFE_AREA_ALLOW = [
   'friends/AddFriendsScreen.tsx',
   // 2026-10-20 UI-008, artboard B-Profile: the tab bar drawn under Profile, outside the tab navigator, pays the bottom inset as the navigator's bar does.
   'nav/LuvaniTabBar.tsx',
+  // 2026-10-31 drill B v2 (UI-016): the drill's frame on ScrollScreen with its
+  // foot edge to edge; it reads the bottom inset once and hands it to the
+  // answer sheet, which runs to the bottom edge.
+  'drill/DrillFrame.tsx',
 ];
 
 /**

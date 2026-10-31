@@ -149,10 +149,13 @@ describe('the answer sheet — F759', () => {
     assert.match(screen, /const autoAdvanceMs = sheet\?\.autoAdvanceMs \?\? null;/);
     assert.match(screen, /if \(!feedback \|\| autoAdvanceMs === null\) return; const t = setTimeout\(advance, autoAdvanceMs\);/, 'the drill moves on by a clock of its own');
     assert.doesNotMatch(screen, /FEEDBACK_MS/, 'the old fixed beat is back beside the sheet');
-    assert.match(screen, /<AnswerSheet key=\{beatRef\.current\} sheet=\{sheet\} note=\{focusLine\} onContinue=\{advance\} \/>/);
+    // Drill B v2 (UI-016): the sheet also takes the kind (the Notice's stage colour) and a right answer's own line.
+    assert.match(screen, /<AnswerSheet key=\{beatRef\.current\} sheet=\{sheet\} note=\{focusLine\} onContinue=\{advance\} kind=\{sheetFacts\.kind\} line=\{sheetFacts\.line\} \/>/);
     const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
     assert.match(sheetFile, /const waits = sheet\.autoAdvanceMs === null;/);
-    assert.match(sheetFile, /\{waits \? \( <> \{body\} <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/> <\/> \)/, 'a sheet that waits has no Continue');
+    // Drill B v2 (UI-016): the body scrolls under the sheet's cap and the
+    // waiting Continue sits after that scroll, pinned at the sheet's foot.
+    assert.match(sheetFile, /<\/ScrollView> \{waits \? <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/> : null\}/, 'a sheet that waits has no Continue, or it scrolls with the body');
   });
 
   test('a missed drill answer shows the right answer and a one-line reason', () => {
@@ -244,6 +247,14 @@ describe('the answer sheet — F759', () => {
     const sheetFile = stripComments(read('./AnswerSheet.tsx'));
     assert.match(sheetFile, /\{sheet\.mark && \(/, 'the sheet draws its mark from something other than the model');
     assert.equal((sheetFile.match(/<CheckGlyph\b/g) ?? []).length, 1);
+    // Drill B v2 (UI-016): inside that one mark, Cloud cheers on a right
+    // answer and the check sits beside a nearly; a miss (mark false) has neither.
+    assert.equal((sheetFile.match(/<Cloud\b/g) ?? []).length, 1, 'Cloud is drawn more than once on the sheet');
+    // And Cloud is never on the question: no kind view and not the frame draws it.
+    for (const file of ['./DrillFrame.tsx', './kinds/shared.tsx', './kinds/choose.tsx', './kinds/build.tsx', './kinds/write.tsx', './kinds/RepeatThisView.tsx', './kinds/OwnWordsView.tsx']) {
+      assert.doesNotMatch(read(file), /\bCloud\b.*from|<Cloud\b/, `${file} draws Cloud on the question`);
+    }
+    assert.match(sheetFile.replace(/\s+/g, ' '), /\{sheet\.mark && \( good \? \( .*<Cloud expression="cheer"[^]*?\) : \( .*<CheckGlyph/, 'Cloud is not the right answer\'s mark, or the check is not the nearly\'s');
     assert.doesNotMatch(sheetFile, /from '\.\.\/sound\/sfx\.ts'|from '\.\.\/motion\/haptics\.ts'/, 'the sheet plays something itself');
     const screen = stripComments(drillSource());
     assert.doesNotMatch(screen, /\bplay\(|from '\.\/sound\/sfx\.ts'/, 'the drill plays a sound beside the sheet');

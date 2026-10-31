@@ -12,7 +12,7 @@ import { ownWordsLook } from '../answerSheet.ts';
 import type { OwnWordsDecided } from '../combo.ts';
 import { MADE_FROM } from '../../practice/madeFrom.ts';
 import { OWN_WORDS_ANOTHER, OWN_WORDS_FIELD_LABEL, OWN_WORDS_HINT, OWN_WORDS_NOT_KEPT, OWN_WORDS_PROMPT } from '../ownWordsCopy.ts';
-import { CAN_RECORD, OUTCOME_GROUND, TypedAnswer, kindTag } from './shared.tsx';
+import { CAN_RECORD, CheckPill, TypedAnswer, kindTag, outcomeGround } from './shared.tsx';
 import { makeDs } from './styles.ts';
 
 /**
@@ -92,10 +92,11 @@ export function OwnWordsView({
   const [typing, setTyping] = useState(!CAN_RECORD || quiet);
   const typeInstead = useCallback(() => setTyping(true), []);
   const look = ownWordsLook(outcome?.decided ?? null);
-  const ground = look.tone === null ? null : OUTCOME_GROUND[look.tone];
+  const ground = look.tone === null ? null : outcomeGround(look.tone, bt);
   const soft = ground === null ? bt.muted : ground.soft;
-  // Words on a mint or sun outcome are ink in both modes; on the plain card they follow the theme.
-  const ink = ground === null ? bt.text : bt.onMint;
+  // Words on every outcome ground follow the theme (drill B v2).
+  const ink = ground === null ? bt.text : ground.ink;
+  const field = typing || typed !== '' || outcome !== null;
   return (
     <DrillFrame
       {...shell}
@@ -106,9 +107,10 @@ export function OwnWordsView({
         <DrillPrompt>{exercise.en}</DrillPrompt>
       </>}
       english={OWN_WORDS_HINT}
+      primary={field ? <CheckPill typed={typed} locked={busy} onSubmit={onCheck} /> : undefined}
     >
       {!typing && typed === '' && outcome === null && <SpokenAttempt onTake={onTake} onTyping={typeInstead} busy={busy} />}
-      {(typing || typed !== '' || outcome !== null) && <TypedAnswer
+      {field && <TypedAnswer
         typed={typed}
         onChange={onChange}
         onSubmit={onCheck}

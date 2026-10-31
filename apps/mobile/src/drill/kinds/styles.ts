@@ -53,6 +53,8 @@ export function makeDs(bt: B) {
     fontFamily: font.regular,
     fontSize: 16,
   },
+  // The nearly field: the same field, holding lit letters instead of a caret.
+  litField: { justifyContent: 'center' },
 
   // B-Drill: the build, gap 18; the answer box (white, radius 22, padding 14,
   // min-height 120, 2pt periwinkle) and its brand tiles (46, radius 14, padding 0 14).

@@ -6,7 +6,7 @@ import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { PillButton } from '../../components.tsx';
 import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
 import { drillStage } from '../drillStage.ts';
-import { TAP_LINE, TypedAnswer, WordChoice, kindTag } from './shared.tsx';
+import { CheckPill, TAP_LINE, TypedAnswer, WordChoice, kindTag } from './shared.tsx';
 import { makeDs } from './styles.ts';
 
 export function FillBlankView({
@@ -27,7 +27,8 @@ export function FillBlankView({
   const bt = useB();
   const ds = useThemedStyles(makeDs);
   return (
-    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.sentence} english={exercise.en}>
+    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.sentence} english={exercise.en}
+      primary={exercise.options ? undefined : <CheckPill typed={typed} locked={locked} onSubmit={() => onAnswer(typed)} />}>
       {exercise.options ? (
         <View style={ds.tokenPool}>
           {exercise.options.map((option) => (
@@ -70,7 +71,16 @@ export function TapTranslateView({
   return (
     // Drill B v2 (UI-016): the eyebrow, the English as the stage's header,
     // and the one instruction, on the build's butter stage.
-    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.en} promptIsHeader english={TAP_LINE}>
+    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.en} promptIsHeader english={TAP_LINE}
+      primary={
+        <PillButton
+          label="Check"
+          disabled={!canCheck}
+          accessibilityLabel="Check your sentence"
+          onPress={() => onAnswer(answerText)}
+          lip
+        />
+      }>
     <View style={ds.build}>
 
       {/* The answer box: the words placed so far, in brand tiles. Tap a word to put it back. */}
@@ -119,14 +129,6 @@ export function TapTranslateView({
           );
         })}
       </View>
-
-      <PillButton
-        label="Check"
-        disabled={!canCheck}
-        accessibilityLabel="Check your sentence"
-        onPress={() => onAnswer(answerText)}
-        lip
-      />
     </View>
     </DrillFrame>
   );
