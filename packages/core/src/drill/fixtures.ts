@@ -367,6 +367,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'tt-un-cafe',
+    fr: "Un café, s'il vous plaît.",
     phraseKey: "phrase:un café, s'il vous plaît",
     difficulty: 'recognition',
     en: 'A coffee, please',
@@ -379,6 +380,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'tt-quoi-samedi',
+    fr: 'On fait quoi samedi ?',
     phraseKey: 'phrase:on fait quoi samedi ?',
     difficulty: 'recognition',
     en: 'What are we doing on Saturday?',
@@ -390,6 +392,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'tt-payer-carte',
+    fr: 'Je peux payer par carte ?',
     phraseKey: 'phrase:je peux payer par carte ?',
     difficulty: 'recognition',
     en: 'Can I pay by card?',
@@ -399,6 +402,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'tt-toilettes',
+    fr: 'Où sont les toilettes ?',
     phraseKey: 'phrase:où sont les toilettes ?',
     difficulty: 'recognition',
     en: 'Where are the toilets?',
@@ -489,6 +493,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'tt-premier-order',
+    fr: 'Bonjour, je vais prendre un café.',
     phraseKey: 'phrase:bonjour, je vais prendre un café',
     difficulty: 'recognition',
     en: 'Hello, I will have a coffee',
@@ -522,6 +527,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'tt-premier-where',
+    fr: "Sur place, au comptoir, s'il vous plaît.",
     phraseKey: "phrase:sur place, au comptoir, s'il vous plaît",
     difficulty: 'recognition',
     en: 'Here at the counter, please',
@@ -555,6 +561,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'tt-premier-combien',
+    fr: 'Je vous dois combien ?',
     phraseKey: 'phrase:je vous dois combien ?',
     difficulty: 'recognition',
     en: 'How much is that?',
@@ -612,6 +619,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'hotel-breakfast-tap',
+    fr: "Le petit déjeuner, c'est à quelle heure ?",
     phraseKey: "phrase:le petit déjeuner, c'est à quelle heure ?",
     difficulty: 'recognition',
     accepted: [
@@ -798,6 +806,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'marche-tt-combien-tomates',
+    fr: 'Elles sont à combien, les tomates ?',
     phraseKey: 'phrase:elles sont à combien, les tomates ?',
     difficulty: 'recognition',
     accepted: [
@@ -839,6 +848,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     noMicTwin: {
       kind: 'tap-translate',
       id: 'marche-rt-celles-la-silent',
+      fr: "Celles-là, s'il vous plaît.",
       phraseKey: "phrase:celles-là, s'il vous plaît",
       difficulty: 'recognition',
       accepted: ["celles-là s'il vous plaît", 'celles-là, merci'],
@@ -971,6 +981,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'chemin-tt-cherche-la-gare',
+    fr: 'Excusez-moi, je cherche la gare.',
     phraseKey: 'phrase:excusez-moi, je cherche la gare',
     difficulty: 'recognition',
     accepted: ['excusez-moi, je cherche la gare', 'pardon, je cherche la gare'],
@@ -1238,6 +1249,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'journee-comme-dhab-tap',
+    fr: "Comme d'hab.",
     phraseKey: "phrase:comme d'hab",
     difficulty: 'recognition',
     accepted: ["comme d'hab", "comme d'habitude", 'comme toujours'],
@@ -1304,6 +1316,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'journee-et-toi-tap',
+    fr: 'Et toi, ta journée ?',
     phraseKey: 'phrase:et toi, ta journée ?',
     difficulty: 'recognition',
     accepted: ['et toi, ta journée', 'et ta journée'],
@@ -1513,6 +1526,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'restaurant-tt-a-ce-soir',
+    fr: 'À ce soir, alors.',
     phraseKey: 'phrase:à ce soir, alors',
     difficulty: 'recognition',
     en: 'See you tonight, then',
@@ -1588,6 +1602,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'pharmacie-tt-combien-de-fois',
+    fr: 'Je le prends combien de fois par jour ?',
     phraseKey: 'phrase:je le prends combien de fois par jour ?',
     difficulty: 'recognition',
     en: 'How many times a day do I take it?',
@@ -1664,6 +1679,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'gare-tt-prochain-train',
+    fr: 'Le prochain train part à quelle heure ?',
     phraseKey: 'phrase:le prochain train part à quelle heure ?',
     difficulty: 'recognition',
     en: 'What time does the next train leave?',
@@ -1800,6 +1816,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'colis-tt-piece-identite',
+    fr: "Voilà ma pièce d'identité.",
     phraseKey: "phrase:voilà ma pièce d'identité",
     difficulty: 'recognition',
     en: 'Here is my ID',
@@ -1882,6 +1899,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'voisin-tt-longtemps',
+    fr: 'Vous habitez ici depuis longtemps ?',
     phraseKey: 'phrase:vous habitez ici depuis longtemps ?',
     difficulty: 'recognition',
     en: 'Have you lived here long?',
@@ -2009,6 +2027,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'week-end-tt-et-toi',
+    fr: "Et toi, t'as fait quoi ?",
     phraseKey: "phrase:et toi, t'as fait quoi ?",
     difficulty: 'recognition',
     en: 'And you, what did you do?',
@@ -2142,6 +2161,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'collegues-tt-cantine',
+    fr: 'Tu peux me montrer la cantine ?',
     phraseKey: 'phrase:tu peux me montrer la cantine ?',
     difficulty: 'recognition',
     en: 'Can you show me the canteen?',
@@ -2256,6 +2276,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'telephone-tt-epelle',
+    fr: "Je vous l'épelle.",
     phraseKey: "phrase:je vous l'épelle",
     difficulty: 'recognition',
     en: 'I will spell it for you',
@@ -2362,6 +2383,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'medecin-tt-combien-de-temps',
+    fr: 'Je dois le prendre pendant combien de temps ?',
     phraseKey: 'phrase:je dois le prendre pendant combien de temps ?',
     difficulty: 'recognition',
     en: 'How long do I need to take it for?',
@@ -2478,6 +2500,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'retour-tt-responsable',
+    fr: "C'est possible de voir avec un responsable ?",
     phraseKey: "phrase:c'est possible de voir avec un responsable ?",
     difficulty: 'recognition',
     en: 'Could you check with a manager?',
@@ -2583,6 +2606,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'appartement-tt-garant',
+    fr: 'Faut un garant ?',
     phraseKey: 'phrase:faut un garant ?',
     difficulty: 'recognition',
     en: 'Do I need a guarantor?',
@@ -2664,6 +2688,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'belle-famille-tt-ete',
+    fr: "On va passer l'été dans le Sud.",
     phraseKey: "phrase:on va passer l'été dans le sud",
     difficulty: 'recognition',
     en: 'We are spending the summer in the South',
@@ -2761,6 +2786,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'club-tt-essai',
+    fr: "On peut faire un cours d'essai ?",
     phraseKey: "phrase:on peut faire un cours d'essai ?",
     difficulty: 'recognition',
     en: 'Can I try a class first?',
@@ -2858,6 +2884,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'banque-tt-documents',
+    fr: 'Vous avez besoin de quels documents ?',
     phraseKey: 'phrase:vous avez besoin de quels documents ?',
     difficulty: 'recognition',
     en: 'Which documents do you need?',
@@ -2958,6 +2985,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'sortie-tt-retrouve',
+    fr: 'On se retrouve devant le cinéma ?',
     phraseKey: 'phrase:on se retrouve devant le cinéma ?',
     difficulty: 'recognition',
     en: 'Shall we meet outside the cinema?',
@@ -3056,6 +3084,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'montreal-tt-serre',
+    fr: 'Il est un peu serré aux épaules.',
     phraseKey: 'phrase:il est un peu serré aux épaules',
     difficulty: 'recognition',
     en: 'It is a bit tight across the shoulders',
@@ -3146,6 +3175,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'coup-de-main-tt-montrer',
+    fr: 'Tu peux me montrer comment tu fais ?',
     phraseKey: 'phrase:tu peux me montrer comment tu fais ?',
     difficulty: 'recognition',
     en: 'Can you show me how you do it?',
@@ -3252,6 +3282,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'anniversaire-tt-ensemble',
+    fr: 'On est ensemble depuis deux ans.',
     phraseKey: 'phrase:on est ensemble depuis deux ans',
     difficulty: 'recognition',
     en: 'We have been together for two years',
@@ -3347,6 +3378,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'fuite-tt-dessous',
+    fr: "L'eau coule chez le voisin du dessous.",
     phraseKey: "phrase:l'eau coule chez le voisin du dessous",
     difficulty: 'recognition',
     en: 'The water is running into the downstairs neighbour’s flat',
@@ -3443,6 +3475,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'galere-tt-bus',
+    fr: "Du coup, j'ai pris le bus de nuit.",
     phraseKey: "phrase:du coup, j'ai pris le bus de nuit",
     difficulty: 'recognition',
     en: 'So I took the night bus',
@@ -3509,6 +3542,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'avis-tt-plu',
+    fr: "Ce qui m'a plu, c'est l'histoire.",
     phraseKey: "phrase:ce qui m'a plu, c'est l'histoire",
     difficulty: 'recognition',
     en: 'What I liked was the story',
@@ -3604,6 +3638,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'entretien-tt-poste',
+    fr: "Ce poste m'intéresse parce que j'aime le travail en équipe.",
     phraseKey: "phrase:ce poste m'intéresse parce que j'aime le travail en équipe",
     difficulty: 'recognition',
     en: 'This job interests me because I like teamwork',
@@ -3705,6 +3740,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'teletravail-tt-concentrer',
+    fr: "À la maison, j'arrive mieux à me concentrer.",
     phraseKey: "phrase:à la maison, j'arrive mieux à me concentrer",
     difficulty: 'recognition',
     en: 'At home, I find it easier to concentrate',
@@ -3822,6 +3858,7 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   {
     kind: 'tap-translate',
     id: 'souvenirs-tt-jeune',
+    fr: "Et vous, comment c'était quand vous étiez jeune ?",
     phraseKey: "phrase:et vous, comment c'était, quand vous étiez jeune ?",
     difficulty: 'recognition',
     en: 'And you, what was it like when you were young?',

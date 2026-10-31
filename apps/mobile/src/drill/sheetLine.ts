@@ -40,7 +40,7 @@ export function sheetLine(exercise: DrillExercise, value: string | number): Shee
       return o === undefined ? null : { fr: o.fr, en: o.en };
     }
     case 'tap-translate': {
-      const fr = exercise.accepted[0];
+      const fr = exercise.fr ?? exercise.accepted[0];
       return fr === undefined ? null : { fr, en: exercise.en };
     }
     case 'listen-type':

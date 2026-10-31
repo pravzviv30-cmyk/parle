@@ -218,6 +218,12 @@ describe('tap-translate and listen-type', () => {
     rejects({ ...goodTap, tokens: [...goodTap.tokens, '?!'] }, 'normalises to nothing');
   });
 
+  test('an authored fr must be one of the accepted answers once normalised', () => {
+    assert.deepEqual(validateExercise({ ...goodTap, fr: "Un café, s'il vous plaît." } as DrillExercise), { ok: true });
+    rejects({ ...goodTap, fr: 'Un thé, s’il vous plaît.' } as DrillExercise, 'is not one of the accepted answers');
+    rejects({ ...goodTap, fr: ' ?! ' } as DrillExercise, 'fr normalises to nothing');
+  });
+
   test('typing exactly what was played must be accepted', () => {
     rejects({ ...goodListen, accepted: ['ça roule'] }, 'played line');
   });

@@ -218,7 +218,7 @@ Built differently from the spec or the boards, on purpose:
 
 Follow-ups found during the build, outside this change:
 - **The canvas learner never seeds through the app.** `useCanvasLearner` (App.tsx) did not seed a fresh mock account on web; calling `seedCanvasLearner` directly worked. The live run seeded it that way.
-- **Tap-translate has no authored display sentence.** The right sheet and the end list show `accepted[0]` ("je vous dois combien"). The exercise data would need a display line.
+- **Tap-translate has no authored display sentence.** The right sheet and the end list show `accepted[0]` ("je vous dois combien"). The exercise data would need a display line. Done: every authored tap-translate item now carries its own `fr` display line, which the sheet, the end list and the miss reason show. `validate` holds it to one of `accepted`. Generated items have no `fr` yet and fall back to `accepted[0]`.
 - **The offline starter-line sheet on Today** draws its French prompt dark on the dark sheet in dark mode. It was seen on an older local account. Not checked on main.
 
 ## Integrated verification and handoff

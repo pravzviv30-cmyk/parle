@@ -45,6 +45,9 @@ describe('the reason names the form the sheet shows — F919 verifier', () => {
     const fb2 = answerCurrent(sit(tap), 'merci beaucoupp zz').feedback!;
     assert.equal(fb2.closest, 'merci beaucoup');
     assert.equal(missReason(tap as never, fb2.closest), 'merci beaucoup = Thanks a lot');
+    // With nothing shown, an authored fr is the line; without one, the first accepted answer.
+    assert.equal(missReason({ ...tap, fr: 'Merci beaucoup !' } as never), 'Merci beaucoup ! = Thanks a lot');
+    assert.equal(missReason(tap as never), 'merci = Thanks a lot');
     const tr = { id: 'r', phraseKey: 'p', kind: 'translate', difficulty: 'production', fr: 'Ça sera tout, merci', en: "That's all, thanks", direction: 'en-fr', accepted: ['Ça sera tout, merci', 'merci beaucoup'] };
     assert.equal(missReason(tr as never, 'merci beaucoup'), "merci beaucoup = That's all, thanks");
     const back = { ...tr, direction: 'fr-en', accepted: ["That's all, thanks", 'that is everything thanks'] };

@@ -24,6 +24,16 @@ describe('every fixture passes the same gate machine-built exercises will face',
   });
 });
 
+describe('tap-translate items carry an authored display line', () => {
+  for (const exercise of [...DRILL_FIXTURES, ...DRILL_FIXTURES.flatMap((e) => (e.kind === 'repeat-this' ? [e.noMicTwin] : []))]) {
+    if (exercise.kind !== 'tap-translate') continue;
+    test(`${exercise.id} has an fr that validates`, () => {
+      assert.ok(typeof exercise.fr === 'string' && exercise.fr.trim() !== '', 'fr missing');
+      assert.deepEqual(validateExercise(exercise), { ok: true });
+    });
+  }
+});
+
 describe('coverage — the bank is big enough to drill the café arc', () => {
   test('minimum counts per kind', () => {
     assert.ok(ofKind('fill-blank').length >= 8, 'fill-blank');
