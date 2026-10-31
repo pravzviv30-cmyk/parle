@@ -15,7 +15,7 @@ import { LEVEL_NAMES } from '@luvani/core';
 
 import type { ActivityEntry } from '../progress/activity.ts';
 import { emptyGame } from './model.ts';
-import { todayHeroView } from './todayHeroView.ts';
+import { statTileLayout, statTileView, todayHeroView, type TodayHeroView } from './todayHeroView.ts';
 import { NO_OUTSIDE_FACTS, gameViewFrom, type GameFacts } from './view.ts';
 
 const TODAY = '2026-10-07';
@@ -110,18 +110,20 @@ describe("Home's today hero — F767", () => {
       assert.equal(todayHeroView({ ...full, [missing]: null }), null, `with ${missing} unread the hero still draws`);
     }
 
-    // The screen draws this model from the hooks and works nothing out itself.
-    const screen = stripComments(readFileSync(new URL('./TodayHero.tsx', import.meta.url), 'utf8')).replace(/\s+/g, ' ');
+    // The screen draws this model from the hooks and works nothing out itself
+    // (UI-015: the retired stats-row hero's reads moved to TodayStats.tsx unchanged).
+    const screen = stripComments(readFileSync(new URL('./TodayStats.tsx', import.meta.url), 'utf8')).replace(/\s+/g, ' ');
     assert.match(screen, /const hero = todayHeroView\(\{ streak: run, goal, level, xp \}\)/);
     for (const hook of ['useStreak()', 'useGoal()', 'useLevel()', 'useXp()']) assert.ok(screen.includes(hook), `the hero does not read ${hook}`);
     assert.doesNotMatch(screen, /\b(?:levelFor|xpLevelFor|totalXp|displayXp|goalProgressFrom|streakFrom)\(/, 'the hero works a number out itself');
-    assert.match(screen, /if \(hero === null\) \{[^}]*return failed \? null : <Skeleton/, 'an unread hero draws something other than nothing');
+    assert.match(screen, /if \(hero === null\) \{[^}]*tiles: failed \? null : <TodayStatTilesSkeleton/, 'an unread hero draws something other than nothing');
   });
 });
 
-// 2026-10-20, B5 learning-science review: with no run the stats tile says
-// "Practice" over "not yet today", with no streak word until a run exists.
-import { statTiles as b5Tiles } from './todayHeroView.ts';
+// 2026-10-20, B5 learning-science review: with no run the stats tile names no
+// streak until a run exists. UI-015: statTiles became statTileView, whose
+// no-run tile is "Start" over "today" (founder, 2026-10-31); same intent.
+import { statTileView as b5Tiles } from './todayHeroView.ts';
 import { test as b5Test } from 'node:test';
 import assertB5 from 'node:assert/strict';
 b5Test('the streak tile names no streak before a run exists', () => {
@@ -130,9 +132,77 @@ b5Test('the streak tile names no streak before a run exists', () => {
     goal: { minutes: 6, target: 10, fraction: 0.6, met: false, words: '', label: '' },
     level: { level: 2, words: '', label: '' },
   };
-  assertB5.deepEqual(b5Tiles(hero, 140).streak, { value: 'Practice', label: 'not yet today' });
-  assertB5.doesNotMatch(JSON.stringify(b5Tiles(hero, 140).streak), /streak/i);
-  assertB5.deepEqual(b5Tiles({ ...hero, flame: { ...hero.flame, count: 3 } }, 140).streak, { value: '3 days', label: 'streak' });
-  assertB5.deepEqual(b5Tiles(hero, 140).goal, { value: '6 of 10', label: 'min today' });
-  assertB5.deepEqual(b5Tiles({ ...hero, goal: { ...hero.goal, target: null, fraction: null } }, 140).goal, { value: '6 min', label: 'today' });
+  assertB5.deepEqual(b5Tiles(hero).streak, { number: 'Start', label: 'today', lit: false });
+  assertB5.doesNotMatch(JSON.stringify(b5Tiles(hero).streak), /streak/i);
+  assertB5.deepEqual(b5Tiles({ ...hero, flame: { ...hero.flame, count: 3 } }).streak, { number: '3', label: 'days', lit: false });
+  assertB5.deepEqual([b5Tiles(hero).goal.number, b5Tiles(hero).goal.of, b5Tiles(hero).goal.label], ['6', '/10', 'minutes']);
+  const noGoal = b5Tiles({ ...hero, goal: { ...hero.goal, target: null, fraction: null } }).goal;
+  assertB5.deepEqual([noGoal.number, noGoal.of, noGoal.label, noGoal.ring], ['6', null, 'minutes', false]);
+});
+
+describe("Today's chunky stat tiles (UI-015)", () => {
+  const hero = (over: { count?: number | null; lit?: boolean; minutes?: number; under?: boolean; target?: number | null; level?: number } = {}): TodayHeroView => {
+    const target = over.target === undefined ? 10 : over.target;
+    const minutes = over.minutes ?? 4;
+    return {
+      flame: { lit: over.lit ?? true, count: over.count === undefined ? 3 : over.count, words: '', label: '' },
+      goal: { minutes, underAMinute: over.under ?? false, target, fraction: target === null ? null : Math.min(1, minutes / target), met: false, words: '', label: '' },
+      level: { level: over.level ?? 2, words: '', label: '' },
+    };
+  };
+
+  test('the streak tile counts days, and says Start today with no run, never a nought', () => {
+    assert.deepEqual(statTileView(hero()).streak, { number: '3', label: 'days', lit: true });
+    assert.deepEqual(statTileView(hero({ count: 1, lit: false })).streak, { number: '1', label: 'day', lit: false });
+    assert.deepEqual(statTileView(hero({ count: null, lit: false })).streak, { number: 'Start', label: 'today', lit: false });
+  });
+
+  test('the goal tile shows measured minutes over the goal, <1 under a minute, and no ring without a goal', () => {
+    assert.deepEqual(statTileView(hero()).goal, { number: '4', of: '/10', label: 'minutes', ring: true, fraction: 0.4 });
+    assert.deepEqual(statTileView(hero({ minutes: 0, under: true })).goal, { number: '<1', of: '/10', label: 'minutes', ring: true, fraction: 0 });
+    assert.deepEqual(statTileView(hero({ target: null, minutes: 7 })).goal, { number: '7', of: null, label: 'minutes', ring: false, fraction: null });
+  });
+
+  test('the level tile is the number over the word', () => {
+    assert.deepEqual(statTileView(hero({ level: 5 })).level, { number: '5', label: 'level' });
+  });
+
+  test('the tile layout follows the width and the text size', () => {
+    assert.equal(statTileLayout(109, 1.0), 'side');
+    assert.equal(statTileLayout(91, 1.0), 'stacked');
+    assert.equal(statTileLayout(109, 1.3), 'stacked');
+    assert.equal(statTileLayout(109, 1.6), 'rows');
+    assert.equal(statTileLayout(Number.NaN, 1.0), 'stacked');
+    assert.equal(statTileLayout(109, Number.NaN), 'stacked');
+  });
+});
+
+describe('the goal coin and a word for a number — Today sky fix round 1', () => {
+  test('a chosen goal always draws the ring, still at its fraction when nothing counted; the clock only with no goal', async () => {
+    const { goalCoin } = await import('./todayHeroView.ts');
+    const goal = { number: '4', of: '/10', label: 'minutes', ring: true, fraction: 0.4 };
+    assert.deepEqual(goalCoin(goal, undefined, 1000), { kind: 'ring', from: 0.4, to: 0.4, key: 'ring-still' }, 'with no counter the goal should still draw a still ring, not the clock');
+    assert.deepEqual(goalCoin(goal, { from: 100, to: 400, mount: 2 }, 1000), { kind: 'ring', from: 0.1, to: 0.4, key: 'ring-2' });
+    assert.deepEqual(goalCoin({ ...goal, ring: false, of: null, fraction: null }, undefined, 1000), { kind: 'clock' });
+    const tiles = readFileSync(new URL('./TodayStatTiles.tsx', import.meta.url), 'utf8');
+    assert.match(tiles, /const coin = goalCoin\(tiles\.goal, ring, RING_STEPS\);/);
+    assert.match(tiles, /\{coin\.kind === 'ring'\s*\? <ProgressRing key=\{coin\.key\} from=\{coin\.from\} to=\{coin\.to\}/, 'the ring is still drawn only when a counter exists');
+  });
+
+  test('"Start" is set in bold15 beside the coin, and tiles stack rather than break a word', async () => {
+    const { statNumberType, WORD_NUMBER_SIZE } = await import('./todayHeroView.ts');
+    for (const digits of ['0', '3', '12', '<1']) assert.equal(statNumberType(digits), 'digits');
+    assert.equal(statNumberType('Start'), 'word');
+    assert.equal(WORD_NUMBER_SIZE, 15);
+    const tiles = readFileSync(new URL('./TodayStatTiles.tsx', import.meta.url), 'utf8');
+    assert.match(tiles, /const wordNumber = \[bType\.bold15, \{ color: t\.text \}\];/);
+    assert.match(tiles, /<Text style=\{statNumberType\(tiles\.streak\.number\) === 'word' \? wordNumber : number\}>\{tiles\.streak\.number\}<\/Text>/, 'the word is set in the number size');
+    assert.match(tiles, /wordsSide: \{ flex: 1, minWidth: 0 \}/);
+    assert.match(tiles, /statTileLayout\([^;]*\[tiles\.streak\.number, tiles\.goal\.number, tiles\.level\.number\]\)/, 'the layout cannot see a word');
+    // 402pt (iPhone 17 Pro): tile 118, beside the coin. 375: tile 109, too narrow for "Start" whole, so stacked.
+    assert.equal(statTileLayout(118, 1.0, ['Start', '4', '2']), 'side');
+    assert.equal(statTileLayout(109, 1.0, ['Start', '4', '2']), 'stacked');
+    assert.equal(statTileLayout(109, 1.0, ['3', '4', '2']), 'side', 'digits alone changed the layout');
+    assert.equal(statTileLayout(118, 1.15, ['Start', '4', '2']), 'stacked');
+  });
 });

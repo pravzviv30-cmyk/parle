@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { checkStarter } from '@luvani/core';
 import { IconActionRow, IconAction, IconButton, Card, ColourCard, GhostButton, PillButton, Sheet } from '../components.tsx';
-import { frenchText, paper, type } from '../theme.ts';
+import { frenchText, paper, space, type } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { addPhrases } from '../review/store.ts';
@@ -23,12 +24,24 @@ export function StarterContinuation({
   initial,
   onTutor,
   onPlans,
+  bare = false,
+  face,
 }: {
   initial: GuestPractice;
   onTutor?: () => void;
   onPlans?: () => void;
+  /** On Today's hero card (UI-015): no sun card of its own, the words in the card's ink. */
+  bare?: boolean;
+  /**
+   * On a row of Today's path (UI-015, fix round 1): the flat row drawn in
+   * place of the card, handed the card's primary action, Continue practice,
+   * so the row's tap opens the same sheet.
+   */
+  face?: (continuePractice: () => void) => ReactNode;
 }) {
   const { user } = useAuth();
+  const t = useB();
+  const ink = bare ? { color: t.text } : null;
   const [guest, setGuest] = useState(initial);
   const [visible, setVisible] = useState(false);
   const [reply, setReply] = useState('');
@@ -107,21 +120,21 @@ export function StarterContinuation({
   };
   return (
     <>
-      <ColourCard ground="sun">
-        <Text accessibilityRole="header" style={type.heading}>
+      {face !== undefined ? face(() => open(false)) : <Ground bare={bare}>
+        <Text accessibilityRole="header" style={[type.heading, ink]}>
           {continuingTask(guest).title}
         </Text>
-        <Text {...frenchText} style={type.french}>
+        <Text {...frenchText} style={[type.french, ink]}>
           {continuingTask(guest).prompt}
         </Text>
-        <Text style={type.body}>Pick up your practice where you left it.</Text>
+        <Text style={[type.body, ink]}>Pick up your practice where you left it.</Text>
         <PillButton label="Continue practice" onPress={() => open(false)} />
         <IconActionRow>
         <IconAction layout="tile" icon="replay" label="Retry my last line" onPress={() => open(true)} />
         {onTutor !== undefined && <IconAction layout="tile" icon="microphone" label="Speak with my tutor" onPress={onTutor} />}
         {onPlans !== undefined && <IconAction layout="tile" icon="crown" label="See plans" onPress={onPlans} />}
         </IconActionRow>
-      </ColourCard>
+      </Ground>}
       <Sheet
         visible={visible}
         title={task.title}
@@ -233,4 +246,9 @@ export function StarterContinuation({
       </Sheet>
     </>
   );
+}
+
+/** The sun card, or, bare on Today's hero, the same column on the hero's own ground. */
+function Ground({ bare, children }: { bare: boolean; children: ReactNode }) {
+  return bare ? <View style={{ gap: space(4) }}>{children}</View> : <ColourCard ground="sun">{children}</ColourCard>;
 }

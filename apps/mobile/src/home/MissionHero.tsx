@@ -35,12 +35,9 @@
  * the ground's secondary for the quieter lines, and never soft ink on a colour.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
 
-import { trackProductEvent } from '../analytics/track.ts';
-import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
@@ -48,41 +45,19 @@ import { IconAction, BookmarkGlyph, MicGlyph, PillButton, SceneBrief, canDoSente
 import { SceneLead } from '../today/TodayParts.tsx';
 import { KeyboardMark } from '../live/LiveParts.tsx';
 import { HIT, onColour, paper, space, textOn, type } from '../theme.ts';
-import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
-import { launchLabel } from '../tutor/orbState.ts';
-import { startModes } from '../tutor/speakView.ts';
-import { prefersTyping } from '../profile/typing.ts';
+import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { sceneMeta } from './estimate.ts';
-import { heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
+import { heroBookmark, type HomeMission } from './homeMission.ts';
+import { useSceneStart } from './useSceneStart.ts';
 import { buildsOnLine, sceneEyebrow, sceneTime } from './todayView.ts';
 import { SceneArt } from './SceneArt.tsx';
-import { scopeGeneration } from '../storage/scope.ts';
 
 export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: HomeMission; vivid?: boolean; /** Today only: the phrase from the last conversation this scene builds on. */ buildsOn?: string | null }) {
-  const focused = useIsFocused();
-  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
-  const { live, recheck } = useLive();
   const { profile } = useProfile();
   const tutorName = tutorNameOf(profile);
-  // Profile's standing "Prefer typing" decides which way the Start opens.
-  const modes = startModes(prefersTyping(profile));
-  const [checking, setChecking] = useState(false);
-  const owner = scopeGeneration();
-  const launchPending = useRef<object | null>(null);
-  const launchContext = useRef({ mounted: true, focused, owner, hero, revision: 0 });
-  // A return to this card is a new visit. A previous visit's slow health
-  // response cannot start a room, even if focus has already returned.
-  if (launchContext.current.focused !== focused || launchContext.current.owner !== owner || launchContext.current.hero !== hero) {
-    launchContext.current = { ...launchContext.current, focused, owner, hero, revision: launchContext.current.revision + 1 };
-  }
-  useEffect(() => {
-    launchContext.current.mounted = true;
-    return () => { launchContext.current.mounted = false; launchContext.current.revision++; launchPending.current = null; };
-  }, []);
-  useEffect(() => { launchPending.current = null; setChecking(false); }, [focused, owner, hero]);
-  /** The start that did not happen, so the retry is the same start. */
-  const [heldBack, setHeldBack] = useState<{ textMode?: boolean } | null>(null);
+  // The gated start (F154) lives in `useSceneStart`, shared with Today's scene row.
+  const { open, checking, heldBack, label, modes } = useSceneStart(hero);
   const [bookmarks, setBookmarks] = useState<readonly BookmarkItem[]>([]);
   /** Where the bookmark tap has got to: a write and a read back. */
   const [bookmarkWrite, setBookmarkWrite] = useState<BookmarkWrite>('idle');
@@ -92,8 +67,6 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
   const target = heroBookmark(hero);
   const saved = target !== null && isBookmarkedIn(decisions, target.id);
   const bookmark = bookmarkControl(saved, target?.titleEn ?? hero.title, bookmarkWrite);
-  // Speak's words for Speak's control: the mode, or the check while it runs.
-  const label = launchLabel({ checking, live, mode: modes.mode });
 
   useEffect(() => {
     let cancelled = false;
@@ -121,43 +94,6 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
         setBookmarkWrite('idle');
       })
       .catch(() => setBookmarkWrite('refused'));
-  };
-
-  const open = (textMode: boolean | undefined) => {
-    // A second tap while the connection check runs cannot open a second room.
-    if (checking) return;
-    if (launchPending.current || !launchContext.current.mounted || !launchContext.current.focused) return;
-    const ticket = {};
-    const { owner, revision } = launchContext.current;
-    const owns = () => launchPending.current === ticket && launchContext.current.mounted && launchContext.current.focused
-      && launchContext.current.revision === revision && launchContext.current.owner === owner && scopeGeneration() === owner;
-    launchPending.current = ticket;
-    setChecking(true);
-    void recheck()
-      .then((answered) => {
-        if (!owns()) return;
-        setChecking(false);
-        const decision = tutorGate(answered, textMode);
-        if (!decision.go) {
-          launchPending.current = null;
-          setHeldBack(decision.heldBack);
-          return;
-        }
-        setHeldBack(null);
-        const start = heroStart(hero);
-        if (start.missionId !== null) {
-          void trackProductEvent({ name: 'mission_started', properties: { missionId: start.missionId, entry: 'home' } });
-        }
-        nav.navigate(decision.screen, { ...decision.params, ...start.params });
-      })
-      .catch(() => {
-        // At the end of the chain, so a throw from the navigation is caught
-        // too. The start is kept, so the retry is the same start.
-        if (!owns()) return;
-        launchPending.current = null;
-        setChecking(false);
-        setHeldBack({ textMode });
-      });
   };
 
   // 2026-10-20, B5, B-Today: Today's lead is the yellow card. The eyebrow is

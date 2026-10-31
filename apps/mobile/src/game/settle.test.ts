@@ -924,30 +924,32 @@ describe('quests without a chest — F773', () => {
 // Journey's minutes through the real settle, and a short one never reads nought.
 import { headerStats } from '../journey/journeyView.ts';
 import { LOCAL_SETTLE_XP } from '../live/leaveKeepingWork.ts';
-import { statTiles, todayHeroView } from './todayHeroView.ts';
+import { statTileView, todayHeroView } from './todayHeroView.ts';
 
 describe('F918 minutes', () => {
   async function surfaces() {
     const view = gameViewFrom(await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null), TODAY);
     const hero = todayHeroView({ streak: view.streak, goal: view.goal, level: view.level, xp: view.xp })!;
     const journey = headerStats({ daysInARow: view.streak.current, minutes: view.minutesPractised, measuredMs: view.practisedMs, phrases: 0 }).find((s) => s.key === 'minutes')!;
-    return { goal: statTiles(hero, view.xp.total).goal, journey };
+    // UI-015: the goal tile is statTileView's (statTiles retired): "<1" over "/5" under a minute, never a nought.
+    const goal = statTileView(hero).goal;
+    return { goal: { number: goal.number, of: goal.of, label: goal.label }, journey };
   }
 
   test("live minutes count toward Journey and today's goal", async () => {
     await convo(NOW - HOUR, 20, 40_000);
     let seen = await surfaces();
-    assert.deepEqual(seen.goal, { value: 'Under 1 of 5', label: 'min today' });
+    assert.deepEqual(seen.goal, { number: '<1', of: '/5', label: 'minutes' });
     assert.deepEqual([seen.journey.value, seen.journey.label], ['Under 1', 'min practised']);
     await convo(NOW - HOUR + 5 * MINUTE, 0, 3 * MINUTE);
     seen = await surfaces();
-    assert.deepEqual(seen.goal, { value: '3 of 5', label: 'min today' });
+    assert.deepEqual(seen.goal, { number: '3', of: '/5', label: 'minutes' });
     assert.equal(seen.journey.value, '3');
     // A Leave whose recap never came writes its minutes locally (F905).
     assert.ok(LOCAL_SETTLE_XP > 0);
     await recordActivity('convo', LOCAL_SETTLE_XP, NOW - 10 * MINUTE, { activeMs: 2 * MINUTE });
     seen = await surfaces();
-    assert.deepEqual(seen.goal, { value: '5 of 5', label: 'min today' });
+    assert.deepEqual(seen.goal, { number: '5', of: '/5', label: 'minutes' });
     assert.equal(seen.journey.value, '5');
   });
 });

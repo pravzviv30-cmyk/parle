@@ -12051,3 +12051,27 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   screenshots in light and dark, revert to the orb if off-brand.
 - fixed: 2026-10-29 on claude/review-e-visual. `tutor/TutorPortrait.tsx` draws each tutor's own portrait (decorative, with a 2pt ring that clears 3:1 against its surface) on the choose-tutor cards, Profile, Speak, Home's Coming up card, the onboarding band once a tutor is chosen and every live room; the orb stays only before a tutor is chosen (founder decision 25; revert is one swap per call site).
 - verified-by: `each tutor shows their own portrait`
+
+### F946 — Out of time past Starter offers the Starter café line
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/practice/NextTaskCard.tsx (the held lead's local line) and the hero's `LocalPracticeCard` without `levelIndex`
+- note: Found 2026-10-31 by the fix-verifier on claude/today-sky (UI-015). A paid learner who is
+  out of minutes and past Starter is offered the Starter café line (DailyPractice, shadowing), in
+  the hero and in the row, because neither passes the learner's level to `offlineOffer`;
+  `localPractice.ts` says a learner past Starter should not be handed a first order. The same
+  happened before UI-015 (the old path drew `LocalPracticeCard` with the default level), so the
+  Today build kept it unchanged. Fix: pass the level index to both and offer a line at the
+  learner's level, with a test.
+- verified-by: `out of time past Starter offers a line at the learner's level`
+
+### F947 — Tab bar labels cut off at accessibility text sizes
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx
+- note: Found 2026-10-31 on the iPhone 17 Pro simulator at accessibility-large while checking
+  claude/today-sky. The five labels clip mid-word ("Toda", "Explo", "Spea", "Pract", "Jourr").
+  The tab bar is unchanged by UI-015 (the founder kept it), so this predates it. Fix: let the
+  labels scale only to a cap, or hide them behind the icons with full accessibility labels at
+  the largest sizes, with a test.
+- verified-by: `tab bar labels never clip at accessibility text sizes`

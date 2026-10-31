@@ -13,7 +13,7 @@ import { firstDraw, heroCounts, nextDraw } from '../home/homeDraw.ts';
 import { levelHeader } from '../journey/journeyView.ts';
 import { savedPhrasesLine } from '../practice/practiceTabView.ts';
 import { savedPhraseCount } from '../practice/savedPhrases.ts';
-import { statTiles, todayHeroView, type TodayHeroView } from './todayHeroView.ts';
+import { statTileView, todayHeroView, type TodayHeroView } from './todayHeroView.ts';
 
 const NOW = new Date(2026, 9, 5, 12).getTime();
 const read = (path: string): string => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
@@ -28,26 +28,32 @@ function heroAt(total: number, run = 3): TodayHeroView {
   })!;
 }
 
+// UI-015: the level tile (statTileView, which replaced statTiles) draws the
+// level number over "level"; the XP total is in its spoken label, which is
+// what still has to agree with Journey's header.
 test('Today and Journey read the same XP total', () => {
   for (const total of [0, 5, 130, 390, 2_400]) {
-    const today = statTiles(heroAt(total), total).level;
+    const hero = heroAt(total);
+    const today = statTileView(hero).level;
     const journey = levelHeader(xpLevelFor(total), total)!;
-    assert.equal(today.value, journey.title, `level at ${total}`);
-    assert.equal(today.label, `${total} XP`);
+    assert.equal(`XP level ${today.number}`, journey.title, `level at ${total}`);
+    assert.equal(today.label, 'level');
+    assert.ok(hero.level.label.startsWith(`${journey.title}, ${total} XP, `), `Today says "${hero.level.label}" at ${total}`);
     assert.ok(journey.xp.startsWith(`${total} XP`), `Journey reads "${journey.xp}" at ${total}`);
     assert.match(journey.xp, new RegExp(`^${total} XP, ${xpLevelFor(total).toNext} to the next$`));
-    assert.doesNotMatch(`${today.value} ${today.label} ${journey.title} ${journey.xp}`, /·|—| of \d+ XP/);
+    assert.doesNotMatch(`${today.number} ${today.label} ${hero.level.label} ${journey.title} ${journey.xp}`, /·|—| of \d+ XP/);
   }
 });
 
 test("Today's level tile names the XP level, never a French level", () => {
   for (const total of [0, 130, 900]) {
     const hero = heroAt(total);
-    const tile = statTiles(hero, total).level;
-    assert.match(tile.value, /^XP level \d+$/);
+    const tile = statTileView(hero).level;
+    assert.match(tile.number, /^\d+$/);
+    assert.equal(tile.label, 'level');
     assert.match(hero.level.words, /^XP level \d+$/);
     assert.match(hero.level.label, /^XP level \d+, /);
-    assert.doesNotMatch(`${tile.value} ${tile.label}`, /\b(A0|A1|A2|B1|B2|C1|Starter|Basics|stage)\b/);
+    assert.doesNotMatch(`${tile.number} ${tile.label}`, /\b(A0|A1|A2|B1|B2|C1|Starter|Basics|stage)\b/);
   }
 });
 

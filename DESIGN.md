@@ -76,38 +76,41 @@ period stay near a purchase action, and large text is never capped to fit.
   founder decision 21), never a per-day figure. A Max-only entry a Max learner
   sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
   an estimate said as "about n min".
-- Today, top to bottom: "Bonjour, Name." (one word all day, no question under
-  it), a white stats row of three tiles (streak, today's goal ring, "XP level
-  n" over the lifetime "130 XP", the same words as Journey's head; F918, F858)
-  with decorative discs; a running streak never draws "0 days" and a short
-  sitting reads "Under 1" rather than nought (said "under 1" aloud too), then
-  "Today's path" (F934, UI-012), stops on the route motif's dots and line
-  (`home/RoutePath.tsx`), each with its time: "Retry your last fix", About 30
-  seconds (only with a fix: English only before the try, and only when the
-  drill would open on an exercise that hides the French; "Your line from
-  {day}" when the conversation's day is known), the next scene (the sun card
-  with its stage place and the café drawing, at the top right when the card is
-  at least 400pt wide, where the words column keeps the art's height so every
-  full-width row starts below it, and in a band above full-width words below
-  that or at large text (F920; every phone gets the band), "Next scene, 2 of 3", a "Uses" chip only when the last
-  conversation's phrase is one of the scene's lines, and its own minutes; or
-  the plans card when a trial cannot start, "Your paid plan has ended." when
-  lapsed, a paid plan's out-of-time words with the starter card or local
-  practice under them, the starter card, "Something you can do now" with
-  "You're offline. Here's something you can do without a connection." only when
-  the device is offline and "We can't reach your tutor right now. Here's
-  something you can do while we try again." when the tutor is out of reach, or
-  Explore when there is no next scene; held on the loading frame until billing
-  answers), "Say today's phrase", About 2 minutes, on lavender, and
-  "Review N phrases", About 2 minutes, only when Review would deal cards. Under
-  the path: today's three quests ("n of 3 done", XP chips in butter and sage),
-  Coming up (the latest life event the tutor remembers, "{when}, {tutor}
-  remembers", the trial pill from the tutorMemory lock, Rehearse now to
-  RealMoment and Not now for this app session; no countdown or checklist until
-  Phase C; hidden with no event or with memory paused), and the blue week card
-  ("n minutes practised, n phrases saved" over seven local days, with "See
-  your week" in the Monday line's slot and the cloud-heart drawing; absent with
-  no evidence). The path is one column at every width.
+- Today, top to bottom (UI-015): the sky band, full bleed, in the hour's
+  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) in two lines,
+  the profile button on the sky's chip, three chunky stat tiles (streak days or
+  "Start" over "today"; minutes against the goal, "<1" under a minute; the XP
+  level number over "level"; never a nought) and the nudge line. Then one hero
+  card overlapping the sky, the first stop of Today's path (UI-012 order,
+  `todayStops`): "One fix to try" (only with a fix: English only before the
+  try, and only when the drill would open on an exercise that hides the
+  French; "Your line from {day}" when the conversation's day is known), or
+  else the lead: the next scene ("Next scene, 2 of 3", the title, its own
+  minutes, a "Uses" chip only when the last conversation's phrase is one of
+  the scene's lines, Start speaking and Type instead), or the plans words when
+  a trial cannot start, "Your paid plan has ended." when lapsed, a paid plan's
+  out-of-time words with the starter card or local practice under them, the
+  starter card, "Something you can do now" with "You're offline. Here's
+  something you can do without a connection." only when the device is offline
+  and "We can't reach your tutor right now. Here's something you can do while
+  we try again." when the tutor is out of reach, or Explore when there is no
+  next scene; held on the loading frame until billing answers. Then "Today's
+  path", the stops after the hero as flat rows on the route rail
+  (`home/RoutePath.tsx` `RouteRow`): the scene (when the fix is the hero),
+  "Today's phrase" with the French and its English and "Say it", on lavender,
+  and "Review N phrases", About 2 minutes, only when Review would deal cards.
+  Under the path: today's three quests ("n of 3 done", XP chips in butter and
+  sage), Coming up under its title (the latest life event the tutor
+  remembers, "{when}, {tutor} remembers", the trial pill from the tutorMemory
+  lock, Rehearse now to RealMoment and Not now for this app session; no
+  countdown or checklist until Phase C; hidden with no event or with memory
+  paused), and Your week in French under its title ("n minutes practised, n
+  phrases saved" over seven local days, with "See your week"; absent with no
+  evidence). The path is one column at every width. The status bar is light
+  over the sky and takes the theme's own style once the sky has scrolled up
+  under it. At 320 the tiles stack their coin above the number, and at
+  accessibility sizes they become three full-width rows and each path row
+  puts its action under its words.
   Rebuilt to the artboard in light and dark on 2026-10-20 (UI-008); the blue
   practice lead, "Where you're starting" and the friends card left Today, and
   review came back as the path's row on 2026-10-29 (UI-012). Loading never claims the learner has no history.
@@ -959,6 +962,8 @@ and `para17` (Regular 17/24, a sentence on a blue page).
 Streak, Profile and Settings (2026-10-21) added `initial34` (ExtraBold 34/40,
 the Profile avatar's initial), `name30` (ExtraBold 30/34, -0.3, the Profile
 name) and `run52` (ExtraBold 52/56, -1, the streak's run on its band).
+Today's sky (UI-015, 2026-10-31) added `stat24` (ExtraBold 24/26, the number
+on a chunky stat tile).
 
 ## Surfaces and controls
 
@@ -1139,18 +1144,9 @@ More shared parts:
   or shadow, words in `textOn`, the secondary in `onColour`. `lift` is for an
   illustrated Explore tile only. The whole card
   is a target only when it holds no pill of its own.
-- **StatTile / HeroNumber**: a number and one plain line on white, and the one
-  giant number with its unit on a colour board. Each is one phrase to a screen
-  reader.
-- **StatRow**: three stats in one white card, three equal columns, as on
-  Today. It lays out `StatTile compact` children (the number in `statSm`, the
-  line under it in `caption`, centred) and draws nothing of its own. A tile may
-  carry a decorative `mark` disc above its number, hidden from a screen reader;
-  a ring or bar that means something is labelled by its caller. `valueNode`
-  draws in the number's place when it moves (Today's count-ups) while `value`
-  is still what a screen reader hears; `compact` is the smaller centred cut
-  the row lays out. Words wrap
-  rather than shrink at a large reading size.
+- **HeroNumber**: the one giant number with its unit on a colour board, one
+  phrase to a screen reader. (`StatTile`, `StatRow` and `type.statSm` left
+  with Today's old stats row, UI-015; Today's stats are `LipTile` stat tiles.)
 - **Chip**: the one small pill, two variants. `filter` is a choice in a row of
   them: 44pt tall (`minHeight: HIT`, so the floor holds at any reading size),
   white with a hairline, and when chosen filled with ink, with white words and
@@ -1293,6 +1289,40 @@ alone.
 | `mascot.toastCrust` | `#F59A45` | The toast's crust |
 | `mascot.toastFace` | `#F9B694` | The toast's face |
 
+### Today's sky
+
+The band behind Today's greeting follows the hour (UI-015). `sky.light` has
+four hours, `sky.dark` a day and a night. White words and glyphs sit on every
+ground and chip and clear the 4.5 text floor; the disc and the tile lip are
+decoration. Values shared with other tokens are references, not copies.
+
+| Token | Value | Role |
+|---|---|---|
+| `sky.light.morning.ground` | `#3B2FE0` | The sky ground, morning |
+| `sky.light.morning.disc` | `#FFC93C` | The sun or moon disc, morning |
+| `sky.light.morning.chip` | `#5A50EA` | The profile chip, morning |
+| `sky.light.morning.lip` | `#2A20B0` | The lip under a stat tile, morning |
+| `sky.light.afternoon.ground` | `#4B3FF0` | The sky ground, afternoon |
+| `sky.light.afternoon.disc` | `#FFE08A` | The sun or moon disc, afternoon |
+| `sky.light.afternoon.chip` | `#6A61F0` | The profile chip, afternoon |
+| `sky.light.afternoon.lip` | `#2A20B0` | The lip under a stat tile, afternoon |
+| `sky.light.evening.ground` | `#2A2390` | The sky ground, evening |
+| `sky.light.evening.disc` | `#EF8770` | The sun or moon disc, evening |
+| `sky.light.evening.chip` | `#433BB0` | The profile chip, evening |
+| `sky.light.evening.lip` | `#16123A` | The lip under a stat tile, evening |
+| `sky.light.night.ground` | `#16123A` | The sky ground, night |
+| `sky.light.night.disc` | `#EEE8FF` | The sun or moon disc, night |
+| `sky.light.night.chip` | `#2E2860` | The profile chip, night |
+| `sky.light.night.lip` | `#0D0A1A` | The lip under a stat tile, night |
+| `sky.dark.day.ground` | `#363064` | The sky ground, day |
+| `sky.dark.day.disc` | `#EEE8FF` | The sun or moon disc, day |
+| `sky.dark.day.chip` | `#4A4170` | The profile chip, day |
+| `sky.dark.day.lip` | `#0D0A1A` | The lip under a stat tile, day |
+| `sky.dark.night.ground` | `#0D0A1A` | The sky ground, night |
+| `sky.dark.night.disc` | `#EEE8FF` | The sun or moon disc, night |
+| `sky.dark.night.chip` | `#4A4170` | The profile chip, night |
+| `sky.dark.night.lip` | `#0D0A1A` | The lip under a stat tile, night |
+
 ### Raster scenes, retired
 
 The place watercolours, `apps/mobile/assets/art/`, `Art.tsx`, the raster
@@ -1381,7 +1411,7 @@ revamp B content until Phase B rebuilds them. Friends is a Profile route and ret
 
 | Tab | What it is |
 |---|---|
-| Today | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing (the next scene leans towards the learner's onboarding goal, and its eyebrow says "Picked for ..." when the goal chose it); a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. Since 2026-10-29 (F934, UI-012) the next task is one stop on Today's path; when the tutor's server cannot be reached it says "We can't reach your tutor right now" ("You're offline" only when the device is), and with no next scene it opens Explore. |
+| Today | Since UI-015 the sky band (`home/SkyBand`) with the greeting and the three stat tiles (`game/TodayStats`, `game/TodayStatTiles`), one hero card (the fix, or the lead) and the remaining stops as rows. Before it: the greeting, then the hero (`game/TodayHero`, retired): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing (the next scene leans towards the learner's onboarding goal, and its eyebrow says "Picked for ..." when the goal chose it); a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. Since 2026-10-29 (F934, UI-012) the next task is one stop on Today's path; when the tutor's server cannot be reached it says "We can't reach your tutor right now" ("You're offline" only when the device is), and with no next scene it opens Explore. |
 | Explore | Topic tiles with their drawings, conversation ideas shaped by learning preferences, skill and practical collections, and search over scenarios, missions and phrases. A collection or scenario opens `ExploreCollection`; the last rows open the word library and Journey. |
 | Speak | The chosen tutor or real continuity, the same next task as Home (the same goal-leaning scene, its eyebrow "Picked for ..." when the goal chose it; the path's "you are here" stays the spine position), then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
@@ -1744,6 +1774,10 @@ primitive's own numbers are named groups in `motion/tokens.ts`.
   words change.
 - `Enter`, `Reflow`, `Exit`: entrances, reflows and exits in a layout.
 - `BubbleIn`: a transcript line added after the transcript opened arrives.
+- `Drift`: something drifts in once from 14pt to its left as it fades in, on
+  `DUR.slow`: Today's clouds. Under reduced motion it is simply there.
+- `PopOnce`: a mark swells to 1.18 and back on `SPRING.pop` once, when `play`
+  turns true: Today's flame when the streak ticks. No scale under reduced motion.
 - `LevelRing`: two rings swell with a live sound level; under reduced motion,
   three opacity steps and no scale.
 
@@ -1831,6 +1865,10 @@ level rings and breath, the goal stamps, the arriving lines, the notebook's
 growth, the cloud mic (its listening squish and goal cheer) and the toast's
 peek over Help move (UI-014), and nothing is heard or felt; the fanfare waits
 for the recap.
+On Today (UI-015) the sky's two clouds drift in once on arrival and the flame
+on the streak tile pops once when today's streak ticks, beside the numbers that
+count up and the goal ring that fills; the greeting and the sun or moon stay
+still, and under reduced motion nothing on Today moves.
 
 ### Haptics
 

@@ -123,8 +123,9 @@ describe('F921: control borders', () => {
       ['journey/JourneyParts.tsx#dashed', 'the frame of DashedCell, whose own words say what is missing'],
       ['game/StreakParts.tsx#freeze', 'the freeze card frame, a plain View'],
       ['explore/ExploreParts.tsx#prepare', 'the sun edge of the prepare card, a plain View'],
-      ['tabs/HomeTab.tsx#fix', 'the mint edge of the one-fix card, a plain View'],
-      ['home/RoutePath.tsx#inline:RouteNode', 'a route dot, its border the same sun as its fill'],
+      // UI-015: the mint-edged fix card (tabs/HomeTab.tsx#fix) became the hero
+      // card's body and RouteNode left home/RoutePath.tsx for RouteRow, whose
+      // ring stop is a link-coloured state mark measured like any other.
       ['wall/WallPlansPage.tsx#inline:TrialTimeline', 'a timeline dot, its border the same sun as its fill'],
       ['onboarding/BOnboardingParts.tsx#inline:BStageCard', 'ordinal stage dots under visible stage names; the current stage is a brand fill that passes'],
       ['onboarding/motion/C2Scene.tsx#inline:DayOneBadge', 'the day-one badge inside the scene art'],

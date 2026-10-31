@@ -22,6 +22,7 @@ import { dealForTier } from '../review/freeTier.ts';
 import { todayHeroView } from '../game/todayHeroView.ts';
 
 const read = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
+const flat = (body: string): string => body.replace(/\s+/g, ' ');
 const HOME = read('../tabs/HomeTab.tsx');
 const TASK = read('../practice/NextTaskCard.tsx');
 const STARTER = read('../onboarding/StarterContinuation.tsx');
@@ -33,32 +34,39 @@ const NOW = Date.parse('2026-10-29T10:00:00Z');
 const card = (id: string, source: ReviewSource): ReviewCard => ({ ...newCard({ id, kind: 'vocab', front: id, back: 'x', context: '', ipa: '' }, NOW - 1000), sources: [source] });
 
 test('Today leads with one ordered path of three steps', () => {
-  const { TODAY_CARDS, TODAY_PATH, pathStep } = todayView as unknown as {
-    TODAY_CARDS: readonly string[]; TODAY_PATH: readonly string[];
-    pathStep: (step: string) => { title: string; line: string | null };
-  };
-  assert.deepEqual([...TODAY_PATH], ['fix', 'scene', 'phrase']);
-  // The path leads; the quotas, Coming up and the week sit under it.
-  assert.deepEqual([...TODAY_CARDS], ['greeting', 'stats', 'path', 'three', 'comingUp', 'week']);
-  assert.deepEqual(pathStep('fix'), { title: 'Retry your last fix', line: 'About 30 seconds' });
-  // Founder, 2026-10-29: the scene's time is on its card only.
-  assert.deepEqual(pathStep('scene'), { title: 'The next scene', line: null });
-  assert.deepEqual(pathStep('phrase'), { title: "Say today's phrase", line: 'About 2 minutes' });
+  // F934 (founder decision 6, UI-012): one ordered path of three steps, the
+  // fix, the scene and today's phrase. Since UI-015 the first stop is the hero
+  // and the rest follow as rows, so the order is todayStops' (review is an
+  // optional fourth row when Review would deal).
+  const withFix = todayView.todayStops({ fix: true, review: false });
+  assert.deepEqual([withFix.hero, ...withFix.rows], ['fix', 'scene', 'phrase']);
+  const noFix = todayView.todayStops({ fix: false, review: false });
+  assert.deepEqual([noFix.hero, ...noFix.rows], ['lead', 'phrase'], 'without a fix the scene is the hero (the lead), then the phrase');
+  // Fix round 3: TODAY_CARDS, TODAY_PATH and pathStep left with the
+  // card-under-the-words path; the page order is pinned from HomeTab below,
+  // and the scene stop's words through leadStop.
+  assert.equal('TODAY_CARDS' in todayView, false);
+  assert.equal('pathStep' in todayView, false);
   assert.equal(todayView.TODAY_COPY.path, "Today's path");
 
-  // Source order on the screen: the path heading, the fix stop, the lead, the
-  // phrase, then the three, Coming up and the week.
+  // Source order on the screen (UI-015): the stats in the sky, the hero (the
+  // fix or the lead, by todayStops), the rows (scene, phrase, review), the
+  // path title, then the three, Coming up and the week. Was: TodayHero, the
+  // path heading, the fix RouteNode, the lead, the phrase DailyCard.
   const at = (needle: string) => { const i = HOME.indexOf(needle); assert.ok(i >= 0, `HomeTab has no ${needle}`); return i; };
-  const order = ['<TodayHero />', '{TODAY_COPY.path}', "pathStep('fix')", '<NextTaskCard vivid', "pathStep('phrase')", '<DailyCard', '{three}', '{event !== null', '{week !== null'];
+  const order = ['const stops = todayStops(', "stops.hero === 'fix' ? fixHero : <NextTaskCard vivid placement=\"hero\"", "<NextTaskCard key=\"scene\" vivid placement=\"row\"", '<RouteRow key="phrase"', '<RouteRow key="review"', '<TodayStats sky={sky}>', 'pathTitle={TODAY_COPY.path}', 'three={', 'comingUp={', 'week={'];
   for (let i = 1; i < order.length; i += 1) assert.ok(at(order[i - 1]!) < at(order[i]!), `${order[i]} is drawn before ${order[i - 1]}`);
   assert.doesNotMatch(HOME, /<Columns>\{three\}\{fixCard\}<\/Columns>/, 'the fix still shares a row with the quotas');
 
-  // One route drawing, shared with the wall's trial route.
-  assert.match(ROUTE, /export function RouteNode/);
-  // The wall keeps its own copy until its Apple 3.1.2 price pin is repointed (a money pin, left alone).
-  assert.match(HOME, /<RouteNode /);
-  assert.match(TASK, /<RouteNode /);
-  for (const line of [todayView.TODAY_COPY.path, ...['fix', 'phrase'].flatMap(s => Object.values(pathStep(s)) as string[])]) assert.doesNotMatch(line, /[·—]/);
+  // One route drawing (UI-015): Today's stops are RouteRows; RouteNode left
+  // with the card-under-the-words path. The wall keeps its own copy until its
+  // Apple 3.1.2 price pin is repointed (a money pin, left alone).
+  assert.match(ROUTE, /export function RouteRow/);
+  assert.doesNotMatch(ROUTE, /export function RouteNode/);
+  assert.match(HOME, /<RouteRow /);
+  assert.match(TASK, /<RouteRow /);
+  assert.doesNotMatch(HOME + TASK, /<RouteNode\b/);
+  for (const line of [todayView.TODAY_COPY.path, ...Object.values(nt.leadStop('scene', 3)).filter((v): v is string => v !== null)]) assert.doesNotMatch(line, /[·—]/);
 });
 
 test('Today offers review when Review would deal cards', () => {
@@ -146,7 +154,8 @@ test('an out-of-time learner is led to plans, not to a live scene', () => {
   // The starter card is drawn by the lead rule, never ahead of billing.
   assert.doesNotMatch(HOME, /<StarterContinuation/);
   assert.match(TASK, /lead === 'starter' && starter !== null/);
-  assert.match(TASK, /if \(lead === 'plans'\) return onStop\(lead, null, plansCard\);/);
+  // UI-015: plans is the hero body (plansBody, no card) or a row to the Wall; the card stays for other callers.
+  assert.match(TASK, /if \(row\) return leadRow\(lead, \(\) => navigateOwned\('Wall', \{ entry: 'refused' \}\)\);\s*return bare \? <View style=\{\{ gap: space\(3\) \}\}>\{plansBody\(false\)\}<\/View> : plansCard;/);
   assert.match(STARTER, /onTutor !== undefined &&/);
 });
 
@@ -285,6 +294,73 @@ test("Today's scene card shows only how long the scene takes", () => {
   // The time is said once: the path's scene stop names the step only.
   const { leadStop } = nt as unknown as { leadStop: (lead: string, minutes: number | null) => { title: string; line: string | null } };
   assert.deepEqual(leadStop('scene', 3), { title: 'The next scene', line: null });
-  assert.equal(todayView.pathStep('fix').line, 'About 30 seconds');
-  assert.equal(todayView.pathStep('phrase').line, 'About 2 minutes');
+  assert.equal(todayView.aboutMinutes(2), 'About 2 minutes');
+});
+
+// UI-015: one rule picks the hero and the rows, and NextTaskCard is placed as one or the other.
+test('the hero is the first stop present, and the rows never repeat it', () => {
+  const { todayStops, rowMarks } = todayView;
+  assert.deepEqual(todayStops({ fix: true, review: true }), { hero: 'fix', rows: ['scene', 'phrase', 'review'] });
+  assert.deepEqual(todayStops({ fix: true, review: false }), { hero: 'fix', rows: ['scene', 'phrase'] });
+  assert.deepEqual(todayStops({ fix: false, review: true }), { hero: 'lead', rows: ['phrase', 'review'] });
+  assert.deepEqual(todayStops({ fix: false, review: false }), { hero: 'lead', rows: ['phrase'] });
+  for (const fix of [false, true]) for (const review of [false, true]) {
+    const stops = todayStops({ fix, review });
+    const heroStop = stops.hero === 'fix' ? 'fix' : 'scene';
+    assert.ok(!stops.rows.includes(heroStop), `the hero's ${heroStop} is drawn again as a row`);
+    assert.ok(!stops.rows.includes('fix'), 'the fix is drawn as a row; it is only ever the hero');
+  }
+  // The ink end dot only on the last row.
+  assert.deepEqual(rowMarks(['scene', 'phrase']).map((r) => [r.row, r.mark, r.last]), [['scene', 'stop', false], ['phrase', 'end', true]]);
+  assert.deepEqual(rowMarks([]), []);
+  // The screen draws the hero and the rows from the rule.
+  assert.match(HOME, /const stops = todayStops\(\{ fix: fix !== null, review: review !== null \}\);/);
+  assert.match(HOME, /rowMarks\(stops\.rows\)\.map\(/);
+});
+
+test('NextTaskCard on the hero has no rail, and on a row is one RouteRow', () => {
+  assert.match(TASK, /placement\?: LeadPlacement/);
+  assert.match(TASK, /export type LeadPlacement = 'hero' \| 'row';/);
+  assert.doesNotMatch(TASK, /RouteNode|step=|step\?:/, 'the lead still carries a RouteNode stop');
+  // A row draws nothing while loading or failed: the hero shows those.
+  assert.match(TASK, /if \(failed && vivid\) return row \? null :/);
+  assert.match(TASK, /if \(value === null \|\| value\.scope !== scopeGeneration\(\)\) return row \? null :/);
+  assert.match(TASK, /if \(lead === 'loading'\) return row \? null :/);
+  // The scene row starts through the same tutor gate as the hero's Start.
+  // Fix round 1: the row draws the gate's whole answer, so a tap on an
+  // unreachable tutor is never a tap that changes nothing.
+  const sceneRow = flat(TASK.slice(TASK.indexOf('function SceneRow('), TASK.indexOf('export function LeadRow(')));
+  assert.match(sceneRow, /const \{ open, checking, heldBack, label, modes \} = useSceneStart\(hero\);/);
+  assert.match(sceneRow, /sceneRowState\(\{ checking, heldBack: heldBack !== null, line: sceneRowLine\(hero\), checkingLine: label \}\)/, 'the row ignores the check or the held-back start');
+  assert.match(sceneRow, /line=\{state\.line\} disabled=\{state\.disabled\} onPress=\{\(\) => open\(modes\.textMode\)\}/, 'the row does not say the check or is pressable during it');
+  assert.match(sceneRow, /\{state\.held && heldBack !== null && <View[^>]*>\s*<Text[^>]*>\{TUTOR_OFFLINE\.body\}<\/Text>/, 'a held-back start is not answered under the row');
+  assert.match(sceneRow, /onPress=\{\(\) => open\(heldBack\.textMode\)\}/, 'the held-back answer has no way forward');
+  assert.doesNotMatch(sceneRow, /<Card|ColourCard/, 'the held-back answer is a card, not flat on the page');
+  assert.deepEqual(nt.sceneRowState({ checking: true, heldBack: false, line: 'L', checkingLine: 'Checking' }), { line: 'Checking', disabled: true, held: false });
+  assert.deepEqual(nt.sceneRowState({ checking: false, heldBack: true, line: 'L', checkingLine: 'Checking' }), { line: 'L', disabled: false, held: true });
+  assert.deepEqual(nt.sceneRowState({ checking: false, heldBack: false, line: 'L', checkingLine: 'Checking' }), { line: 'L', disabled: false, held: false });
+  // Fix round 1: every row placement is a flat LeadRow, never a whole card.
+  const vividBranch = flat(TASK.slice(TASK.indexOf('if (vivid) {'), TASK.indexOf('// 2026-10-20 UI-008, artboard B-Today: Today (vivid) leads')));
+  assert.match(vividBranch, /const starterRow = \(initial: GuestPractice\) => <StarterContinuation initial=\{initial\} face=\{\(continuePractice\) => leadRow\('starter', continuePractice\)\} \/>;/, 'the starter row is not a LeadRow opening the card\'s own practice');
+  assert.match(vividBranch, /if \(then === 'starter' && starter !== null\) return starterRow\(starter\);/, 'held time draws the starter card on a row');
+  assert.match(vividBranch, /return local !== null \? leadRow\(lead, \(\) => nav\.navigate\('DailyPractice', \{ id: local\.id, mode: 'shadowing' \}\)\) : null;/, 'held time past Starter drops the scene stop');
+  assert.match(vividBranch, /if \(lead === 'starter' && starter !== null && row\) return starterRow\(starter\);/, 'the starter lead draws its card on a row');
+  assert.doesNotMatch(vividBranch, /if \(row\)[^;]*starterCard\(/, 'a row still draws the starter card');
+  const starterSrc = flat(read('../onboarding/StarterContinuation.tsx'));
+  assert.match(starterSrc, /\{face !== undefined \? face\(\(\) => open\(false\)\) : <Ground bare=\{bare\}>/, 'the row does not open the card\'s Continue practice');
+  assert.match(starterSrc, /<PillButton label="Continue practice" onPress=\{\(\) => open\(false\)\} \/>/);
+  // Fix round 1: each lead row draws its own existing drawing.
+  assert.deepEqual(nt.leadRowArt('scene'), { art: 'cafe-table', ground: 'butter' });
+  assert.deepEqual(nt.leadRowArt('plans'), { art: 'star-jar', ground: 'butter' });
+  assert.deepEqual(nt.leadRowArt('explore'), { art: 'map-route', ground: 'lavender' });
+  assert.deepEqual(nt.leadRowArt('starter'), { art: 'phrasebook', ground: 'sage' });
+  for (const calm of ['outOfTime', 'lapsed', 'local'] as const) assert.deepEqual(nt.leadRowArt(calm), { art: 'watering-plant', ground: 'sage' });
+  assert.match(TASK, /const \{ art, ground \} = leadRowArt\(lead\);/);
+  assert.match(TASK, /thumb=\{<BArt name=\{art\} width=\{ROW_ART\} height=\{ROW_ART\} \/>\} thumbGround=\{t\[ground\]\}/, 'the lead row still draws one drawing for every lead');
+  assert.equal((TASK.match(/<RouteRow /g) ?? []).length, 1, 'more than one kind of row');
+  // On the hero the bodies draw bare, with no card of their own.
+  assert.match(TASK, /<LocalPracticeCard vivid bare=\{bare\}/);
+  assert.match(TASK, /<StarterContinuation initial=\{starter\} bare=\{bare\}/);
+  assert.match(TASK, /<MissionHero hero=\{value\.hero\} vivid buildsOn=\{value\.buildsOn\} \/>/);
+  assert.equal(todayView.sceneRowLine({ kind: 'today', minutes: 3 } as never), "Today's scene. About 3 minutes");
 });

@@ -148,3 +148,8 @@ export function heroCounts(hero: TodayHeroView): ShownValues {
 export function questCounts(card: QuestsCardView): ShownValues {
   return { questsDone: card.done };
 }
+
+/** The flame pops once only when the streak rose in this draw and today has counted. */
+export function flamePops(counter: Counter | undefined, lit: boolean): boolean {
+  return lit && risen(counter);
+}

@@ -140,12 +140,17 @@ describe("Home's numbers on a mounted Home — F767", () => {
     assert.equal(drawMoved(evening, morning), true);
 
     // The cards key every counter on its mount and draw only from the draw.
-    const hero = read('../game/TodayHero.tsx');
-    for (const key of ['run', 'ring', 'level']) assert.match(hero, new RegExp(`key=\\{\`${key}-\\$\\{\\w+\\.mount\\}\`\\}`), `the hero's ${key} is not keyed on its mount`);
+    // UI-015: TodayHero.tsx's counters moved to TodayStatTiles.tsx.
+    const hero = read('../game/TodayStatTiles.tsx');
+    // Fix round 1: the ring's key comes from goalCoin (ring-${mount}, or ring-still with no counter).
+    assert.match(hero, /<ProgressRing key=\{coin\.key\}/);
+    for (const key of ['run', 'level']) assert.match(hero, new RegExp(`key=\\{\`${key}-\\$\\{\\w+\\.mount\\}\`\\}`), `the hero's ${key} is not keyed on its mount`);
     assert.doesNotMatch(hero, /\bfrom=\{[^}]*\?\?/, 'a counter starts from a fallback guess');
     const quests = read('../game/QuestsCard.tsx');
     assert.match(quests, /key=\{`done-\$\{done\.mount\}`\}/, "the quests' count is not keyed on its mount");
-    assert.match(quests, /key=\{`\$\{drawn\.draw\.day\}:\$\{row\.id\}:\$\{row\.target\}`\}/, "a quest's bar can be handed a lower fill on a new day");
+    // UI-015 (T5): the rows are drawn by QuestsCardBody, keyed by the rowKey QuestsCard hands it.
+    assert.match(quests, /rowKey=\{\(row\) => `\$\{drawn\.draw\.day\}:\$\{row\.id\}:\$\{row\.target\}`\}/, "a quest's bar can be handed a lower fill on a new day");
+    assert.match(quests, /<View key=\{rowKey\(row\)\}/, "a quest's row is not keyed by the day's key");
   });
 
   test('Home draws a new value only where the learner can see it, after the takeovers, and remembers only what it drew', () => {
@@ -215,7 +220,8 @@ describe("Home's numbers on a mounted Home — F767", () => {
 
     // The hero asks the game layer again when the day turns while Home is on
     // top, so midnight's new ring and quests arrive without leaving the tab.
-    const hero = read('../game/TodayHero.tsx');
+    // UI-015: TodayHero.tsx's day-turn refresh moved to TodayStats.tsx unchanged.
+    const hero = read('../game/TodayStats.tsx');
     assert.match(hero, /if \(dayTurned\(today, Date\.now\(\)\)\) refresh\(\);/, 'the hero keeps yesterday after midnight');
     assert.match(hero, /\}, DAY_CHECK_MS\);/);
   });

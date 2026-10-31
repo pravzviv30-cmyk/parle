@@ -21,7 +21,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b, mascot } from './palette.ts';
+import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b, mascot, sky } from './palette.ts';
 import { contrast } from './testing/contrast.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
@@ -674,6 +674,20 @@ describe('the cloud mascot reads as a control (UI-014)', () => {
   });
 });
 
+describe('white words sit on every sky (UI-015)', () => {
+  test('onBrand clears the text floor on every sky ground and chip', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const onBrand = b[mode].onBrand;
+      for (const [hour, set] of Object.entries(sky[mode])) {
+        for (const part of ['ground', 'chip'] as const) {
+          const r = contrast(onBrand, set[part]);
+          assert.ok(r >= TEXT, `onBrand is ${r.toFixed(2)} on the ${mode} ${hour} sky ${part}, under the ${TEXT} floor`);
+        }
+      }
+    }
+  });
+});
+
 describe('the recorded palette matches the code — F327, F328', () => {
   /** Every shipped token, flattened to the path the doc and the app.json use. */
   const tokens: Record<string, string> = {};
@@ -687,6 +701,12 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(pastel)) tokens[`pastel.${k}`] = v;
   // UI-014: the mascots' own colours are recorded like the rest.
   for (const [k, v] of Object.entries(mascot)) tokens[`mascot.${k}`] = v;
+  // UI-015: Today's sky, every hour and mode, recorded like the rest.
+  for (const [mode, hours] of Object.entries(sky)) {
+    for (const [hour, set] of Object.entries(hours)) {
+      for (const [k, v] of Object.entries(set as Record<string, string>)) tokens[`sky.${mode}.${hour}.${k}`] = v;
+    }
+  }
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const [k, v] of Object.entries(onOrb)) tokens[`onOrb.${k}`] = v;

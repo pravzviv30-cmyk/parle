@@ -12,10 +12,16 @@ import { useNavigation } from '@react-navigation/native';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { Monogram } from '../components.tsx';
 import { HIT } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 import { avatarInitial } from './avatar.ts';
 
-/** `inverted` is the card-filled disc the Journey band draws (B-Journey). */
-export function ProfileButton({ inverted = false }: { inverted?: boolean } = {}) {
+/**
+ * `inverted` is the card-filled disc the Journey band draws (B-Journey).
+ * `ground` puts the disc on a band's own chip with the `onBrand` glyph, as
+ * Today's sky does (UI-015); without it the disc is unchanged.
+ */
+export function ProfileButton({ inverted = false, ground }: { inverted?: boolean; ground?: string } = {}) {
+  const t = useB();
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { profile } = useProfile();
   // 2026-10-20, sim nits: the greeting's name source; null draws the person glyph.
@@ -27,7 +33,7 @@ export function ProfileButton({ inverted = false }: { inverted?: boolean } = {})
       onPress={() => nav.navigate('Profile')}
       style={({ pressed }) => [s.hit, pressed && s.pressed]}
     >
-      <Monogram initial={initial} size={HIT} inverted={inverted} />
+      <Monogram initial={initial} size={HIT} inverted={inverted} ground={ground} ink={ground !== undefined ? t.onBrand : undefined} />
     </Pressable>
   );
 }

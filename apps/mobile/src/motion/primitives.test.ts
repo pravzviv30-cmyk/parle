@@ -43,6 +43,8 @@ const PRIMITIVES: Record<string, string[]> = {
   'layout.tsx': ['Enter', 'Reflow', 'Exit'],
   'BubbleIn.tsx': ['BubbleIn'],
   'LevelRing.tsx': ['LevelRing'],
+  'Drift.tsx': ['Drift'],
+  'PopOnce.tsx': ['PopOnce'],
 };
 
 /** The primitives that land through the part they are built on, rather than themselves. */
@@ -132,6 +134,19 @@ describe('the motion primitives keep one contract', () => {
     assert.match(code('FlightLayer.tsx'), /if \(reduced\) flights\.landAll\(\);/, 'tokens in the air keep flying when reduced motion is turned on');
     // The level ring keeps no scale, only steps.
     assert.match(code('LevelRing.tsx'), /if \(reduced\) \{\s*const step = LEVEL_RING\.steps\.find/, 'the level ring scales under reduced motion');
+    // UI-015: a drift is simply there, and a pop does not scale.
+    assert.match(code('Drift.tsx'), /if \(reduced\) \{\s*cancel\(shown\);\s*shown\.value = 1;\s*return;\s*\}/, 'a drift under reduced motion is not at rest at once');
+    assert.match(code('PopOnce.tsx'), /if \(reduced\) return;\s*scale\.value = sequence/, 'the pop scales under reduced motion');
+    assert.doesNotMatch(code('Drift.tsx'), /translateY|scale|width|height/, 'a drift animates more than transform X and opacity');
+    // Fix round 3: the pop waits for the OS's answer, spends itself only once
+    // it is known, and re-arms when play falls so a later rise pops again.
+    const pop = code('PopOnce.tsx');
+    assert.match(pop, /const reduced = useAnswered\(useReduceMotion\(true\)\);/, 'the pop reads reduced motion before the OS has answered');
+    assert.match(pop, /if \(!play\) \{\s*played\.current = false;\s*return;\s*\}/, 'a later rise never pops again');
+    assert.match(pop, /if \(reduced === null \|\| played\.current\) return;\s*played\.current = true;/, 'the pop is spent before the answer is known');
+    // Fix round 3: both are decorative wrappers: a drift takes no touches, a pop passes them to its child.
+    assert.match(code('Drift.tsx'), /<Reanimated\.View pointerEvents="none"/, 'a drifting cloud can take a touch');
+    assert.match(pop, /<Reanimated\.View pointerEvents="box-none"/, 'the pop swallows its child\'s touches');
   });
 
   test('a count says only its final value to a screen reader, keeps its width and ticks by the rules', () => {

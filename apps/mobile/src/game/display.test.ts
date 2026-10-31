@@ -108,7 +108,8 @@ describe('one way to a level or an XP total on screen — README Part 6, F744', 
     assert.ok(files.length > 50, 'the scan found almost no screens, so it is reading the wrong place');
     // The game layer's own screens are read too, and the two modules where the numbers are made never are.
     const short = files.map((file) => (file === APP ? 'App.tsx' : file.slice(SRC.length)));
-    for (const screen of ['game/TodayHero.tsx', 'game/QuestsCard.tsx', 'game/LevelXpCard.tsx', 'game/ProfileStats.tsx', 'game/StreakScreen.tsx', 'game/CountsGrid.tsx']) {
+    // UI-015: the retired stats-row hero became game/TodayStats.tsx (the container) and game/TodayStatTiles.tsx.
+    for (const screen of ['game/TodayStats.tsx', 'game/TodayStatTiles.tsx', 'game/QuestsCard.tsx', 'game/LevelXpCard.tsx', 'game/ProfileStats.tsx', 'game/StreakScreen.tsx', 'game/CountsGrid.tsx']) {
       assert.ok(short.includes(screen), `${screen} is outside the scan`);
     }
     assert.ok(!short.includes('game/view.ts') && !short.includes('game/settle.ts'), 'the scan reads the modules where the numbers are made');

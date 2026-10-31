@@ -22,7 +22,7 @@ import type { LockedFeature } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { COMING_UP_COPY } from '../home/todayView.ts';
 import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
-import { SCENE_CARDS, sceneCardFallbackWidth, sceneCardGeometry } from '../responsiveLayout.ts';
+import { SCENE_TILE, sceneTileSide } from '../responsiveLayout.ts';
 
 // ─────────────────────────────────────────────────────────────── glyphs
 
@@ -141,9 +141,26 @@ export interface ComingUpCardView {
 }
 
 /**
- * "Coming up" (founder, 2026-10-20): the tutor-orb, the life event the tutor
- * remembers and when, the plan's lock when Rehearse now is locked, then
- * Rehearse now and Not now. No checklist: nothing stores one yet (Phase C).
+ * A section's title outside its card (UI-015): 20/800, a header for screen
+ * readers, with an optional trailing note ("1 of 3 done").
+ */
+export function SectionTitle({ title, trailing }: { title: string; trailing?: ReactNode }) {
+  const t = useB();
+  const s = useThemedStyles(makeStyles);
+  return (
+    <View style={s.titleRow}>
+      <Text accessibilityRole="header" style={[bType.section20, s.titleWords, { color: t.text }]}>{title}</Text>
+      {trailing}
+    </View>
+  );
+}
+
+/**
+ * "Coming up" (founder, 2026-10-20; flattened for UI-015): one lavender card
+ * under the caller's section title. The tutor (their portrait, or the shared
+ * orb) beside the life event the tutor remembers and when, the plan's lock
+ * when Rehearse now is locked, then Rehearse as the primary and Not now as a
+ * quiet link. No checklist: nothing stores one yet (Phase C).
  */
 export function ComingUpCard({ view, voice, onRehearse, onNotNow }: {
   view: ComingUpCardView;
@@ -155,47 +172,54 @@ export function ComingUpCard({ view, voice, onRehearse, onNotNow }: {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
-    <View style={s.comingUp}>
+    <View style={[s.comingUp, { backgroundColor: t.lavender }]}>
       <View style={s.comingHead}>
         <View style={s.orb} {...decorative}>{voice ? <TutorPortrait voice={voice} size={44} ring={t.text} /> : <BArt name="tutor-orb" width={44} height={44} />}</View>
         <View style={s.grow}>
-          <Text accessibilityRole="header" style={[bType.bold16, { color: t.text }]}>{view.title}</Text>
-          <Text style={[bType.note, { color: t.muted }]}>{view.when}</Text>
+          <Text style={[bType.heavy16, { color: t.text }]}>{view.title}</Text>
+          <Text style={[bType.meta, { color: t.secondary }]}>{view.when}</Text>
           {view.locked ? <View style={s.pillGap}><LockBadge feature={view.feature} /></View> : null}
         </View>
       </View>
       <View style={s.actions}>
-        <BButton hug label={COMING_UP_COPY.rehearse} height={44} ground={t.brand} ink={t.onBrand} text={bType.bold15} onPress={onRehearse} />
-        <BButton hug label={COMING_UP_COPY.notNow} accessibilityLabel={`${COMING_UP_COPY.notNow}, hide this for now`} height={44} ground={t.quiet} ink={t.text} text={bType.semi15} onPress={onNotNow} />
-      </View>
-    </View>
-  );
-}
-
-/** Your week in French: the blue card, the sentence, the See your week link and the cloud. */
-export function WeekCard({ eyebrow, sentence, link, onLink }: { eyebrow: string; sentence: string; link: string; onLink: () => void }) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  return (
-    <View style={s.week}>
-      <View style={s.weekWords}>
-        <Text style={[bType.eyebrow, { color: t.sun }]}>{eyebrow}</Text>
-        <Text style={[bType.bold19, { color: t.onBrand }]}>{sentence}</Text>
-        <Pressable accessibilityRole="link" accessibilityLabel={link} onPress={onLink} style={s.weekLink}>
-          <Text style={[bType.meta, { color: t.onBrandSoft, textDecorationLine: 'underline' }]}>{link}</Text>
+        <BButton hug label={COMING_UP_COPY.rehearse} height={44} ground={t.primary} ink={t.onPrimary} text={bType.bold15} onPress={onRehearse} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`${COMING_UP_COPY.notNow}, hide this for now`} onPress={onNotNow} style={s.textLink}>
+          <Text style={[bType.semi14, { color: t.text }]}>{COMING_UP_COPY.notNow}</Text>
         </Pressable>
       </View>
-      <BArt name="cloud-heart" width={92} height={70} />
     </View>
   );
 }
 
 /**
- * The yellow lead (heroGround, radius 28, padding 20, min-height 262): the
- * café drawing at the top right, the eyebrow, the title, the line, the "Uses"
- * chip when the last conversation really meets the scene, and the 54pt Start
- * at the foot. In dark the tokens turn it plum with cream words and the gold
- * Start. The caller owns the gated start; this draws it.
+ * Your week in French (flattened for UI-015): one card under the caller's
+ * section title, the sentence and the See your week link.
+ */
+export function WeekCard({ sentence, link, onLink }: { sentence: string; link: string; onLink: () => void }) {
+  const t = useB();
+  const s = useThemedStyles(makeStyles);
+  return (
+    <View style={[s.week, { backgroundColor: t.card }]}>
+      <Text style={[bType.line15, s.weekWords, { color: t.text }]}>{sentence}</Text>
+      <Pressable accessibilityRole="link" accessibilityLabel={link} onPress={onLink} style={s.weekLink}>
+        <Text style={[bType.bold14, { color: t.text }]}>{link}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * The scene hero (UI-015), drawn on the hero card's ground with no card of its
+ * own: a 108 by 84 art tile on butter beside the eyebrow ("Next scene, 2 of
+ * 3"), the title and the time, the "Uses" chip when the last conversation
+ * really meets the scene, then the 54pt primary Start and the other mode as an
+ * underlined link. The caller owns the gated start; this draws it, its check
+ * and the tutor-unreachable answer with the same start again.
+ *
+ * The words sit beside the tile while the card is wide enough
+ * (`sceneTileSide`); on a narrow card or at large text the tile goes above
+ * full-width words. The first frame guesses from the window, then the card's
+ * own width decides.
  */
 export function SceneLead({ eyebrow, title, french, rest, uses, start, other, checking, heldBack }: {
   eyebrow: string;
@@ -214,45 +238,42 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
-  // F920: below the side-by-side width, or at large text, the café moves to a
-  // band above the words. The first frame guesses from the window, then the
-  // card's own width decides.
   const { width: windowWidth, fontScale } = useWindowDimensions();
   const [measured, setMeasured] = useState<number | null>(null);
-  const frame = sceneCardGeometry(SCENE_CARDS.today, measured ?? sceneCardFallbackWidth('today', windowWidth), fontScale);
-  const side = frame.placement === 'side';
+  const side = sceneTileSide(measured ?? windowWidth - HERO_INSET, fontScale);
   return (
     <View style={s.lead} onLayout={(event) => setMeasured(Math.round(event.nativeEvent.layout.width))}>
-      {side
-        ? <BArt name="cafe-table" width={168} height={154} style={s.leadArt} />
-        : <BArt name="cafe-table" width={frame.band!.width} height={frame.band!.height} style={s.leadBand} />}
-      {/* Side by side the words column keeps the art's height, so the Uses chip and Start start below it. */}
-      <View style={[s.leadWords, { minHeight: frame.text.minHeight }]}>
-        <Text style={[bType.eyebrow, side && s.leadEyebrow, { color: t.heroText }]}>{eyebrow}</Text>
-        <Text accessibilityRole="header" style={[bType.leadTitle, side && s.leadTitle, { color: t.heroText }]}>{title}</Text>
-        <Text style={[bType.line16, side && s.leadLine, { color: t.heroText }]}>
-          {french !== null ? <Text {...frenchText}>{french}</Text> : null}
-          {rest}
-        </Text>
+      <View style={side ? s.leadSide : s.leadStacked}>
+        <View {...decorative} style={[s.leadTile, { backgroundColor: t.butter }]}>
+          <BArt name="cafe-table" width={SCENE_ART.width} height={SCENE_ART.height} />
+        </View>
+        <View style={side ? s.grow : undefined}>
+          <Text style={[bType.eyebrow, { color: t.link }]}>{eyebrow}</Text>
+          <Text accessibilityRole="header" style={[bType.stat24, { color: t.text }]}>{title}</Text>
+          <Text style={[bType.meta, { color: t.muted }]}>
+            {french !== null ? <Text {...frenchText}>{french}</Text> : null}
+            {rest}
+          </Text>
+        </View>
       </View>
       {uses !== null ? (
-        <View style={s.usesChip}>
-          <Text style={[bType.chip, { color: t.heroText }]}>
+        <View style={[s.usesChip, { backgroundColor: t.inset }]}>
+          <Text style={[bType.chip, { color: t.text }]}>
             {uses.before}<Text {...frenchText}>{uses.french}</Text>{uses.after}
           </Text>
         </View>
       ) : null}
       <View style={s.leadFoot}>
-        <BButton label={start.label} accessibilityLabel={start.accessibilityLabel} height={54} ground={t.heroCta} ink={t.heroCtaText} text={bType.bold18} icon={start.mode === 'type' ? <KeyboardMark size={20} color={t.heroCtaText} /> : <BMic size={20} color={t.heroCtaText} />} disabled={start.disabled} onPress={start.onPress} />
+        <BButton label={start.label} accessibilityLabel={start.accessibilityLabel} height={54} ground={t.primary} ink={t.onPrimary} text={bType.bold16} icon={start.mode === 'type' ? <KeyboardMark size={20} color={t.onPrimary} /> : <BMic size={20} color={t.onPrimary} />} disabled={start.disabled} onPress={start.onPress} />
         <Pressable accessibilityRole="button" accessibilityLabel={other.label} accessibilityState={{ disabled: other.disabled }} disabled={other.disabled} onPress={other.onPress} style={s.otherMode}>
-          <Text style={[bType.meta, { color: t.heroText, textDecorationLine: 'underline' }]}>{other.label}</Text>
+          <Text style={[bType.semi14, { color: t.text, textDecorationLine: 'underline' }]}>{other.label}</Text>
         </Pressable>
-        {checking !== null ? <Text accessibilityLiveRegion="polite" style={[bType.meta, s.centred, { color: t.heroText }]}>{checking}</Text> : null}
+        {checking !== null ? <Text accessibilityLiveRegion="polite" style={[bType.meta, s.centred, { color: t.text }]}>{checking}</Text> : null}
         {heldBack !== null ? (
           <View style={s.heldBack}>
-            <Text style={[bType.line16, { color: t.heroText }]}>{heldBack.body}</Text>
+            <Text style={[bType.line16, { color: t.text }]}>{heldBack.body}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel={heldBack.retry} accessibilityState={{ disabled: heldBack.disabled }} disabled={heldBack.disabled} onPress={heldBack.onRetry} style={s.otherMode}>
-              <Text style={[bType.bold16, { color: t.heroText, textDecorationLine: 'underline' }]}>{heldBack.retry}</Text>
+              <Text style={[bType.bold16, { color: t.text, textDecorationLine: 'underline' }]}>{heldBack.retry}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -261,44 +282,10 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
   );
 }
 
-/**
- * Today's phrase on the lavender card: the eyebrow, the French over its
- * English, the 48pt brand speaker (only when a bundled clip exists, and it
- * says Stop while it sounds), and the white "Say it yourself".
- */
-export function PhraseCard({ eyebrow, fr, en, hearLabel, onHear, playing, sayLabel, sayAccessibilityLabel, onSay, note }: {
-  eyebrow: string;
-  fr: string;
-  en: string;
-  hearLabel: string;
-  onHear?: () => void;
-  playing: boolean;
-  sayLabel: string;
-  sayAccessibilityLabel: string;
-  onSay: () => void;
-  note: string;
-}) {
-  const t = useB();
-  const s = useThemedStyles(makeStyles);
-  return (
-    <View style={s.phrase}>
-      <Text style={[bType.eyebrow, { color: t.link }]}>{eyebrow}</Text>
-      <View style={s.phraseRow}>
-        <View style={s.phraseWords}>
-          <Text {...frenchText} selectable style={[bType.bold22, { color: t.text }]}>{fr}</Text>
-          <Text style={[bType.line15, { color: t.secondary }]}>{en}</Text>
-        </View>
-        {onHear !== undefined ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={playing ? 'Stop' : hearLabel} accessibilityState={{ busy: playing }} onPress={onHear} style={s.speaker}>
-            <BSpeaker size={22} color={t.onBrand} />
-          </Pressable>
-        ) : null}
-      </View>
-      <BButton label={sayLabel} accessibilityLabel={sayAccessibilityLabel} height={46} ground={t.card} ink={t.text} text={bType.bold16} onPress={onSay} />
-      {note !== '' ? <Text accessibilityLiveRegion="polite" style={[bType.note, { color: t.secondary }]}>{note}</Text> : null}
-    </View>
-  );
-}
+/** The hero card's margins and padding, for the first frame: 16 + 16 + 18 + 18. */
+const HERO_INSET = 68;
+/** The café inside its 108 by 84 tile (board: 100 by 80, the drawing's own aspect). */
+const SCENE_ART = { width: 87, height: 80 } as const;
 
 const makeStyles = (t: B) =>
   StyleSheet.create({
@@ -309,28 +296,24 @@ const makeStyles = (t: B) =>
     hugFrame: { alignSelf: 'flex-start' },
     hug: { paddingHorizontal: 18 },
     disabled: { opacity: 0.6 },
-    comingUp: { backgroundColor: t.card, borderRadius: 24, padding: space(4), gap: space(3) },
+    titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space(3), marginBottom: 10 },
+    titleWords: { flexShrink: 1, minWidth: 0 },
+    comingUp: { borderRadius: 24, padding: space(4), gap: 10 },
     comingHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
     orb: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
     pillGap: { marginTop: space(1) },
-    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-    week: { backgroundColor: t.brand, borderRadius: 26, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
-    weekWords: { flex: 1, minWidth: 0, gap: space(1) },
-    weekLink: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
-    lead: { backgroundColor: t.heroGround, borderRadius: 28, padding: 20, gap: space(1), minHeight: 262, overflow: 'hidden' },
-    leadArt: { position: 'absolute', right: -6, top: 14 },
-    leadBand: { alignSelf: 'center', marginBottom: 12 },
-    leadWords: { gap: space(1) },
-    leadEyebrow: { maxWidth: 190 },
-    leadTitle: { maxWidth: 190 },
-    leadLine: { maxWidth: 180 },
-    usesChip: { marginTop: 6, alignSelf: 'flex-start', maxWidth: '100%', backgroundColor: t.heroChip, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12 },
-    leadFoot: { marginTop: 'auto', paddingTop: space(3), gap: space(1) },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(4) },
+    textLink: { minHeight: HIT, justifyContent: 'center' },
+    week: { borderRadius: 24, padding: space(4), flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space(3) },
+    weekWords: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0 },
+    weekLink: { minHeight: HIT, justifyContent: 'center' },
+    lead: { gap: space(1) },
+    leadSide: { flexDirection: 'row', alignItems: 'center', gap: SCENE_TILE.gap },
+    leadStacked: { gap: SCENE_TILE.gap },
+    leadTile: { width: SCENE_TILE.width, height: SCENE_TILE.height, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    usesChip: { marginTop: 6, alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12 },
+    leadFoot: { marginTop: space(2), gap: space(1) },
     centred: { textAlign: 'center' },
     heldBack: { gap: space(1) },
     otherMode: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(2) },
-    phrase: { backgroundColor: t.lavender, borderRadius: 26, padding: 18, gap: 10 },
-    phraseRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },
-    phraseWords: { flex: 1, minWidth: 0, gap: 2 },
-    speaker: { width: 48, height: 48, borderRadius: 24, backgroundColor: t.brand, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   });

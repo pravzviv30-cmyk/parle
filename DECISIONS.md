@@ -851,6 +851,52 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     stays `PORTRAIT_RING`, rather than new tokens.
   - The mascots become shared art with palette tokens.
 
+## UI-015 — Today is A's morning sky over today's path, with chunky stat tiles
+
+- Date: 2026-10-31
+- Status: accepted (founder: the A × Today mix on 2026-10-30, the chunky stat
+  tiles on 2026-10-31). Plan: `docs/changes/today-sky.md`. Board "A × Today
+  (chosen)" on https://claude.ai/artifact/8hQGYBiERChAzbtXjN82Dc.
+- Decision: Today opens on a sky band and then today's path.
+  - **Sky:** a ground, a sun or moon and two clouds that follow the hour
+    through one pure rule, `skyView(hour, mode)`: morning 05 to 12, afternoon
+    12 to 18, evening 18 to 22, night 22 to 05. A `sky` palette group holds
+    the colours no other token had.
+  - **Greeting:** "Bonjour, Name." until 18:00 and "Bonsoir, Name." after,
+    through `greetingWord`. This supersedes direction B's one word all day.
+    The profile button sits in the sky.
+  - **Stat tiles:** three chunky tiles under the greeting, each a solid card
+    with a 4pt lip like a game button, a coloured coin, a big number and one
+    word: streak days, minutes against the goal, level. "Start" over "today"
+    with no streak, and "<1" with "/10" under a minute (founder, 2026-10-31),
+    so no nought is ever drawn. Same data, spoken labels and taps as before.
+    The nudge sits in the sky under them (founder, 2026-10-31).
+  - **Hero:** one card overlapping the sky is the first stop of today's path
+    (UI-012 order): the fix when there is one, otherwise the `todayLead`
+    lead, in every lead state. One primary action; Type instead is kept.
+  - **Below:** the remaining stops as flat rows on the route rail, then
+    Today's three, Coming up and the week, each one card under an outside
+    title. No card sits inside another card.
+  - **Kept:** the icon tab bar (`LuvaniTabBar`, `tabBarModel`).
+- Not taken: A's sideways rail (it hides the third item) and text-only tabs;
+  mascots in the sky for now (the Cloud is on main since D landed; a later
+  follow-up).
+- The motion rule in `DESIGN.md` "What never moves" is amended. On Today the
+  clouds drift in once on arrival and the flame pops once when today's streak
+  ticks, beside the numbers that already counted up and the ring that already
+  filled. The greeting stays still. Nothing moves under reduced motion.
+- Reason: Today read as a stack of cards under a header, with no focal point
+  (2026-10-29 assessment). The founder chose A's sky and its first-stop hero
+  over today's path, and then asked for the stats to feel like a game.
+- Consequence:
+  - `TabHeader` leaves Today only; the other tabs keep it.
+  - `game/TodayHero.tsx` and the `StatRow`/`StatTile` card are replaced by
+    `game/StatTiles.tsx`, which keeps Home's game-layer refresh on focus and
+    at the day's turn, the count-up rules (`useHomeDraw`) and the states.
+  - The lead bodies draw on the hero's ground instead of their own cards.
+  - The `sky` group sits beside D's `mascot` group, and the evening sun
+    reuses `mascot.cheek` rather than repeating its value.
+
 ## UI-016 — Every drill and practice surface is one frame, one sheet and one ending (B v2)
 
 - Date: 2026-10-31
