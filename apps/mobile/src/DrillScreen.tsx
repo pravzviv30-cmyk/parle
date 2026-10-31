@@ -305,6 +305,9 @@ export function DrillScreen({
   const [isRetry, setIsRetry] = useState(false);
   const retryRef = useRef(false);
   const recordsNothing = (): boolean => retryRef.current;
+  // The retry's own phrases, so its header and bar count the retry, not the
+  // sitting it came from.
+  const retryKeysRef = useRef<ReadonlySet<string> | null>(null);
 
   useEffect(() => {
     if (practice === undefined || practice === 'invalid') return;
@@ -838,6 +841,7 @@ export function DrillScreen({
    */
   const startRetry = useCallback((retry: RetrySitting) => {
     retryRef.current = true;
+    retryKeysRef.current = new Set(retry.phraseKeys);
     setIsRetry(true);
     tutorVoice.stop();
     pendingRef.current = null;
@@ -904,12 +908,14 @@ export function DrillScreen({
   // Where the learner is in a bounded practice sitting, in words, in the
   // header's quiet centre slot: never a score, a fraction or a bar, and never
   // drawn for an ordinary review sitting, whose queue is not bounded this way.
-  const progress = practice !== undefined && practiceRef.current !== null ? sittingProgress(session, practiceRef.current.targets) : null;
+  const keys = retryKeysRef.current;
+  const targets = practiceRef.current === null ? null : keys === null ? practiceRef.current.targets : practiceRef.current.targets.filter((t) => keys.has(t.phraseKey));
+  const progress = practice !== undefined && targets !== null ? sittingProgress(session, targets) : null;
   // The living bar: position only, never a digit, filled by phrases settled.
   // During a sheet it reads the state the answer just made, so the bar moves
   // with the answer rather than after it.
   const placed = pendingRef.current ?? session;
-  const fill = practice !== undefined && practiceRef.current !== null ? sittingFill(placed, practiceRef.current.targets) : queueFill(placed);
+  const fill = practice !== undefined && targets !== null ? sittingFill(placed, targets) : queueFill(placed);
   // 2026-10-21 UI-008, artboard B-Drill: the close disc, the bar where
   // Phase B already draws it, and the words beside it only in a practice
   // sitting ("Phrase four of eight"). The title names the row for a screen

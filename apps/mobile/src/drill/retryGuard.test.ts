@@ -118,4 +118,12 @@ describe('the assisted retry writes nothing (LEARN-018)', () => {
     const silent = region('const goSilent = useCallback(', 'savePractice(quiet)');
     assert.match(silent, /if \(!recordsNothing\(\)\) void setMicSuppressed\(/, 'Type instead in a retry turns spoken drills off for the next sitting');
   });
+
+  test('a retry counts its own phrases in the header and the bar (live run)', () => {
+    const start = region('const startRetry = useCallback(', 'const finishAndLeave = useCallback(');
+    assert.match(start, /retryKeysRef\.current = new Set\(retry\.phraseKeys\);/, 'the retry does not remember its own phrases');
+    assert.match(FLAT, /const targets = practiceRef\.current === null \? null : keys === null \? practiceRef\.current\.targets : practiceRef\.current\.targets\.filter\(\(t\) => keys\.has\(t\.phraseKey\)\);/, 'a retry header counts the first sitting');
+    assert.match(FLAT, /sittingProgress\(session, targets\)/);
+    assert.match(FLAT, /sittingFill\(placed, targets\)/);
+  });
 });
