@@ -47,3 +47,11 @@ export function skyView(hour: number, mode: 'light' | 'dark'): SkyView {
 export function skyNow(now: number, mode: 'light' | 'dark'): SkyView {
   return skyView(localHour(now), mode);
 }
+
+/**
+ * The greeting as the sky draws it: "Bonjour," over "Léa.", or "Bonjour."
+ * alone with no name. The screen reader hears `homeGreeting`'s one title.
+ */
+export function greetingLines(greeting: { word: string; name: string | null }): string[] {
+  return greeting.name === null ? [`${greeting.word}.`] : [`${greeting.word},`, `${greeting.name}.`];
+}

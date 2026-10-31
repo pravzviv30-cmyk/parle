@@ -197,3 +197,20 @@ export function footerHeightLatch(prev: { width: number; height: number } | null
   if (!typing || prev === null || prev.width !== width) return { width, height };
   return { width, height: Math.max(prev.height, height) };
 }
+
+// ───────────────────────────────────── Today's scene hero (UI-015)
+
+/** The scene hero's art tile, 108 by 84, and the 12pt gap to its words. */
+export const SCENE_TILE = { width: 108, height: 84, gap: 12 } as const;
+/** The narrowest words column beside the tile; under it the words go below. */
+export const SCENE_TILE_WORDS_MIN = 120;
+
+/**
+ * Whether the scene hero's words sit beside its art tile. Below the words'
+ * minimum, or at large text, the tile goes above full-width words, so the
+ * title never runs under the art or wraps one word to a line.
+ */
+export function sceneTileSide(innerWidth: number, fontScale = 1): boolean {
+  if (!Number.isFinite(innerWidth) || !Number.isFinite(fontScale)) return false;
+  return fontScale < SCENE_ART_LARGE_TEXT && innerWidth - SCENE_TILE.width - SCENE_TILE.gap >= SCENE_TILE_WORDS_MIN;
+}

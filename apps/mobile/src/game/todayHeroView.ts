@@ -181,3 +181,17 @@ export function statTileLayout(tileWidth: number, fontScale: number): StatTileLa
   if (fontScale >= ROWS_FONT_SCALE) return 'rows';
   return tileWidth >= SIDE_MIN_WIDTH && fontScale <= SIDE_MAX_FONT_SCALE ? 'side' : 'stacked';
 }
+
+/** One tile's width in a measured row: three tiles with two `STAT_GAP`s between them. */
+export function statRowTileWidth(rowWidth: number): number {
+  return (rowWidth - 2 * STAT_GAP) / 3;
+}
+
+/**
+ * The coins' grounds (UI-015 dark table): butter, sage and lavender in light;
+ * in dark the flame's butter would read as mud on the card, so it sits on the
+ * hero chip. Decorative: each tile's label names its stat.
+ */
+export function statCoins(t: { mode: 'light' | 'dark'; butter: string; heroChip: string; sage: string; lavender: string }): { streak: string; goal: string; level: string } {
+  return { streak: t.mode === 'dark' ? t.heroChip : t.butter, goal: t.sage, level: t.lavender };
+}

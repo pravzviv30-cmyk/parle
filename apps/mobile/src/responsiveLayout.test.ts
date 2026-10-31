@@ -149,7 +149,9 @@ test('scene card art never overlaps the title or duration at 320 and 375 points'
   // The eyebrow sits at the top beside the art too: the longest goal eyebrow
   // (goalLine.ts) at the windows where a card is just wide enough to go side by side.
   const EYEBROW = 'Picked for ordering food and drinks';
-  for (const [where, body, key, cap] of [['SceneLead', lead, 'today', /side && s\.leadEyebrow/], ['Speak', tutor, 'speak', /heroSide && st\.heroEyebrow/]] as const) {
+  // 2026-10-31 UI-015: Today's SceneLead left the hanging café for an art tile in
+  // a flex row, so its words cannot run under the art; it is pinned below.
+  for (const [where, body, key, cap] of [['Speak', tutor, 'speak', /heroSide && st\.heroEyebrow/]] as const) {
     const card = SCENE_CARDS[key];
     const capped = cap.test(body);
     for (const screen of [440, 460, 480, 500, 520]) for (const fontScale of [1, 1.2]) {
@@ -160,7 +162,11 @@ test('scene card art never overlaps the title or duration at 320 and 375 points'
       assert.ok(!meets(frame.art, eyebrow), `${where} at ${screen}pt, text x${fontScale}: the eyebrow runs under the art`);
     }
   }
-  for (const [where, body, key] of [['SceneLead', lead, 'today'], ['Speak', tutor, 'speak']] as const) {
+  // Today's scene hero measures itself and decides from the shared rule.
+  assert.match(lead, /sceneTileSide\(measured \?\? windowWidth - HERO_INSET, fontScale\)/, 'SceneLead does not place its tile from the shared rule');
+  assert.match(lead, /onLayout=\{/, 'SceneLead does not measure its own width');
+  assert.match(lead, /side \? s\.leadSide : s\.leadStacked/, 'SceneLead has no stacked fallback');
+  for (const [where, body, key] of [['Speak', tutor, 'speak']] as const) {
     assert.match(body, new RegExp(`sceneCardGeometry\\(SCENE_CARDS\\.${key}, `), `${where} does not place its art from the shared geometry`);
     assert.match(body, new RegExp(`sceneCardFallbackWidth\\('${key}', `), `${where} has no first-frame width`);
     assert.match(body, /onLayout=\{/, `${where} does not measure its own width`);
@@ -223,4 +229,15 @@ test('the onboarding footer does not move when the keyboard opens', async () => 
   const frame = readFileSync(new URL('./onboarding/OnboardingLayout.tsx', import.meta.url), 'utf8');
   assert.match(frame, /footerHeightLatch\(footerHeight\.current, width, height, editableFocused\(\)\)/, 'the onboarding frame does not latch its height');
   assert.match(frame, /footerInScroll\(footerHeight\.current\.height - insets\.top - insets\.bottom\)/, 'the frame decides from the live height');
+});
+
+// 2026-10-31 UI-015: Today's scene hero, its 108pt tile beside the words or above them.
+test("the scene hero's words sit beside the tile only when they have room, and never at large text", async () => {
+  const { sceneTileSide, SCENE_TILE, SCENE_TILE_WORDS_MIN } = await import('./responsiveLayout.ts');
+  // The hero card's inner width at 375 and 320: the screen less 16 + 16 margins and 18 + 18 padding.
+  assert.equal(sceneTileSide(375 - 68, 1), true, '375pt keeps the words beside the tile');
+  assert.equal(sceneTileSide(320 - 68, 1), true, '320pt keeps 132pt of words beside the tile');
+  assert.equal(sceneTileSide(SCENE_TILE.width + SCENE_TILE.gap + SCENE_TILE_WORDS_MIN - 1, 1), false, 'a column under its minimum stays beside the tile');
+  assert.equal(sceneTileSide(375 - 68, 1.3), false, 'large text keeps the words beside the tile');
+  assert.equal(sceneTileSide(Number.NaN, 1), false, 'an unmeasured card guesses side by side');
 });

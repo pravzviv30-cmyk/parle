@@ -20,7 +20,7 @@ import { deviceOnLine, localPracticeFor, offlineNotice, offlineOffer } from './l
  * Starter line and is labelled as one; a learner past Starter is pointed at
  * today's phrase and review below, which work offline, rather than handed it.
  */
-export function LocalPracticeCard({ vivid = false, levelIndex = 0 }: { vivid?: boolean; levelIndex?: number }) {
+export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false }: { vivid?: boolean; levelIndex?: number; /** On Today's hero card (UI-015): no card of its own, so no card sits inside a card. */ bare?: boolean }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
   const { recheck } = useLive();
@@ -34,16 +34,21 @@ export function LocalPracticeCard({ vivid = false, levelIndex = 0 }: { vivid?: b
     <View {...decorative} style={{ alignItems: 'center' }}><Illustration name="state-offline" fit="small" /></View>
     <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: t.text }]}>{offlineNotice(deviceOnLine())}</Text>
     {offer === 'cafe' && phrase !== null ? <>
-      <Card style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></Card>
+      {bare
+        ? <View style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></View>
+        : <Card style={{ gap: space(1) }}><Text style={[type.heading, { color: t.text }]}>At the café</Text><Text style={[type.small, { color: t.muted }]}>A Starter line: hear and try a first order. Free offline.</Text></Card>}
       <PillButton label="Try this line" onPress={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />
     </> : <Text style={[type.body, { color: t.muted }]}>Your next scene comes back when you're online. Today's phrase and review below work without a connection.</Text>}
     <IconAction layout="inline" icon="refresh" busy={checking} disabled={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} />
   </View>;
   if (phrase === null) return null;
-  return <ColourCard ground="sun">
-    <Text accessibilityRole="header" style={[type.heading, { color: t.onMint }]}>Order a coffee</Text>
-    <FrenchBlock french={phrase.fr ?? ''} english={phrase.en} ground="sun" />
-    <Text style={[type.small, { color: t.onMint }]}>Hear, say and compare. Free offline practice. Your recording is temporary and is not graded.</Text>
-    <PillButton label="Try this line" tone="ink" onPress={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />
-  </ColourCard>;
+  // Bare on Today's hero (UI-015) the same words sit on the card's ground, in its ink.
+  const words = bare ? t.text : t.onMint;
+  const body = <>
+    <Text accessibilityRole="header" style={[type.heading, { color: words }]}>Order a coffee</Text>
+    <FrenchBlock french={phrase.fr ?? ''} english={phrase.en} ground={bare ? 'white' : 'sun'} />
+    <Text style={[type.small, { color: bare ? t.muted : words }]}>Hear, say and compare. Free offline practice. Your recording is temporary and is not graded.</Text>
+    <PillButton label="Try this line" tone={bare ? undefined : 'ink'} onPress={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />
+  </>;
+  return bare ? <View style={{ gap: space(4) }}>{body}</View> : <ColourCard ground="sun">{body}</ColourCard>;
 }

@@ -920,7 +920,8 @@ describe('a tap that starts with a network probe — F154', () => {
   // can be doubled and nothing would say so.
   const PROBING = [
     ['the tutor tab\'s doors', 'tabs/TutorTab.tsx', 'const open = ('],
-    ['the mission hero\'s start', 'home/MissionHero.tsx', 'const open = ('],
+    // 2026-10-31 UI-015: the hero's start moved, unchanged, into the hook Today's scene row shares.
+    ['the mission hero\'s start', 'home/useSceneStart.ts', 'const open = ('],
     ['the real moment\'s start', 'tutor/RealMomentScreen.tsx', 'const open = ('],
     ['the first conversation', 'tabs/PracticeTab.tsx', 'const startFirst = ('],
     ['the chooser\'s pronunciation lesson', 'missions/MissionsScreen.tsx', 'const openLesson = ('],
@@ -951,7 +952,9 @@ describe('a tap that starts with a network probe — F154', () => {
 
     // The acknowledgement itself, in the gate's own words rather than a second
     // vocabulary for the same wait.
-    for (const [, file] of PROBING) {
+    // The hook draws nothing; the card that draws its acknowledgement is MissionHero.
+    for (const [, probing] of PROBING) {
+      const file = probing === 'home/useSceneStart.ts' ? 'home/MissionHero.tsx' : probing;
       const source = named(file);
       assert.match(source, /TUTOR_OFFLINE/, `${file} writes its own word for checking instead of the gate's`);
       assert.match(source, /\{TUTOR_OFFLINE\.checking\}/, `nothing on ${file} says a probe is running`);
