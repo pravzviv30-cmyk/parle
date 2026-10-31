@@ -48,6 +48,18 @@ deduplication, topic storage, exercise validation and scene progress. That
 division is what prevents a prompt regression from turning support back into a
 cheat sheet.
 
+Which parts of the learner's history reach a scene is also code's. The pure
+scorer in `packages/brain/src/profile/recall.ts` (`recallFacts`,
+`recallPatterns`, `rankPhrasesForScene`) ranks saved notes, error patterns and
+unmastered phrases by words shared with the scene, and falls back to exactly
+the old recency, frequency and weakness order when nothing matches. In
+`services/tutor-agent/src/convo.ts`, `startScene` re-ranks the memory brief on
+the request before the frame call, `buildFrame` ranks `watchFor` and
+`frameTargets` on the request, and once the frame exists (or `openMission`
+has its authored frame) the brief, the one own-slip block and the scene's
+`watchFor` are ranked on the request plus the frame's title, setting, role and
+beat goals. The system prefix is untouched, so the cache layout holds.
+
 ## Provider decision
 
 Recommended first production configuration:
