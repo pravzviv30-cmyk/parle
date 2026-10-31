@@ -26,7 +26,7 @@ describe('the stat tiles choose their layout from the measured row', () => {
 
   test('the tiles measure their row and read the reading size', () => {
     const tiles = strip(read('../game/TodayStatTiles.tsx'));
-    assert.match(tiles, /statTileLayout\(statRowTileWidth\(rowWidth \?\? windowWidth - ROW_MARGINS\), fontScale\)/);
+    assert.match(tiles, /statTileLayout\(statRowTileWidth\(rowWidth \?\? windowWidth - ROW_MARGINS\), fontScale, \[tiles\.streak\.number, tiles\.goal\.number, tiles\.level\.number\]\)/);
     assert.match(tiles, /onLayout=\{\(event\) => setRowWidth\(event\.nativeEvent\.layout\.width\)\}/);
     assert.match(tiles, /<CountUp key=\{`run-\$\{run\.mount\}`\} from=\{run\.from\} to=\{run\.to\}/);
     assert.match(tiles, /<CountUp key=\{`level-\$\{chip\.mount\}`\} from=\{chip\.from\} to=\{chip\.to\}/);

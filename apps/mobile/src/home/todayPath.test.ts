@@ -22,6 +22,7 @@ import { dealForTier } from '../review/freeTier.ts';
 import { todayHeroView } from '../game/todayHeroView.ts';
 
 const read = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
+const flat = (body: string): string => body.replace(/\s+/g, ' ');
 const HOME = read('../tabs/HomeTab.tsx');
 const TASK = read('../practice/NextTaskCard.tsx');
 const STARTER = read('../onboarding/StarterContinuation.tsx');
@@ -325,8 +326,36 @@ test('NextTaskCard on the hero has no rail, and on a row is one RouteRow', () =>
   assert.match(TASK, /if \(value === null \|\| value\.scope !== scopeGeneration\(\)\) return row \? null :/);
   assert.match(TASK, /if \(lead === 'loading'\) return row \? null :/);
   // The scene row starts through the same tutor gate as the hero's Start.
-  assert.match(TASK, /function SceneRow\(\{ hero, last \}[^)]*\) \{\s*const \{ open, modes \} = useSceneStart\(hero\);/);
-  assert.match(TASK, /line=\{sceneRowLine\(hero\)\} onPress=\{\(\) => open\(modes\.textMode\)\}/);
+  // Fix round 1: the row draws the gate's whole answer, so a tap on an
+  // unreachable tutor is never a tap that changes nothing.
+  const sceneRow = flat(TASK.slice(TASK.indexOf('function SceneRow('), TASK.indexOf('export function LeadRow(')));
+  assert.match(sceneRow, /const \{ open, checking, heldBack, label, modes \} = useSceneStart\(hero\);/);
+  assert.match(sceneRow, /sceneRowState\(\{ checking, heldBack: heldBack !== null, line: sceneRowLine\(hero\), checkingLine: label \}\)/, 'the row ignores the check or the held-back start');
+  assert.match(sceneRow, /line=\{state\.line\} disabled=\{state\.disabled\} onPress=\{\(\) => open\(modes\.textMode\)\}/, 'the row does not say the check or is pressable during it');
+  assert.match(sceneRow, /\{state\.held && heldBack !== null && <View[^>]*>\s*<Text[^>]*>\{TUTOR_OFFLINE\.body\}<\/Text>/, 'a held-back start is not answered under the row');
+  assert.match(sceneRow, /onPress=\{\(\) => open\(heldBack\.textMode\)\}/, 'the held-back answer has no way forward');
+  assert.doesNotMatch(sceneRow, /<Card|ColourCard/, 'the held-back answer is a card, not flat on the page');
+  assert.deepEqual(nt.sceneRowState({ checking: true, heldBack: false, line: 'L', checkingLine: 'Checking' }), { line: 'Checking', disabled: true, held: false });
+  assert.deepEqual(nt.sceneRowState({ checking: false, heldBack: true, line: 'L', checkingLine: 'Checking' }), { line: 'L', disabled: false, held: true });
+  assert.deepEqual(nt.sceneRowState({ checking: false, heldBack: false, line: 'L', checkingLine: 'Checking' }), { line: 'L', disabled: false, held: false });
+  // Fix round 1: every row placement is a flat LeadRow, never a whole card.
+  const vividBranch = flat(TASK.slice(TASK.indexOf('if (vivid) {'), TASK.indexOf('// 2026-10-20 UI-008, artboard B-Today: Today (vivid) leads')));
+  assert.match(vividBranch, /const starterRow = \(initial: GuestPractice\) => <StarterContinuation initial=\{initial\} face=\{\(continuePractice\) => leadRow\('starter', continuePractice\)\} \/>;/, 'the starter row is not a LeadRow opening the card\'s own practice');
+  assert.match(vividBranch, /if \(then === 'starter' && starter !== null\) return starterRow\(starter\);/, 'held time draws the starter card on a row');
+  assert.match(vividBranch, /return local !== null \? leadRow\(lead, \(\) => nav\.navigate\('DailyPractice', \{ id: local\.id, mode: 'shadowing' \}\)\) : null;/, 'held time past Starter drops the scene stop');
+  assert.match(vividBranch, /if \(lead === 'starter' && starter !== null && row\) return starterRow\(starter\);/, 'the starter lead draws its card on a row');
+  assert.doesNotMatch(vividBranch, /if \(row\)[^;]*starterCard\(/, 'a row still draws the starter card');
+  const starterSrc = flat(read('../onboarding/StarterContinuation.tsx'));
+  assert.match(starterSrc, /\{face !== undefined \? face\(\(\) => open\(false\)\) : <Ground bare=\{bare\}>/, 'the row does not open the card\'s Continue practice');
+  assert.match(starterSrc, /<PillButton label="Continue practice" onPress=\{\(\) => open\(false\)\} \/>/);
+  // Fix round 1: each lead row draws its own existing drawing.
+  assert.deepEqual(nt.leadRowArt('scene'), { art: 'cafe-table', ground: 'butter' });
+  assert.deepEqual(nt.leadRowArt('plans'), { art: 'star-jar', ground: 'butter' });
+  assert.deepEqual(nt.leadRowArt('explore'), { art: 'map-route', ground: 'lavender' });
+  assert.deepEqual(nt.leadRowArt('starter'), { art: 'phrasebook', ground: 'sage' });
+  for (const calm of ['outOfTime', 'lapsed', 'local'] as const) assert.deepEqual(nt.leadRowArt(calm), { art: 'watering-plant', ground: 'sage' });
+  assert.match(TASK, /const \{ art, ground \} = leadRowArt\(lead\);/);
+  assert.match(TASK, /thumb=\{<BArt name=\{art\} width=\{ROW_ART\} height=\{ROW_ART\} \/>\} thumbGround=\{t\[ground\]\}/, 'the lead row still draws one drawing for every lead');
   assert.equal((TASK.match(/<RouteRow /g) ?? []).length, 1, 'more than one kind of row');
   // On the hero the bodies draw bare, with no card of their own.
   assert.match(TASK, /<LocalPracticeCard vivid bare=\{bare\}/);

@@ -8,7 +8,7 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { HomeBilling } from '../home/nextAction.ts';
 import { PLANS_LEAD, plansLeadBody } from '../home/nextAction.ts';
-import { afterHeld, heldWords, leadStop, nextTaskKind, offersPlans, sceneOrExplore, starterTutorOpen, todayLead, type TodayLead } from './nextTask.ts';
+import { afterHeld, heldWords, leadRowArt, leadStop, sceneRowState, nextTaskKind, offersPlans, sceneOrExplore, starterTutorOpen, todayLead, type TodayLead } from './nextTask.ts';
 import { BArt } from '../art/BArt.tsx';
 import { RouteRow } from '../home/RoutePath.tsx';
 import { useSceneStart } from '../home/useSceneStart.ts';
@@ -43,6 +43,7 @@ import { homeMissionFrom, type HomeMission } from '../home/homeMission.ts';
 import { MissionHero } from '../home/MissionHero.tsx';
 import { buildsOn, sceneRowLine } from '../home/todayView.ts';
 import { LocalPracticeCard } from './LocalPracticeCard.tsx';
+import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { DEMO_REPLY_ID } from '../onboarding/tutorLines.ts';
 
 /** Where Today places the lead (UI-015): the hero card's body, or one row on Today's path. */
@@ -109,7 +110,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   // On a row the words are the stop's (`leadStop`), the press the lead's primary action.
   const leadRow = (lead: TodayLead | 'explore', onPress: () => void) => {
     const words = leadStop(lead, null);
-    return <LeadRow last={last} title={words.title} line={words.line} onPress={onPress} />;
+    return <LeadRow lead={lead} last={last} title={words.title} line={words.line} onPress={onPress} />;
   };
   const navigateOwned = (screen: string, params?: object) => {
     if (value !== null && value.scope === scopeGeneration()) nav.navigate(screen, params);
@@ -126,9 +127,11 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     // row on the path now, never the lead (DECISIONS 2026-10-29).
     const lead = sceneOrExplore(todayLead({ live, billing, starter: starter !== null, answered: billingAnswered }), value.hero !== null);
     if (lead === 'loading') return row ? null : <Text style={type.small}>Finding your next task…</Text>;
-    // The starter's typed line opens inside its own card, so on a row it is
-    // drawn as that card: there is no route a row could press through to.
+    // The starter's typed line opens in the card's own sheet, so on a row the
+    // card draws a flat LeadRow as its face and the row's tap opens that sheet,
+    // which is the card's primary action, Continue practice (fix round 1).
     const starterCard = (initial: GuestPractice) => <StarterContinuation initial={initial} bare={bare} />;
+    const starterRow = (initial: GuestPractice) => <StarterContinuation initial={initial} face={(continuePractice) => leadRow('starter', continuePractice)} />;
     // Offline on a row: the bundled café line when the learner is at Starter;
     // past Starter the phrase and review rows below already work offline.
     const local = localPracticeFor(profile.tutorVoice, DAILY_ITEMS, TUTOR_DAILY_AUDIO);
@@ -144,7 +147,10 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
       const then = afterHeld(starter !== null) === 'starter' && starter !== null ? 'starter' : 'local';
       if (row) {
         if (words.plans) return leadRow(lead, () => navigateOwned('Wall', { entry: 'refused' }));
-        return then === 'starter' && starter !== null ? starterCard(starter) : localRow();
+        if (then === 'starter' && starter !== null) return starterRow(starter);
+        // Past Starter the held words still hold the scene's stop, and the tap
+        // opens the practice that needs no minutes (fix round 1).
+        return local !== null ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : null;
       }
       const heldText = <>
         <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{words.title}</Text>
@@ -160,6 +166,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
       if (row) return leadRow(lead, () => nav.navigate('Explore'));
       return <ExploreLeadBody bare={bare} title={leadStop(lead, null).title} onExplore={() => nav.navigate('Explore')} />;
     }
+    if (lead === 'starter' && starter !== null && row) return starterRow(starter);
     if (lead === 'starter' && starter !== null) return <StarterContinuation initial={starter} bare={bare} onTutor={starterTutorOpen({ live, billing, answered: billingAnswered }) ? () => nav.navigate('Tutor') : undefined} onPlans={offersPlans(billing) ? () => nav.navigate('Wall', { entry: 'recap' }) : undefined} />;
     if (lead === 'scene' && value.hero !== null) return row ? <SceneRow hero={value.hero} last={last} /> : <MissionHero hero={value.hero} vivid buildsOn={value.buildsOn} />;
     if (row) return localRow();
@@ -209,16 +216,30 @@ export function ExploreLeadBody({ bare, title, onExplore }: { bare: boolean; tit
   return bare ? <View style={{ gap: 8 }}><Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{title}</Text>{exploreText}</View> : <Card style={{ gap: 8 }}>{exploreText}</Card>;
 }
 
-/** The scene as a row on Today's path: its title, place and time, started through the same tutor gate as the hero's Start. */
+/**
+ * The scene as a row on Today's path: its title, place and time, started
+ * through the same tutor gate as the hero's Start. While the gate checks, the
+ * row says so and cannot be pressed again; when the tutor cannot be reached,
+ * the answer and the same start again sit flat under the row (fix round 1).
+ */
 function SceneRow({ hero, last }: { hero: HomeMission; last: boolean }) {
-  const { open, modes } = useSceneStart(hero);
-  return <LeadRow last={last} title={hero.title} line={sceneRowLine(hero)} onPress={() => open(modes.textMode)} />;
+  const { open, checking, heldBack, label, modes } = useSceneStart(hero);
+  const t = useB();
+  const state = sceneRowState({ checking, heldBack: heldBack !== null, line: sceneRowLine(hero), checkingLine: label });
+  return <View>
+    <LeadRow lead="scene" last={last && !state.held} title={hero.title} line={state.line} disabled={state.disabled} onPress={() => open(modes.textMode)} />
+    {state.held && heldBack !== null && <View style={{ gap: space(1), paddingVertical: space(2) }}>
+      <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{TUTOR_OFFLINE.body}</Text>
+      <IconAction layout="inline" icon="refresh" busy={checking} disabled={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} onPress={() => open(heldBack.textMode)} />
+    </View>}
+  </View>;
 }
 
-/** One lead row: the scene art on butter, the words and a chevron. */
-export function LeadRow({ last, title, line, onPress }: { last: boolean; title: string; line: string | null; onPress: () => void }) {
+/** One lead row: the lead's drawing on its pastel (`leadRowArt`), the words and a chevron. */
+export function LeadRow({ lead, last, title, line, disabled = false, onPress }: { lead: TodayLead | 'explore'; last: boolean; title: string; line: string | null; disabled?: boolean; onPress: () => void }) {
   const t = useB();
-  return <RouteRow mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name="cafe-table" width={ROW_ART} height={ROW_ART} />} thumbGround={t.butter} title={title} line={line} chevron onPress={onPress} />;
+  const { art, ground } = leadRowArt(lead);
+  return <RouteRow mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name={art} width={ROW_ART} height={ROW_ART} />} thumbGround={t[ground]} title={title} line={line} chevron disabled={disabled} onPress={onPress} />;
 }
 
 /** The café inside the 52pt row thumb. */

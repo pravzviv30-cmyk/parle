@@ -21,7 +21,7 @@ import { routeRowLabel } from './routeRow.ts';
  * row is one press at the touch floor with one label (`routeRowLabel`); a
  * hairline sits under every row but the last.
  */
-export function RouteRow({ mark, last, thumb, thumbGround, eyebrow = null, title, titleLang, line = null, action = null, chevron = false, onPress }: {
+export function RouteRow({ mark, last, thumb, thumbGround, eyebrow = null, title, titleLang, line = null, action = null, chevron = false, disabled = false, onPress }: {
   mark: 'stop' | 'end';
   last: boolean;
   /** The decorative drawing in the thumb. */
@@ -34,12 +34,14 @@ export function RouteRow({ mark, last, thumb, thumbGround, eyebrow = null, title
   line?: string | null;
   action?: { label: string; accessibilityLabel?: string } | null;
   chevron?: boolean;
+  /** While a gated start is checking: the row cannot be pressed again. */
+  disabled?: boolean;
   onPress: () => void;
 }) {
   const t = useB();
   const french = titleLang === 'fr' ? frenchText : null;
   return (
-    <Press haptic="light" accessibilityRole="button" accessibilityLabel={routeRowLabel({ title, line, action })} onPress={onPress} glowRadius={ROW_THUMB_RADIUS} style={st.row}>
+    <Press haptic="light" accessibilityRole="button" accessibilityLabel={routeRowLabel({ title, line, action })} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress} glowRadius={ROW_THUMB_RADIUS} style={st.row}>
       <View style={st.rowRail} {...decorative}>
         <View style={mark === 'end' ? [st.rowEnd, { backgroundColor: t.text }] : [st.rowStop, { borderColor: t.link }]} />
         {!last && <View style={[st.rowLine, { backgroundColor: t.line }]} />}

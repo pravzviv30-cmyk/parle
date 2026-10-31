@@ -25,12 +25,19 @@ export function StarterContinuation({
   onTutor,
   onPlans,
   bare = false,
+  face,
 }: {
   initial: GuestPractice;
   onTutor?: () => void;
   onPlans?: () => void;
   /** On Today's hero card (UI-015): no sun card of its own, the words in the card's ink. */
   bare?: boolean;
+  /**
+   * On a row of Today's path (UI-015, fix round 1): the flat row drawn in
+   * place of the card, handed the card's primary action, Continue practice,
+   * so the row's tap opens the same sheet.
+   */
+  face?: (continuePractice: () => void) => ReactNode;
 }) {
   const { user } = useAuth();
   const t = useB();
@@ -113,7 +120,7 @@ export function StarterContinuation({
   };
   return (
     <>
-      <Ground bare={bare}>
+      {face !== undefined ? face(() => open(false)) : <Ground bare={bare}>
         <Text accessibilityRole="header" style={[type.heading, ink]}>
           {continuingTask(guest).title}
         </Text>
@@ -127,7 +134,7 @@ export function StarterContinuation({
         {onTutor !== undefined && <IconAction layout="tile" icon="microphone" label="Speak with my tutor" onPress={onTutor} />}
         {onPlans !== undefined && <IconAction layout="tile" icon="crown" label="See plans" onPress={onPlans} />}
         </IconActionRow>
-      </Ground>
+      </Ground>}
       <Sheet
         visible={visible}
         title={task.title}

@@ -176,3 +176,33 @@ describe("Today's chunky stat tiles (UI-015)", () => {
     assert.equal(statTileLayout(109, Number.NaN), 'stacked');
   });
 });
+
+describe('the goal coin and a word for a number — Today sky fix round 1', () => {
+  test('a chosen goal always draws the ring, still at its fraction when nothing counted; the clock only with no goal', async () => {
+    const { goalCoin } = await import('./todayHeroView.ts');
+    const goal = { number: '4', of: '/10', label: 'minutes', ring: true, fraction: 0.4 };
+    assert.deepEqual(goalCoin(goal, undefined, 1000), { kind: 'ring', from: 0.4, to: 0.4, key: 'ring-still' }, 'no counter falls back to the clock');
+    assert.deepEqual(goalCoin(goal, { from: 100, to: 400, mount: 2 }, 1000), { kind: 'ring', from: 0.1, to: 0.4, key: 'ring-2' });
+    assert.deepEqual(goalCoin({ ...goal, ring: false, of: null, fraction: null }, undefined, 1000), { kind: 'clock' });
+    const tiles = readFileSync(new URL('./TodayStatTiles.tsx', import.meta.url), 'utf8');
+    assert.match(tiles, /const coin = goalCoin\(tiles\.goal, ring, RING_STEPS\);/);
+    assert.match(tiles, /\{coin\.kind === 'ring'\s*\? <ProgressRing key=\{coin\.key\} from=\{coin\.from\} to=\{coin\.to\}/, 'the ring is still drawn only when a counter exists');
+  });
+
+  test('"Start" is set in bold15 beside the coin, and tiles stack rather than break a word', async () => {
+    const { statNumberType, WORD_NUMBER_SIZE } = await import('./todayHeroView.ts');
+    for (const digits of ['0', '3', '12', '<1']) assert.equal(statNumberType(digits), 'digits');
+    assert.equal(statNumberType('Start'), 'word');
+    assert.equal(WORD_NUMBER_SIZE, 15);
+    const tiles = readFileSync(new URL('./TodayStatTiles.tsx', import.meta.url), 'utf8');
+    assert.match(tiles, /const wordNumber = \[bType\.bold15, \{ color: t\.text \}\];/);
+    assert.match(tiles, /<Text style=\{statNumberType\(tiles\.streak\.number\) === 'word' \? wordNumber : number\}>\{tiles\.streak\.number\}<\/Text>/, 'the word is set in the number size');
+    assert.match(tiles, /wordsSide: \{ flex: 1, minWidth: 0 \}/);
+    assert.match(tiles, /statTileLayout\([^;]*\[tiles\.streak\.number, tiles\.goal\.number, tiles\.level\.number\]\)/, 'the layout cannot see a word');
+    // 402pt (iPhone 17 Pro): tile 118, beside the coin. 375: tile 109, too narrow for "Start" whole, so stacked.
+    assert.equal(statTileLayout(118, 1.0, ['Start', '4', '2']), 'side');
+    assert.equal(statTileLayout(109, 1.0, ['Start', '4', '2']), 'stacked');
+    assert.equal(statTileLayout(109, 1.0, ['3', '4', '2']), 'side', 'digits alone changed the layout');
+    assert.equal(statTileLayout(118, 1.15, ['Start', '4', '2']), 'stacked');
+  });
+});

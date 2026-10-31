@@ -14,7 +14,7 @@
  * `Drift`, which lands at rest under Reduce Motion.
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -24,18 +24,14 @@ import { TopInset } from '../layout.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { Drift } from '../motion/Drift.tsx';
 import { bType, decorative, space, type } from '../theme.ts';
-import { greetingLines, type SkyView } from './skyView.ts';
+import { cloudPlaces, greetingLines, type SkyView } from './skyView.ts';
 
-/** The board is drawn at 390pt wide; the clouds keep their place as a share of the band. */
-const BOARD_WIDTH = 390;
+/** Where the head box starts across the band (its padding, space(4)): an absolute child and an onLayout x both count from here. */
+const BAND_PAD = 16;
 /** The disc, 170pt, hangs 40pt past the top right corner. */
 const DISC = 170;
 const DISC_BLEED = -40;
-/** The two clouds as the board draws them: size (width), left and top at 390, and opacity. */
-const CLOUDS = [
-  { size: 120, left: 150, top: 120, opacity: 0.35 },
-  { size: 80, left: 270, top: 176, opacity: 0.25 },
-] as const;
+
 
 export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, focused = true }: {
   sky: SkyView;
@@ -54,21 +50,23 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
   const t = useB();
   const s = useThemedStyles(makeStyles);
   const { width } = useWindowDimensions();
-  const scale = width / BOARD_WIDTH;
+  // The greeting's right edge across the band, measured, so no cloud sits on its words.
+  const [greetingRight, setGreetingRight] = useState<number | null>(null);
   return (
     <View style={[s.band, { backgroundColor: sky.ground }]}>
       {focused ? <StatusBar style="light" /> : null}
       <View {...decorative} pointerEvents="none" style={s.disc}>
         <SkyDisc kind={sky.discKind} size={DISC} color={sky.disc} />
       </View>
-      {CLOUDS.map((cloud) => (
-        <Drift key={cloud.left} style={[s.cloud, { left: cloud.left * scale, top: cloud.top * scale }]}>
-          <SkyCloud width={cloud.size * scale} color={t.onBrand} opacity={cloud.opacity} />
-        </Drift>
-      ))}
       <TopInset extra={space(2)} />
       <View style={s.head}>
-        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand }]}>
+        {/* Behind the greeting's row, right of its words (`cloudPlaces`); the tiles sit under it. */}
+        {cloudPlaces(width, greetingRight).map((cloud, index) => (
+          <Drift key={index} style={[s.cloud, { left: cloud.left - BAND_PAD, top: cloud.top }]}>
+            <SkyCloud width={cloud.width} color={t.onBrand} opacity={cloud.opacity} />
+          </Drift>
+        ))}
+        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand }]} onLayout={(event) => { const { x, width: w } = event.nativeEvent.layout; setGreetingRight(Math.round(BAND_PAD + x + w)); }}>
           {greetingLines(greeting).join('\n')}
         </Text>
         <View style={s.profile}>{profile}</View>

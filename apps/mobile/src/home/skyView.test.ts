@@ -6,6 +6,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { sky } from '../palette.ts';
 import { greetingWord } from './greeting.ts';
@@ -55,5 +56,30 @@ describe("Today's sky", () => {
       const evening = ['evening', 'night'].includes(skyNow(at(hour), 'light').time);
       assert.equal(evening, greetingWord(at(hour)) === 'Bonsoir', `${hour}:00`);
     }
+  });
+});
+
+describe('the clouds sit in the top of the sky — fix round 1', () => {
+  test('both clouds start right of the greeting, the upper one clear of the profile button, sized with the width', async () => {
+    const { cloudPlaces } = await import('./skyView.ts');
+    for (const width of [320, 375, 402]) {
+      // "Bonjour," at 34pt ExtraBold ends about 170pt across the band.
+      const greetingRight = 170;
+      const clouds = cloudPlaces(width, greetingRight);
+      assert.ok(clouds.length >= 1, `no cloud at ${width}`);
+      for (const c of clouds) {
+        assert.ok(c.left >= greetingRight + 8, `a cloud sits on the greeting at ${width}`);
+        assert.ok(c.top <= 64, `a cloud sits down by the tiles at ${width}`);
+        if (c.top < 48) assert.ok(c.left + c.width <= width - 20 - 44 - 8, `the upper cloud runs into the profile button at ${width}`);
+      }
+    }
+    const wide = cloudPlaces(375, 120);
+    assert.equal(wide[0]!.left, Math.round(375 * 0.48));
+    assert.equal(wide[1]!.left, Math.round(375 * 0.66));
+    assert.deepEqual(wide.map((c) => c.top), [16, 56]);
+    const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
+    assert.match(band, /cloudPlaces\(width, greetingRight\)\.map\(/);
+    assert.doesNotMatch(band, /top: 120|top: 176/, 'the clouds are back at the board tops, under the tiles');
+    assert.ok(band.indexOf('cloudPlaces(') < band.indexOf('accessibilityRole="header"'), 'a cloud is drawn over the greeting');
   });
 });

@@ -159,10 +159,25 @@ export const ROWS_FONT_SCALE = 1.6;
 
 export type StatTileLayout = 'side' | 'stacked' | 'rows';
 
-export function statTileLayout(tileWidth: number, fontScale: number): StatTileLayout {
+export function statTileLayout(tileWidth: number, fontScale: number, numbers: readonly string[] = []): StatTileLayout {
   if (!Number.isFinite(tileWidth) || !Number.isFinite(fontScale)) return 'stacked';
   if (fontScale >= ROWS_FONT_SCALE) return 'rows';
-  return tileWidth >= SIDE_MIN_WIDTH && fontScale <= SIDE_MAX_FONT_SCALE ? 'side' : 'stacked';
+  if (tileWidth < SIDE_MIN_WIDTH || fontScale > SIDE_MAX_FONT_SCALE) return 'stacked';
+  // A word for a number ("Start") must fit beside the coin whole, never break
+  // mid-word (fix round 1, item 6): if it cannot, the tiles stack.
+  const column = tileWidth - 2 * STAT_PADDING - STAT_COIN - STAT_GAP;
+  const words = numbers.filter((n) => statNumberType(n) === 'word');
+  return words.every((w) => w.length * WORD_NUMBER_SIZE * WORD_CHAR_WIDTH * fontScale <= column) ? 'side' : 'stacked';
+}
+
+/** A tile's number set as a word (only "Start" today) takes the smaller bold, `bType.bold15`. */
+export const WORD_NUMBER_SIZE = 15;
+/** A generous ExtraBold glyph width as a share of the size, for the fit estimate. */
+const WORD_CHAR_WIDTH = 0.6;
+
+/** Digits (and "<1") are set in `stat24`; a word in place of a number in `bold15`, so it fits beside the coin. */
+export function statNumberType(number: string): 'digits' | 'word' {
+  return /^<?\d+$/.test(number) ? 'digits' : 'word';
 }
 
 /** One tile's width in a measured row: three tiles with two `STAT_GAP`s between them. */
@@ -177,4 +192,21 @@ export function statRowTileWidth(rowWidth: number): number {
  */
 export function statCoins(t: { mode: 'light' | 'dark'; butter: string; heroChip: string; sage: string; lavender: string }): { streak: string; goal: string; level: string } {
   return { streak: t.mode === 'dark' ? t.heroChip : t.butter, goal: t.sage, level: t.lavender };
+}
+
+/**
+ * The goal coin (fix round 1): a ring whenever a goal is chosen, drawn from
+ * the counter when one counted, else still at the real fraction (from = to),
+ * so the ring never falls back to the clock just because nothing counted up.
+ * The clock is only for no goal chosen.
+ */
+export function goalCoin(
+  goal: StatTileView['goal'],
+  ring: { from: number; to: number; mount: number } | undefined,
+  steps: number,
+): { kind: 'ring'; from: number; to: number; key: string } | { kind: 'clock' } {
+  if (!goal.ring) return { kind: 'clock' };
+  if (ring !== undefined) return { kind: 'ring', from: ring.from / steps, to: ring.to / steps, key: `ring-${ring.mount}` };
+  const still = Math.max(0, Math.min(1, goal.fraction ?? 0));
+  return { kind: 'ring', from: still, to: still, key: 'ring-still' };
 }

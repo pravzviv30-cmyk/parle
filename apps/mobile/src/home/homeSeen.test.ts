@@ -140,7 +140,9 @@ describe("Home's increments — F767", () => {
     const hero = stripComments(readFileSync(new URL('../game/TodayStatTiles.tsx', import.meta.url), 'utf8'));
     assert.match(stats, /useHomeDraw<HeroModel>\(today, hero === null \? null : \{ hero, nudge \}, \(model\) => heroCounts\(model\.hero\)\)/);
     assert.match(hero, /<CountUp key=\{`run-\$\{run\.mount\}`\} from=\{run\.from\} to=\{run\.to\}/, 'the run does not count from what was last shown');
-    assert.match(hero, /<ProgressRing key=\{`ring-\$\{ring\.mount\}`\} from=\{ring\.from \/ RING_STEPS\} to=\{ring\.to \/ RING_STEPS\}/, 'the ring does not draw from what was last shown');
+    // Fix round 1: drawn through goalCoin, which passes the counter's from and to over RING_STEPS.
+    assert.match(hero, /const coin = goalCoin\(tiles\.goal, ring, RING_STEPS\);/);
+    assert.match(hero, /<ProgressRing key=\{coin\.key\} from=\{coin\.from\} to=\{coin\.to\}/, 'the ring does not draw from what was last shown');
     assert.match(hero, /<CountUp key=\{`level-\$\{chip\.mount\}`\} from=\{chip\.from\} to=\{chip\.to\}/, 'the level does not count from what was last shown');
     // 2026-10-20 UI-008, artboard B-Today: the flame is the still canvas
     // drawing now, so nothing lights or flickers; an open day draws it dimmed.

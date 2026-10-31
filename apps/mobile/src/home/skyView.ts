@@ -55,3 +55,38 @@ export function skyNow(now: number, mode: 'light' | 'dark'): SkyView {
 export function greetingLines(greeting: { word: string; name: string | null }): string[] {
   return greeting.name === null ? [`${greeting.word}.`] : [`${greeting.word},`, `${greeting.name}.`];
 }
+
+/** The profile button's disc, and the band's side padding (space(4) + space(1)), for keeping clouds clear of it. */
+const PROFILE_DISC = 44;
+const BAND_SIDE = 20;
+const CLOUD_CLEAR = 8;
+/** Below this the profile button: a cloud lower than it may run to the disc. */
+const BELOW_PROFILE = PROFILE_DISC + 4;
+
+export interface CloudPlace { left: number; top: number; width: number; opacity: number }
+
+/**
+ * Where the sky's two clouds sit (fix round 1): in the band's top area, right
+ * of the greeting, around the sun or moon. Tops are measured from the head
+ * (the greeting's row, under the top inset). One about 16pt down at 48%
+ * across, one about 56pt down at 66% across, sized with the width; each
+ * starts right of the greeting's measured edge, and the upper one stops short
+ * of the profile button. A cloud with too little room is left out.
+ */
+export function cloudPlaces(width: number, greetingRight: number | null): CloudPlace[] {
+  const scale = width / 390;
+  const edge = (greetingRight ?? width * 0.5) + CLOUD_CLEAR;
+  const specs = [
+    { at: 0.48, top: 16, size: 120, opacity: 0.35 },
+    { at: 0.66, top: 56, size: 80, opacity: 0.25 },
+  ];
+  const places: CloudPlace[] = [];
+  for (const spec of specs) {
+    const left = Math.max(width * spec.at, edge);
+    const limit = spec.top < BELOW_PROFILE ? width - BAND_SIDE - PROFILE_DISC - CLOUD_CLEAR : width;
+    const size = Math.min(spec.size * scale, limit - left);
+    if (size < 40) continue;
+    places.push({ left: Math.round(left), top: spec.top, width: Math.round(size), opacity: spec.opacity });
+  }
+  return places;
+}

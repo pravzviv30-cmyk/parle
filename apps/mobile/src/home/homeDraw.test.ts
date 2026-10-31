@@ -142,7 +142,9 @@ describe("Home's numbers on a mounted Home — F767", () => {
     // The cards key every counter on its mount and draw only from the draw.
     // UI-015: TodayHero.tsx's counters moved to TodayStatTiles.tsx.
     const hero = read('../game/TodayStatTiles.tsx');
-    for (const key of ['run', 'ring', 'level']) assert.match(hero, new RegExp(`key=\\{\`${key}-\\$\\{\\w+\\.mount\\}\`\\}`), `the hero's ${key} is not keyed on its mount`);
+    // Fix round 1: the ring's key comes from goalCoin (ring-${mount}, or ring-still with no counter).
+    assert.match(hero, /<ProgressRing key=\{coin\.key\}/);
+    for (const key of ['run', 'level']) assert.match(hero, new RegExp(`key=\\{\`${key}-\\$\\{\\w+\\.mount\\}\`\\}`), `the hero's ${key} is not keyed on its mount`);
     assert.doesNotMatch(hero, /\bfrom=\{[^}]*\?\?/, 'a counter starts from a fallback guess');
     const quests = read('../game/QuestsCard.tsx');
     assert.match(quests, /key=\{`done-\$\{done\.mount\}`\}/, "the quests' count is not keyed on its mount");

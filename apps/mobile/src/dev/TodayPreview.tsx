@@ -93,7 +93,7 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
 
   // The rows after the hero (UI-012 order): the scene when the fix leads, the phrase, review.
   const rows = quiet ? null : [
-    ...(lead === 'fix' ? [<LeadRow key="scene" last={false} title={TODAY_PREVIEW_SCENE.title} line={TODAY_PREVIEW_SCENE.rowLine} onPress={said} />] : []),
+    ...(lead === 'fix' ? [<LeadRow key="scene" lead="scene" last={false} title={TODAY_PREVIEW_SCENE.title} line={TODAY_PREVIEW_SCENE.rowLine} onPress={said} />] : []),
     <RouteRow key="phrase" mark="stop" last={false} thumb={<BArt name="voice-chat" width={ROW_ART} height={ROW_ART} />} thumbGround={t.lavender}
       eyebrow={TODAY_COPY.phrase} title={TODAY_PREVIEW_PHRASE.fr} titleLang="fr" line={TODAY_PREVIEW_PHRASE.en} action={{ label: TODAY_COPY.sayRow }} onPress={said} />,
     <RouteRow key="review" mark="end" last thumb={<BArt name="phrasebook" width={ROW_ART} height={ROW_ART} />} thumbGround={t.sage}

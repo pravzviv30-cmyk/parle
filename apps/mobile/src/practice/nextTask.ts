@@ -82,3 +82,33 @@ export function leadStop(lead: TodayLead | 'explore', minutes: number | null): {
   if (lead === 'local') return { title: 'Something you can do now', line: 'No connection needed' };
   return { title: 'The next scene', line: 'Finding your next task' };
 }
+
+/** Which pastel a lead row's thumb sits on (theme keys, so the row reads them from `useB()`). */
+export type LeadRowGround = 'butter' | 'lavender' | 'sage';
+/** A lead row's drawing, one of the bundled BArt names (art/bArt.test.ts pins the set). */
+export type LeadRowArtName = 'cafe-table' | 'star-jar' | 'map-route' | 'phrasebook' | 'watering-plant';
+
+/**
+ * The thumb for a lead's row on Today's path (UI-015, fix round 1): the scene
+ * keeps its café on butter; the plans the star jar on butter; Explore a route
+ * on lavender; the starter's typed line the phrasebook on sage; held time and
+ * offline practice the calm watering plant on sage.
+ */
+export function leadRowArt(lead: TodayLead | 'explore'): { art: LeadRowArtName; ground: LeadRowGround } {
+  if (lead === 'plans') return { art: 'star-jar', ground: 'butter' };
+  if (lead === 'explore') return { art: 'map-route', ground: 'lavender' };
+  if (lead === 'starter') return { art: 'phrasebook', ground: 'sage' };
+  if (lead === 'outOfTime' || lead === 'lapsed' || lead === 'local') return { art: 'watering-plant', ground: 'sage' };
+  return { art: 'cafe-table', ground: 'butter' };
+}
+
+/**
+ * What the scene row draws while its start is gated (fix round 1): while the
+ * check runs, the check's words and a row that cannot be pressed again; once
+ * the tutor could not be reached, the row's own line and the held-back answer
+ * under it, with the same start again.
+ */
+export function sceneRowState(input: { checking: boolean; heldBack: boolean; line: string; checkingLine: string }): { line: string; disabled: boolean; held: boolean } {
+  if (input.checking) return { line: input.checkingLine, disabled: true, held: input.heldBack };
+  return { line: input.line, disabled: false, held: input.heldBack };
+}

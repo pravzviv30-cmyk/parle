@@ -31,7 +31,7 @@ import { HIT, bType, decorative, radius, space } from '../theme.ts';
 import { StarMark } from '../today/TodayParts.tsx';
 import { RING_STEPS, type Counter } from '../home/homeDraw.ts';
 import type { SkyView } from '../home/skyView.ts';
-import { STAT_COIN, STAT_GAP, STAT_PADDING, statCoins, statRowTileWidth, statTileLayout, type StatTileLayout, type StatTileView } from './todayHeroView.ts';
+import { goalCoin, statNumberType, STAT_COIN, STAT_GAP, STAT_PADDING, statCoins, statRowTileWidth, statTileLayout, type StatTileLayout, type StatTileView } from './todayHeroView.ts';
 
 /** The tile's height beside its coin (board: 66). */
 const TILE_HEIGHT = 66;
@@ -68,10 +68,13 @@ export function TodayStatTiles({ tiles, labels, sky, counters = {}, flamePop, on
   const s = useThemedStyles(makeStyles);
   const { width: windowWidth, fontScale } = useWindowDimensions();
   const [rowWidth, setRowWidth] = useState<number | null>(null);
-  const layout = statTileLayout(statRowTileWidth(rowWidth ?? windowWidth - ROW_MARGINS), fontScale);
+  const layout = statTileLayout(statRowTileWidth(rowWidth ?? windowWidth - ROW_MARGINS), fontScale, [tiles.streak.number, tiles.goal.number, tiles.level.number]);
   const coins = statCoins(t);
   const number = [bType.stat24, { color: t.text }];
+  // A word in place of a number ("Start") in the smaller bold, so it fits whole beside the coin.
+  const wordNumber = [bType.bold15, { color: t.text }];
   const { streak: run, ring, level: chip } = counters;
+  const coin = goalCoin(tiles.goal, ring, RING_STEPS);
 
   return (
     <View style={layout === 'rows' ? s.column : s.row} onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}>
@@ -85,14 +88,14 @@ export function TodayStatTiles({ tiles, labels, sky, counters = {}, flamePop, on
         }
         number={run !== undefined
           ? <CountUp key={`run-${run.mount}`} from={run.from} to={run.to} textStyle={number} />
-          : <Text style={number}>{tiles.streak.number}</Text>}
+          : <Text style={statNumberType(tiles.streak.number) === 'word' ? wordNumber : number}>{tiles.streak.number}</Text>}
         word={tiles.streak.label}
       />
       <Tile layout={layout} lip={sky.lip} label={labels.goal} onPress={onGoal}
         coin={
           <View style={[s.coin, { backgroundColor: coins.goal }]}>
-            {tiles.goal.ring && ring !== undefined
-              ? <ProgressRing key={`ring-${ring.mount}`} from={ring.from / RING_STEPS} to={ring.to / RING_STEPS} size={RING} stroke={RING_STROKE} color={t.mint} track={t.ring} />
+            {coin.kind === 'ring'
+              ? <ProgressRing key={coin.key} from={coin.from} to={coin.to} size={RING} stroke={RING_STROKE} color={t.mint} track={t.ring} />
               : <Icon name="clock" variant="bulk" size={RING - space(2)} color={t.text} />}
           </View>
         }
@@ -136,7 +139,7 @@ function Tile({ layout, lip, label, onPress, coin, number, word }: {
     <View style={layout === 'rows' ? undefined : s.share}>
       <LipTile lip={lip} onPress={onPress} accessibilityLabel={label} style={[s.tile, stacked ? s.tileStacked : s.tileSide]}>
         <View {...decorative}>{coin}</View>
-        <View style={[s.words, stacked && s.wordsStacked]}>
+        <View style={[s.words, stacked ? s.wordsStacked : s.wordsSide]}>
           {number}
           <Text style={[bType.bold11, { color: t.muted }]}>{word}</Text>
         </View>
@@ -165,6 +168,7 @@ const makeStyles = (_t: B) =>
     tileStacked: { minHeight: TILE_HEIGHT, alignItems: 'center', justifyContent: 'center', paddingVertical: STAT_PADDING - space(1) },
     words: { flexShrink: 1, minWidth: 0 },
     wordsStacked: { alignItems: 'center' },
+    wordsSide: { flex: 1, minWidth: 0 },
     coin: { width: STAT_COIN, height: STAT_COIN, borderRadius: STAT_COIN / 2, alignItems: 'center', justifyContent: 'center' },
     unlit: { opacity: 0.45 },
     block: { flex: 1, minWidth: 0, height: TILE_HEIGHT + LIP, borderRadius: radius.stat },
