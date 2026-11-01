@@ -12066,8 +12066,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-10-31 on claude/finish-fixes. The held lead asks `offlineOffer(value.levelIndex)`: at
   Starter the row and hero still offer the café line. Past Starter (or with no café line) the held
   row draws nothing, so no row says "The next scene" while opening something else, and Today's own
-  Review row is the practice; the hero (`HeldLeadBody`) draws the held words and then a real "Practise
-  review" button to Review. The plans lead offers the café line only at Starter, and the plain
+  Review row is the practice; the hero (`HeldLeadBody`) draws the held words and then a real button to Review, named as Today's
+  review row ("Review N phrases", from `reviewRow`) and drawn only when Review has something to deal
+  (secondary beside See plans); with nothing due the words stand alone. The plans lead offers the café
+  line only at Starter, and past it the same Review door, secondary; the plain
   `LocalPracticeCard` draws nothing for 'below'. Previewed as `today-held`. No new copy.
 - verified-by: `out of time past Starter offers a line at the learner's level`
 

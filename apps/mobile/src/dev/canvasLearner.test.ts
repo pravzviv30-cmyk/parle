@@ -150,6 +150,12 @@ describe('the canvas learner waits for the account scope', () => {
     assert.doesNotMatch(gate, /useCanvasLearner\(/);
   });
 
+  test('a storage rejection while seeding is caught and lets the account try again', async () => {
+    const { readFileSync } = await import('node:fs');
+    const hook = readFileSync(new URL('./useCanvasLearner.ts', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    assert.match(hook, /void startFresh\(uid\)\.then\(\(\) => seedCanvasLearner\(\{ id: uid \}, adapter\)\)\.then\([\s\S]*?\}\)\.catch\(\(\) => seeded\.delete\(uid\)\);/, 'a rejected seed is unhandled and never retried');
+  });
+
   test('a fresh start is not spent before the account\'s scope exists', async () => {
     const { spendFreshStart } = await import('./canvasLearner.ts');
     const writes: string[] = [];

@@ -12,7 +12,7 @@ import { greetingWord } from '../home/greeting.ts';
 import { skyView } from '../home/skyView.ts';
 import {
   TODAY_PREVIEW_KEYS, TODAY_PREVIEW_LABELS, TODAY_PREVIEW_STATES,
-  todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewState,
+  TODAY_PREVIEW_HELD_BILLING, todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewState,
 } from './todayPreviewFixtures.ts';
 
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -26,6 +26,11 @@ describe("Today's preview keys — UI-015", () => {
     for (const key of WANTED) assert.equal(todayPreviewState(key), key.slice('today-'.length), `${key} is not routed`);
     for (const other of ['today', 'today-', 'today-morning', 'your-french-full', 'select', 'scene']) assert.equal(todayPreviewState(other), null, `${other} is routed to Today`);
     assert.equal(TODAY_PREVIEW_STATES.length, 12);
+  });
+
+  test('the held preview refills after the fixed now', () => {
+    const end = Date.parse(TODAY_PREVIEW_HELD_BILLING.periodEnd ?? '');
+    for (const state of TODAY_PREVIEW_STATES) assert.ok(end > todayPreviewNow(todayPreviewHour(state)), `the held preview refills before ${state}'s now`);
   });
 
   test('every key has a plain label', () => {

@@ -86,7 +86,7 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
       case 'starter': return <StarterContinuation initial={starter} bare onTutor={said} onPlans={said} />;
       case 'offline': return <OfflineLeadBody notice={offlineNotice(false)} cafe bare checking={false} onTry={said} onRecheck={said} />;
       // Past Starter, so no café line: the words, then Review (F946).
-      case 'held': return <HeldLeadBody bare words={heldWords(TODAY_PREVIEW_HELD_BILLING, todayPreviewNow(hour))} onPlans={said} onReview={said} />;
+      case 'held': return <HeldLeadBody bare words={heldWords(TODAY_PREVIEW_HELD_BILLING, todayPreviewNow(hour))} onPlans={said} onReview={said} reviewLabel={TODAY_PREVIEW_REVIEW.title} />;
       case 'explore': return <ExploreLeadBody bare title={leadStop('explore', null).title} onExplore={said} />;
       default: return scene(false);
     }
