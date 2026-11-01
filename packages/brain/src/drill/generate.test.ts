@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import type { DrillExercise } from '@luvani/core';
+import { validateExercise, type DrillExercise } from '@luvani/core';
 
 import { DrillBatchSchema, buildDrillGenerationRequest, type DrillGenerationInput } from './generate.ts';
 import type { NewPhrase } from '../contract/types.ts';
@@ -76,6 +76,7 @@ const tapTranslate = {
   en: 'I would like a coffee.',
   tokens: ['je', 'voudrais', 'un', 'café', 'gare', 'train'],
   accepted: ['je voudrais un café'],
+  fr: 'Je voudrais un café.',
 } as const;
 
 const listenType = {
@@ -151,6 +152,18 @@ describe('the drill batch schema mirrors core', () => {
       }),
     );
     assert.throws(() => DrillBatchSchema.parse({ exercises: [{ ...tapTranslate, difficulty: 'production' }] }));
+  });
+
+  test('a generated tap-translate carries a display line that is one of its answers', () => {
+    const parsed = DrillBatchSchema.parse({ exercises: [tapTranslate] }).exercises[0];
+    assert.equal((parsed as { fr?: string }).fr, 'Je voudrais un café.');
+    const { fr: _fr, ...withoutFr } = tapTranslate;
+    assert.throws(() => DrillBatchSchema.parse({ exercises: [withoutFr] }));
+    // Capitals and punctuation are fine: the line normalises to an accepted answer.
+    assert.equal(validateExercise(parsed as DrillExercise).ok, true);
+    // A display line the grader would reject is dropped like an authored one.
+    const wrong = DrillBatchSchema.parse({ exercises: [{ ...tapTranslate, fr: 'Je veux un thé.' }] }).exercises[0];
+    assert.equal(validateExercise(wrong as DrillExercise).ok, false);
   });
 
   test('survives JSON serialization, the shape it actually arrives in', () => {

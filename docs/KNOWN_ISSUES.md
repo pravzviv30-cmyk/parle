@@ -12135,7 +12135,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F950 — Generated tap-translate items show a lowercase grading key
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/drill/generate.ts (`TapTranslateZ` and its prompt rule)
 - note: Found 2026-10-31 on claude/finish-fixes while closing the drill-b follow-up. Authored
   tap-translate items now carry an `fr` display line, so the right sheet, the end list and the miss
@@ -12143,6 +12143,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   and still fall back to `accepted[0]`, usually lowercase with no punctuation. Fix: add an optional
   `fr` to `TapTranslateZ` and the generation prompt, validated like the authored ones, with a
   contract test. Left out of finish-fixes so the brain's output contract did not change there.
+- fixed: 2026-11-01 on claude/bug-fix. `TapTranslateZ` requires `fr` (structured outputs need every key)
+  and the prompt's tap-translate rule asks for the answer as written, with capitals and punctuation, one
+  of `accepted` once normalised. `validateExercise` holds it to the authored rule, so `groundedDrills`
+  drops a generated item whose `fr` is not an answer. `learnerVisibleStrings` now lists the tap-translate
+  `fr` for the copy lint. Older stored items without `fr` still fall back to `accepted[0]`.
 - verified-by: `a generated tap-translate carries a display line that is one of its answers`
 
 ### F951 — The speak drill's quiet control says one thing and is named another
