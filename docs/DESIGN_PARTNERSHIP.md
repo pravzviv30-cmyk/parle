@@ -86,6 +86,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-31 | Drill and practice feedback: B (sheet and coins) picked, on every practice page, made more alive. | Founder, drill board |
 | 2026-10-31 | Cloud appears at moments only: the right sheet, listening on speak drills, endings. Never on the question. | Founder, drill board |
 | 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
+| 2026-10-31 | The still-settling retry stays at zero XP (LEARN-018 stands), and the approved copy stays: "Practise the one still settling" and "Notice". | Founder, finish-off brief |
+| 2026-10-31 | Cloud stays out of Today's sky, under "Cloud at moments only". Proposed by the design session; the founder can reverse it. | Design session, proposed |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -98,10 +100,15 @@ Working principles drawn from these (to confirm on the first screens):
 
 | Order | Screen | State |
 |---|---|---|
-| 1 | Live conversation room | Built on `claude/live-room-d` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)): gate green at 7,319, two verifier rounds to HOLDS, live replay typed and spoken, native simulator checked; the founder approved the 144 short goal labels as drafted on 2026-10-31 and the room is landing on main |
-| 2 | Today | The A × Today mix accepted (UI-015, founder 2026-10-30) with chunky stat tiles (2026-10-31); built on `claude/today-sky` from [changes/today-sky.md](changes/today-sky.md) |
-| 3 | Drill and practice feedback | B v2 picked and approved on the [drill board](https://claude.ai/artifact/XAZR2pptSi5YgH4ncZTXiK) (page "B v2, every surface"); built on `claude/drill-b` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)): gate green at 7,449, four verifier rounds to HOLDS, native simulator and a live run checked; landing |
-| 4 | Journey | Candidate |
+| 1 | Live conversation room | Landed on main at `d1b216c3` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)) |
+| 2 | Today | Landed on main at `9c7ad093` (UI-015, [changes/today-sky.md](changes/today-sky.md)); open items finished on main at `fdeeed2b` |
+| 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
+| 4 | Conversation recap | Next, one design session then one build session |
+| 5 | Journey (My French) | Queued |
+| 6 | Speak tab (choose a scene) | Queued |
+| 7 | Practice tab hub | Queued |
+
+Founder's order, 2026-10-31: one screen per session, each starting only after the one before lands.
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type
 scale named by role, native sheet and modal presentation, and route transitions that
