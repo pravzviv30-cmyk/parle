@@ -70,6 +70,9 @@ Routine task progress belongs in its change plan.
   no parallel navigator, policy, authentication service or progress store is added.
 - Sources: [change plan](docs/changes/bold-rhythm.md),
   [asset provenance and rebuild](apps/mobile/assets/bold-rhythm/README.md).
+- Update 2026-11-01: UI-002 left the compiled `.riv` files and the four onboarding
+  Rive scenes unloaded, so they were deleted along with their renderers. The `.rml`
+  sources and SVG stills stay; only the streak flame still plays through Rive.
 
 ## UI-002 — Render C2's exact Figma layers through the shared motion engine
 

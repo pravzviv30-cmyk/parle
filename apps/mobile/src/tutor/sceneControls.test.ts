@@ -3,8 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import type { ConvoSupportView } from '@luvani/core';
 
-import { TAP_TO_TALK } from './choosingView.ts';
-import { OPEN_MIC_LABEL, SIMPLER, hasSayableSupportLine, sceneControls, simplerLabel, typedTurn } from './sceneControls.ts';
+import { SIMPLER, hasSayableSupportLine, sceneControls, simplerLabel, typedTurn } from './sceneControls.ts';
 import { PACE_ROW } from './pace.ts';
 
 const fullLine: ConvoSupportView = {
@@ -104,12 +103,6 @@ describe('a mission scene the learner cannot speak into — F274', () => {
   test('the offer survives the typing box being open', () => {
     // Typing mid-scene is a detour, not a decision. The circle stays.
     assert.equal(controls({ micOpen: false, typingOpen: true }).showOpenMic, true);
-  });
-
-  test('it wears the words the chooser already promised', () => {
-    // The consent sentence is TAP_TO_TALK and it lives in one place. A second
-    // copy here is how the promise and the button drift apart.
-    assert.equal(OPEN_MIC_LABEL, TAP_TO_TALK);
   });
 });
 

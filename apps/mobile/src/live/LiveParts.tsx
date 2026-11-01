@@ -7,32 +7,24 @@
 
 import { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { Press } from '../components.tsx';
 import { TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { BMic, BSpeaker } from '../today/TodayParts.tsx';
+import { BMic, BSpeaker } from '../main/bMarks.tsx';
 import { HIT, bType, decorative, frenchText } from '../theme.ts';
 import type { LadderStep } from './liveRoomView.ts';
 
 // ─────────────────────────────────────────────────────────────── glyphs
+
+export { KeyboardMark } from '../main/bMarks.tsx';
 
 /** The artboard's close cross, stroke 2.2. */
 export function CloseGlyph({ size, color }: { size: number; color: string }) {
   return (
     <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
       <Path d="M6 6l12 12M18 6L6 18" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-/** The keyboard (b-spec A6), stroke 1.8. */
-export function KeyboardMark({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
-      <Rect x={2.5} y={6} width={19} height={12} rx={3} fill="none" stroke={color} strokeWidth={1.8} />
-      <Path d="M6.5 10h1M10 10h1M13.5 10h1M17 10h.5M8 14h8" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
   );
 }

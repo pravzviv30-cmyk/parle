@@ -11,7 +11,7 @@ The route is plan → chosen tutor → live practice → completion celebration 
 
 New practice uses the existing LiveKit hook, conversation worker, responsive audio orb, transcript, hint support, safety surfaces and microphone controls. Typing releases the microphone track while leaving the same room, voice and spoken tutor replies running. Switching back republishes the microphone. Unsent text and partial recognition do not enter achievements. Final worker messages have input attribution and stable turn IDs; tutor text IDs prevent reconnect replay duplicates. Existing transcript scrolling preserves a reader's position.
 
-The completion screen combines one existing confetti burst with the original account Rive illustration, a success haptic, a short whole-surface fade and an immediately usable continuation. The summary reserves full accessible text while revealing short word groups. Reduced-motion settings reach the shared animation primitives. Welcome prepares Home under an inaccessible overlay and fades out after its durable presentation receipt is saved. A failed storage read or write stays retryable.
+The completion screen combines one existing confetti burst with the original celebration illustration (C2 vector art), a success haptic, a short whole-surface fade and an immediately usable continuation. The summary reserves full accessible text while revealing short word groups. Reduced-motion settings reach the shared animation primitives. Welcome prepares Home under an inaccessible overlay and fades out after its durable presentation receipt is saved. A failed storage read or write stays retryable.
 
 ## Personalisation
 
@@ -54,6 +54,8 @@ amplitude. Artwork loops continuously only when visible and active; UI events
 and earned confetti run once per event. See [asset provenance](../apps/mobile/assets/bold-rhythm/README.md)
 and the [current implementation/verification boundary](changes/bold-rhythm.md).
 The October 10 checks below remain historical, not proof of the C update.
+
+Update 2026-11-01: the compiled `.riv` files in `bold-rhythm/` and the four onboarding scenes (`welcome`, `level`, `plan`, `account`) were deleted, because nothing loaded them once C2 rendered the exported SVG layers. Only `streak.riv` (the flame) is bundled and played. The `.rml` sources and SVGs under `bold-rhythm/` stay as the editable art.
 
 ## Verification boundary
 

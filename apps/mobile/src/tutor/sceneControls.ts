@@ -30,7 +30,6 @@
  */
 
 import type { ClientMessage, ConvoSupportView } from '@luvani/core';
-import { TAP_TO_TALK } from './choosingView.ts';
 
 /**
  * The scene control that used to say "Slower" (notebook Phase 4, report change
@@ -73,15 +72,6 @@ export interface SceneControls {
    */
   showOpenMic: boolean;
 }
-
-/**
- * The words on the scene's circle.
- *
- * Re-exported from the chooser rather than retyped: it is the same promise in
- * the same session, and a second copy is how a promise and its button drift
- * apart. See F274.
- */
-export const OPEN_MIC_LABEL = TAP_TO_TALK;
 
 export function sceneControls(input: {
   supportView: ConvoSupportView;

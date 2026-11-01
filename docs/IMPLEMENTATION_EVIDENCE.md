@@ -22,6 +22,18 @@ of the list.
 
 ## Current landing snapshot
 
+- 1 November 2026 Finish-off tidy: branch `claude/finish-tidy` from main fdeeed2b. No learner-visible
+  change. The TodayParts and LiveParts require cycle is broken (`main/bMarks.tsx`; Metro no longer warns);
+  dead code deleted after proving no live importer: `QUIET_DOOR`, `OPEN_MIC_LABEL`, `SpeakerSlowGlyph`,
+  `ContinuityCard`, the onboarding Rive scene chain and its four `.riv`, the 24 bold-rhythm `.riv` and
+  their loaders (`streak.riv` stays). `tidy/orphans.test.ts` adds 12 guards (every asset require
+  resolves, kept exports stay, deleted names stay deleted); eight tests that guarded only deleted code
+  went with it. `docs/DESIGN_PARTNERSHIP.md`: screens 1 to 3 landed, queue 4 to 7. Fix-verifier round 1
+  HOLDS; browser pass on today-scene, live-speaking, live-typing and drill-say previews at 375 and 320,
+  light and dark, and every tab of the real app on a fresh canvas learner, with no console errors and no
+  require-cycle warning.
+  **7,510 tests, 0 failing**; core 1151, brain 774, tutor agent 893, token server 530, playground 110,
+  mobile 4052; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 1 November 2026 Finish-off fixes after screens 1 to 3: branch `claude/finish-fixes` from main
   06b5ac8d, merged with eafb382f (the Impeccable step). F948 Today's starter-line sheet on theme
   colours in dark (reproduced on main first); tap-translate items carry an authored `fr` display

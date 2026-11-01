@@ -592,7 +592,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: today the typed route exists only before the session and on the error screen. The
   same offer on the choosing screen flips the one flip the screen already supports, and
   every spoken path keeps its quiet twin.
-- verified-by: `a learner who cannot speak can switch to typing without leaving the choosing moment`
+- note (2026-11-01): the choosing view no longer carries a `showQuietDoor` flag (nothing read it). The test is renamed for what it still checks, and the door itself is held by the typed-door test below.
+- verified-by: `the offer to go quiet has one wording, and a spoken session shows no input while choosing`
+- verified-by: `the quiet door mid-scene keeps the scene and is never refused by the lease`
 
 ### F28 — A scene that fails to open hands back the choosing moment
 - severity: P1
@@ -11111,7 +11113,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F862 — Unused code is kept alive only by its own tests
 - severity: P3
 - status: [ ]
-- where: apps/mobile/src/tutor/ContinuityCard.tsx:1
+- where: apps/mobile/src/home/greeting.ts:1
+- note (2026-11-01): `tutor/ContinuityCard.tsx` and `continuityRow` (with its copy and route types) in `tutor/dashboard.ts` are deleted, with their seven tests, which guarded only that dead row. The rest of the list below is still open, as is the no-module-reachable-only-from-its-tests check named on `verified-by`.
 - note: Found 2026-10-20 in B6. Direction B left code that no screen reads but that still has tests: `tutor/ContinuityCard.tsx`, `greetingSubline` and `GREETING_SUBLINES` (with `greetingWord` and `greetingLine`) in `home/greeting.ts`, `weekLines` and `WEEK_LINES_MAX` in `home/todayView.ts`, `tutorDoors` in `tutor/gate.ts`, `continuityRow` and its copy in `tutor/dashboard.ts`, and `WEEK_LABEL` in `home/todayView.ts`. B6 tried removing the first four and lost six tests, which the floors forbid (docs/TESTING.md). Removing them needs replacement tests for the live surfaces in the same change, so the mobile count does not drop.
 - verified-by: `no production module is reachable only from its own tests`
 
@@ -12141,3 +12144,27 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `fr` to `TapTranslateZ` and the generation prompt, validated like the authored ones, with a
   contract test. Left out of finish-fixes so the brain's output contract did not change there.
 - verified-by: `a generated tap-translate carries a display line that is one of its answers`
+
+### F951 — The speak drill's quiet control says one thing and is named another
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/drill/kinds/RepeatThisView.tsx (the "Unable to speak right now?" Pressable)
+- note: Found 2026-11-01 by the Impeccable reviewer in /push-check on claude/finish-tidy. The control
+  reads "Unable to speak right now?" but its accessibility label is "I can't speak right now", so a
+  Voice Control user who says the words on screen does not find it, and one intent has two labels.
+  Predates the tidy, which only made this control the one home of the wording. Fix: label it with the
+  visible words and pin that the label matches the text.
+- verified-by: `the quiet control's spoken name is its visible words`
+
+### F952 — A text size change while the app is open leaves Today mis-laid until relaunch
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/home (the greeting's measured box) and apps/mobile/src/nav/LuvaniTabBar.tsx
+- note: Found 2026-10-31 on the iPhone 17 Pro simulator while checking F947 on claude/finish-fixes.
+  After switching to accessibility-large with the app open, Today's greeting showed "Bon" and the tab
+  bar's cells collapsed to the left, and they stayed that way; a clean launch at the same size draws
+  correctly (icons only, greeting whole). The fix-verifier judged it pre-existing (the greeting is
+  untouched by that branch). Fix: re-measure the greeting and re-lay the bar on a font scale change,
+  with a test that drives the change.
+- verified-by: `Today re-lays out when the text size changes while it is open`
+

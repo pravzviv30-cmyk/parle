@@ -2097,8 +2097,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // because every list is a `.map` over a model. Notebook redesign
     // (2026-09-27, Phase 3): the tinted stamp row became the hairline ledger
     // row, so both are counted. The tinted row is a deprecated wrapper now; its
-    // last call site is Speak's memory row in ContinuityCard, and it goes in the
-    // final sweep, when that count must reach zero too.
+    // last call site was Speak's memory row in ContinuityCard, which was deleted
+    // (2026-11-01), so that count must reach zero too.
     for (const [tab, files] of Object.entries(SURFACES)) {
       for (const file of files.slice(1)) {
         assert.ok(named(tab).includes(`'../${file}'`), `${tab} no longer draws ${file}; the surface list is stale`);
