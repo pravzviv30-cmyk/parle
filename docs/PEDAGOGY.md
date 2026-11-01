@@ -338,7 +338,8 @@ the most frequent mistakes, the weakest phrases. A habit the learner keeps
 making is never pushed out by a one-off slip.
 
 The tutor may also see one of the learner's own earlier attempts: the example
-stored for the scene's first-ranked mistake, as data after the memory notes. It
+stored for the highest-ranked of the scene's mistakes whose example passes the
+safety screens, as data after the memory notes. It
 is told not to bring it up, not to quote it back and not to mention past
 mistakes. It only helps the tutor see a repeat as a habit worth its one
 coaching point. It is left out when memory is locked or paused, and when the

@@ -355,8 +355,9 @@ describe('the privacy notice — F479', () => {
     // leaves it out on pause and screens it.
     assert.match(said, /One earlier mistake in your French, as you wrote or said it, may also be sent so the tutor can notice if it happens again\. It is left out when personal memory is paused\./, 'the notice hides the stored past attempt that reaches the model');
     assert.match(convo, /export function ownSlipBrief\([^)]*\): string \{\s*const repaired = repairProfile\(profile\);\s*if \(repaired\.memory\.control\?\.paused === true\) return '';/, 'the own-slip example is no longer left out on pause');
-    assert.match(convo, /recallPatterns\(repaired\.errorPatterns, scene, 1\)\[0\]/, 'more than one past attempt may now be sent');
-    assert.match(convo, /!safeContextText\(top\.example\)[\s\S]{0,80}sensitiveMemoryCategory\(top\.example\) !== null\) return '';/, 'the own-slip example stopped being screened');
+    // `.find` yields one pattern at most, and `top` is the only slip the brief carries.
+    assert.match(convo, /const top = recallPatterns\(repaired\.errorPatterns, scene\)\.find\(/, 'more than one past attempt may now be sent');
+    assert.match(convo, /\.find\(\(p\) => p\.example !== ''\s*&& safeContextText\(p\.example\) && safeContextText\(p\.tag\) && sensitiveMemoryCategory\(p\.example\) === null\);\s*if \(!top\) return '';/, 'the own-slip example stopped being screened');
     assert.match(DOC, /`ownSlipBrief`/, 'the document stopped describing the own-slip example');
     assert.match(convo, /this\.teachingBrief,[\s\S]*?this\.memoryBrief/);
     assert.match(convo, /text: this\.memoryBrief/);
