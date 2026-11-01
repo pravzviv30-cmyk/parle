@@ -62,4 +62,28 @@ describe('the speak family, drill B v2', () => {
     assert.match(check, /label="I said it without assessment"/);
     assert.doesNotMatch(check, /<Cloud\b/);
   });
+
+  test("the quiet control's spoken name is its visible words", () => {
+    // F951: Voice Control finds a control by the words on screen, so the
+    // label and the visible text are one string. Resolve each side, whether a
+    // literal or a module constant, and compare.
+    const src = read('./kinds/RepeatThisView.tsx');
+    const block = src.match(/<Pressable onPress=\{onNoMic\}[\s\S]*?<\/Pressable>/)?.[0];
+    assert.ok(block, 'the quiet control is no longer the onNoMic Pressable');
+    const resolve = (raw: string): string => {
+      const lit = raw.match(/^["'](.*)["']$/);
+      if (lit) return lit[1] ?? "";
+      const name = raw.match(/^\{(\w+)\}$/)?.[1];
+      assert.ok(name, `cannot read "${raw}"`);
+      const def = src.match(new RegExp(`const ${name} = (["'])(.*?)\\1;`));
+      assert.ok(def, `${name} is not a string constant in this file`);
+      return def[2] ?? "";
+    };
+    const label = block.match(/accessibilityLabel=("[^"]*"|'[^']*'|\{\w+\})/)?.[1];
+    const text = block.match(/<Text [^>]*>\s*(\{\w+\}|[^<{]+?)\s*<\/Text>/)?.[1];
+    assert.ok(label && text, 'the quiet control lost its label or its visible words');
+    const visible = text.startsWith('{') ? resolve(text) : text;
+    assert.equal(resolve(label), visible, 'the quiet control is named something other than what it says');
+    assert.equal(visible, 'Unable to speak right now?', 'the quiet control changed its wording');
+  });
 });

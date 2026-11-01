@@ -12152,13 +12152,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F951 — The speak drill's quiet control says one thing and is named another
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/drill/kinds/RepeatThisView.tsx (the "Unable to speak right now?" Pressable)
 - note: Found 2026-11-01 by the Impeccable reviewer in /push-check on claude/finish-tidy. The control
   reads "Unable to speak right now?" but its accessibility label is "I can't speak right now", so a
   Voice Control user who says the words on screen does not find it, and one intent has two labels.
   Predates the tidy, which only made this control the one home of the wording. Fix: label it with the
   visible words and pin that the label matches the text.
+- fixed: 2026-11-01 on claude/bug-fix. `RepeatThisView.tsx` holds the wording once, in `QUIET_CONTROL`,
+  and uses it for both the visible text and `accessibilityLabel`. The speak-family test resolves both sides
+  and fails if they differ; `choosingView.test.ts` pins the same wording in its one home.
 - verified-by: `the quiet control's spoken name is its visible words`
 
 ### F952 — A text size change while the app is open leaves Today mis-laid until relaunch
