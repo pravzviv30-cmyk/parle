@@ -316,8 +316,8 @@ describe('the privacy notice — F479', () => {
   test('the notice says the language model is also sent what the tutor remembers about the learner', () => {
     // F484. The list of what the model receives was checked against
     // `prepareTurn` and `buildTurnContext`, which are the turn call, and
-    // `convo.ts` reaches the model at five sites. `buildFrame` sends the last
-    // five memory facts into the scene prompt as REAL ACCOUNT MEMORY, and those
+    // `convo.ts` reaches the model at five sites. `buildFrame` sends at most
+    // five memory facts (chosen for the scene) into the scene prompt as REAL ACCOUNT MEMORY, and those
     // are facts about the learner's real life that the profile carries from one
     // session into the next: a job interview mentioned on Monday is sent to the
     // vendor on Wednesday to build the next scene. The notice said only this
@@ -346,8 +346,18 @@ describe('the privacy notice — F479', () => {
     // Facts now ride the scene and each turn in the same repaired bounded
     // memory brief. Keep the disclosure and both actual call doors together.
     const convo = readFileSync(fileURLToPath(new URL('../../../../services/tutor-agent/src/convo.ts', import.meta.url)), 'utf8');
-    assert.match(convo, /repaired\.memory\.facts\s*\.filter\(fact => safeContextText\(fact\.en\) && !sensitiveConversationFact\(fact\)\)\s*\.slice\(-5\)/, 'the memory brief stopped sending the bounded repaired facts');
-    assert.match(convo, /this\.memoryBrief = tutorMemoryBrief\(this\.profile\)/);
+    assert.match(convo, /recallFacts\(repaired\.memory\.facts\s*\.filter\(fact => safeContextText\(fact\.en\) && !sensitiveConversationFact\(fact\)\), scene, 5\)/, 'the memory brief stopped sending at most five filtered repaired facts');
+    assert.match(convo, /this\.memoryBrief = tutorMemoryBrief\(this\.profile\);\s*if \(this\.memoryLocked\) this\.memoryBrief = '';/);
+    assert.match(convo, /this\.memoryBrief = this\.memoryLocked \? ''\s*: \[tutorMemoryBrief\(this\.profile, scene\), withSlip \? ownSlipBrief\(this\.profile, scene\) : ''\]/, 'the per-scene recall stopped respecting the lock or stopped carrying the own-slip example');
+
+    // The own-slip example: one stored past attempt in the learner's French
+    // rides after the memory brief. The sentence is true only while the code
+    // leaves it out on pause and screens it.
+    assert.match(said, /One earlier mistake in your French, as you wrote or said it, may also be sent so the tutor can notice if it happens again\. It is left out when personal memory is paused\./, 'the notice hides the stored past attempt that reaches the model');
+    assert.match(convo, /export function ownSlipBrief\([^)]*\): string \{\s*const repaired = repairProfile\(profile\);\s*if \(repaired\.memory\.control\?\.paused === true\) return '';/, 'the own-slip example is no longer left out on pause');
+    assert.match(convo, /recallPatterns\(repaired\.errorPatterns, scene, 1\)\[0\]/, 'more than one past attempt may now be sent');
+    assert.match(convo, /!safeContextText\(top\.example\)[\s\S]{0,80}sensitiveMemoryCategory\(top\.example\) !== null\) return '';/, 'the own-slip example stopped being screened');
+    assert.match(DOC, /`ownSlipBrief`/, 'the document stopped describing the own-slip example');
     assert.match(convo, /this\.teachingBrief,[\s\S]*?this\.memoryBrief/);
     assert.match(convo, /text: this\.memoryBrief/);
     assert.match(said, /and on each tutor turn/);
@@ -356,7 +366,7 @@ describe('the privacy notice — F479', () => {
 
     // And the document, which is where the narrower sentence came from. It said
     // no stored row is handed over; the memory facts are stored rows.
-    assert.match(DOC, /`tutorMemoryBrief`[\s\S]{0,200}`repaired\.memory\.facts\.filter\(\.\.\.\)\.slice\(-5\)`/, 'the document stopped describing what the memory brief sends');
+    assert.match(DOC, /`tutorMemoryBrief`[\s\S]{0,200}`recallFacts\(repaired\.memory\.facts\.filter\(\.\.\.\), scene, 5\)`/, 'the document stopped describing what the memory brief sends');
     assert.doesNotMatch(DOC, /no stored row/i, 'the document claims again that nothing stored reaches the model vendor');
   });
 
