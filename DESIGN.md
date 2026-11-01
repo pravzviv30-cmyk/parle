@@ -1052,6 +1052,9 @@ the new look, listed at the end, and they go with their call sites.
   8pt below). The bar stays in layout, so nothing scrolls under it, and it has
   no shadow, hairline or chartreuse wash. Five equal 62pt cells, radius 20,
   padding 4, gap 4: a 22pt Iconsax glyph over its word in C2 small (13/18).
+  From reading size 1.3, when the widest word cannot fit whole in its cell
+  (`tabLabelsShown`), every tab shows its glyph alone and keeps its full
+  accessibility label (F947, founder decision 2026-10-31).
   Selected is the `tabSelected` violet cell with the Bulk glyph in
   `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
   unselected is the Linear glyph and the word in cream at Outfit Medium on the

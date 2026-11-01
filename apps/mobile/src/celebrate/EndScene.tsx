@@ -7,7 +7,7 @@
  * the title and its sub line, up to three stat tiles on the shared `LipTile`
  * chrome (`game/TodayStatTiles.tsx`'s `Tile`: coin, a 24/800 number counting
  * up with `CountUp`, one word), the goal ring, the quests, then the phrase list
- * with Hear it and each phrase's settled dot or "Still settling" (LEARN-018).
+ * with Hear it and each phrase's dot and its word, "Settled" or "Still settling" (LEARN-018).
  * Tiles mode (a lesson's or a daily phrase's end): the tiles, goal and quests
  * under the kicker and line, with no band, so the page keeps its own heading.
  *
@@ -385,7 +385,7 @@ function PhraseRow({ phrase }: { phrase: EndPhrase }) {
         {fr !== null && <Text style={[bType.bold15, { color: t.text }]}>{fr}</Text>}
         <View style={s.mark} accessible accessibilityLabel={settled ? SETTLED_LABEL : STILL_SETTLING_LABEL}>
           <View style={[s.dot, { backgroundColor: settled ? t.mint : t.sun }]} />
-          {!settled && <Text style={[bType.bold11, { color: t.muted }]}>{STILL_SETTLING_LABEL}</Text>}
+          <Text style={[bType.bold11, { color: t.muted }]}>{settled ? SETTLED_LABEL : STILL_SETTLING_LABEL}</Text>
         </View>
       </View>
     </View>

@@ -4,7 +4,7 @@
  */
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { AnsweredExercise } from '@luvani/core';
+import { DRILL_FIXTURES, type AnsweredExercise, type DrillExercise } from '@luvani/core';
 
 import * as F from '../dev/drillFixtures.ts';
 import { endPhrases, phraseFrench } from './endPhrases.ts';
@@ -17,11 +17,18 @@ describe('end scene phrases', () => {
     assert.equal(phraseFrench(F.APPROPRIATE_REPLY), 'Je voudrais un café.');
     assert.equal(phraseFrench(F.FILL_BLANK_CHOICE), 'Je voudrais un café.');
     assert.equal(phraseFrench(F.FILL_BLANK_TYPED), 'Je vous dois combien ?');
-    assert.equal(phraseFrench(F.TAP_TRANSLATE), 'L’addition s’il vous plaît');
+    assert.equal(phraseFrench(F.TAP_TRANSLATE), 'L’addition, s’il vous plaît.');
     assert.equal(phraseFrench(F.TRANSLATE_INTO_EN), 'L’addition, s’il vous plaît.');
     assert.equal(phraseFrench(F.LISTEN_TYPE), 'Je voudrais un café.');
     assert.equal(phraseFrench(F.REPEAT_THIS), 'Je voudrais un café.');
     assert.equal(phraseFrench(F.OWN_WORDS), 'Je vous dois combien ?');
+  });
+
+  test('a tap-translate lists its authored fr, not the lowercase grading key', () => {
+    const combien = DRILL_FIXTURES.find((e) => e.id === 'tt-premier-combien') as DrillExercise;
+    assert.equal(phraseFrench(combien), 'Je vous dois combien ?');
+    const { fr: _drop, ...bare } = F.TAP_TRANSLATE;
+    assert.equal(phraseFrench(bare), 'L’addition s’il vous plaît');
   });
 
   test('marks follow settledMarks, in first-answered order, one row per phrase', () => {

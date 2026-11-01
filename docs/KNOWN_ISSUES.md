@@ -12054,7 +12054,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F946 — Out of time past Starter offers the Starter café line
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/NextTaskCard.tsx (the held lead's local line) and the hero's `LocalPracticeCard` without `levelIndex`
 - note: Found 2026-10-31 by the fix-verifier on claude/today-sky (UI-015). A paid learner who is
   out of minutes and past Starter is offered the Starter café line (DailyPractice, shadowing), in
@@ -12063,15 +12063,81 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   happened before UI-015 (the old path drew `LocalPracticeCard` with the default level), so the
   Today build kept it unchanged. Fix: pass the level index to both and offer a line at the
   learner's level, with a test.
+- fixed: 2026-10-31 on claude/finish-fixes. The held lead asks `offlineOffer(value.levelIndex)`: at
+  Starter the row and hero still offer the café line. Past Starter (or with no café line) the held
+  row draws nothing, so no row says "The next scene" while opening something else, and Today's own
+  Review row is the practice; the hero (`HeldLeadBody`) draws the held words and then a real button to Review, named as Today's
+  review row ("Review N phrases", from `reviewRow`) and drawn only when Review has something to deal
+  (secondary beside See plans); with nothing due the words stand alone. The plans lead offers the café
+  line only at Starter, and past it the same Review door, secondary; the plain
+  `LocalPracticeCard` draws nothing for 'below'. Previewed as `today-held`. No new copy.
 - verified-by: `out of time past Starter offers a line at the learner's level`
 
 ### F947 — Tab bar labels cut off at accessibility text sizes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx
 - note: Found 2026-10-31 on the iPhone 17 Pro simulator at accessibility-large while checking
   claude/today-sky. The five labels clip mid-word ("Toda", "Explo", "Spea", "Pract", "Jourr").
   The tab bar is unchanged by UI-015 (the founder kept it), so this predates it. Fix: let the
   labels scale only to a cap, or hide them behind the icons with full accessibility labels at
   the largest sizes, with a test.
+- fixed: 2026-10-31 on claude/finish-fixes. Founder decision: icons only at the largest sizes.
+  `tabLabelsShown` (nav/tabBarModel.ts) measures the widest word at 13pt times the reading size
+  at 0.6em a letter (Outfit Bold's real advances are 0.48 to 0.59) against a fifth of the live
+  capsule; from 1.3 up, when it cannot fit whole, all five tabs show only their icons and keep
+  their full accessibility labels. Below 1.3 nothing changes. No cap was added (F583 ban kept).
 - verified-by: `tab bar labels never clip at accessibility text sizes`
+
+### F948 — Today's starter-line sheet is dark on dark in dark mode
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/StarterContinuation.tsx (the `<Sheet>` body, the feedback Card and the reply `TextInput`)
+- note: Found 2026-10-31 by drill-b, reproduced on main 06b5ac8d with the preview key
+  `?preview=today-starter&theme=dark` (tap "Continue practice"). The sheet's panel is themed
+  (`t.card`, #25203D in dark) but its lines set no colour and drew default near-black, the
+  feedback Card's lines likewise, and the reply field was hard-coded to light paper
+  (`paper.ink`, `paper.card`, `paper.field`).
+- fixed: 2026-10-31 on claude/finish-fixes. Every line in the sheet and its feedback Card is set in
+  `t.text`, and the reply field takes `t.text`, `t.card`, `t.field` and a `t.muted` placeholder,
+  the same tokens as the shared `Field` in `components.tsx`.
+- verified-by: `the starter sheet draws every line on theme colours in dark`
+
+### F949 — Scene goals never tick in a live mission
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts (the `evidencedBeatIds` condition in `integrateTurn`) and packages/brain/src/prompt/system.ts (the `scene` and `scene.goalMet` lines)
+- note: Found 2026-10-31 on the local stack (TUTOR_LLM=openai, gpt-6-luna), mission:cafe started from
+  Today, typed turns, logged per turn. Turn 1 "Bonjour monsieur ! Je voudrais un café, s'il vous plaît."
+  at source beat greet came back scene.beat order-drink, beatDone true, goalMet false, with understood,
+  taskAchieved and French all true, no topic shift, no rescue: nothing ticked. Turn 3 "Oui, un croissant,
+  s'il vous plaît." at order-drink came back scene.beat order-food, goalMet null, and was rescued (carried
+  from a silence turn): nothing ticked. The model names in scene.beat where the scene goes after this
+  turn, while the engine required scene.beat to echo the source beat exactly plus beatDone plus
+  goalMet true, so a completed goal almost never ticked. goalMet false on a clear greeting suggests the
+  model judged it against the beat it named. The mission task list, a core live-room feature, silently
+  never filled. Follow-up: the playground replays (services/brain-playground/src/eval/replayEval.ts and
+  sessionLoop.ts) build every conversation without `mission: true`, even for mission:* frames, so no
+  replay exercises the tick; worth a mission replay that checks ticks.
+- fixed: 2026-10-31 on claude/finish-fixes. The tick evidences the source beat (the one current before
+  the turn) on goalMet true, without the scene.beat echo or beatDone. Kept: mission only, spoke with
+  text, French or mixed, understood, taskAchieved, no topic shift, not rescued, not forceAdvance, no
+  duplicate. The prompt now says goalMet observes the SCENE AIM given in the turn context, even when
+  the reply moves the scene on, and scene.beat is the aim this reply works on. Live replay the same
+  evening (same stack and brain, mission:cafe from Today): "Bonjour monsieur ! Comment allez-vous ?" at
+  greet came back goalMet true and the first stamp ticked on screen; "Je voudrais un café crème, s'il
+  vous plaît." at order-drink came back goalMet true and was rightly held back as rescued, because the
+  tester's long pause had drawn a silence nudge first.
+- verified-by: `a goal ticks when the learner meets it even as the model moves the scene on`
+
+### F950 — Generated tap-translate items show a lowercase grading key
+- severity: P3
+- status: [ ]
+- where: packages/brain/src/drill/generate.ts (`TapTranslateZ` and its prompt rule)
+- note: Found 2026-10-31 on claude/finish-fixes while closing the drill-b follow-up. Authored
+  tap-translate items now carry an `fr` display line, so the right sheet, the end list and the miss
+  line show "Je vous dois combien ?" instead of `accepted[0]`. Items the brain generates have no `fr`
+  and still fall back to `accepted[0]`, usually lowercase with no punctuation. Fix: add an optional
+  `fr` to `TapTranslateZ` and the generation prompt, validated like the authored ones, with a
+  contract test. Left out of finish-fixes so the brain's output contract did not change there.
+- verified-by: `a generated tap-translate carries a display line that is one of its answers`

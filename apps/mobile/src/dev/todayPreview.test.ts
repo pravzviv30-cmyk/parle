@@ -12,20 +12,25 @@ import { greetingWord } from '../home/greeting.ts';
 import { skyView } from '../home/skyView.ts';
 import {
   TODAY_PREVIEW_KEYS, TODAY_PREVIEW_LABELS, TODAY_PREVIEW_STATES,
-  todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewState,
+  TODAY_PREVIEW_HELD_BILLING, todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewStarterFeedback, todayPreviewState,
 } from './todayPreviewFixtures.ts';
 
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
 const strip = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night'];
+const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-held', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night', 'today-starter-feedback', 'today-plans-past'];
 
 describe("Today's preview keys — UI-015", () => {
-  test('the eleven keys route to their state, and nothing else does', () => {
+  test('the fourteen keys route to their state, and nothing else does', () => {
     assert.deepEqual([...TODAY_PREVIEW_KEYS], WANTED);
     for (const key of WANTED) assert.equal(todayPreviewState(key), key.slice('today-'.length), `${key} is not routed`);
     for (const other of ['today', 'today-', 'today-morning', 'your-french-full', 'select', 'scene']) assert.equal(todayPreviewState(other), null, `${other} is routed to Today`);
-    assert.equal(TODAY_PREVIEW_STATES.length, 11);
+    assert.equal(TODAY_PREVIEW_STATES.length, 14);
+  });
+
+  test('the held preview refills after the fixed now', () => {
+    const end = Date.parse(TODAY_PREVIEW_HELD_BILLING.periodEnd ?? '');
+    for (const state of TODAY_PREVIEW_STATES) assert.ok(end > todayPreviewNow(todayPreviewHour(state)), `the held preview refills before ${state}'s now`);
   });
 
   test('every key has a plain label', () => {
@@ -80,13 +85,38 @@ describe("Today's preview keys — UI-015", () => {
     assert.match(task, /<PlansLeadBody onSun=\{onSun\}/);
     assert.match(task, /return <ExploreLeadBody bare=\{bare\}/);
     assert.match(task, /export function LeadRow\(/);
+    assert.match(task, /return <HeldLeadBody bare=\{bare\}/);
     assert.match(strip(read('../practice/LocalPracticeCard.tsx')), /if \(vivid\) return <OfflineLeadBody /);
     assert.match(strip(read('../game/QuestsCard.tsx')), /return <QuestsCardBody card=\{drawn\.model\}/);
-    for (const part of ['<PlansLeadBody', '<ExploreLeadBody', '<OfflineLeadBody', '<StarterContinuation', '<SceneLead', '<LeadRow', '<QuestsCardBody', '<TodayStatTiles ', '<TodayStatTilesSkeleton']) {
+    for (const part of ['<PlansLeadBody', '<HeldLeadBody', '<ExploreLeadBody', '<OfflineLeadBody', '<StarterContinuation', '<StarterFeedback ', '<SceneLead', '<LeadRow', '<QuestsCardBody', '<TodayStatTiles ', '<TodayStatTilesSkeleton']) {
       assert.ok(preview.includes(part), `the preview does not draw ${part}`);
     }
     // No storage, navigation or game layer reads in the preview.
     assert.doesNotMatch(preview, /useNavigation|useGame|useProfile|from '\.\.\/[^']*store\.ts'/);
+  });
+
+  test('the starter feedback preview draws the sheet part on the sheet ground, from real checks', () => {
+    const view = todayPreviewStarterFeedback();
+    assert.equal(view.accepted.feedback.accepted, true);
+    assert.equal(view.accepted.feedback.text, view.task.success);
+    assert.equal(view.missed.feedback.accepted, false);
+    assert.equal(view.missed.feedback.model, view.task.model);
+    const preview = strip(read('./TodayPreview.tsx'));
+    assert.match(preview, /if \(state === 'starter-feedback'\) return <StarterFeedbackSheet/);
+    assert.match(preview, /backgroundColor: t\.card/);
+    assert.match(preview, /<StarterFeedback reply=\{view\.accepted\.reply\} feedback=\{view\.accepted\.feedback\} \/>/);
+    assert.match(preview, /<StarterFeedback reply=\{view\.missed\.reply\} feedback=\{view\.missed\.feedback\} \/>/);
+    assert.match(strip(read('../onboarding/StarterContinuation.tsx')), /<StarterFeedback reply=\{reply\} feedback=\{feedback\} \/>/);
+  });
+
+  test('the plans past Starter preview drops the café line and opens the review door, as NextTaskCard does', () => {
+    const preview = strip(read('./TodayPreview.tsx'));
+    const line = preview.split('\n').find((l) => l.includes("case 'plans-past':"));
+    assert.ok(line !== undefined, 'today-plans-past is not drawn');
+    assert.match(line, /<PlansLeadBody onSun=\{false\} body=\{PLANS_LEAD\.body\}/);
+    assert.doesNotMatch(line, /onCafe/, 'the past-Starter preview offers the café line');
+    assert.match(line, /onReview=\{said\} reviewLabel=\{TODAY_PREVIEW_REVIEW\.title\}/);
+    assert.match(strip(read('../practice/NextTaskCard.tsx')), /onReview=\{cafeOffered \|\| reviewDoor === null \? undefined :/);
   });
 
   test('the screen list routes the keys to the Today preview and hides the chrome for it', () => {

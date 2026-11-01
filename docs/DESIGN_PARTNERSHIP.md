@@ -115,6 +115,10 @@ chooses per row. A screen's redesign session reads its rows here before its brie
 
 | Date | Screen | Problem | Direction | Branch | State |
 |---|---|---|---|---|---|
+| 2026-11-01 | Today, out of time past Starter | The hero holds the out-of-time words with a plain "Review N phrases" button, and Today's path still has its own Review row with the same words, so one intent shows twice. | Make the hero's single action a LipTile "Review N phrases" with the watering-plant art on sage, and drop the duplicate path row, so the screen keeps one focal point. | `claude/finish-fixes` | asked, no answer yet |
+| 2026-11-01 | Today's starter-line sheet | It reads as a form: the only practice surface without a stage. | Put the prompt and translation on a Write-family sage stage band, as Drill B does, with the field and pill below; the offline note becomes one muted caption under the field. | `claude/finish-fixes` | asked, no answer yet |
+| 2026-11-01 | Today and the drills (eyebrows) | Labels above headings ("One fix to try", "Build it in French", "Today's phrase") add a line the craft floor avoids; DESIGN.md defines `eyebrow` tokens, so this is not slop. | Fold the label into the heading ("One fix to try" becomes the heading and the question its caption) and retire the eyebrow tokens one screen at a time. | `claude/finish-fixes` | asked, no answer yet |
+| 2026-11-01 | Tab bar at accessibility sizes | Icons only (F947) removes every word, including the one that says where you are; a long press now shows it large on iOS. | Keep the selected cell's word under the sun glyph and hide only the four resting tabs' words. This revisits the founder's F947 decision. | `claude/finish-fixes` | asked, no answer yet |
 
 ## Tools and how they are used
 

@@ -33,7 +33,9 @@ export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false 
   if (vivid) return <OfflineLeadBody notice={offlineNotice(deviceOnLine())} cafe={offer === 'cafe' && phrase !== null} bare={bare} checking={checking}
     onTry={() => { if (phrase !== null) nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' }); }}
     onRecheck={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} />;
-  if (phrase === null) return null;
+  // Past Starter (F946) the plain card is not drawn: the phrase and review
+  // below are the learner's practice, never a first order.
+  if (phrase === null || offer === 'below') return null;
   // Bare on Today's hero (UI-015) the same words sit on the card's ground, in its ink.
   const words = bare ? t.text : t.onMint;
   const body = <>

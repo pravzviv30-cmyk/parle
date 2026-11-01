@@ -33,7 +33,7 @@ export function missReason(exercise: DrillExercise, shown: string | null = null)
       return blank === undefined || !exercise.sentence.includes('___') ? null : line(exercise.sentence.replace('___', blank), exercise.en);
     }
     case 'tap-translate':
-      return line(s ?? exercise.accepted[0], exercise.en);
+      return line(s ?? exercise.fr ?? exercise.accepted[0], exercise.en);
     case 'translate':
       // en-fr shows French, fr-en shows English: the shown side replaces its own.
       return exercise.direction === 'en-fr' ? line(s ?? exercise.fr, exercise.en) : line(exercise.fr, s ?? exercise.en);
