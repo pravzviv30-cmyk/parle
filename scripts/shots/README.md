@@ -54,7 +54,8 @@ Start the app from `apps/mobile` with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 np
 - **A signed-in learner with data.** Leave the preview flag off and start a non-production
   web build on mock auth with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1` and
   `EXPO_PUBLIC_LUVANI_CANVAS_LEARNER=1` (or `fresh`, which clears the account once first).
-  After a mock sign-up or sign-in, once the app has finished starting up for that account,
+  After a mock sign-up or sign-in, once the account's storage is open and before the first
+  screen draws (the loading screen holds until the seed settles),
   `apps/mobile/src/dev/canvasLearner.ts` seeds Yasmin: a three-day run, 120 XP, sample
   conversations, due cards. The mock account lives in the browser's storage, so a fresh
   `capture.mjs` run is always signed out. Use an `lv.mjs` profile: create an account

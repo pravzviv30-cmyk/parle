@@ -146,14 +146,26 @@ describe('the canvas learner waits for the account scope', () => {
     const gate = app.slice(app.indexOf('function Gate('));
     assert.ok(app.includes('function Gate('), 'App.tsx has no Gate, so this reads nothing');
     assert.ok(app.indexOf('function SignedInRoot(') >= 0 && root.length > 200, 'the SignedInRoot slice is empty, so this reads nothing');
-    assert.match(root, /useCanvasLearner\(auth, ready \? user : null\)/);
+    assert.match(root, /const canvasPending = useCanvasLearner\(auth, user, ready\);/);
     assert.doesNotMatch(gate, /useCanvasLearner\(/);
+  });
+
+  test('the app waits for the canvas seed before its first screen reads', async () => {
+    const { readFileSync } = await import('node:fs');
+    const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
+    const root = app.slice(app.indexOf('function SignedInRoot('), app.indexOf('function Gate('));
+    const hold = root.search(/if \(!ready \|\| freshStart === null \|\| canvasPending\) return <Loading \/>;/);
+    assert.ok(hold >= 0, 'SignedInRoot does not hold its loading screen while the seed is pending');
+    assert.ok(hold < root.indexOf('<NavigationContainer'), 'the navigator can mount before the seed settles');
+    const hook = readFileSync(new URL('./useCanvasLearner.ts', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    assert.match(hook, /\.finally\(\(\) => \{ if \(live\) setSettled\(uid\); \}\)/, 'a failed seed would hold the app forever');
+    assert.match(hook, /return uid !== null && canvasAllowed\(adapter\) && !done\.has\(uid\) && settled !== uid;/);
   });
 
   test('a storage rejection while seeding is caught and lets the account try again', async () => {
     const { readFileSync } = await import('node:fs');
     const hook = readFileSync(new URL('./useCanvasLearner.ts', import.meta.url), 'utf8').replace(/\s+/g, ' ');
-    assert.match(hook, /void startFresh\(uid\)\.then\(\(\) => seedCanvasLearner\(\{ id: uid \}, adapter\)\)\.then\([\s\S]*?\}\)\.catch\(\(\) => seeded\.delete\(uid\)\);/, 'a rejected seed is unhandled and never retried');
+    assert.match(hook, /startFresh\(uid\)\.then\(\(\) => seedCanvasLearner\(\{ id: uid \}, adapter\)\)\.then\([\s\S]*?\}\)\.catch\(\(\) => \{ inflight\.delete\(uid\); \}\)/, 'a rejected seed is unhandled and never retried');
   });
 
   test('a fresh start is not spent before the account\'s scope exists', async () => {
