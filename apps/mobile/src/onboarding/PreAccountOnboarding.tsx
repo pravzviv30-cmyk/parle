@@ -70,7 +70,6 @@ import { OnboardingLayout, useOnboardingTransition } from './OnboardingLayout.ts
 import { onboardingProgress } from './onboardingProgress.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { loadSetupDraft, saveSetupDraft, clearSetupDraft } from './onboardingDraftStore.ts';
-import { GlowAction, OnboardingScene, RevealItem } from './motion/OnboardingScenes.tsx';
 
 import { GoalTile } from './firstRun/GoalTile.tsx';
 import { ConsentFacts } from './firstRun/ConsentFacts.tsx';

@@ -2,6 +2,7 @@
 """Compile C's original layered SVGs into local Rive scenes.
 Requires official Rive CLI 1.5.1 and svgpathtools. SVG source is retained verbatim.
 Motion tracks in motion.json come from Figma get_motion_context; playback follows the requested continuous loops.
+Since 2026-11-01 the compiled .riv files and stills.json are not committed or loaded by the app; running this recreates them locally.
 """
 from pathlib import Path
 import json,math,os,re,shutil,subprocess,xml.etree.ElementTree as E

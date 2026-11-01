@@ -3,15 +3,13 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { test } from 'node:test';
 const assets = new URL('../../../assets/bold-rhythm/', import.meta.url);
 
-test('every local scene has a compiled Rive file and a matching static fallback', () => {
-  const stills = JSON.parse(readFileSync(new URL('stills.json', assets), 'utf8')) as Record<string,string>;
-  const files = readdirSync(assets).filter(f => f.endsWith('.riv')).map(f => f.slice(0,-4)).sort();
+test('the bundled scene artwork is local: every svg is present and none depends on an expiring URL', () => {
+  const files = readdirSync(assets).filter(f => f.endsWith('.svg')).map(f => f.slice(0,-4)).sort();
   assert.equal(files.length, 24);
-  assert.deepEqual(Object.keys(stills).sort(), files);
+  assert.deepEqual(readdirSync(new URL('source/', assets)).sort(), files, 'every scene source has its svg, and the other way round');
   for (const scene of files) {
-    assert.equal(readFileSync(new URL(`${scene}.riv`, assets)).subarray(0,4).toString(), 'RIVE', scene);
-    assert.equal(stills[scene], readFileSync(new URL(`${scene}.svg`, assets), 'utf8'), scene);
-    assert.doesNotMatch(stills[scene]!, /(?:href|src)=["']https?:|api\/mcp\/asset/, 'offline artwork cannot depend on expiring URLs');
+    const svg = readFileSync(new URL(`${scene}.svg`, assets), 'utf8');
+    assert.doesNotMatch(svg, /(?:href|src)=["']https?:|api\/mcp\/asset/, `${scene}: offline artwork cannot depend on expiring URLs`);
   }
 });
 

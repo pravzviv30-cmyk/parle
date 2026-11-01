@@ -3,6 +3,7 @@
 
 State colours are derived from Luvani's palette. Only the interior gradients move;
 application code separately scales the sphere from measured microphone/tutor audio.
+Since 2026-11-01 the compiled .riv files and stills.json are not committed or loaded by the app; running this recreates them locally.
 """
 import json, math, os, shutil, subprocess
 from pathlib import Path

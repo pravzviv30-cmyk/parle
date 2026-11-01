@@ -99,11 +99,6 @@ export function PlayGlyph({ size = 24, color = paper.ink }: GlyphProps) {
   return <Icon name="play" size={size} color={color} />;
 }
 
-/** The speaker with its outer arc dashed, for "Simpler": a Luvani drawing in the set. */
-export function SpeakerSlowGlyph({ size = 24, color = paper.ink }: GlyphProps) {
-  return <Icon name="speaker-slow" size={size} color={color} />;
-}
-
 /** The microphone struck through. */
 export function MicOffGlyph({ size = 24, color = paper.ink }: GlyphProps) {
   return <Icon name="microphone-off" size={size} color={color} />;

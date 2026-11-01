@@ -11111,7 +11111,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F862 — Unused code is kept alive only by its own tests
 - severity: P3
 - status: [ ]
-- where: apps/mobile/src/tutor/ContinuityCard.tsx:1
+- where: apps/mobile/src/home/greeting.ts:1
+- note (2026-11-01): `tutor/ContinuityCard.tsx` and `continuityRow` (with its copy and route types) in `tutor/dashboard.ts` are deleted, with their seven tests, which guarded only that dead row. The rest of the list below is still open, as is the no-module-reachable-only-from-its-tests check named on `verified-by`.
 - note: Found 2026-10-20 in B6. Direction B left code that no screen reads but that still has tests: `tutor/ContinuityCard.tsx`, `greetingSubline` and `GREETING_SUBLINES` (with `greetingWord` and `greetingLine`) in `home/greeting.ts`, `weekLines` and `WEEK_LINES_MAX` in `home/todayView.ts`, `tutorDoors` in `tutor/gate.ts`, `continuityRow` and its copy in `tutor/dashboard.ts`, and `WEEK_LABEL` in `home/todayView.ts`. B6 tried removing the first four and lost six tests, which the floors forbid (docs/TESTING.md). Removing them needs replacement tests for the live surfaces in the same change, so the mobile count does not drop.
 - verified-by: `no production module is reachable only from its own tests`
 
