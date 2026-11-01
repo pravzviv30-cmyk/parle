@@ -23,7 +23,13 @@ describe("Today's starter sheet, F948", () => {
     for (const tag of texts) assert.match(tag, /color: t\.(text|muted)/, `uncoloured line in the sheet: ${tag}`);
     const input = sheet.slice(sheet.indexOf('<TextInput'), sheet.indexOf('/>', sheet.indexOf('<TextInput')));
     assert.doesNotMatch(input, /paper\./, 'the reply field is drawn on light paper');
-    for (const want of [/color: t\.text/, /backgroundColor: t\.card/, /borderColor: t\.field/, /placeholderTextColor=\{t\.muted\}/])
+    for (const want of [/color: t\.text/, /backgroundColor: t\.card/, /borderColor: t\.field/, /borderRadius: radius\.field/, /placeholderTextColor=\{t\.muted\}/])
       assert.match(input, want);
+  });
+
+  test('the sheet says plainly what it checks', () => {
+    const flat = src.replace(/\s+/g, ' ');
+    assert.match(flat, /Offline phrase practice\. This checks your typed French, not your pronunciation\./);
+    assert.doesNotMatch(flat, /authored replies/);
   });
 });

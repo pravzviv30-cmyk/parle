@@ -61,8 +61,10 @@ export function tabAccessibilityLabel(route: string, dot: boolean | null): strin
   return dot === true ? `${label}, practice ready` : label;
 }
 
-/** The label's size, `boldType.small` (13/18). */
+/** The label's size, `boldType.small` (13/18); tabBar.test.ts reads theme.ts to hold them equal, since theme.ts imports React Native. */
 export const LABEL_SIZE = 13;
+/** The longest tab word, in letters. */
+export const WIDEST_LABEL = Math.max(...MAIN_TABS.map((r) => (TAB_LABELS[r] ?? r).length));
 /**
  * A letter's width as a share of the type size, flat for every letter. Outfit
  * Bold's real advances average 0.48 to 0.59 of the size across the five words
@@ -83,6 +85,5 @@ const FACE_PAD = 8;
 export function tabLabelsShown(fontScale: number, capsule: number): boolean {
   if (!labelsWrapUnderGlyph(fontScale)) return true;
   const room = (capsule - CAPSULE_PAD) / 5 - FACE_PAD;
-  const widest = Math.max(...MAIN_TABS.map((r) => (TAB_LABELS[r] ?? r).length));
-  return widest * LABEL_SIZE * LETTER_EM * fontScale <= room;
+  return WIDEST_LABEL * LABEL_SIZE * LETTER_EM * fontScale <= room;
 }

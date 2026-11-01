@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { checkStarter } from '@luvani/core';
 import { IconActionRow, IconAction, IconButton, Card, ColourCard, GhostButton, PillButton, Sheet } from '../components.tsx';
-import { frenchText, space, type } from '../theme.ts';
+import { frenchText, radius, space, type } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -168,8 +168,7 @@ export function StarterContinuation({
             </Text>
             <Text style={[type.body, { color: t.text }]}>{task.translation}</Text>
             <Text style={[type.small, { color: t.text }]}>
-              Offline phrase practice. This checks authored replies, without assessing
-              pronunciation.
+              Offline phrase practice. This checks your typed French, not your pronunciation.
             </Text>
             {feedback ? (
               <>
@@ -221,7 +220,7 @@ export function StarterContinuation({
                     backgroundColor: t.card,
                     borderWidth: 1,
                     borderColor: t.field,
-                    borderRadius: 16,
+                    borderRadius: radius.field,
                   }}
                 />
                 <PillButton

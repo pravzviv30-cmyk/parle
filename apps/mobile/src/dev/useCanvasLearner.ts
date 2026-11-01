@@ -29,8 +29,8 @@ export function useCanvasLearner(adapter: Pick<AuthAdapter, 'kind'>, user: Pick<
     if (uid === null || seeded.has(uid) || !canvasAllowed(adapter)) return;
     seeded.add(uid);
     void startFresh(uid).then(() => seedCanvasLearner({ id: uid }, adapter)).then((result) => {
-      // A changed account or a failed write may try again on the next sign-in.
+      // A changed account, a failed write or a storage rejection may try again on the next sign-in.
       if (!result.ok) seeded.delete(uid);
-    });
+    }).catch(() => seeded.delete(uid));
   }, [adapter, uid]);
 }

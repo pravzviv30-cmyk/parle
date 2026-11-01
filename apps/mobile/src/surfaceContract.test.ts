@@ -2010,7 +2010,10 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.match(speak, /<BButton label=\{PREPARE_FIRST\} height=\{48\} ground=\{t\.heroChip\}/, 'Prepare first is not the white secondary');
     // 2026-10-29 (fix-verifier): a fourth exclusive branch, Today's Open Explore when there is no next scene.
     // Round 2: a lapsed plan's See the plans, on its own exclusive branch.
-    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 5, 'personal practice, authored review, allowance, lapsed and no-scene are exclusive');
+    // F946 push-check round: the held lead's Review past Starter, the lead's one
+    // primary, and secondary beside a lapsed plan's See the plans.
+    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 6, 'personal practice, authored review, allowance, lapsed, held review and no-scene are exclusive');
+    assert.match(task, /<PillButton label="Practise review" variant=\{words\.plans \? 'secondary' : 'primary'\}/, 'the held Review is a second primary beside See the plans');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
     // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B
     // part's one 54pt BButton (today/TodayParts SceneLead); the blue brief

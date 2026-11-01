@@ -110,8 +110,8 @@ function TabStrip({ routes, insets, due }: {
 }) {
   // Watched so the bar re-renders when the OS text size changes while open.
   const { width } = useWindowDimensions();
-  const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
   const fontScale = PixelRatio.getFontScale();
+  const wrapped = labelsWrapUnderGlyph(fontScale);
   const capsule = tabCapsuleWidth(width, insets.left, insets.right);
   // F947: icons only when the widest word cannot fit whole in its cell.
   const shown = tabLabelsShown(fontScale, capsule);
@@ -120,7 +120,7 @@ function TabStrip({ routes, insets, due }: {
 
   return (
     <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
-      <View style={[st.capsule, { width: tabCapsuleWidth(width, insets.left, insets.right) }]}>
+      <View style={[st.capsule, { width: capsule }]}>
       {routes.map((route) => {
         const focused = route.focused;
         const icon = TAB_ICONS[route.name];
@@ -139,6 +139,9 @@ function TabStrip({ routes, insets, due }: {
             accessibilityState={{ selected: focused }}
             aria-selected={focused}
             accessibilityLabel={tabAccessibilityLabel(route.name, dot)}
+            // iOS: with the word hidden, a long press shows it large (F947).
+            accessibilityShowsLargeContentViewer={!shown}
+            accessibilityLargeContentTitle={shown ? undefined : label}
           >
             <TabGlyph focused={focused} badged={dot}>
               {() => <Icon name={icon} variant="linear" size={22} color={focused ? t.tabGlyphSelected : t.tabLabel} />}

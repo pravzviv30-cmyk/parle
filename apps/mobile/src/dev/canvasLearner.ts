@@ -78,9 +78,11 @@ export interface FreshStartDeps {
 }
 
 /**
- * Clears the account once, the first time a fresh canvas run meets it. The
- * one fresh start is spent only when this account's scope is active, so the
- * clear really ran; with no scope it waits for a later call.
+ * Clears the account once, the first time a fresh canvas run meets it. It
+ * does nothing unless this account's scope is the active one, so the clear
+ * lands on the right account; a call made too early clears and marks nothing,
+ * and only a later call can spend it. The mark is written after the clear, so
+ * a failed clear or write rejects and leaves the fresh start unspent.
  */
 export async function spendFreshStart(uid: string, deps: FreshStartDeps): Promise<void> {
   if (!deps.fresh() || deps.activeUid() !== uid) return;

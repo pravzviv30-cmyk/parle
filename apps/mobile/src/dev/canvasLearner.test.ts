@@ -144,6 +144,8 @@ describe('the canvas learner waits for the account scope', () => {
     const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
     const root = app.slice(app.indexOf('function SignedInRoot('), app.indexOf('function Gate('));
     const gate = app.slice(app.indexOf('function Gate('));
+    assert.ok(app.includes('function Gate('), 'App.tsx has no Gate, so this reads nothing');
+    assert.ok(app.indexOf('function SignedInRoot(') >= 0 && root.length > 200, 'the SignedInRoot slice is empty, so this reads nothing');
     assert.match(root, /useCanvasLearner\(auth, ready \? user : null\)/);
     assert.doesNotMatch(gate, /useCanvasLearner\(/);
   });

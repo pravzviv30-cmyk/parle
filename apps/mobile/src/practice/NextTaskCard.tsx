@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
@@ -117,9 +117,9 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   };
   // The plans lead's words and doors, once: on its own sun card, or (UI-015)
   // on the hero card's ground in the theme's ink.
-  const plansBody = (onSun: boolean) => <PlansLeadBody onSun={onSun} body={plansLeadBody(billing)} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onCafe={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} />;
+  const plansBody = (onSun: boolean) => <PlansLeadBody onSun={onSun} body={plansLeadBody(billing)} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onCafe={value !== null && offlineOffer(value.levelIndex) === 'cafe' ? () => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' }) : undefined} />;
   const plansCard = <ColourCard ground="sun">{plansBody(true)}</ColourCard>;
-  if (failed && vivid) return row ? null : (<View><Text style={type.body}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
+  if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   if (value === null || value.scope !== scopeGeneration()) return row ? null : <Text style={type.small}>Finding your next task…</Text>;
   if (vivid) {
@@ -149,20 +149,15 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
       if (row) {
         if (words.plans) return leadRow(lead, () => navigateOwned('Wall', { entry: 'refused' }));
         if (then === 'starter' && starter !== null) return starterRow(starter);
-        // Without the starter the held words still hold the scene's stop (fix
-        // round 1), and the tap opens practice that needs no minutes: the café
-        // line at Starter, Review past it (F946), never a first order.
-        return cafe ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : leadRow(lead, () => navigateOwned('Review'));
+        // Without the starter the row is the café line at Starter (fix round 1);
+        // past it there is no row (F946), because its words would name the
+        // scene while its tap opened something else. Today's Review row below
+        // is the practice that needs no minutes.
+        return cafe ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : null;
       }
-      const heldText = <>
-        <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{words.title}</Text>
-        <Text style={[type.body, { color: t.text }]}>{words.message}</Text>
-        {words.plans && <PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} />}
-      </>;
-      return <View style={{ gap: 12 }}>
-        {bare ? <View style={{ gap: 8 }}>{heldText}</View> : <Card style={{ gap: 8 }}>{heldText}</Card>}
-        {then === 'starter' && starter !== null ? starterCard(starter) : <LocalPracticeCard bare={bare} levelIndex={value.levelIndex} />}
-      </View>;
+      return <HeldLeadBody bare={bare} words={words} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onReview={() => navigateOwned('Review')}>
+        {then === 'starter' && starter !== null ? starterCard(starter) : offlineOffer(value.levelIndex) === 'cafe' ? <LocalPracticeCard bare={bare} levelIndex={value.levelIndex} /> : undefined}
+      </HeldLeadBody>;
     }
     if (lead === 'explore') {
       if (row) return leadRow(lead, () => nav.navigate('Explore'));
@@ -206,9 +201,29 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
  * The plans lead's words and doors, props in (UI-015, shared with the dev
  * preview): on its own sun card, or on the hero card's ground in the theme's ink.
  */
-export function PlansLeadBody({ onSun, body, onPlans, onCafe }: { onSun: boolean; body: string; onPlans: () => void; onCafe: () => void }) {
+export function PlansLeadBody({ onSun, body, onPlans, onCafe }: { onSun: boolean; body: string; onPlans: () => void; /** Only at Starter: past it the café line is a first order. */ onCafe?: () => void }) {
   const t = useB();
-  return <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{body}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={onPlans} /><IconAction layout="inline" ground={onSun ? 'sun' : undefined} icon="headphones" label="Try the offline café line" onPress={onCafe} /></>;
+  return <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{body}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={onPlans} />{onCafe !== undefined && <IconAction layout="inline" ground={onSun ? 'sun' : undefined} icon="headphones" label="Try the offline café line" onPress={onCafe} />}</>;
+}
+
+/**
+ * Out of time or lapsed, props in (F946, shared with the dev preview): the
+ * held words, then practice that needs no minutes with a real button. That is
+ * `children` when given (the starter's typed line, or the café line at
+ * Starter), and otherwise Review, secondary beside See plans so the lead
+ * keeps one primary.
+ */
+export function HeldLeadBody({ bare, words, onPlans, onReview, children }: { bare: boolean; words: { title: string; message: string; plans: boolean }; onPlans: () => void; onReview: () => void; children?: ReactNode }) {
+  const t = useB();
+  const heldText = <>
+    <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{words.title}</Text>
+    <Text style={[type.body, { color: t.text }]}>{words.message}</Text>
+    {words.plans && <PillButton label={PLANS_LEAD.action} onPress={onPlans} />}
+  </>;
+  return <View style={{ gap: 12 }}>
+    {bare ? <View style={{ gap: 8 }}>{heldText}</View> : <Card style={{ gap: 8 }}>{heldText}</Card>}
+    {children ?? <PillButton label="Practise review" variant={words.plans ? 'secondary' : 'primary'} onPress={onReview} />}
+  </View>;
 }
 
 /** No next scene yet: Explore's door, props in (UI-015, shared with the dev preview). */

@@ -12064,9 +12064,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   Today build kept it unchanged. Fix: pass the level index to both and offer a line at the
   learner's level, with a test.
 - fixed: 2026-10-31 on claude/finish-fixes. The held lead asks `offlineOffer(value.levelIndex)`: at
-  Starter the row and hero still offer the café line; past Starter the row keeps the held stop and its
-  tap opens Review, and the hero's `LocalPracticeCard` gets the level, whose plain branch now draws nothing for
-  'below', so the phrase and review below are the practice. No new copy.
+  Starter the row and hero still offer the café line. Past Starter (or with no café line) the held
+  row draws nothing, so no row says "The next scene" while opening something else, and Today's own
+  Review row is the practice; the hero (`HeldLeadBody`) draws the held words and then a real "Practise
+  review" button to Review. The plans lead offers the café line only at Starter, and the plain
+  `LocalPracticeCard` draws nothing for 'below'. Previewed as `today-held`. No new copy.
 - verified-by: `out of time past Starter offers a line at the learner's level`
 
 ### F947 — Tab bar labels cut off at accessibility text sizes

@@ -18,14 +18,14 @@ import {
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
 const strip = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night'];
+const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-held', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night'];
 
 describe("Today's preview keys — UI-015", () => {
-  test('the eleven keys route to their state, and nothing else does', () => {
+  test('the twelve keys route to their state, and nothing else does', () => {
     assert.deepEqual([...TODAY_PREVIEW_KEYS], WANTED);
     for (const key of WANTED) assert.equal(todayPreviewState(key), key.slice('today-'.length), `${key} is not routed`);
     for (const other of ['today', 'today-', 'today-morning', 'your-french-full', 'select', 'scene']) assert.equal(todayPreviewState(other), null, `${other} is routed to Today`);
-    assert.equal(TODAY_PREVIEW_STATES.length, 11);
+    assert.equal(TODAY_PREVIEW_STATES.length, 12);
   });
 
   test('every key has a plain label', () => {
@@ -80,9 +80,10 @@ describe("Today's preview keys — UI-015", () => {
     assert.match(task, /<PlansLeadBody onSun=\{onSun\}/);
     assert.match(task, /return <ExploreLeadBody bare=\{bare\}/);
     assert.match(task, /export function LeadRow\(/);
+    assert.match(task, /return <HeldLeadBody bare=\{bare\}/);
     assert.match(strip(read('../practice/LocalPracticeCard.tsx')), /if \(vivid\) return <OfflineLeadBody /);
     assert.match(strip(read('../game/QuestsCard.tsx')), /return <QuestsCardBody card=\{drawn\.model\}/);
-    for (const part of ['<PlansLeadBody', '<ExploreLeadBody', '<OfflineLeadBody', '<StarterContinuation', '<SceneLead', '<LeadRow', '<QuestsCardBody', '<TodayStatTiles ', '<TodayStatTilesSkeleton']) {
+    for (const part of ['<PlansLeadBody', '<HeldLeadBody', '<ExploreLeadBody', '<OfflineLeadBody', '<StarterContinuation', '<SceneLead', '<LeadRow', '<QuestsCardBody', '<TodayStatTiles ', '<TodayStatTilesSkeleton']) {
       assert.ok(preview.includes(part), `the preview does not draw ${part}`);
     }
     // No storage, navigation or game layer reads in the preview.

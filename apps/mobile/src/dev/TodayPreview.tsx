@@ -5,7 +5,7 @@
  * It draws the same `TodayLayout` composition HomeTab hands its parts to, and
  * every part in it is the real one with fixture props: the sky, the tiles, the
  * hero bodies (`FixHero`, `SceneLead`, `PlansLeadBody`, `StarterContinuation`,
- * `OfflineLeadBody`, `ExploreLeadBody`, `TodayFailedHero`, `TodayLoadingHero`),
+ * `OfflineLeadBody`, `HeldLeadBody`, `ExploreLeadBody`, `TodayFailedHero`, `TodayLoadingHero`),
  * the rows, the three, Coming up and the week. Only the profile disc is drawn
  * as its face (`Monogram` on the sky's chip), because `ProfileButton` reads
  * navigation and the profile. Every press does nothing but say so.
@@ -33,15 +33,15 @@ import { TodayStatTiles, TodayStatTilesSkeleton } from '../game/TodayStatTiles.t
 import { QuestsCardBody } from '../game/QuestsCard.tsx';
 import { threeDone } from '../home/todayView.ts';
 import { ComingUpCard, SceneLead, SectionTitle, WeekCard } from '../today/TodayParts.tsx';
-import { ExploreLeadBody, LeadRow, PlansLeadBody } from '../practice/NextTaskCard.tsx';
-import { leadStop } from '../practice/nextTask.ts';
+import { ExploreLeadBody, HeldLeadBody, LeadRow, PlansLeadBody } from '../practice/NextTaskCard.tsx';
+import { heldWords, leadStop } from '../practice/nextTask.ts';
 import { OfflineLeadBody } from '../practice/LocalPracticeCard.tsx';
 import { offlineNotice } from '../practice/localPractice.ts';
 import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import {
-  TODAY_PREVIEW_COMING_UP, TODAY_PREVIEW_FIX, TODAY_PREVIEW_PHRASE, TODAY_PREVIEW_REVIEW, TODAY_PREVIEW_SCENE, TODAY_PREVIEW_WEEK,
-  todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewOpen, todayPreviewStarter, type TodayPreviewState,
+  TODAY_PREVIEW_COMING_UP, TODAY_PREVIEW_FIX, TODAY_PREVIEW_HELD_BILLING, TODAY_PREVIEW_PHRASE, TODAY_PREVIEW_REVIEW, TODAY_PREVIEW_SCENE, TODAY_PREVIEW_WEEK,
+  todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewStarter, type TodayPreviewState,
 } from './todayPreviewFixtures.ts';
 
 const NOTE = 'Preview only. Nothing opens.';
@@ -85,6 +85,8 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
       case 'plans': return <View style={s.gap}><PlansLeadBody onSun={false} body={PLANS_LEAD.body} onPlans={said} onCafe={said} /></View>;
       case 'starter': return <StarterContinuation initial={starter} bare onTutor={said} onPlans={said} />;
       case 'offline': return <OfflineLeadBody notice={offlineNotice(false)} cafe bare checking={false} onTry={said} onRecheck={said} />;
+      // Past Starter, so no café line: the words, then Review (F946).
+      case 'held': return <HeldLeadBody bare words={heldWords(TODAY_PREVIEW_HELD_BILLING, todayPreviewNow(hour))} onPlans={said} onReview={said} />;
       case 'explore': return <ExploreLeadBody bare title={leadStop('explore', null).title} onExplore={said} />;
       default: return scene(false);
     }
