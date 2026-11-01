@@ -214,8 +214,9 @@ vendor, once inside `buildFrame` and again in each turn request, as `SAVED TUTOR
 at most five facts that pass the context check and the sensitive screen, ranked by words
 shared with the scene, most recent first when none match. On the scene's turns (not the
 frame call), `ownSlipBrief` adds one stored error-pattern `example` after it, as
-`THEIR OWN PAST SLIP`: the learner's own earlier French attempt from a past session (at
-most 160 characters) with its tag. It is left out when memory is paused or locked
+`THEIR OWN PAST SLIP`: the learner's own earlier French attempt, usually from a past
+session and sometimes from an earlier scene in the same session (at most 160 characters),
+with its tag. It is left out when memory is paused or locked
 (trial, lapsed, guest), and when the example fails `safeContextText` or
 `sensitiveMemoryCategory` flags it. Before this, only the tags reached the model.
 Since LEARN-010 each note carries a source label: `the learner wrote this`, or
