@@ -172,17 +172,7 @@ export function StarterContinuation({
             </Text>
             {feedback ? (
               <>
-                <Card style={{ gap: 12 }}>
-                  <Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>
-                    {reply}
-                  </Text>
-                  <Text style={[type.body, { color: t.text }]}>{feedback.text}</Text>
-                  {!feedback.accepted && (
-                    <Text {...frenchText} style={[type.french, { color: t.text }]}>
-                      {feedback.model}
-                    </Text>
-                  )}
-                </Card>
+                <StarterFeedback reply={reply} feedback={feedback} />
                 <PillButton label="Finish" onPress={() => setVisible(false)} />
                 <IconAction layout="inline" icon="replay"
                   label="Retry this line"
@@ -245,6 +235,28 @@ export function StarterContinuation({
         )}
       </Sheet>
     </>
+  );
+}
+
+/**
+ * The checked reply on the starter sheet: the learner's line, what the check
+ * says, and the model line when it was not accepted. Props in, so the dev
+ * preview draws the same part (`today-starter-feedback`).
+ */
+export function StarterFeedback({ reply, feedback }: { reply: string; feedback: ReturnType<typeof checkStarter> }) {
+  const t = useB();
+  return (
+    <Card style={{ gap: 12 }}>
+      <Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>
+        {reply}
+      </Text>
+      <Text style={[type.body, { color: t.text }]}>{feedback.text}</Text>
+      {!feedback.accepted && (
+        <Text {...frenchText} style={[type.french, { color: t.text }]}>
+          {feedback.model}
+        </Text>
+      )}
+    </Card>
   );
 }
 

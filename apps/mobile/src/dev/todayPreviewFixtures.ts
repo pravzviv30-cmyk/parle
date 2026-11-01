@@ -16,10 +16,11 @@ import { homeNudge } from '../home/nudge.ts';
 import { homeGreeting } from '../home/greeting.ts';
 import type { ComingUpCardView } from '../today/TodayParts.tsx';
 import type { HomeBilling } from '../home/nextAction.ts';
-import type { GuestPractice } from '../onboarding/guestModel.ts';
+import { checkStarter } from '@luvani/core';
+import { continuingTask, type GuestPractice } from '../onboarding/guestModel.ts';
 import { freshPreAccountDraft } from '../onboarding/preAccountDraft.ts';
 
-export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'held', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night'] as const;
+export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'held', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night', 'starter-feedback'] as const;
 export type TodayPreviewState = typeof TODAY_PREVIEW_STATES[number];
 
 /** The preview keys, in the order the list shows them. */
@@ -39,6 +40,7 @@ export const TODAY_PREVIEW_LABELS: Record<TodayPreviewKey, string> = {
   'today-failed': 'Today, could not load',
   'today-evening': 'Today, evening sky',
   'today-night': 'Today, night sky',
+  'today-starter-feedback': 'Today, starter line checked',
 };
 
 /** The Today state a preview key names, or null for every other key. */
@@ -126,4 +128,19 @@ export const TODAY_PREVIEW_WEEK = 'This week you spoke French for 18 minutes and
 /** A starter line the learner has not answered yet. */
 export function todayPreviewStarter(): GuestPractice {
   return { version: 2, token: null, id: null, expiresAt: 0, secondsUsed: 0, attempts: [], kept: false, completed: false, plan: { ...freshPreAccountDraft(), eligibilityConfirmed: true, reason: 'trip', minutes: 10 } };
+}
+
+/**
+ * The starter sheet after a check (`today-starter-feedback`): the fixed
+ * learner's first task, answered once with its model line (accepted) and once
+ * with a line that misses (not accepted), folded by the real `checkStarter`.
+ */
+export function todayPreviewStarterFeedback() {
+  const task = continuingTask(todayPreviewStarter());
+  const missed = 'Bonjour';
+  return {
+    task,
+    accepted: { reply: task.model, feedback: checkStarter(task, task.model, 'typed') },
+    missed: { reply: missed, feedback: checkStarter(task, missed, 'typed') },
+  };
 }

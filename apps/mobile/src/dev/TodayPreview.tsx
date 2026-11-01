@@ -9,6 +9,10 @@
  * the rows, the three, Coming up and the week. Only the profile disc is drawn
  * as its face (`Monogram` on the sky's chip), because `ProfileButton` reads
  * navigation and the profile. Every press does nothing but say so.
+ *
+ * `today-starter-feedback` draws the starter sheet's checked state on the
+ * Sheet's own ground (`t.card`): its prompt lines, then `StarterFeedback`
+ * accepted and not accepted, because the sheet itself opens only on a tap.
  */
 
 import { useState } from 'react';
@@ -19,7 +23,7 @@ import { ScrollScreen } from '../layout.tsx';
 import { ModeScope, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import type { MainMode } from '../main/appearanceModel.ts';
 import { BArt } from '../art/BArt.tsx';
-import { HIT, bType, space } from '../theme.ts';
+import { HIT, bType, frenchText, space, type } from '../theme.ts';
 import { SkyBand } from '../home/SkyBand.tsx';
 import { TodayHeroCard } from '../home/TodayHeroCard.tsx';
 import { TODAY_OVERLAP, TodayLayout } from '../home/TodayLayout.tsx';
@@ -37,11 +41,11 @@ import { ExploreLeadBody, HeldLeadBody, LeadRow, PlansLeadBody } from '../practi
 import { heldWords, leadStop } from '../practice/nextTask.ts';
 import { OfflineLeadBody } from '../practice/LocalPracticeCard.tsx';
 import { offlineNotice } from '../practice/localPractice.ts';
-import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
+import { StarterContinuation, StarterFeedback } from '../onboarding/StarterContinuation.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import {
   TODAY_PREVIEW_COMING_UP, TODAY_PREVIEW_FIX, TODAY_PREVIEW_HELD_BILLING, TODAY_PREVIEW_PHRASE, TODAY_PREVIEW_REVIEW, TODAY_PREVIEW_SCENE, TODAY_PREVIEW_WEEK,
-  todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewStarter, type TodayPreviewState,
+  todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewStarter, todayPreviewStarterFeedback, type TodayPreviewState,
 } from './todayPreviewFixtures.ts';
 
 const NOTE = 'Preview only. Nothing opens.';
@@ -61,6 +65,7 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
   const [note, setNote] = useState(false);
   const [starter] = useState(todayPreviewStarter);
   const said = () => setNote(true);
+  if (state === 'starter-feedback') return <StarterFeedbackSheet onBack={onBack} />;
   const hour = todayPreviewHour(state);
   const sky = skyView(hour, mode);
   const lead = todayPreviewHero(state);
@@ -140,10 +145,39 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
   );
 }
 
+/** The starter sheet's body after a check, on the Sheet panel's ground and padding. */
+function StarterFeedbackSheet({ onBack }: { onBack?: () => void }) {
+  const t = useB();
+  const s = useThemedStyles(makeStyles);
+  const [view] = useState(todayPreviewStarterFeedback);
+  const { task } = view;
+  return (
+    <ScrollScreen padded={false}>
+      <View style={[s.panel, { backgroundColor: t.card }]}>
+        <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>{task.title}</Text>
+        <Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>{task.prompt}</Text>
+        <Text style={[type.body, { color: t.text }]}>{task.translation}</Text>
+        <Text style={[type.small, { color: t.text }]}>
+          Offline phrase practice. This checks your typed French, not your pronunciation.
+        </Text>
+        <StarterFeedback reply={view.accepted.reply} feedback={view.accepted.feedback} />
+        <StarterFeedback reply={view.missed.reply} feedback={view.missed.feedback} />
+      </View>
+      {onBack !== undefined && (
+        <View style={s.foot}>
+          <Press haptic="light" accessibilityRole="button" accessibilityLabel="Back to the screen preview list" onPress={onBack} style={s.back}>
+            <Text style={[bType.bold15, { color: t.link }]}>Back to screen preview</Text>
+          </Press>
+        </View>
+      )}
+    </ScrollScreen>
+  );
+}
 
 const makeStyles = (_t: B) =>
   StyleSheet.create({
     gap: { gap: space(3) },
+    panel: { paddingHorizontal: space(5), paddingVertical: space(6), gap: space(4) },
     section: { gap: space(3) },
     foot: { paddingHorizontal: space(4), paddingVertical: space(4), gap: space(2) },
     back: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
