@@ -19,6 +19,14 @@ const STOPWORDS = new Set([
   // French
   'les', 'des', 'une', 'est', 'pour', 'avec', 'dans', 'mon', 'ton', 'son', 'mes', 'tes', 'ses', 'nous', 'vous',
   'qui', 'que', 'pas', 'sur', 'par', 'aux', 'elle', 'ils', 'elles', 'mais', 'ou', 'leur', 'leurs', 'cette', 'ces',
+  // Request and filler words, so "I want to practise..." does not meet "Wants to visit...".
+  // Matched after accent stripping and before suffix trimming (so `etre`, `tres`, `wants`).
+  'want', 'wants', 'would', 'like', 'likes', 'love', 'loves', 'need', 'needs', 'about', 'into', 'just', 'some',
+  'very', 'when', 'where', 'how', 'why', 'practise', 'practice', 'talk', 'say', 'speak', 'get', 'going', 'make',
+  'does', 'did', 'been', 'being', 'were', 'then', 'than', 'also', 'more', 'most', 'one', 'two', 'today', 'now',
+  'voudrais', 'voudrait', 'veux', 'veut', 'aime', 'aimerais', 'faire', 'fait', 'aller', 'vais', 'etre', 'suis',
+  'avoir', 'tres', 'plus', 'comme', 'quand', 'aussi', 'alors', 'bien', 'tout', 'tous', 'parler', 'dire',
+  'pratiquer',
 ]);
 
 /**
@@ -39,9 +47,11 @@ function trimSuffix(token: string): string {
  * like `l'appartement` and hyphenated tags split), short words and stopwords
  * dropped, then suffix-trimmed.
  */
-export function recallTerms(texts: readonly string[]): Set<string> {
+export function recallTerms(texts: readonly unknown[]): Set<string> {
   const terms = new Set<string>();
   for (const text of texts) {
+    // Synced profiles can carry a missing or numeric field; skip it, never throw.
+    if (typeof text !== 'string') continue;
     const folded = text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
     for (const token of folded.split(/[^\p{L}]+/u)) {
       if (token.length < 3 || STOPWORDS.has(token)) continue;
@@ -69,7 +79,7 @@ export function recallFacts(facts: readonly RememberedFact[], scene: readonly st
   // `slice(-0)` is the whole array, so a zero cap is answered here, not by the fallback.
   if (max <= 0) return [];
   const sceneTerms = recallTerms(scene);
-  const scores = facts.map((f) => (sceneTerms.size ? overlap(recallTerms([f.en, f.fr ?? '']), sceneTerms) : 0));
+  const scores = facts.map((f) => (sceneTerms.size ? overlap(recallTerms([f.en, f.fr]), sceneTerms) : 0));
   if (!scores.some((s) => s > 0)) return facts.slice(-max);
   const indexes = facts.map((_, i) => i);
   const scored = indexes.filter((i) => scores[i]! > 0).sort((a, b) => scores[b]! - scores[a]! || b - a);
@@ -97,7 +107,7 @@ export function recallPatterns(
   const sceneTerms = recallTerms(scene);
   const ranked = fallback.map(([tag, p], order) => ({
     tag,
-    example: p.example,
+    example: typeof p.example === 'string' ? p.example : '',
     recurring: patternStatus(p) === 'recurring',
     count: p.count,
     score: sceneTerms.size ? overlap(recallTerms([tag, p.example]), sceneTerms) : 0,
@@ -123,7 +133,7 @@ export function rankPhrasesForScene<
   const helpedOnly = (p: P) => p.timesAssisted > 0 && p.timesUsedWell === 0;
   const scored = phrases.map((p) => ({
     p,
-    score: sceneTerms.size ? overlap(recallTerms([p.fr, p.frWritten ?? '', p.en]), sceneTerms) : 0,
+    score: sceneTerms.size ? overlap(recallTerms([p.fr, p.frWritten, p.en]), sceneTerms) : 0,
   }));
   // Array.sort is stable, so remaining ties keep input order.
   scored.sort(

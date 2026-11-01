@@ -132,3 +132,32 @@ describe('rankPhrasesForScene', () => {
     assert.deepEqual(rankPhrasesForScene([], ['café']), []);
   });
 });
+
+describe('recall on malformed synced data', () => {
+  test('a pattern with no example, a numeric fr, a null en: no throw', () => {
+    assert.deepEqual([...recallTerms([42 as unknown as string, null as unknown as string, 'café'])], [...recallTerms(['café'])]);
+    const pats = { 'gender-agreement': { count: 2 } } as unknown as LearnerProfile['errorPatterns'];
+    assert.doesNotThrow(() => recallPatterns(pats, ['gender at the cafe']));
+    for (const p of recallPatterns(pats, ['gender at the cafe'])) assert.equal(p.example, '');
+    const facts = [fact('Loves the café', 7 as unknown as string), fact('Has a dog')];
+    assert.deepEqual(recallFacts(facts, ['café order']), facts);
+    const ph = [phrase('un café', null as unknown as string, 0, 0), phrase('bonjour', 'hello', 1, 0)];
+    const out = rankPhrasesForScene(ph, ['café']);
+    assert.equal(out[0], ph[0]);
+  });
+});
+
+describe('request words do not make facts relevant', () => {
+  const older = fact('Wants to visit Bordeaux in spring');
+  const others = ['Has a dog', 'Works in finance', 'Lives in Leeds', 'Plays tennis', 'Likes jazz'].map((t) => fact(t));
+  test('the Bordeaux fact does not match a coffee request', () => {
+    const facts = [older, ...others];
+    assert.deepEqual(recallFacts(facts, ['I want to practise ordering a coffee']), facts.slice(-5));
+    assert.deepEqual(recallFacts(facts, ['Je voudrais pratiquer, je veux parler très bien']), facts.slice(-5));
+  });
+  test('a real café match still ranks', () => {
+    const cafe = fact('Loves the café near work');
+    const out = recallFacts([cafe, ...others], ['I want to practise ordering at a café']);
+    assert.equal(out[0], cafe);
+  });
+});
