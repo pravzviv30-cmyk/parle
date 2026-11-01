@@ -78,7 +78,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   // Whether the billing read has answered (or cannot run), so nothing that
   // depends on it is drawn on a guess.
   const [billingAnswered, setBillingAnswered] = useState(false);
-  const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; deck: readonly ReviewCard[]; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null; levelIndex: number } | null>(null);
+  const [value, setValue] = useState<{ scope: number; now: number; card: PracticeCard | null; deck: readonly ReviewCard[]; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null; levelIndex: number } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useFocusEffect(useCallback(() => {
@@ -102,7 +102,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
         const card = rec.kind === 'none' ? null : practiceCard({ rec, deck, packs, now, resuming: saved?.targets.map(t => t.phraseKey) ?? [] });
         const levelIndex = levelFor(totalXp(activity)).index;
         const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex, startingMissionId, goal: goalOf(profile), startAt, now });
-        setValue({ scope, card, deck, offer: reviewOffer(deck, now), hero, buildsOn: buildsOn(packs, hero), levelIndex });
+        setValue({ scope, now, card, deck, offer: reviewOffer(deck, now), hero, buildsOn: buildsOn(packs, hero), levelIndex });
       }).catch(() => { if (!cancelled && scope === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
   }, [attempt, owner, startingMissionId, startAt]));
@@ -120,7 +120,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   // on the hero card's ground in the theme's ink.
   // Review as a lead's door is Today's own review row: drawn only when Review
   // has something to deal, and named as the row is (round 3).
-  const reviewDoor = value === null ? null : reviewRow(value.deck, Date.now(), locks.access('conversationPractice'));
+  const reviewDoor = value === null ? null : reviewRow(value.deck, value.now, locks.access('conversationPractice'));
   const cafeOffered = value !== null && offlineOffer(value.levelIndex) === 'cafe';
   const plansBody = (onSun: boolean) => <PlansLeadBody onSun={onSun} body={plansLeadBody(billing)} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onCafe={cafeOffered ? () => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' }) : undefined} onReview={cafeOffered || reviewDoor === null ? undefined : () => navigateOwned('Review')} reviewLabel={reviewDoor?.title} />;
   const plansCard = <ColourCard ground="sun">{plansBody(true)}</ColourCard>;
@@ -148,7 +148,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     if ((lead === 'outOfTime' || lead === 'lapsed') && billing !== null) {
       // The words, then practice that needs no minutes, with a real button
       // (fix-verifier round 2): the starter's typed line, or the local card.
-      const words = heldWords(billing, Date.now());
+      const words = heldWords(billing, value.now);
       const then = afterHeld(starter !== null) === 'starter' && starter !== null ? 'starter' : 'local';
       const cafe = local !== null && offlineOffer(value.levelIndex) === 'cafe';
       if (row) {
