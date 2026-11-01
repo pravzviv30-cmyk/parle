@@ -88,6 +88,8 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
       case 'fix': return <FixHero fix={TODAY_PREVIEW_FIX} onTry={said} />;
       case 'tutor-unreachable': return scene(true);
       case 'plans': return <View style={s.gap}><PlansLeadBody onSun={false} body={PLANS_LEAD.body} onPlans={said} onCafe={said} /></View>;
+      // Past Starter with reviews due, as NextTaskCard draws it: no café line, the review door (F946).
+      case 'plans-past': return <View style={s.gap}><PlansLeadBody onSun={false} body={PLANS_LEAD.body} onPlans={said} onReview={said} reviewLabel={TODAY_PREVIEW_REVIEW.title} /></View>;
       case 'starter': return <StarterContinuation initial={starter} bare onTutor={said} onPlans={said} />;
       case 'offline': return <OfflineLeadBody notice={offlineNotice(false)} cafe bare checking={false} onTry={said} onRecheck={said} />;
       // Past Starter, so no café line: the words, then Review (F946).

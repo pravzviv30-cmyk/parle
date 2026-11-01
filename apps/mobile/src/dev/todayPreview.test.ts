@@ -18,14 +18,14 @@ import {
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
 const strip = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-held', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night', 'today-starter-feedback'];
+const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-held', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night', 'today-starter-feedback', 'today-plans-past'];
 
 describe("Today's preview keys — UI-015", () => {
-  test('the thirteen keys route to their state, and nothing else does', () => {
+  test('the fourteen keys route to their state, and nothing else does', () => {
     assert.deepEqual([...TODAY_PREVIEW_KEYS], WANTED);
     for (const key of WANTED) assert.equal(todayPreviewState(key), key.slice('today-'.length), `${key} is not routed`);
     for (const other of ['today', 'today-', 'today-morning', 'your-french-full', 'select', 'scene']) assert.equal(todayPreviewState(other), null, `${other} is routed to Today`);
-    assert.equal(TODAY_PREVIEW_STATES.length, 13);
+    assert.equal(TODAY_PREVIEW_STATES.length, 14);
   });
 
   test('the held preview refills after the fixed now', () => {
@@ -107,6 +107,16 @@ describe("Today's preview keys — UI-015", () => {
     assert.match(preview, /<StarterFeedback reply=\{view\.accepted\.reply\} feedback=\{view\.accepted\.feedback\} \/>/);
     assert.match(preview, /<StarterFeedback reply=\{view\.missed\.reply\} feedback=\{view\.missed\.feedback\} \/>/);
     assert.match(strip(read('../onboarding/StarterContinuation.tsx')), /<StarterFeedback reply=\{reply\} feedback=\{feedback\} \/>/);
+  });
+
+  test('the plans past Starter preview drops the café line and opens the review door, as NextTaskCard does', () => {
+    const preview = strip(read('./TodayPreview.tsx'));
+    const line = preview.split('\n').find((l) => l.includes("case 'plans-past':"));
+    assert.ok(line !== undefined, 'today-plans-past is not drawn');
+    assert.match(line, /<PlansLeadBody onSun=\{false\} body=\{PLANS_LEAD\.body\}/);
+    assert.doesNotMatch(line, /onCafe/, 'the past-Starter preview offers the café line');
+    assert.match(line, /onReview=\{said\} reviewLabel=\{TODAY_PREVIEW_REVIEW\.title\}/);
+    assert.match(strip(read('../practice/NextTaskCard.tsx')), /onReview=\{cafeOffered \|\| reviewDoor === null \? undefined :/);
   });
 
   test('the screen list routes the keys to the Today preview and hides the chrome for it', () => {

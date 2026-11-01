@@ -20,7 +20,7 @@ import { checkStarter } from '@luvani/core';
 import { continuingTask, type GuestPractice } from '../onboarding/guestModel.ts';
 import { freshPreAccountDraft } from '../onboarding/preAccountDraft.ts';
 
-export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'held', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night', 'starter-feedback'] as const;
+export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'held', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night', 'starter-feedback', 'plans-past'] as const;
 export type TodayPreviewState = typeof TODAY_PREVIEW_STATES[number];
 
 /** The preview keys, in the order the list shows them. */
@@ -41,6 +41,7 @@ export const TODAY_PREVIEW_LABELS: Record<TodayPreviewKey, string> = {
   'today-evening': 'Today, evening sky',
   'today-night': 'Today, night sky',
   'today-starter-feedback': 'Today, starter line checked',
+  'today-plans-past': 'Today, plans past Starter',
 };
 
 /** The Today state a preview key names, or null for every other key. */
