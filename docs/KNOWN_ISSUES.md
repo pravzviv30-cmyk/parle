@@ -12174,5 +12174,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   correctly (icons only, greeting whole). The fix-verifier judged it pre-existing (the greeting is
   untouched by that branch). Fix: re-measure the greeting and re-lay the bar on a font scale change,
   with a test that drives the change.
+- tried 2026-11-01 on claude/bug-fix, none landed: the bug is wider than the greeting and the bar.
+  After a live switch from Large to accessibility-large, the stat tiles re-stack (JS sees the new
+  `useWindowDimensions().fontScale`), but every text box on Today keeps its old measured size:
+  hero lines, the Say button and "Today's path" are clipped mid-line too. Switching back leaves the
+  path rows at the larger height. Three app-level fixes were tried live and ruled out: a remount of
+  Today's content and the bar keyed on the font scale (fixes only the way back to the launch size);
+  waiting longer; and the sign-in screens' `maxFontSizeMultiplier={fontScale + 1}` revision on every
+  Text on Today (no change, and it clashes with the rule that keeps that prop off Today). The fault
+  looks native (React Native 0.86.3 Fabric on iOS, or the dev client's surface). Next probe: a bare
+  `<Text>` with no props on a preview screen; if it also stays stale, report it upstream or patch
+  natively. Shots in `artifacts/bug-fix-2026-11/` (`before/`, `f952-attempts/`).
 - verified-by: `Today re-lays out when the text size changes while it is open`
 
