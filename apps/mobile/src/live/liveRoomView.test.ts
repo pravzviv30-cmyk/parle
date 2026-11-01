@@ -209,3 +209,19 @@ describe('direction D: the room menu', () => {
     assert.deepEqual(roomMenuRows({ typing: false, transcriptVisible: true, reportable: false }).map((row) => row.kind), ['transcript']);
   });
 });
+
+describe('the shared B marks', () => {
+  const importLines = (path: string) =>
+    readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8')
+      .split('\n')
+      .filter((line) => /^(import|export)\b[^;]*\bfrom\b/.test(line));
+  test('TodayParts and LiveParts do not import each other', () => {
+    assert.deepEqual(importLines('../today/TodayParts.tsx').filter((line) => /live\/|LiveParts/.test(line)), [], 'TodayParts reaches into the live room again');
+    assert.deepEqual(importLines('./LiveParts.tsx').filter((line) => /today\/|TodayParts/.test(line)), [], 'LiveParts reaches into Today again');
+  });
+  test('main/bMarks.tsx is a leaf: it imports nothing from today/ or live/', () => {
+    const lines = importLines('../main/bMarks.tsx');
+    assert.deepEqual(lines.filter((line) => /today\/|live\/|TodayParts|LiveParts/.test(line)), []);
+    assert.deepEqual(lines.map((line) => /from '([^']+)'/.exec(line)?.[1]).sort(), ['../theme.ts', 'react-native-svg']);
+  });
+});

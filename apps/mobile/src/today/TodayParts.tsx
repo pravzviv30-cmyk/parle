@@ -15,7 +15,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
 import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
-import { KeyboardMark } from '../live/LiveParts.tsx';
+import { BMic, KeyboardMark } from '../main/bMarks.tsx';
 import type { TutorVoiceKey } from '@luvani/core';
 import { LockBadge, Press } from '../components.tsx';
 import type { LockedFeature } from '../access/featureAccess.ts';
@@ -26,25 +26,7 @@ import { SCENE_TILE, sceneTileSide } from '../responsiveLayout.ts';
 
 // ─────────────────────────────────────────────────────────────── glyphs
 
-/** The artboard's mic: a capsule and its stand, stroke 2. */
-export function BMic({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
-      <Rect x={8.5} y={3} width={7} height={12} rx={3.5} fill="none" stroke={color} strokeWidth={2} />
-      <Path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-/** The two-wave speaker (b-spec A6), filled cone and 1.8 waves. */
-export function BSpeaker({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill={color} />
-      <Path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-    </Svg>
-  );
-}
+export { BMic, BSpeaker } from '../main/bMarks.tsx';
 
 /** The outline lock of Today's locked note (b-spec A6), stroke 2. */
 export function OutlineLock({ size, color }: { size: number; color: string }) {
