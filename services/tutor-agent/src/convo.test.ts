@@ -5662,7 +5662,8 @@ describe('scene-relevant recall', () => {
   function recallProfile(): LearnerProfile {
     const profile = createProfile();
     profile.memory.facts = [
-      fact('Drinks a café crème every morning'),
+      // 'Orders', not 'Drinks': the apéro frame's "Drinks with friends" would make this note relevant there.
+      fact('Orders a café crème every morning'),
       fact('Loves going to the cinema'),
       ...Array.from({ length: 5 }, (_, i) => fact('Enjoys activity ' + i)),
     ];
@@ -5697,7 +5698,7 @@ describe('scene-relevant recall', () => {
 
   test('a scene brings its own note over a newer unrelated one, and a second scene re-ranks', async (t) => {
     t.mock.method(console, 'warn', () => {});
-    const client = new MockLlmClient({ turns: [sampleTurn(), sampleTurn()] });
+    const client = new MockLlmClient({ turns: [sampleTurn(), sampleTurn()], frames: [CAFE_FRAME, APERO_FRAME] });
     const built = await inScene(t, { client, profile: recallProfile(), voiceless: true });
     await sceneSettled();
     assert.match(JSON.stringify(client.frameRequests[0]!.request), /café crème/, 'the frame call gets a request-relevant brief');
@@ -5714,7 +5715,56 @@ describe('scene-relevant recall', () => {
     await (built.convo as unknown as { startScene(request: string): Promise<void> }).startScene('Au cinéma ce soir');
     await sceneSettled();
     await oneTurn(built);
-    assert.match(turnMemory(client.turnRequests.at(-1)!), /cinema/);
+    const second = turnMemory(client.turnRequests.at(-1)!);
+    assert.match(second, /cinema/);
+    assert.doesNotMatch(second, /café crème/, 'the cinema scene re-ranks, it does not keep the café note');
+  });
+
+  // A profile where the café slip is fourth by count, so the unranked top three drop it.
+  function crowdedPatterns(): LearnerProfile['errorPatterns'] {
+    return {
+      'negation': pattern(9, 1, 'je mange pas'),
+      'accord-adjectif': pattern(8, 1, 'une maison grand'),
+      'passe-compose': pattern(7, 1, 'je suis mangé'),
+      'article-boisson': pattern(2, 1, 'je voudrais un café crème'),
+    };
+  }
+  const frameLearnerLine = (client: MockLlmClient) => /Recurring trouble: ([^.]*)\./.exec(client.frameRequests[0]!.request)?.[1];
+
+  test('the frame request watches for the request-relevant slip first, even outside the top three by count', async (t) => {
+    const profile = recallProfile();
+    profile.errorPatterns = crowdedPatterns();
+    assert.ok(!learnerSnapshotFrom(profile).watchFor.includes('article-boisson'), 'fixture: unranked top three omit it');
+    const client = new MockLlmClient({ turns: [sampleTurn()] });
+    await inScene(t, { client, profile, voiceless: true });
+    await sceneSettled();
+    assert.equal(frameLearnerLine(client), 'article-boisson, negation, accord-adjectif');
+  });
+
+  test('the frame request puts the request-relevant unmastered phrase first, over a weaker one', async (t) => {
+    const profile = recallProfile();
+    profile.phrases = {
+      a: { fr: 'Ça marche', en: 'Sounds good', frWritten: null, timesAssisted: 1, timesUsedWell: 0, mastered: false } as never,
+      b: { fr: 'Un café crème', en: 'A milky coffee', frWritten: null, timesAssisted: 0, timesUsedWell: 3, mastered: false } as never,
+    };
+    assert.deepEqual(frameTargets(profile)[0], 'Ça marche (Sounds good)', 'fixture: by weakness alone the café phrase is not first');
+    const client = new MockLlmClient({ turns: [sampleTurn()] });
+    await inScene(t, { client, profile, voiceless: true });
+    await sceneSettled();
+    const line = /USEFUL UNMASTERED LANGUAGE TO WEAVE IN NATURALLY: (.*)/.exec(client.frameRequests[0]!.request)?.[1];
+    assert.equal(line, 'Un café crème (A milky coffee) | Ça marche (Sounds good)');
+  });
+
+  test('a mission opens watching for slips ranked from its authored frame', async (t) => {
+    const profile = recallProfile();
+    profile.errorPatterns = crowdedPatterns();
+    const client = new MockLlmClient({ turns: [sampleTurn()] });
+    const built = buildConvo(t, { client, profile, voiceless: true, missionId: 'mission:premier-cafe' });
+    built.convo.open(built.session);
+    await sceneSettled();
+    assert.notDeepEqual(learnerSnapshotFrom(profile).watchFor[0], 'article-boisson');
+    assert.equal(built.convo.conversationState.learner.watchFor[0], 'article-boisson');
+    assert.equal(built.convo.conversationState.learner.watchFor.length, 3);
   });
 
   test('the learner\'s own slip rides after the memory brief, never in the system prefix', async (t) => {
