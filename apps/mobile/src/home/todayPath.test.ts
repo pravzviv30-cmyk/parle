@@ -251,6 +251,49 @@ test('an out-of-time or lapsed lead still offers practice that needs no minutes'
   assert.equal(afterHeld(false), 'local');
 });
 
+// F946, 2026-10-31; push-check fix round, 2026-11-01.
+test("out of time past Starter offers a line at the learner's level", () => {
+  assert.equal(offlineOffer(0), 'cafe');
+  assert.equal(offlineOffer(1), 'below');
+  const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
+  assert.match(held, /const cafe = local !== null && offlineOffer\(value\.levelIndex\) === 'cafe';/, 'the held lead does not ask the learner\'s level');
+  // The row: the café line at Starter; otherwise nothing, so its words never promise a scene its tap does not open.
+  assert.match(held, /return cafe \? leadRow\(lead, \(\) => nav\.navigate\('DailyPractice', \{ id: local\.id, mode: 'shadowing' \}\)\) : null;/, 'the held row past Starter says the next scene but opens something else');
+  assert.doesNotMatch(held, /leadRow\(lead, \(\) => navigateOwned\('Review'\)\)/, 'the held row opens Review under the scene\'s words');
+  // The hero: the words, then practice that needs no minutes with a real button.
+  // The café line only when it exists, so a missing phrase falls back to Review rather than nothing.
+  assert.match(held, /: cafe \? <LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} \/> : undefined/, 'the held hero at Starter loses the café line, or draws an empty one');
+  const plain = flat(LOCAL.slice(LOCAL.indexOf('if (phrase === null')));
+  assert.match(plain, /^if \(phrase === null \|\| offer === 'below'\) return null;/, 'the plain card hands a learner past Starter a first order');
+});
+
+// Round 3: one destination, one name, and only when Review has something to deal.
+test("a lead's Review door is Today's review row: its words, and only when it is drawn", () => {
+  // Today's own row rule: nothing due is no row, and a due card is named by count.
+  assert.equal(todayView.reviewRow([], NOW, 'unlocked' as never), null);
+  const flatTask = flat(TASK);
+  assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, Date\.now\(\), locks\.access\('conversationPractice'\)\);/, 'the lead decides Review by another rule than Today\'s row');
+  const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
+  assert.match(held, /onReview=\{reviewDoor === null \? undefined : \(\) => navigateOwned\('Review'\)\} reviewLabel=\{reviewDoor\?\.title\}/, 'the held Review door opens an empty Review or is named otherwise');
+  const body = flat(TASK.slice(TASK.indexOf('export function HeldLeadBody('), TASK.indexOf('export function ExploreLeadBody(')));
+  assert.match(body, /\{children \?\? \(onReview !== undefined && reviewLabel !== undefined && <PillButton label=\{reviewLabel\} variant=\{words\.plans \? 'secondary' : 'primary'\} onPress=\{onReview\} \/>\)\}/, 'the held body draws a Review door with nothing to deal, or a second primary beside See plans');
+});
+
+test('past Starter the plans lead offers no café line', () => {
+  assert.match(flat(TASK), /const cafeOffered = value !== null && offlineOffer\(value\.levelIndex\) === 'cafe';/);
+  assert.match(flat(TASK), /onCafe=\{cafeOffered \? \(\) => navigateOwned\('DailyPractice', \{ id: DEMO_REPLY_ID, mode: 'shadowing' \}\) : undefined\}/, 'the plans lead offers the café line at every level');
+  const body = flat(TASK.slice(TASK.indexOf('export function PlansLeadBody('), TASK.indexOf('export function HeldLeadBody(')));
+  assert.match(body, /onCafe\?: \(\) => void/);
+  assert.match(body, /\{onCafe !== undefined && <IconAction [^>]*label="Try the offline café line" onPress=\{onCafe\} \/>\}/, 'the café line shows with nothing to open');
+  // Round 3: past Starter the plans lead keeps practice that needs no minutes, Review, secondary under See plans.
+  assert.match(body, /\{onCafe === undefined && onReview !== undefined && reviewLabel !== undefined && <PillButton label=\{reviewLabel\} variant="secondary" onPress=\{onReview\} \/>\}/, 'past Starter the plans lead has no practice that needs no minutes');
+  assert.match(flat(TASK), /onReview=\{cafeOffered \|\| reviewDoor === null \? undefined : \(\) => navigateOwned\('Review'\)\} reviewLabel=\{reviewDoor\?\.title\}/, 'the plans lead offers Review beside the café line, with nothing to deal, or never');
+});
+
+test("Today's failed next task is set in the theme's ink", () => {
+  assert.match(flat(TASK), /if \(failed && vivid\) return row \? null : \(<View><Text style=\{\[type\.body, \{ color: t\.text \}\]\}>Your next task could not be read\.<\/Text>/, 'the failed words are dark on dark in dark mode');
+});
+
 test('a lapsed plan is told it has ended and may see plans, never led to a refused scene', () => {
   const { heldWords } = nt as unknown as { heldWords: (billing: { plan: Plan; reason: string | null; periodEnd?: string | null }, now: number) => { title: string; message: string; plans: boolean } };
   for (const plan of Object.keys(PLANS) as Plan[]) {
@@ -343,7 +386,8 @@ test('NextTaskCard on the hero has no rail, and on a row is one RouteRow', () =>
   const vividBranch = flat(TASK.slice(TASK.indexOf('if (vivid) {'), TASK.indexOf('// 2026-10-20 UI-008, artboard B-Today: Today (vivid) leads')));
   assert.match(vividBranch, /const starterRow = \(initial: GuestPractice\) => <StarterContinuation initial=\{initial\} face=\{\(continuePractice\) => leadRow\('starter', continuePractice\)\} \/>;/, 'the starter row is not a LeadRow opening the card\'s own practice');
   assert.match(vividBranch, /if \(then === 'starter' && starter !== null\) return starterRow\(starter\);/, 'held time draws the starter card on a row');
-  assert.match(vividBranch, /return local !== null \? leadRow\(lead, \(\) => nav\.navigate\('DailyPractice', \{ id: local\.id, mode: 'shadowing' \}\)\) : null;/, 'held time past Starter drops the scene stop');
+  // F946: held time on a row is the café line at Starter, and nothing past it (Review is its own row).
+  assert.match(vividBranch, /return cafe \? leadRow\(lead, [^;]*\) : null;/, 'held time past Starter draws a row whose words do not match its tap');
   assert.match(vividBranch, /if \(lead === 'starter' && starter !== null && row\) return starterRow\(starter\);/, 'the starter lead draws its card on a row');
   assert.doesNotMatch(vividBranch, /if \(row\)[^;]*starterCard\(/, 'a row still draws the starter card');
   const starterSrc = flat(read('../onboarding/StarterContinuation.tsx'));

@@ -86,6 +86,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-31 | Drill and practice feedback: B (sheet and coins) picked, on every practice page, made more alive. | Founder, drill board |
 | 2026-10-31 | Cloud appears at moments only: the right sheet, listening on speak drills, endings. Never on the question. | Founder, drill board |
 | 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
+| 2026-10-31 | The still-settling retry stays at zero XP (LEARN-018 stands), and the approved copy stays: "Practise the one still settling" and "Notice". | Founder, finish-off brief |
+| 2026-10-31 | Cloud stays out of Today's sky, under "Cloud at moments only". Proposed by the design session; the founder can reverse it. | Design session, proposed |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -98,10 +100,15 @@ Working principles drawn from these (to confirm on the first screens):
 
 | Order | Screen | State |
 |---|---|---|
-| 1 | Live conversation room | Built on `claude/live-room-d` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)): gate green at 7,319, two verifier rounds to HOLDS, live replay typed and spoken, native simulator checked; the founder approved the 144 short goal labels as drafted on 2026-10-31 and the room is landing on main |
-| 2 | Today | The A × Today mix accepted (UI-015, founder 2026-10-30) with chunky stat tiles (2026-10-31); built on `claude/today-sky` from [changes/today-sky.md](changes/today-sky.md) |
-| 3 | Drill and practice feedback | B v2 picked and approved on the [drill board](https://claude.ai/artifact/XAZR2pptSi5YgH4ncZTXiK) (page "B v2, every surface"); built on `claude/drill-b` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)): gate green at 7,449, four verifier rounds to HOLDS, native simulator and a live run checked; landing |
-| 4 | Journey | Candidate |
+| 1 | Live conversation room | Landed on main at `d1b216c3` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)) |
+| 2 | Today | Landed on main at `9c7ad093` (UI-015, [changes/today-sky.md](changes/today-sky.md)); open items finished on main at `fdeeed2b` |
+| 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
+| 4 | Conversation recap | Next, one design session then one build session |
+| 5 | Journey (My French) | Queued |
+| 6 | Speak tab (choose a scene) | Queued |
+| 7 | Practice tab hub | Queued |
+
+Founder's order, 2026-10-31: one screen per session, each starting only after the one before lands.
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type
 scale named by role, native sheet and modal presentation, and route transitions that
@@ -115,6 +122,13 @@ chooses per row. A screen's redesign session reads its rows here before its brie
 
 | Date | Screen | Problem | Direction | Branch | State |
 |---|---|---|---|---|---|
+| 2026-11-01 | Today, out of time past Starter | The hero holds the out-of-time words with a plain "Review N phrases" button, and Today's path still has its own Review row with the same words, so one intent shows twice. | Make the hero's single action a LipTile "Review N phrases" with the watering-plant art on sage, and drop the duplicate path row, so the screen keeps one focal point. | `claude/finish-fixes` | queued for a board |
+| 2026-11-01 | Today's starter-line sheet | It reads as a form: the only practice surface without a stage. | Put the prompt and translation on a Write-family sage stage band, as Drill B does, with the field and pill below; the offline note becomes one muted caption under the field. | `claude/finish-fixes` | queued for a board |
+| 2026-11-01 | Today and the drills (eyebrows) | Labels above headings ("One fix to try", "Build it in French", "Today's phrase") add a line the craft floor avoids; DESIGN.md defines `eyebrow` tokens, so this is not slop. | Fold the label into the heading ("One fix to try" becomes the heading and the question its caption) and retire the eyebrow tokens one screen at a time. | `claude/finish-fixes` | queued for a board |
+| 2026-11-01 | Tab bar at accessibility sizes | Icons only (F947) removes every word, including the one that says where you are; a long press now shows it large on iOS. | Keep the selected cell's word under the sun glyph and hide only the four resting tabs' words. This revisits the founder's F947 decision. | `claude/finish-fixes` | queued for a board |
+| 2026-11-01 | Speak tab, offline | The bundled practice card sits inside the "Your tutor cannot connect right now." card (a card in a card), with two blue buttons competing to be the focal point. | Make the bundled line the one focal point as a LipTile-style card on the ground; reduce the connection notice to one warm line above it with "Check again" as a quiet text link. | `claude/finish-tidy` | folded into Speak tab (screen 6) redesign |
+| 2026-11-01 | Speak drill (Say) | The lower half of the screen is empty and the mic sits mid-screen, away from the thumb. | Move the mic and "Unable to speak right now?" into the thumb zone; if the speak-drill rule allows, Cloud listens in the freed space only while the mic is open. | `claude/finish-tidy` | queued for a board |
+| 2026-11-01 | Live room at 320 | The tutor portrait drops out and the transcript's top line is cut through its letters at the sheet's edge. | Fade the top of the transcript, or scroll so the newest turn sits flush, so no line is ever cut mid-letter. | `claude/finish-tidy` | queued for a board |
 
 ## Tools and how they are used
 

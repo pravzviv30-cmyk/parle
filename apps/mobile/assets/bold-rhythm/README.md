@@ -3,7 +3,11 @@
 The original layered illustrations and 164 reference layers come from Luvani's
 [C page](https://www.figma.com/design/sjAwoGinWQKvhGrWbgMO18?node-id=2-4), including
 the revised illustration family `24:7569`. The SVG files retain editable vectors;
-`source/` retains the Rive Markup Language used to compile the `.riv` files.
+`source/` retains the Rive Markup Language those SVGs compile to. The compiled
+`.riv` files and the `stills.json` bundle were deleted on 2026-11-01: since C2
+nothing loaded them (the app draws the exported SVG layers in `assets/c2`), and
+only `../rive/streak.riv` still plays through Rive. The build scripts no longer
+write either into this folder.
 Runtime code does not fetch Figma export URLs or flatten screens into images.
 
 There are 24 bundled scenes: 18 illustrations and six fluid sphere states.
@@ -16,7 +20,8 @@ coral/peach, and error muted peach. Audio amplitude remains owned by `OrbPulse`.
 spring easing. Artwork follows the user's later continuous-motion instruction:
 closed 4.8-second illustration loops and eight-second sphere loops. Error art is
 still. Interface transitions, presses, progress and confetti remain event driven.
-Hidden/background/reduced-motion scenes show the matching bundled static SVG.
+Hidden/background/reduced-motion scenes showed the matching bundled static SVG
+while these scenes were live.
 
 ## Rebuild
 
@@ -27,9 +32,12 @@ dependencies). From the repository root:
 RIVE_CLI=/absolute/path/to/rive python3 scripts/build-bold-rhythm.py
 ```
 
-This also runs `scripts/build-fluid-orb.py`. The compiler reported no errors or
-warnings for all scenes. `boldAssets.test.ts` checks compiled headers, local
-fallbacks, state machines and closed animation tracks.
+This also runs `scripts/build-fluid-orb.py`. Each scene is verified and compiled
+inside its git-ignored `source/<scene>/build/` folder; nothing is copied into this
+folder and no `stills.json` is written. `boldAssets.test.ts` checks that every
+scene has its source and svg, that no svg depends on a remote URL, and that the
+animation tracks close. The svgs are the inputs the scripts read, and nothing in
+the app bundles them.
 
 Web uses pinned `@rive-app/react-webgl2` 4.36.0 and its `@rive-app/webgl2` 2.44.0
 runtime. `rive.wasm` and `rive_fallback.wasm` are copied from that installed

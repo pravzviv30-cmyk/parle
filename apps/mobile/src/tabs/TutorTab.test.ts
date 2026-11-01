@@ -258,7 +258,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
   test('what left Speak stays gone', () => {
     for (const gone of [
       '<TintRow', 'DOORS', 'tutorDoors(', 'DOOR_TINT', '<VoiceOrb', 'settleIn', 'Animated', 'TUTOR_ORB_SIZE', 'Practise pronunciation',
-      'MISSIONS.map(', 'scenarioCountLine', 'studio', 'Beginner', 'Veteran', 'streak', '<NextTaskCard', '<ContinuityCard', 'tutorHeading(',
+      'MISSIONS.map(', 'scenarioCountLine', 'studio', 'Beginner', 'Veteran', 'streak', '<NextTaskCard', 'tutorHeading(',
     ]) {
       assert.ok(!SCREEN.includes(gone), `Speak still carries ${gone}`);
     }

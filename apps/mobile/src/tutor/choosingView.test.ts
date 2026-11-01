@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 
 import {
   MODE_CAPS,
-  QUIET_DOOR,
   TAP_TO_TALK,
   anythingGoes,
   choosingView,
@@ -113,17 +112,18 @@ describe('the choosing moment — what the screen decides before a scene exists'
     assert.equal(both.orb, 'thinking', 'the circle says one thing at a time, and waiting is the one that matters');
   });
 
-  test('a learner who cannot speak can switch to typing without leaving the choosing moment', () => {
+  test('the offer to go quiet has one wording, and a spoken session shows no input while choosing', () => {
     const spoken = choosingView(opening);
-    assert.equal(spoken.showQuietDoor, true, 'the offer belongs on the screen where the learner discovers they need it');
     assert.equal(spoken.showInput, false, 'a spoken session offers the circle, not a box');
-    assert.equal(QUIET_DOOR, 'Unable to speak right now?', 'one wording for one offer, wherever it appears');
+    // One wording for one offer. The live offer is the Repeat-this drill's quiet
+    // control; the conversation no longer carries a second copy of the sentence.
+    const repeatThis = stripComments(read('../drill/kinds/RepeatThisView.tsx'));
+    assert.match(repeatThis, />Unable to speak right now\?<\/Text>/, 'the live offer to go quiet changed its wording');
 
     const typed = choosingView({ ...opening, textMode: true });
     // The question is still the headline of this screen, so the learner has not
     // been sent anywhere: the box simply appeared under it.
     assert.equal(typed.showInput, true, 'the quiet twin answers in a box');
-    assert.equal(typed.showQuietDoor, false, 'already typing means typing is no longer an offer worth making');
     assert.equal(typed.orb, 'idle', 'a session with no microphone must never show a circle saying speak');
     assert.equal(typed.orbIsButton, false, 'a circle that cannot open a microphone is not a control');
     assert.equal(typed.helper, null, 'the box already says what to type, and saying it twice is noise');
@@ -132,7 +132,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
   test('a learner who prefers typing opens the conversation with the box showing and the circle still a button — F370', () => {
     // The whole of F370 in one state: the box is open, and nothing else moved.
     // A learner who asked for a keyboard has not asked to be made silent, and
-    // the four assertions after the first are what keeps those two apart.
+    // the assertions after the first are what keeps those two apart.
     const typed = choosingView({ ...opening, typingOpen: true });
     assert.equal(typed.showInput, true, 'the stored choice did not open the box, which is the whole of the setting');
     assert.equal(
@@ -141,11 +141,6 @@ describe('the choosing moment — what the screen decides before a scene exists'
       'preferring a keyboard closed the door to the microphone, which is the quiet twin and not what was asked for',
     );
     assert.equal(typed.orb, 'ready', 'the circle went quiet over a session that still carries a voice');
-    assert.equal(
-      typed.showQuietDoor,
-      true,
-      'the offer to go quiet is gone, so a learner who really cannot speak has nowhere left to say so',
-    );
     assert.equal(typed.helper, TAP_TO_TALK, 'the circle lost the one line that says it can be pressed');
 
     // And the box opens once the microphone is live too: this is a way of
@@ -156,7 +151,6 @@ describe('the choosing moment — what the screen decides before a scene exists'
 
     // The quiet twin is unchanged by the new input, in both directions.
     assert.equal(choosingView({ ...opening, textMode: true, typingOpen: false }).showInput, true, 'the quiet twin lost its box');
-    assert.equal(choosingView({ ...opening, textMode: true, typingOpen: true }).showQuietDoor, false);
 
     // The screen's half. There is no renderer here, so the seed and the input
     // are read out of the file: a rule nothing wires is the shape this had.
@@ -194,7 +188,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
   });
 
   test('nothing this screen says carries a number, an em dash, or a word that scolds', () => {
-    const lines = [TAP_TO_TALK, anythingGoes(CHOSEN), QUIET_DOOR];
+    const lines = [TAP_TO_TALK, anythingGoes(CHOSEN)];
     for (const state of [opening, { ...opening, micOpen: true }, { ...opening, textMode: true }]) {
       lines.push(choosingView(state).orbLabel);
     }

@@ -94,8 +94,6 @@ export interface ChoosingView {
   showTranscript: boolean;
   /** The typed row: the box and its Send. */
   showInput: boolean;
-  /** "Unable to speak right now?", offered here and not only before the session. */
-  showQuietDoor: boolean;
   /** One line, and only ever one. Null where the input placeholder says it. */
   helper: string | null;
 }
@@ -197,9 +195,6 @@ export function anythingGoes(tutorName: string): string {
   return `Anything goes. Say it in English or French, and ${tutorName} takes it from there.`;
 }
 
-/** The quiet twin, worded exactly as the tutor tab words it. */
-export const QUIET_DOOR = 'Unable to speak right now?';
-
 export function choosingView(state: ChoosingState): ChoosingView {
   const { textMode, micOpen, thinking, tutorSpeaking, turns, tutorName, typingOpen } = state;
 
@@ -246,10 +241,9 @@ export function choosingView(state: ChoosingState): ChoosingView {
     showTranscript: answered,
     // The box, either because the session is the quiet twin or because the
     // learner asked for a keyboard. Only this line reads `typingOpen`: the
-    // circle, the quiet door and the helper are all unchanged by it, which is
+    // circle and the helper are unchanged by it, which is
     // the whole difference between opening with a keyboard and going quiet.
     showInput: textMode || typingOpen,
-    showQuietDoor: !textMode,
     helper: textMode ? null : orbIsButton ? TAP_TO_TALK : anythingGoes(tutorName),
   };
 }

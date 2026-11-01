@@ -147,8 +147,10 @@ describe('the end phrase rows', () => {
   test('Hear it names the phrase it plays', () => {
     assert.match(scene, /accessibilityLabel=\{`Hear it in French: \$\{fr\}`\}/);
   });
-  test('each phrase is marked Settled or Still settling, and only Still settling is written out', () => {
+  test('each phrase is marked Settled or Still settling, written out beside the dot', () => {
+    // DESIGN.md Signals: colour never stands alone, so the mint dot carries its word too.
     assert.match(scene, /accessibilityLabel=\{settled \? SETTLED_LABEL : STILL_SETTLING_LABEL\}/);
-    assert.match(scene, /\{!settled && <Text style=\{\[bType\.bold11, \{ color: t\.muted \}\]\}>\{STILL_SETTLING_LABEL\}<\/Text>\}/);
+    assert.match(scene, /<Text style=\{\[bType\.bold11, \{ color: t\.muted \}\]\}>\{settled \? SETTLED_LABEL : STILL_SETTLING_LABEL\}<\/Text>/, 'a settled phrase is told by colour alone');
+    assert.doesNotMatch(scene, /\{!settled && <Text/);
   });
 });

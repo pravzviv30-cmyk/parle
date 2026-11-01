@@ -273,6 +273,12 @@ export function validateExercise(exercise: DrillExercise): ValidationResult {
         if (normalise(token) === '') reasons.push(`token "${token}" normalises to nothing`);
       }
       checkAccepted(exercise.accepted, reasons);
+      // The authored display line must be a right answer, or the sheet would
+      // show a model the grader rejects.
+      if (exercise.fr !== undefined) {
+        if (normalise(exercise.fr) === '') reasons.push('fr normalises to nothing');
+        else if (!exercise.accepted.some((a) => normalise(a) === normalise(exercise.fr!))) reasons.push(`fr "${exercise.fr}" is not one of the accepted answers`);
+      }
       // At least one accepted answer must be buildable from the tiles, or the
       // exercise is unwinnable. Checked as a word multiset rather than tile
       // order — deterministic and cheap, at the cost of trusting multi-word

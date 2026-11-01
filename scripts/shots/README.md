@@ -51,9 +51,11 @@ Start the app from `apps/mobile` with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 np
   `?preview=live-speaking`, `live-typing`, `live-tap-to-send`, `live-wrap-up`, or
   `?preview=your-french-<full|sounds|scenes|forward|free>&theme=<light|dark>&controls=0`.
   See `docs/TESTING.md`.
-- **A signed-in learner with data.** Leave the preview flag off and add
-  `EXPO_PUBLIC_LUVANI_CANVAS_LEARNER=1` (or `fresh` for a clean start). After a mock sign-in,
-  `apps/mobile/src/dev/canvasLearner.ts` seeds Yasmin: a three-day run, 140 XP, sample
+- **A signed-in learner with data.** Leave the preview flag off and start a non-production
+  web build on mock auth with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1` and
+  `EXPO_PUBLIC_LUVANI_CANVAS_LEARNER=1` (or `fresh`, which clears the account once first).
+  After a mock sign-up or sign-in, once the app has finished starting up for that account,
+  `apps/mobile/src/dev/canvasLearner.ts` seeds Yasmin: a three-day run, 120 XP, sample
   conversations, due cards. The mock account lives in the browser's storage, so a fresh
   `capture.mjs` run is always signed out. Use an `lv.mjs` profile: create an account
   (Get Started, I already have an account, Create an account), finish the six onboarding

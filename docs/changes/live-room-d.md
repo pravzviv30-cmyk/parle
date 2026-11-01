@@ -306,7 +306,7 @@ Built differently from the spec, on purpose:
 - **The cloud mic's mint level ring** is faint on the light sheet (1.85:1). It is decorative; the "Listening" word carries the state.
 - **The scrim** behind Help, the menu and report is a plain `Pressable` filling the room, as the shared `Sheet` draws it. A `Press` had no touch area there (found in the live replay).
 - **Scene goals did not tick in the local replays, typed or spoken**. The same scene on main's old room behaved identically, so it is not this change. To investigate separately.
-- **Left in place:** `QUIET_DOOR`, `OPEN_MIC_LABEL` and `SpeakerSlowGlyph` are unused outside their own tests, but they were unused before D and are not room code it replaces.
+- **Left in place:** `QUIET_DOOR`, `OPEN_MIC_LABEL` and `SpeakerSlowGlyph` are unused outside their own tests, but they were unused before D and are not room code it replaces. (Deleted 2026-11-01 in the finish-tidy change.)
 
 ## Integrated verification and handoff
 

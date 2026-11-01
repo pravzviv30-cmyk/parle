@@ -169,7 +169,7 @@ export const ICON_CONFIG = {
     use: 'EarGlyph and SpeakerGlyph; every Hear control (AnimatedIcon speaker-waves)',
   },
   'speaker-off': { source: 'iconsax', from: 'volume-slash', variants: L, use: "I can't listen now" },
-  'speaker-slow': { source: 'luvani', from: 'speaker-slow', variants: L, use: 'SpeakerSlowGlyph; simpler, play slowly' },
+  'speaker-slow': { source: 'luvani', from: 'speaker-slow', variants: L, use: 'Simpler, slow replay, play slowly' },
   sprout: { source: 'luvani', from: 'sprout', variants: L, use: 'SproutGlyph, kept until its retirement (F602, F605)' },
   star: { source: 'iconsax', from: 'star', variants: LB, use: 'XP (AnimatedIcon star-pop)' },
   stop: { source: 'iconsax', from: 'stop', variants: LB, use: 'stop' },

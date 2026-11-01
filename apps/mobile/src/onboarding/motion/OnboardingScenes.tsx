@@ -1,20 +1,8 @@
-/** Bounded UI flourishes around original, locally authored Rive illustrations. */
+/** Bounded UI flourishes around the onboarding scenes: the glow and the reveal. */
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, AppState, Easing, StyleSheet, View } from 'react-native';
 import { colour, decorative, paper, radius } from '../../theme.ts';
 import { NATIVE_DRIVER, useReduceMotion } from '../../motion.ts';
-import { RiveSceneRenderer } from './RiveSceneRenderer.tsx';
-
-export type OnboardingSceneKind = 'welcome' | 'level' | 'plan' | 'account';
-export type SceneKind = OnboardingSceneKind;
-
-export function OnboardingScene({ kind, size = 176, active = true }: {
-  kind: OnboardingSceneKind;
-  size?: number;
-  active?: boolean;
-}) {
-  return <RiveSceneRenderer kind={kind} size={size} active={active} />;
-}
 
 /** An invitation, not an endless beacon: two slow glow cycles, then rest. */
 export function GlowAction({ children, active = true, tone = 'sun' }: {

@@ -60,3 +60,30 @@ export function tabAccessibilityLabel(route: string, dot: boolean | null): strin
   const label = TAB_LABELS[route] ?? route;
   return dot === true ? `${label}, practice ready` : label;
 }
+
+/** The label's size, `boldType.small` (13/18); tabBar.test.ts reads theme.ts to hold them equal, since theme.ts imports React Native. */
+export const LABEL_SIZE = 13;
+/** The longest tab word, in letters. */
+export const WIDEST_LABEL = Math.max(...MAIN_TABS.map((r) => (TAB_LABELS[r] ?? r).length));
+/**
+ * A letter's width as a share of the type size, flat for every letter. Outfit
+ * Bold's real advances average 0.48 to 0.59 of the size across the five words
+ * (measured from the font file, 2026-10-31), so 0.6 errs toward hiding.
+ */
+export const LETTER_EM = 0.6;
+/** What a cell gives its word: the capsule's 8pt side padding each side, then 4pt face padding each side. */
+const CAPSULE_PAD = 16;
+const FACE_PAD = 8;
+
+/**
+ * Whether the words show under the icons (F947, founder decision 2026-10-31:
+ * icons only at the largest sizes). Below the accessibility sizes nothing
+ * changes. From there, when the widest word at this reading size cannot fit
+ * whole in a fifth of the capsule, every tab shows its icon alone and is still
+ * heard by its full name. `capsule` is the live capsule width (`tabCapsuleWidth`).
+ */
+export function tabLabelsShown(fontScale: number, capsule: number): boolean {
+  if (!labelsWrapUnderGlyph(fontScale)) return true;
+  const room = (capsule - CAPSULE_PAD) / 5 - FACE_PAD;
+  return WIDEST_LABEL * LABEL_SIZE * LETTER_EM * fontScale <= room;
+}

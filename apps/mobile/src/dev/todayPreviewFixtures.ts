@@ -15,10 +15,12 @@ import { questsCardView, type QuestsCardView } from '../game/questsCardView.ts';
 import { homeNudge } from '../home/nudge.ts';
 import { homeGreeting } from '../home/greeting.ts';
 import type { ComingUpCardView } from '../today/TodayParts.tsx';
-import type { GuestPractice } from '../onboarding/guestModel.ts';
+import type { HomeBilling } from '../home/nextAction.ts';
+import { checkStarter } from '@luvani/core';
+import { continuingTask, type GuestPractice } from '../onboarding/guestModel.ts';
 import { freshPreAccountDraft } from '../onboarding/preAccountDraft.ts';
 
-export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night'] as const;
+export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'held', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night', 'starter-feedback', 'plans-past'] as const;
 export type TodayPreviewState = typeof TODAY_PREVIEW_STATES[number];
 
 /** The preview keys, in the order the list shows them. */
@@ -31,12 +33,15 @@ export const TODAY_PREVIEW_LABELS: Record<TodayPreviewKey, string> = {
   'today-plans': 'Today, out of speaking time',
   'today-starter': 'Today, starter line',
   'today-offline': 'Today, offline',
+  'today-held': 'Today, out of minutes past Starter',
   'today-tutor-unreachable': 'Today, tutor unreachable',
   'today-explore': 'Today, no next scene yet',
   'today-loading': 'Today, loading',
   'today-failed': 'Today, could not load',
   'today-evening': 'Today, evening sky',
   'today-night': 'Today, night sky',
+  'today-starter-feedback': 'Today, starter line checked',
+  'today-plans-past': 'Today, plans past Starter',
 };
 
 /** The Today state a preview key names, or null for every other key. */
@@ -117,9 +122,26 @@ export const TODAY_PREVIEW_FIX = {
 export const TODAY_PREVIEW_PHRASE = { fr: 'Je voudrais un café, s’il vous plaît.', en: 'I would like a coffee, please.' } as const;
 export const TODAY_PREVIEW_REVIEW = { title: 'Review 4 phrases', line: 'About 2 minutes' } as const;
 export const TODAY_PREVIEW_COMING_UP: ComingUpCardView = { title: 'Your trip to Lyon', when: 'Émilie remembers it is on Saturday', locked: false, feature: 'realMoment' };
+/** A paying learner past Starter whose minutes are spent, for the held hero (F946). */
+export const TODAY_PREVIEW_HELD_BILLING: HomeBilling = { plan: 'starter', reason: 'exhausted', periodEnd: '2026-10-27T12:00:00.000Z' };
 export const TODAY_PREVIEW_WEEK = 'This week you spoke French for 18 minutes and kept 6 new phrases.';
 
 /** A starter line the learner has not answered yet. */
 export function todayPreviewStarter(): GuestPractice {
   return { version: 2, token: null, id: null, expiresAt: 0, secondsUsed: 0, attempts: [], kept: false, completed: false, plan: { ...freshPreAccountDraft(), eligibilityConfirmed: true, reason: 'trip', minutes: 10 } };
+}
+
+/**
+ * The starter sheet after a check (`today-starter-feedback`): the fixed
+ * learner's first task, answered once with its model line (accepted) and once
+ * with a line that misses (not accepted), folded by the real `checkStarter`.
+ */
+export function todayPreviewStarterFeedback() {
+  const task = continuingTask(todayPreviewStarter());
+  const missed = 'Bonjour';
+  return {
+    task,
+    accepted: { reply: task.model, feedback: checkStarter(task, task.model, 'typed') },
+    missed: { reply: missed, feedback: checkStarter(task, missed, 'typed') },
+  };
 }

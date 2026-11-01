@@ -66,6 +66,7 @@ export const TAP_TRANSLATE: TapTranslateExercise = {
   en: 'The bill, please.',
   tokens: ['L’addition', 's’il', 'vous', 'plaît', 'la', 'carte'],
   accepted: ['L’addition s’il vous plaît'],
+  fr: 'L’addition, s’il vous plaît.',
 };
 
 /** The words placed so far in a build mid-way, as indexes into its tokens. */

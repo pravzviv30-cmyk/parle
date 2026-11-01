@@ -119,14 +119,13 @@ describe('one pen drew every mark in the app — F589', () => {
   test('every glyph is an ICONS.md mark at the one stroke weight or a kept drawing on the retire list, and the tab and the control share one microphone', () => {
     // Revamp B, F598. Every revamp A name survives in its file, so no caller
     // moved; where ICONS.md draws the same thing its path replaced the old one.
-    // The fourteen after them are the ICONS.md marks the Round 1 boards draw
+    // The thirteen after them are the ICONS.md marks the Round 1 boards draw
     // that no older name covered. The list is exact, so a glyph added without
     // being named here, or one lost, fails rather than drifting in.
     const PORTED = ['MouthGlyph', 'ClockGlyph', 'ChatGlyph', 'DocumentGlyph', 'ReplayGlyph', 'WaveformGlyph'];
     const ROUND_ONE = [
       'ChevronDownGlyph',
       'PlayGlyph',
-      'SpeakerSlowGlyph',
       'MicOffGlyph',
       'KeyboardGlyph',
       'PlusGlyph',
@@ -138,7 +137,7 @@ describe('one pen drew every mark in the app — F589', () => {
       'InfoGlyph',
       'PostcardGlyph',
     ];
-    // F601: the alert is one of the fourteen, but `Field` draws it beside its
+    // F601: the alert is one of the thirteen, but `Field` draws it beside its
     // error line, so it is drawn in components.tsx and re-exported here, the
     // way the speaker is. It is pinned as a re-export below, not as a drawing.
     const RE_EXPORTED = ['AlertGlyph'];
@@ -158,8 +157,8 @@ describe('one pen drew every mark in the app — F589', () => {
     );
     assert.equal(
       ROUND_ONE.length + RE_EXPORTED.length,
-      14,
-      'the Round 1 set is fourteen marks, thirteen drawn here and the alert re-exported; a fifteenth is a port no board asked for',
+      13,
+      'the Round 1 set is thirteen marks, twelve drawn here and the alert re-exported; a fourteenth is a port no board asked for',
     );
 
     // Come alive (D11): each name is a delegate to the generated icon that
@@ -171,7 +170,6 @@ describe('one pen drew every mark in the app — F589', () => {
       ['DocumentGlyph', 'book'],
       ['ReplayGlyph', 'replay'],
       ['WaveformGlyph', 'waveform'],
-      ['SpeakerSlowGlyph', 'speaker-slow'],
       ['MouthGlyph', 'mouth'],
     ] as const) {
       const at = GLYPHS.indexOf(`export function ${glyph}(`);

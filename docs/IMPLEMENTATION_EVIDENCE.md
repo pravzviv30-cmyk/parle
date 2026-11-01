@@ -22,6 +22,37 @@ of the list.
 
 ## Current landing snapshot
 
+- 1 November 2026 Finish-off tidy: branch `claude/finish-tidy` from main fdeeed2b. No learner-visible
+  change. The TodayParts and LiveParts require cycle is broken (`main/bMarks.tsx`; Metro no longer warns);
+  dead code deleted after proving no live importer: `QUIET_DOOR`, `OPEN_MIC_LABEL`, `SpeakerSlowGlyph`,
+  `ContinuityCard`, the onboarding Rive scene chain and its four `.riv`, the 24 bold-rhythm `.riv` and
+  their loaders (`streak.riv` stays). `tidy/orphans.test.ts` adds 12 guards (every asset require
+  resolves, kept exports stay, deleted names stay deleted); eight tests that guarded only deleted code
+  went with it. `docs/DESIGN_PARTNERSHIP.md`: screens 1 to 3 landed, queue 4 to 7. Fix-verifier round 1
+  HOLDS; browser pass on today-scene, live-speaking, live-typing and drill-say previews at 375 and 320,
+  light and dark, and every tab of the real app on a fresh canvas learner, with no console errors and no
+  require-cycle warning.
+  **7,510 tests, 0 failing**; core 1151, brain 774, tutor agent 893, token server 530, playground 110,
+  mobile 4052; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+- 1 November 2026 Finish-off fixes after screens 1 to 3: branch `claude/finish-fixes` from main
+  06b5ac8d, merged with eafb382f (the Impeccable step). F948 Today's starter-line sheet on theme
+  colours in dark (reproduced on main first); tap-translate items carry an authored `fr` display
+  line on the right sheet, end list and miss line (generated items fall back, F950 open); F946 out of
+  time past Starter: no Starter café line, the held hero offers Review; F947 icons-only tab bar at
+  accessibility sizes (founder decision) with iOS Large Content Viewer; F949 scene goals now tick in
+  a live mission (a product bug, found with a per-turn log on the local stack and confirmed live after
+  the fix); the canvas learner seeds a fresh mock account on web (dev only). One live tutor session
+  started from Today on the local stack (gpt-6-luna). Before and after shots in
+  `artifacts/finish-fixes-2026-11/` at 320 and 375, light and dark; iPhone 17 Pro simulator at normal
+  and accessibility-large text, including the Large Content Viewer on an icons-only tab. Fix-verifier
+  round 1 HOLDS; /push-check (code-review, three push-reviewers, Impeccable over three rounds, ending
+  ship) fixed the held lead past Starter (Review door named as Today's review row), the plans lead's
+  café line, the failed-line ink, "Settled" in words, plain sheet copy and radius.field; preview keys
+  today-held, today-starter-feedback and today-plans-past added for the captures; four redesign
+  proposals logged for the founder.
+  **7,504 tests, 0 failing**; core 1151, brain 774, tutor agent 893, token server 530, playground 110,
+  mobile 4046; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  Not verified: VoiceOver on device, a physical iPhone, a speak drill with a real microphone.
 - 31 October 2026 drill and practice B v2 (UI-016, LEARN-018): branch `claude/drill-b` from main
   64f6a2cc, with main 9c7ad093 (Today, `LipTile`) merged in. Every drill and practice surface is
   one frame (stage band on the family's pastel, lip primary), one tile (`LipTile`), one field, one

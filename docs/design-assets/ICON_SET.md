@@ -102,7 +102,7 @@ notice in its first line. Acknowledgements credits the set in the app.
 | `sort` | Iconsax `sort` | Linear | Iconsax free licence | newest conversations |
 | `speaker` | Iconsax `volume-high` | Linear, Bulk | Iconsax free licence | EarGlyph and SpeakerGlyph; every Hear control (AnimatedIcon speaker-waves) |
 | `speaker-off` | Iconsax `volume-slash` | Linear | Iconsax free licence | I can't listen now |
-| `speaker-slow` | Luvani `custom/speaker-slow.svg` | Linear | Luvani original | SpeakerSlowGlyph; simpler, play slowly |
+| `speaker-slow` | Luvani `custom/speaker-slow.svg` | Linear | Luvani original | Simpler, slow replay, play slowly |
 | `sprout` | Luvani `custom/sprout.svg` | Linear | Luvani original | SproutGlyph, kept until its retirement (F602, F605) |
 | `star` | Iconsax `star` | Linear, Bulk | Iconsax free licence | XP (AnimatedIcon star-pop) |
 | `stop` | Iconsax `stop` | Linear, Bulk | Iconsax free licence | stop |

@@ -137,3 +137,40 @@ describe('the canvas learner fresh start', () => {
     assert.equal(canvasStartsFresh({ EXPO_PUBLIC_LUVANI_CANVAS_LEARNER: '1' }), false);
   });
 });
+
+describe('the canvas learner waits for the account scope', () => {
+  test('the canvas learner seeds once the signed-in scope is ready', async () => {
+    const { readFileSync } = await import('node:fs');
+    const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
+    const root = app.slice(app.indexOf('function SignedInRoot('), app.indexOf('function Gate('));
+    const gate = app.slice(app.indexOf('function Gate('));
+    assert.ok(app.includes('function Gate('), 'App.tsx has no Gate, so this reads nothing');
+    assert.ok(app.indexOf('function SignedInRoot(') >= 0 && root.length > 200, 'the SignedInRoot slice is empty, so this reads nothing');
+    assert.match(root, /useCanvasLearner\(auth, ready \? user : null\)/);
+    assert.doesNotMatch(gate, /useCanvasLearner\(/);
+  });
+
+  test('a storage rejection while seeding is caught and lets the account try again', async () => {
+    const { readFileSync } = await import('node:fs');
+    const hook = readFileSync(new URL('./useCanvasLearner.ts', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+    assert.match(hook, /void startFresh\(uid\)\.then\(\(\) => seedCanvasLearner\(\{ id: uid \}, adapter\)\)\.then\([\s\S]*?\}\)\.catch\(\(\) => seeded\.delete\(uid\)\);/, 'a rejected seed is unhandled and never retried');
+  });
+
+  test('a fresh start is not spent before the account\'s scope exists', async () => {
+    const { spendFreshStart } = await import('./canvasLearner.ts');
+    const writes: string[] = [];
+    let cleared = 0;
+    const deps = {
+      fresh: () => true,
+      read: () => Promise.resolve(null),
+      write: (key: string) => { writes.push(key); return Promise.resolve(); },
+      clear: () => { cleared += 1; return Promise.resolve(); },
+    };
+    await spendFreshStart('u-1', { ...deps, activeUid: () => null });
+    assert.deepEqual(writes, []);
+    assert.equal(cleared, 0);
+    await spendFreshStart('u-1', { ...deps, activeUid: () => 'u-1' });
+    assert.equal(cleared, 1);
+    assert.deepEqual(writes, ['luvani.dev.canvasFresh.u-1']);
+  });
+});

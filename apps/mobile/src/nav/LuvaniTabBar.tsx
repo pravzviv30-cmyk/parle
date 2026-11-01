@@ -28,7 +28,7 @@ import { dueCount } from '../review/store.ts';
 import { tapSettled } from '../motion/haptics.ts';
 import { TabGlyph } from './TabGlyph.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot, tabLabelsShown } from './tabBarModel.ts';
 
 /** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
 const CELL_HEIGHT = 62;
@@ -110,13 +110,17 @@ function TabStrip({ routes, insets, due }: {
 }) {
   // Watched so the bar re-renders when the OS text size changes while open.
   const { width } = useWindowDimensions();
-  const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
+  const fontScale = PixelRatio.getFontScale();
+  const wrapped = labelsWrapUnderGlyph(fontScale);
+  const capsule = tabCapsuleWidth(width, insets.left, insets.right);
+  // F947: icons only when the widest word cannot fit whole in its cell.
+  const shown = tabLabelsShown(fontScale, capsule);
   const t = useB();
   const st = useThemedStyles(makeStyles);
 
   return (
     <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
-      <View style={[st.capsule, { width: tabCapsuleWidth(width, insets.left, insets.right) }]}>
+      <View style={[st.capsule, { width: capsule }]}>
       {routes.map((route) => {
         const focused = route.focused;
         const icon = TAB_ICONS[route.name];
@@ -135,11 +139,14 @@ function TabStrip({ routes, insets, due }: {
             accessibilityState={{ selected: focused }}
             aria-selected={focused}
             accessibilityLabel={tabAccessibilityLabel(route.name, dot)}
+            // iOS: with the word hidden, a long press shows it large (F947).
+            accessibilityShowsLargeContentViewer={!shown}
+            accessibilityLargeContentTitle={shown ? undefined : label}
           >
             <TabGlyph focused={focused} badged={dot}>
               {() => <Icon name={icon} variant="linear" size={22} color={focused ? t.tabGlyphSelected : t.tabLabel} />}
             </TabGlyph>
-            <Text style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>
+            {shown && <Text style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>}
           </Press>
         );
       })}
