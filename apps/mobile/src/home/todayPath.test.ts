@@ -226,7 +226,7 @@ test('a paid learner out of minutes is led to the out-of-time words, not a scene
   }
   assert.match(TASK, /lead === 'outOfTime'/);
   // The words come from heldWords, tested by behaviour below (round 2).
-  assert.match(TASK, /heldWords\(billing, Date\.now\(\)\)/);
+  assert.match(TASK, /heldWords\(billing, value\.now\)/);
 });
 
 test('Speak with my tutor waits until billing has answered', () => {
@@ -272,7 +272,7 @@ test("a lead's Review door is Today's review row: its words, and only when it is
   // Today's own row rule: nothing due is no row, and a due card is named by count.
   assert.equal(todayView.reviewRow([], NOW, 'unlocked' as never), null);
   const flatTask = flat(TASK);
-  assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, Date\.now\(\), locks\.access\('conversationPractice'\)\);/, 'the lead decides Review by another rule than Today\'s row');
+  assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, value\.now, locks\.access\('conversationPractice'\)\);/, 'the lead decides Review by another rule than Today\'s row');
   const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
   assert.match(held, /onReview=\{reviewDoor === null \? undefined : \(\) => navigateOwned\('Review'\)\} reviewLabel=\{reviewDoor\?\.title\}/, 'the held Review door opens an empty Review or is named otherwise');
   const body = flat(TASK.slice(TASK.indexOf('export function HeldLeadBody('), TASK.indexOf('export function ExploreLeadBody(')));
