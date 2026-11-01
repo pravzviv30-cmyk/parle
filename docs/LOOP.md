@@ -119,12 +119,16 @@ write scopes. Paths cannot escape the repo or traverse known symlinks.
 `/push-check` (`.claude/commands/push-check.md`, founder rule 2026-10-31) runs before any
 push: the gate, a Playwright pass over the screens the diff touches at 320 and 375 in
 light and dark, a local boot and smoke of touched services, parallel `push-reviewer`
-agents (frontend, backend, tests) with the built-in `/code-review`, and a fix loop until
-nothing new above low is found. `--main` adds the built-in `/security-review` on the
+agents (frontend, backend, tests) with the built-in `/code-review`, and for frontend
+changes the Impeccable design review (`impeccable:impeccable-finish-reviewer`: slop is
+fixed in the push, redesign ideas are asked of the founder and never applied), then a fix
+loop until nothing new above low is found. `--main` adds the built-in `/security-review` on the
 merge diff. It ends by stamping the commit
 (`<git common dir>/push-check/<sha>.json`); the `PreToolUse` hook
 `scripts/push-check-guard.mjs hook` refuses a Claude session's `git push` without a
-passing stamp, and a push to `main` without a passing security review. The `pre-push`
+passing stamp, a frontend push without `impeccable: pass` (the stamp takes
+`--impeccable <pass|fail|n/a>`, and `n/a` is refused on a frontend commit), and a push to
+`main` without a passing security review. The `pre-push`
 git hook still runs the full gate as the last check.
 
 ## Repair a failing gate
