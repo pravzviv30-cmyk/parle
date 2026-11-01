@@ -3,7 +3,7 @@
 
 State colours are derived from Luvani's palette. Only the interior gradients move;
 application code separately scales the sphere from measured microphone/tutor audio.
-Since 2026-11-01 the compiled .riv files and stills.json are not committed or loaded by the app; running this recreates them locally.
+Since 2026-11-01 the compiled .riv files are left in the git-ignored source/<scene>/build/ and are neither copied into assets/bold-rhythm/ nor written to stills.json, because the app loads neither.
 """
 import json, math, os, shutil, subprocess
 from pathlib import Path
@@ -76,7 +76,6 @@ for state, (colour, amount) in PALETTE.items():
     (project/'rive.yaml').write_text(f'name: {name}\nlogs:\n  file: build/rive.log\n  problems: build/problems.log\n')
     subprocess.run([CLI,str(project),'--verify'],check=True,stdout=subprocess.DEVNULL)
     subprocess.run([CLI,str(project),'--once'],check=True,stdout=subprocess.DEVNULL)
-    shutil.copyfile(project/'build'/f'{name}.riv',ART/f'{name}.riv')
     defs=[];circles=[]
     for index, (label, kind, sx, sy, ex, ey, stops, _) in enumerate(reversed(layers)):
         gradient='linearGradient' if kind=='LinearGradient' else 'radialGradient'
@@ -86,4 +85,3 @@ for state, (colour, amount) in PALETTE.items():
         circles.append(f'<circle cx="116" cy="116" r="110" fill="url(#g{index})"/>')
     (ART/f'{name}.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" width="232" height="232" viewBox="0 0 232 232"><defs>'+''.join(defs)+'</defs>'+''.join(circles)+'</svg>')
     print(name, 'verified')
-(ART/'stills.json').write_text(json.dumps({p.stem:p.read_text() for p in sorted(ART.glob('*.svg'))},ensure_ascii=False,indent=2)+'\n')

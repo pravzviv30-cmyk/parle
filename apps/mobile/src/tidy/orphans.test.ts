@@ -200,7 +200,8 @@ describe('what the sweep deleted stays deleted', () => {
   });
 
   test('no production source imports a removed module', () => {
-    const importing = /from '[^']*\/(?:ContinuityCard|RiveSceneRenderer|SceneStill|boldSceneFiles|boldSceneAssets|onboardingRiveStills)(?:\.\w+)*'/;
+    // A static import or re-export, a require() or a dynamic import(), in either quote style.
+    const importing = /(?:\bfrom\s+|\brequire\(\s*|\bimport\(\s*)(['"])[^'"]*\/(?:ContinuityCard|RiveSceneRenderer|SceneStill|boldSceneFiles|boldSceneAssets|onboardingRiveStills)(?:\.\w+)*\1/;
     const found = PRODUCTION.filter((file) => importing.test(stripComments(read(file)))).map((f) => path.relative(APP, f));
     assert.deepEqual(found, [], 'a file imports a module that was deleted');
   });

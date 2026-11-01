@@ -211,10 +211,10 @@ describe('direction D: the room menu', () => {
 });
 
 describe('the shared B marks', () => {
+  // The module specifiers of every static import and re-export in the file, however
+  // many lines the statement takes, plus bare side-effect imports.
   const importLines = (path: string) =>
-    readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8')
-      .split('\n')
-      .filter((line) => /^(import|export)\b[^;]*\bfrom\b/.test(line));
+    [...readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8').matchAll(/^(?:(?:import|export)\b[^;]*?\bfrom\s+|import\s+)'([^']+)'/gms)].map((match) => match[1]!);
   test('TodayParts and LiveParts do not import each other', () => {
     assert.deepEqual(importLines('../today/TodayParts.tsx').filter((line) => /live\/|LiveParts/.test(line)), [], 'TodayParts reaches into the live room again');
     assert.deepEqual(importLines('./LiveParts.tsx').filter((line) => /today\/|TodayParts/.test(line)), [], 'LiveParts reaches into Today again');
@@ -222,6 +222,6 @@ describe('the shared B marks', () => {
   test('main/bMarks.tsx is a leaf: it imports nothing from today/ or live/', () => {
     const lines = importLines('../main/bMarks.tsx');
     assert.deepEqual(lines.filter((line) => /today\/|live\/|TodayParts|LiveParts/.test(line)), []);
-    assert.deepEqual(lines.map((line) => /from '([^']+)'/.exec(line)?.[1]).sort(), ['../theme.ts', 'react-native-svg']);
+    assert.deepEqual([...lines].sort(), ['../theme.ts', 'react-native-svg']);
   });
 });

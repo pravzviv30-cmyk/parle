@@ -3,10 +3,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { test } from 'node:test';
 const assets = new URL('../../../assets/bold-rhythm/', import.meta.url);
 
-test('the bundled scene artwork is local: every svg is present and none depends on an expiring URL', () => {
+test('the bold-rhythm build inputs are intact: every scene source has its svg, and no svg depends on an expiring URL', () => {
   const files = readdirSync(assets).filter(f => f.endsWith('.svg')).map(f => f.slice(0,-4)).sort();
   assert.equal(files.length, 24);
-  assert.deepEqual(readdirSync(new URL('source/', assets)).sort(), files, 'every scene source has its svg, and the other way round');
+  assert.deepEqual(readdirSync(new URL('source/', assets)).sort(), files, 'every scene source has its svg (the build script reads it), and the other way round');
   for (const scene of files) {
     const svg = readFileSync(new URL(`${scene}.svg`, assets), 'utf8');
     assert.doesNotMatch(svg, /(?:href|src)=["']https?:|api\/mcp\/asset/, `${scene}: offline artwork cannot depend on expiring URLs`);

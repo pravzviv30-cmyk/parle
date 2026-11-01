@@ -112,7 +112,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
     assert.equal(both.orb, 'thinking', 'the circle says one thing at a time, and waiting is the one that matters');
   });
 
-  test('a learner who cannot speak can switch to typing without leaving the choosing moment', () => {
+  test('the offer to go quiet has one wording, and a spoken session shows no input while choosing', () => {
     const spoken = choosingView(opening);
     assert.equal(spoken.showInput, false, 'a spoken session offers the circle, not a box');
     // One wording for one offer. The live offer is the Repeat-this drill's quiet

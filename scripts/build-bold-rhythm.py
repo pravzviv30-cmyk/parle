@@ -2,7 +2,7 @@
 """Compile C's original layered SVGs into local Rive scenes.
 Requires official Rive CLI 1.5.1 and svgpathtools. SVG source is retained verbatim.
 Motion tracks in motion.json come from Figma get_motion_context; playback follows the requested continuous loops.
-Since 2026-11-01 the compiled .riv files and stills.json are not committed or loaded by the app; running this recreates them locally.
+Since 2026-11-01 the compiled .riv files are left in the git-ignored source/<scene>/build/ and are neither copied into assets/bold-rhythm/ nor written to stills.json, because the app loads neither.
 """
 from pathlib import Path
 import json,math,os,re,shutil,subprocess,xml.etree.ElementTree as E
@@ -138,7 +138,6 @@ for source in sorted(ART.glob('*.svg')):
  (project/'rive.yaml').write_text(f'name: {name}\nlogs:\n  file: build/rive.log\n  problems: build/problems.log\n')
  subprocess.run([CLI,str(project),'--verify'],check=True,stdout=subprocess.DEVNULL)
  subprocess.run([CLI,str(project),'--once'],check=True,stdout=subprocess.DEVNULL)
- shutil.copyfile(project/'build'/f'{name}.riv',ART/f'{name}.riv')
  print(name,'verified')
 
 subprocess.run([os.sys.executable, str(ROOT/'scripts/build-fluid-orb.py')], check=True)
