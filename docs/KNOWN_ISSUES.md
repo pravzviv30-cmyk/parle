@@ -12187,3 +12187,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   natively. Shots in `artifacts/bug-fix-2026-11/` (`before/`, `f952-attempts/`).
 - verified-by: `Today re-lays out when the text size changes while it is open`
 
+
+### F953 — Today names one review twice when the hero offers it
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/practice/NextTaskCard.tsx (the held and plans leads' Review door) and the Today path's review row action (`todayView.ts` `practise`)
+- note: Found 2026-11-02 by the Impeccable reviewer in /push-check on claude/bug-fix, in older code
+  outside that diff. When the held or plans lead offers Review, its button reads "Review 4 phrases",
+  while the path row for the same review says "Practise" as its action, so one intent has two labels
+  on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
+  pins the two labels agree.
+- verified-by: `Today names the review action once`
