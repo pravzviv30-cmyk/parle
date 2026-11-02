@@ -27,6 +27,9 @@ systemic, not one screen at a time:
 
 ## The method, per screen
 
+0. **Journey pass.** A new feature, or every third screen, starts from its journey's flow
+   map on the [Journey map board](https://claude.ai/artifact/WYeAGkxrmLwyYCSxarHi3T)
+   (founder, 2026-11-02).
 1. **Brief.** Claude writes half a page: who the learner is here and how they feel,
    the one focal point, the primary action, what must stay (data, locks, flows), and
    what makes this screen unlike the others. The founder corrects it.
@@ -105,12 +108,14 @@ Working principles drawn from these (to confirm on the first screens):
 | 2 | Today | Landed on main at `9c7ad093` (UI-015, [changes/today-sky.md](changes/today-sky.md)); open items finished on main at `fdeeed2b` |
 | 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
 | 4 | Conversation recap | Next, one design session then one build session |
-| 5 | Speak tab (choose a scene) | Queued |
-| 6 | Practice tab hub | Queued |
-| 7 | Journey (My French) | Queued |
+| 5 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued |
+| 6 | Speak tab (choose a scene) | Queued |
+| 7 | Practice tab hub | Queued |
+| 8 | Journey (My French) | Queued |
 
 Founder's order, 2026-10-31: one screen per session, each starting only after the one before lands.
-Reordered by journey on 2026-11-02 (founder, Journey map board): recap, Speak tab, Practice hub, Journey.
+Reordered by journey on 2026-11-02 (founder, Journey map board): recap, onboarding (added after
+the recap), Speak tab, Practice hub, Journey.
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type
 scale named by role, native sheet and modal presentation, and route transitions that
