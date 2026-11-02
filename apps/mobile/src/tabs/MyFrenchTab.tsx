@@ -8,7 +8,7 @@ import { Ledger, LedgerRow, OutlineButton, Press, Sheet } from '../components.ts
 import { IconTile } from '../icons/IconTile.tsx';
 import { Columns, ScrollScreen, TabHeader, TopInset } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { bType, frenchText, space } from '../theme.ts';
+import { RHYTHM, bType, frenchText, space } from '../theme.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton } from '../today/TodayParts.tsx';
 import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, ProgressSection, SoundRowView, StageTrack, TryCell, TwoUp, WeekRowView, YourFrenchSection } from '../journey/JourneyParts.tsx';
@@ -481,9 +481,9 @@ const makeStyles = (t: B) =>
     stats: { flexDirection: 'row', gap: space(2) },
     // The blocks are the scroll's own children (F383): no wrapper that can grow.
     // The air above the tab bar is the frame's (F340).
-    body: { paddingTop: space(6), paddingHorizontal: 22, gap: space(7) },
-    page: { gap: space(7) },
-    stack: { gap: space(3) },
+    body: { paddingTop: space(6), paddingHorizontal: 22, gap: RHYTHM.section },
+    page: { gap: RHYTHM.section },
+    stack: { gap: RHYTHM.item },
     card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
     tiles: { flexDirection: 'row', gap: 10 },
   });

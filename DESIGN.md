@@ -43,6 +43,9 @@ points, and let reading and action regions scroll at large text or in
 landscape. Frames have 24-point gutters and a reading column at most 560 points
 wide; on the web the app is a 460pt centred column. The full billed amount and
 period stay near a purchase action, and large text is never capped to fit.
+Page gaps between separate things come from `RHYTHM` in `theme.ts`: 12 between
+list items and stacked tiles, 20 between separate cards, 32 between sections.
+Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
 
 ### Composition rules
 

@@ -8,7 +8,8 @@
  * It runs full bleed: the screen draws it on `ScrollScreen bleedTop` with
  * `padded={false}`, as Journey's band does, and the top inset arrives through
  * `TopInset`, so the frame stays the one reader of the safe area. Its foot is
- * a spacer of `overlap` points that the hero card is pulled up over.
+ * a spacer of `overlap` points that the hero card is pulled up over, plus
+ * 16pt so the tiles keep their air above the hero (phone fixes, 2026-11-02).
  *
  * The greeting is still. The clouds are decorative and move only inside
  * `Drift`, which lands at rest under Reduce Motion.
@@ -90,7 +91,7 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
         {stats}
         {nudge !== null ? <Text style={[type.body, { color: t.onBrand }]}>{nudge}</Text> : null}
       </View>
-      <View style={{ height: overlap }} />
+      <View style={{ height: overlap + space(4) }} />
     </View>
   );
 }
