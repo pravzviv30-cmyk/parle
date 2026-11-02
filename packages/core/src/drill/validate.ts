@@ -85,6 +85,7 @@ export function learnerVisibleStrings(exercise: DrillExercise): LabelledString[]
         { label: 'en', text: exercise.en },
         ...exercise.tokens.map((text, i) => ({ label: `token ${i}`, text })),
         ...exercise.accepted.map((text, i) => ({ label: `accepted ${i}`, text })),
+        ...(exercise.fr !== undefined ? [{ label: 'fr', text: exercise.fr }] : []),
       ];
     case 'listen-type':
       return [

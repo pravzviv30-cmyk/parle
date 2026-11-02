@@ -1,9 +1,9 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import type { DrillExercise } from '@luvani/core';
+import { validateExercise, type DrillExercise } from '@luvani/core';
 
-import { DrillBatchSchema, buildDrillGenerationRequest, type DrillGenerationInput } from './generate.ts';
+import { DrillBatchSchema, buildDrillGenerationRequest, withoutIncompleteTapTranslates, type DrillGenerationInput } from './generate.ts';
 import type { NewPhrase } from '../contract/types.ts';
 
 const PHRASE_KEY = 'phrase:je voudrais un café';
@@ -76,6 +76,7 @@ const tapTranslate = {
   en: 'I would like a coffee.',
   tokens: ['je', 'voudrais', 'un', 'café', 'gare', 'train'],
   accepted: ['je voudrais un café'],
+  fr: 'Je voudrais un café.',
 } as const;
 
 const listenType = {
@@ -151,6 +152,18 @@ describe('the drill batch schema mirrors core', () => {
       }),
     );
     assert.throws(() => DrillBatchSchema.parse({ exercises: [{ ...tapTranslate, difficulty: 'production' }] }));
+  });
+
+  test('a generated tap-translate carries a display line that is one of its answers', () => {
+    const parsed = DrillBatchSchema.parse({ exercises: [tapTranslate] }).exercises[0];
+    assert.equal((parsed as { fr?: string }).fr, 'Je voudrais un café.');
+    const { fr: _fr, ...withoutFr } = tapTranslate;
+    assert.throws(() => DrillBatchSchema.parse({ exercises: [withoutFr] }));
+    // Capitals and punctuation are fine: the line normalises to an accepted answer.
+    assert.equal(validateExercise(parsed as DrillExercise).ok, true);
+    // A display line the grader would reject is dropped like an authored one.
+    const wrong = DrillBatchSchema.parse({ exercises: [{ ...tapTranslate, fr: 'Je veux un thé.' }] }).exercises[0];
+    assert.equal(validateExercise(wrong as DrillExercise).ok, false);
   });
 
   test('survives JSON serialization, the shape it actually arrives in', () => {
@@ -238,5 +251,24 @@ describe('success leads to a harder task', () => {
     const { transferPhrasesFrom } = await import('./generate.ts');
     const picked = transferPhrasesFrom(['un', 'deux', 'trois', 'deux'], { prefer: (fr) => fr === 'trois' });
     assert.deepEqual(picked.map((p) => p.fr), ['trois', 'un']);
+  });
+});
+
+describe('a tap-translate carries its display line', () => {
+  test('the request tells the brain to write fr as the answer is written', () => {
+    const request = buildDrillGenerationRequest(input());
+    assert.match(request, /Its fr is the answer as it is written, with capitals and punctuation, and must be one of accepted once accents, case and punctuation are ignored\./);
+  });
+
+  test('a drill batch keeps its other exercises when one tap-translate has no display line', () => {
+    const { fr: _fr, ...noFr } = tapTranslate;
+    const blank = { ...tapTranslate, id: 'gen:blank', fr: '  ' };
+    const raw = { exercises: [fillBlank, noFr, blank, tapTranslate, repeatThis] };
+    const repaired = withoutIncompleteTapTranslates(raw);
+    assert.deepEqual(DrillBatchSchema.parse(repaired), { exercises: [fillBlank, tapTranslate, repeatThis] });
+    assert.equal(raw.exercises.length, 5, 'the input is not mutated');
+    const complete = { exercises: [fillBlank, bestSentence, appropriateReply, tapTranslate, listenType, repeatThis] };
+    assert.deepEqual(withoutIncompleteTapTranslates(complete), complete);
+    assert.equal(withoutIncompleteTapTranslates('nope'), 'nope');
   });
 });

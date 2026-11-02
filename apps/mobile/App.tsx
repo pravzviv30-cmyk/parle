@@ -325,9 +325,10 @@ function SignedInRoot({
   const newlyCreated = newAccountUserId === user.id;
   const [ready, setReady] = useState(false);
   // Development only (UI-008): the labelled canvas learner for side-by-side
-  // screenshots. Held until startup is ready, so this account's storage scope
-  // is active before it seeds (a fresh sign-up reaches Gate before the scope).
-  useCanvasLearner(auth, ready ? user : null);
+  // screenshots. Seeds once startup is ready, so this account's storage scope
+  // is active first (a fresh sign-up reaches Gate before the scope), and holds
+  // the loading screen until the seed settles so no screen reads unseeded data.
+  const canvasPending = useCanvasLearner(auth, user, ready);
   const [startupFailed, setStartupFailed] = useState(false);
   const [startupRead, setStartupRead] = useState(0);
   const [freshStart, setFreshStart] = useState<FreshStart | null>(null);
@@ -518,7 +519,7 @@ function SignedInRoot({
       </Card>
     </ScrollScreen>
   );
-  if (!ready || freshStart === null) return <Loading />;
+  if (!ready || freshStart === null || canvasPending) return <Loading />;
 
   return (
     <ProfileGate

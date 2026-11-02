@@ -18,6 +18,9 @@ import { enterRecording, leaveRecording } from '../../sound/audioSession.ts';
 import { CAN_RECORD, HearRow, METERED_TAKE, kindTag } from './shared.tsx';
 import { SPEAK, makeDs } from './styles.ts';
 
+/** The quiet control's one string: what it shows is what Voice Control and VoiceOver call it (F951). */
+const QUIET_CONTROL = 'Unable to speak right now?';
+
 export function RepeatThisView({
   exercise,
   onAnswer,
@@ -177,10 +180,10 @@ export function RepeatThisView({
           onPress={onNoMic}
           disabled={locked}
           accessibilityRole="button"
-          accessibilityLabel="I can't speak right now"
+          accessibilityLabel={QUIET_CONTROL}
           style={({ pressed }) => [ds.noMic, pressed && { opacity: 0.6 }]}
         >
-          <Text style={[type.small, { color: bt.muted }]}>Unable to speak right now?</Text>
+          <Text style={[type.small, { color: bt.muted }]}>{QUIET_CONTROL}</Text>
         </Pressable>
       </View>
     </DrillFrame>
