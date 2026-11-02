@@ -94,6 +94,40 @@
           "advisoryRanges": {
             "https://github.com/advisories/GHSA-w5hq-g745-h8pq": "<11.1.1"
           }
+        },
+        {
+          "module": "decode-uri-component",
+          "severity": "high",
+          "decision": "accepted",
+          "lockedAt": "0.2.2",
+          "advisories": [
+            "https://github.com/advisories/GHSA-qr28-fpjm-wq7f"
+          ],
+          "chain": "@luvani/mobile -> @react-navigation/native -> @react-navigation/core -> query-string 7.1.3 -> decode-uri-component",
+          "reachability": "on-device only. react-navigation decodes deep-link paths and query strings through query-string, so a crafted link opened by a learner can reach the quadratic percent-decoding. The worst case is that learner freezing their own app. No server, service runtime, minutes or other learner is reached: no app server or service imports query-string or decode-uri-component.",
+          "why": "Fixed in 0.5.1, but query-string 7.1.3 declares ^0.2.2 and @react-navigation/core declares query-string ^7.1.3, so no lockfile-only update exists. A fix needs query-string 10 (which drops this package) through a react-navigation upgrade, or an override to 0.5.1, a version query-string never declared. Revisit at the next react-navigation upgrade.",
+          "reviewed": "2026-11-02",
+          "expires": "2026-12-02",
+          "advisoryRanges": {
+            "https://github.com/advisories/GHSA-qr28-fpjm-wq7f": "<=0.5.0"
+          }
+        },
+        {
+          "module": "zod",
+          "severity": "high",
+          "decision": "accepted",
+          "lockedAt": "3.25.76",
+          "advisories": [
+            "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"
+          ],
+          "chain": "@luvani/brain -> zod; @luvani/tutor-agent -> zod, @livekit/agents, openai; @anthropic-ai/sdk -> zod; expo -> @expo/cli -> zod",
+          "reachability": "not reached from caller input. Checked 2026-11-02: only packages/brain source imports zod; services/tutor-agent and services/token-server define no zod schemas, and token-server request bodies are not validated with zod. The one constrained collection is ScenarioFrameSchema.beats .min(1) (plus a numeric min/max in typesafe.ts), and those schemas parse LLM structured output from Anthropic or OpenAI, bounded by the request token limit, not learner or caller payloads. Dependencies use of zod (SDK tool schemas, LiveKit, Expo CLI) was not audited line by line.",
+          "why": "Fixed only in 4.6.6, a major upgrade. Our ^3.24.1 ranges could move, but @anthropic-ai/sdk, openai, @livekit/agents and @expo/cli all declare zod 3 ranges, so a fix needs a coordinated zod 4 migration. Revisit with the zod 4 migration, and before any zod schema with collection limits validates caller input.",
+          "reviewed": "2026-11-02",
+          "expires": "2026-12-02",
+          "advisoryRanges": {
+            "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5": "<4.6.6"
+          }
         }
       ]
     }
