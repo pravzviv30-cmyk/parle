@@ -3,7 +3,8 @@
  *
  * The sweep deleted code and assets that nothing loaded: the onboarding Rive
  * scenes, the bold-rhythm `.riv` files, `ContinuityCard`, `continuityRow`, three
- * unread constants and a glyph. `tsc` checks imports but not `require('...')`, and
+ * unread constants and a glyph. A 2026-11-02 follow-up removed the web Rive
+ * runtime, its two wasm files and the four orphan onboarding scene sources. `tsc` checks imports but not `require('...')`, and
  * Metro only complains at bundle time, so a dangling asset would pass every other
  * test here. These checks read the source, as the rest of this workspace does
  * (docs/TESTING.md: there is no renderer), and each one can fail on a real
@@ -83,6 +84,15 @@ describe('Rive is kept for the streak flame and nothing else', () => {
     const pkg = JSON.parse(read(path.join(APP, 'package.json'))) as { dependencies: Record<string, string> };
     assert.ok('@rive-app/react-native' in pkg.dependencies, 'the flame has no Rive runtime to play it');
     assert.match(read(src('streak/StreakFlame.native.tsx')), /from '@rive-app\/react-native'/);
+  });
+
+  test('the web Rive runtime, its wasm and the four onboarding scene sources stay gone', () => {
+    const pkg = JSON.parse(read(path.join(APP, 'package.json'))) as { dependencies: Record<string, string>; devDependencies?: Record<string, string> };
+    const deps = { ...pkg.dependencies, ...(pkg.devDependencies ?? {}) };
+    for (const name of ['@rive-app/react-webgl2', '@rive-app/webgl2']) assert.ok(!(name in deps), `${name} is a dependency again, and nothing loads it`);
+    const bold = path.join(APP, 'assets', 'bold-rhythm');
+    for (const wasm of ['rive.wasm', 'rive_fallback.wasm']) assert.ok(!existsSync(path.join(bold, wasm)), `${wasm} is back, and nothing loads it`);
+    assert.deepEqual(readdirSync(path.join(APP, 'assets', 'rive', 'source')), ['streak'], 'assets/rive/source holds a scene other than streak again');
   });
 });
 

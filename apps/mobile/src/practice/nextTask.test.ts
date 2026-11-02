@@ -58,3 +58,13 @@ test('the local practice puts the real French and assessment limit before record
   assert.ok(source.indexOf('Nothing is graded.') < source.indexOf('Record my take'));
   assert.match(source, /Your take is deleted when you leave/);
 });
+test("the review door reads the load's now, not a fresh clock", () => {
+  const source = readFileSync(new URL('./NextTaskCard.tsx', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  // Two clock reads: one in the load, which the door reads; the held words
+  // describe billing, read apart from the load, so they read the render clock.
+  assert.equal(source.match(/Date\.now\(\)/g)?.length, 2, 'NextTaskCard reads the clock somewhere new');
+  assert.match(source, /setValue\(\{ scope, now, /);
+  assert.match(source, /reviewRow\(value\.deck, value\.now, /);
+  assert.match(source, /heldWords\(billing, Date\.now\(\)\)/);
+  assert.doesNotMatch(source, /reviewRow\([^)]*Date\.now\(\)/, 'the review door reads a fresh clock');
+});
