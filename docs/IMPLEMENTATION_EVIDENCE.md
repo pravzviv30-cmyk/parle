@@ -22,6 +22,20 @@ of the list.
 
 ## Current landing snapshot
 
+- 1 November 2026 Tutor recall, phase 1: branch `claude/tutor-recall` from main eafb382f, merged with
+  cc60bce7. The conversation tutor chooses its five memory notes, three watch-for tags and five target
+  phrases per scene by words shared with the request and the scene frame (`packages/brain/src/profile/
+  recall.ts`), with the old recency, frequency and weakness order as the exact fallback; scene turns also
+  carry one screened past slip of the learner's own (`ownSlipBrief`), never when memory is locked or
+  paused. The privacy notice says so (founder-approved sentence). A dev-only embeddings spike
+  (`npm run eval:recall`, invented fixtures) passed its rule: recall@3 on meaning-only cases 40 against
+  6.7 for word matching. Fix-verifier round 1 HOLDS; live replay with the real OpenAI brain (cafe and
+  bank-interview scenes) showed the scene-ranked notes and slip in the turn requests and no mention of
+  past mistakes; push-check reviewers, `/code-review` and Impeccable findings fixed (malformed synced
+  pattern no longer stops a scene opening, filler words ignored, first safe slip used, tag JSON-quoted,
+  notice sentence placed beside the pause text, wiring pinned by mutation-tested tests).
+  **7,541 tests, 0 failing**; core 1151, brain 793, tutor agent 905, token server 530, playground 110,
+  mobile 4052; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 1 November 2026 Finish-off tidy: branch `claude/finish-tidy` from main fdeeed2b. No learner-visible
   change. The TodayParts and LiveParts require cycle is broken (`main/bMarks.tsx`; Metro no longer warns);
   dead code deleted after proving no live importer: `QUIET_DOOR`, `OPEN_MIC_LABEL`, `SpeakerSlowGlyph`,
