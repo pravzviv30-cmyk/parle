@@ -36,6 +36,8 @@ export type LiveFailure =
   | 'session-elsewhere'
   /** The app's own typed session is still closing after Speak switched it to voice (F903). */
   | 'own-session-closing'
+  /** The token server's daily speaking allowance is spent (503 account-daily-budget or daily-budget). */
+  | 'daily-limit'
   /** Refused because nobody is signed in. */
   | 'sign-in-required'
   /** Reached the room service, but the signal connection failed. */
@@ -64,8 +66,8 @@ export type LiveFailure =
 /** Thrown by the hook when the token server answers with something unusable. */
 export class TokenServerError extends Error {
   readonly status: number;
-  readonly code: 'voice-unavailable' | 'own-session-closing' | undefined;
-  constructor(status: number, code?: 'voice-unavailable' | 'own-session-closing') {
+  readonly code: 'voice-unavailable' | 'own-session-closing' | 'daily-limit' | undefined;
+  constructor(status: number, code?: 'voice-unavailable' | 'own-session-closing' | 'daily-limit') {
     super(`token server replied ${status}`);
     this.name = 'TokenServerError';
     this.status = status;
@@ -74,9 +76,10 @@ export class TokenServerError extends Error {
 }
 
 /** Read only our capability code; remote prose never becomes learner copy. */
-export function tokenFailureCode(status: number, body: unknown): 'voice-unavailable' | undefined {
+export function tokenFailureCode(status: number, body: unknown): 'voice-unavailable' | 'daily-limit' | undefined {
   if (status !== 503 || !body || typeof body !== 'object') return undefined;
   const value = body as Record<string, unknown>;
+  if (value.error === 'account-daily-budget' || value.error === 'daily-budget') return 'daily-limit';
   const modes = value.supportedModes;
   return value.error === 'voice-unavailable' && Array.isArray(modes)
     && modes.length === 2 && modes.includes('lesson-text') && modes.includes('convo-text')
@@ -119,6 +122,7 @@ export function classifyFailure(err: unknown): LiveFailure {
     // hook answers it with the paywall before this is reached.
     if (err.status === 503 && err.code === 'voice-unavailable') return 'voice-unavailable';
     if (err.status === 409 && err.code === 'own-session-closing') return 'own-session-closing';
+    if (err.status === 503 && err.code === 'daily-limit') return 'daily-limit';
     if (err.status >= 500) return 'server-unreachable';
     switch (err.status) {
       case 401:
@@ -253,6 +257,12 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   'own-session-closing': {
     label: 'Still closing',
     message: 'Your typed session is still closing. Give it a moment, then tap Try again.',
+    canType: false,
+  },
+  // No Try again: another start would only be refused. Back is always drawn.
+  'daily-limit': {
+    label: 'Used up for today',
+    message: "Today's speaking time is used up. It comes back tomorrow.",
     canType: false,
   },
   'session-elsewhere': {

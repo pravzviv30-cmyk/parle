@@ -12198,3 +12198,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
   pins the two labels agree.
 - verified-by: `Today names the review action once`
+
+### F955 — A failed tutor start still uses up its daily seconds
+- severity: P3
+- status: [ ]
+- where: services/token-server/src/server.ts (the tutor start's reservation) and
+  supabase/migrations/20261020140000_weekly_free_taste.sql (~:235, :278-300)
+- note: Found on staging 2026-11-01 when the founder's account ran out of its 1,200 s daily
+  allowance. Seconds reserved for a start are never returned to `tutor_session_budget_days` /
+  `tutor_account_budget_days` when the tutor never joins, so failed starts spend the day's
+  allowance. The app now names the spent allowance honestly (`daily-limit` in
+  `apps/mobile/src/live/failure.ts`), but the fix belongs to the token server and the database,
+  not the app: give the reservation back when no tutor joined.
+- verified-by: `a tutor start that never joins gives back its reserved daily seconds`
