@@ -1,4 +1,5 @@
 import { test, describe } from 'node:test';
+import type { DrillExercise } from './drill/types.ts';
 import assert from 'node:assert/strict';
 
 import { FRENCH_PHONEMES } from './phonemes/inventory.ts';
@@ -218,5 +219,15 @@ describe('drill fixtures obey the same copy rules as the rest of the app', () =>
         checkDrill(`${exercise.id} ${label}`, text);
       }
     }
+  });
+});
+
+describe('learnerVisibleStrings', () => {
+  test('includes the tap-translate display line', () => {
+    const labels = learnerVisibleStrings({
+      kind: 'tap-translate', id: 't', phraseKey: 'p', difficulty: 'recognition',
+      en: 'I would like a coffee.', tokens: ['je', 'voudrais'], accepted: ['je voudrais'], fr: 'Je voudrais.',
+    } as DrillExercise).map((s) => `${s.label}:${s.text}`);
+    assert.ok(labels.includes('fr:Je voudrais.'));
   });
 });

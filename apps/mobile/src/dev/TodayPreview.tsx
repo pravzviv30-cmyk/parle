@@ -39,12 +39,12 @@ import { threeDone } from '../home/todayView.ts';
 import { ComingUpCard, SceneLead, SectionTitle, WeekCard } from '../today/TodayParts.tsx';
 import { ExploreLeadBody, HeldLeadBody, LeadRow, PlansLeadBody } from '../practice/NextTaskCard.tsx';
 import { heldWords, leadStop } from '../practice/nextTask.ts';
-import { OfflineLeadBody } from '../practice/LocalPracticeCard.tsx';
+import { CafeLineBody, OfflineLeadBody } from '../practice/LocalPracticeCard.tsx';
 import { offlineNotice } from '../practice/localPractice.ts';
 import { StarterContinuation, StarterFeedback } from '../onboarding/StarterContinuation.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import {
-  TODAY_PREVIEW_COMING_UP, TODAY_PREVIEW_FIX, TODAY_PREVIEW_HELD_BILLING, TODAY_PREVIEW_PHRASE, TODAY_PREVIEW_REVIEW, TODAY_PREVIEW_SCENE, TODAY_PREVIEW_WEEK,
+  TODAY_PREVIEW_COMING_UP, TODAY_PREVIEW_FIX, TODAY_PREVIEW_HELD_BILLING, TODAY_PREVIEW_LAPSED_BILLING, TODAY_PREVIEW_PHRASE, TODAY_PREVIEW_REVIEW, TODAY_PREVIEW_SCENE, TODAY_PREVIEW_WEEK,
   todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewStarter, todayPreviewStarterFeedback, type TodayPreviewState,
 } from './todayPreviewFixtures.ts';
 
@@ -94,6 +94,8 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
       case 'offline': return <OfflineLeadBody notice={offlineNotice(false)} cafe bare checking={false} onTry={said} onRecheck={said} />;
       // Past Starter, so no café line: the words, then Review (F946).
       case 'held': return <HeldLeadBody bare words={heldWords(TODAY_PREVIEW_HELD_BILLING, todayPreviewNow(hour))} onPlans={said} onReview={said} reviewLabel={TODAY_PREVIEW_REVIEW.title} />;
+      // Lapsed at Starter, as NextTaskCard draws it: See plans, then the café line (founder, 2026-11-01).
+      case 'held-starter': { const words = heldWords(TODAY_PREVIEW_LAPSED_BILLING, todayPreviewNow(hour)); return <HeldLeadBody bare words={words} onPlans={said} onReview={said} reviewLabel={TODAY_PREVIEW_REVIEW.title}><CafeLineBody phrase={TODAY_PREVIEW_PHRASE} bare variant={words.plans ? 'secondary' : 'primary'} onTry={said} /></HeldLeadBody>; }
       case 'explore': return <ExploreLeadBody bare title={leadStop('explore', null).title} onExplore={said} />;
       default: return scene(false);
     }

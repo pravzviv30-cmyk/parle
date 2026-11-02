@@ -10,22 +10,23 @@ import { readFileSync } from 'node:fs';
 
 import { greetingWord } from '../home/greeting.ts';
 import { skyView } from '../home/skyView.ts';
+import { heldWords } from '../practice/nextTask.ts';
 import {
   TODAY_PREVIEW_KEYS, TODAY_PREVIEW_LABELS, TODAY_PREVIEW_STATES,
-  TODAY_PREVIEW_HELD_BILLING, todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewStarterFeedback, todayPreviewState,
+  TODAY_PREVIEW_HELD_BILLING, TODAY_PREVIEW_LAPSED_BILLING, todayPreviewGame, todayPreviewGreeting, todayPreviewHero, todayPreviewHour, todayPreviewNow, todayPreviewOpen, todayPreviewStarterFeedback, todayPreviewState,
 } from './todayPreviewFixtures.ts';
 
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
 const strip = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-held', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night', 'today-starter-feedback', 'today-plans-past'];
+const WANTED = ['today-scene', 'today-fix', 'today-plans', 'today-starter', 'today-offline', 'today-held', 'today-tutor-unreachable', 'today-explore', 'today-loading', 'today-failed', 'today-evening', 'today-night', 'today-starter-feedback', 'today-plans-past', 'today-held-starter'];
 
 describe("Today's preview keys — UI-015", () => {
-  test('the fourteen keys route to their state, and nothing else does', () => {
+  test('the fifteen keys route to their state, and nothing else does', () => {
     assert.deepEqual([...TODAY_PREVIEW_KEYS], WANTED);
     for (const key of WANTED) assert.equal(todayPreviewState(key), key.slice('today-'.length), `${key} is not routed`);
     for (const other of ['today', 'today-', 'today-morning', 'your-french-full', 'select', 'scene']) assert.equal(todayPreviewState(other), null, `${other} is routed to Today`);
-    assert.equal(TODAY_PREVIEW_STATES.length, 14);
+    assert.equal(TODAY_PREVIEW_STATES.length, 15);
   });
 
   test('the held preview refills after the fixed now', () => {
@@ -117,6 +118,24 @@ describe("Today's preview keys — UI-015", () => {
     assert.doesNotMatch(line, /onCafe/, 'the past-Starter preview offers the café line');
     assert.match(line, /onReview=\{said\} reviewLabel=\{TODAY_PREVIEW_REVIEW\.title\}/);
     assert.match(strip(read('../practice/NextTaskCard.tsx')), /onReview=\{cafeOffered \|\| reviewDoor === null \? undefined :/);
+  });
+
+  test('the held lead at Starter draws one primary', () => {
+    // Founder, 2026-11-01: See plans stays primary; the café line under it is secondary.
+    assert.equal(heldWords(TODAY_PREVIEW_LAPSED_BILLING, todayPreviewNow(9)).plans, true, 'the lapsed fixture does not offer plans');
+    const preview = strip(read('./TodayPreview.tsx'));
+    const line = preview.split('\n').find((l) => l.includes("case 'held-starter':"));
+    assert.ok(line !== undefined, 'today-held-starter is not drawn');
+    assert.match(line, /const words = heldWords\(TODAY_PREVIEW_LAPSED_BILLING, todayPreviewNow\(hour\)\); return <HeldLeadBody bare words=\{words\}/);
+    assert.match(line, /<CafeLineBody [^>]*variant=\{words\.plans \? 'secondary' : 'primary'\}/);
+    const task = strip(read('../practice/NextTaskCard.tsx'));
+    assert.match(task, /<LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} variant=\{words\.plans \? 'secondary' : 'primary'\} \/>/, 'the held lead hands the café line a primary beside See plans');
+    const card = strip(read('../practice/LocalPracticeCard.tsx'));
+    assert.match(card, /<CafeLineBody phrase=\{phrase\} bare=\{bare\} variant=\{variant\}/);
+    // Secondary, the door is the plans lead's inline headphones action (impeccable, 2026-11-02).
+    assert.match(card, /\{variant === 'secondary'\s*\? <IconAction layout="inline" ground=\{bare \? undefined : 'sun'\} icon="headphones" label="Try this line" onPress=\{onTry\} \/>\s*: <PillButton label="Try this line" [^>]*onPress=\{onTry\} \/>\}/);
+    assert.doesNotMatch(card, /<PillButton label="Try this line" [^>]*variant=/, 'the café line draws a secondary pill again');
+    assert.match(card, /variant = 'primary'/, 'the café line is no longer primary elsewhere');
   });
 
   test('the screen list routes the keys to the Today preview and hides the chrome for it', () => {

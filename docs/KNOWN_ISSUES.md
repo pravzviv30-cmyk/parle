@@ -12135,7 +12135,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F950 — Generated tap-translate items show a lowercase grading key
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/drill/generate.ts (`TapTranslateZ` and its prompt rule)
 - note: Found 2026-10-31 on claude/finish-fixes while closing the drill-b follow-up. Authored
   tap-translate items now carry an `fr` display line, so the right sheet, the end list and the miss
@@ -12143,17 +12143,25 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   and still fall back to `accepted[0]`, usually lowercase with no punctuation. Fix: add an optional
   `fr` to `TapTranslateZ` and the generation prompt, validated like the authored ones, with a
   contract test. Left out of finish-fixes so the brain's output contract did not change there.
+- fixed: 2026-11-01 on claude/bug-fix. `TapTranslateZ` requires `fr` (structured outputs need every key)
+  and the prompt's tap-translate rule asks for the answer as written, with capitals and punctuation, one
+  of `accepted` once normalised. `validateExercise` holds it to the authored rule, so `groundedDrills`
+  drops a generated item whose `fr` is not an answer. `learnerVisibleStrings` now lists the tap-translate
+  `fr` for the copy lint. Older stored items without `fr` still fall back to `accepted[0]`.
 - verified-by: `a generated tap-translate carries a display line that is one of its answers`
 
 ### F951 — The speak drill's quiet control says one thing and is named another
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/drill/kinds/RepeatThisView.tsx (the "Unable to speak right now?" Pressable)
 - note: Found 2026-11-01 by the Impeccable reviewer in /push-check on claude/finish-tidy. The control
   reads "Unable to speak right now?" but its accessibility label is "I can't speak right now", so a
   Voice Control user who says the words on screen does not find it, and one intent has two labels.
   Predates the tidy, which only made this control the one home of the wording. Fix: label it with the
   visible words and pin that the label matches the text.
+- fixed: 2026-11-01 on claude/bug-fix. `RepeatThisView.tsx` holds the wording once, in `QUIET_CONTROL`,
+  and uses it for both the visible text and `accessibilityLabel`. The speak-family test resolves both sides
+  and fails if they differ; `choosingView.test.ts` pins the same wording in its one home.
 - verified-by: `the quiet control's spoken name is its visible words`
 
 ### F952 — A text size change while the app is open leaves Today mis-laid until relaunch
@@ -12166,5 +12174,27 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   correctly (icons only, greeting whole). The fix-verifier judged it pre-existing (the greeting is
   untouched by that branch). Fix: re-measure the greeting and re-lay the bar on a font scale change,
   with a test that drives the change.
+- tried 2026-11-01 on claude/bug-fix, none landed: the bug is wider than the greeting and the bar.
+  After a live switch from Large to accessibility-large, the stat tiles re-stack (JS sees the new
+  `useWindowDimensions().fontScale`), but every text box on Today keeps its old measured size:
+  hero lines, the Say button and "Today's path" are clipped mid-line too. Switching back leaves the
+  path rows at the larger height. Three app-level fixes were tried live and ruled out: a remount of
+  Today's content and the bar keyed on the font scale (fixes only the way back to the launch size);
+  waiting longer; and the sign-in screens' `maxFontSizeMultiplier={fontScale + 1}` revision on every
+  Text on Today (no change, and it clashes with the rule that keeps that prop off Today). The fault
+  looks native (React Native 0.86.3 Fabric on iOS, or the dev client's surface). Next probe: a bare
+  `<Text>` with no props on a preview screen; if it also stays stale, report it upstream or patch
+  natively. Shots in `artifacts/bug-fix-2026-11/` (`before/`, `f952-attempts/`).
 - verified-by: `Today re-lays out when the text size changes while it is open`
 
+
+### F954 — Today names one review twice when the hero offers it
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/practice/NextTaskCard.tsx (the held and plans leads' Review door) and the Today path's review row action (`todayView.ts` `practise`)
+- note: Found 2026-11-02 by the Impeccable reviewer in /push-check on claude/bug-fix, in older code
+  outside that diff. When the held or plans lead offers Review, its button reads "Review 4 phrases",
+  while the path row for the same review says "Practise" as its action, so one intent has two labels
+  on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
+  pins the two labels agree.
+- verified-by: `Today names the review action once`

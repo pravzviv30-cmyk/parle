@@ -118,7 +118,8 @@ describe('the choosing moment — what the screen decides before a scene exists'
     // One wording for one offer. The live offer is the Repeat-this drill's quiet
     // control; the conversation no longer carries a second copy of the sentence.
     const repeatThis = stripComments(read('../drill/kinds/RepeatThisView.tsx'));
-    assert.match(repeatThis, />Unable to speak right now\?<\/Text>/, 'the live offer to go quiet changed its wording');
+    assert.match(repeatThis, /const QUIET_CONTROL = 'Unable to speak right now\?';/, 'the live offer to go quiet changed its wording');
+    assert.match(repeatThis, />\{QUIET_CONTROL\}<\/Text>/, 'the live offer to go quiet no longer shows its one wording');
 
     const typed = choosingView({ ...opening, textMode: true });
     // The question is still the headline of this screen, so the learner has not

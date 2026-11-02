@@ -22,20 +22,20 @@ of the list.
 
 ## Current landing snapshot
 
-- 1 November 2026 Tutor recall, phase 1: branch `claude/tutor-recall` from main eafb382f, merged with
-  cc60bce7. The conversation tutor chooses its five memory notes, three watch-for tags and five target
-  phrases per scene by words shared with the request and the scene frame (`packages/brain/src/profile/
-  recall.ts`), with the old recency, frequency and weakness order as the exact fallback; scene turns also
-  carry one screened past slip of the learner's own (`ownSlipBrief`), never when memory is locked or
-  paused. The privacy notice says so (founder-approved sentence). A dev-only embeddings spike
-  (`npm run eval:recall`, invented fixtures) passed its rule: recall@3 on meaning-only cases 40 against
-  6.7 for word matching. Fix-verifier round 1 HOLDS; live replay with the real OpenAI brain (cafe and
-  bank-interview scenes) showed the scene-ranked notes and slip in the turn requests and no mention of
-  past mistakes; push-check reviewers, `/code-review` and Impeccable findings fixed (malformed synced
-  pattern no longer stops a scene opening, filler words ignored, first safe slip used, tag JSON-quoted,
-  notice sentence placed beside the pause text, wiring pinned by mutation-tested tests).
-  **7,541 tests, 0 failing**; core 1151, brain 793, tutor agent 905, token server 530, playground 110,
-  mobile 4052; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+- 2 November 2026 Bug fixes after screens 1 to 3: branch `claude/bug-fix` from main cc60bce7. F950
+  generated tap-translate items carry a required `fr` display line, validated like authored ones;
+  F951 the speak drill's quiet control is named by its visible words; F952 stays open (three
+  app-level fixes failed live on the simulator, notes in the ledger); Today's review door and held
+  words read the load's now; the lapsed Starter held lead has one primary, See plans (founder
+  decision), with a `today-held-starter` preview; the canvas learner's seed lands before the first
+  screen reads storage (dev only); the unused web Rive runtime, its wasm, licence and four orphan
+  scene sources are removed (web and iOS exports pass). Dependency audit, founder decisions of
+  2026-11-02: node-forge updated to 1.4.2, the withdrawn braces advisory dropped, uuid renewed and
+  decode-uri-component and zod accepted, all to 2026-12-02. Fix-verifier round 1 HOLDS on every
+  item. Before and after shots in `artifacts/bug-fix-2026-11/` at 320 and 375, light and dark, and
+  the iPhone 17 Pro simulator at Large and accessibility-large.
+  **7,521 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4057; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 1 November 2026 Finish-off tidy: branch `claude/finish-tidy` from main fdeeed2b. No learner-visible
   change. The TodayParts and LiveParts require cycle is broken (`main/bMarks.tsx`; Metro no longer warns);
   dead code deleted after proving no live importer: `QUIET_DOOR`, `OPEN_MIC_LABEL`, `SpeakerSlowGlyph`,

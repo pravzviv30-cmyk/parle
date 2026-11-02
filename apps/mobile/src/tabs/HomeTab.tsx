@@ -123,9 +123,9 @@ export function HomeTab() {
   const [daily, setDaily] = useState(() => todayItems(0, Date.now()));
   // The deck Review deals from, read on its own so the review row depends on
   // nothing but what Review would deal (fix-verifier, 2026-10-29).
-  const [reviewRead, setReviewRead] = useState<{ scope: number; deck: readonly ReviewCard[] } | null>(null);
+  const [reviewRead, setReviewRead] = useState<{ scope: number; deck: readonly ReviewCard[]; now: number } | null>(null);
   // A deck read for another account is never counted for this one.
-  const reviewDeck = reviewRead !== null && reviewRead.scope === scopeGeneration() ? reviewRead.deck : null;
+  const reviewDeck = reviewRead !== null && reviewRead.scope === scopeGeneration() ? reviewRead : null;
 
   useFocusEffect(
     useCallback(() => {
@@ -181,7 +181,7 @@ export function HomeTab() {
       let cancelled = false;
       const scope = scopeGeneration();
       void loadDeck().then((deck) => { if (!cancelled && scopeGeneration() === scope) setReviewDeck(deck); }).catch(() => {});
-      function setReviewDeck(deck: readonly ReviewCard[]) { setReviewRead({ scope, deck }); }
+      function setReviewDeck(deck: readonly ReviewCard[]) { setReviewRead({ scope, deck, now: Date.now() }); }
       return () => { cancelled = true; };
     }, [revision]),
   );
@@ -192,7 +192,7 @@ export function HomeTab() {
   const event = comingUp({ facts: visibleFacts(profile), paused: memoryPaused(profile.brain), tutorName, access: locks.access, now: Date.now() });
 
   // The review row (F934): only when Review would deal cards, by Review's own deal.
-  const review = reviewDeck === null ? null : reviewRow(reviewDeck, Date.now(), locks.access('conversationPractice'));
+  const review = reviewDeck === null ? null : reviewRow(reviewDeck.deck, reviewDeck.now, locks.access('conversationPractice'));
   const three = <QuestsCard />;
   // One rule picks the hero and the rows under it (UI-012 order, UI-015), so
   // the hero's stop is never drawn twice.

@@ -74,6 +74,7 @@ const TapTranslateZ = z.object({
   en: z.string(),
   tokens: z.array(z.string()),
   accepted: z.array(z.string()),
+  fr: z.string(),
 });
 
 const ListenTypeZ = z.object({
@@ -116,6 +117,23 @@ export const DrillBatchSchema = z.object({
 });
 
 export type DrillBatch = z.infer<typeof DrillBatchSchema>;
+
+/**
+ * Non-strict brains (JSON mode, the CLI) parse a whole batch at once, so one
+ * tap-translate without its display line would fail every drill and send the
+ * learner to the fixture bank. Drop just that item before parsing. Never fill
+ * fr from accepted: accepted is normalised, fr is what the learner reads.
+ */
+export function withoutIncompleteTapTranslates(decoded: unknown): unknown {
+  if (decoded === null || typeof decoded !== 'object' || !Array.isArray((decoded as { exercises?: unknown }).exercises)) return decoded;
+  const batch = decoded as { exercises: unknown[] };
+  const exercises = batch.exercises.filter(item => {
+    if (item === null || typeof item !== 'object' || (item as { kind?: unknown }).kind !== 'tap-translate') return true;
+    const fr = (item as { fr?: unknown }).fr;
+    return typeof fr === 'string' && fr.trim() !== '';
+  });
+  return exercises.length === batch.exercises.length ? decoded : { ...batch, exercises };
+}
 
 // The whole point of mirroring: a generated exercise IS a core exercise. If
 // core's shapes drift, this line breaks the build instead of the learner.
@@ -203,7 +221,7 @@ const INSTRUCTION = [
   `- difficulty: 'recognition' for options and token assembly, 'production' for typed and spoken.`,
   `- accepted: four to eight genuinely-said spoken variants (the ne dropped, on for nous, contractions). Never two entries that differ by one letter. The learner's answer is compared accent-insensitively.`,
   `- fill-blank sentences carry ___ where the answer goes; blank the part the learner gets wrong. Use their recurring errors below to aim these.`,
-  `- tap-translate tokens must assemble at least one accepted answer, with two or three plausible extra tokens. Every token must contain a real word; attach punctuation to a word and never emit a standalone punctuation token.`,
+  `- tap-translate tokens must assemble at least one accepted answer, with two or three plausible extra tokens. Every token must contain a real word; attach punctuation to a word and never emit a standalone punctuation token. Its fr is the answer as it is written, with capitals and punctuation, and must be one of accepted once accents, case and punctuation are ignored.`,
   `- best-sentence and appropriate-reply distractors are correct-sounding French that fails the situation, never gibberish.`,
   `- Mix formats like a modern language app: meaning choice, dialogue reply, token assembly, typing, listening, and speaking whenever the phrase genuinely supports them. Never make the whole set fill-in-the-blank.`,
   `- At least one third of the exercises must test transfer: the same phrase or skill in a new but closely related situation. Change the surrounding context, speaker, or intent without changing phraseKey to unrelated language.`,
