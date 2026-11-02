@@ -12188,7 +12188,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `Today re-lays out when the text size changes while it is open`
 
 
-### F953 — Today names one review twice when the hero offers it
+### F954 — Today names one review twice when the hero offers it
 - severity: P3
 - status: [ ]
 - where: apps/mobile/src/practice/NextTaskCard.tsx (the held and plans leads' Review door) and the Today path's review row action (`todayView.ts` `practise`)
