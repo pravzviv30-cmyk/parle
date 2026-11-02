@@ -87,3 +87,15 @@ export function tabLabelsShown(fontScale: number, capsule: number): boolean {
   const room = (capsule - CAPSULE_PAD) / 5 - FACE_PAD;
   return WIDEST_LABEL * LABEL_SIZE * LETTER_EM * fontScale <= room;
 }
+
+/** The cell under a finger `x` points into the capsule's row of `count` cells each `cell` wide, clamped to the row (item 7). */
+export function tabCellAt(x: number, cell: number, count: number): number {
+  if (cell <= 0) return 0;
+  return Math.max(0, Math.min(count - 1, Math.floor(x / cell)));
+}
+
+/** The new cell when a drag at `x` has left cell `over`, or null while it is still inside it: the moment to tick. */
+export function tabCellCrossed(over: number, x: number, cell: number, count: number): number | null {
+  const now = tabCellAt(x, cell, count);
+  return now === over ? null : now;
+}

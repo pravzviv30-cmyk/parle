@@ -1455,7 +1455,8 @@ describe('the active tab wears the violet cell — F325, UI-008', () => {
     // 2026-10-20 UI-008, Figma 292:1103. Replaces revamp B's brand blue word on
     // white. The same pins as nav/tabBar.test.ts, read here with the surface.
     assert.match(tabbar, /color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\}/, 'the selected glyph is not sun, or the others are not cream');
-    assert.match(tabbar, /faceSelected: \{ backgroundColor: t\.tabSelected \}/, 'the selected cell is not violet');
+    // Item 7 (UI-018): the violet is the sliding pill under the selected cell.
+    assert.match(named('nav/TabPill.tsx'), /backgroundColor: t\.tabSelected/, 'the selected cell is not violet');
     assert.match(tabbar, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold over the others\' Medium');
   });
 });

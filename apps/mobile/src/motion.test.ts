@@ -171,6 +171,8 @@ const ENGINE_FILES = [
   'onboarding/motion/C2Scene.tsx',
   'icons/AnimatedIcon.tsx',
   'nav/TabGlyph.tsx',
+  // The selected tab's sliding pill (item 7, UI-018): transform only, jumps under Reduce Motion.
+  'nav/TabPill.tsx',
   'drill/AnswerSheet.tsx',
   'speech/useRecorderLevel.ts',
   // The password meter animates a stable fill transform and its strength colour.

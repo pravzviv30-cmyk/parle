@@ -1060,10 +1060,14 @@ the new look, listed at the end, and they go with their call sites.
   From reading size 1.3, when the widest word cannot fit whole in its cell
   (`tabLabelsShown`), every tab shows its glyph alone and keeps its full
   accessibility label (F947, founder decision 2026-10-31).
-  Selected is the `tabSelected` violet cell with the Linear glyph in
+  Selected is the `tabSelected` violet pill under the cell with the Linear glyph in
   `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
   unselected is the Linear glyph and the word in cream at Outfit Medium on the
-  ink. The bar itself moves nothing: when a tab becomes the selected one its
+  ink. Only the pill moves (`nav/TabPill.tsx`, UI-018): it slides to a tapped
+  tab on the fast beat, and the open tab can be held and dragged sideways to
+  another, a selection tick as the drag starts and at each cell it crosses,
+  landing like a tap; under Reduce Motion it jumps. A still long press is never
+  claimed, so the Large Content Viewer keeps working. When a tab becomes the selected one its
   icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one
   drawing, never scaled, so it stays sharp), never on launch or on a tap of
   the open tab, and under Reduce Motion it does not move. The Practice

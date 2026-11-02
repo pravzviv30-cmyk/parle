@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
-import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellCrossed, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -96,8 +96,11 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // drawing. Bulk draws its body at 0.4 and reads as a muddy shape on violet.
     assert.match(FLAT, /variant="linear"/, 'the selected glyph is not the gold Linear drawing');
     assert.doesNotMatch(FLAT, /variant=\{bulk \? 'bulk'/, 'the selected glyph went back to the Bulk drawing');
-    assert.match(FLAT, /style=\{\[st\.face, focused && st\.faceSelected\]\}/, 'the selected cell is not filled');
-    assert.match(FLAT, /faceSelected: \{ backgroundColor: t\.tabSelected \}/, 'the selected cell is not the violet tab token');
+    // Item 7 (2026-11-02): the violet is the one sliding pill, not the cell.
+    assert.doesNotMatch(FLAT, /faceSelected/, 'the selected cell paints its own violet beside the pill');
+    const pill = read('./TabPill.tsx');
+    assert.match(pill, /backgroundColor: t\.tabSelected/, 'the pill is not the violet tab token');
+    assert.match(pill, /borderRadius: 20/, 'the pill is not the cell radius');
     assert.match(FLAT, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold and the rest Medium');
     assert.match(FLAT, /label: \{ \.\.\.boldType\.small, color: t\.tabLabel, textAlign: 'center' \}/, 'the word is not C2 small (13/18) in the cream label token');
     assert.match(FLAT, /size=\{22\}/, 'the glyph is not 22pt');
@@ -183,7 +186,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.ok((tabCapsuleWidth(320, 0, 0) - 16) / 5 >= 44, 'a fifth of the 320pt capsule is under the touch floor');
   });
 
-  test('a tab cell presses through Press with no haptic of its own, and the bar still moves nothing', () => {
+  test('a tab cell presses through Press with no haptic of its own, and only the selection pill moves', () => {
     // 2026-09-30, revamp B (F597, F600). The cell is the shared press: the one
     // spring, released on lift, instant under reduced motion. It asks for no
     // haptic, because the tick belongs to the tap that really changes tab and
@@ -200,7 +203,40 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.doesNotMatch(BAR, /<Pressable\b/, 'the tab bar hand-rolls a Pressable beside the shared press');
     assert.doesNotMatch(BAR, /cellPressed/, 'the static pressed style is back');
     assert.doesNotMatch(BAR, /scale: 0\.985/, 'the tab bar scales by hand again instead of on the spring');
-    assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press may move a cell');
+    assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press and TabPill may move');
+  });
+
+  test('the selected tab can be held and dragged to another, with a tick per cell — item 7', () => {
+    // Founder, 2026-11-02 (iPhone): hold the open tab and drag it to another.
+    assert.match(BAR, /^import \{ TabPill \} from '\.\/TabPill\.tsx';$/m, 'the capsule does not draw the sliding pill');
+    assert.match(FLAT, /<View ref=\{capsuleRef\} \{\.\.\.drag\.panHandlers\}/, 'the capsule row takes no drag');
+    assert.match(FLAT, /<TabPill /, 'the capsule does not draw the pill');
+    // Claimed only on sideways movement that began on the selected cell, so a tap and a still long press stay the cell's.
+    assert.match(FLAT, /onMoveShouldSetPanResponderCapture: \(_, g\) => startedOnSelected\.current && Math\.abs\(g\.dx\) > 8 && Math\.abs\(g\.dx\) > Math\.abs\(g\.dy\)/, 'the drag claims taps, long presses or vertical moves');
+    assert.match(FLAT, /onPanResponderGrant: \(\) => \{ tick\(\);/, 'holding and starting the drag gives no haptic');
+    assert.match(FLAT, /if \(crossed !== null\) \{ over\.current = crossed; tick\(\); \}/, 'crossing into another cell does not tick');
+    assert.match(FLAT, /if \(to !== selected\) routesRef\.current\[to\]\?\.onPress\(\); else tapSettled\(\);/, 'letting go does not navigate the way a tap does');
+    assert.match(FLAT, /onPanResponderTerminate: \(\) => setDragX\(null\)/, 'a cancelled drag does not put the pill back');
+    // The pill: follows the finger while held, slides on a tap, jumps under Reduce Motion.
+    const pill = stripComments(read('./TabPill.tsx')).replace(/\s+/g, ' ');
+    assert.match(pill, /const reduced = useReduceMotion\(\);/, 'the pill does not watch Reduce Motion');
+    assert.match(pill, /if \(following \|\| reduced\) \{ cancel\(x\); x\.value = to; return; \}/, 'the pill does not jump under Reduce Motion or while held');
+    assert.match(pill, /x\.value = timing\(to, DUR\.fast, EASE\.out, reduced\);/, 'a tap does not slide the pill');
+    assert.match(pill, /\{\.\.\.decorative\}/, 'the pill is heard by a screen reader');
+    assert.match(pill, /transform: \[\{ translateX: x\.value \}\]/, 'the pill moves by something other than a transform');
+  });
+
+  test('the drag geometry: the cell under a finger, clamped, and when it changes — item 7', () => {
+    assert.equal(tabCellAt(0, 70, 5), 0);
+    assert.equal(tabCellAt(69.9, 70, 5), 0);
+    assert.equal(tabCellAt(70, 70, 5), 1);
+    assert.equal(tabCellAt(349, 70, 5), 4);
+    assert.equal(tabCellAt(-40, 70, 5), 0, 'a finger left of the capsule is not the first cell');
+    assert.equal(tabCellAt(900, 70, 5), 4, 'a finger right of the capsule is not the last cell');
+    assert.equal(tabCellAt(10, 0, 5), 0, 'an unmeasured capsule divides by zero');
+    assert.equal(tabCellCrossed(1, 100, 70, 5), null, 'moving inside a cell ticks');
+    assert.equal(tabCellCrossed(1, 150, 70, 5), 2);
+    assert.equal(tabCellCrossed(4, 900, 70, 5), null, 'dragging past the end ticks again');
   });
 
   test('the five words are Today, Explore, Speak, Practice and Journey over Codex\'s Iconsax drawings — UI-008', () => {
@@ -257,7 +293,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // With the words hidden, iOS's Large Content Viewer shows the word on a long press.
     assert.match(FLAT, /accessibilityShowsLargeContentViewer=\{!shown\}/, 'a hidden word has no Large Content Viewer');
     assert.match(FLAT, /accessibilityLargeContentTitle=\{shown \? undefined : label\}/, 'the Large Content Viewer has no title');
-    assert.match(FLAT, /<View style=\{\[st\.capsule, \{ width: capsule \}\]\}>/, 'the capsule width is computed twice');
+    assert.match(FLAT, /style=\{\[st\.capsule, \{ width: capsule \}\]\}>/, 'the capsule width is computed twice');
     // The bar draws the word only when the model says it fits, and every tab
     // keeps its full name for a screen reader.
     assert.match(FLAT, /tabLabelsShown\(fontScale, capsule\)/, 'the bar does not ask the model whether the words fit');
@@ -276,7 +312,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
 describe('the selected tab icon pops once — F737', () => {
   test('the selected tab icon springs in TabGlyph and lands still under Reduce Motion', () => {
     // Come alive (D7): the selected tab shows it was chosen. The bar hands each
-    // icon to TabGlyph and still moves nothing itself (F600); TabGlyph draws the
+    // icon to TabGlyph; only its selection pill moves (F600, item 7); TabGlyph draws the
     // Linear icon once, in one layer, and lifts it once on a real change.
     assert.match(BAR, /^import \{ TabGlyph \} from '\.\/TabGlyph\.tsx';$/m, 'the bar does not hand its icons to TabGlyph');
     assert.match(

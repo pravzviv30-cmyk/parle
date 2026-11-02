@@ -957,6 +957,20 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   fallback outside the navigator. Still no shadow or hairline.
 - Sources: founder item 6, 2026-11-01; `nav/tabBar.test.ts`, `layout.test.ts`.
 
+## UI-018 — The open tab can be held and dragged to another
+
+- Date: 2026-11-02
+- Status: accepted (founder item 7, on an iPhone; route "Keep our capsule, add
+  drag", no new packages, no glass blur). Reverses "the bar itself moves
+  nothing" (F600) for the selection pill only.
+- Decision: the violet selected cell is one Reanimated pill (`nav/TabPill.tsx`)
+  behind the glyphs. A tap slides it; a sideways drag that starts on the open
+  tab moves it with the finger through RN's PanResponder, ticking as the drag
+  starts and at each cell crossed, and letting go navigates the way a tap does.
+  A still long press is not claimed (F947's Large Content Viewer). Reduce
+  Motion jumps it. Cells keep their roles, labels and the Practice dot.
+- Sources: founder item 7, 2026-11-02; `nav/tabBar.test.ts`.
+
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 
 - Date: 2026-10-23
