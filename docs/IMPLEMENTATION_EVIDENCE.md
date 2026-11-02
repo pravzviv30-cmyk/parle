@@ -34,7 +34,7 @@ of the list.
   decode-uri-component and zod accepted, all to 2026-12-02. Fix-verifier round 1 HOLDS on every
   item. Before and after shots in `artifacts/bug-fix-2026-11/` at 320 and 375, light and dark, and
   the iPhone 17 Pro simulator at Large and accessibility-large.
-  **7,517 tests, 0 failing**; core 1152, brain 775, tutor agent 893, token server 530, playground 110,
+  **7,521 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
   mobile 4057; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 1 November 2026 Finish-off tidy: branch `claude/finish-tidy` from main fdeeed2b. No learner-visible
   change. The TodayParts and LiveParts require cycle is broken (`main/bMarks.tsx`; Metro no longer warns);
