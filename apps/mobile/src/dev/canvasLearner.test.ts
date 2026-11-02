@@ -160,6 +160,9 @@ describe('the canvas learner waits for the account scope', () => {
     const hook = readFileSync(new URL('./useCanvasLearner.ts', import.meta.url), 'utf8').replace(/\s+/g, ' ');
     assert.match(hook, /\.finally\(\(\) => \{ if \(live\) setSettled\(uid\); \}\)/, 'a failed seed would hold the app forever');
     assert.match(hook, /return uid !== null && canvasAllowed\(adapter\) && !done\.has\(uid\) && settled !== uid;/);
+    // The seed never starts before the signed-in root is ready: a seed before
+    // ready writes ahead of the account's scope (the regression this branch fixed).
+    assert.match(hook, /useEffect\(\(\) => \{ if \(!ready \|\| uid === null \|\| done\.has\(uid\) \|\| !canvasAllowed\(adapter\)\) return;/, 'the canvas seed can start before ready');
   });
 
   test('a storage rejection while seeding is caught and lets the account try again', async () => {

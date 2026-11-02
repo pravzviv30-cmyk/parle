@@ -43,7 +43,7 @@ The web Rive runtime (`@rive-app/react-webgl2` and its `@rive-app/webgl2`) and t
 `rive.wasm` and `rive_fallback.wasm` copies were removed on 2026-11-02: nothing loaded
 them after the onboarding Rive scenes were deleted. Their licence file, `RIVE-LICENSE.txt`,
 went with them.
-The streak flame's native player is `@rive-app/react-native` 0.5.4 runtime. Outfit's actual
+The streak flame's native player uses the `@rive-app/react-native` 0.5.4 runtime, the only Rive runtime left in the app. Outfit's actual
 Black cut joins the existing cuts under [OFL-Outfit.txt](../fonts/OFL-Outfit.txt).
 
 Frame mapping, evidence and unverified integration boundaries are recorded in
