@@ -437,7 +437,7 @@ describe('the ci contract', () => {
     // braces 3.0.3: GHSA-vfj7-8cjw-p6xm was withdrawn on 2026-10-23, so it carries no record;
     // a new braces advisory is an unreviewed root and fails audit:ci. Pinned so a move is seen.
     assert.equal(lock.packages[braces]?.version, '3.0.3');
-    // node-forge: patched in 1.4.2 and recorded fixed (2026-11-02).
+    // node-forge: patched in 1.4.2 (2026-11-02), so it carries no record.
     assert.equal(lock.packages[forge]?.version, '1.4.2');
     assert.equal(resolveFrom(certificates, 'node-forge'), forge);
     // Neither has a live advisory, so neither carries a record. A fixed record needs a removed
