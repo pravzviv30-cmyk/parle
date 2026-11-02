@@ -101,7 +101,7 @@ export interface TapTranslateExercise extends DrillExerciseBase {
   tokens: string[];
   /** Accepted assembled answers, compared after `normalise`. */
   accepted: string[];
-  /** The authored line shown on the sheet and end list; one of `accepted` once normalised. Generated items may lack it. */
+  /** The authored line shown on the sheet and end list; one of `accepted` once normalised. Generated items carry it too (F950); older stored items may lack it, so readers fall back to `accepted[0]`. */
   fr?: string;
 }
 

@@ -240,7 +240,9 @@ test('Speak with my tutor waits until billing has answered', () => {
 
 test('the review row depends only on what Review would deal', () => {
   assert.doesNotMatch(HOME, /fixFrom === null \? null : reviewRow/);
-  assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck, Date\.now\(\), locks\.access\('conversationPractice'\)\)/);
+  assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck\.deck, reviewDeck\.now, locks\.access\('conversationPractice'\)\)/);
+  assert.match(HOME, /setReviewRead\(\{ scope, deck, now: Date\.now\(\) \}\)/, 'the review row reads a clock other than its own load');
+  assert.doesNotMatch(HOME, /reviewRow\([^)]*Date\.now\(\)/, 'the review row reads a render clock');
   assert.match(HOME, /loadDeck\(\)\.then\(\(deck\) => \{ if \(!cancelled && scopeGeneration\(\) === scope\) setReviewDeck\(deck\); \}\)/);
 });
 
@@ -262,7 +264,9 @@ test("out of time past Starter offers a line at the learner's level", () => {
   assert.doesNotMatch(held, /leadRow\(lead, \(\) => navigateOwned\('Review'\)\)/, 'the held row opens Review under the scene\'s words');
   // The hero: the words, then practice that needs no minutes with a real button.
   // The café line only when it exists, so a missing phrase falls back to Review rather than nothing.
-  assert.match(held, /: cafe \? <LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} \/> : undefined/, 'the held hero at Starter loses the café line, or draws an empty one');
+  assert.match(held, /: cafe \? <LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} variant=\{words\.plans \? 'secondary' : 'primary'\} \/> : undefined/, 'the held hero at Starter loses the café line, or draws an empty one');
+  // Secondary beside See plans, the café door is the plans lead's inline headphones action, never a second primary.
+  assert.match(LOCAL, /variant === 'secondary'\s*\? <IconAction layout="inline" ground=\{bare \? undefined : 'sun'\} icon="headphones" label="Try this line"/, 'the secondary café door is not the inline headphones action');
   const plain = flat(LOCAL.slice(LOCAL.indexOf('if (phrase === null')));
   assert.match(plain, /^if \(phrase === null \|\| offer === 'below'\) return null;/, 'the plain card hands a learner past Starter a first order');
 });
@@ -272,7 +276,7 @@ test("a lead's Review door is Today's review row: its words, and only when it is
   // Today's own row rule: nothing due is no row, and a due card is named by count.
   assert.equal(todayView.reviewRow([], NOW, 'unlocked' as never), null);
   const flatTask = flat(TASK);
-  assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, Date\.now\(\), locks\.access\('conversationPractice'\)\);/, 'the lead decides Review by another rule than Today\'s row');
+  assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, value\.now, locks\.access\('conversationPractice'\)\);/, 'the lead decides Review by another rule than Today\'s row');
   const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
   assert.match(held, /onReview=\{reviewDoor === null \? undefined : \(\) => navigateOwned\('Review'\)\} reviewLabel=\{reviewDoor\?\.title\}/, 'the held Review door opens an empty Review or is named otherwise');
   const body = flat(TASK.slice(TASK.indexOf('export function HeldLeadBody('), TASK.indexOf('export function ExploreLeadBody(')));
