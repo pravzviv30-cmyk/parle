@@ -12181,4 +12181,6 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-11-02 on claude/ios27-scenes. A config plugin adds `UIApplicationSceneManifest` naming `EXExpoAppSceneDelegate` to
   Info.plist, makes AppDelegate an `ExpoReactNativeFactoryProvider` and drops its own window and
   `startReactNative` block. It throws if AppDelegate.swift stops matching the Expo 57 template.
+  Proven 2026-11-02: a clean `expo prebuild --clean` of this branch, built for device, launched on the
+  founder's iPhone 17 (iOS 27.0.1) with React Native running and no crash report.
 - verified-by: `the iOS build adopts the scene life cycle so iOS 27 does not kill it at launch`
