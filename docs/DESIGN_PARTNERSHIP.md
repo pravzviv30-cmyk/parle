@@ -88,6 +88,7 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
 | 2026-10-31 | The still-settling retry stays at zero XP (LEARN-018 stands), and the approved copy stays: "Practise the one still settling" and "Notice". | Founder, finish-off brief |
 | 2026-10-31 | Cloud stays out of Today's sky, under "Cloud at moments only". Proposed by the design session; the founder can reverse it. | Design session, proposed |
+| 2026-11-02 | Look check after Chris Ashby's design-first video: keep Bright Luvani as is (Outfit, Hum); no mascot-led icon, no second face for French | Founder, Journey map board |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -104,11 +105,12 @@ Working principles drawn from these (to confirm on the first screens):
 | 2 | Today | Landed on main at `9c7ad093` (UI-015, [changes/today-sky.md](changes/today-sky.md)); open items finished on main at `fdeeed2b` |
 | 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
 | 4 | Conversation recap | Next, one design session then one build session |
-| 5 | Journey (My French) | Queued |
-| 6 | Speak tab (choose a scene) | Queued |
-| 7 | Practice tab hub | Queued |
+| 5 | Speak tab (choose a scene) | Queued |
+| 6 | Practice tab hub | Queued |
+| 7 | Journey (My French) | Queued |
 
 Founder's order, 2026-10-31: one screen per session, each starting only after the one before lands.
+Reordered by journey on 2026-11-02 (founder, Journey map board): recap, Speak tab, Practice hub, Journey.
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type
 scale named by role, native sheet and modal presentation, and route transitions that

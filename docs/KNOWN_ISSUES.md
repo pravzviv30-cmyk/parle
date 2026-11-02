@@ -12198,3 +12198,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
   pins the two labels agree.
 - verified-by: `Today names the review action once`
+
+### F956 — The Practice tab nests a button inside a button
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tabs/PracticeTab.tsx (a pressable drawn inside another pressable, under `TabHeader` and `Columns`)
+- note: Found 2026-11-02 by the design coordinator while capturing the Journey map, and reproduced the
+  same day on the web build of main a90ed36b at 375pt with a fresh canvas learner: React logs
+  "In HTML, <button> cannot be a descendant of <button>. This will cause a hydration error." on
+  /practice. A screen reader may announce the outer control as one long button, and the inner tap
+  target can be swallowed. Fix: make the inner control a sibling or the outer row non-pressable,
+  with a test that no pressable on the Practice tab contains another.
+- verified-by: `no pressable on the Practice tab contains another`
+
