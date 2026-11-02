@@ -20,7 +20,7 @@ import { deviceOnLine, localPracticeFor, offlineNotice, offlineOffer } from './l
  * Starter line and is labelled as one; a learner past Starter is pointed at
  * today's phrase and review below, which work offline, rather than handed it.
  */
-export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false }: { vivid?: boolean; levelIndex?: number; /** On Today's hero card (UI-015): no card of its own, so no card sits inside a card. */ bare?: boolean }) {
+export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false, variant = 'primary' }: { vivid?: boolean; levelIndex?: number; /** On Today's hero card (UI-015): no card of its own, so no card sits inside a card. */ bare?: boolean; /** Secondary under a held lead's See plans, so the screen keeps one primary (founder, 2026-11-01). */ variant?: 'primary' | 'secondary' }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
   const { recheck } = useLive();
@@ -36,13 +36,22 @@ export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false 
   // Past Starter (F946) the plain card is not drawn: the phrase and review
   // below are the learner's practice, never a first order.
   if (phrase === null || offer === 'below') return null;
+  return <CafeLineBody phrase={phrase} bare={bare} variant={variant} onTry={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />;
+}
+
+/**
+ * The Starter café line, props in (shared with the dev preview): on its sun
+ * card, or bare on Today's hero card (UI-015) in the card's own ink.
+ */
+export function CafeLineBody({ phrase, bare, variant = 'primary', onTry }: { phrase: { fr?: string | null; en: string }; bare: boolean; variant?: 'primary' | 'secondary'; onTry: () => void }) {
+  const t = useB();
   // Bare on Today's hero (UI-015) the same words sit on the card's ground, in its ink.
   const words = bare ? t.text : t.onMint;
   const body = <>
     <Text accessibilityRole="header" style={[type.heading, { color: words }]}>Order a coffee</Text>
     <FrenchBlock french={phrase.fr ?? ''} english={phrase.en} ground={bare ? 'white' : 'sun'} />
     <Text style={[type.small, { color: bare ? t.muted : words }]}>Hear, say and compare. Free offline practice. Your recording is temporary and is not graded.</Text>
-    <PillButton label="Try this line" tone={bare ? undefined : 'ink'} onPress={() => nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' })} />
+    <PillButton label="Try this line" tone={bare ? undefined : 'ink'} variant={variant} onPress={onTry} />
   </>;
   return bare ? <View style={{ gap: space(4) }}>{body}</View> : <ColourCard ground="sun">{body}</ColourCard>;
 }

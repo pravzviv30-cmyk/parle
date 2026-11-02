@@ -20,7 +20,7 @@ import { checkStarter } from '@luvani/core';
 import { continuingTask, type GuestPractice } from '../onboarding/guestModel.ts';
 import { freshPreAccountDraft } from '../onboarding/preAccountDraft.ts';
 
-export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'held', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night', 'starter-feedback', 'plans-past'] as const;
+export const TODAY_PREVIEW_STATES = ['scene', 'fix', 'plans', 'starter', 'offline', 'held', 'tutor-unreachable', 'explore', 'loading', 'failed', 'evening', 'night', 'starter-feedback', 'plans-past', 'held-starter'] as const;
 export type TodayPreviewState = typeof TODAY_PREVIEW_STATES[number];
 
 /** The preview keys, in the order the list shows them. */
@@ -42,6 +42,7 @@ export const TODAY_PREVIEW_LABELS: Record<TodayPreviewKey, string> = {
   'today-night': 'Today, night sky',
   'today-starter-feedback': 'Today, starter line checked',
   'today-plans-past': 'Today, plans past Starter',
+  'today-held-starter': 'Today, out of minutes at Starter',
 };
 
 /** The Today state a preview key names, or null for every other key. */
@@ -124,6 +125,8 @@ export const TODAY_PREVIEW_REVIEW = { title: 'Review 4 phrases', line: 'About 2 
 export const TODAY_PREVIEW_COMING_UP: ComingUpCardView = { title: 'Your trip to Lyon', when: 'Émilie remembers it is on Saturday', locked: false, feature: 'realMoment' };
 /** A paying learner past Starter whose minutes are spent, for the held hero (F946). */
 export const TODAY_PREVIEW_HELD_BILLING: HomeBilling = { plan: 'starter', reason: 'exhausted', periodEnd: '2026-10-27T12:00:00.000Z' };
+/** A Starter learner whose subscription lapsed, so the held words offer plans (founder, 2026-11-01). */
+export const TODAY_PREVIEW_LAPSED_BILLING: HomeBilling = { plan: 'starter', reason: 'subscription-lapsed', periodEnd: '2026-10-27T12:00:00.000Z' };
 export const TODAY_PREVIEW_WEEK = 'This week you spoke French for 18 minutes and kept 6 new phrases.';
 
 /** A starter line the learner has not answered yet. */

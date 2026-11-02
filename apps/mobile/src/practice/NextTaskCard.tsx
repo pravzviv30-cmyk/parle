@@ -161,7 +161,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
         return cafe ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : null;
       }
       return <HeldLeadBody bare={bare} words={words} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onReview={reviewDoor === null ? undefined : () => navigateOwned('Review')} reviewLabel={reviewDoor?.title}>
-        {then === 'starter' && starter !== null ? starterCard(starter) : cafe ? <LocalPracticeCard bare={bare} levelIndex={value.levelIndex} /> : undefined}
+        {then === 'starter' && starter !== null ? starterCard(starter) : cafe ? <LocalPracticeCard bare={bare} levelIndex={value.levelIndex} variant={words.plans ? 'secondary' : 'primary'} /> : undefined}
       </HeldLeadBody>;
     }
     if (lead === 'explore') {

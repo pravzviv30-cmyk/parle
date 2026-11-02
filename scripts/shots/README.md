@@ -50,7 +50,11 @@ Start the app from `apps/mobile` with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 np
   a preview menu, so Today and the tabs are not reachable in the same run. Open
   `?preview=live-speaking`, `live-typing`, `live-tap-to-send`, `live-wrap-up`, or
   `?preview=your-french-<full|sounds|scenes|forward|free>&theme=<light|dark>&controls=0`.
-  See `docs/TESTING.md`.
+  Today's hero states are `?preview=today-<state>`, the states listed in
+  `TODAY_PREVIEW_STATES` (`apps/mobile/src/dev/todayPreviewFixtures.ts`), among them
+  `today-held` (out of minutes past Starter) and `today-held-starter` (lapsed at Starter:
+  See plans, then the café line as a secondary). A server started with `CI=1` does not
+  watch files, so restart it to shoot an edit. See `docs/TESTING.md`.
 - **A signed-in learner with data.** Leave the preview flag off and start a non-production
   web build on mock auth with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1` and
   `EXPO_PUBLIC_LUVANI_CANVAS_LEARNER=1` (or `fresh`, which clears the account once first).

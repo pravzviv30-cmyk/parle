@@ -262,7 +262,7 @@ test("out of time past Starter offers a line at the learner's level", () => {
   assert.doesNotMatch(held, /leadRow\(lead, \(\) => navigateOwned\('Review'\)\)/, 'the held row opens Review under the scene\'s words');
   // The hero: the words, then practice that needs no minutes with a real button.
   // The café line only when it exists, so a missing phrase falls back to Review rather than nothing.
-  assert.match(held, /: cafe \? <LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} \/> : undefined/, 'the held hero at Starter loses the café line, or draws an empty one');
+  assert.match(held, /: cafe \? <LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} variant=\{words\.plans \? 'secondary' : 'primary'\} \/> : undefined/, 'the held hero at Starter loses the café line, or draws an empty one');
   const plain = flat(LOCAL.slice(LOCAL.indexOf('if (phrase === null')));
   assert.match(plain, /^if \(phrase === null \|\| offer === 'below'\) return null;/, 'the plain card hands a learner past Starter a first order');
 });
