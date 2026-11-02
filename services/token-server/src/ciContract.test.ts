@@ -434,14 +434,17 @@ describe('the ci contract', () => {
     const forge = resolveFrom(cli, 'node-forge');
     const certificates = resolveFrom(cli, '@expo/code-signing-certificates');
     assert.ok(braces && forge && certificates, 'both reviewed tooling paths resolve');
+    // braces 3.0.3: GHSA-vfj7-8cjw-p6xm was withdrawn on 2026-10-23, so it carries no record;
+    // a new braces advisory is an unreviewed root and fails audit:ci. Pinned so a move is seen.
     assert.equal(lock.packages[braces]?.version, '3.0.3');
-    assert.equal(lock.packages[forge]?.version, '1.4.0');
+    // node-forge: patched in 1.4.2 and recorded fixed (2026-11-02).
+    assert.equal(lock.packages[forge]?.version, '1.4.2');
     assert.equal(resolveFrom(certificates, 'node-forge'), forge);
-    for (const [name, version] of [['braces', '3.0.3'], ['node-forge', '1.4.0']]) {
-      const decision = accepted.find((item) => item.module === name);
-      assert.equal(decision?.lockedAt, version, `${name} needs a current explicit exception`);
-      assert.match(decision?.reachability ?? '', /build|development/i);
-      assert.match(decision?.why ?? '', /no patched|no .*patched/i);
+    // Neither has a live advisory, so neither carries a record. A fixed record needs a removed
+    // dependency (see the fixable-chain test), which a version bump of a leaf package is not.
+    // A new advisory on either is an unreviewed root and fails audit:ci.
+    for (const name of ['braces', 'node-forge']) {
+      assert.equal(decisions.find((item) => item.module === name), undefined, `${name} has no live advisory to record`);
     }
   });
 
@@ -456,9 +459,8 @@ describe('the ci contract', () => {
     const updates = resolveFrom('apps/mobile', 'expo-updates');
     assert.ok(updates, 'the reviewed remote update client must resolve');
     assert.equal(lock.packages[updates]?.version, '57.0.25', 'the remote update client needs a version-specific verifier review');
-    const decision = accepted.find((item) => item.module === 'node-forge');
-    assert.match(decision?.reachability ?? '', /SecKeyVerifySignature/);
-    assert.match(decision?.reachability ?? '', /expo-updates 57\.0\.25/);
+    // node-forge is patched (1.4.2, 2026-11-02); the update client must still never import it.
+    assert.equal(lock.packages['node_modules/node-forge']?.version, '1.4.2');
     const config = JSON.parse(readFileSync(path.join(ROOT, 'apps/mobile/app.json'), 'utf8')).expo;
     assert.equal(config.updates?.codeSigningCertificate, undefined, 'custom signing requires a separate review');
     const updateClient = path.join(ROOT, updates, 'src');

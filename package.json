@@ -46,7 +46,7 @@
   },
   "luvani": {
     "dependencyAudit": {
-      "reviewed": "2026-10-03",
+      "reviewed": "2026-11-02",
       "auditFailsAbove": "moderate",
       "note": "High and critical root advisories require an exact GHSA ID, vulnerable range, installed lock version, reachability argument and an unexpired review window of at most 30 days. New advisories on an accepted package fail. Stale acceptances and reported fixed advisories fail. audit:ci alone contacts the registry; the normal gate is offline.",
       "advisories": [
@@ -64,7 +64,7 @@
           ],
           "chain": "expo -> @expo/cli -> @expo/metro -> metro -> image-size",
           "reachability": "build time only, but genuinely executed: this is the bundler behind `npm run web` and `npm run build:web`, and it reads every image asset in the repo.",
-          "resolution": "@expo/metro 56.0.0 pinned metro 0.84.4, which depends on image-size. 56.0.2 pins metro 0.84.5, which dropped image-size altogether. ~56.0.0 is the range expo already declares, so 56.0.2 needed no override \u2014 only a lockfile that was not stale. `npm update @expo/metro` moved exactly one version and added nothing else; the full suite and a real `npm run build:web` both pass on 0.84.5."
+          "resolution": "@expo/metro 56.0.0 pinned metro 0.84.4, which depends on image-size. 56.0.2 pins metro 0.84.5, which dropped image-size altogether. ~56.0.0 is the range expo already declares, so 56.0.2 needed no override — only a lockfile that was not stale. `npm update @expo/metro` moved exactly one version and added nothing else; the full suite and a real `npm run build:web` both pass on 0.84.5."
         },
         {
           "module": "adm-zip",
@@ -75,7 +75,7 @@
             "https://github.com/advisories/GHSA-xcpc-8h2w-3j85"
           ],
           "chain": "@livekit/agents-plugin-silero -> onnxruntime-node -> adm-zip",
-          "reachability": "install time only. adm-zip is required by exactly one file, onnxruntime-node/script/install-utils.js, run from that package's postinstall to unpack the ORT native binary out of a .nupkg fetched over TLS from api.nuget.org. The tutor agent's runtime path is onnxruntime-node/dist/binding.js, which only require()s the prebuilt .node addon \u2014 grep for adm-zip under dist/ finds nothing. A crafted ZIP therefore needs control of NuGet or a broken TLS chain, not a learner.",
+          "reachability": "install time only. adm-zip is required by exactly one file, onnxruntime-node/script/install-utils.js, run from that package's postinstall to unpack the ORT native binary out of a .nupkg fetched over TLS from api.nuget.org. The tutor agent's runtime path is onnxruntime-node/dist/binding.js, which only require()s the prebuilt .node addon — grep for adm-zip under dist/ finds nothing. A crafted ZIP therefore needs control of NuGet or a broken TLS chain, not a learner.",
           "resolution": "2026-10-04: exact scoped onnxruntime-node -> adm-zip 0.6.1 override replaces the vulnerable install-only ZIP parser. Public npm metadata and a clean onnxruntime-node1.24.3 fixture verify the tested release and integrity. The installed constructor, getEntry and extractEntryTo API remain compatible with the native installer; bounded forged-size and symlink extraction checks exercise security fixes. Existing dependency versions and platform binaries are preserved. A clean root manifest npm ci fixture verifies the committed lock; paid voice lifecycle remains a separate acceptance check."
         },
         {
@@ -87,46 +87,12 @@
             "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
           ],
           "chain": "expo -> @expo/config-plugins -> xcode -> uuid",
-          "reachability": "not reached. The advisory is a missing bounds check in v3, v5 and v6 when a caller supplies its own buf. xcode's only use of uuid is `uuid.v4()` at lib/pbxProject.js:90, with no buf argument, and no source file in this repo imports uuid at all. The chain is also build time only: xcode writes Xcode project files during an Expo prebuild, and ios/ and android/ are gitignored here.",
-          "why": "The fix is uuid >= 11.1.1 against xcode's declared ^7.0.3 \u2014 four majors of forced bump, on an unreachable call site, and xcode 3.0.1 is the newest version published so there is no dependant to move instead. Moderate, so `npm run audit:ci` reports it rather than failing on it.",
-          "reviewed": "2026-10-03",
-          "expires": "2026-11-02",
+          "reachability": "not reached. The advisory is a missing bounds check in v3, v5 and v6 when a caller supplies its own buf. Rechecked 2026-11-02 against the installed xcode 3.0.1: its only use of uuid is `uuid.v4()` at lib/pbxProject.js:90 (generateUuid), with no buf argument, and no source file under apps, packages or services imports uuid at all. The chain is also build time only: xcode writes Xcode project files during an Expo prebuild, and ios/ and android/ are gitignored here.",
+          "why": "The fix is uuid >= 11.1.1 against xcode 3.0.1 declared ^7.0.3. xcode 4.0.0 (now published) drops uuid entirely, but the SDK 57 @expo/config-plugins declares xcode ^3.0.1; only @expo/config-plugins for Expo SDK 58 moves to ^4.0.0, and npm audit offers the fix only through expo 58, a semver-major SDK upgrade. Not worth forcing for an unreachable call site. Moderate, so `npm run audit:ci` reports it rather than failing on it. Revisit with the SDK 58 upgrade.",
+          "reviewed": "2026-11-02",
+          "expires": "2026-12-02",
           "advisoryRanges": {
             "https://github.com/advisories/GHSA-w5hq-g745-h8pq": "<11.1.1"
-          }
-        },
-        {
-          "module": "braces",
-          "severity": "high",
-          "decision": "accepted",
-          "lockedAt": "3.0.3",
-          "advisories": [
-            "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm"
-          ],
-          "chain": "expo -> @expo/cli -> @expo/metro-file-map -> micromatch -> braces; the retained @expo/metro -> metro-file-map build chain also resolves this copy",
-          "reachability": "Build/development watcher only. Metro's includedByGlob matches filesystem paths against project-authored glob patterns; its no-glob fallback is the constant **/*. Luvani does not accept learner-supplied glob patterns, and no app or service runtime imports braces or micromatch. The service dependency closures do not reach either package. An attacker would need to change trusted project/build configuration to supply the nested pattern in this advisory.",
-          "why": "Reviewed 2026-10-03 against the npm registry and GitHub advisory: 3.0.3 is still the latest published release and the advisory has no patched version. npm's proposed fix is an incompatible downgrade to Expo 44, which cannot run the SDK 57 app. Retain a temporary build-only exception, not a claim that braces is patched; revisit when a compatible upstream fix exists, and before accepting external patterns in a build service. Unknown high roots still fail audit:ci. The separate brace-expansion copy is patched to 5.0.12.",
-          "reviewed": "2026-10-03",
-          "expires": "2026-11-02",
-          "advisoryRanges": {
-            "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm": "<=3.0.3"
-          }
-        },
-        {
-          "module": "node-forge",
-          "severity": "high",
-          "decision": "accepted",
-          "lockedAt": "1.4.0",
-          "advisories": [
-            "https://github.com/advisories/GHSA-86w9-cpqp-85rv"
-          ],
-          "chain": "expo -> @expo/cli -> node-forge; @expo/cli and expo-updates -> @expo/code-signing-certificates -> node-forge",
-          "reachability": "Expo build/development tooling only. Reviewed again on 2026-10-06 for expo-updates 57.0.25, whose only code change from 57.0.24 is the build-time createManifestForBuildAsync asset-hash index: its code-signing-certificates imports are confined to cli/src configureCodeSigningAsync and generateCodeSigningAsync; the client src entrypoints import neither Forge nor that verifier. The iOS native signature check uses Apple Security SecKeyVerifySignature, not Forge. Luvani imports no Forge or Expo certificate verifier in application code, and its service dependency closures do not reach Forge. No custom update signing certificate is configured. The CLI's local and EAS development certificate inputs remain trusted; these checks do not authenticate learners or authorise billing.",
-          "why": "Reviewed 2026-10-04 against the npm registry, GHSA-86w9-cpqp-85rv and installed SDK 57 source: 1.4.0 remains latest with no patched release. The newly added expo-updates dependency requires this revised reachability review; it does not expose Forge in the mobile client. npm's Expo 44 downgrade is incompatible with SDK 57. Retain the existing temporary tooling exception, not a security fix or an extended expiry. Revisit on an upstream patch and before custom update signing or accepting untrusted external certificates in tooling. CI guards exact versions, service/client import boundaries and the absence of custom signing configuration.",
-          "reviewed": "2026-10-04",
-          "expires": "2026-11-02",
-          "advisoryRanges": {
-            "https://github.com/advisories/GHSA-86w9-cpqp-85rv": "<=1.4.0"
           }
         }
       ]
