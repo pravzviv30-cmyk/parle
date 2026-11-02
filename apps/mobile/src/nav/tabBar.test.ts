@@ -114,10 +114,10 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(face, /gap: space\(1\)/, 'the glyph and word are not 4 apart');
   });
 
-  test('the bar is an ink capsule, radius 32, on the route ground, and never a floating shadow — UI-008', () => {
+  test('the bar is an ink capsule, radius 32, and never a floating shadow — UI-008, UI-017', () => {
     // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103. Replaces "the bar
-    // is white with a top hairline". The strip is the focused route's ground and
-    // stays in layout; the capsule inside it is the ink in both themes.
+    // is white with a top hairline". The capsule is the ink in both themes; the
+    // strip around it is clear since UI-017 (founder, 2026-11-01).
     for (const gone of ['Animated', 'useReduceMotion', 'interpolate', 'activeSurface', 'ACTIVE_TAB_SURFACE', 'ACTIVE_TAB_OUTLINE', 'highlight']) {
       assert.ok(!BAR.includes(gone), `the tab bar still carries ${gone}`);
     }
@@ -126,7 +126,6 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     }
     assert.doesNotMatch(BAR, /#[0-9A-Fa-f]{3,8}\b/, 'the tab bar carries a hex of its own');
     const bar = BAR.slice(BAR.indexOf('bar: {'), BAR.indexOf('},', BAR.indexOf('bar: {')) + 1);
-    assert.match(bar, /backgroundColor: t\.ground/, 'the strip is not the route ground');
     assert.match(bar, /paddingTop: space\(2\)/, 'the strip has no 8pt above the capsule');
     assert.match(FLAT, /paddingBottom: Math\.max\(insets\.bottom, space\(2\)\)/, 'the safe area is not paid under the capsule');
     const capsule = BAR.slice(BAR.indexOf('capsule: {'), BAR.indexOf('},', BAR.indexOf('capsule: {')) + 1);
@@ -136,11 +135,30 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(capsule, /paddingVertical: space\(1\.5\)/, 'the capsule is not padded 6 down');
     assert.match(FLAT, /const capsule = tabCapsuleWidth\(width, insets\.left, insets\.right\);/, 'the capsule is not inset 12 from the edges inside the safe areas');
     assert.match(FLAT, /\{ width: capsule \}/, 'the capsule is not drawn at that width');
-    for (const dock of ['shadowOpacity', 'shadowRadius', 'shadowColor', 'elevation', "position: 'absolute'", 'borderTopWidth']) {
+    for (const dock of ['shadowOpacity', 'shadowRadius', 'shadowColor', 'elevation', 'borderTopWidth']) {
       assert.ok(!BAR.includes(dock), `the bar carries ${dock}; it sits in the page, flat`);
     }
     assert.doesNotMatch(BAR, /opacity/, 'pressing a tab fades the whole icon and word away');
     assert.match(FLAT, /tapSettled\(\); navigation\.navigate/, 'a successful tab change gives no tactile answer');
+  });
+
+  test('the tab bar is a floating capsule: only the capsule covers content — UI-017', () => {
+    // Founder, 2026-11-01 (iPhone): a full-width strip above the capsule cut
+    // "Today's three" in half. The strip is now clear, floats over the screen
+    // and lets touches through; it reports its height so screens pad past it.
+    const bar = BAR.slice(BAR.indexOf('bar: {'), BAR.indexOf('},', BAR.indexOf('bar: {')) + 1);
+    assert.doesNotMatch(bar, /backgroundColor/, 'the strip around the capsule is painted, so it covers content');
+    assert.match(bar, /position: 'absolute'/, 'the bar is in layout, so content stops at its top edge');
+    assert.match(bar, /left: 0, right: 0, bottom: 0/, 'the bar is not pinned full width to the bottom');
+    assert.match(FLAT, /pointerEvents="box-none"/, 'the clear strip swallows taps meant for the content behind it');
+    assert.match(FLAT, /useContext\(BottomTabBarHeightCallbackContext\)/, 'the bar does not report its height to the navigator');
+    assert.match(FLAT, /onLayout=\{\(e\) => reportHeight\?\.\(e\.nativeEvent\.layout\.height\)\}/, 'the bar does not report its measured height');
+  });
+
+  test('Profile scrolls past its detached floating bar by the bar\'s own height — UI-017', () => {
+    const profile = stripComments(read('../tabs/ProfileTab.tsx')).replace(/\s+/g, ' ');
+    assert.match(profile, /<BottomTabBarHeightContext\.Provider value=\{barHeight\}> <ScrollScreen bottom="tab"/, 'Profile does not pad its scroll past the floating bar');
+    assert.match(profile, /<BottomTabBarHeightCallbackContext\.Provider value=\{setBarHeight\}> <DetachedTabBar/, 'the detached bar does not report its height to Profile');
   });
 
   test('the capsule tokens are the ink, violet, sun and cream in both themes — UI-008', () => {

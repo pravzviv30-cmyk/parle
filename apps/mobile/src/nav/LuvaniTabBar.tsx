@@ -5,9 +5,10 @@
  * in sun and the word in cream at Outfit Bold; unselected is the Linear glyph
  * and the word in cream at Outfit Medium on the ink. There is no dot beneath a
  * tab, no shadow, no chartreuse and no wash; the only dot is the Practice one,
- * which is the real due deck. The capsule is the same ink in both themes; the
- * strip around it is the focused route's ground, so the bar sits in the page
- * rather than floating over it, and it stays in layout so nothing is covered.
+ * which is the real due deck. The capsule is the same ink in both themes. The
+ * bar floats over the screen (UI-017, founder 2026-11-01): the strip around the
+ * capsule is clear and lets touches through, so only the capsule covers
+ * content, and it reports its height so a tab screen pads its scroll past it.
  *
  * Each cell presses through the one spring with no haptic of its own, because
  * the tap that changes tab is the one that ticks. Large reading sizes wrap the
@@ -17,9 +18,9 @@
  * glyph's pop, lives in `TabGlyph.tsx` (F737) and the bar itself moves nothing.
  */
 
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, AccessibilityInfo, PixelRatio, useWindowDimensions } from 'react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { boldType, font, space } from '../theme.ts';
 import { Press } from '../components.tsx';
@@ -117,9 +118,10 @@ function TabStrip({ routes, insets, due }: {
   const shown = tabLabelsShown(fontScale, capsule);
   const t = useB();
   const st = useThemedStyles(makeStyles);
+  const reportHeight = useContext(BottomTabBarHeightCallbackContext);
 
   return (
-    <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
+    <View pointerEvents="box-none" onLayout={(e) => reportHeight?.(e.nativeEvent.layout.height)} style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
       <View style={[st.capsule, { width: capsule }]}>
       {routes.map((route) => {
         const focused = route.focused;
@@ -166,8 +168,8 @@ export function announceTab(name: string): void {
 function makeStyles(t: B) {
   return StyleSheet.create({
     bar: {
-      backgroundColor: t.ground,
-      alignSelf: 'stretch',
+      position: 'absolute',
+      left: 0, right: 0, bottom: 0,
       alignItems: 'center',
       paddingTop: space(2),
     },

@@ -248,17 +248,16 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.match(button, /ground === 'white' \? t\.card/, 'the back disc is not white');
   });
 
-  test('a scroll screen under the tab bar pads its own bottom, and one that is not does not', () => {
-    // The frame owns the air above the tab bar: the scroll content pads its own
-    // bottom by space(8) only when it sits under the bar, so the last card clears
-    // it without the tab padding its own scroll. A screen that is not under the
-    // bar adds nothing here.
+  test("a tab screen's content scrolls past the floating bar — UI-017", () => {
+    // Founder, 2026-11-01: the bar floats, so content runs behind it. The
+    // scroll content pads its bottom by the bar's reported height plus space(8),
+    // and the frame adds nothing outside the scroll. Outside the navigator the
+    // height is computed from the capsule.
     const scroll = region(layoutSource(), 'export function ScrollScreen(', 'export function ScreenHeader(');
-    assert.match(
-      scroll,
-      /bottom === 'tab' \? \{ paddingBottom: space\(8\) \} : null/,
-      'the scroll content does not pad its bottom under the tab bar, or pads it unconditionally',
-    );
+    assert.match(scroll, /useContext\(BottomTabBarHeightContext\) \?\? space\(2\) \+ 74 \+ Math\.max\(insets\.bottom, space\(2\)\)/, 'the scroll screen does not read the bar height, with a fallback');
+    assert.match(scroll, /bottom === 'tab' \? \{ paddingBottom: tabBar \+ space\(8\) \} : null/, 'the scroll content does not pad past the floating bar');
+    const screen = region(layoutSource(), 'export function Screen(', 'export function ScrollScreen(');
+    assert.match(screen, /bottom === 'tab' \? 0 :/, 'the frame still pads outside the scroll under the tab bar, so content stops short of it');
   });
 
   test('DESIGN.md names the tab header and the monogram', () => {

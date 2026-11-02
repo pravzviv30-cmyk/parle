@@ -1051,9 +1051,11 @@ the new look, listed at the end, and they go with their call sites.
 - **Tab bar** (UI-008, 2026-10-20, Figma C2/Main2/Navigation 292:1103): an
   ink capsule (`b.tabCapsule`, the same in both themes) 12pt in from each edge
   inside the safe areas and at most 640 wide, radius 32, padded 8 across and 6
-  down, on a strip of the focused route's `ground` (8pt above, the safe area or
-  8pt below). The bar stays in layout, so nothing scrolls under it, and it has
-  no shadow, hairline or chartreuse wash. Five equal 62pt cells, radius 20,
+  down, floating 8pt above the safe area (or 8pt) on a clear strip (UI-017,
+  founder 2026-11-01). Content scrolls behind it and stays visible beside and
+  below it; only the capsule covers anything, and a tab screen's scroll pads
+  past it by its height and 32pt. It has no shadow, hairline or chartreuse
+  wash. Five equal 62pt cells, radius 20,
   padding 4, gap 4: a 22pt Iconsax glyph over its word in C2 small (13/18).
   From reading size 1.3, when the widest word cannot fit whole in its cell
   (`tabLabelsShown`), every tab shows its glyph alone and keeps its full

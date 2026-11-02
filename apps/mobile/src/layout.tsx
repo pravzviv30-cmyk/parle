@@ -15,7 +15,7 @@
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
-import { Children, useState, type ReactNode, type Ref } from 'react';
+import { Children, useContext, useState, type ReactNode, type Ref } from 'react';
 import {
   View,
   ScrollView,
@@ -29,6 +29,7 @@ import {
   type ScrollViewProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { CloseGlyph, GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
 import { colour, paper, space, type, HAIRLINE, HIT, RHYTHM } from './theme.ts';
@@ -164,7 +165,7 @@ export function Screen({
   const geometry = screenGeometry(width, height, insets, fontScale);
   const horizontal = screenInsets(width, insets.left, insets.right, padded);
   const bottomPad =
-    bottom === 'tab' ? space(3) : bottom === 'inset' ? insets.bottom + space(4) : 0;
+    bottom === 'tab' ? 0 : bottom === 'inset' ? insets.bottom + space(4) : 0;
   const onPaper = ground === t.ground;
   const bar = barStyleFor(ground, t);
 
@@ -276,6 +277,10 @@ export function ScrollScreen({
   const [contentHeight, setContentHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [offset, setOffset] = useState(0);
+  const insets = useSafeAreaInsets();
+  // The floating bar's reported height; outside the tab navigator, the 74pt
+  // capsule with 8pt above and the safe area or 8pt below.
+  const tabBar = useContext(BottomTabBarHeightContext) ?? space(2) + 74 + Math.max(insets.bottom, space(2));
   const overflowing = footerOverflow(contentHeight, viewportHeight, offset);
   if (embedded) {
     return <View style={{ gap: space(4) }}>{children}{footer}</View>;
@@ -312,9 +317,9 @@ export function ScrollScreen({
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{
           flexGrow: 1,
-          // The last card clears the tab bar without the tab padding its own
-          // scroll: the frame owns the air above the bar, here, once.
-          ...(bottom === 'tab' ? { paddingBottom: space(8) } : null),
+          // The tab bar floats (UI-017): content scrolls behind it, and the
+          // last card clears it by the bar's height and 32pt, here, once.
+          ...(bottom === 'tab' ? { paddingBottom: tabBar + space(8) } : null),
           ...(center ? { justifyContent: 'center' } : null),
         }}
         keyboardShouldPersistTaps="handled"
