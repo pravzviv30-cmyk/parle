@@ -39,11 +39,11 @@ scene has its source and svg, that no svg depends on a remote URL, and that the
 animation tracks close. The svgs are the inputs the scripts read, and nothing in
 the app bundles them.
 
-Web uses pinned `@rive-app/react-webgl2` 4.36.0 and its `@rive-app/webgl2` 2.44.0
-runtime. `rive.wasm` and `rive_fallback.wasm` are copied from that installed
-runtime to avoid a CDN dependency. Its [MIT license](RIVE-LICENSE.txt) is bundled
-from the [official repository](https://github.com/rive-app/rive-wasm/blob/master/LICENSE).
-Native keeps the existing `@rive-app/react-native` 0.5.4 runtime. Outfit's actual
+The web Rive runtime (`@rive-app/react-webgl2` and its `@rive-app/webgl2`) and the
+`rive.wasm` and `rive_fallback.wasm` copies were removed on 2026-11-02: nothing loaded
+them after the onboarding Rive scenes were deleted. [RIVE-LICENSE.txt](RIVE-LICENSE.txt)
+was the licence for those wasm copies and is now unused.
+The streak flame's native player is `@rive-app/react-native` 0.5.4 runtime. Outfit's actual
 Black cut joins the existing cuts under [OFL-Outfit.txt](../fonts/OFL-Outfit.txt).
 
 Frame mapping, evidence and unverified integration boundaries are recorded in
