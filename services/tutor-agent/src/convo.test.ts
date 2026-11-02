@@ -5857,6 +5857,9 @@ describe('scene-relevant recall', () => {
     built.convo.open(built.session);
     await sceneSettled();
     await oneTurn(built);
-    assert.match(turnMemory(client.turnRequests.at(-1)!), /café crème/);
+    const memory = turnMemory(client.turnRequests.at(-1)!);
+    assert.match(memory, /café crème/);
+    // A mission's turns carry the learner's own slip too, ranked from the authored frame.
+    assert.match(memory, /THEIR OWN PAST SLIP[\s\S]*je voudrais un café crème/);
   });
 });
