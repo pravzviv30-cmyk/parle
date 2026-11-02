@@ -118,6 +118,23 @@ export const DrillBatchSchema = z.object({
 
 export type DrillBatch = z.infer<typeof DrillBatchSchema>;
 
+/**
+ * Non-strict brains (JSON mode, the CLI) parse a whole batch at once, so one
+ * tap-translate without its display line would fail every drill and send the
+ * learner to the fixture bank. Drop just that item before parsing. Never fill
+ * fr from accepted: accepted is normalised, fr is what the learner reads.
+ */
+export function withoutIncompleteTapTranslates(decoded: unknown): unknown {
+  if (decoded === null || typeof decoded !== 'object' || !Array.isArray((decoded as { exercises?: unknown }).exercises)) return decoded;
+  const batch = decoded as { exercises: unknown[] };
+  const exercises = batch.exercises.filter(item => {
+    if (item === null || typeof item !== 'object' || (item as { kind?: unknown }).kind !== 'tap-translate') return true;
+    const fr = (item as { fr?: unknown }).fr;
+    return typeof fr === 'string' && fr.trim() !== '';
+  });
+  return exercises.length === batch.exercises.length ? decoded : { ...batch, exercises };
+}
+
 // The whole point of mirroring: a generated exercise IS a core exercise. If
 // core's shapes drift, this line breaks the build instead of the learner.
 //

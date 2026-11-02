@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { validateExercise, type DrillExercise } from '@luvani/core';
 
-import { DrillBatchSchema, buildDrillGenerationRequest, type DrillGenerationInput } from './generate.ts';
+import { DrillBatchSchema, buildDrillGenerationRequest, withoutIncompleteTapTranslates, type DrillGenerationInput } from './generate.ts';
 import type { NewPhrase } from '../contract/types.ts';
 
 const PHRASE_KEY = 'phrase:je voudrais un café';
@@ -251,5 +251,24 @@ describe('success leads to a harder task', () => {
     const { transferPhrasesFrom } = await import('./generate.ts');
     const picked = transferPhrasesFrom(['un', 'deux', 'trois', 'deux'], { prefer: (fr) => fr === 'trois' });
     assert.deepEqual(picked.map((p) => p.fr), ['trois', 'un']);
+  });
+});
+
+describe('a tap-translate carries its display line', () => {
+  test('the request tells the brain to write fr as the answer is written', () => {
+    const request = buildDrillGenerationRequest(input());
+    assert.match(request, /Its fr is the answer as it is written, with capitals and punctuation, and must be one of accepted once accents, case and punctuation are ignored\./);
+  });
+
+  test('a drill batch keeps its other exercises when one tap-translate has no display line', () => {
+    const { fr: _fr, ...noFr } = tapTranslate;
+    const blank = { ...tapTranslate, id: 'gen:blank', fr: '  ' };
+    const raw = { exercises: [fillBlank, noFr, blank, tapTranslate, repeatThis] };
+    const repaired = withoutIncompleteTapTranslates(raw);
+    assert.deepEqual(DrillBatchSchema.parse(repaired), { exercises: [fillBlank, tapTranslate, repeatThis] });
+    assert.equal(raw.exercises.length, 5, 'the input is not mutated');
+    const complete = { exercises: [fillBlank, bestSentence, appropriateReply, tapTranslate, listenType, repeatThis] };
+    assert.deepEqual(withoutIncompleteTapTranslates(complete), complete);
+    assert.equal(withoutIncompleteTapTranslates('nope'), 'nope');
   });
 });

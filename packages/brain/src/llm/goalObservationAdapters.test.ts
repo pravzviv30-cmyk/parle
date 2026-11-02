@@ -66,3 +66,15 @@ test('Anthropic SDK format parser normalizes absent goalMet before parsed_output
   assert.equal((await client.turn({ ...request, messages: [...request.messages] })).turn.scene.goalMet, null);
   assert.equal(checked, true);
 });
+
+for (const index of [2, 3]) {
+  test(`non-strict adapter ${index} keeps a drill batch whose one tap-translate lacks fr, with no retry`, async () => {
+    const base = { phraseKey: 'phrase:je voudrais un café', transfer: false, difficulty: 'recognition' };
+    const fill = { kind: 'fill-blank', id: 'gen:a', ...base, sentence: 'Je ___ un café.', options: ['voudrais', 'veux'], accepted: ['voudrais'], en: 'I would like a coffee.' };
+    const tap = { kind: 'tap-translate', id: 'gen:b', ...base, en: 'I would like a coffee.', tokens: ['je', 'voudrais', 'un', 'café', 'gare'], accepted: ['je voudrais un café'] };
+    const calls: unknown[] = []; const [name, client] = adapters({ exercises: [fill, tap] }, calls)[index]!;
+    const result = await client.drills({ kind: 'drills', system: buildSystemBlocks(), request: 'drills please' } as never);
+    assert.deepEqual(result.batch.exercises.map(e => e.id), ['gen:a'], name);
+    assert.equal(calls.length, 1, 'dropping one item does not add a retry');
+  });
+}

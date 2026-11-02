@@ -28,7 +28,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
-import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
+import { DrillBatchSchema, withoutIncompleteTapTranslates, type DrillBatch } from '../drill/generate.ts';
 import { OwnWordsVerdictSchema } from './judge.ts';
 import { FixLineVerdictSchema } from './fixLineJudge.ts';
 import {
@@ -239,7 +239,11 @@ export class ClaudeCliBrainClient implements LlmClient {
       lastRaw = envelope.result ?? '';
       try {
         const decoded: unknown = JSON.parse(extractJson(lastRaw));
-        return { value: schema.parse(schema === TurnSchema ? withMissingGoalObservation(decoded) : decoded), usage };
+        return { value: schema.parse(
+          schema === TurnSchema ? withMissingGoalObservation(decoded)
+            : schema === DrillBatchSchema ? withoutIncompleteTapTranslates(decoded)
+              : decoded,
+        ), usage };
       } catch (error) {
         lastError = error instanceof Error ? error.message.slice(0, 400) : 'unknown parse failure';
       }
