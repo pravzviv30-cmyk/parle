@@ -60,9 +60,11 @@ test('the local practice puts the real French and assessment limit before record
 });
 test("the review door reads the load's now, not a fresh clock", () => {
   const source = readFileSync(new URL('./NextTaskCard.tsx', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
-  // One clock read, in the load; the door and the held words read what it stored.
-  assert.equal(source.match(/Date\.now\(\)/g)?.length, 1, 'NextTaskCard reads the clock outside the load');
+  // Two clock reads: one in the load, which the door reads; the held words
+  // describe billing, read apart from the load, so they read the render clock.
+  assert.equal(source.match(/Date\.now\(\)/g)?.length, 2, 'NextTaskCard reads the clock somewhere new');
   assert.match(source, /setValue\(\{ scope, now, /);
   assert.match(source, /reviewRow\(value\.deck, value\.now, /);
-  assert.match(source, /heldWords\(billing, value\.now\)/);
+  assert.match(source, /heldWords\(billing, Date\.now\(\)\)/);
+  assert.doesNotMatch(source, /reviewRow\([^)]*Date\.now\(\)/, 'the review door reads a fresh clock');
 });

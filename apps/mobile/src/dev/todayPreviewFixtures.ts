@@ -42,7 +42,7 @@ export const TODAY_PREVIEW_LABELS: Record<TodayPreviewKey, string> = {
   'today-night': 'Today, night sky',
   'today-starter-feedback': 'Today, starter line checked',
   'today-plans-past': 'Today, plans past Starter',
-  'today-held-starter': 'Today, out of minutes at Starter',
+  'today-held-starter': 'Today, lapsed at Starter level',
 };
 
 /** The Today state a preview key names, or null for every other key. */

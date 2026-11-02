@@ -53,7 +53,7 @@ Start the app from `apps/mobile` with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 np
   Today's hero states are `?preview=today-<state>`, the states listed in
   `TODAY_PREVIEW_STATES` (`apps/mobile/src/dev/todayPreviewFixtures.ts`), among them
   `today-held` (out of minutes past Starter) and `today-held-starter` (lapsed at Starter:
-  See plans, then the café line as a secondary). A server started with `CI=1` does not
+  See plans, then the café line as the inline headphones action). A server started with `CI=1` does not
   watch files, so restart it to shoot an edit. See `docs/TESTING.md`.
 - **A signed-in learner with data.** Leave the preview flag off and start a non-production
   web build on mock auth with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1` and

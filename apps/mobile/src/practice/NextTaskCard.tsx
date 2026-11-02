@@ -148,7 +148,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     if ((lead === 'outOfTime' || lead === 'lapsed') && billing !== null) {
       // The words, then practice that needs no minutes, with a real button
       // (fix-verifier round 2): the starter's typed line, or the local card.
-      const words = heldWords(billing, value.now);
+      const words = heldWords(billing, Date.now());
       const then = afterHeld(starter !== null) === 'starter' && starter !== null ? 'starter' : 'local';
       const cafe = local !== null && offlineOffer(value.levelIndex) === 'cafe';
       if (row) {

@@ -132,7 +132,9 @@ describe("Today's preview keys — UI-015", () => {
     assert.match(task, /<LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} variant=\{words\.plans \? 'secondary' : 'primary'\} \/>/, 'the held lead hands the café line a primary beside See plans');
     const card = strip(read('../practice/LocalPracticeCard.tsx'));
     assert.match(card, /<CafeLineBody phrase=\{phrase\} bare=\{bare\} variant=\{variant\}/);
-    assert.match(card, /<PillButton label="Try this line" [^>]*variant=\{variant\}/);
+    // Secondary, the door is the plans lead's inline headphones action (impeccable, 2026-11-02).
+    assert.match(card, /\{variant === 'secondary'\s*\? <IconAction layout="inline" ground=\{bare \? undefined : 'sun'\} icon="headphones" label="Try this line" onPress=\{onTry\} \/>\s*: <PillButton label="Try this line" [^>]*onPress=\{onTry\} \/>\}/);
+    assert.doesNotMatch(card, /<PillButton label="Try this line" [^>]*variant=/, 'the café line draws a secondary pill again');
     assert.match(card, /variant = 'primary'/, 'the café line is no longer primary elsewhere');
   });
 

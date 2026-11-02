@@ -226,7 +226,7 @@ test('a paid learner out of minutes is led to the out-of-time words, not a scene
   }
   assert.match(TASK, /lead === 'outOfTime'/);
   // The words come from heldWords, tested by behaviour below (round 2).
-  assert.match(TASK, /heldWords\(billing, value\.now\)/);
+  assert.match(TASK, /heldWords\(billing, Date\.now\(\)\)/);
 });
 
 test('Speak with my tutor waits until billing has answered', () => {
@@ -240,7 +240,9 @@ test('Speak with my tutor waits until billing has answered', () => {
 
 test('the review row depends only on what Review would deal', () => {
   assert.doesNotMatch(HOME, /fixFrom === null \? null : reviewRow/);
-  assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck, Date\.now\(\), locks\.access\('conversationPractice'\)\)/);
+  assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck\.deck, reviewDeck\.now, locks\.access\('conversationPractice'\)\)/);
+  assert.match(HOME, /setReviewRead\(\{ scope, deck, now: Date\.now\(\) \}\)/, 'the review row reads a clock other than its own load');
+  assert.doesNotMatch(HOME, /reviewRow\([^)]*Date\.now\(\)/, 'the review row reads a render clock');
   assert.match(HOME, /loadDeck\(\)\.then\(\(deck\) => \{ if \(!cancelled && scopeGeneration\(\) === scope\) setReviewDeck\(deck\); \}\)/);
 });
 
@@ -263,6 +265,8 @@ test("out of time past Starter offers a line at the learner's level", () => {
   // The hero: the words, then practice that needs no minutes with a real button.
   // The café line only when it exists, so a missing phrase falls back to Review rather than nothing.
   assert.match(held, /: cafe \? <LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} variant=\{words\.plans \? 'secondary' : 'primary'\} \/> : undefined/, 'the held hero at Starter loses the café line, or draws an empty one');
+  // Secondary beside See plans, the café door is the plans lead's inline headphones action, never a second primary.
+  assert.match(LOCAL, /variant === 'secondary'\s*\? <IconAction layout="inline" ground=\{bare \? undefined : 'sun'\} icon="headphones" label="Try this line"/, 'the secondary café door is not the inline headphones action');
   const plain = flat(LOCAL.slice(LOCAL.indexOf('if (phrase === null')));
   assert.match(plain, /^if \(phrase === null \|\| offer === 'below'\) return null;/, 'the plain card hands a learner past Starter a first order');
 });
