@@ -11,6 +11,7 @@ import { boldType as type, c } from './boldRhythm.ts';
 import { BoldButton as PillButton } from './BoldButton.tsx';
 import { useLiveSession } from '../live/useLiveSession.ts';
 import { failureCopy } from '../live/failure.ts';
+import { waitingFor } from '../tutor/waitingView.ts';
 import { takeTypedDoor, typedDoorFor } from '../live/typedDoor.ts';
 import { RoomLevels } from '../live/RoomLevels.tsx';
 import { type OrbState } from '../tutor/VoiceOrb.tsx';
@@ -114,7 +115,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     && typedDoorFor(live.status.failure, { typing });
   const canRetryConnection = !roomEnded && live.status.phase === 'error' && !opened && !live.sessionId && !live.settlement && !ending;
   const state: OrbState = failed ? 'error' : live.reconnecting || !ready ? 'connecting' : live.tutorSpeaking ? 'speaking' : live.thinking ? 'thinking' : live.micOpen ? 'listening' : 'ready';
-  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : scene && (over || live.status.phase === 'ended') ? 'Your café scene is over' : roomEnded ? GUEST_ROOM_ENDED.label : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
+  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : scene && (over || live.status.phase === 'ended') ? 'Your café scene is over' : roomEnded ? GUEST_ROOM_ENDED.label : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? waitingFor(name) : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
   const end = async () => {
     setEnding(true); await live.pauseMic();
     if (ready) live.requestRecap();

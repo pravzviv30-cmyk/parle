@@ -82,7 +82,7 @@ test('the web run result reaches the summary or the recap, never the error', () 
   const practice = readFileSync(new URL('./FirstLivePractice.tsx', import.meta.url), 'utf8');
   assert.match(practice, /repairFirstLiveRecord\(sceneResultRecord\(held\.current\.live, result\)\)/);
   assert.match(practice, /scene && \(over \|\| live\.status\.phase === 'ended'\) \? 'Your café scene is over'/, 'a finished scene still says it is connecting');
-  assert.ok(practice.indexOf("'Your café scene is over'") < practice.indexOf('`Connecting to ${name}…`'));
+  assert.ok(practice.indexOf("'Your café scene is over'") < practice.indexOf('waitingFor(name)'));
 });
 
 test('the scene position line uses the on-brand soft text, not muted ink', () => {

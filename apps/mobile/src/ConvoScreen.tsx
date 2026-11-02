@@ -73,7 +73,6 @@ import { useReduceMotion } from './motion.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { ACTIVE_CUTOFF_MS, learnerEngaged } from './progress/activeTime.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
-import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { connectionLine } from './live/connectionLine.ts';
 import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
@@ -90,7 +89,7 @@ import { paceLabel } from './live/liveRoomView.ts';
 import { missionMinutes } from './home/estimate.ts';
 import { choosingView } from './tutor/choosingView.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
-import { waitingView } from './tutor/waitingView.ts';
+import { LEAVE_LABEL, waitingFor, waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { tutorVoiceOf } from './tutor/tutorVoice.ts';
@@ -106,8 +105,6 @@ import { RoomWait } from './live/RoomWait.tsx';
 import { OwnLeaseClosing } from './live/OwnLeaseClosing.tsx';
 import { useB } from './main/bTheme.tsx';
 import { ReportSheet } from './live/ReportSheet.tsx';
-import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
-import { waitingNote } from './tutor/waitingView.ts';
 import { RoomLevels } from './live/RoomLevels.tsx';
 import { useThinkingLine } from './live/useThinkingLine.ts';
 
@@ -444,30 +441,12 @@ export function ConvoScreen({
     if (takeTypedDoor(live) === 'needs-a-new-session') setOpenedTyped(true);
   };
 
-  // How long this connect has been running, for the copy that grows with it.
-  // The interval lives only while the connecting branch IS the whole screen and
-  // is cleared the moment the room opens or the screen goes away, so nothing
-  // ticks behind a conversation. `connectingTick` hands back the number already
-  // held while the stage is unchanged, so React bails out of the render: a
-  // twenty five second wait costs two renders, not twenty five.
-  const [connectingMs, setConnectingMs] = useState(0);
   // Read off `phase` rather than spelled out twice: the stop surface has to be
   // returned above every status branch, and safetyView.test.ts proves that by
   // finding the first mention of the connecting phase in the file. A hook that
   // spells the branch's own condition out up here moves that mark and makes the
   // ordering test read a line that is not a branch.
   const phase = live.status.phase;
-  const awaitingRoom = phase === 'connecting' || phase === 'idle';
-  useEffect(() => {
-    if (!awaitingRoom) return;
-    // A fresh attempt gets a fresh clock. The conversation reconnects when the
-    // learner takes the quiet door, and without this the second attempt opened
-    // on the first one's oldest sentence.
-    setConnectingMs(0);
-    const from = Date.now();
-    const tick = setInterval(() => setConnectingMs((prev) => connectingTick(prev, Date.now() - from)), CONNECTING_TICK_MS);
-    return () => clearInterval(tick);
-  }, [awaitingRoom]);
 
   // The tutor stopped this session, and a stopped session leaves nothing
   // behind. One flag, read by every effect below that would otherwise award,
@@ -1107,9 +1086,8 @@ export function ConvoScreen({
     // The words and the way out are both the view model's now. Leaving here is
     // safe: `leave()` takes the session number with it, so an attempt still
     // waiting on a token stands down rather than opening a room for a screen
-    // that has gone. See live/connectingView.ts and live/startOwnership.ts.
-    const connecting = connectingView(connectingMs);
-    return <RoomWait state="connecting" title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
+    // that has gone. See tutor/waitingView.ts and live/startOwnership.ts.
+    return <RoomWait state="connecting" title={waitingFor(tutorName)} leaveLabel={LEAVE_LABEL} onLeave={leaveNow} />;
   }
 
   if (live.status.phase === 'out-of-minutes') {
@@ -1202,8 +1180,8 @@ export function ConvoScreen({
     // This is an early return, so everything below it — including the scene's
     // own banner — never runs, and a redirect published during startScene used
     // to vanish. See tutor/waitingView.ts.
-    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety, tutorName });
-    return <RoomWait title={waiting.headline} body={waitingNote(tutorName)} leaveLabel={waiting.leaveLabel} onLeave={leaveNow}
+    const waiting = waitingView({ safety, tutorName });
+    return <RoomWait title={waiting.headline} leaveLabel={waiting.leaveLabel} onLeave={leaveNow}
       banner={waiting.banner ? <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} /> : undefined} />;
   }
 

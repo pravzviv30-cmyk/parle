@@ -2842,9 +2842,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   live/connectingView.ts stages the copy by elapsed time and always returns the door;
   both screens render its answer. The executor must verify leave() is safe against an
   in-flight token fetch before wiring the door.
-- verified-by: `the connect wait changes its words as it grows old`
-- verified-by: `every connecting stage keeps a way out`
-- verified-by: `both live screens draw the connecting wait from the view model, door included`
+- superseded: 2026-11-01, founder: the wait shows only "Waiting for {tutor}", so the staged words, the body and the clock are gone; the door stays.
+- verified-by: `both live screens draw the connecting and waiting pages from the helper, door included, with no other line`
 
 ### F152 — A busy auth screen says what it is doing
 - severity: P1
@@ -2976,7 +2975,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   called with, so freezing both call sites to connectingView(0) keeps all four tests
   green while the learner is back to one unchanging sentence for twenty five seconds,
   which is F151 verbatim. Pin the argument the way recapWait.test.ts:57 already does.
-- verified-by: `both live screens hand the view model the elapsed clock, not a constant`
+- superseded: 2026-11-01, founder: the wait shows only "Waiting for {tutor}", so the staged words, the body and the clock are gone; the door stays.
+- verified-by: `both live screens draw the connecting and waiting pages from the helper, door included, with no other line`
 
 ### F163 — The rate limited deletion promises a minute the server does not keep
 - severity: P1
@@ -9072,7 +9072,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `hear it hides when there is no line the tutor would vouch for`
 - verified-by: `type instead sends a typed turn through the ordinary path mid-scene`
 - verified-by: `the next conversation is the next scene on the spine`
-- verified-by: `both live screens draw the connecting wait from the view model, door included`
+- verified-by: `both live screens draw the connecting and waiting pages from the helper, door included, with no other line`
 
 ### F604 — Practice still wears the notebook: hairline ledgers, a striped review card, the old speak ring, the pen's reward mark and empty states with no drawing
 - severity: P1
