@@ -78,9 +78,20 @@ describe('the clouds sit in the top of the sky — fix round 1', () => {
     assert.equal(wide[1]!.left, Math.round(375 * 0.66));
     assert.deepEqual(wide.map((c) => c.top), [16, 56]);
     const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
-    assert.match(band, /cloudPlaces\(width, greetingRight\)\.map\(/);
+    assert.match(band, /cloudPlaces\(width, cloudsBesideGreeting\(greetingLineCount\) \? greetingRight : null\)\.map\(/);
+    assert.match(band, /onTextLayout=\{\(event\) => setGreetingLineCount\(event\.nativeEvent\.lines\.length\)\}/);
     assert.doesNotMatch(band, /top: 120|top: 176/, 'the clouds are back at the board tops, under the tiles');
     assert.ok(band.indexOf('cloudPlaces(') < band.indexOf('accessibilityRole="header"'), 'a cloud is drawn over the greeting');
+  });
+});
+
+describe('the greeting on one line draws over the clouds (phone fixes, item 5)', () => {
+  test('one line: the clouds keep their own places; two lines or unmeasured: they stay right of the words', async () => {
+    const { cloudsBesideGreeting } = await import('./skyView.ts');
+    assert.equal(cloudsBesideGreeting(1), false, 'a one-line greeting pushes the clouds aside');
+    assert.equal(cloudsBesideGreeting(2), true);
+    assert.equal(cloudsBesideGreeting(3), true);
+    assert.equal(cloudsBesideGreeting(null), true, 'before the text is measured the clouds sit on the words');
   });
 });
 

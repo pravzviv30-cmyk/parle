@@ -50,11 +50,22 @@ export function skyNow(now: number, mode: 'light' | 'dark'): SkyView {
 }
 
 /**
- * The greeting as the sky draws it: "Bonjour," over "Léa.", or "Bonjour."
- * alone with no name. The screen reader hears `homeGreeting`'s one title.
+ * The greeting as the sky draws it: "Bonjour, Léa." as one string, which the
+ * text engine wraps after the comma when the name does not fit beside the
+ * word, or "Bonjour." alone with no name. The screen reader hears
+ * `homeGreeting`'s one title.
  */
-export function greetingLines(greeting: { word: string; name: string | null }): string[] {
-  return greeting.name === null ? [`${greeting.word}.`] : [`${greeting.word},`, `${greeting.name}.`];
+export function greetingText(greeting: { word: string; name: string | null }): string {
+  return greeting.name === null ? `${greeting.word}.` : `${greeting.word}, ${greeting.name}.`;
+}
+
+/**
+ * Whether the clouds are kept right of the greeting's words: on two lines (or
+ * before the text is measured), yes; on one line, no, the clouds keep their
+ * own places and the name draws in front of them (founder, 2026-11-01).
+ */
+export function cloudsBesideGreeting(lineCount: number | null): boolean {
+  return lineCount === null || lineCount > 1;
 }
 
 /** The profile button's disc, and the band's side padding (space(4) + space(1)), for keeping clouds clear of it. */

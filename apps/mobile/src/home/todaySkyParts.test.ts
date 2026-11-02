@@ -10,7 +10,7 @@ import { describe, test } from 'node:test';
 import { STAT_GAP, statCoins, statRowTileWidth, statTileLayout } from '../game/todayHeroView.ts';
 import { flamePops } from './homeDraw.ts';
 import { routeRowLabel } from './routeRow.ts';
-import { greetingLines } from './skyView.ts';
+import { greetingText } from './skyView.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const strip = (body: string) => body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -79,10 +79,12 @@ describe("Today's path row and greeting", () => {
     assert.match(route, /row: \{ minHeight: HIT,/);
   });
 
-  test('the greeting is two lines with a name and one without', () => {
-    assert.deepEqual(greetingLines({ word: 'Bonjour', name: 'Léa' }), ['Bonjour,', 'Léa.']);
-    assert.deepEqual(greetingLines({ word: 'Bonsoir', name: null }), ['Bonsoir.']);
+  test('the greeting is one string the text engine wraps after the comma, with a name and without', () => {
+    assert.equal(greetingText({ word: 'Bonjour', name: 'Léa' }), 'Bonjour, Léa.');
+    assert.equal(greetingText({ word: 'Bonsoir', name: null }), 'Bonsoir.');
     const band = strip(read('./SkyBand.tsx'));
+    assert.match(band, /\{greetingText\(greeting\)\}/);
+    assert.doesNotMatch(band, /join\('\\n'\)/, 'the greeting is forced onto two lines again');
     assert.match(band, /accessibilityRole="header" accessibilityLabel=\{greeting\.title\}/);
     assert.doesNotMatch(band, /#[0-9A-Fa-f]{6}|rgba\(/);
   });

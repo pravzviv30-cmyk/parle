@@ -77,7 +77,7 @@ period stay near a purchase action, and large text is never capped to fit.
   sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
   an estimate said as "about n min".
 - Today, top to bottom (UI-015): the sky band, full bleed, in the hour's
-  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) in two lines,
+  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
   the profile button on the sky's chip, three chunky stat tiles (streak days or
   "Start" over "today"; minutes against the goal, "<1" under a minute; the XP
   level number over "level"; never a nought) and the nudge line. Then one hero
@@ -1055,13 +1055,13 @@ the new look, listed at the end, and they go with their call sites.
   From reading size 1.3, when the widest word cannot fit whole in its cell
   (`tabLabelsShown`), every tab shows its glyph alone and keeps its full
   accessibility label (F947, founder decision 2026-10-31).
-  Selected is the `tabSelected` violet cell with the Bulk glyph in
+  Selected is the `tabSelected` violet cell with the Linear glyph in
   `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
   unselected is the Linear glyph and the word in cream at Outfit Medium on the
   ink. The bar itself moves nothing: when a tab becomes the selected one its
-  icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15, home on the pop
-  spring, the Bulk drawing fading in over the Linear), never on launch or on a
-  tap of the open tab, and under Reduce Motion it simply swaps. The Practice
+  icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one
+  drawing, never scaled, so it stays sharp), never on launch or on a tap of
+  the open tab, and under Reduce Motion it does not move. The Practice
   dot is 6pt sun, so it reads on the ink, and pops in once when practice
   becomes due while the bar is open. Cells keep the 62pt floor and labels wrap
   at large text: from a 1.3 reading size each cell takes a fixed fifth. The
