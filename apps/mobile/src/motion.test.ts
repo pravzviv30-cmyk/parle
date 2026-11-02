@@ -519,6 +519,7 @@ describe('only the orb and the highlighter move', () => {
     // in TabGlyph, not the bar. It watches reduced motion live, never loops,
     // and moves only transform and opacity.
     const glyph = file('nav/TabGlyph.tsx').body;
+    assert.doesNotMatch(glyph, /TAB_POP\.scale/, 'TabGlyph scales the icon, which softens it on iOS (item 8)');
     assert.match(glyph, /const reduced = useReduceMotion\(\);/, 'TabGlyph does not watch reduced motion');
     assert.doesNotMatch(glyph, /\bwithRepeat\b|(?<![.\w])repeat\(/, 'TabGlyph loops');
     for (const m of every(glyph, /\buseAnimatedStyle\(/g)) {
