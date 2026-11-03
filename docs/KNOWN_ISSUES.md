@@ -12247,3 +12247,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   target can be swallowed. Fix: make the inner control a sibling or the outer row non-pressable,
   with a test that no pressable on the Practice tab contains another.
 - verified-by: `no pressable on the Practice tab contains another`
+
+### F957 — At accessibility-extra-large, Today's greeting breaks inside its first word
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/home/SkyBand.tsx (the greeting `Text`, `bType.greeting`)
+- note: Found 2026-11-03 on the iPhone 17 simulator while checking the phone fixes, and the same on
+  main 4ff3aff2: at accessibility-extra-large "Bonsoir," is wider than the column, so it draws as
+  "Bonsoi" / "r," and the closing full stop sits alone on a line (shots in
+  `artifacts/phone-fixes-2026-11/before|after/sim-today-axl.png`). DESIGN.md asks the title to wrap
+  in normal flow. The Impeccable reviewer suggests letting the greeting alone grow less
+  (`maxFontSizeMultiplier` sized so the longest hour word and its comma fit 343pt), which caps
+  one text's scaling, so it waits for the founder's call.
+- verified-by: `the greeting's longest hour word fits its column at the largest text size`
