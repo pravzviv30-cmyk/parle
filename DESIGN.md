@@ -1900,8 +1900,8 @@ events.
 
 ### What never moves
 
-The tab bar itself (its selected icon pops once in `nav/TabGlyph.tsx`), the
-greeting, the highlighter, the skeleton, the layout primitives, the flat
+The tab bar's cells (UI-018's selection pill slides and can be dragged, and the
+selected icon lifts in `nav/TabGlyph.tsx`), the greeting, the highlighter, the skeleton, the layout primitives, the flat
 drawings themselves (a wrapper may move one; the drawing
 does not), and legal or consent text. Inside a live room only the portrait's
 level rings and breath, the goal stamps, the arriving lines, the notebook's

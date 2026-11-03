@@ -10109,6 +10109,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx, apps/mobile/src/nav/TabGlyph.tsx
 - note: Founder decision D7 (richer motion on flat controls). The selected tab icon pops once inside nav/TabGlyph.tsx and lands still under Reduce Motion; LuvaniTabBar.tsx itself still moves nothing, so the F600 assertion stays true.
 - note 2026-10-06, ca/p0-icons (step D1): TabGlyph pops the newly selected icon (up 2, to 1.15, home on SPRING.pop) with the Bulk drawing fading in over DUR.micro, never on mount or a re-tap; the Practice dot pops only when the read deck goes from none due to some. The title failed with the re-tap guard or the reduced landing removed. Not yet seen on a device.
+- superseded: 2026-11-03, the tab glyph is now one Linear drawing that only lifts (phone fixes item 8, 2026-11-01), with no scale to 1.15 and no Bulk drawing; and the bar no longer moves nothing, since UI-018's selection pill slides to a tapped tab and can be dragged.
 - verified-by: `the selected tab icon springs in TabGlyph and lands still under Reduce Motion`
 
 ### F738 — Leaving one recording can stop another recorder or a live room
@@ -10500,6 +10501,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
+- superseded: 2026-11-03, for this paragraph: the tab glyph is now one Linear drawing that only lifts (phone fixes item 8, 2026-11-01), with no scale to 1.15 and no Bulk drawing; and the bar no longer moves nothing, since UI-018's selection pill slides to a tapped tab and can be dragged.
 - note: 2026-10-07 completion: Disabled Next routes touch to a choice lift and polite explanation, without advancing. Reduce Motion gets the words only. Browser tap verified.
 
 ### F783 — Purchase refresh leaves the game entitlement facts stale
