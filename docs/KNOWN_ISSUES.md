@@ -4901,7 +4901,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the active tab is told by the violet cell and weight 700, and a screen reader still hears selected — F313`
 - note: notebook redesign (2026-09-27): the bar is flat on the paper with a top hairline, no inset dock
   and no selected wash; it still carries no shadow, so the tick follows the renamed test.
-- verified-by: `the bar is an ink capsule on the route ground, and never a floating shadow — F313, UI-008`
+- verified-by: `the bar is an ink capsule on a clear strip, and never a floating shadow — F313, UI-008, UI-017`
+- superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
@@ -5147,7 +5148,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/layout.tsx:137
 - note: every tab pads its own scroll bottom on top of the root's `space(3)`. `ScrollScreen`'s
   contentContainerStyle takes `paddingBottom: space(8)` when `bottom === 'tab'` and nothing otherwise.
-- verified-by: `a scroll screen under the tab bar pads its own bottom, and one that is not does not`
+- verified-by: `a tab screen's content scrolls past the floating bar — UI-017`
+- superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 
 ### F336 — Five tabs open the same way
 - severity: P1
@@ -9008,10 +9010,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:35
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
-- verified-by: `the bar is an ink capsule, radius 32, on the route ground, and never a floating shadow — UI-008`
+- verified-by: `the bar is an ink capsule, radius 32, and never a floating shadow — UI-008, UI-017`
 - verified-by: `the selected cell is violet with a sun Linear glyph and a bold cream word; the rest are cream on ink — UI-008`
 - verified-by: `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route` (renamed 2026-10-20 when direction B A3 moved the bar to five tabs; the route names it guards are unchanged)
-- verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
+- verified-by: `a tab cell presses through Press with no haptic of its own, and only the selection pill moves`
+- superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 - verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
 
 
