@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
-import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellUnderFinger, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellUnderFinger, tabLabelsShown, tabPillLeft, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -242,6 +242,21 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.equal(tabCellUnderFinger(grab, 12, 8, 70, 5), 1);
     assert.equal(tabCellUnderFinger(grab + 7, 12, 8, 70, 5), 2, 'the finger is over the next cell');
     assert.match(FLAT, /tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_PAD, cell, n\)/, 'the bar does not read the finger on move');
+  });
+
+  test('the dragged pill is centred on the finger, over the cell release picks (push-check, fix 1)', () => {
+    // Capsule at x 12, padded 8, cells 70 wide, five cells.
+    const grab = 12 + 8 + 70 * 1.5 + 70 * 0.45;
+    const centreCell = (left: number) => tabCellAt(left + 35, 70, 5);
+    assert.equal(centreCell(tabPillLeft(grab + 7, 12, 8, 70, 5)), 2, 'the pill is drawn over the old cell while release opens the next');
+    for (let x = -100; x <= 500; x += 0.5) {
+      const left = tabPillLeft(x, 12, 8, 70, 5);
+      assert.ok(left >= 0 && left <= 4 * 70, `the pill leaves the row at finger ${x}`);
+      assert.equal(centreCell(left), tabCellUnderFinger(x, 12, 8, 70, 5), `the pill and release disagree at finger ${x}`);
+    }
+    assert.equal(tabPillLeft(0, 12, 8, 70, 5), 0, 'the pill passes the first end');
+    assert.equal(tabPillLeft(900, 12, 8, 70, 5), 280, 'the pill passes the last end');
+    assert.match(FLAT, /setDragX\(tabPillLeft\(g\.moveX, capsuleX\.current, CAPSULE_PAD, cell, n\)\)/, 'the bar draws the pill from the grab, not the finger');
   });
 
   test('the five words are Today, Explore, Speak, Practice and Journey over Codex\'s Iconsax drawings — UI-008', () => {

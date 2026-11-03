@@ -98,3 +98,8 @@ export function tabCellAt(x: number, cell: number, count: number): number {
 export function tabCellUnderFinger(pageX: number, capsuleX: number, pad: number, cell: number, count: number): number {
   return tabCellAt(pageX - capsuleX - pad, cell, count);
 }
+
+/** The dragged pill's left x, centred on the finger and clamped to the row, so its centre is over the cell release picks (push-check fix 1). */
+export function tabPillLeft(pageX: number, capsuleX: number, pad: number, cell: number, count: number): number {
+  return Math.max(0, Math.min((count - 1) * cell, pageX - capsuleX - pad - cell / 2));
+}

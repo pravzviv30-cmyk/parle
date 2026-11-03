@@ -34,7 +34,7 @@ import { tapSettled, tick } from '../motion/haptics.ts';
 import { TabGlyph } from './TabGlyph.tsx';
 import { TabPill } from './TabPill.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabCellAt, tabCellUnderFinger, tabDot, tabLabelsShown } from './tabBarModel.ts';
+import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabCellAt, tabCellUnderFinger, tabDot, tabPillLeft, tabLabelsShown } from './tabBarModel.ts';
 
 /** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
 const CELL_HEIGHT = 62;
@@ -153,10 +153,9 @@ function TabStrip({ routes, insets, due }: {
       over.current = geo.current.selected;
     },
     onPanResponderMove: (_, g) => {
-      const { cell, selected } = geo.current;
+      const { cell } = geo.current;
       const n = routesRef.current.length;
-      const x = Math.max(0, Math.min((n - 1) * cell, selected * cell + g.dx));
-      setDragX(x);
+      setDragX(tabPillLeft(g.moveX, capsuleX.current, CAPSULE_PAD, cell, n));
       const now = tabCellUnderFinger(g.moveX, capsuleX.current, CAPSULE_PAD, cell, n);
       if (now !== over.current) { over.current = now; tick(); }
     },
