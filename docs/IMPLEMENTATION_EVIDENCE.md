@@ -22,6 +22,16 @@ of the list.
 
 ## Current landing snapshot
 
+- 3 November 2026 Phone-check fixes (UI-017, UI-018): branch `claude/phone-fixes` from main a90ed36b,
+  merged with main 4ff3aff2. Today's greeting and name share one line when the name fits, the name
+  capitalised and drawn over the clouds; the selected tab icon is drawn once and only lifts, so it
+  stays sharp; Today's tiles get 16pt above the hero and page gaps come from RHYTHM; the tab bar
+  floats, so only the capsule covers content (UI-017); the selection pill can be held and dragged to
+  another tab, with a haptic per tab (UI-018); Today has no iOS scroll-edge fade; the live wait says
+  only "Waiting for {tutor}"; a spent daily allowance says so instead of "cannot reach your tutor"
+  (F955 filed for the server side). F313, F335 and F600 name the renamed tab bar tests.
+  **7,529 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4065; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 2 November 2026 Bug fixes after screens 1 to 3: branch `claude/bug-fix` from main cc60bce7. F950
   generated tap-translate items carry a required `fr` display line, validated like authored ones;
   F951 the speak drill's quiet control is named by its visible words; F952 stays open (three
