@@ -37,3 +37,13 @@ test('each tab page spaces its cards and sections with RHYTHM', () => {
   assert.match(explore, /stack: \{ gap: RHYTHM\.item \}/);
   assert.match(explore, /grid: \{ flexDirection: 'row', flexWrap: 'wrap', gap: RHYTHM\.item \}/);
 });
+
+test('RHYTHM holds 12 between items, 20 between cards and 32 between sections', () => {
+  // theme.ts imports React Native, so its source is read: a 4pt space and the three steps on it.
+  const theme = read('../theme.ts');
+  assert.match(theme, /export const space = \(n: number\) => n \* 4;/, 'space is no longer the 4pt base');
+  const rhythm = /export const RHYTHM = \{([^}]*)\}/.exec(theme)?.[1] ?? '';
+  assert.match(rhythm, /item: space\(3\)/, 'the gap between items is not 12');
+  assert.match(rhythm, /block: space\(5\)/, 'the gap between cards is not 20');
+  assert.match(rhythm, /section: space\(8\)/, 'the gap between sections is not 32');
+});
