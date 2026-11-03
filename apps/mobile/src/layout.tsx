@@ -35,6 +35,7 @@ import { CloseGlyph, GhostButton, PillButton, RoundButton, Sheet } from './compo
 import { colour, paper, space, type, HAIRLINE, HIT, RHYTHM } from './theme.ts';
 import { useB, type B } from './main/bTheme.tsx';
 import { footerOverflow } from './footerOverflow.ts';
+import { CAPSULE_HEIGHT } from './nav/tabBarModel.ts';
 import { compactPhone, screenGeometry, screenInsets, READING, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
 
 /**
@@ -280,7 +281,7 @@ export function ScrollScreen({
   const insets = useSafeAreaInsets();
   // The floating bar's reported height; outside the tab navigator, the 74pt
   // capsule with 8pt above and the safe area or 8pt below.
-  const tabBar = useContext(BottomTabBarHeightContext) ?? space(2) + 74 + Math.max(insets.bottom, space(2));
+  const tabBar = useContext(BottomTabBarHeightContext) ?? space(2) + CAPSULE_HEIGHT + Math.max(insets.bottom, space(2));
   const overflowing = footerOverflow(contentHeight, viewportHeight, offset);
   if (embedded) {
     return <View style={{ gap: space(4) }}>{children}{footer}</View>;

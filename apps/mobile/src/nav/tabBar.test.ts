@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
-import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellUnderFinger, tabLabelsShown, tabPillLeft, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { CAPSULE_HEIGHT, CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellUnderFinger, tabLabelsShown, tabPillLeft, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -67,7 +67,9 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // The floor under every cell is still a floor: a two-line word makes the
     // cell taller, and nothing here is allowed to make it shorter.
     // 2026-10-20 UI-008, Figma 292:1103: the floor is the 62pt cell.
-    assert.match(FLAT, /const CELL_HEIGHT = 62;/, 'the cell is no longer the 62pt cell the Figma nav draws');
+    assert.equal(CAPSULE_HEIGHT, 74, 'the capsule is no longer the 74pt capsule the Figma nav draws');
+    assert.match(FLAT, /const CELL_HEIGHT = CAPSULE_HEIGHT - 2 \* space\(1\.5\);/, 'the cell is no longer the 62pt cell inside the capsule');
+    assert.match(FLAT, /paddingVertical: space\(1\.5\)/, 'the capsule padding no longer matches what the cell height subtracts');
     assert.match(FLAT, /minHeight: CELL_HEIGHT/, 'the cell keeps no height floor, so a wrapped word could be clipped');
     assert.doesNotMatch(FLAT, /\bheight: CELL_HEIGHT/, 'the cell is a fixed height, so a wrapped word is clipped');
 

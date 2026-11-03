@@ -34,10 +34,10 @@ import { tapSettled, tick } from '../motion/haptics.ts';
 import { TabGlyph } from './TabGlyph.tsx';
 import { TabPill } from './TabPill.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabCellAt, tabCellUnderFinger, tabDot, tabPillLeft, tabLabelsShown } from './tabBarModel.ts';
+import { CAPSULE_HEIGHT, MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabCellAt, tabCellUnderFinger, tabDot, tabPillLeft, tabLabelsShown } from './tabBarModel.ts';
 
 /** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
-const CELL_HEIGHT = 62;
+const CELL_HEIGHT = CAPSULE_HEIGHT - 2 * space(1.5);
 /** The capsule's side padding, `space(2)`: where the first cell starts. */
 const CAPSULE_SIDE = 8;
 

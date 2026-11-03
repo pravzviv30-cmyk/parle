@@ -254,8 +254,9 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     // and the frame adds nothing outside the scroll. Outside the navigator the
     // height is computed from the capsule.
     const scroll = region(layoutSource(), 'export function ScrollScreen(', 'export function ScreenHeader(');
-    assert.match(scroll, /useContext\(BottomTabBarHeightContext\) \?\? space\(2\) \+ 74 \+ Math\.max\(insets\.bottom, space\(2\)\)/, 'the scroll screen does not read the bar height, with a fallback');
+    assert.match(scroll, /useContext\(BottomTabBarHeightContext\) \?\? space\(2\) \+ CAPSULE_HEIGHT \+ Math\.max\(insets\.bottom, space\(2\)\)/, 'the scroll screen does not read the bar height, with a fallback');
     assert.match(scroll, /bottom === 'tab' \? \{ paddingBottom: tabBar \+ space\(8\) \} : null/, 'the scroll content does not pad past the floating bar');
+    assert.match(layoutSource(), /^import \{ CAPSULE_HEIGHT \} from '\.\/nav\/tabBarModel\.ts';$/m, 'the fallback does not take the capsule height from the tab bar model');
     const screen = region(layoutSource(), 'export function Screen(', 'export function ScrollScreen(');
     assert.match(screen, /bottom === 'tab' \? 0 :/, 'the frame still pads outside the scroll under the tab bar, so content stops short of it');
   });

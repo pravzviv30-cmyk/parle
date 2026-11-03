@@ -29,6 +29,8 @@ export const TAB_ICONS: Readonly<Record<string, IconName>> = {
 
 /** The capsule's inset from each screen edge, after the safe areas (Figma: left 12 of 390). */
 export const CAPSULE_INSET = 12;
+/** The capsule's height, Figma 292:1103: a 62pt cell inside 6pt of padding top and bottom. */
+export const CAPSULE_HEIGHT = 74;
 /** The widest the capsule grows on a tablet, so five cells do not drift apart. */
 export const CAPSULE_MAX = 640;
 
