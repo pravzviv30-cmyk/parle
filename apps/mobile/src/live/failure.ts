@@ -36,7 +36,7 @@ export type LiveFailure =
   | 'session-elsewhere'
   /** The app's own typed session is still closing after Speak switched it to voice (F903). */
   | 'own-session-closing'
-  /** The token server's daily speaking allowance is spent (503 account-daily-budget or daily-budget). */
+  /** The token server's daily speaking allowance is spent (503 account-daily-budget). */
   | 'daily-limit'
   /** Refused because nobody is signed in. */
   | 'sign-in-required'
@@ -79,7 +79,7 @@ export class TokenServerError extends Error {
 export function tokenFailureCode(status: number, body: unknown): 'voice-unavailable' | 'daily-limit' | undefined {
   if (status !== 503 || !body || typeof body !== 'object') return undefined;
   const value = body as Record<string, unknown>;
-  if (value.error === 'account-daily-budget' || value.error === 'daily-budget') return 'daily-limit';
+  if (value.error === 'account-daily-budget') return 'daily-limit';
   const modes = value.supportedModes;
   return value.error === 'voice-unavailable' && Array.isArray(modes)
     && modes.length === 2 && modes.includes('lesson-text') && modes.includes('convo-text')
@@ -261,8 +261,8 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   },
   // No Try again: another start would only be refused. Back is always drawn.
   'daily-limit': {
-    label: 'Used up for today',
-    message: "Today's speaking time is used up. It comes back tomorrow.",
+    label: 'Daily limit reached',
+    message: "Today's speaking time is used up. Practice still works offline, so you can carry on there.",
     canType: false,
   },
   'session-elsewhere': {

@@ -569,13 +569,17 @@ test('only an explicit typing-only capability reply offers typing after a voice 
 });
 
 test('a spent daily allowance says so plainly, not that the tutor is unreachable (staging 2026-11-01)', () => {
-  for (const error of ['account-daily-budget', 'daily-budget']) {
-    const body = { error, message: 'Untrusted remote prose', plans: [] };
-    const failure = classifyFailure(new TokenServerError(503, tokenFailureCode(503, body)));
-    assert.equal(failure, 'daily-limit');
-    assert.equal(failureCopy(failure).message, "Today's speaking time is used up. It comes back tomorrow.");
-    assert.equal(failureCopy(failure).canType, false);
-  }
+  const body = { error: 'account-daily-budget', message: 'Untrusted remote prose', plans: [] };
+  const failure = classifyFailure(new TokenServerError(503, tokenFailureCode(503, body)));
+  assert.equal(failure, 'daily-limit');
+  assert.equal(failureCopy(failure).label, 'Daily limit reached');
+  assert.equal(failureCopy(failure).message, "Today's speaking time is used up. Practice still works offline, so you can carry on there.");
+  assert.equal(failureCopy(failure).canType, false);
   assert.equal(tokenFailureCode(500, { error: 'daily-budget' }), undefined);
   assert.equal(classifyFailure(new TokenServerError(503, tokenFailureCode(503, { error: 'outage' }))), 'server-unreachable');
+});
+
+test("the service-wide daily-budget ceiling is not the learner's own allowance (push-check, fix 2)", () => {
+  assert.equal(tokenFailureCode(503, { error: 'daily-budget' }), undefined);
+  assert.notEqual(classifyFailure(new TokenServerError(503, tokenFailureCode(503, { error: 'daily-budget' }))), 'daily-limit', 'a learner with minutes left is told theirs are used up');
 });

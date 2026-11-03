@@ -12228,7 +12228,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `tutor_account_budget_days` when the tutor never joins, so failed starts spend the day's
   allowance. The app now names the spent allowance honestly (`daily-limit` in
   `apps/mobile/src/live/failure.ts`), but the fix belongs to the token server and the database,
-  not the app: give the reservation back when no tutor joined.
+  not the app: give the reservation back when no tutor joined. 2026-11-03: only
+  `account-daily-budget` maps to `daily-limit`; `daily-budget` (the service-wide ceiling) still
+  shows the general "cannot reach" words, and the server could send when the allowance comes
+  back (the next UTC day, in the learner's local time) so the app can say it.
 - verified-by: `a tutor start that never joins gives back its reserved daily seconds`
 
 ### F956 — The Practice tab nests a button inside a button
