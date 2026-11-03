@@ -241,7 +241,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     const grab = 12 + 8 + 70 * 1.5 + 70 * 0.45;
     assert.equal(tabCellUnderFinger(grab, 12, 8, 70, 5), 1);
     assert.equal(tabCellUnderFinger(grab + 7, 12, 8, 70, 5), 2, 'the finger is over the next cell');
-    assert.match(FLAT, /tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_PAD, cell, n\)/, 'the bar does not read the finger on move');
+    assert.match(FLAT, /tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, cell, n\)/, 'the bar does not read the finger on move');
   });
 
   test('the dragged pill is centred on the finger, over the cell release picks (push-check, fix 1)', () => {
@@ -256,20 +256,21 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     }
     assert.equal(tabPillLeft(0, 12, 8, 70, 5), 0, 'the pill passes the first end');
     assert.equal(tabPillLeft(900, 12, 8, 70, 5), 280, 'the pill passes the last end');
-    assert.match(FLAT, /setDragX\(tabPillLeft\(g\.moveX, capsuleX\.current, CAPSULE_PAD, cell, n\)\)/, 'the bar draws the pill from the grab, not the finger');
+    assert.match(FLAT, /setDragX\(tabPillLeft\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, cell, n\)\)/, 'the bar draws the pill from the grab, not the finger');
   });
 
   test('the drag guards: a tap stays the cell\'s, geometry is measured, no pill without a tab (push-check, fix 3)', () => {
     const capture = FLAT.slice(FLAT.indexOf('onStartShouldSetPanResponderCapture:'), FLAT.indexOf('onMoveShouldSetPanResponderCapture:'));
     assert.match(capture, /return false; \}, $/, 'the touch start takes the touch, so a tap no longer reaches the cell');
-    assert.match(capture, /startedOnSelected\.current = selected >= 0 && tabCellAt\(e\.nativeEvent\.pageX - capsuleX\.current - CAPSULE_PAD, cell, routesRef\.current\.length\) === selected;/, 'a drag can start from a tab that is not open');
+    assert.match(capture, /startedOnSelected\.current = selected >= 0 && tabCellAt\(e\.nativeEvent\.pageX - capsuleX\.current - CAPSULE_SIDE, cell, routesRef\.current\.length\) === selected;/, 'a drag can start from a tab that is not open');
     assert.match(FLAT, /<View ref=\{capsuleRef\} [^>]*onLayout=\{\(\) => capsuleRef\.current\?\.measureInWindow\(\(x\) => \{ capsuleX\.current = x; \}\)\}/, 'the capsule never measures where it sits, so the finger is read from 0');
-    const pad = Number(/const CAPSULE_PAD = (\d+);/.exec(BAR)?.[1]);
+    assert.doesNotMatch(BAR, /\bCAPSULE_PAD\b/, 'the bar reuses tabBarModel\'s CAPSULE_PAD name (16, both sides) for 8 per side');
+    const pad = Number(/const CAPSULE_SIDE = (\d+);/.exec(BAR)?.[1]);
     const capsuleStyle = FLAT.slice(FLAT.indexOf('capsule: {'), FLAT.indexOf('cell: {'));
     const styled = /paddingHorizontal: space\((\d+(?:\.\d+)?)\)/.exec(capsuleStyle);
     assert.ok(styled, 'the capsule style lost its side padding');
     assert.equal(pad, Number(styled[1]) * 4, 'the drag\'s side padding is not the capsule style\'s, so the finger maps to the wrong cell');
-    assert.match(FLAT, /const cell = Math\.max\(0, \(capsule - 2 \* CAPSULE_PAD\) \/ routes\.length\);/, 'the cell width is not the padded capsule over the tab count');
+    assert.match(FLAT, /const cell = Math\.max\(0, \(capsule - 2 \* CAPSULE_SIDE\) \/ routes\.length\);/, 'the cell width is not the padded capsule over the tab count');
     assert.match(FLAT, /\{selected >= 0 && <TabPill /, 'Profile\'s detached bar, with no open tab, draws a pill');
     const release = FLAT.slice(FLAT.indexOf('onPanResponderRelease:'), FLAT.indexOf('onPanResponderTerminationRequest:'));
     assert.match(release, /setDragX\(null\);/, 'letting go leaves the pill pinned to the finger');

@@ -39,7 +39,7 @@ import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilit
 /** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
 const CELL_HEIGHT = 62;
 /** The capsule's side padding, `space(2)`: where the first cell starts. */
-const CAPSULE_PAD = 8;
+const CAPSULE_SIDE = 8;
 
 export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
@@ -128,7 +128,7 @@ function TabStrip({ routes, insets, due }: {
   const reportHeight = useContext(BottomTabBarHeightCallbackContext);
 
   // Item 7 (founder, 2026-11-02): hold the open tab and drag the pill to another.
-  const cell = Math.max(0, (capsule - 2 * CAPSULE_PAD) / routes.length);
+  const cell = Math.max(0, (capsule - 2 * CAPSULE_SIDE) / routes.length);
   const selected = routes.findIndex((r) => r.focused);
   const [dragX, setDragX] = useState<number | null>(null);
   const capsuleRef = useRef<View>(null);
@@ -143,7 +143,7 @@ function TabStrip({ routes, insets, due }: {
     // Notes whether the touch began on the open tab; never takes it, so a tap stays the cell's.
     onStartShouldSetPanResponderCapture: (e) => {
       const { cell, selected } = geo.current;
-      startedOnSelected.current = selected >= 0 && tabCellAt(e.nativeEvent.pageX - capsuleX.current - CAPSULE_PAD, cell, routesRef.current.length) === selected;
+      startedOnSelected.current = selected >= 0 && tabCellAt(e.nativeEvent.pageX - capsuleX.current - CAPSULE_SIDE, cell, routesRef.current.length) === selected;
       return false;
     },
     // Only sideways movement claims it, so a still long press keeps the Large Content Viewer (F947).
@@ -155,8 +155,8 @@ function TabStrip({ routes, insets, due }: {
     onPanResponderMove: (_, g) => {
       const { cell } = geo.current;
       const n = routesRef.current.length;
-      setDragX(tabPillLeft(g.moveX, capsuleX.current, CAPSULE_PAD, cell, n));
-      const now = tabCellUnderFinger(g.moveX, capsuleX.current, CAPSULE_PAD, cell, n);
+      setDragX(tabPillLeft(g.moveX, capsuleX.current, CAPSULE_SIDE, cell, n));
+      const now = tabCellUnderFinger(g.moveX, capsuleX.current, CAPSULE_SIDE, cell, n);
       if (now !== over.current) { over.current = now; tick(); }
     },
     onPanResponderRelease: () => {
@@ -172,7 +172,7 @@ function TabStrip({ routes, insets, due }: {
   return (
     <View pointerEvents="box-none" onLayout={(e) => reportHeight?.(e.nativeEvent.layout.height)} style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
       <View ref={capsuleRef} {...drag.panHandlers} onLayout={() => capsuleRef.current?.measureInWindow((x) => { capsuleX.current = x; })} style={[st.capsule, { width: capsule }]}>
-      {selected >= 0 && <TabPill to={dragX ?? selected * cell} width={cell} left={CAPSULE_PAD} following={dragX !== null} />}
+      {selected >= 0 && <TabPill to={dragX ?? selected * cell} width={cell} left={CAPSULE_SIDE} following={dragX !== null} />}
       {routes.map((route) => {
         const focused = route.focused;
         const icon = TAB_ICONS[route.name];
