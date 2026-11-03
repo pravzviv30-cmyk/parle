@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
-import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellCrossed, tabCellUnderFinger, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellUnderFinger, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -234,9 +234,6 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.equal(tabCellAt(-40, 70, 5), 0, 'a finger left of the capsule is not the first cell');
     assert.equal(tabCellAt(900, 70, 5), 4, 'a finger right of the capsule is not the last cell');
     assert.equal(tabCellAt(10, 0, 5), 0, 'an unmeasured capsule divides by zero');
-    assert.equal(tabCellCrossed(1, 100, 70, 5), null, 'moving inside a cell ticks');
-    assert.equal(tabCellCrossed(1, 150, 70, 5), 2);
-    assert.equal(tabCellCrossed(4, 900, 70, 5), null, 'dragging past the end ticks again');
   });
 
   test('a drag lands on the cell under the finger, not under the pill (verifier, fix 1)', () => {

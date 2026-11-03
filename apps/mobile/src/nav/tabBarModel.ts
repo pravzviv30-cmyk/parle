@@ -94,12 +94,6 @@ export function tabCellAt(x: number, cell: number, count: number): number {
   return Math.max(0, Math.min(count - 1, Math.floor(x / cell)));
 }
 
-/** The new cell when a drag at `x` has left cell `over`, or null while it is still inside it: the moment to tick. */
-export function tabCellCrossed(over: number, x: number, cell: number, count: number): number | null {
-  const now = tabCellAt(x, cell, count);
-  return now === over ? null : now;
-}
-
 /** The cell under a finger at `pageX`, measured from the capsule's left edge `capsuleX` and its inner padding `pad` (item 7, verifier fix). */
 export function tabCellUnderFinger(pageX: number, capsuleX: number, pad: number, cell: number, count: number): number {
   return tabCellAt(pageX - capsuleX - pad, cell, count);
