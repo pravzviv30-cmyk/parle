@@ -259,6 +259,22 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(FLAT, /setDragX\(tabPillLeft\(g\.moveX, capsuleX\.current, CAPSULE_PAD, cell, n\)\)/, 'the bar draws the pill from the grab, not the finger');
   });
 
+  test('the drag guards: a tap stays the cell\'s, geometry is measured, no pill without a tab (push-check, fix 3)', () => {
+    const capture = FLAT.slice(FLAT.indexOf('onStartShouldSetPanResponderCapture:'), FLAT.indexOf('onMoveShouldSetPanResponderCapture:'));
+    assert.match(capture, /return false; \}, $/, 'the touch start takes the touch, so a tap no longer reaches the cell');
+    assert.match(capture, /startedOnSelected\.current = selected >= 0 && tabCellAt\(e\.nativeEvent\.pageX - capsuleX\.current - CAPSULE_PAD, cell, routesRef\.current\.length\) === selected;/, 'a drag can start from a tab that is not open');
+    assert.match(FLAT, /<View ref=\{capsuleRef\} [^>]*onLayout=\{\(\) => capsuleRef\.current\?\.measureInWindow\(\(x\) => \{ capsuleX\.current = x; \}\)\}/, 'the capsule never measures where it sits, so the finger is read from 0');
+    const pad = Number(/const CAPSULE_PAD = (\d+);/.exec(BAR)?.[1]);
+    const capsuleStyle = FLAT.slice(FLAT.indexOf('capsule: {'), FLAT.indexOf('cell: {'));
+    const styled = /paddingHorizontal: space\((\d+(?:\.\d+)?)\)/.exec(capsuleStyle);
+    assert.ok(styled, 'the capsule style lost its side padding');
+    assert.equal(pad, Number(styled[1]) * 4, 'the drag\'s side padding is not the capsule style\'s, so the finger maps to the wrong cell');
+    assert.match(FLAT, /const cell = Math\.max\(0, \(capsule - 2 \* CAPSULE_PAD\) \/ routes\.length\);/, 'the cell width is not the padded capsule over the tab count');
+    assert.match(FLAT, /\{selected >= 0 && <TabPill /, 'Profile\'s detached bar, with no open tab, draws a pill');
+    const release = FLAT.slice(FLAT.indexOf('onPanResponderRelease:'), FLAT.indexOf('onPanResponderTerminationRequest:'));
+    assert.match(release, /setDragX\(null\);/, 'letting go leaves the pill pinned to the finger');
+  });
+
   test('the five words are Today, Explore, Speak, Practice and Journey over Codex\'s Iconsax drawings — UI-008', () => {
     // 2026-10-20 UI-008, Figma 292:1103. Route names, which deep links and every
     // navigate() call spell, do not move; only the words and drawings did.
