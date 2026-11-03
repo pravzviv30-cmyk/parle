@@ -30,8 +30,15 @@ of the list.
   another tab, with a haptic per tab (UI-018); Today has no iOS scroll-edge fade; the live wait says
   only "Waiting for {tutor}"; a spent daily allowance says so instead of "cannot reach your tutor"
   (F955 filed for the server side). F313, F335 and F600 name the renamed tab bar tests.
-  **7,529 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
-  mobile 4065; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  Fix-verifier round 1 refuted three points, each fixed test first: the drag lands on the cell under
+  the finger, a hyphenated name wraps whole, and the conversation library takes the safe-area bottom
+  instead of the tab bar's. Round 2 HOLDS on every item. Before and after shots in
+  `artifacts/phone-fixes-2026-11/` at 320 and 375, light and dark (Today, every tab's foot, the wait,
+  the daily limit), and the iPhone 17 simulator at Large and accessibility-extra-large: the greeting on
+  one line over the cloud, a drag from Today to Speak, the Large Content Viewer on a held tab. At
+  accessibility-extra-large the greeting breaks inside "Bonsoir," on main as well; not changed here.
+  **7,532 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4068; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 2 November 2026 Bug fixes after screens 1 to 3: branch `claude/bug-fix` from main cc60bce7. F950
   generated tap-translate items carry a required `fr` display line, validated like authored ones;
   F951 the speak drill's quiet control is named by its visible words; F952 stays open (three
