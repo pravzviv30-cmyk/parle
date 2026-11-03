@@ -225,7 +225,11 @@ period stay near a purchase action, and large text is never capped to fit.
   There is one tile, `LipTile` (options, word chips, slots, grades and Fixes),
   one field and one mic, `drill/SpeakMic.tsx`. Cloud appears at moments only:
   on the right sheet, listening on a speak drill, and at the ending. It is
-  never on the question.
+  never on the question. On say it aloud the whole speak block is pinned in
+  the frame's foot, the thumb zone: the mic (or its silent state), its label
+  and "Unable to speak right now?". While the mic is live, Cloud listens full
+  size in its `listen` pose in the space the mic left, above the foot; the foot
+  holds no Cloud, so it fits every phone (UI-019).
 - Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
   padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
   button. Review and the drill bank with nothing due use cloud-cheer with Done;
@@ -1296,6 +1300,17 @@ keep an edge on the cream paper. They look the same in light and dark. Ink,
 white, sun, peach and lavender come from the tokens above; these four are theirs
 alone.
 
+Cloud also has two posed bodies (`art/mascots/mascotPoses.ts`, UI-019).
+**Listen** has a hand cupped to the ear and sound arcs in brand blue, and takes
+the `listening` face. **Cheer** has both arms up and two stars in sun, and takes
+the `cheer` face. Each stands on a soft ground shadow and is drawn in its own
+box, wider than the body, so a posed Cloud's size is the width of that box. A
+Cloud with no pose is the drawing above. The limbs are ink, drawn in the text
+colour of the screen they stand on (the sheet's word colour on the right
+sheet), so they show in dark mode; the body, cheeks and face are unchanged in
+both modes. For the blink, `CloudLids` draws card-white lids over the open eyes
+with the asleep face's closed curve, and `Blink` fades them in and out.
+
 | Token | Value | Role |
 |---|---|---|
 | `mascot.cloudUnderside` | `#C7DAD5` | The cloud's shaded underside |
@@ -1610,9 +1625,9 @@ has no end scene.
 **The answer sheet** (`drill/AnswerSheet.tsx`, UI-016) is one bottom sheet
 that rises from the foot of a drill after each answer (radius 26 at the top,
 a `bType.sheet21` headline). It has four tones, all from the theme. Right is
-`mintWash` with `mintWords`, Cloud cheering beside the headline, the French,
-its English and Hear it, `correct` and a light arrival haptic; it moves on by
-itself after 1.4 seconds. Nearly is `butter` with "Nearly." and the real
+`mintWash` with `mintWords`, Cloud in its cheer pose beside the headline (80
+wide, it pops in and hops once), the French, its English and Hear it,
+`correct` and a light arrival haptic; it moves on by itself after 1.4 seconds. Nearly is `butter` with "Nearly." and the real
 spelling, `nearly` and a soft haptic, and the field above lights the missed
 letters (`drill/litLetters.ts`). A miss is the `card` under a `line` top edge
 with no mark, no sound and no haptic: the French with a 44pt Hear it disc, one
@@ -1808,9 +1823,11 @@ primitive's own numbers are named groups in `motion/tokens.ts`.
   turns true: Today's flame when the streak ticks. No scale under reduced motion.
 - In a drill (UI-016): the right tile pops once (`PopOnce`) with one `Sparkle`
   (`art/Sparkle.tsx`), a chosen chip flies to its slot (`TokenFlight`), Cloud
-  squishes to the voice while listening (`LevelSquish`), the answer sheet rises
-  (`Enter`) and the end tiles count up (`CountUp`). Under reduced motion none
-  of it moves: the tile, chip and sheet are simply there and Cloud is still.
+  squishes to the voice while listening (`LevelSquish`) and blinks about every
+  4 seconds (`Blink`), the answer sheet rises (`Enter`), Cloud pops in and hops
+  once on a right sheet (`PopIn`, `Hop`) and the end tiles count up
+  (`CountUp`). Under reduced motion none of it moves: the tile, chip and sheet
+  are simply there and Cloud is still, with no blink.
 - `LevelRing`: two rings swell with a live sound level; under reduced motion,
   three opacity steps and no scale.
 
@@ -1887,7 +1904,10 @@ speaker have their scoped loops. C2 adds the shared illustration loops and
 welcome logo ring defined above, including continuous gentle Home flame
 movement. Each loop listens for focus, app state, reduced motion and its own
 active/playing/paused state; none owns navigation, storage or repeated reward
-events.
+events. Cloud's blink on a speak drill (`motion/MascotMotion.tsx`, UI-019) is
+one more: its lids fade in and out about every 4 seconds, only while the mic
+is live. It stops, with the lids open, when the mic stops, when the learner
+leaves and under reduced motion.
 
 ### What never moves
 
@@ -1904,7 +1924,8 @@ on the streak tile pops once when today's streak ticks, beside the numbers that
 count up and the goal ring that fills; the greeting and the sun or moon stay
 still, and under reduced motion nothing on Today moves.
 In a drill only the right tile's pop and sparkle, the chip flight, Cloud
-listening, the sheet rising, the living bar and the end scene move. The
+listening (its squish and, while the mic is live, its blink), the sheet rising
+and its Cloud's pop and one hop, the living bar and the end scene move. The
 question and its stage band stay still, and under reduced motion nothing in a
 drill moves.
 

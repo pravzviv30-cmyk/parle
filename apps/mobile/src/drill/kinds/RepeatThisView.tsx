@@ -1,14 +1,14 @@
-/** Say it aloud, on the peach stage, with the one mic (`SpeakMic`): Cloud listens beside it while live. */
+/** Say it aloud, on the peach stage, with the one mic (`SpeakMic`) pinned in the foot: Cloud listens in the answer area while live. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { AudioModule, useAudioRecorder } from 'expo-audio';
 import type { RepeatThisExercise } from '@luvani/core';
-import { colour, space, type } from '../../theme.ts';
+import { colour, decorative, space, type } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { IconAction, PillButton, SpeakCircle } from '../../components.tsx';
 import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
 import { drillStage } from '../drillStage.ts';
-import { SpeakMic } from '../SpeakMic.tsx';
+import { ListeningCloud, SpeakMic } from '../SpeakMic.tsx';
 import { useRecorderLevel } from '../../speech/useRecorderLevel.ts';
 import { Illustration } from '../../art/flat/Illustration.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
@@ -122,6 +122,58 @@ export function RepeatThisView({
     }
   }, [mic, locked, recorder, onSpoke, letGoOfMic]);
 
+  // The whole speak block sits in the pinned foot, the thumb zone: the mic or
+  // the silent state, its label, and the quiet way out.
+  const speak = (
+    <View style={{ alignItems: 'center', gap: space(3) }}>
+      {mic === 'silent' ? (
+        <>
+          {/* The speak circle in its muted state: nothing records here, and
+              the red fill must keep meaning "the microphone is on". */}
+          <View style={ds.speakBlock}>
+            <Illustration name="state-microphone" fit="small" />
+            <Text style={[type.label, { color: bt.text }]}>Speak</Text>
+          </View>
+
+          {/* Without a microphone the learner's word is the grade. Saying so
+              out loud in the control's own copy keeps the report honest. */}
+          <View style={ds.saidIt}>
+            <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
+            <IconAction layout="inline" icon="tick-circle" label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
+          </View>
+        </>
+      ) : (
+        /* The one speak control made real: hollow at rest, and filled green
+           only while the microphone is actually on. Green means you speak,
+           here as in ConvoScreen; red belongs to the tutor's own voice and
+           never marks the learner's microphone. Tapping Done grades exactly
+           as I said it does; the recording only ever adds a line. */
+        <View style={ds.speakBlock}>
+          <SpeakMic live={mic === 'live'} voice={voice} size={SPEAK} ring={colour.mint}>
+            <SpeakCircle
+              onPress={() => void toggleRecord()}
+              active={mic === 'live'}
+              disabled={locked}
+              size={SPEAK}
+              accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
+            />
+          </SpeakMic>
+          <Text style={[type.label, { color: bt.text }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
+        </View>
+      )}
+
+      <Pressable
+        onPress={onNoMic}
+        disabled={locked}
+        accessibilityRole="button"
+        accessibilityLabel={QUIET_CONTROL}
+        style={({ pressed }) => [ds.noMic, pressed && { opacity: 0.6 }]}
+      >
+        <Text style={[type.small, { color: bt.muted }]}>{QUIET_CONTROL}</Text>
+      </Pressable>
+    </View>
+  );
+
   return (
     <DrillFrame
       {...shell}
@@ -137,54 +189,11 @@ export function RepeatThisView({
         )}
         <HearRow text={exercise.reference} />
       </>}
+      primary={speak}
     >
-
-      <View style={{ alignItems: 'center', gap: space(3) }}>
-        {mic === 'silent' ? (
-          <>
-            {/* The speak circle in its muted state: nothing records here, and
-                the red fill must keep meaning "the microphone is on". */}
-            <View style={ds.speakBlock}>
-              <Illustration name="state-microphone" fit="small" />
-              <Text style={[type.label, { color: bt.text }]}>Speak</Text>
-            </View>
-
-            {/* Without a microphone the learner's word is the grade. Saying so
-                out loud in the control's own copy keeps the report honest. */}
-            <View style={ds.saidIt}>
-              <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
-              <IconAction layout="inline" icon="tick-circle" label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
-            </View>
-          </>
-        ) : (
-          /* The one speak control made real: hollow at rest, and filled green
-             only while the microphone is actually on. Green means you speak,
-             here as in ConvoScreen; red belongs to the tutor's own voice and
-             never marks the learner's microphone. Tapping Done grades exactly
-             as I said it does; the recording only ever adds a line. */
-          <View style={ds.speakBlock}>
-            <SpeakMic live={mic === 'live'} voice={voice} size={SPEAK} ring={colour.mint} cloud>
-              <SpeakCircle
-                onPress={() => void toggleRecord()}
-                active={mic === 'live'}
-                disabled={locked}
-                size={SPEAK}
-                accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
-              />
-            </SpeakMic>
-            <Text style={[type.label, { color: bt.text }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
-          </View>
-        )}
-
-        <Pressable
-          onPress={onNoMic}
-          disabled={locked}
-          accessibilityRole="button"
-          accessibilityLabel={QUIET_CONTROL}
-          style={({ pressed }) => [ds.noMic, pressed && { opacity: 0.6 }]}
-        >
-          <Text style={[type.small, { color: bt.muted }]}>{QUIET_CONTROL}</Text>
-        </Pressable>
+      {/* Cloud listens in the freed answer area, only while the mic is open. */}
+      <View {...decorative} pointerEvents="none" style={{ alignItems: 'center' }}>
+        <ListeningCloud live={mic === 'live'} voice={voice} />
       </View>
     </DrillFrame>
   );

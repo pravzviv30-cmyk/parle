@@ -19,16 +19,18 @@ describe('the speak family, drill B v2', () => {
   test('Cloud listens beside the mic only while it is live, decorative, squishing to the level', () => {
     const mic = read('./SpeakMic.tsx');
     assert.equal((mic.match(/<Cloud\b/g) ?? []).length, 1);
-    assert.match(mic, /<View \{\.\.\.decorative\} pointerEvents="none" style=\{st\.slot\}> \{live && \( <LevelSquish/, 'Cloud shows when the mic is not listening, or is reachable');
+    assert.match(mic, /<View \{\.\.\.decorative\} pointerEvents="none" style=\{st\.slot\}> <ListeningCloud live=\{live\} voice=\{voice\} \/> <\/View>/, 'Cloud is not in the mic slot, or is reachable');
+    const listening = mic.slice(mic.indexOf('export function ListeningCloud('));
+    assert.match(listening, /^export function ListeningCloud\([^]*?if \(!live\) return null;/, 'Cloud shows while the mic is not live');
     assert.match(mic, /if \(!cloud\) return mic;/, 'Cloud shows on a surface that did not ask for it');
     assert.match(mic, /<LevelSquish level=\{voice\.metered \? voice\.level : null\} on=\{live\}/, 'Cloud squishes to something other than the heard level');
-    assert.match(mic, /<Cloud expression="listening"/);
+    assert.match(listening, /<Blink active=\{live\} lids=\{<CloudLids pose="listen" size=\{CLOUD\} \/>\}> <Cloud pose="listen" size=\{CLOUD\} ink=\{text\} \/> <\/Blink>/, 'Cloud listens without its pose, its blink, or the screen ink');
     assert.match(mic, /<LevelRing level=\{voice\.level\} size=\{size\} color=\{ring\} \/>/);
   });
 
   test('every speak drill uses the one mic with Cloud, and keeps its labels and its typed way out', () => {
     const say = read('./kinds/RepeatThisView.tsx');
-    assert.match(say, /<SpeakMic live=\{mic === 'live'\} voice=\{voice\} size=\{SPEAK\} ring=\{colour\.mint\} cloud> <SpeakCircle/);
+    assert.match(say, /<SpeakMic live=\{mic === 'live'\} voice=\{voice\} size=\{SPEAK\} ring=\{colour\.mint\}> <SpeakCircle/);
     assert.match(say, /accessibilityLabel=\{mic === 'live' \? 'Stop recording' : 'Record yourself saying it'\}/);
     assert.match(say, /<PillButton label="Type instead"/);
     const own = read('./SpokenAttempt.tsx');
@@ -63,6 +65,15 @@ describe('the speak family, drill B v2', () => {
     assert.doesNotMatch(check, /<Cloud\b/);
   });
 
+  test('say it aloud keeps its whole speak block in the pinned primary, the thumb zone', () => {
+    const say = read('./kinds/RepeatThisView.tsx');
+    assert.match(say, /primary=\{speak\}/, 'the speak block is not passed through primary');
+    const block = say.match(/const speak = \([\s\S]*?\n?\);/)?.[0] ?? '';
+    for (const part of [/<SpeakMic /, /<Pressable onPress=\{onNoMic\}/, /'Done' : 'Speak'/, /label="Type instead"/]) {
+      assert.match(block, part, `the primary lost ${part}`);
+    }
+  });
+
   test("the quiet control's spoken name is its visible words", () => {
     // F951: Voice Control finds a control by the words on screen, so the
     // label and the visible text are one string. Resolve each side, whether a
@@ -85,5 +96,23 @@ describe('the speak family, drill B v2', () => {
     const visible = text.startsWith('{') ? resolve(text) : text;
     assert.equal(resolve(label), visible, 'the quiet control is named something other than what it says');
     assert.equal(visible, 'Unable to speak right now?', 'the quiet control changed its wording');
+  });
+});
+
+describe('say it aloud on a small phone', () => {
+  test('the pinned foot fits under the screen\'s foot cap, with the quiet control in sight', async () => {
+    const { sayFootHeight } = await import('./speakFoot.ts');
+    const { screenGeometry } = await import('../responsiveLayout.ts');
+    const none = { top: 0, bottom: 0, left: 0, right: 0 };
+    for (const [w, h, insets] of [[320, 640, none], [375, 667, { ...none, top: 20 }], [375, 812, { top: 47, bottom: 34, left: 0, right: 0 }]] as const) {
+      assert.ok(sayFootHeight(108, insets.bottom) <= screenGeometry(w, h, insets).footerMaxHeight, `${w}x${h}: the foot is over its cap`);
+    }
+  });
+
+  test('Cloud listens in the answer area, not the foot, only while the mic is live', () => {
+    const say = read('./kinds/RepeatThisView.tsx');
+    const block = say.match(/const speak = \([\s\S]*?\);/)?.[0] ?? '';
+    assert.doesNotMatch(block, /ListeningCloud|\bcloud\b/, 'the listening Cloud is in the foot');
+    assert.match(say, /primary=\{speak\} > \{\} <View \{\.\.\.decorative\} pointerEvents="none" style=\{\{ alignItems: 'center' \}\}> <ListeningCloud live=\{mic === 'live'\} voice=\{voice\} \/> <\/View> <\/DrillFrame>/, 'the listening Cloud is not in the answer area, or not tied to the live mic');
   });
 });

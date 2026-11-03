@@ -8,6 +8,8 @@
  * built from the same eye centres and mouth so the hand stays the same.
  */
 
+import { paper } from '../../palette.ts';
+
 export type MascotExpression = 'paused' | 'listening' | 'tutor' | 'thinking' | 'cheer' | 'idle';
 
 export const MASCOT_EXPRESSIONS: readonly MascotExpression[] = ['paused', 'listening', 'tutor', 'thinking', 'cheer', 'idle'];
@@ -98,3 +100,17 @@ function face(src: Source, expression: MascotExpression): MascotFace {
 
 export const cloudFace = (expression: MascotExpression = 'idle'): MascotFace => face(CLOUD, expression);
 export const toastFace = (expression: MascotExpression = 'idle'): MascotFace => face(TOAST, expression);
+
+export type Lid = { cx: number; cy: number; rx: number; ry: number; fill: string };
+
+/**
+ * A blink's lids for a face with open eyes: a card-white cover a little larger
+ * than each open eye, and the asleep face's closed curve at the same centre.
+ */
+export function faceLids(f: MascotFace): { covers: Lid[]; closed: string[] } {
+  const open = f.eyes.filter((e): e is Extract<Eye, { kind: 'open' }> => e.kind === 'open');
+  return {
+    covers: open.map((e) => ({ cx: e.cx, cy: e.cy, rx: n(e.rx + f.strokeWidth), ry: n(e.ry + f.strokeWidth), fill: paper.card })),
+    closed: open.map((e) => curve(e.cx - e.rx * 1.6, e.cx + e.rx * 1.6, e.cy, e.ry * 0.45)),
+  };
+}

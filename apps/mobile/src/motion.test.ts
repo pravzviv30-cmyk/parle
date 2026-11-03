@@ -210,7 +210,9 @@ const usesLegacyAnimated = (body: string): boolean =>
   runtimeImports(body).some(({ spec, clause }) => spec === 'react-native' && /\bAnimated\b/.test(clause));
 
 /** Rule 4: where a loop may run. */
-const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx'];
+const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx',
+  // Cloud's blink while the mic is live, paused by `active`.
+  'motion/MascotMotion.tsx'];
 const loopAllowed = (short: string): boolean =>
   LOOP_FILES.includes(short) || /^tutor\/(?:Orb|LiveBars)[^/]*\.tsx?$/.test(short);
 
@@ -644,8 +646,8 @@ describe('one door to the engine', () => {
 
   test('a loop runs only where it can be paused', () => {
     // A loop that cannot stop runs behind whatever the learner is doing for the
-    // rest of the session. Only the orb, a busy button and a held icon state may
-    // loop, and each of those files listens for what pauses it.
+    // rest of the session. Only the orb, a busy button, a held icon state and
+    // Cloud's listening blink may loop, and each of those files listens for what pauses it.
     const loops: string[] = [];
     for (const f of FILES) {
       if (f.short === 'motion/drive.ts') continue;
