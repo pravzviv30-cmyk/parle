@@ -27,6 +27,9 @@ systemic, not one screen at a time:
 
 ## The method, per screen
 
+0. **Journey pass.** A new feature, or every third screen, starts from its journey's flow
+   map on the [Journey map board](https://claude.ai/artifact/WYeAGkxrmLwyYCSxarHi3T)
+   (founder, 2026-11-02).
 1. **Brief.** Claude writes half a page: who the learner is here and how they feel,
    the one focal point, the primary action, what must stay (data, locks, flows), and
    what makes this screen unlike the others. The founder corrects it.
@@ -88,12 +91,14 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
 | 2026-10-31 | The still-settling retry stays at zero XP (LEARN-018 stands), and the approved copy stays: "Practise the one still settling" and "Notice". | Founder, finish-off brief |
 | 2026-10-31 | Cloud stays out of Today's sky, under "Cloud at moments only". Proposed by the design session; the founder can reverse it. | Design session, proposed |
+| 2026-11-02 | Look check after Chris Ashby's design-first video: keep Bright Luvani as is (Outfit, Hum); no mascot-led icon, no second face for French. | Founder, Journey map board |
 | 2026-11-02 | Mascots and play: 1C (Cloud and Toast, with poses alive at moments), 3A (the streak is the hero) and 4A (quiet moments, centre stage). Recorded as UI-019. | Founder, Mascots and play board |
 | 2026-11-02 | One sky everywhere (2B). The founder first took 2A, then chose 2B when asked and confirmed it. Council warning, not a founder decision: the shared sky must not become one header skeleton for every tab; each tab keeps its own focal point. | Founder, Mascots and play board; council |
 | 2026-11-02 | Cloud budget: 3 to 4 Cloud moments in a 5-minute sitting, the live mic not counted. The moments it listed were the first right answer, the end of the set, the recap ending and the streak. | Founder, other session ("Luvani video reverse engineering review") |
 | 2026-11-03 | Cloud cheers on every right answer, in its cheer pose. That is more often than the budget above lists, and the two are not reconciled. | Founder, answer inside 1C |
 | 2026-11-03 | Cloud listening on a speak drill is part of the mic, like the live room's cloud mic, and does not count toward the Cloud budget. | Founder, answer inside 1C |
 | 2026-11-03 | Add Cloud's blink now, while a speak drill's mic is live. | Founder, answer inside 1C |
+| 2026-11-03 | Keep Bright Luvani; change what sits under it: one systemic pass before onboarding, and watch 3 French beginners on the iPhone build before the onboarding board | Founder, design council |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -110,11 +115,16 @@ Working principles drawn from these (to confirm on the first screens):
 | 2 | Today | Landed on main at `9c7ad093` (UI-015, [changes/today-sky.md](changes/today-sky.md)); open items finished on main at `fdeeed2b` |
 | 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
 | 4 | Conversation recap | Next, one design session then one build session |
-| 5 | Journey (My French) | Queued |
-| 6 | Speak tab (choose a scene) | Queued |
-| 7 | Practice tab hub | Queued |
+| 5 | Systemic pass: one card family, eyebrow labels folded into headings, one quiet-action style and radius tokens. Folds in most of the 11 open push-check proposals and re-counts, before and after (apps/mobile/src, tests excluded): literal borderRadius values (244 on 0483a80a), eyebrows (75), Card/Tile/Hero exports (64), Button/Pill components (21), Row components (31), files on ScrollScreen (65) | Queued |
+| 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued |
+| 7 | Speak tab (choose a scene) | Queued |
+| 8 | Practice tab hub | Queued |
+| 9 | Journey (My French) | Queued |
 
 Founder's order, 2026-10-31: one screen per session, each starting only after the one before lands.
+Reordered by journey on 2026-11-02 (founder, Journey map board): recap, onboarding (added after
+the recap), Speak tab, Practice hub, Journey.
+On 2026-11-03 the founder put one systemic pass between the recap and onboarding (design council).
 
 Mascots and play (UI-019, [changes/cast.md](changes/cast.md)) runs across screens, not as a screen of its own. Its briefs go in this order: brief 1 (1C, Cloud's poses and blink) is building on `claude/cast`; brief 4 (4A, quiet moments, with Today's out-of-time hero after `claude/phone-fixes`) is next; briefs 2 (2B, one sky) and 3 (3A, the streak hero) follow the Journey board. The queued screen sessions apply the picks to their own screens.
 
@@ -136,10 +146,10 @@ chooses per row. A screen's redesign session reads its rows here before its brie
 | 2026-11-01 | Tab bar at accessibility sizes | Icons only (F947) removes every word, including the one that says where you are; a long press now shows it large on iOS. | Keep the selected cell's word under the sun glyph and hide only the four resting tabs' words. This revisits the founder's F947 decision. | `claude/finish-fixes` | passed to finish-off (`claude/phone-fixes`) |
 | 2026-11-01 | Speak tab, offline | The bundled practice card sits inside the "Your tutor cannot connect right now." card (a card in a card), with two blue buttons competing to be the focal point. | Make the bundled line the one focal point as a LipTile-style card on the ground; reduce the connection notice to one warm line above it with "Check again" as a quiet text link. | `claude/finish-tidy` | folded into Speak tab (screen 6) redesign |
 | 2026-11-01 | Speak drill (Say) | The lower half of the screen is empty and the mic sits mid-screen, away from the thumb. | Move the mic and "Unable to speak right now?" into the thumb zone; if the speak-drill rule allows, Cloud listens in the freed space only while the mic is open. | `claude/finish-tidy` | built in `claude/cast` (UI-019) |
-| 2026-11-02 | Today, held at Starter | One card holds two groups, the held words and the café lesson; its 28pt French line pulls the eye from the single primary, the same line can repeat in Today's path, and at 320 the card fills the first screen. | Keep the hero to the held words and See the plans; let the café line live once, as the path's Today's phrase row marked free and offline, or as its own Speak-tint LipTile under the hero. | `claude/bug-fix` | asked, no answer yet |
-| 2026-11-02 | Today hero actions | The stat tiles above use the lipped game-button language, but the hero card's pills are flat; the hero's secondaries are borderless on the white card. | Give the hero's primary the opt-in 4pt `primaryLip` the drills use, and give hero secondaries a pastel fill so they read as buttons. | `claude/bug-fix` | asked, no answer yet |
-| 2026-11-02 | Today path rows | The "Today's phrase" accent label is another eyebrow, and the rows' underlined text actions ("Say it", "Practise") make a second link style next to the hero's; "Practise" and the hero's "Review 4 phrases" name one intent twice. | Fold the label into the row's tile or the timeline dot, settle on one quiet-action style for Today, and name the review action once. | `claude/bug-fix` | asked, no answer yet |
-| 2026-11-02 | Speak drill (Say), eyebrow | "Say it aloud" is an eyebrow above the French, though the peach stage tint already names the family (adds to the thumb-zone row above). | Drop the stage eyebrow and let the French lead. | `claude/bug-fix` | asked, no answer yet |
+| 2026-11-02 | Today, held at Starter | One card holds two groups, the held words and the café lesson; its 28pt French line pulls the eye from the single primary, the same line can repeat in Today's path, and at 320 the card fills the first screen. | Keep the hero to the held words and See the plans; let the café line live once, as the path's Today's phrase row marked free and offline, or as its own Speak-tint LipTile under the hero. | `claude/bug-fix` | queued for a board |
+| 2026-11-02 | Today hero actions | The stat tiles above use the lipped game-button language, but the hero card's pills are flat; the hero's secondaries are borderless on the white card. | Give the hero's primary the opt-in 4pt `primaryLip` the drills use, and give hero secondaries a pastel fill so they read as buttons. | `claude/bug-fix` | queued for a board |
+| 2026-11-02 | Today path rows | The "Today's phrase" accent label is another eyebrow, and the rows' underlined text actions ("Say it", "Practise") make a second link style next to the hero's; "Practise" and the hero's "Review 4 phrases" name one intent twice. | Fold the label into the row's tile or the timeline dot, settle on one quiet-action style for Today, and name the review action once. | `claude/bug-fix` | queued for a board |
+| 2026-11-02 | Speak drill (Say), eyebrow | "Say it aloud" is an eyebrow above the French, though the peach stage tint already names the family (adds to the thumb-zone row above). | Drop the stage eyebrow and let the French lead. | `claude/bug-fix` | queued for a board |
 | 2026-11-01 | Live room at 320 | The tutor portrait drops out and the transcript's top line is cut through its letters at the sheet's edge. | Fade the top of the transcript, or scroll so the newest turn sits flush, so no line is ever cut mid-letter. | `claude/finish-tidy` | queued for a board |
 
 ## Tools and how they are used

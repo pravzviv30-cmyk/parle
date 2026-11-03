@@ -12188,6 +12188,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `Today re-lays out when the text size changes while it is open`
 
 
+### F953 — The app is killed at launch on iOS 27
+- severity: P1
+- status: [x]
+- where: apps/mobile/plugins/withSceneLifecycle.js (registered in apps/mobile/app.json)
+- note: Found 2026-11-01 on the founder's iPhone 17 (iOS 27.0.1), built with Xcode 27.1. An app built
+  with the iOS 27 SDK that has not adopted the UIScene life cycle is killed at launch with
+  `EXC_BREAKPOINT` in `_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`. Expo 57.0.27
+  ships `EXExpoAppSceneDelegate` but its prebuild template does not wire it. The simulator on iOS 26.5
+  was unaffected.
+- fixed: 2026-11-02 on claude/ios27-scenes. A config plugin adds `UIApplicationSceneManifest` naming `EXExpoAppSceneDelegate` to
+  Info.plist, makes AppDelegate an `ExpoReactNativeFactoryProvider` and drops its own window and
+  `startReactNative` block. It throws if AppDelegate.swift stops matching the Expo 57 template.
+  Proven 2026-11-02: a clean `expo prebuild --clean` of this branch, built for device, launched on the
+  founder's iPhone 17 (iOS 27.0.1) with React Native running and no crash report.
+- verified-by: `the iOS build adopts the scene life cycle so iOS 27 does not kill it at launch`
+
 ### F954 — Today names one review twice when the hero offers it
 - severity: P3
 - status: [ ]
@@ -12198,3 +12214,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
   pins the two labels agree.
 - verified-by: `Today names the review action once`
+
+### F956 — The Practice tab nests a button inside a button
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tabs/PracticeTab.tsx (a pressable drawn inside another pressable, under `TabHeader` and `Columns`)
+- note: Found 2026-11-02 by the design coordinator while capturing the Journey map, and reproduced the
+  same day on the web build of main a90ed36b at 375pt with a fresh canvas learner: React logs
+  "In HTML, <button> cannot be a descendant of <button>. This will cause a hydration error." on
+  /practice. A screen reader may announce the outer control as one long button, and the inner tap
+  target can be swallowed. Fix: make the inner control a sibling or the outer row non-pressable,
+  with a test that no pressable on the Practice tab contains another.
+- verified-by: `no pressable on the Practice tab contains another`
