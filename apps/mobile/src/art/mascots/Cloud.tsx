@@ -14,10 +14,11 @@ const OUTLINE_PT = 2.5;
  * Static: only the face changes with `expression`; motion lives in wrappers.
  * `pose` adds limbs and marks (mascotPoses.ts), in that pose's own box, with
  * the pose's face; `size` is then the width of that box. Limbs draw in `ink`.
+ * Stroked marks draw in `accent` when given.
  * `outline` adds a 2.5pt ink edge so the white cloud reads as a control on cream.
  */
-export function Cloud({ expression = 'idle', size, outline = false, pose, ink = paper.ink }: { expression?: MascotExpression; size: number; outline?: boolean; pose?: CloudPose; ink?: string }) {
-  const { viewBox: vb, layers } = cloudLayers(pose, ink);
+export function Cloud({ expression = 'idle', size, outline = false, pose, ink = paper.ink, accent }: { expression?: MascotExpression; size: number; outline?: boolean; pose?: CloudPose; ink?: string; accent?: string }) {
+  const { viewBox: vb, layers } = cloudLayers(pose, { ink, accent, expression });
   const height = (size * vb.height) / vb.width;
   // Stroked under the fills at twice the width, so only the outer half shows.
   const edge = (OUTLINE_PT * 2 * vb.width) / size;
@@ -31,7 +32,7 @@ export function Cloud({ expression = 'idle', size, outline = false, pose, ink = 
       ) : null}
       {layers.map((l, i) =>
         l.kind === 'face' ? (
-          <FaceMarks key={i} face={pose ? l.face : cloudFace(expression)} />
+          <FaceMarks key={i} face={l.face} />
         ) : l.kind === 'ellipse' ? (
           <Ellipse key={i} cx={l.cx} cy={l.cy} rx={l.rx} ry={l.ry} fill={l.fill} opacity={l.opacity} />
         ) : (

@@ -80,11 +80,12 @@ Drill (`apps/mobile/src/drill/`):
 1. **Say it aloud** (`RepeatThisView`):
    - **At rest:** the mic, "Speak" and "Unable to speak right now?" sit in the foot. There is no Cloud.
    - **Live:** Cloud listens full size in the space above the foot, in its pose, squishes to the voice and blinks. "Speak" becomes "Done".
-   - **Silent** (no microphone): the muted mic drawing, "Type instead" and "I said it", then the quiet control, all in the foot.
-   - **Short screens:** the foot holds no Cloud, so it fits under its cap at 320x640, on the iPhone SE and on a notched phone, with the quiet control in sight. Cloud keeps its full size above it.
+   - **Silent** (no microphone): the muted mic drawing and its "Speak" sit in the answer area; "Type instead", "I said it" and the quiet control sit in the foot.
+   - **Short screens:** the foot holds no Cloud and no drawing, so it fits under its cap at 320x640, on the iPhone SE and on a notched phone, with the quiet control in sight and room above the mic for the live level ring. Cloud keeps its full size above it.
+   - **Very large text:** at the largest accessibility sizes the foot's words grow past the cap and the foot scrolls, the frame's designed overflow. Before this branch the quiet control sat below the fold at those sizes too. Checked on the iPhone 13 mini at accessibility-large (the foot fits); not measured beyond it.
 2. **Other speak surfaces:** own words (`SpokenAttempt`, through `OwnWordsView` and `FixLineSheet`) show the same listening Cloud over the mic. Their blocks stay where they were.
 3. **Right sheet:** Cloud cheers on every right answer, pops in and hops once. A nearly and a miss have no Cloud, as before.
-4. **Dark mode:** limbs take the screen's text colour (the sheet's word colour on the right sheet). Bodies and faces are unchanged and look the same in both modes.
+4. **Dark mode:** limbs take the screen's text colour (the sheet's word colour on the right sheet), and the listen pose's sound arcs take the theme's link colour (brand blue in light, periwinkle in dark), so they clear the 3:1 mark floor. Bodies and faces are unchanged and look the same in both modes. The ground shadow is ink at 20% and does not show on a dark ground.
 5. **Reduced motion:** Cloud is still. The blink does not run, the pop and hop are off, and the sheet's Cloud is simply there.
 6. **Screen reader:** Cloud and its lids are decorative and hidden, as before.
 
@@ -114,6 +115,7 @@ Drill (`apps/mobile/src/drill/`):
 - **The hello tilt** has no caller yet.
 - **Cloud on the sheet's top edge** is a possible follow-up that needs a footer layout change.
 - **The Cloud budget** and the cheer-on-every-right-answer answer are both recorded and not reconciled. The founder decides.
+- **Out of scope, found by push-check in older code:** the say drill's mic is named "Record yourself saying it" / "Stop recording" while its caption reads "Speak" / "Done" (the F951 rule; the lines only moved here); the fix-line sheet's mic sits partly under the sheet's Done foot at 320 (it scrolls, as before); the state-microphone drawing's ink is faint on the dark ground; `mascotPoses.test.ts`'s bounds check reads absolute path commands only (every path is absolute today).
 
 ## Tasks in dependency order
 

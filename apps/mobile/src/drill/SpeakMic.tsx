@@ -88,12 +88,12 @@ export function SpeakMic({
  * slot draws it over the mic for the other speak drills.
  */
 export function ListeningCloud({ live, voice, size = CLOUD }: { live: boolean; voice: ReturnType<typeof useRecorderLevel>; size?: number }) {
-  const { text } = useB();
+  const { text, link } = useB();
   if (!live) return null;
   return (
     <LevelSquish level={voice.metered ? voice.level : null} on={live} height={Math.ceil((size * CLOUD_POSES.listen.viewBox.height) / CLOUD_POSES.listen.viewBox.width)}>
       <Blink active={live} lids={<CloudLids pose="listen" size={size} />}>
-        <Cloud pose="listen" size={size} ink={text} />
+        <Cloud pose="listen" size={size} ink={text} accent={link} />
       </Blink>
     </LevelSquish>
   );

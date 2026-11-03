@@ -28,7 +28,8 @@ describe('the speak family, drill B v2', () => {
     assert.match(listening, /^export function ListeningCloud\([^]*?if \(!live\) return null;/, 'Cloud shows while the mic is not live');
     assert.match(mic, /if \(!cloud\) return mic;/, 'Cloud shows on a surface that did not ask for it');
     assert.match(mic, /<LevelSquish level=\{voice\.metered \? voice\.level : null\} on=\{live\}/, 'Cloud squishes to something other than the heard level');
-    assert.match(listening, /<Blink active=\{live\} lids=\{<CloudLids pose="listen" size=\{size\} \/>\}> <Cloud pose="listen" size=\{size\} ink=\{text\} \/> <\/Blink>/, 'Cloud listens without its pose, its blink, or the screen ink');
+    assert.match(listening, /<Blink active=\{live\} lids=\{<CloudLids pose="listen" size=\{size\} \/>\}> <Cloud pose="listen" size=\{size\} ink=\{text\} accent=\{link\} \/> <\/Blink>/, 'Cloud listens without its pose, its blink, the screen ink or the link accent');
+    assert.match(listening, /const \{ text, link \} = useB\(\);/, 'the listen arcs are not in the theme link colour');
     assert.match(mic, /<LevelRing level=\{voice\.level\} size=\{size\} color=\{ring\} \/>/);
   });
 
@@ -113,6 +114,36 @@ describe('say it aloud on a small phone', () => {
         assert.ok(sayFootHeight(mic, insets.bottom) <= screenGeometry(w, h, insets).footerMaxHeight, `${w}x${h}: the ${mic} foot is over its cap`);
       }
     }
+  });
+
+  test('the foot\'s measured numbers are the real constants', () => {
+    // sayFootHeight copies these by hand; a drift here must fail, not overflow a small phone.
+    assert.match(read('./speakFoot.ts'), /return top \+ 12 \+ 44 \+ 16 \+ bottomInset;/);
+    const styles = read('./kinds/styles.ts');
+    assert.match(styles, /export const SPEAK = 108;/, 'the mic is no longer 108');
+    assert.match(styles, /speakBlock: \{ alignItems: 'center', gap: space\(2\) \}/, 'the mic and label gap is no longer 8');
+    assert.match(styles, /noMic: \{ minHeight: HIT,/, 'the quiet control is no longer HIT high');
+    assert.match(read('../theme.ts'), /export const HIT = 44;/, 'HIT is no longer 44');
+    const theme = read('../theme.ts');
+    const typeScale = theme.slice(theme.indexOf('export const type = {'), theme.indexOf('export ', theme.indexOf('export const type = {') + 1));
+    assert.match(typeScale, /label: \{ fontFamily: font\.semiBold, fontSize: 16, lineHeight: 20 \}/, 'the label line is no longer 20');
+    assert.match(read('./DrillFrame.tsx'), /const FOOT_BOTTOM = 16;/, 'the frame\'s foot padding is no longer 16');
+    const say = read('./kinds/RepeatThisView.tsx');
+    assert.match(say, /const speak = \( <View style=\{\{ alignItems: 'center', gap: space\(3\) \}\}>/, 'the gap above the quiet control is no longer 12');
+    assert.match(say, /<Text style=\{\[type\.label, \{ color: bt\.text \}\]\}>\{mic === 'live' \? 'Done' : 'Speak'\}<\/Text>/, 'the mic label is no longer set in type.label');
+    const components = read('../components.tsx');
+    assert.match(components, /export const PILL_HEIGHT = 54;/, 'the pill is no longer 54');
+    assert.match(components, /minHeight: PILL_HEIGHT,/, 'the pill is not PILL_HEIGHT high');
+    assert.match(say, /<PillButton label="Type instead" onPress=\{onNoMic\} disabled=\{locked\} \/>/, 'Type instead grew a lip or a size');
+  });
+
+  test('the live level ring has room above the mic, so the foot does not clip it', async () => {
+    const { RING_ROOM } = await import('./speakFoot.ts');
+    const { LEVEL_RING } = await import('../motion/tokens.ts');
+    assert.equal(RING_ROOM, Math.ceil((108 * LEVEL_RING.grow) / 2), 'the room is not the ring\'s overshoot at full level');
+    const block = read('./kinds/RepeatThisView.tsx').match(/const speak = \([\s\S]*?\);/)?.[0] ?? '';
+    assert.match(block, /\) : \( <View style=\{\[ds\.speakBlock, \{ paddingTop: RING_ROOM \}\]\}> <SpeakMic /, 'the mic has no room above it for its ring');
+    assert.match(read('./speakFoot.ts'), /mic === 'silent' \? 54 \+ 44 : RING_ROOM \+ 108 \+ 8 \+ 20/, 'the foot height leaves out the ring room');
   });
 
   test('without a mic, the foot holds only the controls; the muted mic picture sits in the answer area', () => {

@@ -9,6 +9,7 @@ import { IconAction, PillButton, SpeakCircle } from '../../components.tsx';
 import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
 import { drillStage } from '../drillStage.ts';
 import { ListeningCloud, SpeakMic } from '../SpeakMic.tsx';
+import { RING_ROOM } from '../speakFoot.ts';
 import { useRecorderLevel } from '../../speech/useRecorderLevel.ts';
 import { Illustration } from '../../art/flat/Illustration.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
@@ -139,7 +140,7 @@ export function RepeatThisView({
            here as in ConvoScreen; red belongs to the tutor's own voice and
            never marks the learner's microphone. Tapping Done grades exactly
            as I said it does; the recording only ever adds a line. */
-        <View style={ds.speakBlock}>
+        <View style={[ds.speakBlock, { paddingTop: RING_ROOM }]}>
           <SpeakMic live={mic === 'live'} voice={voice} size={SPEAK} ring={colour.mint}>
             <SpeakCircle
               onPress={() => void toggleRecord()}

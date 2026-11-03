@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { colour, highlight, mascot, paper } from '../../palette.ts';
+import { b, colour, highlight, mascot, paper } from '../../palette.ts';
+import { MARK, contrast } from '../../testing/contrast.ts';
 import { CLOUD_VIEWBOX, MASCOT_EXPRESSIONS, cloudFace, faceLids, type ViewBox } from './mascotFaces.ts';
 import { CLOUD_CHEEKS, CLOUD_SILHOUETTE, CLOUD_UNDERSIDE } from './mascotPaths.ts';
 import { CLOUD_POSES, cloudLayers, type CloudPose } from './mascotPoses.ts';
@@ -68,7 +69,7 @@ test('without a pose the cloud is drawn exactly as today', () => {
 });
 
 test('a pose draws rear limbs behind the body and front limbs over it', () => {
-  const { viewBox, layers } = cloudLayers('listen', '#000');
+  const { viewBox, layers } = cloudLayers('listen', { ink: '#000' });
   assert.deepEqual(viewBox, CLOUD_POSES.listen.viewBox);
   const body = layers.findIndex((l) => l.kind === 'path' && l.d === CLOUD_SILHOUETTE);
   const rear = layers.findIndex((l) => l.kind === 'path' && l.d === CLOUD_POSES.listen.rear[0]);
@@ -76,6 +77,29 @@ test('a pose draws rear limbs behind the body and front limbs over it', () => {
   assert.ok(rear >= 0 && rear < body && front > body);
   assert.equal((layers[rear] as { stroke?: string }).stroke, '#000');
   assert.deepEqual(layers.at(-1), { kind: 'face', face: cloudFace('listening') });
+});
+
+test('stroked pose marks take the caller\'s accent; filled marks keep their colour', () => {
+  const arcs = cloudLayers('listen', { accent: '#123456' }).layers.filter((l) => l.kind === 'path' && l.d === CLOUD_POSES.listen.marks[0]!.d);
+  assert.equal(arcs.length, 1);
+  assert.equal((arcs[0] as { stroke?: string }).stroke, '#123456');
+  const stars = cloudLayers('cheer', { accent: '#123456' }).layers.filter((l) => CLOUD_POSES.cheer.marks.some((m) => l.kind === 'path' && l.d === m.d));
+  assert.equal(stars.length, 2);
+  for (const s of stars) assert.equal((s as { fill?: string; stroke?: string }).fill, colour.sun);
+  for (const s of stars) assert.equal((s as { stroke?: string }).stroke, undefined);
+});
+
+test('the listen arcs in the link accent clear the 3:1 mark floor on both grounds', () => {
+  for (const mode of ['light', 'dark'] as const) {
+    const arc = cloudLayers('listen', { accent: b[mode].link }).layers.find((l) => l.kind === 'path' && l.d === CLOUD_POSES.listen.marks[0]!.d) as { stroke: string };
+    const c = contrast(arc.stroke, b[mode].ground);
+    assert.ok(c >= MARK, `${mode}: the listen arcs are ${c.toFixed(2)} on the ground, under ${MARK}`);
+  }
+  assert.equal(b.light.link, colour.blue, 'light mode arcs are no longer the brand blue');
+});
+
+test('an unposed cloud wears the expression it is given', () => {
+  assert.deepEqual(cloudLayers(undefined, { expression: 'cheer' }).layers.at(-1), { kind: 'face', face: cloudFace('cheer') });
 });
 
 test('the lids cover the listening eyes', () => {

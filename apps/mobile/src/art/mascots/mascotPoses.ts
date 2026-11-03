@@ -46,13 +46,13 @@ export type CloudLayer =
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number; fill: string; opacity?: number }
   | { kind: 'face'; face: MascotFace };
 
-export function cloudLayers(pose?: CloudPose, ink: string = paper.ink): { viewBox: ViewBox; layers: CloudLayer[] } {
+export function cloudLayers(pose?: CloudPose, { ink = paper.ink, accent, expression = 'idle' }: { ink?: string; accent?: string; expression?: MascotExpression } = {}): { viewBox: ViewBox; layers: CloudLayer[] } {
   const body: CloudLayer[] = [
     { kind: 'path', d: CLOUD_UNDERSIDE, fill: mascot.cloudUnderside },
     { kind: 'path', d: CLOUD_SILHOUETTE, fill: paper.card },
     ...CLOUD_CHEEKS.map((c) => ({ kind: 'ellipse' as const, cx: c.cx, cy: c.cy, rx: c.rx, ry: c.ry, fill: mascot.cheek })),
   ];
-  if (!pose) return { viewBox: CLOUD_VIEWBOX, layers: [...body, { kind: 'face', face: cloudFace('idle') }] };
+  if (!pose) return { viewBox: CLOUD_VIEWBOX, layers: [...body, { kind: 'face', face: cloudFace(expression) }] };
   const p = CLOUD_POSES[pose];
   const limb = (d: string): CloudLayer => ({ kind: 'path', d, stroke: ink, strokeWidth: LIMB_WIDTH });
   return {
@@ -62,7 +62,7 @@ export function cloudLayers(pose?: CloudPose, ink: string = paper.ink): { viewBo
       ...p.rear.map(limb),
       ...body,
       ...p.front.map(limb),
-      ...p.marks.map((m): CloudLayer => ({ kind: 'path', ...m })),
+      ...p.marks.map((m): CloudLayer => ({ kind: 'path', ...m, ...(m.stroke && accent ? { stroke: accent } : {}) })),
       { kind: 'face', face: cloudFace(p.face) },
     ],
   };

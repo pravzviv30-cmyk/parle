@@ -1303,9 +1303,11 @@ white, sun, peach and lavender come from the tokens above; these four are theirs
 alone.
 
 Cloud also has two posed bodies (`art/mascots/mascotPoses.ts`, UI-019).
-**Listen** has a hand cupped to the ear and sound arcs in brand blue, and takes
+**Listen** has a hand cupped to the ear and sound arcs in the theme's link colour
+(brand blue in light, periwinkle in dark, so they clear the 3:1 mark floor), and takes
 the `listening` face. **Cheer** has both arms up and two stars in sun, and takes
-the `cheer` face. Each stands on a soft ground shadow and is drawn in its own
+the `cheer` face. Each stands on a soft ground shadow (ink at 20%, which does
+not show on a dark ground) and is drawn in its own
 box, wider than the body, so a posed Cloud's size is the width of that box. A
 Cloud with no pose is the drawing above. The limbs are ink, drawn in the text
 colour of the screen they stand on (the sheet's word colour on the right
@@ -1909,7 +1911,8 @@ active/playing/paused state; none owns navigation, storage or repeated reward
 events. Cloud's blink on a speak drill (`motion/MascotMotion.tsx`, UI-019) is
 one more: its lids fade in and out about every 4 seconds, only while the mic
 is live. It stops, with the lids open, when the mic stops, when the learner
-leaves and under reduced motion.
+leaves, while the app is in the background (and starts again on return) and
+under reduced motion.
 
 ### What never moves
 

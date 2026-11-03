@@ -160,6 +160,12 @@ describe('the answer sheet — F759', () => {
     assert.match(sheetFile, /<\/ScrollView> \{waits \? <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/> : null\}/, 'a sheet that waits has no Continue, or it scrolls with the body');
   });
 
+  test('Cloud hops once on a right answer, after the sheet has risen', () => {
+    const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+    assert.match(sheetFile, /useEffect\(\(\) => \{ if \(!good\) return undefined; const timer = setTimeout\(\(\) => setHop\(1\), DUR\.fast\); return \(\) => clearTimeout\(timer\); \}, \[good\]\);/, 'Cloud no longer hops on a right answer, or the cue outlives the sheet');
+    assert.match(sheetFile, /<Hop cue=\{hop\}>/, 'the hop cue does not reach Cloud');
+  });
+
   test('a missed drill answer shows the right answer and a one-line reason', () => {
     // F919, founder decision 19 (LEARN-017). A best-sentence miss: core hands
     // over the right sentence, the sheet shows it with its own meaning, says it

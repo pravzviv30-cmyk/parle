@@ -15,12 +15,12 @@
  * - `Blink`: fades `lids` over the children in and out about every 4 s while
  *   `active` (the mic is live). Opacity only; back to 0 when it stops.
  *
- * Reduced motion: all of them hold still, watched live. Transform only;
- * decoration, so nothing here is reachable by a screen reader.
+ * Reduced motion: all of them hold still, watched live. Transform only,
+ * but for the blink's opacity; decoration, so nothing here is reachable by a screen reader.
  */
 
-import { useEffect, useRef, type ReactNode } from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AppState, StyleSheet } from 'react-native';
 import Reanimated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import { useReduceMotion } from '../motion.ts';
@@ -120,7 +120,8 @@ export const BLINK = { every: 4000, close: 70, open: 110 } as const;
 export function Blink({ active, lids, children }: { active: boolean; lids: ReactNode; children: ReactNode }) {
   const reduced = useReduceMotion();
   const shut = useSharedValue(0);
-  const live = active && !reduced;
+  const awake = useForeground();
+  const live = active && !reduced && awake;
   useEffect(() => {
     cancel(shut);
     shut.value = 0;
@@ -137,6 +138,16 @@ export function Blink({ active, lids, children }: { active: boolean; lids: React
       <Reanimated.View style={[st.lids, look]}>{lids}</Reanimated.View>
     </Reanimated.View>
   );
+}
+
+/** Whether the app is in the foreground, watched, as AnimatedIcon's loops do. */
+function useForeground(): boolean {
+  const [awake, setAwake] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next) => setAwake(next === 'active'));
+    return () => subscription.remove();
+  }, []);
+  return awake;
 }
 
 const st = StyleSheet.create({

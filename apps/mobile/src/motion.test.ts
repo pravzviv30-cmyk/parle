@@ -665,6 +665,15 @@ describe('one door to the engine', () => {
     assert.ok(loops.includes('tutor/VoiceOrb.tsx'), 'the orb no longer loops, so this check reads nothing');
   });
 
+  test('Cloud\'s blink pauses in the background and re-arms on return', () => {
+    const blink = region(file('motion/MascotMotion.tsx').body, 'Blink').replace(/\s+/g, ' ');
+    assert.match(blink, /const awake = useForeground\(\);/, 'the blink does not watch app state');
+    assert.match(blink, /const live = active && !reduced && awake;/, 'the blink stays off after the app comes back');
+    assert.match(blink, /useEffect\(\(\) => \{ cancel\(shut\); shut\.value = 0; if \(!live\) return;/, 'the blink does not reset and cancel when it stops');
+    const fg = file('motion/MascotMotion.tsx').body.replace(/\s+/g, ' ');
+    assert.match(fg, /AppState\.addEventListener\('change', \(next\) => setAwake\(next === 'active'\)\)/, 'the blink does not hear the app come back');
+  });
+
   test('raised choices keep their release spring when selection commits', () => {
     const press = region(file('components.tsx').body, 'Press');
     const body = /useEffect\(\(\) => \{\s*(const now = selected === true;[\s\S]*?)\}, \[selected, reduced, scale, depth\]\)/.exec(press)?.[1];
