@@ -43,3 +43,16 @@ test('the iOS build adopts the scene life cycle so iOS 27 does not kill it at la
 
   assert.throws(() => adoptSceneDelegate('class AppDelegate: NSObject {}'), /withSceneLifecycle/);
 });
+
+// Push-check 2026-11-03: the fix only reaches a build if app.json registers the plugin and
+// the plugin registers both mods; the fixture is only true for the Expo it was copied from.
+test('the scene life cycle plugin is registered, wires both mods, and its fixture matches the installed Expo', () => {
+  const app = JSON.parse(readFileSync(new URL('../../app.json', import.meta.url), 'utf8'));
+  assert.ok(app.expo.plugins.includes('./plugins/withSceneLifecycle'), 'app.json no longer runs withSceneLifecycle, so iOS 27 kills the app (F953)');
+  const withSceneLifecycle = require('../../plugins/withSceneLifecycle.js');
+  const config = withSceneLifecycle({ name: 'x', slug: 'x' });
+  assert.equal(typeof config.mods?.ios?.infoPlist, 'function', 'the Info.plist mod is not registered');
+  assert.equal(typeof config.mods?.ios?.appDelegate, 'function', 'the AppDelegate mod is not registered');
+  const expo = JSON.parse(readFileSync(new URL('../../../../node_modules/expo/package.json', import.meta.url), 'utf8'));
+  assert.equal(expo.version, '57.0.27', 'Expo changed: re-diff test/expo57-AppDelegate.swift against node_modules/expo/template.tgz, then update this version');
+});
