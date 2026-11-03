@@ -62,6 +62,17 @@ senior-level scrutiny before code is written:
 - Nothing ships without a test that fails if the behaviour regresses, and
   `npm run gate` green.
 
+### Minimal, surgical, test-first (founder rule, 2026-11-01, after Karpathy)
+
+- **Assumptions first.** List the assumptions behind a plan or change before writing
+  code; when something is unclear, stop and ask the founder rather than guess.
+- **The smallest code that works.** Write the minimum the ask needs, or what sits within
+  its radius; nothing speculative unless it is necessary and works best.
+- **Surgical changes.** Touch only the lines the ask needs: no drive-by refactors, renames
+  or reformatting.
+- **Test first.** Every confirmed `/code-review` or push-check finding, and every bug, gets
+  a test that reproduces it and fails, then the fix that makes it pass. A doc or copy-only fix needs no failing test first; copy that a test already pins still updates that test.
+
 ## TypeSafe Jev
 
 Jev, TypeSafe's model, answers typed judgments: yes or no, one option from a set,
