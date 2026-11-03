@@ -31,6 +31,8 @@ test('each tab page spaces its cards and sections with RHYTHM', () => {
   assert.match(journey, /body: \{ paddingTop: space\(6\), paddingHorizontal: 22, gap: RHYTHM\.section \}/);
   assert.match(journey, /page: \{ gap: RHYTHM\.section \}/);
   assert.match(journey, /stack: \{ gap: RHYTHM\.item \}/);
+  const preview = read('../dev/YourFrenchPreview.tsx');
+  assert.match(preview, /page: \{ gap: RHYTHM\.section \}/, 'the Journey preview no longer mirrors the tab\'s page gap');
   const explore = read('./ExploreTab.tsx');
   assert.match(explore, /page: \{ gap: RHYTHM\.section \}/);
   assert.match(explore, /column: \{ gap: RHYTHM\.section \}/);
