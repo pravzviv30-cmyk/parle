@@ -101,6 +101,8 @@ It is a custom **dev client**, not Expo Go — LiveKit and WebRTC are native mod
 The `ios/` directory is generated and gitignored, so `prebuild --clean` is how it
 comes back, carrying `com.luvani.app` from `app.json`. The first build takes a while;
 after that Metro reloads JS on save.
+Prebuild also runs `apps/mobile/plugins/withSceneLifecycle.js`, which wires Expo's scene
+delegate; without it iOS 27 kills the app at launch (F953).
 
 **The Simulator** reaches the token server at `localhost:8787` unchanged, so
 `npm run dev` in another terminal is all it needs. It has no microphone, so speech
