@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 
 import { sky } from '../palette.ts';
 import { greetingWord } from './greeting.ts';
-import { skyNow, skyView, type SkyTime } from './skyView.ts';
+import { greetingText, skyNow, skyView, type SkyTime } from './skyView.ts';
 
 const at = (hour: number, minute = 0): number => new Date(2026, 0, 15, hour, minute, 0, 0).getTime();
 const expected = (hour: number): SkyTime => (hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : hour >= 18 && hour < 22 ? 'evening' : 'night');
@@ -235,5 +235,13 @@ describe('the disc slide counts the greeting from under the status bar (verifier
     const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
     assert.match(view, /const HEAD_BELOW_BAR = 8;/, 'the head offset is no longer the 8pt under the inset');
     assert.match(band, /<TopInset extra=\{space\(2\)\} \/>/, 'SkyBand no longer puts space(2), 8pt, under the inset');
+  });
+});
+
+describe('a hyphenated name never wraps at its hyphen (verifier, fix 2)', () => {
+  test('a word joiner follows each hyphen, and the hyphen stays', () => {
+    assert.equal(greetingText({ word: 'Bonjour', name: 'Jean-Luc' }), 'Bonjour, Jean-\u2060Luc.');
+    assert.equal(greetingText({ word: 'Bonjour', name: 'Léa' }), 'Bonjour, Léa.');
+    assert.equal(greetingText({ word: 'Bonjour', name: null }), 'Bonjour.');
   });
 });

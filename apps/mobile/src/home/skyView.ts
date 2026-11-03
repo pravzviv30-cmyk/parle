@@ -56,7 +56,8 @@ export function skyNow(now: number, mode: 'light' | 'dark'): SkyView {
  * `homeGreeting`'s one title.
  */
 export function greetingText(greeting: { word: string; name: string | null }): string {
-  return greeting.name === null ? `${greeting.word}.` : `${greeting.word}, ${greeting.name}.`;
+  // U+2060 WORD JOINER after each hyphen, so "Jean-Luc" moves to the next line whole. The label is `greeting.title`, plain.
+  return greeting.name === null ? `${greeting.word}.` : `${greeting.word}, ${greeting.name.replace(/-/g, '-\u2060')}.`;
 }
 
 /**
