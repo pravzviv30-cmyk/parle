@@ -12188,6 +12188,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `Today re-lays out when the text size changes while it is open`
 
 
+### F953 — The app is killed at launch on iOS 27
+- severity: P1
+- status: [x]
+- where: apps/mobile/plugins/withSceneLifecycle.js (registered in apps/mobile/app.json)
+- note: Found 2026-11-01 on the founder's iPhone 17 (iOS 27.0.1), built with Xcode 27.1. An app built
+  with the iOS 27 SDK that has not adopted the UIScene life cycle is killed at launch with
+  `EXC_BREAKPOINT` in `_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`. Expo 57.0.27
+  ships `EXExpoAppSceneDelegate` but its prebuild template does not wire it. The simulator on iOS 26.5
+  was unaffected.
+- fixed: 2026-11-02 on claude/ios27-scenes. A config plugin adds `UIApplicationSceneManifest` naming `EXExpoAppSceneDelegate` to
+  Info.plist, makes AppDelegate an `ExpoReactNativeFactoryProvider` and drops its own window and
+  `startReactNative` block. It throws if AppDelegate.swift stops matching the Expo 57 template.
+  Proven 2026-11-02: a clean `expo prebuild --clean` of this branch, built for device, launched on the
+  founder's iPhone 17 (iOS 27.0.1) with React Native running and no crash report.
+- verified-by: `the iOS build adopts the scene life cycle so iOS 27 does not kill it at launch`
+
 ### F954 — Today names one review twice when the hero offers it
 - severity: P3
 - status: [ ]
