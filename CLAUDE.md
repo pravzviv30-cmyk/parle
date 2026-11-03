@@ -71,7 +71,7 @@ senior-level scrutiny before code is written:
 - **Surgical changes.** Touch only the lines the ask needs: no drive-by refactors, renames
   or reformatting.
 - **Test first.** Every confirmed `/code-review` or push-check finding, and every bug, gets
-  a test that reproduces it and fails, then the fix that makes it pass.
+  a test that reproduces it and fails, then the fix that makes it pass. A doc or copy-only fix needs no failing test first; copy that a test already pins still updates that test.
 
 ## TypeSafe Jev
 

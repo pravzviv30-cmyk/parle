@@ -91,7 +91,7 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
 | 2026-10-31 | The still-settling retry stays at zero XP (LEARN-018 stands), and the approved copy stays: "Practise the one still settling" and "Notice". | Founder, finish-off brief |
 | 2026-10-31 | Cloud stays out of Today's sky, under "Cloud at moments only". Proposed by the design session; the founder can reverse it. | Design session, proposed |
-| 2026-11-02 | Look check after Chris Ashby's design-first video: keep Bright Luvani as is (Outfit, Hum); no mascot-led icon, no second face for French | Founder, Journey map board |
+| 2026-11-02 | Look check after Chris Ashby's design-first video: keep Bright Luvani as is (Outfit, Hum); no mascot-led icon, no second face for French. | Founder, Journey map board |
 
 Working principles drawn from these (to confirm on the first screens):
 

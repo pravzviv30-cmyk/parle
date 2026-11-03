@@ -213,7 +213,7 @@ the answer.
 ## 7. Fix loop
 
 For each confirmed finding: first write a test that reproduces it and fails (founder rule,
-2026-11-01), then fix it (yourself if it is one line, otherwise the owning specialist or
+2026-11-01; a doc or copy-only fix needs no failing test first; copy that a test already pins still updates that test), then fix it (yourself if it is one line, otherwise the owning specialist or
 `implementer` with the absolute checkout path) so the test passes, commit by explicit path, and
 re-run the gate and the check that found it. Repeat sections 3 to 6 on the new diff until
 the reviewers, `/code-review` and the Impeccable reviewer find nothing new above low

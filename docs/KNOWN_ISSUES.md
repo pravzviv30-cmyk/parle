@@ -12210,4 +12210,3 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   target can be swallowed. Fix: make the inner control a sibling or the outer row non-pressable,
   with a test that no pressable on the Practice tab contains another.
 - verified-by: `no pressable on the Practice tab contains another`
-
