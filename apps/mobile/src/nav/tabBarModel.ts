@@ -99,3 +99,8 @@ export function tabCellCrossed(over: number, x: number, cell: number, count: num
   const now = tabCellAt(x, cell, count);
   return now === over ? null : now;
 }
+
+/** The cell under a finger at `pageX`, measured from the capsule's left edge `capsuleX` and its inner padding `pad` (item 7, verifier fix). */
+export function tabCellUnderFinger(pageX: number, capsuleX: number, pad: number, cell: number, count: number): number {
+  return tabCellAt(pageX - capsuleX - pad, cell, count);
+}

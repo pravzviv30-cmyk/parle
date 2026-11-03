@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
-import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellCrossed, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellCrossed, tabCellUnderFinger, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -214,7 +214,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // Claimed only on sideways movement that began on the selected cell, so a tap and a still long press stay the cell's.
     assert.match(FLAT, /onMoveShouldSetPanResponderCapture: \(_, g\) => startedOnSelected\.current && Math\.abs\(g\.dx\) > 8 && Math\.abs\(g\.dx\) > Math\.abs\(g\.dy\)/, 'the drag claims taps, long presses or vertical moves');
     assert.match(FLAT, /onPanResponderGrant: \(\) => \{ tick\(\);/, 'holding and starting the drag gives no haptic');
-    assert.match(FLAT, /if \(crossed !== null\) \{ over\.current = crossed; tick\(\); \}/, 'crossing into another cell does not tick');
+    assert.match(FLAT, /if \(now !== over\.current\) \{ over\.current = now; tick\(\); \}/, 'crossing into another cell does not tick');
     assert.match(FLAT, /if \(to !== selected\) routesRef\.current\[to\]\?\.onPress\(\); else tapSettled\(\);/, 'letting go does not navigate the way a tap does');
     assert.match(FLAT, /onPanResponderTerminate: \(\) => setDragX\(null\)/, 'a cancelled drag does not put the pill back');
     // The pill: follows the finger while held, slides on a tap, jumps under Reduce Motion.
@@ -237,6 +237,14 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.equal(tabCellCrossed(1, 100, 70, 5), null, 'moving inside a cell ticks');
     assert.equal(tabCellCrossed(1, 150, 70, 5), 2);
     assert.equal(tabCellCrossed(4, 900, 70, 5), null, 'dragging past the end ticks again');
+  });
+
+  test('a drag lands on the cell under the finger, not under the pill (verifier, fix 1)', () => {
+    // Capsule at x 12, padded 8, cells 70 wide. Grab cell 1 at 0.45 of a cell right of its centre, drag +0.1 cell.
+    const grab = 12 + 8 + 70 * 1.5 + 70 * 0.45;
+    assert.equal(tabCellUnderFinger(grab, 12, 8, 70, 5), 1);
+    assert.equal(tabCellUnderFinger(grab + 7, 12, 8, 70, 5), 2, 'the finger is over the next cell');
+    assert.match(FLAT, /tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_PAD, cell, n\)/, 'the bar does not read the finger on move');
   });
 
   test('the five words are Today, Explore, Speak, Practice and Journey over Codex\'s Iconsax drawings — UI-008', () => {
