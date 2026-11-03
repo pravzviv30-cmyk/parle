@@ -61,7 +61,17 @@ describe('Conversation Pack library', () => {
   });
   test('outside the tab bar, the practice footer keeps the safe area and space below it (verifier, fix 3)', () => {
     // The Conversations stack has no tab bar, so `tab` would leave 0pt under the footer.
-    assert.doesNotMatch(source, /bottom="tab"/);
-    assert.equal((source.match(/<ScrollScreen /g) ?? []).length, 2);
+    const tags = [...source.matchAll(/<ScrollScreen /g)].map((m) => {
+      let depth = 0;
+      for (let i = m.index; i < source.length; i += 1) {
+        const c = source[i];
+        if (c === '{') depth += 1;
+        else if (c === '}') depth -= 1;
+        else if (c === '>' && depth === 0) return source.slice(m.index, i + 1);
+      }
+      return source.slice(m.index);
+    });
+    assert.equal(tags.length, 2);
+    for (const tag of tags) assert.doesNotMatch(tag, /\bbottom=/, 'a library screen sets its own bottom, so it no longer takes the default inset');
   });
 });
