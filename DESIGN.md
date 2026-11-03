@@ -225,11 +225,13 @@ period stay near a purchase action, and large text is never capped to fit.
   There is one tile, `LipTile` (options, word chips, slots, grades and Fixes),
   one field and one mic, `drill/SpeakMic.tsx`. Cloud appears at moments only:
   on the right sheet, listening on a speak drill, and at the ending. It is
-  never on the question. On say it aloud the whole speak block is pinned in
-  the frame's foot, the thumb zone: the mic (or its silent state), its label
-  and "Unable to speak right now?". While the mic is live, Cloud listens full
-  size in its `listen` pose in the space the mic left, above the foot; the foot
-  holds no Cloud, so it fits every phone (UI-019).
+  never on the question. On say it aloud the speak controls are pinned in the
+  frame's foot, the thumb zone: the mic and its label (or, without a mic, "Type
+  instead" and "I said it") and "Unable to speak right now?". While the mic is
+  live, Cloud listens full size in its `listen` pose in the space the mic left,
+  above the foot; without a mic, the muted mic picture sits there instead. The
+  foot holds no picture, so it fits every phone (UI-019). Over the other speak
+  drills' mic, Cloud listens in the slot's unchanged 77pt, so that mic never moves.
 - Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
   padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
   button. Review and the drill bank with nothing due use cloud-cheer with Done;

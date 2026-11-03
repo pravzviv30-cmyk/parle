@@ -12,10 +12,11 @@
  *   never on the question; it is part of the mic, not a moment. It squishes to
  *   the same level with `LevelSquish`, and blinks inside it, so the lids scale
  *   with the face. Its limbs take the screen's text colour, so they show in
- *   dark mode. It sits in a slot above the circle, exactly its height, kept
- *   whether or not it shows, so the mic never moves when it comes and goes.
- *   The posed box is wider than the body, so 116 wide draws the body about
- *   as big as the board's 96. Decorative and untouchable.
+ *   dark mode. It sits in a slot above the circle, kept at the 77 it had
+ *   before poses whether or not it shows, so the mic never moves; Cloud draws
+ *   as wide as its posed box allows at that height. Say it aloud's answer
+ *   area has the room for 116 wide, which draws the body about as big as the
+ *   board's 96. Decorative and untouchable.
  * - Reduced motion: `LevelSquish` holds Cloud still and the ring keeps its
  *   static opacity steps, both inside the primitives.
  */
@@ -31,10 +32,12 @@ import { decorative } from '../theme.ts';
 import type { useRecorderLevel } from '../speech/useRecorderLevel.ts';
 
 
-/** The listening Cloud's box over a live mic: its body as big as the board's 96. */
+/** The listening Cloud's box where there is room: its body as big as the board's 96. */
 const CLOUD = 116;
-/** That box's height, which is also the slot Cloud sits in, kept while the mic is at rest. */
-const CLOUD_HEIGHT = Math.ceil((CLOUD * CLOUD_POSES.listen.viewBox.height) / CLOUD_POSES.listen.viewBox.width);
+/** The slot over the mic, kept while the mic is at rest: the height it had before poses. */
+const SLOT = 77;
+/** Cloud in that slot, as wide as its posed box allows at that height. */
+const SLOT_CLOUD = Math.floor((SLOT * CLOUD_POSES.listen.viewBox.width) / CLOUD_POSES.listen.viewBox.height);
 
 export function SpeakMic({
   live,
@@ -71,7 +74,7 @@ export function SpeakMic({
   return (
     <View style={st.column}>
       <View {...decorative} pointerEvents="none" style={st.slot}>
-        <ListeningCloud live={live} voice={voice} />
+        <ListeningCloud live={live} voice={voice} size={SLOT_CLOUD} />
       </View>
       {mic}
     </View>
@@ -84,13 +87,13 @@ export function SpeakMic({
  * screen's text colour. Say it aloud draws it in its answer area; SpeakMic's
  * slot draws it over the mic for the other speak drills.
  */
-export function ListeningCloud({ live, voice }: { live: boolean; voice: ReturnType<typeof useRecorderLevel> }) {
+export function ListeningCloud({ live, voice, size = CLOUD }: { live: boolean; voice: ReturnType<typeof useRecorderLevel>; size?: number }) {
   const { text } = useB();
   if (!live) return null;
   return (
-    <LevelSquish level={voice.metered ? voice.level : null} on={live} height={CLOUD_HEIGHT}>
-      <Blink active={live} lids={<CloudLids pose="listen" size={CLOUD} />}>
-        <Cloud pose="listen" size={CLOUD} ink={text} />
+    <LevelSquish level={voice.metered ? voice.level : null} on={live} height={Math.ceil((size * CLOUD_POSES.listen.viewBox.height) / CLOUD_POSES.listen.viewBox.width)}>
+      <Blink active={live} lids={<CloudLids pose="listen" size={size} />}>
+        <Cloud pose="listen" size={size} ink={text} />
       </Blink>
     </LevelSquish>
   );
@@ -99,5 +102,5 @@ export function ListeningCloud({ live, voice }: { live: boolean; voice: ReturnTy
 const st = StyleSheet.create({
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   column: { alignItems: 'center' },
-  slot: { height: CLOUD_HEIGHT, justifyContent: 'flex-end', alignItems: 'center' },
+  slot: { height: SLOT, justifyContent: 'flex-end', alignItems: 'center' },
 });

@@ -122,26 +122,17 @@ export function RepeatThisView({
     }
   }, [mic, locked, recorder, onSpoke, letGoOfMic]);
 
-  // The whole speak block sits in the pinned foot, the thumb zone: the mic or
-  // the silent state, its label, and the quiet way out.
+  // The speak controls sit in the pinned foot, the thumb zone: the mic and its
+  // label, or without a mic the said-it controls, and the quiet way out.
   const speak = (
     <View style={{ alignItems: 'center', gap: space(3) }}>
       {mic === 'silent' ? (
-        <>
-          {/* The speak circle in its muted state: nothing records here, and
-              the red fill must keep meaning "the microphone is on". */}
-          <View style={ds.speakBlock}>
-            <Illustration name="state-microphone" fit="small" />
-            <Text style={[type.label, { color: bt.text }]}>Speak</Text>
-          </View>
-
-          {/* Without a microphone the learner's word is the grade. Saying so
-              out loud in the control's own copy keeps the report honest. */}
-          <View style={ds.saidIt}>
-            <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
-            <IconAction layout="inline" icon="tick-circle" label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
-          </View>
-        </>
+        /* Without a microphone the learner's word is the grade. Saying so
+           out loud in the control's own copy keeps the report honest. */
+        <View style={ds.saidIt}>
+          <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
+          <IconAction layout="inline" icon="tick-circle" label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
+        </View>
       ) : (
         /* The one speak control made real: hollow at rest, and filled green
            only while the microphone is actually on. Green means you speak,
@@ -191,6 +182,14 @@ export function RepeatThisView({
       </>}
       primary={speak}
     >
+      {/* The speak circle in its muted state: nothing records here, and
+          the red fill must keep meaning "the microphone is on". */}
+      {mic === 'silent' && (
+        <View style={ds.speakBlock}>
+          <Illustration name="state-microphone" fit="small" />
+          <Text style={[type.label, { color: bt.text }]}>Speak</Text>
+        </View>
+      )}
       {/* Cloud listens in the freed answer area, only while the mic is open. */}
       <View {...decorative} pointerEvents="none" style={{ alignItems: 'center' }}>
         <ListeningCloud live={mic === 'live'} voice={voice} />
