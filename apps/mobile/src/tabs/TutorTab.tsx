@@ -38,7 +38,8 @@ import { Card, IconAction, Label, LockBadge, Press } from '../components.tsx';
 import { BArt } from '../art/BArt.tsx';
 import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
-import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
+import { AWAY_ART, outOfTimeCard } from '../empty/emptyStates.ts';
+import { Cloud } from '../art/mascots/Cloud.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
 import { SCENE_CARDS, sceneCardFallbackWidth, sceneCardGeometry } from '../responsiveLayout.ts';
@@ -85,6 +86,15 @@ import {
 } from '../tutor/speakTabView.ts';
 
 type Completion = { id: string; at: number; rung: number };
+
+/**
+ * Out of the free conversation, centre stage (quiet moments 4A, props in so the
+ * preview draws it): Cloud at rest, the card's words and See the plans, with no card.
+ */
+export function OutOfTimeMoment({ card, onPlans }: { card: { title: string; body: string; action: string }; onPlans: () => void }) {
+  const t = useB();
+  return <EmptyStateCard stage figure={<Cloud pose="rest" size={180} ink={t.text} />} title={card.title} body={card.body} action={{ label: card.action, onPress: onPlans }} />;
+}
 
 export function TutorTab() {
   const focused = useIsFocused();
@@ -304,10 +314,7 @@ export function TutorTab() {
           </EmptyStateCard>
         )}
 
-        {outOfTime !== null && (
-          <EmptyStateCard art={OUT_OF_TIME_ART} title={outOfTime.title} body={outOfTime.body}
-            action={{ label: outOfTime.action, onPress: () => nav.navigate('Wall', { entry: 'refused' }) }} />
-        )}
+        {outOfTime !== null && <OutOfTimeMoment card={outOfTime} onPlans={() => nav.navigate('Wall', { entry: 'refused' })} />}
 
         {/* The one recommendation: the next scene, or the thread to pick up. */}
         <View style={st.hero} onLayout={(event) => setHeroWidth(Math.round(event.nativeEvent.layout.width))}>

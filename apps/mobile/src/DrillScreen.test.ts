@@ -235,7 +235,8 @@ describe('the empty drill bank draws the scene the art registry promises it — 
     // 2026-10-21 UI-008, B-Empty-States "Review, all done": the cloud-cheer
     // card with Done as its one door, inside the card rather than the footer.
     assert.match(emptyBranch, /<EmptyStateCard/);
-    assert.match(emptyBranch, /name: 'cloud-cheer', width: 150, height: 114/);
+    // Quiet moments (4A): Cloud's posed cheer in place of the cloud-cheer drawing.
+    assert.match(emptyBranch, /figure=\{<Cloud pose="cheer" size=\{150\} ink=\{bt\.text\} \/>\}/);
     assert.ok(emptyBranch.includes('Nothing to review.'));
     assert.ok(emptyBranch.includes('Your next session adds more.'));
     assert.match(emptyBranch, /action=\{\{ label: 'Done', onPress: finishAndLeave \}\}/);

@@ -7,7 +7,8 @@ import { readFileSync } from 'node:fs';
 // button). The drawing and one first action stay the rule; they now arrive as
 // the card's props rather than an Illustration and a pill beside it.
 test('every empty list shows its drawing and one first action', () => {
-  for (const path of ['phrases/PhrasebookScreen.tsx', 'conversationPacks/ConversationPackLibrary.tsx', 'profile/TutorMemoryScreen.tsx']) {
+  // The phrasebook stands centre stage since quiet moments 4A (empty/emptyStates.test.ts).
+  for (const path of ['conversationPacks/ConversationPackLibrary.tsx', 'profile/TutorMemoryScreen.tsx']) {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8');
     const at = source.indexOf('<EmptyStateCard art={NOTEBOOK_ART}');
     assert.ok(at >= 0, path);
@@ -28,8 +29,8 @@ test('the empty-state card is the artboard anatomy, from the theme', () => {
   assert.doesNotMatch(card, /#[0-9A-Fa-f]{6}/, 'a colour outside the palette');
 });
 
-test('Review, all done is the cloud-cheer card with its one door', () => {
+test('Review, all done is the cheering Cloud card with its one door', () => {
   const review = readFileSync(new URL('ReviewScreen.tsx', import.meta.url), 'utf8');
-  assert.match(review, /<EmptyStateCard\s+art=\{\{ name: 'cloud-cheer', width: 150, height: 114 \}\}\s+title="Nothing waiting\."/);
+  assert.match(review, /<EmptyStateCard\s+figure=\{<Cloud pose="cheer" size=\{150\} ink=\{t\.text\} \/>\}\s+title="Nothing waiting\."/);
   assert.match(review, /action=\{\{ label: 'Done', onPress: onDone \}\}/);
 });

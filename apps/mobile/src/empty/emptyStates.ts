@@ -17,10 +17,8 @@ import { PLANS_LEAD } from '../home/nextAction.ts';
 
 /** The drawings, at the artboard's sizes. Kept here so a screen reads a name rather than spelling one. */
 export const AWAY_ART = { name: 'coffee-break', width: 150, height: 137 } as const;
-export const OUT_OF_TIME_ART = { name: 'clock-calendar', width: 140, height: 124 } as const;
 /** The empty phrase, conversation and memory pages (no artboard of their own; the B card with the phrasebook drawing). */
 export const NOTEBOOK_ART = { name: 'phrasebook', width: 150 } as const;
-export const ALL_DONE_ART = { name: 'cloud-cheer', width: 150, height: 114 } as const;
 
 export const OUT_OF_TIME = {
   title: OUT_OF_TIME_WORDS.freeTitle,

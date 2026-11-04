@@ -38,7 +38,7 @@ import { QuestsCardBody } from '../game/QuestsCard.tsx';
 import { threeDone } from '../home/todayView.ts';
 import { ComingUpCard, SceneLead, SectionTitle, WeekCard } from '../today/TodayParts.tsx';
 import { ExploreLeadBody, HeldLeadBody, LeadRow, PlansLeadBody } from '../practice/NextTaskCard.tsx';
-import { heldWords, leadStop } from '../practice/nextTask.ts';
+import { heldWords, heroCarriesReview, leadStop } from '../practice/nextTask.ts';
 import { CafeLineBody, OfflineLeadBody } from '../practice/LocalPracticeCard.tsx';
 import { offlineNotice } from '../practice/localPractice.ts';
 import { StarterContinuation, StarterFeedback } from '../onboarding/StarterContinuation.tsx';
@@ -102,13 +102,15 @@ function Body({ state, mode, onBack }: { state: TodayPreviewState; mode: MainMod
   })();
   const hero = failed ? <TodayFailedHero onPhrase={said} onRetry={said} /> : loading ? <TodayLoadingHero /> : <TodayHeroCard>{body}</TodayHeroCard>;
 
-  // The rows after the hero (UI-012 order): the scene when the fix leads, the phrase, review.
+  // The rows after the hero (UI-012 order): the scene when the fix leads, the
+  // phrase, review. Held past Starter the hero carries Review, so the path drops it.
+  const heroReview = (lead === 'held' || lead === 'held-starter') && heroCarriesReview({ lead: 'outOfTime', billingKnown: true, reviewDue: true, starterShown: false, cafeShown: lead === 'held-starter' });
   const rows = quiet ? null : [
     ...(lead === 'fix' ? [<LeadRow key="scene" lead="scene" last={false} title={TODAY_PREVIEW_SCENE.title} line={TODAY_PREVIEW_SCENE.rowLine} onPress={said} />] : []),
-    <RouteRow key="phrase" mark="stop" last={false} thumb={<BArt name="voice-chat" width={ROW_ART} height={ROW_ART} />} thumbGround={t.lavender}
+    <RouteRow key="phrase" mark={heroReview ? 'end' : 'stop'} last={heroReview} thumb={<BArt name="voice-chat" width={ROW_ART} height={ROW_ART} />} thumbGround={t.lavender}
       eyebrow={TODAY_COPY.phrase} title={TODAY_PREVIEW_PHRASE.fr} titleLang="fr" line={TODAY_PREVIEW_PHRASE.en} action={{ label: TODAY_COPY.sayRow }} onPress={said} />,
-    <RouteRow key="review" mark="end" last thumb={<BArt name="phrasebook" width={ROW_ART} height={ROW_ART} />} thumbGround={t.sage}
-      title={TODAY_PREVIEW_REVIEW.title} line={TODAY_PREVIEW_REVIEW.line} action={{ label: TODAY_COPY.practise }} onPress={said} />,
+    ...(heroReview ? [] : [<RouteRow key="review" mark="end" last thumb={<BArt name="phrasebook" width={ROW_ART} height={ROW_ART} />} thumbGround={t.sage}
+      title={TODAY_PREVIEW_REVIEW.title} line={TODAY_PREVIEW_REVIEW.line} action={{ label: TODAY_COPY.practise }} onPress={said} />]),
   ];
 
   const tiles = loading ? <TodayStatTilesSkeleton sky={sky} /> : (

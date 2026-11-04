@@ -1021,11 +1021,21 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     wanted it standing on the sheet's top edge. The footer's `ScrollView`
     would clip it, so it sits inside the sheet; standing on the edge is a
     possible follow-up that needs a footer layout change.
-  - Queued, in this order: brief 4 (4A) next, with wave, hold and rest and
-    Toast's face in the saved-phrase toast; briefs 2 (2B) and 3 (3A) after the
-    Journey board; Today's out-of-time hero (4A) after `claude/phone-fixes`.
-    `EndScene` keeps its face-only Cloud and Toast until the recap build lands.
-    The hello tilt has no caller yet.
+  - Built in `claude/quiet-moments` (brief 4, 4A, 2026-11-04,
+    `docs/changes/quiet-moments.md`): Cloud's `hold` and `rest` poses, with
+    drawn marks toned to the caller's ink or accent; `EmptyStateCard`'s
+    `figure` and centre `stage`; the phrasebook with nothing kept and Speak out
+    of the free conversation on centre stage; Review's and the drill bank's
+    nothing-to-review cards on the posed cheer, so its arms show in dark mode;
+    Today's held hero carrying Review as a sage LipTile while the path drops its
+    duplicate row (`heroCarriesReview`); and Toast's face on the saved-phrase
+    toast. Founder answers inside 4A (2026-11-04): centre stage on the two
+    drawn screens plus the posed cheer on the two nothing-to-review cards; on
+    Speak the moment replaces the out-of-time card in place and the rest of the
+    tab waits for the Speak redesign. Wave, Toast's poses and the hello tilt
+    still have no caller.
+  - Queued: briefs 2 (2B) and 3 (3A) after the Journey board. `EndScene` keeps
+    its face-only Cloud and Toast until the recap build lands.
   - The queued screen sessions apply the picks.
 
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
