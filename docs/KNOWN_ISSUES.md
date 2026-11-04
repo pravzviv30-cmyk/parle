@@ -12260,3 +12260,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (`maxFontSizeMultiplier` sized so the longest hour word and its comma fit 343pt), which caps
   one text's scaling, so it waits for the founder's call.
 - verified-by: `the greeting's longest hour word fits its column at the largest text size`
+
+### F958 — Every tutor join fails on staging: the image has no CA store for LiveKit's native client
+- severity: P1
+- status: [ ]
+- where: Dockerfile (runtime stage); services/tutor-agent/src/agent.ts:140 (`JobContext.connect`)
+- note: Seen in staging logs on 2026-11-01 and 2026-11-04: the tutor receives the LiveKit job, then
+  `JobContext.connect` throws "ConnectError: engine: signal failure: transport connection error: IO
+  error: no native root CA certificates found (errors: [])" from `@livekit/rtc-node` (FFI
+  `@livekit/rtc-ffi-bindings` 0.12.73, rustls with rustls-native-certs). Cause: the pinned
+  `node:24.16.0-bookworm-slim` base ships no `ca-certificates`, so the system store is empty; Node
+  itself is unaffected because it uses its bundled roots. Fix: the runtime stage writes Node's
+  bundled roots (`tls.rootCertificates`) to root-owned `/app/ca-roots.pem` at build time, with no
+  package install or network, sets `SSL_CERT_FILE` to it, and the nonroot check fails the build if
+  the file is empty. Tick only after a live tutor join on staging.
+- verified-by: `runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)`

@@ -194,3 +194,17 @@ test("the backend image skips onnxruntime's GPU download and keeps its bundled C
   assert.ok(files.length>0);
   for(const file of files) assert.match(file,/^\.\/libonnxruntime_providers_[a-z0-9_]+\.so$/);
 });
+test('runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)',async()=>{
+  const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
+  const runtime=docker.slice(docker.indexOf('FROM ${NODE_IMAGE} AS runtime'));
+  const [beforeUser,afterUser]=runtime.split('\nUSER node\n');
+  assert.ok(afterUser,'runtime stage switches to USER node');
+  assert.match(runtime,/\nENV [^]*?SSL_CERT_FILE=\/app\/ca-roots\.pem/);
+  const gen=beforeUser.split('\n').find(l=>l.startsWith('RUN node -e')&&l.includes('/app/ca-roots.pem'));
+  assert.ok(gen&&gen.includes("require('node:tls').rootCertificates"),'a RUN before USER node writes tls.rootCertificates to /app/ca-roots.pem');
+  assert.match(afterUser,/\/app\/ca-roots\.pem[^\n]*BEGIN CERTIFICATE/);
+  const out=resolve(await mkdtemp(resolve(tmpdir(),'ca-roots-')),'ca-roots.pem');
+  const r=spawnSync(process.execPath,['-e',`require('node:fs').writeFileSync(process.argv[1],require('node:tls').rootCertificates.join('\\n')+'\\n')`,out],{encoding:'utf8'});
+  assert.equal(r.status,0,r.stderr);
+  assert.ok((await readFile(out,'utf8')).split('-----BEGIN CERTIFICATE-----').length-1>100);
+});

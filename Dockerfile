@@ -50,7 +50,8 @@ ENV NODE_ENV=production \
     TTS_CACHE_DIR=/tmp/luvani-authored-cache \
     LUVANI_LOCAL_DEVELOPMENT=0 \
     LUVANI_NATIVE_EVAL=0 \
-    LUVANI_DEV_UNLIMITED_MINUTES=0
+    LUVANI_DEV_UNLIMITED_MINUTES=0 \
+    SSL_CERT_FILE=/app/ca-roots.pem
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=dependencies /app/services/token-server/node_modules ./services/token-server/node_modules
@@ -71,6 +72,9 @@ COPY services/tutor-agent/package.json ./services/tutor-agent/package.json
 COPY services/tutor-agent/src ./services/tutor-agent/src
 COPY deployment/entrypoint.sh deployment/nativeArtifacts.mjs deployment/validateEnvironment.mjs deployment/environment-contract.json deployment/verifyAudioDecoder.mjs deployment/observability.mjs ./deployment/
 RUN chmod 0755 /usr/local/bin/luvani-ffmpeg && node deployment/verifyAudioDecoder.mjs && node deployment/nativeArtifacts.mjs --verify --output /app/native-artifacts.json
+# The slim base has no system CA store; LiveKit's native client (rustls) needs one (F958).
+# Write Node's bundled roots offline, root-owned, for SSL_CERT_FILE.
+RUN node -e "require('node:fs').writeFileSync('/app/ca-roots.pem', require('node:tls').rootCertificates.join('\\n') + '\\n')"
 # Image files remain root-owned; the runtime can only write bounded mounts.
 USER node
 # Repeat the checks as the runtime user on the final filesystem.
@@ -78,6 +82,7 @@ USER node
 # same checks runs in deployment/captureContainerRuntime.mjs (DEPLOY-004).
 RUN node deployment/verifyAudioDecoder.mjs \
     && node deployment/nativeArtifacts.mjs --verify \
+    && test -s /app/ca-roots.pem && grep -q -- '-----BEGIN CERTIFICATE-----' /app/ca-roots.pem \
     && cd services/tutor-agent \
     && node --input-type=module -e "import { VAD } from '@livekit/agents-plugin-silero'; await VAD.load(); console.log('Nonroot Silero model load passed');"
 EXPOSE 8787
