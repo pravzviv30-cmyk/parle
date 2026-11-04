@@ -82,7 +82,7 @@ USER node
 # same checks runs in deployment/captureContainerRuntime.mjs (DEPLOY-004).
 RUN node deployment/verifyAudioDecoder.mjs \
     && node deployment/nativeArtifacts.mjs --verify \
-    && test -s /app/ca-roots.pem && grep -q -- '-----BEGIN CERTIFICATE-----' /app/ca-roots.pem \
+    && node -e "const n=require('node:fs').readFileSync('/app/ca-roots.pem','utf8').split('\\n').filter(l=>l==='-----BEGIN CERTIFICATE-----').length; if(n!==require('node:tls').rootCertificates.length) throw new Error('ca-roots.pem holds '+n+' roots')" \
     && cd services/tutor-agent \
     && node --input-type=module -e "import { VAD } from '@livekit/agents-plugin-silero'; await VAD.load(); console.log('Nonroot Silero model load passed');"
 EXPOSE 8787
