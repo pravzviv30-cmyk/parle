@@ -30,3 +30,11 @@
 "RCTEnhancedScrollView" 0x1045d4a00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
 ## Today after tapping it from Journey
 "RCTEnhancedScrollView" 0x1045d4000 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+
+# Final: commit 3f20df01 (patch + collapsable={false}), fresh Metro --clear, fresh launch
+## Today at fresh launch
+"RCTEnhancedScrollView" 0x1041b8000 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Journey after tapping it from Today
+"RCTEnhancedScrollView" 0x1041b8a00 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Today after tapping it from Journey
+"RCTEnhancedScrollView" 0x1041b8000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
