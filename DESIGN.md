@@ -246,9 +246,9 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   with coffee-break, the retry and the bundled offline line. The conversation
   and memory pages use the phrasebook drawing with Choose a scene; those routes
   follow the device since 2026-10-21 (UI-008 step 12b).
-  **Centre stage** (`stage`, UI-019 4A) is for the quiet moments that stand for
-  the whole screen: no card, the mascot and the words centred on the screen's
-  own ground, the title at 26 extra bold. The phrasebook with nothing kept
+  **Centre stage** (`stage`, UI-019 4A) is for a quiet moment that is the
+  screen's whole content under its own header: no card, the mascot and the words
+  centred on the screen's own ground, the title at 26 extra bold. The phrasebook with nothing kept
   draws Cloud holding the book, "Your first kept phrase lands here.", "Keep a
   line in a conversation and it waits here, ready to hear again.", and Choose a
   scene pinned in the foot. Speak out of the free conversation (only on the
