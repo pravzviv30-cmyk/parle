@@ -42,11 +42,14 @@ export const CLOUD_POSES: Record<CloudPose, { viewBox: ViewBox; rear: string[]; 
     viewBox: { x: -34, y: -30, width: 304, height: 266 },
     shadow: { cx: 116, cy: 212, rx: 92, ry: 7 },
     rear: ['M94 170V206L110 205M144 166V203L160 202'],
-    front: ['M30 128C40 146 52 154 70 152M200 126C188 144 174 154 152 152'],
+    front: [],
+    // The book and the arms that wrap it lie on the white body, the same in both
+    // modes, so they keep the dark ink; only the legs on the ground take the screen's.
     marks: [
       // The board's rect x66 y122 88x64 rx9, as a path.
-      { d: 'M75 122H145C149.97 122 154 126.03 154 131V177C154 181.97 149.97 186 145 186H75C70.03 186 66 181.97 66 177V131C66 126.03 70.03 122 75 122Z', fill: colour.sun, stroke: paper.ink, strokeWidth: 3.4, tone: 'ink' },
+      { d: 'M75 122H145C149.97 122 154 126.03 154 131V177C154 181.97 149.97 186 145 186H75C70.03 186 66 181.97 66 177V131C66 126.03 70.03 122 75 122Z', fill: colour.sun, stroke: paper.ink, strokeWidth: 3.4 },
       { d: 'M82 144H138M82 162H122', stroke: paper.card, strokeWidth: 6 },
+      { d: 'M30 128C40 146 52 154 70 152M200 126C188 144 174 154 152 152', stroke: paper.ink, strokeWidth: LIMB_WIDTH },
     ],
     face: 'idle',
   },

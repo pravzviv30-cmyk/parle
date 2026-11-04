@@ -1332,9 +1332,10 @@ not show on a dark ground) and is drawn in its own
 box, wider than the body, so a posed Cloud's size is the width of that box. A
 Cloud with no pose is the drawing above. The limbs are ink, drawn in the text
 colour of the screen they stand on (the sheet's word colour on the right
-sheet), so they show in dark mode; drawn marks with a tone follow too (the book's
-outline and "z z" take the ink, the listen arcs the accent), while filled marks
-keep their palette fills. The body, cheeks and face are unchanged in
+sheet), so they show in dark mode; drawn marks with a tone follow too ("z z" takes
+the ink, the listen arcs the accent), while filled marks keep their palette fills.
+Lines that lie on the white body or the yellow book (hold's arms, the book's
+outline) keep the dark ink, because those are the same in both modes. The body, cheeks and face are unchanged in
 both modes. For the blink, `CloudLids` draws card-white lids over the open eyes
 with the asleep face's closed curve, and `Blink` fades them in and out.
 

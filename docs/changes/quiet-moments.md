@@ -46,8 +46,9 @@ After brief 4:
 
 - `art/mascots/mascotPoses.ts`:
   - two new poses, `hold` (legs, the idle face, the book under both arms) and `rest` (legs, the paused face, "z z");
-  - a mark `tone`: `ink` strokes take the caller's ink, and `accent` strokes take the accent or brand blue. The listen arcs are `accent`, and the book outline and "z z" are `ink`;
-  - marks draw before front limbs, so hold's arms wrap the book;
+  - a mark `tone`: `ink` strokes take the caller's ink, and `accent` strokes take the accent or brand blue. The listen arcs are `accent`, and "z z" is `ink`;
+  - hold's arms and the book's outline lie on the white body and the yellow book, the same in both modes, so they are marks in the dark ink, drawn after the book. Only the legs on the ground take the screen's ink. The iOS dark check found the arms vanishing in cream ink;
+  - marks draw before front limbs;
   - the `<Cloud pose ink accent>` API is unchanged.
 - `empty/EmptyStateCard.tsx`:
   - `figure` (a mascot in place of the BArt drawing);
