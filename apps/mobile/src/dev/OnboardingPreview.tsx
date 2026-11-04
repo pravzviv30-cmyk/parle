@@ -27,6 +27,7 @@ import { StreakCelebrationScreen } from '../onboarding/firstRun/StreakCelebratio
 import { guestStreak } from '../onboarding/guestProgress.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 import { HIT, paper, radius, space, type } from '../theme.ts';
+import { b } from '../palette.ts';
 import { HowItsGoingPreview, YourFrenchPreview } from './YourFrenchPreview.tsx';
 import { TodayPreview } from './TodayPreview.tsx';
 import { TODAY_PREVIEW_KEYS, TODAY_PREVIEW_LABELS, todayPreviewState } from './todayPreviewFixtures.ts';
@@ -194,7 +195,7 @@ export function OnboardingPreview() {
             progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
-          {screen === 'quiet-toast' && <ModeScope mode={yourFrenchMode}><View style={st.toast}><ToastPill /></View></ModeScope>}
+          {screen === 'quiet-toast' && <ModeScope mode={yourFrenchMode}><View style={[st.toast, { backgroundColor: b[yourFrenchMode].ground }]}><ToastPill /></View></ModeScope>}
           {screen === 'quiet-phrasebook' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset" footer={<PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => go('select')} lip />}><PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} /></ScrollScreen></ModeScope>}
           {screen === 'quiet-speak' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset"><OutOfTimeMoment card={QUIET_OUT_OF_TIME} onPlans={() => go('select')} /></ScrollScreen></ModeScope>}
           {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <ModeScope mode={yourFrenchMode}><LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} /></ModeScope>}
@@ -273,7 +274,7 @@ const st = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },
   story: { gap: space(5) },
   ink: { color: paper.ink },
-  toast: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: paper.ground },
+  toast: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   heading: { color: paper.ink, textAlign: 'center' },
   caption: { color: paper.inkSoft, textAlign: 'center' },
   badgeFrame: { position: 'absolute', right: space(4), flexDirection: 'row', gap: space(1) },
