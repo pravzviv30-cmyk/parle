@@ -99,6 +99,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-11-03 | Cloud listening on a speak drill is part of the mic, like the live room's cloud mic, and does not count toward the Cloud budget. | Founder, answer inside 1C |
 | 2026-11-03 | Add Cloud's blink now, while a speak drill's mic is live. | Founder, answer inside 1C |
 | 2026-11-03 | Keep Bright Luvani; change what sits under it: one systemic pass before onboarding, and watch 3 French beginners on the iPhone build before the onboarding board | Founder, design council |
+| 2026-11-04 | Quiet moments (4A): centre stage on the two drawn screens (the phrasebook with nothing kept, Speak out of the free conversation), and the two nothing-to-review cards take the posed Cloud cheer so its arms show in dark mode. Other empty states keep their cards. | Founder, answer inside 4A |
+| 2026-11-04 | On Speak the quiet moment replaces the out-of-time card in place, See the plans in flow; the scene hero and the rest of Speak wait for the Speak tab redesign. | Founder, answer inside 4A |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -126,7 +128,7 @@ Reordered by journey on 2026-11-02 (founder, Journey map board): recap, onboardi
 the recap), Speak tab, Practice hub, Journey.
 On 2026-11-03 the founder put one systemic pass between the recap and onboarding (design council).
 
-Mascots and play (UI-019, [changes/cast.md](changes/cast.md)) runs across screens, not as a screen of its own. Its briefs go in this order: brief 1 (1C, Cloud's poses and blink) is building on `claude/cast`; brief 4 (4A, quiet moments, with Today's out-of-time hero after `claude/phone-fixes`) is next; briefs 2 (2B, one sky) and 3 (3A, the streak hero) follow the Journey board. The queued screen sessions apply the picks to their own screens.
+Mascots and play (UI-019, [changes/cast.md](changes/cast.md)) runs across screens, not as a screen of its own. Its briefs go in this order: brief 1 (1C, Cloud's poses and blink) landed at `7ddb04e3`; brief 4 (4A, quiet moments, [changes/quiet-moments.md](changes/quiet-moments.md)) is building on `claude/quiet-moments`; briefs 2 (2B, one sky) and 3 (3A, the streak hero) follow the Journey board. The queued screen sessions apply the picks to their own screens.
 
 Systemic fixes waiting for evidence from the first screens: one card system, a type
 scale named by role, native sheet and modal presentation, and route transitions that
@@ -140,7 +142,7 @@ chooses per row. A screen's redesign session reads its rows here before its brie
 
 | Date | Screen | Problem | Direction | Branch | State |
 |---|---|---|---|---|---|
-| 2026-11-01 | Today, out of time past Starter | The hero holds the out-of-time words with a plain "Review N phrases" button, and Today's path still has its own Review row with the same words, so one intent shows twice. | Make the hero's single action a LipTile "Review N phrases" with the watering-plant art on sage, and drop the duplicate path row, so the screen keeps one focal point. | `claude/finish-fixes` | picked in 4A (Mascots and play, UI-019), built after phone-fixes |
+| 2026-11-01 | Today, out of time past Starter | The hero holds the out-of-time words with a plain "Review N phrases" button, and Today's path still has its own Review row with the same words, so one intent shows twice. | Make the hero's single action a LipTile "Review N phrases" with the watering-plant art on sage, and drop the duplicate path row, so the screen keeps one focal point. | `claude/finish-fixes` | built in `claude/quiet-moments` (4A, UI-019) |
 | 2026-11-01 | Today's starter-line sheet | It reads as a form: the only practice surface without a stage. | Put the prompt and translation on a Write-family sage stage band, as Drill B does, with the field and pill below; the offline note becomes one muted caption under the field. | `claude/finish-fixes` | picked in 2B (UI-019), built with brief 2 |
 | 2026-11-01 | Today and the drills (eyebrows) | Labels above headings ("One fix to try", "Build it in French", "Today's phrase") add a line the craft floor avoids; DESIGN.md defines `eyebrow` tokens, so this is not slop. | Fold the label into the heading ("One fix to try" becomes the heading and the question its caption) and retire the eyebrow tokens one screen at a time. | `claude/finish-fixes` | folded into brief 2 (2B) |
 | 2026-11-01 | Tab bar at accessibility sizes | Icons only (F947) removes every word, including the one that says where you are; a long press now shows it large on iOS. | Keep the selected cell's word under the sun glyph and hide only the four resting tabs' words. This revisits the founder's F947 decision. | `claude/finish-fixes` | passed to finish-off (`claude/phone-fixes`) |
