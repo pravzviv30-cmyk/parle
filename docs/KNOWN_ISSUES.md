@@ -12207,6 +12207,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `startReactNative` block. It throws if AppDelegate.swift stops matching the Expo 57 template.
   Proven 2026-11-02: a clean `expo prebuild --clean` of this branch, built for device, launched on the
   founder's iPhone 17 (iOS 27.0.1) with React Native running and no crash report.
+  Launch checked 2026-11-04 on the same phone with main 98cd8098: the native splash and the returning
+  launch hand-off are drawn under the scene delegate. The first-run "Get Started" launch did not play,
+  by design: the Keychain's `luvani.has-used-app.v1` survives a reinstall (`src/auth/installHistory.native.ts`).
 - verified-by: `the iOS build adopts the scene life cycle so iOS 27 does not kill it at launch`
 
 ### F954 — Today names one review twice when the hero offers it
@@ -12260,3 +12263,21 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (`maxFontSizeMultiplier` sized so the longest hour word and its comma fit 343pt), which caps
   one text's scaling, so it waits for the founder's call.
 - verified-by: `the greeting's longest hour word fits its column at the largest text size`
+
+### F958 — Every tutor join fails on staging: the image has no CA store for LiveKit's native client
+- severity: P1
+- status: [x]
+- where: Dockerfile (runtime stage); services/tutor-agent/src/agent.ts:140 (`JobContext.connect`)
+- note: Seen in staging logs on 2026-11-01 and 2026-11-04: the tutor receives the LiveKit job, then
+  `JobContext.connect` throws "ConnectError: engine: signal failure: transport connection error: IO
+  error: no native root CA certificates found (errors: [])" from `@livekit/rtc-node` (FFI
+  `@livekit/rtc-ffi-bindings` 0.12.73, rustls with rustls-native-certs). Cause: the pinned
+  `node:24.16.0-bookworm-slim` base ships no `ca-certificates`, so the system store is empty; Node
+  itself is unaffected because it uses its bundled roots. Fix: the runtime stage writes Node's
+  bundled roots (`tls.rootCertificates`) to root-owned `/app/ca-roots.pem` at build time, with no
+  package install or network, sets `SSL_CERT_FILE` to it, and the nonroot check fails the build unless
+  the file holds exactly `tls.rootCertificates.length` certificates.
+- fixed: 2026-11-04 on claude/tutor-ca. Ticked on the test and the image's own nonroot check, because
+  the gate refuses an open P1 and Railway deploys only `main`; the live tutor join on staging after
+  that deploy is the proof still to record here.
+- verified-by: `runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)`
