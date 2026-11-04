@@ -84,7 +84,7 @@ After brief 4:
 1. Only `hold` and `rest` are new. Wave, Toast's poses and the hello tilt still have no caller.
 2. The centre-stage title is the existing `bType.title26` (26/31), not the board's 28/32. No new token.
 3. The toast keeps "Saved to your phrasebook.". The board's "First phrase saved." would be wrong after the first save.
-4. When Today regains focus, NextTaskCard reloads billing. For a learner whose hero carries Review, Review is hidden for that moment rather than shown twice.
+4. When Today regains focus, NextTaskCard reloads billing. For a learner whose hero carries Review, Review is hidden for that moment rather than shown twice. The path keeps the last answer through that reload, so if the learner's minutes ran out between visits, the row can go once the hero answers; that is real data changing between visits. A hero that unmounts (the fix hero taking over) reports `null`, so the next hero starts undecided (fix-verifier round 1).
 
 ## Blast radius
 

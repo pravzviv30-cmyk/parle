@@ -361,6 +361,10 @@ test('the hero is the first stop present, and the rows never repeat it', () => {
   assert.deepEqual(rowMarks([]), []);
   // The screen draws the hero and the rows from the rule.
   assert.match(HOME, /const stops = todayStops\(\{ fix: fix !== null, review: review !== null, heroReview \}\);/);
+  // A hero that goes (the fix hero takes over) takes its answer with it, so the
+  // next hero starts undecided and a stale answer never draws the row (fix-verifier).
+  const card = read('../practice/NextTaskCard.tsx').replace(/\s+/g, ' ');
+  assert.match(card, /useEffect\(\(\) => \(\) => \{ if \(bare\) onHeroReview\?\.\(null\); \}, \[bare, onHeroReview\]\);/, 'a hero that unmounts leaves its answer behind');
   assert.match(HOME, /rowMarks\(stops\.rows\)\.map\(/);
 });
 
@@ -433,7 +437,7 @@ test("Today's path drops its Review row whenever the hero carries it, and holds 
   assert.deepEqual(todayStops({ fix: false, review: true, heroReview: true }).rows, ['phrase'], 'held with review due: Review twice');
   assert.deepEqual(todayStops({ fix: false, review: true, heroReview: false }).rows, ['phrase', 'review'], 'held with the starter, the café, plans or scene: Review lost');
   assert.deepEqual(todayStops({ fix: false, review: false, heroReview: false }).rows, ['phrase'], 'no review due');
-  assert.deepEqual(todayStops({ fix: false, review: true, heroReview: null }).rows, ['phrase'], 'the row shows while the hero decides, then vanishes');
+  assert.deepEqual(todayStops({ fix: false, review: true, heroReview: null }).rows, ['phrase'], 'the row shows before the hero has answered, so it could vanish');
   assert.deepEqual(todayStops({ fix: true, review: true, heroReview: true }).rows, ['scene', 'phrase', 'review'], 'the fix hero loses Review');
   assert.deepEqual(todayStops({ fix: false, review: true }).rows, ['phrase', 'review']);
 });

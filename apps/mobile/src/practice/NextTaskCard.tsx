@@ -63,7 +63,7 @@ export type LeadPlacement = 'hero' | 'row';
  * primary action, and nothing while loading or failed (the hero shows those).
  * With no placement it draws as it always has.
  */
-export function NextTaskCard({ vivid = false, placement, last = false, starter = null, onHeroReview }: { vivid?: boolean; placement?: LeadPlacement; /** placement row: the final row on the path. */ last?: boolean; starter?: GuestPractice | null; /** placement hero: whether the hero carries Review (`heroCarriesReview`), once it knows. */ onHeroReview?: (carries: boolean) => void }) {
+export function NextTaskCard({ vivid = false, placement, last = false, starter = null, onHeroReview }: { vivid?: boolean; placement?: LeadPlacement; /** placement row: the final row on the path. */ last?: boolean; starter?: GuestPractice | null; /** placement hero: whether the hero carries Review (`heroCarriesReview`), once it knows; null when it goes. */ onHeroReview?: (carries: boolean | null) => void }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
   const { user } = useAuth();
@@ -133,6 +133,8 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   // its path drops the same row; null while the lead is still loading.
   const heroReview = failed ? false : value === null || value.scope !== scopeGeneration() || lead === 'loading' ? null : heroCarriesReview({ lead, billingKnown: billing !== null, reviewDue: reviewDoor !== null, starterShown: starter !== null, cafeShown: local !== null && cafeOffered });
   useEffect(() => { if (bare && heroReview !== null) onHeroReview?.(heroReview); }, [bare, heroReview, onHeroReview]);
+  // A hero that goes takes its answer with it, so the next hero starts undecided.
+  useEffect(() => () => { if (bare) onHeroReview?.(null); }, [bare, onHeroReview]);
   if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   if (value === null || value.scope !== scopeGeneration()) return row ? null : <Text style={type.small}>Finding your next task…</Text>;
