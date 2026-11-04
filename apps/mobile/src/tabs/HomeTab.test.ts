@@ -371,10 +371,9 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     }
     assert.doesNotMatch(flat(RENDER), /<Columns>/, 'the path is split into columns, so it no longer reads in order');
     assert.ok(!SCREEN.includes('<DailyCarousel'), 'the word and phrase carousel is back on Today');
-    // The board's rhythm (UI-015, was B-Today's 22pt page gap): TodayLayout
-    // sets the sections 30pt apart and pads the body 16pt at the sides.
-    assert.match(LAYOUT, /const SECTION_GAP = 30;/);
-    assert.match(LAYOUT, /section: \{ marginTop: SECTION_GAP \}/);
+    // The page rhythm (phone fixes 2026-11-02, was the board's 30): TodayLayout
+    // sets the sections RHYTHM.section (32pt) apart.
+    assert.match(LAYOUT, /section: \{ marginTop: RHYTHM\.section \}/);
   });
 
   test('the four tiles, the rail, the old details and every rank name are gone', () => {

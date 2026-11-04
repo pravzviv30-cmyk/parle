@@ -70,6 +70,7 @@ const EVERY_FAILURE = Object.keys({
   'rate-limited': true,
   'session-elsewhere': true,
   'own-session-closing': true,
+  'daily-limit': true,
   'sign-in-required': true,
   signal: true,
   media: true,

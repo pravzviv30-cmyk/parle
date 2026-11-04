@@ -66,7 +66,7 @@ import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { loadDeck } from '../review/store.ts';
 import { practicePreferencesOf, startAtOf } from '../profile/practicePreferences.ts';
 import { learningSuggestions } from '../main/learningSuggestions.ts';
-import { bType, decorative, frenchText, space, type, HIT } from '../theme.ts';
+import { bType, decorative, frenchText, space, type, HIT, RHYTHM } from '../theme.ts';
 
 import { tutorOrbState } from '../tutor/orbState.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
@@ -516,10 +516,10 @@ const HEAR = 48;
 
 const makeStyles = (t: B) =>
   StyleSheet.create({
-    // The artboard's 22pt rhythm; the shared header keeps its own 20pt foot,
-    // so it is pulled back to the same 22 (as Today does).
+    // RHYTHM.block between cards (phone fixes, 2026-11-02); the shared header
+    // keeps its own 20pt foot, so it is pulled back to the same gap.
     head: { marginBottom: -space(5) },
-    page: { gap: 22 },
+    page: { gap: RHYTHM.block },
     tight: { gap: 2 },
     offline: { marginTop: space(4), gap: space(3) },
     offlineLine: { alignSelf: 'stretch', marginTop: space(2) },
@@ -548,7 +548,7 @@ const makeStyles = (t: B) =>
     link: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
     linkCentred: { alignSelf: 'center' },
     titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2) },
-    scenes: { gap: 10 },
+    scenes: { gap: RHYTHM.item },
     list: { backgroundColor: t.card, borderRadius: 24, paddingVertical: 4, paddingHorizontal: 14 },
     sceneRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(3), minHeight: HIT },
     rule: { borderBottomWidth: 1, borderBottomColor: t.line },

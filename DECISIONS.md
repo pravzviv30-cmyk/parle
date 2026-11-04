@@ -274,7 +274,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   paywall keeps its current design and structure and only gains a dark variant.
 - Decision: the tab bar is Codex's floating capsule (Figma `C2/Main2/Navigation`,
   node 292:1103): an ink capsule in both themes, a violet selected cell with a
-  gold bulk glyph and a cream label, Codex's Iconsax icons, B's labels.
+  gold bulk glyph and a cream label, Codex's Iconsax icons, B's labels. Its strip of
+  route ground is superseded by UI-017 (2026-11-01): the bar floats.
 - Decision: three held cards show now with the data that exists. "Comes up
   often" uses error patterns with authored copy and never a count. Today's
   "Coming up" uses the latest remembered life event, with no countdown and no
@@ -935,6 +936,40 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     `primaryLip` token pair is added.
   - Motion reuses `Enter`, `PopIn`, `LevelSquish`, `CountUp`, `TokenFlight` and
     `PopOnce`; confetti only at the end; all of it off under reduced motion.
+
+## UI-017 — The tab bar floats: only the capsule covers content
+
+- Date: 2026-11-01
+- Status: accepted (founder, 2026-11-01, on an iPhone). Supersedes the
+  "grounded dock" of F313 and UI-008 (the strip of route ground that kept the
+  bar in layout).
+- Decision: the tab bar is a floating capsule. The strip around it is clear,
+  absolutely placed at the bottom and passes touches through; the capsule keeps
+  its size, colours, cells, labels and place. Tab screens (and Profile's
+  detached bar) scroll behind it and pad their scroll content by the bar's
+  measured height plus 32pt.
+- Reason: the full-width strip above the capsule cut content in half as it
+  scrolled ("Today's three" on Today). The founder wants the bar's outline to
+  be its only edge.
+- Consequence: the bar reports its height through React Navigation's
+  `BottomTabBarHeightCallbackContext`; `ScrollScreen bottom="tab"` reads
+  `BottomTabBarHeightContext`, with the 74pt capsule plus insets as the
+  fallback outside the navigator. Still no shadow or hairline.
+- Sources: founder item 6, 2026-11-01; `nav/tabBar.test.ts`, `layout.test.ts`.
+
+## UI-018 — The open tab can be held and dragged to another
+
+- Date: 2026-11-02
+- Status: accepted (founder item 7, on an iPhone; route "Keep our capsule, add
+  drag", no new packages, no glass blur). Reverses "the bar itself moves
+  nothing" (F600) for the selection pill only.
+- Decision: the violet selected cell is one Reanimated pill (`nav/TabPill.tsx`)
+  behind the glyphs. A tap slides it; a sideways drag that starts on the open
+  tab moves it with the finger through RN's PanResponder, ticking as the drag
+  starts and at each cell crossed, and letting go navigates the way a tap does.
+  A still long press is not claimed (F947's Large Content Viewer). Reduce
+  Motion jumps it. Cells keep their roles, labels and the Practice dot.
+- Sources: founder item 7, 2026-11-02; `nav/tabBar.test.ts`.
 
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 

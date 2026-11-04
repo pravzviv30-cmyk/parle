@@ -20,7 +20,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Skeleton } from '../components.tsx';
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
-import { HIT, bType, radius, space } from '../theme.ts';
+import { HIT, RHYTHM, bType, radius, space } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { UNREAD } from '../practice/archive.ts';
@@ -350,12 +350,12 @@ export function PracticeTab() {
   );
 }
 
-// Section gaps from the artboards: Practice 20, the empty page 22.
+// Page gaps come from RHYTHM (phone fixes, 2026-11-02): cards 20, list items 12.
 const makeStyles = (_t: B) =>
   StyleSheet.create({
-    page: { gap: space(5) },
-    emptyPage: { gap: space(5.5) },
+    page: { gap: RHYTHM.block },
+    emptyPage: { gap: RHYTHM.block },
     searchBlock: { gap: space(2.5) },
-    list: { gap: space(2.5) },
+    list: { gap: RHYTHM.item },
     refused: { gap: space(2), alignSelf: 'stretch', minHeight: HIT },
   });
