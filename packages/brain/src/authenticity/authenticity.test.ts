@@ -57,6 +57,12 @@ describe('the rendered pack is safe for the cached prefix', () => {
     assert.ok(text.includes('Textbook vs spoken'));
   });
 
+  test('the filler principle agrees with the persona: at most one, never a quota', () => {
+    const text = renderAuthenticityPack(FR_PACK);
+    assert.ok(!text.includes("belong in the tutor's own lines"));
+    assert.match(text, /at most one/i);
+  });
+
   test('is comfortably past the cacheable minimum and free of volatile tokens', () => {
     const text = renderAuthenticityPack(FR_PACK);
     assert.ok(text.length > 4000, 'pack render suspiciously small');

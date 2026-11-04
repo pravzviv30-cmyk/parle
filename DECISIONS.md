@@ -1547,6 +1547,31 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Sources: founder answers of 25 October 2026, VOICE-010 "Deferred",
   `docs/LIVE_VOICE.md` "Tap to send".
 
+## VOICE-020 — Numbers in words when spoken, and one filler rule
+
+- Date: 2026-11-04
+- Status: accepted
+- Decision:
+  - Both personas (`packages/brain/src/prompt/system.ts` and
+    `services/tutor-agent/src/prompt.ts`, under "HOW YOU SPEAK") ask the tutor
+    to say numbers, prices, times and dates in words in what it speaks, for
+    example "deux euros cinquante" or "dix-huit heures". Display text, `copy.ts`,
+    the schemas and the runtime guards are unchanged.
+  - The French pack's filler principle (`authenticity/fr.ts`) now agrees with
+    the persona: fillers are real spoken rhythm, and a tutor line carries at
+    most one, when it genuinely fits, never as a quota.
+- Reason: a research review of the live voice
+  (https://claude.ai/artifact/CasHwe4Yc6GC39EQ4TDqXc) found two prompt
+  problems. Nothing asked for numbers in words, though digits are allowed in
+  scene speech; LiveKit and ElevenLabs both advise spelling them out, and
+  ElevenLabs Flash v2.5 (VOICE-009) does not normalise numbers at all. And the
+  pack said fillers "belong in the tutor's own lines" while the persona, in the
+  same cached prefix, called them optional.
+- Consequence:
+  - One prompt-cache miss per persona when the new prefix first goes out.
+  - Tests: `prompt/prompt.test.ts` and `authenticity/authenticity.test.ts` in
+    the brain, and `prompt.test.ts` in the tutor agent.
+
 ## LEARN-001 — Help earns no independent use
 
 - Date: 2026-10-26

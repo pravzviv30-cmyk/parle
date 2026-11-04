@@ -212,6 +212,16 @@ describe('one tutor, two pipelines', () => {
     }
   });
 
+  test('both ask for numbers in words in what is spoken', () => {
+    for (const [where, text] of [
+      ['lesson', baseInstructions(lesson)],
+      ['conversation', buildSystemBlocks().persona],
+    ] as const) {
+      assert.match(text, /numbers, prices, times and dates in words/i, `${where} never asks for numbers in words`);
+      assert.match(text, /voice misreads digits/i, `${where} never gives the reason`);
+    }
+  });
+
   test('neither lets him perform himself at the learner', () => {
     assert.match(baseInstructions(lesson), /never go on about yourself/i);
     assert.match(buildSystemBlocks().persona, /never go on about yourself/i);

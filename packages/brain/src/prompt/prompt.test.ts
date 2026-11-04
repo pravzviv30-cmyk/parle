@@ -118,9 +118,15 @@ describe('the stable prefix', () => {
     assert.match(persona, /answer the person first/i);
   });
 
+  test('spoken French says numbers, prices and times in words, with the reason', () => {
+    const { persona } = buildSystemBlocks();
+    assert.match(persona, /numbers, prices, times and dates in words/i);
+    assert.match(persona, /voice misreads digits/i);
+  });
+
   test('spoken French can use fillers naturally, without performing them', () => {
-    // The pack has carried these from the start and its own principle says they
-    // belong in the tutor's own lines. They are examples, though, not a quota:
+    // The pack has carried these from the start and its own principle calls them
+    // real spoken rhythm, at most one a line. They are examples, not a quota:
     // forcing one into every sentence was exactly what made the tutor sound
     // scripted and irritating.
     const { persona } = buildSystemBlocks();
