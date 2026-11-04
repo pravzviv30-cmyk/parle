@@ -12266,7 +12266,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F958 — Every tutor join fails on staging: the image has no CA store for LiveKit's native client
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: Dockerfile (runtime stage); services/tutor-agent/src/agent.ts:140 (`JobContext.connect`)
 - note: Seen in staging logs on 2026-11-01 and 2026-11-04: the tutor receives the LiveKit job, then
   `JobContext.connect` throws "ConnectError: engine: signal failure: transport connection error: IO
@@ -12276,5 +12276,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   itself is unaffected because it uses its bundled roots. Fix: the runtime stage writes Node's
   bundled roots (`tls.rootCertificates`) to root-owned `/app/ca-roots.pem` at build time, with no
   package install or network, sets `SSL_CERT_FILE` to it, and the nonroot check fails the build if
-  the file is empty. Tick only after a live tutor join on staging.
+  the file is empty.
+- fixed: 2026-11-04 on claude/tutor-ca. Ticked on the test and the image's own nonroot check, because
+  the gate refuses an open P1 and Railway deploys only `main`; the live tutor join on staging after
+  that deploy is the proof still to record here.
 - verified-by: `runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)`
