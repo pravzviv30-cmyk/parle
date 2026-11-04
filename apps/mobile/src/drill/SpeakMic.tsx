@@ -8,27 +8,36 @@
  *
  * - The ring is drawn only while live and only once the recorder has metered a
  *   real level (`useRecorderLevel`), so no level is made up.
- * - Cloud (`listening`) is drawn only while live: Cloud appears at moments,
- *   never on the question. It squishes to the same level with `LevelSquish`.
- *   It sits in a slot above the circle that is kept whether or not it shows,
- *   so the mic never moves when it comes and goes (the board draws it at
- *   96 wide over the mic). Decorative and untouchable.
+ * - Cloud, in its `listen` pose (a hand to the ear), is drawn only while live,
+ *   never on the question; it is part of the mic, not a moment. It squishes to
+ *   the same level with `LevelSquish`, and blinks inside it, so the lids scale
+ *   with the face. Its limbs take the screen's text colour, so they show in
+ *   dark mode. It sits in a slot above the circle, kept at the 77 it had
+ *   before poses whether or not it shows, so the mic never moves; Cloud draws
+ *   as wide as its posed box allows at that height. Say it aloud's answer
+ *   area has the room for 116 wide, which draws the body about as big as the
+ *   board's 96. Decorative and untouchable.
  * - Reduced motion: `LevelSquish` holds Cloud still and the ring keeps its
  *   static opacity steps, both inside the primitives.
  */
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Cloud } from '../art/mascots/Cloud.tsx';
+import { Cloud, CloudLids } from '../art/mascots/Cloud.tsx';
+import { CLOUD_POSES } from '../art/mascots/mascotPoses.ts';
+import { useB } from '../main/bTheme.tsx';
 import { LevelRing } from '../motion/LevelRing.tsx';
-import { LevelSquish } from '../motion/MascotMotion.tsx';
+import { Blink, LevelSquish } from '../motion/MascotMotion.tsx';
 import { decorative } from '../theme.ts';
 import type { useRecorderLevel } from '../speech/useRecorderLevel.ts';
 
-/** Cloud over a live mic, as wide as the board draws it. */
-const CLOUD = 96;
-/** The slot Cloud sits in, kept while the mic is at rest. */
-const CLOUD_SLOT = Math.round(CLOUD * 0.7) + 10;
+
+/** The listening Cloud's box where there is room: its body as big as the board's 96. */
+const CLOUD = 116;
+/** The slot over the mic, kept while the mic is at rest: the height it had before poses. */
+const SLOT = 77;
+/** Cloud in that slot, as wide as its posed box allows at that height. */
+const SLOT_CLOUD = Math.floor((SLOT * CLOUD_POSES.listen.viewBox.width) / CLOUD_POSES.listen.viewBox.height);
 
 export function SpeakMic({
   live,
@@ -65,19 +74,33 @@ export function SpeakMic({
   return (
     <View style={st.column}>
       <View {...decorative} pointerEvents="none" style={st.slot}>
-        {live && (
-          <LevelSquish level={voice.metered ? voice.level : null} on={live} height={CLOUD * 0.7}>
-            <Cloud expression="listening" size={CLOUD} />
-          </LevelSquish>
-        )}
+        <ListeningCloud live={live} voice={voice} size={SLOT_CLOUD} />
       </View>
       {mic}
     </View>
   );
 }
 
+/**
+ * Cloud listening, drawn only while `live`, squishing to the heard level and
+ * blinking inside the squish so the lids scale with the face. Limbs in the
+ * screen's text colour. Say it aloud draws it in its answer area; SpeakMic's
+ * slot draws it over the mic for the other speak drills.
+ */
+export function ListeningCloud({ live, voice, size = CLOUD }: { live: boolean; voice: ReturnType<typeof useRecorderLevel>; size?: number }) {
+  const { text, link } = useB();
+  if (!live) return null;
+  return (
+    <LevelSquish level={voice.metered ? voice.level : null} on={live} height={Math.ceil((size * CLOUD_POSES.listen.viewBox.height) / CLOUD_POSES.listen.viewBox.width)}>
+      <Blink active={live} lids={<CloudLids pose="listen" size={size} />}>
+        <Cloud pose="listen" size={size} ink={text} accent={link} />
+      </Blink>
+    </LevelSquish>
+  );
+}
+
 const st = StyleSheet.create({
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   column: { alignItems: 'center' },
-  slot: { height: CLOUD_SLOT, justifyContent: 'flex-end', alignItems: 'center' },
+  slot: { height: SLOT, justifyContent: 'flex-end', alignItems: 'center' },
 });

@@ -22,6 +22,18 @@ of the list.
 
 ## Current landing snapshot
 
+- 3 November 2026 Mascots and play, brief 1 (1C, the cast, UI-019): branch `claude/cast` from main
+  a90ed36b, with main merged at 4ff3aff2 and at 98cd8098 (phone-fixes). Cloud's listen and cheer poses, limbs in the screen's ink and
+  the listen arcs in the theme's link colour; a blink while a speak drill's mic is live (paused off the
+  mic, in the background and under Reduce Motion); the say drill's controls pinned in the foot with
+  Cloud listening above; Cloud cheering and hopping on every right sheet. Fix-verifier round 1 refuted
+  the silent foot (330 against a 243 cap at 320x640), fixed; round 2 HOLDS. Push-check fixes: the arcs'
+  dark contrast, the live ring's room in the foot, the blink after the background (on the shared
+  foreground hook), and test pins. Shots
+  in `artifacts/cast-2026-11/`, web at 320 and 375 light and dark, and the iPhone 13 mini simulator
+  (blink recording, Reduce Motion, mid-hop, dark).
+  **7,557 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4093; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 3 November 2026 Phone-check fixes (UI-017, UI-018): branch `claude/phone-fixes` from main a90ed36b,
   merged with main 4ff3aff2. Today's greeting and name share one line when the name fits, the name
   capitalised and drawn over the clouds; the selected tab icon is drawn once and only lifts, so it

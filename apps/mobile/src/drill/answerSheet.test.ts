@@ -160,6 +160,12 @@ describe('the answer sheet — F759', () => {
     assert.match(sheetFile, /<\/ScrollView> \{waits \? <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} lip \/> : null\}/, 'a sheet that waits has no Continue, or it scrolls with the body');
   });
 
+  test('Cloud hops once on a right answer, after the sheet has risen', () => {
+    const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+    assert.match(sheetFile, /useEffect\(\(\) => \{ if \(!good\) return undefined; const timer = setTimeout\(\(\) => setHop\(1\), DUR\.fast\); return \(\) => clearTimeout\(timer\); \}, \[good\]\);/, 'Cloud no longer hops on a right answer, or the cue outlives the sheet');
+    assert.match(sheetFile, /<Hop cue=\{hop\}>/, 'the hop cue does not reach Cloud');
+  });
+
   test('a missed drill answer shows the right answer and a one-line reason', () => {
     // F919, founder decision 19 (LEARN-017). A best-sentence miss: core hands
     // over the right sentence, the sheet shows it with its own meaning, says it
@@ -256,7 +262,14 @@ describe('the answer sheet — F759', () => {
     for (const file of ['./DrillFrame.tsx', './kinds/shared.tsx', './kinds/choose.tsx', './kinds/build.tsx', './kinds/write.tsx', './kinds/RepeatThisView.tsx', './kinds/OwnWordsView.tsx']) {
       assert.doesNotMatch(read(file), /\bCloud\b.*from|<Cloud\b/, `${file} draws Cloud on the question`);
     }
-    assert.match(sheetFile.replace(/\s+/g, ' '), /\{sheet\.mark && \( good \? \( .*<Cloud expression="cheer"[^]*?\) : \( .*<CheckGlyph/, 'Cloud is not the right answer\'s mark, or the check is not the nearly\'s');
+    // The cast (1C): on a right answer Cloud cheers in its pose, hopping once,
+    // limbs in the sheet's words. It stays inside the sheet beside the
+    // headline: the foot is a ScrollView, so it would clip anything over the edge.
+    // The hop rises HOP.first over Cloud's box; the row keeps that room above
+    // it, inside the scroll, so the sheet body never clips Cloud mid-hop.
+    assert.match(sheetFile.replace(/\s+/g, ' '), /<View style=\{\[st\.headRow, good && sheet\.mark && st\.hopRoom\]\}>/, 'the cheering Cloud has no room above it for its hop');
+    assert.match(sheetFile, /hopRoom: \{ paddingTop: HOP\.first \}/, 'the hop room is not the hop\'s own height');
+    assert.match(sheetFile.replace(/\s+/g, ' '), /\{sheet\.mark && \( good \? \( .*<PopIn play> <Hop cue=\{hop\}> <Cloud pose="cheer" size=\{CLOUD\} ink=\{ground\.ink\} \/>[^]*?\) : \( .*<CheckGlyph/, 'the right answer\'s Cloud is not the hopping cheer pose, or the check is not the nearly\'s');
     assert.doesNotMatch(sheetFile, /from '\.\.\/sound\/sfx\.ts'|from '\.\.\/motion\/haptics\.ts'/, 'the sheet plays something itself');
     const screen = stripComments(drillSource());
     assert.doesNotMatch(screen, /\bplay\(|from '\.\/sound\/sfx\.ts'/, 'the drill plays a sound beside the sheet');

@@ -212,7 +212,9 @@ const usesLegacyAnimated = (body: string): boolean =>
   runtimeImports(body).some(({ spec, clause }) => spec === 'react-native' && /\bAnimated\b/.test(clause));
 
 /** Rule 4: where a loop may run. */
-const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx'];
+const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx',
+  // Cloud's blink while the mic is live, paused by `active`.
+  'motion/MascotMotion.tsx'];
 const loopAllowed = (short: string): boolean =>
   LOOP_FILES.includes(short) || /^tutor\/(?:Orb|LiveBars)[^/]*\.tsx?$/.test(short);
 
@@ -647,8 +649,8 @@ describe('one door to the engine', () => {
 
   test('a loop runs only where it can be paused', () => {
     // A loop that cannot stop runs behind whatever the learner is doing for the
-    // rest of the session. Only the orb, a busy button and a held icon state may
-    // loop, and each of those files listens for what pauses it.
+    // rest of the session. Only the orb, a busy button, a held icon state and
+    // Cloud's listening blink may loop, and each of those files listens for what pauses it.
     const loops: string[] = [];
     for (const f of FILES) {
       if (f.short === 'motion/drive.ts') continue;
@@ -664,6 +666,17 @@ describe('one door to the engine', () => {
     const deaf = loops.filter((short) => !/paused|playing|active|useIsFocused|AppState/.test(file(short).body));
     assert.deepEqual(deaf, [], `A loop that nothing can pause:\n${deaf.join('\n')}`);
     assert.ok(loops.includes('tutor/VoiceOrb.tsx'), 'the orb no longer loops, so this check reads nothing');
+  });
+
+  test('Cloud\'s blink pauses in the background and re-arms on return', () => {
+    const blink = region(file('motion/MascotMotion.tsx').body, 'Blink').replace(/\s+/g, ' ');
+    assert.match(blink, /const awake = useForeground\(\);/, 'the blink does not watch app state');
+    assert.match(blink, /const live = active && !reduced && awake;/, 'the blink stays off after the app comes back');
+    assert.match(blink, /useEffect\(\(\) => \{ cancel\(shut\); shut\.value = 0; if \(!live\) return;/, 'the blink does not reset and cancel when it stops');
+    const fg = file('motion/MascotMotion.tsx').body.replace(/\s+/g, ' ');
+    // The one shared foreground hook, not a copy of it.
+    assert.match(fg, /import \{ useForeground \} from '\.\.\/game\/art\/foreground\.ts';/, 'the blink does not use the shared foreground hook');
+    assert.doesNotMatch(fg, /function useForeground/, 'the blink carries its own copy of the foreground hook');
   });
 
   test('raised choices keep their release spring when selection commits', () => {

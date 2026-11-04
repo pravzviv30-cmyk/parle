@@ -52,7 +52,7 @@ export const DRILL_PREVIEWS = [
   'drill-choose', 'drill-choose-right', 'drill-reply', 'drill-roll', 'drill-reply-miss',
   'drill-blank', 'drill-blank-landed', 'drill-blank-nearly', 'drill-build', 'drill-build-right',
   'drill-translate', 'drill-translate-hint', 'drill-listen', 'drill-listen-miss2', 'drill-into-en-right',
-  'drill-say', 'drill-say-listening', 'drill-say-result',
+  'drill-say', 'drill-say-listening', 'drill-say-silent', 'drill-say-result',
   'drill-own', 'drill-own-works', 'drill-own-nearly', 'drill-own-oneway',
   'drill-review-front', 'drill-review-typing', 'drill-review-back', 'drill-review-said', 'drill-review-empty',
   'drill-sound', 'drill-soundcheck', 'drill-soundcheck-result',
@@ -314,10 +314,11 @@ function body(preview: DrillPreviewKey): ReactNode {
         shell={shell('listen-type', { sheet: F.SHEETS.listenMiss2 })} />;
     case 'drill-say':
     case 'drill-say-listening':
+    case 'drill-say-silent':
     case 'drill-say-result': {
       const result = preview === 'drill-say-result';
       return <RepeatThisView exercise={F.REPEAT_THIS} onAnswer={noop} onSpoke={noop} onNoMic={noop} locked={result}
-        initialMic={preview === 'drill-say-listening' ? 'live' : 'armed'}
+        initialMic={preview === 'drill-say-listening' ? 'live' : preview === 'drill-say-silent' ? 'silent' : 'armed'}
         shell={shell('repeat-this', { sheet: result ? F.SHEETS.sayResult : null, note: result ? F.SAY_NOTE : null, line: sheetLine(F.REPEAT_THIS, F.REPEAT_THIS.reference) })} />;
     }
     case 'drill-own': return <OwnWords outcome={null} />;

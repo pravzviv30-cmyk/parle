@@ -1,7 +1,8 @@
 /**
  * The live room's small movements outside the portrait (UI-014, direction D):
  * the cloud mic's squish with the learner's level, its cheer when a goal is
- * reached, and a goal stamp landing. None of them loops.
+ * reached, a goal stamp landing, and Cloud's blink while it listens. Only
+ * the blink loops, and only while `active`.
  *
  * - `LevelSquish`: scale X `1 + 0.07 L`, Y `1 - 0.1 L` from a live level, each
  *   change re-aimed on `SPRING.settle`. Anchored at the base, so the cloud sits
@@ -11,18 +12,22 @@
  * - `PopIn`: a stamp grows from 0.6 to 1 on `SPRING.pop` once, when `play`
  *   first turns true.
  *
- * Reduced motion: all three hold still, watched live. Transform only;
- * decoration, so nothing here is reachable by a screen reader.
+ * - `Blink`: fades `lids` over the children in and out about every 4 s while
+ *   `active` (the mic is live). Opacity only; back to 0 when it stops.
+ *
+ * Reduced motion: all of them hold still, watched live. Transform only,
+ * but for the blink's opacity; decoration, so nothing here is reachable by a screen reader.
  */
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
 import Reanimated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
+import { useForeground } from '../game/art/foreground.ts';
 import { useReduceMotion } from '../motion.ts';
-import { cancel, delay, sequence, spring } from './drive.ts';
+import { cancel, delay, repeat, sequence, spring, timing } from './drive.ts';
 import { useLandOnLeave } from './landing.ts';
-import { SPRING } from './tokens.ts';
+import { EASE, SPRING } from './tokens.ts';
 
 /** How far the cloud squishes at full level. */
 export const SQUISH = { wide: 0.07, low: 0.1 } as const;
@@ -110,6 +115,33 @@ export function Rise({ children }: { children: ReactNode }) {
   return <Reanimated.View style={[st.still, look]}>{children}</Reanimated.View>;
 }
 
+/** The blink: wait between blinks, then the lids close and open, in ms. */
+export const BLINK = { every: 4000, close: 70, open: 110 } as const;
+
+export function Blink({ active, lids, children }: { active: boolean; lids: ReactNode; children: ReactNode }) {
+  const reduced = useReduceMotion();
+  const shut = useSharedValue(0);
+  const awake = useForeground();
+  const live = active && !reduced && awake;
+  useEffect(() => {
+    cancel(shut);
+    shut.value = 0;
+    if (!live) return;
+    shut.value = repeat(sequence(reduced,
+      delay(BLINK.every, timing(1, BLINK.close, EASE.linear, reduced), reduced),
+      timing(0, BLINK.open, EASE.out, reduced)), -1, false, reduced);
+  }, [live, reduced, shut]);
+  useLandOnLeave(() => { cancel(shut); shut.value = 0; });
+  const look = useAnimatedStyle(() => ({ opacity: shut.value }));
+  return (
+    <Reanimated.View style={st.still}>
+      {children}
+      <Reanimated.View style={[st.lids, look]}>{lids}</Reanimated.View>
+    </Reanimated.View>
+  );
+}
+
 const st = StyleSheet.create({
   still: { pointerEvents: 'box-none' },
+  lids: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
 });

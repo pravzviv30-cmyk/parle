@@ -971,6 +971,63 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   Motion jumps it. Cells keep their roles, labels and the Practice dot.
 - Sources: founder item 7, 2026-11-02; `nav/tabBar.test.ts`.
 
+## UI-019 — Mascots and play: Cloud and Toast with poses, one sky, the streak as hero, quiet moments centre stage
+
+- Date: 2026-11-02, with the founder's answers on 2026-11-03
+- Status: accepted (founder picked 1C, 2B, 3A and 4A on the Mascots and play
+  board). Plan: `docs/changes/cast.md`. Board
+  https://claude.ai/artifact/FE7LqufdoHPQeArGCLct6g; Figma canvas file
+  `sjAwoGinWQKvhGrWbgMO18`, page "Mascots and play · picks". Research: an
+  Appllama study of Headspace, Duolingo, Finch and Focus Friend (2026-11-02).
+  Numbered UI-019 because UI-017 (the floating tab bar) and UI-018 (the drag
+  pill) belong to `claude/phone-fixes`, which lands first.
+- Decision: four picks.
+  - **1C, Cloud and Toast with poses alive at moments.** Cloud gains posed
+    bodies with limbs, `listen` and `cheer` first, then wave, hold and rest.
+    The bodies and faces stay as drawn (UI-014); limbs take the screen's text
+    colour so they show in dark mode.
+  - **2B, one sky everywhere.** The sky of Today (UI-015) is shared by the
+    other screens. The founder first took 2A and chose 2B when asked. Council
+    warning, not a founder decision: the shared sky must not become one header
+    skeleton for every tab. Each tab keeps its own focal point.
+  - **3A, the streak is the hero.**
+  - **4A, quiet moments centre stage.** Today's out-of-time hero takes this
+    pick.
+- Founder answers inside 1C (2026-11-03):
+  - Cloud cheers on **every** right answer, in its cheer pose.
+  - Cloud listening on a speak drill is part of the mic, like the live room's
+    cloud mic. It does not count toward the Cloud budget.
+  - Cloud blinks now: about every 4 seconds, only while a speak drill's mic is
+    live.
+- The Cloud budget, given in another session on 2026-11-02 ("Luvani video
+  reverse engineering review"): 3 to 4 Cloud moments in a 5-minute sitting,
+  the live mic not counted, listing the first right answer, the end of the set,
+  the recap ending and the streak. Inside 1C the founder then chose every right
+  answer for the drill sheet. Both are recorded here and are not resolved. The
+  build follows the 1C answer and nothing limits cheers.
+- Reason: Cloud had a face and no limbs, so it could not listen or cheer with
+  its body. The founder has asked since 2026-10-29 for mascots with expressions
+  and animation, and picked these four from a study of Headspace, Duolingo,
+  Finch and Focus Friend.
+- Consequence:
+  - Built in `claude/cast` (brief 1 only): the poses `listen` and `cheer`
+    (`art/mascots/mascotPoses.ts`) with sound arcs in brand blue, stars in sun
+    and a ground shadow; the blink (`motion/MascotMotion.tsx`, one more allowed
+    loop in `motion.test.ts`); the listening pose on every speak mic
+    (`drill/SpeakMic.tsx`); on say it aloud the whole speak block pinned in the
+    drill frame's foot, the thumb zone, with Cloud listening full size in the
+    space above it (the push-check proposal of 2026-11-01);
+    and the cheer pose, 80 wide, hopping once, on the right sheet. The plan
+    wanted it standing on the sheet's top edge. The footer's `ScrollView`
+    would clip it, so it sits inside the sheet; standing on the edge is a
+    possible follow-up that needs a footer layout change.
+  - Queued, in this order: brief 4 (4A) next, with wave, hold and rest and
+    Toast's face in the saved-phrase toast; briefs 2 (2B) and 3 (3A) after the
+    Journey board; Today's out-of-time hero (4A) after `claude/phone-fixes`.
+    `EndScene` keeps its face-only Cloud and Toast until the recap build lands.
+    The hello tilt has no caller yet.
+  - The queued screen sessions apply the picks.
+
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 
 - Date: 2026-10-23
