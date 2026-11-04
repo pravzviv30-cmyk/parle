@@ -12275,8 +12275,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `node:24.16.0-bookworm-slim` base ships no `ca-certificates`, so the system store is empty; Node
   itself is unaffected because it uses its bundled roots. Fix: the runtime stage writes Node's
   bundled roots (`tls.rootCertificates`) to root-owned `/app/ca-roots.pem` at build time, with no
-  package install or network, sets `SSL_CERT_FILE` to it, and the nonroot check fails the build if
-  the file is empty.
+  package install or network, sets `SSL_CERT_FILE` to it, and the nonroot check fails the build unless
+  the file holds exactly `tls.rootCertificates.length` certificates.
 - fixed: 2026-11-04 on claude/tutor-ca. Ticked on the test and the image's own nonroot check, because
   the gate refuses an open P1 and Railway deploys only `main`; the live tutor join on staging after
   that deploy is the proof still to record here.
