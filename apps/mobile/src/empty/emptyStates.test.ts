@@ -84,6 +84,6 @@ test('the quiet previews draw the extracted parts inside a ScrollScreen, as thei
   const preview = flatSource('../dev/OnboardingPreview.tsx');
   assert.match(preview, /'quiet-toast', 'quiet-phrasebook', 'quiet-speak',/);
   assert.match(preview, /'quiet-phrasebook': 'Phrasebook, nothing kept yet', 'quiet-speak': 'Speak, out of the free conversation',/);
-  assert.match(preview, /\{screen === 'quiet-phrasebook' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset" footer=\{<PillButton label=\{PHRASEBOOK_EMPTY\.action\} onPress=\{\(\) => go\('select'\)\} lip \/>\}><PhrasebookEmpty title=\{PHRASEBOOK_EMPTY\.title\} body=\{PHRASEBOOK_EMPTY\.body\} \/><\/ScrollScreen><\/ModeScope>\}/);
+  assert.match(preview, /\{screen === 'quiet-phrasebook' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset" header=\{<ScreenHeader back=\{\{ onPress: \(\) => go\('select'\) \}\} \/>\} footer=\{<PillButton label=\{PHRASEBOOK_EMPTY\.action\} onPress=\{\(\) => go\('select'\)\} lip \/>\}><Text accessibilityRole="header" style=\{\[type\.display, \{ color: b\[yourFrenchMode\]\.text, marginTop: space\(2\) \}\]\}>\{PHRASEBOOK_TITLE\}<\/Text><PhrasebookEmpty title=\{PHRASEBOOK_EMPTY\.title\} body=\{PHRASEBOOK_EMPTY\.body\} \/><\/ScrollScreen><\/ModeScope>\}/);
   assert.match(preview, /\{screen === 'quiet-speak' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset"><OutOfTimeMoment card=\{QUIET_OUT_OF_TIME\} onPlans=\{\(\) => go\('select'\)\} \/><\/ScrollScreen><\/ModeScope>\}/);
 });

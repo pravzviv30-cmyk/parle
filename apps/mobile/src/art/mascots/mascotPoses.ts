@@ -56,7 +56,8 @@ export const CLOUD_POSES: Record<CloudPose, { viewBox: ViewBox; rear: string[]; 
   rest: {
     viewBox: { x: -34, y: -36, width: 300, height: 240 },
     shadow: { cx: 112, cy: 196, rx: 104, ry: 7 },
-    rear: ['M86 176L80 191L96 192M140 172L138 189L154 189'],
+    // A sleeping cloud sits, so no legs.
+    rear: [],
     front: [],
     marks: [{ d: 'M204 4H220L204 20H220M232 -26H244L232 -14H244', stroke: paper.ink, strokeWidth: 3.4, tone: 'ink' }],
     face: 'paused',

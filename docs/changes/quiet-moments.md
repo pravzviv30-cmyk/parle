@@ -45,7 +45,7 @@ After brief 4:
 ## What changed, per file
 
 - `art/mascots/mascotPoses.ts`:
-  - two new poses, `hold` (legs, the idle face, the book under both arms) and `rest` (legs, the paused face, "z z");
+  - two new poses, `hold` (legs, the idle face, the book under both arms) and `rest` (sitting with no legs, the paused face, "z z"; the board's tucked legs read as stray stubs, Impeccable);
   - a mark `tone`: `ink` strokes take the caller's ink, and `accent` strokes take the accent or brand blue. The listen arcs are `accent`, and "z z" is `ink`;
   - hold's arms and the book's outline lie on the white body and the yellow book, the same in both modes, so they are marks in the dark ink, drawn after the book. Only the legs on the ground take the screen's ink. The iOS dark check found the arms vanishing in cream ink;
   - marks draw before front limbs;
@@ -78,12 +78,12 @@ After brief 4:
    - With the starter card or the café line, or with nothing due: the path keeps its own row when Review deals cards.
    - The fix hero always leaves the row.
    - While the hero decides, the row waits, so Review never shows twice and never flashes.
-5. **Toast:** Toast's face on the ink pill in both modes. It blocks nothing and stays still while a mic is open.
+5. **Toast:** Toast's face on the ink pill. It blocks nothing and stays still while a mic is open. In dark mode the ink pill (`paper.ink`, older than this branch) nearly vanishes on the dark ground, about 1.03:1; see Not done.
 
 ## Assumptions
 
 1. Only `hold` and `rest` are new. Wave, Toast's poses and the hello tilt still have no caller.
-2. The centre-stage title is the existing `bType.title26` (26/31), not the board's 28/32. No new token.
+2. The centre-stage title is the existing `bType.title26` (26/31), the board's 28/32 being nearest to `bType.bandTitle` (28/31); 26 was chosen for the empty-state title, and the size is put to the founder (push-check proposal).
 3. The toast keeps "Saved to your phrasebook.". The board's "First phrase saved." would be wrong after the first save.
 4. On a cold open of Today, the path's Review row waits until the hero has answered, which takes up to the billing read's 5 s timeout when the server is slow (never offline, where billing is not read). The hero shows its loading line meanwhile, so the row arrives late rather than showing and then vanishing (push-check, accepted). When Today regains focus, NextTaskCard reloads billing. For a learner whose hero carries Review, Review is hidden for that moment rather than shown twice. The path keeps the last answer through that reload, so if the learner's minutes ran out between visits, the row can go once the hero answers; that is real data changing between visits. A hero that unmounts (the fix hero taking over) reports `null`, so the next hero starts undecided (fix-verifier round 1).
 
@@ -98,6 +98,7 @@ After brief 4:
 
 - **The plans lead (free plan, out of the conversation) also shows Review twice:** a secondary pill under the sun card, and the path row. It was left unchanged as out of scope; it is a candidate follow-up for the founder.
 - **Other empty states** (conversation and memory pages, tutor offline) keep their cards, by the founder's choice.
+- **The toast pill in dark mode** (out of scope, older code; Impeccable, push-check): `paper.ink` on the dark ground is about 1.03:1, so only the words and Toast's face show. `CelebrationHost` mounts outside `MainAppearanceProvider` (it covers onboarding too), so the toast cannot read the screen's mode with `useB()`; the fix needs a decision on how the toast learns the mode. A follow-up for the founder.
 - **Briefs 2 (2B) and 3 (3A)** come after the Journey board.
 
 ## Tasks in dependency order

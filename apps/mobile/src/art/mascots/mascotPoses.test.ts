@@ -41,6 +41,8 @@ test('hold reads idle and rest sleeps', () => {
   assert.equal(CLOUD_POSES.hold.face, 'idle');
   assert.equal(CLOUD_POSES.rest.face, 'paused');
   assert.deepEqual(CLOUD_POSES.rest.front, []);
+  // A sleeping cloud sits: legs tucked under the body would show only as stray stubs (Impeccable, push-check).
+  assert.deepEqual(CLOUD_POSES.rest.rear, [], 'rest draws legs that only peek out under the body');
 });
 
 for (const p of POSES) {

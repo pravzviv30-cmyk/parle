@@ -19,7 +19,7 @@ import { AuthFlow } from '../auth/AuthFlow.tsx';
 import { SignInScreen } from '../auth/SignInScreen.tsx';
 import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDraft.ts';
 import { PillButton, Press } from '../components.tsx';
-import { ScrollScreen, readingColumn } from '../layout.tsx';
+import { ScreenHeader, ScrollScreen, readingColumn } from '../layout.tsx';
 import { AccountWelcome } from '../onboarding/AccountWelcome.tsx';
 import { OnboardingFrame, useOnboardingTransition, useOnboardingFramePresentation } from '../onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
@@ -38,6 +38,7 @@ import { PROGRESS_STATES, type ProgressState } from '../journey/progressFixtures
 import { DRILL_PREVIEWS, DrillPreview, type DrillPreviewKey } from './DrillPreview.tsx';
 import { ToastPill } from '../celebrate/Toast.tsx';
 import { PHRASEBOOK_EMPTY, PhrasebookEmpty } from '../phrases/PhrasebookScreen.tsx';
+import { PHRASEBOOK_TITLE } from '../phrases/phrasebookView.ts';
 import { OutOfTimeMoment } from '../tabs/TutorTab.tsx';
 import { OUT_OF_TIME } from '../empty/emptyStates.ts';
 
@@ -196,7 +197,7 @@ export function OnboardingPreview() {
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
           {screen === 'quiet-toast' && <ModeScope mode={yourFrenchMode}><View style={[st.toast, { backgroundColor: b[yourFrenchMode].ground }]}><ToastPill /></View></ModeScope>}
-          {screen === 'quiet-phrasebook' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset" footer={<PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => go('select')} lip />}><PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} /></ScrollScreen></ModeScope>}
+          {screen === 'quiet-phrasebook' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: () => go('select') }} />} footer={<PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => go('select')} lip />}><Text accessibilityRole="header" style={[type.display, { color: b[yourFrenchMode].text, marginTop: space(2) }]}>{PHRASEBOOK_TITLE}</Text><PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} /></ScrollScreen></ModeScope>}
           {screen === 'quiet-speak' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset"><OutOfTimeMoment card={QUIET_OUT_OF_TIME} onPlans={() => go('select')} /></ScrollScreen></ModeScope>}
           {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <ModeScope mode={yourFrenchMode}><LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} /></ModeScope>}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
