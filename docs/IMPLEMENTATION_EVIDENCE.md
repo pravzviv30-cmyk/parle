@@ -22,6 +22,14 @@ of the list.
 
 ## Current landing snapshot
 
+- 4 November 2026 Mascots and play, brief 4 (4A, quiet moments, UI-019): branch `claude/quiet-moments`
+  from main 34eae927. Cloud's hold and rest poses with toned marks; the phrasebook with nothing kept and
+  Speak out of the free conversation on centre stage; the posed cheer on the two nothing-to-review cards;
+  Today's held hero carrying Review as a sage LipTile while the path drops its duplicate row; Toast's
+  face on the saved-phrase toast. Shots in `artifacts/quiet-moments-2026-11/` at 320 and 375, light and
+  dark.
+  **7,575 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4111; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 3 November 2026 Mascots and play, brief 1 (1C, the cast, UI-019): branch `claude/cast` from main
   a90ed36b, with main merged at 4ff3aff2 and at 98cd8098 (phone-fixes). Cloud's listen and cheer poses, limbs in the screen's ink and
   the listen arcs in the theme's link colour; a blink while a speak drill's mic is live (paused off the
