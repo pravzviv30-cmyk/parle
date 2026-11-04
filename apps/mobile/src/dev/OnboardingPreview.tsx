@@ -35,6 +35,7 @@ import { ModeScope, useB } from '../main/bTheme.tsx';
 import { YOUR_FRENCH_STATES, type YourFrenchState } from '../journey/yourFrenchFixtures.ts';
 import { PROGRESS_STATES, type ProgressState } from '../journey/progressFixtures.ts';
 import { DRILL_PREVIEWS, DrillPreview, type DrillPreviewKey } from './DrillPreview.tsx';
+import { ToastPill } from '../celebrate/Toast.tsx';
 
 const unavailable = async (): Promise<AuthResult> => ({ ok: false, message: 'Screen preview only. No account was created or changed.' });
 const previewAdapterBase: AuthAdapter = {
@@ -55,7 +56,7 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', ...DRILL_PREVIEWS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
+const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'quiet-toast', ...DRILL_PREVIEWS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'live-speaking': 'Live speaking layout', 'live-typing': 'Live typing layout',
@@ -66,6 +67,7 @@ const LABELS: Record<Preview, string> = {
   'your-french-forward': 'Your French, nothing yet', 'your-french-free': 'Your French, free plan',
   'how-its-going-both': 'How it’s going, both rows', 'how-its-going-better': 'How it’s going, getting better only',
   'how-its-going-again': 'How it’s going, another go only', 'how-its-going-free': 'How it’s going, free plan',
+  'quiet-toast': 'Phrase saved toast',
   ...TODAY_PREVIEW_LABELS,
   ...Object.fromEntries(DRILL_PREVIEWS.map((key) => [key, `Practice, ${key.slice('drill-'.length).replace(/-/g, ' ')}`])) as Record<DrillPreviewKey, string>,
 };
@@ -186,6 +188,7 @@ export function OnboardingPreview() {
             progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
+          {screen === 'quiet-toast' && <View style={st.toast}><ToastPill /></View>}
           {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <ModeScope mode={yourFrenchMode}><LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} /></ModeScope>}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
             initialDraft={{ ...draft, page: screen as PreAccountOnboardingDraft['page'] }} onDraftChange={setDraft}
@@ -262,6 +265,7 @@ const st = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },
   story: { gap: space(5) },
   ink: { color: paper.ink },
+  toast: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: paper.ground },
   heading: { color: paper.ink, textAlign: 'center' },
   caption: { color: paper.inkSoft, textAlign: 'center' },
   badgeFrame: { position: 'absolute', right: space(4), flexDirection: 'row', gap: space(1) },

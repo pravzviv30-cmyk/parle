@@ -36,3 +36,13 @@ test('Speak draws the away card and the out-of-time card from the one empty-stat
   assert.match(speak, /const outOfTime = offlineShown \? null : outOfTimeCard\(planView\);/);
   assert.match(speak, /nav\.navigate\('Wall', \{ entry: 'refused' \}\)/);
 });
+
+test('the empty-state card can draw a mascot in place of the art, and stand centre stage with no card', () => {
+  const card = readFileSync(new URL('./EmptyStateCard.tsx', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '').replace(/\s+/g, ' ');
+  assert.match(card, /\{art \? <BArt name=\{art\.name\} width=\{art\.width\} height=\{art\.height\} \/> : figure\}/, 'the mascot is not drawn in place of the art');
+  assert.match(card, /<View style=\{stage \? s\.stage : \[s\.card, \{ backgroundColor: t\[ground\] \}\]\}>/, 'centre stage still draws the card');
+  assert.match(card, /style=\{\[stage \? bType\.title26 : bType\.bold19, s\.centred, \{ color: t\.text \}\]\}/, 'the stage title is not the larger title');
+  assert.match(card, /<Text style=\{\[bType\.para15, s\.centred, \{ color: t\.secondary \}\]\}>\{body\}<\/Text>/);
+  assert.match(card, /card: \{ borderRadius: 26, paddingVertical: 20, paddingHorizontal: 18, gap: 8, alignItems: 'center', alignSelf: 'stretch' \}/);
+  assert.match(card, /stage: \{ gap: 8, alignItems: 'center', alignSelf: 'stretch' \}/, 'the stage has a ground, radius or padding');
+});

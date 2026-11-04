@@ -32,9 +32,15 @@ const pts = (d: string): [number, number][] => {
 const inside = (vb: ViewBox, [x, y]: [number, number]) => x >= vb.x && x <= vb.x + vb.width && y >= vb.y && y <= vb.y + vb.height;
 const tokens = new Set<string>([...Object.values(paper), ...Object.values(colour), ...Object.values(mascot)]);
 
-test('both poses exist and differ', () => {
-  assert.deepEqual(POSES.sort(), ['cheer', 'listen']);
-  assert.notDeepEqual(CLOUD_POSES.listen, CLOUD_POSES.cheer);
+test('the four poses exist and differ', () => {
+  assert.deepEqual(POSES.sort(), ['cheer', 'hold', 'listen', 'rest']);
+  for (const a of POSES) for (const c of POSES) if (a !== c) assert.notDeepEqual(CLOUD_POSES[a], CLOUD_POSES[c]);
+});
+
+test('hold reads idle and rest sleeps', () => {
+  assert.equal(CLOUD_POSES.hold.face, 'idle');
+  assert.equal(CLOUD_POSES.rest.face, 'paused');
+  assert.deepEqual(CLOUD_POSES.rest.front, []);
 });
 
 for (const p of POSES) {
@@ -77,6 +83,26 @@ test('a pose draws rear limbs behind the body and front limbs over it', () => {
   assert.ok(rear >= 0 && rear < body && front > body);
   assert.equal((layers[rear] as { stroke?: string }).stroke, '#000');
   assert.deepEqual(layers.at(-1), { kind: 'face', face: cloudFace('listening') });
+});
+
+test('hold draws the book over the body and under the arms', () => {
+  const { layers } = cloudLayers('hold', { ink: '#000' });
+  const body = layers.findIndex((l) => l.kind === 'path' && l.d === CLOUD_SILHOUETTE);
+  const book = layers.findIndex((l) => l.kind === 'path' && l.d === CLOUD_POSES.hold.marks[0]!.d);
+  const arms = layers.findIndex((l) => l.kind === 'path' && l.d === CLOUD_POSES.hold.front[0]);
+  assert.ok(body < book && book < arms, `body ${body}, book ${book}, arms ${arms}`);
+});
+
+test('ink-tone marks take the caller\'s ink and accent-tone marks its accent; the rest keep their colour', () => {
+  const mark = (pose: CloudPose, i: number, opts: { ink?: string; accent?: string }) =>
+    cloudLayers(pose, opts).layers.find((l) => l.kind === 'path' && l.d === CLOUD_POSES[pose].marks[i]!.d) as { fill?: string; stroke?: string };
+  const opts = { ink: '#0000AA', accent: '#123456' };
+  assert.deepEqual([mark('hold', 0, opts).fill, mark('hold', 0, opts).stroke], [colour.sun, '#0000AA']);
+  assert.equal(mark('hold', 1, opts).stroke, paper.card);
+  assert.equal(mark('rest', 0, opts).stroke, '#0000AA');
+  assert.equal(mark('listen', 0, opts).stroke, '#123456');
+  assert.equal(mark('listen', 0, { ink: '#0000AA' }).stroke, colour.blue);
+  assert.equal(mark('hold', 0, {}).stroke, paper.ink);
 });
 
 test('stroked pose marks take the caller\'s accent; filled marks keep their colour', () => {
