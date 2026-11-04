@@ -2015,8 +2015,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // F946 push-check rounds: the held lead's Review past Starter, the lead's one
     // primary and secondary beside a lapsed plan's See the plans; and the plans
     // lead's Review past Starter, always secondary under See the plans.
-    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 7, 'personal practice, authored review, allowance, lapsed, held review, plans review and no-scene are exclusive');
-    assert.match(task, /<PillButton label=\{reviewLabel\} variant=\{words\.plans \? 'secondary' : 'primary'\}/, 'the held Review is a second primary beside See the plans');
+    // Quiet moments (4A): the held lead's Review is a sage LipTile, not a pill, so See the plans stays its one primary.
+    assert.equal((task.match(/<PillButton\b/g) ?? []).length, 6, 'personal practice, authored review, allowance, lapsed, plans review and no-scene are exclusive');
+    assert.match(task, /<LipTile tone="sage" onPress=\{onReview\}/, 'the held Review is a pill beside See the plans');
     assert.match(task, /<PillButton label=\{reviewLabel\} variant="secondary" onPress=\{onReview\} \/>/, 'the plans lead\'s Review is a second primary');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
     // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B

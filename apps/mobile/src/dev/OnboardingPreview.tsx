@@ -36,6 +36,9 @@ import { YOUR_FRENCH_STATES, type YourFrenchState } from '../journey/yourFrenchF
 import { PROGRESS_STATES, type ProgressState } from '../journey/progressFixtures.ts';
 import { DRILL_PREVIEWS, DrillPreview, type DrillPreviewKey } from './DrillPreview.tsx';
 import { ToastPill } from '../celebrate/Toast.tsx';
+import { PHRASEBOOK_EMPTY, PhrasebookEmpty } from '../phrases/PhrasebookScreen.tsx';
+import { OutOfTimeMoment } from '../tabs/TutorTab.tsx';
+import { OUT_OF_TIME } from '../empty/emptyStates.ts';
 
 const unavailable = async (): Promise<AuthResult> => ({ ok: false, message: 'Screen preview only. No account was created or changed.' });
 const previewAdapterBase: AuthAdapter = {
@@ -56,7 +59,9 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'quiet-toast', ...DRILL_PREVIEWS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
+/** Speak's out-of-time words on a fixture refill, as `outOfTimeCard` builds them. */
+const QUIET_OUT_OF_TIME = { title: OUT_OF_TIME.title, body: `Your next free conversation is ready on Monday at 4:10 pm. ${OUT_OF_TIME.still}`, action: OUT_OF_TIME.action };
+const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'quiet-toast', 'quiet-phrasebook', 'quiet-speak', ...DRILL_PREVIEWS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'live-speaking': 'Live speaking layout', 'live-typing': 'Live typing layout',
@@ -68,6 +73,7 @@ const LABELS: Record<Preview, string> = {
   'how-its-going-both': 'How it’s going, both rows', 'how-its-going-better': 'How it’s going, getting better only',
   'how-its-going-again': 'How it’s going, another go only', 'how-its-going-free': 'How it’s going, free plan',
   'quiet-toast': 'Phrase saved toast',
+  'quiet-phrasebook': 'Phrasebook, nothing kept yet', 'quiet-speak': 'Speak, out of the free conversation',
   ...TODAY_PREVIEW_LABELS,
   ...Object.fromEntries(DRILL_PREVIEWS.map((key) => [key, `Practice, ${key.slice('drill-'.length).replace(/-/g, ' ')}`])) as Record<DrillPreviewKey, string>,
 };
@@ -189,6 +195,8 @@ export function OnboardingPreview() {
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
           {screen === 'quiet-toast' && <View style={st.toast}><ToastPill /></View>}
+          {screen === 'quiet-phrasebook' && <ScrollScreen bottom="inset" footer={<PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => go('select')} lip />}><PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} /></ScrollScreen>}
+          {screen === 'quiet-speak' && <ScrollScreen bottom="inset"><OutOfTimeMoment card={QUIET_OUT_OF_TIME} onPlans={() => go('select')} /></ScrollScreen>}
           {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <ModeScope mode={yourFrenchMode}><LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} /></ModeScope>}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
             initialDraft={{ ...draft, page: screen as PreAccountOnboardingDraft['page'] }} onDraftChange={setDraft}

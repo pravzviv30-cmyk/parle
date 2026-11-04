@@ -278,9 +278,8 @@ test("a lead's Review door is Today's review row: its words, and only when it is
   const flatTask = flat(TASK);
   assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, value\.now, locks\.access\('conversationPractice'\)\);/, 'the lead decides Review by another rule than Today\'s row');
   const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
-  assert.match(held, /onReview=\{reviewDoor === null \? undefined : \(\) => navigateOwned\('Review'\)\} reviewLabel=\{reviewDoor\?\.title\}/, 'the held Review door opens an empty Review or is named otherwise');
-  const body = flat(TASK.slice(TASK.indexOf('export function HeldLeadBody('), TASK.indexOf('export function ExploreLeadBody(')));
-  assert.match(body, /\{children \?\? \(onReview !== undefined && reviewLabel !== undefined && <PillButton label=\{reviewLabel\} variant=\{words\.plans \? 'secondary' : 'primary'\} onPress=\{onReview\} \/>\)\}/, 'the held body draws a Review door with nothing to deal, or a second primary beside See plans');
+  // Quiet moments (4A): the door is heroCarriesReview's, which asks reviewDoor; its tile is pinned below.
+  assert.match(held, /onReview=\{heroReview === true \? \(\) => navigateOwned\('Review'\) : undefined\} reviewLabel=\{reviewDoor\?\.title\}/, 'the held Review door opens an empty Review or is named otherwise');
 });
 
 test('past Starter the plans lead offers no café line', () => {
@@ -361,7 +360,7 @@ test('the hero is the first stop present, and the rows never repeat it', () => {
   assert.deepEqual(rowMarks(['scene', 'phrase']).map((r) => [r.row, r.mark, r.last]), [['scene', 'stop', false], ['phrase', 'end', true]]);
   assert.deepEqual(rowMarks([]), []);
   // The screen draws the hero and the rows from the rule.
-  assert.match(HOME, /const stops = todayStops\(\{ fix: fix !== null, review: review !== null \}\);/);
+  assert.match(HOME, /const stops = todayStops\(\{ fix: fix !== null, review: review !== null, heroReview \}\);/);
   assert.match(HOME, /rowMarks\(stops\.rows\)\.map\(/);
 });
 
@@ -411,4 +410,53 @@ test('NextTaskCard on the hero has no rail, and on a row is one RouteRow', () =>
   assert.match(TASK, /<StarterContinuation initial=\{starter\} bare=\{bare\}/);
   assert.match(TASK, /<MissionHero hero=\{value\.hero\} vivid buildsOn=\{value\.buildsOn\} \/>/);
   assert.equal(todayView.sceneRowLine({ kind: 'today', minutes: 3 } as never), "Today's scene. About 3 minutes");
+});
+
+// Quiet moments (4A), 2026-11-04: out of time past Starter, the held hero
+// carries Review as a sage tile, and Today's path then drops its own Review
+// row, by one rule both read, so Review is never shown twice and never lost.
+test('the held hero carries Review only with the words alone and something to deal', () => {
+  const { heroCarriesReview } = nt as unknown as { heroCarriesReview: (i: { lead: string; billingKnown: boolean; reviewDue: boolean; starterShown: boolean; cafeShown: boolean }) => boolean };
+  const held = { lead: 'outOfTime', billingKnown: true, reviewDue: true, starterShown: false, cafeShown: false };
+  assert.equal(heroCarriesReview(held), true, 'held with review due');
+  assert.equal(heroCarriesReview({ ...held, starterShown: true }), false, 'held with the starter card');
+  assert.equal(heroCarriesReview({ ...held, cafeShown: true }), false, 'held with the café line');
+  assert.equal(heroCarriesReview({ ...held, reviewDue: false }), false, 'held with no review due');
+  assert.equal(heroCarriesReview({ ...held, billingKnown: false }), false, 'held before billing is known');
+  assert.equal(heroCarriesReview({ ...held, lead: 'lapsed' }), true, 'lapsed with review due');
+  assert.equal(heroCarriesReview({ ...held, lead: 'plans' }), false, 'the plans lead');
+  assert.equal(heroCarriesReview({ ...held, lead: 'scene' }), false, 'the scene lead');
+});
+
+test("Today's path drops its Review row whenever the hero carries it, and holds it while the hero decides", () => {
+  const { todayStops } = todayView as unknown as { todayStops: (i: { fix: boolean; review: boolean; heroReview?: boolean | null }) => { hero: string; rows: string[] } };
+  assert.deepEqual(todayStops({ fix: false, review: true, heroReview: true }).rows, ['phrase'], 'held with review due: Review twice');
+  assert.deepEqual(todayStops({ fix: false, review: true, heroReview: false }).rows, ['phrase', 'review'], 'held with the starter, the café, plans or scene: Review lost');
+  assert.deepEqual(todayStops({ fix: false, review: false, heroReview: false }).rows, ['phrase'], 'no review due');
+  assert.deepEqual(todayStops({ fix: false, review: true, heroReview: null }).rows, ['phrase'], 'the row shows while the hero decides, then vanishes');
+  assert.deepEqual(todayStops({ fix: true, review: true, heroReview: true }).rows, ['scene', 'phrase', 'review'], 'the fix hero loses Review');
+  assert.deepEqual(todayStops({ fix: false, review: true }).rows, ['phrase', 'review']);
+});
+
+test('the held hero and the path read the one rule, and the hero reports it up', () => {
+  const task = flat(TASK);
+  assert.match(task, /const heroReview = failed \? false : value === null \|\| value\.scope !== scopeGeneration\(\) \|\| lead === 'loading' \? null : heroCarriesReview\(\{ lead, billingKnown: billing !== null, reviewDue: reviewDoor !== null, starterShown: starter !== null, cafeShown: local !== null && cafeOffered \}\);/);
+  assert.match(task, /useEffect\(\(\) => \{ if \(bare && heroReview !== null\) onHeroReview\?\.\(heroReview\); \}, \[bare, heroReview, onHeroReview\]\);/);
+  const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
+  assert.match(held, /onReview=\{heroReview === true \? \(\) => navigateOwned\('Review'\) : undefined\} reviewLabel=\{reviewDoor\?\.title\}/);
+  const home = flat(HOME);
+  assert.match(home, /const stops = todayStops\(\{ fix: fix !== null, review: review !== null, heroReview \}\);/);
+  assert.match(home, /<NextTaskCard vivid placement="hero" starter=\{starterFor\} onHeroReview=\{setHeroReview\} \/>/);
+  // A refresh keeps the last answer; only another account clears it.
+  assert.match(home, /setFixFrom\(null\); setHeroReview\(null\);/);
+});
+
+test("the held hero's Review door is a sage tile with the watering plant, its count and a chevron", () => {
+  const body = flat(TASK.slice(TASK.indexOf('export function HeldLeadBody('), TASK.indexOf('export function ExploreLeadBody(')));
+  assert.match(body, /\{children \?\? \(onReview !== undefined && reviewLabel !== undefined && <LipTile tone="sage" onPress=\{onReview\} accessibilityLabel=\{`\$\{reviewLabel\}, \$\{aboutMinutes\(2\)\}`\} style=\{\{ flexDirection: 'row', alignItems: 'center', gap: space\(3\), padding: space\(3\) \}\}>/);
+  assert.match(body, /<BArt name="watering-plant" width=\{ROW_ART\} height=\{ROW_ART\} \/>/);
+  assert.match(body, /<Text style=\{\[bType\.heavy16, \{ color: t\.text \}\]\}>\{reviewLabel\}<\/Text>/);
+  assert.match(body, /<Text style=\{\[bType\.note, \{ color: t\.secondary \}\]\}>\{aboutMinutes\(2\)\}<\/Text>/);
+  assert.match(body, /<Icon name="chevron-right" color=\{t\.secondary\} \/>/);
+  assert.doesNotMatch(body, /<PillButton label=\{reviewLabel\}/, 'the held hero still draws the plain Review button');
 });

@@ -126,6 +126,10 @@ export function HomeTab() {
   const [reviewRead, setReviewRead] = useState<{ scope: number; deck: readonly ReviewCard[]; now: number } | null>(null);
   // A deck read for another account is never counted for this one.
   const reviewDeck = reviewRead !== null && reviewRead.scope === scopeGeneration() ? reviewRead : null;
+  // Whether the lead hero carries Review (`heroCarriesReview`), as NextTaskCard
+  // last told it: null until it first knows, and kept through a refresh so the
+  // path's Review row never shows and then vanishes, or vanishes mid-load.
+  const [heroReview, setHeroReview] = useState<boolean | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -143,7 +147,7 @@ export function HomeTab() {
         setStarter(null);
         setStart(null);
         setWeek(null);
-        setFixFrom(null);
+        setFixFrom(null); setHeroReview(null);
       }
       setReadFailed(false);
       void Promise.all([loadActivity({ strict: true }), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadConversationPacks(), loadSoundChecks({ strict: true }), loadSavedStarter(), loadDrillBank(), loadPackMarks()])
@@ -196,7 +200,7 @@ export function HomeTab() {
   const three = <QuestsCard />;
   // One rule picks the hero and the rows under it (UI-012 order, UI-015), so
   // the hero's stop is never drawn twice.
-  const stops = todayStops({ fix: fix !== null, review: review !== null });
+  const stops = todayStops({ fix: fix !== null, review: review !== null, heroReview });
   const sky = skyNow(skyClock, t.mode);
   // Fix round 2: once the sky has scrolled up under the status bar, the bar
   // takes the theme's own style (`skyBarStyle`), so its clock stays readable.
@@ -218,7 +222,7 @@ export function HomeTab() {
     <TodayLoadingHero />
   ) : (
     <TodayHeroCard>
-      {stops.hero === 'fix' ? fixHero : <NextTaskCard vivid placement="hero" starter={starterFor} />}
+      {stops.hero === 'fix' ? fixHero : <NextTaskCard vivid placement="hero" starter={starterFor} onHeroReview={setHeroReview} />}
     </TodayHeroCard>
   );
 
