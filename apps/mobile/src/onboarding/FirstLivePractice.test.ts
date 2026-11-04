@@ -7,11 +7,12 @@ import { takeTypedDoor, typedDoorFor } from '../live/typedDoor.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { GUEST_ROOM_ENDED, guestLiveBody, guestSceneMode } from './guestScene.ts';
 import { classifyFailure, TokenServerError } from '../live/failure.ts';
+import { waitingFor } from '../tutor/waitingView.ts';
 
 const source = readFileSync(new URL('./FirstLivePractice.tsx', import.meta.url), 'utf8');
 const decisions = source.slice(source.indexOf('  const opened ='), source.indexOf('  const end ='))
   .replace('const state: OrbState', 'const state');
-const evaluate = new Function('live', 'typing', 'ending', 'saving', 'name', 'failureCopy', 'typedDoorFor', 'scene', 'typedScene', 'over', 'GUEST_ROOM_ENDED',
+const evaluate = new Function('live', 'typing', 'ending', 'saving', 'name', 'failureCopy', 'typedDoorFor', 'scene', 'typedScene', 'over', 'GUEST_ROOM_ENDED', 'waitingFor',
   `${decisions}\nreturn { caption, state, canRecoverByTyping, canRetryConnection, roomEnded };`);
 const recovery = source.slice(source.indexOf('  const recoverByTyping ='), source.indexOf('  const changeInput ='));
 const recover = new Function('live', 'canRecoverByTyping', 'takeTypedDoor', 'setTyping', 'setIssue', 'scene', 'setTypedScene', 'setTypedRestart',
@@ -23,7 +24,7 @@ const room = (overrides = {}) => ({
   waitingForTutor: false, ...overrides,
 });
 const view = (live: ReturnType<typeof room>, typing = false, ending = false, saving = false, scene = false, typedScene = false) =>
-  evaluate(live, typing, ending, saving, tutorNameOf(null), failureCopy, typedDoorFor, scene, typedScene, scene ? (live as { summary?: unknown }).summary ?? null : live.recap, GUEST_ROOM_ENDED);
+  evaluate(live, typing, ending, saving, tutorNameOf(null), failureCopy, typedDoorFor, scene, typedScene, scene ? (live as { summary?: unknown }).summary ?? null : live.recap, GUEST_ROOM_ENDED, waitingFor);
 
 test('failed first practice never announces readiness or stale live activity', () => {
   for (const typing of [false, true]) {

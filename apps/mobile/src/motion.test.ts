@@ -171,6 +171,8 @@ const ENGINE_FILES = [
   'onboarding/motion/C2Scene.tsx',
   'icons/AnimatedIcon.tsx',
   'nav/TabGlyph.tsx',
+  // The selected tab's sliding pill (item 7, UI-018): transform only, jumps under Reduce Motion.
+  'nav/TabPill.tsx',
   'drill/AnswerSheet.tsx',
   'speech/useRecorderLevel.ts',
   // The password meter animates a stable fill transform and its strength colour.
@@ -521,6 +523,7 @@ describe('only the orb and the highlighter move', () => {
     // in TabGlyph, not the bar. It watches reduced motion live, never loops,
     // and moves only transform and opacity.
     const glyph = file('nav/TabGlyph.tsx').body;
+    assert.doesNotMatch(glyph, /TAB_POP\.scale/, 'TabGlyph scales the icon, which softens it on iOS (item 8)');
     assert.match(glyph, /const reduced = useReduceMotion\(\);/, 'TabGlyph does not watch reduced motion');
     assert.doesNotMatch(glyph, /\bwithRepeat\b|(?<![.\w])repeat\(/, 'TabGlyph loops');
     for (const m of every(glyph, /\buseAnimatedStyle\(/g)) {

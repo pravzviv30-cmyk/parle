@@ -43,6 +43,9 @@ points, and let reading and action regions scroll at large text or in
 landscape. Frames have 24-point gutters and a reading column at most 560 points
 wide; on the web the app is a 460pt centred column. The full billed amount and
 period stay near a purchase action, and large text is never capped to fit.
+Page gaps between separate things come from `RHYTHM` in `theme.ts`: 12 between
+list items and stacked tiles, 20 between separate cards, 32 between sections.
+Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
 
 ### Composition rules
 
@@ -77,7 +80,7 @@ period stay near a purchase action, and large text is never capped to fit.
   sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
   an estimate said as "about n min".
 - Today, top to bottom (UI-015): the sky band, full bleed, in the hour's
-  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) in two lines,
+  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
   the profile button on the sky's chip, three chunky stat tiles (streak days or
   "Start" over "today"; minutes against the goal, "<1" under a minute; the XP
   level number over "level"; never a nought) and the nudge line. Then one hero
@@ -1054,20 +1057,26 @@ the new look, listed at the end, and they go with their call sites.
 - **Tab bar** (UI-008, 2026-10-20, Figma C2/Main2/Navigation 292:1103): an
   ink capsule (`b.tabCapsule`, the same in both themes) 12pt in from each edge
   inside the safe areas and at most 640 wide, radius 32, padded 8 across and 6
-  down, on a strip of the focused route's `ground` (8pt above, the safe area or
-  8pt below). The bar stays in layout, so nothing scrolls under it, and it has
-  no shadow, hairline or chartreuse wash. Five equal 62pt cells, radius 20,
+  down, floating 8pt above the safe area (or 8pt) on a clear strip (UI-017,
+  founder 2026-11-01). Content scrolls behind it and stays visible beside and
+  below it; only the capsule covers anything, and a tab screen's scroll pads
+  past it by its height and 32pt. It has no shadow, hairline or chartreuse
+  wash. Five equal 62pt cells, radius 20,
   padding 4, gap 4: a 22pt Iconsax glyph over its word in C2 small (13/18).
   From reading size 1.3, when the widest word cannot fit whole in its cell
   (`tabLabelsShown`), every tab shows its glyph alone and keeps its full
   accessibility label (F947, founder decision 2026-10-31).
-  Selected is the `tabSelected` violet cell with the Bulk glyph in
+  Selected is the `tabSelected` violet pill under the cell with the Linear glyph in
   `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
   unselected is the Linear glyph and the word in cream at Outfit Medium on the
-  ink. The bar itself moves nothing: when a tab becomes the selected one its
-  icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15, home on the pop
-  spring, the Bulk drawing fading in over the Linear), never on launch or on a
-  tap of the open tab, and under Reduce Motion it simply swaps. The Practice
+  ink. Only the pill moves (`nav/TabPill.tsx`, UI-018): it slides to a tapped
+  tab on the fast beat, and the open tab can be held and dragged sideways to
+  another, a selection tick as the drag starts and at each cell it crosses,
+  landing like a tap; under Reduce Motion it jumps. A still long press is never
+  claimed, so the Large Content Viewer keeps working. When a tab becomes the selected one its
+  icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one
+  drawing, never scaled, so it stays sharp), never on launch or on a tap of
+  the open tab, and under Reduce Motion it does not move. The Practice
   dot is 6pt sun, so it reads on the ink, and pops in once when practice
   becomes due while the bar is open. Cells keep the 62pt floor and labels wrap
   at large text: from a 1.3 reading size each cell takes a fixed fifth. The
@@ -1916,8 +1925,8 @@ under reduced motion.
 
 ### What never moves
 
-The tab bar itself (its selected icon pops once in `nav/TabGlyph.tsx`), the
-greeting, the highlighter, the skeleton, the layout primitives, the flat
+The tab bar's cells and capsule (only the selection pill in `nav/TabPill.tsx` slides
+and follows a drag, and the selected icon lifts in `nav/TabGlyph.tsx`), the greeting, the highlighter, the skeleton, the layout primitives, the flat
 drawings themselves (a wrapper may move one; the drawing
 does not), and legal or consent text. Inside a live room only the portrait's
 level rings and breath, the goal stamps, the arriving lines, the notebook's

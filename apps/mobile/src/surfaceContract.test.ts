@@ -1406,7 +1406,7 @@ describe('the hardware back button is answered in place — F312', () => {
   });
 });
 
-describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
+describe('the tab bar shows a word, and it is a flat floating capsule — F313, UI-017', () => {
   const tabbar = named('nav/LuvaniTabBar.tsx');
 
   test('every tab cell shows its label, and the label scales and wraps rather than truncating — F313', () => {
@@ -1425,19 +1425,20 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
-  test('the bar is an ink capsule on the route ground, and never a floating shadow — F313, UI-008', () => {
+  test('the bar is an ink capsule on a clear strip, and never a floating shadow — F313, UI-008, UI-017', () => {
     // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103: the white bar and
     // its hairline become an ink capsule, radius 32, on the focused route's
-    // ground. It stays in layout and never floats on a shadow.
+    // ground. UI-017 (founder, 2026-11-01): the strip is clear and floats, so
+    // only the capsule covers content; it never lifts on a shadow.
     const from = tabbar.indexOf('bar: {');
     assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
     const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
-    assert.match(barStyle, /backgroundColor: t\.ground/, 'the strip is not the route ground');
+    assert.doesNotMatch(barStyle, /backgroundColor/, 'the strip around the capsule is painted; only the capsule may cover content (UI-017)');
     const capsule = tabbar.slice(tabbar.indexOf('capsule: {'), tabbar.indexOf('},', tabbar.indexOf('capsule: {')) + 1);
     assert.match(capsule, /backgroundColor: t\.tabCapsule/, 'the capsule is not the capsule token');
     assert.match(capsule, /borderRadius: 32/, 'the capsule is not radius 32');
-    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
-      assert.ok(!tabbar.includes(floating), `the bar carries ${floating}, so it floats over the content`);
+    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation']) {
+      assert.ok(!tabbar.includes(floating), `the bar carries ${floating}, so it lifts off the page on a shadow`);
     }
   });
 
@@ -1454,7 +1455,8 @@ describe('the active tab wears the violet cell — F325, UI-008', () => {
     // 2026-10-20 UI-008, Figma 292:1103. Replaces revamp B's brand blue word on
     // white. The same pins as nav/tabBar.test.ts, read here with the surface.
     assert.match(tabbar, /color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\}/, 'the selected glyph is not sun, or the others are not cream');
-    assert.match(tabbar, /faceSelected: \{ backgroundColor: t\.tabSelected \}/, 'the selected cell is not violet');
+    // Item 7 (UI-018): the violet is the sliding pill under the selected cell.
+    assert.match(named('nav/TabPill.tsx'), /backgroundColor: t\.tabSelected/, 'the selected cell is not violet');
     assert.match(tabbar, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold over the others\' Medium');
   });
 });

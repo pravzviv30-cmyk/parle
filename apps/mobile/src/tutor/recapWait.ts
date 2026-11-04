@@ -16,7 +16,7 @@
  * wrong was the silence, not the delay.
  *
  * So the predicate and the words live here, and the screen renders the answer.
- * Same reason as `waitingView.ts` and `live/connectingView.ts`: apps/mobile has
+ * Same reason as `waitingView.ts`: apps/mobile has
  * no renderer, so a state that is only a boolean inside a `.tsx` is a state
  * nothing can ask a question about, and this one was invisible for exactly that
  * long.

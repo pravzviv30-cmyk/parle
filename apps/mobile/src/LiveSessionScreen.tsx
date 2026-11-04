@@ -29,10 +29,7 @@ import { useTapToSend } from './live/useTapToSend.ts';
 import { IconAction } from './components.tsx';
 import { rungLabel } from './tutor/rungLabel.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
-import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { RoomWait } from './live/RoomWait.tsx';
-import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
-import { waitingNote } from './tutor/waitingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { connectionLine } from './live/connectionLine.ts';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
@@ -43,7 +40,7 @@ import { tutorVoiceOf } from './tutor/tutorVoice.ts';
 import { isUnderAgeStop } from './profile/age.ts';
 import { withAgeStop } from './profile/store.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
-import { waitingView } from './tutor/waitingView.ts';
+import { LEAVE_LABEL, waitingFor, waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
 import { RoomLevels } from './live/RoomLevels.tsx';
@@ -171,30 +168,12 @@ export function LiveSessionScreen({
     if (sent) setDraft(current => current === draft ? '' : current);
     return sent;
   };
-  // How long the connect has been running, for the copy that grows with it.
-  // The interval exists only while the connecting branch is the whole screen
-  // and is cleared the moment the room opens or the screen goes away, so
-  // nothing ticks behind a live session. `connectingTick` returns the number
-  // already held while the stage is unchanged, so React bails out of the render
-  // and a twenty five second wait costs two of them. See live/connectingView.ts.
-  const [connectingMs, setConnectingMs] = useState(0);
   // Read off `phase` rather than spelled out twice: the stop surface has to be
   // returned above every status branch, and safetyView.test.ts proves that by
   // finding the first mention of the connecting phase in the file. A hook that
   // spells the branch's own condition out up here moves that mark and makes the
   // ordering test read a line that is not a branch.
   const phase = live.status.phase;
-  const awaitingRoom = phase === 'connecting' || phase === 'idle';
-  useEffect(() => {
-    if (!awaitingRoom) return;
-    // A fresh attempt gets a fresh clock. The conversation reconnects when the
-    // learner takes the quiet door, and without this the second attempt opened
-    // on the first one's oldest sentence.
-    setConnectingMs(0);
-    const from = Date.now();
-    const tick = setInterval(() => setConnectingMs((prev) => connectingTick(prev, Date.now() - from)), CONNECTING_TICK_MS);
-    return () => clearInterval(tick);
-  }, [awaitingRoom]);
 
   // A stopped session leaves nothing behind here either, and the two quiet
   // modes are no exception: a disclosure typed into a lesson is the same
@@ -288,8 +267,7 @@ export function LiveSessionScreen({
     // session number with it, so the attempt still waiting on a token stands
     // down and gives back the room it was about to open. See
     // live/startOwnership.ts.
-    const connecting = connectingView(connectingMs);
-    return <RoomWait state="connecting" title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
+    return <RoomWait state="connecting" title={waitingFor(tutorName)} leaveLabel={LEAVE_LABEL} onLeave={leaveNow} />;
   }
 
   if (live.status.phase === 'out-of-minutes') {
@@ -336,8 +314,8 @@ export function LiveSessionScreen({
     // redirect banner is below it, so a redirect the tutor published before its
     // first line was never drawn at all. The view model carries it now. See
     // tutor/waitingView.ts.
-    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety, tutorName });
-    return <RoomWait title={waiting.headline} body={waitingNote(tutorName)} leaveLabel={waiting.leaveLabel} onLeave={leaveNow}
+    const waiting = waitingView({ safety, tutorName });
+    return <RoomWait title={waiting.headline} leaveLabel={waiting.leaveLabel} onLeave={leaveNow}
       banner={waiting.banner ? <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} /> : undefined} />;
   }
 

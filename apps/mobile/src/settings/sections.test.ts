@@ -194,7 +194,7 @@ describe('the Settings screen is one push away — F473', () => {
 
     // Tabs takes nothing now, and Profile is a plain component again.
     assert.match(NAVIGATOR, /function Tabs\(\) \{/, 'Tabs still takes props it has nothing to do with');
-    assert.match(NAVIGATOR, /<Stack\.Screen name="Tabs" component=\{Tabs\} \/>/, 'the tab navigator is still a children function');
+    assert.match(NAVIGATOR, /<Stack\.Screen name="Tabs" component=\{Tabs\}[^>]*\/>/, 'the tab navigator is still a children function');
     assert.match(NAVIGATOR, /<Stack\.Screen name="Profile" component=\{ProfileTab\} \/>/, 'Profile must be pushed from the avatar');
     assert.match(NAVIGATOR, /<Stack\.Screen name="Friends">[\s\S]*?<FriendsTab pushed/, 'Friends replaces the former Profile tab');
 

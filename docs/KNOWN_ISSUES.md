@@ -2842,9 +2842,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   live/connectingView.ts stages the copy by elapsed time and always returns the door;
   both screens render its answer. The executor must verify leave() is safe against an
   in-flight token fetch before wiring the door.
-- verified-by: `the connect wait changes its words as it grows old`
-- verified-by: `every connecting stage keeps a way out`
-- verified-by: `both live screens draw the connecting wait from the view model, door included`
+- superseded: 2026-11-01, founder: the wait shows only "Waiting for {tutor}", so the staged words, the body and the clock are gone; the door stays.
+- verified-by: `both live screens draw the connecting and waiting pages from the helper, door included, with no other line`
 
 ### F152 — A busy auth screen says what it is doing
 - severity: P1
@@ -2976,7 +2975,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   called with, so freezing both call sites to connectingView(0) keeps all four tests
   green while the learner is back to one unchanging sentence for twenty five seconds,
   which is F151 verbatim. Pin the argument the way recapWait.test.ts:57 already does.
-- verified-by: `both live screens hand the view model the elapsed clock, not a constant`
+- superseded: 2026-11-01, founder: the wait shows only "Waiting for {tutor}", so the staged words, the body and the clock are gone; the door stays.
+- verified-by: `both live screens draw the connecting and waiting pages from the helper, door included, with no other line`
 
 ### F163 — The rate limited deletion promises a minute the server does not keep
 - severity: P1
@@ -4901,7 +4901,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the active tab is told by the violet cell and weight 700, and a screen reader still hears selected — F313`
 - note: notebook redesign (2026-09-27): the bar is flat on the paper with a top hairline, no inset dock
   and no selected wash; it still carries no shadow, so the tick follows the renamed test.
-- verified-by: `the bar is an ink capsule on the route ground, and never a floating shadow — F313, UI-008`
+- verified-by: `the bar is an ink capsule on a clear strip, and never a floating shadow — F313, UI-008, UI-017`
+- superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
@@ -5147,7 +5148,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/layout.tsx:137
 - note: every tab pads its own scroll bottom on top of the root's `space(3)`. `ScrollScreen`'s
   contentContainerStyle takes `paddingBottom: space(8)` when `bottom === 'tab'` and nothing otherwise.
-- verified-by: `a scroll screen under the tab bar pads its own bottom, and one that is not does not`
+- verified-by: `a tab screen's content scrolls past the floating bar — UI-017`
+- superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 
 ### F336 — Five tabs open the same way
 - severity: P1
@@ -9008,10 +9010,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:35
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
-- verified-by: `the bar is an ink capsule, radius 32, on the route ground, and never a floating shadow — UI-008`
+- verified-by: `the bar is an ink capsule, radius 32, and never a floating shadow — UI-008, UI-017`
 - verified-by: `the selected cell is violet with a sun Linear glyph and a bold cream word; the rest are cream on ink — UI-008`
 - verified-by: `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route` (renamed 2026-10-20 when direction B A3 moved the bar to five tabs; the route names it guards are unchanged)
-- verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
+- verified-by: `a tab cell presses through Press with no haptic of its own, and only the selection pill moves`
+- superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 - verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
 
 
@@ -9072,7 +9075,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `hear it hides when there is no line the tutor would vouch for`
 - verified-by: `type instead sends a typed turn through the ordinary path mid-scene`
 - verified-by: `the next conversation is the next scene on the spine`
-- verified-by: `both live screens draw the connecting wait from the view model, door included`
+- verified-by: `both live screens draw the connecting and waiting pages from the helper, door included, with no other line`
 
 ### F604 — Practice still wears the notebook: hairline ledgers, a striped review card, the old speak ring, the pen's reward mark and empty states with no drawing
 - severity: P1
@@ -10106,6 +10109,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx, apps/mobile/src/nav/TabGlyph.tsx
 - note: Founder decision D7 (richer motion on flat controls). The selected tab icon pops once inside nav/TabGlyph.tsx and lands still under Reduce Motion; LuvaniTabBar.tsx itself still moves nothing, so the F600 assertion stays true.
 - note 2026-10-06, ca/p0-icons (step D1): TabGlyph pops the newly selected icon (up 2, to 1.15, home on SPRING.pop) with the Bulk drawing fading in over DUR.micro, never on mount or a re-tap; the Practice dot pops only when the read deck goes from none due to some. The title failed with the re-tap guard or the reduced landing removed. Not yet seen on a device.
+- superseded: 2026-11-03, the tab glyph is now one Linear drawing that only lifts (phone fixes item 8, 2026-11-01), with no scale to 1.15 and no Bulk drawing; and the bar no longer moves nothing, since UI-018's selection pill slides to a tapped tab and can be dragged.
 - verified-by: `the selected tab icon springs in TabGlyph and lands still under Reduce Motion`
 
 ### F738 — Leaving one recording can stop another recorder or a live room
@@ -10497,6 +10501,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
+- superseded: 2026-11-03, for this paragraph: the tab glyph is now one Linear drawing that only lifts (phone fixes item 8, 2026-11-01), with no scale to 1.15 and no Bulk drawing; and the bar no longer moves nothing, since UI-018's selection pill slides to a tapped tab and can be dragged.
 - note: 2026-10-07 completion: Disabled Next routes touch to a choice lift and polite explanation, without advancing. Reduce Motion gets the words only. Browser tap verified.
 
 ### F783 — Purchase refresh leaves the game entitlement facts stale
@@ -12215,6 +12220,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   pins the two labels agree.
 - verified-by: `Today names the review action once`
 
+### F955 — A failed tutor start still uses up its daily seconds
+- severity: P3
+- status: [ ]
+- where: services/token-server/src/server.ts (the tutor start's reservation) and
+  supabase/migrations/20261020140000_weekly_free_taste.sql (~:235, :278-300)
+- note: Found on staging 2026-11-01 when the founder's account ran out of its 1,200 s daily
+  allowance. Seconds reserved for a start are never returned to `tutor_session_budget_days` /
+  `tutor_account_budget_days` when the tutor never joins, so failed starts spend the day's
+  allowance. The app now names the spent allowance honestly (`daily-limit` in
+  `apps/mobile/src/live/failure.ts`), but the fix belongs to the token server and the database,
+  not the app: give the reservation back when no tutor joined. 2026-11-03: only
+  `account-daily-budget` maps to `daily-limit`; `daily-budget` (the service-wide ceiling) still
+  shows the general "cannot reach" words, and the server could send when the allowance comes
+  back (the next UTC day, in the learner's local time) so the app can say it.
+- verified-by: `a tutor start that never joins gives back its reserved daily seconds`
+
 ### F956 — The Practice tab nests a button inside a button
 - severity: P3
 - status: [ ]
@@ -12226,3 +12247,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   target can be swallowed. Fix: make the inner control a sibling or the outer row non-pressable,
   with a test that no pressable on the Practice tab contains another.
 - verified-by: `no pressable on the Practice tab contains another`
+
+### F957 — At accessibility-extra-large, Today's greeting breaks inside its first word
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/home/SkyBand.tsx (the greeting `Text`, `bType.greeting`)
+- note: Found 2026-11-03 on the iPhone 17 simulator while checking the phone fixes, and the same on
+  main 4ff3aff2: at accessibility-extra-large "Bonsoir," is wider than the column, so it draws as
+  "Bonsoi" / "r," and the closing full stop sits alone on a line (shots in
+  `artifacts/phone-fixes-2026-11/before|after/sim-today-axl.png`). DESIGN.md asks the title to wrap
+  in normal flow. The Impeccable reviewer suggests letting the greeting alone grow less
+  (`maxFontSizeMultiplier` sized so the longest hour word and its comma fit 343pt), which caps
+  one text's scaling, so it waits for the founder's call.
+- verified-by: `the greeting's longest hour word fits its column at the largest text size`

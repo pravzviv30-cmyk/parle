@@ -1,37 +1,45 @@
 /**
  * The tab bar, Figma C2/Main2/Navigation (292:1103; UI-008, 2026-10-20): an ink
  * capsule 12pt in from each edge, radius 32, holding five equal cells of an
- * Iconsax glyph over its word. Selected is the violet cell with the Bulk glyph
+ * Iconsax glyph over its word. Selected is the violet pill with the Linear glyph
  * in sun and the word in cream at Outfit Bold; unselected is the Linear glyph
  * and the word in cream at Outfit Medium on the ink. There is no dot beneath a
  * tab, no shadow, no chartreuse and no wash; the only dot is the Practice one,
- * which is the real due deck. The capsule is the same ink in both themes; the
- * strip around it is the focused route's ground, so the bar sits in the page
- * rather than floating over it, and it stays in layout so nothing is covered.
+ * which is the real due deck. The capsule is the same ink in both themes. The
+ * bar floats over the screen (UI-017, founder 2026-11-01): the strip around the
+ * capsule is clear and lets touches through, so only the capsule covers
+ * content, and it reports its height so a tab screen pads its scroll past it.
  *
  * Each cell presses through the one spring with no haptic of its own, because
  * the tap that changes tab is the one that ticks. Large reading sizes wrap the
  * labels and grow the capsule; nothing truncates or caps font scaling. Changes
  * are announced to assistive technology. The decisions (words, drawings, width,
  * wrapping, the dot) live in `tabBarModel.ts`; the one movement, the selected
- * glyph's pop, lives in `TabGlyph.tsx` (F737) and the bar itself moves nothing.
+ * glyph's pop, lives in `TabGlyph.tsx` (F737). The only other movement is the
+ * violet selection pill in `TabPill.tsx` (item 7, founder 2026-11-02): it slides
+ * to a tapped tab, and the open tab can be held and dragged sideways to another,
+ * ticking as it crosses each cell and landing like a tap. A still long press is
+ * never claimed, so the Large Content Viewer keeps working (F947).
  */
 
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, AccessibilityInfo, PixelRatio, useWindowDimensions } from 'react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, AccessibilityInfo, PanResponder, PixelRatio, useWindowDimensions } from 'react-native';
+import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { boldType, font, space } from '../theme.ts';
 import { Press } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { dueCount } from '../review/store.ts';
-import { tapSettled } from '../motion/haptics.ts';
+import { tapSettled, tick } from '../motion/haptics.ts';
 import { TabGlyph } from './TabGlyph.tsx';
+import { TabPill } from './TabPill.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabDot, tabLabelsShown } from './tabBarModel.ts';
+import { CAPSULE_HEIGHT, MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabCellAt, tabCellUnderFinger, tabDot, tabPillLeft, tabLabelsShown } from './tabBarModel.ts';
 
 /** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
-const CELL_HEIGHT = 62;
+const CELL_HEIGHT = CAPSULE_HEIGHT - 2 * space(1.5);
+/** The capsule's side padding, `space(2)`: where the first cell starts. */
+const CAPSULE_SIDE = 8;
 
 export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
@@ -117,10 +125,54 @@ function TabStrip({ routes, insets, due }: {
   const shown = tabLabelsShown(fontScale, capsule);
   const t = useB();
   const st = useThemedStyles(makeStyles);
+  const reportHeight = useContext(BottomTabBarHeightCallbackContext);
+
+  // Item 7 (founder, 2026-11-02): hold the open tab and drag the pill to another.
+  const cell = Math.max(0, (capsule - 2 * CAPSULE_SIDE) / routes.length);
+  const selected = routes.findIndex((r) => r.focused);
+  const [dragX, setDragX] = useState<number | null>(null);
+  const capsuleRef = useRef<View>(null);
+  const capsuleX = useRef(0);
+  const startedOnSelected = useRef(false);
+  const over = useRef(0);
+  const routesRef = useRef(routes);
+  routesRef.current = routes;
+  const geo = useRef({ cell, selected });
+  geo.current = { cell, selected };
+  const drag = useRef(PanResponder.create({
+    // Notes whether the touch began on the open tab; never takes it, so a tap stays the cell's.
+    onStartShouldSetPanResponderCapture: (e) => {
+      const { cell, selected } = geo.current;
+      startedOnSelected.current = selected >= 0 && tabCellAt(e.nativeEvent.pageX - capsuleX.current - CAPSULE_SIDE, cell, routesRef.current.length) === selected;
+      return false;
+    },
+    // Only sideways movement claims it, so a still long press keeps the Large Content Viewer (F947).
+    onMoveShouldSetPanResponderCapture: (_, g) => startedOnSelected.current && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
+    onPanResponderGrant: () => {
+      tick();
+      over.current = geo.current.selected;
+    },
+    onPanResponderMove: (_, g) => {
+      const { cell } = geo.current;
+      const n = routesRef.current.length;
+      setDragX(tabPillLeft(g.moveX, capsuleX.current, CAPSULE_SIDE, cell, n));
+      const now = tabCellUnderFinger(g.moveX, capsuleX.current, CAPSULE_SIDE, cell, n);
+      if (now !== over.current) { over.current = now; tick(); }
+    },
+    onPanResponderRelease: () => {
+      const { selected } = geo.current;
+      const to = over.current;
+      setDragX(null);
+      if (to !== selected) routesRef.current[to]?.onPress(); else tapSettled();
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderTerminate: () => setDragX(null),
+  })).current;
 
   return (
-    <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
-      <View style={[st.capsule, { width: capsule }]}>
+    <View pointerEvents="box-none" onLayout={(e) => reportHeight?.(e.nativeEvent.layout.height)} style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
+      <View ref={capsuleRef} {...drag.panHandlers} onLayout={() => capsuleRef.current?.measureInWindow((x) => { capsuleX.current = x; })} style={[st.capsule, { width: capsule }]}>
+      {selected >= 0 && <TabPill to={dragX ?? selected * cell} width={cell} left={CAPSULE_SIDE} following={dragX !== null} />}
       {routes.map((route) => {
         const focused = route.focused;
         const icon = TAB_ICONS[route.name];
@@ -132,7 +184,7 @@ function TabStrip({ routes, insets, due }: {
           <Press
             haptic="none"
             frame={[st.cell, wrapped && st.cellWrapped]}
-            style={[st.face, focused && st.faceSelected]}
+            style={st.face}
             key={route.key}
             onPress={route.onPress}
             accessibilityRole="tab"
@@ -166,8 +218,8 @@ export function announceTab(name: string): void {
 function makeStyles(t: B) {
   return StyleSheet.create({
     bar: {
-      backgroundColor: t.ground,
-      alignSelf: 'stretch',
+      position: 'absolute',
+      left: 0, right: 0, bottom: 0,
       alignItems: 'center',
       paddingTop: space(2),
     },
@@ -192,7 +244,7 @@ function makeStyles(t: B) {
       flexGrow: 0,
       flexShrink: 0,
     },
-    /** What the spring shrinks, and what turns violet when selected. */
+    /** What the spring shrinks; the violet under the selected one is TabPill. */
     face: {
       flex: 1,
       alignSelf: 'stretch',
@@ -202,7 +254,6 @@ function makeStyles(t: B) {
       padding: space(1),
       borderRadius: 20,
     },
-    faceSelected: { backgroundColor: t.tabSelected },
     label: { ...boldType.small, color: t.tabLabel, textAlign: 'center' },
   });
 }

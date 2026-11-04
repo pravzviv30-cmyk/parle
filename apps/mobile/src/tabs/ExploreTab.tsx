@@ -38,7 +38,7 @@ import { useHear } from '../scenes/useHear.ts';
 import { MAX_SEED_TOPIC_CHARS } from '../tutor/realMoments.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { FilterRow, FurtherRow, ListCard, NextConversationCard, PracticeScroller, PrepareCard, SearchField, SectionHead, SituationRow, TopicTileCard, WordRow } from '../explore/ExploreParts.tsx';
-import { bType } from '../theme.ts';
+import { RHYTHM, bType } from '../theme.ts';
 
 export function ExploreTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -168,11 +168,11 @@ export function ExploreTab() {
 
 const makeStyles = (_t: B) =>
   StyleSheet.create({
-    page: { gap: 24 },
+    page: { gap: RHYTHM.section },
     top: { gap: 14 },
-    column: { gap: 24 },
-    stack: { gap: 12 },
-    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    column: { gap: RHYTHM.section },
+    stack: { gap: RHYTHM.item },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: RHYTHM.item },
     gridSingle: { flexDirection: 'column' },
     topicFrame: { flexBasis: '47%', flexGrow: 1, minWidth: 0 },
     topicFrameSingle: { width: '100%', flexBasis: 'auto', flexGrow: 0 },

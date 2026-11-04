@@ -4,7 +4,7 @@
  * The copy lives in a plain module rather than in the two live screens, so the
  * question "is this honest, and does it obey the mid-session rules" can be asked
  * once here instead of read out of JSX on two surfaces. Same move as
- * `connectingView.ts`: the words a screen assembles for itself are the words
+ * `tutor/waitingView.ts`: the words a screen assembles for itself are the words
  * nothing can test.
  */
 

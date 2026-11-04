@@ -229,10 +229,13 @@ describe('error boundary — a throw shows a way back', () => {
     // give paper colours and an ungrouped line; the defaults are pinned below.
     // 2026-10-20, UI-008: useB and useThemedStyles read the appearance context,
     // whose default is light (pinned below), so they need no provider either.
-    const PROVIDER_FREE = new Set(['useState', 'useEffect', 'useLayoutEffect', 'useRef', 'useCallback', 'useMemo', 'useId', 'useSafeAreaInsets', 'useWindowDimensions', 'useReduceMotion', 'useSharedValue', 'useAnimatedStyle', 'useSettingsColors', 'useInGroup', 'useB', 'useThemedStyles']);
+    // 2026-11-01, UI-017: ScrollScreen reads the tab bar's height, whose default
+    // is undefined, and falls back to the capsule's own height (pinned below).
+    const PROVIDER_FREE = new Set(['useContext(BottomTabBarHeightContext)', 'useState', 'useEffect', 'useLayoutEffect', 'useRef', 'useCallback', 'useMemo', 'useId', 'useSafeAreaInsets', 'useWindowDimensions', 'useReduceMotion', 'useSharedValue', 'useAnimatedStyle', 'useSettingsColors', 'useInGroup', 'useB', 'useThemedStyles']);
     assert.match(strip(read('../main/bTheme.tsx')), /export const Appearance = createContext<AppearanceValue>\(\s*appearanceFor\('light'/, 'the appearance context lost its light default, so the way back would need a provider');
     assert.match(strip(read('../settings/SettingsAppearance.tsx')), /const SettingsColors = createContext\(paperColors\);/, 'the settings colours lost their default, so the way back would need a provider');
     assert.match(strip(read('../settings/SettingsGroup.tsx')), /const InGroup = createContext\(false\);/, 'the settings group lost its default, so the way back would need a provider');
+    assert.match(strip(read('../layout.tsx')), /useContext\(BottomTabBarHeightContext\) \?\? /, 'ScrollScreen reads the tab bar height with no fallback, so the way back would need the navigator');
     const parts = [
       { file: './AppErrorScreen.tsx', names: ['AppErrorScreen'] },
       { file: '../layout.tsx', names: ['ScrollScreen', 'Screen'] },
@@ -243,7 +246,7 @@ describe('error boundary — a throw shows a way back', () => {
     for (const { file, names } of parts) {
       const source = strip(read(file));
       for (const name of names) {
-        const hooks = [...bodyOf(source, name).matchAll(/\b(use[A-Z]\w*)\s*[(<]/g)].map((m) => m[1] ?? '');
+        const hooks = [...bodyOf(source, name).matchAll(/\b(use[A-Z]\w*)\s*[(<](\w*)/g)].map((m) => (m[1] === 'useContext' ? `useContext(${m[2]})` : m[1] ?? ''));
         const reaching = hooks.filter((hook) => hook !== name && !PROVIDER_FREE.has(hook));
         assert.deepEqual(reaching, [], `${name} in ${file} calls a hook the way back cannot rely on`);
       }

@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
-import { CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabLabelsShown, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
+import { CAPSULE_HEIGHT, CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellUnderFinger, tabLabelsShown, tabPillLeft, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -67,7 +67,9 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // The floor under every cell is still a floor: a two-line word makes the
     // cell taller, and nothing here is allowed to make it shorter.
     // 2026-10-20 UI-008, Figma 292:1103: the floor is the 62pt cell.
-    assert.match(FLAT, /const CELL_HEIGHT = 62;/, 'the cell is no longer the 62pt cell the Figma nav draws');
+    assert.equal(CAPSULE_HEIGHT, 74, 'the capsule is no longer the 74pt capsule the Figma nav draws');
+    assert.match(FLAT, /const CELL_HEIGHT = CAPSULE_HEIGHT - 2 \* space\(1\.5\);/, 'the cell is no longer the 62pt cell inside the capsule');
+    assert.match(FLAT, /paddingVertical: space\(1\.5\)/, 'the capsule padding no longer matches what the cell height subtracts');
     assert.match(FLAT, /minHeight: CELL_HEIGHT/, 'the cell keeps no height floor, so a wrapped word could be clipped');
     assert.doesNotMatch(FLAT, /\bheight: CELL_HEIGHT/, 'the cell is a fixed height, so a wrapped word is clipped');
 
@@ -96,8 +98,11 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // drawing. Bulk draws its body at 0.4 and reads as a muddy shape on violet.
     assert.match(FLAT, /variant="linear"/, 'the selected glyph is not the gold Linear drawing');
     assert.doesNotMatch(FLAT, /variant=\{bulk \? 'bulk'/, 'the selected glyph went back to the Bulk drawing');
-    assert.match(FLAT, /style=\{\[st\.face, focused && st\.faceSelected\]\}/, 'the selected cell is not filled');
-    assert.match(FLAT, /faceSelected: \{ backgroundColor: t\.tabSelected \}/, 'the selected cell is not the violet tab token');
+    // Item 7 (2026-11-02): the violet is the one sliding pill, not the cell.
+    assert.doesNotMatch(FLAT, /faceSelected/, 'the selected cell paints its own violet beside the pill');
+    const pill = read('./TabPill.tsx');
+    assert.match(pill, /backgroundColor: t\.tabSelected/, 'the pill is not the violet tab token');
+    assert.match(pill, /borderRadius: 20/, 'the pill is not the cell radius');
     assert.match(FLAT, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold and the rest Medium');
     assert.match(FLAT, /label: \{ \.\.\.boldType\.small, color: t\.tabLabel, textAlign: 'center' \}/, 'the word is not C2 small (13/18) in the cream label token');
     assert.match(FLAT, /size=\{22\}/, 'the glyph is not 22pt');
@@ -114,10 +119,10 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(face, /gap: space\(1\)/, 'the glyph and word are not 4 apart');
   });
 
-  test('the bar is an ink capsule, radius 32, on the route ground, and never a floating shadow — UI-008', () => {
+  test('the bar is an ink capsule, radius 32, and never a floating shadow — UI-008, UI-017', () => {
     // 2026-10-20 UI-008, Figma C2/Main2/Navigation 292:1103. Replaces "the bar
-    // is white with a top hairline". The strip is the focused route's ground and
-    // stays in layout; the capsule inside it is the ink in both themes.
+    // is white with a top hairline". The capsule is the ink in both themes; the
+    // strip around it is clear since UI-017 (founder, 2026-11-01).
     for (const gone of ['Animated', 'useReduceMotion', 'interpolate', 'activeSurface', 'ACTIVE_TAB_SURFACE', 'ACTIVE_TAB_OUTLINE', 'highlight']) {
       assert.ok(!BAR.includes(gone), `the tab bar still carries ${gone}`);
     }
@@ -126,7 +131,6 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     }
     assert.doesNotMatch(BAR, /#[0-9A-Fa-f]{3,8}\b/, 'the tab bar carries a hex of its own');
     const bar = BAR.slice(BAR.indexOf('bar: {'), BAR.indexOf('},', BAR.indexOf('bar: {')) + 1);
-    assert.match(bar, /backgroundColor: t\.ground/, 'the strip is not the route ground');
     assert.match(bar, /paddingTop: space\(2\)/, 'the strip has no 8pt above the capsule');
     assert.match(FLAT, /paddingBottom: Math\.max\(insets\.bottom, space\(2\)\)/, 'the safe area is not paid under the capsule');
     const capsule = BAR.slice(BAR.indexOf('capsule: {'), BAR.indexOf('},', BAR.indexOf('capsule: {')) + 1);
@@ -136,11 +140,30 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(capsule, /paddingVertical: space\(1\.5\)/, 'the capsule is not padded 6 down');
     assert.match(FLAT, /const capsule = tabCapsuleWidth\(width, insets\.left, insets\.right\);/, 'the capsule is not inset 12 from the edges inside the safe areas');
     assert.match(FLAT, /\{ width: capsule \}/, 'the capsule is not drawn at that width');
-    for (const dock of ['shadowOpacity', 'shadowRadius', 'shadowColor', 'elevation', "position: 'absolute'", 'borderTopWidth']) {
+    for (const dock of ['shadowOpacity', 'shadowRadius', 'shadowColor', 'elevation', 'borderTopWidth']) {
       assert.ok(!BAR.includes(dock), `the bar carries ${dock}; it sits in the page, flat`);
     }
     assert.doesNotMatch(BAR, /opacity/, 'pressing a tab fades the whole icon and word away');
     assert.match(FLAT, /tapSettled\(\); navigation\.navigate/, 'a successful tab change gives no tactile answer');
+  });
+
+  test('the tab bar is a floating capsule: only the capsule covers content — UI-017', () => {
+    // Founder, 2026-11-01 (iPhone): a full-width strip above the capsule cut
+    // "Today's three" in half. The strip is now clear, floats over the screen
+    // and lets touches through; it reports its height so screens pad past it.
+    const bar = BAR.slice(BAR.indexOf('bar: {'), BAR.indexOf('},', BAR.indexOf('bar: {')) + 1);
+    assert.doesNotMatch(bar, /backgroundColor/, 'the strip around the capsule is painted, so it covers content');
+    assert.match(bar, /position: 'absolute'/, 'the bar is in layout, so content stops at its top edge');
+    assert.match(bar, /left: 0, right: 0, bottom: 0/, 'the bar is not pinned full width to the bottom');
+    assert.match(FLAT, /pointerEvents="box-none"/, 'the clear strip swallows taps meant for the content behind it');
+    assert.match(FLAT, /useContext\(BottomTabBarHeightCallbackContext\)/, 'the bar does not report its height to the navigator');
+    assert.match(FLAT, /onLayout=\{\(e\) => reportHeight\?\.\(e\.nativeEvent\.layout\.height\)\}/, 'the bar does not report its measured height');
+  });
+
+  test('Profile scrolls past its detached floating bar by the bar\'s own height — UI-017', () => {
+    const profile = stripComments(read('../tabs/ProfileTab.tsx')).replace(/\s+/g, ' ');
+    assert.match(profile, /<BottomTabBarHeightContext\.Provider value=\{barHeight\}> <ScrollScreen bottom="tab"/, 'Profile does not pad its scroll past the floating bar');
+    assert.match(profile, /<BottomTabBarHeightCallbackContext\.Provider value=\{setBarHeight\}> <DetachedTabBar/, 'the detached bar does not report its height to Profile');
   });
 
   test('the capsule tokens are the ink, violet, sun and cream in both themes — UI-008', () => {
@@ -165,7 +188,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.ok((tabCapsuleWidth(320, 0, 0) - 16) / 5 >= 44, 'a fifth of the 320pt capsule is under the touch floor');
   });
 
-  test('a tab cell presses through Press with no haptic of its own, and the bar still moves nothing', () => {
+  test('a tab cell presses through Press with no haptic of its own, and only the selection pill moves', () => {
     // 2026-09-30, revamp B (F597, F600). The cell is the shared press: the one
     // spring, released on lift, instant under reduced motion. It asks for no
     // haptic, because the tick belongs to the tap that really changes tab and
@@ -182,7 +205,77 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.doesNotMatch(BAR, /<Pressable\b/, 'the tab bar hand-rolls a Pressable beside the shared press');
     assert.doesNotMatch(BAR, /cellPressed/, 'the static pressed style is back');
     assert.doesNotMatch(BAR, /scale: 0\.985/, 'the tab bar scales by hand again instead of on the spring');
-    assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press may move a cell');
+    assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press and TabPill may move');
+  });
+
+  test('the selected tab can be held and dragged to another, with a tick per cell — item 7', () => {
+    // Founder, 2026-11-02 (iPhone): hold the open tab and drag it to another.
+    assert.match(BAR, /^import \{ TabPill \} from '\.\/TabPill\.tsx';$/m, 'the capsule does not draw the sliding pill');
+    assert.match(FLAT, /<View ref=\{capsuleRef\} \{\.\.\.drag\.panHandlers\}/, 'the capsule row takes no drag');
+    assert.match(FLAT, /<TabPill /, 'the capsule does not draw the pill');
+    // Claimed only on sideways movement that began on the selected cell, so a tap and a still long press stay the cell's.
+    assert.match(FLAT, /onMoveShouldSetPanResponderCapture: \(_, g\) => startedOnSelected\.current && Math\.abs\(g\.dx\) > 8 && Math\.abs\(g\.dx\) > Math\.abs\(g\.dy\)/, 'the drag claims taps, long presses or vertical moves');
+    assert.match(FLAT, /onPanResponderGrant: \(\) => \{ tick\(\);/, 'holding and starting the drag gives no haptic');
+    assert.match(FLAT, /if \(now !== over\.current\) \{ over\.current = now; tick\(\); \}/, 'crossing into another cell does not tick');
+    assert.match(FLAT, /if \(to !== selected\) routesRef\.current\[to\]\?\.onPress\(\); else tapSettled\(\);/, 'letting go does not navigate the way a tap does');
+    assert.match(FLAT, /onPanResponderTerminate: \(\) => setDragX\(null\)/, 'a cancelled drag does not put the pill back');
+    // The pill: follows the finger while held, slides on a tap, jumps under Reduce Motion.
+    const pill = stripComments(read('./TabPill.tsx')).replace(/\s+/g, ' ');
+    assert.match(pill, /const reduced = useReduceMotion\(\);/, 'the pill does not watch Reduce Motion');
+    assert.match(pill, /if \(following \|\| reduced\) \{ cancel\(x\); x\.value = to; return; \}/, 'the pill does not jump under Reduce Motion or while held');
+    assert.match(pill, /x\.value = timing\(to, DUR\.fast, EASE\.out, reduced\);/, 'a tap does not slide the pill');
+    assert.match(pill, /\{\.\.\.decorative\}/, 'the pill is heard by a screen reader');
+    assert.match(pill, /transform: \[\{ translateX: x\.value \}\]/, 'the pill moves by something other than a transform');
+  });
+
+  test('the drag geometry: the cell under a finger, clamped, and when it changes — item 7', () => {
+    assert.equal(tabCellAt(0, 70, 5), 0);
+    assert.equal(tabCellAt(69.9, 70, 5), 0);
+    assert.equal(tabCellAt(70, 70, 5), 1);
+    assert.equal(tabCellAt(349, 70, 5), 4);
+    assert.equal(tabCellAt(-40, 70, 5), 0, 'a finger left of the capsule is not the first cell');
+    assert.equal(tabCellAt(900, 70, 5), 4, 'a finger right of the capsule is not the last cell');
+    assert.equal(tabCellAt(10, 0, 5), 0, 'an unmeasured capsule divides by zero');
+  });
+
+  test('a drag lands on the cell under the finger, not under the pill (verifier, fix 1)', () => {
+    // Capsule at x 12, padded 8, cells 70 wide. Grab cell 1 at 0.45 of a cell right of its centre, drag +0.1 cell.
+    const grab = 12 + 8 + 70 * 1.5 + 70 * 0.45;
+    assert.equal(tabCellUnderFinger(grab, 12, 8, 70, 5), 1);
+    assert.equal(tabCellUnderFinger(grab + 7, 12, 8, 70, 5), 2, 'the finger is over the next cell');
+    assert.match(FLAT, /tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, cell, n\)/, 'the bar does not read the finger on move');
+  });
+
+  test('the dragged pill is centred on the finger, over the cell release picks (push-check, fix 1)', () => {
+    // Capsule at x 12, padded 8, cells 70 wide, five cells.
+    const grab = 12 + 8 + 70 * 1.5 + 70 * 0.45;
+    const centreCell = (left: number) => tabCellAt(left + 35, 70, 5);
+    assert.equal(centreCell(tabPillLeft(grab + 7, 12, 8, 70, 5)), 2, 'the pill is drawn over the old cell while release opens the next');
+    for (let x = -100; x <= 500; x += 0.5) {
+      const left = tabPillLeft(x, 12, 8, 70, 5);
+      assert.ok(left >= 0 && left <= 4 * 70, `the pill leaves the row at finger ${x}`);
+      assert.equal(centreCell(left), tabCellUnderFinger(x, 12, 8, 70, 5), `the pill and release disagree at finger ${x}`);
+    }
+    assert.equal(tabPillLeft(0, 12, 8, 70, 5), 0, 'the pill passes the first end');
+    assert.equal(tabPillLeft(900, 12, 8, 70, 5), 280, 'the pill passes the last end');
+    assert.match(FLAT, /setDragX\(tabPillLeft\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, cell, n\)\)/, 'the bar draws the pill from the grab, not the finger');
+  });
+
+  test('the drag guards: a tap stays the cell\'s, geometry is measured, no pill without a tab (push-check, fix 3)', () => {
+    const capture = FLAT.slice(FLAT.indexOf('onStartShouldSetPanResponderCapture:'), FLAT.indexOf('onMoveShouldSetPanResponderCapture:'));
+    assert.match(capture, /return false; \}, $/, 'the touch start takes the touch, so a tap no longer reaches the cell');
+    assert.match(capture, /startedOnSelected\.current = selected >= 0 && tabCellAt\(e\.nativeEvent\.pageX - capsuleX\.current - CAPSULE_SIDE, cell, routesRef\.current\.length\) === selected;/, 'a drag can start from a tab that is not open');
+    assert.match(FLAT, /<View ref=\{capsuleRef\} [^>]*onLayout=\{\(\) => capsuleRef\.current\?\.measureInWindow\(\(x\) => \{ capsuleX\.current = x; \}\)\}/, 'the capsule never measures where it sits, so the finger is read from 0');
+    assert.doesNotMatch(BAR, /\bCAPSULE_PAD\b/, 'the bar reuses tabBarModel\'s CAPSULE_PAD name (16, both sides) for 8 per side');
+    const pad = Number(/const CAPSULE_SIDE = (\d+);/.exec(BAR)?.[1]);
+    const capsuleStyle = FLAT.slice(FLAT.indexOf('capsule: {'), FLAT.indexOf('cell: {'));
+    const styled = /paddingHorizontal: space\((\d+(?:\.\d+)?)\)/.exec(capsuleStyle);
+    assert.ok(styled, 'the capsule style lost its side padding');
+    assert.equal(pad, Number(styled[1]) * 4, 'the drag\'s side padding is not the capsule style\'s, so the finger maps to the wrong cell');
+    assert.match(FLAT, /const cell = Math\.max\(0, \(capsule - 2 \* CAPSULE_SIDE\) \/ routes\.length\);/, 'the cell width is not the padded capsule over the tab count');
+    assert.match(FLAT, /\{selected >= 0 && <TabPill /, 'Profile\'s detached bar, with no open tab, draws a pill');
+    const release = FLAT.slice(FLAT.indexOf('onPanResponderRelease:'), FLAT.indexOf('onPanResponderTerminationRequest:'));
+    assert.match(release, /setDragX\(null\);/, 'letting go leaves the pill pinned to the finger');
   });
 
   test('the five words are Today, Explore, Speak, Practice and Journey over Codex\'s Iconsax drawings — UI-008', () => {
@@ -239,7 +332,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // With the words hidden, iOS's Large Content Viewer shows the word on a long press.
     assert.match(FLAT, /accessibilityShowsLargeContentViewer=\{!shown\}/, 'a hidden word has no Large Content Viewer');
     assert.match(FLAT, /accessibilityLargeContentTitle=\{shown \? undefined : label\}/, 'the Large Content Viewer has no title');
-    assert.match(FLAT, /<View style=\{\[st\.capsule, \{ width: capsule \}\]\}>/, 'the capsule width is computed twice');
+    assert.match(FLAT, /style=\{\[st\.capsule, \{ width: capsule \}\]\}>/, 'the capsule width is computed twice');
     // The bar draws the word only when the model says it fits, and every tab
     // keeps its full name for a screen reader.
     assert.match(FLAT, /tabLabelsShown\(fontScale, capsule\)/, 'the bar does not ask the model whether the words fit');
@@ -258,13 +351,13 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
 describe('the selected tab icon pops once — F737', () => {
   test('the selected tab icon springs in TabGlyph and lands still under Reduce Motion', () => {
     // Come alive (D7): the selected tab shows it was chosen. The bar hands each
-    // icon to TabGlyph and still moves nothing itself (F600); TabGlyph draws the
-    // Bulk icon over the Linear one and pops it once on a real change.
+    // icon to TabGlyph; only its selection pill moves (F600, item 7); TabGlyph draws the
+    // Linear icon once, in one layer, and lifts it once on a real change.
     assert.match(BAR, /^import \{ TabGlyph \} from '\.\/TabGlyph\.tsx';$/m, 'the bar does not hand its icons to TabGlyph');
     assert.match(
       FLAT,
       /<TabGlyph focused=\{focused\} badged=\{dot\}> \{\(\) => <Icon name=\{icon\} variant="linear" size=\{22\} color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\} \/>\} <\/TabGlyph>/,
-      'the cell does not wrap its icon in TabGlyph, Linear and Bulk drawn by the same icon',
+      'the cell does not wrap its Linear icon in TabGlyph',
     );
     assert.match(FLAT, /const dot = tabDot\(route\.name, due\);/, 'the Practice dot does not come from the model rule that waits for the deck');
 
@@ -276,36 +369,34 @@ describe('the selected tab icon pops once — F737', () => {
     // Only on a change to selected: not selected lands at rest, and selected already (mount or a re-tap) returns.
     assert.match(
       flat,
-      /const before = wasFocused\.current; wasFocused\.current = focused; if \(!focused\) \{ cancel\(pop\); cancel\(fill\); pop\.value = 0; fill\.value = 0; return; \}/,
-      'leaving a tab does not put its icon back to the still Linear drawing',
+      /const before = wasFocused\.current; wasFocused\.current = focused; if \(!focused\) \{ cancel\(pop\); pop\.value = 0; return; \}/,
+      'leaving a tab does not put its icon back at rest',
     );
     assert.match(flat, /if \(before\) return;/, 'the icon pops on mount or on a tap of the tab already open');
-    // Under Reduce Motion the Bulk drawing is simply there, and nothing scales.
-    assert.match(flat, /if \(reduced\) \{ pop\.value = 0; fill\.value = 1; return; \}/, 'Reduce Motion does not land the selected icon still');
+    // Under Reduce Motion the icon is simply there, and nothing moves.
+    assert.match(flat, /if \(reduced\) \{ pop\.value = 0; return; \}/, 'Reduce Motion does not land the selected icon still');
     assert.match(flat, /useEffect\(\(\) => \{ if \(reduced\) land\(\); \}, \[reduced, land\]\);/, 'turning Reduce Motion on mid-pop does not land it');
-    assert.match(flat, /pop\.value = 0; fill\.value = wasFocused\.current \? 1 : 0; dot\.value = 1;/, 'landing does not put the icon at rest on its own drawing');
+    assert.match(flat, /pop\.value = 0; dot\.value = 1;/, 'landing does not put the icon at rest on its own drawing');
     assert.match(flat, /useLandOnLeave\(land\);/, 'the pop keeps running when the app leaves the foreground');
-    // The pop: up on the select beat, home on the pop spring; the Bulk drawing fades in over DUR.micro.
+    // The lift: up on the select beat, home on the pop spring.
     assert.match(
       flat,
       /pop\.value = sequence\(reduced, timing\(1, SELECT_POP_MS, EASE\.out, reduced\), spring\(0, SPRING\.pop, reduced\)\);/,
       'the selected icon does not rise and come home on the pop spring',
     );
-    assert.match(flat, /fill\.value = timing\(1, DUR\.micro, EASE\.out, reduced\);/, 'the Bulk drawing does not fade in over the Linear one');
-    assert.match(
-      flat,
-      /transform: \[\{ translateY: -TAB_POP\.lift \* pop\.value \}, \{ scale: 1 \+ \(TAB_POP\.scale - 1\) \* pop\.value \}\]/,
-      'the pop does not lift and grow the icon',
-    );
+    // Item 8 (founder, 2026-11-01): one icon layer, no cross-fade, no scale, so the icon stays sharp.
+    assert.equal((flat.match(/\{children\(\)\}/g) ?? []).length, 1, 'TabGlyph draws the icon more than once');
+    assert.doesNotMatch(flat, /\bfill\b|children\((true|false)\)/, 'TabGlyph cross-fades two drawings of the icon');
+    assert.match(flat, /transform: \[\{ translateY: -TAB_POP\.lift \* pop\.value \}\]/, 'the pop does not only lift the icon');
     const motion = read('../icons/iconMotion.ts');
-    assert.match(motion, /export const TAB_POP = \{ scale: 1\.15, lift: 2 \} as const;/, 'the pop is not to 1.15 and up two points');
+    assert.match(motion, /export const TAB_POP = \{ lift: 2 \} as const;/, 'the pop is not up two points only');
     // The Practice dot pops only when nothing due becomes something due.
     assert.match(flat, /if \(badged !== true \|\| before !== false\) return;/, 'the dot pops for something other than nothing due becoming due');
     // Transform and opacity only, no loop.
     assert.doesNotMatch(glyph, /\brepeat\(|withRepeat|width:\s*\w+\.value|height:\s*\w+\.value/, 'TabGlyph loops or animates its size');
     const styles = [...glyph.matchAll(/useAnimatedStyle\(\(\) => \(\{([\s\S]*?)\}\)\);/g)];
     assert.equal(styles.length, (glyph.match(/useAnimatedStyle\(/g) ?? []).length, 'an animated style is written in a shape this check cannot read');
-    assert.ok(styles.length >= 4, 'TabGlyph has lost its lift, cross-fade or dot styles, so this check reads nothing');
+    assert.equal(styles.length, 2, 'TabGlyph has not exactly its lift and dot styles');
     for (const [, body] of styles) {
       const keys = [...(body ?? '').matchAll(/(\w+):/g)].map((m) => m[1]);
       assert.ok(keys.every((key) => ['transform', 'opacity', 'translateY', 'scale'].includes(key!)), `TabGlyph animates ${keys.join(', ')}`);

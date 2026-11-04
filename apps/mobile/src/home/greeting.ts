@@ -93,7 +93,8 @@ export function greetingSubline(now: number): string {
  * with no name. Direction A's sky (UI-015, founder 2026-10-30) brings back the
  * hour's word, superseding direction B's one word all day (2026-10-20, B5): the
  * sky follows the hour, so the word under it does too, from the same evening
- * window. It is drawn in two lines, the word with its comma and then the name;
+ * window. It is drawn as one line when the name fits beside the word, and wraps
+ * after the comma to put the name under it when it does not;
  * `title` is the one line a screen reader says. The name is the app's own use
  * of it and goes nowhere else.
  */

@@ -59,4 +59,19 @@ describe('Conversation Pack library', () => {
     assert.match(source, /Your earned phrases and reviews stay\./, 'history deletion claims it deletes more or explains nothing');
     assert.doesNotMatch(source, /transcript/i, 'the Pack library implies readable transcript history exists by default');
   });
+  test('outside the tab bar, the practice footer keeps the safe area and space below it (verifier, fix 3)', () => {
+    // The Conversations stack has no tab bar, so `tab` would leave 0pt under the footer.
+    const tags = [...source.matchAll(/<ScrollScreen /g)].map((m) => {
+      let depth = 0;
+      for (let i = m.index; i < source.length; i += 1) {
+        const c = source[i];
+        if (c === '{') depth += 1;
+        else if (c === '}') depth -= 1;
+        else if (c === '>' && depth === 0) return source.slice(m.index, i + 1);
+      }
+      return source.slice(m.index);
+    });
+    assert.equal(tags.length, 2);
+    for (const tag of tags) assert.doesNotMatch(tag, /\bbottom=/, 'a library screen sets its own bottom, so it no longer takes the default inset');
+  });
 });

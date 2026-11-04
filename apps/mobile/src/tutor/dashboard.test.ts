@@ -61,5 +61,8 @@ describe('the tutor tab opens on the tutor, not on the hour — F404', () => {
     assert.equal(firstNameOf('  '), null, 'a blank name is read as a name');
     assert.equal(firstNameOf(null), null, 'a learner who skipped the name page is named anyway');
     assert.equal(firstNameOf(undefined), null, 'a profile with no name yet is named anyway');
+    assert.equal(firstNameOf('léa'), 'Léa', 'a name typed in lower case is not capitalised');
+    assert.equal(firstNameOf('mcKenzie'), 'McKenzie', 'the rest of a name is not left as typed');
+    assert.equal(firstNameOf('  amina rahman'), 'Amina');
   });
 });
