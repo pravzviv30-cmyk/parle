@@ -361,6 +361,8 @@ test('the hero is the first stop present, and the rows never repeat it', () => {
   assert.deepEqual(rowMarks([]), []);
   // The screen draws the hero and the rows from the rule.
   assert.match(HOME, /const stops = todayStops\(\{ fix: fix !== null, review: review !== null, heroReview \}\);/);
+  // Undecided until the hero first answers, so the row never shows and then vanishes.
+  assert.match(HOME, /const \[heroReview, setHeroReview\] = useState<boolean \| null>\(null\);/, 'Today starts as if the hero had already answered');
   // A hero that goes (the fix hero takes over) takes its answer with it, so the
   // next hero starts undecided and a stale answer never draws the row (fix-verifier).
   const card = read('../practice/NextTaskCard.tsx').replace(/\s+/g, ' ');
@@ -430,6 +432,16 @@ test('the held hero carries Review only with the words alone and something to de
   assert.equal(heroCarriesReview({ ...held, lead: 'lapsed' }), true, 'lapsed with review due');
   assert.equal(heroCarriesReview({ ...held, lead: 'plans' }), false, 'the plans lead');
   assert.equal(heroCarriesReview({ ...held, lead: 'scene' }), false, 'the scene lead');
+  // Every lead that draws no held words carries no Review, so the path keeps its row.
+  for (const lead of ['explore', 'starter', 'local', 'loading']) {
+    assert.equal(heroCarriesReview({ ...held, lead }), false, `the ${lead} lead takes the path's Review row away`);
+  }
+  // Lapsed follows the same conditions as out of time.
+  const lapsed = { ...held, lead: 'lapsed' };
+  assert.equal(heroCarriesReview({ ...lapsed, starterShown: true }), false, 'lapsed with the starter card');
+  assert.equal(heroCarriesReview({ ...lapsed, cafeShown: true }), false, 'lapsed with the café line');
+  assert.equal(heroCarriesReview({ ...lapsed, reviewDue: false }), false, 'lapsed with no review due');
+  assert.equal(heroCarriesReview({ ...lapsed, billingKnown: false }), false, 'lapsed before billing is known');
 });
 
 test("Today's path drops its Review row whenever the hero carries it, and holds it while the hero decides", () => {
