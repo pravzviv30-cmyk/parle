@@ -194,6 +194,13 @@ test("the backend image skips onnxruntime's GPU download and keeps its bundled C
   assert.ok(files.length>0);
   for(const file of files) assert.match(file,/^\.\/libonnxruntime_providers_[a-z0-9_]+\.so$/);
 });
+test('the backend image copies every script the root postinstall runs',async()=>{
+  const { postinstall }=JSON.parse(await readFile(resolve(ROOT,'package.json'),'utf8')).scripts;
+  const scripts=[...postinstall.matchAll(/\bnode scripts\/([\w.-]+\.mjs)\b/g)].map((m)=>m[1]);assert.ok(scripts.length>0,'root postinstall runs no node scripts/<name>.mjs');
+  const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8'),deps=docker.slice(docker.indexOf('AS dependencies')).split(/\nFROM /)[0];
+  const copy=deps.split('\n').filter((line)=>/^COPY .* \.\/scripts\/$/.test(line)).join(' ').split(/\s+/),ignore=(await readFile(resolve(ROOT,'.dockerignore'),'utf8')).split('\n').map((line)=>line.trim());
+  for(const name of scripts){assert.ok(copy.includes(`scripts/${name}`),`Dockerfile dependencies stage does not COPY scripts/${name}; the image's npm ci would fail running postinstall`);assert.ok(ignore.includes(`!scripts/${name}`),`.dockerignore does not allowlist !scripts/${name}; the image's npm ci would fail running postinstall`);}
+});
 test('runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)',async()=>{
   const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
   // Real instructions only: comment lines dropped, continuation lines kept per instruction.

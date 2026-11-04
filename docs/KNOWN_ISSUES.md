@@ -12281,3 +12281,31 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   the gate refuses an open P1 and Railway deploys only `main`; the live tutor join on staging after
   that deploy is the proof still to record here.
 - verified-by: `runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)`
+
+### F959 — A white iOS scroll edge fade covers the top of every tab
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/layout.tsx (`Screen`'s root View) and
+  node_modules/@react-navigation/bottom-tabs/lib/module/views/ScreenFallback.js (`MaybeScreen`, patched by
+  scripts/patchBottomTabsEdgeEffect.mjs from the root postinstall)
+- note: Seen 2026-11-04 on the founder's iPhone (iOS 27, a Release build of main) over the top of Today and
+  Journey. babe636b gave the native-stack `Tabs` screen `scrollEdgeEffects: { top: 'hidden' }`, and it never
+  reached a tab. Two things stood in the way, both read with lldb on the iPhone 17 simulator (iOS 26.5):
+  1. react-native-screens applies a screen's edge effects only to a scroll view down the first-subview chain
+     (`RNSScrollViewFinder findScrollViewInFirstDescendantChainFrom:`). Fabric mounted `Screen`'s root View, which
+     has only a ground colour, as a childless leaf and hoisted the ScrollView beside it as subview #1, so no
+     screen found it. `collapsable={false}` keeps the root a real container with the ScrollView first.
+  2. Once reachable, bottom-tabs 7.18.16 wraps each tab in its own `Screen` that applies `automatic` again, and
+     the innermost screen wins. A postinstall patch gives that `Screen` `{ top: 'hidden' }` in the built file
+     Metro loads and in its source, for 7.18.16 only; an unlisted version is left alone and the lock test
+     fails the gate until someone reads the new file. The service image runs the root postinstall too, so
+     the Dockerfile and `.dockerignore` carry the script.
+  Each alone leaves the tab's `topEdgeEffect.hidden == NO`; both together read YES on Today at launch, on
+  Journey and back on Today (`artifacts/tab-edge-2026-11/before|after/edges.txt`). iOS 26.5 draws no fade
+  there without a bar, so the simulator shows the flag, not the fade. The `Tabs` option stays
+  (`nav/wiring.test.ts`).
+- fixed: 2026-11-04 on claude/tab-edge. The founder's iOS 27 phone is the check still to record here.
+- verified-by: `the screen root stays a native container so iOS edge effects reach the scroll view first — F959`
+- verified-by: `the installed bottom-tabs gives every tab's native Screen no top scroll edge effect`
+- verified-by: `the tab edge patch leaves an unlisted bottom-tabs version alone`
+- verified-by: `the locked @react-navigation/bottom-tabs is a version the tab edge patch has been checked against`

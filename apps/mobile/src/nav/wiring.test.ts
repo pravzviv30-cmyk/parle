@@ -567,7 +567,7 @@ describe('Listen only is delivered, not just declared', () => {
 });
 
 test('Today scrolls under no white fade at the top (iOS 26 scroll edge effect)', () => {
-  // Only the Tabs screen turns the top edge effect off; a phone is the only real check.
+  // The Tabs screen and each tab's own screen (scripts/patchBottomTabsEdgeEffect.mjs) turn the top edge effect off, and Screen in layout.tsx keeps the ScrollView first in the chain (collapsable={false}); a phone is the only real check.
   const root = readFileSync(new URL('./RootNavigator.tsx', import.meta.url), 'utf8');
   assert.match(root, /<Stack\.Screen name="Tabs" component=\{Tabs\} options=\{\{ scrollEdgeEffects: \{ top: 'hidden' \} \}\} \/>/);
   assert.equal(root.match(/scrollEdgeEffects/g)?.length, 1, 'the edge effect is changed somewhere other than the Tabs screen');

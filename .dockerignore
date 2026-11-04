@@ -28,6 +28,7 @@
 !scripts/
 !scripts/installHooks.mjs
 !scripts/patchExpoModulesJsi.mjs
+!scripts/patchBottomTabsEdgeEffect.mjs
 !deployment/
 !deployment/entrypoint.sh
 !deployment/validateBuild.mjs

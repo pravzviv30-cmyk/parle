@@ -1,0 +1,8 @@
+# Before (main 34eae927, unpatched bottom-tabs 7.18.16), iPhone 17 simulator, iOS 26.5, 2026-11-04
+# lldb -p <pid> --batch -o 'command script import edges.py' -o edges -o detach
+## 1. Today at fresh launch
+"RCTEnhancedScrollView" 0x1081c0000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+## 2. Journey after tapping it from Today
+"RCTEnhancedScrollView" 0x1081c0a00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+## 3. Today after tapping it from Journey
+"RCTEnhancedScrollView" 0x1081c0000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0

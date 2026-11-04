@@ -20,7 +20,7 @@ COPY services/token-server/package.json ./services/token-server/package.json
 COPY services/tutor-agent/package.json ./services/tutor-agent/package.json
 COPY services/brain-playground/package.json ./services/brain-playground/package.json
 COPY apps/mobile/package.json ./apps/mobile/package.json
-COPY scripts/installHooks.mjs scripts/patchExpoModulesJsi.mjs ./scripts/
+COPY scripts/installHooks.mjs scripts/patchExpoModulesJsi.mjs scripts/patchBottomTabsEdgeEffect.mjs ./scripts/
 COPY deployment/validateBuild.mjs ./deployment/validateBuild.mjs
 RUN GIT_SHA="${RAILWAY_GIT_COMMIT_SHA:-$GIT_SHA}" node deployment/validateBuild.mjs
 # The lock fixes npm archives. onnxruntime-node's CPU runtime ships in its npm archive;

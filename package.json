@@ -39,7 +39,7 @@
     "loop": "node scripts/loop.mjs",
     "hooks": "node scripts/installHooks.mjs",
     "icons": "node scripts/icons/build-icons.mjs",
-    "postinstall": "node scripts/patchExpoModulesJsi.mjs && node scripts/installHooks.mjs"
+    "postinstall": "node scripts/patchExpoModulesJsi.mjs && node scripts/patchBottomTabsEdgeEffect.mjs && node scripts/installHooks.mjs"
   },
   "engines": {
     "node": ">=22"
