@@ -124,7 +124,7 @@ Drill (`apps/mobile/src/drill/`):
 | T1 | Cloud's poses, lids and the blink | step 1 agent | none | `art/mascots/*`, `motion/MascotMotion.tsx`, `motion.test.ts` | built |
 | T2 | The listening mic, the pinned say foot and the cheering sheet | step 2 agent | T1 | `drill/SpeakMic.tsx`, `drill/speakFoot.ts`, `drill/kinds/RepeatThisView.tsx`, `drill/AnswerSheet.tsx`, their tests | built |
 | T3 | Docs | step 3 agent | T2 | `DESIGN.md`, `DECISIONS.md`, `docs/DESIGN_PARTNERSHIP.md`, this file | built |
-| T4 | Verification, then `/push-check` and landing | orchestrator | T3 | `docs/IMPLEMENTATION_EVIDENCE.md` | todo |
+| T4 | Verification, then `/push-check` and landing | orchestrator | T3 | `docs/IMPLEMENTATION_EVIDENCE.md` | push-checked; landing waits for phone-fixes |
 
 ## Execution log
 
@@ -139,8 +139,15 @@ Drill (`apps/mobile/src/drill/`):
 
 - Focused checks: `mascotPoses.test.ts`, `answerSheet.test.ts`, `speakFamily.test.ts` and
   `motion.test.ts` failed first, then passed.
-- Full gate: green on 2026-11-03, mobile 4069 tests; the floor was raised from 4057 with
-  `gate:bless`.
+- Full gate: green on 2026-11-04, 7,544 tests, mobile 4080; floors raised with `gate:bless` and the
+  gate recorded in `docs/IMPLEMENTATION_EVIDENCE.md`.
+- Fix-verifier: round 1 refuted the silent foot (330 against a 243 cap at 320x640, the quiet control
+  hidden) and flagged the mic slot growing from 77 to 100; both fixed test first. Round 2 HOLDS.
+- Push-check: push-reviewers (frontend, tests), `/code-review` and the Impeccable reviewer. Fixed test
+  first: the listen arcs' dark contrast (2.3:1 to 7.6:1 with the link colour), the live ring's room
+  in the foot, the blink re-arming after the background (on the shared foreground hook), Cloud's
+  wiring into `cloudLayers`, and pins for the hop cue and the foot model. Round 2 found nothing above
+  low. Four Impeccable redesign proposals are logged in `docs/DESIGN_PARTNERSHIP.md`.
 - Web shots at 375 and 320, light and dark: `artifacts/cast-2026-11/after/`, which covers
   the say drill (idle and listening, plus 375x667) and the build and choose right sheets.
   The quiet control is visible at 320x640, Cloud is full size, and the limbs show on dark.
@@ -160,4 +167,5 @@ Drill (`apps/mobile/src/drill/`):
   in `docs/DESIGN_PARTNERSHIP.md`.
 - Not verified: Android. The blue sound arcs are dimmer on the dark ground; this goes to
   the design review.
-- Landing disposition:
+- Landing disposition: HOLD until `claude/phone-fixes` lands, then merge main and `/land --no-ff`.
+  The branch is pushed as a backup after `/push-check`.

@@ -28,11 +28,12 @@ of the list.
   mic, in the background and under Reduce Motion); the say drill's controls pinned in the foot with
   Cloud listening above; Cloud cheering and hopping on every right sheet. Fix-verifier round 1 refuted
   the silent foot (330 against a 243 cap at 320x640), fixed; round 2 HOLDS. Push-check fixes: the arcs'
-  dark contrast, the live ring's room in the foot, the blink after the background, and test pins. Shots
+  dark contrast, the live ring's room in the foot, the blink after the background (on the shared
+  foreground hook), and test pins. Shots
   in `artifacts/cast-2026-11/`, web at 320 and 375 light and dark, and the iPhone 13 mini simulator
   (blink recording, Reduce Motion, mid-hop, dark).
-  **7,543 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
-  mobile 4079; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  **7,544 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4080; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 2 November 2026 Bug fixes after screens 1 to 3: branch `claude/bug-fix` from main cc60bce7. F950
   generated tap-translate items carry a required `fr` display line, validated like authored ones;
   F951 the speak drill's quiet control is named by its visible words; F952 stays open (three

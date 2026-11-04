@@ -19,10 +19,11 @@
  * but for the blink's opacity; decoration, so nothing here is reachable by a screen reader.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AppState, StyleSheet } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { StyleSheet } from 'react-native';
 import Reanimated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
+import { useForeground } from '../game/art/foreground.ts';
 import { useReduceMotion } from '../motion.ts';
 import { cancel, delay, repeat, sequence, spring, timing } from './drive.ts';
 import { useLandOnLeave } from './landing.ts';
@@ -138,16 +139,6 @@ export function Blink({ active, lids, children }: { active: boolean; lids: React
       <Reanimated.View style={[st.lids, look]}>{lids}</Reanimated.View>
     </Reanimated.View>
   );
-}
-
-/** Whether the app is in the foreground, watched, as AnimatedIcon's loops do. */
-function useForeground(): boolean {
-  const [awake, setAwake] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (next) => setAwake(next === 'active'));
-    return () => subscription.remove();
-  }, []);
-  return awake;
 }
 
 const st = StyleSheet.create({

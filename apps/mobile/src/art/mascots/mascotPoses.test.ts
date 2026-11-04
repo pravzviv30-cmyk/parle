@@ -136,7 +136,16 @@ test('every posed Cloud in the app passes its limbs an ink, so they show in dark
       if (!/\bpose=/.test(tag)) continue;
       posed += 1;
       assert.match(tag, /\bink=/, `${file}: ${tag} has no ink`);
+      // The listen arcs are a mark: without the caller's accent they fall back to brand blue, under 3:1 on dark.
+      if (/\bpose="listen"/.test(tag)) assert.match(tag, /\baccent=/, `${file}: ${tag} has no accent for its arcs`);
     }
   }
   assert.ok(posed > 0, 'no posed Cloud found, so this test checks nothing');
+});
+
+test('Cloud hands its expression and accent to cloudLayers, and draws the face it gets back', async () => {
+  const { readFileSync } = await import('node:fs');
+  const cloud = readFileSync(new URL('./Cloud.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+  assert.match(cloud, /cloudLayers\(pose, \{ ink, accent, expression \}\)/, 'Cloud drops its ink, accent or expression on the way to cloudLayers');
+  assert.match(cloud, /<FaceMarks key=\{i\} face=\{l\.face\} \/>/, 'Cloud draws a face other than the one cloudLayers gives it');
 });

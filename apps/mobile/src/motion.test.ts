@@ -671,7 +671,9 @@ describe('one door to the engine', () => {
     assert.match(blink, /const live = active && !reduced && awake;/, 'the blink stays off after the app comes back');
     assert.match(blink, /useEffect\(\(\) => \{ cancel\(shut\); shut\.value = 0; if \(!live\) return;/, 'the blink does not reset and cancel when it stops');
     const fg = file('motion/MascotMotion.tsx').body.replace(/\s+/g, ' ');
-    assert.match(fg, /AppState\.addEventListener\('change', \(next\) => setAwake\(next === 'active'\)\)/, 'the blink does not hear the app come back');
+    // The one shared foreground hook, not a copy of it.
+    assert.match(fg, /import \{ useForeground \} from '\.\.\/game\/art\/foreground\.ts';/, 'the blink does not use the shared foreground hook');
+    assert.doesNotMatch(fg, /function useForeground/, 'the blink carries its own copy of the foreground hook');
   });
 
   test('raised choices keep their release spring when selection commits', () => {
