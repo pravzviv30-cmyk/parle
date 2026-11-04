@@ -12207,6 +12207,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `startReactNative` block. It throws if AppDelegate.swift stops matching the Expo 57 template.
   Proven 2026-11-02: a clean `expo prebuild --clean` of this branch, built for device, launched on the
   founder's iPhone 17 (iOS 27.0.1) with React Native running and no crash report.
+  Launch checked 2026-11-04 on the same phone with main 98cd8098: the native splash and the returning
+  launch hand-off are drawn under the scene delegate. The first-run "Get Started" launch did not play,
+  by design: the Keychain's `luvani.has-used-app.v1` survives a reinstall (`src/auth/installHistory.native.ts`).
 - verified-by: `the iOS build adopts the scene life cycle so iOS 27 does not kill it at launch`
 
 ### F954 — Today names one review twice when the hero offers it
