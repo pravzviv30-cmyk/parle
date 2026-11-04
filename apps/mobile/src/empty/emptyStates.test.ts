@@ -80,10 +80,10 @@ test('the two "nothing to review" cards draw Cloud cheering, in a card, with the
   }
 });
 
-test('the quiet previews draw the extracted parts inside a ScrollScreen, as their screens do', () => {
+test('the quiet previews draw the extracted parts inside a ScrollScreen, as their screens do, in the device mode', () => {
   const preview = flatSource('../dev/OnboardingPreview.tsx');
   assert.match(preview, /'quiet-toast', 'quiet-phrasebook', 'quiet-speak',/);
   assert.match(preview, /'quiet-phrasebook': 'Phrasebook, nothing kept yet', 'quiet-speak': 'Speak, out of the free conversation',/);
-  assert.match(preview, /\{screen === 'quiet-phrasebook' && <ScrollScreen bottom="inset" footer=\{<PillButton label=\{PHRASEBOOK_EMPTY\.action\} onPress=\{\(\) => go\('select'\)\} lip \/>\}><PhrasebookEmpty title=\{PHRASEBOOK_EMPTY\.title\} body=\{PHRASEBOOK_EMPTY\.body\} \/><\/ScrollScreen>\}/);
-  assert.match(preview, /\{screen === 'quiet-speak' && <ScrollScreen bottom="inset"><OutOfTimeMoment card=\{QUIET_OUT_OF_TIME\} onPlans=\{\(\) => go\('select'\)\} \/><\/ScrollScreen>\}/);
+  assert.match(preview, /\{screen === 'quiet-phrasebook' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset" footer=\{<PillButton label=\{PHRASEBOOK_EMPTY\.action\} onPress=\{\(\) => go\('select'\)\} lip \/>\}><PhrasebookEmpty title=\{PHRASEBOOK_EMPTY\.title\} body=\{PHRASEBOOK_EMPTY\.body\} \/><\/ScrollScreen><\/ModeScope>\}/);
+  assert.match(preview, /\{screen === 'quiet-speak' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset"><OutOfTimeMoment card=\{QUIET_OUT_OF_TIME\} onPlans=\{\(\) => go\('select'\)\} \/><\/ScrollScreen><\/ModeScope>\}/);
 });
