@@ -108,7 +108,7 @@ After brief 4:
 | T1 | Poses, tones, figure and stage, the toast face | design-system-engineer | none | built (3273b24b) |
 | T2 | The four screens and the previews | frontend-engineer | T1 | built (10943625, 99fa28ea) |
 | T3 | Docs | orchestrator | T2 | built |
-| T4 | Verification, `/push-check`, landing | orchestrator | T3 | in progress |
+| T4 | Verification, `/push-check`, landing | orchestrator | T3 | push-checked; landing |
 
 ## Verification
 
@@ -121,4 +121,21 @@ After brief 4:
   - `today-held` and `today-held-starter`;
   - `drill-review-empty`;
   - `drill-end`, which is unchanged.
-- Full gate, simulator, fix-verifier and push-check: recorded at landing.
+- Full gate: green on 2026-11-04, 7,576 tests, mobile 4112. Floors raised with `gate:bless`, and the gate
+  recorded in `docs/IMPLEMENTATION_EVIDENCE.md`.
+- iPhone 13 mini simulator:
+  - the phrasebook in light and dark, and at accessibility-large (the words scroll under the pinned Choose
+    a scene);
+  - Speak in dark.
+  The dark check found hold's arms vanishing in cream ink, fixed test first.
+- Fix-verifier: round 1 refuted a stale Review answer across hero changes, fixed test first; round 2
+  HOLDS.
+- Push-check:
+  - push-reviewers (frontend, tests) and `/code-review` at high effort;
+  - the Review rule covered on every lead, and Today's undecided start pinned (each shown failing on a
+    mutation);
+  - the Impeccable reviewer (Opus, high): rest's stray legs fixed, the phrasebook preview drawing the
+    real header, the title-size reason corrected;
+  - the toast pill's dark contrast written up as older code (Not done);
+  - four redesign proposals logged and asked.
+- Not verified: Android; a real phrase save on device (the toast is shown through its still preview).
