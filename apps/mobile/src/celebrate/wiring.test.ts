@@ -139,6 +139,14 @@ describe('the celebration host in the app — F743', () => {
     assert.match(toast, /\{GAME_COPY\.phraseSaved\}/);
   });
 
+  test('the toast pill draws the Toast mascot, not a tick, and the toast renders the pill', () => {
+    const toast = src('celebrate/Toast.tsx').replace(/\s+/g, ' ');
+    assert.match(toast, /import \{ Toast as ToastMascot \} from '\.\.\/art\/mascots\/Toast\.tsx';/);
+    assert.match(toast, /export function ToastPill\(\) \{ return \( <View style=\{st\.pill\}> <ToastMascot expression="idle" size=\{26\} \/> <Text style=\{\[type\.label, \{ color: paper\.onInk \}\]\}>\{GAME_COPY\.phraseSaved\}<\/Text> <\/View> \);/);
+    assert.match(toast, /<Enter from="down" distance=\{10\}> <ToastPill \/> <\/Enter>/);
+    assert.doesNotMatch(toast, /tick-circle|<Icon\b/, 'the saved toast still draws the tick');
+  });
+
   test('sound and haptics reach the device only through the one effects module', () => {
     for (const file of celebrateFiles()) {
       if (file.endsWith('effects.ts')) continue;

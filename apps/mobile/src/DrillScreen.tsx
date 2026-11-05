@@ -50,6 +50,7 @@ import {
 import { bType, space, type } from './theme.ts';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
+import { Cloud } from './art/mascots/Cloud.tsx';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
 import { settleSitting } from './game/settle.ts';
@@ -1113,11 +1114,11 @@ export function DrillScreen({
     return (
       <ScrollScreen>
         {/* An empty bank is the good outcome, not a dead end. 2026-10-21
-            UI-008, B-Empty-States "Review, all done": the same cloud-cheer card
-            the review deck draws, because these two screens say the same
+            UI-008, B-Empty-States "Review, all done": the same card
+            the review deck draws, Cloud cheering (4A), because these two screens say the same
             thing, with Done as its one door. */}
         <EmptyStateCard
-          art={{ name: 'cloud-cheer', width: 150, height: 114 }}
+          figure={<Cloud pose="cheer" size={150} ink={bt.text} />}
           title="Nothing to review."
           body="Your next session adds more."
           action={{ label: 'Done', onPress: finishAndLeave }}
