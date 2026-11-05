@@ -51,6 +51,7 @@ describe('the scene builder writes spoken openings for the voice', () => {
     const text = buildScenarioInstruction();
     assert.match(text, /openingLine and openingNarration.*numbers, prices, times and dates in words/i);
     assert.match(text, /voice misreads digits/i);
+    assert.match(text, /in the line's own language \(deux euros cinquante, dix-huit heures; in English, six o'clock\)/i);
   });
 });
 

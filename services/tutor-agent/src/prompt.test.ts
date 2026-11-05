@@ -219,6 +219,7 @@ describe('one tutor, two pipelines', () => {
     ] as const) {
       assert.match(text, /numbers, prices, times and dates in words/i, `${where} never asks for numbers in words`);
       assert.match(text, /voice misreads digits/i, `${where} never gives the reason`);
+      assert.match(text, /in the line's own language \(deux euros cinquante, dix-huit heures; in English, six o'clock\)/i, `${where} never says the line's own language`);
     }
   });
 
