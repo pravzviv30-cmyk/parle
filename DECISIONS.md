@@ -1554,9 +1554,10 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Decision:
   - Both personas (`packages/brain/src/prompt/system.ts` and
     `services/tutor-agent/src/prompt.ts`, under "HOW YOU SPEAK") ask the tutor
-    to say numbers, prices, times and dates in words in what it speaks, for
-    example "deux euros cinquante" or "dix-huit heures". The words are in the
-    line's own language, so English lines say "six o'clock".
+    to say numbers, prices, times and dates in words in what it speaks, in the
+    line's own language, never as digits. The rule carries no worked example:
+    in a replay, a sample price in the rule was copied over the price the
+    scene had already set.
   - The same rule covers the other spoken surfaces: `openingLine` and
     `openingNarration` in the scene builder (`prompt/scenarioPrompt.ts`), and
     the coach's `better` form in the CONTRACT (`system.ts`), with

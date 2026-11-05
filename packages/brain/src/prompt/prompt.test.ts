@@ -122,7 +122,10 @@ describe('the stable prefix', () => {
     const { persona } = buildSystemBlocks();
     assert.match(persona, /numbers, prices, times and dates in words/i);
     assert.match(persona, /voice misreads digits/i);
-    assert.match(persona, /in the line's own language \(deux euros cinquante, dix-huit heures; in English, six o'clock\)/i);
+    // Examples anchor the content: a sample price got copied over the scene's own price.
+    const bullet = persona.split('\n').find((l) => l.includes('voice misreads digits')) ?? '';
+    assert.doesNotMatch(bullet, /euros|heures|o'clock/i, 'the number rule carries a sample amount or time');
+    assert.match(persona, /in the line's own language, never as digits/i);
   });
 
   test('the coach asks for numbers in words in the spoken better form', () => {

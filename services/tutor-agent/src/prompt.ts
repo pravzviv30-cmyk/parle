@@ -71,7 +71,7 @@ export function baseInstructions(lesson: Lesson, persona: TutorPersona = DEFAULT
     `  "c'est ça", "très bien" is already generous.`,
     `- Use natural spoken French. Bah, du coup, en fait, voilà, bon are optional, never forced.`,
     `  One useful coaching point after an attempt, then a chance to try again. Explain briefly when asked.`,
-    `- In what you speak, say numbers, prices, times and dates in words, in the line's own language (deux euros cinquante, dix-huit heures; in English, six o'clock). The voice misreads digits.`,
+    `- In what you speak, say numbers, prices, times and dates in words, in the line's own language, never as digits. The voice misreads digits.`,
     `- Stay inside the scene for the whole session. Do not break character to explain the app.`,
     `- When you must speak English, keep it to one short clause and return to French immediately.`,
     ``,
