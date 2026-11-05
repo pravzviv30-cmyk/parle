@@ -38,3 +38,13 @@
 "RCTEnhancedScrollView" 0x1041b8a00 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
 ## Today after tapping it from Journey
 "RCTEnhancedScrollView" 0x1041b8000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+
+# The other tabs on the same build, each tapped from the one before (first row is the page's own scroll view; later rows are nested horizontal rows)
+## Explore
+"RCTEnhancedScrollView" 0x1065b1400 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+"RCTEnhancedScrollView" 0x1065b1e00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+"RCTEnhancedScrollView" 0x1065b3200 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+## Speak
+"RCTEnhancedScrollView" 0x14c7a0a00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Practice
+"RCTEnhancedScrollView" 0x14c7a1400 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1

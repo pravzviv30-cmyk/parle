@@ -12301,9 +12301,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
      fails the gate until someone reads the new file. The service image runs the root postinstall too, so
      the Dockerfile and `.dockerignore` carry the script.
   Each alone leaves the tab's `topEdgeEffect.hidden == NO`; both together read YES on Today at launch, on
-  Journey and back on Today (`artifacts/tab-edge-2026-11/before|after/edges.txt`). iOS 26.5 draws no fade
+  Journey, back on Today, and on Explore, Speak and Practice (`artifacts/tab-edge-2026-11/before|after/edges.txt`). iOS 26.5 draws no fade
   there without a bar, so the simulator shows the flag, not the fade. The `Tabs` option stays
-  (`nav/wiring.test.ts`).
+  (`nav/wiring.test.ts`). Limits: a `ScrollScreen` given a `header` draws it before the ScrollView, so
+  Practice can keep the fade if it appears while its F154 checking line shows (brief, rare). A checkout
+  that has not re-run its postinstall since this landed fails the installed-file test until
+  `npm install` (or `node scripts/patchBottomTabsEdgeEffect.mjs`) runs.
 - fixed: 2026-11-04 on claude/tab-edge. The founder's iOS 27 phone is the check still to record here.
 - verified-by: `the screen root stays a native container so iOS edge effects reach the scroll view first — F959`
 - verified-by: `the installed bottom-tabs gives every tab's native Screen no top scroll edge effect`
