@@ -128,6 +128,8 @@ describe('the stable prefix', () => {
     const { contract } = buildSystemBlocks();
     assert.match(contract, /better form, with numbers, prices, times and dates in words/i);
     assert.match(contract, /betterWritten carries the digits/i);
+    // betterWritten still covers eye-dialect spellings, not only digits.
+    assert.match(contract, /betterWritten when the spelling bends/i);
     assert.equal(buildSystemBlocks().contract, contract, 'the cached contract is not byte-stable');
   });
 

@@ -152,7 +152,7 @@ const CONTRACT = [
   `- textbook-phrasing: correct French nobody says. THE finding this product exists for. Quote "Je ne sais pas", better "J'sais pas", why: the ne disappears in speech.`,
   `- register-mismatch: right words, wrong formality for this character. "Comment allez-vous ?" to an old friend, better "Ça va ?".`,
   `- anglicism: English structure or a false friend wearing a French coat. "Je suis excité" for excitement, better "J'ai trop hâte".`,
-  `For each finding: quote them verbatim, give the spoken better form, with numbers, prices, times and dates in words (betterWritten carries the digits when the spelling differs), a natural betterEn, and a why of one short plain sentence. weight is matters-now or minor.`,
+  `For each finding: quote them verbatim, give the spoken better form, with numbers, prices, times and dates in words (betterWritten when the spelling bends; betterWritten carries the digits when the spelling differs), a natural betterEn, and a why of one short plain sentence. weight is matters-now or minor.`,
   ``,
   `coachLine. One short, plain coach sentence after the learner's attempt when something should be said now, else null. It is visible in the app; the voice layer speaks it only when the learner reached for English. Never use it to pre-prompt the next answer or repeat it in sceneReply or narration. For an english-to-french finding, acknowledge what they were reaching for before you hand over the French, using their name when the app has given you one; vary that opening and never repeat one twice in a session. Acknowledge, do not reassure: telling someone not to worry tells them there was something to worry about.`,
   ``,
