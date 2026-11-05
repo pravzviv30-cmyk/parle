@@ -1555,11 +1555,17 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - Both personas (`packages/brain/src/prompt/system.ts` and
     `services/tutor-agent/src/prompt.ts`, under "HOW YOU SPEAK") ask the tutor
     to say numbers, prices, times and dates in words in what it speaks, for
-    example "deux euros cinquante" or "dix-huit heures". Display text, `copy.ts`,
-    the schemas and the runtime guards are unchanged.
+    example "deux euros cinquante" or "dix-huit heures".
+  - The same rule covers the other spoken surfaces: `openingLine` and
+    `openingNarration` in the scene builder (`prompt/scenarioPrompt.ts`), and
+    the coach's `better` form in the CONTRACT (`system.ts`), with
+    `betterWritten` carrying the digits, as `frWritten` does for `fr`.
+  - Display text, `copy.ts`, the schemas and the runtime guards are unchanged.
   - The French pack's filler principle (`authenticity/fr.ts`) now agrees with
     the persona: fillers are real spoken rhythm, and a tutor line carries at
-    most one, when it genuinely fits, never as a quota.
+    most one, when it genuinely fits, never as a quota. The filler list heading
+    (`authenticity/render.ts`) no longer says "Use them in your own lines"; it
+    calls them examples to draw on, at most one in a line, never as a quota.
 - Reason: a research review of the live voice
   (https://claude.ai/artifact/CasHwe4Yc6GC39EQ4TDqXc) found two prompt
   problems. Nothing asked for numbers in words, though digits are allowed in
@@ -1569,8 +1575,9 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   same cached prefix, called them optional.
 - Consequence:
   - One prompt-cache miss per persona when the new prefix first goes out.
-  - Tests: `prompt/prompt.test.ts` and `authenticity/authenticity.test.ts` in
-    the brain, and `prompt.test.ts` in the tutor agent.
+  - Tests: `prompt/prompt.test.ts`, `prompt/scenarioPrompt.test.ts` and
+    `authenticity/authenticity.test.ts` in the brain, and `prompt.test.ts` in
+    the tutor agent.
 
 ## LEARN-001 — Help earns no independent use
 

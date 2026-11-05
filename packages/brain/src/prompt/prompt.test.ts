@@ -124,6 +124,13 @@ describe('the stable prefix', () => {
     assert.match(persona, /voice misreads digits/i);
   });
 
+  test('the coach asks for numbers in words in the spoken better form', () => {
+    const { contract } = buildSystemBlocks();
+    assert.match(contract, /better form, with numbers, prices, times and dates in words/i);
+    assert.match(contract, /betterWritten carries the digits/i);
+    assert.equal(buildSystemBlocks().contract, contract, 'the cached contract is not byte-stable');
+  });
+
   test('spoken French can use fillers naturally, without performing them', () => {
     // The pack has carried these from the start and its own principle calls them
     // real spoken rhythm, at most one a line. They are examples, not a quota:

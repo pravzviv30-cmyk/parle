@@ -46,6 +46,14 @@ function quotation(prompt: string): string {
   return lines.slice(open + 1, close).join('\n').trim();
 }
 
+describe('the scene builder writes spoken openings for the voice', () => {
+  test('the opening lines say numbers, prices, times and dates in words', () => {
+    const text = buildScenarioInstruction();
+    assert.match(text, /openingLine and openingNarration.*numbers, prices, times and dates in words/i);
+    assert.match(text, /voice misreads digits/i);
+  });
+});
+
 describe('the scene builder treats the request as content', () => {
   test('the scene builder is told the request is content, not instruction', () => {
     const prompt = built('I am meeting my landlord about a broken boiler');
