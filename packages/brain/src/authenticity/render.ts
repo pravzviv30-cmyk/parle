@@ -31,7 +31,7 @@ export function renderAuthenticityPack(pack: AuthenticityPack): string {
   }
 
   lines.push('');
-  lines.push('Fillers that make speech sound real. Use them in your own lines:');
+  lines.push('Fillers that make speech sound real. Examples to draw on, at most one in a line, never as a quota:');
   for (const f of pack.fillers) {
     lines.push(`- ${f.fr} = ${f.en}. ${f.useWhen} [${f.register}]`);
   }
