@@ -8,6 +8,10 @@
  * props; every colour is a `useB()` token. The art is decoration, so the title
  * and body carry the meaning. Anything the owner needs under the button (the
  * bundled offline line on Speak) arrives as children.
+ *
+ * `figure` draws a mascot in place of the art. `stage` is the 4A board's centre
+ * stage: no card, the figure and words centred on the screen's own ground,
+ * under the larger title.
  */
 
 import type { ReactNode } from 'react';
@@ -21,9 +25,15 @@ import { bType, space } from '../theme.ts';
 /** Which pastel the card sits on: the artboard draws white, butter and lavender. */
 export type EmptyGround = 'card' | 'butter' | 'lavender';
 
-export function EmptyStateCard({ art, title, body, action, ground = 'card', live = false, children }: {
+export function EmptyStateCard({ art, figure, title, body, action, ground = 'card', live = false, stage = false, children }: ({
   /** The drawing; its height defaults to the drawing's own aspect at `width`. */
   art: { name: BArtName; width: number; height?: number };
+  figure?: never;
+} | {
+  art?: never;
+  /** A mascot, drawn in place of the art. */
+  figure: ReactNode;
+}) & {
   title: string;
   /** The line under the title, or null when the title says it all. */
   body: string | null;
@@ -32,14 +42,16 @@ export function EmptyStateCard({ art, title, body, action, ground = 'card', live
   ground?: EmptyGround;
   /** Speak the title when the card appears in place of something else. */
   live?: boolean;
+  /** Centre stage: no card, on the screen's own ground, under the larger title. */
+  stage?: boolean;
   children?: ReactNode;
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
-    <View style={[s.card, { backgroundColor: t[ground] }]}>
-      <BArt name={art.name} width={art.width} height={art.height} />
-      <Text accessibilityRole="header" accessibilityLiveRegion={live ? 'polite' : undefined} style={[bType.bold19, s.centred, { color: t.text }]}>{title}</Text>
+    <View style={stage ? s.stage : [s.card, { backgroundColor: t[ground] }]}>
+      {art ? <BArt name={art.name} width={art.width} height={art.height} /> : figure}
+      <Text accessibilityRole="header" accessibilityLiveRegion={live ? 'polite' : undefined} style={[stage ? bType.title26 : bType.bold19, s.centred, { color: t.text }]}>{title}</Text>
       {body !== null ? <Text style={[bType.para15, s.centred, { color: t.secondary }]}>{body}</Text> : null}
       {action !== null ? (
         <View style={s.action}>
@@ -60,6 +72,7 @@ export function EmptyGroupLabel({ label }: { label: string }) {
 function makeStyles(_t: B) {
   return StyleSheet.create({
     card: { borderRadius: 26, paddingVertical: 20, paddingHorizontal: 18, gap: 8, alignItems: 'center', alignSelf: 'stretch' },
+    stage: { gap: 8, alignItems: 'center', alignSelf: 'stretch' },
     centred: { textAlign: 'center', alignSelf: 'stretch' },
     action: { alignSelf: 'center' },
   });

@@ -92,7 +92,10 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   minutes, a "Uses" chip only when the last conversation's phrase is one of
   the scene's lines, Start speaking and Type instead), or the plans words when
   a trial cannot start, "Your paid plan has ended." when lapsed, a paid plan's
-  out-of-time words with the starter card or local practice under them, the
+  out-of-time words with the starter card or local practice under them (past
+  Starter, with Review due, the words' one action is a sage LipTile, "Review N
+  phrases", About 2 minutes, with the watering plant and a chevron; the path
+  then drops its own Review row, by `heroCarriesReview`, UI-019 4A), the
   starter card, "Something you can do now" with "You're offline. Here's
   something you can do without a connection." only when the device is offline
   and "We can't reach your tutor right now. Here's something you can do while
@@ -101,7 +104,8 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   path", the stops after the hero as flat rows on the route rail
   (`home/RoutePath.tsx` `RouteRow`): the scene (when the fix is the hero),
   "Today's phrase" with the French and its English and "Say it", on lavender,
-  and "Review N phrases", About 2 minutes, only when Review would deal cards.
+  and "Review N phrases", About 2 minutes, only when Review would deal cards
+  and the hero is not already carrying it (the row waits while the hero decides).
   Under the path: today's three quests ("n of 3 done", XP chips in butter and
   sage), Coming up under its title (the latest life event the tutor
   remembers, "{when}, {tutor} remembers", the trial pill from the tutorMemory
@@ -237,13 +241,19 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   drills' mic, Cloud listens in the slot's unchanged 77pt, so that mic never moves.
 - Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
   padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
-  button. Review and the drill bank with nothing due use cloud-cheer with Done;
-  Speak's away card is lavender with coffee-break, the retry and the bundled
-  offline line; Speak's out-of-time card (clock-calendar) shows only on the
-  free plan with nothing left, says the refill in the plan band's own words
-  and opens the plans. The phrase, conversation and memory pages use the
-  phrasebook drawing with Choose a scene; those three routes follow the device
-  since 2026-10-21 (UI-008 step 12b).
+  button. Review and the drill bank with nothing due draw the posed Cloud cheer
+  (`figure`, limbs in the theme's ink) with Done; Speak's away card is lavender
+  with coffee-break, the retry and the bundled offline line. The conversation
+  and memory pages use the phrasebook drawing with Choose a scene; those routes
+  follow the device since 2026-10-21 (UI-008 step 12b).
+  **Centre stage** (`stage`, UI-019 4A) is for a quiet moment that is the
+  screen's whole content under its own header: no card, the mascot and the words
+  centred on the screen's own ground, the title at 26 extra bold. The phrasebook with nothing kept
+  draws Cloud holding the book, "Your first kept phrase lands here.", "Keep a
+  line in a conversation and it waits here, ready to hear again.", and Choose a
+  scene pinned in the foot. Speak out of the free conversation (only on the
+  free plan with nothing left) draws Cloud resting, says the refill in the plan
+  band's own words and opens the plans in flow; the rest of Speak stays under it.
 - Live rooms keep the real start, pause, type, help, slower, English and leave
   paths. Since 2026-10-30 the room is direction D, face to face with a notebook
   (UI-014). It keeps its blue ground in both themes (UI-008):
@@ -1315,12 +1325,17 @@ Cloud also has two posed bodies (`art/mascots/mascotPoses.ts`, UI-019).
 **Listen** has a hand cupped to the ear and sound arcs in the theme's link colour
 (brand blue in light, periwinkle in dark, so they clear the 3:1 mark floor), and takes
 the `listening` face. **Cheer** has both arms up and two stars in sun, and takes
-the `cheer` face. Each stands on a soft ground shadow (ink at 20%, which does
+the `cheer` face. **Hold** clasps the yellow phrasebook under both arms and
+takes the `idle` face; **rest** sleeps with "z z" and takes the `paused` face
+(UI-019 4A, for the quiet moments). Each stands on a soft ground shadow (ink at 20%, which does
 not show on a dark ground) and is drawn in its own
 box, wider than the body, so a posed Cloud's size is the width of that box. A
 Cloud with no pose is the drawing above. The limbs are ink, drawn in the text
 colour of the screen they stand on (the sheet's word colour on the right
-sheet), so they show in dark mode; the body, cheeks and face are unchanged in
+sheet), so they show in dark mode; drawn marks with a tone follow too ("z z" takes
+the ink, the listen arcs the accent), while filled marks keep their palette fills.
+Lines that lie on the white body or the yellow book (hold's arms, the book's
+outline) keep the dark ink, because those are the same in both modes. The body, cheeks and face are unchanged in
 both modes. For the blink, `CloudLids` draws card-white lids over the open eyes
 with the asleep face's closed curve, and `Blink` fades them in and out.
 
@@ -1906,9 +1921,10 @@ land, and every number it shows comes from the moment's own data. The queue
   fallen) the still `celebrate-confetti` drawing stands in, through
   `celebrate/ConfettiStill.tsx`.
 - **Silent and still in a live room.** No beat sounds or is felt while a
-  microphone or a live room is open. A saved phrase shows a small toast that
-  blocks nothing and is hidden from a screen reader, because the screen that
-  saved it already says so.
+  microphone or a live room is open. A saved phrase shows a small ink toast,
+  Toast's face beside "Saved to your phrasebook." (UI-019 4A), that blocks
+  nothing and is hidden from a screen reader, because the screen that saved it
+  already says so.
 
 ### Loops
 

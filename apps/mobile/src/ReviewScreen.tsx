@@ -57,6 +57,7 @@ import { drillStage } from './drill/drillStage.ts';
 import { BSpeaker } from './today/TodayParts.tsx';
 import { KeyboardGlyph } from './review/ReviewParts.tsx';
 import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
+import { Cloud } from './art/mascots/Cloud.tsx';
 import { conversationContext, fromLine } from './review/context.ts';
 import { alsoFine } from './review/alsoFine.ts';
 import { firstGradeAt } from './review/gradeGuard.ts';
@@ -296,14 +297,14 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     }
     // Nothing was dealt: the calm card, centred on the cream ground, and
     // nothing plays, counts or settles. 2026-10-21 UI-008, B-Empty-States
-    // "Review, all done": the cloud-cheer card with its one ink button. Phase
+    // "Review, all done": the card, Cloud cheering (posed since 4A), with its one ink button. Phase
     // B's words and its Done stay: the artboard's "Back to Practice" is not
     // where every way in came from.
     return (
       <ScrollScreen ground={t.ground}>
         <View style={[st.ending, st.calm]}>
           <EmptyStateCard
-            art={{ name: 'cloud-cheer', width: 150, height: 114 }}
+            figure={<Cloud pose="cheer" size={150} ink={t.text} />}
             title="Nothing waiting."
             body="Your next session adds more."
             action={{ label: 'Done', onPress: onDone }}

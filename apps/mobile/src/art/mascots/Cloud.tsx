@@ -14,7 +14,7 @@ const OUTLINE_PT = 2.5;
  * Static: only the face changes with `expression`; motion lives in wrappers.
  * `pose` adds limbs and marks (mascotPoses.ts), in that pose's own box, with
  * the pose's face; `size` is then the width of that box. Limbs draw in `ink`.
- * Stroked marks draw in `accent` when given.
+ * Marks toned `ink` draw in `ink`, and marks toned `accent` in `accent` when given.
  * `outline` adds a 2.5pt ink edge so the white cloud reads as a control on cream.
  */
 export function Cloud({ expression = 'idle', size, outline = false, pose, ink = paper.ink, accent }: { expression?: MascotExpression; size: number; outline?: boolean; pose?: CloudPose; ink?: string; accent?: string }) {

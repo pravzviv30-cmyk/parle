@@ -1,7 +1,7 @@
 import { needsPhraseSearch, searchPhrases } from './search.ts';
 import { Feedback } from '../motion/Feedback.tsx';
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
-import { NOTEBOOK_ART } from '../empty/emptyStates.ts';
+import { Cloud } from '../art/mascots/Cloud.tsx';
 /**
  * Your phrases — every line that has become the learner's, as a route (F575).
  *
@@ -42,7 +42,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { IconAction, Card, Field, GhostButton, Label } from '../components.tsx';
+import { IconAction, Card, Field, GhostButton, Label, PillButton } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
@@ -68,6 +68,23 @@ import { CADENCE_NOTE, PHRASEBOOK_TITLE, cadenceToggleLabel, hasCadence, speaker
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 let nextVisit = 0;
+
+/** The empty phrasebook's words (quiet moments 4A, the board's copy). */
+export const PHRASEBOOK_EMPTY = { title: 'Your first kept phrase lands here.', body: 'Keep a line in a conversation and it waits here, ready to hear again.', action: 'Choose a scene' } as const;
+
+/**
+ * Nothing kept yet, centre stage (quiet moments 4A, props in so the preview
+ * draws it): Cloud holding the book, centred in the space the page leaves,
+ * with no card. Choose a scene is the screen's pinned foot.
+ */
+export function PhrasebookEmpty({ title, body }: { title: string; body: string }) {
+  const t = useB();
+  return (
+    <View style={{ flexGrow: 1, justifyContent: 'center' }}>
+      <EmptyStateCard stage figure={<Cloud pose="hold" size={170} ink={t.text} />} title={title} body={body} action={null} />
+    </View>
+  );
+}
 
 export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
   const t = useB();
@@ -156,8 +173,9 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
     recorded.play(asset);
   };
 
+  const empty = visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '';
   return (
-    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: onBack }} />}>
+    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: onBack }} />} footer={empty ? <PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => nav.navigate('Missions')} lip /> : undefined}>
       <View style={st.head}>
         <Text accessibilityRole="header" style={st.title}>
           {PHRASEBOOK_TITLE}
@@ -169,7 +187,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
 
       {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><IconAction layout="inline" icon="refresh" label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
 
-      {visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '' && <EmptyStateCard art={NOTEBOOK_ART} title="Your first kept phrase lands here." body={null} action={{ label: 'Choose a scene', onPress: () => nav.navigate('Missions') }} />}
+      {empty && <PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} />}
 
       {/* The one card this visit deals, at the top, so the thing worth doing is
           never below a list of things already done. */}

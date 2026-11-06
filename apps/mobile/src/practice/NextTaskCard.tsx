@@ -1,14 +1,15 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
-import { Card, ColourCard, FrenchBlock, IconAction, PillButton } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { Card, ColourCard, FrenchBlock, IconAction, LipTile, PillButton } from '../components.tsx';
+import { bType, paper, space, type } from '../theme.ts';
+import { Icon } from '../icons/Icon.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { HomeBilling } from '../home/nextAction.ts';
 import { PLANS_LEAD, plansLeadBody } from '../home/nextAction.ts';
-import { afterHeld, heldWords, leadRowArt, leadStop, sceneRowState, nextTaskKind, offersPlans, sceneOrExplore, starterTutorOpen, todayLead, type TodayLead } from './nextTask.ts';
+import { afterHeld, heldWords, heroCarriesReview, leadRowArt, leadStop, sceneRowState, nextTaskKind, offersPlans, sceneOrExplore, starterTutorOpen, todayLead, type TodayLead } from './nextTask.ts';
 import { BArt } from '../art/BArt.tsx';
 import { ROW_ART, RouteRow } from '../home/RoutePath.tsx';
 import { useSceneStart } from '../home/useSceneStart.ts';
@@ -41,7 +42,7 @@ import { practiceCard, type PracticeCard } from './practiceCard.ts';
 import { practiceRouteParams } from './practiceRoute.ts';
 import { homeMissionFrom, type HomeMission } from '../home/homeMission.ts';
 import { MissionHero } from '../home/MissionHero.tsx';
-import { buildsOn, reviewRow, sceneRowLine } from '../home/todayView.ts';
+import { aboutMinutes, buildsOn, reviewRow, sceneRowLine } from '../home/todayView.ts';
 import type { ReviewCard } from '@luvani/core';
 import { LocalPracticeCard } from './LocalPracticeCard.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
@@ -62,7 +63,7 @@ export type LeadPlacement = 'hero' | 'row';
  * primary action, and nothing while loading or failed (the hero shows those).
  * With no placement it draws as it always has.
  */
-export function NextTaskCard({ vivid = false, placement, last = false, starter = null }: { vivid?: boolean; placement?: LeadPlacement; /** placement row: the final row on the path. */ last?: boolean; starter?: GuestPractice | null }) {
+export function NextTaskCard({ vivid = false, placement, last = false, starter = null, onHeroReview }: { vivid?: boolean; placement?: LeadPlacement; /** placement row: the final row on the path. */ last?: boolean; starter?: GuestPractice | null; /** placement hero: whether the hero carries Review (`heroCarriesReview`), once it knows; null when it goes. */ onHeroReview?: (carries: boolean | null) => void }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
   const { user } = useAuth();
@@ -124,13 +125,20 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   const cafeOffered = value !== null && offlineOffer(value.levelIndex) === 'cafe';
   const plansBody = (onSun: boolean) => <PlansLeadBody onSun={onSun} body={plansLeadBody(billing)} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onCafe={cafeOffered ? () => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' }) : undefined} onReview={cafeOffered || reviewDoor === null ? undefined : () => navigateOwned('Review')} reviewLabel={reviewDoor?.title} />;
   const plansCard = <ColourCard ground="sun">{plansBody(true)}</ColourCard>;
+  // Today: one rule picks the lead (F936, F651, F924); review is its own
+  // row on the path now, never the lead (DECISIONS 2026-10-29).
+  const lead = value === null ? 'loading' : sceneOrExplore(todayLead({ live, billing, starter: starter !== null, answered: billingAnswered }), value.hero !== null);
+  const local = localPracticeFor(profile.tutorVoice, DAILY_ITEMS, TUTOR_DAILY_AUDIO);
+  // Quiet moments (4A): whether the held hero carries Review, told to Today so
+  // its path drops the same row; null while the lead is still loading.
+  const heroReview = failed ? false : value === null || value.scope !== scopeGeneration() || lead === 'loading' ? null : heroCarriesReview({ lead, billingKnown: billing !== null, reviewDue: reviewDoor !== null, starterShown: starter !== null, cafeShown: local !== null && cafeOffered });
+  useEffect(() => { if (bare && heroReview !== null) onHeroReview?.(heroReview); }, [bare, heroReview, onHeroReview]);
+  // A hero that goes takes its answer with it, so the next hero starts undecided.
+  useEffect(() => () => { if (bare) onHeroReview?.(null); }, [bare, onHeroReview]);
   if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   if (value === null || value.scope !== scopeGeneration()) return row ? null : <Text style={type.small}>Finding your next task…</Text>;
   if (vivid) {
-    // Today: one rule picks the lead (F936, F651, F924); review is its own
-    // row on the path now, never the lead (DECISIONS 2026-10-29).
-    const lead = sceneOrExplore(todayLead({ live, billing, starter: starter !== null, answered: billingAnswered }), value.hero !== null);
     if (lead === 'loading') return row ? null : <Text style={type.small}>Finding your next task…</Text>;
     // The starter's typed line opens in the card's own sheet, so on a row the
     // card draws a flat LeadRow as its face and the row's tap opens that sheet,
@@ -139,7 +147,6 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     const starterRow = (initial: GuestPractice) => <StarterContinuation initial={initial} face={(continuePractice) => leadRow('starter', continuePractice)} />;
     // Offline on a row: the bundled café line when the learner is at Starter;
     // past Starter the phrase and review rows below already work offline.
-    const local = localPracticeFor(profile.tutorVoice, DAILY_ITEMS, TUTOR_DAILY_AUDIO);
     const localRow = () => local !== null && offlineOffer(value.levelIndex) === 'cafe' ? leadRow('local', () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : null;
     if (lead === 'plans') {
       if (row) return leadRow(lead, () => navigateOwned('Wall', { entry: 'refused' }));
@@ -160,7 +167,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
         // is the practice that needs no minutes.
         return cafe ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : null;
       }
-      return <HeldLeadBody bare={bare} words={words} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onReview={reviewDoor === null ? undefined : () => navigateOwned('Review')} reviewLabel={reviewDoor?.title}>
+      return <HeldLeadBody bare={bare} words={words} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onReview={heroReview === true ? () => navigateOwned('Review') : undefined} reviewLabel={reviewDoor?.title}>
         {then === 'starter' && starter !== null ? starterCard(starter) : cafe ? <LocalPracticeCard bare={bare} levelIndex={value.levelIndex} variant={words.plans ? 'secondary' : 'primary'} /> : undefined}
       </HeldLeadBody>;
     }
@@ -215,9 +222,10 @@ export function PlansLeadBody({ onSun, body, onPlans, onCafe, onReview, reviewLa
  * Out of time or lapsed, props in (F946, shared with the dev preview): the
  * held words, then practice that needs no minutes with a real button. That is
  * `children` when given (the starter's typed line, or the café line at
- * Starter), and otherwise Review when it has something to deal, named as
- * Today's review row and secondary beside See plans so the lead keeps one
- * primary. With neither, the words stand alone.
+ * Starter), and otherwise Review when the hero carries it
+ * (`heroCarriesReview`): a sage tile with the watering plant, named as
+ * Today's review row, so See plans stays the one primary and Today's path
+ * drops its own Review row (quiet moments 4A). With neither, the words stand alone.
  */
 export function HeldLeadBody({ bare, words, onPlans, onReview, reviewLabel, children }: { bare: boolean; words: { title: string; message: string; plans: boolean }; onPlans: () => void; onReview?: () => void; reviewLabel?: string; children?: ReactNode }) {
   const t = useB();
@@ -228,7 +236,14 @@ export function HeldLeadBody({ bare, words, onPlans, onReview, reviewLabel, chil
   </>;
   return <View style={{ gap: 12 }}>
     {bare ? <View style={{ gap: 8 }}>{heldText}</View> : <Card style={{ gap: 8 }}>{heldText}</Card>}
-    {children ?? (onReview !== undefined && reviewLabel !== undefined && <PillButton label={reviewLabel} variant={words.plans ? 'secondary' : 'primary'} onPress={onReview} />)}
+    {children ?? (onReview !== undefined && reviewLabel !== undefined && <LipTile tone="sage" onPress={onReview} accessibilityLabel={`${reviewLabel}, ${aboutMinutes(2)}`} style={{ flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(3) }}>
+      <BArt name="watering-plant" width={ROW_ART} height={ROW_ART} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[bType.heavy16, { color: t.text }]}>{reviewLabel}</Text>
+        <Text style={[bType.note, { color: t.secondary }]}>{aboutMinutes(2)}</Text>
+      </View>
+      <Icon name="chevron-right" color={t.secondary} />
+    </LipTile>)}
   </View>;
 }
 

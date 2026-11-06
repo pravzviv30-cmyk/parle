@@ -19,12 +19,12 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { Toast as ToastMascot } from '../art/mascots/Toast.tsx';
 import { GAME_COPY } from '../game/copy.ts';
-import { Icon } from '../icons/Icon.tsx';
 import { useReduceMotion } from '../motion.ts';
 import { useAnswered } from '../motion/landing.ts';
 import { Enter, Exit } from '../motion/layout.tsx';
-import { colour, decorative, paper, radius, space, type } from '../theme.ts';
+import { decorative, paper, radius, space, type } from '../theme.ts';
 import { fireBeat, fireStill } from './effects.ts';
 import type { ToastItem } from './queue.ts';
 import { COLUMN_MAX } from './Takeover.tsx';
@@ -64,13 +64,20 @@ export function Toast({ item, onDone }: { item: ToastItem; onDone: (id: string) 
       {shown ? (
         <Exit style={st.anchor}>
           <Enter from="down" distance={10}>
-            <View style={st.pill}>
-              <Icon name="tick-circle" variant="bulk" size={20} color={colour.mint} />
-              <Text style={[type.label, { color: paper.onInk }]}>{GAME_COPY.phraseSaved}</Text>
-            </View>
+            <ToastPill />
           </Enter>
         </Exit>
       ) : null}
+    </View>
+  );
+}
+
+/** The pill itself, still, so a preview can show it. */
+export function ToastPill() {
+  return (
+    <View style={st.pill}>
+      <ToastMascot expression="idle" size={26} />
+      <Text style={[type.label, { color: paper.onInk }]}>{GAME_COPY.phraseSaved}</Text>
     </View>
   );
 }
