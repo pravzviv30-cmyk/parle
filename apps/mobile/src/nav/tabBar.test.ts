@@ -305,7 +305,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.equal(detached.pan.onMoveShouldSetPanResponderCapture(ev, g(20, 2)), false, 'the bar with no open tab claims a drag');
   });
 
-  test('a held pill tracks the finger from the first move and eases only its starting gap; Reduce Motion jumps (Impeccable, F962)', () => {
+  test('a held pill tracks the finger from the first move and eases only its starting gap; Reduce Motion jumps (Impeccable, F963)', () => {
     const src = read('./TabPill.tsx');
     const start = src.indexOf('useEffect(() => {') + 'useEffect(() => {'.length;
     // The effect body carries no types, so it runs as written.
