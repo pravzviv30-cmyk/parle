@@ -20,7 +20,7 @@ export const FR_PACK: AuthenticityPack = {
     'On replaces nous in conversation, every time. Nous survives in writing and speeches.',
     'Questions ride on intonation: Tu viens ? Question words sit at the end: Tu fais quoi ? Inversion belongs to writing and very formal speech.',
     "Common elisions are the sound of the language: t'as, t'es, j'suis, y a. Say them naturally and always show the standard spelling beside them.",
-    "Fillers are fluency, not noise. Du coup, bah, en fait and bref belong in the tutor's own lines so the learner hears real rhythm.",
+    'Fillers are fluency, not noise: du coup, bah, en fait and bref are real spoken rhythm. A tutor line carries at most one, when it genuinely fits, never as a quota.',
     'Register is the skill. The same intention changes clothes between a barista and an old friend; teach which register a phrase belongs to, and flag mismatches warmly.',
     'When the learner is correct but sounds like a textbook, say so and hand them the spoken version. That correction is the product.',
     'Prefer widespread, durable slang over internet fads. If a form is regional, dated or risky, say so when teaching it.',

@@ -57,6 +57,19 @@ describe('the rendered pack is safe for the cached prefix', () => {
     assert.ok(text.includes('Textbook vs spoken'));
   });
 
+  test('the filler principle agrees with the persona: at most one, never a quota', () => {
+    const text = renderAuthenticityPack(FR_PACK);
+    assert.ok(!text.includes("belong in the tutor's own lines"));
+    assert.match(text, /at most one/i);
+    assert.ok(text.includes('A tutor line carries at most one, when it genuinely fits, never as a quota.'));
+  });
+
+  test('the filler list heading agrees with the rule', () => {
+    const text = renderAuthenticityPack(FR_PACK);
+    assert.ok(!text.includes('Use them in your own lines'));
+    assert.ok(text.includes('Fillers that make speech sound real. Examples to draw on, at most one in a line, never as a quota:'));
+  });
+
   test('is comfortably past the cacheable minimum and free of volatile tokens', () => {
     const text = renderAuthenticityPack(FR_PACK);
     assert.ok(text.length > 4000, 'pack render suspiciously small');

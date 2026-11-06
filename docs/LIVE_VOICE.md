@@ -833,6 +833,23 @@ is stored on the device (`@luvani/tap-to-send/v1`).
   final transcripts and a 3 s pause in the SDK test), so a held turn costs no
   model calls. Recognition runs as it does for any open microphone.
 
+## Spoken numbers, and the voice research (VOICE-020)
+
+What the tutor speaks says numbers, prices, times and dates in words, in the
+line's own language, never as digits. The rule is in the persona and the lesson
+prompt ("HOW YOU SPEAK"), the scene builder's opening lines and the coach's
+spoken `better` form. It carries no worked example: in a replay, a sample price
+in the rule was copied over the price the scene had already set. Display code is
+unchanged. The CONTRACT asks `betterWritten` to carry the digits; nothing asks
+`frWritten` to, so a transcript line may show the spoken words.
+
+The research behind it is "Luvani natural tutor voice"
+(https://claude.ai/artifact/CasHwe4Yc6GC39EQ4TDqXc, 2026-11-04). It ranks the
+next steps: a smarter turn-end wait now that the turn model is confirmed live on
+staging, a short spoken bridge for slow replies, and a French blind test before
+any voice switch. The staging tutor runs with `LUVANI_REPLY_FIRST_FRAME_TIMING=1`,
+so `[luvani:scene-first-frame]` reports end of speech to first TTS frame.
+
 ## Serialisation
 
 Two events can arrive at once — the rescue timer at four seconds, and the learner

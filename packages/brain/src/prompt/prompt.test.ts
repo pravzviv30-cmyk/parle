@@ -118,9 +118,28 @@ describe('the stable prefix', () => {
     assert.match(persona, /answer the person first/i);
   });
 
+  test('spoken French says numbers, prices and times in words, with the reason', () => {
+    const { persona } = buildSystemBlocks();
+    assert.match(persona, /numbers, prices, times and dates in words/i);
+    assert.match(persona, /voice misreads digits/i);
+    // Examples anchor the content: a sample price got copied over the scene's own price.
+    const bullet = persona.split('\n').find((l) => l.includes('voice misreads digits')) ?? '';
+    assert.doesNotMatch(bullet, /euros|heures|o'clock/i, 'the number rule carries a sample amount or time');
+    assert.match(persona, /in the line's own language, never as digits/i);
+  });
+
+  test('the coach asks for numbers in words in the spoken better form', () => {
+    const { contract } = buildSystemBlocks();
+    assert.match(contract, /better form, with numbers, prices, times and dates in words/i);
+    assert.match(contract, /betterWritten carries the digits/i);
+    // betterWritten still covers eye-dialect spellings, not only digits.
+    assert.match(contract, /betterWritten when the spelling bends/i);
+    assert.equal(buildSystemBlocks().contract, contract, 'the cached contract is not byte-stable');
+  });
+
   test('spoken French can use fillers naturally, without performing them', () => {
-    // The pack has carried these from the start and its own principle says they
-    // belong in the tutor's own lines. They are examples, though, not a quota:
+    // The pack has carried these from the start and its own principle calls them
+    // real spoken rhythm, at most one a line. They are examples, not a quota:
     // forcing one into every sentence was exactly what made the tutor sound
     // scripted and irritating.
     const { persona } = buildSystemBlocks();

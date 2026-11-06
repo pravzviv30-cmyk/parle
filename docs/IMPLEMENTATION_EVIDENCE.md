@@ -22,6 +22,26 @@ of the list.
 
 ## Current landing snapshot
 
+- 6 November 2026 Tutor recall phase 1 (scene-relevant memory and one own slip): branch
+  `claude/tutor-recall`, with main merged at 17ed8942 and 7dfe3702. The memory brief, watchFor and frame targets
+  are ranked by words shared with the scene (`packages/brain/src/profile/recall.ts`), and the scene's
+  turns carry one screened example of the learner's own earlier slip (`ownSlipBrief`), never in the
+  frame call or the system prefix and never when memory is paused or locked; the privacy notice says
+  so. Fix-verifier HOLDS; push-reviewers, /code-review and Impeccable (ship) found nothing above low,
+  and two test gaps were closed test first; a live replay with the real brain through `convo.ts`
+  showed the café scene carrying the café note and slip, the cinema scene re-ranking, the tutor
+  coaching a repeated slip once and never bringing up past mistakes. /security-review found nothing.
+  **7,615 tests, 0 failing**; core 1152, brain 803, tutor agent 908, token server 530, playground 110,
+  mobile 4112; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+- 6 November 2026 Voice, VOICE-020 (numbers in words, one filler rule): branch `claude/voice-prompt`
+  from main 34eae927, with main merged at 17ed8942. Prompt text only: the persona, the lesson prompt,
+  the scene builder's opening lines and the coach's spoken better form say numbers in words in the
+  line's own language, with no worked example; the French pack's filler rule and heading agree with
+  the persona. Fix-verifier HOLDS; two push-reviewer rounds and /code-review fixed test first; a live
+  replay (`scripts/measureLiveTurn.mjs`) showed 0 digits in 9 spoken turns and the scene's own price
+  kept once the examples were dropped. /security-review found nothing.
+  **7,582 tests, 0 failing**; core 1152, brain 784, tutor agent 894, token server 530, playground 110,
+  mobile 4112; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 4 November 2026 Mascots and play, brief 4 (4A, quiet moments, UI-019): branch `claude/quiet-moments`
   from main 34eae927. Cloud's hold and rest poses with toned marks; the phrasebook with nothing kept and
   Speak out of the free conversation on centre stage; the posed cheer on the two nothing-to-review cards;
