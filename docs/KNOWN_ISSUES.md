@@ -5850,10 +5850,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   cycle length is deliberately unchanged.
 - note: notebook redesign (2026-09-27): the greeting no longer takes turns. The design contract lets only
   the orb and the highlighter move, so the pool, the clock and the rotation hook are retired, and the
-  greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.").
+  greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.", no full stop since 2026-11-06, founder).
   A learner with no name reads the word and a full stop ("Bonsoir."), never a bare comma and never
   "you". The rule is still a pure module and still clean of digits, em dashes and banned words.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F388 — Home's title fades through TabHeader and holds still for reduce motion and screen readers
@@ -5876,7 +5876,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the title no longer moves for anyone, so there is no fade or
   swipe to hold still. Today draws one static TabHeader title from the greeting rule, with no timer,
   no `Animated`, and no live region, which is what reduce motion and a screen reader were owed.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F389 — A word and a situation for every day, authored in core
@@ -6247,7 +6247,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the greeting no longer animates, and `useGreetingRotation.ts` is
   deleted, so there is no frame to wait on and no opacity that can be left at 0. The test named below
   fails if the hook ships again or if Today carries a timer, `Animated`, or a title swap.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F417 — The greeting pool is wide and knows the hour
 - severity: P1
@@ -6267,8 +6267,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the pool is retired with the rotation. What survives is the hour:
   Bonjour from 05:00 to 17:59 and Bonsoir from 18:00 through the small hours, checked at every hour
   and at the edges, with an unreadable clock landing on Bonjour. `GREETINGS`, the timing constants,
-  `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+  `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop (no full stop since 2026-11-06, founder).
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F418 — The header holds two complete greeting layers in one stable slot
@@ -6299,7 +6299,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the handoff and its watchdog are gone with the hook, because the
   greeting no longer moves. Nothing is left to suspend. The test named below fails if the hook ships
   again or if Today carries a timer or `Animated`.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F420 — Home wires the two-part greeting
 - severity: P1
@@ -6314,7 +6314,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `homeGreeting(firstName, now)` gives the header its title and its hour's subline, and
   `useGreetingRotation`, `titleSwap` and `greetingRest` are gone. Still one header, no `<Monogram`, no
   live region, no timer and no `...type.display` in the tab.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F421 — Demo mode leaves the situation card
 - severity: P1
@@ -12331,7 +12331,24 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   founder.
 - verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
 
-### F961 — Holding and dragging the tab bar gave no haptic unless the drag began on the open tab
+### F961 — Today's hero flashed to "Finding your next task…" on every return to Home
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/practice/NextTaskCard.tsx (the billing `useFocusEffect`)
+- note: Found 2026-11-06. Every focus of Home set the billing read back to unanswered
+  (`setBilling(null); setBillingAnswered(false)`) before refetching, so `todayLead` returned
+  `'loading'` while live and `MissionHero` unmounted until the network answered. The data read below
+  it already kept its held value for the same account (F768). The billing read is now one
+  `billingRead` state with a scope: a same-account refocus keeps the held answer and refreshes it
+  quietly, a null or failed refetch keeps the held billing (`fetchBillingStatus` resolves null on failure), and only a cold load or another account starts
+  undecided (an answer held from offline is not a real read, so coming online starts undecided too),
+  so an out-of-time learner still never sees the scene flash first.
+  Accepted trade-off: after a session that used up the last minutes, the held "has time" answer can show
+  the scene until the quiet refetch lands (up to 5 s); the brief scoped the loading gate to cold loads. The two loading
+  lines also took the hero's ink (`t.text`), as they were black on the dark card.
+- verified-by: `F961: coming back to Home keeps the held billing answer, so the hero does not flash to loading`
+
+### F962 — Holding and dragging the tab bar gave no haptic unless the drag began on the open tab
 - severity: P2
 - status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx (the `PanResponder` in `TabStrip`) and

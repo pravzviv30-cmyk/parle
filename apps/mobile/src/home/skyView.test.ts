@@ -240,8 +240,8 @@ describe('the disc slide counts the greeting from under the status bar (verifier
 
 describe('a hyphenated name never wraps at its hyphen (verifier, fix 2)', () => {
   test('a word joiner follows each hyphen, and the hyphen stays', () => {
-    assert.equal(greetingText({ word: 'Bonjour', name: 'Jean-Luc' }), 'Bonjour, Jean-\u2060Luc.');
-    assert.equal(greetingText({ word: 'Bonjour', name: 'Léa' }), 'Bonjour, Léa.');
-    assert.equal(greetingText({ word: 'Bonjour', name: null }), 'Bonjour.');
+    assert.equal(greetingText({ word: 'Bonjour', name: 'Jean-Luc' }), 'Bonjour, Jean-\u2060Luc');
+    assert.equal(greetingText({ word: 'Bonjour', name: 'Léa' }), 'Bonjour, Léa');
+    assert.equal(greetingText({ word: 'Bonjour', name: null }), 'Bonjour');
   });
 });

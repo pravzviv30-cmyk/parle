@@ -80,7 +80,7 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
   an estimate said as "about n min".
 - Today, top to bottom (UI-015): the sky band, full bleed, in the hour's
-  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
+  ground, with "Bonjour, Name" (or "Bonsoir, Name" from 18:00, no full stop: founder, 2026-11-06) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
   the profile button on the sky's chip, three chunky stat tiles (streak days or
   "Start" over "today"; minutes against the goal, "<1" under a minute; the XP
   level number over "level"; never a nought) and the nudge line. Then one hero
@@ -1085,7 +1085,7 @@ the new look, listed at the end, and they go with their call sites.
   unselected is the Linear glyph and the word in cream at Outfit Medium on the
   ink. Only the pill moves (`nav/TabPill.tsx`, UI-018): it slides to a tapped
   tab on the fast beat, and a sideways drag from any tab moves it to
-  another (F961), a selection tick as the drag starts and at each cell it crosses,
+  another (F962), a selection tick as the drag starts and at each cell it crosses,
   landing like a tap; under Reduce Motion it jumps. A still long press is never
   claimed, so the Large Content Viewer keeps working. When a tab becomes the selected one its
   icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one

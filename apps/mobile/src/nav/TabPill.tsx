@@ -2,7 +2,7 @@
  * The selected tab's violet pill (item 7, founder 2026-11-02): the one thing in
  * the bar that moves. It sits behind the selected cell's glyph, slides to a
  * tab when it is tapped, follows the finger while any tab is held and dragged
- * sideways (a drag from a closed tab first slides it to the finger, F961), and
+ * sideways (a drag from a closed tab first slides it to the finger, F962), and
  * under Reduce Motion, watched live, it simply jumps. Transform
  * only, through motion/drive.ts. Decorative: the cell over it is the tab a
  * screen reader hears.
@@ -31,7 +31,7 @@ export function TabPill({ to, width, left, following }: {
   const t = useB();
   const x = useSharedValue(to);
   // While held, the pill is drawn at the finger plus a gap that closes on the
-  // fast beat, so a drag from a closed tab slides over and never trails (F961).
+  // fast beat, so a drag from a closed tab slides over and never trails (F962).
   const gap = useSharedValue(0);
   const held = useRef(false);
 
