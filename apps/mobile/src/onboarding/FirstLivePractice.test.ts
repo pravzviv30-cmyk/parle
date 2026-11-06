@@ -185,3 +185,11 @@ test('the guest conversation keeps its refusal when the room cannot switch', () 
   recover(live, true, takeTypedDoor, () => assert.fail('must not open typing'), (next: string) => issues.push(next), false, () => assert.fail('no restart'), () => assert.fail('no restart'));
   assert.match(issues.at(-1) ?? '', /cannot continue by typing/);
 });
+
+test('saving the session shows Luvani\'s own words, never the caught message', () => {
+  const collect = source.slice(source.indexOf('  const collect ='), source.indexOf('  // A conversation ends on its recap'));
+  assert.match(collect, /setIssue\(errorCopy\(cause, 'Your session could not be saved yet\. Try again\.'\)\)/);
+  assert.doesNotMatch(collect, /instanceof Error \? cause\.message/);
+  assert.equal((collect.match(/throw new LearnerError\(/g) ?? []).length, 2, 'the two own sentences must be LearnerErrors to survive errorCopy.');
+  assert.doesNotMatch(collect, /throw new Error\(/);
+});

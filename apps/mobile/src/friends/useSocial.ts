@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { readSocial, socialRequest, onSocialChange } from './social.ts';
+import { errorCopy } from '../copy/errorCopy.ts';
 import type { SocialSnapshot } from './socialModel.ts';
 
 export function useSocial() {
@@ -16,7 +17,7 @@ export function useSocial() {
     let generation = 0;
     const reload = () => {
       const ticket = ++generation;
-      void readSocial().then(s => { if (live && ticket === generation) { setSnapshot(s); setError(''); } }).catch(e => { if (live && ticket === generation) { setSnapshot(null); setError(e instanceof Error ? e.message : 'Friends could not connect. Please try again.'); } });
+      void readSocial().then(s => { if (live && ticket === generation) { setSnapshot(s); setError(''); } }).catch(e => { if (live && ticket === generation) { setSnapshot(null); setError(errorCopy(e, 'Friends could not connect. Please try again.')); } });
     };
     reload();
     const unsubscribe = onSocialChange(reload);
@@ -28,7 +29,7 @@ export function useSocial() {
     if (running.current) return false;
     running.current = true; setBusy(true); setError('');
     try { await socialRequest(action, args); refresh(); return true; }
-    catch (e) { setError(e instanceof Error ? e.message : 'That action could not finish. Please try again.'); return false; }
+    catch (e) { setError(errorCopy(e, 'That action could not finish. Please try again.')); return false; }
     finally { running.current = false; setBusy(false); }
   };
   return { snapshot, error, busy, act, refresh };

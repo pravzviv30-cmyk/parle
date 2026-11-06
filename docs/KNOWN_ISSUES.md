@@ -12347,3 +12347,23 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   the scene until the quiet refetch lands (up to 5 s); the brief scoped the loading gate to cold loads. The two loading
   lines also took the hero's ink (`t.text`), as they were black on the dark card.
 - verified-by: `F961: coming back to Home keeps the held billing answer, so the hero does not flash to loading`
+### F962 — Raw backend text reached learners in error messages: codes, URLs and library sentences
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/LiveErrorView.tsx (Support details), live/failure.ts
+  (`classifyPipelineError` notice), onboarding/FirstLivePractice.tsx, onboarding/GuestAccountHandoff.tsx,
+  friends/useSocial.ts, friends/InviteFriendsScreen.tsx
+- note: Founder, 2026-11-06, on the iPhone build: raw backend text in error messages, a security
+  issue. The live failure screen's Support details showed the token-server URL, the LiveKit URL and
+  status internals; five catch blocks
+  showed `cause.message` as is (raw guest codes `expired`/`limit`/`unavailable`, "Network request
+  failed", timeouts, JSON errors). Fix: one seam, `copy/errorCopy.ts`. Luvani's own sentences are
+  thrown as `LearnerError` and kept; a connection or timeout failure gets the existing auth line
+  "The connection dropped. Check your internet and try again."; anything else gets the site's
+  existing fallback. A live notice of a kind this app does not know gets "The tutor hit a small snag.
+  Carry on as you were." instead of `undefined`; a notice with no kind is still shown, because every
+  one is a sentence written in services/tutor-agent (time limit, message too long, tutor busy). Support
+  details now hold one row, "Reference", the failure code (no card around it), which matches the `[luvani:live] failed`
+  trace that still logs every diagnostic. A guard test fails if a catch shows a caught message
+  as itself; it cannot see a message passed on through a variable, a prop or a server body field.
+- verified-by: `no catch block shows a caught message as itself`
