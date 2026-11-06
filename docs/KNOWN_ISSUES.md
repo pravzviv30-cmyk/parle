@@ -12261,7 +12261,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `artifacts/phone-fixes-2026-11/before|after/sim-today-axl.png`). DESIGN.md asks the title to wrap
   in normal flow. The Impeccable reviewer suggests letting the greeting alone grow less
   (`maxFontSizeMultiplier` sized so the longest hour word and its comma fit 343pt), which caps
-  one text's scaling, so it waits for the founder's call.
+  one text's scaling, so it waits for the founder's call. Founder 2026-11-06: fold into the systemic
+  pass, as part of the type scale.
 - verified-by: `the greeting's longest hour word fits its column at the largest text size`
 
 ### F958 — Every tutor join fails on staging: the image has no CA store for LiveKit's native client
@@ -12312,3 +12313,20 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the installed bottom-tabs gives every tab's native Screen no top scroll edge effect`
 - verified-by: `the tab edge patch leaves an unlisted bottom-tabs version alone`
 - verified-by: `the locked @react-navigation/bottom-tabs is a version the tab edge patch has been checked against`
+
+### F960 — On iOS, deleting and reinstalling Luvani is not a fresh start: the Keychain keeps the sign-in and the "used before" hint
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/auth/installHistory.native.ts (`luvani.has-used-app.v1`) and
+  apps/mobile/src/auth/supabaseAdapter.ts (~:50-55, the Supabase session in SecureStore)
+- note: Found 2026-11-06 while preparing the founder's three beginner sessions on one iPhone. iOS
+  Keychain items survive uninstalling an app, so after a reinstall the app still treats the phone as
+  returning (no first-run "Get Started" intro, the sign-in door instead) and can restore the previous
+  person's Supabase session, so the next person on a shared phone could open the last person's
+  account. Android removes both on uninstall. For the beginner sessions the founder chose three
+  builds with their own bundle ids (`com.luvani.app.b1`/`.b2`/`.b3`, set at build time), so each has
+  its own Keychain; nothing in the app changed. A fix would treat a missing AsyncStorage install
+  marker (AsyncStorage is removed on uninstall) as a fresh install and clear the hint and the session
+  once, which changes the returning-person design in `installHistory.native.ts`, so it waits for the
+  founder.
+- verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
