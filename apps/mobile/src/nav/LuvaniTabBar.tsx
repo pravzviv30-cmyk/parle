@@ -191,7 +191,7 @@ function TabStrip({ routes, insets, due }: {
             <TabGlyph focused={focused} badged={dot}>
               {() => <Icon name={icon} variant="linear" size={22} color={focused ? t.tabGlyphSelected : t.tabLabel} />}
             </TabGlyph>
-            {shown && <Text style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>}
+            {shown && <Text selectable={false} style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>}
           </Press>
         );
       })}

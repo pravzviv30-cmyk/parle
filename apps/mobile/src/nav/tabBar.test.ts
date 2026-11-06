@@ -305,6 +305,10 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.equal(detached.pan.onMoveShouldSetPanResponderCapture(ev, g(20, 2)), false, 'the bar with no open tab claims a drag');
   });
 
+  test('a drag across the bar does not select the tab words on web (push-check browser pass)', () => {
+    assert.match(FLAT, /<Text selectable=\{false\} style=\{\[st\.label,/, 'a mouse drag over the bar highlights the words it crosses');
+  });
+
   test('the drag guards: a tap stays the cell\'s, geometry is measured, no pill without a tab (push-check, fix 3)', () => {
     assert.doesNotMatch(BAR, /startedOnSelected|onStartShouldSetPanResponder/, 'the touch start takes or sorts the touch, so a tap no longer reaches the cell');
     assert.match(FLAT, /<View ref=\{capsuleRef\} [^>]*onLayout=\{\(\) => capsuleRef\.current\?\.measureInWindow\(\(x\) => \{ capsuleX\.current = x; \}\)\}/, 'the capsule never measures where it sits, so the finger is read from 0');
@@ -378,7 +382,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // The bar draws the word only when the model says it fits, and every tab
     // keeps its full name for a screen reader.
     assert.match(FLAT, /tabLabelsShown\(fontScale, capsule\)/, 'the bar does not ask the model whether the words fit');
-    assert.match(FLAT, /\{shown && <Text style=\{\[st\.label/, 'the bar draws the word even when it cannot fit whole');
+    assert.match(FLAT, /\{shown && <Text (?:selectable=\{false\} )?style=\{\[st\.label/, 'the bar draws the word even when it cannot fit whole');
     assert.match(FLAT, /accessibilityLabel=\{tabAccessibilityLabel\(route\.name, dot\)\}/, 'a tab without its word loses its name for a screen reader');
   });
 

@@ -1642,8 +1642,10 @@ export function useLiveSession(
       if (roomRef.current === opened) roomRef.current = null;
       removeAudioEls();
       // The room is gone, so it no longer holds the learner's ears; haptics and
-      // sounds come back on the error view.
-      await releaseAudioSession().catch(() => {});
+      // sounds come back on the error view. Only while this start still owns the
+      // session (a newer one may have taken it during the disconnect), and not
+      // awaited, so a slow stop never holds back the error.
+      if (owns()) void releaseAudioSession().catch(() => {});
       // The grant this attempt took never reached a tutor, so hand the lease
       // back — a connect that threw is the strand F165 was filed for.
       releaseHeldLease();

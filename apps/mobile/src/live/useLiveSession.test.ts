@@ -1102,7 +1102,7 @@ describe('a session that ends in the error view lets go of the learner\'s ears',
   // The live hold (`holdLive`) mutes every haptic and sound while it is up. It is
   // taken by ensureAudioSession and given back by releaseAudioSession, and the
   // two exits below used to leave it up under the error view.
-  const failedConnect = async (owned: boolean, disconnects: boolean): Promise<string[]> => {
+  const failedConnect = async (owned: boolean, disconnects: boolean, opts: { stillOwns?: boolean; releaseHangs?: boolean } = {}): Promise<string[]> => {
     const calls: string[] = [];
     await runAsync(`try { throw boom; \n${fragment(hook, '} catch (err) {')}`, {
       boom: new Error('connect failed'),
@@ -1114,9 +1114,10 @@ describe('a session that ends in the error view lets go of the learner\'s ears',
       roomRef: { current: null },
       removeAudioEls: () => {},
       releaseHeldLease: () => {},
+      owns: () => opts.stillOwns ?? true,
       releaseAudioSession: () => {
         calls.push('release');
-        return Promise.resolve();
+        return opts.releaseHangs ? new Promise<void>(() => {}) : Promise.resolve();
       },
       classifyFailure: () => 'signal',
       fail: () => calls.push('fail'),
@@ -1130,6 +1131,15 @@ describe('a session that ends in the error view lets go of the learner\'s ears',
 
   test('a connect whose room will not disconnect keeps the hold, because the room may still be up', async () => {
     assert.deepEqual(await failedConnect(true, false), ['fail']);
+  });
+
+  test('a newer start that took the session while the room disconnected keeps its audio session (code-review, fix 1)', async () => {
+    assert.deepEqual(await failedConnect(true, true, { stillOwns: false }), ['fail'], 'the failed start stopped the audio session and live hold a newer room now owns');
+  });
+
+  test('an audio session that never stops does not hold back the error view (code-review, fix 2)', async () => {
+    const settled = await Promise.race([failedConnect(true, true, { releaseHangs: true }), new Promise<'hung'>((done) => setTimeout(() => done('hung'), 200))]);
+    assert.deepEqual(settled, ['release', 'fail'], 'a hung stop kept the learner on the connecting view');
   });
 
   test('a start already taken over releases nothing from the catch', async () => {
