@@ -24,10 +24,9 @@ export function exitForPipeline(kind: string): SessionExitClass | undefined {
 }
 
 /**
- * Why the lifecycle stopped the room. It stops one second before the hard
- * deadline and counts whole seconds, so a stop within two seconds of the
- * maximum is the cap; any earlier stop is a lease that could not be renewed.
+ * Why the lifecycle stopped the room, as the lifecycle recorded it: the hard
+ * deadline is the cap; anything else is a lease that could not be renewed.
  */
-export function exitForStop(lifecycle: { maxSeconds: number; elapsedSeconds(): number }): SessionExitClass {
-  return lifecycle.maxSeconds - lifecycle.elapsedSeconds() <= 2 ? 'cap' : 'lease';
+export function exitForStop(lifecycle: { readonly stoppedAtDeadline: boolean }): SessionExitClass {
+  return lifecycle.stoppedAtDeadline ? 'cap' : 'lease';
 }

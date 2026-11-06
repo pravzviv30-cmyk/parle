@@ -1416,4 +1416,17 @@ describe('the lesson names which exit ended it', () => {
     exit.log();
     assert.deepEqual(lines, ['[luvani:session-exit] class=cap']);
   });
+
+  test('a scripted reply that never arrives names brain-turn', async (t) => {
+    t.mock.method(console, 'warn', () => {});
+    const { lines, exit } = recorder();
+    const { tutor } = build(RUNGS.PROMPTED, { exit });
+    t.mock.method(tutor, 'finish', async () => {});
+    t.mock.method(voice.Agent.default, 'llmNode', async () => new ReadableStream({ start(c) { c.error(new Error('socket hang up')); } }));
+    const reply = await tutor.llmNode({} as never, {} as never, {} as never);
+    await assert.rejects(reply!.getReader().read(), /Scripted reply unavailable/);
+    exit.mark('learner-left');
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=brain-turn']);
+  });
 });

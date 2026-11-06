@@ -219,18 +219,37 @@ describe('the end-of-session clock and tap-to-send reach the room', () => {
 });
 
 describe('one hiccup is survivable and the exit is named', () => {
-  test('paid and scene sessions get one vendor retry and survive one unrecoverable error', () => {
-    assert.match(CODE, /connOptions: \{ sttConnOptions: \{ maxRetry: 1 \}, llmConnOptions: \{ maxRetry: 1 \}, ttsConnOptions: \{ maxRetry: 1 \}, maxUnrecoverableErrors: 2 \}/);
+  test('paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room', () => {
+    assert.match(CODE, /connOptions: \{ sttConnOptions: \{ maxRetry: 1 \}, llmConnOptions: \{ maxRetry: 1 \}, ttsConnOptions: \{ maxRetry: 1 \}, maxUnrecoverableErrors: 1 \}/);
   });
   test('one recorder per session reaches both tutors and is logged on close and on shutdown', () => {
     assert.match(CODE, /const exit = new SessionExit\(\)/);
-    assert.equal(CODE.match(/new LuvaniTutor\([^)]*exit[,\s}]/g)?.length, 2, 'lesson and scene both carry it');
-    assert.match(CODE, /new LuvaniConversation\([\s\S]*?\bexit,/);
+    // Each constructor's own argument list, so an `exit` in a later call cannot satisfy an earlier one.
+    const calls = (name: string): string[] => [...CODE.matchAll(new RegExp(`new ${name}\\(`, 'g'))].map((m) => {
+      let depth = 0;
+      for (let i = m.index + m[0].length - 1; i < CODE.length; i++) {
+        if (CODE[i] === '(') depth++;
+        else if (CODE[i] === ')' && --depth === 0) return CODE.slice(m.index, i + 1);
+      }
+      throw new Error(`unclosed ${name} call`);
+    });
+    const tutors = calls('LuvaniTutor');
+    assert.equal(tutors.length, 2);
+    for (const call of tutors) assert.match(call, /\bexit\b/, 'lesson and scene both carry it');
+    const convos = calls('LuvaniConversation');
+    assert.equal(convos.length, 1);
+    assert.match(convos[0]!, /\bexit,/);
     assert.match(CODE, /addShutdownCallback\(async \(\) => \{ exit\.log\(\);/);
     assert.match(CODE, /AgentSessionEventTypes\.Close, \(\) => \{ exit\.log\(\);/);
   });
   test('a lifecycle stop and an unrecoverable pipeline error are marked', () => {
     assert.match(CODE, /lifecycle\?\.onStop\(\(\) => \{\s*exit\.mark\(exitForStop\(lifecycle\)\);/);
-    assert.match(CODE, /if \(!recoverable\) \{ const cls = exitForPipeline\(kind\); if \(cls\) exit\.mark\(cls\); \}/);
+    assert.doesNotMatch(CODE, /if \(!recoverable\) \{ const cls = exitForPipeline/, 'marked before the room is known to end');
+    assert.match(CODE, /const serviceFailure = tutor\.terminalFailureFor\(kind, recoverable, learnerPresent\);\s*if \(serviceFailure\) \{ const cls = exitForPipeline\(kind\); if \(cls\) exit\.mark\(cls\); \}/);
+  });
+  test('the learner leaving is marked before paid work stops', () => {
+    const start = CODE.indexOf("ctx.room.on('participantDisconnected'");
+    const left = CODE.slice(start, CODE.indexOf('return tutor.finish()', start));
+    assert.match(left, /exit\.mark\('learner-left'\);[^]*stopPaidWork\(\);/);
   });
 });

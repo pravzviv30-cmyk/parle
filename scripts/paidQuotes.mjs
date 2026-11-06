@@ -232,11 +232,11 @@ export async function captureShapes({voices}) {
  *     convo turns: 66 = two full components (100,000 / 3,000 output tokens = 33 each). That is 40 turns
  *       (4/min measured, VOICE-008) plus 26 retries or extra turns; a quote holds at most 16 components.
  *     frames: 4 scenes x 2 = 8. curate/extract/drills: once at close x 2.
- *     live chat (lesson, preemptive generation on, maxRetry 0): 60 (12-turn lesson, replays, speculative calls).
+ *     live chat (lesson, preemptive generation on, vendor maxRetry 1): 60 (12-turn lesson, replays, speculative calls).
  *   A component holds at most 100,000 output tokens and 2 MiB of input (paid_quote_valid_v1),
  *   so a large budget is split over several components with the SAME identity; the gate fills them in order.
  * STT streaming (Deepgram). Each websocket claims the whole session (600,000 ms), so a component is one
- *   connection: lesson 1 (fr + keyterms), convo 2 multi (topic choice) + 2 fr (scene; each scene restarts it).
+ *   connection: lesson 2 (fr + keyterms; the vendor maxRetry 1 can open a second stream), convo 2 multi (topic choice) + 2 fr (scene; each scene restarts it).
  *   Price = 10 min x the per-minute rate (fr+keyterm = DEFAULT_COST_MODEL.sttPerMin 0.009; multi 0.0092).
  * STT take (api-transcribe): one call, at most SCORING_MAX_WAV_BYTES (30 s); priced at the streaming fr rate.
  * TTS (ElevenLabs). One component per voice, because voice is identity. Per session the tutor speaks

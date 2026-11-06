@@ -2127,8 +2127,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Decision:
   - A failed brain turn is retried once on a shorter deadline (10 s API, 30 s CLI)
     when nothing was spoken early and the session is open. Paid and scene sessions
-    give STT, the chat model and TTS one retry each and end on the second
-    unrecoverable error. Heartbeats get three lease-bounded tries at 5 s. The paid
+    give STT, the chat model and TTS one retry each (`maxRetry: 1`); an error still
+    unrecoverable after it ends the room as before. Heartbeats get three lease-bounded tries at 5 s. The paid
     lesson quote books two STT streams for the reconnect.
   - Every session logs one `[luvani:session-exit] class=...` line; the first cause wins.
   - When the learner's words are neither French nor English, the mission tutor asks

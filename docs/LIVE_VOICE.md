@@ -918,10 +918,12 @@ second try before the learner hears "cannot carry on":
   metered. A second failure takes the old exit (`failInfrastructure`, a terminal
   `llm_error`). A parse error or refusal still goes to the rescue, as before.
 - **STT, the lesson's chat model and TTS** (`agent.ts`). Paid and scene sessions get
-  `maxRetry: 1` on each, and the room ends on the second unrecoverable error, not the
-  first. A Deepgram reconnect opens a second stream, so the paid lesson quote books
-  two STT streams (`scripts/paidQuotes.mjs`). The conversation already booked two of
-  each language.
+  `maxRetry: 1` on each (it was 0), so a dropped vendor connection is reopened once
+  and the app sees a recoverable notice. An error still unrecoverable after that retry
+  ends the room as before: the worker's own error handler (`serviceFailure.ts`) closes
+  it, so `maxUnrecoverableErrors` stays 1. A Deepgram reconnect opens a second stream,
+  so the paid lesson quote books two STT streams (`scripts/paidQuotes.mjs`). The
+  conversation already booked two of each language.
 - **Heartbeats** (`sessionLifecycle.ts`). Three tries at 5 s each, every try bounded
   by the lease time left. Claim, checkpoint and complete are unchanged.
 
@@ -933,12 +935,12 @@ Every session logs exactly one exit line when the room closes or the job shuts d
     [luvani:session-exit] class=<brain-turn|lease|stt|tts|cap|learner-left|done>
 
 The first cause marked wins (`sessionExit.ts`). `done` is a finished lesson, mission
-or safety stop. `cap` is the close for time, or a lifecycle stop within 2 s of the
-maximum. `lease` is a lifecycle stop any earlier. `stt`, `tts` and `brain-turn` come
-from an unrecoverable pipeline error or the brain turn's exit. Nothing marked means the
-learner left. Two known limits: a paid quote refusal reaches the worker as an STT or
-TTS error and is logged as that, not `cap`; and a lease lost in the last 2 s reads as
-`cap`.
+or safety stop. `cap` is the close for time, or the lifecycle stopping at its hard
+deadline. `lease` is any other lifecycle stop. `stt`, `tts` and `brain-turn` come from
+a pipeline error that ends the room, or the brain turn's exit. `learner-left` is the
+learner disconnecting, and also what an unmarked session reads as. One known limit: a
+paid quote refusal reaches the worker as an STT or TTS error and is logged as that,
+not `cap`.
 
 ### English answers and the recogniser (measured 2026-11-06)
 

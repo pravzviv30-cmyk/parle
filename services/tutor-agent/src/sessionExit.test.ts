@@ -28,8 +28,7 @@ test('session exit: an unrecoverable pipeline error names its half', () => {
   assert.equal(exitForPipeline('interruption_detection_error'), undefined);
 });
 
-test('session exit: a lifecycle stop at the hard deadline is the cap, earlier it is the lease', () => {
-  assert.equal(exitForStop({ maxSeconds: 900, elapsedSeconds: () => 899 }), 'cap');
-  assert.equal(exitForStop({ maxSeconds: 900, elapsedSeconds: () => 898 }), 'cap');
-  assert.equal(exitForStop({ maxSeconds: 900, elapsedSeconds: () => 120 }), 'lease');
+test('session exit: a lifecycle stop at the hard deadline is the cap, any other stop is the lease', () => {
+  assert.equal(exitForStop({ stoppedAtDeadline: true }), 'cap');
+  assert.equal(exitForStop({ stoppedAtDeadline: false }), 'lease');
 });

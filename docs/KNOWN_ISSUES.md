@@ -12358,12 +12358,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   after one failure. One failed brain turn, one unrecoverable STT/TTS error (`maxRetry: 0`,
   `maxUnrecoverableErrors: 1`) or two 3 s heartbeat misses ended the room. Now each gets one more
   try (VOICE-021), the paid lesson quote books the second STT stream, and every session logs one
-  `[luvani:session-exit] class=...` line. Limits: a paid quote refusal is logged as `stt`/`tts`, not
-  `cap`; a lease lost in the last 2 s reads as `cap`. Read the staging logs after the founder's next
+  `[luvani:session-exit] class=...` line. An error still unrecoverable after its one vendor retry
+  ends the room as before. Limit: a paid quote refusal is logged as `stt`/`tts`, not `cap`. Read the staging logs after the founder's next
   session to see which exit fires in the wild.
 - verified-by: `a brain turn that fails once is retried once and the learner stays in the room`
 - verified-by: `a second failure ends the session as before and names brain-turn`
 - verified-by: `a heartbeat survives two failed attempts and lands on the third`
 - verified-by: `session exit: the first class wins and the line is logged exactly once`
-- verified-by: `paid and scene sessions get one vendor retry and survive one unrecoverable error`
+- verified-by: `paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room`
+- verified-by: `a turn cut by the close for time is not retried`
+- verified-by: `a stop at the hard deadline says so even when billing froze early`
 

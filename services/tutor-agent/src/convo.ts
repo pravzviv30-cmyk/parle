@@ -1883,6 +1883,7 @@ export class LuvaniConversation extends voice.Agent {
    * flushes would take the message with it.
    */
   private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
+    this.exit?.mark('done');
     void this.finish();
     try {
       await delivered;
@@ -3018,9 +3019,10 @@ export class LuvaniConversation extends voice.Agent {
         await this.checkpoint();
         this.recover();
         return;
-      } else if (attempt === 0 && this.lifecycle) {
+      } else if (attempt === 0 && this.lifecycle && !this.liveWork.signal.aborted && !this.closingForTime) {
         // One hiccup is not the end of the lesson: the same request once more,
-        // on a shorter clock. The failed call is already metered above.
+        // on a shorter clock. The failed call is already metered above. A turn
+        // the close for time or a safety stop cut takes the path below instead.
         console.warn('[luvani] convo brain turn retrying:', safeError(error));
         continue;
       } else {

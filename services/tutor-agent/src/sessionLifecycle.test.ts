@@ -265,3 +265,23 @@ test('a hung heartbeat attempt never waits past the lease time left', async () =
   assert.equal(f.calls.filter(c => c.operation === 'checkpoint').length, 3);
   await life.complete({ learnerTurns: 0 });
 });
+test('a stop at the hard deadline says so even when billing froze early', async () => {
+  const f = fixture(); const life = await f.claim();
+  for (let i = 0; i < 4; i++) { f.advance(25_000); await life.checkpoint({ learnerTurns: 1 }); }
+  life.freezeBillingCutoff();
+  assert.equal(life.stoppedAtDeadline, false);
+  f.advance(19_000); // the hard stop is 119 000 ms after the claim
+  assert.throws(() => life.assertActive(), SessionLifecycleError);
+  assert.equal(life.elapsedSeconds(), 100, 'billing stayed frozen');
+  assert.equal(life.stoppedAtDeadline, true);
+  await life.complete({ learnerTurns: 1 });
+});
+test('a heartbeat that fails mid-session is not the deadline', async () => {
+  const f = fixture({ call: async (op, payload, signal) => op === 'checkpoint' ? Promise.reject(new TutorRpcError(503)) : f.normal(op, payload, signal) });
+  const life = await f.claim();
+  f.advance(10_000);
+  await assert.rejects(life.heartbeat());
+  assert.equal(life.signal.aborted, true);
+  assert.equal(life.stoppedAtDeadline, false);
+  await life.complete({ learnerTurns: 0 });
+});

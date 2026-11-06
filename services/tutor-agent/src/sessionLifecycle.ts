@@ -12,6 +12,8 @@ export interface RuntimeLifecycle {
   readonly maxSeconds: number;
   readonly signal: AbortSignal;
   elapsedSeconds(): number;
+  /** True once the room stopped because the hard deadline arrived; a lease or call failure leaves it false. */
+  readonly stoppedAtDeadline: boolean;
   freezeBillingCutoff?(): void;
   assertActive(): void;
   checkpoint(report: RuntimeReport, acknowledged?: () => void): Promise<void>;
@@ -103,6 +105,7 @@ export class SessionLifecycle implements RuntimeLifecycle {
   #tail: Promise<unknown> = Promise.resolve();
   #completion: Promise<SettlementResult> | undefined;
   #failed = false;
+  #atDeadline = false;
   #closing = false;
   #onStop: (() => void) | undefined;
   #stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -121,6 +124,7 @@ export class SessionLifecycle implements RuntimeLifecycle {
   }
   paidIdentity():Readonly<{userId:string;sessionId:string;claimNonce:string}> {this.assertActive();return Object.freeze({userId:this.#identity.userId,sessionId:this.#identity.sessionId,claimNonce:this.#nonce});}
   get maxSeconds(): number { return this.#maximum; }
+  get stoppedAtDeadline(): boolean { return this.#atDeadline; }
   freezeBillingCutoff(): void { this.#billingCutoff ??= this.elapsedSeconds(); }
   elapsedSeconds(): number {
     if (this.#billingCutoff !== undefined) return this.#billingCutoff; return Math.min(this.#maximum, Math.max(0, Math.floor((this.#now() - this.#started) / 1_000))); }
@@ -138,7 +142,10 @@ export class SessionLifecycle implements RuntimeLifecycle {
     this.#stopTimer = this.#heartbeatTimer = undefined;
     this.#abort.abort();
   }
-  private fail(): void { if (this.#failed || this.#closing) return; this.#failed = true; this.stop(); this.notifyStop(); }
+  private fail(): void {
+    if (this.#failed || this.#closing) return;
+    this.#failed = true; this.#atDeadline = this.#hardStop > 0 && this.#now() >= this.#hardStop; this.stop(); this.notifyStop();
+  }
   private enqueue<T>(work: () => Promise<T>): Promise<T> {
     const result = this.#tail.then(work, work); this.#tail = result.catch(() => {}); return result;
   }

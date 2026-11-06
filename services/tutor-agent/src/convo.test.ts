@@ -2352,7 +2352,7 @@ describe('latency marks', () => {
       const checkpointAsked = new Promise<void>(resolve => { checkpointStarted = resolve; });
       const client = new SlowBrain();
       const built = buildConvo(t, { client, voiceless, missionId: 'mission:cafe' });
-      built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 8,
+      built.convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => 8,
         assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { checkpointStarted(); await checkpoint; acknowledge?.(); },
         complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
       });
@@ -2386,7 +2386,7 @@ describe('latency marks', () => {
   test('a queued typed timing record retains its own arrival while the earlier brain request finishes', async t => {
     let now = 100; const lines: string[] = [], client = new SlowBrain();
     const built = buildConvo(t, { client, voiceless: true, missionId: 'mission:cafe' });
-    built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 8,
+    built.convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => 8,
       assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
       complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
     });
@@ -5065,7 +5065,7 @@ describe('pronunciation is scored beside a mission turn, never in front of it', 
     scoringOn(t);
     for (const [elapsed, waits] of [[8, true], [118, false]] as const) {
       const built = await rescued(t, 2, { scorer: () => new Promise(() => {}) });
-      built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => elapsed,
+      built.convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => elapsed,
         assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
         complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
       });
@@ -5531,7 +5531,7 @@ describe('the recap tells the app how many times the learner replied', () => {
   /** A lifecycle that records every baseline it is handed, the way agent.ts attaches it. */
   function recordingLifecycle(convo: LuvaniConversation) {
     const baselines: unknown[] = [];
-    convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 30,
+    convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => 30,
       assertActive() {}, onStop() {},
       checkpoint: async (report, acknowledge) => { if (report.baseline) baselines.push(report.baseline); acknowledge?.(); },
       complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
@@ -5887,7 +5887,7 @@ describe('scene-relevant recall', () => {
 });
 
 describe('one brain hiccup is survivable, and every exit is named', () => {
-  const lifecycleFor = (convo: LuvaniConversation) => convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal,
+  const lifecycleFor = (convo: LuvaniConversation) => convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal,
     elapsedSeconds: () => 30, assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
     complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }) });
   const exitLines = (t: TestContext) => {
@@ -5970,5 +5970,35 @@ describe('one brain hiccup is survivable, and every exit is named', () => {
     await convo.closeForTime();
     exit.log();
     assert.deepEqual(lines, ['[luvani:session-exit] class=cap']);
+  });
+
+  test('a turn cut by the close for time is not retried', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const warn = t.mock.method(console, 'warn', () => {});
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+    lifecycleFor(convo);
+    t.mock.method(convo, 'finish', async () => {});
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    await convo.closeForTime();
+    client.release();
+    await typed;
+    await convo.settled();
+    assert.equal(client.signals.length, 1, 'the cut turn was not asked again');
+    const logged = warn.mock.calls.map((c) => c.arguments.map(String).join(' '));
+    assert.equal(logged.some((l) => l.includes('convo brain turn retrying')), false);
+  });
+
+  test('a safety stop in a conversation names done', async (t) => {
+    t.mock.method(console, 'warn', () => {});
+    const { lines, exit } = exitLines(t);
+    const { convo, session, published } = await inScene(t, { voiceless: true, exit });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    await convo.settled();
+    assert.ok(published.some((m) => m.t === 'safety' && m.action === 'stop'));
+    exit.mark('learner-left');
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
   });
 });

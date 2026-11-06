@@ -496,10 +496,11 @@ export default defineAgent({
       stt,
       // A scene builds no model client at all.
       llm: scene ? undefined : tutorLLM(proxy),
-      // One vendor retry each, and the second unrecoverable error ends the room.
+      // One vendor retry each; an error that is still unrecoverable after its
+      // retry ends the room, as before.
       // A Deepgram retry opens a second quoted stream, so the paid quote must
       // allow two STT streams per lesson (set in scripts/paidQuotes.mjs).
-      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 1 }, llmConnOptions: { maxRetry: 1 }, ttsConnOptions: { maxRetry: 1 }, maxUnrecoverableErrors: 2 } } : {}),
+      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 1 }, llmConnOptions: { maxRetry: 1 }, ttsConnOptions: { maxRetry: 1 }, maxUnrecoverableErrors: 1 } } : {}),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.
       tts: voiceTts,
@@ -533,9 +534,9 @@ export default defineAgent({
       // (classifyPipelineError in apps/mobile/src/live/failure.ts).
       const kind = ev.error.type;
       const recoverable = ev.error.recoverable;
-      if (!recoverable) { const cls = exitForPipeline(kind); if (cls) exit.mark(cls); }
       const learnerPresent = [...ctx.room.remoteParticipants.values()].some(p => p.identity === tutor.learnerId);
       const serviceFailure = tutor.terminalFailureFor(kind, recoverable, learnerPresent);
+      if (serviceFailure) { const cls = exitForPipeline(kind); if (cls) exit.mark(cls); }
 
       // The line somebody greps at two in the morning. `TUTOR_PIPELINE_DOWN` is
       // an interface, not a log message: a vendor half of the tutor is down and
@@ -645,6 +646,8 @@ export default defineAgent({
     ctx.room.on('participantDisconnected', (p) => {
       if (p.identity === tutor.learnerId) {
         clearTimeout(hardStop); endClock?.stop(); tapToSend?.stop();
+        // Marked first, so a vendor error from the proxy closing behind them cannot take the label.
+        exit.mark('learner-left');
         // Recognition stops with the learner, not after settlement.
         stopPaidWork();
         if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
