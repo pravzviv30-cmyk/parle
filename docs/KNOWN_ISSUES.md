@@ -12367,3 +12367,26 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   trace that still logs every diagnostic. A guard test fails if a catch shows a caught message
   as itself; it cannot see a message passed on through a variable, a prop or a server body field.
 - verified-by: `no catch block shows a caught message as itself`
+
+
+### F963 — Holding and dragging the tab bar gave no haptic unless the drag began on the open tab
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx (the `PanResponder` in `TabStrip`) and
+  apps/mobile/src/live/useLiveSession.ts (the `start` catch and the `RoomEvent.Disconnected` handler)
+- note: Found 2026-11-06 by the founder on their iPhone, with Haptic feedback on. The drag only
+  claimed a touch that began on the selected tab, so a hold and drag from any other tab was the
+  cell's own press, which has no haptic. The founder chose: any tab, with a sideways move of more
+  than 8 px. A still press stays a tap and a still long press is never claimed, so the Large
+  Content Viewer rule from F947 stays. The bar on Profile, with no open tab, still takes no drag.
+  The same pass traced every way out of a live session to `releaseAudioSession`, because
+  `hapticsEnabled` is off while a live room holds the audio. Leave, unmount, an abandoned start, an
+  empty room and the recap all released it. A failed connect and a dropped room did not, so the
+  error view's buttons gave no haptic until the learner left it. Both now release. A disconnect
+  that throws keeps the hold, since the room may still be up. No app-wide leak was found.
+  Nothing here needs an Apple Developer account. The founder's iPhone check is recorded in the
+  lane F handoff.
+- fixed: 2026-11-06 on claude/tab-drag-haptics-da4049.
+- verified-by: `any tab can be held and dragged sideways to another, with a tick per cell — item 7`
+- verified-by: `a failed connect this start still owns releases the audio session before the error shows`
+- verified-by: `the drop handler releases the audio session when the attempt owns the room, and not otherwise`

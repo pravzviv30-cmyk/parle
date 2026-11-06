@@ -17,7 +17,7 @@
  * wrapping, the dot) live in `tabBarModel.ts`; the one movement, the selected
  * glyph's pop, lives in `TabGlyph.tsx` (F737). The only other movement is the
  * violet selection pill in `TabPill.tsx` (item 7, founder 2026-11-02): it slides
- * to a tapped tab, and the open tab can be held and dragged sideways to another,
+ * to a tapped tab, and any tab can be held and dragged sideways to another,
  * ticking as it crosses each cell and landing like a tap. A still long press is
  * never claimed, so the Large Content Viewer keeps working (F947).
  */
@@ -34,7 +34,7 @@ import { tapSettled, tick } from '../motion/haptics.ts';
 import { TabGlyph } from './TabGlyph.tsx';
 import { TabPill } from './TabPill.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { CAPSULE_HEIGHT, MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabCellAt, tabCellUnderFinger, tabDot, tabPillLeft, tabLabelsShown } from './tabBarModel.ts';
+import { CAPSULE_HEIGHT, MAIN_TABS, TAB_ICONS, TAB_LABELS, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCapsuleWidth, tabCellUnderFinger, tabDot, tabPillLeft, tabLabelsShown } from './tabBarModel.ts';
 
 /** Figma 292:1103: the capsule is 74 tall, a cell 62 inside 6pt of capsule padding. */
 const CELL_HEIGHT = CAPSULE_HEIGHT - 2 * space(1.5);
@@ -127,30 +127,23 @@ function TabStrip({ routes, insets, due }: {
   const st = useThemedStyles(makeStyles);
   const reportHeight = useContext(BottomTabBarHeightCallbackContext);
 
-  // Item 7 (founder, 2026-11-02): hold the open tab and drag the pill to another.
+  // Item 7 (founder, 2026-11-02): hold any tab and drag the pill sideways to another.
   const cell = Math.max(0, (capsule - 2 * CAPSULE_SIDE) / routes.length);
   const selected = routes.findIndex((r) => r.focused);
   const [dragX, setDragX] = useState<number | null>(null);
   const capsuleRef = useRef<View>(null);
   const capsuleX = useRef(0);
-  const startedOnSelected = useRef(false);
   const over = useRef(0);
   const routesRef = useRef(routes);
   routesRef.current = routes;
   const geo = useRef({ cell, selected });
   geo.current = { cell, selected };
   const drag = useRef(PanResponder.create({
-    // Notes whether the touch began on the open tab; never takes it, so a tap stays the cell's.
-    onStartShouldSetPanResponderCapture: (e) => {
-      const { cell, selected } = geo.current;
-      startedOnSelected.current = selected >= 0 && tabCellAt(e.nativeEvent.pageX - capsuleX.current - CAPSULE_SIDE, cell, routesRef.current.length) === selected;
-      return false;
-    },
     // Only sideways movement claims it, so a still long press keeps the Large Content Viewer (F947).
-    onMoveShouldSetPanResponderCapture: (_, g) => startedOnSelected.current && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
-    onPanResponderGrant: () => {
+    onMoveShouldSetPanResponderCapture: (_, g) => geo.current.selected >= 0 && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
+    onPanResponderGrant: (_, g) => {
       tick();
-      over.current = geo.current.selected;
+      over.current = tabCellUnderFinger(g.moveX, capsuleX.current, CAPSULE_SIDE, geo.current.cell, routesRef.current.length);
     },
     onPanResponderMove: (_, g) => {
       const { cell } = geo.current;
@@ -198,7 +191,7 @@ function TabStrip({ routes, insets, due }: {
             <TabGlyph focused={focused} badged={dot}>
               {() => <Icon name={icon} variant="linear" size={22} color={focused ? t.tabGlyphSelected : t.tabLabel} />}
             </TabGlyph>
-            {shown && <Text style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>}
+            {shown && <Text selectable={false} style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>}
           </Press>
         );
       })}

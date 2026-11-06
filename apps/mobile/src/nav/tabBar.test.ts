@@ -15,6 +15,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { b } from '../palette.ts';
 import { CAPSULE_HEIGHT, CAPSULE_INSET, MAIN_TABS, TAB_ICONS, TAB_LABELS, LABEL_SIZE, WIDEST_LABEL, WRAPS_UNDER_GLYPH, labelsWrapUnderGlyph, tabAccessibilityLabel, tabCellAt, tabCellUnderFinger, tabLabelsShown, tabPillLeft, tabCapsuleWidth, tabDot } from './tabBarModel.ts';
@@ -208,24 +209,24 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press and TabPill may move');
   });
 
-  test('the selected tab can be held and dragged to another, with a tick per cell — item 7', () => {
-    // Founder, 2026-11-02 (iPhone): hold the open tab and drag it to another.
+  test('any tab can be held and dragged sideways to another, with a tick per cell — item 7', () => {
+    // Founder, 2026-11-02 (iPhone): hold a tab and drag it to another; any tab, 2026-11-06.
     assert.match(BAR, /^import \{ TabPill \} from '\.\/TabPill\.tsx';$/m, 'the capsule does not draw the sliding pill');
     assert.match(FLAT, /<View ref=\{capsuleRef\} \{\.\.\.drag\.panHandlers\}/, 'the capsule row takes no drag');
     assert.match(FLAT, /<TabPill /, 'the capsule does not draw the pill');
-    // Claimed only on sideways movement that began on the selected cell, so a tap and a still long press stay the cell's.
-    assert.match(FLAT, /onMoveShouldSetPanResponderCapture: \(_, g\) => startedOnSelected\.current && Math\.abs\(g\.dx\) > 8 && Math\.abs\(g\.dx\) > Math\.abs\(g\.dy\)/, 'the drag claims taps, long presses or vertical moves');
-    assert.match(FLAT, /onPanResponderGrant: \(\) => \{ tick\(\);/, 'holding and starting the drag gives no haptic');
+    // Claimed only on sideways movement, from any tab, so a tap and a still long press stay the cell's.
+    assert.match(FLAT, /onMoveShouldSetPanResponderCapture: \(_, g\) => geo\.current\.selected >= 0 && Math\.abs\(g\.dx\) > 8 && Math\.abs\(g\.dx\) > Math\.abs\(g\.dy\)/, 'the drag claims taps, long presses or vertical moves');
+    assert.match(FLAT, /onPanResponderGrant: \(_, g\) => \{ tick\(\); over\.current = tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, geo\.current\.cell, routesRef\.current\.length\); \}/, 'the drag grant does not tick and start from the cell under the finger');
     assert.match(FLAT, /if \(now !== over\.current\) \{ over\.current = now; tick\(\); \}/, 'crossing into another cell does not tick');
     assert.match(FLAT, /if \(to !== selected\) routesRef\.current\[to\]\?\.onPress\(\); else tapSettled\(\);/, 'letting go does not navigate the way a tap does');
     assert.match(FLAT, /onPanResponderTerminate: \(\) => setDragX\(null\)/, 'a cancelled drag does not put the pill back');
     // The pill: follows the finger while held, slides on a tap, jumps under Reduce Motion.
     const pill = stripComments(read('./TabPill.tsx')).replace(/\s+/g, ' ');
     assert.match(pill, /const reduced = useReduceMotion\(\);/, 'the pill does not watch Reduce Motion');
-    assert.match(pill, /if \(following \|\| reduced\) \{ cancel\(x\); x\.value = to; return; \}/, 'the pill does not jump under Reduce Motion or while held');
+    assert.match(pill, /if \(reduced\) \{ cancel\(x\); cancel\(gap\); gap\.value = 0; x\.value = to; held\.current = following; return; \}/, 'the pill does not jump under Reduce Motion');
     assert.match(pill, /x\.value = timing\(to, DUR\.fast, EASE\.out, reduced\);/, 'a tap does not slide the pill');
     assert.match(pill, /\{\.\.\.decorative\}/, 'the pill is heard by a screen reader');
-    assert.match(pill, /transform: \[\{ translateX: x\.value \}\]/, 'the pill moves by something other than a transform');
+    assert.match(pill, /transform: \[\{ translateX: x\.value \+ gap\.value \}\]/, 'the pill moves by something other than a transform');
   });
 
   test('the drag geometry: the cell under a finger, clamped, and when it changes — item 7', () => {
@@ -261,10 +262,92 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(FLAT, /setDragX\(tabPillLeft\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, cell, n\)\)/, 'the bar draws the pill from the grab, not the finger');
   });
 
+  test('a sideways drag from any tab claims, ticks, and lands on the cell under the finger; the rest is the cell\'s', () => {
+    // Lifts the real PanResponder config out of the source and runs it with its free names supplied by hand.
+    const start = BAR.indexOf('PanResponder.create(');
+    const end = BAR.indexOf('})).current', start) + 2;
+    assert.ok(start > 0 && end > start, 'the PanResponder config is not where this test looks');
+    const js = stripTypeScriptTypes(`const lifted = ${BAR.slice(start, end)};`);
+    function build(selected: number) {
+      const log = { ticks: 0, settled: 0, dragX: [] as (number | null)[], pressed: [] as number[] };
+      const world: Record<string, unknown> = {
+        PanResponder: { create: (c: unknown) => c },
+        tick: () => { log.ticks += 1; },
+        tapSettled: () => { log.settled += 1; },
+        setDragX: (x: number | null) => { log.dragX.push(x); },
+        tabCellAt, tabCellUnderFinger, tabPillLeft,
+        CAPSULE_SIDE: 8,
+        geo: { current: { cell: 70, selected } },
+        routesRef: { current: [0, 1, 2, 3, 4].map((i) => ({ onPress: () => { log.pressed.push(i); } })) },
+        capsuleX: { current: 12 },
+        over: { current: 0 },
+      };
+      const names = Object.keys(world);
+      const pan = new Function(...names, `"use strict";\n${js}\nreturn lifted;`)(...names.map((n) => world[n])) as Record<'onMoveShouldSetPanResponderCapture' | 'onPanResponderGrant' | 'onPanResponderRelease' | 'onStartShouldSetPanResponderCapture', (...a: unknown[]) => unknown>;
+      return { pan, log, world };
+    }
+    const over3 = 12 + 8 + 70 * 3 + 35;
+    const ev = { nativeEvent: { pageX: over3 } };
+    const g = (dx: number, dy: number) => ({ dx, dy, moveX: over3 });
+
+    const bar = build(0);
+    assert.equal(bar.pan.onMoveShouldSetPanResponderCapture(ev, g(20, 2)), true, 'a sideways move from a tab that is not open is not claimed');
+    bar.pan.onPanResponderGrant(ev, g(20, 2));
+    assert.equal(bar.log.ticks, 1, 'the grant does not tick once');
+    bar.pan.onPanResponderRelease(ev, g(20, 2));
+    assert.deepEqual(bar.log.pressed, [3], 'letting go without moving further does not land on the cell under the finger');
+    assert.equal(bar.pan.onMoveShouldSetPanResponderCapture(ev, g(8, 0)), false, 'a move of 8 or less is claimed');
+    assert.equal(bar.pan.onMoveShouldSetPanResponderCapture(ev, g(0, 0)), false, 'a still long press is claimed (F947)');
+    assert.equal(bar.pan.onMoveShouldSetPanResponderCapture(ev, g(20, 30)), false, 'a mostly vertical move is claimed');
+    assert.equal(bar.pan.onStartShouldSetPanResponderCapture, undefined, 'the touch start is sorted again');
+
+    const detached = build(-1);
+    assert.equal(detached.pan.onMoveShouldSetPanResponderCapture(ev, g(20, 2)), false, 'the bar with no open tab claims a drag');
+  });
+
+  test('a held pill tracks the finger from the first move and eases only its starting gap; Reduce Motion jumps (Impeccable, F963)', () => {
+    const src = read('./TabPill.tsx');
+    const start = src.indexOf('useEffect(() => {') + 'useEffect(() => {'.length;
+    // The effect body carries no types, so it runs as written.
+    const js = src.slice(start, src.indexOf('}, [to,', start));
+    const effect = new Function('x', 'gap', 'held', 'to', 'following', 'reduced', 'cancel', 'timing', 'DUR', 'EASE', `"use strict";\n${js}`);
+    const pill = (at: number) => {
+      const x = { value: at };
+      const gap = { value: 0 };
+      const held = { current: false };
+      const log: string[] = [];
+      const run = (to: number, following: boolean, reduced = false) => {
+        log.length = 0;
+        effect(x, gap, held, to, following, reduced, (v: unknown) => log.push(v === gap ? 'cancel gap' : 'cancel x'), (v: number) => { log.push(`timing ${v}`); return v; }, { fast: 1 }, { out: 0 });
+        return [...log];
+      };
+      return { x, gap, run };
+    };
+    // Today open (pill at 0), a drag picked up over Journey (target 280), then quick moves 40 apart.
+    const p = pill(0);
+    assert.ok(p.run(280, true).includes('timing 0'), 'picking the pill up far from the finger does not ease the gap closed');
+    assert.equal(p.x.value, 280, 'the pill does not track the finger from the first move');
+    for (const to of [240, 200, 160]) {
+      assert.ok(!p.run(to, true).some((l) => l.startsWith('timing')), `a quick move to ${to} starts another ease, so the pill trails the finger`);
+      assert.equal(p.x.value, to, `the pill is not under the finger at ${to}`);
+    }
+    // Released over Speak (140): the pill slides from where it is drawn.
+    assert.ok(p.run(140, false).includes('timing 140'), 'letting go does not slide the pill home');
+    assert.equal(p.gap.value, 0, 'the gap survives the release, so the next drag starts offset');
+    // A tap slides; Reduce Motion jumps with no ease at all.
+    assert.deepEqual(pill(0).run(70, false), ['timing 70'], 'a tap no longer slides the pill');
+    const r = pill(0);
+    assert.ok(!r.run(280, true, true).some((l) => l.startsWith('timing')), 'under Reduce Motion the pill eases instead of jumping');
+    assert.equal(r.x.value, 280);
+    assert.equal(r.gap.value, 0);
+  });
+
+  test('a drag across the bar does not select the tab words on web (push-check browser pass)', () => {
+    assert.match(FLAT, /<Text selectable=\{false\} style=\{\[st\.label,/, 'a mouse drag over the bar highlights the words it crosses');
+  });
+
   test('the drag guards: a tap stays the cell\'s, geometry is measured, no pill without a tab (push-check, fix 3)', () => {
-    const capture = FLAT.slice(FLAT.indexOf('onStartShouldSetPanResponderCapture:'), FLAT.indexOf('onMoveShouldSetPanResponderCapture:'));
-    assert.match(capture, /return false; \}, $/, 'the touch start takes the touch, so a tap no longer reaches the cell');
-    assert.match(capture, /startedOnSelected\.current = selected >= 0 && tabCellAt\(e\.nativeEvent\.pageX - capsuleX\.current - CAPSULE_SIDE, cell, routesRef\.current\.length\) === selected;/, 'a drag can start from a tab that is not open');
+    assert.doesNotMatch(BAR, /startedOnSelected|onStartShouldSetPanResponder/, 'the touch start takes or sorts the touch, so a tap no longer reaches the cell');
     assert.match(FLAT, /<View ref=\{capsuleRef\} [^>]*onLayout=\{\(\) => capsuleRef\.current\?\.measureInWindow\(\(x\) => \{ capsuleX\.current = x; \}\)\}/, 'the capsule never measures where it sits, so the finger is read from 0');
     assert.doesNotMatch(BAR, /\bCAPSULE_PAD\b/, 'the bar reuses tabBarModel\'s CAPSULE_PAD name (16, both sides) for 8 per side');
     const pad = Number(/const CAPSULE_SIDE = (\d+);/.exec(BAR)?.[1]);
@@ -336,7 +419,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // The bar draws the word only when the model says it fits, and every tab
     // keeps its full name for a screen reader.
     assert.match(FLAT, /tabLabelsShown\(fontScale, capsule\)/, 'the bar does not ask the model whether the words fit');
-    assert.match(FLAT, /\{shown && <Text style=\{\[st\.label/, 'the bar draws the word even when it cannot fit whole');
+    assert.match(FLAT, /\{shown && <Text (?:selectable=\{false\} )?style=\{\[st\.label/, 'the bar draws the word even when it cannot fit whole');
     assert.match(FLAT, /accessibilityLabel=\{tabAccessibilityLabel\(route\.name, dot\)\}/, 'a tab without its word loses its name for a screen reader');
   });
 

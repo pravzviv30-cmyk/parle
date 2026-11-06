@@ -1084,8 +1084,8 @@ the new look, listed at the end, and they go with their call sites.
   `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
   unselected is the Linear glyph and the word in cream at Outfit Medium on the
   ink. Only the pill moves (`nav/TabPill.tsx`, UI-018): it slides to a tapped
-  tab on the fast beat, and the open tab can be held and dragged sideways to
-  another, a selection tick as the drag starts and at each cell it crosses,
+  tab on the fast beat, and a sideways drag from any tab moves it to
+  another (F963), a selection tick as the drag starts and at each cell it crosses,
   landing like a tap; under Reduce Motion it jumps. A still long press is never
   claimed, so the Large Content Viewer keeps working. When a tab becomes the selected one its
   icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one
