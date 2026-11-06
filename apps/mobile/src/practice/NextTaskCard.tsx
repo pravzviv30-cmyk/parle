@@ -75,17 +75,21 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   // old A1 cafe suggestion would hand them a Starter scene (F917).
   const startAt = startAtOf(profile);
   const startingMissionId = startAt === null && profile.brain.cefr.estimate === 'A1' && profile.brain.cefr.confidence === 'low' && profile.brain.cefr.evidence.length === 0 ? 'mission:cafe' : undefined;
-  const [billing, setBilling] = useState<HomeBilling | null>(null);
   // Whether the billing read has answered (or cannot run), so nothing that
-  // depends on it is drawn on a guess.
-  const [billingAnswered, setBillingAnswered] = useState(false);
+  // depends on it is drawn on a guess; kept per account so a refocus keeps it (F961).
+  const [billingRead, setBillingRead] = useState<{ scope: number; live: boolean; billing: HomeBilling | null; answered: boolean } | null>(null);
+  const billing = billingRead?.billing ?? null;
+  const billingAnswered = billingRead?.answered ?? false;
   const [value, setValue] = useState<{ scope: number; now: number; card: PracticeCard | null; deck: readonly ReviewCard[]; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null; levelIndex: number } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useFocusEffect(useCallback(() => {
-    let cancelled = false; const scope = scopeGeneration(); setBilling(null); setBillingAnswered(false);
-    if (live && user !== null) void fetchBillingStatus(user.id).then(result => { if (!cancelled && scope === scopeGeneration()) setBilling(result); }).catch(() => {}).finally(() => { if (!cancelled && scope === scopeGeneration()) setBillingAnswered(true); });
-    else setBillingAnswered(true);
+    let cancelled = false; const scope = scopeGeneration();
+    // F961: a same-account refocus keeps the held answer, as the data read below does (F768).
+    // An answer held from offline is not a real read, so coming online starts undecided.
+    const reads = live && user !== null;
+    setBillingRead(held => held !== null && held.scope === scope && held.live === reads ? held : { scope, live: reads, billing: null, answered: !reads });
+    if (live && user !== null) void fetchBillingStatus(user.id).then(result => { if (!cancelled && scope === scopeGeneration()) setBillingRead({ scope, live: reads, billing: result, answered: true }); }).catch(() => { if (!cancelled && scope === scopeGeneration()) setBillingRead(held => ({ scope, live: reads, billing: held !== null && held.scope === scope ? held.billing : null, answered: true })); });
     return () => { cancelled = true; };
   }, [live, user]));
   useFocusEffect(useCallback(() => {
@@ -137,9 +141,9 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   useEffect(() => () => { if (bare) onHeroReview?.(null); }, [bare, onHeroReview]);
   if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
   if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
-  if (value === null || value.scope !== scopeGeneration()) return row ? null : <Text style={type.small}>Finding your next task…</Text>;
+  if (value === null || value.scope !== scopeGeneration()) return row ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
   if (vivid) {
-    if (lead === 'loading') return row ? null : <Text style={type.small}>Finding your next task…</Text>;
+    if (lead === 'loading') return row ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
     // The starter's typed line opens in the card's own sheet, so on a row the
     // card draws a flat LeadRow as its face and the row's tap opens that sheet,
     // which is the card's primary action, Continue practice (fix round 1).

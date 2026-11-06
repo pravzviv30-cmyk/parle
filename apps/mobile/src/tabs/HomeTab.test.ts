@@ -478,7 +478,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.match(shared, /kind === 'plans'/);
     assert.match(shared, /<ColourCard ground="blue"/);
     assert.match(shared, /<ColourCard ground="sun"/);
-    assert.match(shared, /setBilling\(null\)/);
+    assert.match(shared, /setBillingRead\(held => held !== null && held\.scope === scope && held\.live === reads \? held : \{ scope, live: reads, billing: null, answered: !reads \}\)/);
     assert.match(shared, /scope === scopeGeneration\(\)/);
     assert.match(shared, /fetchBillingStatus\(user.id\)/);
     assert.match(shared, /<LocalPracticeCard/);
@@ -623,7 +623,7 @@ describe('Today keeps its day when the disk will not answer', () => {
     assert.match(FLAT, /const failedHero = !unowned && readFailed;/);
     assert.match(FLAT, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/);
     const shared = readFileSync(new URL('../practice/NextTaskCard.tsx', import.meta.url), 'utf8');
-    assert.match(shared, /const scope = scopeGeneration\(\); setBilling\(null\)/);
+    assert.match(shared, /const scope = scopeGeneration\(\);[\s\S]*?setBillingRead\(held => held !== null && held\.scope === scope && held\.live === reads \? held : \{ scope, live: reads, billing: null, answered: !reads \}\)/);
     assert.match(shared, /if \(live && user !== null\)/);
     assert.match(shared, /!cancelled && scope === scopeGeneration\(\)/);
     assert.match(shared, /value.scope !== scopeGeneration\(\)/);

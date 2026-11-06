@@ -1,9 +1,9 @@
 /**
  * The greeting on Today, as a rule rather than as part of a screen.
  *
- * One still line: the hour's French word, then the learner's first name, then a
- * full stop. "Bonsoir, Praveen." or, for a learner who skipped the name
- * question, "Bonsoir." No bare comma, and never "you".
+ * One still line: the hour's French word, then the learner's first name, with
+ * no full stop (founder, 2026-11-06). "Bonsoir, Praveen" or, for a learner who
+ * skipped the name question, "Bonsoir". No bare comma, and never "you".
  *
  * It rotated through seven words on a timer until 2026-09-27 (notebook Phase
  * 3). The design contract keeps only the orb and the highlighter moving, so the
@@ -56,8 +56,8 @@ export function greetingWord(now: number): 'Bonjour' | 'Bonsoir' {
 }
 
 /**
- * The greeting a learner reads: the word, their first name when we have one,
- * and a full stop.
+ * The greeting a learner reads: the word and their first name when we have one,
+ * with no full stop.
  *
  * `firstNameOf` does the splitting, so a full name, a padded name and an empty
  * string behave here exactly as they do on the tutor dashboard.
@@ -65,7 +65,7 @@ export function greetingWord(now: number): 'Bonjour' | 'Bonsoir' {
 export function greetingLine(firstName: string | null, now: number): string {
   const first = firstNameOf(firstName);
   const word = greetingWord(now);
-  return first === null ? `${word}.` : `${word}, ${first}.`;
+  return first === null ? word : `${word}, ${first}`;
 }
 
 /**
@@ -89,8 +89,8 @@ export function greetingSubline(now: number): string {
 }
 
 /**
- * Today's header: "Bonjour, Name." or "Bonsoir, Name.", and the word alone
- * with no name. Direction A's sky (UI-015, founder 2026-10-30) brings back the
+ * Today's header: "Bonjour, Name" or "Bonsoir, Name", and the word alone
+ * with no name, with no full stop. Direction A's sky (UI-015, founder 2026-10-30) brings back the
  * hour's word, superseding direction B's one word all day (2026-10-20, B5): the
  * sky follows the hour, so the word under it does too, from the same evening
  * window. It is drawn as one line when the name fits beside the word, and wraps
@@ -104,5 +104,5 @@ export function homeGreeting(
 ): { word: 'Bonjour' | 'Bonsoir'; name: string | null; title: string } {
   const name = firstNameOf(firstName);
   const word = greetingWord(now);
-  return { word, name, title: name === null ? `${word}.` : `${word}, ${name}.` };
+  return { word, name, title: name === null ? word : `${word}, ${name}` };
 }

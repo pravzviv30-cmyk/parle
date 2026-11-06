@@ -50,14 +50,14 @@ export function skyNow(now: number, mode: 'light' | 'dark'): SkyView {
 }
 
 /**
- * The greeting as the sky draws it: "Bonjour, Léa." as one string, which the
+ * The greeting as the sky draws it: "Bonjour, Léa" as one string, which the
  * text engine wraps after the comma when the name does not fit beside the
- * word, or "Bonjour." alone with no name. The screen reader hears
+ * word, or "Bonjour" alone with no name, no full stop. The screen reader hears
  * `homeGreeting`'s one title.
  */
 export function greetingText(greeting: { word: string; name: string | null }): string {
   // U+2060 WORD JOINER after each hyphen, so "Jean-Luc" moves to the next line whole. The label is `greeting.title`, plain.
-  return greeting.name === null ? `${greeting.word}.` : `${greeting.word}, ${greeting.name.replace(/-/g, '-\u2060')}.`;
+  return greeting.name === null ? greeting.word : `${greeting.word}, ${greeting.name.replace(/-/g, '-\u2060')}`;
 }
 
 /**

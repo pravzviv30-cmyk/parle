@@ -5853,7 +5853,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.").
   A learner with no name reads the word and a full stop ("Bonsoir."), never a bare comma and never
   "you". The rule is still a pure module and still clean of digits, em dashes and banned words.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417` (renamed 2026-11-06 when the founder dropped the stop)
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F388 — Home's title fades through TabHeader and holds still for reduce motion and screen readers
@@ -6268,7 +6268,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Bonjour from 05:00 to 17:59 and Bonsoir from 18:00 through the small hours, checked at every hour
   and at the edges, with an unreadable clock landing on Bonjour. `GREETINGS`, the timing constants,
   `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417` (renamed 2026-11-06 when the founder dropped the stop)
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F418 — The header holds two complete greeting layers in one stable slot
@@ -12330,3 +12330,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   once, which changes the returning-person design in `installHistory.native.ts`, so it waits for the
   founder.
 - verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
+
+### F961 — Today's hero flashed to "Finding your next task…" on every return to Home
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/practice/NextTaskCard.tsx (the billing `useFocusEffect`)
+- note: Found 2026-11-06. Every focus of Home set the billing read back to unanswered
+  (`setBilling(null); setBillingAnswered(false)`) before refetching, so `todayLead` returned
+  `'loading'` while live and `MissionHero` unmounted until the network answered. The data read below
+  it already kept its held value for the same account (F768). The billing read is now one
+  `billingRead` state with a scope: a same-account refocus keeps the held answer and refreshes it
+  quietly, a failed refetch keeps the held billing, and only a cold load or another account starts
+  undecided (an answer held from offline is not a real read, so coming online starts undecided too),
+  so an out-of-time learner still never sees the scene flash first. The two loading
+  lines also took the hero's ink (`t.text`), as they were black on the dark card.
+- verified-by: `F961: coming back to Home keeps the held billing answer, so the hero does not flash to loading`

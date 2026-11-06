@@ -68,3 +68,12 @@ test("the review door reads the load's now, not a fresh clock", () => {
   assert.match(source, /heldWords\(billing, Date\.now\(\)\)/);
   assert.doesNotMatch(source, /reviewRow\([^)]*Date\.now\(\)/, 'the review door reads a fresh clock');
 });
+test('F961: coming back to Home keeps the held billing answer, so the hero does not flash to loading', () => {
+  const source = readFileSync(new URL('./NextTaskCard.tsx', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  assert.doesNotMatch(source, /setBillingAnswered\(false\)|setBilling\(null\)/, 'every focus puts the billing read back to unanswered');
+  assert.match(source, /setBillingRead\(held => held !== null && held\.scope === scope && held\.live === reads \? held :/);
+  assert.match(source, /const reads = live && user !== null;/, 'the offline answer must not be held once the learner is online');
+  const loading = source.match(/<Text style=\{[^}]*\}[^>]*>Finding your next task…<\/Text>|<Text style=\{[^>]*\]\}>Finding your next task…<\/Text>|<Text style=\{type\.small\}>Finding your next task…<\/Text>/g) ?? [];
+  assert.equal(loading.length, 2);
+  for (const text of loading) assert.equal(text, '<Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>');
+});
