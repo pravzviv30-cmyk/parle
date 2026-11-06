@@ -209,8 +209,16 @@ profile the server keeps.
 
 The turn is not the only call, and the scene call hands over more than a derived
 estimate. `tutorMemoryBrief` in `services/tutor-agent/src/convo.ts` repairs the
-profile and sends `repaired.memory.facts.filter(...).slice(-5)` to the same vendor, once
-inside `buildFrame` and again in each turn request, as `SAVED TUTOR MEMORY`.
+profile and sends `recallFacts(repaired.memory.facts.filter(...), scene, 5)` to the same
+vendor, once inside `buildFrame` and again in each turn request, as `SAVED TUTOR MEMORY`:
+at most five facts that pass the context check and the sensitive screen, ranked by words
+shared with the scene, most recent first when none match. On the scene's turns (not the
+frame call), `ownSlipBrief` adds one stored error-pattern `example` after it, as
+`THEIR OWN PAST SLIP`: the learner's own earlier French attempt, usually from a past
+session and sometimes from an earlier scene in the same session (at most 160 characters),
+with its tag. It is left out when memory is paused or locked
+(free, lapsed, guest), and when the example fails `safeContextText` or
+`sensitiveMemoryCategory` flags it. Before this, only the tags reached the model.
 Since LEARN-010 each note carries a source label: `the learner wrote this`, or
 `noted from a past conversation, unconfirmed`. A conversation-noted fact that hits
 the sensitive-topic screen below is left out of the brief, which covers notes saved

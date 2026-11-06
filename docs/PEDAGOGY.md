@@ -330,6 +330,21 @@ or seems unsure. It never presents such a note as something they definitely said
 learner's own typed goals reach the tutor in a separate block, as data for choosing
 examples and topics (LEARN-009).
 
+What comes into a scene is chosen for that scene. The five memory notes, the
+mistakes to watch for and the phrases the scene aims at are picked by words
+they share with what the learner asked for and with the scene built from it.
+When nothing is shared, it falls back to the old choice: the most recent notes,
+the most frequent mistakes, the weakest phrases. A habit the learner keeps
+making is never pushed out by a one-off slip.
+
+The tutor may also see one of the learner's own earlier attempts: the example
+stored for the highest-ranked of the scene's mistakes whose example passes the
+safety screens, as data after the memory notes. It
+is told not to bring it up, not to quote it back and not to mention past
+mistakes. It only helps the tutor see a repeat as a habit worth its one
+coaching point. It is left out when memory is locked or paused, and when the
+example fails the safety check or touches a sensitive topic.
+
 ## The invariants
 
 A change that breaks one of these is a bug, however green the tests are.
