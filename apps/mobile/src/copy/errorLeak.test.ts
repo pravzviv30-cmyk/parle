@@ -7,11 +7,12 @@
  * the walk below reads every non-test .ts and .tsx file under apps/mobile/src,
  * comments stripped, and refuses `instanceof Error ? x.message` and
  * `setSomething(error.message)` on a caught value (e, err, error, cause, ex,
- * caught). A typed result's `result.message` is designed copy and stays. The
- * one place allowed to read a caught message is copy/errorCopy.ts itself.
+ * caught). A typed result's `result.message` is designed copy and stays.
  *
  * What it cannot see: a message handed on through a variable, a prop or a
- * return value, and a message taken from a server body field. Those are read
+ * return value, a message taken from a server body field, and other shapes such
+ * as `String(e)`, `${e.message}`, `e?.message`, `(e as Error).message` or a
+ * receiver not named set*. None of those reach a screen today; they are read
  * by hand. The live failure notice in live/failure.ts has its own test. A
  * tripwire, read from the source as the other walks in this package are.
  */
@@ -23,7 +24,6 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
-const ALLOWED = join('copy', 'errorCopy.ts');
 
 function sources(dir: string): string[] {
   const out: string[] = [];
@@ -56,10 +56,11 @@ describe('error messages stay off the screen', () => {
     assert.equal(leaks('setFormMessage(result.message);').length, 0);
     assert.equal(leaks("setIssue(errorCopy(cause, 'x'));").length, 0);
 
+    const files = sources(SRC);
+    assert.ok(files.length > 500, `the walk found only ${files.length} files`);
     const found: string[] = [];
-    for (const file of sources(SRC)) {
+    for (const file of files) {
       const rel = relative(SRC, file);
-      if (rel === ALLOWED) continue;
       for (const line of leaks(stripComments(readFileSync(file, 'utf8')))) found.push(`${rel.split(sep).join('/')}:${line}`);
     }
     assert.deepEqual(found, [], `these show a caught message as itself, use errorCopy: ${found.join(', ')}`);

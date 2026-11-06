@@ -27,7 +27,12 @@ describe('errorCopy', () => {
     assert.equal(errorCopy(new TypeError('Network request failed'), FALLBACK), CONNECTION);
     assert.equal(errorCopy(new Error('Failed to fetch'), FALLBACK), CONNECTION);
     assert.equal(errorCopy(new Error('Load failed'), FALLBACK), CONNECTION);
-    assert.equal(errorCopy(new TypeError('anything at all'), FALLBACK), CONNECTION);
+    assert.equal(errorCopy(new Error('Network request failed'), FALLBACK), CONNECTION);
+    assert.equal(errorCopy(new Error('network down'), FALLBACK), CONNECTION);
+  });
+
+  test('a code bug is not called a dropped connection', () => {
+    assert.equal(errorCopy(new TypeError("Cannot read properties of undefined (reading 'pack')"), FALLBACK), FALLBACK);
   });
 
   test('a timeout or an abort gets the connection line', () => {
