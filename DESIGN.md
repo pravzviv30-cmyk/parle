@@ -80,7 +80,7 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
   an estimate said as "about n min".
 - Today, top to bottom (UI-015): the sky band, full bleed, in the hour's
-  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
+  ground, with "Bonjour, Name" (or "Bonsoir, Name" from 18:00, no full stop: founder, 2026-11-06) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
   the profile button on the sky's chip, three chunky stat tiles (streak days or
   "Start" over "today"; minutes against the goal, "<1" under a minute; the XP
   level number over "level"; never a nought) and the nudge line. Then one hero

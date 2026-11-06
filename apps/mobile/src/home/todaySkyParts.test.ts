@@ -80,8 +80,8 @@ describe("Today's path row and greeting", () => {
   });
 
   test('the greeting is one string the text engine wraps after the comma, with a name and without', () => {
-    assert.equal(greetingText({ word: 'Bonjour', name: 'Léa' }), 'Bonjour, Léa.');
-    assert.equal(greetingText({ word: 'Bonsoir', name: null }), 'Bonsoir.');
+    assert.equal(greetingText({ word: 'Bonjour', name: 'Léa' }), 'Bonjour, Léa');
+    assert.equal(greetingText({ word: 'Bonsoir', name: null }), 'Bonsoir');
     const band = strip(read('./SkyBand.tsx'));
     assert.match(band, /\{greetingText\(greeting\)\}/);
     assert.doesNotMatch(band, /join\('\\n'\)/, 'the greeting is forced onto two lines again');
