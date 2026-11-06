@@ -223,7 +223,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // The pill: follows the finger while held, slides on a tap, jumps under Reduce Motion.
     const pill = stripComments(read('./TabPill.tsx')).replace(/\s+/g, ' ');
     assert.match(pill, /const reduced = useReduceMotion\(\);/, 'the pill does not watch Reduce Motion');
-    assert.match(pill, /if \(reduced \|\| \(following && Math\.abs\(x\.value - to\) <= CATCH_UP\)\) \{ cancel\(x\); x\.value = to; return; \}/, 'the pill does not jump under Reduce Motion or track the finger while held');
+    assert.match(pill, /if \(reduced \|\| caught\.current\) \{ cancel\(x\); x\.value = to; return; \}/, 'the pill does not jump under Reduce Motion or track the finger while held');
     assert.match(pill, /x\.value = timing\(to, DUR\.fast, EASE\.out, reduced\);/, 'a tap does not slide the pill');
     assert.match(pill, /\{\.\.\.decorative\}/, 'the pill is heard by a screen reader');
     assert.match(pill, /transform: \[\{ translateX: x\.value \}\]/, 'the pill moves by something other than a transform');
@@ -310,11 +310,11 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     const start = src.indexOf('useEffect(() => {') + 'useEffect(() => {'.length;
     // The effect body carries no types, so it runs as written.
     const js = src.slice(start, src.indexOf('}, [to,', start));
-    const step = (from: number, to: number, following: boolean, reduced: boolean) => {
+    const step = (from: number, to: number, following: boolean, reduced: boolean, caught = { current: false }) => {
       const x = { value: from };
       const log: string[] = [];
-      new Function('x', 'to', 'following', 'reduced', 'cancel', 'timing', 'DUR', 'EASE', 'CATCH_UP', `"use strict";\n${js}`)(
-        x, to, following, reduced, () => log.push('cancel'), (v: number) => { log.push('timing'); return v; }, { fast: 1 }, { out: 0 }, 8,
+      new Function('x', 'to', 'following', 'reduced', 'cancel', 'timing', 'DUR', 'EASE', 'CATCH_UP', 'caught', `"use strict";\n${js}`)(
+        x, to, following, reduced, () => log.push('cancel'), (v: number) => { log.push('timing'); return v; }, { fast: 1 }, { out: 0 }, 8, caught,
       );
       return log;
     };
@@ -322,6 +322,12 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.deepEqual(step(275, 280, true, false), ['cancel'], 'once caught up, the pill lags behind the finger');
     assert.deepEqual(step(0, 280, true, true), ['cancel'], 'under Reduce Motion the pill slides instead of jumping');
     assert.deepEqual(step(0, 70, false, false), ['timing'], 'a tap no longer slides the pill');
+    // Once caught up, a quick drag that moves more than the slop between events still tracks (Impeccable verdict, regression 1).
+    const held = { current: false };
+    assert.deepEqual(step(275, 280, true, false, held), ['cancel']);
+    assert.deepEqual(step(280, 320, true, false, held), ['cancel'], 'a quick drag makes the caught-up pill trail the finger');
+    step(320, 320, false, false, held);
+    assert.deepEqual(step(0, 280, true, false, held), ['timing'], 'a new drag from a closed tab does not slide to the finger, because the last drag stayed caught up');
     assert.match(src, /^const CATCH_UP = 8;/m, 'the catch-up distance is not one finger\'s slop');
   });
 

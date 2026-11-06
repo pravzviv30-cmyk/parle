@@ -8,7 +8,7 @@
  * screen reader hears.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useReduceMotion } from '../motion.ts';
@@ -27,15 +27,19 @@ export function TabPill({ to, width, left, following }: {
   width: number;
   /** The capsule's side padding, where the first cell starts. */
   left: number;
-  /** A finger is dragging it: it tracks with no easing. */
+  /** A finger is dragging it: it slides to the finger first, then tracks with no easing. */
   following: boolean;
 }) {
   const reduced = useReduceMotion();
   const t = useB();
   const x = useSharedValue(to);
+  // Set once a held pill has reached the finger, so a quick drag tracks instead of trailing.
+  const caught = useRef(false);
 
   useEffect(() => {
-    if (reduced || (following && Math.abs(x.value - to) <= CATCH_UP)) {
+    if (!following) caught.current = false;
+    else if (Math.abs(x.value - to) <= CATCH_UP) caught.current = true;
+    if (reduced || caught.current) {
       cancel(x);
       x.value = to;
       return;
