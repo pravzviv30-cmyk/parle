@@ -3,7 +3,7 @@
  *
  * Luvani ran in a browser for its whole life. `app.json` and `package.json` are the two
  * files that decide whether it can also run on a phone, and neither of them is imported
- * by anything, so nothing fails when they drift. Five things can be lost silently here,
+ * by anything, so nothing fails when they drift. Six things can be lost silently here,
  * and each costs an afternoon to rediscover on a device rather than in a test.
  *
  * The first is the dev client. Expo Go cannot load `@livekit/react-native-webrtc`'s
@@ -35,16 +35,26 @@
  * it. On 2026-10-06 Expo 57.0.27 moved the lock to 57.1.1, the postinstall stepped
  * aside, the gate stayed green, and only an Xcode build found out.
  *
+ * The sixth is the top of every tab. On iOS 26 and later a white scroll edge fade sits
+ * over the first scroll view under a native screen. The Tabs screen turns it off, but
+ * bottom-tabs wraps each tab in a native Screen of its own that applies `automatic`
+ * again, and the inner one wins. The postinstall in `scripts/patchBottomTabsEdgeEffect.mjs`
+ * hides the top edge on that Screen, but only for the versions it names, and `Screen` in
+ * `layout.tsx` keeps the ScrollView first in the chain it searches (`collapsable={false}`). Found on
+ * 2026-11-04 on the founder's iPhone, with every test green.
+ *
  * Written as a source walk rather than as a mock, in the mould of
  * `services/token-server/src/ciContract.test.ts`: the thing being defended is a file, so
  * a file is what gets read.
  */
 
 import { strict as assert } from 'node:assert';
-import { existsSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inflateSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 import { describe, test } from 'node:test';
 
 const MOBILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -255,5 +265,58 @@ describe('the device build contract', () => {
       /^\s+CODE_SIGNING_ALLOWED=NO \\$/m,
       'postinstall left the installed build script signing its intermediate framework, which fails on a File Provider folder',
     );
+  });
+
+  test('the locked @react-navigation/bottom-tabs is a version the tab edge patch has been checked against', () => {
+    const lock = JSON.parse(readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8')) as {
+      packages: Record<string, { version?: string }>;
+    };
+    const locked = lock.packages['node_modules/@react-navigation/bottom-tabs']?.version;
+    assert.ok(locked, 'bottom-tabs is no longer locked; if it was dropped, delete scripts/patchBottomTabsEdgeEffect.mjs and these three tests');
+    const patch = readFileSync(path.join(ROOT, 'scripts', 'patchBottomTabsEdgeEffect.mjs'), 'utf8');
+    const named = patch.match(/^const AFFECTED_VERSIONS = \[(.*)\];$/m)?.[1];
+    assert.ok(named !== undefined, 'scripts/patchBottomTabsEdgeEffect.mjs no longer names the versions it patches');
+    const covered = [...named.matchAll(/'([^']+)'/g)].map((version) => version[1]);
+    assert.ok(
+      covered.includes(locked),
+      `bottom-tabs is locked at ${locked}, which scripts/patchBottomTabsEdgeEffect.mjs does not patch (${covered.join(', ')}), ` +
+        'so every tab may get a white top fade on iOS 26 and later. Read its lib/module/views/ScreenFallback.js: ' +
+        "name the version if each tab's Screen still defaults the top edge, or delete the patch if bottom-tabs now takes the option.",
+    );
+  });
+
+  test("the installed bottom-tabs gives every tab's native Screen no top scroll edge effect", () => {
+    const tabs = path.join(ROOT, 'node_modules', '@react-navigation', 'bottom-tabs');
+    const js = readFileSync(path.join(tabs, 'lib', 'module', 'views', 'ScreenFallback.js'), 'utf8');
+    const tsx = readFileSync(path.join(tabs, 'src', 'views', 'ScreenFallback.tsx'), 'utf8');
+    const props = js.match(/_jsx\(Screens\.Screen, \{([\s\S]*?)\}\);/)?.[1];
+    assert.ok(props !== undefined, 'the Screens.Screen element in ScreenFallback.js changed shape, so the tab edge patch needs review');
+    assert.match(props, /scrollEdgeEffects: \{ top: 'hidden' \}/, 'postinstall left the tab Screen applying the top edge effect');
+    assert.match(tsx, /<Screens\.Screen [^>]*scrollEdgeEffects=\{\{ top: 'hidden' \}\}/, 'postinstall left ScreenFallback.tsx unpatched');
+  });
+
+  test('the tab edge patch leaves an unlisted bottom-tabs version alone', () => {
+    const tmp = mkdtempSync(path.join(os.tmpdir(), 'tab-edge-'));
+    try {
+      const script = path.join(tmp, 'scripts', 'patchBottomTabsEdgeEffect.mjs');
+      mkdirSync(path.dirname(script), { recursive: true });
+      copyFileSync(path.join(ROOT, 'scripts', 'patchBottomTabsEdgeEffect.mjs'), script);
+      const tabs = path.join(tmp, 'node_modules', '@react-navigation', 'bottom-tabs');
+      mkdirSync(path.join(tabs, 'lib', 'module', 'views'), { recursive: true });
+      mkdirSync(path.join(tabs, 'src', 'views'), { recursive: true });
+      writeFileSync(path.join(tabs, 'package.json'), JSON.stringify({ version: '0.0.0-unlisted' }));
+      const js = path.join(tabs, 'lib', 'module', 'views', 'ScreenFallback.js');
+      const tsx = path.join(tabs, 'src', 'views', 'ScreenFallback.tsx');
+      const jsText = '    return /*#__PURE__*/_jsx(Screens.Screen, {\n      enabled: enabled,\n      activityState: active,\n      ...rest\n    });\n';
+      const tsxText = '      <Screens.Screen enabled={enabled} activityState={active} {...rest} />\n';
+      writeFileSync(js, jsText);
+      writeFileSync(tsx, tsxText);
+      const run = spawnSync(process.execPath, [script], { encoding: 'utf8' });
+      assert.equal(run.status, 0, run.stderr);
+      assert.equal(readFileSync(js, 'utf8'), jsText);
+      assert.equal(readFileSync(tsx, 'utf8'), tsxText);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

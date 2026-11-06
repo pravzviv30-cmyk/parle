@@ -170,8 +170,12 @@ export function Screen({
   const onPaper = ground === t.ground;
   const bar = barStyleFor(ground, t);
 
+  // Fabric would mount a View that only paints the ground as a leaf and hoist
+  // the ScrollView beside it. react-native-screens hides the top edge effect
+  // only on a scroll view down the first-subview chain, so this stays (F959).
   const root = (
     <View
+      collapsable={false}
       style={{
         flex: 1,
         minHeight: 0,

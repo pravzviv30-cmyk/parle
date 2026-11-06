@@ -115,7 +115,11 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   phrases saved" over seven local days, with "See your week"; absent with no
   evidence). The path is one column at every width. The status bar is light
   over the sky and takes the theme's own style once the sky has scrolled up
-  under it. At 320 the tiles stack their coin above the number, and at
+  under it. No iOS scroll edge fade covers the sky or the top of any tab: the
+  Tabs screen and each tab's own screen turn the top edge effect off, and the
+  screen root stays a native container so the hidden setting reaches the
+  scroll view (F959).
+  At 320 the tiles stack their coin above the number, and at
   accessibility sizes they become three full-width rows and each path row
   puts its action under its words.
   Rebuilt to the artboard in light and dark on 2026-10-20 (UI-008); the blue

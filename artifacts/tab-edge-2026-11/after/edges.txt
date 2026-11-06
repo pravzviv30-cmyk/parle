@@ -1,0 +1,50 @@
+# After, iPhone 17 simulator, iOS 26.5, 2026-11-04 (lldb, edges.py)
+## Patch only (bottom-tabs patched, layout.tsx unchanged): Today at fresh launch
+"RCTEnhancedScrollView" 0x1045c4000 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+## Patch only: Journey after tapping it from Today
+"RCTEnhancedScrollView" 0x1045c5400 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+## collapsable={false} only (bottom-tabs unpatched): Today at fresh launch
+"RCTEnhancedScrollView" 0x106dd0000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+## Both (the fix): Today at fresh launch
+"RCTEnhancedScrollView" 0x1069c8000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Both: Journey after tapping it from Today
+"RCTEnhancedScrollView" 0x1069c8a00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Both: Today after tapping it from Journey
+"RCTEnhancedScrollView" 0x1069c8000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+
+## Why patch-only fails: Today's chain under the tab's RNSScreenView (patch only)
+"RCTEnhancedScrollView" is subview #0 of its parent
+"RCTScrollViewComponentView" is subview #1 of its parent
+"RCTViewComponentView" is subview #0 of its parent
+"RCTViewComponentView" is subview #0 of its parent
+"RNSScreenView" is subview #0 of its parent
+## Siblings of the scroll view's container with temporary testIDs on Screen's root and body
+#0 "RCTViewComponentView" id=dbg-screen-root y=0 size=402x874 children=0
+#1 "RCTViewComponentView" id=dbg-screen-body y=0 size=402x874 children=0
+#2 "RCTScrollViewComponentView" id=<nil> y=0 size=402x874 children=1
+
+# Final code (claude/tab-edge: patch + collapsable={false}), fresh Metro --clear
+## Today at fresh launch
+"RCTEnhancedScrollView" 0x1045d4000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Journey after tapping it from Today
+"RCTEnhancedScrollView" 0x1045d4a00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Today after tapping it from Journey
+"RCTEnhancedScrollView" 0x1045d4000 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+
+# Final: commit 3f20df01 (patch + collapsable={false}), fresh Metro --clear, fresh launch
+## Today at fresh launch
+"RCTEnhancedScrollView" 0x1041b8000 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Journey after tapping it from Today
+"RCTEnhancedScrollView" 0x1041b8a00 size=402x874 offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Today after tapping it from Journey
+"RCTEnhancedScrollView" 0x1041b8000 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+
+# The other tabs on the same build, each tapped from the one before (first row is the page's own scroll view; later rows are nested horizontal rows)
+## Explore
+"RCTEnhancedScrollView" 0x1065b1400 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+"RCTEnhancedScrollView" 0x1065b1e00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+"RCTEnhancedScrollView" 0x1065b3200 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=0
+## Speak
+"RCTEnhancedScrollView" 0x14c7a0a00 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1
+## Practice
+"RCTEnhancedScrollView" 0x14c7a1400 size=NonexNone offsetY=0 inWindow=1 viewHidden=0 topEdgeEffectHidden=1

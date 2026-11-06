@@ -145,6 +145,16 @@ describe('the layout primitives keep their promises — F306', () => {
       'a layout primitive caps how far its text may grow, which is the same refusal wearing a number',
     );
   });
+
+  test('the screen root stays a native container so iOS edge effects reach the scroll view first — F959', () => {
+    // Fabric mounts a View that only paints a ground as a leaf and hoists its
+    // children beside it, so the ScrollView would not be first in the chain.
+    const screen = region(layoutSource(), 'export function Screen(', 'return ');
+    const root = screen.slice(screen.indexOf('const root = ('));
+    const tag = root.match(/<View\b([\s\S]*?)\n\s*>/)?.[1];
+    assert.ok(tag !== undefined, "Screen's root View is missing from layout.tsx");
+    assert.match(tag, /collapsable=\{false\}/, "Screen's root View can be flattened, so react-native-screens never finds the tab's ScrollView");
+  });
 });
 
 describe('the chrome primitives hold their shape — F331, F334, F335', () => {
