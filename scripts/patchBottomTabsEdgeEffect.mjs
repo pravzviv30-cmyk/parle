@@ -7,7 +7,9 @@
  * off, but JS bottom-tabs wraps each tab in a react-native-screens `Screen` of its own
  * (`MaybeScreen` in `ScreenFallback`), which leaves every edge `automatic`, and the
  * inner screen wins. This gives that Screen `{ top: 'hidden' }`; the other edges stay
- * `automatic`. Remove this patch when bottom-tabs lets a tab set the option itself.
+ * `automatic`. It only reaches the scroll view because `Screen` in
+ * `apps/mobile/src/layout.tsx` stays a native container (`collapsable={false}`, F959).
+ * Remove this patch when bottom-tabs lets a tab set the option itself.
  *
  * A version not listed here is left alone, and
  * `apps/mobile/src/app/deviceBuildContract.test.ts` fails the gate until someone has
