@@ -80,6 +80,7 @@ import { readClientInput } from './runtimeInput.ts';
 import { reportUsage } from './usage.ts';
 import { safeError } from './safeError.ts';
 import { claimSessionLifecycle, legacyRuntimeFixture, tutorSupervisorHeartbeat, type TutorSessionIdentity } from './sessionLifecycle.ts';
+import { exitForPipeline, exitForStop, SessionExit } from './sessionExit.ts';
 
 // SDK session-end and shutdown each join the same idempotent completion.
 const completions = new WeakMap<JobContext, () => Promise<void>>();
@@ -197,8 +198,12 @@ export default defineAgent({
     let stopPaidWork = () => { void closeProxy().catch(() => {}); };
     let finish = async (): Promise<void> => { if (lifecycle) await lifecycle.complete({ learnerTurns: 0 }); };
     completions.set(ctx, () => finish());
+    // One line per session naming the exit that fired (sessionExit.ts).
+    const exit = new SessionExit();
+    ctx.addShutdownCallback(async () => { exit.log(); });
     ctx.addShutdownCallback(async () => { stopPaidWork(); await closeProxy(); await finish(); });
     lifecycle?.onStop(() => {
+      exit.mark(exitForStop(lifecycle));
       stopPaidWork();
       // Disconnect now: settlement retries must not keep STT/TTS spending.
       void ctx.room.disconnect().catch(() => {});
@@ -369,11 +374,12 @@ export default defineAgent({
           setSttPhrases: (keyterms) => {
             if (!recognition.experimental && !proxy) session.updateOptions({ keyterms });
           },
+          exit,
           thinkingTime: thinking,
         })
       : scene
-        ? new LuvaniTutor(lesson, undefined, { voiceless, persona, scriptOnly: true, scene: true })
-        : new LuvaniTutor(lesson, startRung, { voiceless, persona, thinkingTime: thinking, ...(paid ? { scoringRequest: paid.transport } : {}) });
+        ? new LuvaniTutor(lesson, undefined, { voiceless, persona, scriptOnly: true, scene: true, exit })
+        : new LuvaniTutor(lesson, startRung, { voiceless, persona, thinkingTime: thinking, exit, ...(paid ? { scoringRequest: paid.transport } : {}) });
     tutor.learnerId = participant.identity;
     tutor.sessionId = meta.sessionId;
     if (lifecycle) tutor.attachLifecycle(lifecycle);
@@ -490,7 +496,10 @@ export default defineAgent({
       stt,
       // A scene builds no model client at all.
       llm: scene ? undefined : tutorLLM(proxy),
-      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 0 }, llmConnOptions: { maxRetry: 0 }, ttsConnOptions: { maxRetry: 0 }, maxUnrecoverableErrors: 1 } } : {}),
+      // One vendor retry each, and the second unrecoverable error ends the room.
+      // A Deepgram retry opens a second quoted stream, so the paid quote must
+      // allow two STT streams per lesson (set in scripts/paidQuotes.mjs).
+      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 1 }, llmConnOptions: { maxRetry: 1 }, ttsConnOptions: { maxRetry: 1 }, maxUnrecoverableErrors: 2 } } : {}),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.
       tts: voiceTts,
@@ -502,7 +511,7 @@ export default defineAgent({
         startRung,
       }),
     });
-    session.on(voice.AgentSessionEventTypes.Close, () => { stopPaidWork(); void finish().catch(() => {}); });
+    session.on(voice.AgentSessionEventTypes.Close, () => { exit.log(); stopPaidWork(); void finish().catch(() => {}); });
 
     session.on(voice.AgentSessionEventTypes.Error, (ev) => {
       // A TTS outage without this handler is indistinguishable from silence:
@@ -524,6 +533,7 @@ export default defineAgent({
       // (classifyPipelineError in apps/mobile/src/live/failure.ts).
       const kind = ev.error.type;
       const recoverable = ev.error.recoverable;
+      if (!recoverable) { const cls = exitForPipeline(kind); if (cls) exit.mark(cls); }
       const learnerPresent = [...ctx.room.remoteParticipants.values()].some(p => p.identity === tutor.learnerId);
       const serviceFailure = tutor.terminalFailureFor(kind, recoverable, learnerPresent);
 

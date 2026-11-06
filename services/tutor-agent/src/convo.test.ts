@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { ThinkingTimeSink } from './thinkingTime.ts';
+import { SessionExit } from './sessionExit.ts';
 
 import { tokenize, voice } from '@livekit/agents';
 import {
@@ -586,6 +587,7 @@ function buildConvo(
     scoringRequest?: typeof fetch;
     thinkingTime?: ThinkingTimeSink;
     enrichBeforeComplete?: boolean;
+    exit?: SessionExit;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -609,6 +611,7 @@ function buildConvo(
     ...(opts.scoringRequest ? { scoringRequest: opts.scoringRequest } : {}),
     ...(opts.thinkingTime ? { thinkingTime: opts.thinkingTime } : {}),
     ...(opts.enrichBeforeComplete !== undefined ? { enrichBeforeComplete: opts.enrichBeforeComplete } : {}),
+    ...(opts.exit ? { exit: opts.exit } : {}),
   });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
@@ -685,6 +688,7 @@ async function inScene(
     persona?: TutorPersona;
     memoryLocked?: boolean;
     thinkingTime?: ThinkingTimeSink;
+    exit?: SessionExit;
   } = {},
 ) {
   const built = buildConvo(t, opts);
@@ -5879,5 +5883,92 @@ describe('scene-relevant recall', () => {
     assert.match(memory, /café crème/);
     // A mission's turns carry the learner's own slip too, ranked from the authored frame.
     assert.match(memory, /THEIR OWN PAST SLIP[\s\S]*je voudrais un café crème/);
+  });
+});
+
+describe('one brain hiccup is survivable, and every exit is named', () => {
+  const lifecycleFor = (convo: LuvaniConversation) => convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal,
+    elapsedSeconds: () => 30, assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
+    complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }) });
+  const exitLines = (t: TestContext) => {
+    const lines: string[] = [];
+    return { lines, exit: new SessionExit((line) => lines.push(line)) };
+  };
+
+  test('a brain turn that fails once is retried once and the learner stays in the room', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const warn = t.mock.method(console, 'warn', () => {});
+    const client = new MockLlmClient();
+    const { convo, session, published } = await inScene(t, { client, voiceless: true });
+    lifecycleFor(convo);
+    const real = client.turn.bind(client);
+    let calls = 0;
+    client.turn = async (request) => { calls += 1; if (calls === 1) throw new Error('socket hang up'); return real(request); };
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    await convo.settled();
+    assert.equal(calls, 2, 'one retry, no more');
+    assert.equal(published.some((m) => m.t === 'error' && m.terminal), false, 'the room stays open');
+    const logged = warn.mock.calls.map((c) => c.arguments.map(String).join(' '));
+    assert.ok(logged.some((l) => l.includes('[luvani] convo brain turn retrying')));
+    assert.equal(logged.some((l) => l.includes('Un café')), false, 'no learner text in the log');
+  });
+
+  test('a second failure ends the session as before and names brain-turn', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const { lines, exit } = exitLines(t);
+    const client = new FailingBrain(new Error('socket hang up'));
+    const { convo, session, published } = await inScene(t, { client, voiceless: true, exit });
+    lifecycleFor(convo);
+    let calls = 0;
+    client.turn = async () => { calls += 1; throw client.failure; };
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    await convo.settled();
+    assert.equal(calls, 2);
+    assert.ok(published.some((m) => m.t === 'error' && m.kind === 'llm_error' && m.terminal));
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=brain-turn']);
+  });
+
+  test('the retry runs on the shorter API deadline', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    t.mock.method(console, 'warn', () => {});
+    t.mock.method(console, 'error', () => {});
+    withBrainEnv(t, 'anthropic');
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+    lifecycleFor(convo);
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    t.mock.timers.tick(15_001);
+    await sceneSettled();
+    assert.equal(client.signals.length, 2, 'the timed out turn was asked again');
+    t.mock.timers.tick(9_999);
+    assert.equal(client.signals[1]!.aborted, false);
+    t.mock.timers.tick(2);
+    assert.equal(client.signals[1]!.aborted, true, 'the retry gets 10 s, not 15 s');
+    client.release();
+    await typed;
+    await convo.settled();
+  });
+
+  test('a finished mission names done', async (t) => {
+    const { lines, exit } = exitLines(t);
+    const client = new MockLlmClient({ turns: [sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
+    const { convo, session } = await inScene(t, { client, voiceless: true, exit });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await convo.settled();
+    exit.mark('learner-left');
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+  });
+
+  test('the warm close for time names cap', async (t) => {
+    const { lines, exit } = exitLines(t);
+    const { convo } = await inScene(t, { voiceless: true, exit });
+    t.mock.method(convo, 'finish', async () => {});
+    await convo.closeForTime();
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=cap']);
   });
 });

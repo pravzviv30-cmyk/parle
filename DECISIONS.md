@@ -2119,3 +2119,28 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   Voice is reported in units (TTS characters, STT seconds), not dollars. The
   lines join on the first 8 hex characters of the session id, as
   `[luvani:brain:summary]` already did; no words, user ids, room or model names. F901.
+
+## VOICE-021 — One retry per part, one exit line, and Flux next for English
+
+- Date: 2026-11-06
+- Status: accepted
+- Decision:
+  - A failed brain turn is retried once on a shorter deadline (10 s API, 30 s CLI)
+    when nothing was spoken early and the session is open. Paid and scene sessions
+    give STT, the chat model and TTS one retry each and end on the second
+    unrecoverable error. Heartbeats get three lease-bounded tries at 5 s. The paid
+    lesson quote books two STT streams for the reconnect.
+  - Every session logs one `[luvani:session-exit] class=...` line; the first cause wins.
+  - When the learner's words are neither French nor English, the mission tutor asks
+    once in French to say it again, and offers the English way back on a second
+    unclear line (`packages/brain/src/prompt/system.ts`).
+  - The recogniser stays nova-3 `fr` for now. nova-3 `multi` was measured and refused
+    because it loses French; Flux `flux-general-multi` with fr/en hints was measured to
+    keep French and hear English, and is the follow-up (founder, 2026-11-06: "Land fixes
+    now, Flux next").
+- Reason: on 2026-11-06 the founder's staging café mission misheard English answers and
+  then ended on one hiccup, with no log naming the exit.
+- Consequence: a retry spends vendor effects inside existing quotes, never more learner
+  time; staging quotes are regenerated for the lesson's second stream. Numbers and the
+  remaining limits are in `docs/LIVE_VOICE.md` "One hiccup is not the end". F964, F965.
+

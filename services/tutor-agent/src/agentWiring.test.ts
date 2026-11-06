@@ -217,3 +217,20 @@ describe('the end-of-session clock and tap-to-send reach the room', () => {
     assert.match(CODE, /lifecycle\?\.onStop\(\(\) => \{/, 'the lifecycle backstop is gone');
   });
 });
+
+describe('one hiccup is survivable and the exit is named', () => {
+  test('paid and scene sessions get one vendor retry and survive one unrecoverable error', () => {
+    assert.match(CODE, /connOptions: \{ sttConnOptions: \{ maxRetry: 1 \}, llmConnOptions: \{ maxRetry: 1 \}, ttsConnOptions: \{ maxRetry: 1 \}, maxUnrecoverableErrors: 2 \}/);
+  });
+  test('one recorder per session reaches both tutors and is logged on close and on shutdown', () => {
+    assert.match(CODE, /const exit = new SessionExit\(\)/);
+    assert.equal(CODE.match(/new LuvaniTutor\([^)]*exit[,\s}]/g)?.length, 2, 'lesson and scene both carry it');
+    assert.match(CODE, /new LuvaniConversation\([\s\S]*?\bexit,/);
+    assert.match(CODE, /addShutdownCallback\(async \(\) => \{ exit\.log\(\);/);
+    assert.match(CODE, /AgentSessionEventTypes\.Close, \(\) => \{ exit\.log\(\);/);
+  });
+  test('a lifecycle stop and an unrecoverable pipeline error are marked', () => {
+    assert.match(CODE, /lifecycle\?\.onStop\(\(\) => \{\s*exit\.mark\(exitForStop\(lifecycle\)\);/);
+    assert.match(CODE, /if \(!recoverable\) \{ const cls = exitForPipeline\(kind\); if \(cls\) exit\.mark\(cls\); \}/);
+  });
+});

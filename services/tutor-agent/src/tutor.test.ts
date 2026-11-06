@@ -29,6 +29,7 @@ import { CLOSE_LINE, CLOSE_LINE_PLAYOUT_MS, HEADS_UP_LINE, SessionEndClock } fro
 import type { ClipCandidate, ClipSink } from './speechClips.ts';
 import type { scoreUtterance } from '../../shared/pronunciation.ts';
 import { pcmAudioMillis } from '../../shared/paidExecution.ts';
+import { SessionExit } from './sessionExit.ts';
 
 /**
  * A stand-in for the LiveKit session.
@@ -53,7 +54,7 @@ function stubSession() {
 
 function build(
   startRung: Rung = RUNGS.PROMPTED,
-  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink } = {},
+  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink; exit?: SessionExit } = {},
 ) {
   const tutor = new LuvaniTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
@@ -1376,5 +1377,43 @@ describe('the end of a lesson, said by the tutor (sessionEnd.ts)', () => {
     assert.equal(published.filter((m) => m.t === 'safety').length, 1, 'spoken crisis ignored during the close');
     await tutor.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
     assert.equal(published.filter((m) => m.t === 'safety').length, 2, 'typed crisis ignored during the close');
+  });
+});
+
+describe('the lesson names which exit ended it', () => {
+  const recorder = () => { const lines: string[] = []; return { lines, exit: new SessionExit((line) => lines.push(line)) }; };
+
+  test('a finished lesson names done', async () => {
+    const { lines, exit } = recorder();
+    const { tutor } = build(RUNGS.ECHO, { voiceless: true, exit });
+    const { session } = stubSession();
+    tutor.sendCurrentPrompt(session);
+    let guard = 0;
+    while (!tutor.sessionState.finished && guard++ < CAFE_LESSON.turns.length * 3) {
+      const turn = CAFE_LESSON.turns[Math.min(tutor.sessionState.turnIndex, CAFE_LESSON.turns.length - 1)]!;
+      await tutor.handleClientMessage(session, tapped({ t: 'say', text: turn.target }));
+      await tutor.settled();
+    }
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+  });
+
+  test('a safety stop names done', async () => {
+    const { lines, exit } = recorder();
+    const { tutor, session } = build(RUNGS.PROMPTED, { voiceless: true, exit });
+    await tutor.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    for (let i = 0; i < 30; i += 1) await Promise.resolve();
+    tutor.clearRescue();
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+  });
+
+  test('the warm close for time names cap', async (t) => {
+    const { lines, exit } = recorder();
+    const { tutor } = build(RUNGS.PROMPTED, { voiceless: true, exit });
+    t.mock.method(tutor, 'finish', async () => {});
+    await tutor.closeForTime();
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=cap']);
   });
 });

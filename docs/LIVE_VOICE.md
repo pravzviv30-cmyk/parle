@@ -905,6 +905,63 @@ rejects spoken job metadata independently. To restore speech, set both flags to
 `0` and restart after fixing the speech keys. No real credentials were altered
 or live/native recovery session verified during this implementation.
 
+## One hiccup is not the end (VOICE-021)
+
+A session used to end on the first failure of anything. Now each part gets one
+second try before the learner hears "cannot carry on":
+
+- **A brain turn** (`convo.ts` `performBrainTurn`). A turn that fails for a reason
+  other than a parse error or a refusal, with nothing spoken early and the session
+  still open, is sent once more on a shorter clock: 10 s for the API brain, 30 s for
+  the Claude CLI brain (the first try has 15 s or 45 s). The worker logs
+  `[luvani] convo brain turn retrying` with the error only. The failed call is still
+  metered. A second failure takes the old exit (`failInfrastructure`, a terminal
+  `llm_error`). A parse error or refusal still goes to the rescue, as before.
+- **STT, the lesson's chat model and TTS** (`agent.ts`). Paid and scene sessions get
+  `maxRetry: 1` on each, and the room ends on the second unrecoverable error, not the
+  first. A Deepgram reconnect opens a second stream, so the paid lesson quote books
+  two STT streams (`scripts/paidQuotes.mjs`). The conversation already booked two of
+  each language.
+- **Heartbeats** (`sessionLifecycle.ts`). Three tries at 5 s each, every try bounded
+  by the lease time left. Claim, checkpoint and complete are unchanged.
+
+None of this charges the learner twice: the learner is settled on session seconds,
+and a retry spends vendor effects inside the existing quotes.
+
+Every session logs exactly one exit line when the room closes or the job shuts down:
+
+    [luvani:session-exit] class=<brain-turn|lease|stt|tts|cap|learner-left|done>
+
+The first cause marked wins (`sessionExit.ts`). `done` is a finished lesson, mission
+or safety stop. `cap` is the close for time, or a lifecycle stop within 2 s of the
+maximum. `lease` is a lifecycle stop any earlier. `stt`, `tts` and `brain-turn` come
+from an unrecoverable pipeline error or the brain turn's exit. Nothing marked means the
+learner left. Two known limits: a paid quote refusal reaches the worker as an STT or
+TTS error and is logged as that, not `cap`; and a lease lost in the last 2 s reads as
+`cap`.
+
+### English answers and the recogniser (measured 2026-11-06)
+
+Learners are invited to answer in English (VOICE-013), but lessons, the guest scene
+and the mission scene still run nova-3 `fr`, which turns English into French-shaped
+nonsense (F964). `scripts/measureKeyterms.mjs --conditions fr,multi,multi-ep25,flux`
+measures it on 12 café lesson lines, 8 scene replies and 8 English answers, said by a
+synthetic English-accented voice (clips in `artifacts/multi-stt-2026-11-06/`, results in
+`docs/live-latency-evidence/2026-11-06-multi-stt.{json,md}`). Mean word accuracy:
+
+| recogniser | lesson lines | scene replies | English answers |
+|---|---|---|---|
+| nova-3 `fr` (today) | 0.958 | 1.000 | 0.169 |
+| nova-3 `multi`, endpointing 100 | 0.917 | 0.861 | 0.929 |
+| nova-3 `multi`, default endpointing | 0.958 | 0.840 | 0.929 |
+| Flux `flux-general-multi`, hints fr, en | 0.958 | 1.000 | 0.950 |
+
+nova-3 `multi` loses French in the scene in both runs ("Sur place, merci" heard as
+"Surplasmercy"), so it was not shipped. Flux keeps French and hears English. Moving to
+it needs the paid proxy to speak `/v2/listen`, a Flux quote shape, and the real-learner
+end-of-turn and interruption checks F695 still holds; that is the next lane. The voice
+is synthetic, so none of this says how real beginners sound.
+
 ## Scene reply dispatch timing
 
 The worker's `[luvani:scene-latency]` summary measures the framework's detected

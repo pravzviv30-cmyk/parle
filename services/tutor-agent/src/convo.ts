@@ -131,6 +131,7 @@ import { terminalServiceFailure } from './serviceFailure.ts';
 import type { ServiceFailure } from '@luvani/core';
 import { reportConversationPack } from './conversationPacks.ts';
 import { NO_THINKING_TIME, type ThinkingTimeSink } from './thinkingTime.ts';
+import type { SessionExit } from './sessionExit.ts';
 import { outputGuard, isAcceptedLearnerText, recordSafetyDecision, safetyDecision } from './safety.ts';
 
 /**
@@ -894,6 +895,11 @@ function turnDeadlineMs(env: Record<string, string | undefined> = process.env): 
   return selectedBrain(env) === 'claude-cli-all' ? CLI_TURN_TIMEOUT_MS : TURN_TIMEOUT_MS;
 }
 
+/** The one retry a failed turn gets, on a shorter clock so the learner is not left waiting twice as long. */
+function turnRetryDeadlineMs(env: Record<string, string | undefined> = process.env): number {
+  return selectedBrain(env) === 'claude-cli-all' ? 30_000 : 10_000;
+}
+
 /**
  * A model call, a promise that it will end, and a way to stop paying for it.
  *
@@ -1335,8 +1341,11 @@ export class LuvaniConversation extends voice.Agent {
     if (!this.ended) this.lifecycle.assertActive();
   }
 
+  private readonly exit: SessionExit | undefined;
+
   private async failInfrastructure(): Promise<void> {
     if (!this.lifecycle || this.ended) return;
+    this.exit?.mark('brain-turn');
     this.serviceFailure ??= 'llm_error';
     this.cancelLiveReplies();
     await this.publish({ t: 'error', kind: 'llm_error', recoverable: false, terminal: true,
@@ -1420,6 +1429,7 @@ export class LuvaniConversation extends voice.Agent {
    * a brain that answers in eight seconds must not be called hung at four.
    */
   private readonly turnTimeoutMs = turnDeadlineMs();
+  private readonly turnRetryTimeoutMs = turnRetryDeadlineMs();
   /** True between the learner taking the floor and their turn being integrated. */
   private learnerSpeaking = false;
   /**
@@ -1557,11 +1567,14 @@ export class LuvaniConversation extends voice.Agent {
       /** The paid transport for live pronunciation scoring. */
       scoringRequest?: typeof fetch;
       scorer?: typeof scoreUtterance;
+      /** Names which exit ended the session, once (sessionExit.ts). */
+      exit?: SessionExit;
     } = {},
   ) {
     // The pipeline LLM never generates here; see the header. One line keeps
     // the framework satisfied and makes the intent grep-able.
     super({ instructions: 'You are unused; replies are generated out of band.' });
+    this.exit = opts.exit;
     profile = safeModelProfile(repairProfile(profile));
     this.firstPractice = parseFirstPracticeBrief(opts.firstPractice);
     if (this.firstPractice) {
@@ -2447,6 +2460,7 @@ export class LuvaniConversation extends voice.Agent {
   async closeForTime(): Promise<void> {
     if (this.ended || this.refused || this.closingForTime) return;
     this.closingForTime = true;
+    this.exit?.mark('cap');
     this.clearRescue();
     this.releaseMoment();
     this.cancelLiveReplies();
@@ -2957,6 +2971,8 @@ export class LuvaniConversation extends voice.Agent {
           console.warn('[luvani] early speech failed; the full turn will speak instead:', safeError(error));
         }
       };
+    for (let attempt = 0; ; attempt++) {
+    const deadlineMs = attempt === 0 ? this.turnTimeoutMs : this.turnRetryTimeoutMs;
     try {
       this.markTiming('brainSent');
       timing?.mark('brainSent');
@@ -2969,9 +2985,9 @@ export class LuvaniConversation extends voice.Agent {
       // that failed, indistinguishable downstream from a thrown one.
       const result = await withDeadline(
         (signal) => this.client.turn({ ...request, signal, ...(onSpokenFields ? { onSpokenFields } : {}) }),
-        this.turnTimeoutMs,
+        deadlineMs,
         'turn',
-        () => this.noteAbandoned('turn', this.turnTimeoutMs),
+        () => this.noteAbandoned('turn', deadlineMs),
         this.liveWork.signal,
       );
       turn = result.turn;
@@ -2979,6 +2995,7 @@ export class LuvaniConversation extends voice.Agent {
       this.markTiming('brainParsed');
       timing?.mark('brainParsed');
       inputTiming?.mark('brainParsed');
+      break;
     } catch (error) {
       // Metered before anything else decides what to do with it: a billed call
       // that could not be parsed is still a billed call, and the recovery below
@@ -2996,10 +3013,16 @@ export class LuvaniConversation extends voice.Agent {
         // line nobody guarded or a made up one.
         console.warn('[luvani] DEGRADED_TURN the turn failed after its reply was spoken; keeping the spoken reply:', safeError(error));
         turn = heard.provisional;
+        break;
       } else if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
         await this.checkpoint();
         this.recover();
         return;
+      } else if (attempt === 0 && this.lifecycle) {
+        // One hiccup is not the end of the lesson: the same request once more,
+        // on a shorter clock. The failed call is already metered above.
+        console.warn('[luvani] convo brain turn retrying:', safeError(error));
+        continue;
       } else {
         // Anything else (network, provider outage) gets the same gentle exit:
         // an unhandled throw here would strand the learner in silence.
@@ -3008,6 +3031,7 @@ export class LuvaniConversation extends voice.Agent {
         this.recover();
         return;
       }
+    }
     }
 
     // The session may have ended while the model call was in flight (the
@@ -3103,7 +3127,7 @@ export class LuvaniConversation extends voice.Agent {
       this.requestCorrectionReason(finalView, input.text);
     }
 
-    if (view.recapDue) await this.finish();
+    if (view.recapDue) { this.exit?.mark('done'); await this.finish(); }
   }
 
   /**

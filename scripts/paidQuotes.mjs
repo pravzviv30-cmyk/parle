@@ -279,7 +279,8 @@ export async function buildQuoteComponents(shapes,voices) {
  const takeMillis=(SCORING_MAX_WAV_BYTES-44)/32;
  return {
   // Scripted lesson: LiveKit chat (gpt-6-luna) + Deepgram fr with the lesson keyterms + ElevenLabs.
-  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-fr-keyterm',s('stt-lesson-keyterm'),1,rate.fr+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
+  // Two streams: the first and the one reconnect the plugin may open (sttConnOptions maxRetry 1, agent.ts).
+  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-fr-keyterm',s('stt-lesson-keyterm'),2,rate.fr+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
   // Typed lesson: llmNode stops before any model call, so nothing is spent; the quote still needs one llm
   // component (paid_quote_valid_v1). One live-chat effect, the smallest honest envelope.
   'lesson-text':llmComponents(prices,'chat',s('live-chat'),{effects:1}),
