@@ -328,6 +328,8 @@ const REDIRECT: SafetyDecision = {
 };
 
 const HICCUP = 'The voice went quiet for a moment.';
+// What a learner reads for a frame with no kind: never the frame's own text.
+const GENERIC_NOTICE = 'The tutor hit a small snag. Carry on as you were.';
 const RECAP_MSG = { t: 'recap', recap: recap(), profile: profileWith({ 'Ça marche': 2 }) };
 
 /**
@@ -537,7 +539,7 @@ describe('the safety decision the hook holds — F136', () => {
       'either the notice lost its timer or something else grew one',
     );
     seen.timers[0]!.fire();
-    assert.deepEqual(seen.notices, [HICCUP, null], 'the notice no longer clears itself, and that part was right');
+    assert.deepEqual(seen.notices, [GENERIC_NOTICE, null], 'the notice no longer clears itself, and that part was right');
     assert.equal(safetyRef.current, STOP, 'the eight second timer took the safety decision away with the notice');
 
     // And the whole file, so a fourth writer cannot appear later: three
@@ -1334,7 +1336,7 @@ describe('half the tutor stops working mid-session — F198, the rendering half'
     const bare = switchWorld();
     deliver(bare.world, frame(undefined, undefined));
     assert.deepEqual(bare.seen.failed, [], 'a frame with nothing to classify took the session away on a guess');
-    assert.deepEqual(bare.seen.notices, [frame(undefined, undefined).message], 'the only honest sentence available is no longer shown');
+    assert.deepEqual(bare.seen.notices, [GENERIC_NOTICE], 'a frame with no kind must show Luvani\'s generic line, never its own text');
 
     // A kind with no flag is not a licence to guess either.
     const unsure = switchWorld();

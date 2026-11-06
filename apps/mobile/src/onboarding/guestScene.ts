@@ -8,6 +8,7 @@
  * `guestScenePhrases`. Wire contract: docs/changes/guest-first-scene.md.
  */
 import { GUEST_SCENE, guestScenePhrases, parseGuestSceneTurnIds, type GuestSceneTurnId } from '@luvani/core';
+import { LearnerError } from '../copy/errorCopy.ts';
 
 export { GUEST_SCENE };
 
@@ -80,7 +81,7 @@ export function claimRefusalIsFinal(code: GuestClaimRefusal | null): boolean {
   return code === 'guest-claimed-elsewhere' || code === 'guest-expired';
 }
 
-export class GuestClaimRefused extends Error {
+export class GuestClaimRefused extends LearnerError {
   readonly code: GuestClaimRefusal | null;
   constructor(code: GuestClaimRefusal | null) {
     super(claimRefusalCopy(code));

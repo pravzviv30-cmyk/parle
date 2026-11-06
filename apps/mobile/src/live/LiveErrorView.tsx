@@ -14,8 +14,8 @@
  *    way forward, so a learner meets recovery before any network wording.
  *
  * It is the whole window, pushed under `headerShown: false`, so nothing above
- * it pays the safe-area inset. It sits on the still frame for that: the diagnostics
- * panel is thirteen rows tall and used to open straight under the Dynamic Island.
+ * it pays the safe-area inset. It sits on the still frame for that: the support
+ * panel used to be thirteen rows tall and opened straight under the Dynamic Island.
  * The frame pays the notch and the home indicator once, which is why nothing here
  * reads the window for itself.
  */
@@ -41,13 +41,6 @@ function Row({ name, value }: { name: string; value: string }) {
       <Text style={[type.small, { color: t.muted, flexShrink: 1, textAlign: 'right' }]}>{value}</Text>
     </View>
   );
-}
-
-function show(value: string | number | boolean | null): string {
-  if (value === null) return 'not reached';
-  if (value === true) return 'yes';
-  if (value === false) return 'no';
-  return String(value);
 }
 
 export function LiveErrorView({
@@ -163,19 +156,7 @@ export function LiveErrorView({
             </Pressable>
             {open ? (
               <Card style={st.panel}>
-                <Row name="Cause" value={failure} />
-                <Row name="Token server" value={diagnostics.tokenServer} />
-                <Row name="Token reply" value={show(diagnostics.tokenStatus)} />
-                <Row name="Auth headers" value={diagnostics.authMs === null ? 'not reached' : `${diagnostics.authMs} ms`} />
-                <Row name="Session token" value={diagnostics.tokenMs === null ? 'not reached' : `${diagnostics.tokenMs} ms`} />
-                <Row name="Server phases" value={show(diagnostics.tokenServerTiming)} />
-                <Row name="Room service" value={show(diagnostics.livekitUrl)} />
-                <Row name="Connected in" value={diagnostics.connectMs === null ? 'not reached' : `${diagnostics.connectMs} ms`} />
-                <Row name="Microphone published" value={show(diagnostics.micPublished)} />
-                <Row name="Tutor joined the room" value={show(diagnostics.agentJoined)} />
-                <Row name="Tutor audio arrived" value={show(diagnostics.audioTrackSubscribed)} />
-                <Row name="Tutor sent anything" value={show(diagnostics.firstServerMessage)} />
-                <Row name="Session actually opened" value={show(diagnostics.sessionOpened)} />
+                <Row name="Reference" value={failure} />
               </Card>
             ) : null}
           </View>

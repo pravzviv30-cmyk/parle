@@ -47,10 +47,8 @@ describe('the live failure screen puts recovery first', () => {
     // Every technical row is inside the open branch, never on the default screen.
     const panel = FLAT.slice(FLAT.indexOf('{open ? ('));
     assert.ok(FLAT.includes('{open ? ('), 'the rows are not behind the disclosure');
-    for (const row of ['Token server', 'Auth headers', 'Room service', 'Session token', 'Server phases']) {
-      assert.ok(panel.includes(`name="${row}"`), `${row} is not inside the closed support panel`);
-      assert.equal((FLAT.match(new RegExp(`name="${row}"`, 'g')) ?? []).length, 1, `${row} is drawn outside the support panel as well`);
-    }
+    assert.ok(panel.includes('name="Reference"'), 'Reference is not inside the closed support panel');
+    assert.equal((FLAT.match(/name="Reference"/g) ?? []).length, 1, 'Reference is drawn outside the support panel as well');
 
     // Recovery first: the ways forward are drawn before the disclosure.
     const disclosure = at("'Support details'");
@@ -59,6 +57,15 @@ describe('the live failure screen puts recovery first', () => {
     }
     // And the sentence a learner acts on is before all of it.
     assert.ok(at('{message}') < at('label="Back"'), 'the recovery sentence comes after the controls');
+  });
+
+  test('the support details hold one reference, never a URL or a server internal', () => {
+    const panel = FLAT.slice(FLAT.indexOf('{open ? ('));
+    assert.match(panel, /<Row name="Reference" value=\{failure\} \/>/);
+    assert.equal((panel.match(/<Row /g) ?? []).length, 1, 'the panel shows more than the one reference');
+    for (const leak of ['tokenServer', 'livekitUrl', 'tokenStatus', 'tokenServerTiming', 'Token server', 'Room service']) {
+      assert.ok(!VIEW.includes(leak), `${leak} is back on the failure screen, where a learner can read it.`);
+    }
   });
 
   test('the words a learner reads here are calm and plain', () => {

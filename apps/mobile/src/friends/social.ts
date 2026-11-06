@@ -1,4 +1,5 @@
 import { auth } from '../auth/adapter.ts';
+import { LearnerError } from '../copy/errorCopy.ts';
 import { activeUserId } from '../storage/scope.ts';
 import { DEFAULT_SOCIAL_SETTINGS, utcWeek, type SocialSnapshot } from './socialModel.ts';
 
@@ -8,9 +9,9 @@ export function onSocialChange(callback: () => void): () => void { listeners.add
 /** Uses the signed-in bearer, never a service key or a second auth session. */
 export async function socialRequest<T>(action: string, args: Record<string, unknown> = {}): Promise<T> {
   const uid = activeUserId();
-  if (!uid || auth.kind !== 'supabase') throw new Error('Friends needs an online account. Your practice is ready whenever you are.');
+  if (!uid || auth.kind !== 'supabase') throw new LearnerError('Friends needs an online account. Your practice is ready whenever you are.');
   const token = await auth.getAccessToken();
-  if (!token || uid !== activeUserId()) throw new Error('Sign in again to open Friends.');
+  if (!token || uid !== activeUserId()) throw new LearnerError('Sign in again to open Friends.');
   const result = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/rest/v1/rpc/luvani_social`, {
     method: 'POST', headers: { 'content-type': 'application/json', apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!, authorization: `Bearer ${token}` },
     body: JSON.stringify({ action, args }), signal: AbortSignal.timeout(12000),
@@ -22,10 +23,10 @@ export async function socialRequest<T>(action: string, args: Record<string, unkn
       not_found: 'That person is not available. Check their username.', not_allowed: 'That action is no longer available. Refresh Friends and try again.',
       limit_reached: 'Please let your current requests settle before sending more.',
     };
-    throw new Error(messages[body.message ?? ''] ?? 'Friends could not connect just now. Please try again.');
+    throw new LearnerError(messages[body.message ?? ''] ?? 'Friends could not connect just now. Please try again.');
   }
   const data = await result.json() as T;
-  if (uid !== activeUserId()) throw new Error('The signed-in account changed. Please reopen Friends.');
+  if (uid !== activeUserId()) throw new LearnerError('The signed-in account changed. Please reopen Friends.');
   if (action !== 'snapshot' && action !== 'search') for (const listener of listeners) listener();
   return data;
 }

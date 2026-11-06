@@ -15,6 +15,8 @@ import {
   type PipelineOutcome,
 } from './failure.ts';
 
+const GENERIC_NOTICE = 'The tutor hit a small snag. Carry on as you were.';
+
 /**
  * Every failure mode, listed once. The `satisfies` makes typecheck fail if a
  * new failure joins the union without copy, which is the invariant: an
@@ -306,17 +308,31 @@ describe('what the learner reads when half the tutor stops working mid-session',
     }
 
     // Neither field present: an older agent, or an error that is not a pipeline
-    // failure at all, such as a session reaching its limit. Today's behaviour,
-    // deliberately unchanged, with the agent's own sentence.
+    // failure at all. The frame's text is the agent's own, often a code or a
+    // URL, so Luvani's generic line is shown and the frame text never is.
     const bare = classifyPipelineError({ message: AGENT_SENTENCE }, { spoken: true });
     assert.equal(bare.severity, 'notice');
     if (bare.severity !== 'notice') throw new Error('unreachable');
-    assert.equal(bare.message, AGENT_SENTENCE, 'with no kind the frame carries the only honest sentence available, so it is the one to show.');
+    assert.equal(bare.message, GENERIC_NOTICE);
 
     // A kind with no flag is not a licence to guess. Naming it is safe, taking
     // the screen away is not.
     const unsure = classifyPipelineError({ message: AGENT_SENTENCE, kind: 'stt_error' }, { spoken: true });
     assert.equal(unsure.severity, 'notice', 'a missing recoverable flag was read as an outage, and a learner lost a live conversation to a guess.');
+  });
+
+  test('a notice never shows the agent\'s own text', () => {
+    const leaky = 'ECONNRESET at wss://example.livekit.cloud';
+    const noKind = classifyPipelineError({ message: leaky, recoverable: true }, { spoken: true });
+    assert.equal(noKind.severity, 'notice');
+    if (noKind.severity !== 'notice') throw new Error('unreachable');
+    assert.equal(noKind.message, GENERIC_NOTICE);
+    assert.doesNotMatch(noKind.message, /ECONNRESET|wss|livekit/i);
+
+    const unknown = classifyPipelineError({ message: leaky, kind: 'brand_new_error' as ErrorKind, recoverable: true }, { spoken: true });
+    assert.equal(unknown.severity, 'notice');
+    if (unknown.severity !== 'notice') throw new Error('unreachable');
+    assert.equal(unknown.message, GENERIC_NOTICE, 'an unknown kind showed undefined or the frame text.');
   });
 
   test('every pipeline kind is named by what the learner lost, not by the vendor', () => {
