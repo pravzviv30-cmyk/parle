@@ -427,7 +427,7 @@ const KIND_NOTICE: Record<ErrorKind, string> = {
   interruption_detection_error: 'The tutor may talk over you for a moment. Carry on as you were.',
 };
 
-/** Shown when the frame has no kind, or one this app does not know. The frame's own text can be a code or a URL. */
+/** Shown for a kind this app does not know, whose frame text was never checked. A frame with no kind is the agent's own written sentence. */
 const GENERIC_NOTICE = 'The tutor hit a small snag. Carry on as you were.';
 
 /**
@@ -507,7 +507,7 @@ export function classifyPipelineError(
 
   return {
     severity: 'notice',
-    message: kind === undefined ? GENERIC_NOTICE : (KIND_NOTICE[kind] ?? GENERIC_NOTICE),
+    message: kind === undefined ? frame.message : (KIND_NOTICE[kind] ?? GENERIC_NOTICE),
     log: log('notice'),
   };
 }

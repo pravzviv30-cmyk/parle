@@ -308,12 +308,12 @@ describe('what the learner reads when half the tutor stops working mid-session',
     }
 
     // Neither field present: an older agent, or an error that is not a pipeline
-    // failure at all. The frame's text is the agent's own, often a code or a
-    // URL, so Luvani's generic line is shown and the frame text never is.
+    // failure at all, such as a session reaching its limit. Today's behaviour,
+    // deliberately unchanged, with the agent's own sentence.
     const bare = classifyPipelineError({ message: AGENT_SENTENCE }, { spoken: true });
     assert.equal(bare.severity, 'notice');
     if (bare.severity !== 'notice') throw new Error('unreachable');
-    assert.equal(bare.message, GENERIC_NOTICE);
+    assert.equal(bare.message, AGENT_SENTENCE, 'with no kind the frame carries the only honest sentence available, so it is the one to show.');
 
     // A kind with no flag is not a licence to guess. Naming it is safe, taking
     // the screen away is not.
@@ -321,13 +321,16 @@ describe('what the learner reads when half the tutor stops working mid-session',
     assert.equal(unsure.severity, 'notice', 'a missing recoverable flag was read as an outage, and a learner lost a live conversation to a guess.');
   });
 
-  test('a notice never shows the agent\'s own text', () => {
-    const leaky = 'ECONNRESET at wss://example.livekit.cloud';
-    const noKind = classifyPipelineError({ message: leaky, recoverable: true }, { spoken: true });
-    assert.equal(noKind.severity, 'notice');
+  test('a notice for an unknown kind never shows the frame text', () => {
+    // A frame with no kind is the agent's own written sentence (the time limit,
+    // a message too long, the tutor busy), every one a literal in
+    // services/tutor-agent, so it still shows. Pipeline failures carry a kind.
+    const limit = 'That is a good place to stop. Your session has reached its time limit.';
+    const noKind = classifyPipelineError({ message: limit }, { spoken: true });
     if (noKind.severity !== 'notice') throw new Error('unreachable');
-    assert.equal(noKind.message, GENERIC_NOTICE);
-    assert.doesNotMatch(noKind.message, /ECONNRESET|wss|livekit/i);
+    assert.equal(noKind.message, limit, 'the time-limit sentence was replaced, and the learner was told to carry on after the session ended.');
+
+    const leaky = 'ECONNRESET at wss://example.livekit.cloud';
 
     const unknown = classifyPipelineError({ message: leaky, kind: 'brand_new_error' as ErrorKind, recoverable: true }, { spoken: true });
     assert.equal(unknown.severity, 'notice');

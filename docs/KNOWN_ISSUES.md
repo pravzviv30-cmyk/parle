@@ -12338,13 +12338,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   friends/useSocial.ts, friends/InviteFriendsScreen.tsx
 - note: Founder, 2026-11-06, on the iPhone build: raw backend text in error messages, a security
   issue. The live failure screen's Support details showed the token-server URL, the LiveKit URL and
-  status internals; a live notice with no `kind` showed the agent's own text; five catch blocks
+  status internals; five catch blocks
   showed `cause.message` as is (raw guest codes `expired`/`limit`/`unavailable`, "Network request
   failed", timeouts, JSON errors). Fix: one seam, `copy/errorCopy.ts`. Luvani's own sentences are
   thrown as `LearnerError` and kept; a connection or timeout failure gets the existing auth line
   "The connection dropped. Check your internet and try again."; anything else gets the site's
-  existing fallback. An unknown notice gets "The tutor hit a small snag. Carry on as you were." Support
-  details now hold one row, "Reference", the failure code, which matches the `[luvani:live] failed`
+  existing fallback. A live notice of a kind this app does not know gets "The tutor hit a small snag.
+  Carry on as you were." instead of `undefined`; a notice with no kind is still shown, because every
+  one is a sentence written in services/tutor-agent (time limit, message too long, tutor busy). Support
+  details now hold one row, "Reference", the failure code (no card around it), which matches the `[luvani:live] failed`
   trace that still logs every diagnostic. A guard test fails if a catch shows a caught message
   as itself; it cannot see a message passed on through a variable, a prop or a server body field.
 - verified-by: `no catch block shows a caught message as itself`

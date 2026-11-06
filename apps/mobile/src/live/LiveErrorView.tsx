@@ -29,7 +29,7 @@ import { openPhoneSettings } from '../settings/phoneSettings.ts';
 import { space, boldType as type, HIT } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { Screen } from '../layout.tsx';
-import { IconAction, Card, Label, PillButton, OutlineButton, Press } from '../components.tsx';
+import { IconAction, Label, PillButton, OutlineButton, Press } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
 import type { LiveDiagnostics } from './useLiveSession.ts';
 
@@ -155,9 +155,7 @@ export function LiveErrorView({
               <Text style={[type.small, { color: t.muted }]}>{open ? 'Hide support details' : 'Support details'}</Text>
             </Pressable>
             {open ? (
-              <Card style={st.panel}>
-                <Row name="Reference" value={failure} />
-              </Card>
+              <Row name="Reference" value={failure} />
             ) : null}
           </View>
         ) : null}
@@ -172,9 +170,5 @@ const st = StyleSheet.create({
   secondary: { marginTop: space(2), alignSelf: 'stretch' },
   diagnostics: { marginTop: space(7), alignSelf: 'stretch' },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-  // The shared card: same white, same corners, same one whisper. It was a hand
-  // rolled copy of Card's own rule, which is how two cards in one app end up a
-  // point apart.
-  panel: { paddingHorizontal: space(4), paddingVertical: space(3), gap: space(2) },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(4) },
 });

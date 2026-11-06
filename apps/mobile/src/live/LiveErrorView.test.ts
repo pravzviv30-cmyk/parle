@@ -63,6 +63,7 @@ describe('the live failure screen puts recovery first', () => {
     const panel = FLAT.slice(FLAT.indexOf('{open ? ('));
     assert.match(panel, /<Row name="Reference" value=\{failure\} \/>/);
     assert.equal((panel.match(/<Row /g) ?? []).length, 1, 'the panel shows more than the one reference');
+    assert.ok(!panel.includes('<Card'), 'one row needs no card around it; a card groups related things (DESIGN.md).');
     for (const leak of ['tokenServer', 'livekitUrl', 'tokenStatus', 'tokenServerTiming', 'Token server', 'Room service']) {
       assert.ok(!VIEW.includes(leak), `${leak} is back on the failure screen, where a learner can read it.`);
     }
