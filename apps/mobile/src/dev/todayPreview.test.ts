@@ -49,7 +49,7 @@ describe("Today's preview keys — UI-015", () => {
       assert.equal(new Date(todayPreviewNow(hour)).getHours(), hour, 'the fixed time is not local');
       const greeting = todayPreviewGreeting(hour);
       assert.equal(greeting.word, greetingWord(todayPreviewNow(hour)));
-      assert.equal(greeting.title, `${hour >= 18 ? 'Bonsoir' : 'Bonjour'}, Léa.`);
+      assert.equal(greeting.title, `${hour >= 18 ? 'Bonsoir' : 'Bonjour'}, Léa`);
     }
     assert.equal(skyView(todayPreviewHour('evening'), 'light').discKind, 'moon');
     assert.equal(skyView(todayPreviewHour('scene'), 'light').discKind, 'sun');
