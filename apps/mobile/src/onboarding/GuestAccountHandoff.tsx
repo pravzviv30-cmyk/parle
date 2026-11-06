@@ -36,6 +36,7 @@ import { OnboardingFrame, OnboardingLayout } from './OnboardingLayout.tsx';
 import { onboardingProgress } from './onboardingProgress.ts';
 import { guestScenePhrases } from '@luvani/core';
 import { GuestClaimRefused, claimRefusalIsFinal, scenePhrasebookEntries } from './guestScene.ts';
+import { LearnerError, errorCopy } from '../copy/errorCopy.ts';
 /**
  * The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it.
  *
@@ -137,7 +138,7 @@ export function GuestAccountHandoff({
       const scene = guest.live?.scene ? claim.sceneTurns : null;
       if (guest.live?.pack) {
         const linked = await loadConversationPackForLearner(user, adapter, guest.live.pack.id);
-        if (!linked.ok || !linked.pack || linked.pack.sessionId !== guest.live.sessionId) throw new Error('Your conversation is linked, but has not synced to this device yet. Try again.');
+        if (!linked.ok || !linked.pack || linked.pack.sessionId !== guest.live.sessionId) throw new LearnerError('Your conversation is linked, but has not synced to this device yet. Try again.');
       }
       // Each accepted or kept reply's task, as its natural line, never the
       // learner's unchecked spelling (F757).
@@ -150,7 +151,7 @@ export function GuestAccountHandoff({
         note: null,
       }));
       if ((await addPhrases(phrases, { source: 'curated' })) !== 'durable')
-        throw new Error('Your phrase could not be saved. Try again.');
+        throw new LearnerError('Your phrase could not be saved. Try again.');
       // Said only now that the phrasebook write is durable: one toast for the
       // phrase kept last, keyed by the stored phrase, never the learner's text.
       const newest = phrases[phrases.length - 1];
@@ -164,10 +165,10 @@ export function GuestAccountHandoff({
           AsyncStorage.setItem(key, JSON.stringify({ ...guest, token: null, ...(scene && guest.live ? { live: { ...guest.live, sceneTurns: scene } } : {}) })),
         ))
       )
-        throw new Error('Your practice could not be saved.');
+        throw new LearnerError('Your practice could not be saved.');
       // The guest's finished days become the account's, once, and day one
       // never lights a second time (F744). Nothing to record is not a failure.
-      if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new Error('Your practice could not be saved.');
+      if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new LearnerError('Your practice could not be saved.');
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== uid) return;
       // Founder decision 4: a kept guest practice that ran to its end is the first completed conversation.
       if (guestPracticeCompletes(guest)) void markConversationDone();
@@ -188,7 +189,7 @@ export function GuestAccountHandoff({
       });
     } catch (cause) {
       if (mounted.current && owner === scopeGeneration())
-        setError(cause instanceof Error ? cause.message : 'Your practice could not be linked yet.');
+        setError(errorCopy(cause, 'Your practice could not be linked yet.'));
     } finally {
       operation.current = false;
       if (mounted.current && owner === scopeGeneration()) setBusy(false);

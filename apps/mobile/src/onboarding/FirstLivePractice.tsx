@@ -24,6 +24,7 @@ import { useOnboardingFramePresentation } from './OnboardingLayout.tsx';
 import type { OnboardingProgressValue } from './onboardingProgress.ts';
 import { readGuestLiveResult, endGuestLivePractice, saveGuestPractice, type GuestPractice } from './guestPractice.ts';
 import { repairFirstLiveRecord, sceneResultRecord, type FirstContribution } from './firstLiveModel.ts';
+import { LearnerError, errorCopy } from '../copy/errorCopy.ts';
 
 export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, active = true }: {
   guest: GuestPractice; progress: OnboardingProgressValue; onFinished: (record: GuestPractice) => void; onSafetyExit: () => void; active?: boolean;
@@ -83,9 +84,9 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     finishing.current = true; setSaving(true); setIssue('');
     try {
       const result = await readGuestLiveResult(held.current);
-      if (result.outcome === 'active') throw new Error('The tutor is still saving your session. Try again in a moment.');
+      if (result.outcome === 'active') throw new LearnerError('The tutor is still saving your session. Try again in a moment.');
       const record = repairFirstLiveRecord(sceneResultRecord(held.current.live, result));
-      if (!record || (held.current.live?.sessionId && record.sessionId !== held.current.live.sessionId)) throw new Error('Your session result is not available yet. Try again.');
+      if (!record || (held.current.live?.sessionId && record.sessionId !== held.current.live.sessionId)) throw new LearnerError('Your session result is not available yet. Try again.');
       const next: GuestPractice = { ...held.current, live: record, secondsUsed: record.seconds,
         completed: record.outcome === 'completed',
         finishedAt: record.outcome === 'completed' && record.completedAt ? [record.completedAt] : [] };
@@ -94,7 +95,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       if (!mounted.current) return;
       held.current = next; finished.current = true; onFinished(next);
     } catch (cause) {
-      if (mounted.current) setIssue(cause instanceof Error ? cause.message : 'Your session could not be saved yet. Try again.');
+      if (mounted.current) setIssue(errorCopy(cause, 'Your session could not be saved yet. Try again.'));
     } finally { finishing.current = false; if (mounted.current) setSaving(false); }
   };
   // A conversation ends on its recap; the scene ends on the lesson summary.

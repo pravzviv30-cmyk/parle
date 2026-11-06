@@ -5850,10 +5850,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   cycle length is deliberately unchanged.
 - note: notebook redesign (2026-09-27): the greeting no longer takes turns. The design contract lets only
   the orb and the highlighter move, so the pool, the clock and the rotation hook are retired, and the
-  greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.").
+  greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.", no full stop since 2026-11-06, founder).
   A learner with no name reads the word and a full stop ("Bonsoir."), never a bare comma and never
   "you". The rule is still a pure module and still clean of digits, em dashes and banned words.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F388 — Home's title fades through TabHeader and holds still for reduce motion and screen readers
@@ -5876,7 +5876,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the title no longer moves for anyone, so there is no fade or
   swipe to hold still. Today draws one static TabHeader title from the greeting rule, with no timer,
   no `Animated`, and no live region, which is what reduce motion and a screen reader were owed.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F389 — A word and a situation for every day, authored in core
@@ -6247,7 +6247,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the greeting no longer animates, and `useGreetingRotation.ts` is
   deleted, so there is no frame to wait on and no opacity that can be left at 0. The test named below
   fails if the hook ships again or if Today carries a timer, `Animated`, or a title swap.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F417 — The greeting pool is wide and knows the hour
 - severity: P1
@@ -6267,8 +6267,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the pool is retired with the rotation. What survives is the hour:
   Bonjour from 05:00 to 17:59 and Bonsoir from 18:00 through the small hours, checked at every hour
   and at the edges, with an unreadable clock landing on Bonjour. `GREETINGS`, the timing constants,
-  `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+  `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop (no full stop since 2026-11-06, founder).
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F418 — The header holds two complete greeting layers in one stable slot
@@ -6299,7 +6299,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the handoff and its watchdog are gone with the hook, because the
   greeting no longer moves. Nothing is left to suspend. The test named below fails if the hook ships
   again or if Today carries a timer or `Animated`.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F420 — Home wires the two-part greeting
 - severity: P1
@@ -6314,7 +6314,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `homeGreeting(firstName, now)` gives the header its title and its hour's subline, and
   `useGreetingRotation`, `titleSwap` and `greetingRest` are gone. Still one header, no `<Monogram`, no
   live region, no timer and no `...type.display` in the tab.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F421 — Demo mode leaves the situation card
 - severity: P1
@@ -12332,6 +12332,67 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   founder.
 - verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
 
+### F961 — Today's hero flashed to "Finding your next task…" on every return to Home
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/practice/NextTaskCard.tsx (the billing `useFocusEffect`)
+- note: Found 2026-11-06. Every focus of Home set the billing read back to unanswered
+  (`setBilling(null); setBillingAnswered(false)`) before refetching, so `todayLead` returned
+  `'loading'` while live and `MissionHero` unmounted until the network answered. The data read below
+  it already kept its held value for the same account (F768). The billing read is now one
+  `billingRead` state with a scope: a same-account refocus keeps the held answer and refreshes it
+  quietly, a null or failed refetch keeps the held billing (`fetchBillingStatus` resolves null on failure), and only a cold load or another account starts
+  undecided (an answer held from offline is not a real read, so coming online starts undecided too),
+  so an out-of-time learner still never sees the scene flash first.
+  Accepted trade-off: after a session that used up the last minutes, the held "has time" answer can show
+  the scene until the quiet refetch lands (up to 5 s); the brief scoped the loading gate to cold loads. The two loading
+  lines also took the hero's ink (`t.text`), as they were black on the dark card.
+- verified-by: `F961: coming back to Home keeps the held billing answer, so the hero does not flash to loading`
+### F962 — Raw backend text reached learners in error messages: codes, URLs and library sentences
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/LiveErrorView.tsx (Support details), live/failure.ts
+  (`classifyPipelineError` notice), onboarding/FirstLivePractice.tsx, onboarding/GuestAccountHandoff.tsx,
+  friends/useSocial.ts, friends/InviteFriendsScreen.tsx
+- note: Founder, 2026-11-06, on the iPhone build: raw backend text in error messages, a security
+  issue. The live failure screen's Support details showed the token-server URL, the LiveKit URL and
+  status internals; five catch blocks
+  showed `cause.message` as is (raw guest codes `expired`/`limit`/`unavailable`, "Network request
+  failed", timeouts, JSON errors). Fix: one seam, `copy/errorCopy.ts`. Luvani's own sentences are
+  thrown as `LearnerError` and kept; a connection or timeout failure gets the existing auth line
+  "The connection dropped. Check your internet and try again."; anything else gets the site's
+  existing fallback. A live notice of a kind this app does not know gets "The tutor hit a small snag.
+  Carry on as you were." instead of `undefined`; a notice with no kind is still shown, because every
+  one is a sentence written in services/tutor-agent (time limit, message too long, tutor busy). Support
+  details now hold one row, "Reference", the failure code (no card around it), which matches the `[luvani:live] failed`
+  trace that still logs every diagnostic. A guard test fails if a catch shows a caught message
+  as itself; it cannot see a message passed on through a variable, a prop or a server body field.
+  The founder approved both new lines (the generic notice and "Reference") on 2026-11-06.
+- verified-by: `no catch block shows a caught message as itself`
+
+
+### F963 — Holding and dragging the tab bar gave no haptic unless the drag began on the open tab
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx (the `PanResponder` in `TabStrip`) and
+  apps/mobile/src/live/useLiveSession.ts (the `start` catch and the `RoomEvent.Disconnected` handler)
+- note: Found 2026-11-06 by the founder on their iPhone, with Haptic feedback on. The drag only
+  claimed a touch that began on the selected tab, so a hold and drag from any other tab was the
+  cell's own press, which has no haptic. The founder chose: any tab, with a sideways move of more
+  than 8 px. A still press stays a tap and a still long press is never claimed, so the Large
+  Content Viewer rule from F947 stays. The bar on Profile, with no open tab, still takes no drag.
+  The same pass traced every way out of a live session to `releaseAudioSession`, because
+  `hapticsEnabled` is off while a live room holds the audio. Leave, unmount, an abandoned start, an
+  empty room and the recap all released it. A failed connect and a dropped room did not, so the
+  error view's buttons gave no haptic until the learner left it. Both now release. A disconnect
+  that throws keeps the hold, since the room may still be up. No app-wide leak was found.
+  Nothing here needs an Apple Developer account. The founder's iPhone check is recorded in the
+  lane F handoff.
+- fixed: 2026-11-06 on claude/tab-drag-haptics-da4049.
+- verified-by: `any tab can be held and dragged sideways to another, with a tick per cell — item 7`
+- verified-by: `a failed connect this start still owns releases the audio session before the error shows`
+- verified-by: `the drop handler releases the audio session when the attempt owns the room, and not otherwise`
+
 ### F964 — English answers are transcribed as French in lessons, the guest scene and the mission scene
 - severity: P2
 - status: [ ]
@@ -12368,4 +12429,3 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room`
 - verified-by: `a turn cut by the close for time is not retried`
 - verified-by: `a stop at the hard deadline says so even when billing froze early`
-
