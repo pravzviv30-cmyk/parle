@@ -98,7 +98,7 @@ After brief 4:
 
 - **The plans lead (free plan, out of the conversation) also shows Review twice:** a secondary pill under the sun card, and the path row. It was left unchanged as out of scope; it is a candidate follow-up for the founder.
 - **Other empty states** (conversation and memory pages, tutor offline) keep their cards, by the founder's choice.
-- **The toast pill in dark mode** (out of scope, older code; Impeccable, push-check): `paper.ink` on the dark ground is about 1.03:1, so only the words and Toast's face show. `CelebrationHost` mounts outside `MainAppearanceProvider` (it covers onboarding too), so the toast cannot read the screen's mode with `useB()`; the fix needs a decision on how the toast learns the mode. A follow-up for the founder.
+- **The toast pill in dark mode** (out of scope, older code; Impeccable, push-check): `paper.ink` on the dark ground is about 1.03:1, so only the words and Toast's face show. `CelebrationHost` mounts outside `MainAppearanceProvider` (it covers onboarding too), so the toast cannot read the screen's mode with `useB()`; the fix needs a decision on how the toast learns the mode. A follow-up for the founder. Founder, 2026-11-06: the thin edge, a 1.5pt `b.dark.border` edge on the pill in every mode, as a side-lane fix.
 - **Briefs 2 (2B) and 3 (3A)** come after the Journey board.
 
 ## Tasks in dependency order
