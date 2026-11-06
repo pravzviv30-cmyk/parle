@@ -212,6 +212,20 @@ describe('one tutor, two pipelines', () => {
     }
   });
 
+  test('both ask for numbers in words in what is spoken', () => {
+    for (const [where, text] of [
+      ['lesson', baseInstructions(lesson)],
+      ['conversation', buildSystemBlocks().persona],
+    ] as const) {
+      assert.match(text, /numbers, prices, times and dates in words/i, `${where} never asks for numbers in words`);
+      assert.match(text, /voice misreads digits/i, `${where} never gives the reason`);
+      assert.match(text, /in the line's own language, never as digits/i, `${where} never says the line's own language`);
+      // Examples anchor the content: a sample price got copied over the scene's own price.
+      const bullet = text.split('\n').find((l) => l.includes('voice misreads digits')) ?? '';
+      assert.doesNotMatch(bullet, /euros|heures|o'clock/i, `${where} carries a sample amount or time`);
+    }
+  });
+
   test('neither lets him perform himself at the learner', () => {
     assert.match(baseInstructions(lesson), /never go on about yourself/i);
     assert.match(buildSystemBlocks().persona, /never go on about yourself/i);
