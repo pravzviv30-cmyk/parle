@@ -1,8 +1,9 @@
 /**
  * The selected tab's violet pill (item 7, founder 2026-11-02): the one thing in
  * the bar that moves. It sits behind the selected cell's glyph, slides to a
- * tab when it is tapped, follows the finger while the open tab is held and
- * dragged, and under Reduce Motion, watched live, it simply jumps. Transform
+ * tab when it is tapped, follows the finger while any tab is held and dragged
+ * sideways (a drag from a closed tab first slides it to the finger, F961), and
+ * under Reduce Motion, watched live, it simply jumps. Transform
  * only, through motion/drive.ts. Decorative: the cell over it is the tab a
  * screen reader hears.
  */
@@ -15,6 +16,9 @@ import { cancel, timing } from '../motion/drive.ts';
 import { DUR, EASE } from '../motion/tokens.ts';
 import { decorative } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
+
+/** How far from the finger a held pill may be before it slides rather than tracks: one finger's slop. */
+const CATCH_UP = 8;
 
 export function TabPill({ to, width, left, following }: {
   /** Where the pill's left edge goes, from the first cell's left edge. */
@@ -31,7 +35,7 @@ export function TabPill({ to, width, left, following }: {
   const x = useSharedValue(to);
 
   useEffect(() => {
-    if (following || reduced) {
+    if (reduced || (following && Math.abs(x.value - to) <= CATCH_UP)) {
       cancel(x);
       x.value = to;
       return;
