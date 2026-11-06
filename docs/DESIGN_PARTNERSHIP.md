@@ -101,6 +101,7 @@ becomes a principle once it holds across two or more screens.
 | 2026-11-03 | Keep Bright Luvani; change what sits under it: one systemic pass before onboarding, and watch 3 French beginners on the iPhone build before the onboarding board | Founder, design council |
 | 2026-11-04 | Quiet moments (4A): centre stage on the two drawn screens (the phrasebook with nothing kept, Speak out of the free conversation), and the two nothing-to-review cards take the posed Cloud cheer so its arms show in dark mode. Other empty states keep their cards. | Founder, answer inside 4A |
 | 2026-11-04 | On Speak the quiet moment replaces the out-of-time card in place, See the plans in flow; the scene hero and the rest of Speak wait for the Speak tab redesign. | Founder, answer inside 4A |
+| 2026-11-06 | Profile and Settings: a mix, Direction A's Settings (one page, five groups, Account and Your plan as top rows, legal in one About Luvani page) with Direction B's Profile (identity and the stage word on a blue band). The plan leaves Profile and shows in Settings only; the name, tutor voice and display sheets become the phone's own sheet; Friends stays in Profile's More group. | Founder, [Profile and Settings board](https://claude.ai/artifact/XsB1g1G2V8t4j244S5P8zS) |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -122,11 +123,13 @@ Working principles drawn from these (to confirm on the first screens):
 | 7 | Speak tab (choose a scene) | Queued |
 | 8 | Practice tab hub | Queued |
 | 9 | Journey (My French) | Queued |
+| 10 | Profile and Settings: A's Settings with B's Profile ([board](https://claude.ai/artifact/XsB1g1G2V8t4j244S5P8zS)). The 2026-11-01 "Profile, Pause personal memory" proposal stays in its side lane; the build takes its line only if that lane has not landed it | Board picked (founder, 2026-11-06); build queued after Journey |
 
 Founder's order, 2026-10-31: one screen per session, each starting only after the one before lands.
 Reordered by journey on 2026-11-02 (founder, Journey map board): recap, onboarding (added after
 the recap), Speak tab, Practice hub, Journey.
 On 2026-11-03 the founder put one systemic pass between the recap and onboarding (design council).
+On 2026-11-06 the founder added Profile and Settings as item 10, after Journey (Profile and Settings board).
 
 Mascots and play (UI-019, [changes/cast.md](changes/cast.md)) runs across screens, not as a screen of its own. Its briefs go in this order: brief 1 (1C, Cloud's poses and blink) landed at `7ddb04e3`; brief 4 (4A, quiet moments, [changes/quiet-moments.md](changes/quiet-moments.md)) is building on `claude/quiet-moments`; briefs 2 (2B, one sky) and 3 (3A, the streak hero) follow the Journey board. The queued screen sessions apply the picks to their own screens.
 
