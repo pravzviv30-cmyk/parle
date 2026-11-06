@@ -223,10 +223,10 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // The pill: follows the finger while held, slides on a tap, jumps under Reduce Motion.
     const pill = stripComments(read('./TabPill.tsx')).replace(/\s+/g, ' ');
     assert.match(pill, /const reduced = useReduceMotion\(\);/, 'the pill does not watch Reduce Motion');
-    assert.match(pill, /if \(reduced \|\| caught\.current\) \{ cancel\(x\); x\.value = to; return; \}/, 'the pill does not jump under Reduce Motion or track the finger while held');
+    assert.match(pill, /if \(reduced\) \{ cancel\(x\); cancel\(gap\); gap\.value = 0; x\.value = to; held\.current = following; return; \}/, 'the pill does not jump under Reduce Motion');
     assert.match(pill, /x\.value = timing\(to, DUR\.fast, EASE\.out, reduced\);/, 'a tap does not slide the pill');
     assert.match(pill, /\{\.\.\.decorative\}/, 'the pill is heard by a screen reader');
-    assert.match(pill, /transform: \[\{ translateX: x\.value \}\]/, 'the pill moves by something other than a transform');
+    assert.match(pill, /transform: \[\{ translateX: x\.value \+ gap\.value \}\]/, 'the pill moves by something other than a transform');
   });
 
   test('the drag geometry: the cell under a finger, clamped, and when it changes — item 7', () => {
@@ -305,30 +305,41 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.equal(detached.pan.onMoveShouldSetPanResponderCapture(ev, g(20, 2)), false, 'the bar with no open tab claims a drag');
   });
 
-  test('a drag from a closed tab slides the pill to the finger, then follows it; Reduce Motion jumps (Impeccable, F961)', () => {
+  test('a held pill tracks the finger from the first move and eases only its starting gap; Reduce Motion jumps (Impeccable, F961)', () => {
     const src = read('./TabPill.tsx');
     const start = src.indexOf('useEffect(() => {') + 'useEffect(() => {'.length;
     // The effect body carries no types, so it runs as written.
     const js = src.slice(start, src.indexOf('}, [to,', start));
-    const step = (from: number, to: number, following: boolean, reduced: boolean, caught = { current: false }) => {
-      const x = { value: from };
+    const effect = new Function('x', 'gap', 'held', 'to', 'following', 'reduced', 'cancel', 'timing', 'DUR', 'EASE', `"use strict";\n${js}`);
+    const pill = (at: number) => {
+      const x = { value: at };
+      const gap = { value: 0 };
+      const held = { current: false };
       const log: string[] = [];
-      new Function('x', 'to', 'following', 'reduced', 'cancel', 'timing', 'DUR', 'EASE', 'CATCH_UP', 'caught', `"use strict";\n${js}`)(
-        x, to, following, reduced, () => log.push('cancel'), (v: number) => { log.push('timing'); return v; }, { fast: 1 }, { out: 0 }, 8, caught,
-      );
-      return log;
+      const run = (to: number, following: boolean, reduced = false) => {
+        log.length = 0;
+        effect(x, gap, held, to, following, reduced, (v: unknown) => log.push(v === gap ? 'cancel gap' : 'cancel x'), (v: number) => { log.push(`timing ${v}`); return v; }, { fast: 1 }, { out: 0 });
+        return [...log];
+      };
+      return { x, gap, run };
     };
-    assert.deepEqual(step(0, 280, true, false), ['timing'], 'a drag that starts four cells from the pill makes it jump there');
-    assert.deepEqual(step(275, 280, true, false), ['cancel'], 'once caught up, the pill lags behind the finger');
-    assert.deepEqual(step(0, 280, true, true), ['cancel'], 'under Reduce Motion the pill slides instead of jumping');
-    assert.deepEqual(step(0, 70, false, false), ['timing'], 'a tap no longer slides the pill');
-    // Once caught up, a quick drag that moves more than the slop between events still tracks (Impeccable verdict, regression 1).
-    const held = { current: false };
-    assert.deepEqual(step(275, 280, true, false, held), ['cancel']);
-    assert.deepEqual(step(280, 320, true, false, held), ['cancel'], 'a quick drag makes the caught-up pill trail the finger');
-    step(320, 320, false, false, held);
-    assert.deepEqual(step(0, 280, true, false, held), ['timing'], 'a new drag from a closed tab does not slide to the finger, because the last drag stayed caught up');
-    assert.match(src, /^const CATCH_UP = 8;/m, 'the catch-up distance is not one finger\'s slop');
+    // Today open (pill at 0), a drag picked up over Journey (target 280), then quick moves 40 apart.
+    const p = pill(0);
+    assert.ok(p.run(280, true).includes('timing 0'), 'picking the pill up far from the finger does not ease the gap closed');
+    assert.equal(p.x.value, 280, 'the pill does not track the finger from the first move');
+    for (const to of [240, 200, 160]) {
+      assert.ok(!p.run(to, true).some((l) => l.startsWith('timing')), `a quick move to ${to} starts another ease, so the pill trails the finger`);
+      assert.equal(p.x.value, to, `the pill is not under the finger at ${to}`);
+    }
+    // Released over Speak (140): the pill slides from where it is drawn.
+    assert.ok(p.run(140, false).includes('timing 140'), 'letting go does not slide the pill home');
+    assert.equal(p.gap.value, 0, 'the gap survives the release, so the next drag starts offset');
+    // A tap slides; Reduce Motion jumps with no ease at all.
+    assert.deepEqual(pill(0).run(70, false), ['timing 70'], 'a tap no longer slides the pill');
+    const r = pill(0);
+    assert.ok(!r.run(280, true, true).some((l) => l.startsWith('timing')), 'under Reduce Motion the pill eases instead of jumping');
+    assert.equal(r.x.value, 280);
+    assert.equal(r.gap.value, 0);
   });
 
   test('a drag across the bar does not select the tab words on web (push-check browser pass)', () => {

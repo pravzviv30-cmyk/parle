@@ -17,9 +17,6 @@ import { DUR, EASE } from '../motion/tokens.ts';
 import { decorative } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 
-/** How far from the finger a held pill may be before it slides rather than tracks: one finger's slop. */
-const CATCH_UP = 8;
-
 export function TabPill({ to, width, left, following }: {
   /** Where the pill's left edge goes, from the first cell's left edge. */
   to: number;
@@ -33,21 +30,34 @@ export function TabPill({ to, width, left, following }: {
   const reduced = useReduceMotion();
   const t = useB();
   const x = useSharedValue(to);
-  // Set once a held pill has reached the finger, so a quick drag tracks instead of trailing.
-  const caught = useRef(false);
+  // While held, the pill is drawn at the finger plus a gap that closes on the
+  // fast beat, so a drag from a closed tab slides over and never trails (F961).
+  const gap = useSharedValue(0);
+  const held = useRef(false);
 
   useEffect(() => {
-    if (!following) caught.current = false;
-    else if (Math.abs(x.value - to) <= CATCH_UP) caught.current = true;
-    if (reduced || caught.current) {
-      cancel(x);
+    if (reduced) { cancel(x); cancel(gap); gap.value = 0; x.value = to; held.current = following; return; }
+    if (following) {
+      if (!held.current) {
+        held.current = true;
+        cancel(x);
+        gap.value = x.value - to;
+        gap.value = timing(0, DUR.fast, EASE.out, reduced);
+      }
       x.value = to;
       return;
     }
+    if (held.current) {
+      // Let go: the slide home starts from where the pill is drawn.
+      held.current = false;
+      cancel(gap);
+      x.value += gap.value;
+      gap.value = 0;
+    }
     x.value = timing(to, DUR.fast, EASE.out, reduced);
-  }, [to, following, reduced, x]);
+  }, [to, following, reduced, x, gap]);
 
-  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.value + gap.value }] }));
 
   return <Reanimated.View {...decorative} pointerEvents="none" style={[st.pill, { left, width, backgroundColor: t.tabSelected }, slide]} />;
 }
