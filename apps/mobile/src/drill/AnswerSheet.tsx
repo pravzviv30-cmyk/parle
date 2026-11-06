@@ -19,7 +19,8 @@
  *
  * 2026-10-31 drill B v2 (UI-016; drill-b.md "Sheet"): one bottom sheet in
  * four tones, all from the theme, radius 26 at the top, padding 20/18/26.
- * - Right: the mint wash, Cloud cheering beside the green headline (the one
+ * - Right: the mint wash, Cloud in its cheer pose, hopping once, limbs in the
+ *   sheet's words, beside the green headline (the one
  *   place Cloud appears in a sitting), then the exercise's own French, its
  *   English and a Hear it pill.
  * - Nearly: the butter, "Nearly." and the spelling; the field above lights the
@@ -30,12 +31,12 @@
  * Cloud, the check and the glyphs are hidden from a screen reader.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
 import { CheckGlyph, EarGlyph, PillButton } from '../components.tsx';
 import { Cloud } from '../art/mascots/Cloud.tsx';
-import { PopIn } from '../motion/MascotMotion.tsx';
+import { HOP, Hop, PopIn } from '../motion/MascotMotion.tsx';
 import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
 import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
@@ -50,8 +51,8 @@ import type { SheetLine } from './sheetLine.ts';
 const RISE = space(6);
 /** The check disc beside a nearly. */
 const MARK = 28;
-/** Cloud beside a right headline. */
-const CLOUD = 52;
+/** Cloud cheering beside a right headline, the width of its posed box. */
+const CLOUD = 80;
 /** The board's sheet padding: 20 top, 18 sides, 26 bottom over the safe area. */
 const PAD = { top: 20, side: 18, bottom: 26 } as const;
 
@@ -93,6 +94,13 @@ export function AnswerSheet({
   const arrival = sheetArrival(sheet, Platform.OS === 'web');
   const good = sheet.tone === 'good';
   const right = good ? line : null;
+  // Cloud hops once, after the sheet has risen.
+  const [hop, setHop] = useState(0);
+  useEffect(() => {
+    if (!good) return undefined;
+    const timer = setTimeout(() => setHop(1), DUR.fast);
+    return () => clearTimeout(timer);
+  }, [good]);
 
   const continueRef = useRef<View>(null);
   // True once a screen reader has been moved onto Continue for this sheet.
@@ -138,14 +146,17 @@ export function AnswerSheet({
 
   const body = (
     <View style={st.words}>
-      <View style={st.headRow}>
+      {/* A right answer's row keeps the hop's height above it, inside the scroll, so Cloud is never clipped mid-hop; the headline stays level with Cloud. */}
+      <View style={[st.headRow, good && sheet.mark && st.hopRoom]}>
         {sheet.mark && (
           good ? (
             // Cloud cheers on a right answer only: decorative, and the one
             // place a mascot appears during a sitting.
             <View {...decorative}>
               <PopIn play>
-                <Cloud expression="cheer" size={CLOUD} />
+                <Hop cue={hop}>
+                  <Cloud pose="cheer" size={CLOUD} ink={ground.ink} />
+                </Hop>
               </PopIn>
             </View>
           ) : (
@@ -230,6 +241,7 @@ function makeStyles(t: B) {
     scrollBody: { gap: 12 },
     words: { gap: 8 },
     headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    hopRoom: { paddingTop: HOP.first },
     grow: { flex: 1, minWidth: 0 },
     between: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     hearPill: { minHeight: HIT, borderRadius: HIT / 2, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6 },

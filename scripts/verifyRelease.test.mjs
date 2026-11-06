@@ -194,3 +194,35 @@ test("the backend image skips onnxruntime's GPU download and keeps its bundled C
   assert.ok(files.length>0);
   for(const file of files) assert.match(file,/^\.\/libonnxruntime_providers_[a-z0-9_]+\.so$/);
 });
+test('runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)',async()=>{
+  const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
+  // Real instructions only: comment lines dropped, continuation lines kept per instruction.
+  const instructions=[];let open=false;
+  for(const line of docker.slice(docker.indexOf('FROM ${NODE_IMAGE} AS runtime')).split('\n')){
+    if(/^\s*#/.test(line)||!line.trim()) continue;
+    if(open) instructions.at(-1).push(line); else instructions.push([line]);
+    open=line.endsWith('\\');
+  }
+  const user=instructions.findIndex(l=>l[0]==='USER node');
+  assert.ok(user>0,'runtime stage switches to USER node');
+  const env=instructions.find(l=>l[0].startsWith('ENV '));
+  assert.ok(env.slice(1).some(l=>/^\s+SSL_CERT_FILE=\/app\/ca-roots\.pem( \\)?$/.test(l)),'runtime ENV sets SSL_CERT_FILE=/app/ca-roots.pem');
+  const gen=instructions.slice(0,user).find(l=>l.length===1&&l[0].startsWith('RUN node -e "')&&l[0].includes('/app/ca-roots.pem'));
+  assert.ok(gen&&gen[0].includes("require('node:tls').rootCertificates"),'a RUN before USER node writes tls.rootCertificates to /app/ca-roots.pem');
+  const check=instructions.slice(user+1).find(l=>l[0].startsWith('RUN '))?.find(l=>/^\s+&& node -e "[^\n]*\/app\/ca-roots\.pem[^\n]*rootCertificates\.length/.test(l));
+  assert.ok(check,'the nonroot RUN fails the build unless every bundled root is in /app/ca-roots.pem');
+  // Run the Dockerfile's own generator and its own build check against a temp path.
+  const dir=await mkdtemp(resolve(tmpdir(),'ca-roots-')),out=resolve(dir,'ca-roots.pem');
+  const sh=cmd=>spawnSync('/bin/sh',['-c',cmd.split('/app/ca-roots.pem').join(out)],{encoding:'utf8'});
+  const made=sh(gen[0].slice(4));assert.equal(made.status,0,made.stderr);
+  const pem=await readFile(out,'utf8'),roots=(await import('node:tls')).rootCertificates;
+  assert.ok(pem.endsWith('\n'));
+  assert.equal(pem.split('\n').filter(l=>l==='-----BEGIN CERTIFICATE-----').length,roots.length);
+  const {X509Certificate}=await import('node:crypto');
+  for(const block of pem.match(/-----BEGIN CERTIFICATE-----\n[^-]+-----END CERTIFICATE-----/g)) new X509Certificate(block);
+  const checkCmd=check.trim().replace(/^&& /,'').replace(/ \\$/,'');
+  assert.equal(sh(checkCmd).status,0,'the build check accepts the generated file');
+  await writeFile(out,roots.slice(0,3).join('\n')+'\n');
+  assert.notEqual(sh(checkCmd).status,0,'the build check refuses a partial file');
+  await rm(dir,{recursive:true,force:true});
+});

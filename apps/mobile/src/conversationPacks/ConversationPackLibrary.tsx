@@ -166,7 +166,7 @@ export function ConversationPackLibrary({
     const hasPractice = hasPackPractice(selected);
     const practice = packPracticeView(selected);
     return (
-      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: leaveDetail }} />}
+      <ScrollScreen header={<ScreenHeader back={{ onPress: leaveDetail }} />}
         footer={hasPractice ? (
           <View style={st.footer}>
             <PillButton label="Practise this conversation" disabled={busy} onPress={() => onReview(selected)} />
@@ -279,7 +279,7 @@ export function ConversationPackLibrary({
   }
 
   return (
-    <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: onBack }} />}>
+    <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
       <Label>Progress</Label>
       <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>Practice from conversations</Text>
       <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>Curated phrases and corrections from situations you spoke through. Full conversation text is saved only if you choose it separately after a recap.</Text>

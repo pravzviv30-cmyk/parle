@@ -29,6 +29,8 @@ export const TAB_ICONS: Readonly<Record<string, IconName>> = {
 
 /** The capsule's inset from each screen edge, after the safe areas (Figma: left 12 of 390). */
 export const CAPSULE_INSET = 12;
+/** The capsule's height, Figma 292:1103: a 62pt cell inside 6pt of padding top and bottom. */
+export const CAPSULE_HEIGHT = 74;
 /** The widest the capsule grows on a tablet, so five cells do not drift apart. */
 export const CAPSULE_MAX = 640;
 
@@ -86,4 +88,20 @@ export function tabLabelsShown(fontScale: number, capsule: number): boolean {
   if (!labelsWrapUnderGlyph(fontScale)) return true;
   const room = (capsule - CAPSULE_PAD) / 5 - FACE_PAD;
   return WIDEST_LABEL * LABEL_SIZE * LETTER_EM * fontScale <= room;
+}
+
+/** The cell under a finger `x` points into the capsule's row of `count` cells each `cell` wide, clamped to the row (item 7). */
+export function tabCellAt(x: number, cell: number, count: number): number {
+  if (cell <= 0) return 0;
+  return Math.max(0, Math.min(count - 1, Math.floor(x / cell)));
+}
+
+/** The cell under a finger at `pageX`, measured from the capsule's left edge `capsuleX` and its inner padding `pad` (item 7, verifier fix). */
+export function tabCellUnderFinger(pageX: number, capsuleX: number, pad: number, cell: number, count: number): number {
+  return tabCellAt(pageX - capsuleX - pad, cell, count);
+}
+
+/** The dragged pill's left x, centred on the finger and clamped to the row, so its centre is over the cell release picks (push-check fix 1). */
+export function tabPillLeft(pageX: number, capsuleX: number, pad: number, cell: number, count: number): number {
+  return Math.max(0, Math.min((count - 1) * cell, pageX - capsuleX - pad - cell / 2));
 }

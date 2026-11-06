@@ -38,7 +38,8 @@ import { Card, IconAction, Label, LockBadge, Press } from '../components.tsx';
 import { BArt } from '../art/BArt.tsx';
 import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
-import { AWAY_ART, OUT_OF_TIME_ART, outOfTimeCard } from '../empty/emptyStates.ts';
+import { AWAY_ART, outOfTimeCard } from '../empty/emptyStates.ts';
+import { Cloud } from '../art/mascots/Cloud.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
 import { SCENE_CARDS, sceneCardFallbackWidth, sceneCardGeometry } from '../responsiveLayout.ts';
@@ -66,7 +67,7 @@ import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { loadDeck } from '../review/store.ts';
 import { practicePreferencesOf, startAtOf } from '../profile/practicePreferences.ts';
 import { learningSuggestions } from '../main/learningSuggestions.ts';
-import { bType, decorative, frenchText, space, type, HIT } from '../theme.ts';
+import { bType, decorative, frenchText, space, type, HIT, RHYTHM } from '../theme.ts';
 
 import { tutorOrbState } from '../tutor/orbState.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
@@ -85,6 +86,15 @@ import {
 } from '../tutor/speakTabView.ts';
 
 type Completion = { id: string; at: number; rung: number };
+
+/**
+ * Out of the free conversation, centre stage (quiet moments 4A, props in so the
+ * preview draws it): Cloud at rest, the card's words and See the plans, with no card.
+ */
+export function OutOfTimeMoment({ card, onPlans }: { card: { title: string; body: string; action: string }; onPlans: () => void }) {
+  const t = useB();
+  return <EmptyStateCard stage figure={<Cloud pose="rest" size={180} ink={t.text} />} title={card.title} body={card.body} action={{ label: card.action, onPress: onPlans }} />;
+}
 
 export function TutorTab() {
   const focused = useIsFocused();
@@ -304,10 +314,7 @@ export function TutorTab() {
           </EmptyStateCard>
         )}
 
-        {outOfTime !== null && (
-          <EmptyStateCard art={OUT_OF_TIME_ART} title={outOfTime.title} body={outOfTime.body}
-            action={{ label: outOfTime.action, onPress: () => nav.navigate('Wall', { entry: 'refused' }) }} />
-        )}
+        {outOfTime !== null && <OutOfTimeMoment card={outOfTime} onPlans={() => nav.navigate('Wall', { entry: 'refused' })} />}
 
         {/* The one recommendation: the next scene, or the thread to pick up. */}
         <View style={st.hero} onLayout={(event) => setHeroWidth(Math.round(event.nativeEvent.layout.width))}>
@@ -516,10 +523,10 @@ const HEAR = 48;
 
 const makeStyles = (t: B) =>
   StyleSheet.create({
-    // The artboard's 22pt rhythm; the shared header keeps its own 20pt foot,
-    // so it is pulled back to the same 22 (as Today does).
+    // RHYTHM.block between cards (phone fixes, 2026-11-02); the shared header
+    // keeps its own 20pt foot, so it is pulled back to the same gap.
     head: { marginBottom: -space(5) },
-    page: { gap: 22 },
+    page: { gap: RHYTHM.block },
     tight: { gap: 2 },
     offline: { marginTop: space(4), gap: space(3) },
     offlineLine: { alignSelf: 'stretch', marginTop: space(2) },
@@ -548,7 +555,7 @@ const makeStyles = (t: B) =>
     link: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
     linkCentred: { alignSelf: 'center' },
     titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2) },
-    scenes: { gap: 10 },
+    scenes: { gap: RHYTHM.item },
     list: { backgroundColor: t.card, borderRadius: 24, paddingVertical: 4, paddingHorizontal: 14 },
     sceneRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(3), minHeight: HIT },
     rule: { borderBottomWidth: 1, borderBottomColor: t.line },

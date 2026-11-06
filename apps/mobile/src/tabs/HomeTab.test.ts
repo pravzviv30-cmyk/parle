@@ -371,10 +371,9 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     }
     assert.doesNotMatch(flat(RENDER), /<Columns>/, 'the path is split into columns, so it no longer reads in order');
     assert.ok(!SCREEN.includes('<DailyCarousel'), 'the word and phrase carousel is back on Today');
-    // The board's rhythm (UI-015, was B-Today's 22pt page gap): TodayLayout
-    // sets the sections 30pt apart and pads the body 16pt at the sides.
-    assert.match(LAYOUT, /const SECTION_GAP = 30;/);
-    assert.match(LAYOUT, /section: \{ marginTop: SECTION_GAP \}/);
+    // The page rhythm (phone fixes 2026-11-02, was the board's 30): TodayLayout
+    // sets the sections RHYTHM.section (32pt) apart.
+    assert.match(LAYOUT, /section: \{ marginTop: RHYTHM\.section \}/);
   });
 
   test('the four tiles, the rail, the old details and every rank name are gone', () => {
@@ -618,7 +617,7 @@ describe('Today keeps its day when the disk will not answer', () => {
   test('an account switch clears the old recommendation before any new read resolves', () => {
     // 2026-10-07 (F768): the clearing waits on the account having changed, so
     // a refresh for the same account keeps the page drawn.
-    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); if \(refreshClears\(drawnFor\.current, scope\)\) \{ setDaily\(todayItems\(0, now\)\); setHero\(null\); setStarter\(null\); setStart\(null\); setWeek\(null\); setFixFrom\(null\); \}/);
+    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); if \(refreshClears\(drawnFor\.current, scope\)\) \{ setDaily\(todayItems\(0, now\)\); setHero\(null\); setStarter\(null\); setStart\(null\); setWeek\(null\); setFixFrom\(null\); setHeroReview\(null\); \}/);
     assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\);/);
     // UI-015: the failed read is the hero card's own branch.
     assert.match(FLAT, /const failedHero = !unowned && readFailed;/);
@@ -923,7 +922,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     // is no fix and the scene row when there is, and the starter card is drawn
     // by the lead rule (F936), with the same starter guard.
     assert.match(FLAT, /const starterFor = starter !== null && profile\.brain\.stats\.sessions === 0 \? starter : null;/);
-    assert.match(FLAT, /\{stops\.hero === 'fix' \? fixHero : <NextTaskCard vivid placement="hero" starter=\{starterFor\} \/>\}/);
+    assert.match(FLAT, /\{stops\.hero === 'fix' \? fixHero : <NextTaskCard vivid placement="hero" starter=\{starterFor\} onHeroReview=\{setHeroReview\} \/>\}/);
     assert.match(FLAT, /if \(row === 'scene'\) return <NextTaskCard key="scene" vivid placement="row" last=\{last\} starter=\{starterFor\} \/>;/);
   });
 

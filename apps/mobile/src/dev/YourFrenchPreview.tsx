@@ -17,7 +17,7 @@ import { ProgressSection, YourFrenchSection } from '../journey/JourneyParts.tsx'
 import { progressRowsView, yourFrenchView } from '../journey/journeyView.ts';
 import { progressFixture, type ProgressState } from '../journey/progressFixtures.ts';
 import { yourFrenchFixture, type YourFrenchState } from '../journey/yourFrenchFixtures.ts';
-import { HIT, bType, space } from '../theme.ts';
+import { HIT, RHYTHM, bType, space } from '../theme.ts';
 
 const CAPTIONS: Record<YourFrenchState, string> = {
   full: 'Phrases, sounds and scenes, all open',
@@ -90,6 +90,6 @@ function Body({ state, progress, onBack }: { state?: YourFrenchState; progress?:
 const makeStyles = (_t: B) =>
   StyleSheet.create({
     body: { paddingTop: space(6), paddingHorizontal: 22, paddingBottom: space(8), gap: space(4) },
-    page: { gap: space(7) },
+    page: { gap: RHYTHM.section },
     back: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
   });

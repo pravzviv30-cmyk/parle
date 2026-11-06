@@ -8,8 +8,8 @@
  * the icon's size; durations in milliseconds.
  */
 
-/** The selected tab rises `lift` points and grows to `scale`, then the pop spring brings it home. */
-export const TAB_POP = { scale: 1.15, lift: 2 } as const;
+/** The selected tab rises `lift` points, then the pop spring brings it home. Never scaled: iOS softens a scaled icon. */
+export const TAB_POP = { lift: 2 } as const;
 
 export const ICON_MOTION = {
   /** A reminder set: the bell swings about its top and pops once. */

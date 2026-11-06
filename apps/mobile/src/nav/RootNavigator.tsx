@@ -821,7 +821,8 @@ export function RootNavigator({
       // navigator, which applies the same rule per tab, so it is not wrapped.
       screenLayout={({ route, children }) => route.name === 'Tabs' ? children : <RouteTheme route={route.name}>{children}</RouteTheme>}
     >
-      <Stack.Screen name="Tabs" component={Tabs} />
+      {/* iOS 26+ draws a white scroll-edge fade over Today's first scroll view; Tabs opts out. */}
+      <Stack.Screen name="Tabs" component={Tabs} options={{ scrollEdgeEffects: { top: 'hidden' } }} />
       <Stack.Screen name="Profile" component={ProfileTab} />
       <Stack.Screen name="Friends">{() => <FriendsTab pushed />}</Stack.Screen>
       <Stack.Screen name="AddFriends" component={InviteFriendsScreen} />

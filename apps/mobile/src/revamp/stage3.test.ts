@@ -57,7 +57,8 @@ test('revamp B retrieval and drills preserve attempted recall, honest scoring an
   has('drill/kinds/RepeatThisView.tsx',/colour.mint/,/state-microphone/,/label="I said it"/);
   has('daily/DailyLibraryScreen.tsx',/appearance="underline"/,/label="Clear search"/,/change\(\{ query: '', limit: 12 \}\)/,/Retry saved items/);
   // 2026-10-21 UI-008, B-Empty-States: the notebook drawing and its pill became the B empty-state card.
-  for(const file of ['phrases/PhrasebookScreen.tsx','conversationPacks/ConversationPackLibrary.tsx']) has(file,/<EmptyStateCard art=\{NOTEBOOK_ART\}/,/label: 'Choose a scene'/,/nav.navigate\('Missions'\)/);
+  // Quiet moments (4A): the phrasebook is centre stage (empty/emptyStates.test.ts).
+  for(const file of ['conversationPacks/ConversationPackLibrary.tsx']) has(file,/<EmptyStateCard art=\{NOTEBOOK_ART\}/,/label: 'Choose a scene'/,/nav.navigate\('Missions'\)/);
 });
 test('revamp B Progress opens evidence-based materials, a weekly story and earned postcards without starting audio',()=>{
   // 2026-10-20, B4, B-Journey: the CEFR LevelCard became the five stages, the

@@ -119,9 +119,12 @@ export type TodayStop = 'fix' | 'scene' | 'phrase' | 'review';
  * fix and the review are drawn only when there is one; the scene and the
  * phrase are always there.
  */
-export function todayStops(input: { fix: boolean; review: boolean }): { hero: 'fix' | 'lead'; rows: TodayStop[] } {
+export function todayStops(input: { fix: boolean; review: boolean; /** The lead hero's `heroCarriesReview`, or null while it decides. */ heroReview?: boolean | null }): { hero: 'fix' | 'lead'; rows: TodayStop[] } {
   const all: TodayStop[] = ['fix', 'scene', 'phrase', 'review'];
-  const present = all.filter((stop) => (stop === 'fix' ? input.fix : stop === 'review' ? input.review : true));
+  // Quiet moments (4A): a lead hero that carries Review takes the row's place;
+  // while it decides the row waits, so it never shows and then vanishes.
+  const review = input.review && (input.fix || input.heroReview === false || input.heroReview === undefined);
+  const present = all.filter((stop) => (stop === 'fix' ? input.fix : stop === 'review' ? review : true));
   return input.fix
     ? { hero: 'fix', rows: present.filter((stop) => stop !== 'fix') }
     : { hero: 'lead', rows: present.filter((stop) => stop !== 'scene') };

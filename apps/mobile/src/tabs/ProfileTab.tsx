@@ -44,6 +44,7 @@ import { LockBadge, OptionRow, PillButton, Sheet as BottomSheet } from '../compo
 import { ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { DetachedTabBar } from '../nav/LuvaniTabBar.tsx';
+import { BottomTabBarHeightCallbackContext, BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { SettingsGroup } from '../settings/SettingsGroup.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
@@ -170,6 +171,8 @@ export function ProfileTab() {
    * return and a hook behind a branch is a hook that changes order.
    */
   const [helpLine, setHelpLine] = useState<string | null>(null);
+  // The detached bar floats too (UI-017); its measured height pads the scroll.
+  const [barHeight, setBarHeight] = useState<number>();
   const [samplePlaying, setSamplePlaying] = useState<TutorVoiceKey | null>(null);
   const samplePlayer = useAudioPlayer();
   const sampleStatus = useAudioPlayerStatus(samplePlayer);
@@ -303,7 +306,8 @@ export function ProfileTab() {
     {/* 2026-10-20 UI-008, artboard B-Profile: back and the gear, the learner,
         the stats card, the blue plan card, then Learning, Your French and
         More, over the tab bar with no tab selected. */}
-    <ScrollScreen ground={t.ground} padded={false} topGap={space(3)}>
+    <BottomTabBarHeightContext.Provider value={barHeight}>
+    <ScrollScreen bottom="tab" ground={t.ground} padded={false} topGap={space(3)}>
       <View style={st.page}>
       <View style={st.top}>
         <BackButton onPress={goBack} />
@@ -364,7 +368,10 @@ export function ProfileTab() {
       </SettingsGroup>
       </View>
     </ScrollScreen>
+    </BottomTabBarHeightContext.Provider>
+    <BottomTabBarHeightCallbackContext.Provider value={setBarHeight}>
     <DetachedTabBar onTab={openTab} />
+    </BottomTabBarHeightCallbackContext.Provider>
     </View>
     <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} surface={t.card} ink={t.text} footer={<PillButton label="Done" onPress={closeVoiceSheet} tone="brand" />}>
       <Text style={[type.body, { color: t.muted }]}>{TUTOR_VOICE_SUB}</Text>

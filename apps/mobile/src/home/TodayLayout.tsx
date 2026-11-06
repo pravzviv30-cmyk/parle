@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useThemedStyles, type B } from '../main/bTheme.tsx';
-import { space } from '../theme.ts';
+import { RHYTHM, space } from '../theme.ts';
 import { SectionTitle } from '../today/TodayParts.tsx';
 
 /**
@@ -22,8 +22,6 @@ import { SectionTitle } from '../today/TodayParts.tsx';
 export const TODAY_OVERLAP = 60;
 /** The page's side margins under the sky (board: 16). */
 const SIDE = space(4);
-/** Between sections (board: 30). */
-const SECTION_GAP = 30;
 
 export function TodayLayout({ sky, hero, pathTitle, rows, three, comingUp, week, overlap = TODAY_OVERLAP }: {
   /** A SkyBand. */
@@ -61,5 +59,5 @@ export function TodayLayout({ sky, hero, pathTitle, rows, three, comingUp, week,
 const makeStyles = (_t: B) =>
   StyleSheet.create({
     body: { paddingHorizontal: SIDE },
-    section: { marginTop: SECTION_GAP },
+    section: { marginTop: RHYTHM.section },
   });

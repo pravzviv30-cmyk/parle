@@ -36,7 +36,7 @@ import {
   stoppedBySafety,
   type SafetyDecision,
 } from './safetyView.ts';
-import { LEAVE_LABEL, ONE_MOMENT, waitingView } from './waitingView.ts';
+import { LEAVE_LABEL, waitingView } from './waitingView.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -288,11 +288,11 @@ describe('a safety decision, as a surface — F137', () => {
 
 describe('a redirect published before the first line — F145', () => {
   /** The waiting state's own view model, built the way both screens build it. */
-  const waiting = (decision: SafetyDecision | null, waitingForTutor = false) =>
+  const waiting = (decision: SafetyDecision | null) =>
     // The name is the chosen persona's now, and this suite is about the banner
     // rather than about who is missing, so any name will do here. The name
     // itself is held by tutorName.test.ts.
-    waitingView({ waitingForTutor, safety: safetySurface(decision), tutorName: 'Celine' });
+    waitingView({ safety: safetySurface(decision), tutorName: 'Celine' });
 
   test('a redirect is drawn even before the first scene view arrives', () => {
     // The rule. A redirect that lands while the scene is still being built has
@@ -318,10 +318,8 @@ describe('a redirect published before the first line — F145', () => {
     assert.equal(waiting(null).banner, null, 'an ordinary wait grew a banner with nothing in it');
     assert.equal(waiting(stop()).banner, null, 'the waiting screen renders a stop as a dismissible line');
 
-    // The copy under the spinner is untouched by any of this, including the
-    // watchdog's later, more specific line.
-    assert.equal(waiting(redirect()).headline, ONE_MOMENT);
-    assert.match(waiting(redirect(), true).headline, /^Waiting for /, 'the watchdog line was lost to the banner');
+    // The line under the spinner is untouched by any of this.
+    assert.equal(waiting(redirect()).headline, 'Waiting for Celine', 'the waiting line was lost to the banner');
     assert.equal(waiting(redirect()).leaveLabel, LEAVE_LABEL, 'a learner reading a redirect here has no door');
 
     // The wiring, inside the branch and not merely somewhere in the file. Both
@@ -333,7 +331,7 @@ describe('a redirect published before the first line — F145', () => {
       const body = branchOf(screen, opens);
       assert.match(
         body,
-        /waitingView\(\{ waitingForTutor: live\.waitingForTutor, safety, tutorName \}\)/,
+        /waitingView\(\{ safety, tutorName \}\)/,
         `${name} still assembles its waiting state by hand, so the next early return drops the banner again`,
       );
       assert.match(

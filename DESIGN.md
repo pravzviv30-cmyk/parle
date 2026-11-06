@@ -43,6 +43,9 @@ points, and let reading and action regions scroll at large text or in
 landscape. Frames have 24-point gutters and a reading column at most 560 points
 wide; on the web the app is a 460pt centred column. The full billed amount and
 period stay near a purchase action, and large text is never capped to fit.
+Page gaps between separate things come from `RHYTHM` in `theme.ts`: 12 between
+list items and stacked tiles, 20 between separate cards, 32 between sections.
+Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
 
 ### Composition rules
 
@@ -77,7 +80,7 @@ period stay near a purchase action, and large text is never capped to fit.
   sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
   an estimate said as "about n min".
 - Today, top to bottom (UI-015): the sky band, full bleed, in the hour's
-  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) in two lines,
+  ground, with "Bonjour, Name." (or "Bonsoir, Name." from 18:00) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
   the profile button on the sky's chip, three chunky stat tiles (streak days or
   "Start" over "today"; minutes against the goal, "<1" under a minute; the XP
   level number over "level"; never a nought) and the nudge line. Then one hero
@@ -89,7 +92,10 @@ period stay near a purchase action, and large text is never capped to fit.
   minutes, a "Uses" chip only when the last conversation's phrase is one of
   the scene's lines, Start speaking and Type instead), or the plans words when
   a trial cannot start, "Your paid plan has ended." when lapsed, a paid plan's
-  out-of-time words with the starter card or local practice under them, the
+  out-of-time words with the starter card or local practice under them (past
+  Starter, with Review due, the words' one action is a sage LipTile, "Review N
+  phrases", About 2 minutes, with the watering plant and a chevron; the path
+  then drops its own Review row, by `heroCarriesReview`, UI-019 4A), the
   starter card, "Something you can do now" with "You're offline. Here's
   something you can do without a connection." only when the device is offline
   and "We can't reach your tutor right now. Here's something you can do while
@@ -98,7 +104,8 @@ period stay near a purchase action, and large text is never capped to fit.
   path", the stops after the hero as flat rows on the route rail
   (`home/RoutePath.tsx` `RouteRow`): the scene (when the fix is the hero),
   "Today's phrase" with the French and its English and "Say it", on lavender,
-  and "Review N phrases", About 2 minutes, only when Review would deal cards.
+  and "Review N phrases", About 2 minutes, only when Review would deal cards
+  and the hero is not already carrying it (the row waits while the hero decides).
   Under the path: today's three quests ("n of 3 done", XP chips in butter and
   sage), Coming up under its title (the latest life event the tutor
   remembers, "{when}, {tutor} remembers", the trial pill from the tutorMemory
@@ -225,16 +232,28 @@ period stay near a purchase action, and large text is never capped to fit.
   There is one tile, `LipTile` (options, word chips, slots, grades and Fixes),
   one field and one mic, `drill/SpeakMic.tsx`. Cloud appears at moments only:
   on the right sheet, listening on a speak drill, and at the ending. It is
-  never on the question.
+  never on the question. On say it aloud the speak controls are pinned in the
+  frame's foot, the thumb zone: the mic and its label (or, without a mic, "Type
+  instead" and "I said it") and "Unable to speak right now?". While the mic is
+  live, Cloud listens full size in its `listen` pose in the space the mic left,
+  above the foot; without a mic, the muted mic picture sits there instead. The
+  foot holds no picture, so it fits every phone (UI-019). Over the other speak
+  drills' mic, Cloud listens in the slot's unchanged 77pt, so that mic never moves.
 - Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
   padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
-  button. Review and the drill bank with nothing due use cloud-cheer with Done;
-  Speak's away card is lavender with coffee-break, the retry and the bundled
-  offline line; Speak's out-of-time card (clock-calendar) shows only on the
-  free plan with nothing left, says the refill in the plan band's own words
-  and opens the plans. The phrase, conversation and memory pages use the
-  phrasebook drawing with Choose a scene; those three routes follow the device
-  since 2026-10-21 (UI-008 step 12b).
+  button. Review and the drill bank with nothing due draw the posed Cloud cheer
+  (`figure`, limbs in the theme's ink) with Done; Speak's away card is lavender
+  with coffee-break, the retry and the bundled offline line. The conversation
+  and memory pages use the phrasebook drawing with Choose a scene; those routes
+  follow the device since 2026-10-21 (UI-008 step 12b).
+  **Centre stage** (`stage`, UI-019 4A) is for a quiet moment that is the
+  screen's whole content under its own header: no card, the mascot and the words
+  centred on the screen's own ground, the title at 26 extra bold. The phrasebook with nothing kept
+  draws Cloud holding the book, "Your first kept phrase lands here.", "Keep a
+  line in a conversation and it waits here, ready to hear again.", and Choose a
+  scene pinned in the foot. Speak out of the free conversation (only on the
+  free plan with nothing left) draws Cloud resting, says the refill in the plan
+  band's own words and opens the plans in flow; the rest of Speak stays under it.
 - Live rooms keep the real start, pause, type, help, slower, English and leave
   paths. Since 2026-10-30 the room is direction D, face to face with a notebook
   (UI-014). It keeps its blue ground in both themes (UI-008):
@@ -1048,20 +1067,26 @@ the new look, listed at the end, and they go with their call sites.
 - **Tab bar** (UI-008, 2026-10-20, Figma C2/Main2/Navigation 292:1103): an
   ink capsule (`b.tabCapsule`, the same in both themes) 12pt in from each edge
   inside the safe areas and at most 640 wide, radius 32, padded 8 across and 6
-  down, on a strip of the focused route's `ground` (8pt above, the safe area or
-  8pt below). The bar stays in layout, so nothing scrolls under it, and it has
-  no shadow, hairline or chartreuse wash. Five equal 62pt cells, radius 20,
+  down, floating 8pt above the safe area (or 8pt) on a clear strip (UI-017,
+  founder 2026-11-01). Content scrolls behind it and stays visible beside and
+  below it; only the capsule covers anything, and a tab screen's scroll pads
+  past it by its height and 32pt. It has no shadow, hairline or chartreuse
+  wash. Five equal 62pt cells, radius 20,
   padding 4, gap 4: a 22pt Iconsax glyph over its word in C2 small (13/18).
   From reading size 1.3, when the widest word cannot fit whole in its cell
   (`tabLabelsShown`), every tab shows its glyph alone and keeps its full
   accessibility label (F947, founder decision 2026-10-31).
-  Selected is the `tabSelected` violet cell with the Bulk glyph in
+  Selected is the `tabSelected` violet pill under the cell with the Linear glyph in
   `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
   unselected is the Linear glyph and the word in cream at Outfit Medium on the
-  ink. The bar itself moves nothing: when a tab becomes the selected one its
-  icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15, home on the pop
-  spring, the Bulk drawing fading in over the Linear), never on launch or on a
-  tap of the open tab, and under Reduce Motion it simply swaps. The Practice
+  ink. Only the pill moves (`nav/TabPill.tsx`, UI-018): it slides to a tapped
+  tab on the fast beat, and the open tab can be held and dragged sideways to
+  another, a selection tick as the drag starts and at each cell it crosses,
+  landing like a tap; under Reduce Motion it jumps. A still long press is never
+  claimed, so the Large Content Viewer keeps working. When a tab becomes the selected one its
+  icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one
+  drawing, never scaled, so it stays sharp), never on launch or on a tap of
+  the open tab, and under Reduce Motion it does not move. The Practice
   dot is 6pt sun, so it reads on the ink, and pops in once when practice
   becomes due while the bar is open. Cells keep the 62pt floor and labels wrap
   at large text: from a 1.3 reading size each cell takes a fixed fifth. The
@@ -1295,6 +1320,24 @@ live room the cloud is the microphone button, so it takes a 2.5pt ink outline to
 keep an edge on the cream paper. They look the same in light and dark. Ink,
 white, sun, peach and lavender come from the tokens above; these four are theirs
 alone.
+
+Cloud also has two posed bodies (`art/mascots/mascotPoses.ts`, UI-019).
+**Listen** has a hand cupped to the ear and sound arcs in the theme's link colour
+(brand blue in light, periwinkle in dark, so they clear the 3:1 mark floor), and takes
+the `listening` face. **Cheer** has both arms up and two stars in sun, and takes
+the `cheer` face. **Hold** clasps the yellow phrasebook under both arms and
+takes the `idle` face; **rest** sleeps with "z z" and takes the `paused` face
+(UI-019 4A, for the quiet moments). Each stands on a soft ground shadow (ink at 20%, which does
+not show on a dark ground) and is drawn in its own
+box, wider than the body, so a posed Cloud's size is the width of that box. A
+Cloud with no pose is the drawing above. The limbs are ink, drawn in the text
+colour of the screen they stand on (the sheet's word colour on the right
+sheet), so they show in dark mode; drawn marks with a tone follow too ("z z" takes
+the ink, the listen arcs the accent), while filled marks keep their palette fills.
+Lines that lie on the white body or the yellow book (hold's arms, the book's
+outline) keep the dark ink, because those are the same in both modes. The body, cheeks and face are unchanged in
+both modes. For the blink, `CloudLids` draws card-white lids over the open eyes
+with the asleep face's closed curve, and `Blink` fades them in and out.
 
 | Token | Value | Role |
 |---|---|---|
@@ -1610,9 +1653,9 @@ has no end scene.
 **The answer sheet** (`drill/AnswerSheet.tsx`, UI-016) is one bottom sheet
 that rises from the foot of a drill after each answer (radius 26 at the top,
 a `bType.sheet21` headline). It has four tones, all from the theme. Right is
-`mintWash` with `mintWords`, Cloud cheering beside the headline, the French,
-its English and Hear it, `correct` and a light arrival haptic; it moves on by
-itself after 1.4 seconds. Nearly is `butter` with "Nearly." and the real
+`mintWash` with `mintWords`, Cloud in its cheer pose beside the headline (80
+wide, it pops in and hops once), the French, its English and Hear it,
+`correct` and a light arrival haptic; it moves on by itself after 1.4 seconds. Nearly is `butter` with "Nearly." and the real
 spelling, `nearly` and a soft haptic, and the field above lights the missed
 letters (`drill/litLetters.ts`). A miss is the `card` under a `line` top edge
 with no mark, no sound and no haptic: the French with a 44pt Hear it disc, one
@@ -1808,9 +1851,11 @@ primitive's own numbers are named groups in `motion/tokens.ts`.
   turns true: Today's flame when the streak ticks. No scale under reduced motion.
 - In a drill (UI-016): the right tile pops once (`PopOnce`) with one `Sparkle`
   (`art/Sparkle.tsx`), a chosen chip flies to its slot (`TokenFlight`), Cloud
-  squishes to the voice while listening (`LevelSquish`), the answer sheet rises
-  (`Enter`) and the end tiles count up (`CountUp`). Under reduced motion none
-  of it moves: the tile, chip and sheet are simply there and Cloud is still.
+  squishes to the voice while listening (`LevelSquish`) and blinks about every
+  4 seconds (`Blink`), the answer sheet rises (`Enter`), Cloud pops in and hops
+  once on a right sheet (`PopIn`, `Hop`) and the end tiles count up
+  (`CountUp`). Under reduced motion none of it moves: the tile, chip and sheet
+  are simply there and Cloud is still, with no blink.
 - `LevelRing`: two rings swell with a live sound level; under reduced motion,
   three opacity steps and no scale.
 
@@ -1876,9 +1921,10 @@ land, and every number it shows comes from the moment's own data. The queue
   fallen) the still `celebrate-confetti` drawing stands in, through
   `celebrate/ConfettiStill.tsx`.
 - **Silent and still in a live room.** No beat sounds or is felt while a
-  microphone or a live room is open. A saved phrase shows a small toast that
-  blocks nothing and is hidden from a screen reader, because the screen that
-  saved it already says so.
+  microphone or a live room is open. A saved phrase shows a small ink toast,
+  Toast's face beside "Saved to your phrasebook." (UI-019 4A), that blocks
+  nothing and is hidden from a screen reader, because the screen that saved it
+  already says so.
 
 ### Loops
 
@@ -1887,12 +1933,16 @@ speaker have their scoped loops. C2 adds the shared illustration loops and
 welcome logo ring defined above, including continuous gentle Home flame
 movement. Each loop listens for focus, app state, reduced motion and its own
 active/playing/paused state; none owns navigation, storage or repeated reward
-events.
+events. Cloud's blink on a speak drill (`motion/MascotMotion.tsx`, UI-019) is
+one more: its lids fade in and out about every 4 seconds, only while the mic
+is live. It stops, with the lids open, when the mic stops, when the learner
+leaves, while the app is in the background (and starts again on return) and
+under reduced motion.
 
 ### What never moves
 
-The tab bar itself (its selected icon pops once in `nav/TabGlyph.tsx`), the
-greeting, the highlighter, the skeleton, the layout primitives, the flat
+The tab bar's cells and capsule (only the selection pill in `nav/TabPill.tsx` slides
+and follows a drag, and the selected icon lifts in `nav/TabGlyph.tsx`), the greeting, the highlighter, the skeleton, the layout primitives, the flat
 drawings themselves (a wrapper may move one; the drawing
 does not), and legal or consent text. Inside a live room only the portrait's
 level rings and breath, the goal stamps, the arriving lines, the notebook's
@@ -1904,7 +1954,8 @@ on the streak tile pops once when today's streak ticks, beside the numbers that
 count up and the goal ring that fills; the greeting and the sun or moon stay
 still, and under reduced motion nothing on Today moves.
 In a drill only the right tile's pop and sparkle, the chip flight, Cloud
-listening, the sheet rising, the living bar and the end scene move. The
+listening (its squish and, while the mic is live, its blink), the sheet rising
+and its Cloud's pop and one hop, the living bar and the end scene move. The
 question and its stage band stay still, and under reduced motion nothing in a
 drill moves.
 

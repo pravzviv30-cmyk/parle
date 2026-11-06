@@ -57,7 +57,7 @@ import { fileURLToPath } from 'node:url';
 
 import { TUTOR_VOICES, tutorVoice } from '@luvani/core';
 import { DEFAULT_TUTOR_PERSONA, TUTOR_NAME, tutorNameOf, tutorPersonaOf } from './tutorName.ts';
-import { ONE_MOMENT, waitingView } from './waitingView.ts';
+import { waitingView } from './waitingView.ts';
 import { choosingView, anythingGoes } from './choosingView.ts';
 import { rungLabel } from './rungLabel.ts';
 import { statusLine, momentAnswer } from '../practice/statusLine.ts';
@@ -193,13 +193,8 @@ describe('the tutor is called one thing, in one place', () => {
     // is open and nobody has spoken yet.
     const safety = { kind: 'none' } as const;
     assert.equal(
-      waitingView({ waitingForTutor: true, safety, tutorName: marie.name }).headline,
-      `Waiting for ${marie.name}…`,
-    );
-    assert.equal(
-      waitingView({ waitingForTutor: false, safety, tutorName: marie.name }).headline,
-      ONE_MOMENT,
-      'the vague line stopped being vague, and now names a fault that has not happened',
+      waitingView({ safety, tutorName: marie.name }).headline,
+      `Waiting for ${marie.name}`,
     );
 
     // The circle says who is thinking, speaking and ready, and the helper says

@@ -17,10 +17,10 @@
  * anything after it can never disagree about what a learner is called.
  */
 
-/** Return the first name a learner asked us to use, or null when they skipped it. */
+/** Return the first name a learner asked us to use, its first letter a capital (the rest as typed), or null when they skipped it. */
 export function firstNameOf(name: string | null | undefined): string | null {
   const first = name?.trim().split(/\s+/)[0];
-  return first && first.length > 0 ? first : null;
+  return first && first.length > 0 ? first.charAt(0).toUpperCase() + first.slice(1) : null;
 }
 
 /** The continuity promise directly under "Talk with <name>" in UI 4. */

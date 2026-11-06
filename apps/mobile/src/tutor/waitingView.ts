@@ -30,31 +30,17 @@ import type { SafetySurface } from './safetyView.ts';
 export type RedirectSurface = Extract<SafetySurface, { kind: 'redirect' }>;
 
 /**
- * Before the watchdog has decided anything is wrong. Deliberately vague: the
- * tutor may be about to speak, and naming a fault that has not happened is how
- * a learner gets told their session is broken while it is still fine.
+ * The one line the wait shows (founder, 2026-11-01): who the learner is waiting
+ * for, and nothing else. The connecting page and the first live practice use it too.
  */
-export const ONE_MOMENT = 'One moment…';
+export function waitingFor(tutorName: string): string {
+  return `Waiting for ${tutorName}`;
+}
 
 /** The one door out of the waiting state. */
 export const LEAVE_LABEL = 'Leave';
 
-/**
- * The sentence under the headline (revamp B, F603): what the wait costs, which
- * is nothing, in the same words the connecting page uses.
- *
- * It says nothing about time, on purpose. This state has no clock (see
- * `live/connectingView.ts` for why it must not grow one), and a line about how
- * long this takes is one step from a line about how long the learner takes.
- * The name is an argument for the reason `WaitingState.tutorName` gives.
- */
-export function waitingNote(tutorName: string): string {
-  return `Nothing is counted until ${tutorName} joins.`;
-}
-
 export interface WaitingState {
-  /** The hook's watchdog has waited long enough to say who is missing. */
-  waitingForTutor: boolean;
   /**
    * Who this learner is waiting for, from `tutorPersonaOf`.
    *
@@ -69,7 +55,7 @@ export interface WaitingState {
 }
 
 export interface WaitingView {
-  /** The page's headline, over the note. */
+  /** The page's one line. */
   headline: string;
   /** The way out, always present: nobody is stranded in here. */
   leaveLabel: string;
@@ -88,9 +74,9 @@ export interface WaitingView {
  * the whole-screen stop surface above every status branch, and the ordering is
  * held by `safetyView.test.ts`.
  */
-export function waitingView({ waitingForTutor, safety, tutorName }: WaitingState): WaitingView {
+export function waitingView({ safety, tutorName }: WaitingState): WaitingView {
   return {
-    headline: waitingForTutor ? `Waiting for ${tutorName}…` : ONE_MOMENT,
+    headline: waitingFor(tutorName),
     leaveLabel: LEAVE_LABEL,
     banner: safety.kind === 'redirect' ? safety : null,
   };

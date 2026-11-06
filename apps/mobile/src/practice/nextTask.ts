@@ -62,6 +62,16 @@ export function afterHeld(starter: boolean): 'starter' | 'local' {
   return starter ? 'starter' : 'local';
 }
 
+/**
+ * Whether the held hero carries Review (quiet moments 4A): out of time or
+ * lapsed, billing known, Review with cards to deal, and neither the starter
+ * card nor the café line under the words. Today's path reads the same answer
+ * and drops its own Review row, so Review is never shown twice or lost.
+ */
+export function heroCarriesReview(input: { lead: TodayLead | 'explore'; billingKnown: boolean; reviewDue: boolean; starterShown: boolean; cafeShown: boolean }): boolean {
+  return (input.lead === 'outOfTime' || input.lead === 'lapsed') && input.billingKnown && input.reviewDue && !input.starterShown && !input.cafeShown;
+}
+
 /** The words of a lead that cannot start a scene, and whether it may offer plans. */
 export function heldWords(billing: HomeBilling, now: number): { title: string; message: string; plans: boolean } {
   if (billing.reason === 'subscription-lapsed') return { title: PERIOD_LINES.lapsed, message: OUT_OF_TIME_WORDS.offlineUntimed, plans: true };

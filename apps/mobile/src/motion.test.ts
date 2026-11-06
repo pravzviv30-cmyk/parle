@@ -171,6 +171,8 @@ const ENGINE_FILES = [
   'onboarding/motion/C2Scene.tsx',
   'icons/AnimatedIcon.tsx',
   'nav/TabGlyph.tsx',
+  // The selected tab's sliding pill (item 7, UI-018): transform only, jumps under Reduce Motion.
+  'nav/TabPill.tsx',
   'drill/AnswerSheet.tsx',
   'speech/useRecorderLevel.ts',
   // The password meter animates a stable fill transform and its strength colour.
@@ -210,7 +212,9 @@ const usesLegacyAnimated = (body: string): boolean =>
   runtimeImports(body).some(({ spec, clause }) => spec === 'react-native' && /\bAnimated\b/.test(clause));
 
 /** Rule 4: where a loop may run. */
-const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx'];
+const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx',
+  // Cloud's blink while the mic is live, paused by `active`.
+  'motion/MascotMotion.tsx'];
 const loopAllowed = (short: string): boolean =>
   LOOP_FILES.includes(short) || /^tutor\/(?:Orb|LiveBars)[^/]*\.tsx?$/.test(short);
 
@@ -519,6 +523,7 @@ describe('only the orb and the highlighter move', () => {
     // in TabGlyph, not the bar. It watches reduced motion live, never loops,
     // and moves only transform and opacity.
     const glyph = file('nav/TabGlyph.tsx').body;
+    assert.doesNotMatch(glyph, /TAB_POP\.scale/, 'TabGlyph scales the icon, which softens it on iOS (item 8)');
     assert.match(glyph, /const reduced = useReduceMotion\(\);/, 'TabGlyph does not watch reduced motion');
     assert.doesNotMatch(glyph, /\bwithRepeat\b|(?<![.\w])repeat\(/, 'TabGlyph loops');
     for (const m of every(glyph, /\buseAnimatedStyle\(/g)) {
@@ -644,8 +649,8 @@ describe('one door to the engine', () => {
 
   test('a loop runs only where it can be paused', () => {
     // A loop that cannot stop runs behind whatever the learner is doing for the
-    // rest of the session. Only the orb, a busy button and a held icon state may
-    // loop, and each of those files listens for what pauses it.
+    // rest of the session. Only the orb, a busy button, a held icon state and
+    // Cloud's listening blink may loop, and each of those files listens for what pauses it.
     const loops: string[] = [];
     for (const f of FILES) {
       if (f.short === 'motion/drive.ts') continue;
@@ -661,6 +666,17 @@ describe('one door to the engine', () => {
     const deaf = loops.filter((short) => !/paused|playing|active|useIsFocused|AppState/.test(file(short).body));
     assert.deepEqual(deaf, [], `A loop that nothing can pause:\n${deaf.join('\n')}`);
     assert.ok(loops.includes('tutor/VoiceOrb.tsx'), 'the orb no longer loops, so this check reads nothing');
+  });
+
+  test('Cloud\'s blink pauses in the background and re-arms on return', () => {
+    const blink = region(file('motion/MascotMotion.tsx').body, 'Blink').replace(/\s+/g, ' ');
+    assert.match(blink, /const awake = useForeground\(\);/, 'the blink does not watch app state');
+    assert.match(blink, /const live = active && !reduced && awake;/, 'the blink stays off after the app comes back');
+    assert.match(blink, /useEffect\(\(\) => \{ cancel\(shut\); shut\.value = 0; if \(!live\) return;/, 'the blink does not reset and cancel when it stops');
+    const fg = file('motion/MascotMotion.tsx').body.replace(/\s+/g, ' ');
+    // The one shared foreground hook, not a copy of it.
+    assert.match(fg, /import \{ useForeground \} from '\.\.\/game\/art\/foreground\.ts';/, 'the blink does not use the shared foreground hook');
+    assert.doesNotMatch(fg, /function useForeground/, 'the blink carries its own copy of the foreground hook');
   });
 
   test('raised choices keep their release spring when selection commits', () => {

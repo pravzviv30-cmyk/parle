@@ -274,7 +274,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   paywall keeps its current design and structure and only gains a dark variant.
 - Decision: the tab bar is Codex's floating capsule (Figma `C2/Main2/Navigation`,
   node 292:1103): an ink capsule in both themes, a violet selected cell with a
-  gold bulk glyph and a cream label, Codex's Iconsax icons, B's labels.
+  gold bulk glyph and a cream label, Codex's Iconsax icons, B's labels. Its strip of
+  route ground is superseded by UI-017 (2026-11-01): the bar floats.
 - Decision: three held cards show now with the data that exists. "Comes up
   often" uses error patterns with authored copy and never a count. Today's
   "Coming up" uses the latest remembered life event, with no countdown and no
@@ -935,6 +936,107 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     `primaryLip` token pair is added.
   - Motion reuses `Enter`, `PopIn`, `LevelSquish`, `CountUp`, `TokenFlight` and
     `PopOnce`; confetti only at the end; all of it off under reduced motion.
+
+## UI-017 — The tab bar floats: only the capsule covers content
+
+- Date: 2026-11-01
+- Status: accepted (founder, 2026-11-01, on an iPhone). Supersedes the
+  "grounded dock" of F313 and UI-008 (the strip of route ground that kept the
+  bar in layout).
+- Decision: the tab bar is a floating capsule. The strip around it is clear,
+  absolutely placed at the bottom and passes touches through; the capsule keeps
+  its size, colours, cells, labels and place. Tab screens (and Profile's
+  detached bar) scroll behind it and pad their scroll content by the bar's
+  measured height plus 32pt.
+- Reason: the full-width strip above the capsule cut content in half as it
+  scrolled ("Today's three" on Today). The founder wants the bar's outline to
+  be its only edge.
+- Consequence: the bar reports its height through React Navigation's
+  `BottomTabBarHeightCallbackContext`; `ScrollScreen bottom="tab"` reads
+  `BottomTabBarHeightContext`, with the 74pt capsule plus insets as the
+  fallback outside the navigator. Still no shadow or hairline.
+- Sources: founder item 6, 2026-11-01; `nav/tabBar.test.ts`, `layout.test.ts`.
+
+## UI-018 — The open tab can be held and dragged to another
+
+- Date: 2026-11-02
+- Status: accepted (founder item 7, on an iPhone; route "Keep our capsule, add
+  drag", no new packages, no glass blur). Reverses "the bar itself moves
+  nothing" (F600) for the selection pill only.
+- Decision: the violet selected cell is one Reanimated pill (`nav/TabPill.tsx`)
+  behind the glyphs. A tap slides it; a sideways drag that starts on the open
+  tab moves it with the finger through RN's PanResponder, ticking as the drag
+  starts and at each cell crossed, and letting go navigates the way a tap does.
+  A still long press is not claimed (F947's Large Content Viewer). Reduce
+  Motion jumps it. Cells keep their roles, labels and the Practice dot.
+- Sources: founder item 7, 2026-11-02; `nav/tabBar.test.ts`.
+
+## UI-019 — Mascots and play: Cloud and Toast with poses, one sky, the streak as hero, quiet moments centre stage
+
+- Date: 2026-11-02, with the founder's answers on 2026-11-03
+- Status: accepted (founder picked 1C, 2B, 3A and 4A on the Mascots and play
+  board). Plan: `docs/changes/cast.md`. Board
+  https://claude.ai/artifact/FE7LqufdoHPQeArGCLct6g; Figma canvas file
+  `sjAwoGinWQKvhGrWbgMO18`, page "Mascots and play · picks". Research: an
+  Appllama study of Headspace, Duolingo, Finch and Focus Friend (2026-11-02).
+  Numbered UI-019 because UI-017 (the floating tab bar) and UI-018 (the drag
+  pill) belong to `claude/phone-fixes`, which lands first.
+- Decision: four picks.
+  - **1C, Cloud and Toast with poses alive at moments.** Cloud gains posed
+    bodies with limbs, `listen` and `cheer` first, then wave, hold and rest.
+    The bodies and faces stay as drawn (UI-014); limbs take the screen's text
+    colour so they show in dark mode.
+  - **2B, one sky everywhere.** The sky of Today (UI-015) is shared by the
+    other screens. The founder first took 2A and chose 2B when asked. Council
+    warning, not a founder decision: the shared sky must not become one header
+    skeleton for every tab. Each tab keeps its own focal point.
+  - **3A, the streak is the hero.**
+  - **4A, quiet moments centre stage.** Today's out-of-time hero takes this
+    pick.
+- Founder answers inside 1C (2026-11-03):
+  - Cloud cheers on **every** right answer, in its cheer pose.
+  - Cloud listening on a speak drill is part of the mic, like the live room's
+    cloud mic. It does not count toward the Cloud budget.
+  - Cloud blinks now: about every 4 seconds, only while a speak drill's mic is
+    live.
+- The Cloud budget, given in another session on 2026-11-02 ("Luvani video
+  reverse engineering review"): 3 to 4 Cloud moments in a 5-minute sitting,
+  the live mic not counted, listing the first right answer, the end of the set,
+  the recap ending and the streak. Inside 1C the founder then chose every right
+  answer for the drill sheet. Both are recorded here and are not resolved. The
+  build follows the 1C answer and nothing limits cheers.
+- Reason: Cloud had a face and no limbs, so it could not listen or cheer with
+  its body. The founder has asked since 2026-10-29 for mascots with expressions
+  and animation, and picked these four from a study of Headspace, Duolingo,
+  Finch and Focus Friend.
+- Consequence:
+  - Built in `claude/cast` (brief 1 only): the poses `listen` and `cheer`
+    (`art/mascots/mascotPoses.ts`) with sound arcs in brand blue, stars in sun
+    and a ground shadow; the blink (`motion/MascotMotion.tsx`, one more allowed
+    loop in `motion.test.ts`); the listening pose on every speak mic
+    (`drill/SpeakMic.tsx`); on say it aloud the whole speak block pinned in the
+    drill frame's foot, the thumb zone, with Cloud listening full size in the
+    space above it (the push-check proposal of 2026-11-01);
+    and the cheer pose, 80 wide, hopping once, on the right sheet. The plan
+    wanted it standing on the sheet's top edge. The footer's `ScrollView`
+    would clip it, so it sits inside the sheet; standing on the edge is a
+    possible follow-up that needs a footer layout change.
+  - Built in `claude/quiet-moments` (brief 4, 4A, 2026-11-04,
+    `docs/changes/quiet-moments.md`): Cloud's `hold` and `rest` poses, with
+    drawn marks toned to the caller's ink or accent; `EmptyStateCard`'s
+    `figure` and centre `stage`; the phrasebook with nothing kept and Speak out
+    of the free conversation on centre stage; Review's and the drill bank's
+    nothing-to-review cards on the posed cheer, so its arms show in dark mode;
+    Today's held hero carrying Review as a sage LipTile while the path drops its
+    duplicate row (`heroCarriesReview`); and Toast's face on the saved-phrase
+    toast. Founder answers inside 4A (2026-11-04): centre stage on the two
+    drawn screens plus the posed cheer on the two nothing-to-review cards; on
+    Speak the moment replaces the out-of-time card in place and the rest of the
+    tab waits for the Speak redesign. Wave, Toast's poses and the hello tilt
+    still have no caller.
+  - Queued: briefs 2 (2B) and 3 (3A) after the Journey board. `EndScene` keeps
+    its face-only Cloud and Toast until the recap build lands.
+  - The queued screen sessions apply the picks.
 
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 

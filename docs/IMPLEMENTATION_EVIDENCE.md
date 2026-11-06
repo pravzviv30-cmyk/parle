@@ -22,6 +22,48 @@ of the list.
 
 ## Current landing snapshot
 
+- 4 November 2026 Mascots and play, brief 4 (4A, quiet moments, UI-019): branch `claude/quiet-moments`
+  from main 34eae927. Cloud's hold and rest poses with toned marks; the phrasebook with nothing kept and
+  Speak out of the free conversation on centre stage; the posed cheer on the two nothing-to-review cards;
+  Today's held hero carrying Review as a sage LipTile while the path drops its duplicate row; Toast's
+  face on the saved-phrase toast. Fix-verifier round 1 refuted a stale Review answer across hero changes,
+  fixed; round 2 HOLDS. The iOS dark check found hold's arms vanishing in cream ink, fixed. Shots in
+  `artifacts/quiet-moments-2026-11/` at 320 and 375, light and dark, and the iPhone 13 mini.
+  **7,576 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4112; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+- 3 November 2026 Mascots and play, brief 1 (1C, the cast, UI-019): branch `claude/cast` from main
+  a90ed36b, with main merged at 4ff3aff2 and at 98cd8098 (phone-fixes). Cloud's listen and cheer poses, limbs in the screen's ink and
+  the listen arcs in the theme's link colour; a blink while a speak drill's mic is live (paused off the
+  mic, in the background and under Reduce Motion); the say drill's controls pinned in the foot with
+  Cloud listening above; Cloud cheering and hopping on every right sheet. Fix-verifier round 1 refuted
+  the silent foot (330 against a 243 cap at 320x640), fixed; round 2 HOLDS. Push-check fixes: the arcs'
+  dark contrast, the live ring's room in the foot, the blink after the background (on the shared
+  foreground hook), and test pins. Shots
+  in `artifacts/cast-2026-11/`, web at 320 and 375 light and dark, and the iPhone 13 mini simulator
+  (blink recording, Reduce Motion, mid-hop, dark).
+  **7,557 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4093; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+- 3 November 2026 Phone-check fixes (UI-017, UI-018): branch `claude/phone-fixes` from main a90ed36b,
+  merged with main 4ff3aff2. Today's greeting and name share one line when the name fits, the name
+  capitalised and drawn over the clouds; the selected tab icon is drawn once and only lifts, so it
+  stays sharp; Today's tiles get 16pt above the hero and page gaps come from RHYTHM; the tab bar
+  floats, so only the capsule covers content (UI-017); the selection pill can be held and dragged to
+  another tab, with a haptic per tab (UI-018); Today has no iOS scroll-edge fade; the live wait says
+  only "Waiting for {tutor}"; a spent daily allowance says so instead of "cannot reach your tutor"
+  (F955 filed for the server side). F313, F335 and F600 name the renamed tab bar tests.
+  Fix-verifier round 1 refuted three points, each fixed test first: the drag lands on the cell under
+  the finger, a hyphenated name wraps whole, and the conversation library takes the safe-area bottom
+  instead of the tab bar's. Round 2 HOLDS on every item. Before and after shots in
+  `artifacts/phone-fixes-2026-11/` at 320 and 375, light and dark (Today, every tab's foot, the wait,
+  the daily limit), and the iPhone 17 simulator at Large and accessibility-extra-large: the greeting on
+  one line over the cloud, a drag from Today to Speak, the Large Content Viewer on a held tab. At
+  accessibility-extra-large the greeting breaks inside "Bonsoir," on main as well; filed as F957, not
+  changed here. Push-check: the dragged pill centres on the finger, the daily-limit words say it once
+  and only for the learner's own allowance (`daily-budget`, the service ceiling, keeps the general
+  words), the drag guards and RHYTHM are pinned, and one `CAPSULE_HEIGHT` serves the bar and the
+  fallback; four Impeccable proposals are logged in `docs/DESIGN_PARTNERSHIP.md`.
+  **7,536 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
+  mobile 4072; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 2 November 2026 Bug fixes after screens 1 to 3: branch `claude/bug-fix` from main cc60bce7. F950
   generated tap-translate items carry a required `fr` display line, validated like authored ones;
   F951 the speak drill's quiet control is named by its visible words; F952 stays open (three

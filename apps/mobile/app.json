@@ -58,7 +58,8 @@
           "imageWidth": 128
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "./plugins/withSceneLifecycle"
     ],
     "extra": {
       "eas": {

@@ -120,6 +120,14 @@ describe("Today's preview keys — UI-015", () => {
     assert.match(strip(read('../practice/NextTaskCard.tsx')), /onReview=\{cafeOffered \|\| reviewDoor === null \? undefined :/);
   });
 
+  test('the held previews draw Review once, by the rule Today reads', () => {
+    // Quiet moments (4A): today-held carries Review in the hero's tile and drops the path row; today-held-starter keeps the row.
+    const preview = strip(read('./TodayPreview.tsx')).replace(/\s+/g, ' ');
+    assert.match(preview, /const heroReview = \(lead === 'held' \|\| lead === 'held-starter'\) && heroCarriesReview\(\{ lead: 'outOfTime', billingKnown: true, reviewDue: true, starterShown: false, cafeShown: lead === 'held-starter' \}\);/);
+    assert.match(preview, /<RouteRow key="phrase" mark=\{heroReview \? 'end' : 'stop'\} last=\{heroReview\}/);
+    assert.match(preview, /\.\.\.\(heroReview \? \[\] : \[<RouteRow key="review" mark="end" last /, 'the held preview draws Review twice');
+  });
+
   test('the held lead at Starter draws one primary', () => {
     // Founder, 2026-11-01: See plans stays primary; the café line under it is secondary.
     assert.equal(heldWords(TODAY_PREVIEW_LAPSED_BILLING, todayPreviewNow(9)).plans, true, 'the lapsed fixture does not offer plans');
