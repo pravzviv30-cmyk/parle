@@ -12366,6 +12366,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   details now hold one row, "Reference", the failure code (no card around it), which matches the `[luvani:live] failed`
   trace that still logs every diagnostic. A guard test fails if a catch shows a caught message
   as itself; it cannot see a message passed on through a variable, a prop or a server body field.
+  The founder approved both new lines (the generic notice and "Reference") on 2026-11-06.
 - verified-by: `no catch block shows a caught message as itself`
 
 
