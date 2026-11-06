@@ -137,7 +137,7 @@ function spoken(body: string): string[] {
 }
 
 describe('Today opens on a still greeting — F420, notebook Phase 3', () => {
-  test('the greeting is static: the hour\'s French word, the first name, a full stop, and no rotation', () => {
+  test('the greeting is static: the hour\'s French word, the first name, no full stop, and no rotation', () => {
     assert.match(FLAT, /import \{ homeGreeting \} from '\.\.\/home\/greeting\.ts'/, 'Today reads its greeting from somewhere other than the greeting rule');
     // UI-015 (founder 2026-10-30): direction A's sky brings back the hour's
     // word, so the greeting takes the first name and the moment, and the rule
