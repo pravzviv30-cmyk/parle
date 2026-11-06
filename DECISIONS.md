@@ -1571,7 +1571,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - The same rule covers the other spoken surfaces: `openingLine` and
     `openingNarration` in the scene builder (`prompt/scenarioPrompt.ts`), and
     the coach's `better` form in the CONTRACT (`system.ts`), with
-    `betterWritten` carrying the digits, as `frWritten` does for `fr`.
+    `betterWritten` carrying the digits. Nothing tells the model to put digits
+    in `frWritten`.
   - The display code, `copy.ts`, the schemas and the runtime guards are
     unchanged. What learners see can change: app surfaces that render `better`
     (for example the recap screen) may now show a fix with numbers in words,

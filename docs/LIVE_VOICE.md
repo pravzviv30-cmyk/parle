@@ -840,8 +840,8 @@ line's own language, never as digits. The rule is in the persona and the lesson
 prompt ("HOW YOU SPEAK"), the scene builder's opening lines and the coach's
 spoken `better` form. It carries no worked example: in a replay, a sample price
 in the rule was copied over the price the scene had already set. Display code is
-unchanged; `frWritten` and `betterWritten` carry the digits when the spelling
-differs.
+unchanged. The CONTRACT asks `betterWritten` to carry the digits; nothing asks
+`frWritten` to, so a transcript line may show the spoken words.
 
 The research behind it is "Luvani natural tutor voice"
 (https://claude.ai/artifact/CasHwe4Yc6GC39EQ4TDqXc, 2026-11-04). It ranks the
