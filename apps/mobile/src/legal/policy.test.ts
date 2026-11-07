@@ -696,7 +696,7 @@ describe('the privacy notice — F479', () => {
     );
     assert.match(
       said,
-      /LiveKit.s servers also listen while the tutor is speaking[^.]*\. Nothing from that check is kept by Luvani\. Another is the language model/,
+      /so your words are read rather than only carried\. When we have it switched on, in a conversation that starts at a higher level, LiveKit.s servers also listen while the tutor is speaking[^.]*\. Nothing from that check is kept by Luvani\./,
       'the notice stopped naming the adaptive-interruption audio path to LiveKit',
     );
 

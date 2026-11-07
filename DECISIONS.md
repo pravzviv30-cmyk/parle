@@ -2190,7 +2190,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     often the answer, not a backchannel. `minDuration` and `minWords` are unchanged. Data
     path: the learner's audio during tutor speech streams to LiveKit's inference servers, which
     is new, so the privacy notice names it ("Who else sees it"); Luvani keeps nothing from the
-    check. Needs Flux (word-aligned transcripts).
+    check. Needs a recogniser with word-aligned transcripts (both Deepgram models have them).
 - Reason: the founder's 2026-11-06 staging session felt slow and scripted (problem 2 of
   nine); the council and the founder chose to tune the cascade, then one time-boxed
   half-cascade spike.
