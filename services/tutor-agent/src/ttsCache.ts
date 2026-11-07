@@ -89,13 +89,22 @@ export interface CachedTTSOptions {
    * other. Absent means every line uses `inner`, exactly as before the switch.
    */
   conversation?: { inner: tts.TTS; voiceKey: string };
+  /**
+   * Sentence stitching (LUVANI_TTS_STITCH): speaks a sentence with the one before
+   * it as vendor context, so a reply keeps one prosody. Used only for non-authored
+   * lines on the http transport, never for a disk-cacheable one: a cached WAV must
+   * be context-free. `model` is the one the line's route speaks. Absent means off.
+   */
+  stitch?: (text: string, previousText: string, model: string, signal: AbortSignal) => AsyncIterable<tts.SynthesizedAudio>;
 }
 
 /** The options with defaults applied; the telemetry hook stays optional. */
-type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio' | 'conversation'>> &
-  Pick<CachedTTSOptions, 'onFirstAudio' | 'conversation'>;
+type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio' | 'conversation' | 'stitch'>> &
+  Pick<CachedTTSOptions, 'onFirstAudio' | 'conversation' | 'stitch'>;
 
 const DEFAULT_MAX_TEXT = 220;
+/** Sentences of one reply are requested back to back; a learner turn in between takes longer. */
+const STITCH_WINDOW_MS = 8_000;
 export const AUTHORED_CACHE_VERSION = 'authored-v1';
 /**
  * 110 authored sentences x 6 voices is 660 entries. At 1,024 slots about 173 of
@@ -150,6 +159,8 @@ export class CachedTTS extends tts.TTS {
    */
   charsBilledConversation: number | undefined;
   readonly memo: ReplayMemo;
+  /** The last non-authored line this session finished speaking, for sentence stitching. */
+  #previous: { text: string; at: number } | null = null;
 
   constructor(inner: tts.TTS, opts: CachedTTSOptions) {
     // Declaring streaming:false makes the framework sentence-split for us.
@@ -221,7 +232,16 @@ export class CachedTTS extends tts.TTS {
   }
 
   /** Drop the session's replayed audio. Called at session end and by close(). */
-  clearReplayMemo(): void { this.memo.clear(); }
+  clearReplayMemo(): void { this.memo.clear(); this.#previous = null; }
+
+  /** The text of the previous finished line if it is recent enough to be context, else null. */
+  previousLine(): string | null {
+    const previous = this.#previous;
+    return previous && Date.now() - previous.at <= STITCH_WINDOW_MS ? previous.text : null;
+  }
+
+  /** Remember a finished non-authored line as context for the next, or forget on anything else. */
+  rememberLine(text: string | null): void { this.#previous = text === null ? null : { text, at: Date.now() }; }
 
   private safeDirectory(path: string): boolean {
     try { const info = lstatSync(path); return info.isDirectory() && !info.isSymbolicLink(); } catch { return false; }
@@ -321,7 +341,7 @@ export class CachedTTS extends tts.TTS {
     // would idle on an open socket.
     for (const scan of [this.#legacyScan, this.#slotScan]) try { scan?.closeSync(); } catch { /* closed */ }
     this.#legacyScan = null; this.#slotScan = null;
-    this.memo.clear();
+    this.memo.clear(); this.#previous = null;
     await Promise.all([this.inner.close(), this.opts.conversation?.inner.close()]);
   }
 }
@@ -332,6 +352,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
   /** Forwarded to the vendor so the session's retry policy applies end to end. */
   readonly #connOptions?: APIConnectOptions;
   #firstAudioReported = false;
+  /** Set by a transport once the line ran to its end: not aborted, not closed early. */
+  #finished = false;
   #route: ReturnType<CachedTTS['route']> | null = null;
 
   constructor(text: string, cache: CachedTTS, connOptions?: APIConnectOptions, abortSignal?: AbortSignal) {
@@ -351,6 +373,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
     // The key uses the voice key of the model that will produce the audio.
     const route = this.#cache.route(text);
     this.#route = route;
+    // An authored line is not part of a freshly synthesized reply, so it ends the run of sentences.
+    if (this.#cache.authored(text)) this.#cache.rememberLine(null);
     const memoKey = this.#cache.authored(text) || text.length > this.#cache.opts.maxTextLength ? null : this.#cache.fingerprint(text, route.voiceKey);
 
     if (memoKey) {
@@ -386,6 +410,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
       ? await this.#missViaStream(path, cacheable, memoKey !== null)
       : await this.#passthrough(path, cacheable, memoKey !== null);
     this.#cache.misses += 1;
+    if (!this.#cache.authored(text)) this.#cache.rememberLine(this.#finished && this.#firstAudioReported ? normaliseLine(text) : null);
     // Only a line that finished cleanly is remembered; the transports return
     // null for anything aborted, closed early or missing its final marker.
     if (memoKey && frames && frames.length > 0) this.#cache.memo.set(memoKey, frames);
@@ -429,7 +454,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
 
   /** Live synthesis over per-sentence HTTP, teeing to disk when the line succeeds. */
   async #passthrough(path: string, cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
-    const innerStream = this.#route!.inner.synthesize(this.inputText, this.#connOptions, this.abortSignal);
+    const innerStream = this.#audio();
     const collected: AudioFrame[] = [];
     let collectedBytes = 116;
     const memo = remember ? new MemoCollector(this.#cache.memo.maxBytes) : null;
@@ -448,8 +473,29 @@ class CachedChunkedStream extends tts.ChunkedStream {
     // Only a complete, non-empty line is worth keeping. A failed request yields
     // nothing above and nothing is written.
     if (this.abortSignal.aborted || this.closed) return null;
+    this.#finished = true;
     if (cacheable && collected.length > 0) this.#writeWav(path, collected);
     return memo?.frames() ?? null;
+  }
+
+  /**
+   * The vendor's audio for this line. A non-authored line that follows a fresh
+   * one is stitched to it; if that request fails before any audio, the plain
+   * request answers instead, so stitching can cost a retry but never the line.
+   */
+  async *#audio(): AsyncIterable<tts.SynthesizedAudio> {
+    const text = this.inputText, route = this.#route!, stitch = this.#cache.opts.stitch;
+    const previous = stitch && !this.#cache.authored(text) ? this.#cache.previousLine() : null;
+    if (stitch && previous !== null) {
+      let spoke = false;
+      try {
+        for await (const packet of stitch(text, previous, route.inner.model, this.abortSignal)) { spoke = true; yield packet; }
+        return;
+      } catch (error) {
+        if (spoke || this.abortSignal.aborted) throw error;
+      }
+    }
+    yield* route.inner.synthesize(text, this.#connOptions, this.abortSignal);
   }
 
   /**
@@ -493,6 +539,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
     }
 
     if (this.abortSignal.aborted || this.closed || !sawFinal) return null;
+    this.#finished = true;
     if (cacheable && collected.length > 0) this.#writeWav(path, collected);
     return memo?.frames() ?? null;
   }

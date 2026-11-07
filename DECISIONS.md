@@ -2183,6 +2183,20 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     is queued; a safety line, a failure, a leave or the session's end clears it. Speech
     only, outside the reply's first-frame record. Not a quote change (authored lines are
     the v2 TTS shape already quoted).
+  - **Sentence stitching** (`LUVANI_TTS_STITCH=1`, off by default; landed 2026-11-07): a
+    free-conversation sentence after the first of a reply carries the tutor's previous
+    sentence as ElevenLabs `previous_text` (within 8 s, never an authored line, HTTP path
+    only, the cache's own request). `previous_text` is delivery input: outside the quote
+    identity, never billed as text, so no renewal. The A/B is the founder's ear on staging.
+  - **Websocket miss transport ruled out** (2026-11-07, `docs/live-latency-evidence/2026-11-07-tts-first-audio.json`):
+    first audio p50 437 ms against HTTP's 329 ms, and whole-sentence delivery; the paid
+    proxy gets no ElevenLabs websocket route.
+  - **Half-cascade spike does not win** (2026-11-07, branch `claude/half-cascade-spike`,
+    `docs/live-latency-evidence/2026-11-07-half-cascade-spike.md` there): `gpt-realtime-2.1`
+    hearing the clips and answering in text reached its first text at p50 3.0 s against the
+    cascade's 1.6 s to the spoken fields, wrote pseudo-JSON in 27 of 32 calls and never
+    produced the English hand-back. Nothing from it lands; the audio-to-OpenAI data path
+    needs no privacy answer for this shape.
 - Reason: the founder's 2026-11-06 staging session felt slow and scripted (problem 2 of
   nine); the council and the founder chose to tune the cascade, then one time-boxed
   half-cascade spike.

@@ -1,4 +1,4 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
+import { test, describe, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, lstatSync, mkdtempSync, writeFileSync, readdirSync, symlinkSync, utimesSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,7 +10,7 @@ import { initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agen
 // ChunkedStream is constructed.
 initializeLogger({ pretty: false, level: 'silent' });
 
-import { CachedTTS, formatCostLine, normaliseLine } from './ttsCache.ts';
+import { CachedTTS, formatCostLine, normaliseLine, type CachedTTSOptions } from './ttsCache.ts';
 import { BEGINNER_SPEED } from './voiceConfiguration.ts';
 import { CONVO_LINES } from './authoredSpeech.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
@@ -796,3 +796,130 @@ describe('the free-conversation model tier', () => {
 });
 
 type CachedTTSOptionsHook = (info: { hit: boolean; tier: 'main' | 'conversation' }) => void;
+
+describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
+  const FIRST = 'Alors, tu viens avec nous ce soir ?';
+  const SECOND = 'Moi, je prends le train de dix-huit heures.';
+  const AUTHORED_LINE = 'Sur place ou à emporter ?';
+  const WINDOW_MS = 8_000;
+  const calls: { text: string; previousText: string; model: string }[] = [];
+  let failStitch = false;
+  let stallStitch = false;
+
+  /** A stitched request that records what it was given and answers with the same ramp as the fake vendor. */
+  const stitch: NonNullable<CachedTTSOptions['stitch']> = async function* (text, previousText, model, signal) {
+    calls.push({ text, previousText, model });
+    if (failStitch) throw new Error('stitched request refused');
+    const frames = rampFrames(text);
+    if (stallStitch) {
+      yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
+      await new Promise<void>((resolve) => { if (signal?.aborted) resolve(); else signal?.addEventListener('abort', () => resolve(), { once: true }); });
+      return;
+    }
+    for (const [i, frame] of frames.entries()) yield { requestId: 'stitch', segmentId: 'stitch', frame, final: i === frames.length - 1 };
+  };
+  const stitching = () => new CachedTTS(fake, { dir, voiceKey: 'test-voice', stitch, authoredLines: [AUTHORED_LINE] });
+
+  beforeEach(() => { calls.length = 0; failStitch = false; stallStitch = false; });
+  afterEach(() => { mock.timers.reset(); });
+
+  test('off by default: no stitch option, and a second sentence is today\'s plain synthesis', async () => {
+    assert.equal(cached.opts.stitch, undefined);
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(fake.calls, 2);
+  });
+
+  test('the first sentence of a reply is plain; the next within the window carries the first as previousText', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    assert.equal(calls.length, 0, 'nothing precedes the first sentence');
+    assert.equal(fake.calls, 1);
+
+    const pcm = await pcmOf(synth(cached, SECOND));
+    assert.deepEqual(calls, [{ text: SECOND, previousText: FIRST, model: fake.model }]);
+    assert.equal(fake.calls, 1, 'the stitched line did not go through the plain path');
+    assert.deepEqual(pcm, await pcmOf(synth(stitching(), SECOND)), 'frames reach the caller exactly as the plain path would deliver them');
+  });
+
+  test('an authored line is never stitched and never becomes the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, AUTHORED_LINE));
+    assert.equal(calls.length, 0, 'authored lines are context-free');
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0, 'an authored line in between ends the run of sentences');
+    assert.equal(fake.calls, 3);
+  });
+
+  test('a barge-in clears the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    stallStitch = true;
+    const abort = new AbortController();
+    const stream = cached.synthesize(SECOND, NO_RETRY, abort.signal);
+    assert.ok(!(await stream.next()).done, 'the stitched line was already speaking');
+    abort.abort();
+    for await (const packet of stream) void packet;
+    stallStitch = false;
+    await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
+    assert.equal(calls.length, 1, 'only the interrupted line was stitched; nothing follows an aborted line');
+    assert.equal(fake.calls, 2);
+  });
+
+  test('a line that produced no audio is not remembered', async () => {
+    cached = stitching();
+    fake.failNext = true;
+    await pcmOf(synth(cached, FIRST));
+    fake.failNext = false;
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0);
+  });
+
+  test('a previous line older than the window is stale and ignored', async () => {
+    mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    mock.timers.tick(WINDOW_MS + 1);
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0, 'a learner turn in between is longer than the window');
+    assert.equal(fake.calls, 2);
+    await pcmOf(synth(cached, 'Bon, alors on se retrouve à la gare.'));
+    assert.equal(calls.length, 1, 'the window restarts from the last finished line');
+  });
+
+  test('close and clearReplayMemo forget the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    cached.clearReplayMemo();
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0);
+  });
+
+  test('a stitched request that fails before any audio falls back to the plain path', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    failStitch = true;
+    const pcm = await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 1);
+    assert.equal(fake.calls, 2, 'the plain vendor path answered instead');
+    assert.ok(pcm.length > 0);
+  });
+
+  test('the conversation tier stitches with its own model', async () => {
+    const flash = new FakeTTS();
+    Object.defineProperty(flash, 'model', { get: () => 'eleven_flash_v2_5' });
+    cached = new CachedTTS(fake, { dir, voiceKey: 'main', stitch, conversation: { inner: flash, voiceKey: 'flash' } });
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls[0]?.model, 'eleven_flash_v2_5');
+  });
+
+  test('the ws transport is untouched: it never calls stitch', async () => {
+    cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice', stitch, missTransport: 'ws' });
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0);
+    assert.equal(fake.streamCalls, 2);
+  });
+});
