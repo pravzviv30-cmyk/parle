@@ -101,10 +101,11 @@ function checkEleven(url:URL,body:string):void {
   if(!/^pcm_(?:16000|22050|24000|44100|48000)$/.test(params.output_format??'') || params.enable_logging!=='false'
     || params.optimize_streaming_latency!==undefined && !/^[0-4]$/.test(params.optimize_streaming_latency))throw new Error('unsupported-tts');
   const value:unknown=JSON.parse(body);
-  if(!object(value) || Object.keys(value).some(key=>!['text','model_id','language_code','voice_settings','apply_text_normalization','apply_language_text_normalization'].includes(key))
+  if(!object(value) || Object.keys(value).some(key=>!['text','model_id','language_code','voice_settings','apply_text_normalization','apply_language_text_normalization','previous_text'].includes(key))
     || typeof value.text!=='string' || !value.text.trim() || Buffer.byteLength(value.text)>8192
     || typeof value.model_id!=='string' || !/^eleven_[a-z0-9_]{1,64}$/.test(value.model_id)
     || value.language_code!==undefined && !['fr','en'].includes(String(value.language_code))
+    || value.previous_text!==undefined && (typeof value.previous_text!=='string' || Buffer.byteLength(value.previous_text)>600)
     || value.apply_text_normalization!==undefined && value.apply_text_normalization!=='auto'
     || value.apply_language_text_normalization!==undefined && typeof value.apply_language_text_normalization!=='boolean')throw new Error('unsupported-tts');
   if(value.voice_settings!==undefined) {

@@ -1130,6 +1130,23 @@ fails, is cancelled or the session ends. It is speech only (no view, no history,
 uninterruptible, and the real reply queues behind it in the SDK's speech queue, so nothing waits
 for it. It is said outside `replyAudio.dispatch`, so it never counts as the reply's first frame.
 
+`LUVANI_TTS_STITCH=1` (opt-in, default off; `1` is the only on value) sends each free-conversation
+sentence after the first of a reply to ElevenLabs with the tutor's previous sentence as
+`previous_text`, so a reply keeps one prosody instead of a fresh start per sentence (research
+rec 9). The previous sentence is the last non-authored line this session finished speaking
+within 8 s; authored lines carry no context and end the run, because a cached WAV must be
+context-free, and the ws transport never stitches. The request is the cache's own
+(`elevenStitchedRequest` in `voice.ts`, the plugin's body plus the one field, at most 600
+bytes of context); a refused stitched request falls back to the plain request before any audio.
+`previous_text` is delivery input, excluded from the quote identity and never counted as billed
+text (`describePaidHttp`, `checkEleven`), so the switch needs no quote renewal. Measured on
+2026-11-07 (`docs/live-latency-evidence/2026-11-07-tts-first-audio.json`, 24 sentences each,
+`eleven_multilingual_v2`, off the proxy on a developer machine): the per-sentence HTTP path's
+first audio frame arrives at p50 329 ms (p95 380) once the connection is warm, the websocket
+miss transport's at p50 437 ms (p95 554), and the socket also delivers a sentence whole, so the
+`ws` knob buys nothing here and stays a dev-only setting; the paid proxy gets no websocket
+route for it.
+
 `OPENAI_LIVE_SERVICE_TIER` (opt-in, default off) sends OpenAI's `service_tier`
 on the live turn and frame only, never on analyst work. Accepted values are
 `priority`, `default`, `auto` and `flex`; anything else is ignored. Measured on

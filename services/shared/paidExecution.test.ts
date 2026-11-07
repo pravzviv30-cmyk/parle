@@ -65,6 +65,16 @@ test('TTS speed is input, not quote identity: an admitted speed hashes like no s
  for(const speed of [0.6,1.3,'0.9',null,Number.NaN])await assert.rejects(describe({...settings,speed}),(error:Error&{reason?:string})=>error.reason==='unsupported-adapter');
  assert.notEqual(paidConfigurationSha256(await describe({...settings,stability:0.5})),paidConfigurationSha256(plain));
 });
+test('TTS previous_text is delivery input: admitted, absent from the quote identity and from textBytes, bounded to 600 bytes',async()=>{
+ const url=new URL('https://api.elevenlabs.io/v1/text-to-speech/Fixture/stream?output_format=pcm_22050&enable_logging=false');
+ const describe=(extra:Record<string,unknown>)=>describePaidHttp(url,{method:'POST',body:JSON.stringify({text:'Bonjour',model_id:'eleven_multilingual_v2',voice_settings:{stability:0.4},...extra})});
+ const plain=await describe({}),stitched=await describe({previous_text:'Alors, tu viens avec nous ce soir ?'});
+ assert.equal(paidConfigurationSha256(stitched),paidConfigurationSha256(plain));
+ assert.deepEqual(stitched.configuration,plain.configuration);
+ assert.equal(stitched.quantities.textBytes,Buffer.byteLength('Bonjour'));
+ await describe({previous_text:'a'.repeat(600)});
+ for(const previous_text of ['a'.repeat(601),'é'.repeat(301),42,null,['x']])await assert.rejects(describe({previous_text}),(error:Error&{reason?:string})=>error.reason==='unsupported-adapter');
+});
 test('an empty voice_settings with only an admitted speed hashes like voice_settings {}',async()=>{
  const url=new URL('https://api.elevenlabs.io/v1/text-to-speech/Fixture/stream?output_format=pcm_22050&enable_logging=false');
  const describe=(voice_settings:unknown)=>describePaidHttp(url,{method:'POST',body:JSON.stringify({text:'Bonjour',model_id:'eleven_multilingual_v2',voice_settings})});
