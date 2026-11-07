@@ -733,6 +733,19 @@ still decides when the turn commits; see "English answers and the recogniser (Fl
 VOICE-023)" for what Flux's end of turn does to the commit, which is mostly a wait at
 rungs 3 and 4 for its final transcript.
 
+`LUVANI_ADAPTIVE_INTERRUPTION=1` (opt-in, default off) asks the SDK for LiveKit's adaptive
+interruption mode, which tells a real interruption from a backchannel ("mm", "oui") so the
+tutor stops for the first and not the second. It applies to rungs 3-4 only, and only to a
+session that starts there: SDK 1.9 reads the mode once when the session is built and
+`updateOptions` cannot change it. Below rung 3 the modelled lines are uninterruptible anyway
+and a beginner's "oui" is often the answer. Its data path is new: while the tutor speaks, the
+learner's audio streams to LiveKit's inference servers (`LIVEKIT_INFERENCE_URL` when set, else
+LiveKit Cloud's fixed inference endpoint, with `LIVEKIT_INFERENCE_API_KEY`/`SECRET` falling back
+to the worker's `LIVEKIT_API_KEY`/`SECRET`), which "Who else sees it" in the privacy notice names.
+A detector that cannot be built or fails is logged and the session falls back to VAD
+interruption; it never ends the room. `minDuration` and `minWords` are unchanged. The trial's measure is false barge-ins in `[luvani:metrics]` after a
+rung 3-4 scene.
+
 ## Speaking quietly (VOICE-011)
 
 The live room has a "Quiet voice" switch in its room menu (`…`, UI-014), under

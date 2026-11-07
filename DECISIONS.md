@@ -2197,6 +2197,14 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     cascade's 1.6 s to the spoken fields, wrote pseudo-JSON in 27 of 32 calls and never
     produced the English hand-back. Nothing from it lands; the audio-to-OpenAI data path
     needs no privacy answer for this shape.
+  - **Adaptive interruption** (`LUVANI_ADAPTIVE_INTERRUPTION=1`, off by default): LiveKit's
+    adaptive detector tells a real interruption from a backchannel ("mm", "oui"), so the
+    tutor stops for the first and not the second. Only a session that STARTS at rung 3 or 4
+    gets it: SDK 1.9 reads the mode once when the session is built, and a beginner's "oui" is
+    often the answer, not a backchannel. `minDuration` and `minWords` are unchanged. Data
+    path: the learner's audio during tutor speech streams to LiveKit's inference servers, which
+    is new, so the privacy notice names it ("Who else sees it"); Luvani keeps nothing from the
+    check. Needs a recogniser with word-aligned transcripts (both Deepgram models have them).
 - Reason: the founder's 2026-11-06 staging session felt slow and scripted (problem 2 of
   nine); the council and the founder chose to tune the cascade, then one time-boxed
   half-cascade spike.

@@ -12489,7 +12489,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (VOICE-009); the beginner wait measured at 2.5 and 3.0 s pauses, then maxDelay 3,500 ms at rungs 1-2 (landed 2026-11-07); a
   spoken bridge (`LUVANI_SPOKEN_BRIDGE`, landed 2026-11-07, off by default); sentence stitching
   (`LUVANI_TTS_STITCH`, landed 2026-11-07, off by default, no quote change); the French blind test; adaptive
-  interruption at rungs 3-4. The websocket miss transport is ruled out on a measurement (2026-11-07,
+  interruption at rungs 3-4 (`LUVANI_ADAPTIVE_INTERRUPTION`, landed 2026-11-07, off by default). The websocket miss transport is ruled out on a measurement (2026-11-07,
   `docs/live-latency-evidence/2026-11-07-tts-first-audio.json`): first audio p50 437 ms against HTTP's
   329 ms, and the socket delivers a sentence whole, so the paid proxy gets no websocket route. Closed when the founder has
   before/after numbers for each landed switch and the remaining switches are recorded as
@@ -12499,3 +12499,4 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `rungs 1-2 wait up to 3,500 ms when the detector holds the turn (VOICE-022)`
 - verified-by: `the next sentence carries the first as previousText`
 - verified-by: `TTS previous_text is delivery input: accepted, outside the quote identity, never billed as text, bounded`
+- verified-by: `adaptive interruption is asked for at rungs 3 and 4 when the flag is on`

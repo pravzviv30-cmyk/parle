@@ -151,6 +151,7 @@ describe('thinking time reaches the session (VOICE-010)', () => {
     const build = CODE.slice(CODE.indexOf('turnHandling: turnHandlingFor('));
     const call = build.slice(0, build.indexOf('}),'));
     assert.match(call, /startRung/, 'the session opens on the fluent floor whatever the learner\'s rung');
+    assert.match(call, /adaptiveInterruption: process\.env\.LUVANI_ADAPTIVE_INTERRUPTION === '1'/, 'the adaptive switch is read from the one env seam, exactly 1');
   });
 
   test('a rung change reaches session.updateOptions, from both tutors', () => {
