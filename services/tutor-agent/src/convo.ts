@@ -1816,6 +1816,12 @@ export class LuvaniConversation extends voice.Agent {
   private bridgeTimer: ReturnType<typeof setTimeout> | undefined;
   private bridgedLast = false;
   private bridgesSaid = 0;
+  /**
+   * Set by the heads-up: after it the closing clock reads any tutor speech as
+   * the reply to the learner's last exchange, so a bridge there could let the
+   * goodbye cut the real reply off. No bridge in the last minute.
+   */
+  private wrappedUp = false;
   private armBridge(): void {
     this.clearBridge();
     this.bridgeTimer = setTimeout(() => {
@@ -1882,6 +1888,7 @@ export class LuvaniConversation extends voice.Agent {
     if (decision === null) return false;
     this.releaseMoment();
     this.clearRescue();
+    this.clearBridge();
     recordSafetyDecision({
       sessionId: this.sessionId,
       category: decision.category,
@@ -2480,6 +2487,7 @@ export class LuvaniConversation extends voice.Agent {
   /** The heads-up a minute before the cap: the frame, and the line said aloud. */
   wrapUp(): void {
     if (this.ended || this.closingForTime) return;
+    this.wrappedUp = true;
     void this.publish({ t: 'wrap-up' });
     this.say(HEADS_UP_LINE, { allowInterruptions: false });
   }
@@ -2992,7 +3000,7 @@ export class LuvaniConversation extends voice.Agent {
     };
     let turn;
     // A bridged turn is followed by at least one unbridged turn, whatever its latency.
-    const bridgeThisTurn = spoken && this.spokenBridge && !this.voiceless && !this.bridgedLast;
+    const bridgeThisTurn = spoken && this.spokenBridge && !this.voiceless && !this.bridgedLast && !this.wrappedUp;
     this.bridgedLast = false;
     // Filled at most once, from inside the model call, if the reply was spoken
     // before the whole turn arrived. A holder rather than a `let` so the

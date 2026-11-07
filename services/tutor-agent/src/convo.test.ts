@@ -6225,4 +6225,81 @@ describe('the spoken bridge (LUVANI_SPOKEN_BRIDGE=1)', () => {
     assert.deepEqual(bridges(said.slice(before)), []);
     assert.equal(said.length, before + 1, 'the recovery line is the only thing said');
   });
+
+  test('after the heads-up no turn is bridged, so the closing clock only counts the real reply', async (t) => {
+    bridged(t);
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    convo.wrapUp();
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), [], 'no bridge in the last minute');
+    client.release();
+    await turn;
+    await convo.settled();
+    assert.equal(said.length, before + 1, 'only the reply');
+  });
+
+  test('a safety redirect while the bridge is armed clears it', async (t) => {
+    bridged(t);
+    t.mock.method(console, 'warn', () => {});
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1_200);
+    await assert.rejects(convo.onUserTurnCompleted({} as never, heard('What dose should I take?')), voice.StopResponse);
+    await flush();
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), [], 'no bridge after the safety line');
+    client.release();
+    await turn.catch(() => {});
+    await convo.settled();
+  });
+
+  test('a learner who leaves while the bridge is armed hears no bridge', async (t) => {
+    bridged(t);
+    t.mock.method(console, 'warn', () => {});
+    const client = new GatedBrain();
+    const { convo, session, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1_000);
+    await convo.handleClientMessage(session, tapped({ t: 'leave' }));
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), []);
+    client.release();
+    await turn.catch(() => {});
+  });
+
+  test('a retried turn is never re-bridged', async (t) => {
+    bridged(t);
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal,
+      elapsedSeconds: () => 30, assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
+      complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }) });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1_000);
+    client.fail();
+    await flush();
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), [], 'the retry waits without a bridge');
+    client.release();
+    await turn;
+    await convo.settled();
+    assert.deepEqual(bridges(said.slice(before)), []);
+  });
 });
