@@ -1029,6 +1029,16 @@ of the brain quote's configuration identity (`services/shared/paidExecution.ts`)
 staging they go on only together with quotes generated with the same `STAGING_ENV` in
 `scripts/paidQuotes.mjs`, or every live turn is refused as quote-mismatch.
 
+`LUVANI_SPOKEN_BRIDGE=1` (opt-in, default off; `1` is the only on value, read once per worker) makes
+the tutor say one short authored line, "Alors…" or "Hmm, voyons…" (`CONVO_LINES.thinking`, warmed
+with the other authored speech), when a spoken learner turn has waited 1.5 s on the brain with no
+speech dispatched for it, so the wait sounds like thinking. The two lines alternate, and a bridged
+turn is always followed by at least one unbridged turn. It is never said on typed input, in a
+voiceless room, or after the reply is queued (early or full), and it is dropped when the turn
+fails, is cancelled or the session ends. It is speech only (no view, no history, not a turn),
+uninterruptible, and the real reply queues behind it in the SDK's speech queue, so nothing waits
+for it. It is said outside `replyAudio.dispatch`, so it never counts as the reply's first frame.
+
 `OPENAI_LIVE_SERVICE_TIER` (opt-in, default off) sends OpenAI's `service_tier`
 on the live turn and frame only, never on analyst work. Accepted values are
 `priority`, `default`, `auto` and `flex`; anything else is ignored. Measured on

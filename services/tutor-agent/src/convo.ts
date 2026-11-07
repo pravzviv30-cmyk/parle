@@ -890,6 +890,8 @@ export function frameDeadlineMs(env: Record<string, string | undefined> = proces
  */
 const TURN_TIMEOUT_MS = 15_000;
 const CLI_TURN_TIMEOUT_MS = 45_000;
+/** How long a spoken turn waits on the brain before the spoken bridge is said. */
+const SPOKEN_BRIDGE_MS = 1_500;
 
 function turnDeadlineMs(env: Record<string, string | undefined> = process.env): number {
   return selectedBrain(env) === 'claude-cli-all' ? CLI_TURN_TIMEOUT_MS : TURN_TIMEOUT_MS;
@@ -1801,6 +1803,35 @@ export class LuvaniConversation extends voice.Agent {
   /** Capture one confirmed spoken scene input before it waits in the queue. */
   private readonly replyAudio = new ReplyAudioScope<AudioFrame>();
   private readonly firstFrameTiming = process.env.LUVANI_REPLY_FIRST_FRAME_TIMING === '1';
+  /**
+   * The spoken bridge (off unless LUVANI_SPOKEN_BRIDGE=1, read once like the
+   * switch above). A spoken turn the brain has not answered 1.5 s after it was
+   * sent gets one short authored line, so the wait sounds like thinking. It is
+   * speech only: no view, no history, no turn, and it never touches the
+   * first-frame record, because it is not dispatched through `replyAudio`.
+   * The real reply queues behind it in the SDK's speech queue; nothing waits
+   * for the bridge and nothing cuts it (`allowInterruptions: false`).
+   */
+  private readonly spokenBridge = process.env.LUVANI_SPOKEN_BRIDGE === '1';
+  private bridgeTimer: ReturnType<typeof setTimeout> | undefined;
+  private bridgedLast = false;
+  private bridgesSaid = 0;
+  private armBridge(): void {
+    this.clearBridge();
+    this.bridgeTimer = setTimeout(() => {
+      this.bridgeTimer = undefined;
+      if (this.ended || this.voiceless || this.liveWork.signal.aborted) return;
+      try {
+        this.say(CONVO_LINES.thinking[this.bridgesSaid % CONVO_LINES.thinking.length]!.spoken, { allowInterruptions: false });
+        this.bridgesSaid += 1;
+        this.bridgedLast = true;
+      } catch (error) { console.warn('[luvani] the spoken bridge could not be said:', safeError(error)); }
+    }, SPOKEN_BRIDGE_MS);
+  }
+  private clearBridge(): void {
+    if (this.bridgeTimer !== undefined) clearTimeout(this.bridgeTimer);
+    this.bridgeTimer = undefined;
+  }
   private beginReplyTiming: ((eligible: boolean) => SceneReplyTimingRecord) | undefined;
   private invalidateReplyTiming: () => void = () => {};
   attachReplyTiming(begin: (eligible: boolean) => SceneReplyTimingRecord, invalidate: () => void = () => {}): void {
@@ -2839,7 +2870,7 @@ export class LuvaniConversation extends voice.Agent {
             inputTiming?.mark('queueStarted');
             this.learnerTurns += 1;
           this.noteReply();
-            return this.runBrainTurn({ type: 'spoke', text: recognized.text }, timing, correctionGeneration, inputTiming);
+            return this.runBrainTurn({ type: 'spoke', text: recognized.text }, timing, correctionGeneration, inputTiming, true);
           });
         } finally { inputTiming?.finish(this.ended || this.liveWork.signal.aborted ? 'cancelled' : 'failed'); }
       } else {
@@ -2927,17 +2958,18 @@ export class LuvaniConversation extends voice.Agent {
    * publish → speak. A failed model turn says the recovery line and records
    * nothing — the learner must never be stranded mid-scene.
    */
-  private async runBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration, inputTiming?: InputReplyTimingRecord): Promise<void> {
+  private async runBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration, inputTiming?: InputReplyTimingRecord, spoken = false): Promise<void> {
     try {
-      await this.performBrainTurn(input, timing, correctionGeneration, inputTiming);
+      await this.performBrainTurn(input, timing, correctionGeneration, inputTiming, spoken);
     } finally {
+      this.clearBridge();
       // A dispatched record is already closed. Every early return or thrown
       // integration/speech failure must still close its own record exactly once.
       timing?.finish(this.ended || this.liveWork.signal.aborted ? 'cancelled' : 'failed');
     }
   }
 
-  private async performBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration, inputTiming?: InputReplyTimingRecord): Promise<void> {
+  private async performBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration, inputTiming?: InputReplyTimingRecord, spoken = false): Promise<void> {
     if (this.ended) return;
     this.lifecycle?.assertActive();
     if (input.type === 'spoke' && this.handleSafety(input.text)) return;
@@ -2959,6 +2991,9 @@ export class LuvaniConversation extends voice.Agent {
         ...(this.memoryBrief ? [{ role: 'system' as const, text: this.memoryBrief }] : [])],
     };
     let turn;
+    // A bridged turn is followed by at least one unbridged turn, whatever its latency.
+    const bridgeThisTurn = spoken && this.spokenBridge && !this.voiceless && !this.bridgedLast;
+    this.bridgedLast = false;
     // Filled at most once, from inside the model call, if the reply was spoken
     // before the whole turn arrived. A holder rather than a `let` so the
     // compiler sees the write the callback makes.
@@ -2978,6 +3013,7 @@ export class LuvaniConversation extends voice.Agent {
       this.markTiming('brainSent');
       timing?.mark('brainSent');
       inputTiming?.mark('brainSent');
+      if (bridgeThisTurn && attempt === 0) this.armBridge();
       // Raced, exactly as the scene builder is. A call that goes out and never
       // comes back used to sit here forever, and the queue reports itself busy
       // for as long as it does — so the rescue stood down, no clock ran, and the
@@ -3002,6 +3038,7 @@ export class LuvaniConversation extends voice.Agent {
       // that could not be parsed is still a billed call, and the recovery below
       // is the same either way.
       this.recordFailedCall('turn', error);
+      this.clearBridge();
       if (this.ended) return; // a failed turn against a finished session is just noise
       const heard = spokenEarly.value;
       if (heard !== null) {
@@ -3216,6 +3253,7 @@ export class LuvaniConversation extends voice.Agent {
   private speak(view: TurnView, timing?: SceneReplyTimingRecord): void {
     // The recovery line (recover()) deliberately does not mark: a turn that
     // failed is not a data point about how fast a turn answers.
+    this.clearBridge();
     this.markTiming('sayCalled');
     if (this.voiceless) timing?.finish('cancelled');
     else timing?.mark('sayCalled');
