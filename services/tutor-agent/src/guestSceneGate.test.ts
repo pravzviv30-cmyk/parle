@@ -228,7 +228,7 @@ describe('agent.ts wiring for scenes (tripwires: agent.ts cannot be imported)', 
     const call = sceneProxy.slice(0, sceneProxy.indexOf('});'));
     assert.match(call, /speechAllowList: sceneGate\.admitsText/);
     assert.doesNotMatch(call, /ANTHROPIC|OPENAI/);
-    assert.match(CODE, /new LuvaniTutor\(lesson, undefined, \{ voiceless, persona, scriptOnly: true, scene: true \}\)/);
+    assert.match(CODE, /new LuvaniTutor\(lesson, undefined, \{ voiceless, persona, scriptOnly: true, scene: true, exit \}\)/);
     assert.doesNotMatch(CODE.slice(CODE.indexOf('scriptOnly: true') - 200, CODE.indexOf('scriptOnly: true') + 60), /scoringRequest|brainClientFromEnv/);
   });
   test('the scene claim carries the scene option, and the hard stop and STT stop are wired', () => {

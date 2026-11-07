@@ -9650,6 +9650,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Sol independently accepted the default-off source after 23 focused checks and tutor types. Strict opt-in is conversation-only; phase language updates are skipped only for Flux, whose hints remain bilingual. Actual beginner/room/EOT/interruption/number calibration remains held; no runtime configuration was changed.
 - verified-by: `ordinary recognition retains Nova-3 and its explicit phase language`
 - verified-by: `only an explicit conversation review uses Flux French and English hints`
+- note: 2026-11-06 measurement (F964) answers the accuracy question on a synthetic accent: Flux with fr/en hints keeps French (lesson 0.958, scene 1.000, same as nova-3 `fr`) and hears English (0.950), and nova-3 `multi` loses scene French (0.861). The real-learner end-of-turn, interruption and number checks are still held here before Flux runs for everyone.
 - verified-by: `the review recognizer stays inside lazy session audio and phase updates preserve its bilingual hints`
 
 ### F696 — Recorded onboarding must describe playback and keep learner pacing
@@ -12392,7 +12393,44 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a failed connect this start still owns releases the audio session before the error shows`
 - verified-by: `the drop handler releases the audio session when the attempt owns the room, and not otherwise`
 
-### F964 — Dark mode contrast: some marks sank into the night ground and some words washed out
+### F964 — English answers are transcribed as French in lessons, the guest scene and the mission scene
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/recognitionPlan.ts:13 and services/tutor-agent/src/convo.ts (`sttLanguageFor`)
+- note: Found 2026-11-06 by the founder on staging (signed-in café mission, iPhone): English answers
+  came back as French-shaped words, so the brain never saw English and never recast it. Every kind
+  except the conversation's choosing phase runs nova-3 `fr`, while VOICE-013 invites English.
+  Measured with `scripts/measureKeyterms.mjs --conditions fr,multi,multi-ep25,flux` (synthetic
+  English-accented voice; `docs/live-latency-evidence/2026-11-06-multi-stt.md`): English answers
+  score 0.169 under `fr`. nova-3 `multi` hears them (0.929) but loses scene French (0.861 against
+  1.000), so it was refused. Flux `flux-general-multi` with fr/en hints keeps French (lesson 0.958,
+  scene 1.000) and hears English (0.950): Flux is the fix, as the next lane (founder, 2026-11-06,
+  "Land fixes now, Flux next"). It needs the paid proxy to speak `/v2/listen`, a Flux quote shape,
+  and the per-kind switch. Meanwhile a line that makes sense in neither language gets one ask-again
+  in French (VOICE-021).
+- verified-by: `words that are neither French nor English get one ask-again, not an answer`
+
+### F965 — One hiccup ended the session, and no log said which exit fired
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`performBrainTurn`), services/tutor-agent/src/agent.ts
+  (`connOptions`), services/tutor-agent/src/sessionLifecycle.ts (`heartbeat`), services/tutor-agent/src/sessionExit.ts
+- note: Found 2026-11-06 by the founder on staging: the café mission ended with "cannot carry on"
+  after one failure. One failed brain turn, one unrecoverable STT/TTS error (`maxRetry: 0`,
+  `maxUnrecoverableErrors: 1`) or two 3 s heartbeat misses ended the room. Now each gets one more
+  try (VOICE-021), the paid lesson quote books the second STT stream, and every session logs one
+  `[luvani:session-exit] class=...` line. An error still unrecoverable after its one vendor retry
+  ends the room as before. Limit: a paid quote refusal is logged as `stt`/`tts`, not `cap`. Read the staging logs after the founder's next
+  session to see which exit fires in the wild.
+- verified-by: `a brain turn that fails once is retried once and the learner stays in the room`
+- verified-by: `a second failure ends the session as before and names brain-turn`
+- verified-by: `a heartbeat survives two failed attempts and lands on the third`
+- verified-by: `session exit: the first class wins and the line is logged exactly once`
+- verified-by: `paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room`
+- verified-by: `a turn cut by the close for time is not retried`
+- verified-by: `a stop at the hard deadline says so even when billing froze early`
+
+### F966 — Dark mode contrast: some marks sank into the night ground and some words washed out
 - severity: P2
 - status: [x]
 - where: apps/mobile/src/palette.ts (`b.dark`), settings/SettingsAppearance.tsx (`SettingsField`,

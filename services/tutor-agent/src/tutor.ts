@@ -59,6 +59,7 @@ import { NO_CLIP_SINK, mayCapture, speechDatasetEnabled, type ClipCandidate, typ
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
 import { isAcceptedLearnerText, outputGuard, recordSafetyDecision, safetyDecision } from './safety.ts';
 import type { RuntimeLifecycle } from './sessionLifecycle.ts';
+import type { SessionExit } from './sessionExit.ts';
 
 /**
  * Anything that can carry a message back to the app.
@@ -299,7 +300,7 @@ export class LuvaniTutor extends voice.Agent {
   /** Scene turns the learner answered at all (any spoken or typed line). */
   private readonly sceneAnsweredIds = new Set<string>();
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink; scriptOnly?: boolean; scene?: boolean } = {}) {
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch; scorer?: typeof scoreUtterance; clipSink?: ClipSink; datasetConsent?: boolean; thinkingTime?: ThinkingTimeSink; scriptOnly?: boolean; scene?: boolean; exit?: SessionExit } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
@@ -315,7 +316,9 @@ export class LuvaniTutor extends voice.Agent {
     this.thinkingTime = options.thinkingTime ?? NO_THINKING_TIME;
     this.scriptOnly = options.scriptOnly === true || options.scene === true;
     this.scene = options.scene === true;
+    this.exit = options.exit;
   }
+  private readonly exit: SessionExit | undefined;
 
   /** Scene turn ids answered acceptably so far, in scene order. */
   get sceneTurns(): GuestSceneTurnId[] {
@@ -372,6 +375,7 @@ export class LuvaniTutor extends voice.Agent {
       },
       unavailable: () => {
         this.serviceFailure ??= 'llm_error';
+        this.exit?.mark('brain-turn');
         this.cancelLiveReplies();
         void this.finish().finally(() => this.closeRoom()).catch(() => {});
       },
@@ -453,6 +457,7 @@ export class LuvaniTutor extends voice.Agent {
    */
   private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
     this.stopping = true;
+    this.exit?.mark('done');
     void this.finish();
     try {
       await delivered;
@@ -761,6 +766,7 @@ export class LuvaniTutor extends voice.Agent {
   async closeForTime(): Promise<void> {
     if (this.ended || this.refused || this.closingForTime) return;
     this.closingForTime = true;
+    this.exit?.mark('cap');
     this.cancelLiveReplies();
     try {
       if (!this.voiceless) await boundedPlayout(this.session.say(CLOSE_LINE, { allowInterruptions: false })?.waitForPlayout());
@@ -944,7 +950,7 @@ export class LuvaniTutor extends voice.Agent {
 
     if (feedback.message) this.publish({ t: 'feedback', feedback });
 
-    if (state.finished) return this.finish();
+    if (state.finished) { this.exit?.mark('done'); return this.finish(); }
 
     const next = currentPrompt(this.lesson, state);
     // The persona rides every rebuild, not just the first one. This line runs
