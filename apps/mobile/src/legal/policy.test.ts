@@ -696,7 +696,7 @@ describe('the privacy notice — F479', () => {
     );
     assert.match(
       said,
-      /so your words are read rather than only carried\. When we have it switched on, in a conversation that starts at a higher level, LiveKit.s servers also listen while the tutor is speaking[^.]*\. Nothing from that check is kept by Luvani\./,
+      /so your words are read rather than only carried\. In some conversations that start at a higher level, your audio also goes to LiveKit.s servers while the tutor is speaking\. That lets the tutor stop when you really cut in, and keep going through a short .mm. or .oui.\. Luvani keeps nothing from that check\./,
       'the notice stopped naming the adaptive-interruption audio path to LiveKit',
     );
 
