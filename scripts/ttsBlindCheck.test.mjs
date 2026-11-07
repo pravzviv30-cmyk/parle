@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CAP, LINES, MODELS, buildDesign, buildHtml, buildPlan, estimateTotal, scoreResults, speakingRates, wavFromPcm } from './ttsBlindCheck.mjs';
+import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
+import { CAP, EXPERIMENTS, LINES, MODELS, buildDesign, buildHtml, buildPlan, estimateTotal, modelIdOf, scoreResults, settingsOf, speakingRates, wavFromPcm } from './ttsBlindCheck.mjs';
 
 const FLASH = 'eleven_flash_v2_5';
 const CURRENT = MODELS.find(m => m.label === 'current').id;
@@ -82,4 +83,59 @@ test('tts blind check writes a valid wav and reports speaking rate per model', (
   assert.equal(rates.secondsPerCharByModel[CURRENT], 0.1);
   assert.equal(rates.secondsPerCharByModel[FLASH], 0.05);
   assert.equal(rates.secondsPerCharByVoice.marie, 0.075);
+});
+
+const STYLE0 = `${MODEL}+style0`;
+const style0Models = EXPERIMENTS.style0.models;
+const style0Design = rng => buildDesign(buildPlan(ELEVEN_VOICES, style0Models), rng ? { rng } : {});
+
+test('tts blind check default plan is unchanged by the experiments', () => {
+  const plan = buildPlan();
+  assert.deepEqual([...new Set(plan.map(p => p.model.id))], [MODEL, FLASH]);
+  assert.equal(estimateTotal(plan), 3498);
+  assert.equal(EXPERIMENTS.default.models, MODELS);
+  assert.equal(EXPERIMENTS.default.storageKey, 'tts-blind-check-2026-10-22');
+  assert.ok(MODELS.every(m => settingsOf(m) === VOICE_SETTINGS && modelIdOf(m) === m.id));
+});
+
+test('tts blind check style0 plan pairs today with style 0 on the same model', () => {
+  const plan = buildPlan(ELEVEN_VOICES, style0Models);
+  assert.equal(plan.length, 72);
+  for (const voice of Object.keys(ELEVEN_VOICES)) for (let line = 0; line < LINES.length; line++) {
+    const pair = plan.filter(p => p.voice === voice && p.line === line);
+    assert.deepEqual(pair.map(p => p.model.id), [MODEL, STYLE0]);
+    assert.deepEqual(pair.map(p => p.model.label), ['current', 'style0']);
+    assert.deepEqual(pair.map(p => modelIdOf(p.model)), [MODEL, MODEL]);
+    assert.deepEqual(settingsOf(pair[0].model), VOICE_SETTINGS);
+    assert.deepEqual(settingsOf(pair[1].model), { ...VOICE_SETTINGS, style: 0 });
+    assert.equal(pair[0].estimate, pair[1].estimate);
+  }
+  assert.equal(estimateTotal(plan), 4656);
+  assert.ok(estimateTotal(plan) <= EXPERIMENTS.style0.cap);
+  assert.equal(EXPERIMENTS.default.cap, CAP);
+  assert.match(EXPERIMENTS.style0.destination, /artifacts\/tts-blind-check-2026-11-07-style0$/);
+  assert.equal(EXPERIMENTS.style0.storageKey, 'tts-blind-check-2026-11-07-style0');
+});
+
+test('tts blind check style0 page names no variant', () => {
+  const d = style0Design();
+  assert.ok(!/eleven|style0|current/i.test(JSON.stringify(manifestOf(d))));
+  const html = buildHtml(manifestOf(d), LINES, EXPERIMENTS.style0.storageKey);
+  assert.equal((html.match(/class="pair"/g) ?? []).length, 36);
+  // The storage key is script data the listener never sees; everything else must be clean.
+  const visible = html.split(EXPERIMENTS.style0.storageKey).join('');
+  assert.ok(!/eleven|style0|current|flash|key\.json|manifest/i.test(visible));
+  assert.ok(html.includes(JSON.stringify(EXPERIMENTS.style0.storageKey)));
+});
+
+test('tts blind check style0 scoring maps picks to current and style0', () => {
+  const d = style0Design();
+  const results = {};
+  Object.entries(d.key.pairs).forEach(([id, pair], i) => {
+    if (i % 3 === 0) results[id] = { choice: pair.A === MODEL ? 'A' : 'B' };
+    if (i % 3 === 1) results[id] = { choice: pair.A === STYLE0 ? 'A' : 'B' };
+  });
+  const { overall } = scoreResults(d.key, results, { second: 'style0' });
+  assert.deepEqual(overall, { current: 12, style0: 12, cantTell: 0, unanswered: 12 });
+  assert.equal(scoreResults(d.key, {}, { second: 'style0' }).overall.style0, 0);
 });

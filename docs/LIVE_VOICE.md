@@ -1013,6 +1013,20 @@ Anthropic brain do not stream. In `[luvani:reply-stages]`, `brain` on a
 streamed turn is the time to its spoken fields, and `viewToSay` is omitted when
 speech started before the view.
 
+`LUVANI_TURN_REPLY_FIRST=1` (opt-in, default off) moves `coach` after `sceneReply` in
+the live turn's schema (`ReplyFirstTurnSchema`, with `ReplyFirstEarlySpokenTurnSchema`
+as the early hand-over; `turnSchemasFor` picks the pair), so the reply's French streams
+about 200 to 300 ms sooner. The cost: `coach` has not streamed when `sceneReply.fr`
+closes, so `speakEarly` runs with no coach items and the in-character recast ("Ah, ...")
+finds nothing to echo, and the early reply is spoken without it. The full turn still
+carries the coach items to the screen as before (founder accepted this trade, 2026-11-07),
+and a reply that was spoken early is never recast again by the full turn, so the screen
+shows the words heard without a disagreement. `scripts/measureLiveTurn.mjs` reads the
+switch from the env file it is given. Both this switch and the service tier below are part
+of the brain quote's configuration identity (`services/shared/paidExecution.ts`), so on
+staging they go on only together with quotes generated with the same `STAGING_ENV` in
+`scripts/paidQuotes.mjs`, or every live turn is refused as quote-mismatch.
+
 `OPENAI_LIVE_SERVICE_TIER` (opt-in, default off) sends OpenAI's `service_tier`
 on the live turn and frame only, never on analyst work. Accepted values are
 `priority`, `default`, `auto` and `flex`; anything else is ignored. Measured on

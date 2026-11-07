@@ -12456,3 +12456,24 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-11-06 on claude/dark-contrast.
 - verified-by: `dark: the founder marks of 2026-11-06 clear their floors on the dark grounds`
 - verified-by: `no Text is styled only by a type role, so none draws black in dark`
+### F967 — The live tutor's reply is slower than the cascade allows
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/contract/schemas.ts (`TurnSchema`), services/tutor-agent/src/thinkingTime.ts,
+  services/tutor-agent/src/voiceConfiguration.ts, services/tutor-agent/src/convo.ts (`speakEarly`)
+- note: Found 2026-11-06 by the founder on the staging café mission: the tutor feels slow and
+  scripted (problem 2 of nine). Lane D tunes the cascade one switch at a time, each measured
+  (VOICE-022). Baseline 2026-11-07 at main `64b07372`, replay of 24 live turns on gpt-6-luna:
+  spoken fields ready at p50 1,651 ms (p95 3,314) on the standard tier, 950 ms (p95 1,735) on
+  priority; staging `[luvani:scene-first-frame]` had no spoken scene since `67f75358` (n=0).
+  Evidence in `docs/live-latency-evidence/2026-11-07-lane-d.md`. Switches, in landing order:
+  priority tier on staging (set and pulled back 2026-11-07: `service_tier` is in the brain quote's
+  identity, so the quotes must be regenerated with it first); `coach` after the reply
+  (`LUVANI_TURN_REPLY_FIRST`, whose schema is in the same identity, same renewal); Flash v2.5 for conversation lines after the founder's listen
+  (VOICE-009); the beginner wait measured at 2.5 and 3.0 s pauses before any constant moves; a
+  spoken bridge (`LUVANI_SPOKEN_BRIDGE`); sentence stitching; the French blind test; adaptive
+  interruption at rungs 3-4. The websocket miss transport is deferred (production preflight
+  refuses it and the paid proxy only speaks HTTPS to ElevenLabs). Closed when the founder has
+  before/after numbers for each landed switch and the remaining switches are recorded as
+  decided or deferred.
+- verified-by: `reply-first order puts coach after sceneReply and keeps every field`

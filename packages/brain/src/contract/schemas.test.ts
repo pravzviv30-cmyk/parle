@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from './schemas.ts';
+import {
+  EarlySpokenTurnSchema, MemoryExtractionSchema, ReplyFirstEarlySpokenTurnSchema, ReplyFirstTurnSchema, ScenarioFrameSchema, TurnSchema, turnSchemasFor,
+} from './schemas.ts';
 import { sampleCoachItem, sampleTurn } from './samples.ts';
 import { DrillBatchSchema } from '../drill/generate.ts';
 import { CAFE_FRAME, APERO_FRAME } from '../fixtures.ts';
@@ -160,3 +162,39 @@ function collectObjects(node: unknown, out: { properties?: Record<string, unknow
   }
   return out;
 }
+
+describe('the reply-first turn order', () => {
+  const DEFAULT_ORDER = [
+    'assessment', 'coach', 'coachLine', 'narration', 'sceneReply',
+    'support', 'newPhrases', 'profileSignals', 'topicShift', 'scene',
+  ];
+  const REPLY_FIRST_ORDER = [
+    'assessment', 'coachLine', 'narration', 'sceneReply', 'coach',
+    'support', 'newPhrases', 'profileSignals', 'topicShift', 'scene',
+  ];
+
+  test('the default order is unchanged', () => {
+    assert.deepEqual(Object.keys(TurnSchema.shape), DEFAULT_ORDER);
+    assert.deepEqual(Object.keys(EarlySpokenTurnSchema.shape), ['assessment', 'coach', 'coachLine', 'narration', 'sceneReply']);
+  });
+
+  test('reply-first puts coach right after sceneReply and keeps every field', () => {
+    assert.deepEqual(Object.keys(ReplyFirstTurnSchema.shape), REPLY_FIRST_ORDER);
+    assert.deepEqual(Object.keys(ReplyFirstEarlySpokenTurnSchema.shape), ['assessment', 'coachLine', 'narration', 'sceneReply']);
+    assert.deepEqual(Object.keys(ReplyFirstEarlySpokenTurnSchema.shape.sceneReply.shape), ['speaker', 'fr']);
+    const turn = sampleTurn({ coach: [sampleCoachItem()] });
+    assert.deepEqual(ReplyFirstTurnSchema.parse(turn), TurnSchema.parse(turn), 'same fields, same rules');
+  });
+
+  test('the strict JSON schema sent to the model follows the order', () => {
+    const order = (schema: typeof TurnSchema | typeof ReplyFirstTurnSchema) =>
+      Object.keys((zodOutputFormat(schema as never) as unknown as { schema: { properties: object } }).schema.properties);
+    assert.deepEqual(order(TurnSchema), DEFAULT_ORDER);
+    assert.deepEqual(order(ReplyFirstTurnSchema), REPLY_FIRST_ORDER);
+  });
+
+  test('turnSchemasFor chooses the pair by the switch', () => {
+    assert.deepEqual(turnSchemasFor(false), { turn: TurnSchema, early: EarlySpokenTurnSchema });
+    assert.deepEqual(turnSchemasFor(true), { turn: ReplyFirstTurnSchema, early: ReplyFirstEarlySpokenTurnSchema });
+  });
+});

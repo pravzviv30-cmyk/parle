@@ -4683,13 +4683,15 @@ class StreamingBrain extends MockLlmClient {
   readonly spokenFieldsOffered: boolean[] = [];
   private readonly next: ReturnType<typeof sampleTurn>;
   private readonly failAfter: boolean;
-  constructor(next: ReturnType<typeof sampleTurn>, failAfter = false) { super({ turns: [next] }); this.next = next; this.failAfter = failAfter; }
+  private readonly replyFirst: boolean;
+  constructor(next: ReturnType<typeof sampleTurn>, failAfter = false, replyFirst = false) { super({ turns: [next] }); this.next = next; this.failAfter = failAfter; this.replyFirst = replyFirst; }
   override async turn(request: BrainTurnRequest) {
     this.spokenFieldsOffered.push(request.onSpokenFields !== undefined);
     const { assessment, coach, coachLine, narration, sceneReply } = this.next;
     // As the stream hands it over: the reply's French has closed, its
     // written form and English have not arrived yet.
-    request.onSpokenFields?.({ assessment, coach, coachLine, narration, sceneReply: { speaker: sceneReply.speaker, fr: sceneReply.fr } });
+    // Reply-first order: the coach has not streamed yet when the reply closes.
+    request.onSpokenFields?.({ assessment, ...(this.replyFirst ? {} : { coach }), coachLine, narration, sceneReply: { speaker: sceneReply.speaker, fr: sceneReply.fr } });
     await this.gate;
     if (this.failAfter) throw new BrainParseError('the stream broke after the reply', '{', { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, model: 'test' });
     return super.turn(request);
@@ -4721,6 +4723,28 @@ describe('a streamed turn speaks before the rest of it arrives', () => {
     assert.equal(shown.sceneReply.en, reply.en, 'with the full turn\'s English, which arrived after speech began');
     assert.equal(said.length, before + 1, 'and the reply is not said a second time');
     assert.equal(convo.conversationState.turnCount, 1);
+  });
+
+  test('reply-first: the reply is spoken without the recast echo, and the full turn\'s coach still reaches the view', async (t) => {
+    const finding = sampleCoachItem({ kind: 'textbook-phrasing', quote: 'Je ne sais pas', better: 'J’sais pas', betterEn: 'I do not know', weight: 'matters-now' });
+    const turn = sampleTurn({ coach: [finding], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    const client = new StreamingBrain(turn, false, true);
+    const { convo, session, said, published } = await inScene(t, { client });
+    const warned = t.mock.method(console, 'warn', () => {});
+    const before = said.length;
+    const answered = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je ne sais pas' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(said.length, before + 1, 'spoken on fr close although no coach has streamed');
+    assert.equal(said.at(-1), reply.fr, 'with no "Ah, ..." echo, because the recast has no coach to read');
+    client.finish();
+    await answered;
+    await convo.settled();
+    assert.equal(said.length, before + 1, 'not said a second time');
+    const shown = views(published).at(-1)!.view;
+    assert.equal(shown.sceneReply.fr, reply.fr, 'the screen shows the words heard');
+    assert.deepEqual(shown.coachNow.map((item) => item.quote), [finding.quote], 'the full turn\'s coach is shown');
+    assert.ok(!warned.mock.calls.some((call) => String(call.arguments[0]).includes('disagreed')),
+      'the full turn does not recast what was already spoken, so nothing disagreed');
   });
 
   test('a reply the output guard would touch is never spoken early', async (t) => {

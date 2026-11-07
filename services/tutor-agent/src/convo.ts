@@ -3061,7 +3061,9 @@ export class LuvaniConversation extends voice.Agent {
     // Guarded once, before both, so the screen and the speaker can never carry
     // different words. Two checks would be two chances to disagree at the exact
     // moment agreement matters.
-    const recast = !this.voiceless && input.type === 'spoke'
+    // A reply already spoken early is not recast again: the spoken words win
+    // the screen, and a reply-first turn's coach was not there to recast from.
+    const recast = !this.voiceless && input.type === 'spoke' && spokenEarly.value === null
       ? inCharacterRecast(view, input.text, this.spokenRecastUsed) : { view, used: false };
     let guarded = this.guardView(recast.view);
     if (guarded !== recast.view) {
@@ -3151,6 +3153,8 @@ export class LuvaniConversation extends voice.Agent {
     if (this.ended || this.voiceless || this.liveWork.signal.aborted) return null;
     const provisional: TutorTurn = {
       ...fields,
+      // Reply-first turns have not streamed their coach when the reply closes.
+      coach: fields.coach ?? [],
       // Only the reply's French has streamed. Its written form and English
       // follow and are display only; the full turn supplies them, guarded,
       // before anything is shown.
