@@ -16,15 +16,15 @@ omit `language_code`; live/saved cache identities change. Frozen French-only dai
 and onboarding batches retain `fr`. This does not prove all voices normalize every
 English number correctly.
 
-Mixed-language recognition remains a review candidate. Normal Nova-3 behavior is
-unchanged: multilingual conversation opening, French scenes and lessons.
-`LUVANI_CONVO_ASR_EXPERIMENT=1` selects Flux Multilingual with French/English hints
-only for conversations; it is OFF by default and has not been enabled in the
-running/canonical configuration. Lessons and typing retain their existing path.
-It does not enable eager model generation. Synthetic prerecorded and actual SDK
-streaming probes found high-confidence errors in both candidates; this option
-requires consenting beginner, interruption, room and end-to-end timing QA before
-activation. It adds no grade, confidence threshold, saved transcript or recipient.
+Since VOICE-022 (2026-11-07) Deepgram Flux `flux-general-multi` with French and English
+hints is the recogniser for every session kind: lessons, the guest scene, the mission
+scene and the conversation (see "English answers and the recogniser" below). The knob
+`LUVANI_STT_NOVA_KINDS` (a comma list of `lesson`, `scene`, `convo`) puts a kind back on
+nova-3 as it was before. The old `LUVANI_CONVO_ASR_EXPERIMENT` flag is gone. Flux does not
+enable eager model generation. Synthetic prerecorded and actual SDK streaming probes found
+high-confidence errors in both candidates, so consenting beginner, interruption, room and
+end-to-end timing QA stay open (F695). It adds no grade, confidence threshold, saved
+transcript or recipient.
 
 Current-scene recognition repair uses only the current support line and reply
 options. Conservative sound-fold matches and the observed “sur place” confusion family
@@ -33,19 +33,22 @@ ambiguous match, changed negation/quantity, unrelated speech, typed answer or
 pre-scene topic remains untouched. The same interpreted text reaches the brain
 and final transcript, whose caption says “Interpreted from your speech”. This is
 an interpretation, never an audio pronunciation score or automatic lesson pass.
-Nova-3 phase changes restart the active recognizer through the public Agent API;
-a failed update reports a typing recovery message. The direct conversation path also receives a bounded current-turn keyterm
-list through the active session’s public update seam, off the paid proxy only. Scripted lessons and the guest scene
-(VOICE-017) get one fixed keyterm list, `lessonKeyterms(lesson)` from core, set when the Nova-3 recognizer is built, on and
-off the proxy alike. Every target's full line comes first (a trailing `?` stripped), then short forms and acceptable options,
+On nova-3, phase changes restart the active recognizer through the public Agent API;
+a failed update reports a typing recovery message. On Flux the phase switch is skipped:
+the hints stay French and English for the whole session. The direct conversation path also receives a bounded current-turn keyterm
+list through the active session’s public update seam, on nova-3 and off the paid proxy only. Scripted lessons and the guest scene
+(VOICE-017) get one fixed keyterm list, `lessonKeyterms(lesson)` from core, set when the recognizer is built (as Flux `keyterm`
+values by default, as nova-3 keyterms for a kind the knob puts back), on and off the proxy alike. Every target's full line comes first (a trailing `?` stripped), then short forms and acceptable options,
 never the lowercase `accepts`, within 16 phrases and 400 bytes. It is never changed mid-session, because each change reopens
-the socket and under the proxy each socket is admitted as a full session of audio. Experimental recognition gets none.
-The paid proxy accepts repeated `keyterm` parameters only with `model=nova-3` (1 to 16 values, each 1 to 100 characters
+the socket and under the proxy each socket is admitted as a full session of audio. The conversation gets none.
+The paid proxy accepts repeated `keyterm` parameters with `model=nova-3` on `/v1/listen` and with `model=flux-general-multi`
+on `/v2/listen` (1 to 16 values, each 1 to 100 characters
 with no control characters or `;`, 400 UTF-8 bytes in total) and forwards the re-encoded query it hashed, never the raw text. The quote identity carries the marker `keyterm: 'prompted'`
 instead of the values, and a stream without keyterms has exactly its old identity. If the quote has no keyterm component,
 the gate refuses with `quote-mismatch` before any claim, and the proxy admits the plain stream and forwards it with every
 keyterm removed. It logs `[luvani] keyterms: prompted` or `[luvani] keyterms: stripped` once per connection, with no values.
-`keytermSttConfigurationSha256(baseQuery)` in `paidVoiceProxy.ts` prints the component hash.
+`keytermSttConfigurationSha256(baseQuery, path)` in `paidVoiceProxy.ts` prints the component hash; the path is
+`/v2/listen` for Flux.
 Repair still runs after recognition without another model request.
 
 What happens between a learner tapping "start" and a tutor answering them, and
@@ -722,6 +725,11 @@ cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
 2,500 ms either way. A lesson may run preemptive generation once more per held
 pause; the framework caps that at three a turn.
 
+The recogniser has been Flux since VOICE-022, and Flux declares its own end of turn. LiveKit
+still decides when the turn commits; see "English answers and the recogniser (Flux,
+VOICE-022)" for what Flux's end of turn does to the commit, which is mostly a wait at
+rungs 3 and 4 for its final transcript.
+
 ## Speaking quietly (VOICE-011)
 
 The live room has a "Quiet voice" switch in its room menu (`…`, UI-014), under
@@ -942,10 +950,10 @@ learner disconnecting, and also what an unmarked session reads as. One known lim
 paid quote refusal reaches the worker as an STT or TTS error and is logged as that,
 not `cap`.
 
-### English answers and the recogniser (measured 2026-11-06)
+### English answers and the recogniser (Flux, VOICE-022)
 
-Learners are invited to answer in English (VOICE-013), but lessons, the guest scene
-and the mission scene still run nova-3 `fr`, which turns English into French-shaped
+Learners are invited to answer in English (VOICE-013), but until 2026-11-07 lessons, the
+guest scene and the mission scene ran nova-3 `fr`, which turns English into French-shaped
 nonsense (F964). `scripts/measureKeyterms.mjs --conditions fr,multi,multi-ep25,flux`
 measures it on 12 café lesson lines, 8 scene replies and 8 English answers, said by a
 synthetic English-accented voice (clips in `artifacts/multi-stt-2026-11-06/`, results in
@@ -953,16 +961,83 @@ synthetic English-accented voice (clips in `artifacts/multi-stt-2026-11-06/`, re
 
 | recogniser | lesson lines | scene replies | English answers |
 |---|---|---|---|
-| nova-3 `fr` (today) | 0.958 | 1.000 | 0.169 |
+| nova-3 `fr` (before VOICE-022) | 0.958 | 1.000 | 0.169 |
 | nova-3 `multi`, endpointing 100 | 0.917 | 0.861 | 0.929 |
 | nova-3 `multi`, default endpointing | 0.958 | 0.840 | 0.929 |
 | Flux `flux-general-multi`, hints fr, en | 0.958 | 1.000 | 0.950 |
 
-nova-3 `multi` loses French in the scene in both runs ("Sur place, merci" heard as
-"Surplasmercy"), so it was not shipped. Flux keeps French and hears English. Moving to
-it needs the paid proxy to speak `/v2/listen`, a Flux quote shape, and the real-learner
-end-of-turn and interruption checks F695 still holds; that is the next lane. The voice
-is synthetic, so none of this says how real beginners sound.
+The rerun on 2026-11-07 (`--conditions fr,flux --run`, results
+`docs/live-latency-evidence/2026-11-07-flux-stt.{json,md}`) gave the same numbers: Flux
+0.958, 1.000 and 0.950, nova-3 `fr` 0.958, 1.000 and 0.169. nova-3 `multi` loses French
+in the scene in both runs ("Sur place, merci" heard as "Surplasmercy"), so it was not
+shipped. Flux keeps French and hears English. The voice is synthetic, so none of this
+says how real beginners sound.
+
+**What runs now.** Flux `flux-general-multi` with language hints `fr` and `en` hears
+every session kind: lessons, the guest scene, the mission scene and the conversation.
+`services/tutor-agent/src/recognitionPlan.ts` returns Flux by default. The env knob
+`LUVANI_STT_NOVA_KINDS` (a comma list of `lesson`, `scene`, `convo`) puts a kind back
+on nova-3 as before; an unset or unknown value changes nothing. `agent.ts` builds
+`deepgram.STTv2` with the lesson's fixed keyterm list (VOICE-017) for lessons and
+scenes and none for the conversation. The conversation's phase language switch
+(`setSttLanguage`, choosing=multi then scene=fr) is skipped on Flux, so the hints stay
+French and English for the whole session, and `setSttPhrases` (per-turn keyterms) stays
+off on Flux. Under the paid proxy the stream goes to `proxy.deepgramBaseURL + '/v2/listen'`.
+
+**The proxy and the quotes.** `paidVoiceProxy.ts` accepts `/v2/listen` and forwards to
+`wss://api.deepgram.com/v2/listen`. Allowed query keys: `model` (`flux-general-multi`
+only), `encoding` linear16, `sample_rate` 16000, `mip_opt_out` true, `language_hint`
+(`fr` or `en`, sorted into the identity as an array), `keyterm` (the same caps as
+nova-3: 16 terms, 100 characters, 400 bytes, identity marker `keyterm: 'prompted'`,
+values never hashed), `eot_threshold` 0.5 to 1.0, `eager_eot_threshold` 0.3 to 0.9,
+`eot_timeout_ms` 500 to 60000, and `numerals` and `profanity_filter` true or false.
+`tag`, `redact`, `language` and `channels` are refused. The keyterm-strip fallback on a
+quote mismatch works on v2, and `keytermSttConfigurationSha256(query, '/v2/listen')`
+gives the Flux keyterm identity. `scripts/paidQuotes.mjs` books a lesson as 2 Flux
+streams with keyterms, at $0.0078 plus $0.0013 a minute (Deepgram pricing page, read
+2026-11-07: Flux Multilingual $0.0078 a minute pay as you go, keyterm prompting
+$0.0013 a minute). The conversation books 2 Flux streams at $0.0078 (one shape,
+`stt-convo-flux`, no phase languages). A dry generate gives $2.47 for a lesson and
+$3.18 for a conversation per 600 s session at worst case; the derived per-account daily
+budget is $6.40 (was $6.80) and the global one $20 (was $21). The guest scene is
+admitted by `guestSceneGate` (2 STT sockets) and is not quoted.
+
+**What Flux's own end of turn does.** Flux declares its own end of turn, so the first
+question was whether it would split a learner's slow sentence. `scripts/measureFluxEot.mjs`
+(results `docs/live-latency-evidence/2026-11-07-flux-eot.{json,md}`) streams the six
+French sentences of `artifacts/voice-comparison-2026-09-19`, each with a pause spliced
+into the middle, through Flux at the default `eot_threshold` 0.7. These are synthetic
+voices, not learners. A split means Flux declared EndOfTurn inside the pause:
+
+| Pause | Flux split the sentence |
+|---|---|
+| 0.5 s | 0 of 6 |
+| 1.0 s | 4 of 6 |
+| 1.5 s | 5 of 6 |
+| 2.0 s | 6 of 6 |
+
+From the last voiced sample to Flux's EndOfTurn took p50 699 ms and p95 977 ms (for 0.5 s
+pauses, p50 843 ms and p95 1,102 ms).
+
+What this means for the room comes from reading SDK 1.9's `audio_recognition.js`, not from
+a measurement in a room. LiveKit keeps the turn: `turnHandling.ts` is unchanged, so
+Silero VAD, the local turn detector and the VOICE-010 floors still decide when a turn
+commits. A Flux split only delivers the first half as an early final transcript. The SDK
+appends the second half's final to the same user turn as long as the floor has not
+committed it, and the VAD's start of speech cancels the pending commit, so the 2026-10-23
+cut-off results still hold. The cost is latency at rungs 3 and 4 (floor 400 ms): the turn
+can only commit once Flux's final has arrived, about 700 to 1,000 ms after the last word,
+where nova-3's final arrived almost at once. Rungs 1 and 2 (floor 1,200 ms) are unchanged.
+
+Still open, held in F695: measuring this in a room, and calibrating on real learners.
+Not adopted: `turnDetection: 'stt'` (Flux owning the turn) and `eot_*` tuning. They are
+the next experiment if the room latency at rungs 3 and 4 matters.
+
+A live replay with what Flux transcribed (`scripts/measureLiveTurn.mjs`, cases
+`cafe-flux-coffee` and `cafe-flux-outside`, results
+`docs/live-latency-evidence/2026-11-07-live-turn-flux-english.json`): "A coffee, please."
+was recast by the brain as « Un café, s'il vous plaît. », with the coach line "You're
+ordering a coffee: « Un café, s'il vous plaît. »". 6 calls, spoken fields p50 2,306 ms.
 
 ## Scene reply dispatch timing
 

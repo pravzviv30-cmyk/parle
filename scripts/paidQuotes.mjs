@@ -54,7 +54,7 @@ export const STAGING_ENV=Object.freeze({
  LUVANI_STREAM_TURN:undefined,            // streamed spoken convo turns stay on (default)
  LUVANI_TTS_VENDOR:undefined,             // elevenlabs
  LUVANI_CONVERSATION_TTS_MODEL:undefined, // eleven_multilingual_v2 only, no flash tier
- LUVANI_CONVO_ASR_EXPERIMENT:undefined,   // nova-3, not flux
+ LUVANI_STT_NOVA_KINDS:undefined,         // every kind on Flux (F964)
  LUVANI_AUDIO_SCORING:undefined,          // no scoring component in lesson/convo
  TYPESAFE_API_KEY:undefined,              // Jev is off in production anyway
 });
@@ -79,7 +79,10 @@ const RATES=Object.freeze({
  voiceMultiplier:{emilie:2,sarah:2},
  // DEFAULT_COST_MODEL.sttPerMin (0.009) = Nova-3 monolingual streaming $0.0077 + keyterm prompting ~$0.0013.
  // rates.md: Nova-3 multilingual streaming regular $0.0092/min. Plain monolingual $0.0077.
- deepgramUsdPerMin:{fr:0.0077,multi:0.0092,keyterm:0.0013},
+ // deepgram.com/pricing read 2026-11-07: Flux Multilingual streaming pay as you go $0.0078/min; keyterm prompting
+ // add-on $0.0013/min, with no Flux-specific rate on the page. fr and multi stay for the Nova-3 knob (LUVANI_STT_NOVA_KINDS);
+ // api-transcribe prices at fr.
+ deepgramUsdPerMin:{flux:0.0078,fr:0.0077,multi:0.0092,keyterm:0.0013},
 });
 
 const BRAIN_SYNTHETIC={persona:'',request:'Synthetic capture request.'};
@@ -202,11 +205,13 @@ export async function captureShapes({voices}) {
     await Promise.race([drain,new Promise(r=>setTimeout(r,750))]);await Promise.resolve().then(()=>synthesis.close()).catch(()=>{});await Promise.resolve().then(()=>tts.close()).catch(()=>{});
     if(voiceSink[0].voice!==ELEVEN_VOICES[voice])throw new Error(`tts ${voice} captured the wrong voice`);add(`tts-${voice}`,voiceSink[0]);
    }
-   // agent.ts sessionAudio stt: deepgram.STT({...recognition.options, keyterm?, baseUrl, apiKey, sampleRate:16000, numChannels:1, mipOptOut:true}).
-   const sttShapes=[['stt-lesson-keyterm',recognitionPlan('lesson','fr',STAGING_ENV),core.lessonKeyterms(core.CAFE_LESSON)],['stt-convo-multi',recognitionPlan('convo','multi',STAGING_ENV),[]],['stt-convo-fr',recognitionPlan('convo','fr',STAGING_ENV),[]]];
+   // agent.ts sessionAudio stt, Flux: deepgram.STTv2({...recognition.options, keyterms?, endpointUrl: proxy.deepgramBaseURL+'/v2/listen', apiKey, mipOptOut:true});
+   // a LUVANI_STT_NOVA_KINDS kind: deepgram.STT({...recognition.options, keyterm?, baseUrl, apiKey, sampleRate:16000, numChannels:1, mipOptOut:true}).
+   const sttShapes=[['stt-lesson-keyterm',recognitionPlan('lesson','fr',STAGING_ENV),core.lessonKeyterms(core.CAFE_LESSON)],['stt-convo-flux',recognitionPlan('convo','multi',STAGING_ENV),[]]];
    for(const [name,plan,keyterm] of sttShapes){
-    if(plan.experimental)throw new Error('flux is not quoted');
-    voiceSink.length=0;const stt=new deepgram.STT({...plan.options,...(keyterm.length?{keyterm}:{}),baseUrl:proxy.deepgramBaseURL,apiKey:'proxy-only',sampleRate:16000,numChannels:1,mipOptOut:true});
+    voiceSink.length=0;const stt=plan.flux
+     ?new deepgram.STTv2({...plan.options,...(keyterm.length?{keyterms:keyterm}:{}),endpointUrl:proxy.deepgramBaseURL+'/v2/listen',apiKey:'proxy-only',mipOptOut:true})
+     :new deepgram.STT({...plan.options,...(keyterm.length?{keyterm}:{}),baseUrl:proxy.deepgramBaseURL,apiKey:'proxy-only',sampleRate:16000,numChannels:1,mipOptOut:true});
     stt.on('error',()=>{});const recognition=stt.stream({connOptions:conn});recognition.pushFrame(new AudioFrame(new Int16Array(3200),16000,1,3200));
     // A keyterm stream asks for the keyterm identity first, then (refused) the plain one.
     await until(()=>voiceSink.length>=(keyterm.length?2:1),name);recognition.close();
@@ -236,8 +241,9 @@ export async function captureShapes({voices}) {
  *   A component holds at most 100,000 output tokens and 2 MiB of input (paid_quote_valid_v1),
  *   so a large budget is split over several components with the SAME identity; the gate fills them in order.
  * STT streaming (Deepgram). Each websocket claims the whole session (600,000 ms), so a component is one
- *   connection: lesson 2 (fr + keyterms; the vendor maxRetry 1 can open a second stream), convo 2 multi (topic choice) + 2 fr (scene; each scene restarts it).
- *   Price = 10 min x the per-minute rate (fr+keyterm = DEFAULT_COST_MODEL.sttPerMin 0.009; multi 0.0092).
+ *   connection: lesson 2 (Flux + keyterms; the vendor maxRetry 1 can open a second stream), convo 2 Flux (no phase language
+ *   switch on Flux, so one shape: the first stream and the one reconnect).
+ *   Price = 10 min x the per-minute rate (flux+keyterm 0.0091; convo flux 0.0078).
  * STT take (api-transcribe): one call, at most SCORING_MAX_WAV_BYTES (30 s); priced at the streaming fr rate.
  * TTS (ElevenLabs). One component per voice, because voice is identity. Per session the tutor speaks
  *   600 s x tutorSpeakingShare 0.25 x 17 chars/s (rates.md) = 2,550 chars; x1.25 for accents/headroom = 3,200 bytes.
@@ -278,15 +284,15 @@ export async function buildQuoteComponents(shapes,voices) {
  const convoBrain=turn=>[...llmComponents(prices,'turn',s(turn)),...llmComponents(prices,'frame',s('frame')),...llmComponents(prices,'curate',s('curate')),...llmComponents(prices,'extract',s('extract')),...llmComponents(prices,'drills',s('drills'))];
  const takeMillis=(SCORING_MAX_WAV_BYTES-44)/32;
  return {
-  // Scripted lesson: LiveKit chat (gpt-6-luna) + Deepgram fr with the lesson keyterms + ElevenLabs.
+  // Scripted lesson: LiveKit chat (gpt-6-luna) + Deepgram Flux with the lesson keyterms + ElevenLabs.
   // Two streams: the first and the one reconnect the plugin may open (sttConnOptions maxRetry 1, agent.ts).
-  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-fr-keyterm',s('stt-lesson-keyterm'),2,rate.fr+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
+  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-flux-keyterm',s('stt-lesson-keyterm'),2,rate.flux+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
   // Typed lesson: llmNode stops before any model call, so nothing is spent; the quote still needs one llm
   // component (paid_quote_valid_v1). One live-chat effect, the smallest honest envelope.
   'lesson-text':llmComponents(prices,'chat',s('live-chat'),{effects:1}),
-  // Spoken conversation: brain (streamed turns) + Deepgram multi/fr + ElevenLabs. The LiveKit chat model is
+  // Spoken conversation: brain (streamed turns) + Deepgram Flux + ElevenLabs. The LiveKit chat model is
   // not called in a conversation (preemptive generation off; onUserTurnCompleted answers through the brain).
-  convo:[...convoBrain('turn-stream'),...sttStreamComponent('stt-multi',s('stt-convo-multi'),2,rate.multi),...sttStreamComponent('stt-fr',s('stt-convo-fr'),2,rate.fr),...tts(TTS_BYTES,TTS_EFFECTS)],
+  convo:[...convoBrain('turn-stream'),...sttStreamComponent('stt-flux',s('stt-convo-flux'),2,rate.flux),...tts(TTS_BYTES,TTS_EFFECTS)],
   'convo-text':convoBrain('turn'),
   practice:llmComponents(prices,'drills',s('drills')),
   'api-judge':llmComponents(prices,'judge',s('judge')),

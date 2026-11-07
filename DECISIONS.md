@@ -2144,3 +2144,48 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   time; staging quotes are regenerated for the lesson's second stream. Numbers and the
   remaining limits are in `docs/LIVE_VOICE.md` "One hiccup is not the end". F964, F965.
 
+
+## VOICE-022 — Flux hears every session, and LiveKit keeps the turn
+
+- Date: 2026-11-07
+- Status: accepted
+- Decision:
+  - Deepgram Flux `flux-general-multi` with language hints `fr` and `en` is the recogniser
+    for every session kind: lessons, the guest scene, the mission scene and the
+    conversation (`services/tutor-agent/src/recognitionPlan.ts`). The env knob
+    `LUVANI_STT_NOVA_KINDS` (a comma list of `lesson`, `scene`, `convo`) puts a kind back
+    on nova-3 as before. The `LUVANI_CONVO_ASR_EXPERIMENT` flag is gone.
+  - Lessons and scenes keep the fixed keyterm list (VOICE-017) as Flux keyterms; the
+    conversation sends none and skips its phase language switch, so the hints stay
+    French and English for the whole session.
+  - The paid voice proxy speaks `/v2/listen` (model `flux-general-multi` only, the same
+    keyterm caps as nova-3) and forwards to Deepgram's v2 endpoint. The quote strip
+    fallback works on v2.
+  - LiveKit keeps the turn: Silero VAD, the local turn detector and the VOICE-010 floors
+    are unchanged. Flux's own end of turn is not used to commit a turn.
+- Reason: English answers scored 0.169 under nova-3 `fr` (F964). Mean word accuracy, lesson
+  lines / scene replies / English answers: nova-3 `fr` 0.958 / 1.000 / 0.169; nova-3
+  `multi` 0.958 / 0.840 / 0.929 (0.917 / 0.861 / 0.929 with endpointing 100); Flux 0.958 /
+  1.000 / 0.950. Measured 2026-11-06 and again 2026-11-07 on a synthetic English-accented
+  voice, so it says nothing yet about real beginners.
+- Ruled out:
+  - nova-3 `multi`: it loses scene French in both runs ("Sur place, merci" heard as
+    "Surplasmercy").
+  - Flux owning the turn (`turnDetection: 'stt'`) and `eot_*` tuning, for now. On recordings
+    with a spliced pause, Flux declared a split inside the pause in 0 of 6 at 0.5 s, 4 of 6
+    at 1.0 s, 5 of 6 at 1.5 s and 6 of 6 at 2.0 s, with its end of turn p50 699 ms and p95
+    977 ms after the last voiced sample (`scripts/measureFluxEot.mjs`). By reading SDK 1.9,
+    LiveKit appends the second half to the same turn while the floor has not committed it,
+    so the 2026-10-23 cut-off results hold. They are the next experiment if room latency
+    at rungs 3 and 4 matters.
+- Consequence: a lesson quote books 2 Flux streams with keyterms ($0.0078 plus $0.0013 a
+  minute; Deepgram pricing page read 2026-11-07) and a conversation quote books 2 Flux
+  streams at $0.0078. Dry generate gives $2.47 for a lesson and $3.18 for a conversation
+  per 600 s session at worst case, so the derived per-account daily budget is $6.40 (was
+  $6.80) and the global one $20 (was $21). The guest scene is admitted by `guestSceneGate`
+  and is not quoted. Staging quotes need regenerating for the Flux shapes. Rungs 3 and 4
+  (floor 400 ms) now commit only once Flux's final arrives, about 700 to 1,000 ms after
+  the last word; rungs 1 and 2 (floor 1,200 ms) are unchanged.
+- Open: room measurement of that latency and calibration on real learners (F695); whether
+  to let Flux own the turn. Numbers and the live replay are in `docs/LIVE_VOICE.md`
+  "English answers and the recogniser". F964.

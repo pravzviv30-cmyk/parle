@@ -119,6 +119,9 @@ const CASES = [
   { id: 'cafe-gender-error', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, je voudrais une café, s’il vous plaît.' },
   { id: 'cafe-conjugation-error', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, nous voudrait deux cafés, s’il vous plaît.' },
   { id: 'cafe-english-reach', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, can I have a croissant?' },
+  // Flux transcripts of the 2026-11-06 English clips (F964); the second is deliberately the imperfect one.
+  { id: 'cafe-flux-coffee', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'A coffee, please.' },
+  { id: 'cafe-flux-outside', mission: 'mission:premier-cafe', beat: 'say-where', text: 'I wanna sit outside.' },
   { id: 'cafe-franglais', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, je voudrais un coffee avec du milk, please.' },
   { id: 'cafe-help', mission: 'mission:premier-cafe', beat: 'say-where', type: 'help' },
   { id: 'cafe-long-clauses', mission: 'mission:premier-cafe', beat: 'say-where', text: 'Alors, je pense que je vais le prendre sur place parce qu’il fait froid dehors, mais si vous avez une table près de la fenêtre, ce serait parfait.' },
