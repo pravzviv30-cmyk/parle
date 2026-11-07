@@ -16,7 +16,7 @@ omit `language_code`; live/saved cache identities change. Frozen French-only dai
 and onboarding batches retain `fr`. This does not prove all voices normalize every
 English number correctly.
 
-Since VOICE-022 (2026-11-07) Deepgram Flux `flux-general-multi` with French and English
+Since VOICE-023 (2026-11-07) Deepgram Flux `flux-general-multi` with French and English
 hints is the recogniser for every session kind: lessons, the guest scene, the mission
 scene and the conversation (see "English answers and the recogniser" below). The knob
 `LUVANI_STT_NOVA_KINDS` (a comma list of `lesson`, `scene`, `convo`) puts a kind back on
@@ -725,9 +725,9 @@ cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
 2,500 ms either way. A lesson may run preemptive generation once more per held
 pause; the framework caps that at three a turn.
 
-The recogniser has been Flux since VOICE-022, and Flux declares its own end of turn. LiveKit
+The recogniser has been Flux since VOICE-023, and Flux declares its own end of turn. LiveKit
 still decides when the turn commits; see "English answers and the recogniser (Flux,
-VOICE-022)" for what Flux's end of turn does to the commit, which is mostly a wait at
+VOICE-023)" for what Flux's end of turn does to the commit, which is mostly a wait at
 rungs 3 and 4 for its final transcript.
 
 ## Speaking quietly (VOICE-011)
@@ -950,7 +950,7 @@ learner disconnecting, and also what an unmarked session reads as. One known lim
 paid quote refusal reaches the worker as an STT or TTS error and is logged as that,
 not `cap`.
 
-### English answers and the recogniser (Flux, VOICE-022)
+### English answers and the recogniser (Flux, VOICE-023)
 
 Learners are invited to answer in English (VOICE-013), but until 2026-11-07 lessons, the
 guest scene and the mission scene ran nova-3 `fr`, which turns English into French-shaped
@@ -961,7 +961,7 @@ synthetic English-accented voice (clips in `artifacts/multi-stt-2026-11-06/`, re
 
 | recogniser | lesson lines | scene replies | English answers |
 |---|---|---|---|
-| nova-3 `fr` (before VOICE-022) | 0.958 | 1.000 | 0.169 |
+| nova-3 `fr` (before VOICE-023) | 0.958 | 1.000 | 0.169 |
 | nova-3 `multi`, endpointing 100 | 0.917 | 0.861 | 0.929 |
 | nova-3 `multi`, default endpointing | 0.958 | 0.840 | 0.929 |
 | Flux `flux-general-multi`, hints fr, en | 0.958 | 1.000 | 0.950 |
@@ -1087,6 +1087,22 @@ failed checkpoint still ends the session as before. Typed rooms and the
 Anthropic brain do not stream. In `[luvani:reply-stages]`, `brain` on a
 streamed turn is the time to its spoken fields, and `viewToSay` is omitted when
 speech started before the view.
+
+`LUVANI_TURN_REPLY_FIRST=1` (opt-in, default off) moves `coach` after `sceneReply` in
+the live turn's schema (`ReplyFirstTurnSchema`, with `ReplyFirstEarlySpokenTurnSchema`
+as the early hand-over; `turnSchemasFor` picks the pair), so the reply's French streams
+about 200 to 300 ms sooner. The cost: `coach` has not streamed when `sceneReply.fr`
+closes, so `speakEarly` runs with no coach items and the in-character recast ("Ah, ...")
+finds nothing to echo, and the early reply is spoken without it. The full turn still
+carries the coach items to the screen as before (founder accepted this trade, 2026-11-07),
+and a reply that was spoken early without a recast is not recast by the full turn, so the
+screen shows the words heard without a disagreement. A reply-first turn that reached for
+English is not spoken early at all: its French hand-back rides an inline coach item, so
+the full turn speaks it as before and the head start is lost only on those turns. `scripts/measureLiveTurn.mjs` reads the
+switch from the env file it is given. Both this switch and the service tier below are part
+of the brain quote's configuration identity (`services/shared/paidExecution.ts`), so on
+staging they go on only together with quotes generated with the same `STAGING_ENV` in
+`scripts/paidQuotes.mjs`, or every live turn is refused as quote-mismatch.
 
 `OPENAI_LIVE_SERVICE_TIER` (opt-in, default off) sends OpenAI's `service_tier`
 on the live turn and frame only, never on analyst work. Accepted values are

@@ -50,7 +50,8 @@ export const STAGING_ENV=Object.freeze({
  NODE_ENV:'production',TUTOR_LLM:'openai',
  // Unset on staging: defaults gpt-5.6-luna (turn), gpt-6-luna (live/drills/curation), gpt-5.6-terra (analyst).
  OPENAI_TURN_MODEL:undefined,OPENAI_LIVE_MODEL:undefined,OPENAI_ANALYST_MODEL:undefined,OPENAI_DRILLS_MODEL:undefined,OPENAI_CURATION_MODEL:undefined,
- OPENAI_LIVE_SERVICE_TIER:undefined,BRAIN_EFFORT:undefined,
+ OPENAI_LIVE_SERVICE_TIER:'priority',BRAIN_EFFORT:undefined, // priority tier on staging (VOICE-022, founder 2026-11-07); service_tier is in the brain quote identity
+ LUVANI_TURN_REPLY_FIRST:'1',            // coach after the reply (VOICE-022); the json schema is in the brain quote identity
  LUVANI_STREAM_TURN:undefined,            // streamed spoken convo turns stay on (default)
  LUVANI_TTS_VENDOR:undefined,             // elevenlabs
  LUVANI_CONVERSATION_TTS_MODEL:undefined, // eleven_multilingual_v2 only, no flash tier

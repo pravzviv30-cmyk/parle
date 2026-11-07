@@ -9651,7 +9651,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `LUVANI_STT_NOVA_KINDS puts only the named kinds back on Nova-3 with the given language`
 - verified-by: `every session kind defaults to Flux with French and English hints, whatever the unset or unknown knob`
 - note: 2026-11-06 measurement (F964) answers the accuracy question on a synthetic accent: Flux with fr/en hints keeps French (lesson 0.958, scene 1.000, same as nova-3 `fr`) and hears English (0.950), and nova-3 `multi` loses scene French (0.861). The real-learner end-of-turn, interruption and number checks are still held here before Flux runs for everyone.
-- note: 2026-11-07 (F964, VOICE-022): accuracy is settled by F964, and Flux is now the recogniser for every session kind, so the default-off conversation option above is gone (the tests it named are renamed to the ones listed here). Flux's own end of turn was measured with `scripts/measureFluxEot.mjs` on six French sentences with a spliced mid-sentence pause at the default eot_threshold 0.7 (`docs/live-latency-evidence/2026-11-07-flux-eot.{json,md}`): Flux split the sentence in 0 of 6 at 0.5 s, 4 of 6 at 1.0 s, 5 of 6 at 1.5 s and 6 of 6 at 2.0 s, and its EndOfTurn came p50 699 ms, p95 977 ms after the last voiced sample (0.5 s pauses: p50 843, p95 1,102). Reading SDK 1.9, LiveKit keeps the turn (VAD, local turn detector and VOICE-010 floors unchanged), so a split only costs latency at rungs 3 and 4, about 700 to 1,000 ms. Room measurement of that and real-learner calibration (beginner, interruption, numbers) are still held here.
+- note: 2026-11-07 (F964, VOICE-023): accuracy is settled by F964, and Flux is now the recogniser for every session kind, so the default-off conversation option above is gone (the tests it named are renamed to the ones listed here). Flux's own end of turn was measured with `scripts/measureFluxEot.mjs` on six French sentences with a spliced mid-sentence pause at the default eot_threshold 0.7 (`docs/live-latency-evidence/2026-11-07-flux-eot.{json,md}`): Flux split the sentence in 0 of 6 at 0.5 s, 4 of 6 at 1.0 s, 5 of 6 at 1.5 s and 6 of 6 at 2.0 s, and its EndOfTurn came p50 699 ms, p95 977 ms after the last voiced sample (0.5 s pauses: p50 843, p95 1,102). Reading SDK 1.9, LiveKit keeps the turn (VAD, local turn detector and VOICE-010 floors unchanged), so a split only costs latency at rungs 3 and 4, about 700 to 1,000 ms. Room measurement of that and real-learner calibration (beginner, interruption, numbers) are still held here.
 - verified-by: `Flux recognition stays inside lazy session audio and phase updates skip it, keeping its bilingual hints`
 
 ### F696 — Recorded onboarding must describe playback and keep learner pacing
@@ -12409,7 +12409,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   "Land fixes now, Flux next"). It needs the paid proxy to speak `/v2/listen`, a Flux quote shape,
   and the per-kind switch. Meanwhile a line that makes sense in neither language gets one ask-again
   in French (VOICE-021).
-- note: 2026-11-07 landed (VOICE-022). Flux `flux-general-multi` with hints fr and en now hears every
+- note: 2026-11-07 landed (VOICE-023). Flux `flux-general-multi` with hints fr and en now hears every
   session kind (lessons, guest scene, mission scene, conversation). `recognitionPlan.ts` returns Flux by
   default and `LUVANI_STT_NOVA_KINDS` puts a kind back on nova-3. `agent.ts` builds `STTv2` with the
   lesson keyterms (none for the conversation, whose phase language switch is skipped on Flux). The paid
@@ -12472,3 +12472,24 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-11-06 on claude/dark-contrast.
 - verified-by: `dark: the founder marks of 2026-11-06 clear their floors on the dark grounds`
 - verified-by: `no Text is styled only by a type role, so none draws black in dark`
+### F967 — The live tutor's reply is slower than the cascade allows
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/contract/schemas.ts (`TurnSchema`), services/tutor-agent/src/thinkingTime.ts,
+  services/tutor-agent/src/voiceConfiguration.ts, services/tutor-agent/src/convo.ts (`speakEarly`)
+- note: Found 2026-11-06 by the founder on the staging café mission: the tutor feels slow and
+  scripted (problem 2 of nine). Lane D tunes the cascade one switch at a time, each measured
+  (VOICE-022). Baseline 2026-11-07 at main `64b07372`, replay of 24 live turns on gpt-6-luna:
+  spoken fields ready at p50 1,651 ms (p95 3,314) on the standard tier, 950 ms (p95 1,735) on
+  priority; staging `[luvani:scene-first-frame]` had no spoken scene since `67f75358` (n=0).
+  Evidence in `docs/live-latency-evidence/2026-11-07-lane-d.md`. Switches, in landing order:
+  priority tier on staging (set and pulled back 2026-11-07: `service_tier` is in the brain quote's
+  identity, so the quotes must be regenerated with it first); `coach` after the reply
+  (`LUVANI_TURN_REPLY_FIRST`, whose schema is in the same identity, same renewal); Flash v2.5 for conversation lines after the founder's listen
+  (VOICE-009); the beginner wait measured at 2.5 and 3.0 s pauses before any constant moves; a
+  spoken bridge (`LUVANI_SPOKEN_BRIDGE`); sentence stitching; the French blind test; adaptive
+  interruption at rungs 3-4. The websocket miss transport is deferred (production preflight
+  refuses it and the paid proxy only speaks HTTPS to ElevenLabs). Closed when the founder has
+  before/after numbers for each landed switch and the remaining switches are recorded as
+  decided or deferred.
+- verified-by: `reply-first order puts coach after sceneReply and keeps every field`

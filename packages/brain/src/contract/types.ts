@@ -9,6 +9,7 @@ import type { z } from 'zod/v4';
 import type {
   CoachItemZ,
   EarlySpokenTurnSchema,
+  ReplyFirstEarlySpokenTurnSchema,
   MemoryExtractionSchema,
   MemoryFactZ,
   NewPhraseZ,
@@ -19,8 +20,9 @@ import type {
 import type { CefrBand } from '../types.ts';
 
 export type TutorTurn = z.infer<typeof TurnSchema>;
-/** The leading, spoken fields of a turn; see EarlySpokenTurnSchema. */
-export type EarlySpokenTurn = z.infer<typeof EarlySpokenTurnSchema>;
+/** The leading, spoken fields of a turn; see EarlySpokenTurnSchema. `coach` is absent when it streams after the reply. */
+export type EarlySpokenTurn = z.infer<typeof ReplyFirstEarlySpokenTurnSchema>
+  & { coach?: z.infer<typeof EarlySpokenTurnSchema>['coach'] };
 export type ScenarioFrame = z.infer<typeof ScenarioFrameSchema>;
 export type CoachItem = z.infer<typeof CoachItemZ>;
 export type CoachKind = CoachItem['kind'];
