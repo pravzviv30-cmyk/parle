@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { tokenize } from '@livekit/agents';
-import { GUEST_CAFE_SCENE, GUEST_SCENE, directiveFor, type Rung } from '@luvani/core';
+import { GUEST_CAFE_SCENE, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS, directiveFor, type Rung } from '@luvani/core';
 import {
   GUEST_SCENE_STT_SOCKETS,
   GUEST_SCENE_TTS_CALLS,
@@ -118,6 +118,12 @@ describe('the guest scene gate', () => {
     await assert.rejects(g.gate(stt(180_001)));
     for (let n = 0; n < GUEST_SCENE_STT_SOCKETS; n++) await g.gate(stt());
     await assert.rejects(g.gate(stt()));
+  });
+  test('admits two Flux STT sockets of the full length, never a third', async () => {
+    const g = make();
+    const flux: PaidDescriptor = { kind: 'stt', provider: 'deepgram', model: 'flux-general-multi', voice: '', configuration: { parameters: { model: 'flux-general-multi', language_hint: ['en', 'fr'] } }, quantities: { inputBytes: 0, outputTokens: 0, audioMillis: GUEST_SCENE_MAX_SECONDS * 1000, textBytes: 0 } };
+    for (let n = 0; n < GUEST_SCENE_STT_SOCKETS; n++) await g.gate(flux);
+    await assert.rejects(g.gate(flux));
   });
   test('admits every allow-list line and nothing else, on exact bytes', () => {
     const g = make();

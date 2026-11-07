@@ -1,0 +1,455 @@
+{
+  "startedAt": "2026-11-07T12:24:03.810Z",
+  "label": "flux-english",
+  "settings": {
+    "model": "gpt-6-luna",
+    "reasoning": {
+      "effort": "none"
+    },
+    "verbosity": "low",
+    "service_tier": null,
+    "prompt_cache_key": "luvani-turn-fc5f4573",
+    "instructionsChars": 23790
+  },
+  "syntheticOnly": true,
+  "stopped": null,
+  "spendUsdEstimate": 0.00198,
+  "costNote": "Standard-tier list price from pricing.ts; unknown models are not priced.",
+  "calls": [
+    {
+      "id": "cafe-english-reach",
+      "rep": 1,
+      "fullMs": 4480,
+      "spokenFieldsMs": 3001,
+      "ttftMs": 2010,
+      "headersMs": 1380,
+      "ms": {
+        "coachEnd": 2719,
+        "coachLineEnd": 2818,
+        "narrationEnd": 2844,
+        "sceneReplyStart": 2860,
+        "frFirstSentenceEnd": 2929,
+        "frEnd": 3001,
+        "sceneReplyEnd": 3128,
+        "streamEnd": 4309
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 142,
+        "beforeFrEnd": 163,
+        "beforeSceneReplyEnd": 182,
+        "total": 397
+      },
+      "outputTokens": 408,
+      "reasoningTokens": 0,
+      "inputTokens": 7229,
+      "cachedTokens": 6878,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 145,
+      "frChars": 50,
+      "costUsd": 0.000308,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "can I have a croissant?",
+          "better": "Je vais prendre un croissant, s’il vous plaît.",
+          "betterWritten": null,
+          "betterEn": "I’ll have a croissant, please.",
+          "why": "This is a natural way to order at the counter.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You’re asking for a croissant. You can say, “Je vais prendre un croissant, s’il vous plaît.”",
+      "fr": "Bien sûr. Vous le prenez sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-flux-coffee",
+      "rep": 1,
+      "fullMs": 3015,
+      "spokenFieldsMs": 1655,
+      "ttftMs": 831,
+      "headersMs": 421,
+      "ms": {
+        "coachEnd": 1382,
+        "coachLineEnd": 1503,
+        "narrationEnd": 1545,
+        "sceneReplyStart": 1586,
+        "frFirstSentenceEnd": 1655,
+        "frEnd": 1655,
+        "sceneReplyEnd": 1727,
+        "streamEnd": 2865
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 122,
+        "beforeFrEnd": 137,
+        "beforeSceneReplyEnd": 151,
+        "total": 357
+      },
+      "outputTokens": 368,
+      "reasoningTokens": 0,
+      "inputTokens": 7225,
+      "cachedTokens": 6380,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 102,
+      "frChars": 25,
+      "costUsd": 0.000345,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "A coffee, please.",
+          "better": "Un café, s'il vous plaît.",
+          "betterWritten": null,
+          "betterEn": "A coffee, please.",
+          "why": "That’s a natural way to order it in French.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You’re ordering a coffee: « Un café, s’il vous plaît. »",
+      "fr": "Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-flux-outside",
+      "rep": 1,
+      "fullMs": 3778,
+      "spokenFieldsMs": 2595,
+      "ttftMs": 1587,
+      "headersMs": 1129,
+      "ms": {
+        "coachEnd": 2255,
+        "coachLineEnd": 2415,
+        "narrationEnd": 2443,
+        "sceneReplyStart": 2468,
+        "frFirstSentenceEnd": 2595,
+        "frEnd": 2595,
+        "sceneReplyEnd": 2691,
+        "streamEnd": 3613
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 144,
+        "beforeFrEnd": 160,
+        "beforeSceneReplyEnd": 177,
+        "total": 364
+      },
+      "outputTokens": 375,
+      "reasoningTokens": 0,
+      "inputTokens": 7235,
+      "cachedTokens": 6380,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 168,
+      "frChars": 39,
+      "costUsd": 0.000349,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "I wanna sit outside.",
+          "better": "Je voudrais m’installer dehors, s’il vous plaît.",
+          "betterWritten": null,
+          "betterEn": "I’d like to sit outside, please.",
+          "why": "This is a natural way to tell the barista you’d like to sit outside.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You mean you’d like to sit outside: « Je voudrais m’installer dehors, s’il vous plaît. »",
+      "fr": "Bien sûr, la terrasse est juste dehors."
+    },
+    {
+      "id": "cafe-english-reach",
+      "rep": 2,
+      "fullMs": 4248,
+      "spokenFieldsMs": 2306,
+      "ttftMs": 1079,
+      "headersMs": 691,
+      "ms": {
+        "coachEnd": 1896,
+        "coachLineEnd": 2096,
+        "narrationEnd": 2126,
+        "sceneReplyStart": 2159,
+        "frFirstSentenceEnd": 2256,
+        "frEnd": 2306,
+        "sceneReplyEnd": 2412,
+        "streamEnd": 4146
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 195,
+        "beforeFrEnd": 219,
+        "beforeSceneReplyEnd": 242,
+        "total": 573
+      },
+      "outputTokens": 584,
+      "reasoningTokens": 0,
+      "inputTokens": 7229,
+      "cachedTokens": 6878,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 149,
+      "frChars": 35,
+      "costUsd": 0.000396,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "can I have a croissant?",
+          "better": "Je vais prendre un croissant, s'il vous plaît.",
+          "betterWritten": null,
+          "betterEn": "I'd like a croissant, please.",
+          "why": "In a café, this is a natural way to order politely.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You’re asking for a croissant. You can say: « Je vais prendre un croissant, s'il vous plaît. »",
+      "fr": "Bien sûr. Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-flux-coffee",
+      "rep": 2,
+      "fullMs": 4072,
+      "spokenFieldsMs": 2729,
+      "ttftMs": 1931,
+      "headersMs": 1488,
+      "ms": {
+        "coachEnd": 2482,
+        "coachLineEnd": 2575,
+        "narrationEnd": 2601,
+        "sceneReplyStart": 2631,
+        "frFirstSentenceEnd": 2729,
+        "frEnd": 2729,
+        "sceneReplyEnd": 2815,
+        "streamEnd": 3891
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 117,
+        "beforeFrEnd": 132,
+        "beforeSceneReplyEnd": 146,
+        "total": 353
+      },
+      "outputTokens": 364,
+      "reasoningTokens": 0,
+      "inputTokens": 7225,
+      "cachedTokens": 6874,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 101,
+      "frChars": 25,
+      "costUsd": 0.000286,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "A coffee, please.",
+          "better": "Un café, s'il vous plaît.",
+          "betterWritten": null,
+          "betterEn": "A coffee, please.",
+          "why": "That’s a polite way to order it in French.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You mean “Un café, s'il vous plaît.”",
+      "fr": "Sur place ou à emporter ?"
+    },
+    {
+      "id": "cafe-flux-outside",
+      "rep": 2,
+      "fullMs": 3338,
+      "spokenFieldsMs": 2036,
+      "ttftMs": 963,
+      "headersMs": 416,
+      "ms": {
+        "coachEnd": 1688,
+        "coachLineEnd": 1883,
+        "narrationEnd": 1913,
+        "sceneReplyStart": 1925,
+        "frFirstSentenceEnd": 2036,
+        "frEnd": 2036,
+        "sceneReplyEnd": 2113,
+        "streamEnd": 3211
+      },
+      "deltas": {
+        "beforeSceneReplyStart": 141,
+        "beforeFrEnd": 158,
+        "beforeSceneReplyEnd": 176,
+        "total": 367
+      },
+      "outputTokens": 378,
+      "reasoningTokens": 0,
+      "inputTokens": 7235,
+      "cachedTokens": 6886,
+      "serviceTier": "default",
+      "coachItems": 1,
+      "coachChars": 156,
+      "frChars": 49,
+      "costUsd": 0.000293,
+      "coach": [
+        {
+          "kind": "english-to-french",
+          "quote": "I wanna sit outside.",
+          "better": "Je voudrais m’installer dehors, s’il vous plaît.",
+          "betterWritten": null,
+          "betterEn": "I’d like to sit outside, please.",
+          "why": "That’s a natural way to ask to sit outdoors at the café.",
+          "weight": "matters-now"
+        }
+      ],
+      "coachLine": "You mean you’d like to sit outside: « Je voudrais m’installer dehors, s’il vous plaît. »",
+      "fr": "Bien sûr, vous pouvez vous installer en terrasse."
+    }
+  ],
+  "summary": {
+    "ttftMs": {
+      "n": 6,
+      "p50": 1079,
+      "p95": 2010,
+      "min": 831,
+      "max": 2010
+    },
+    "headersMs": {
+      "n": 6,
+      "p50": 691,
+      "p95": 1488,
+      "min": 416,
+      "max": 1488
+    },
+    "coachEnd": {
+      "n": 6,
+      "p50": 1896,
+      "p95": 2719,
+      "min": 1382,
+      "max": 2719
+    },
+    "coachLineEnd": {
+      "n": 6,
+      "p50": 2096,
+      "p95": 2818,
+      "min": 1503,
+      "max": 2818
+    },
+    "narrationEnd": {
+      "n": 6,
+      "p50": 2126,
+      "p95": 2844,
+      "min": 1545,
+      "max": 2844
+    },
+    "sceneReplyStart": {
+      "n": 6,
+      "p50": 2159,
+      "p95": 2860,
+      "min": 1586,
+      "max": 2860
+    },
+    "frFirstSentenceEnd": {
+      "n": 6,
+      "p50": 2256,
+      "p95": 2929,
+      "min": 1655,
+      "max": 2929
+    },
+    "frEnd": {
+      "n": 6,
+      "p50": 2306,
+      "p95": 3001,
+      "min": 1655,
+      "max": 3001
+    },
+    "sceneReplyEnd": {
+      "n": 6,
+      "p50": 2412,
+      "p95": 3128,
+      "min": 1727,
+      "max": 3128
+    },
+    "streamEnd": {
+      "n": 6,
+      "p50": 3613,
+      "p95": 4309,
+      "min": 2865,
+      "max": 4309
+    },
+    "spokenFieldsMs": {
+      "n": 6,
+      "p50": 2306,
+      "p95": 3001,
+      "min": 1655,
+      "max": 3001
+    },
+    "fullMs": {
+      "n": 6,
+      "p50": 3778,
+      "p95": 4480,
+      "min": 3015,
+      "max": 4480
+    },
+    "deltasBeforeSceneReplyStart": {
+      "n": 6,
+      "p50": 141,
+      "p95": 195,
+      "min": 117,
+      "max": 195
+    },
+    "deltasBeforeFrEnd": {
+      "n": 6,
+      "p50": 158,
+      "p95": 219,
+      "min": 132,
+      "max": 219
+    },
+    "deltasBeforeSceneReplyEnd": {
+      "n": 6,
+      "p50": 176,
+      "p95": 242,
+      "min": 146,
+      "max": 242
+    },
+    "outputTokens": {
+      "n": 6,
+      "p50": 375,
+      "p95": 584,
+      "min": 364,
+      "max": 584
+    },
+    "reasoningTokens": {
+      "n": 6,
+      "p50": 0,
+      "p95": 0,
+      "min": 0,
+      "max": 0
+    },
+    "coachItems": {
+      "n": 6,
+      "p50": 1,
+      "p95": 1,
+      "min": 1,
+      "max": 1
+    },
+    "coachChars": {
+      "n": 6,
+      "p50": 145,
+      "p95": 168,
+      "min": 101,
+      "max": 168
+    },
+    "frChars": {
+      "n": 6,
+      "p50": 35,
+      "p95": 50,
+      "min": 25,
+      "max": 50
+    }
+  },
+  "gains": {
+    "frEndVsSceneReplyEnd": {
+      "n": 6,
+      "p50": 86,
+      "p95": 127,
+      "min": 72,
+      "max": 127
+    },
+    "firstSentenceVsFrEnd": {
+      "n": 6,
+      "p50": 0,
+      "p95": 72,
+      "min": 0,
+      "max": 72
+    }
+  },
+  "cacheHitRate": 0.928
+}

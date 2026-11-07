@@ -1,14 +1,12 @@
 type Env = Record<string, string | undefined>;
 type RecognitionPlan =
-  | { experimental: false; options: { model: 'nova-3'; language: 'fr' | 'multi' } }
-  | { experimental: true; options: { model: 'flux-general-multi'; languageHint: string[]; sampleRate: number; numerals: false } };
+  | { flux: true; options: { model: 'flux-general-multi'; languageHint: string[]; sampleRate: number; numerals: false } }
+  | { flux: false; options: { model: 'nova-3'; language: 'fr' | 'multi' } };
 
-/** Conversation-only review candidate. Keep OFF until real learner and room QA. */
-export function recognitionPlan(kind: 'convo' | 'lesson', language: 'fr' | 'multi', env: Env): RecognitionPlan {
-  if (kind === 'convo' && env.LUVANI_CONVO_ASR_EXPERIMENT === '1') {
-    return { experimental: true, options: {
-      model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, numerals: false,
-    } };
+/** Flux for every session kind (F964); LUVANI_STT_NOVA_KINDS (comma list) puts a kind back on Nova-3. */
+export function recognitionPlan(kind: 'convo' | 'lesson' | 'scene', language: 'fr' | 'multi', env: Env): RecognitionPlan {
+  if ((env.LUVANI_STT_NOVA_KINDS ?? '').split(',').some((name) => name.trim() === kind)) {
+    return { flux: false, options: { model: 'nova-3', language } };
   }
-  return { experimental: false, options: { model: 'nova-3', language } };
+  return { flux: true, options: { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, numerals: false } };
 }

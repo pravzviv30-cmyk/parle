@@ -9648,10 +9648,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: services/tutor-agent/src/agent.ts
 - note: Bounded synthetic prerecorded/streaming Nova-3 comparisons corrupt French money or mixed English despite high confidence. Flux French/English hints preserve the French control and both languages, but still misread an English time/date. Prepare a default-off conversation-only review option; preserve Nova-3 phase language behavior, scripted lessons and typing. No automatic activation or claim of beginner calibration, room interruption or end-to-end timing. Real learner calibration remains a release hold.
 - note: Sol independently accepted the default-off source after 23 focused checks and tutor types. Strict opt-in is conversation-only; phase language updates are skipped only for Flux, whose hints remain bilingual. Actual beginner/room/EOT/interruption/number calibration remains held; no runtime configuration was changed.
-- verified-by: `ordinary recognition retains Nova-3 and its explicit phase language`
-- verified-by: `only an explicit conversation review uses Flux French and English hints`
+- verified-by: `LUVANI_STT_NOVA_KINDS puts only the named kinds back on Nova-3 with the given language`
+- verified-by: `every session kind defaults to Flux with French and English hints, whatever the unset or unknown knob`
 - note: 2026-11-06 measurement (F964) answers the accuracy question on a synthetic accent: Flux with fr/en hints keeps French (lesson 0.958, scene 1.000, same as nova-3 `fr`) and hears English (0.950), and nova-3 `multi` loses scene French (0.861). The real-learner end-of-turn, interruption and number checks are still held here before Flux runs for everyone.
-- verified-by: `the review recognizer stays inside lazy session audio and phase updates preserve its bilingual hints`
+- note: 2026-11-07 (F964, VOICE-023): accuracy is settled by F964, and Flux is now the recogniser for every session kind, so the default-off conversation option above is gone (the tests it named are renamed to the ones listed here). Flux's own end of turn was measured with `scripts/measureFluxEot.mjs` on six French sentences with a spliced mid-sentence pause at the default eot_threshold 0.7 (`docs/live-latency-evidence/2026-11-07-flux-eot.{json,md}`): Flux split the sentence in 0 of 6 at 0.5 s, 4 of 6 at 1.0 s, 5 of 6 at 1.5 s and 6 of 6 at 2.0 s, and its EndOfTurn came p50 699 ms, p95 977 ms after the last voiced sample (0.5 s pauses: p50 843, p95 1,102). Reading SDK 1.9, LiveKit keeps the turn (VAD, local turn detector and VOICE-010 floors unchanged), so a split only costs latency at rungs 3 and 4, about 700 to 1,000 ms. Room measurement of that and real-learner calibration (beginner, interruption, numbers) are still held here.
+- verified-by: `Flux recognition stays inside lazy session audio and phase updates skip it, keeping its bilingual hints`
 
 ### F696 — Recorded onboarding must describe playback and keep learner pacing
 - severity: P1
@@ -10588,7 +10589,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: services/tutor-agent/src/agent.ts
 - note: Updating the Deepgram model options only changed future streams in the installed SDK. Current-turn vocabulary now uses the public session keyterms API, which updates the active stream and defers reconnecting during speech. Quote-bound paid proxy and experimental recognizer options remain unchanged.
-- verified-by: `current scene keyterms update the active session without changing paid or experimental recognition`
+- verified-by: `current scene keyterms update the active session without changing paid or Flux recognition`
 
 ### F802 — Approximate spelling distance can replace a valid learner word
 - severity: P1
@@ -12395,7 +12396,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F964 — English answers are transcribed as French in lessons, the guest scene and the mission scene
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/recognitionPlan.ts:13 and services/tutor-agent/src/convo.ts (`sttLanguageFor`)
 - note: Found 2026-11-06 by the founder on staging (signed-in café mission, iPhone): English answers
   came back as French-shaped words, so the brain never saw English and never recast it. Every kind
@@ -12408,7 +12409,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   "Land fixes now, Flux next"). It needs the paid proxy to speak `/v2/listen`, a Flux quote shape,
   and the per-kind switch. Meanwhile a line that makes sense in neither language gets one ask-again
   in French (VOICE-021).
+- note: 2026-11-07 landed (VOICE-023). Flux `flux-general-multi` with hints fr and en now hears every
+  session kind (lessons, guest scene, mission scene, conversation). `recognitionPlan.ts` returns Flux by
+  default and `LUVANI_STT_NOVA_KINDS` puts a kind back on nova-3. `agent.ts` builds `STTv2` with the
+  lesson keyterms (none for the conversation, whose phase language switch is skipped on Flux). The paid
+  voice proxy accepts `/v2/listen`, and `scripts/paidQuotes.mjs` books 2 Flux streams: $0.0078 plus
+  $0.0013 a minute for a lesson, $0.0078 for a conversation ($2.47 and $3.18 per 600 s session at worst
+  case; daily budget $6.40, global $20). Rerun `measureKeyterms.mjs --conditions fr,flux --run` on a
+  synthetic English-accented voice: English answers flux 0.950 against fr 0.169, lesson lines 0.958
+  both, scene replies 1.000 both (`docs/live-latency-evidence/2026-11-07-flux-stt.{json,md}`). Live
+  replay of "A coffee, please." recast as « Un café, s'il vous plaît. » (`2026-11-07-live-turn-flux-english.json`).
+  Flux's own end-of-turn numbers are under F695. Not verified in a room or with real learners.
 - verified-by: `words that are neither French nor English get one ask-again, not an answer`
+- verified-by: `every session kind defaults to Flux with French and English hints, whatever the unset or unknown knob`
+- verified-by: `flux v2 descriptor is pinned: sorted language hints, no language/channels, eot settings change the hash`
+- verified-by: `a flux client on /v2/listen is forwarded to the v2 vendor URL; quote-mismatch strips its keyterms`
+- verified-by: `the real SDK Flux lesson query under the proxy hashes to keytermSttConfigurationSha256 of its plain query`
 
 ### F965 — One hiccup ended the session, and no log said which exit fired
 - severity: P1

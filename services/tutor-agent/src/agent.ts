@@ -288,15 +288,15 @@ export default defineAgent({
       cefr: isConvo ? parseStoredProfile(meta.snapshot).cefr.estimate : undefined,
       choice: voiceSpeedChoice,
     });
-    const recognition = recognitionPlan(isConvo ? 'convo' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
+    const recognition = recognitionPlan(isConvo ? 'convo' : scene ? 'scene' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
     // One fixed keyterm list for a scripted lesson or scene (VOICE-017), set at
     // construction so it never reconnects the socket, and the same with or
     // without the paid proxy. Convo keeps its per-turn phrases off-proxy only.
-    const keyterm = isConvo || recognition.experimental ? [] : lessonKeyterms(lesson);
+    const keyterm = isConvo ? [] : lessonKeyterms(lesson);
     const { vad, stt, tts: voiceTts } = sessionAudio(voiceless, {
       vad: () => ctx.proc.userData.vad as silero.VAD,
-      stt: () => recognition.experimental
-        ? new deepgram.STTv2(recognition.options)
+      stt: () => recognition.flux
+        ? new deepgram.STTv2({ ...recognition.options, ...(keyterm.length ? { keyterms: keyterm } : {}), ...(proxy ? { endpointUrl: proxy.deepgramBaseURL + '/v2/listen', apiKey: 'proxy-only', mipOptOut: true } : {}) })
         : new deepgram.STT({ ...recognition.options, ...(keyterm.length ? { keyterm } : {}), ...(proxy ? { baseUrl: proxy.deepgramBaseURL, apiKey: 'proxy-only', sampleRate: 16000, numChannels: 1, mipOptOut: true } : {}) }),
       tts: () => buildTTS({
         voice: chosenVoice,
@@ -356,7 +356,7 @@ export default defineAgent({
           enrichBeforeComplete: !!paid,
           ...(paid ? { client: brainClientFromEnv(process.env, paid.transport), scoringRequest: paid.transport } : {}),
           setSttLanguage: (language) => {
-            if (recognition.experimental || !stt) return;
+            if (recognition.flux || !stt) return;
             stt.updateOptions({ language });
             // Retuning the model config alone leaves its existing stream in
             // the old language. The public agent update restarts recognition
@@ -372,7 +372,7 @@ export default defineAgent({
           // STT.updateOptions only configures future streams in SDK 1.9.
           // Paid proxy configuration is quote-bound; do not change it here.
           setSttPhrases: (keyterms) => {
-            if (!recognition.experimental && !proxy) session.updateOptions({ keyterms });
+            if (!recognition.flux && !proxy) session.updateOptions({ keyterms });
           },
           exit,
           thinkingTime: thinking,
