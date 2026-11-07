@@ -509,6 +509,7 @@ export default defineAgent({
       // turnHandling.ts for what each one costs when it is wrong.
       turnHandling: turnHandlingFor(isConvo ? 'convo' : 'lesson', {
         turnDetection: process.env.LUVANI_TURN_DETECTION,
+        adaptiveInterruption: process.env.LUVANI_ADAPTIVE_INTERRUPTION === '1',
         startRung,
       }),
     });

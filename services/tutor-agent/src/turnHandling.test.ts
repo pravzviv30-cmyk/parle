@@ -45,6 +45,35 @@ describe('turn handling — H2, H3 and H6', () => {
     assert.equal(turnHandlingFor('convo', { turnDetection: 'nonsense' }).turnDetection, undefined);
   });
 
+  test('adaptive interruption is asked for at rungs 3 and 4 when the flag is on', () => {
+    for (const mode of ['convo', 'lesson'] as const) {
+      for (const startRung of [3, 4] as const) {
+        const { interruption } = turnHandlingFor(mode, { adaptiveInterruption: true, startRung });
+        assert.equal(interruption.mode, 'adaptive', `${mode} at rung ${startRung} did not ask for the detector`);
+      }
+    }
+  });
+
+  test('adaptive interruption is never asked for below rung 3, or with no rung', () => {
+    for (const mode of ['convo', 'lesson'] as const) {
+      for (const startRung of [1, 2, undefined] as const) {
+        const { interruption } = turnHandlingFor(mode, { adaptiveInterruption: true, startRung });
+        assert.equal('mode' in interruption, false, `${mode} at rung ${String(startRung)} carries a mode key`);
+      }
+    }
+  });
+
+  test('adaptive interruption is off at rung 4 unless the flag is on', () => {
+    assert.equal('mode' in turnHandlingFor('convo', { startRung: 4 }).interruption, false);
+    assert.equal('mode' in turnHandlingFor('convo', { adaptiveInterruption: false, startRung: 4 }).interruption, false);
+  });
+
+  test('the adaptive flag changes nothing else about interruption', () => {
+    const on = { ...turnHandlingFor('convo', { adaptiveInterruption: true, startRung: 4 }).interruption } as Record<string, unknown>;
+    delete on.mode;
+    assert.deepEqual(on, turnHandlingFor('convo', { startRung: 4 }).interruption);
+  });
+
   test('the turn-detection note matches the plugins actually installed', () => {
     // The worker used to say the semantic turn detector "stays the default" and
     // protects hesitating beginners. No such plugin is installed, so it never
