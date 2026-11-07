@@ -13,6 +13,10 @@
  *   node --experimental-strip-types --env-file=services/tutor-agent/.env scripts/measureKeyterms.mjs --generate
  * Run Deepgram over every clip (billed seconds, capped at 15 minutes):
  *   node --experimental-strip-types --env-file=services/tutor-agent/.env scripts/measureKeyterms.mjs --run
+ * Does nova-3 `multi` (code-switching, endpointing 100) hear learner French as well as `fr`, and English
+ * answers as English? Add `--conditions fr,multi` to any command above: lesson lines run fr, multi (both
+ * with keyterms) and multi without keyterms; café scene replies and English answers run fr and multi
+ * without keyterms. Evidence goes to docs/live-latency-evidence/2026-11-06-multi-stt.{json,md}.
  * Reprint the summary from the saved JSON, no network:
  *   node --experimental-strip-types scripts/measureKeyterms.mjs --report-only
  *
@@ -44,10 +48,58 @@ export const DG_OPTIONS = { model: 'nova-3', language: 'fr', sampleRate: 16000, 
 export const LEAD_MS = 1_100; // longer than the plugin's 1 s energy-filter cooldown, so speech meets a warm filter
 export const TAIL_MS = 2_000;
 export const SENTENCES = ['On échange nos numéros ?', "Je voudrais un café, s'il vous plaît.", 'Excusez-moi, où est la gare ?'];
+/** A0-A1 café mission replies and stuck-beginner English answers, said by the same English voice. */
+export const SCENE_REPLIES = [
+  "Bonjour, je voudrais un café, s'il vous plaît.", 'Un croissant aussi.', "C'est combien ?", 'Sur place, merci.',
+  "Non, c'est tout.", 'Je prends un thé.', "L'addition, s'il vous plaît.", 'Merci, bonne journée.',
+];
+export const ENGLISH_ANSWERS = [
+  'A coffee please.', "I don't know how to say it.", 'How much is it?', 'Can I have a croissant too?',
+  'I want to sit outside.', "No thanks, that's all.", 'What does that mean?', "Sorry, I didn't understand.",
+];
+export const LESSON = 'lesson line';
+/** plain/keyterms: the 2026-10-25 comparison. fr/multi: the live lesson keeps keyterms on lesson lines only. */
+export const CONDITIONS = {
+  plain: { language: 'fr', keyterms: false },
+  keyterms: { language: 'fr', keyterms: true },
+  fr: { language: 'fr', keyterms: 'lesson' },
+  multi: { language: 'multi', endpointing: 100, keyterms: 'lesson' },
+  'multi-plain': { language: 'multi', endpointing: 100, keyterms: false },
+  'multi-ep25': { language: 'multi', keyterms: 'lesson' },
+  flux: { flux: true, keyterms: 'lesson' },
+};
+export const FLUX_OPTIONS = { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, mipOptOut: true, numerals: false };
+const LEGACY = ['plain', 'keyterms'];
+
+export function parseConditions(argv) {
+  const i = argv.findIndex(a => a === '--conditions' || a.startsWith('--conditions='));
+  if (i < 0) return [...LEGACY];
+  const raw = argv[i].includes('=') ? argv[i].slice('--conditions='.length) : argv[i + 1];
+  if (!raw || raw.startsWith('--')) throw new Error('--conditions needs a list, e.g. fr,multi');
+  const list = [...new Set(raw.split(',').map(x => x.trim()).filter(Boolean))];
+  const bad = list.filter(c => !CONDITIONS[c]);
+  if (bad.length) throw new Error(`Unknown condition(s): ${bad.join(', ')}. Known: ${Object.keys(CONDITIONS).join(', ')}.`);
+  if (list.some(c => LEGACY.includes(c)) && list.some(c => !LEGACY.includes(c))) throw new Error('Do not mix plain/keyterms with fr/multi conditions.');
+  return list;
+}
+export const isMultiRun = conditions => !conditions.every(c => LEGACY.includes(c));
+
+/** Plugin options for one condition and clip kind. Missions run no keyterms, so only lesson lines get them. */
+export function conditionOptions(name, kind, keyterms) {
+  const c = CONDITIONS[name];
+  const useKeyterms = c.keyterms === true || (c.keyterms === 'lesson' && kind === LESSON);
+  if (c.flux) return { ...FLUX_OPTIONS, ...(useKeyterms ? { keyterms: keyterms } : {}) };
+  return { ...DG_OPTIONS, language: c.language, ...(c.endpointing ? { endpointing: c.endpointing } : {}), ...(useKeyterms ? { keyterm: keyterms } : {}) };
+}
+/** Lesson lines also get multi without keyterms, to separate the language change from the keyterms. */
+export const conditionsFor = (kind, conditions) => (kind === LESSON && conditions.includes('multi') ? [...new Set([...conditions, 'multi-plain'])] : conditions);
+
 export const CLIP_DIR = resolve(root, 'artifacts/keyterms-2026-10-25');
 export const ACCENTED_DIR = join(CLIP_DIR, 'accented');
 export const REAL_DIR = resolve(root, 'artifacts/quiet-speech-2026-10-23/real');
 export const EVIDENCE = resolve(root, 'docs/live-latency-evidence/keyterms-2026-10-25.json');
+export const MULTI_DIR = resolve(root, 'artifacts/multi-stt-2026-11-06');
+export const MULTI_EVIDENCE = resolve(root, 'docs/live-latency-evidence/2026-11-06-multi-stt.json');
 export const SYNTHETIC_NOTE = 'The accent is SYNTHETIC: an English-native ElevenLabs voice reading French text. It is a stand-in for an English accent, not real beginners, and says nothing about how real learners sound.';
 
 const chars = text => [...text].length;
@@ -61,6 +113,14 @@ export function buildPlan(lesson = CAFE_LESSON) {
     const name = `t${String(i + 1).padStart(2, '0')}-${slug(t.text)}`;
     return { name, turn: t.id, text: t.text, chars: chars(t.text), estimate: chars(t.text), file: `${name}.wav`, quietFile: `${name}-m20db.wav` };
   });
+}
+/** The scene-reply and English-answer clips, saved apart so the lesson manifest never changes. */
+export function buildExtraPlan() {
+  const set = (kind, prefix, texts) => texts.map((text, i) => {
+    const name = `${prefix}${String(i + 1).padStart(2, '0')}-${slug(text)}`;
+    return { name, kind, text, chars: chars(text), estimate: chars(text), file: `${name}.wav`, quietFile: `${name}-m20db.wav` };
+  });
+  return [...set('scene reply', 's', SCENE_REPLIES), ...set('English answer', 'e', ENGLISH_ANSWERS)];
 }
 export const estimateTotal = plan => plan.reduce((n, p) => n + p.estimate, 0);
 
@@ -90,6 +150,19 @@ export function summarise(rows) {
     };
   });
   return out;
+}
+
+/** Mean word accuracy and exact matches per clip kind and condition, in first-seen order. */
+export function summariseByKind(rows) {
+  const keys = [...new Set(rows.map(r => `${r.kind}|${r.condition}`))];
+  return keys.map(key => {
+    const [kind, condition] = key.split('|');
+    const rs = rows.filter(r => r.kind === kind && r.condition === condition);
+    return { kind, condition, clips: rs.length, meanWordAccuracy: Number((rs.reduce((n, r) => n + r.wordAccuracy, 0) / rs.length).toFixed(3)), exactMatches: rs.filter(r => r.exact).length };
+  });
+}
+export function formatByKind(summary) {
+  return ['kind              condition    clips  mean acc  exact', ...summary.map(s => `${s.kind.padEnd(17)} ${s.condition.padEnd(11)} ${String(s.clips).padStart(6)}  ${s.meanWordAccuracy.toFixed(3).padStart(8)}  ${s.exactMatches}`)].join('\n');
 }
 
 export function formatSummary(summary) {
@@ -126,7 +199,8 @@ async function loadKeyterms() {
 }
 
 // ------------------------------------------------------------------ generate
-async function generate(plan) {
+async function generate(plan, dir = CLIP_DIR) {
+  const accentedDir = join(dir, 'accented');
   const estimated = estimateTotal(plan);
   if (estimated > CREDIT_CAP) throw new Error(`Plan estimate ${estimated} exceeds the cap of ${CREDIT_CAP}.`);
   if (!process.env.ELEVEN_API_KEY) throw new Error('ELEVEN_API_KEY is missing.');
@@ -141,12 +215,12 @@ async function generate(plan) {
     if (![s.character_count, s.character_limit].every(Number.isFinite)) throw new Error('Credit balance unavailable.');
     return { tier: s.tier, used: s.character_count, limit: s.character_limit };
   };
-  const manifestPath = join(CLIP_DIR, 'manifest.json');
-  mkdirSync(ACCENTED_DIR, { recursive: true });
+  const manifestPath = join(dir, 'manifest.json');
+  mkdirSync(accentedDir, { recursive: true });
   let manifest;
   if (existsSync(manifestPath)) {
     manifest = readJson(manifestPath);
-    if (JSON.stringify(manifest.clips.map(c => [c.name, c.text])) !== JSON.stringify(plan.map(c => [c.name, c.text]))) throw new Error('Lesson targets changed since the manifest was written.');
+    if (JSON.stringify(manifest.clips.map(c => [c.name, c.text])) !== JSON.stringify(plan.map(c => [c.name, c.text]))) throw new Error('Clip texts changed since the manifest was written.');
     manifest.status = 'running'; delete manifest.reason;
   } else {
     const voice = await get(`/v1/voices/${ENGLISH_VOICE.id}`);
@@ -167,7 +241,7 @@ async function generate(plan) {
   try {
     for (const clip of manifest.clips) {
       if (clip.status === 'complete') {
-        if (!existsSync(join(ACCENTED_DIR, clip.file))) throw new Error(`Saved clip ${clip.name} is missing its file; do not regenerate automatically.`);
+        if (!existsSync(join(accentedDir, clip.file))) throw new Error(`Saved clip ${clip.name} is missing its file; do not regenerate automatically.`);
         continue;
       }
       if (clip.sent) throw new Error(`Uncertain earlier request for ${clip.name}; do not regenerate automatically.`);
@@ -181,7 +255,7 @@ async function generate(plan) {
       if (!r.ok) throw new Error(`Synthesis HTTP ${r.status} for ${clip.name}; no retry.`);
       const pcm = Buffer.from(await r.arrayBuffer());
       if (pcm.length < 2205 || pcm.length % 2 !== 0) throw new Error(`Invalid PCM result for ${clip.name}; no retry.`);
-      writeFileSync(join(ACCENTED_DIR, clip.file), wavBytes(new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2), SAMPLE_RATE));
+      writeFileSync(join(accentedDir, clip.file), wavBytes(new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2), SAMPLE_RATE));
       const costName = ['character-cost', 'x-character-count'].find(n => r.headers.get(n) !== null) ?? null;
       const cost = costName ? Number(r.headers.get(costName)) : null;
       Object.assign(clip, { status: 'complete', credits: Number.isFinite(cost) && cost >= 0 ? cost : null, costHeader: costName, seconds: Number((pcm.length / 2 / SAMPLE_RATE).toFixed(3)) });
@@ -198,10 +272,10 @@ async function generate(plan) {
   }
   // The -20 dB copies are local and free; always (re)made from the saved WAVs.
   for (const clip of manifest.clips) {
-    const { rate, pcm } = parseWav(readFileSync(join(ACCENTED_DIR, clip.file)));
-    writeFileSync(join(ACCENTED_DIR, clip.quietFile), wavBytes(applyGain(pcm, QUIET_DB), rate));
+    const { rate, pcm } = parseWav(readFileSync(join(accentedDir, clip.file)));
+    writeFileSync(join(accentedDir, clip.quietFile), wavBytes(applyGain(pcm, QUIET_DB), rate));
   }
-  console.log(JSON.stringify({ status: manifest.status, clips: manifest.clips.length, creditsFromHeaders: manifest.clips.reduce((n, c) => n + (c.credits ?? 0), 0), estimated, measuredCreditsFromBalance: manifest.measuredCredits, destination: ACCENTED_DIR }));
+  console.log(JSON.stringify({ status: manifest.status, clips: manifest.clips.length, creditsFromHeaders: manifest.clips.reduce((n, c) => n + (c.credits ?? 0), 0), estimated, measuredCreditsFromBalance: manifest.measuredCredits, destination: accentedDir }));
 }
 
 // ----------------------------------------------------------------- clip list
@@ -214,7 +288,7 @@ export function loadClips() {
       for (const [level, file] of [['normal', c.file], [`${QUIET_DB} dB`, c.quietFile]]) {
         if (!existsSync(join(ACCENTED_DIR, file))) { console.error(`skipping accented/${file}: not on disk`); continue; }
         const { rate, pcm } = parseWav(readFileSync(join(ACCENTED_DIR, file)));
-        clips.push({ id: `accented/${file}`, group: 'synthetic accent (English voice reading French)', level, text: c.text, rate, pcm });
+        clips.push({ id: `accented/${file}`, kind: LESSON, group: 'synthetic accent (English voice reading French)', level, text: c.text, rate, pcm });
       }
     }
   }
@@ -224,10 +298,35 @@ export function loadClips() {
       const text = SENTENCES.find(s => lower.includes(slug(s)));
       if (!text) { console.error(`skipping real/${f}: no known sentence slug in the name`); continue; }
       const { rate, pcm } = parseWav(readFileSync(join(REAL_DIR, f)));
-      clips.push({ id: `real/${f}`, group: 'real founder recordings', level: 'as recorded', text, rate, pcm });
+      clips.push({ id: `real/${f}`, kind: LESSON, group: 'real founder recordings', level: 'as recorded', text, rate, pcm });
     }
   }
   return clips;
+}
+
+/** The multi comparison: lesson lines at normal level, plus the scene replies and English answers. */
+export function loadMultiClips() {
+  const clips = loadClips().filter(c => c.id.startsWith('accented/') && c.level === 'normal');
+  const manifestPath = join(MULTI_DIR, 'manifest.json');
+  if (existsSync(manifestPath)) {
+    for (const c of readJson(manifestPath).clips.filter(x => x.status === 'complete')) {
+      const path = join(MULTI_DIR, 'accented', c.file);
+      if (!existsSync(path)) { console.error(`skipping multi/${c.file}: not on disk`); continue; }
+      const { rate, pcm } = parseWav(readFileSync(path));
+      clips.push({ id: `multi/${c.file}`, kind: c.kind, group: 'synthetic accent (English voice)', level: 'normal', text: c.text, rate, pcm });
+    }
+  }
+  return clips;
+}
+
+export function multiMarkdown(result) {
+  const lines = ['# Deepgram nova-3: `multi` vs `fr` on learner speech (2026-11-06)', '', `> ${result.syntheticNote}`, '',
+    `Mode ${result.deepgram.mode}, ${result.deepgram.streams} streams, ${result.deepgram.billedSeconds} s billed. multi = language 'multi', endpointing 100; multi-ep25 = multi at the default endpointing; flux = flux-general-multi with language hints fr, en. Keyterms on lesson lines only (except multi-plain).`, '',
+    '| kind | condition | clips | mean word accuracy | exact |', '|---|---|---|---|---|',
+    ...result.summary.map(s => `| ${s.kind} | ${s.condition} | ${s.clips} | ${s.meanWordAccuracy.toFixed(3)} | ${s.exactMatches} |`), '',
+    '| clip | kind | condition | reference | transcript | accuracy |', '|---|---|---|---|---|---|',
+    ...result.rows.map(r => `| ${r.clip} | ${r.kind} | ${r.condition} | ${r.reference} | ${r.transcript.replaceAll('|', '/')} | ${r.wordAccuracy} |`), ''];
+  return lines.join('\n');
 }
 
 // ------------------------------------------------------------------ Deepgram
@@ -238,10 +337,12 @@ async function pool(items, n, fn) {
   }));
 }
 
-async function run(keyterms) {
+async function run(keyterms, conditions = LEGACY) {
+  const multi = isMultiRun(conditions);
+  const evidence = multi ? MULTI_EVIDENCE : EVIDENCE;
   if (!process.env.DEEPGRAM_API_KEY) throw new Error('DEEPGRAM_API_KEY is missing.');
-  if (existsSync(EVIDENCE) && !process.argv.includes('--force')) throw new Error(`${EVIDENCE} already exists; pass --force to overwrite.`);
-  const clips = loadClips();
+  if (existsSync(evidence) && !process.argv.includes('--force')) throw new Error(`${evidence} already exists; pass --force to overwrite.`);
+  const clips = multi ? loadMultiClips() : loadClips();
   if (clips.length === 0) throw new Error('No clips found. Run --generate first.');
   const agentRequire = createRequire(join(root, 'services/tutor-agent/package.json'));
   const load = async name => import(pathToFileURL(agentRequire.resolve(name)).href);
@@ -275,10 +376,15 @@ async function run(keyterms) {
 
   let mode = 'plugin-stream';
   let billedSeconds = 0;
-  const stts = { plain: new deepgram.STT(DG_OPTIONS), keyterms: new deepgram.STT({ ...DG_OPTIONS, keyterm: keyterms }) };
+  const stts = new Map();
+  const sttFor = options => {
+    const key = JSON.stringify(options);
+    if (!stts.has(key)) stts.set(key, options.model?.startsWith('flux') ? new deepgram.STTv2(options) : new deepgram.STT(options));
+    return stts.get(key);
+  };
 
-  async function stream(condition, pcm) {
-    const s = stts[condition].stream();
+  async function stream(options, pcm) {
+    const s = sttFor(options).stream();
     const finals = [];
     let usage = 0;
     let lastEvent = Date.now();
@@ -309,7 +415,7 @@ async function run(keyterms) {
   }
 
   /** Fallback: prerecorded REST with equivalent options, on the frames the energy filter would send. */
-  async function rest(condition, pcm) {
+  async function rest(options, pcm) {
     const sends = energyFilterSends(pcm, { warm: true });
     const kept = [];
     sends.forEach((send, k) => { if (send) kept.push(pcm.subarray(k * 1600, (k + 1) * 1600)); });
@@ -317,7 +423,7 @@ async function run(keyterms) {
     let o = 0;
     for (const c of kept) { audio.set(c, o); o += c.length; }
     if (audio.length === 0) return { text: '', usageSeconds: 0 };
-    const url = `https://api.deepgram.com/v1/listen?model=nova-3&language=fr&smart_format=true&mip_opt_out=true${condition === 'keyterms' ? keytermQuery(keyterms) : ''}`;
+    const url = `https://api.deepgram.com/v1/listen?model=nova-3&language=${options.language}&smart_format=true&mip_opt_out=true${options.keyterm ? keytermQuery(options.keyterm) : ''}`;
     const r = await fetch(url, {
       method: 'POST', headers: { Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`, 'Content-Type': 'audio/wav' },
       body: wavBytes(audio, 16000), signal: AbortSignal.timeout(30_000),
@@ -327,19 +433,19 @@ async function run(keyterms) {
     return { text: alt?.transcript ?? '', usageSeconds: audio.length / 16000 };
   }
 
-  async function transcribe(condition, pcm) {
+  async function transcribe(options, pcm) {
     if (mode === 'plugin-stream') {
-      try { const r = await stream(condition, pcm); billedSeconds += r.usageSeconds; return { ...r, mode }; }
-      catch (error) { console.error(`Deepgram plugin stream failed (${error instanceof Error ? error.message : error}); falling back to REST.`); mode = 'prerecorded-rest-fallback'; }
+      try { const r = await stream(options, pcm); billedSeconds += r.usageSeconds; return { ...r, mode }; }
+      catch (error) { if (options.model?.startsWith('flux')) throw error; console.error(`Deepgram plugin stream failed (${error instanceof Error ? error.message : error}); falling back to REST.`); mode = 'prerecorded-rest-fallback'; }
     }
-    const r = await rest(condition, pcm);
+    const r = await rest(options, pcm);
     billedSeconds += r.usageSeconds;
     return { ...r, mode };
   }
 
   const jobs = clips.flatMap(clip => {
     const audio = padded(to16k(clip.pcm, clip.rate));
-    return ['plain', 'keyterms'].map(condition => ({ clip, condition, audio }));
+    return conditionsFor(clip.kind, conditions).map(condition => ({ clip, condition, audio, options: conditionOptions(condition, clip.kind, keyterms) }));
   });
   const estSeconds = jobs.reduce((n, j) => n + energyFilterSends(j.audio, { warm: false }).filter(Boolean).length * 0.1, 0);
   console.log(`deepgram: ${jobs.length} streams over ${clips.length} clips, estimated ${estSeconds.toFixed(0)} s billed (cap ${DG_CAP_SECONDS} s)`);
@@ -347,9 +453,9 @@ async function run(keyterms) {
 
   const rows = [];
   await pool(jobs, DG_CONCURRENCY, async j => {
-    const r = await transcribe(j.condition, j.audio);
+    const r = await transcribe(j.options, j.audio);
     rows.push({
-      clip: j.clip.id, group: j.clip.group, level: j.clip.level, condition: j.condition, reference: j.clip.text, transcript: r.text,
+      clip: j.clip.id, kind: j.clip.kind, group: j.clip.group, level: j.clip.level, condition: j.condition, reference: j.clip.text, transcript: r.text,
       wordAccuracy: Number(wordAccuracy(j.clip.text, r.text).toFixed(3)), exact: exactMatch(j.clip.text, r.text), mode: r.mode,
     });
   });
@@ -357,6 +463,22 @@ async function run(keyterms) {
 
   const manifestPath = join(CLIP_DIR, 'manifest.json');
   const gen = existsSync(manifestPath) ? readJson(manifestPath) : null;
+  if (multi) {
+    const extra = existsSync(join(MULTI_DIR, 'manifest.json')) ? readJson(join(MULTI_DIR, 'manifest.json')) : null;
+    const result = {
+      date: '2026-11-06', synthetic: true, syntheticNote: SYNTHETIC_NOTE, voice: gen?.voice ?? null, model: gen?.model ?? null, keyterms, conditions,
+      options: Object.fromEntries([LESSON, 'scene reply', 'English answer'].map(k => [k, Object.fromEntries(conditionsFor(k, conditions).map(c => [c, conditionOptions(c, k, keyterms)]))])),
+      creditsFromHeaders: [gen, extra].reduce((n, m) => n + (m ? m.clips.reduce((a, c) => a + (c.credits ?? 0), 0) : 0), 0),
+      deepgram: { mode, plugin: 'defaults otherwise (smartFormat, interimResults); REST fallback has no endpointing', billedSeconds: Number(billedSeconds.toFixed(1)), streams: jobs.length, speed: `${DG_SPEED}x real time` },
+      lead: { ms: LEAD_MS }, tail: { ms: TAIL_MS },
+      rows, summary: summariseByKind(rows),
+    };
+    writeJson(evidence, result);
+    writeFileSync(evidence.replace(/\.json$/, '.md'), multiMarkdown(result));
+    console.log(formatByKind(result.summary));
+    console.log(`\n${SYNTHETIC_NOTE}\nEvidence: ${evidence}`);
+    return;
+  }
   const result = {
     date: '2026-10-25',
     synthetic: true,
@@ -375,10 +497,13 @@ async function run(keyterms) {
 }
 
 async function main(argv) {
+  const conditions = parseConditions(argv);
+  const multi = isMultiRun(conditions);
   if (argv.includes('--report-only')) {
-    if (!existsSync(EVIDENCE)) throw new Error(`No evidence at ${EVIDENCE}.`);
-    const saved = readJson(EVIDENCE);
-    console.log(formatSummary(saved.summary));
+    const evidence = multi ? MULTI_EVIDENCE : EVIDENCE;
+    if (!existsSync(evidence)) throw new Error(`No evidence at ${evidence}.`);
+    const saved = readJson(evidence);
+    console.log(multi ? formatByKind(saved.summary) : formatSummary(saved.summary));
     console.log(`\n${saved.syntheticNote}\nDeepgram: ${saved.deepgram.mode}, ${saved.deepgram.streams} streams, ${saved.deepgram.billedSeconds} s billed.`);
     return;
   }
@@ -397,10 +522,25 @@ async function main(argv) {
     keyterms: keyterms ?? `unavailable: ${keytermsNote}`,
     evidence: EVIDENCE, note: SYNTHETIC_NOTE,
   }, null, 2));
-  if (argv.includes('--generate')) { await generate(plan); return; }
+  const extra = buildExtraPlan();
+  if (multi) {
+    const lessonStreams = plan.length * conditionsFor(LESSON, conditions).length;
+    const extraStreams = extra.reduce((n, p) => n + conditionsFor(p.kind, conditions).length, 0);
+    const seconds = extra.reduce((n, p) => n + p.chars, 0) / 14 + (lessonStreams / plan.length) * plan.reduce((n, p) => n + p.chars, 0) / 14;
+    console.log(JSON.stringify({
+      multiComparison: {
+        conditions: Object.fromEntries([LESSON, 'scene reply', 'English answer'].map(k => [k, Object.fromEntries(conditionsFor(k, conditions).map(c => [c, conditionOptions(c, k, keyterms ? ['<lessonKeyterms(CAFE_LESSON)>'] : ['<keyterms unavailable>'])]))])),
+        newClips: extra.map(p => ({ name: p.name, kind: p.kind, text: p.text, chars: p.chars })),
+        elevenlabs: { requests: extra.length, estimatedCredits: estimateTotal(extra), cap: CREDIT_CAP, headroomRequired: estimateTotal(extra) + HEADROOM, destination: join(MULTI_DIR, 'accented'), lessonClips: 'reused from ' + ACCENTED_DIR + ' (normal level only), never re-billed' },
+        deepgram: { streams: lessonStreams + extraStreams, lessonStreams, extraStreams, roughSpeechSeconds: Math.round(seconds * 2) / 2, note: 'speech at ~14 chars/s, excluding pad; --run prints the energy-filter estimate and refuses above the cap', capSeconds: DG_CAP_SECONDS },
+        evidence: [MULTI_EVIDENCE, MULTI_EVIDENCE.replace(/\.json$/, '.md')],
+      },
+    }, null, 2));
+  }
+  if (argv.includes('--generate')) { await generate(plan); if (multi) await generate(extra, MULTI_DIR); return; }
   if (argv.includes('--run')) {
     if (!keyterms) throw new Error(keytermsNote);
-    await run(keyterms);
+    await run(keyterms, conditions);
     return;
   }
   console.log('Dry run: nothing sent. Add --generate to synthesise, then --run to spend Deepgram.');

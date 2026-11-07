@@ -21,8 +21,9 @@ const EVIDENCE='https://github.com/example/luvani/blob/main/deployment/PAID_ADMI
 const scratch=()=>mkdtemp(join(tmpdir(),'luvani-paid-quotes-test-'));
 /** Which captured request shapes each activity's runtime sends (see the generator's quote table). */
 const SENDS={
- lesson:['live-chat','stt-lesson-keyterm','tts-alexandre'],'lesson-text':['live-chat'],
- convo:['turn-stream','frame','curate','extract','drills','stt-convo-multi','stt-convo-fr','tts-alexandre'],
+ // A Deepgram stream the plugin reopens once (maxRetry 1, agent.ts) is a second claim of the same shape.
+ lesson:['live-chat','stt-lesson-keyterm','stt-lesson-keyterm','tts-alexandre'],'lesson-text':['live-chat'],
+ convo:['turn-stream','frame','curate','extract','drills','stt-convo-multi','stt-convo-multi','stt-convo-fr','stt-convo-fr','tts-alexandre'],
  'convo-text':['turn','frame','curate','extract','drills'],
  practice:['drills'],'api-judge':['judge'],'api-fix-judge':['fix-judge'],'api-transcribe':['take'],'phrase-audio':['phrase-alexandre'],
 };
