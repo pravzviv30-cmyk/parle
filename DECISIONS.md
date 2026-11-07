@@ -2184,6 +2184,13 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   nine); the council and the founder chose to tune the cascade, then one time-boxed
   half-cascade spike.
 - Consequence: priority pricing on every live turn on staging. F967 tracks the lane.
+  - **Beginner maxDelay 3,500 ms** (rungs 1-2 and no signed rung; founder 2026-11-07, on
+    the pause table in `docs/live-latency-evidence/2026-11-07-pause-endpointing.md`): at
+    the 1,200 ms floor, 3,500 cuts the 2.5 s-pause cut-offs from 6/6 to 1/6 and the 3.0 s
+    ones from 6/6 to 2/6 at no p50 cost; the price is a misread ending waiting 3.4 s.
+    Rungs 3-4 and the moment hold stay at 2,500. Dynamic endpointing was ruled out on the
+    same clips (no patience bought, silence added). Synthetic voices; F695 keeps the
+    real-learner check. `BEGINNER_ENDPOINTING_MAX_DELAY_MS` in `thinkingTime.ts`.
 
 ## VOICE-023 — Flux hears every session, and LiveKit keeps the turn
 

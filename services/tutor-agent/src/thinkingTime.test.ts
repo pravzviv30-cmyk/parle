@@ -4,6 +4,7 @@ import * as silero from '@livekit/agents-plugin-silero';
 
 import {
   CUT_OFF_STEP_MS,
+  BEGINNER_ENDPOINTING_MAX_DELAY_MS,
   CUT_OFF_WINDOW_MS,
   CutOffTracker,
   ENDPOINTING_MAX_DELAY_MS,
@@ -41,10 +42,22 @@ describe('thinking time (VOICE-010)', () => {
   });
 
   test('maxDelay is pinned, not left to the SDK default', () => {
-    for (const rung of [1, 2, 3, 4] as const) {
+    for (const rung of [3, 4] as const) {
       assert.equal(endpointingFor({ rung, cutOffs: 0, holding: false }).maxDelay, ENDPOINTING_MAX_DELAY_MS);
     }
     assert.equal(ENDPOINTING_MAX_DELAY_MS, 2_500);
+  });
+
+  test('rungs 1-2 wait up to 3,500 ms when the detector holds the turn (VOICE-022)', () => {
+    // 2026-11-07 pause table: 3,500 cuts the 2.5 s-pause cut-offs from 6/6 to 1/6
+    // at no p50 cost; 2,500 cut every one of them.
+    for (const rung of [1, 2] as const) {
+      assert.equal(endpointingFor({ rung, cutOffs: 0, holding: false }).maxDelay, BEGINNER_ENDPOINTING_MAX_DELAY_MS);
+      assert.equal(endpointingFor({ rung, cutOffs: 2, holding: false }).maxDelay, BEGINNER_ENDPOINTING_MAX_DELAY_MS);
+    }
+    assert.equal(endpointingFor({ cutOffs: 0, holding: false }).maxDelay, BEGINNER_ENDPOINTING_MAX_DELAY_MS);
+    assert.equal(endpointingFor({ rung: 1, cutOffs: 0, holding: true }).maxDelay, ENDPOINTING_MAX_DELAY_MS);
+    assert.equal(BEGINNER_ENDPOINTING_MAX_DELAY_MS, 3_500);
   });
 
   test('each cut-off adds 400 ms and the floor never passes 2,000 ms', () => {
@@ -94,7 +107,7 @@ describe('thinking time (VOICE-010)', () => {
     t.turnCommitted();
     now = 700;
     t.learnerSpeechStarted();
-    assert.deepEqual(applied, [{ minDelay: 1_600, maxDelay: 2_500 }]);
+    assert.deepEqual(applied, [{ minDelay: 1_600, maxDelay: 3_500 }]);
     t.rung(3); // a fluent rung keeps the cut-off it earned
     assert.equal(t.endpointing.minDelay, 800);
   });
@@ -103,6 +116,7 @@ describe('thinking time (VOICE-010)', () => {
     assert.equal(turnHandlingFor('convo', { startRung: 1 }).endpointing.minDelay, 1_200);
     assert.equal(turnHandlingFor('lesson', { startRung: 4 }).endpointing.minDelay, 400);
     assert.equal(turnHandlingFor('convo').endpointing.minDelay, 1_200);
-    assert.equal(turnHandlingFor('convo').endpointing.maxDelay, 2_500);
+    assert.equal(turnHandlingFor('convo').endpointing.maxDelay, 3_500);
+    assert.equal(turnHandlingFor('lesson', { startRung: 4 }).endpointing.maxDelay, 2_500);
   });
 });

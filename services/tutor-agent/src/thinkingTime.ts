@@ -44,6 +44,13 @@ export const MOMENT_HOLD_DELAY_MS = 2_500;
  * detector is present; pinning it makes that a visible, tested choice.
  */
 export const ENDPOINTING_MAX_DELAY_MS = 2_500;
+/**
+ * Rungs 1-2: a beginner's mid-sentence pause runs past 2,500 ms. Measured
+ * 2026-11-07 (`docs/live-latency-evidence/2026-11-07-pause-endpointing.md`):
+ * 3,500 cuts the 2.5 s-pause cut-offs from 6/6 to 1/6 at no p50 cost; the
+ * price is a misread ending waiting 3.4 s. Synthetic voices, not learners.
+ */
+export const BEGINNER_ENDPOINTING_MAX_DELAY_MS = 3_500;
 /** A learner starting again this soon after a committed turn was cut off. */
 export const CUT_OFF_WINDOW_MS = 1_500;
 
@@ -63,9 +70,13 @@ export interface ThinkingTimeInput {
 
 export function endpointingFor({ rung, cutOffs, holding }: ThinkingTimeInput): Endpointing {
   if (holding) return { minDelay: MOMENT_HOLD_DELAY_MS, maxDelay: ENDPOINTING_MAX_DELAY_MS };
-  const base = rung === undefined || rung <= 2 ? BEGINNER_PAUSE_FLOOR_MS : FLUENT_PAUSE_FLOOR_MS;
+  const beginner = rung === undefined || rung <= 2;
+  const base = beginner ? BEGINNER_PAUSE_FLOOR_MS : FLUENT_PAUSE_FLOOR_MS;
   const raised = base + Math.max(0, cutOffs) * CUT_OFF_STEP_MS;
-  return { minDelay: Math.min(Math.max(base, raised), PAUSE_FLOOR_CAP_MS), maxDelay: ENDPOINTING_MAX_DELAY_MS };
+  return {
+    minDelay: Math.min(Math.max(base, raised), PAUSE_FLOOR_CAP_MS),
+    maxDelay: beginner ? BEGINNER_ENDPOINTING_MAX_DELAY_MS : ENDPOINTING_MAX_DELAY_MS,
+  };
 }
 
 /**

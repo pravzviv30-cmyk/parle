@@ -690,9 +690,9 @@ The floor follows the learner (`services/tutor-agent/src/thinkingTime.ts`):
 
 | Situation | `minDelay` | `maxDelay` |
 |---|---|---|
-| Rungs 1-2 (A0-A1), or no signed rung | 1,200 ms | 2,500 ms |
+| Rungs 1-2 (A0-A1), or no signed rung | 1,200 ms | 3,500 ms |
 | Rungs 3-4 | 400 ms | 2,500 ms |
-| Each cut-off this session | +400 ms, capped at 2,000 ms | 2,500 ms |
+| Each cut-off this session | +400 ms, capped at 2,000 ms | the rung's |
 | "Give me a moment" held | 2,500 ms | 2,500 ms |
 
 A cut-off is the learner starting to speak within 1,500 ms of a committed turn,
@@ -722,8 +722,11 @@ What it costs, from the last voiced audio to the turn committing (p50, same
 clips): today 466 ms. Rungs 1-2 now take 1,090 ms (+624 ms), 1,490 ms after one
 cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
 2,390 ms. Rungs 3-4 are unchanged. When the audio model holds a turn, the wait is
-2,500 ms either way. A lesson may run preemptive generation once more per held
-pause; the framework caps that at three a turn.
+`maxDelay`: 3,500 ms at rungs 1-2 since VOICE-022 (2026-11-07; at 2,500 every 2.5 s
+mid-sentence pause was cut, at 3,500 one in six, at no p50 cost, the price being a
+misread ending that waits 3.4 s; `docs/live-latency-evidence/2026-11-07-pause-endpointing.md`,
+synthetic voices), 2,500 ms at rungs 3-4 and under a moment hold. A lesson may run
+preemptive generation once more per held pause; the framework caps that at three a turn.
 
 The recogniser has been Flux since VOICE-023, and Flux declares its own end of turn. LiveKit
 still decides when the turn commits; see "English answers and the recogniser (Flux,
