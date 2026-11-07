@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
+import { MemoryExtractionSchema, ReplyFirstTurnSchema, ScenarioFrameSchema, TurnSchema, turnSchemasFor, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { EarlySpokenTurn, MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
@@ -45,6 +45,7 @@ type PromptRequest = { cacheSeed: string; signal?: AbortSignal; onSpokenFields?:
 
 type ContractSchema =
   | typeof TurnSchema
+  | typeof ReplyFirstTurnSchema
   | typeof ScenarioFrameSchema
   | typeof MemoryExtractionSchema
   | typeof DrillBatchSchema
@@ -79,6 +80,12 @@ export interface OpenAiResponsesConfig {
    * `OPENAI_LIVE_SERVICE_TIER`; anything unrecognised means the field is omitted.
    */
   liveServiceTier?: string;
+  /**
+   * "1" writes `coach` after `sceneReply` in the live turn so the spoken French
+   * streams sooner (the early speech then carries no recast echo). Opt-in,
+   * default off. Falls back to `LUVANI_TURN_REPLY_FIRST`; anything but "1" is off.
+   */
+  turnReplyFirst?: string;
   /** Per-activity effort and size. Defaults to the shared table, env applied. */
   routing?: BrainRouting;
 }
@@ -130,6 +137,12 @@ export function openAiLiveServiceTier(env: Record<string, string | undefined> = 
     console.warn(`[luvani] OPENAI_LIVE_SERVICE_TIER is not one of ${SERVICE_TIERS.join(', ')}; using the standard tier.`);
   }
   return null;
+}
+
+/** Whether the live turn writes its reply before its coaching, from config then `LUVANI_TURN_REPLY_FIRST`. */
+export function openAiTurnReplyFirst(env: Record<string, string | undefined> = process.env,
+  config: Pick<OpenAiResponsesConfig, 'turnReplyFirst'> = {}): boolean {
+  return (config.turnReplyFirst ?? env.LUVANI_TURN_REPLY_FIRST)?.trim() === '1';
 }
 
 /** One resolver for the brain, scripted SDK and startup probe; legacy overrides remain valid. */
@@ -305,6 +318,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   private readonly routing: BrainRouting;
   private readonly explicitEffort: boolean;
   private readonly liveServiceTier: OpenAiServiceTier | null;
+  private readonly turnSchemas: ReturnType<typeof turnSchemasFor>;
 
   constructor(
     config: OpenAiResponsesConfig = {},
@@ -320,6 +334,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     };
     this.routing = config.routing ?? resolveRouting();
     this.liveServiceTier = openAiLiveServiceTier(process.env, config);
+    this.turnSchemas = turnSchemasFor(openAiTurnReplyFirst(process.env, config));
     this.explicitEffort = config.routing !== undefined || ['low', 'medium', 'high'].includes(process.env.BRAIN_EFFORT ?? '');
   }
 
@@ -327,7 +342,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     const result = await this.complete('turn', {
       ...promptRequest(request),
       ...(request.onSpokenFields === undefined ? {} : { onSpokenFields: request.onSpokenFields }),
-    }, instructionsFor(request, true), request.messages, TurnSchema);
+    }, instructionsFor(request, true), request.messages, this.turnSchemas.turn);
     return { turn: result.value as TutorTurn, usage: result.usage };
   }
 
@@ -413,7 +428,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     // Only a live turn whose caller can use its spoken fields early streams.
     // Every other call, and a turn nobody is waiting to speak, stays one
     // request and one JSON body, exactly as before.
-    const watcher = activity === 'turn' && request.onSpokenFields ? new SpokenFieldsWatcher() : null;
+    const watcher = activity === 'turn' && request.onSpokenFields ? new SpokenFieldsWatcher(this.turnSchemas.early) : null;
     // Priority processing is for the calls a learner waits through, never for
     // analyst work after the room has closed.
     const live = (activity === 'turn' || activity === 'frame') && !isAnalystActivity(activity, this.routing);
@@ -470,7 +485,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     let value: unknown;
     try {
       const decoded: unknown = JSON.parse(raw);
-      value = schema.parse(schema === TurnSchema ? withMissingGoalObservation(decoded) : decoded);
+      value = schema.parse(schema === this.turnSchemas.turn ? withMissingGoalObservation(decoded) : decoded);
     } catch {
       // Billed all the same, so the usage rides on the error: the call the
       // meter must not miss is the one that produced nothing.

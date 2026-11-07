@@ -2144,3 +2144,36 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   time; staging quotes are regenerated for the lesson's second stream. Numbers and the
   remaining limits are in `docs/LIVE_VOICE.md` "One hiccup is not the end". F964, F965.
 
+
+## VOICE-022 — Lane D: the cascade is tuned switch by switch, each measured
+
+- Date: 2026-11-07
+- Status: accepted (the lane); each switch is recorded here as it lands
+- Decision: the live tutor's reply latency is cut one switch at a time, every switch
+  measured before and after with `scripts/measureLiveTurn.mjs` (model time to the spoken
+  fields) and, when a spoken scene has run on staging, `[luvani:scene-first-frame]`.
+  Full speech-to-speech is ruled out: scripted lines, graded transcripts and the choice
+  of brain stay. Baseline 2026-11-07 at main `64b07372`: spoken p50 1,651 ms (p95 3,314)
+  on the standard tier, 950 ms (p95 1,735) on priority
+  (`docs/live-latency-evidence/2026-11-07-lane-d.md`).
+  - **Priority tier** (founder's cost call, 2026-11-07): replay spoken p50 1,651 to 950 ms.
+    Set on the staging tutor at 12:21 UTC and pulled back the same hour: the paid
+    admission binds `service_tier` into the brain quote's configuration identity
+    (`services/shared/paidExecution.ts` `describePaidHttp`), so with the current quotes
+    every live turn would be refused as quote-mismatch. It goes on once the staging quotes
+    are regenerated with `OPENAI_LIVE_SERVICE_TIER=priority` in `scripts/paidQuotes.mjs`
+    `STAGING_ENV` (the Flux lane's file) and renewed. The same holds for
+    `LUVANI_TURN_REPLY_FIRST`, whose json schema is in the same identity.
+  - **`coach` after the reply** (`LUVANI_TURN_REPLY_FIRST=1`, off by default; founder
+    2026-11-07): `ReplyFirstTurnSchema` writes assessment, coachLine, narration, sceneReply,
+    then coach. The early hand-over carries no coach items, so a streamed reply is spoken
+    without the in-character "Ah, …" recast, the full turn does not recast a reply spoken
+    without one, and a turn that reached for English waits for the full turn so the French
+    hand-back is still heard. Replay: spoken p50 1,651 to 1,293 ms on the standard tier (p95
+    3,314 to 1,632); on priority 950 to 937 ms p50 (inside noise), p95 1,735 to 1,574.
+    `scripts/paidQuotes.mjs` `STAGING_ENV` carries both knobs so the next renewal binds
+    them; they go on the staging tutor in that renewal's window.
+- Reason: the founder's 2026-11-06 staging session felt slow and scripted (problem 2 of
+  nine); the council and the founder chose to tune the cascade, then one time-boxed
+  half-cascade spike.
+- Consequence: priority pricing on every live turn on staging. F967 tracks the lane.

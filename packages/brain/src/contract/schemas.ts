@@ -116,8 +116,13 @@ export const SpeakerLineZ = z.object({
  * has streamed; the reply's `frWritten` and `en` follow it and are display
  * only. Moving a field above `sceneReply` (or above `fr` inside `SpeakerLineZ`)
  * delays the tutor's voice by the time it takes to write that field.
+ *
+ * `ReplyFirstTurnSchema` is the same turn with `coach` moved to just after
+ * `sceneReply`, so the reply's French streams before the coaching items are
+ * written (opt-in, `LUVANI_TURN_REPLY_FIRST=1`). Both orders come from the one
+ * field map below so they cannot drift; `turnSchemasFor` picks the pair.
  */
-export const TurnSchema = z.object({
+const TURN_FIELDS = {
   assessment: AssessmentZ,
   coach: z.array(CoachItemZ),
   /** One sayable coach sentence when something needs saying now, else null. */
@@ -154,7 +159,13 @@ export const TurnSchema = z.object({
     goalMet: z.boolean().nullable(),
     sceneDone: z.boolean(),
   }),
-});
+};
+
+const { assessment, coach, coachLine, narration, sceneReply, ...laterFields } = TURN_FIELDS;
+
+export const TurnSchema = z.object({ assessment, coach, coachLine, narration, sceneReply, ...laterFields });
+
+export const ReplyFirstTurnSchema = z.object({ assessment, coachLine, narration, sceneReply, coach, ...laterFields });
 
 /**
  * The leading fields of a turn: everything the spoken line depends on.
@@ -174,6 +185,22 @@ export const EarlySpokenTurnSchema = TurnSchema.pick({
 }).extend({
   sceneReply: SpeakerLineZ.pick({ speaker: true, fr: true }),
 });
+
+/** The reply-first twin: `coach` has not streamed yet when the reply closes, so it is not in it. */
+export const ReplyFirstEarlySpokenTurnSchema = ReplyFirstTurnSchema.pick({
+  assessment: true,
+  coachLine: true,
+  narration: true,
+}).extend({
+  sceneReply: SpeakerLineZ.pick({ speaker: true, fr: true }),
+});
+
+/** The live turn's schema and its early hand-over schema, in the order the switch asks for. */
+export function turnSchemasFor(replyFirst: boolean) {
+  return replyFirst
+    ? { turn: ReplyFirstTurnSchema, early: ReplyFirstEarlySpokenTurnSchema }
+    : { turn: TurnSchema, early: EarlySpokenTurnSchema };
+}
 
 /** Compatibility at adapter parse seams only; never repair an invalid judgment. */
 export function withMissingGoalObservation(value: unknown): unknown {

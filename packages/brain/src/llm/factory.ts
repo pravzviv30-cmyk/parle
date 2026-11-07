@@ -86,6 +86,7 @@ function vendorBrainFromEnv(env: Record<string, string | undefined>, transport?:
       turnModel: env.OPENAI_TURN_MODEL,
       liveModel: env.OPENAI_LIVE_MODEL,
       liveServiceTier: env.OPENAI_LIVE_SERVICE_TIER,
+      turnReplyFirst: env.LUVANI_TURN_REPLY_FIRST,
       analystModel: env.OPENAI_ANALYST_MODEL,
       drillsModel: env.OPENAI_DRILLS_MODEL,
       curationModel: env.OPENAI_CURATION_MODEL,
