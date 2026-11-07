@@ -143,6 +143,8 @@ async function main(argv) {
   const key = parseEnv(readFileSync(flags.envFile, 'utf8')).ELEVEN_API_KEY;
   if (!key) throw new Error('ELEVEN_API_KEY is missing from the env file.');
   process.env.ELEVEN_API_KEY = key;
+  // The measurement is of plain requests; an exported switch would stitch every sentence after the first.
+  delete process.env.LUVANI_TTS_STITCH;
 
   const { AUTHORED_SPEECH_LINES } = await import('../services/tutor-agent/src/authoredSpeech.ts');
   const { normaliseLine } = await import('../services/tutor-agent/src/ttsCache.ts');

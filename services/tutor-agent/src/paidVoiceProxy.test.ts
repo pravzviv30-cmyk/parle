@@ -169,6 +169,7 @@ test('Eleven HTTP admits exact SDK text/config and credentials, refuses web sock
     assert.equal(new Headers(outbound[0]!.init?.headers).get('xi-api-key'),'stored-eleven-fixture');assert.equal(outbound[0]!.init?.body,JSON.stringify(body));
     const stitched=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...body,previous_text:'Alors, tu viens ?'})});
     assert.equal(stitched.status,200);await stitched.arrayBuffer();assert.equal(descriptors.length,2);assert.deepEqual(descriptors[1]!.configuration,descriptors[0]!.configuration);assert.equal(descriptors[1]!.quantities.textBytes,Buffer.byteLength(body.text));
+    assert.equal(outbound[1]!.init?.body,JSON.stringify({...body,previous_text:'Alors, tu viens ?'}));
     for(const previous_text of ['x'.repeat(601),7]){const denied=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...body,previous_text})});assert.equal(denied.status,503);}
     assert.equal(descriptors.length,2);
     for(const [target,payload] of [[url.replace('false','true'),body],[url,{...body,unreviewed:true}],[url,{...body,text:'x'.repeat(8193)}],[url.replace('pcm_24000','mp3_44100'),body]] as const){const denied=await fetch(target,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});assert.equal(denied.status,503);assert.doesNotMatch(await denied.text(),/incoming-private|unreviewed|x{20}/);}

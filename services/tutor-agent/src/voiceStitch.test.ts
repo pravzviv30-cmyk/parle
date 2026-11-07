@@ -1,4 +1,4 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
+import { test, describe, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -79,6 +79,51 @@ describe('buildTTS and LUVANI_TTS_STITCH', () => {
     for (const value of ['0', 'true', 'yes', '']) { process.env.LUVANI_TTS_STITCH = value; assert.equal(buildTTS().opts.stitch, undefined, value); }
     process.env.LUVANI_TTS_STITCH = '1';
     assert.equal(typeof buildTTS().opts.stitch, 'function');
+  });
+
+  describe('the request it makes', () => {
+    const fetched: { url: string; init: RequestInit }[] = [];
+    beforeEach(() => {
+      fetched.length = 0;
+      process.env.LUVANI_TTS_STITCH = '1';
+      mock.method(globalThis, 'fetch', async (url: string | URL | Request, init?: RequestInit) => {
+        fetched.push({ url: String(url), init: init! });
+        return new Response(Buffer.alloc(4000), { headers: { 'content-type': 'audio/pcm' } });
+      });
+    });
+    afterEach(() => { mock.restoreAll(); });
+    const run = async (stitch: ReturnType<typeof buildTTS>['opts']['stitch']) => {
+      for await (const packet of stitch!('Oui.', 'Non.', 'eleven_multilingual_v2', new AbortController().signal)) void packet;
+    };
+
+    test('through the paid proxy: the proxy base URL, the placeholder key, and never the real key', async () => {
+      const baseURL = 'http://127.0.0.1:9/elevenlabs/v1';
+      await run(buildTTS({ baseURL }).opts.stitch);
+      assert.equal(fetched.length, 1);
+      assert.ok(fetched[0]!.url.startsWith(`${baseURL}/`), fetched[0]!.url);
+      assert.equal((fetched[0]!.init.headers as Record<string, string>)['xi-api-key'], 'proxy-only');
+      assert.ok(!JSON.stringify(fetched).includes('test-key-never-sent'), 'the real key appears nowhere in the request');
+    });
+
+    test('direct: the vendor URL and the env key', async () => {
+      await run(buildTTS().opts.stitch);
+      assert.ok(fetched[0]!.url.startsWith('https://api.elevenlabs.io/v1/'), fetched[0]!.url);
+      assert.equal((fetched[0]!.init.headers as Record<string, string>)['xi-api-key'], 'test-key-never-sent');
+    });
+
+    test('matches the plugin\'s own request apart from previous_text', async () => {
+      const cached = buildTTS();
+      for await (const packet of cached.inner.synthesize('Oui.')) void packet;
+      await run(cached.opts.stitch);
+      assert.equal(fetched.length, 2);
+      const [plugin, stitched] = fetched as [typeof fetched[number], typeof fetched[number]];
+      assert.equal(stitched.url, plugin.url);
+      assert.equal(stitched.init.method, plugin.init.method);
+      assert.deepEqual(stitched.init.headers, plugin.init.headers);
+      const { previous_text: previous, ...rest } = JSON.parse(String(stitched.init.body));
+      assert.equal(previous, 'Non.');
+      assert.deepEqual(JSON.parse(JSON.stringify(rest)), JSON.parse(String(plugin.init.body)));
+    });
   });
 
   test('the cache key is the same with the switch on or off', () => {

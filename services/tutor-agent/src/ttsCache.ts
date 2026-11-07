@@ -105,6 +105,8 @@ type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio' |
 const DEFAULT_MAX_TEXT = 220;
 /** Sentences of one reply are requested back to back; a learner turn in between takes longer. */
 const STITCH_WINDOW_MS = 8_000;
+/** Each refused stitched request is followed by a plain one, so a vendor that keeps refusing doubles the bill. */
+const STITCH_FAILURES_BEFORE_OFF = 2;
 export const AUTHORED_CACHE_VERSION = 'authored-v1';
 /**
  * 110 authored sentences x 6 voices is 660 entries. At 1,024 slots about 173 of
@@ -161,6 +163,8 @@ export class CachedTTS extends tts.TTS {
   readonly memo: ReplayMemo;
   /** The last non-authored line this session finished speaking, for sentence stitching. */
   #previous: { text: string; at: number } | null = null;
+  /** Stitched requests that failed before any audio, in a row; stitching stops at STITCH_FAILURES_BEFORE_OFF. */
+  stitchFailures = 0;
 
   constructor(inner: tts.TTS, opts: CachedTTSOptions) {
     // Declaring streaming:false makes the framework sentence-split for us.
@@ -383,6 +387,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
         this.#replayFrames(remembered);
         this.#cache.memoHits += 1;
         this.#cache.charsReplayed += text.length;
+        // The learner heard this line, so it is the context for the next one.
+        this.#cache.rememberLine(normaliseLine(text));
         return;
       }
     }
@@ -406,11 +412,16 @@ class CachedChunkedStream extends tts.ChunkedStream {
     // the learner barges in before the line finishes.
     this.#cache.charsBilled += text.length;
     if (route.tier === 'conversation') this.#cache.charsBilledConversation = (this.#cache.charsBilledConversation ?? 0) + text.length;
-    const frames = this.#cache.opts.missTransport === 'ws'
-      ? await this.#missViaStream(path, cacheable, memoKey !== null)
-      : await this.#passthrough(path, cacheable, memoKey !== null);
+    let frames: MemoFrame[] | null;
+    try {
+      frames = this.#cache.opts.missTransport === 'ws'
+        ? await this.#missViaStream(path, cacheable, memoKey !== null)
+        : await this.#passthrough(path, cacheable, memoKey !== null);
+    } finally {
+      // Runs when the stream throws too, so a broken line is never context for the next.
+      if (!this.#cache.authored(text)) this.#cache.rememberLine(this.#finished && this.#firstAudioReported ? normaliseLine(text) : null);
+    }
     this.#cache.misses += 1;
-    if (!this.#cache.authored(text)) this.#cache.rememberLine(this.#finished && this.#firstAudioReported ? normaliseLine(text) : null);
     // Only a line that finished cleanly is remembered; the transports return
     // null for anything aborted, closed early or missing its final marker.
     if (memoKey && frames && frames.length > 0) this.#cache.memo.set(memoKey, frames);
@@ -485,14 +496,19 @@ class CachedChunkedStream extends tts.ChunkedStream {
    */
   async *#audio(): AsyncIterable<tts.SynthesizedAudio> {
     const text = this.inputText, route = this.#route!, stitch = this.#cache.opts.stitch;
-    const previous = stitch && !this.#cache.authored(text) ? this.#cache.previousLine() : null;
+    const previous = stitch && this.#cache.stitchFailures < STITCH_FAILURES_BEFORE_OFF && !this.#cache.authored(text) ? this.#cache.previousLine() : null;
     if (stitch && previous !== null) {
       let spoke = false;
       try {
         for await (const packet of stitch(text, previous, route.inner.model, this.abortSignal)) { spoke = true; yield packet; }
+        if (spoke) this.#cache.stitchFailures = 0;
         return;
       } catch (error) {
         if (spoke || this.abortSignal.aborted) throw error;
+        this.#cache.stitchFailures += 1;
+        // Metadata only: a status code at most, never the vendor's text.
+        const status = error instanceof Error ? /\b[1-5]\d\d\b/.exec(error.message)?.[0] : undefined;
+        console.warn(`[luvani:live] stitched tts request failed; plain request answers${status ? ` status=${status}` : ''}`);
       }
     }
     yield* route.inner.synthesize(text, this.#connOptions, this.abortSignal);
