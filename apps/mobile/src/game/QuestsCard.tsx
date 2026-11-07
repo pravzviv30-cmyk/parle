@@ -92,7 +92,7 @@ export function QuestsCardBody({ card, rowKey, doneLine }: { card: QuestsCardVie
                 {row.complete ? (
                   <CheckDisc size={MARK} fill={t.mint} tick={t.onMint} />
                 ) : (
-                  <QuestRing size={MARK} fraction={row.fraction} track={t.lavender} color={t.brand} />
+                  <QuestRing size={MARK} fraction={row.fraction} track={t.lavender} color={t.brandMark} />
                 )}
               </View>
               <Text style={[bType.line16, st.words, row.complete ? st.doneWords : { color: t.text }]}>{row.title}</Text>

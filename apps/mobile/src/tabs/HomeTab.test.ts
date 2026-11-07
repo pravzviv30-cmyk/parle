@@ -1014,7 +1014,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(quests, /\{TODAY_COPY\.three\}/);
     assert.match(quests, /format=\{threeDone\}/);
     assert.match(quests, /row\.complete \? \( <CheckDisc size=\{MARK\} fill=\{t\.mint\} tick=\{t\.onMint\} \/>/, 'a done quest is colour alone');
-    assert.match(quests, /<QuestRing size=\{MARK\} fraction=\{row\.fraction\} track=\{t\.lavender\} color=\{t\.brand\} \/>/);
+    assert.match(quests, /<QuestRing size=\{MARK\} fraction=\{row\.fraction\} track=\{t\.lavender\} color=\{t\.brandMark\} \/>/);
     assert.match(quests, /accessible accessibilityLabel=\{row\.label\}/, 'the row and its ring are not labelled');
     assert.match(quests, /<View \{\.\.\.decorative\}>/, 'the quest mark is announced on its own');
     assert.match(quests, /<SmallPill label=\{trailing\.label\} ground=\{trailing\.kind === 'xp' && trailing\.earned \? t\.sage : t\.butter\} \/>/);

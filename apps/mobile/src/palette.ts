@@ -361,6 +361,8 @@ const bLight = {
   /** Loading blocks, the pressed wash and the disabled fill. */
   skeleton: paper.skeleton,
   brand: colour.blue,
+  /** The brand blue as a mark on a card or ground: a stage disc, a ring, a selected fill (founder's mark 2026-11-06). Never a page ground. */
+  brandMark: colour.blue,
   brandPressed: colour.bluePressed,
   onBrand: paper.onInk,
   /** The soft words on a blue card (the artboards' near-identical soft lilac, folded into onColour.blue). */
@@ -399,6 +401,8 @@ const bLight = {
   scrim: paper.ink,
   danger: '#C2341F',
   tabCapsule: paper.ink,
+  /** The capsule's 1.5pt rim, drawn in dark only (founder, 2026-11-07). Light equals the capsule, so nothing shows. A mark, never words. */
+  tabRim: paper.ink,
   tabSelected: colour.blue,
   tabGlyphSelected: colour.sun,
   tabLabel: paper.ground,
@@ -449,26 +453,34 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     // Mint words on the dark teal wash and on a dark card: the mint itself
     // clears the text floor on both (palette.test.ts).
     mintWash: '#233F41',
-    mintWords: colour.mint,
+    // 2026-11-06, the founder's dark marks: the mint and the sun softened for
+    // the night ground, and the brand blue lifted where it is a fill or a mark.
+    mintWords: '#2ABB7E',
     butter: '#493C2E',
     lavender: '#322B50',
     peach: '#49333F',
     sage: '#233F41',
     heroGround: '#363064',
     heroText: paper.ground,
-    heroCta: colour.sun,
+    heroCta: '#E8B53A',
     heroCtaText: paper.ink,
     heroChip: '#4A4170',
-    primary: colour.blue,
+    primary: '#6357F2',
     onPrimary: paper.onInk,
-    // The dark primary is the brand blue, so its lip is the pressed blue.
-    primaryLip: colour.bluePressed,
+    // The lip is one step under the lifted dark primary, still a mark on the ground.
+    primaryLip: '#5549E8',
     quiet: '#302A48',
     link: '#A79AFF',
     avatar: '#302A48',
     onAvatar: paper.ground,
     scrim: '#000000',
     danger: '#FF9A85',
+    // 2026-11-07, the founder's choice "Ink capsule, lilac rim": the capsule stays
+    // ink and takes a lilac rim that clears the mark floor on the ground. The
+    // selected glyph keeps the full sun, because the softened one is 2.66 on the lifted blue cell.
+    tabRim: '#65599A',
+    tabSelected: '#6357F2',
+    brandMark: '#6357F2',
     // 2026-10-20 UI-008, B-Journey and B-ThenNow: the stage track sits on the
     // dark card's inset, and the tiles' art panels one step lighter than their pastel.
     stageTrack: '#302A48',

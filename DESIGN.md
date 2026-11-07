@@ -779,6 +779,9 @@ teal); the yellow hero becomes the M3 hero with a gold button, ink words on the
 button and cream words on the card; the ink primary becomes violet; links become
 the M3 periwinkle. Violet cards, the sun, the mint and the art stay as they are.
 The tab capsule is ink in both modes (Figma `C2/Main2/Navigation`, 292:1103).
+In dark it takes a 1.5pt lilac rim `b.tabRim` `#65599A` (3.0 on the ground) and
+no shadow, by the founder's choice of 7 November 2026. The lifted selected cell
+is 3.6 on the ink.
 
 The live room (UI-014) keeps the brand blue in both modes. Its notebook, dock
 and sheets take the theme ground (`#151127` in dark), with cream words (17.2:1),
@@ -786,6 +789,13 @@ soft lilac English and older lines (10.3:1), and margin fixes on the dark
 lavender (12.3:1). The learner's sun mark with ink words (11.6:1) and the white
 cloud mic (18.4:1 on the dark sheet) are the same in both modes.
 `palette.test.ts` holds every text pair in both modes to 4.5 and every mark to 3.
+The founder's dark marks of 6 November 2026 lifted four dark tokens. The primary
+pill, the selected tab and `brandMark` (stage discs, rings, selected fills) are `#6357F2` (white 5.0 on it, 3.7 on the ground, 3.1
+on the card), with a `#5549E8` lip. The hero button is the softer sun `#E8B53A`
+(ink 9.4 on it, 9.7 on the ground). Mint words are `#2ABB7E` (7.5 on the ground,
+6.3 on the card, 4.6 on the teal wash). The selected tab glyph keeps the full sun,
+because the softer one is 2.7 on the lifted cell. `textColour.test.ts` refuses a
+`<Text>` styled only by a `type` role, which draws black on a dark card.
 
 **Pinned light until rebuilt.** A screen follows the device only once it is
 rebuilt to its artboard in both themes. `nav/darkReady.ts` exports `DARK_READY`,
@@ -829,6 +839,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.field` | `#8A8499` | Radio ring, input border, switch-off track. A mark |
 | `b.light.skeleton` | `#EFE6D6` | Loading blocks, pressed wash, disabled fill |
 | `b.light.brand` | `#3B2FE0` | Blue cards, selected states, the select ring |
+| `b.light.brandMark` | `#3B2FE0` | The brand blue as a small mark: a stage disc, a ring, a selected fill |
 | `b.light.brandPressed` | `#2A20B0` | A pressed blue control |
 | `b.light.onBrand` | `#FFFFFF` | Words on blue |
 | `b.light.onBrandSoft` | `#E4E1FF` | Soft words on blue |
@@ -861,6 +872,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.scrim` | `#16123A` | The sheet scrim, at 0.4 |
 | `b.light.danger` | `#C2341F` | A destructive action |
 | `b.light.tabCapsule` | `#16123A` | The tab bar capsule |
+| `b.light.tabRim` | `#16123A` | The capsule rim, the capsule itself in light, so none shows |
 | `b.light.tabSelected` | `#3B2FE0` | The selected tab cell |
 | `b.light.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
 | `b.light.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
@@ -900,7 +912,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.sun` | `#FFC93C` | Sunshine accents |
 | `b.dark.mint` | `#2FD18B` | Done ticks |
 | `b.dark.mintWash` | `#233F41` | The success panel |
-| `b.dark.mintWords` | `#2FD18B` | Success words |
+| `b.dark.mintWords` | `#2ABB7E` | Success words |
 | `b.dark.onMint` | `#16123A` | The tick and the star stroke on a mint disc (B-Today, 2026-10-20) |
 | `b.dark.coral` | `#D63A22` | The tutor speaking. A mark |
 | `b.dark.butter` | `#493C2E` | Butter tile |
@@ -909,12 +921,12 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.sage` | `#233F41` | Sage tile |
 | `b.dark.heroGround` | `#363064` | The hero card |
 | `b.dark.heroText` | `#FFF6E9` | Words on the hero |
-| `b.dark.heroCta` | `#FFC93C` | The hero button |
+| `b.dark.heroCta` | `#E8B53A` | The hero button |
 | `b.dark.heroCtaText` | `#16123A` | Words on the hero button |
 | `b.dark.heroChip` | `#4A4170` | A chip on the hero |
-| `b.dark.primary` | `#3B2FE0` | The one primary pill |
+| `b.dark.primary` | `#6357F2` | The one primary pill |
 | `b.dark.onPrimary` | `#FFFFFF` | Words on the primary pill |
-| `b.dark.primaryLip` | `#2A20B0` | The lip under the dark primary: the pressed brand blue (UI-016); decorative |
+| `b.dark.primaryLip` | `#5549E8` | The lip under the dark primary: one step under the lifted blue (UI-016); decorative |
 | `b.dark.quiet` | `#302A48` | The quiet secondary button and chip |
 | `b.dark.link` | `#A79AFF` | Links and the lock mark |
 | `b.dark.avatar` | `#302A48` | The avatar disc |
@@ -922,7 +934,9 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.scrim` | `#000000` | The sheet scrim, at 0.4 |
 | `b.dark.danger` | `#FF9A85` | A destructive action |
 | `b.dark.tabCapsule` | `#16123A` | The tab bar capsule |
-| `b.dark.tabSelected` | `#3B2FE0` | The selected tab cell |
+| `b.dark.tabRim` | `#65599A` | The capsule's 1.5pt rim in dark |
+| `b.dark.tabSelected` | `#6357F2` | The selected tab cell |
+| `b.dark.brandMark` | `#6357F2` | The brand blue as a small mark on a card or ground: a stage disc, a ring, a selected fill. `brand` stays `#3B2FE0` as a page ground |
 | `b.dark.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
 | `b.dark.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
 | `b.dark.hint` | `#7E8AFF` | The Hint bar of the help legend (B-ThenNow); a mark |
@@ -1069,7 +1083,8 @@ the new look, listed at the end, and they go with their call sites.
   "Step 2 of 6".
 - **Label**: the meta line a card may carry: small, soft ink, sentence case.
 - **Tab bar** (UI-008, 2026-10-20, Figma C2/Main2/Navigation 292:1103): an
-  ink capsule (`b.tabCapsule`, the same in both themes) 12pt in from each edge
+  ink capsule (`b.tabCapsule`, the same in both themes, with a 1.5pt `b.tabRim`
+  rim in dark) 12pt in from each edge
   inside the safe areas and at most 640 wide, radius 32, padded 8 across and 6
   down, floating 8pt above the safe area (or 8pt) on a clear strip (UI-017,
   founder 2026-11-01). Content scrolls behind it and stays visible beside and

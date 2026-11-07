@@ -26,7 +26,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, AccessibilityInfo, PanResponder, PixelRatio, useWindowDimensions } from 'react-native';
 import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { boldType, font, space } from '../theme.ts';
+import { boldType, decorative, font, space } from '../theme.ts';
 import { Press } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { dueCount } from '../review/store.ts';
@@ -165,6 +165,7 @@ function TabStrip({ routes, insets, due }: {
   return (
     <View pointerEvents="box-none" onLayout={(e) => reportHeight?.(e.nativeEvent.layout.height)} style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
       <View ref={capsuleRef} {...drag.panHandlers} onLayout={() => capsuleRef.current?.measureInWindow((x) => { capsuleX.current = x; })} style={[st.capsule, { width: capsule }]}>
+      {t.mode === 'dark' && <View {...decorative} pointerEvents="none" style={st.rim} />}
       {selected >= 0 && <TabPill to={dragX ?? selected * cell} width={cell} left={CAPSULE_SIDE} following={dragX !== null} />}
       {routes.map((route) => {
         const focused = route.focused;
@@ -223,6 +224,9 @@ function makeStyles(t: B) {
       paddingHorizontal: space(2),
       paddingVertical: space(1.5),
     },
+    // 2026-11-07, the founder's choice "Ink capsule, lilac rim": drawn over the capsule in dark
+    // only, no shadow, so the capsule's box, the cells and the drag maths keep their numbers.
+    rim: { ...StyleSheet.absoluteFill, borderRadius: 32, borderWidth: 1.5, borderColor: t.tabRim },
     cell: {
       flex: 1,
       // A floor, not a height: a wrapped two-line word grows the cell, and the

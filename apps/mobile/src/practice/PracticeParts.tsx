@@ -94,7 +94,7 @@ export function TopicTabs<K extends string | null>({ tabs, chosen, onChoose }: {
       {tabs.map((tab) => {
         const on = tab.key === chosen;
         return (
-          <Press key={tab.key ?? 'all'} haptic="selection" accessibilityRole="tab" accessibilityLabel={tab.label} accessibilityState={{ selected: on }} hitSlop={{ top: 2, bottom: 2 }} onPress={() => onChoose(tab.key)} style={[s.tab, { backgroundColor: on ? t.brand : t.card }]}>
+          <Press key={tab.key ?? 'all'} haptic="selection" accessibilityRole="tab" accessibilityLabel={tab.label} accessibilityState={{ selected: on }} hitSlop={{ top: 2, bottom: 2 }} onPress={() => onChoose(tab.key)} style={[s.tab, { backgroundColor: on ? t.brandMark : t.card }]}>
             {on ? <TickGlyph size={14} color={t.onBrand} /> : null}
             <Text style={[on ? bType.bold15 : bType.semi15, { color: on ? t.onBrand : t.text }]}>{tab.label}</Text>
           </Press>
