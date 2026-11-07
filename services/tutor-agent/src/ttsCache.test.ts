@@ -806,11 +806,13 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
   let failStitch = false;
   let stallStitch = false;
   let throwAfterFirstFrame = false;
+  let silentStitch = false;
 
   /** A stitched request that records what it was given and answers with the same ramp as the fake vendor. */
   const stitch: NonNullable<CachedTTSOptions['stitch']> = async function* (text, previousText, model, signal) {
     calls.push({ text, previousText, model });
-    if (failStitch) throw new Error('stitched request refused');
+    if (failStitch) throw new Error('stitched TTS request refused (503)');
+    if (silentStitch) return;
     const frames = rampFrames(text);
     if (throwAfterFirstFrame) {
       yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
@@ -825,7 +827,7 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
   };
   const stitching = () => new CachedTTS(fake, { dir, voiceKey: 'test-voice', stitch, authoredLines: [AUTHORED_LINE] });
 
-  beforeEach(() => { calls.length = 0; failStitch = false; stallStitch = false; throwAfterFirstFrame = false; });
+  beforeEach(() => { calls.length = 0; failStitch = false; stallStitch = false; throwAfterFirstFrame = false; silentStitch = false; });
   afterEach(() => { mock.timers.reset(); });
 
   test('off by default: no stitch option, and a second sentence is today\'s plain synthesis', async () => {
@@ -963,6 +965,28 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
     assert.equal(calls.length, 1, 'the broken line is not context for the next one');
     assert.equal(fake.calls, 2);
+  });
+
+  test('a stitched answer with no audio counts as a failure and the plain path speaks the line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    silentStitch = true;
+    const pcm = await pcmOf(synth(cached, SECOND));
+    assert.ok(pcm.length > 0, 'the learner must not hear a silent sentence');
+    assert.equal(fake.calls, 2, 'the plain vendor path answered');
+    assert.equal(cached.stitchFailures, 1);
+  });
+
+  test('a refused stitched request logs its status code only', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    failStitch = true;
+    const warn = mock.method(console, 'warn', () => {});
+    try {
+      await pcmOf(synth(cached, SECOND));
+      assert.equal(warn.mock.calls.length, 1);
+      assert.equal(warn.mock.calls[0]!.arguments[0], '[luvani:live] stitched tts request failed; plain request answers status=503');
+    } finally { warn.mock.restore(); }
   });
 
   test('two stitched failures in a row turn stitching off for the session', async () => {

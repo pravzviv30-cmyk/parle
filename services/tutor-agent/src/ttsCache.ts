@@ -501,13 +501,15 @@ class CachedChunkedStream extends tts.ChunkedStream {
       let spoke = false;
       try {
         for await (const packet of stitch(text, previous, route.inner.model, this.abortSignal)) { spoke = true; yield packet; }
-        if (spoke) this.#cache.stitchFailures = 0;
+        // An answer with no audio is a failure too, or the learner would hear a silent sentence.
+        if (!spoke && !this.abortSignal.aborted) throw new Error('stitched TTS answer had no audio');
+        this.#cache.stitchFailures = 0;
         return;
       } catch (error) {
         if (spoke || this.abortSignal.aborted) throw error;
         this.#cache.stitchFailures += 1;
         // Metadata only: a status code at most, never the vendor's text.
-        const status = error instanceof Error ? /\b[1-5]\d\d\b/.exec(error.message)?.[0] : undefined;
+        const status = error instanceof Error ? /refused \((\d{3})\)/.exec(error.message)?.[1] : undefined;
         console.warn(`[luvani:live] stitched tts request failed; plain request answers${status ? ` status=${status}` : ''}`);
       }
     }
