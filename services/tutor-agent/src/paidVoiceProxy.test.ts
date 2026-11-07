@@ -272,7 +272,8 @@ test('flux v2 refuses other models, hints, ranges, keys and the nova-3 query, an
   const bad=[v2.replace('flux-general-multi','flux-general-en'),v2.replace('language_hint=fr','language_hint=de'),v2.replace('&language_hint=fr&language_hint=en',''),v2.replace('language_hint=en','language_hint=fr'),
     v2+'&eot_threshold=2',v2+'&eot_threshold=0.4',v2+'&eager_eot_threshold=0.2',v2+'&eager_eot_threshold=0.95',v2+'&eot_timeout_ms=100',v2+'&eot_timeout_ms=60001',v2+'&eot_timeout_ms=1.5e3',v2+'&numerals=maybe',v2+'&tag=x',v2+'&redact=pci',v2+'&language=fr',v2+'&channels=1',
     v2.replace('16000','48000'),v2.replace('linear16','opus'),v2.replace('&mip_opt_out=true',''),v2.replace('mip_opt_out=true','mip_opt_out=false'),v2+'&api_key=x',config];
-  for(const query of bad)assert.throws(()=>flux(query),/invalid-stt-setting|unsupported-stt|invalid-parameters/,query);
+  for(const query of [...bad,v2+'&profanity_filter=maybe'])assert.throws(()=>flux(query),/invalid-stt-setting|unsupported-stt|invalid-parameters/,query);
+  for(const query of [v2+'&eot_threshold=0.5&eager_eot_threshold=0.3&eot_timeout_ms=500',v2+'&eot_threshold=1&eager_eot_threshold=0.9&eot_timeout_ms=60000'])assert.doesNotThrow(()=>flux(query),query);
   assert.throws(()=>describe(v2));
 });
 test('flux v2 keyterms share the nova-3 caps and marker, and never move the hash',()=>{

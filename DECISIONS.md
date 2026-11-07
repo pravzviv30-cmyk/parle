@@ -2154,7 +2154,9 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     for every session kind: lessons, the guest scene, the mission scene and the
     conversation (`services/tutor-agent/src/recognitionPlan.ts`). The env knob
     `LUVANI_STT_NOVA_KINDS` (a comma list of `lesson`, `scene`, `convo`) puts a kind back
-    on nova-3 as before. The `LUVANI_CONVO_ASR_EXPERIMENT` flag is gone.
+    on nova-3 as before; on staging or production the paid quotes must be regenerated
+    with the same value first (`scripts/paidQuotes.mjs` `STAGING_ENV`), or that kind's
+    streams are refused as quote-mismatch. The `LUVANI_CONVO_ASR_EXPERIMENT` flag is gone.
   - Lessons and scenes keep the fixed keyterm list (VOICE-017) as Flux keyterms; the
     conversation sends none and skips its phase language switch, so the hints stay
     French and English for the whole session.

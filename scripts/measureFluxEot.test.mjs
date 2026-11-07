@@ -20,6 +20,10 @@ test('an END_OF_SPEECH after the pause (plus 100 ms slack) is not a split', () =
   assert.deepEqual(r, { endOfTurns: 1, splitInPause: false, eotDelayMs: 500 });
 });
 
+test('a split with no end of turn after the resume point reports a null delay, never a negative one', () => {
+  assert.deepEqual(analyse([eos(1400, 22400)], base), { endOfTurns: 1, splitInPause: true, eotDelayMs: null });
+});
+
 test('no END_OF_SPEECH gives a null delay', () => {
   assert.deepEqual(analyse([], base), { endOfTurns: 0, splitInPause: false, eotDelayMs: null });
 });

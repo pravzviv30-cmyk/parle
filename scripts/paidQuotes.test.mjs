@@ -98,6 +98,7 @@ test('generated staging quotes admit every bound activity through the real SQL a
  for(const name of ['stt-lesson-keyterm','stt-convo-flux']){
   const d=first.shapes[name].descriptor;assert.equal(d.model,'flux-general-multi',name);
   assert.deepEqual(d.configuration.parameters.language_hint,['en','fr'],name);
+  assert.equal(d.configuration.parameters.keyterm,name==='stt-lesson-keyterm'?'prompted':undefined,name);
  }
  assert.deepEqual(paidBindings({LUVANI_PAID_QUOTE_BINDINGS:first.bindingsJson}),first.bindings);
  for(const file of Object.values(first.files))assert.ok(!file.startsWith(ROOT),'outputs stay outside the repository');

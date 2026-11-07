@@ -82,7 +82,8 @@ export function splice(pcm, rate, cut, pauseMs) {
 export function analyse(events, { resume, rate, lastVoicedT }) {
   const ends = events.filter((e) => e.type === 'END_OF_SPEECH');
   const limit = resume + (rate * SLACK_MS) / 1000;
-  const last = ends[ends.length - 1];
+  // The delay is measured on the end of turn after the resume point; a split with no second one reports null.
+  const last = ends.filter((e) => e.pushed >= limit).pop();
   return {
     endOfTurns: ends.length,
     splitInPause: ends.some((e) => e.pushed < limit),
