@@ -62,7 +62,7 @@ describe('the whole row is the switch — F927', () => {
     assert.match(row, /aria-checked=\{value\}/, 'the web does not hear on or off');
     assert.match(row, /onPress=\{\(\) => onChange\(!value\)\}/, 'a tap on the row does not toggle');
     // The knob is the picture of the state, not a second control.
-    assert.match(body, /<SwitchKnob value=\{value\} disabled=\{disabled\} on=\{accent\.brand\} off=\{offTrack\} thumb=\{paper\.card\} \/>/, 'the row does not draw its state, or draws it off the palette');
+    assert.match(body, /<SwitchKnob value=\{value\} disabled=\{disabled\} on=\{t\.brandMark\} off=\{offTrack\} thumb=\{paper\.card\} \/>/, 'the row does not draw its state, or draws it off the palette');
     assert.doesNotMatch(body, /onValueChange=/, 'the inner switch toggles on its own as well as the row');
   });
 });

@@ -834,7 +834,8 @@ describe('B tokens, light and dark — UI-008', () => {
       assert.notEqual(t.primaryLip.toLowerCase(), t.primary.toLowerCase(), `${mode} primaryLip is the primary`);
     }
     assert.equal(b.light.primaryLip, '#000000');
-    assert.equal(b.dark.primaryLip, b.dark.brandPressed, 'the dark lip is not the pressed brand blue');
+    // 2026-11-06, the founder's dark marks: the lip is one step under the lifted dark primary.
+    assert.equal(b.dark.primaryLip, '#5549E8', 'the dark lip is not the pressed step of the lifted blue');
   });
 
   test('b.dark follows the Figma M3 page: the main app dark values, violet kept, the hero turned', () => {
@@ -848,13 +849,71 @@ describe('B tokens, light and dark — UI-008', () => {
     for (const [key, value] of m3) assert.equal(t[key], value, `b.dark.${key} is not the M3 value`);
     // M3 keeps the violet as the accent, turns the ink pill violet, and gives
     // the hero a gold button with ink words and cream text.
+    // The founder's dark marks of 2026-11-06 override the Figma values below:
+    // the primary pill is the lifted blue and the hero button the softened sun.
     assert.equal(t.brand, colour.blue);
-    assert.equal(t.primary, colour.blue);
-    assert.equal(t.heroCta, colour.sun);
+    assert.equal(t.primary, '#6357F2');
+    assert.equal(t.heroCta, '#E8B53A');
     assert.equal(t.heroCtaText, paper.ink);
     assert.equal(t.heroText, paper.ground);
-    assert.equal(t.tabCapsule, paper.ink, 'the tab capsule is ink in both modes (Figma 292:1103)');
+    // Light only: in dark the founder's mark of 2026-11-06 overrides the Figma ink capsule.
+    assert.equal(b.light.tabCapsule, paper.ink, 'the light tab capsule is ink (Figma 292:1103)');
     assert.equal(t.statusBar, 'light');
+  });
+
+  // 2026-11-06, the founder's dark marks: the capsule (A), the brand blue as a
+  // fill or mark (B), and the softened sun and mint (G), each on its real grounds.
+  // 2026-11-06, the founder's mark B: the brand blue as a small mark (a stage disc, a ring, a selected fill).
+  test('brandMark is the brand blue in light and the lifted blue in dark, and reads as a mark', () => {
+    assert.equal(b.light.brandMark, colour.blue);
+    const t = b.dark;
+    for (const [where, bg] of [['card', t.card], ['ground', t.ground]] as const) {
+      assert.ok(contrast(t.brandMark, bg) >= MARK, `dark brandMark is ${contrast(t.brandMark, bg).toFixed(2)} on the ${where}`);
+    }
+    assert.ok(contrast(t.onBrand, t.brandMark) >= TEXT, 'white on the dark brandMark');
+    assert.match(readFileSync(new URL('./journey/JourneyParts.tsx', import.meta.url), 'utf8'), /s\.nodeAhead : \{ backgroundColor: t\.brandMark \}/, 'the stage node is not the brandMark');
+    // The raw accent.brand marks on dark-ready screens read the token too. Left in components.tsx:
+    // the light-only branch of chosenInk, and the tick on the Choice's white disc.
+    const src = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+    assert.equal((src('./components.tsx').match(/accent\.brand\b/g) ?? []).length, 2, 'a raw accent.brand mark is left in components.tsx');
+    assert.match(src('./settings/SwitchRow.tsx'), /on=\{t\.brandMark\}/, 'the switch on-track is not the brandMark');
+    assert.match(src('./game/StreakParts.tsx'), /true: t\.brandMark/, 'the nudge switch track is not the brandMark');
+    // The words on a selected Choice fill (title and second line) clear the text floor on the dark brandMark.
+    assert.match(src('./components.tsx'), /const quiet = filled \? \(sunny \? onColour\.sun : t\.mode === 'light' \? onColour\.blue : t\.onBrand\)/, 'the chosen second line is not white in dark');
+    for (const [name, ink] of [['title', paper.onInk], ['second line', b.dark.onBrand]] as const) {
+      assert.ok(contrast(ink, t.brandMark) >= TEXT, `dark ${name} is ${contrast(ink, t.brandMark).toFixed(2)} on the chosen fill`);
+    }
+  });
+
+  test('dark: the founder marks of 2026-11-06 clear their floors on the dark grounds', () => {
+    const t = b.dark;
+    assert.equal(t.tabCapsule, '#65599A');
+    assert.equal(t.tabSelected, '#6357F2');
+    assert.equal(t.primaryLip, '#5549E8');
+    assert.equal(t.mintWords, '#2ABB7E');
+    assert.equal(t.tabGlyphSelected, colour.sun, 'the softened sun is 2.66 on the lifted blue cell, under the mark floor');
+    const marks: [string, string, string][] = [
+      ['tabCapsule on ground', t.tabCapsule, t.ground],
+      ['tabSelected on ground', t.tabSelected, t.ground],
+      ['primary on ground', t.primary, t.ground],
+      ['primary on card', t.primary, t.card],
+      ['primaryLip on ground', t.primaryLip, t.ground],
+      ['heroCta on ground', t.heroCta, t.ground],
+      ['heroCta on heroGround', t.heroCta, t.heroGround],
+      ['the selected glyph on its cell', t.tabGlyphSelected, t.tabSelected],
+    ];
+    for (const [name, fg, bg] of marks) assert.ok(contrast(fg, bg) >= MARK, `dark ${name} is ${contrast(fg, bg).toFixed(2)}`);
+    const words: [string, string, string][] = [
+      ['tabLabel on tabCapsule', t.tabLabel, t.tabCapsule],
+      ['tabLabel on tabSelected', t.tabLabel, t.tabSelected],
+      ['onPrimary on primary', t.onPrimary, t.primary],
+      ['heroCtaText on heroCta', t.heroCtaText, t.heroCta],
+      ['onSun on heroCta', t.onSun, t.heroCta],
+      ['mintWords on ground', t.mintWords, t.ground],
+      ['mintWords on card', t.mintWords, t.card],
+      ['mintWords on mintWash', t.mintWords, t.mintWash],
+    ];
+    for (const [name, fg, bg] of words) assert.ok(contrast(fg, bg) >= TEXT, `dark ${name} is ${contrast(fg, bg).toFixed(2)}`);
   });
 
   for (const mode of ['light', 'dark'] as const) {

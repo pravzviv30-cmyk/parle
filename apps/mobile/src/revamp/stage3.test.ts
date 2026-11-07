@@ -83,7 +83,7 @@ test('revamp B Profile choices stay over Profile and keep a lifetime count witho
   has('settings/SettingsRow.tsx',/<Press/,/haptic="selection"/,/useRowFrame\(\)/);
   has('settings/SettingsGroup.tsx',/minHeight: 52/);
   lacks('settings/SettingsRow.tsx',/opacity/);
-  has('settings/SwitchRow.tsx',/accent.brand/,/paper.field/);
+  has('settings/SwitchRow.tsx',/t\.brandMark/,/paper.field/);
 });
 test('revamp B reminder and deletion controls retain explicit choices and explain store cancellation',()=>{
   has('settings/SettingsScreen.tsx',/<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\}/,/<OptionRow/,/REMINDER_TIME_TITLE/,/label="Done"/,/label="Keep my account"/,/Cancel an App Store or Google Play subscription in the store/,/<GhostButton[\s\S]*permanently/);

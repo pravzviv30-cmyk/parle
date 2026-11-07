@@ -20,7 +20,7 @@ import { ChevronGlyph } from '../explore/ExploreParts.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { tapSettled } from '../motion/haptics.ts';
-import { HIT, accent, bType, decorative, paper, type } from '../theme.ts';
+import { HIT, bType, decorative, paper, type } from '../theme.ts';
 import { RepairMark } from './art/RepairMark.tsx';
 import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView.ts';
 
@@ -211,7 +211,7 @@ export function NudgeRow({ title, line, note, trouble, on, busy, onChange }: { t
           }}
           accessibilityLabel={title}
           accessibilityHint={line}
-          trackColor={{ true: accent.brand, false: offTrack }}
+          trackColor={{ true: t.brandMark, false: offTrack }}
           ios_backgroundColor={offTrack}
           thumbColor={paper.card}
         />

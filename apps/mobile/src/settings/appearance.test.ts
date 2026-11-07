@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mainApp, paper } from '../palette.ts';
+import { b, mainApp, paper } from '../palette.ts';
 import { DISPLAY_OPTIONS, displayPreferenceLabel } from './displayModel.ts';
 import { DARK_MODE_ENABLED, mainMode } from '../main/appearanceModel.ts';
 import { contrast } from '../testing/contrast.ts';
@@ -56,4 +56,16 @@ test('the profile theme scope protects unrelated paper controls and keeps text r
   // 2026-10-20 UI-008, artboard B-Profile: the sheets read the B tokens.
   assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'name'\}[^>]*surface=\{t\.card\} ink=\{t\.text\}/);
   assert.match(read('../tabs/ProfileTab.tsx'), /<BottomSheet visible=\{sheet === 'tutorVoice'\}[^>]*surface=\{t\.card\} ink=\{t\.text\}/);
+});
+
+// 2026-11-06, the founder's dark marks on Tutor memory: the field well was a
+// white panel under cream labels (1.07), and the disabled action a dark hole.
+test('the settings field well and the disabled form action read the dark tokens', () => {
+  const appearance = read('./SettingsAppearance.tsx');
+  assert.match(appearance, /export function SettingsField[\s\S]*?backgroundColor: useSettingsColors\(\)\.surface/, 'the field well is not the scoped surface');
+  assert.match(appearance, /disabled && t\.mode === 'dark' && \{ backgroundColor: t\.inset, borderWidth: 1\.5, borderColor: t\.field \}/, 'the dark disabled action has no inset fill and edge');
+  const t = b.dark;
+  assert.ok(contrast(t.text, t.card) >= 4.5, 'the field label on the dark well');
+  assert.ok(contrast(t.muted, t.inset) >= 4.5, 'the disabled words on their dark fill');
+  assert.ok(contrast(t.field, t.card) >= 3, 'the disabled edge on the dark card');
 });

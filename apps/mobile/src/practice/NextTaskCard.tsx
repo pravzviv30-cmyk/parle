@@ -141,7 +141,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   // A hero that goes takes its answer with it, so the next hero starts undecided.
   useEffect(() => () => { if (bare) onHeroReview?.(null); }, [bare, onHeroReview]);
   if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
-  if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
+  if (failed) return <View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   if (value === null || value.scope !== scopeGeneration()) return row ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
   if (vivid) {
     if (lead === 'loading') return row ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;

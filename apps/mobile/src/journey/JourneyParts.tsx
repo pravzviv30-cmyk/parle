@@ -66,7 +66,7 @@ export function LevelRow({ title, xp, bar }: { title: string; xp: string; bar: R
   const s = useThemedStyles(makeStyles);
   return (
     <View style={s.levelRow}>
-      <View style={s.levelPill}><Text style={[bType.heavy14, { color: t.text }]}>{title}</Text></View>
+      <View style={s.levelPill}><Text style={[bType.heavy14, { color: t.onSun }]}>{title}</Text></View>
       <View style={s.grow}>{bar}</View>
       <Text {...decorative} style={[bType.note, s.tabular, { color: t.onBrandSoft }]}>{xp}</Text>
     </View>
@@ -138,7 +138,7 @@ export function StageTrack({ steps, fill, moveUp, skippedLine = null, hereWord }
           return (
             <View key={step.label} style={s.stage} accessible accessibilityLabel={step.accessibilityLabel} accessibilityState={{ selected: here }}>
               <View style={here ? s.nodeRing : s.nodeSlot}>
-                <View style={[s.node, step.state === 'ahead' || step.state === 'skipped' ? s.nodeAhead : { backgroundColor: t.brand }]}>
+                <View style={[s.node, step.state === 'ahead' || step.state === 'skipped' ? s.nodeAhead : { backgroundColor: t.brandMark }]}>
                   {step.state === 'done'
                     ? <NodeTick size={18} color={t.onBrand} />
                     : <Text style={[here ? bType.heavy15 : bType.bold15, { color: step.state === 'ahead' || step.state === 'skipped' ? t.muted : t.onBrand }]}>{step.number}</Text>}
@@ -431,7 +431,7 @@ export function CollectionTile({ kind, title, line, onPress }: { kind: 'postcard
         {postcards ? <BArt name="cafe-table" width={70} height={64} style={s.postcardArt} /> : (
           <>
             <View style={[s.badge, { backgroundColor: t.sun }]}><BArt name="flame" width={18} height={22} /></View>
-            <View style={[s.badge, { backgroundColor: t.brand }]} />
+            <View style={[s.badge, { backgroundColor: t.brandMark }]} />
             <View style={[s.badge, { backgroundColor: t.mint }]} />
           </>
         )}
@@ -542,7 +542,7 @@ const makeStyles = (t: B) =>
     stageCard: { backgroundColor: t.card, borderRadius: 22, paddingTop: 16, paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
     stageRow: { flexDirection: 'row' },
     track: { position: 'absolute', left: '10%', right: '10%', top: 17, height: 4, borderRadius: 2, backgroundColor: t.stageTrack },
-    trackFill: { position: 'absolute', left: '10%', top: 17, height: 4, borderRadius: 2, backgroundColor: t.brand },
+    trackFill: { position: 'absolute', left: '10%', top: 17, height: 4, borderRadius: 2, backgroundColor: t.brandMark },
     stage: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
     nodeSlot: { width: 38, height: 38 },
     // The current node's 4pt lavender ring sits outside its 38pt disc, as the box-shadow does.

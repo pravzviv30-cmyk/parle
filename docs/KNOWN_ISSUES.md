@@ -12391,3 +12391,28 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `any tab can be held and dragged sideways to another, with a tick per cell — item 7`
 - verified-by: `a failed connect this start still owns releases the audio session before the error shows`
 - verified-by: `the drop handler releases the audio session when the attempt owns the room, and not otherwise`
+
+### F964 — Dark mode contrast: some marks sank into the night ground and some words washed out
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/palette.ts (`b.dark`), settings/SettingsAppearance.tsx (`SettingsField`,
+  `SettingsFormAction`), progress/PostcardsScreen.tsx, journey/JourneyParts.tsx,
+  practice/NextTaskCard.tsx, drill/FocusDrillPlayer.tsx
+- note: Found 2026-11-06 by the founder: dark mode's contrast was off, some things too dark and
+  some too light. Captured first: every signed-in route in dark at 375 beside its light twin, with
+  every text pair measured on its painted ground (`handoffs/2026-11-06-dark-contrast-shots/`,
+  board https://claude.ai/artifact/HNNWo7JkQQh6zVF5Hs4cx4). The founder marked all eight
+  candidates. Too dark: the ink tab capsule (1.04 on the ground), the brand blue as a fill or mark
+  (2.34 on the ground, 1.97 on a card), coral words, and disabled buttons. Too light: the white
+  field panel on Tutor memory (its cream label 1.07), the cream Postcards title on mint (1.85),
+  the cream XP level chip on sun (1.43), and the sun and mint at full daytime strength. Fixed in
+  dark only, light unchanged: capsule `#65599A` (3.0), primary, selected tab and brand marks
+  `#6357F2` (3.7 ground, 3.1 card, white 5.0), hero button `#E8B53A`, mint words `#2ABB7E`; the
+  field well and disabled action take the dark surface; the Postcards header and the XP chip take
+  ink. Coral needed nothing: in dark-ready screens it is only a fill under white words or a flame
+  mark (3.93). The selected tab glyph keeps the full sun, since the softer one is 2.66 on the
+  lifted cell. Two Texts drew the platform black (1.35 on the dark card); `textColour.test.ts` now
+  refuses a Text styled only by a `type` role outside onboarding.
+- fixed: 2026-11-06 on claude/dark-contrast.
+- verified-by: `dark: the founder marks of 2026-11-06 clear their floors on the dark grounds`
+- verified-by: `no Text is styled only by a type role, so none draws black in dark`

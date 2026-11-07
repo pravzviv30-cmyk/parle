@@ -32,7 +32,9 @@ export function PostcardsScreen() {
     }).catch(() => {if(live && owner === scopeGeneration()) setFailed(true);});
     return () => {live=false;};
   }, [user?.id]));
-  return <ScrollScreen ground={cards && cards.length > 0 ? t.mint : t.ground} bottom="inset" header={<ScreenHeader title="Place postcards" back={{onPress:back}} />}>
+  // 2026-11-06, the founder's dark mark: on the mint page the header is ink in both modes.
+  const mint = cards !== null && cards.length > 0;
+  return <ScrollScreen ground={mint ? t.mint : t.ground} bottom="inset" header={<ScreenHeader title="Place postcards" back={{onPress:back}} ink={mint ? t.onMint : undefined} muted={mint ? t.onMint : undefined} />}>
     {failed ? <Text style={[type.body, { color: t.text }]}>Your postcards could not be read. Please open this page again.</Text> : cards?.length === 0 ? <View style={{gap:space(4)}}>
       <Illustration name="state-notebook" fit="small" />
       <Text style={[type.body, { color: t.text }]}>A place postcard comes with a scene you finish on your own. Practice with help is welcome, too.</Text>

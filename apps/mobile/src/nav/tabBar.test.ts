@@ -168,9 +168,12 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
   });
 
   test('the capsule tokens are the ink, violet, sun and cream in both themes — UI-008', () => {
+    // 2026-11-06, the founder's dark marks: in dark the capsule is the lilac-grey and the cell the lifted blue.
+    assert.equal(b.light.tabCapsule, '#16123A', 'the light capsule is not the ink');
+    assert.equal(b.light.tabSelected, '#3B2FE0', 'the light selected cell is not violet');
+    assert.equal(b.dark.tabCapsule, '#65599A', 'the dark capsule is not the lilac-grey');
+    assert.equal(b.dark.tabSelected, '#6357F2', 'the dark selected cell is not the lifted blue');
     for (const mode of ['light', 'dark'] as const) {
-      assert.equal(b[mode].tabCapsule, '#16123A', `the ${mode} capsule is not the ink`);
-      assert.equal(b[mode].tabSelected, '#3B2FE0', `the ${mode} selected cell is not violet`);
       assert.equal(b[mode].tabGlyphSelected, '#FFC93C', `the ${mode} selected glyph is not sun`);
       assert.equal(b[mode].tabLabel, '#FFF6E9', `the ${mode} words are not cream`);
     }

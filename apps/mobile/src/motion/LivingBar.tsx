@@ -62,7 +62,7 @@ export function LivingBar({
   // they are the old colour.blue, paper.line and white exactly. The shine stays
   // a white highlight in dark (onBrand), never the dark card.
   const t = useB();
-  const color = askedColor ?? t.brand;
+  const color = askedColor ?? t.brandMark;
   const track = askedTrack ?? t.line;
   const stretch = useSharedValue(1);
   const [width, setWidth] = useState(0);
