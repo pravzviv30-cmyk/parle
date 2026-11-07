@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
-import { CAP, EXPERIMENTS, LINES, MODELS, buildDesign, buildHtml, buildPlan, estimateTotal, modelIdOf, scoreResults, settingsOf, speakingRates, wavFromPcm } from './ttsBlindCheck.mjs';
+import { CAP, EXPERIMENTS, LINES, MODELS, buildDesign, buildHtml, buildPlan, estimateTotal, modelIdOf, requestBody, scoreResults, settingsOf, speakingRates, wavFromPcm } from './ttsBlindCheck.mjs';
 
 const FLASH = 'eleven_flash_v2_5';
 const CURRENT = MODELS.find(m => m.label === 'current').id;
@@ -138,4 +138,14 @@ test('tts blind check style0 scoring maps picks to current and style0', () => {
   const { overall } = scoreResults(d.key, results, { second: 'style0' });
   assert.deepEqual(overall, { current: 12, style0: 12, cantTell: 0, unanswered: 12 });
   assert.equal(scoreResults(d.key, {}, { second: 'style0' }).overall.style0, 0);
+});
+
+test('the billed request body carries each variant\'s own settings and the real model id', () => {
+  const [current, style0] = EXPERIMENTS.style0.models;
+  const a = JSON.parse(requestBody(current, 'Bonjour.'));
+  const b = JSON.parse(requestBody(style0, 'Bonjour.'));
+  assert.equal(a.model_id, MODEL); assert.equal(b.model_id, MODEL);
+  assert.deepEqual(a.voice_settings, VOICE_SETTINGS);
+  assert.equal(b.voice_settings.style, 0);
+  assert.equal(a.text, 'Bonjour.'); assert.equal(b.text, 'Bonjour.');
 });

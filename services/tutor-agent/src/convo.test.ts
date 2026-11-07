@@ -4725,6 +4725,24 @@ describe('a streamed turn speaks before the rest of it arrives', () => {
     assert.equal(convo.conversationState.turnCount, 1);
   });
 
+  test('today\'s order: an early recast keeps its English echo on screen and the full turn agrees', async (t) => {
+    const finding = sampleCoachItem({ kind: 'textbook-phrasing', quote: 'Je ne sais pas', better: 'J’sais pas', betterEn: 'I do not know', weight: 'matters-now' });
+    const turn = sampleTurn({ coach: [finding], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    const client = new StreamingBrain(turn);
+    const { convo, session, said, published } = await inScene(t, { client });
+    const warned = t.mock.method(console, 'warn', () => {});
+    const answered = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je ne sais pas' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(said.at(-1), `Ah, J’sais pas. ${reply.fr}`, 'the early reply carries the recast');
+    client.finish();
+    await answered;
+    await convo.settled();
+    const shown = views(published).at(-1)!.view;
+    assert.equal(shown.sceneReply.fr, `Ah, J’sais pas. ${reply.fr}`);
+    assert.equal(shown.sceneReply.en, `Ah, I do not know. ${reply.en}`, 'the English carries the echo too');
+    assert.ok(!warned.mock.calls.some((call) => String(call.arguments[0]).includes('disagreed')), 'the full turn agreed with the spoken words');
+  });
+
   test('reply-first: the reply is spoken without the recast echo, and the full turn\'s coach still reaches the view', async (t) => {
     const finding = sampleCoachItem({ kind: 'textbook-phrasing', quote: 'Je ne sais pas', better: 'J’sais pas', betterEn: 'I do not know', weight: 'matters-now' });
     const turn = sampleTurn({ coach: [finding], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
@@ -4745,6 +4763,29 @@ describe('a streamed turn speaks before the rest of it arrives', () => {
     assert.deepEqual(shown.coachNow.map((item) => item.quote), [finding.quote], 'the full turn\'s coach is shown');
     assert.ok(!warned.mock.calls.some((call) => String(call.arguments[0]).includes('disagreed')),
       'the full turn does not recast what was already spoken, so nothing disagreed');
+  });
+
+  test('reply-first: a turn that reached for English waits for the full turn, so the French hand-back is still spoken', async (t) => {
+    const reach = sampleCoachItem({ kind: 'english-to-french', quote: 'how do I say milk', better: 'du lait', betterEn: 'some milk', weight: 'matters-now' });
+    const turn = sampleTurn({
+      assessment: { understood: true, taskAchieved: false, comprehensibility: 'clear', language: 'english', cefrEvidence: 'A1' },
+      coach: [reach], coachLine: 'You are asking for milk; say « du lait ».',
+      sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false },
+    });
+    const client = new StreamingBrain(turn, false, true);
+    const { convo, session, said, published } = await inScene(t, { client });
+    const warned = t.mock.method(console, 'warn', () => {});
+    const before = said.length;
+    const answered = convo.handleClientMessage(session, tapped({ t: 'say', text: 'how do I say milk' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(said.length, before, 'nothing is spoken early: the coach line has not streamed yet');
+    client.finish();
+    await answered;
+    await convo.settled();
+    assert.equal(said.length, before + 1, 'the full turn speaks once');
+    assert.ok(said.at(-1)!.startsWith('You are asking for milk'), 'the French hand-back is heard before the reply');
+    assert.equal(views(published).at(-1)!.view.coachLine, 'You are asking for milk; say « du lait ».', 'and stays on screen');
+    assert.ok(!warned.mock.calls.some((call) => String(call.arguments[0]).includes('disagreed')));
   });
 
   test('a reply the output guard would touch is never spoken early', async (t) => {

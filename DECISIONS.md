@@ -2167,8 +2167,9 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - **`coach` after the reply** (`LUVANI_TURN_REPLY_FIRST=1`, off by default; founder
     2026-11-07): `ReplyFirstTurnSchema` writes assessment, coachLine, narration, sceneReply,
     then coach. The early hand-over carries no coach items, so a streamed reply is spoken
-    without the in-character "Ah, …" recast, and the full turn never recasts a reply that
-    was already spoken. Replay: spoken p50 1,651 to 1,293 ms on the standard tier (p95
+    without the in-character "Ah, …" recast, the full turn does not recast a reply spoken
+    without one, and a turn that reached for English waits for the full turn so the French
+    hand-back is still heard. Replay: spoken p50 1,651 to 1,293 ms on the standard tier (p95
     3,314 to 1,632); on priority 950 to 937 ms p50 (inside noise), p95 1,735 to 1,574.
     `scripts/paidQuotes.mjs` `STAGING_ENV` carries both knobs so the next renewal binds
     them; they go on the staging tutor in that renewal's window.

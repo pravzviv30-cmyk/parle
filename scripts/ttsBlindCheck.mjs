@@ -51,6 +51,8 @@ export const EXPERIMENTS = {
 };
 export const modelIdOf = model => model.modelId ?? model.id;
 export const settingsOf = model => model.settings ?? VOICE_SETTINGS;
+/** The billed synthesis body for one variant: the real model id and the variant's own settings. */
+export const requestBody = (model, text) => JSON.stringify({ text, model_id: modelIdOf(model), voice_settings: settingsOf(model), ...(LANGUAGE_CODE ? { language_code: LANGUAGE_CODE } : {}) });
 
 const chars = text => [...text].length;
 export const estimateFor = (text, voice, model) => Math.ceil(chars(text) * EXPECTED_MULTIPLIERS[voice] * model.rate);
@@ -356,7 +358,7 @@ async function main(argv) {
       checkpoint(); // Recorded before the billed request, including timeout and crash cases.
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceIds[clip.voice]}?output_format=${OUTPUT_ENCODING}&optimize_streaming_latency=${STREAMING_LATENCY}`, {
         method: 'POST', headers, signal: AbortSignal.timeout(45000),
-        body: JSON.stringify({ text, model_id: modelIdOf(rateOf(id)), voice_settings: settingsOf(rateOf(id)), ...(LANGUAGE_CODE ? { language_code: LANGUAGE_CODE } : {}) }),
+        body: requestBody(rateOf(id), text),
       });
       if (!response.ok) throw new Error(`Synthesis HTTP ${response.status}; no retry.`);
       const pcm = Buffer.from(await response.arrayBuffer());

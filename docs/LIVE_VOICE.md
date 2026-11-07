@@ -1020,8 +1020,10 @@ about 200 to 300 ms sooner. The cost: `coach` has not streamed when `sceneReply.
 closes, so `speakEarly` runs with no coach items and the in-character recast ("Ah, ...")
 finds nothing to echo, and the early reply is spoken without it. The full turn still
 carries the coach items to the screen as before (founder accepted this trade, 2026-11-07),
-and a reply that was spoken early is never recast again by the full turn, so the screen
-shows the words heard without a disagreement. `scripts/measureLiveTurn.mjs` reads the
+and a reply that was spoken early without a recast is not recast by the full turn, so the
+screen shows the words heard without a disagreement. A reply-first turn that reached for
+English is not spoken early at all: its French hand-back rides an inline coach item, so
+the full turn speaks it as before and the head start is lost only on those turns. `scripts/measureLiveTurn.mjs` reads the
 switch from the env file it is given. Both this switch and the service tier below are part
 of the brain quote's configuration identity (`services/shared/paidExecution.ts`), so on
 staging they go on only together with quotes generated with the same `STAGING_ENV` in

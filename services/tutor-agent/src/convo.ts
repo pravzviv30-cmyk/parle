@@ -3061,9 +3061,10 @@ export class LuvaniConversation extends voice.Agent {
     // Guarded once, before both, so the screen and the speaker can never carry
     // different words. Two checks would be two chances to disagree at the exact
     // moment agreement matters.
-    // A reply already spoken early is not recast again: the spoken words win
-    // the screen, and a reply-first turn's coach was not there to recast from.
-    const recast = !this.voiceless && input.type === 'spoke' && spokenEarly.value === null
+    // A reply spoken early without a recast is not recast now: the spoken words
+    // win the screen, and a reply-first turn's coach was not there to recast
+    // from. An early recast is recast again so the English carries its echo.
+    const recast = !this.voiceless && input.type === 'spoke' && (spokenEarly.value === null || spokenEarly.value.recastUsed)
       ? inCharacterRecast(view, input.text, this.spokenRecastUsed) : { view, used: false };
     let guarded = this.guardView(recast.view);
     if (guarded !== recast.view) {
@@ -3151,6 +3152,10 @@ export class LuvaniConversation extends voice.Agent {
    */
   private speakEarly(input: LearnerTurnInput, fields: EarlySpokenTurn, timing?: SceneReplyTimingRecord, inputTiming?: InputReplyTimingRecord): EarlySpeech | null {
     if (this.ended || this.voiceless || this.liveWork.signal.aborted) return null;
+    // A reply-first turn (no coach yet) that reached for English would speak
+    // without the French hand-back, which rides an inline coach item. Let the
+    // full turn speak it; the head start is lost only on those turns.
+    if (fields.coach === undefined && input.type === 'spoke' && fields.assessment.language === 'english') return null;
     const provisional: TutorTurn = {
       ...fields,
       // Reply-first turns have not streamed their coach when the reply closes.
