@@ -2163,7 +2163,10 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     every live turn would be refused as quote-mismatch. It goes on once the staging quotes
     are regenerated with `OPENAI_LIVE_SERVICE_TIER=priority` in `scripts/paidQuotes.mjs`
     `STAGING_ENV` (the Flux lane's file) and renewed. The same holds for
-    `LUVANI_TURN_REPLY_FIRST`, whose json schema is in the same identity.
+    `LUVANI_TURN_REPLY_FIRST`, whose json schema is in the same identity. Done: the Flux
+    lane's renewal of 2026-11-07 15:23 UTC set both on the staging tutor in the bindings
+    window (`docs/changes/beta-launch.md`); the tutor has run on priority with the
+    reply-first schema since deploy `0eef460a` (main `b8ebe96f`, preflight ok 15:26 UTC).
   - **`coach` after the reply** (`LUVANI_TURN_REPLY_FIRST=1`, off by default; founder
     2026-11-07): `ReplyFirstTurnSchema` writes assessment, coachLine, narration, sceneReply,
     then coach. The early hand-over carries no coach items, so a streamed reply is spoken
