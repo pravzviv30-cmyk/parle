@@ -12487,11 +12487,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   identity, so the quotes must be regenerated with it first); `coach` after the reply
   (`LUVANI_TURN_REPLY_FIRST`, whose schema is in the same identity, same renewal); Flash v2.5 for conversation lines after the founder's listen
   (VOICE-009); the beginner wait measured at 2.5 and 3.0 s pauses, then maxDelay 3,500 ms at rungs 1-2 (landed 2026-11-07); a
-  spoken bridge (`LUVANI_SPOKEN_BRIDGE`, landed 2026-11-07, off by default); sentence stitching; the French blind test; adaptive
-  interruption at rungs 3-4. The websocket miss transport is deferred (production preflight
-  refuses it and the paid proxy only speaks HTTPS to ElevenLabs). Closed when the founder has
+  spoken bridge (`LUVANI_SPOKEN_BRIDGE`, landed 2026-11-07, off by default); sentence stitching
+  (`LUVANI_TTS_STITCH`, landed 2026-11-07, off by default, no quote change); the French blind test; adaptive
+  interruption at rungs 3-4. The websocket miss transport is ruled out on a measurement (2026-11-07,
+  `docs/live-latency-evidence/2026-11-07-tts-first-audio.json`): first audio p50 437 ms against HTTP's
+  329 ms, and the socket delivers a sentence whole, so the paid proxy gets no websocket route. Closed when the founder has
   before/after numbers for each landed switch and the remaining switches are recorded as
   decided or deferred.
 - verified-by: `reply-first order puts coach after sceneReply and keeps every field`
 - verified-by: `a brain slower than 1.5 s gets one bridge line before the reply, and the reply is not held for it`
 - verified-by: `rungs 1-2 wait up to 3,500 ms when the detector holds the turn (VOICE-022)`
+- verified-by: `the next sentence carries the first as previousText`
+- verified-by: `TTS previous_text is delivery input: accepted, outside the quote identity, never billed as text, bounded`

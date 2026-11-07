@@ -1,4 +1,4 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
+import { test, describe, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, lstatSync, mkdtempSync, writeFileSync, readdirSync, symlinkSync, utimesSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,7 +10,7 @@ import { initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agen
 // ChunkedStream is constructed.
 initializeLogger({ pretty: false, level: 'silent' });
 
-import { CachedTTS, formatCostLine, normaliseLine } from './ttsCache.ts';
+import { CachedTTS, formatCostLine, normaliseLine, type CachedTTSOptions } from './ttsCache.ts';
 import { BEGINNER_SPEED } from './voiceConfiguration.ts';
 import { CONVO_LINES } from './authoredSpeech.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
@@ -796,3 +796,239 @@ describe('the free-conversation model tier', () => {
 });
 
 type CachedTTSOptionsHook = (info: { hit: boolean; tier: 'main' | 'conversation' }) => void;
+
+describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
+  const FIRST = 'Alors, tu viens avec nous ce soir ?';
+  const SECOND = 'Moi, je prends le train de dix-huit heures.';
+  const AUTHORED_LINE = 'Sur place ou à emporter ?';
+  const WINDOW_MS = 8_000;
+  const calls: { text: string; previousText: string; model: string }[] = [];
+  let failStitch = false;
+  let stallStitch = false;
+  let throwAfterFirstFrame = false;
+  let silentStitch = false;
+
+  /** A stitched request that records what it was given and answers with the same ramp as the fake vendor. */
+  const stitch: NonNullable<CachedTTSOptions['stitch']> = async function* (text, previousText, model, signal) {
+    calls.push({ text, previousText, model });
+    if (failStitch) throw new Error('stitched TTS request refused (503)');
+    if (silentStitch) return;
+    const frames = rampFrames(text);
+    if (throwAfterFirstFrame) {
+      yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
+      throw new Error('stitched stream broke mid-line');
+    }
+    if (stallStitch) {
+      yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
+      await new Promise<void>((resolve) => { if (signal?.aborted) resolve(); else signal?.addEventListener('abort', () => resolve(), { once: true }); });
+      return;
+    }
+    for (const [i, frame] of frames.entries()) yield { requestId: 'stitch', segmentId: 'stitch', frame, final: i === frames.length - 1 };
+  };
+  const stitching = () => new CachedTTS(fake, { dir, voiceKey: 'test-voice', stitch, authoredLines: [AUTHORED_LINE] });
+
+  beforeEach(() => { calls.length = 0; failStitch = false; stallStitch = false; throwAfterFirstFrame = false; silentStitch = false; });
+  afterEach(() => { mock.timers.reset(); });
+
+  test('off by default: no stitch option, and a second sentence is today\'s plain synthesis', async () => {
+    assert.equal(cached.opts.stitch, undefined);
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(fake.calls, 2);
+  });
+
+  test('the first sentence of a reply is plain; the next within the window carries the first as previousText', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    assert.equal(calls.length, 0, 'nothing precedes the first sentence');
+    assert.equal(fake.calls, 1);
+
+    const pcm = await pcmOf(synth(cached, SECOND));
+    assert.deepEqual(calls, [{ text: SECOND, previousText: FIRST, model: fake.model }]);
+    assert.equal(fake.calls, 1, 'the stitched line did not go through the plain path');
+    assert.deepEqual(pcm, await pcmOf(synth(stitching(), SECOND)), 'frames reach the caller exactly as the plain path would deliver them');
+    assert.equal(cached.memo.size, 2, 'a stitched line is remembered in the replay memo like a plain one');
+  });
+
+  test('a sentence replayed from the memo becomes the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    await pcmOf(synth(cached, FIRST));
+    assert.equal(cached.memoHits, 1, 'the repeat came from the memo');
+    await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
+    assert.equal(calls.at(-1)?.previousText, FIRST, 'the line the learner just heard is the context, not the one before it');
+  });
+
+  test('an authored line is never stitched and never becomes the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, AUTHORED_LINE));
+    assert.equal(calls.length, 0, 'authored lines are context-free');
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0, 'an authored line in between ends the run of sentences');
+    assert.equal(fake.calls, 3);
+  });
+
+  test('a barge-in clears the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    stallStitch = true;
+    const abort = new AbortController();
+    const stream = cached.synthesize(SECOND, NO_RETRY, abort.signal);
+    assert.ok(!(await stream.next()).done, 'the stitched line was already speaking');
+    abort.abort();
+    for await (const packet of stream) void packet;
+    stallStitch = false;
+    await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
+    assert.equal(calls.length, 1, 'only the interrupted line was stitched; nothing follows an aborted line');
+    assert.equal(fake.calls, 2);
+  });
+
+  test('a line that produced no audio is not remembered', async () => {
+    cached = stitching();
+    fake.failNext = true;
+    await pcmOf(synth(cached, FIRST));
+    fake.failNext = false;
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0);
+  });
+
+  test('a previous line older than the window is stale and ignored', async () => {
+    mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    mock.timers.tick(WINDOW_MS + 1);
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0, 'a learner turn in between is longer than the window');
+    assert.equal(fake.calls, 2);
+    await pcmOf(synth(cached, 'Bon, alors on se retrouve à la gare.'));
+    assert.equal(calls.length, 1, 'the window restarts from the last finished line');
+  });
+
+  test('a previous line exactly at the window edge still stitches', async () => {
+    mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    mock.timers.tick(WINDOW_MS);
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 1);
+  });
+
+  test('close and clearReplayMemo forget the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    cached.clearReplayMemo();
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0);
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    assert.equal(cached.previousLine(), FIRST);
+    await cached.close();
+    assert.equal(cached.previousLine(), null);
+  });
+
+  test('a stitched request that fails before any audio falls back to the plain path', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    failStitch = true;
+    const pcm = await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 1);
+    assert.equal(fake.calls, 2, 'the plain vendor path answered instead');
+    assert.ok(pcm.length > 0);
+  });
+
+  test('a stitched request that breaks after audio started is not retried and clears the previous line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    throwAfterFirstFrame = true;
+    // The framework reports a failed stream as a tts 'error' event and then lets
+    // the main task reject unhandled; this test takes both so node:test does not.
+    const errors: unknown[] = [];
+    cached.on('error', (event) => errors.push(event.error));
+    const rejections: unknown[] = [];
+    const listeners = process.listeners('unhandledRejection');
+    process.removeAllListeners('unhandledRejection');
+    process.on('unhandledRejection', (reason) => rejections.push(reason));
+    try {
+      await pcmOf(synth(cached, SECOND));
+      await new Promise((resolve) => setImmediate(resolve));
+    } finally {
+      process.removeAllListeners('unhandledRejection');
+      for (const listener of listeners) process.on('unhandledRejection', listener);
+    }
+    throwAfterFirstFrame = false;
+    assert.equal(errors.length, 1, 'the broken line was reported');
+    assert.equal(rejections.length, 1, 'and the stream rejected');
+    assert.equal(calls.length, 1);
+    assert.equal(fake.calls, 1, 'no plain fallback once audio has been yielded');
+    await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
+    assert.equal(calls.length, 1, 'the broken line is not context for the next one');
+    assert.equal(fake.calls, 2);
+  });
+
+  test('a stitched answer with no audio counts as a failure and the plain path speaks the line', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    silentStitch = true;
+    const pcm = await pcmOf(synth(cached, SECOND));
+    assert.ok(pcm.length > 0, 'the learner must not hear a silent sentence');
+    assert.equal(fake.calls, 2, 'the plain vendor path answered');
+    assert.equal(cached.stitchFailures, 1);
+  });
+
+  test('a refused stitched request logs its status code only', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    failStitch = true;
+    const warn = mock.method(console, 'warn', () => {});
+    try {
+      await pcmOf(synth(cached, SECOND));
+      assert.equal(warn.mock.calls.length, 1);
+      assert.equal(warn.mock.calls[0]!.arguments[0], '[luvani:live] stitched tts request failed; plain request answers status=503');
+    } finally { warn.mock.restore(); }
+  });
+
+  test('two stitched failures in a row turn stitching off for the session', async () => {
+    cached = stitching();
+    failStitch = true;
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
+    assert.equal(calls.length, 2);
+    await pcmOf(synth(cached, 'Bon, alors on se retrouve à la gare.'));
+    assert.equal(calls.length, 2, 'no third attempt: each failed attempt costs a second paid request');
+    assert.equal(fake.calls, 4);
+  });
+
+  test('a clean stitched line resets the failure count', async () => {
+    cached = stitching();
+    await pcmOf(synth(cached, FIRST));
+    failStitch = true;
+    await pcmOf(synth(cached, SECOND));
+    failStitch = false;
+    await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
+    failStitch = true;
+    await pcmOf(synth(cached, 'Bon, alors on se retrouve à la gare.'));
+    failStitch = false;
+    await pcmOf(synth(cached, 'Oui, à tout à l\'heure alors.'));
+    assert.equal(calls.length, 4, 'one failure at a time never switches stitching off');
+  });
+
+  test('the conversation tier stitches with its own model', async () => {
+    const flash = new FakeTTS();
+    Object.defineProperty(flash, 'model', { get: () => 'eleven_flash_v2_5' });
+    cached = new CachedTTS(fake, { dir, voiceKey: 'main', stitch, conversation: { inner: flash, voiceKey: 'flash' } });
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls[0]?.model, 'eleven_flash_v2_5');
+  });
+
+  test('the ws transport is untouched: it never calls stitch', async () => {
+    cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice', stitch, missTransport: 'ws' });
+    await pcmOf(synth(cached, FIRST));
+    await pcmOf(synth(cached, SECOND));
+    assert.equal(calls.length, 0);
+    assert.equal(fake.streamCalls, 2);
+  });
+});
