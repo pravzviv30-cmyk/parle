@@ -2173,6 +2173,13 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     3,314 to 1,632); on priority 950 to 937 ms p50 (inside noise), p95 1,735 to 1,574.
     `scripts/paidQuotes.mjs` `STAGING_ENV` carries both knobs so the next renewal binds
     them; they go on the staging tutor in that renewal's window.
+  - **Spoken bridge** (`LUVANI_SPOKEN_BRIDGE=1`, off by default): a spoken turn the brain
+    has not answered 1.5 s after the request gets one authored line, "Alors…" or "Hmm,
+    voyons…", alternated, never on two turns running, never on typed input, never after
+    the heads-up (the closing clock would read it as the reply), never after the reply
+    is queued; a safety line, a failure, a leave or the session's end clears it. Speech
+    only, outside the reply's first-frame record. Not a quote change (authored lines are
+    the v2 TTS shape already quoted).
 - Reason: the founder's 2026-11-06 staging session felt slow and scripted (problem 2 of
   nine); the council and the founder chose to tune the cascade, then one time-boxed
   half-cascade spike.
