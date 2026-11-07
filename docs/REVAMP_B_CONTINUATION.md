@@ -1033,7 +1033,8 @@ model generation, new recipient, grade or stored learner words were introduced.
 Root passed 163 focused checks and tutor types; independent Sol passed 23 focused
 checks/types and accepted F695 as source only. Real learner, room end-of-turn,
 interruption and money/time/date evidence remains a release hold; returned Flux
-language metadata should also be checked in room QA.
+language metadata should also be checked in room QA. The experiment flag was removed on
+2026-11-07 when Flux became the recogniser for every session kind (F964).
 
 Primary documentation used: [Deepgram multilingual code switching](https://developers.deepgram.com/docs/multilingual-code-switching),
 [Smart Format](https://developers.deepgram.com/docs/smart-format),

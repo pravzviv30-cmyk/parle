@@ -16,7 +16,7 @@ class FakeSocket extends EventEmitter implements VendorSocket {
   terminate():void{if(this.readyState===3)return;this.readyState=3;this.emit('close');}
 }
 async function until(test:()=>boolean):Promise<void>{for(let n=0;n<100;n++){if(test())return;await new Promise(resolve=>setTimeout(resolve,5));}throw new Error('fixture timed out');}
-async function connect(proxy:PaidVoiceProxy,query=config):Promise<VendorSocket>{const client=new WebSocket(proxy.deepgramBaseURL+'/v1/listen'+query);client.on('error',()=>{});await once(client,'open');return client;}
+async function connect(proxy:PaidVoiceProxy,query=config,path='/v1/listen'):Promise<VendorSocket>{const client=new WebSocket(proxy.deepgramBaseURL+path+query);client.on('error',()=>{});await once(client,'open');return client;}
 function fixture(gate?:PaidGate,maximumSessionMillis=1000){
   const root=new AbortController(),descriptors:PaidDescriptor[]=[],upstreams:FakeSocket[]=[],connections:{url:string;options:unknown}[]=[];
   const options={gate:gate??(async(descriptor:PaidDescriptor)=>{descriptors.push(descriptor);return root.signal;}),signal:root.signal,maximumSessionMillis,credentials,
@@ -31,7 +31,7 @@ test('streaming descriptor is actual pinned configuration, rejects encoding/unkn
   for(const suffix of [config+'&api_key=private',config+'&model=nova-2',config.replace('16000','48000'),config.replace('linear16','opus'),config.replace('nova-3','nova-2')+'&keyterm=private',config.replace('&mip_opt_out=true',''),config.replace('mip_opt_out=true','mip_opt_out=false')])assert.throws(()=>describeStreamingDeepgram(new URL('wss://api.deepgram.com/v1/listen'+suffix),120000));
 });
 const keyterm=(terms:string[])=>terms.map(term=>'&keyterm='+encodeURIComponent(term)).join('');
-const describe=(query:string)=>describeStreamingDeepgram(new URL('wss://api.deepgram.com/v1/listen'+query),120000);
+const describe=(query:string,path='/v1/listen')=>describeStreamingDeepgram(new URL('wss://api.deepgram.com'+path+query),120000);
 test('nova-3 keyterms are accepted only within caps and never on other models or keys',()=>{
   const sixteen=Array.from({length:16},(_,n)=>`Un café ${n}`);
   assert.equal((describe(config+keyterm(sixteen)).configuration.parameters as Record<string,string>).keyterm,'prompted');
@@ -255,4 +255,60 @@ test('a raw semicolon inside a keyterm value never reaches the vendor',async()=>
     const plain=await connect(proxy,config+'&smart_format=true');await until(()=>f.connections.length===1);
     assert.equal(f.connections[0]!.url,`wss://api.deepgram.com/v1/listen?${new URLSearchParams(config+'&smart_format=true')}`);plain.terminate();
   }finally{await proxy.close();}
+});
+const v2='?model=flux-general-multi&sample_rate=16000&encoding=linear16&mip_opt_out=true&language_hint=fr&language_hint=en';
+const flux=(query:string)=>describe(query,'/v2/listen');
+const fluxHash=(query:string)=>{const {quantities:_q,...identity}=flux(query);return paidConfigurationSha256(identity);};
+test('flux v2 descriptor is pinned: sorted language hints, no language/channels, eot settings change the hash',()=>{
+  const descriptor=flux(v2.replace('language_hint=fr&language_hint=en','language_hint=en&language_hint=fr'));
+  assert.equal(descriptor.model,'flux-general-multi');assert.equal(descriptor.voice,'');assert.equal(descriptor.quantities.audioMillis,120000);
+  assert.deepEqual(descriptor.configuration,{parameters:{encoding:'linear16',language_hint:['en','fr'],mip_opt_out:'true',model:'flux-general-multi',sample_rate:'16000'}});
+  assert.equal(fluxHash(v2),fluxHash(v2.replace('language_hint=fr&language_hint=en','language_hint=en&language_hint=fr')));
+  const tuned=flux(v2+'&eot_threshold=0.8&eot_timeout_ms=3000&eager_eot_threshold=0.5&numerals=true&profanity_filter=false');
+  assert.deepEqual(tuned.configuration.parameters,{eager_eot_threshold:'0.5',encoding:'linear16',eot_threshold:'0.8',eot_timeout_ms:'3000',language_hint:['en','fr'],mip_opt_out:'true',model:'flux-general-multi',numerals:'true',profanity_filter:'false',sample_rate:'16000'});
+  assert.notEqual(fluxHash(v2+'&eot_threshold=0.8&eot_timeout_ms=3000'),fluxHash(v2));
+});
+test('flux v2 refuses other models, hints, ranges, keys and the nova-3 query, and v1 refuses the flux query',()=>{
+  const bad=[v2.replace('flux-general-multi','flux-general-en'),v2.replace('language_hint=fr','language_hint=de'),v2.replace('&language_hint=fr&language_hint=en',''),v2.replace('language_hint=en','language_hint=fr'),
+    v2+'&eot_threshold=2',v2+'&eot_threshold=0.4',v2+'&eager_eot_threshold=0.2',v2+'&eager_eot_threshold=0.95',v2+'&eot_timeout_ms=100',v2+'&eot_timeout_ms=60001',v2+'&eot_timeout_ms=1.5e3',v2+'&numerals=maybe',v2+'&tag=x',v2+'&redact=pci',v2+'&language=fr',v2+'&channels=1',
+    v2.replace('16000','48000'),v2.replace('linear16','opus'),v2.replace('&mip_opt_out=true',''),v2.replace('mip_opt_out=true','mip_opt_out=false'),v2+'&api_key=x',config];
+  for(const query of [...bad,v2+'&profanity_filter=maybe'])assert.throws(()=>flux(query),/invalid-stt-setting|unsupported-stt|invalid-parameters/,query);
+  for(const query of [v2+'&eot_threshold=0.5&eager_eot_threshold=0.3&eot_timeout_ms=500',v2+'&eot_threshold=1&eager_eot_threshold=0.9&eot_timeout_ms=60000'])assert.doesNotThrow(()=>flux(query),query);
+  assert.throws(()=>describe(v2));
+});
+test('flux v2 keyterms share the nova-3 caps and marker, and never move the hash',()=>{
+  const sixteen=Array.from({length:16},(_,n)=>`Un café ${n}`);
+  assert.equal((flux(v2+keyterm(sixteen)).configuration.parameters as Record<string,string>).keyterm,'prompted');
+  assert.throws(()=>flux(v2+keyterm([...sixteen,'one more'])),/invalid-keyterms|invalid-route/);
+  assert.throws(()=>flux(v2+keyterm(['x'.repeat(101)])),/invalid-keyterms/);
+  assert.equal(fluxHash(v2+keyterm(['Bonjour'])),fluxHash(v2+keyterm(['Un café, s’il vous plaît','Merci'])));
+  assert.notEqual(fluxHash(v2+keyterm(['Bonjour'])),fluxHash(v2));
+  assert.equal(keytermSttConfigurationSha256(v2,'/v2/listen'),fluxHash(v2+keyterm(['Bonjour'])));
+  const v1hash=(()=>{const {quantities:_q,...identity}=describe(config+keyterm(['Bonjour']));return paidConfigurationSha256(identity);})();
+  assert.equal(keytermSttConfigurationSha256(config),v1hash);assert.notEqual(keytermSttConfigurationSha256(v2,'/v2/listen'),v1hash);
+});
+test('a flux client on /v2/listen is forwarded to the v2 vendor URL; quote-mismatch strips its keyterms',async()=>{
+  const f=fixture(),logs:unknown[][]=[],log=console.log;console.log=(...args:unknown[])=>{logs.push(args);};
+  const proxy=await createPaidVoiceProxy(f.options);
+  try{
+    const query=v2+'&eot_threshold=0.8'+keyterm(['C’est combien','Merci']);
+    const client=await connect(proxy,query,'/v2/listen');await until(()=>f.upstreams.length===1);
+    assert.equal(f.connections[0]!.url,`wss://api.deepgram.com/v2/listen?${new URLSearchParams(query)}`);
+    assert.equal(f.descriptors.length,1);assert.deepEqual(f.descriptors[0]!.configuration,flux(query).configuration);
+    assert.equal((f.descriptors[0]!.configuration.parameters as Record<string,string>).keyterm,'prompted');
+    assert.deepEqual(logs,[['[luvani] keyterms: prompted']]);
+    client.send(Buffer.from('{"type":"CloseStream"}'),{binary:false});await until(()=>f.upstreams[0]!.sent.length===1);client.terminate();
+  }finally{console.log=log;await proxy.close();}
+  const admitted:PaidDescriptor[]=[],root=new AbortController(),g=fixture(async descriptor=>{if((descriptor.configuration.parameters as Record<string,string>).keyterm)throw new PaidAdmissionError('quote-mismatch');admitted.push(descriptor);return root.signal;});
+  const second=await createPaidVoiceProxy(g.options);
+  try{
+    const client=await connect(second,v2+keyterm(['Bonjour','Merci']),'/v2/listen');await until(()=>g.upstreams.length===1);
+    assert.equal(admitted.length,1);assert.deepEqual(admitted[0]!.configuration,flux(v2).configuration);
+    assert.ok(g.connections[0]!.url.startsWith('wss://api.deepgram.com/v2/listen?'));assert.equal(new URL(g.connections[0]!.url).searchParams.has('keyterm'),false);
+    assert.equal(new URL(g.connections[0]!.url).searchParams.getAll('language_hint').length,2);client.terminate();
+  }finally{await second.close();}
+});
+test('a /v2/listen client with a v1 query, or /v1/listen with a v2 query, is rejected with no vendor connection',async()=>{
+  const f=fixture(),proxy=await createPaidVoiceProxy(f.options);
+  try{await assert.rejects(connect(proxy,config,'/v2/listen'));await assert.rejects(connect(proxy,v2));assert.equal(f.connections.length,0);assert.equal(f.descriptors.length,0);}finally{await proxy.close();}
 });

@@ -56,10 +56,27 @@ function parameters(url:URL,allowed:readonly string[]):Record<string,string> {
 }
 /** The same URL with every keyterm removed, other parameters in their original order. */
 function withoutKeyterms(url:URL):URL {const plain=new URL(url.href);plain.searchParams.delete('keyterm');return plain;}
+function checkKeyterms(keyterms:string[],allowed:boolean):void {
+  if(keyterms.length && (!allowed || keyterms.length>KEYTERM_COUNT || keyterms.some(term=>!term.length || term.length>KEYTERM_CHARS || /[\x00-\x1f\x7f;]/.test(term))
+    || keyterms.reduce((total,term)=>total+Buffer.byteLength(term),0)>KEYTERM_BYTES))throw new Error('invalid-keyterms');
+}
+/** Deepgram Flux on /v2/listen: the LiveKit plugin sends no language or channels; fr/en hints sit in the identity as a sorted array. */
+function describeFlux(params:Record<string,string>,hints:string[],keyterms:string[],maximumSessionMillis:number):PaidDescriptor {
+  if(params.model!=='flux-general-multi' || params.encoding!=='linear16' || params.sample_rate!=='16000' || params.mip_opt_out!=='true')throw new Error('unsupported-stt');
+  const range=(value:string|undefined,pattern:RegExp,low:number,high:number)=>value!==undefined && (!pattern.test(value) || Number(value)<low || Number(value)>high);
+  if(!hints.length || new Set(hints).size!==hints.length || hints.some(hint=>hint!=='fr' && hint!=='en')
+    || range(params.eot_threshold,/^\d(?:\.\d{1,3})?$/,0.5,1) || range(params.eager_eot_threshold,/^\d(?:\.\d{1,3})?$/,0.3,0.9) || range(params.eot_timeout_ms,/^\d{1,5}$/,500,60000)
+    || [params.numerals,params.profanity_filter].some(value=>value!==undefined && value!=='true' && value!=='false'))throw new Error('invalid-stt-setting');
+  checkKeyterms(keyterms,true);
+  const identity={...params,language_hint:hints,...keyterms.length?{keyterm:'prompted'}:{}};
+  return {kind:'stt',provider:'deepgram',model:'flux-general-multi',voice:'',configuration:{parameters:Object.fromEntries(Object.entries(identity).sort(([a],[b])=>a.localeCompare(b)))},quantities:{inputBytes:0,outputTokens:0,audioMillis:maximumSessionMillis,textBytes:0}};
+}
 export function describeStreamingDeepgram(url:URL,maximumSessionMillis:number):PaidDescriptor {
   if(!Number.isInteger(maximumSessionMillis) || maximumSessionMillis<1 || maximumSessionMillis>900000)throw new Error('invalid-session-bound');
-  const keyterms=url.searchParams.getAll('keyterm');
-  const params=parameters(withoutKeyterms(url),['model','language','encoding','sample_rate','channels','punctuate','smart_format','dictation','diarize','numerals','no_delay','interim_results','vad_events','endpointing','filler_words','profanity_filter','utterance_end_ms','mip_opt_out']);
+  const keyterms=url.searchParams.getAll('keyterm'),fluxStream=url.pathname.endsWith('/v2/listen');
+  const hints=fluxStream?url.searchParams.getAll('language_hint').sort():[],plain=withoutKeyterms(url);if(fluxStream)plain.searchParams.delete('language_hint');
+  const params=parameters(plain,fluxStream?['model','encoding','sample_rate','mip_opt_out','eot_threshold','eager_eot_threshold','eot_timeout_ms','numerals','profanity_filter']:['model','language','encoding','sample_rate','channels','punctuate','smart_format','dictation','diarize','numerals','no_delay','interim_results','vad_events','endpointing','filler_words','profanity_filter','utterance_end_ms','mip_opt_out']);
+  if(fluxStream)return describeFlux(params,hints,keyterms,maximumSessionMillis);
   if(params.encoding!=='linear16' || params.sample_rate!=='16000' || params.channels!=='1' || params.mip_opt_out!=='true'
     || !/^nova-[23](?:-[a-z]+)?$/.test(params.model??'') || !/^(?:fr|fr-FR|fr-CA|en|en-US|en-GB|multi)$/.test(params.language??'')
     || params.language==='multi' && params.model!=='nova-3')throw new Error('unsupported-stt');
@@ -68,16 +85,15 @@ export function describeStreamingDeepgram(url:URL,maximumSessionMillis:number):P
     if(['endpointing','utterance_end_ms'].includes(key)){if(value!=='false' && (!/^\d{1,5}$/.test(value) || Number(value)>10000))throw new Error('invalid-stt-setting');}
     else if(value!=='true' && value!=='false')throw new Error('invalid-stt-setting');
   }
-  if(keyterms.length && (params.model!=='nova-3' || keyterms.length>KEYTERM_COUNT || keyterms.some(term=>!term.length || term.length>KEYTERM_CHARS || /[\x00-\x1f\x7f;]/.test(term))
-    || keyterms.reduce((total,term)=>total+Buffer.byteLength(term),0)>KEYTERM_BYTES))throw new Error('invalid-keyterms');
+  checkKeyterms(keyterms,params.model==='nova-3');
   // Keyterm prompting is a flat per-minute add-on, so a marker prices it once; the
   // values are learner-facing input and never move the hash. No keyterm, no marker: today's identity.
   const configuration=keyterms.length?{parameters:Object.fromEntries(Object.entries({...params,keyterm:'prompted'}).sort(([a],[b])=>a.localeCompare(b)))}:{parameters:params};
   return {kind:'stt',provider:'deepgram',model:params.model!,voice:'',configuration,quantities:{inputBytes:0,outputTokens:0,audioMillis:maximumSessionMillis,textBytes:0}};
 }
 /** The quote component a keyterm stream needs, for the founder's quote step: `baseQuery` is the plain SDK query. */
-export function keytermSttConfigurationSha256(baseQuery:string):string {
-  const url=new URL(`wss://api.deepgram.com/v1/listen${baseQuery}`);url.searchParams.append('keyterm','x');
+export function keytermSttConfigurationSha256(baseQuery:string,path='/v1/listen'):string {
+  const url=new URL(`wss://api.deepgram.com${path}${baseQuery}`);url.searchParams.append('keyterm','x');
   const {quantities:_quantities,...identity}=describeStreamingDeepgram(url,1);return paidConfigurationSha256(identity);
 }
 function checkEleven(url:URL,body:string):void {
@@ -170,7 +186,8 @@ export async function createPaidVoiceProxy(options:PaidVoiceProxyOptions):Promis
   server.on('upgrade',(req,socket,head)=>{void upgrade(req,socket,head).catch(()=>socket.destroy());});
   async function upgrade(req:IncomingMessage,socket:Duplex,head:Buffer):Promise<void> {
     let url:URL;try{url=target(req.url);}catch{socket.destroy();return;}
-    if(req.method!=='GET' || url.pathname!==`${prefix}/deepgram/v1/listen` || signal.aborted || activeStreams>=2 || activeTransports>=64 || head.length>BUFFER_LIMIT){socket.destroy();return;}
+    const version=['v1','v2'].find(v=>url.pathname===`${prefix}/deepgram/${v}/listen`);
+    if(req.method!=='GET' || !version || signal.aborted || activeStreams>=2 || activeTransports>=64 || head.length>BUFFER_LIMIT){socket.destroy();return;}
     let descriptor:PaidDescriptor,plain:PaidDescriptor|undefined;
     try{descriptor=describeStreamingDeepgram(url,options.maximumSessionMillis);if(url.searchParams.has('keyterm'))plain=describeStreamingDeepgram(withoutKeyterms(url),options.maximumSessionMillis);}catch{socket.destroy();return;}
     const credential=options.credentials.deepgram;if(!credential || /[\r\n]/.test(credential)){socket.destroy();return;}
@@ -196,7 +213,7 @@ export async function createPaidVoiceProxy(options:PaidVoiceProxyOptions):Promis
       }):options.gate(descriptor,joined);
       const allowed=await stopped(admission,joined);assertPaidDispatch(allowed);joined.throwIfAborted();
       allowedSignal=allowed;allowed.addEventListener('abort',finish,{once:true});
-      const vendor=new URL(`wss://api.deepgram.com/v1/listen${search}`);
+      const vendor=new URL(`wss://api.deepgram.com/${version}/listen${search}`);
       assertPaidDispatch(allowed);
       upstream=connector(vendor.href,{headers:{Authorization:`Token ${credential}`},maxPayload:WS_REPLY_LIMIT,perMessageDeflate:false,handshakeTimeout:5000,followRedirects:false});
       if(finished || joined.aborted || allowed.aborted){upstream.terminate();return;}

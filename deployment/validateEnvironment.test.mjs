@@ -46,6 +46,9 @@ test('actual ingress port and scalar quote identity are enforced before startup'
  const env=fixture('api');env.PORT='9999';assert.match(run('api',env).stderr,/PORT must be8787/);delete env.PORT;
  const b=JSON.parse(env.LUVANI_PAID_QUOTE_BINDINGS);b.lesson.quoteId=[b.lesson.quoteId];env.LUVANI_PAID_QUOTE_BINDINGS=JSON.stringify(b);assert.match(run('api',env).stderr,/LUVANI_PAID_QUOTE_BINDINGS required/);
 });
+test('the removed ASR experiment flag and the Nova-3 knob no longer block the tutor',()=>{
+ for(const extra of [{LUVANI_CONVO_ASR_EXPERIMENT:'1'},{LUVANI_STT_NOVA_KINDS:'lesson'}]){const r=run('tutor',{...fixture('tutor'),...extra});assert.equal(r.status,0,r.stderr);}
+});
 test('API and tutor refuse unsupported scorers and TTS credentials before accepting requests',()=>{
  for(const role of ['api','tutor']){
   for(const name of ['TONEPERFECT_API_KEY','FISH_API_KEY'])assert.match(run(role,{...fixture(role),[name]:'synthetic'}).stderr,new RegExp('forbidden '+name));

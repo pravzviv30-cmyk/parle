@@ -35,7 +35,7 @@ for(const [name,protocol] of [['SUPABASE_URL','https:'],['TOKEN_SERVER_URL','htt
   catch{problems.push(`secure explicit ${name} required`);}
 }
 if(['api','tutor'].includes(role) && (env.LUVANI_SCORING_VENDOR && env.LUVANI_SCORING_VENDOR!=='speechace' || env.SPEECHACE_API_KEY && env.LUVANI_SCORING_VENDOR!=='speechace'))problems.push('explicit supported Speechace scoring required');
-if(role==='tutor' && (env.LUVANI_CONVO_ASR_EXPERIMENT==='1' || env.LUVANI_TTS_VENDOR==='fish' || env.LUVANI_TTS_MISS_TRANSPORT==='ws' || env.LUVANI_AUDIO_SCORING==='1' && (env.LUVANI_SCORING_VENDOR!=='speechace' || !env.SPEECHACE_API_KEY)))problems.push('unreviewed paid voice adapter');
+if(role==='tutor' && (env.LUVANI_TTS_VENDOR==='fish' || env.LUVANI_TTS_MISS_TRANSPORT==='ws' || env.LUVANI_AUDIO_SCORING==='1' && (env.LUVANI_SCORING_VENDOR!=='speechace' || !env.SPEECHACE_API_KEY)))problems.push('unreviewed paid voice adapter');
 if(['api','tutor','practice'].includes(role)) {
  try { const bindings=paidBindings(env);if(!Object.keys(bindings).length)throw new Error(); } catch { problems.push('reviewed LUVANI_PAID_QUOTE_BINDINGS required'); }
  if(role==='tutor' && env.LUVANI_AUDIO_SCORING==='1') { let bindings={};try{bindings=paidBindings(env);}catch{/* reported above */} for(const activity of ['lesson','convo'])if(bindings[activity]?.kinds?.includes('scoring')!==true)problems.push(`live scoring requires a ${activity} quote binding with a scoring component`); }

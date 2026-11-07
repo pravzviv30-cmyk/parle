@@ -23,7 +23,7 @@ const scratch=()=>mkdtemp(join(tmpdir(),'luvani-paid-quotes-test-'));
 const SENDS={
  // A Deepgram stream the plugin reopens once (maxRetry 1, agent.ts) is a second claim of the same shape.
  lesson:['live-chat','stt-lesson-keyterm','stt-lesson-keyterm','tts-alexandre'],'lesson-text':['live-chat'],
- convo:['turn-stream','frame','curate','extract','drills','stt-convo-multi','stt-convo-multi','stt-convo-fr','stt-convo-fr','tts-alexandre'],
+ convo:['turn-stream','frame','curate','extract','drills','stt-convo-flux','stt-convo-flux','tts-alexandre'],
  'convo-text':['turn','frame','curate','extract','drills'],
  practice:['drills'],'api-judge':['judge'],'api-fix-judge':['fix-judge'],'api-transcribe':['take'],'phrase-audio':['phrase-alexandre'],
 };
@@ -95,6 +95,11 @@ async function admitPractice(db,admission,generated) {
 test('generated staging quotes admit every bound activity through the real SQL and runtime gate; renewal keeps old quotes valid',async()=>{
  const first=await generate({reviewedBy:'paid-quotes-test',out:await scratch(),evidenceUrl:EVIDENCE});
  assert.equal(first.validation.enabled,true);assert.equal(first.validation.quoteCount,9);
+ for(const name of ['stt-lesson-keyterm','stt-convo-flux']){
+  const d=first.shapes[name].descriptor;assert.equal(d.model,'flux-general-multi',name);
+  assert.deepEqual(d.configuration.parameters.language_hint,['en','fr'],name);
+  assert.equal(d.configuration.parameters.keyterm,name==='stt-lesson-keyterm'?'prompted':undefined,name);
+ }
  assert.deepEqual(paidBindings({LUVANI_PAID_QUOTE_BINDINGS:first.bindingsJson}),first.bindings);
  for(const file of Object.values(first.files))assert.ok(!file.startsWith(ROOT),'outputs stay outside the repository');
  const sql=await readFile(first.files.sql,'utf8');assert.doesNotMatch(sql,/capture-only|proxy-only|api_key|service_role_key/i);
@@ -103,9 +108,9 @@ test('generated staging quotes admit every bound activity through the real SQL a
  try {
   await db.exec(sql);
   const config=(await db.query('select * from luvani_private.paid_admission_config')).rows[0];
-  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,21000000);
+  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,20000000);
   assert.ok(first.budgets.accountDailyMicroUsd>=2*first.derivation.perActivityMicroUsd.convo && first.budgets.accountDailyMicroUsd<2*first.derivation.perActivityMicroUsd.convo+100000);
-  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(21000000/m)])));
+  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(20000000/m)])));
   assert.ok(first.derivation.sessionsAdmittedPerDayAtGlobalBudget.convo>=6,'six spoken conversations a day fit the global booking ceiling');
   console.log('[paid-quotes test] admitted per day (global, each alone):',JSON.stringify(first.derivation.sessionsAdmittedPerDayAtGlobalBudget));
   console.log('[paid-quotes test] admitted per account day (each alone):',JSON.stringify(first.derivation.admittedPerAccountDay));
@@ -180,9 +185,10 @@ test('the live-pipeline constructors the generator mirrors are still the ones ag
  const agent=await readFile(join(ROOT,'services/tutor-agent/src/agent.ts'),'utf8');
  for(const line of [
   "new openai.LLM({ model: openAiLiveModel(), ...(proxy ? { baseURL: proxy.openaiBaseURL, apiKey: 'proxy-only', maxCompletionTokens: 3000 } : {}) })",
+  "new deepgram.STTv2({ ...recognition.options, ...(keyterm.length ? { keyterms: keyterm } : {}), ...(proxy ? { endpointUrl: proxy.deepgramBaseURL + '/v2/listen', apiKey: 'proxy-only', mipOptOut: true } : {}) })",
   "new deepgram.STT({ ...recognition.options, ...(keyterm.length ? { keyterm } : {}), ...(proxy ? { baseUrl: proxy.deepgramBaseURL, apiKey: 'proxy-only', sampleRate: 16000, numChannels: 1, mipOptOut: true } : {}) })",
   "conversationTier: true,",
   "...(proxy ? { baseURL: proxy.elevenlabsBaseURL, missTransport: 'http' as const } : {}),",
-  "const keyterm = isConvo || recognition.experimental ? [] : lessonKeyterms(lesson);",
+  "const keyterm = isConvo ? [] : lessonKeyterms(lesson);",
  ])assert.ok(agent.includes(line),`agent.ts changed: ${line}`);
 });
