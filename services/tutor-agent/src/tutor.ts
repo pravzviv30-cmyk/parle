@@ -677,7 +677,8 @@ export class LuvaniTutor extends voice.Agent {
     // A sound that never became a turn (a cough, a dropped word) hands the
     // floor back with the agent still `listening`, so agent.ts has no
     // transition to re-arm on. A real turn clears this clock when it is
-    // committed, at most ENDPOINTING_MAX_DELAY_MS later; runRescue still
+    // committed, at most the rung's endpointing maxDelay later (3,500 ms at
+    // rungs 1-2); runRescue still
     // checks the queue generation.
     if (!speaking && wasSpeaking && this.resumeAfterSpeech) {
       this.resumeAfterSpeech = false;

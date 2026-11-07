@@ -12486,7 +12486,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   priority tier on staging (set and pulled back 2026-11-07: `service_tier` is in the brain quote's
   identity, so the quotes must be regenerated with it first); `coach` after the reply
   (`LUVANI_TURN_REPLY_FIRST`, whose schema is in the same identity, same renewal); Flash v2.5 for conversation lines after the founder's listen
-  (VOICE-009); the beginner wait measured at 2.5 and 3.0 s pauses before any constant moves; a
+  (VOICE-009); the beginner wait measured at 2.5 and 3.0 s pauses, then maxDelay 3,500 ms at rungs 1-2 (landed 2026-11-07); a
   spoken bridge (`LUVANI_SPOKEN_BRIDGE`, landed 2026-11-07, off by default); sentence stitching; the French blind test; adaptive
   interruption at rungs 3-4. The websocket miss transport is deferred (production preflight
   refuses it and the paid proxy only speaks HTTPS to ElevenLabs). Closed when the founder has
@@ -12494,3 +12494,4 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   decided or deferred.
 - verified-by: `reply-first order puts coach after sceneReply and keeps every field`
 - verified-by: `a brain slower than 1.5 s gets one bridge line before the reply, and the reply is not held for it`
+- verified-by: `rungs 1-2 wait up to 3,500 ms when the detector holds the turn (VOICE-022)`

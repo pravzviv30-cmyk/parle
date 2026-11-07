@@ -2453,7 +2453,8 @@ export class LuvaniConversation extends voice.Agent {
       this.resumeAfterSpeech = running;
     }
     // The floor handed back. A real turn clears this clock when it is committed
-    // (at most ENDPOINTING_MAX_DELAY_MS later, well inside the window), and the
+    // (at most the rung's endpointing maxDelay later, 3,500 ms at rungs 1-2, well
+    // inside the window), and the
     // agent thinking or speaking clears it too; a sound that was never a turn
     // leaves it running, and `runRescue` still checks the queue and generation.
     if (!speaking && wasSpeaking && this.resumeAfterSpeech) {
