@@ -170,5 +170,5 @@ describe('the practice and evidence screens wear the notebook — Phase 4 B2', (
 
 // 2026-11-06, the founder's dark mark: on the mint page the header is ink, as in light (cream was 1.85).
 test('Postcards puts an ink header on its mint ground', () => {
-  assert.match(read('progress/PostcardsScreen.tsx'), /const mint = cards !== null && cards\.length > 0;[\s\S]*<ScrollScreen ground=\{mint \? t\.mint : t\.ground\} bottom="inset" header=\{<ScreenHeader title="Place postcards" back=\{\{onPress:back\}\} ink=\{mint \? t\.onMint : undefined\} muted=\{mint \? t\.onMint : undefined\} \/>\}>/);
+  assert.match(read('progress/PostcardsScreen.tsx'), /const mint = cards !== null && cards\.length > 0;[\s\S]*<ScrollScreen ground=\{mint \? t\.mint : t\.ground\} bottom="inset" header=\{<ScreenHeader title="Place postcards" back=\{\{onPress:back\}\} ink=\{mint \? t\.onMint : undefined\} \/>\}>/);
 });

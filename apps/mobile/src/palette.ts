@@ -401,6 +401,8 @@ const bLight = {
   scrim: paper.ink,
   danger: '#C2341F',
   tabCapsule: paper.ink,
+  /** The capsule's 1.5pt rim, drawn in dark only (founder, 2026-11-07). Light equals the capsule, so nothing shows. A mark, never words. */
+  tabRim: paper.ink,
   tabSelected: colour.blue,
   tabGlyphSelected: colour.sun,
   tabLabel: paper.ground,
@@ -473,10 +475,10 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     onAvatar: paper.ground,
     scrim: '#000000',
     danger: '#FF9A85',
-    // 2026-11-06, the founder's marks: the capsule is the darkest lilac-grey that
-    // clears the mark floor on the ground; the selected glyph keeps the full sun,
-    // because the softened one is 2.66 on the lifted blue cell.
-    tabCapsule: '#65599A',
+    // 2026-11-07, the founder's choice "Ink capsule, lilac rim": the capsule stays
+    // ink and takes a lilac rim that clears the mark floor on the ground. The
+    // selected glyph keeps the full sun, because the softened one is 2.66 on the lifted blue cell.
+    tabRim: '#65599A',
     tabSelected: '#6357F2',
     brandMark: '#6357F2',
     // 2026-10-20 UI-008, B-Journey and B-ThenNow: the stage track sits on the

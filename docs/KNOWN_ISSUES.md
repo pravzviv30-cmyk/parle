@@ -12406,10 +12406,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (2.34 on the ground, 1.97 on a card), coral words, and disabled buttons. Too light: the white
   field panel on Tutor memory (its cream label 1.07), the cream Postcards title on mint (1.85),
   the cream XP level chip on sun (1.43), and the sun and mint at full daytime strength. Fixed in
-  dark only, light unchanged: capsule `#65599A` (3.0), primary, selected tab and brand marks
+  dark only, light unchanged: the ink capsule keeps its ink and gains a 1.5pt `#65599A` rim (3.0 on the
+  ground, chosen by the founder on 2026-11-07 after a lilac capsule left the selected pill at 1.21),
+  primary, selected tab and brand marks
   `#6357F2` (3.7 ground, 3.1 card, white 5.0), hero button `#E8B53A`, mint words `#2ABB7E`; the
   field well and disabled action take the dark surface; the Postcards header and the XP chip take
-  ink. Coral needed nothing: in dark-ready screens it is only a fill under white words or a flame
+  ink; Speak offline's pill on its sun card keeps the brand blue. Coral needed nothing: in dark-ready screens it is only a fill under white words or a flame
   mark (3.93). The selected tab glyph keeps the full sun, since the softer one is 2.66 on the
   lifted cell. Two Texts drew the platform black (1.35 on the dark card); `textColour.test.ts` now
   refuses a Text styled only by a `type` role outside onboarding.

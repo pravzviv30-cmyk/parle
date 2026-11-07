@@ -222,6 +222,8 @@ function makeStyles(t: B) {
       borderRadius: 32,
       paddingHorizontal: space(2),
       paddingVertical: space(1.5),
+      // 2026-11-07, the founder's choice "Ink capsule, lilac rim": a rim in dark only, no shadow.
+      ...(t.mode === 'dark' && { borderWidth: 1.5, borderColor: t.tabRim }),
     },
     cell: {
       flex: 1,

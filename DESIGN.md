@@ -778,9 +778,10 @@ node 307:364): the M3 ground, surface and inset; pastel tiles become its tints
 teal); the yellow hero becomes the M3 hero with a gold button, ink words on the
 button and cream words on the card; the ink primary becomes violet; links become
 the M3 periwinkle. Violet cards, the sun, the mint and the art stay as they are.
-The tab capsule is ink in light (Figma `C2/Main2/Navigation`, 292:1103) and the
-lilac-grey `#65599A` in dark (3.0 on the ground, cream labels 5.7), by the
-founder's mark of 6 November 2026.
+The tab capsule is ink in both modes (Figma `C2/Main2/Navigation`, 292:1103).
+In dark it takes a 1.5pt lilac rim `b.tabRim` `#65599A` (3.0 on the ground) and
+no shadow, by the founder's choice of 7 November 2026. The lifted selected cell
+is 3.6 on the ink.
 
 The live room (UI-014) keeps the brand blue in both modes. Its notebook, dock
 and sheets take the theme ground (`#151127` in dark), with cream words (17.2:1),
@@ -871,6 +872,7 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.scrim` | `#16123A` | The sheet scrim, at 0.4 |
 | `b.light.danger` | `#C2341F` | A destructive action |
 | `b.light.tabCapsule` | `#16123A` | The tab bar capsule |
+| `b.light.tabRim` | `#16123A` | The capsule rim, the capsule itself in light, so none shows |
 | `b.light.tabSelected` | `#3B2FE0` | The selected tab cell |
 | `b.light.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
 | `b.light.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
@@ -931,7 +933,8 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.onAvatar` | `#FFF6E9` | The avatar initial |
 | `b.dark.scrim` | `#000000` | The sheet scrim, at 0.4 |
 | `b.dark.danger` | `#FF9A85` | A destructive action |
-| `b.dark.tabCapsule` | `#65599A` | The tab bar capsule |
+| `b.dark.tabCapsule` | `#16123A` | The tab bar capsule |
+| `b.dark.tabRim` | `#65599A` | The capsule's 1.5pt rim in dark |
 | `b.dark.tabSelected` | `#6357F2` | The selected tab cell |
 | `b.dark.brandMark` | `#6357F2` | The brand blue as a small mark on a card or ground: a stage disc, a ring, a selected fill. `brand` stays `#3B2FE0` as a page ground |
 | `b.dark.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
@@ -1080,7 +1083,8 @@ the new look, listed at the end, and they go with their call sites.
   "Step 2 of 6".
 - **Label**: the meta line a card may carry: small, soft ink, sentence case.
 - **Tab bar** (UI-008, 2026-10-20, Figma C2/Main2/Navigation 292:1103): an
-  ink capsule (`b.tabCapsule`, the same in both themes) 12pt in from each edge
+  ink capsule (`b.tabCapsule`, the same in both themes, with a 1.5pt `b.tabRim`
+  rim in dark) 12pt in from each edge
   inside the safe areas and at most 640 wide, radius 32, padded 8 across and 6
   down, floating 8pt above the safe area (or 8pt) on a clear strip (UI-017,
   founder 2026-11-01). Content scrolls behind it and stays visible beside and

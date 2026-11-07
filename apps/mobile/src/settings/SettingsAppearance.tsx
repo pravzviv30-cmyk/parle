@@ -33,7 +33,7 @@ export function useBRows(): boolean {
   return useContext(BRows);
 }
 
-/** Inputs keep an intentional paper well with their existing label/error ink. */
+/** Inputs sit in a well of the scoped surface (white in light, the dark card in dark) with their existing label and error ink. */
 export function SettingsField(props: ComponentProps<typeof PaperField>) {
   return <View style={{ backgroundColor: useSettingsColors().surface, padding: space(3), borderRadius: 16 }}><PaperField {...props} /></View>;
 }

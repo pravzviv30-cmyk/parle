@@ -53,7 +53,7 @@ export function CafeLineBody({ phrase, bare, variant = 'primary', onTry }: { phr
     <Text style={[type.small, { color: bare ? t.muted : words }]}>Hear, say and compare. Free offline practice. Your recording is temporary and is not graded.</Text>
     {variant === 'secondary'
       ? <IconAction layout="inline" ground={bare ? undefined : 'sun'} icon="headphones" label="Try this line" onPress={onTry} />
-      : <PillButton label="Try this line" tone={bare ? undefined : 'ink'} onPress={onTry} />}
+      : <PillButton label="Try this line" tone={bare ? undefined : t.mode === 'dark' ? 'brand' : 'ink'} onPress={onTry} />}
   </>;
   return bare ? <View style={{ gap: space(4) }}>{body}</View> : <ColourCard ground="sun">{body}</ColourCard>;
 }

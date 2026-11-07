@@ -171,7 +171,10 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     // 2026-11-06, the founder's dark marks: in dark the capsule is the lilac-grey and the cell the lifted blue.
     assert.equal(b.light.tabCapsule, '#16123A', 'the light capsule is not the ink');
     assert.equal(b.light.tabSelected, '#3B2FE0', 'the light selected cell is not violet');
-    assert.equal(b.dark.tabCapsule, '#65599A', 'the dark capsule is not the lilac-grey');
+    // 2026-11-07, the founder's choice "Ink capsule, lilac rim".
+    assert.equal(b.dark.tabCapsule, '#16123A', 'the dark capsule is not the ink');
+    assert.equal(b.dark.tabRim, '#65599A', 'the dark rim is not the lilac-grey');
+    assert.match(readFileSync(new URL('./LuvaniTabBar.tsx', import.meta.url), 'utf8'), /t\.mode === 'dark' && \{ borderWidth: 1\.5, borderColor: t\.tabRim \}/, 'the dark capsule has no rim');
     assert.equal(b.dark.tabSelected, '#6357F2', 'the dark selected cell is not the lifted blue');
     for (const mode of ['light', 'dark'] as const) {
       assert.equal(b[mode].tabGlyphSelected, '#FFC93C', `the ${mode} selected glyph is not sun`);
