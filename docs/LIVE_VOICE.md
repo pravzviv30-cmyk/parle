@@ -725,7 +725,7 @@ cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
 `maxDelay`: 3,500 ms at rungs 1-2 since VOICE-022 (2026-11-07; at 2,500 every 2.5 s
 mid-sentence pause was cut, at 3,500 one in six, at no p50 cost, the price being a
 misread ending that waits 3.4 s; `docs/live-latency-evidence/2026-11-07-pause-endpointing.md`,
-synthetic voices), 2,500 ms at rungs 3-4 and under a moment hold. A lesson may run
+synthetic voices), 2,500 ms at rungs 3-4 and under a moment hold. The 4 s stuck-silence rescue clock is armed at the VAD's end of speech, so a held beginner turn commits about a second before it; a test pins that margin. A lesson may run
 preemptive generation once more per held pause; the framework caps that at three a turn.
 
 The recogniser has been Flux since VOICE-023, and Flux declares its own end of turn. LiveKit
