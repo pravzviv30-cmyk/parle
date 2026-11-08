@@ -482,7 +482,6 @@ export interface LiveSession {
    */
   waitingForTutor: boolean;
   /** Filled in when a session fails. Null otherwise. */
-  diagnostics: LiveDiagnostics | null;
   /**
    * The server's id for the session this screen holds, from its grant.
    *
@@ -695,7 +694,6 @@ export function useLiveSession(
   const [micClosedAtRecap, setMicClosedAtRecap] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [waitingForTutor, setWaitingForTutor] = useState(false);
-  const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A transport result belongs to the typed input that started it, even when
@@ -904,7 +902,6 @@ export function useLiveSession(
   const fail = useCallback((failure: LiveFailure) => {
     const copy = failureCopy(failure);
     diagRef.current.lastFailure = failure;
-    setDiagnostics({ ...diagRef.current });
     setWaitingForTutor(false);
     // Whatever this is, it is not a connection coming back.
     setReconnecting(false);
@@ -968,7 +965,6 @@ export function useLiveSession(
     evidenceSessionRef.current = null;
     setStatus({ phase: 'connecting' });
     setWaitingForTutor(false);
-    setDiagnostics(null);
     // A new start is a new session: the old grant's id must not survive into it.
     setSessionId(null);
     diagRef.current = emptyDiagnostics();
@@ -1862,7 +1858,6 @@ export function useLiveSession(
     voiceless,
     reconnecting,
     waitingForTutor,
-    diagnostics,
     partialTranscript,
     pauseMic,
     sessionId,

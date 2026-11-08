@@ -204,7 +204,7 @@ async function runCollect(readResult: () => Promise<unknown>) {
   const world = {
     finishing: { current: false }, finished: { current: false }, mounted: { current: true }, held: { current: { live: null } },
     setSaving: () => {}, setIssue: (value: string) => { issues.push(value); }, readGuestLiveResult: readResult,
-    LearnerError, errorCopy, claimRefusalCopy,
+    LearnerError, errorCopy,
   };
   await new Function(...Object.keys(world), `${collectSource}; return collect();`)(...Object.values(world));
   return issues;
@@ -215,7 +215,7 @@ test('the token server refusing the result for good never says Try again, which 
   for (const final of ['limit', 'expired']) {
     const issues = await runCollect(async () => { throw new Error(final); });
     assert.doesNotMatch(issues.at(-1)!, /Try again/, `a "${final}" refusal told the learner to retry`);
-    assert.equal(issues.at(-1), claimRefusalCopy('guest-expired'));
+    assert.equal(issues.at(-1), 'Your guest practice is already in use or finished. Please try connecting again.', 'the pre-account sentence the connect step already uses, not the post-sign-up claim copy');
   }
   const dropped = await runCollect(async () => { throw new Error('unavailable'); });
   assert.match(dropped.at(-1)!, /Try again/, 'a failed read that may succeed later still offers a retry');

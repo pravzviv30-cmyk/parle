@@ -1721,17 +1721,9 @@ evening window), then a comma and the learner's first name when it is known, wit
 full stop: "Bonsoir, Praveen", or the word alone when there is no name.
 Teaching somebody to say Bonsoir at breakfast is teaching them wrong, so the
 hour picks the word rather than a shuffle.
-**The greeting and name move as one phrase.** The outgoing phrase rises one
-complete line while the incoming phrase rises from the slot below it, on the
-native driver with a cubic ease. The two opacities always add to one, so the
-heading never disappears between words, while the full-line separation keeps
-the phrases from doubling over the same baseline. React keeps the arriving phrase visible
-until it is committed as current, then resets the animation before paint. At
-accessibility text sizes the fixed-height animation stands down and the full
-title wraps in normal flow. A learner who asked for less movement gets one still
-word, the hour's French one, and a screen reader hears that same
-line once: a header that renamed itself every few seconds to somebody listening
-would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)
+**The greeting stands still.** The rotation is retired (`greeting.test.ts` pins it):
+nothing on Today moves but the orb and the highlighter, and a screen reader hears the
+greeting once. The conversation OPENS in English (the spoken question, no menu)
 with the French riding along on screen as exposure. The old FRENCH · ENGLISH
 paired furniture is retired.
 

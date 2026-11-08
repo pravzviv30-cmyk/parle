@@ -4,7 +4,7 @@ import { AppState, Text, View } from 'react-native';
 import { firstPracticeScenario, tutorVoice, GUEST_CAFE_SCENE, GUEST_SCENE_MAX_SECONDS } from '@luvani/core';
 import { rungLabel } from '../tutor/rungLabel.ts';
 import { onColour } from '../palette.ts';
-import { GUEST_ROOM_ENDED, GUEST_SCENE, GUEST_SCENE_LESSON_ID, claimRefusalCopy, guestSceneMode } from './guestScene.ts';
+import { GUEST_ROOM_ENDED, GUEST_SCENE, GUEST_SCENE_LESSON_ID, guestSceneMode } from './guestScene.ts';
 import { IconAction, Sheet } from '../components.tsx';
 import { paper } from '../theme.ts';
 import { boldType as type, c } from './boldRhythm.ts';
@@ -95,9 +95,10 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       if (!mounted.current) return;
       held.current = next; finished.current = true; onFinished(next);
     } catch (cause) {
-      // The token server's final refusals (409, 410): a retry cannot succeed.
+      // The token server's final refusals (409, 410): a retry cannot succeed. Before any
+      // account exists, so the same sentence the connect step uses for this practice.
       const final = cause instanceof Error && (cause.message === 'limit' || cause.message === 'expired');
-      if (mounted.current) setIssue(final ? claimRefusalCopy('guest-expired') : errorCopy(cause, 'Your session could not be saved yet. Try again.'));
+      if (mounted.current) setIssue(final ? 'Your guest practice is already in use or finished. Please try connecting again.' : errorCopy(cause, 'Your session could not be saved yet. Try again.'));
     } finally { finishing.current = false; if (mounted.current) setSaving(false); }
   };
   // A conversation ends on its recap; the scene ends on the lesson summary.
