@@ -12,7 +12,7 @@ import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {ROOT,buildSchemaManifest,MANAGED_DEFAULT_PRIVILEGES_SQL} from './releaseSchemaManifest.mjs';
-import {generate} from './paidQuotes.mjs';
+import {generate,sttShapesFor,STAGING_ENV} from './paidQuotes.mjs';
 import {paidAdmission,PaidAdmissionError} from '../services/shared/paidAdmission.ts';
 import {paidBindings} from '../services/shared/paidBindings.ts';
 import {reservationGate} from '../services/shared/paidExecution.ts';
@@ -201,4 +201,9 @@ test('the live-pipeline constructors the generator mirrors are still the ones ag
   "...(proxy ? { baseURL: proxy.elevenlabsBaseURL, missTransport: 'http' as const } : {}),",
   "const keyterm = isConvo ? [] : lessonKeyterms(lesson);",
  ])assert.ok(agent.includes(line),`agent.ts changed: ${line}`);
+});
+
+test('a Nova STT kind cannot be quoted, so the generator refuses it',async()=>{
+ assert.deepEqual((await sttShapesFor(STAGING_ENV)).map(([name])=>name),['stt-lesson-keyterm','stt-convo-flux']);
+ await assert.rejects(sttShapesFor({...STAGING_ENV,LUVANI_STT_NOVA_KINDS:'convo'}),/Nova kinds are not quoted/);
 });

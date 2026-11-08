@@ -137,7 +137,6 @@ export async function captureShapes({voices}) {
   const {generatePhraseAudio,frenchAudioHash}=await import('../services/token-server/src/phraseAudio.ts');
   const {selectedTutorSynthesisConfiguration,ELEVEN_VOICES,BEGINNER_SPEED}=await import('../services/tutor-agent/src/voiceConfiguration.ts');
   const {buildTTS}=await import('../services/tutor-agent/src/voice.ts');
-  const {recognitionPlan}=await import('../services/tutor-agent/src/recognitionPlan.ts');
   const {createPaidVoiceProxy}=await import('../services/tutor-agent/src/paidVoiceProxy.ts');
   const core=await import('../packages/core/src/index.ts');
   const shapes={};
@@ -210,7 +209,7 @@ export async function captureShapes({voices}) {
    }
    // agent.ts sessionAudio stt, Flux: deepgram.STTv2({...recognition.options, keyterms?, endpointUrl: proxy.deepgramBaseURL+'/v2/listen', apiKey, mipOptOut:true});
    // a LUVANI_STT_NOVA_KINDS kind: deepgram.STT({...recognition.options, keyterm?, baseUrl, apiKey, sampleRate:16000, numChannels:1, mipOptOut:true}).
-   const sttShapes=[['stt-lesson-keyterm',recognitionPlan('lesson','fr',STAGING_ENV),core.lessonKeyterms(core.CAFE_LESSON)],['stt-convo-flux',recognitionPlan('convo','multi',STAGING_ENV),[]]];
+   const sttShapes=await sttShapesFor(STAGING_ENV);
    for(const [name,plan,keyterm] of sttShapes){
     voiceSink.length=0;const stt=plan.flux
      ?new deepgram.STTv2({...plan.options,...(keyterm.length?{keyterms:keyterm}:{}),endpointUrl:proxy.deepgramBaseURL+'/v2/listen',apiKey:'proxy-only',mipOptOut:true})
@@ -223,6 +222,15 @@ export async function captureShapes({voices}) {
   } finally {stop.abort();await proxy.close();}
   return shapes;
  } finally {restore();if(savedCache===undefined)delete process.env.TTS_CACHE_DIR;else process.env.TTS_CACHE_DIR=savedCache;}
+}
+
+/** The STT stream shapes for an env: [name, recognition plan, keyterms]. A Nova kind (LUVANI_STT_NOVA_KINDS) has no quote today. */
+export async function sttShapesFor(env) {
+ const {recognitionPlan}=await import('../services/tutor-agent/src/recognitionPlan.ts');
+ const core=await import('../packages/core/src/index.ts');
+ const shapes=[['stt-lesson-keyterm',recognitionPlan('lesson','fr',env),core.lessonKeyterms(core.CAFE_LESSON)],['stt-convo-flux',recognitionPlan('convo','multi',env),[]]];
+ if(shapes.some(([,plan])=>!plan.flux))throw new Error('Nova kinds are not quoted');
+ return shapes;
 }
 
 /* ---------------------------------------------------------------- envelopes
