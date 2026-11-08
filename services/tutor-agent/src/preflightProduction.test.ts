@@ -22,10 +22,10 @@ test('production refuses a non-OpenAI tutor brain', () => {
   assert.doesNotThrow(() => preflight({ ...env, TUTOR_LLM: 'openai' }, stop, () => false));
   assert.doesNotThrow(() => preflight({ ...env, NODE_ENV: 'development', TUTOR_LLM: 'anthropic' }, stop, () => false));
 });
-test('production starts with the removed ASR experiment flag and with the per-kind Nova-3 knob', () => {
+test('production starts with the removed ASR experiment flag', () => {
   const env = { NODE_ENV: 'production', LUVANI_TYPED_ONLY: '1', LIVEKIT_URL: 'wss://example.livekit.cloud', LIVEKIT_API_KEY: 'example-key', LIVEKIT_API_SECRET: 'example-secret', ANTHROPIC_API_KEY: 'example-key', GROQ_API_KEY: 'example-key', OPENAI_API_KEY: 'example-key', TUTOR_LLM: 'openai', TOKEN_SERVER_URL: 'https://api.example.com', LUVANI_AGENT_SECRET: 'example-strong-secret-for-local-test-only' };
   const stop = () => { throw new Error('refused'); };
-  for (const extra of [{ LUVANI_CONVO_ASR_EXPERIMENT: '1' }, { LUVANI_STT_NOVA_KINDS: 'lesson' }]) {
+  for (const extra of [{ LUVANI_CONVO_ASR_EXPERIMENT: '1' }]) {
     assert.doesNotThrow(() => preflight({ ...env, ...extra }, stop, () => false), JSON.stringify(extra));
   }
 });

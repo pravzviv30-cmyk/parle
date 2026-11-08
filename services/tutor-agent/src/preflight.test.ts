@@ -234,6 +234,15 @@ describe('preflight', () => {
     }));
     assert.equal(exited, false);
   });
+
+  test('LUVANI_STT_NOVA_KINDS names only convo, lesson and scene', () => {
+    const stop = (() => { throw new Error('refused'); }) as (code: number) => never;
+    assert.throws(() => preflight({ ...FULL, LUVANI_STT_NOVA_KINDS: 'mission' }, stop), /refused/);
+    assert.throws(() => preflight({ ...FULL, LUVANI_STT_NOVA_KINDS: 'lesson,mission' }, stop), /refused/);
+    for (const kinds of ['', 'convo', 'lesson, scene', 'convo,lesson,scene']) {
+      assert.doesNotThrow(() => preflight({ ...FULL, LUVANI_STT_NOVA_KINDS: kinds }, stop), kinds);
+    }
+  });
 });
 
 /**

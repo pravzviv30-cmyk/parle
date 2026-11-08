@@ -692,6 +692,12 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
     console.error(`[luvani:agent] Cannot start. ${(error as Error).message} (services/tutor-agent/.env).`);
     exit(1); return;
   }
+  // recognitionPlan matches kinds by name, so a misspelt one would silently stay on Flux.
+  const novaKinds = (env.LUVANI_STT_NOVA_KINDS ?? '').split(',').map((name) => name.trim()).filter(Boolean);
+  if (novaKinds.some((name) => !['convo', 'lesson', 'scene'].includes(name))) {
+    console.error('[luvani:agent] Cannot start. LUVANI_STT_NOVA_KINDS names only convo, lesson and scene (services/tutor-agent/.env).');
+    exit(1); return;
+  }
   if (env.NODE_ENV === 'production') {
     const brain = selectedBrain(env);
     let safeServer = false;
