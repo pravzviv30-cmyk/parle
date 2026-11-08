@@ -998,7 +998,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - Cloud listening on a speak drill is part of the mic, like the live room's
     cloud mic. It does not count toward the Cloud budget.
   - Cloud blinks now: about every 4 seconds, only while a speak drill's mic is
-    live.
+    live, and, since UI-020, on the resting recap Cloud.
 - The Cloud budget, given in another session on 2026-11-02 ("Luvani video
   reverse engineering review"): 3 to 4 Cloud moments in a 5-minute sitting,
   the live mic not counted, listing the first right answer, the end of the set,
@@ -1034,9 +1034,52 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     Speak the moment replaces the out-of-time card in place and the rest of the
     tab waits for the Speak redesign. Wave, Toast's poses and the hello tilt
     still have no caller.
-  - Queued: briefs 2 (2B) and 3 (3A) after the Journey board. `EndScene` keeps
-    its face-only Cloud and Toast until the recap build lands.
+  - Queued: briefs 2 (2B) and 3 (3A) after the Journey board. The recap
+    build has landed the posed cheer and the resting blink on the recap only
+    (UI-020). Drill ends keep the face-only Cloud and Toast.
   - The queued screen sessions apply the picks.
+
+## UI-020 — The conversation recap is one ending in EndScene's frame
+
+- Date: 2026-11-01 (the founder picked direction A on the recap board,
+  https://claude.ai/artifact/4ftZZTVWePisXg6HWxrnJy, artboard "A · One ending
+  (chosen)"), with the founder's answers in the build session on 2026-11-06
+- Status: accepted. Plan: `docs/changes/recap.md`.
+- Decision:
+  - **One scroll in EndScene's frame, in the spec's order.** The lavender band
+    with Cloud and Toast, the title, the goals, the tiles, your lines with the
+    kept phrase once, small fixes, one sound row, then next time. Done is
+    pinned in the footer. Confetti falls only for a finish on the learner's
+    own. The minutes tile says "minutes", not "spoken".
+  - **Q1:** the posed cheer Cloud is on the recap only. Drill ends keep the
+    face-only Cloud and Toast.
+  - **Q2:** the resting recap Cloud blinks when there was no reply. This
+    widens UI-019's "Cloud blinks only while a speak drill's mic is live", and
+    the line in UI-019 now says so.
+  - **Q3:** the goals stay under the title.
+  - **Q4:** "You said this well" stays under the tiles. "One thing to tune"
+    takes the sound row's place. Your wins and New phrases leave the screen.
+    Checked by the learning-science-engineer: HOLDS.
+  - **The goals hide when there was no reply.** Nothing was measured, so they
+    hide like the tiles and lines. This is the orchestrator's reading of the
+    brief, still to be confirmed with the founder.
+- Reason: the old recap was five swiped pages, four taps to leave, with the
+  headline and the kept phrase each shown twice, and a "spoken" tile after a
+  typed conversation. The founder picked one ending in the frame the drill ends
+  already use.
+- Consequence:
+  - Removed (see "Removed" in `docs/changes/recap.md`): the pager and
+    `recap/pages.ts`, `ResultArt`, "Bien joué.", the blue grounds, the close
+    disc, the week bars and the streak row, and the drawings
+    `celebrate-first-line` and `state-waiting`.
+  - `celebrate/EndScene.tsx` exports `SceneBand` and `SceneTiles`, so the
+    recap draws them without mounting the whole scene.
+  - `CloudLids` draws lids for the unposed body, for the resting blink.
+  - `PostcardStamp` has a `confetti` prop, off in the recap so the band throws
+    the scene's one confetti.
+  - The streak stays on Today and still plays from the queue after leaving.
+- Sources: founder, recap board (2026-11-01) and build session (2026-11-06);
+  `docs/DESIGN_PARTNERSHIP.md`, screen 4.
 
 ## VOICE-011 — Quiet voice, not whisper: a soft voice is heard, a whisper is not
 

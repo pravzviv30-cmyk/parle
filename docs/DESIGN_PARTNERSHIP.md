@@ -91,6 +91,7 @@ becomes a principle once it holds across two or more screens.
 | 2026-10-31 | One stage tint per drill family from existing tokens: Choose lavender, Build butter, Write sage, Speak peach, Review butter. | Founder, drill board |
 | 2026-10-31 | The still-settling retry stays at zero XP (LEARN-018 stands), and the approved copy stays: "Practise the one still settling" and "Notice". | Founder, finish-off brief |
 | 2026-10-31 | Cloud stays out of Today's sky, under "Cloud at moments only". Proposed by the design session; the founder can reverse it. | Design session, proposed |
+| 2026-11-01 | Recap: A, one ending in EndScene's frame with its Cloud and Toast; confetti only for an on-your-own finish. | Founder, recap board |
 | 2026-11-02 | Look check after Chris Ashby's design-first video: keep Bright Luvani as is (Outfit, Hum); no mascot-led icon, no second face for French. | Founder, Journey map board |
 | 2026-11-02 | Mascots and play: 1C (Cloud and Toast, with poses alive at moments), 3A (the streak is the hero) and 4A (quiet moments, centre stage). Recorded as UI-019. | Founder, Mascots and play board |
 | 2026-11-02 | One sky everywhere (2B). The founder first took 2A, then chose 2B when asked and confirmed it. Council warning, not a founder decision: the shared sky must not become one header skeleton for every tab; each tab keeps its own focal point. | Founder, Mascots and play board; council |
@@ -102,6 +103,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-11-04 | Quiet moments (4A): centre stage on the two drawn screens (the phrasebook with nothing kept, Speak out of the free conversation), and the two nothing-to-review cards take the posed Cloud cheer so its arms show in dark mode. Other empty states keep their cards. | Founder, answer inside 4A |
 | 2026-11-04 | On Speak the quiet moment replaces the out-of-time card in place, See the plans in flow; the scene hero and the rest of Speak wait for the Speak tab redesign. | Founder, answer inside 4A |
 | 2026-11-06 | Profile and Settings: a mix, Direction A's Settings (one page, five groups, Account and Your plan as top rows, legal in one About Luvani page) with Direction B's Profile (identity and the stage word on a blue band). The plan leaves Profile and shows in Settings only; the name, tutor voice and display sheets become the phone's own sheet; Friends stays in Profile's More group. | Founder, [Profile and Settings board](https://claude.ai/artifact/XsB1g1G2V8t4j244S5P8zS) |
+| 2026-11-06 | Recap, Q1 and Q2. Q1: the posed cheer Cloud is on the recap only; drill ends keep the face-only Cloud and Toast. Q2: with no reply the resting recap Cloud blinks about every 4 seconds, which widens the 2026-11-03 blink to the recap. | Founder, recap build session |
+| 2026-11-06 | Recap, Q3 and Q4. Q3: the scene's goals stay under the title. Q4: "You said this well" stays under the tiles, "One thing to tune" takes the sound row's place, and Your wins and New phrases leave the screen. | Founder, recap build session |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -117,7 +120,7 @@ Working principles drawn from these (to confirm on the first screens):
 | 1 | Live conversation room | Landed on main at `d1b216c3` (UI-014, [changes/live-room-d.md](changes/live-room-d.md)) |
 | 2 | Today | Landed on main at `9c7ad093` (UI-015, [changes/today-sky.md](changes/today-sky.md)); open items finished on main at `fdeeed2b` |
 | 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
-| 4 | Conversation recap | Next, one design session then one build session |
+| 4 | Conversation recap | Built on `claude/recap` (UI-020, [changes/recap.md](changes/recap.md)); landing after the founder's OK on the after shots |
 | 5 | Systemic pass: one card family, eyebrow labels folded into headings, one quiet-action style and radius tokens. Folds in most of the 11 open push-check proposals and re-counts, before and after (apps/mobile/src, tests excluded): literal borderRadius values (244 on 0483a80a), eyebrows (75), Card/Tile/Hero exports (64), Button/Pill components (21), Row components (31), files on ScrollScreen (65) | Queued |
 | 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued |
 | 7 | Speak tab (choose a scene) | Queued |
