@@ -292,7 +292,8 @@ export default defineAgent({
     const recognition = recognitionPlan(isConvo ? 'convo' : scene ? 'scene' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
     // One fixed keyterm list for a scripted lesson or scene (VOICE-017), set at
     // construction so it never reconnects the socket, and the same with or
-    // without the paid proxy. Convo keeps its per-turn phrases off-proxy only.
+    // without the paid proxy. Convo per-turn phrases and the language switch
+    // apply only to a convo LUVANI_STT_NOVA_KINDS puts on Nova-3, off the proxy.
     const keyterm = isConvo ? [] : lessonKeyterms(lesson);
     const { vad, stt, tts: voiceTts } = sessionAudio(voiceless, {
       vad: () => ctx.proc.userData.vad as silero.VAD,

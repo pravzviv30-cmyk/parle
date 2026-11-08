@@ -890,6 +890,8 @@ export function frameDeadlineMs(env: Record<string, string | undefined> = proces
  */
 const TURN_TIMEOUT_MS = 15_000;
 const CLI_TURN_TIMEOUT_MS = 45_000;
+const TURN_RETRY_TIMEOUT_MS = 10_000;
+const CLI_TURN_RETRY_TIMEOUT_MS = 30_000;
 /** How long a spoken turn waits on the brain before the spoken bridge is said. */
 const SPOKEN_BRIDGE_MS = 1_500;
 
@@ -899,7 +901,7 @@ function turnDeadlineMs(env: Record<string, string | undefined> = process.env): 
 
 /** The one retry a failed turn gets, on a shorter clock so the learner is not left waiting twice as long. */
 function turnRetryDeadlineMs(env: Record<string, string | undefined> = process.env): number {
-  return selectedBrain(env) === 'claude-cli-all' ? 30_000 : 10_000;
+  return selectedBrain(env) === 'claude-cli-all' ? CLI_TURN_RETRY_TIMEOUT_MS : TURN_RETRY_TIMEOUT_MS;
 }
 
 /**
@@ -2461,8 +2463,8 @@ export class LuvaniConversation extends voice.Agent {
       this.resumeAfterSpeech = running;
     }
     // The floor handed back. A real turn clears this clock when it is committed
-    // (at most the rung's endpointing maxDelay later, 3,500 ms at rungs 1-2, well
-    // inside the window), and the
+    // (at most the rung's maxDelay (thinkingTime.ts) later, well inside the
+    // window), and the
     // agent thinking or speaking clears it too; a sound that was never a turn
     // leaves it running, and `runRescue` still checks the queue and generation.
     if (!speaking && wasSpeaking && this.resumeAfterSpeech) {

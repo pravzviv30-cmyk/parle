@@ -106,7 +106,7 @@ type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio' |
 const DEFAULT_MAX_TEXT = 220;
 /** Sentences of one reply are requested back to back; a learner turn in between takes longer. */
 const STITCH_WINDOW_MS = 8_000;
-/** Each refused stitched request is followed by a plain one, so a vendor that keeps refusing doubles the bill. */
+/** Each failed stitched request spends a quote effect before the plain one answers; after this many in a row, stitching stays off for the rest of the session. */
 const STITCH_FAILURES_BEFORE_OFF = 2;
 export const AUTHORED_CACHE_VERSION = 'authored-v1';
 /**

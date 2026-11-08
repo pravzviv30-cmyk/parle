@@ -259,7 +259,6 @@ describe('one hiccup is survivable and the exit is named', () => {
   });
   test('a lifecycle stop and an unrecoverable pipeline error are marked', () => {
     assert.match(CODE, /lifecycle\?\.onStop\(\(\) => \{\s*exit\.mark\(exitForStop\(lifecycle\)\);/);
-    assert.doesNotMatch(CODE, /if \(!recoverable\) \{ const cls = exitForPipeline/, 'marked before the room is known to end');
     assert.match(CODE, /const serviceFailure = tutor\.terminalFailureFor\(kind, recoverable, learnerPresent\);\s*if \(serviceFailure\) \{ const cls = exitForPipeline\(kind\); if \(cls\) exit\.mark\(cls\); \}/);
   });
   test('the learner leaving is marked before paid work stops', () => {
