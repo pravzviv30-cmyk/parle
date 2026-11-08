@@ -2191,6 +2191,7 @@ export class LuvaniConversation extends voice.Agent {
         // One hiccup gets the same single retry a brain turn does (performBrainTurn).
         if (this.ended || !this.lifecycle || this.liveWork.signal.aborted || this.closingForTime
           || error instanceof BrainParseError || error instanceof BrainRefusalError) throw error;
+        // The retry runs on the full frame deadline on purpose: the spoken bridge covers the wait.
         console.warn('[luvani] scenario build retrying:', safeError(error));
         frame = await this.buildFrame(request);
       }
