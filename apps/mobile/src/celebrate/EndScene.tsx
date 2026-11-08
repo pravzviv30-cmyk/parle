@@ -36,6 +36,8 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChan
 import Svg, { Path } from 'react-native-svg';
 
 import { Cloud, CloudLids } from '../art/mascots/Cloud.tsx';
+import { CLOUD_VIEWBOX } from '../art/mascots/mascotFaces.ts';
+import { CLOUD_POSES } from '../art/mascots/mascotPoses.ts';
 import { Toast as ToastMascot } from '../art/mascots/Toast.tsx';
 import { EarGlyph, OutlineButton, PillButton } from '../components.tsx';
 import type { GameDelta } from '../game/delta.ts';
@@ -69,9 +71,9 @@ const BAND = 168;
 const CLOUD = 104;
 /**
  * The posed cheer's box: its body as big as the face-only 104, since the
- * cheer box is 304 wide against the body's 256 (mascotPoses.ts).
+ * cheer box is wider than the unposed body's (mascotPoses.ts, mascotFaces.ts).
  */
-const POSED = Math.round((CLOUD * 304) / 256);
+const POSED = Math.round((CLOUD * CLOUD_POSES.cheer.viewBox.width) / CLOUD_VIEWBOX.width);
 const TOAST = 64;
 const SUN = 110;
 const RING = 56;
@@ -336,7 +338,7 @@ export function SceneBand({ mood, cloud, confetti = null, postcard = null }: {
   cloud: SceneCloud;
   /** The confetti, only on a celebrated scene. */
   confetti?: ReactNode;
-  /** A postcard in the band's upper middle, turned a little; empty unless given. */
+  /** A postcard top right over the sun, turned a little and shown at about 60pt; empty unless given. */
   postcard?: ReactNode;
 }) {
   const t = useB();
@@ -350,7 +352,7 @@ export function SceneBand({ mood, cloud, confetti = null, postcard = null }: {
       {postcard !== null && <View style={s.postcard}>{postcard}</View>}
       {cloud === 'posed' ? (
         <View style={s.posed}>
-          <Cloud pose="cheer" ink={t.text} size={POSED} />
+          <Cloud pose="cheer" ink={t.text} size={POSED} outline />
         </View>
       ) : (
         <View style={s.cloud}>
@@ -496,7 +498,8 @@ const makeStyles = (_t: B) =>
     cloud: { position: 'absolute', left: '14%', top: 56 },
     // The cheer box is 22 of 304 units wider on the left and 20 taller on top than the body, so this keeps the body where the face-only Cloud stands, with the raised arms and stars inside the band.
     posed: { position: 'absolute', left: '14%', top: 48, marginLeft: -9 },
-    postcard: { position: 'absolute', left: '48%', top: 16, width: 92, height: 70, transform: [{ rotate: '5deg' }] },
+    // Top right over the sun, clear of Cloud's stars and Toast's face, its stamp ring inside the band; the 72pt tile drawn at 60.
+    postcard: { position: 'absolute', right: 22, top: 12, width: 72, height: 72, transform: [{ rotate: '5deg' }, { scale: 60 / 72 }] },
     toast: { position: 'absolute', left: '58%', top: 82 },
     confetti: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
     words: { gap: space(0.5) },

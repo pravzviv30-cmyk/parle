@@ -40,14 +40,12 @@ import { PlaceInterview } from './place-interview.tsx';
 import { PlaceRemoteWork } from './place-remote-work.tsx';
 import { PlaceGrandmother } from './place-grandmother.tsx';
 import { StateNotebook } from './state-notebook.tsx';
-import { StateWaiting } from './state-waiting.tsx';
 import { StateOffline } from './state-offline.tsx';
 import { StateMicrophone } from './state-microphone.tsx';
 import { StateHeadphones } from './state-headphones.tsx';
 import { StatePostcardFrame } from './state-postcard-frame.tsx';
 import { CelebrateConfetti } from './celebrate-confetti.tsx';
 import { CelebrateWrapped } from './celebrate-wrapped.tsx';
-import { CelebrateFirstLine } from './celebrate-first-line.tsx';
 import { MouthY } from './mouth-y.tsx';
 import { MouthU } from './mouth-u.tsx';
 import { MouthR } from './mouth-r.tsx';
@@ -127,14 +125,12 @@ export const ILLUSTRATIONS = {
   'place-remote-work': { draw: PlaceRemoteWork, box: [350, 220], large: [350, 220], small: [262, 165] },
   'place-grandmother': { draw: PlaceGrandmother, box: [350, 220], large: [350, 220], small: [262, 165] },
   'state-notebook': { draw: StateNotebook, box: [160, 160], large: [160, 160], small: [120, 120] },
-  'state-waiting': { draw: StateWaiting, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-offline': { draw: StateOffline, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-microphone': { draw: StateMicrophone, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-headphones': { draw: StateHeadphones, box: [160, 160], large: [160, 160], small: [120, 120] },
   'state-postcard-frame': { draw: StatePostcardFrame, box: [160, 160], large: [160, 160], small: [120, 120] },
   'celebrate-confetti': { draw: CelebrateConfetti, box: [390, 260], large: [390, 260] },
   'celebrate-wrapped': { draw: CelebrateWrapped, box: [350, 260], large: [350, 260] },
-  'celebrate-first-line': { draw: CelebrateFirstLine, box: [350, 220], large: [350, 220] },
   'mouth-y': { draw: MouthY, box: [200, 160], large: [200, 160] },
   'mouth-u': { draw: MouthU, box: [200, 160], large: [200, 160] },
   'mouth-r': { draw: MouthR, box: [200, 160], large: [200, 160] },

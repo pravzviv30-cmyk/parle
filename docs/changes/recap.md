@@ -88,7 +88,8 @@ A footer is pinned to the foot: "Practise this phrase", then Done. The close dis
 
    The earned scene throws one confetti.
 7. The sound sheet is the shared `Sheet`, holding today's sound page with its copy unchanged, plus `PrivatePractice`.
-8. The "before" shots are today's recap at the new preview keys. Each shows the first page, which is what a learner sees on arrival.
+8. With no reply (`!credit.settles`) nothing was measured, so the scene's goals hide like the tiles and lines. This is the orchestrator's reading of brief item 4, and it goes to the founder with the after shots.
+9. The "before" shots are today's recap at the new preview keys. Each shows the first page, which is what a learner sees on arrival.
 
 ## Where More went (brief item 7)
 
@@ -103,30 +104,51 @@ Checked by the learning-science-engineer, 2026-11-06: HOLDS. One note for T4: th
 
 ## Screens and states
 
-Preview keys (`?preview=recap-*`, `dev/RecapPreview.tsx`):
-- recap-full;
-- recap-scrolled;
-- recap-sound-sheet;
-- recap-fix-sheet;
-- recap-earned;
-- recap-earned-first-stamp;
-- recap-no-reply;
-- recap-not-saved;
-- recap-settlement-not-charged;
-- recap-left-early;
-- recap-typed;
-- recap-no-sound;
-- recap-progress-unreadable;
-- recap-reminder.
-
-To be filled per state as built.
+Preview keys (`?preview=recap-*`, `dev/RecapPreview.tsx`), as built in T4. Every key is one scroll with the footer pinned:
+- recap-full: posed Cloud, eyebrow, headline and credit line, goals, three tiles, your lines, the kept phrase, the "One thing to tune" row, Next time; Practise this phrase and Done.
+- recap-scrolled: as full, plus "You said this well", three small fixes and the sound row ("One sound to practise next").
+- recap-sound-sheet: the scrolled recap with `FocusSheet` open on the live sound (title "From this conversation", the mouth, the cue, the notation toggle, private practice).
+- recap-fix-sheet: the scrolled recap with `FixLineSheet` open on the first fix.
+- recap-earned: "See your journey" beside Done; "You can now", the ability and its line; the postcard still in the band (an earn again stamps lightly); "Your postcard", the postcard line and the Next pill after the tiles. The preview seeds a rung 4 finish so the can-do reads earned.
+- recap-earned-first-stamp: as earned, with the band's confetti and the first stamp; "New postcard".
+- recap-no-reply: resting, blinking Cloud, no confetti; the title is "You made time for your French." with no headline; no goals and no tiles; Done is the lip primary.
+- recap-not-saved: the kept card says "Not saved yet" with "Try saving again"; Practise this phrase stays disabled.
+- recap-settlement-not-charged: as no-reply, with the settlement message under the title in a polite live region.
+- recap-left-early: one line, one phrase, the "<1 minutes" tile, no XP tile.
+- recap-typed: as full (the typed fixture shares the full payload).
+- recap-no-sound: "One thing to tune" takes the sound row's place (Q4).
+- recap-progress-unreadable: the "Saved progress could not be read" card with its retry first, then the recap.
+- recap-reminder: as full; the reminder ask cannot show on web (`REMINDERS_AVAILABLE` is false).
 
 ## Dark tokens
 
-To be filled in T4.
+From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by WCAG relative luminance. Words clear 4.5; the lips and band are marks, not words.
 
-| Element | Light | Dark | Contrast |
+| Element | Light | Dark | Contrast (light / dark) |
 |---|---|---|---|
+| Eyebrows ("At the café", "You can now", "One phrase kept", focus label) | `link` #3B2FE0 on `ground` #FFF6E9 / `card` #FFFFFF | `link` #A79AFF on `ground` #151127 / `card` #25203D | 7.35 and 7.87 / 7.63 and 6.44 |
+| Title, ability | `text` #16123A on `ground` | `text` #FFF6E9 on `ground` | 16.60 / 17.18 |
+| Credit line, celebrate line | `secondary` #4A4766 on `ground` | `secondary` #C6BED8 on `ground` | 8.22 / 10.30 |
+| English, meta, chevron | `muted` #5C5A74 on `card` | `muted` #C6BED8 on `card` | 6.63 / 8.69 |
+| Kept phrase French | `paper.ink` #16123A on `highlight` #D8FF54 | same pen in both modes | 15.53 / 15.53 |
+| Lip under kept card, fixes, focus row, tiles | `line` #F0E6D6 under `card` | `line` #514967 under `card` | 1.24 / 2.19 (decorative edge) |
+| Band | `lavender` #E9E3FA | `lavender` #322B50 | 1.40 against dark `ground` (decorative) |
+| Footer primary | `onPrimary` #FFFFFF on `primary` #16123A | #FFFFFF on `primary` #6357F2 | 17.77 / 5.03 |
+
+## Removed
+
+| What | Why |
+|---|---|
+| `recap/pages.ts`, `recap/pages.test.ts` | The pager is gone; one scroll. The save-independence pin (:28-35) moved to `RecapScreen.test.ts` "saving is independent of the layout"; the owner-scoped text pin (:40-55) tested `savableText`, which only decided whether the next page existed. The rule lives in `SaveTextChoice.tsx:20`, now pinned from the same test |
+| `recap/ResultArt.tsx` | The bloom and the result drawing went with the blue page; the band's confetti is the moment's |
+| `recap/ProgressStrip.tsx` | Imported nowhere. `recap/progressStrip.ts` stays for `progressStripView` |
+| `CloseDisc`, `StatTiles`, `StreakRow`, `CelebrateConfetti`, `PostcardCard` (`RecapParts.tsx`) | No longer drawn: Done is always in the footer, the tiles are EndScene's, the week left, one confetti, the postcard sits in the band |
+| `streakLine`, `weekBars`, `recapWeekFrom` and their tests; the `loadActiveDays` week read in the recap | The week left the screen (assumption 6); the streak stays on Today |
+| `otherPhrases`, `hasMore`, `more`, `soundDetail` (moved to `FocusSheet`), `savableText` in `RecapScreen.tsx`; the More pin and the three-phrase ceiling pin | "New phrases" and "Your wins" left (Q4); the ceiling only bounded the More list |
+| "Bien joué.", "Your next practice", "Practise these lines, free", the "Finish conversation" label | Founder Q4 and assumption 5; Done's visible label is now its accessible name |
+| `art/flat/celebrate-first-line.tsx`, `art/flat/state-waiting.tsx` and their `art/flat/index.ts` entries | Drawn only by the old result page; nothing reaches them now |
+| Their `### celebrate-first-line` and `### state-waiting` sections in `docs/design-assets/ILLUSTRATIONS.md` | The catalogue the generator reads; left in, a regeneration would bring them back |
+| Their names and sizes in `art/registry.test.ts` (77 to 75), the count in `surfaceContract.test.ts`, the two names in `sessionScreens.test.ts`'s allow pattern | The pins follow the registry. `cloud-cheer` and `cloud-heart` (BArt) stay: Explore draws them |
 
 ## Blast radius
 
@@ -134,7 +156,7 @@ To be filled in T4.
 - `art/mascots/Cloud.tsx`. `CloudLids` gains the unposed body; posed lids are unchanged.
 - `recap/afterSessionView.ts`. `afterSessionStats` has one caller, the recap.
 - `recap/KeptPhraseCard.tsx` and `recap/RecapParts.tsx`. The recap is their only caller.
-- Deleted: `recap/pages.ts`, `recap/ResultArt.tsx` and `recap/ProgressStrip.tsx` (no importer). Also `recap/progressStrip.ts`, if nothing else uses it.
+- Deleted: `recap/pages.ts`, `recap/ResultArt.tsx` and `recap/ProgressStrip.tsx` (no importer). `recap/progressStrip.ts` stays: `progressStripView` reads it.
 - Shared with the onboarding build, rounds 3 and 4 (S11 to S16, approved 2026-11-08):
   - **`PillButton`'s lip.** The recap's footer draws it through `EndActions`. S12 changes its press. The recap does not edit `PillButton`, so it takes whichever press lands.
   - **`ReminderAsk`.** The recap and S14's arrival sheet both draw it. Unchanged here.

@@ -54,6 +54,7 @@ export function PostcardStamp({
   art,
   kind: given,
   momentKey,
+  confetti = true,
   children,
 }: {
   /** The scene's postcard. */
@@ -62,6 +63,8 @@ export function PostcardStamp({
   kind: PostcardStampKind;
   /** The recap this stamp belongs to, so it plays once; null plays once per mount. */
   momentKey: string | null;
+  /** Its own confetti; off where the page throws one already (UI-020: one confetti per scene). */
+  confetti?: boolean;
   /** The postcard as drawn instead of `art` (2026-10-21 UI-008, B-Celebrate's tile). */
   children?: ReactNode;
 }) {
@@ -139,7 +142,7 @@ export function PostcardStamp({
           </Svg>
         </Reanimated.View>
       </Reanimated.View>
-      {box.width > 0 ? (
+      {confetti && box.width > 0 ? (
         <View style={st.confetti}>
           <Confetti
             seed={`stamp:${momentKey ?? art}`}

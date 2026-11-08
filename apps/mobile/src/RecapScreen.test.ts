@@ -4,10 +4,12 @@
  * It reads, in order: the lines the learner said, one phrase kept (on the
  * screen's one highlighter), one sound, "Next time: <the spine's next scene>",
  * and only then an offer of a daily reminder at the learner's chosen time. The
- * phone's notification dialog is raised only when that offer is accepted. The
- * rest of what the closure chose (the wins, the other phrases, the small fix)
- * is one tap away under a closed More. The decisions are `live/keepsake.ts`'s
- * and are held in its suite; this holds the screen to asking them.
+ * phone's notification dialog is raised only when that offer is accepted.
+ * Since UI-020 it is one scroll in the end scene's frame with a pinned footer;
+ * the wins and the other phrases left the screen (docs/changes/recap.md,
+ * "Where More went"). The decisions are `live/keepsake.ts`'s and
+ * `recap/afterSessionView.ts`'s and are held in their suites; this holds the
+ * screen to asking them.
  *
  * Source assertions, because the mobile suite deliberately has no React Native
  * renderer (docs/TESTING.md).
@@ -27,6 +29,7 @@ const read = (relative: string): string => readFileSync(fileURLToPath(new URL(re
 const screen = read('./RecapScreen.tsx');
 const convo = read('./ConvoScreen.tsx');
 const keepsake = read('./live/recapKeepsake.ts');
+const sheet = read('./recap/FocusSheet.tsx');
 const nav = read('./nav/RootNavigator.tsx');
 
 /** The screen without comments, so an order check reads JSX and not prose. */
@@ -42,50 +45,53 @@ describe('the recap is a keepsake', () => {
   test('it reads your lines, one phrase kept, one sound, then "Next time", then the reminder offer', () => {
     // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the Recap reads your lines, then the phrase kept.
     assert.ok(at('{KEEPSAKE_COPY.lines}') < at('<KeptPhraseCard'), 'the learner\'s own lines no longer lead the Recap');
-    assert.ok(at('<KeptPhraseCard') < at('KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
-    assert.ok(at('KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
+    // UI-020: the one focus row (a sound, or one thing to tune) after the kept phrase and the fixes.
+    assert.ok(at('<KeptPhraseCard') < at('<FixCard') && at('<FixCard') < at('{focusRow.label}'), 'the focus row comes before the phrase kept or the fixes');
+    assert.ok(at('{focusRow.label}') < at('{nextTime}'), '"Next time" comes before the focus row');
     // The offer is the one shared ask now (Come alive Phase 4); its own pins
     // live in reminders/ReminderAsk.test.ts.
     assert.ok(at('{nextTime}') < at('<ReminderAsk'), 'the reminder is offered before the keepsake is over');
-    assert.match(render, /currentPage === 'next' &&/);
+    // One scroll with a pinned footer: no pages left to turn.
     assert.match(render, /footer=\{/);
-    assert.ok(at('footer={') < at('expanded: more'), 'Finish stays pinned outside the More content');
+    assert.doesNotMatch(code, /currentPage|setPage|recapPages/, 'the recap is paged again');
 
     // Each piece is the model's, not the screen's.
     assert.match(code, /lines\.map\(\(line, index\) =>/, 'the learner\'s lines are not drawn from the lines they said');
     assert.match(convo, /lines=\{keepsakeLines\(live\.turns\)\}/, 'the conversation does not hand the recap the lines the learner said');
     assert.match(code, /const nextTime = context === null \? null : nextTimeLine\(context\.progress, goalOf\(profile\), startAtOf\(profile\)\);/, '"Next time" is not the spine\'s next scene');
     assert.match(code, /const keptPhrase = closureFromRecap\(recap, null\)\.phrases\[0\] \?\? null/, 'the kept phrase can change under a save already started');
-    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the kept phrase is the Recap's one sun card (the hero ground), not a highlighter.
+    // UI-020: the kept phrase is one lip card with the shared highlighter, the screen's only chartreuse.
     const kept = readFileSync(new URL('./recap/KeptPhraseCard.tsx', import.meta.url), 'utf8');
-    assert.equal((kept.match(/backgroundColor: t\.heroGround/g) ?? []).length, 1, 'the kept phrase is not the one sun card');
-    assert.equal((code.match(/heroGround/g) ?? []).length, 0, 'the recap draws a second sun card of its own');
+    assert.equal((kept.match(/<Highlight text=\{fr\} \/>/g) ?? []).length, 1, 'the kept phrase is not on the one highlighter');
+    assert.match(kept, /<LipTile\b/, 'the kept phrase is not a lip card');
+    assert.doesNotMatch(kept, /heroGround/, 'the kept phrase is a sun card again');
+    assert.equal((code.match(/heroGround|<Highlight\b/g) ?? []).length, 0, 'the recap draws a second hero card or highlighter of its own');
+    assert.equal((render.match(/<KeptPhraseCard\b/g) ?? []).length, 1, 'the kept phrase shows twice');
     // Every block appears only once it has something true to show.
     assert.match(render, /\{lines\.length > 0 && \(/, 'an empty "Your lines" block is drawn');
     assert.match(render, /\{nextTime !== null && /, '"Next time" is drawn with nothing to name');
+    // With no reply nothing was measured, so the goals hide like the tiles and lines (UI-020, brief item 4).
+    assert.match(render, /\{credit\.settles && goals\.length > 0 \? <View style=\{s\.goalCard\}>/, 'goals are ticked on a recap with no reply');
   });
 
-  test('everything else the closure chose is one tap away under a closed More', () => {
-    assert.match(code, /const \[more, setMore\] = useState\(false\);/, 'More opens by itself');
-    assert.equal((code.match(/accessibilityState=\{\{ expanded: more \}\}/g) ?? []).length, 1, 'there is not exactly one More disclosure');
-    const more = render.slice(render.indexOf('{more && ('));
-    assert.ok(render.includes('{more && ('), 'nothing is behind More');
-    for (const part of ['closure.didWell.map(', 'otherPhrases.map(', 'otherFocus']) {
-      assert.ok(more.includes(part), `${part} is no longer reachable from More`);
-    }
-    // The three-phrase ceiling holds across the keepsake and the rest.
-    assert.match(code, /phrase\.key !== keptPhrase\?\.key/);
-    assert.match(code, /slice\(0, MAX_CLOSURE_PHRASES - 1\)/);
+  test("the closure's one focus is one row that opens one sheet; the wins and other phrases left (UI-020, Q4)", () => {
+    assert.doesNotMatch(code, /\bsetMore\b|expanded: more|closure\.didWell\.map\(|otherPhrases\.map\(/, 'the More disclosure or its lists are back');
+    assert.match(code, /const focusRow = recapFocusRow\(closure\.focus\);/, 'the row does not ask the one focus rule');
+    assert.match(render, /\{focusRow !== null && closure\.focus !== null && \(/, 'a row is drawn with nothing to open');
+    assert.match(render, /\{focusing && closure\.focus !== null && <FocusSheet focus=\{closure\.focus\} onClose=\{\(\) => setFocusing\(false\)\} \/>\}/, 'the sheet stays mounted when closed, so its practice clip outlives it');
+    assert.match(sheet, /if \(focus\.kind !== 'sound'\) \{[\s\S]*?title="One thing to tune"/, 'one thing to tune lost its sheet');
   });
 
   test('a focus sound is said with a word first, and its symbol is an optional detail', () => {
-    assert.match(code, /exampleFirstHeading\(sound\.acoustic, sound\.example\)/, 'the recap leads the sound with notation');
-    assert.match(code, /const \[soundDetail, setSoundDetail\] = useState\(false\);/, 'the sound symbol is shown before anyone asks');
-    assert.match(code, /\{sound\?\.source === 'live' \? <>\s*<Text accessibilityRole="header"[^>]*>From this conversation<\/Text>\s*<Text[^>]*>Heard when you said the line you were given\.<\/Text>/, 'a live sound is presented as a saved check');
-    assert.match(code, /<Label>\{sound\.source === 'live' \? SOUND_FOCUS_LABEL : KEEPSAKE_COPY\.sound\}<\/Label>/, 'a live sound does not share the lesson end card label');
-    assert.match(code, /From a saved sound check<\/Text>\s*\{sound && <Text[^>]*>This check concerns its recorded reference line/, 'the saved check lost its own copy');
-    assert.match(code, /soundDetail && <Text[^>]*>\{sound\.acoustic\.heading\}<\/Text>/, 'the original notation is not reachable at all');
-    assert.match(code, /SOUND_DETAIL\.show/, 'the toggle spells its own words');
+    // UI-020: the sound page moved verbatim into the focus sheet.
+    assert.match(sheet, /exampleFirstHeading\(sound\.acoustic, sound\.example\)/, 'the recap leads the sound with notation');
+    assert.match(sheet, /const \[soundDetail, setSoundDetail\] = useState\(false\);/, 'the sound symbol is shown before anyone asks');
+    assert.match(sheet, /title=\{sound\.source === 'live' \? 'From this conversation' : 'From a saved sound check'\}/, 'a live sound is presented as a saved check');
+    assert.match(sheet, /\{sound\.source === 'live' \? \(\s*<Text[^>]*>Heard when you said the line you were given\.<\/Text>\s*\) : \(\s*<Text[^>]*>This check concerns its recorded reference line/, 'the saved check lost its own copy');
+    assert.match(sheet, /<Label>\{sound\.source === 'live' \? SOUND_FOCUS_LABEL : KEEPSAKE_COPY\.sound\}<\/Label>/, 'a live sound does not share the lesson end card label');
+    assert.match(sheet, /soundDetail && <Text[^>]*>\{sound\.acoustic\.heading\}<\/Text>/, 'the original notation is not reachable at all');
+    assert.match(sheet, /SOUND_DETAIL\.show/, 'the toggle spells its own words');
+    assert.match(sheet, /sound\.example !== null && <PrivatePractice key=\{sound\.example\} french=\{sound\.example\} \/>/, 'private practice left the sound');
   });
 
   test('the recap wears the notebook: no feature paper, no tint, no postcard, one frame', () => {
@@ -112,18 +118,17 @@ describe('the conversation closes with something useful', () => {
   });
 
   test('practice is the recommended next action and finishing stays available', () => {
-    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the B buttons: Continue on the blue pages, Next, then Finish.
-    assert.match(screen, /<BButton label="Practise this phrase" accessibilityLabel=\{`Practise \$\{keptPhrase\.fr\}`\}/);
-    assert.match(code, /nextPage === null && canPractise\s*\? <BButton[\s\S]*?: <BButton/, 'the two exclusive primary states are not one practice-or-next choice');
-    assert.match(screen, /const finishLabel = nextPage === null \? 'Finish' : blue \? 'Continue' : 'Next';/);
-    assert.match(screen, /accessibilityLabel=\{nextPage === null \? 'Finish conversation' : finishLabel\}/);
-    assert.match(screen, /label="Finish conversation" onPress=\{onDone\}/);
-    // "See your journey" leaves the room for the Journey tab; "Practise these lines, free" opens the drill.
-    assert.match(screen, /accessibilityLabel="See your journey" onPress=\{onSeeJourney\}/);
+    // UI-020: one pinned footer, its states decided by recapFooter (afterSessionView.test.ts).
+    assert.match(code, /const foot = recapFooter\(\{ kept: keptPhrase !== null, practice: onPractice !== undefined, saved: saveState === 'saved', earned: celebrate !== null, journey: onSeeJourney !== undefined \}\);/);
+    assert.match(render, /foot\.primary === 'practise'\s*\? <>\s*<PillButton label="Practise this phrase" onPress=\{practise\} disabled=\{foot\.practiseDisabled\} lip \/>/, 'practise is not the lip primary, held until the save is durable');
+    assert.match(render, /: <>\s*<PillButton label="Done" onPress=\{onDone\} lip \/>/, 'Done is not the lip primary when there is nothing to practise');
+    assert.equal((render.match(/label="Done" onPress=\{onDone\}/g) ?? []).length, 2, 'Done is missing from a footer state');
+    assert.doesNotMatch(screen, /Finish conversation|Practise these lines, free|CloseDisc/, 'a second way out, or a name that differs from the label, is back');
+    // "See your journey" leaves the room for the Journey tab, only on an earned scene.
+    assert.match(render, /foot\.journey === 'beside' && <OutlineButton label="See your journey" onPress=\{journey\} \/>/);
+    assert.match(render, /foot\.journey === 'under' && <View style=\{s\.link\}><OutlineButton label="See your journey" onPress=\{journey\} \/><\/View>/);
     assert.match(convo, /onSeeJourney=\{onJourney === undefined \? undefined : \(\) => leaveTo\(onJourney\)\}/);
-    assert.match(screen, /accessibilityLabel="Practise these lines, free" onPress=\{\(\) => onPractice\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\)\}/);
-    assert.match(screen, /currentPage === 'lines' &&/);
-    assert.match(screen, /nextPage === null \? onDone\(\) : setPage/);
+    assert.match(code, /const practise = \(\) => \{ if \(keptPhrase !== null && onPractice !== undefined && saveState === 'saved'\) onPractice\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\); \};/);
     assert.match(convo, /leaveTo\(\(\) => onPractice\(phrase\)\)/);
     assert.match(
       convo,
@@ -135,6 +140,18 @@ describe('the conversation closes with something useful', () => {
       /onPractice=\{\(phrase\) => nav\.replace\('Drill', \{ ownWords: phrase \}\)\}/,
       'the drill is pushed over a stale conversation instead of replacing it',
     );
+  });
+
+  // Re-homed from recap/pages.test.ts when the pager went (UI-020).
+  test('saving is independent of the layout and retries the exact kept phrase', () => {
+    const save = screen.slice(screen.indexOf('useEffect(() => {\n    if (keptPhrase'), screen.indexOf('const saveLine'));
+    assert.ok(save.length > 0);
+    assert.doesNotMatch(save, /page|focusing|fixing/, 'the save waits on what is open');
+    assert.match(screen, /const retrySave = \(\) => \{\s*if \(keptPhrase === null \|\| saveState === 'saving' \|\| ownerScope !== scopeGeneration\(\)\) return;/);
+    assert.match(render, /saveState === 'failed' && <OutlineButton label="Try saving again" onPress=\{retrySave\} \/>/);
+    // Only owner-scoped text offers saving: SaveTextChoice decides it for itself.
+    assert.match(render, /\{conversationText && <SaveTextChoice \{\.\.\.conversationText\} \/>\}/);
+    assert.match(read('./conversationPacks/SaveTextChoice.tsx'), /if \(user\?\.id !== ownerId \|\| adapter\.kind !== 'supabase' \|\| scope !== scopeGeneration\(\)\) return null;/);
   });
 
   test('the scene mic button owns one accessible name', () => {
@@ -202,13 +219,14 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     assert.match(convo, /setIndependentFinish\(earnedFinish\(step\.record\)\);/, 'the conversation never says whether this finish was on the learner\'s own');
     assert.match(convo, /independentFinish=\{win\.seen && independentFinish\}/, 'a finish from another session reaches the recap');
     assert.match(code, /const stamp = postcardStamp\(\{ independent: independentFinish, firstEarned \}\);/);
-    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the postcard tile (cafe-table on peach) is what the stamp lands on.
+    // UI-020: the postcard tile sits in the band on an earned scene, after the band's burst; the stamp throws no confetti of its own.
     assert.match(
       render,
-      /tile=\{stamp !== null\s*\? <PostcardStamp art=\{postcardIllustration\(mission\.id\)\} kind=\{stamp\} momentKey=\{momentKey\}><PostcardTile \/><\/PostcardStamp>\s*: <PostcardTile \/>\}/,
+      /postcard=\{celebrate !== null && mission && \(moment\.reached\('strip'\) \|\| moment\.final\) \? \(stamp !== null\s*\? <PostcardStamp art=\{postcardIllustration\(mission\.id\)\} kind=\{stamp\} momentKey=\{momentKey\} confetti=\{false\}><PostcardTile \/><\/PostcardStamp>\s*: <PostcardTile \/>\) : null\}/,
       'the stamp plays without an independent finish, or an assisted finish lost its postcard',
     );
     assert.match(render, /\{postcardLine\(stamp\)\}/);
+    assert.equal((render.match(/<Confetti\b/g) ?? []).length, 1, 'the recap throws more than one confetti');
     const stamp = read('./celebrate/PostcardStamp.tsx');
     assert.match(stamp, /claimInPlace\(`\$\{scopeGeneration\(\)\}:stamp:\$\{momentKey\}`\)/, 'the stamp replays when its page is turned back to');
     assert.match(stamp, /TIMELINES\[kind === 'first' \? 'postcard-first' : 'postcard-again'\]/);
@@ -226,10 +244,13 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     assert.deepEqual(beats.flatMap((beat) => (beat.haptic ? [beat.haptic] : [])), ['celebrate']);
 
     assert.match(code, /const moment = useRecapMoment\(\{ key: momentKey, plays: scene\.plays \}\);/);
-    assert.match(render, /<ResultArt moment=\{moment\} burst=\{scene\.burst\}/, 'the result page has no moment around its drawing');
+    // UI-020: the band's confetti is the moment's, only for a scene finished on the learner's own.
+    assert.match(render, /confetti=\{scene\.burst && band\.width > 0 \? <Confetti seed=\{`recap:\$\{momentKey \?\? recap\.headline\}`\} started=\{moment\.reached\('burst'\)\} final=\{moment\.final\} reduced=\{moment\.reduced\}/, 'the band has no moment around its confetti');
+    assert.match(render, /cloud=\{credit\.settles \? 'posed' : 'resting'\}/);
     assert.match(code, /const strip = progressStripView\(delta\);/, 'the strip is not drawn from the settled delta');
-    // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the strip is the three stat tiles, still on the moment's beat.
-    assert.match(render, /\{strip !== null && moment\.reached\('strip'\) \? <StatTiles tiles=\{stats\} \/> : strip === null \? <StatTiles tiles=\{stats\} \/> : null\}/);
+    // The strip is EndScene's tile row, still on the moment's beat, and drawn at once and final with no strip.
+    assert.match(render, /\{strip !== null && !moment\.reached\('strip'\) \? null : <SceneTiles tiles=\{tiles\} layout=\{tileLayout\} counting final=\{strip === null \|\| moment\.final\} \/>\}/);
+    assert.match(code, /const tiles = recapTiles\(stats\);/);
     assert.match(code, /afterSessionStats\(\{ activeSec, phrases: credit\.showPhrases \? recap\.phrases\.length : 0, xp: strip\?\.xp\?\.value \?\? null \}\)/);
     assert.match(convo, /\}\)\.then\(setConvoDelta\);/, 'the conversation drops what the settle read back');
     assert.match(convo, /delta=\{convoDelta\}/);

@@ -1,12 +1,9 @@
 // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the end of a session's rules.
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HEAR_IT_SAID, MAX_SMALL_FIXES, afterSessionStats, smallFixes, celebrateView, recapEyebrow, streakLine, weekBars } from './afterSessionView.ts';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import type { WeekDay } from '../progress/momentum.ts';
-
-const week = (states: WeekDay['state'][]): WeekDay[] => states.map((state, index) => ({ label: 'MTWTFSS'[index]!, state }) as WeekDay);
+import { HEAR_IT_SAID, MAX_SMALL_FIXES, afterSessionStats, smallFixes, celebrateView, recapEyebrow, recapTitle, recapTiles, recapFocusRow, recapFooter } from './afterSessionView.ts';
+import { KEEPSAKE_COPY } from '../live/keepsake.ts';
+import { SOUND_FOCUS_LABEL } from '../tutor/soundExample.ts';
 
 describe('the stat tiles', () => {
   test('draw minutes, new phrases and XP when each was measured, each with the number it counts up to', () => {
@@ -20,17 +17,6 @@ describe('the stat tiles', () => {
     assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[0]!.count, 0);
     assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[1]!.label, 'new phrase');
     assert.equal(afterSessionStats({ activeSec: 119, phrases: 0, xp: 0 })[0]!.value, '1');
-  });
-});
-
-describe('the streak row', () => {
-  test('says the day and the week in words, never a best-week claim', () => {
-    const days = week(['done', 'done', 'done', 'done', 'ahead', 'ahead', 'ahead']);
-    assert.equal(streakLine(4, days), 'Day 4. You spoke French on four days this week.');
-    assert.equal(streakLine(null, days), 'You spoke French on four days this week.');
-    assert.equal(streakLine(null, null), null);
-    assert.deepEqual(weekBars(days), [true, true, true, true, false, false, false]);
-    assert.equal(weekBars(null), null);
   });
 });
 
@@ -66,32 +52,57 @@ describe('small fixes', () => {
   });
 });
 
-// Stream D (F937): the day comes from the settled streak and the week from
-// the same practice days, read after the settle, so they never disagree.
-import { recapWeekFrom } from './afterSessionView.ts';
-test("the recap's day and week lines never contradict each other", () => {
-  const now = new Date(2026, 9, 29, 15).getTime(); // a Thursday
-  const empty = recapWeekFrom([], now);
-  for (const streak of [1, 2, 5]) {
-    const line = streakLine(streak, empty)!;
-    assert.doesNotMatch(line, /No French yet/, line);
-    assert.match(line, /^Day \d+\./);
-  }
-  // A week the store has not lit yet says only the day, never inventing one (verifier round).
-  assert.equal(streakLine(1, empty), 'Day 1.');
-  // A zero-XP sitting's day is a practice day, and the week counts it.
-  const days = recapWeekFrom(['2026-10-27', '2026-10-29'], now);
-  assert.equal(streakLine(1, days), 'Day 1. You spoke French on two days this week.');
-  assert.equal(streakLine(null, recapWeekFrom([], now)), 'No French yet this week. Your first day lands here.');
-  const screen = readFileSync(fileURLToPath(new URL('../RecapScreen.tsx', import.meta.url)), 'utf8');
-  assert.match(screen, /loadActiveDays\(\)\.then\(\(days\) => \{ if \(!cancelled\) setWeek\(recapWeekFrom\(days, Date\.now\(\)\)\); \}\)/);
-  assert.match(screen, /\}, \[delta\]\);/, 'the week is read again once the settle answers');
+// UI-020 (docs/changes/recap.md): the one-scroll recap's rules.
+describe('the recap title', () => {
+  test('with no reply the credit line is the title and there is no headline', () => {
+    assert.deepEqual(recapTitle(false), { title: 'line', lineUnder: false });
+  });
+  test('after a reply the headline is the title, with the credit line under it', () => {
+    assert.deepEqual(recapTitle(true), { title: 'headline', lineUnder: true });
+  });
 });
 
-test('a sitting across midnight lights the one day the active days hold', () => {
-  // Started 23:58 on Wednesday, recap at 00:01 on Thursday; the store holds Wednesday.
-  const now = new Date(2026, 9, 29, 0, 1).getTime();
-  const week = recapWeekFrom(['2026-10-28'], now);
-  assert.deepEqual(weekBars(week), [false, false, true, false, false, false, false]);
-  assert.equal(streakLine(1, week), 'Day 1. One day of French this week.');
+describe('the recap tiles', () => {
+  test('map minutes, phrases and XP to their coins, never ticking', () => {
+    const tiles = recapTiles(afterSessionStats({ activeSec: 250, phrases: 3, xp: 45 }));
+    assert.deepEqual(tiles.map((tile) => [tile.id, tile.coin, tile.to, tile.format(tile.to), tile.word, tile.tick]), [
+      ['minutes', 'time', 4, '4', 'minutes', 'none'], ['phrases', 'count', 3, '3', 'new phrases', 'none'], ['xp', 'xp', 45, '+45', 'XP', 'none'],
+    ]);
+  });
+  test('under a minute prints <1, and nothing measured draws no tile', () => {
+    const [minutes] = recapTiles(afterSessionStats({ activeSec: 30, phrases: 0, xp: null }));
+    assert.equal(minutes!.format(0), '<1');
+    assert.deepEqual(recapTiles([]), []);
+  });
+});
+
+describe('the recap focus row', () => {
+  const acoustic = { heading: '/y/ as in tu', cue: 'Round your lips.', pair: null } as never;
+  test('a live sound says it was heard here, a saved check says so', () => {
+    const live = recapFocusRow({ kind: 'sound', source: 'live', ipa: 'y', acoustic, example: 'tu' });
+    assert.equal(live?.kind, 'sound');
+    assert.equal(live?.label, SOUND_FOCUS_LABEL);
+    assert.match(live!.line, /tu/);
+    const check = recapFocusRow({ kind: 'sound', source: 'check', ipa: 'y', acoustic, missionId: 'mission:cafe', example: null });
+    assert.equal(check?.label, KEEPSAKE_COPY.sound);
+  });
+  test('with no sound, one thing to tune names the clarity line or the French', () => {
+    assert.deepEqual(recapFocusRow({ kind: 'clarity', line: 'Ask what they recommend.' }), { kind: 'other', label: 'One thing to tune', line: 'Ask what they recommend.' });
+    assert.deepEqual(recapFocusRow({ kind: 'cadence', fr: 'Je voudrais', en: 'I would like', note: 'n' }), { kind: 'other', label: 'One thing to tune', line: 'Je voudrais' });
+  });
+  test('with neither there is no row', () => {
+    assert.equal(recapFocusRow(null), null);
+  });
+});
+
+describe('the recap footer', () => {
+  test('a kept phrase with practice leads with practise, held until the save is durable, Done beside', () => {
+    assert.deepEqual(recapFooter({ kept: true, practice: true, saved: false, earned: false, journey: true }), { primary: 'practise', practiseDisabled: true, journey: null });
+    assert.deepEqual(recapFooter({ kept: true, practice: true, saved: true, earned: true, journey: true }), { primary: 'practise', practiseDisabled: false, journey: 'beside' });
+  });
+  test('otherwise Done leads, with the journey under it only on an earned scene', () => {
+    assert.deepEqual(recapFooter({ kept: false, practice: true, saved: false, earned: true, journey: true }), { primary: 'done', practiseDisabled: false, journey: 'under' });
+    assert.deepEqual(recapFooter({ kept: true, practice: false, saved: true, earned: false, journey: true }), { primary: 'done', practiseDisabled: false, journey: null });
+    assert.deepEqual(recapFooter({ kept: false, practice: false, saved: false, earned: true, journey: false }), { primary: 'done', practiseDisabled: false, journey: null });
+  });
 });

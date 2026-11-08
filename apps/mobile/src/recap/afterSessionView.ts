@@ -5,12 +5,14 @@
  *
  * Every number is one somebody measured: the minutes are the room's own active
  * clock for this sitting, the phrases are the recap's, the XP is the settled
- * delta's, the day is the streak after this sitting and the bars are this
- * calendar week's active days (`progress/momentum.ts`). A number that was not
- * measured leaves its tile out rather than showing a zero.
+ * delta's. A number that was not measured leaves its tile out rather than
+ * showing a zero.
  */
 
-import { calendarWeekFrom, rhythmSentence, type WeekDay } from '../progress/momentum.ts';
+import type { SceneTile } from '../celebrate/EndScene.tsx';
+import type { ClosureFocus } from '../conversationPacks/closure.ts';
+import { KEEPSAKE_COPY } from '../live/keepsake.ts';
+import { SOUND_FOCUS_LABEL, exampleFirstHeading } from '../tutor/soundExample.ts';
 
 export interface StatTile {
   key: 'minutes' | 'phrases' | 'xp';
@@ -36,24 +38,6 @@ export function afterSessionStats(input: { activeSec: number | null; phrases: nu
     tiles.push({ key: 'xp', value: `+${xp}`, label: 'XP', count: xp, ground: 'mint' });
   }
   return tiles;
-}
-
-/** "Day n." and the week in a sentence, under the flame. Null with neither. */
-export function streakLine(streak: number | null, week: readonly WeekDay[] | null): string | null {
-  const day = streak !== null && Number.isSafeInteger(streak) && streak > 0 ? `Day ${streak}.` : null;
-  // F937: the week is the active days the streak counts, read after the settle,
-  // so it is never re-dated from the clock (a sitting across midnight lights
-  // the one day the store holds). A run beside a week the store has not lit
-  // says only its day rather than "No French yet".
-  const lit = week !== null && week.some((d) => d.state === 'done');
-  const said = week !== null && week.length > 0 && (day === null || lit) ? rhythmSentence(week) : null;
-  if (day === null && said === null) return null;
-  return [day, said].filter((part) => part !== null).join(' ');
-}
-
-/** The seven bars: lit for a day with French in it, Monday to Sunday. */
-export function weekBars(week: readonly WeekDay[] | null): boolean[] | null {
-  return week === null || week.length === 0 ? null : week.map((day) => day.state === 'done');
 }
 
 /** The Recap band's eyebrow: the scene, and its minutes when measured. Commas, never middots. */
@@ -99,15 +83,36 @@ export function smallFixes<F extends { quote: string; better: string; weight: 'm
   return kept.slice(0, MAX_SMALL_FIXES);
 }
 
-/**
- * This week from the practice days the streak counts (F937): every day key in
- * the activity history, zero-XP sittings included, read after the settle.
- */
-export function recapWeekFrom(days: readonly string[], now: number): readonly WeekDay[] {
-  const at: { at: number }[] = [];
-  for (const day of days) {
-    const [y, m, d] = day.split('-').map(Number);
-    if (y !== undefined && m !== undefined && d !== undefined) at.push({ at: new Date(y, m - 1, d, 12).getTime() });
-  }
-  return calendarWeekFrom(at, now);
+/** The recap's title (UI-020): with no reply the credit line stands alone; otherwise the headline, the credit line under it. */
+export function recapTitle(settles: boolean): { title: 'headline' | 'line'; lineUnder: boolean } {
+  return settles ? { title: 'headline', lineUnder: true } : { title: 'line', lineUnder: false };
+}
+
+/** The stat tiles on EndScene's row: each its coin, its number and word, and no tick (the moment's chime is the one sound). */
+export function recapTiles(stats: readonly StatTile[]): SceneTile[] {
+  return stats.map((tile) => ({
+    id: tile.key,
+    coin: tile.key === 'xp' ? 'xp' : tile.key === 'minutes' ? 'time' : 'count',
+    to: tile.count,
+    format: tile.key === 'xp' ? (value: number) => `+${value}` : tile.key === 'minutes' && tile.count === 0 ? () => '<1' : (value: number) => String(value),
+    word: tile.label,
+    tick: 'none',
+  }));
+}
+
+/** The one focus row: a sound, or with no sound one thing to tune, or none. */
+export function recapFocusRow(focus: ClosureFocus | null): { kind: 'sound' | 'other'; label: string; line: string } | null {
+  if (focus === null) return null;
+  if (focus.kind === 'sound') return { kind: 'sound', label: focus.source === 'live' ? SOUND_FOCUS_LABEL : KEEPSAKE_COPY.sound, line: exampleFirstHeading(focus.acoustic, focus.example) };
+  return { kind: 'other', label: 'One thing to tune', line: focus.kind === 'clarity' ? focus.line : focus.fr };
+}
+
+/** The pinned footer: practise the kept phrase once it is saved, or Done; "See your journey" only on an earned scene. */
+export function recapFooter(input: { kept: boolean; practice: boolean; saved: boolean; earned: boolean; journey: boolean }): { primary: 'practise' | 'done'; practiseDisabled: boolean; journey: 'beside' | 'under' | null } {
+  const practise = input.kept && input.practice;
+  return {
+    primary: practise ? 'practise' : 'done',
+    practiseDisabled: practise && !input.saved,
+    journey: input.earned && input.journey ? (practise ? 'beside' : 'under') : null,
+  };
 }
