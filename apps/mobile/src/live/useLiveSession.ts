@@ -651,6 +651,8 @@ export function useLiveSession(
   },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
+  const statusRef = useRef(status);
+  statusRef.current = status;
   const [prompt, setPrompt] = useState<SessionPrompt | null>(null);
   const [feedback, setFeedback] = useState<TurnFeedback | null>(null);
   const [tutorSpeaking, setTutorSpeaking] = useState(false);
@@ -1490,13 +1492,14 @@ export function useLiveSession(
         // blip at minute eight is now a pause rather than a lost session.
         clearWatchdog();
         setReconnecting(false);
+        const moved = statusRef.current.phase !== 'ended' && statusRef.current.phase !== 'error';
         setStatus((s) => {
           if (s.phase === 'ended' || s.phase === 'error') return s;
           const copy = failureCopy('dropped');
           return { phase: 'error', failure: 'dropped', message: copy.message, canType: copy.canType };
         });
         // The room is gone, so haptics and sounds come back on the error view.
-        void releaseAudioSession().catch(() => {});
+        if (moved) void releaseAudioSession().catch(() => {});
       });
 
       // A blip, and the three states livekit-client publishes on the way through

@@ -912,6 +912,7 @@ describe('a blip in the middle of a session — F195', () => {
       room: { on: (event: string, handler: () => void) => disconnect.set(event, handler) },
       RoomEvent,
       owns: () => true,
+      statusRef: { current: { phase: 'live' } },
       clearWatchdog: () => {},
       setReconnecting: () => {},
       setStatus: (update: (s: unknown) => unknown) => {
@@ -1154,6 +1155,7 @@ describe('a session that ends in the error view lets go of the learner\'s ears',
         room: { on: (event: string, handler: () => void) => handlers.set(event, handler) },
         RoomEvent,
         owns: () => owns,
+        statusRef: { current: { phase: 'live' } },
         clearWatchdog: () => {},
         setReconnecting: () => {},
         setStatus: () => calls.push('status'),
@@ -1165,6 +1167,29 @@ describe('a session that ends in the error view lets go of the learner\'s ears',
       });
       handlers.get(RoomEvent.Disconnected)!();
       assert.deepEqual(calls, owns ? ['status', 'release'] : [], owns ? 'a dropped room left the live hold up under the error view' : 'a room this attempt abandoned released the session now on screen');
+    }
+  });
+
+  test('the drop handler releases nothing when the session had already ended or failed', () => {
+    for (const phase of ['ended', 'error']) {
+      const calls: string[] = [];
+      const handlers = new Map<string, () => void>();
+      run(DISCONNECTED_HANDLER, {
+        room: { on: (event: string, handler: () => void) => handlers.set(event, handler) },
+        RoomEvent,
+        owns: () => true,
+        statusRef: { current: { phase } },
+        clearWatchdog: () => {},
+        setReconnecting: () => {},
+        setStatus: () => calls.push('status'),
+        failureCopy,
+        releaseAudioSession: () => {
+          calls.push('release');
+          return Promise.resolve();
+        },
+      });
+      handlers.get(RoomEvent.Disconnected)!();
+      assert.ok(!calls.includes('release'), `a room deleted after the session was ${phase} released the audio session out from under the recap`);
     }
   });
 });
