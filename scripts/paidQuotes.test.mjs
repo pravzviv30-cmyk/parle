@@ -21,9 +21,10 @@ const EVIDENCE='https://github.com/example/luvani/blob/main/deployment/PAID_ADMI
 const scratch=()=>mkdtemp(join(tmpdir(),'luvani-paid-quotes-test-'));
 /** Which captured request shapes each activity's runtime sends (see the generator's quote table). */
 const SENDS={
- // A Deepgram stream the plugin reopens once (maxRetry 1, agent.ts) is a second claim of the same shape.
- lesson:['live-chat','stt-lesson-keyterm','stt-lesson-keyterm','tts-alexandre'],'lesson-text':['live-chat'],
- convo:['turn-stream','frame','curate','extract','drills','stt-convo-flux','stt-convo-flux','tts-alexandre'],
+ // A Deepgram stream the plugin reopens is another claim of the same shape. The SDK resets its retry count on
+ // each final transcript, so a second drop opens a third stream.
+ lesson:['live-chat','stt-lesson-keyterm','stt-lesson-keyterm','stt-lesson-keyterm','tts-alexandre'],'lesson-text':['live-chat'],
+ convo:['turn-stream','frame','curate','extract','drills','stt-convo-flux','stt-convo-flux','stt-convo-flux','tts-alexandre'],
  'convo-text':['turn','frame','curate','extract','drills'],
  practice:['drills'],'api-judge':['judge'],'api-fix-judge':['fix-judge'],'api-transcribe':['take'],'phrase-audio':['phrase-alexandre'],
 };
@@ -117,9 +118,9 @@ test('generated staging quotes admit every bound activity through the real SQL a
  try {
   await db.exec(sql);
   const config=(await db.query('select * from luvani_private.paid_admission_config')).rows[0];
-  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,22000000);
+  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,23000000);
   assert.ok(first.budgets.accountDailyMicroUsd>=2*first.derivation.perActivityMicroUsd.convo && first.budgets.accountDailyMicroUsd<2*first.derivation.perActivityMicroUsd.convo+100000);
-  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(22000000/m)])));
+  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(23000000/m)])));
   assert.ok(first.derivation.sessionsAdmittedPerDayAtGlobalBudget.convo>=6,'six spoken conversations a day fit the global booking ceiling');
   console.log('[paid-quotes test] admitted per day (global, each alone):',JSON.stringify(first.derivation.sessionsAdmittedPerDayAtGlobalBudget));
   console.log('[paid-quotes test] admitted per account day (each alone):',JSON.stringify(first.derivation.admittedPerAccountDay));

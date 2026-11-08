@@ -245,8 +245,8 @@ export async function captureShapes({voices}) {
  *   A component holds at most 100,000 output tokens and 2 MiB of input (paid_quote_valid_v1),
  *   so a large budget is split over several components with the SAME identity; the gate fills them in order.
  * STT streaming (Deepgram). Each websocket claims the whole session (600,000 ms), so a component is one
- *   connection: lesson 2 (Flux + keyterms; the vendor maxRetry 1 can open a second stream), convo 2 Flux (no phase language
- *   switch on Flux, so one shape: the first stream and the one reconnect).
+ *   connection: lesson 3 (Flux + keyterms; the vendor maxRetry 1 resets on each final transcript, so a second drop
+ *   opens a third stream), convo 3 Flux (no phase language switch on Flux, so one shape: the first stream and two reconnects).
  *   Price = 10 min x the per-minute rate (flux+keyterm 0.0091; convo flux 0.0078).
  * STT take (api-transcribe): one call, at most SCORING_MAX_WAV_BYTES (30 s); priced at the streaming fr rate.
  * TTS (ElevenLabs). One component per voice, because voice is identity. Per session the tutor speaks
@@ -290,14 +290,15 @@ export async function buildQuoteComponents(shapes,voices) {
  const takeMillis=(SCORING_MAX_WAV_BYTES-44)/32;
  return {
   // Scripted lesson: LiveKit chat (gpt-6-luna) + Deepgram Flux with the lesson keyterms + ElevenLabs.
-  // Two streams: the first and the one reconnect the plugin may open (sttConnOptions maxRetry 1, agent.ts).
-  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-flux-keyterm',s('stt-lesson-keyterm'),2,rate.flux+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
+  // Three streams: the first and the reconnects the plugin may open (sttConnOptions maxRetry 1, agent.ts; the SDK
+  // resets the retry count on each final transcript, so a second drop opens a third stream).
+  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-flux-keyterm',s('stt-lesson-keyterm'),3,rate.flux+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
   // Typed lesson: llmNode stops before any model call, so nothing is spent; the quote still needs one llm
   // component (paid_quote_valid_v1). One live-chat effect, the smallest honest envelope.
   'lesson-text':llmComponents(prices,'chat',s('live-chat'),{effects:1}),
   // Spoken conversation: brain (streamed turns) + Deepgram Flux + ElevenLabs. The LiveKit chat model is
   // not called in a conversation (preemptive generation off; onUserTurnCompleted answers through the brain).
-  convo:[...convoBrain('turn-stream'),...sttStreamComponent('stt-flux',s('stt-convo-flux'),2,rate.flux),...tts(TTS_BYTES,TTS_EFFECTS)],
+  convo:[...convoBrain('turn-stream'),...sttStreamComponent('stt-flux',s('stt-convo-flux'),3,rate.flux),...tts(TTS_BYTES,TTS_EFFECTS)],
   'convo-text':convoBrain('turn'),
   practice:llmComponents(prices,'drills',s('drills')),
   'api-judge':llmComponents(prices,'judge',s('judge')),
