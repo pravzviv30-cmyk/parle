@@ -5,7 +5,7 @@
  *
  * For each French phrase recorded in artifacts/voice-comparison-2026-09-19/
  * it cuts the sentence at the quietest point near its middle, splices in a
- * silence of 0.5, 1.0, 1.5 or 2.0 s, and runs the clip through:
+ * silence of 0.5 to 3.0 s, and runs the clip through:
  *
  *   - the real Silero VAD the tutor agent loads (plugin defaults, the same
  *     `silero.VAD.load()` call as agent.ts), fed at the file's 22.05 kHz so
@@ -21,6 +21,17 @@
  * wait) unless START_OF_SPEECH arrives first. It assumes Deepgram's final has
  * landed by then (endpointing 25 ms), which is the case the plan cares about.
  *
+ * minDelay and maxDelay come from the SDK's own endpointing object
+ * (voice/turn_config/endpointing.js), fed the VAD's start/end marks the way
+ * audio_recognition.js feeds it. Fixed configs are BaseEndpointing. Dynamic
+ * configs are DynamicEndpointing: its minDelay is an EMA (alpha 0.9) of the
+ * pauses between a speaker's utterances, floored at minDelay, and the SDK reads
+ * it as the wait after END_OF_SPEECH (maxDelay is still the fixed ceiling used
+ * when the turn model says "not finished"). The SDK updates the EMA inside
+ * onEndOfSpeech, before bounceEOUTask reads minDelay, so the pause in the
+ * current turn already counts once. `-t1` is a speaker's first turn; `-t11` is
+ * the eleventh turn of a speaker who paused this long in each of the ten before.
+ *
  * Usage: node scripts/measurePauseEndpointing.mjs [--out docs/live-latency-evidence]
  */
 import { createRequire } from 'node:module';
@@ -31,6 +42,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const agentRequire = createRequire(join(root, 'services/tutor-agent/package.json'));
 const load = async (name) => import(pathToFileURL(agentRequire.resolve(name)).href);
+// The endpointing classes are not exported from the package index, so load the file beside it.
+const { createEndpointing } = await import(
+  pathToFileURL(join(dirname(agentRequire.resolve('@livekit/agents')), 'voice/turn_config/endpointing.js')).href
+);
 
 const agents = await load('@livekit/agents');
 agents.initializeLogger({ pretty: false, level: 'error' });
@@ -43,12 +58,14 @@ const outDir = resolve(root, outIdx > 0 ? process.argv[outIdx + 1] : 'docs/live-
 const clipsDir = join(root, 'artifacts/voice-comparison-2026-09-19');
 
 const FR_THRESHOLD = 0.285; // inference/eot/languages.js, fr
-const MAX_DELAY = 2_500; // streaming default the SDK applies with a detector
+const DEFAULT_MAX_DELAY = 2_500; // streaming default the SDK applies with a detector
 const EOT_SILENCE_MS = 200; // inference/eot/base.js MIN_SILENCE_DURATION_MS
 const EOT_WINDOW = 19_200; // 1.2 s at 16 kHz, transports.js CLIENT_BUFFER_SECONDS
-const PAUSES_MS = [500, 1000, 1500, 2000];
+const PAUSES_MS = [500, 1000, 1500, 2000, 2500, 3000];
 const LEAD_MS = 300;
 const TAIL_MS = 3_000;
+
+const WARM_TURNS = 10; // earlier same-length pauses a `-t11` dynamic speaker has already shown
 
 const CONFIGS = [
   { name: 'today', minDelay: 400 },
@@ -56,7 +73,24 @@ const CONFIGS = [
   { name: 'v009-1-cutoff', minDelay: 1600 },
   { name: 'v009-cap', minDelay: 2000 },
   { name: 'v009-moment-hold', minDelay: 2500 },
+  { name: 'v009-beginner-max3500', minDelay: 1200, maxDelay: 3500 },
+  { name: 'v009-beginner-max5000', minDelay: 1200, maxDelay: 5000 },
+  { name: 'beginner-800-max3500', minDelay: 800, maxDelay: 3500 },
+  { name: 'beginner-800-max5000', minDelay: 800, maxDelay: 5000 },
+  { name: 'dynamic-1200-max2500-t1', minDelay: 1200, maxDelay: 2500, dynamic: true, priorTurns: 0 },
+  { name: 'dynamic-1200-max2500-t11', minDelay: 1200, maxDelay: 2500, dynamic: true, priorTurns: WARM_TURNS },
+  { name: 'dynamic-800-max3500-t1', minDelay: 800, maxDelay: 3500, dynamic: true, priorTurns: 0 },
+  { name: 'dynamic-800-max3500-t11', minDelay: 800, maxDelay: 3500, dynamic: true, priorTurns: WARM_TURNS },
 ];
+
+function makeEndpointing(cfg) {
+  return createEndpointing({
+    mode: cfg.dynamic ? 'dynamic' : 'fixed',
+    minDelay: cfg.minDelay,
+    maxDelay: cfg.maxDelay ?? DEFAULT_MAX_DELAY,
+    alpha: 0.9,
+  });
+}
 
 // ---- local EOT model --------------------------------------------------------
 let eot = null;
@@ -156,6 +190,7 @@ async function vadEvents(pcm, rate) {
       type: ev.type,
       t: ev.timestamp,
       silence: ev.silenceDuration,
+      speech: ev.speechDuration,
       rawSilence: ev.rawAccumulatedSilence,
       rawSpeech: ev.rawAccumulatedSpeech,
     });
@@ -169,7 +204,7 @@ async function vadEvents(pcm, rate) {
  * Replays the SDK's commit rule on one clip. Returns the first commit (if any)
  * and whether it landed inside the spliced pause, i.e. cut the sentence.
  */
-function replay(events, eotAt, minDelay) {
+function replay(events, eotAt, ep) {
   let speaking = false;
   let lastSpeaking;
   let pendingProb;
@@ -181,6 +216,7 @@ function replay(events, eotAt, minDelay) {
       pending = undefined;
     }
     if (ev.type === VADEventType.START_OF_SPEECH) {
+      ep.onStartOfSpeech(ev.t - ev.speech, false); // audio_recognition.js, VAD task
       speaking = true;
       pending = undefined; // bounceEOUTask cancelled
       pendingProb = undefined;
@@ -193,10 +229,11 @@ function replay(events, eotAt, minDelay) {
         pendingProb = eotAt(ev.t);
       }
     } else if (ev.type === VADEventType.END_OF_SPEECH) {
+      if (speaking) ep.onEndOfSpeech(ev.t - ev.silence, undefined); // before bounceEOUTask reads minDelay
       speaking = false;
       lastSpeaking = ev.t - ev.silence;
       const prob = pendingProb ?? 1;
-      const wait = prob < FR_THRESHOLD ? MAX_DELAY : minDelay;
+      const wait = prob < FR_THRESHOLD ? ep.maxDelay : ep.minDelay;
       pending = { commitAt: Math.max(ev.t, lastSpeaking + wait), prob, lastSpeaking };
       commits.lastPending = pending;
     }
@@ -229,7 +266,7 @@ for (const file of files) {
       const window = pcm16.slice(Math.max(0, end - EOT_WINDOW), end);
       probs.push({ t, p: eot ? eot.predict(window) : Promise.resolve(1) });
       return 1;
-    }, 400);
+    }, makeEndpointing({ minDelay: 400 }));
     for (const r of probs) r.p = await r.p;
     const probAt = (t) => probs.find((r) => r.t === t)?.p ?? 1;
 
@@ -241,7 +278,10 @@ for (const file of files) {
     const outcome = {};
     for (const cfg of CONFIGS) {
       for (const detector of ['eot', 'fallback-1.0']) {
-        const commits = replay(events, (t) => (detector === 'eot' ? probAt(t) : 1), cfg.minDelay);
+        const prob = (t) => (detector === 'eot' ? probAt(t) : 1);
+        const ep = makeEndpointing(cfg); // one speaker: state carries across their turns
+        for (let i = 0; i < (cfg.priorTurns ?? 0); i++) replay(events, prob, ep);
+        const commits = replay(events, prob, ep);
         const cutOff = commits.some((c) => c > pauseStart && c < pauseEnd + 100);
         const finalCommit = commits.find((c) => c >= speechEnd);
         outcome[`${cfg.name}/${detector}`] = {
@@ -281,10 +321,15 @@ for (const pauseMs of PAUSES_MS) {
     cutOffs: Object.fromEntries(keys.map((k) => [k, rs.filter((r) => r.outcome[k].cutOff).length])),
   };
 }
+const stats = (rs, k) => {
+  const v = rs.map((r) => r.outcome[k].finalLatencyMs).filter((x) => x !== null).sort((a, b) => a - b);
+  return { p50: v[Math.floor(v.length / 2)], max: v[v.length - 1], n: v.length };
+};
 const latency = {};
+const latencyByPause = {};
 for (const k of keys) {
-  const v = rows.map((r) => r.outcome[k].finalLatencyMs).filter((x) => x !== null).sort((a, b) => a - b);
-  latency[k] = { p50: v[Math.floor(v.length / 2)], max: v[v.length - 1], n: v.length };
+  latency[k] = stats(rows, k);
+  latencyByPause[k] = Object.fromEntries(PAUSES_MS.map((p) => [p, stats(rows.filter((r) => r.pauseMs === p), k)]));
 }
 
 const result = {
@@ -292,10 +337,12 @@ const result = {
   sdk: '@livekit/agents 1.9.0, agents-plugin-silero 1.9.0 defaults, @livekit/local-inference turn-detector-v1-mini',
   eotModel: eot ? 'loaded' : `unavailable: ${eotError}`,
   frThreshold: FR_THRESHOLD,
-  maxDelayMs: MAX_DELAY,
+  defaultMaxDelayMs: DEFAULT_MAX_DELAY,
+  configs: CONFIGS,
   pausesMs: PAUSES_MS,
   summary,
   finalTurnLatencyMs: latency,
+  finalTurnLatencyByPauseMs: latencyByPause,
   rows,
 };
 
@@ -307,24 +354,34 @@ const lines = [];
 lines.push(`# Mid-sentence pause endpointing (${stamp})`, '');
 lines.push(`Generated by \`node scripts/measurePauseEndpointing.mjs\`. ${result.sdk}. EOT model: ${result.eotModel}.`);
 lines.push(`${files.length} French phrases (ElevenLabs multilingual_v2 clips), cut at the quietest point in the middle third.`, '');
-lines.push('Cut-offs: clips whose turn committed inside the pause (out of ' + files.length + ').', '');
-lines.push('| Pause | VAD ended in pause | EOT p in pause (fr 0.285) | ' + keys.join(' | ') + ' |');
-lines.push('|---|---|---|' + keys.map(() => '---').join('|') + '|');
+lines.push('| Pause | VAD ended in pause | EOT p in pause (fr 0.285) |', '|---|---|---|');
 for (const p of PAUSES_MS) {
   const s = summary[p];
-  lines.push(
-    `| ${p} ms | ${s.vadEndedInPause}/${s.clips} | ${s.eotProbInPause.map((x) => (x === null ? '-' : x.toFixed(2))).join(', ')} | ` +
-      keys.map((k) => s.cutOffs[k]).join(' | ') +
-      ' |',
-  );
+  lines.push(`| ${p} ms | ${s.vadEndedInPause}/${s.clips} | ${s.eotProbInPause.map((x) => (x === null ? '-' : x.toFixed(2))).join(', ')} |`);
 }
-lines.push('', 'Commit latency after the sentence really ends (ms after the last voiced audio, all clips):', '');
-lines.push('| Config | p50 | max |', '|---|---|---|');
-for (const k of keys) lines.push(`| ${k} | ${latency[k].p50} | ${latency[k].max} |`);
+for (const detector of ['eot', 'fallback-1.0']) {
+  lines.push('', `## Detector: ${detector}`, '');
+  lines.push(`Each cell: clips cut off inside the pause (out of ${files.length}), then commit latency p50 / max in ms after the sentence really ends.`, '');
+  lines.push('| Config (min / max ms) | ' + PAUSES_MS.map((p) => `${p} ms`).join(' | ') + ' |');
+  lines.push('|---|' + PAUSES_MS.map(() => '---').join('|') + '|');
+  for (const cfg of CONFIGS) {
+    const k = `${cfg.name}/${detector}`;
+    const label = `${cfg.name} (${cfg.minDelay} / ${cfg.maxDelay ?? DEFAULT_MAX_DELAY})`;
+    lines.push(
+      `| ${label} | ` +
+        PAUSES_MS.map((p) => `${summary[p].cutOffs[k]}/${files.length}, ${latencyByPause[k][p].p50} / ${latencyByPause[k][p].max}`).join(' | ') +
+        ' |',
+    );
+  }
+}
 lines.push('', '## Reading it', '');
 lines.push('- "today" is minDelay 400 with Silero defaults (minSilenceDuration 550), so the turn commits at the VAD end of speech, not 400 ms after it.');
 lines.push('- "eot" uses the real local model; "fallback-1.0" is what a worker without the native binding or a job inference executor does (every prediction scores 1.0).');
 lines.push('- Every clip is the same sentence in six ElevenLabs voices, not learners. Hesitant, accented beginner speech is likely to score differently, so treat the model columns as indicative and the fallback columns as the floor that has to hold on its own.');
+lines.push('- The `v009-*-max*` and `beginner-800-*` configs only change maxDelay, which applies when the turn model says "not finished" ("eot" detector); under "fallback-1.0" every prediction is 1.0 so maxDelay never applies and they match their minDelay twin.');
+lines.push('- `dynamic-*` runs the SDK\'s own DynamicEndpointing object. It differs from the fixed rule only in where minDelay comes from: an EMA (alpha 0.9) of the speaker\'s between-utterance pauses, floored at minDelay and capped at maxDelay, updated at END_OF_SPEECH just before the wait is read, exactly as audio_recognition.js orders it. The commit rule itself (maxDelay when the model says "not finished", else the learned minDelay) is the same. `-t1` is a first turn (the pause in this turn moves the EMA by only 10 %, so it behaves like fixed); `-t11` is the eleventh turn of a speaker who paused this long in each of the ten before, an upper bound for a habitual pauser, since learners will not pause the same way every turn. The replay sends no agent-speech marks, which is what the SDK sees between a learner\'s own utterances.');
+const lowEnd = rows.filter((r) => r.eotProbAtEnd !== null && r.eotProbAtEnd < FR_THRESHOLD);
+lines.push(`- A finished sentence scored under the threshold in ${lowEnd.length} of ${rows.length} clip runs (${lowEnd.map((r) => `${r.file.split('-')[0]} at ${r.pauseMs} ms, p ${r.eotProbAtEnd}`).join('; ') || 'none'}). Those wait the whole maxDelay, which is the "max" figure in the eot table, so a higher maxDelay buys patience in a sentence and costs that much silence on the rare misread ending.`);
 lines.push('- Latency is measured from the end of the audio samples; Silero stops calling a frame voiced slightly before that, which is why today reads about 470 ms rather than 550.');
 lines.push('');
 writeFileSync(join(outDir, `${stamp}-pause-endpointing.md`), lines.join('\n'));

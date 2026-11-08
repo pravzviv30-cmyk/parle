@@ -473,3 +473,31 @@ describe('OpenAI Responses brain: the live service tier', () => {
     assert.equal(openAiLiveServiceTier({ OPENAI_LIVE_SERVICE_TIER: '  ' }), null);
   });
 });
+
+describe('OpenAI Responses brain: the reply-first turn order', () => {
+  const saved = process.env.LUVANI_TURN_REPLY_FIRST;
+  const restore = () => { if (saved === undefined) delete process.env.LUVANI_TURN_REPLY_FIRST; else process.env.LUVANI_TURN_REPLY_FIRST = saved; };
+  const order = async (config: Partial<OpenAiResponsesConfig> = {}) => {
+    const body = await bodyFor('turn', config);
+    return Object.keys((body.text as { format: { schema: { properties: object } } }).format.schema.properties);
+  };
+
+  test('off by default: the schema sent is today\'s', async (t) => {
+    delete process.env.LUVANI_TURN_REPLY_FIRST;
+    t.after(restore);
+    assert.deepEqual(await order(), Object.keys(TurnSchema.shape));
+    assert.deepEqual(await order({ turnReplyFirst: '0' }), Object.keys(TurnSchema.shape));
+  });
+
+  test('"1" from config or env moves coach after sceneReply, for the turn only', async (t) => {
+    delete process.env.LUVANI_TURN_REPLY_FIRST;
+    t.after(restore);
+    const keys = await order({ turnReplyFirst: ' 1 ' });
+    assert.ok(keys.indexOf('coach') > keys.indexOf('sceneReply'));
+    process.env.LUVANI_TURN_REPLY_FIRST = '1';
+    const fromEnv = await order();
+    assert.ok(fromEnv.indexOf('coach') > fromEnv.indexOf('sceneReply'), 'read from the env when config is silent');
+    process.env.LUVANI_TURN_REPLY_FIRST = 'true';
+    assert.deepEqual(await order(), Object.keys(TurnSchema.shape), 'only "1" turns it on');
+  });
+});

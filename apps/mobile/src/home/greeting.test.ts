@@ -5,7 +5,8 @@
  * through seven words on a timer; the design contract keeps only the orb and
  * the highlighter moving, so the rotation and its hook are retired and the
  * greeting is one still line: the hour's French word, then the first name,
- * then a full stop. "Bonsoir, Praveen." or "Bonsoir.", never a bare comma.
+ * with no full stop (founder, 2026-11-06). "Bonsoir, Praveen" or "Bonsoir",
+ * never a bare comma.
  *
  * Two things are still defended. The hour, because a language app that says
  * `Bonsoir` at breakfast is teaching something false. And the no-name line,
@@ -26,7 +27,7 @@ import { BANNED_IN_COPY, guiltIn } from '../copy/guilt.ts';
 const at = (hour: number, minute = 0): number => new Date(2026, 0, 15, hour, minute, 0, 0).getTime();
 
 describe('the greeting on Today', () => {
-  test("the greeting is the hour's French word, still, with a name and a full stop — F417", () => {
+  test("the greeting is the hour's French word, still, with a name and no full stop — F417", () => {
     assert.equal(localHour(at(8)), 8);
     assert.equal(localHour(at(20, 45)), 20);
 
@@ -45,18 +46,18 @@ describe('the greeting on Today', () => {
     assert.equal(localHour(1e20), 12);
     assert.equal(greetingWord(Number.NaN), 'Bonjour');
 
-    assert.equal(greetingLine('Praveen', at(21)), 'Bonsoir, Praveen.');
-    assert.equal(greetingLine('Camille', at(9)), 'Bonjour, Camille.');
+    assert.equal(greetingLine('Praveen', at(21)), 'Bonsoir, Praveen');
+    assert.equal(greetingLine('Camille', at(9)), 'Bonjour, Camille');
 
     // UI-015 (founder 2026-10-30): direction A's sky brings back the hour's
     // word on Today, superseding B's one word all day. Two lines on screen,
     // the word with its comma and then the name; one title for the reader.
-    assert.deepEqual(homeGreeting('Praveen', at(9)), { word: 'Bonjour', name: 'Praveen', title: 'Bonjour, Praveen.' });
-    assert.deepEqual(homeGreeting('  Camille Dubois  ', at(9)), { word: 'Bonjour', name: 'Camille', title: 'Bonjour, Camille.' });
-    assert.deepEqual(homeGreeting(null, at(9)), { word: 'Bonjour', name: null, title: 'Bonjour.' });
-    assert.deepEqual(homeGreeting('   ', at(21)), { word: 'Bonsoir', name: null, title: 'Bonsoir.' });
+    assert.deepEqual(homeGreeting('Praveen', at(9)), { word: 'Bonjour', name: 'Praveen', title: 'Bonjour, Praveen' });
+    assert.deepEqual(homeGreeting('  Camille Dubois  ', at(9)), { word: 'Bonjour', name: 'Camille', title: 'Bonjour, Camille' });
+    assert.deepEqual(homeGreeting(null, at(9)), { word: 'Bonjour', name: null, title: 'Bonjour' });
+    assert.deepEqual(homeGreeting('   ', at(21)), { word: 'Bonsoir', name: null, title: 'Bonsoir' });
     assert.equal(homeGreeting('Praveen', at(18)).word, 'Bonsoir');
-    assert.equal(homeGreeting('Praveen', at(4, 59)).title, 'Bonsoir, Praveen.');
+    assert.equal(homeGreeting('Praveen', at(4, 59)).title, 'Bonsoir, Praveen');
     assert.equal(homeGreeting('Praveen', at(5)).word, 'Bonjour');
     assert.equal(homeGreeting('Praveen', at(17, 59)).word, 'Bonjour');
     assert.equal(homeGreeting('Praveen', Number.NaN).word, 'Bonjour', 'an unreadable clock lands on midday');
@@ -72,16 +73,20 @@ describe('the greeting on Today', () => {
   });
 
   test('a learner who skipped their name is greeted by the word alone, with no bare comma — F387', () => {
-    assert.equal(greetingLine(null, at(21)), 'Bonsoir.', 'a nameless learner is greeted with something other than the word and a full stop');
-    assert.equal(greetingLine('   ', at(9)), 'Bonjour.', 'a name of nothing but spaces is greeted as if it were a name');
+    assert.equal(greetingLine(null, at(21)), 'Bonsoir', 'a nameless learner is greeted with something other than the word alone');
+    assert.equal(greetingLine('   ', at(9)), 'Bonjour', 'a name of nothing but spaces is greeted as if it were a name');
     // One name rule for the app: firstNameOf splits it.
-    assert.equal(greetingLine('  Camille Dubois  ', at(9)), 'Bonjour, Camille.');
+    assert.equal(greetingLine('  Camille Dubois  ', at(9)), 'Bonjour, Camille');
 
     const lines = [null, 'Camille', '  Camille Dubois  ', ''].flatMap((name) => [greetingLine(name, at(9)), greetingLine(name, at(21))]);
     assert.ok(BANNED_IN_COPY.length > 0);
+    for (const name of [null, 'Camille']) {
+      assert.doesNotMatch(homeGreeting(name, at(9)).title, /\.$/, 'the title ends on a full stop');
+      assert.doesNotMatch(homeGreeting(name, at(21)).title, /\.$/, 'the title ends on a full stop');
+    }
     for (const line of lines) {
       assert.doesNotMatch(line, /,\s*$|,\.$|, \./, `"${line}" leaves a bare comma`);
-      assert.match(line, /\.$/, `"${line}" does not end on a full stop`);
+      assert.doesNotMatch(line, /\.$/, `"${line}" ends on a full stop`);
       assert.doesNotMatch(line, /\byou\b/i, `"${line}" calls the learner "you"`);
       assert.equal(guiltIn(line), undefined, `"${line}" says a banned word`);
       assert.doesNotMatch(line, /—|\d/, `"${line}" carries an em dash or a digit`);

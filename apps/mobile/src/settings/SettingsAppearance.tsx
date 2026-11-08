@@ -33,15 +33,17 @@ export function useBRows(): boolean {
   return useContext(BRows);
 }
 
-/** Inputs keep an intentional paper well with their existing label/error ink. */
+/** Inputs sit in a well of the scoped surface (white in light, the dark card in dark) with their existing label and error ink. */
 export function SettingsField(props: ComponentProps<typeof PaperField>) {
-  return <View style={{ backgroundColor: paper.card, padding: space(3), borderRadius: 16 }}><PaperField {...props} /></View>;
+  return <View style={{ backgroundColor: useSettingsColors().surface, padding: space(3), borderRadius: 16 }}><PaperField {...props} /></View>;
 }
 
 /** Existing secondary form actions, with the scoped surface and disabled ink. */
 export function SettingsFormAction({ label, disabled, onPress }: { label: string; disabled?: boolean; onPress: () => void }) {
   const colors = useSettingsColors();
-  return <Press onPress={onPress} disabled={disabled} haptic="selection" accessibilityRole="button" accessibilityLabel={label} style={{ minHeight: 52, padding: space(3), borderRadius: 16, backgroundColor: colors.background, justifyContent: 'center' }}><Text style={[type.label, { color: disabled ? colors.muted : colors.text, textAlign: 'center' }]}>{label}</Text></Press>;
+  const t = useB();
+  // 2026-11-06, the founder's dark mark: a disabled action in dark takes the inset and a control edge, not a dark hole.
+  return <Press onPress={onPress} disabled={disabled} haptic="selection" accessibilityRole="button" accessibilityLabel={label} style={[{ minHeight: 52, padding: space(3), borderRadius: 16, backgroundColor: colors.background, justifyContent: 'center' }, disabled && t.mode === 'dark' && { backgroundColor: t.inset, borderWidth: 1.5, borderColor: t.field }]}><Text style={[type.label, { color: disabled ? colors.muted : colors.text, textAlign: 'center' }]}>{label}</Text></Press>;
 }
 export function useSettingsColors() { return useContext(SettingsColors); }
 

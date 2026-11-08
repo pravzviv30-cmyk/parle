@@ -38,7 +38,7 @@ const maxUsd = Number(flags['max-usd'] ?? 5);
 if (!Number.isInteger(reps) || reps < 1 || !Number.isFinite(maxUsd) || maxUsd <= 0) { console.error('--reps must be a whole number of 1 or more and --max-usd a positive number.'); process.exit(2); }
 
 const loaded = parseEnv(readFileSync(envFile, 'utf8'));
-const env = Object.fromEntries(['OPENAI_API_KEY', 'OPENAI_LIVE_MODEL', 'OPENAI_TURN_MODEL', 'BRAIN_EFFORT'].map(key => [key, loaded[key]]));
+const env = Object.fromEntries(['OPENAI_API_KEY', 'OPENAI_LIVE_MODEL', 'OPENAI_TURN_MODEL', 'BRAIN_EFFORT', 'LUVANI_TURN_REPLY_FIRST'].map(key => [key, loaded[key]]));
 if (!env.OPENAI_API_KEY) throw new Error('The environment file has no OPENAI_API_KEY.');
 if (env.BRAIN_EFFORT) process.env.BRAIN_EFFORT = env.BRAIN_EFFORT; // the client reads it when routing
 
@@ -97,7 +97,7 @@ async function fetchFn(url, init) {
   });
   return new Response(response.body.pipeThrough(tee), { status: response.status, statusText: response.statusText, headers: response.headers });
 }
-const client = new OpenAiResponsesBrainClient({ apiKey: env.OPENAI_API_KEY, turnModel: env.OPENAI_TURN_MODEL, liveModel: env.OPENAI_LIVE_MODEL }, fetchFn);
+const client = new OpenAiResponsesBrainClient({ apiKey: env.OPENAI_API_KEY, turnModel: env.OPENAI_TURN_MODEL, liveModel: env.OPENAI_LIVE_MODEL, turnReplyFirst: env.LUVANI_TURN_REPLY_FIRST }, fetchFn);
 
 // ---- invented learner lines. Each seeds a beat and the line the character just said.
 const LEARNER = { cefr: 'A1', confidence: 'low', watchFor: [], lastRung: null, sessions: 0, name: null };
@@ -119,6 +119,9 @@ const CASES = [
   { id: 'cafe-gender-error', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, je voudrais une café, s’il vous plaît.' },
   { id: 'cafe-conjugation-error', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, nous voudrait deux cafés, s’il vous plaît.' },
   { id: 'cafe-english-reach', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, can I have a croissant?' },
+  // Flux transcripts of the 2026-11-06 English clips (F964); the second is deliberately the imperfect one.
+  { id: 'cafe-flux-coffee', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'A coffee, please.' },
+  { id: 'cafe-flux-outside', mission: 'mission:premier-cafe', beat: 'say-where', text: 'I wanna sit outside.' },
   { id: 'cafe-franglais', mission: 'mission:premier-cafe', beat: 'greet-and-order', text: 'Bonjour, je voudrais un coffee avec du milk, please.' },
   { id: 'cafe-help', mission: 'mission:premier-cafe', beat: 'say-where', type: 'help' },
   { id: 'cafe-long-clauses', mission: 'mission:premier-cafe', beat: 'say-where', text: 'Alors, je pense que je vais le prendre sur place parce qu’il fait froid dehors, mais si vous avez une table près de la fenêtre, ce serait parfait.' },

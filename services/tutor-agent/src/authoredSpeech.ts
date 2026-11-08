@@ -36,6 +36,16 @@ export const CONVO_LINES = {
     en: 'Ah, very good. So…',
     spoken: "Ah, très bien. Give me a moment, I'm setting the scene.",
   },
+  /**
+   * The spoken bridge (LUVANI_SPOKEN_BRIDGE=1): one of these is said when a
+   * spoken turn has waited 1.5 s on the brain, so the wait sounds like
+   * thinking. Two, alternated, so nobody hears the same one twice running.
+   * `spoken` is `fr`.
+   */
+  thinking: [
+    { fr: 'Alors…', en: 'So…', spoken: 'Alors…' },
+    { fr: 'Hmm, voyons…', en: 'Hmm, let me see…', spoken: 'Hmm, voyons…' },
+  ],
   /** Said when the choosing question met silence. Same session index as the opener. */
   suggest: [
     {
@@ -84,6 +94,7 @@ for (const line of CONVO_LINES.opener) add(line.en);
 for (const line of CONVO_LINES.suggest) add(line.en);
 for (const line of CONVO_LINES.wayBack) add(line);
 add(CONVO_LINES.bridge.spoken);
+for (const line of CONVO_LINES.thinking) add(line.spoken);
 add(CONVO_LINES.carryOn.fr); add(CONVO_LINES.carryOn.en);
 // The end-of-session heads-up and close (sessionEnd.ts), said in every timed session.
 add(HEADS_UP_LINE); add(CLOSE_LINE);

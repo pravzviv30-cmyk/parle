@@ -15,6 +15,8 @@ import {
   type PipelineOutcome,
 } from './failure.ts';
 
+const GENERIC_NOTICE = 'The tutor hit a small snag. Carry on as you were.';
+
 /**
  * Every failure mode, listed once. The `satisfies` makes typecheck fail if a
  * new failure joins the union without copy, which is the invariant: an
@@ -317,6 +319,23 @@ describe('what the learner reads when half the tutor stops working mid-session',
     // the screen away is not.
     const unsure = classifyPipelineError({ message: AGENT_SENTENCE, kind: 'stt_error' }, { spoken: true });
     assert.equal(unsure.severity, 'notice', 'a missing recoverable flag was read as an outage, and a learner lost a live conversation to a guess.');
+  });
+
+  test('a notice for an unknown kind never shows the frame text', () => {
+    // A frame with no kind is the agent's own written sentence (the time limit,
+    // a message too long, the tutor busy), every one a literal in
+    // services/tutor-agent, so it still shows. Pipeline failures carry a kind.
+    const limit = 'That is a good place to stop. Your session has reached its time limit.';
+    const noKind = classifyPipelineError({ message: limit }, { spoken: true });
+    if (noKind.severity !== 'notice') throw new Error('unreachable');
+    assert.equal(noKind.message, limit, 'the time-limit sentence was replaced, and the learner was told to carry on after the session ended.');
+
+    const leaky = 'ECONNRESET at wss://example.livekit.cloud';
+
+    const unknown = classifyPipelineError({ message: leaky, kind: 'brand_new_error' as ErrorKind, recoverable: true }, { spoken: true });
+    assert.equal(unknown.severity, 'notice');
+    if (unknown.severity !== 'notice') throw new Error('unreachable');
+    assert.equal(unknown.message, GENERIC_NOTICE, 'an unknown kind showed undefined or the frame text.');
   });
 
   test('every pipeline kind is named by what the learner lost, not by the vendor', () => {

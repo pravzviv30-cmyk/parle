@@ -22,6 +22,7 @@ export interface TurnHandling {
     minDuration: number;
     minWords: number;
     discardAudioIfUninterruptible: boolean;
+    mode?: 'adaptive';
   };
   endpointing: Endpointing;
   preemptiveGeneration: { enabled: boolean };
@@ -38,7 +39,7 @@ export const INTERRUPTION_MIN_WORDS = 2;
 
 export function turnHandlingFor(
   mode: SessionMode,
-  env: { turnDetection?: string; startRung?: Rung } = {},
+  env: { turnDetection?: string; startRung?: Rung; adaptiveInterruption?: boolean } = {},
 ): TurnHandling {
   return {
     interruption: {
@@ -52,6 +53,15 @@ export function turnHandlingFor(
       // barge-in during a modelled line is almost never the learner — but their
       // words are now buffered and arrive when the tutor stops.
       discardAudioIfUninterruptible: false,
+      // LiveKit's adaptive detector tells a real interruption from a backchannel
+      // ("mm", "oui"). Rungs 3 and 4 only: below that the modelled lines are
+      // uninterruptible anyway and a beginner's "oui" is often the answer, not
+      // a backchannel, so the trial starts higher up. SDK 1.9 reads the mode once
+      // when the session is built and updateOptions cannot change it, so "rungs
+      // 3-4" means sessions that START there. Absent means the SDK default.
+      ...(env.adaptiveInterruption && (env.startRung === 3 || env.startRung === 4)
+        ? { mode: 'adaptive' as const }
+        : {}),
     },
     // The session opens on the starting rung's pause floor; no signed rung is
     // a beginner. agent.ts moves it with the rung, cut-offs and "moment".

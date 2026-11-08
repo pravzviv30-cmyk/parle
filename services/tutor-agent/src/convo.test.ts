@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { ThinkingTimeSink } from './thinkingTime.ts';
+import { SessionExit } from './sessionExit.ts';
 
 import { tokenize, voice } from '@livekit/agents';
 import {
@@ -97,6 +98,7 @@ import {
   validMissionId,
   type SttLanguage,
 } from './convo.ts';
+import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
 import { LuvaniTutor, forgetReportedSessions, noteSessionReported } from './tutor.ts';
 import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
 import { SCORE_SETTLE_MS, nearHardLimit, saidTheLine } from './liveScoring.ts';
@@ -586,6 +588,7 @@ function buildConvo(
     scoringRequest?: typeof fetch;
     thinkingTime?: ThinkingTimeSink;
     enrichBeforeComplete?: boolean;
+    exit?: SessionExit;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -609,6 +612,7 @@ function buildConvo(
     ...(opts.scoringRequest ? { scoringRequest: opts.scoringRequest } : {}),
     ...(opts.thinkingTime ? { thinkingTime: opts.thinkingTime } : {}),
     ...(opts.enrichBeforeComplete !== undefined ? { enrichBeforeComplete: opts.enrichBeforeComplete } : {}),
+    ...(opts.exit ? { exit: opts.exit } : {}),
   });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
@@ -685,6 +689,7 @@ async function inScene(
     persona?: TutorPersona;
     memoryLocked?: boolean;
     thinkingTime?: ThinkingTimeSink;
+    exit?: SessionExit;
   } = {},
 ) {
   const built = buildConvo(t, opts);
@@ -2348,7 +2353,7 @@ describe('latency marks', () => {
       const checkpointAsked = new Promise<void>(resolve => { checkpointStarted = resolve; });
       const client = new SlowBrain();
       const built = buildConvo(t, { client, voiceless, missionId: 'mission:cafe' });
-      built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 8,
+      built.convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => 8,
         assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { checkpointStarted(); await checkpoint; acknowledge?.(); },
         complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
       });
@@ -2382,7 +2387,7 @@ describe('latency marks', () => {
   test('a queued typed timing record retains its own arrival while the earlier brain request finishes', async t => {
     let now = 100; const lines: string[] = [], client = new SlowBrain();
     const built = buildConvo(t, { client, voiceless: true, missionId: 'mission:cafe' });
-    built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 8,
+    built.convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => 8,
       assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
       complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
     });
@@ -4679,13 +4684,15 @@ class StreamingBrain extends MockLlmClient {
   readonly spokenFieldsOffered: boolean[] = [];
   private readonly next: ReturnType<typeof sampleTurn>;
   private readonly failAfter: boolean;
-  constructor(next: ReturnType<typeof sampleTurn>, failAfter = false) { super({ turns: [next] }); this.next = next; this.failAfter = failAfter; }
+  private readonly replyFirst: boolean;
+  constructor(next: ReturnType<typeof sampleTurn>, failAfter = false, replyFirst = false) { super({ turns: [next] }); this.next = next; this.failAfter = failAfter; this.replyFirst = replyFirst; }
   override async turn(request: BrainTurnRequest) {
     this.spokenFieldsOffered.push(request.onSpokenFields !== undefined);
     const { assessment, coach, coachLine, narration, sceneReply } = this.next;
     // As the stream hands it over: the reply's French has closed, its
     // written form and English have not arrived yet.
-    request.onSpokenFields?.({ assessment, coach, coachLine, narration, sceneReply: { speaker: sceneReply.speaker, fr: sceneReply.fr } });
+    // Reply-first order: the coach has not streamed yet when the reply closes.
+    request.onSpokenFields?.({ assessment, ...(this.replyFirst ? {} : { coach }), coachLine, narration, sceneReply: { speaker: sceneReply.speaker, fr: sceneReply.fr } });
     await this.gate;
     if (this.failAfter) throw new BrainParseError('the stream broke after the reply', '{', { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, model: 'test' });
     return super.turn(request);
@@ -4717,6 +4724,69 @@ describe('a streamed turn speaks before the rest of it arrives', () => {
     assert.equal(shown.sceneReply.en, reply.en, 'with the full turn\'s English, which arrived after speech began');
     assert.equal(said.length, before + 1, 'and the reply is not said a second time');
     assert.equal(convo.conversationState.turnCount, 1);
+  });
+
+  test('today\'s order: an early recast keeps its English echo on screen and the full turn agrees', async (t) => {
+    const finding = sampleCoachItem({ kind: 'textbook-phrasing', quote: 'Je ne sais pas', better: 'J’sais pas', betterEn: 'I do not know', weight: 'matters-now' });
+    const turn = sampleTurn({ coach: [finding], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    const client = new StreamingBrain(turn);
+    const { convo, session, said, published } = await inScene(t, { client });
+    const warned = t.mock.method(console, 'warn', () => {});
+    const answered = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je ne sais pas' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(said.at(-1), `Ah, J’sais pas. ${reply.fr}`, 'the early reply carries the recast');
+    client.finish();
+    await answered;
+    await convo.settled();
+    const shown = views(published).at(-1)!.view;
+    assert.equal(shown.sceneReply.fr, `Ah, J’sais pas. ${reply.fr}`);
+    assert.equal(shown.sceneReply.en, `Ah, I do not know. ${reply.en}`, 'the English carries the echo too');
+    assert.ok(!warned.mock.calls.some((call) => String(call.arguments[0]).includes('disagreed')), 'the full turn agreed with the spoken words');
+  });
+
+  test('reply-first: the reply is spoken without the recast echo, and the full turn\'s coach still reaches the view', async (t) => {
+    const finding = sampleCoachItem({ kind: 'textbook-phrasing', quote: 'Je ne sais pas', better: 'J’sais pas', betterEn: 'I do not know', weight: 'matters-now' });
+    const turn = sampleTurn({ coach: [finding], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    const client = new StreamingBrain(turn, false, true);
+    const { convo, session, said, published } = await inScene(t, { client });
+    const warned = t.mock.method(console, 'warn', () => {});
+    const before = said.length;
+    const answered = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je ne sais pas' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(said.length, before + 1, 'spoken on fr close although no coach has streamed');
+    assert.equal(said.at(-1), reply.fr, 'with no "Ah, ..." echo, because the recast has no coach to read');
+    client.finish();
+    await answered;
+    await convo.settled();
+    assert.equal(said.length, before + 1, 'not said a second time');
+    const shown = views(published).at(-1)!.view;
+    assert.equal(shown.sceneReply.fr, reply.fr, 'the screen shows the words heard');
+    assert.deepEqual(shown.coachNow.map((item) => item.quote), [finding.quote], 'the full turn\'s coach is shown');
+    assert.ok(!warned.mock.calls.some((call) => String(call.arguments[0]).includes('disagreed')),
+      'the full turn does not recast what was already spoken, so nothing disagreed');
+  });
+
+  test('reply-first: a turn that reached for English waits for the full turn, so the French hand-back is still spoken', async (t) => {
+    const reach = sampleCoachItem({ kind: 'english-to-french', quote: 'how do I say milk', better: 'du lait', betterEn: 'some milk', weight: 'matters-now' });
+    const turn = sampleTurn({
+      assessment: { understood: true, taskAchieved: false, comprehensibility: 'clear', language: 'english', cefrEvidence: 'A1' },
+      coach: [reach], coachLine: 'You are asking for milk; say « du lait ».',
+      sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false },
+    });
+    const client = new StreamingBrain(turn, false, true);
+    const { convo, session, said, published } = await inScene(t, { client });
+    const warned = t.mock.method(console, 'warn', () => {});
+    const before = said.length;
+    const answered = convo.handleClientMessage(session, tapped({ t: 'say', text: 'how do I say milk' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(said.length, before, 'nothing is spoken early: the coach line has not streamed yet');
+    client.finish();
+    await answered;
+    await convo.settled();
+    assert.equal(said.length, before + 1, 'the full turn speaks once');
+    assert.ok(said.at(-1)!.startsWith('You are asking for milk'), 'the French hand-back is heard before the reply');
+    assert.equal(views(published).at(-1)!.view.coachLine, 'You are asking for milk; say « du lait ».', 'and stays on screen');
+    assert.ok(!warned.mock.calls.some((call) => String(call.arguments[0]).includes('disagreed')));
   });
 
   test('a reply the output guard would touch is never spoken early', async (t) => {
@@ -5061,7 +5131,7 @@ describe('pronunciation is scored beside a mission turn, never in front of it', 
     scoringOn(t);
     for (const [elapsed, waits] of [[8, true], [118, false]] as const) {
       const built = await rescued(t, 2, { scorer: () => new Promise(() => {}) });
-      built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => elapsed,
+      built.convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => elapsed,
         assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
         complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
       });
@@ -5527,7 +5597,7 @@ describe('the recap tells the app how many times the learner replied', () => {
   /** A lifecycle that records every baseline it is handed, the way agent.ts attaches it. */
   function recordingLifecycle(convo: LuvaniConversation) {
     const baselines: unknown[] = [];
-    convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 30,
+    convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal, elapsedSeconds: () => 30,
       assertActive() {}, onStop() {},
       checkpoint: async (report, acknowledge) => { if (report.baseline) baselines.push(report.baseline); acknowledge?.(); },
       complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
@@ -5879,5 +5949,357 @@ describe('scene-relevant recall', () => {
     assert.match(memory, /café crème/);
     // A mission's turns carry the learner's own slip too, ranked from the authored frame.
     assert.match(memory, /THEIR OWN PAST SLIP[\s\S]*je voudrais un café crème/);
+  });
+});
+
+describe('one brain hiccup is survivable, and every exit is named', () => {
+  const lifecycleFor = (convo: LuvaniConversation) => convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal,
+    elapsedSeconds: () => 30, assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
+    complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }) });
+  const exitLines = (t: TestContext) => {
+    const lines: string[] = [];
+    return { lines, exit: new SessionExit((line) => lines.push(line)) };
+  };
+
+  test('a brain turn that fails once is retried once and the learner stays in the room', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const warn = t.mock.method(console, 'warn', () => {});
+    const client = new MockLlmClient();
+    const { convo, session, published } = await inScene(t, { client, voiceless: true });
+    lifecycleFor(convo);
+    const real = client.turn.bind(client);
+    let calls = 0;
+    client.turn = async (request) => { calls += 1; if (calls === 1) throw new Error('socket hang up'); return real(request); };
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    await convo.settled();
+    assert.equal(calls, 2, 'one retry, no more');
+    assert.equal(published.some((m) => m.t === 'error' && m.terminal), false, 'the room stays open');
+    const logged = warn.mock.calls.map((c) => c.arguments.map(String).join(' '));
+    assert.ok(logged.some((l) => l.includes('[luvani] convo brain turn retrying')));
+    assert.equal(logged.some((l) => l.includes('Un café')), false, 'no learner text in the log');
+  });
+
+  test('a second failure ends the session as before and names brain-turn', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const { lines, exit } = exitLines(t);
+    const client = new FailingBrain(new Error('socket hang up'));
+    const { convo, session, published } = await inScene(t, { client, voiceless: true, exit });
+    lifecycleFor(convo);
+    let calls = 0;
+    client.turn = async () => { calls += 1; throw client.failure; };
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    await convo.settled();
+    assert.equal(calls, 2);
+    assert.ok(published.some((m) => m.t === 'error' && m.kind === 'llm_error' && m.terminal));
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=brain-turn']);
+  });
+
+  test('the retry runs on the shorter API deadline', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    t.mock.method(console, 'warn', () => {});
+    t.mock.method(console, 'error', () => {});
+    withBrainEnv(t, 'anthropic');
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+    lifecycleFor(convo);
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    t.mock.timers.tick(15_001);
+    await sceneSettled();
+    assert.equal(client.signals.length, 2, 'the timed out turn was asked again');
+    t.mock.timers.tick(9_999);
+    assert.equal(client.signals[1]!.aborted, false);
+    t.mock.timers.tick(2);
+    assert.equal(client.signals[1]!.aborted, true, 'the retry gets 10 s, not 15 s');
+    client.release();
+    await typed;
+    await convo.settled();
+  });
+
+  test('a finished mission names done', async (t) => {
+    const { lines, exit } = exitLines(t);
+    const client = new MockLlmClient({ turns: [sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
+    const { convo, session } = await inScene(t, { client, voiceless: true, exit });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await convo.settled();
+    exit.mark('learner-left');
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+  });
+
+  test('the warm close for time names cap', async (t) => {
+    const { lines, exit } = exitLines(t);
+    const { convo } = await inScene(t, { voiceless: true, exit });
+    t.mock.method(convo, 'finish', async () => {});
+    await convo.closeForTime();
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=cap']);
+  });
+
+  test('a turn cut by the close for time is not retried', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const warn = t.mock.method(console, 'warn', () => {});
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+    lifecycleFor(convo);
+    t.mock.method(convo, 'finish', async () => {});
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    await convo.closeForTime();
+    client.release();
+    await typed;
+    await convo.settled();
+    assert.equal(client.signals.length, 1, 'the cut turn was not asked again');
+    const logged = warn.mock.calls.map((c) => c.arguments.map(String).join(' '));
+    assert.equal(logged.some((l) => l.includes('convo brain turn retrying')), false);
+  });
+
+  test('a safety stop in a conversation names done', async (t) => {
+    t.mock.method(console, 'warn', () => {});
+    const { lines, exit } = exitLines(t);
+    const { convo, session, published } = await inScene(t, { voiceless: true, exit });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    await convo.settled();
+    assert.ok(published.some((m) => m.t === 'safety' && m.action === 'stop'));
+    exit.mark('learner-left');
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+  });
+});
+
+/** A brain that answers only when the test lets it, and can fail on cue. */
+class GatedBrain extends MockLlmClient {
+  private readonly waiting: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
+  override async turn(request: BrainTurnRequest) {
+    await new Promise<void>((resolve, reject) => this.waiting.push({ resolve, reject }));
+    return super.turn(request);
+  }
+  release(): void { this.waiting.shift()?.resolve(); }
+  fail(): void { this.waiting.shift()?.reject(new Error('the brain went away')); }
+}
+
+describe('the spoken bridge (LUVANI_SPOKEN_BRIDGE=1)', () => {
+  const [alors, hmm] = CONVO_LINES.thinking.map((line) => line.spoken);
+  const bridges = (lines: readonly string[]) => lines.filter((line) => line === alors || line === hmm);
+
+  /** The bridge switch is read when the conversation is built, so set it first. */
+  function bridged(t: TestContext, value: string | null = '1') {
+    const before = process.env.LUVANI_SPOKEN_BRIDGE;
+    if (value === null) delete process.env.LUVANI_SPOKEN_BRIDGE; else process.env.LUVANI_SPOKEN_BRIDGE = value;
+    t.after(() => { if (before === undefined) delete process.env.LUVANI_SPOKEN_BRIDGE; else process.env.LUVANI_SPOKEN_BRIDGE = before; });
+  }
+  const flush = async () => { for (let i = 0; i < 20; i += 1) await Promise.resolve(); };
+  /** One spoken learner turn, held open until the test releases the brain. */
+  const speakTurn = (convo: LuvaniConversation, text = 'Un café, s’il vous plaît') =>
+    assert.rejects(convo.onUserTurnCompleted({} as never, heard(text)), voice.StopResponse);
+
+  test('the two lines are authored French that is spoken as written, and in the warm list', () => {
+    assert.equal(CONVO_LINES.thinking.length, 2);
+    assert.deepEqual(CONVO_LINES.thinking.map((line) => line.spoken), CONVO_LINES.thinking.map((line) => line.fr));
+    for (const line of CONVO_LINES.thinking) assert.ok(AUTHORED_SPEECH_LINES.includes(line.spoken), `not warmed: ${line.spoken}`);
+  });
+
+  test('a brain slower than 1.5 s gets one bridge line before the reply, and the reply is not held for it', async (t) => {
+    bridged(t);
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1499);
+    assert.equal(said.length, before, 'nothing before 1.5 s');
+    t.mock.timers.tick(1);
+    assert.deepEqual(said.slice(before), [alors]);
+    client.release();
+    await turn;
+    await convo.settled();
+    assert.equal(said.length, before + 2, 'the reply follows the bridge, once');
+    assert.deepEqual(bridges(said.slice(before)), [alors]);
+    assert.notEqual(said.at(-1), alors);
+  });
+
+  test('a brain that answers inside 1.5 s gets no bridge', async (t) => {
+    bridged(t);
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1000);
+    client.release();
+    await turn;
+    await convo.settled();
+    t.mock.timers.tick(10_000);
+    assert.equal(said.length, before + 1, 'only the reply');
+    assert.deepEqual(bridges(said.slice(before)), []);
+  });
+
+  test('a reply spoken early cancels the bridge', async (t) => {
+    bridged(t);
+    const reply = { speaker: 'Karim', fr: 'Un café, très bien. Sur place ?', frWritten: null, en: 'A coffee, very good. To have here?' };
+    const client = new StreamingBrain(sampleTurn({ sceneReply: reply }));
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    assert.equal(said.length, before + 1, 'the reply is already being spoken');
+    t.mock.timers.tick(5000);
+    assert.deepEqual(bridges(said.slice(before)), []);
+    client.finish();
+    await turn;
+    await convo.settled();
+    assert.deepEqual(bridges(said.slice(before)), []);
+  });
+
+  test('never twice running: slow turns are bridged on every other turn, and the lines alternate', async (t) => {
+    bridged(t);
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const perTurn: string[][] = [];
+    for (let i = 0; i < 5; i += 1) {
+      const mark = said.length;
+      const turn = speakTurn(convo);
+      await flush();
+      t.mock.timers.tick(2000);
+      client.release();
+      await turn;
+      await convo.settled();
+      perTurn.push(bridges(said.slice(mark)));
+    }
+    assert.deepEqual(perTurn, [[alors], [], [hmm], [], [alors]]);
+    assert.equal(said.length - before, 5 + 3, 'five replies and three bridges');
+  });
+
+  for (const value of [null, '0', 'true']) test(`LUVANI_SPOKEN_BRIDGE=${value ?? 'unset'}: no turn is bridged however slow`, async (t) => {
+    bridged(t, value);
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(10_000);
+    client.release();
+    await turn;
+    await convo.settled();
+    assert.deepEqual(bridges(said.slice(before)), []);
+  });
+
+  test('a typed turn is never bridged', async (t) => {
+    bridged(t);
+    const client = new GatedBrain();
+    const { convo, session, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café' }));
+    await flush();
+    t.mock.timers.tick(10_000);
+    client.release();
+    await typed;
+    await convo.settled();
+    assert.deepEqual(bridges(said.slice(before)), []);
+  });
+
+  test('a turn that fails after the timer was armed says no bridge afterwards', async (t) => {
+    bridged(t);
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1000);
+    client.fail();
+    await turn;
+    await convo.settled();
+    t.mock.timers.tick(10_000);
+    assert.deepEqual(bridges(said.slice(before)), []);
+    assert.equal(said.length, before + 1, 'the recovery line is the only thing said');
+  });
+
+  test('after the heads-up no turn is bridged, so the closing clock only counts the real reply', async (t) => {
+    bridged(t);
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    convo.wrapUp();
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), [], 'no bridge in the last minute');
+    client.release();
+    await turn;
+    await convo.settled();
+    assert.equal(said.length, before + 1, 'only the reply');
+  });
+
+  test('a safety redirect while the bridge is armed clears it', async (t) => {
+    bridged(t);
+    t.mock.method(console, 'warn', () => {});
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1_200);
+    await assert.rejects(convo.onUserTurnCompleted({} as never, heard('What dose should I take?')), voice.StopResponse);
+    await flush();
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), [], 'no bridge after the safety line');
+    client.release();
+    await turn.catch(() => {});
+    await convo.settled();
+  });
+
+  test('a learner who leaves while the bridge is armed hears no bridge', async (t) => {
+    bridged(t);
+    t.mock.method(console, 'warn', () => {});
+    const client = new GatedBrain();
+    const { convo, session, said } = await inScene(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1_000);
+    await convo.handleClientMessage(session, tapped({ t: 'leave' }));
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), []);
+    client.release();
+    await turn.catch(() => {});
+  });
+
+  test('a retried turn is never re-bridged', async (t) => {
+    bridged(t);
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const client = new GatedBrain();
+    const { convo, said } = await inScene(t, { client });
+    convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal,
+      elapsedSeconds: () => 30, assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
+      complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }) });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const before = said.length;
+    const turn = speakTurn(convo);
+    await flush();
+    t.mock.timers.tick(1_000);
+    client.fail();
+    await flush();
+    t.mock.timers.tick(5_000);
+    assert.deepEqual(bridges(said.slice(before)), [], 'the retry waits without a bridge');
+    client.release();
+    await turn;
+    await convo.settled();
+    assert.deepEqual(bridges(said.slice(before)), []);
   });
 });

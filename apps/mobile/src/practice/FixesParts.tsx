@@ -54,7 +54,7 @@ export function ScopeToggle<K extends string>({ scopes, active, onChange }: { sc
       {scopes.map((scope) => {
         const on = scope.key === active;
         return (
-          <LipTile key={scope.key} size="chip" lip={on ? t.brand : undefined} selected={on} accessibilityRole="tab" accessibilityLabel={scope.label} onPress={() => onChange(scope.key)} style={[s.segment, on && { backgroundColor: t.brand, borderColor: t.brand }]}>
+          <LipTile key={scope.key} size="chip" lip={on ? t.brandMark : undefined} selected={on} accessibilityRole="tab" accessibilityLabel={scope.label} onPress={() => onChange(scope.key)} style={[s.segment, on && { backgroundColor: t.brandMark, borderColor: t.brandMark }]}>
             {on ? <TickGlyph size={14} color={t.onBrand} /> : null}
             <Text style={[bType.bold14, { color: on ? t.onBrand : t.text }]}>{scope.label}</Text>
           </LipTile>
@@ -253,7 +253,7 @@ const makeStyles = (t: B) =>
     typeIt: { minHeight: 54, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
     pattern: { backgroundColor: t.butter, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
     // Try it first, on its stage, with the brand edge of the card in hand.
-    attempt: { borderRadius: 22, padding: 16, gap: 10, borderWidth: 2, borderColor: t.brand },
+    attempt: { borderRadius: 22, padding: 16, gap: 10, borderWidth: 2, borderColor: t.brandMark },
     pair: { flexDirection: 'row', gap: 8 },
     // After your try: the white card on a `line` lip.
     compared: { padding: 16, gap: 10 },

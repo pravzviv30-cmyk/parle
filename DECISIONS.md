@@ -2119,3 +2119,149 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   Voice is reported in units (TTS characters, STT seconds), not dollars. The
   lines join on the first 8 hex characters of the session id, as
   `[luvani:brain:summary]` already did; no words, user ids, room or model names. F901.
+
+## VOICE-021 — One retry per part, one exit line, and Flux next for English
+
+- Date: 2026-11-06
+- Status: accepted
+- Decision:
+  - A failed brain turn is retried once on a shorter deadline (10 s API, 30 s CLI)
+    when nothing was spoken early and the session is open. Paid and scene sessions
+    give STT, the chat model and TTS one retry each (`maxRetry: 1`); an error still
+    unrecoverable after it ends the room as before. Heartbeats get three lease-bounded tries at 5 s. The paid
+    lesson quote books two STT streams for the reconnect.
+  - Every session logs one `[luvani:session-exit] class=...` line; the first cause wins.
+  - When the learner's words are neither French nor English, the mission tutor asks
+    once in French to say it again, and offers the English way back on a second
+    unclear line (`packages/brain/src/prompt/system.ts`).
+  - The recogniser stays nova-3 `fr` for now. nova-3 `multi` was measured and refused
+    because it loses French; Flux `flux-general-multi` with fr/en hints was measured to
+    keep French and hear English, and is the follow-up (founder, 2026-11-06: "Land fixes
+    now, Flux next").
+- Reason: on 2026-11-06 the founder's staging café mission misheard English answers and
+  then ended on one hiccup, with no log naming the exit.
+- Consequence: a retry spends vendor effects inside existing quotes, never more learner
+  time; staging quotes are regenerated for the lesson's second stream. Numbers and the
+  remaining limits are in `docs/LIVE_VOICE.md` "One hiccup is not the end". F964, F965.
+
+
+## VOICE-022 — Lane D: the cascade is tuned switch by switch, each measured
+
+- Date: 2026-11-07
+- Status: accepted (the lane); each switch is recorded here as it lands
+- Decision: the live tutor's reply latency is cut one switch at a time, every switch
+  measured before and after with `scripts/measureLiveTurn.mjs` (model time to the spoken
+  fields) and, when a spoken scene has run on staging, `[luvani:scene-first-frame]`.
+  Full speech-to-speech is ruled out: scripted lines, graded transcripts and the choice
+  of brain stay. Baseline 2026-11-07 at main `64b07372`: spoken p50 1,651 ms (p95 3,314)
+  on the standard tier, 950 ms (p95 1,735) on priority
+  (`docs/live-latency-evidence/2026-11-07-lane-d.md`).
+  - **Priority tier** (founder's cost call, 2026-11-07): replay spoken p50 1,651 to 950 ms.
+    Set on the staging tutor at 12:21 UTC and pulled back the same hour: the paid
+    admission binds `service_tier` into the brain quote's configuration identity
+    (`services/shared/paidExecution.ts` `describePaidHttp`), so with the current quotes
+    every live turn would be refused as quote-mismatch. It goes on once the staging quotes
+    are regenerated with `OPENAI_LIVE_SERVICE_TIER=priority` in `scripts/paidQuotes.mjs`
+    `STAGING_ENV` (the Flux lane's file) and renewed. The same holds for
+    `LUVANI_TURN_REPLY_FIRST`, whose json schema is in the same identity. Done: the Flux
+    lane's renewal of 2026-11-07 15:23 UTC set both on the staging tutor in the bindings
+    window (`docs/changes/beta-launch.md`); the tutor has run on priority with the
+    reply-first schema since deploy `0eef460a` (main `b8ebe96f`, preflight ok 15:26 UTC).
+  - **`coach` after the reply** (`LUVANI_TURN_REPLY_FIRST=1`, off by default; founder
+    2026-11-07): `ReplyFirstTurnSchema` writes assessment, coachLine, narration, sceneReply,
+    then coach. The early hand-over carries no coach items, so a streamed reply is spoken
+    without the in-character "Ah, …" recast, the full turn does not recast a reply spoken
+    without one, and a turn that reached for English waits for the full turn so the French
+    hand-back is still heard. Replay: spoken p50 1,651 to 1,293 ms on the standard tier (p95
+    3,314 to 1,632); on priority 950 to 937 ms p50 (inside noise), p95 1,735 to 1,574.
+    `scripts/paidQuotes.mjs` `STAGING_ENV` carries both knobs so the next renewal binds
+    them; they go on the staging tutor in that renewal's window.
+  - **Spoken bridge** (`LUVANI_SPOKEN_BRIDGE=1`, off by default): a spoken turn the brain
+    has not answered 1.5 s after the request gets one authored line, "Alors…" or "Hmm,
+    voyons…", alternated, never on two turns running, never on typed input, never after
+    the heads-up (the closing clock would read it as the reply), never after the reply
+    is queued; a safety line, a failure, a leave or the session's end clears it. Speech
+    only, outside the reply's first-frame record. Not a quote change (authored lines are
+    the v2 TTS shape already quoted).
+  - **Sentence stitching** (`LUVANI_TTS_STITCH=1`, off by default; landed 2026-11-07): a
+    free-conversation sentence after the first of a reply carries the tutor's previous
+    sentence as ElevenLabs `previous_text` (within 8 s, never an authored line, HTTP path
+    only, the cache's own request). `previous_text` is delivery input: outside the quote
+    identity, never billed as text, so no renewal. The A/B is the founder's ear on staging.
+  - **Websocket miss transport ruled out** (2026-11-07, `docs/live-latency-evidence/2026-11-07-tts-first-audio.json`):
+    first audio p50 437 ms against HTTP's 329 ms, and whole-sentence delivery; the paid
+    proxy gets no ElevenLabs websocket route.
+  - **Half-cascade spike does not win** (2026-11-07, branch `claude/half-cascade-spike`,
+    `docs/live-latency-evidence/2026-11-07-half-cascade-spike.md` there): `gpt-realtime-2.1`
+    hearing the clips and answering in text reached its first text at p50 3.0 s against the
+    cascade's 1.6 s to the spoken fields, wrote pseudo-JSON in 27 of 32 calls and never
+    produced the English hand-back. Nothing from it lands; the audio-to-OpenAI data path
+    needs no privacy answer for this shape.
+  - **Adaptive interruption** (`LUVANI_ADAPTIVE_INTERRUPTION=1`, off by default): LiveKit's
+    adaptive detector tells a real interruption from a backchannel ("mm", "oui"), so the
+    tutor stops for the first and not the second. Only a session that STARTS at rung 3 or 4
+    gets it: SDK 1.9 reads the mode once when the session is built, and a beginner's "oui" is
+    often the answer, not a backchannel. `minDuration` and `minWords` are unchanged. Data
+    path: the learner's audio during tutor speech streams to LiveKit's inference servers, which
+    is new, so the privacy notice names it ("Who else sees it"); Luvani keeps nothing from the
+    check. Needs a recogniser with word-aligned transcripts (both Deepgram models have them).
+- Reason: the founder's 2026-11-06 staging session felt slow and scripted (problem 2 of
+  nine); the council and the founder chose to tune the cascade, then one time-boxed
+  half-cascade spike.
+- Consequence: priority pricing on every live turn on staging. F967 tracks the lane.
+  - **Beginner maxDelay 3,500 ms** (rungs 1-2 and no signed rung; founder 2026-11-07, on
+    the pause table in `docs/live-latency-evidence/2026-11-07-pause-endpointing.md`): at
+    the 1,200 ms floor, 3,500 cuts the 2.5 s-pause cut-offs from 6/6 to 1/6 and the 3.0 s
+    ones from 6/6 to 2/6 at no p50 cost; the price is a misread ending waiting 3.4 s.
+    Rungs 3-4 and the moment hold stay at 2,500. Dynamic endpointing was ruled out on the
+    same clips (no patience bought, silence added). Synthetic voices; F695 keeps the
+    real-learner check. `BEGINNER_ENDPOINTING_MAX_DELAY_MS` in `thinkingTime.ts`.
+
+## VOICE-023 — Flux hears every session, and LiveKit keeps the turn
+
+- Date: 2026-11-07
+- Status: accepted
+- Decision:
+  - Deepgram Flux `flux-general-multi` with language hints `fr` and `en` is the recogniser
+    for every session kind: lessons, the guest scene, the mission scene and the
+    conversation (`services/tutor-agent/src/recognitionPlan.ts`). The env knob
+    `LUVANI_STT_NOVA_KINDS` (a comma list of `lesson`, `scene`, `convo`) puts a kind back
+    on nova-3 as before; on staging or production the paid quotes must be regenerated
+    with the same value first (`scripts/paidQuotes.mjs` `STAGING_ENV`), or that kind's
+    streams are refused as quote-mismatch. The `LUVANI_CONVO_ASR_EXPERIMENT` flag is gone.
+  - Lessons and scenes keep the fixed keyterm list (VOICE-017) as Flux keyterms; the
+    conversation sends none and skips its phase language switch, so the hints stay
+    French and English for the whole session.
+  - The paid voice proxy speaks `/v2/listen` (model `flux-general-multi` only, the same
+    keyterm caps as nova-3) and forwards to Deepgram's v2 endpoint. The quote strip
+    fallback works on v2.
+  - LiveKit keeps the turn: Silero VAD, the local turn detector and the VOICE-010 floors
+    are unchanged. Flux's own end of turn is not used to commit a turn.
+- Reason: English answers scored 0.169 under nova-3 `fr` (F964). Mean word accuracy, lesson
+  lines / scene replies / English answers: nova-3 `fr` 0.958 / 1.000 / 0.169; nova-3
+  `multi` 0.958 / 0.840 / 0.929 (0.917 / 0.861 / 0.929 with endpointing 100); Flux 0.958 /
+  1.000 / 0.950. Measured 2026-11-06 and again 2026-11-07 on a synthetic English-accented
+  voice, so it says nothing yet about real beginners.
+- Ruled out:
+  - nova-3 `multi`: it loses scene French in both runs ("Sur place, merci" heard as
+    "Surplasmercy").
+  - Flux owning the turn (`turnDetection: 'stt'`) and `eot_*` tuning, for now. On recordings
+    with a spliced pause, Flux declared a split inside the pause in 0 of 6 at 0.5 s, 4 of 6
+    at 1.0 s, 5 of 6 at 1.5 s and 6 of 6 at 2.0 s, with its end of turn p50 699 ms and p95
+    977 ms after the last voiced sample (`scripts/measureFluxEot.mjs`). By reading SDK 1.9,
+    LiveKit appends the second half to the same turn while the floor has not committed it,
+    so the 2026-10-23 cut-off results hold. They are the next experiment if room latency
+    at rungs 3 and 4 matters.
+- Consequence: a lesson quote books 2 Flux streams with keyterms ($0.0078 plus $0.0013 a
+  minute; Deepgram pricing page read 2026-11-07) and a conversation quote books 2 Flux
+  streams at $0.0078. Dry generate gives $2.47 for a lesson and $3.18 for a conversation
+  per 600 s session at worst case, so the derived per-account daily budget is $6.40 (was
+  $6.80) and the global one $20 (was $21). The guest scene is admitted by `guestSceneGate`
+  and is not quoted. Staging quotes need regenerating for the Flux shapes, and a revert
+  of this change needs them regenerated again, because admission fails closed on a shape
+  the bound quote does not hold. Rungs 3 and 4
+  (floor 400 ms) now commit only once Flux's final arrives, about 700 to 1,000 ms after
+  the last word; rungs 1 and 2 (floor 1,200 ms) are unchanged.
+- Open: room measurement of that latency and calibration on real learners (F695); whether
+  to let Flux own the turn. Numbers and the live replay are in `docs/LIVE_VOICE.md`
+  "English answers and the recogniser". F964.

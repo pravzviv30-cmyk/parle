@@ -18,7 +18,7 @@ function deferred() {
 }
 function fakeLifecycle(gate = Promise.resolve()) {
   const controller = new AbortController(); const checkpoints: RuntimeReport[] = [], completions: RuntimeReport[] = [];
-  const lifecycle: RuntimeLifecycle = { maxSeconds: 120, signal: controller.signal, elapsedSeconds: () => 8,
+  const lifecycle: RuntimeLifecycle = { maxSeconds: 120, stoppedAtDeadline: false, signal: controller.signal, elapsedSeconds: () => 8,
     assertActive() { if (controller.signal.aborted) throw new Error('closed'); }, onStop() {},
     checkpoint: async (report, acknowledged) => { checkpoints.push(structuredClone(report)); await gate; acknowledged?.(); },
     complete: async report => { completions.push(structuredClone(report)); await gate.catch(() => {});

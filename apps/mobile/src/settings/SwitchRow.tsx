@@ -22,7 +22,8 @@
 
 import { View, Text, StyleSheet } from 'react-native';
 import { Press } from '../components.tsx';
-import { accent, bType, paper, space, type } from '../theme.ts';
+import { bType, paper, space, type } from '../theme.ts';
+import { useB } from '../main/bTheme.tsx';
 import { useBRows, useSettingsColors } from './SettingsAppearance.tsx';
 import { SwitchKnob } from './SwitchKnob.tsx';
 import { RowDivider, useInGroup, useRowFrame } from './SettingsGroup.tsx';
@@ -53,6 +54,7 @@ export function SwitchRow({
   const colors = useSettingsColors();
   const frame = useRowFrame();
   const bRows = useBRows();
+  const t = useB();
   const grouped = useInGroup();
   const b = bRows && grouped;
   // UI-005: the off track is the field grey everywhere, the 3:1 non-text
@@ -67,7 +69,7 @@ export function SwitchRow({
         <Text style={[b ? type.label : type.body, { color: colors.text }]}>{title}</Text>
         {sub.length > 0 ? <Text style={[b ? bType.note : type.small, { color: colors.muted, marginTop: b ? 2 : space(0.5) }]}>{sub}</Text> : null}
       </View>
-      <SwitchKnob value={value} disabled={disabled} on={accent.brand} off={offTrack} thumb={paper.card} />
+      <SwitchKnob value={value} disabled={disabled} on={t.brandMark} off={offTrack} thumb={paper.card} />
     </Press>
   );
 }

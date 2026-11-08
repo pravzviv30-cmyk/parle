@@ -110,10 +110,10 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
   // UI-015 (founder 2026-10-30): the hour's word is back under the sky.
   test("the greeting is the hour's word, with the first name or the word alone", () => {
     const morning = new Date(2026, 0, 15, 9).getTime();
-    assert.equal(homeGreeting('Yasmin', morning).title, 'Bonjour, Yasmin.');
-    assert.equal(homeGreeting('  Yasmin Haddad ', morning).title, 'Bonjour, Yasmin.');
-    assert.equal(homeGreeting(null, morning).title, 'Bonjour.');
-    assert.equal(homeGreeting('', new Date(2026, 0, 15, 20).getTime()).title, 'Bonsoir.');
+    assert.equal(homeGreeting('Yasmin', morning).title, 'Bonjour, Yasmin');
+    assert.equal(homeGreeting('  Yasmin Haddad ', morning).title, 'Bonjour, Yasmin');
+    assert.equal(homeGreeting(null, morning).title, 'Bonjour');
+    assert.equal(homeGreeting('', new Date(2026, 0, 15, 20).getTime()).title, 'Bonsoir');
     assert.doesNotMatch(JSON.stringify(homeGreeting('Yasmin', morning)), /Bonsoir|\?/);
   });
 

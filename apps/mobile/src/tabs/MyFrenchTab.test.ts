@@ -378,3 +378,8 @@ describe('My French speaks, and stops — F470', () => {
     }
   });
 });
+
+// 2026-11-06, the founder's dark mark: the XP level words on the sun chip are ink in both modes (cream was 1.43).
+test('the XP level chip letters onSun', () => {
+  assert.match(PARTS_OF(), /<View style=\{s\.levelPill\}><Text style=\{\[bType\.heavy14, \{ color: t\.onSun \}\]\}>/);
+});

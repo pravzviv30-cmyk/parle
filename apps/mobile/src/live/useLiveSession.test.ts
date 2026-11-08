@@ -918,6 +918,7 @@ describe('a blip in the middle of a session — F195', () => {
         dropped = update({ phase: 'live' });
       },
       failureCopy,
+      releaseAudioSession: () => Promise.resolve(),
     });
     disconnect.get(RoomEvent.Disconnected)!();
     assert.deepEqual(
@@ -1094,6 +1095,77 @@ describe('a grant that never reached a tutor hands its lease back — F165', () 
     );
     // The sessionId it hands back is the grant's own, taken the moment it arrives.
     assert.match(hook, /ownedLease = unjoinedLease\(grant\.sessionId,/, 'the release has no sessionId to name, so it frees nothing');
+  });
+});
+
+describe('a session that ends in the error view lets go of the learner\'s ears', () => {
+  // The live hold (`holdLive`) mutes every haptic and sound while it is up. It is
+  // taken by ensureAudioSession and given back by releaseAudioSession, and the
+  // two exits below used to leave it up under the error view.
+  const failedConnect = async (owned: boolean, disconnects: boolean, opts: { stillOwns?: boolean; releaseHangs?: boolean } = {}): Promise<string[]> => {
+    const calls: string[] = [];
+    await runAsync(`try { throw boom; \n${fragment(hook, '} catch (err) {')}`, {
+      boom: new Error('connect failed'),
+      abandoned: () => Promise.resolve(!owned),
+      clearWatchdog: () => {},
+      disconnectLease: () => (disconnects ? Promise.resolve() : Promise.reject(new Error('still up'))),
+      opened: {},
+      ownedLease: null,
+      roomRef: { current: null },
+      removeAudioEls: () => {},
+      releaseHeldLease: () => {},
+      owns: () => opts.stillOwns ?? true,
+      releaseAudioSession: () => {
+        calls.push('release');
+        return opts.releaseHangs ? new Promise<void>(() => {}) : Promise.resolve();
+      },
+      classifyFailure: () => 'signal',
+      fail: () => calls.push('fail'),
+    });
+    return calls;
+  };
+
+  test('a failed connect this start still owns releases the audio session before the error shows', async () => {
+    assert.deepEqual(await failedConnect(true, true), ['release', 'fail'], 'the error view shows with the live hold still up, so haptics and sounds stay off');
+  });
+
+  test('a connect whose room will not disconnect keeps the hold, because the room may still be up', async () => {
+    assert.deepEqual(await failedConnect(true, false), ['fail']);
+  });
+
+  test('a newer start that took the session while the room disconnected keeps its audio session (code-review, fix 1)', async () => {
+    assert.deepEqual(await failedConnect(true, true, { stillOwns: false }), ['fail'], 'the failed start stopped the audio session and live hold a newer room now owns');
+  });
+
+  test('an audio session that never stops does not hold back the error view (code-review, fix 2)', async () => {
+    const settled = await Promise.race([failedConnect(true, true, { releaseHangs: true }), new Promise<'hung'>((done) => setTimeout(() => done('hung'), 200))]);
+    assert.deepEqual(settled, ['release', 'fail'], 'a hung stop kept the learner on the connecting view');
+  });
+
+  test('a start already taken over releases nothing from the catch', async () => {
+    assert.deepEqual(await failedConnect(false, true), []);
+  });
+
+  test('the drop handler releases the audio session when the attempt owns the room, and not otherwise', () => {
+    for (const owns of [true, false]) {
+      const calls: string[] = [];
+      const handlers = new Map<string, () => void>();
+      run(DISCONNECTED_HANDLER, {
+        room: { on: (event: string, handler: () => void) => handlers.set(event, handler) },
+        RoomEvent,
+        owns: () => owns,
+        clearWatchdog: () => {},
+        setReconnecting: () => {},
+        setStatus: () => calls.push('status'),
+        failureCopy,
+        releaseAudioSession: () => {
+          calls.push('release');
+          return Promise.resolve();
+        },
+      });
+      handlers.get(RoomEvent.Disconnected)!();
+      assert.deepEqual(calls, owns ? ['status', 'release'] : [], owns ? 'a dropped room left the live hold up under the error view' : 'a room this attempt abandoned released the session now on screen');
+    }
   });
 });
 

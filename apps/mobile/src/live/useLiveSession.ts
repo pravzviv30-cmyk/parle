@@ -1495,6 +1495,8 @@ export function useLiveSession(
           const copy = failureCopy('dropped');
           return { phase: 'error', failure: 'dropped', message: copy.message, canType: copy.canType };
         });
+        // The room is gone, so haptics and sounds come back on the error view.
+        void releaseAudioSession().catch(() => {});
       });
 
       // A blip, and the three states livekit-client publishes on the way through
@@ -1639,6 +1641,11 @@ export function useLiveSession(
       try { await disconnectLease(opened, ownedLease); } catch { fail(classifyFailure(err)); return; }
       if (roomRef.current === opened) roomRef.current = null;
       removeAudioEls();
+      // The room is gone, so it no longer holds the learner's ears; haptics and
+      // sounds come back on the error view. Only while this start still owns the
+      // session (a newer one may have taken it during the disconnect), and not
+      // awaited, so a slow stop never holds back the error.
+      if (owns()) void releaseAudioSession().catch(() => {});
       // The grant this attempt took never reached a tutor, so hand the lease
       // back — a connect that threw is the strand F165 was filed for.
       releaseHeldLease();

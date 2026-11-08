@@ -59,14 +59,16 @@ export async function describePaidHttp(url:URL,init:RequestInit):Promise<PaidDes
   configuration={path:url.pathname,...Object.fromEntries(Object.entries(body).filter(([key])=>!['messages','system','input','instructions','prompt_cache_key'].includes(key)))};
  } else if(url.hostname==='api.elevenlabs.io' && /^\/v1\/text-to-speech\/[A-Za-z0-9_-]+(?:\/stream)?$/.test(url.pathname)) {
   if(typeof init.body!=='string')throw new PaidAdmissionError('unsupported-adapter');const body=object(JSON.parse(init.body));
-  if(typeof body.text!=='string' || !body.text.trim() || Object.keys(body).some(key=>!['text','model_id','language_code','voice_settings','apply_text_normalization','apply_language_text_normalization'].includes(key)))throw new PaidAdmissionError('unsupported-adapter');
+  if(typeof body.text!=='string' || !body.text.trim() || Object.keys(body).some(key=>!['text','model_id','language_code','voice_settings','apply_text_normalization','apply_language_text_normalization','previous_text'].includes(key)))throw new PaidAdmissionError('unsupported-adapter');
   if([...url.searchParams.keys()].some(key=>!['output_format','optimize_streaming_latency','enable_logging'].includes(key)))throw new PaidAdmissionError('unsupported-adapter');
+  // previous_text is sentence-stitching context, delivery input like text: bounded, never in the quote identity, never billed as text.
+  if(body.previous_text!==undefined && (typeof body.previous_text!=='string' || Buffer.byteLength(body.previous_text)>600))throw new PaidAdmissionError('unsupported-adapter');
   if(typeof body.model_id!=='string')throw new PaidAdmissionError('unsupported-adapter');if((body.apply_text_normalization!==undefined && body.apply_text_normalization!=='auto') || (body.apply_language_text_normalization!==undefined && typeof body.apply_language_text_normalization!=='boolean') || url.searchParams.get('enable_logging')!=='false')throw new PaidAdmissionError('unsupported-adapter');kind='tts';provider='elevenlabs';model=body.model_id;voice=url.pathname.split('/')[3]!;q.textBytes=Buffer.byteLength(body.text);
   // Speed is delivery input like text: ElevenLabs bills characters, not pace, so one
   // quote component per voice serves every speed. Only the range the proxy admits is stripped.
   const settings=body.voice_settings;let voiceSettings=settings;
   if(settings && typeof settings==='object' && !Array.isArray(settings) && Object.hasOwn(settings,'speed')){const {speed,...rest}=settings as Record<string,unknown>;if(typeof speed!=='number' || !Number.isFinite(speed) || speed<0.7 || speed>1.2)throw new PaidAdmissionError('unsupported-adapter');voiceSettings=rest;}
-  configuration={parameters:Object.fromEntries([...url.searchParams].sort()),...Object.fromEntries(Object.entries(body).filter(([key])=>key!=='text').map(([key,value])=>[key,key==='voice_settings'?voiceSettings:value]))};
+  configuration={parameters:Object.fromEntries([...url.searchParams].sort()),...Object.fromEntries(Object.entries(body).filter(([key])=>key!=='text' && key!=='previous_text').map(([key,value])=>[key,key==='voice_settings'?voiceSettings:value]))};
  } else if(url.hostname==='api.deepgram.com' && url.pathname==='/v1/listen') {
   if(!(init.body instanceof Uint8Array) || [...url.searchParams.keys()].some(key=>!['model','language','smart_format','mip_opt_out'].includes(key)) || url.searchParams.get('mip_opt_out')!=='true')throw new PaidAdmissionError('unsupported-adapter');
   kind='stt';provider='deepgram';model=url.searchParams.get('model')??'';q.inputBytes=init.body.byteLength;q.audioMillis=pcmAudioMillis(init.body);

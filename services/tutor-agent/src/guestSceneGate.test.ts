@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { tokenize } from '@livekit/agents';
-import { GUEST_CAFE_SCENE, GUEST_SCENE, directiveFor, type Rung } from '@luvani/core';
+import { GUEST_CAFE_SCENE, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS, directiveFor, type Rung } from '@luvani/core';
 import {
   GUEST_SCENE_STT_SOCKETS,
   GUEST_SCENE_TTS_CALLS,
@@ -119,6 +119,12 @@ describe('the guest scene gate', () => {
     for (let n = 0; n < GUEST_SCENE_STT_SOCKETS; n++) await g.gate(stt());
     await assert.rejects(g.gate(stt()));
   });
+  test('admits two Flux STT sockets of the full length, never a third', async () => {
+    const g = make();
+    const flux: PaidDescriptor = { kind: 'stt', provider: 'deepgram', model: 'flux-general-multi', voice: '', configuration: { parameters: { model: 'flux-general-multi', language_hint: ['en', 'fr'] } }, quantities: { inputBytes: 0, outputTokens: 0, audioMillis: GUEST_SCENE_MAX_SECONDS * 1000, textBytes: 0 } };
+    for (let n = 0; n < GUEST_SCENE_STT_SOCKETS; n++) await g.gate(flux);
+    await assert.rejects(g.gate(flux));
+  });
   test('admits every allow-list line and nothing else, on exact bytes', () => {
     const g = make();
     for (const line of guestSceneSpeech()) assert.equal(g.admitsText(line), true, line);
@@ -228,7 +234,7 @@ describe('agent.ts wiring for scenes (tripwires: agent.ts cannot be imported)', 
     const call = sceneProxy.slice(0, sceneProxy.indexOf('});'));
     assert.match(call, /speechAllowList: sceneGate\.admitsText/);
     assert.doesNotMatch(call, /ANTHROPIC|OPENAI/);
-    assert.match(CODE, /new LuvaniTutor\(lesson, undefined, \{ voiceless, persona, scriptOnly: true, scene: true \}\)/);
+    assert.match(CODE, /new LuvaniTutor\(lesson, undefined, \{ voiceless, persona, scriptOnly: true, scene: true, exit \}\)/);
     assert.doesNotMatch(CODE.slice(CODE.indexOf('scriptOnly: true') - 200, CODE.indexOf('scriptOnly: true') + 60), /scoringRequest|brainClientFromEnv/);
   });
   test('the scene claim carries the scene option, and the hard stop and STT stop are wired', () => {

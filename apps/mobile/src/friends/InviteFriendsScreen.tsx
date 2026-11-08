@@ -10,6 +10,7 @@ import { paper, space, type, decorative } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { defaultUsername } from './logic.ts';
+import { errorCopy } from '../copy/errorCopy.ts';
 import { useSocial } from './useSocial.ts';
 import { socialRequest } from './social.ts';
 import type { RootStackParamList } from '../nav/types.ts';
@@ -35,7 +36,7 @@ export function InviteFriendsScreen() {
     if (searching) return; setSearching(true); setNote(''); setHits([]);
     const ticket = ++searchTicket.current;
     try { const rows = await socialRequest<typeof hits>('search', { username: query.trim().toLowerCase() }); if (ticket === searchTicket.current) { setHits(rows); setSearched(true); } }
-    catch (e) { if (ticket === searchTicket.current) setNote(e instanceof Error ? e.message : 'Search could not finish.'); } finally { setSearching(false); }
+    catch (e) { if (ticket === searchTicket.current) setNote(errorCopy(e, 'Search could not finish.')); } finally { setSearching(false); }
   };
   const link = `luvani://invite/${encodeURIComponent(s?.self.username ?? '')}`;
   const share = async () => { try { await Share.share({ message: `Learn French with me on Luvani. Add @${s?.self.username} in Friends, or open ${link}` }); } catch { setNote('The invitation could not be shared. Please try again.'); } };

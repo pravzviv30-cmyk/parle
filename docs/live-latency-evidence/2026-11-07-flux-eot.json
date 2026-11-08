@@ -1,0 +1,721 @@
+{
+  "date": "2026-11-07",
+  "options": {
+    "model": "flux-general-multi",
+    "languageHint": [
+      "fr",
+      "en"
+    ],
+    "sampleRate": 16000,
+    "mipOptOut": true,
+    "numerals": false
+  },
+  "summary": [
+    {
+      "pauseMs": 500,
+      "runs": 6,
+      "splits": 0,
+      "splitShare": 0,
+      "eotP50": 843,
+      "eotP95": 1102
+    },
+    {
+      "pauseMs": 1000,
+      "runs": 6,
+      "splits": 4,
+      "splitShare": 0.67,
+      "eotP50": 706,
+      "eotP95": 977
+    },
+    {
+      "pauseMs": 1500,
+      "runs": 6,
+      "splits": 5,
+      "splitShare": 0.83,
+      "eotP50": 587,
+      "eotP95": 712
+    },
+    {
+      "pauseMs": 2000,
+      "runs": 6,
+      "splits": 6,
+      "splitShare": 1,
+      "eotP50": 572,
+      "eotP95": 737
+    },
+    {
+      "pauseMs": "all",
+      "runs": 24,
+      "splits": 15,
+      "splitShare": 0.63,
+      "eotP50": 699,
+      "eotP95": 977
+    }
+  ],
+  "runs": [
+    {
+      "file": "alexandre-current-phrase.wav",
+      "pauseMs": 500,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 1102,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1094,
+          "pushed": 17600
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2933,
+          "pushed": 47040
+        }
+      ],
+      "heard": "on échange nos numéros,",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "alexandre-current-phrase.wav",
+      "pauseMs": 1000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 699,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 880,
+          "pushed": 14080
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1881,
+          "pushed": 30080
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2357,
+          "pushed": 37760
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3030,
+          "pushed": 48480
+        }
+      ],
+      "heard": "en échange, nos numéros,",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "alexandre-current-phrase.wav",
+      "pauseMs": 1500,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 654,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 867,
+          "pushed": 13920
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1785,
+          "pushed": 28640
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2946,
+          "pushed": 47200
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3485,
+          "pushed": 55840
+        }
+      ],
+      "heard": "en échange, nos numéros,",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "alexandre-current-phrase.wav",
+      "pauseMs": 2000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 586,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 723,
+          "pushed": 11520
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1729,
+          "pushed": 27680
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 3153,
+          "pushed": 50560
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3920,
+          "pushed": 62720
+        }
+      ],
+      "heard": "En échange, nos numéros,",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "pauseMs": 500,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 795,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 705,
+          "pushed": 11360
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2666,
+          "pushed": 42720
+        }
+      ],
+      "heard": "On échange nos numéros.",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "pauseMs": 1000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 706,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 855,
+          "pushed": 13760
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1579,
+          "pushed": 25280
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2254,
+          "pushed": 36160
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3077,
+          "pushed": 49280
+        }
+      ],
+      "heard": "On échange Nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "pauseMs": 1500,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 712,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 875,
+          "pushed": 14080
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1633,
+          "pushed": 26240
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2953,
+          "pushed": 47360
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3583,
+          "pushed": 57440
+        }
+      ],
+      "heard": "On échange Nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "anatole-current-phrase.wav",
+      "pauseMs": 2000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 615,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 865,
+          "pushed": 13920
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1979,
+          "pushed": 31680
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 3346,
+          "pushed": 53600
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3986,
+          "pushed": 63840
+        }
+      ],
+      "heard": "On échange -- Nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "pauseMs": 500,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 752,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 712,
+          "pushed": 11520
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2724,
+          "pushed": 43680
+        }
+      ],
+      "heard": "on échange nos numéros,",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "pauseMs": 1000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 308,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 739,
+          "pushed": 12000
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1580,
+          "pushed": 25280
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2333,
+          "pushed": 37440
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2778,
+          "pushed": 44480
+        }
+      ],
+      "heard": "en échange, Nos numéros",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "pauseMs": 1500,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 358,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 720,
+          "pushed": 11520
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1623,
+          "pushed": 26080
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2762,
+          "pushed": 44320
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3329,
+          "pushed": 53280
+        }
+      ],
+      "heard": "en échange, Nos numéros",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "emilie-current-phrase.wav",
+      "pauseMs": 2000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 318,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 834,
+          "pushed": 13440
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1633,
+          "pushed": 26240
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 3340,
+          "pushed": 53440
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3789,
+          "pushed": 60640
+        }
+      ],
+      "heard": "en échange, Nos numéros",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "pauseMs": 500,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 843,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 766,
+          "pushed": 12320
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2554,
+          "pushed": 40960
+        }
+      ],
+      "heard": "On échange nos numéros.",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "pauseMs": 1000,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 977,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 786,
+          "pushed": 12640
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3188,
+          "pushed": 51040
+        }
+      ],
+      "heard": "On échange nos numéros.",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "pauseMs": 1500,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 464,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 876,
+          "pushed": 14080
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1881,
+          "pushed": 30080
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2594,
+          "pushed": 41600
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3176,
+          "pushed": 50880
+        }
+      ],
+      "heard": "On échange -- Nos numéros",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "guillaume-current-phrase.wav",
+      "pauseMs": 2000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 572,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 928,
+          "pushed": 14880
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2586,
+          "pushed": 41600
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 3091,
+          "pushed": 49600
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3783,
+          "pushed": 60640
+        }
+      ],
+      "heard": "On échange -- Nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "pauseMs": 500,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 936,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1099,
+          "pushed": 17600
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2987,
+          "pushed": 47840
+        }
+      ],
+      "heard": "On échange nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "pauseMs": 1000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 746,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1109,
+          "pushed": 17760
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1870,
+          "pushed": 29920
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2594,
+          "pushed": 41600
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3296,
+          "pushed": 52800
+        }
+      ],
+      "heard": "On échange... nos numéros,",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "pauseMs": 1500,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 587,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1143,
+          "pushed": 18400
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 1816,
+          "pushed": 29120
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 2979,
+          "pushed": 47680
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3638,
+          "pushed": 58240
+        }
+      ],
+      "heard": "On échange... nos numéros",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "marie-current-phrase.wav",
+      "pauseMs": 2000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 737,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1082,
+          "pushed": 17280
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2128,
+          "pushed": 34080
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 3562,
+          "pushed": 56960
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 4288,
+          "pushed": 68800
+        }
+      ],
+      "heard": "On échange... Nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "pauseMs": 500,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 875,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1415,
+          "pushed": 22720
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2947,
+          "pushed": 47200
+        }
+      ],
+      "heard": "On échange nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "pauseMs": 1000,
+      "endOfTurns": 1,
+      "splitInPause": false,
+      "eotDelayMs": 807,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1092,
+          "pushed": 17440
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3378,
+          "pushed": 54080
+        }
+      ],
+      "heard": "On échange -- Nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "pauseMs": 1500,
+      "endOfTurns": 2,
+      "splitInPause": false,
+      "eotDelayMs": 658,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1177,
+          "pushed": 18880
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2584,
+          "pushed": 41440
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 3068,
+          "pushed": 49120
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 3728,
+          "pushed": 59680
+        }
+      ],
+      "heard": "On échange -- Nos numéros?",
+      "text": "On échange nos numéros ?"
+    },
+    {
+      "file": "sarah-current-phrase.wav",
+      "pauseMs": 2000,
+      "endOfTurns": 2,
+      "splitInPause": true,
+      "eotDelayMs": 567,
+      "events": [
+        {
+          "type": "START_OF_SPEECH",
+          "t": 1048,
+          "pushed": 16960
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 2343,
+          "pushed": 37600
+        },
+        {
+          "type": "START_OF_SPEECH",
+          "t": 3282,
+          "pushed": 52480
+        },
+        {
+          "type": "END_OF_SPEECH",
+          "t": 4139,
+          "pushed": 66240
+        }
+      ],
+      "heard": "On échange -- Nos numéros?",
+      "text": "On échange nos numéros ?"
+    }
+  ]
+}

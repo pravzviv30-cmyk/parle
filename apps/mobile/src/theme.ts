@@ -111,7 +111,7 @@ export const type = {
  * Outfit 400/600/700/800 are regular/semiBold/bold/extraBold.
  */
 export const bType = {
-  /** The tab greeting, "Bonjour, Yasmin.": 34/800, -0.5. */
+  /** The tab greeting, "Bonjour, Yasmin": 34/800, -0.5. */
   greeting: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 36, letterSpacing: -0.5 },
   /** The yellow lead's title: 27/800, -0.3. */
   leadTitle: { fontFamily: font.extraBold, fontSize: 27, lineHeight: 30, letterSpacing: -0.3 },

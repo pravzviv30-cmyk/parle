@@ -43,7 +43,7 @@ Top to bottom, at 375 (320 in brackets where it differs):
 1. **Sky band.** Full-bleed under the status bar and to the screen edges, light status bar content.
    - **Ground, disc and chip** from `skyView(hour, mode)` (table below). Morning 05-12, afternoon 12-18, evening 18-22, night 22-05. A sun disc 05-18, a moon (crescent) 18-05, partly off the top right edge.
    - **Two clouds**, white at 0.35 and 0.25 opacity, still drawings (`art/sky/`), that drift in once on arrival (`motion/Drift.tsx`).
-   - **Greeting**, "Bonjour, Léa." on one line over the clouds when the name fits, wrapping after the comma to put the name under the word when it does not (or "Bonjour." alone with no name), `bType.greeting` in `onBrand`, still. Bonsoir 18:00 to 04:59 (`greetingWord`).
+   - **Greeting**, "Bonjour, Léa" on one line over the clouds when the name fits, wrapping after the comma to put the name under the word when it does not (or "Bonjour" alone with no name; no full stop since 2026-11-06), `bType.greeting` in `onBrand`, still. Bonsoir 18:00 to 04:59 (`greetingWord`).
    - **ProfileButton** at the top right, a 44pt disc on the sky's chip with the `onBrand` glyph, same label and route.
    - **Three stat tiles** in a row, 8pt apart (below).
    - **Nudge** (only while a streak runs and today is open, `homeNudge`): one line in `body` `onBrand` under the tiles.

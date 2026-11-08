@@ -1,0 +1,366 @@
+{
+  "pairs": {
+    "5a60d17661c0": {
+      "voice": "alexandre",
+      "line": 0,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "8ec76e0ccd1f",
+      "clipB": "0fe002f9011b"
+    },
+    "0813929f1887": {
+      "voice": "alexandre",
+      "line": 1,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "b8126bef2ad9",
+      "clipB": "80f0208a6c0c"
+    },
+    "09f872391fed": {
+      "voice": "alexandre",
+      "line": 2,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "536783929892",
+      "clipB": "89517b1479e5"
+    },
+    "4bdee6003e02": {
+      "voice": "alexandre",
+      "line": 3,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "665736f239f7",
+      "clipB": "705fcf1918da"
+    },
+    "69cc563a756a": {
+      "voice": "alexandre",
+      "line": 4,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "fffc2a5059de",
+      "clipB": "c068856eabe6"
+    },
+    "7f699e78b82d": {
+      "voice": "alexandre",
+      "line": 5,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "17870905c0f7",
+      "clipB": "cc0ecbddfb72"
+    },
+    "67dcbcb3e13e": {
+      "voice": "emilie",
+      "line": 0,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "4086cb482602",
+      "clipB": "86338e6ac135"
+    },
+    "9440f104dc92": {
+      "voice": "emilie",
+      "line": 1,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "783b86245314",
+      "clipB": "29078a4fa6aa"
+    },
+    "7a40af6d60da": {
+      "voice": "emilie",
+      "line": 2,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "1522652a1b10",
+      "clipB": "5b5724e24c6e"
+    },
+    "04e926fa0a56": {
+      "voice": "emilie",
+      "line": 3,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "6090d522a70b",
+      "clipB": "3c3a01a3324b"
+    },
+    "05df26d5a6c1": {
+      "voice": "emilie",
+      "line": 4,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "e76d3892ebcb",
+      "clipB": "d9eafc5b673b"
+    },
+    "5533e8c8a054": {
+      "voice": "emilie",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "45b34d31ef7e",
+      "clipB": "6c5bd93a95f6"
+    },
+    "c9eeb1a75e27": {
+      "voice": "guillaume",
+      "line": 0,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "373a0c5594bf",
+      "clipB": "91138ee0efd8"
+    },
+    "6a28e8b7011b": {
+      "voice": "guillaume",
+      "line": 1,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "e259f1644aec",
+      "clipB": "0e17e2076b09"
+    },
+    "38bff130e262": {
+      "voice": "guillaume",
+      "line": 2,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "b2bf69b4ed92",
+      "clipB": "c5d092e5f141"
+    },
+    "286cf7149200": {
+      "voice": "guillaume",
+      "line": 3,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "ea9a37b646c4",
+      "clipB": "bcc92dc2ac33"
+    },
+    "781f3c5bbacd": {
+      "voice": "guillaume",
+      "line": 4,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "1798a04df341",
+      "clipB": "1d90077b3add"
+    },
+    "822536981e0f": {
+      "voice": "guillaume",
+      "line": 5,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "6a3a78ea37a2",
+      "clipB": "236eef89656b"
+    },
+    "0d38fbd7635e": {
+      "voice": "marie",
+      "line": 0,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "519836b9300c",
+      "clipB": "cecdb86f284c"
+    },
+    "202672f21a8b": {
+      "voice": "marie",
+      "line": 1,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "966797917375",
+      "clipB": "7575ab0f3590"
+    },
+    "e3f5e9b641ee": {
+      "voice": "marie",
+      "line": 2,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "99bc0dcc5639",
+      "clipB": "b0983f10b06d"
+    },
+    "e06d75e0b10f": {
+      "voice": "marie",
+      "line": 3,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "0f8fd70f68bb",
+      "clipB": "d0e6e6d242ae"
+    },
+    "6c47a23a852b": {
+      "voice": "marie",
+      "line": 4,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "e95aac1dde4f",
+      "clipB": "26b69001e35a"
+    },
+    "33c2e758fede": {
+      "voice": "marie",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "c9b6e5b13c19",
+      "clipB": "6e3259d28e85"
+    },
+    "a5e4bce50069": {
+      "voice": "anatole",
+      "line": 0,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "dc422e0f6639",
+      "clipB": "08b381a401ad"
+    },
+    "770792ca2898": {
+      "voice": "anatole",
+      "line": 1,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "bc686d9a6bf0",
+      "clipB": "2eb65e102970"
+    },
+    "90cfdd8506a7": {
+      "voice": "anatole",
+      "line": 2,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "45bdd70159b5",
+      "clipB": "227a82944bba"
+    },
+    "6e9040ad4654": {
+      "voice": "anatole",
+      "line": 3,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "fe53083ef4f6",
+      "clipB": "b91221363ce4"
+    },
+    "f37fd003a593": {
+      "voice": "anatole",
+      "line": 4,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "9f3c4e70c94c",
+      "clipB": "2812bd18add3"
+    },
+    "dfab8b64194d": {
+      "voice": "anatole",
+      "line": 5,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "a50fbc7fc851",
+      "clipB": "2f481c006ae3"
+    },
+    "ab49689ae260": {
+      "voice": "sarah",
+      "line": 0,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "59971e7fbfea",
+      "clipB": "a6d58f643bcc"
+    },
+    "419ad6a90a2c": {
+      "voice": "sarah",
+      "line": 1,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "1c66b5bc3cb1",
+      "clipB": "eb5e01c42da6"
+    },
+    "b64faefc1217": {
+      "voice": "sarah",
+      "line": 2,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "7e5db538a3be",
+      "clipB": "0ba652e71f35"
+    },
+    "247536808bc6": {
+      "voice": "sarah",
+      "line": 3,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "09b2a73309a4",
+      "clipB": "4b4dd94028ef"
+    },
+    "794b79729380": {
+      "voice": "sarah",
+      "line": 4,
+      "A": "eleven_multilingual_v2",
+      "B": "eleven_multilingual_v2+style0",
+      "clipA": "d2569b63042d",
+      "clipB": "229fbedd67dc"
+    },
+    "f51dc18ca4f4": {
+      "voice": "sarah",
+      "line": 5,
+      "A": "eleven_multilingual_v2+style0",
+      "B": "eleven_multilingual_v2",
+      "clipA": "c488261bef90",
+      "clipB": "d97c58193389"
+    }
+  },
+  "clips": {
+    "8ec76e0ccd1f": "eleven_multilingual_v2+style0",
+    "0fe002f9011b": "eleven_multilingual_v2",
+    "b8126bef2ad9": "eleven_multilingual_v2+style0",
+    "80f0208a6c0c": "eleven_multilingual_v2",
+    "536783929892": "eleven_multilingual_v2+style0",
+    "89517b1479e5": "eleven_multilingual_v2",
+    "665736f239f7": "eleven_multilingual_v2+style0",
+    "705fcf1918da": "eleven_multilingual_v2",
+    "fffc2a5059de": "eleven_multilingual_v2+style0",
+    "c068856eabe6": "eleven_multilingual_v2",
+    "17870905c0f7": "eleven_multilingual_v2+style0",
+    "cc0ecbddfb72": "eleven_multilingual_v2",
+    "4086cb482602": "eleven_multilingual_v2+style0",
+    "86338e6ac135": "eleven_multilingual_v2",
+    "783b86245314": "eleven_multilingual_v2+style0",
+    "29078a4fa6aa": "eleven_multilingual_v2",
+    "1522652a1b10": "eleven_multilingual_v2",
+    "5b5724e24c6e": "eleven_multilingual_v2+style0",
+    "6090d522a70b": "eleven_multilingual_v2",
+    "3c3a01a3324b": "eleven_multilingual_v2+style0",
+    "e76d3892ebcb": "eleven_multilingual_v2",
+    "d9eafc5b673b": "eleven_multilingual_v2+style0",
+    "45b34d31ef7e": "eleven_multilingual_v2",
+    "6c5bd93a95f6": "eleven_multilingual_v2+style0",
+    "373a0c5594bf": "eleven_multilingual_v2+style0",
+    "91138ee0efd8": "eleven_multilingual_v2",
+    "e259f1644aec": "eleven_multilingual_v2+style0",
+    "0e17e2076b09": "eleven_multilingual_v2",
+    "b2bf69b4ed92": "eleven_multilingual_v2+style0",
+    "c5d092e5f141": "eleven_multilingual_v2",
+    "ea9a37b646c4": "eleven_multilingual_v2",
+    "bcc92dc2ac33": "eleven_multilingual_v2+style0",
+    "1798a04df341": "eleven_multilingual_v2",
+    "1d90077b3add": "eleven_multilingual_v2+style0",
+    "6a3a78ea37a2": "eleven_multilingual_v2+style0",
+    "236eef89656b": "eleven_multilingual_v2",
+    "519836b9300c": "eleven_multilingual_v2",
+    "cecdb86f284c": "eleven_multilingual_v2+style0",
+    "966797917375": "eleven_multilingual_v2+style0",
+    "7575ab0f3590": "eleven_multilingual_v2",
+    "99bc0dcc5639": "eleven_multilingual_v2",
+    "b0983f10b06d": "eleven_multilingual_v2+style0",
+    "0f8fd70f68bb": "eleven_multilingual_v2",
+    "d0e6e6d242ae": "eleven_multilingual_v2+style0",
+    "e95aac1dde4f": "eleven_multilingual_v2+style0",
+    "26b69001e35a": "eleven_multilingual_v2",
+    "c9b6e5b13c19": "eleven_multilingual_v2",
+    "6e3259d28e85": "eleven_multilingual_v2+style0",
+    "dc422e0f6639": "eleven_multilingual_v2+style0",
+    "08b381a401ad": "eleven_multilingual_v2",
+    "bc686d9a6bf0": "eleven_multilingual_v2",
+    "2eb65e102970": "eleven_multilingual_v2+style0",
+    "45bdd70159b5": "eleven_multilingual_v2",
+    "227a82944bba": "eleven_multilingual_v2+style0",
+    "fe53083ef4f6": "eleven_multilingual_v2",
+    "b91221363ce4": "eleven_multilingual_v2+style0",
+    "9f3c4e70c94c": "eleven_multilingual_v2+style0",
+    "2812bd18add3": "eleven_multilingual_v2",
+    "a50fbc7fc851": "eleven_multilingual_v2",
+    "2f481c006ae3": "eleven_multilingual_v2+style0",
+    "59971e7fbfea": "eleven_multilingual_v2",
+    "a6d58f643bcc": "eleven_multilingual_v2+style0",
+    "1c66b5bc3cb1": "eleven_multilingual_v2+style0",
+    "eb5e01c42da6": "eleven_multilingual_v2",
+    "7e5db538a3be": "eleven_multilingual_v2+style0",
+    "0ba652e71f35": "eleven_multilingual_v2",
+    "09b2a73309a4": "eleven_multilingual_v2+style0",
+    "4b4dd94028ef": "eleven_multilingual_v2",
+    "d2569b63042d": "eleven_multilingual_v2",
+    "229fbedd67dc": "eleven_multilingual_v2+style0",
+    "c488261bef90": "eleven_multilingual_v2+style0",
+    "d97c58193389": "eleven_multilingual_v2"
+  }
+}

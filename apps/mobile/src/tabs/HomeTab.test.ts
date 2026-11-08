@@ -137,7 +137,7 @@ function spoken(body: string): string[] {
 }
 
 describe('Today opens on a still greeting — F420, notebook Phase 3', () => {
-  test('the greeting is static: the hour\'s French word, the first name, a full stop, and no rotation', () => {
+  test('the greeting is static: the hour\'s French word, the first name, no full stop, and no rotation', () => {
     assert.match(FLAT, /import \{ homeGreeting \} from '\.\.\/home\/greeting\.ts'/, 'Today reads its greeting from somewhere other than the greeting rule');
     // UI-015 (founder 2026-10-30): direction A's sky brings back the hour's
     // word, so the greeting takes the first name and the moment, and the rule
@@ -478,7 +478,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.match(shared, /kind === 'plans'/);
     assert.match(shared, /<ColourCard ground="blue"/);
     assert.match(shared, /<ColourCard ground="sun"/);
-    assert.match(shared, /setBilling\(null\)/);
+    assert.match(shared, /setBillingRead\(held => held !== null && held\.scope === scope && held\.live === reads \? held : \{ scope, live: reads, billing: null, answered: !reads \}\)/);
     assert.match(shared, /scope === scopeGeneration\(\)/);
     assert.match(shared, /fetchBillingStatus\(user.id\)/);
     assert.match(shared, /<LocalPracticeCard/);
@@ -623,7 +623,7 @@ describe('Today keeps its day when the disk will not answer', () => {
     assert.match(FLAT, /const failedHero = !unowned && readFailed;/);
     assert.match(FLAT, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/);
     const shared = readFileSync(new URL('../practice/NextTaskCard.tsx', import.meta.url), 'utf8');
-    assert.match(shared, /const scope = scopeGeneration\(\); setBilling\(null\)/);
+    assert.match(shared, /const scope = scopeGeneration\(\);[\s\S]*?setBillingRead\(held => held !== null && held\.scope === scope && held\.live === reads \? held : \{ scope, live: reads, billing: null, answered: !reads \}\)/);
     assert.match(shared, /if \(live && user !== null\)/);
     assert.match(shared, /!cancelled && scope === scopeGeneration\(\)/);
     assert.match(shared, /value.scope !== scopeGeneration\(\)/);
@@ -1014,7 +1014,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(quests, /\{TODAY_COPY\.three\}/);
     assert.match(quests, /format=\{threeDone\}/);
     assert.match(quests, /row\.complete \? \( <CheckDisc size=\{MARK\} fill=\{t\.mint\} tick=\{t\.onMint\} \/>/, 'a done quest is colour alone');
-    assert.match(quests, /<QuestRing size=\{MARK\} fraction=\{row\.fraction\} track=\{t\.lavender\} color=\{t\.brand\} \/>/);
+    assert.match(quests, /<QuestRing size=\{MARK\} fraction=\{row\.fraction\} track=\{t\.lavender\} color=\{t\.brandMark\} \/>/);
     assert.match(quests, /accessible accessibilityLabel=\{row\.label\}/, 'the row and its ring are not labelled');
     assert.match(quests, /<View \{\.\.\.decorative\}>/, 'the quest mark is announced on its own');
     assert.match(quests, /<SmallPill label=\{trailing\.label\} ground=\{trailing\.kind === 'xp' && trailing\.earned \? t\.sage : t\.butter\} \/>/);

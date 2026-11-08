@@ -5850,10 +5850,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   cycle length is deliberately unchanged.
 - note: notebook redesign (2026-09-27): the greeting no longer takes turns. The design contract lets only
   the orb and the highlighter move, so the pool, the clock and the rotation hook are retired, and the
-  greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.").
+  greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.", no full stop since 2026-11-06, founder).
   A learner with no name reads the word and a full stop ("Bonsoir."), never a bare comma and never
   "you". The rule is still a pure module and still clean of digits, em dashes and banned words.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F388 — Home's title fades through TabHeader and holds still for reduce motion and screen readers
@@ -5876,7 +5876,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the title no longer moves for anyone, so there is no fade or
   swipe to hold still. Today draws one static TabHeader title from the greeting rule, with no timer,
   no `Animated`, and no live region, which is what reduce motion and a screen reader were owed.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F389 — A word and a situation for every day, authored in core
@@ -6247,7 +6247,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the greeting no longer animates, and `useGreetingRotation.ts` is
   deleted, so there is no frame to wait on and no opacity that can be left at 0. The test named below
   fails if the hook ships again or if Today carries a timer, `Animated`, or a title swap.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F417 — The greeting pool is wide and knows the hour
 - severity: P1
@@ -6267,8 +6267,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the pool is retired with the rotation. What survives is the hour:
   Bonjour from 05:00 to 17:59 and Bonsoir from 18:00 through the small hours, checked at every hour
   and at the edges, with an unreadable clock landing on Bonjour. `GREETINGS`, the timing constants,
-  `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop.
-- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+  `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop (no full stop since 2026-11-06, founder).
+- verified-by: `the greeting is the hour's French word, still, with a name and no full stop — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F418 — The header holds two complete greeting layers in one stable slot
@@ -6299,7 +6299,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the handoff and its watchdog are gone with the hook, because the
   greeting no longer moves. Nothing is left to suspend. The test named below fails if the hook ships
   again or if Today carries a timer or `Animated`.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F420 — Home wires the two-part greeting
 - severity: P1
@@ -6314,7 +6314,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `homeGreeting(firstName, now)` gives the header its title and its hour's subline, and
   `useGreetingRotation`, `titleSwap` and `greetingRest` are gone. Still one header, no `<Monogram`, no
   live region, no timer and no `...type.display` in the tab.
-- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
+- verified-by: `the greeting is static: the hour's French word, the first name, no full stop, and no rotation`
 
 ### F421 — Demo mode leaves the situation card
 - severity: P1
@@ -9648,9 +9648,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: services/tutor-agent/src/agent.ts
 - note: Bounded synthetic prerecorded/streaming Nova-3 comparisons corrupt French money or mixed English despite high confidence. Flux French/English hints preserve the French control and both languages, but still misread an English time/date. Prepare a default-off conversation-only review option; preserve Nova-3 phase language behavior, scripted lessons and typing. No automatic activation or claim of beginner calibration, room interruption or end-to-end timing. Real learner calibration remains a release hold.
 - note: Sol independently accepted the default-off source after 23 focused checks and tutor types. Strict opt-in is conversation-only; phase language updates are skipped only for Flux, whose hints remain bilingual. Actual beginner/room/EOT/interruption/number calibration remains held; no runtime configuration was changed.
-- verified-by: `ordinary recognition retains Nova-3 and its explicit phase language`
-- verified-by: `only an explicit conversation review uses Flux French and English hints`
-- verified-by: `the review recognizer stays inside lazy session audio and phase updates preserve its bilingual hints`
+- verified-by: `LUVANI_STT_NOVA_KINDS puts only the named kinds back on Nova-3 with the given language`
+- verified-by: `every session kind defaults to Flux with French and English hints, whatever the unset or unknown knob`
+- note: 2026-11-06 measurement (F964) answers the accuracy question on a synthetic accent: Flux with fr/en hints keeps French (lesson 0.958, scene 1.000, same as nova-3 `fr`) and hears English (0.950), and nova-3 `multi` loses scene French (0.861). The real-learner end-of-turn, interruption and number checks are still held here before Flux runs for everyone.
+- note: 2026-11-07 (F964, VOICE-023): accuracy is settled by F964, and Flux is now the recogniser for every session kind, so the default-off conversation option above is gone (the tests it named are renamed to the ones listed here). Flux's own end of turn was measured with `scripts/measureFluxEot.mjs` on six French sentences with a spliced mid-sentence pause at the default eot_threshold 0.7 (`docs/live-latency-evidence/2026-11-07-flux-eot.{json,md}`): Flux split the sentence in 0 of 6 at 0.5 s, 4 of 6 at 1.0 s, 5 of 6 at 1.5 s and 6 of 6 at 2.0 s, and its EndOfTurn came p50 699 ms, p95 977 ms after the last voiced sample (0.5 s pauses: p50 843, p95 1,102). Reading SDK 1.9, LiveKit keeps the turn (VAD, local turn detector and VOICE-010 floors unchanged), so a split only costs latency at rungs 3 and 4, about 700 to 1,000 ms. Room measurement of that and real-learner calibration (beginner, interruption, numbers) are still held here.
+- verified-by: `Flux recognition stays inside lazy session audio and phase updates skip it, keeping its bilingual hints`
 
 ### F696 — Recorded onboarding must describe playback and keep learner pacing
 - severity: P1
@@ -10587,7 +10589,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: services/tutor-agent/src/agent.ts
 - note: Updating the Deepgram model options only changed future streams in the installed SDK. Current-turn vocabulary now uses the public session keyterms API, which updates the active stream and defers reconnecting during speech. Quote-bound paid proxy and experimental recognizer options remain unchanged.
-- verified-by: `current scene keyterms update the active session without changing paid or experimental recognition`
+- verified-by: `current scene keyterms update the active session without changing paid or Flux recognition`
 
 ### F802 — Approximate spelling distance can replace a valid learner word
 - severity: P1
@@ -12330,3 +12332,171 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   once, which changes the returning-person design in `installHistory.native.ts`, so it waits for the
   founder.
 - verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
+
+### F961 — Today's hero flashed to "Finding your next task…" on every return to Home
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/practice/NextTaskCard.tsx (the billing `useFocusEffect`)
+- note: Found 2026-11-06. Every focus of Home set the billing read back to unanswered
+  (`setBilling(null); setBillingAnswered(false)`) before refetching, so `todayLead` returned
+  `'loading'` while live and `MissionHero` unmounted until the network answered. The data read below
+  it already kept its held value for the same account (F768). The billing read is now one
+  `billingRead` state with a scope: a same-account refocus keeps the held answer and refreshes it
+  quietly, a null or failed refetch keeps the held billing (`fetchBillingStatus` resolves null on failure), and only a cold load or another account starts
+  undecided (an answer held from offline is not a real read, so coming online starts undecided too),
+  so an out-of-time learner still never sees the scene flash first.
+  Accepted trade-off: after a session that used up the last minutes, the held "has time" answer can show
+  the scene until the quiet refetch lands (up to 5 s); the brief scoped the loading gate to cold loads. The two loading
+  lines also took the hero's ink (`t.text`), as they were black on the dark card.
+- verified-by: `F961: coming back to Home keeps the held billing answer, so the hero does not flash to loading`
+### F962 — Raw backend text reached learners in error messages: codes, URLs and library sentences
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/LiveErrorView.tsx (Support details), live/failure.ts
+  (`classifyPipelineError` notice), onboarding/FirstLivePractice.tsx, onboarding/GuestAccountHandoff.tsx,
+  friends/useSocial.ts, friends/InviteFriendsScreen.tsx
+- note: Founder, 2026-11-06, on the iPhone build: raw backend text in error messages, a security
+  issue. The live failure screen's Support details showed the token-server URL, the LiveKit URL and
+  status internals; five catch blocks
+  showed `cause.message` as is (raw guest codes `expired`/`limit`/`unavailable`, "Network request
+  failed", timeouts, JSON errors). Fix: one seam, `copy/errorCopy.ts`. Luvani's own sentences are
+  thrown as `LearnerError` and kept; a connection or timeout failure gets the existing auth line
+  "The connection dropped. Check your internet and try again."; anything else gets the site's
+  existing fallback. A live notice of a kind this app does not know gets "The tutor hit a small snag.
+  Carry on as you were." instead of `undefined`; a notice with no kind is still shown, because every
+  one is a sentence written in services/tutor-agent (time limit, message too long, tutor busy). Support
+  details now hold one row, "Reference", the failure code (no card around it), which matches the `[luvani:live] failed`
+  trace that still logs every diagnostic. A guard test fails if a catch shows a caught message
+  as itself; it cannot see a message passed on through a variable, a prop or a server body field.
+  The founder approved both new lines (the generic notice and "Reference") on 2026-11-06.
+- verified-by: `no catch block shows a caught message as itself`
+
+
+### F963 — Holding and dragging the tab bar gave no haptic unless the drag began on the open tab
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx (the `PanResponder` in `TabStrip`) and
+  apps/mobile/src/live/useLiveSession.ts (the `start` catch and the `RoomEvent.Disconnected` handler)
+- note: Found 2026-11-06 by the founder on their iPhone, with Haptic feedback on. The drag only
+  claimed a touch that began on the selected tab, so a hold and drag from any other tab was the
+  cell's own press, which has no haptic. The founder chose: any tab, with a sideways move of more
+  than 8 px. A still press stays a tap and a still long press is never claimed, so the Large
+  Content Viewer rule from F947 stays. The bar on Profile, with no open tab, still takes no drag.
+  The same pass traced every way out of a live session to `releaseAudioSession`, because
+  `hapticsEnabled` is off while a live room holds the audio. Leave, unmount, an abandoned start, an
+  empty room and the recap all released it. A failed connect and a dropped room did not, so the
+  error view's buttons gave no haptic until the learner left it. Both now release. A disconnect
+  that throws keeps the hold, since the room may still be up. No app-wide leak was found.
+  Nothing here needs an Apple Developer account. The founder's iPhone check is recorded in the
+  lane F handoff.
+- fixed: 2026-11-06 on claude/tab-drag-haptics-da4049.
+- verified-by: `any tab can be held and dragged sideways to another, with a tick per cell — item 7`
+- verified-by: `a failed connect this start still owns releases the audio session before the error shows`
+- verified-by: `the drop handler releases the audio session when the attempt owns the room, and not otherwise`
+
+### F964 — English answers are transcribed as French in lessons, the guest scene and the mission scene
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/recognitionPlan.ts:13 and services/tutor-agent/src/convo.ts (`sttLanguageFor`)
+- note: Found 2026-11-06 by the founder on staging (signed-in café mission, iPhone): English answers
+  came back as French-shaped words, so the brain never saw English and never recast it. Every kind
+  except the conversation's choosing phase runs nova-3 `fr`, while VOICE-013 invites English.
+  Measured with `scripts/measureKeyterms.mjs --conditions fr,multi,multi-ep25,flux` (synthetic
+  English-accented voice; `docs/live-latency-evidence/2026-11-06-multi-stt.md`): English answers
+  score 0.169 under `fr`. nova-3 `multi` hears them (0.929) but loses scene French (0.861 against
+  1.000), so it was refused. Flux `flux-general-multi` with fr/en hints keeps French (lesson 0.958,
+  scene 1.000) and hears English (0.950): Flux is the fix, as the next lane (founder, 2026-11-06,
+  "Land fixes now, Flux next"). It needs the paid proxy to speak `/v2/listen`, a Flux quote shape,
+  and the per-kind switch. Meanwhile a line that makes sense in neither language gets one ask-again
+  in French (VOICE-021).
+- note: 2026-11-07 landed (VOICE-023). Flux `flux-general-multi` with hints fr and en now hears every
+  session kind (lessons, guest scene, mission scene, conversation). `recognitionPlan.ts` returns Flux by
+  default and `LUVANI_STT_NOVA_KINDS` puts a kind back on nova-3. `agent.ts` builds `STTv2` with the
+  lesson keyterms (none for the conversation, whose phase language switch is skipped on Flux). The paid
+  voice proxy accepts `/v2/listen`, and `scripts/paidQuotes.mjs` books 2 Flux streams: $0.0078 plus
+  $0.0013 a minute for a lesson, $0.0078 for a conversation ($2.47 and $3.18 per 600 s session at worst
+  case; daily budget $6.40, global $20). Rerun `measureKeyterms.mjs --conditions fr,flux --run` on a
+  synthetic English-accented voice: English answers flux 0.950 against fr 0.169, lesson lines 0.958
+  both, scene replies 1.000 both (`docs/live-latency-evidence/2026-11-07-flux-stt.{json,md}`). Live
+  replay of "A coffee, please." recast as « Un café, s'il vous plaît. » (`2026-11-07-live-turn-flux-english.json`).
+  Flux's own end-of-turn numbers are under F695. Not verified in a room or with real learners.
+- verified-by: `words that are neither French nor English get one ask-again, not an answer`
+- verified-by: `every session kind defaults to Flux with French and English hints, whatever the unset or unknown knob`
+- verified-by: `flux v2 descriptor is pinned: sorted language hints, no language/channels, eot settings change the hash`
+- verified-by: `a flux client on /v2/listen is forwarded to the v2 vendor URL; quote-mismatch strips its keyterms`
+- verified-by: `the real SDK Flux lesson query under the proxy hashes to keytermSttConfigurationSha256 of its plain query`
+
+### F965 — One hiccup ended the session, and no log said which exit fired
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts (`performBrainTurn`), services/tutor-agent/src/agent.ts
+  (`connOptions`), services/tutor-agent/src/sessionLifecycle.ts (`heartbeat`), services/tutor-agent/src/sessionExit.ts
+- note: Found 2026-11-06 by the founder on staging: the café mission ended with "cannot carry on"
+  after one failure. One failed brain turn, one unrecoverable STT/TTS error (`maxRetry: 0`,
+  `maxUnrecoverableErrors: 1`) or two 3 s heartbeat misses ended the room. Now each gets one more
+  try (VOICE-021), the paid lesson quote books the second STT stream, and every session logs one
+  `[luvani:session-exit] class=...` line. An error still unrecoverable after its one vendor retry
+  ends the room as before. Limit: a paid quote refusal is logged as `stt`/`tts`, not `cap`. Read the staging logs after the founder's next
+  session to see which exit fires in the wild.
+- verified-by: `a brain turn that fails once is retried once and the learner stays in the room`
+- verified-by: `a second failure ends the session as before and names brain-turn`
+- verified-by: `a heartbeat survives two failed attempts and lands on the third`
+- verified-by: `session exit: the first class wins and the line is logged exactly once`
+- verified-by: `paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room`
+- verified-by: `a turn cut by the close for time is not retried`
+- verified-by: `a stop at the hard deadline says so even when billing froze early`
+
+### F966 — Dark mode contrast: some marks sank into the night ground and some words washed out
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/palette.ts (`b.dark`), settings/SettingsAppearance.tsx (`SettingsField`,
+  `SettingsFormAction`), progress/PostcardsScreen.tsx, journey/JourneyParts.tsx,
+  practice/NextTaskCard.tsx, drill/FocusDrillPlayer.tsx
+- note: Found 2026-11-06 by the founder: dark mode's contrast was off, some things too dark and
+  some too light. Captured first: every signed-in route in dark at 375 beside its light twin, with
+  every text pair measured on its painted ground (`handoffs/2026-11-06-dark-contrast-shots/`,
+  board https://claude.ai/artifact/HNNWo7JkQQh6zVF5Hs4cx4). The founder marked all eight
+  candidates. Too dark: the ink tab capsule (1.04 on the ground), the brand blue as a fill or mark
+  (2.34 on the ground, 1.97 on a card), coral words, and disabled buttons. Too light: the white
+  field panel on Tutor memory (its cream label 1.07), the cream Postcards title on mint (1.85),
+  the cream XP level chip on sun (1.43), and the sun and mint at full daytime strength. Fixed in
+  dark only, light unchanged: the ink capsule keeps its ink and gains a 1.5pt `#65599A` rim (3.0 on the
+  ground, chosen by the founder on 2026-11-07 after a lilac capsule left the selected pill at 1.21),
+  primary, selected tab and brand marks
+  `#6357F2` (3.7 ground, 3.1 card, white 5.0), hero button `#E8B53A`, mint words `#2ABB7E`; the
+  field well and disabled action take the dark surface; the Postcards header and the XP chip take
+  ink; Speak offline's pill on its sun card keeps the brand blue. Coral needed nothing: in dark-ready screens it is only a fill under white words or a flame
+  mark (3.93). The selected tab glyph keeps the full sun, since the softer one is 2.66 on the
+  lifted cell. Two Texts drew the platform black (1.35 on the dark card); `textColour.test.ts` now
+  refuses a Text styled only by a `type` role outside onboarding.
+- fixed: 2026-11-06 on claude/dark-contrast.
+- verified-by: `dark: the founder marks of 2026-11-06 clear their floors on the dark grounds`
+- verified-by: `no Text is styled only by a type role, so none draws black in dark`
+### F967 — The live tutor's reply is slower than the cascade allows
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/contract/schemas.ts (`TurnSchema`), services/tutor-agent/src/thinkingTime.ts,
+  services/tutor-agent/src/voiceConfiguration.ts, services/tutor-agent/src/convo.ts (`speakEarly`)
+- note: Found 2026-11-06 by the founder on the staging café mission: the tutor feels slow and
+  scripted (problem 2 of nine). Lane D tunes the cascade one switch at a time, each measured
+  (VOICE-022). Baseline 2026-11-07 at main `64b07372`, replay of 24 live turns on gpt-6-luna:
+  spoken fields ready at p50 1,651 ms (p95 3,314) on the standard tier, 950 ms (p95 1,735) on
+  priority; staging `[luvani:scene-first-frame]` had no spoken scene since `67f75358` (n=0).
+  Evidence in `docs/live-latency-evidence/2026-11-07-lane-d.md`. Switches, in landing order:
+  priority tier on staging (set and pulled back 2026-11-07: `service_tier` is in the brain quote's
+  identity, so the quotes must be regenerated with it first); `coach` after the reply
+  (`LUVANI_TURN_REPLY_FIRST`, whose schema is in the same identity, same renewal); Flash v2.5 for conversation lines after the founder's listen
+  (VOICE-009); the beginner wait measured at 2.5 and 3.0 s pauses, then maxDelay 3,500 ms at rungs 1-2 (landed 2026-11-07); a
+  spoken bridge (`LUVANI_SPOKEN_BRIDGE`, landed 2026-11-07, off by default); sentence stitching
+  (`LUVANI_TTS_STITCH`, landed 2026-11-07, off by default, no quote change); the French blind test; adaptive
+  interruption at rungs 3-4 (`LUVANI_ADAPTIVE_INTERRUPTION`, landed 2026-11-07, off by default). The websocket miss transport is ruled out on a measurement (2026-11-07,
+  `docs/live-latency-evidence/2026-11-07-tts-first-audio.json`): first audio p50 437 ms against HTTP's
+  329 ms, and the socket delivers a sentence whole, so the paid proxy gets no websocket route. Closed when the founder has
+  before/after numbers for each landed switch and the remaining switches are recorded as
+  decided or deferred.
+- verified-by: `reply-first order puts coach after sceneReply and keeps every field`
+- verified-by: `a brain slower than 1.5 s gets one bridge line before the reply, and the reply is not held for it`
+- verified-by: `rungs 1-2 wait up to 3,500 ms when the detector holds the turn (VOICE-022)`
+- verified-by: `the next sentence carries the first as previousText`
+- verified-by: `TTS previous_text is delivery input: accepted, outside the quote identity, never billed as text, bounded`
+- verified-by: `adaptive interruption is asked for at rungs 3 and 4 when the flag is on`

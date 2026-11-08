@@ -59,10 +59,10 @@ export function makeDs(bt: B) {
   // The fill-blank gap: a 3pt dashed underline in the link colour.
   gap: { minWidth: 96, height: 34, borderBottomWidth: 3, borderStyle: 'dashed' },
   // A landed word (board `.landed`): the brand fill and a 5pt soft brand halo.
-  landed: { minHeight: 36, paddingHorizontal: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: bt.brand, margin: 5 },
+  landed: { minHeight: 36, paddingHorizontal: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: bt.brandMark, margin: 5 },
   // Tap-translate's placed words (V2-Build): 44 tall, padding 0 14, no halo margin.
   landedBig: { minHeight: 44, paddingHorizontal: 14, margin: 0 },
-  landedHalo: { position: 'absolute', top: -5, left: -5, right: -5, bottom: -5, borderRadius: 17, backgroundColor: bt.brand, opacity: 0.18 },
+  landedHalo: { position: 'absolute', top: -5, left: -5, right: -5, bottom: -5, borderRadius: 17, backgroundColor: bt.brandMark, opacity: 0.18 },
   landedPress: { borderRadius: 17, minHeight: 44, justifyContent: 'center' },
 
   listenButton: {

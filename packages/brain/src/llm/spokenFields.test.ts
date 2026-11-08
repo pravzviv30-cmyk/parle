@@ -2,15 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
-import { TurnSchema } from '../contract/schemas.ts';
+import { ReplyFirstEarlySpokenTurnSchema, ReplyFirstTurnSchema, TurnSchema } from '../contract/schemas.ts';
 import type { TutorTurn } from '../contract/types.ts';
 import { SpokenFieldsWatcher, earlySpokenFrom } from './spokenFields.ts';
 import { OpenAiResponsesBrainClient, readResponseEvents } from './openaiResponses.ts';
 
 /** The turn as strict structured output writes it: properties in schema order. */
-function inSchemaOrder(turn: TutorTurn): string {
+function inSchemaOrder(turn: TutorTurn, schema: typeof TurnSchema | typeof ReplyFirstTurnSchema = TurnSchema): string {
   const ordered: Record<string, unknown> = {};
-  for (const key of Object.keys(TurnSchema.shape)) ordered[key] = (turn as Record<string, unknown>)[key];
+  for (const key of Object.keys(schema.shape)) ordered[key] = (turn as Record<string, unknown>)[key];
   return JSON.stringify(ordered);
 }
 
@@ -112,6 +112,23 @@ test('escaped quotes and backslashes in fr do not end it early', () => {
   }
 });
 
+test('reply-first: the hand-over fires at fr close with no coach, and the default watcher stays silent on that text', () => {
+  const turn = sampleTurn({ coach: [sampleCoachItem()], coachLine: 'Dites « un café ».',
+    sceneReply: { speaker: 'Karim', fr: 'Bonjour !', frWritten: 'Bonjour!', en: 'Hello!' } });
+  const text = inSchemaOrder(turn, ReplyFirstTurnSchema);
+  assert.ok(text.indexOf('"coach"') > text.indexOf('"sceneReply"'), 'coach is written after the reply');
+  for (const size of [1, 9, text.length]) {
+    const watcher = new SpokenFieldsWatcher(ReplyFirstEarlySpokenTurnSchema);
+    let early = null;
+    for (const piece of pieces(text, size)) early ??= watcher.feed(piece);
+    assert.deepEqual(early, {
+      assessment: turn.assessment, coachLine: turn.coachLine, narration: turn.narration,
+      sceneReply: { speaker: 'Karim', fr: 'Bonjour !' },
+    });
+  }
+  assert.equal(new SpokenFieldsWatcher().feed(text), null, 'the default schema needs coach before the reply');
+});
+
 /** A Responses API event stream carrying the turn as text deltas. */
 function eventStream(text: string, size: number, extra: { type: string; [key: string]: unknown }[] = []): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -184,4 +201,26 @@ test('a failed or truncated stream is an error, never a half turn', async () => 
   await assert.rejects(readResponseEvents(eventStream(text, 50, [{ type: 'response.failed', response: { error: { message: 'boom' } } }]), () => {}), /boom/);
   await assert.rejects(readResponseEvents(eventStream(text, 50), () => {}), /ended without a response/);
   await assert.rejects(readResponseEvents(eventStream(text, 50, [{ type: 'error', message: 'overloaded' }]), () => {}), /overloaded/);
+});
+
+test('with the reply-first switch the request, the early hand-over and the parse all follow the new order', async () => {
+  const turn = sampleTurn({ coach: [sampleCoachItem()] });
+  const text = inSchemaOrder(turn, ReplyFirstTurnSchema);
+  const bodies: Record<string, unknown>[] = [];
+  const fetchFn = async (_url: string, init: { body: string }) => {
+    bodies.push(JSON.parse(init.body) as Record<string, unknown>);
+    return { ok: true, status: 200, json: async () => { throw new Error('a stream has no JSON body'); },
+      body: eventStream(text, 7, [{ type: 'response.completed', response: completedPayload(text) }]) };
+  };
+  const client = new OpenAiResponsesBrainClient({ apiKey: 'test', turnReplyFirst: '1' }, fetchFn as never, async () => {});
+  const early: unknown[] = [];
+  const result = await client.turn({
+    kind: 'turn', system: { persona: 'p', pack: 'f', contract: 'c' }, messages: [{ role: 'user', text: 'Bonjour' }],
+    onSpokenFields: (fields) => { early.push(fields); },
+  });
+  const keys = Object.keys(((bodies[0]!.text as { format: { schema: { properties: object } } }).format.schema.properties));
+  assert.ok(keys.indexOf('coach') > keys.indexOf('sceneReply'));
+  assert.equal(early.length, 1);
+  assert.ok(!('coach' in (early[0] as object)));
+  assert.deepEqual(result.turn.coach, turn.coach, 'the full turn still carries its coach');
 });

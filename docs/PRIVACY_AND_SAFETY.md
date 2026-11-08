@@ -131,7 +131,11 @@ stops being an accident:
   or device cache accepts a pack.
 
 Audio does leave the device to four vendors. While a session is live, LiveKit
-carries it, Deepgram transcribes it and ElevenLabs speaks the tutor's side. The
+carries it, Deepgram transcribes it and ElevenLabs speaks the tutor's side. With
+`LUVANI_ADAPTIVE_INTERRUPTION=1`, a session that starts at rung 3 or 4 also streams the
+learner's audio during tutor speech to LiveKit's inference endpoint for the barge-in check; it
+is off by default, Luvani keeps nothing from it, and LiveKit's retention is unverified like the
+others. The
 fourth scores a pronunciation attempt. In production that is Speechace, which is the
 scorer the in-app notice names: the token server refuses to start with a
 `TONEPERFECT_API_KEY` or any scoring vendor but Speechace (`services/token-server/src/config.ts`),
@@ -1185,7 +1189,7 @@ promise already kept.
 | `product_events` and `session_usage` have no scheduled delete | The 13-month and 24-month retentions are policy, not mechanism | This file, table above |
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
 | The published notice commits to retention periods nothing enforces | Thirteen months for events and two years for usage and trial markers are a promise made in a learner-facing document with no scheduled delete behind it | This file, rows above; `legal/policy.ts` |
-| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's (OpenAI in production), and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked, and so is TypeSafe's, which reads own-words drill answers whenever `TYPESAFE_API_KEY` is set, and so are Railway's, Supabase's and Upstash's | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
+| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's (OpenAI in production), and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked, and so is TypeSafe's, which reads own-words drill answers whenever `TYPESAFE_API_KEY` is set, and so are Railway's, Supabase's and Upstash's, and LiveKit's covers its inference endpoint too (adaptive interruption) | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
 | Purchase-processor erasure has not been observed against a real account | The queued request is implemented and tested with fixtures; its live completion and vendor-side retention remain unverified | Ledger F499 external verification |
 | Attempt recordings are deleted in code, but that has never been watched happen on a device | The discard and the reset sweep are proven by test only; a phone has never been checked | Ledger F115 (closed), device proof owed by F114 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |

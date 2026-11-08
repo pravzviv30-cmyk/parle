@@ -694,6 +694,11 @@ describe('the privacy notice — F479', () => {
       /LiveKit carries the audio, Deepgram turns speech into text, ElevenLabs gives the tutor its voice, and Speechace scores a pronunciation attempt\./,
       'the notice stopped saying what each service is for, which is the disclosure the count was hiding behind',
     );
+    assert.match(
+      said,
+      /so your words are read rather than only carried\. In some conversations that start at a higher level, your audio also goes to LiveKit.s servers while the tutor is speaking\. That lets the tutor stop when you really cut in, and keep going through a short .mm. or .oui.\. Luvani keeps nothing from that check\./,
+      'the notice stopped naming the adaptive-interruption audio path to LiveKit',
+    );
 
     // The paragraph nobody was looking at. Two rented holders were tied together
     // by a word that means two, which is the same construction one size down.

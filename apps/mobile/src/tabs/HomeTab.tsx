@@ -9,7 +9,7 @@ import { NextTaskCard } from '../practice/NextTaskCard.tsx';
  * and the week in French.
  *
  * The sky (`home/SkyBand`) follows the hour (`skyNow`) and carries the still
- * greeting ("Bonjour, Name." or "Bonsoir, Name.", the word alone with no name),
+ * greeting ("Bonjour, Name" or "Bonsoir, Name", the word alone with no name),
  * the profile button, and the three stat tiles and nudge that
  * `game/TodayStats` reads from the game layer on its own. It draws nothing it
  * could not read. There is no TabHeader on Today; the other tabs keep theirs.

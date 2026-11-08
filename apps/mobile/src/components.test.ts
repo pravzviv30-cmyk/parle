@@ -819,7 +819,7 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(choice, /aria-selected=\{navigation \|\| radio \? undefined : selected\}/, 'the option row says nothing to the browser, so on the web the choice is silent');
     assert.match(choice, /haptic="selection"/, 'a choice does not tick like a choice');
     // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
-    assert.match(choice, /const filled = selected && !outlined;[\s\S]*filled \? \(sunny \? colour\.sun : accent\.brand\)/, 'the chosen row is not the brand blue');
+    assert.match(choice, /const filled = selected && !outlined;[\s\S]*filled \? \(sunny \? colour\.sun : t\.brandMark\)/, 'the chosen row is not the brand blue');
     assert.match(choice, /<View \{\.\.\.decorative\} style=\{\[ch\.disc, \{ backgroundColor: paper\.card \}\]\}>\s*<CheckGlyph size=\{18\} color=\{accent\.brand\} \/>/, 'the chosen mark is not the blue check on a white disc');
     assert.match(choice, /borderColor: t\.field/, 'the unchosen mark is not the field ring');
     assert.match(choice, /accessibilityLabel=\{accessibilityLabel \?\? \(detail \? `\$\{title\}, \$\{detail\}` : title\)\}/, 'the option row does not name itself once from its title and detail');
@@ -1104,7 +1104,7 @@ describe('the icon controls keep their promises', () => {
     const choice = part('Choice');
     assert.match(choice, /const sunny = on === 'blue';/);
     // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
-    assert.match(choice, /const fill = filled \? \(sunny \? colour\.sun : accent\.brand\)/);
+    assert.match(choice, /const fill = filled \? \(sunny \? colour\.sun : t\.brandMark\)/);
     const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
     const boldChoice = readFileSync(join(SRC, 'onboarding', 'BoldChoice.tsx'), 'utf8');
     assert.match(boldChoice, /const fill = tone \? \(selected \? c\.violet : c\[tone\]\) : selected \? c\.lavender : c\.paper/);

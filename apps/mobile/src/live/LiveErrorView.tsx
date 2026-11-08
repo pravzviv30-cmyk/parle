@@ -14,8 +14,8 @@
  *    way forward, so a learner meets recovery before any network wording.
  *
  * It is the whole window, pushed under `headerShown: false`, so nothing above
- * it pays the safe-area inset. It sits on the still frame for that: the diagnostics
- * panel is thirteen rows tall and used to open straight under the Dynamic Island.
+ * it pays the safe-area inset. It sits on the still frame for that: the support
+ * panel used to be thirteen rows tall and opened straight under the Dynamic Island.
  * The frame pays the notch and the home indicator once, which is why nothing here
  * reads the window for itself.
  */
@@ -29,7 +29,7 @@ import { openPhoneSettings } from '../settings/phoneSettings.ts';
 import { space, boldType as type, HIT } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { Screen } from '../layout.tsx';
-import { IconAction, Card, Label, PillButton, OutlineButton, Press } from '../components.tsx';
+import { IconAction, Label, PillButton, OutlineButton, Press } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
 import type { LiveDiagnostics } from './useLiveSession.ts';
 
@@ -41,13 +41,6 @@ function Row({ name, value }: { name: string; value: string }) {
       <Text style={[type.small, { color: t.muted, flexShrink: 1, textAlign: 'right' }]}>{value}</Text>
     </View>
   );
-}
-
-function show(value: string | number | boolean | null): string {
-  if (value === null) return 'not reached';
-  if (value === true) return 'yes';
-  if (value === false) return 'no';
-  return String(value);
 }
 
 export function LiveErrorView({
@@ -162,21 +155,7 @@ export function LiveErrorView({
               <Text style={[type.small, { color: t.muted }]}>{open ? 'Hide support details' : 'Support details'}</Text>
             </Pressable>
             {open ? (
-              <Card style={st.panel}>
-                <Row name="Cause" value={failure} />
-                <Row name="Token server" value={diagnostics.tokenServer} />
-                <Row name="Token reply" value={show(diagnostics.tokenStatus)} />
-                <Row name="Auth headers" value={diagnostics.authMs === null ? 'not reached' : `${diagnostics.authMs} ms`} />
-                <Row name="Session token" value={diagnostics.tokenMs === null ? 'not reached' : `${diagnostics.tokenMs} ms`} />
-                <Row name="Server phases" value={show(diagnostics.tokenServerTiming)} />
-                <Row name="Room service" value={show(diagnostics.livekitUrl)} />
-                <Row name="Connected in" value={diagnostics.connectMs === null ? 'not reached' : `${diagnostics.connectMs} ms`} />
-                <Row name="Microphone published" value={show(diagnostics.micPublished)} />
-                <Row name="Tutor joined the room" value={show(diagnostics.agentJoined)} />
-                <Row name="Tutor audio arrived" value={show(diagnostics.audioTrackSubscribed)} />
-                <Row name="Tutor sent anything" value={show(diagnostics.firstServerMessage)} />
-                <Row name="Session actually opened" value={show(diagnostics.sessionOpened)} />
-              </Card>
+              <Row name="Reference" value={failure} />
             ) : null}
           </View>
         ) : null}
@@ -191,9 +170,5 @@ const st = StyleSheet.create({
   secondary: { marginTop: space(2), alignSelf: 'stretch' },
   diagnostics: { marginTop: space(7), alignSelf: 'stretch' },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-  // The shared card: same white, same corners, same one whisper. It was a hand
-  // rolled copy of Card's own rule, which is how two cards in one app end up a
-  // point apart.
-  panel: { paddingHorizontal: space(4), paddingVertical: space(3), gap: space(2) },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(4) },
 });

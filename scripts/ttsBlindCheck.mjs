@@ -4,6 +4,7 @@
  * which clip is which.
  *
  * Dry run:   node --experimental-strip-types scripts/ttsBlindCheck.mjs
+ * Second experiment (today's voice vs style 0, same model): add --experiment style0 to any command.
  * Generate:  add --generate with ELEVEN_API_KEY loaded by Node's --env-file.
  * Resume:    add --generate --resume (never re-bills a saved clip).
  * Rebuild the page from the manifest, no network: add --html
@@ -34,14 +35,31 @@ export const LINES = [
   'You’re asking for milk; say « s’il vous plaît » for “please.”', // bilingual coach line
 ];
 export const EXPECTED_MULTIPLIERS = { alexandre: 1, emilie: 2, guillaume: 1, marie: 1, anatole: 1, sarah: 2 };
+/** `id` identifies a variant (clip key, score, rates). `modelId` and `settings` override the ElevenLabs model and voice settings. */
 export const MODELS = [{ label: 'current', id: MODEL, rate: 1 }, { label: 'flash', id: 'eleven_flash_v2_5', rate: 0.5 }];
+export const EXPERIMENTS = {
+  default: { cap: CAP, models: MODELS, destination: DESTINATION, storageKey: STORAGE_KEY },
+  style0: {
+    cap: 4700, // Both variants bill at full rate: the plan estimates 4656, not the 3600 of the flash experiment.
+    models: [
+      { label: 'current', id: MODEL, rate: 1 },
+      { label: 'style0', id: `${MODEL}+style0`, modelId: MODEL, settings: { ...VOICE_SETTINGS, style: 0 }, rate: 1 },
+    ],
+    destination: resolve('artifacts/tts-blind-check-2026-11-07-style0'),
+    storageKey: 'tts-blind-check-2026-11-07-style0',
+  },
+};
+export const modelIdOf = model => model.modelId ?? model.id;
+export const settingsOf = model => model.settings ?? VOICE_SETTINGS;
+/** The billed synthesis body for one variant: the real model id and the variant's own settings. */
+export const requestBody = (model, text) => JSON.stringify({ text, model_id: modelIdOf(model), voice_settings: settingsOf(model), ...(LANGUAGE_CODE ? { language_code: LANGUAGE_CODE } : {}) });
 
 const chars = text => [...text].length;
 export const estimateFor = (text, voice, model) => Math.ceil(chars(text) * EXPECTED_MULTIPLIERS[voice] * model.rate);
 
 /** Every request, in listening order: voice, then line, then both models. */
-export function buildPlan(voices = ELEVEN_VOICES) {
-  return Object.entries(voices).flatMap(([voice, voiceId]) => LINES.flatMap((text, line) => MODELS.map(model => ({
+export function buildPlan(voices = ELEVEN_VOICES, models = MODELS) {
+  return Object.entries(voices).flatMap(([voice, voiceId]) => LINES.flatMap((text, line) => models.map(model => ({
     voice, voiceId, line, text, model, chars: chars(text), estimate: estimateFor(text, voice, model),
   }))));
 }
@@ -92,7 +110,7 @@ const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(
 const titleCase = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** The listening page. Built only from the manifest, so it always matches the clips. */
-export function buildHtml(manifest, lines = LINES) {
+export function buildHtml(manifest, lines = LINES, storageKey = manifest.storageKey ?? STORAGE_KEY) {
   const byVoice = new Map();
   for (const pair of manifest.pairs) {
     if (!byVoice.has(pair.voice)) byVoice.set(pair.voice, []);
@@ -151,7 +169,7 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg)
 ${sections}
 <script>
 (function () {
-  var KEY = ${JSON.stringify(STORAGE_KEY)};
+  var KEY = ${JSON.stringify(storageKey)};
   var TOTAL = ${total};
   var state = {};
   try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
@@ -197,8 +215,8 @@ ${sections}
 }
 
 /** Maps the founder's A/B picks back to models. Never needs the manifest. */
-export function scoreResults(key, results, { current = MODEL } = {}) {
-  const blank = () => ({ current: 0, flash: 0, cantTell: 0, unanswered: 0 });
+export function scoreResults(key, results, { current = MODEL, second = 'flash' } = {}) {
+  const blank = () => ({ current: 0, [second]: 0, cantTell: 0, unanswered: 0 });
   const perVoice = {}, overall = blank();
   for (const [pairId, pair] of Object.entries(key.pairs)) {
     const bucket = (perVoice[pair.voice] ??= blank());
@@ -207,7 +225,7 @@ export function scoreResults(key, results, { current = MODEL } = {}) {
     let field;
     if (!choice) field = 'unanswered';
     else if (choice === 'cant-tell') field = 'cantTell';
-    else if (choice === 'A' || choice === 'B') field = pair[choice] === current ? 'current' : 'flash';
+    else if (choice === 'A' || choice === 'B') field = pair[choice] === current ? 'current' : second;
     else throw new Error(`Unknown choice "${choice}" for pair ${pairId}.`);
     bucket[field] += 1; overall[field] += 1;
   }
@@ -236,6 +254,12 @@ function writeJson(path, value) {
 }
 
 async function main(argv) {
+  const at = argv.indexOf('--experiment');
+  const experimentName = at === -1 ? 'default' : argv[at + 1];
+  const experiment = Object.hasOwn(EXPERIMENTS, experimentName) ? EXPERIMENTS[experimentName] : null;
+  if (!experiment) throw new Error(`Usage: --experiment <${Object.keys(EXPERIMENTS).join('|')}>`);
+  const { models, destination: DESTINATION, cap } = experiment;
+  const variantSettings = Object.fromEntries(models.map(m => [m.id, settingsOf(m)]));
   const manifestPath = resolve(DESTINATION, 'manifest.json');
   const keyPath = resolve(DESTINATION, 'key.json');
   const htmlPath = resolve(DESTINATION, 'index.html');
@@ -244,7 +268,7 @@ async function main(argv) {
   if (scoreAt !== -1) {
     const file = argv[scoreAt + 1];
     if (!file) throw new Error('Usage: --score <results.json>');
-    const summary = scoreResults(readJson(keyPath), readJson(resolve(file)));
+    const summary = scoreResults(readJson(keyPath), readJson(resolve(file)), { second: models[1].label });
     writeJson(resolve(DESTINATION, 'summary.json'), summary);
     console.log(JSON.stringify(summary, null, 2));
     return;
@@ -255,10 +279,10 @@ async function main(argv) {
     return;
   }
 
-  const plan = buildPlan();
+  const plan = buildPlan(ELEVEN_VOICES, models);
   const estimatedCredits = estimateTotal(plan);
-  if (estimatedCredits > CAP) throw new Error(`Plan estimate ${estimatedCredits} exceeds the approved cap of ${CAP}.`);
-  console.log(JSON.stringify({ requests: plan.length, pairs: plan.length / 2, estimatedCredits, cap: CAP, headroomRequired: estimatedCredits + HEADROOM, lines: LINES, models: MODELS.map(m => m.id), destination: DESTINATION }));
+  if (estimatedCredits > cap) throw new Error(`Plan estimate ${estimatedCredits} exceeds the approved cap of ${cap}.`);
+  console.log(JSON.stringify({ requests: plan.length, pairs: plan.length / 2, estimatedCredits, cap, headroomRequired: estimatedCredits + HEADROOM, lines: LINES, experiment: experimentName, models: models.map(m => m.id), destination: DESTINATION }));
   if (!argv.includes('--generate')) return;
 
   const resume = argv.includes('--resume');
@@ -283,8 +307,8 @@ async function main(argv) {
     for (const [voice, id] of Object.entries(ELEVEN_VOICES)) {
       const metadata = await json(`/v1/voices/${id}`);
       if (Number(metadata.sharing?.rate ?? 1) !== EXPECTED_MULTIPLIERS[voice]) throw new Error(`Rate changed for ${voice}.`);
-      for (const model of MODELS) {
-        const ok = Boolean(metadata.verified_languages?.some(l => l.language === 'fr' && l.model_id === model.id));
+      for (const model of models) {
+        const ok = Boolean(metadata.verified_languages?.some(l => l.language === 'fr' && l.model_id === modelIdOf(model)));
         verifiedFrench[`${voice}/${model.label}`] = ok;
         if (!ok) console.warn(`Warning: French not verified for ${voice} on ${model.label}.`);
       }
@@ -297,12 +321,13 @@ async function main(argv) {
   let manifest, key;
   if (resume) {
     manifest = readJson(manifestPath); key = readJson(keyPath);
-    if (manifest.cap !== CAP || JSON.stringify(manifest.settings) !== JSON.stringify(VOICE_SETTINGS) || JSON.stringify(manifest.lines) !== JSON.stringify(LINES)) throw new Error('Experiment settings changed.');
+    const savedVariants = manifest.variantSettings ?? Object.fromEntries(models.map(m => [m.id, manifest.settings])); // Older manifests: one shared setting.
+    if ((manifest.experiment ?? 'default') !== experimentName || manifest.cap !== cap || JSON.stringify(manifest.settings) !== JSON.stringify(VOICE_SETTINGS) || JSON.stringify(savedVariants) !== JSON.stringify(variantSettings) || JSON.stringify(manifest.lines) !== JSON.stringify(LINES)) throw new Error('Experiment settings changed.');
   } else {
     const design = buildDesign(plan);
     key = design.key;
     manifest = {
-      createdAt: new Date().toISOString(), cap: CAP, estimatedCredits, before: current, settings: VOICE_SETTINGS, lines: LINES,
+      createdAt: new Date().toISOString(), cap, estimatedCredits, before: current, experiment: experimentName, storageKey: experiment.storageKey, settings: VOICE_SETTINGS, variantSettings, lines: LINES,
       format: OUTPUT_ENCODING, streamingLatency: STREAMING_LATENCY, languageCode: LANGUAGE_CODE ?? null, verifiedFrench,
       pairs: design.pairs, clips: design.clips, status: 'running',
     };
@@ -312,7 +337,7 @@ async function main(argv) {
   checkpoint();
 
   const modelOf = id => key.clips[id];
-  const rateOf = id => MODELS.find(m => m.id === modelOf(id));
+  const rateOf = id => models.find(m => m.id === modelOf(id));
   const voiceIds = ELEVEN_VOICES;
   const accountedOf = () => Object.values(manifest.clips).reduce((n, c) => n + (c.status === 'complete' ? (Number.isFinite(c.credits) ? c.credits : c.estimatedCredits) : c.status === 'pending' ? c.estimatedCredits : 0), 0);
   let accounted = accountedOf();
@@ -326,14 +351,14 @@ async function main(argv) {
         continue;
       }
       if (clip.sent) throw new Error(`Uncertain earlier request for ${id}; do not regenerate automatically.`);
-      if (accounted > CAP) throw new Error('Credit guard reached; no further request sent.');
+      if (accounted > cap) throw new Error('Credit guard reached; no further request sent.');
       const text = LINES[clip.line];
       if (chars(text) !== clip.chars || !rateOf(id)) throw new Error('Sample content changed.');
       clip.sent = true;
       checkpoint(); // Recorded before the billed request, including timeout and crash cases.
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceIds[clip.voice]}?output_format=${OUTPUT_ENCODING}&optimize_streaming_latency=${STREAMING_LATENCY}`, {
         method: 'POST', headers, signal: AbortSignal.timeout(45000),
-        body: JSON.stringify({ text, model_id: modelOf(id), voice_settings: VOICE_SETTINGS, ...(LANGUAGE_CODE ? { language_code: LANGUAGE_CODE } : {}) }),
+        body: requestBody(rateOf(id), text),
       });
       if (!response.ok) throw new Error(`Synthesis HTTP ${response.status}; no retry.`);
       const pcm = Buffer.from(await response.arrayBuffer());

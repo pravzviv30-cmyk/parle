@@ -35,7 +35,9 @@
  * /v2/voices and check the pair. A voice's name tells you nothing.
  */
 
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { AudioByteStream, getBaseLanguage, tts } from '@livekit/agents';
 import * as elevenlabs from '@livekit/agents-plugin-elevenlabs';
 import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey, type TutorVoiceKey } from '@luvani/core';
 import { CachedTTS, type CachedTTSOptions } from './ttsCache.ts';
@@ -118,6 +120,77 @@ export function synthesisProbeRequest(voiceId: string): { url: string; body: str
       voice_settings: VOICE_SETTINGS,
       ...(LANGUAGE_CODE ? { language_code: LANGUAGE_CODE } : {}),
     }),
+  };
+}
+
+/** The plugin's own default when no paid proxy is in front of the vendor. */
+const ELEVEN_BASE_URL = 'https://api.elevenlabs.io/v1';
+
+/** The most previous-sentence context the vendor request (and the paid proxy) accepts, in UTF-8 bytes. */
+const PREVIOUS_TEXT_MAX_BYTES = 600;
+
+/** The end of the previous sentence, cut from the front at a space so it fits; '' when nothing fits. */
+function boundPrevious(text: string): string {
+  let kept = text;
+  while (Buffer.byteLength(kept) > PREVIOUS_TEXT_MAX_BYTES) {
+    const space = kept.search(/\s/);
+    if (space < 0) return '';
+    kept = kept.slice(space + 1);
+  }
+  return kept;
+}
+
+/**
+ * The stitched request for LUVANI_TTS_STITCH: the plugin's own HTTP request (same
+ * URL, headers and body, built from the same pinned constants) plus `previous_text`,
+ * which the plugin has no hook to add. Decoded exactly as the plugin does. A
+ * refused or non-audio answer throws before any audio, and the cache then asks the
+ * plain path for the line. `request` is injectable for the unit test only.
+ */
+export function elevenStitchedRequest(
+  { voiceId, baseURL, apiKey, voiceSettings }: { voiceId: string; baseURL: string; apiKey: string; voiceSettings: Readonly<elevenlabs.VoiceSettings> },
+  request: typeof fetch = fetch,
+): NonNullable<CachedTTSOptions['stitch']> {
+  const url = `${baseURL}/text-to-speech/${voiceId}/stream?output_format=${OUTPUT_ENCODING}&enable_logging=false&optimize_streaming_latency=${STREAMING_LATENCY}`;
+  const sampleRate = Number(OUTPUT_ENCODING.split('_')[1]);
+  return async function* (text, previousText, model, signal) {
+    const previous = boundPrevious(previousText);
+    const requestId = randomUUID();
+    const bstream = new AudioByteStream(sampleRate, 1);
+    let last: tts.SynthesizedAudio['frame'] | undefined;
+    try {
+      const response = await request(url, {
+        method: 'POST',
+        headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text, model_id: model, voice_settings: voiceSettings, apply_text_normalization: 'auto',
+          ...(LANGUAGE_CODE ? { language_code: getBaseLanguage(LANGUAGE_CODE) } : {}),
+          ...(previous ? { previous_text: previous } : {}),
+        }),
+        signal,
+      });
+      if (!response.ok) { await response.body?.cancel(); throw new Error(`stitched TTS request refused (${response.status})`); }
+      if (!(response.headers.get('content-type') ?? '').startsWith('audio/')) { await response.body?.cancel(); throw new Error('stitched TTS answer was not audio'); }
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('stitched TTS answer had no body');
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const frame of bstream.write(value)) {
+          if (last) yield { requestId, segmentId: requestId, frame: last, final: false };
+          last = frame;
+        }
+      }
+      for (const frame of bstream.flush()) {
+        if (last) yield { requestId, segmentId: requestId, frame: last, final: false };
+        last = frame;
+      }
+      if (last) yield { requestId, segmentId: requestId, frame: last, final: true };
+    } catch (error) {
+      // The plugin ends quietly on an abort; so does this.
+      if (error instanceof Error && error.name === 'AbortError') return;
+      throw error;
+    }
   };
 }
 
@@ -218,6 +291,11 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, conversationTie
     dir,
     voiceKey: `elevenlabs:${voiceId}:${inner.model}:${fingerprint}`,
     ...(conversationInner ? { conversation: { inner: conversationInner, voiceKey: `elevenlabs:${voiceId}:${conversationInner.model}:${fingerprint}` } } : {}),
+    // Sentence stitching: off unless exactly 1, ElevenLabs only. It carries no
+    // quote identity and changes no cache key; authored lines never use it.
+    ...(process.env.LUVANI_TTS_STITCH === '1'
+      ? { stitch: elevenStitchedRequest({ voiceId, baseURL: baseURL ?? ELEVEN_BASE_URL, apiKey: baseURL ? 'proxy-only' : process.env.ELEVEN_API_KEY ?? '', voiceSettings }) }
+      : {}),
     ...hooks,
   };
   return new CachedTTS(inner, opts);

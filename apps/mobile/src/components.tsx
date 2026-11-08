@@ -692,7 +692,7 @@ export function TabBar<K extends string>({
         return (
           <Press haptic="selection" frame={s.segmentFrame}
             key={tab.key}
-            style={[s.tab, appearance === 'segments' && isActive && s.tabActive, appearance === 'underline' && { borderBottomWidth: 2, borderBottomColor: isActive ? accent.brand : 'transparent', borderRadius: 0 }]}
+            style={[s.tab, appearance === 'segments' && isActive && s.tabActive, appearance === 'underline' && { borderBottomWidth: 2, borderBottomColor: isActive ? t.brandMark : 'transparent', borderRadius: 0 }]}
             onPress={() => onChange(tab.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
@@ -2471,7 +2471,7 @@ export function IconAction({
   const surface = tile
     ? {
         backgroundColor: disabled ? t.skeleton : on ? (warm ? colour.sun : t.mode === 'light' ? onColour.blue : t.lavender) : t.card,
-        borderColor: on ? (warm ? colour.sun : accent.brand) : 'transparent',
+        borderColor: on ? (warm ? colour.sun : t.brandMark) : 'transparent',
       }
     : null;
   const variant = tile || on ? 'bulk' : 'linear';
@@ -2499,7 +2499,7 @@ export function IconAction({
       ) : animate !== undefined ? (
         <AnimatedIcon kind={animate} size={iconSize} color={mark} state={on ? 'on' : 'off'} trigger={trigger} />
       ) : (
-        <Icon name={icon} variant={variant} size={iconSize} color={mark} secondaryColor={tile && !on && !disabled ? accent.brand : undefined} />
+        <Icon name={icon} variant={variant} size={iconSize} color={mark} secondaryColor={tile && !on && !disabled ? t.brandMark : undefined} />
       )}
       <Text style={[tile ? type.small : type.label, { color: words }, tile && ic.tileWords]}>{label}</Text>
     </Press>
@@ -2617,9 +2617,9 @@ export function Choice({
   // paper or a card it is themed (UI-008, 2026-10-20).
   const onColourGround = on === 'blue' || on === 'sun';
   const filled = selected && !outlined;
-  const fill = filled ? (sunny ? colour.sun : accent.brand) : on === 'card' ? t.ground : onColourGround ? paper.card : t.card;
+  const fill = filled ? (sunny ? colour.sun : t.brandMark) : on === 'card' ? t.ground : onColourGround ? paper.card : t.card;
   const words = filled ? (sunny ? paper.ink : paper.onInk) : onColourGround ? paper.ink : t.text;
-  const quiet = filled ? (sunny ? onColour.sun : onColour.blue) : onColourGround ? paper.inkSoft : t.muted;
+  const quiet = filled ? (sunny ? onColour.sun : t.mode === 'light' ? onColour.blue : t.onBrand) : onColourGround ? paper.inkSoft : t.muted;
   const rest = onColourGround ? paper.card : t.card;
   const titleStyle = lang === 'fr' ? type.french : outlined ? type.heading : compact ? type.label : type.bodyStrong;
   const disc = (
@@ -2647,7 +2647,7 @@ export function Choice({
       accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
       onPress={onPress}
       frame={onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share}
-      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : rest) : selected ? fill : onColourGround ? paper.field : t.field }]}
+      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? t.brandMark : rest) : selected ? fill : onColourGround ? paper.field : t.field }]}
     >
       {head != null ? <TileOnChosen.Provider value={selected}>{head}</TileOnChosen.Provider> : null}
       <View style={isTile ? ch.tileWords : ch.words}>

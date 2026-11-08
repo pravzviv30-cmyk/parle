@@ -20,9 +20,12 @@ Streaming, pay as you go:
 |---|---|---|
 | Nova-3 Monolingual (lessons and in-scene, `fr`) | $0.0048 | $0.0077 |
 | Nova-3 Multilingual (topic choice, `multi`) | $0.0058 | $0.0092 |
+| Flux Multilingual (every session kind since 2026-11-07, `flux-general-multi`) | not shown | $0.0078 |
+
+The pricing page read on 2026-11-07 no longer shows a promo column, so the Flux row carries the regular price only.
 
 - **Promo end date:** the page says "Limited-time promotional rates on streaming" and gives no end date. The cost model uses the regular price.
-- **Keyterm Prompting** is a billed add-on, and the direct conversation path sends keyterms (`agent.ts` `setSttPhrases`). The pricing page did not render its rate as text. A third-party comparison (soniox.com) puts it at about $0.0013 per minute. That figure is unverified.
+- **Keyterm Prompting** is a billed add-on, and the direct conversation path sends keyterms (`agent.ts` `setSttPhrases`). The pricing page read on 2026-11-07 lists it at $0.0013 per minute, pay as you go (it was unverified before; a third-party comparison had put it near that). The page gives no Flux-specific add-on rate, so the quotes price a Flux keyterm stream at $0.0078 + $0.0013 = $0.0091.
 - **Audio is billed by duration, silence included.** Deepgram hears every second the learner's mic is published, including while the tutor speaks.
 
 ## LLM: OpenAI (`packages/brain/src/llm/pricing.ts`, standard tier)

@@ -100,7 +100,7 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
       header={header}
       eyebrow={drill.title}
       prompt={<View style={st.word}>
-        <DrillPrompt center><Text {...frenchText} style={type.frenchLg}>{step.word}</Text></DrillPrompt>
+        <DrillPrompt center><Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>{step.word}</Text></DrillPrompt>
         <Text style={[type.notation, { color: t.muted }]}>/{step.ipa}/</Text>
         <Text style={[type.body, { color: t.muted }]}>{step.gloss}</Text>
       </View>}

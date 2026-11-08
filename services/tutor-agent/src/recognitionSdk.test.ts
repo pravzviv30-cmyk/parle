@@ -129,8 +129,8 @@ test('the real SDK lesson query under the proxy hashes to keytermSttConfiguratio
   const address = server.address();
   assert.ok(address && typeof address !== 'string');
   const baseUrl = `ws://127.0.0.1:${address.port}`;
-  const recognition = recognitionPlan('lesson', 'fr', {});
-  assert.equal(recognition.experimental, false);
+  const recognition = recognitionPlan('lesson', 'fr', { LUVANI_STT_NOVA_KINDS: 'lesson' });
+  assert.equal(recognition.flux, false);
   const keyterm = lessonKeyterms(CAFE_LESSON);
   // agent.ts's construction under the proxy, with the proxy URL swapped for the fixture.
   const recognizer = new deepgram.STT({ ...recognition.options, keyterm, baseUrl, apiKey: 'proxy-only', sampleRate: 16000, numChannels: 1, mipOptOut: true });
@@ -149,4 +149,41 @@ test('the real SDK lesson query under the proxy hashes to keytermSttConfiguratio
   assert.equal((identity.configuration.parameters as Record<string, string>).keyterm, 'prompted');
   const plain = new URL(url.href); plain.searchParams.delete('keyterm');
   assert.equal(paidConfigurationSha256(identity), keytermSttConfigurationSha256(plain.search));
+});
+
+test('the real SDK Flux lesson query under the proxy hashes to keytermSttConfigurationSha256 of its plain query', { timeout: 10_000 }, async t => {
+  // The Flux twin: what the installed plugin sends on /v2/listen is what the proxy hashes and the quote capture books.
+  const server = new WebSocketServer({ host: '127.0.0.1', port: 0 });
+  t.after(async () => {
+    for (const socket of server.clients) socket.terminate();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  });
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const baseUrl = `ws://127.0.0.1:${address.port}`;
+  const recognition = recognitionPlan('lesson', 'fr', {});
+  assert.equal(recognition.flux, true);
+  // agent.ts's Flux construction under the proxy, with the proxy URL swapped for the fixture.
+  const recognizer = new deepgram.STTv2({ ...recognition.options, keyterms: lessonKeyterms(CAFE_LESSON), endpointUrl: baseUrl + '/v2/listen', apiKey: 'proxy-only', mipOptOut: true });
+  const agent = new voice.Agent({ instructions: 'Offline recognition wiring proof.' });
+  const session = new voice.AgentSession({ stt: recognizer, turnDetection: 'manual' });
+  t.after(() => session.close());
+  const input = new SilentInput();
+  session.input.audio = input;
+  const connection = once(server, 'connection');
+  await session.start({ agent, record: false });
+  input.push();
+  const [, request] = await connection as [TestSocket, IncomingMessage];
+  assert.ok(request.url);
+  const url = new URL(request.url, 'wss://api.deepgram.com');
+  assert.equal(url.pathname, '/v2/listen');
+  const { quantities: _quantities, ...identity } = describeStreamingDeepgram(url, 1);
+  assert.equal((identity.configuration.parameters as Record<string, string>).keyterm, 'prompted');
+  const plain = new URL(url.href); plain.searchParams.delete('keyterm');
+  assert.equal(paidConfigurationSha256(identity), keytermSttConfigurationSha256(plain.search, '/v2/listen'));
+  const { configuration } = describeStreamingDeepgram(plain, 1);
+  const parameters = configuration.parameters as Record<string, unknown>;
+  assert.deepEqual(parameters.language_hint, ['en', 'fr']);
+  assert.equal('keyterm' in parameters, false);
 });

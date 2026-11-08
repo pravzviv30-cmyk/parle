@@ -12,6 +12,8 @@ export interface RuntimeLifecycle {
   readonly maxSeconds: number;
   readonly signal: AbortSignal;
   elapsedSeconds(): number;
+  /** True once the room stopped because the hard deadline arrived; a lease or call failure leaves it false. */
+  readonly stoppedAtDeadline: boolean;
   freezeBillingCutoff?(): void;
   assertActive(): void;
   checkpoint(report: RuntimeReport, acknowledged?: () => void): Promise<void>;
@@ -103,6 +105,7 @@ export class SessionLifecycle implements RuntimeLifecycle {
   #tail: Promise<unknown> = Promise.resolve();
   #completion: Promise<SettlementResult> | undefined;
   #failed = false;
+  #atDeadline = false;
   #closing = false;
   #onStop: (() => void) | undefined;
   #stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -121,6 +124,7 @@ export class SessionLifecycle implements RuntimeLifecycle {
   }
   paidIdentity():Readonly<{userId:string;sessionId:string;claimNonce:string}> {this.assertActive();return Object.freeze({userId:this.#identity.userId,sessionId:this.#identity.sessionId,claimNonce:this.#nonce});}
   get maxSeconds(): number { return this.#maximum; }
+  get stoppedAtDeadline(): boolean { return this.#atDeadline; }
   freezeBillingCutoff(): void { this.#billingCutoff ??= this.elapsedSeconds(); }
   elapsedSeconds(): number {
     if (this.#billingCutoff !== undefined) return this.#billingCutoff; return Math.min(this.#maximum, Math.max(0, Math.floor((this.#now() - this.#started) / 1_000))); }
@@ -138,17 +142,20 @@ export class SessionLifecycle implements RuntimeLifecycle {
     this.#stopTimer = this.#heartbeatTimer = undefined;
     this.#abort.abort();
   }
-  private fail(): void { if (this.#failed || this.#closing) return; this.#failed = true; this.stop(); this.notifyStop(); }
+  private fail(): void {
+    if (this.#failed || this.#closing) return;
+    this.#failed = true; this.#atDeadline = this.#hardStop > 0 && this.#now() >= this.#hardStop; this.stop(); this.notifyStop();
+  }
   private enqueue<T>(work: () => Promise<T>): Promise<T> {
     const result = this.#tail.then(work, work); this.#tail = result.catch(() => {}); return result;
   }
-  private async invoke(operation: Operation, payload: Row, attempts = 2): Promise<{ result: Row; sent: number; received: number }> {
+  private async invoke(operation: Operation, payload: Row, attempts = 2, timeoutMs = this.#options.timeoutMs ?? 3_000): Promise<{ result: Row; sent: number; received: number }> {
     // Frozen serialized contents, including explicit nulls, survive every retry.
     const immutable = canonicalJson(payload);
     for (let attempt = 0; attempt < attempts; attempt++) {
       const sent = this.#now();
       const available = operation === 'checkpoint' ? Math.min(this.#leaseStop, this.#hardStop) - sent : Infinity;
-      const timeout = Math.min(this.#options.timeoutMs ?? 3_000, available);
+      const timeout = Math.min(timeoutMs, available);
       if (timeout <= 0) throw new SessionLifecycleError();
       const controller = new AbortController();
       let rejectStop: (error: unknown) => void = () => {};
@@ -220,7 +227,8 @@ export class SessionLifecycle implements RuntimeLifecycle {
     ...payload, digest: tutorDigest(payload) }; }
   async heartbeat(): Promise<void> {
     return this.enqueue(async () => {
-      try { this.assertActive(); await this.sendCheckpoint(this.#ack); }
+      // Three lease-bounded tries, so one slow token server answer is not the end of the lesson.
+      try { this.assertActive(); await this.sendCheckpoint(this.#ack, undefined, true); }
       catch { this.fail(); throw new SessionLifecycleError(); }
     });
   }
@@ -232,9 +240,11 @@ export class SessionLifecycle implements RuntimeLifecycle {
       catch { this.fail(); throw new SessionLifecycleError(); }
     });
   }
-  private async sendCheckpoint(payload: Row, acknowledged?: () => void): Promise<void> {
+  private async sendCheckpoint(payload: Row, acknowledged?: () => void, heartbeat = false): Promise<void> {
     this.#uncertain = payload; this.#uncertainAcknowledged = acknowledged;
-    const { result, sent } = await this.invoke('checkpoint', this.wire(payload));
+    const { result, sent } = heartbeat
+      ? await this.invoke('checkpoint', this.wire(payload), 3, this.#options.timeoutMs ?? 5_000)
+      : await this.invoke('checkpoint', this.wire(payload));
     if (result.kind !== 'checkpointed' || result.sessionId !== this.#identity.sessionId || result.revision !== payload.revision) throw new SessionLifecycleError();
     this.deadlines(result, sent);
     this.#revision = Number(payload.revision); this.#ack = payload; this.#uncertain = undefined;

@@ -9,7 +9,8 @@
  * display only), so the moment the string value of `fr` inside the top-level
  * `sceneReply` has closed, the text received so far plus two closing braces is
  * a complete JSON object holding exactly the spoken fields. It is parsed and
- * validated against `EarlySpokenTurnSchema`, the same rules the full turn is
+ * validated against `EarlySpokenTurnSchema` (or its reply-first twin, which the
+ * client passes in when `coach` streams after the reply), the same rules the full turn is
  * held to, and handed over only if it passes. Anything unexpected (a different
  * key order, a value that does not validate, malformed text) simply means no
  * early hand-over: the full turn still arrives and is handled exactly as before.
@@ -20,6 +21,7 @@
  * key anywhere else (the narration, a coach item) never triggers it.
  */
 
+import type { z } from 'zod/v4';
 import { EarlySpokenTurnSchema } from '../contract/schemas.ts';
 import type { EarlySpokenTurn } from '../contract/types.ts';
 
@@ -29,6 +31,10 @@ export const LAST_SPOKEN_FIELD = 'sceneReply';
 export const LAST_SPOKEN_KEY = 'fr';
 
 export class SpokenFieldsWatcher {
+  private readonly schema: z.ZodType<EarlySpokenTurn>;
+
+  constructor(schema: z.ZodType<EarlySpokenTurn> = EarlySpokenTurnSchema) { this.schema = schema; }
+
   private text = '';
   private scanned = 0;
   private inString = false;
@@ -101,7 +107,7 @@ export class SpokenFieldsWatcher {
   private handOver(end: number): EarlySpokenTurn | null {
     this.done = true;
     this.scanned = this.text.length;
-    return earlySpokenFrom(this.text.slice(0, end));
+    return earlySpokenFrom(this.text.slice(0, end), this.schema);
   }
 }
 
@@ -109,9 +115,9 @@ export class SpokenFieldsWatcher {
  * The leading text of a turn, ending just after the closing quote of
  * `sceneReply.fr`, closed (reply object, then turn) and validated, or null.
  */
-export function earlySpokenFrom(prefix: string): EarlySpokenTurn | null {
+export function earlySpokenFrom(prefix: string, schema: z.ZodType<EarlySpokenTurn> = EarlySpokenTurnSchema): EarlySpokenTurn | null {
   try {
-    const parsed = EarlySpokenTurnSchema.safeParse(JSON.parse(`${prefix.trimEnd()}}}`));
+    const parsed = schema.safeParse(JSON.parse(`${prefix.trimEnd()}}}`));
     return parsed.success ? parsed.data : null;
   } catch {
     return null;

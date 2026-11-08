@@ -14,6 +14,7 @@ import { repairGuestPractice, type GuestPractice, type GuestAttempt } from './gu
 import { keepFinishes, starterMinutes } from './guestProgress.ts';
 import { starterFailure } from './firstRun/speech.ts';
 import { GUEST_SCENE, GuestClaimRefused, claimRefusalOf, trustedSceneTurns } from './guestScene.ts';
+import { LearnerError } from '../copy/errorCopy.ts';
 import type { GuestSceneTurnId } from '@luvani/core';
 export type { GuestPractice, GuestAttempt } from './guestModel.ts';
 let writes: Promise<unknown> = Promise.resolve();
@@ -238,7 +239,7 @@ export async function claimGuestPractice(
   }
   const data = (await response.json()) as { secondsRemaining?: unknown; sceneTurns?: unknown };
   if (typeof data.secondsRemaining !== 'number')
-    throw new Error('Your minutes could not be checked yet.');
+    throw new LearnerError('Your minutes could not be checked yet.');
   return { secondsRemaining: data.secondsRemaining, sceneTurns: guest.live?.scene ? trustedSceneTurns(data.sceneTurns, local) : [] };
 }
 

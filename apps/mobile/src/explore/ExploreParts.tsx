@@ -96,7 +96,7 @@ export function FilterRow<K extends string>({ filters, chosen, onToggle }: { fil
       {filters.map(f => {
         const on = chosen.has(f.key);
         return (
-          <Press key={f.key} haptic="selection" accessibilityRole="button" accessibilityLabel={f.label} accessibilityState={{ selected: on }} hitSlop={{ top: 3, bottom: 3 }} onPress={() => onToggle(f.key)} style={[s.chip, { backgroundColor: on ? t.brand : t.card }]}>
+          <Press key={f.key} haptic="selection" accessibilityRole="button" accessibilityLabel={f.label} accessibilityState={{ selected: on }} hitSlop={{ top: 3, bottom: 3 }} onPress={() => onToggle(f.key)} style={[s.chip, { backgroundColor: on ? t.brandMark : t.card }]}>
             {on ? <TickGlyph size={14} color={t.onBrand} /> : null}
             <Text style={[on ? bType.bold14 : bType.semi14, { color: on ? t.onBrand : t.text }]}>{f.label}</Text>
           </Press>

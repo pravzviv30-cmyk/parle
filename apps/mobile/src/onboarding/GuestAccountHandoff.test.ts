@@ -21,6 +21,7 @@ import { onboardingProgress } from './onboardingProgress.ts';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { guestScenePhrases, phraseKeyOf, type GuestSceneTurnId } from '@luvani/core';
+import { LearnerError, errorCopy } from '../copy/errorCopy.ts';
 import { GuestClaimRefused, claimRefusalCopy, claimRefusalIsFinal, claimRefusalOf, scenePhrasebookEntries } from './guestScene.ts';
 import { repairFirstLiveRecord } from './firstLiveModel.ts';
 import { guestPracticeCompletes } from '../wall/launchWall.ts';
@@ -159,7 +160,7 @@ async function runHandoff(guest: Partial<GuestPractice>, claim: () => Promise<{ 
     settleGuestHandoff: async () => { calls.push('settle'); return { ack: 'durable' }; },
     loadArrival: async () => null, saveArrival: async () => { calls.push('arrival'); },
     fetchBillingStatus: async () => null, clearGuestPractice: async () => { calls.push('clear'); },
-    GuestClaimRefused, claimRefusalIsFinal,
+    GuestClaimRefused, claimRefusalIsFinal, LearnerError, errorCopy,
     guestPracticeCompletes, markConversationDone: async () => { calls.push('conversation-done'); return true; },
   };
   const body = which === 'keep' ? `${keepSource}; return keep();` : `${finishSource}; return finish();`;
@@ -243,5 +244,17 @@ describe('the café scene hand-off', () => {
     assert.doesNotMatch(JSON.stringify(record), /je voudrais|free text/);
     for (const bad of [{ sceneTurns: ['t1-greet', 'made-up'] }, { pack: {} }, { scene: 'other' }, { completedAt: null }])
       assert.equal(repairFirstLiveRecord({ brief, sessionId, outcome: 'completed', seconds: 90, completedAt: 1, pack: null, scene: 'guest-cafe', sceneTurns: ['t1-greet'], contributions: [], ...bad }), null);
+  });
+});
+
+describe('the hand-off error line', () => {
+  test('a caught message never reaches the screen, and Luvani\'s own sentences are LearnerErrors', () => {
+    const handoff = readFileSync(new URL('./GuestAccountHandoff.tsx', import.meta.url), 'utf8');
+    assert.match(handoff, /setError\(errorCopy\(cause, 'Your practice could not be linked yet\.'\)\)/);
+    assert.doesNotMatch(handoff, /instanceof Error \? cause\.message/);
+    assert.doesNotMatch(handoff, /throw new Error\(/, 'a plain Error here is replaced by the fallback, so the sentence is never read.');
+    assert.equal((handoff.match(/throw new LearnerError\(/g) ?? []).length, 4);
+    const practice = readFileSync(new URL('./guestPractice.ts', import.meta.url), 'utf8');
+    assert.match(practice, /throw new LearnerError\('Your minutes could not be checked yet\.'\)/);
   });
 });

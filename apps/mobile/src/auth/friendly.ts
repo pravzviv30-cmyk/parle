@@ -89,7 +89,7 @@ export type ProviderFailure = {
 const CREDENTIALS = 'That email and password do not match an account.';
 const ALREADY_REGISTERED = 'That email already has an account. Sign in instead.';
 const NOT_CONFIRMED = 'That email has not been confirmed yet. Check your inbox for the confirmation link.';
-const CONNECTION = 'The connection dropped. Check your internet and try again.';
+export const CONNECTION = 'The connection dropped. Check your internet and try again.';
 // No duration: a GoTrue rate limit window is set per project and this repo does
 // not hold that setting, so any number here would be a guess dressed as a fact.
 const TOO_MANY_TRIES = 'Too many tries in a row. Wait a while, then try again.';
