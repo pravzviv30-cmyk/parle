@@ -4,7 +4,7 @@ import { SENTENCES } from './measureTtsFirstAudio.mjs';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS, BEGINNER_SPEED, OUTPUT_ENCODING } from '../services/tutor-agent/src/voiceConfiguration.ts';
 import {
   V4_MODEL, FLASH_MODEL, STORAGE_KEY, VOICE, buildListen, buildSchedule, checkSpend, dialogueInit, dialogueUrl,
-  frenchVerified, fromState, httpBody, parseArgs, pendingRuns, plannedChars, runErrorOutcome, settled, toState, speedVerdict, summarise, usageByModel, worstCaseCredits,
+  frenchVerified, fromState, httpBody, parseArgs, pendingRuns, plannedChars, runErrorOutcome, sumUsage, toState, speedVerdict, summarise, usageByModel, worstCaseCredits,
 } from './ttsV4TurboCheck.mjs';
 
 test('parseArgs reads positionals and flags, and rejects bad ones', () => {
@@ -71,6 +71,8 @@ test('speedVerdict bands: honoured, ignored, inconclusive, rejected', () => {
   assert.equal(ratio(1.07).verdict, 'inconclusive');
   assert.equal(ratio(1.1).verdict, 'honoured');
   assert.equal(ratio(1.05).verdict, 'ignored');
+  assert.equal(ratio(0.95).verdict, 'ignored');
+  assert.equal(ratio(0.94).verdict, 'inconclusive');
   assert.equal(speedVerdict([10, 10], [11.7, 11.7]).ratios.length, 2);
   assert.deepEqual(speedVerdict(null, null, 'boom'), { verdict: 'rejected', error: 'boom' });
 });
@@ -130,34 +132,25 @@ test('buildListen makes 12 blind pairs from the audio already collected', () => 
   assert.equal(Object.keys(ELEVEN_VOICES).includes(VOICE), true);
 });
 
-test('the balance has settled when the last two reads agree and differ from before', () => {
-  assert.equal(settled([], 100), false);
-  assert.equal(settled([100], 100), false);
-  assert.equal(settled([100, 100], 100), false); // lagging: nothing moved yet
-  assert.equal(settled([100, 150], 100), false);
-  assert.equal(settled([100, 150, 150], 100), true);
-});
-
 test('usageByModel keeps the usage object and reports any other shape as an error', () => {
   assert.deepEqual(usageByModel({ usage: { [MODEL]: [814] } }), { [MODEL]: [814] });
   for (const bad of [null, {}, { usage: [1] }, { usage: null }]) assert.deepEqual(usageByModel(bad), { error: 'unexpected response shape' });
 });
 
-test('toState and fromState round-trip samples, credits, rejection and the listen audio', () => {
+test('toState and fromState round-trip samples, rejection and the listen audio', () => {
   const N = SENTENCES.length;
   const samples = Array.from({ length: 3 * N }, (_, i) => ({ sentence: i % N, cold: i < N, firstMs: i, lastMs: i + 5, bytes: 4, seconds: 0.1, pcm: Buffer.from([i, 1, 2, 3]) }));
-  const credits = { before: 1, after: 9, delta: 8, perChar: 0.5, settled: true };
   const [v4, , , speed] = buildSchedule();
-  const st = JSON.parse(JSON.stringify(toState(v4, { samples, credits })));
+  const st = JSON.parse(JSON.stringify(toState(v4, { samples })));
   assert.equal(st.name, 'v4turbo');
   assert.ok(st.samples.every((x) => !('pcm' in x)));
   assert.equal(st.listenPcm.length, N);
   assert.deepEqual(st.listenPcm.map((b) => Buffer.from(b, 'base64')), samples.slice(N, 2 * N).map((x) => x.pcm));
   const back = fromState(st);
-  assert.deepEqual(back.credits, credits);
+  assert.ok(!('credits' in st) && !('credits' in back));
   assert.deepEqual(back.samples.slice(N, 2 * N).map((x) => x.pcm), samples.slice(N, 2 * N).map((x) => x.pcm));
   assert.deepEqual(back.samples.map(({ pcm, ...x }) => x), samples.map(({ pcm, ...x }) => x));
-  assert.equal(toState(speed, { samples, credits }).listenPcm, undefined);
+  assert.equal(toState(speed, { samples }).listenPcm, undefined);
   const rej = JSON.parse(JSON.stringify(toState(speed, { rejected: 'no' })));
   assert.deepEqual(fromState(rej), { rejected: 'no' });
 });
@@ -167,6 +160,8 @@ test('pendingRuns drops finished runs, and the spend check counts only the pendi
   const pending = pendingRuns(runs, ['v4turbo', 'v2']);
   assert.deepEqual(pending.map((r) => r.name), ['flash', 'v4turbo-speed', 'v4turbo-today-speed']);
   assert.equal(plannedChars(pending), 2442 + 1628);
+  assert.throws(() => checkSpend(pending, 4069), /4070.*--max-chars 4069/);
+  assert.equal(checkSpend(pending, 4070), 4070);
   assert.deepEqual(pendingRuns(runs, runs.map((r) => r.name)), []);
 });
 
@@ -189,4 +184,16 @@ test('buildListen with no rng puts each model first in exactly 6 of the 12 pairs
     seen.add(pairs.map((p) => p.A).join());
   }
   assert.ok(seen.size > 1, 'the order is shuffled, not fixed');
+});
+
+test('sumUsage adds every element per model across the saved reads and skips error reads', () => {
+  const w = { start: 1, end: 2 };
+  const reads = [
+    { window: w, usage: { [MODEL]: [800, 14], [V4_MODEL]: [100] } },
+    { window: w, error: 'refused' },
+    { window: w, usage: { [V4_MODEL]: [20], [FLASH_MODEL]: [5] } },
+  ];
+  assert.deepEqual(sumUsage(reads), { [MODEL]: 814, [V4_MODEL]: 120, [FLASH_MODEL]: 5 });
+  assert.deepEqual(sumUsage([]), {});
+  assert.deepEqual(sumUsage([{ window: w, error: 'x' }]), {});
 });

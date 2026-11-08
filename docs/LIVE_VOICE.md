@@ -1174,8 +1174,8 @@ set on v4 Turbo today. Its own pace is a little slower: median 3.52 s a sentence
 
 Billing (`/v1/usage/character-stats` by model): v2 0.40 credits a character (matches the
 HTTP `character-cost` headers), Flash 0.20, v4 Turbo 0.20. The socket reports no
-characters. The per-run balance deltas in the JSON lagged (`settled: false`) and are not
-per-model costs. All six tutor voices are verified for French on all three models. The
+characters, and the account balance lags by more than 30 s, so the usage read is the only
+per-model cost for v4 Turbo. All six tutor voices are verified for French on all three models. The
 socket accepted `pcm_22050` and `enable_logging=false`.
 
 An adapter would need (not built): its own TTS class over the dialogue socket (the LiveKit

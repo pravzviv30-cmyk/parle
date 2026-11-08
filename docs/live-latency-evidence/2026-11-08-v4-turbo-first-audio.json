@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T14:07:32.453Z",
+  "generatedAt": "2026-11-08T14:17:18.438Z",
   "network": "developer Mac, direct to api.elevenlabs.io, off the paid proxy",
   "voice": "alexandre",
   "outputFormat": "pcm_22050",
@@ -21,13 +21,6 @@
       "transport": "dialogue",
       "voiceSettings": null,
       "chars": 2442,
-      "credits": {
-        "before": 5071,
-        "after": 5071,
-        "delta": 0,
-        "perChar": 0,
-        "settled": false
-      },
       "summary": {
         "n": 36,
         "cold": {
@@ -428,13 +421,6 @@
         "use_speaker_boost": true
       },
       "chars": 2442,
-      "credits": {
-        "before": 5071,
-        "after": 5572,
-        "delta": 501,
-        "perChar": 0.20515970515970516,
-        "settled": true
-      },
       "summary": {
         "n": 36,
         "cold": {
@@ -802,13 +788,6 @@
         "use_speaker_boost": true
       },
       "chars": 2442,
-      "credits": {
-        "before": 5572,
-        "after": 7042,
-        "delta": 1470,
-        "perChar": 0.601965601965602,
-        "settled": true
-      },
       "summary": {
         "n": 36,
         "cold": {
@@ -1173,13 +1152,6 @@
         "speed": 0.85
       },
       "chars": 814,
-      "credits": {
-        "before": 7042,
-        "after": 7209,
-        "delta": 167,
-        "perChar": 0.20515970515970516,
-        "settled": false
-      },
       "summary": {
         "n": 12,
         "cold": {
@@ -1326,13 +1298,6 @@
         "speed": 0.85
       },
       "chars": 814,
-      "credits": {
-        "before": 7209,
-        "after": 7209,
-        "delta": 0,
-        "perChar": 0,
-        "settled": false
-      },
       "summary": {
         "n": 12,
         "cold": {
@@ -1517,20 +1482,29 @@
       ]
     }
   },
+  "usageReads": [
+    {
+      "window": {
+        "start": 1794146620903,
+        "end": 1794146852261
+      },
+      "usage": {
+        "eleven_flash_v2_5": [
+          489
+        ],
+        "eleven_multilingual_v2": [
+          981
+        ],
+        "eleven_v4_turbo": [
+          810
+        ]
+      }
+    }
+  ],
   "usageByModel": {
-    "eleven_flash_v2_5": [
-      489
-    ],
-    "eleven_multilingual_v2": [
-      981
-    ],
-    "eleven_v4_turbo": [
-      810
-    ]
-  },
-  "usageWindow": {
-    "start": 1794146620903,
-    "end": 1794146852261
+    "eleven_flash_v2_5": 489,
+    "eleven_multilingual_v2": 981,
+    "eleven_v4_turbo": 810
   },
   "verifiedFrench": {
     "alexandre": {

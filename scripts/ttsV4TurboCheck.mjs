@@ -12,10 +12,11 @@
  *
  * What it BILLS: ElevenLabs characters. The plan is 8954 characters; --max-chars (default 9000) caps it, and
  * the worst-case credits are checked against the account balance first. v4 Turbo is listed at Flash's price but
- * unmeasured, so the guard assumes it bills like today's model; the report records what each run really cost.
+ * unmeasured, so the guard assumes it bills like today's model; the report keeps the per-model usage reads
+ * (the balance counter lags, so no per-run balance delta is kept).
  * Without --run nothing is read and no request is made: it prints the plan and stops. With --run, --state <dir>
- * (outside the repo) keeps one file per finished run, so a crash never loses a billed run: re-run the same command
- * and finished runs load from there instead of billing again.
+ * (outside the repo) keeps one file per finished run, so a failure loses at most the run in progress: re-run the same
+ * command and finished runs load from there instead of billing again.
  *
  *   node --experimental-strip-types scripts/ttsV4TurboCheck.mjs <tutor .env file> <report.json> \
  *     [--run --state <dir>] [--listen <dir> --key-dir <dir>] [--max-chars 9000]
@@ -42,7 +43,6 @@ export const STORAGE_KEY = 'tts-v4turbo-2026-11-08';
 export const DEFAULT_MAX_CHARS = 9000;
 const SETTLE_MS = 1500; // a dialogue sentence with no turn-final message ends this long after its last chunk
 const HEADROOM = 500;
-const POLL_MS = 5000, POLL_CAP_MS = 30000; // balance settle-poll: the account counter lags the run
 // v4 Turbo is listed at Flash's price but unmeasured, so the guard assumes the worst.
 const RATES = { [MODEL]: 1, [FLASH_MODEL]: 0.5, [V4_MODEL]: 1 };
 const SAMPLE_RATE = Number(OUTPUT_ENCODING.split('_')[1]);
@@ -64,7 +64,7 @@ export function parseArgs(argv) {
     else positional.push(a);
   }
   if (!(f.maxChars > 0)) throw new Error('--max-chars needs a positive number.');
-  if (f.run && !f.state) throw new Error('--run needs --state <dir>, outside the repo, so a failure never loses a billed run.');
+  if (f.run && !f.state) throw new Error('--run needs --state <dir>, outside the repo, so a failure loses at most the run in progress.');
   if (f.score !== undefined) { if (!f.score || !f.keyDir) throw new Error('--score needs a results file and --key-dir.'); }
   else if (!f.listen !== !f.keyDir) throw new Error('--listen and --key-dir go together.');
   return { envFile: positional[0], reportFile: positional[1], ...f };
@@ -106,7 +106,7 @@ export function toState(run, result) {
   if (result.rejected) return { name: run.name, rejected: result.rejected };
   const N = SENTENCES.length;
   return {
-    name: run.name, credits: result.credits, samples: result.samples.map(({ pcm, ...s }) => s),
+    name: run.name, samples: result.samples.map(({ pcm, ...s }) => s),
     ...(LISTEN_RUNS.includes(run.name) ? { listenPcm: result.samples.slice(N, 2 * N).map((s) => s.pcm.toString('base64')) } : {}),
   };
 }
@@ -115,7 +115,7 @@ export function fromState(json) {
   if (json.rejected) return { rejected: json.rejected };
   const N = SENTENCES.length, samples = json.samples.map((s) => ({ ...s }));
   (json.listenPcm ?? []).forEach((b, i) => { samples[N + i].pcm = Buffer.from(b, 'base64'); });
-  return { samples, credits: json.credits };
+  return { samples };
 }
 
 /** A vendor refusal in a finding run is the finding; a network error is not, and stops the script. */
@@ -164,8 +164,11 @@ export const dialogueInit = (voiceId, apiKey, voiceSettings) => ({
 export const frenchVerified = (voice, models = [MODEL, FLASH_MODEL, V4_MODEL]) => Object.fromEntries(
   models.map((m) => [m, (voice.verified_languages ?? []).some((l) => l.language === 'fr' && l.model_id === m)]));
 
-/** The balance counter has settled when the last two reads agree and differ from the read before the run. */
-export const settled = (reads, before) => reads.length >= 2 && reads.at(-1) === reads.at(-2) && reads.at(-1) !== before;
+/** One total per model over the saved usage reads (each value is an array; cumulative gives one element). */
+export const sumUsage = (reads) => reads.reduce((total, r) => {
+  for (const [model, values] of Object.entries(r.usage ?? {})) total[model] = (total[model] ?? 0) + [values].flat().reduce((n, v) => n + v, 0);
+  return total;
+}, {});
 
 /** Per-model usage from /v1/usage/character-stats, or { error } when the answer is not the expected shape. */
 export const usageByModel = (response) => response && typeof response.usage === 'object' && response.usage && !Array.isArray(response.usage)
@@ -219,17 +222,6 @@ async function readUsed(apiKey) {
   const s = await getJson(apiKey, '/v1/user/subscription');
   if (![s.character_count, s.character_limit].every(Number.isFinite)) throw new Error('Credit balance unavailable.');
   return { used: s.character_count, limit: s.character_limit };
-}
-
-/** Polls the balance every 5 s until it settles, capped at 30 s; delta is kept whether or not it settled. */
-async function settleCredits(apiKey, before, chars) {
-  const reads = [];
-  for (let waited = 0; waited < POLL_CAP_MS && !settled(reads, before); waited += POLL_MS) {
-    await sleep(POLL_MS);
-    reads.push((await readUsed(apiKey)).used);
-  }
-  const after = reads.at(-1), delta = after - before;
-  return { before, after, delta, perChar: delta / chars, settled: settled(reads, before) };
 }
 
 function httpSample({ apiKey, voiceId, model, text, voiceSettings, agent }) {
@@ -317,7 +309,7 @@ async function dialogueConnection({ apiKey, voiceId, model, voiceSettings, indic
 
 /** Runs every connection of one run in order. Audio stays on `pcm` of each sample until the report strips it. */
 async function executeRun(run, { apiKey, voiceId }) {
-  const before = (await readUsed(apiKey)).used, samples = [];
+  const samples = [];
   for (const indices of run.connections) {
     if (run.transport === 'dialogue') {
       samples.push(...await dialogueConnection({ apiKey, voiceId, model: run.model, voiceSettings: run.voiceSettings, indices }));
@@ -331,7 +323,7 @@ async function executeRun(run, { apiKey, voiceId }) {
       }
     } finally { agent.destroy(); }
   }
-  return { samples, credits: await settleCredits(apiKey, before, runChars(run, SENTENCES)) };
+  return { samples };
 }
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
@@ -379,10 +371,17 @@ async function main(argv) {
     writeJson(stateFile(run), toState(run, results[run.name]));
     console.log(`${run.name}: ${results[run.name].rejected ? 'rejected' : 'done'}`);
   }
-  const win = { start: startedAt, end: Date.now() };
-  let usageModels;
-  try { usageModels = usageByModel(await getJson(apiKey, `/v1/usage/character-stats?start_unix=${win.start}&end_unix=${win.end}&breakdown_type=model&aggregation_interval=cumulative`)); }
-  catch (e) { usageModels = { error: clip(e.message, 200) }; }
+  // Billing evidence: each invocation that ran something reads usage for its own window and keeps it beside the run files.
+  const usageFile = join(a.state, 'usage.json');
+  const usageReads = existsSync(usageFile) ? readJson(usageFile) : [];
+  if (pending.length) {
+    const window = { start: startedAt, end: Date.now() };
+    let got;
+    try { got = usageByModel(await getJson(apiKey, `/v1/usage/character-stats?start_unix=${window.start}&end_unix=${window.end}&breakdown_type=model&aggregation_interval=cumulative`)); }
+    catch (e) { got = { error: clip(e.message, 200) }; }
+    usageReads.push(got.error ? { window, error: got.error } : { window, usage: got });
+    writeJson(usageFile, usageReads);
+  }
 
   const passSeconds = (r) => r.samples.map((s) => s.seconds);
   const base = results.v4turbo.samples.slice(SENTENCES.length, 2 * SENTENCES.length);
@@ -391,18 +390,18 @@ async function main(argv) {
     const r = results[run.name], chars = runChars(run, SENTENCES);
     reportRuns[run.name] = { model: run.model, transport: run.transport, voiceSettings: run.voiceSettings ?? null, chars };
     if (r.rejected) { Object.assign(reportRuns[run.name], { status: 'rejected', error: r.rejected }); }
-    else Object.assign(reportRuns[run.name], { credits: r.credits, summary: summarise(r.samples), samples: r.samples.map(({ pcm, ...s }) => s) });
+    else Object.assign(reportRuns[run.name], { summary: summarise(r.samples), samples: r.samples.map(({ pcm, ...s }) => s) });
     if (run.finding) speed[run.name] = { sent: run.voiceSettings, ...(r.rejected ? speedVerdict(null, null, r.rejected) : speedVerdict(base.map((s) => s.seconds), passSeconds(r))), ...(r.rejected ? { error: r.rejected } : {}) };
   }
   writeJson(a.reportFile, {
     generatedAt: new Date().toISOString(), network: 'developer Mac, direct to api.elevenlabs.io, off the paid proxy', voice: VOICE,
     outputFormat: OUTPUT_ENCODING, sentences: SENTENCES.length, charsPerPass: plannedChars([{ connections: [ALL] }]),
     httpSettings: { voiceSettings: VOICE_SETTINGS, streamingLatency: STREAMING_LATENCY, languageCode: LANGUAGE_CODE ?? null },
-    runs: reportRuns, speed, usageByModel: usageModels, usageWindow: win, verifiedFrench,
+    runs: reportRuns, speed, usageReads, usageByModel: sumUsage(usageReads), verifiedFrench,
   });
   console.table(runs.map((run) => {
     const r = reportRuns[run.name], s = r.summary;
-    return { run: run.name, model: run.model, 'cold p50': s?.cold.p50, 'warm p50': s?.warm.p50, 'warm p95': s?.warm.p95, 'open p50': s?.openMs?.p50, 'credits/char': r.credits?.perChar, status: r.status ?? 'ok' };
+    return { run: run.name, model: run.model, 'cold p50': s?.cold.p50, 'warm p50': s?.warm.p50, 'warm p95': s?.warm.p95, 'open p50': s?.openMs?.p50, status: r.status ?? 'ok' };
   }));
   console.log(JSON.stringify(speed));
 
