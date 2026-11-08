@@ -64,7 +64,7 @@ export function askedQuestions(history: readonly ChatMessage[]): string[] {
       const spoken = line.replace(/^[^:?]{1,40}:\s*/, '');
       for (const question of questionsIn(spoken)) {
         const key = normaliseQuestion(question);
-        if (/\b(peux|pouvez) repeter\b/.test(key)) continue;
+        if (/\b(peux|pouvez)( (tu|vous))? repeter$/.test(key)) continue;
         const at = seen.findIndex((entry) => entry.key === key);
         if (at !== -1) seen.splice(at, 1);
         seen.push({ key, text: question });

@@ -21,6 +21,12 @@ describe('askedQuestions — VOICE-014', () => {
     assert.deepEqual(askedQuestions([tutor('Karim: Pardon, vous pouvez répéter ?')]), []);
   });
 
+  test('the inverted ask-again is skipped, a real question that contains it is kept', () => {
+    assert.deepEqual(askedQuestions([tutor('Karim: Pardon, peux-tu répéter ?')]), []);
+    assert.deepEqual(askedQuestions([tutor('Karim: Pardon, pouvez-vous répéter ?')]), []);
+    assert.deepEqual(askedQuestions([tutor('Karim: Tu peux répéter la phrase ?')]), ['Tu peux répéter la phrase ?']);
+  });
+
   test('dedupes, keeping the latest position', () => {
     const asked = askedQuestions([tutor('Léa: Tu habites où ?'), tutor('Léa: Ça va ?'), tutor('Léa: Tu habites OÙ ?')]);
     assert.deepEqual(asked, ['Ça va ?', 'Tu habites OÙ ?']);
