@@ -8661,7 +8661,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp B (2026-09-30, F599): the watercolours retired and the promise moved to the flat
   drawings. The registry test now holds each one decorative, at its catalogue size, and registered in
   both directions, and J14 holds that every one reaches a screen; both lines were renamed for it.
-- verified-by: `the flat registry names all 77 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- note 2026-11-08, claude/recap: UI-020 retired celebrate-first-line and state-waiting, which nothing draws any more, so the registry holds 75.
+- verified-by: `the flat registry names all 75 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
@@ -8997,7 +8998,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/art/registry.ts:38
 - note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
-- verified-by: `the flat registry names all 77 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- note 2026-11-08, claude/recap: UI-020 retired celebrate-first-line and state-waiting, which nothing draws any more, so the registry holds 75.
+- verified-by: `the flat registry names all 75 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `the watercolours are gone: no PNG under assets/art, no Art, no registry, no maps, and nothing imports Image`
 - verified-by: `every scene has a flat drawing of its own, and no two scenes share one`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
@@ -9701,7 +9703,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
 
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
-- verified-by: `recap page navigation leaves saving independent and retries the exact kept phrase only after durable save`
+- superseded: 2026-11-08, UI-020: the recap is one scroll with no pages; saving stays independent of what is open, and the retry still saves the exact kept phrase.
+- verified-by: `saving is independent of the layout and retries the exact kept phrase`
 
 ### F701 — Privacy and preference controls need precise scope and recoverable reads
 - severity: P1
@@ -9771,7 +9774,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: A props object with null conversation text is not next-page content. Use actual owned savable text or another visible next action; a partial recap with nothing else should finish on its cover.
 
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
-- verified-by: `a partial recap with no actionable content never adds an empty next page`
+- superseded: 2026-11-08, UI-020: there is no next page; the one scroll draws SaveTextChoice only with conversation text, and SaveTextChoice offers saving only for the owner's own text.
+- verified-by: `saving is independent of the layout and retries the exact kept phrase`
 
 ### F708 — A localized store price needs a verified billing period before claiming per month
 - severity: P1
@@ -11915,7 +11919,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   week is read once on mount, before the settle writes, and counts activity entries only, not the
   zero-XP sittings the streak counts (RecapScreen.tsx:192-196, momentum.ts:445).
 - fixed: 2026-10-29 on claude/review-d-progress. The recap's week reads the stored active days (zero-XP sittings included) after the settle, so "Day n." never sits beside "No French yet this week", and a sitting across midnight lights one day.
-- verified-by: `the recap's day and week lines never contradict each other`
+- superseded: 2026-11-08, UI-020: the recap no longer shows the day or the week (the streak lives on Today), so the two lines cannot contradict each other there.
+- verified-by: `the recap draws no day or week line, so they cannot contradict each other (F937, UI-020)`
 
 ### F920 — Scene-card art covers the title and duration on phones
 - severity: P2

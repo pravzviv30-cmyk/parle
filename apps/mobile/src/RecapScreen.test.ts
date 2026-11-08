@@ -154,6 +154,10 @@ describe('the conversation closes with something useful', () => {
     assert.match(read('./conversationPacks/SaveTextChoice.tsx'), /if \(user\?\.id !== ownerId \|\| adapter\.kind !== 'supabase' \|\| scope !== scopeGeneration\(\)\) return null;/);
   });
 
+  test('the recap draws no day or week line, so they cannot contradict each other (F937, UI-020)', () => {
+    assert.doesNotMatch(screen, /StreakRow|streakLine\(|weekBars\(|loadActiveDays|recapWeekFrom/);
+  });
+
   test('the scene mic button owns one accessible name', () => {
     const room = readFileSync(new URL('./live/C2LiveRoom.tsx', import.meta.url), 'utf8');
     const orb = readFileSync(new URL('./onboarding/BoldVoiceOrb.tsx', import.meta.url), 'utf8');
