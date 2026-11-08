@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import * as silero from '@livekit/agents-plugin-silero';
 import { STUCK_SILENCE_MS } from '@luvani/core';
+import { recognitionPlan } from './recognitionPlan.ts';
 
 import {
   CUT_OFF_STEP_MS,
@@ -74,6 +75,9 @@ describe('thinking time (VOICE-010)', () => {
     const vadSilence = vad.minSilenceDuration as number;
     const margin = STUCK_SILENCE_MS + vadSilence - BEGINNER_ENDPOINTING_MAX_DELAY_MS;
     assert.ok(margin >= 1_000, `the turn commits only ${margin} ms before the rescue clock`);
+    // Flux ends a turn on its own after eotTimeoutMs of silence; that must land before the rescue too.
+    const flux = recognitionPlan('lesson', 'fr', {});
+    assert.ok(flux.flux && flux.options.eotTimeoutMs < STUCK_SILENCE_MS, 'Flux waits past the rescue clock');
   });
 
   test('each cut-off adds 400 ms and the floor never passes 2,000 ms', () => {
