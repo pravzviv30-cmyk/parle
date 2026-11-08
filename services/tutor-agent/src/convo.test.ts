@@ -5979,6 +5979,23 @@ describe('one brain hiccup is survivable, and every exit is named', () => {
     assert.equal(logged.some((l) => l.includes('Un café')), false, 'no learner text in the log');
   });
 
+  test('a scene build that fails once is retried once and the scene opens', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const built = buildConvo(t, { voiceless: true });
+    built.convo.open(built.session);
+    lifecycleFor(built.convo);
+    const real = built.client.frame.bind(built.client);
+    let calls = 0;
+    built.client.frame = async (request) => { calls += 1; if (calls === 1) throw new Error('fetch failed'); return real(request); };
+    await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
+    await built.convo.settled();
+    assert.equal(calls, 2, 'one retry, no more');
+    assert.equal(built.published.some((m) => m.t === 'error' && m.terminal), false, 'the room stays open');
+    assert.ok(views(built.published).length > 0, 'the scene opened');
+    assert.equal(built.published.some((m) => m.t === 'error'), false, 'not the simpler fallback scene');
+  });
+
   test('a second failure ends the session as before and names brain-turn', async (t) => {
     t.mock.method(console, 'error', () => {});
     t.mock.method(console, 'warn', () => {});

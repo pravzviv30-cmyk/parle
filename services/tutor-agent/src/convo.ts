@@ -2183,7 +2183,15 @@ export class LuvaniConversation extends voice.Agent {
     // The frame call gets the notes that share words with the request.
     this.recallForScene([request], false);
     try {
-      frame = await this.buildFrame(request);
+      try {
+        frame = await this.buildFrame(request);
+      } catch (error) {
+        // One hiccup gets the same single retry a brain turn does (performBrainTurn).
+        if (this.ended || !this.lifecycle || this.liveWork.signal.aborted || this.closingForTime
+          || error instanceof BrainParseError || error instanceof BrainRefusalError) throw error;
+        console.warn('[luvani] scenario build retrying:', safeError(error));
+        frame = await this.buildFrame(request);
+      }
     } catch (error) {
       if (this.ended) return;
       if (this.lifecycle && !(error instanceof BrainParseError) && !(error instanceof BrainRefusalError)) {
