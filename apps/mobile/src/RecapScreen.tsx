@@ -339,7 +339,7 @@ export function RecapScreen({
           confetti={scene.burst && band.width > 0 ? <Confetti seed={`recap:${momentKey ?? recap.headline}`} started={moment.reached('burst')} final={moment.final} reduced={moment.reduced}
             width={band.width} height={band.height} count={36} palette={['blue', 'sun', 'coral', 'paper']} /> : null}
           postcard={celebrate !== null && mission && (moment.reached('strip') || moment.final) ? (stamp !== null
-            ? <PostcardStamp art={postcardIllustration(mission.id)} kind={stamp} momentKey={momentKey} confetti={false}><PostcardTile /></PostcardStamp>
+            ? <PostcardStamp art={postcardIllustration(mission.id)} kind={stamp} momentKey={momentKey} confetti={false} sounds={false}><PostcardTile /></PostcardStamp>
             : <PostcardTile />) : null} />
       </View>
 

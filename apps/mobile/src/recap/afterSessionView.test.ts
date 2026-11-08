@@ -72,6 +72,10 @@ describe('the recap tiles', () => {
   test('under a minute prints <1, and nothing measured draws no tile', () => {
     const [minutes] = recapTiles(afterSessionStats({ activeSec: 30, phrases: 0, xp: null }));
     assert.equal(minutes!.format(0), '<1');
+    // A count up from 0 never reads "0 minutes".
+    const [counting] = recapTiles(afterSessionStats({ activeSec: 250, phrases: 0, xp: null }));
+    assert.equal(counting!.format(0), '<1');
+    assert.equal(counting!.format(3), '3');
     assert.deepEqual(recapTiles([]), []);
   });
 });

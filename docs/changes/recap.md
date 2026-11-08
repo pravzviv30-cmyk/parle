@@ -89,7 +89,8 @@ A footer is pinned to the foot: "Practise this phrase", then Done. The close dis
    The earned scene throws one confetti.
 7. The sound sheet is the shared `Sheet`, holding today's sound page with its copy unchanged, plus `PrivatePractice`.
 8. With no reply (`!credit.settles`) nothing was measured, so the scene's goals hide like the tiles and lines. This is the orchestrator's reading of brief item 4, and it goes to the founder with the after shots.
-9. The "before" shots are today's recap at the new preview keys. Each shows the first page, which is what a learner sees on arrival.
+9. The earned scene has one sound and one haptic, the moment's chime. The stamp is silent there, so its sound does not stack on the chime.
+10. The "before" shots are today's recap at the new preview keys. Each shows the first page, which is what a learner sees on arrival.
 
 ## Where More went (brief item 7)
 

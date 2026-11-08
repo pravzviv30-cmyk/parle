@@ -222,7 +222,7 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     // UI-020: the postcard tile sits in the band on an earned scene, after the band's burst; the stamp throws no confetti of its own.
     assert.match(
       render,
-      /postcard=\{celebrate !== null && mission && \(moment\.reached\('strip'\) \|\| moment\.final\) \? \(stamp !== null\s*\? <PostcardStamp art=\{postcardIllustration\(mission\.id\)\} kind=\{stamp\} momentKey=\{momentKey\} confetti=\{false\}><PostcardTile \/><\/PostcardStamp>\s*: <PostcardTile \/>\) : null\}/,
+      /postcard=\{celebrate !== null && mission && \(moment\.reached\('strip'\) \|\| moment\.final\) \? \(stamp !== null\s*\? <PostcardStamp art=\{postcardIllustration\(mission\.id\)\} kind=\{stamp\} momentKey=\{momentKey\} confetti=\{false\} sounds=\{false\}><PostcardTile \/><\/PostcardStamp>\s*: <PostcardTile \/>\) : null\}/,
       'the stamp plays without an independent finish, or an assisted finish lost its postcard',
     );
     assert.match(render, /\{postcardLine\(stamp\)\}/);
@@ -230,7 +230,11 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     const stamp = read('./celebrate/PostcardStamp.tsx');
     assert.match(stamp, /claimInPlace\(`\$\{scopeGeneration\(\)\}:stamp:\$\{momentKey\}`\)/, 'the stamp replays when its page is turned back to');
     assert.match(stamp, /TIMELINES\[kind === 'first' \? 'postcard-first' : 'postcard-again'\]/);
-    assert.match(stamp, /onCue: first \? fireBeat : noop,/, 'the stamp sounds on a replay, or around the effects module');
+    assert.match(stamp, /onCue: first && sounds \? fireBeat : noop,/, 'the stamp sounds on a replay, or around the effects module');
+    assert.match(stamp, /onStill: first && sounds \? \(\) => fireStill\(timeline\) : noop,/, 'a silent stamp still plays its still cue');
+    assert.match(stamp, /sounds = true,/, 'the stamp is silent by default');
+    // UI-020: on the recap the moment's chime is the one cue; the stamp is silent there.
+    assert.match(render, /<PostcardStamp [^>]*sounds=\{false\}/, 'the recap stacks the stamp sound on the chime');
   });
 
   test('the recap plays the moment the room held back, and its strip draws only what the settle read back', () => {

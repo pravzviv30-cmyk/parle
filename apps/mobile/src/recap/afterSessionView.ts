@@ -94,7 +94,7 @@ export function recapTiles(stats: readonly StatTile[]): SceneTile[] {
     id: tile.key,
     coin: tile.key === 'xp' ? 'xp' : tile.key === 'minutes' ? 'time' : 'count',
     to: tile.count,
-    format: tile.key === 'xp' ? (value: number) => `+${value}` : tile.key === 'minutes' && tile.count === 0 ? () => '<1' : (value: number) => String(value),
+    format: tile.key === 'xp' ? (value: number) => `+${value}` : tile.key === 'minutes' ? (value: number) => (value < 1 ? '<1' : String(value)) : (value: number) => String(value),
     word: tile.label,
     tick: 'none',
   }));

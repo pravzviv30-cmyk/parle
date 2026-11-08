@@ -55,6 +55,7 @@ export function PostcardStamp({
   kind: given,
   momentKey,
   confetti = true,
+  sounds = true,
   children,
 }: {
   /** The scene's postcard. */
@@ -65,6 +66,8 @@ export function PostcardStamp({
   momentKey: string | null;
   /** Its own confetti; off where the page throws one already (UI-020: one confetti per scene). */
   confetti?: boolean;
+  /** Its sound and haptic; off where the page's own moment is the one cue (UI-020). It still drops, slams and claims once. */
+  sounds?: boolean;
   /** The postcard as drawn instead of `art` (2026-10-21 UI-008, B-Celebrate's tile). */
   children?: ReactNode;
 }) {
@@ -83,8 +86,8 @@ export function PostcardStamp({
     ready: answered !== null,
     final,
     still: playsStill({ reduced, stopped: !first }),
-    onCue: first ? fireBeat : noop,
-    onStill: first ? () => fireStill(timeline) : noop,
+    onCue: first && sounds ? fireBeat : noop,
+    onStill: first && sounds ? () => fireStill(timeline) : noop,
     onEnd: noop,
   });
   const reached = (element: string): boolean => final || elapsed >= beatAt(timeline, element);
