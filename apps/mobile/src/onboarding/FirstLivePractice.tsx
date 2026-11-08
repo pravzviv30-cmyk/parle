@@ -44,6 +44,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   const [saving, setSaving] = useState(false);
   // The token server refused the result for good (409, 410): saving cannot succeed.
   const [refused, setRefused] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [micPending, setMicPending] = useState(false);
   // The guest café scene runs the scripted lesson tutor, voiced or typed; an
   // older record without it still runs the guest conversation.
@@ -134,12 +135,12 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   /** After a final refusal: leave the room and hand the practice on as held, with no saved result. Runs once. */
   const moveOn = async () => {
     if (finished.current) return;
-    finished.current = true; setEnding(true);
+    finished.current = true; setLeaving(true);
     await live.leave().catch(() => {});
     if (!mounted.current) return;
     onFinished(held.current);
   };
-  const wayOn = <PillButton label={ending ? 'Finishing…' : 'Continue without saving'} disabled={ending} onPress={() => void moveOn()} />;
+  const wayOn = <PillButton label={leaving ? 'Finishing…' : 'Continue without saving'} disabled={leaving} onPress={() => void moveOn()} />;
   const recoverByTyping = () => {
     if (!canRecoverByTyping) return;
     // A scene with no room to switch in (never granted, or granted and never
@@ -200,7 +201,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
           {scene && live.prompt?.turn.note ? <Text style={type.small}>{live.prompt.turn.note}</Text> : null}</>}
         footer={failed ? <>
           <Text accessibilityLiveRegion="polite" style={type.body}>{roomEnded ? GUEST_ROOM_ENDED.message : live.status.phase === 'error' || live.status.phase === 'out-of-minutes' ? live.status.message : ''}</Text>
-          {roomEnded && <PillButton label={saving || ending ? 'Saving…' : GUEST_ROOM_ENDED.action} disabled={saving || ending} onPress={() => void end()} />}
+          {roomEnded && !refused && <PillButton label={saving || ending ? 'Saving…' : GUEST_ROOM_ENDED.action} disabled={saving || ending} onPress={() => void end()} />}
           {canRecoverByTyping && <PillButton label="Continue by typing" onPress={recoverByTyping} />}
           {canRetryConnection && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
           {!!live.sessionId && !roomEnded && !refused && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
