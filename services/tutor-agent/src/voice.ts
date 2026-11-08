@@ -168,7 +168,7 @@ export function elevenStitchedRequest(
         }),
         signal,
       });
-      if (!response.ok) { await response.body?.cancel(); throw new Error(`stitched TTS request refused (${response.status})`); }
+      if (!response.ok) { await response.body?.cancel(); throw Object.assign(new Error(`stitched TTS request refused (${response.status})`), { status: response.status }); }
       if (!(response.headers.get('content-type') ?? '').startsWith('audio/')) { await response.body?.cancel(); throw new Error('stitched TTS answer was not audio'); }
       const reader = response.body?.getReader();
       if (!reader) throw new Error('stitched TTS answer had no body');

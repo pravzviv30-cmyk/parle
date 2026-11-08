@@ -811,7 +811,7 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
   /** A stitched request that records what it was given and answers with the same ramp as the fake vendor. */
   const stitch: NonNullable<CachedTTSOptions['stitch']> = async function* (text, previousText, model, signal) {
     calls.push({ text, previousText, model });
-    if (failStitch) throw new Error('stitched TTS request refused (503)');
+    if (failStitch) throw Object.assign(new Error('stitched TTS request refused (503)'), { status: 503 });
     if (silentStitch) return;
     const frames = rampFrames(text);
     if (throwAfterFirstFrame) {
@@ -988,7 +988,7 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     try {
       await pcmOf(synth(cached, SECOND));
       assert.equal(warn.mock.calls.length, 1);
-      assert.equal(warn.mock.calls[0]!.arguments[0], '[luvani:live] stitched tts request failed; plain request answers status=503');
+      assert.deepEqual(warn.mock.calls[0]!.arguments, ['[luvani:live] stitched tts request failed; plain request answers', { type: 'Error', status: 503 }]);
     } finally { warn.mock.restore(); }
   });
 

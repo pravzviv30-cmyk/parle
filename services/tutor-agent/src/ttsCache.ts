@@ -516,8 +516,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
         if (spoke) { this.#cutShort = true; console.warn('[luvani:live] stitched tts request broke after audio; the line ends short', safeError(error)); return; }
         this.#cache.stitchFailures += 1;
         // Metadata only: a status code at most, never the vendor's text.
-        const status = error instanceof Error ? /refused \((\d{3})\)/.exec(error.message)?.[1] : undefined;
-        console.warn(`[luvani:live] stitched tts request failed; plain request answers${status ? ` status=${status}` : ''}`);
+        console.warn('[luvani:live] stitched tts request failed; plain request answers', safeError(error));
       }
     }
     yield* route.inner.synthesize(text, this.#connOptions, this.abortSignal);
