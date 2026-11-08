@@ -58,6 +58,7 @@ describe('the stable prefix', () => {
     assert.match(line, /once/i, 'the ask-again should happen once');
     assert.match(line, /do not answer or guess/i);
     assert.doesNotMatch(line, /\u2014/);
+    assert.doesNotMatch(line, /English way back/i);
   });
 
   test('is byte-identical across builds — cache safety', () => {
