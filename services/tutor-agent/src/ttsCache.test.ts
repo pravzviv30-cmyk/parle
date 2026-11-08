@@ -816,7 +816,7 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     const frames = rampFrames(text);
     if (throwAfterFirstFrame) {
       yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
-      throw new Error('stitched stream broke mid-line');
+      throw new TypeError('terminated');
     }
     if (stallStitch) {
       yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
@@ -938,30 +938,33 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     assert.ok(pcm.length > 0);
   });
 
-  test('a stitched request that breaks after audio started is not retried and clears the previous line', async () => {
+  test('a stitched request that breaks after audio started ends the line short, is not retried and clears the previous line', async () => {
     cached = stitching();
     await pcmOf(synth(cached, FIRST));
     throwAfterFirstFrame = true;
-    // The framework reports a failed stream as a tts 'error' event and then lets
-    // the main task reject unhandled; this test takes both so node:test does not.
-    const errors: unknown[] = [];
-    cached.on('error', (event) => errors.push(event.error));
+    const errors: { recoverable: boolean }[] = [];
+    cached.on('error', (event) => errors.push(event));
     const rejections: unknown[] = [];
     const listeners = process.listeners('unhandledRejection');
     process.removeAllListeners('unhandledRejection');
     process.on('unhandledRejection', (reason) => rejections.push(reason));
+    const warn = mock.method(console, 'warn', () => {});
+    let pcm: number[] = [];
     try {
-      await pcmOf(synth(cached, SECOND));
+      pcm = await pcmOf(synth(cached, SECOND));
       await new Promise((resolve) => setImmediate(resolve));
     } finally {
+      warn.mock.restore();
       process.removeAllListeners('unhandledRejection');
       for (const listener of listeners) process.on('unhandledRejection', listener);
     }
     throwAfterFirstFrame = false;
-    assert.equal(errors.length, 1, 'the broken line was reported');
-    assert.equal(rejections.length, 1, 'and the stream rejected');
+    assert.deepEqual(errors.filter((event) => !event.recoverable), [], 'an unrecoverable tts error ends the room');
+    assert.equal(rejections.length, 0, 'the stream ended instead of rejecting');
+    assert.ok(pcm.length > 0, 'the audio already spoken reached the learner');
     assert.equal(calls.length, 1);
     assert.equal(fake.calls, 1, 'no plain fallback once audio has been yielded');
+    assert.equal(cached.memo.size, 1, 'the cut-short line is not remembered for replay');
     await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
     assert.equal(calls.length, 1, 'the broken line is not context for the next one');
     assert.equal(fake.calls, 2);

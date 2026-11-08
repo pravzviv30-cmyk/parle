@@ -46,6 +46,7 @@ import { AudioFrame } from '@livekit/rtc-node';
 import { tts, type APIConnectOptions } from '@livekit/agents';
 import { decodeWav, encodeWav } from './wav.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
+import { safeError } from './safeError.ts';
 
 export interface CachedTTSOptions {
   /** Directory the WAV files live in. Created if missing. */
@@ -359,6 +360,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
   /** Set by a transport once the line ran to its end: not aborted, not closed early. */
   #finished = false;
   #route: ReturnType<CachedTTS['route']> | null = null;
+  /** Set when a stitched line broke after audio started: it ends short and is neither remembered nor context. */
+  #cutShort = false;
 
   constructor(text: string, cache: CachedTTS, connOptions?: APIConnectOptions, abortSignal?: AbortSignal) {
     super(text, cache, connOptions, abortSignal);
@@ -483,7 +486,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
 
     // Only a complete, non-empty line is worth keeping. A failed request yields
     // nothing above and nothing is written.
-    if (this.abortSignal.aborted || this.closed) return null;
+    if (this.abortSignal.aborted || this.closed || this.#cutShort) return null;
     this.#finished = true;
     if (cacheable && collected.length > 0) this.#writeWav(path, collected);
     return memo?.frames() ?? null;
@@ -508,7 +511,9 @@ class CachedChunkedStream extends tts.ChunkedStream {
         this.#cache.stitchFailures = 0;
         return;
       } catch (error) {
-        if (spoke || this.abortSignal.aborted) throw error;
+        if (this.abortSignal.aborted) throw error;
+        // Rethrowing would end the room, and a retryable error would replay the line, so it ends short.
+        if (spoke) { this.#cutShort = true; console.warn('[luvani:live] stitched tts request broke after audio; the line ends short', safeError(error)); return; }
         this.#cache.stitchFailures += 1;
         // Metadata only: a status code at most, never the vendor's text.
         const status = error instanceof Error ? /refused \((\d{3})\)/.exec(error.message)?.[1] : undefined;
