@@ -419,7 +419,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
         : await this.#passthrough(path, cacheable, memoKey !== null);
     } finally {
       // Runs when the stream throws too, so a broken line is never context for the next.
-      if (!this.#cache.authored(text)) this.#cache.rememberLine(this.#finished && this.#firstAudioReported ? normaliseLine(text) : null);
+      if (!(this.#finished && this.#firstAudioReported) && this.#cache.previousLine() === normaliseLine(text)) this.#cache.rememberLine(null);
     }
     this.#cache.misses += 1;
     // Only a line that finished cleanly is remembered; the transports return
@@ -497,6 +497,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
   async *#audio(): AsyncIterable<tts.SynthesizedAudio> {
     const text = this.inputText, route = this.#route!, stitch = this.#cache.opts.stitch;
     const previous = stitch && this.#cache.stitchFailures < STITCH_FAILURES_BEFORE_OFF && !this.#cache.authored(text) ? this.#cache.previousLine() : null;
+    // Remembered as the request starts: the SDK starts every sentence of a reply at once, so the next one is already asking.
+    if (!this.#cache.authored(text)) this.#cache.rememberLine(normaliseLine(text));
     if (stitch && previous !== null) {
       let spoke = false;
       try {

@@ -219,6 +219,13 @@ describe('the end-of-session clock and tap-to-send reach the room', () => {
   });
 });
 
+describe('a learner turn ends the run of stitched sentences', () => {
+  test('the learner starting to speak forgets the previous line', () => {
+    const block = CODE.slice(CODE.indexOf('session.on(voice.AgentSessionEventTypes.UserStateChanged'));
+    assert.match(block.slice(0, block.indexOf('});')), /if \(ev\.newState === 'speaking'\) \{[^}]*voiceTts\?\.rememberLine\(null\);/);
+  });
+});
+
 describe('one hiccup is survivable and the exit is named', () => {
   test('paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room', () => {
     assert.match(CODE, /connOptions: \{ sttConnOptions: \{ maxRetry: 1 \}, llmConnOptions: \{ maxRetry: 1 \}, ttsConnOptions: \{ maxRetry: 0 \}, maxUnrecoverableErrors: 1 \}/);

@@ -610,6 +610,8 @@ export default defineAgent({
       // the timeout alone cannot, and both landing costs the learner a turn.
       if (ev.newState === 'speaking') {
         sceneTiming.speechStarted();
+        // A new learner turn: the next reply's first sentence is not stitched to this one's last.
+        voiceTts?.rememberLine(null);
         // Within 1,500 ms of a committed turn, before the tutor answered: that
         // turn cut them off, and the pause floor rises for the session.
         thinking.learnerSpeechStarted();

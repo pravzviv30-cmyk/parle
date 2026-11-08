@@ -1024,6 +1024,43 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     assert.equal(calls[0]?.model, 'eleven_flash_v2_5');
   });
 
+  test('sentences of one reply through the SDK StreamAdapter stitch to each other, and a new reply starts fresh', async () => {
+    /** A vendor slow enough that the adapter has started every sentence before the first finishes. */
+    class SlowChunked extends tts.ChunkedStream {
+      label = 'slow.ChunkedStream';
+      protected async run(): Promise<void> {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        const frames = rampFrames(this.inputText);
+        frames.forEach((frame, i) => this.queue.put({ requestId: 'slow', segmentId: 'slow', frame, final: i === frames.length - 1 }));
+      }
+    }
+    class SlowTTS extends FakeTTS {
+      override synthesize(text: string, connOptions?: Parameters<tts.TTS['synthesize']>[1]): tts.ChunkedStream {
+        this.calls += 1;
+        return new SlowChunked(text, this, connOptions);
+      }
+    }
+    const slow = new SlowTTS();
+    const slowStitch: NonNullable<CachedTTSOptions['stitch']> = async function* (text, previousText, model, signal) {
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      yield* stitch(text, previousText, model, signal);
+    };
+    cached = new CachedTTS(slow, { dir, voiceKey: 'test-voice', stitch: slowStitch, authoredLines: [] });
+    const adapter = new tts.StreamAdapter(cached, new tokenizeModule.basic.SentenceTokenizer());
+    const speak = async (reply: string) => {
+      const stream = adapter.stream();
+      stream.pushText(reply);
+      stream.endInput();
+      for await (const packet of stream) if (packet === tts.SynthesizeStream.END_OF_STREAM) break;
+    };
+    await speak(`${FIRST} ${SECOND}`);
+    assert.deepEqual(calls, [{ text: SECOND, previousText: FIRST, model: slow.model }]);
+    // The learner's turn: agent.ts forgets the line when they start speaking.
+    cached.rememberLine(null);
+    await speak('Bon, on y va ? Il est déjà tard, tu sais.');
+    assert.equal(calls.some((call) => call.text === 'Bon, on y va ?'), false, 'a new reply was stitched to the last one');
+  });
+
   test('the ws transport is untouched: it never calls stitch', async () => {
     cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice', stitch, missTransport: 'ws' });
     await pcmOf(synth(cached, FIRST));
