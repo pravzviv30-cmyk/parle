@@ -56,19 +56,6 @@ export function greetingWord(now: number): 'Bonjour' | 'Bonsoir' {
 }
 
 /**
- * The greeting a learner reads: the word and their first name when we have one,
- * with no full stop.
- *
- * `firstNameOf` does the splitting, so a full name, a padded name and an empty
- * string behave here exactly as they do on the tutor dashboard.
- */
-export function greetingLine(firstName: string | null, now: number): string {
-  const first = firstNameOf(firstName);
-  const word = greetingWord(now);
-  return first === null ? word : `${word}, ${first}`;
-}
-
-/**
  * The question under the greeting, one per part of the day.
  *
  * The windows tile the whole clock with no gap and no overlap, which the suite
