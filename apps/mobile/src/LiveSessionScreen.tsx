@@ -293,7 +293,6 @@ export function LiveSessionScreen({
         transcriptVisible={transcriptVisible}
         onTranscriptVisibility={setTranscriptVisible}
         message={live.status.message}
-        diagnostics={live.diagnostics}
         settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
         typedRestartLabel="Start a typed lesson"
         restartAsText={live.settlement !== null}

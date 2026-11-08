@@ -31,7 +31,6 @@ import { useB } from '../main/bTheme.tsx';
 import { Screen } from '../layout.tsx';
 import { IconAction, Label, PillButton, OutlineButton, Press } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
-import type { LiveDiagnostics } from './useLiveSession.ts';
 
 function Row({ name, value }: { name: string; value: string }) {
   const t = useB();
@@ -46,7 +45,6 @@ function Row({ name, value }: { name: string; value: string }) {
 export function LiveErrorView({
   failure,
   message,
-  diagnostics,
   settlementMessage,
   retryBlocked = false,
   restartAsText = false,
@@ -60,7 +58,6 @@ export function LiveErrorView({
 }: {
   failure: LiveFailure;
   message: string;
-  diagnostics: LiveDiagnostics | null;
   settlementMessage?: string | null;
   retryBlocked?: boolean;
   restartAsText?: boolean;
@@ -143,22 +140,20 @@ export function LiveErrorView({
         {/* Support details: the technical rows are for whoever is helping, so
             they are folded away, closed by default, and drawn after every way
             forward (whole-app Stage 3A). */}
-        {diagnostics ? (
-          <View style={st.diagnostics}>
-            <Pressable
-              onPress={() => setOpen((v) => !v)}
-              accessibilityRole="button"
-              accessibilityLabel={open ? 'Hide support details' : 'Show support details'}
-              accessibilityState={{ expanded: open }}
-              style={({ pressed }) => [st.disclosure, pressed && { opacity: 0.6 }]}
-            >
-              <Text style={[type.small, { color: t.muted }]}>{open ? 'Hide support details' : 'Support details'}</Text>
-            </Pressable>
-            {open ? (
-              <Row name="Reference" value={failure} />
-            ) : null}
-          </View>
-        ) : null}
+        <View style={st.diagnostics}>
+          <Pressable
+            onPress={() => setOpen((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={open ? 'Hide support details' : 'Show support details'}
+            accessibilityState={{ expanded: open }}
+            style={({ pressed }) => [st.disclosure, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={[type.small, { color: t.muted }]}>{open ? 'Hide support details' : 'Support details'}</Text>
+          </Pressable>
+          {open ? (
+            <Row name="Reference" value={failure} />
+          ) : null}
+        </View>
       </ScrollView>
     </Screen>
   );
