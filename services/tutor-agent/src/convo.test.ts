@@ -4766,6 +4766,25 @@ describe('a streamed turn speaks before the rest of it arrives', () => {
       'the full turn does not recast what was already spoken, so nothing disagreed');
   });
 
+  test('reply-first at rung 3: the early line is uninterruptible, since a blocking error it cannot see yet may drop the rung', async (t) => {
+    const blocking = sampleCoachItem({ kind: 'blocking-error', quote: 'Je veux café', better: 'Je voudrais un café', betterEn: 'I would like a coffee', weight: 'matters-now' });
+    const turn = sampleTurn({ coach: [blocking], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    const client = new StreamingBrain(turn, false, true);
+    const built = buildConvo(t, { client, missionId: 'mission:premier-cafe', startRung: 3 });
+    built.convo.open(built.session);
+    await built.convo.settled();
+    assert.equal(built.convo.conversationState.ladder.rung, 3);
+    const options: unknown[] = [];
+    Object.defineProperty(built.session, 'say', { value: (_text: string, opts?: unknown) => { options.push(opts); } });
+    const answered = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Je veux café' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(options.length, 1, 'the reply was spoken early');
+    assert.deepEqual(options[0], { allowInterruptions: false });
+    client.finish();
+    await answered;
+    await built.convo.settled();
+  });
+
   test('reply-first: a turn that reached for English waits for the full turn, so the French hand-back is still spoken', async (t) => {
     const reach = sampleCoachItem({ kind: 'english-to-french', quote: 'how do I say milk', better: 'du lait', betterEn: 'some milk', weight: 'matters-now' });
     const turn = sampleTurn({

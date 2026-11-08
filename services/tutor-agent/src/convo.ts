@@ -3233,7 +3233,10 @@ export class LuvaniConversation extends voice.Agent {
     this.markTiming('brainParsed');
     timing?.mark('brainParsed');
     inputTiming?.mark('brainParsed');
-    this.speak(recast.view, timing);
+    // Reply-first has no coach yet, so its grade cannot see a blocking error that
+    // would drop rung 3 to 2, where the line is uninterruptible. Assume it might.
+    const preTurnRung = this.state.ladder.rung;
+    this.speak(recast.view, timing, turnIsUninterruptible(recast.view) || (fields.coach === undefined && preTurnRung <= 3));
     inputTiming?.mark('sayCalled');
     return { view: recast.view, recastUsed: recast.used, provisional };
   }
@@ -3267,7 +3270,7 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   /** Narration, then coach, then the scene reply — outside-in, like a film. */
-  private speak(view: TurnView, timing?: SceneReplyTimingRecord): void {
+  private speak(view: TurnView, timing?: SceneReplyTimingRecord, uninterruptible = turnIsUninterruptible(view)): void {
     // The recovery line (recover()) deliberately does not mark: a turn that
     // failed is not a data point about how fast a turn answers.
     this.clearBridge();
@@ -3275,7 +3278,7 @@ export class LuvaniConversation extends voice.Agent {
     if (this.voiceless) timing?.finish('cancelled');
     else timing?.mark('sayCalled');
     this.replyAudio.dispatch(this.firstFrameTiming ? timing : undefined,
-      () => this.say(spokenTurn(view), turnIsUninterruptible(view) ? { allowInterruptions: false } : {}));
+      () => this.say(spokenTurn(view), uninterruptible ? { allowInterruptions: false } : {}));
     timing?.finish('dispatched');
   }
 
