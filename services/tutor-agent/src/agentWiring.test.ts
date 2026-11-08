@@ -232,7 +232,7 @@ describe('one hiccup is survivable and the exit is named', () => {
   });
   test('a session that fails to start still logs its exit, named start', () => {
     assert.ok(CODE.indexOf('const exit = new SessionExit()') < CODE.indexOf('await claimSessionLifecycle('), 'a failed claim logs nothing');
-    assert.ok(CODE.indexOf('ctx.addShutdownCallback(async () => { exit.log(); });') < CODE.indexOf('await claimSessionLifecycle('), 'a failed claim logs nothing');
+    assert.ok(CODE.indexOf('ctx.addShutdownCallback(async () => { exit.log(); });') < CODE.indexOf('await claimSessionLifecycle('), 'the exit is not logged at shutdown before the claim, so the start mark set by the entry catch is never written');
     assert.match(CODE, /await claimSessionLifecycle\([\s\S]*?\)\.catch\(\(error: unknown\) => \{ exit\.mark\('start'\); throw error; \}\)/, 'a failed claim is not named start');
     const entryCatch = CODE.slice(CODE.lastIndexOf('} catch (error) {'));
     assert.match(entryCatch.slice(0, entryCatch.indexOf('throw error;')), /^\} catch \(error\) \{\s*exit\.mark\('start'\);/, 'the entry catch does not mark start first');
