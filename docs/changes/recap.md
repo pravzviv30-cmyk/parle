@@ -135,6 +135,13 @@ To be filled in T4.
 - `recap/afterSessionView.ts`. `afterSessionStats` has one caller, the recap.
 - `recap/KeptPhraseCard.tsx` and `recap/RecapParts.tsx`. The recap is their only caller.
 - Deleted: `recap/pages.ts`, `recap/ResultArt.tsx` and `recap/ProgressStrip.tsx` (no importer). Also `recap/progressStrip.ts`, if nothing else uses it.
+- Shared with the onboarding build, rounds 3 and 4 (S11 to S16, approved 2026-11-08):
+  - **`PillButton`'s lip.** The recap's footer draws it through `EndActions`. S12 changes its press. The recap does not edit `PillButton`, so it takes whichever press lands.
+  - **`ReminderAsk`.** The recap and S14's arrival sheet both draw it. Unchanged here.
+  - **`Blink`, `PopIn`, `Hop` and `Confetti`.** S15 uses them too. Unchanged here.
+  - **`CloudLids`** (`art/mascots/Cloud.tsx`). This build adds lids for the unposed Cloud, for the resting recap's blink (Q2). If S15's Welcome blink is on an unposed Cloud, it reuses that once this lands, so there is no second way to draw lids.
+  - **`mascotPoses.test.ts`.** Its `ink=` scan covers both builds.
+  - **Not shared:** `HomeArrival`, `AccountWelcome` and `FirstSessionResult` do not draw `EndScene`, `RecapParts` or `KeptPhraseCard`.
 
 ## Tasks in dependency order
 
@@ -158,6 +165,9 @@ To be filled in T4.
 | 2026-11-06 / plan | Plan approved; Q1 to Q4 answered | n/a | T0 |
 | 2026-11-06 / T0 | Worktree from `origin/main` `e8d020c3`; `npm ci`; this spec | `npm ci` exit 0; baseline `npm run gate` green, 7,619 tests, 0 failing (mobile 4,116, floor 4,112) | T1, T2 |
 | 2026-11-06 / T2 | `learning-science-engineer` checked the "Where More went" table; docs only | HOLDS | T4 re-pins the More and label tests |
+| 2026-11-06 / T1 | `frontend-engineer`: `dev/RecapPreview.tsx`, `dev/recapFixtures.ts`, `dev/recapPreview.test.ts`, the wiring in `dev/OnboardingPreview.tsx`, the shots README. The session stopped mid-task, and the work was committed as WIP (`a5a20bd1`) | Mobile suite green in the gate below | Merge main |
+| 2026-11-08 / merge | `origin/main` `1706178b` merged (`1b01b02b`), 64 commits, no conflicts. Main's dark marks (`brandMark`, the softened mint and sun) arrive before the before shots | `npm run gate` green, 7,742 tests, 0 failing (mobile 4,150) | Before shots |
+| 2026-11-08 / T1 shots | The before set, 14 keys at 375 and 320, light and dark, in `reviews/2026-11-08-recap/before/` (56 files). Today's recap shows its first page at every key. `recap-progress-unreadable` reaches its state through a seeded unreadable sound-check record. The two sheet keys and `recap-reminder` draw the full recap: the sheets open only after the rebuild, and `REMINDERS_AVAILABLE` is false on web | No console errors on any key | T3 |
 
 ## Integrated verification and handoff
 
