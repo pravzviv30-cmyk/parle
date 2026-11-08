@@ -12281,8 +12281,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   package install or network, sets `SSL_CERT_FILE` to it, and the nonroot check fails the build unless
   the file holds exactly `tls.rootCertificates.length` certificates.
 - fixed: 2026-11-04 on claude/tutor-ca. Ticked on the test and the image's own nonroot check, because
-  the gate refuses an open P1 and Railway deploys only `main`; the live tutor join on staging after
-  that deploy is the proof still to record here.
+  the gate refuses an open P1 and Railway deploys only `main`. Live proof, 2026-11-06: two starts from
+  the founder's iPhone at 16:37 and 16:38 UTC (tutor deployment `6016fd6d`) each logged `received job
+  request`, published audio, recognised speech and ran a brain turn, with no CA or entry-function
+  error. Both rooms then ended on "authoritative tutor session unavailable", which is F965, not this.
 - verified-by: `runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)`
 
 ### F959 — A white iOS scroll edge fade covers the top of every tab
