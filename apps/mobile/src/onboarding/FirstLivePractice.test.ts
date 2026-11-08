@@ -1,11 +1,13 @@
 /** Exercise the production screen's failure decisions without loading native modules. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
 import { test } from 'node:test';
 import { failureCopy } from '../live/failure.ts';
 import { takeTypedDoor, typedDoorFor } from '../live/typedDoor.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { GUEST_ROOM_ENDED, guestLiveBody, guestSceneMode } from './guestScene.ts';
+import { GUEST_ROOM_ENDED, claimRefusalCopy, guestLiveBody, guestSceneMode } from './guestScene.ts';
+import { LearnerError, errorCopy } from '../copy/errorCopy.ts';
 import { classifyFailure, TokenServerError } from '../live/failure.ts';
 import { waitingFor } from '../tutor/waitingView.ts';
 
@@ -188,8 +190,33 @@ test('the guest conversation keeps its refusal when the room cannot switch', () 
 
 test('saving the session shows Luvani\'s own words, never the caught message', () => {
   const collect = source.slice(source.indexOf('  const collect ='), source.indexOf('  // A conversation ends on its recap'));
-  assert.match(collect, /setIssue\(errorCopy\(cause, 'Your session could not be saved yet\. Try again\.'\)\)/);
+  assert.match(collect, /: errorCopy\(cause, 'Your session could not be saved yet\. Try again\.'\)\);/);
   assert.doesNotMatch(collect, /instanceof Error \? cause\.message/);
   assert.equal((collect.match(/throw new LearnerError\(/g) ?? []).length, 2, 'the two own sentences must be LearnerErrors to survive errorCopy.');
   assert.doesNotMatch(collect, /throw new Error\(/);
+});
+
+const collectSource = stripTypeScriptTypes(source.slice(source.indexOf('  const collect = async () => {'), source.indexOf('  // A conversation ends on its recap')));
+
+/** Run the production collect() with the token server's answer to the result read. */
+async function runCollect(readResult: () => Promise<unknown>) {
+  const issues: string[] = [];
+  const world = {
+    finishing: { current: false }, finished: { current: false }, mounted: { current: true }, held: { current: { live: null } },
+    setSaving: () => {}, setIssue: (value: string) => { issues.push(value); }, readGuestLiveResult: readResult,
+    LearnerError, errorCopy, claimRefusalCopy,
+  };
+  await new Function(...Object.keys(world), `${collectSource}; return collect();`)(...Object.values(world));
+  return issues;
+}
+
+test('the token server refusing the result for good never says Try again, which cannot succeed', async () => {
+  // starterFailure turns the server's 409 into Error('limit') and its 410 into Error('expired').
+  for (const final of ['limit', 'expired']) {
+    const issues = await runCollect(async () => { throw new Error(final); });
+    assert.doesNotMatch(issues.at(-1)!, /Try again/, `a "${final}" refusal told the learner to retry`);
+    assert.equal(issues.at(-1), claimRefusalCopy('guest-expired'));
+  }
+  const dropped = await runCollect(async () => { throw new Error('unavailable'); });
+  assert.match(dropped.at(-1)!, /Try again/, 'a failed read that may succeed later still offers a retry');
 });
