@@ -230,6 +230,13 @@ describe('one hiccup is survivable and the exit is named', () => {
   test('paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room', () => {
     assert.match(CODE, /connOptions: \{ sttConnOptions: \{ maxRetry: 1 \}, llmConnOptions: \{ maxRetry: 1 \}, ttsConnOptions: \{ maxRetry: 0 \}, maxUnrecoverableErrors: 1 \}/);
   });
+  test('a session that fails to start still logs its exit, named start', () => {
+    assert.ok(CODE.indexOf('const exit = new SessionExit()') < CODE.indexOf('await claimSessionLifecycle('), 'a failed claim logs nothing');
+    assert.ok(CODE.indexOf('ctx.addShutdownCallback(async () => { exit.log(); });') < CODE.indexOf('await claimSessionLifecycle('), 'a failed claim logs nothing');
+    assert.match(CODE, /await claimSessionLifecycle\([\s\S]*?\)\.catch\(\(error: unknown\) => \{ exit\.mark\('start'\); throw error; \}\)/, 'a failed claim is not named start');
+    const entryCatch = CODE.slice(CODE.lastIndexOf('} catch (error) {'));
+    assert.match(entryCatch.slice(0, entryCatch.indexOf('throw error;')), /^\} catch \(error\) \{\s*exit\.mark\('start'\);/, 'the entry catch does not mark start first');
+  });
   test('one recorder per session reaches both tutors and is logged on close and on shutdown', () => {
     assert.match(CODE, /const exit = new SessionExit\(\)/);
     // Each constructor's own argument list, so an `exit` in a later call cannot satisfy an earlier one.

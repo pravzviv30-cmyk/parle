@@ -189,18 +189,19 @@ export default defineAgent({
     }
     const fixture = meta.lifecycleVersion !== 1 && legacyRuntimeFixture(process.env);
     if (meta.lifecycleVersion !== 1 && !fixture) throw new Error('authoritative signed tutor lifecycle is required');
+    // One line per session naming the exit that fired (sessionExit.ts); made
+    // before the claim so a session that fails to start still logs one.
+    const exit = new SessionExit();
+    ctx.addShutdownCallback(async () => { exit.log(); });
     const lifecycle = fixture ? undefined : await claimSessionLifecycle({
       userId: participant.identity, sessionId: meta.sessionId, roomName: ctx.room.name ?? '',
       mode: meta.mode as TutorSessionIdentity['mode'],
-    }, guestKey ? { guestKey, ...(scene ? { scene: true } : {}) } : {});
+    }, guestKey ? { guestKey, ...(scene ? { scene: true } : {}) } : {}).catch((error: unknown) => { exit.mark('start'); throw error; });
     let proxy: PaidVoiceProxy | undefined;
     const closeProxy = async () => { await proxy?.close(); };
     let stopPaidWork = () => { void closeProxy().catch(() => {}); };
     let finish = async (): Promise<void> => { if (lifecycle) await lifecycle.complete({ learnerTurns: 0 }); };
     completions.set(ctx, () => finish());
-    // One line per session naming the exit that fired (sessionExit.ts).
-    const exit = new SessionExit();
-    ctx.addShutdownCallback(async () => { exit.log(); });
     ctx.addShutdownCallback(async () => { stopPaidWork(); await closeProxy(); await finish(); });
     lifecycle?.onStop(() => {
       exit.mark(exitForStop(lifecycle));
@@ -690,6 +691,7 @@ export default defineAgent({
       if (!voiceless) tutor.speakCurrentTurn(session);
     }
     } catch (error) {
+      exit.mark('start');
       stopPaidWork();
       await finish();
       await ctx.room.disconnect().catch(() => {});
