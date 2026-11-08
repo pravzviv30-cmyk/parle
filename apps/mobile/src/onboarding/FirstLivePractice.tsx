@@ -42,6 +42,8 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [issue, setIssue] = useState('');
   const [saving, setSaving] = useState(false);
+  // The token server refused the result for good (409, 410): saving cannot succeed.
+  const [refused, setRefused] = useState(false);
   const [micPending, setMicPending] = useState(false);
   // The guest café scene runs the scripted lesson tutor, voiced or typed; an
   // older record without it still runs the guest conversation.
@@ -95,10 +97,11 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       if (!mounted.current) return;
       held.current = next; finished.current = true; onFinished(next);
     } catch (cause) {
-      // The token server's final refusals (409, 410): a retry cannot succeed. Before any
-      // account exists, so the same sentence the connect step uses for this practice.
+      // The token server's final refusals (409, 410): a retry cannot succeed, so the
+      // footer offers a way on instead (moveOn).
       const final = cause instanceof Error && (cause.message === 'limit' || cause.message === 'expired');
-      if (mounted.current) setIssue(final ? 'Your guest practice is already in use or finished. Please try connecting again.' : errorCopy(cause, 'Your session could not be saved yet. Try again.'));
+      if (mounted.current && final) setRefused(true);
+      if (mounted.current) setIssue(final ? "This practice has already closed, so it can't be saved." : errorCopy(cause, 'Your session could not be saved yet. Try again.'));
     } finally { finishing.current = false; if (mounted.current) setSaving(false); }
   };
   // A conversation ends on its recap; the scene ends on the lesson summary.
@@ -127,6 +130,12 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       try { await endGuestLivePractice(held.current); await live.leave(); await collect(); }
       catch { setIssue('Your session could not close yet. Try again.'); setEnding(false); }
     }
+  };
+  /** After a final refusal: leave the room and hand the practice on as held, with no saved result. */
+  const moveOn = async () => {
+    await live.leave().catch(() => {});
+    if (!mounted.current) return;
+    finished.current = true; onFinished(held.current);
   };
   const recoverByTyping = () => {
     if (!canRecoverByTyping) return;
@@ -193,7 +202,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
           {canRetryConnection && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
           {!!live.sessionId && !roomEnded && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
           <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />
-        </> : ending || over ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
+        </> : ending || over ? refused ? <PillButton label="Continue without saving" onPress={() => void moveOn()} /> : <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
       />
       <Sheet visible={confirmEnd} title="End this practice?" onClose={() => setConfirmEnd(false)}>
         <Text style={type.body}>{scene ? 'The lines you reach will be kept.' : 'Your confirmed replies will be kept.'} Only a completed practice counts towards your streak.</Text>

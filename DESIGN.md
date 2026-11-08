@@ -1539,9 +1539,6 @@ day; `surfaceContract.test.ts` holds Home to reading it from the greeting rather
 than spelling it, because a sentence typed into the tab is a sentence that stops
 changing and nothing would say so. Home draws no monogram: the initial is
 Profile's, once, and the greeting already says the learner's name.
-The header can overlap an outgoing and incoming Home greeting in one stable
-line-height slot. The caller drives one native value; the frame cross-fades the
-two complete phrases and starts no timer of its own.
 
 Two rules ride with the block. **One primary pill per door**, so the eye has one
 place to go on each thing it can act on. That used to read "one per tab", and it

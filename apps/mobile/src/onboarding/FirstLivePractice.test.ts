@@ -200,10 +200,11 @@ const collectSource = stripTypeScriptTypes(source.slice(source.indexOf('  const 
 
 /** Run the production collect() with the token server's answer to the result read. */
 async function runCollect(readResult: () => Promise<unknown>) {
-  const issues: string[] = [];
+  const issues: string[] & { refusals: boolean[] } = Object.assign([] as string[], { refusals: [] as boolean[] });
+  const refusals = issues.refusals;
   const world = {
     finishing: { current: false }, finished: { current: false }, mounted: { current: true }, held: { current: { live: null } },
-    setSaving: () => {}, setIssue: (value: string) => { issues.push(value); }, readGuestLiveResult: readResult,
+    setSaving: () => {}, setIssue: (value: string) => { issues.push(value); }, setRefused: (value: boolean) => { refusals.push(value); }, readGuestLiveResult: readResult,
     LearnerError, errorCopy,
   };
   await new Function(...Object.keys(world), `${collectSource}; return collect();`)(...Object.values(world));
@@ -215,8 +216,16 @@ test('the token server refusing the result for good never says Try again, which 
   for (const final of ['limit', 'expired']) {
     const issues = await runCollect(async () => { throw new Error(final); });
     assert.doesNotMatch(issues.at(-1)!, /Try again/, `a "${final}" refusal told the learner to retry`);
-    assert.equal(issues.at(-1), 'Your guest practice is already in use or finished. Please try connecting again.', 'the pre-account sentence the connect step already uses, not the post-sign-up claim copy');
+    assert.equal(issues.at(-1), "This practice has already closed, so it can't be saved.", 'a plain sentence for the save moment, naming no control that is not on screen');
+    assert.equal(issues.refusals.at(-1), true, 'the screen learns the refusal is final');
   }
   const dropped = await runCollect(async () => { throw new Error('unavailable'); });
   assert.match(dropped.at(-1)!, /Try again/, 'a failed read that may succeed later still offers a retry');
+});
+
+test('after a final refusal the ending footer offers a way on that does not save again', () => {
+  // Both "Continue to my summary" and "End session" run collect() or end(), which hit the same refusal.
+  const footer = source.slice(source.indexOf('footer={failed ?'), source.indexOf('<Sheet visible={confirmEnd}'));
+  assert.match(footer, /refused \? <PillButton label="Continue without saving" onPress=\{\(\) => void moveOn\(\)\} \/> : <PillButton label=\{saving \? 'Saving…' : 'Continue to my summary'\}/, 'a refused save swaps the summary pill for a way on');
+  assert.match(source, /const moveOn = async \(\) => \{[\s\S]*?live\.leave\(\)[\s\S]*?onFinished\(held\.current\)/, 'the way on leaves the room and hands the practice on as held, never collect() again');
 });

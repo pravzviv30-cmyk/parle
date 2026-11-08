@@ -481,7 +481,6 @@ export interface LiveSession {
    * screens render a waiting state rather than an unexplained spinner.
    */
   waitingForTutor: boolean;
-  /** Filled in when a session fails. Null otherwise. */
   /**
    * The server's id for the session this screen holds, from its grant.
    *
@@ -1692,7 +1691,7 @@ export function useLiveSession(
           void room.localParticipant.setMicrophoneEnabled(false).catch(() => {});
           return false;
         }
-        // Kept in step with the diagnostics panel, which reports this. Left
+        // Kept in step with the session diagnostics, which record this. Left
         // false it would make a healthy tap-to-talk session read as broken to
         // whoever debugs it next.
         diagRef.current.micPublished = true;
