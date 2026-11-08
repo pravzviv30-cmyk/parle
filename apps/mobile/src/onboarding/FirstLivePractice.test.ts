@@ -223,9 +223,12 @@ test('the token server refusing the result for good never says Try again, which 
   assert.match(dropped.at(-1)!, /Try again/, 'a failed read that may succeed later still offers a retry');
 });
 
-test('after a final refusal the ending footer offers a way on that does not save again', () => {
-  // Both "Continue to my summary" and "End session" run collect() or end(), which hit the same refusal.
+test('after a final refusal every footer offers one way on that does not save again, and it cannot run twice', () => {
+  // "Continue to my summary", "Check session result" and "End session" all run collect() or end(), which hit the same refusal.
   const footer = source.slice(source.indexOf('footer={failed ?'), source.indexOf('<Sheet visible={confirmEnd}'));
-  assert.match(footer, /refused \? <PillButton label="Continue without saving" onPress=\{\(\) => void moveOn\(\)\} \/> : <PillButton label=\{saving \? 'Saving…' : 'Continue to my summary'\}/, 'a refused save swaps the summary pill for a way on');
-  assert.match(source, /const moveOn = async \(\) => \{[\s\S]*?live\.leave\(\)[\s\S]*?onFinished\(held\.current\)/, 'the way on leaves the room and hands the practice on as held, never collect() again');
+  assert.match(footer, /!refused && <IconAction icon="refresh" label="Check session result"/, 'a refused save hides the result re-read');
+  assert.match(footer, /\{refused \? wayOn : <IconAction icon="close" label="End session"/, 'a refused save swaps End session (which saves again) for the way on');
+  assert.match(footer, /ending \|\| over \? refused \? wayOn :/, 'a refused save swaps the summary pill for the way on');
+  assert.match(source, /const wayOn = <PillButton label=\{ending \? 'Finishing…' : 'Continue without saving'\} disabled=\{ending\} onPress=\{\(\) => void moveOn\(\)\} \/>;/, 'the way on shows a pending state and disables itself');
+  assert.match(source, /const moveOn = async \(\) => \{\s*if \(finished\.current\) return;\s*finished\.current = true; setEnding\(true\);[\s\S]*?live\.leave\(\)[\s\S]*?onFinished\(held\.current\)/, 'the way on runs once, leaves the room and hands the practice on as held, never collect() again');
 });

@@ -131,12 +131,15 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       catch { setIssue('Your session could not close yet. Try again.'); setEnding(false); }
     }
   };
-  /** After a final refusal: leave the room and hand the practice on as held, with no saved result. */
+  /** After a final refusal: leave the room and hand the practice on as held, with no saved result. Runs once. */
   const moveOn = async () => {
+    if (finished.current) return;
+    finished.current = true; setEnding(true);
     await live.leave().catch(() => {});
     if (!mounted.current) return;
-    finished.current = true; onFinished(held.current);
+    onFinished(held.current);
   };
+  const wayOn = <PillButton label={ending ? 'Finishing…' : 'Continue without saving'} disabled={ending} onPress={() => void moveOn()} />;
   const recoverByTyping = () => {
     if (!canRecoverByTyping) return;
     // A scene with no room to switch in (never granted, or granted and never
@@ -200,9 +203,9 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
           {roomEnded && <PillButton label={saving || ending ? 'Saving…' : GUEST_ROOM_ENDED.action} disabled={saving || ending} onPress={() => void end()} />}
           {canRecoverByTyping && <PillButton label="Continue by typing" onPress={recoverByTyping} />}
           {canRetryConnection && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
-          {!!live.sessionId && !roomEnded && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
-          <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />
-        </> : ending || over ? refused ? <PillButton label="Continue without saving" onPress={() => void moveOn()} /> : <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
+          {!!live.sessionId && !roomEnded && !refused && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
+          {refused ? wayOn : <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />}
+        </> : ending || over ? refused ? wayOn : <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
       />
       <Sheet visible={confirmEnd} title="End this practice?" onClose={() => setConfirmEnd(false)}>
         <Text style={type.body}>{scene ? 'The lines you reach will be kept.' : 'Your confirmed replies will be kept.'} Only a completed practice counts towards your streak.</Text>
