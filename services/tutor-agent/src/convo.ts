@@ -1921,7 +1921,7 @@ export class LuvaniConversation extends voice.Agent {
    * flushes would take the message with it.
    */
   private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
-    this.exit?.mark('done');
+    this.exit?.mark('safety');
     void this.finish();
     try {
       await delivered;

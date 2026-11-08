@@ -457,7 +457,7 @@ export class LuvaniTutor extends voice.Agent {
    */
   private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
     this.stopping = true;
-    this.exit?.mark('done');
+    this.exit?.mark('safety');
     void this.finish();
     try {
       await delivered;

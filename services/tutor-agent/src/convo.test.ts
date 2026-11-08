@@ -6056,7 +6056,7 @@ describe('one brain hiccup is survivable, and every exit is named', () => {
     assert.equal(logged.some((l) => l.includes('convo brain turn retrying')), false);
   });
 
-  test('a safety stop in a conversation names done', async (t) => {
+  test('a safety stop in a conversation names safety', async (t) => {
     t.mock.method(console, 'warn', () => {});
     const { lines, exit } = exitLines(t);
     const { convo, session, published } = await inScene(t, { voiceless: true, exit });
@@ -6065,7 +6065,7 @@ describe('one brain hiccup is survivable, and every exit is named', () => {
     assert.ok(published.some((m) => m.t === 'safety' && m.action === 'stop'));
     exit.mark('learner-left');
     exit.log();
-    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+    assert.deepEqual(lines, ['[luvani:session-exit] class=safety']);
   });
 });
 

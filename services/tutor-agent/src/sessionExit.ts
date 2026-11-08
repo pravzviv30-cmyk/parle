@@ -3,7 +3,7 @@
  * cleanup that runs after the real cause cannot overwrite it. A session that
  * ends with nothing marked ended because the learner went.
  */
-export type SessionExitClass = 'brain-turn' | 'lease' | 'stt' | 'tts' | 'cap' | 'learner-left' | 'done';
+export type SessionExitClass = 'brain-turn' | 'lease' | 'stt' | 'tts' | 'cap' | 'learner-left' | 'done' | 'safety';
 
 export class SessionExit {
   #cls: SessionExitClass | undefined;
