@@ -78,7 +78,7 @@ test('per-kind summary: mean accuracy and exact matches per kind and condition',
 test('flux runs flux-general-multi with fr/en hints, and multi-ep25 keeps the default endpointing', () => {
   const kt = ['café'];
   assert.deepEqual(parseConditions(['--conditions', 'fr,multi,multi-ep25,flux']), ['fr', 'multi', 'multi-ep25', 'flux']);
-  assert.deepEqual(conditionOptions('flux', 'lesson line', kt), { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, mipOptOut: true, numerals: false, keyterms: kt });
-  assert.deepEqual(conditionOptions('flux', 'scene reply', kt), { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, mipOptOut: true, numerals: false });
+  assert.deepEqual(conditionOptions('flux', 'lesson line', kt), { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, mipOptOut: true, numerals: false, eotTimeoutMs: 3000, keyterms: kt });
+  assert.deepEqual(conditionOptions('flux', 'scene reply', kt), { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, mipOptOut: true, numerals: false, eotTimeoutMs: 3000 });
   assert.deepEqual(conditionOptions('multi-ep25', 'scene reply', kt), { ...DG_OPTIONS, language: 'multi' });
 });
