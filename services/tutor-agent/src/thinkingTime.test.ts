@@ -63,6 +63,7 @@ describe('thinking time (VOICE-010)', () => {
     for (const rung of [1, 2] as const) {
       assert.ok(endpointingFor({ rung, cutOffs: 0, holding: true }).maxDelay >= endpointingFor({ rung, cutOffs: 0, holding: false }).maxDelay, `holding at rung ${rung} waits less than not holding`);
     }
+    assert.equal(endpointingFor({ rung: 3, cutOffs: 0, holding: true }).maxDelay, ENDPOINTING_MAX_DELAY_MS);
     assert.equal(BEGINNER_ENDPOINTING_MAX_DELAY_MS, 3_500);
   });
 
