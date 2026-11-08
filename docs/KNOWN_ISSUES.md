@@ -12440,6 +12440,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `[luvani:session-exit] class=...` line. An error still unrecoverable after its one vendor retry
   ends the room as before. Limit: a paid quote refusal is logged as `stt`/`tts`, not `cap`. Read the staging logs after the founder's next
   session to see which exit fires in the wild.
+- before: 2026-11-06 16:37 and 16:38 UTC, tutor deployment `6016fd6d` (before this fix). Two starts
+  from the founder's iPhone each ended right after the first learner turn on `SessionLifecycleError:
+  authoritative tutor session unavailable` (`sessionLifecycle.ts` `assertActive`, from
+  `performBrainTurn`), then "unable to send packet" and the room closing.
 - verified-by: `a brain turn that fails once is retried once and the learner stays in the room`
 - verified-by: `a second failure ends the session as before and names brain-turn`
 - verified-by: `a heartbeat survives two failed attempts and lands on the third`
@@ -12502,3 +12506,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the next sentence carries the first as previousText`
 - verified-by: `TTS previous_text is delivery input: accepted, outside the quote identity, never billed as text, bounded`
 - verified-by: `adaptive interruption is asked for at rungs 3 and 4 when the flag is on`
+
+### F968 — The tutor logs "signed lesson differs from the worker catalogue" on staging starts
+- severity: P3
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:186-188 (`sceneLesson(scene)` or `CAFE_LESSON` against
+  `meta.lessonId`); services/token-server/src/tokens.ts:324 (the signed `lessonId`)
+- note: Open observation, 2026-11-06. Both founder starts at 16:37 and 16:38 UTC (deployment
+  `6016fd6d`) logged it. The token server signs the app's `lessonId` (default `cafe-01`), and the
+  worker runs `sceneLesson(scene)` for a scene or `CAFE_LESSON` otherwise; on a mismatch it only
+  warns and runs its own choice. Not yet known which lesson the app asked for, so whether a learner
+  ever hears a different lesson from the one they picked is unproven. Raise the severity if it is.
+- verified-by: `the tutor runs the lesson the token server signed, or refuses the room`
