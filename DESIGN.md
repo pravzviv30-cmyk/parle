@@ -1710,15 +1710,17 @@ Each plays once per recap, and with movement reduced every part is at rest.
 **Chrome is plain English.** Sentence case on buttons; the caps look lives only
 in the micro-`label`. French appears exactly where it is content: tutor lines,
 lesson text, phrases and their glosses, review fronts, register vocabulary —
-and on Home, where the greeting takes turns through seven words with the
+and on Home, where the greeting is the hour's French word and the
 learner's name, and where the word of the day and the daily situation's starting
 line are French because they are the content. The greeting is the one place the
 chrome speaks French.
 
-**Seven greetings, and the hour decides which.** "Salut", "Hello" and "Coucou"
-any time; "Bonjour" and "Morning" while it is still day; "Bonsoir" and "Evening"
-after six, through midnight. Teaching somebody to say Bonsoir at breakfast is
-teaching them wrong, so the pool is filtered by the hour rather than shuffled.
+**One greeting, and the hour decides the word.** "Bonjour" from 05:00 until
+18:00, "Bonsoir" from 18:00 through the night until 05:00 (the greeting's own
+evening window), then a comma and the learner's first name when it is known, with no
+full stop: "Bonsoir, Praveen", or the word alone when there is no name.
+Teaching somebody to say Bonsoir at breakfast is teaching them wrong, so the
+hour picks the word rather than a shuffle.
 **The greeting and name move as one phrase.** The outgoing phrase rises one
 complete line while the incoming phrase rises from the slot below it, on the
 native driver with a cubic ease. The two opacities always add to one, so the
