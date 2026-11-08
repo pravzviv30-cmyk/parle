@@ -84,6 +84,8 @@ const RATES=Object.freeze({
  // add-on $0.0013/min, with no Flux-specific rate on the page. fr and multi stay for the Nova-3 knob (LUVANI_STT_NOVA_KINDS);
  // api-transcribe prices at fr.
  deepgramUsdPerMin:{flux:0.0078,fr:0.0077,multi:0.0092,keyterm:0.0013},
+ // rates.md: OpenAI Fast mode (service_tier 'priority', renamed 2026-07-30), platform.openai.com/docs/pricing read 2026-11-08.
+ openaiPriorityUsdPerMtok:{'gpt-6-luna':{input:0.2,output:1.0}},
 });
 
 const BRAIN_SYNTHETIC={persona:'',request:'Synthetic capture request.'};
@@ -228,6 +230,7 @@ export async function captureShapes({voices}) {
  *
  * LLM (all OpenAI). Price = maxInputBytes x input $/MTok + maxOutputTokens x output $/MTok,
  *   from USD_PER_MTOK (packages/brain/src/llm/pricing.ts), so microUSD = units x $/MTok.
+ *   A call carrying service_tier priority is priced at RATES.openaiPriorityUsdPerMtok (Fast mode, rates.md).
  *   Input is priced UNCACHED and at one token per byte: a BPE token is never shorter than a byte,
  *   so this bounds the bill; real French/JSON runs about 4 bytes a token, so the envelope is ~4x real.
  *   Per-effect input = the measured body with the real system blocks (captured above) + an allowance:
@@ -260,7 +263,8 @@ async function priceTable(){const {USD_PER_MTOK}=await import('../packages/brain
 const base=(key,shape)=>({key,kind:shape.descriptor.kind,provider:shape.descriptor.provider,model:shape.descriptor.model,voice:shape.descriptor.voice,configurationSha256:shape.configurationSha256,maxProviderAttempts:1});
 function llmComponents(prices,key,shape,{effects,lessonText=false}={}) {
  const name=shape.name,total=effects??EFFECTS[name],perInput=shape.measuredInputBytes+ALLOWANCE[name],perOutput=shape.descriptor.quantities.outputTokens;
- const price=prices[shape.descriptor.model];if(!price)throw new Error(`no price row for ${shape.descriptor.model}`);
+ const priority=shape.descriptor.configuration?.service_tier==='priority';
+ const price=(priority?RATES.openaiPriorityUsdPerMtok:prices)[shape.descriptor.model];if(!price)throw new Error(`no ${priority?'priority ':''}price row for ${shape.descriptor.model}`);
  const perComponent=Math.min(total,Math.floor(100000/perOutput),Math.floor(2097152/perInput));if(perComponent<1)throw new Error(`${name} cannot fit one effect`);
  const count=Math.ceil(total/perComponent),out=[];let left=total;
  for(let i=0;i<count;i++){const effects=Math.ceil(left/(count-i));left-=effects;

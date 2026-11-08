@@ -100,6 +100,15 @@ test('generated staging quotes admit every bound activity through the real SQL a
   assert.deepEqual(d.configuration.parameters.language_hint,['en','fr'],name);
   assert.equal(d.configuration.parameters.keyterm,name==='stt-lesson-keyterm'?'prompted':undefined,name);
  }
+ // STAGING_ENV pins that change a request body: priority tier on the live calls, coach after sceneReply.
+ for(const name of ['turn-stream','frame'])assert.equal(first.shapes[name].descriptor.configuration.service_tier,'priority',name);
+ const required=first.shapes['turn-stream'].descriptor.configuration.text.format.schema.required;
+ assert.ok(required.indexOf('coach')>required.indexOf('sceneReply'),'reply-first: coach after sceneReply');
+ // Priority (Fast mode) gpt-6-luna is $0.20 input and $1.00 output per MTok (rates.md): microUSD per byte/token.
+ for(const name of ['turn-stream','frame']){
+  const shape=first.shapes[name];assert.equal(shape.descriptor.model,'gpt-6-luna',name);
+  for(const c of first.components.convo.filter(c=>c.configurationSha256===shape.configurationSha256))assert.ok(c.microUsd>=c.maxInputBytes*0.2+c.maxOutputTokens*1.0,`${name} ${c.key} priced at the priority rate`);
+ }
  assert.deepEqual(paidBindings({LUVANI_PAID_QUOTE_BINDINGS:first.bindingsJson}),first.bindings);
  for(const file of Object.values(first.files))assert.ok(!file.startsWith(ROOT),'outputs stay outside the repository');
  const sql=await readFile(first.files.sql,'utf8');assert.doesNotMatch(sql,/capture-only|proxy-only|api_key|service_role_key/i);
@@ -108,9 +117,9 @@ test('generated staging quotes admit every bound activity through the real SQL a
  try {
   await db.exec(sql);
   const config=(await db.query('select * from luvani_private.paid_admission_config')).rows[0];
-  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,20000000);
+  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,22000000);
   assert.ok(first.budgets.accountDailyMicroUsd>=2*first.derivation.perActivityMicroUsd.convo && first.budgets.accountDailyMicroUsd<2*first.derivation.perActivityMicroUsd.convo+100000);
-  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(20000000/m)])));
+  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(22000000/m)])));
   assert.ok(first.derivation.sessionsAdmittedPerDayAtGlobalBudget.convo>=6,'six spoken conversations a day fit the global booking ceiling');
   console.log('[paid-quotes test] admitted per day (global, each alone):',JSON.stringify(first.derivation.sessionsAdmittedPerDayAtGlobalBudget));
   console.log('[paid-quotes test] admitted per account day (each alone):',JSON.stringify(first.derivation.admittedPerAccountDay));
