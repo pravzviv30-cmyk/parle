@@ -16,6 +16,8 @@ export interface StatTile {
   key: 'minutes' | 'phrases' | 'xp';
   value: string;
   label: string;
+  /** The whole number the tile counts up to (0 under a minute, which reads "<1"). */
+  count: number;
   ground: 'sun' | 'card' | 'mint';
 }
 
@@ -25,13 +27,13 @@ export function afterSessionStats(input: { activeSec: number | null; phrases: nu
   const { activeSec, phrases, xp } = input;
   if (activeSec !== null && Number.isFinite(activeSec) && activeSec > 0) {
     const minutes = Math.floor(activeSec / 60);
-    tiles.push({ key: 'minutes', value: minutes < 1 ? 'Under 1 min' : `${minutes} min`, label: 'spoken', ground: 'sun' });
+    tiles.push({ key: 'minutes', value: minutes < 1 ? '<1' : String(minutes), label: 'minutes', count: minutes, ground: 'sun' });
   }
   if (Number.isSafeInteger(phrases) && phrases > 0) {
-    tiles.push({ key: 'phrases', value: String(phrases), label: phrases === 1 ? 'new phrase' : 'new phrases', ground: 'card' });
+    tiles.push({ key: 'phrases', value: String(phrases), label: phrases === 1 ? 'new phrase' : 'new phrases', count: phrases, ground: 'card' });
   }
   if (xp !== null && Number.isSafeInteger(xp) && xp > 0) {
-    tiles.push({ key: 'xp', value: `+${xp}`, label: 'XP', ground: 'mint' });
+    tiles.push({ key: 'xp', value: `+${xp}`, label: 'XP', count: xp, ground: 'mint' });
   }
   return tiles;
 }

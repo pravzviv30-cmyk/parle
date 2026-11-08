@@ -9,16 +9,17 @@ import type { WeekDay } from '../progress/momentum.ts';
 const week = (states: WeekDay['state'][]): WeekDay[] => states.map((state, index) => ({ label: 'MTWTFSS'[index]!, state }) as WeekDay);
 
 describe('the stat tiles', () => {
-  test('draw minutes, new phrases and XP when each was measured', () => {
-    assert.deepEqual(afterSessionStats({ activeSec: 7 * 60 + 20, phrases: 3, xp: 45 }).map((tile) => [tile.value, tile.label, tile.ground]), [
-      ['7 min', 'spoken', 'sun'], ['3', 'new phrases', 'card'], ['+45', 'XP', 'mint'],
+  test('draw minutes, new phrases and XP when each was measured, each with the number it counts up to', () => {
+    assert.deepEqual(afterSessionStats({ activeSec: 7 * 60 + 20, phrases: 3, xp: 45 }).map((tile) => [tile.value, tile.label, tile.count, tile.ground]), [
+      ['7', 'minutes', 7, 'sun'], ['3', 'new phrases', 3, 'card'], ['+45', 'XP', 45, 'mint'],
     ]);
   });
   test('leave a tile out rather than show a zero, and floor the minutes', () => {
     assert.deepEqual(afterSessionStats({ activeSec: null, phrases: 0, xp: null }), []);
-    assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[0]!.value, 'Under 1 min');
+    assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[0]!.value, '<1');
+    assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[0]!.count, 0);
     assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[1]!.label, 'new phrase');
-    assert.equal(afterSessionStats({ activeSec: 119, phrases: 0, xp: 0 })[0]!.value, '1 min');
+    assert.equal(afterSessionStats({ activeSec: 119, phrases: 0, xp: 0 })[0]!.value, '1');
   });
 });
 
