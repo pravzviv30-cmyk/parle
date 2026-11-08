@@ -12518,3 +12518,32 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   warns and runs its own choice. Not yet known which lesson the app asked for, so whether a learner
   ever hears a different lesson from the one they picked is unproven. Raise the severity if it is.
 - verified-by: `the tutor runs the lesson the token server signed, or refuses the room`
+
+### F969 — Council review of the nine-problem lanes: ten defects in the code already on main
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/{agent,ttsCache,voice,turnHandling,thinkingTime,recognitionPlan,preflight,convo,tutor,sessionExit}.ts,
+  apps/mobile/src/{live/failure,live/LiveErrorView,live/useLiveSession,onboarding/FirstLivePractice,practice/NextTaskCard,home/greeting}.ts(x),
+  packages/brain/src/{prompt/system,engine/askedQuestions}.ts, scripts/{paidQuotes,gate,measureKeyterms}.mjs
+- note: 2026-11-08. An LLM council (15 advisors, 3 blind reviewers, Opus 5.5 medium) read every lane
+  landed since `e8d020c3`. Confirmed and fixed, each test-first: the TTS retry replayed a sentence after a
+  mid-sentence drop and cached the doubled clip (TTS back to `maxRetry: 0`); stitching never joined two
+  sentences of one reply and a broken stitched line ended the room; an unset interruption mode built the
+  adaptive detector in local dev; a safety stop and a failed start logged as `done` and `learner-left`;
+  the moment hold cut a beginner's wait back to 2,500 ms; the reply-first early line could be spoken
+  interruptible where the full turn would hold it; the scene build had no retry; the ask-again line was
+  recorded as an asked question and its prompt promised an unreachable English way back; the priority
+  tier was quoted at standard rates and a second STT drop opened an unquoted third stream (now 3 booked,
+  Flux `eotTimeoutMs` 3,000); unknown `LUVANI_STT_NOVA_KINDS` names were ignored and the Nova rollback
+  could not be quoted (the generator now refuses it); the first-practice final refusals said "Try again";
+  the audio session was released under the recap; `measureFluxEot.test.mjs` never ran in the gate.
+  Deleted as unreachable or dead: the generic unknown-kind notice, `greetingLine`, the dead billing
+  catch, the `diagnostics` prop gate. The daily booking ceiling derived from the quotes rose from $20
+  to $23. Rejected as taste: token constants, test de-duplication, renames.
+- verified-by: `the session TTS retry count never replays a line the learner already started hearing`
+- verified-by: `sentences of one reply through the SDK StreamAdapter stitch to each other, and a new reply starts fresh`
+- verified-by: `a scene build that fails once is retried once and the scene opens`
+- verified-by: `reply-first at rung 3: the early line is uninterruptible, since a blocking error it cannot see yet may drop the rung`
+- verified-by: `a session that fails to start still logs its exit, named start`
+- verified-by: `the drop handler releases nothing when the session had already ended or failed`
+
