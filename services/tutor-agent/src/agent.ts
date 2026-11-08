@@ -496,11 +496,14 @@ export default defineAgent({
       stt,
       // A scene builds no model client at all.
       llm: scene ? undefined : tutorLLM(proxy),
-      // One vendor retry each; an error that is still unrecoverable after its
-      // retry ends the room, as before.
-      // A Deepgram retry opens a second quoted stream, so the paid quote must
-      // allow two STT streams per lesson (set in scripts/paidQuotes.mjs).
-      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 1 }, llmConnOptions: { maxRetry: 1 }, ttsConnOptions: { maxRetry: 1 }, maxUnrecoverableErrors: 1 } } : {}),
+      // One vendor retry for STT and the LLM; an error that is still
+      // unrecoverable after its retry ends the room, as before. TTS never
+      // retries: the SDK replays the whole sentence after a mid-sentence drop,
+      // so the learner would hear its start twice.
+      // A Deepgram retry opens another quoted stream, and the SDK resets the STT
+      // retry count on every final transcript, so "one reconnect" is per heard
+      // turn, not per session (quote in scripts/paidQuotes.mjs).
+      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 1 }, llmConnOptions: { maxRetry: 1 }, ttsConnOptions: { maxRetry: 0 }, maxUnrecoverableErrors: 1 } } : {}),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.
       tts: voiceTts,

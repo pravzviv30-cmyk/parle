@@ -221,7 +221,7 @@ describe('the end-of-session clock and tap-to-send reach the room', () => {
 
 describe('one hiccup is survivable and the exit is named', () => {
   test('paid and scene sessions get one vendor retry and an error still unrecoverable after it ends the room', () => {
-    assert.match(CODE, /connOptions: \{ sttConnOptions: \{ maxRetry: 1 \}, llmConnOptions: \{ maxRetry: 1 \}, ttsConnOptions: \{ maxRetry: 1 \}, maxUnrecoverableErrors: 1 \}/);
+    assert.match(CODE, /connOptions: \{ sttConnOptions: \{ maxRetry: 1 \}, llmConnOptions: \{ maxRetry: 1 \}, ttsConnOptions: \{ maxRetry: 0 \}, maxUnrecoverableErrors: 1 \}/);
   });
   test('one recorder per session reaches both tutors and is logged on close and on shutdown', () => {
     assert.match(CODE, /const exit = new SessionExit\(\)/);

@@ -4,7 +4,7 @@ import { existsSync, lstatSync, mkdtempSync, writeFileSync, readdirSync, symlink
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AudioFrame } from '@livekit/rtc-node';
-import { initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agents';
+import { APIConnectionError, initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agents';
 
 // The worker CLI does this in production; tests must do it themselves before any
 // ChunkedStream is constructed.
@@ -1030,5 +1030,57 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     await pcmOf(synth(cached, SECOND));
     assert.equal(calls.length, 0);
     assert.equal(fake.streamCalls, 2);
+  });
+});
+
+describe('a vendor drop mid-sentence under the session retry policy', () => {
+  /** First run speaks two frames then drops like a reset socket; the next run speaks the whole line. */
+  class DroppingChunked extends tts.ChunkedStream {
+    label = 'dropping.ChunkedStream';
+    readonly #owner: DroppingTTS;
+    constructor(text: string, owner: DroppingTTS, connOptions?: Parameters<tts.TTS['synthesize']>[1]) {
+      super(text, owner, connOptions);
+      this.#owner = owner;
+    }
+    protected async run(): Promise<void> {
+      const frames = [...rampFrames(this.inputText), ...rampFrames(`${this.inputText}!`)];
+      if (this.#owner.runs++ === 0) {
+        this.queue.put({ requestId: 'd', segmentId: 'd', frame: frames[0]!, final: false });
+        this.queue.put({ requestId: 'd', segmentId: 'd', frame: frames[1]!, final: false });
+        throw new APIConnectionError({ message: 'socket reset' });
+      }
+      frames.forEach((frame, i) => this.queue.put({ requestId: 'd', segmentId: 'd', frame, final: i === frames.length - 1 }));
+    }
+  }
+  class DroppingTTS extends FakeTTS {
+    runs = 0;
+    override synthesize(text: string, connOptions?: Parameters<tts.TTS['synthesize']>[1]): tts.ChunkedStream {
+      this.calls += 1;
+      return new DroppingChunked(text, this, connOptions);
+    }
+  }
+
+  test('the session TTS retry count never replays a line the learner already started hearing', async () => {
+    const agentSource = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
+    const maxRetry = Number(/ttsConnOptions: \{ maxRetry: (\d+) \}/.exec(agentSource)?.[1]);
+    assert.ok(Number.isInteger(maxRetry), 'agent.ts sets ttsConnOptions.maxRetry');
+    const dropping = new DroppingTTS();
+    const cache = new CachedTTS(dropping, { dir, voiceKey: 'test-voice', authoredLines: [] });
+    cache.on('error', () => {});
+    const listeners = process.listeners('unhandledRejection');
+    process.removeAllListeners('unhandledRejection');
+    process.on('unhandledRejection', () => {});
+    const heard: Int16Array[] = [];
+    try {
+      const stream = cache.synthesize('Bon, on y va ?', { maxRetry, retryIntervalMs: 0, timeoutMs: 5000 });
+      try { for await (const packet of stream) heard.push(packet.frame.data); } catch { /* the drop ends the line */ }
+      await new Promise((resolve) => setImmediate(resolve));
+    } finally {
+      process.removeAllListeners('unhandledRejection');
+      for (const listener of listeners) process.on('unhandledRejection', listener);
+    }
+    const first = heard[0];
+    assert.ok(first, 'the line started');
+    assert.equal(heard.filter((f) => Buffer.from(f.buffer).equals(Buffer.from(first.buffer))).length, 1, 'the start of the line was spoken twice');
   });
 });
