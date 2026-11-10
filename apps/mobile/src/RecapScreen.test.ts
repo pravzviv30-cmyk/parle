@@ -69,7 +69,7 @@ describe('the recap is a keepsake', () => {
     assert.equal((render.match(/<KeptPhraseCard\b/g) ?? []).length, 1, 'the kept phrase shows twice');
     // Every block appears only once it has something true to show.
     assert.match(render, /\{lines\.length > 0 && \(/, 'an empty "Your lines" block is drawn');
-    assert.match(render, /\{nextTime !== null && /, '"Next time" is drawn with nothing to name');
+    assert.match(render, /\{nextTime !== null && \(celebrate === null \|\| celebrate\.next === null\) && /, '"Next time" is drawn with nothing to name, or beside the earned Next pill');
     // With no reply nothing was measured, so the goals hide like the tiles and lines (UI-020, brief item 4).
     assert.match(render, /\{credit\.settles && goals\.length > 0 \? <View style=\{s\.goalCard\}>/, 'goals are ticked on a recap with no reply');
   });

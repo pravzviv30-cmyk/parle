@@ -456,12 +456,15 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     assert.doesNotMatch(band, /Animated|useReduceMotion|drawIn|transform/, 'the highlighter moves again');
     assert.match(band, /backgroundColor: highlight/, 'the band is not the highlighter');
     assert.match(band, /\{\.\.\.frenchText\}/, 'the line on the band is not marked as French');
-    assert.match(band, /\{\.\.\.decorative\}/, 'the band is announced to assistive tech; the words on it are what is read');
     assert.match(band, /type\.french/, 'the line on the band is not set as French');
     assert.match(band, /color: paper\.ink/, 'the line on the band is not ink');
-    const style = region(componentsSource(), '  band: {', '  soundTag: {');
-    assert.match(style, /top: 0, bottom: 0/, 'the band is a stroke under the words, not SNIPPETS\' band behind the whole line');
-    assert.match(style, /borderRadius: space\(1\.5\)/, 'the band\'s corner is not SNIPPETS\' 6');
+    // DESIGN.md Colour: a pen, not a surface. The band is the background of an
+    // inline Text inside the French line, so it follows the glyphs line by line
+    // and a wrapped phrase never paints the empty end of its box. A background
+    // has no accessibility node, so the band stays silent without `decorative`
+    // (which would hide the words on web).
+    assert.match(band, /<Text[^>]*\{\.\.\.frenchText\}[^>]*>\s*<Text style=\{\{ backgroundColor: highlight \}\}>\{text\}<\/Text>\s*<\/Text>/, 'the band is not an inline pen stroke inside the French line');
+    assert.doesNotMatch(band, /<View|position: 'absolute'|ls\.band/, 'the band is a panel behind the whole text box again');
   });
 
   test('the motion vocabulary carries the draw-in, and withholding movement lands on the final frame', () => {

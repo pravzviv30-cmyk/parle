@@ -1198,15 +1198,14 @@ export function Highlight({
   style?: StyleProp<TextStyle>;
   accessibilityLabel?: string;
 }) {
-  const ls = useThemedStyles(makeLs);
-  // The highlighter is the same pen in both modes, so its words stay ink.
+  // The highlighter is the same pen in both modes, so its words stay ink. The
+  // band is the inline Text's background, drawn per line run, so a wrapped
+  // phrase gets one stroke per line and no panel (DESIGN.md: a pen, not a
+  // surface). Native ignores padding on inline Text, so the band is glyph-tight.
   return (
-    <View style={ls.bandHost}>
-      <View {...decorative} style={[ls.band, { backgroundColor: highlight, pointerEvents: 'none' }]} />
-      <Text {...frenchText} accessibilityLabel={accessibilityLabel} style={[type.french, { color: paper.ink }, style]}>
-        {text}
-      </Text>
-    </View>
+    <Text {...frenchText} accessibilityLabel={accessibilityLabel} style={[type.french, { color: paper.ink, alignSelf: 'flex-start' }, style]}>
+      <Text style={{ backgroundColor: highlight }}>{text}</Text>
+    </Text>
   );
 }
 
@@ -1474,8 +1473,6 @@ const makeLs = (t: B) => StyleSheet.create({
   },
   glyph: { minWidth: 24, alignItems: 'center', justifyContent: 'center' },
   words: { ...ROW_WORDS, gap: space(0.5) },
-  bandHost: { alignSelf: 'flex-start', paddingHorizontal: space(1) },
-  band: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: space(1.5) },
   soundTag: {
     flexDirection: 'row',
     flexWrap: 'wrap',

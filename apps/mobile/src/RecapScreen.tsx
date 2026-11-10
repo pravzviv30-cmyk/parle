@@ -419,7 +419,7 @@ export function RecapScreen({
       )}
 
       {/* Next time: the spine's next scene, the reason to come back. */}
-      {nextTime !== null && <Text style={[type.heading, { color: t.text }]}>{nextTime}</Text>}
+      {nextTime !== null && (celebrate === null || celebrate.next === null) && <Text style={[type.heading, { color: t.text }]}>{nextTime}</Text>}
       {/* Only now, the one reminder ask. Its Remind me is the one thing on
           this card that may raise the phone's dialog. */}
       {offer !== null && reminder !== 'declined' && (

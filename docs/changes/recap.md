@@ -209,3 +209,14 @@ From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by 
 - Documentation and decisions: UI-020, `DESIGN.md`, `docs/DESIGN_PARTNERSHIP.md`, `docs/CURRENT_STATE_MAP.md`, `docs/changes/cast.md`, the ledger.
 - Under Reduce Motion the confetti is drawn still (the shared `Confetti` behaviour, as on the drill end), not removed; the founder sees it in the after shots.
 - Landing disposition: HOLD until push-checked, the live run is captured and the founder OKs the after shots
+
+## Not done (found in push-check, out of scope)
+
+- **The chime on a no-reply recap.** When a phrase was kept, `recapMoment`'s `won` rule (lines said or a phrase kept) still plays the moment's chime and haptic while Cloud rests. The rule is older than this change; whether "won" should need a reply is a founder call.
+- **The earned title arrives late.** Whether the scene was earned comes from the progress read, so "You can now" and the postcard arrive a moment after first paint. If that read fails, an independent finish keeps its confetti but shows no postcard. Both behaved the same on the old pager.
+- **The web focus ring on sheet headings.** `Sheet` moves focus to its heading by script, and on web the browser draws its default blue outline (`components.tsx` around :2039 with the web rule at :84). DESIGN.md's `FOCUS` paragraph leaves a script-focused heading out. This is older shared code, web only; a candidate one-line fix in the web focus rule.
+- **Small leftovers:**
+  - the dev preview seeds a new storage scope per mount;
+  - `HearItSaid`'s `ground` prop and `progressStrip.ts`'s `streak`, `goal` and `capLine` are unused;
+  - the two closures are recomputed per render.
+- **Four Impeccable redesign proposals**, logged in `docs/DESIGN_PARTNERSHIP.md` (2026-11-10) and put to the founder: the kept phrase under the tiles, Small fixes as one list card, fewer eyebrows, and a pinned practice pill in the focus sheet.
