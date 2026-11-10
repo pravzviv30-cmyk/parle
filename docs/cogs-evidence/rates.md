@@ -37,7 +37,13 @@ Per million tokens:
 | gpt-5.6-luna | $0.20 | $1.20 | — | — |
 | gpt-5.6-terra | $2 | $12 | — | — |
 
-Priority tier, if the founder turns it on, bills more.
+Priority tier (`OPENAI_LIVE_SERVICE_TIER=priority`, on for staging's live turn and frame). OpenAI renamed priority processing "Fast mode" on 2026-07-30. Fast-mode rates from https://platform.openai.com/docs/pricing, read 2026-11-08, per million tokens:
+
+| Model | Input | Output | Cache read |
+|---|---|---|---|
+| gpt-6-luna (Fast) | $0.20 | $1.00 | $0.02 |
+
+`scripts/paidQuotes.mjs` prices a captured call carrying `service_tier: 'priority'` at this row. The page lists no Fast rate for gpt-5.6-luna, so a priority call on that model is refused by the generator rather than priced.
 
 ## Pronunciation scoring
 - `assessmentPerUtterance` ($0.002) is the cost model's own figure, not a vendor quote. `docs/LIVE_VOICE.md` already lists confirming Speechace's billing unit and rate as an activation step. No public per-call price was found.

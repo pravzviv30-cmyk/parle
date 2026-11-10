@@ -1398,14 +1398,14 @@ describe('the lesson names which exit ended it', () => {
     assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
   });
 
-  test('a safety stop names done', async () => {
+  test('a safety stop names safety', async () => {
     const { lines, exit } = recorder();
     const { tutor, session } = build(RUNGS.PROMPTED, { voiceless: true, exit });
     await tutor.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
     for (let i = 0; i < 30; i += 1) await Promise.resolve();
     tutor.clearRescue();
     exit.log();
-    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+    assert.deepEqual(lines, ['[luvani:session-exit] class=safety']);
   });
 
   test('the warm close for time names cap', async (t) => {

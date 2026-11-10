@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { recognitionPlan } from './recognitionPlan.ts';
 
-const FLUX = { flux: true, options: { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, numerals: false } };
+const FLUX = { flux: true, options: { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, numerals: false, eotTimeoutMs: 3000 } };
 const KINDS = ['convo', 'lesson', 'scene'] as const;
 
 test('every session kind defaults to Flux with French and English hints, whatever the unset or unknown knob', () => {
@@ -12,6 +12,11 @@ test('every session kind defaults to Flux with French and English hints, whateve
       assert.deepEqual(recognitionPlan(kind, language, { LUVANI_STT_NOVA_KINDS: knob }), FLUX);
     }
   }
+});
+
+test('Flux ends a turn on its own within 3 s of silence, ahead of the 4 s stuck-silence rescue', () => {
+  const plan = recognitionPlan('convo', 'fr', {});
+  assert.equal(plan.flux && plan.options.eotTimeoutMs, 3000);
 });
 
 test('LUVANI_STT_NOVA_KINDS puts only the named kinds back on Nova-3 with the given language', () => {

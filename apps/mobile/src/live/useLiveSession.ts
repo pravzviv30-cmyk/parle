@@ -481,8 +481,6 @@ export interface LiveSession {
    * screens render a waiting state rather than an unexplained spinner.
    */
   waitingForTutor: boolean;
-  /** Filled in when a session fails. Null otherwise. */
-  diagnostics: LiveDiagnostics | null;
   /**
    * The server's id for the session this screen holds, from its grant.
    *
@@ -651,6 +649,8 @@ export function useLiveSession(
   },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
+  const statusRef = useRef(status);
+  statusRef.current = status;
   const [prompt, setPrompt] = useState<SessionPrompt | null>(null);
   const [feedback, setFeedback] = useState<TurnFeedback | null>(null);
   const [tutorSpeaking, setTutorSpeaking] = useState(false);
@@ -693,7 +693,6 @@ export function useLiveSession(
   const [micClosedAtRecap, setMicClosedAtRecap] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [waitingForTutor, setWaitingForTutor] = useState(false);
-  const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A transport result belongs to the typed input that started it, even when
@@ -902,7 +901,6 @@ export function useLiveSession(
   const fail = useCallback((failure: LiveFailure) => {
     const copy = failureCopy(failure);
     diagRef.current.lastFailure = failure;
-    setDiagnostics({ ...diagRef.current });
     setWaitingForTutor(false);
     // Whatever this is, it is not a connection coming back.
     setReconnecting(false);
@@ -966,7 +964,6 @@ export function useLiveSession(
     evidenceSessionRef.current = null;
     setStatus({ phase: 'connecting' });
     setWaitingForTutor(false);
-    setDiagnostics(null);
     // A new start is a new session: the old grant's id must not survive into it.
     setSessionId(null);
     diagRef.current = emptyDiagnostics();
@@ -1490,13 +1487,14 @@ export function useLiveSession(
         // blip at minute eight is now a pause rather than a lost session.
         clearWatchdog();
         setReconnecting(false);
+        const moved = statusRef.current.phase !== 'ended' && statusRef.current.phase !== 'error';
         setStatus((s) => {
           if (s.phase === 'ended' || s.phase === 'error') return s;
           const copy = failureCopy('dropped');
           return { phase: 'error', failure: 'dropped', message: copy.message, canType: copy.canType };
         });
         // The room is gone, so haptics and sounds come back on the error view.
-        void releaseAudioSession().catch(() => {});
+        if (moved) void releaseAudioSession().catch(() => {});
       });
 
       // A blip, and the three states livekit-client publishes on the way through
@@ -1693,7 +1691,7 @@ export function useLiveSession(
           void room.localParticipant.setMicrophoneEnabled(false).catch(() => {});
           return false;
         }
-        // Kept in step with the diagnostics panel, which reports this. Left
+        // Kept in step with the session diagnostics, which record this. Left
         // false it would make a healthy tap-to-talk session read as broken to
         // whoever debugs it next.
         diagRef.current.micPublished = true;
@@ -1859,7 +1857,6 @@ export function useLiveSession(
     voiceless,
     reconnecting,
     waitingForTutor,
-    diagnostics,
     partialTranscript,
     pauseMic,
     sessionId,

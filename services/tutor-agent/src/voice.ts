@@ -42,6 +42,8 @@ import * as elevenlabs from '@livekit/agents-plugin-elevenlabs';
 import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey, type TutorVoiceKey } from '@luvani/core';
 import { CachedTTS, type CachedTTSOptions } from './ttsCache.ts';
 import { fishVoice } from './voiceFish.ts';
+// The most previous-sentence context the paid proxy and admission accept, in UTF-8 bytes.
+import { ELEVEN_PREVIOUS_TEXT_MAX_BYTES as PREVIOUS_TEXT_MAX_BYTES } from '../../shared/paidExecution.ts';
 import { type VoiceVendor, conversationTtsModel, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
 export { BEGINNER_SPEED, tutorSpeedFor, conversationTtsModel, CONVERSATION_TTS_MODEL_ENV, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
 export type { VoiceVendor } from './voiceConfiguration.ts';
@@ -126,9 +128,6 @@ export function synthesisProbeRequest(voiceId: string): { url: string; body: str
 /** The plugin's own default when no paid proxy is in front of the vendor. */
 const ELEVEN_BASE_URL = 'https://api.elevenlabs.io/v1';
 
-/** The most previous-sentence context the vendor request (and the paid proxy) accepts, in UTF-8 bytes. */
-const PREVIOUS_TEXT_MAX_BYTES = 600;
-
 /** The end of the previous sentence, cut from the front at a space so it fits; '' when nothing fits. */
 function boundPrevious(text: string): string {
   let kept = text;
@@ -169,7 +168,7 @@ export function elevenStitchedRequest(
         }),
         signal,
       });
-      if (!response.ok) { await response.body?.cancel(); throw new Error(`stitched TTS request refused (${response.status})`); }
+      if (!response.ok) { await response.body?.cancel(); throw Object.assign(new Error(`stitched TTS request refused (${response.status})`), { status: response.status }); }
       if (!(response.headers.get('content-type') ?? '').startsWith('audio/')) { await response.body?.cancel(); throw new Error('stitched TTS answer was not audio'); }
       const reader = response.body?.getReader();
       if (!reader) throw new Error('stitched TTS answer had no body');

@@ -890,6 +890,8 @@ export function frameDeadlineMs(env: Record<string, string | undefined> = proces
  */
 const TURN_TIMEOUT_MS = 15_000;
 const CLI_TURN_TIMEOUT_MS = 45_000;
+const TURN_RETRY_TIMEOUT_MS = 10_000;
+const CLI_TURN_RETRY_TIMEOUT_MS = 30_000;
 /** How long a spoken turn waits on the brain before the spoken bridge is said. */
 const SPOKEN_BRIDGE_MS = 1_500;
 
@@ -899,7 +901,7 @@ function turnDeadlineMs(env: Record<string, string | undefined> = process.env): 
 
 /** The one retry a failed turn gets, on a shorter clock so the learner is not left waiting twice as long. */
 function turnRetryDeadlineMs(env: Record<string, string | undefined> = process.env): number {
-  return selectedBrain(env) === 'claude-cli-all' ? 30_000 : 10_000;
+  return selectedBrain(env) === 'claude-cli-all' ? CLI_TURN_RETRY_TIMEOUT_MS : TURN_RETRY_TIMEOUT_MS;
 }
 
 /**
@@ -1921,7 +1923,7 @@ export class LuvaniConversation extends voice.Agent {
    * flushes would take the message with it.
    */
   private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
-    this.exit?.mark('done');
+    this.exit?.mark('safety');
     void this.finish();
     try {
       await delivered;
@@ -2183,7 +2185,16 @@ export class LuvaniConversation extends voice.Agent {
     // The frame call gets the notes that share words with the request.
     this.recallForScene([request], false);
     try {
-      frame = await this.buildFrame(request);
+      try {
+        frame = await this.buildFrame(request);
+      } catch (error) {
+        // One hiccup gets the same single retry a brain turn does (performBrainTurn).
+        if (this.ended || !this.lifecycle || this.liveWork.signal.aborted || this.closingForTime
+          || error instanceof BrainParseError || error instanceof BrainRefusalError) throw error;
+        // The retry runs on the full frame deadline on purpose: the spoken bridge covers the wait.
+        console.warn('[luvani] scenario build retrying:', safeError(error));
+        frame = await this.buildFrame(request);
+      }
     } catch (error) {
       if (this.ended) return;
       if (this.lifecycle && !(error instanceof BrainParseError) && !(error instanceof BrainRefusalError)) {
@@ -2453,8 +2464,8 @@ export class LuvaniConversation extends voice.Agent {
       this.resumeAfterSpeech = running;
     }
     // The floor handed back. A real turn clears this clock when it is committed
-    // (at most the rung's endpointing maxDelay later, 3,500 ms at rungs 1-2, well
-    // inside the window), and the
+    // (at most the rung's maxDelay (thinkingTime.ts) later, well inside the
+    // window), and the
     // agent thinking or speaking clears it too; a sound that was never a turn
     // leaves it running, and `runRescue` still checks the queue and generation.
     if (!speaking && wasSpeaking && this.resumeAfterSpeech) {
@@ -3225,7 +3236,10 @@ export class LuvaniConversation extends voice.Agent {
     this.markTiming('brainParsed');
     timing?.mark('brainParsed');
     inputTiming?.mark('brainParsed');
-    this.speak(recast.view, timing);
+    // Reply-first has no coach yet, so its grade cannot see a blocking error that
+    // would drop rung 3 to 2, where the line is uninterruptible. Assume it might.
+    const preTurnRung = this.state.ladder.rung;
+    this.speak(recast.view, timing, turnIsUninterruptible(recast.view) || (fields.coach === undefined && preTurnRung <= 3));
     inputTiming?.mark('sayCalled');
     return { view: recast.view, recastUsed: recast.used, provisional };
   }
@@ -3259,7 +3273,7 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   /** Narration, then coach, then the scene reply — outside-in, like a film. */
-  private speak(view: TurnView, timing?: SceneReplyTimingRecord): void {
+  private speak(view: TurnView, timing?: SceneReplyTimingRecord, uninterruptible = turnIsUninterruptible(view)): void {
     // The recovery line (recover()) deliberately does not mark: a turn that
     // failed is not a data point about how fast a turn answers.
     this.clearBridge();
@@ -3267,7 +3281,7 @@ export class LuvaniConversation extends voice.Agent {
     if (this.voiceless) timing?.finish('cancelled');
     else timing?.mark('sayCalled');
     this.replyAudio.dispatch(this.firstFrameTiming ? timing : undefined,
-      () => this.say(spokenTurn(view), turnIsUninterruptible(view) ? { allowInterruptions: false } : {}));
+      () => this.say(spokenTurn(view), uninterruptible ? { allowInterruptions: false } : {}));
     timing?.finish('dispatched');
   }
 

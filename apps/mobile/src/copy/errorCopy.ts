@@ -18,7 +18,7 @@ export class LearnerError extends Error {
   }
 }
 
-const NETWORK_MESSAGE = /network request failed|failed to fetch|load failed|network/i;
+const NETWORK_MESSAGE = /failed to fetch|load failed|network/i;
 
 function isConnectionFailure(cause: unknown): boolean {
   if (typeof cause !== 'object' || cause === null) return false;

@@ -17,10 +17,12 @@ import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { recognitionPlan } from '../services/tutor-agent/src/recognitionPlan.ts';
+import { parseWav } from './quietSpeechHelpers.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const clipsDir = join(root, 'artifacts/voice-comparison-2026-09-19');
-export const FLUX_OPTIONS = { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, mipOptOut: true, numerals: false };
+export const FLUX_OPTIONS = { ...recognitionPlan('lesson', 'fr', {}).options, mipOptOut: true };
 export const PAUSES_MS = [500, 1000, 1500, 2000];
 export const LEAD_MS = 300;
 export const TAIL_MS = 3_000;
@@ -35,19 +37,6 @@ export function parseArgs(argv) {
     pauses, clips: val('--clips') ? Number(val('--clips')) : undefined, eotThreshold: val('--eot-threshold'),
     out: val('--out') ?? 'docs/live-latency-evidence', dryRun: argv.includes('--dry-run'), force: argv.includes('--force'),
   };
-}
-
-export function readWav(path) {
-  const buf = readFileSync(path);
-  let off = 12, rate = 0, data = null;
-  while (off < buf.length) {
-    const id = buf.toString('ascii', off, off + 4);
-    const size = buf.readUInt32LE(off + 4);
-    if (id === 'fmt ') rate = buf.readUInt32LE(off + 12);
-    if (id === 'data') data = new Int16Array(buf.buffer.slice(buf.byteOffset + off + 8, buf.byteOffset + off + 8 + size));
-    off += 8 + size + (size % 2);
-  }
-  return { rate, pcm: data };
 }
 
 /** Quietest 20 ms window in the middle 35-65 % of the voiced span (as measurePauseEndpointing), plus where voice ends. */
@@ -126,7 +115,7 @@ function loadClips(count) {
   const manifest = JSON.parse(readFileSync(join(clipsDir, 'manifest.json'), 'utf8'));
   const files = readdirSync(clipsDir).filter((f) => f.endsWith('-current-phrase.wav')).sort().slice(0, count);
   return files.map((file) => {
-    const { rate, pcm } = readWav(join(clipsDir, file));
+    const { rate, pcm } = parseWav(readFileSync(join(clipsDir, file)));
     return { file, rate, pcm, seconds: pcm.length / rate, text: manifest.clips.find((c) => c.file === file.replace('.wav', '.m4a'))?.text ?? '?' };
   });
 }

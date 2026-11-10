@@ -1539,9 +1539,6 @@ day; `surfaceContract.test.ts` holds Home to reading it from the greeting rather
 than spelling it, because a sentence typed into the tab is a sentence that stops
 changing and nothing would say so. Home draws no monogram: the initial is
 Profile's, once, and the greeting already says the learner's name.
-The header can overlap an outgoing and incoming Home greeting in one stable
-line-height slot. The caller drives one native value; the frame cross-fades the
-two complete phrases and starts no timer of its own.
 
 Two rules ride with the block. **One primary pill per door**, so the eye has one
 place to go on each thing it can act on. That used to read "one per tab", and it
@@ -1710,26 +1707,20 @@ Each plays once per recap, and with movement reduced every part is at rest.
 **Chrome is plain English.** Sentence case on buttons; the caps look lives only
 in the micro-`label`. French appears exactly where it is content: tutor lines,
 lesson text, phrases and their glosses, review fronts, register vocabulary —
-and on Home, where the greeting takes turns through seven words with the
+and on Home, where the greeting is the hour's French word and the
 learner's name, and where the word of the day and the daily situation's starting
 line are French because they are the content. The greeting is the one place the
 chrome speaks French.
 
-**Seven greetings, and the hour decides which.** "Salut", "Hello" and "Coucou"
-any time; "Bonjour" and "Morning" while it is still day; "Bonsoir" and "Evening"
-after six, through midnight. Teaching somebody to say Bonsoir at breakfast is
-teaching them wrong, so the pool is filtered by the hour rather than shuffled.
-**The greeting and name move as one phrase.** The outgoing phrase rises one
-complete line while the incoming phrase rises from the slot below it, on the
-native driver with a cubic ease. The two opacities always add to one, so the
-heading never disappears between words, while the full-line separation keeps
-the phrases from doubling over the same baseline. React keeps the arriving phrase visible
-until it is committed as current, then resets the animation before paint. At
-accessibility text sizes the fixed-height animation stands down and the full
-title wraps in normal flow. A learner who asked for less movement gets one still
-word, the hour's French one, and a screen reader hears that same
-line once: a header that renamed itself every few seconds to somebody listening
-would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)
+**One greeting, and the hour decides the word.** "Bonjour" from 05:00 until
+18:00, "Bonsoir" from 18:00 through the night until 05:00 (the greeting's own
+evening window), then a comma and the learner's first name when it is known, with no
+full stop: "Bonsoir, Praveen", or the word alone when there is no name.
+Teaching somebody to say Bonsoir at breakfast is teaching them wrong, so the
+hour picks the word rather than a shuffle.
+**The greeting stands still.** The rotation is retired (`greeting.test.ts` pins it):
+nothing on Today moves but the orb and the highlighter, and a screen reader hears the
+greeting once. The conversation OPENS in English (the spoken question, no menu)
 with the French riding along on screen as exposure. The old FRENCH · ENGLISH
 paired furniture is retired.
 

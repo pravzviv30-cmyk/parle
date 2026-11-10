@@ -87,10 +87,9 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     let cancelled = false; const scope = scopeGeneration();
     // F961: a same-account refocus keeps the held answer, as the data read below does (F768).
     // An answer held from offline is not a real read, so coming online starts undecided.
-    // fetchBillingStatus never rejects (a failure is null), so a null result keeps the held billing.
     const reads = live && user !== null;
     setBillingRead(held => held !== null && held.scope === scope && held.live === reads ? held : { scope, live: reads, billing: null, answered: !reads });
-    if (live && user !== null) void fetchBillingStatus(user.id).catch(() => null).then(result => { if (!cancelled && scope === scopeGeneration()) setBillingRead(held => ({ scope, live: reads, billing: result ?? (held !== null && held.scope === scope ? held.billing : null), answered: true })); });
+    if (live && user !== null) void fetchBillingStatus(user.id).then(result => { if (!cancelled && scope === scopeGeneration()) setBillingRead(held => ({ scope, live: reads, billing: result ?? (held !== null ? held.billing : null), answered: true })); });
     return () => { cancelled = true; };
   }, [live, user]));
   useFocusEffect(useCallback(() => {

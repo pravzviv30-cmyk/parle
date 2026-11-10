@@ -20,7 +20,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import * as greetingModule from './greeting.ts';
-import { greetingLine, greetingSubline, greetingWord, homeGreeting, localHour, GREETING_SUBLINES } from './greeting.ts';
+import { greetingSubline, greetingWord, homeGreeting, localHour, GREETING_SUBLINES } from './greeting.ts';
 import { BANNED_IN_COPY, guiltIn } from '../copy/guilt.ts';
 
 /** A local timestamp on an ordinary Thursday, so the hour is the only variable. */
@@ -46,8 +46,8 @@ describe('the greeting on Today', () => {
     assert.equal(localHour(1e20), 12);
     assert.equal(greetingWord(Number.NaN), 'Bonjour');
 
-    assert.equal(greetingLine('Praveen', at(21)), 'Bonsoir, Praveen');
-    assert.equal(greetingLine('Camille', at(9)), 'Bonjour, Camille');
+    assert.equal(homeGreeting('Praveen', at(21)).title, 'Bonsoir, Praveen');
+    assert.equal(homeGreeting('Camille', at(9)).title, 'Bonjour, Camille');
 
     // UI-015 (founder 2026-10-30): direction A's sky brings back the hour's
     // word on Today, superseding B's one word all day. Two lines on screen,
@@ -73,12 +73,12 @@ describe('the greeting on Today', () => {
   });
 
   test('a learner who skipped their name is greeted by the word alone, with no bare comma — F387', () => {
-    assert.equal(greetingLine(null, at(21)), 'Bonsoir', 'a nameless learner is greeted with something other than the word alone');
-    assert.equal(greetingLine('   ', at(9)), 'Bonjour', 'a name of nothing but spaces is greeted as if it were a name');
+    assert.equal(homeGreeting(null, at(21)).title, 'Bonsoir', 'a nameless learner is greeted with something other than the word alone');
+    assert.equal(homeGreeting('   ', at(9)).title, 'Bonjour', 'a name of nothing but spaces is greeted as if it were a name');
     // One name rule for the app: firstNameOf splits it.
-    assert.equal(greetingLine('  Camille Dubois  ', at(9)), 'Bonjour, Camille');
+    assert.equal(homeGreeting('  Camille Dubois  ', at(9)).title, 'Bonjour, Camille');
 
-    const lines = [null, 'Camille', '  Camille Dubois  ', ''].flatMap((name) => [greetingLine(name, at(9)), greetingLine(name, at(21))]);
+    const lines = [null, 'Camille', '  Camille Dubois  ', ''].flatMap((name) => [homeGreeting(name, at(9)).title, homeGreeting(name, at(21)).title]);
     assert.ok(BANNED_IN_COPY.length > 0);
     for (const name of [null, 'Camille']) {
       assert.doesNotMatch(homeGreeting(name, at(9)).title, /\.$/, 'the title ends on a full stop');

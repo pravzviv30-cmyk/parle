@@ -69,8 +69,8 @@ export interface ThinkingTimeInput {
 }
 
 export function endpointingFor({ rung, cutOffs, holding }: ThinkingTimeInput): Endpointing {
-  if (holding) return { minDelay: MOMENT_HOLD_DELAY_MS, maxDelay: ENDPOINTING_MAX_DELAY_MS };
   const beginner = rung === undefined || rung <= 2;
+  if (holding) return { minDelay: MOMENT_HOLD_DELAY_MS, maxDelay: beginner ? BEGINNER_ENDPOINTING_MAX_DELAY_MS : ENDPOINTING_MAX_DELAY_MS };
   const base = beginner ? BEGINNER_PAUSE_FLOOR_MS : FLUENT_PAUSE_FLOOR_MS;
   const raised = base + Math.max(0, cutOffs) * CUT_OFF_STEP_MS;
   return {

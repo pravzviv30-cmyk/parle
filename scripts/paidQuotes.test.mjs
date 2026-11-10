@@ -12,7 +12,7 @@ import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {ROOT,buildSchemaManifest,MANAGED_DEFAULT_PRIVILEGES_SQL} from './releaseSchemaManifest.mjs';
-import {generate} from './paidQuotes.mjs';
+import {generate,sttShapesFor,STAGING_ENV} from './paidQuotes.mjs';
 import {paidAdmission,PaidAdmissionError} from '../services/shared/paidAdmission.ts';
 import {paidBindings} from '../services/shared/paidBindings.ts';
 import {reservationGate} from '../services/shared/paidExecution.ts';
@@ -21,9 +21,10 @@ const EVIDENCE='https://github.com/example/luvani/blob/main/deployment/PAID_ADMI
 const scratch=()=>mkdtemp(join(tmpdir(),'luvani-paid-quotes-test-'));
 /** Which captured request shapes each activity's runtime sends (see the generator's quote table). */
 const SENDS={
- // A Deepgram stream the plugin reopens once (maxRetry 1, agent.ts) is a second claim of the same shape.
- lesson:['live-chat','stt-lesson-keyterm','stt-lesson-keyterm','tts-alexandre'],'lesson-text':['live-chat'],
- convo:['turn-stream','frame','curate','extract','drills','stt-convo-flux','stt-convo-flux','tts-alexandre'],
+ // A Deepgram stream the plugin reopens is another claim of the same shape. The SDK resets its retry count on
+ // each final transcript, so a second drop opens a third stream.
+ lesson:['live-chat','stt-lesson-keyterm','stt-lesson-keyterm','stt-lesson-keyterm','tts-alexandre'],'lesson-text':['live-chat'],
+ convo:['turn-stream','frame','curate','extract','drills','stt-convo-flux','stt-convo-flux','stt-convo-flux','tts-alexandre'],
  'convo-text':['turn','frame','curate','extract','drills'],
  practice:['drills'],'api-judge':['judge'],'api-fix-judge':['fix-judge'],'api-transcribe':['take'],'phrase-audio':['phrase-alexandre'],
 };
@@ -100,6 +101,15 @@ test('generated staging quotes admit every bound activity through the real SQL a
   assert.deepEqual(d.configuration.parameters.language_hint,['en','fr'],name);
   assert.equal(d.configuration.parameters.keyterm,name==='stt-lesson-keyterm'?'prompted':undefined,name);
  }
+ // STAGING_ENV pins that change a request body: priority tier on the live calls, coach after sceneReply.
+ for(const name of ['turn-stream','frame'])assert.equal(first.shapes[name].descriptor.configuration.service_tier,'priority',name);
+ const required=first.shapes['turn-stream'].descriptor.configuration.text.format.schema.required;
+ assert.ok(required.indexOf('coach')>required.indexOf('sceneReply'),'reply-first: coach after sceneReply');
+ // Priority (Fast mode) gpt-6-luna is $0.20 input and $1.00 output per MTok (rates.md): microUSD per byte/token.
+ for(const name of ['turn-stream','frame']){
+  const shape=first.shapes[name];assert.equal(shape.descriptor.model,'gpt-6-luna',name);
+  for(const c of first.components.convo.filter(c=>c.configurationSha256===shape.configurationSha256))assert.ok(c.microUsd>=c.maxInputBytes*0.2+c.maxOutputTokens*1.0,`${name} ${c.key} priced at the priority rate`);
+ }
  assert.deepEqual(paidBindings({LUVANI_PAID_QUOTE_BINDINGS:first.bindingsJson}),first.bindings);
  for(const file of Object.values(first.files))assert.ok(!file.startsWith(ROOT),'outputs stay outside the repository');
  const sql=await readFile(first.files.sql,'utf8');assert.doesNotMatch(sql,/capture-only|proxy-only|api_key|service_role_key/i);
@@ -108,9 +118,9 @@ test('generated staging quotes admit every bound activity through the real SQL a
  try {
   await db.exec(sql);
   const config=(await db.query('select * from luvani_private.paid_admission_config')).rows[0];
-  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,20000000);
+  assert.equal(config.enabled,true);assert.equal(Number(config.global_daily_micro_usd),first.budgets.globalDailyMicroUsd);assert.equal(first.budgets.globalDailyMicroUsd,23000000);
   assert.ok(first.budgets.accountDailyMicroUsd>=2*first.derivation.perActivityMicroUsd.convo && first.budgets.accountDailyMicroUsd<2*first.derivation.perActivityMicroUsd.convo+100000);
-  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(20000000/m)])));
+  assert.deepEqual(first.derivation.sessionsAdmittedPerDayAtGlobalBudget,Object.fromEntries(Object.entries(first.derivation.perActivityMicroUsd).map(([a,m])=>[a,Math.floor(23000000/m)])));
   assert.ok(first.derivation.sessionsAdmittedPerDayAtGlobalBudget.convo>=6,'six spoken conversations a day fit the global booking ceiling');
   console.log('[paid-quotes test] admitted per day (global, each alone):',JSON.stringify(first.derivation.sessionsAdmittedPerDayAtGlobalBudget));
   console.log('[paid-quotes test] admitted per account day (each alone):',JSON.stringify(first.derivation.admittedPerAccountDay));
@@ -191,4 +201,9 @@ test('the live-pipeline constructors the generator mirrors are still the ones ag
   "...(proxy ? { baseURL: proxy.elevenlabsBaseURL, missTransport: 'http' as const } : {}),",
   "const keyterm = isConvo ? [] : lessonKeyterms(lesson);",
  ])assert.ok(agent.includes(line),`agent.ts changed: ${line}`);
+});
+
+test('a Nova STT kind cannot be quoted, so the generator refuses it',async()=>{
+ assert.deepEqual((await sttShapesFor(STAGING_ENV)).map(([name])=>name),['stt-lesson-keyterm','stt-convo-flux']);
+ await assert.rejects(sttShapesFor({...STAGING_ENV,LUVANI_STT_NOVA_KINDS:'convo'}),/Nova kinds are not quoted/);
 });

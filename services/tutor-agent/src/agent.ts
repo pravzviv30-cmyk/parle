@@ -189,18 +189,19 @@ export default defineAgent({
     }
     const fixture = meta.lifecycleVersion !== 1 && legacyRuntimeFixture(process.env);
     if (meta.lifecycleVersion !== 1 && !fixture) throw new Error('authoritative signed tutor lifecycle is required');
+    // One line per session naming the exit that fired (sessionExit.ts); made
+    // before the claim so a session that fails to start still logs one.
+    const exit = new SessionExit();
+    ctx.addShutdownCallback(async () => { exit.log(); });
     const lifecycle = fixture ? undefined : await claimSessionLifecycle({
       userId: participant.identity, sessionId: meta.sessionId, roomName: ctx.room.name ?? '',
       mode: meta.mode as TutorSessionIdentity['mode'],
-    }, guestKey ? { guestKey, ...(scene ? { scene: true } : {}) } : {});
+    }, guestKey ? { guestKey, ...(scene ? { scene: true } : {}) } : {}).catch((error: unknown) => { exit.mark('start'); throw error; });
     let proxy: PaidVoiceProxy | undefined;
     const closeProxy = async () => { await proxy?.close(); };
     let stopPaidWork = () => { void closeProxy().catch(() => {}); };
     let finish = async (): Promise<void> => { if (lifecycle) await lifecycle.complete({ learnerTurns: 0 }); };
     completions.set(ctx, () => finish());
-    // One line per session naming the exit that fired (sessionExit.ts).
-    const exit = new SessionExit();
-    ctx.addShutdownCallback(async () => { exit.log(); });
     ctx.addShutdownCallback(async () => { stopPaidWork(); await closeProxy(); await finish(); });
     lifecycle?.onStop(() => {
       exit.mark(exitForStop(lifecycle));
@@ -291,7 +292,8 @@ export default defineAgent({
     const recognition = recognitionPlan(isConvo ? 'convo' : scene ? 'scene' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
     // One fixed keyterm list for a scripted lesson or scene (VOICE-017), set at
     // construction so it never reconnects the socket, and the same with or
-    // without the paid proxy. Convo keeps its per-turn phrases off-proxy only.
+    // without the paid proxy. Convo per-turn phrases and the language switch
+    // apply only to a convo LUVANI_STT_NOVA_KINDS puts on Nova-3, off the proxy.
     const keyterm = isConvo ? [] : lessonKeyterms(lesson);
     const { vad, stt, tts: voiceTts } = sessionAudio(voiceless, {
       vad: () => ctx.proc.userData.vad as silero.VAD,
@@ -496,11 +498,14 @@ export default defineAgent({
       stt,
       // A scene builds no model client at all.
       llm: scene ? undefined : tutorLLM(proxy),
-      // One vendor retry each; an error that is still unrecoverable after its
-      // retry ends the room, as before.
-      // A Deepgram retry opens a second quoted stream, so the paid quote must
-      // allow two STT streams per lesson (set in scripts/paidQuotes.mjs).
-      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 1 }, llmConnOptions: { maxRetry: 1 }, ttsConnOptions: { maxRetry: 1 }, maxUnrecoverableErrors: 1 } } : {}),
+      // One vendor retry for STT and the LLM; an error that is still
+      // unrecoverable after its retry ends the room, as before. TTS never
+      // retries: the SDK replays the whole sentence after a mid-sentence drop,
+      // so the learner would hear its start twice.
+      // A Deepgram retry opens another quoted stream, and the SDK resets the STT
+      // retry count on every final transcript, so "one reconnect" is per heard
+      // turn, not per session (quote in scripts/paidQuotes.mjs).
+      ...(paid || scene ? { connOptions: { sttConnOptions: { maxRetry: 1 }, llmConnOptions: { maxRetry: 1 }, ttsConnOptions: { maxRetry: 0 }, maxUnrecoverableErrors: 1 } } : {}),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.
       tts: voiceTts,
@@ -607,6 +612,8 @@ export default defineAgent({
       // the timeout alone cannot, and both landing costs the learner a turn.
       if (ev.newState === 'speaking') {
         sceneTiming.speechStarted();
+        // A new learner turn: the next reply's first sentence is not stitched to this one's last.
+        voiceTts?.rememberLine(null);
         // Within 1,500 ms of a committed turn, before the tutor answered: that
         // turn cut them off, and the pause floor rises for the session.
         thinking.learnerSpeechStarted();
@@ -685,6 +692,7 @@ export default defineAgent({
       if (!voiceless) tutor.speakCurrentTurn(session);
     }
     } catch (error) {
+      exit.mark('start');
       stopPaidWork();
       await finish();
       await ctx.room.disconnect().catch(() => {});

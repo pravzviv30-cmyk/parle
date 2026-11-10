@@ -235,8 +235,9 @@ if (!fast) {
   }
 }
 
+const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs'];
 if(!fast) {
-  const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,'services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs']);
+  const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,...releaseProofTests]);
   const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
   if(result.code!==0 || tested===0 || !/[ℹ#] fail 0/.test(result.out))fail('release/provider proofs',result.out.slice(-4000));
   else {
@@ -265,6 +266,13 @@ for (const file of testFiles(ROOT)) {
   }
   if (/\b(test|describe|it)\.skip\s*\(/.test(source)) {
     fail('hygiene', `${rel}: a skipped test is a test that is not defending anything`);
+  }
+}
+
+// Every scripts/*.test.mjs must be in the release/provider proof list, or it never runs.
+for (const entry of readdirSync(path.join(ROOT, 'scripts'))) {
+  if (entry.endsWith('.test.mjs') && !releaseProofTests.includes(`scripts/${entry}`)) {
+    fail('hygiene', `scripts/${entry}: not in the gate's release/provider proof list, so it never runs`);
   }
 }
 

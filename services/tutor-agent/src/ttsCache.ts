@@ -46,6 +46,7 @@ import { AudioFrame } from '@livekit/rtc-node';
 import { tts, type APIConnectOptions } from '@livekit/agents';
 import { decodeWav, encodeWav } from './wav.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
+import { safeError } from './safeError.ts';
 
 export interface CachedTTSOptions {
   /** Directory the WAV files live in. Created if missing. */
@@ -105,7 +106,7 @@ type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio' |
 const DEFAULT_MAX_TEXT = 220;
 /** Sentences of one reply are requested back to back; a learner turn in between takes longer. */
 const STITCH_WINDOW_MS = 8_000;
-/** Each refused stitched request is followed by a plain one, so a vendor that keeps refusing doubles the bill. */
+/** Each failed stitched request spends a quote effect before the plain one answers; after this many in a row, stitching stays off for the rest of the session. */
 const STITCH_FAILURES_BEFORE_OFF = 2;
 export const AUTHORED_CACHE_VERSION = 'authored-v1';
 /**
@@ -359,6 +360,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
   /** Set by a transport once the line ran to its end: not aborted, not closed early. */
   #finished = false;
   #route: ReturnType<CachedTTS['route']> | null = null;
+  /** Set when a stitched line broke after audio started: it ends short and is neither remembered nor context. */
+  #cutShort = false;
 
   constructor(text: string, cache: CachedTTS, connOptions?: APIConnectOptions, abortSignal?: AbortSignal) {
     super(text, cache, connOptions, abortSignal);
@@ -419,7 +422,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
         : await this.#passthrough(path, cacheable, memoKey !== null);
     } finally {
       // Runs when the stream throws too, so a broken line is never context for the next.
-      if (!this.#cache.authored(text)) this.#cache.rememberLine(this.#finished && this.#firstAudioReported ? normaliseLine(text) : null);
+      if (!(this.#finished && this.#firstAudioReported) && this.#cache.previousLine() === normaliseLine(text)) this.#cache.rememberLine(null);
     }
     this.#cache.misses += 1;
     // Only a line that finished cleanly is remembered; the transports return
@@ -483,7 +486,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
 
     // Only a complete, non-empty line is worth keeping. A failed request yields
     // nothing above and nothing is written.
-    if (this.abortSignal.aborted || this.closed) return null;
+    if (this.abortSignal.aborted || this.closed || this.#cutShort) return null;
     this.#finished = true;
     if (cacheable && collected.length > 0) this.#writeWav(path, collected);
     return memo?.frames() ?? null;
@@ -497,6 +500,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
   async *#audio(): AsyncIterable<tts.SynthesizedAudio> {
     const text = this.inputText, route = this.#route!, stitch = this.#cache.opts.stitch;
     const previous = stitch && this.#cache.stitchFailures < STITCH_FAILURES_BEFORE_OFF && !this.#cache.authored(text) ? this.#cache.previousLine() : null;
+    // Remembered as the request starts: the SDK starts every sentence of a reply at once, so the next one is already asking.
+    if (!this.#cache.authored(text)) this.#cache.rememberLine(normaliseLine(text));
     if (stitch && previous !== null) {
       let spoke = false;
       try {
@@ -506,11 +511,12 @@ class CachedChunkedStream extends tts.ChunkedStream {
         this.#cache.stitchFailures = 0;
         return;
       } catch (error) {
-        if (spoke || this.abortSignal.aborted) throw error;
+        if (this.abortSignal.aborted) throw error;
+        // Rethrowing would end the room, and a retryable error would replay the line, so it ends short.
+        if (spoke) { this.#cutShort = true; console.warn('[luvani:live] stitched tts request broke after audio; the line ends short', safeError(error)); return; }
         this.#cache.stitchFailures += 1;
         // Metadata only: a status code at most, never the vendor's text.
-        const status = error instanceof Error ? /refused \((\d{3})\)/.exec(error.message)?.[1] : undefined;
-        console.warn(`[luvani:live] stitched tts request failed; plain request answers${status ? ` status=${status}` : ''}`);
+        console.warn('[luvani:live] stitched tts request failed; plain request answers', safeError(error));
       }
     }
     yield* route.inner.synthesize(text, this.#connOptions, this.abortSignal);

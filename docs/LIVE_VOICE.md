@@ -725,7 +725,7 @@ cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
 `maxDelay`: 3,500 ms at rungs 1-2 since VOICE-022 (2026-11-07; at 2,500 every 2.5 s
 mid-sentence pause was cut, at 3,500 one in six, at no p50 cost, the price being a
 misread ending that waits 3.4 s; `docs/live-latency-evidence/2026-11-07-pause-endpointing.md`,
-synthetic voices), 2,500 ms at rungs 3-4 and under a moment hold. The 4 s stuck-silence rescue clock is armed at the VAD's end of speech, so a held beginner turn commits about a second before it; a test pins that margin. A lesson may run
+synthetic voices; a moment hold at rungs 1-2 keeps the same 3,500 since the 2026-11-08 council review), 2,500 ms at rungs 3-4. The 4 s stuck-silence rescue clock is armed at the VAD's end of speech, so a held beginner turn commits about a second before it; a test pins that margin. A lesson may run
 preemptive generation once more per held pause; the framework caps that at three a turn.
 
 The recogniser has been Flux since VOICE-023, and Flux declares its own end of turn. LiveKit
@@ -956,10 +956,10 @@ and a retry spends vendor effects inside the existing quotes.
 
 Every session logs exactly one exit line when the room closes or the job shuts down:
 
-    [luvani:session-exit] class=<brain-turn|lease|stt|tts|cap|learner-left|done>
+    [luvani:session-exit] class=<brain-turn|lease|stt|tts|cap|learner-left|done|safety|start>
 
-The first cause marked wins (`sessionExit.ts`). `done` is a finished lesson, mission
-or safety stop. `cap` is the close for time, or the lifecycle stopping at its hard
+The first cause marked wins (`sessionExit.ts`). `done` is a finished lesson or mission,
+`safety` a stop on a safety decision, `start` a session that failed before it began. `cap` is the close for time, or the lifecycle stopping at its hard
 deadline. `lease` is any other lifecycle stop. `stt`, `tts` and `brain-turn` come from
 a pipeline error that ends the room, or the brain turn's exit. `learner-left` is the
 learner disconnecting, and also what an unmarked session reads as. One known limit: a
