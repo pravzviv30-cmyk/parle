@@ -36,23 +36,28 @@ import type { ConversationText } from '@luvani/core';
  * before the first win, and never by the card opening. Whether to offer it at
  * all is `live/keepsake.ts`'s `reminderOffer`.
  *
- * Everything else the closure chose (what went well, the other phrases, the
- * small fix, a focus that is not a sound) is one tap away under a closed More,
- * drawn after Done so opening it never pushes the way out down the screen.
+ * Before UI-020, everything else the closure chose (what went well, the other
+ * phrases, the small fix, a focus that is not a sound) sat under a closed More,
+ * drawn after Done so opening it never pushed the way out down the screen.
+ * Today the small fixes and one focus row are in the scroll.
  *
  * The postcard, the feature-paper header and the tinted panels left with the
  * notebook redesign, and the card sits on the shared frame rather than
  * measuring the safe area itself.
  *
  * Come alive (core loop 2.9): this is the conversation's end card, so it is
- * where the fanfare the room held back plays. Once the room has given the
- * learner's ears back (F763), the result page plays its moment
- * (`recap/moment.ts`): a sun glow behind the scene, the `complete` sound, and
- * confetti when the scene was finished on the learner's own; then the progress
- * strip from the settled GameDelta (XP, the day streak, the goal ring). The
- * lines count up to the number said. On the can-do page every independent
- * finish this session gets its postcard stamped (`celebrate/PostcardStamp`),
- * and a finish with help gets the postcard still. Each plays once per recap.
+ * where the fanfare the room held back plays. The recap holds other
+ * celebrations while it is up (`holdCelebrations`). Once the room has given the
+ * learner's ears back (F763, or the audio wait runs out), the moment plays
+ * (`recap/moment.ts`): the `complete` sound, and the band's confetti only when
+ * the scene was finished on the learner's own. The postcard is then stamped,
+ * silently, in the band after the strip, only for a finish on the learner's
+ * own (`celebrate/PostcardStamp` with `sounds` and `confetti` off, so the
+ * band's moment is the only sound and the only confetti); a finish with help
+ * gets the postcard still. The progress tiles count up on the strip beat from
+ * the settled GameDelta (XP, the day streak, the goal ring), and sit at rest
+ * under Reduce Motion or when there is no moment to play. Each plays once per
+ * recap.
  */
 
 import { useEffect, useRef, useState } from 'react';
