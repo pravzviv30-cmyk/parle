@@ -69,6 +69,8 @@ try {
   await db.query("select set_config('luvani.lifecycle_rollback_maintenance','approved',false)");
   await db.exec(rollback);
   await db.exec(await readFile(new URL(lifecycle,root),'utf8'));
+  // Later migrations that replace a lifecycle function must follow the reapply (F970).
+  for (const name of migrations.filter(n=>n.endsWith('_tutor_pack_learner_replies.sql'))) await db.exec(await readFile(new URL(name,root),'utf8'));
   assert.equal((await call('tutor_session_schema_v1')).enabled,false);
   groups.push('unissued maintenance rollback and reapply');
 
@@ -157,6 +159,13 @@ try {
   const p4=baseline(4,4);await checkpoint(4,4,1,30,1,p4);
   await assert.rejects(checkpoint(4,4,2,31,1,{...p4,transcript:'forbidden'}),/unknown|private/);
   await assert.rejects(complete(4,4,2,31,1,null),/baseline is required/);
+  // F970: the app's packs carry learnerReplies (a safe integer, 0 up, per replyCount in core).
+  for (const bad of [-1,1.5,'2',9007199254740992,null]) {
+    await assert.rejects(checkpoint(4,4,2,31,1,{...p4,learnerReplies:bad}),/invalid tutor baseline/,`learnerReplies ${bad}`);
+  }
+  await assert.rejects(checkpoint(4,4,2,31,1,{...p4,learnerReplies:2,replies:2}),/unknown tutor baseline field/);
+  assert.equal((await checkpoint(4,4,2,31,1,{...p4,learnerReplies:2})).kind,'checkpointed');
+  assert.equal((await checkpoint(4,4,3,32,1,{...p4,learnerReplies:0})).kind,'checkpointed');
   const pending=await call('receipt_tutor_session_v1',[uuid(4),sid(4)]);assert.equal(pending.kind,'pending');
   await expire(4);const recovered=await reconcile();const rr=recovered.results.find(x=>x.sessionId===sid(4)).receipt;
   assert.equal(rr.chargedSeconds,0);assert.equal(rr.baselineStatus,'saved');
@@ -452,6 +461,18 @@ try {
   } finally { await bare.close(); }
   groups.push('REV-001 migration 43 replays without the held 42');
   groups.push('D24 taste with REV-001 figures: claim marks the taste, cap 600 (Core 18000, Max 36000), first debit starts a 44-hour window in the same epoch, live sessions defer the refill, a passed window refills to a new epoch, an unclaimed billing row never refills, every lapse lands on a reservable fresh taste, lapsed-and-spent is subscription-lapsed, wall doors launch/locked, refill at 44 h not 43h59m, 120 s floor at 480/481, six-arg projection clamps at 18000/36000, v2 grants 18000/36000/4200/8400 and refuses 36001/18001, 43 idempotent, interlocked 43 and 40 rollbacks and reapply');
+  // F970 rollback: restores the old allow-list (learnerReplies refused), safe twice, and the migration reapplies twice.
+  const replies = migrations.find(name=>name.endsWith('_tutor_pack_learner_replies.sql'));
+  const repliesSql = await readFile(new URL(replies,root),'utf8');
+  const repliesDown = await readFile(new URL(`../supabase/rollback/${replies.split('_')[0]}_down.sql`,import.meta.url),'utf8');
+  const packCheck = pack => db.query('select luvani_private.tutor_pack_v1($1,$2,$3)',[JSON.stringify(pack),uuid(4),sid(4)]);
+  await db.exec(repliesDown);await db.exec(repliesDown);
+  await assert.rejects(packCheck({...baseline(4,4),learnerReplies:2}),/unknown tutor baseline field/);
+  await packCheck(baseline(4,4));
+  await db.exec(repliesSql);await db.exec(repliesSql);
+  await packCheck({...baseline(4,4),learnerReplies:2});
+  await assert.rejects(packCheck({...baseline(4,4),learnerReplies:-1}),/invalid tutor baseline/);
+  groups.push('F970 learnerReplies baseline: 0 and 2 accepted, negative/fraction/string/above-safe-integer/null refused, other unknown keys refused, rollback and reapply twice');
   console.log(JSON.stringify({status:'PASS',migrationCount:migrations.length,proofGroups:groups.length,groups,
     limits:'Sequential disposable PostgreSQL/WASM. No hosted Auth, independent concurrent connections, actual SDK process/network shutdown, provider spend or deployed reconciler acceptance.'},null,2));
 } finally {await db.close();}

@@ -12547,3 +12547,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a session that fails to start still logs its exit, named start`
 - verified-by: `the drop handler releases nothing when the session had already ended or failed`
 
+
+### F970 — Signed-in conversations end at the first checkpoint: the pack validator does not know learnerReplies
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql:120-170 (`luvani_private.tutor_pack_v1`
+  key allow-list); packages/core/src/conversationPacks.ts:103,137,365 (`learnerReplies`, F904);
+  services/token-server/src/tutorSessionRoutes.ts:39
+- note: Verified on staging 2026-11-10 12:21 UTC. F904 (2026-10-28, `47275ec2`, `d0060415`) added
+  `learnerReplies` to `ConversationPack` and the tutor's checkpoint baseline carries it, but the SQL
+  allow-list in `tutor_pack_v1` never learned it, so `checkpoint_tutor_session_v1` raised PT400
+  'unknown tutor baseline field', the token server answered 500, the tutor threw "authoritative tutor
+  session unavailable" and the room closed (`[luvani:session-exit] class=lease`) after the learner's first
+  reply. `scripts/verifyTutorSessions.mjs` missed it because its hand-written `baseline()` lacks the key.
+  Fix: migration `20261110120000_tutor_pack_learner_replies.sql` adds the key with a whole-number check
+  (0 to 9007199254740991, core's `replyCount`), rollback `supabase/rollback/20261110120000_down.sql`.
+  The PGlite proof now checkpoints 0 and 2 and refuses bad values; a contract test validates a pack from
+  core's own builder against the replayed SQL, so a new pack key cannot drift again. Fixed in the repo;
+  **not applied to staging or production** (founder applies separately).
+- verified-by: `every key of a pack the app builds passes the replayed tutor baseline validator`
