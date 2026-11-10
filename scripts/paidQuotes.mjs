@@ -84,6 +84,8 @@ const RATES=Object.freeze({
  // add-on $0.0013/min, with no Flux-specific rate on the page. fr and multi stay for the Nova-3 knob (LUVANI_STT_NOVA_KINDS);
  // api-transcribe prices at fr.
  deepgramUsdPerMin:{flux:0.0078,fr:0.0077,multi:0.0092,keyterm:0.0013},
+ // rates.md: OpenAI Fast mode (service_tier 'priority', renamed 2026-07-30), platform.openai.com/docs/pricing read 2026-11-08.
+ openaiPriorityUsdPerMtok:{'gpt-6-luna':{input:0.2,output:1.0}},
 });
 
 const BRAIN_SYNTHETIC={persona:'',request:'Synthetic capture request.'};
@@ -135,7 +137,6 @@ export async function captureShapes({voices}) {
   const {generatePhraseAudio,frenchAudioHash}=await import('../services/token-server/src/phraseAudio.ts');
   const {selectedTutorSynthesisConfiguration,ELEVEN_VOICES,BEGINNER_SPEED}=await import('../services/tutor-agent/src/voiceConfiguration.ts');
   const {buildTTS}=await import('../services/tutor-agent/src/voice.ts');
-  const {recognitionPlan}=await import('../services/tutor-agent/src/recognitionPlan.ts');
   const {createPaidVoiceProxy}=await import('../services/tutor-agent/src/paidVoiceProxy.ts');
   const core=await import('../packages/core/src/index.ts');
   const shapes={};
@@ -208,7 +209,7 @@ export async function captureShapes({voices}) {
    }
    // agent.ts sessionAudio stt, Flux: deepgram.STTv2({...recognition.options, keyterms?, endpointUrl: proxy.deepgramBaseURL+'/v2/listen', apiKey, mipOptOut:true});
    // a LUVANI_STT_NOVA_KINDS kind: deepgram.STT({...recognition.options, keyterm?, baseUrl, apiKey, sampleRate:16000, numChannels:1, mipOptOut:true}).
-   const sttShapes=[['stt-lesson-keyterm',recognitionPlan('lesson','fr',STAGING_ENV),core.lessonKeyterms(core.CAFE_LESSON)],['stt-convo-flux',recognitionPlan('convo','multi',STAGING_ENV),[]]];
+   const sttShapes=await sttShapesFor(STAGING_ENV);
    for(const [name,plan,keyterm] of sttShapes){
     voiceSink.length=0;const stt=plan.flux
      ?new deepgram.STTv2({...plan.options,...(keyterm.length?{keyterms:keyterm}:{}),endpointUrl:proxy.deepgramBaseURL+'/v2/listen',apiKey:'proxy-only',mipOptOut:true})
@@ -223,11 +224,21 @@ export async function captureShapes({voices}) {
  } finally {restore();if(savedCache===undefined)delete process.env.TTS_CACHE_DIR;else process.env.TTS_CACHE_DIR=savedCache;}
 }
 
+/** The STT stream shapes for an env: [name, recognition plan, keyterms]. A Nova kind (LUVANI_STT_NOVA_KINDS) has no quote today. */
+export async function sttShapesFor(env) {
+ const {recognitionPlan}=await import('../services/tutor-agent/src/recognitionPlan.ts');
+ const core=await import('../packages/core/src/index.ts');
+ const shapes=[['stt-lesson-keyterm',recognitionPlan('lesson','fr',env),core.lessonKeyterms(core.CAFE_LESSON)],['stt-convo-flux',recognitionPlan('convo','multi',env),[]]];
+ if(shapes.some(([,plan])=>!plan.flux))throw new Error('Nova kinds are not quoted');
+ return shapes;
+}
+
 /* ---------------------------------------------------------------- envelopes
  * Sizing rules, for one session of CAPS.sessionSeconds (600 s):
  *
  * LLM (all OpenAI). Price = maxInputBytes x input $/MTok + maxOutputTokens x output $/MTok,
  *   from USD_PER_MTOK (packages/brain/src/llm/pricing.ts), so microUSD = units x $/MTok.
+ *   A call carrying service_tier priority is priced at RATES.openaiPriorityUsdPerMtok (Fast mode, rates.md).
  *   Input is priced UNCACHED and at one token per byte: a BPE token is never shorter than a byte,
  *   so this bounds the bill; real French/JSON runs about 4 bytes a token, so the envelope is ~4x real.
  *   Per-effect input = the measured body with the real system blocks (captured above) + an allowance:
@@ -242,8 +253,8 @@ export async function captureShapes({voices}) {
  *   A component holds at most 100,000 output tokens and 2 MiB of input (paid_quote_valid_v1),
  *   so a large budget is split over several components with the SAME identity; the gate fills them in order.
  * STT streaming (Deepgram). Each websocket claims the whole session (600,000 ms), so a component is one
- *   connection: lesson 2 (Flux + keyterms; the vendor maxRetry 1 can open a second stream), convo 2 Flux (no phase language
- *   switch on Flux, so one shape: the first stream and the one reconnect).
+ *   connection: lesson 3 (Flux + keyterms; the vendor maxRetry 1 resets on each final transcript, so a second drop
+ *   opens a third stream), convo 3 Flux (no phase language switch on Flux, so one shape: the first stream and two reconnects).
  *   Price = 10 min x the per-minute rate (flux+keyterm 0.0091; convo flux 0.0078).
  * STT take (api-transcribe): one call, at most SCORING_MAX_WAV_BYTES (30 s); priced at the streaming fr rate.
  * TTS (ElevenLabs). One component per voice, because voice is identity. Per session the tutor speaks
@@ -260,7 +271,8 @@ async function priceTable(){const {USD_PER_MTOK}=await import('../packages/brain
 const base=(key,shape)=>({key,kind:shape.descriptor.kind,provider:shape.descriptor.provider,model:shape.descriptor.model,voice:shape.descriptor.voice,configurationSha256:shape.configurationSha256,maxProviderAttempts:1});
 function llmComponents(prices,key,shape,{effects,lessonText=false}={}) {
  const name=shape.name,total=effects??EFFECTS[name],perInput=shape.measuredInputBytes+ALLOWANCE[name],perOutput=shape.descriptor.quantities.outputTokens;
- const price=prices[shape.descriptor.model];if(!price)throw new Error(`no price row for ${shape.descriptor.model}`);
+ const priority=shape.descriptor.configuration?.service_tier==='priority';
+ const price=(priority?RATES.openaiPriorityUsdPerMtok:prices)[shape.descriptor.model];if(!price)throw new Error(`no ${priority?'priority ':''}price row for ${shape.descriptor.model}`);
  const perComponent=Math.min(total,Math.floor(100000/perOutput),Math.floor(2097152/perInput));if(perComponent<1)throw new Error(`${name} cannot fit one effect`);
  const count=Math.ceil(total/perComponent),out=[];let left=total;
  for(let i=0;i<count;i++){const effects=Math.ceil(left/(count-i));left-=effects;
@@ -286,14 +298,15 @@ export async function buildQuoteComponents(shapes,voices) {
  const takeMillis=(SCORING_MAX_WAV_BYTES-44)/32;
  return {
   // Scripted lesson: LiveKit chat (gpt-6-luna) + Deepgram Flux with the lesson keyterms + ElevenLabs.
-  // Two streams: the first and the one reconnect the plugin may open (sttConnOptions maxRetry 1, agent.ts).
-  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-flux-keyterm',s('stt-lesson-keyterm'),2,rate.flux+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
+  // Three streams: the first and the reconnects the plugin may open (sttConnOptions maxRetry 1, agent.ts; the SDK
+  // resets the retry count on each final transcript, so a second drop opens a third stream).
+  lesson:[...llmComponents(prices,'chat',s('live-chat')),...sttStreamComponent('stt-flux-keyterm',s('stt-lesson-keyterm'),3,rate.flux+rate.keyterm),...tts(TTS_BYTES,TTS_EFFECTS)],
   // Typed lesson: llmNode stops before any model call, so nothing is spent; the quote still needs one llm
   // component (paid_quote_valid_v1). One live-chat effect, the smallest honest envelope.
   'lesson-text':llmComponents(prices,'chat',s('live-chat'),{effects:1}),
   // Spoken conversation: brain (streamed turns) + Deepgram Flux + ElevenLabs. The LiveKit chat model is
   // not called in a conversation (preemptive generation off; onUserTurnCompleted answers through the brain).
-  convo:[...convoBrain('turn-stream'),...sttStreamComponent('stt-flux',s('stt-convo-flux'),2,rate.flux),...tts(TTS_BYTES,TTS_EFFECTS)],
+  convo:[...convoBrain('turn-stream'),...sttStreamComponent('stt-flux',s('stt-convo-flux'),3,rate.flux),...tts(TTS_BYTES,TTS_EFFECTS)],
   'convo-text':convoBrain('turn'),
   practice:llmComponents(prices,'drills',s('drills')),
   'api-judge':llmComponents(prices,'judge',s('judge')),

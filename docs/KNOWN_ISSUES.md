@@ -12286,8 +12286,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   package install or network, sets `SSL_CERT_FILE` to it, and the nonroot check fails the build unless
   the file holds exactly `tls.rootCertificates.length` certificates.
 - fixed: 2026-11-04 on claude/tutor-ca. Ticked on the test and the image's own nonroot check, because
-  the gate refuses an open P1 and Railway deploys only `main`; the live tutor join on staging after
-  that deploy is the proof still to record here.
+  the gate refuses an open P1 and Railway deploys only `main`. Live proof, 2026-11-06: two starts from
+  the founder's iPhone at 16:37 and 16:38 UTC (tutor deployment `6016fd6d`) each logged `received job
+  request`, published audio, recognised speech and ran a brain turn, with no CA or entry-function
+  error. Both rooms then ended on "authoritative tutor session unavailable", which is F965, not this.
 - verified-by: `runtime image gives LiveKit native TLS a CA store via SSL_CERT_FILE from Node bundled roots (F958)`
 
 ### F959 — A white iOS scroll edge fade covers the top of every tab
@@ -12443,6 +12445,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `[luvani:session-exit] class=...` line. An error still unrecoverable after its one vendor retry
   ends the room as before. Limit: a paid quote refusal is logged as `stt`/`tts`, not `cap`. Read the staging logs after the founder's next
   session to see which exit fires in the wild.
+- before: 2026-11-06 16:37 and 16:38 UTC, tutor deployment `6016fd6d` (before this fix). Two starts
+  from the founder's iPhone each ended right after the first learner turn on `SessionLifecycleError:
+  authoritative tutor session unavailable` (`sessionLifecycle.ts` `assertActive`, from
+  `performBrainTurn`), then "unable to send packet" and the room closing.
 - verified-by: `a brain turn that fails once is retried once and the learner stays in the room`
 - verified-by: `a second failure ends the session as before and names brain-turn`
 - verified-by: `a heartbeat survives two failed attempts and lands on the third`
@@ -12505,3 +12511,44 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the next sentence carries the first as previousText`
 - verified-by: `TTS previous_text is delivery input: accepted, outside the quote identity, never billed as text, bounded`
 - verified-by: `adaptive interruption is asked for at rungs 3 and 4 when the flag is on`
+
+### F968 — The tutor logs "signed lesson differs from the worker catalogue" on staging starts
+- severity: P3
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:186-188 (`sceneLesson(scene)` or `CAFE_LESSON` against
+  `meta.lessonId`); services/token-server/src/tokens.ts:324 (the signed `lessonId`)
+- note: Open observation, 2026-11-06. Both founder starts at 16:37 and 16:38 UTC (deployment
+  `6016fd6d`) logged it. The token server signs the app's `lessonId` (default `cafe-01`), and the
+  worker runs `sceneLesson(scene)` for a scene or `CAFE_LESSON` otherwise; on a mismatch it only
+  warns and runs its own choice. Not yet known which lesson the app asked for, so whether a learner
+  ever hears a different lesson from the one they picked is unproven. Raise the severity if it is.
+- verified-by: `the tutor runs the lesson the token server signed, or refuses the room`
+
+### F969 — Council review of the nine-problem lanes: ten defects in the code already on main
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/{agent,ttsCache,voice,turnHandling,thinkingTime,recognitionPlan,preflight,convo,tutor,sessionExit}.ts,
+  apps/mobile/src/{live/failure,live/LiveErrorView,live/useLiveSession,onboarding/FirstLivePractice,practice/NextTaskCard,home/greeting}.ts(x),
+  packages/brain/src/{prompt/system,engine/askedQuestions}.ts, scripts/{paidQuotes,gate,measureKeyterms}.mjs
+- note: 2026-11-08. An LLM council (15 advisors, 3 blind reviewers, Opus 5.5 medium) read every lane
+  landed since `e8d020c3`. Confirmed and fixed, each test-first: the TTS retry replayed a sentence after a
+  mid-sentence drop and cached the doubled clip (TTS back to `maxRetry: 0`); stitching never joined two
+  sentences of one reply and a broken stitched line ended the room; an unset interruption mode built the
+  adaptive detector in local dev; a safety stop and a failed start logged as `done` and `learner-left`;
+  the moment hold cut a beginner's wait back to 2,500 ms; the reply-first early line could be spoken
+  interruptible where the full turn would hold it; the scene build had no retry; the ask-again line was
+  recorded as an asked question and its prompt promised an unreachable English way back; the priority
+  tier was quoted at standard rates and a second STT drop opened an unquoted third stream (now 3 booked,
+  Flux `eotTimeoutMs` 3,000); unknown `LUVANI_STT_NOVA_KINDS` names were ignored and the Nova rollback
+  could not be quoted (the generator now refuses it); the first-practice final refusals said "Try again";
+  the audio session was released under the recap; `measureFluxEot.test.mjs` never ran in the gate.
+  Deleted as unreachable or dead: the generic unknown-kind notice, `greetingLine`, the dead billing
+  catch, the `diagnostics` prop gate. The daily booking ceiling derived from the quotes rose from $20
+  to $23. Rejected as taste: token constants, test de-duplication, renames.
+- verified-by: `the session TTS retry count never replays a line the learner already started hearing`
+- verified-by: `sentences of one reply through the SDK StreamAdapter stitch to each other, and a new reply starts fresh`
+- verified-by: `a scene build that fails once is retried once and the scene opens`
+- verified-by: `reply-first at rung 3: the early line is uninterruptible, since a blocking error it cannot see yet may drop the rung`
+- verified-by: `a session that fails to start still logs its exit, named start`
+- verified-by: `the drop handler releases nothing when the session had already ended or failed`
+

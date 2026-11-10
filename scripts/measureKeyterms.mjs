@@ -16,7 +16,7 @@
  * Does nova-3 `multi` (code-switching, endpointing 100) hear learner French as well as `fr`, and English
  * answers as English? Add `--conditions fr,multi` to any command above: lesson lines run fr, multi (both
  * with keyterms) and multi without keyterms; café scene replies and English answers run fr and multi
- * without keyterms. Evidence goes to docs/live-latency-evidence/2026-11-06-multi-stt.{json,md}.
+ * without keyterms. Evidence goes to docs/live-latency-evidence/<run date>-multi-stt.{json,md}.
  * Reprint the summary from the saved JSON, no network:
  *   node --experimental-strip-types scripts/measureKeyterms.mjs --report-only
  *
@@ -28,6 +28,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFile
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS, STREAMING_LATENCY, OUTPUT_ENCODING } from '../services/tutor-agent/src/voiceConfiguration.ts';
+import { recognitionPlan } from '../services/tutor-agent/src/recognitionPlan.ts';
 import { CAFE_LESSON } from '../packages/core/src/lessons/cafe.ts';
 import {
   applyGain, energyFilterSends, median, normaliseWords, parseWav, slug, wavBytes, wordAccuracy,
@@ -68,7 +69,7 @@ export const CONDITIONS = {
   'multi-ep25': { language: 'multi', keyterms: 'lesson' },
   flux: { flux: true, keyterms: 'lesson' },
 };
-export const FLUX_OPTIONS = { model: 'flux-general-multi', languageHint: ['fr', 'en'], sampleRate: 16000, mipOptOut: true, numerals: false };
+export const FLUX_OPTIONS = { ...recognitionPlan('lesson', 'fr', {}).options, mipOptOut: true };
 const LEGACY = ['plain', 'keyterms'];
 
 export function parseConditions(argv) {
@@ -99,7 +100,11 @@ export const ACCENTED_DIR = join(CLIP_DIR, 'accented');
 export const REAL_DIR = resolve(root, 'artifacts/quiet-speech-2026-10-23/real');
 export const EVIDENCE = resolve(root, 'docs/live-latency-evidence/keyterms-2026-10-25.json');
 export const MULTI_DIR = resolve(root, 'artifacts/multi-stt-2026-11-06');
-export const MULTI_EVIDENCE = resolve(root, 'docs/live-latency-evidence/2026-11-06-multi-stt.json');
+const EVIDENCE_DIR = resolve(root, 'docs/live-latency-evidence');
+export const RUN_DATE = new Date().toISOString().slice(0, 10);
+export const MULTI_EVIDENCE = join(EVIDENCE_DIR, `${RUN_DATE}-multi-stt.json`);
+/** The newest saved multi run, for --report-only. */
+const latestMultiEvidence = () => join(EVIDENCE_DIR, readdirSync(EVIDENCE_DIR).filter(f => f.endsWith('-multi-stt.json')).sort().at(-1) ?? `${RUN_DATE}-multi-stt.json`);
 export const SYNTHETIC_NOTE = 'The accent is SYNTHETIC: an English-native ElevenLabs voice reading French text. It is a stand-in for an English accent, not real beginners, and says nothing about how real learners sound.';
 
 const chars = text => [...text].length;
@@ -320,7 +325,7 @@ export function loadMultiClips() {
 }
 
 export function multiMarkdown(result) {
-  const lines = ['# Deepgram nova-3: `multi` vs `fr` on learner speech (2026-11-06)', '', `> ${result.syntheticNote}`, '',
+  const lines = [`# Deepgram STT on learner speech: ${result.conditions.join(', ')} (${result.date})`, '', `> ${result.syntheticNote}`, '',
     `Mode ${result.deepgram.mode}, ${result.deepgram.streams} streams, ${result.deepgram.billedSeconds} s billed. multi = language 'multi', endpointing 100; multi-ep25 = multi at the default endpointing; flux = flux-general-multi with language hints fr, en. Keyterms on lesson lines only (except multi-plain).`, '',
     '| kind | condition | clips | mean word accuracy | exact |', '|---|---|---|---|---|',
     ...result.summary.map(s => `| ${s.kind} | ${s.condition} | ${s.clips} | ${s.meanWordAccuracy.toFixed(3)} | ${s.exactMatches} |`), '',
@@ -434,9 +439,10 @@ async function run(keyterms, conditions = LEGACY) {
   }
 
   async function transcribe(options, pcm) {
-    if (mode === 'plugin-stream') {
-      try { const r = await stream(options, pcm); billedSeconds += r.usageSeconds; return { ...r, mode }; }
-      catch (error) { if (options.model?.startsWith('flux')) throw error; console.error(`Deepgram plugin stream failed (${error instanceof Error ? error.message : error}); falling back to REST.`); mode = 'prerecorded-rest-fallback'; }
+    const flux = options.model?.startsWith('flux');
+    if (flux || mode === 'plugin-stream') {
+      try { const r = await stream(options, pcm); billedSeconds += r.usageSeconds; return { ...r, mode: 'plugin-stream' }; }
+      catch (error) { if (flux) throw error; console.error(`Deepgram plugin stream failed (${error instanceof Error ? error.message : error}); falling back to REST.`); mode = 'prerecorded-rest-fallback'; }
     }
     const r = await rest(options, pcm);
     billedSeconds += r.usageSeconds;
@@ -466,7 +472,7 @@ async function run(keyterms, conditions = LEGACY) {
   if (multi) {
     const extra = existsSync(join(MULTI_DIR, 'manifest.json')) ? readJson(join(MULTI_DIR, 'manifest.json')) : null;
     const result = {
-      date: '2026-11-06', synthetic: true, syntheticNote: SYNTHETIC_NOTE, voice: gen?.voice ?? null, model: gen?.model ?? null, keyterms, conditions,
+      date: RUN_DATE, synthetic: true, syntheticNote: SYNTHETIC_NOTE, voice: gen?.voice ?? null, model: gen?.model ?? null, keyterms, conditions,
       options: Object.fromEntries([LESSON, 'scene reply', 'English answer'].map(k => [k, Object.fromEntries(conditionsFor(k, conditions).map(c => [c, conditionOptions(c, k, keyterms)]))])),
       creditsFromHeaders: [gen, extra].reduce((n, m) => n + (m ? m.clips.reduce((a, c) => a + (c.credits ?? 0), 0) : 0), 0),
       deepgram: { mode, plugin: 'defaults otherwise (smartFormat, interimResults); REST fallback has no endpointing', billedSeconds: Number(billedSeconds.toFixed(1)), streams: jobs.length, speed: `${DG_SPEED}x real time` },
@@ -500,7 +506,7 @@ async function main(argv) {
   const conditions = parseConditions(argv);
   const multi = isMultiRun(conditions);
   if (argv.includes('--report-only')) {
-    const evidence = multi ? MULTI_EVIDENCE : EVIDENCE;
+    const evidence = multi ? latestMultiEvidence() : EVIDENCE;
     if (!existsSync(evidence)) throw new Error(`No evidence at ${evidence}.`);
     const saved = readJson(evidence);
     console.log(multi ? formatByKind(saved.summary) : formatSummary(saved.summary));
@@ -547,5 +553,5 @@ async function main(argv) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main(process.argv.slice(2)).catch(error => { console.error(error.message); process.exit(1); });
+  main(process.argv.slice(2)).then(() => process.exit(0), error => { console.error(error.message); process.exit(1); });
 }

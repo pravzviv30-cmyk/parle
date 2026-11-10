@@ -224,3 +224,18 @@ test('with the reply-first switch the request, the early hand-over and the parse
   assert.ok(!('coach' in (early[0] as object)));
   assert.deepEqual(result.turn.coach, turn.coach, 'the full turn still carries its coach');
 });
+
+test('reply-first: a streamed turn missing scene.goalMet is repaired to null', async () => {
+  const turn = sampleTurn();
+  const { goalMet: _dropped, ...scene } = turn.scene as TutorTurn['scene'] & { goalMet?: unknown };
+  const text = inSchemaOrder({ ...turn, scene } as TutorTurn, ReplyFirstTurnSchema);
+  const fetchFn = async () => ({ ok: true, status: 200, json: async () => { throw new Error('a stream has no JSON body'); },
+    body: eventStream(text, 7, [{ type: 'response.completed', response: completedPayload(text) }]) });
+  const client = new OpenAiResponsesBrainClient({ apiKey: 'test', turnReplyFirst: '1' }, fetchFn as never, async () => {});
+  const result = await client.turn({
+    kind: 'turn', system: { persona: 'p', pack: 'f', contract: 'c' }, messages: [{ role: 'user', text: 'Bonjour' }],
+    onSpokenFields: () => {},
+  });
+  assert.ok(!text.includes('goalMet'), 'the stream really lacks goalMet');
+  assert.equal(result.turn.scene.goalMet, null);
+});

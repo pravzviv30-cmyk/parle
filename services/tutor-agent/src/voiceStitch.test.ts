@@ -55,7 +55,7 @@ describe('elevenStitchedRequest', () => {
 
   test('a refused request throws before any audio, without echoing the vendor body', async () => {
     const stitch = elevenStitchedRequest({ voiceId: VOICE_ID, baseURL: 'http://x/v1', apiKey: 'k', voiceSettings: VOICE_SETTINGS }, answer(503, 'application/json'));
-    await assert.rejects(async () => { for await (const packet of stitch('Oui.', 'Non.', MODEL, new AbortController().signal)) void packet; }, (error: Error) => !error.message.includes('nope'));
+    await assert.rejects(async () => { for await (const packet of stitch('Oui.', 'Non.', MODEL, new AbortController().signal)) void packet; }, (error: Error & { status?: number }) => !error.message.includes('nope') && error.status === 503);
   });
 });
 

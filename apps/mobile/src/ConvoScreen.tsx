@@ -1116,7 +1116,6 @@ export function ConvoScreen({
         transcriptVisible={transcriptVisible}
         onTranscriptVisibility={setTranscriptVisible}
         message={walkMode ? "Walk mode cannot continue. Return to Tutor to try another scene or start a typed conversation." : live.status.message}
-        diagnostics={live.diagnostics}
         settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
         restartAsText={live.settlement !== null}
         retryBlocked={live.settlement?.kind === 'pending' || live.settlement?.kind === 'reconciliation'}

@@ -1,11 +1,13 @@
 /** Exercise the production screen's failure decisions without loading native modules. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
 import { test } from 'node:test';
 import { failureCopy } from '../live/failure.ts';
 import { takeTypedDoor, typedDoorFor } from '../live/typedDoor.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { GUEST_ROOM_ENDED, guestLiveBody, guestSceneMode } from './guestScene.ts';
+import { GUEST_ROOM_ENDED, claimRefusalCopy, guestLiveBody, guestSceneMode } from './guestScene.ts';
+import { LearnerError, errorCopy } from '../copy/errorCopy.ts';
 import { classifyFailure, TokenServerError } from '../live/failure.ts';
 import { waitingFor } from '../tutor/waitingView.ts';
 
@@ -139,7 +141,7 @@ test('a guest room the server will not grant again says the scene ended and offe
     }
   }
   assert.match(source, /\{roomEnded \? GUEST_ROOM_ENDED\.message : live\.status\.phase === 'error'/);
-  assert.match(source, /\{roomEnded && <PillButton label=\{saving \|\| ending \? 'Saving…' : GUEST_ROOM_ENDED\.action\} disabled=\{saving \|\| ending\} onPress=\{\(\) => void end\(\)\} \/>\}/);
+  assert.match(source, /\{roomEnded && !refused && <PillButton label=\{saving \|\| ending \? 'Saving…' : GUEST_ROOM_ENDED\.action\} disabled=\{saving \|\| ending\} onPress=\{\(\) => void end\(\)\} \/>\}/);
   assert.match(source, /<IconAction icon="close" label="End session"/, 'End session stays');
   for (const line of Object.values(GUEST_ROOM_ENDED)) assert.doesNotMatch(line, /[—–]|another device|half an hour/);
   // Any other failure keeps its own copy and doors.
@@ -188,8 +190,47 @@ test('the guest conversation keeps its refusal when the room cannot switch', () 
 
 test('saving the session shows Luvani\'s own words, never the caught message', () => {
   const collect = source.slice(source.indexOf('  const collect ='), source.indexOf('  // A conversation ends on its recap'));
-  assert.match(collect, /setIssue\(errorCopy\(cause, 'Your session could not be saved yet\. Try again\.'\)\)/);
+  assert.match(collect, /: errorCopy\(cause, 'Your session could not be saved yet\. Try again\.'\)\);/);
   assert.doesNotMatch(collect, /instanceof Error \? cause\.message/);
   assert.equal((collect.match(/throw new LearnerError\(/g) ?? []).length, 2, 'the two own sentences must be LearnerErrors to survive errorCopy.');
   assert.doesNotMatch(collect, /throw new Error\(/);
+});
+
+const collectSource = stripTypeScriptTypes(source.slice(source.indexOf('  const collect = async () => {'), source.indexOf('  // A conversation ends on its recap')));
+
+/** Run the production collect() with the token server's answer to the result read. */
+async function runCollect(readResult: () => Promise<unknown>) {
+  const issues: string[] & { refusals: boolean[] } = Object.assign([] as string[], { refusals: [] as boolean[] });
+  const refusals = issues.refusals;
+  const world = {
+    finishing: { current: false }, finished: { current: false }, mounted: { current: true }, held: { current: { live: null } },
+    setSaving: () => {}, setIssue: (value: string) => { issues.push(value); }, setRefused: (value: boolean) => { refusals.push(value); }, readGuestLiveResult: readResult,
+    LearnerError, errorCopy,
+  };
+  await new Function(...Object.keys(world), `${collectSource}; return collect();`)(...Object.values(world));
+  return issues;
+}
+
+test('the token server refusing the result for good never says Try again, which cannot succeed', async () => {
+  // starterFailure turns the server's 409 into Error('limit') and its 410 into Error('expired').
+  for (const final of ['limit', 'expired']) {
+    const issues = await runCollect(async () => { throw new Error(final); });
+    assert.doesNotMatch(issues.at(-1)!, /Try again/, `a "${final}" refusal told the learner to retry`);
+    assert.equal(issues.at(-1), "This practice has already closed, so it can't be saved.", 'a plain sentence for the save moment, naming no control that is not on screen');
+    assert.equal(issues.refusals.at(-1), true, 'the screen learns the refusal is final');
+  }
+  const dropped = await runCollect(async () => { throw new Error('unavailable'); });
+  assert.match(dropped.at(-1)!, /Try again/, 'a failed read that may succeed later still offers a retry');
+});
+
+test('after a final refusal every footer offers one way on that does not save again, and it cannot run twice', () => {
+  // "Continue to my summary", "Check session result" and "End session" all run collect() or end(), which hit the same refusal.
+  const footer = source.slice(source.indexOf('footer={failed ?'), source.indexOf('<Sheet visible={confirmEnd}'));
+  assert.match(footer, /!refused && <IconAction icon="refresh" label="Check session result"/, 'a refused save hides the result re-read');
+  assert.match(footer, /\{refused \? wayOn : <IconAction icon="close" label="End session"/, 'a refused save swaps End session (which saves again) for the way on');
+  assert.match(footer, /ending \|\| over \? refused \? wayOn :/, 'a refused save swaps the summary pill for the way on');
+  // end() leaves `ending` true when collect() catches the refusal, so the way on must not read it.
+  assert.match(source, /const wayOn = <PillButton label=\{leaving \? 'Finishing…' : 'Continue without saving'\} disabled=\{leaving\} onPress=\{\(\) => void moveOn\(\)\} \/>;/, 'the way on has its own pending state, not the ending flag end() leaves set');
+  assert.match(source, /const moveOn = async \(\) => \{\s*if \(finished\.current\) return;\s*finished\.current = true; setLeaving\(true\);[\s\S]*?live\.leave\(\)[\s\S]*?onFinished\(held\.current\)/, 'the way on runs once, leaves the room and hands the practice on as held, never collect() again');
+  assert.match(footer, /\{roomEnded && !refused && <PillButton/, 'a refused save hides the room-ended pill, which would run end() and save again');
 });

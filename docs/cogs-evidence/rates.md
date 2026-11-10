@@ -6,10 +6,10 @@ These are list prices read on 22 October 2026, plus what the accounts themselves
 - **Pay-as-you-go API list prices** (elevenlabs.io/pricing/api, read in the browser):
   - v2 Multilingual (`eleven_multilingual_v2`, the live tutor's model): $0.08 per 1k characters.
   - Flash / Turbo (`eleven_flash_v2_5`): $0.04 per 1k characters.
-  - v3 Conversational and v4 Turbo are also listed at $0.04, but were not tested here.
+  - v3 Conversational is also listed at $0.04 and was not tested. v4 Turbo (`eleven_v4_turbo`, served only by the Text to Dialogue websocket) is listed at $0.04 and measured on 2026-11-08 at the same credits per character as Flash (`docs/live-latency-evidence/2026-11-08-v4-turbo-first-audio.json`).
 - **The account today:** `GET /v1/user/subscription` reports `tier: starter`, with a next invoice of $6.00 before tax. The credit limit is 37,277 including rollover, 1,622 used, and it cannot extend.
   - On this plan a credit costs about $0.20 per 1k.
-  - v2 spends 1 credit per character. Flash spends 0.5.
+  - Measured on `alexandre`: v2 about 0.40 credits a character, Flash and v4 Turbo about 0.20 (`character-cost` headers and the usage read, 2026-11-08; the 2026-10-25 voice-speed run also measured 0.397 for v2). The ratio, half of v2, is what carries.
   - Starter cannot carry a beta's volume. The cost model therefore uses the pay-as-you-go list price.
 - **Voice multipliers:** two of the six tutor voices, `emilie` and `sarah`, bill twice per character, as measured in `scripts/compare-daily-voices.mjs`. The default voice, `alexandre`, bills once.
 
@@ -37,7 +37,13 @@ Per million tokens:
 | gpt-5.6-luna | $0.20 | $1.20 | — | — |
 | gpt-5.6-terra | $2 | $12 | — | — |
 
-Priority tier, if the founder turns it on, bills more.
+Priority tier (`OPENAI_LIVE_SERVICE_TIER=priority`, on for staging's live turn and frame). OpenAI renamed priority processing "Fast mode" on 2026-07-30. Fast-mode rates from https://platform.openai.com/docs/pricing, read 2026-11-08, per million tokens:
+
+| Model | Input | Output | Cache read |
+|---|---|---|---|
+| gpt-6-luna (Fast) | $0.20 | $1.00 | $0.02 |
+
+`scripts/paidQuotes.mjs` prices a captured call carrying `service_tier: 'priority'` at this row. The page lists no Fast rate for gpt-5.6-luna, so a priority call on that model is refused by the generator rather than priced.
 
 ## Pronunciation scoring
 - `assessmentPerUtterance` ($0.002) is the cost model's own figure, not a vendor quote. `docs/LIVE_VOICE.md` already lists confirming Speechace's billing unit and rate as an activation step. No public per-call price was found.

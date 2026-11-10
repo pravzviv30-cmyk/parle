@@ -4,7 +4,7 @@ import { existsSync, lstatSync, mkdtempSync, writeFileSync, readdirSync, symlink
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AudioFrame } from '@livekit/rtc-node';
-import { initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agents';
+import { APIConnectionError, initializeLogger, tokenize as tokenizeModule, tts } from '@livekit/agents';
 
 // The worker CLI does this in production; tests must do it themselves before any
 // ChunkedStream is constructed.
@@ -811,12 +811,12 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
   /** A stitched request that records what it was given and answers with the same ramp as the fake vendor. */
   const stitch: NonNullable<CachedTTSOptions['stitch']> = async function* (text, previousText, model, signal) {
     calls.push({ text, previousText, model });
-    if (failStitch) throw new Error('stitched TTS request refused (503)');
+    if (failStitch) throw Object.assign(new Error('stitched TTS request refused (503)'), { status: 503 });
     if (silentStitch) return;
     const frames = rampFrames(text);
     if (throwAfterFirstFrame) {
       yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
-      throw new Error('stitched stream broke mid-line');
+      throw new TypeError('terminated');
     }
     if (stallStitch) {
       yield { requestId: 'stitch', segmentId: 'stitch', frame: frames[0]!, final: false };
@@ -938,30 +938,33 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     assert.ok(pcm.length > 0);
   });
 
-  test('a stitched request that breaks after audio started is not retried and clears the previous line', async () => {
+  test('a stitched request that breaks after audio started ends the line short, is not retried and clears the previous line', async () => {
     cached = stitching();
     await pcmOf(synth(cached, FIRST));
     throwAfterFirstFrame = true;
-    // The framework reports a failed stream as a tts 'error' event and then lets
-    // the main task reject unhandled; this test takes both so node:test does not.
-    const errors: unknown[] = [];
-    cached.on('error', (event) => errors.push(event.error));
+    const errors: { recoverable: boolean }[] = [];
+    cached.on('error', (event) => errors.push(event));
     const rejections: unknown[] = [];
     const listeners = process.listeners('unhandledRejection');
     process.removeAllListeners('unhandledRejection');
     process.on('unhandledRejection', (reason) => rejections.push(reason));
+    const warn = mock.method(console, 'warn', () => {});
+    let pcm: number[] = [];
     try {
-      await pcmOf(synth(cached, SECOND));
+      pcm = await pcmOf(synth(cached, SECOND));
       await new Promise((resolve) => setImmediate(resolve));
     } finally {
+      warn.mock.restore();
       process.removeAllListeners('unhandledRejection');
       for (const listener of listeners) process.on('unhandledRejection', listener);
     }
     throwAfterFirstFrame = false;
-    assert.equal(errors.length, 1, 'the broken line was reported');
-    assert.equal(rejections.length, 1, 'and the stream rejected');
+    assert.deepEqual(errors.filter((event) => !event.recoverable), [], 'an unrecoverable tts error ends the room');
+    assert.equal(rejections.length, 0, 'the stream ended instead of rejecting');
+    assert.ok(pcm.length > 0, 'the audio already spoken reached the learner');
     assert.equal(calls.length, 1);
     assert.equal(fake.calls, 1, 'no plain fallback once audio has been yielded');
+    assert.equal(cached.memo.size, 1, 'the cut-short line is not remembered for replay');
     await pcmOf(synth(cached, 'Et toi, tu fais quoi demain matin ?'));
     assert.equal(calls.length, 1, 'the broken line is not context for the next one');
     assert.equal(fake.calls, 2);
@@ -985,7 +988,7 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     try {
       await pcmOf(synth(cached, SECOND));
       assert.equal(warn.mock.calls.length, 1);
-      assert.equal(warn.mock.calls[0]!.arguments[0], '[luvani:live] stitched tts request failed; plain request answers status=503');
+      assert.deepEqual(warn.mock.calls[0]!.arguments, ['[luvani:live] stitched tts request failed; plain request answers', { type: 'Error', status: 503 }]);
     } finally { warn.mock.restore(); }
   });
 
@@ -1024,11 +1027,100 @@ describe('sentence stitching (LUVANI_TTS_STITCH)', () => {
     assert.equal(calls[0]?.model, 'eleven_flash_v2_5');
   });
 
+  test('sentences of one reply through the SDK StreamAdapter stitch to each other, and a new reply starts fresh', async () => {
+    /** A vendor slow enough that the adapter has started every sentence before the first finishes. */
+    class SlowChunked extends tts.ChunkedStream {
+      label = 'slow.ChunkedStream';
+      protected async run(): Promise<void> {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        const frames = rampFrames(this.inputText);
+        frames.forEach((frame, i) => this.queue.put({ requestId: 'slow', segmentId: 'slow', frame, final: i === frames.length - 1 }));
+      }
+    }
+    class SlowTTS extends FakeTTS {
+      override synthesize(text: string, connOptions?: Parameters<tts.TTS['synthesize']>[1]): tts.ChunkedStream {
+        this.calls += 1;
+        return new SlowChunked(text, this, connOptions);
+      }
+    }
+    const slow = new SlowTTS();
+    const slowStitch: NonNullable<CachedTTSOptions['stitch']> = async function* (text, previousText, model, signal) {
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      yield* stitch(text, previousText, model, signal);
+    };
+    cached = new CachedTTS(slow, { dir, voiceKey: 'test-voice', stitch: slowStitch, authoredLines: [] });
+    const adapter = new tts.StreamAdapter(cached, new tokenizeModule.basic.SentenceTokenizer());
+    const speak = async (reply: string) => {
+      const stream = adapter.stream();
+      stream.pushText(reply);
+      stream.endInput();
+      for await (const packet of stream) if (packet === tts.SynthesizeStream.END_OF_STREAM) break;
+    };
+    await speak(`${FIRST} ${SECOND}`);
+    assert.deepEqual(calls, [{ text: SECOND, previousText: FIRST, model: slow.model }]);
+    // The learner's turn: agent.ts forgets the line when they start speaking.
+    cached.rememberLine(null);
+    await speak('Bon, on y va ? Il est déjà tard, tu sais.');
+    assert.equal(calls.some((call) => call.text === 'Bon, on y va ?'), false, 'a new reply was stitched to the last one');
+  });
+
   test('the ws transport is untouched: it never calls stitch', async () => {
     cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice', stitch, missTransport: 'ws' });
     await pcmOf(synth(cached, FIRST));
     await pcmOf(synth(cached, SECOND));
     assert.equal(calls.length, 0);
     assert.equal(fake.streamCalls, 2);
+  });
+});
+
+describe('a vendor drop mid-sentence under the session retry policy', () => {
+  /** First run speaks two frames then drops like a reset socket; the next run speaks the whole line. */
+  class DroppingChunked extends tts.ChunkedStream {
+    label = 'dropping.ChunkedStream';
+    readonly #owner: DroppingTTS;
+    constructor(text: string, owner: DroppingTTS, connOptions?: Parameters<tts.TTS['synthesize']>[1]) {
+      super(text, owner, connOptions);
+      this.#owner = owner;
+    }
+    protected async run(): Promise<void> {
+      const frames = [...rampFrames(this.inputText), ...rampFrames(`${this.inputText}!`)];
+      if (this.#owner.runs++ === 0) {
+        this.queue.put({ requestId: 'd', segmentId: 'd', frame: frames[0]!, final: false });
+        this.queue.put({ requestId: 'd', segmentId: 'd', frame: frames[1]!, final: false });
+        throw new APIConnectionError({ message: 'socket reset' });
+      }
+      frames.forEach((frame, i) => this.queue.put({ requestId: 'd', segmentId: 'd', frame, final: i === frames.length - 1 }));
+    }
+  }
+  class DroppingTTS extends FakeTTS {
+    runs = 0;
+    override synthesize(text: string, connOptions?: Parameters<tts.TTS['synthesize']>[1]): tts.ChunkedStream {
+      this.calls += 1;
+      return new DroppingChunked(text, this, connOptions);
+    }
+  }
+
+  test('the session TTS retry count never replays a line the learner already started hearing', async () => {
+    const agentSource = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
+    const maxRetry = Number(/ttsConnOptions: \{ maxRetry: (\d+) \}/.exec(agentSource)?.[1]);
+    assert.ok(Number.isInteger(maxRetry), 'agent.ts sets ttsConnOptions.maxRetry');
+    const dropping = new DroppingTTS();
+    const cache = new CachedTTS(dropping, { dir, voiceKey: 'test-voice', authoredLines: [] });
+    cache.on('error', () => {});
+    const listeners = process.listeners('unhandledRejection');
+    process.removeAllListeners('unhandledRejection');
+    process.on('unhandledRejection', () => {});
+    const heard: Int16Array[] = [];
+    try {
+      const stream = cache.synthesize('Bon, on y va ?', { maxRetry, retryIntervalMs: 0, timeoutMs: 5000 });
+      try { for await (const packet of stream) heard.push(packet.frame.data); } catch { /* the drop ends the line */ }
+      await new Promise((resolve) => setImmediate(resolve));
+    } finally {
+      process.removeAllListeners('unhandledRejection');
+      for (const listener of listeners) process.on('unhandledRejection', listener);
+    }
+    const first = heard[0];
+    assert.ok(first, 'the line started');
+    assert.equal(heard.filter((f) => Buffer.from(f.buffer).equals(Buffer.from(first.buffer))).length, 1, 'the start of the line was spoken twice');
   });
 });

@@ -42,6 +42,9 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [issue, setIssue] = useState('');
   const [saving, setSaving] = useState(false);
+  // The token server refused the result for good (409, 410): saving cannot succeed.
+  const [refused, setRefused] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [micPending, setMicPending] = useState(false);
   // The guest café scene runs the scripted lesson tutor, voiced or typed; an
   // older record without it still runs the guest conversation.
@@ -95,7 +98,11 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       if (!mounted.current) return;
       held.current = next; finished.current = true; onFinished(next);
     } catch (cause) {
-      if (mounted.current) setIssue(errorCopy(cause, 'Your session could not be saved yet. Try again.'));
+      // The token server's final refusals (409, 410): a retry cannot succeed, so the
+      // footer offers a way on instead (moveOn).
+      const final = cause instanceof Error && (cause.message === 'limit' || cause.message === 'expired');
+      if (mounted.current && final) setRefused(true);
+      if (mounted.current) setIssue(final ? "This practice has already closed, so it can't be saved." : errorCopy(cause, 'Your session could not be saved yet. Try again.'));
     } finally { finishing.current = false; if (mounted.current) setSaving(false); }
   };
   // A conversation ends on its recap; the scene ends on the lesson summary.
@@ -125,6 +132,15 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       catch { setIssue('Your session could not close yet. Try again.'); setEnding(false); }
     }
   };
+  /** After a final refusal: leave the room and hand the practice on as held, with no saved result. Runs once. */
+  const moveOn = async () => {
+    if (finished.current) return;
+    finished.current = true; setLeaving(true);
+    await live.leave().catch(() => {});
+    if (!mounted.current) return;
+    onFinished(held.current);
+  };
+  const wayOn = <PillButton label={leaving ? 'Finishing…' : 'Continue without saving'} disabled={leaving} onPress={() => void moveOn()} />;
   const recoverByTyping = () => {
     if (!canRecoverByTyping) return;
     // A scene with no room to switch in (never granted, or granted and never
@@ -185,12 +201,12 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
           {scene && live.prompt?.turn.note ? <Text style={type.small}>{live.prompt.turn.note}</Text> : null}</>}
         footer={failed ? <>
           <Text accessibilityLiveRegion="polite" style={type.body}>{roomEnded ? GUEST_ROOM_ENDED.message : live.status.phase === 'error' || live.status.phase === 'out-of-minutes' ? live.status.message : ''}</Text>
-          {roomEnded && <PillButton label={saving || ending ? 'Saving…' : GUEST_ROOM_ENDED.action} disabled={saving || ending} onPress={() => void end()} />}
+          {roomEnded && !refused && <PillButton label={saving || ending ? 'Saving…' : GUEST_ROOM_ENDED.action} disabled={saving || ending} onPress={() => void end()} />}
           {canRecoverByTyping && <PillButton label="Continue by typing" onPress={recoverByTyping} />}
           {canRetryConnection && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
-          {!!live.sessionId && !roomEnded && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
-          <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />
-        </> : ending || over ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
+          {!!live.sessionId && !roomEnded && !refused && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
+          {refused ? wayOn : <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />}
+        </> : ending || over ? refused ? wayOn : <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : undefined}
       />
       <Sheet visible={confirmEnd} title="End this practice?" onClose={() => setConfirmEnd(false)}>
         <Text style={type.body}>{scene ? 'The lines you reach will be kept.' : 'Your confirmed replies will be kept.'} Only a completed practice counts towards your streak.</Text>

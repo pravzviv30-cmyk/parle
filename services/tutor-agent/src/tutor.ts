@@ -457,7 +457,7 @@ export class LuvaniTutor extends voice.Agent {
    */
   private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
     this.stopping = true;
-    this.exit?.mark('done');
+    this.exit?.mark('safety');
     void this.finish();
     try {
       await delivered;
@@ -677,8 +677,8 @@ export class LuvaniTutor extends voice.Agent {
     // A sound that never became a turn (a cough, a dropped word) hands the
     // floor back with the agent still `listening`, so agent.ts has no
     // transition to re-arm on. A real turn clears this clock when it is
-    // committed, at most the rung's endpointing maxDelay later (3,500 ms at
-    // rungs 1-2); runRescue still
+    // committed, at most the rung's maxDelay (thinkingTime.ts) later;
+    // runRescue still
     // checks the queue generation.
     if (!speaking && wasSpeaking && this.resumeAfterSpeech) {
       this.resumeAfterSpeech = false;

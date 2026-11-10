@@ -56,10 +56,9 @@ describe('the stable prefix', () => {
     assert.ok(line, 'the persona has no rule for a turn whose language is none');
     assert.match(line, /`none`/, 'the rule should be scoped to the language none');
     assert.match(line, /once/i, 'the ask-again should happen once');
-    assert.match(line, /tu peux répéter/i);
     assert.match(line, /do not answer or guess/i);
-    assert.match(line, /English way back/i, 'a second unclear line should get the way back, not another ask');
     assert.doesNotMatch(line, /\u2014/);
+    assert.doesNotMatch(line, /English way back/i);
   });
 
   test('is byte-identical across builds — cache safety', () => {

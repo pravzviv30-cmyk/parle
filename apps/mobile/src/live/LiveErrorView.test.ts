@@ -59,6 +59,13 @@ describe('the live failure screen puts recovery first', () => {
     assert.ok(at('{message}') < at('label="Back"'), 'the recovery sentence comes after the controls');
   });
 
+  test('Support details is always drawn: it shows only the Reference row, so nothing gates it on a diagnostics prop', () => {
+    assert.doesNotMatch(VIEW, /LiveDiagnostics|\bdiagnostics[,;]|\{diagnostics\b|diagnostics: [A-Z]/, 'the component still takes a diagnostics prop');
+    for (const screen of ['../ConvoScreen.tsx', '../LiveSessionScreen.tsx']) {
+      assert.doesNotMatch(read(screen), /<LiveErrorView[\s\S]*?diagnostics=\{[\s\S]*?\/>/, `${screen} still passes diagnostics`);
+    }
+  });
+
   test('the support details hold one reference, never a URL or a server internal', () => {
     const panel = FLAT.slice(FLAT.indexOf('{open ? ('));
     assert.match(panel, /<Row name="Reference" value=\{failure\} \/>/);

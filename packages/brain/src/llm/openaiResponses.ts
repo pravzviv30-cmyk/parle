@@ -84,6 +84,7 @@ export interface OpenAiResponsesConfig {
    * "1" writes `coach` after `sceneReply` in the live turn so the spoken French
    * streams sooner (the early speech then carries no recast echo). Opt-in,
    * default off. Falls back to `LUVANI_TURN_REPLY_FIRST`; anything but "1" is off.
+   * Spoken English-reach turns wait for the full turn under reply-first (convo.ts speakEarly).
    */
   turnReplyFirst?: string;
   /** Per-activity effort and size. Defaults to the shared table, env applied. */

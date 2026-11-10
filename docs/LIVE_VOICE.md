@@ -725,7 +725,7 @@ cut-off (+1,024 ms) and 1,890 ms at the cap (+1,424 ms). A moment hold takes
 `maxDelay`: 3,500 ms at rungs 1-2 since VOICE-022 (2026-11-07; at 2,500 every 2.5 s
 mid-sentence pause was cut, at 3,500 one in six, at no p50 cost, the price being a
 misread ending that waits 3.4 s; `docs/live-latency-evidence/2026-11-07-pause-endpointing.md`,
-synthetic voices), 2,500 ms at rungs 3-4 and under a moment hold. The 4 s stuck-silence rescue clock is armed at the VAD's end of speech, so a held beginner turn commits about a second before it; a test pins that margin. A lesson may run
+synthetic voices; a moment hold at rungs 1-2 keeps the same 3,500 since the 2026-11-08 council review), 2,500 ms at rungs 3-4. The 4 s stuck-silence rescue clock is armed at the VAD's end of speech, so a held beginner turn commits about a second before it; a test pins that margin. A lesson may run
 preemptive generation once more per held pause; the framework caps that at three a turn.
 
 The recogniser has been Flux since VOICE-023, and Flux declares its own end of turn. LiveKit
@@ -956,10 +956,10 @@ and a retry spends vendor effects inside the existing quotes.
 
 Every session logs exactly one exit line when the room closes or the job shuts down:
 
-    [luvani:session-exit] class=<brain-turn|lease|stt|tts|cap|learner-left|done>
+    [luvani:session-exit] class=<brain-turn|lease|stt|tts|cap|learner-left|done|safety|start>
 
-The first cause marked wins (`sessionExit.ts`). `done` is a finished lesson, mission
-or safety stop. `cap` is the close for time, or the lifecycle stopping at its hard
+The first cause marked wins (`sessionExit.ts`). `done` is a finished lesson or mission,
+`safety` a stop on a safety decision, `start` a session that failed before it began. `cap` is the close for time, or the lifecycle stopping at its hard
 deadline. `lease` is any other lifecycle stop. `stt`, `tts` and `brain-turn` come from
 a pipeline error that ends the room, or the brain turn's exit. `learner-left` is the
 learner disconnecting, and also what an unmarked session reads as. One known limit: a
@@ -1146,6 +1146,49 @@ first audio frame arrives at p50 329 ms (p95 380) once the connection is warm, t
 miss transport's at p50 437 ms (p95 554), and the socket also delivers a sentence whole, so the
 `ws` knob buys nothing here and stays a dev-only setting; the paid proxy gets no websocket
 route for it.
+
+`eleven_v4_turbo` first audio, measured 2026-11-08 by `scripts/ttsV4TurboCheck.mjs`
+(evidence `docs/live-latency-evidence/2026-11-08-v4-turbo-first-audio.json`). Voice
+`alexandre`, `pcm_22050`, the 12 French sentences of `measureTtsFirstAudio.mjs`, straight
+at ElevenLabs off the paid proxy from a developer Mac. Timed from request to the first
+audio byte (HTTP) or the first `audio` message (socket). Cold is the first sentence on a
+fresh connection (14 samples). Warm is the later sentences (22).
+
+| Model and transport | Cold p50 | Warm p50 | Warm p95 |
+|---|---|---|---|
+| `eleven_multilingual_v2`, HTTP stream | 384 ms | 328 | 363 |
+| `eleven_flash_v2_5`, HTTP stream | 193 | 140 | 161 |
+| `eleven_v4_turbo`, Text to Dialogue websocket | 184 | 93 | 238 |
+
+v4 Turbo is served only by the Text to Dialogue websocket. Its cold figure includes the
+socket open (open p50 82 ms). Its p95 is two slow sentences out of 22; the next slowest is
+132. The socket streams a sentence in pieces (first to last chunk p50 442 ms against 39 for
+v2 over HTTP), still far ahead of playback. The 2026-11-07 stack figure for v2 was 329.
+
+Speed: the socket accepted `voice_settings: {speed: 0.85}`, and today's `VOICE_SETTINGS`
+plus `speed: 0.85`, without error, and ignored speed both times (median per-sentence
+duration ratio 1.000; v2 at 0.85 is about 17% slower). The API reference documents only
+`stability` and `clone_strength` there. So the beginner pace (`BEGINNER_SPEED`) cannot be
+set on v4 Turbo today. Its own pace is a little slower: median 3.52 s a sentence against
+3.32 for v2 and 3.27 for Flash.
+
+Billing (`/v1/usage/character-stats` by model): v2 0.40 credits a character (matches the
+HTTP `character-cost` headers), Flash 0.20, v4 Turbo 0.20. The socket reports no
+characters, and the account balance lags by more than 30 s, so the usage read is the only
+per-model cost for v4 Turbo. All six tutor voices are verified for French on all three models. The
+socket accepted `pcm_22050` and `enable_logging=false`.
+
+An adapter would need (not built): its own TTS class over the dialogue socket (the LiveKit
+ElevenLabs plugin 1.9 does not speak it), a websocket route and quote identity in the paid
+proxy (it admits only the HTTP stream route today), `keep_alive` inside the 20 s idle
+timeout, one voice per connection, and a plan's dialogue session pool (21 at once on
+Starter).
+
+Blind listen: `~/Developer/StartUps/listening/tts-v4turbo-2026-11-08/index.html`, 12 pairs
+of v2 against v4 Turbo at normal speed from the timed audio, A/B order balanced six and
+six, not loudness-matched. Sealed key `docs/cogs-evidence/tts-v4turbo-2026-11-08/key.json`;
+score with `--score <results.json> --key-dir docs/cogs-evidence/tts-v4turbo-2026-11-08`.
+No model change follows from these numbers alone.
 
 `OPENAI_LIVE_SERVICE_TIER` (opt-in, default off) sends OpenAI's `service_tier`
 on the live turn and frame only, never on analyst work. Accepted values are

@@ -4766,6 +4766,44 @@ describe('a streamed turn speaks before the rest of it arrives', () => {
       'the full turn does not recast what was already spoken, so nothing disagreed');
   });
 
+  test('reply-first at rung 3: the early line is uninterruptible, since a blocking error it cannot see yet may drop the rung', async (t) => {
+    const blocking = sampleCoachItem({ kind: 'blocking-error', quote: 'Je veux café', better: 'Je voudrais un café', betterEn: 'I would like a coffee', weight: 'matters-now' });
+    const turn = sampleTurn({ coach: [blocking], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    const client = new StreamingBrain(turn, false, true);
+    const built = buildConvo(t, { client, missionId: 'mission:premier-cafe', startRung: 3 });
+    built.convo.open(built.session);
+    await built.convo.settled();
+    assert.equal(built.convo.conversationState.ladder.rung, 3);
+    const options: unknown[] = [];
+    Object.defineProperty(built.session, 'say', { value: (_text: string, opts?: unknown) => { options.push(opts); } });
+    const answered = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Je veux café' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(options.length, 1, 'the reply was spoken early');
+    assert.deepEqual(options[0], { allowInterruptions: false });
+    client.finish();
+    await answered;
+    await built.convo.settled();
+  });
+
+  test('reply-first at rung 4: the early line stays interruptible, since a blocking error cannot drop it to a rung where the line is uninterruptible', async (t) => {
+    const blocking = sampleCoachItem({ kind: 'blocking-error', quote: 'Je veux café', better: 'Je voudrais un café', betterEn: 'I would like a coffee', weight: 'matters-now' });
+    const turn = sampleTurn({ coach: [blocking], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    const client = new StreamingBrain(turn, false, true);
+    const built = buildConvo(t, { client, missionId: 'mission:premier-cafe', startRung: 4 });
+    built.convo.open(built.session);
+    await built.convo.settled();
+    assert.equal(built.convo.conversationState.ladder.rung, 4);
+    const options: unknown[] = [];
+    Object.defineProperty(built.session, 'say', { value: (_text: string, opts?: unknown) => { options.push(opts); } });
+    const answered = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Je veux café' }));
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    assert.equal(options.length, 1, 'the reply was spoken early');
+    assert.deepEqual(options[0], {});
+    client.finish();
+    await answered;
+    await built.convo.settled();
+  });
+
   test('reply-first: a turn that reached for English waits for the full turn, so the French hand-back is still spoken', async (t) => {
     const reach = sampleCoachItem({ kind: 'english-to-french', quote: 'how do I say milk', better: 'du lait', betterEn: 'some milk', weight: 'matters-now' });
     const turn = sampleTurn({
@@ -5979,6 +6017,23 @@ describe('one brain hiccup is survivable, and every exit is named', () => {
     assert.equal(logged.some((l) => l.includes('Un café')), false, 'no learner text in the log');
   });
 
+  test('a scene build that fails once is retried once and the scene opens', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const built = buildConvo(t, { voiceless: true });
+    built.convo.open(built.session);
+    lifecycleFor(built.convo);
+    const real = built.client.frame.bind(built.client);
+    let calls = 0;
+    built.client.frame = async (request) => { calls += 1; if (calls === 1) throw new Error('fetch failed'); return real(request); };
+    await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
+    await built.convo.settled();
+    assert.equal(calls, 2, 'one retry, no more');
+    assert.equal(built.published.some((m) => m.t === 'error' && m.terminal), false, 'the room stays open');
+    assert.ok(views(built.published).length > 0, 'the scene opened');
+    assert.equal(built.published.some((m) => m.t === 'error'), false, 'not the simpler fallback scene');
+  });
+
   test('a second failure ends the session as before and names brain-turn', async (t) => {
     t.mock.method(console, 'error', () => {});
     t.mock.method(console, 'warn', () => {});
@@ -6056,7 +6111,7 @@ describe('one brain hiccup is survivable, and every exit is named', () => {
     assert.equal(logged.some((l) => l.includes('convo brain turn retrying')), false);
   });
 
-  test('a safety stop in a conversation names done', async (t) => {
+  test('a safety stop in a conversation names safety', async (t) => {
     t.mock.method(console, 'warn', () => {});
     const { lines, exit } = exitLines(t);
     const { convo, session, published } = await inScene(t, { voiceless: true, exit });
@@ -6065,7 +6120,7 @@ describe('one brain hiccup is survivable, and every exit is named', () => {
     assert.ok(published.some((m) => m.t === 'safety' && m.action === 'stop'));
     exit.mark('learner-left');
     exit.log();
-    assert.deepEqual(lines, ['[luvani:session-exit] class=done']);
+    assert.deepEqual(lines, ['[luvani:session-exit] class=safety']);
   });
 });
 

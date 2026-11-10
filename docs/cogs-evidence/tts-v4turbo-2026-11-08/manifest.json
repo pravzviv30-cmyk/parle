@@ -1,0 +1,350 @@
+{
+  "createdAt": "2026-11-08T14:09:53.152Z",
+  "experiment": "v4turbo",
+  "storageKey": "tts-v4turbo-2026-11-08",
+  "voice": "alexandre",
+  "lines": [
+    "Très bien, et vous prenez votre café avec du sucre ?",
+    "Désolé, nous n’avons plus de croissants ce matin, mais il reste des pains au chocolat.",
+    "Votre chambre est au deuxième étage, juste à côté de l’ascenseur.",
+    "Le petit déjeuner est servi de sept heures à dix heures dans la salle du fond.",
+    "Vous préférez une table près de la fenêtre ou sur la terrasse ?",
+    "Je vous apporte l’addition tout de suite, un instant s’il vous plaît.",
+    "Voulez-vous que je vous réserve un taxi pour demain matin ?",
+    "Ce sera un thé citron et une tarte aux pommes, c’est bien ça ?",
+    "La clé de votre chambre est à la réception, vous pouvez la prendre ce soir.",
+    "Nous avons un menu du jour à quatorze euros, entrée, plat et dessert.",
+    "Attention, le café est très chaud, je pose la tasse devant vous.",
+    "Merci beaucoup, bonne journée et à très bientôt dans notre petit hôtel !"
+  ],
+  "pairs": [
+    {
+      "pairId": "4de20cfa4a0c",
+      "voice": "alexandre",
+      "line": 0,
+      "A": "4d97d7cec2f9",
+      "B": "31f01385047f"
+    },
+    {
+      "pairId": "16371cf2630c",
+      "voice": "alexandre",
+      "line": 1,
+      "A": "35fd7f7c0fb8",
+      "B": "ea1ecb044067"
+    },
+    {
+      "pairId": "2dda643436c9",
+      "voice": "alexandre",
+      "line": 2,
+      "A": "68490049771d",
+      "B": "88201c4bf7f4"
+    },
+    {
+      "pairId": "52d74d8bb437",
+      "voice": "alexandre",
+      "line": 3,
+      "A": "0d88893383f4",
+      "B": "42749c6f7ee2"
+    },
+    {
+      "pairId": "a40d046ee1fd",
+      "voice": "alexandre",
+      "line": 4,
+      "A": "a4765a0c87c2",
+      "B": "859ff51d2b04"
+    },
+    {
+      "pairId": "795837b6d1b7",
+      "voice": "alexandre",
+      "line": 5,
+      "A": "36d95d1365ca",
+      "B": "4caa7bca2d00"
+    },
+    {
+      "pairId": "529c671e28b4",
+      "voice": "alexandre",
+      "line": 6,
+      "A": "b2f3bb28abcd",
+      "B": "e2750c8f6cf3"
+    },
+    {
+      "pairId": "9c5a71f15aaf",
+      "voice": "alexandre",
+      "line": 7,
+      "A": "49814f660777",
+      "B": "1c57e56853a6"
+    },
+    {
+      "pairId": "f0f863e968ad",
+      "voice": "alexandre",
+      "line": 8,
+      "A": "bffa39eb3e1d",
+      "B": "78a0a2fc1f36"
+    },
+    {
+      "pairId": "83518f8ba155",
+      "voice": "alexandre",
+      "line": 9,
+      "A": "2d6953bf9c6e",
+      "B": "8cfcb08ddc08"
+    },
+    {
+      "pairId": "3b4b3d05e918",
+      "voice": "alexandre",
+      "line": 10,
+      "A": "ec7dd9d3037c",
+      "B": "04863c0e8df7"
+    },
+    {
+      "pairId": "5de63a5f1ec8",
+      "voice": "alexandre",
+      "line": 11,
+      "A": "20135c5ded37",
+      "B": "3d72f4725610"
+    }
+  ],
+  "clips": {
+    "4d97d7cec2f9": {
+      "voice": "alexandre",
+      "line": 0,
+      "chars": 52,
+      "estimatedCredits": 0,
+      "file": "4d97d7cec2f9.wav",
+      "status": "complete",
+      "bytes": 112640,
+      "seconds": 2.5541950113378684
+    },
+    "31f01385047f": {
+      "voice": "alexandre",
+      "line": 0,
+      "chars": 52,
+      "estimatedCredits": 0,
+      "file": "31f01385047f.wav",
+      "status": "complete",
+      "bytes": 134064,
+      "seconds": 3.04
+    },
+    "35fd7f7c0fb8": {
+      "voice": "alexandre",
+      "line": 1,
+      "chars": 86,
+      "estimatedCredits": 0,
+      "file": "35fd7f7c0fb8.wav",
+      "status": "complete",
+      "bytes": 180224,
+      "seconds": 4.08671201814059
+    },
+    "ea1ecb044067": {
+      "voice": "alexandre",
+      "line": 1,
+      "chars": 86,
+      "estimatedCredits": 0,
+      "file": "ea1ecb044067.wav",
+      "status": "complete",
+      "bytes": 194040,
+      "seconds": 4.4
+    },
+    "68490049771d": {
+      "voice": "alexandre",
+      "line": 2,
+      "chars": 65,
+      "estimatedCredits": 0,
+      "file": "68490049771d.wav",
+      "status": "complete",
+      "bytes": 151704,
+      "seconds": 3.44
+    },
+    "88201c4bf7f4": {
+      "voice": "alexandre",
+      "line": 2,
+      "chars": 65,
+      "estimatedCredits": 0,
+      "file": "88201c4bf7f4.wav",
+      "status": "complete",
+      "bytes": 141312,
+      "seconds": 3.2043537414965986
+    },
+    "0d88893383f4": {
+      "voice": "alexandre",
+      "line": 3,
+      "chars": 78,
+      "estimatedCredits": 0,
+      "file": "0d88893383f4.wav",
+      "status": "complete",
+      "bytes": 202752,
+      "seconds": 4.597551020408163
+    },
+    "42749c6f7ee2": {
+      "voice": "alexandre",
+      "line": 3,
+      "chars": 78,
+      "estimatedCredits": 0,
+      "file": "42749c6f7ee2.wav",
+      "status": "complete",
+      "bytes": 179928,
+      "seconds": 4.08
+    },
+    "a4765a0c87c2": {
+      "voice": "alexandre",
+      "line": 4,
+      "chars": 63,
+      "estimatedCredits": 0,
+      "file": "a4765a0c87c2.wav",
+      "status": "complete",
+      "bytes": 151704,
+      "seconds": 3.44
+    },
+    "859ff51d2b04": {
+      "voice": "alexandre",
+      "line": 4,
+      "chars": 63,
+      "estimatedCredits": 0,
+      "file": "859ff51d2b04.wav",
+      "status": "complete",
+      "bytes": 131072,
+      "seconds": 2.972154195011338
+    },
+    "36d95d1365ca": {
+      "voice": "alexandre",
+      "line": 5,
+      "chars": 69,
+      "estimatedCredits": 0,
+      "file": "36d95d1365ca.wav",
+      "status": "complete",
+      "bytes": 137216,
+      "seconds": 3.111473922902494
+    },
+    "4caa7bca2d00": {
+      "voice": "alexandre",
+      "line": 5,
+      "chars": 69,
+      "estimatedCredits": 0,
+      "file": "4caa7bca2d00.wav",
+      "status": "complete",
+      "bytes": 134064,
+      "seconds": 3.04
+    },
+    "b2f3bb28abcd": {
+      "voice": "alexandre",
+      "line": 6,
+      "chars": 59,
+      "estimatedCredits": 0,
+      "file": "b2f3bb28abcd.wav",
+      "status": "complete",
+      "bytes": 122880,
+      "seconds": 2.786394557823129
+    },
+    "e2750c8f6cf3": {
+      "voice": "alexandre",
+      "line": 6,
+      "chars": 59,
+      "estimatedCredits": 0,
+      "file": "e2750c8f6cf3.wav",
+      "status": "complete",
+      "bytes": 116424,
+      "seconds": 2.64
+    },
+    "49814f660777": {
+      "voice": "alexandre",
+      "line": 7,
+      "chars": 62,
+      "estimatedCredits": 0,
+      "file": "49814f660777.wav",
+      "status": "complete",
+      "bytes": 144648,
+      "seconds": 3.28
+    },
+    "1c57e56853a6": {
+      "voice": "alexandre",
+      "line": 7,
+      "chars": 62,
+      "estimatedCredits": 0,
+      "file": "1c57e56853a6.wav",
+      "status": "complete",
+      "bytes": 131072,
+      "seconds": 2.972154195011338
+    },
+    "bffa39eb3e1d": {
+      "voice": "alexandre",
+      "line": 8,
+      "chars": 75,
+      "estimatedCredits": 0,
+      "file": "bffa39eb3e1d.wav",
+      "status": "complete",
+      "bytes": 165816,
+      "seconds": 3.76
+    },
+    "78a0a2fc1f36": {
+      "voice": "alexandre",
+      "line": 8,
+      "chars": 75,
+      "estimatedCredits": 0,
+      "file": "78a0a2fc1f36.wav",
+      "status": "complete",
+      "bytes": 161792,
+      "seconds": 3.6687528344671203
+    },
+    "2d6953bf9c6e": {
+      "voice": "alexandre",
+      "line": 9,
+      "chars": 69,
+      "estimatedCredits": 0,
+      "file": "2d6953bf9c6e.wav",
+      "status": "complete",
+      "bytes": 183456,
+      "seconds": 4.16
+    },
+    "8cfcb08ddc08": {
+      "voice": "alexandre",
+      "line": 9,
+      "chars": 69,
+      "estimatedCredits": 0,
+      "file": "8cfcb08ddc08.wav",
+      "status": "complete",
+      "bytes": 190464,
+      "seconds": 4.31891156462585
+    },
+    "ec7dd9d3037c": {
+      "voice": "alexandre",
+      "line": 10,
+      "chars": 64,
+      "estimatedCredits": 0,
+      "file": "ec7dd9d3037c.wav",
+      "status": "complete",
+      "bytes": 137216,
+      "seconds": 3.111473922902494
+    },
+    "04863c0e8df7": {
+      "voice": "alexandre",
+      "line": 10,
+      "chars": 64,
+      "estimatedCredits": 0,
+      "file": "04863c0e8df7.wav",
+      "status": "complete",
+      "bytes": 162288,
+      "seconds": 3.68
+    },
+    "20135c5ded37": {
+      "voice": "alexandre",
+      "line": 11,
+      "chars": 72,
+      "estimatedCredits": 0,
+      "file": "20135c5ded37.wav",
+      "status": "complete",
+      "bytes": 172872,
+      "seconds": 3.92
+    },
+    "3d72f4725610": {
+      "voice": "alexandre",
+      "line": 11,
+      "chars": 72,
+      "estimatedCredits": 0,
+      "file": "3d72f4725610.wav",
+      "status": "complete",
+      "bytes": 163840,
+      "seconds": 3.7151927437641725
+    }
+  },
+  "status": "complete",
+  "note": "Clips reuse the timed run (v2 over HTTP, v4 Turbo over the dialogue socket, both at normal speed); not loudness-matched."
+}

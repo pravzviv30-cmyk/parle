@@ -74,7 +74,8 @@ test('F961: coming back to Home keeps the held billing answer, so the hero does 
   assert.match(source, /setBillingRead\(held => held !== null && held\.scope === scope && held\.live === reads \? held :/);
   assert.match(source, /const reads = live && user !== null;/, 'the offline answer must not be held once the learner is online');
   // fetchBillingStatus never rejects: a failure resolves null, which must not wipe the held billing.
-  assert.match(source, /fetchBillingStatus\(user\.id\)\.catch\(\(\) => null\)\.then\(result => \{[^}]*setBillingRead\(held => \(\{ scope, live: reads, billing: result \?\? \(held !== null && held\.scope === scope \? held\.billing : null\), answered: true \}\)\)/);
+  assert.match(source, /fetchBillingStatus\(user\.id\)\.then\(result => \{[^}]*setBillingRead\(held => \(\{ scope, live: reads, billing: result \?\? \(held !== null \? held\.billing : null\), answered: true \}\)\)/);
+  assert.doesNotMatch(source, /fetchBillingStatus\(user\.id\)\.catch/, 'fetchBillingStatus never rejects, so a catch is dead code');
   assert.doesNotMatch(source, /\.then\(result => \{[^}]*setBillingRead\(\{ scope, live: reads, billing: result,/, 'a null result must not overwrite the held billing');
   const loading = source.match(/<Text style=\{[^}]*\}[^>]*>Finding your next task…<\/Text>|<Text style=\{[^>]*\]\}>Finding your next task…<\/Text>|<Text style=\{type\.small\}>Finding your next task…<\/Text>/g) ?? [];
   assert.equal(loading.length, 2);

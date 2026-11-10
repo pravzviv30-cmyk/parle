@@ -58,20 +58,24 @@ describe('turn handling — H2, H3 and H6', () => {
     for (const mode of ['convo', 'lesson'] as const) {
       for (const startRung of [1, 2, undefined] as const) {
         const { interruption } = turnHandlingFor(mode, { adaptiveInterruption: true, startRung });
-        assert.equal('mode' in interruption, false, `${mode} at rung ${String(startRung)} carries a mode key`);
+        assert.equal(interruption.mode, 'vad', `${mode} at rung ${String(startRung)} could build the adaptive detector`);
       }
     }
   });
 
   test('adaptive interruption is off at rung 4 unless the flag is on', () => {
-    assert.equal('mode' in turnHandlingFor('convo', { startRung: 4 }).interruption, false);
-    assert.equal('mode' in turnHandlingFor('convo', { adaptiveInterruption: false, startRung: 4 }).interruption, false);
+    // Explicit, because unset lets the SDK build the adaptive detector under LIVEKIT_DEV_MODE.
+    assert.equal(turnHandlingFor('lesson', {}).interruption.mode, 'vad');
+    assert.equal(turnHandlingFor('convo', { startRung: 4 }).interruption.mode, 'vad');
+    assert.equal(turnHandlingFor('convo', { adaptiveInterruption: false, startRung: 4 }).interruption.mode, 'vad');
   });
 
   test('the adaptive flag changes nothing else about interruption', () => {
     const on = { ...turnHandlingFor('convo', { adaptiveInterruption: true, startRung: 4 }).interruption } as Record<string, unknown>;
+    const off = { ...turnHandlingFor('convo', { startRung: 4 }).interruption } as Record<string, unknown>;
     delete on.mode;
-    assert.deepEqual(on, turnHandlingFor('convo', { startRung: 4 }).interruption);
+    delete off.mode;
+    assert.deepEqual(on, off);
   });
 
   test('the turn-detection note matches the plugins actually installed', () => {

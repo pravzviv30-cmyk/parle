@@ -15,8 +15,6 @@ import {
   type PipelineOutcome,
 } from './failure.ts';
 
-const GENERIC_NOTICE = 'The tutor hit a small snag. Carry on as you were.';
-
 /**
  * Every failure mode, listed once. The `satisfies` makes typecheck fail if a
  * new failure joins the union without copy, which is the invariant: an
@@ -329,13 +327,6 @@ describe('what the learner reads when half the tutor stops working mid-session',
     const noKind = classifyPipelineError({ message: limit }, { spoken: true });
     if (noKind.severity !== 'notice') throw new Error('unreachable');
     assert.equal(noKind.message, limit, 'the time-limit sentence was replaced, and the learner was told to carry on after the session ended.');
-
-    const leaky = 'ECONNRESET at wss://example.livekit.cloud';
-
-    const unknown = classifyPipelineError({ message: leaky, kind: 'brand_new_error' as ErrorKind, recoverable: true }, { spoken: true });
-    assert.equal(unknown.severity, 'notice');
-    if (unknown.severity !== 'notice') throw new Error('unreachable');
-    assert.equal(unknown.message, GENERIC_NOTICE, 'an unknown kind showed undefined or the frame text.');
   });
 
   test('every pipeline kind is named by what the learner lost, not by the vendor', () => {

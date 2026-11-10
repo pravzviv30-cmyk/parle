@@ -22,7 +22,7 @@ export interface TurnHandling {
     minDuration: number;
     minWords: number;
     discardAudioIfUninterruptible: boolean;
-    mode?: 'adaptive';
+    mode: 'adaptive' | 'vad';
   };
   endpointing: Endpointing;
   preemptiveGeneration: { enabled: boolean };
@@ -58,10 +58,9 @@ export function turnHandlingFor(
       // uninterruptible anyway and a beginner's "oui" is often the answer, not
       // a backchannel, so the trial starts higher up. SDK 1.9 reads the mode once
       // when the session is built and updateOptions cannot change it, so "rungs
-      // 3-4" means sessions that START there. Absent means the SDK default.
-      ...(env.adaptiveInterruption && (env.startRung === 3 || env.startRung === 4)
-        ? { mode: 'adaptive' as const }
-        : {}),
+      // 3-4" means sessions that START there. Otherwise 'vad', explicitly:
+      // unset, the SDK builds the adaptive detector under LIVEKIT_DEV_MODE.
+      mode: env.adaptiveInterruption && (env.startRung === 3 || env.startRung === 4) ? 'adaptive' : 'vad',
     },
     // The session opens on the starting rung's pause floor; no signed rung is
     // a beginner. agent.ts moves it with the rung, cut-offs and "moment".

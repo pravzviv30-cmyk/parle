@@ -9,6 +9,10 @@ export type PaidGate=(descriptor:PaidDescriptor,signal?:AbortSignal)=>Promise<Ab
 export const paidConfigurationSha256=(descriptor:Omit<PaidDescriptor,'quantities'>)=>createHash('sha256').update(canonicalJson({version:1,kind:descriptor.kind,provider:descriptor.provider,model:descriptor.model,voice:descriptor.voice,configuration:descriptor.configuration,maxProviderAttempts:1})).digest('hex');
 /** Per-call WAV ceiling: a 44-byte header and 30 s of 16 kHz mono 16-bit PCM. */
 export const SCORING_MAX_WAV_BYTES=960044;
+/** The ElevenLabs request body keys admitted, here and by the paid voice proxy. */
+export const ELEVEN_BODY_KEYS:readonly string[]=['text','model_id','language_code','voice_settings','apply_text_normalization','apply_language_text_normalization','previous_text'];
+/** The most sentence-stitching context (previous_text) admitted, in UTF-8 bytes. */
+export const ELEVEN_PREVIOUS_TEXT_MAX_BYTES=600;
 const dispatchDeadlines=new WeakMap<AbortSignal,number>();
 export function assertPaidDispatch(signal:AbortSignal):void {signal.throwIfAborted();const until=dispatchDeadlines.get(signal);if(until!==undefined && Date.now()>=until)throw new PaidAdmissionError('admission-unavailable');}
 export function reservationGate(reservation:PaidReservation,context:PaidContext,signal:AbortSignal):PaidGate {
@@ -59,10 +63,10 @@ export async function describePaidHttp(url:URL,init:RequestInit):Promise<PaidDes
   configuration={path:url.pathname,...Object.fromEntries(Object.entries(body).filter(([key])=>!['messages','system','input','instructions','prompt_cache_key'].includes(key)))};
  } else if(url.hostname==='api.elevenlabs.io' && /^\/v1\/text-to-speech\/[A-Za-z0-9_-]+(?:\/stream)?$/.test(url.pathname)) {
   if(typeof init.body!=='string')throw new PaidAdmissionError('unsupported-adapter');const body=object(JSON.parse(init.body));
-  if(typeof body.text!=='string' || !body.text.trim() || Object.keys(body).some(key=>!['text','model_id','language_code','voice_settings','apply_text_normalization','apply_language_text_normalization','previous_text'].includes(key)))throw new PaidAdmissionError('unsupported-adapter');
+  if(typeof body.text!=='string' || !body.text.trim() || Object.keys(body).some(key=>!ELEVEN_BODY_KEYS.includes(key)))throw new PaidAdmissionError('unsupported-adapter');
   if([...url.searchParams.keys()].some(key=>!['output_format','optimize_streaming_latency','enable_logging'].includes(key)))throw new PaidAdmissionError('unsupported-adapter');
   // previous_text is sentence-stitching context, delivery input like text: bounded, never in the quote identity, never billed as text.
-  if(body.previous_text!==undefined && (typeof body.previous_text!=='string' || Buffer.byteLength(body.previous_text)>600))throw new PaidAdmissionError('unsupported-adapter');
+  if(body.previous_text!==undefined && (typeof body.previous_text!=='string' || Buffer.byteLength(body.previous_text)>ELEVEN_PREVIOUS_TEXT_MAX_BYTES))throw new PaidAdmissionError('unsupported-adapter');
   if(typeof body.model_id!=='string')throw new PaidAdmissionError('unsupported-adapter');if((body.apply_text_normalization!==undefined && body.apply_text_normalization!=='auto') || (body.apply_language_text_normalization!==undefined && typeof body.apply_language_text_normalization!=='boolean') || url.searchParams.get('enable_logging')!=='false')throw new PaidAdmissionError('unsupported-adapter');kind='tts';provider='elevenlabs';model=body.model_id;voice=url.pathname.split('/')[3]!;q.textBytes=Buffer.byteLength(body.text);
   // Speed is delivery input like text: ElevenLabs bills characters, not pace, so one
   // quote component per voice serves every speed. Only the range the proxy admits is stripped.
