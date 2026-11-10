@@ -192,10 +192,20 @@ From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by 
 | 2026-11-08 / merge | `origin/main` `1706178b` merged (`1b01b02b`), 64 commits, no conflicts. Main's dark marks (`brandMark`, the softened mint and sun) arrive before the before shots | `npm run gate` green, 7,742 tests, 0 failing (mobile 4,150) | Before shots |
 | 2026-11-08 / T1 shots | The before set, 14 keys at 375 and 320, light and dark, in `reviews/2026-11-08-recap/before/` (56 files). Today's recap shows its first page at every key. `recap-progress-unreadable` reaches its state through a seeded unreadable sound-check record. The two sheet keys and `recap-reminder` draw the full recap: the sheets open only after the rebuild, and `REMINDERS_AVAILABLE` is false on web | No console errors on any key | T3 |
 
+| 2026-11-08 / T3 | `design-system-engineer`: `SceneBand`, `SceneTiles`, `SceneCloud` exported from `celebrate/EndScene.tsx`; `CloudLids` for the unposed body; the minutes tile (`7ce34983`) | New tests failed first; mobile 4,154 green; drill-end shots unchanged | T4 |
+| 2026-11-08 / T4 | `frontend-engineer`: the one scroll, `recap/FocusSheet.tsx`, the lip `KeptPhraseCard`, the pinned footer; pages, `ResultArt`, `ProgressStrip`, unused `RecapParts` and two flat drawings retired; every pin re-pinned (`1c57db0c`) | Mobile 4,158 green; round 2 placed the postcard, hid the goals with no reply | T5 |
+| 2026-11-08 / T5 | `implementer`: UI-020, `DESIGN.md`, the taste log and queue row 4, the state map, `cast.md` (`875967c5`) | `gate:fast` green | T6 |
+| 2026-11-08 / T6 | Fix-verifier round 1 REFUTED: two sounds on an earned scene, a "0" minutes frame; fixed test first (`7e735979`). Five ledger ticks re-pointed (`6d6f8368`) | Gate green on `6d6f8368` | Round 2 |
+| 2026-11-10 / merge | `origin/main` `d899890e` merged (`c9cc798e`), no conflicts, lockfile unchanged | Gate: 7,768 tests; one tutor-agent timing test timed out at 15.05 s under load, passed alone in 12.4 s; nothing in `services/` is ours | Round 2 follow-up |
+| 2026-11-10 / T6 | Round 2's "practise guard unpinned" was wrong: `practice is the recommended next action and finishing stays available` pins it (shown failing on a mutation), now named by F700; new pin for the unavailable-text notice, named by F707 (`2abb0bf5`). Round 3 HOLDS; its low note fixed (`de25dca7`, comment only) | 323 focused tests green | After shots |
+| 2026-11-10 / shots | After set in `reviews/2026-11-08-recap/after/`: 14 keys at 375 and 320, light and dark, plus tall 375x2200 for scrolled, earned first stamp and not saved, all with reduced motion so frames are final | No console errors on any key | Simulator |
+| 2026-11-10 / simulator | iPhone 17 Pro, dev client built from this worktree. `recap-earned-first-stamp` at normal text, then at accessibility-large with Reduce Motion: the first and later frames are byte-identical (no count-up, confetti drawn still), the tiles stack as rows, the footer stays pinned. Shots in `reviews/2026-11-08-recap/simulator/`. The back gesture is unchanged: no recap commit touches navigation, `App.tsx` or `ConvoScreen.tsx` (checked in code, not on a device) | As described | Push-check, live run |
+
 ## Integrated verification and handoff
 
-- Focused checks: not run
-- Full gate: not run
-- UI / device checks: not run
-- Documentation and decisions: not yet
-- Landing disposition: HOLD until built, verified and the founder OKs the after shots
+- Focused checks: 323 focused tests green (fix-verifier round 3).
+- Full gate: see the push-check stamp.
+- UI / device checks: web before and after shots, the iPhone 17 Pro simulator at normal and accessibility-large text with Reduce Motion; the live typed run is pending.
+- Documentation and decisions: UI-020, `DESIGN.md`, `docs/DESIGN_PARTNERSHIP.md`, `docs/CURRENT_STATE_MAP.md`, `docs/changes/cast.md`, the ledger.
+- Under Reduce Motion the confetti is drawn still (the shared `Confetti` behaviour, as on the drill end), not removed; the founder sees it in the after shots.
+- Landing disposition: HOLD until push-checked, the live run is captured and the founder OKs the after shots
