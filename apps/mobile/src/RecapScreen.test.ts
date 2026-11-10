@@ -78,7 +78,10 @@ describe('the recap is a keepsake', () => {
     assert.doesNotMatch(code, /\bsetMore\b|expanded: more|closure\.didWell\.map\(|otherPhrases\.map\(/, 'the More disclosure or its lists are back');
     assert.match(code, /const focusRow = recapFocusRow\(closure\.focus\);/, 'the row does not ask the one focus rule');
     assert.match(render, /\{focusRow !== null && closure\.focus !== null && \(/, 'a row is drawn with nothing to open');
-    assert.match(render, /\{focusing && closure\.focus !== null && <FocusSheet focus=\{closure\.focus\} onClose=\{\(\) => setFocusing\(false\)\} \/>\}/, 'the sheet stays mounted when closed, so its practice clip outlives it');
+    assert.match(code, /const \[focusing, setFocusing\] = useState<ClosureFocus \| null>\(null\);/, 'the sheet does not hold the focus it was opened on');
+    assert.match(render, /onPress=\{\(\) => setFocusing\(closure\.focus\)\}/, 'the row does not hand its focus to the sheet');
+    assert.match(render, /\{focusing !== null && <FocusSheet focus=\{focusing\} onClose=\{\(\) => setFocusing\(null\)\} \/>\}/, 'the sheet stays mounted when closed, or reads the focus live');
+    assert.doesNotMatch(render, /focus=\{closure\.focus\}/, 'the open sheet can switch under the learner');
     assert.match(sheet, /if \(focus\.kind !== 'sound'\) \{[\s\S]*?title="One thing to tune"/, 'one thing to tune lost its sheet');
   });
 
@@ -120,7 +123,7 @@ describe('the conversation closes with something useful', () => {
   test('practice is the recommended next action and finishing stays available', () => {
     // UI-020: one pinned footer, its states decided by recapFooter (afterSessionView.test.ts).
     assert.match(code, /const foot = recapFooter\(\{ kept: keptPhrase !== null, practice: onPractice !== undefined, saved: saveState === 'saved', earned: celebrate !== null, journey: onSeeJourney !== undefined \}\);/);
-    assert.match(render, /foot\.primary === 'practise'\s*\? <>\s*<PillButton label="Practise this phrase" onPress=\{practise\} disabled=\{foot\.practiseDisabled\} lip \/>/, 'practise is not the lip primary, held until the save is durable');
+    assert.match(render, /foot\.primary === 'practise'\s*\? <>\s*<PillButton label="Practise this phrase" onPress=\{practise\} disabled=\{foot\.practiseDisabled\} disabledReason=\{foot\.practiseDisabled \? saveLine : undefined\} lip \/>/, 'practise is not the lip primary, held until the save is durable, with the save line as its reason');
     assert.match(render, /: <>\s*<PillButton label="Done" onPress=\{onDone\} lip \/>/, 'Done is not the lip primary when there is nothing to practise');
     assert.equal((render.match(/label="Done" onPress=\{onDone\}/g) ?? []).length, 2, 'Done is missing from a footer state');
     assert.doesNotMatch(screen, /Finish conversation|Practise these lines, free|CloseDisc/, 'a second way out, or a name that differs from the label, is back');
@@ -243,6 +246,20 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     assert.match(stamp, /sounds = true,/, 'the stamp is silent by default');
     // UI-020: on the recap the moment's chime is the one cue; the stamp is silent there.
     assert.match(render, /<PostcardStamp [^>]*sounds=\{false\}/, 'the recap stacks the stamp sound on the chime');
+    // The stamp's own confetti is on by default, behind one gate, and thrown once.
+    assert.match(stamp, /confetti = true,/, 'the stamp lost its own confetti by default');
+    assert.match(stamp, /\{confetti && box\.width > 0 \? \(/, 'the stamp throws confetti whatever the page asked');
+    assert.equal((stamp.match(/<Confetti\b/g) ?? []).length, 1, 'the stamp throws more than one confetti');
+    // With no reply nothing is measured: no tiles, and the eyebrow is the scene alone.
+    assert.match(code, /const measured = measuredSec\(credit\.settles, activeSec\);/);
+    assert.match(code, /afterSessionStats\(\{ activeSec: measured,/, 'the tiles count a no-reply sitting');
+    assert.match(render, /\{recapEyebrow\(situation, measured\)\}/, 'the eyebrow counts a no-reply sitting');
+    assert.doesNotMatch(screen, /afterSessionStats\(\{ activeSec,|recapEyebrow\(situation, activeSec\)/);
+    // The title rule, as the screen uses it.
+    assert.match(code, /const shown = recapTitle\(credit\.settles\);/);
+    assert.match(render, /shown\.title === 'headline' \? recap\.headline : credit\.line/);
+    assert.match(render, /shown\.lineUnder \?/);
+    assert.match(render, /<SceneBand mood=\{credit\.settles \? 'cheer' : 'idle'\} cloud=\{credit\.settles \? 'posed' : 'resting'\}/);
   });
 
   test('the recap plays the moment the room held back, and its strip draws only what the settle read back', () => {
@@ -263,7 +280,7 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     // The strip is EndScene's tile row, still on the moment's beat, and drawn at once and final with no strip.
     assert.match(render, /\{strip !== null && !moment\.reached\('strip'\) \? null : <SceneTiles tiles=\{tiles\} layout=\{tileLayout\} counting final=\{strip === null \|\| moment\.final\} \/>\}/);
     assert.match(code, /const tiles = recapTiles\(stats\);/);
-    assert.match(code, /afterSessionStats\(\{ activeSec, phrases: credit\.showPhrases \? recap\.phrases\.length : 0, xp: strip\?\.xp\?\.value \?\? null \}\)/);
+    assert.match(code, /afterSessionStats\(\{ activeSec: measured, phrases: credit\.showPhrases \? recap\.phrases\.length : 0, xp: strip\?\.xp\?\.value \?\? null \}\)/);
     assert.match(convo, /\}\)\.then\(setConvoDelta\);/, 'the conversation drops what the settle read back');
     assert.match(convo, /delta=\{convoDelta\}/);
     // The lines count up to the number said, once, and are read out once at that number.

@@ -26,6 +26,9 @@ test('the band draws the face, posed cheer and resting modes', () => {
   assert.match(band, /<Cloud pose="cheer" ink=\{t\.text\} size=\{POSED\} outline \/>/, 'posed cheer missing, or without its outline');
   assert.match(band, /<Blink active lids=\{<CloudLids size=\{CLOUD\} \/>\}> <Cloud expression="idle" size=\{CLOUD\} outline \/> <\/Blink>/, 'resting blink missing');
   assert.equal((band.match(/<Blink\b/g) ?? []).length, 1, 'only the resting Cloud blinks');
+  // The mode conditions, not only the elements.
+  assert.match(band, /cloud === 'posed' \? \( <View[^>]*> <Cloud pose="cheer"/, 'the posed branch is not picked by the posed mode');
+  assert.match(band, /cloud === 'resting' \? \( <Blink /, 'the blink is not picked by the resting mode');
   assert.match(band, /<ToastMascot expression=\{mood\} size=\{TOAST\} \/>/);
   assert.match(band, /postcard/);
 });

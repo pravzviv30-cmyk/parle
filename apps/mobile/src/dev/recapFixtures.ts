@@ -25,7 +25,7 @@ const base: RecapPayload = {
   stats: { turns: 8, rescues: 1, unassistedRate: 0.75, learnerReplies: 4 },
 };
 
-export const RECAP_FULL: RecapPayload = base;
+export const RECAP_FULL: RecapPayload = { ...base, focusSound: { ipa: 'y', word: 'tu' } };
 export const RECAP_NO_SOUND: RecapPayload = base;
 
 export const RECAP_SCROLLED: RecapPayload = {

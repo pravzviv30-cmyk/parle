@@ -75,9 +75,9 @@ import { bType } from './theme.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 import { useFeatureAccess } from './access/useFeatureAccess.ts';
 import { fixesLocked } from './practice/fixesView.ts';
-import { afterSessionStats, celebrateView, recapEyebrow, recapFocusRow, recapFooter, recapTiles, recapTitle, smallFixes } from './recap/afterSessionView.ts';
+import { afterSessionStats, celebrateView, measuredSec, recapEyebrow, recapFocusRow, recapFooter, recapTiles, recapTitle, smallFixes } from './recap/afterSessionView.ts';
 import { BandGoal, FixCard, LineRow, NextPill, PostcardTile, SaidWellCard } from './recap/RecapParts.tsx';
-import type { ClosureRepair } from './conversationPacks/closure.ts';
+import type { ClosureFocus, ClosureRepair } from './conversationPacks/closure.ts';
 import { arrived } from './motion/haptics.ts';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { FeedbackLedger } from './motion/feedbackPolicy.ts';
@@ -194,7 +194,7 @@ export function RecapScreen({
   const s = useThemedStyles(makeStyles);
   const locks = useFeatureAccess(user?.id);
   // The one focus sheet; mounted only while open, so its practice clip goes with it.
-  const [focusing, setFocusing] = useState(false);
+  const [focusing, setFocusing] = useState<ClosureFocus | null>(null);
   const { width: windowWidth, fontScale } = useWindowDimensions();
   const [rowWidth, setRowWidth] = useState(0);
   const [band, setBand] = useState({ width: 0, height: 0 });
@@ -305,7 +305,8 @@ export function RecapScreen({
   const stamp = postcardStamp({ independent: independentFinish, firstEarned });
   // One credit rule for the line, the phrases and the settle (F904, F903).
   const credit = sessionCredit(recap.stats, carriedReplies);
-  const stats = afterSessionStats({ activeSec, phrases: credit.showPhrases ? recap.phrases.length : 0, xp: strip?.xp?.value ?? null });
+  const measured = measuredSec(credit.settles, activeSec);
+  const stats = afterSessionStats({ activeSec: measured, phrases: credit.showPhrases ? recap.phrases.length : 0, xp: strip?.xp?.value ?? null });
   const tiles = recapTiles(stats);
   // The figures and their words both have to fit beside the coin whole, or the tiles stack, as on the drill end.
   const tileLayout = statTileLayout(statRowTileWidth(rowWidth > 0 ? rowWidth : windowWidth - ROW_MARGINS), fontScale, tiles.flatMap((tile) => [tile.format(tile.to), tile.word]));
@@ -321,7 +322,7 @@ export function RecapScreen({
       footer={<View style={s.footer}>
         {foot.primary === 'practise'
           ? <>
-            <PillButton label="Practise this phrase" onPress={practise} disabled={foot.practiseDisabled} lip />
+            <PillButton label="Practise this phrase" onPress={practise} disabled={foot.practiseDisabled} disabledReason={foot.practiseDisabled ? saveLine : undefined} lip />
             <View style={s.footRow}>
               <OutlineButton label="Done" onPress={onDone} />
               {foot.journey === 'beside' && <OutlineButton label="See your journey" onPress={journey} />}
@@ -354,7 +355,7 @@ export function RecapScreen({
         {celebrate.line !== null ? <Text style={[bType.line16, { color: t.secondary }]}>{celebrate.line}</Text> : null}
         {settlement}
       </View> : <View style={s.words}>
-        <Text style={[bType.chip, { color: t.link }]}>{recapEyebrow(situation, activeSec)}</Text>
+        <Text style={[bType.chip, { color: t.link }]}>{recapEyebrow(situation, measured)}</Text>
         <Text accessibilityRole="header" style={[bType.title30, { color: t.text }]}>{shown.title === 'headline' ? recap.headline : credit.line}</Text>
         {/* How it went, in a sentence. See tutor/recapLine.ts. */}
         {shown.lineUnder ? <Text style={[bType.line16, { color: t.secondary }]}>{credit.line}</Text> : null}
@@ -407,7 +408,7 @@ export function RecapScreen({
 
       {/* The one focus: a sound, or one thing to tune, opening one sheet. */}
       {focusRow !== null && closure.focus !== null && (
-        <LipTile accessibilityLabel={`${focusRow.label}. ${focusRow.line}`} onPress={() => setFocusing(true)} style={s.focus}>
+        <LipTile accessibilityLabel={`${focusRow.label}. ${focusRow.line}`} onPress={() => setFocusing(closure.focus)} style={s.focus}>
           <View {...decorative} style={[s.coin, { backgroundColor: t.lavender }]}><Icon name={focusRow.kind === 'sound' ? 'mouth' : 'hint'} size={18} color={t.text} /></View>
           <View style={s.grow}>
             <Text style={[bType.chip, { color: t.link }]}>{focusRow.label}</Text>
@@ -446,7 +447,7 @@ export function RecapScreen({
       </Press> : null}
       </View>
     </ScrollScreen>
-    {focusing && closure.focus !== null && <FocusSheet focus={closure.focus} onClose={() => setFocusing(false)} />}
+    {focusing !== null && <FocusSheet focus={focusing} onClose={() => setFocusing(null)} />}
     {fixing !== null && <FixLineSheet repair={fixing} onClose={() => setFixing(null)} />}
     {reporting && <ReportSheet tutorName={tutorNameOf(profile)} sessionId={momentKey} onClose={() => setReporting(false)} />}
     </>

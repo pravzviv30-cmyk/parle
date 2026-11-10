@@ -16,11 +16,9 @@ import { SOUND_FOCUS_LABEL, exampleFirstHeading } from '../tutor/soundExample.ts
 
 export interface StatTile {
   key: 'minutes' | 'phrases' | 'xp';
-  value: string;
   label: string;
   /** The whole number the tile counts up to (0 under a minute, which reads "<1"). */
   count: number;
-  ground: 'sun' | 'card' | 'mint';
 }
 
 /** The three stat tiles, in the artboard's order, each only when measured. */
@@ -29,15 +27,20 @@ export function afterSessionStats(input: { activeSec: number | null; phrases: nu
   const { activeSec, phrases, xp } = input;
   if (activeSec !== null && Number.isFinite(activeSec) && activeSec > 0) {
     const minutes = Math.floor(activeSec / 60);
-    tiles.push({ key: 'minutes', value: minutes < 1 ? '<1' : String(minutes), label: 'minutes', count: minutes, ground: 'sun' });
+    tiles.push({ key: 'minutes', label: 'minutes', count: minutes });
   }
   if (Number.isSafeInteger(phrases) && phrases > 0) {
-    tiles.push({ key: 'phrases', value: String(phrases), label: phrases === 1 ? 'new phrase' : 'new phrases', count: phrases, ground: 'card' });
+    tiles.push({ key: 'phrases', label: phrases === 1 ? 'new phrase' : 'new phrases', count: phrases });
   }
   if (xp !== null && Number.isSafeInteger(xp) && xp > 0) {
-    tiles.push({ key: 'xp', value: `+${xp}`, label: 'XP', count: xp, ground: 'mint' });
+    tiles.push({ key: 'xp', label: 'XP', count: xp });
   }
   return tiles;
+}
+
+/** The sitting's active seconds, only when a reply settled it: with no reply nothing is measured (sessionCredit). */
+export function measuredSec(settles: boolean, activeSec: number | null): number | null {
+  return settles ? activeSec : null;
 }
 
 /** The Recap band's eyebrow: the scene, and its minutes when measured. Commas, never middots. */

@@ -1,22 +1,29 @@
 // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate and B-Recap: the end of a session's rules.
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HEAR_IT_SAID, MAX_SMALL_FIXES, afterSessionStats, smallFixes, celebrateView, recapEyebrow, recapTitle, recapTiles, recapFocusRow, recapFooter } from './afterSessionView.ts';
+import { HEAR_IT_SAID, MAX_SMALL_FIXES, afterSessionStats, measuredSec, smallFixes, celebrateView, recapEyebrow, recapTitle, recapTiles, recapFocusRow, recapFooter } from './afterSessionView.ts';
 import { KEEPSAKE_COPY } from '../live/keepsake.ts';
 import { SOUND_FOCUS_LABEL } from '../tutor/soundExample.ts';
 
 describe('the stat tiles', () => {
   test('draw minutes, new phrases and XP when each was measured, each with the number it counts up to', () => {
-    assert.deepEqual(afterSessionStats({ activeSec: 7 * 60 + 20, phrases: 3, xp: 45 }).map((tile) => [tile.value, tile.label, tile.count, tile.ground]), [
-      ['7', 'minutes', 7, 'sun'], ['3', 'new phrases', 3, 'card'], ['+45', 'XP', 45, 'mint'],
+    assert.deepEqual(afterSessionStats({ activeSec: 7 * 60 + 20, phrases: 3, xp: 45 }).map((tile) => [tile.key, tile.label, tile.count]), [
+      ['minutes', 'minutes', 7], ['phrases', 'new phrases', 3], ['xp', 'XP', 45],
     ]);
   });
   test('leave a tile out rather than show a zero, and floor the minutes', () => {
     assert.deepEqual(afterSessionStats({ activeSec: null, phrases: 0, xp: null }), []);
-    assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[0]!.value, '<1');
+    assert.deepEqual(Object.keys(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[0]!).sort(), ['count', 'key', 'label'], 'a tile carries a field nothing draws');
     assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[0]!.count, 0);
     assert.equal(afterSessionStats({ activeSec: 30, phrases: 1, xp: null })[1]!.label, 'new phrase');
-    assert.equal(afterSessionStats({ activeSec: 119, phrases: 0, xp: 0 })[0]!.value, '1');
+    assert.equal(afterSessionStats({ activeSec: 119, phrases: 0, xp: 0 })[0]!.count, 1);
+  });
+  test('with no reply nothing is measured: no minutes tile, and the eyebrow is the scene alone', () => {
+    assert.equal(measuredSec(false, 70), null);
+    assert.equal(measuredSec(true, 70), 70);
+    assert.equal(measuredSec(true, null), null);
+    assert.deepEqual(afterSessionStats({ activeSec: measuredSec(false, 70), phrases: 0, xp: null }), []);
+    assert.equal(recapEyebrow('At the café', measuredSec(false, 70)), 'At the café');
   });
 });
 

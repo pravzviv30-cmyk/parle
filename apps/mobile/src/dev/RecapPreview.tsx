@@ -80,7 +80,7 @@ function body(preview: RecapPreviewKey) {
       independentFinish={earned}
       lines={empty ? [] : early ? F.RECAP_LINES.slice(0, 1) : F.RECAP_LINES}
       delta={empty || early ? null : F.RECAP_DELTA}
-      activeSec={empty ? null : early ? 40 : 250}
+      activeSec={empty ? 70 : early ? 40 : 250}
       goals={F.RECAP_GOALS}
       evidenceQuote={scrolled ? F.RECAP_EVIDENCE_QUOTE : null}
       settlementMessage={preview === 'recap-settlement-not-charged' ? F.RECAP_NOT_CHARGED : null}
