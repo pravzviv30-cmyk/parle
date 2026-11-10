@@ -4,7 +4,16 @@
 -- which ends signed-in conversations at their first checkpoint (F970). Roll back
 -- only together with an app and tutor that never send learnerReplies. No data
 -- change. Safe to run twice.
+-- Refused while a live session's stored checkpoint_baseline carries
+-- learnerReplies: its completion would raise 'unknown tutor baseline field' and
+-- so would every reconcile batch, holding unrelated grants active. Disable
+-- admission, let the reconciler drain those sessions, and run this again.
 begin;
+do $$ begin
+  if exists(select 1 from public.session_grants where lifecycle_version=1 and state in ('reserved','active','cancel_requested') and checkpoint_baseline ? 'learnerReplies') then
+    raise exception 'learnerReplies rollback refused: drain tutor sessions carrying learnerReplies before rollback';
+  end if;
+end $$;
 create or replace function luvani_private.tutor_pack_v1(p_pack jsonb,p_user_id uuid,p_session_id uuid)
 returns void language plpgsql set search_path='' as $$
 declare k text; v jsonb;

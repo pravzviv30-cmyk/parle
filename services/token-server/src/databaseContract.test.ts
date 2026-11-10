@@ -1436,6 +1436,8 @@ describe('database security contract — SQL cannot drift quietly', () => {
 
 // F970: a key the app's builder adds must reach the SQL baseline allow-list in the same change.
 describe('tutor baseline contract (F970)', () => {
+  // Covers only the optional keys this input supplies: a new optional pack key must be
+  // added to this input and to the migration allow-list together.
   test('every key of a pack the app builds passes the replayed tutor baseline validator', async () => {
     const user = '10000000-0000-4000-8000-000000000001';
     const session = '10000000-0000-4000-8000-000000000002';

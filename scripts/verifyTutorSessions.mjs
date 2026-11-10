@@ -466,13 +466,24 @@ try {
   const repliesSql = await readFile(new URL(replies,root),'utf8');
   const repliesDown = await readFile(new URL(`../supabase/rollback/${replies.split('_')[0]}_down.sql`,import.meta.url),'utf8');
   const packCheck = pack => db.query('select luvani_private.tutor_pack_v1($1,$2,$3)',[JSON.stringify(pack),uuid(4),sid(4)]);
+  // A live session checkpointed with learnerReplies refuses the rollback (it would fail its completion and every reconcile batch); drained, it runs.
+  await db.query('insert into auth.users(id) values($1)',[uuid(20)]);
+  await db.query('insert into auth.sessions(id,user_id) values($1,$2)',[authId(20),uuid(20)]);
+  await db.query("insert into public.entitlements(user_id,plan,seconds_used) values($1,'trial',0)",[uuid(20)]);
+  await db.exec('update public.tutor_session_admission_config set enabled=true,max_daily_issued_seconds=max_daily_issued_seconds+100000');
+  assert.equal((await reserve(20,20)).kind,'reserved');await claim(20,20);await age(20);
+  assert.equal((await checkpoint(20,20,1,100,1,{...baseline(20,20),learnerReplies:2})).kind,'checkpointed');
+  await db.exec('update public.tutor_session_admission_config set enabled=false');
+  await assert.rejects(db.exec(repliesDown),/drain tutor sessions carrying learnerReplies/);await db.exec('rollback');
+  await reconcile();
+  assert.equal((await complete(20,20,2,100,1,{...baseline(20,20),learnerReplies:2})).kind,'completed');
   await db.exec(repliesDown);await db.exec(repliesDown);
   await assert.rejects(packCheck({...baseline(4,4),learnerReplies:2}),/unknown tutor baseline field/);
   await packCheck(baseline(4,4));
   await db.exec(repliesSql);await db.exec(repliesSql);
   await packCheck({...baseline(4,4),learnerReplies:2});
   await assert.rejects(packCheck({...baseline(4,4),learnerReplies:-1}),/invalid tutor baseline/);
-  groups.push('F970 learnerReplies baseline: 0 and 2 accepted, negative/fraction/string/above-safe-integer/null refused, other unknown keys refused, rollback and reapply twice');
+  groups.push('F970 learnerReplies baseline: 0 and 2 accepted, negative/fraction/string/above-safe-integer/null refused, other unknown keys refused, rollback refused while a live session carries learnerReplies, reconcile unaffected, rollback after completion and reapply twice');
   console.log(JSON.stringify({status:'PASS',migrationCount:migrations.length,proofGroups:groups.length,groups,
     limits:'Sequential disposable PostgreSQL/WASM. No hosted Auth, independent concurrent connections, actual SDK process/network shutdown, provider spend or deployed reconciler acceptance.'},null,2));
 } finally {await db.close();}
