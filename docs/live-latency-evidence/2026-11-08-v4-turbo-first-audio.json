@@ -1,0 +1,1541 @@
+{
+  "generatedAt": "2026-11-08T14:17:18.438Z",
+  "network": "developer Mac, direct to api.elevenlabs.io, off the paid proxy",
+  "voice": "alexandre",
+  "outputFormat": "pcm_22050",
+  "sentences": 12,
+  "charsPerPass": 814,
+  "httpSettings": {
+    "voiceSettings": {
+      "stability": 0.4,
+      "similarity_boost": 0.8,
+      "style": 0.3,
+      "use_speaker_boost": true
+    },
+    "streamingLatency": 3,
+    "languageCode": null
+  },
+  "runs": {
+    "v4turbo": {
+      "model": "eleven_v4_turbo",
+      "transport": "dialogue",
+      "voiceSettings": null,
+      "chars": 2442,
+      "summary": {
+        "n": 36,
+        "cold": {
+          "n": 14,
+          "p50": 184,
+          "samples": [
+            165,
+            310,
+            312,
+            317,
+            146,
+            183,
+            184,
+            185,
+            425,
+            169,
+            193,
+            174,
+            190,
+            179
+          ]
+        },
+        "warm": {
+          "n": 22,
+          "p50": 93,
+          "p95": 238
+        },
+        "warmLastP50": 541,
+        "warmSpreadP50": 442,
+        "openMs": {
+          "p50": 82,
+          "samples": [
+            26,
+            148,
+            143,
+            214,
+            53,
+            86,
+            84,
+            78,
+            257,
+            64,
+            82,
+            70,
+            97,
+            73
+          ]
+        }
+      },
+      "samples": [
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 165,
+          "lastMs": 474,
+          "bytes": 137592,
+          "seconds": 3.12,
+          "endedBy": "turn-final",
+          "openMs": 26
+        },
+        {
+          "sentence": 1,
+          "cold": true,
+          "firstMs": 310,
+          "lastMs": 843,
+          "bytes": 194040,
+          "seconds": 4.4,
+          "endedBy": "turn-final",
+          "openMs": 148
+        },
+        {
+          "sentence": 2,
+          "cold": true,
+          "firstMs": 312,
+          "lastMs": 695,
+          "bytes": 151704,
+          "seconds": 3.44,
+          "endedBy": "turn-final",
+          "openMs": 143
+        },
+        {
+          "sentence": 3,
+          "cold": true,
+          "firstMs": 317,
+          "lastMs": 760,
+          "bytes": 176400,
+          "seconds": 4,
+          "endedBy": "turn-final",
+          "openMs": 214
+        },
+        {
+          "sentence": 4,
+          "cold": true,
+          "firstMs": 146,
+          "lastMs": 557,
+          "bytes": 151704,
+          "seconds": 3.44,
+          "endedBy": "turn-final",
+          "openMs": 53
+        },
+        {
+          "sentence": 5,
+          "cold": true,
+          "firstMs": 183,
+          "lastMs": 555,
+          "bytes": 134064,
+          "seconds": 3.04,
+          "endedBy": "turn-final",
+          "openMs": 86
+        },
+        {
+          "sentence": 6,
+          "cold": true,
+          "firstMs": 184,
+          "lastMs": 538,
+          "bytes": 116424,
+          "seconds": 2.64,
+          "endedBy": "turn-final",
+          "openMs": 84
+        },
+        {
+          "sentence": 7,
+          "cold": true,
+          "firstMs": 185,
+          "lastMs": 589,
+          "bytes": 151704,
+          "seconds": 3.44,
+          "endedBy": "turn-final",
+          "openMs": 78
+        },
+        {
+          "sentence": 8,
+          "cold": true,
+          "firstMs": 425,
+          "lastMs": 1347,
+          "bytes": 162288,
+          "seconds": 3.68,
+          "endedBy": "turn-final",
+          "openMs": 257
+        },
+        {
+          "sentence": 9,
+          "cold": true,
+          "firstMs": 169,
+          "lastMs": 555,
+          "bytes": 183456,
+          "seconds": 4.16,
+          "endedBy": "turn-final",
+          "openMs": 64
+        },
+        {
+          "sentence": 10,
+          "cold": true,
+          "firstMs": 193,
+          "lastMs": 558,
+          "bytes": 155232,
+          "seconds": 3.52,
+          "endedBy": "turn-final",
+          "openMs": 82
+        },
+        {
+          "sentence": 11,
+          "cold": true,
+          "firstMs": 174,
+          "lastMs": 679,
+          "bytes": 179928,
+          "seconds": 4.08,
+          "endedBy": "turn-final",
+          "openMs": 70
+        },
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 190,
+          "lastMs": 544,
+          "bytes": 134064,
+          "seconds": 3.04,
+          "endedBy": "turn-final",
+          "openMs": 97
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 86,
+          "lastMs": 704,
+          "bytes": 194040,
+          "seconds": 4.4,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 86,
+          "lastMs": 463,
+          "bytes": 151704,
+          "seconds": 3.44,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 98,
+          "lastMs": 574,
+          "bytes": 179928,
+          "seconds": 4.08,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 91,
+          "lastMs": 448,
+          "bytes": 151704,
+          "seconds": 3.44,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 89,
+          "lastMs": 516,
+          "bytes": 134064,
+          "seconds": 3.04,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 98,
+          "lastMs": 456,
+          "bytes": 116424,
+          "seconds": 2.64,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 116,
+          "lastMs": 540,
+          "bytes": 144648,
+          "seconds": 3.28,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 92,
+          "lastMs": 585,
+          "bytes": 165816,
+          "seconds": 3.76,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 86,
+          "lastMs": 587,
+          "bytes": 183456,
+          "seconds": 4.16,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 93,
+          "lastMs": 541,
+          "bytes": 162288,
+          "seconds": 3.68,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 81,
+          "lastMs": 486,
+          "bytes": 172872,
+          "seconds": 3.92,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 179,
+          "lastMs": 584,
+          "bytes": 130536,
+          "seconds": 2.96,
+          "endedBy": "turn-final",
+          "openMs": 73
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 238,
+          "lastMs": 709,
+          "bytes": 190512,
+          "seconds": 4.32,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 100,
+          "lastMs": 614,
+          "bytes": 155232,
+          "seconds": 3.52,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 238,
+          "lastMs": 680,
+          "bytes": 179928,
+          "seconds": 4.08,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 99,
+          "lastMs": 518,
+          "bytes": 155232,
+          "seconds": 3.52,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 95,
+          "lastMs": 563,
+          "bytes": 134064,
+          "seconds": 3.04,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 92,
+          "lastMs": 406,
+          "bytes": 112896,
+          "seconds": 2.56,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 132,
+          "lastMs": 467,
+          "bytes": 141120,
+          "seconds": 3.2,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 106,
+          "lastMs": 569,
+          "bytes": 165816,
+          "seconds": 3.76,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 84,
+          "lastMs": 546,
+          "bytes": 183456,
+          "seconds": 4.16,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 98,
+          "lastMs": 529,
+          "bytes": 162288,
+          "seconds": 3.68,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 89,
+          "lastMs": 582,
+          "bytes": 183456,
+          "seconds": 4.16,
+          "endedBy": "turn-final"
+        }
+      ]
+    },
+    "v2": {
+      "model": "eleven_multilingual_v2",
+      "transport": "http",
+      "voiceSettings": {
+        "stability": 0.4,
+        "similarity_boost": 0.8,
+        "style": 0.3,
+        "use_speaker_boost": true
+      },
+      "chars": 2442,
+      "summary": {
+        "n": 36,
+        "cold": {
+          "n": 14,
+          "p50": 384,
+          "samples": [
+            338,
+            384,
+            401,
+            511,
+            397,
+            517,
+            298,
+            384,
+            380,
+            403,
+            405,
+            336,
+            349,
+            315
+          ]
+        },
+        "warm": {
+          "n": 22,
+          "p50": 328,
+          "p95": 363
+        },
+        "warmLastP50": 353,
+        "warmSpreadP50": 39
+      },
+      "samples": [
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 338,
+          "lastMs": 371,
+          "bytes": 124928,
+          "seconds": 2.833,
+          "costHeader": "21"
+        },
+        {
+          "sentence": 1,
+          "cold": true,
+          "firstMs": 384,
+          "lastMs": 456,
+          "bytes": 178176,
+          "seconds": 4.04,
+          "costHeader": "34"
+        },
+        {
+          "sentence": 2,
+          "cold": true,
+          "firstMs": 401,
+          "lastMs": 449,
+          "bytes": 145408,
+          "seconds": 3.297,
+          "costHeader": "26"
+        },
+        {
+          "sentence": 3,
+          "cold": true,
+          "firstMs": 511,
+          "lastMs": 628,
+          "bytes": 184320,
+          "seconds": 4.18,
+          "costHeader": "31"
+        },
+        {
+          "sentence": 4,
+          "cold": true,
+          "firstMs": 397,
+          "lastMs": 453,
+          "bytes": 147456,
+          "seconds": 3.344,
+          "costHeader": "25"
+        },
+        {
+          "sentence": 5,
+          "cold": true,
+          "firstMs": 517,
+          "lastMs": 632,
+          "bytes": 151552,
+          "seconds": 3.437,
+          "costHeader": "28"
+        },
+        {
+          "sentence": 6,
+          "cold": true,
+          "firstMs": 298,
+          "lastMs": 328,
+          "bytes": 114688,
+          "seconds": 2.601,
+          "costHeader": "24"
+        },
+        {
+          "sentence": 7,
+          "cold": true,
+          "firstMs": 384,
+          "lastMs": 518,
+          "bytes": 133120,
+          "seconds": 3.019,
+          "costHeader": "25"
+        },
+        {
+          "sentence": 8,
+          "cold": true,
+          "firstMs": 380,
+          "lastMs": 497,
+          "bytes": 180224,
+          "seconds": 4.087,
+          "costHeader": "30"
+        },
+        {
+          "sentence": 9,
+          "cold": true,
+          "firstMs": 403,
+          "lastMs": 502,
+          "bytes": 210944,
+          "seconds": 4.783,
+          "costHeader": "28"
+        },
+        {
+          "sentence": 10,
+          "cold": true,
+          "firstMs": 405,
+          "lastMs": 451,
+          "bytes": 135168,
+          "seconds": 3.065,
+          "costHeader": "26"
+        },
+        {
+          "sentence": 11,
+          "cold": true,
+          "firstMs": 336,
+          "lastMs": 450,
+          "bytes": 155648,
+          "seconds": 3.529,
+          "costHeader": "29"
+        },
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 349,
+          "lastMs": 435,
+          "bytes": 112640,
+          "seconds": 2.554,
+          "costHeader": "21"
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 310,
+          "lastMs": 382,
+          "bytes": 180224,
+          "seconds": 4.087,
+          "costHeader": "34"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 290,
+          "lastMs": 336,
+          "bytes": 141312,
+          "seconds": 3.204,
+          "costHeader": "26"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 333,
+          "lastMs": 481,
+          "bytes": 202752,
+          "seconds": 4.598,
+          "costHeader": "31"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 292,
+          "lastMs": 318,
+          "bytes": 131072,
+          "seconds": 2.972,
+          "costHeader": "25"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 288,
+          "lastMs": 320,
+          "bytes": 137216,
+          "seconds": 3.111,
+          "costHeader": "28"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 383,
+          "lastMs": 402,
+          "bytes": 122880,
+          "seconds": 2.786,
+          "costHeader": "24"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 290,
+          "lastMs": 329,
+          "bytes": 131072,
+          "seconds": 2.972,
+          "costHeader": "25"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 335,
+          "lastMs": 391,
+          "bytes": 161792,
+          "seconds": 3.669,
+          "costHeader": "30"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 349,
+          "lastMs": 398,
+          "bytes": 190464,
+          "seconds": 4.319,
+          "costHeader": "28"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 299,
+          "lastMs": 320,
+          "bytes": 137216,
+          "seconds": 3.111,
+          "costHeader": "26"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 339,
+          "lastMs": 351,
+          "bytes": 163840,
+          "seconds": 3.715,
+          "costHeader": "29"
+        },
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 315,
+          "lastMs": 376,
+          "bytes": 120832,
+          "seconds": 2.74,
+          "costHeader": "21"
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 339,
+          "lastMs": 410,
+          "bytes": 186368,
+          "seconds": 4.226,
+          "costHeader": "34"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 328,
+          "lastMs": 349,
+          "bytes": 145408,
+          "seconds": 3.297,
+          "costHeader": "26"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 330,
+          "lastMs": 398,
+          "bytes": 174080,
+          "seconds": 3.947,
+          "costHeader": "31"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 293,
+          "lastMs": 350,
+          "bytes": 135168,
+          "seconds": 3.065,
+          "costHeader": "25"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 363,
+          "lastMs": 373,
+          "bytes": 149504,
+          "seconds": 3.39,
+          "costHeader": "28"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 298,
+          "lastMs": 325,
+          "bytes": 122880,
+          "seconds": 2.786,
+          "costHeader": "24"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 278,
+          "lastMs": 325,
+          "bytes": 131072,
+          "seconds": 2.972,
+          "costHeader": "25"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 360,
+          "lastMs": 397,
+          "bytes": 169984,
+          "seconds": 3.855,
+          "costHeader": "30"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 361,
+          "lastMs": 517,
+          "bytes": 208896,
+          "seconds": 4.737,
+          "costHeader": "28"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 340,
+          "lastMs": 353,
+          "bytes": 143360,
+          "seconds": 3.251,
+          "costHeader": "26"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 328,
+          "lastMs": 370,
+          "bytes": 167936,
+          "seconds": 3.808,
+          "costHeader": "29"
+        }
+      ]
+    },
+    "flash": {
+      "model": "eleven_flash_v2_5",
+      "transport": "http",
+      "voiceSettings": {
+        "stability": 0.4,
+        "similarity_boost": 0.8,
+        "style": 0.3,
+        "use_speaker_boost": true
+      },
+      "chars": 2442,
+      "summary": {
+        "n": 36,
+        "cold": {
+          "n": 14,
+          "p50": 193,
+          "samples": [
+            205,
+            179,
+            176,
+            193,
+            203,
+            198,
+            175,
+            218,
+            182,
+            205,
+            204,
+            176,
+            267,
+            192
+          ]
+        },
+        "warm": {
+          "n": 22,
+          "p50": 140,
+          "p95": 161
+        },
+        "warmLastP50": 216,
+        "warmSpreadP50": 76
+      },
+      "samples": [
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 205,
+          "lastMs": 260,
+          "bytes": 114688,
+          "seconds": 2.601,
+          "costHeader": "10"
+        },
+        {
+          "sentence": 1,
+          "cold": true,
+          "firstMs": 179,
+          "lastMs": 372,
+          "bytes": 186368,
+          "seconds": 4.226,
+          "costHeader": "17"
+        },
+        {
+          "sentence": 2,
+          "cold": true,
+          "firstMs": 176,
+          "lastMs": 237,
+          "bytes": 147456,
+          "seconds": 3.344,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 3,
+          "cold": true,
+          "firstMs": 193,
+          "lastMs": 283,
+          "bytes": 215040,
+          "seconds": 4.876,
+          "costHeader": "16"
+        },
+        {
+          "sentence": 4,
+          "cold": true,
+          "firstMs": 203,
+          "lastMs": 267,
+          "bytes": 124928,
+          "seconds": 2.833,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 5,
+          "cold": true,
+          "firstMs": 198,
+          "lastMs": 285,
+          "bytes": 137216,
+          "seconds": 3.111,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 6,
+          "cold": true,
+          "firstMs": 175,
+          "lastMs": 238,
+          "bytes": 122880,
+          "seconds": 2.786,
+          "costHeader": "12"
+        },
+        {
+          "sentence": 7,
+          "cold": true,
+          "firstMs": 218,
+          "lastMs": 267,
+          "bytes": 129024,
+          "seconds": 2.926,
+          "costHeader": "12"
+        },
+        {
+          "sentence": 8,
+          "cold": true,
+          "firstMs": 182,
+          "lastMs": 252,
+          "bytes": 145408,
+          "seconds": 3.297,
+          "costHeader": "15"
+        },
+        {
+          "sentence": 9,
+          "cold": true,
+          "firstMs": 205,
+          "lastMs": 286,
+          "bytes": 165888,
+          "seconds": 3.762,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 10,
+          "cold": true,
+          "firstMs": 204,
+          "lastMs": 265,
+          "bytes": 143360,
+          "seconds": 3.251,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 11,
+          "cold": true,
+          "firstMs": 176,
+          "lastMs": 323,
+          "bytes": 178176,
+          "seconds": 4.04,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 267,
+          "lastMs": 401,
+          "bytes": 110592,
+          "seconds": 2.508,
+          "costHeader": "10"
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 158,
+          "lastMs": 285,
+          "bytes": 180224,
+          "seconds": 4.087,
+          "costHeader": "17"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 141,
+          "lastMs": 228,
+          "bytes": 147456,
+          "seconds": 3.344,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 133,
+          "lastMs": 220,
+          "bytes": 190464,
+          "seconds": 4.319,
+          "costHeader": "16"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 139,
+          "lastMs": 195,
+          "bytes": 131072,
+          "seconds": 2.972,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 220,
+          "lastMs": 269,
+          "bytes": 131072,
+          "seconds": 2.972,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 115,
+          "lastMs": 172,
+          "bytes": 122880,
+          "seconds": 2.786,
+          "costHeader": "12"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 147,
+          "lastMs": 172,
+          "bytes": 129024,
+          "seconds": 2.926,
+          "costHeader": "12"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 135,
+          "lastMs": 198,
+          "bytes": 161792,
+          "seconds": 3.669,
+          "costHeader": "15"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 140,
+          "lastMs": 191,
+          "bytes": 180224,
+          "seconds": 4.087,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 140,
+          "lastMs": 182,
+          "bytes": 139264,
+          "seconds": 3.158,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 146,
+          "lastMs": 207,
+          "bytes": 169984,
+          "seconds": 3.855,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 192,
+          "lastMs": 284,
+          "bytes": 106496,
+          "seconds": 2.415,
+          "costHeader": "10"
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 154,
+          "lastMs": 287,
+          "bytes": 180224,
+          "seconds": 4.087,
+          "costHeader": "17"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 135,
+          "lastMs": 275,
+          "bytes": 145408,
+          "seconds": 3.297,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 161,
+          "lastMs": 263,
+          "bytes": 182272,
+          "seconds": 4.133,
+          "costHeader": "16"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 144,
+          "lastMs": 234,
+          "bytes": 129024,
+          "seconds": 2.926,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 129,
+          "lastMs": 216,
+          "bytes": 129024,
+          "seconds": 2.926,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 156,
+          "lastMs": 299,
+          "bytes": 126976,
+          "seconds": 2.879,
+          "costHeader": "12"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 137,
+          "lastMs": 213,
+          "bytes": 137216,
+          "seconds": 3.111,
+          "costHeader": "12"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 132,
+          "lastMs": 222,
+          "bytes": 151552,
+          "seconds": 3.437,
+          "costHeader": "15"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 145,
+          "lastMs": 262,
+          "bytes": 190464,
+          "seconds": 4.319,
+          "costHeader": "14"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 141,
+          "lastMs": 206,
+          "bytes": 122880,
+          "seconds": 2.786,
+          "costHeader": "13"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 138,
+          "lastMs": 207,
+          "bytes": 159744,
+          "seconds": 3.622,
+          "costHeader": "14"
+        }
+      ]
+    },
+    "v4turbo-speed": {
+      "model": "eleven_v4_turbo",
+      "transport": "dialogue",
+      "voiceSettings": {
+        "speed": 0.85
+      },
+      "chars": 814,
+      "summary": {
+        "n": 12,
+        "cold": {
+          "n": 1,
+          "p50": 144,
+          "samples": [
+            144
+          ]
+        },
+        "warm": {
+          "n": 11,
+          "p50": 101,
+          "p95": 166
+        },
+        "warmLastP50": 570,
+        "warmSpreadP50": 477,
+        "openMs": {
+          "p50": 25,
+          "samples": [
+            25
+          ]
+        }
+      },
+      "samples": [
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 144,
+          "lastMs": 472,
+          "bytes": 130536,
+          "seconds": 2.96,
+          "endedBy": "turn-final",
+          "openMs": 25
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 94,
+          "lastMs": 598,
+          "bytes": 197568,
+          "seconds": 4.48,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 88,
+          "lastMs": 504,
+          "bytes": 151704,
+          "seconds": 3.44,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 133,
+          "lastMs": 650,
+          "bytes": 179928,
+          "seconds": 4.08,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 101,
+          "lastMs": 483,
+          "bytes": 158760,
+          "seconds": 3.6,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 88,
+          "lastMs": 483,
+          "bytes": 134064,
+          "seconds": 3.04,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 159,
+          "lastMs": 509,
+          "bytes": 123480,
+          "seconds": 2.8,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 84,
+          "lastMs": 570,
+          "bytes": 141120,
+          "seconds": 3.2,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 124,
+          "lastMs": 640,
+          "bytes": 162288,
+          "seconds": 3.68,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 101,
+          "lastMs": 578,
+          "bytes": 183456,
+          "seconds": 4.16,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 166,
+          "lastMs": 555,
+          "bytes": 165816,
+          "seconds": 3.76,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 122,
+          "lastMs": 668,
+          "bytes": 179928,
+          "seconds": 4.08,
+          "endedBy": "turn-final"
+        }
+      ]
+    },
+    "v4turbo-today-speed": {
+      "model": "eleven_v4_turbo",
+      "transport": "dialogue",
+      "voiceSettings": {
+        "stability": 0.4,
+        "similarity_boost": 0.8,
+        "style": 0.3,
+        "use_speaker_boost": true,
+        "speed": 0.85
+      },
+      "chars": 814,
+      "summary": {
+        "n": 12,
+        "cold": {
+          "n": 1,
+          "p50": 120,
+          "samples": [
+            120
+          ]
+        },
+        "warm": {
+          "n": 11,
+          "p50": 80,
+          "p95": 90
+        },
+        "warmLastP50": 490,
+        "warmSpreadP50": 414,
+        "openMs": {
+          "p50": 26,
+          "samples": [
+            26
+          ]
+        }
+      },
+      "samples": [
+        {
+          "sentence": 0,
+          "cold": true,
+          "firstMs": 120,
+          "lastMs": 523,
+          "bytes": 130536,
+          "seconds": 2.96,
+          "endedBy": "turn-final",
+          "openMs": 26
+        },
+        {
+          "sentence": 1,
+          "cold": false,
+          "firstMs": 90,
+          "lastMs": 613,
+          "bytes": 194040,
+          "seconds": 4.4,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 2,
+          "cold": false,
+          "firstMs": 77,
+          "lastMs": 485,
+          "bytes": 155232,
+          "seconds": 3.52,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 3,
+          "cold": false,
+          "firstMs": 78,
+          "lastMs": 629,
+          "bytes": 183456,
+          "seconds": 4.16,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 4,
+          "cold": false,
+          "firstMs": 80,
+          "lastMs": 628,
+          "bytes": 162288,
+          "seconds": 3.68,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 5,
+          "cold": false,
+          "firstMs": 81,
+          "lastMs": 450,
+          "bytes": 134064,
+          "seconds": 3.04,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 6,
+          "cold": false,
+          "firstMs": 88,
+          "lastMs": 397,
+          "bytes": 112896,
+          "seconds": 2.56,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 7,
+          "cold": false,
+          "firstMs": 89,
+          "lastMs": 490,
+          "bytes": 137592,
+          "seconds": 3.12,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 8,
+          "cold": false,
+          "firstMs": 78,
+          "lastMs": 515,
+          "bytes": 162288,
+          "seconds": 3.68,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 9,
+          "cold": false,
+          "firstMs": 74,
+          "lastMs": 488,
+          "bytes": 186984,
+          "seconds": 4.24,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 10,
+          "cold": false,
+          "firstMs": 78,
+          "lastMs": 631,
+          "bytes": 158760,
+          "seconds": 3.6,
+          "endedBy": "turn-final"
+        },
+        {
+          "sentence": 11,
+          "cold": false,
+          "firstMs": 81,
+          "lastMs": 488,
+          "bytes": 172872,
+          "seconds": 3.92,
+          "endedBy": "turn-final"
+        }
+      ]
+    }
+  },
+  "speed": {
+    "v4turbo-speed": {
+      "sent": {
+        "speed": 0.85
+      },
+      "verdict": "ignored",
+      "medianRatio": 1,
+      "ratios": [
+        0.974,
+        1.018,
+        1,
+        1,
+        1.047,
+        1,
+        1.061,
+        0.976,
+        0.979,
+        1,
+        1.022,
+        1.041
+      ]
+    },
+    "v4turbo-today-speed": {
+      "sent": {
+        "stability": 0.4,
+        "similarity_boost": 0.8,
+        "style": 0.3,
+        "use_speaker_boost": true,
+        "speed": 0.85
+      },
+      "verdict": "ignored",
+      "medianRatio": 1,
+      "ratios": [
+        0.974,
+        1,
+        1.023,
+        1.02,
+        1.07,
+        1,
+        0.97,
+        0.951,
+        0.979,
+        1.019,
+        0.978,
+        1
+      ]
+    }
+  },
+  "usageReads": [
+    {
+      "window": {
+        "start": 1794146620903,
+        "end": 1794146852261
+      },
+      "usage": {
+        "eleven_flash_v2_5": [
+          489
+        ],
+        "eleven_multilingual_v2": [
+          981
+        ],
+        "eleven_v4_turbo": [
+          810
+        ]
+      }
+    }
+  ],
+  "usageByModel": {
+    "eleven_flash_v2_5": 489,
+    "eleven_multilingual_v2": 981,
+    "eleven_v4_turbo": 810
+  },
+  "verifiedFrench": {
+    "alexandre": {
+      "eleven_multilingual_v2": true,
+      "eleven_flash_v2_5": true,
+      "eleven_v4_turbo": true
+    },
+    "emilie": {
+      "eleven_multilingual_v2": true,
+      "eleven_flash_v2_5": true,
+      "eleven_v4_turbo": true
+    },
+    "guillaume": {
+      "eleven_multilingual_v2": true,
+      "eleven_flash_v2_5": true,
+      "eleven_v4_turbo": true
+    },
+    "marie": {
+      "eleven_multilingual_v2": true,
+      "eleven_flash_v2_5": true,
+      "eleven_v4_turbo": true
+    },
+    "anatole": {
+      "eleven_multilingual_v2": true,
+      "eleven_flash_v2_5": true,
+      "eleven_v4_turbo": true
+    },
+    "sarah": {
+      "eleven_multilingual_v2": true,
+      "eleven_flash_v2_5": true,
+      "eleven_v4_turbo": true
+    }
+  }
+}
