@@ -154,6 +154,10 @@ describe('the conversation closes with something useful', () => {
     assert.match(read('./conversationPacks/SaveTextChoice.tsx'), /if \(user\?\.id !== ownerId \|\| adapter\.kind !== 'supabase' \|\| scope !== scopeGeneration\(\)\) return null;/);
   });
 
+  test('unavailable conversation text is a notice, never a blank save offer', () => {
+    assert.match(read('./conversationPacks/SaveTextChoice.tsx'), /if \(!conversation\?\.lines\.length\) return <Text style=\{\[type\.small, \{ color: t\.muted \}\]\}>The complete conversation text is not available to save\. Your curated practice stays available\.<\/Text>;/);
+  });
+
   test('the recap draws no day or week line, so they cannot contradict each other (F937, UI-020)', () => {
     assert.doesNotMatch(screen, /StreakRow|streakLine\(|weekBars\(|loadActiveDays|recapWeekFrom/);
   });

@@ -9705,6 +9705,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
 - superseded: 2026-11-08, UI-020: the recap is one scroll with no pages; saving stays independent of what is open, and the retry still saves the exact kept phrase.
 - verified-by: `saving is independent of the layout and retries the exact kept phrase`
+- verified-by: `practice is the recommended next action and finishing stays available`
 
 ### F701 — Privacy and preference controls need precise scope and recoverable reads
 - severity: P1
@@ -9776,6 +9777,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
 - superseded: 2026-11-08, UI-020: there is no next page; the one scroll draws SaveTextChoice only with conversation text, and SaveTextChoice offers saving only for the owner's own text.
 - verified-by: `saving is independent of the layout and retries the exact kept phrase`
+- verified-by: `unavailable conversation text is a notice, never a blank save offer`
 
 ### F708 — A localized store price needs a verified billing period before claiming per month
 - severity: P1
