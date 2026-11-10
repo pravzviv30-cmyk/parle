@@ -260,6 +260,10 @@ pack carries `learnerReplies`; the token server never lists, opens by id or
 hands back to a guest a pack with `learnerReplies: 0` (core
 `isListedConversation`; absent means an older pack and is shown), and the
 practice worker drills nothing for it. Account export still contains it.
+The checkpoint's SQL key allow-list (`luvani_private.tutor_pack_v1`) accepts
+`learnerReplies` as a whole number from 0 only from migration
+`20261110120000`; without it every signed-in conversation ends at its first
+checkpoint (F970). A new pack key needs the same migration.
 
 Each turn context also lists the tutor's own questions so far this session,
 the last six as said (`askedQuestions` in
