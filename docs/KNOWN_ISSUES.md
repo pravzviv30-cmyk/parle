@@ -12224,6 +12224,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
   pins the two labels agree.
 - verified-by: `Today names the review action once`
+- note: 2026-11-10: the founder put this into the systemic pass (queue 5, `handoffs/2026-11-10-systemic-pass-brief.md`), with the Today tutor-unreachable headline, the dead `greetingSubline`/`GREETING_SUBLINES` and a preview key for `LiveErrorView`.
 
 ### F955 — A failed tutor start still uses up its daily seconds
 - severity: P3
