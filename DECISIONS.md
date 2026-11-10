@@ -2265,3 +2265,93 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Open: room measurement of that latency and calibration on real learners (F695); whether
   to let Flux own the turn. Numbers and the live replay are in `docs/LIVE_VOICE.md`
   "English answers and the recogniser". F964.
+
+## UI-021 — Onboarding: the road to first French, in "Luvani, cozy bold"
+
+- Date: 2026-11-10 (LLM council rounds 2026-11-04 to 2026-11-08; founder answers
+  2026-11-10)
+- Status: accepted for design (Phase 1). Nothing is built.
+  - The build (Phase 2) waits on: the recap (UI-020, `claude/recap`) landing,
+    the systemic pass landing, the founder's go, and the 3-beginner baseline,
+    which is still open.
+  - Numbered UI-021 because UI-020 belongs to `claude/recap`, which lands first.
+  - Brief: `handoffs/2026-11-04-onboarding-council-brief.md` (outside the repo).
+  - Board: https://claude.ai/artifact/PwjxQYEPToJ1Bw31A4hpjq.
+- Decision:
+  - **Structure:**
+    - Two questions before the scene: goal and level.
+    - Interests, confidence, focus and daily time leave the start. Each was
+      unread or can be defaulted honestly, and all stay editable in Adjust my
+      plan.
+    - The launch's Get Started tap goes.
+    - Speak or type moves to the Start button, and the microphone is asked only
+      on that tap.
+    - One Well done page.
+    - The tutor keeps its own page.
+    - First spoken French on screen 7 (it was 12).
+  - **Landing:**
+    - The account welcome page stays (founder decision 18).
+    - Onboarding then lands on Today. One arrival sheet replaces the violet
+      streak pop-up: Toast's face, "Day one, done", the saved French line,
+      Remind me (permission only on that tap), an optional daily time, and
+      Continue.
+    - No plans wall during the arrival session.
+    - Today leads with the next scene.
+  - **Look ("Luvani, cozy bold", the board's v2, picked by the founder on
+    2026-11-10):**
+    - Cream paper for the work screens. The soft sky is a rounded window at the
+      top of each setup page; it is the one gradient family in onboarding, an
+      exception to DESIGN.md's "no gradients", because it is Today's sky
+      arriving early.
+    - Full-bleed deep morning sky for the bold moments: Welcome (the Hum sun
+      rising behind Cloud and Toast), Well done, and the account welcome. On
+      those colour grounds the primary is the sun pill with ink words, as
+      DESIGN.md's "On a colour ground" sets.
+    - Chunky raised tiles in Today's stat-tile language for answers, choices and
+      tutors. The lip is the only elevation; the one shadow is under the arrival
+      sheet.
+    - The plan is a tilted café postcard with a "Today" stamp.
+    - The refined Outfit ramp, with no Black or ExtraBold in onboarding.
+    - Outfit only, with no serif for French; the 2026-11-02 look decision
+      stands.
+    - One accent, brand blue.
+    - The radius rule: pills for actions, cards 20, tiles 18, inputs 14.
+    - Continuous (squircle) corners.
+    - On paper, the ink primary pill with a subtle 3 pt lip that sinks on
+      press-in.
+    - The display line on the colour moments stays Bold (the founder kept it at
+      Bold).
+  - **Motion:**
+    - One press feel.
+    - Page moves that show their direction (`PageArrival`).
+    - One celebration peak, on Well done.
+  - **Mascots:**
+    - Three counted moments: Cloud and Toast on Welcome, Cloud's cheer on Well
+      done, Toast on the arrival sheet. Cloud as the mic in the café scene is
+      not counted.
+    - The mascot lane is asked for Cloud's wave pose for Welcome; until it
+      lands, Cloud is idle with a blink.
+  - **Extras:**
+    - Welcome greets by the hour (Bonjour or Bonsoir).
+    - One line from the founder on Well done, in the founder's own words (not
+      yet given).
+  - **Queue:** onboarding stays at 6, after the recap and the systemic pass.
+- Reason:
+  - Twelve screens and six required questions came before any French, and two of
+    the answers were never read.
+  - The landing spent the first win.
+  - Onboarding was still on the C2 parts: five band colours and four button
+    looks.
+  - The council worked from Mobbin's study of 1,460 onboarding flows and about
+    45 Appllama onboarding screens (Duolingo, Headspace, Balance, Finch).
+- Consequence:
+  - Build steps S1 to S16 are in the brief. S14 now keeps `AccountWelcome` and
+    turns `HomeArrival`'s streak modal into the arrival sheet.
+  - Three landing defects, found by reading the code, are to be reproduced
+    test-first:
+    - Today's starter-card hero for a guest scene;
+    - the launch wall on the arrival day;
+    - the hidden phrasebook toast.
+  - The radius rule and continuous corners differ from `theme.ts` today (card
+    24, tile 20, field 16). The systemic pass or this build decides where the
+    tokens change.

@@ -102,6 +102,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-11-04 | Quiet moments (4A): centre stage on the two drawn screens (the phrasebook with nothing kept, Speak out of the free conversation), and the two nothing-to-review cards take the posed Cloud cheer so its arms show in dark mode. Other empty states keep their cards. | Founder, answer inside 4A |
 | 2026-11-04 | On Speak the quiet moment replaces the out-of-time card in place, See the plans in flow; the scene hero and the rest of Speak wait for the Speak tab redesign. | Founder, answer inside 4A |
 | 2026-11-06 | Profile and Settings: a mix, Direction A's Settings (one page, five groups, Account and Your plan as top rows, legal in one About Luvani page) with Direction B's Profile (identity and the stage word on a blue band). The plan leaves Profile and shows in Settings only; the name, tutor voice and display sheets become the phone's own sheet; Friends stays in Profile's More group. | Founder, [Profile and Settings board](https://claude.ai/artifact/XsB1g1G2V8t4j244S5P8zS) |
+| 2026-11-10 | Onboarding is "Luvani, cozy bold": cream paper for the work with the soft sky as a rounded window; full-bleed deep morning sky with the sun pill for Welcome, Well done and the account welcome; chunky raised tiles like Today's stat tiles; the plan as a tilted café postcard. Within it: the refined Outfit ramp (no Black or ExtraBold; the display line stays Bold), Outfit only (no French serif), the radius rule (pills, cards 20, tiles 18, inputs 14), continuous corners and a subtle lip on the ink pill. | Founder, [onboarding board](https://claude.ai/artifact/PwjxQYEPToJ1Bw31A4hpjq), v2 picked over v1 (UI-021) |
+| 2026-11-10 | Onboarding keeps the account welcome page; Today's arrival sheet replaces only the violet streak pop-up; no plans wall during the arrival session; the tutor keeps its own page; Welcome greets by the hour; a line from the founder on Well done. | Founder, onboarding board (UI-021) |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -119,7 +121,7 @@ Working principles drawn from these (to confirm on the first screens):
 | 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
 | 4 | Conversation recap | Next, one design session then one build session |
 | 5 | Systemic pass: one card family, eyebrow labels folded into headings, one quiet-action style and radius tokens. Folds in most of the 11 open push-check proposals and re-counts, before and after (apps/mobile/src, tests excluded): literal borderRadius values (244 on 0483a80a), eyebrows (75), Card/Tile/Hero exports (64), Button/Pill components (21), Row components (31), files on ScrollScreen (65) | Queued |
-| 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued |
+| 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued; design decided (UI-021, [board](https://claude.ai/artifact/PwjxQYEPToJ1Bw31A4hpjq)); the build waits on the recap, the systemic pass, the founder's go and the 3-beginner baseline |
 | 7 | Speak tab (choose a scene) | Queued |
 | 8 | Practice tab hub | Queued |
 | 9 | Journey (My French) | Queued |
