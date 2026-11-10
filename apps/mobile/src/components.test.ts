@@ -827,6 +827,14 @@ describe('the B parts keep their promises — F597', () => {
 
   test("sheets animate over the parent, retain closing content and expose accessible dismissal", () => { const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet')); assert.match(sheet, /<Modal visible=\{present\}/); assert.match(sheet, /snapshot\.current\.children/); assert.match(sheet, /accessibilityViewIsModal/); assert.match(sheet, /onAccessibilityEscape=\{onClose\}/); assert.match(sheet, /onShow=\{focusHeading\}/); assert.match(sheet, /Math\.max\(insets\.bottom, space\(6\)\)/); assert.match(sheet, /keyboardShouldPersistTaps="handled"/); assert.match(sheet, /outputRange: \[0, 0\.4\]/); assert.match(sheet, /onPanResponderRelease/); assert.match(sheet, /close\.current\(\) !== false/); });
 
+  test('a sheet draws a hairline under its title row only once its content has scrolled, and forgets it on close', () => {
+    const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet'));
+    assert.match(sheet, /const \[scrolled, setScrolled\] = useState\(false\);/, 'the sheet keeps no scrolled state');
+    assert.match(sheet, /setScrolled\(event\.nativeEvent\.contentOffset\.y > 0\)/, 'the scrolled state is not driven from the scroll offset');
+    assert.match(sheet, /setCue\(false\);\s*setScrolled\(false\);/, 'a closed sheet keeps its title hairline');
+    assert.match(sheet, /scrolled \? \{ borderBottomWidth: HAIRLINE, borderBottomColor: t\.line \} : null/, 'the title row has no hairline in the line token once scrolled');
+  });
+
   test('a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line', () => {
     const skeleton = part('Skeleton');
     assert.match(skeleton, /accessible accessibilityLabel="Loading"/, 'the skeleton does not say Loading once');

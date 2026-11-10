@@ -684,6 +684,28 @@ describe('the two documents are drawn from their modules and nothing clips them 
       assert.ok(!source.includes('inkFaint'), `${name} sets a line of a legal document in the faint ink`);
     }
 
+    // Privacy board, direction C (2026-11-10): full-ink bodies, a collapsing
+    // title, and section links under the intro.
+    assert.match(POLICY, /key=\{`\$\{section\.heading\}:\$\{index\}`\}\s*style=\{\[type\.body, \{ color: t\.text, marginTop: space\(3\) \}\]\}/, 'the policy paragraphs are not in full ink');
+    assert.match(POLICY, /\{POLICY_INTRO\}/);
+    assert.match(POLICY, /color: t\.muted, marginTop: space\(3\) \}\]\}>\{POLICY_INTRO\}/, 'the intro is no longer muted');
+    assert.match(POLICY, /<ScrollScreen[^>]*onScroll=\{/, 'the policy screen does not watch its scroll');
+    assert.match(POLICY, /scrollRef=\{scroller\}/, 'the policy screen cannot move its own scroll');
+    assert.match(POLICY, /divider=\{offset > 0\}/, 'the header gets no hairline once scrolled');
+    assert.match(POLICY, /offset >= titleBottom/, 'the small title does not wait for the display title to leave');
+    assert.match(POLICY, /accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style=\{\[type\.heading, \{ color: t\.text \}\]\}>\{POLICY_TITLE\}/, 'the small title is not a hidden heading-size POLICY_TITLE');
+    assert.match(POLICY, /accessibilityRole="link"[\s\S]{0,200}minHeight: HIT/, 'a section link is not a 44pt link');
+    assert.match(POLICY, /style=\{\[type\.body, \{ color: t\.link \}\]\}>\{section\.heading\}/, 'a section link is not body text in the link colour');
+    assert.match(POLICY, /scrollTo\(\{ y: [^}]*animated: !reduced \}\)/, 'the jump ignores reduced motion');
+    assert.match(POLICY, /AccessibilityInfo\.setAccessibilityFocus\(/, 'the jump does not move screen-reader focus');
+    // Inside a sheet the sheet's ScrollView owns the scroll, so a jump there is a dead tap.
+    assert.match(POLICY, /links = true/, 'the policy screen cannot turn its section links off');
+    assert.match(POLICY, /\{links \? \(\s*<View style=\{\{ marginTop: space\(3\) \}\}>/, 'the section links are drawn even when turned off');
+    for (const file of ['../auth/SignUpScreen.tsx', '../onboarding/OnboardingFlow.tsx']) {
+      assert.match(stripComments(read(file)), /<PolicyScreen links=\{false\} onBack=/, `${file} opens the policy in a sheet with section links that cannot scroll`);
+    }
+    assert.match(POLICY, /\.focus\?\.\(\{ preventScroll: true \}\)/, 'the web focus scrolls the page itself and the jump lands mid-screen');
+
     // And Settings is the only door to them, drawn in place rather than pushed,
     // so the whole document is one tap from the row that names it.
     for (const sheet of ["setSheet('policy')", "setSheet('terms')"]) {

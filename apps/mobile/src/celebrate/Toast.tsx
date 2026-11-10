@@ -28,6 +28,7 @@ import { decorative, paper, radius, space, type } from '../theme.ts';
 import { fireBeat, fireStill } from './effects.ts';
 import type { ToastItem } from './queue.ts';
 import { COLUMN_MAX } from './Takeover.tsx';
+import { b } from '../palette.ts';
 import { TIMELINES, beatAt, playsStill } from './timelines.ts';
 import { useLatch, useTimeline } from './useTimeline.ts';
 
@@ -94,5 +95,7 @@ const st = StyleSheet.create({
     paddingHorizontal: space(5),
     borderRadius: radius.pill,
     backgroundColor: paper.ink,
+    borderWidth: 1.5,
+    borderColor: b.dark.line,
   },
 });

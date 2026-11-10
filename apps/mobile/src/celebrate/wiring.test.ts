@@ -147,6 +147,10 @@ describe('the celebration host in the app — F743', () => {
     assert.doesNotMatch(toast, /tick-circle|<Icon\b/, 'the saved toast still draws the tick');
   });
 
+  test('the toast pill has a 1.5pt edge in the dark line colour in every mode', () => {
+    assert.match(src('celebrate/Toast.tsx'), /backgroundColor: paper\.ink,\s*borderWidth: 1\.5,\s*borderColor: b\.dark\.line,/);
+  });
+
   test('sound and haptics reach the device only through the one effects module', () => {
     for (const file of celebrateFiles()) {
       if (file.endsWith('effects.ts')) continue;
