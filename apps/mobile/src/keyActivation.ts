@@ -70,12 +70,15 @@ type Ring = { width: number; offset: number; colour: string; halo: string };
  * outranks react-native-web's atomic classes; it also replaces a control's own
  * shadow while it holds keyboard focus, and only then.
  * `:focus:not(:focus-visible)` keeps a mouse click ringless in every browser.
+ * A heading focused by script (tabindex -1) shows no outline; `:focus`, not
+ * `:focus-visible`, since browsers may treat script focus as visible.
  */
 export function focusRuleCss(ring: Ring): string {
   const not = FOCUS_EXCLUDED.map((tag) => `:not(${tag})`).join('');
   const on = (state: string) => FOCUS_TARGETS.map((target) => `${target}${not}${state}`).join(', ');
   return `${on(':focus-visible')} { outline: ${ring.width}px solid ${ring.colour} !important; outline-offset: ${ring.offset}px !important; box-shadow: 0 0 0 ${ring.offset}px ${ring.halo} !important; }\n`
-    + `${on(':focus:not(:focus-visible)')} { outline: none !important; }`;
+    + `${on(':focus:not(:focus-visible)')} { outline: none !important; }\n`
+    + '[tabindex="-1"]:focus { outline: none !important; }';
 }
 
 /** Adds the rule to the page once. A no-op where there is no document. */
