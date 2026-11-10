@@ -2265,3 +2265,32 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Open: room measurement of that latency and calibration on real learners (F695); whether
   to let Flux own the turn. Numbers and the live replay are in `docs/LIVE_VOICE.md`
   "English answers and the recogniser". F964.
+
+## UI-021 — Privacy: four short paragraphs, the title in the back row once scrolled, full ink, section links
+
+- Date: 2026-11-10
+- Status: accepted (founder picked direction C on the Privacy board and approved every
+  changed sentence as written). Board https://claude.ai/artifact/BNXptj7mu6f7tZG8RZTrkQ.
+  Numbered UI-021 because UI-020 belongs to `claude/recap`, which lands first.
+- Context: ten privacy items. Five were already yes (2026-11-06) with the toast edge;
+  four ideas of 2026-11-07 were queued for a board because two competed with them.
+  The board showed they compete less than they seemed: one row per service would have
+  listed the first paragraph while the split works on the second, and the first-run
+  sheet needs its hairline whichever scroll edge the Privacy screen takes.
+- Decision:
+  - **"Who else sees it"**: its long second paragraph becomes four: the live turn,
+    remembered details and goals, the earlier mistake beside the curated correction,
+    and what pause covers, which says the difference between the two once. Three
+    sentences are reworded; the meaning stays as it was, including the adaptive
+    interruption sentences (VOICE-022). Not one row per service.
+  - **The Privacy screen once scrolled**: the small title moves into the back-disc row
+    with a hairline in the line token. The first-run sheet keeps its title and gains
+    the hairline under it once scrolled (the shared `Sheet`).
+  - **Body text in full ink**; the intro stays muted.
+  - **Section links** under the intro, on the screen and on the web page.
+  - **The public pages in Outfit**, served from the same site: body 17/25, title
+    ExtraBold 34/38, headings 20/25.
+  - **The Profile pause line** is reworded to name the earlier mistake it keeps out,
+    rather than gaining a second line.
+  - **The saved-phrase toast** gets a 1.5pt edge in `b.dark.line` (#514967) in every
+    mode, because it cannot read the mode where it is drawn.
