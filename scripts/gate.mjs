@@ -43,7 +43,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, lstatSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
@@ -252,7 +252,9 @@ function testFiles(dir, out = []) {
   for (const entry of readdirSync(dir)) {
     if (entry === 'node_modules' || entry === '.git' || entry === 'graphify-out' || entry === '.loop') continue;
     const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) testFiles(full, out);
+    // lstat, not stat: .claude/worktrees links to the other checkouts, which are not this
+    // tree's tests and whose device builds delete files mid-walk (the gate crashed on one).
+    if (lstatSync(full).isDirectory()) testFiles(full, out);
     else if (entry.endsWith('.test.ts')) out.push(full);
   }
   return out;

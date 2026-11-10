@@ -4,7 +4,9 @@ import path from 'node:path';
 import { describe, test } from 'node:test';
 import { isDeepStrictEqual } from 'node:util';
 
-import { PLANS, TASTE_REFILL_HOURS, canStartSession, lapsedEntitlement } from '@luvani/core';
+import { PGlite } from '@electric-sql/pglite';
+
+import { PLANS, TASTE_REFILL_HOURS, buildConversationPack, canStartSession, lapsedEntitlement } from '@luvani/core';
 
 import { SUPABASE_PROOFS } from './verify/supabaseLive.ts';
 
@@ -1429,5 +1431,33 @@ describe('database security contract — SQL cannot drift quietly', () => {
     for (const table of ['learner_state', 'product_events', 'entitlements']) {
       assert.match(initialMigration, new RegExp(`create table if not exists public\\.${table}`, 'i'));
     }
+  });
+});
+
+// F970: a key the app's builder adds must reach the SQL baseline allow-list in the same change.
+describe('tutor baseline contract (F970)', () => {
+  // Covers only the optional keys this input supplies: a new optional pack key must be
+  // added to this input and to the migration allow-list together.
+  test('every key of a pack the app builds passes the replayed tutor baseline validator', async () => {
+    const user = '10000000-0000-4000-8000-000000000001';
+    const session = '10000000-0000-4000-8000-000000000002';
+    const pack = buildConversationPack({
+      id: session, sessionId: session, learnerId: user, createdAt: '2026-11-10T00:00:00.000Z',
+      title: { fr: 'Au café', en: 'At the café' }, summary: 'A grounded learning baseline',
+      keyPhrases: [{ fr: 'Bonjour', frWritten: null, en: 'Hello' }],
+      revisedFromPackId: '10000000-0000-4000-8000-000000000003', learnerReplies: 2,
+    });
+    assert.equal(pack.learnerReplies, 2);
+    assert.ok(pack.revisedFromPackId);
+    const db = new PGlite();
+    try {
+      await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+        create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+        create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+        create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+        grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
+      for (const name of migrationFiles) await db.exec(sqlOf(name));
+      await db.query('select luvani_private.tutor_pack_v1($1,$2,$3)', [JSON.stringify(pack), user, session]);
+    } finally { await db.close(); }
   });
 });
