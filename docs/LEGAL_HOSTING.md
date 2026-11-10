@@ -58,13 +58,20 @@ That writes three files into `apps/mobile/src/legal/dist/`:
 - `privacy.html` — the whole privacy notice, the same sections the app draws.
 - `support.html` — the support page.
 
+Beside them is a `fonts/` folder: `outfit-regular.woff2`, `outfit-extrabold.woff2` and `OFL.txt`
+(the SIL Open Font License, which has to be published with the font files). The pages load the
+two fonts from `/fonts/...` on the same site. Upload the `fonts/` folder with the HTML files. The
+two woff2 files were made once with fontTools from the TTFs in `apps/mobile/assets/fonts/`
+(flavor woff2), with no repo dependency.
+
 They are committed to the repo, and a test regenerates them and fails if what is
 committed no longer matches `apps/mobile/src/legal/policy.ts`. So the page you upload
 and the screen a learner reads cannot say different things, which is the failure that
 gets a resubmission refused.
 
-Both pages are plain HTML: no script, no webfont, no image, nothing loaded from
-anywhere else. That is enforced by a test too.
+The pages are plain HTML: no script, no image, nothing loaded from anywhere else but the
+two same-origin Outfit files. If those fail to load the page reads in the system font. That is
+enforced by a test too.
 
 **`support.html` is not ready yet.** Until a support address is set in
 `apps/mobile/src/legal/company.ts`, the page says so on its face rather than
@@ -91,6 +98,11 @@ TypeSafe, RevenueCat, Supabase, Upstash, Railway). `privacy.html` was regenerate
 committed, but the hosted copy still carries the unnamed wording until the `dist` folder is
 re-uploaded through Part C and re-checked through Part D.
 
+**Re-upload owed (2026-11-10, privacy page redesign):** the pages now use Outfit and the privacy
+page has a list of section links. The live site needs the whole `dist` folder, `fonts/` included,
+uploaded again through Part C. This is the founder's manual step; until it is done the hosted
+pages show the system font.
+
 ---
 
 ## Part C: Cloudflare Pages, by direct upload
@@ -105,7 +117,7 @@ re-uploaded through Part C and re-checked through Part D.
 4. Name the project something plain, `luvani-legal` for instance. The name becomes
    part of the address.
 5. Drag the whole `apps/mobile/src/legal/dist` folder onto the drop area, or select
-   every file inside it. Then **Deploy site**.
+   every file inside it, the `fonts` folder too. Then **Deploy site**.
 6. You get an address like `https://luvani-legal.pages.dev`. The root answers with the
    signpost, and the two pages are at `/privacy` and `/support` under it.
 

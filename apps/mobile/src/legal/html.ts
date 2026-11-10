@@ -11,11 +11,13 @@
  *
  * ## Deliberately plain
  *
- * No script, no external asset, no webfont, no analytics. Partly because a
- * privacy notice that phones a third party while it is being read is a joke at
- * the reader's expense, and partly because the page has to answer on a first
- * visit from a reviewer with an unknown network. Everything it needs is in the
- * one file: system fonts, one inline stylesheet, and text.
+ * No script, no third-party asset, no analytics. Partly because a privacy
+ * notice that phones a third party while it is being read is a joke at the
+ * reader's expense, and partly because the page has to answer on a first visit
+ * from a reviewer with an unknown network. The one thing it fetches is one
+ * same-origin font, Outfit, from `dist/fonts`. Until it arrives (or if it
+ * never does) the page reads in the system font. The rest is one inline
+ * stylesheet and text.
  *
  * The colours come from `palette.ts` rather than being typed here, so the page
  * and the app are the same document in two places rather than two designs.
@@ -79,6 +81,11 @@ function escape(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/** A heading as an anchor: lower case, letters and digits, runs of anything else become one hyphen. */
+function slug(heading: string): string {
+  return heading.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 /**
  * One stylesheet, inline, sized for a phone held in one hand.
  *
@@ -88,15 +95,21 @@ function escape(text: string): string {
  */
 function style(): string {
   return [
+    `@font-face { font-family: Outfit; font-weight: 400; font-display: swap;`,
+    `  src: url("fonts/outfit-regular.woff2") format("woff2"); }`,
+    `@font-face { font-family: Outfit; font-weight: 800; font-display: swap;`,
+    `  src: url("fonts/outfit-extrabold.woff2") format("woff2"); }`,
     `:root { color-scheme: light dark; }`,
     `body { margin: 0; background: ${paper.ground}; color: ${paper.ink};`,
-    `  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;`,
-    `  font-size: 17px; line-height: 1.6; }`,
+    `  font-family: Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;`,
+    `  font-size: 17px; line-height: 25px; }`,
     `main { max-width: 38rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }`,
-    `h1 { font-size: 1.8rem; line-height: 1.2; margin: 0 0 0.5rem; }`,
-    `h2 { font-size: 1.15rem; line-height: 1.3; margin: 2.5rem 0 0.5rem; }`,
+    `h1 { font-weight: 800; font-size: 34px; line-height: 38px; margin: 0 0 0.5rem; }`,
+    `h2 { font-weight: 800; font-size: 20px; line-height: 25px; margin: 2.5rem 0 0.5rem; }`,
     `p { margin: 0 0 1rem; }`,
-    `.lede { color: ${paper.inkSoft}; font-size: 1.05rem; }`,
+    `.lede { color: ${paper.inkSoft}; font-size: 17px; line-height: 25px; }`,
+    `.sections { list-style: none; margin: 0 0 1rem; padding: 0; }`,
+    `.sections a { display: flex; align-items: center; min-height: 44px; }`,
     `footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid ${paper.groundDeep};`,
     `  color: ${paper.inkSoft}; font-size: 0.95rem; }`,
     `a { color: inherit; }`,
@@ -108,7 +121,7 @@ function style(): string {
   ].join('\n');
 }
 
-/** The shell every page shares: no script, no asset, one stylesheet. */
+/** The shell every page shares: no script, no third-party asset, one stylesheet. */
 function page(title: string, body: readonly string[], facts: CompanyFacts): string {
   const company = companyLine(facts);
   return [
@@ -142,8 +155,14 @@ function page(title: string, body: readonly string[], facts: CompanyFacts): stri
  */
 export function privacyHtml(facts: CompanyFacts = COMPANY): string {
   const body = [`<h1>${escape(POLICY_TITLE)}</h1>`, `<p class="lede">${escape(POLICY_INTRO)}</p>`];
-  for (const section of policySections(facts, legalReviewNoteShown('production'))) {
-    body.push(`<h2>${escape(section.heading)}</h2>`);
+  const sections = policySections(facts, legalReviewNoteShown('production'));
+  body.push(
+    '<nav aria-label="Sections"><ul class="sections">',
+    ...sections.map(({ heading }) => `<li><a href="#${slug(heading)}">${escape(heading)}</a></li>`),
+    '</ul></nav>',
+  );
+  for (const section of sections) {
+    body.push(`<h2 id="${slug(section.heading)}">${escape(section.heading)}</h2>`);
     for (const paragraph of section.body) body.push(`<p>${escape(paragraph)}</p>`);
   }
   return page(POLICY_TITLE, body, facts);

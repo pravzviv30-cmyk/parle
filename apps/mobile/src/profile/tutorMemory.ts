@@ -46,7 +46,7 @@ export const FORGET_ONE = 'Forget this';
 export const FORGET_ALL = 'Clear remembered details';
 export const NOTHING_YET = 'Nothing yet. Everyday interests and plans can help your tutor remember what matters for your French.';
 export const MEMORY_PAUSE_TITLE = 'Pause personal memory';
-export const MEMORY_PAUSE_SUB = 'From your next conversation, remembered details and goals stay out of the tutor’s context, and no new details are added to personal memory. Your name and French progress still help the tutor.';
+export const MEMORY_PAUSE_SUB = 'From your next conversation, remembered details, goals and the earlier mistake quoted from your French stay out of the tutor’s context, and no new details are added to personal memory. Your name and French progress still help the tutor.';
 export const MEMORY_PAUSED_EMPTY = 'Personal memory is paused. You can resume it here when you are ready.';
 export function memoryEmptyLine(profile: StoredProfile): string {
   return memoryPaused(profile.brain) ? MEMORY_PAUSED_EMPTY : NOTHING_YET;
