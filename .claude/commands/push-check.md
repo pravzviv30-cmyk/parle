@@ -1,14 +1,14 @@
 ---
-description: Check the version you are about to push, frontend or backend, with the gate, a browser pass, reviewers and an Impeccable design review, fix what they find, and stamp the commit so the push is allowed. Add --main before landing to include the security review.
+description: Check the version you are about to push, frontend or backend, with the gate, a browser pass, reviewers and the Impeccable and unslop design reviews, fix what they find, and stamp the commit so the push is allowed. Add --main before landing to include the security review.
 argument-hint: "[--main] [optional: what the branch does]"
 ---
 
 Run this **before every push**, of a branch or of `main` (founder rule, 2026-10-31). It
 looks at the exact version being pushed, in the browser and through reviewers (for the
-frontend, Impeccable's design reviewer too), and fixes what it finds before anyone pulls it.
+frontend, the Impeccable and unslop design reviewers too), and fixes what it finds before anyone pulls it.
 A `PreToolUse` hook (`scripts/push-check-guard.mjs`) refuses `git push` from a Claude
-session until this command has stamped the commit, refuses a frontend push without a
-passing Impeccable review, and refuses a push to `main` until the stamp also holds a
+session until this command has stamped the commit, refuses a frontend push without
+passing Impeccable and unslop reviews, and refuses a push to `main` until the stamp also holds a
 passing security review.
 
 `$ARGUMENTS` containing `--main` means the next push is a landing on `main` (`/land` runs
@@ -105,8 +105,8 @@ findings so far:
 | tests | always | does every changed behaviour have a test that would fail if it regressed; tests that pass vacuously; floors or pins weakened |
 
 In the same message, run the built-in **`/code-review`** on the diff (Skill
-`code-review`, effort `high`), and for frontend changes dispatch the Impeccable design
-reviewer of section 6 as well. Before acting on any finding, check it in the code yourself.
+`code-review`, effort `high`), and for frontend changes dispatch the Impeccable and unslop
+design reviewers of section 6 as well. Before acting on any finding, check it in the code yourself.
 Reviewers report; they do not edit.
 
 ## 6. Impeccable design review
@@ -210,13 +210,39 @@ on it, and the stamp goes on it.
 **Asking the founder.** After the push (section 10), see there. The push never waits for
 the answer.
 
+### unslop design review
+
+Founder rule, 2026-11-15: beside Impeccable, on every frontend push. Dispatch it **in the
+same parallel message** as Impeccable.
+
+**Who.** Agent `subagent_type: "unslop-reviewer"` with `model: "opus"`. It is read-only.
+
+**Scan.** Run the mechanical scan in the same step:
+
+```bash
+node scripts/unslop-scan.mjs --diff origin/main...HEAD
+```
+
+A rise over its baseline is slop.
+
+**Brief.** Give it the same `frontend.diff`, `DESIGN.md` and `PRODUCT.md`, the section 3
+screenshot paths, the scan output, and the skill at `.claude/skills/unslop/SKILL.md`.
+**DESIGN.md and PRODUCT.md win any clash with unslop's defaults**; an unslop default that
+contradicts them is not a finding.
+
+**Findings and result.** Sorted exactly like Impeccable's: slop is fixed in the push through
+section 7; redesign proposals are never applied, are logged in the same table in
+`docs/DESIGN_PARTNERSHIP.md` with the reviewer named (`unslop`), and are put to the founder
+after the push in the same `AskUserQuestion`. `pass`, `fail` and `n/a` mean what they mean
+for Impeccable, and the guard refuses `--unslop n/a` on a frontend commit.
+
 ## 7. Fix loop
 
 For each confirmed finding: first write a test that reproduces it and fails (founder rule,
 2026-11-01; a doc or copy-only fix needs no failing test first; copy that a test already pins still updates that test), then fix it (yourself if it is one line, otherwise the owning specialist or
 `implementer` with the absolute checkout path) so the test passes, commit by explicit path, and
 re-run the gate and the check that found it. Repeat sections 3 to 6 on the new diff until
-the reviewers, `/code-review` and the Impeccable reviewer find nothing new above low
+the reviewers, `/code-review` and the Impeccable and unslop reviewers find nothing new above low
 (proposals do not count; they are logged, not looped on).
 
 A finding left unfixed (out of scope, needs a decision) is written in the report and in the
@@ -233,15 +259,16 @@ founder's words if so. For a backend or data change, also consider `/backend-rev
 ## 9. Stamp
 
 Stamp the exact commit that will be pushed, after the last fix commit. For a landing, that
-is first the branch tip; the merge commit then needs its own stamp (see `/land` section 6):
+is the branch tip, which the guard checks again as the PR head at `gh pr merge` (see `/land`
+section 6):
 
 ```bash
-node scripts/push-check-guard.mjs stamp --gate pass --playwright <pass|fail|n/a> --backend <pass|fail|n/a> --review pass --impeccable <pass|fail|n/a> --security <pass|n/a> --notes "<counts, reviewers, findings fixed>"
+node scripts/push-check-guard.mjs stamp --gate pass --playwright <pass|fail|n/a> --backend <pass|fail|n/a> --review pass --impeccable <pass|fail|n/a> --unslop <pass|fail|n/a> --security <pass|n/a> --notes "<counts, reviewers, findings fixed>"
 ```
 
 `n/a` is for checks that do not apply to this diff, never for one that was skipped. The
-guard refuses `--impeccable n/a` on a frontend commit and refuses a frontend push without
-`--impeccable pass`. The stamp is per commit: a new commit needs a new check.
+guard refuses `--impeccable n/a` and `--unslop n/a` on a frontend commit and refuses a
+frontend push or `gh pr merge` without `--impeccable pass` and `--unslop pass`. The stamp is per commit: a new commit needs a new check.
 
 Push as its own Bash command. The guard refuses `git commit ... && git push` (or a
 switch, merge or ref rewrite before the push) in one call, because it checks the commit
@@ -251,12 +278,12 @@ before the earlier command makes a new one.
 
 Six lines: the gate count, what the browser pass covered (screens, sizes, modes) and
 found, what the reviewers and `/code-review` found and what was fixed, the Impeccable
-disposition word with the slop found and fixed and the number of proposals asked (frontend
-only), the security result when `--main`, and the stamp result. Then push (with the
+disposition word and the unslop verdict, each with the slop found and fixed and the number of
+proposals asked (frontend only), the security result when `--main`, and the stamp result. Then push (with the
 keepalive `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=30"`) and
 confirm with `git ls-remote`.
 
-Then, if the Impeccable reviewer made proposals, ask the founder in **one
+Then, if the Impeccable or unslop reviewer made proposals, ask the founder in **one
 `AskUserQuestion`**: one question per proposal (at most four), each with the options
 "Queue for a board", "Fold into the screen's redesign" and "Not now". Do not wait on the
 answer before pushing. When it comes, update each row's State in
@@ -264,5 +291,5 @@ answer before pushing. When it comes, update each row's State in
 `not now: <reason, from the founder's note, or "no reason given">`, and commit by path.
 That commit goes out with the next push, checked like any other. After a landing the
 branch is gone, so make that commit on `main` in the main checkout and push it with
-`/push-check --main`; it only touches a doc, so Impeccable is `n/a` there. If the founder
+`/push-check --main`; it only touches a doc, so Impeccable and unslop are `n/a` there. If the founder
 is not there, the rows already say `asked, no answer yet`.

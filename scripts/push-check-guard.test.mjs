@@ -16,6 +16,8 @@ import {
   denyReason,
   hookDecision,
   touchesFrontend,
+  isDocPath,
+  CHECK_NAMES,
 } from './push-check-guard.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./push-check-guard.mjs', import.meta.url));
@@ -24,14 +26,21 @@ const SHA = 'a'.repeat(40);
 const stampOf = (checks, result = 'pass', sha = SHA) => ({
   sha,
   result,
-  checks: { gate: 'pass', playwright: 'n/a', backend: 'n/a', review: 'pass', security: 'n/a', impeccable: 'n/a', ...checks },
+  checks: { gate: 'pass', playwright: 'n/a', backend: 'n/a', review: 'pass', security: 'n/a', impeccable: 'n/a', unslop: 'n/a', ...checks },
 });
 
 // A fake git. `refs` maps a ref to its sha (anything else resolves to SHA);
 // `stamps` maps a sha to its stamp; `stamp` is shorthand for stamps[SHA];
 // `missing` lists refs that do not exist; `tags` lists tag-only names.
-function fakeGit({ stamp = null, stamps = {}, refs = {}, missing = [], tags = [], branch = 'claude/today-sky', frontend = false } = {}) {
+function fakeGit({ stamp = null, stamps = {}, refs = {}, missing = [], tags = [], branch = 'claude/today-sky', frontend = false, codePaths = [], pr = null, local = false } = {}) {
   return {
+    hasCommit: () => local,
+    codePathsAt: () => codePaths,
+    prInfo: (_dir, selector, repo) => {
+      if (typeof pr === 'function') return pr(selector, repo);
+      if (!pr) throw new Error('no PR');
+      return pr;
+    },
     resolveCommit: (_dir, rev) => {
       if (missing.includes(rev)) throw new Error('unknown revision');
       return refs[rev] ?? SHA;
@@ -464,19 +473,19 @@ test('frontend stamps need a passing Impeccable review', () => {
   const failed = checkStamp(stampOf({ impeccable: 'fail' }, 'fail'), SHA, false, true);
   assert.equal(failed.kind, 'failed');
   assert.ok(failed.failed.includes('impeccable'));
-  assert.ok(checkStamp(stampOf({ impeccable: 'pass' }), SHA, false, true).ok);
+  assert.ok(checkStamp(stampOf({ impeccable: 'pass', unslop: 'pass' }), SHA, false, true).ok);
   assert.ok(checkStamp(stampOf({}), SHA, false, false).ok);
   // main plus frontend needs both
   assert.equal(checkStamp(stampOf({ impeccable: 'pass' }), SHA, true, true).kind, 'security');
   assert.equal(checkStamp(stampOf({ security: 'pass' }), SHA, true, true).kind, 'impeccable');
-  assert.ok(checkStamp(stampOf({ security: 'pass', impeccable: 'pass' }), SHA, true, true).ok);
+  assert.ok(checkStamp(stampOf({ security: 'pass', impeccable: 'pass', unslop: 'pass' }), SHA, true, true).ok);
 });
 
 test('hook: frontend pushes need Impeccable, backend pushes do not', () => {
   const d = hookDecision(bash('git push origin HEAD'), fakeGit({ frontend: true, stamp: stampOf({}) }));
   assert.match(d.reason, /Impeccable/);
   assert.ok(!d.reason.includes('—'));
-  assert.equal(hookDecision(bash('git push origin HEAD'), fakeGit({ frontend: true, stamp: stampOf({ impeccable: 'pass' }) })), null);
+  assert.equal(hookDecision(bash('git push origin HEAD'), fakeGit({ frontend: true, stamp: stampOf({ impeccable: 'pass', unslop: 'pass' }) })), null);
   assert.equal(hookDecision(bash('git push origin HEAD'), fakeGit({ frontend: false, stamp: stampOf({}) })), null);
 });
 
@@ -510,13 +519,14 @@ test('end to end: a frontend commit needs --impeccable pass or fail', () => {
     assert.match(r.stderr, /changes frontend files .*--impeccable must be pass or fail, not n\/a/);
     assert.equal(runScript(['status', '--dir', dir]).stdout.trim(), 'no stamp');
   }
-  const failed = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'fail', '--dir', dir]);
+  const failed = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'fail', '--unslop', 'pass', '--dir', dir]);
   assert.equal(failed.status, 0, failed.stderr);
   assert.match(failed.stdout, /result: fail/);
+  // unslop is required too on a frontend commit, checked after impeccable.
   const denied = runScript(['hook'], { input: hookInput('git push origin work', dir) });
   assert.match(JSON.parse(denied.stdout).hookSpecificOutput.permissionDecisionReason, /impeccable/);
 
-  const passed = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'pass', '--dir', dir]);
+  const passed = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'pass', '--unslop', 'pass', '--dir', dir]);
   assert.equal(passed.status, 0, passed.stderr);
   assert.equal(runScript(['hook'], { input: hookInput('git push origin work', dir) }).stdout, '');
 });
@@ -581,4 +591,193 @@ test('end to end: the real hook refuses a passing stamp without Impeccable on a 
   writeFileSync(join(dir, common, 'push-check', `${sha}.json`), JSON.stringify(stampOf({}, 'pass', sha)));
   const r = runScript(['hook'], { input: hookInput('git push origin work', join(dir, 'apps/mobile')) });
   assert.match(JSON.parse(r.stdout).hookSpecificOutput.permissionDecisionReason, /no passing Impeccable design review/);
+});
+
+// ---- unslop (founder, 2026-11-15) ----
+
+test('frontend stamps need a passing unslop review', () => {
+  assert.ok(CHECK_NAMES.includes('unslop'));
+  assert.equal(checkStamp(stampOf({ impeccable: 'pass' }), SHA, false, true).kind, 'unslop');
+  assert.equal(checkStamp(stampOf({ impeccable: 'pass', unslop: undefined }), SHA, false, true).kind, 'unslop');
+  const failed = checkStamp(stampOf({ impeccable: 'pass', unslop: 'fail' }, 'fail'), SHA, false, true);
+  assert.equal(failed.kind, 'failed');
+  assert.ok(failed.failed.includes('unslop'));
+  assert.ok(checkStamp(stampOf({ impeccable: 'pass', unslop: 'pass' }), SHA, false, true).ok);
+  assert.ok(checkStamp(stampOf({}), SHA, false, false).ok);
+  const r = denyReason({ kind: 'unslop' }, SHA, 'feat');
+  assert.match(r, /changes frontend files, and its push check has no passing unslop design review/);
+});
+
+test('end to end: a frontend commit needs --unslop pass or fail', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'apps/mobile/a.tsx');
+  for (const extra of [[], ['--unslop', 'n/a']]) {
+    const r = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'pass', ...extra, '--dir', dir]);
+    assert.equal(r.status, 1, extra.join(' '));
+    assert.match(r.stderr, /--unslop must be pass or fail, not n\/a/);
+  }
+  const ok = runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--impeccable', 'pass', '--unslop', 'pass', '--dir', dir]);
+  assert.equal(ok.status, 0, ok.stderr);
+  const usage = runScript(['stamp', '--bogus']);
+  assert.match(usage.stderr, /--unslop pass\|fail\|n\/a/);
+});
+
+// ---- docs-only direct pushes to main (founder, 2026-11-15) ----
+
+test('isDocPath allows docs/ and root markdown only', () => {
+  for (const p of ['docs/a.md', 'docs/x/y.png', 'DECISIONS.md', 'README.md', 'CLAUDE.md']) assert.ok(isDocPath(p), p);
+  for (const p of ['scripts/a.mjs', 'apps/mobile/README.md', 'package.json', 'docsx/a.md', '.claude/commands/land.md', 'README.mdx']) {
+    assert.equal(isDocPath(p), false, p);
+  }
+});
+
+test('hook: code pushed straight to main is refused, docs-only is not', () => {
+  const stamp = stampOf({ security: 'pass' });
+  for (const cmd of ['git push origin HEAD:main', 'git push origin main', 'git push --all', 'git push --mirror origin']) {
+    const d = hookDecision(bash(cmd), fakeGit({ stamp, codePaths: ['scripts/x.mjs'] }));
+    assert.match(d?.reason ?? '', /pull request/, cmd);
+    assert.match(d.reason, /\/land/);
+  }
+  assert.equal(hookDecision(bash('git push origin HEAD:main'), fakeGit({ stamp, codePaths: [] })), null);
+  // docs-only still needs security
+  assert.match(hookDecision(bash('git push origin HEAD:main'), fakeGit({ stamp: stampOf({}) })).reason, /security review/);
+  // branch pushes are unchanged
+  assert.equal(hookDecision(bash('git push origin feat'), fakeGit({ stamp: stampOf({}), codePaths: ['scripts/x.mjs'] })), null);
+});
+
+test('end to end: a code commit pushed to main is refused, a docs commit is allowed', () => {
+  const dir = repoWithOriginMain();
+  commitFile(dir, 'scripts/x.mjs');
+  runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--security', 'pass', '--dir', dir]);
+  const r = runScript(['hook'], { input: hookInput('git push origin HEAD:main', dir) });
+  assert.match(JSON.parse(r.stdout).hookSpecificOutput.permissionDecisionReason, /pull request/);
+
+  const docs = repoWithOriginMain();
+  commitFile(docs, 'docs/x.md');
+  commitFile(docs, 'DECISIONS.md');
+  runScript(['stamp', '--gate', 'pass', '--review', 'pass', '--security', 'pass', '--dir', docs]);
+  assert.equal(runScript(['hook'], { input: hookInput('git push origin HEAD:main', docs) }).stdout, '');
+});
+
+// ---- gh pr merge (founder, 2026-11-15) ----
+
+const PR_SHA = 'b'.repeat(40);
+const prOf = (files = ['scripts/x.mjs']) => ({ headRefOid: PR_SHA, files, headRefName: 'claude/feat' });
+
+test('hook: gh pr merge needs a stamp with security on the PR head', () => {
+  const seen = [];
+  const pr = (selector, repo) => (seen.push([selector, repo]), prOf());
+  const good = { [PR_SHA]: stampOf({ security: 'pass' }, 'pass', PR_SHA) };
+  assert.equal(hookDecision(bash('gh pr merge 12 --merge --delete-branch'), fakeGit({ pr, stamps: good })), null);
+  assert.deepEqual(seen[0], ['12', null]);
+  for (const cmd of [
+    'gh pr merge 12 --merge',
+    'cd /x && gh pr merge --merge',
+    'env GH_DEBUG=0 gh pr merge feat -m',
+    "sh -c 'gh pr merge 12 --merge'",
+    'git status && gh pr merge -R o/r 12 --body "hi there" --merge',
+  ]) {
+    const d = hookDecision(bash(cmd), fakeGit({ pr: prOf(), stamps: { [PR_SHA]: stampOf({}, 'pass', PR_SHA) } }));
+    assert.match(d?.reason ?? '', /security review/, cmd);
+  }
+  hookDecision(bash('gh pr merge -R o/r --body "x y" 12'), fakeGit({ pr, stamps: good }));
+  assert.deepEqual(seen.at(-1), ['12', 'o/r']);
+  hookDecision(bash('gh pr merge --merge'), fakeGit({ pr, stamps: good }));
+  assert.deepEqual(seen.at(-1), [null, null]);
+  // no stamp at all
+  assert.match(hookDecision(bash('gh pr merge 12'), fakeGit({ pr: prOf() })).reason, /no push check/);
+});
+
+test('hook: help words as flag values are still a merge', () => {
+  for (const cmd of ['gh pr merge 5 --merge --subject --help', 'gh pr merge 5 -t -h', 'gh pr merge 5 -b -h', 'gh pr merge --help']) {
+    assert.match(hookDecision(bash(cmd), fakeGit({ pr: prOf() }))?.reason ?? '', /no push check/, cmd);
+  }
+});
+
+test('hook: gh pr merge --auto needs --match-head-commit equal to the PR head', () => {
+  const g = fakeGit({ pr: prOf(), stamps: { [PR_SHA]: stampOf({ security: 'pass' }, 'pass', PR_SHA) } });
+  for (const cmd of ['gh pr merge 12 --auto --merge', `gh pr merge 12 --auto --match-head-commit ${'c'.repeat(40)}`]) {
+    assert.match(hookDecision(bash(cmd), g)?.reason ?? '', /without --auto/, cmd);
+  }
+  assert.equal(hookDecision(bash(`gh pr merge 12 --auto --match-head-commit ${PR_SHA}`), g), null);
+});
+
+test('hook: gh pr merge with frontend files needs Impeccable and unslop', () => {
+  const pr = prOf(['apps/mobile/a.tsx']);
+  const at = (checks) => fakeGit({ pr, stamps: { [PR_SHA]: stampOf({ security: 'pass', ...checks }, 'pass', PR_SHA) } });
+  assert.match(hookDecision(bash('gh pr merge 3'), at({})).reason, /Impeccable/);
+  assert.match(hookDecision(bash('gh pr merge 3'), at({ impeccable: 'pass' })).reason, /unslop/);
+  assert.equal(hookDecision(bash('gh pr merge 3'), at({ impeccable: 'pass', unslop: 'pass' })), null);
+});
+
+test('hook: a failed or odd gh lookup denies', () => {
+  const d = hookDecision(bash('gh pr merge 12'), fakeGit({ pr: null }));
+  assert.match(d.reason, /could not look up the pull request/);
+  assert.match(hookDecision(bash('gh pr merge 12'), fakeGit({ pr: { files: [] } })).reason, /could not look up/);
+});
+
+test('hook: opaque gh merges are denied, other gh commands are not', () => {
+  for (const cmd of [
+    'gh api repos/o/r/pulls/12/merge -X PUT',
+    'gh api -X PUT "repos/o/r/pulls/12/merge"',
+    'eval "gh pr merge 12"',
+    'echo 12 | xargs gh pr merge',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit({ pr: prOf() })), cmd);
+  }
+  for (const cmd of ['gh pr view 12', 'gh pr create --base main', 'gh pr checks 12 --watch', 'gh api repos/o/r/pulls/12', 'git merge feat']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, cmd);
+  }
+});
+
+// ---- push-check review findings (2026-11-15) ----
+
+test('hook: a repo flag before merge still finds the merge', () => {
+  for (const [cmd, repo] of [
+    ['gh pr -R owner/repo merge 12', 'owner/repo'],
+    ['gh pr --repo owner/repo merge 12', 'owner/repo'],
+    ['gh pr --repo=owner/repo merge 12', 'owner/repo'],
+    ['gh --repo x pr merge 12', 'x'],
+    ['gh -R x pr merge 12', 'x'],
+  ]) {
+    const seen = [];
+    const d = hookDecision(bash(cmd), fakeGit({ pr: (sel, r) => (seen.push([sel, r]), prOf()) }));
+    assert.match(d?.reason ?? '', /no push check/, cmd);
+    assert.deepEqual(seen[0], ['12', repo], cmd);
+  }
+});
+
+test('hook: an error reading the stamp for a merge denies', () => {
+  const g = { ...fakeGit({ pr: prOf() }), readStamp: () => { throw new Error('not a git repo'); } };
+  assert.ok(hookDecision(bash('gh pr merge 12'), g));
+});
+
+test('hook: the merge deny names the head branch, not the base', () => {
+  const d = hookDecision(bash('gh pr merge 12'), fakeGit({ pr: prOf() }));
+  assert.match(d.reason, /for claude\/feat/);
+  assert.doesNotMatch(d.reason, /for main/);
+});
+
+test('hook: a local head commit decides frontend with git, not gh files', () => {
+  const g = fakeGit({ pr: prOf(['scripts/moved.ts']), local: true, frontend: true, stamps: { [PR_SHA]: stampOf({ security: 'pass' }, 'pass', PR_SHA) } });
+  assert.match(hookDecision(bash('gh pr merge 3'), g)?.reason ?? '', /Impeccable/);
+  const remote = fakeGit({ pr: prOf(['scripts/moved.ts']), local: false, frontend: true, stamps: { [PR_SHA]: stampOf({ security: 'pass' }, 'pass', PR_SHA) } });
+  assert.equal(hookDecision(bash('gh pr merge 3'), remote), null);
+});
+
+test('hook: gh api writes that merge or move refs deny, reads allow', () => {
+  for (const cmd of [
+    'gh api graphql -f query="mutation { mergePullRequest(input: {}) { clientMutationId } }"',
+    'gh api graphql -F query=@q.graphql -f x=updateRef',
+    'gh api repos/o/r/merges -f base=main -f head=feat',
+    'gh api --method POST repos/o/r/git/refs/heads/main',
+    'gh api -X PATCH repos/o/r/git/refs/heads/main -f sha=abc',
+    'gh api repos/o/r/contents/a.txt --input body.json',
+    'gh api --method=PUT repos/o/r/pulls/3/merge',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), cmd);
+  }
+  for (const cmd of ['gh api repos/o/r/pulls/3/merge', 'gh api repos/o/r/git/refs/heads/main', 'gh api repos/o/r/contents/a.txt']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, cmd);
+  }
 });

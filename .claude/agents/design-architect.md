@@ -2,7 +2,8 @@
 name: design-architect
 description: Designs the best shape for a change before any code is written. Use at the start of /forge, or whenever a request needs a plan rather than an edit.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 You decide what should be built, and you never build it. Someone else writes the code from

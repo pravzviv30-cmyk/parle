@@ -235,7 +235,7 @@ if (!fast) {
   }
 }
 
-const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs'];
+const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs','scripts/unslop-scan.test.mjs'];
 if(!fast) {
   const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,...releaseProofTests]);
   const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
@@ -305,7 +305,8 @@ for (const entry of readdirSync(path.join(ROOT, 'scripts'))) {
 // looks exactly the same from the outside. Nothing else in this repo would ever notice.
 
 /**
- * Agent name -> the model it must stay pinned to. Fable thinks, Opus builds.
+ * Agent name -> the model it must stay pinned to. Fable (claude-fable-5-2, medium effort)
+ * thinks and judges, Opus builds.
  *
  * The four loop roles came first. The subsystem and product specialists below own a
  * territory the way a senior lead owns a subsystem, and /forge routes a contract to
@@ -314,8 +315,8 @@ for (const entry of readdirSync(path.join(ROOT, 'scripts'))) {
  */
 const AGENT_MODELS = {
   // the loop
-  'design-architect': 'fable',
-  'work-judge': 'fable',
+  'design-architect': 'claude-fable-5-2',
+  'work-judge': 'claude-fable-5-2',
   'bug-hunter': 'opus',
   'fix-verifier': 'opus',
   // the team, builders
@@ -342,18 +343,36 @@ const AGENT_MODELS = {
   // generic builders for approved plans (StartUps/CLAUDE.md routing, 2026-10-19)
   'implementer': 'claude-sonnet-5-5',
   'implementer-opus-low': 'opus',
+  'implementer-opus-medium': 'opus',
   // the push check's read-only reviewers (founder rule, 2026-10-31)
   'push-reviewer': 'claude-sonnet-5-5',
+  'unslop-reviewer': 'opus',
   // the team, read-only
   'release-engineer': 'opus',
-  'scaling-engineer': 'fable',
-  'repository-archaeologist': 'fable',
-  'social-systems-engineer': 'fable',
+  'scaling-engineer': 'claude-fable-5-2',
+  'repository-archaeologist': 'claude-fable-5-2',
+  'social-systems-engineer': 'claude-fable-5-2',
   'qa-release-engineer': 'opus',
-  'backend-architect': 'fable',
-  'database-security-architect': 'fable',
-  'voice-reliability-architect': 'fable',
-  'deployment-architect': 'fable',
+  'backend-architect': 'claude-fable-5-2',
+  'database-security-architect': 'claude-fable-5-2',
+  'voice-reliability-architect': 'claude-fable-5-2',
+  'deployment-architect': 'claude-fable-5-2',
+};
+
+/**
+ * Agent name -> the effort it must declare. The Fable route runs at medium (founder
+ * decision, 2026-11-15) and the cheap generic builder at low; a missing `effort:` line
+ * means the session's effort, which is the same silent drift the model pin guards.
+ */
+const AGENT_EFFORTS = {
+  ...Object.fromEntries(
+    Object.entries(AGENT_MODELS)
+      .filter(([, model]) => model === 'claude-fable-5-2')
+      .map(([agent]) => [agent, 'medium']),
+  ),
+  'implementer-opus-medium': 'medium',
+  'implementer-opus-low': 'low',
+  'unslop-reviewer': 'high',
 };
 
 const readOrNull = (file) => {
@@ -386,6 +405,15 @@ for (const [agent, expected] of Object.entries(AGENT_MODELS)) {
     fail('agents', `${agent}: no model pin — it would silently inherit the session model`);
   } else if (pinned[1] !== expected) {
     fail('agents', `${agent}: pinned to ${pinned[1]}, expected ${expected}`);
+  }
+  const wantEffort = AGENT_EFFORTS[agent];
+  if (wantEffort) {
+    const effort = head.match(/^effort:\s*(\S+)\s*$/m);
+    if (!effort) {
+      fail('agents', `${agent}: no effort pin — it would run at the session effort, expected ${wantEffort}`);
+    } else if (effort[1] !== wantEffort) {
+      fail('agents', `${agent}: effort is ${effort[1]}, expected ${wantEffort}`);
+    }
   }
 }
 
