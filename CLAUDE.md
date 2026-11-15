@@ -174,13 +174,17 @@ The current roster, territories and review triggers are in `docs/TEAM.md`.
 | Something built properly | `/forge <what you want built>` |
 | To know if it is safe to release | `/ship` |
 | A backend architecture review before implementation or promotion | `/backend-review <scope>` |
-| To check the version you are about to push (frontend pushes get an Impeccable design review: slop fixed, redesign ideas asked of you, never applied), fix what it finds, and stamp it | `/push-check` (`--main` before landing) |
+| To check the version you are about to push (frontend pushes get the Impeccable and unslop design reviews: slop fixed, redesign ideas asked of you, never applied), fix what it finds, and stamp it | `/push-check` (`--main` before landing) |
 | To know if this belongs on main yet | `/land` |
 | One pass at the ledger's top open item | `/bug-sweep` |
 | A specific specialist | ask for it by name |
 
-`/forge` designs on Fable, routes the build to whichever engineer owns the files
-the contract touches, then judges on Fable until the gate is green.
+`/forge` is the Fable route for complex work (founder, 2026-11-15).
+- **Design:** `design-architect` on Fable 5.2 at medium effort writes the contract.
+- **Build:** the engineer who owns the files builds it at medium effort, or `implementer-opus-medium` when no one does.
+- **Judge:** `work-judge` on Fable 5.2 judges and sends a written fix plan back until it says SHIP and the gate is green. After 5 rounds the evidence goes to the founder.
+
+Which work takes this route, and which takes the normal Opus-and-Sonnet route, is in `../CLAUDE.md`, "Session workflow and model routing".
 
 Two rules hold the team together. **An engineer edits only its own territory** and
 files work outside it, which is what stops three agents editing the same file in
@@ -288,16 +292,25 @@ Three hard stops, and none of them is negotiable by being asked:
   is safe on GitHub; it still reaches `main` only through this landing workflow. Push from a
   checkout whose gate is green, because the pre-push hook gates the checkout you push from.
   Old branches kept only for reference go to `archive/<name>-<date>` before local deletion.
+- **Code lands by pull request (founder, 2026-11-15).** App, services, database, scripts
+  and workflow tooling reach `main` through a GitHub PR. `/land` pushes the branch, opens the
+  PR, waits for GitHub's `gate` and `source-contract` checks, and merges with a merge commit.
+  Only docs-only records (the founder's decisions, ledger notes, logs) may be pushed
+  straight to `main`. Main deploys to staging and to the iOS preview channel, so a PR is the
+  last stop before both.
 - **Push check before every push (founder, 2026-10-31).** Every push, frontend or backend,
   goes through `/push-check` first: a Playwright pass on the version being pushed, a
   fan-out of read-only `push-reviewer` agents plus the built-in `/code-review`, and fixes
-  for what they find. A frontend push also gets the Impeccable design review
-  (`impeccable:impeccable-finish-reviewer`): slop is fixed in the push, redesign ideas are
-  asked of the founder and never applied. A push to `main` adds the built-in
+  for what they find. A frontend push also gets two design reviews, run in parallel:
+  - the Impeccable reviewer (`impeccable:impeccable-finish-reviewer`);
+  - since 2026-11-15, `unslop-reviewer` with `scripts/unslop-scan.mjs`. It follows `.claude/skills/unslop/`, adapted from heydamir/unslop, and DESIGN.md and PRODUCT.md win any clash.
+
+  For both, slop is fixed in the push, and redesign ideas are asked of the founder and never applied. A push to `main` adds the built-in
   `/security-review` (`/push-check --main`, which `/land` runs).
-  `scripts/push-check-guard.mjs` is a `PreToolUse` hook that refuses `git push` from a
-  Claude session until the commit has a passing stamp, and refuses a frontend push without
-  `impeccable: pass`; the founder can still push from their own terminal.
+  `scripts/push-check-guard.mjs` is a `PreToolUse` hook that refuses `git push` and
+  `gh pr merge` from a Claude session until the commit has a passing stamp. It refuses a
+  frontend push or merge without `impeccable: pass` and `unslop: pass`, and a direct push to
+  `main` that touches more than docs. The founder can still push from their own terminal.
 - **Never `--force`, `--no-verify`, or rebase anything already pushed.** The hooks are the
   last honest check on the way out; a change that needs them off is a change that is not
   ready.

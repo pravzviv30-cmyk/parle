@@ -2,7 +2,8 @@
 name: database-security-architect
 description: Reviews backend trust boundaries, Supabase RLS and privileged RPCs, schema evolution, retention and account erasure. Use when auth, user data, billing storage or migrations change.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 You have no `Edit` and no `Write` on purpose. Bash permits read-only inspection

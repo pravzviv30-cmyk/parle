@@ -40,7 +40,9 @@ systemic, not one screen at a time:
 3. **Decision.** Recorded as a `DECISIONS.md` UI entry, plus a line in the taste log
    below.
 4. **Build.** An implementer works in a worktree to an exact spec. A change to a shared
-   part names its blast radius first.
+   part names its blast radius first. Since 2026-11-15, every UI build follows
+   `.claude/skills/unslop/SKILL.md` (adapted from heydamir/unslop): its audit, nine passes
+   and checklist. This doc's picks and DESIGN.md win any clash.
 5. **Inspect.** On the iOS simulator and on web, at 320 and 375 pt, light and dark,
    large text and reduced motion. Claude fixes the top defects in one pass and shows
    before and after. Anything not inspected is said to be unverified.
@@ -105,6 +107,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-11-06 | Profile and Settings: a mix, Direction A's Settings (one page, five groups, Account and Your plan as top rows, legal in one About Luvani page) with Direction B's Profile (identity and the stage word on a blue band). The plan leaves Profile and shows in Settings only; the name, tutor voice and display sheets become the phone's own sheet; Friends stays in Profile's More group. | Founder, [Profile and Settings board](https://claude.ai/artifact/XsB1g1G2V8t4j244S5P8zS) |
 | 2026-11-06 | Recap, Q1 and Q2. Q1: the posed cheer Cloud is on the recap only; drill ends keep the face-only Cloud and Toast. Q2: with no reply the resting recap Cloud blinks about every 4 seconds, which widens the 2026-11-03 blink to the recap. | Founder, recap build session |
 | 2026-11-06 | Recap, Q3 and Q4. Q3: the scene's goals stay under the title. Q4: "You said this well" stays under the tiles, "One thing to tune" takes the sound row's place, and Your wins and New phrases leave the screen. | Founder, recap build session |
+| 2026-11-10 | Onboarding is "Luvani, cozy bold": cream paper for the work with the soft sky as a rounded window; full-bleed deep morning sky with the sun pill for Welcome, Well done and the account welcome; chunky raised tiles like Today's stat tiles; the plan as a tilted café postcard. Within it: the refined Outfit ramp (no Black or ExtraBold; the display line stays Bold), Outfit only (no French serif), the radius rule (pills, cards 20, tiles 18, inputs 14), continuous corners and a subtle lip on the ink pill. | Founder, [onboarding board](https://claude.ai/artifact/PwjxQYEPToJ1Bw31A4hpjq), v2 picked over v1 (UI-021) |
+| 2026-11-10 | Onboarding keeps the account welcome page; Today's arrival sheet replaces only the violet streak pop-up; no plans wall during the arrival session; the tutor keeps its own page; Welcome greets by the hour; a line from the founder on Well done. | Founder, onboarding board (UI-021) |
 
 Working principles drawn from these (to confirm on the first screens):
 
@@ -122,7 +126,7 @@ Working principles drawn from these (to confirm on the first screens):
 | 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
 | 4 | Conversation recap | Built on `claude/recap` (UI-020, [changes/recap.md](changes/recap.md)); landing after the founder's OK on the after shots |
 | 5 | Systemic pass: one card family, eyebrow labels folded into headings, one quiet-action style and radius tokens. Folds in most of the 11 open push-check proposals and re-counts, before and after (apps/mobile/src, tests excluded): literal borderRadius values (244 on 0483a80a), eyebrows (75), Card/Tile/Hero exports (64), Button/Pill components (21), Row components (31), files on ScrollScreen (65) | Queued |
-| 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued |
+| 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued; design decided (UI-021, [board](https://claude.ai/artifact/PwjxQYEPToJ1Bw31A4hpjq)); the build waits on the recap, the systemic pass, the founder's go and the 3-beginner baseline |
 | 7 | Speak tab (choose a scene) | Queued |
 | 8 | Practice tab hub | Queued |
 | 9 | Journey (My French) | Queued |
@@ -142,9 +146,10 @@ show where you went.
 
 ## Proposals from push-check
 
-The Impeccable reviewer in `/push-check` looks at every frontend push. What breaks our own
-rules it fixes in the push; redesign ideas it would not apply land here, and the founder
-chooses per row. A screen's redesign session reads its rows here before its brief.
+The Impeccable reviewer in `/push-check` looks at every frontend push, and since 2026-11-15 so
+does `unslop-reviewer`. What breaks our own rules they fix in the push; redesign ideas they
+would not apply land here, with the reviewer named in the row, and the founder chooses per
+row. A screen's redesign session reads its rows here before its brief.
 
 | Date | Screen | Problem | Direction | Branch | State |
 |---|---|---|---|---|---|

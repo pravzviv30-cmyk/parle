@@ -1,10 +1,18 @@
 ---
-description: Design it on Fable, build it on Opus, judge it on Fable — repeat until the gate is green and the judge says SHIP.
+description: The Fable route. Plan on Fable 5.2 (medium), build on Opus 5.5 (medium), judge on Fable — repeat until the judge says SHIP and the gate is green.
 argument-hint: [what you want built]
 ---
 
-Build `$ARGUMENTS` properly. The thinking happens on Fable, the building happens here, and
-Fable checks the result before anyone calls it done.
+Build `$ARGUMENTS` properly. The thinking happens on Fable 5.2 (`claude-fable-5-2`, medium
+effort), the building happens on Opus 5.5 at medium effort, and Fable checks the result
+before anyone calls it done.
+
+## When to use this route
+
+Founder decision, 2026-11-15. Use `/forge` for: repo-wide passes (structure, code review,
+the systemic pass), changes across 3 or more packages or services, security, auth, billing,
+database or migrations, and voice pipeline timing. Everything else takes the normal route:
+Opus plans, Sonnet or Opus at low effort builds.
 
 Do not start editing. Step 2 is where the design comes from, and it is not you.
 
@@ -15,7 +23,7 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
    first truncates and the second seeds on the wrong nodes). Keep it to a brief, not a dump.
 
 2. **Dispatch the design-architect agent.** Give it the request verbatim and the brief. It
-   runs on Fable and returns the contract. Write that to `.forge/<slug>/contract.md`, where
+   runs on `claude-fable-5-2` at medium effort and returns the contract. Write that to `.forge/<slug>/contract.md`, where
    `<slug>` is a few kebab-case words from the request.
 
    For a backend change, obtain the applicable specialist input before finalising the
@@ -41,8 +49,10 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
    so the gate is watching while you build rather than after.
 
 5. **Route it to whoever owns the files.** Read the contract's *Files to touch* and
-   dispatch the engineer whose territory they fall in. Give it the contract and the ledger
-   entries verbatim. Where an item is a **defect** rather than new work, dispatch
+   dispatch the engineer whose territory they fall in, with `effort: "medium"` on the
+   dispatch (the specialists are pinned to low). Where no specialist owns the files,
+   dispatch **implementer-opus-medium**. Give it the contract and the ledger entries
+   verbatim. Where an item is a **defect** rather than new work, dispatch
    **bug-hunter** instead — that is what it is for.
 
    | Files to touch | Engineer |
@@ -80,11 +90,14 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
 6. **Run `npm run gate`.** From the repo root, never a worktree.
 
 7. **Dispatch the work-judge agent.** Give it the contract, the diff, and the gate output. It
-   runs on Fable and answers `SHIP` or `REVISE`.
+   runs on `claude-fable-5-2` at medium effort and answers `SHIP` or `REVISE`.
 
-8. **On `REVISE`:** file its ledger entries verbatim, fix them, and go back to step 6. **At
-   most three rounds.** If the third does not reach `SHIP`, stop and report what is blocking.
-   Grinding past the cap is how a loop turns into a runaway.
+8. **On `REVISE`:** the judge returns a written fix plan (it has no `Write`, so save it
+   to `.forge/<slug>/round-<n>.md` yourself). File its
+   ledger entries verbatim, hand the builder exactly that plan, and go back to step 6. The
+   loop runs until `SHIP` and the gate is green. **At most five rounds.** If the fifth does
+   not reach `SHIP`, stop and bring the evidence to the founder. Grinding past the cap is
+   how a loop turns into a runaway.
 
 9. **On `SHIP` with the gate green:** tick each ledger box whose named test actually passed,
    append the round log to `.forge/<slug>/contract.md`, and report in four lines — what was

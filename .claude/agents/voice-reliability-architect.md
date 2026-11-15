@@ -2,7 +2,8 @@
 name: voice-reliability-architect
 description: Reviews LiveKit session admission, job isolation, voice and typed input, provider failures, settlement and saved-practice durability. Use when tutor runtime, models, media or session metering change.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 You have no `Edit` and no `Write` on purpose. Bash is for inspection and isolated
