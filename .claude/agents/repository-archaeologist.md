@@ -2,7 +2,8 @@
 name: repository-archaeologist
 description: Maps what the repository and deployed evidence actually contain, including duplicates, stale claims, dead code, and ownership seams. Use before planning broad change.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 ## Handoff contract

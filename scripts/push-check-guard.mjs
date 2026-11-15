@@ -13,9 +13,10 @@
 //   stamp   Write <git-common-dir>/push-check/<sha>.json for a commit.
 //   status  Print the stamp for HEAD (or --sha), or "no stamp".
 //
-// Contract for `hook`: it only ever denies for the four known reasons (no
+// Contract for `hook`: it only ever denies for the known reasons (no
 // stamp, failed stamp, main without a passing security review, frontend
-// changes without a passing Impeccable design review). Anything
+// changes without passing Impeccable and unslop design reviews, code pushed
+// straight to main, a `gh pr merge` it cannot verify). Anything
 // unexpected (not a git repo, git missing, unparsable stdin) allows the call,
 // so a bug in this guard can never wedge a session. The stamp lives in the
 // git common dir, so every worktree of a repo shares one stamp folder.
@@ -27,16 +28,23 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-export const CHECK_NAMES = ['gate', 'playwright', 'backend', 'review', 'security', 'impeccable'];
+export const CHECK_NAMES = ['gate', 'playwright', 'backend', 'review', 'security', 'impeccable', 'unslop'];
 const CHECK_VALUES = ['pass', 'fail', 'n/a'];
 
 // Paths that count as frontend. A push whose diff against origin/main touches
-// one of these needs a passing Impeccable design review (founder, 2026-10-31).
+// one of these needs passing Impeccable (founder, 2026-10-31) and unslop
+// (founder, 2026-11-15) design reviews.
 export const FRONTEND_PREFIXES = ['apps/mobile/', 'packages/core/'];
 
 // True when any path starts with a frontend prefix.
 export function touchesFrontend(paths) {
   return paths.some((p) => FRONTEND_PREFIXES.some((prefix) => p.startsWith(prefix)));
+}
+
+// Paths that may still be pushed straight to main (founder, 2026-11-15):
+// decision records, ledger notes and logs. Anything else goes through a PR.
+export function isDocPath(p) {
+  return p.startsWith('docs/') || /^[^/]+\.md$/.test(p);
 }
 
 const NEXT_STEP =
@@ -265,6 +273,25 @@ export function parsePushArgs(args) {
   return push;
 }
 
+// `gh pr merge` flags that take a value, so the PR selector is not mistaken.
+const MERGE_FLAG_WITH_VALUE = new Set([
+  '-b', '--body', '-F', '--body-file', '-t', '--subject', '-R', '--repo', '-A', '--author-email', '--match-head-commit',
+]);
+
+// `gh pr merge <args>` -> { selector, repo }; null means the current branch's PR.
+export function parseMergeArgs(args) {
+  let selector = null;
+  let repo = null;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '-R' || a === '--repo') repo = args[++i] ?? null;
+    else if (a.startsWith('--repo=')) repo = a.slice(7);
+    else if (MERGE_FLAG_WITH_VALUE.has(a)) i++;
+    else if (!a.startsWith('-') && selector === null) selector = a;
+  }
+  return { selector, repo };
+}
+
 const baseName = (word) => word.split('/').pop();
 
 // Walk a shell command and report what the hook needs to judge:
@@ -325,6 +352,12 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     } else if (name === 'eval' || name === 'xargs') {
       const tokens = rest.flatMap((w) => w.split(/\s+/)).map(baseName);
       if (tokens.includes('git') && tokens.includes('push')) events.push({ kind: 'opaque' });
+      if (tokens.includes('gh') && tokens.includes('merge')) events.push({ kind: 'opaque' });
+    } else if (name === 'gh') {
+      if (rest[0] === 'api' && rest.some((a) => a.includes('/merge'))) events.push({ kind: 'opaque' });
+      if (rest[0] === 'pr' && rest[1] === 'merge') {
+        events.push({ kind: 'merge', dir: state.dir, dirKnown: state.known, ...parseMergeArgs(rest.slice(2)) });
+      }
     } else if (name === 'git') {
       let gitDir = state.dir;
       let gitKnown = state.known;
@@ -403,6 +436,7 @@ export function pushTargets(push, currentBranch) {
 //   kind 'failed'   the stamp says a check failed (failed lists their names)
 //   kind 'security' going to main without a passing security review
 //   kind 'impeccable' frontend changes without a passing Impeccable review
+//   kind 'unslop'   frontend changes without a passing unslop review
 export function checkStamp(stamp, sha, toMain, frontend = false) {
   if (!stamp || typeof stamp !== 'object' || stamp.sha !== sha) {
     return { ok: false, kind: 'missing', failed: [] };
@@ -420,6 +454,9 @@ export function checkStamp(stamp, sha, toMain, frontend = false) {
   if (frontend && checks.impeccable !== 'pass') {
     return { ok: false, kind: 'impeccable', failed: [] };
   }
+  if (frontend && checks.unslop !== 'pass') {
+    return { ok: false, kind: 'unslop', failed: [] };
+  }
   return { ok: true };
 }
 
@@ -434,6 +471,8 @@ export function denyReason({ kind, failed = [] }, sha, branch) {
     what = `${where} is going to main, and its push check has no passing security review.`;
   } else if (kind === 'impeccable') {
     what = `${where} changes frontend files, and its push check has no passing Impeccable design review.`;
+  } else if (kind === 'unslop') {
+    what = `${where} changes frontend files, and its push check has no passing unslop design review.`;
   } else {
     what = `${where} has no push check yet.`;
   }
@@ -447,6 +486,13 @@ const UNKNOWN_REASON =
   'Push blocked: the guard could not tell which commit this push publishes. ' +
   'Run git push as a plain command from the checkout.';
 
+const CODE_TO_MAIN_REASON =
+  'Push blocked. Only docs (docs/ and root *.md files) may be pushed straight to main. ' +
+  'Code goes through a pull request: /land pushes the branch and opens it.';
+const GH_REASON =
+  'Merge blocked: the guard could not look up the pull request (gh missing, not signed in, or no PR). ' +
+  'Run gh pr merge with the PR number from the checkout, after /push-check --main on its head commit.';
+
 // The whole hook decision, with git access injected so it can be tested.
 // Returns null to allow, or { reason } to deny. Unparsable input and non-Bash
 // calls allow; once a command clearly contains a push, anything the guard
@@ -456,10 +502,12 @@ const UNKNOWN_REASON =
 //   git.readStamp(dir, sha)     -> parsed stamp or null
 //   git.isTagOnly(dir, name)    -> true when name is a tag and not a branch
 //   git.touchesFrontendAt(dir, sha) -> true when the commit changes frontend files
+//   git.codePathsAt(dir, sha)   -> changed paths outside the docs allowlist
+//   git.prInfo(dir, selector, repo) -> { headRefOid, files: [path], baseRefName } (throws on failure)
 export function hookDecision(input, git) {
   if (!input || input.tool_name !== 'Bash') return null;
   const command = input.tool_input?.command;
-  if (typeof command !== 'string' || !/\bpush\b/.test(command)) return null;
+  if (typeof command !== 'string' || !/\b(push|gh|merge)\b/.test(command)) return null;
 
   const cwd = input.cwd || process.cwd();
   let denial = null;
@@ -470,6 +518,20 @@ export function hookDecision(input, git) {
   for (const ev of analyzeCommand(command, cwd)) {
     if (ev.kind === 'opaque') {
       deny(MOVED_REASON);
+      continue;
+    }
+    if (ev.kind === 'merge') {
+      let pr;
+      try {
+        if (!ev.dirKnown) throw new Error('unknown dir');
+        pr = git.prInfo(ev.dir, ev.selector, ev.repo);
+        if (!/^[0-9a-f]{40}$/.test(pr?.headRefOid ?? '') || !Array.isArray(pr.files)) throw new Error('bad PR');
+      } catch {
+        deny(GH_REASON);
+        continue;
+      }
+      const verdict = checkStamp(git.readStamp(ev.dir, pr.headRefOid), pr.headRefOid, true, touchesFrontend(pr.files));
+      if (!verdict.ok) deny(denyReason(verdict, pr.headRefOid, pr.baseRefName));
       continue;
     }
     try {
@@ -489,6 +551,10 @@ export function hookDecision(input, git) {
         if (target.bare && git.isTagOnly?.(ev.dir, target.src)) continue;
         const sha = git.resolveCommit(ev.dir, target.src);
         const toMain = Boolean(target.all) || isMainRef(target.dst);
+        if (toMain && git.codePathsAt(ev.dir, sha).length) {
+          deny(CODE_TO_MAIN_REASON);
+          continue;
+        }
         const frontend = git.touchesFrontendAt(ev.dir, sha);
         const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, toMain, frontend);
         if (!verdict.ok) deny(denyReason(verdict, sha, stripHeads(target.dst) || current));
@@ -577,7 +643,29 @@ export function touchesFrontendAt(dir, sha) {
   return touchesFrontend(changedPaths(dir, sha, FRONTEND_PREFIXES));
 }
 
-const realGit = { resolveCommit, currentBranch, readStamp, isTagOnly, touchesFrontendAt };
+// Changed paths a direct push to main may not carry (see isDocPath).
+export function codePathsAt(dir, sha) {
+  return changedPaths(dir, sha).filter((p) => !isDocPath(p));
+}
+
+// Looks the PR up with gh. Throws on any failure, so the hook denies. gh is
+// found on the hook's PATH; the timeout keeps a hung network call short.
+// gh lists at most 100 files, so a PR at that cap counts as frontend.
+export function prInfo(dir, selector, repo) {
+  const args = ['pr', 'view', ...(selector ? [selector] : []), ...(repo ? ['--repo', repo] : [])];
+  const out = execFileSync('gh', [...args, '--json', 'headRefOid,files,baseRefName'], {
+    cwd: dir,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+    timeout: 15000,
+  });
+  const json = JSON.parse(out);
+  const files = (json.files ?? []).map((f) => f.path);
+  if (files.length >= 100) files.push(FRONTEND_PREFIXES[0]);
+  return { headRefOid: json.headRefOid, files, baseRefName: json.baseRefName };
+}
+
+const realGit = { resolveCommit, currentBranch, readStamp, isTagOnly, touchesFrontendAt, codePathsAt, prInfo };
 
 // ---------------------------------------------------------------------------
 // Subcommands
@@ -608,7 +696,7 @@ function runHook() {
 const STAMP_USAGE =
   'usage: push-check-guard.mjs stamp --gate pass|fail --review pass|fail ' +
   '[--playwright pass|fail|n/a] [--backend pass|fail|n/a] [--security pass|fail|n/a] ' +
-  '[--impeccable pass|fail|n/a] ' +
+  '[--impeccable pass|fail|n/a] [--unslop pass|fail|n/a] ' +
   '[--notes "text"] [--sha rev] [--dir path]';
 
 function runStamp(argv) {
@@ -626,6 +714,7 @@ function runStamp(argv) {
         review: { type: 'string' },
         security: { type: 'string' },
         impeccable: { type: 'string' },
+        unslop: { type: 'string' },
       },
       strict: true,
     }));
@@ -649,6 +738,13 @@ function runStamp(argv) {
       process.stderr.write(
         'This commit changes frontend files (apps/mobile/, packages/core/), so --impeccable must be pass or fail, not n/a. ' +
           'Run the Impeccable design review step of /push-check.\n',
+      );
+      process.exit(1);
+    }
+    if (values.checks.unslop === 'n/a' && touchesFrontendAt(dir, sha)) {
+      process.stderr.write(
+        'This commit changes frontend files (apps/mobile/, packages/core/), so --unslop must be pass or fail, not n/a. ' +
+          'Run the unslop design review step of /push-check.\n',
       );
       process.exit(1);
     }

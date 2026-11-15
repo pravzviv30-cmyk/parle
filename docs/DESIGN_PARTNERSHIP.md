@@ -40,7 +40,9 @@ systemic, not one screen at a time:
 3. **Decision.** Recorded as a `DECISIONS.md` UI entry, plus a line in the taste log
    below.
 4. **Build.** An implementer works in a worktree to an exact spec. A change to a shared
-   part names its blast radius first.
+   part names its blast radius first. Since 2026-11-15, every UI build follows
+   `.claude/skills/unslop/SKILL.md` (adapted from heydamir/unslop): its audit, nine passes
+   and checklist. This doc's picks and DESIGN.md win any clash.
 5. **Inspect.** On the iOS simulator and on web, at 320 and 375 pt, light and dark,
    large text and reduced motion. Claude fixes the top defects in one pass and shows
    before and after. Anything not inspected is said to be unverified.
@@ -141,9 +143,10 @@ show where you went.
 
 ## Proposals from push-check
 
-The Impeccable reviewer in `/push-check` looks at every frontend push. What breaks our own
-rules it fixes in the push; redesign ideas it would not apply land here, and the founder
-chooses per row. A screen's redesign session reads its rows here before its brief.
+The Impeccable reviewer in `/push-check` looks at every frontend push, and since 2026-11-15 so
+does `unslop-reviewer`. What breaks our own rules they fix in the push; redesign ideas they
+would not apply land here, with the reviewer named in the row, and the founder chooses per
+row. A screen's redesign session reads its rows here before its brief.
 
 | Date | Screen | Problem | Direction | Branch | State |
 |---|---|---|---|---|---|

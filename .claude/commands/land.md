@@ -98,48 +98,49 @@ shared floor rather than a staging area.
 
 ## 6. Landing
 
-Only on **LAND**, and only in this order:
+Only on **LAND**. Code (app, services, database, scripts, workflow tooling) reaches `main`
+through a GitHub pull request (founder, 2026-11-15), in this order:
 
-```bash
-git switch -c <branch>          # if the work is sitting on main, branch it first
-git add <explicit paths>        # never -A, never .
-git commit                      # pre-commit runs gate:fast
-```
+1. Commit on a branch by explicit path:
 
-Then, on the committed branch tip, run **`/push-check --main`** (founder rule,
-2026-10-31): the Playwright pass on the version being landed, the review fan-out, the
-built-in `/code-review`, the Impeccable design review for frontend changes, and the
-built-in `/security-review` on `git diff origin/main...HEAD`. A high or medium security finding is **HOLD** until it is
-fixed or the founder accepts it in chat. Then merge:
+   ```bash
+   git switch -c <branch>          # if the work is sitting on main, branch it first
+   git add <explicit paths>        # never -A, never .
+   git commit                      # pre-commit runs gate:fast
+   ```
 
-```bash
-git switch main && git merge --no-ff <branch>
-git diff --quiet <branch> HEAD && echo "merge tree = branch tip"
-```
+2. On the committed branch tip, run **`/push-check --main`** (founder rule, 2026-10-31):
+   the Playwright pass on the version being landed, the review fan-out, the built-in
+   `/code-review`, the Impeccable and unslop design reviews for frontend changes, and the
+   built-in `/security-review` on `git diff origin/main...HEAD`. A high or medium security
+   finding is **HOLD** until it is fixed or the founder accepts it in chat.
+3. Push the branch: `git push -u origin <branch>` (pre-push runs the full gate).
+4. Open the PR: `gh pr create --base main --head <branch>`. The body holds the summary,
+   the push-check stamp results (`node scripts/push-check-guard.mjs status`) and the
+   founder's OK where one was needed.
+5. Wait for GitHub: `gh pr checks <n> --watch` must show `gate` and `source-contract` green.
+   A red check is **HOLD**; fix it on the branch, re-run `/push-check --main` on the new tip,
+   and push again.
+6. Merge: `gh pr merge <n> --merge --delete-branch`. `--merge` keeps one revertable merge
+   commit, like `--no-ff`. The guard checks the PR's head commit for a passing stamp with
+   `security: pass` (and `impeccable: pass` and `unslop: pass` for frontend files), so the
+   stamp from step 2 must be on the tip GitHub holds.
+7. Come back to main and confirm:
 
-The guard checks the commit being pushed, which is now the merge commit, so it needs its
-own stamp:
+   ```bash
+   git switch main && git pull --ff-only
+   git ls-remote origin main       # matches the merge commit
+   git branch -d <branch>
+   git worktree remove <path>      # when the work lived in a worktree
+   ```
 
-- **The merge tree equals the branch tip** (main had not moved, so the line above prints):
-  the merge brought nothing the check did not see. Carry the branch's stamp forward with
-  the full line, `node scripts/push-check-guard.mjs stamp --gate pass --playwright <as the
-  branch> --backend <as the branch> --review pass --impeccable <as the branch> --security
-  pass --notes "merge of <branch>, tree identical to the checked tip <sha>"`.
-- **It differs** (main moved, or a conflict was resolved): run `/push-check --main` again
-  here, on the merge commit, before pushing. Never carry a stamp onto code nobody checked.
+**Docs-only records** (only `docs/` and root `*.md` files: the founder's decisions, ledger
+notes, logs) may still go straight to `main`: commit, run `/push-check --main`, then
+`git push`. The guard refuses a direct push to `main` that touches anything else.
 
-```bash
-git push                        # pre-push runs the full gate
-git branch -d <branch>          # retire the label, now that main carries the work
-```
-
-`--no-ff` so the branch is one revertable unit. The `pre-push` hook runs the full gate, so
-pushing is the last honest check; let it run rather than working around it.
-
-**Delete the branch in the same breath as the merge.** Work leaves this repo by going to
-`main` and pushing `main`, so a landed branch has nothing left to say. (Since 2026-10-20 a
-branch with unlanded work may be pushed under its own name as a backup; once it lands,
-delete it locally and on `origin`.) Left alone the labels accumulate, and a later reader cannot tell a branch holding
+**Delete the branch in the same breath as the merge.** A landed branch has nothing left to
+say. (Since 2026-10-20 a branch with unlanded work may be pushed under its own name as a
+backup.) Left alone the labels accumulate, and a later reader cannot tell a branch holding
 real unpushed work from one that merged three weeks ago. Use lowercase `-d`, which refuses
 anything unmerged and so cannot lose work. If git objects that the branch is not merged to
 its *upstream* even though it is merged to HEAD, that is a stale remote pointer rather than
@@ -149,7 +150,7 @@ when the answer is `0`.
 Commit messages end with:
 
 ```
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ```
 
 **Never, on any verdict:** `--force`, `--no-verify`, a rebase of anything already pushed, a

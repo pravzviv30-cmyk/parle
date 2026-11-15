@@ -2,7 +2,8 @@
 name: deployment-architect
 description: Reviews reproducible backend releases, CI enforcement, environments, service readiness, capacity, observability and disaster recovery. Use before backend deployment and when hosting or release controls change.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 You have no `Edit` and no `Write` on purpose. Bash is read-only inspection or

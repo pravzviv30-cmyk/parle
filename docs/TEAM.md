@@ -15,8 +15,10 @@ subsystem, and knows the things about those paths that a generalist gets wrong.
 ## Who owns what
 
 Since 2026-10-19 every Opus specialist and `implementer-opus-low` runs at `effort: low`
-(founder routing rule in `StartUps/CLAUDE.md`); Fable-pinned agents need the founder's
-approval before they are dispatched.
+(founder routing rule in `StartUps/CLAUDE.md`). Since 2026-11-15 the Fable agents are pinned
+to `claude-fable-5-2` at `effort: medium`, and `implementer-opus-medium` (Opus 5.5, medium)
+builds approved Fable plans; that is the `/forge` route, described in
+[FORGE.md](FORGE.md). The gate pins both model and effort.
 
 | Engineer | Model | Edits? | Territory |
 |---|---|---|---|
@@ -32,10 +34,11 @@ approval before they are dispatched.
 | `deploy-engineer` | opus | yes | `app.json`, `eas.json`, CI, containers |
 | `implementer` | claude-sonnet-5-5 | yes | one bounded step of an approved plan that no specialist owns |
 | `implementer-opus-low` | opus (low effort) | yes | the same, when the step needs more reasoning than Sonnet |
+| `implementer-opus-medium` | opus (medium effort) | yes | the same, as the Fable route's builder for an approved Fable plan |
 | `release-engineer` | opus | **no** | git: branch shape, commit shaping, revert paths |
-| `scaling-engineer` | fable | **no** | nothing. It answers "should we", and usually says no |
+| `scaling-engineer` | claude-fable-5-2 (medium effort) | **no** | nothing. It answers "should we", and usually says no |
 | `product-orchestrator` | opus | yes | phased plan, evidence matrix, ownership, risk and release gates |
-| `repository-archaeologist` | fable | **no** | current-state inventory, duplicates, stale claims, deletion candidates |
+| `repository-archaeologist` | claude-fable-5-2 (medium effort) | **no** | current-state inventory, duplicates, stale claims, deletion candidates |
 | `data-sync-engineer` | opus | yes | Supabase sync, RLS, offline queue, conflicts, migrations |
 | `voice-platform-engineer` | opus | yes | LiveKit, STT/TTS, reconnects, duration and voice cost ceilings |
 | `tutor-behaviour-engineer` | opus | yes | persona, rescues, recasts, safety and voice/text parity |
@@ -45,14 +48,14 @@ approval before they are dispatched.
 | `progress-retention-engineer` | opus | yes | honest progress, goals, reminders and return cues |
 | `design-system-engineer` | opus | yes | tokens, components, motion, accessibility and visual QA |
 | `privacy-safety-engineer` | opus | yes | minimisation, consent, retention, deletion and safety policy |
-| `social-systems-engineer` | fable | **no** | approval gate for social, moderation and abuse systems |
+| `social-systems-engineer` | claude-fable-5-2 (medium effort) | **no** | approval gate for social, moderation and abuse systems |
 | `qa-release-engineer` | opus | **no** | independent product/security/learning/build release evidence |
 | `push-reviewer` | claude-sonnet-5-5 | **no** | one slice (frontend, backend or tests) of a diff about to be pushed, for `/push-check` |
 | `impeccable:impeccable-finish-reviewer` | opus (`model: "opus"` at dispatch), effort high from the plugin | **no** | design review of every frontend push for `/push-check`: slop fixed in the push, redesign ideas asked of the founder. A plugin agent, not pinned by the gate because it lives outside `.claude/agents/` |
-| `backend-architect` | fable | **no** | cross-service contracts and architecture review routing |
-| `database-security-architect` | fable | **no** | auth, RLS, privileged RPCs, migrations and privacy |
-| `voice-reliability-architect` | fable | **no** | admission across jobs, voice/typed input, settlement and recovery |
-| `deployment-architect` | fable | **no** | release evidence, hosting, rollout, SLOs and restore |
+| `backend-architect` | claude-fable-5-2 (medium effort) | **no** | cross-service contracts and architecture review routing |
+| `database-security-architect` | claude-fable-5-2 (medium effort) | **no** | auth, RLS, privileged RPCs, migrations and privacy |
+| `voice-reliability-architect` | claude-fable-5-2 (medium effort) | **no** | admission across jobs, voice/typed input, settlement and recovery |
+| `deployment-architect` | claude-fable-5-2 (medium effort) | **no** | release evidence, hosting, rollout, SLOs and restore |
 
 `packages/core` pedagogy — the ladder, lesson matching, and session summary — is owned by
 `learning-science-engineer`. [ARCHITECTURE.md](ARCHITECTURE.md) still gives each decision

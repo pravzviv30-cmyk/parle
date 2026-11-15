@@ -1,0 +1,188 @@
+{
+  "apps/mobile/src/RecapScreen.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/ReviewScreen.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/SessionView.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/auth/AccountField.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/auth/PasswordMeter.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/auth/ProviderButtonBase.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/auth/SetNewPasswordScreen.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/celebrate/EndScene.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/components.tsx": {
+    "literal-radius": 4
+  },
+  "apps/mobile/src/conversationPacks/ConversationPracticeScreen.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/drill/AnswerSheet.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/drill/DrillFrame.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/drill/FixLineSheet.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/drill/kinds/styles.ts": {
+    "literal-radius": 4
+  },
+  "apps/mobile/src/empty/EmptyStateCard.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/explore/ExploreParts.tsx": {
+    "literal-radius": 16
+  },
+  "apps/mobile/src/game/QuestsCard.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/game/StreakParts.tsx": {
+    "literal-radius": 10
+  },
+  "apps/mobile/src/game/StreakScreen.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/home/TodayHeroes.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/journey/JourneyParts.tsx": {
+    "literal-radius": 23
+  },
+  "apps/mobile/src/legal/TermsScreen.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/live/C2LiveRoom.tsx": {
+    "literal-radius": 10
+  },
+  "apps/mobile/src/live/LiveParts.tsx": {
+    "literal-radius": 8
+  },
+  "apps/mobile/src/live/NotebookParts.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/main/ExploreCollectionScreen.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/main/MainUI.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/nav/LuvaniTabBar.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/nav/TabGlyph.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/nav/TabPill.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/onboarding/BOnboardingParts.tsx": {
+    "literal-radius": 36
+  },
+  "apps/mobile/src/onboarding/BoldChoice.tsx": {
+    "literal-radius": 5
+  },
+  "apps/mobile/src/onboarding/FirstSceneScreen.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/onboarding/FirstSessionResult.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/onboarding/OnboardingLayout.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/onboarding/OnboardingMotion.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/onboarding/PersonalPlan.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/onboarding/PlanEditRow.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/onboarding/TutorSelection.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/onboarding/firstRun/StreakCelebrationScreen.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/practice/FixesParts.tsx": {
+    "literal-radius": 6
+  },
+  "apps/mobile/src/practice/PracticeParts.tsx": {
+    "literal-radius": 24
+  },
+  "apps/mobile/src/recap/KeptPhraseCard.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/recap/RecapParts.tsx": {
+    "literal-radius": 8
+  },
+  "apps/mobile/src/scenes/ScenePreviewScreen.tsx": {
+    "literal-radius": 4
+  },
+  "apps/mobile/src/settings/DisplayPreferences.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/settings/ProfileParts.tsx": {
+    "literal-radius": 5
+  },
+  "apps/mobile/src/settings/SettingsAppearance.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/settings/SettingsGroup.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/soundcheck/SoundCheckScreen.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/streak/StreakFlame.shared.tsx": {
+    "gradient": 2
+  },
+  "apps/mobile/src/tabs/MyFrenchTab.tsx": {
+    "literal-radius": 2
+  },
+  "apps/mobile/src/tabs/TutorTab.tsx": {
+    "literal-radius": 16
+  },
+  "apps/mobile/src/today/TodayParts.tsx": {
+    "literal-radius": 6
+  },
+  "apps/mobile/src/tutor/OrbSurface.tsx": {
+    "gradient": 7
+  },
+  "apps/mobile/src/tutor/Transcript.tsx": {
+    "literal-radius": 5
+  },
+  "apps/mobile/src/wall/WallParts.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/wall/WallPeriodSwitch.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/wall/WallPlansPage.tsx": {
+    "literal-radius": 3
+  },
+  "apps/mobile/src/wall/WallScreen.tsx": {
+    "literal-radius": 1
+  },
+  "apps/mobile/src/wall/wallCopy.ts": {
+    "hype-word": 1
+  },
+  "packages/core/src/daily/words.ts": {
+    "hype-word": 1
+  }
+}
