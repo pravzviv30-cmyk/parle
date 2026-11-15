@@ -86,6 +86,6 @@ test('the newest pause choice survives a busier stale device and ties conservati
   }
 });
 
-test('the pause line names the earlier mistake that ownSlipBrief drops on pause', () => {
+test('the pause line names the earlier mistake', () => {
   assert.match(MEMORY_PAUSE_SUB, /the earlier mistake quoted from your French/);
 });

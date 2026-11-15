@@ -122,6 +122,13 @@ describe('the hosted legal pages — F480', () => {
     }
   });
 
+  test('the titles are tracked like the app, and an anchor jump leaves room above the heading', () => {
+    const html = privacyHtml();
+    assert.match(html, /h1 \{[^}]*letter-spacing: -0\.6px/, 'the title lost the -0.6 tracking DESIGN.md gives it');
+    assert.match(html, /h2 \{[^}]*letter-spacing: -0\.2px/, 'the heading lost the app heading tracking');
+    assert.match(html, /h2 \{[^}]*scroll-margin-top: 1rem/, 'an anchor jump lands flush against the top');
+  });
+
   test('the hosted policy page carries no internal legal review note', () => {
     // F929: the founder uploads dist/ for the App Store listing, which is the
     // production app's notice, so it is rendered as production renders it.

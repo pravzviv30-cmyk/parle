@@ -832,7 +832,15 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(sheet, /const \[scrolled, setScrolled\] = useState\(false\);/, 'the sheet keeps no scrolled state');
     assert.match(sheet, /setScrolled\(event\.nativeEvent\.contentOffset\.y > 0\)/, 'the scrolled state is not driven from the scroll offset');
     assert.match(sheet, /setCue\(false\);\s*setScrolled\(false\);/, 'a closed sheet keeps its title hairline');
-    assert.match(sheet, /scrolled \? \{ borderBottomWidth: HAIRLINE, borderBottomColor: t\.line \} : null/, 'the title row has no hairline in the line token once scrolled');
+    assert.match(sheet, /\{scrolled \? <View style=\{\{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t\.line \}\} \/> : null\}/, 'the title row has no absolute hairline in the line token once scrolled');
+    assert.ok(!/scrolled \? \{ borderBottomWidth/.test(sheet), 'the title row grows by a hairline when it scrolls, so the body jumps');
+  });
+
+  test('the screen header divider is an absolute line at the cut, so toggling it never moves layout', () => {
+    const layout = evidence('apps/mobile/src/layout.tsx');
+    assert.match(layout, /minHeight: HIT \+ space\(7\), flexDirection: 'row', alignItems: 'center', paddingBottom: space\(6\) \}\}/, 'the header row does not fold its 16pt margin into its own height');
+    assert.ok(!layout.includes('borderBottomWidth: props.divider'), 'the header divider is a border that sits 16pt above the cut');
+    assert.match(layout, /\{props\.divider === true \? <View style=\{\{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t\.line \}\} \/> : null\}/, 'the header divider is not an absolute line at the bottom of the row');
   });
 
   test('a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line', () => {

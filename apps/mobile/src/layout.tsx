@@ -403,7 +403,8 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
-    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: t.line, marginBottom: space(4), paddingBottom: space(2) }}>
+    <View style={{ minHeight: HIT + space(7), flexDirection: 'row', alignItems: 'center', paddingBottom: space(6) }}>
+      {props.divider === true ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t.line }} /> : null}
       {back != null ? (
         <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} disabled={back.disabled} appearance={props.backAppearance} />
       ) : (

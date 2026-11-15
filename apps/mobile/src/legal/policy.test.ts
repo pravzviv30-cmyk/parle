@@ -1103,6 +1103,13 @@ describe('Who else sees it splits the language-model paragraph', () => {
     assert.match(pause, /that earlier mistake/);
     assert.match(pause, /curated correction[^.]*pausing does not hold it back/);
   });
+  test('the snapshot still carries the correction when memory is paused', () => {
+    // The sentence "pausing does not hold it back" is true only while the paused
+    // branch spreads the same extras, which hold `previousCorrection`.
+    const memory = readFileSync(fileURLToPath(new URL('../profile/memory.ts', import.meta.url)), 'utf8');
+    assert.match(memory, /const extras = \{[^\n]*previousCorrection: correction/, 'the extras no longer hold the correction');
+    assert.match(memory, /if \(memoryPaused\(named\)\) return \{ \.\.\.named, \.\.\.extras,/, 'the paused snapshot no longer carries the extras, so the sentence about the correction is untrue');
+  });
   test('the email and sign-in sentence ends the live-turn paragraph', () => {
     assert.ok(seen);
     assert.match(seen.body[1] ?? '', /^The language model is sent what you said[\s\S]*Your email and which sign-in you used are never sent to it\.$/);

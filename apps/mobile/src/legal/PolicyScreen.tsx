@@ -38,9 +38,9 @@
  */
 
 import { useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, ScrollView, Text, View, findNodeHandle } from 'react-native';
-import { HIT, space, type } from '../theme.ts';
-import { Card } from '../components.tsx';
+import { AccessibilityInfo, Platform, ScrollView, Text, View, findNodeHandle } from 'react-native';
+import { HIT, decorative, space, type } from '../theme.ts';
+import { Card, Press } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useReduceMotion } from '../motion.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
@@ -57,38 +57,42 @@ export function PolicyScreen({ onBack, links = true }: { onBack: () => void; /**
   // whatever pushed Settings.
   useHardwareBack(true, onBack);
   const scroller = useRef<Scroller>(null);
-  const [offset, setOffset] = useState(0);
+  // Two booleans, not the raw offset, so a scroll that changes neither bails out.
+  const [scrolled, setScrolled] = useState(false);
   // Once the display title has scrolled away, a small one rides the back row.
-  const [titleBottom, setTitleBottom] = useState(Infinity);
+  const [titleGone, setTitleGone] = useState(false);
+  const titleBottom = useRef(Infinity);
+  const offset = useRef(0);
+  const watch = (y: number) => { offset.current = y; setScrolled(y > 0); setTitleGone(y >= titleBottom.current); };
   // Section y within the card, plus the card's own y in the scroll content.
   const cardY = useRef(0);
   const sectionY = useRef<number[]>([]);
   const headings = useRef<(Text | null)[]>([]);
   const jump = (at: number) => {
-    scroller.current?.scrollTo({ y: cardY.current + (sectionY.current[at] ?? 0), animated: !reduced });
+    scroller.current?.scrollTo({ y: Math.max(0, cardY.current + (sectionY.current[at] ?? 0) - space(4)), animated: !reduced });
     const node = headings.current[at] ?? null;
     if (Platform.OS === 'web') { (node as unknown as { focus?: (options?: { preventScroll?: boolean }) => void } | null)?.focus?.({ preventScroll: true }); return; }
     const handle = findNodeHandle(node); if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
   };
-  const small = offset >= titleBottom ? (
-    <Text accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[type.heading, { color: t.text }]}>{POLICY_TITLE}</Text>
+  const small = titleGone ? (
+    <Text {...decorative} style={[type.heading, { color: t.text }]}>{POLICY_TITLE}</Text>
   ) : undefined;
   return (
     <ScrollScreen
       scrollRef={scroller}
-      onScroll={(event) => setOffset(event.nativeEvent.contentOffset.y)}
-      header={<ScreenHeader back={{ onPress: onBack }} title={small} divider={offset > 0} />}
+      onScroll={(event) => watch(event.nativeEvent.contentOffset.y)}
+      header={<ScreenHeader back={{ onPress: onBack }} title={small} divider={scrolled} />}
     >
-      <Text accessibilityRole="header" onLayout={(event) => { const { y, height } = event.nativeEvent.layout; setTitleBottom(y + height); }} style={[type.display, { color: t.text }]}>
+      <Text accessibilityRole="header" onLayout={(event) => { const { y, height } = event.nativeEvent.layout; titleBottom.current = y + height; watch(offset.current); }} style={[type.display, { color: t.text }]}>
         {POLICY_TITLE}
       </Text>
       <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>{POLICY_INTRO}</Text>
       {links ? (
         <View style={{ marginTop: space(3) }}>
           {POLICY_SECTIONS.map((section, at) => (
-            <Pressable key={section.heading} accessibilityRole="link" onPress={() => jump(at)} style={{ minHeight: HIT, justifyContent: 'center' }}>
+            <Press key={section.heading} haptic="light" accessibilityRole="link" onPress={() => jump(at)} style={{ minHeight: HIT, justifyContent: 'center' }}>
               <Text style={[type.body, { color: t.link }]}>{section.heading}</Text>
-            </Pressable>
+            </Press>
           ))}
         </View>
       ) : null}

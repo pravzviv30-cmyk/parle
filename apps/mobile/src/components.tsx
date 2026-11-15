@@ -2054,7 +2054,8 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
             style={[b.sheetPanel, reading && b.sheetReading, surface !== undefined ? { backgroundColor: surface } : undefined, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
-            <View style={[{ flexDirection: 'row', alignItems: 'center', gap: space(3) }, scrolled ? { borderBottomWidth: HAIRLINE, borderBottomColor: t.line } : null]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
+              {scrolled ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t.line }} /> : null}
               <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: ink ?? t.text, flex: 1 }]}>{snapshot.current.title}</Text>
               <IconButton icon="close" label="Close" onPress={onClose} />
             </View>
