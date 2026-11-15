@@ -278,18 +278,23 @@ const MERGE_FLAG_WITH_VALUE = new Set([
   '-b', '--body', '-F', '--body-file', '-t', '--subject', '-R', '--repo', '-A', '--author-email', '--match-head-commit',
 ]);
 
-// `gh pr merge <args>` -> { selector, repo }; null means the current branch's PR.
+// `gh pr merge <args>` -> { selector, repo, auto, matchHead }; a null selector means the current branch's PR.
 export function parseMergeArgs(args) {
   let selector = null;
   let repo = null;
+  let auto = false;
+  let matchHead = null;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '-R' || a === '--repo') repo = args[++i] ?? null;
     else if (a.startsWith('--repo=')) repo = a.slice(7);
+    else if (a === '--match-head-commit') matchHead = args[++i] ?? null;
+    else if (a.startsWith('--match-head-commit=')) matchHead = a.slice(20);
+    else if (a === '--auto') auto = true;
     else if (MERGE_FLAG_WITH_VALUE.has(a)) i++;
     else if (!a.startsWith('-') && selector === null) selector = a;
   }
-  return { selector, repo };
+  return { selector, repo, auto, matchHead };
 }
 
 const baseName = (word) => word.split('/').pop();
@@ -388,7 +393,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     } else if (name === 'gh') {
       if (rest[0] === 'api' && apiWrites(rest.slice(1))) events.push({ kind: 'opaque' });
       const merge = findMerge(rest);
-      if (merge && !merge.some((a) => a === '--help' || a === '-h')) {
+      if (merge) {
         events.push({ kind: 'merge', dir: state.dir, dirKnown: state.known, ...parseMergeArgs(merge) });
       }
     } else if (name === 'git') {
@@ -526,6 +531,10 @@ const GH_REASON =
   'Merge blocked: the guard could not look up the pull request (gh missing, not signed in, or no PR). ' +
   'Run gh pr merge with the PR number from the checkout, after /push-check --main on its head commit.';
 
+const AUTO_REASON =
+  'Merge blocked: gh pr merge --auto merges whatever head the PR has later, not the one checked now. ' +
+  'Merge without --auto after the checks are green, as /land does (or pass --match-head-commit with the checked head).';
+
 // The whole hook decision, with git access injected so it can be tested.
 // Returns null to allow, or { reason } to deny. Unparsable input and non-Bash
 // calls allow; once a command clearly contains a push, anything the guard
@@ -560,6 +569,10 @@ export function hookDecision(input, git) {
         const pr = git.prInfo(ev.dir, ev.selector, ev.repo);
         const sha = pr?.headRefOid ?? '';
         if (!/^[0-9a-f]{40}$/.test(sha) || !Array.isArray(pr.files)) throw new Error('bad PR');
+        if (ev.auto && ev.matchHead !== sha) {
+          deny(AUTO_REASON);
+          continue;
+        }
         // gh lists only a rename's new path, so a local commit is judged by git (--no-renames).
         const frontend = git.hasCommit(ev.dir, sha) ? git.touchesFrontendAt(ev.dir, sha) : touchesFrontend(pr.files);
         const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, true, frontend);

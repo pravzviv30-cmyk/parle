@@ -688,6 +688,20 @@ test('hook: gh pr merge needs a stamp with security on the PR head', () => {
   assert.match(hookDecision(bash('gh pr merge 12'), fakeGit({ pr: prOf() })).reason, /no push check/);
 });
 
+test('hook: help words as flag values are still a merge', () => {
+  for (const cmd of ['gh pr merge 5 --merge --subject --help', 'gh pr merge 5 -t -h', 'gh pr merge 5 -b -h', 'gh pr merge --help']) {
+    assert.match(hookDecision(bash(cmd), fakeGit({ pr: prOf() }))?.reason ?? '', /no push check/, cmd);
+  }
+});
+
+test('hook: gh pr merge --auto needs --match-head-commit equal to the PR head', () => {
+  const g = fakeGit({ pr: prOf(), stamps: { [PR_SHA]: stampOf({ security: 'pass' }, 'pass', PR_SHA) } });
+  for (const cmd of ['gh pr merge 12 --auto --merge', `gh pr merge 12 --auto --match-head-commit ${'c'.repeat(40)}`]) {
+    assert.match(hookDecision(bash(cmd), g)?.reason ?? '', /without --auto/, cmd);
+  }
+  assert.equal(hookDecision(bash(`gh pr merge 12 --auto --match-head-commit ${PR_SHA}`), g), null);
+});
+
 test('hook: gh pr merge with frontend files needs Impeccable and unslop', () => {
   const pr = prOf(['apps/mobile/a.tsx']);
   const at = (checks) => fakeGit({ pr, stamps: { [PR_SHA]: stampOf({ security: 'pass', ...checks }, 'pass', PR_SHA) } });
@@ -763,7 +777,7 @@ test('hook: gh api writes that merge or move refs deny, reads allow', () => {
   ]) {
     assert.ok(hookDecision(bash(cmd), fakeGit()), cmd);
   }
-  for (const cmd of ['gh api repos/o/r/pulls/3/merge', 'gh api repos/o/r/git/refs/heads/main', 'gh api repos/o/r/contents/a.txt', 'gh pr merge --help', 'gh pr merge -h']) {
+  for (const cmd of ['gh api repos/o/r/pulls/3/merge', 'gh api repos/o/r/git/refs/heads/main', 'gh api repos/o/r/contents/a.txt']) {
     assert.equal(hookDecision(bash(cmd), fakeGit()), null, cmd);
   }
 });
