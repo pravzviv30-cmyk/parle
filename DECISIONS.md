@@ -2266,12 +2266,13 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   to let Flux own the turn. Numbers and the live replay are in `docs/LIVE_VOICE.md`
   "English answers and the recogniser". F964.
 
-## UI-021 — Privacy: four short paragraphs, the title in the back row once scrolled, full ink, section links
+## UI-022 — Privacy: four short paragraphs, the title in the back row once scrolled, full ink, section links
 
 - Date: 2026-11-10
 - Status: accepted (founder picked direction C on the Privacy board and approved every
   changed sentence as written). Board https://claude.ai/artifact/BNXptj7mu6f7tZG8RZTrkQ.
-  Numbered UI-021 because UI-020 belongs to `claude/recap`, which lands first.
+  Numbered UI-022 because UI-020 belongs to `claude/recap` and UI-021 to onboarding
+  (a18bfb07), which land first.
 - Context: ten privacy items. Five were already yes (2026-11-06) with the toast edge;
   four ideas of 2026-11-07 were queued for a board because two competed with them.
   The board showed they compete less than they seemed: one row per service would have
