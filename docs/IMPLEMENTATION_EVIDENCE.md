@@ -32,7 +32,7 @@ of the list.
   showed the café scene carrying the café note and slip, the cinema scene re-ranking, the tutor
   coaching a repeated slip once and never bringing up past mistakes. /security-review found nothing.
   **7,615 tests, 0 failing**; core 1152, brain 803, tutor agent 908, token server 530, playground 110,
-  mobile 4112; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4112; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 6 November 2026 Voice, VOICE-020 (numbers in words, one filler rule): branch `claude/voice-prompt`
   from main 34eae927, with main merged at 17ed8942. Prompt text only: the persona, the lesson prompt,
   the scene builder's opening lines and the coach's spoken better form say numbers in words in the
@@ -41,7 +41,7 @@ of the list.
   replay (`scripts/measureLiveTurn.mjs`) showed 0 digits in 9 spoken turns and the scene's own price
   kept once the examples were dropped. /security-review found nothing.
   **7,582 tests, 0 failing**; core 1152, brain 784, tutor agent 894, token server 530, playground 110,
-  mobile 4112; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4112; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 4 November 2026 Mascots and play, brief 4 (4A, quiet moments, UI-019): branch `claude/quiet-moments`
   from main 34eae927. Cloud's hold and rest poses with toned marks; the phrasebook with nothing kept and
   Speak out of the free conversation on centre stage; the posed cheer on the two nothing-to-review cards;
@@ -50,7 +50,7 @@ of the list.
   fixed; round 2 HOLDS. The iOS dark check found hold's arms vanishing in cream ink, fixed. Shots in
   `artifacts/quiet-moments-2026-11/` at 320 and 375, light and dark, and the iPhone 13 mini.
   **7,576 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
-  mobile 4112; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4112; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 3 November 2026 Mascots and play, brief 1 (1C, the cast, UI-019): branch `claude/cast` from main
   a90ed36b, with main merged at 4ff3aff2 and at 98cd8098 (phone-fixes). Cloud's listen and cheer poses, limbs in the screen's ink and
   the listen arcs in the theme's link colour; a blink while a speak drill's mic is live (paused off the
@@ -62,7 +62,7 @@ of the list.
   in `artifacts/cast-2026-11/`, web at 320 and 375 light and dark, and the iPhone 13 mini simulator
   (blink recording, Reduce Motion, mid-hop, dark).
   **7,557 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
-  mobile 4093; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4093; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 3 November 2026 Phone-check fixes (UI-017, UI-018): branch `claude/phone-fixes` from main a90ed36b,
   merged with main 4ff3aff2. Today's greeting and name share one line when the name fits, the name
   capitalised and drawn over the clouds; the selected tab icon is drawn once and only lifts, so it
@@ -83,7 +83,7 @@ of the list.
   words), the drag guards and RHYTHM are pinned, and one `CAPSULE_HEIGHT` serves the bar and the
   fallback; four Impeccable proposals are logged in `docs/DESIGN_PARTNERSHIP.md`.
   **7,536 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
-  mobile 4072; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4072; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 2 November 2026 Bug fixes after screens 1 to 3: branch `claude/bug-fix` from main cc60bce7. F950
   generated tap-translate items carry a required `fr` display line, validated like authored ones;
   F951 the speak drill's quiet control is named by its visible words; F952 stays open (three
@@ -97,7 +97,7 @@ of the list.
   item. Before and after shots in `artifacts/bug-fix-2026-11/` at 320 and 375, light and dark, and
   the iPhone 17 Pro simulator at Large and accessibility-large.
   **7,521 tests, 0 failing**; core 1152, brain 779, tutor agent 893, token server 530, playground 110,
-  mobile 4057; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4057; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 1 November 2026 Finish-off tidy: branch `claude/finish-tidy` from main fdeeed2b. No learner-visible
   change. The TodayParts and LiveParts require cycle is broken (`main/bMarks.tsx`; Metro no longer warns);
   dead code deleted after proving no live importer: `QUIET_DOOR`, `OPEN_MIC_LABEL`, `SpeakerSlowGlyph`,
@@ -109,7 +109,7 @@ of the list.
   light and dark, and every tab of the real app on a fresh canvas learner, with no console errors and no
   require-cycle warning.
   **7,510 tests, 0 failing**; core 1151, brain 774, tutor agent 893, token server 530, playground 110,
-  mobile 4052; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4052; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
 - 1 November 2026 Finish-off fixes after screens 1 to 3: branch `claude/finish-fixes` from main
   06b5ac8d, merged with eafb382f (the Impeccable step). F948 Today's starter-line sheet on theme
   colours in dark (reproduced on main first); tap-translate items carry an authored `fr` display
@@ -127,7 +127,7 @@ of the list.
   today-held, today-starter-feedback and today-plans-past added for the captures; four redesign
   proposals logged for the founder.
   **7,504 tests, 0 failing**; core 1151, brain 774, tutor agent 893, token server 530, playground 110,
-  mobile 4046; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4046; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
   Not verified: VoiceOver on device, a physical iPhone, a speak drill with a real microphone.
 - 31 October 2026 drill and practice B v2 (UI-016, LEARN-018): branch `claude/drill-b` from main
   64f6a2cc, with main 9c7ad093 (Today, `LipTile`) merged in. Every drill and practice surface is
@@ -145,7 +145,7 @@ of the list.
   findings fixed (sound drill labels and track contrast, blank punctuation, chip growth, dead code,
   pins), nothing above low left.
   **7,449 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
-  mobile 4030; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 4030; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
   Not verified: VoiceOver on device, a physical iPhone, a speak drill with a real microphone.
 - 31 October 2026 Today as A's morning sky (UI-015): branch `claude/today-sky` from main d1b216c3
   (rebased on 64f6a2cc, the /push-check landing). Today opens on a sky that follows the hour,
@@ -157,7 +157,7 @@ of the list.
   two push-reviewers and /code-review, findings fixed. Native iPhone 17 Pro simulator at normal
   and accessibility-large text and with reduced motion.
   **7,360 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
-  mobile 3941; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 3941; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
   Not verified: VoiceOver on device, a physical iPhone, a live tutor session from Today (the local
   token server was not running, so the scene lead was checked through the preview keys).
 - 30 October 2026 live room direction D (UI-014): branch `claude/live-room-d` from main e9030f7e.
@@ -168,7 +168,7 @@ of the list.
   did not tick in either, so that is pre-existing. Native iPhone 17 Pro simulator, including
   accessibility-large text.
   **7,319 tests, 0 failing**; core 1113, brain 773, tutor agent 893, token server 530, playground 110,
-  mobile 3900; all 44 migrations replayed, no migration added. Floors raised through `gate:bless`.
+  mobile 3900; all 44 then-current migrations replayed, no migration added. Floors raised through `gate:bless`.
   On 2026-10-31 the founder approved the 144 short goal labels as drafted; they fill
   `shortGoals.ts`, and a new test fails for any beat without one.
   Not verified: VoiceOver on device, a physical iPhone.
@@ -181,7 +181,7 @@ of the list.
   dark, the 320 welcome, keyboard Tab and Space, sign-up fields and form, sign-out and sign-in
   landing, the café role line, free talk with no prompt text, 24 live seconds).
   **7,272 tests, 0 failing**; core 1109, brain 773, tutor agent 893, token server 530, playground 110,
-  mobile 3857; all 44 migrations replayed, no migration added; mobile suite also green with the
+  mobile 3857; all 44 then-current migrations replayed, no migration added; mobile suite also green with the
   clock 45 days ahead. Floors raised through `gate:bless`. Not verified: iOS rendering, Dynamic
   Type, a real password manager save prompt, the production Settings screen on screen (the
   production bundle was checked instead).
@@ -192,7 +192,7 @@ of the list.
   (review back on Today); live replay of every finding against the local stack (one typed
   conversation), which showed Today, Journey and Practice agreeing after real practice.
   **7,225 tests, 0 failing**; core 1105, brain 773, tutor agent 887, token server 527, playground 110,
-  mobile 3823; all 44 migrations replayed, no migration added; mobile suite also green with the
+  mobile 3823; all 44 then-current migrations replayed, no migration added; mobile suite also green with the
   clock 45 days ahead. Floors raised through `gate:bless`. Not verified: native network status
   (React Native has no navigator.onLine, so native always says it cannot reach the tutor), iOS
   rendering.
@@ -203,7 +203,7 @@ of the list.
   ahead); live replay of every finding against the local stack (guest scenes only, no completed live
   minutes), which caught the plan and Home naming different first scenes. **7,178 tests, 0 failing**;
   core 1099, brain 773, tutor agent 887, token server 527, playground 110, mobile 3782; shared
-  release/provider proofs 207; all 44 migrations replayed, no migration added; mobile suite also green
+  release/provider proofs 207; all 44 then-current migrations replayed, no migration added; mobile suite also green
   with the clock 45 days ahead. Floors raised through `gate:bless`. Reverses F352 (no visible back) and
   the deliberate tutor pick. Not verified: native back gestures and iOS/Android rendering.
 - 29 October 2026 product-review fixes, Stream B (fair paywall and billing truth): branch
@@ -213,7 +213,7 @@ of the list.
   F908/F909, capabilities.ts for F913); live replay of every finding against a local token server
   with the file entitlement store and the store preview (about 15 live tutor seconds). **7,151 tests,
   0 failing**; core 1096, brain 770, tutor agent 887, token server 527, playground 110, mobile 3761;
-  shared release/provider proofs 207; all 44 migrations replayed, no migration added. Floors raised
+  shared release/provider proofs 207; all 44 then-current migrations replayed, no migration added. Floors raised
   through `gate:bless`. F933 filed open. Not verified: native store reads (renewal date, error codes 3
   and 5, Manage and Restore), which wait for sandbox purchases. Deploy order: token server, then app.
 - 29 October 2026 product-review fixes, Stream A (honest session loop): branch
@@ -221,20 +221,20 @@ of the list.
   with its named tests; three fix-verifier rounds; `eval:sessions` identical to its baseline and the
   curated model eval 17 ok, 0 hard failures; live replay against a local token server and tutor agent
   (about 6 live minutes). **7,105 tests, 0 failing**; core 1096, brain 770, tutor agent 887, token server
-  524, playground 110, mobile 3718; shared release/provider proofs 207; all 44 migrations replayed, no
+  524, playground 110, mobile 3718; shared release/provider proofs 207; all 44 then-current migrations replayed, no
   migration added. Floors raised through `gate:bless`. Not verified: real speech on a device, staging.
   Deploy order: token server, then tutor agent, then app.
 - 28 October 2026 forget and card notes, landed after Phase D: branch `claude/forget-pack-copies` with
   main 23693ceb (Phase D) merged in. F897 closed as superseded by F902; the F902 guard test's facts now
   carry `source` and `updatedAt`. **7,000 tests, 0 failing**; core 1092, brain 714, tutor agent 880,
-  token server 519, playground 110, mobile 3685; shared release/provider proofs 207; all 44 migrations
+  token server 519, playground 110, mobile 3685; shared release/provider proofs 207; all 44 then-current migrations
   replayed, no migration added. Floors raised through `gate:bless`.
 - 28 October 2026 forget and card notes, on branch `claude/forget-pack-copies` from main af36034b:
   a guard test that the pack builder never reads the memory list, a line after forgetting that saved
   conversations stay and can be deleted in Journey, card notes that name their conversation by
   `contextPackId`, and a cleared name that wins every deck merge (LEARN-015, LEARN-016, F878, F882,
   F902). **6,831 tests, 0 failing**; core 1092, brain 555, tutor agent 876, token server 519,
-  playground 110, mobile 3679; shared release/provider proofs 207; all 44 migrations replayed, no
+  playground 110, mobile 3679; shared release/provider proofs 207; all 44 then-current migrations replayed, no
   migration added. Floors raised through `gate:bless`. A read-only review fuzzed the deck merge with
   200,000 random triples: commutative, idempotent and associative, and no cleared name came back.
 - 28 October 2026 Phase D, memory trust, on branch `claude/phase-d-memory` from main 286723d8 (main
@@ -243,7 +243,7 @@ of the list.
   goals moved out of `memory.facts` with the recap goal leak fixed, and a brief that labels each note's
   source and checks the unconfirmed ones (LEARN-007 to LEARN-010, F893 to F897, F897 open as a
   follow-up). **6,991 tests, 0 failing**; core 1088, brain 714, tutor agent 879, token server 519,
-  playground 110, mobile 3681; shared release/provider proofs 207; all 44 migrations replayed, no
+  playground 110, mobile 3681; shared release/provider proofs 207; all 44 then-current migrations replayed, no
   migration added. Floors raised through `gate:bless`. `eval:sessions` output identical before and
   after the brief change; the memory screen origin lines were seen on Expo web with the canvas learner.
 - 28 October 2026 Phase F, cost and measurement, on branch `claude/phase-f-cost` (main 7b3c38ca merged
@@ -251,19 +251,19 @@ of the list.
   `LUVANI_JUDGE_MEMO`, practice, validation and session cost JSON lines, and the offline
   `eval:cost-numbers` aggregator (COST-001 to COST-004, F898 to F901). **6,822 tests, 0 failing**; core
   1088, brain 555, tutor agent 875, token server 519, playground 110, mobile 3675; shared
-  release/provider proofs 207; all 44 migrations replayed, no migration added. Floors raised through
+  release/provider proofs 207; all 44 then-current migrations replayed, no migration added. Floors raised through
   `gate:bless`. `eval:extract` ran live (about $0.21); no model was switched and nothing was deployed.
 - 28 October 2026 Phase E, progress that shows improvement, on branch `claude/phase-e-progress` from main
   286723d8: Journey "How it's going" (Getting better at, Needs another go), the profile's credit rule
   aligned with the end card, pattern examples clamped, snapshot byte budget with keep-unsent write-back
   (LEARN-011 to LEARN-014, F888 to F892). **6,782 tests, 0 failing**; core 1088, brain 555, tutor agent
-  873, token server 499, playground 92, mobile 3675; shared release/provider proofs 207; all 44
+  873, token server 499, playground 92, mobile 3675; shared release/provider proofs 207; all 44 then-current
   migrations replayed, no migration added. Floors raised through `gate:bless`. The new section was seen
   in the web dev preview at 375 pt in light and dark; not seen on a device or in a live session.
 - 27 October 2026 staging unblockers on main (branch `claude/staging-unblockers`): decode-only FFmpeg
   image recipe and workflow (DEPLOY-001), Cloudflare deletion journal (DEPLOY-002), price-quote generator
   (DEPLOY-003) and the voice-error worker crash fix (F884). **6,736 tests, 0 failing**; core 1088, brain 534,
-  tutor agent 872, token server 493, playground 92, mobile 3657; shared release/provider proofs 206; all 44
+  tutor agent 872, token server 493, playground 92, mobile 3657; shared release/provider proofs 206; all 44 then-current
   migrations replayed, no migration added. Floors raised through `gate:bless`. The decoder image has not been
   built, the journal is not deployed and the quotes are not applied: those are founder and staging steps.
 - 26 October 2026 learning loop (LEARN-001 to LEARN-006, F871 to F881) on branch
@@ -273,7 +273,7 @@ of the list.
   shared drill filter, deleted conversation names leave cards, evidence-aware session brief,
   weakest scene targets first, transfer asks for wins. **6,731 tests, 0 failing**; core 1088,
   brain 533, tutor agent 868, token server 493, playground 92, mobile 3657; shared
-  release/provider proofs 184; all 44 migrations replayed, one migration added. Floors raised
+  release/provider proofs 184; all 44 then-current migrations replayed, one migration added. Floors raised
   through `gate:bless`. `eval:sessions` output identical before and after. Not seen on a
   device, in a live LiveKit session, or against a hosted database.
 - 25 October 2026 data-boundary quota proof made clock-safe on branch `claude/quota-minute-flake`
@@ -1319,7 +1319,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **44 migrations** for a fresh full schema, applied once in order from
+There are **45 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -1407,6 +1407,7 @@ There are **44 migrations** for a fresh full schema, applied once in order from
 42. `20261022200000_speech_dataset_clips.sql`, inert speech-dataset groundwork: the service-only `speech_dataset_clips` table, metadata only (no audio, no transcript, no free text). RLS on, no policies, every privilege revoked from public, anon, authenticated and service_role, then service_role gets only select, delete and a column insert without `captured_at`, so there is no update or truncate and `captured_at` is always `now()`. Closed jsonb shapes (phonemes: strings of 1..8 chars; scores: core's PhonemeObservation keys only), a non-blank reference line without control characters, `object_path = <user_id>/<id>.wav`, an expiry at most 24 months after capture, named check constraints, and an account-deletion cascade. Disposable SQL proofs in `scripts/verifyDataBoundaries.mjs` (with simulated hosted defaults granting ALL) refuse client reads and writes, service_role update, truncate and captured_at inserts, and each out-of-range row by constraint name, accept exactly 24 months and a valid observation, and prove the rollback refuses by default, drops when authorised, and the migration re-applies twice. Prepared, not applied live, and nothing writes to it until the legal review in docs/changes/speech-dataset.md. Roll it back first, before 41, using its guarded destructive rollback.
 43. `20261023220000_daily_free_allowance.sql`, REV-001: `tutor_cap_v1` becomes trial 600, starter 18000, regular 36000; the free window refills 44 hours after its first debit; `begin_billing_refresh` spends its unclaimed row at the cap; the six-argument `apply_billing_projection` clamps with `tutor_cap_v1`. Pre-launch backfill raises unclaimed spent rows to 600 and cuts longer running windows to 44 hours, keeping each row's usage epoch. Requires 40 and 41, never 42. `scripts/verifyTutorSessions.mjs` proves the 44-hour boundary, the 480/481 floor, the paid clamps and grants, idempotence, a replay without 42, and the interlocked rollback (`luvani.reopen_weekly_taste`) and re-apply. Prepared, not applied live. Roll it back before 41.
 44. `20261026090000_practice_completion_signal.sql`, LEARN-004: `receive_conversation_practice` completes a job only on a generated (non-`translate`) exercise, and `finish_conversation_practice` stores the worker's drills first, then the stored built-in translations, de-duplicated by id, at most 24, through the closed helper `luvani_private.practice_exercises_v1`. No data change; independent of 40 to 43. `scripts/verifyPracticeCompletion.mjs` proves pending on built-ins only, complete on a generated drill, the merge, tombstone and owner fence, and the rollback (`supabase/rollback/20261026090000_down.sql`) run twice and re-applied. Prepared, not applied live. Packs already marked complete are not re-queued.
+45. `20261110120000_tutor_pack_learner_replies.sql`, F970: `luvani_private.tutor_pack_v1` allows `learnerReplies` (JSON integer 0..9007199254740991, absent allowed), which F904's packs carry and whose refusal ended every signed-in conversation at its first checkpoint. No data change. `scripts/verifyTutorSessions.mjs` proves 0 and 2 accepted, negative, fraction, string, null and above-bound refused, other unknown keys still refused, and the rollback (`supabase/rollback/20261110120000_down.sql`) run twice and re-applied twice. Prepared, not applied live.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

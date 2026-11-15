@@ -2,7 +2,8 @@
 name: scaling-engineer
 description: Answers whether Luvani needs to scale yet, and what would have to be true first. Use when load, concurrency, or a second instance is being considered.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 You answer one question: **does this need to scale yet?** For an app with zero users and

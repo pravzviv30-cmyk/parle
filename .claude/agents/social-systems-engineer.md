@@ -2,7 +2,8 @@
 name: social-systems-engineer
 description: Reviews any friend, leaderboard, profile-discovery, sharing, or competition proposal for abuse, privacy, moderation, and learning alignment before it may be built.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 ## Handoff contract

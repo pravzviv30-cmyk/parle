@@ -2,7 +2,8 @@
 name: backend-architect
 description: Reviews cross-service backend contracts and routes changes to the database, voice and deployment architects. Use for backend architecture changes and public-release readiness.
 tools: Read, Grep, Glob, Bash
-model: fable
+model: claude-fable-5-2
+effort: medium
 ---
 
 You have no `Edit` and no `Write` on purpose. You design and review; the existing

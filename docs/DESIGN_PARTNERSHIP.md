@@ -40,7 +40,9 @@ systemic, not one screen at a time:
 3. **Decision.** Recorded as a `DECISIONS.md` UI entry, plus a line in the taste log
    below.
 4. **Build.** An implementer works in a worktree to an exact spec. A change to a shared
-   part names its blast radius first.
+   part names its blast radius first. Since 2026-11-15, every UI build follows
+   `.claude/skills/unslop/SKILL.md` (adapted from heydamir/unslop): its audit, nine passes
+   and checklist. This doc's picks and DESIGN.md win any clash.
 5. **Inspect.** On the iOS simulator and on web, at 320 and 375 pt, light and dark,
    large text and reduced motion. Claude fixes the top defects in one pass and shows
    before and after. Anything not inspected is said to be unverified.
@@ -102,6 +104,8 @@ becomes a principle once it holds across two or more screens.
 | 2026-11-04 | Quiet moments (4A): centre stage on the two drawn screens (the phrasebook with nothing kept, Speak out of the free conversation), and the two nothing-to-review cards take the posed Cloud cheer so its arms show in dark mode. Other empty states keep their cards. | Founder, answer inside 4A |
 | 2026-11-04 | On Speak the quiet moment replaces the out-of-time card in place, See the plans in flow; the scene hero and the rest of Speak wait for the Speak tab redesign. | Founder, answer inside 4A |
 | 2026-11-06 | Profile and Settings: a mix, Direction A's Settings (one page, five groups, Account and Your plan as top rows, legal in one About Luvani page) with Direction B's Profile (identity and the stage word on a blue band). The plan leaves Profile and shows in Settings only; the name, tutor voice and display sheets become the phone's own sheet; Friends stays in Profile's More group. | Founder, [Profile and Settings board](https://claude.ai/artifact/XsB1g1G2V8t4j244S5P8zS) |
+| 2026-11-10 | Onboarding is "Luvani, cozy bold": cream paper for the work with the soft sky as a rounded window; full-bleed deep morning sky with the sun pill for Welcome, Well done and the account welcome; chunky raised tiles like Today's stat tiles; the plan as a tilted café postcard. Within it: the refined Outfit ramp (no Black or ExtraBold; the display line stays Bold), Outfit only (no French serif), the radius rule (pills, cards 20, tiles 18, inputs 14), continuous corners and a subtle lip on the ink pill. | Founder, [onboarding board](https://claude.ai/artifact/PwjxQYEPToJ1Bw31A4hpjq), v2 picked over v1 (UI-021) |
+| 2026-11-10 | Onboarding keeps the account welcome page; Today's arrival sheet replaces only the violet streak pop-up; no plans wall during the arrival session; the tutor keeps its own page; Welcome greets by the hour; a line from the founder on Well done. | Founder, onboarding board (UI-021) |
 | 2026-11-10 | Privacy: direction C. "Who else sees it" in four short paragraphs, the earlier mistake beside the curated correction and the difference said once (not one row per service); once scrolled, Privacy moves into the back-disc row with a hairline; body text in full ink; section links under the intro; the Profile pause line reworded to name the earlier mistake. Every changed sentence approved as written. | Founder, [Privacy board](https://claude.ai/artifact/BNXptj7mu6f7tZG8RZTrkQ) |
 
 Working principles drawn from these (to confirm on the first screens):
@@ -120,7 +124,7 @@ Working principles drawn from these (to confirm on the first screens):
 | 3 | Drill and practice feedback | Landed on main at `06b5ac8d` (UI-016, LEARN-018, [changes/drill-b.md](changes/drill-b.md)); open items finished on main at `fdeeed2b` |
 | 4 | Conversation recap | Next, one design session then one build session |
 | 5 | Systemic pass: one card family, eyebrow labels folded into headings, one quiet-action style and radius tokens. Folds in most of the 11 open push-check proposals and re-counts, before and after (apps/mobile/src, tests excluded): literal borderRadius values (244 on 0483a80a), eyebrows (75), Card/Tile/Hero exports (64), Button/Pill components (21), Row components (31), files on ScrollScreen (65) | Queued |
-| 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued |
+| 6 | Onboarding: the road to first spoken French, 12 screens from launch to the first scene | Queued; design decided (UI-021, [board](https://claude.ai/artifact/PwjxQYEPToJ1Bw31A4hpjq)); the build waits on the recap, the systemic pass, the founder's go and the 3-beginner baseline |
 | 7 | Speak tab (choose a scene) | Queued |
 | 8 | Practice tab hub | Queued |
 | 9 | Journey (My French) | Queued |
@@ -140,9 +144,10 @@ show where you went.
 
 ## Proposals from push-check
 
-The Impeccable reviewer in `/push-check` looks at every frontend push. What breaks our own
-rules it fixes in the push; redesign ideas it would not apply land here, and the founder
-chooses per row. A screen's redesign session reads its rows here before its brief.
+The Impeccable reviewer in `/push-check` looks at every frontend push, and since 2026-11-15 so
+does `unslop-reviewer`. What breaks our own rules they fix in the push; redesign ideas they
+would not apply land here, with the reviewer named in the row, and the founder chooses per
+row. A screen's redesign session reads its rows here before its brief.
 
 | Date | Screen | Problem | Direction | Branch | State |
 |---|---|---|---|---|---|
@@ -195,10 +200,10 @@ chooses per row. A screen's redesign session reads its rows here before its brie
 | 2026-11-07 | Privacy, top scroll edge | At 375 the text slides under the opaque band behind the back disc and is cut through a line, which reads as clipped rather than designed. | Once the display title scrolls away, collapse it into a small title in the back-disc row with a hairline in the existing border token. | `claude/adaptive-interruption` | yes (founder, Privacy board, 2026-11-10), building on `claude/privacy` |
 | 2026-11-07 | Privacy, body colour | The whole notice is set in `t.muted` (`PolicyScreen.tsx:76`); it passes contrast but is the weakest reading for a long legal text. | `t.text` for section bodies, `t.muted` for the intro line only. | `claude/adaptive-interruption` | yes (founder, Privacy board, 2026-11-10), building on `claude/privacy` |
 | 2026-11-07 | Privacy, length | With eight or more sections, reaching "Who else sees it" is a long scroll. | A short list of section headings under the intro, each jumping to its section; plain text rows, no numbers, no eyebrows. | `claude/adaptive-interruption` | yes, on the screen and the web page (founder, Privacy board, 2026-11-10), building on `claude/privacy` |
-| 2026-11-08 | Today hero and path, eyebrows | "Next scene, 2 of 3" and "Today's phrase" are small accent labels above a heading; DESIGN.md endorses eyebrows, the Impeccable floor bans them. | The drawing tile and the family's stage tint carry the category, the position joins the meta line ("About 3 minutes, scene 2 of 3"), the heading stands alone. | `claude/council-fixes` | asked, no answer yet |
-| 2026-11-08 | Today, held state | The "speaking time used" hero is a white card holding a tinted LipTile: two surfaces compete and the card is the default container. | Set the sentence on the paper and let the "Review 4 phrases" LipTile be the single focal point, as a game button. | `claude/council-fixes` | asked, no answer yet |
-| 2026-11-08 | Today, tutor unreachable | A full ink "Start speaking" pill sits above a line saying the tutor can't connect, with "Type instead" and "Check again" also present: three ways forward and the main one is likely to fail. | While the tutor is unreachable the primary pill becomes the offline line practice and "Check again" stays the one quiet link. | `claude/council-fixes` | asked, no answer yet |
-| 2026-11-08 | Guest live room, dark header | The band keeps full-chroma morning indigo above a near-black sheet, the hottest contrast in the app. | In dark mode the room header takes `sky.dark.day.ground`, as Today does, so the room and Today read as one sky. | `claude/council-fixes` | asked, no answer yet |
+| 2026-11-08 | Today hero and path, eyebrows | "Next scene, 2 of 3" and "Today's phrase" are small accent labels above a heading; DESIGN.md endorses eyebrows, the Impeccable floor bans them. | The drawing tile and the family's stage tint carry the category, the position joins the meta line ("About 3 minutes, scene 2 of 3"), the heading stands alone. | `claude/council-fixes` | yes, into the systemic pass, queue 5 (founder, 2026-11-10) |
+| 2026-11-08 | Today, held state | The "speaking time used" hero is a white card holding a tinted LipTile: two surfaces compete and the card is the default container. | Set the sentence on the paper and let the "Review 4 phrases" LipTile be the single focal point, as a game button. | `claude/council-fixes` | yes, into the systemic pass, queue 5 (founder, 2026-11-10) |
+| 2026-11-08 | Today, tutor unreachable | A full ink "Start speaking" pill sits above a line saying the tutor can't connect, with "Type instead" and "Check again" also present: three ways forward and the main one is likely to fail. | While the tutor is unreachable the primary pill becomes the offline line practice and "Check again" stays the one quiet link. | `claude/council-fixes` | yes, into the systemic pass, queue 5 (founder, 2026-11-10) |
+| 2026-11-08 | Guest live room, dark header | The band keeps full-chroma morning indigo above a near-black sheet, the hottest contrast in the app. | In dark mode the room header takes `sky.dark.day.ground`, as Today does, so the room and Today read as one sky. | `claude/council-fixes` | queued for a board, with the dark rows of 2026-11-07 (founder, 2026-11-10) |
 | 2026-11-10 | Privacy screen, top | At 320 the twelve accent section links fill everything under the intro, so the list becomes the focal point and none of the document shows in the first screen. | Draw the list as a `Ledger` in ink with the faint chevron, or fold it into one "Jump to a section" row that opens a reading `Sheet` with the list, so the screen keeps one focal point. | `claude/privacy` | asked, no answer yet |
 | 2026-11-10 | Privacy notice inside the sign-up and first-run sheets | The sheet says "Privacy Policy" with a close mark, and inside it the screen says "Privacy" with its own back disc: two names and two ways out for one document, over a white sheet, the cream screen and a white card (already so on main). | A reading sheet that renders only the title and the document body on the sheet's own surface, no inset ground, keeping the new title hairline. | `claude/privacy` | asked, no answer yet |
 | 2026-11-10 | Memory page, pause row | At 320 the pause line runs eight lines beside the switch, so the row is heavy and the switch sits far from its label. | The title and one short sentence beside the switch, with the full list under the existing "What memory uses" disclosure; the founder's words stay, only placed differently. | `claude/privacy` | asked, no answer yet |
