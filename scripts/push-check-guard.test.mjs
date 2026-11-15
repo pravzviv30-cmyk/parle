@@ -32,8 +32,9 @@ const stampOf = (checks, result = 'pass', sha = SHA) => ({
 // A fake git. `refs` maps a ref to its sha (anything else resolves to SHA);
 // `stamps` maps a sha to its stamp; `stamp` is shorthand for stamps[SHA];
 // `missing` lists refs that do not exist; `tags` lists tag-only names.
-function fakeGit({ stamp = null, stamps = {}, refs = {}, missing = [], tags = [], branch = 'claude/today-sky', frontend = false, codePaths = [], pr = null } = {}) {
+function fakeGit({ stamp = null, stamps = {}, refs = {}, missing = [], tags = [], branch = 'claude/today-sky', frontend = false, codePaths = [], pr = null, local = false } = {}) {
   return {
+    hasCommit: () => local,
     codePathsAt: () => codePaths,
     prInfo: (_dir, selector, repo) => {
       if (typeof pr === 'function') return pr(selector, repo);
@@ -661,7 +662,7 @@ test('end to end: a code commit pushed to main is refused, a docs commit is allo
 // ---- gh pr merge (founder, 2026-11-15) ----
 
 const PR_SHA = 'b'.repeat(40);
-const prOf = (files = ['scripts/x.mjs'], base = 'main') => ({ headRefOid: PR_SHA, files, baseRefName: base });
+const prOf = (files = ['scripts/x.mjs']) => ({ headRefOid: PR_SHA, files, headRefName: 'claude/feat' });
 
 test('hook: gh pr merge needs a stamp with security on the PR head', () => {
   const seen = [];
@@ -711,6 +712,58 @@ test('hook: opaque gh merges are denied, other gh commands are not', () => {
     assert.ok(hookDecision(bash(cmd), fakeGit({ pr: prOf() })), cmd);
   }
   for (const cmd of ['gh pr view 12', 'gh pr create --base main', 'gh pr checks 12 --watch', 'gh api repos/o/r/pulls/12', 'git merge feat']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, cmd);
+  }
+});
+
+// ---- push-check review findings (2026-11-15) ----
+
+test('hook: a repo flag before merge still finds the merge', () => {
+  for (const [cmd, repo] of [
+    ['gh pr -R owner/repo merge 12', 'owner/repo'],
+    ['gh pr --repo owner/repo merge 12', 'owner/repo'],
+    ['gh pr --repo=owner/repo merge 12', 'owner/repo'],
+    ['gh --repo x pr merge 12', 'x'],
+    ['gh -R x pr merge 12', 'x'],
+  ]) {
+    const seen = [];
+    const d = hookDecision(bash(cmd), fakeGit({ pr: (sel, r) => (seen.push([sel, r]), prOf()) }));
+    assert.match(d?.reason ?? '', /no push check/, cmd);
+    assert.deepEqual(seen[0], ['12', repo], cmd);
+  }
+});
+
+test('hook: an error reading the stamp for a merge denies', () => {
+  const g = { ...fakeGit({ pr: prOf() }), readStamp: () => { throw new Error('not a git repo'); } };
+  assert.ok(hookDecision(bash('gh pr merge 12'), g));
+});
+
+test('hook: the merge deny names the head branch, not the base', () => {
+  const d = hookDecision(bash('gh pr merge 12'), fakeGit({ pr: prOf() }));
+  assert.match(d.reason, /for claude\/feat/);
+  assert.doesNotMatch(d.reason, /for main/);
+});
+
+test('hook: a local head commit decides frontend with git, not gh files', () => {
+  const g = fakeGit({ pr: prOf(['scripts/moved.ts']), local: true, frontend: true, stamps: { [PR_SHA]: stampOf({ security: 'pass' }, 'pass', PR_SHA) } });
+  assert.match(hookDecision(bash('gh pr merge 3'), g)?.reason ?? '', /Impeccable/);
+  const remote = fakeGit({ pr: prOf(['scripts/moved.ts']), local: false, frontend: true, stamps: { [PR_SHA]: stampOf({ security: 'pass' }, 'pass', PR_SHA) } });
+  assert.equal(hookDecision(bash('gh pr merge 3'), remote), null);
+});
+
+test('hook: gh api writes that merge or move refs deny, reads allow', () => {
+  for (const cmd of [
+    'gh api graphql -f query="mutation { mergePullRequest(input: {}) { clientMutationId } }"',
+    'gh api graphql -F query=@q.graphql -f x=updateRef',
+    'gh api repos/o/r/merges -f base=main -f head=feat',
+    'gh api --method POST repos/o/r/git/refs/heads/main',
+    'gh api -X PATCH repos/o/r/git/refs/heads/main -f sha=abc',
+    'gh api repos/o/r/contents/a.txt --input body.json',
+    'gh api --method=PUT repos/o/r/pulls/3/merge',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), cmd);
+  }
+  for (const cmd of ['gh api repos/o/r/pulls/3/merge', 'gh api repos/o/r/git/refs/heads/main', 'gh api repos/o/r/contents/a.txt', 'gh pr merge --help', 'gh pr merge -h']) {
     assert.equal(hookDecision(bash(cmd), fakeGit()), null, cmd);
   }
 });

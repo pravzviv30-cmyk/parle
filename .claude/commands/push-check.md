@@ -1,14 +1,14 @@
 ---
-description: Check the version you are about to push, frontend or backend, with the gate, a browser pass, reviewers and an Impeccable design review, fix what they find, and stamp the commit so the push is allowed. Add --main before landing to include the security review.
+description: Check the version you are about to push, frontend or backend, with the gate, a browser pass, reviewers and the Impeccable and unslop design reviews, fix what they find, and stamp the commit so the push is allowed. Add --main before landing to include the security review.
 argument-hint: "[--main] [optional: what the branch does]"
 ---
 
 Run this **before every push**, of a branch or of `main` (founder rule, 2026-10-31). It
 looks at the exact version being pushed, in the browser and through reviewers (for the
-frontend, Impeccable's design reviewer too), and fixes what it finds before anyone pulls it.
+frontend, the Impeccable and unslop design reviewers too), and fixes what it finds before anyone pulls it.
 A `PreToolUse` hook (`scripts/push-check-guard.mjs`) refuses `git push` from a Claude
-session until this command has stamped the commit, refuses a frontend push without a
-passing Impeccable review, and refuses a push to `main` until the stamp also holds a
+session until this command has stamped the commit, refuses a frontend push without
+passing Impeccable and unslop reviews, and refuses a push to `main` until the stamp also holds a
 passing security review.
 
 `$ARGUMENTS` containing `--main` means the next push is a landing on `main` (`/land` runs

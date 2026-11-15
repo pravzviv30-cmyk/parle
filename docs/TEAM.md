@@ -52,6 +52,7 @@ builds approved Fable plans; that is the `/forge` route, described in
 | `qa-release-engineer` | opus | **no** | independent product/security/learning/build release evidence |
 | `push-reviewer` | claude-sonnet-5-5 | **no** | one slice (frontend, backend or tests) of a diff about to be pushed, for `/push-check` |
 | `impeccable:impeccable-finish-reviewer` | opus (`model: "opus"` at dispatch), effort high from the plugin | **no** | design review of every frontend push for `/push-check`: slop fixed in the push, redesign ideas asked of the founder. A plugin agent, not pinned by the gate because it lives outside `.claude/agents/` |
+| `unslop-reviewer` | opus (high effort) | **no** | unslop design review of every frontend push for `/push-check`, run beside the Impeccable reviewer with `scripts/unslop-scan.mjs`: slop fixed in the push, redesign ideas asked of the founder. Pinned by the gate |
 | `backend-architect` | claude-fable-5-2 (medium effort) | **no** | cross-service contracts and architecture review routing |
 | `database-security-architect` | claude-fable-5-2 (medium effort) | **no** | auth, RLS, privileged RPCs, migrations and privacy |
 | `voice-reliability-architect` | claude-fable-5-2 (medium effort) | **no** | admission across jobs, voice/typed input, settlement and recovery |
@@ -86,7 +87,7 @@ cross-cutting test files belong to one integrator and nobody else edits them.
 ## The independent reviewers
 
 `release-engineer`, `scaling-engineer`, `repository-archaeologist`,
-`social-systems-engineer`, `qa-release-engineer`, `push-reviewer`, `impeccable:impeccable-finish-reviewer`, and the four backend architects have no `Edit` and no `Write`, for the
+`social-systems-engineer`, `qa-release-engineer`, `push-reviewer`, `impeccable:impeccable-finish-reviewer`, `unslop-reviewer`, and the four backend architects have no `Edit` and no `Write`, for the
 same reason `design-architect` and `work-judge` do not: an agent that can quietly fix what
 it found has stopped being a second opinion.
 

@@ -4,7 +4,10 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { countHits, isScanned, regressions, scanSource } from './unslop-scan.mjs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+import { countHits, HEAVY_WEIGHT_ALLOW, isScanned, regressions, REPEAT_ALLOW, scanSource, stripComments } from './unslop-scan.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'unslop-scan-'));
 const REL = 'apps/mobile/src/home/Fixture.tsx';
@@ -66,4 +69,36 @@ test('tests, dev previews and art are not scanned', () => {
   assert.equal(isScanned('apps/mobile/src/dev/TodayPreview.tsx'), false);
   assert.equal(isScanned('apps/mobile/src/art/mascots/Cloud.tsx'), false);
   assert.equal(isScanned('packages/brain/src/x.ts'), false);
+});
+
+test('--update-baseline with --diff is refused', () => {
+  const script = fileURLToPath(new URL('./unslop-scan.mjs', import.meta.url));
+  const r = spawnSync(process.execPath, [script, '--diff', 'HEAD...HEAD', '--update-baseline'], { encoding: 'utf8' });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /full scan/);
+});
+
+test('comment markers inside strings are not comments', () => {
+  const src = "const glob = '**/*.tsx';\nconst a = { borderRadius: 4 };\nconst u = 'a // b'; // note\n/* x */ const t = `c // d`;\n";
+  assert.equal(stripComments(src), "const glob = '**/*.tsx';\nconst a = { borderRadius: 4 };\nconst u = 'a // b';        \n        const t = `c // d`;\n");
+  assert.deepEqual(rules(scan('strings.tsx', src)), ['literal-radius']);
+  assert.equal(stripComments("const s = 'it\\'s // x';\n/* a\nb */ y"), "const s = 'it\\'s // x';\n    \n     y");
+});
+
+test('a pink glow is flagged; ink and liftInk are not', () => {
+  assert.deepEqual(rules(scan('pink.tsx', 'const a = { shadowColor: palette.pink, shadowRadius: 16 };\n')), ['glow-shadow']);
+  assert.deepEqual(scan('ink.tsx', 'const a = { shadowColor: ink, shadowRadius: 16 };\nconst b = { shadowColor: liftInk, shadowRadius: 16 };\n'), []);
+  assert.deepEqual(scan('small.tsx', 'const a = { shadowColor: palette.pink, shadowRadius: 8 };\n'), []);
+});
+
+test('heavy weights are allowed only in HEAVY_WEIGHT_ALLOW', () => {
+  const src = 'const t = { fontFamily: font.extraBold };\n';
+  assert.deepEqual(scanSource(HEAVY_WEIGHT_ALLOW[0], src), []);
+  assert.deepEqual(rules(scanSource(REL, src)), ['heavy-weight']);
+});
+
+test('withRepeat is allowed only in REPEAT_ALLOW', () => {
+  const src = 'v.value = withRepeat(withTiming(1), -1);\n';
+  assert.deepEqual(scanSource(REPEAT_ALLOW[0], src), []);
+  assert.deepEqual(rules(scanSource(REL, src)), ['repeat-loop']);
 });

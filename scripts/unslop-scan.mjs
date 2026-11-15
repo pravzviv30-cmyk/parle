@@ -35,14 +35,36 @@ export function isScanned(rel) {
   return !/\/(dev|art)\//.test(rel);
 }
 
-/** Blanks comments, keeping line numbers, the way copy.test.ts does. */
+/** Blanks comments with spaces, keeping newlines and string literals. */
 export function stripComments(source) {
-  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
-  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep) => keep);
+  let out = '';
+  let quote = null;
+  let comment = null; // '//' or '/*'
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i];
+    const two = source.slice(i, i + 2);
+    if (comment) {
+      if (comment === '/*' && two === '*/') (out += '  '), i++, (comment = null);
+      else if (c === '\n') (out += c), (comment = comment === '//' ? null : comment);
+      else out += ' ';
+    } else if (quote) {
+      out += c;
+      if (c === '\\') out += source[++i] ?? '';
+      else if (c === quote) quote = null;
+    } else if (two === '//' || two === '/*') {
+      comment = two;
+      out += '  ';
+      i++;
+    } else {
+      if (c === "'" || c === '"' || c === '`') quote = c;
+      out += c;
+    }
+  }
+  return out;
 }
 
 const allowed = (rel, list) => list.some((p) => rel === p || rel.startsWith(p));
-const INK = /ink|liftInk|shadow\.lift|black|#000\b|#000000|rgba\(\s*0\s*,\s*0\s*,\s*0/i;
+const INK = /\b(ink|liftInk)\b|shadow\.lift|black|#000\b|#000000|rgba\(\s*0\s*,\s*0\s*,\s*0/i;
 const HYPE = /\b(seamless(ly)?|supercharge[sd]?|unlock(s|ed)?|magic(al)?|AI-powered|effortless(ly)?|revolutionary)\b/i;
 const EMOJI = /\p{Emoji_Presentation}|\p{Extended_Pictographic}\uFE0F/u;
 
@@ -125,6 +147,10 @@ function main(argv) {
   const range = at === -1 ? null : argv[at + 1];
   if (at !== -1 && !range) {
     console.error('unslop-scan: --diff needs a git range, like origin/main...HEAD');
+    return 2;
+  }
+  if (range && argv.includes('--update-baseline')) {
+    console.error('unslop-scan: --update-baseline needs a full scan; drop --diff');
     return 2;
   }
   const hits = filesToScan(range).flatMap((rel) => scanSource(rel, readFileSync(join(ROOT, rel), 'utf8')));

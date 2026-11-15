@@ -89,8 +89,8 @@ So `scripts/gate.mjs` has a fourth check, `agents`. Every agent file must be pin
 `scaling-engineer`, `repository-archaeologist`, `social-systems-engineer` and the four
 backend architects) to `claude-fable-5-2`, the builders and loop roles to `opus`, and
 `implementer` and `push-reviewer` to `claude-sonnet-5-5`. An `AGENT_EFFORTS` map pins
-`effort: medium` on the Fable agents and `implementer-opus-medium`, and `effort: low` on
-`implementer-opus-low`. It also fails if a command file has gone missing. It is the cheapest check in the gate and it
+`effort: medium` on the Fable agents and `implementer-opus-medium`, `effort: low` on
+`implementer-opus-low`, and `effort: high` on `unslop-reviewer`. It also fails if a command file has gone missing. It is the cheapest check in the gate and it
 defends the only part of this that nothing else would notice.
 
 ## Looping it

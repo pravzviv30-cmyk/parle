@@ -294,6 +294,38 @@ export function parseMergeArgs(args) {
 
 const baseName = (word) => word.split('/').pop();
 
+// `gh [flags] pr [flags] merge <args>` -> the merge args, with any repo flag
+// seen before `merge` put in front; null when the command is not a merge.
+function findMerge(rest) {
+  const repo = [];
+  let i = 0;
+  for (const sub of ['pr', 'merge']) {
+    for (; i < rest.length && rest[i].startsWith('-'); i++) {
+      if (rest[i] === '-R' || rest[i] === '--repo') repo.push('-R', rest[++i] ?? '');
+      else if (rest[i].startsWith('--repo=')) repo.push(rest[i]);
+    }
+    if (rest[i++] !== sub) return null;
+  }
+  return [...repo, ...rest.slice(i)];
+}
+
+// True when `gh api <args>` writes a merge or a ref: a GraphQL merge or ref
+// mutation, or a writing method on a merge, ref or contents endpoint. Field
+// flags make gh POST unless a method is named.
+const API_FIELD = /^(-f|-F|--field|--raw-field|--input)(=|$)|^-[fF]./;
+function apiWrites(args) {
+  if (args.includes('graphql')) return args.some((a) => /mergePullRequest|updateRef/.test(a));
+  let method = null;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '-X' || a === '--method') method = args[++i] ?? '';
+    else if (a.startsWith('--method=')) method = a.slice(9);
+    else if (/^-X./.test(a)) method = a.slice(2);
+  }
+  const writes = method ? /^(PUT|POST|PATCH|DELETE)$/i.test(method) : args.some((a) => API_FIELD.test(a));
+  return writes && args.some((a) => /\/pulls\/\d+\/merge\b|\/merges\b|\/git\/refs\b|\/contents\//.test(a));
+}
+
 // Walk a shell command and report what the hook needs to judge:
 //   { kind: 'push', dir, dirKnown, movedBefore, ...parsed push args }
 //   { kind: 'opaque' }  eval/xargs wrapped around git push, which cannot be read
@@ -354,9 +386,10 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       if (tokens.includes('git') && tokens.includes('push')) events.push({ kind: 'opaque' });
       if (tokens.includes('gh') && tokens.includes('merge')) events.push({ kind: 'opaque' });
     } else if (name === 'gh') {
-      if (rest[0] === 'api' && rest.some((a) => a.includes('/merge'))) events.push({ kind: 'opaque' });
-      if (rest[0] === 'pr' && rest[1] === 'merge') {
-        events.push({ kind: 'merge', dir: state.dir, dirKnown: state.known, ...parseMergeArgs(rest.slice(2)) });
+      if (rest[0] === 'api' && apiWrites(rest.slice(1))) events.push({ kind: 'opaque' });
+      const merge = findMerge(rest);
+      if (merge && !merge.some((a) => a === '--help' || a === '-h')) {
+        events.push({ kind: 'merge', dir: state.dir, dirKnown: state.known, ...parseMergeArgs(merge) });
       }
     } else if (name === 'git') {
       let gitDir = state.dir;
@@ -503,7 +536,8 @@ const GH_REASON =
 //   git.isTagOnly(dir, name)    -> true when name is a tag and not a branch
 //   git.touchesFrontendAt(dir, sha) -> true when the commit changes frontend files
 //   git.codePathsAt(dir, sha)   -> changed paths outside the docs allowlist
-//   git.prInfo(dir, selector, repo) -> { headRefOid, files: [path], baseRefName } (throws on failure)
+//   git.prInfo(dir, selector, repo) -> { headRefOid, files: [path], headRefName } (throws on failure)
+//   git.hasCommit(dir, sha)     -> true when the commit exists locally
 export function hookDecision(input, git) {
   if (!input || input.tool_name !== 'Bash') return null;
   const command = input.tool_input?.command;
@@ -521,17 +555,18 @@ export function hookDecision(input, git) {
       continue;
     }
     if (ev.kind === 'merge') {
-      let pr;
       try {
         if (!ev.dirKnown) throw new Error('unknown dir');
-        pr = git.prInfo(ev.dir, ev.selector, ev.repo);
-        if (!/^[0-9a-f]{40}$/.test(pr?.headRefOid ?? '') || !Array.isArray(pr.files)) throw new Error('bad PR');
+        const pr = git.prInfo(ev.dir, ev.selector, ev.repo);
+        const sha = pr?.headRefOid ?? '';
+        if (!/^[0-9a-f]{40}$/.test(sha) || !Array.isArray(pr.files)) throw new Error('bad PR');
+        // gh lists only a rename's new path, so a local commit is judged by git (--no-renames).
+        const frontend = git.hasCommit(ev.dir, sha) ? git.touchesFrontendAt(ev.dir, sha) : touchesFrontend(pr.files);
+        const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, true, frontend);
+        if (!verdict.ok) deny(denyReason(verdict, sha, pr.headRefName));
       } catch {
         deny(GH_REASON);
-        continue;
       }
-      const verdict = checkStamp(git.readStamp(ev.dir, pr.headRefOid), pr.headRefOid, true, touchesFrontend(pr.files));
-      if (!verdict.ok) deny(denyReason(verdict, pr.headRefOid, pr.baseRefName));
       continue;
     }
     try {
@@ -653,7 +688,7 @@ export function codePathsAt(dir, sha) {
 // gh lists at most 100 files, so a PR at that cap counts as frontend.
 export function prInfo(dir, selector, repo) {
   const args = ['pr', 'view', ...(selector ? [selector] : []), ...(repo ? ['--repo', repo] : [])];
-  const out = execFileSync('gh', [...args, '--json', 'headRefOid,files,baseRefName'], {
+  const out = execFileSync('gh', [...args, '--json', 'headRefOid,files,headRefName'], {
     cwd: dir,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
@@ -662,10 +697,19 @@ export function prInfo(dir, selector, repo) {
   const json = JSON.parse(out);
   const files = (json.files ?? []).map((f) => f.path);
   if (files.length >= 100) files.push(FRONTEND_PREFIXES[0]);
-  return { headRefOid: json.headRefOid, files, baseRefName: json.baseRefName };
+  return { headRefOid: json.headRefOid, files, headRefName: json.headRefName };
 }
 
-const realGit = { resolveCommit, currentBranch, readStamp, isTagOnly, touchesFrontendAt, codePathsAt, prInfo };
+export function hasCommit(dir, sha) {
+  try {
+    git(dir, ['cat-file', '-e', `${sha}^{commit}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const realGit = { hasCommit, resolveCommit, currentBranch, readStamp, isTagOnly, touchesFrontendAt, codePathsAt, prInfo };
 
 // ---------------------------------------------------------------------------
 // Subcommands

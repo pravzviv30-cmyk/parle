@@ -40,14 +40,15 @@ modified that is not on that list belongs to somebody else.
 
 ## 2. Where you are standing
 
-Run everything from the **main checkout**, never from `.claude/worktrees/`. A worktree has
+Run the gate from the checkout that holds the change, with its own locked install
+(`npm ci`), never from a worktree that has none. An uninstalled worktree has
 no `node_modules`, so Node resolution walks up and binds the wrong copy of a dependency:
 `packages/brain` reports 122 tests from a worktree and 146 from the main checkout, and the
 missing suite fails silently by never loading. A gate that green-lit a merge from a worktree
 green-lit a lie.
 
-If the shell is in a worktree, `cd` to the main checkout is **not** the fix — that lands
-your edits in the shared tree. Re-run there deliberately, or stop.
+If the shell is in a worktree with no install, `cd` to the main checkout is **not** the fix —
+that lands your edits in the shared tree. Run `npm ci` in the worktree and re-run there, or stop.
 
 ## 3. The gate
 
@@ -92,9 +93,9 @@ questions that decide the verdict:
   have the standing to make.
 
 **Prefer HOLD over a marginal LAND.** Work sitting on a branch costs a day. Work landed on
-`main` that turns out to be half a change costs everyone who pulls it. This repo has two
-merge commits in its whole history and a linear trunk otherwise, so `main` is genuinely the
-shared floor rather than a staging area.
+`main` that turns out to be half a change costs everyone who pulls it. Every code landing is
+now a PR merge commit, one revertable unit, so `main` is genuinely the shared floor rather
+than a staging area.
 
 ## 6. Landing
 
