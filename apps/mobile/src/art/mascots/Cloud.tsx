@@ -1,7 +1,7 @@
 import Svg, { Ellipse, Path } from 'react-native-svg';
 import { paper } from '../../palette.ts';
 import { decorative } from '../../theme.ts';
-import { cloudFace, faceLids, type MascotExpression, type ViewBox } from './mascotFaces.ts';
+import { CLOUD_VIEWBOX, cloudFace, faceLids, type MascotExpression, type ViewBox } from './mascotFaces.ts';
 import { CLOUD_SILHOUETTE, CLOUD_UNDERSIDE } from './mascotPaths.ts';
 import { CLOUD_POSES, cloudLayers, type CloudPose } from './mascotPoses.ts';
 import { FaceMarks } from './FaceMarks.tsx';
@@ -43,10 +43,13 @@ export function Cloud({ expression = 'idle', size, outline = false, pose, ink = 
   );
 }
 
-/** The blink's lids for `pose`'s face, in the same box as `<Cloud pose size>`. Static; Blink fades it. */
-export function CloudLids({ pose, size }: { pose: CloudPose; size: number }) {
-  const vb: ViewBox = CLOUD_POSES[pose].viewBox;
-  const face = cloudFace(CLOUD_POSES[pose].face);
+/**
+ * The blink's lids for `pose`'s face, in the same box as `<Cloud pose size>`; with no
+ * pose, the idle face's lids in the unposed body's box. Static; Blink fades it.
+ */
+export function CloudLids({ pose, size }: { pose?: CloudPose; size: number }) {
+  const vb: ViewBox = pose ? CLOUD_POSES[pose].viewBox : CLOUD_VIEWBOX;
+  const face = cloudFace(pose ? CLOUD_POSES[pose].face : 'idle');
   const lids = faceLids(face);
   return (
     <Svg width={size} height={(size * vb.height) / vb.width} viewBox={`${vb.x} ${vb.y} ${vb.width} ${vb.height}`} pointerEvents="none" {...decorative}>

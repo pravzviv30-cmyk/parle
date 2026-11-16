@@ -472,7 +472,7 @@ describe('nothing ships that nothing renders — J14', () => {
     // the map is only a way in if somebody reads it.
     const flat = (path: string) => rel(path).startsWith('art/flat/');
     const names = [...named('art/flat/index.ts').matchAll(/^ {2}'([a-z][a-z0-9-]*)': \{ draw: /gm)].map((m) => m[1]!);
-    assert.equal(names.length, 77, 'the flat registry no longer names the 77 catalogue drawings, so this test is reading the wrong thing');
+    assert.equal(names.length, 75, 'the flat registry no longer names the 75 catalogue drawings, so this test is reading the wrong thing');
 
     const sceneMapRead = SOURCES.some(({ path, body }) => !flat(path) && /\bsceneIllustration\(/.test(body));
     const byScene = new Set([...named('art/flat/scenes.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map((m) => m[1]!));

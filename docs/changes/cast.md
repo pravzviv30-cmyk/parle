@@ -100,7 +100,7 @@ Drill (`apps/mobile/src/drill/`):
 
 ## Blast radius
 
-- **`Cloud` without a `pose` renders as before.** `EndScene` (drill end and recap), the live room's cloud mic and `CelebrationHost` pass no pose and are unchanged.
+- **`Cloud` without a `pose` renders as before.** `EndScene` (the drill end), the live room's cloud mic and `CelebrationHost` pass no pose and are unchanged. The recap passes one since UI-020.
 - **`SpeakMic` has three callers.** `RepeatThisView` (the mic in the pinned foot, with Cloud listening in the answer area through `ListeningCloud`), `SpokenAttempt` (listen pose at 89 wide in the unchanged 77 slot, reached through `OwnWordsView` and `FixLineSheet`) and `SoundCheckScreen`, which asks for no Cloud and is unchanged.
 - **`LevelSquish`, `Hop` and `PopIn` are unchanged.** The new `Blink` is added beside them.
 - **`LOOP_FILES` in `motion.test.ts` grows by one file.** Anything else that starts a loop in `MascotMotion.tsx` must also be paused by `active`.
@@ -108,7 +108,7 @@ Drill (`apps/mobile/src/drill/`):
 
 ## Not done
 
-- **`EndScene`** (drill end and recap) keeps face-only Cloud and Toast until the recap build lands.
+- **`EndScene`**: the recap now uses the posed cheer, and the resting blink when there was no reply, on the recap only. Drill ends keep face-only Cloud and Toast (UI-020, founder Q1).
 - **Brief 4 (4A) is next.** It adds wave, hold and rest, and Toast's face in the saved-phrase toast.
 - **Briefs 2 (2B) and 3 (3A)** come after the Journey board.
 - **Today's out-of-time hero (4A)** waits for `claude/phone-fixes`.

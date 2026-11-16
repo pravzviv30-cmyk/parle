@@ -279,6 +279,7 @@ describe('F927: Space and the focus ring', () => {
     assert.match(css, new RegExp(`outline: 2px solid ${paper.ink} !important`), 'the ring is not drawn');
     assert.match(css, new RegExp(`box-shadow: 0 0 0 2px ${paper.card} !important`), 'the halo does not fill the gap');
     assert.match(css, /:focus:not\(:focus-visible\)[^{]*\{[^}]*outline: none/, 'a mouse click would draw a ring');
+    assert.match(css, /(^|\n)\[tabindex="-1"\]:focus \{ outline: none !important; \}/, 'a heading focused by script draws the browser ring');
 
     // The ring follows the control's shape. The outline is drawn on the
     // focusable element, so it needs the drawn surface's corner: Press's

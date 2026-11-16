@@ -1,17 +1,18 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Press } from '../components.tsx';
+import { Highlight, LipTile, Press } from '../components.tsx';
 import { Feedback } from '../motion/Feedback.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
-import { bType, frenchText } from '../theme.ts';
+import { bType } from '../theme.ts';
 import { HEAR_IT_SAID } from './afterSessionView.ts';
 
 /**
- * "One phrase kept" (2026-10-21 UI-008, artboard B-Recap): the sun card with
- * the phrase, its English, a 48pt white speaker that plays the tutor's voice,
- * the save line with its tick once the save is durable, and the actions the
- * screen hands in. In dark the card is the M3 hero ground.
+ * "One phrase kept" (UI-020, the one-scroll recap): a lip card on the page's
+ * card ground with the French on the shared highlighter (the screen's only
+ * chartreuse), its English, a 48pt speaker that plays the tutor's voice, the
+ * save line with its tick on a line of its own once the save is durable, and
+ * whatever the screen hands in (only "Try saving again" when the save failed).
  */
 export function KeptPhraseCard({ fr, en, saveLine, saved, eventKey, onHear, children }: {
   fr: string; en: string; saveLine: string; saved: boolean; eventKey: string; onHear?: () => void; children?: ReactNode;
@@ -19,12 +20,12 @@ export function KeptPhraseCard({ fr, en, saveLine, saved, eventKey, onHear, chil
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
-    <View style={s.card}>
-      <Text style={[bType.chip, { color: t.heroText }]}>One phrase kept</Text>
+    <LipTile style={s.card}>
+      <Text style={[bType.chip, { color: t.link }]}>One phrase kept</Text>
       <View style={s.row}>
         <View style={s.words}>
-          <Text {...frenchText} style={[bType.bold20, { color: t.heroText }]}>{fr}</Text>
-          <Text style={[bType.meta, { color: t.heroText }]}>{en}</Text>
+          <Highlight text={fr} />
+          <Text style={[bType.meta, { color: t.muted }]}>{en}</Text>
         </View>
         {onHear ? (
           <Press haptic="light" accessibilityLabel={`${HEAR_IT_SAID}: ${fr}`} onPress={onHear} style={s.hear}>
@@ -35,20 +36,21 @@ export function KeptPhraseCard({ fr, en, saveLine, saved, eventKey, onHear, chil
       <Feedback kind="saved" active={saved} eventKey={eventKey}>
         <View style={s.saved}>
           {saved ? <CheckDisc size={20} fill={t.mint} tick={t.onMint} /> : null}
-          <Text accessibilityLiveRegion="polite" style={[bType.semi14, { color: t.heroText }]}>{saveLine}</Text>
+          <Text accessibilityLiveRegion="polite" style={[bType.semi14, s.grow, { color: t.text }]}>{saveLine}</Text>
         </View>
       </Feedback>
       {children}
-    </View>
+    </LipTile>
   );
 }
 
 function makeStyles(t: B) {
   return StyleSheet.create({
-    card: { backgroundColor: t.heroGround, borderRadius: 24, padding: 16, gap: 10 },
+    card: { padding: 16, gap: 10 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    words: { flex: 1, gap: 2 },
-    hear: { width: 48, height: 48, borderRadius: 24, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
+    words: { flex: 1, gap: 4 },
+    grow: { flex: 1, minWidth: 0 },
+    hear: { width: 48, height: 48, borderRadius: 24, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center' },
     saved: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 22 },
   });
 }

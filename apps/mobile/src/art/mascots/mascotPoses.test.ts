@@ -155,6 +155,24 @@ test('the lids cover the listening eyes', () => {
   });
 });
 
+test('the unposed lids sit on the unposed idle face, in the unposed body box', async () => {
+  const { readFileSync } = await import('node:fs');
+  assert.deepEqual(cloudLayers().viewBox, CLOUD_VIEWBOX);
+  const face = cloudFace('idle');
+  const lids = faceLids(face);
+  assert.equal(lids.covers.length, 2);
+  face.eyes.forEach((eye, i) => {
+    assert.equal(eye.kind, 'open');
+    if (eye.kind !== 'open') return;
+    const c = lids.covers[i]!;
+    assert.ok(c.cx === eye.cx && c.cy === eye.cy && c.rx > eye.rx && c.ry > eye.ry);
+  });
+  const cloud = readFileSync(new URL('./Cloud.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+  assert.match(cloud, /CloudLids\(\{ pose, size \}: \{ pose\?: CloudPose; size: number \}\)/, 'CloudLids still needs a pose');
+  assert.match(cloud, /const vb: ViewBox = pose \? CLOUD_POSES\[pose\]\.viewBox : CLOUD_VIEWBOX;/);
+  assert.match(cloud, /cloudFace\(pose \? CLOUD_POSES\[pose\]\.face : 'idle'\)/);
+});
+
 test('every posed Cloud in the app passes its limbs an ink, so they show in dark mode', async () => {
   const { readdirSync, readFileSync, statSync } = await import('node:fs');
   const { join } = await import('node:path');

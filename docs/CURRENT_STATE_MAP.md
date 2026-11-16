@@ -164,9 +164,11 @@ DECISIONS.md UI-007):
   B-Celebrate and B-Recap (2026-10-21, UI-008). The room shows the scene's own
   pace, the goals strip from `visibleMissionTasks` (a goal ticks for the beat
   current before the turn when the brain's `goalMet` is true, F949) and the help ladder over the
-  live rung (`live/liveRoomView.ts`); the recap pages run After a session, the
-  Celebration, the Recap, then sound and next (`recap/pages.ts`,
-  `recap/afterSessionView.ts`). The goals reach the Recap passed through from
+  live rung (`live/liveRoomView.ts`); the recap is one scroll in the end scene's
+  frame (UI-020): the band with Cloud and Toast, the title, the goals, the
+  tiles, your lines with the kept phrase, small fixes, one sound row and next
+  time, with Done pinned in the footer (`recap/afterSessionView.ts`,
+  `celebrate/EndScene.tsx`). The goals reach the Recap passed through from
   the room, with no new storage. Turns earn credit (F904, 2026-10-28,
   `recap/sessionCredit.ts`): a recap whose `learnerReplies` is 0 settles
   nothing (no XP, no minutes, no active or streak day), banks no practice by any
