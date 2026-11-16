@@ -402,6 +402,14 @@ describe('the ci contract', () => {
       ![...expoMetro.keys()].some((key) => key.endsWith('node_modules/image-size')),
       'the measured Metro fix must still remove image-size from its real dependency closure',
     );
+
+    // The uuid fix (2026-11-16): @expo/config-plugins 57.0.11+ moved to xcode 4, which
+    // dropped uuid. Named so a future reader can check it by hand.
+    const configPlugins = dependencyClosure('node_modules/@expo/config-plugins');
+    const xcode = [...configPlugins.entries()].find(([key]) => key.endsWith('node_modules/xcode'));
+    assert.ok(xcode, 'the config-plugins chain no longer reaches xcode at all, which is not a fix');
+    assert.ok(atLeast(xcode[1].version, '4.0.0'), `config-plugins resolves xcode ${xcode[1].version}; 4.0.0 is the first release without uuid`);
+    assert.ok(!Object.keys(lock.packages).some((key) => key.endsWith('node_modules/uuid')), 'uuid is back in the lockfile');
   });
 
   test('the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns', () => {

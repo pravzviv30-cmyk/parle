@@ -12677,3 +12677,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/repoStructure.test.mjs:46
 - note: isExternal treats every scheme as external, so a tracked doc containing `[a](file:///Users/pravz_07/x.png)` passes "no tracked markdown link points at an absolute machine path".
 - verified-by: `a file link to a machine path counts as an absolute machine path`
+
+### F1006 — Audit exceptions re-reviewed: uuid fixed, decode-uri-component and zod renewed to 2026-12-16
+- severity: P3
+- status: [x]
+- where: package.json:51
+- note: founder, 2026-11-16. @expo/config-plugins 57.0.13 (still SDK 57) moved to xcode 4.0.0, which drops uuid, so a lockfile-only update fixed it and an iOS prebuild still writes the project. decode-uri-component 0.2.2 and zod 3.25.76 have no compatible fix and unchanged reachability; renewed inside audit:ci's 30-day window, and fixed later with the react-navigation, SDK 58 and zod 4 upgrades.
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
