@@ -12686,7 +12686,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P1
 - status: [x]
 - where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql:182
-- note: Migration 46 replaces tutor_finish_v1 and reserve_tutor_session_v1 so that abandon, expiry and retirement of a never-claimed grant return its seconds and session to both day counters, and admission reads issued minus released. Includes the verifyTutorSessions.mjs proof group and the doc lines named above. Closes F955's verified-by title.
+- note: Migration 46 replaces tutor_finish_v1 and reserve_tutor_session_v1 (and reconcile_tutor_sessions_v1, whose batch now takes the oldest creation day first) so that abandon, expiry and retirement of a never-claimed grant return its seconds and session to both day counters, and admission reads issued minus released. Includes the verifyTutorSessions.mjs proof group and the doc lines named above. Closes F955's verified-by title.
 - verified-by: `a tutor start that never joins gives back its reserved daily seconds`
 - verified-by: `a tutor start that never joins gives back its daily session count`
 - verified-by: `an account refused for its daily budget can start again once its unjoined start expires`
@@ -12716,7 +12716,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: supabase/rollback/20261110120000_down.sql:1
-- note: Same pattern as migration 45. The down file restores both function bodies exactly and drops the three columns, after which unjoined starts count as spent again.
+- note: Same pattern as migration 45. The down file restores all three function bodies exactly and drops the three columns, after which unjoined starts count as spent again.
 - verified-by: `rolling back migration 46 restores reservations that are not given back`
 
 ### F1007 — Failed starts' paid operations may still block a learner's restart
