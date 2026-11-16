@@ -125,3 +125,48 @@ test('a goal ticks when the learner meets it even as the model moves the scene o
   const twice = integrateTurn(once, spoke, moved(once)).state;
   assert.equal(twice.evidencedBeatIds.filter(id => id === state.currentBeat).length, 1);
 });
+
+// F971. Live, the model names in scene.beat the beat the reply moves TO and
+// reports beatDone about that one, so a met goal came back beatDone false and
+// the engine stayed one beat behind: every later goal was judged against the
+// wrong aim and never ticked.
+const [greet, sayWhere, pay] = frame.beats.map(b => b.id) as [string, string, string];
+const live = (beat: string, beatDone: boolean, sceneDone = false) =>
+  sampleTurn({ scene: { beat, beatDone, goalMet: true, sceneDone } });
+
+test('a learner who answers each line in turn sees each goal tick, even when the model names the next beat without marking the last one done', () => {
+  let state = fresh();
+  state = integrateTurn(state, { type: 'spoke', text: 'Bonjour, un café, s’il vous plaît.' }, live(sayWhere, false)).state;
+  assert.equal(state.currentBeat, sayWhere, 'the next reply is about where to sit, so that is the aim judged next');
+  state = integrateTurn(state, { type: 'spoke', text: 'Sur place, merci.' }, live(pay, false)).state;
+  assert.equal(state.currentBeat, pay);
+  state = integrateTurn(state, { type: 'spoke', text: 'Par carte, s’il vous plaît.' }, live(pay, true, true)).state;
+  assert.deepEqual(state.evidencedBeatIds, [greet, sayWhere, pay], 'each goal was met on its own turn');
+  assert.equal(state.missionDone, true, 'every beat finished, so the mission is complete');
+});
+
+test('naming the next beat moves the scene on only for a turn the learner earned, and never backwards', () => {
+  const state = fresh();
+  const rescued = { ...state, directive: { ...state.directive, rescued: true }, frenchGiven: true };
+  assert.equal(integrateTurn(rescued, spoke, live(sayWhere, false)).state.currentBeat, greet, 'a rescued turn has not said the line yet');
+  const english = { ...live(sayWhere, false), assessment: { ...live(sayWhere, false).assessment, language: 'english' as const } };
+  assert.equal(integrateTurn(state, spoke, english).state.currentBeat, greet, 'English re-invites the beat');
+  const atPay = integrateTurn(integrateTurn(state, spoke, live(sayWhere, true)).state, spoke, live(pay, true)).state;
+  assert.equal(atPay.currentBeat, pay);
+  assert.equal(integrateTurn(atPay, spoke, live(greet, false)).state.currentBeat, pay, 'an earlier beat changes nothing');
+  assert.equal(integrateTurn(state, spoke, live('no-such-beat', false)).state.currentBeat, greet, 'an unknown beat changes nothing');
+  for (const goalMet of [false, null]) {
+    assert.equal(integrateTurn(state, spoke, sampleTurn({ scene: { beat: sayWhere, beatDone: false, goalMet } })).state.currentBeat, greet, 'a goal the tutor did not see met is not finished by aiming ahead');
+  }
+  const skipped = integrateTurn(state, spoke, live(pay, false)).state;
+  assert.equal(skipped.currentBeat, pay, 'the next reply is about the beat the model named');
+  assert.deepEqual(skipped.evidencedBeatIds, [greet], 'a skipped beat is not evidenced');
+});
+
+test('a partly right answer that moves the scene on is not counted as another try at the same line', () => {
+  const state = fresh();
+  const mixed = { ...live(sayWhere, false), assessment: { ...live(sayWhere, false).assessment, language: 'mixed' as const } };
+  const next = integrateTurn(state, spoke, mixed).state;
+  assert.equal(next.attemptsOnBeat, 0, 'the beat finished, so no attempt is carried');
+  assert.equal(next.currentBeat, sayWhere);
+});

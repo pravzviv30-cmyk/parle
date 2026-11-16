@@ -12574,3 +12574,31 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   core's own builder against the replayed SQL, so a new pack key cannot drift again. Fixed in the repo;
   **not applied to staging or production** (founder applies separately).
 - verified-by: `every key of a pack the app builds passes the replayed tutor baseline validator`
+
+### F971 — Mission goals after the first never tick: the engine stays one beat behind the tutor
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts (`integrateTurn`, the `shouldAdvance` beat advance after the
+  `evidencedBeatIds` tick)
+- note: Found 2026-11-16 replaying mission:premier-cafe (beats greet-and-order, say-where, pay) with the real
+  brain, typed replies "Bonjour, un café, s'il vous plaît.", "Sur place, s'il vous plaît.", "Voilà deux euros.
+  Merci beaucoup !": only goal 1 ticked, 6 of 6 runs (3 at rung 1, 3 at rung 3). The model names in
+  `scene.beat` the beat its reply moves TO and reports `beatDone` about that beat, so turn 1 came back
+  `{beat:'say-where', beatDone:false, goalMet:true}`. Goal 1 ticked, but `currentBeat` only moved on `beatDone`,
+  so turn 2's SCENE AIM still named greet-and-order, "Sur place" was judged against the wrong aim, say-where and
+  pay were never the beat being judged, `missionDone` never rose, and correct French counted as a
+  non-advancing attempt (`attemptsOnBeat`), nudging the ladder. Fix (engine only, no prompt or schema change,
+  founder's choice): a turn whose `goalMet` is true and whose `scene.beat` names a known LATER beat finishes
+  the current beat, under the same guards as `beatDone` (not English, not rescued). Requiring `goalMet` true
+  keeps a poor answer from walking the scene on because the reply is aimed ahead. When the named beat is more
+  than one step on, every beat up to it is marked done (not evidenced), so `currentBeat` is the beat the next
+  reply is about. Earlier or unknown names change nothing; the evidence rule is unchanged. After, same replay
+  from this branch: 6 of 6 runs ticked all three goals; 5 of 6 set `missionDone` (rung 3 run 2's last turn
+  came back `beatDone:false, sceneDone:false` on pay, so pay ticked but the beat stayed open and the scene
+  continued, which is the existing beatDone rule). Known, unfixed low: a local agent `dev` start without
+  LUVANI_LOCAL_DEVELOPMENT=1 (services/tutor-agent/package.json:8) throws at agent.ts:191 before SessionExit
+  exists and leaves the token server's local 30-minute lease; production is unaffected (reserved rows expire
+  at join_deadline, about 120 s).
+- verified-by: `a learner who answers each line in turn sees each goal tick, even when the model names the next beat without marking the last one done`
+- verified-by: `naming the next beat moves the scene on only for a turn the learner earned, and never backwards`
+- verified-by: `a partly right answer that moves the scene on is not counted as another try at the same line`

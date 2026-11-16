@@ -906,9 +906,21 @@ export function integrateTurn(
       !wasRescued && !state.forceAdvance && !evidencedBeatIds.includes(state.currentBeat)) {
     evidencedBeatIds.push(state.currentBeat);
   }
-  const shouldAdvance = (turn.scene.beatDone && !reachedForEnglish && !wasRescued) || forceAdvance;
+  // F971: live, scene.beat names the beat the reply moves TO and beatDone is
+  // about that one, so a later named beat means the source beat is done. Every
+  // beat up to the named one is marked done (not evidenced), so currentBeat is
+  // the beat the next reply is about. Earlier or unknown names change nothing,
+  // and so does a turn whose goal the model did not see met: a poor answer
+  // must not walk the scene on just because the reply is aimed ahead.
+  const fromIndex = beats.findIndex((b) => b.id === state.currentBeat);
+  const namedIndex = beats.findIndex((b) => b.id === turn.scene.beat);
+  const namedLater = turn.scene.goalMet === true && fromIndex >= 0 && namedIndex > fromIndex;
+  const shouldAdvance = ((turn.scene.beatDone || namedLater) && !reachedForEnglish && !wasRescued) || forceAdvance;
   if (shouldAdvance) {
     beatStatus[state.currentBeat] = 'done';
+    if (namedLater && !reachedForEnglish && !wasRescued) {
+      for (const b of beats.slice(fromIndex, namedIndex)) beatStatus[b.id] = 'done';
+    }
     advancedBeat = true;
     attemptsOnBeat = 0;
     forceAdvance = false;
