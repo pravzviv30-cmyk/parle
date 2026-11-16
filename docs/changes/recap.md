@@ -1,7 +1,7 @@
 # The conversation recap, direction A: one ending
 
-- Status: building on `claude/recap` (UI-020)
-- Updated: 2026-11-06
+- Status: landed on `main` as `33775d59` through PR #4 (UI-020)
+- Updated: 2026-11-16
 - Checkout / starting revision: `origin/main` at `e8d020c3`, worktree `Luvani-worktrees/recap`
 - Owner / integrator: Opus orchestrator session; builders as named per task
 - Existing programme / contract:
@@ -170,15 +170,15 @@ From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by 
 
 | ID | Outcome | Owner | Depends on | Status |
 |---|---|---|---|---|
-| T0 | Worktree, `npm ci`, baseline gate, this spec | orchestrator | none | in progress |
-| T1 | Recap preview keys against today's screen; before shots | `frontend-engineer` | T0 | todo |
-| T2 | Where More went, checked | `learning-science-engineer` | T0 | todo |
-| T3 | The band and tile row exported; recap Cloud modes; lids for the unposed body; tile numbers | `design-system-engineer` | T1 | todo |
-| T4 | The recap rebuilt; parts and files retired; every pin re-pinned | `frontend-engineer` | T2, T3 | todo |
-| T5 | Docs: UI-020, DESIGN.md, the partnership, the state map, cast.md, the shots README | `implementer` | T4 | todo |
-| T6 | Gate, verifier rounds, after shots, simulator, live typed run | orchestrator | T5 | todo |
-| T7 | `/push-check`, push | orchestrator | T6 | todo |
-| T8 | Founder OK on the after shots, `/land --no-ff` | orchestrator | T7 | todo |
+| T0 | Worktree, `npm ci`, baseline gate, this spec | orchestrator | none | done |
+| T1 | Recap preview keys against today's screen; before shots | `frontend-engineer` | T0 | done |
+| T2 | Where More went, checked | `learning-science-engineer` | T0 | done |
+| T3 | The band and tile row exported; recap Cloud modes; lids for the unposed body; tile numbers | `design-system-engineer` | T1 | done |
+| T4 | The recap rebuilt; parts and files retired; every pin re-pinned | `frontend-engineer` | T2, T3 | done |
+| T5 | Docs: UI-020, DESIGN.md, the partnership, the state map, cast.md, the shots README | `implementer` | T4 | done |
+| T6 | Gate, verifier rounds, after shots, simulator, live typed run | orchestrator | T5 | done |
+| T7 | `/push-check`, push | orchestrator | T6 | done |
+| T8 | Founder OK on the after shots, `/land --no-ff` | orchestrator | T7 | done |
 
 ## Execution log
 
@@ -205,12 +205,13 @@ From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by 
 | 2026-11-10 / live run | A typed "Le premier café" on the local stack from this worktree (`LUVANI_LOCAL_DEVELOPMENT=1 npm run dev`, mock auth, the fixture lifecycle, NOT staging), three French replies; the scene ended into the recap: "Real French came out of you today.", the goals card, tiles "<1 minutes", "5 new phrases", "+35 XP", the three lines, the kept phrase saved, "One thing to tune", "Next time". Done returned to Today, and the held streak celebration played only after leaving. Captures in `reviews/2026-11-08-recap/live/` | No console errors on a clean load. Only goal 1 ticked, as the live room's own header showed: pre-existing goal ticking in the room, not the recap | Gate, stamp, push |
 | 2026-11-15 / push-check --main | Merged `origin/main` `b32c1097` (`e59ffdf3`, the taste-log conflict kept both sides). Impeccable: the web focus ring fixed (`259dc7fe`), disposition ship. unslop (new reviewer): the focus row's French and the Next pill alignment fixed test first (`9e7cd138`), then pass; scan clean against baseline. `/code-review` and the push-reviewer clean on the deltas. `/security-review`: no findings | Gate green, 7,772 tests, 0 failing (`983f2f10`) | Founder |
 | 2026-11-16 / founder | Recap may land; both calls kept (goals hide with no reply; earned recaps show only the Next pill); all four Impeccable proposals and unslop's footer-at-large-text proposal queued for a board; unslop's minutes-said-once not now | n/a | PR |
+| 2026-11-16 / land | PR #4 merged with a merge commit, `33775d59`; branch and worktree removed | GitHub `gate` (twice) and `source-contract` green; the first `source-contract` run failed on an `npm ci` network timeout and passed on rerun | none |
 
 ## Integrated verification and handoff
 
 - Focused checks: 323 focused tests green (fix-verifier round 3).
 - Full gate: see the push-check stamp.
-- UI / device checks: web before and after shots, the iPhone 17 Pro simulator at normal and accessibility-large text with Reduce Motion; the live typed run is pending.
+- UI / device checks: web before and after shots, the iPhone 17 Pro simulator at normal and accessibility-large text with Reduce Motion; the live typed run on the local stack (2026-11-10, captures in `reviews/2026-11-08-recap/live/`).
 - Documentation and decisions: UI-020, `DESIGN.md`, `docs/DESIGN_PARTNERSHIP.md`, `docs/CURRENT_STATE_MAP.md`, `docs/changes/cast.md`, the ledger.
 - Under Reduce Motion the confetti is drawn still (the shared `Confetti` behaviour, as on the drill end), not removed; the founder sees it in the after shots.
 - Landing disposition: LAND through a PR (founder OK 2026-11-16; push-check --main passed)
@@ -219,9 +220,8 @@ From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by 
 
 - **The chime on a no-reply recap.** When a phrase was kept, `recapMoment`'s `won` rule (lines said or a phrase kept) still plays the moment's chime and haptic while Cloud rests. The rule is older than this change; whether "won" should need a reply is a founder call.
 - **The earned title arrives late.** Whether the scene was earned comes from the progress read, so "You can now" and the postcard arrive a moment after first paint. If that read fails, an independent finish keeps its confetti but shows no postcard. Both behaved the same on the old pager.
-- **The web focus ring on sheet headings.** `Sheet` moves focus to its heading by script, and on web the browser draws its default blue outline (`components.tsx` around :2039 with the web rule at :84). DESIGN.md's `FOCUS` paragraph leaves a script-focused heading out. This is older shared code, web only; a candidate one-line fix in the web focus rule.
 - **Small leftovers:**
   - the dev preview seeds a new storage scope per mount;
   - `HearItSaid`'s `ground` prop and `progressStrip.ts`'s `streak`, `goal` and `capLine` are unused;
   - the two closures are recomputed per render.
-- **Four Impeccable redesign proposals**, logged in `docs/DESIGN_PARTNERSHIP.md` (2026-11-10) and put to the founder: the kept phrase under the tiles, Small fixes as one list card, fewer eyebrows, and a pinned practice pill in the focus sheet.
+- **Four Impeccable redesign proposals**, logged in `docs/DESIGN_PARTNERSHIP.md` (2026-11-10) and queued for a board (founder, 2026-11-16): the kept phrase under the tiles, Small fixes as one list card, fewer eyebrows, and a pinned practice pill in the focus sheet.
