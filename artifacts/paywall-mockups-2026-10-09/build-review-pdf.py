@@ -12,7 +12,7 @@ from pypdf import PdfReader, PdfWriter
 ROOT = Path(__file__).resolve().parents[2]
 ART = Path(__file__).resolve().parent
 TMP = ROOT / 'tmp/pdfs/review'
-OUT = ROOT / 'output/pdf/luvani-vibrant-app-and-paywalls-review.pdf'
+OUT = ROOT / 'artifacts/report-pdfs-2026-10/luvani-vibrant-app-and-paywalls-review.pdf'
 for weight in ['Regular', 'Medium', 'Bold', 'ExtraBold']:
     pdfmetrics.registerFont(TTFont('Outfit-' + weight, str(ROOT / f'apps/mobile/assets/fonts/Outfit-{weight}.ttf')))
 W, H = 595.28, 841.89

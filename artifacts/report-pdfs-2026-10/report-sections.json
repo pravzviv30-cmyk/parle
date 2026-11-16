@@ -3566,7 +3566,7 @@
     "headings": [
       [
         "Five videos and app provenance",
-        "Original MP4: 659.47 seconds, 1024 x 576; portrait concept: 30 seconds, 720 x 1280. Added YouTube videos MXLF8b15GhQ, SAxKK5fbjbc and MVOpq3WRnbo: complete exported timed auto-captions reviewed and sampled chapter/demo visuals inspected in-browser. Transcript hashes and URLs join both supplied-file hashes in output/pdf/review-evidence.json. Auto-captions are not a certified verbatim transcript."
+        "Original MP4: 659.47 seconds, 1024 x 576; portrait concept: 30 seconds, 720 x 1280. Added YouTube videos MXLF8b15GhQ, SAxKK5fbjbc and MVOpq3WRnbo: complete exported timed auto-captions reviewed and sampled chapter/demo visuals inspected in-browser. Transcript hashes and URLs join both supplied-file hashes in artifacts/report-pdfs-2026-10/review-evidence.json. Auto-captions are not a certified verbatim transcript."
       ],
       [
         "Repository references",

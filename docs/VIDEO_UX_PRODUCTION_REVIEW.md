@@ -138,11 +138,11 @@ The changes below are prioritized by trust, ability to begin a task and repeat u
 
 **Assessment:** the learner receives something useful, but does not yet create a personal learning artifact. The strongest ownership opportunity comes later than the video's value-before-signup advice suggests. Findings F03, F06 and F08 specify changes without inventing a score or adding a mandatory microphone step.
 
-![O1. Welcome. Recorded exchange before signup.](../output/pdf/evidence/01-welcome-390.jpg)
+![O1. Welcome. Recorded exchange before signup.](../artifacts/report-pdfs-2026-10/evidence/01-welcome-390.jpg)
 
-![O2. Selected model reply. Explicitly unassessed.](../output/pdf/evidence/03-line-selected-390.jpg)
+![O2. Selected model reply. Explicitly unassessed.](../artifacts/report-pdfs-2026-10/evidence/03-line-selected-390.jpg)
 
-![O3. Beginner default. Easy to change.](../output/pdf/evidence/04-starting-level-390.jpg)
+![O3. Beginner default. Easy to change.](../artifacts/report-pdfs-2026-10/evidence/04-starting-level-390.jpg)
 
 ## The plan and signup need less repeated explanation
 
@@ -150,11 +150,11 @@ The changes below are prioritized by trust, ability to begin a task and repeat u
 
 **Change:** lead with the first achievable outcome. Put the routine in one small editable row. Defer optional name and tutor customization. Keep concise AI, processing, age and consent information where the decision occurs; put detailed retention and provider information behind a clear link. This is a hierarchy change, not removal of safeguards. See F04, F05 and F07.
 
-![O4. Time target outweighs the task.](../output/pdf/evidence/06-plan-top-390.jpg)
+![O4. Time target outweighs the task.](../artifacts/report-pdfs-2026-10/evidence/06-plan-top-390.jpg)
 
-![O5. More explanation below the initial view.](../output/pdf/evidence/07-plan-bottom-390.jpg)
+![O5. More explanation below the initial view.](../artifacts/report-pdfs-2026-10/evidence/07-plan-bottom-390.jpg)
 
-![O6. Repeated task and optional form work.](../output/pdf/evidence/08-save-plan-390.jpg)
+![O6. Repeated task and optional form work.](../artifacts/report-pdfs-2026-10/evidence/08-save-plan-390.jpg)
 
 ## The next useful action changes between tabs
 
@@ -162,11 +162,11 @@ The changes below are prioritized by trust, ability to begin a task and repeat u
 
 **Source confirmed:** daily phrase selection depends on tier and date, rather than the selected scene or stated goal. Practice opens the lesson after both successful and failed health probes. The screenshot on the right shows the resulting offline demo. The account was not taken through demo completion during this audit. See F01, F09 and F10.
 
-![O7. Home offers a weather phrase.](../output/pdf/evidence/10-home-offline-390.jpg)
+![O7. Home offers a weather phrase.](../artifacts/report-pdfs-2026-10/evidence/10-home-offline-390.jpg)
 
-![O8. Practice offers a sound lesson.](../output/pdf/evidence/11-practice-top-390.jpg)
+![O8. Practice offers a sound lesson.](../artifacts/report-pdfs-2026-10/evidence/11-practice-top-390.jpg)
 
-![O9. That lesson opens a demo offline.](../output/pdf/evidence/12-practice-offline-attempt-390.jpg)
+![O9. That lesson opens a demo offline.](../artifacts/report-pdfs-2026-10/evidence/12-practice-offline-attempt-390.jpg)
 
 ## Scene content loses the first phone view
 
@@ -174,9 +174,9 @@ The changes below are prioritized by trust, ability to begin a task and repeat u
 
 **Change:** use task title, outcome, one optional preview and a single concise live-minute notice before the primary action. Remove duplicate explanations and reduce or move artwork. The user should know what they will attempt before choosing Start. The brand label also has measured 2.26:1 ink-on-blue contrast; F12 explains the logo exception and readability recommendation.
 
-![O10. French example is below the first view.](../output/pdf/evidence/15-first-scene-390.jpg)
+![O10. French example is below the first view.](../artifacts/report-pdfs-2026-10/evidence/15-first-scene-390.jpg)
 
-![O11. Short viewport loses even the task title.](../output/pdf/evidence/22-first-scene-320.jpg)
+![O11. Short viewport loses even the task title.](../artifacts/report-pdfs-2026-10/evidence/22-first-scene-320.jpg)
 
 ## Progress and Friends occupy valuable navigation space
 
@@ -184,9 +184,9 @@ The changes below are prioritized by trust, ability to begin a task and repeat u
 
 **Source confirmed:** earned independent ability already moves above the level card when it exists. Keep that order. Change the empty state to one concrete outcome and a way to begin. Treat moving Friends out of the primary tabs as a design hypothesis to test, preserving optional challenges and existing data. See F15 and F16.
 
-![O12. Starting level dominates a new account.](../output/pdf/evidence/16-progress-empty-390.jpg)
+![O12. Starting level dominates a new account.](../artifacts/report-pdfs-2026-10/evidence/16-progress-empty-390.jpg)
 
-![O13. Optional social setup is a primary tab.](../output/pdf/evidence/17-friends-390.jpg)
+![O13. Optional social setup is a primary tab.](../artifacts/report-pdfs-2026-10/evidence/17-friends-390.jpg)
 
 ## Prioritized change register
 
@@ -606,13 +606,13 @@ The clip contains music/audio, but local speech transcription yielded no words. 
 
 **Copy the relationship, not the sleep interface:** use selection feedback and a stable task summary. A clock dial is unnecessary for categorical French choices. A glowing orb is not a reason to replace Luvani's established voice-state meanings.
 
-![V2.1. Approximately 00:05. Selected goal.](../output/pdf/evidence/V2-05-goal.jpg)
+![V2.1. Approximately 00:05. Selected goal.](../artifacts/report-pdfs-2026-10/evidence/V2-05-goal.jpg)
 
-![V2.2. Approximately 00:08.5. Answers retained.](../output/pdf/evidence/V2-085-answer-chips.jpg)
+![V2.2. Approximately 00:08.5. Answers retained.](../artifacts/report-pdfs-2026-10/evidence/V2-085-answer-chips.jpg)
 
-![V2.3. Approximately 00:12. Concrete plan.](../output/pdf/evidence/V2-12-plan.jpg)
+![V2.3. Approximately 00:12. Concrete plan.](../artifacts/report-pdfs-2026-10/evidence/V2-12-plan.jpg)
 
-![V2.4. Approximately 00:18. Payment timing.](../output/pdf/evidence/V2-18-billing.jpg)
+![V2.4. Approximately 00:18. Payment timing.](../artifacts/report-pdfs-2026-10/evidence/V2-18-billing.jpg)
 
 ## Second video: transfer and reject
 
@@ -1379,7 +1379,7 @@ Selected comparison cohort, not a store ranking. R = retrieved public product co
 
 ### Five videos and app provenance
 
-Original MP4: 659.47 seconds, 1024 x 576; portrait concept: 30 seconds, 720 x 1280. Added YouTube videos MXLF8b15GhQ, SAxKK5fbjbc and MVOpq3WRnbo: complete exported timed auto-captions reviewed and sampled chapter/demo visuals inspected in-browser. Transcript hashes and URLs join both supplied-file hashes in output/pdf/review-evidence.json. Auto-captions are not a certified verbatim transcript.
+Original MP4: 659.47 seconds, 1024 x 576; portrait concept: 30 seconds, 720 x 1280. Added YouTube videos MXLF8b15GhQ, SAxKK5fbjbc and MVOpq3WRnbo: complete exported timed auto-captions reviewed and sampled chapter/demo visuals inspected in-browser. Transcript hashes and URLs join both supplied-file hashes in artifacts/report-pdfs-2026-10/review-evidence.json. Auto-captions are not a certified verbatim transcript.
 
 ### Repository references
 

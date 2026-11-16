@@ -16,7 +16,7 @@ Completed 9 October 2026: 74 app screens and 56 paywall/billing states. The foun
 
 In “Play the app · 130 screens”, press Present. The six flows are Find your voice, Explore every tab, Live tutor, Choose a speaking plan, Payment recovery and Manage your plan. Four bottom tabs are Home, Speak, Practice and Progress. The labelled profile avatar opens Profile; Settings and Friends are reached there.
 
-The final PDF is `output/pdf/luvani-vibrant-app-and-paywalls-review.pdf`: six introductory/index pages followed by 130 native vector screen pages, with bookmarks. `luvani-app-review.png` is the overview; `welcome-motion.mp4` is the two-second exported welcome entrance.
+The final PDF is `artifacts/report-pdfs-2026-10/luvani-vibrant-app-and-paywalls-review.pdf`: six introductory/index pages followed by 130 native vector screen pages, with bookmarks. `luvani-app-review.png` is the overview; `welcome-motion.mp4` is the two-second exported welcome entrance.
 
 ## Design structure
 
