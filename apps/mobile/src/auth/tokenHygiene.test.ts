@@ -266,6 +266,16 @@ describe('auth token hygiene — what a static walk can prove without a device',
     );
   });
 
+  test('the used-before hint is kept only in storage that uninstalling removes', () => {
+    // iOS keeps Keychain items after an uninstall, so a hint kept there made a
+    // reinstalled phone look returning (F960). AsyncStorage goes with the app.
+    assert.equal(sources.some((s) => s.name === 'installHistory.native.ts'), false, 'no platform keeps its own copy of the hint');
+    const hint = byName('installHistory.ts');
+    assert.match(hint.code, /INSTALL_HISTORY_KEY = '@luvani\/has-used-app\/v1'/);
+    assert.match(hint.code, /AsyncStorage\.setItem\(INSTALL_HISTORY_KEY, 'yes'\)/);
+    assert.doesNotMatch(hint.code, /SecureStore|luvani\.has-used-app/);
+  });
+
   test('a bearer token leaves the auth layer only in an authorization header', () => {
     // A token in a query string is a token in a proxy log, a referrer header
     // and browser history. Header or nothing.
