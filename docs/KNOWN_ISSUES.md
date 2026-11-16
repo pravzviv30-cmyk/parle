@@ -12598,7 +12598,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   continued, which is the existing beatDone rule). Known, unfixed low: a local agent `dev` start without
   LUVANI_LOCAL_DEVELOPMENT=1 (services/tutor-agent/package.json:8) throws at agent.ts:191 before SessionExit
   exists and leaves the token server's local 30-minute lease; production is unaffected (reserved rows expire
-  at join_deadline, about 120 s).
+  at join_deadline, about 120 s). Push-check round 1: the advance now needs the same earned-turn conditions as
+  the tick (mission, spoke with text, French or mixed, understood, taskAchieved, goalMet, no topic shift, not
+  rescued), so it never outruns the evidence, and it applies to missions only. Known limits: (a) when the tutor
+  names a beat more than one step ahead, the skipped beats finish unevidenced and their goals cannot tick in
+  that run, so the win card is lost there (founder to decide whether one reply may meet several goals, or the
+  advance should move one step); (b) the last beat still needs `beatDone` for `missionDone` (5 of 6 live runs
+  set it); (c) services/tutor-agent/src/convo.ts:3126-3129 restores only `evidencedBeatIds` when guardView
+  rejects a reply, so movement stays (pinned by convo.test.ts:707 "movement stays separate from achievement").
 - verified-by: `a learner who answers each line in turn sees each goal tick, even when the model names the next beat without marking the last one done`
 - verified-by: `naming the next beat moves the scene on only for a turn the learner earned, and never backwards`
 - verified-by: `a partly right answer that moves the scene on is not counted as another try at the same line`

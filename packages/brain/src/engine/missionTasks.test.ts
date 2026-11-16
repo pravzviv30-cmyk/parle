@@ -121,7 +121,9 @@ test('a goal ticks when the learner meets it even as the model moves the scene o
   const generated = createConversation(frame, { ...learner, watchFor: [] }, { strictness: 'balanced', maxTurns: 24 });
   assert.deepEqual(integrateTurn(generated, spoke, moved(generated)).state.evidencedBeatIds, []);
   // A beat already evidenced is not added twice.
-  const once = integrateTurn(state, spoke, moved(state)).state;
+  // The scene must still be on that beat for the second turn to test anything.
+  const once = integrateTurn(state, spoke, sampleTurn({ scene: { beat: state.currentBeat, beatDone: false, goalMet: true } })).state;
+  assert.equal(once.currentBeat, state.currentBeat, 'precondition: still on the evidenced beat');
   const twice = integrateTurn(once, spoke, moved(once)).state;
   assert.equal(twice.evidencedBeatIds.filter(id => id === state.currentBeat).length, 1);
 });
@@ -169,4 +171,31 @@ test('a partly right answer that moves the scene on is not counted as another tr
   const next = integrateTurn(state, spoke, mixed).state;
   assert.equal(next.attemptsOnBeat, 0, 'the beat finished, so no attempt is carried');
   assert.equal(next.currentBeat, sayWhere);
+});
+
+test('naming a later beat moves the scene on only when the turn would also tick the goal', () => {
+  const state = fresh();
+  const base = live(sayWhere, false);
+  for (const [why, turn] of [
+    ['the task was not achieved', { ...base, assessment: { ...base.assessment, taskAchieved: false } }],
+    ['the learner was not understood', { ...base, assessment: { ...base.assessment, understood: false } }],
+    ['the talk shifted topic', { ...base, topicShift: { en: 'Weekend', fr: 'Le week-end' } }],
+    ['the learner reached for English', { ...base, assessment: { ...base.assessment, language: 'english' as const } }],
+  ] as const) {
+    assert.equal(integrateTurn(state, spoke, turn).state.currentBeat, greet, `${why}, so the beat is not finished by aiming ahead`);
+  }
+});
+
+test('a scene outside a mission keeps its old pace when the tutor aims ahead', () => {
+  const generated = createConversation(frame, { ...learner, watchFor: [] }, { strictness: 'balanced', maxTurns: 24 });
+  const next = integrateTurn(generated, spoke, live(pay, false)).state;
+  assert.equal(next.currentBeat, generated.currentBeat, 'only beatDone moves a generated scene');
+});
+
+test('a rescued learner whose attempts ran out moves on exactly one line, however far the tutor aims', () => {
+  const state = fresh();
+  const stuck = { ...state, forceAdvance: true, directive: { ...state.directive, rescued: true }, frenchGiven: true };
+  const next = integrateTurn(stuck, spoke, live(pay, false)).state;
+  assert.equal(next.currentBeat, sayWhere, 'the cap moves one beat; a rescue earns no skip');
+  assert.deepEqual(next.evidencedBeatIds, []);
 });

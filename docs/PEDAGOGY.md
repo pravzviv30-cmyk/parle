@@ -88,9 +88,9 @@ English. Both are bounded by an attempt cap, so nothing can loop.
 
 A mission goal ticks for the beat current before the turn when the brain's
 `goalMet` is true (F949). The brain names in `scene.beat` the beat its reply moves
-to, so a met goal with a later named beat also finishes the current beat, under
-the same rescue and English guards (F971). Beats it skipped over are finished
-but never ticked.
+to, so in a mission a later named beat also finishes the current beat, but only
+on a turn that meets the same earned-turn conditions as the tick (F971). Beats it
+skipped over are finished but never ticked.
 
 Asking for help is never scored against the learner. Neither is hesitating, and
 the tutor is instructed at every rung never to mention it.
