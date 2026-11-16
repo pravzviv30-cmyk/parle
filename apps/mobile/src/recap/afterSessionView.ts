@@ -104,10 +104,10 @@ export function recapTiles(stats: readonly StatTile[]): SceneTile[] {
 }
 
 /** The one focus row: a sound, or with no sound one thing to tune, or none. */
-export function recapFocusRow(focus: ClosureFocus | null): { kind: 'sound' | 'other'; label: string; line: string } | null {
+export function recapFocusRow(focus: ClosureFocus | null): { kind: 'sound' | 'other'; label: string; line: string; french: boolean } | null {
   if (focus === null) return null;
-  if (focus.kind === 'sound') return { kind: 'sound', label: focus.source === 'live' ? SOUND_FOCUS_LABEL : KEEPSAKE_COPY.sound, line: exampleFirstHeading(focus.acoustic, focus.example) };
-  return { kind: 'other', label: 'One thing to tune', line: focus.kind === 'clarity' ? focus.line : focus.fr };
+  if (focus.kind === 'sound') return { kind: 'sound', label: focus.source === 'live' ? SOUND_FOCUS_LABEL : KEEPSAKE_COPY.sound, line: exampleFirstHeading(focus.acoustic, focus.example), french: false };
+  return { kind: 'other', label: 'One thing to tune', line: focus.kind === 'clarity' ? focus.line : focus.fr, french: focus.kind === 'cadence' };
 }
 
 /** The pinned footer: practise the kept phrase once it is saved, or Done; "See your journey" only on an earned scene. */

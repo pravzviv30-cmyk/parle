@@ -307,3 +307,15 @@ describe('the recap is where the conversation is celebrated — F765', () => {
     assert.ok(own !== -1 && shown !== -1 && own < shown, 'the recap lets the conversation\'s hold go before taking its own');
   });
 });
+
+describe('the focus row and the next pill', () => {
+  test('the cadence focus line carries its language on the row and in the sheet', () => {
+    assert.match(read('./RecapScreen.tsx'), /<Text \{\.\.\.\(focusRow\.french \? frenchText : \{\}\)\}/);
+    // DESIGN.md Type: French keeps its own token (SemiBold), as main drew this line.
+    assert.match(read('./RecapScreen.tsx'), /style=\{\[focusRow\.french \? type\.french : bType\.bold16, \{ color: t\.text \}\]\}>\{focusRow\.line\}/);
+    assert.match(read('./recap/FocusSheet.tsx'), /<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color: t\.text \}\]\}>\{focus\.fr\}/);
+  });
+  test('the next pill holds the left column', () => {
+    assert.match(read('./recap/RecapParts.tsx'), /nextPill: \{[^}]*alignSelf: 'flex-start'/);
+  });
+});

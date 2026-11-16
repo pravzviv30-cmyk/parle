@@ -71,7 +71,7 @@ import { IconAction, Card, LipTile, LockBadge, OutlineButton, PillButton, Press 
 import { ScrollScreen } from './layout.tsx';
 import { Icon } from './icons/Icon.tsx';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
-import { bType } from './theme.ts';
+import { bType, frenchText } from './theme.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 import { useFeatureAccess } from './access/useFeatureAccess.ts';
 import { fixesLocked } from './practice/fixesView.ts';
@@ -412,7 +412,7 @@ export function RecapScreen({
           <View {...decorative} style={[s.coin, { backgroundColor: t.lavender }]}><Icon name={focusRow.kind === 'sound' ? 'mouth' : 'hint'} size={18} color={t.text} /></View>
           <View style={s.grow}>
             <Text style={[bType.chip, { color: t.link }]}>{focusRow.label}</Text>
-            <Text style={[bType.bold16, { color: t.text }]}>{focusRow.line}</Text>
+            <Text {...(focusRow.french ? frenchText : {})} style={[focusRow.french ? type.french : bType.bold16, { color: t.text }]}>{focusRow.line}</Text>
           </View>
           <Icon name="chevron-right" size={18} color={t.muted} />
         </LipTile>

@@ -103,7 +103,7 @@ function makeStyles(t: B) {
     grow: { flex: 1, minWidth: 0 },
     saidWell: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
     tile: { width: 72, height: 72, borderRadius: 16, backgroundColor: t.peach, alignItems: 'center', justifyContent: 'center', overflow: 'visible', transform: [{ rotate: '-4deg' }] },
-    nextPill: { backgroundColor: t.sun, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'center' },
+    nextPill: { backgroundColor: t.sun, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start' },
     goal: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 24 },
     goalRing: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: t.field },
     lineRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },

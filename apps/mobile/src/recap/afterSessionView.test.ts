@@ -94,12 +94,13 @@ describe('the recap focus row', () => {
     assert.equal(live?.kind, 'sound');
     assert.equal(live?.label, SOUND_FOCUS_LABEL);
     assert.match(live!.line, /tu/);
+    assert.equal(live?.french, false);
     const check = recapFocusRow({ kind: 'sound', source: 'check', ipa: 'y', acoustic, missionId: 'mission:cafe', example: null });
     assert.equal(check?.label, KEEPSAKE_COPY.sound);
   });
   test('with no sound, one thing to tune names the clarity line or the French', () => {
-    assert.deepEqual(recapFocusRow({ kind: 'clarity', line: 'Ask what they recommend.' }), { kind: 'other', label: 'One thing to tune', line: 'Ask what they recommend.' });
-    assert.deepEqual(recapFocusRow({ kind: 'cadence', fr: 'Je voudrais', en: 'I would like', note: 'n' }), { kind: 'other', label: 'One thing to tune', line: 'Je voudrais' });
+    assert.deepEqual(recapFocusRow({ kind: 'clarity', line: 'Ask what they recommend.' }), { kind: 'other', label: 'One thing to tune', line: 'Ask what they recommend.', french: false });
+    assert.deepEqual(recapFocusRow({ kind: 'cadence', fr: 'Je voudrais', en: 'I would like', note: 'n' }), { kind: 'other', label: 'One thing to tune', line: 'Je voudrais', french: true });
   });
   test('with neither there is no row', () => {
     assert.equal(recapFocusRow(null), null);

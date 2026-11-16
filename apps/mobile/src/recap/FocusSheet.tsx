@@ -16,7 +16,7 @@ import type { ClosureFocus } from '../conversationPacks/closure.ts';
 import { KEEPSAKE_COPY } from '../live/keepsake.ts';
 import { useB } from '../main/bTheme.tsx';
 import { MouthGuide } from '../practice/MouthGuide.tsx';
-import { HIT, space, type } from '../theme.ts';
+import { HIT, frenchText, space, type } from '../theme.ts';
 import { SOUND_DETAIL, SOUND_FOCUS_LABEL, exampleFirstHeading } from '../tutor/soundExample.ts';
 import { PrivatePractice } from './PrivatePractice.tsx';
 
@@ -30,7 +30,7 @@ export function FocusSheet({ focus, onClose }: { focus: ClosureFocus; onClose: (
           <Text style={[type.bodyStrong, { color: t.text }]}>{focus.line}</Text>
         ) : (
           <View>
-            <Text style={[type.french, { color: t.text }]}>{focus.fr}</Text>
+            <Text {...frenchText} style={[type.french, { color: t.text }]}>{focus.fr}</Text>
             <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{focus.en}</Text>
             <Text style={[type.small, { color: t.muted, marginTop: space(1) }]}>{focus.note}</Text>
           </View>
