@@ -10,8 +10,8 @@
  * capsule is clear and lets touches through, so only the capsule covers
  * content, and it reports its height so a tab screen pads its scroll past it.
  *
- * Each cell presses through the one spring with no haptic of its own, because
- * the tap that changes tab is the one that ticks. Large reading sizes wrap the
+ * Each cell presses through the one spring with no haptic of its own: pressing
+ * in on another tab ticks once and moves the pill there (F981). Large reading sizes wrap the
  * labels and grow the capsule; nothing truncates or caps font scaling. Changes
  * are announced to assistive technology. The decisions (words, drawings, width,
  * wrapping, the dot) live in `tabBarModel.ts`; the one movement, the selected
@@ -55,7 +55,6 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) {
-            tapSettled();
             navigation.navigate(route.name as never);
             // A tab tap replaces the whole screen; VoiceOver gives no signal of
             // that on its own, so the destination is announced.
@@ -86,7 +85,6 @@ export function DetachedTabBar({ onTab }: { onTab: (route: string) => void }) {
         name,
         focused: false,
         onPress: () => {
-          tapSettled();
           onTab(name);
           announceTab(name);
         },
@@ -131,6 +129,11 @@ function TabStrip({ routes, insets, due }: {
   const cell = Math.max(0, (capsule - 2 * CAPSULE_SIDE) / routes.length);
   const selected = routes.findIndex((r) => r.focused);
   const [dragX, setDragX] = useState<number | null>(null);
+  // F981: a press arms its tab, so the pill and the selected look go there at
+  // once with the one tick, as iOS's own bar does; lifting off it disarms.
+  const [armed, setArmed] = useState<number | null>(null);
+  const pressIn = (i: number) => { if (i === selected) return; setArmed(i); tapSettled(); };
+  const pressOut = () => setArmed(null);
   const capsuleRef = useRef<View>(null);
   const capsuleX = useRef(0);
   const over = useRef(0);
@@ -156,7 +159,7 @@ function TabStrip({ routes, insets, due }: {
       const { selected } = geo.current;
       const to = over.current;
       setDragX(null);
-      if (to !== selected) routesRef.current[to]?.onPress(); else tapSettled();
+      tapSettled(); if (to !== selected) routesRef.current[to]?.onPress();
     },
     onPanResponderTerminationRequest: () => false,
     onPanResponderTerminate: () => setDragX(null),
@@ -166,9 +169,10 @@ function TabStrip({ routes, insets, due }: {
     <View pointerEvents="box-none" onLayout={(e) => reportHeight?.(e.nativeEvent.layout.height)} style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
       <View ref={capsuleRef} {...drag.panHandlers} onLayout={() => capsuleRef.current?.measureInWindow((x) => { capsuleX.current = x; })} style={[st.capsule, { width: capsule }]}>
       {t.mode === 'dark' && <View {...decorative} pointerEvents="none" style={st.rim} />}
-      {selected >= 0 && <TabPill to={dragX ?? selected * cell} width={cell} left={CAPSULE_SIDE} following={dragX !== null} />}
-      {routes.map((route) => {
+      {selected >= 0 && <TabPill to={dragX ?? (armed ?? selected) * cell} width={cell} left={CAPSULE_SIDE} following={dragX !== null} />}
+      {routes.map((route, i) => {
         const focused = route.focused;
+        const lit = i === (armed ?? selected);
         const icon = TAB_ICONS[route.name];
         const label = TAB_LABELS[route.name] ?? route.name;
         const dot = tabDot(route.name, due);
@@ -181,6 +185,8 @@ function TabStrip({ routes, insets, due }: {
             style={st.face}
             key={route.key}
             onPress={route.onPress}
+            onPressIn={() => pressIn(i)}
+            onPressOut={pressOut}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             aria-selected={focused}
@@ -189,10 +195,10 @@ function TabStrip({ routes, insets, due }: {
             accessibilityShowsLargeContentViewer={!shown}
             accessibilityLargeContentTitle={shown ? undefined : label}
           >
-            <TabGlyph focused={focused} badged={dot}>
-              {() => <Icon name={icon} variant="linear" size={22} color={focused ? t.tabGlyphSelected : t.tabLabel} />}
+            <TabGlyph focused={lit} badged={dot}>
+              {() => <Icon name={icon} variant="linear" size={22} color={lit ? t.tabGlyphSelected : t.tabLabel} />}
             </TabGlyph>
-            {shown && <Text selectable={false} style={[st.label, { fontFamily: focused ? font.bold : font.medium }]}>{label}</Text>}
+            {shown && <Text selectable={false} style={[st.label, { fontFamily: lit ? font.bold : font.medium }]}>{label}</Text>}
           </Press>
         );
       })}

@@ -1,7 +1,7 @@
 /**
  * The selected tab's violet pill (item 7, founder 2026-11-02): the one thing in
- * the bar that moves. It sits behind the selected cell's glyph, slides to a
- * tab when it is tapped, follows the finger while any tab is held and dragged
+ * the bar that moves. It sits behind the selected cell's glyph, springs to a
+ * tab as it is pressed (F981), follows the finger while any tab is held and dragged
  * sideways (a drag from a closed tab first slides it to the finger, F963), and
  * under Reduce Motion, watched live, it simply jumps. Transform
  * only, through motion/drive.ts. Decorative: the cell over it is the tab a
@@ -12,8 +12,8 @@ import { useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useReduceMotion } from '../motion.ts';
-import { cancel, timing } from '../motion/drive.ts';
-import { DUR, EASE } from '../motion/tokens.ts';
+import { cancel, spring, timing } from '../motion/drive.ts';
+import { DUR, EASE, SPRING } from '../motion/tokens.ts';
 import { decorative } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 
@@ -54,7 +54,7 @@ export function TabPill({ to, width, left, following }: {
       x.value += gap.value;
       gap.value = 0;
     }
-    x.value = timing(to, DUR.fast, EASE.out, reduced);
+    x.value = spring(to, SPRING.snap, reduced);
   }, [to, following, reduced, x, gap]);
 
   const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.value + gap.value }] }));

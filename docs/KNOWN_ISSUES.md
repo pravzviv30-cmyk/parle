@@ -12553,7 +12553,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a scene build that fails once is retried once and the scene opens`
 - verified-by: `reply-first at rung 3: the early line is uninterruptible, since a blocking error it cannot see yet may drop the rung`
 - verified-by: `a session that fails to start still logs its exit, named start`
-- verified-by: `the drop handler releases nothing when the session had already ended or failed`
+- verified-by: `the drop handler gives back the live hold but keeps the audio session when the session had already ended or failed`
 
 
 ### F970 — Signed-in conversations end at the first checkpoint: the pack validator does not know learnerReplies
@@ -12677,3 +12677,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/repoStructure.test.mjs:46
 - note: isExternal treats every scheme as external, so a tracked doc containing `[a](file:///Users/pravz_07/x.png)` passes "no tracked markdown link points at an absolute machine path".
 - verified-by: `a file link to a machine path counts as an absolute machine path`
+
+### F981 — A tab tap ticked only on lift and the pill trailed the screen change; a dropped room after the end or an error kept haptics muted
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx, apps/mobile/src/nav/TabPill.tsx, apps/mobile/src/live/useLiveSession.ts (Disconnected handler)
+- note: founder report 2026-11-10 (iPhone, iOS 27, Release build of d899890e): "no haptics" and the tab selector "does not appear or act cohesively". A tap ticked in onPress on lift and the pill moved only once the next screen rendered, after the cell colours. Now pressing in arms the tab: the pill springs there (SPRING.snap) with one tick and the selected look, a cancelled press returns it, the open tab arms nothing. Since c5ac8a7d a room dropped after `ended` or `error` released nothing, so the live hold muting every haptic stayed up; it now releases the hold (releaseLiveHold) and still leaves the audio session to the recap.
+- verified-by: `pressing in on another tab moves the pill and its colours there with one tick, and lifting adds none (F981)`, `a cancelled press puts the pill back, and pressing the open tab arms nothing (F981)`, `the drop handler gives back the live hold but keeps the audio session when the session had already ended or failed`
