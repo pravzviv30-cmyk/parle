@@ -82,3 +82,10 @@ artifacts/game-art/
 
 # /push-check screenshots: evidence for the run, not for the repo
 reviews/push-check/
+
+# Local scratch and other tools' state. output/ holds personal files beside run
+# output, so it is never tracked: evidence goes in artifacts/<slug>-<date>/.
+/output/
+/tmp/
+/.codex/
+/.mercury/

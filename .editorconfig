@@ -1,0 +1,14 @@
+# Whitespace policy, held by scripts/repoStructure.test.mjs (LF, no tab indents).
+# No formatter runs; existing files are not reformatted to match.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+
+# The Python build scripts use four-space indents.
+[*.py]
+indent_size = 4

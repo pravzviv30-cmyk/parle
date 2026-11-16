@@ -12611,3 +12611,69 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a learner who answers each line in turn sees each goal tick, even when the model names the next beat without marking the last one done`
 - verified-by: `naming the next beat moves the scene on only for a turn the learner earned, and never backwards`
 - verified-by: `a partly right answer that moves the scene on is not counted as another try at the same line`
+
+### F972 — The repository map covers every top-level entry
+- severity: P1
+- status: [x]
+- where: AGENTS.md:22
+- note: "Find the owner" lists 9 areas and omits artifacts, reviews, output, brand, graphify-out, .claude, .trail and the root docs; line 12 still names the old Documents path.
+- verified-by: `every top-level tracked entry has a row in the AGENTS.md repository map`
+- verified-by: `AGENTS.md names where new evidence, boards and scratch output go`
+
+### F973 — The docs index lists everything directly under docs
+- severity: P1
+- status: [x]
+- where: docs/README.md:7
+- note: the index omits several live docs and all eight evidence folders, so a reader cannot tell current reference from dated report.
+- verified-by: `every file and folder directly under docs is listed in docs/README.md`
+
+### F974 — Every doc link resolves and none is machine-absolute
+- severity: P1
+- status: [x]
+- where: docs/VIDEO_UX_PRODUCTION_REVIEW.md:1
+- note: 72 broken links, 71 of them absolute /Users paths (54 in docs/changes/bold-rhythm.md, 17 here) and 1 missing artifacts target in docs/HEADSPACE_UX_REVIEW.md.
+- verified-by: `every relative markdown link in tracked docs resolves`
+- verified-by: `no tracked markdown link points at an absolute machine path`
+
+### F975 — Tracked evidence leaves output and the folder is ignored
+- severity: P1
+- status: [x]
+- where: .gitignore:88
+- note: 62 tracked files share output/ with untracked personal files, including medical PDFs in output/pdf, so a folder-level git add would publish them.
+- verified-by: `no tracked path sits under output`
+- verified-by: `every relative markdown link in tracked docs resolves`
+
+### F976 — No tracked file matches an ignore rule
+- severity: P1
+- status: [x]
+- where: .gitignore:73
+- note: .firecrawl/search-anthropic-models.json is tracked inside a folder ignored because captures can carry credentials.
+- verified-by: `no tracked file matches .gitignore`
+
+### F977 — Whitespace policy without a dependency
+- severity: P2
+- status: [x]
+- where: .editorconfig:1
+- note: the repo is already LF and space-indented with nothing stating or holding it; no reformat.
+- verified-by: `tracked source uses LF line endings and no tab indentation`
+
+### F978 — The structure test runs in the gate
+- severity: P1
+- status: [x]
+- where: scripts/gate.mjs:238
+- note: a scripts test outside releaseProofTests never runs, and its titles cannot close S1 to S6.
+- verified-by: `every top-level tracked entry has a row in the AGENTS.md repository map`
+
+### F979 — The artifacts naming rule in the map contradicts the tree
+- severity: P1
+- status: [x]
+- where: AGENTS.md:54
+- note: "Where new things go" names artifacts/<date>-<slug>/, but all 21 dated folders under artifacts/, including the two this pass created (video-ux-implementation-2026-10-04, report-pdfs-2026-10), are <slug>-<date>; scripts/repoStructure.test.mjs:58 pins the wrong string and .gitignore:87 and the message at :89 repeat it.
+- verified-by: `the artifacts naming rule in AGENTS.md matches the dated folders in artifacts`
+
+### F980 — A file:// link to a machine path passes the absolute-path check
+- severity: P2
+- status: [x]
+- where: scripts/repoStructure.test.mjs:46
+- note: isExternal treats every scheme as external, so a tracked doc containing `[a](file:///Users/pravz_07/x.png)` passes "no tracked markdown link points at an absolute machine path".
+- verified-by: `a file link to a machine path counts as an absolute machine path`

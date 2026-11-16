@@ -281,62 +281,62 @@ across 39 migrations. Production web export, generic iOS compilation and source 
 the parser/semantic-label limitations are recorded above. Current runtime evidence
 is stored locally in
 `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime`:
-[Well done](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/well-done-390.png),
-[achievements](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/achievements-390.png),
-[speaking](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-speaking-390.png),
-[typing](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-typing-390.png),
-[focused composer](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-typing-focused-390.png),
-[corrected compact focused composer](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-typing-focused-320.png),
-[compact tutor selection](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-selected-320.png),
-[tablet plan](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/plan-768.png),
-[compact Sign in](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signin-320.png),
-[compact signup/provider buttons](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-providers-320.png),
-[compact confirmation focus](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-confirm-focus-320.png),
-[Welcome](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/welcome-390.png),
-[streak](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/streak-390.png),
-[compact streak](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/streak-320.png),
-[ongoing loop observation](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/streak-loop-observation.json).
+Well done (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/well-done-390.png`),
+achievements (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/achievements-390.png`),
+speaking (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-speaking-390.png`),
+typing (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-typing-390.png`),
+focused composer (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-typing-focused-390.png`),
+corrected compact focused composer (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/live-typing-focused-320.png`),
+compact tutor selection (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-selected-320.png`),
+tablet plan (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/plan-768.png`),
+compact Sign in (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signin-320.png`),
+compact signup/provider buttons (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-providers-320.png`),
+compact confirmation focus (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-confirm-focus-320.png`),
+Welcome (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/welcome-390.png`),
+streak (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/streak-390.png`),
+compact streak (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/streak-320.png`),
+ongoing loop observation (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/streak-loop-observation.json`).
 The disclosure follow-up is captured in
-[the centred practice page](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/before-practice-centred.png),
-[its compact layout](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/before-practice-centred-320.png) and
-[the working Terms sheet](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/before-practice-terms-320.png).
+the centred practice page (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/before-practice-centred.png`),
+its compact layout (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/before-practice-centred-320.png`) and
+the working Terms sheet (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/before-practice-terms-320.png`).
 The account follow-up is captured in
-[the centred signup footer](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-footer-centred-390.png),
-[its compact layout](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-footer-centred-320.png) and
-[the normal browser preview](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-footer-centred.png).
+the centred signup footer (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-footer-centred-390.png`),
+its compact layout (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-footer-centred-320.png`) and
+the normal browser preview (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/signup-footer-centred.png`).
 The tutor-colour follow-up is captured in
-[the bolder tutor page](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-colour-selected-390.png),
-[its integrated playback control](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-colour-playing-390.png) and
-[all six compact choices](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-colour-320-bottom.png).
+the bolder tutor page (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-colour-selected-390.png`),
+its integrated playback control (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-colour-playing-390.png`) and
+all six compact choices (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-colour-320-bottom.png`).
 The continuous portrait follow-up is captured in
-[the animated tutor page](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-portraits-animated-390.png),
-[compact portraits](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-portraits-animated-320-bottom.png) and
-[the actual loop observations](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-portrait-loops-390.json).
+the animated tutor page (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-portraits-animated-390.png`),
+compact portraits (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-portraits-animated-320-bottom.png`) and
+the actual loop observations (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/tutor-portrait-loops-390.json`).
 The question-palette follow-up is captured in
-[the bolder daily-time page](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-time-390.png),
-[multiple interests](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-interests-390.png),
-[compact daily-time answers](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-time-320.png) and
-[all six plan-edit measurements](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-plan-edit-checks.json).
+the bolder daily-time page (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-time-390.png`),
+multiple interests (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-interests-390.png`),
+compact daily-time answers (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-time-320.png`) and
+all six plan-edit measurements (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/questions-plan-edit-checks.json`).
 The question-illustration and structure follow-up is captured in
-[all six illustration compositions](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-illustration-compositions.png),
-[the new purpose header](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-purpose-390.png),
-[the book and coffee interests page](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-interests-390.png),
-[the refined daily-time page](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-time-390.png) and
-[the actual motion/layout observations](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-motion-and-layout.json).
+all six illustration compositions (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-illustration-compositions.png`),
+the new purpose header (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-purpose-390.png`),
+the book and coffee interests page (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-interests-390.png`),
+the refined daily-time page (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-time-390.png`) and
+the actual motion/layout observations (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-hero-motion-and-layout.json`).
 The latest premium redraft is captured in
-[the six newly drawn illustrations at both sizes](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-illustration-proof.png),
-[the new daily-time clock](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-time-390.jpg),
-[the map explorer](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-reason-390.jpg),
-[the growing plant](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-start-level-390.jpg),
-[the speech character](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-confidence-390.jpg),
-[compact answer reachability](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-time-320-bottom.jpg) and
-[the current observations](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-illustration-observations.json).
+the six newly drawn illustrations at both sizes (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-illustration-proof.png`),
+the new daily-time clock (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-time-390.jpg`),
+the map explorer (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-reason-390.jpg`),
+the growing plant (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-start-level-390.jpg`),
+the speech character (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-confidence-390.jpg`),
+compact answer reachability (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-time-320-bottom.jpg`) and
+the current observations (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/premium-illustration-observations.json`).
 The natural-gesture follow-up is captured in
-[the generated all-six motion study](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-gesture-study.gif),
-[actual daily-time UI](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/gestures-time-selected-390.jpg),
-[normal and compact gesture poses](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-gesture-poses.png),
-[compact answer reachability](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/gestures-time-320-bottom.jpg) and
-[actual loop and selection observations](/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-gesture-observations.json).
+the generated all-six motion study (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-gesture-study.gif`),
+actual daily-time UI (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/gestures-time-selected-390.jpg`),
+normal and compact gesture poses (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-gesture-poses.png`),
+compact answer reachability (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/gestures-time-320-bottom.jpg`) and
+actual loop and selection observations (local capture `/Users/pravz_07/.codex/visualizations/2026/10/13/01a13581-45d6-7113-909b-c02ddfa039f5/c2-runtime/question-gesture-observations.json`).
 The [running local C2 component preview](http://localhost:8096) opens the guarded
 fixture selector for review. All browser observations used actual components
 with synthetic/inert inputs; no signup or live paid-service request was submitted.
@@ -451,12 +451,12 @@ assertions remain unchanged.
 Browser images and the orb recording are saved in the task's visualization folder;
 these are local presentation evidence, not Figma pixel certification or service QA.
 
-- [Tutor colours, 390px](/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/tutors-colour-390.jpg)
-- [Compact tutor grid](/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/tutors-320.jpg)
-- [Personalised plan, tablet](/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/plan-768.jpg)
-- [Signup recovery, compact](/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/signup-error-320.jpg)
-- [Verification/resend, compact](/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/signup-verification-320.jpg)
-- [Continuous fluid-orb recording](/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/fluid-orb-loop.mp4)
+- Tutor colours, 390px (local capture `/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/tutors-colour-390.jpg`)
+- Compact tutor grid (local capture `/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/tutors-320.jpg`)
+- Personalised plan, tablet (local capture `/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/plan-768.jpg`)
+- Signup recovery, compact (local capture `/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/signup-error-320.jpg`)
+- Verification/resend, compact (local capture `/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/signup-verification-320.jpg`)
+- Continuous fluid-orb recording (local capture `/Users/pravz_07/.codex/visualizations/2026/10/11/01a12b3e-b02b-7e60-a41a-068777838e98/bold-rhythm/fluid-orb-loop.mp4`)
 
  All 60 frame states are mapped,
 but all-frame screenshot comparisons are **not complete**. Figma quota blocked

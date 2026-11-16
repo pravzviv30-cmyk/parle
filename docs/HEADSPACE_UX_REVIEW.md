@@ -469,4 +469,4 @@ Professional baseline checks use W3C's [text contrast](https://www.w3.org/WAI/WC
 
 ### Delivery verification
 
-The final verification record is in [the local review record](../artifacts/headspace-ux-review-2026-10-11/REVIEW.md). Physical iPhone/iPad, native software keyboard, VoiceOver, real provider authentication, guest admission, voice quality and store transactions remain implementation acceptance work. This report does not claim they passed. No runtime source, product policy, store configuration or external account was changed.
+The final verification record is in the local review record, `artifacts/headspace-ux-review-2026-10-11/REVIEW.md`, which is not in the repository. Physical iPhone/iPad, native software keyboard, VoiceOver, real provider authentication, guest admission, voice quality and store transactions remain implementation acceptance work. This report does not claim they passed. No runtime source, product policy, store configuration or external account was changed.
