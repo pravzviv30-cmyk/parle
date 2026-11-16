@@ -12677,3 +12677,51 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/repoStructure.test.mjs:46
 - note: isExternal treats every scheme as external, so a tracked doc containing `[a](file:///Users/pravz_07/x.png)` passes "no tracked markdown link points at an absolute machine path".
 - verified-by: `a file link to a machine path counts as an absolute machine path`
+
+### F1000 — An unjoined tutor start gives back its daily seconds and its session count
+- severity: P1
+- status: [ ]
+- where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql:182
+- note: Migration 46 replaces tutor_finish_v1 and reserve_tutor_session_v1 so that abandon, expiry and retirement of a never-claimed grant return its seconds and session to both day counters, and admission reads issued minus released. Includes the verifyTutorSessions.mjs proof group and the doc lines named above. Closes F955's verified-by title.
+- verified-by: `a tutor start that never joins gives back its reserved daily seconds`
+- verified-by: `a tutor start that never joins gives back its daily session count`
+- verified-by: `an account refused for its daily budget can start again once its unjoined start expires`
+- verified-by: `an unjoined start reserved before midnight gives back to the day it counted on`
+
+### F1001 — A joined session never gives seconds back, and a give-back happens once
+- severity: P1
+- status: [ ]
+- where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql:228
+- note: The give-back must be gated on claimed_at being null and on the first settlement only. Otherwise interrupted or failed live sessions, or a repeated abandon, would recycle real exposure.
+- verified-by: `a tutor start that was claimed keeps its daily seconds however it ends`
+- verified-by: `settling an unjoined start twice gives its seconds back once`
+- verified-by: `a claim that wins the race against an abandon keeps its daily seconds`
+
+### F1002 — Issued counters stay monotonic so the rollback proofs still hold
+- severity: P1
+- status: [ ]
+- where: supabase/rollback/20261003231627_down.sql:13
+- note: Two earlier rollbacks use issued_seconds above zero as the proof that the schema was ever used. Giving back must move only the released columns, bounded by the issued ones.
+- verified-by: `issued daily seconds never fall when a reservation is given back`
+- verified-by: `released daily seconds can never exceed issued daily seconds`
+
+### F1003 — Migration 46 has a fail-closed rollback
+- severity: P2
+- status: [ ]
+- where: supabase/rollback/20261110120000_down.sql:1
+- note: Same pattern as migration 45. The down file restores both function bodies exactly and drops the three columns, after which unjoined starts count as spent again.
+- verified-by: `rolling back migration 46 restores reservations that are not given back`
+
+### F1007 — Failed starts' paid operations may still block a learner's restart
+- severity: P3
+- status: [ ]
+- where: scripts/paidQuotes.mjs:357
+- note: Follow-up to F955 (F1000). Measure on staging whether failed starts' paid operations (`accountDailyOperations`, never returned) can block a learner's restart. Founder, 2026-11-16: "Leave it, measure later".
+- verified-by: `a learner can restart after N failed starts on staging (measured)`
+
+### F1008 — A daily-budget refusal does not name the service-wide limit or when it returns
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/live/failure.ts
+- note: Design lane, split from F955 (its 2026-11-03 addition). Name the service-wide `daily-budget` refusal and say when the allowance comes back.
+- verified-by: `a daily-budget refusal names the service-wide limit and when it returns`
