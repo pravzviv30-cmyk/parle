@@ -88,7 +88,7 @@ A footer is pinned to the foot: "Practise this phrase", then Done. The close dis
 
    The earned scene throws one confetti.
 7. The sound sheet is the shared `Sheet`, holding today's sound page with its copy unchanged, plus `PrivatePractice`.
-8. With no reply (`!credit.settles`) nothing was measured, so the scene's goals hide like the tiles and lines. This is the orchestrator's reading of brief item 4, and it goes to the founder with the after shots.
+8. With no reply (`!credit.settles`) nothing was measured, so the scene's goals hide like the tiles and lines. The founder confirmed this on 2026-11-16, and that an earned recap shows only its Next pill (the Next time heading waits).
 9. The earned scene has one sound and one haptic, the moment's chime. The stamp is silent there, so its sound does not stack on the chime.
 10. The "before" shots are today's recap at the new preview keys. Each shows the first page, which is what a learner sees on arrival.
 
@@ -203,6 +203,8 @@ From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by 
 
 | 2026-11-10 / push-check | Gate green 7,768 (`bb4460be`). Playwright pass clean. `/code-review`: the no-reply minutes tile and eyebrow fixed test first; push-reviewer pin gaps and lows fixed (`b81855ef`). Impeccable round 1 asked for recaptures; round 2 "fix": the double next cue and the highlighter block at 320 fixed test first (`5132f061`). `origin/main` `93186872` (F970) merged (`eca393fe`); the partnership table conflict kept both sides | Focused suites green | Live run |
 | 2026-11-10 / live run | A typed "Le premier café" on the local stack from this worktree (`LUVANI_LOCAL_DEVELOPMENT=1 npm run dev`, mock auth, the fixture lifecycle, NOT staging), three French replies; the scene ended into the recap: "Real French came out of you today.", the goals card, tiles "<1 minutes", "5 new phrases", "+35 XP", the three lines, the kept phrase saved, "One thing to tune", "Next time". Done returned to Today, and the held streak celebration played only after leaving. Captures in `reviews/2026-11-08-recap/live/` | No console errors on a clean load. Only goal 1 ticked, as the live room's own header showed: pre-existing goal ticking in the room, not the recap | Gate, stamp, push |
+| 2026-11-15 / push-check --main | Merged `origin/main` `b32c1097` (`e59ffdf3`, the taste-log conflict kept both sides). Impeccable: the web focus ring fixed (`259dc7fe`), disposition ship. unslop (new reviewer): the focus row's French and the Next pill alignment fixed test first (`9e7cd138`), then pass; scan clean against baseline. `/code-review` and the push-reviewer clean on the deltas. `/security-review`: no findings | Gate green, 7,772 tests, 0 failing (`983f2f10`) | Founder |
+| 2026-11-16 / founder | Recap may land; both calls kept (goals hide with no reply; earned recaps show only the Next pill); all four Impeccable proposals and unslop's footer-at-large-text proposal queued for a board; unslop's minutes-said-once not now | n/a | PR |
 
 ## Integrated verification and handoff
 
@@ -211,7 +213,7 @@ From `palette.ts` (light `paper`/`colour`/`pastel`, dark `b.dark`), contrast by 
 - UI / device checks: web before and after shots, the iPhone 17 Pro simulator at normal and accessibility-large text with Reduce Motion; the live typed run is pending.
 - Documentation and decisions: UI-020, `DESIGN.md`, `docs/DESIGN_PARTNERSHIP.md`, `docs/CURRENT_STATE_MAP.md`, `docs/changes/cast.md`, the ledger.
 - Under Reduce Motion the confetti is drawn still (the shared `Confetti` behaviour, as on the drill end), not removed; the founder sees it in the after shots.
-- Landing disposition: HOLD until push-checked, the live run is captured and the founder OKs the after shots
+- Landing disposition: LAND through a PR (founder OK 2026-11-16; push-check --main passed)
 
 ## Not done (found in push-check, out of scope)
 

@@ -1061,8 +1061,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     takes the sound row's place. Your wins and New phrases leave the screen.
     Checked by the learning-science-engineer: HOLDS.
   - **The goals hide when there was no reply.** Nothing was measured, so they
-    hide like the tiles and lines. This is the orchestrator's reading of the
-    brief, still to be confirmed with the founder.
+    hide like the tiles and lines. Confirmed by the founder on 2026-11-16,
+    with the earned recap showing only its Next pill (no Next time heading).
 - Reason: the old recap was five swiped pages, four taps to leave, with the
   headline and the kept phrase each shown twice, and a "spoken" tile after a
   typed conversation. The founder picked one ending in the frame the drill ends
