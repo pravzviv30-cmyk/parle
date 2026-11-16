@@ -899,16 +899,28 @@ export function integrateTurn(
   // (F949): live, the model names in scene.beat where the scene goes next, so
   // an exact echo almost never matched and completed goals never ticked.
   const evidencedBeatIds = [...state.evidencedBeatIds];
-  if (state.mission && state.missionId !== null && input.type === 'spoke' && input.text.trim().length > 0 &&
-      (turn.assessment.language === 'french' || turn.assessment.language === 'mixed') &&
-      turn.assessment.understood && turn.assessment.taskAchieved && turn.scene.goalMet === true &&
-      turn.topicShift === null &&
-      !wasRescued && !state.forceAdvance && !evidencedBeatIds.includes(state.currentBeat)) {
+  const earned = state.mission && state.missionId !== null && input.type === 'spoke' && input.text.trim().length > 0 &&
+    (turn.assessment.language === 'french' || turn.assessment.language === 'mixed') &&
+    turn.assessment.understood && turn.assessment.taskAchieved && turn.scene.goalMet === true &&
+    turn.topicShift === null && !wasRescued;
+  if (earned && !state.forceAdvance && !evidencedBeatIds.includes(state.currentBeat)) {
     evidencedBeatIds.push(state.currentBeat);
   }
-  const shouldAdvance = (turn.scene.beatDone && !reachedForEnglish && !wasRescued) || forceAdvance;
+  // F971: live, scene.beat names the beat the reply moves TO and beatDone is
+  // about that one, so a later named beat means the source beat is done. Every
+  // beat up to the named one is marked done (not evidenced), so currentBeat is
+  // the beat the next reply is about. Earlier or unknown names change nothing,
+  // and so does a turn that would not tick the goal: a poor answer must not
+  // walk the scene on just because the reply is aimed ahead. Missions only.
+  const fromIndex = beats.findIndex((b) => b.id === state.currentBeat);
+  const namedIndex = beats.findIndex((b) => b.id === turn.scene.beat);
+  const namedLater = earned && !state.forceAdvance && fromIndex >= 0 && namedIndex > fromIndex;
+  const shouldAdvance = ((turn.scene.beatDone || namedLater) && !reachedForEnglish && !wasRescued) || forceAdvance;
   if (shouldAdvance) {
     beatStatus[state.currentBeat] = 'done';
+    if (namedLater) {
+      for (const b of beats.slice(fromIndex, namedIndex)) beatStatus[b.id] = 'done';
+    }
     advancedBeat = true;
     attemptsOnBeat = 0;
     forceAdvance = false;
