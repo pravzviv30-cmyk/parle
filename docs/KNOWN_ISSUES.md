@@ -12677,3 +12677,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/repoStructure.test.mjs:46
 - note: isExternal treats every scheme as external, so a tracked doc containing `[a](file:///Users/pravz_07/x.png)` passes "no tracked markdown link points at an absolute machine path".
 - verified-by: `a file link to a machine path counts as an absolute machine path`
+
+### F1004 — iOS clears a Keychain sign-in that outlived the app, before Supabase can restore it
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:48
+- note: An empty AsyncStorage on iOS means a fresh install. The session storage decorator removes each key on its first read that launch, then writes `luvani.install-marker.v1` so it happens once. All storage calls await the decision, so there is no race with session restore. A read error or any existing key keeps the session. The first test carries F960's own title and must also assert that no `installHistory.native.ts` exists and `installHistory.ts` has no SecureStore.
+- verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
+- verified-by: `an install that already has any stored key keeps its sign-in`
+- verified-by: `a storage read error never signs anyone out`
+- verified-by: `a sign-in made on the fresh launch survives later reads and the next launch`
+- verified-by: `the install marker is written only after the old sign-in is removed`
+- verified-by: `only iOS wraps the session storage with the fresh-install reset`
+
+### F1005 — The used-before hint no longer lives in the Keychain
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/auth/installHistory.native.ts:11
+- note: Delete the native twin so every platform reads the hint from AsyncStorage (`@luvani/has-used-app/v1`), which uninstall removes. Upgraded installs already hold that key. Update the two lists in `tokenHygiene.test.ts` and the device-keys sentence in `docs/STATE_AND_STORAGE.md`.
+- verified-by: `the used-before hint is kept only in storage that uninstalling removes`
