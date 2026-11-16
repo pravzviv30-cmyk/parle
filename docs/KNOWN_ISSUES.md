@@ -12328,7 +12328,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F960 — On iOS, deleting and reinstalling Luvani is not a fresh start: the Keychain keeps the sign-in and the "used before" hint
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/installHistory.native.ts (`luvani.has-used-app.v1`) and
   apps/mobile/src/auth/supabaseAdapter.ts (~:50-55, the Supabase session in SecureStore)
 - note: Found 2026-11-06 while preparing the founder's three beginner sessions on one iPhone. iOS
@@ -12341,6 +12341,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   marker (AsyncStorage is removed on uninstall) as a fresh install and clear the hint and the session
   once, which changes the returning-person design in `installHistory.native.ts`, so it waits for the
   founder.
+- fixed: 2026-11-16 on claude/f960-fresh-install, by F1004 (the iOS session reset in `freshInstall.ts`) and F1005
+  (`installHistory.native.ts` deleted). The founder's iPhone device check is still to record here.
 - verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
 
 ### F961 — Today's hero flashed to "Finding your next task…" on every return to Home
@@ -12680,7 +12682,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1004 — iOS clears a Keychain sign-in that outlived the app, before Supabase can restore it
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/supabaseAdapter.ts:48
 - note: An empty AsyncStorage on iOS means a fresh install. The session storage decorator removes each key on its first read that launch, then writes `luvani.install-marker.v1` so it happens once. All storage calls await the decision, so there is no race with session restore. A read error or any existing key keeps the session. The first test carries F960's own title and must also assert that no `installHistory.native.ts` exists and `installHistory.ts` has no SecureStore.
 - verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
@@ -12692,7 +12694,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1005 — The used-before hint no longer lives in the Keychain
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/installHistory.native.ts:11
 - note: Delete the native twin so every platform reads the hint from AsyncStorage (`@luvani/has-used-app/v1`), which uninstall removes. Upgraded installs already hold that key. Update the two lists in `tokenHygiene.test.ts` and the device-keys sentence in `docs/STATE_AND_STORAGE.md`.
 - verified-by: `the used-before hint is kept only in storage that uninstalling removes`
