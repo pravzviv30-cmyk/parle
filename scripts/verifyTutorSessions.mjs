@@ -265,7 +265,7 @@ try {
   await db.exec('set role service_role');assert.equal(await call('active_tutor_identity_v1',[uuid(1),authId(1)]),true);await db.exec('reset role');
   const catalog=(await db.query(`select count(*)::int n,count(*) filter(where c.relrowsecurity)::int rls from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','luvani_private') and c.relkind='r'`)).rows[0];
   assert.equal(catalog.n,catalog.rls);
-  groups.push('non-recyclable daily exposure, service-only function/table ACLs and RLS');
+  groups.push('lifecycle-only bodies never recycle daily exposure (migration 46 gives back unjoined starts, proved in the fresh replay below), service-only function/table ACLs and RLS');
   // Account cascades may erase every owned grant, but "ever issued" must still
   // prevent destructive schema rollback using its surviving exposure proof.
   await db.exec('update public.tutor_session_admission_config set enabled=false; delete from auth.users;');
@@ -430,6 +430,58 @@ try {
     assert.equal((await taste.query('select max(seconds_used)::int n from public.entitlements where plan=$1',['trial'])).rows[0].n<=300,true);
     await taste.exec(dailySql);
     assert.deepEqual(await caps(),[600,18000,36000]);assert.match(await windowSrc(),/interval '44 hours'/);
+
+    // Migration 46 (F955): an unjoined start gives its day back once, a claimed one never does, issued never falls,
+    // admission reads issued minus released, and the rollback restores spent-as-issued. Before D24's rollback below,
+    // which would restore the pre-46 reserve body.
+    {
+      const released = migrations.find(name=>name.endsWith('_tutor_unjoined_release.sql'));
+      const releasedSql = await readFile(new URL(released,root),'utf8');
+      const releasedDown = await readFile(new URL(`../supabase/rollback/${released.split('_')[0]}_down.sql`,import.meta.url),'utf8');
+      for (let n=71;n<=73;n++) {
+        await taste.query('insert into auth.users(id) values($1)',[uuid(n)]);
+        await taste.query('insert into auth.sessions(id,user_id) values($1,$2)',[authId(n),uuid(n)]);
+        await taste.query("insert into public.entitlements(user_id,plan,seconds_used) values($1,'trial',0)",[uuid(n)]);
+      }
+      const day = async () => (await taste.query(`select g.issued_seconds::bigint gi,g.released_seconds::bigint gr,a.issued_sessions ai,a.released_sessions ar,
+        a.issued_seconds::bigint asi,a.released_seconds::bigint asr from public.tutor_session_budget_days g
+        left join luvani_private.tutor_account_budget_days a on a.day=g.day and a.user_id=$1 where g.day=(clock_timestamp() at time zone 'UTC')::date`,[uuid(71)])).rows[0];
+      const abandon = id => t('abandon_tutor_session_v1',[uuid(71),sid(id)]);
+      const start = await day();
+      const amount = (await tReserve(71,7101)).reservedSeconds;
+      assert.equal((await abandon(7101)).kind,'cancelled');assert.equal((await abandon(7101)).kind,'cancelled');
+      await t('reconcile_tutor_sessions_v1',[50,'{}']);
+      let now = await day();
+      assert.equal(Number(now.gi)-Number(start.gi),amount,'a give-back lowered issued seconds');
+      assert.equal(Number(now.gr)-Number(start.gr),amount,'an unjoined start was not given back exactly once');
+      assert.deepEqual([now.ai,now.ar,Number(now.asi),Number(now.asr)],[1,1,amount,amount]);
+      // A claimed start keeps its day however it ends.
+      await tReserve(71,7102);await tClaim(71,7102);await t('abandon_tutor_session_v1',[uuid(71),sid(7102)]);await tComplete(71,7102,0);
+      now = await day();assert.deepEqual([now.ai,now.ar],[2,1],'a claimed start gave its session back');
+      // Admission reads issued minus released: the one-session account day reopens after an unjoined expiry.
+      await taste.exec('update public.tutor_session_admission_config set max_account_daily_sessions=1');
+      await tReserve(72,7201);
+      assert.equal((await tReserve(72,7202)).reason,'session-active');
+      await taste.query("update public.session_grants set join_deadline=clock_timestamp()-interval '1 second' where session_id=$1",[sid(7201)]);
+      await t('reconcile_tutor_sessions_v1',[50,'{}']);
+      assert.equal((await tReserve(72,7203)).kind,'reserved','an expired unjoined start still spent the account day');
+      await t('abandon_tutor_session_v1',[uuid(72),sid(7203)]);
+      // The service-wide cap at issued minus released refuses, and issued still never falls.
+      const net = (await taste.query("select (issued_seconds-released_seconds)::bigint n,issued_seconds::bigint i from public.tutor_session_budget_days where day=(clock_timestamp() at time zone 'UTC')::date")).rows[0];
+      await taste.query('update public.tutor_session_admission_config set max_daily_issued_seconds=$1',[net.n]);
+      assert.equal((await tReserve(73,7301)).reason,'daily-budget');
+      await taste.query('update public.tutor_session_admission_config set max_daily_issued_seconds=$1',[Number(net.n)+600]);
+      assert.equal((await tReserve(73,7302)).kind,'reserved','a released day did not reopen the service-wide cap');
+      await t('abandon_tutor_session_v1',[uuid(73),sid(7302)]);
+      assert.ok(Number((await taste.query("select issued_seconds::bigint i from public.tutor_session_budget_days where day=(clock_timestamp() at time zone 'UTC')::date")).rows[0].i)>=Number(net.i),'sum(issued_seconds) fell');
+      await taste.exec('update public.tutor_session_admission_config set max_daily_issued_seconds=100000,max_account_daily_sessions=50');
+      // The rollback twice drops the counters (unjoined starts are spent again); 46 reapplies twice.
+      await taste.exec(releasedDown);await taste.exec(releasedDown);
+      assert.equal((await taste.query("select count(*)::int n from information_schema.columns where column_name in ('released_seconds','released_sessions')")).rows[0].n,0);
+      await taste.exec(releasedSql);await taste.exec(releasedSql);
+      assert.equal((await taste.query("select count(*)::int n from information_schema.columns where column_name in ('released_seconds','released_sessions')")).rows[0].n,3);
+    }
+    groups.push('migration 46 (F955): an unjoined start gives back its seconds and session once, a claimed one never does, issued never falls, the account and service-wide caps read issued minus released, rollback and reapply twice');
 
     // The D24 rollback (after 43's) refuses without its interlock, restores the one-off trial, and 40 then 43 reapply.
     const tasteName = migrations.find(name=>name.endsWith('_weekly_free_taste.sql'));

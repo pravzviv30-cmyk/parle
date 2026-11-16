@@ -612,6 +612,9 @@ const DAILY_ALLOWANCE = '20261023220000_daily_free_allowance.sql';
 /** What REV-001 re-defines on top of D24; everything else D24 defined stays D24's. */
 const REDEFINED_BY_DAILY = new Set(['luvani_private.tutor_cap_v1', 'luvani_private.taste_window_v1', 'public.begin_billing_refresh', 'public.apply_billing_projection']);
 
+/** The migration that nets reserve_tutor_session_v1's day caps of unjoined give-backs (F955); the rest of its body is D24's. */
+const UNJOINED_RELEASE = '20261116120000_tutor_unjoined_release.sql';
+
 const FUNCTION_DEFINITION = /create (?:or replace )?function ((?:public|luvani_private)\.\w+)\s*\(/gi;
 
 /** Each allowance table in one file, with the function whose body holds it. */
@@ -896,7 +899,7 @@ describe('database security contract — SQL cannot drift quietly', () => {
     const d24 = sqlOf(WEEKLY_TASTE);
     const code = stripComments(d24);
     const latestIn = (name: string): string => {
-      const owner = REDEFINED_BY_DAILY.has(name) ? DAILY_ALLOWANCE : WEEKLY_TASTE;
+      const owner = REDEFINED_BY_DAILY.has(name) ? DAILY_ALLOWANCE : name === 'public.reserve_tutor_session_v1' ? UNJOINED_RELEASE : WEEKLY_TASTE;
       assert.equal(latestFunctionDefinitions().get(name)?.file, owner, `${name} is not defined last by ${owner}`);
       return stripComments(effectiveBody(new RegExp(`create or replace function ${name.replace('.', '\\.')}\\b`, 'i')));
     };
@@ -1742,6 +1745,28 @@ describe('unjoined tutor start release (F955)', () => {
       await reserved(db, 1, 1);
       await abandon(db, 1, 1);
       assert.equal((await reserve(db, 1, 11)).reason, 'account-daily-budget', 'after rollback an unjoined start must count as spent again');
+    } finally { await db.close(); }
+  });
+
+  test('migration 46 sets a lock timeout in its up and its down file', () => {
+    const file = migrationFiles.find((name) => RELEASE.test(name));
+    assert.ok(file, 'migration 46 (supabase/migrations/*_tutor_unjoined_release.sql) does not exist');
+    const down = readFileSync(path.join(ROOT, 'supabase', 'rollback', `${file.split('_')[0]}_down.sql`), 'utf8');
+    for (const [where, sql] of [['up', sqlOf(file)], ['down', down]] as const) {
+      assert.match(stripComments(sql), /\bset\s+(local\s+)?lock_timeout\s*(=|to)\s*'\d+s?'/i, `the ${where} file takes its table locks with no lock_timeout`);
+    }
+  });
+
+  test('the reconciler settles unjoined starts from the oldest creation day first', async () => {
+    const db = await fresh();
+    try {
+      await reserved(db, 2, 2);
+      // The later owner's start stands at 23:59:59 UTC yesterday; the earlier owner's is today's.
+      await db.query("update public.session_grants set created_at=(date_trunc('day',created_at at time zone 'UTC')-interval '1 second') at time zone 'UTC' where session_id=$1", [sid(2)]);
+      await reserved(db, 1, 1);
+      await pastJoin(db, 1); await pastJoin(db, 2);
+      const first = await call(db, 'public.reconcile_tutor_sessions_v1', [1, '{}']);
+      assert.deepEqual(first.results.map((r: Json) => r.sessionId), [sid(2)], 'the reconciler took an owner\'s later day before an earlier day');
     } finally { await db.close(); }
   });
 });
