@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { describe, test } from 'node:test';
+import { after, before, describe, test } from 'node:test';
 import { isDeepStrictEqual } from 'node:util';
 
 import { PGlite } from '@electric-sql/pglite';
@@ -1458,6 +1458,290 @@ describe('tutor baseline contract (F970)', () => {
         grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
       for (const name of migrationFiles) await db.exec(sqlOf(name));
       await db.query('select luvani_private.tutor_pack_v1($1,$2,$3)', [JSON.stringify(pack), user, session]);
+    } finally { await db.close(); }
+  });
+});
+
+// F955 (F1000-F1003): a tutor start that never joined gives its day back; issued stays monotonic.
+describe('unjoined tutor start release (F955)', () => {
+  const BOOT = `create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+    create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+    create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+    create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`;
+  const OPEN = `update public.tutor_session_admission_config set enabled=true,max_active_sessions=10,
+    max_daily_issued_seconds=100000,max_account_daily_sessions=50,max_account_daily_seconds=100000`;
+  const RELEASE = /_tutor_unjoined_release\.sql$/;
+  const REPLACED = ['public.reserve_tutor_session_v1', 'luvani_private.tutor_finish_v1', 'public.reconcile_tutor_sessions_v1'];
+  const uid = (n: number): string => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const authId = (n: number): string => uid(1000 + n);
+  const sid = (n: number): string => uid(2000 + n);
+  const fence = (n: number): string => uid(3000 + n);
+  const digest = (n: number): string => n.toString(16).padStart(64, '0');
+  type Db = Pick<PGlite, 'query' | 'exec'>;
+  type Json = Record<string, any>;
+
+  const call = async (db: Db, name: string, args: unknown[] = []): Promise<Json> =>
+    (await db.query<{ value: Json }>(`select ${name}(${args.map((_, i) => `$${i + 1}`).join(',')}) as value`, args)).rows[0]!.value;
+  const learner = async (db: Db, n: number): Promise<void> => {
+    await db.query('insert into auth.users(id) values($1)', [uid(n)]);
+    await db.query('insert into auth.sessions(id,user_id) values($1,$2)', [authId(n), uid(n)]);
+    await db.query("insert into public.entitlements(user_id,plan,seconds_used) values($1,'trial',0)", [uid(n)]);
+  };
+  const reserve = async (db: Db, n: number, id: number): Promise<Json> =>
+    call(db, 'public.reserve_tutor_session_v1', [uid(n), sid(id), `luvani-f955-${id}`, 'lesson', digest(id), authId(n)]);
+  const reserved = async (db: Db, n: number, id: number): Promise<number> => {
+    const result = await reserve(db, n, id);
+    assert.equal(result.kind, 'reserved', `start ${id} was refused: ${result.reason}`);
+    return result.reservedSeconds as number;
+  };
+  const claim = async (db: Db, n: number, id: number): Promise<void> => {
+    const result = await call(db, 'public.claim_tutor_session_v1', [uid(n), sid(id), `luvani-f955-${id}`, 'lesson', fence(id)]);
+    assert.equal(result.kind, 'claimed');
+  };
+  const complete = (db: Db, n: number, id: number, failure: string | null = null): Promise<Json> =>
+    call(db, 'public.complete_tutor_session_v1', [uid(n), sid(id), fence(id), 1, digest(500 + id), 0, 0, failure, null]);
+  const abandon = (db: Db, n: number, id: number): Promise<Json> => call(db, 'public.abandon_tutor_session_v1', [uid(n), sid(id)]);
+  const reconcile = (db: Db): Promise<Json> => call(db, 'public.reconcile_tutor_sessions_v1', [50, '{}']);
+  const pastJoin = (db: Db, id: number) =>
+    db.query("update public.session_grants set join_deadline=clock_timestamp()-interval '1 second' where session_id=$1", [sid(id)]);
+  const today = async (db: Db): Promise<string> =>
+    (await db.query<{ d: string }>("select ((clock_timestamp() at time zone 'UTC')::date)::text d")).rows[0]!.d;
+
+  /** One day's counters as JSON, so a counter migration 46 has not added reads as absent, not as a SQL error. */
+  const globalDay = async (db: Db, day: string): Promise<Json> =>
+    (await db.query<{ row: Json }>('select to_jsonb(d) row from public.tutor_session_budget_days d where day=$1::date', [day])).rows[0]?.row ?? {};
+  const accountDay = async (db: Db, n: number, day: string): Promise<Json> =>
+    (await db.query<{ row: Json }>('select to_jsonb(d) row from luvani_private.tutor_account_budget_days d where user_id=$1 and day=$2::date', [uid(n), day]))
+      .rows[0]?.row ?? {};
+  /** A released counter that must exist: guards for "gives nothing back" cannot pass on a table with no counter. */
+  const counter = (row: Json, key: string, where: string): number => {
+    assert.ok(key in row, `${where} has no ${key} counter`);
+    return Number(row[key]);
+  };
+  /** A released counter read as zero when absent, so the failure is the missing give-back itself. */
+  const given = (row: Json, key: string): number => Number(row[key] ?? 0);
+
+  let base: PGlite;
+  const fresh = async (): Promise<PGlite> => (await base.clone()) as PGlite;
+  before(async () => {
+    base = new PGlite();
+    await base.exec(BOOT);
+    for (const name of migrationFiles) await base.exec(sqlOf(name));
+    await base.exec(OPEN);
+    for (let n = 1; n <= 6; n++) await learner(base, n);
+  });
+  after(async () => { await base.close(); });
+
+  test('a tutor start that never joins gives back its reserved daily seconds', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      const abandoned = await reserved(db, 1, 1);
+      assert.equal((await abandon(db, 1, 1)).kind, 'cancelled');
+      const expired = await reserved(db, 2, 2);
+      await pastJoin(db, 2);
+      await reconcile(db);
+      const retired = await reserved(db, 3, 3);
+      await pastJoin(db, 3);
+      const next = await reserved(db, 3, 33);
+      const fenced = await reserved(db, 4, 4);
+      assert.equal((await call(db, 'public.fence_tutor_account_v1', [uid(4)])).kind, 'fenced');
+
+      assert.equal(given(await accountDay(db, 1, day), 'released_seconds'), abandoned, 'an abandoned unjoined start kept its account seconds');
+      assert.equal(given(await accountDay(db, 2, day), 'released_seconds'), expired, 'an expired unjoined start kept its account seconds');
+      assert.equal(given(await accountDay(db, 3, day), 'released_seconds'), retired, 'a retired unjoined start kept its account seconds');
+      assert.equal(given(await accountDay(db, 4, day), 'released_seconds'), fenced, 'a fenced unjoined start kept its account seconds');
+      const global = await globalDay(db, day);
+      assert.equal(given(global, 'released_seconds'), abandoned + expired + retired + fenced, 'unjoined starts kept the service-wide seconds');
+      assert.equal(Number(global.issued_seconds), abandoned + expired + retired + next + fenced);
+    } finally { await db.close(); }
+  });
+
+  test('a tutor start that never joins gives back its daily session count', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      await reserved(db, 1, 1);
+      await abandon(db, 1, 1);
+      const row = await accountDay(db, 1, day);
+      assert.equal(Number(row.issued_sessions), 1);
+      assert.equal(given(row, 'released_sessions'), 1, 'an unjoined start still counts as one of the day\'s sessions');
+    } finally { await db.close(); }
+  });
+
+  test('an account refused for its daily budget can start again once its unjoined start expires', async () => {
+    const db = await fresh();
+    try {
+      const amount = await reserved(db, 1, 1);
+      await db.query(`update public.tutor_session_admission_config set max_daily_issued_seconds=$1,
+        max_account_daily_sessions=1,max_account_daily_seconds=$2`, [amount, amount]);
+      assert.equal((await reserve(db, 2, 2)).reason, 'daily-budget', 'the service-wide day is not full yet');
+      await pastJoin(db, 1);
+      await reconcile(db);
+      const again = await reserve(db, 1, 11);
+      assert.equal(again.kind, 'reserved', `the learner is still refused with '${again.reason}' after their tutor never joined`);
+    } finally { await db.close(); }
+  });
+
+  test('an unjoined start reserved before midnight gives back to the day it counted on', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      const amount = await reserved(db, 1, 1);
+      // Stand the start at 23:59:59 UTC yesterday, with the counters it booked on that day.
+      await db.query("update public.session_grants set created_at=(date_trunc('day',created_at at time zone 'UTC')-interval '1 second') at time zone 'UTC' where session_id=$1", [sid(1)]);
+      await db.exec('update public.tutor_session_budget_days set day=day-1; update luvani_private.tutor_account_budget_days set day=day-1;');
+      const yesterday = (await db.query<{ d: string }>('select ($1::date-1)::text d', [day])).rows[0]!.d;
+      await abandon(db, 1, 1);
+      assert.equal(given(await globalDay(db, yesterday), 'released_seconds'), amount, 'the give-back missed the service-wide day it counted on');
+      assert.equal(given(await accountDay(db, 1, yesterday), 'released_seconds'), amount, 'the give-back missed the account day it counted on');
+      assert.equal(given(await accountDay(db, 1, yesterday), 'released_sessions'), 1);
+      assert.equal(given(await globalDay(db, day), 'released_seconds'), 0, 'the give-back landed on a day the start never counted on');
+      assert.equal(given(await accountDay(db, 1, day), 'released_seconds'), 0);
+    } finally { await db.close(); }
+  });
+
+  test('a tutor start that was claimed keeps its daily seconds however it ends', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      await reserved(db, 1, 1); await claim(db, 1, 1);
+      assert.equal((await complete(db, 1, 1, 'llm_error')).receipt.chargedSeconds, 0);
+      await reserved(db, 2, 2); await claim(db, 2, 2);
+      assert.equal((await complete(db, 2, 2)).kind, 'completed');
+      await reserved(db, 3, 3); await claim(db, 3, 3);
+      assert.equal((await abandon(db, 3, 3)).kind, 'cancel-pending');
+      await complete(db, 3, 3);
+      await reserved(db, 4, 4); await claim(db, 4, 4);
+      await db.query("update public.session_grants set lease_until=clock_timestamp()-interval '10 seconds',hard_deadline=clock_timestamp()-interval '10 seconds' where session_id=$1", [sid(4)]);
+      const sweep = await reconcile(db);
+      assert.equal(sweep.results.find((r: Json) => r.sessionId === sid(4))?.receipt.state, 'interrupted');
+      for (let n = 1; n <= 4; n++) {
+        const row = await accountDay(db, n, day);
+        assert.equal(counter(row, 'released_seconds', 'tutor_account_budget_days'), 0, `claimed start ${n} gave its seconds back`);
+        assert.equal(counter(row, 'released_sessions', 'tutor_account_budget_days'), 0, `claimed start ${n} gave its session back`);
+      }
+      assert.equal(counter(await globalDay(db, day), 'released_seconds', 'tutor_session_budget_days'), 0);
+    } finally { await db.close(); }
+  });
+
+  test('settling an unjoined start twice gives its seconds back once', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      const amount = await reserved(db, 1, 1);
+      await abandon(db, 1, 1);
+      assert.equal((await abandon(db, 1, 1)).kind, 'cancelled');
+      await db.query(`select luvani_private.tutor_finish_v1($1,$2,'expired','reconciler',
+        luvani_private.tutor_payload_v1(0,0,0,null,null),null,false)`, [uid(1), sid(1)]);
+      await reconcile(db);
+      await call(db, 'public.fence_tutor_account_v1', [uid(1)]);
+      assert.equal(given(await accountDay(db, 1, day), 'released_seconds'), amount, 'the account day was not given back exactly once');
+      assert.equal(given(await accountDay(db, 1, day), 'released_sessions'), 1);
+      assert.equal(given(await globalDay(db, day), 'released_seconds'), amount, 'the service-wide day was not given back exactly once');
+    } finally { await db.close(); }
+  });
+
+  test('a claim that wins the race against an abandon keeps its daily seconds', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      await reserved(db, 1, 1);
+      await claim(db, 1, 1);
+      assert.equal((await abandon(db, 1, 1)).kind, 'cancel-pending', 'the abandon did not see the claim that won');
+      await complete(db, 1, 1);
+      await reconcile(db);
+      const row = await accountDay(db, 1, day);
+      assert.equal(counter(row, 'released_seconds', 'tutor_account_budget_days'), 0, 'a claimed start gave its seconds back');
+      assert.equal(counter(row, 'released_sessions', 'tutor_account_budget_days'), 0);
+      assert.equal(counter(await globalDay(db, day), 'released_seconds', 'tutor_session_budget_days'), 0);
+    } finally { await db.close(); }
+  });
+
+  test('issued daily seconds never fall when a reservation is given back', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      const amount = await reserved(db, 1, 1);
+      await abandon(db, 1, 1);
+      const account = await accountDay(db, 1, day);
+      const global = await globalDay(db, day);
+      assert.equal(Number(account.issued_seconds), amount, 'the give-back lowered the account\'s issued seconds');
+      assert.equal(Number(account.issued_sessions), 1, 'the give-back lowered the account\'s issued sessions');
+      assert.equal(Number(global.issued_seconds), amount, 'the give-back lowered the service-wide issued seconds');
+      assert.equal(given(account, 'released_seconds'), amount, 'nothing was given back, so monotonic issue proves nothing');
+      assert.equal(given(global, 'released_seconds'), amount);
+    } finally { await db.close(); }
+  });
+
+  test('released daily seconds can never exceed issued daily seconds', async () => {
+    const db = await fresh();
+    try {
+      const day = await today(db);
+      await reserved(db, 1, 1);
+      for (const sql of [
+        'update public.tutor_session_budget_days set released_seconds=issued_seconds+1',
+        'update public.tutor_session_budget_days set released_seconds=-1',
+        'update luvani_private.tutor_account_budget_days set released_seconds=issued_seconds+1',
+        'update luvani_private.tutor_account_budget_days set released_sessions=issued_sessions+1',
+        'update luvani_private.tutor_account_budget_days set released_sessions=-1',
+      ]) {
+        await assert.rejects(db.exec(sql), /check constraint/, `no check refuses: ${sql}`);
+      }
+      // A day already given back in full cannot be given back again, and the settlement still lands.
+      await db.exec('update luvani_private.tutor_account_budget_days set released_seconds=issued_seconds');
+      assert.equal((await abandon(db, 1, 1)).kind, 'cancelled', 'a bounded give-back must never fail the settlement');
+      const account = await accountDay(db, 1, day);
+      assert.equal(Number(account.released_seconds), Number(account.issued_seconds));
+      assert.equal(counter(account, 'released_sessions', 'tutor_account_budget_days'), 0, 'a refused account give-back still moved the session count');
+      assert.equal(counter(await globalDay(db, day), 'released_seconds', 'tutor_session_budget_days'), 0,
+        'the service-wide day was given back while the account day was not');
+    } finally { await db.close(); }
+  });
+
+  test('migration 46 keeps every function it replaces a security definer with an empty search path', async () => {
+    const file = migrationFiles.find((name) => RELEASE.test(name));
+    assert.ok(file, 'migration 46 (supabase/migrations/*_tutor_unjoined_release.sql) does not exist');
+    const sql = stripComments(sqlOf(file));
+    for (const name of REPLACED) {
+      assert.match(sql, new RegExp(`create or replace function ${escape(name)}\\(`, 'i'), `migration 46 does not replace ${name}`);
+      const row = (await base.query<Json>(`select p.prosecdef,p.proconfig,
+          has_function_privilege('anon',p.oid,'EXECUTE') anon,has_function_privilege('authenticated',p.oid,'EXECUTE') authenticated,
+          has_function_privilege('service_role',p.oid,'EXECUTE') service
+        from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname||'.'||p.proname=$1`, [name])).rows;
+      assert.equal(row.length, 1, `${name} is overloaded or missing`);
+      assert.equal(row[0]!.prosecdef, true, `${name} is not a security definer`);
+      assert.ok((row[0]!.proconfig ?? []).includes('search_path=""'), `${name} does not pin an empty search_path`);
+      assert.deepEqual([row[0]!.anon, row[0]!.authenticated], [false, false], `a client role can execute ${name}`);
+      assert.equal(row[0]!.service, name.startsWith('public.'), `${name} changed its service-role grant`);
+    }
+  });
+
+  test('rolling back migration 46 restores reservations that are not given back', async () => {
+    const file = migrationFiles.find((name) => RELEASE.test(name));
+    assert.ok(file, 'migration 46 (supabase/migrations/*_tutor_unjoined_release.sql) does not exist');
+    const down = readFileSync(path.join(ROLLBACKS, `${file.split('_')[0]}_down.sql`), 'utf8');
+    const db = new PGlite();
+    const definitions = async (): Promise<Json[]> => (await db.query<Json>(`select n.nspname||'.'||p.proname name,pg_get_functiondef(p.oid) def,p.proacl::text acl
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname||'.'||p.proname=any($1) order by 1`, [REPLACED])).rows;
+    try {
+      await db.exec(BOOT);
+      for (const name of migrationFiles.filter((name) => name < file)) await db.exec(sqlOf(name));
+      const prior = await definitions();
+      for (const name of migrationFiles.filter((name) => name >= file)) await db.exec(sqlOf(name));
+      await db.exec(down);
+      assert.deepEqual(await definitions(), prior, 'the rollback did not restore the replaced bodies and grants exactly');
+      const columns = (await db.query<{ n: number }>(`select count(*)::int n from information_schema.columns
+        where column_name in ('released_seconds','released_sessions') and table_name in ('tutor_session_budget_days','tutor_account_budget_days')`)).rows[0]!.n;
+      assert.equal(columns, 0, 'the rollback left a released counter behind');
+
+      await db.exec(OPEN);
+      await db.exec('update public.tutor_session_admission_config set max_account_daily_sessions=1');
+      await learner(db, 1);
+      await reserved(db, 1, 1);
+      await abandon(db, 1, 1);
+      assert.equal((await reserve(db, 1, 11)).reason, 'account-daily-budget', 'after rollback an unjoined start must count as spent again');
     } finally { await db.close(); }
   });
 });
