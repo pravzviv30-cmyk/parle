@@ -631,7 +631,7 @@ room's files import neither. A spoken room also holds the audio focus from the
 moment it takes the session, and the microphone holds it while it is open, so
 the sound gate and the haptic switch would refuse anyway; a typed room takes no
 audio session and is silent because nothing in it asks. The recap is where the
-conversation is heard: its result page starts its moment once nothing holds the
+conversation is heard: it starts its moment once nothing holds the
 audio focus (`recap/useRecapMoment.ts`, after the release below), or after two
 seconds, when a beat that still meets a held room is simply silent.
 

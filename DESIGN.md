@@ -307,16 +307,17 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   before the 60 s cap. Settings, Practice: "Tap to send", "Take all the time
   you need. Your turn ends when you tap Send, not when you pause." A guest's
   first practice gets the wrap-up note but not the switch.
-- The end of a conversation reads After a session (blue: the cheer, "Bien
-  joué.", minutes, new phrases and XP, the line said well with "Hear it said",
-  the day and this week's bars), then the Celebration only for a core-earned
-  can-do (blue: "You can now", the ability, the postcard, "Next:"), then the
-  Recap (lavender band with the goals, your lines with "Hear it said", one
-  phrase kept on the sun card, small fixes), a sound page only for a saved
-  check and a next page only when there is a useful next action. "Hear it
-  said" is the tutor's device voice, never a recording of the learner.
-  Closing is always there. Parts in `recap/RecapParts.tsx`, rules in
-  `recap/afterSessionView.ts`.
+- The end of a conversation is one scroll in the end scene's frame
+  (UI-020): the lavender band with Cloud and Toast, the eyebrow, headline and
+  credit line, the scene's goals, the tiles and the line said well, your lines
+  with "Hear it said", one phrase kept on a lip card, small fixes, one sound
+  row (or "One thing to tune" when there is no sound) that opens a sheet, then
+  next time. On a core-earned can-do the title is "You can now" and the
+  postcard is stamped in the band. "Hear it said" is the tutor's device voice,
+  never a recording of the learner. Done is pinned in the footer, with
+  "Practise this phrase" above it when a phrase is kept. Parts in
+  `recap/RecapParts.tsx`, `recap/KeptPhraseCard.tsx` and `recap/FocusSheet.tsx`,
+  rules in `recap/afterSessionView.ts`.
 - Voice, name and reminder choices open on a modal sheet over their page.
   Choosing updates the choice; Done closes it. Hear is separate from choosing.
 - Paid amounts come from the catalogue and prices from the store. A room that
@@ -1003,7 +1004,7 @@ the scale above has no exact token. Explore and Scene preview added
 scene band's title), `bold14` and `semi14` (the selected and resting filter
 chip), `semi13` (a field label) and `bold12` (the small "Free sample" pill).
 The live room, Recap, After a session and the Celebration (2026-10-21) added
-`display40` (ExtraBold 40/44, "Bien joué."), `ability34` (ExtraBold 34/37,
+`display40` (ExtraBold 40/44, the old result headline, no longer drawn), `ability34` (ExtraBold 34/37,
 -0.4, the ability earned), `title30` (ExtraBold 30/33, the Recap band's title)
 and `para17` (Regular 17/24, a sentence on a blue page).
 Streak, Profile and Settings (2026-10-21) added `initial34` (ExtraBold 34/40,
@@ -1311,15 +1312,14 @@ than by place because the café has two scenes and two drawings. The recap's
 `postcardIllustration(id)` in `src/recap/postcardArt.ts` does the same for the
 thirty-one postcards, one per scene.
 
-The registry ships 77 original drawings:
+The registry ships 75 original drawings:
 
 | Drawings | Sits on | Large | Small |
 |---|---|---|---|
 | `place-cafe-counter`, `place-cafe-terrace`, `place-hotel`, `place-market`, `place-directions`, `place-day`, `place-apero`, `place-restaurant`, `place-pharmacy`, `place-station`, `place-parcel`, `place-neighbour`, `place-weekend`, `place-workplace`, `place-phone`, `place-doctor`, `place-shop-return`, `place-flat`, `place-family-dinner`, `place-club`, `place-bank`, `place-plans`, `place-montreal-coat`, `place-office-help`, `place-birthday`, `place-leak`, `place-story`, `place-film-talk`, `place-interview`, `place-remote-work`, `place-grandmother` | A blue or coral card | 350 by 220 | 262 by 165, a hero spot |
-| `state-notebook`, `state-waiting`, `state-offline`, `state-microphone`, `state-headphones`, `state-postcard-frame` | Paper, where their ink lines carry the shapes | 160 by 160 | 120 by 120, under a headline |
+| `state-notebook`, `state-offline`, `state-microphone`, `state-headphones`, `state-postcard-frame` | Paper, where their ink lines carry the shapes | 160 by 160 | 120 by 120, under a headline |
 | `celebrate-confetti` | Blue or coral, laid over the whole card | 390 by 260 | |
 | `celebrate-wrapped` | Blue | 350 by 260 | |
-| `celebrate-first-line` | Blue | 350 by 220 | |
 | `postcard-cafe-counter`, `postcard-cafe-terrace`, `postcard-hotel`, `postcard-market`, `postcard-directions`, `postcard-day`, `postcard-apero`, `postcard-restaurant`, `postcard-pharmacy`, `postcard-station`, `postcard-parcel`, `postcard-neighbour`, `postcard-weekend`, `postcard-workplace`, `postcard-phone`, `postcard-doctor`, `postcard-shop-return`, `postcard-flat`, `postcard-family-dinner`, `postcard-club`, `postcard-bank`, `postcard-plans`, `postcard-montreal-coat`, `postcard-office-help`, `postcard-birthday`, `postcard-leak`, `postcard-story`, `postcard-film-talk`, `postcard-interview`, `postcard-remote-work`, `postcard-grandmother` | Mint or paper, in their own white border | 300 by 190 | 165 by 105, in a row |
 
 The six mouth guides (`mouth-y`, `mouth-u`, `mouth-r`, `mouth-nasal-an`,
@@ -1357,6 +1357,8 @@ Lines that lie on the white body or the yellow book (hold's arms, the book's
 outline) keep the dark ink, because those are the same in both modes. The body, cheeks and face are unchanged in
 both modes. For the blink, `CloudLids` draws card-white lids over the open eyes
 with the asleep face's closed curve, and `Blink` fades them in and out.
+`CloudLids` also draws lids for the unposed Cloud, which the resting recap
+Cloud uses when there was no reply (UI-020).
 
 | Token | Value | Role |
 |---|---|---|
@@ -1647,7 +1649,9 @@ movement reduced it is simply there, with no glow and no confetti.
 
 **End scenes** close every finished sitting in place, on the page that ran it:
 a drill set, a practice set, a review, today's phrase and a lesson. One part,
-`celebrate/EndScene.tsx`, draws them all, and it follows dark mode. A practice
+`celebrate/EndScene.tsx`, draws them all, and it follows dark mode. Its band
+(`SceneBand`) and tile row (`SceneTiles`) are exported parts, and the
+conversation recap draws them too (UI-020). A practice
 end is a soft lavender band with Cloud and Toast, the title and its line, up
 to three stat tiles (the `LipTile` chrome of Today's stat tile, counting up
 with `CountUp`), the goal ring, any quest the sitting finished, and the
@@ -1692,15 +1696,16 @@ after three real passes in a row, and never moves back.
 only fading in. Lines already there when the thread opens are in place.
 
 **The recap is where the conversation is celebrated.** It is the conversation's
-end card. Once the room has given the learner's ears back (the microphone
-closed, the tutor quiet), its coral result page plays the moment the room held
-back: a sun glow behind the drawing, the `complete` sound and one `celebrate()`,
-confetti when the scene was finished on the learner's own, and a progress strip
-from the settled practice (the XP it credited, the day streak, today's goal
-ring). The lines page counts up to the number of lines said. On the can-do page
-every finish on the learner's own this session gets its postcard stamped, the
-first one louder than the rest; a finish with help shows the postcard still.
-Each plays once per recap, and with movement reduced every part is at rest.
+end card, one scroll in the end scene's frame (UI-020). Once the room has given
+the learner's ears back (the microphone closed, the tutor quiet), the moment the
+room held back plays: the `complete` sound and one `celebrate()`, and the band's
+confetti only when the scene was finished on the learner's own. The tiles count
+up on the strip beat, from the settled practice. When the can-do is earned, the
+postcard is stamped in the band after the strip: every finish on the learner's
+own this session gets its stamp, the first one louder than the rest, and a
+finish with help shows the postcard still. There is no glow, and the stamp
+throws no confetti of its own. The only sounds are the chime and the stamp's
+own. Each plays once per recap, and with movement reduced every part is at rest.
 
 ## Copy
 
@@ -1945,7 +1950,8 @@ movement. Each loop listens for focus, app state, reduced motion and its own
 active/playing/paused state; none owns navigation, storage or repeated reward
 events. Cloud's blink on a speak drill (`motion/MascotMotion.tsx`, UI-019) is
 one more: its lids fade in and out about every 4 seconds, only while the mic
-is live. It stops, with the lids open, when the mic stops, when the learner
+is live. The resting Cloud on the recap with no reply blinks the same way
+(UI-020). It stops, with the lids open, when the mic stops, when the learner
 leaves, while the app is in the background (and starts again on return) and
 under reduced motion.
 
@@ -1967,7 +1973,9 @@ In a drill only the right tile's pop and sparkle, the chip flight, Cloud
 listening (its squish and, while the mic is live, its blink), the sheet rising
 and its Cloud's pop and one hop, the living bar and the end scene move. The
 question and its stage band stay still, and under reduced motion nothing in a
-drill moves.
+drill moves. On the recap (UI-020) the posed Cloud is still, the resting Cloud
+blinks, and the band's confetti, the counting tiles and the postcard stamp
+move, once; under reduced motion nothing does.
 
 ### Haptics
 

@@ -116,8 +116,8 @@ test('revamp B out-of-minutes surfaces open the central wall without selling in 
   has('LiveSessionScreen.tsx',/<OutOfMinutesView/);
 });
 test('recap stories, earned postcards and week wrapped use saved evidence and provide a way out',()=>{
-  // 2026-10-21 UI-008, artboards B-AfterSession, B-Celebrate, B-Recap: no step dots or count-up; Continue, Next, Finish.
-  has('RecapScreen.tsx',/pages\.indexOf\(page\)/,/recapCanDo/,/nextPage === null \? 'Finish' : blue \? 'Continue' : 'Next'/,/firstEarned/,/<PostcardStamp/,/<StatTiles/);
+  // UI-020: one scroll with a pinned footer; Done is always the way out.
+  has('RecapScreen.tsx',/<ScrollScreen\b/,/recapCanDo/,/label="Done" onPress=\{onDone\}/,/firstEarned/,/<PostcardStamp/,/<SceneTiles/);
   has('progress/PostcardsScreen.tsx',/earnedPostcards\(missionStates/,/scopeGeneration/,/postcardIllustration/,/Choose a scene/);
   lacks('progress/PostcardsScreen.tsx',/locked|remaining|percent|collect all/);
   has('progress/WeekWrappedScreen.tsx',/storyFrom\(\{sessions,activity,packs,completions,now\}\)/,/hasStory/,/total=\{2\}/,/celebrate-wrapped/,/label=\{page===1\?'Done':'Next'\}/,/Choose a scene/,/Try loading your week again/,/readOwner===scopeGeneration\(\)/);
