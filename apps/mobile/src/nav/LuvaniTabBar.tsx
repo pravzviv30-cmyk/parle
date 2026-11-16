@@ -132,8 +132,10 @@ function TabStrip({ routes, insets, due }: {
   // F981: a press arms its tab, so the pill and the selected look go there at
   // once with the one tick, as iOS's own bar does; lifting off it disarms.
   const [armed, setArmed] = useState<number | null>(null);
-  const pressIn = (i: number) => { if (i === selected) return; setArmed(i); tapSettled(); };
-  const pressOut = () => setArmed(null);
+  // Whether this touch already ticked, so a drag it turns into does not tick twice at the grab.
+  const touchTicked = useRef(false);
+  const pressIn = (i: number) => { touchTicked.current = i !== selected; if (i === selected) return; tapSettled(); if (selected >= 0) setArmed(i); };
+  const pressOut = (i: number) => setArmed((a) => (a === i ? null : a));
   const capsuleRef = useRef<View>(null);
   const capsuleX = useRef(0);
   const over = useRef(0);
@@ -145,7 +147,8 @@ function TabStrip({ routes, insets, due }: {
     // Only sideways movement claims it, so a still long press keeps the Large Content Viewer (F947).
     onMoveShouldSetPanResponderCapture: (_, g) => geo.current.selected >= 0 && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
     onPanResponderGrant: (_, g) => {
-      tick();
+      if (!touchTicked.current) tick();
+      touchTicked.current = false;
       over.current = tabCellUnderFinger(g.moveX, capsuleX.current, CAPSULE_SIDE, geo.current.cell, routesRef.current.length);
     },
     onPanResponderMove: (_, g) => {
@@ -186,7 +189,7 @@ function TabStrip({ routes, insets, due }: {
             key={route.key}
             onPress={route.onPress}
             onPressIn={() => pressIn(i)}
-            onPressOut={pressOut}
+            onPressOut={() => pressOut(i)}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             aria-selected={focused}

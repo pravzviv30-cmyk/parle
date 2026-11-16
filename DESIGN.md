@@ -1111,8 +1111,9 @@ the new look, listed at the end, and they go with their call sites.
   landing like a tap; under Reduce Motion it jumps. A still long press is never
   claimed, so the Large Content Viewer keeps working. When a tab becomes the selected one its
   icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one
-  drawing, never scaled, so it stays sharp), never on launch or on a tap of
-  the open tab, and under Reduce Motion it does not move. The Practice
+  drawing, never scaled, so it stays sharp), which since F981 is on press-in
+  of a closed tab and again on the open tab when that press is cancelled; never
+  on launch or on a tap of the open tab, and under Reduce Motion it does not move. The Practice
   dot is 6pt sun, so it reads on the ink, and pops in once when practice
   becomes due while the bar is open. Cells keep the 62pt floor and labels wrap
   at large text: from a 1.3 reading size each cell takes a fixed fifth. The

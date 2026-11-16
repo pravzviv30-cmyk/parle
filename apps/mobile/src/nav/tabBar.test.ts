@@ -226,7 +226,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(FLAT, /<TabPill /, 'the capsule does not draw the pill');
     // Claimed only on sideways movement, from any tab, so a tap and a still long press stay the cell's.
     assert.match(FLAT, /onMoveShouldSetPanResponderCapture: \(_, g\) => geo\.current\.selected >= 0 && Math\.abs\(g\.dx\) > 8 && Math\.abs\(g\.dx\) > Math\.abs\(g\.dy\)/, 'the drag claims taps, long presses or vertical moves');
-    assert.match(FLAT, /onPanResponderGrant: \(_, g\) => \{ tick\(\); over\.current = tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, geo\.current\.cell, routesRef\.current\.length\); \}/, 'the drag grant does not tick and start from the cell under the finger');
+    assert.match(FLAT, /onPanResponderGrant: \(_, g\) => \{ if \(!touchTicked\.current\) tick\(\); touchTicked\.current = false; over\.current = tabCellUnderFinger\(g\.moveX, capsuleX\.current, CAPSULE_SIDE, geo\.current\.cell, routesRef\.current\.length\); \}/, 'the drag grant does not tick and start from the cell under the finger');
     assert.match(FLAT, /if \(now !== over\.current\) \{ over\.current = now; tick\(\); \}/, 'crossing into another cell does not tick');
     assert.match(FLAT, /tapSettled\(\); if \(to !== selected\) routesRef\.current\[to\]\?\.onPress\(\);/, 'letting go does not navigate the way a tap does');
     assert.match(FLAT, /onPanResponderTerminate: \(\) => setDragX\(null\)/, 'a cancelled drag does not put the pill back');
@@ -291,6 +291,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
         routesRef: { current: [0, 1, 2, 3, 4].map((i) => ({ onPress: () => { log.pressed.push(i); } })) },
         capsuleX: { current: 12 },
         over: { current: 0 },
+        touchTicked: { current: false },
       };
       const names = Object.keys(world);
       const pan = new Function(...names, `"use strict";\n${js}\nreturn lifted;`)(...names.map((n) => world[n])) as Record<'onMoveShouldSetPanResponderCapture' | 'onPanResponderGrant' | 'onPanResponderRelease' | 'onStartShouldSetPanResponderCapture', (...a: unknown[]) => unknown>;
@@ -350,25 +351,29 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.ok(!r.run(280, true, true).some((l) => l.startsWith('timing')), 'under Reduce Motion the pill eases instead of jumping');
     assert.equal(r.x.value, 280);
     assert.equal(r.gap.value, 0);
+    assert.ok(!pill(0).run(70, false, true).some((l) => l.startsWith('spring')), 'under Reduce Motion a press springs the pill instead of jumping');
   });
 
-  test('pressing in on another tab moves the pill and its colours there with one tick, and lifting adds none (F981)', () => {
+  /** Lifts pressIn and pressOut from the bar and runs them over a simulated `armed` state. */
+  function pressHandlers(selected: number) {
     const start = BAR.indexOf('const pressIn = ');
     const end = BAR.indexOf('\n', BAR.indexOf('const pressOut = ', start));
     assert.ok(start > 0 && end > start, 'the press handlers are not where this test looks');
     const js = stripTypeScriptTypes(BAR.slice(start, end));
-    const bar = (selected: number) => {
-      const log = { ticks: 0, armed: [] as (number | null)[] };
-      const [pressIn, pressOut] = new Function('selected', 'setArmed', 'tapSettled', `"use strict";\n${js}\nreturn [pressIn, pressOut];`)(
-        selected, (a: number | null) => { log.armed.push(a); }, () => { log.ticks += 1; },
-      ) as [(i: number) => void, () => void];
-      return { pressIn, pressOut, log };
-    };
-    const tap = bar(0);
+    const log = { ticks: 0, armed: null as number | null, touchTicked: { current: false } };
+    const setArmed = (v: number | null | ((a: number | null) => number | null)) => { log.armed = typeof v === 'function' ? v(log.armed) : v; };
+    const [pressIn, pressOut] = new Function('selected', 'setArmed', 'tapSettled', 'touchTicked', `"use strict";\n${js}\nreturn [pressIn, pressOut];`)(
+      selected, setArmed, () => { log.ticks += 1; }, log.touchTicked,
+    ) as [(i: number) => void, (i: number) => void];
+    return { pressIn, pressOut, log };
+  }
+
+  test('pressing in on another tab moves the pill and its colours there with one tick, and lifting adds none (F981)', () => {
+    const tap = pressHandlers(0);
     tap.pressIn(3);
-    assert.deepEqual(tap.log.armed, [3], 'pressing in on Practice does not arm it');
+    assert.equal(tap.log.armed, 3, 'pressing in on Practice does not arm it');
     assert.equal(tap.log.ticks, 1, 'pressing in does not tick exactly once');
-    tap.pressOut();
+    tap.pressOut(3);
     assert.equal(tap.log.ticks, 1, 'lifting ticks again');
     assert.match(FLAT, /<TabPill to=\{dragX \?\? \(armed \?\? selected\) \* cell\}/, 'the pill does not go to the armed tab');
     assert.match(FLAT, /const lit = i === \(armed \?\? selected\);/, 'the sun glyph and bold word do not move with the pill');
@@ -377,21 +382,49 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
   });
 
   test('a cancelled press puts the pill back, and pressing the open tab arms nothing (F981)', () => {
-    assert.match(FLAT, /onPressOut=\{pressOut\}/, 'a press that slides off leaves the pill on the tab it left');
-    const start = BAR.indexOf('const pressIn = ');
-    const end = BAR.indexOf('\n', BAR.indexOf('const pressOut = ', start));
-    const js = stripTypeScriptTypes(BAR.slice(start, end));
-    const log = { ticks: 0, armed: [] as (number | null)[] };
-    const [pressIn, pressOut] = new Function('selected', 'setArmed', 'tapSettled', `"use strict";\n${js}\nreturn [pressIn, pressOut];`)(
-      2, (a: number | null) => { log.armed.push(a); }, () => { log.ticks += 1; },
-    ) as [(i: number) => void, () => void];
-    pressIn(4);
-    pressOut();
-    assert.deepEqual(log.armed, [4, null], 'a cancelled press does not return the pill to the open tab');
-    log.armed.length = 0; log.ticks = 0;
-    pressIn(2);
-    assert.deepEqual(log.armed, [], 'pressing the open tab arms it');
-    assert.equal(log.ticks, 0, 'pressing the open tab ticks');
+    assert.match(FLAT, /onPressOut=\{\(\) => pressOut\(i\)\}/, 'a press that slides off leaves the pill on the tab it left');
+    const bar = pressHandlers(2);
+    bar.pressIn(4);
+    bar.pressOut(4);
+    assert.equal(bar.log.armed, null, 'a cancelled press does not return the pill to the open tab');
+    bar.log.ticks = 0;
+    bar.pressIn(2);
+    assert.equal(bar.log.armed, null, 'pressing the open tab arms it');
+    assert.equal(bar.log.ticks, 0, 'pressing the open tab ticks');
+  });
+
+  test('a late press-out from an earlier tap leaves the tab now pressed armed (F981, push-check)', () => {
+    const bar = pressHandlers(0);
+    bar.pressIn(1);
+    bar.pressIn(3);
+    bar.pressOut(1);
+    assert.equal(bar.log.armed, 3, 'the first tap\'s delayed press-out disarmed the tab under the finger');
+  });
+
+  test('on the bar with no open tab a press ticks once and lights nothing (F981, push-check)', () => {
+    const bar = pressHandlers(-1);
+    bar.pressIn(2);
+    assert.equal(bar.log.ticks, 1, 'pressing a tab on Profile\'s bar does not tick once');
+    assert.equal(bar.log.armed, null, 'Profile\'s bar lights a tab with no pill behind it');
+    const detached = FLAT.slice(FLAT.indexOf('export function DetachedTabBar'), FLAT.indexOf('function useDueCount'));
+    assert.match(detached, /onPress: \(\) => \{ onTab\(name\); announceTab\(name\); \}/, 'Profile\'s bar ticks on lift as well as on press-in');
+    assert.match(FLAT, /onPressIn=\{\(\) => pressIn\(i\)\}/, 'the strip\'s press-in is not the tick');
+  });
+
+  test('a drag that starts on a closed tab ticks once at the grab; from the open tab the grab still ticks (F981, push-check)', () => {
+    const start = BAR.indexOf('onPanResponderGrant: ');
+    const end = BAR.indexOf('\n    },', start) + 6;
+    const js = stripTypeScriptTypes(`const grant = { ${BAR.slice(start, end)} }.onPanResponderGrant;`);
+    for (const [pressed, want] of [[3, 1], [0, 1]] as const) {
+      const bar = pressHandlers(0);
+      const grant = new Function('tick', 'touchTicked', 'over', 'tabCellUnderFinger', 'capsuleX', 'CAPSULE_SIDE', 'geo', 'routesRef', `"use strict";\n${js}\nreturn grant;`)(
+        () => { bar.log.ticks += 1; }, bar.log.touchTicked, { current: 0 }, tabCellUnderFinger, { current: 12 }, 8, { current: { cell: 70, selected: 0 } }, { current: [0, 1, 2, 3, 4] },
+      ) as (e: unknown, g: unknown) => void;
+      bar.pressIn(pressed);
+      bar.pressOut(pressed);
+      grant({}, { moveX: 100, dx: 20, dy: 0 });
+      assert.equal(bar.log.ticks, want, pressed === 0 ? 'a drag from the open tab lost its grab tick' : 'a drag from a closed tab ticked twice at the grab');
+    }
   });
 
   test('a drag across the bar does not select the tab words on web (push-check browser pass)', () => {
