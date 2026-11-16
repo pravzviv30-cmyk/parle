@@ -914,7 +914,7 @@ export function integrateTurn(
   // walk the scene on just because the reply is aimed ahead. Missions only.
   const fromIndex = beats.findIndex((b) => b.id === state.currentBeat);
   const namedIndex = beats.findIndex((b) => b.id === turn.scene.beat);
-  const namedLater = earned && fromIndex >= 0 && namedIndex > fromIndex;
+  const namedLater = earned && !state.forceAdvance && fromIndex >= 0 && namedIndex > fromIndex;
   const shouldAdvance = ((turn.scene.beatDone || namedLater) && !reachedForEnglish && !wasRescued) || forceAdvance;
   if (shouldAdvance) {
     beatStatus[state.currentBeat] = 'done';

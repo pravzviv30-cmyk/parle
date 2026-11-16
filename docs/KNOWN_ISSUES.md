@@ -12606,6 +12606,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   advance should move one step); (b) the last beat still needs `beatDone` for `missionDone` (5 of 6 live runs
   set it); (c) services/tutor-agent/src/convo.ts:3126-3129 restores only `evidencedBeatIds` when guardView
   rejects a reply, so movement stays (pinned by convo.test.ts:707 "movement stays separate from achievement").
+- note: Push-check round 2: when the attempt cap is already set (`forceAdvance`), the tick is withheld, so the
+  named-later advance is withheld too and the cap moves one beat.
 - verified-by: `a learner who answers each line in turn sees each goal tick, even when the model names the next beat without marking the last one done`
 - verified-by: `naming the next beat moves the scene on only for a turn the learner earned, and never backwards`
 - verified-by: `a partly right answer that moves the scene on is not counted as another try at the same line`

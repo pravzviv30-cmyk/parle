@@ -199,3 +199,10 @@ test('a rescued learner whose attempts ran out moves on exactly one line, howeve
   assert.equal(next.currentBeat, sayWhere, 'the cap moves one beat; a rescue earns no skip');
   assert.deepEqual(next.evidencedBeatIds, []);
 });
+
+test('a learner whose attempts ran out and then answers well still moves on one line, not past a goal they never met', () => {
+  const state = fresh();
+  const next = integrateTurn({ ...state, forceAdvance: true }, spoke, live(pay, false)).state;
+  assert.equal(next.currentBeat, sayWhere, 'the cap withholds the tick, so it earns no skip either');
+  assert.deepEqual(next.evidencedBeatIds, []);
+});
