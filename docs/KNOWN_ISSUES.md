@@ -12698,3 +12698,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/installHistory.native.ts:11
 - note: Delete the native twin so every platform reads the hint from AsyncStorage (`@luvani/has-used-app/v1`), which uninstall removes. Upgraded installs already hold that key. Update the two lists in `tokenHygiene.test.ts` and the device-keys sentence in `docs/STATE_AND_STORAGE.md`.
 - verified-by: `the used-before hint is kept only in storage that uninstalling removes`
+
+### F1020 — A failed Keychain removal on a fresh iOS launch deletes the sign-in made right after it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/freshInstall.ts:48
+- note: On a fresh launch, `setItem` awaits `clearOnce(key)` and ignores its result. When the removal inside it throws, `handled` forgets the key, the new session is written with no marker, and the next `getItem` of that key removes the new session and returns null. Inputs: empty AsyncStorage, one `inner.removeItem` rejection, then `setItem(KEY, 'new-person')`, then `getItem(KEY)` returns null and the Keychain is empty. The same happens with `getItem` (removal fails), `setItem` (removal fails), `getItem`. A `removeItem` that succeeds after a failed clear leaves the key unhandled in the same way. Found by work-judge (Fable 5.2), F960 round 1, 2026-11-16.
+- verified-by: `a sign-in written after a failed removal on the fresh launch is kept`
+- verified-by: `a sign-out that succeeds after a failed removal settles the key`

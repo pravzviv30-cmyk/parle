@@ -40,19 +40,26 @@ export function clearOnFreshInstall(inner: KeyValueStorage, disk: InstallDisk): 
     return next;
   }
 
+  // A write that completed replaces whatever the failed clear left, so it settles the key (F1020).
+  async function writeThrough(key: string, write: () => Promise<void>): Promise<void> {
+    const cleared = await clearOnce(key);
+    await write();
+    if (cleared) return;
+    handled.set(key, Promise.resolve(true));
+    await disk.setItem(INSTALL_MARKER, '1').catch(() => undefined);
+  }
+
   return {
     async getItem(key) {
       return (await clearOnce(key)) ? inner.getItem(key) : null;
     },
 
     async setItem(key, value) {
-      await clearOnce(key);
-      await inner.setItem(key, value);
+      await writeThrough(key, () => inner.setItem(key, value));
     },
 
     async removeItem(key) {
-      await clearOnce(key);
-      await inner.removeItem(key);
+      await writeThrough(key, () => inner.removeItem(key));
     },
   };
 }

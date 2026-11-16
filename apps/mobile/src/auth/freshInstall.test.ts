@@ -147,6 +147,44 @@ describe('a fresh install on iOS is a fresh start (F960)', () => {
     assert.equal(keychain.values.size, 0);
   });
 
+  test('a sign-in written after a failed removal on the fresh launch is kept', async () => {
+    const keychain = new MemoryStorage();
+    const disk = new MemoryDisk();
+    const storage = launch(keychain, disk);
+    keychain.failRemoves = 1;
+
+    await storage.setItem(KEY, 'new-person');
+
+    assert.equal(await storage.getItem(KEY), 'new-person');
+    assert.equal(await storage.getItem(KEY), 'new-person');
+    assert.equal(disk.values.has(INSTALL_MARKER), true);
+    assert.equal(await launch(keychain, disk).getItem(KEY), 'new-person');
+
+    const shared = new MemoryStorage();
+    await signedIn(shared, 'previous-person');
+    const reinstalled = launch(shared, new MemoryDisk());
+    shared.failRemoves = 2;
+
+    assert.equal(await reinstalled.getItem(KEY), null);
+    await reinstalled.setItem(KEY, 'new-person');
+    assert.equal(await reinstalled.getItem(KEY), 'new-person');
+  });
+
+  test('a sign-out that succeeds after a failed removal settles the key', async () => {
+    const keychain = new MemoryStorage();
+    await signedIn(keychain, 'previous-person');
+    const disk = new MemoryDisk();
+    const storage = launch(keychain, disk);
+    keychain.failRemoves = 1;
+
+    await storage.removeItem(KEY);
+    assert.equal(disk.values.has(INSTALL_MARKER), true, 'the sign-out itself settles the key');
+    await storage.setItem(KEY, 'after-sign-out');
+
+    assert.equal(await storage.getItem(KEY), 'after-sign-out');
+    assert.equal(disk.values.has(INSTALL_MARKER), true);
+  });
+
   test('only iOS wraps the session storage with the fresh-install reset', () => {
     const adapter = readFileSync(path.join(AUTH_DIR, 'supabaseAdapter.ts'), 'utf8');
     assert.match(adapter, /Platform\.OS === 'ios'\s*\?\s*clearOnFreshInstall\(\s*secureSessionStorage,\s*AsyncStorage\s*\)\s*:\s*secureSessionStorage/);
