@@ -1174,9 +1174,9 @@ the new look, listed at the end, and they go with their call sites.
   frame's `header` slot, so the fixed title and purpose can scroll at large text.
   It still has a centred variant, but since P2 (19 October 2026) no screen
   uses it: Profile draws its own large title and identity row instead. The
-  shared `ScreenHeader` rules a paper hairline under itself, and its way back is
+  shared `ScreenHeader` draws no hairline by default, and its way back is
   the round white back button at the touch floor. A long reading screen (the
-  Privacy screen) instead draws a `t.line` hairline under the back row once
+  Privacy screen) draws a `t.line` hairline under the back row once
   scrolled, at the line where its content is cut, and once its `display` title
   has scrolled away the title rides the back row in `heading`, hidden from screen
   readers. Its body text is full ink, with the intro muted, and 44pt section links
