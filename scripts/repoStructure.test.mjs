@@ -43,7 +43,9 @@ function markdownLinks(rel) {
   });
   return links;
 }
-const isExternal = (target) => /^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith('#');
+const isExternal = (target) => (/^[a-z][a-z0-9+.-]*:/i.test(target) && !/^file:/i.test(target)) || target.startsWith('#');
+/** A link to a file on one machine: an absolute path or a file: URL. */
+const isMachineAbsolute = (target) => target.startsWith('/') || /^file:/i.test(target);
 const linkedDocs = tracked.filter((f) => f.endsWith('.md') && !f.startsWith('graphify-out/') && !f.includes('node_modules/') && onDisk(f));
 const allLinks = linkedDocs.flatMap(markdownLinks).filter(([, , target]) => !isExternal(target));
 
@@ -55,7 +57,7 @@ test('every top-level tracked entry has a row in the AGENTS.md repository map', 
 
 test('AGENTS.md names where new evidence, boards and scratch output go', () => {
   const where = codeSpans(section(read('AGENTS.md'), 'Where new things go'));
-  for (const place of ['artifacts/<date>-<slug>/', 'reviews/<date>-<slug>/', 'output/']) {
+  for (const place of ['artifacts/<slug>-<date>/', 'reviews/<date>-<slug>/', 'output/']) {
     assert.ok(where.includes(place), `name \`${place}\` in AGENTS.md 'Where new things go'`);
   }
 });
@@ -67,9 +69,24 @@ test('every file and folder directly under docs is listed in docs/README.md', ()
   assert.deepEqual(missing, [], missing.map((e) => `add a row for docs/${e} to the right group in docs/README.md`).join('\n'));
 });
 
+test('the artifacts naming rule in AGENTS.md matches the dated folders in artifacts', () => {
+  const where = codeSpans(section(read('AGENTS.md'), 'Where new things go'));
+  assert.ok(where.includes('artifacts/<slug>-<date>/'), "name `artifacts/<slug>-<date>/` in AGENTS.md 'Where new things go'");
+  const folders = [...new Set(tracked.filter((f) => f.startsWith('artifacts/')).map((f) => f.split('/')[1]))];
+  const dateFirst = folders.filter((name) => /^\d{4}-\d{2}/.test(name));
+  assert.deepEqual(dateFirst, [], 'rename these to artifacts/<slug>-<date>/');
+});
+
+test('a file link to a machine path counts as an absolute machine path', () => {
+  assert.equal(isMachineAbsolute('file:///Users/x/y.png'), true);
+  assert.equal(isMachineAbsolute('FILE:///Users/x/y.png'), true);
+  assert.equal(isMachineAbsolute('/Users/x/y.png'), true);
+  for (const target of ['https://example.com/a', '../a.md', '#anchor']) assert.equal(isMachineAbsolute(target), false, target);
+});
+
 test('every relative markdown link in tracked docs resolves', () => {
   const broken = allLinks.filter(([rel, , target]) => {
-    if (target.startsWith('/')) return false; // the absolute-path test owns these
+    if (isMachineAbsolute(target)) return false; // the absolute-path test owns these
     let path = target.split('#')[0].split('?')[0];
     try { path = decodeURIComponent(path); } catch { /* keep it as written */ }
     return !onDisk(posix.join(posix.dirname(rel), path));
@@ -79,14 +96,14 @@ test('every relative markdown link in tracked docs resolves', () => {
 });
 
 test('no tracked markdown link points at an absolute machine path', () => {
-  const absolute = allLinks.filter(([, , target]) => target.startsWith('/'));
+  const absolute = allLinks.filter(([, , target]) => isMachineAbsolute(target));
   assert.deepEqual(absolute.map(([rel, line, target]) => `${rel}:${line} ${target}`), [],
     'make each link relative to its file, or mark a local capture as code text, in the file and line named');
 });
 
 test('no tracked path sits under output', () => {
   const inOutput = tracked.filter((f) => f.startsWith('output/'));
-  assert.deepEqual(inOutput, [], "output/ is ignored scratch: git mv these to artifacts/<date>-<slug>/ (AGENTS.md 'Where new things go')");
+  assert.deepEqual(inOutput, [], "output/ is ignored scratch: git mv these to artifacts/<slug>-<date>/ (AGENTS.md 'Where new things go')");
 });
 
 test('no tracked file matches .gitignore', () => {

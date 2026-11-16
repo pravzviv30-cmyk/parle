@@ -12663,3 +12663,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/gate.mjs:238
 - note: a scripts test outside releaseProofTests never runs, and its titles cannot close S1 to S6.
 - verified-by: `every top-level tracked entry has a row in the AGENTS.md repository map`
+
+### F979 — The artifacts naming rule in the map contradicts the tree
+- severity: P1
+- status: [x]
+- where: AGENTS.md:54
+- note: "Where new things go" names artifacts/<date>-<slug>/, but all 21 dated folders under artifacts/, including the two this pass created (video-ux-implementation-2026-10-04, report-pdfs-2026-10), are <slug>-<date>; scripts/repoStructure.test.mjs:58 pins the wrong string and .gitignore:87 and the message at :89 repeat it.
+- verified-by: `the artifacts naming rule in AGENTS.md matches the dated folders in artifacts`
+
+### F980 — A file:// link to a machine path passes the absolute-path check
+- severity: P2
+- status: [x]
+- where: scripts/repoStructure.test.mjs:46
+- note: isExternal treats every scheme as external, so a tracked doc containing `[a](file:///Users/pravz_07/x.png)` passes "no tracked markdown link points at an absolute machine path".
+- verified-by: `a file link to a machine path counts as an absolute machine path`

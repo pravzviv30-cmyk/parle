@@ -84,7 +84,7 @@ artifacts/game-art/
 reviews/push-check/
 
 # Local scratch and other tools' state. output/ holds personal files beside run
-# output, so it is never tracked: evidence goes in artifacts/<date>-<slug>/.
+# output, so it is never tracked: evidence goes in artifacts/<slug>-<date>/.
 /output/
 /tmp/
 /.codex/

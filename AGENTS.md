@@ -51,7 +51,7 @@ directly under `docs/` needs a row in [docs/README.md](docs/README.md).
 
 ## Where new things go
 
-- Measurement and verification evidence: `artifacts/<date>-<slug>/`.
+- Measurement and verification evidence: `artifacts/<slug>-<date>/`.
 - Design review boards: `reviews/<date>-<slug>/`.
 - Scratch output: `output/`, which is ignored and never committed.
 
