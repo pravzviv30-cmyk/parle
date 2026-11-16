@@ -18,6 +18,9 @@ function git(...args) {
 const tracked = git('ls-files');
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
 const onDisk = (rel) => existsSync(join(ROOT, rel));
+/** True for a tracked file or a folder holding one, compared case-sensitively as Linux CI does. */
+const trackedTree = new Set(tracked.flatMap((f) => f.split('/').map((_, i, parts) => parts.slice(0, i + 1).join('/'))));
+const inTree = (path) => path === '.' || trackedTree.has(path.replace(/\/+$/, ''));
 
 /** The text of a `## heading` section, up to the next `## ` heading. */
 function section(text, heading) {
@@ -28,6 +31,9 @@ function section(text, heading) {
 }
 const codeSpans = (text) => [...text.matchAll(/`([^`\n]+)`/g)].map((m) => m[1]);
 const firstSegment = (p) => p.replace(/^\.\//, '').split('/')[0];
+/** The top-level entries a map section names, read from its table rows only. */
+const mappedEntries = (sectionText) =>
+  new Set(sectionText.split('\n').filter((line) => line.startsWith('|')).flatMap(codeSpans).map(firstSegment));
 
 /** Every inline markdown link outside fenced code and inline code: [file, line, target]. */
 function markdownLinks(rel) {
@@ -50,7 +56,7 @@ const linkedDocs = tracked.filter((f) => f.endsWith('.md') && !f.startsWith('gra
 const allLinks = linkedDocs.flatMap(markdownLinks).filter(([, , target]) => !isExternal(target));
 
 test('every top-level tracked entry has a row in the AGENTS.md repository map', () => {
-  const mapped = new Set(codeSpans(section(read('AGENTS.md'), 'Find the owner')).map(firstSegment));
+  const mapped = mappedEntries(section(read('AGENTS.md'), 'Find the owner'));
   const missing = [...new Set(tracked.map(firstSegment))].filter((entry) => !mapped.has(entry));
   assert.deepEqual(missing, [], missing.map((e) => `add a row for \`${e}\` to AGENTS.md 'Find the owner'`).join('\n'));
 });
@@ -75,6 +81,10 @@ test('the artifacts naming rule in AGENTS.md matches the dated folders in artifa
   const folders = [...new Set(tracked.filter((f) => f.startsWith('artifacts/')).map((f) => f.split('/')[1]))];
   const dateFirst = folders.filter((name) => /^\d{4}-\d{2}/.test(name));
   assert.deepEqual(dateFirst, [], 'rename these to artifacts/<slug>-<date>/');
+  assert.ok(where.includes('reviews/<date>-<slug>/'), "name `reviews/<date>-<slug>/` in AGENTS.md 'Where new things go'");
+  const boards = [...new Set(tracked.filter((f) => f.startsWith('reviews/')).map((f) => f.split('/')[1]))];
+  const undated = boards.filter((name) => !/^\d{4}-\d{2}-\d{2}/.test(name));
+  assert.deepEqual(undated, [], 'rename these to reviews/<date>-<slug>/');
 });
 
 test('a file link to a machine path counts as an absolute machine path', () => {
@@ -82,6 +92,21 @@ test('a file link to a machine path counts as an absolute machine path', () => {
   assert.equal(isMachineAbsolute('FILE:///Users/x/y.png'), true);
   assert.equal(isMachineAbsolute('/Users/x/y.png'), true);
   for (const target of ['https://example.com/a', '../a.md', '#anchor']) assert.equal(isMachineAbsolute(target), false, target);
+  assert.equal(isExternal('file:///Users/x/y.png'), false);
+  assert.equal(isExternal('https://example.com/a'), true);
+});
+
+test('the repository map counts only table rows, not prose', () => {
+  const fixture = '\n## Find the owner\n\n| Area | Path |\n|---|---|\n| Brand | `brand/` |\n\nSee `reviews/` for boards.\n';
+  const mapped = mappedEntries(fixture);
+  assert.equal(mapped.has('brand'), true);
+  assert.equal(mapped.has('reviews'), false);
+});
+
+test('link resolution is case-sensitive against tracked paths', () => {
+  assert.equal(inTree('docs/README.md'), true);
+  assert.equal(inTree('Docs/README.md'), false);
+  assert.equal(inTree('docs'), true);
 });
 
 test('every relative markdown link in tracked docs resolves', () => {
@@ -89,7 +114,7 @@ test('every relative markdown link in tracked docs resolves', () => {
     if (isMachineAbsolute(target)) return false; // the absolute-path test owns these
     let path = target.split('#')[0].split('?')[0];
     try { path = decodeURIComponent(path); } catch { /* keep it as written */ }
-    return !onDisk(posix.join(posix.dirname(rel), path));
+    return !inTree(posix.join(posix.dirname(rel), path));
   });
   assert.deepEqual(broken.map(([rel, line, target]) => `${rel}:${line} ${target}`), [],
     'fix each link, or de-link it as code text, in the file and line named');

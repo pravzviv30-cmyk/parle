@@ -12638,7 +12638,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F975 — Tracked evidence leaves output and the folder is ignored
 - severity: P1
 - status: [x]
-- where: .gitignore:84
+- where: .gitignore:88
 - note: 62 tracked files share output/ with untracked personal files, including medical PDFs in output/pdf, so a folder-level git add would publish them.
 - verified-by: `no tracked path sits under output`
 - verified-by: `every relative markdown link in tracked docs resolves`
