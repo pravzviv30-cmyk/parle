@@ -19,7 +19,7 @@ measurement on synthetic clips, not an integration. Branch `claude/half-cascade-
 - Clock: from `input_audio_buffer.commit` (end of the learner's audio) to the first text delta,
   to `sceneReply.fr` closing, and to `response.done`.
 - Reference, the tuned cascade from end of speech: Flux end of turn p50 699 ms
-  (`2026-11-07-1530-flux-stt.md`) plus brain spoken fields p50 937 ms on the priority tier with
+  (`2026-11-07-flux-eot.md` in this folder) plus brain spoken fields p50 937 ms on the priority tier with
   reply-first (`2026-11-07-lane-d.md`), about 1,636 ms.
 
 ## Numbers
@@ -54,8 +54,9 @@ is about 1.4 s slower than the cascade's whole path to the spoken fields.
 
 Does not win. Slower by about 1.4 s at p50 before any audio is produced, and it drops the turn
 contract and the English hand-back the product is built on. The data-path question (learner
-audio to OpenAI) therefore does not need the founder's answer for this shape. Nothing lands;
-the branch keeps the script and this record. A future retry would need structured text output
+audio to OpenAI) therefore does not need the founder's answer for this shape. Nothing changes in
+the product; the script (`scripts/measureHalfCascade.mjs`) and this record are kept on main
+(founder, 2026-11-16) as the baseline for a later speech-to-speech spike. A future retry would need structured text output
 on the Realtime API or a different division of labour (the realtime model only transcribing
 with tone, the text brain still writing the turn), which is a different spike.
 
