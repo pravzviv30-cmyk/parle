@@ -12685,3 +12685,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: founder, 2026-11-16. @expo/config-plugins 57.0.13 (still SDK 57) moved to xcode 4.0.0, which drops uuid, so a lockfile-only update fixed it and an iOS prebuild still writes the project. decode-uri-component 0.2.2 and zod 3.25.76 have no compatible fix and unchanged reachability; renewed inside audit:ci's 30-day window, and fixed later with the react-navigation, SDK 58 and zod 4 upgrades.
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
 - verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+
+### F1009 — xcode 4 prebuild is proven to write a project, not to build one
+- severity: P2
+- status: [ ]
+- where: docs/RISK_REGISTER.md:46
+- note: F1006 checked `expo prebuild --platform ios --no-install --clean` on xcode 4.0.0 (valid pbxproj). No xcodebuild, archive or signed device install has run on the new project, and its pbxproj was not diffed against the xcode 3.0.1 output. The founder's next USB install or the next mobile-preview build is the first real proof; if it fails in project settings, entitlements or build phases, suspect this change first. Filed by work-judge (Fable 5.2), 2026-11-16.
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
