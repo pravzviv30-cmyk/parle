@@ -6,7 +6,7 @@ import { mergeLearnerProfiles } from '@luvani/brain/profile/merge';
 import { createStoredProfile } from './store.ts';
 import { brainAfterRecap, snapshotFor, storedForgottenFacts, withFactForgotten, withLearnerGoal, withMemoryPaused, withoutForgotten } from './memory.ts';
 import { SYNC_POLICIES } from '../sync/policy.ts';
-import { memoryEmptyLine, NOTHING_YET, MEMORY_PAUSED_EMPTY } from './tutorMemory.ts';
+import { memoryEmptyLine, NOTHING_YET, MEMORY_PAUSED_EMPTY, MEMORY_PAUSE_SUB } from './tutorMemory.ts';
 import { upgradeStored } from './upgrade.ts';
 
 const held = () => {
@@ -84,4 +84,8 @@ test('the newest pause choice survives a busier stale device and ties conservati
     const repaired = repairProfile({ ...held().brain, memory: { ...held().brain.memory, control: invalid } });
     assert.equal(repaired.memory.control, undefined);
   }
+});
+
+test('the pause line names the earlier mistake', () => {
+  assert.match(MEMORY_PAUSE_SUB, /the earlier mistake quoted from your French/);
 });

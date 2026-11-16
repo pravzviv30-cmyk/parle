@@ -830,6 +830,22 @@ describe('the B parts keep their promises — F597', () => {
 
   test("sheets animate over the parent, retain closing content and expose accessible dismissal", () => { const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet')); assert.match(sheet, /<Modal visible=\{present\}/); assert.match(sheet, /snapshot\.current\.children/); assert.match(sheet, /accessibilityViewIsModal/); assert.match(sheet, /onAccessibilityEscape=\{onClose\}/); assert.match(sheet, /onShow=\{focusHeading\}/); assert.match(sheet, /Math\.max\(insets\.bottom, space\(6\)\)/); assert.match(sheet, /keyboardShouldPersistTaps="handled"/); assert.match(sheet, /outputRange: \[0, 0\.4\]/); assert.match(sheet, /onPanResponderRelease/); assert.match(sheet, /close\.current\(\) !== false/); });
 
+  test('a sheet draws a hairline under its title row only once its content has scrolled, and forgets it on close', () => {
+    const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet'));
+    assert.match(sheet, /const \[scrolled, setScrolled\] = useState\(false\);/, 'the sheet keeps no scrolled state');
+    assert.match(sheet, /setScrolled\(event\.nativeEvent\.contentOffset\.y > 0\)/, 'the scrolled state is not driven from the scroll offset');
+    assert.match(sheet, /setCue\(false\);\s*setScrolled\(false\);/, 'a closed sheet keeps its title hairline');
+    assert.match(sheet, /\{scrolled \? <View style=\{\{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t\.line \}\} \/> : null\}/, 'the title row has no absolute hairline in the line token once scrolled');
+    assert.ok(!/scrolled \? \{ borderBottomWidth/.test(sheet), 'the title row grows by a hairline when it scrolls, so the body jumps');
+  });
+
+  test('the screen header divider is an absolute line at the cut, so toggling it never moves layout', () => {
+    const layout = evidence('apps/mobile/src/layout.tsx');
+    assert.match(layout, /minHeight: HIT \+ space\(7\), flexDirection: 'row', alignItems: 'center', paddingBottom: space\(6\) \}\}/, 'the header row does not fold its 16pt margin into its own height');
+    assert.ok(!layout.includes('borderBottomWidth: props.divider'), 'the header divider is a border that sits 16pt above the cut');
+    assert.match(layout, /\{props\.divider === true \? <View style=\{\{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t\.line \}\} \/> : null\}/, 'the header divider is not an absolute line at the bottom of the row');
+  });
+
   test('a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line', () => {
     const skeleton = part('Skeleton');
     assert.match(skeleton, /accessible accessibilityLabel="Loading"/, 'the skeleton does not say Loading once');

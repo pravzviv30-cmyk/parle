@@ -5,15 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy | Luvani</title>
 <style>
+@font-face { font-family: Outfit; font-weight: 400; font-display: swap;
+  src: url("fonts/outfit-regular.woff2") format("woff2"); }
+@font-face { font-family: Outfit; font-weight: 800; font-display: swap;
+  src: url("fonts/outfit-extrabold.woff2") format("woff2"); }
 :root { color-scheme: light dark; }
 body { margin: 0; background: #FFF6E9; color: #16123A;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  font-size: 17px; line-height: 1.6; }
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 17px; line-height: 25px; }
 main { max-width: 38rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-h1 { font-size: 1.8rem; line-height: 1.2; margin: 0 0 0.5rem; }
-h2 { font-size: 1.15rem; line-height: 1.3; margin: 2.5rem 0 0.5rem; }
+h1 { font-weight: 800; font-size: 34px; line-height: 38px; letter-spacing: -0.6px; margin: 0 0 0.5rem; }
+h2 { font-weight: 800; font-size: 20px; line-height: 25px; letter-spacing: -0.2px; scroll-margin-top: 1rem; margin: 2.5rem 0 0.5rem; }
 p { margin: 0 0 1rem; }
-.lede { color: #5C5A74; font-size: 1.05rem; }
+.lede { color: #5C5A74; font-size: 17px; line-height: 25px; }
+.sections { list-style: none; margin: 0 0 1rem; padding: 0; }
+.sections a { display: flex; align-items: center; min-height: 44px; }
 footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #EFE6D6;
   color: #5C5A74; font-size: 0.95rem; }
 a { color: inherit; }
@@ -28,18 +34,32 @@ a { color: inherit; }
 <main>
 <h1>Privacy</h1>
 <p class="lede">What Luvani keeps about you, why it keeps it, how long it stays, and what you can ask us to do with it.</p>
-<h2>Who we are</h2>
+<nav aria-label="Sections"><ul class="sections">
+<li><a href="#who-we-are">Who we are</a></li>
+<li><a href="#what-luvani-keeps">What Luvani keeps</a></li>
+<li><a href="#your-speech">Your speech</a></li>
+<li><a href="#friends-is-optional">Friends is optional</a></li>
+<li><a href="#who-else-sees-it">Who else sees it</a></li>
+<li><a href="#usage-data-and-your-choice">Usage data, and your choice</a></li>
+<li><a href="#keeping-one-free-trial-honest">Keeping one free trial honest</a></li>
+<li><a href="#how-long-we-keep-things">How long we keep things</a></li>
+<li><a href="#your-rights">Your rights</a></li>
+<li><a href="#age">Age</a></li>
+<li><a href="#keeping-conversations-safe">Keeping conversations safe</a></li>
+<li><a href="#changes-to-this-notice">Changes to this notice</a></li>
+</ul></nav>
+<h2 id="who-we-are">Who we are</h2>
 <p>Luvani is made by Vision Strategies Ltd, registered in the UK.</p>
 <p>This notice covers the Luvani app and nothing else.</p>
 <p>You can write to us at hello@luvani.app.</p>
-<h2>What Luvani keeps</h2>
+<h2 id="what-luvani-keeps">What Luvani keeps</h2>
 <p>Your email, your name and which sign-in you used. There is no account without them.</p>
 <p>Your minimum-age eligibility declaration. Luvani is for learners aged thirteen and over. This declaration is not age verification.</p>
 <p>What you have learned. Your history, your review deck, the phrases you keep, your missions and your sound checks. It sits on your phone, and on our server for an account that syncs.</p>
 <p>Your curated conversations. After a session the app keeps a short summary with the phrases and corrections worth practising. The conversation itself, turn by turn, is never part of that practice pack.</p>
 <p>Conversation text, only if you choose Save conversation text after the recap. This separately saves the conversation and tutor coaching to your account. Speech recognition can differ from what you said. No recording is saved. Read or permanently delete each text in Progress, Your conversations, Saved conversation text. Deleting text leaves a marker without its words to stop a delayed save restoring it; that marker is removed when you delete your account. Deleting curated practice and deleting conversation text are separate choices.</p>
 <p>Your plan and the speaking time you have used, so a session is billed once.</p>
-<h2>Your speech</h2>
+<h2 id="your-speech">Your speech</h2>
 <p>Live conversation audio is not stored by Luvani. Daily offline practice is different: when you choose Record my take, a temporary recording stays on your device so you can listen back. It is deleted when you leave that screen, background the app, or record another take. It is never uploaded. An interrupted app may leave a temporary cache file for the operating system to clear.</p>
 <p>Nothing tees a live session to storage. Online pronunciation checks read an attempt into memory and answer with observations; daily offline practice is self-comparison and does not send an attempt to that service.</p>
 <p>Before you create an account you can try one short guest scene. It is a scripted five-turn café exchange, by voice or by typing, and it lasts at most three minutes. No language model writes the replies, and nothing is scored. LiveKit carries the room. When you speak, your audio streams to Deepgram to be turned into text. The tutor lines are fixed and voiced by ElevenLabs, usually replayed from our saved copy. Raw guest audio is not stored. Our server keeps a guest record for up to thirty days: a keyed hash of this installation, your plan answers, the scene time used, how many turns you took, how it ended, and which fixed scripted turns you reached. It never keeps your words. A hashed marker allows one scene per installation for thirty days, and daily hashed counters expire after two days. This device also keeps your plan and the scripted turns you reached. When you save to an account, the matching French lines go into your phrasebook. The server then keeps only a small link between the guest record and your account for at most forty-eight hours, and that link expires on its own. Deleting your account does not remove it early, but it holds no words. Interrupted practice is not recorded as completed. Optional analytics and personal tutor memory start off. Your analytics choice is kept with that link, so saving does not turn analytics on. Daily aggregate starter analytics contain only event, design variant and input categories, and expire after ninety days.</p>
@@ -47,13 +67,16 @@ a { color: inherit; }
 <p>What you say is turned into text so the tutor can answer. The room holds its text temporarily while it is open. Leaving drops that text unless you explicitly chose to save it after the recap. Safety stops offer no text save. Curated practice is kept separately as described above.</p>
 <p>Authored tutor lines can be synthesised once and kept as audio. A cached line can be heard again without another voice-service request; an evicted saved-phrase recording may need to be generated again.</p>
 <p>Where saved-phrase tutor audio is available, choosing Hear can send that curated French line to ElevenLabs in your chosen tutor voice. The app keeps a bounded private audio cache so hearing it again can reuse the recording. The cache is separate from your recordings. Account changes start cache cleanup; deletion waits for it and reports a failure if this phone cannot finish removing it. An interrupted write is recovered when the cache is next used or cleared. Generation is not automatic, and unavailable audio does not silently use a device voice.</p>
-<h2>Friends is optional</h2>
+<h2 id="friends-is-optional">Friends is optional</h2>
 <p>If you join Friends, we store your chosen username, display name, privacy choices, requests, connections, blocks, submitted reports, challenges and encouragement. Someone with your exact username or invitation can find your profile and ask to connect. We never upload your contacts.</p>
 <p>Friends is an unranked list. Milestone sharing starts off. If you switch it on, accepted friends can see weekly practice milestones. Joining a shared challenge lets that partner see your combined conversation count, not an assessment of your French. Your recordings, corrections and saved phrases are not shared.</p>
 <p>Leaving Friends removes your connections and hides your profile. Account deletion removes your social records. Reports are available to authorised support staff, not the reported person. Social updates are in-app badges, not remote push notifications.</p>
-<h2>Who else sees it</h2>
+<h2 id="who-else-sees-it">Who else sees it</h2>
 <p>A live conversation needs services we pay for. LiveKit carries the audio, Deepgram turns speech into text, ElevenLabs gives the tutor its voice, and Speechace scores a pronunciation attempt. Another is the language model, from OpenAI: it reads what you said as text and writes the reply the tutor speaks, so your words are read rather than only carried. In some conversations that start at a higher level, your audio also goes to LiveKit's servers while the tutor is speaking. That lets the tutor stop when you really cut in, and keep going through a short “mm” or “oui”. Luvani keeps nothing from that check.</p>
-<p>The language model is sent what you said, the turns already taken in the same session, the situation you are practising, including a moment you described in your own words when you brought one, your name where you gave one, and a short note of your level and the things to watch for in your French. It writes the tutor's answer from that. When a new situation is set up for you and on each tutor turn, the language model is also sent a few things you have told the tutor about yourself, which it remembers so it can bring them up next time, and any goals you write in Profile, and the titles of the last few situations you practised, which it wrote itself, so the next one is not a repeat. What the tutor remembers about you is yours to see, and each of those things can be removed in Profile. One earlier mistake in your French, as you wrote or said it, may also be sent so the tutor can notice if it happens again. It is left out when personal memory is paused. Pause personal memory keeps remembered details and goals out of future conversations and stops new personal-memory extraction, while your name and French progress still help the tutor. This pause does not stop ordinary replies, learning recaps or practice preparation. One curated correction from your latest saved conversation may also reach the language model in the next conversation, with its original fragment and source title, to give you another chance to use it. This is separate from personal memory and from saving full conversation text. Your email and which sign-in you used are never part of it.</p>
+<p>The language model is sent what you said, the turns already taken in the same session, the situation you are practising, including a moment you described in your own words when you brought one, your name where you gave one, and a short note of your level and the things to watch for in your French. It writes the tutor's answer from that. Your email and which sign-in you used are never sent to it.</p>
+<p>When a new situation is set up for you and on each tutor turn, the language model is also sent a few things you have told the tutor about yourself, which it remembers so it can bring them up next time, and any goals you write in Profile, and the titles of the last few situations you practised, which it wrote itself, so the next one is not a repeat. What the tutor remembers about you is yours to see, and each of those things can be removed in Profile.</p>
+<p>One earlier mistake in your French, as you wrote or said it, may also be sent so the tutor can notice if it happens again. One curated correction from your latest saved conversation may also reach the language model in the next conversation, with its original fragment and source title, to give you another chance to use it.</p>
+<p>Pause personal memory keeps remembered details, goals and that earlier mistake out of future conversations and stops new personal-memory extraction, while your name and French progress still help the tutor. The curated correction is separate from personal memory and from saving full conversation text, so pausing does not hold it back. This pause does not stop ordinary replies, learning recaps or practice preparation.</p>
 <p>What you say reaches these services during a session, so the tutor can answer you. The language model hears from us once more after a session ends: that session's turns go back to it, together with the things already on file about you, so it can pick out the phrases worth practising and note anything new worth remembering. Nothing more about that session reaches any of them after that, unless you practise a phrase from it.</p>
 <p>Automatic personal tutor memory is intended for French goals, everyday interests, practice preferences and non-sensitive family or travel context. The tutor is instructed to leave out personal health details, finances, sexuality or intimate relationships, political or religious beliefs, and identifying secrets, including from its next greeting. These instructions can miss a sensitive detail. Earlier saved greetings are skipped until a new one is prepared under this rule. You can review, edit, forget or pause personal memory in Profile. This rule does not erase older notes or details you write yourself, and it does not govern your separate learning recaps, practice packs or full conversation text you explicitly choose to save.</p>
 <p>When you check a phrase in your own words, your typed or edited transcribed answer is read by the language model too. It is sent your answer, the phrase, what the phrase means, the situation it came from and a note of your level. It checks that your words still mean the same thing and may suggest a more natural way to say it. It is not told who you are, and we keep no copy of your answer.</p>
@@ -66,15 +89,15 @@ a { color: inherit; }
 <p>What any of these companies keeps on its own side is theirs to answer and is not something we have checked, which is why this notice says what each one does for us and stops there.</p>
 <p>Luvani does not sell your learning data to advertisers or data brokers, or add an advertising tracker. The processing described here includes conversation replies, saved learning, account operations, payment handling, abuse controls and optional usage events. Provider retention and any processing under their own terms must be verified before release. Those providers may retain or review material under their own terms.</p>
 <p>There is no advertising identifier anywhere in Luvani, and no third party analytics kit inside the app. Both are absent on purpose.</p>
-<h2>Usage data, and your choice</h2>
+<h2 id="usage-data-and-your-choice">Usage data, and your choice</h2>
 <p>Luvani can record sixteen plain events, such as a situation being finished or a subscription page being opened. They carry no free text and nothing you said, and two separate checks refuse anything that is not on that short list.</p>
 <p>They include a trial being claimed, minutes being refused, a restore being started or settled, and returning from the plans page. They are off unless you turn them on. The switch is in Settings, you can change it whenever you like, and nothing in the app works differently either way.</p>
 <p>Turning the switch off stops new events from this device. An event or session start already sent can finish being recorded. It does not reach backwards: deleting your account is what removes what was recorded before.</p>
-<h2>Keeping one free trial honest</h2>
+<h2 id="keeping-one-free-trial-honest">Keeping one free trial honest</h2>
 <p>When a free trial is claimed, our server keeps two scrambled markers for the installation it was claimed on. They are what stops one installation claiming the same free trial twice.</p>
 <p>They are made by hashing with a secret only our server holds. They are not an advertising identifier, not a device fingerprint, not your email and not your account. Nothing about your learning and nothing you said is attached to them.</p>
 <p>They are kept for two years and then deleted. They stay when an account is deleted, on purpose: a free trial that resets by signing up again is not a free trial.</p>
-<h2>How long we keep things</h2>
+<h2 id="how-long-we-keep-things">How long we keep things</h2>
 <p>Your account, your learning and your saved conversations stay for as long as your account does.</p>
 <p>When you forget a remembered detail, the app retains its normalised wording as a marker so the same wording is not stored again. These markers stay until your account is removed, even as you forget more details, and are included in your data export. A differently worded detail may still be treated as new.</p>
 <p>Usage events are kept for thirteen months. The record of speaking time per session is kept for two years, and so are the trial markers.</p>
@@ -82,7 +105,7 @@ a { color: inherit; }
 <p>Saved-phrase audio has a separate spending record: account totals and paid budget-period dates, without the phrase text or audio. Account deletion removes that record. The overall spending total contains no account identifier and can remain after deletion. These limits are separate from your speaking minutes.</p>
 <p>Counters that hold cost and abuse in check expire on their own, within a day at most.</p>
 <p>Deleting your account removes what is tied to it sooner than any of these.</p>
-<h2>Your rights</h2>
+<h2 id="your-rights">Your rights</h2>
 <p>Download my data writes a file with your account details, every row we hold for you on our server, and everything the app keeps for you on this phone. It includes conversation text you chose to save and word-free deletion markers. No learner audio is stored or included.</p>
 <p>Your saved-phrase audio spending record is included. The private tutor-audio cache is temporary playback storage and is not part of the text download.</p>
 <p>Delete account removes your account and, with it, your learning, your usage events, your entitlement, your speaking time records and your saved conversations. On this phone it erases every key kept for your account.</p>
@@ -90,15 +113,15 @@ a { color: inherit; }
 <p>Paying for Luvani also leaves a record with the company that manages purchases. Account deletion asks it to erase the record of which account bought what before removing your Luvani account. That request is queued by the company; it is not a claim that every record it holds has already gone. No audio, no words you said and nothing you are learning is part of that record. Deleting your account does not cancel a store subscription. Cancel it in the store.</p>
 <p>We can tell you what deletion does. We cannot yet tell you it has been watched happen: the server side has not been run against a live database, and the erase on the phone has not been run on a real build. So this describes the mechanism rather than calling it verified.</p>
 <p>Write to us at hello@luvani.app if you want a copy of something, want something corrected, or want us to stop.</p>
-<h2>Age</h2>
+<h2 id="age">Age</h2>
 <p>Luvani is for learners aged thirteen and over. Starting practice, submitting account creation, choosing a sign-in provider on the create-account page or continuing profile setup accepts the linked Terms declaration. Reading a legal link does not accept it. This declaration is not age verification.</p>
 <p>A known refusal before an account blocks continuation for the rest of that app launch and stores no refusal marker. Signing in, signing out or creating a new account does not bypass it.</p>
 <p>If a signed-in learner says during a conversation that they are under thirteen, the session ends and this phone keeps the stop until they pass the return eligibility check.</p>
-<h2>Keeping conversations safe</h2>
+<h2 id="keeping-conversations-safe">Keeping conversations safe</h2>
 <p>Some things a language app should not answer. Code reads what was said before the tutor sees it, and either steps in with a plain sentence or ends the session. It is a fixed set of rules rather than a judgement made by a model.</p>
 <p>Nobody is watching a session. Luvani is not an emergency service and no message reaches a person, so anyone in trouble should talk to somebody they trust or call their local emergency number.</p>
 <p>When that boundary acts, our server writes one line saying which rule it was. Your words are not in it.</p>
-<h2>Changes to this notice</h2>
+<h2 id="changes-to-this-notice">Changes to this notice</h2>
 <p>This notice ships inside the app, so what you are reading here matches the version you are running. When it changes, it changes with an update, and the same words go up at the address in our App Store listing.</p>
 <footer>
 <p>Vision Strategies Ltd, registered in the UK.</p>

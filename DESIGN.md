@@ -782,7 +782,9 @@ the M3 periwinkle. Violet cards, the sun, the mint and the art stay as they are.
 The tab capsule is ink in both modes (Figma `C2/Main2/Navigation`, 292:1103).
 In dark it takes a 1.5pt lilac rim `b.tabRim` `#65599A` (3.0 on the ground) and
 no shadow, by the founder's choice of 7 November 2026. The lifted selected cell
-is 3.6 on the ink.
+is 3.6 on the ink. The saved-phrase toast's ink pill differs: it has a 1.5pt
+`b.dark.line` (`#514967`) edge in every mode, because the celebration host
+cannot read the mode, where `b.tabRim` is dark-only (UI-022).
 
 The live room (UI-014) keeps the brand blue in both modes. Its notebook, dock
 and sheets take the theme ground (`#151127` in dark), with cream words (17.2:1),
@@ -812,6 +814,8 @@ lesson, Learning preferences, Subscription, Tutor memory, Friends, the phrase,
 conversation and practice libraries, Week wrapped, Postcards, Real moment,
 Scenes, the sound pages, the daily pages, the goal step, the tutor intro and
 the legal pages) were converted to the tokens with layout and copy unchanged.
+The public legal pages set Outfit from the same site, at the app's type sizes
+(UI-022).
 What keeps a fixed value on purpose: the live room and Walk mode grounds, the
 blue and mint pages with their white words, the transcript bubbles (lavender and
 violet, drawn the same on the blue room), the invitation QR code (ink on white
@@ -1171,8 +1175,14 @@ the new look, listed at the end, and they go with their call sites.
   frame's `header` slot, so the fixed title and purpose can scroll at large text.
   It still has a centred variant, but since P2 (19 October 2026) no screen
   uses it: Profile draws its own large title and identity row instead. The
-  shared `ScreenHeader` rules a paper hairline under itself, and its way back is
-  the round white back button at the touch floor.
+  shared `ScreenHeader` draws no hairline by default, and its way back is
+  the round white back button at the touch floor. A long reading screen (the
+  Privacy screen) draws a `t.line` hairline under the back row once
+  scrolled, at the line where its content is cut, and once its `display` title
+  has scrolled away the title rides the back row in `heading`, hidden from screen
+  readers. Its body text is full ink, with the intro muted, and 44pt section links
+  in `t.link` sit under the intro, off where the screen sits inside a sheet
+  (DECISIONS.md UI-022).
 - **Monogram**: the learner's initial drawn one way (SNIPPETS header-tab). A
   white initial in Outfit Bold on an ink disc, hidden from assistive tech, at
   `HIT` in the header button. Its initial comes from `firstNameOf`, the
@@ -1239,7 +1249,8 @@ More shared parts:
   check when chosen. A Hear is its own speaker button beside it. The choice is
   said on a device and on the web.
 - **Sheet**: a bottom sheet under an ink scrim at 0.45 that closes it, modal to
-  VoiceOver, with a grabber and a title. No drag to dismiss.
+  VoiceOver, with a grabber and a title. No drag to dismiss. A `t.line` hairline
+  is drawn under the title row once the content has scrolled (UI-022).
 - **Skeleton / QuietLine**: still sand blocks that say Loading once, and a
   small centred reassurance.
 - **FrenchBlock**: a French line, large and marked as French, the English

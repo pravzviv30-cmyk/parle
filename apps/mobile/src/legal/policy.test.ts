@@ -203,7 +203,7 @@ describe('the privacy notice — F479', () => {
     // what it is handed moves the omission rather than closing it.
     assert.match(said, /The language model is sent what you said/);
     assert.match(said, /your name where you gave one/);
-    assert.match(said, /Your email and which sign-in you used are never part of it\./);
+    assert.match(said, /Your email and which sign-in you used are never sent to it\./);
 
     // Sold is still no. Shared is bounded now rather than denied outright.
     // What it is bounded *by* changed in F488, from a count of vendors to the
@@ -353,7 +353,8 @@ describe('the privacy notice — F479', () => {
     // The own-slip example: one stored past attempt in the learner's French
     // rides after the memory brief. The sentence is true only while the code
     // leaves it out on pause and screens it.
-    assert.match(said, /One earlier mistake in your French, as you wrote or said it, may also be sent so the tutor can notice if it happens again\. It is left out when personal memory is paused\./, 'the notice hides the stored past attempt that reaches the model');
+    assert.match(said, /One earlier mistake in your French, as you wrote or said it, may also be sent so the tutor can notice if it happens again\./, 'the notice hides the stored past attempt that reaches the model');
+    assert.match(said, /Pause personal memory keeps remembered details, goals and that earlier mistake out of future conversations/, 'the notice stopped saying the earlier mistake is left out on pause');
     assert.match(convo, /export function ownSlipBrief\([^)]*\): string \{\s*const repaired = repairProfile\(profile\);\s*if \(repaired\.memory\.control\?\.paused === true\) return '';/, 'the own-slip example is no longer left out on pause');
     // `.find` yields one pattern at most, and `top` is the only slip the brief carries.
     assert.match(convo, /const top = recallPatterns\(repaired\.errorPatterns, scene\)\.find\(/, 'more than one past attempt may now be sent');
@@ -1079,4 +1080,38 @@ test("the privacy notice's age section does not promise the question is asked on
   assert.match(DOC, /Only deliberate Start practice, Create account,\s*account provider actions or repair Continue accept that notice/);
   assert.doesNotMatch(WHOLE, /asks once|Your answer to the age question|The app asks in plain words|until the age question is answered again/);
   assert.doesNotMatch(age, /verifies (?:your )?age|age is verified|legal compliance|legally compliant/i);
+});
+
+describe('Who else sees it splits the language-model paragraph', () => {
+  const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
+  test('four paragraphs, in order, after the services', () => {
+    assert.ok(seen);
+    assert.equal(seen.body[1], "The language model is sent what you said, the turns already taken in the same session, the situation you are practising, including a moment you described in your own words when you brought one, your name where you gave one, and a short note of your level and the things to watch for in your French. It writes the tutor's answer from that. Your email and which sign-in you used are never sent to it.");
+    assert.equal(seen.body[2], 'When a new situation is set up for you and on each tutor turn, the language model is also sent a few things you have told the tutor about yourself, which it remembers so it can bring them up next time, and any goals you write in Profile, and the titles of the last few situations you practised, which it wrote itself, so the next one is not a repeat. What the tutor remembers about you is yours to see, and each of those things can be removed in Profile.');
+    assert.equal(seen.body[3], 'One earlier mistake in your French, as you wrote or said it, may also be sent so the tutor can notice if it happens again. One curated correction from your latest saved conversation may also reach the language model in the next conversation, with its original fragment and source title, to give you another chance to use it.');
+    assert.equal(seen.body[4], 'Pause personal memory keeps remembered details, goals and that earlier mistake out of future conversations and stops new personal-memory extraction, while your name and French progress still help the tutor. The curated correction is separate from personal memory and from saving full conversation text, so pausing does not hold it back. This pause does not stop ordinary replies, learning recaps or practice preparation.');
+  });
+  test('the earlier mistake and the curated correction share a paragraph', () => {
+    assert.ok(seen);
+    const both = seen.body.filter((p) => p.includes('One earlier mistake in your French') && p.includes('One curated correction'));
+    assert.equal(both.length, 1);
+  });
+  test('the pause paragraph names the earlier mistake and does not hold back the correction', () => {
+    assert.ok(seen);
+    const pause = seen.body.find((p) => p.startsWith('Pause personal memory'));
+    assert.ok(pause);
+    assert.match(pause, /that earlier mistake/);
+    assert.match(pause, /curated correction[^.]*pausing does not hold it back/);
+  });
+  test('the snapshot still carries the correction when memory is paused', () => {
+    // The sentence "pausing does not hold it back" is true only while the paused
+    // branch spreads the same extras, which hold `previousCorrection`.
+    const memory = readFileSync(fileURLToPath(new URL('../profile/memory.ts', import.meta.url)), 'utf8');
+    assert.match(memory, /const extras = \{[^\n]*previousCorrection: correction/, 'the extras no longer hold the correction');
+    assert.match(memory, /if \(memoryPaused\(named\)\) return \{ \.\.\.named, \.\.\.extras,/, 'the paused snapshot no longer carries the extras, so the sentence about the correction is untrue');
+  });
+  test('the email and sign-in sentence ends the live-turn paragraph', () => {
+    assert.ok(seen);
+    assert.match(seen.body[1] ?? '', /^The language model is sent what you said[\s\S]*Your email and which sign-in you used are never sent to it\.$/);
+  });
 });

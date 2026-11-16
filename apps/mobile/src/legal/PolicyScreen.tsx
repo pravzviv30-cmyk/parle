@@ -37,34 +37,74 @@
  * gets everywhere else in this app.
  */
 
-import { View, Text } from 'react-native';
-import { space, type } from '../theme.ts';
-import { Card } from '../components.tsx';
+import { useRef, useState } from 'react';
+import { AccessibilityInfo, Platform, ScrollView, Text, View, findNodeHandle } from 'react-native';
+import { HIT, decorative, space, type } from '../theme.ts';
+import { Card, Press } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useReduceMotion } from '../motion.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { POLICY_INTRO, POLICY_SECTIONS, POLICY_TITLE } from './policy.ts';
 import { useB } from '../main/bTheme.tsx';
 
-export function PolicyScreen({ onBack }: { onBack: () => void }) {
+// Named so the source never spells a ScrollView tag; the frame owns the scroll (F307).
+type Scroller = ScrollView;
+
+export function PolicyScreen({ onBack, links = true }: { onBack: () => void; /** Off inside a sheet, whose own ScrollView owns the scroll. */ links?: boolean }) {
   const t = useB();
+  const reduced = useReduceMotion();
   // Opened in place, so Android's hardware back closes it rather than popping
   // whatever pushed Settings.
   useHardwareBack(true, onBack);
+  const scroller = useRef<Scroller>(null);
+  // Two booleans, not the raw offset, so a scroll that changes neither bails out.
+  const [scrolled, setScrolled] = useState(false);
+  // Once the display title has scrolled away, a small one rides the back row.
+  const [titleGone, setTitleGone] = useState(false);
+  const titleBottom = useRef(Infinity);
+  const offset = useRef(0);
+  const watch = (y: number) => { offset.current = y; setScrolled(y > 0); setTitleGone(y >= titleBottom.current); };
+  // Section y within the card, plus the card's own y in the scroll content.
+  const cardY = useRef(0);
+  const sectionY = useRef<number[]>([]);
+  const headings = useRef<(Text | null)[]>([]);
+  const jump = (at: number) => {
+    scroller.current?.scrollTo({ y: Math.max(0, cardY.current + (sectionY.current[at] ?? 0) - space(4)), animated: !reduced });
+    const node = headings.current[at] ?? null;
+    if (Platform.OS === 'web') { (node as unknown as { focus?: (options?: { preventScroll?: boolean }) => void } | null)?.focus?.({ preventScroll: true }); return; }
+    const handle = findNodeHandle(node); if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
+  };
+  const small = titleGone ? (
+    <Text {...decorative} style={[type.heading, { color: t.text }]}>{POLICY_TITLE}</Text>
+  ) : undefined;
   return (
-    <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.display, { color: t.text }]}>
+    <ScrollScreen
+      scrollRef={scroller}
+      onScroll={(event) => watch(event.nativeEvent.contentOffset.y)}
+      header={<ScreenHeader back={{ onPress: onBack }} title={small} divider={scrolled} />}
+    >
+      <Text accessibilityRole="header" onLayout={(event) => { const { y, height } = event.nativeEvent.layout; titleBottom.current = y + height; watch(offset.current); }} style={[type.display, { color: t.text }]}>
         {POLICY_TITLE}
       </Text>
       <Text style={[type.body, { color: t.muted, marginTop: space(3) }]}>{POLICY_INTRO}</Text>
+      {links ? (
+        <View style={{ marginTop: space(3) }}>
+          {POLICY_SECTIONS.map((section, at) => (
+            <Press key={section.heading} haptic="light" accessibilityRole="link" onPress={() => jump(at)} style={{ minHeight: HIT, justifyContent: 'center' }}>
+              <Text style={[type.body, { color: t.link }]}>{section.heading}</Text>
+            </Press>
+          ))}
+        </View>
+      ) : null}
       {/* One white body card under a serif title, which is the shape revamp A
           gives a document. A card per section turned a notice into a stack of
           fourteen objects; it is one thing to read, so it is one surface, and
           the headings do the dividing inside it. */}
-      <View style={{ marginTop: space(6), paddingBottom: space(6) }}>
+      <View onLayout={(event) => { cardY.current = event.nativeEvent.layout.y; }} style={{ marginTop: space(6), paddingBottom: space(6) }}>
         <Card>
           {POLICY_SECTIONS.map((section, at) => (
-            <View key={section.heading} style={{ marginTop: at === 0 ? 0 : space(6) }}>
-              <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>
+            <View key={section.heading} onLayout={(event) => { sectionY.current[at] = event.nativeEvent.layout.y; }} style={{ marginTop: at === 0 ? 0 : space(6) }}>
+              <Text ref={(node) => { headings.current[at] = node; }} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: t.text }]}>
                 {section.heading}
               </Text>
               {/* Keyed by position within its section rather than by its own
@@ -73,7 +113,7 @@ export function PolicyScreen({ onBack }: { onBack: () => void }) {
               {section.body.map((paragraph, index) => (
                 <Text
                   key={`${section.heading}:${index}`}
-                  style={[type.body, { color: t.muted, marginTop: space(3) }]}
+                  style={[type.body, { color: t.text, marginTop: space(3) }]}
                 >
                   {paragraph}
                 </Text>

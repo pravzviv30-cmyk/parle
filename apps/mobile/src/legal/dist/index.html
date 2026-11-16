@@ -5,15 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy and support | Luvani</title>
 <style>
+@font-face { font-family: Outfit; font-weight: 400; font-display: swap;
+  src: url("fonts/outfit-regular.woff2") format("woff2"); }
+@font-face { font-family: Outfit; font-weight: 800; font-display: swap;
+  src: url("fonts/outfit-extrabold.woff2") format("woff2"); }
 :root { color-scheme: light dark; }
 body { margin: 0; background: #FFF6E9; color: #16123A;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  font-size: 17px; line-height: 1.6; }
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 17px; line-height: 25px; }
 main { max-width: 38rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-h1 { font-size: 1.8rem; line-height: 1.2; margin: 0 0 0.5rem; }
-h2 { font-size: 1.15rem; line-height: 1.3; margin: 2.5rem 0 0.5rem; }
+h1 { font-weight: 800; font-size: 34px; line-height: 38px; letter-spacing: -0.6px; margin: 0 0 0.5rem; }
+h2 { font-weight: 800; font-size: 20px; line-height: 25px; letter-spacing: -0.2px; scroll-margin-top: 1rem; margin: 2.5rem 0 0.5rem; }
 p { margin: 0 0 1rem; }
-.lede { color: #5C5A74; font-size: 1.05rem; }
+.lede { color: #5C5A74; font-size: 17px; line-height: 25px; }
+.sections { list-style: none; margin: 0 0 1rem; padding: 0; }
+.sections a { display: flex; align-items: center; min-height: 44px; }
 footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #EFE6D6;
   color: #5C5A74; font-size: 0.95rem; }
 a { color: inherit; }

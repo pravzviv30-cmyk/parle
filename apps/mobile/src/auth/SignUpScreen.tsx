@@ -427,7 +427,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
       </View>
     </OnboardingLayout>
     <Sheet reading returnFocus={headingRef} visible={legal !== null} title={legal === 'terms' ? 'Terms of Use' : 'Privacy Policy'} onClose={() => setLegal(null)}>
-      {legal === 'terms' ? <TermsScreen onBack={() => setLegal(null)} /> : legal === 'privacy' ? <PolicyScreen onBack={() => setLegal(null)} /> : null}
+      {legal === 'terms' ? <TermsScreen onBack={() => setLegal(null)} /> : legal === 'privacy' ? <PolicyScreen links={false} onBack={() => setLegal(null)} /> : null}
     </Sheet>
     </>
   );

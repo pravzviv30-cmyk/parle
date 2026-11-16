@@ -1970,6 +1970,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
   const scroller = useRef<ScrollView>(null);
   const measures = useRef({ content: 0, viewport: 0, offset: 0 });
   const [cue, setCue] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const flashed = useRef(false);
   const measureCue = () => setCue(sheetRunsUnder(measures.current.content, measures.current.viewport, measures.current.offset));
   const reduced = useReduceMotion();
@@ -2000,6 +2001,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
     flashed.current = false;
     measures.current = { content: 0, viewport: 0, offset: 0 };
     setCue(false);
+    setScrolled(false);
   }, [visible]);
   useEffect(() => {
     if (!visible || !cue || flashed.current) return undefined;
@@ -2050,6 +2052,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
+              {scrolled ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t.line }} /> : null}
               <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: ink ?? t.text, flex: 1 }]}>{snapshot.current.title}</Text>
               <IconButton icon="close" label="Close" onPress={onClose} />
             </View>
@@ -2061,7 +2064,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
               scrollEventThrottle={100}
               onLayout={(event) => { measures.current.viewport = event.nativeEvent.layout.height; measureCue(); }}
               onContentSizeChange={(_width, height) => { measures.current.content = height; measureCue(); }}
-              onScroll={(event) => { measures.current.offset = event.nativeEvent.contentOffset.y; measureCue(); }}
+              onScroll={(event) => { measures.current.offset = event.nativeEvent.contentOffset.y; setScrolled(event.nativeEvent.contentOffset.y > 0); measureCue(); }}
             >{snapshot.current.children}</ScrollView>
             {snapshot.current.footer != null ? (
               <View style={cue ? { borderTopWidth: HAIRLINE, borderTopColor: t.line } : null}>{snapshot.current.footer}</View>

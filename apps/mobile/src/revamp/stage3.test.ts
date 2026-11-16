@@ -34,7 +34,7 @@ test('revamp B conversation bubbles distinguish speaker and highlight only the n
 });
 test('revamp B shared choices, controls and sheets carry state and keep secondary actions quiet',()=>{
   has('components.tsx',/minHeight: 56/,/accessibilityState=\{\{ selected \}\}/,/aria-selected=\{selected\}/,/aria-pressed=\{selected\}/,/playing \? 'Stop' : 'Hear'/,/maxHeight: '94%'/,/accessibilityViewIsModal/,/keyboardShouldPersistTaps="handled"/,/outputRange: \[0, 0\.4\]/);
-  has('layout.tsx',/trailing\?: ReactNode/,/props.divider === true \? HAIRLINE : 0/,/alignItems: 'flex-start'/);
+  has('layout.tsx',/trailing\?: ReactNode/,/props\.divider === true \? <View style=\{\{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HAIRLINE, backgroundColor: t\.line \}\} \/> : null/,/alignItems: 'flex-start'/);
 });
 // 2026-10-20, B3, B-Practice: Practice leads with the learner's conversations;
 // the sound guide and the local compare stay on the page as its doors to sound

@@ -330,7 +330,7 @@ export function OnboardingFlow({
       </Animated.View>
     </OnboardingLayout>
     <Sheet reading visible={legal !== null} title={legal === 'terms' ? 'Terms of Use' : 'Privacy Policy'} onClose={() => setLegal(null)} returnFocus={heading}>
-      {legal === 'terms' ? <TermsScreen onBack={() => setLegal(null)} /> : legal === 'privacy' ? <PolicyScreen onBack={() => setLegal(null)} /> : null}
+      {legal === 'terms' ? <TermsScreen onBack={() => setLegal(null)} /> : legal === 'privacy' ? <PolicyScreen links={false} onBack={() => setLegal(null)} /> : null}
     </Sheet>
     </>
   );

@@ -19,8 +19,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { LEGAL_REVIEW_PENDING, companyFrom } from './company.ts';
-import { POLICY_INTRO, POLICY_TITLE } from './policy.ts';
+import { COMPANY, LEGAL_REVIEW_PENDING, companyFrom, legalReviewNoteShown } from './company.ts';
+import { POLICY_INTRO, POLICY_TITLE, policySections } from './policy.ts';
 import {
   indexHtml,
   indexTitle,
@@ -36,6 +36,9 @@ import {
 
 const DIST = fileURLToPath(new URL('./dist/', import.meta.url));
 const ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
+
+/** The only `url()` a page may carry: its own typeface, same origin, relative. */
+const FONT_URLS = ['"fonts/outfit-regular.woff2"', '"fonts/outfit-extrabold.woff2"'];
 
 /** The facts as they will read once the two owed ones arrive. */
 const SUPPLIED = companyFrom({
@@ -53,7 +56,13 @@ describe('the hosted legal pages — F480', () => {
     for (const { file, html } of [...legalPages(), ...legalPages(SUPPLIED)]) {
       assert.doesNotMatch(html, /<script|onload=|onclick=|javascript:/i, `${file} carries a script`);
       assert.doesNotMatch(html, /<link\b|<img\b|<iframe\b|<video\b|<audio\b/i, `${file} loads an external asset`);
-      assert.doesNotMatch(html, /@import|url\(/i, `${file} pulls in a stylesheet or a webfont`);
+      assert.doesNotMatch(html, /@import/i, `${file} pulls in a stylesheet`);
+      // The one thing it may load is its own typeface, from beside it.
+      assert.deepEqual(
+        [...html.matchAll(/url\(([^)]*)\)/gi)].map((m) => m[1]),
+        FONT_URLS,
+        `${file} loads something other than the two same-origin Outfit files`,
+      );
       assert.doesNotMatch(html, /https?:\/\//i, `${file} reaches off the page`);
 
       // Readable on a phone, and legal HTML rather than a fragment.
@@ -65,6 +74,59 @@ describe('the hosted legal pages — F480', () => {
       // The trader is identifiable on the page itself, not only in the app.
       assert.match(html, /Vision Strategies Ltd, registered in the UK\./, `${file} does not say whose page it is`);
     }
+  });
+
+  test('the fonts are the two Outfit files, shipped beside the pages with their licence', () => {
+    for (const { file, html } of legalPages()) {
+      const faces = [...html.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => m[1] ?? '');
+      assert.equal(faces.length, 2, `${file} should declare exactly two @font-face rules`);
+      for (const face of faces) {
+        assert.match(face, /font-family:\s*Outfit\b/, `${file} has a @font-face that is not Outfit`);
+        assert.match(face, /font-display:\s*swap/, `${file} blocks text while the font loads`);
+      }
+      assert.deepEqual(
+        faces.map((f) => /url\(([^)]*)\)/.exec(f)?.[1]),
+        FONT_URLS,
+        `${file} @font-face rules point somewhere other than the two files`,
+      );
+      assert.match(faces[0] ?? '', /font-weight:\s*400/);
+      assert.match(faces[1] ?? '', /font-weight:\s*800/);
+    }
+    for (const name of ['outfit-regular.woff2', 'outfit-extrabold.woff2']) {
+      const path = join(DIST, 'fonts', name);
+      assert.ok(existsSync(path), `legal/dist/fonts/${name} is missing, so the page falls back to the system font`);
+      assert.equal(readFileSync(path).subarray(0, 4).toString('latin1'), 'wOF2', `${name} is not a woff2 file`);
+    }
+    assert.ok(existsSync(join(DIST, 'fonts', 'OFL.txt')), 'the font licence must be published with the font files');
+  });
+
+  test('the privacy page links to each of its sections', () => {
+    const html = privacyHtml();
+    const headings = policySections(COMPANY, legalReviewNoteShown('production')).map((s) => s.heading);
+    const links = [...html.matchAll(/<li><a href="#([^"]+)">([^<]*)<\/a><\/li>/g)].map((m) => ({ id: m[1] ?? '', text: m[2] ?? '' }));
+    assert.deepEqual(
+      links.map((l) => l.text),
+      headings.map(escaped),
+      'the section links are not one per heading, in order',
+    );
+    assert.match(html, /<nav aria-label="Sections"><ul class="sections">/);
+    for (const { id } of links) {
+      assert.match(html, new RegExp(`<h2 id="${id}">`), `a section link points at #${id}, which is not on the page`);
+    }
+    assert.equal(new Set(links.map((l) => l.id)).size, links.length, 'two sections share an id');
+    assert.ok(links.some((l) => l.id === 'usage-data-and-your-choice'), 'the slug rule changed');
+
+    // Only the privacy page has them.
+    for (const { file, html: other } of legalPages().filter((p) => p.file !== 'privacy.html')) {
+      assert.doesNotMatch(other, /class="sections"|<h2 id=/, `${file} grew section links`);
+    }
+  });
+
+  test('the titles are tracked like the app, and an anchor jump leaves room above the heading', () => {
+    const html = privacyHtml();
+    assert.match(html, /h1 \{[^}]*letter-spacing: -0\.6px/, 'the title lost the -0.6 tracking DESIGN.md gives it');
+    assert.match(html, /h2 \{[^}]*letter-spacing: -0\.2px/, 'the heading lost the app heading tracking');
+    assert.match(html, /h2 \{[^}]*scroll-margin-top: 1rem/, 'an anchor jump lands flush against the top');
   });
 
   test('the hosted policy page carries no internal legal review note', () => {
