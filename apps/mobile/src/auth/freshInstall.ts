@@ -43,9 +43,20 @@ export function clearOnFreshInstall(inner: KeyValueStorage, disk: InstallDisk): 
   // A write that completed replaces whatever the failed clear left, so it settles the key (F1020).
   async function writeThrough(key: string, write: () => Promise<void>): Promise<void> {
     const cleared = await clearOnce(key);
-    await write();
-    if (cleared) return;
-    handled.set(key, Promise.resolve(true));
+    if (cleared) return write();
+    // Settle the key before writing, so an overlapping read waits for the write
+    // instead of starting a second clear that would remove it (F1021).
+    let settle!: (readable: boolean) => void;
+    const settled = new Promise<boolean>((resolve) => { settle = resolve; });
+    handled.set(key, settled);
+    try {
+      await write();
+    } catch (error) {
+      if (handled.get(key) === settled) handled.delete(key); // The next call retries the clear.
+      settle(false);
+      throw error;
+    }
+    settle(true);
     await disk.setItem(INSTALL_MARKER, '1').catch(() => undefined);
   }
 

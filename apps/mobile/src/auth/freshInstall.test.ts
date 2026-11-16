@@ -13,6 +13,9 @@ const KEY = 'sb-project-auth-token';
 class MemoryStorage implements KeyValueStorage {
   readonly values = new Map<string, string>();
   failRemoves = 0;
+  /** While set, writes and removals wait for it, so a test can order overlapping calls. */
+  holdWrites: Promise<void> | null = null;
+  holdRemoves: Promise<void> | null = null;
   readonly log: string[];
 
   constructor(log: string[] = []) {
@@ -24,6 +27,7 @@ class MemoryStorage implements KeyValueStorage {
   }
 
   async setItem(key: string, value: string): Promise<void> {
+    if (this.holdWrites !== null) await this.holdWrites;
     this.values.set(key, value);
   }
 
@@ -32,6 +36,7 @@ class MemoryStorage implements KeyValueStorage {
       this.failRemoves -= 1;
       throw new Error('keychain unavailable');
     }
+    if (this.holdRemoves !== null) await this.holdRemoves;
     this.log.push(`remove ${key}`);
     this.values.delete(key);
   }
@@ -183,6 +188,32 @@ describe('a fresh install on iOS is a fresh start (F960)', () => {
 
     assert.equal(await storage.getItem(KEY), 'after-sign-out');
     assert.equal(disk.values.has(INSTALL_MARKER), true);
+  });
+
+  test('a read that overlaps the sign-in write after a failed removal does not remove the new sign-in', async () => {
+    const keychain = new MemoryStorage();
+    const storage = launch(keychain, new MemoryDisk());
+    const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+    let releaseWrite!: () => void;
+    let releaseRemove!: () => void;
+    keychain.failRemoves = 1;
+    keychain.holdWrites = new Promise((resolve) => { releaseWrite = resolve; });
+
+    const signIn = storage.setItem(KEY, 'new');
+    await settle(); // the clear has failed and the sign-in write is in flight
+    keychain.holdRemoves = new Promise((resolve) => { releaseRemove = resolve; });
+    const read = storage.getItem(KEY);
+    await settle();
+
+    releaseWrite();
+    await signIn;
+    releaseRemove();
+    await read;
+    keychain.holdWrites = null;
+    keychain.holdRemoves = null;
+
+    assert.equal(await storage.getItem(KEY), 'new');
+    assert.equal(await storage.getItem(KEY), 'new');
   });
 
   test('only iOS wraps the session storage with the fresh-install reset', () => {

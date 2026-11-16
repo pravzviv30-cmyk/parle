@@ -12706,3 +12706,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: On a fresh launch, `setItem` awaits `clearOnce(key)` and ignores its result. When the removal inside it throws, `handled` forgets the key, the new session is written with no marker, and the next `getItem` of that key removes the new session and returns null. Inputs: empty AsyncStorage, one `inner.removeItem` rejection, then `setItem(KEY, 'new-person')`, then `getItem(KEY)` returns null and the Keychain is empty. The same happens with `getItem` (removal fails), `setItem` (removal fails), `getItem`. A `removeItem` that succeeds after a failed clear leaves the key unhandled in the same way. Found by work-judge (Fable 5.2), F960 round 1, 2026-11-16.
 - verified-by: `a sign-in written after a failed removal on the fresh launch is kept`
 - verified-by: `a sign-out that succeeds after a failed removal settles the key`
+
+### F1021 — A read that overlaps the sign-in write after a failed fresh-install clear can remove the new sign-in
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/freshInstall.ts:46
+- note: `writeThrough` marks the key handled only after `write()` resolves. Inputs: fresh iOS launch, one `inner.removeItem` rejection, `setItem(KEY, 'new')` whose Keychain writes take 10 ms, and a `getItem(KEY)` started 2 ms in whose removal takes 40 ms. The read starts a second clear, it lands after the write, and every later `getItem(KEY)` returns null. The learner signs in again; the previous person is never restored. Found by work-judge (Fable 5.2), F960 round 2, 2026-11-16.
+- verified-by: `a read that overlaps the sign-in write after a failed removal does not remove the new sign-in`
