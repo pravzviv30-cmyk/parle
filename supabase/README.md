@@ -246,8 +246,8 @@ depends on what the earlier ones built.
 | `202608230001_session_usage_idempotency.sql` | `rollback/202608230001_down.sql` | Destroys the exactly-once billing ledger and the antifraud evidence. Restores the two-argument debit. Refuses to run until you set `luvani.remove_session_ledger` to `yes` in the same session. |
 | `202608220001_luvani_learning.sql` | `rollback/202608220001_down.sql` | Destroys every learner row Luvani owns. Refuses to run until you set `luvani.remove_learning_tables` to `yes` in the same session. |
 
-The five interlocked rows are the ones to argue with. Each adds no table, no column and
-no row; each only stops one function doing the wrong thing. If something looks broken after
+The five `reopen_*` rows above (F245, F116, F75, F74, F73) are the ones to argue with. Each
+adds no table, no column and no row; each only stops one function doing the wrong thing. If something looks broken after
 applying one of them, fix forward with a new migration. Rolling one back restores a known
 defect, which is why each script makes you say so out loud in the same paste:
 
@@ -259,12 +259,27 @@ set local luvani.reopen_f74 = 'yes-i-accept-double-billing-on-retry';
 set local luvani.reopen_f73 = 'yes-i-accept-unbounded-trial-farming';
 ```
 
-`202608300001_down.sql` is the odd one: it reopens money-shaped behaviour like the five
-interlocked scripts, but it drops a table with rows in it rather than swapping a function
-body, so it belongs with the destructive pair at the bottom and carries their banner
-instead of an interlock. A teardown that stopped halfway on a `set local` nobody had read
-would be worse than one that says DESTRUCTIVE at the top. Stop the webhook endpoint
-before you paste it.
+`202608300001_down.sql` reopens money-shaped behaviour like those five, but it drops a
+table with rows in it rather than swapping a function body. Since F1081 it and the other
+nine old destructive rollbacks each run in one transaction (`begin;` first, `commit;`
+last) and refuse unless their setting is `yes` in the same session (a plain `set` before
+the paste, because the file opens its own transaction), so a refusal leaves
+nothing half dropped:
+
+```sql
+set luvani.remove_session_grants = 'yes';       -- 20261002233520_down.sql
+set luvani.remove_phrase_audio_budget = 'yes';  -- 20261002212536_down.sql
+set luvani.remove_saved_text = 'yes';           -- 20261002171317_down.sql
+set luvani.remove_daily_namespaces = 'yes';     -- 202609050001_down.sql
+set luvani.remove_conversation_packs = 'yes';   -- 202609040001_down.sql
+set luvani.remove_lapse_marker = 'yes';         -- 202608300003_down.sql
+set luvani.remove_billing_events = 'yes';       -- 202608300001_down.sql
+set luvani.remove_state_revision = 'yes';       -- 202608260001_down.sql
+set luvani.remove_session_ledger = 'yes';       -- 202608230001_down.sql
+set luvani.remove_learning_tables = 'yes';      -- 202608220001_down.sql
+```
+
+Stop the webhook endpoint before you paste `202608300001_down.sql`.
 
 Two pairs replace the same function as each other, so apply them newest first like
 everything else here. `202608270001_down.sql` and `202608250002_down.sql` are one pair:

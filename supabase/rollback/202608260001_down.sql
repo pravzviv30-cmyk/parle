@@ -9,9 +9,9 @@
 -- column that no longer exists with 42703 rather than with rows. So the failure is
 -- loud, immediate and fails **closed** — nothing is silently overwritten, nothing is
 -- merged wrongly, and no learner's state is lost. Devices queue their changes and retry
--- with backoff until the column is back. That is why this script has no interlock while
--- the three function-body rollbacks in this directory do: those restore a defect that
--- does the wrong thing quietly, and this one only stops a feature working.
+-- with backoff until the column is back. It still stops every synced write and drops a
+-- column re-applying cannot refill, so since F1081 it runs in one transaction and refuses
+-- unless `luvani.remove_state_revision` is set to `yes` in the same session.
 --
 -- What is lost: the revision counters themselves. They are derived bookkeeping — how
 -- many times each row has been written — and hold no learner content, so dropping them

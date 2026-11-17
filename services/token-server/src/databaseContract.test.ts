@@ -1360,7 +1360,8 @@ describe('database security contract — SQL cannot drift quietly', () => {
 
     // F245's down-script restores a body that grants a free month to every cancelled
     // subscriber, forever, and it touches no rows — the same shape as the four interlocks
-    // above, so it carries one too. F244's drops a table that holds rows instead.
+    // above, so it carries one too. F244's drops a table that holds rows, so it says
+    // DESTRUCTIVE and, since F1081, carries the luvani.remove_billing_events interlock.
     const reopensF245 = readFileSync(path.join(ROLLBACKS, '202608300002_down.sql'), 'utf8');
     assert.match(reopensF245, /REOPENS-F245/);
     assert.match(reopensF245, /luvani\.reopen_f245/);
