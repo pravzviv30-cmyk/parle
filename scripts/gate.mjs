@@ -48,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
-import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy } from './gateChecks.mjs';
+import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
@@ -222,9 +222,11 @@ if (!fast) {
 const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs','scripts/unslop-scan.test.mjs','scripts/repoStructure.test.mjs','scripts/measureHalfCascade.test.mjs','scripts/gateChecks.test.mjs'];
 if(!fast) {
   const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,...releaseProofTests]);
-  const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
-  if(result.code!==0 || tested===0 || !/[ℹ#] fail 0/.test(result.out))fail('release/provider proofs',result.out.slice(-4000));
-  else {
+  const tested = suiteSummary(result.out).tests ?? 0;
+  const problems = suiteProblems('release/provider proofs', result);
+  if (tested === 0 && problems.length === 0) problems.push(`release/provider proofs: no test ran.\n${result.out.slice(-4000)}`);
+  for (const problem of problems) fail('release/provider proofs', problem);
+  if (problems.length === 0) {
     releaseProviderProofTests = tested;
     for (const title of passingTestTitles(result.out)) passed.add(title);
   }
@@ -239,27 +241,32 @@ function testFiles(dir, out = []) {
     // lstat, not stat: .claude/worktrees links to the other checkouts, which are not this
     // tree's tests and whose device builds delete files mid-walk (the gate crashed on one).
     if (lstatSync(full).isDirectory()) testFiles(full, out);
-    else if (entry.endsWith('.test.ts')) out.push(full);
+    else if (isTestFile(entry)) out.push(full);
   }
   return out;
 }
 
-for (const file of testFiles(ROOT)) {
-  const source = readFileSync(file, 'utf8');
-  const rel = path.relative(ROOT, file);
-  if (/\b(test|describe|it)\.only\s*\(/.test(source)) {
-    fail('hygiene', `${rel}: a focused .only() hides every other test in the file`);
-  }
-  if (/\b(test|describe|it)\.skip\s*\(/.test(source)) {
-    fail('hygiene', `${rel}: a skipped test is a test that is not defending anything`);
-  }
+const onDisk = testFiles(ROOT).map((file) => path.relative(ROOT, file).split(path.sep).join('/'));
+for (const rel of onDisk) {
+  for (const problem of focusProblems(rel, readFileSync(path.join(ROOT, rel), 'utf8'))) fail('hygiene', problem);
 }
 
-// Every scripts/*.test.mjs must be in the release/provider proof list, or it never runs.
-for (const entry of readdirSync(path.join(ROOT, 'scripts'))) {
-  if (entry.endsWith('.test.mjs') && !releaseProofTests.includes(`scripts/${entry}`)) {
-    fail('hygiene', `scripts/${entry}: not in the gate's release/provider proof list, so it never runs`);
+// Every test file must be matched by a floored workspace's test glob or be in the
+// release/provider proof list, or it never runs.
+const workspaceDirs = {};
+for (const parent of ['packages', 'apps', 'services']) {
+  for (const entry of readdirSync(path.join(ROOT, parent))) {
+    let manifest;
+    try { manifest = JSON.parse(readFileSync(path.join(ROOT, parent, entry, 'package.json'), 'utf8')); } catch { continue; }
+    workspaceDirs[manifest.name] = { dir: `${parent}/${entry}`, script: manifest.scripts?.test ?? '' };
   }
+}
+const floored = Object.keys(floors)
+  .filter((name) => workspaceDirs[name])
+  .map((name) => ({ dir: workspaceDirs[name].dir, glob: workspaceDirs[name].script.match(/"([^"]*\.test\.[^"]*)"/)?.[1] ?? '' }))
+  .filter(({ glob }) => glob);
+for (const rel of unrunTestFiles(onDisk, floored, releaseProofTests)) {
+  fail('hygiene', `${rel}: no floored workspace's test glob matches it and it is not in the gate's release/provider proof list, so it never runs`);
 }
 
 // ------------------------------------------------------------------ 4. secrets

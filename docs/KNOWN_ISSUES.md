@@ -12786,7 +12786,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1058 — A test file outside the scripts folder can go unrun, and a skipped test goes unseen
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:258
 - note: S1a-5. The scan reads `*.test.ts` only, the unrun check reads `scripts/` only, and an option-form skip is never matched.
 - verified-by: `a test file that no workspace and no proof list runs fails the gate`

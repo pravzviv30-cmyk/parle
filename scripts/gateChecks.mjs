@@ -35,6 +35,8 @@ export function suiteProblems(name, { code, out }) {
     problems.push(`${name}: ${s.fail} failing\n${names.join('\n')}`);
   }
   // A timed-out test is cancelled, not failed: `fail 0`, `cancelled 1`, exit 1.
+  // The runtime count catches every skip form, `{ skip: true }` and `t.skip()` included.
+  if (s.skipped > 0) problems.push(`${name}: ${s.skipped} skipped — a skipped test is a test that is not defending anything`);
   if (s.cancelled > 0) problems.push(`${name}: ${s.cancelled} cancelled — a test that never finished defended nothing`);
   if (code !== 0 && problems.length === 0) {
     problems.push(`${name}: the runner exited ${code} with no failing test named.\n${out.slice(-2000)}`);
@@ -54,4 +56,36 @@ export function malformedVerifiedBy(ledger) {
     .split('\n')
     .map((text, i) => ({ line: i + 1, text }))
     .filter(({ text }) => /^-\s*verified-by:/.test(text) && !VERIFIED_BY.test(text));
+}
+
+/** A file the scan treats as a test. */
+export function isTestFile(name) {
+  return /\.test\.[cm]?[jt]sx?$/.test(name);
+}
+
+/** A focused or skipped test, read from the source. */
+export function focusProblems(rel, source) {
+  const problems = [];
+  if (/\b(test|describe|it)\.only\s*\(/.test(source)) {
+    problems.push(`${rel}: a focused .only() hides every other test in the file`);
+  }
+  if (/\b(test|describe|it)\.skip\s*\(/.test(source)) {
+    problems.push(`${rel}: a skipped test is a test that is not defending anything`);
+  }
+  return problems;
+}
+
+/** Test files, relative to the repo root, that no floored workspace's glob and no proof list runs. */
+export function unrunTestFiles(files, workspaces, proofList) {
+  const matchers = workspaces.map(({ dir, glob }) => globRegExp(`${dir}/${glob}`));
+  return files.filter((file) => !proofList.includes(file) && !matchers.some((m) => m.test(file)));
+}
+
+/** The node --test glob shapes the workspaces use: `**` for any folders, `*` inside one. */
+function globRegExp(glob) {
+  const body = glob
+    .split(/(\*\*\/|\*)/)
+    .map((part) => (part === '**/' ? '(?:.*/)?' : part === '*' ? '[^/]*' : part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')))
+    .join('');
+  return new RegExp(`^${body}$`);
 }
