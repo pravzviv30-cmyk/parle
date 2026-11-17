@@ -12792,6 +12792,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a test file that no workspace and no proof list runs fails the gate`
 - verified-by: `a suite that skipped a test fails the gate`
 - verified-by: `a focused or skipped test is caught in every test extension`
+- verified-by: `an untracked test file in the checkout does not fail the gate`
 
 ### F1059 — The release and provider proofs have no count floor
 - severity: P2
@@ -12814,3 +12815,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/gate.mjs:439
 - note: S1a-8 (Phase 4, confirmed). The gate requires the forge, bug-sweep, ship and backend-review commands but not push-check or land, and no gate check or test reads `.claude/settings.json`. Deleting the `push-check-guard.mjs hook` entry leaves the gate green. Reserve id, coordinator.
 - verified-by: `the gate fails when the push-check hook or the push-check and land commands go missing`
+
+### F1194 — The push guard missed env -S and aliases whose value merges
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:363
+- note: Found while building F1057 (Phase 4 S1a, 2026-11-17). `env -S "git push ..."` hid a whole command in one value, and `git config alias.* '!gh pr merge N'` hid a merge. Fixed in cb028124, which also carries F1060 because two builders shared a worktree; `--config-env alias.*` is always treated as hidden because its value names an environment variable.
+- verified-by: `env -S with a push inside is judged as a push`
+- verified-by: `an alias whose value merges a pull request is denied`
