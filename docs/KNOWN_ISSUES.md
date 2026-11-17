@@ -12774,7 +12774,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1123 — Evals print a confident dollar figure for a model with no price row
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/brain-playground/src/usage.ts:46
 - note: B5-2. A Groq run prints the fallback rate as if it were real.
 - verified-by: `an eval cost line says when the model has no price row`

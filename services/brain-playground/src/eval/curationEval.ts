@@ -83,7 +83,7 @@ import {
   type NewPhrase,
 } from '@luvani/brain';
 
-import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalModel } from './openaiEval.ts';
 
 // ---------------------------------------------------------------------------
@@ -620,7 +620,7 @@ export async function runCurationEval(options: {
 
   const summary = summariseCuration(scores);
   for (const line of summary.lines) options.log(line);
-  options.log(`\n~$${evalCostUsd(usage, costModel).toFixed(3)} for the run`);
+  options.log(`\n${evalCostLine(usage, costModel)} for the run`);
   return { ok: summary.ok, blocked: false };
 }
 

@@ -20,7 +20,7 @@ import {
 } from '@luvani/brain';
 import { validateExercise } from '@luvani/core';
 
-import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient } from './openaiEval.ts';
 
 /** Below this share of clean exercises, the authoring prompt is not earning its keep. */
@@ -117,7 +117,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`\n~$${evalCostUsd(usage, costModel).toFixed(3)} for the run`);
+  console.log(`\n${evalCostLine(usage, costModel)} for the run`);
   if (failed) process.exit(1);
 }
 

@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 
 import { costUsd, type LlmUsage } from '@luvani/brain';
 
-import { chatCostModels, evalCostUsd, formatSessionUsage, formatTurnUsage } from '../usage.ts';
+import { chatCostModels, evalCostLine, evalCostUsd, formatSessionUsage, formatTurnUsage } from '../usage.ts';
 import { curationCostModel } from './curationEval.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
 
@@ -87,5 +87,13 @@ describe('eval model label and price', () => {
     );
     assert.deepEqual(chatCostModels('anthropic', {}), { turn: 'claude-sonnet-5', frame: 'claude-sonnet-5' }, 'Anthropic frames go to sonnet, not opus');
     assert.deepEqual(chatCostModels('groq', { GROQ_MODEL: 'some-llama' }), { turn: 'some-llama', frame: 'some-llama' });
+  });
+
+  test('an eval cost line says when the model has no price row', () => {
+    // A Groq run: neither the stamp nor the label has a row, so the figure is the fallback rate.
+    const line = evalCostLine({ ...usage, model: 'some-llama' }, 'groq');
+    assert.match(line, /^~\$30\.000 /, 'the figure is still printed, at the fallback rate');
+    assert.match(line, /unpriced some-llama, shown at claude-opus-5 rates/, 'and it says the figure is a guess');
+    assert.equal(evalCostLine({ ...usage, model: 'gpt-6-luna' }, 'groq', 2), '~$0.60', 'a priced stamp carries no note');
   });
 });

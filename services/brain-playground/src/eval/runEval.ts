@@ -38,7 +38,7 @@ import {
 import { STUCK_SILENCE_MS } from '@luvani/core';
 
 import { EVAL_CASES, type EvalCase } from './cases.ts';
-import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
 import { HESITATION_COMMENTARY } from './sessionChecks.ts';
 
@@ -250,7 +250,7 @@ async function main(): Promise<void> {
   console.log(
     `${results.length - hardFailures.length - misses.length} ok · ${misses.length} expectation misses (judgment calls, read the transcripts) · ${hardFailures.length} hard failures`,
   );
-  console.log(`cost: ~$${evalCostUsd(totals, costModel).toFixed(2)} for the run\n`);
+  console.log(`cost: ${evalCostLine(totals, costModel, 2)} for the run\n`);
 
   process.exit(hardFailures.length > 0 ? 1 : 0);
 }

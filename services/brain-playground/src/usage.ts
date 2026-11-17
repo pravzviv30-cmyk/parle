@@ -49,10 +49,17 @@ export function evalCostUsd(usage: LlmUsage, costModel: string): number {
   return costUsd(usage, pricedModel(usage, costModel));
 }
 
-/** The stamp when it has a price row, else the label model, else whatever the stamp says. */
+/** The cost an eval prints, with the note when the figure is a guess. */
+export function evalCostLine(usage: LlmUsage, costModel: string, digits = 3): string {
+  return `~$${evalCostUsd(usage, costModel).toFixed(digits)}${pricedNote(usage, costModel)}`;
+}
+
+/** The stamp when it has a price row, else the label model when it has one, else the stamp, so a guess names what answered. */
 function pricedModel(usage: LlmUsage, model?: string): string | undefined {
-  const stamped = usage.model !== undefined && USD_PER_MTOK[usage.model] !== undefined;
-  return stamped ? usage.model : (model ?? usage.model);
+  const priced = (name: string | undefined): boolean => name !== undefined && USD_PER_MTOK[name] !== undefined;
+  if (priced(usage.model)) return usage.model;
+  if (priced(model)) return model;
+  return usage.model ?? model;
 }
 
 /** The models the chat labels its turns and scenes with, from the routing its client uses. */

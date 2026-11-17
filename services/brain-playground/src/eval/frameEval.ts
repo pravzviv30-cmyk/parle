@@ -22,7 +22,7 @@ import {
   type ScenarioFrame,
 } from '@luvani/brain';
 
-import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient } from './openaiEval.ts';
 
 /** The founder's examples first; the rest span transactional to personal. */
@@ -115,7 +115,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ~$${evalCostUsd(usage, costModel).toFixed(3)}`);
+  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ${evalCostLine(usage, costModel)}`);
   if (failures > 0) process.exit(1);
 }
 
