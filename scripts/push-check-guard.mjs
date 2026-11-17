@@ -26,7 +26,12 @@
 //   - a push made by a script or an interpreter (`node -e`, a Makefile);
 //   - an alias or config set outside the command: an edited config file,
 //     GIT_CONFIG_GLOBAL, or a gh alias (F1213);
-//   - a command with no readable git or gh word.
+//   - a command with no readable git or gh word;
+//   - config exported through `eval` or under a variable name the shell
+//     builds (F1226);
+//   - a command run by a program outside the wrapper table, such as
+//     `find -exec`, `xcrun`, `trap` or a zsh precommand modifier (F1227);
+//   - a GraphQL query read from a file (`gh api graphql -F query=@file`).
 // The pre-push hook still runs the gate on any spelling of git push.
 
 import { execFileSync } from 'node:child_process';
