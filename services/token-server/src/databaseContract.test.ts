@@ -1968,17 +1968,23 @@ describe('client table grants (F1080)', () => {
     return out;
   };
 
-  test('anon and authenticated hold only the verbs their policies use on the four client tables', async () => {
+  /** Every migration before this one, replayed under the hosted Supabase default grants. */
+  const replayedBefore = async (): Promise<PGlite> => {
     const db = new PGlite();
+    await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+      create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+      create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+      create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;
+      alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
+      alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;`);
+    for (const name of migrationFiles.filter((file) => file < GRANTS)) await db.exec(sqlOf(name));
+    return db;
+  };
+
+  test('anon and authenticated hold only the verbs their policies use on the four client tables', async () => {
+    const db = await replayedBefore();
     try {
-      await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
-        create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
-        create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
-        create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
-        grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;
-        alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
-        alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;`);
-      for (const name of migrationFiles.filter((file) => file < GRANTS)) await db.exec(sqlOf(name));
 
       const everything = Object.fromEntries(TABLES.map((table) => [table, PRIVILEGES]));
       assert.deepEqual(await held(db, 'anon'), everything, 'the replay does not reproduce the hosted default grants');
@@ -1998,6 +2004,28 @@ describe('client table grants (F1080)', () => {
       await db.exec(`set luvani.rollback_client_grants = 'yes'; ${down}`);
       for (const role of ['anon', 'authenticated']) assert.deepEqual(await held(db, role), everything, `the rollback did not restore ${role}`);
       assert.deepEqual(await held(db, 'service_role'), serviceRole, 'the rollback changed what service_role holds');
+    } finally { await db.close(); }
+  });
+
+  test('the client grants migration refuses to finish while a client role keeps a privilege outside its policy verbs', async () => {
+    const db = await replayedBefore();
+    try {
+      // A grant to PUBLIC: both client roles inherit it, and revoking from them leaves it.
+      await db.exec('grant select on public.product_events to public');
+      await assert.rejects(db.exec(sqlOf(GRANTS)), /refusing to finish/, 'a PUBLIC grant survived the migration silently');
+      await db.exec('rollback');
+      await db.exec('revoke select on public.product_events from public');
+
+      // A grant recorded under another grantor: the owner's revoke removes only its own grants.
+      await db.exec(`create role other_grantor; grant truncate on public.entitlements to other_grantor with grant option;
+        set role other_grantor; grant truncate on public.entitlements to anon; reset role;`);
+      await assert.rejects(db.exec(sqlOf(GRANTS)), /refusing to finish/, 'a grant from another grantor survived the migration silently');
+      await db.exec('rollback');
+
+      // With the surviving grant gone, the same file finishes and leaves only the policy verbs.
+      await db.exec('revoke truncate on public.entitlements from other_grantor cascade');
+      await db.exec(sqlOf(GRANTS));
+      for (const role of ['anon', 'authenticated']) assert.deepEqual(await held(db, role), POLICY_VERBS[role]);
     } finally { await db.close(); }
   });
 });
