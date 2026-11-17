@@ -12875,3 +12875,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/README.md:312
 - note: (a), docs, `data-engineer`. Eight named, nine run; rows 40, 41, 43, 44, 45 and F970's note contradict the launch log. Re-confirm line numbers after f955 lands. 2026-11-17: fixed; the runbook names all nine suites by script, rows 40, 41, 43, 44, 45 and 46 say when they reached staging, and F970's note is corrected.
 - verified-by: `the Supabase runbook names every SQL suite the gate runs`
+
+### F1243 — The interlocks on the migration 47 and 49 rollbacks are not pinned by a test
+- severity: P2
+- status: [ ]
+- where: supabase/rollback/20261117120000_down.sql:11
+- note: Found by work-judge (Fable 5.2), D1 PRs B and D, 2026-11-17. Deleting the interlock block from `20261117120000_down.sql` or `20261117122000_down.sql` leaves `databaseContract.test.ts` fully green. Migration 48's rollback is covered by the F1080 test. Both rollbacks were run by hand in disposable SQL and refuse, restore exactly twice and re-apply.
+- verified-by: `the claim and retention rollbacks refuse without their interlock and restore the earlier bodies`
