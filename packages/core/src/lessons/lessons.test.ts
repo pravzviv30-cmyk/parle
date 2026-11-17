@@ -195,6 +195,13 @@ describe('answer matching', () => {
     assert.equal(isAcceptable(line('Je veux plus de café'), 'Je ne veux plus de café'), false, 'plus may mean more, so ne is not forgiven there');
   });
 
+  test('a decline that adds "pas de croissant" to "non merci" is still the line', () => {
+    const t = CAFE_LESSON.turns.find((x) => x.id === 't5-croissant')!;
+    // An added negation that agrees with a line already saying no cannot flip it.
+    assert.ok(isAcceptable(t, 'Non merci, pas de croissant'));
+    assert.equal(isAcceptable(t, 'pas un croissant'), false, 'a positive order made negative is still refused');
+  });
+
   test('a half-said line is a near miss, not an unrelated answer', () => {
     const t = CAFE_LESSON.turns[1]!;
     const match = matchAcceptable(t, 'un café');

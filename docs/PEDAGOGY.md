@@ -135,8 +135,9 @@ acceptable options:
    accepting anything with the right word in it somewhere. An added negation
    (`ne`, `pas`, `non`, `jamais`) that the candidate does not carry refuses this
    route, because it fits inside the allowance and says the opposite (F1068). A
-   line that carries its own negation still passes as written, and a formal `ne`
-   restored to a line negated by `pas`, `jamais` or `rien` is the same line (F1196).
+   line that carries its own negation still passes as written, and on a line that
+   already says no (`non`, `pas`, `jamais`, `rien`…) an added negation agrees with
+   it: a restored `ne`, or "non merci, pas de croissant" (F1196).
 
 Anything else that produced at least half the line's content words is `near`,
 which grades `partial` — it holds the rung. Below that is `poor`.
