@@ -91,6 +91,14 @@ describe('what arrives through the speech path but carries no words', () => {
     }
   });
 
+  test('a turn whose own line is a filler word still accepts that word', () => {
+    const first = lesson.turns[0]!;
+    const fillerLesson = { ...lesson, turns: [{ ...first, target: 'Bon', accepts: [], options: [] }, ...lesson.turns.slice(1)] };
+    const { feedback } = submitTurn(fillerLesson, createSession(fillerLesson, RUNGS.PROMPTED), said('Bon.'));
+    assert.equal(feedback.quality, 'good', 'the line was said, so it is not silence');
+    assert.equal(feedback.rescued, false);
+  });
+
   test('an empty transcript adds nothing to the record of what was said', () => {
     const state = createSession(lesson, RUNGS.PROMPTED);
     const { state: after } = step(state, { type: 'spoke', transcript: '', phonemes: [], durationSec: 0 });
