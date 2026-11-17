@@ -12863,9 +12863,3 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `starter goals and learner goals are one list`
 - verified-by: `settlement accepts each plan up to its own allowance and refuses a name that is not a plan`
 - verified-by: `settlement rejects invented credit and impossible per-plan balances`
-
-**Test notes for the builder:**
-- **T1** loops over every goal, both drinks and every minutes value, and asserts `checkStarter(task, form, 'typed').accepted` for the model and each variant. The drink task follows its existing café or thé filter.
-- **T2** is `assert.equal(STARTER_GOALS, LEARNER_GOALS)`, by identity.
-- **T3** checks each plan at its cap (valid) and at cap plus one (null), and that plan names `constructor`, `toString`, `__proto__` and `''` all return null.
-- **T4** imports `* as core` from `./index.ts`, asserts the five names are absent, and asserts `'remove' in ConversationTextBuffer.prototype` is false.
