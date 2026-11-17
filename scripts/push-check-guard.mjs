@@ -72,7 +72,9 @@ export function splitCommands(input) {
 
 // Same split, but `(`, `)` and backticks also leave a { paren } marker between
 // commands so a caller can scope `cd` to its subshell.
-function tokenize(input) {
+// With `nested`, `from` is the `(` of a `$(`: reading stops at its closing paren
+// and the index of that paren is left on the result as `.end`.
+function tokenize(input, from = 0, nested = false) {
   const commands = [];
   let backtickOpen = false;
   let words = [];
@@ -99,8 +101,24 @@ function tokenize(input) {
   let depth = 0;
   let arithAt = null;
 
+  // A `$(` or backtick substitution at text[at], inside double quotes or a
+  // here-document body. The shell runs it, so its commands are read here, ahead of
+  // the command that holds it. Returns the index of its last character, or -1.
+  const substitution = (text, at) => {
+    if (text[at] === '$' && text[at + 1] === '(') {
+      const inner = tokenize(text, at + 1, true);
+      commands.push(...inner);
+      return inner.end;
+    }
+    if (text[at] !== '`') return -1;
+    let end = at + 1;
+    while (end < text.length && text[end] !== '`') end += text[end] === '\\' ? 2 : 1;
+    commands.push({ paren: '(' }, ...tokenize(text.slice(at + 1, end).replace(/\\([$`\\])/g, '$1')), { paren: ')' });
+    return end;
+  };
+
   const s = String(input);
-  for (let i = 0; i < s.length; i++) {
+  for (let i = from; i < s.length; i++) {
     const c = s[i];
     if (quote === "'") {
       if (c === "'") quote = null;
@@ -108,7 +126,11 @@ function tokenize(input) {
       continue;
     }
     if (quote === '"') {
-      if (c === '"') quote = null;
+      const end = substitution(s, i);
+      if (end !== -1) {
+        word += s.slice(i, end + 1);
+        i = end;
+      } else if (c === '"') quote = null;
       else if (c === '\\' && '"\\$`'.includes(s[i + 1] ?? '')) word += s[++i];
       else word += c;
       continue;
@@ -133,24 +155,34 @@ function tokenize(input) {
       if (strip) j++;
       while (s[j] === ' ' || s[j] === '\t') j++;
       let delim = '';
+      // A quoted delimiter makes the body plain text; an unquoted one lets the shell expand it.
+      let quoted = false;
       while (j < s.length && !/[\s;&|<>()]/.test(s[j])) {
         if (s[j] !== "'" && s[j] !== '"' && s[j] !== '\\') delim += s[j];
+        else quoted = true;
         j++;
       }
-      if (delim) heredocs.push({ delim, strip });
+      if (delim) heredocs.push({ delim, strip, quoted });
       i = j - 1;
     } else if (c === '\n' && heredocs.length) {
       endCommand();
       // Skip each pending body up to and including its delimiter line.
       while (heredocs.length && i < s.length) {
-        const { delim, strip } = heredocs.shift();
+        const { delim, strip, quoted } = heredocs.shift();
+        const bodyStart = i + 1;
+        let bodyEnd = s.length;
         for (;;) {
           const start = i + 1;
           if (start >= s.length) { i = s.length; break; }
           const end = s.indexOf('\n', start);
           const line = s.slice(start, end === -1 ? s.length : end);
           i = end === -1 ? s.length : end;
-          if ((strip ? line.replace(/^\t+/, '') : line) === delim) break;
+          if ((strip ? line.replace(/^\t+/, '') : line) === delim) { bodyEnd = start; break; }
+        }
+        const body = quoted ? '' : s.slice(bodyStart, bodyEnd);
+        for (let k = 0; k < body.length; k++) {
+          if (body[k] === '\\') k++;
+          else k = Math.max(k, substitution(body, k));
         }
       }
     } else if (c === '(' || c === ')' || c === '`') {
@@ -169,6 +201,10 @@ function tokenize(input) {
         backtickOpen = !backtickOpen;
       } else {
         commands.push({ paren: c });
+        if (nested && depth === 0) {
+          commands.end = i;
+          return commands;
+        }
       }
     } else if (c === '\n' || c === ';' || c === '|') {
       endCommand();
@@ -182,6 +218,7 @@ function tokenize(input) {
     }
   }
   endCommand();
+  commands.end = s.length;
   return commands;
 }
 
@@ -223,6 +260,10 @@ const WRAPPER_CHDIR = { env: new Set(['-C', '--chdir']), sudo: new Set(['-D', '-
 const SHELL_EXPANDS = /[$`]/;
 // Environment variables that hand git config entries, an alias among them.
 const GIT_CONFIG_ENV = /^GIT_CONFIG_(COUNT|KEY_\d+|VALUE_\d+|PARAMETERS)=/;
+// Builtins that set a variable the rest of the call can hand to git.
+const DECLARES = new Set(['export', 'declare', 'typeset', 'readonly', 'local']);
+// A refspec that asks git for the current branch, which HEAD already names.
+const CURRENT_BRANCH = /^\$\(git (branch --show-current|rev-parse --abbrev-ref HEAD)\)$/;
 // An alias value that can publish, read as the command line it is: a shell alias (`!`)
 // runs its text, any other runs `git <value>`. Anything the reading finds counts.
 const aliasPublishes = (value, dir) => {
@@ -366,7 +407,7 @@ function findMerge(rest) {
 // flags make gh POST unless a method is named.
 const API_FIELD = /^(-f|-F|--field|--raw-field|--input)(=|$)|^-[fF]./;
 function apiWrites(args) {
-  if (args.includes('graphql')) return args.some((a) => /mergePullRequest|updateRef/.test(a));
+  if (args.includes('graphql')) return args.some((a) => /mergePullRequest|updateRef|createRef|createCommitOnBranch|mergeBranch|enablePullRequestAutoMerge/.test(a));
   let method = null;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -375,7 +416,7 @@ function apiWrites(args) {
     else if (/^-X./.test(a)) method = a.slice(2);
   }
   const writes = method ? /^(PUT|POST|PATCH|DELETE)$/i.test(method) : args.some((a) => API_FIELD.test(a));
-  return writes && args.some((a) => /\/pulls\/\d+\/merge\b|\/merges\b|\/git\/refs\b|\/contents\//.test(a));
+  return writes && args.some((a) => /\/pulls\/[^/]+\/merge\b|\/merges\b|\/git\/refs\b|\/contents\//.test(a));
 }
 
 // Walk a shell command and report what the hook needs to judge:
@@ -409,13 +450,18 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     let words = stripRedirects(item);
     let wrapper = null;
     let wrapperMovedDir = false;
+    // True when the last wrapper word read was a flag the tables give no value.
+    let looseFlag = false;
+    // Config handed to this one command; a bare assignment stays set for the call.
+    let configHere = false;
     while (words.length) {
       const w = words[0];
       if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w) || KEYWORDS.has(w)) {
-        if (GIT_CONFIG_ENV.test(w)) state.configEnv = true;
+        if (GIT_CONFIG_ENV.test(w)) configHere = true;
         words = words.slice(1);
       } else if (WRAPPERS.has(baseName(w))) {
         wrapper = baseName(w);
+        looseFlag = false;
         words = words.slice(1);
       } else if (wrapper === 'env' && /^-[^-]/.test(w)) {
         // A short cluster such as `-iS"git push"`: walk its letters. `u`, `C`, `P` and `S`
@@ -440,20 +486,22 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         // flags of env/sudo/command/etc., and timeout's duration
         const takesValue = WRAPPER_FLAG_WITH_VALUE[wrapper]?.has(w);
         if (WRAPPER_CHDIR[wrapper]?.has(w)) wrapperMovedDir = true;
+        looseFlag = w.startsWith('-') && !takesValue;
         words = words.slice(takesValue ? 2 : 1);
       } else {
         break;
       }
     }
-    // A wrapper flag the tables do not know leaves its value at the head (`sudo -nu me
-    // git push`). Rather than chase every flag, go to the first git or gh word after it.
-    if (wrapper && words.length) {
-      const first = baseName(words[0]);
-      if (!['cd', 'pushd', 'popd', 'eval', 'xargs', 'git', 'gh'].includes(first) && !SHELLS.has(first)) {
-        const at = words.findIndex((w) => baseName(w) === 'git' || baseName(w) === 'gh');
-        if (at > 0) words = words.slice(at);
-      }
+    // A wrapper flag the tables do not know may take the head as its value (`sudo -nu me
+    // sh -c "git push"`). Start at the next word the guard reads: the one right after
+    // the head, or a later one when the head is not such a word itself.
+    if (looseFlag) {
+      const reads = (w) => ['git', 'gh', 'eval', 'xargs'].includes(baseName(w)) || SHELLS.has(baseName(w));
+      const at = words.findIndex((w, k) => k > 0 && reads(w));
+      if (at === 1 || (at > 1 && !reads(words[0]))) words = words.slice(at);
     }
+    if (configHere && !words.length) state.configEnv = true;
+    const configEnv = state.configEnv || configHere;
     if (substAt !== null && scopes.length === substAt) {
       substAt = null;
       if (words.includes('push') || words.includes('merge')) events.push({ kind: 'opaque', unreadable: true });
@@ -467,7 +515,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     if (SHELL_EXPANDS.test(name) && (rest.includes('push') || rest.includes('merge'))) {
       events.push({ kind: 'opaque', unreadable: true });
     }
-    if ((head === 'export' || head === 'declare' || head === 'typeset') && rest.some((a) => GIT_CONFIG_ENV.test(a))) {
+    if (DECLARES.has(head) && rest.some((a) => GIT_CONFIG_ENV.test(a))) {
       state.configEnv = true;
     }
     if (head === 'cd' || head === 'pushd') {
@@ -479,7 +527,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     } else if (SHELLS.has(name) && rest.some((a) => /^-[a-zA-Z]*c[a-zA-Z]*$/.test(a))) {
       const at = rest.findIndex((a) => /^-[a-zA-Z]*c[a-zA-Z]*$/.test(a));
       if (rest[at + 1] !== undefined) {
-        const inner = { dir: state.dir, known: state.known, moved: state.moved, configEnv: state.configEnv };
+        const inner = { dir: state.dir, known: state.known, moved: state.moved, configEnv };
         events.push(...analyzeCommand(rest[at + 1], state.dir, inner));
         state.moved = state.moved || inner.moved;
       }
@@ -497,7 +545,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       }
     } else if (name === 'git') {
       // Config from the environment can define an alias the guard never sees.
-      if (state.configEnv) events.push({ kind: 'opaque', unreadable: true });
+      if (configEnv) events.push({ kind: 'opaque', unreadable: true });
       let gitDir = state.dir;
       let gitKnown = state.known && !wrapperMovedDir;
       let aliased = false;
@@ -539,7 +587,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
           dir: gitDir,
           dirKnown: gitKnown,
           movedBefore: state.moved,
-          ...parsePushArgs(rest.slice(i + 1)),
+          ...parsePushArgs(args.map((a) => (gitDir === state.dir && CURRENT_BRANCH.test(a) ? 'HEAD' : a))),
         });
       } else if (sub && movesHead(sub, rest.slice(i + 1))) {
         state.moved = true;
@@ -731,6 +779,8 @@ export function hookDecision(input, git) {
         const frontend = git.touchesFrontendAt(ev.dir, sha);
         const verdict = checkStamp(git.readStamp(ev.dir, sha), sha, toMain, frontend);
         if (!verdict.ok) deny(denyReason(verdict, sha, stripHeads(target.dst) || current));
+        // `git push origin HEAD:$B`: the shell picks the branch, so the stamp cannot vouch for where it lands.
+        else if (SHELL_EXPANDS.test(`${target.src}${target.dst ?? ''}`)) deny(UNREADABLE_REASON);
       }
     } catch {
       deny(UNKNOWN_REASON);
