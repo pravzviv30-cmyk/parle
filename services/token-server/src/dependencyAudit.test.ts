@@ -49,3 +49,10 @@ test('an accepted advisory can name each exact version installed', () => {
   for (const bad of [[], ['1.0.0', 1], '']) {const f = fixture();(f.record.advisories[0] as { lockedAt: unknown }).lockedAt = bad;assert.ok(check(f).length);}
   assert.deepEqual(check(fixture()), []);
 });
+test('a listed lockedAt is unique, accepted-only and fully installed', () => {
+  for (const bad of [['1.0.0', '1.0.0'], ['1.0.0', '']]) {const f = fixture();(f.record.advisories[0] as { lockedAt: unknown }).lockedAt = bad;assert.ok(check(f).some(item => item.includes('malformed')), `accepts ${JSON.stringify(bad)}`);}
+  const fixed = fixture();fixed.record.advisories[0]!.decision = 'fixed';(fixed.record.advisories[0] as { lockedAt: unknown }).lockedAt = ['1.0.0', '0.9.0'];fixed.report.vulnerabilities.fixture.via = [];
+  assert.ok(check(fixed).some(item => item.includes('malformed')));
+  const absent = fixture();(absent.record.advisories[0] as { lockedAt: unknown }).lockedAt = ['1.0.0', '9.9.9'];
+  assert.ok(check(absent).includes('fixture: listed version 9.9.9 is not installed'));
+});

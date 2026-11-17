@@ -8,7 +8,7 @@ const date = value => {
   return Number.isFinite(parsed) && new Date(parsed).toISOString().slice(0, 10) === value ? parsed : NaN;
 };
 /** lockedAt is one exact version, or a non-empty list of them when the tree installs several copies. */
-const versions = value => typeof value === 'string' ? [value] : Array.isArray(value) && value.length > 0 && value.every(item => typeof item === 'string') ? value : null;
+const versions = value => typeof value === 'string' ? [value] : Array.isArray(value) && value.length > 0 && value.every(item => typeof item === 'string' && item !== '') && new Set(value).size === value.length ? value : null;
 
 export function evaluateAudit(record, lock, report, now = Date.now()) {
   const problems = [];
@@ -18,11 +18,14 @@ export function evaluateAudit(record, lock, report, now = Date.now()) {
   }
   const decisions = new Map();
   for (const decision of record.advisories) {
-    if (!decision || typeof decision.module !== 'string' || !versions(decision.lockedAt) || !Array.isArray(decision.advisories) || decisions.has(decision.module) || !['accepted', 'fixed'].includes(decision.decision)) {
+    if (!decision || typeof decision.module !== 'string' || !versions(decision.lockedAt) || !Array.isArray(decision.advisories) || decisions.has(decision.module) || !['accepted', 'fixed'].includes(decision.decision) || (Array.isArray(decision.lockedAt) && decision.decision !== 'accepted')) {
       problems.push('duplicate or malformed advisory decision'); continue;
     }
     decisions.set(decision.module, decision);
     if (!versions(decision.lockedAt).includes(lock.packages[`node_modules/${decision.module}`]?.version)) problems.push(`${decision.module}: reviewed lock version changed`);
+    if (Array.isArray(decision.lockedAt)) for (const version of decision.lockedAt) {
+      if (!Object.entries(lock.packages).some(([key, row]) => (key === `node_modules/${decision.module}` || key.endsWith(`/node_modules/${decision.module}`)) && row?.version === version)) problems.push(`${decision.module}: listed version ${version} is not installed`);
+    }
     if (!Array.isArray(decision.advisories) || decision.advisories.length === 0 || decision.advisories.some(url => !GHSA.test(url))) problems.push(`${decision.module}: advisory IDs missing/malformed`);
     if (decision.decision === 'accepted') {
       const reviewed = date(decision.reviewed), expires = date(decision.expires);
