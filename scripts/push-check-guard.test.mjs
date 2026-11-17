@@ -997,3 +997,155 @@ test('git send-pack and git subtree push are denied', () => {
   }
   assert.equal(hookDecision(bash('git subtree split --prefix=x'), fakeGit()), null, 'a subtree split only writes local history');
 });
+
+
+// ---- S1a round 4: substitutions in quotes, shell-built branches, wrappers, config (F1221 to F1225) ----
+
+test('a push or merge inside a quoted command substitution is judged', () => {
+  for (const cmd of [
+    'out="$(git push origin HEAD:main 2>&1)"; echo "$out"',
+    'echo "$(gh pr merge 12 --merge)"',
+    'echo "`git push`"',
+    '[ -n "$(git push origin HEAD:main)" ]',
+    'x="${Y:-$(git push)}"',
+    'echo "$( (git push) )"',
+    'echo "a $(echo "b $(git push)") c"',
+    'git commit -m "$(cat <<EOF\nbody\nEOF\n)$(git push)"',
+    'echo "`echo \\`git push\\``"',
+    'echo "`echo \\`date\\``"; git push',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${JSON.stringify(cmd)} runs a push or a merge inside double quotes, so it is decided like the plain command`);
+  }
+  const [p] = findPushes('out="$(git push origin HEAD:main 2>&1)"; echo "$out"', '/work');
+  assert.equal(p?.remote, 'origin', 'the captured push is read with its own remote');
+  assert.deepEqual(p?.refspecs, ['HEAD:main']);
+  assert.equal(findPushes('echo "$((1 + 2))"; git push origin claude/x', '/work').length, 1, 'arithmetic in quotes does not hide the next command');
+  assert.match(reasonOf('echo "$(git commit -m x)"; git push') ?? '', /its own command/, 'a commit inside quotes still moves HEAD before the push');
+});
+
+test('a here-document body with an unquoted delimiter is read for command substitutions', () => {
+  for (const cmd of [
+    'cat <<EOF\n$(git push origin main)\nEOF',
+    'cat <<EOF\nrun `git push` now\nEOF',
+    'cat <<-EOF\n\t$(gh pr merge 3)\n\tEOF',
+    'git commit -m "$(cat <<EOF\nbody with `git push` inside\nEOF\n)"',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${JSON.stringify(cmd)} has a body the shell expands, so the push or merge in it runs`);
+  }
+  for (const cmd of [
+    "cat <<'EOF'\n$(git push origin main)\nEOF",
+    'cat <<"EOF"\n`git push`\nEOF',
+    'cat <<\\EOF\n`git push`\nEOF',
+    'cat <<EOF\nwrite \\$(git push) or \\`git push\\`\nEOF',
+    'cat <<EOF > notes.md\n$HOME, ${X} and $(date)\nEOF',
+    "cat <<EOF\nhi\nEOF\necho '$(git push)'",
+  ]) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${JSON.stringify(cmd)} runs no push, so it must not wedge the session`);
+  }
+});
+
+test('quoted substitutions that publish nothing are still allowed', () => {
+  for (const cmd of [
+    'out="$(git status)"',
+    'echo "$(date)"',
+    'msg="$(git log -1 --format=%s)"; echo "$msg"',
+    'echo "$((1 + 2))"',
+    'echo "say \\`git push\\` and \\$(git push)"',
+    "echo '$(git push)'",
+    `git commit -m "$(cat <<'EOF'\nfix: don't (1) run git push, \`git push\` or $(git push)\n\nCo-Authored-By: A <a@b.c>\nEOF\n)"`,
+    `gh pr create --title t --body "$(cat <<'EOF'\n## Summary\n- a) don't \`gh pr merge\` yet\nEOF\n)"`,
+  ]) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${JSON.stringify(cmd)} publishes nothing, so it must not wedge the session`);
+  }
+});
+
+test('a push whose branch the shell builds is denied even with a passing stamp', () => {
+  for (const cmd of [
+    'git push origin HEAD:$B',
+    'git push origin "HEAD:$(echo main)"',
+    'git push origin "$(echo main)"',
+    'git push origin $B',
+    'git push origin ma${X}in',
+    'git push origin +HEAD:"refs/heads/$B"',
+    'git push origin "$SRC:release"',
+    'git -C /other push origin "$(git branch --show-current)"',
+  ]) {
+    assert.match(reasonOf(cmd, fakeGit({ stamp: stampOf({}) })) ?? '', /could not read/, `${cmd} lands on a branch the shell picks, so a stamp cannot vouch for it`);
+  }
+});
+
+test('a push that asks git for the current branch is judged as a push of HEAD', () => {
+  const branchStamp = () => fakeGit({ stamp: stampOf({}) });
+  for (const cmd of ['git push -u origin "$(git branch --show-current)"', 'git push origin "$(git rev-parse --abbrev-ref HEAD)"']) {
+    assert.equal(reasonOf(cmd, branchStamp()), null, `${cmd} pushes the current branch, as git push origin HEAD does`);
+    assert.match(reasonOf(cmd, fakeGit()) ?? '', /no push check yet/, `${cmd} still needs its stamp`);
+    assert.match(reasonOf(cmd, fakeGit({ branch: 'main', stamp: stampOf({}) })) ?? '', /no passing security review/, `${cmd} on main is a push to main`);
+  }
+  for (const cmd of ['git push --delete origin "$B"', 'git push -n origin "$B"', 'git push origin tag "$T"', 'git push origin :"$B"']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} publishes no commit, so a variable in it must not wedge the session`);
+  }
+});
+
+test('a shell or eval behind a wrapper flag the tables do not know is still read', () => {
+  for (const cmd of [
+    'sudo -nu me sh -c "git push"',
+    'exec -a foo sh -c "git push"',
+    "command time -o /dev/null bash -c 'gh pr merge 12'",
+    'sudo -nu me eval "git push"',
+    "/usr/bin/time -o /dev/null sh -c 'git push origin main'",
+    'sudo -nu git git push',
+    'sudo -nu me -H git push',
+    'sudo -n git push origin zsh',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} runs a push or a merge behind the wrapper, so it must deny`);
+  }
+});
+
+test('a harmless command behind a wrapper that only mentions git push is allowed', () => {
+  for (const cmd of ['env FOO=bar echo git push', 'time grep -rn git push scripts', 'sudo mv git push', 'command -v git gh', 'sudo -n true', 'time -p nice echo git push', 'sudo -u me echo git push', 'timeout 5 echo git push']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} runs no git command, so it must not wedge the session`);
+  }
+});
+
+test('git config set by any declaring builtin, or inherited by a nested shell, is denied', () => {
+  const config = 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push';
+  for (const cmd of [
+    `readonly ${config}; git p`,
+    `local ${config}; git p`,
+    `declare -x ${config}; git p`,
+    `typeset -x ${config}; git p`,
+    `export ${config}; sh -c 'git p'`,
+    `${config} sh -c 'git p'`,
+    'GIT_CONFIG_COUNT=1; GIT_CONFIG_KEY_0=alias.p; GIT_CONFIG_VALUE_0=push; export GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0; git p',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} hands git config the guard never reads, so it must deny`);
+  }
+});
+
+test('git config handed to another command does not make a later git command unreadable', () => {
+  for (const cmd of ['GIT_CONFIG_COUNT=0 npm test && git status', 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=a.b GIT_CONFIG_VALUE_0=c npm test; git log']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} gives the config to npm only, so the git command after it is plain`);
+  }
+});
+
+test('gh api merges and branch writes under other names are denied', () => {
+  for (const cmd of [
+    'gh api -X PUT repos/o/r/pulls/$N/merge',
+    'gh api -X PUT "repos/o/r/pulls/${N}/merge"',
+    'gh api graphql -f query="mutation{createCommitOnBranch(input:{})}"',
+    'gh api graphql -f query="mutation{mergeBranch(input:{})}"',
+    'gh api graphql -f query="mutation{enablePullRequestAutoMerge(input:{})}"',
+    'gh api graphql -f query="mutation{createRef(input:{})}"',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} merges or writes a branch through the API, so it must deny`);
+  }
+  for (const cmd of ['gh api repos/o/r/pulls/$N/merge', 'gh api graphql -f query="query{viewer{login}}"', 'gh api graphql -f query="mutation{addComment(input:{})}"', 'gh api -X POST repos/o/r/pulls/5/comments -f body=merge']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} merges nothing and moves no branch, so it must not wedge the session`);
+  }
+});
+
+test('a merge behind an unreadable command name is denied, and a name split across lines is joined', () => {
+  for (const cmd of ['$(which gh) pr merge 5', '`which gh` pr merge 5', '$GH pr merge 5', 'g\\\nit pu\\\nsh']) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${JSON.stringify(cmd)} may be a push or a merge under another spelling, so it must deny`);
+  }
+});
