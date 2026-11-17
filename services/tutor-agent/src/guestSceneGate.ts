@@ -13,9 +13,11 @@
 
 import { tokenize } from '@livekit/agents';
 import {
+  CAFE_LESSON,
   GUEST_CAFE_SCENE,
   GUEST_SCENE_MAX_SECONDS,
   directiveFor,
+  getLesson,
   isGuestScene,
   parseFirstPracticeBrief,
   type GuestScene,
@@ -88,6 +90,20 @@ export function admitGuestRoom(meta: GuestRoomMeta, env: Record<string, string |
 /** The lesson a scene runs. The scene name selects it; `lessonId` never does. */
 export function sceneLesson(_scene: GuestScene): Lesson {
   return GUEST_CAFE_SCENE;
+}
+
+/**
+ * The lesson a room runs, from signed metadata (F968). A conversation never
+ * reads it, so its label is not compared; a scene runs its scene; a lesson
+ * runs the signed id, the cafe when none was signed. An id this worker does
+ * not know throws, so the room is refused before any claim.
+ */
+export function roomLesson(mode: string | undefined, scene: GuestScene | undefined, lessonId: string | undefined): Lesson {
+  if (scene) return sceneLesson(scene);
+  if (mode === 'convo' || mode === 'convo-text' || lessonId === undefined) return CAFE_LESSON;
+  const lesson = getLesson(lessonId);
+  if (!lesson) throw new Error('unknown signed lesson');
+  return lesson;
 }
 
 /**

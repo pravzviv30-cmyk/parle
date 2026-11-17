@@ -1725,6 +1725,7 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   private say(text: string, options: { allowInterruptions?: boolean } = {}): SpokenLine {
+    this.linesSaid += 1;
     if (this.voiceless) return undefined;
     return this.session.say(text, options);
   }
@@ -2825,8 +2826,37 @@ export class LuvaniConversation extends voice.Agent {
     return support?.kind === 'full-line' && support.line.trim().length > 0 ? support.line : null;
   }
 
+  /** Consecutive hook failures (F982); a second in a row ends the session. */
+  private hookFailures = 0;
+  /** Every line handed to `say`, so a failed hook knows whether its turn spoke. */
+  private linesSaid = 0;
+
+  /**
+   * The learner said something. Every exit ends in StopResponse (F982): SDK 1.9
+   * lets the pipeline model answer when this hook throws anything else.
+   */
+  override async onUserTurnCompleted(chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    const saidBefore = this.linesSaid;
+    try {
+      await this.userTurnCompleted(chatCtx, newMessage);
+    } catch (error) {
+      if (error instanceof voice.StopResponse) { this.hookFailures = 0; throw error; }
+      console.error('[luvani] the turn hook failed:', safeError(error));
+      console.error('[luvani:hook-failure] tutor=convo');
+      // Read the signal; assertActive() would fail the lifecycle as a side effect.
+      const live = !this.ended && !this.liveWork.signal.aborted && !this.lifecycle?.signal.aborted;
+      try {
+        if (live && ++this.hookFailures >= 2 && this.lifecycle) await this.failInfrastructure();
+        else if (live && this.linesSaid === saidBefore) this.recover();
+      } catch (recoveryError) {
+        console.error('[luvani] the hook recovery failed:', safeError(recoveryError));
+      }
+    }
+    throw new voice.StopResponse();
+  }
+
   /** The learner said something. Run it through the brain, speak the answer. */
-  override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+  private async userTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
     if (this.refused) {
       this.beginReplyTiming?.(false);
       throw new voice.StopResponse();

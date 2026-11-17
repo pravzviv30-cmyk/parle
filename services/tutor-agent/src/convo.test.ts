@@ -10,6 +10,7 @@ import {
   APERO_FRAME,
   AnthropicBrainClient,
   BrainParseError,
+  recoveryLine,
   CAFE_FRAME,
   ClaudeCliBrainClient,
   MockLlmClient,
@@ -6356,5 +6357,77 @@ describe('the spoken bridge (LUVANI_SPOKEN_BRIDGE=1)', () => {
     await turn;
     await convo.settled();
     assert.deepEqual(bridges(said.slice(before)), []);
+  });
+});
+
+describe('a hook that throws still ends in StopResponse (F982)', () => {
+  const lifecycleFor = (convo: LuvaniConversation) => convo.attachLifecycle({ maxSeconds: 120, stoppedAtDeadline: false, signal: new AbortController().signal,
+    elapsedSeconds: () => 30, assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
+    complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }) });
+  const recoveryLines = new Set(Array.from({ length: 20 }, (_, n) => recoveryLine(n)));
+  /** The hook body throws a plain error once, from its first step. */
+  const breakOnce = (t: TestContext, convo: LuvaniConversation, before?: () => void) => {
+    const mocked = t.mock.method(convo as never as { releaseMoment(): void }, 'releaseMoment', () => { before?.(); throw new Error('boom'); });
+    return () => mocked.mock.restore();
+  };
+
+  test('a conversation hook that throws still ends in StopResponse, so the pipeline model never answers', async (t) => {
+    const errors = t.mock.method(console, 'error', () => {});
+    const { convo } = await inScene(t, { voiceless: false });
+    breakOnce(t, convo);
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+    const logged = errors.mock.calls.map((c) => c.arguments.map(String).join(' '));
+    assert.equal(logged.filter((l) => l.startsWith('[luvani:hook-failure]')).length, 1, 'one countable line');
+    assert.equal(logged.some((l) => l.includes('Un café')), false, 'no learner words in the log');
+  });
+
+  test('a hook failure in a live conversation says the recovery line once and a finished one stays quiet', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const { convo, said } = await inScene(t, { voiceless: false });
+    breakOnce(t, convo);
+    const before = said.length;
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+    const spoken = said.slice(before);
+    assert.equal(spoken.length, 1, 'the recovery line, once');
+    assert.ok(recoveryLines.has(spoken[0]!));
+
+    const done = await inScene(t, { voiceless: false });
+    await done.convo.finish();
+    breakOnce(t, done.convo);
+    const after = done.said.length;
+    await assert.rejects(() => done.convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+    assert.equal(done.said.length, after, 'a finished conversation stays quiet');
+  });
+
+  test('a hook failure after the turn already spoke says no recovery line', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const { convo, said } = await inScene(t, { voiceless: false });
+    breakOnce(t, convo, () => { (convo as never as { say(text: string): void }).say('Une seconde.'); });
+    const before = said.length;
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+    assert.deepEqual(said.slice(before), ['Une seconde.']);
+  });
+
+  test('a second hook failure in a row ends the session as brain-turn', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    t.mock.method(console, 'warn', () => {});
+    const lines: string[] = [];
+    const exit = new SessionExit((line) => lines.push(line));
+    const { convo, published } = await inScene(t, { voiceless: false, exit });
+    lifecycleFor(convo);
+    const terminal = () => published.some((m) => m.t === 'error' && m.kind === 'llm_error' && m.terminal);
+    // A good turn between two failures resets the count.
+    let restore = breakOnce(t, convo);
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+    restore();
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Bonjour.')), voice.StopResponse);
+    await convo.settled();
+    restore = breakOnce(t, convo);
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+    assert.equal(terminal(), false, 'not consecutive');
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+    assert.equal(terminal(), true);
+    exit.log();
+    assert.deepEqual(lines, ['[luvani:session-exit] class=brain-turn']);
   });
 });
