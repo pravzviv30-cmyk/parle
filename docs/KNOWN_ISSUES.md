@@ -12732,3 +12732,31 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/live/failure.ts
 - note: Design lane, split from F955 (its 2026-11-03 addition). Name the service-wide `daily-budget` refusal and say when the allowance comes back.
 - verified-by: `a daily-budget refusal names the service-wide limit and when it returns`
+
+### F1040 — Nothing proves a tutor start is stamped at the moment its day was counted
+- severity: P2
+- status: [x]
+- where: supabase/migrations/20261116120000_tutor_unjoined_release.sql:155
+- note: The reserve body sets the grant's created_at to v_now so the give-back day equals the counted day (database-security-architect change 1). The midnight test edits created_at by hand, so removing ",created_at" and ",v_now" from the insert leaves every F955 test passing. With the column default now(), a reserve that runs inside a transaction opened 50 ms earlier gets created_at 50 ms before the counted time.
+- verified-by: `a tutor start is stamped at the moment its day was counted`
+
+### F1041 — Migration 46's copied bodies are not pinned to the bodies the main proof exercises
+- severity: P2
+- status: [x]
+- where: scripts/verifyTutorSessions.mjs:72
+- note: After the lifecycle rollback the main verify database reapplies 45 but cannot reapply 46 (the rollback drops the admission config table, so 46's reserve fails with: record "cfg" has no field "max_account_daily_sessions"). Its groups therefore prove the lifecycle bodies of tutor_finish_v1 and reconcile_tutor_sessions_v1, not 46's copies. A drifted line in a copied body outside the give-back paths would pass. Pin the copies textually against the down file, which the rollback test already proves equal to the pre-46 definitions.
+- verified-by: `migration 46 changes only its named lines in the three bodies it replaces`
+
+### F1042 — The README does not say what migration 46 requires or what silently undoes it
+- severity: P2
+- status: [x]
+- where: supabase/README.md:114
+- note: Reapplying 20261004010327 or 20261020140000, or running either of their rollbacks, after 46 replaces reserve_tutor_session_v1 with a body that reads issued alone while tutor_finish_v1 keeps giving back. F955 reopens with no error. Row 43's rollout tells the operator to apply 40 in one sitting with 41 and 43. Row 46 also names no prerequisites, though its reserve body is 40's and reads 35's per-account caps.
+- verified-by: `the migration 46 notes name what it requires and what silently undoes it`
+
+### F1043 — Measure how long a reconciler batch holds the service-wide day row on staging
+- severity: P3
+- status: [ ]
+- where: supabase/migrations/20261116120000_tutor_unjoined_release.sql:78
+- note: Deferred, not built in this PR. Settling an unjoined start locks that day's tutor_session_budget_days row until the transaction ends, and every reserve queues on it. The production reconciler passes p_limit 5 (services/token-server/src/maintenance.ts:9). In disposable PGlite a 5-candidate unjoined batch took about 5 ms and one reserve about 5 ms. Measure on staging after the apply, and again before anyone raises the batch size. If it matters, sort claimed candidates ahead of unjoined ones in the reconciler.
+- verified-by: `a reconciler batch of five holds the service-wide day row for under 50 ms on staging (measured)`

@@ -1393,6 +1393,18 @@ describe('database security contract — SQL cannot drift quietly', () => {
     assert.match(readme, /verify\/supabaseLive\.ts/, 'the runbook does not say how to verify the result');
   });
 
+  test('the migration 46 notes name what it requires and what silently undoes it', () => {
+    const readme = readFileSync(path.join(ROOT, 'supabase', 'README.md'), 'utf8');
+    const row = (start: string): string => readme.split('\n').find((line) => line.startsWith(start)) ?? '';
+    const apply = row('| 46 |');
+    for (const needed of ['Requires', '20261004010327', '20261020140000', 're-apply 46']) {
+      assert.ok(apply.includes(needed), `the migration 46 row does not name ${needed}`);
+    }
+    for (const file of ['20261020140000_weekly_free_taste.sql', '20261004010327_whole_product_paid_admission.sql']) {
+      assert.ok(row(`| \`${file}\` |`).includes('20261116120000'), `the ${file} rollback row does not warn that it undoes migration 46`);
+    }
+  });
+
   test('learner state has own-row read, insert, update and delete policies', () => {
     for (const operation of ['select', 'insert', 'update', 'delete']) {
       assert.match(migration, new RegExp(`on public\\.learner_state for ${operation}`, 'i'));
@@ -1751,7 +1763,7 @@ describe('unjoined tutor start release (F955)', () => {
   test('migration 46 sets a lock timeout in its up and its down file', () => {
     const file = migrationFiles.find((name) => RELEASE.test(name));
     assert.ok(file, 'migration 46 (supabase/migrations/*_tutor_unjoined_release.sql) does not exist');
-    const down = readFileSync(path.join(ROOT, 'supabase', 'rollback', `${file.split('_')[0]}_down.sql`), 'utf8');
+    const down = readFileSync(path.join(ROLLBACKS, `${file.split('_')[0]}_down.sql`), 'utf8');
     for (const [where, sql] of [['up', sqlOf(file)], ['down', down]] as const) {
       assert.match(stripComments(sql), /\bset\s+(local\s+)?lock_timeout\s*(=|to)\s*'\d+s?'/i, `the ${where} file takes its table locks with no lock_timeout`);
     }
@@ -1768,5 +1780,57 @@ describe('unjoined tutor start release (F955)', () => {
       const first = await call(db, 'public.reconcile_tutor_sessions_v1', [1, '{}']);
       assert.deepEqual(first.results.map((r: Json) => r.sessionId), [sid(2)], 'the reconciler took an owner\'s later day before an earlier day');
     } finally { await db.close(); }
+  });
+
+  test('a tutor start is stamped at the moment its day was counted', async () => {
+    const db = await fresh();
+    try {
+      await db.exec('begin');
+      await db.query('select pg_sleep(0.05)');
+      await reserved(db, 1, 1);
+      await db.exec('commit');
+      const same = (await db.query<{ same: boolean }>(`select g.created_at=g.join_deadline-make_interval(secs=>c.join_ttl_seconds) same
+        from public.session_grants g,public.tutor_session_admission_config c`)).rows[0]!.same;
+      assert.equal(same, true, 'the grant is stamped at its transaction start, not at the moment its day was counted');
+    } finally { await db.close(); }
+  });
+
+  test('migration 46 changes only its named lines in the three bodies it replaces', () => {
+    const file = migrationFiles.find((name) => RELEASE.test(name));
+    assert.ok(file, 'migration 46 (supabase/migrations/*_tutor_unjoined_release.sql) does not exist');
+    const up = stripComments(sqlOf(file));
+    const down = stripComments(readFileSync(path.join(ROLLBACKS, `${file.split('_')[0]}_down.sql`), 'utf8'));
+    const body = (sql: string, name: string): string => {
+      const start = sql.indexOf(`create or replace function ${name}(`);
+      assert.notEqual(start, -1, `no create or replace of ${name}`);
+      const end = sql.indexOf('end $$;', start);
+      return sql.slice(start, end + 'end $$;'.length).split('\n').map((line) => line.trimEnd()).join('\n');
+    };
+    const swap = (text: string, from: string | RegExp, to: string, name: string): string => {
+      const next = text.replace(from, to);
+      assert.notEqual(next, text, `${name}: the named change ${String(from)} is not in migration 46`);
+      return next;
+    };
+    const reversals: Record<string, [string | RegExp, string][]> = {
+      'luvani_private.tutor_finish_v1': [
+        [' v_day date;', ''],
+        [/\n  else\n[\s\S]*?\n    end if;\n(?=  end if;)/, '\n'],
+      ],
+      'public.reconcile_tutor_sessions_v1': [
+        ["order by (created_at at time zone 'UTC')::date,user_id,session_id", 'order by user_id,session_id'],
+      ],
+      'public.reserve_tutor_session_v1': [
+        ['issued_seconds-released_seconds into v_issued', 'issued_seconds into v_issued'],
+        ['-coalesce(v_owner_day.released_sessions,0)', ''],
+        ['-coalesce(v_owner_day.released_seconds,0)', ''],
+        ['stop_grace_seconds,created_at)', 'stop_grace_seconds)'],
+        ['cfg.stop_grace_seconds,v_now)', 'cfg.stop_grace_seconds)'],
+      ],
+    };
+    for (const name of REPLACED) {
+      let text = body(up, name);
+      for (const [from, to] of reversals[name]!) text = swap(text, from, to, name);
+      assert.equal(text, body(down, name), `migration 46 changes ${name} beyond its named lines`);
+    }
   });
 });

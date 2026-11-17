@@ -74,6 +74,7 @@ begin
   else
     -- F955: a start no tutor claimed gives its day back. Once, because a settled grant returns early above.
     -- Both day ledgers move or neither does; issued_* never fall. Lock order as reserve: budget day, account day.
+    -- The day row stays locked until this transaction ends and every reserve queues on it: keep reconciler batches small (the caller passes 5).
     v_day:=(g.created_at at time zone 'UTC')::date;
     perform 1 from public.tutor_session_budget_days where day=v_day and issued_seconds-released_seconds>=g.reserved_seconds for update;
     if found then
@@ -170,7 +171,7 @@ begin
     or pg_catalog.array_position(p_closed_session_ids,null) is not null then raise exception using errcode='PT400',message='invalid reconciliation batch'; end if;
   delete from public.tutor_room_stops where session_id=any(p_closed_session_ids);
   -- Read IDs without grant locks, then canonical owner -> entitlement -> grant.
-  -- Sorted owners also avoid inversions between multiple batches in one txn.
+  -- Oldest creation day first, so day rows lock in ascending order (F955). One batch per transaction: several batches in one txn can invert day order.
   for candidate in select user_id,session_id from public.session_grants where lifecycle_version=1 and state in ('reserved','active','cancel_requested')
     and ((claimed_at is null and (join_deadline<=pg_catalog.clock_timestamp() or state='cancel_requested'))
       or (claimed_at is not null and least(lease_until,hard_deadline)+pg_catalog.make_interval(secs=>stop_grace_seconds)<=pg_catalog.clock_timestamp()))

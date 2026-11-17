@@ -70,6 +70,7 @@ try {
   await db.exec(rollback);
   await db.exec(await readFile(new URL(lifecycle,root),'utf8'));
   // Later migrations that replace a lifecycle function must follow the reapply (F970).
+  // 46 is not reapplied here: this rollback drops the admission config and 35's cap columns, so 46's reserve cannot run; 46 is proved in the fresh replay below and pinned to these bodies by the F1041 test.
   for (const name of migrations.filter(n=>n.endsWith('_tutor_pack_learner_replies.sql'))) await db.exec(await readFile(new URL(name,root),'utf8'));
   assert.equal((await call('tutor_session_schema_v1')).enabled,false);
   groups.push('unissued maintenance rollback and reapply');
