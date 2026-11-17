@@ -12866,3 +12866,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/README.md:312
 - note: (a), docs, `data-engineer`. Eight named, nine run; rows 40, 41, 43, 44, 45 and F970's note contradict the launch log. Re-confirm line numbers after f955 lands. 2026-11-17: fixed; the runbook names all nine suites by script, rows 40, 41, 43, 44, 45 and 46 say when they reached staging, and F970's note is corrected.
 - verified-by: `the Supabase runbook names every SQL suite the gate runs`
+
+### F1084 — Finished erasure jobs keep the erased account's id with no keep period
+- severity: P2
+- status: [x]
+- where: supabase/migrations/20261003234853_privacy_maintenance_workflows.sql:3
+- note: PRODUCT, founder Q3 (2026-11-17): 30 days. (b), `privacy-safety-engineer`. Extend `run_data_retention_v1`; tombstones are documented, not expired. 2026-11-17: fixed in migration 49 (`supabase/migrations/20261117122000_erasure_job_retention.sql`), which adds one bounded batch removing finished `account_erasure_jobs` rows 30 days after `completed_at`; its rollback sits behind `luvani.rollback_erasure_retention`. No reader treats a finished job as evidence: the deletion endpoint answers `completed` and `gone` the same way, and journal replay accepts both. `conversation_practice_tombstones` stay, with the reason in docs/PRIVACY_AND_SAFETY.md. NOT applied to staging; that needs a founder yes. The learner-facing notice names no period for erasure records; adding one is the founder's call.
+- verified-by: `a finished erasure job is removed once its keep period has passed`

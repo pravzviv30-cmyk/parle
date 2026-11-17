@@ -41,6 +41,8 @@ Every durable store, with the retention that governs it. A row whose retention s
 | One row per purchase delivery already seen: vendor event id, account, event type | `public.billing_events` | A retried webhook grants an entitlement once | Life of the account | Cascade |
 | The account id a purchase is filed under, and what that account bought | RevenueCat, as `appUserID` | Take the payment and tell the app what was bought | Vendor-side retention remains unverified | Account deletion requests queued subscriber erasure; store subscriptions are cancelled in the store |
 | Issued session id and allowance epoch | `public.session_grants` | Keep late session settlement in its original allowance; verify owned refunds | Account lifetime, until account deletion; no automatic cleanup implemented | Account cascade; included in bounded account export |
+| Erasure record: the erased account id, processor and identity flags, attempt count, request and completion times, last failure stage | `public.account_erasure_jobs`, service role only | Finish an account deletion that must survive the auth cascade and be retried | Until 30 days after `completed_at`; an unfinished job stays until it completes (F1084) | Bounded delete in `run_data_retention_v1`, migration 49 (`20261117122000`), not yet applied to staging |
+| Practice pack tombstone: one bare random pack id, no owner and no content | `public.conversation_practice_tombstones`, service role only | Stop a late practice job restoring a pack the learner deleted | Kept indefinitely, on purpose (founder, 2026-11-17) | Nothing; see Deletion and export |
 | Two salted antifraud HMACs | `public.trial_installations` | One free trial per installation | 24 months from `claimed_at` | Scheduled delete only, never account deletion |
 | Rate-limit counters, session leases, guest records and metric counters | Upstash, `luvani:*` | Abuse and cost limits; bounded guest starter | Per-key TTL: rate windows 60 seconds to 24 hours, guest records 30 days, guest budget and scene day counters 2 days, aggregate starter metric counters 90 days | Key expiry |
 | Guest scene record, `luvani:guest:<sha256 of guest token>`: installation HMAC, plan answers (plus the brief for a convo guest), scene session id, seconds, learner turn count, outcome, and `sceneTurns` (fixed scripted turn ids, never learner text) | Upstash | Admit one bounded scripted scene and let the learner save it after registration | 30 days | Key expiry; not in the account export (see below) |
@@ -755,6 +757,17 @@ plainly that the online account is gone but this device still holds a copy.
 On the device, `luvani.installation.v1` and the legacy-migration marker survive,
 because the installation signal is exactly the thing a fresh account must not be
 able to reset. Neither carries learning, content or identity.
+
+A finished erasure record (`public.account_erasure_jobs`) keeps the erased account's
+id, so it is removed 30 days after the job completes (founder, 2026-11-17, F1084). An
+unfinished job is never removed. The deletion journal, not this table, is what a
+restore replays, and a restored identity whose record has gone simply gets a new job.
+
+Pack tombstones (`public.conversation_practice_tombstones`) are kept with no expiry,
+on purpose. Each is a bare random pack id with no owner column and no personal data;
+once the account is gone nothing links it to anyone. It is what stops a practice job
+that finishes late from restoring a pack the learner already deleted, and an expiry
+would reopen exactly that race (founder, 2026-11-17).
 
 **What stays outside our deletion guarantee.** The purchase processor accepts a queued
 erasure request before Luvani removes the identity. Its completion and any vendor-side
