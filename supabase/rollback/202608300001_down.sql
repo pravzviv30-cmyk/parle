@@ -21,6 +21,11 @@
 -- inventory of what that migration owns.
 
 -- function created by the migration
+do $$ begin
+  if current_setting('luvani.remove_billing_events', true) is distinct from 'yes' then
+    raise exception 'refusing to remove the billing event ledger without explicit interlock';
+  end if;
+end $$;
 drop function if exists public.record_billing_event(text, uuid);
 
 -- billing_events: index, then table. There are no policies to drop: the migration

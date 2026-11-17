@@ -12249,8 +12249,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   back (the next UTC day, in the learner's local time) so the app can say it.
   2026-11-16: fixed by migration 46 (`supabase/migrations/20261116120000_tutor_unjoined_release.sql`,
   F1000-F1003): a start no tutor ever claimed gives back its seconds and session once, issued
-  stays monotonic, and admission reads issued minus released. Not applied to staging until the
-  founder's yes. The `daily-budget` wording and `refillsAt` moved to F1008.
+  stays monotonic, and admission reads issued minus released. The `daily-budget` wording and
+  `refillsAt` moved to F1008. 2026-11-17: applied to staging by the coordinator as a single file
+  through the Supabase connector, in one transaction, after checking staging was on 45 with 42
+  absent; recorded as version `20261116120000` (`schema_migrations` 45 rows). Checks after: the
+  three `released_*` columns are present; all three functions are security definer with
+  `search_path=""`; the reconciler orders by day first; reserve and reconcile execute for
+  service_role only and finish for no API role; 42 is still held. Not applied to production.
 - verified-by: `a tutor start that never joins gives back its reserved daily seconds`
 
 ### F956 — The Practice tab nests a button inside a button
@@ -12580,7 +12585,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (0 to 9007199254740991, core's `replyCount`), rollback `supabase/rollback/20261110120000_down.sql`.
   The PGlite proof now checkpoints 0 and 2 and refuses bad values; a contract test validates a pack from
   core's own builder against the replayed SQL, so a new pack key cannot drift again. Fixed in the repo;
-  **not applied to staging or production** (founder applies separately).
+  applied to staging on 2026-11-10 (`docs/changes/beta-launch.md`, migration 45 row); not applied to production.
 - verified-by: `every key of a pack the app builds passes the replayed tutor baseline validator`
 
 ### F971 — Mission goals after the first never tick: the engine stays one beat behind the tutor
@@ -12849,15 +12854,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1081 — Ten destructive rollbacks run without an interlock
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: supabase/rollback/20261002233520_down.sql:1
-- note: (a), `data-engineer`. Six run cleanly on the full schema and drop the session, billing and saved-text tables; two more are stopped only by a dependency error. The other rollbacks refuse without a `luvani.*` setting. Two legacy proofs that execute these files must set it.
+- note: (a), `data-engineer`. Six run cleanly on the full schema and drop the session, billing and saved-text tables; two more are stopped only by a dependency error. The other rollbacks refuse without a `luvani.*` setting. Two legacy proofs that execute these files must set it. 2026-11-17: fixed; each of the ten opens with a `luvani.remove_*` interlock (names in `supabase/README.md` § Rollback), and `scripts/verifySessionRefunds.mjs` and `scripts/verifyPhraseAudioBudget.mjs` set theirs before the rollback.
 - verified-by: `every destructive rollback refuses without its interlock`
 - verified-by: `the old destructive rollbacks leave every table in place when run without their setting`
 
 ### F1082 — The Supabase runbook miscounts the gate's SQL suites and says applied migrations are not live
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: supabase/README.md:312
-- note: (a), docs, `data-engineer`. Eight named, nine run; rows 40, 41, 43, 44, 45 and F970's note contradict the launch log. Re-confirm line numbers after f955 lands.
+- note: (a), docs, `data-engineer`. Eight named, nine run; rows 40, 41, 43, 44, 45 and F970's note contradict the launch log. Re-confirm line numbers after f955 lands. 2026-11-17: fixed; the runbook names all nine suites by script, rows 40, 41, 43, 44, 45 and 46 say when they reached staging, and F970's note is corrected.
 - verified-by: `the Supabase runbook names every SQL suite the gate runs`

@@ -33,6 +33,11 @@
 -- calls, then the column both maintain — so nothing is left calling something that has
 -- already gone.
 
+do $$ begin
+  if current_setting('luvani.remove_state_revision', true) is distinct from 'yes' then
+    raise exception 'refusing to remove the learner state revision without explicit interlock';
+  end if;
+end $$;
 drop trigger if exists learner_state_revision_bump on public.learner_state;
 
 drop function if exists public.learner_state_bump_revision();

@@ -13,6 +13,11 @@
 -- the inventory of what that migration owns.
 
 -- function created by the migration
+do $$ begin
+  if current_setting('luvani.remove_learning_tables', true) is distinct from 'yes' then
+    raise exception 'refusing to drop every learner table without explicit interlock';
+  end if;
+end $$;
 drop function if exists public.consume_entitlement(uuid, integer);
 
 -- entitlements: policy, then table
